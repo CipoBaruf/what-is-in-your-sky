@@ -16,7 +16,7 @@ const golden = JSON.parse(readFileSync(join(FIXTURES_DIR, 'guide-sentences.json'
 const pass = goldenPassFixture();
 
 describe('elevationWord (FR-GUIDE-1)', () => {
-  it('names the four bands with each boundary in the higher band (D-30)', () => {
+  it('names the four bands with each boundary in the higher band (D-32)', () => {
     expect(elevationWord(10)).toBe('low');
     expect(elevationWord(24.9)).toBe('low');
     expect(elevationWord(25)).toBe('mid-sky');

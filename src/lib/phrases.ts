@@ -38,7 +38,7 @@ export type ElevationWord = 'low' | 'mid-sky' | 'high' | 'almost overhead';
 /**
  * FR-GUIDE-1 elevation-to-words: 10–25° low, 25–50° mid-sky, 50–75° high,
  * above 75° almost overhead. A value on a boundary belongs to the higher band
- * (25° is mid-sky, 50° is high, 75° is almost overhead; PLAN D-30).
+ * (25° is mid-sky, 50° is high, 75° is almost overhead; PLAN D-32).
  */
 export function elevationWord(elDeg: number): ElevationWord {
   if (elDeg < 25) return 'low';
