@@ -1,0 +1,375 @@
+[
+  {
+    "noradId": 25544,
+    "name": "ISS (Zarya)",
+    "category": "station",
+    "stdMag": -2.5,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"ISS\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "The International Space Station: the brightest thing in orbit, often outshining every star.",
+    "featured": true
+  },
+  {
+    "noradId": 48274,
+    "name": "Tiangong (Tianhe)",
+    "category": "station",
+    "stdMag": -1,
+    "stdMagSource": {
+      "source": "Estimate by the project (not in McCants qs.mag 2020-09-14, launched 2021)",
+      "date": "2026-09-02",
+      "note": "Completed three-module station is widely reported at about mag -2.5 to -3 on overhead passes; back-solved through D-1 at a 400 km range. Calibrate against a Heavens-Above fixture (follow-up from R3)."
+    },
+    "description": "The Chinese space station. Its Wentian, Mengtian and Shenzhou modules are docked to this core, so it is listed once under the Tianhe catalog number."
+  },
+  {
+    "noradId": 20580,
+    "name": "Hubble Space Telescope",
+    "category": "payload",
+    "stdMag": 1.5,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"HST\", comment \"occ flare to -4\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "The Hubble Space Telescope, in a low-inclination orbit visible only from low and mid latitudes."
+  },
+  {
+    "noradId": 25994,
+    "name": "Terra",
+    "category": "payload",
+    "stdMag": 2,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Terra\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "NASA Earth-observing satellite in a sun-synchronous orbit, seen near dawn and dusk."
+  },
+  {
+    "noradId": 27597,
+    "name": "Midori II (ADEOS-II)",
+    "category": "payload",
+    "stdMag": 2,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"ADEOS 2\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Large Japanese Earth-observation satellite, retired but still a bright object."
+  },
+  {
+    "noradId": 10967,
+    "name": "Seasat",
+    "category": "payload",
+    "stdMag": 2.5,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"SeaSat 1\", comment \"sometimes very bright\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "NASA ocean-radar satellite from 1978, still one of the brighter old payloads."
+  },
+  {
+    "noradId": 28931,
+    "name": "ALOS (Daichi)",
+    "category": "payload",
+    "stdMag": 2.5,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"ALOS\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Japanese Earth-observation satellite with a large solar array."
+  },
+  {
+    "noradId": 27386,
+    "name": "Envisat",
+    "category": "payload",
+    "stdMag": 3,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"EnviSat\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "ESA environmental satellite, the largest civilian Earth-observation spacecraft built."
+  },
+  {
+    "noradId": 29228,
+    "name": "Resurs-DK 1",
+    "category": "payload",
+    "stdMag": 3,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Resurs DK 1\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Russian Earth-imaging satellite in a low orbit."
+  },
+  {
+    "noradId": 25860,
+    "name": "Okean-O",
+    "category": "payload",
+    "stdMag": 3,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Okean O\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Russian-Ukrainian oceanographic satellite, retired."
+  },
+  {
+    "noradId": 31792,
+    "name": "Cosmos 2428",
+    "category": "payload",
+    "stdMag": 2.5,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Cosmos 2428\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Large Russian electronic-intelligence satellite (Tselina-2)."
+  },
+  {
+    "noradId": 22219,
+    "name": "Cosmos 2219",
+    "category": "payload",
+    "stdMag": 3,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Cosmos 2219\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Russian electronic-intelligence satellite (Tselina-2)."
+  },
+  {
+    "noradId": 27424,
+    "name": "Aqua",
+    "category": "payload",
+    "stdMag": 4,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"AQUA\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "NASA Earth-observing satellite, sister of Terra."
+  },
+  {
+    "noradId": 694,
+    "name": "Atlas Centaur 2 R/B",
+    "category": "rocket-body",
+    "stdMag": 2,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"At Cent 2\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Centaur upper stage from a 1963 test flight, one of the oldest bright objects in orbit."
+  },
+  {
+    "noradId": 26474,
+    "name": "Titan 4B R/B",
+    "category": "rocket-body",
+    "stdMag": 2,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Lacrosse 4 Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Titan IVB upper stage from the Lacrosse 4 launch."
+  },
+  {
+    "noradId": 27601,
+    "name": "H-2A R/B (ADEOS-II)",
+    "category": "rocket-body",
+    "stdMag": 2,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"ADEOS 2 H2A Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Japanese H-IIA upper stage."
+  },
+  {
+    "noradId": 38341,
+    "name": "H-2A R/B (GCOM-W1)",
+    "category": "rocket-body",
+    "stdMag": 2.5,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"GCOM W1 Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Japanese H-IIA upper stage."
+  },
+  {
+    "noradId": 28932,
+    "name": "H-2A R/B (ALOS)",
+    "category": "rocket-body",
+    "stdMag": 3,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"ALOS H2A Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Japanese H-IIA upper stage."
+  },
+  {
+    "noradId": 21610,
+    "name": "Ariane 40 R/B (ERS-1)",
+    "category": "rocket-body",
+    "stdMag": 3,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"ERS-1 Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Ariane 4 third stage in a sun-synchronous orbit."
+  },
+  {
+    "noradId": 23561,
+    "name": "Ariane 40+ R/B (ERS-2)",
+    "category": "rocket-body",
+    "stdMag": 3,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"ERS 2 Ar Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Ariane 4 third stage in a sun-synchronous orbit."
+  },
+  {
+    "noradId": 27422,
+    "name": "Ariane 42P R/B (SPOT 5)",
+    "category": "rocket-body",
+    "stdMag": 2.5,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Spot 5 A Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Ariane 4 third stage in a sun-synchronous orbit."
+  },
+  {
+    "noradId": 29507,
+    "name": "CZ-4B R/B (Shijian 6C)",
+    "category": "rocket-body",
+    "stdMag": 2,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"SJ 6C LM Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Chinese Long March 4B upper stage."
+  },
+  {
+    "noradId": 31114,
+    "name": "CZ-2C R/B (Haiyang 1B)",
+    "category": "rocket-body",
+    "stdMag": 2.5,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Haiyang 1B Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Chinese Long March 2C upper stage."
+  },
+  {
+    "noradId": 22220,
+    "name": "SL-16 R/B (Cosmos 2219)",
+    "category": "rocket-body",
+    "stdMag": 2,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Cosmos 2219 Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Zenit-2 second stage, a large tumbling cylinder that can rival the brightest stars."
+  },
+  {
+    "noradId": 23088,
+    "name": "SL-16 R/B (Cosmos 2278)",
+    "category": "rocket-body",
+    "stdMag": 2,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Cosmos 2278 Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Zenit-2 second stage, a large tumbling cylinder that can rival the brightest stars."
+  },
+  {
+    "noradId": 23705,
+    "name": "SL-16 R/B (Cosmos 2322)",
+    "category": "rocket-body",
+    "stdMag": 2,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Cosmos 2322 Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Zenit-2 second stage, a large tumbling cylinder that can rival the brightest stars."
+  },
+  {
+    "noradId": 24298,
+    "name": "SL-16 R/B (Cosmos 2333)",
+    "category": "rocket-body",
+    "stdMag": 2,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Cosmos 2333 Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Zenit-2 second stage, a large tumbling cylinder that can rival the brightest stars."
+  },
+  {
+    "noradId": 25407,
+    "name": "SL-16 R/B (Cosmos 2360)",
+    "category": "rocket-body",
+    "stdMag": 2,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Cosmos 2360 Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Zenit-2 second stage, a large tumbling cylinder that can rival the brightest stars."
+  },
+  {
+    "noradId": 26070,
+    "name": "SL-16 R/B (Cosmos 2369)",
+    "category": "rocket-body",
+    "stdMag": 2,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Cosmos 2369 Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Zenit-2 second stage, a large tumbling cylinder that can rival the brightest stars."
+  },
+  {
+    "noradId": 28353,
+    "name": "SL-16 R/B (Cosmos 2406)",
+    "category": "rocket-body",
+    "stdMag": 2,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Cosmos 2406 Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Zenit-2 second stage, a large tumbling cylinder that can rival the brightest stars."
+  },
+  {
+    "noradId": 31793,
+    "name": "SL-16 R/B (Cosmos 2428)",
+    "category": "rocket-body",
+    "stdMag": 2,
+    "stdMagSource": {
+      "source": "Mike McCants, Quicksat intrinsic magnitudes (qs.mag), mmccants.org/programs/qsmag.zip",
+      "date": "2020-09-14",
+      "note": "qs.mag row \"Cosmos 2428 Rk\". Intrinsic magnitude at 1000 km and half phase, the D-1 definition."
+    },
+    "description": "Zenit-2 second stage, a large tumbling cylinder that can rival the brightest stars."
+  }
+]
