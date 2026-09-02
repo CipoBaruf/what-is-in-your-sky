@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage:physics": "vitest run src/physics --coverage",
     "e2e": "vite build && playwright test",
     "validate:iss": "tsx scripts/validate-iss.ts",
     "check:catalog": "tsx scripts/check-catalog.ts"
@@ -33,6 +34,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
     "@vitejs/plugin-react": "^5.2.0",
+    "@vitest/coverage-v8": "3.2",
     "eslint": "^10.9.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.12.0",

@@ -16,15 +16,26 @@ export type HaEventKey = 'rises' | 'reaches10' | 'max' | 'drops10' | 'sets' | 'e
 export interface HaPass {
   date: string; // YYYY-MM-DD, as printed by Heavens-Above (UTC)
   magnitude: number;
-  events: Partial<Record<HaEventKey, HaEvent>> & { max: HaEvent };
-  /** Optional override of which event rows the summary table's Start / End columns show. */
-  summary?: { start?: HaEventKey; end?: HaEventKey };
+  /**
+   * Only the rows the detail page shows. `max` is absent when the pass has no
+   * "Maximum altitude" row, which Heavens-Above omits when the highest point
+   * coincides with the start or the end (a shadow boundary above 10°).
+   */
+  events: Partial<Record<HaEventKey, HaEvent>>;
+  /** Optional override of which event rows the summary table's Start / Highest / End columns show. */
+  summary?: { start?: HaEventKey; highest?: HaEventKey; end?: HaEventKey };
 }
 export interface HaFixture {
   capturedAt: string; // ISO 8601 UTC, to the minute
+  /** Observer name as entered on Heavens-Above, e.g. "Paris (spike)". R1's fixture predates the field. */
+  location?: string;
   observer: { lat: number; lon: number; altM: number };
   timeZone: 'UTC';
   haEpoch: string;
+  /** Name of the OMM capture to pair with (`tests/fixtures/omm/<name>-stations.json`); defaults to the fixture date. */
+  ommFixture?: string;
+  /** Heavens-Above's own search period (its page header). The comparison window is clipped to it. */
+  searchPeriod?: { start: string; end: string };
   filtersText: string;
   passes: HaPass[];
 }
@@ -55,12 +66,13 @@ const ms = (iso: string): number => {
   return t;
 };
 
-/** Step 9: which Heavens-Above rows begin and end the visible pass, and the implied end reason. */
+/** Step 9: which Heavens-Above rows begin, top and end the visible pass, and the implied boundary reasons. */
 export function haComparisonPoints(pass: HaPass): {
   start: HaEvent;
   peak: HaEvent;
   end: HaEvent;
   startKey: HaEventKey;
+  peakKey: HaEventKey;
   endKey: HaEventKey;
   endReason: PassBoundaryReason;
   startReason: PassBoundaryReason;
@@ -85,15 +97,26 @@ export function haComparisonPoints(pass: HaPass): {
   const start = e[startKey];
   const end = e[endKey];
   if (!start || !end) throw new Error(`Pass ${pass.date}: summary event missing`);
+  // Without a "Maximum altitude" row the summary's Highest column repeats the higher of start / end (end on a tie).
+  const peakKey = pass.summary?.highest ?? (e.max ? 'max' : end.altDeg >= start.altDeg ? endKey : startKey);
+  const peak = e[peakKey];
+  if (!peak) throw new Error(`Pass ${pass.date}: highest event ${peakKey} missing`);
   return {
     start,
-    peak: e.max,
+    peak,
     end,
     startKey,
+    peakKey,
     endKey,
     startReason: startKey === 'exitsShadow' ? 'shadow' : 'horizon',
     endReason: endKey === 'entersShadow' ? 'shadow' : 'horizon',
   };
+}
+
+/** Heavens-Above's visible duration for a pass, seconds, from its own start and end rows. */
+export function haVisibleDurationS(pass: HaPass): number {
+  const p = haComparisonPoints(pass);
+  return (ms(p.end.t) - ms(p.start.t)) / 1000;
 }
 
 export interface PointDelta {
@@ -107,6 +130,7 @@ export interface PairReport {
   start: PointDelta;
   peak: PointDelta;
   end: PointDelta;
+  startReasonExpected: PassBoundaryReason;
   endReasonExpected: PassBoundaryReason;
   endReasonMatches: boolean;
   haMagnitude: number;
@@ -116,6 +140,8 @@ export interface PairReport {
 export interface ComparisonReport {
   window: TimeWindow;
   pairs: PairReport[];
+  /** Fixture passes whose peak lies outside the comparison window; not compared. */
+  haOutsideWindow: HaPass[];
   unpairedHa: HaPass[];
   unpairedOurs: Pass[];
   unexplainedExtras: Pass[];
@@ -133,14 +159,23 @@ function delta(ours: { t: number; azDeg: number; elDeg: number }, ha: HaEvent): 
 const within = (d: PointDelta): boolean =>
   Math.abs(d.dtS) <= TIME_TOLERANCE_S && d.dAzDeg <= ANGLE_TOLERANCE_DEG && Math.abs(d.dElDeg) <= ANGLE_TOLERANCE_DEG;
 
-/** Step 3: the comparison window is [capturedAt, capturedAt + 10 days]. */
+/**
+ * Step 3: the comparison window is [capturedAt, capturedAt + 10 days],
+ * clipped to Heavens-Above's own search period when the fixture records it
+ * (a pass only one side searched for cannot be compared).
+ */
 export function comparisonWindow(fixture: HaFixture): TimeWindow {
   const startMs = ms(fixture.capturedAt);
-  return { startMs, endMs: startMs + WINDOW_DAYS * 86_400_000 };
+  const window = { startMs, endMs: startMs + WINDOW_DAYS * 86_400_000 };
+  if (fixture.searchPeriod) {
+    window.startMs = Math.max(window.startMs, ms(fixture.searchPeriod.start));
+    window.endMs = Math.min(window.endMs, ms(fixture.searchPeriod.end));
+  }
+  return window;
 }
 
 export function fixtureObserver(fixture: HaFixture): Observer {
-  return { ...fixture.observer, label: 'Neuquen (spike)', source: 'coords', timeZone: 'UTC' };
+  return { ...fixture.observer, label: fixture.location ?? 'Neuquen (spike)', source: 'coords', timeZone: 'UTC' };
 }
 
 /** Step 8: run our pipeline on the committed fixtures only. */
@@ -160,9 +195,15 @@ export function compare(fixture: HaFixture, ours: Pass[], explainedExtras: Expla
   const window = comparisonWindow(fixture);
   const remaining = new Set(ours);
   const pairs: PairReport[] = [];
+  const haOutsideWindow: HaPass[] = [];
   const unpairedHa: HaPass[] = [];
   for (const ha of fixture.passes) {
-    const tPeak = ms(ha.events.max.t);
+    const points = haComparisonPoints(ha);
+    const tPeak = ms(points.peak.t);
+    if (tPeak < window.startMs || tPeak > window.endMs) {
+      haOutsideWindow.push(ha);
+      continue;
+    }
     let best: Pass | null = null;
     for (const p of remaining) {
       const d = Math.abs(p.peak.t - tPeak);
@@ -173,7 +214,6 @@ export function compare(fixture: HaFixture, ours: Pass[], explainedExtras: Expla
       continue;
     }
     remaining.delete(best);
-    const points = haComparisonPoints(ha);
     const start = delta(best.start, points.start);
     const peak = delta(best.peak, points.peak);
     const end = delta(best.end, points.end);
@@ -184,6 +224,7 @@ export function compare(fixture: HaFixture, ours: Pass[], explainedExtras: Expla
       start,
       peak,
       end,
+      startReasonExpected: points.startReason,
       endReasonExpected: points.endReason,
       endReasonMatches,
       haMagnitude: ha.magnitude,
@@ -198,6 +239,7 @@ export function compare(fixture: HaFixture, ours: Pass[], explainedExtras: Expla
   return {
     window,
     pairs,
+    haOutsideWindow,
     unpairedHa,
     unpairedOurs,
     unexplainedExtras,
@@ -211,18 +253,26 @@ export function formatReport(report: ComparisonReport, explainedExtras: Explaine
   const f = (n: number, w: number, d = 1): string => n.toFixed(d).padStart(w);
   lines.push(`Window: ${isoUtc(report.window.startMs)} .. ${isoUtc(report.window.endMs)}`);
   lines.push('');
-  lines.push('HA peak (UTC)        | start Δt  Δaz  Δel | peak  Δt  Δaz  Δel | end   Δt  Δaz  Δel | end reason (ours/HA) | mag ours/HA | result');
-  lines.push('---------------------|--------------------|--------------------|--------------------|----------------------|-------------|-------');
+  lines.push('HA peak (UTC)        | start Δt  Δaz  Δel | peak  Δt  Δaz  Δel | end   Δt  Δaz  Δel | reasons ours/HA (start, end)   | mag ours/HA | result');
+  lines.push('---------------------|--------------------|--------------------|--------------------|--------------------------------|-------------|-------');
   for (const p of report.pairs) {
     const cell = (d: PointDelta): string => `${f(d.dtS, 6, 0)}s ${f(d.dAzDeg, 4)} ${f(d.dElDeg, 5)}`;
+    const points = haComparisonPoints(p.ha);
+    const reasons = `${p.ours.startReason}/${p.startReasonExpected}, ${p.ours.endReason}/${p.endReasonExpected}`;
     lines.push(
-      `${p.ha.events.max.t.slice(0, 19).padEnd(21)}| ${cell(p.start)} | ${cell(p.peak)} | ${cell(p.end)} | ${`${p.ours.endReason}/${p.endReasonExpected}`.padEnd(20)} | ${f(p.ourMagnitude, 5)}/${f(p.haMagnitude, 4)} | ${p.pass ? 'PASS' : 'FAIL'}`,
+      `${points.peak.t.slice(0, 19).padEnd(21)}| ${cell(p.start)} | ${cell(p.peak)} | ${cell(p.end)} | ${reasons.padEnd(30)} | ${f(p.ourMagnitude, 5)}/${f(p.haMagnitude, 4)} | ${p.pass ? 'PASS' : 'FAIL'}`,
     );
   }
   lines.push('');
+  if (report.haOutsideWindow.length) {
+    lines.push(`Heavens-Above passes outside the comparison window (not compared): ${report.haOutsideWindow.length}`);
+  }
   if (report.unpairedHa.length) {
     lines.push('Unpaired Heavens-Above passes (we did not find these):');
-    for (const ha of report.unpairedHa) lines.push(`  ${ha.events.max.t} max ${ha.events.max.altDeg}° az ${ha.events.max.azDeg}° mag ${ha.magnitude}`);
+    for (const ha of report.unpairedHa) {
+      const pt = haComparisonPoints(ha);
+      lines.push(`  ${pt.peak.t} max ${pt.peak.altDeg}° az ${pt.peak.azDeg}° mag ${ha.magnitude} (HA visible for ${haVisibleDurationS(ha)} s, ${pt.startKey}→${pt.endKey})`);
+    }
   } else {
     lines.push('No unpaired Heavens-Above passes.');
   }
@@ -231,7 +281,7 @@ export function formatReport(report: ComparisonReport, explainedExtras: Explaine
     for (const p of report.unpairedOurs) {
       const why = explainedExtras.find((x) => Math.abs(ms(x.peak) - p.peak.t) <= PAIRING_WINDOW_MS)?.reason;
       lines.push(
-        `  ${isoUtc(p.peak.t)} max ${p.peak.elDeg.toFixed(1)}° az ${p.peak.azDeg.toFixed(0)}° mag ${p.peakMagnitude.toFixed(1)} sunAlt ${p.sunAltAtPeakDeg.toFixed(1)}° twilight=${p.twilight} ${p.startReason}→${p.endReason}  ${why ? `explained: ${why}` : 'UNEXPLAINED'}`,
+        `  ${isoUtc(p.peak.t)} max ${p.peak.elDeg.toFixed(1)}° az ${p.peak.azDeg.toFixed(0)}° mag ${p.peakMagnitude.toFixed(1)} sunAlt ${p.sunAltAtPeakDeg.toFixed(1)}° twilight=${p.twilight} ${p.startReason}→${p.endReason} ${p.durationS.toFixed(0)} s  ${why ? `explained: ${why}` : 'UNEXPLAINED'}`,
       );
     }
   } else {

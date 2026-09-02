@@ -1,0 +1,13 @@
+{
+  "fetchedAt": "2026-09-02T13:27:43Z",
+  "source": "https://celestrak.org/NORAD/elements/gp.php?GROUP=<group>&FORMAT=json",
+  "groups": [
+    "stations",
+    "visual"
+  ],
+  "iss": {
+    "noradId": 25544,
+    "EPOCH": "2026-09-02T03:26:53.784384"
+  },
+  "note": "Second capture of 2026-09-02 (task H), taken within the same hour as the Paris and Singapore Heavens-Above fixtures. EPOCH strings from CelesTrak carry no zone suffix; they are UTC and are parsed as such."
+}

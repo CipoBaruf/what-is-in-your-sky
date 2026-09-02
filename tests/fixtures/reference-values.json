@@ -1,6 +1,6 @@
 {
   "note": "Pinned intermediate values at capturedAt of the Heavens-Above fixture. Later physics tasks assert against these (sdd-task). Never edit by hand; regenerate with `npx tsx scripts/validate-iss.ts --write-reference` only when a physics change is intended and the golden test still passes.",
-  "fixture": "2026-09-02",
+  "fixture": "2026-09-02-neuquen-iss",
   "ommFixture": "2026-09-02",
   "capturedAt": "2026-09-02T03:51Z",
   "t": 1788321060000,
@@ -38,6 +38,7 @@
     "y": 0.31807460878477584,
     "z": 0.13789526922842596
   },
+  "inUmbra": true,
   "firstGoldenPass": {
     "start": {
       "t": 1789120094063,
