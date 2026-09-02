@@ -82,7 +82,8 @@
     - One Playwright smoke test is green in CI: with `page.clock` fixed to the R1 `capturedAt` and CelesTrak routed to the R1 fixture, typing the Neuquén coordinates shows a line whose start time and max elevation match the first golden pass.
     - `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` all exit 0 and R1's golden test still passes.
 
-- [ ] **R3 — Pass list for the full curated catalog**
+- [x] **R3 — Pass list for the full curated catalog**
+  - **Note (2026-09-02):** done as specified, with one deliberate change: the list window is 24 h from "now" (FR-VIS-1's MVP window) instead of R2's 10-day ISS search, because ~30 objects × 10 days on the main thread would freeze the page for seconds; the Playwright clock is therefore pinned to `capturedAt + 9 d` so the golden pass stays in the window (PLAN D-20). `stdMag` values come from Mike McCants' `qs.mag` (2020-09-14), ISS = −2.5; Tiangong carries a documented estimate (PLAN D-22). Live check output (`present: 31, missing: 0`) is in PR #3.
   - **Built from:** T3, T7 (`visual` + `stations` fetch, dedupe, unavailable ids), T15 (plain cards, progressive rendering deferred to R5), T9 (16-point compass).
   - **Goal:** Replace the single ISS line with a list of every upcoming visible pass for the ~30-object MVP catalog, each card carrying the FR-VIS-3 fields in plain text.
   - **Satisfies:** FR-SAT-1, FR-SAT-5, FR-SAT-3 (catalog side), FR-VIS-1, US-5 (plain fields). **Advances:** FR-SAT-2, FR-SAT-4 (`epochMs` on every record), FR-SAT-6, FR-X-2 (README attributions), spec §8 rank 1 (ISS `featured`).
