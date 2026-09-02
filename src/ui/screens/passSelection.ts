@@ -15,7 +15,7 @@ export function passIdFromHash(hash: string): string | null {
   return id === '' ? null : id;
 }
 
-/** How far a pass start may drift from the id in the hash and still count as the same pass (D-31). */
+/** How far a pass start may drift from the id in the hash and still count as the same pass (D-33). */
 export const SAME_PASS_TOLERANCE_MS = 120_000;
 
 /**

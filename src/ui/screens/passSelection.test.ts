@@ -25,7 +25,7 @@ describe('findSelectedPass', () => {
     expect(findSelectedPass([], pass.id)).toBeNull();
   });
 
-  it('accepts the same object starting within the tolerance when the id has drifted (D-31)', () => {
+  it('accepts the same object starting within the tolerance when the id has drifted (D-33)', () => {
     const shifted = { ...pass, id: `25544-${String(pass.start.t + 1000)}`, start: { ...pass.start, t: pass.start.t + 1000 } };
     expect(findSelectedPass([other, shifted], pass.id)).toBe(shifted);
     const far = { ...shifted, id: `25544-${String(pass.start.t + SAME_PASS_TOLERANCE_MS + 1)}`, start: { ...pass.start, t: pass.start.t + SAME_PASS_TOLERANCE_MS + 1 } };
