@@ -22,7 +22,7 @@ describe('<PassNumbers> (US-6 AC2, FR-VIS-3)', () => {
     const { rerender } = render(<PassNumbers pass={pass} timeZone={null} />);
     const field = (label: string): string => screen.getByText(label, { selector: 'dt' }).nextElementSibling?.textContent ?? '';
     expect(field('Duration')).toBe('48 s');
-    expect(field('Magnitude')).toBe('+1.2, like an average star');
+    expect(field('Magnitude')).toBe('+0.5, like a bright star');
     expect(field('Range at peak')).toBe('1 505 km');
     expect(field('Starts when it')).toBe('appears');
     expect(field('Ends when it')).toBe('drops below the horizon');

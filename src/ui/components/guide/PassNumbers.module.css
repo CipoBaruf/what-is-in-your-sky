@@ -13,6 +13,7 @@
 }
 
 .caption {
+  white-space: normal;
   text-align: left;
   color: var(--fg-dim);
   padding-bottom: calc(var(--row) / 2);
