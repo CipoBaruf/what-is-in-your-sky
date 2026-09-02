@@ -138,7 +138,7 @@
     - `jest-axe` passes; the sheet has `role="dialog"`, a labelled heading, and focus moves into it on open and back on close.
     - Playwright: Neuquén flow → open the golden pass → the sentence on screen equals the golden string. Visual check at 390 px: sentence and countdown readable at arm's length; screenshot in the PR.
 
-- [ ] **R7 [P] — "Now" panel refreshing every 10 s**
+- [x] **R7 [P] — "Now" panel refreshing every 10 s** — done as written; `jest-axe` added as a dev dependency (PLAN §11.1 listed it, nothing had installed it), and the Playwright test also advances the page clock 10 s to see the countdown move (US-4 AC2 end to end).
   - **Built from:** T4 (`physics/now.ts`), T6 (`computeNow`), T11 (`now` slice and 10 s tick), T14.
   - **Goal:** Show at a glance which satellites are visible this instant, or state plainly why none are, updating every 10 s while the tab is visible.
   - **Satisfies:** FR-VIS-5, US-4, spec §5.6 "no darkness tonight". **Advances:** FR-WX-3 ("Now" half, cloud % arrives in R8).

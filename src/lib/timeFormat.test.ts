@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatClock, formatDate } from './timeFormat';
+import { formatClock, formatCountdown, formatDate } from './timeFormat';
 
 // First golden pass start from tests/fixtures/reference-values.json (R1).
 const GOLDEN_START_MS = 1789120094063; // 2026-09-11T09:48:14.063Z
@@ -30,5 +30,20 @@ describe('formatDate', () => {
     const t = Date.parse('2026-09-11T01:30:00Z');
     expect(formatDate(t, null)).toBe('2026-09-11');
     expect(formatDate(t, 'America/Argentina/Buenos_Aires')).toBe('2026-09-10');
+  });
+});
+
+describe('formatCountdown', () => {
+  it('formats m:ss, rounding to the second', () => {
+    expect(formatCountdown(192_000)).toBe('3:12');
+    expect(formatCountdown(7_400)).toBe('0:07');
+    expect(formatCountdown(725_000)).toBe('12:05');
+    expect(formatCountdown(65 * 60_000)).toBe('65:00');
+    expect(formatCountdown(0)).toBe('0:00');
+  });
+
+  it('clamps negative and non-finite input to 0:00', () => {
+    expect(formatCountdown(-5_000)).toBe('0:00');
+    expect(formatCountdown(Number.NaN)).toBe('0:00');
   });
 });
