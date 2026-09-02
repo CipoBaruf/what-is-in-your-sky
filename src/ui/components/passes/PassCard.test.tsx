@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { Pass } from '../../../model';
+import type { Pass, WeatherSnapshot } from '../../../model';
 import { PassCard } from './PassCard';
 
 const samplePass: Pass = {
@@ -19,6 +19,21 @@ const samplePass: Pass = {
   twilight: true,
   track: [],
   elementsEpochMs: 1788291742677,
+};
+
+const HOUR = 3_600_000;
+const peakHour = Math.floor(samplePass.peak.t / HOUR) * HOUR;
+const forecast: WeatherSnapshot = {
+  provider: 'open-meteo',
+  lat: -38.9,
+  lon: -68,
+  cellKey: '-38.9,-68.0',
+  fetchedAt: samplePass.start.t - 2 * HOUR,
+  timeZone: 'America/Argentina/Salta',
+  hourly: [
+    { t: peakHour, totalPct: 20, lowPct: 10, midPct: 10, highPct: 40 },
+    { t: peakHour + HOUR, totalPct: 20, lowPct: 10, midPct: 10, highPct: 40 },
+  ],
 };
 
 describe('<PassCard>', () => {
@@ -46,6 +61,18 @@ describe('<PassCard>', () => {
     expect(screen.getByRole('article')).toHaveTextContent('sky still bright');
     rerender(<PassCard pass={{ ...samplePass, twilight: false }} timeZone={null} />);
     expect(screen.getByRole('article')).not.toHaveTextContent('sky still bright');
+  });
+
+  it('wears the cloud verdict at the peak when given a forecast, "weather unknown" for null, and no row when omitted (FR-WX-3)', () => {
+    const { rerender } = render(<PassCard pass={samplePass} timeZone="America/Argentina/Salta" weather={forecast} />);
+    const card = screen.getByRole('article');
+    // 0.6·10 + 0.3·10 + 0.1·40 = 13 %
+    expect(within(card).getByText('Clear, 13 % cloud')).toHaveAttribute('data-state', 'clear');
+    expect(within(card).getByRole('tooltip')).toHaveTextContent('fetched 2026-09-11 04:48:14 GMT-3');
+    rerender(<PassCard pass={samplePass} timeZone={null} weather={null} />);
+    expect(within(card).getByText('Weather unknown')).toHaveAttribute('data-state', 'unknown');
+    rerender(<PassCard pass={samplePass} timeZone={null} />);
+    expect(within(card).queryByText('Clouds', { selector: 'dt' })).toBeNull();
   });
 
   it('offers an "Open guide" control named after the pass only when it can open', async () => {

@@ -1,0 +1,53 @@
+/* Above the card's "Open guide" overlay so hover reaches the badge. */
+.wrap {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.badge {
+  cursor: help;
+}
+
+.badge::before {
+  content: '[';
+}
+
+.badge::after {
+  content: ']';
+}
+
+.badge[data-state='clear'] {
+  color: var(--ok);
+}
+
+.badge[data-state='partly'] {
+  color: var(--warn);
+}
+
+.badge[data-state='obscured'] {
+  color: var(--danger);
+}
+
+.badge[data-state='unknown'] {
+  color: var(--fg-dim);
+}
+
+.badge:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Shown in flow under the badge (no absolute positioning: nothing can overflow the phone width). */
+.tip {
+  display: none;
+  color: var(--fg-dim);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.wrap:hover .tip,
+.badge:focus-visible + .tip {
+  display: block;
+}
