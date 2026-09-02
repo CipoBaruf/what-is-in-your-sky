@@ -1,0 +1,689 @@
+{
+  "capturedAt": "2026-09-02T13:27Z",
+  "location": "Paris (spike)",
+  "observer": {
+    "lat": 48.86,
+    "lon": 2.35,
+    "altM": 0
+  },
+  "timeZone": "UTC",
+  "haEpoch": "2026-09-02T03:26:53Z",
+  "ommFixture": "2026-09-02T13",
+  "searchPeriod": {
+    "start": "2026-09-02T00:00Z",
+    "end": "2026-09-12T00:00Z"
+  },
+  "filtersText": "PassSummary.aspx?satid=25544 header: 'Search period start: 02 September 2026 00:00 / Search period end: 12 September 2026 00:00 / Orbit: 416 x 423 km, 51.6° (Epoch: 2 September) / Passes to include: visible only | all'. The page states no altitude or brightness cutoff in words; the Start and End columns are the 10° crossings or the shadow boundary, whichever comes later / earlier.",
+  "summaryTable": {
+    "note": "Rows as printed on PassSummary.aspx (16-point compass only; times differ from the detail page by up to 5 s). Kept for reference; the comparison uses the detail-page events below. Rows before capturedAt are outside the comparison window and were not transcribed from their detail pages.",
+    "rows": [
+      {
+        "date": "2 Sep",
+        "magnitude": -2.1,
+        "start": "02:19:51 34° ENE",
+        "highest": "02:19:51 34° ENE",
+        "end": "02:21:59 10° E",
+        "passType": "visible"
+      },
+      {
+        "date": "2 Sep",
+        "magnitude": -3.8,
+        "start": "03:52:51 14° WNW",
+        "highest": "03:55:34 61° SSW",
+        "end": "03:58:52 10° SE",
+        "passType": "visible"
+      },
+      {
+        "date": "3 Sep",
+        "magnitude": -3.9,
+        "start": "03:07:51 70° W",
+        "highest": "03:08:10 84° SSW",
+        "end": "03:11:32 10° ESE",
+        "passType": "visible"
+      },
+      {
+        "date": "4 Sep",
+        "magnitude": -1.3,
+        "start": "02:23:07 18° ESE",
+        "highest": "02:23:07 18° ESE",
+        "end": "02:24:05 10° ESE",
+        "passType": "visible"
+      },
+      {
+        "date": "4 Sep",
+        "magnitude": -2.8,
+        "start": "03:56:09 22° WSW",
+        "highest": "03:57:21 28° SW",
+        "end": "04:00:16 10° SSE",
+        "passType": "visible"
+      },
+      {
+        "date": "5 Sep",
+        "magnitude": -2.1,
+        "start": "03:11:45 22° SSE",
+        "highest": "03:11:45 22° SSE",
+        "end": "03:13:12 10° SE",
+        "passType": "visible"
+      },
+      {
+        "date": "7 Sep",
+        "magnitude": -1.2,
+        "start": "19:54:53 10° S",
+        "highest": "19:54:55 10° S",
+        "end": "19:54:55 10° S",
+        "passType": "visible"
+      },
+      {
+        "date": "8 Sep",
+        "magnitude": -1.7,
+        "start": "19:08:36 10° SSE",
+        "highest": "19:10:03 12° SE",
+        "end": "19:10:29 12° SE",
+        "passType": "visible"
+      },
+      {
+        "date": "8 Sep",
+        "magnitude": -1.2,
+        "start": "20:42:58 10° SW",
+        "highest": "20:43:31 14° SW",
+        "end": "20:43:31 14° SW",
+        "passType": "visible"
+      },
+      {
+        "date": "9 Sep",
+        "magnitude": -3.3,
+        "start": "19:55:42 10° SW",
+        "highest": "19:58:44 40° SSE",
+        "end": "19:58:44 40° SSE",
+        "passType": "visible"
+      },
+      {
+        "date": "10 Sep",
+        "magnitude": -2.7,
+        "start": "19:08:36 10° SSW",
+        "highest": "19:11:31 27° SE",
+        "end": "19:13:40 15° E",
+        "passType": "visible"
+      },
+      {
+        "date": "10 Sep",
+        "magnitude": -2.1,
+        "start": "20:44:44 10° WSW",
+        "highest": "20:46:39 31° W",
+        "end": "20:46:39 31° W",
+        "passType": "visible"
+      },
+      {
+        "date": "11 Sep",
+        "magnitude": -3.9,
+        "start": "19:57:15 10° WSW",
+        "highest": "20:00:37 82° SSE",
+        "end": "20:01:22 51° ENE",
+        "passType": "visible"
+      },
+      {
+        "date": "11 Sep",
+        "magnitude": -0.4,
+        "start": "21:34:17 10° W",
+        "highest": "21:34:20 10° W",
+        "end": "21:34:20 10° W",
+        "passType": "visible"
+      }
+    ]
+  },
+  "passesBeforeCapturedAt": [
+    "2026-09-02 02:19:51 (max 34° ENE, mag -2.1)",
+    "2026-09-02 03:52:51 (max 61° SSW, mag -3.8)"
+  ],
+  "passes": [
+    {
+      "date": "2026-09-03",
+      "magnitude": -3.9,
+      "detail": {
+        "note": "passdetails.aspx mjd=61286.130677032 type=V. Columns: Event, Time, Altitude, Azimuth, Distance (km), Brightness, Sun altitude. Altitudes are printed as whole degrees.",
+        "distanceKm": {
+          "exitsShadow": 446,
+          "max": 424,
+          "drops10": 1491,
+          "sets": 2352
+        },
+        "brightness": {
+          "exitsShadow": -3.9,
+          "max": -3.9,
+          "drops10": -0.6,
+          "sets": 0.5
+        },
+        "sunAltDeg": {
+          "exitsShadow": -19,
+          "max": -18.9,
+          "drops10": -18.5,
+          "sets": -18.2
+        }
+      },
+      "events": {
+        "exitsShadow": {
+          "t": "2026-09-03T03:07:51Z",
+          "altDeg": 71,
+          "azDeg": 274,
+          "compass": "W"
+        },
+        "max": {
+          "t": "2026-09-03T03:08:10Z",
+          "altDeg": 84,
+          "azDeg": 203,
+          "compass": "SSW"
+        },
+        "drops10": {
+          "t": "2026-09-03T03:11:31Z",
+          "altDeg": 10,
+          "azDeg": 114,
+          "compass": "ESE"
+        },
+        "sets": {
+          "t": "2026-09-03T03:13:37Z",
+          "altDeg": 0,
+          "azDeg": 114,
+          "compass": "ESE"
+        }
+      }
+    },
+    {
+      "date": "2026-09-04",
+      "magnitude": -1.3,
+      "detail": {
+        "note": "passdetails.aspx mjd=61287.0993953821 type=V. Columns: Event, Time, Altitude, Azimuth, Distance (km), Brightness, Sun altitude. Altitudes are printed as whole degrees.",
+        "distanceKm": {
+          "exitsShadow": 1106,
+          "drops10": 1492,
+          "sets": 2354
+        },
+        "brightness": {
+          "exitsShadow": -1.3,
+          "drops10": -0.6,
+          "sets": 0.4
+        },
+        "sunAltDeg": {
+          "exitsShadow": -24.7,
+          "drops10": -24.6,
+          "sets": -24.3
+        }
+      },
+      "events": {
+        "exitsShadow": {
+          "t": "2026-09-04T02:23:07Z",
+          "altDeg": 18,
+          "azDeg": 102,
+          "compass": "ESE"
+        },
+        "drops10": {
+          "t": "2026-09-04T02:24:05Z",
+          "altDeg": 10,
+          "azDeg": 104,
+          "compass": "ESE"
+        },
+        "sets": {
+          "t": "2026-09-04T02:26:11Z",
+          "altDeg": 0,
+          "azDeg": 106,
+          "compass": "ESE"
+        }
+      }
+    },
+    {
+      "date": "2026-09-04",
+      "magnitude": -2.8,
+      "detail": {
+        "note": "passdetails.aspx mjd=61287.1648299102 type=V. Columns: Event, Time, Altitude, Azimuth, Distance (km), Brightness, Sun altitude. Altitudes are printed as whole degrees.",
+        "distanceKm": {
+          "exitsShadow": 962,
+          "max": 812,
+          "drops10": 1487,
+          "sets": 2347
+        },
+        "brightness": {
+          "exitsShadow": -2.6,
+          "max": -2.8,
+          "drops10": -1,
+          "sets": 0.2
+        },
+        "sunAltDeg": {
+          "exitsShadow": -12.5,
+          "max": -12.3,
+          "drops10": -11.9,
+          "sets": -11.5
+        }
+      },
+      "events": {
+        "exitsShadow": {
+          "t": "2026-09-04T03:56:09Z",
+          "altDeg": 22,
+          "azDeg": 252,
+          "compass": "WSW"
+        },
+        "max": {
+          "t": "2026-09-04T03:57:21Z",
+          "altDeg": 28,
+          "azDeg": 216,
+          "compass": "SW"
+        },
+        "drops10": {
+          "t": "2026-09-04T04:00:16Z",
+          "altDeg": 10,
+          "azDeg": 155,
+          "compass": "SSE"
+        },
+        "sets": {
+          "t": "2026-09-04T04:02:31Z",
+          "altDeg": 0,
+          "azDeg": 143,
+          "compass": "SE"
+        }
+      }
+    },
+    {
+      "date": "2026-09-05",
+      "magnitude": -2.1,
+      "detail": {
+        "note": "passdetails.aspx mjd=61288.1331640143 type=V. Columns: Event, Time, Altitude, Azimuth, Distance (km), Brightness, Sun altitude. Altitudes are printed as whole degrees.",
+        "distanceKm": {
+          "exitsShadow": 962,
+          "drops10": 1488,
+          "sets": 2349
+        },
+        "brightness": {
+          "exitsShadow": -2,
+          "drops10": -0.9,
+          "sets": 0.2
+        },
+        "sunAltDeg": {
+          "exitsShadow": -19,
+          "drops10": -18.8,
+          "sets": -18.5
+        }
+      },
+      "events": {
+        "exitsShadow": {
+          "t": "2026-09-05T03:11:45Z",
+          "altDeg": 22,
+          "azDeg": 153,
+          "compass": "SSE"
+        },
+        "drops10": {
+          "t": "2026-09-05T03:13:12Z",
+          "altDeg": 10,
+          "azDeg": 140,
+          "compass": "SE"
+        },
+        "sets": {
+          "t": "2026-09-05T03:15:20Z",
+          "altDeg": 0,
+          "azDeg": 133,
+          "compass": "SE"
+        }
+      }
+    },
+    {
+      "date": "2026-09-07",
+      "magnitude": -1.2,
+      "detail": {
+        "note": "passdetails.aspx mjd=61290.8298090826 type=V. Columns: Event, Time, Altitude, Azimuth, Distance (km), Brightness, Sun altitude. Altitudes are printed as whole degrees.",
+        "distanceKm": {
+          "rises": 2352,
+          "reaches10": 1492,
+          "entersShadow": 1486
+        },
+        "brightness": {
+          "rises": 0,
+          "reaches10": -1.2,
+          "entersShadow": -1.2
+        },
+        "sunAltDeg": {
+          "rises": -15.1,
+          "reaches10": -15.5,
+          "entersShadow": -15.5
+        }
+      },
+      "events": {
+        "rises": {
+          "t": "2026-09-07T19:52:24Z",
+          "altDeg": 0,
+          "azDeg": 204,
+          "compass": "SSW"
+        },
+        "reaches10": {
+          "t": "2026-09-07T19:54:54Z",
+          "altDeg": 10,
+          "azDeg": 185,
+          "compass": "S"
+        },
+        "entersShadow": {
+          "t": "2026-09-07T19:54:55Z",
+          "altDeg": 10,
+          "azDeg": 185,
+          "compass": "S"
+        }
+      }
+    },
+    {
+      "date": "2026-09-08",
+      "magnitude": -1.7,
+      "detail": {
+        "note": "passdetails.aspx mjd=61291.7986469555 type=V. Columns: Event, Time, Altitude, Azimuth, Distance (km), Brightness, Sun altitude. Altitudes are printed as whole degrees.",
+        "distanceKm": {
+          "rises": 2352,
+          "reaches10": 1493,
+          "max": 1365,
+          "entersShadow": 1378
+        },
+        "brightness": {
+          "rises": 0,
+          "reaches10": -1.3,
+          "max": -1.7,
+          "entersShadow": -1.7
+        },
+        "sunAltDeg": {
+          "rises": -8.3,
+          "reaches10": -8.8,
+          "max": -9,
+          "entersShadow": -9.1
+        }
+      },
+      "events": {
+        "rises": {
+          "t": "2026-09-08T19:05:32Z",
+          "altDeg": 0,
+          "azDeg": 192,
+          "compass": "SSW"
+        },
+        "reaches10": {
+          "t": "2026-09-08T19:08:37Z",
+          "altDeg": 10,
+          "azDeg": 160,
+          "compass": "SSE"
+        },
+        "max": {
+          "t": "2026-09-08T19:10:03Z",
+          "altDeg": 12,
+          "azDeg": 135,
+          "compass": "SE"
+        },
+        "entersShadow": {
+          "t": "2026-09-08T19:10:29Z",
+          "altDeg": 12,
+          "azDeg": 127,
+          "compass": "SE"
+        }
+      }
+    },
+    {
+      "date": "2026-09-08",
+      "magnitude": -1.2,
+      "detail": {
+        "note": "passdetails.aspx mjd=61291.8635578045 type=V. Columns: Event, Time, Altitude, Azimuth, Distance (km), Brightness, Sun altitude. Altitudes are printed as whole degrees.",
+        "distanceKm": {
+          "rises": 2356,
+          "reaches10": 1494,
+          "entersShadow": 1284
+        },
+        "brightness": {
+          "rises": 0.3,
+          "reaches10": -0.8,
+          "entersShadow": -1.2
+        },
+        "sunAltDeg": {
+          "rises": -22.1,
+          "reaches10": -22.4,
+          "entersShadow": -22.5
+        }
+      },
+      "events": {
+        "rises": {
+          "t": "2026-09-08T20:40:53Z",
+          "altDeg": 0,
+          "azDeg": 236,
+          "compass": "SW"
+        },
+        "reaches10": {
+          "t": "2026-09-08T20:42:59Z",
+          "altDeg": 10,
+          "azDeg": 232,
+          "compass": "SW"
+        },
+        "entersShadow": {
+          "t": "2026-09-08T20:43:31Z",
+          "altDeg": 14,
+          "azDeg": 231,
+          "compass": "SW"
+        }
+      }
+    },
+    {
+      "date": "2026-09-09",
+      "magnitude": -3.3,
+      "detail": {
+        "note": "passdetails.aspx mjd=61292.8324575377 type=V. Columns: Event, Time, Altitude, Azimuth, Distance (km), Brightness, Sun altitude. Altitudes are printed as whole degrees.",
+        "distanceKm": {
+          "rises": 2356,
+          "reaches10": 1494,
+          "entersShadow": 634
+        },
+        "brightness": {
+          "rises": 0.3,
+          "reaches10": -0.8,
+          "entersShadow": -3.3
+        },
+        "sunAltDeg": {
+          "rises": -16,
+          "reaches10": -16.3,
+          "entersShadow": -16.7
+        }
+      },
+      "events": {
+        "rises": {
+          "t": "2026-09-09T19:53:34Z",
+          "altDeg": 0,
+          "azDeg": 226,
+          "compass": "SW"
+        },
+        "reaches10": {
+          "t": "2026-09-09T19:55:43Z",
+          "altDeg": 10,
+          "azDeg": 219,
+          "compass": "SW"
+        },
+        "entersShadow": {
+          "t": "2026-09-09T19:58:44Z",
+          "altDeg": 40,
+          "azDeg": 156,
+          "compass": "SSE"
+        }
+      }
+    },
+    {
+      "date": "2026-09-10",
+      "magnitude": -2.7,
+      "detail": {
+        "note": "passdetails.aspx mjd=61293.799667703 type=V. Columns: Event, Time, Altitude, Azimuth, Distance (km), Brightness, Sun altitude. Altitudes are printed as whole degrees.",
+        "distanceKm": {
+          "rises": 2355,
+          "reaches10": 1494,
+          "max": 832,
+          "entersShadow": 1242
+        },
+        "brightness": {
+          "rises": 0.3,
+          "reaches10": -0.9,
+          "max": -2.7,
+          "entersShadow": -2
+        },
+        "sunAltDeg": {
+          "rises": -9.2,
+          "reaches10": -9.5,
+          "max": -10,
+          "entersShadow": -10.3
+        }
+      },
+      "events": {
+        "rises": {
+          "t": "2026-09-10T19:06:21Z",
+          "altDeg": 0,
+          "azDeg": 216,
+          "compass": "SW"
+        },
+        "reaches10": {
+          "t": "2026-09-10T19:08:37Z",
+          "altDeg": 10,
+          "azDeg": 204,
+          "compass": "SSW"
+        },
+        "max": {
+          "t": "2026-09-10T19:11:31Z",
+          "altDeg": 27,
+          "azDeg": 144,
+          "compass": "SE"
+        },
+        "entersShadow": {
+          "t": "2026-09-10T19:13:40Z",
+          "altDeg": 15,
+          "azDeg": 92,
+          "compass": "E"
+        }
+      }
+    },
+    {
+      "date": "2026-09-10",
+      "magnitude": -2.1,
+      "detail": {
+        "note": "passdetails.aspx mjd=61293.8657313272 type=V. Columns: Event, Time, Altitude, Azimuth, Distance (km), Brightness, Sun altitude. Altitudes are printed as whole degrees.",
+        "distanceKm": {
+          "rises": 2360,
+          "reaches10": 1497,
+          "entersShadow": 759
+        },
+        "brightness": {
+          "rises": 0.5,
+          "reaches10": -0.5,
+          "entersShadow": -2.2
+        },
+        "sunAltDeg": {
+          "rises": -23.1,
+          "reaches10": -23.4,
+          "entersShadow": -23.6
+        }
+      },
+      "events": {
+        "rises": {
+          "t": "2026-09-10T20:42:39Z",
+          "altDeg": 0,
+          "azDeg": 254,
+          "compass": "WSW"
+        },
+        "reaches10": {
+          "t": "2026-09-10T20:44:45Z",
+          "altDeg": 10,
+          "azDeg": 255,
+          "compass": "WSW"
+        },
+        "entersShadow": {
+          "t": "2026-09-10T20:46:39Z",
+          "altDeg": 31,
+          "azDeg": 261,
+          "compass": "W"
+        }
+      }
+    },
+    {
+      "date": "2026-09-11",
+      "magnitude": -3.9,
+      "detail": {
+        "note": "passdetails.aspx mjd=61294.833763125 type=V. Columns: Event, Time, Altitude, Azimuth, Distance (km), Brightness, Sun altitude. Altitudes are printed as whole degrees.",
+        "distanceKm": {
+          "rises": 2359,
+          "reaches10": 1497,
+          "max": 427,
+          "entersShadow": 534
+        },
+        "brightness": {
+          "rises": 0.6,
+          "reaches10": -0.5,
+          "max": -3.9,
+          "entersShadow": -3.6
+        },
+        "sunAltDeg": {
+          "rises": -16.9,
+          "reaches10": -17.2,
+          "max": -17.7,
+          "entersShadow": -17.8
+        }
+      },
+      "events": {
+        "rises": {
+          "t": "2026-09-11T19:55:09Z",
+          "altDeg": 0,
+          "azDeg": 245,
+          "compass": "WSW"
+        },
+        "reaches10": {
+          "t": "2026-09-11T19:57:15Z",
+          "altDeg": 10,
+          "azDeg": 245,
+          "compass": "WSW"
+        },
+        "max": {
+          "t": "2026-09-11T20:00:37Z",
+          "altDeg": 82,
+          "azDeg": 157,
+          "compass": "SSE"
+        },
+        "entersShadow": {
+          "t": "2026-09-11T20:01:22Z",
+          "altDeg": 51,
+          "azDeg": 78,
+          "compass": "ENE"
+        }
+      }
+    },
+    {
+      "date": "2026-09-11",
+      "magnitude": -0.4,
+      "detail": {
+        "note": "passdetails.aspx mjd=61294.898850692 type=V. Columns: Event, Time, Altitude, Azimuth, Distance (km), Brightness, Sun altitude. Altitudes are printed as whole degrees.",
+        "distanceKm": {
+          "rises": 2363,
+          "reaches10": 1499,
+          "entersShadow": 1483
+        },
+        "brightness": {
+          "rises": 0.6,
+          "reaches10": -0.4,
+          "entersShadow": -0.4
+        },
+        "sunAltDeg": {
+          "rises": -29.3,
+          "reaches10": -29.5,
+          "entersShadow": -29.5
+        }
+      },
+      "events": {
+        "rises": {
+          "t": "2026-09-11T21:32:09Z",
+          "altDeg": 0,
+          "azDeg": 274,
+          "compass": "W"
+        },
+        "reaches10": {
+          "t": "2026-09-11T21:34:18Z",
+          "altDeg": 10,
+          "azDeg": 280,
+          "compass": "W"
+        },
+        "entersShadow": {
+          "t": "2026-09-11T21:34:20Z",
+          "altDeg": 10,
+          "azDeg": 280,
+          "compass": "W"
+        }
+      }
+    }
+  ]
+}
