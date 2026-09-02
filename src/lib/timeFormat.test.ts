@@ -32,3 +32,18 @@ describe('formatDate', () => {
     expect(formatDate(t, 'America/Argentina/Buenos_Aires')).toBe('2026-09-10');
   });
 });
+
+describe('formatCountdown', () => {
+  it('formats m:ss, rounding to the second', () => {
+    expect(formatCountdown(192_000)).toBe('3:12');
+    expect(formatCountdown(7_400)).toBe('0:07');
+    expect(formatCountdown(725_000)).toBe('12:05');
+    expect(formatCountdown(65 * 60_000)).toBe('65:00');
+    expect(formatCountdown(0)).toBe('0:00');
+  });
+
+  it('clamps negative and non-finite input to 0:00', () => {
+    expect(formatCountdown(-5_000)).toBe('0:00');
+    expect(formatCountdown(Number.NaN)).toBe('0:00');
+  });
+});

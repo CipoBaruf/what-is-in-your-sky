@@ -8,3 +8,4 @@ export * from './magnitude';
 export * from './visibility';
 export * from './passes';
 export * from './darkness';
+export * from './now';
