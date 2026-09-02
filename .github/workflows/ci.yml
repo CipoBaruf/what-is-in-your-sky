@@ -7,7 +7,7 @@ on:
 
 jobs:
   ci:
-    # PLAN §11: typecheck → lint → unit + golden + component → build → Playwright.
+    # PLAN §11: typecheck → lint → unit + golden + component + worker integration → build → Playwright.
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -19,9 +19,10 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      # Chromium is needed by `npm test` too: the Vitest browser project boots the real worker (R5).
+      - run: npx playwright install --with-deps chromium
       - run: npm test
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
       - run: npx playwright test
       - uses: actions/upload-artifact@v4
         if: failure()
