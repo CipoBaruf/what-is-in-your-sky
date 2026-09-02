@@ -1,0 +1,18 @@
+// Cloudflare Workers static assets (PLAN D-12 as amended in §2.5). Workers Builds
+// runs `npm run build` then `npx wrangler deploy` with this file; without it every
+// build re-runs wrangler's autoconfig, which rewrites vite.config.ts in the build
+// sandbox. There is no Worker script: `dist/` is served as-is and `public/_headers`
+// (copied into `dist/` by Vite) supplies the PLAN §11 headers.
+{
+  "name": "what-is-in-your-sky",
+  "compatibility_date": "2026-08-31",
+  "assets": {
+    "directory": "./dist",
+    // Hash routing (D-13): unknown paths are real 404s, not index.html.
+    "not_found_handling": "404-page"
+  },
+  "workers_dev": true,
+  "preview_urls": true,
+  // FR-X-3: no analytics; an assets-only Worker has nothing to log anyway.
+  "observability": { "enabled": false }
+}
