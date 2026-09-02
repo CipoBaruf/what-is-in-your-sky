@@ -77,6 +77,12 @@ Recorded by the R1 implementation. **Comparison result (fixture `2026-09-02-neuq
 - **Loader without cache** (`data/elementsLoader.ts`): both groups are fetched in parallel; if either request fails the load fails, because §7.1's "use the cached set" branch does not exist until R11. `unavailable` carries catalog ids absent from both groups; the UI does not show them yet (R11's banners).
 - `tests/e2e/next-pass.spec.ts` is replaced by `pass-list.spec.ts`; `ui/components/passes/nextPass.ts` and `NextPassLine.tsx` are deleted, `ISS_STD_MAG_SEED` survives only in `tests/support/heavensAbove.ts` for the R1 comparison script.
 
+### 2.4 R4 decisions (2026-09-02)
+
+- **D-23 — `vite preview` serves `public/_headers` the way Cloudflare Pages does.** A small plugin in `vite.config.ts` parses the Pages format (unindented path pattern, indented `Name: value` lines, `*` matching across `/`, matching rules stacked) and sets the headers on every preview response. The Playwright suite therefore runs the production build under the strict CSP: `tests/e2e/deploy-headers.spec.ts` asserts the §11 values on `/`, the immutable `Cache-Control` on `/assets/*`, zero `securitypolicyviolation` events during the R3 flow, and requests only to the site origin and CelesTrak. It is the offline twin of R4's `curl -sI` and DevTools checks, and it fails CI before a violation reaches the site. The dev server is untouched: React Fast Refresh injects inline scripts the CSP forbids. `tests/deploy/headers.test.ts` (Node project, typechecked through `tsconfig.node.json`) pins the file to the §11 block verbatim, so a change to either the doc or the file without the other fails a test, and checks that every `https://` host referenced in `src/**/*.ts(x)` is in `connect-src` (FR-X-3).
+- **D-24 — zod runs jitless.** zod 4.5 compiles object parsers with `new Function` and probes for it once with a caught call; under `script-src 'self'` the caught probe is still reported as a CSP violation (the D-23 e2e caught it on its first run). `src/data/zod.ts` calls `z.config({ jitless: true })` and re-exports `z`; it is the only module that may import `zod` (enforced by `src/data/zod.test.ts`), because the flag is read when a schema is *built*, so the configuring module has to evaluate before any schema module. Cost: the interpreted parser on a few hundred records per group, not measurable next to the pass search. `unsafe-eval` is not an option (§11).
+- **Pages project:** Git integration (preview per PR, production on `main`), project name `what-is-in-your-sky`, framework preset Vite, build `npm run build`, output `dist`, Node from `.node-version` (24, same as `ci.yml`). Created once in the dashboard; steps in `README.md`. The GitHub Actions alternative (`wrangler pages deploy` from `ci.yml`, gated on the tests) was not taken: the task asks for the repo wiring, and Pages' own build keeps a single source of truth for what is deployed. Revisit in R15 if deploys should wait for CI.
+
 ---
 
 ## 3. Architecture Overview
@@ -169,6 +175,7 @@ what-is-in-your-sky-right-now/
 │   │   ├── catalog/
 │   │   │   ├── catalog.json        # the ~30 objects (FR-SAT-1/5)
 │   │   │   └── schema.ts           # zod schema; also used by scripts/check-catalog.ts
+│   │   ├── zod.ts                  # configures zod (jitless, D-24) and re-exports `z`; the only importer of 'zod'
 │   │   ├── celestrak.ts            # fetchGroup('visual'|'stations') -> OmmRecord[] (zod-validated)
 │   │   ├── elementsCache.ts        # idb store, fetchedAt per group, Web Locks single-flight (D-9, D-10)
 │   │   ├── elementsLoader.ts       # orchestrates cache -> network -> filter to catalog -> SatelliteRecord[]
@@ -219,6 +226,7 @@ what-is-in-your-sky-right-now/
 │   │   ├── heavens-above/          # hand-transcribed pass tables, dated, with capture metadata
 │   │   └── open-meteo/             # recorded geocode + forecast responses
 │   ├── e2e/                        # Playwright
+│   ├── deploy/                     # `_headers` pinned to §11; CSP covers every referenced host (D-23)
 │   └── setup/                      # fake-indexeddb, MSW handlers
 └── .github/workflows/ ci.yml  live-contract.yml (scheduled, non-blocking)
 ```
