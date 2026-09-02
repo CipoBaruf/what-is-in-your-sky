@@ -1,0 +1,15 @@
+.field {
+  display: grid;
+  gap: calc(var(--row) / 2);
+  margin-bottom: var(--row);
+}
+
+.input {
+  width: calc(24 * var(--cell));
+  max-width: 100%;
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+}
