@@ -1,5 +1,5 @@
 /**
- * R4 (FR-X-3, PLAN D-24): the app's schemas are built with zod's JIT off, so
+ * R4 (FR-X-3, PLAN D-26): the app's schemas are built with zod's JIT off, so
  * no `new Function` probe or compiled parser runs under the strict CSP.
  */
 import { readdirSync, readFileSync } from 'node:fs';

@@ -1,6 +1,6 @@
 /**
- * R4 (FR-X-3, PLAN §11, D-23): the production build, served with the headers
- * Cloudflare Pages will send, carries the PLAN §11 values on `/` and the
+ * R4 (FR-X-3, PLAN §11, D-25): the production build, served with the headers
+ * Cloudflare will send, carries the PLAN §11 values on `/` and the
  * immutable cache header on `/assets/*`, and the R3 flow completes under the
  * strict CSP with zero violations and no request to a host other than the site
  * and CelesTrak. This is the offline twin of the task's `curl -sI` and
