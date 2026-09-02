@@ -3,3 +3,4 @@ export type { EpochMs, VisibilityThresholds, TimeWindow } from './thresholds';
 export type { OmmRecord, ElementGroup, CachedGroup, SatelliteRecord } from './elements';
 export type { Observer, ObserverSource } from './observer';
 export type { PassPoint, PassBoundaryReason, Pass, NowItem, SkyState, NowState } from './pass';
+export type { HourlyCloud, WeatherSnapshot, CloudState, CloudVerdict } from './weather';
