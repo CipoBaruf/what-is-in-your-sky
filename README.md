@@ -14,8 +14,9 @@ npm ci
 npm run dev          # http://localhost:5173 (no CSP: Fast Refresh needs inline scripts)
 npm run build        # dist/, including public/_headers
 npm run preview      # http://localhost:4173, the production build with the Cloudflare headers
-npm test             # Vitest (unit, golden, component); never touches the network
+npm test             # Vitest (unit, golden, component, worker in Chromium); never touches the network
 npm run e2e          # production build + Playwright, under the strict CSP
+# `npm test` and `npm run e2e` need Chromium once: npx playwright install chromium
 npm run check:catalog  # live: every catalog object present in CelesTrak visual|stations
 ```
 
