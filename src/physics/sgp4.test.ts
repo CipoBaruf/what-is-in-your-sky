@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { sgp4, twoline2satrec } from 'satellite.js';
 import type { OmmRecord } from '../model';
+import { loadFixturePair } from '../../tests/support/fixtures';
+import { ISS_NORAD_ID } from '../../tests/support/heavensAbove';
+import { loadReferenceValues } from '../../tests/support/reference';
 import { ommToJsonObject, ommToSatrec, propagateEci } from './sgp4';
 
 // Vallado et al. (2006) SGP4 verification case, satellite 00005 (Vanguard 2 rocket body).
@@ -28,6 +31,8 @@ const omm: OmmRecord = {
 // Published TEME positions (km) from the verification output, tsince = 0 and 360 min.
 const posAt0 = { x: 7022.46529266, y: -1400.08296755, z: 0.03995155 };
 const posAt360 = { x: -7154.03120202, y: -3783.17682504, z: -3536.19412294 };
+
+const ref = loadReferenceValues();
 
 describe('sgp4', () => {
   it('json2satrec accepts CelesTrak OMM field names as-is and matches twoline2satrec', () => {
@@ -73,6 +78,31 @@ describe('sgp4', () => {
   it('narrows EPHEMERIS_TYPE and CLASSIFICATION_TYPE for satellite.js and rejects other ephemeris types', () => {
     expect(ommToJsonObject(omm).EPHEMERIS_TYPE).toBe(0);
     expect(ommToJsonObject({ ...omm, CLASSIFICATION_TYPE: 'X' }).CLASSIFICATION_TYPE).toBeUndefined();
+    expect(ommToJsonObject({ ...omm, CLASSIFICATION_TYPE: 'C' }).CLASSIFICATION_TYPE).toBe('C');
     expect(() => ommToSatrec({ ...omm, EPHEMERIS_TYPE: 2 })).toThrow(/EPHEMERIS_TYPE/);
+  });
+
+  it('rejects an element set SGP4 cannot initialise', () => {
+    expect(() => ommToSatrec({ ...omm, ECCENTRICITY: 1.5 })).toThrow(/SGP4 initialisation failed/);
+  });
+
+  const pair = loadFixturePair(ref.fixture, ref.ommFixture);
+  const iss = pair.omm.find((r) => r.NORAD_CAT_ID === ISS_NORAD_ID);
+  if (!iss) throw new Error('ISS missing from OMM fixture');
+
+  it('returns null instead of throwing when propagation fails (orbit decayed)', () => {
+    // The ISS with a drag term 600× the real one initialises fine but has decayed ten days later (SGP4 error 6).
+    const dragged = ommToSatrec({ ...iss, BSTAR: 0.05 });
+    expect(propagateEci(dragged, ref.iss.epochMs + 86_400_000)).not.toBeNull();
+    expect(propagateEci(dragged, ref.iss.epochMs + 10 * 86_400_000)).toBeNull();
+  });
+
+  it('reproduces the ISS ECI state at the reference instant (reference-values.json)', () => {
+    const state = propagateEci(ommToSatrec(iss), ref.t);
+    if (!state) throw new Error('propagation failed');
+    for (const k of ['x', 'y', 'z'] as const) {
+      expect(state.position[k]).toBeCloseTo(ref.eci.position[k], 6);
+      expect(state.velocity[k]).toBeCloseTo(ref.eci.velocity[k], 9);
+    }
   });
 });

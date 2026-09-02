@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Observer, OmmRecord, TimeWindow } from '../model';
-import { DEFAULT_THRESHOLDS } from './constants';
-import { findPasses, parabolicPeakTime, type PassObject } from './passes';
+import { loadFixturePair } from '../../tests/support/fixtures';
+import { ISS_NORAD_ID, ISS_STD_MAG_SEED, SPIKE_THRESHOLDS } from '../../tests/support/heavensAbove';
+import { loadReferenceValues, referenceObserver } from '../../tests/support/reference';
+import { DEFAULT_THRESHOLDS, DENSE_STEP_MS } from './constants';
+import { coarseSegments, findPasses, parabolicPeakTime, type PassObject } from './passes';
 import { ommToSatrec } from './sgp4';
 import { parseOmmEpoch } from './time';
 
@@ -105,6 +108,61 @@ describe('findPasses', () => {
     }
     const cut = findPasses(ommToSatrec(polar), observer, twoDays, { ...DEFAULT_THRESHOLDS, magLimit: -100 }, object);
     expect(cut).toEqual([]);
+  });
+});
+
+describe('findPasses against the pinned first golden pass (reference-values.json)', () => {
+  const ref = loadReferenceValues();
+  const golden = ref.firstGoldenPass;
+  if (!golden) throw new Error('reference has no golden pass');
+  const pair = loadFixturePair(ref.fixture, ref.ommFixture);
+  const iss = pair.omm.find((r) => r.NORAD_CAT_ID === ISS_NORAD_ID);
+  if (!iss) throw new Error('ISS missing from OMM fixture');
+  const satrec = ommToSatrec(iss);
+  const observer = referenceObserver(ref);
+  const issObject: PassObject = { noradId: ISS_NORAD_ID, name: iss.OBJECT_NAME, stdMag: ISS_STD_MAG_SEED, elementsEpochMs: parseOmmEpoch(iss.EPOCH) };
+  // One hour either side of the pinned pass: the same result as the 10-day run, in a fraction of the time.
+  const around: TimeWindow = { startMs: golden.start.t - 3_600_000, endMs: golden.end.t + 3_600_000 };
+
+  it('reproduces start, peak and end to the millisecond and the pinned reasons, magnitude and twilight flag', () => {
+    const found = findPasses(satrec, observer, around, SPIKE_THRESHOLDS, issObject);
+    expect(found).toHaveLength(1);
+    const p = found[0];
+    if (!p) return;
+    for (const key of ['start', 'peak', 'end'] as const) {
+      expect(p[key].t).toBe(golden[key].t);
+      expect(p[key].azDeg).toBeCloseTo(golden[key].azDeg, 6);
+      expect(p[key].elDeg).toBeCloseTo(golden[key].elDeg, 6);
+      expect(p[key].rangeKm).toBeCloseTo(golden[key].rangeKm, 6);
+    }
+    expect(p.startReason).toBe(golden.startReason);
+    expect(p.endReason).toBe(golden.endReason);
+    expect(p.peakMagnitude).toBeCloseTo(golden.peakMagnitude, 6);
+    expect(p.sunAltAtPeakDeg).toBeCloseTo(golden.sunAltAtPeakDeg, 6);
+    expect(p.twilight).toBe(golden.twilight);
+    expect(p.id).toBe(`${ISS_NORAD_ID}-${golden.start.t}`);
+  });
+
+  it('coarse scan brackets the golden pass in one segment padded by a step on each side', () => {
+    const segments = coarseSegments(satrec, observer, around);
+    const holding = segments.filter((s) => s.startMs <= golden.start.t && s.endMs >= golden.end.t);
+    expect(holding).toHaveLength(1);
+  });
+
+  it('drops the pass under a magnitude cut just brighter than its pinned peak and keeps it just fainter', () => {
+    const tight = { ...SPIKE_THRESHOLDS, magLimit: golden.peakMagnitude - 0.01 };
+    const loose = { ...SPIKE_THRESHOLDS, magLimit: golden.peakMagnitude + 0.01 };
+    expect(findPasses(satrec, observer, around, tight, issObject)).toEqual([]);
+    expect(findPasses(satrec, observer, around, loose, issObject)).toHaveLength(1);
+  });
+
+  it('clamps dense sampling to the requested window when the window cuts through the pass', () => {
+    const cut: TimeWindow = { startMs: golden.peak.t, endMs: golden.end.t + 3_600_000 };
+    const found = findPasses(satrec, observer, cut, SPIKE_THRESHOLDS, issObject);
+    expect(found).toHaveLength(1);
+    expect(found[0]?.start.t).toBeGreaterThanOrEqual(cut.startMs);
+    // The 1 s grid is now in phase with the window start, so the end lands within one dense step of the pinned end.
+    expect(Math.abs((found[0]?.end.t ?? 0) - golden.end.t)).toBeLessThan(DENSE_STEP_MS);
   });
 });
 

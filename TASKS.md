@@ -247,7 +247,8 @@
     - `npm run lint` fails if `@glyphcss/react` is imported outside `dome/` (probe file, removed before merge).
     - CI build log prints the three gzipped chunk sizes and each is within budget (or the PR records the accepted overrun); `docs/RELEASE.md` exists and the deployed site passes its checklist once, including ≥ 30 rasterisations/s during a 5 s drag on a mid-range Android phone.
 
-- [ ] **H [P] — Physics hardening: unit reference tests and two more golden fixtures**
+- [x] **H [P] — Physics hardening: unit reference tests and two more golden fixtures**
+  - **Done 2026-09-02:** as specified. Observers: Paris (48.86° N) and Singapore (1.35° N), both OVERALL: PASS with the same element set on both sides (PLAN §2.4, D-23/D-24). Additions: `visibility.test.ts` (not listed, needed for coverage); `tests/support/reference.ts` typed loader; the sunset reference embeds NOAA's algorithm rather than a fetched value; `reference-values.json` regenerated with `inUmbra` and the full fixture name, numbers unchanged. Coverage is 100 % lines on every physics file (`npm run test:coverage:physics`).
   - **Why not a slice:** It is verification breadth with no new user capability, kept as its own task because spec Phase 1 DoD requires the golden suite in CI and the unit references guard every later physics change.
   - **Built from:** T4 (unit reference tests, coverage, threshold rationale), T5.
   - **Goal:** Cover every physics module with the PLAN §9.2 reference tests and repeat the R1 capture for a northern mid-latitude and a near-equator observer so the golden suite covers both hemispheres and the equator.
