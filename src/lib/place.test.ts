@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest';
 import type { Place } from '../model';
 import { observerFromPlace, placeLabel, placeRegion } from './place';
 
-const ROSARIO: Place = { name: 'Rosario', admin1: 'Santa Fe', country: 'Argentina', lat: -32.94682, lon: -60.63932, elevationM: 38, timeZone: 'America/Argentina/Cordoba' };
+const CIPOLLETTI: Place = { name: 'Cipolletti', admin1: 'Rio Negro', country: 'Argentina', lat: -38.93392, lon: -67.99032, elevationM: 267, timeZone: 'America/Argentina/Salta' };
 const SINGAPORE: Place = { name: 'Singapore', country: 'Singapore', lat: 1.28967, lon: 103.85007, elevationM: 23, timeZone: 'Asia/Singapore' };
 
 describe('placeLabel / placeRegion', () => {
   it('joins name, admin1 and country', () => {
-    expect(placeLabel(ROSARIO)).toBe('Rosario, Santa Fe, Argentina');
-    expect(placeRegion(ROSARIO)).toBe('Santa Fe, Argentina');
+    expect(placeLabel(CIPOLLETTI)).toBe('Cipolletti, Rio Negro, Argentina');
+    expect(placeRegion(CIPOLLETTI)).toBe('Rio Negro, Argentina');
   });
 
   it('skips the parts the provider did not give', () => {
@@ -22,13 +22,13 @@ describe('placeLabel / placeRegion', () => {
 
 describe('observerFromPlace', () => {
   it('is a geocode observer at the place, with its label, elevation and zone', () => {
-    expect(observerFromPlace(ROSARIO)).toEqual({
-      lat: -32.94682,
-      lon: -60.63932,
-      altM: 38,
-      label: 'Rosario, Santa Fe, Argentina',
+    expect(observerFromPlace(CIPOLLETTI)).toEqual({
+      lat: -38.93392,
+      lon: -67.99032,
+      altM: 267,
+      label: 'Cipolletti, Rio Negro, Argentina',
       source: 'geocode',
-      timeZone: 'America/Argentina/Cordoba',
+      timeZone: 'America/Argentina/Salta',
     });
   });
 });

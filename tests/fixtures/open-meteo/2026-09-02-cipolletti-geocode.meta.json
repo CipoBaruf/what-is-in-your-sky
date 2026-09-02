@@ -1,0 +1,7 @@
+{
+  "fetchedAt": "2026-09-02T20:18:49Z",
+  "source": "https://geocoding-api.open-meteo.com/v1/search?name=cipolletti&count=8&language=en&format=json",
+  "query": "cipolletti",
+  "coverage": "1 result: Cipolletti, Rio Negro, Argentina at -38.93392, -67.99032, elevation 267 m, zone America/Argentina/Salta — the R1 golden-fixture observer (−38.93, −67.99) to two decimals, so the pass list for the picked place contains the golden ISS pass",
+  "note": "Verbatim body (re-indented), captured with curl and an Origin header; the response carried access-control-allow-origin: *. The English name of the province comes back without the accent (\"Rio Negro\")."
+}
