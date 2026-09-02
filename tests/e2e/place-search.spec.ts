@@ -151,7 +151,7 @@ test('no match points at the coordinates input; a failed search leaves the field
   await page.goto('/');
   const field = page.getByRole('combobox', { name: 'Place name' });
   await field.fill('Cipolletti');
-  const alert = page.getByRole('alert');
+  const alert = page.getByRole('region', { name: 'Location' }).getByRole('alert'); // not the elements banners (R11)
   await expect(alert).toContainText('Could not search for places');
   await expect(alert.getByRole('link', { name: 'enter coordinates instead' })).toBeVisible();
   await expect(field).toBeEnabled();
