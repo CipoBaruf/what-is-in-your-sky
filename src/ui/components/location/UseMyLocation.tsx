@@ -45,7 +45,8 @@ export function positionErrorText(error: Pick<GeolocationPositionError, 'code'>)
   }
 }
 
-const OPTIONS: PositionOptions = { enableHighAccuracy: false, timeout: 20_000, maximumAge: 300_000 };
+/** A press asks for a fresh fix (`maximumAge: 0`): a cached one would keep an old accuracy on the screen. */
+const OPTIONS: PositionOptions = { enableHighAccuracy: false, timeout: 20_000, maximumAge: 0 };
 
 export interface UseMyLocationProps {
   onObserver: (observer: Observer) => void;
