@@ -10,7 +10,7 @@ import { server } from '../../tests/setup/msw';
 import { DAY_MS, fixtureRecords, goldenWindowStart, loadReferenceValues } from '../../tests/support/catalogFixtures';
 import { CATALOG } from '../data/catalog';
 import { loadElements } from '../data/elementsLoader';
-import type { NowState, Observer, Pass } from '../model';
+import type { NowState, Observer, Pass, WeatherSnapshot } from '../model';
 import { ALWAYS_VISIBLE, NOW_TICK_MS, startEffects, type VisibilitySource } from './effects';
 import { createAppStore, type AppStore } from './store';
 import { createWorkerClient, type WorkerClient } from './workerClient';
@@ -42,6 +42,22 @@ const samplePass = (noradId: number, startT: number): Pass => {
   };
 };
 
+/** A forecast that never arrives, for the tests that are not about weather. */
+const neverWeather = (): Promise<WeatherSnapshot> => new Promise(() => undefined);
+
+const snapshotFor = (lat: number, lon: number): WeatherSnapshot => ({
+  provider: 'open-meteo',
+  lat,
+  lon,
+  cellKey: `${lat.toFixed(1)},${lon.toFixed(1)}`,
+  fetchedAt: NOW,
+  timeZone: 'America/Argentina/Salta',
+  hourly: [
+    { t: NOW - 3_600_000, totalPct: 10, lowPct: 10, midPct: 0, highPct: 0 },
+    { t: NOW + DAY_MS, totalPct: 10, lowPct: 10, midPct: 0, highPct: 0 },
+  ],
+});
+
 describe('startEffects', () => {
   let store: AppStore;
   let worker: ReturnType<typeof fakeWorker>;
@@ -58,7 +74,7 @@ describe('startEffects', () => {
     store = createAppStore({ now: () => NOW });
     worker = fakeWorker();
     client = createWorkerClient(worker);
-    stop = startEffects({ store, client, catalog: CATALOG, loadElements, now: () => NOW, visibility: ALWAYS_VISIBLE });
+    stop = startEffects({ store, client, catalog: CATALOG, loadElements, loadWeather: neverWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
   });
   afterEach(() => {
     stop();
@@ -162,7 +178,7 @@ describe('startEffects', () => {
     store = createAppStore({ now: () => NOW });
     worker = fakeWorker();
     client = createWorkerClient(worker);
-    stop = startEffects({ store, client, catalog: CATALOG, loadElements: failing, now: () => NOW, visibility: ALWAYS_VISIBLE });
+    stop = startEffects({ store, client, catalog: CATALOG, loadElements: failing, loadWeather: neverWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
     await vi.waitFor(() => expect(store.getState().elements).toEqual({ status: 'error', message: 'HTTP 503' }));
     store.getState().setObserver(neuquen);
     await vi.waitFor(() => expect(store.getState().elements.status).toBe('ready'));
@@ -212,6 +228,7 @@ describe('the "Now" tick (FR-VIS-5, US-4 AC2)', () => {
       client,
       catalog: CATALOG,
       loadElements: () => Promise.resolve({ records, unavailable: [] }),
+      loadWeather: neverWeather,
       now: () => clock,
       visibility,
     });
@@ -305,5 +322,114 @@ describe('the "Now" tick (FR-VIS-5, US-4 AC2)', () => {
     const count = sentNow().length;
     await vi.advanceTimersByTimeAsync(3 * NOW_TICK_MS);
     expect(sentNow()).toHaveLength(count);
+  });
+});
+
+describe('weather (FR-WX-1, FR-WX-5, FR-LOC-3)', () => {
+  let store: AppStore;
+  let worker: ReturnType<typeof fakeWorker>;
+  let client: WorkerClient;
+  let stop: () => void;
+  const records = fixtureRecords();
+  interface Deferred {
+    resolve: (s: WeatherSnapshot) => void;
+    reject: (e: Error) => void;
+    lat: number;
+    lon: number;
+  }
+  let requests: Deferred[];
+  const loadWeather = (lat: number, lon: number): Promise<WeatherSnapshot> =>
+    new Promise<WeatherSnapshot>((resolve, reject) => {
+      requests.push({ resolve, reject, lat, lon });
+    });
+
+  beforeEach(() => {
+    requests = [];
+    store = createAppStore({ now: () => NOW });
+    worker = fakeWorker();
+    client = createWorkerClient(worker);
+    stop = startEffects({ store, client, catalog: CATALOG, loadElements: () => Promise.resolve({ records, unavailable: [] }), loadWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
+  });
+  afterEach(() => {
+    stop();
+  });
+
+  const sent = <T extends WorkerRequest['type']>(type: T) => worker.sent.filter((m): m is WorkerRequest & { type: T } => m.type === type);
+  /** Observer set → job started (elements in the worker) → first computeNow out. */
+  const started = async (observer: Observer): Promise<void> => {
+    store.getState().setObserver(observer);
+    await vi.waitFor(() => expect(sent('loadElements')).toHaveLength(1));
+    worker.emit({ type: 'elementsLoaded', requestId: sent('loadElements')[0]?.requestId ?? '', loaded: [], rejected: [] });
+    await vi.waitFor(() => expect(sent('computePasses')).toHaveLength(1));
+    await vi.waitFor(() => expect(sent('computeNow')).toHaveLength(1));
+  };
+
+  it('is requested with the pass job, for the observer coordinates, without waiting for the elements', async () => {
+    store.getState().setObserver(neuquen);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({ lat: neuquen.lat, lon: neuquen.lon });
+    expect(store.getState().weather).toMatchObject({ observer: neuquen, status: 'loading' });
+  });
+
+  it('a snapshot fills the zone from the forecast without recomputing, and every slice still points at the observer', async () => {
+    await started(neuquen);
+    const job = sent('computePasses')[0];
+    if (job?.type !== 'computePasses') throw new Error('no job');
+    worker.emit({ type: 'passes', jobId: job.jobId, noradId: 25544, passes: [samplePass(25544, NOW + 1000)] });
+    worker.emit({ type: 'nowState', requestId: sent('computeNow')[0]?.requestId ?? '', state: nowState(NOW) });
+    await vi.waitFor(() => expect(store.getState().now.state).not.toBeNull());
+
+    requests[0]?.resolve(snapshotFor(-38.9, -68));
+    await vi.waitFor(() => expect(store.getState().weather.status).toBe('ready'));
+    const { observer, passes, now, weather } = store.getState();
+    expect(observer?.timeZone).toBe('America/Argentina/Salta');
+    expect(observer).toMatchObject({ lat: neuquen.lat, lon: neuquen.lon, label: neuquen.label });
+    expect(passes.observer).toBe(observer);
+    expect(now.observer).toBe(observer);
+    expect(weather.observer).toBe(observer);
+    expect(weather.snapshot?.timeZone).toBe('America/Argentina/Salta');
+    // Not a location change: one job, no cancel, passes kept.
+    expect(sent('computePasses')).toHaveLength(1);
+    expect(sent('cancel')).toHaveLength(0);
+    expect(passes).toMatchObject({ jobId: job.jobId, status: 'computing' });
+    expect(passes.passes).toHaveLength(1);
+    expect(requests).toHaveLength(1);
+  });
+
+  it('a rejection leaves the passes intact and the zone unknown (US-7 AC4, FR-X-4)', async () => {
+    await started(neuquen);
+    const job = sent('computePasses')[0];
+    if (job?.type !== 'computePasses') throw new Error('no job');
+    worker.emit({ type: 'passes', jobId: job.jobId, noradId: 25544, passes: [samplePass(25544, NOW + 1000)] });
+    requests[0]?.reject(new Error('Open-Meteo forecast: HTTP 503'));
+    await vi.waitFor(() => expect(store.getState().weather.status).toBe('error'));
+    expect(store.getState().weather).toMatchObject({ observer: neuquen, error: 'Open-Meteo forecast: HTTP 503', snapshot: null });
+    expect(store.getState().observer).toBe(neuquen);
+    expect(store.getState().observer?.timeZone).toBeNull();
+    expect(store.getState().passes.passes).toHaveLength(1);
+    expect(store.getState().passes.status).toBe('computing');
+  });
+
+  it('does not overwrite a zone the observer already has (geocoded input)', async () => {
+    const geocoded: Observer = { ...neuquen, source: 'geocode', label: 'Neuquén, Argentina', timeZone: 'America/Argentina/Buenos_Aires' };
+    store.getState().setObserver(geocoded);
+    requests[0]?.resolve(snapshotFor(-38.9, -68));
+    await vi.waitFor(() => expect(store.getState().weather.status).toBe('ready'));
+    expect(store.getState().observer).toBe(geocoded);
+  });
+
+  it('an observer change drops the previous location’s late snapshot; clearing the observer resets the slice', async () => {
+    store.getState().setObserver(neuquen);
+    store.getState().setObserver(paris);
+    expect(requests).toHaveLength(2);
+    requests[0]?.resolve(snapshotFor(-38.9, -68));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(store.getState().weather).toMatchObject({ observer: paris, status: 'loading', snapshot: null });
+    expect(store.getState().observer).toBe(paris);
+    requests[1]?.resolve({ ...snapshotFor(48.9, 2.4), timeZone: 'Europe/Paris' });
+    await vi.waitFor(() => expect(store.getState().weather.status).toBe('ready'));
+    expect(store.getState().observer?.timeZone).toBe('Europe/Paris');
+    store.getState().setObserver(null);
+    expect(store.getState().weather).toEqual({ observer: null, status: 'idle', snapshot: null, error: null });
   });
 });
