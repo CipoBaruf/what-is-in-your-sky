@@ -1,4 +1,4 @@
-import type { EpochMs, NoradId, NowItem, NowState, Observer, SkyState, VisibilityThresholds } from '../model';
+import type { EpochMs, NoradId, NowItem, NowState, Observer, PassBoundaryReason, SkyState, VisibilityThresholds } from '../model';
 import { DENSE_STEP_MS } from './constants';
 import type { SatRec } from './sgp4';
 import { sunAltitudeDeg } from './sun';
@@ -42,7 +42,7 @@ export function visibleUntil(
   observer: Observer,
   t: EpochMs,
   thresholds: VisibilityThresholds,
-): { visibleUntil: EpochMs; endReason: NowItem['endReason'] } | null {
+): { visibleUntil: EpochMs; endReason: PassBoundaryReason } | null {
   const visibleAt = (at: EpochMs): boolean | null => {
     const s = sampleAt(object.satrec, observer, at, object.stdMag);
     return s ? visibilityAt(s, thresholds).visible : null;

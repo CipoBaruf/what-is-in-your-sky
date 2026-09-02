@@ -8,7 +8,8 @@ import { server } from './msw';
 expect.extend(toHaveNoViolations);
 
 declare module 'vitest' {
-  interface Matchers<T = unknown> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- must match vitest's own declaration
+  interface Matchers<T = any> {
     toHaveNoViolations(): T;
   }
 }

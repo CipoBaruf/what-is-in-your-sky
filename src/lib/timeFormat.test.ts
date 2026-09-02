@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatClock, formatDate } from './timeFormat';
+import { formatClock, formatCountdown, formatDate } from './timeFormat';
 
 // First golden pass start from tests/fixtures/reference-values.json (R1).
 const GOLDEN_START_MS = 1789120094063; // 2026-09-11T09:48:14.063Z
