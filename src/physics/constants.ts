@@ -32,6 +32,11 @@ export const BISECTION_TOLERANCE_MS = 500;
 /** The sky-chart track keeps every Nth dense sample (10 s at DENSE_STEP_MS = 1 s). */
 export const TRACK_EVERY_N_SAMPLES = 10;
 
+/**
+ * The four user-facing thresholds bundled as the object the worker protocol
+ * carries (PLAN §6.2). Frozen so nothing mutates the defaults in place; v1's
+ * threshold UI (US-9) spreads a copy instead.
+ */
 export const DEFAULT_THRESHOLDS: Readonly<VisibilityThresholds> = Object.freeze({
   minElevationDeg: MIN_ELEVATION_DEG,
   sunAltMaxDeg: SUN_ALT_MAX_DEG,
