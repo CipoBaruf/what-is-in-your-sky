@@ -1,0 +1,55 @@
+.numbers {
+  display: grid;
+  gap: var(--row);
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.table {
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+.caption {
+  text-align: left;
+  color: var(--fg-dim);
+  padding-bottom: calc(var(--row) / 2);
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0 calc(2 * var(--cell)) 0 0;
+  font-weight: normal;
+}
+
+.table thead th {
+  color: var(--fg-dim);
+  border-bottom: 1px solid var(--rule);
+}
+
+.table tbody th {
+  color: var(--fg-dim);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: calc(15 * var(--cell)) 1fr;
+  gap: 0 var(--cell);
+  margin: 0;
+}
+
+.fields dt {
+  color: var(--fg-dim);
+}
+
+.fields dt::after {
+  content: ':';
+}
+
+.fields dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

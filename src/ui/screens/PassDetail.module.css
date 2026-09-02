@@ -1,0 +1,78 @@
+.sheet {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  background: var(--bg);
+  color: var(--fg);
+  z-index: 10;
+}
+
+.frame {
+  max-width: calc(80 * var(--cell));
+  margin: 0 auto;
+  padding: var(--row) calc(2 * var(--cell)) calc(2 * var(--row));
+  display: grid;
+  gap: var(--row);
+}
+
+.close {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--rule);
+  padding: 0 var(--cell);
+  min-height: calc(2 * var(--row));
+  justify-self: start;
+  cursor: pointer;
+}
+
+.close:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.heading {
+  font-size: 1.25rem;
+  font-weight: normal;
+  margin: 0;
+  color: var(--accent);
+}
+
+.heading:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.heading::before {
+  content: '> ';
+  color: var(--fg-dim);
+}
+
+.meta {
+  margin: calc(-1 * var(--row) / 2) 0 0;
+  color: var(--fg-dim);
+}
+
+.twilight {
+  margin-left: calc(2 * var(--cell));
+}
+
+.twilight::before {
+  content: '[';
+}
+
+.twilight::after {
+  content: ']';
+}
+
+.chartSlot {
+  border: 1px dashed var(--rule);
+  min-height: calc(6 * var(--row));
+  display: grid;
+  place-items: center;
+}
+
+.chartNote {
+  margin: 0;
+  color: var(--fg-dim);
+}
