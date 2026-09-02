@@ -26,6 +26,10 @@ export interface PlacePickerProps {
   observer: Observer | null;
   /** id of the coordinates input the empty and error states link to. */
   coordsInputId: string;
+  /** Pre-fills the field (a restored `geocode` observer's label, US-8); nothing is searched for it. */
+  initialText?: string;
+  /** The field's id, so the container can move focus to it; generated when absent. */
+  inputId?: string;
 }
 
 type ListState = { kind: 'idle' } | { kind: 'searching'; query: string } | { kind: 'results'; query: string; places: Place[] } | { kind: 'error'; query: string; message: string };
@@ -33,12 +37,13 @@ type ListState = { kind: 'idle' } | { kind: 'searching'; query: string } | { kin
 /** The provider needs two characters; one letter or blanks would only clear the list. */
 const MIN_CHARS = 2;
 
-export function PlacePicker({ search, onObserver, observer, coordsInputId }: PlacePickerProps) {
-  const [text, setText] = useState('');
+export function PlacePicker({ search, onObserver, observer, coordsInputId, initialText, inputId: givenId }: PlacePickerProps) {
+  const [text, setText] = useState(initialText ?? '');
   const [list, setList] = useState<ListState>({ kind: 'idle' });
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
-  const inputId = useId();
+  const generatedId = useId();
+  const inputId = givenId ?? generatedId;
   const listId = useId();
   const noteId = useId();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);

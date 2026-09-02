@@ -1,11 +1,24 @@
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 calc(2 * var(--cell));
+  margin-bottom: var(--row);
+}
+
 .field {
   display: grid;
   gap: calc(var(--row) / 2);
-  margin-bottom: var(--row);
+  align-content: start;
+  margin-bottom: 0;
 }
 
 .input {
   width: calc(24 * var(--cell));
+  max-width: 100%;
+}
+
+.altitude {
+  width: calc(10 * var(--cell));
   max-width: 100%;
 }
 
