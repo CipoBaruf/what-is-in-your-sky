@@ -1,9 +1,15 @@
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 import { CELESTRAK_GP, loadOmmFixture, server } from '../../tests/setup/msw';
+import { memoryCache } from '../../tests/support/elementsCache';
 import type { CatalogEntry, OmmRecord } from '../model';
 import { CATALOG } from './catalog';
+import { ELEMENTS_TTL_MS } from './elementsCache';
 import { filterToCatalog, loadElements, mergeGroups } from './elementsLoader';
+
+const T0 = Date.parse('2026-09-02T12:00:00Z');
+/** A fresh, empty, memory-only cache at a fixed clock: every test starts with nothing cached. */
+const cache = () => memoryCache(() => T0);
 
 const entry = (noradId: number, name = `object ${String(noradId)}`): CatalogEntry => ({
   noradId,
@@ -54,18 +60,19 @@ describe('loadElements', () => {
       return fetch(input, init);
     };
     const warn = vi.fn();
-    const loaded = await loadElements(CATALOG, { fetchImpl, warn });
+    const loaded = await loadElements(CATALOG, { fetchImpl, warn, cache: cache() });
     expect(urls).toHaveLength(2);
     expect(urls.map((u) => new URL(u).searchParams.get('GROUP')).sort()).toEqual(['stations', 'visual']);
     for (const u of urls) expect(new URL(u).searchParams.has('CATNR')).toBe(false);
     expect(loaded.records).toHaveLength(CATALOG.length);
     expect(loaded.unavailable).toEqual([]);
     expect(loaded.counts).toEqual({ stations: loadOmmFixture('stations').length, visual: loadOmmFixture('visual').length });
+    expect(loaded).toMatchObject({ fetchedAt: T0, stale: false, persistent: true });
     expect(warn).not.toHaveBeenCalled();
   });
 
   it('prefers the stations record for the ISS and uses the catalog display name', async () => {
-    const loaded = await loadElements(CATALOG);
+    const loaded = await loadElements(CATALOG, { cache: cache() });
     const iss = loaded.records.find((r) => r.catalog.noradId === 25544);
     expect(iss?.catalog.name).toBe('ISS (Zarya)');
     expect(iss?.omm).toEqual(loadOmmFixture('stations').find((r) => r.NORAD_CAT_ID === 25544));
@@ -73,7 +80,7 @@ describe('loadElements', () => {
 
   it('warns about a catalog id absent from both groups and lists it as unavailable', async () => {
     const warn = vi.fn();
-    const loaded = await loadElements([entry(25544, 'ISS'), entry(424242, 'Phantom')], { warn });
+    const loaded = await loadElements([entry(25544, 'ISS'), entry(424242, 'Phantom')], { warn, cache: cache() });
     expect(loaded.records.map((r) => r.catalog.noradId)).toEqual([25544]);
     expect(loaded.unavailable).toEqual([424242]);
     expect(warn).toHaveBeenCalledWith(expect.stringMatching(/424242 Phantom/));
@@ -89,25 +96,43 @@ describe('loadElements', () => {
       }),
     );
     const warn = vi.fn();
-    const loaded = await loadElements([entry(25544, 'ISS'), entry(48274, 'Tiangong')], { warn });
+    const loaded = await loadElements([entry(25544, 'ISS'), entry(48274, 'Tiangong')], { warn, cache: cache() });
     expect(loaded.records.map((r) => r.catalog.noradId)).toEqual([48274]);
     expect(loaded.unavailable).toEqual([25544]);
     expect(warn.mock.calls.map((c) => c[0] as string).join('\n')).toMatch(/dropped record 25544/);
   });
 
-  it('rejects when a group request fails (no cache to fall back on until R11)', async () => {
+  const failVisual = (): void => {
     server.use(
       http.get(CELESTRAK_GP, ({ request }) => {
         const group = new URL(request.url).searchParams.get('GROUP');
         return group === 'visual' ? HttpResponse.text('down', { status: 503 }) : HttpResponse.json(loadOmmFixture('stations'));
       }),
     );
-    await expect(loadElements(CATALOG, { warn: () => undefined })).rejects.toThrow(/visual: HTTP 503/);
+  };
+
+  it('rejects when a group request fails and nothing is cached', async () => {
+    failVisual();
+    await expect(loadElements(CATALOG, { warn: () => undefined, cache: cache() })).rejects.toThrow(/visual: HTTP 503/);
+  });
+
+  it('returns the cached records flagged stale when a refresh fails after the 2 h rule (FR-SAT-6)', async () => {
+    let now = T0;
+    const shared = memoryCache(() => now);
+    const first = await loadElements(CATALOG, { cache: shared });
+    now = T0 + ELEMENTS_TTL_MS + 1;
+    failVisual();
+    const warn = vi.fn();
+    const second = await loadElements(CATALOG, { cache: shared, warn });
+    expect(second.stale).toBe(true);
+    expect(second.fetchedAt).toBe(T0); // the visual copy is the old one, and the older of the two is reported
+    expect(second.records.map((r) => r.omm)).toEqual(first.records.map((r) => r.omm));
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/could not refresh CelesTrak visual/));
   });
 
   it('honours an abort signal', async () => {
     const controller = new AbortController();
     controller.abort();
-    await expect(loadElements(CATALOG, { signal: controller.signal })).rejects.toThrow();
+    await expect(loadElements(CATALOG, { signal: controller.signal, cache: cache() })).rejects.toThrow();
   });
 });
