@@ -1,0 +1,6 @@
+.guide {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: calc(1.25 * var(--row));
+  max-width: calc(60 * var(--cell));
+}

@@ -1,44 +1,34 @@
 import { useId } from 'react';
 import { compassPoint } from '../../../lib/compass';
+import { degrees, formatDuration, formatMagnitude } from '../../../lib/format';
+import { TWILIGHT_LABEL, brightnessPhrase } from '../../../lib/phrases';
 import { formatClock, formatDate } from '../../../lib/timeFormat';
 import type { Pass } from '../../../model';
 import styles from './PassCard.module.css';
 
 /**
- * R3 plain card (US-5 AC1 fields that exist without weather): name, start
- * time, max elevation, peak compass point + degrees, duration, magnitude.
- * Brightness phrase, "sky still bright" label and the detail screen are R6;
- * the cloud verdict is R8; local time zone is R8.
+ * Plain card (US-5 AC1 fields that exist without weather): name, start
+ * time, max elevation, peak compass point + degrees, duration, magnitude
+ * number and phrase (FR-GUIDE-3), the "sky still bright" label when the
+ * pass is a twilight one (FR-VIS-7), and the control that opens the detail
+ * screen (R6). The cloud verdict is R8; local time zone is R8.
  */
 export interface PassCardProps {
   pass: Pass;
   timeZone: string | null;
+  /** When given, the card shows an "Open guide" control (the whole card is its hit area). */
+  onOpen?: (passId: string) => void;
 }
 
-export const degrees = (n: number): string => `${String(Math.round(n))}°`;
-
-/** "4 min 32 s", "48 s". */
-export function formatDuration(durationS: number): string {
-  const total = Math.round(durationS);
-  const min = Math.floor(total / 60);
-  const s = total % 60;
-  return min > 0 ? `${String(min)} min ${String(s)} s` : `${String(s)} s`;
-}
-
-/** Signed, one decimal, real minus sign: "+1.2", "−0.3", "+0.0". */
-export function formatMagnitude(mag: number): string {
-  const rounded = Math.round(mag * 10) / 10;
-  if (Object.is(rounded, -0) || rounded === 0) return '+0.0';
-  return rounded < 0 ? `−${Math.abs(rounded).toFixed(1)}` : `+${rounded.toFixed(1)}`;
-}
-
-export function PassCard({ pass, timeZone }: PassCardProps) {
+export function PassCard({ pass, timeZone, onOpen }: PassCardProps) {
   const headingId = useId();
+  const openId = useId();
   return (
     <article className={styles.card} aria-labelledby={headingId} data-pass-id={pass.id}>
       <h2 id={headingId} className={styles.name}>
         {pass.name}
       </h2>
+      {pass.twilight && <p className={styles.twilight}>{TWILIGHT_LABEL}</p>}
       <dl className={styles.fields}>
         <dt>Start</dt>
         <dd>
@@ -53,8 +43,23 @@ export function PassCard({ pass, timeZone }: PassCardProps) {
         <dt>Duration</dt>
         <dd>{formatDuration(pass.durationS)}</dd>
         <dt>Magnitude</dt>
-        <dd>{formatMagnitude(pass.peakMagnitude)}</dd>
+        <dd>
+          {formatMagnitude(pass.peakMagnitude)}, {brightnessPhrase(pass.peakMagnitude)}
+        </dd>
       </dl>
+      {onOpen && (
+        <button
+          type="button"
+          id={openId}
+          className={styles.open}
+          aria-labelledby={`${openId} ${headingId}`}
+          onClick={() => {
+            onOpen(pass.id);
+          }}
+        >
+          Open guide →
+        </button>
+      )}
     </article>
   );
 }
