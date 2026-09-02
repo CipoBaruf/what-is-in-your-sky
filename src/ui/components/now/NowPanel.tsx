@@ -57,7 +57,7 @@ export function summarise(observer: Observer | null, now: NowSliceState, hasDark
 export function summaryText(summary: NowSummary): string {
   switch (summary.kind) {
     case 'no-observer':
-      return 'Enter coordinates to see what is overhead right now.';
+      return 'Enter a place name or coordinates to see what is overhead right now.';
     case 'checking':
       return 'Checking the sky…';
     case 'error':

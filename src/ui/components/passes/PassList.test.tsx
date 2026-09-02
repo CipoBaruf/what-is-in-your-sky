@@ -46,7 +46,7 @@ describe('<PassList>', () => {
 
   it('asks for coordinates when there is no observer', () => {
     render(<PassList />);
-    expect(screen.getByRole('status')).toHaveTextContent('Enter coordinates');
+    expect(screen.getByRole('status')).toHaveTextContent('Enter a place name or coordinates to see the visible passes.');
     expect(screen.queryByRole('list')).toBeNull();
   });
 

@@ -163,7 +163,7 @@
     - Component tests: badge three states plus unknown; tooltip includes "30", "70" and the forecast timestamp; Now panel shows the latest hourly value and "weather unknown" on failure.
     - Playwright: Neuquén flow shows badges from the recorded response and card times in `America/Argentina/Salta`; with the Open-Meteo route aborted, the list still renders and badges read unknown.
 
-- [ ] **R9 — Place-name search with pick list**
+- [x] **R9 — Place-name search with pick list** — done as written; the search reaches the UI as a function through `src/state` (no store slice), Enter searches at once and picks the highlighted (else first) row, `Place.admin1` / `country` are optional and the label joins whatever is present, see D-38..D-40; the empty-state prompts of the pass list and the Now panel now say "Enter a place name or coordinates".
   - **Built from:** T8 (geocode fetch, session cache), T13.
   - **Goal:** Debounced place-name search backed by Open-Meteo geocoding with an ambiguous-result pick list, confirmation of the chosen place, and a fallback to coordinates on failure.
   - **Satisfies:** FR-LOC-1 (a), FR-LOC-2, FR-LOC-3 (zone from geocode), FR-LOC-6 (place half), US-1.

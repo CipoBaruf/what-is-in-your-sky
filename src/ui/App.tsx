@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { useAppStore } from '../state';
+import { searchPlaces, useAppStore } from '../state';
 import { CoordsInput } from './components/location/CoordsInput';
+import { PlacePicker } from './components/location/PlacePicker';
 import { NowPanel } from './components/now/NowPanel';
 import { PassList } from './components/passes/PassList';
 import { PassDetail } from './screens/PassDetail';
@@ -12,8 +13,11 @@ import { findSelectedPass, usePassSelection } from './screens/passSelection';
  * imports `src/state`, never `src/data` or `src/physics`). R7: the Now panel
  * sits between the input and the pass list. R6: the selected pass lives in
  * the URL hash (D-13) and opens the detail sheet over the list, which is made
- * inert while the sheet is up.
+ * inert while the sheet is up. R9: the place picker comes first (US-1); its
+ * empty and error states link to the coordinates input by id.
  */
+const COORDS_INPUT_ID = 'coords';
+
 export function App() {
   const setObserver = useAppStore((s) => s.setObserver);
   const observer = useAppStore((s) => s.observer);
@@ -24,7 +28,8 @@ export function App() {
     <>
       <main inert={selected !== null}>
         <h1>What is in your sky right now</h1>
-        <CoordsInput onObserver={setObserver} />
+        <PlacePicker search={searchPlaces} onObserver={setObserver} observer={observer} coordsInputId={COORDS_INPUT_ID} />
+        <CoordsInput id={COORDS_INPUT_ID} onObserver={setObserver} />
         <NowPanel />
         <PassList onOpenPass={open} />
       </main>

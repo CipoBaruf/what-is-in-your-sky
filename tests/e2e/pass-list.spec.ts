@@ -47,7 +47,7 @@ test('typing the Neuquén coordinates shows the pass list with the golden ISS pa
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
 
   await page.goto('/');
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/Enter coordinates/);
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/Enter a place name or coordinates/);
 
   await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
 
