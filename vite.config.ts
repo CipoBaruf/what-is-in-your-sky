@@ -46,7 +46,7 @@ export function parsePagesHeaders(text: string): HeaderRule[] {
 }
 
 /**
- * `vite preview` serves `public/_headers` the way Cloudflare Pages does (D-23),
+ * `vite preview` serves `public/_headers` the way Cloudflare static assets do (D-25),
  * so the Playwright run exercises the production build under the strict CSP and
  * a violation fails in CI instead of on the phone. The dev server is untouched:
  * React Fast Refresh needs inline scripts the CSP forbids.

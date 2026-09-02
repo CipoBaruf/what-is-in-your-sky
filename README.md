@@ -4,8 +4,8 @@ Naked-eye satellite spotting: type a location, get the visible passes of ~30 bri
 objects for the coming night, with where and when to look. Static web app, no backend;
 the browser talks to the data sources directly. See `SPEC.md`, `PLAN.md` and `TASKS.md`.
 
-**Live:** <https://what-is-in-your-sky.pages.dev> (Cloudflare Pages; every pull request
-gets its own preview URL, `main` is production).
+**Live:** <https://what-is-in-your-sky.ezequiel-baruf.workers.dev> (Cloudflare Workers
+static assets; `main` is production, other branches get preview URLs).
 
 ## Run
 
@@ -13,7 +13,7 @@ gets its own preview URL, `main` is production).
 npm ci
 npm run dev          # http://localhost:5173 (no CSP: Fast Refresh needs inline scripts)
 npm run build        # dist/, including public/_headers
-npm run preview      # http://localhost:4173, the production build with the Pages headers
+npm run preview      # http://localhost:4173, the production build with the Cloudflare headers
 npm test             # Vitest (unit, golden, component); never touches the network
 npm run e2e          # production build + Playwright, under the strict CSP
 npm run check:catalog  # live: every catalog object present in CelesTrak visual|stations
@@ -21,30 +21,37 @@ npm run check:catalog  # live: every catalog object present in CelesTrak visual|
 
 ## Deploy
 
-Hosting is Cloudflare Pages wired to this repository (PLAN D-12): a push to `main`
-deploys production, every pull request gets a preview deployment linked from the PR.
-The project is created once, in the Cloudflare dashboard:
+Hosting is Cloudflare Workers static assets wired to this repository through Workers
+Builds (PLAN D-12 as amended in §2.5): a push to `main` builds and deploys production;
+a push to any other branch, once *non-production branch builds* are enabled, uploads a
+preview version with its own URL. `wrangler.jsonc` at the root holds the whole
+configuration (assets-only Worker, `dist/` as the assets directory, no Worker script), so
+the build never has to guess. The project was created once in the Cloudflare dashboard:
 
-1. *Workers & Pages → Create → Pages → Connect to Git*, pick `CipoBaruf/what-is-in-your-sky`.
-2. Project name `what-is-in-your-sky`, production branch `main`, framework preset *Vite*,
-   build command `npm run build`, output directory `dist`. No environment variables are
-   needed; the Node version comes from `.node-version` (24, the same as CI).
-3. Save and deploy. The first build publishes `main`; later builds follow pushes.
+1. *Workers & Pages → Create → Import a repository*, pick `CipoBaruf/what-is-in-your-sky`.
+2. Worker name `what-is-in-your-sky`, production branch `main`, build command
+   `npm run build`, deploy command `npx wrangler deploy` (the defaults). No environment
+   variables; the Node version comes from `.node-version` (24, the same as CI).
+3. *Settings → Builds → Branch control*: enable non-production branch builds so every
+   pull request gets a preview version. Its URL is printed at the end of the build log
+   (`https://<version>-what-is-in-your-sky.ezequiel-baruf.workers.dev`).
 
-`public/_headers` is copied into `dist/` by Vite and applied by Pages: the strict
-Content-Security-Policy, `Referrer-Policy` and `Permissions-Policy` from PLAN §11 on
-every path, and a one-year immutable cache on the hashed files under `/assets/`.
-`npm run preview` serves the same file the same way, and the Playwright suite runs
-the app under it, so a CSP violation fails CI before it reaches the site. To check a
-deployment by hand:
+`public/_headers` is copied into `dist/` by Vite and parsed by Cloudflare at upload (it is
+never served): the strict Content-Security-Policy, `Referrer-Policy` and `Permissions-Policy`
+from PLAN §11 on every path, and a one-year immutable cache on the hashed files under
+`/assets/`. `npm run preview` serves the same file the same way, and the Playwright suite
+runs the app under it, so a CSP violation fails CI before it reaches the site. To check a
+deployment by hand (replace the host with a preview URL to check a branch):
 
 ```
-curl -sI https://what-is-in-your-sky.pages.dev/ | grep -iE 'content-security-policy|referrer-policy|permissions-policy'
-curl -sI https://what-is-in-your-sky.pages.dev/assets/$(curl -s https://what-is-in-your-sky.pages.dev/ | grep -oE 'assets/[^"]+\.js' | head -1 | cut -d/ -f2) | grep -i cache-control
+SITE=https://what-is-in-your-sky.ezequiel-baruf.workers.dev
+curl -sI $SITE/ | grep -iE 'content-security-policy|referrer-policy|permissions-policy'
+curl -sI $SITE/assets/$(curl -s $SITE/ | grep -oE 'assets/[^"]+\.js' | head -1 | cut -d/ -f2) | grep -i cache-control
 ```
 
 The app makes requests only to its own origin and to the hosts named in `connect-src`
-(CelesTrak now; Open-Meteo from R8/R9). There is no analytics or tracking (spec FR-X-3).
+(CelesTrak now; Open-Meteo from R8/R9). There is no analytics or tracking (spec FR-X-3);
+Workers observability is off in `wrangler.jsonc`.
 
 ## Data sources and attributions
 

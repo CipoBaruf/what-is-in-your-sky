@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * The one place `zod` enters the app (PLAN D-24). zod 4 compiles object
+ * The one place `zod` enters the app (PLAN D-26). zod 4 compiles object
  * parsers with `new Function` and probes for it once with a caught call; under
  * the strict CSP (`script-src 'self'`, no `unsafe-eval`) the probe itself is
  * reported as a `securitypolicyviolation` even though the throw is swallowed.
