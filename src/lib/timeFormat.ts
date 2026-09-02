@@ -36,3 +36,15 @@ export function zoneLabel(p: Map<string, string>, timeZone: string | null): stri
   if (!timeZone) return 'UTC';
   return p.get('timeZoneName') ?? timeZone;
 }
+
+/**
+ * A remaining-time countdown as `m:ss` ("3:12", "0:07", "12:05"); hours roll
+ * into the minutes ("65:00"). Negative or non-finite input reads "0:00".
+ * Used by the Now panel (US-4 AC3) and, in R6, the pass countdown.
+ */
+export function formatCountdown(ms: number): string {
+  const total = Number.isFinite(ms) ? Math.max(0, Math.round(ms / 1000)) : 0;
+  const min = Math.floor(total / 60);
+  const s = total % 60;
+  return `${String(min)}:${String(s).padStart(2, '0')}`;
+}

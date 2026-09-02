@@ -1,5 +1,5 @@
 import type { CatalogEntry, EpochMs, NoradId, SatelliteRecord } from '../model';
-import { findPasses, hasDarkness, ommToSatrec, type SatRec } from '../physics';
+import { findPasses, hasDarkness, nowState, ommToSatrec, type NowObject, type SatRec } from '../physics';
 import type { WorkerRequest, WorkerResponse } from './protocol';
 
 /**
@@ -14,7 +14,9 @@ import type { WorkerRequest, WorkerResponse } from './protocol';
  *   `jobDone { cancelled: true }`. An object whose search throws is skipped
  *   with `PROPAGATION_FAILED`; anything else is `INTERNAL` and aborts the job
  *   (no `jobDone` follows an `INTERNAL` or `NO_ELEMENTS` error).
- * - `computeNow` arrives in R7; until then it answers `INTERNAL`.
+ * - `computeNow` (R7, D-14) evaluates every loaded object at the request's `t`
+ *   with `physics/now.ts` and answers one `nowState`; with nothing loaded it
+ *   answers `NO_ELEMENTS`. It is a one-shot request and cannot be cancelled.
  */
 export interface LoadedObject {
   satrec: SatRec;
@@ -129,9 +131,21 @@ export function createHandler(state: HandlerState, options: HandlerOptions = {})
         case 'cancel':
           state.cancelled.add(request.jobId);
           return;
-        case 'computeNow':
-          emit({ type: 'error', ref: { requestId: request.requestId }, code: 'INTERNAL', message: 'computeNow is not implemented until R7' });
+        case 'computeNow': {
+          const { requestId, observer, t, thresholds } = request;
+          if (state.objects.size === 0) {
+            emit({ type: 'error', ref: { requestId }, code: 'NO_ELEMENTS', message: 'No orbital elements loaded; send loadElements first' });
+            return;
+          }
+          const objects: NowObject[] = computeOrder(state.objects.values()).map((o) => ({
+            satrec: o.satrec,
+            noradId: o.catalog.noradId,
+            name: o.catalog.name,
+            stdMag: o.catalog.stdMag,
+          }));
+          emit({ type: 'nowState', requestId, state: nowState(objects, observer, t, thresholds) });
           return;
+        }
         default: {
           const unknown: never = request;
           emit({ type: 'error', ref: {}, code: 'INTERNAL', message: `Unknown request ${JSON.stringify(unknown)}` });
