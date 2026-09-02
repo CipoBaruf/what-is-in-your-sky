@@ -151,7 +151,7 @@
     - With fake timers, `computeNow` fires every 10 s, stops when `document.hidden`, and the panel re-renders without remount.
     - `jest-axe` passes; the panel is a labelled `region`. Playwright: at the fixed clock the panel shows the expected state for Neuquén.
 
-- [ ] **R8 — Cloud verdict on every card and the Now panel, times in the observer's zone**
+- [x] **R8 — Cloud verdict on every card and the Now panel, times in the observer's zone** — done as written; the Now panel's cloud figure is the forecast interpolated to the instant of the last sky check (FR-WX-2's rule, which is the hourly value on the hour); zone abbreviations are Intl's short names (`GMT-3` for Argentina, `BST` / `CEST` where CLDR has one), see D-36.
   - **Built from:** T8 (forecast fetch, per-cell cache, verdict rule), T15 (`CloudBadge`), T14 (current cloud %), T11 (`weather` slice, zone from forecast, weather never blocks passes), T9 (local-zone formatting).
   - **Goal:** Fetch the hourly cloud forecast, turn it into a three-state verdict per pass, badge the cards and the Now panel with it, and switch displayed times from UTC to the observer's zone taken from the forecast response.
   - **Satisfies:** FR-WX-1, FR-WX-2, FR-WX-3, FR-WX-4, FR-WX-5, FR-LOC-3 (zone from forecast, local-time display). **Advances:** FR-X-4 (weather failure leaves passes intact).

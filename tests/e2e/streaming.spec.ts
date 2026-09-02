@@ -51,6 +51,8 @@ test('cards appear one at a time with the ISS first; a location change mid-strea
       headers: { 'access-control-allow-origin': '*' },
     });
   });
+  // R8: without a forecast the zone stays unknown and times stay in UTC, which is what this spec asserts (weather.spec.ts covers the forecast).
+  await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
   // Throttled worker route: the worker script arrives late, so the page must stay responsive without it.
   let workerRequests = 0;
   await page.route(/\/assets\/passes\.worker-.*\.js$/, async (route) => {

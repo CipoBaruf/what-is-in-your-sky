@@ -43,6 +43,9 @@ test('typing the Neuquén coordinates shows the pass list with the golden ISS pa
     });
   });
 
+  // R8: without a forecast the zone stays unknown and times stay in UTC, which is what this spec asserts (weather.spec.ts covers the forecast).
+  await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
+
   await page.goto('/');
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/Enter coordinates/);
 
