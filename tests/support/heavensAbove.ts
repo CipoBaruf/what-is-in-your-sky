@@ -66,12 +66,17 @@ export function haComparisonPoints(pass: HaPass): {
   startReason: PassBoundaryReason;
 } {
   const e = pass.events;
+  const timeOf = (k: HaEventKey): number => {
+    const event = e[k];
+    if (!event) throw new Error(`Pass ${pass.date}: event ${k} missing`);
+    return ms(event.t);
+  };
   const pick = (keys: HaEventKey[], latest: boolean): HaEventKey => {
     const present = keys.filter((k) => e[k] !== undefined);
     if (present.length === 0) throw new Error(`Pass ${pass.date}: none of ${keys.join('/')} present`);
     return present.reduce((a, b) => {
-      const ta = ms(e[a]!.t);
-      const tb = ms(e[b]!.t);
+      const ta = timeOf(a);
+      const tb = timeOf(b);
       return (latest ? tb > ta : tb < ta) ? b : a;
     });
   };
