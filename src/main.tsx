@@ -1,8 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { startApp } from './state';
 import { App } from './ui/App';
 import './ui/styles/tokens.css';
 import './ui/styles/global.css';
+
+startApp();
 
 const root = document.getElementById('root');
 if (!root) throw new Error('#root missing from index.html');
