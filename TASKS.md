@@ -22,7 +22,8 @@
 
 ## Tasks
 
-- [ ] **R1 — Physics validation spike (Task Zero): reproduce Heavens-Above ISS passes for Neuquén within 1 min / 5°**
+- [x] **R1 — Physics validation spike (Task Zero): reproduce Heavens-Above ISS passes for Neuquén within 1 min / 5°**
+  - **Done 2026-09-02:** as specified. Additions: `src/model/catalog.ts` holds the catalog *types* (needed by `pass.ts`/`elements.ts`; the JSON and schema stay in R3); `src/physics/reference.test.ts` enforces `reference-values.json`; comparison logic lives in `tests/support/heavensAbove.ts` so the script and the golden test share it. Only one visible pass existed in the window and it is horizon-bounded, so D-8 was checked against satellite.js's conical model instead of Heavens-Above (PLAN §2.1).
   - **Why not a slice:** It is the physics spike the slicing rule explicitly places before the first slice; it retires the riskiest unknown and is runnable end-to-end as a script.
   - **Built from:** T1, unchanged.
   - **Goal:** Prove the pure physics pipeline against Heavens-Above before any UI exists, and commit the comparison as an offline golden test.
