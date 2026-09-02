@@ -12,6 +12,7 @@ import { CATALOG } from '../data/catalog';
 import { loadElements } from '../data/elementsLoader';
 import type { NowState, Observer, Pass, WeatherSnapshot } from '../model';
 import { ALWAYS_VISIBLE, NOW_TICK_MS, startEffects, type VisibilitySource } from './effects';
+import { createLocalPrefs } from '../data/localPrefs';
 import { createAppStore, type AppStore } from './store';
 import { createWorkerClient, type WorkerClient } from './workerClient';
 import type { WorkerRequest } from '../worker/protocol';
@@ -71,7 +72,7 @@ describe('startEffects', () => {
   beforeEach(() => {
     requested.length = 0;
     server.events.on('request:start', onRequest);
-    store = createAppStore({ now: () => NOW });
+    store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(null) });
     worker = fakeWorker();
     client = createWorkerClient(worker);
     stop = startEffects({ store, client, catalog: CATALOG, loadElements, loadWeather: neverWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
@@ -175,7 +176,7 @@ describe('startEffects', () => {
   it('a failed fetch is reported and retried on the next observer change', async () => {
     stop();
     const failing = vi.fn().mockRejectedValueOnce(new Error('HTTP 503')).mockImplementation(loadElements);
-    store = createAppStore({ now: () => NOW });
+    store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(null) });
     worker = fakeWorker();
     client = createWorkerClient(worker);
     stop = startEffects({ store, client, catalog: CATALOG, loadElements: failing, loadWeather: neverWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
@@ -219,7 +220,7 @@ describe('the "Now" tick (FR-VIS-5, US-4 AC2)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     clock = NOW;
-    store = createAppStore({ now: () => clock });
+    store = createAppStore({ now: () => clock, prefs: createLocalPrefs(null) });
     worker = fakeWorker();
     client = createWorkerClient(worker);
     visibility = fakeVisibility();
@@ -345,7 +346,7 @@ describe('weather (FR-WX-1, FR-WX-5, FR-LOC-3)', () => {
 
   beforeEach(() => {
     requests = [];
-    store = createAppStore({ now: () => NOW });
+    store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(null) });
     worker = fakeWorker();
     client = createWorkerClient(worker);
     stop = startEffects({ store, client, catalog: CATALOG, loadElements: () => Promise.resolve({ records, unavailable: [] }), loadWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });

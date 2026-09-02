@@ -1,0 +1,42 @@
+.field {
+  display: grid;
+  gap: calc(var(--row) / 2);
+  margin-bottom: var(--row);
+}
+
+.button {
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  height: calc(2 * var(--row));
+  padding: 0 calc(2 * var(--cell));
+  width: max-content;
+  max-width: 100%;
+  cursor: pointer;
+}
+
+.button::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.button::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+.button:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.button:disabled {
+  color: var(--fg-dim);
+  cursor: default;
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+}
