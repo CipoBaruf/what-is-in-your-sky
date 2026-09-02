@@ -7,24 +7,44 @@ spike observer, used by `scripts/validate-iss.ts` and
 
 ## Capture log
 
-| Fixture | `capturedAt` (UTC) | `haEpoch` (Heavens-Above orbit page) | OMM fixture | `fetchedAt` (UTC) | ISS `EPOCH` (UTC) |
-|---|---|---|---|---|---|
-| _(none yet — see status below)_ | | | `2026-09-02` | 2026-09-02T03:27:20Z | 2026-09-01T19:42:22.677120 |
+| Fixture | `capturedAt` (UTC) | `haEpoch` (Heavens-Above orbit page) | OMM fixture | `fetchedAt` (UTC) | ISS `EPOCH` (UTC) | Epoch gap | Result |
+|---|---|---|---|---|---|---|---|
+| `2026-09-02-neuquen-iss.json` | 2026-09-02T03:51Z | 2026-09-01T11:57:51Z | `2026-09-02` | 2026-09-02T03:27:20Z | 2026-09-01T19:42:22.677120 | 7.7 h (< 1 day) | **OVERALL: PASS** — 1 pass paired, 0 unpaired, 0 extras |
 
-**Status (2026-09-02).** The OMM side was captured; the Heavens-Above side has
-not been transcribed yet (no browser available in the session that built R1).
-The pipeline, run on the 2026-09-02 elements over `[2026-09-02T03:27Z, +10 d]`,
-finds exactly **one** visible ISS pass, on 2026-09-11 at 09:48 UTC (peak 10.2°,
-twilight). Every other culmination above 10° in that window happens in daylight
-at Neuquén. A ten-day window with one marginal pass is a weak validation, so
-capture when a run of dark passes is inside the window (from about 2026-09-05
-the mornings from 09-11 onward fall inside a ten-day window). Capture the OMM
-side again within the same hour (step 7); a new dated pair is added, the
-2026-09-02 OMM capture stays as-is.
+Result of `npx tsx scripts/validate-iss.ts` on 2026-09-02:
+
+```
+HA peak (UTC)        | start Δt  Δaz  Δel | peak  Δt  Δaz  Δel | end   Δt  Δaz  Δel | end reason (ours/HA) | mag ours/HA | result
+2026-09-11T09:48:39  |     -4s  0.6   0.0 |     -1s  0.3   0.2 |      3s  1.0   0.0 | horizon/horizon      |   1.2/-0.3 | PASS
+```
+
+Notes on the 2026-09-02 capture:
+
+- Heavens-Above's summary table and detail page disagree with each other by up to 5 s for the same pass
+  (summary 09:48:13 / 09:49:03, detail 09:48:18 / 09:48:59). The detail page is the authority (step 4);
+  the summary row is kept in the fixture under `summaryTable` for reference only.
+- The detail page prints altitudes as whole degrees, so Δel is only meaningful to ±0.5°.
+- Heavens-Above's own search window was 02 Sep 00:00 to 12 Sep 00:00 UTC; ours is `[capturedAt, +10 d]`.
+  The single pass lies inside both.
+- Only one visible pass exists in this window (every other culmination above 10° is in daylight), so the
+  spike is validated on one pass, and that pass is horizon-bounded at both ends, so the shadow model (D-8)
+  was **not** exercised against Heavens-Above. See PLAN §2.1 for what was checked instead.
+- Brightness (informational): ours +1.2 with `stdMag = −1.8`, Heavens-Above −0.3 at the same point
+  (−0.1 at maximum altitude). A 1.3–1.5 mag offset at a 1 505 km range and a back-lit geometry is
+  worth revisiting in R3 when the `stdMag` provenance is settled; the acceptance criterion does not include brightness.
 
 ## Filters text (copied from Heavens-Above, step 2)
 
-_(fill in verbatim at capture time)_
+`PassSummary.aspx?satid=25544`, 2026-09-02T03:51Z:
+
+> Search period start: 02 September 2026 00:00
+> Search period end: 12 September 2026 00:00
+> Orbit: 416 x 423 km, 51.6° (Epoch: 1 September)
+> Passes to include: visible only | all
+> Click on the date to get a star chart and other pass details.
+
+The page states no altitude or brightness cutoff in words. The Start and End columns are the 10° crossings,
+and the detail page labels them "Reaches altitude 10°" / "Drops below altitude 10°".
 
 ## Extras (step 13)
 
@@ -33,7 +53,7 @@ Machine-readable copy in `<date>-neuquen-iss.extras.json` as
 `[{ "peak": "<ISO UTC>", "reason": "<text>" }]`; the golden test fails on any
 extra that is not listed there.
 
-_(none yet)_
+- 2026-09-02 capture: none.
 
 ## Fixture shape
 
@@ -41,10 +61,10 @@ _(none yet)_
 
 ```json
 {
-  "capturedAt": "2026-09-05T02:30Z",
+  "capturedAt": "2026-09-02T03:51Z",
   "observer": { "lat": -38.93, "lon": -67.99, "altM": 0 },
   "timeZone": "UTC",
-  "haEpoch": "2026-09-04T21:13:05Z",
+  "haEpoch": "2026-09-01T11:57:51Z",
   "filtersText": "…the page's own wording on the 10° altitude cutoff and any brightness cutoff…",
   "passes": [
     {

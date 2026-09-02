@@ -24,4 +24,4 @@ React 19 + TypeScript + Vite, static deploy, no backend in MVP. Physics in a Web
 
 - Plain, direct language in docs and commit messages.
 - Tests for every acceptance criterion; physics changes must pass the golden fixtures from R1.
-- pnpm for package management. [or npm — pick one]
+- npm for package management.
