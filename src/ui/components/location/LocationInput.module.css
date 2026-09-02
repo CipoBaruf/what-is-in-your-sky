@@ -1,0 +1,29 @@
+.section {
+  margin-bottom: var(--row);
+}
+
+.active,
+.saved,
+.note {
+  margin: 0;
+}
+
+.note,
+.saved {
+  color: var(--fg-dim);
+}
+
+.clear {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.clear:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
