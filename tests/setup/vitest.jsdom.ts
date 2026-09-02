@@ -1,7 +1,20 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterAll, afterEach, beforeAll } from 'vitest';
+import { toHaveNoViolations } from 'jest-axe';
+import { afterAll, afterEach, beforeAll, expect } from 'vitest';
 import { server } from './msw';
+
+// FR-X-5: component tests assert `expect(await axe(container)).toHaveNoViolations()` (PLAN §9.1).
+expect.extend(toHaveNoViolations);
+
+declare module 'vitest' {
+  interface Assertion<T> {
+    toHaveNoViolations(): T;
+  }
+  interface AsymmetricMatchersContaining {
+    toHaveNoViolations(): unknown;
+  }
+}
 
 beforeAll(() => {
   server.listen({ onUnhandledRequest: 'error' });
