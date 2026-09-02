@@ -62,7 +62,7 @@ As a user, I can type a city, town, or place name and have it converted to coord
 - AC1: A single free-text field accepts a place name; results appear as a short pick list (name, region, country) when ambiguous.
 - AC2: The resolved place name and coordinates are shown so I can confirm they are right.
 - AC3: If geocoding fails or returns nothing, I get a clear message and the option to enter coordinates instead.
-- AC4: The UI makes clear that resolution is city-level ("Using the centre of Rosario, Santa Fe"); street addresses are not resolved to house precision in MVP.
+- AC4: The UI makes clear that resolution is city-level ("Using the centre of Cipolletti, Rio Negro"); street addresses are not resolved to house precision in MVP.
 
 **US-2 — Provide my location by coordinates**
 As a user, I can paste or type latitude/longitude.
