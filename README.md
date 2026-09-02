@@ -33,8 +33,8 @@ the build never has to guess. The project was created once in the Cloudflare das
    `npm run build`, deploy command `npx wrangler deploy` (the defaults). No environment
    variables; the Node version comes from `.node-version` (24, the same as CI).
 3. *Settings → Builds → Branch control*: enable non-production branch builds so every
-   pull request gets a preview version. Its URL is printed at the end of the build log
-   (`https://<version>-what-is-in-your-sky.ezequiel-baruf.workers.dev`).
+   branch gets a preview version, aliased by branch name:
+   `https://<branch>-what-is-in-your-sky.ezequiel-baruf.workers.dev`.
 
 `public/_headers` is copied into `dist/` by Vite and parsed by Cloudflare at upload (it is
 never served): the strict Content-Security-Policy, `Referrer-Policy` and `Permissions-Policy`
