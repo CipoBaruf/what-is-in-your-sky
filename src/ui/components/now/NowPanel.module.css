@@ -40,6 +40,10 @@
   color: var(--fg);
 }
 
+.cloud {
+  margin: 0;
+}
+
 .asOf {
   margin: 0;
   color: var(--fg-dim);

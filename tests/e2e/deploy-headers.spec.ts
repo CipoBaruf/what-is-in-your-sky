@@ -2,8 +2,8 @@
  * R4 (FR-X-3, PLAN §11, D-25): the production build, served with the headers
  * Cloudflare will send, carries the PLAN §11 values on `/` and the
  * immutable cache header on `/assets/*`, and the R3 flow completes under the
- * strict CSP with zero violations and no request to a host other than the site
- * and CelesTrak. This is the offline twin of the task's `curl -sI` and
+ * strict CSP with zero violations and no request to a host other than the site,
+ * CelesTrak and Open-Meteo (R8). This is the offline twin of the task's `curl -sI` and
  * DevTools checks against the deployed site.
  */
 /// <reference lib="dom" />
@@ -55,7 +55,7 @@ test('the site sends the PLAN §11 security headers and the immutable cache head
   expect(asset.headers()['content-security-policy']).toBe(expected['content-security-policy']);
 });
 
-test('the R3 flow completes under the strict CSP with zero violations and only site + CelesTrak requests', async ({ page, baseURL }) => {
+test('the R3 flow completes under the strict CSP with zero violations and only site + CelesTrak + Open-Meteo requests', async ({ page, baseURL }) => {
   await page.clock.setFixedTime(Date.parse(ha.capturedAt) + 9 * DAY_MS);
   await page.addInitScript(() => {
     window.__cspViolations = [];
@@ -81,12 +81,18 @@ test('the R3 flow completes under the strict CSP with zero violations and only s
     });
   });
 
+  await page.route('https://api.open-meteo.com/**', async (route) => {
+    await route.fulfill({ path: 'tests/fixtures/open-meteo/2026-09-02-neuquen-forecast.json', contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } });
+  });
+
   await page.goto('/');
   await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 24 h/, { timeout: 15_000 });
   await expect(page.getByRole('article', { name: 'ISS (Zarya)' })).toHaveCount(1);
+  // R8: the forecast arrived and filled the zone (FR-LOC-3), still with no CSP violation.
+  await expect(page.getByRole('article', { name: 'ISS (Zarya)' })).toContainText('GMT-3');
 
   expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
   expect(consoleErrors).toEqual([]);
-  expect([...hosts].sort()).toEqual([new URL(baseURL ?? '').host, 'celestrak.org'].sort());
+  expect([...hosts].sort()).toEqual([new URL(baseURL ?? '').host, 'celestrak.org', 'api.open-meteo.com'].sort());
 });

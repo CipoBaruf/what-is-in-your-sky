@@ -37,6 +37,8 @@ test.beforeEach(async ({ page }) => {
       headers: { 'access-control-allow-origin': '*' },
     });
   });
+  // R8: without a forecast the zone stays unknown and times stay in UTC, which is what this spec asserts (weather.spec.ts covers the forecast).
+  await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
 });
 
 test('at the R3 clock the panel says plainly that nothing is above 10°, with the time it was checked', async ({ page }) => {
