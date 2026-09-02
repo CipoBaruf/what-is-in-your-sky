@@ -1,11 +1,12 @@
-import type { NoradId, Observer, Pass, SatelliteRecord, TimeWindow, VisibilityThresholds } from '../model';
+import type { EpochMs, NoradId, NowState, Observer, Pass, SatelliteRecord, TimeWindow, VisibilityThresholds } from '../model';
 import type { RejectedElement, WorkerErrorCode, WorkerRequest, WorkerResponse } from '../worker/protocol';
 
 /**
  * Owns the worker and the request/response correlation of PLAN §6.2. Every
  * job or request gets a fresh id; a response whose id is no longer tracked is
  * dropped, so a cancelled job's late `passes` never reach the store. Issuing
- * a new `computePasses` cancels the previous one first (spec §5.6).
+ * a new `computePasses` cancels the previous one first (spec §5.6). One-shot
+ * requests (`loadElements`, `computeNow`) are promises keyed by request id.
  */
 export interface WorkerLike {
   postMessage(message: WorkerRequest): void;
@@ -30,6 +31,8 @@ export interface WorkerClient {
   loadElements: (records: SatelliteRecord[]) => Promise<ElementsLoaded>;
   /** Cancels the previous job, if any, and returns the new job's id. */
   computePasses: (observer: Observer, window: TimeWindow, thresholds: VisibilityThresholds, handlers: PassesJobHandlers) => string;
+  /** R7 (D-14): every loaded object at `t`; the worker answers between the objects of a running job. */
+  computeNow: (observer: Observer, t: EpochMs, thresholds: VisibilityThresholds) => Promise<NowState>;
   cancel: (jobId: string) => void;
   activeJobId: () => string | null;
   terminate: () => void;
@@ -45,8 +48,28 @@ export function sequentialIds(): (prefix: string) => string {
 
 export function createWorkerClient(worker: WorkerLike, nextId: (prefix: string) => string = sequentialIds()): WorkerClient {
   const jobs = new Map<string, PassesJobHandlers>();
-  const requests = new Map<string, { resolve: (value: ElementsLoaded) => void; reject: (reason: Error) => void }>();
+  /** One-shot requests awaiting their reply; the resolver receives the whole response and narrows it. */
+  const requests = new Map<string, { resolve: (response: WorkerResponse) => void; reject: (reason: Error) => void }>();
   let active: string | null = null;
+
+  const request = <T>(build: (requestId: string) => WorkerRequest, pick: (response: WorkerResponse) => T | null): Promise<T> =>
+    new Promise<T>((resolve, reject) => {
+      const requestId = nextId('req');
+      requests.set(requestId, {
+        resolve: (response) => {
+          const value = pick(response);
+          if (value === null) reject(new Error(`Unexpected ${response.type} reply to ${requestId}`));
+          else resolve(value);
+        },
+        reject,
+      });
+      worker.postMessage(build(requestId));
+    });
+
+  const settle = (requestId: string, response: WorkerResponse): void => {
+    requests.get(requestId)?.resolve(response);
+    requests.delete(requestId);
+  };
 
   const endJob = (jobId: string): void => {
     jobs.delete(jobId);
@@ -55,11 +78,10 @@ export function createWorkerClient(worker: WorkerLike, nextId: (prefix: string) 
 
   worker.addEventListener('message', ({ data }) => {
     switch (data.type) {
-      case 'elementsLoaded': {
-        requests.get(data.requestId)?.resolve({ loaded: data.loaded, rejected: data.rejected });
-        requests.delete(data.requestId);
+      case 'elementsLoaded':
+      case 'nowState':
+        settle(data.requestId, data);
         return;
-      }
       case 'passes':
         jobs.get(data.jobId)?.onPasses(data.noradId, data.passes);
         return;
@@ -72,8 +94,6 @@ export function createWorkerClient(worker: WorkerLike, nextId: (prefix: string) 
         handlers?.onDone({ cancelled: data.cancelled, elapsedMs: data.elapsedMs, hasDarkness: data.hasDarkness });
         return;
       }
-      case 'nowState':
-        return; // R7
       case 'error': {
         const { jobId, requestId } = data.ref;
         if (requestId !== undefined) {
@@ -99,11 +119,15 @@ export function createWorkerClient(worker: WorkerLike, nextId: (prefix: string) 
 
   return {
     loadElements: (records) =>
-      new Promise<ElementsLoaded>((resolve, reject) => {
-        const requestId = nextId('req');
-        requests.set(requestId, { resolve, reject });
-        worker.postMessage({ type: 'loadElements', requestId, records });
-      }),
+      request(
+        (requestId) => ({ type: 'loadElements', requestId, records }),
+        (r) => (r.type === 'elementsLoaded' ? { loaded: r.loaded, rejected: r.rejected } : null),
+      ),
+    computeNow: (observer, t, thresholds) =>
+      request(
+        (requestId) => ({ type: 'computeNow', requestId, observer, t, thresholds }),
+        (r) => (r.type === 'nowState' ? r.state : null),
+      ),
     computePasses: (observer, window, thresholds, handlers) => {
       if (active !== null) cancel(active);
       const jobId = nextId('job');

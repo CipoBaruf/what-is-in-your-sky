@@ -83,7 +83,7 @@ test('the R3 flow completes under the strict CSP with zero violations and only s
 
   await page.goto('/');
   await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
-  await expect(page.getByRole('status')).toHaveText(/\d+ visible passes in the next 24 h/, { timeout: 15_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 24 h/, { timeout: 15_000 });
   await expect(page.getByRole('article', { name: 'ISS (Zarya)' })).toHaveCount(1);
 
   expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);

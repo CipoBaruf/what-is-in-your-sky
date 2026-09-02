@@ -44,11 +44,11 @@ test('typing the Neuquén coordinates shows the pass list with the golden ISS pa
   });
 
   await page.goto('/');
-  await expect(page.getByRole('status')).toHaveText(/Enter coordinates/);
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/Enter coordinates/);
 
   await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
 
-  await expect(page.getByRole('status')).toHaveText(/\d+ visible passes in the next 24 h/, { timeout: 15_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 24 h/, { timeout: 15_000 });
   const cards = page.getByRole('list', { name: '' }).getByRole('listitem');
   expect(await cards.count()).toBeGreaterThan(1);
 
