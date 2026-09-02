@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Observer } from '../../../model';
 import { CoordsInput, coordsLabel } from './CoordsInput';
 import styles from './LocationInput.module.css';
@@ -34,8 +34,12 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
   const clear = (): void => {
     onClear();
     setSeed((s) => ({ key: s.key + 1, observer: null }));
-    document.getElementById(PLACE_INPUT_ID)?.focus();
   };
+
+  // After a clear the inputs are remounted, so the focus goes to the new place field once it exists.
+  useEffect(() => {
+    if (seed.key > 0) document.getElementById(PLACE_INPUT_ID)?.focus();
+  }, [seed.key]);
 
   const accuracy = observer?.source === 'device' ? accuracyText(observer.accuracyM) : null;
   const detail = [observer?.source === 'device' ? 'from your device' : null, observer && observer.altM !== 0 ? `at ${String(Math.round(observer.altM))} m` : null].filter((part): part is string => part !== null).join(' ');
