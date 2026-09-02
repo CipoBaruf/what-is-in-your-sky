@@ -185,7 +185,7 @@
     - Component tests: each accepted coordinate format parses to the same observer; lat 91 and lon −181 show inline errors and do not update the store; geolocation denial renders the message and leaves inputs enabled; accuracy 2 000 m is displayed, 300 m is hidden; the button is absent when `navigator.geolocation` is undefined; reload restores the last observer; the clear action empties the observer in `wiys:prefs:v1`.
     - `jest-axe` passes on the container; all inputs reachable by Tab in order. Playwright: reload after entering coordinates restores the same pass list without re-typing.
 
-- [ ] **R11 [P] — Offline recompute and stale-data banners**
+- [x] **R11 [P] — Offline recompute and stale-data banners** — done as written, plus: the epoch age is always shown as a line above the banners (FR-SAT-4 "display the epoch age"), an info banner lists the catalog objects with no elements (the "unavailable" list R3 left unshown), and the Playwright offline test has two more cases (stale warning after a 3 h reload with CelesTrak unreachable; epoch warning five days on). The live suite passed once manually on 2026-09-02 (5 tests); the workflow's first run is triggered from the PR branch (see PLAN §2.12).
   - **Built from:** T7 (IndexedDB cache, Web Locks single-flight, 2 h rule, stale-on-failure), T11 (15 min re-check), T15 (epoch-age and stale banners), T10 (`Banner.tsx`), T17 (offline e2e), T22 (live-contract workflow).
   - **Goal:** Cache elements raw in IndexedDB so a new location still yields passes offline, refresh them on a 2 h rule enforced across tabs, and warn honestly when elements are old or could not be refreshed.
   - **Satisfies:** FR-SAT-2, FR-SAT-4, FR-SAT-6, FR-X-4, spec §9.1 live-contract row.
