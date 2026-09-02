@@ -109,7 +109,7 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   // Start from the top: a click on the title moves Chromium's sequential-focus starting point there (a blur alone leaves it at the coordinates field the fill focused).
   await page.getByRole('banner').getByRole('heading', { level: 1 }).click();
   const reached: { control: string; ring: boolean }[] = [];
-  for (let i = 0; i < expected.length; i++) {
+  for (const _step of expected) {
     await page.keyboard.press('Tab');
     reached.push(
       await page.evaluate(() => {
