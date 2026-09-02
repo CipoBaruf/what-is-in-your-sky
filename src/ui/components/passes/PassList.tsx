@@ -1,51 +1,53 @@
-import { useMemo } from 'react';
-import type { EpochMs, Observer, SatelliteRecord } from '../../../model';
+import { SEARCH_WINDOW_HOURS, useAppStore, type ElementsState, type PassesState } from '../../../state';
+import type { Observer } from '../../../model';
 import { PassCard } from './PassCard';
-import { findAllPasses, SEARCH_WINDOW_HOURS } from './passSearch';
 import styles from './PassList.module.css';
 
-export type ElementsState =
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
-  | { status: 'ready'; records: SatelliteRecord[]; unavailable: number[] };
-
-export interface PassListProps {
-  observer: Observer | null;
-  elements: ElementsState;
-  /** The instant "now" was read (by the caller, D-15); the search window starts here. */
-  nowMs: EpochMs;
+/**
+ * Every upcoming visible pass of the catalog as plain cards, chronological
+ * (US-5 AC2 default). R5: the cards render as the worker streams each object's
+ * passes into the store, the ISS first (PLAN §6.2); the status line shows the
+ * progress meanwhile. The ISS hero card and the sort toggle come in R12.
+ */
+export function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState): string {
+  const hours = String(SEARCH_WINDOW_HOURS);
+  if (!observer) return 'Enter coordinates to see the visible passes.';
+  if (elements.status === 'idle' || elements.status === 'loading') return 'Loading orbital elements from CelesTrak…';
+  if (elements.status === 'error') return `Could not load orbital elements: ${elements.message}`;
+  if (elements.records.length === 0) return 'No catalog objects have orbital elements right now.';
+  switch (passes.status) {
+    case 'idle':
+      return 'Computing passes…';
+    case 'computing':
+      return `Computing passes… ${String(passes.done)} of ${String(passes.total)} objects, ${String(passes.passes.length)} visible so far`;
+    case 'error':
+      return `Could not compute passes: ${passes.error ?? 'unknown error'}`;
+    case 'done':
+      if (passes.passes.length === 0 && passes.hasDarkness === false) {
+        return `No darkness tonight at this latitude: the sun never gets low enough in the next ${hours} h from ${observer.label}.`;
+      }
+      if (passes.passes.length === 0) return `No visible passes in the next ${hours} h from ${observer.label}.`;
+      return `${String(passes.passes.length)} visible passes in the next ${hours} h from ${observer.label}`;
+  }
 }
 
-/**
- * R3: every upcoming visible pass of the catalog as plain cards, chronological
- * (US-5 AC2 default), computed synchronously on the main thread. Streaming,
- * the ISS hero card and the sort toggle come in R5 and R12.
- */
-export function PassList({ observer, elements, nowMs }: PassListProps) {
-  const result = useMemo(
-    () => (observer && elements.status === 'ready' ? findAllPasses(elements.records, observer, nowMs) : null),
-    [observer, elements, nowMs],
-  );
-
-  const status = ((): string | null => {
-    if (!observer) return 'Enter coordinates to see the visible passes.';
-    if (elements.status === 'loading') return 'Loading orbital elements from CelesTrak…';
-    if (elements.status === 'error') return `Could not load orbital elements: ${elements.message}`;
-    if (elements.status === 'ready' && elements.records.length === 0) return 'No catalog objects have orbital elements right now.';
-    if (result && result.passes.length === 0) return `No visible passes in the next ${String(SEARCH_WINDOW_HOURS)} h from ${observer.label}.`;
-    return null;
-  })();
-
+export function PassList() {
+  const observer = useAppStore((s) => s.observer);
+  const elements = useAppStore((s) => s.elements);
+  const passes = useAppStore((s) => s.passes);
+  const showList = observer !== null && elements.status === 'ready' && passes.passes.length > 0;
+  // Busy from the moment there is something to compute until the job ends (the worker may still be booting).
+  const busy = observer !== null && elements.status === 'ready' && elements.records.length > 0 && (passes.status === 'idle' || passes.status === 'computing');
   return (
     <section aria-label="Upcoming passes" className={styles.section}>
-      <p role="status" aria-live="polite" className={styles.status}>
-        {status ?? `${String(result?.passes.length ?? 0)} visible passes in the next ${String(SEARCH_WINDOW_HOURS)} h from ${observer?.label ?? ''}`}
+      <p role="status" aria-live="polite" aria-busy={busy} className={styles.status}>
+        {statusText(observer, elements, passes)}
       </p>
-      {result && result.passes.length > 0 && (
+      {showList && (
         <ol className={styles.list}>
-          {result.passes.map((pass) => (
+          {passes.passes.map((pass) => (
             <li key={pass.id}>
-              <PassCard pass={pass} timeZone={observer?.timeZone ?? null} />
+              <PassCard pass={pass} timeZone={observer.timeZone} />
             </li>
           ))}
         </ol>
