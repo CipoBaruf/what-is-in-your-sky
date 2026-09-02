@@ -1,7 +1,7 @@
 import { compassPoint } from '../../../lib/compass';
 import { degrees, formatDuration, formatMagnitude, formatRange } from '../../../lib/format';
 import { TWILIGHT_LABEL, brightnessPhrase, endReasonPhrase, startReasonPhrase } from '../../../lib/phrases';
-import { formatClock, formatDate } from '../../../lib/timeFormat';
+import { formatClock } from '../../../lib/timeFormat';
 import type { Pass, PassPoint } from '../../../model';
 import styles from './PassNumbers.module.css';
 
@@ -32,7 +32,7 @@ export function PassNumbers({ pass, timeZone }: PassNumbersProps) {
     <div className={styles.numbers}>
       <div className={styles.scroll}>
         <table className={styles.table}>
-          <caption className={styles.caption}>Times, directions and heights on {formatDate(pass.start.t, timeZone)}</caption>
+          <caption className={styles.caption}>Start, peak and end</caption>
           <thead>
             <tr>
               <th scope="col">Point</th>
