@@ -1,5 +1,7 @@
 import type { StateCreator } from 'zustand/vanilla';
 import type { LocalPrefs } from '../../data/localPrefs';
+import { DEFAULT_PASS_SORT } from '../../lib/passSort';
+import type { PassSort } from '../../model';
 import type { AppState } from '../store';
 
 /**
@@ -12,12 +14,18 @@ import type { AppState } from '../store';
  * location is computed like a typed one; `clearSavedObserver` forgets the
  * saved location *and* drops the active observer, so the screen visibly
  * returns to its empty state (the write-through then removes the key).
+ * R12 (US-5 AC2): the pass list order is the one preference the slice does
+ * hold as state, read from storage when the store is created and written
+ * through by `setSort`; the observer write-through preserves it.
  */
 export interface PrefsDeps {
   prefs: LocalPrefs;
 }
 
 export interface PrefsSlice {
+  /** The pass list order (US-5 AC2), `chronological` unless saved otherwise. */
+  sort: PassSort;
+  setSort: (sort: PassSort) => void;
   /** Sets the saved observer, if there is one; returns whether there was. */
   restoreSavedObserver: () => boolean;
   clearSavedObserver: () => void;
@@ -25,7 +33,12 @@ export interface PrefsSlice {
 
 export const createPrefsSlice =
   (deps: PrefsDeps): StateCreator<AppState, [], [], PrefsSlice> =>
-  (_set, get) => ({
+  (set, get) => ({
+    sort: deps.prefs.read().sort ?? DEFAULT_PASS_SORT,
+    setSort: (sort) => {
+      set({ sort });
+      deps.prefs.write({ ...deps.prefs.read(), sort });
+    },
     restoreSavedObserver: () => {
       const { observer } = deps.prefs.read();
       if (!observer) return false;

@@ -1,4 +1,4 @@
-import type { Observer } from '../model';
+import type { Observer, PassSort } from '../model';
 import { browserStorage, type StorageLike } from './storage';
 import { z } from './zod';
 
@@ -8,13 +8,16 @@ import { z } from './zod';
  * zone and accuracy included, so a reload shows local times before any
  * forecast arrives. A body that does not match the schema is treated as
  * empty rather than repaired; storage failures (quota, private mode) are
- * ignored, the session simply is not remembered. Other preferences (chart
- * orientation, sort order) join this object in later tasks.
+ * ignored, the session simply is not remembered. R12 adds the pass list
+ * order (US-5 AC2); the chart orientation joins in R13. Each preference is
+ * optional and read independently, so an unknown or invalid value of one
+ * never loses the others.
  */
 export const PREFS_KEY = 'wiys:prefs:v1';
 
 export interface Prefs {
   observer?: Observer;
+  sort?: PassSort;
 }
 
 const storedObserverSchema = z.object({
@@ -26,7 +29,10 @@ const storedObserverSchema = z.object({
   timeZone: z.string().min(1).nullable(),
   accuracyM: z.number().optional(),
 });
-const storedPrefsSchema = z.object({ observer: storedObserverSchema.optional() });
+const storedPrefsSchema = z.object({
+  observer: storedObserverSchema.optional().catch(undefined),
+  sort: z.enum(['chronological', 'best']).optional().catch(undefined),
+});
 
 export interface LocalPrefs {
   read: () => Prefs;
@@ -42,10 +48,14 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!raw) return {};
         const parsed = storedPrefsSchema.safeParse(JSON.parse(raw));
         if (!parsed.success) return {};
-        const { observer } = parsed.data;
-        if (!observer) return {};
-        const { accuracyM, ...rest } = observer;
-        return { observer: accuracyM === undefined ? rest : { ...rest, accuracyM } };
+        const { observer, sort } = parsed.data;
+        const prefs: Prefs = {};
+        if (observer) {
+          const { accuracyM, ...rest } = observer;
+          prefs.observer = accuracyM === undefined ? rest : { ...rest, accuracyM };
+        }
+        if (sort) prefs.sort = sort;
+        return prefs;
       } catch {
         return {};
       }

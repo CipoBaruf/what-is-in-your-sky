@@ -61,4 +61,19 @@ describe('prefs slice', () => {
     expect(storage.map.has(PREFS_KEY)).toBe(false);
     expect(createLocalPrefs(storage).read()).toEqual({});
   });
+
+  it('reads the saved sort order at creation, writes it through beside the observer, and the observer write-through keeps it (R12, US-5 AC2)', () => {
+    const storage = memoryStorage();
+    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().sort).toBe('chronological');
+    storage.map.set(PREFS_KEY, JSON.stringify({ sort: 'best' }));
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(store.getState().sort).toBe('best');
+    store.getState().setObserver(neuquen);
+    expect(stored(storage)).toEqual({ observer: neuquen, sort: 'best' });
+    store.getState().setSort('chronological');
+    expect(store.getState().sort).toBe('chronological');
+    expect(stored(storage)).toEqual({ observer: neuquen, sort: 'chronological' });
+    store.getState().setObserver(null);
+    expect(stored(storage)).toEqual({ sort: 'chronological' }); // the order outlives the location
+  });
 });
