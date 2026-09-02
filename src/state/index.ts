@@ -19,7 +19,7 @@ export { DEFAULT_THRESHOLDS } from '../physics/constants';
 export { searchPlaces };
 export type PlaceSearch = typeof searchPlaces;
 
-/** Creates the worker and wires the effects to the app store. Called once from `main.tsx`. */
+/** Creates the worker, wires the effects to the app store and restores the saved location. Called once from `main.tsx`. */
 export function startApp(): () => void {
   const client = createWorkerClient(createAppWorker());
   const stop = startEffects({
@@ -31,6 +31,8 @@ export function startApp(): () => void {
     now: () => Date.now(),
     visibility: documentVisibility(document),
   });
+  // R10 (US-8): the saved location is restored after the effects are wired, so it is computed like a typed one.
+  appStore.getState().restoreSavedObserver();
   return () => {
     stop();
     client.terminate();
