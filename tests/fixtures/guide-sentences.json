@@ -1,0 +1,7 @@
+{
+  "note": "Golden FR-GUIDE-1 sentences for the first R1 golden pass (tests/fixtures/reference-values.json firstGoldenPass) in UTC. `asComputed` is the pass as the pipeline returns it (horizon/horizon, twilight = true); the other three keep its numbers but force the end reason and clear the twilight flag. Read by src/lib/phrases.test.ts and tests/e2e/pass-detail.spec.ts.",
+  "asComputed": "Appears low in the northeast at 09:48:14 UTC, climbs to 10° (low in the sky) in the northeast at 09:48:38 UTC, drops below the horizon in the east-northeast at 09:49:02 UTC. Like an average star (magnitude +1.2). The sky will still be bright, so it may be hard to spot.",
+  "endHorizon": "Appears low in the northeast at 09:48:14 UTC, climbs to 10° (low in the sky) in the northeast at 09:48:38 UTC, drops below the horizon in the east-northeast at 09:49:02 UTC. Like an average star (magnitude +1.2).",
+  "endShadow": "Appears low in the northeast at 09:48:14 UTC, climbs to 10° (low in the sky) in the northeast at 09:48:38 UTC, disappears into Earth's shadow in the east-northeast at 09:49:02 UTC. Like an average star (magnitude +1.2).",
+  "endTwilight": "Appears low in the northeast at 09:48:14 UTC, climbs to 10° (low in the sky) in the northeast at 09:48:38 UTC, fades into the brightening sky in the east-northeast at 09:49:02 UTC. Like an average star (magnitude +1.2)."
+}
