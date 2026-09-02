@@ -1,26 +1,32 @@
 import { useId } from 'react';
+import { cloudVerdict } from '../../../lib/cloudVerdict';
 import { compassPoint } from '../../../lib/compass';
 import { degrees, formatDuration, formatMagnitude } from '../../../lib/format';
 import { TWILIGHT_LABEL, brightnessPhrase } from '../../../lib/phrases';
 import { formatClock, formatDate } from '../../../lib/timeFormat';
-import type { Pass } from '../../../model';
+import type { Pass, WeatherSnapshot } from '../../../model';
+import { CloudBadge } from '../weather/CloudBadge';
 import styles from './PassCard.module.css';
 
 /**
  * Plain card (US-5 AC1 fields that exist without weather): name, start
  * time, max elevation, peak compass point + degrees, duration, magnitude
  * number and phrase (FR-GUIDE-3), the "sky still bright" label when the
- * pass is a twilight one (FR-VIS-7), and the control that opens the detail
- * screen (R6). The cloud verdict is R8; local time zone is R8.
+ * pass is a twilight one (FR-VIS-7), the control that opens the detail
+ * screen (R6) and, from R8, the cloud verdict at the pass peak (FR-WX-2/3)
+ * when the list passes a forecast (or null for "unknown"); times are in
+ * `timeZone`, which the forecast fills in for coordinate input (FR-LOC-3).
  */
 export interface PassCardProps {
   pass: Pass;
   timeZone: string | null;
   /** When given, the card shows an "Open guide" control (the whole card is its hit area). */
   onOpen?: (passId: string) => void;
+  /** The forecast to judge the peak by; `null` shows "weather unknown"; omitted hides the row. */
+  weather?: WeatherSnapshot | null;
 }
 
-export function PassCard({ pass, timeZone, onOpen }: PassCardProps) {
+export function PassCard({ pass, timeZone, onOpen, weather }: PassCardProps) {
   const headingId = useId();
   const openId = useId();
   return (
@@ -46,6 +52,19 @@ export function PassCard({ pass, timeZone, onOpen }: PassCardProps) {
         <dd>
           {formatMagnitude(pass.peakMagnitude)}, {brightnessPhrase(pass.peakMagnitude)}
         </dd>
+        {weather !== undefined && (
+          <>
+            <dt>Clouds</dt>
+            <dd>
+              <CloudBadge
+                verdict={cloudVerdict(weather, pass.peak.t)}
+                forecast={weather ? { provider: weather.provider, fetchedAt: weather.fetchedAt } : null}
+                timeZone={timeZone}
+                moment="at the pass peak"
+              />
+            </dd>
+          </>
+        )}
       </dl>
       {onOpen && (
         <button

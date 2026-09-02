@@ -7,7 +7,7 @@
 import { act, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { NowItem, NowState, Observer } from '../../../model';
+import type { NowItem, NowState, Observer, WeatherSnapshot } from '../../../model';
 import { appStore, type AppState } from '../../../state';
 import { IDLE_PASSES } from '../../../state/slices/passes';
 import { NowPanel, remainingText, summaryText } from './NowPanel';
@@ -34,6 +34,20 @@ const set = (patch: Partial<AppState>): void => {
   act(() => {
     appStore.setState(patch);
   });
+};
+const HOUR = 3_600_000;
+const hourBefore = Math.floor(T / HOUR) * HOUR;
+const forecast: WeatherSnapshot = {
+  provider: 'open-meteo',
+  lat: -38.9,
+  lon: -68,
+  cellKey: '-38.9,-68.0',
+  fetchedAt: T - HOUR,
+  timeZone: 'America/Argentina/Salta',
+  hourly: [
+    { t: hourBefore, totalPct: 40, lowPct: 40, midPct: 40, highPct: 40 },
+    { t: hourBefore + HOUR, totalPct: 60, lowPct: 60, midPct: 60, highPct: 60 },
+  ],
 };
 /** A finished job for `observer`, so `hasDarkness` is known. */
 const done = (hasDarkness: boolean) => ({ ...IDLE_PASSES, jobId: 'job-1', status: 'done' as const, observer, hasDarkness });
@@ -151,6 +165,26 @@ describe('<NowPanel>', () => {
     expect(screen.getByRole('listitem')).toHaveTextContent('sets in 3:02');
     expect(screen.getByRole('listitem')).toHaveTextContent('40° up');
     expect(screen.getByText('as of 09:48:34 UTC')).toBeInTheDocument();
+  });
+
+  it('shows the current cloud cover from the forecast, interpolated to the instant of the check (FR-WX-3)', () => {
+    set({ observer, passes: done(true), now: { observer, state: state(), error: null }, weather: { observer, status: 'ready', snapshot: forecast, error: null } });
+    render(<NowPanel />);
+    // T is 48 min 24 s past the hour: 40 + 20·(2904/3600) ≈ 56 %.
+    const badge = screen.getByText('Partly cloudy, 56 % cloud');
+    expect(badge).toHaveAttribute('data-state', 'partly');
+    expect(screen.getByText(/Clouds now:/)).toContainElement(badge);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('right now');
+  });
+
+  it('says "weather unknown" when the forecast failed, is still loading, or belongs to another observer (US-7 AC4)', () => {
+    set({ observer, passes: done(true), now: { observer, state: state(), error: null }, weather: { observer, status: 'error', snapshot: null, error: 'HTTP 503' } });
+    render(<NowPanel />);
+    expect(screen.getByText('Weather unknown')).toHaveAttribute('data-state', 'unknown');
+    set({ weather: { observer, status: 'loading', snapshot: null, error: null } });
+    expect(screen.getByText('Weather unknown')).toBeInTheDocument();
+    set({ weather: { observer: other, status: 'ready', snapshot: forecast, error: null } });
+    expect(screen.getByText('Weather unknown')).toBeInTheDocument();
   });
 
   it('summaryText covers every kind', () => {
