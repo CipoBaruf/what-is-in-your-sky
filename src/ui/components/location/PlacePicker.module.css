@@ -1,0 +1,71 @@
+.field {
+  display: grid;
+  gap: calc(var(--row) / 2);
+  margin-bottom: var(--row);
+}
+
+.input {
+  width: calc(32 * var(--cell));
+  max-width: 100%;
+}
+
+/* The pick list flows under the field (never absolutely positioned, so it cannot overflow a 390 px screen). */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--rule);
+  max-width: calc(48 * var(--cell));
+}
+
+.list[hidden] {
+  display: none;
+}
+
+/* G6: a row is two text rows (48 px at the 16 px base), above the 44 px tap target. */
+.option,
+.optionActive {
+  display: grid;
+  gap: 0;
+  min-height: calc(2 * var(--row));
+  padding: 0 var(--cell);
+  cursor: pointer;
+  border-bottom: 1px solid var(--rule);
+}
+
+.option:last-child,
+.optionActive:last-child {
+  border-bottom: 0;
+}
+
+.optionActive {
+  background: var(--rule);
+}
+
+.name::before {
+  content: '> ';
+  color: var(--fg-dim);
+}
+
+.region {
+  color: var(--fg-dim);
+  padding-left: calc(2 * var(--cell));
+}
+
+.status,
+.note,
+.error {
+  margin: 0;
+}
+
+.status:empty {
+  display: none;
+}
+
+.note {
+  color: var(--fg-dim);
+}
+
+.error {
+  color: var(--danger);
+}

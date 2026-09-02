@@ -69,7 +69,7 @@ describe('<NowPanel>', () => {
   it('is a labelled region that asks for coordinates when there is no observer', async () => {
     const { container } = render(<NowPanel />);
     const region = screen.getByRole('region', { name: 'Right now' });
-    expect(region).toHaveTextContent('Enter coordinates to see what is overhead right now.');
+    expect(region).toHaveTextContent('Enter a place name or coordinates to see what is overhead right now.');
     expect(screen.queryByRole('list')).toBeNull();
     expect(await axe(container)).toHaveNoViolations();
   });
