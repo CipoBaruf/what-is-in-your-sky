@@ -49,7 +49,7 @@ export function CloudBadge({ verdict, forecast, timeZone, moment }: CloudBadgePr
   const tipId = useId();
   return (
     <span className={styles.wrap}>
-      <span className={styles.badge} data-state={verdict.state} tabIndex={0} aria-describedby={tipId}>
+      <span className={`inline-control ${styles.badge}`} data-state={verdict.state} tabIndex={0} aria-describedby={tipId}>
         {badgeText(verdict)}
       </span>
       <span role="tooltip" id={tipId} className={styles.tip}>

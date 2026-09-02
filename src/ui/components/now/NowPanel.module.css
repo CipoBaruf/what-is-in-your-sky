@@ -1,15 +1,6 @@
 .section {
-  border: 1px solid var(--rule);
-  padding: calc(var(--row) / 2) var(--cell);
   display: grid;
   gap: calc(var(--row) / 2);
-}
-
-.heading {
-  font-size: 1rem;
-  font-weight: normal;
-  margin: 0;
-  color: var(--fg-dim);
 }
 
 .status {

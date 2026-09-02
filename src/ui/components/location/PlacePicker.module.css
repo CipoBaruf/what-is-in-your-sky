@@ -27,7 +27,7 @@
 .optionActive {
   display: grid;
   gap: 0;
-  min-height: calc(2 * var(--row));
+  min-height: var(--tap);
   padding: 0 var(--cell);
   cursor: pointer;
   border-bottom: 1px solid var(--rule);
@@ -39,7 +39,7 @@
 }
 
 .optionActive {
-  background: var(--rule);
+  background: var(--bg-raised);
 }
 
 .name::before {

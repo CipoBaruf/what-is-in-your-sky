@@ -34,11 +34,6 @@
   color: var(--fg-dim);
 }
 
-.badge:focus-visible {
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
-}
-
 /* Shown in flow under the badge (no absolute positioning: nothing can overflow the phone width). */
 .tip {
   display: none;

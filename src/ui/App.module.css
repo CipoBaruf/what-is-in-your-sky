@@ -1,0 +1,14 @@
+.header {
+  padding-top: var(--row);
+}
+
+.tagline {
+  margin: 0;
+  padding-left: calc(2 * var(--cell));
+  color: var(--fg-dim);
+}
+
+.main {
+  display: grid;
+  gap: var(--row);
+}
