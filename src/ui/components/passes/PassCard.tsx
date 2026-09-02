@@ -35,7 +35,7 @@ export function formatMagnitude(mag: number): string {
 export function PassCard({ pass, timeZone }: PassCardProps) {
   const headingId = useId();
   return (
-    <article className={styles.card} aria-labelledby={headingId}>
+    <article className={styles.card} aria-labelledby={headingId} data-pass-id={pass.id}>
       <h2 id={headingId} className={styles.name}>
         {pass.name}
       </h2>

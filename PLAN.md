@@ -95,6 +95,21 @@ Recorded by the H implementation (physics hardening). Fixtures: `2026-09-02-pari
 - **D-26 — zod runs jitless.** zod 4.5 compiles object parsers with `new Function` and probes for it once with a caught call; under `script-src 'self'` the caught probe is still reported as a CSP violation (the D-25 e2e caught it on its first run). `src/data/zod.ts` calls `z.config({ jitless: true })` and re-exports `z`; it is the only module that may import `zod` (enforced by `src/data/zod.test.ts`), because the flag is read when a schema is *built*, so the configuring module has to evaluate before any schema module. Cost: the interpreted parser on a few hundred records per group, not measurable next to the pass search. `unsafe-eval` is not an option (§11).
 - **Pages project:** Git integration (preview per PR, production on `main`), project name `what-is-in-your-sky`, framework preset Vite, build `npm run build`, output `dist`, Node from `.node-version` (24, same as `ci.yml`). Created once in the dashboard; steps in `README.md`. The GitHub Actions alternative (`wrangler pages deploy` from `ci.yml`, gated on the tests) was not taken: the task asks for the repo wiring, and Pages' own build keeps a single source of truth for what is deployed. Revisit in R15 if deploys should wait for CI.
 
+### 2.6 R5 decisions (2026-09-02)
+
+Recorded by the R5 implementation (worker, store, streaming list).
+
+- **`jobDone.hasDarkness: boolean`** is added to the §6.2 protocol: whether the observer's sun altitude reaches `sunAltMaxDeg` anywhere in the window, computed by `physics/darkness.ts` (sampled every 10 min plus the window end; the sun moves ≤ 0.25°/min, so the grid resolves twilight to ~2.5° and the end check catches a window that ends just after dusk). The list shows spec §5.6's "no darkness tonight at this latitude" when a finished job has no passes and `hasDarkness` is false; R7's Now panel reuses the flag.
+- **Error semantics (§6.2 rules, made precise):** `PROPAGATION_FAILED` carries the job id, the object is skipped and the job goes on; `NO_ELEMENTS` and `INTERNAL` carry the job id and end the job **without** a `jobDone`. The client treats those two as terminal, drops the job's handlers and reports the error; the passes slice shows "Could not compute passes: CODE: message". A `cancel` for a job the worker does not know is ignored; a cancelled job's `jobDone` is dropped by the client because the job was forgotten the moment `cancel` was posted.
+- **`computeNow` answers `INTERNAL`** ("not implemented until R7"); the protocol type is complete so R7 only adds the handler and `physics/now.ts`.
+- **D-27 — `src/state` may import `src/physics/constants`.** The `computePasses` request carries the thresholds, and their defaults are a value (`DEFAULT_THRESHOLDS`), which `src/model` (types only) cannot hold. Same pattern as D-21: a dependency-free leaf whitelisted in the boundary rule (`except: ['./constants.ts']`) rather than a duplicated constant. `src/state` may also import `src/worker/protocol` (types) and references `passes.worker.ts` by URL only.
+- **D-28 — `eslint-plugin-import-x` instead of `eslint-plugin-import`.** The original plugin's peer range stops at ESLint 9; import-x supports ESLint 10, ships the same `no-restricted-paths` rule and a built-in node resolver. §3 is enforced as one zone per table row, plus `@typescript-eslint/no-restricted-imports` for the rows a path zone cannot express: React banned in `physics`, `worker`, `data`, `lib`, `model`; physics **types only** in `lib` (`allowTypeImports`); `@glyphcss/react` allowed only under `ui/components/guide/skychart/dome/`; `*canvas*` / `*webgl*` banned everywhere (FR-GUIDE-5). `no-restricted-globals` bans `Date` in `physics`, `worker` and `lib` (D-15); the one exception is `physics/time.ts`, the epoch-ms ↔ `Date` converter itself, and `lib/timeFormat.ts` now hands `Intl` the number. Test files are exempt from the boundary rules. Verified with the four probe files the task asks for (React in physics, `Date.now()` in lib, `src/data` from `src/ui`, a `*canvas*` import) — each fails `npm run lint`; none is committed.
+- **D-29 — Progressive rendering is proven from a DOM log, not a slow worker.** 31 objects × 24 h take ≈ 375 ms in the worker, too fast to watch cards land. The Playwright test installs a `MutationObserver` before the app boots that records every distinct set of card ids the DOM went through; "one at a time, ISS first" is asserted on that log (first non-empty entry is exactly one ISS card; the second location goes through more than one set before its final one; no set after the switch contains a first-location id). The "throttled worker route" delays the worker script by 1.5 s, which is what shows the page responsive and `aria-busy` with zero cards before the first one lands. The store test with the scripted fake worker covers the cancel-and-ignore-late-messages path exactly (`cancel` for job 1 posted, job 1's late `passes` and `jobDone` never reach the slice).
+- **Vitest browser project** (`--project browser`, `@vitest/browser` + Playwright Chromium, headless) runs `src/**/*.integration.test.ts` as part of `npm test`; CI therefore installs Chromium before the unit tests. Fixtures are imported as modules there (no `node:fs`). satellite.js and astronomy-engine are listed in `optimizeDeps.include` so Vite does not reload the test mid-run.
+- **Store shape** (`state/store.ts`, D-4): one vanilla store with `location` (observer + the `nowMs` read from an injected clock when it was set), `elements` (`idle | loading | error | ready`, the latter also carrying the worker's `rejected` list) and `passes` (job id, status `idle | computing | done | error`, the observer and window the results belong to, passes kept sorted by start as they stream, `done/total`, `hasDarkness`, `elapsedMs`, skipped objects). Every passes action carries the job id and is ignored for any other job. `createAppStore({ now })` for tests, `appStore` for the app; `startApp()` in `main.tsx` creates the worker and wires `state/effects.ts`. Elements are still prefetched on start, as in R3; the effect loads them once, hands them to the worker once, and starts a job per observer change with a generation counter so a stale chain never writes.
+- **Runtime:** 31 objects × 24 h in `findPasses` (Node 24, development machine): 378, 373, 377 ms in three consecutive runs of `passes.perf.test.ts` against a 1 500 ms budget; the worker integration test reports the same order in Chromium (≈ 520 ms including boot). The main-thread freeze noted in D-20 is gone.
+- `PassCard` carries `data-pass-id` (the pass id) for the e2e; R6's detail screen can use it as its hook.
+
 ---
 
 ## 3. Architecture Overview
@@ -132,7 +147,7 @@ flowchart LR
   CAT --> Store
 ```
 
-**Dependency rules** (enforced with `eslint-plugin-import` `no-restricted-paths`):
+**Dependency rules** (enforced with `eslint-plugin-import-x` `no-restricted-paths`, one zone per row, D-28; test files are exempt):
 
 | Module | May import from | Must not import |
 |---|---|---|
@@ -178,6 +193,7 @@ what-is-in-your-sky-right-now/
 │   │   ├── magnitude.ts            # phaseAngle, apparentMagnitude (D-1)
 │   │   ├── visibility.ts           # isVisibleAt(...) predicate and reasons
 │   │   ├── passes.ts               # findPasses(satrec, observer, window, thresholds) -> Pass[]
+│   │   ├── darkness.ts             # hasDarkness(observer, window, thresholds) for jobDone (spec §5.6)
 │   │   ├── now.ts                  # nowState(satrecs, observer, t, thresholds)
 │   │   └── index.ts
 │   ├── worker/
@@ -201,6 +217,7 @@ what-is-in-your-sky-right-now/
 │   ├── state/
 │   │   ├── store.ts                # Zustand store composed of slices
 │   │   ├── slices/ location.ts  elements.ts  passes.ts  weather.ts  now.ts  prefs.ts
+│   │   ├── passWindow.ts           # the 24 h search window (D-20)
 │   │   ├── workerClient.ts         # owns the Worker instance; request/response correlation; cancel
 │   │   └── effects.ts              # wiring: on observer change -> recompute; 10 s now tick; refresh timers
 │   ├── lib/                        # presentation helpers, pure
@@ -380,7 +397,7 @@ export type WorkerResponse =
   | { type: 'elementsLoaded'; requestId: string; loaded: NoradId[]; rejected: { noradId: NoradId; reason: string }[] }
   | { type: 'passes'; jobId: string; noradId: NoradId; passes: Pass[] }          // streamed, one per object
   | { type: 'progress'; jobId: string; done: number; total: number }
-  | { type: 'jobDone'; jobId: string; cancelled: boolean; elapsedMs: number }
+  | { type: 'jobDone'; jobId: string; cancelled: boolean; elapsedMs: number; hasDarkness: boolean } // hasDarkness added in R5 (§2.6)
   | { type: 'nowState'; requestId: string; state: NowState }
   | { type: 'error'; ref: { jobId?: string; requestId?: string }; code: WorkerErrorCode; message: string };
 

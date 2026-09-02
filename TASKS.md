@@ -108,7 +108,8 @@
     - `curl -sI https://<site>/` shows the `Content-Security-Policy`, `Referrer-Policy`, and `Permissions-Policy` values from PLAN §11; `curl -sI https://<site>/assets/<any-file>` shows the immutable cache header.
     - The deployed site, opened on a phone over HTTPS, completes the R3 flow by hand; DevTools console shows zero CSP violations and the Network panel shows requests only to the site and CelesTrak.
 
-- [ ] **R5 [P] — Compute off the main thread: streaming cards, ISS first, cancel on location change**
+- [x] **R5 [P] — Compute off the main thread: streaming cards, ISS first, cancel on location change**
+  - **Done 2026-09-02:** as specified, with these differences: `eslint-plugin-import-x` (same `no-restricted-paths` rule) instead of `eslint-plugin-import`, which does not support ESLint 10 (PLAN D-28); `src/state` may import `src/physics/constants` for the thresholds the protocol carries (D-27); `hasDarkness` lives in `physics/darkness.ts` with its own reference test; `computeNow` answers `INTERNAL` until R7; the Playwright "throttled worker route" delays the worker script and progressive rendering is proven from a MutationObserver log of card ids (D-29). The Vitest browser project is part of `npm test`, so CI installs Chromium before the unit tests. Perf: 373–378 ms locally for 31 objects × 24 h, three runs; the CI log is linked from PR #6.
   - **Built from:** T6, T11 (store, worker client, cancellation, effects), T4 (performance budget test), T2 (module-boundary lint rules).
   - **Goal:** Move `findPasses` into the Web Worker behind the typed protocol, wire a Zustand store with cancellation, and make the list render progressively with the featured object first.
   - **Satisfies:** FR-VIS-4, spec §5.6 cancel-on-location-change, PLAN §3 dependency rules, §9.3 determinism rules. **Advances:** FR-GUIDE-5 (lint rule against `canvas`/WebGL imports), FR-X-3 (observer never leaves the allowed hosts), spec §5.6 `hasDarkness`.

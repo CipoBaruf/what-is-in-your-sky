@@ -9,7 +9,7 @@ const LOCALE = 'en-GB';
 
 function parts(t: EpochMs, timeZone: string | null, options: Intl.DateTimeFormatOptions): Map<string, string> {
   const formatter = new Intl.DateTimeFormat(LOCALE, { timeZone: timeZone ?? 'UTC', ...options });
-  return new Map(formatter.formatToParts(new Date(t)).map((p) => [p.type, p.value]));
+  return new Map(formatter.formatToParts(t).map((p) => [p.type, p.value]));
 }
 
 /** "09:48:14 UTC", or "06:48:14 GMT-3" when a zone is known. */
