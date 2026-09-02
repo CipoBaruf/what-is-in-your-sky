@@ -63,7 +63,8 @@
     - `tests/fixtures/reference-values.json` pins, for `capturedAt` exactly: ISS ECI position and velocity, GMST, look angles from the observer, sun altitude at the observer, sun unit vector, and the first golden pass's start / peak / end. Later physics tasks assert against this file (per `sdd-task`).
     - Findings appended to PLAN.md Decisions: whether `satellite.js` `json2satrec` accepts CelesTrak field names as-is (else the mapping layer in `sgp4.ts`); measured Node runtime for ISS × 10 days; any systematic shadow-entry offset observed against D-8.
 
-- [ ] **R2 — Type coordinates, see the next ISS pass as one line of text**
+- [x] **R2 — Type coordinates, see the next ISS pass as one line of text**
+  - **Note (2026-09-02):** done as specified; components live at the PLAN §4 paths (`ui/components/location/CoordsInput.tsx`, `ui/components/passes/NextPassLine.tsx` + `nextPass.ts`); Vite pinned to 7.x with Vitest 3.2 and worker chunks set to ES format (PLAN D-18, D-19).
   - **Built from:** T2 (scaffold, CI, Playwright bootstrap), T12 (coordinates field only), T7 (plain `stations` fetch, no cache), T9 (UTC time formatting), T10 (`--font-mono` and dark ground only).
   - **Goal:** Turn the spike repo into the Vite + React 19 + TypeScript app of PLAN §4 and §11 and ship the thinnest possible product: a coordinates field and a single line naming the next visible ISS pass.
   - **Satisfies:** PLAN §11 build/CI (typecheck → test → build → Playwright). **Advances:** FR-LOC-1 (b), FR-LOC-3 (UTC formatting half, D-3), FR-SAT-2, FR-VIS-1, FR-X-1, FR-X-6 (font token).
