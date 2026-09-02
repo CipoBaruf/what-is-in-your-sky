@@ -96,7 +96,8 @@
     - Loader tests pass: `stations` wins on duplicate ids; a catalog id absent from both groups appears in `unavailable`; a record failing the schema is dropped and the rest kept; the MSW handler asserts no `CATNR` request.
     - Playwright: the Neuquén flow now shows a list, the first golden pass is among the cards with the expected fields; compass boundary tests pass (11.24° → N, 11.25° → NNE, 359.9° → N).
 
-- [ ] **R4 [P] — Deploy the thin product to Cloudflare Pages with the strict CSP**
+- [x] **R4 [P] — Deploy the thin product to Cloudflare Pages with the strict CSP**
+  - **Done 2026-09-02:** as specified, plus: `vite preview` serves `public/_headers` the way Pages does (PLAN D-25), so `tests/e2e/deploy-headers.spec.ts` checks the header values and zero CSP violations offline; that test caught zod's `new Function` probe, so zod now runs jitless through `src/data/zod.ts` (D-26); `tests/deploy/headers.test.ts` pins the file to the PLAN §11 block and checks `connect-src` covers every host the code references; `.node-version` pins Node 24 for the Pages build. The Pages project is created in the Cloudflare dashboard (steps in `README.md`); the live `curl -sI` and phone checks are done against it before this PR merges.
   - **Built from:** T22 (Pages project, `_headers`, README link). Bundle budgets, live-contract workflow, and the release checklist move to R11 and R15.
   - **Goal:** Put the R3 app on a public HTTPS URL with the PLAN §11 headers so every later slice ships as it merges.
   - **Satisfies:** FR-X-3 (headers, no third-party hosts), PLAN D-12, §11 CSP, spec Phase 1 DoD "public HTTPS URL". **Advances:** FR-X-2 (attributions in README).
