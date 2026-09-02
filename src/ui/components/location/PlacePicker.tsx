@@ -174,7 +174,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId }: Pla
         inputMode="text"
         autoComplete="off"
         spellCheck={false}
-        placeholder="e.g. Rosario"
+        placeholder="e.g. Cipolletti"
         value={text}
         onChange={handleChange}
         onKeyDown={handleKeyDown}

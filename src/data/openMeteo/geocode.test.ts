@@ -7,7 +7,7 @@
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it, vi } from 'vitest';
 import type { Place } from '../../model';
-import { GEOCODE_FIXTURE_QUERY, loadGeocodeFixture, loadGeocodeFixtureMeta, OPEN_METEO_GEOCODE, server } from '../../../tests/setup/msw';
+import { CIPOLLETTI_FIXTURE, CIPOLLETTI_QUERY, GEOCODE_FIXTURE_QUERY, loadGeocodeFixture, loadGeocodeFixtureMeta, OPEN_METEO_GEOCODE, server } from '../../../tests/setup/msw';
 import { createGeocoder, fetchPlaces, GEOCODE_COUNT, geocodeUrl, MIN_QUERY_LENGTH, normaliseQuery, OpenMeteoGeocodeError, parseGeocodeBody } from './geocode';
 
 const meta = loadGeocodeFixtureMeta();
@@ -52,6 +52,13 @@ describe('parseGeocodeBody', () => {
     expect(new Set(places.map((p) => p.country)).size).toBeGreaterThan(1); // ambiguous on purpose
   });
 
+  it('maps the recorded "cipolletti" response to the one place at the R1 golden observer, in the Salta zone', () => {
+    const places = parseGeocodeBody(loadGeocodeFixture(CIPOLLETTI_FIXTURE));
+    expect(places).toEqual([{ name: 'Cipolletti', admin1: 'Rio Negro', country: 'Argentina', lat: -38.93392, lon: -67.99032, elevationM: 267, timeZone: 'America/Argentina/Salta' }]);
+    expect(places[0]?.lat.toFixed(2)).toBe('-38.93');
+    expect(places[0]?.lon.toFixed(2)).toBe('-67.99');
+  });
+
   it('answers no places for the provider\'s no-match body, which has no results key', () => {
     expect(parseGeocodeBody({ generationtime_ms: 0.52 })).toEqual([]);
   });
@@ -73,6 +80,7 @@ describe('fetchPlaces', () => {
     const places = await fetchPlaces(GEOCODE_FIXTURE_QUERY);
     expect(places).toHaveLength(8);
     expect(places[0]?.name).toBe('Rosario');
+    expect((await fetchPlaces(CIPOLLETTI_QUERY)).map((p) => p.name)).toEqual(['Cipolletti']);
   });
 
   it('reports the provider reason on an HTTP error, and on a 200; a non-JSON body and a bare HTTP error too', async () => {

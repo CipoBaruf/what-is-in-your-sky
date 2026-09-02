@@ -18,11 +18,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Observer, Place } from '../../../model';
 import { DEBOUNCE_MS, PlacePicker, type PlaceSearchFn } from './PlacePicker';
 
+const CIPOLLETTI: Place = { name: 'Cipolletti', admin1: 'Rio Negro', country: 'Argentina', lat: -38.93392, lon: -67.99032, elevationM: 267, timeZone: 'America/Argentina/Salta' };
 const ROSARIO_AR: Place = { name: 'Rosario', admin1: 'Santa Fe', country: 'Argentina', lat: -32.94682, lon: -60.63932, elevationM: 38, timeZone: 'America/Argentina/Cordoba' };
 const ROSARIO_PH: Place = { name: 'Rosario', admin1: 'Calabarzon', country: 'Philippines', lat: 13.6323, lon: 121.2207, elevationM: 13, timeZone: 'Asia/Manila' };
 const SINGAPORE: Place = { name: 'Singapore', country: 'Singapore', lat: 1.28967, lon: 103.85007, elevationM: 23, timeZone: 'Asia/Singapore' };
 
-const ROSARIO_OBSERVER: Observer = { lat: -32.94682, lon: -60.63932, altM: 38, label: 'Rosario, Santa Fe, Argentina', source: 'geocode', timeZone: 'America/Argentina/Cordoba' };
+const CIPOLLETTI_OBSERVER: Observer = { lat: -38.93392, lon: -67.99032, altM: 267, label: 'Cipolletti, Rio Negro, Argentina', source: 'geocode', timeZone: 'America/Argentina/Salta' };
 
 function picker(search: PlaceSearchFn, onObserver: (o: Observer) => void, observer: Observer | null = null) {
   return (
@@ -118,23 +119,25 @@ describe('<PlacePicker> debounce (FR-LOC-2)', () => {
 describe('<PlacePicker>', () => {
   it('Enter searches at once; selecting a result by click sets a geocode observer with label "name, admin1, country" and the returned zone, and shows the confirmation', async () => {
     const user = userEvent.setup();
-    const search = vi.fn<PlaceSearchFn>().mockResolvedValue([ROSARIO_AR, ROSARIO_PH]);
+    const search = vi.fn<PlaceSearchFn>().mockResolvedValue([CIPOLLETTI]);
     const { input, onObserver, rerender } = setup(search);
-    await user.type(input, 'Rosario{Enter}');
+    await user.type(input, 'Cipolletti{Enter}');
     expect(search).toHaveBeenCalledTimes(1);
-    expect(search).toHaveBeenCalledWith('Rosario', { signal: expect.any(AbortSignal) as AbortSignal });
+    expect(search).toHaveBeenCalledWith('Cipolletti', { signal: expect.any(AbortSignal) as AbortSignal });
     const options = await screen.findAllByRole('option');
-    expect(options).toHaveLength(2);
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Cipolletti');
+    expect(options[0]).toHaveTextContent('Rio Negro, Argentina');
     await user.click(options[0] as HTMLElement);
     expect(onObserver).toHaveBeenCalledTimes(1);
-    expect(onObserver).toHaveBeenCalledWith(ROSARIO_OBSERVER);
+    expect(onObserver).toHaveBeenCalledWith(CIPOLLETTI_OBSERVER);
     expect(screen.queryByRole('option')).toBeNull();
-    expect(input).toHaveValue('Rosario, Santa Fe, Argentina');
+    expect(input).toHaveValue('Cipolletti, Rio Negro, Argentina');
     expect(input).toHaveFocus();
     // The app writes the observer to the store; the picker shows the confirmation for it (US-1 AC2/AC4, FR-LOC-6).
-    rerender(picker(search, onObserver, ROSARIO_OBSERVER));
-    expect(screen.getByTestId('place-confirmation')).toHaveTextContent('Using the centre of Rosario, Santa Fe, Argentina (−32.95, −60.64).');
-    expect(input).toHaveAccessibleDescription('Using the centre of Rosario, Santa Fe, Argentina (−32.95, −60.64).');
+    rerender(picker(search, onObserver, CIPOLLETTI_OBSERVER));
+    expect(screen.getByTestId('place-confirmation')).toHaveTextContent('Using the centre of Cipolletti, Rio Negro, Argentina (−38.93, −67.99).');
+    expect(input).toHaveAccessibleDescription('Using the centre of Cipolletti, Rio Negro, Argentina (−38.93, −67.99).');
   });
 
   it('walks the list with the arrow keys and picks with Enter; Escape closes it', async () => {
@@ -163,12 +166,12 @@ describe('<PlacePicker>', () => {
 
   it('Enter with the list open and nothing highlighted picks the first result', async () => {
     const user = userEvent.setup();
-    const search = vi.fn<PlaceSearchFn>().mockResolvedValue([ROSARIO_AR, ROSARIO_PH]);
+    const search = vi.fn<PlaceSearchFn>().mockResolvedValue([CIPOLLETTI, ROSARIO_AR]);
     const { input, onObserver } = setup(search);
-    await user.type(input, 'Rosario{Enter}');
+    await user.type(input, 'Cipo{Enter}');
     await screen.findAllByRole('option');
     await user.keyboard('{Enter}');
-    expect(onObserver).toHaveBeenCalledWith(ROSARIO_OBSERVER);
+    expect(onObserver).toHaveBeenCalledWith(CIPOLLETTI_OBSERVER);
   });
 
   it('shows a row without a region when the provider gave none', async () => {
@@ -199,20 +202,20 @@ describe('<PlacePicker>', () => {
 
   it('a network error shows an alert with the coordinates link and leaves the field usable', async () => {
     const user = userEvent.setup();
-    const search = vi.fn<PlaceSearchFn>().mockRejectedValueOnce(new Error('Open-Meteo geocoding: HTTP 503')).mockResolvedValueOnce([ROSARIO_AR]);
+    const search = vi.fn<PlaceSearchFn>().mockRejectedValueOnce(new Error('Open-Meteo geocoding: HTTP 503')).mockResolvedValueOnce([CIPOLLETTI]);
     const { input, onObserver } = setup(search);
-    await user.type(input, 'Rosario{Enter}');
+    await user.type(input, 'Cipolletti{Enter}');
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('Could not search for places (Open-Meteo geocoding: HTTP 503). Try again, or enter coordinates instead.');
     expect(within(alert).getByRole('link')).toHaveAttribute('href', '#coords');
     expect(input).not.toBeDisabled();
-    expect(input).toHaveValue('Rosario');
+    expect(input).toHaveValue('Cipolletti');
     expect(input).toHaveFocus();
-    await user.type(input, ' santa fe{Enter}');
+    await user.type(input, ' rio negro{Enter}');
     expect(await screen.findAllByRole('option')).toHaveLength(1);
     expect(screen.queryByRole('alert')).toBeNull();
     await user.keyboard('{Enter}');
-    expect(onObserver).toHaveBeenCalledWith(ROSARIO_OBSERVER);
+    expect(onObserver).toHaveBeenCalledWith(CIPOLLETTI_OBSERVER);
   });
 
   it('shows no confirmation for a coordinates observer and has no axe violations with the list open', async () => {

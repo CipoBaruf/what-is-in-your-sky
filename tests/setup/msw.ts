@@ -7,7 +7,8 @@
  * three days, unix times, auto zone) gets a 400. R9: the geocoding API serves
  * the recorded "rosario" response for that name and the provider's real
  * no-match body (no `results` key) for any other; a request that is not the
- * PLAN §7.2 one (`count=8`, English, JSON) gets a 400.
+ * PLAN §7.2 one (`count=8`, English, JSON) gets a 400; "cipolletti" gets its
+ * own recorded single-result response.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -20,9 +21,12 @@ export const CELESTRAK_GP = 'https://celestrak.org/NORAD/elements/gp.php';
 export const OPEN_METEO_FORECAST = 'https://api.open-meteo.com/v1/forecast';
 export const FORECAST_FIXTURE = '2026-09-02-neuquen-forecast';
 export const OPEN_METEO_GEOCODE = 'https://geocoding-api.open-meteo.com/v1/search';
+/** The ambiguous pick list: eight results across five countries. */
 export const GEOCODE_FIXTURE = '2026-09-02-rosario-geocode';
-/** The normalised query the geocode fixture answers. */
 export const GEOCODE_FIXTURE_QUERY = 'rosario';
+/** The single-result example place, the R1 golden observer: "Cipolletti, Rio Negro, Argentina". */
+export const CIPOLLETTI_FIXTURE = '2026-09-02-cipolletti-geocode';
+export const CIPOLLETTI_QUERY = 'cipolletti';
 
 export function ommFixturePath(group: ElementGroup, date: string = OMM_FIXTURE_DATE): string {
   return join(process.cwd(), 'tests', 'fixtures', 'omm', `${date}-${group}.json`);
@@ -101,6 +105,7 @@ export const openMeteoHandlers = [
     const name = url.searchParams.get('name');
     if (name === null) return HttpResponse.json({ error: true, reason: 'name is required' }, { status: 400 });
     if (name === GEOCODE_FIXTURE_QUERY) return HttpResponse.json(loadGeocodeFixture() as Record<string, unknown>);
+    if (name === CIPOLLETTI_QUERY) return HttpResponse.json(loadGeocodeFixture(CIPOLLETTI_FIXTURE) as Record<string, unknown>);
     return HttpResponse.json({ generationtime_ms: 0.5 }); // the provider's own no-match shape (fixture meta)
   }),
 ];
