@@ -10,10 +10,11 @@ import { server } from '../../tests/setup/msw';
 import { DAY_MS, fixtureRecords, goldenWindowStart, loadReferenceValues } from '../../tests/support/catalogFixtures';
 import { CATALOG } from '../data/catalog';
 import { loadElements } from '../data/elementsLoader';
-import type { Observer, Pass } from '../model';
-import { startEffects } from './effects';
+import type { NowState, Observer, Pass } from '../model';
+import { ALWAYS_VISIBLE, NOW_TICK_MS, startEffects, type VisibilitySource } from './effects';
 import { createAppStore, type AppStore } from './store';
 import { createWorkerClient, type WorkerClient } from './workerClient';
+import type { WorkerRequest } from '../worker/protocol';
 import { fakeWorker } from './workerClient.test';
 
 const ref = loadReferenceValues();
@@ -57,7 +58,7 @@ describe('startEffects', () => {
     store = createAppStore({ now: () => NOW });
     worker = fakeWorker();
     client = createWorkerClient(worker);
-    stop = startEffects({ store, client, catalog: CATALOG, loadElements });
+    stop = startEffects({ store, client, catalog: CATALOG, loadElements, now: () => NOW, visibility: ALWAYS_VISIBLE });
   });
   afterEach(() => {
     stop();
@@ -161,11 +162,148 @@ describe('startEffects', () => {
     store = createAppStore({ now: () => NOW });
     worker = fakeWorker();
     client = createWorkerClient(worker);
-    stop = startEffects({ store, client, catalog: CATALOG, loadElements: failing });
+    stop = startEffects({ store, client, catalog: CATALOG, loadElements: failing, now: () => NOW, visibility: ALWAYS_VISIBLE });
     await vi.waitFor(() => expect(store.getState().elements).toEqual({ status: 'error', message: 'HTTP 503' }));
     store.getState().setObserver(neuquen);
     await vi.waitFor(() => expect(store.getState().elements.status).toBe('ready'));
     await waitForSent('loadElements');
     expect(failing).toHaveBeenCalledTimes(2);
+  });
+});
+
+/** A visibility source the test flips. */
+function fakeVisibility(): VisibilitySource & { set: (hidden: boolean) => void } {
+  let hidden = false;
+  const listeners = new Set<() => void>();
+  return {
+    hidden: () => hidden,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    set: (value) => {
+      hidden = value;
+      for (const l of listeners) l();
+    },
+  };
+}
+
+const nowState = (t: number): NowState => ({ t, sunAltDeg: -30, sky: 'dark', items: [] });
+
+describe('the "Now" tick (FR-VIS-5, US-4 AC2)', () => {
+  let store: AppStore;
+  let worker: ReturnType<typeof fakeWorker>;
+  let client: WorkerClient;
+  let visibility: ReturnType<typeof fakeVisibility>;
+  let clock: number;
+  let stop: () => void;
+  const records = fixtureRecords();
+  const sentNow = () => worker.sent.filter((m): m is WorkerRequest & { type: 'computeNow' } => m.type === 'computeNow');
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    clock = NOW;
+    store = createAppStore({ now: () => clock });
+    worker = fakeWorker();
+    client = createWorkerClient(worker);
+    visibility = fakeVisibility();
+    stop = startEffects({
+      store,
+      client,
+      catalog: CATALOG,
+      loadElements: () => Promise.resolve({ records, unavailable: [] }),
+      now: () => clock,
+      visibility,
+    });
+  });
+  afterEach(() => {
+    stop();
+    vi.useRealTimers();
+  });
+
+  /** Observer set → elements in the worker → the job started; returns once the first computeNow is out. */
+  const ready = async (observer: Observer): Promise<void> => {
+    store.getState().setObserver(observer);
+    await vi.waitFor(() => expect(worker.sent.some((m) => m.type === 'loadElements')).toBe(true));
+    const load = worker.sent.find((m) => m.type === 'loadElements');
+    worker.emit({ type: 'elementsLoaded', requestId: load?.requestId ?? '', loaded: [], rejected: [] });
+    await vi.waitFor(() => expect(sentNow().length).toBeGreaterThanOrEqual(1));
+  };
+
+  it('asks once as soon as the worker has the elements, then every 10 s, with the injected clock', async () => {
+    await ready(neuquen);
+    expect(sentNow()).toHaveLength(1);
+    expect(sentNow()[0]).toMatchObject({ observer: neuquen, t: NOW });
+    // `vi.waitFor` already advanced the fake clock a little (under one tick), so each further tick adds exactly one request.
+    clock = NOW + 4_000;
+    await vi.advanceTimersByTimeAsync(NOW_TICK_MS);
+    expect(sentNow()).toHaveLength(2);
+    expect(sentNow()[1]?.t).toBe(NOW + 4_000);
+    await vi.advanceTimersByTimeAsync(3 * NOW_TICK_MS);
+    expect(sentNow()).toHaveLength(5);
+  });
+
+  it('writes the reply to the now slice, keeping only the latest request’s answer', async () => {
+    await ready(neuquen);
+    await vi.advanceTimersByTimeAsync(NOW_TICK_MS);
+    const [first, second] = sentNow();
+    worker.emit({ type: 'nowState', requestId: second?.requestId ?? '', state: nowState(2) });
+    await vi.waitFor(() => expect(store.getState().now.state?.t).toBe(2));
+    expect(store.getState().now.observer).toBe(neuquen);
+    worker.emit({ type: 'nowState', requestId: first?.requestId ?? '', state: nowState(1) }); // late answer to an older request
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.getState().now.state?.t).toBe(2);
+  });
+
+  it('stops while the document is hidden and refreshes immediately when it becomes visible again', async () => {
+    await ready(neuquen);
+    visibility.set(true);
+    await vi.advanceTimersByTimeAsync(5 * NOW_TICK_MS);
+    expect(sentNow()).toHaveLength(1);
+    clock = NOW + 60_000;
+    visibility.set(false);
+    expect(sentNow()).toHaveLength(2);
+    expect(sentNow()[1]?.t).toBe(NOW + 60_000);
+    await vi.advanceTimersByTimeAsync(NOW_TICK_MS);
+    expect(sentNow()).toHaveLength(3);
+  });
+
+  it('a request error is recorded without dropping the last good state', async () => {
+    await ready(neuquen);
+    worker.emit({ type: 'nowState', requestId: sentNow()[0]?.requestId ?? '', state: nowState(1) });
+    await vi.waitFor(() => expect(store.getState().now.state?.t).toBe(1));
+    await vi.advanceTimersByTimeAsync(NOW_TICK_MS);
+    worker.emit({ type: 'error', ref: { requestId: sentNow()[1]?.requestId ?? '' }, code: 'INTERNAL', message: 'boom' });
+    await vi.waitFor(() => expect(store.getState().now.error).toBe('INTERNAL: boom'));
+    expect(store.getState().now.state?.t).toBe(1);
+  });
+
+  it('an observer change drops the previous location’s in-flight answer and restarts the cadence for the new one', async () => {
+    await ready(neuquen);
+    const [first] = sentNow();
+    store.getState().setObserver(paris);
+    await vi.waitFor(() => expect(sentNow().length).toBe(2));
+    expect(sentNow()[1]?.observer).toBe(paris);
+    worker.emit({ type: 'nowState', requestId: first?.requestId ?? '', state: nowState(1) });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.getState().now.state).toBeNull();
+    worker.emit({ type: 'nowState', requestId: sentNow()[1]?.requestId ?? '', state: nowState(2) });
+    await vi.waitFor(() => expect(store.getState().now).toMatchObject({ observer: paris, state: { t: 2 } }));
+  });
+
+  it('clearing the observer resets the slice and stops the tick; stop() stops it too', async () => {
+    await ready(neuquen);
+    worker.emit({ type: 'nowState', requestId: sentNow()[0]?.requestId ?? '', state: nowState(1) });
+    await vi.waitFor(() => expect(store.getState().now.state).not.toBeNull());
+    store.getState().setObserver(null);
+    expect(store.getState().now).toEqual({ observer: null, state: null, error: null });
+    await vi.advanceTimersByTimeAsync(3 * NOW_TICK_MS);
+    expect(sentNow()).toHaveLength(1);
+
+    await ready(neuquen);
+    stop();
+    const count = sentNow().length;
+    await vi.advanceTimersByTimeAsync(3 * NOW_TICK_MS);
+    expect(sentNow()).toHaveLength(count);
   });
 });

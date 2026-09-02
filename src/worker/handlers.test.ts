@@ -9,7 +9,7 @@ import { DAY_MS, fixtureRecords, goldenWindowStart, loadReferenceValues } from '
 import { ISS_STD_MAG_SEED } from '../../tests/support/heavensAbove';
 import { CATALOG } from '../data/catalog';
 import type { Observer, SatelliteRecord } from '../model';
-import { DEFAULT_THRESHOLDS, type SatRec } from '../physics';
+import { DEFAULT_THRESHOLDS, nowState, type SatRec } from '../physics';
 import { computeOrder, createHandler, createHandlerState, yieldViaMessageChannel, type Handler, type HandlerState } from './handlers';
 import type { WorkerRequest, WorkerResponse } from './protocol';
 
@@ -242,12 +242,52 @@ describe('computePasses', () => {
   });
 });
 
-describe('other requests', () => {
-  it('computeNow answers INTERNAL until R7', async () => {
-    const h = await loaded(fixtureRecords().slice(0, 1));
-    await h.send({ type: 'computeNow', requestId: 'req-9', observer, t: ref.t, thresholds: DEFAULT_THRESHOLDS });
-    expect(h.ofType('error')[0]).toMatchObject({ ref: { requestId: 'req-9' }, code: 'INTERNAL' });
+describe('computeNow', () => {
+  it('returns a NowState matching physics/now.ts on the R1 fixture, every object, the ISS first', async () => {
+    const golden = ref.firstGoldenPass;
+    if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
+    const t = golden.start.t + 10_000; // inside the golden pass, on its 1 s grid
+    const h = await loaded();
+    await h.send({ type: 'computeNow', requestId: 'req-9', observer, t, thresholds: DEFAULT_THRESHOLDS });
+    const [reply] = h.ofType('nowState');
+    expect(reply?.requestId).toBe('req-9');
+    const expected = nowState(
+      computeOrder(h.state.objects.values()).map((o) => ({ satrec: o.satrec, noradId: o.catalog.noradId, name: o.catalog.name, stdMag: o.catalog.stdMag })),
+      observer,
+      t,
+      DEFAULT_THRESHOLDS,
+    );
+    expect(reply?.state).toEqual(expected);
+    expect(reply?.state.items).toHaveLength(h.state.objects.size);
+    expect(reply?.state.items[0]?.noradId).toBe(ISS);
+    expect(reply?.state.sky).toBe('bright-twilight');
+    const iss = reply?.state.items.find((i) => i.noradId === ISS);
+    expect(iss).toMatchObject({ name: 'ISS (Zarya)', visible: true, visibleUntil: golden.end.t, endReason: 'horizon' });
+    expect(h.ofType('error')).toEqual([]);
   });
+
+  it('answers NO_ELEMENTS when nothing is loaded', async () => {
+    const h = harness();
+    await h.send({ type: 'computeNow', requestId: 'req-9', observer, t: ref.t, thresholds: DEFAULT_THRESHOLDS });
+    expect(h.responses).toEqual([{ type: 'error', ref: { requestId: 'req-9' }, code: 'NO_ELEMENTS', message: expect.any(String) as string }]);
+  });
+
+  it('is answered between the objects of a running computePasses job (D-6 yield)', async () => {
+    let h: Harness | null = null;
+    let yields = 0;
+    const yieldToEventLoop = async (): Promise<void> => {
+      if (++yields === 1) await h?.send({ type: 'computeNow', requestId: 'req-now', observer, t: ref.t, thresholds: DEFAULT_THRESHOLDS });
+    };
+    h = await loaded(fixtureRecords().slice(0, 3), { yieldToEventLoop });
+    await h.send({ type: 'computePasses', jobId: 'job-1', observer, window: GOLDEN_WINDOW, thresholds: DEFAULT_THRESHOLDS });
+    const types = h.responses.map((r) => r.type);
+    expect(types.indexOf('nowState')).toBeGreaterThan(types.indexOf('passes'));
+    expect(types.indexOf('nowState')).toBeLessThan(types.lastIndexOf('passes'));
+    expect(h.ofType('jobDone')[0]?.cancelled).toBe(false);
+  });
+});
+
+describe('other requests', () => {
 
   it('an unknown request type answers INTERNAL', async () => {
     const h = harness();

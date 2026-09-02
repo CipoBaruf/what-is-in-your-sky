@@ -84,6 +84,35 @@ describe('createWorkerClient', () => {
     expect(client.activeJobId()).toBeNull();
   });
 
+  it('computeNow resolves with the state for its request id and rejects on an error', async () => {
+    const worker = fakeWorker();
+    const client = createWorkerClient(worker);
+    const state = { t: 5, sunAltDeg: -20, sky: 'dark' as const, items: [] };
+    const first = client.computeNow(observer, 5, DEFAULT_THRESHOLDS);
+    const second = client.computeNow(observer, 6, DEFAULT_THRESHOLDS);
+    expect(worker.sent).toEqual([
+      { type: 'computeNow', requestId: 'req-1', observer, t: 5, thresholds: DEFAULT_THRESHOLDS },
+      { type: 'computeNow', requestId: 'req-2', observer, t: 6, thresholds: DEFAULT_THRESHOLDS },
+    ]);
+    worker.emit({ type: 'nowState', requestId: 'req-2', state: { ...state, t: 6 } });
+    worker.emit({ type: 'nowState', requestId: 'req-1', state });
+    worker.emit({ type: 'nowState', requestId: 'req-1', state: { ...state, t: 99 } }); // a second reply is ignored
+    await expect(first).resolves.toEqual(state);
+    await expect(second).resolves.toEqual({ ...state, t: 6 });
+
+    const third = client.computeNow(observer, 7, DEFAULT_THRESHOLDS);
+    worker.emit({ type: 'error', ref: { requestId: 'req-3' }, code: 'NO_ELEMENTS', message: 'nothing loaded' });
+    await expect(third).rejects.toThrow('NO_ELEMENTS: nothing loaded');
+  });
+
+  it('a reply of the wrong type rejects the request', async () => {
+    const worker = fakeWorker();
+    const client = createWorkerClient(worker);
+    const pending = client.computeNow(observer, 5, DEFAULT_THRESHOLDS);
+    worker.emit({ type: 'elementsLoaded', requestId: 'req-1', loaded: [], rejected: [] });
+    await expect(pending).rejects.toThrow('Unexpected elementsLoaded reply to req-1');
+  });
+
   it('cancel of an untracked job posts nothing', () => {
     const worker = fakeWorker();
     const client = createWorkerClient(worker);
