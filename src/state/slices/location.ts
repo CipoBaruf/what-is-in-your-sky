@@ -16,6 +16,17 @@ export interface LocationDeps {
   now: () => EpochMs;
 }
 
+/**
+ * Same place: everything but the zone. The forecast fills `timeZone` in
+ * later (R8, D-3) by replacing the observer object, and that must not read
+ * as a new location to the effects.
+ */
+export function sameLocation(a: Observer | null, b: Observer | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.lat === b.lat && a.lon === b.lon && a.altM === b.altM && a.source === b.source && a.label === b.label;
+}
+
 export const createLocationSlice =
   (deps: LocationDeps): StateCreator<LocationSlice, [], [], LocationSlice> =>
   (set) => ({

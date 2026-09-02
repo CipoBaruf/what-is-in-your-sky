@@ -1,6 +1,7 @@
-import type { CatalogEntry, EpochMs, SatelliteRecord } from '../model';
+import type { CatalogEntry, EpochMs, Observer, SatelliteRecord, WeatherSnapshot } from '../model';
 import { DEFAULT_THRESHOLDS } from '../physics/constants';
 import { searchWindow } from './passWindow';
+import { sameLocation } from './slices/location';
 import type { AppStore } from './store';
 import type { WorkerClient } from './workerClient';
 
@@ -16,6 +17,13 @@ import type { WorkerClient } from './workerClient';
  * while the tab is visible; a hidden tab stops the timer and a tab becoming
  * visible again refreshes immediately. The clock is injected (`now`) so the
  * effect itself never reads it, and only the latest request's reply is kept.
+ *
+ * R8 adds the cloud forecast (FR-WX-1, FR-WX-5, FR-LOC-3): requested for the
+ * observer's cell the moment the observer changes, alongside the pass job and
+ * without waiting for the elements. A rejection leaves the passes untouched
+ * (verdicts read `unknown`); a snapshot fills `Observer.timeZone` when the
+ * observer had none (D-3), which replaces the observer object but is not a
+ * location change (`sameLocation`), so nothing is recomputed.
  */
 export interface LoadedElements {
   records: SatelliteRecord[];
@@ -34,6 +42,8 @@ export interface EffectDeps {
   client: WorkerClient;
   catalog: readonly CatalogEntry[];
   loadElements: (catalog: readonly CatalogEntry[], options: { signal: AbortSignal }) => Promise<LoadedElements>;
+  /** The cached cloud forecast for a location (PLAN §7.3, `data/weatherCache.ts`). */
+  loadWeather: (lat: number, lon: number) => Promise<WeatherSnapshot>;
   /** Wall clock for the "Now" requests; the only place the effects read time. */
   now: () => EpochMs;
   visibility: VisibilitySource;
@@ -61,7 +71,7 @@ export const ALWAYS_VISIBLE: VisibilitySource = { hidden: () => false, subscribe
 const message = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 /** Wires the effects; returns a function that stops them (aborts the load, cancels the job, stops the tick). */
-export function startEffects({ store, client, catalog, loadElements, now, visibility }: EffectDeps): () => void {
+export function startEffects({ store, client, catalog, loadElements, loadWeather, now, visibility }: EffectDeps): () => void {
   const controller = new AbortController();
   let generation = 0;
   let elementsPromise: Promise<SatelliteRecord[] | null> | null = null;
@@ -103,12 +113,15 @@ export function startEffects({ store, client, catalog, loadElements, now, visibi
     const mine = ++nowSeq;
     const gen = generation;
     const fresh = (): boolean => mine === nowSeq && gen === generation && !controller.signal.aborted;
+    // Written against the store's observer at reply time: still this location while `fresh()`, possibly with the zone filled in since.
     client.computeNow(observer, now(), DEFAULT_THRESHOLDS).then(
       (state) => {
-        if (fresh()) store.getState().setNow(observer, state);
+        const current = store.getState().observer;
+        if (fresh() && current) store.getState().setNow(current, state);
       },
       (error: unknown) => {
-        if (fresh()) store.getState().setNowError(observer, message(error));
+        const current = store.getState().observer;
+        if (fresh() && current) store.getState().setNowError(current, message(error));
       },
     );
   };
@@ -131,6 +144,24 @@ export function startEffects({ store, client, catalog, loadElements, now, visibi
     else if (tickReady) startTick();
   });
 
+  // --- Weather ------------------------------------------------------------------
+  const requestWeather = (observer: Observer, stale: () => boolean): void => {
+    store.getState().startWeather(observer);
+    loadWeather(observer.lat, observer.lon).then(
+      (snapshot) => {
+        const current = store.getState().observer;
+        if (stale() || !current) return;
+        store.getState().setWeather(current, snapshot);
+        if (current.timeZone === null) store.getState().fillTimeZone(snapshot.timeZone);
+      },
+      (error: unknown) => {
+        const current = store.getState().observer;
+        if (stale() || !current) return;
+        store.getState().setWeatherError(current, message(error));
+      },
+    );
+  };
+
   // --- Observer change --------------------------------------------------------
   const onObserverChange = async (): Promise<void> => {
     const mine = ++generation;
@@ -144,8 +175,10 @@ export function startEffects({ store, client, catalog, loadElements, now, visibi
       if (active !== null) client.cancel(active);
       store.getState().resetPasses();
       store.getState().resetNow();
+      store.getState().resetWeather();
       return;
     }
+    requestWeather(observer, stale);
     const records = await ensureElements();
     if (stale() || !records) return;
     if (records.length === 0) return;
@@ -179,7 +212,7 @@ export function startEffects({ store, client, catalog, loadElements, now, visibi
   };
 
   const unsubscribe = store.subscribe((state, previous) => {
-    if (state.observer !== previous.observer || state.nowMs !== previous.nowMs) void onObserverChange();
+    if (state.nowMs !== previous.nowMs || !sameLocation(state.observer, previous.observer)) void onObserverChange();
   });
   void ensureElements(); // prefetch while the user types (R3 behaviour)
 
