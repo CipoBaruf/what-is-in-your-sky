@@ -1,0 +1,66 @@
+{
+  "note": "Pinned intermediate values at capturedAt of the Heavens-Above fixture. Later physics tasks assert against these (sdd-task). Never edit by hand; regenerate with `npx tsx scripts/validate-iss.ts --write-reference` only when a physics change is intended and the golden test still passes.",
+  "fixture": "2026-09-02",
+  "ommFixture": "2026-09-02",
+  "capturedAt": "2026-09-02T03:51Z",
+  "t": 1788321060000,
+  "observer": {
+    "lat": -38.93,
+    "lon": -67.99,
+    "altM": 0
+  },
+  "iss": {
+    "noradId": 25544,
+    "epoch": "2026-09-01T19:42:22.677120",
+    "epochMs": 1788291742677
+  },
+  "eci": {
+    "position": {
+      "x": 4086.997531205128,
+      "y": 1081.945106550505,
+      "z": 5309.83288658888
+    },
+    "velocity": {
+      "x": -1.5034990787806977,
+      "y": 7.5081086296559905,
+      "z": -0.3722164606948212
+    }
+  },
+  "gmstRad": 0.6818465854240117,
+  "lookAngles": {
+    "azDeg": 25.870940308232587,
+    "elDeg": -47.57220215009121,
+    "rangeKm": 9931.237306002187
+  },
+  "sunAltitudeDeg": -57.671271317264114,
+  "sunUnitVectorEqd": {
+    "x": -0.9379837087982028,
+    "y": 0.31807460878477584,
+    "z": 0.13789526922842596
+  },
+  "firstGoldenPass": {
+    "start": {
+      "t": 1789120094063,
+      "azDeg": 46.441506151629596,
+      "elDeg": 10.002812909677315,
+      "rangeKm": 1513.1011735274014
+    },
+    "peak": {
+      "t": 1789120118376,
+      "azDeg": 53.33059071229566,
+      "elDeg": 10.159126343819034,
+      "rangeKm": 1504.8191298302754
+    },
+    "end": {
+      "t": 1789120142063,
+      "azDeg": 60.03023416113687,
+      "elDeg": 10.011096114844044,
+      "rangeKm": 1515.6500662717926
+    },
+    "startReason": "horizon",
+    "endReason": "horizon",
+    "peakMagnitude": 1.1766803319060213,
+    "sunAltAtPeakDeg": -10.584558097418167,
+    "twilight": true
+  }
+}

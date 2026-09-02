@@ -1,0 +1,32 @@
+{
+  "capturedAt": "2026-09-02T03:51Z",
+  "observer": { "lat": -38.93, "lon": -67.99, "altM": 0 },
+  "timeZone": "UTC",
+  "haEpoch": "2026-09-01T11:57:51Z",
+  "filtersText": "PassSummary.aspx?satid=25544 header: 'Search period start: 02 September 2026 00:00 / Search period end: 12 September 2026 00:00 / Orbit: 416 x 423 km, 51.6° (Epoch: 1 September) / Passes to include: visible only | all'. The page states no altitude or brightness cutoff in words; the Start and End columns are the 10° crossings.",
+  "summaryTable": {
+    "note": "Row as printed on PassSummary.aspx (16-point compass only; times differ from the detail page by up to 5 s). Kept for reference; the comparison uses the detail-page events below.",
+    "rows": [
+      { "date": "11 Sep", "magnitude": -0.3, "start": "09:48:13 10° NE", "highest": "09:48:39 10° NE", "end": "09:49:03 10° ENE", "passType": "visible" }
+    ]
+  },
+  "passes": [
+    {
+      "date": "2026-09-11",
+      "magnitude": -0.3,
+      "detail": {
+        "note": "passdetails.aspx mjd=61294.4087849116 type=V. Columns: Event, Time, Altitude, Azimuth, Distance (km), Brightness, Sun altitude. Altitudes are printed as whole degrees.",
+        "distanceKm": { "rises": 2358, "reaches10": 1510, "max": 1505, "drops10": 1513, "sets": 2394 },
+        "brightness": { "rises": 0.0, "reaches10": -0.3, "max": -0.1, "drops10": 0.0, "sets": 1.9 },
+        "sunAltDeg": { "rises": -11.4, "reaches10": -10.6, "max": -10.6, "drops10": -10.5, "sets": -9.7 }
+      },
+      "events": {
+        "rises":     { "t": "2026-09-11T09:44:20Z", "altDeg": 0,  "azDeg": 0,   "compass": "N" },
+        "reaches10": { "t": "2026-09-11T09:48:18Z", "altDeg": 10, "azDeg": 47,  "compass": "NE" },
+        "max":       { "t": "2026-09-11T09:48:39Z", "altDeg": 10, "azDeg": 53,  "compass": "NE" },
+        "drops10":   { "t": "2026-09-11T09:48:59Z", "altDeg": 10, "azDeg": 59,  "compass": "ENE" },
+        "sets":      { "t": "2026-09-11T09:53:00Z", "altDeg": 0,  "azDeg": 106, "compass": "ESE" }
+      }
+    }
+  ]
+}
