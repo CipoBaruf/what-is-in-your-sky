@@ -1,0 +1,9 @@
+{
+  "fetchedAt": "2026-09-02T19:51:17Z",
+  "source": "https://api.open-meteo.com/v1/forecast?latitude=-38.9&longitude=-68.0&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high&forecast_days=3&timezone=auto&timeformat=unixtime",
+  "cell": { "lat": -38.9, "lon": -68.0 },
+  "observer": "Neuquén, the R1 golden-fixture observer (−38.93, −67.99), rounded to its 0.1° cell (PLAN D-37)",
+  "timezone": "America/Argentina/Salta",
+  "coverage": "72 hourly samples, 2026-09-02T03:00Z to 2026-09-05T02:00Z (local midnight to 23:00 over three days), all four cloud series present with no nulls",
+  "note": "Verbatim body (re-indented), captured with curl and an Origin header; the response carried access-control-allow-origin: *. Open-Meteo was overloaded from about 19:20 UTC: HTTP 200 with plain-text bodies ('Unexpected error while streaming data: allEndpointsUnavailable'), HTTP 200 with {\"error\":true,\"reason\":\"The service is overloaded\"} and 30 s timeouts, until this response at 19:51 UTC. The response's own latitude/longitude are the model grid point, not the requested cell."
+}

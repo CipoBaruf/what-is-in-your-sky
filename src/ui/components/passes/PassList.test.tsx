@@ -2,7 +2,7 @@ import { act, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { fixtureRecords, goldenWindowStart, loadReferenceValues } from '../../../../tests/support/catalogFixtures';
 import { compassPoint } from '../../../lib/compass';
-import type { Observer, Pass } from '../../../model';
+import type { Observer, Pass, WeatherSnapshot } from '../../../model';
 import { appStore, type AppState, type ElementsState } from '../../../state';
 import { IDLE_PASSES } from '../../../state/slices/passes';
 import { PassList } from './PassList';
@@ -108,5 +108,31 @@ describe('<PassList>', () => {
 
     set({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'error', observer, error: 'INTERNAL: boom' } });
     expect(screen.getByRole('status')).toHaveTextContent('Could not compute passes: INTERNAL: boom');
+  });
+  it('badges every card with the verdict from this observer’s forecast, and "weather unknown" until it arrives (FR-WX-3)', () => {
+    const HOUR = 3_600_000;
+    const hour = Math.floor(golden.peak.t / HOUR) * HOUR;
+    const forecast: WeatherSnapshot = {
+      provider: 'open-meteo',
+      lat: -38.9,
+      lon: -68,
+      cellKey: '-38.9,-68.0',
+      fetchedAt: NOW,
+      timeZone: 'America/Argentina/Salta',
+      hourly: [
+        { t: hour, totalPct: 90, lowPct: 90, midPct: 90, highPct: 90 },
+        { t: hour + 2 * HOUR, totalPct: 90, lowPct: 90, midPct: 90, highPct: 90 },
+      ],
+    };
+    set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [goldenPass, later] }, weather: { observer, status: 'loading', snapshot: null, error: null } });
+    render(<PassList />);
+    expect(screen.getAllByText('Weather unknown')).toHaveLength(2);
+    set({ weather: { observer, status: 'ready', snapshot: forecast, error: null } });
+    const badges = screen.getAllByText('Likely obscured, 90 % cloud');
+    expect(badges).toHaveLength(2);
+    for (const badge of badges) expect(badge).toHaveAttribute('data-state', 'obscured');
+    // Another observer's forecast is not used.
+    set({ weather: { observer: { ...observer, lat: 0 }, status: 'ready', snapshot: forecast, error: null } });
+    expect(screen.getAllByText('Weather unknown')).toHaveLength(2);
   });
 });

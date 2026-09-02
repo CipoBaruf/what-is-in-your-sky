@@ -4,6 +4,7 @@ import { createElementsSlice, type ElementsSlice } from './slices/elements';
 import { createLocationSlice, type LocationDeps, type LocationSlice } from './slices/location';
 import { createNowSlice, type NowSlice } from './slices/now';
 import { createPassesSlice, type PassesSlice } from './slices/passes';
+import { createWeatherSlice, type WeatherSlice } from './slices/weather';
 
 /**
  * One vanilla Zustand store composed of slices (D-4). It is written from
@@ -11,7 +12,7 @@ import { createPassesSlice, type PassesSlice } from './slices/passes';
  * `useAppStore`. `createAppStore` exists for tests, which inject a fixed clock;
  * the app uses the single `appStore` below.
  */
-export type AppState = LocationSlice & ElementsSlice & PassesSlice & NowSlice;
+export type AppState = LocationSlice & ElementsSlice & PassesSlice & NowSlice & WeatherSlice;
 export type AppStore = StoreApi<AppState>;
 
 export type AppStoreDeps = LocationDeps;
@@ -22,6 +23,7 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
     ...createElementsSlice(...a),
     ...createPassesSlice(...a),
     ...createNowSlice(...a),
+    ...createWeatherSlice(...a),
   }));
 }
 

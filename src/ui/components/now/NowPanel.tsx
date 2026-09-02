@@ -1,8 +1,10 @@
 import { useId } from 'react';
+import { cloudVerdict } from '../../../lib/cloudVerdict';
 import { compassPoint } from '../../../lib/compass';
 import { formatClock, formatCountdown } from '../../../lib/timeFormat';
 import type { NowItem, NowState, Observer, PassBoundaryReason } from '../../../model';
 import { DEFAULT_THRESHOLDS, useAppStore, type NowSliceState } from '../../../state';
+import { CloudBadge } from '../weather/CloudBadge';
 import styles from './NowPanel.module.css';
 
 /**
@@ -10,7 +12,9 @@ import styles from './NowPanel.module.css';
  * Reads the `now` slice the effects refresh every 10 s (FR-VIS-5) and the
  * job's `hasDarkness` flag for spec §5.6's "no darkness tonight". Only
  * `visible` items are listed (OQ-7: no greyed-out objects in MVP); the
- * others only feed the empty-state reason. Cloud cover arrives in R8 (FR-WX-3).
+ * others only feed the empty-state reason. R8: the current cloud cover
+ * (FR-WX-3), the forecast interpolated to the instant of the last check, or
+ * "weather unknown" when there is no forecast (US-7 AC4).
  */
 export const degrees = (n: number): string => `${String(Math.round(n))}°`;
 
@@ -98,7 +102,9 @@ export function NowPanel() {
   const observer = useAppStore((s) => s.observer);
   const now = useAppStore((s) => s.now);
   const passes = useAppStore((s) => s.passes);
+  const weather = useAppStore((s) => s.weather);
   const headingId = useId();
+  const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   const hasDarkness = passes.observer === observer ? passes.hasDarkness : null;
   const summary = summarise(observer, now, hasDarkness);
   const state: NowState | null = observer && now.observer === observer ? now.state : null;
@@ -116,6 +122,17 @@ export function NowPanel() {
             <VisibleItem key={item.noradId} item={item} t={state.t} />
           ))}
         </ul>
+      )}
+      {state && observer && (
+        <p className={styles.cloud}>
+          Clouds now:{' '}
+          <CloudBadge
+            verdict={cloudVerdict(snapshot, state.t)}
+            forecast={snapshot ? { provider: snapshot.provider, fetchedAt: snapshot.fetchedAt } : null}
+            timeZone={observer.timeZone}
+            moment="right now"
+          />
+        </p>
       )}
       {state && observer && <p className={styles.asOf}>as of {formatClock(state.t, observer.timeZone)}</p>}
     </section>

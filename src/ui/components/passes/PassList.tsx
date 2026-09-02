@@ -8,7 +8,9 @@ import styles from './PassList.module.css';
  * (US-5 AC2 default). R5: the cards render as the worker streams each object's
  * passes into the store, the ISS first (PLAN §6.2); the status line shows the
  * progress meanwhile. R6: each card opens the detail screen through
- * `onOpenPass`. The ISS hero card and the sort toggle come in R12.
+ * `onOpenPass`. R8: every card gets the forecast for this observer (null
+ * until it arrives or when it failed, which the card shows as "weather
+ * unknown"). The ISS hero card and the sort toggle come in R12.
  */
 export function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState): string {
   const hours = String(SEARCH_WINDOW_HOURS);
@@ -41,6 +43,8 @@ export function PassList({ onOpenPass }: PassListProps) {
   const observer = useAppStore((s) => s.observer);
   const elements = useAppStore((s) => s.elements);
   const passes = useAppStore((s) => s.passes);
+  const weather = useAppStore((s) => s.weather);
+  const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   const showList = observer !== null && elements.status === 'ready' && passes.passes.length > 0;
   // Busy from the moment there is something to compute until the job ends (the worker may still be booting).
   const busy = observer !== null && elements.status === 'ready' && elements.records.length > 0 && (passes.status === 'idle' || passes.status === 'computing');
@@ -53,7 +57,7 @@ export function PassList({ onOpenPass }: PassListProps) {
         <ol className={styles.list}>
           {passes.passes.map((pass) => (
             <li key={pass.id}>
-              <PassCard pass={pass} timeZone={observer.timeZone} {...(onOpenPass ? { onOpen: onOpenPass } : {})} />
+              <PassCard pass={pass} timeZone={observer.timeZone} weather={snapshot} {...(onOpenPass ? { onOpen: onOpenPass } : {})} />
             </li>
           ))}
         </ol>
