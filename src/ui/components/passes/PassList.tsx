@@ -7,7 +7,8 @@ import styles from './PassList.module.css';
  * Every upcoming visible pass of the catalog as plain cards, chronological
  * (US-5 AC2 default). R5: the cards render as the worker streams each object's
  * passes into the store, the ISS first (PLAN §6.2); the status line shows the
- * progress meanwhile. The ISS hero card and the sort toggle come in R12.
+ * progress meanwhile. R6: each card opens the detail screen through
+ * `onOpenPass`. The ISS hero card and the sort toggle come in R12.
  */
 export function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState): string {
   const hours = String(SEARCH_WINDOW_HOURS);
@@ -31,7 +32,12 @@ export function statusText(observer: Observer | null, elements: ElementsState, p
   }
 }
 
-export function PassList() {
+export interface PassListProps {
+  /** Opens the detail screen for a pass (R6). Without it the cards are read-only. */
+  onOpenPass?: (passId: string) => void;
+}
+
+export function PassList({ onOpenPass }: PassListProps) {
   const observer = useAppStore((s) => s.observer);
   const elements = useAppStore((s) => s.elements);
   const passes = useAppStore((s) => s.passes);
@@ -47,7 +53,7 @@ export function PassList() {
         <ol className={styles.list}>
           {passes.passes.map((pass) => (
             <li key={pass.id}>
-              <PassCard pass={pass} timeZone={observer.timeZone} />
+              <PassCard pass={pass} timeZone={observer.timeZone} {...(onOpenPass ? { onOpen: onOpenPass } : {})} />
             </li>
           ))}
         </ol>
