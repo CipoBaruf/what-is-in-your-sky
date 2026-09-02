@@ -6,6 +6,15 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   plugins: [react()],
   test: {
+    // TASKS H: `npm run test:coverage:physics` must show every file in src/physics at ≥ 90 % lines.
+    // Only applied when `--coverage` is passed; plain `npm test` is unaffected.
+    coverage: {
+      provider: 'v8',
+      include: ['src/physics/**/*.ts'],
+      exclude: ['src/physics/**/*.test.ts'],
+      reporter: ['text', 'text-summary'],
+      thresholds: { perFile: true, lines: 90 },
+    },
     projects: [
       {
         extends: true,
