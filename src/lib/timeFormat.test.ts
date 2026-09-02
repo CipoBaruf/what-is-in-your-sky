@@ -19,6 +19,16 @@ describe('formatClock', () => {
     expect(s.startsWith('06:48:14 ')).toBe(true);
     expect(s.endsWith(' UTC')).toBe(false);
   });
+
+  it('gives the local time and zone abbreviation in three zones (FR-LOC-3, R8)', () => {
+    // Intl's `short` zone name in `en-GB`: a metazone abbreviation where CLDR has one (BST, CEST),
+    // else the offset form (GMT-3). Argentina has no English abbreviation, so the offset form is the label.
+    expect(formatClock(GOLDEN_START_MS, 'America/Argentina/Salta')).toBe('06:48:14 GMT-3');
+    expect(formatClock(GOLDEN_START_MS, 'Europe/London')).toBe('10:48:14 BST');
+    expect(formatClock(GOLDEN_START_MS, 'Europe/Paris')).toBe('11:48:14 CEST');
+    expect(formatDate(GOLDEN_START_MS, 'Asia/Tokyo')).toBe('2026-09-11');
+    expect(formatClock(GOLDEN_START_MS, 'Asia/Tokyo')).toBe('18:48:14 GMT+9');
+  });
 });
 
 describe('formatDate', () => {
