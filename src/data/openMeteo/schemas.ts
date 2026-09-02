@@ -24,8 +24,30 @@ export const forecastResponseSchema = z.object({
 });
 export type ForecastResponse = z.infer<typeof forecastResponseSchema>;
 
-/** Open-Meteo's error body (HTTP 400): `{ "error": true, "reason": "..." }`. */
-export const forecastErrorSchema = z.object({ error: z.literal(true), reason: z.string() });
+/** Open-Meteo's error body, shared by the forecast and geocoding APIs (HTTP 400, or 200 during an outage): `{ "error": true, "reason": "..." }`. */
+export const openMeteoErrorSchema = z.object({ error: z.literal(true), reason: z.string() });
+
+/**
+ * The Open-Meteo geocoding response for the PLAN §7.2 request. `results` is
+ * absent, not empty, when nothing matches; `admin1` and `country` are absent
+ * for some results (a country-level entry carries no `admin1`); `elevation`
+ * is documented as optional. Only the fields the app reads are pinned.
+ */
+export const geocodeResultSchema = z.object({
+  id: z.number(),
+  name: z.string().min(1),
+  latitude: z.number(),
+  longitude: z.number(),
+  elevation: z.number().optional(),
+  timezone: z.string().min(1),
+  country: z.string().optional(),
+  admin1: z.string().optional(),
+});
+export const geocodeResponseSchema = z.object({
+  results: z.array(geocodeResultSchema).optional(),
+  generationtime_ms: z.number().optional(),
+});
+export type GeocodeResponse = z.infer<typeof geocodeResponseSchema>;
 
 /** A `WeatherSnapshot` as stored in `localStorage` (`wiys:wx:v1`); anything else is dropped. */
 export const storedSnapshotSchema = z.object({

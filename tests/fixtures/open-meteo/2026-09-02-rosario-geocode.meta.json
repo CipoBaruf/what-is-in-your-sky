@@ -1,0 +1,7 @@
+{
+  "fetchedAt": "2026-09-02T20:03:55Z",
+  "source": "https://geocoding-api.open-meteo.com/v1/search?name=rosario&count=8&language=en&format=json",
+  "query": "rosario",
+  "coverage": "8 results: Rosario (Santa Fe, Argentina) first, then places named Rosario / El Rosario / Villa del Rosario in the Philippines, Colombia, Mexico and Nicaragua, every one with a timezone; an ambiguous pick list for the R9 tests",
+  "note": "Verbatim body (re-indented), captured with curl and an Origin header; the response carried access-control-allow-origin: *. Shapes checked live the same minute: a name with no match answers { \"generationtime_ms\": ... } with no results key; a country-level result (Singapore, PCLI) carries no admin1; a one-character name returns nothing."
+}

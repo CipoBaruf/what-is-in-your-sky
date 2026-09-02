@@ -1,5 +1,5 @@
 import type { EpochMs, HourlyCloud, WeatherSnapshot } from '../../model';
-import { forecastErrorSchema, forecastResponseSchema } from './schemas';
+import { openMeteoErrorSchema, forecastResponseSchema } from './schemas';
 
 /**
  * FR-WX-1 / PLAN §7.3: one request per fetch, the exact URL from the plan —
@@ -78,7 +78,7 @@ export async function fetchCloudForecast(lat: number, lon: number, cellKey: stri
     throw new OpenMeteoError(`Open-Meteo forecast: HTTP ${String(response.status)}, response is not JSON`);
   }
   // The provider's own error body, whatever the status ("The service is overloaded" was seen live with the outage above).
-  const error = forecastErrorSchema.safeParse(body);
+  const error = openMeteoErrorSchema.safeParse(body);
   if (error.success) throw new OpenMeteoError(`Open-Meteo forecast: HTTP ${String(response.status)}: ${error.data.reason}`);
   if (!response.ok) throw new OpenMeteoError(`Open-Meteo forecast: HTTP ${String(response.status)}`);
   return parseForecastBody(body, lat, lon, cellKey, now());
