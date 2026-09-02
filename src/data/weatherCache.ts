@@ -1,6 +1,9 @@
 import type { EpochMs, WeatherSnapshot } from '../model';
 import { fetchCloudForecast } from './openMeteo/forecast';
 import { storedCacheSchema, type StoredSnapshot } from './openMeteo/schemas';
+import { browserStorage, type StorageLike } from './storage';
+
+export { browserStorage, type StorageLike };
 
 /**
  * FR-WX-5: weather is cached for 30 min per 0.1° cell, in memory and in
@@ -24,13 +27,6 @@ export function cellCentre(lat: number, lon: number): { lat: number; lon: number
 export function cellKey(lat: number, lon: number): string {
   const c = cellCentre(lat, lon);
   return `${c.lat.toFixed(1)},${c.lon.toFixed(1)}`;
-}
-
-/** The subset of `Storage` the cache uses, so tests and non-browser hosts can substitute a map. */
-export interface StorageLike {
-  getItem: (key: string) => string | null;
-  setItem: (key: string, value: string) => void;
-  removeItem: (key: string) => void;
 }
 
 export interface WeatherCacheDeps {
@@ -115,16 +111,6 @@ export function createWeatherCache({ storage, now, fetchForecast }: WeatherCache
       writeStorage({});
     },
   };
-}
-
-/** `localStorage` when the host has one that works, else null (Safari private mode throws on access). */
-export function browserStorage(): StorageLike | null {
-  try {
-    const storage: unknown = globalThis.localStorage;
-    return typeof storage === 'object' && storage !== null && 'getItem' in storage ? (storage as StorageLike) : null;
-  } catch {
-    return null;
-  }
 }
 
 /** Zod's optional fields are `T | undefined`; the model's are absent-or-number (`exactOptionalPropertyTypes`). */
