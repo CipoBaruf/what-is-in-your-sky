@@ -33,12 +33,15 @@ export function observerFromCoords(lat: number, lon: number): Observer {
 export interface CoordsInputProps {
   /** Called with an observer on every valid value, null when the field is empty or invalid. */
   onObserver: (observer: Observer | null) => void;
+  /** The input's id, so the place picker's "enter coordinates instead" link can target it (R9); generated when absent. */
+  id?: string;
 }
 
-export function CoordsInput({ onObserver }: CoordsInputProps) {
+export function CoordsInput({ onObserver, id }: CoordsInputProps) {
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const inputId = useId();
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
   const errorId = useId();
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>): void => {
