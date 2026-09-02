@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "vite build && playwright test",
-    "validate:iss": "tsx scripts/validate-iss.ts"
+    "validate:iss": "tsx scripts/validate-iss.ts",
+    "check:catalog": "tsx scripts/check-catalog.ts"
   },
   "dependencies": {
     "astronomy-engine": "^2.1.19",
