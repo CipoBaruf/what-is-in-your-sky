@@ -60,7 +60,7 @@ test('cards appear one at a time with the ISS first; a location change mid-strea
   });
 
   await page.goto('/');
-  const status = page.getByRole('status');
+  const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   const input = page.getByLabel('Coordinates (lat, lon)');
   await input.fill(NEUQUEN);
 
