@@ -1,0 +1,11 @@
+.section {
+  display: grid;
+  gap: calc(var(--row) / 2);
+}
+
+.age {
+  margin: 0;
+  color: var(--fg-dim);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

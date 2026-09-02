@@ -108,7 +108,8 @@ test('a denied permission shows the message and leaves the inputs usable (US-3 A
   await context.clearPermissions();
   await page.goto('/');
   await page.getByRole('button', { name: 'Use my location' }).click();
-  await expect(page.getByRole('alert')).toContainText('Location permission was denied');
+  // Scoped to the location section: the elements banners (R11) can add a page-level alert when the fixture elements are old.
+  await expect(page.getByRole('region', { name: 'Location' }).getByRole('alert')).toContainText('Location permission was denied');
   await expect(page.getByLabel('Coordinates (lat, lon)')).toBeEnabled();
   await expect(page.getByRole('combobox', { name: 'Place name' })).toBeEnabled();
   await expect(page.getByTestId('active-location')).toHaveCount(0);
