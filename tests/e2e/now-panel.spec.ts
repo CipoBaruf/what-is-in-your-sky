@@ -46,7 +46,7 @@ test('at the R3 clock the panel says plainly that nothing is above 10°, with th
   await page.clock.setFixedTime(t);
   await page.goto('/');
   const panel = page.getByRole('region', { name: 'Right now' });
-  await expect(panel).toContainText('Enter coordinates to see what is overhead right now.');
+  await expect(panel).toContainText('Enter a place name or coordinates to see what is overhead right now.');
 
   await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
   await expect(panel).toContainText('Nothing visible right now: no catalog satellite is above 10°.', { timeout: 15_000 });

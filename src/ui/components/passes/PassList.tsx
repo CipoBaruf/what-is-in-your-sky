@@ -14,7 +14,7 @@ import styles from './PassList.module.css';
  */
 export function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState): string {
   const hours = String(SEARCH_WINDOW_HOURS);
-  if (!observer) return 'Enter coordinates to see the visible passes.';
+  if (!observer) return 'Enter a place name or coordinates to see the visible passes.';
   if (elements.status === 'idle' || elements.status === 'loading') return 'Loading orbital elements from CelesTrak…';
   if (elements.status === 'error') return `Could not load orbital elements: ${elements.message}`;
   if (elements.records.length === 0) return 'No catalog objects have orbital elements right now.';
