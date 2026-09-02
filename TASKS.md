@@ -124,7 +124,8 @@
     - Probe files `src/physics/_probe.ts` (`import 'react'`) and `src/lib/_probe.ts` (`Date.now()`) each fail `npm run lint`; both removed before merge.
     - Playwright: with a throttled worker route, cards appear one at a time with the ISS first; changing coordinates mid-stream leaves only the second location's cards.
 
-- [ ] **R6 [P] — Pass detail screen with the plain-text observation guide and numeric table**
+- [x] **R6 [P] — Pass detail screen with the plain-text observation guide and numeric table**
+  - **Done 2026-09-02:** as specified, with these differences: the number formatting the card and the table share moved from `PassCard.tsx` to `lib/format.ts`; the golden guide strings (`tests/fixtures/guide-sentences.json`) use the catalog's ISS `stdMag`, so the golden pass reads "+0.5, like a bright star" rather than the reference file's +1.2 from the R1 seed (PLAN D-34); a hash id with no exact match falls back to the same object's pass starting within 2 min (D-33); a band boundary belongs to the higher elevation band and the brighter magnitude band (D-32); the list is `inert` while the sheet is open; "reload with `#pass=<id>`" is a component test that mounts `App` with the hash set and lets the pass arrive in the store, because the observer is not persisted until R10. Screenshot at 390 px: `docs/screenshots/r6-pass-detail-390.png`.
   - **Built from:** T9 (elevation words, brightness phrases, guide sentence), T16.
   - **Goal:** Open a pass into a full-screen detail sheet with the generated sentence, the numeric details, the end-condition wording, and a live countdown rise → peak → set. This working text guide must exist before any sky-chart work.
   - **Satisfies:** US-6 AC1, AC2, AC4; FR-GUIDE-1, FR-GUIDE-3, FR-VIS-7 (guide text and card label), FR-X-5 (chart information duplicated in text), PLAN D-13 (hash mirrors the selected pass).
