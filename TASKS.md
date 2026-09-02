@@ -174,7 +174,7 @@
     - Tests cover: geocode result maps to `Place` with `timeZone`; identical normalised queries hit the network once; typing "Ros", "Rosa", "Rosar" within 400 ms results in one request; selecting a result sets an observer with `source: 'geocode'`, `label` "name, admin1, country" and the returned `timeZone`; zero results show the message and the coordinates link; a network error leaves the field usable.
     - Playwright: search → pick list → confirmation line → pass list for the picked place. Visual check at 390 px: font ≥ 16 px, row height ≥ 44 px; screenshot in the PR.
 
-- [ ] **R10 — Device geolocation, saved location, clear action, precision note**
+- [x] **R10 — Device geolocation, saved location, clear action, precision note** — done as written; the clear action also drops the active observer so the screen visibly empties, the altitude field is limited to −500..9000 m, a device fix is always fresh (`maximumAge: 0`), and `StorageLike` moved to `src/data/storage.ts` for both caches, see D-41..D-44.
   - **Built from:** T12 (geolocation half, coordinate formats, altitude field), T11 (`prefs` slice, `localPrefs`).
   - **Goal:** Let the user use browser geolocation or richer coordinate forms, come back to the same location on reload, clear it, and see the precision honestly.
   - **Satisfies:** FR-LOC-1 (b, c), FR-LOC-5, FR-LOC-6 (coordinate half), US-2, US-3, US-8.
