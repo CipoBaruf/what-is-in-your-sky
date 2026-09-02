@@ -64,7 +64,7 @@ Workers observability is off in `wrangler.jsonc`.
   place-name search (from R8 and R9), used under the
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) terms of its free non-commercial API.
   Open-Meteo's geocoding data derives from [GeoNames](https://www.geonames.org/) (CC BY 4.0).
-  Both credits also go in the app footer when those features land (spec FR-X-2). A recorded
+  Both credits are in the app footer, with CelesTrak's (spec FR-X-2, `src/ui/components/common/Footer.tsx`). A recorded
   forecast response for the Neuquén cell (`tests/fixtures/open-meteo/`, with its capture metadata)
   feeds the weather tests; the app itself never reads it.
 - **Intrinsic magnitudes:** the catalog (`src/data/catalog/catalog.json`) seeds each object's

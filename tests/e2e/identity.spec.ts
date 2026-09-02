@@ -43,27 +43,29 @@ test.beforeEach(async ({ page }) => {
 });
 
 /** The FR-X-1 / FR-X-6 / G6 checks every screen must pass at 390 px. */
-async function expectIdentity(page: Page, screenshot: string): Promise<void> {
+async function expectIdentity(page: Page, screenshot: string, { fullPage = true } = {}): Promise<void> {
   expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(GROUND);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const nonMono = await page.evaluate(() =>
-    [...document.querySelectorAll('body *')]
+    Array.from(document.querySelectorAll('body *'))
       .filter((el) => el.checkVisibility() && /\S/.test(el.textContent ?? ''))
       .map((el) => getComputedStyle(el).fontFamily)
       .filter((family) => !/monospace/i.test(family)),
   );
   expect(nonMono).toEqual([]);
-  const small = await page.evaluate((min) =>
-    [...document.querySelectorAll<HTMLElement>('a[href], button, input, [tabindex="0"]')]
-      .filter((el) => el.checkVisibility() && !el.closest('[inert]'))
-      .map((el) => {
-        const { width, height } = el.getBoundingClientRect();
-        return { control: `${el.tagName.toLowerCase()} ${el.textContent?.trim() || el.getAttribute('aria-label') || el.id}`, width: Math.round(width), height: Math.round(height) };
-      })
-      .filter(({ width, height }) => width < min || height < min),
-  , MIN_TAP_PX);
+  const small = await page.evaluate(
+    (min) =>
+      Array.from(document.querySelectorAll<HTMLElement>('a[href], button, input, [tabindex="0"]'))
+        .filter((el) => el.checkVisibility() && !el.closest('[inert]'))
+        .map((el) => {
+          const { width, height } = el.getBoundingClientRect();
+          return { control: `${el.tagName.toLowerCase()} ${el.textContent?.trim() || el.getAttribute('aria-label') || el.id}`, width: Math.round(width), height: Math.round(height) };
+        })
+        .filter(({ width, height }) => width < min || height < min),
+    MIN_TAP_PX,
+  );
   expect(small).toEqual([]);
-  await page.screenshot({ path: `test-results/${screenshot}`, fullPage: true });
+  await page.screenshot({ path: `test-results/${screenshot}`, fullPage });
 }
 
 async function homeWithPasses(page: Page): Promise<void> {
@@ -86,13 +88,13 @@ test('Home: dark monospace frame, no sideways scroll, every control ≥ 44 px, e
 
   await page.getByTestId('iss-hero').getByRole('button', { name: /Open guide/ }).click();
   await expect(page.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeVisible();
-  await expectIdentity(page, 'r12-detail-390.png');
+  await expectIdentity(page, 'r12-detail-390.png', { fullPage: false }); // the sheet is fixed to the viewport; a full-page capture would show the list behind it
 });
 
 test('Tab reaches every control on the Home screen in DOM order, then wraps to the first', async ({ page }) => {
   await homeWithPasses(page);
   const expected = await page.evaluate(() =>
-    [...document.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, [tabindex="0"]')].filter((el) => el.checkVisibility()).map((el) => `${el.tagName.toLowerCase()}:${(el.textContent?.trim() || el.getAttribute('aria-label') || el.id).slice(0, 40)}`),
+    Array.from(document.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, [tabindex="0"]')).filter((el) => el.checkVisibility()).map((el) => `${el.tagName.toLowerCase()}:${(el.textContent?.trim() || el.getAttribute('aria-label') || el.id).slice(0, 40)}`),
   );
   // Place, coordinates, altitude, device button, clear, Now-panel badge, hero (open guide, cloud badge), two sort buttons, ≥ 1 card × (open guide, badge), 3 footer links.
   expect(expected.length).toBeGreaterThanOrEqual(15);
@@ -104,26 +106,29 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   expect(expected).toContain('a:CelesTrak');
   expect(expected.filter((c) => c.startsWith('button:Open guide')).length).toBeGreaterThanOrEqual(2);
 
-  await page.locator('body').focus();
-  const reached: string[] = [];
+  // Start from the top: a click on the title moves Chromium's sequential-focus starting point there (a blur alone leaves it at the coordinates field the fill focused).
+  await page.getByRole('banner').getByRole('heading', { level: 1 }).click();
+  const reached: { control: string; ring: boolean }[] = [];
   for (let i = 0; i < expected.length; i++) {
     await page.keyboard.press('Tab');
-    reached.push(await page.evaluate(() => {
-      const el = document.activeElement as HTMLElement | null;
-      return el ? `${el.tagName.toLowerCase()}:${(el.textContent?.trim() || el.getAttribute('aria-label') || el.id).slice(0, 40)}` : 'none';
-    }));
-    // The focused control shows the accent ring (FR-X-5).
-    expect(await page.evaluate(() => {
-      const el = document.activeElement;
-      if (!el || el === document.body) return 'none';
-      const ring = getComputedStyle(el).outlineStyle !== 'none' && getComputedStyle(el).outlineWidth !== '0px';
-      const cardRing = el.closest('article') ? getComputedStyle(el.closest('article') as Element).outlineStyle !== 'none' : false;
-      return ring || cardRing ? 'ring' : `no ring on ${el.tagName}`;
-    })).toBe('ring');
+    reached.push(
+      await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null;
+        if (!el || el === document.body) return { control: 'none', ring: false };
+        // The focused control shows the accent ring (FR-X-5); a card's open control hands its ring to the card.
+        const outlined = (node: Element): boolean => getComputedStyle(node).outlineStyle !== 'none' && getComputedStyle(node).outlineWidth !== '0px';
+        const card = el.closest('article');
+        return { control: `${el.tagName.toLowerCase()}:${(el.textContent?.trim() || el.getAttribute('aria-label') || el.id).slice(0, 40)}`, ring: outlined(el) || (card !== null && outlined(card)) };
+      }),
+    );
   }
-  expect(reached).toEqual(expected);
+  expect(reached.map((r) => r.control)).toEqual(expected);
+  expect(reached.filter((r) => !r.ring).map((r) => r.control)).toEqual([]);
+  // Past the last link focus leaves the document (body), and the next Tab wraps to the first control.
   await page.keyboard.press('Tab');
-  expect(await page.evaluate(() => document.activeElement === document.body || document.activeElement?.id === 'place')).toBe(true);
+  expect(await page.evaluate(() => document.activeElement === document.body)).toBe(true);
+  await page.keyboard.press('Tab');
+  expect(await page.evaluate(() => document.activeElement?.id)).toBe('place');
 });
 
 test('the hero card pins the next ISS pass; "best first" reorders the list and the choice survives a reload (US-5 AC2)', async ({ page }) => {
@@ -140,13 +145,13 @@ test('the hero card pins the next ISS pass; "best first" reorders the list and t
   const scores = async (): Promise<number[]> =>
     list.locator('article').evaluateAll((cards) =>
       cards.map((card) => {
-        const value = (label: string): string => [...card.querySelectorAll('dt')].find((dt) => dt.textContent === label)?.nextElementSibling?.textContent ?? '';
+        const value = (label: string): string => Array.from(card.querySelectorAll('dt')).find((dt) => dt.textContent === label)?.nextElementSibling?.textContent ?? '';
         const mag = Number(value('Magnitude').split(',')[0]?.replace('−', '-').replace('+', ''));
         const el = Number(value('Max elevation').replace('°', ''));
         return 10 ** (-0.4 * mag) * el;
       }),
     );
-  const starts = async (): Promise<string[]> => list.locator('article').evaluateAll((cards) => cards.map((card) => [...card.querySelectorAll('dt')].find((dt) => dt.textContent === 'Start')?.nextElementSibling?.textContent ?? ''));
+  const starts = async (): Promise<string[]> => list.locator('article').evaluateAll((cards) => cards.map((card) => Array.from(card.querySelectorAll('dt')).find((dt) => dt.textContent === 'Start')?.nextElementSibling?.textContent ?? ''));
   const chronological = await starts();
   expect(chronological.length).toBeGreaterThan(2);
   expect([...chronological].sort()).toEqual(chronological);
