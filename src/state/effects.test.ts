@@ -8,10 +8,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { server } from '../../tests/setup/msw';
 import { DAY_MS, fixtureRecords, goldenWindowStart, loadReferenceValues } from '../../tests/support/catalogFixtures';
+import { idbCache } from '../../tests/support/elementsCache';
 import { CATALOG } from '../data/catalog';
 import { loadElements } from '../data/elementsLoader';
-import type { NowState, Observer, Pass, WeatherSnapshot } from '../model';
-import { ALWAYS_VISIBLE, NOW_TICK_MS, startEffects, type VisibilitySource } from './effects';
+import type { CatalogEntry, NowState, Observer, Pass, SatelliteRecord, WeatherSnapshot } from '../model';
+import { ALWAYS_VISIBLE, ELEMENTS_RECHECK_MS, NOW_TICK_MS, startEffects, type EffectDeps, type LoadedElements, type VisibilitySource } from './effects';
 import { createLocalPrefs } from '../data/localPrefs';
 import { createAppStore, type AppStore } from './store';
 import { createWorkerClient, type WorkerClient } from './workerClient';
@@ -41,6 +42,15 @@ const samplePass = (noradId: number, startT: number): Pass => {
     track: [],
     elementsEpochMs: ref.t,
   };
+};
+
+/** What the loader answers for a fresh, persistent set fetched at NOW. */
+const loaded = (records: SatelliteRecord[], extra: Partial<LoadedElements> = {}): LoadedElements => ({ records, unavailable: [], fetchedAt: NOW, stale: false, persistent: true, ...extra });
+
+/** The real loader over a fresh IndexedDB cache (R11), so each test starts with nothing cached and its requests are its own. */
+const freshLoader = (): EffectDeps['loadElements'] => {
+  const cache = idbCache(() => NOW);
+  return (catalog, options) => loadElements(catalog, { ...options, cache });
 };
 
 /** A forecast that never arrives, for the tests that are not about weather. */
@@ -75,7 +85,7 @@ describe('startEffects', () => {
     store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(null) });
     worker = fakeWorker();
     client = createWorkerClient(worker);
-    stop = startEffects({ store, client, catalog: CATALOG, loadElements, loadWeather: neverWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
+    stop = startEffects({ store, client, catalog: CATALOG, loadElements: freshLoader(), loadWeather: neverWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
   });
   afterEach(() => {
     stop();
@@ -175,7 +185,7 @@ describe('startEffects', () => {
 
   it('a failed fetch is reported and retried on the next observer change', async () => {
     stop();
-    const failing = vi.fn().mockRejectedValueOnce(new Error('HTTP 503')).mockImplementation(loadElements);
+    const failing = vi.fn().mockRejectedValueOnce(new Error('HTTP 503')).mockImplementation(freshLoader());
     store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(null) });
     worker = fakeWorker();
     client = createWorkerClient(worker);
@@ -228,7 +238,7 @@ describe('the "Now" tick (FR-VIS-5, US-4 AC2)', () => {
       store,
       client,
       catalog: CATALOG,
-      loadElements: () => Promise.resolve({ records, unavailable: [] }),
+      loadElements: () => Promise.resolve(loaded(records)),
       loadWeather: neverWeather,
       now: () => clock,
       visibility,
@@ -349,7 +359,7 @@ describe('weather (FR-WX-1, FR-WX-5, FR-LOC-3)', () => {
     store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(null) });
     worker = fakeWorker();
     client = createWorkerClient(worker);
-    stop = startEffects({ store, client, catalog: CATALOG, loadElements: () => Promise.resolve({ records, unavailable: [] }), loadWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
+    stop = startEffects({ store, client, catalog: CATALOG, loadElements: () => Promise.resolve(loaded(records)), loadWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
   });
   afterEach(() => {
     stop();
@@ -432,5 +442,142 @@ describe('weather (FR-WX-1, FR-WX-5, FR-LOC-3)', () => {
     expect(store.getState().observer?.timeZone).toBe('Europe/Paris');
     store.getState().setObserver(null);
     expect(store.getState().weather).toEqual({ observer: null, status: 'idle', snapshot: null, error: null });
+  });
+});
+
+describe('the elements re-check (R11, PLAN §7.1, FR-SAT-6)', () => {
+  let store: AppStore;
+  let worker: ReturnType<typeof fakeWorker>;
+  let client: WorkerClient;
+  let visibility: ReturnType<typeof fakeVisibility>;
+  let clock: number;
+  let stop: () => void;
+  const records = fixtureRecords();
+  const requested: string[] = [];
+  const onRequest = ({ request }: { request: Request }): void => {
+    requested.push(request.url);
+  };
+  const sent = <T extends WorkerRequest['type']>(type: T) => worker.sent.filter((m): m is WorkerRequest & { type: T } => m.type === type);
+
+  const start = (loader: EffectDeps['loadElements']): void => {
+    store = createAppStore({ now: () => clock, prefs: createLocalPrefs(null) });
+    worker = fakeWorker();
+    client = createWorkerClient(worker);
+    visibility = fakeVisibility();
+    stop = startEffects({ store, client, catalog: CATALOG, loadElements: loader, loadWeather: neverWeather, now: () => clock, visibility });
+  };
+  /** Observer set → elements in the worker → job started. */
+  const started = async (observer: Observer): Promise<void> => {
+    store.getState().setObserver(observer);
+    await vi.waitFor(() => expect(sent('loadElements').length).toBeGreaterThanOrEqual(1));
+    const load = sent('loadElements').at(-1);
+    worker.emit({ type: 'elementsLoaded', requestId: load?.requestId ?? '', loaded: [], rejected: [] });
+    await vi.waitFor(() => expect(sent('computePasses').length).toBeGreaterThanOrEqual(1));
+  };
+  /** Moves the injected clock and the fake timers together. */
+  const elapse = async (ms: number): Promise<void> => {
+    clock += ms;
+    await vi.advanceTimersByTimeAsync(ms);
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    clock = NOW;
+    requested.length = 0;
+    server.events.on('request:start', onRequest);
+  });
+  afterEach(() => {
+    stop();
+    server.events.removeListener('request:start', onRequest);
+    vi.useRealTimers();
+  });
+
+  it('asks the loader every 15 min; the loader’s 2 h rule keeps the network quiet until it expires, then the worker and the passes are refreshed', async () => {
+    const cache = idbCache(() => clock);
+    const loader = vi.fn((catalog: readonly CatalogEntry[], options: { signal: AbortSignal }) => loadElements(catalog, { ...options, cache }));
+    start(loader);
+    await started(neuquen);
+    expect(loader).toHaveBeenCalledTimes(1);
+    expect(requested).toHaveLength(2);
+    const before = store.getState().elements;
+    expect(before).toMatchObject({ status: 'ready', fetchedAt: NOW, stale: false, persistent: true });
+
+    await elapse(ELEMENTS_RECHECK_MS);
+    await vi.waitFor(() => expect(loader).toHaveBeenCalledTimes(2));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(requested).toHaveLength(2); // younger than 2 h: answered from IndexedDB
+    expect(store.getState().elements).toBe(before); // nothing changed, nothing rewritten
+    expect(sent('loadElements')).toHaveLength(1);
+    expect(sent('computePasses')).toHaveLength(1);
+
+    // Seven more checks (1 h 45 min later the cache is still under 2 h; at 2 h it is not).
+    for (let i = 0; i < 7; i++) await elapse(ELEMENTS_RECHECK_MS);
+    await vi.waitFor(() => expect(loader).toHaveBeenCalledTimes(9));
+    await vi.waitFor(() => expect(requested).toHaveLength(4));
+    await vi.waitFor(() => expect(store.getState().elements).toMatchObject({ status: 'ready', fetchedAt: NOW + 8 * ELEMENTS_RECHECK_MS, stale: false }));
+    // New elements: the worker is reloaded and the current observer's passes recomputed over a window from now.
+    await vi.waitFor(() => expect(sent('loadElements')).toHaveLength(2));
+    worker.emit({ type: 'elementsLoaded', requestId: sent('loadElements')[1]?.requestId ?? '', loaded: [], rejected: [] });
+    await vi.waitFor(() => expect(sent('computePasses')).toHaveLength(2));
+    expect(sent('computePasses')[1]).toMatchObject({ observer: neuquen, window: { startMs: NOW + 8 * ELEMENTS_RECHECK_MS } });
+    expect(sent('cancel')).toEqual([{ type: 'cancel', jobId: sent('computePasses')[0]?.jobId }]);
+  });
+
+  it('a re-check that only flips `stale` updates the slice without recomputing', async () => {
+    const loader = vi.fn<EffectDeps['loadElements']>().mockResolvedValueOnce(loaded(records)).mockResolvedValue(loaded(records, { stale: true }));
+    start(loader);
+    await started(neuquen);
+    expect(store.getState().elements).toMatchObject({ stale: false });
+    await elapse(ELEMENTS_RECHECK_MS);
+    await vi.waitFor(() => expect(store.getState().elements).toMatchObject({ status: 'ready', stale: true, fetchedAt: NOW }));
+    expect(sent('loadElements')).toHaveLength(1);
+    expect(sent('computePasses')).toHaveLength(1);
+    expect(sent('cancel')).toHaveLength(0);
+  });
+
+  it('does not check while hidden, and checks at once when shown again after longer than the cadence', async () => {
+    const loader = vi.fn<EffectDeps['loadElements']>().mockResolvedValue(loaded(records));
+    start(loader);
+    await vi.waitFor(() => expect(store.getState().elements.status).toBe('ready'));
+    visibility.set(true);
+    await elapse(4 * ELEMENTS_RECHECK_MS);
+    expect(loader).toHaveBeenCalledTimes(1);
+    visibility.set(false);
+    await vi.waitFor(() => expect(loader).toHaveBeenCalledTimes(2));
+    await elapse(ELEMENTS_RECHECK_MS);
+    await vi.waitFor(() => expect(loader).toHaveBeenCalledTimes(3));
+  });
+
+  it('a failed re-check keeps the loaded set on screen', async () => {
+    const loader = vi.fn<EffectDeps['loadElements']>().mockResolvedValueOnce(loaded(records)).mockRejectedValue(new Error('HTTP 503'));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    start(loader);
+    await started(neuquen);
+    await elapse(ELEMENTS_RECHECK_MS);
+    await vi.waitFor(() => expect(loader).toHaveBeenCalledTimes(2));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.getState().elements).toMatchObject({ status: 'ready', stale: false });
+    expect(store.getState().passes.status).toBe('computing');
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/re-check failed.*HTTP 503/));
+    warn.mockRestore();
+  });
+
+  it('a re-check after a failed first load retries it', async () => {
+    const loader = vi.fn<EffectDeps['loadElements']>().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(loaded(records));
+    start(loader);
+    await vi.waitFor(() => expect(store.getState().elements).toEqual({ status: 'error', message: 'offline' }));
+    await elapse(ELEMENTS_RECHECK_MS);
+    await vi.waitFor(() => expect(store.getState().elements.status).toBe('ready'));
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+
+  it('stop() ends the re-checks', async () => {
+    const loader = vi.fn<EffectDeps['loadElements']>().mockResolvedValue(loaded(records));
+    start(loader);
+    await vi.waitFor(() => expect(store.getState().elements.status).toBe('ready'));
+    stop();
+    await elapse(3 * ELEMENTS_RECHECK_MS);
+    expect(loader).toHaveBeenCalledTimes(1);
+    stop = () => undefined;
   });
 });

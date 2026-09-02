@@ -1,8 +1,9 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { TWILIGHT_LABEL } from '../../lib/phrases';
 import { formatDate } from '../../lib/timeFormat';
-import type { EpochMs, Pass } from '../../model';
+import type { Pass } from '../../model';
 import { Countdown } from '../components/common/Countdown';
+import { useNow } from '../hooks/useNow';
 import { GuideText } from '../components/guide/GuideText';
 import { PassNumbers } from '../components/guide/PassNumbers';
 import styles from './PassDetail.module.css';
@@ -21,20 +22,6 @@ export interface PassDetailProps {
 }
 
 export const TICK_MS = 1000;
-
-/** The wall clock, re-read every `intervalMs` while mounted. UI code may read the clock; `src/lib` may not (D-15). */
-export function useNow(intervalMs: number): EpochMs {
-  const [now, setNow] = useState<EpochMs>(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setNow(Date.now());
-    }, intervalMs);
-    return () => {
-      window.clearInterval(id);
-    };
-  }, [intervalMs]);
-  return now;
-}
 
 export function PassDetail({ pass, timeZone, onClose }: PassDetailProps) {
   const headingId = useId();

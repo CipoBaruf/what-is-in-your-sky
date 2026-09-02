@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { searchPlaces, useAppStore } from '../state';
+import { ElementsBanners } from './components/elements/ElementsBanners';
 import { LocationInput } from './components/location/LocationInput';
 import { NowPanel } from './components/now/NowPanel';
 import { PassList } from './components/passes/PassList';
@@ -13,7 +14,9 @@ import { findSelectedPass, usePassSelection } from './screens/passSelection';
  * sits between the input and the pass list. R6: the selected pass lives in
  * the URL hash (D-13) and opens the detail sheet over the list, which is made
  * inert while the sheet is up. R9/R10: the location section holds the place
- * picker, the coordinates, the device button and the clear action.
+ * picker, the coordinates, the device button and the clear action. R11: the
+ * elements banners (epoch age, stale, not cached, objects without elements)
+ * sit between the location and the Now panel.
  */
 export function App() {
   const setObserver = useAppStore((s) => s.setObserver);
@@ -27,6 +30,7 @@ export function App() {
       <main inert={selected !== null}>
         <h1>What is in your sky right now</h1>
         <LocationInput observer={observer} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} />
+        <ElementsBanners />
         <NowPanel />
         <PassList onOpenPass={open} />
       </main>

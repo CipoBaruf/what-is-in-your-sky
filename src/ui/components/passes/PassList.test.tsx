@@ -32,7 +32,7 @@ const goldenPass: Pass = {
   elementsEpochMs: ref.t,
 };
 const later: Pass = { ...goldenPass, id: 'later', noradId: 2, name: 'Later object', start: { ...goldenPass.start, t: golden.start.t + 3_600_000 } };
-const ready: ElementsState = { status: 'ready', records: fixtureRecords(), unavailable: [], rejected: [] };
+const ready: ElementsState = { status: 'ready', records: fixtureRecords(), unavailable: [], rejected: [], fetchedAt: NOW, stale: false, persistent: true };
 const set = (patch: Partial<AppState>): void => {
   act(() => {
     appStore.setState(patch);

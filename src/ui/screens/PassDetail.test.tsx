@@ -16,7 +16,7 @@ const golden = JSON.parse(readFileSync(join(FIXTURES_DIR, 'guide-sentences.json'
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
-const ready: ElementsState = { status: 'ready', records: fixtureRecords(), unavailable: [], rejected: [] };
+const ready: ElementsState = { status: 'ready', records: fixtureRecords(), unavailable: [], rejected: [], fetchedAt: NOW, stale: false, persistent: true };
 const initial = appStore.getInitialState();
 const clearHash = (): void => {
   window.history.replaceState(null, '', window.location.pathname);
