@@ -1,0 +1,7 @@
+{
+  "fetchedAt": "2026-09-02T03:27:20Z",
+  "source": "https://celestrak.org/NORAD/elements/gp.php?GROUP=<group>&FORMAT=json",
+  "groups": ["stations", "visual"],
+  "iss": { "noradId": 25544, "EPOCH": "2026-09-01T19:42:22.677120" },
+  "note": "EPOCH strings from CelesTrak carry no zone suffix; they are UTC and are parsed as such."
+}
