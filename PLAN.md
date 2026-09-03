@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Draft v0.3 — for review. Plans the v1 phase: §2.17 records decisions D-69..D-86; §3–§9, §11–§13 extended for language, desktop layout, the dome's second pass, the live page, offline, the Moon, share links and the night theme; §16 Delivery added (V1-11). The MVP text (v0.2) is otherwise unchanged. |
+| Status | Draft v0.3 — for review. Plans the v1 phase: §2.17 records decisions D-69..D-87; §3–§9, §11–§13 extended for language, desktop layout, the dome's second pass, the live page, offline, the Moon, share links and the night theme; §16 Delivery added (V1-11), then sharpened in §16.3 and §16.4 when `scripts/sdd-run.ts` was built (D-87). The MVP text (v0.2) is otherwise unchanged. |
 | Date | 2026-09-03 (v0.3); 2026-09-01 (v0.2) |
 | Input | `SPEC.md` v1.0 (Decision Log §12 treated as fixed: OQ-1, OQ-3, OQ-4, OQ-11, UX-1 and V1-1..V1-11 are not reopened here) |
 | Scope | Architecture, project structure, module boundaries, data model, worker contract, testing strategy, the Task Zero physics spike, and how the v1 tasks are delivered (§16). **No task breakdown** — that is `sdd-breakdown`'s job. |
@@ -264,6 +264,7 @@ These plan SPEC v1.0 (V1-1..V1-11). Nothing here is implemented yet; each decisi
 - **D-84 — Night theme is a third token block, not a second stylesheet.** `tokens.css` gains `[data-theme="night"]` beside the existing values; no component learns about themes, and `scripts/contrast.ts` and its test iterate both themes over the same pair table (FR-THEME-2). FR-THEME-3's dome colours come free from D-75's probe.
 - **D-85 — Favourites live in prefs with LRU eviction at 8.** `localPrefs` gains `favourites: Favourite[]` with `lastUsedAt`; adding a ninth evicts the least recently used (FR-OFF-7). They are observers, not places: a favourite carries the full `Observer` including `timeZone`, so selecting one works offline with no geocode call.
 - **D-86 — The task driver is repo tooling, not a task.** `scripts/sdd-run.ts` (§16) is what runs the v1 tasks, so it cannot be one of them: it is written and reviewed before the first wave, like `scripts/bundle-budget.ts` and `scripts/contrast.ts`, and it is proved by a dry run against the existing R1–R15 entries before it is given a real task. TASKS.md stays a list of product slices.
+- **D-87 — The driver's pure half is a library, its IO is injected.** `scripts/sdd-run.ts` is the CLI; the parts are `scripts/sdd/{tasks,waves,session,git,report}.ts`. Parsing TASKS.md and choosing a wave are pure functions over text and over what git and `gh` said, so `tests/sdd/` proves the §16.2 and §16.3 rules — one per lane, two at once, refuse a task with no `Lane:` or `Gate:` — without a network, a worktree or a session. The session and the driver exchange three files in the worktree's `sdd-run/` directory (§16.4); it is per-run scratch and is never committed.
 
 ---
 
@@ -441,7 +442,13 @@ what-is-in-your-sky-right-now/
 │   ├── check-catalog.ts            # live: every catalog NORAD id present in visual|stations groups
 │   ├── bundle-budget.ts            # gzipped chunk sizes against the §11 budgets, after `vite build` (D-67)
 │   ├── contrast.ts                 # WCAG ratios of the tokens.css text pairs, both themes (D-50, D-84)
-│   └── sdd-run.ts                  # the v1 task driver: worktree + one-shot session per task (§16, D-86)
+│   ├── sdd-run.ts                  # the v1 task driver's CLI: --status, --dry-run, --wave, --task (§16, D-86)
+│   └── sdd/
+│       ├── tasks.ts             # parses TASKS.md: id, checkbox, Lane, Model, Gate, Depends on (§16.3)
+│       ├── waves.ts             # merged / in-review / failed / blocked / ready; the wave's caps (§16.2)
+│       ├── session.ts           # one `claude -p` session: model, allowlist, turn cap, wall clock (§16.4)
+│       ├── git.ts               # every git and `gh` call the driver makes; sessions make none
+│       └── report.ts            # the per-task log and the run summary (§16.4)
 ├── spike/
 │   ├── horizon-panorama/           # R14 candidate second view, kept
 │   └── dome-composition/           # FR-DOME-8: every knob as a URL parameter (the first v1 task)
@@ -1163,31 +1170,35 @@ Rules the breakdown must respect:
 
 A **wave** is the set of tasks whose dependencies are all merged to `main`. It is computed, not written down: the driver reads the checkboxes on `origin/main` and the `Depends on:` fields, and everything unblocked is in the current wave. `sdd-breakdown` prints the expected waves in TASKS.md as a reading aid, but the driver never trusts that list over the graph.
 
-Within a wave the driver runs **at most one task per lane** and **at most two tasks at once**. One per lane removes file conflicts; two at once keeps the review load and the API spend legible, and means a bad run is noticed before four branches have gone wrong.
+A lane with an unmerged PR open counts as busy, so a task waiting on review holds its lane until it merges or closes. Within a wave the driver runs **at most one task per lane** and **at most two tasks at once**. One per lane removes file conflicts; two at once keeps the review load and the API spend legible, and means a bad run is noticed before four branches have gone wrong.
 
 ### 16.3 What TASKS.md must carry
 
 Each task keeps its MVP shape (scope, done-when, acceptance criteria) and gains three fields:
 
 ```
-### R17 — The layered dome
-- **Lane:** chart
-- **Model:** fable
-- **Gate:** owner
-- **Depends on:** R16
+- [ ] **R17 — The layered dome**
+  - **Lane:** chart
+  - **Model:** fable
+  - **Gate:** owner
+  - **Depends on:** R16
 ```
+
+The checkbox is the shape TASKS.md already uses and the driver reads it as the merged signal (§16.2), so a v1 task is an MVP task with three more sub-bullets — nothing about the file's structure changes.
 
 - **`Lane:`** one of `ui`, `chart`, `data`, `physics`.
 - **`Model:`** `opus` or `fable` (§16.6).
 - **`Gate:`** `auto` or `owner`. `owner` is required whenever the acceptance criteria include captures to compare, Spanish copy to read, or a composition to choose — anything a test cannot check. Everything else is `auto`.
 - **`Depends on:`** task ids, or `—`.
 
+A task with no `Model:` runs on Opus, the stated default of §16.6.
+
 A task with no `Lane:` or no `Gate:` is a breakdown bug and the driver refuses to run it.
 
 ### 16.4 `scripts/sdd-run.ts`
 
 ```
-npm run sdd -- --status          # merged / ready / blocked / failed, from origin/main and the graph
+npm run sdd -- --status          # merged / in review / ready / blocked / failed, from origin/main and the graph
 npm run sdd -- --dry-run         # print exactly what would run, and stop
 npm run sdd -- --wave            # run the current wave (≤ 1 per lane, ≤ 2 at once)
 npm run sdd -- --task R17        # run one task, dependencies checked
@@ -1198,9 +1209,10 @@ Per task, in order:
 1. `git fetch origin`; refuse if the task's dependencies are not checked off on `origin/main`.
 2. `git worktree add ../wiys-tasks/<id> -b <id>-<slug> origin/main` — a fresh worktree from `origin/main`, never from the current checkout. Node modules are installed in it with `npm ci` and `npm_config_cache` pointed at a project-local cache directory, because the user's `~/.npm` is not writable.
 3. One `claude -p` session in that worktree: `--model <task model>`, `--permission-mode acceptEdits`, `--max-turns 120`, a 45-minute wall clock, and the allowlist below. The prompt is one line: use the `sdd-implement` skill on `<id>`, headless — decide and record rather than ask.
-4. On a clean exit the driver checks the branch actually has commits and the task's checkbox is ticked; then it rebases onto `origin/main`, pushes, and opens the PR with `gh`. **The session never pushes and never calls `gh`** — that is the driver's job, so a confused session cannot publish anything.
+   The session and the driver exchange three files in the worktree's `sdd-run/` directory: `<id>.blocked.md` (written instead of a PR when the task cannot be done as written), `<id>.summary.md` (the session's summary, which becomes the PR body), and `<id>.review.json` (`{ "findings": [...] }`, written by the review session in step 6). The directory is scratch and is never committed.
+4. On a clean exit the driver checks the branch actually has commits and the task's checkbox is ticked; then it rebases onto `origin/main`, pushes, and opens the PR with `gh`, titled `<id>: <goal>` with `Gate: <gate>` as the body's first line and the session's `<id>.summary.md` under it. **The session never pushes and never calls `gh`** — that is the driver's job, so a confused session cannot publish anything, and `sdd-implement`'s push-and-open-a-PR step is interactive-only for exactly this reason.
 5. CI is watched to completion. Red CI ends the task as failed.
-6. A second one-shot session (`--max-turns 40`, 15 minutes, Opus) runs the `code-review` skill over the branch diff. Findings are posted as a PR comment and the task stops there for a human.
+6. A second one-shot session (`--max-turns 40`, 15 minutes, Opus) runs the `code-review` skill over the branch diff and writes its verdict to `sdd-run/<id>.review.json`. Findings are posted as a PR comment and the task stops there for a human. A session that ends without a verdict counts as findings: nothing merges on a review that did not finish.
 7. Green CI, no findings, `Gate: auto` → `gh pr merge --squash`. `Gate: owner` → the PR is labelled `needs-owner`, the captures are linked in the body, and it waits.
 8. The worktree is removed after a merge and **kept** after a failure, alongside its log.
 
@@ -1216,8 +1228,9 @@ Logging: `logs/sdd/<id>-<ISO8601>.log` holds the full session transcript and eve
 | CI green, review clean, `Gate: owner` | PR labelled `needs-owner`, left open |
 | Review has findings | PR left open with the findings as a comment; the task is not retried automatically |
 | CI red, session error, timeout, turn cap, or rebase conflict | task marked failed; branch, worktree and log kept |
+| The session wrote `sdd-run/<id>.blocked.md` | task marked blocked; no PR, worktree and log kept for the owner |
 
-A failed task blocks its dependents — they simply never become ready — and the run continues with everything else. The driver never merges to `main` outside `gh pr merge`, never force-pushes, and never rewrites a branch it did not create in this run.
+The branch left on `origin` is how a later `--status` reads the task back as failed; deleting it is what clears the state, and `--task` refuses to retry until it is gone. A failed task blocks its dependents — they simply never become ready — and the run continues with everything else. The driver never merges to `main` outside `gh pr merge`, never force-pushes, and never rewrites a branch it did not create in this run.
 
 ### 16.6 Model policy
 
