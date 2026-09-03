@@ -50,7 +50,7 @@ describe('createLocalPrefs', () => {
       storage.map.set(PREFS_KEY, raw);
       expect(prefs.read(), raw).toEqual({});
     }
-    storage.map.set(PREFS_KEY, '{"chartView":"polar"}'); // a later preference alone: nothing to restore, nothing lost
+    storage.map.set(PREFS_KEY, '{"nightMode":"red"}'); // a later preference alone: nothing to restore, nothing lost
     expect(prefs.read()).toEqual({});
   });
 
@@ -65,6 +65,17 @@ describe('createLocalPrefs', () => {
     expect(prefs.read()).toEqual({ observer: coords });
     storage.map.set(PREFS_KEY, JSON.stringify({ observer: { lat: 91 }, sort: 'best' }));
     expect(prefs.read()).toEqual({ sort: 'best' });
+  });
+
+  it('round-trips the chart view and orientation, and drops an unknown value of either alone (R13, US-6 AC5, FR-GUIDE-4)', () => {
+    const storage = memoryStorage();
+    const prefs = createLocalPrefs(storage);
+    prefs.write({ observer: coords, sort: 'best', chartView: 'polar', chartOrientation: 'map' });
+    expect(prefs.read()).toEqual({ observer: coords, sort: 'best', chartView: 'polar', chartOrientation: 'map' });
+    storage.map.set(PREFS_KEY, JSON.stringify({ observer: coords, chartView: 'globe', chartOrientation: 'map' }));
+    expect(prefs.read()).toEqual({ observer: coords, chartOrientation: 'map' });
+    storage.map.set(PREFS_KEY, JSON.stringify({ chartView: 'dome', chartOrientation: 'mirror' }));
+    expect(prefs.read()).toEqual({ chartView: 'dome' });
   });
 
   it('works without storage and swallows storage errors', () => {
