@@ -64,6 +64,8 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   await expect(dialog.getByRole('heading', { name: 'ISS (Zarya)' })).toBeFocused();
   // The sheet fits the phone width: no horizontal scroll on the page.
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  // One scrollbar: the page behind the sheet is locked while the sheet scrolls itself (R13 review).
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).toBe('hidden');
   await page.screenshot({ path: 'test-results/r6-pass-detail-390.png' });
 
   // R13: the polar chart, as SVG, captioned by the sentence, hidden from AT, inside the viewport width.
@@ -106,6 +108,7 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page).not.toHaveURL(/#pass=/);
   await expect(card).toBeVisible();
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).not.toBe('hidden');
 
   // The golden pass grazes the horizon; for the PR's visual check, also capture the highest pass of the night.
   const list = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('list');

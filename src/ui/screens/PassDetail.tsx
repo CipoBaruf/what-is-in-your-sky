@@ -16,7 +16,9 @@ import styles from './PassDetail.module.css';
  * PLAN §8.1 boundary) sits between the countdown and the numbers; its
  * caption is the FR-GUIDE-1 sentence, so the screen shows it once. The
  * observer is passed whole: the chart wants it (PLAN §8.1), the times want
- * its zone.
+ * its zone. The page's own scroll is locked while the sheet is up: the sheet
+ * is fixed and scrolls itself, so the list's scrollbar behind it was a
+ * second, dead scrollbar on desktop (R13 review).
  */
 export interface PassDetailProps {
   pass: Pass;
@@ -38,6 +40,16 @@ export function PassDetail({ pass, observer, onClose }: PassDetailProps) {
     headingRef.current?.focus();
     return () => {
       opener?.focus();
+    };
+  }, []);
+
+  // Lock the page scroll behind the sheet; the list keeps its scroll position for the return.
+  useEffect(() => {
+    const root = document.documentElement;
+    const previous = root.style.overflow;
+    root.style.overflow = 'hidden';
+    return () => {
+      root.style.overflow = previous;
     };
   }, []);
 

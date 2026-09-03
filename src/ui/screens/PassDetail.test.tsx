@@ -47,6 +47,15 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it('locks the page scroll while open and restores it on close (one scrollbar, the sheet\'s)', () => {
+    document.documentElement.style.overflow = 'auto';
+    const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
+    expect(document.documentElement.style.overflow).toBe('hidden');
+    unmount();
+    expect(document.documentElement.style.overflow).toBe('auto');
+    document.documentElement.style.overflow = '';
+  });
+
   it('omits the twilight label when the pass is not a twilight one', () => {
     render(<PassDetail pass={{ ...pass, twilight: false }} observer={observer} onClose={() => undefined} />);
     expect(screen.getByRole('dialog')).not.toHaveTextContent('sky still bright');
