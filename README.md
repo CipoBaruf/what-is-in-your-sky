@@ -4,7 +4,7 @@ Naked-eye satellite spotting: type a location, get the visible passes of ~30 bri
 objects for the coming night, with where and when to look. Static web app, no backend;
 the browser talks to the data sources directly. See `SPEC.md`, `PLAN.md` and `TASKS.md`.
 
-**Live:** <https://what-is-in-your-sky.ezequiel-baruf.workers.dev> (Cloudflare Workers
+**Live:** <https://in-your-sky.ezequiel-baruf.workers.dev> (Cloudflare Workers
 static assets; `main` is production, other branches get preview URLs).
 
 ## Run
@@ -30,12 +30,21 @@ configuration (assets-only Worker, `dist/` as the assets directory, no Worker sc
 the build never has to guess. The project was created once in the Cloudflare dashboard:
 
 1. *Workers & Pages → Create → Import a repository*, pick `CipoBaruf/what-is-in-your-sky`.
-2. Worker name `what-is-in-your-sky`, production branch `main`, build command
+2. Worker name `in-your-sky`, production branch `main`, build command
    `npm run build`, deploy command `npx wrangler deploy` (the defaults). No environment
    variables; the Node version comes from `.node-version` (24, the same as CI).
 3. *Settings → Builds → Branch control*: enable non-production branch builds so every
    branch gets a preview version, aliased by branch name:
-   `https://<branch>-what-is-in-your-sky.ezequiel-baruf.workers.dev`.
+   `https://<branch>-in-your-sky.ezequiel-baruf.workers.dev`.
+
+The worker name is the first label of the URL and the account subdomain
+(`ezequiel-baruf`) the second. The account subdomain can be changed only once per
+account and already has been, so the worker name is the only part left to choose.
+Renaming it in `wrangler.jsonc` creates a new worker instead of moving the existing one,
+so a rename is three steps: change `name`, then in the dashboard point Workers Builds at
+the new worker (*Settings → Build → Connected repository*) and delete the old worker once
+the new one has served a green production build. Links to the old URL stop working;
+Cloudflare does not redirect.
 
 `public/_headers` is copied into `dist/` by Vite and parsed by Cloudflare at upload (it is
 never served): the strict Content-Security-Policy, `Referrer-Policy` and `Permissions-Policy`
@@ -45,7 +54,7 @@ runs the app under it, so a CSP violation fails CI before it reaches the site. T
 deployment by hand (replace the host with a preview URL to check a branch):
 
 ```
-SITE=https://what-is-in-your-sky.ezequiel-baruf.workers.dev
+SITE=https://in-your-sky.ezequiel-baruf.workers.dev
 curl -sI $SITE/ | grep -iE 'content-security-policy|referrer-policy|permissions-policy'
 curl -sI $SITE/assets/$(curl -s $SITE/ | grep -oE 'assets/[^"]+\.js' | head -1 | cut -d/ -f2) | grep -i cache-control
 ```

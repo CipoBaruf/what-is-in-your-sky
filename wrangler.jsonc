@@ -4,7 +4,7 @@
 // sandbox. There is no Worker script: `dist/` is served as-is and `public/_headers`
 // (copied into `dist/` by Vite) supplies the PLAN §11 headers.
 {
-  "name": "what-is-in-your-sky",
+  "name": "in-your-sky",
   "compatibility_date": "2026-08-31",
   "assets": {
     "directory": "./dist",
