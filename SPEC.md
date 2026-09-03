@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Status | Draft v0.4 — for review (OQ-1, OQ-3, OQ-4, OQ-11 resolved; UX-1 sky-dome and visual-identity decision added; see §12 Decision Log) |
-| Date | 2026-09-01 |
+| Status | Draft v1.0 — for review. Adds the v1 scope: goals G7–G11 (§2.3), US-10 and US-12 promoted to v1, US-13..US-19 added, §4.7–§4.14 added, FR-LOC-5 / FR-VIS-1 / FR-WX-1 / FR-GUIDE-5 / FR-X-1 / FR-X-4 amended, §5.7 v1 architecture additions, OQ-12..OQ-15, §8 phases updated, §9 Phase 2 rewritten, Decision Log V1-1..V1-11 (V1-10: the dome composition is fixed by a spike, FR-DOME-8; V1-11: how the v1 tasks are delivered). The MVP text (v0.4) is otherwise unchanged. |
+| Date | 2026-09-03 (v1.0); 2026-09-01 (v0.4) |
 | Owner | Ezequiel Baruf |
 | Scope of this document | Product + technical specification only. No implementation plan or task breakdown (requested as a separate step). |
 
@@ -32,16 +32,25 @@ The user supplies a location (city or place name, coordinates, or browser geoloc
 
 - Tracking every object in orbit (full catalog, debris, Starlink shells). MVP covers a hand-maintained catalog of ~30 well-known bright objects; the full CelesTrak `visual` group is v1.
 - Street-address-precision geocoding. MVP geocodes to city/place level (Open-Meteo geocoding). A pass looks the same from anywhere within a few kilometres, so this costs nothing in accuracy; street addresses and reverse geocoding arrive with the v1 proxy.
-- Any first-party backend. MVP is a static site; the browser talks to CelesTrak and Open-Meteo directly. A caching proxy is v1.
+- Any first-party backend. MVP is a static site; the browser talks to CelesTrak and Open-Meteo directly. *(amended v1)* The caching proxy moves to Phase 3 (V1-1): v1 stays browser-direct.
 - Telescope / binocular targets (faint satellites, geostationary satellites, flares from specific antenna geometry).
+- Astrology as prediction. v1 shows Moon lore (zodiac sign, folk names, one-liners) labelled as tradition (FR-MOON-5); the app never claims it affects what is visible.
 - Iridium-style flare prediction (the original Iridium constellation is deorbited; flare prediction for other constellations is research-grade).
 - Radio tracking, Doppler, amateur radio pass planning.
 - Live 3D globe / orbit visualisation (Earth-centred, orbital view). The observer-centred sky dome in §4.4 is in scope; a view of the Earth from outside is not.
 - User accounts, cloud sync, social features.
-- Native mobile apps (a PWA is acceptable later; not in MVP).
+- Native mobile apps. *(amended v1)* The app installs as a PWA in v1 (FR-OFF-6); a store app is still out of scope.
 - Historical passes ("what did I just see?") — see Roadmap, later phase.
 - Guaranteed accuracy for launches < 48 h old or objects during manoeuvres (orbital elements lag reality).
 - Commercial use of the free data tiers. If the project ever monetises, several dependencies (Open-Meteo; Nominatim once added in v1) require moving to paid/self-hosted tiers.
+
+### 2.3 Goals (v1)
+
+- **G7. Speaks the visitor's language.** English and Spanish, chosen from the browser, switchable in one tap.
+- **G8. Uses a desktop screen.** On a wide screen the location, the Now panel, the pass list and the guide are on screen together; nothing is a phone column in the middle of a monitor.
+- **G9. The dome is the signature.** Coloured, detailed, live, and the first thing a pass opens (UX-1 restored).
+- **G10. Watch the night unfold.** A full-screen live sky with a timeline for the coming 24 h, scrubbed by hand or played at speed.
+- **G11. Works off-grid.** Three nights of passes and forecast, and the app itself, stay usable with no connection.
 
 ---
 
@@ -109,17 +118,72 @@ As a returning user, the app pre-fills my last-used location.
 - AC1: Stored in `localStorage` only; nothing sent to a server.
 - AC2: A "clear" action removes it.
 
-**US-9 — Tune visibility thresholds** *(v1)*
+**US-9 — Tune visibility thresholds** *(later; was v1, V1-1)*
 As a hobbyist, I can adjust minimum elevation, limiting magnitude, and twilight rule.
 
-**US-10 — Point my phone at the sky** *(v1)*
-As a user, I can hold my phone up and see an arrow guiding me toward where the satellite will appear / currently is.
+**US-10 — Point my phone at the sky** *(v1, on the live page)*
+As a user, I can hold my phone up and have the live sky turn with me, so the dome shows the horizon I am facing. *(amended v1: the dome's facing follows the compass heading rather than an arrow; FR-LIVE-8.)*
 
 **US-11 — Be notified before a pass** *(v1 / later)*
 As a user, I can opt in to a reminder a few minutes before a selected pass.
 
 **US-12 — Share a pass** *(v1)*
-As a user, I can copy a link that reproduces this pass view (location + satellite + time) for someone else.
+As a user, I can copy a link that reproduces this pass view (location + satellite + time) for someone else, or a moment on the live page.
+- AC1: A share action on the pass detail and on the live page produces a URL that reproduces the view on the recipient's device by recomputing locally (FR-SHARE-1).
+- AC2: On devices with `navigator.share` the system sheet opens; elsewhere the link is copied and the action confirms it.
+
+**US-13 — Read the app in my language** *(v1)*
+As a visitor whose browser is in Spanish, I see the app in Spanish without doing anything.
+- AC1: On the first visit the language follows the browser: Spanish for `es` and any `es-*` in `navigator.languages`, English otherwise.
+- AC2: A `[ EN | ES ]` control in the header switches at once, without a reload; the choice is saved locally and wins over the browser on later visits.
+- AC3: Every string the app renders is translated: labels, banners, the guide sentence, compass names, brightness and cloud phrases, the Moon text of US-18, the shortcuts overlay. Satellite names, provider names and place names stay as catalogued.
+- AC4: Dates, times and numbers follow the language's conventions through `Intl`, still in the observer's zone (FR-LOC-3).
+- AC5: `<html lang>` and the page title follow the active language.
+
+**US-14 — Use the app on a desktop** *(v1)*
+As a user at a desk, I see the location, the Now panel and the pass list at once, and a pass opens beside the list instead of covering it.
+- AC1: At 100 cells of viewport width and above, the page has two columns: location, favourites, banners, Now panel and Moon line on the left; hero card, sort and pass list on the right.
+- AC2: Opening a pass shows the guide in a panel beside the list; the list stays visible and the selected card is highlighted; below the wide breakpoint the full-screen sheet stays.
+- AC3: The dome fills the width of its panel at desktop sizes and is drawn at the finer grid that width allows (FR-DOME-1).
+- AC4: Keyboard shortcuts work when no input has focus: `j` / `k` next and previous pass, `Enter` open, `Esc` close, `l` live page, `v` chart view, `n` night theme, `?` the list of shortcuts.
+- AC5: Column widths and breakpoints are in cells; the layout stays on the character grid (FR-X-6).
+
+**US-15 — Watch the sky live and ahead** *(v1)*
+As a user, I open a full-screen live sky that shows what is up now and lets me run the coming 24 h forward.
+- AC1: A live page, reachable from the header and from the Now panel, fills the viewport with the dome; the passes of the next 24 h are drawn as arcs and every satellite currently above the horizon has a marker on its arc.
+- AC2: A status strip shows the observer's time, the sky state (day, bright twilight, dark), cloud cover at that time and the count of satellites visible at the shown instant.
+- AC3: A time stripe under the dome spans now to now + 24 h with each pass marked; I can drag it or use the arrow keys to move the shown instant, and the dome, the markers and the status follow.
+- AC4: Play runs the shown instant forward at 1×, 60×, 600× or 3600×; pause stops it; a `now` action returns to real time, which then advances on the 10 s tick.
+- AC5: The Sun (a glow on the horizon while it is just below it) and the Moon with its phase are drawn at their positions for the shown instant.
+- AC6: Objects above the horizon but not visible are hidden by default; a toggle shows them dimmed with the reason (daylight, in shadow, too faint).
+- AC7: On a phone the page works in landscape, and the screen stays awake while the page is open.
+- AC8: With permission, the dome faces where the phone faces (US-10); dragging still works and turns following off until it is re-enabled.
+- AC9: The URL carries the location and the shown instant, so the page can be shared (US-12) and reloaded.
+
+**US-16 — Take the app off-grid for three nights** *(v1)*
+As a user driving to a dark site, the app keeps working with no signal.
+- AC1: After any successful load, the app itself, the elements, the location, the forecast and the passes for the next 72 h are stored on the device with no action from me.
+- AC2: A line near the location says "Ready offline until <date and time>" from the stored data, or says what is missing.
+- AC3: Opening the app with no connection loads it and shows the stored passes, the guide and the live page; weather shows the stored forecast with its age, or "unknown" past its end.
+- AC4: The app can be installed: a manifest, an icon, and an install hint shown once when the browser allows it.
+- AC5: The pass list can show the three nights grouped under night headings; tonight is the default.
+
+**US-17 — Keep a few places** *(v1)*
+As a user, I can save places and switch between them.
+- AC1: Save the current location under its label; the list holds up to 8 (a constant).
+- AC2: Picking one makes it the observer and recomputes; removing one is one action with no confirmation dialog.
+- AC3: Stored locally only (FR-LOC-5). Offline data (US-16) is kept for the active place only.
+
+**US-18 — Know about the Moon** *(v1)*
+As a user, I see whether the Moon will wash out a pass, and a little Moon lore.
+- AC1: Each pass card and the guide show the Moon's phase and illumination at the pass peak, and a "moon glare" warning when the Moon is up, bright and near the track (FR-MOON-2).
+- AC2: The Now panel and the live page show the Moon's phase name, illumination and, when it is up, its direction and elevation.
+- AC3: A "Moon tonight" line adds tradition: the zodiac sign the Moon is in, the folk name of the month's full moon when within a day of full, and a curated one-liner for the phase or the sign, in both languages, labelled as tradition (FR-MOON-4, FR-MOON-5).
+
+**US-19 — Use the app in the dark** *(v1)*
+As a user outdoors, I switch to a red night theme that keeps my dark adaptation.
+- AC1: A `[ night ]` toggle in the header swaps the palette to red on black; the choice is saved locally.
+- AC2: Every text pair keeps WCAG AA contrast in the red palette, and the dome and polar colours have night counterparts.
 
 ---
 
@@ -133,7 +197,7 @@ Requirements use MUST / SHOULD / MAY (RFC 2119 sense). IDs are stable for tracea
 - **FR-LOC-2** Place-name geocoding MUST use the Open-Meteo Geocoding API directly from the browser (no key, CORS-enabled), MUST be debounced (≥ 500 ms after typing stops), and MUST cache results per query string for the session, to respect the shared 10 000 calls/day non-commercial limit.
 - **FR-LOC-3** The app MUST derive the IANA time zone for the chosen location and display all times in that zone, with the zone abbreviation shown. Open-Meteo returns the zone both in geocoding results and in forecast responses (`timezone=auto`), so no separate lookup library is required in MVP.
 - **FR-LOC-4** *(v1)* The app SHOULD reverse-geocode coordinates to a human-readable label (city / region) for display. Open-Meteo has no reverse geocoding; this arrives with the v1 proxy (Nominatim). MVP shows rounded coordinates for coordinate/Geolocation inputs.
-- **FR-LOC-5** The app MUST persist the last location locally and MUST NOT transmit it to any first-party server for storage.
+- **FR-LOC-5** The app MUST persist the last location locally and MUST NOT transmit it to any first-party server for storage. *(amended v1)* Up to 8 saved places (FR-OFF-7) live in the same local store under the same rule.
 - **FR-LOC-6** Geocoding precision in MVP is city/place level. The app MUST NOT imply street-level accuracy in the UI.
 
 ### 4.2 Satellite Data
@@ -154,7 +218,7 @@ A pass is **visible** when, for a contiguous interval of time, all of the follow
 3. **Satellite sunlit.** Satellite is not inside Earth's umbra. Penumbra MAY be treated as lit with a "fading" flag.
 4. **Bright enough.** Predicted visual magnitude at peak ≤ `MAG_LIMIT` (default +4.5; roughly what an average suburban sky allows). Every MVP catalog object has a known intrinsic magnitude (FR-SAT-1). When the full `visual` group is added in v1, objects with unknown intrinsic magnitude are shown with "brightness unknown" if the other conditions pass.
 
-- **FR-VIS-1** The app MUST compute passes for a window of at least the next 24 h and at most 5 nights (user-selectable in v1).
+- **FR-VIS-1** The app MUST compute passes for a window of at least the next 24 h and at most 5 nights. *(amended v1)* The v1 window is 72 h from the time of computation (FR-OFF-2); the list shows tonight by default and the three nights grouped on request (US-16 AC5); a user-selectable window stays later.
 - **FR-VIS-2** Pass boundaries (start, peak, end) MUST be refined to ≤ 1 s precision.
 - **FR-VIS-3** For each pass the app MUST report: start time, start azimuth, peak time, peak azimuth, peak elevation, end time, end azimuth, end reason (`horizon` | `shadow` | `twilight`), duration, predicted peak magnitude, range at peak.
 - **FR-VIS-4** The pipeline MUST run without blocking the UI thread (Web Worker) and SHOULD complete the 24 h computation for the ~30-object MVP catalog in under 1 s, and for ≈ 200 objects (v1) in under 3 s, on a mid-range 2022 phone.
@@ -169,13 +233,13 @@ A pass is **visible** when, for a contiguous interval of time, all of the follow
 - **FR-GUIDE-2b** The app MUST also provide a **2D polar (all-sky) chart** of the same pass — horizon as the outer circle, zenith at the centre, altitude rings at 30°/60°, cardinal labels, rise/peak/set and shadow-entry markers — as a fallback view reachable from the dome view. Both views MUST be driven by the same computed pass geometry.
 - **FR-GUIDE-3** Brightness MUST be expressed both as a magnitude number and a comparison phrase: "brighter than Venus" (≤ −4), "brighter than any star" (−4 to −1.4), "like a bright star" (−1.4 to +1), "like an average star" (+1 to +3), "faint, needs dark sky" (> +3).
 - **FR-GUIDE-4** The 2D polar chart MUST be orientation-aware: default "looking up" convention (east on the left, as when lying on your back looking up) with an explicit toggle to map convention (east on the right). The chosen convention MUST be labelled on the chart. The 3D dome needs no such toggle: the user's rotation is the orientation, and the current facing direction MUST be shown as text (e.g. "facing WSW, tilt 35°").
-- **FR-GUIDE-5** Both chart views MUST be rendered in the DOM only — text nodes and ordinary elements (with SVG permitted for the 2D chart). **No WebGL and no `<canvas>`.** Rationale: the ASCII dome is the product's visual signature and must be selectable, zoomable, and styleable like the rest of the page; DOM rendering also keeps the CSP strict and testing simple.
+- **FR-GUIDE-5** Both chart views MUST be rendered in the DOM only — text nodes and ordinary elements (with SVG permitted for the 2D chart). **No WebGL and no `<canvas>`.** Rationale: the ASCII dome is the product's visual signature and must be selectable, zoomable, and styleable like the rest of the page; DOM rendering also keeps the CSP strict and testing simple. *(amended v1, V1-4)* The CSP MAY allow inline `style` attributes (`style-src-attr 'unsafe-inline'`) so the rasteriser can colour glyphs (FR-DOME-2); `style-src-elem`, `script-src` and every other directive stay `'self'`.
 - **FR-GUIDE-6** The dome MUST re-render smoothly enough for interactive rotation on a mid-range 2022 phone (target ≥ 30 updates/s while dragging) at the default grid size; grid size MAY reduce on small screens.
 - **FR-GUIDE-7** Chart views MUST carry a text alternative (the FR-GUIDE-1 sentence and the numeric table) and the character grid MUST be hidden from assistive technology so screen readers are not read a wall of symbols.
 
 ### 4.5 Weather
 
-- **FR-WX-1** The app MUST fetch an hourly cloud-cover forecast for the observer location covering the prediction window.
+- **FR-WX-1** The app MUST fetch an hourly cloud-cover forecast for the observer location covering the prediction window. *(amended v1)* The window is 72 h, so the request asks for four forecast days (FR-OFF-3).
 - **FR-WX-2** For each pass, cloud cover MUST be interpolated to the pass peak time from the two nearest hourly values.
 - **FR-WX-3** The three-state indicator (US-7 AC2) MUST be shown per pass; the "Now" panel MUST show current cloud cover.
 - **FR-WX-4** Where the provider supplies low/mid/high layer cloud, the indicator SHOULD weight low + mid cloud more heavily than high cloud (thin cirrus often still permits seeing bright satellites).
@@ -183,12 +247,86 @@ A pass is **visible** when, for a contiguous interval of time, all of the follow
 
 ### 4.6 Cross-Cutting
 
-- **FR-X-1** Mobile-first responsive layout; dark theme by default; optional red-tint "night vision" mode (v1).
+- **FR-X-1** Mobile-first responsive layout; dark theme by default; optional red-tint "night vision" mode (v1, specified in §4.14). *(amended v1)* "Responsive" includes the wide layout of §4.8.
 - **FR-X-6** **Visual identity: monospace / terminal aesthetic across the whole UI** — a monospace typeface everywhere, character-grid-aligned layout where practical, box-drawing or plain-character borders, restrained colour on a dark ground, no photographic imagery. The ASCII sky dome must read as a natural part of the interface, not a widget dropped into a conventional web page.
 - **FR-X-2** Every external data source MUST be credited in a footer (CelesTrak; Open-Meteo for weather and geocoding, whose geocoding data derives from GeoNames) as their terms require. OpenStreetMap/Nominatim attribution is added in v1 when the proxy introduces it.
 - **FR-X-3** No analytics or tracking in MVP beyond anonymous, aggregate error logging.
-- **FR-X-4** The app MUST function offline for the already-computed pass list, and MUST be able to recompute from IndexedDB-cached elements for a new location without network (weather then shows "unknown"). PWA install is a later phase.
+- **FR-X-4** The app MUST function offline for the already-computed pass list, and MUST be able to recompute from IndexedDB-cached elements for a new location without network (weather then shows "unknown"). *(amended v1, V1-6)* The app shell itself MUST load offline through a service worker, and the stored forecast stays usable offline past its TTL with its age shown (§4.11). PWA install is v1 (FR-OFF-6).
 - **FR-X-5** Accessibility: WCAG 2.1 AA colour contrast; chart information duplicated in text; keyboard navigable.
+
+### 4.7 Language *(v1)*
+
+- **FR-I18N-1** The app MUST ship English and Spanish. On the first visit the language is chosen from `navigator.languages`: the first entry whose primary subtag is `es` selects Spanish, otherwise English. A saved preference, set through the header control, MUST win over the browser afterwards.
+- **FR-I18N-2** All user-visible strings MUST come from one typed message catalog per language. A message missing from either catalog MUST be a type error at build time, never a runtime fallback to the other language. Template sentences (FR-GUIDE-1, FR-GUIDE-3, cloud verdicts, elevation words, compass names, the Moon text) are messages with parameters, so word order and agreement can differ per language.
+- **FR-I18N-3** Spanish MUST be neutral and impersonal: no `tú`, no `vos`, no `usted`. Instructions describe the sky ("Aparece bajo en el oeste-suroeste a las 21:14"), never address the reader.
+- **FR-I18N-4** Dates, times, numbers and lists MUST be formatted through `Intl` with the active language and the observer's zone (FR-LOC-3). Degrees, magnitudes and compass abbreviations (N, NE, …) are identical in both languages; spelled-out compass names are translated.
+- **FR-I18N-5** `document.documentElement.lang` and the document title MUST follow the active language. Switching MUST NOT reload the page or lose the observer, the selection or the live page's instant.
+- **FR-I18N-6** The language is a preference, not a route: no path prefix, no URL parameter. Catalogued names (satellites, data providers, places returned by geocoding) are never translated.
+
+### 4.8 Desktop layout *(v1)*
+
+- **FR-DESK-1** Breakpoints are in cells (`--cell`, FR-X-6): *compact* below 100 cells of viewport width, *wide* at 100 cells and above (about 960 px at the 16 px base). Column and panel widths are in cells.
+- **FR-DESK-2** Wide: two columns. The left column is fixed at 40 cells and holds, in order, location (inputs, favourites, clear), the elements banners, the Now panel and the Moon line (FR-MOON-3). The right column fills the rest and holds the hero card, the sort control and the pass list. The header spans both columns and carries the title, the tagline and, at the right, the language, night-theme and live-page controls.
+- **FR-DESK-3** Wide: a selected pass opens the guide in a panel beside the list. The right column splits into the list (44 cells minimum) and the guide (the rest); the list stays scrollable and the selected card is highlighted; `Esc` or the close control closes the panel. Compact keeps the full-screen sheet of MVP. The selection stays in the URL hash (D-13) in both cases.
+- **FR-DESK-4** Keyboard shortcuts, active when no input or button has focus and listed in an overlay opened with `?`: `j` / `k` move the selection down and up the list, `Enter` opens it, `Esc` closes the guide or the overlay, `l` opens the live page, `v` toggles the chart view, `n` toggles the night theme. Shortcuts are single keys with no modifier and MUST NOT collide with browser or screen-reader defaults.
+- **FR-DESK-5** A desktop mockup approved by the owner is the visual reference for the wide layout (V1-3). Every desktop task ships 1280 px captures for comparison (the `visual-review` skill), alongside the 390 px ones.
+
+### 4.9 Sky dome, second pass *(v1)*
+
+The R15 dome reads as a wire cage: rings, meridians and arc in one colour at nearly one weight, seen from a tilt that flattens the bowl into a disc. FR-DOME-1..7 say what the second pass must show; FR-DOME-8 says how the composition is chosen, because none of the layered settings below has been tried in the real rasteriser yet (V1-10).
+
+- **FR-DOME-1** No frame around the dome. The drawing fills the width of its container up to the container's height, and the raster grid follows the drawing's size (the cell keeps its 390 px proportions, D-65's scaling continues, and the column count grows with the width), so the dome on a desktop panel is a larger and finer drawing, not a scaled-up phone one.
+- **FR-DOME-2** Colour by meaning, from tokens in `tokens.css` with a value in each theme: the highlighted pass, the other passes (dim), the peak marker, the shadow-entry marker, the current-position marker, the flown part of an arc, the horizon ring, the altitude rings, the compass labels, the Sun glow and the Moon. Colour is never the only channel: line weight and glyph keep the monochrome reading (FR-X-5).
+- **FR-DOME-3** Orientation cues: a mark at the observer's position at the centre of the ground; a ground fill (hatched or dimmed disc) below the horizon so up and down read at a glance; compass names that never overlap pass labels (a label that would collide moves along its ring, in the order compass, peak, rise, end).
+- **FR-DOME-4** More detail: horizon ticks every 10° with the degree number every 30°; the 30° and 60° rings labelled; the pass arc labelled with the clock time at rise, peak and end; the direction of travel as an arrowhead at the arc's end.
+- **FR-DOME-5** Live marker: when the instant shown (real time on the detail sheet, the shown instant on the live page) falls inside a pass, the satellite's position is drawn on its arc and the flown part of the arc is drawn in the "flown" colour. The position is interpolated from `Pass.track` (10 s samples); no worker call is made for it.
+- **FR-DOME-6** Sun and Moon at the shown instant: the Sun as a glow on the horizon ring at its azimuth while its altitude is between −18° and 0° (wider and brighter the closer to 0°), the Moon as a marker with a phase glyph when above the horizon, both labelled.
+- **FR-DOME-7** The dome is the default chart view again (UX-1 as written; D-68 closed by V1-4); the polar chart stays one toggle away with all its features and gains the Sun and Moon markers, the live marker and the colours of FR-DOME-2 so both views keep telling the same story. FR-GUIDE-2 interaction and FR-GUIDE-6 performance are unchanged: colour MUST NOT drop the drag rate below the FR-GUIDE-6 target.
+- **FR-DOME-8** Layers, and the spike that fixes them. The dome is drawn as layers, not as one wireframe: (a) a *base* layer for surfaces (the ground disc, a sky bowl shaded from the horizon to the zenith, the Sun glow), rendered in glyphcss's solid mode with the scene's directional light set to the Sun's real direction so twilight shows on the right side of the sky; (b) the *line* layer for the horizon, rings, meridians, arcs and markers in braille wireframe; (c) the highlighted pass and the live marker at a finer density than the base grid (glyphcss per-mesh density) so the arc is the sharpest thing on screen; (d) at most one effect (a soft pulse on the live marker), and only while the FR-GUIDE-6 rate holds. All layers share one camera state (PLAN D-64) so they cannot drift. The composition (tilt default in 35°–55°, which meridians are drawn, weights, the exact colours, whether the pulse stays) MUST be fixed by a half-day spike in `spike/` before the implementation task is cut: one page with every knob as a URL parameter, captures at 390 px and 1280 px of the same two fixture passes (the golden grazing pass and the synthetic high pass of R14), the D-62 drag-rate measurement for each candidate, and a findings file the owner picks from. The polar chart is not affected.
+
+### 4.10 Live sky page *(v1)*
+
+- **FR-LIVE-1** A page at `#live` fills the viewport with the dome, a status strip and a time stripe. It is reachable from the header control and from the Now panel, and `Esc` or the header returns to the home page. It is inert with a one-line message when there is no observer or no elements.
+- **FR-LIVE-2** Content at the shown instant `t`: every pass with `start ≤ now + 24 h` and `end ≥ now` drawn as an arc coloured per satellite (a palette of at least 6 distinguishable hues per theme, assigned in pass order); a marker on each pass whose interval contains `t`; the Sun and the Moon per FR-DOME-6; hidden objects per FR-LIVE-6.
+- **FR-LIVE-3** Status strip: `t` in the observer's zone with the zone abbreviation; the sky state in words (day, bright twilight, dark; `SkyState`); cloud cover interpolated to `t` (FR-WX-2) or "unknown"; the count of satellites visible at `t`; the Moon's phase and illumination; while playing, the speed.
+- **FR-LIVE-4** Time stripe: horizontal, `now` at the left edge and `now + 24 h` at the right, hour ticks, night shading from the sun altitude (the three `SkyState` bands), each pass a segment in its arc's colour. Drag, click and arrow keys (1 min; with Shift 10 min) set `t`; `t` clamps to the span; the shown instant is marked with a cursor and its clock time.
+- **FR-LIVE-5** Playback: play and pause; speeds 1×, 60×, 600× and 3600× (24 h in 24 s); a `now` action returns `t` to real time, which then advances with the 10 s tick; playing stops at the end of the span. Target: ≥ 30 updates/s at 3600× on the FR-GUIDE-6 device. The worker is never called per frame: satellite positions come from the tracks (FR-DOME-5); the Sun and Moon are evaluated on the main thread at most once per second of wall time.
+- **FR-LIVE-6** Objects above the horizon at `t` but not visible (daylight, in shadow, too faint) are hidden by default. A toggle draws them dimmed with a reason label. Their positions come from the worker for the instant `t` (a `computeAt` request, the Now pipeline at an arbitrary time), throttled to one request per 250 ms of wall time while scrubbing or playing.
+- **FR-LIVE-7** Layout: portrait stacks dome, strip and stripe; landscape on a phone puts the dome on the left and the strip and stripe on the right. The page requests a Screen Wake Lock while it is visible and releases it when hidden; where the API is unsupported nothing is shown.
+- **FR-LIVE-8** Compass follow (US-10): a `[ follow phone ]` control requests `DeviceOrientationEvent` permission where required (iOS `requestPermission()`, HTTPS) and turns the dome's facing to the device heading (`absolute` events or `webkitCompassHeading`; relative-only devices show a note). A drag turns following off; the control turns it on again. The control is hidden where the API is absent (desktop).
+- **FR-LIVE-9** URL state: `#live?lat=&lon=&alt=&t=`, `t` an ISO-8601 instant or absent for real time. Loading such a URL sets the observer (label from the rounded coordinates until geocoded, source `coords`) and `t`. The hash is updated while scrubbing at most twice per second and never while playing.
+- **FR-LIVE-10** The live page reuses `SkyChartProps` with `now = t` and a `passes` array; nothing in the live page draws satellites by any other path (FR-GUIDE-2b's "same geometry" rule).
+
+### 4.11 Offline for three nights *(v1)*
+
+- **FR-OFF-1** A service worker precaches the app shell (HTML, JS, CSS, the braille font, the manifest, icons) in a versioned cache and serves it cache-first. A new version activates on the next load and shows a "new version ready, reload" banner. The worker MUST NOT cache CelesTrak or Open-Meteo responses: those live in IndexedDB under FR-SAT-6 and FR-WX-5.
+- **FR-OFF-2** The computation window is 72 h from the time of computation (FR-VIS-1 as amended). Passes are stored in IndexedDB with `computedAt`, the observer and the elements epoch; with no network they are shown as stored, with their age in the readiness line.
+- **FR-OFF-3** The forecast covers at least 72 h (`forecast_days=4`) and is stored with `fetchedAt`. With no network it stays in use past the 30 min TTL with an "as of <time>" note on the cloud badge; hours past its end show "unknown" (FR-WX-5 still applies online).
+- **FR-OFF-4** A readiness line under the location states "Ready offline until <date time>" (the earliest of the stored passes' end and the forecast's end) and the storage time, or names what is missing (no elements, no forecast, no passes).
+- **FR-OFF-5** Storage is automatic on every successful load and recompute. There is no "prepare" action.
+- **FR-OFF-6** PWA: a web manifest with one name (the manifest is not localised), icons at 192 and 512 px in the terminal identity, `display: standalone`, dark theme colour. An install hint is shown once when `beforeinstallprompt` fires (and an iOS "Add to Home Screen" note where that event never fires), dismissible and remembered.
+- **FR-OFF-7** Favourites (US-17): up to 8 observers in the local prefs; the active observer is either one of them or ad hoc. Selecting one triggers the FR-VIS-5 recompute.
+- **FR-OFF-8** With no network, everything that needs it fails soft: place search says it is offline, device location still works, the live page and the guide run from the stored passes, and the elements banner says the age of what is in use (FR-SAT-4).
+
+### 4.12 Moon *(v1)*
+
+- **FR-MOON-1** `astronomy-engine` supplies the Moon's phase angle, illuminated fraction, altitude, azimuth and ecliptic longitude at any instant. Phase names (new, waxing crescent, first quarter, waxing gibbous, full, waning gibbous, last quarter, waning crescent) come from the phase angle with band boundaries as constants.
+- **FR-MOON-2** Moon glare for a pass: Moon altitude > 0° at the pass peak AND illuminated fraction ≥ 50 % AND angular separation between the Moon and the pass peak < 30°. Thresholds are constants shown in the tooltip. The card shows a `[moon glare]` label; the guide adds one sentence ("The Moon is bright and close to the track.").
+- **FR-MOON-3** The Now panel and the live strip show the phase name, the illumination percentage and, when the Moon is up, its compass direction and elevation.
+- **FR-MOON-4** Tradition ("Moon tonight"): the tropical zodiac sign from the Moon's ecliptic longitude (30° per sign from 0° Aries); the folk name of the full moon by calendar month (the widely used North American list, noted as Northern-hemisphere tradition), shown within one day of full; and a curated one-liner per phase and per sign. All of it lives in a static JSON in both languages with no external source, in the same style as the catalog (FR-SAT-5): one file, reviewed by hand.
+- **FR-MOON-5** Tradition text MUST be labelled as tradition ("lore" / "tradición") and MUST NOT be worded as a prediction or as observing advice. The observing facts (phase, glare) are separate lines that never depend on the tradition text.
+
+### 4.13 Share *(v1)*
+
+- **FR-SHARE-1** A share action on the pass detail builds `#pass?lat=&lon=&alt=&norad=&start=` (start as an ISO-8601 instant); the live page's share builds FR-LIVE-9's form. The recipient's browser recomputes locally: no server, no shortener, no tracking.
+- **FR-SHARE-2** `navigator.share` where available (title, text with the guide sentence, URL); elsewhere the URL is copied to the clipboard and the action confirms it inline.
+- **FR-SHARE-3** Opening a pass link whose pass is no longer in the window selects the nearest pass of that satellite in the window, or shows a message naming the satellite and the original time.
+
+### 4.14 Night theme *(v1)*
+
+- **FR-THEME-1** A red-on-black palette: every token in `tokens.css` has a night value; the header toggle sets `data-theme="night"` on the root element; the choice is saved in the local prefs and applied before first paint.
+- **FR-THEME-2** Contrast: every text pair ≥ 4.5 : 1 and non-text ≥ 3 : 1 in the night palette, pinned by the existing tokens test extended to both themes.
+- **FR-THEME-3** The dome and polar colours (FR-DOME-2), the Sun glow, the cloud badge and the live stripe have night counterparts; no element keeps a non-red hue in night mode.
 
 ---
 
@@ -323,6 +461,16 @@ Design principles: monospace / terminal aesthetic throughout (FR-X-6), dark back
 - Clock skew: use `Date.now()` but display a warning if the device time differs from the server `Date` header by > 60 s.
 - Location changes mid-computation: cancel the worker job (AbortController pattern with a job id).
 
+### 5.7 v1 additions *(proposal; the plan decides)*
+
+- **Language.** No i18n library: two typed catalogs (`en.ts`, `es.ts`) sharing one message type, a `useT()` hook, and `Intl` for everything numeric and temporal. A missing key fails `tsc`.
+- **Routes.** Hash routing stays (D-13): `#pass?…` and `#live?…` join the existing selection hash; no history library.
+- **Service worker.** Hand-written or `vite-plugin-pwa` with a precache manifest, the plan's call; must stay under the strict CSP (`worker-src 'self'` covers it) and never touch data requests.
+- **Worker contract.** One new request, `computeAt(t)`: the Now pipeline at an arbitrary instant, for FR-LIVE-6. The 72 h window changes only the request's `window`.
+- **Moon.** `physics/moon.ts` (pure, astronomy-engine) with a `moonAt(t, observer)` result carried on `NowState`, on each `Pass` (`moonAtPeak`, glare flag) and computed in the worker; the tradition text is a static JSON under `data/`.
+- **Colour in the dome.** `useColors` in glyphcss with `style-src-attr 'unsafe-inline'`; the palette is read from the CSS tokens at mount so themes work.
+- **Offline store.** IndexedDB gains `passes` (keyed by observer cell and `computedAt`) and the forecast record keeps its `fetchedAt`; the readiness line derives from both.
+
 ---
 
 ## 6. External Dependencies
@@ -399,6 +547,10 @@ MVP geocodes to the centre of the chosen place. Satellite pass geometry changes 
 | OQ-8 | Elevation-mask / obstruction input (e.g. "trees to my north up to 25°")? | Hobbyists want it; casual users won't use it. | Later. |
 | OQ-9 | Analytics/telemetry policy. | Privacy stance and what we can learn about accuracy. | None in MVP beyond error logging. |
 | OQ-10 | Product name and domain. | Working title is long. | Keep repo name; decide before public launch. |
+| OQ-12 *(v1)* | Moon glare thresholds (FR-MOON-2): 50 % illumination and 30° separation. | Too eager and every full-moon night is "glare"; too lax and faint passes disappoint. | Ship the defaults; revisit with OQ-5 after field use. |
+| OQ-13 *(v1)* | Folk full-moon names are Northern-hemisphere tradition; the owner and first users are in Argentina. | A "Harvest Moon" in March reads wrong south of the equator. | Show the name with its origin noted; consider a Southern list later. |
+| OQ-14 *(v1)* | Service worker update policy: activate on next load with a banner (FR-OFF-1) or `skipWaiting` at once. | A silent update mid-session can break the live page; a stale shell can hide a fix. | Next load with a banner. |
+| OQ-15 *(v1)* | Cost of the layered dome (FR-DOME-8): coloured output is one `<span>` per colour run, a second solid-mode scene is a second rasterisation, and a per-mesh density layer is a third `<pre>`. | Could halve the drag rate on a phone. | Measured by the dome spike (FR-DOME-8) under the D-62 method for each candidate; `colorTolerance` (24–128), `interactiveDownscale` and dropping the base layer while dragging are the fallbacks, in that order. glyphcss's `atlas` colour encoding (no spans) does not cover the braille glyphs, so it is not an option for the line layer. |
 
 Resolved questions (OQ-1, OQ-3, OQ-4, OQ-11) are recorded in §12.
 
@@ -411,20 +563,24 @@ Effort: S (≤ 1 day), M (2–4 days), L (1–2 weeks). Value: from casual-user 
 | Rank | Feature | Value | Effort | Phase | Notes |
 |---|---|---|---|---|---|
 | 1 | **ISS-first mode / "Next ISS pass" hero card** | Very high | S | MVP | The ISS is what 90 % of visitors actually want. Pin it at the top when a visible pass exists in the window. |
-| 2 | **Compass-guided pointing** (US-10) | Very high | M | v1 | Biggest outdoor usability jump. |
+| 2 | **Compass-guided pointing** (US-10) | Very high | M | v1 (live page, FR-LIVE-8) | Biggest outdoor usability jump. |
 | 3 | **Pre-pass notification** (US-11) | High | M–L | v1 (in-page alarm S) → later (push) | In-page audio/visual alarm while tab is open is cheap; true push needs service worker + backend + iOS PWA install. |
-| 4 | **Share a pass link** (US-12) | High | S | v1 | URL encodes lat/lon/NORAD id/time; recipient recomputes locally. |
-| 5 | **Save favourite locations** | Medium | S | v1 | `localStorage` list; no accounts. |
-| 6 | **Multi-night window (up to 5 nights)** | Medium | S | v1 | Pipeline already supports it; UI grouping by night. |
-| 7 | **Moon phase & glare warning** | Medium | S | v1 | `astronomy-engine` gives it nearly free; a full moon near the track hurts faint passes. |
+| 4 | **Share a pass link** (US-12) | High | S | v1 (§4.13) | URL encodes lat/lon/NORAD id/time; recipient recomputes locally. |
+| 5 | **Save favourite locations** | Medium | S | v1 (FR-OFF-7) | `localStorage` list; no accounts. |
+| 6 | **Multi-night window (up to 5 nights)** | Medium | S | v1 (3 nights, FR-OFF-2) | Pipeline already supports it; UI grouping by night. |
+| 7 | **Moon phase & glare warning** | Medium | S | v1 (§4.12, with lore) | `astronomy-engine` gives it nearly free; a full moon near the track hurts faint passes. |
 | 8 | **Starlink trains** (recent launch chains) | High interest, medium value | L | later | Needs `starlink` group (thousands of objects → server-side precompute or very aggressive culling), plus supplemental TLEs; recently launched trains are the only visually interesting case. |
 | 9 | **"What did I just see?"** — pick time + rough direction, get candidates | Medium | M | later | Reverse query over cached passes; fun and drives trust. |
-| 10 | **Add to calendar (.ics)** | Medium | S | v1 | Trivial and useful for the parent/teacher persona. |
+| 10 | **Add to calendar (.ics)** | Medium | S | later (was v1, V1-1) | Trivial and useful for the parent/teacher persona. |
 | 11 | **Sky transparency / seeing (7Timer)** | Low–medium | S | later | Mostly for hobbyists. |
-| 12 | **PWA install + offline** | Medium | M | later | Prerequisite for iOS push. |
+| 12 | **PWA install + offline** | Medium | M | v1 (§4.11, V1-6) | Prerequisite for iOS push. |
 | 13 | **AR camera overlay** | Medium | L | later | See §5.5. |
 | 14 | **Elevation mask / horizon obstructions** | Low (casual) / High (hobbyist) | M | later | See OQ-8. |
 | 15 | **Historical accuracy feedback ("I saw it / didn't")** | Medium (for us) | M | later | Requires a backend store and a privacy story. |
+| 16 | **Live sky page with timeline** (US-15) | Very high | L | v1 (§4.10) | The dome as a living thing; the reason to come back on a clear night. |
+| 17 | **English / Spanish** (US-13) | High | M | v1 (§4.7) | Half the first users read Spanish. |
+| 18 | **Desktop layout** (US-14) | Medium | M | v1 (§4.8) | Planning at a desk before going out. |
+| 19 | **Night theme** (US-19) | Medium | S | v1 (§4.14) | Outdoors, in the dark, is where the app is used. |
 
 ---
 
@@ -444,23 +600,33 @@ Everything tagged MVP above. Definition of done:
 - Golden tests from Phase 0 running in CI.
 - Deployed at a public URL over HTTPS.
 
-### Phase 2 — v1 ("outdoor-ready")
-- Compass-guided pointing (US-10) with graceful fallback.
-- Threshold tuning UI (US-9): min elevation, magnitude limit, twilight rule.
-- Multi-night window, grouped by night; "best pass this week".
-- Share link (US-12), favourite locations, add-to-calendar.
-- In-page pre-pass alarm (audio + vibration) while tab is open.
-- Moon phase/glare warning; night-vision red theme.
-- **Caching proxy** (edge worker) in front of CelesTrak; catalog expands to the full `visual` group with "brightness unknown" handling.
-- Street-address and reverse geocoding via Nominatim behind the proxy (FR-LOC-4).
-- Space-Track as redundant elements source behind the proxy.
+### Phase 2 — v1 ("outdoor-ready", as decided 2026-09-03, V1-1)
+
+Still no backend. Everything below runs in the browser against the same two providers.
+
+- Language: English and Spanish from the browser, switchable (§4.7).
+- Desktop layout: two columns and a side guide panel at 100 cells, keyboard shortcuts (§4.8).
+- Sky dome, second pass: no frame, fills its box, colour by meaning, orientation cues, more detail, live marker, Sun and Moon, drawn as lit surfaces under braille lines (§4.9); the composition is fixed by a spike that is the **first v1 task**, and the dome is the default view again.
+- Live sky page: full-screen dome, status strip, 24 h time stripe with scrub and playback, hidden-objects toggle, landscape and wake lock, compass follow (US-10), shareable URL (§4.10).
+- Offline for three nights: service worker, 72 h passes and forecast stored automatically, readiness line, PWA install, favourites, three nights grouped in the list (§4.11).
+- Moon: phase, glare warning, and lore (§4.12).
+- Share links for a pass and for a live moment (§4.13).
+- Night theme (§4.14).
+
+Definition of done:
+- US-10, US-12..US-19 accepted; FR-I18N-1..6, FR-DESK-1..5, FR-DOME-1..7, FR-LIVE-1..10, FR-OFF-1..8, FR-MOON-1..5, FR-SHARE-1..3, FR-THEME-1..3 met; the amended FR-LOC-5, FR-VIS-1, FR-WX-1, FR-GUIDE-5, FR-X-1, FR-X-4 met.
+- The MVP definition of done still holds (golden tests, headers, budgets, the FR-GUIDE-6 device check) with the budgets in PLAN §11 re-set for the new chunks.
+- Desktop and phone captures for every screen in both languages and both themes in `docs/screenshots/`.
+- `package.json` version 1.0.0, a `v1.0.0` tag, and the release checklist run on the deploy.
 
 ### Phase 3 — Later
-- PWA install, offline, and push notifications (backend scheduler per subscribed location/pass).
+- Threshold tuning UI (US-9): min elevation, magnitude limit, twilight rule, and a user-selectable window up to 5 nights.
+- Add-to-calendar (.ics); in-page pre-pass alarm (audio + vibration) while the tab is open; push notifications (US-11, backend scheduler per subscribed location/pass).
+- **Caching proxy** (edge worker) in front of CelesTrak; catalog expands to the full `visual` group with "brightness unknown" handling; street-address and reverse geocoding via Nominatim behind the proxy (FR-LOC-4); Space-Track as redundant elements source.
 - Starlink trains (server-side precompute for the `starlink` group; supplemental ephemerides).
 - "What did I just see?" reverse lookup.
 - AR camera overlay.
-- Sky transparency (7Timer) and elevation mask.
+- Sky transparency (7Timer) and elevation mask; a Southern-hemisphere folk-name list for the Moon (OQ-13).
 - Observation feedback loop for accuracy metrics.
 
 ---
@@ -497,4 +663,15 @@ Everything tagged MVP above. Definition of done:
 | 2026-09-01 | OQ-3 | **MVP catalog is a hand-maintained list of ~30 well-known bright objects** with intrinsic magnitudes. Full CelesTrak `visual` group moves to v1. | FR-SAT-1/5 rewritten; FR-VIS-4 performance target relaxed for MVP; OQ-2 narrowed to catalog membership. |
 | 2026-09-01 | OQ-4 | **List passes when the sun is below −6°.** Passes with the sun between −6° and −12° get a "sky still bright" label. | §4.3 rule 2 fixed; new FR-VIS-7; pipeline emits a `twilight` flag. |
 | 2026-09-01 | OQ-11 | **Browser-direct CelesTrak fetch confirmed for MVP.** CelesTrak serves `access-control-allow-origin: *` on `gp.php` JSON responses; verified 2026-09-01 via curl with an `Origin` header and via a browser fetch (22 objects returned for the `stations` group). | OQ-11 closed. Fallback order if this changes: (1) community TLE API (`tle.ivanstanojevic.me`), (2) pull the caching proxy forward from v1. Phase 0 no longer needs a CORS check. |
+| 2026-09-03 | V1-1 | **v1 scope is the UX phase.** Language, desktop layout, dome second pass, live sky page, offline for three nights, Moon, share links, night theme (§9 Phase 2). The caching proxy, the full `visual` group, Nominatim, Space-Track, threshold tuning (US-9), add-to-calendar and the pre-pass alarm move to Phase 3. Still no backend. | §9 rewritten; §8 phases updated; US-9 tagged later; non-goals amended. |
+| 2026-09-03 | V1-2 | **Language: English and Spanish.** Chosen from the browser on first visit, overridden by a header switch saved locally; neutral impersonal Spanish; a preference, not a route; typed catalogs, no library. | US-13; FR-I18N-1..6; §5.7. |
+| 2026-09-03 | V1-3 | **Desktop: two columns at 100 cells with the guide as a side panel;** the cell grid stays the layout unit; a mockup is approved by the owner before the desktop tasks are cut; keyboard shortcuts. | US-14; FR-DESK-1..5; FR-X-1 amended. |
+| 2026-09-03 | V1-4 | **Dome: colour under a relaxed CSP, and the dome is the default view again.** D-61 (PLAN) is revisited: `style-src-attr 'unsafe-inline'` lets glyphcss colour glyphs; every other directive stays `'self'`. D-68 (PLAN, polar by default) is closed: with FR-DOME-1..6 done the dome is the primary view per UX-1. The dome loses its frame, fills its box, gains orientation cues, detail, a live marker, and the Sun and Moon; the polar view gains the same markers and colours. | US-6 AC3 stands as written; FR-GUIDE-5 amended; FR-DOME-1..7; OQ-15 opened. |
+| 2026-09-03 | V1-5 | **Live sky page** at `#live`: full-screen dome, status strip, 24 h time stripe with scrub and playback (1×, 60×, 600×, 3600×), hidden objects off by default with a toggle (OQ-7 resolved), landscape and wake lock, compass follow as the home of US-10, URL state. | US-10 amended, US-15; FR-LIVE-1..10; worker gains `computeAt`. |
+| 2026-09-03 | V1-6 | **Offline for three nights, automatic; PWA moves from "later" to v1.** A service worker caches the app shell (FR-X-4 amended); the window is 72 h (FR-VIS-1, FR-WX-1 amended); passes and forecast are stored and their readiness shown; install manifest and hint; up to 8 favourites, offline data for the active one only; the list groups three nights, tonight by default. | US-16, US-17; FR-OFF-1..8; FR-LOC-5 amended; §2.2 PWA non-goal amended; OQ-14 opened. |
+| 2026-09-03 | V1-7 | **Moon: observing facts and lore.** Phase, illumination, glare warning (50 % / 30° defaults, OQ-12); zodiac sign, folk full-moon names and curated one-liners in both languages, labelled as tradition and never as advice. | US-18; FR-MOON-1..5; §2.2 non-goal on astrology; OQ-13 opened. |
+| 2026-09-03 | V1-8 | **Share links and night theme in v1.** URL-only share for a pass and a live moment; red-on-black theme with AA contrast pinned by test. | US-12 ACs, US-19; FR-SHARE-1..3; FR-THEME-1..3. |
+| 2026-09-03 | V1-10 | **The dome is layered, and a spike fixes its composition before the implementation task.** The owner's review of the desktop mockup (2026-09-03): the dome should be less minimal, with more colour and layers. glyphcss 0.1.6 offers solid-mode shading with lights, halfblock/quadrant colour cells, per-mesh density layers, effect layers and per-polygon colour, none of which R14 tried. Rather than specify a composition blind, FR-DOME-8 requires a half-day spike (the first v1 task) with captures and drag-rate figures for the owner to pick from; the CSP relaxation of V1-4 stands, since the span-free `atlas` encoding lacks the braille glyphs. | FR-DOME-8 added; OQ-15 rewritten; §9 Phase 2 names the spike as the first task; TASKS R16 will be that spike. |
+| 2026-09-03 | V1-11 | **Delivery of the v1 tasks: lanes, waves, a driver script, one model per task, auto-merge with a human gate on visual tasks.** Tasks are cut into four lanes that touch disjoint modules (UI, chart, data, physics) and carry `Lane:` and `Model:` fields; a wave is the set of tasks whose dependencies are checked on `main`. A driver script in the repo (`scripts/sdd-run.ts`, PLAN §16) runs each ready task as a one-shot `claude -p` session in its own git worktree with the task's model, a permission allowlist, turn and time caps and a log, at most two at once. The session opens the PR; CI green plus a one-shot code-review session with no findings merges it, except tasks whose acceptance includes captures or Spanish copy, which wait for the owner. Model policy: Opus by default and for reviews; Fable for the dome spike, the dome implementation and the live page. A failed session leaves its branch and log, blocks its dependents, and the run continues. | PLAN.md v0.3 gets §16 Delivery; TASKS.md format gains `Lane:`, `Model:` and the wave list; `sdd-implement` becomes headless-safe; `sdd-breakdown` emits lanes and waves. |
+| 2026-09-03 | V1-9 | **Documents are amended in place; task IDs continue.** SPEC.md v1.0, PLAN.md v0.3, TASKS.md gains a v1 block after R15 with IDs from R16; the `sdd-spec` and `visual-review` skills are added and `sdd-implement` / `sdd-breakdown` updated for the phase. | This revision; skills under `.claude/skills/`. |
 | 2026-09-01 | UX-1 | **MVP sky chart is a 3D ASCII-rendered sky dome** centred on the observer (cardinal points on the horizon, passes as arcs with peaks marked, user can rotate/tilt toward the horizon they will face), with a **2D polar all-sky chart kept as a fallback view** over the same data. **Both rendered in the DOM only — no WebGL, no canvas.** **Visual identity: monospace / terminal aesthetic across the whole UI.** | US-6 AC3/AC5 rewritten; FR-GUIDE-2 rewritten, FR-GUIDE-2b and FR-GUIDE-5..7 added; FR-GUIDE-4 scoped to the 2D fallback; FR-X-6 added; §5.1 chart row and §5.5 patterns table updated; non-goal on 3D globe clarified; Phase 1 definition of done updated. `PLAN.md` v0.1 still describes an SVG chart and must be revised to match. |

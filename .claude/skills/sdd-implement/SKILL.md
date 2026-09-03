@@ -9,13 +9,13 @@ description: Implement one task from TASKS.md following the project's spec-drive
 
 1. Read SPEC.md, PLAN.md and TASKS.md. Identify the requested task (or the first unchecked one if the user said "next").
 2. Confirm its dependencies are checked off. If not, stop and say which are missing.
-3. Confirm the working tree is clean and on `main`. Create a branch `r<n>-<short-slug>` from `main` before the first edit. Never commit to `main`. ← NEW
-4. Restate the task in two sentences: what it delivers and which requirement IDs (FR-\*) it satisfies. Wait for confirmation only if the task is ambiguous.
+3. Confirm the working tree is clean and on `main` (or start from `origin/main` after a fetch; parallel sessions share this checkout, so never `git add -A`). Create a branch `r<n>-<short-slug>` from `main` before the first edit. Never commit to `main`. ← NEW
+4. Restate the task in two sentences: what it delivers and which requirement IDs (FR-\*) it satisfies. In an interactive session, wait for confirmation only if the task is ambiguous. In a headless session (`SDD_HEADLESS=1` in the environment, set by `scripts/sdd-run.ts`), never wait: if the task is ambiguous, pick the reading closest to the spec text, say so in the PR body under "Assumptions", and continue; if the task cannot be done as written, stop, write why to `sdd-run/<task>.blocked.md` in the worktree, and exit without a PR.
 
 ## While implementing
 
 - Stay inside the task's scope. If something adjacent needs changing, note it under "Follow-ups" instead of doing it.
-- If the spec or plan turns out to be wrong or incomplete, stop, explain the conflict, and propose the document change first. Never silently diverge.
+- If the spec or plan turns out to be wrong or incomplete, stop, explain the conflict, and propose the document change first. Never silently diverge. Headless: write the conflict and the proposed change to `sdd-run/<task>.blocked.md` and exit without a PR; the driver marks the task blocked for the owner.
 - Write or update tests for the task's acceptance criteria before marking it done.
 - Physics-related code must include a check against the reference values recorded in the spike (R1).
 - Commit in small, meaningful steps on the task branch. ← NEW
@@ -23,8 +23,10 @@ description: Implement one task from TASKS.md following the project's spec-drive
 ## When done
 
 1. Run the test suite and typecheck; report results.
-2. Check the task off in TASKS.md on this branch only, adding a one-line note if what was done differs from the task text. Merging to `main` is what marks it done for the project. ← CHANGED
-3. Append any decisions made to the PLAN.md Decisions section.
-4. Push the branch (`git push -u origin <branch>`) and open a PR with `gh pr create --title "R<n>: <goal>"` and a body containing the summary below. Do not merge. ← NEW
-5. Summarize: files touched, requirement IDs covered, follow-ups, PR link, and the next task ID.
-6. Suggest the user `/clear` before the next task.
+2. If the task changed the UI, run the `visual-review` skill: captures at 390 px and 1280 px (and 844 × 390 for the live page), both languages when text changed, both themes when colour changed. File them under `docs/screenshots/` and list them in the PR.
+3. If the task added or changed user-visible text, both message catalogs (en, es) carry it: `npm run typecheck` is the check (a missing message is a type error, FR-I18N-2), and the Spanish capture shows no English.
+4. Check the task off in TASKS.md on this branch only, adding a one-line note if what was done differs from the task text. Merging to `main` is what marks it done for the project. ← CHANGED
+5. Append any decisions made to the PLAN.md Decisions section.
+6. Push the branch (`git push -u origin <branch>`) and open a PR with `gh pr create --title "R<n>: <goal>"` and a body containing the summary below. Do not merge. ← NEW
+7. Summarize: files touched, requirement IDs covered, follow-ups, PR link, and the next task ID. The PR body carries the task's `Gate:` value on its first line (`Gate: auto` or `Gate: owner`) so the driver knows whether it may merge.
+8. Interactive only: suggest the user `/clear` before the next task. Headless: exit; the driver starts the next session empty.
