@@ -117,6 +117,8 @@ export interface RowMetrics {
 /** The font-size step of the fit search, and its length. */
 export const FIT_STEP_PX = 0.1;
 const FIT_STEPS = 80;
+/** A row may exceed the box by this much (a rounding error, hidden by overflow) before the font steps down. */
+const FIT_SLACK_PX = 0.5;
 
 /**
  * The layout that actually fits the host: some platforms (Linux Chromium
@@ -135,7 +137,7 @@ export function fitLayout(hostWidthPx: number | null, advance: GlyphAdvance, mea
   for (let step = 0; step < FIT_STEPS; step++) {
     const rows = measureRows(fontSizePx);
     if (!(rows.brailleRowPx > 0)) return base;
-    if (rows.brailleRowPx <= hostWidthPx || fontSizePx <= minFontPx) {
+    if (rows.brailleRowPx <= hostWidthPx + FIT_SLACK_PX || fontSizePx <= minFontPx) {
       const cellWidthPx = rows.brailleRowPx / GRID_COLS;
       const spaceRowPx = rows.spaceRowPx > 0 ? rows.spaceRowPx : rows.brailleRowPx;
       return { cellWidthPx, cellHeightPx: cellWidthPx * CELL_ASPECT, fontSizePx, wordSpacingPx: (rows.brailleRowPx - spaceRowPx) / GRID_COLS, zoom: (ZOOM_AT_60_COLS * cellWidthPx) / DEFAULT_CELL_WIDTH_PX };

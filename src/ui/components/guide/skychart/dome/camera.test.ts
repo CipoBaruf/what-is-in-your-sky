@@ -97,7 +97,7 @@ describe('fitLayout', () => {
   it('keeps the computed size where the row renders at its exact width, and follows the measured row otherwise', () => {
     const fitted = fitLayout(349.45, DEFAULT_ADVANCE, exact);
     expect(fitted.fontSizePx).toBeCloseTo(349.45 / 60 / 0.6, 9);
-    expect(fitted.cellWidthPx * 60).toBeLessThanOrEqual(349.45 + 1e-9);
+    expect(fitted.cellWidthPx * 60).toBeLessThanOrEqual(349.45 + 0.5);
     expect(fitted.wordSpacingPx).toBeCloseTo(0, 9);
     const onLinux = fitLayout(349.45, DEFAULT_ADVANCE, rounded);
     expect(onLinux.cellWidthPx).toBe(5); // 6 px cells would be 360 px, over the box; 5 px cells fit
