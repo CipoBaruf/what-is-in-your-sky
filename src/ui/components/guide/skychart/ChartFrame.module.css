@@ -1,0 +1,35 @@
+/* R15 review: the same box for every view. `--chart-size` caps the square
+   drawing (44 cells, the polar chart's width since R13); on a phone the
+   sheet's own width is the cap. The rows above and below keep their height
+   whatever the view puts in them, so the view toggle moves nothing. */
+.frame {
+  --chart-size: calc(44 * var(--cell));
+  display: grid;
+  gap: calc(var(--row) / 2);
+}
+
+.controls {
+  min-height: var(--tap);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--cell);
+}
+
+.drawing {
+  width: 100%;
+  max-width: var(--chart-size);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Two rows: the polar convention sentence wraps on a phone, the dome readout does not. */
+.status {
+  min-height: calc(2 * var(--row));
+}
+
+.status > p {
+  margin: 0;
+}

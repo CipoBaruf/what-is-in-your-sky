@@ -1,10 +1,11 @@
 import { GlyphHotspot, GlyphMesh, GlyphOrthographicCamera, GlyphScene } from '@glyphcss/react';
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import { degrees } from '../../../../../lib/format';
 import { formatClock } from '../../../../../lib/timeFormat';
 import type { Pass } from '../../../../../model';
+import { ChartFrame } from '../ChartFrame';
 import type { SkyChartProps } from '../SkyChart.types';
-import { drag, gridFor, initialFor, PITCH_STEP_DEG, readout, tilt, toRotY, turn, YAW_STEP_DEG, type CameraState, type Grid } from './camera';
+import { CELL_ASPECT, DEFAULT_ADVANCE, drag, GRID_COLS, GRID_ROWS, initialFor, layoutFor, PITCH_STEP_DEG, readout, tilt, toRotY, turn, YAW_STEP_DEG, type CameraState, type DomeLayout, type GlyphAdvance } from './camera';
 import { compassAnchors, gridPolygons, nowMarker, nowPoint, passAnchors, passMarkers, passStrip, screenSide, type Tuple3 } from './domeGeometry';
 import styles from './SkyDome.module.css';
 
@@ -19,9 +20,49 @@ import styles from './SkyDome.module.css';
  * readout under the drawing says where the view faces (FR-GUIDE-4). The
  * drawing is `aria-hidden` (FR-GUIDE-7): the caption and the numbers carry
  * the facts. Labels are hotspots outside the dome, with the polar view's
- * data attributes (D-56) so the contract test reads both views alike.
+ * data attributes (D-56) so the contract test reads both views alike. The
+ * view sits in the shared `ChartFrame` (R15 review): the hint in the
+ * controls row, the drawing in the square box, the readout in the status row.
+ *
+ * Sizing (D-65): the grid is always 60 × 30 and the cell follows the box's
+ * width. glyphcss measures its cell once, at mount, from the letter M in the
+ * `<pre>`'s font, so the scene is mounted only once the raster font is loaded
+ * and the width is measured, and it is remounted if the cell changes.
  */
-const CELL_ASPECT = 2;
+const PROBE_GLYPHS = 20;
+const PROBE_FONT_PX = 100;
+/** The raster's font (D-65, `wiys-braille.otf`): braille cells, the space and the letter M at one advance. */
+export const DOME_FONT = 'WIYS Braille';
+
+function domeFontReady(): Promise<void> {
+  const fonts = typeof document === 'undefined' ? undefined : document.fonts;
+  if (!fonts) return Promise.resolve();
+  return fonts.load(`12px "${DOME_FONT}"`).then(
+    () => undefined,
+    () => undefined,
+  );
+}
+
+/** The advances of a braille cell and of a space as fractions of the font size, in the raster's font; the default where nothing can be measured (jsdom). */
+function measureAdvance(stage: HTMLElement): GlyphAdvance {
+  const family = `"${DOME_FONT}", ${stage.ownerDocument.defaultView?.getComputedStyle(stage).fontFamily ?? 'monospace'}`;
+  const measure = (glyph: string): number => {
+    const probe = stage.ownerDocument.createElement('span');
+    probe.textContent = glyph.repeat(PROBE_GLYPHS);
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    probe.style.whiteSpace = 'pre';
+    probe.style.fontFamily = family;
+    probe.style.fontSize = `${String(PROBE_FONT_PX)}px`;
+    stage.appendChild(probe);
+    const width = probe.getBoundingClientRect().width;
+    probe.remove();
+    return width / PROBE_GLYPHS / PROBE_FONT_PX;
+  };
+  const braille = measure('⣿');
+  const space = measure(' ');
+  return braille > 0 && space > 0 ? { braille, space } : DEFAULT_ADVANCE;
+}
 
 interface LabelProps {
   anchor: { id: string; at: Tuple3 };
@@ -31,13 +72,16 @@ interface LabelProps {
   children: string;
 }
 
+const sideOf = (at: Tuple3, rotY: number): 'left' | 'right' | 'centre' => {
+  const side = screenSide(at, rotY);
+  return side > 0.05 ? 'right' : side < -0.05 ? 'left' : 'centre';
+};
+
 /** A hotspot label that runs away from the drawing's edge: left-aligned on the left half, right-aligned on the right half. */
 function Label({ anchor, rotY, className, dataAnchor, children }: LabelProps) {
-  const side = screenSide(anchor.at, rotY);
-  const dataSide = side > 0.05 ? 'right' : side < -0.05 ? 'left' : 'centre';
   return (
     <GlyphHotspot id={anchor.id} at={anchor.at} size={[1, 1]}>
-      <span className={[styles.label, className].filter(Boolean).join(' ')} data-side={dataSide} {...(dataAnchor ? { 'data-anchor': dataAnchor } : {})}>
+      <span className={[styles.label, className].filter(Boolean).join(' ')} data-side={sideOf(anchor.at, rotY)} {...(dataAnchor ? { 'data-anchor': dataAnchor } : {})}>
         {children}
       </span>
     </GlyphHotspot>
@@ -67,7 +111,7 @@ function DomePass({ pass, highlighted, timeZone, now, rotY, onSelect }: DomePass
       <GlyphMesh id={`markers-${pass.id}`} polygons={markers} />
       {marker.length > 0 && <GlyphMesh id={`now-${pass.id}`} polygons={marker} />}
       <GlyphHotspot id={anchors.rise.id} at={anchors.rise.at} size={[1, 1]} onClick={select}>
-        <span className={[styles.label, styles.raised, labelClass].join(' ')} data-side={screenSide(anchors.rise.at, rotY) > 0.05 ? 'right' : screenSide(anchors.rise.at, rotY) < -0.05 ? 'left' : 'centre'} data-pass-id={pass.id} onClick={select}>
+        <span className={[styles.label, styles.raised, labelClass].join(' ')} data-side={sideOf(anchors.rise.at, rotY)} data-pass-id={pass.id} onClick={select}>
           <span data-anchor="pass">
             {pass.name} {formatClock(pass.start.t, timeZone)}
           </span>
@@ -86,30 +130,46 @@ function DomePass({ pass, highlighted, timeZone, now, rotY, onSelect }: DomePass
 export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now, initialFacingAzDeg, className }: SkyChartProps) {
   const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
   const [camera, setCamera] = useState<CameraState>(() => initialFor(highlighted, initialFacingAzDeg));
-  const [grid, setGrid] = useState<Grid>(() => gridFor(null));
+  const [layout, setLayout] = useState<DomeLayout>(() => layoutFor(null));
   const stageRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
   const pendingRef = useRef<{ dx: number; dy: number } | null>(null);
   const frameRef = useRef(0);
   const [dragging, setDragging] = useState(false);
+  const [fontReady, setFontReady] = useState(() => typeof document === 'undefined' || !document.fonts);
+  const [measured, setMeasured] = useState(() => typeof ResizeObserver === 'undefined');
   const readoutId = useId();
 
-  // D-59: 60 columns at 390 px, more on a wider host (measured; jsdom and old browsers keep the default).
+  // D-65: the scene waits for the raster font; without a font API (jsdom) it is ready at once.
+  useEffect(() => {
+    if (fontReady) return;
+    let cancelled = false;
+    void domeFontReady().then(() => {
+      if (!cancelled) setFontReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fontReady]);
+
+  // D-65: the cell follows the measured width; jsdom and old browsers keep the default. The advances are measured once, in the raster's font.
   useEffect(() => {
     const stage = stageRef.current;
-    if (!stage || typeof ResizeObserver === 'undefined') return;
+    if (!stage || !fontReady || typeof ResizeObserver === 'undefined') return;
+    const advance = measureAdvance(stage);
     const observerRO = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width ?? null;
-      setGrid((previous) => {
-        const next = gridFor(width);
-        return next.cols === previous.cols ? previous : next;
+      setLayout((previous) => {
+        const next = layoutFor(width, advance);
+        return Math.abs(next.cellWidthPx - previous.cellWidthPx) < 0.01 && next.fontSizePx === previous.fontSizePx ? previous : next;
       });
+      setMeasured(true);
     });
     observerRO.observe(stage);
     return () => {
       observerRO.disconnect();
     };
-  }, []);
+  }, [fontReady]);
 
   useEffect(() => () => cancelAnimationFrame(frameRef.current), []);
 
@@ -170,45 +230,61 @@ export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now
   const gridMesh = useMemo(() => gridPolygons(), []);
   const compass = useMemo(() => compassAnchors(), []);
 
+  // The cell size reaches the stylesheet as custom properties set through the CSSOM (allowed under `style-src 'self'`, unlike a style attribute).
+  const cellStyle = {
+    '--dome-cell-w': `${String(layout.cellWidthPx)}px`,
+    '--dome-cell-h': `${String(layout.cellHeightPx)}px`,
+    '--dome-font-size': `${String(layout.fontSizePx)}px`,
+    '--dome-word-spacing': `${String(layout.wordSpacingPx)}px`,
+  } as CSSProperties;
+
   return (
     <div className={[styles.dome, className].filter(Boolean).join(' ')} data-facing-az={Math.round(camera.facingAzDeg)} data-tilt={Math.round(camera.tiltDeg)}>
-      <div
-        role="group"
-        aria-label="Sky dome"
-        aria-describedby={readoutId}
-        tabIndex={0}
-        className={styles.stage}
-        ref={stageRef}
-        data-dragging={dragging}
-        onKeyDown={onKeyDown}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
+      <ChartFrame
+        controls={<p className={styles.hint}>Drag the dome, or use the arrow keys, to look around.</p>}
+        status={
+          <p className={styles.readout} id={readoutId} data-testid="dome-readout">
+            {readout(camera)}
+          </p>
+        }
       >
-        <div aria-hidden="true" data-drawing="dome">
-          {/* D-61: glyphcss injects a <style id="glyph-styles"> at mount unless an element with that id exists; the CSP would block the
-              element and report a violation. The rules are shipped in SkyDome.module.css instead, and this sentinel keeps the injection off. */}
-          <span id="glyph-styles" hidden />
-          <GlyphOrthographicCamera rotX={camera.tiltDeg} rotY={rotY} zoom={grid.zoom}>
-            <GlyphScene mode="wireframe" useColors={false} glyphPalette="ascii" charMode="braille" cellAspect={CELL_ASPECT} cols={grid.cols} rows={grid.rows}>
-              <GlyphMesh id="grid" polygons={gridMesh} />
-              {passes.map((pass) => (
-                <DomePass key={pass.id} pass={pass} highlighted={highlightedPassId === null || highlightedPassId === pass.id} timeZone={observer.timeZone} now={now} rotY={rotY} onSelect={onSelectPass} />
-              ))}
-              {compass.map((anchor) => (
-                <Label key={anchor.id} anchor={anchor} rotY={rotY} className={styles.compass} dataAnchor={anchor.label}>
-                  {anchor.label}
-                </Label>
-              ))}
-            </GlyphScene>
-          </GlyphOrthographicCamera>
+        <div
+          role="group"
+          aria-label="Sky dome"
+          aria-describedby={readoutId}
+          tabIndex={0}
+          className={styles.stage}
+          style={cellStyle}
+          ref={stageRef}
+          data-dragging={dragging}
+          onKeyDown={onKeyDown}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+        >
+          <div aria-hidden="true" data-drawing="dome">
+            {/* D-61: glyphcss injects a <style id="glyph-styles"> at mount unless an element with that id exists; the CSP would block the
+                element and report a violation. The rules are shipped in SkyDome.module.css instead, and this sentinel keeps the injection off. */}
+            <span id="glyph-styles" hidden />
+            {fontReady && measured && (
+              <GlyphOrthographicCamera key={layout.cellWidthPx} rotX={camera.tiltDeg} rotY={rotY} zoom={layout.zoom}>
+                <GlyphScene mode="wireframe" useColors={false} glyphPalette="ascii" charMode="braille" cellAspect={CELL_ASPECT} cols={GRID_COLS} rows={GRID_ROWS}>
+                  <GlyphMesh id="grid" polygons={gridMesh} />
+                  {passes.map((pass) => (
+                    <DomePass key={pass.id} pass={pass} highlighted={highlightedPassId === null || highlightedPassId === pass.id} timeZone={observer.timeZone} now={now} rotY={rotY} onSelect={onSelectPass} />
+                  ))}
+                  {compass.map((anchor) => (
+                    <Label key={anchor.id} anchor={anchor} rotY={rotY} className={styles.compass} dataAnchor={anchor.label}>
+                      {anchor.label}
+                    </Label>
+                  ))}
+                </GlyphScene>
+              </GlyphOrthographicCamera>
+            )}
+          </div>
         </div>
-      </div>
-      <p className={styles.readout} id={readoutId} data-testid="dome-readout">
-        {readout(camera)}
-      </p>
-      <p className={styles.hint}>Drag the dome, or use the arrow keys, to look around.</p>
+      </ChartFrame>
     </div>
   );
 }

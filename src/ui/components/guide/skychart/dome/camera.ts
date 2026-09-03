@@ -25,7 +25,7 @@ export const YAW_STEP_DEG = 15;
 export const PITCH_STEP_DEG = 5;
 /** Drag sensitivity, the same as glyphcss's orbit controls: 4 px per degree. */
 export const DRAG_PX_PER_DEG = 4;
-/** Orthographic zoom in CSS px per world unit for a 60-column grid of 6.5 px cells: the unit dome spans ≈ 43 of the 60 columns, leaving room for the labels. */
+/** Orthographic zoom in CSS px per world unit for 6.5 px cells: the unit dome spans ≈ 43 of the 60 columns, leaving room for the labels; it scales with the cell. */
 export const ZOOM_AT_60_COLS = 140;
 
 export function clampTilt(tiltDeg: number): number {
@@ -71,20 +71,49 @@ export function readout(state: CameraState): string {
   return `Facing ${compassPoint(state.facingAzDeg)} (${String(Math.round(state.facingAzDeg))}°) · tilt ${String(Math.round(state.tiltDeg))}°`;
 }
 
-/** Grid size for a host width in CSS px: 60 columns at 390 px (D-59), finer on wider hosts, at most 100 × 50 (the sizes the spike measured). */
-export const CELL_WIDTH_PX = 6.5;
-export const CELL_HEIGHT_PX = 13;
-export const MIN_COLS = 60;
-export const MAX_COLS = 100;
+/**
+ * The grid is always 60 × 30 (D-59, D-65 as amended in the R15 review): the
+ * cell scales with the host so the dome fills the shared square drawing box
+ * at any width, and the raster is the same everywhere. 6.5 × 13 px is the
+ * cell of a 390 px host and the default without a measurement.
+ */
+export const GRID_COLS = 60;
+export const GRID_ROWS = 30;
+export const CELL_ASPECT = 2;
+export const DEFAULT_CELL_WIDTH_PX = 6.5;
+export const MIN_CELL_WIDTH_PX = 4;
+export const MAX_CELL_WIDTH_PX = 12;
+/**
+ * Glyph advances as fractions of the font size, measured at mount by
+ * `SkyDome` on the glyphs the raster uses: the braille cells usually come
+ * from a fallback font whose advance differs from the monospace font's
+ * space, so the font size is set from the braille advance and the space is
+ * widened with `word-spacing` to match. This is the fallback where nothing
+ * can be measured (jsdom).
+ */
+export interface GlyphAdvance {
+  braille: number;
+  space: number;
+}
+export const DEFAULT_ADVANCE: GlyphAdvance = { braille: 0.6, space: 0.6 };
 
-export interface Grid {
-  cols: number;
-  rows: number;
+export interface DomeLayout {
+  cellWidthPx: number;
+  cellHeightPx: number;
+  /** The font size that makes one braille cell exactly `cellWidthPx` wide. */
+  fontSizePx: number;
+  /** Added to every space so a space is as wide as a braille cell. */
+  wordSpacingPx: number;
   zoom: number;
 }
 
-export function gridFor(hostWidthPx: number | null): Grid {
-  const raw = hostWidthPx === null || !Number.isFinite(hostWidthPx) || hostWidthPx <= 0 ? MIN_COLS : Math.floor(hostWidthPx / CELL_WIDTH_PX);
-  const cols = Math.min(MAX_COLS, Math.max(MIN_COLS, raw - (raw % 2)));
-  return { cols, rows: cols / 2, zoom: (ZOOM_AT_60_COLS * cols) / MIN_COLS };
+const usable = (ratio: number, fallback: number): number => (Number.isFinite(ratio) && ratio > 0 ? ratio : fallback);
+
+export function layoutFor(hostWidthPx: number | null, advance: GlyphAdvance = DEFAULT_ADVANCE): DomeLayout {
+  const measured = hostWidthPx !== null && Number.isFinite(hostWidthPx) && hostWidthPx > 0;
+  const cellWidthPx = measured ? Math.min(MAX_CELL_WIDTH_PX, Math.max(MIN_CELL_WIDTH_PX, hostWidthPx / GRID_COLS)) : DEFAULT_CELL_WIDTH_PX;
+  const braille = usable(advance.braille, DEFAULT_ADVANCE.braille);
+  const space = usable(advance.space, braille);
+  const fontSizePx = cellWidthPx / braille;
+  return { cellWidthPx, cellHeightPx: cellWidthPx * CELL_ASPECT, fontSizePx, wordSpacingPx: cellWidthPx - space * fontSizePx, zoom: (ZOOM_AT_60_COLS * cellWidthPx) / DEFAULT_CELL_WIDTH_PX };
 }

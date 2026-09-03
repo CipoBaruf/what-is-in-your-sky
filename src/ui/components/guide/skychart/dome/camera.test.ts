@@ -11,11 +11,12 @@ import {
   DEFAULT_TILT_DEG,
   drag,
   DRAG_PX_PER_DEG,
+  DEFAULT_CELL_WIDTH_PX,
   facingFromRotY,
-  gridFor,
   initialFor,
-  MAX_COLS,
-  MIN_COLS,
+  layoutFor,
+  MAX_CELL_WIDTH_PX,
+  MIN_CELL_WIDTH_PX,
   PITCH_MAX_DEG,
   PITCH_MIN_DEG,
   PITCH_STEP_DEG,
@@ -85,14 +86,22 @@ describe('readout (FR-GUIDE-4)', () => {
   });
 });
 
-describe('gridFor', () => {
-  it('is 60 × 30 at 390 px and with no measurement, grows with the host to at most 100 × 50, zoom in step', () => {
-    expect(gridFor(390)).toEqual({ cols: MIN_COLS, rows: 30, zoom: ZOOM_AT_60_COLS });
-    expect(gridFor(null)).toEqual({ cols: MIN_COLS, rows: 30, zoom: ZOOM_AT_60_COLS });
-    expect(gridFor(0)).toEqual({ cols: MIN_COLS, rows: 30, zoom: ZOOM_AT_60_COLS });
-    expect(gridFor(200).cols).toBe(MIN_COLS);
-    expect(gridFor(520)).toEqual({ cols: 80, rows: 40, zoom: (ZOOM_AT_60_COLS * 80) / 60 });
-    expect(gridFor(527).cols).toBe(80); // even columns, so rows are whole
-    expect(gridFor(2000)).toEqual({ cols: MAX_COLS, rows: 50, zoom: (ZOOM_AT_60_COLS * 100) / 60 });
+describe('layoutFor', () => {
+  it('is a 6.5 × 13 px cell at 390 px and without a measurement, scales with the host between 4 and 12 px, zoom in step', () => {
+    const at390 = { cellWidthPx: DEFAULT_CELL_WIDTH_PX, cellHeightPx: 13, fontSizePx: DEFAULT_CELL_WIDTH_PX / 0.6, wordSpacingPx: 0, zoom: ZOOM_AT_60_COLS };
+    expect(layoutFor(390)).toEqual(at390);
+    expect(layoutFor(null)).toEqual(at390);
+    expect(layoutFor(0)).toEqual(at390);
+    expect(layoutFor(348)).toEqual({ cellWidthPx: 5.8, cellHeightPx: 11.6, fontSizePx: 5.8 / 0.6, wordSpacingPx: 0, zoom: (ZOOM_AT_60_COLS * 5.8) / 6.5 });
+    expect(layoutFor(100).cellWidthPx).toBe(MIN_CELL_WIDTH_PX);
+    expect(layoutFor(2000).cellWidthPx).toBe(MAX_CELL_WIDTH_PX);
+    expect(layoutFor(2000).zoom).toBeCloseTo((ZOOM_AT_60_COLS * 12) / 6.5, 9);
+    // The measured advances set the font size from the braille cell and widen the space to match; a bad measurement falls back.
+    const measured = layoutFor(390, { braille: 0.65, space: 0.6 });
+    expect(measured.fontSizePx).toBe(10);
+    expect(measured.wordSpacingPx).toBeCloseTo(0.5, 9);
+    expect(layoutFor(390, { braille: 0, space: 0 })).toEqual(at390);
+    expect(layoutFor(390, { braille: NaN, space: 0.6 })).toEqual(at390);
+    expect(layoutFor(390, { braille: 0.65, space: NaN }).wordSpacingPx).toBe(0);
   });
 });

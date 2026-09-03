@@ -12,7 +12,7 @@ import { render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
 import type { Observer } from '../../../../../model';
-import { CELL_HEIGHT_PX, CELL_WIDTH_PX, MIN_COLS } from './camera';
+import { CELL_ASPECT, DEFAULT_CELL_WIDTH_PX, GRID_COLS, GRID_ROWS } from './camera';
 import { SkyDome } from './SkyDome';
 
 const pass = goldenPassFixture();
@@ -23,8 +23,9 @@ const PROBE = Array(20).fill('M').join('\n');
 export function stubCellMetrics(): void {
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
     const rect = (width: number, height: number): DOMRect => ({ x: 0, y: 0, left: 0, top: 0, right: width, bottom: height, width, height, toJSON: () => ({}) });
-    if (this.tagName === 'PRE' && this.textContent === PROBE) return rect(CELL_WIDTH_PX, 20 * CELL_HEIGHT_PX);
-    if (this.classList.contains('glyph-output')) return rect(MIN_COLS * CELL_WIDTH_PX, (MIN_COLS / 2) * CELL_HEIGHT_PX);
+    const cellHeight = DEFAULT_CELL_WIDTH_PX * CELL_ASPECT;
+    if (this.tagName === 'PRE' && this.textContent === PROBE) return rect(DEFAULT_CELL_WIDTH_PX, 20 * cellHeight);
+    if (this.classList.contains('glyph-output')) return rect(GRID_COLS * DEFAULT_CELL_WIDTH_PX, GRID_ROWS * cellHeight);
     return rect(0, 0);
   });
 }

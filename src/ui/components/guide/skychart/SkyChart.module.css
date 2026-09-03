@@ -13,14 +13,15 @@
   color: var(--fg-dim);
 }
 
-/* R15: the dome chunk's placeholder keeps the drawing's height (60 × 30 cells of 6.5 × 13 px) so the sheet does not jump when it lands. */
+/* R15: the dome chunk's placeholder fills the frame's drawing box so the sheet does not jump when the chunk lands. */
 .loading {
   margin: 0;
-  min-height: calc(30 * 13px);
-  max-width: calc(100 * 6.5px);
-  display: grid;
-  place-items: center;
   color: var(--fg-dim);
+}
+
+.loadingBox {
+  width: 100%;
+  height: 100%;
   border: 1px dashed var(--rule);
   box-sizing: border-box;
 }
