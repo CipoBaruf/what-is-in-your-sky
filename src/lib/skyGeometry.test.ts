@@ -27,11 +27,11 @@ function goldenPass() {
 
 describe('toDome (PLAN §8.2)', () => {
   it('maps N, E, S, W and the zenith to the unit axes', () => {
-    close(toDome(0, 0), { x: 0, y: 0, z: -1 });
-    close(toDome(90, 0), { x: 1, y: 0, z: 0 });
-    close(toDome(180, 0), { x: 0, y: 0, z: 1 });
-    close(toDome(270, 0), { x: -1, y: 0, z: 0 });
-    close(toDome(123, 90), { x: 0, y: 1, z: 0 });
+    close(toDome(0, 0), { x: -1, y: 0, z: 0 });
+    close(toDome(90, 0), { x: 0, y: 1, z: 0 });
+    close(toDome(180, 0), { x: 1, y: 0, z: 0 });
+    close(toDome(270, 0), { x: 0, y: -1, z: 0 });
+    close(toDome(123, 90), { x: 0, y: 0, z: 1 });
   });
 
   it('always yields a unit vector, and fromDome inverts it', () => {
@@ -49,7 +49,7 @@ describe('toDome (PLAN §8.2)', () => {
       expect(back.azDeg).toBeCloseTo(az, 9);
       expect(back.elDeg).toBeCloseTo(el, 9);
     }
-    expect(fromDome({ x: 0, y: 1, z: 0 }).elDeg).toBeCloseTo(90, 9);
+    expect(fromDome({ x: 0, y: 0, z: 1 }).elDeg).toBeCloseTo(90, 9);
   });
 });
 
@@ -138,6 +138,6 @@ describe('interpolateTrack', () => {
     expect(interpolatePoint(a, b, 0)).toBe(a);
     expect(interpolatePoint(a, b, 1)).toBe(b);
     expect(() => interpolateTrack([], 0)).toThrow();
-    expect(Math.abs(toDome(0, 0).x)).toBeLessThan(EPS);
+    expect(Math.abs(toDome(0, 0).y)).toBeLessThan(EPS);
   });
 });

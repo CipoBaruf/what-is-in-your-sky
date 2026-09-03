@@ -29,21 +29,23 @@ export function isChartOrientation(value: unknown): value is ChartOrientation {
 }
 
 /**
- * PLAN §8.2: the dome frame. Right-handed, Y up, unit radius, observer at
- * the origin: x east, y up, z south (north is −z), so azimuth increases
- * clockwise seen from above. Provisional until the R14 spike confirms
- * glyphcss's handedness.
+ * PLAN §8.2 as fixed by the R14 spike (D-58): the dome frame is glyphcss's.
+ * Right-handed, Z up, unit radius, observer at the origin: x south, y east,
+ * z up (north is −x), so azimuth increases clockwise seen from above. With
+ * this frame glyphcss's turntable camera at `rotY = 0` stands south of the
+ * observer looking north, east on the right, and `rotY = −azimuth` faces
+ * any azimuth.
  */
 export function toDome(azDeg: number, elDeg: number): Vec3 {
   const az = azDeg * DEG;
   const el = elDeg * DEG;
-  return { x: Math.cos(el) * Math.sin(az), y: Math.sin(el), z: -Math.cos(el) * Math.cos(az) };
+  return { x: -Math.cos(el) * Math.cos(az), y: Math.cos(el) * Math.sin(az), z: Math.sin(el) };
 }
 
 /** The inverse of `toDome` for a unit vector: azimuth in [0, 360), elevation in [−90, 90]. */
 export function fromDome(v: Vec3): { azDeg: number; elDeg: number } {
-  const elDeg = Math.asin(clamp(v.y, -1, 1)) / DEG;
-  const azDeg = Math.atan2(v.x, -v.z) / DEG;
+  const elDeg = Math.asin(clamp(v.z, -1, 1)) / DEG;
+  const azDeg = Math.atan2(v.y, -v.x) / DEG;
   return { azDeg: ((azDeg % 360) + 360) % 360, elDeg };
 }
 

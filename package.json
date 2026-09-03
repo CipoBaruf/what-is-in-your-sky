@@ -17,6 +17,7 @@
     "check:catalog": "tsx scripts/check-catalog.ts"
   },
   "dependencies": {
+    "@glyphcss/react": "0.1.6",
     "astronomy-engine": "^2.1.19",
     "idb": "^8.0.3",
     "react": "^19.2.8",
@@ -47,6 +48,7 @@
     "jest-axe": "^11.0.0",
     "jsdom": "^29.1.1",
     "msw": "^2.15.0",
+    "rollup-plugin-visualizer": "^7.1.1",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.69.0",

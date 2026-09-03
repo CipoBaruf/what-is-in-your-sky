@@ -1,0 +1,43 @@
+/* R14 spike page. Dev only; the app's tokens are reused so the screenshots match the product. */
+:root {
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
+  --bg: #0b0f14;
+  --bg-raised: #161c24;
+  --fg: #d5dbe3;
+  --fg-dim: #7d8794;
+  --accent: #9ad0ff;
+  --rule: #2a323d;
+  --edge: #606c7a;
+  color-scheme: dark;
+}
+html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-mono); font-size: 14px; }
+.page { max-width: 390px; margin: 0 auto; padding: 8px; }
+.controls { display: flex; flex-wrap: wrap; gap: 6px 10px; margin: 0 0 8px; font-size: 12px; color: var(--fg-dim); }
+.controls label { display: inline-flex; gap: 4px; align-items: center; }
+.controls input[type='number'] { width: 4.5em; background: var(--bg-raised); color: var(--fg); border: 1px solid var(--edge); font: inherit; }
+.controls select, .controls button { background: var(--bg-raised); color: var(--fg); border: 1px solid var(--edge); font: inherit; }
+#stage { width: 390px; }
+.stage-inner { position: relative; }
+.dome { --cell-w: 6.5px; --cell-h: 13px; width: 100%; overflow: hidden; }
+.dome .dome-scene, .dome pre { font-family: var(--font-mono) !important; font-size: calc(var(--cell-w) / 0.6) !important; line-height: var(--cell-h) !important; margin: 0; color: var(--fg); }
+.dome pre { padding: 0; }
+.dome.auto { height: 390px; }
+.hotspot { color: var(--accent); font-size: 11px; line-height: 1; white-space: nowrap; }
+.readout { margin: 6px 0 0; font-size: 12px; color: var(--fg-dim); }
+.panorama-svg { display: block; width: 100%; height: auto; font-family: var(--font-mono); }
+.panorama .sky { fill: var(--bg); }
+.panorama .ground { fill: var(--bg-raised); }
+.panorama .horizon { stroke: var(--fg); stroke-width: 1.25; }
+.panorama .ring { stroke: var(--fg-dim); stroke-width: 0.75; stroke-dasharray: 3 3; }
+.panorama .ring-label, .panorama .minor { fill: var(--fg-dim); font-size: 9px; }
+.panorama .tick { stroke: var(--fg-dim); stroke-width: 1; }
+.panorama .cardinal { fill: var(--fg); font-size: 13px; font-weight: 700; }
+.panorama .arc { fill: none; stroke: var(--fg-dim); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.panorama .trail { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+.panorama .marker { fill: var(--accent); }
+.panorama .shadow { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 2 2; }
+.panorama .arrow { fill: var(--accent); }
+.panorama .now { fill: var(--bg); stroke: var(--accent); stroke-width: 2; }
+.panorama .label { fill: var(--fg); font-size: 10px; }
+.both { display: grid; gap: 12px; }
+h2 { font-size: 12px; color: var(--fg-dim); margin: 6px 0 2px; font-weight: 400; }

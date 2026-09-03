@@ -106,6 +106,11 @@ export default defineConfig([
     rules: { 'no-restricted-globals': ['error', { name: 'Date', message: 'No Date in src/physics, src/worker or src/lib: time is a parameter (PLAN D-15, §9.3).' }] },
   },
   {
+    // R14 spike: the throwaway page under spike/ may import @glyphcss/react too; it is not bundled (PLAN §8.5).
+    files: ['spike/**'],
+    rules: { '@typescript-eslint/no-restricted-imports': ['error', { patterns: [NO_CANVAS_WEBGL] }] },
+  },
+  {
     // The only place @glyphcss/react may be imported (PLAN §3, D-16).
     files: [DOME],
     rules: { '@typescript-eslint/no-restricted-imports': ['error', { patterns: [NO_CANVAS_WEBGL] }] },
