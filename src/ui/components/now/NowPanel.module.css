@@ -1,4 +1,5 @@
 .section {
+  position: relative; /* the containing block of the cloud badge's tooltip */
   display: grid;
   gap: calc(var(--row) / 2);
 }

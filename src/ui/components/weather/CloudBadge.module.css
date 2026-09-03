@@ -1,12 +1,15 @@
-/* Above the card's "Open guide" overlay so hover reaches the badge. */
+/* The badge is the trigger. It is positioned above the card's "Open guide"
+   overlay so hover and tap reach it; the wrapper itself stays unpositioned so
+   the tooltip's containing block is the card (or the Now panel). */
 .wrap {
-  position: relative;
-  z-index: 1;
   display: inline-block;
   max-width: 100%;
+  vertical-align: top;
 }
 
 .badge {
+  position: relative;
+  z-index: 1;
   cursor: help;
 }
 
@@ -34,15 +37,34 @@
   color: var(--fg-dim);
 }
 
-/* Shown in flow under the badge (no absolute positioning: nothing can overflow the phone width). */
+/* R12: a tooltip box. Absolutely positioned with `top: auto`, so it takes its
+   static position (the line right under the badge) while `left`/`right` span
+   the card's inner width: it overlays what follows instead of pushing it, it
+   never leaves the card (so never a 390 px screen), and the badge's own line
+   box is untouched. Opens on hover, on keyboard focus and on a tap (`:focus`),
+   the ring stays keyboard-only via the global `:focus-visible`. */
 .tip {
   display: none;
-  color: var(--fg-dim);
+  position: absolute;
+  top: auto;
+  left: var(--cell);
+  right: var(--cell);
+  z-index: 2;
+  margin-top: calc(var(--row) / 4);
+  padding: calc(var(--row) / 4) var(--cell);
+  border: 1px solid var(--edge);
+  background: var(--bg-raised);
+  color: var(--fg);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
+.tip::before {
+  content: '[Clouds] ';
+  color: var(--fg-dim);
+}
+
 .wrap:hover .tip,
-.badge:focus-visible + .tip {
+.badge:focus + .tip {
   display: block;
 }

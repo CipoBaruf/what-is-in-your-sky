@@ -91,6 +91,43 @@ test('Home: dark monospace frame, no sideways scroll, every control ≥ 44 px, e
   await expectIdentity(page, 'r12-detail-390.png', { fullPage: false }); // the sheet is fixed to the viewport; a full-page capture would show the list behind it
 });
 
+test.describe('cloud badge tooltip (R12 review)', () => {
+  test.use({ hasTouch: true }); // for the tap step
+
+  test('is a box under the badge that moves nothing, opens on hover, focus and tap, and stays inside the screen', async ({ page }) => {
+    await homeWithPasses(page);
+    const panel = page.getByRole('region', { name: 'Right now' });
+    const badge = panel.getByText('Weather unknown');
+    const tip = panel.getByRole('tooltip');
+    await expect(tip).toBeHidden();
+    await badge.scrollIntoViewIfNeeded();
+    const before = await badge.boundingBox();
+    if (!before) throw new Error('badge has no box');
+
+    await badge.hover();
+    await expect(tip).toBeVisible();
+    expect(await badge.boundingBox()).toEqual(before); // the badge did not jump
+    const box = await tip.boundingBox();
+    if (!box) throw new Error('tooltip has no box');
+    expect(box.y).toBeGreaterThanOrEqual(before.y + before.height - 12); // right under the badge (the inline-control box carries 12 px of padding)
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(390);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    const style = await tip.evaluate((el) => ({ border: getComputedStyle(el).borderTopStyle, background: getComputedStyle(el).backgroundColor }));
+    expect(style).toEqual({ border: 'solid', background: 'rgb(22, 28, 36)' });
+    await expect(tip).toContainText('Clear below 30 %');
+
+    await page.mouse.move(0, 0);
+    await expect(tip).toBeHidden();
+    await badge.focus();
+    await expect(tip).toBeVisible();
+    await page.locator('body').click({ position: { x: 5, y: 5 } });
+    await expect(tip).toBeHidden();
+    await badge.tap();
+    await expect(tip).toBeVisible();
+  });
+});
+
 test('Tab reaches every control on the Home screen in DOM order, then wraps to the first', async ({ page }) => {
   await homeWithPasses(page);
   const expected = await page.evaluate(() =>
