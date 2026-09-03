@@ -18,7 +18,7 @@ description: Implement one task from TASKS.md following the project's spec-drive
 - If the spec or plan turns out to be wrong or incomplete, stop, explain the conflict, and propose the document change first. Never silently diverge. Headless: write the conflict and the proposed change to `sdd-run/<task>.blocked.md` and exit without a PR; the driver marks the task blocked for the owner.
 - Write or update tests for the task's acceptance criteria before marking it done.
 - Physics-related code must include a check against the reference values recorded in the spike (R1).
-- Commit in small, meaningful steps on the task branch. ← NEW
+- Commit in small, meaningful steps on the task branch. Headless: this is the only thing that survives the turn cap or the wall clock (PLAN §16.4), so commit each coherent step as you finish it — a converted module, a migrated test file — rather than holding the whole task in the working tree until the end. A red typecheck between steps is fine on the branch; the driver's checks run at the end.
 
 ## When done
 
