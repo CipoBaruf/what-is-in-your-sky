@@ -5,7 +5,7 @@ import { formatClock } from '../../../../../lib/timeFormat';
 import type { Pass } from '../../../../../model';
 import { ChartFrame } from '../ChartFrame';
 import type { SkyChartProps } from '../SkyChart.types';
-import { CELL_ASPECT, DEFAULT_ADVANCE, drag, GRID_COLS, GRID_ROWS, initialFor, layoutFor, PITCH_STEP_DEG, readout, tilt, toRotY, turn, YAW_STEP_DEG, type CameraState, type DomeLayout, type GlyphAdvance } from './camera';
+import { CELL_ASPECT, DEFAULT_ADVANCE, drag, fitLayout, GRID_COLS, GRID_ROWS, initialFor, layoutFor, PITCH_STEP_DEG, readout, tilt, toRotY, turn, YAW_STEP_DEG, type CameraState, type DomeLayout, type GlyphAdvance, type RowMetrics } from './camera';
 import { compassAnchors, gridPolygons, nowMarker, nowPoint, passAnchors, passMarkers, passStrip, screenSide, type Tuple3 } from './domeGeometry';
 import styles from './SkyDome.module.css';
 
@@ -43,26 +43,33 @@ function domeFontReady(): Promise<void> {
   );
 }
 
-/** The advances of a braille cell and of a space as fractions of the font size, in the raster's font; the default where nothing can be measured (jsdom). */
-function measureAdvance(stage: HTMLElement): GlyphAdvance {
+/** The rendered width of `glyph` repeated `count` times at `fontSizePx`, in the raster's font, measured in the stage. */
+function probeWidth(stage: HTMLElement, glyph: string, count: number, fontSizePx: number): number {
   const family = `"${DOME_FONT}", ${stage.ownerDocument.defaultView?.getComputedStyle(stage).fontFamily ?? 'monospace'}`;
-  const measure = (glyph: string): number => {
-    const probe = stage.ownerDocument.createElement('span');
-    probe.textContent = glyph.repeat(PROBE_GLYPHS);
-    probe.style.position = 'absolute';
-    probe.style.visibility = 'hidden';
-    probe.style.whiteSpace = 'pre';
-    probe.style.fontFamily = family;
-    probe.style.fontSize = `${String(PROBE_FONT_PX)}px`;
-    stage.appendChild(probe);
-    const width = probe.getBoundingClientRect().width;
-    probe.remove();
-    return width / PROBE_GLYPHS / PROBE_FONT_PX;
-  };
-  const braille = measure('⣿');
-  const space = measure(' ');
+  const probe = stage.ownerDocument.createElement('span');
+  probe.textContent = glyph.repeat(count);
+  probe.style.position = 'absolute';
+  probe.style.visibility = 'hidden';
+  probe.style.whiteSpace = 'pre';
+  probe.style.fontFamily = family;
+  probe.style.fontSize = `${String(fontSizePx)}px`;
+  stage.appendChild(probe);
+  const width = probe.getBoundingClientRect().width;
+  probe.remove();
+  return width;
+}
+
+/** The advances of a braille cell and of a space as fractions of the font size; the default where nothing can be measured (jsdom). */
+function measureAdvance(stage: HTMLElement): GlyphAdvance {
+  const braille = probeWidth(stage, '⣿', PROBE_GLYPHS, PROBE_FONT_PX) / PROBE_GLYPHS / PROBE_FONT_PX;
+  const space = probeWidth(stage, ' ', PROBE_GLYPHS, PROBE_FONT_PX) / PROBE_GLYPHS / PROBE_FONT_PX;
   return braille > 0 && space > 0 ? { braille, space } : DEFAULT_ADVANCE;
 }
+
+/** One 60-cell row of braille and one of spaces at the size the raster will use: what the platform actually renders, rounding included. */
+const rowMetrics =
+  (stage: HTMLElement) =>
+  (fontSizePx: number): RowMetrics => ({ brailleRowPx: probeWidth(stage, '⣿', GRID_COLS, fontSizePx), spaceRowPx: probeWidth(stage, ' ', GRID_COLS, fontSizePx) });
 
 interface LabelProps {
   anchor: { id: string; at: Tuple3 };
@@ -159,10 +166,8 @@ export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now
     const advance = measureAdvance(stage);
     const observerRO = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width ?? null;
-      setLayout((previous) => {
-        const next = layoutFor(width, advance);
-        return Math.abs(next.cellWidthPx - previous.cellWidthPx) < 0.01 && next.fontSizePx === previous.fontSizePx ? previous : next;
-      });
+      const next = fitLayout(width, advance, rowMetrics(stage));
+      setLayout((previous) => (Math.abs(next.cellWidthPx - previous.cellWidthPx) < 0.01 && next.fontSizePx === previous.fontSizePx ? previous : next));
       setMeasured(true);
     });
     observerRO.observe(stage);

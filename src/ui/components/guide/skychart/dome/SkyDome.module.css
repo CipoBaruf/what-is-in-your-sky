@@ -87,6 +87,19 @@
   cursor: grabbing;
 }
 
+/* The raster is centred in the box: where the platform rounds glyph advances to whole pixels the fitted row is a little narrower than the box. */
+.stage > [data-drawing] {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stage :global(.glyph-host) {
+  width: auto;
+  height: auto;
+}
+
 .stage :global(.glyph-scene),
 .stage :global(.glyph-scene .glyph-output) {
   font-family: 'WIYS Braille', var(--font-mono);

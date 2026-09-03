@@ -109,6 +109,42 @@ export interface DomeLayout {
 
 const usable = (ratio: number, fallback: number): number => (Number.isFinite(ratio) && ratio > 0 ? ratio : fallback);
 
+/** Rendered widths of one 60-cell row of braille and one of spaces at a font size, measured in the raster's font. */
+export interface RowMetrics {
+  brailleRowPx: number;
+  spaceRowPx: number;
+}
+/** The font-size step of the fit search, and its length. */
+export const FIT_STEP_PX = 0.1;
+const FIT_STEPS = 80;
+
+/**
+ * The layout that actually fits the host: some platforms (Linux Chromium
+ * without subpixel positioning) round every glyph advance to whole pixels,
+ * so the font size computed from the advance ratio can render a row wider
+ * than the box. Starting from that size, the font shrinks in 0.1 px steps
+ * until a measured 60-cell row fits, and the cell, the word spacing and the
+ * zoom follow the measured row. Falls back to `layoutFor` when nothing can be
+ * measured.
+ */
+export function fitLayout(hostWidthPx: number | null, advance: GlyphAdvance, measureRows: (fontSizePx: number) => RowMetrics): DomeLayout {
+  const base = layoutFor(hostWidthPx, advance);
+  if (hostWidthPx === null || !Number.isFinite(hostWidthPx) || hostWidthPx <= 0) return base;
+  const minFontPx = MIN_CELL_WIDTH_PX / usable(advance.braille, DEFAULT_ADVANCE.braille);
+  let fontSizePx = base.fontSizePx;
+  for (let step = 0; step < FIT_STEPS; step++) {
+    const rows = measureRows(fontSizePx);
+    if (!(rows.brailleRowPx > 0)) return base;
+    if (rows.brailleRowPx <= hostWidthPx || fontSizePx <= minFontPx) {
+      const cellWidthPx = rows.brailleRowPx / GRID_COLS;
+      const spaceRowPx = rows.spaceRowPx > 0 ? rows.spaceRowPx : rows.brailleRowPx;
+      return { cellWidthPx, cellHeightPx: cellWidthPx * CELL_ASPECT, fontSizePx, wordSpacingPx: (rows.brailleRowPx - spaceRowPx) / GRID_COLS, zoom: (ZOOM_AT_60_COLS * cellWidthPx) / DEFAULT_CELL_WIDTH_PX };
+    }
+    fontSizePx = Math.max(minFontPx, fontSizePx - FIT_STEP_PX);
+  }
+  return base;
+}
+
 export function layoutFor(hostWidthPx: number | null, advance: GlyphAdvance = DEFAULT_ADVANCE): DomeLayout {
   const measured = hostWidthPx !== null && Number.isFinite(hostWidthPx) && hostWidthPx > 0;
   const cellWidthPx = measured ? Math.min(MAX_CELL_WIDTH_PX, Math.max(MIN_CELL_WIDTH_PX, hostWidthPx / GRID_COLS)) : DEFAULT_CELL_WIDTH_PX;

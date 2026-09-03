@@ -110,9 +110,12 @@ test('the dome is one toggle from the polar default, shares its frame, faces the
   expect(Math.abs(box.width - box.height)).toBeLessThanOrEqual(2); // the shared square box
   const preBox = await pre.boundingBox();
   if (!preBox) throw new Error('raster has no box');
-  // 60 columns fill the box (a 1 px border each side) exactly: the font is sized from the braille cell and spaces are widened to match.
-  expect(Math.abs(preBox.width - (box.width - 2))).toBeLessThanOrEqual(2);
-  expect(Math.abs(preBox.height - (box.height - 2))).toBeLessThanOrEqual(2);
+  // 60 columns fit the box (a 1 px border each side) and nearly fill it: the font is fitted to the measured row, so a platform that rounds
+  // glyph advances to whole pixels (Linux Chromium) gets a slightly smaller, centred raster rather than an overflowing one.
+  expect(preBox.width).toBeLessThanOrEqual(box.width - 2 + 1);
+  expect(preBox.width).toBeGreaterThanOrEqual((box.width - 2) * 0.8);
+  expect(Math.abs(preBox.height - preBox.width)).toBeLessThanOrEqual(2);
+  expect(Math.abs(preBox.x + preBox.width / 2 - (box.x + box.width / 2))).toBeLessThanOrEqual(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   for (const cardinal of ['N', 'E', 'S', 'W']) await expect(drawing.locator(`[data-anchor="${cardinal}"]`)).toHaveText(cardinal);
   await expect(drawing.locator(`[data-pass-id="${passId}"] [data-anchor="pass"]`)).toContainText('ISS (Zarya)');
