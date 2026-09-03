@@ -58,15 +58,3 @@
 .twilight::after {
   content: ']';
 }
-
-.chartSlot {
-  border: 1px dashed var(--rule);
-  min-height: calc(6 * var(--row));
-  display: grid;
-  place-items: center;
-}
-
-.chartNote {
-  margin: 0;
-  color: var(--fg-dim);
-}

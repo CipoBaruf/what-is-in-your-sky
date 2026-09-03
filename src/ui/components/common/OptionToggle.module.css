@@ -1,0 +1,32 @@
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--cell);
+}
+
+.prefix {
+  color: var(--fg-dim);
+}
+
+/* Text toggles: the pressed one reads `[x]`, the other `[ ]` (FR-X-5: not colour alone). */
+.option {
+  border: 0;
+  background: none;
+  padding: 0 var(--cell) 0 0;
+  color: var(--fg-dim);
+}
+
+.option::before {
+  content: '[ ] ';
+  color: var(--fg-dim);
+}
+
+.option[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+.option[aria-pressed='true']::before {
+  content: '[x] ';
+  color: var(--accent);
+}

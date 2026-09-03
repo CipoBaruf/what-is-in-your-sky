@@ -1,29 +1,33 @@
 import { useEffect, useId, useRef } from 'react';
 import { TWILIGHT_LABEL } from '../../lib/phrases';
 import { formatDate } from '../../lib/timeFormat';
-import type { Pass } from '../../model';
+import type { Observer, Pass } from '../../model';
 import { Countdown } from '../components/common/Countdown';
 import { useNow } from '../hooks/useNow';
-import { GuideText } from '../components/guide/GuideText';
 import { PassNumbers } from '../components/guide/PassNumbers';
+import { SkyChart } from '../components/guide/skychart/SkyChart';
 import styles from './PassDetail.module.css';
 
 /**
  * US-6 (R6): the full-screen detail sheet. A labelled modal dialog: focus
  * moves to its heading on open and back to the opener on close; Escape and
  * the close control both return to the list. The parent decides what "close"
- * means (D-13: it clears the URL hash). The sky chart mounts in the labelled
- * slot below the sentence from R13 on.
+ * means (D-13: it clears the URL hash). R13: the sky chart (`SkyChart`, the
+ * PLAN §8.1 boundary) sits between the countdown and the numbers; its
+ * caption is the FR-GUIDE-1 sentence, so the screen shows it once. The
+ * observer is passed whole: the chart wants it (PLAN §8.1), the times want
+ * its zone.
  */
 export interface PassDetailProps {
   pass: Pass;
-  timeZone: string | null;
+  observer: Observer;
   onClose: () => void;
 }
 
 export const TICK_MS = 1000;
 
-export function PassDetail({ pass, timeZone, onClose }: PassDetailProps) {
+export function PassDetail({ pass, observer, onClose }: PassDetailProps) {
+  const timeZone = observer.timeZone;
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const now = useNow(TICK_MS);
@@ -64,10 +68,7 @@ export function PassDetail({ pass, timeZone, onClose }: PassDetailProps) {
           {pass.twilight && <span className={styles.twilight}>{TWILIGHT_LABEL}</span>}
         </p>
         <Countdown pass={pass} now={now} timeZone={timeZone} />
-        <GuideText pass={pass} timeZone={timeZone} />
-        <div className={styles.chartSlot} data-slot="sky-chart">
-          <p className={styles.chartNote}>[ sky chart: coming in a later release ]</p>
-        </div>
+        <SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} now={now} />
         <PassNumbers pass={pass} timeZone={timeZone} />
       </div>
     </div>

@@ -1,0 +1,112 @@
+.polar {
+  display: grid;
+  gap: calc(var(--row) / 2);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  max-width: calc(44 * var(--cell));
+  height: auto;
+  margin: 0 auto;
+  font-family: inherit;
+}
+
+.horizon {
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 1;
+}
+
+.ring {
+  fill: none;
+  stroke: var(--fg-dim);
+  stroke-width: 0.75;
+  stroke-dasharray: 3 3;
+}
+
+.zenith {
+  fill: var(--fg-dim);
+}
+
+.tick {
+  stroke: var(--fg-dim);
+  stroke-width: 1;
+}
+
+.cardinal {
+  fill: var(--fg);
+  font-size: 12px;
+}
+
+.pass {
+  cursor: pointer;
+}
+
+.passDim {
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+.track {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.passDim .track {
+  stroke: var(--fg-dim);
+  stroke-width: 1.5;
+}
+
+.arrow {
+  fill: var(--accent);
+}
+
+.passDim .arrow {
+  fill: var(--fg-dim);
+}
+
+.point {
+  fill: var(--bg);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.shadowHalf {
+  fill: var(--accent);
+}
+
+.peak {
+  fill: var(--accent);
+  stroke: var(--bg);
+  stroke-width: 1;
+}
+
+.now {
+  fill: var(--warn);
+  stroke: var(--bg);
+  stroke-width: 1;
+}
+
+.passDim .point,
+.passDim .peak {
+  stroke: var(--fg-dim);
+}
+
+.passDim .peak,
+.passDim .shadowHalf {
+  fill: var(--fg-dim);
+}
+
+.label {
+  fill: var(--fg);
+  font-size: 9px;
+}
+
+.convention {
+  margin: 0;
+  color: var(--fg-dim);
+}

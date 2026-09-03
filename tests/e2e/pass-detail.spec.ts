@@ -3,7 +3,11 @@
  * and the sentence on screen equals the golden string from
  * `tests/fixtures/guide-sentences.json`. The hash mirrors the selection,
  * Escape returns to the list, and a 390 px screenshot of the sheet is saved
- * for the PR's visual check.
+ * for the PR's visual check. R13 (US-6 AC5, FR-GUIDE-2b/4/5/7): the sheet
+ * carries the polar chart as SVG (no canvas anywhere), captioned by the
+ * sentence, with the four cardinals, the pass arc and its markers; the
+ * orientation toggle moves east from left to right, relabels the convention
+ * and survives a reload; the chart fits the 390 px width.
  */
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
@@ -61,6 +65,40 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   // The sheet fits the phone width: no horizontal scroll on the page.
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/r6-pass-detail-390.png' });
+
+  // R13: the polar chart, as SVG, captioned by the sentence, hidden from AT, inside the viewport width.
+  expect(await page.evaluate(() => document.querySelector('canvas'))).toBeNull();
+  const figure = dialog.getByRole('figure');
+  await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.asComputed);
+  const drawing = figure.locator('svg[data-drawing="polar"]');
+  await expect(drawing).toHaveAttribute('aria-hidden', 'true');
+  for (const cardinal of ['N', 'E', 'S', 'W']) await expect(drawing.locator(`[data-anchor="${cardinal}"]`)).toHaveText(cardinal);
+  await expect(drawing.locator(`[data-pass-id="${passId}"] [data-anchor="pass"]`)).toContainText('ISS (Zarya)');
+  await expect(drawing.locator('[data-anchor="peak"]')).toHaveText(/^max \d+°$/);
+  for (const marker of ['rise', 'peak', 'end', 'arrow']) await expect(drawing.locator(`[data-marker="${marker}"]`)).toHaveCount(1);
+  const box = await drawing.boundingBox();
+  if (!box) throw new Error('drawing has no box');
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  expect(box.width).toBeGreaterThan(200);
+
+  // FR-GUIDE-4: looking up by default (east on the left); the toggle flips it, relabels the convention, and the choice survives a reload.
+  const eastX = async (): Promise<number> => (await drawing.locator('[data-anchor="E"]').boundingBox())?.x ?? NaN;
+  const orientation = figure.getByRole('group', { name: 'Chart orientation' });
+  await expect(orientation.getByRole('button', { name: 'Looking up' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(figure.getByTestId('chart-convention')).toHaveText('Looking up: east on the left, as when lying on your back.');
+  expect(await eastX()).toBeLessThan(box.x + box.width / 2);
+  await orientation.getByRole('button', { name: 'Map' }).click();
+  await expect(orientation.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(figure.getByTestId('chart-convention')).toHaveText('Map: east on the right, as on a map.');
+  expect(await eastX()).toBeGreaterThan(box.x + box.width / 2);
+  expect(JSON.parse(await page.evaluate(() => window.localStorage.getItem('wiys:prefs:v1') ?? '{}'))).toMatchObject({ chartOrientation: 'map' });
+  await page.screenshot({ path: 'test-results/r13-polar-map-390.png' });
+  await page.reload();
+  await expect(page.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('group', { name: 'Chart orientation' }).getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('group', { name: 'Chart orientation' }).getByRole('button', { name: 'Looking up' }).click();
+  await page.screenshot({ path: 'test-results/r13-polar-390.png' });
 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
