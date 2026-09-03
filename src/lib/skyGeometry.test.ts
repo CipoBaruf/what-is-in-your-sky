@@ -13,8 +13,8 @@ import type { PassPoint } from '../model';
 import { angularDistanceDeg, fromDome, interpolatePoint, interpolateTrack, resampleArc, toDome, toPolar, trackPeakIndex } from './skyGeometry';
 
 const EPS = 1e-9;
-const close = (v: Record<string, number>, expected: Record<string, number>): void => {
-  for (const [k, e] of Object.entries(expected)) expect(v[k], k).toBeCloseTo(e, 9);
+const close = (v: object, expected: Record<string, number>): void => {
+  for (const [k, e] of Object.entries(expected)) expect((v as Record<string, number>)[k], k).toBeCloseTo(e, 9);
 };
 
 function goldenPass() {
@@ -35,13 +35,14 @@ describe('toDome (PLAN §8.2)', () => {
   });
 
   it('always yields a unit vector, and fromDome inverts it', () => {
-    for (const [az, el] of [
+    const cases: readonly [number, number][] = [
       [0, 0],
       [37.5, 12],
       [200, 45],
       [359.9, 89],
       [90, -5],
-    ]) {
+    ];
+    for (const [az, el] of cases) {
       const v = toDome(az, el);
       expect(Math.hypot(v.x, v.y, v.z)).toBeCloseTo(1, 12);
       const back = fromDome(v);
