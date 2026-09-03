@@ -652,13 +652,15 @@ A half-day, throwaway page that renders one fixture pass with the composition ab
 5. `useColors` — does the coloured mode emit inline `style` attributes (breaks the strict CSP) or class names? Decides whether colour is available at all under our CSP.
 6. Bundle cost of `@glyphcss/react` + `@glyphcss/core` after tree-shaking (loaders for OBJ/glTF/VOX must not be pulled in).
 
+7. Horizon panorama (added at the start of R14, agreed in the R13 review) — beside the dome, prototype a first-person strip facing the rise azimuth: the horizon as a baseline with the compass names along it, the arc climbing over it, the satellite marker moving live along the arc with a trail. Same geometry (`lib/skyGeometry`), same `SkyChartProps`, screenshots of both candidates at 390 px. The primary view is chosen from these screenshots; the polar chart stays the fallback either way (spec UX-1), and a switch away from the dome is a Decision Log change the owner makes explicitly, never a silent one.
+
 Failing 3 with no configuration fix triggers D-16's replacement path before the guide UI is built.
 
 ### 8.6 Open questions specific to this plan
 
 | ID | Question | Default until answered |
 |---|---|---|
-| P-OQ-1 | Camera model: external over-the-shoulder view (D-17) vs. observer-centred interior view. The interior view is closest to the spec's wording ("the horizon they'll face") but depends on undocumented library behaviour and gives a fish-eye feel on an orthographic grid. | External view. Revisit after spike item 4; if the interior view works and reads better in a five-person hallway test, it becomes a *third* mode behind the same props, not a replacement. |
+| P-OQ-1 | Camera model: external over-the-shoulder view (D-17) vs. observer-centred interior view, and (since the R13 review) whether a first-person horizon panorama reads better than either dome camera as the primary view. The interior view is closest to the spec's wording ("the horizon they'll face") but depends on undocumented library behaviour and gives a fish-eye feel on an orthographic grid. | External view. Revisit after spike items 4 and 7; the interior view or the panorama may become a further mode behind the same props, and the panorama may be proposed as the primary view, in which case spec UX-1 is amended explicitly before R15 registers it. |
 | P-OQ-2 | Cell aspect and grid size on phones: 60×30 keeps text legible but quantises angles to ~5°; 100×50 is finer but characters become tiny. | Autosize with a minimum cell width of 7 px; readout of exact angles is the numeric table's job, not the dome's. |
 | P-OQ-3 | Colour under a strict CSP (spike item 5). | Monochrome; highlight by line weight and label. If glyphcss uses class names, allow one colour for the highlighted pass. |
 
