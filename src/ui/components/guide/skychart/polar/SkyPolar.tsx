@@ -52,16 +52,43 @@ function project(point: { azDeg: number; elDeg: number }, orientation: ChartOrie
 
 const fmt = (n: number): string => n.toFixed(2);
 const at = ({ x, y }: Xy): string => `translate(${fmt(x)} ${fmt(y)})`;
+const LABEL_GAP = 10;
+const LABEL_HEIGHT = 8;
+/** Label text is 9 px monospace in user units: about 0.6 em per character; labels must end inside the viewBox. */
+const LABEL_CHAR_W = 5.4;
+const LABEL_LIMIT = 122;
 
-/** Text on the left half of the disc runs rightwards, and vice versa, so labels stay inside the drawing. */
-function anchorFor(x: number): 'start' | 'middle' | 'end' {
-  if (Math.abs(x) < 8) return 'middle';
-  return x < 0 ? 'start' : 'end';
+function unit(v: Xy, fallback: Xy): Xy {
+  const len = Math.hypot(v.x, v.y);
+  return len < 1e-6 ? fallback : { x: v.x / len, y: v.y / len };
 }
 
-function inward(p: Xy, by: number): Xy {
-  const len = Math.hypot(p.x, p.y) || 1;
-  return { x: p.x - (p.x / len) * by, y: p.y - (p.y / len) * by };
+/** Toward the zenith from `p`; straight up when `p` is the zenith itself. */
+const toCentre = (p: Xy): Xy => unit({ x: -p.x, y: -p.y }, { x: 0, y: -1 });
+
+/**
+ * A label beside the arc at `p`: offset along the normal to the direction of
+ * travel there (`side` picks the normal that points toward or away from the
+ * centre), never along the arc, so the text does not lie on the track. The
+ * text runs away from the point and hangs below it when the normal points
+ * down; when it would run past the drawing's edge it runs the other way.
+ */
+function labelBeside(p: Xy, travel: Xy, side: 'inward' | 'outward', text: string): { x: string; y: string; textAnchor: 'start' | 'middle' | 'end' } {
+  const centre = toCentre(p);
+  const dir = unit(travel, centre);
+  let n = { x: -dir.y, y: dir.x };
+  const dot = n.x * centre.x + n.y * centre.y;
+  if ((side === 'inward' && dot < 0) || (side === 'outward' && dot > 0)) n = { x: -n.x, y: -n.y };
+  if (Math.abs(dot) < 1e-6 && side === 'outward') n = { x: -n.x, y: -n.y };
+  const x = p.x + n.x * LABEL_GAP;
+  const y = p.y + n.y * LABEL_GAP + (n.y > 0.3 ? LABEL_HEIGHT : n.y < -0.3 ? 0 : LABEL_HEIGHT / 2);
+  const lean = Math.abs(n.x) > 0.3 ? n.x : centre.x;
+  const width = text.length * LABEL_CHAR_W;
+  const fits = { start: x + width <= LABEL_LIMIT, end: x - width >= -LABEL_LIMIT };
+  const preferred = lean >= 0 ? 'start' : 'end';
+  const other = preferred === 'start' ? 'end' : 'start';
+  const textAnchor = fits[preferred] ? preferred : fits[other] ? other : 'middle';
+  return { x: fmt(x), y: fmt(y), textAnchor };
 }
 
 interface ArcProps {
@@ -85,8 +112,14 @@ function PassArc({ pass, orientation, timeZone, dim, now, onSelect }: ArcProps) 
   const tip = points[head] ?? end;
   const headingDeg = (Math.atan2(tip.y - tail.y, tip.x - tail.x) * 180) / Math.PI;
   const current: PassPoint | null = now !== undefined && now >= pass.start.t && now <= pass.end.t ? interpolateTrack(pass.track, now) : null;
-  const nameAt = inward(rise, 10);
-  const peakLabel = { x: peak.x + (peak.x < 0 ? 6 : -6), y: peak.y - 6 };
+  const nameText = `${pass.name} ${formatClock(pass.start.t, timeZone)}`;
+  const peakText = `max ${degrees(pass.peak.elDeg)}`;
+  const second = points[1] ?? peak;
+  const nameAt = labelBeside(rise, { x: second.x - rise.x, y: second.y - rise.y }, 'inward', nameText);
+  const peakIndex = Math.max(1, points.findIndex((p) => p.x === peak.x && p.y === peak.y));
+  const beforePeak = points[peakIndex - 1] ?? rise;
+  const afterPeak = points[peakIndex + 1] ?? end;
+  const peakAt = labelBeside(peak, { x: afterPeak.x - beforePeak.x, y: afterPeak.y - beforePeak.y }, 'outward', peakText);
   return (
     <g
       className={dim ? styles.passDim : styles.pass}
@@ -101,11 +134,11 @@ function PassArc({ pass, orientation, timeZone, dim, now, onSelect }: ArcProps) 
       <Marker kind={pass.endReason === 'shadow' ? 'shadow' : 'end'} p={end} />
       <Marker kind="peak" p={peak} />
       {current && <Marker kind="now" p={project(current, orientation)} />}
-      <text className={styles.label} data-anchor="pass" x={fmt(nameAt.x)} y={fmt(nameAt.y)} textAnchor={anchorFor(nameAt.x)}>
-        {pass.name} {formatClock(pass.start.t, timeZone)}
+      <text className={styles.label} data-anchor="pass" {...nameAt}>
+        {nameText}
       </text>
-      <text className={styles.label} data-anchor="peak" x={fmt(peakLabel.x)} y={fmt(peakLabel.y)} textAnchor={peak.x < 0 ? 'start' : 'end'}>
-        max {degrees(pass.peak.elDeg)}
+      <text className={styles.label} data-anchor="peak" {...peakAt}>
+        {peakText}
       </text>
     </g>
   );
@@ -136,7 +169,7 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
   const ring = (elDeg: number): number => project({ azDeg: 0, elDeg }, orientation).y * -1;
   return (
     <div className={[styles.polar, className].filter(Boolean).join(' ')} data-orientation={orientation}>
-      <OptionToggle name="Chart orientation" prefix="Orientation:" options={ORIENTATIONS.map((value) => ({ value, label: ORIENTATION_LABELS[value] }))} value={orientation} onChange={setChartOrientation} />
+      <OptionToggle name="Chart orientation" options={ORIENTATIONS.map((value) => ({ value, label: ORIENTATION_LABELS[value] }))} value={orientation} onChange={setChartOrientation} />
       <svg className={styles.svg} viewBox={VIEWBOX} aria-hidden="true" data-drawing="polar" focusable="false">
         <circle className={styles.horizon} r={HORIZON_R} />
         <circle className={styles.ring} r={fmt(ring(30))} data-ring="30" />

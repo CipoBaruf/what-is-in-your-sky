@@ -15,8 +15,8 @@ export interface OptionToggleOption<T extends string> {
 export interface OptionToggleProps<T extends string> {
   /** The group's accessible name. */
   name: string;
-  /** The visible prefix, e.g. `Orientation:` (hidden from AT: the group name says it). */
-  prefix: string;
+  /** An optional visible prefix, e.g. `View:` (hidden from AT: the group name says it). */
+  prefix?: string;
   options: readonly OptionToggleOption<T>[];
   value: T;
   onChange: (value: T) => void;
@@ -25,9 +25,11 @@ export interface OptionToggleProps<T extends string> {
 export function OptionToggle<T extends string>({ name, prefix, options, value, onChange }: OptionToggleProps<T>) {
   return (
     <div role="group" aria-label={name} className={styles.group}>
-      <span className={styles.prefix} aria-hidden="true">
-        {prefix}
-      </span>
+      {prefix && (
+        <span className={styles.prefix} aria-hidden="true">
+          {prefix}
+        </span>
+      )}
       {options.map((option) => (
         <button
           key={option.value}

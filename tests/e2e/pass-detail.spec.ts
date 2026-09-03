@@ -93,15 +93,30 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   await expect(figure.getByTestId('chart-convention')).toHaveText('Map: east on the right, as on a map.');
   expect(await eastX()).toBeGreaterThan(box.x + box.width / 2);
   expect(JSON.parse(await page.evaluate(() => window.localStorage.getItem('wiys:prefs:v1') ?? '{}'))).toMatchObject({ chartOrientation: 'map' });
+  await figure.evaluate((el) => el.scrollIntoView({ block: 'start' }));
   await page.screenshot({ path: 'test-results/r13-polar-map-390.png' });
   await page.reload();
   await expect(page.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('group', { name: 'Chart orientation' }).getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('group', { name: 'Chart orientation' }).getByRole('button', { name: 'Looking up' }).click();
+  await page.getByRole('dialog').getByRole('figure').evaluate((el) => el.scrollIntoView({ block: 'start' }));
   await page.screenshot({ path: 'test-results/r13-polar-390.png' });
 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page).not.toHaveURL(/#pass=/);
   await expect(card).toBeVisible();
+
+  // The golden pass grazes the horizon; for the PR's visual check, also capture the highest pass of the night.
+  const list = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('list');
+  const highest = await list.locator('article').evaluateAll((cards) => {
+    const elevation = (card: Element): number => Number(Array.from(card.querySelectorAll('dt')).find((dt) => dt.textContent === 'Max elevation')?.nextElementSibling?.textContent?.replace('°', '') ?? 0);
+    return cards.map((card) => ({ id: card.getAttribute('data-pass-id') ?? '', el: elevation(card) })).sort((a, b) => b.el - a.el)[0];
+  });
+  if (!highest || highest.el < 30) throw new Error(`no high pass among the fixtures (best ${String(highest?.el)}°)`);
+  await list.locator(`article[data-pass-id="${highest.id}"]`).getByRole('button', { name: /Open guide/ }).click();
+  const highFigure = page.getByRole('dialog').getByRole('figure');
+  await expect(highFigure.locator('[data-anchor="peak"]')).toHaveText(`max ${String(highest.el)}°`);
+  await highFigure.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await page.screenshot({ path: 'test-results/r13-polar-high-390.png' });
 });

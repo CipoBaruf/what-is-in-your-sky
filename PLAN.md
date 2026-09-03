@@ -197,6 +197,17 @@ Recorded by the R12 implementation (visual identity, accessibility pass, sort to
 - **Footer links and the CSP test.** `tests/deploy/headers.test.ts` scans `src/**/*.ts(x)` for `https://` hosts and requires each in `connect-src`; `Footer.tsx` is now skipped by name, since its three attribution links (`celestrak.org`, `open-meteo.com`, `www.geonames.org`) are navigation targets the user follows, which CSP does not govern, not connections the page makes (FR-X-3 still holds: `deploy-headers.spec.ts` asserts the requests go to the site, CelesTrak and Open-Meteo only).
 - **Playwright (`identity.spec.ts`, 390 px).** `expectIdentity` runs on Home empty, Home with passes and the detail sheet: body background is `rgb(11, 15, 20)`, no visible element with text has a computed `font-family` without `monospace`, `scrollWidth ≤ innerWidth`, and every visible `a[href]`, `button`, `input` and `[tabindex="0"]` outside an `inert` subtree measures ≥ 44 px both ways. The tab-order test lists the focusable controls in DOM order (≥ 15: the three inputs, the device button, the clear action, the Now-panel badge, the hero's open control and badge, the two sort buttons, every card's open control and badge, the three footer links), presses Tab that many times from the title and expects the same sequence with a ring on each (the card's ring for an open control), then body, then the first control again. Two Chromium facts the test works around: a blur does not reset the sequential-focus starting point (a click on the title does), and Playwright empties `test-results/` at every run, so the screenshots are copied to `docs/screenshots/r12-*.png` once green. The detail sheet is captured at viewport size: it is `position: fixed`, and a full-page capture shows the list behind it.
 
+### 2.14 R13 decisions (2026-09-02)
+
+Recorded by the R13 implementation (sky geometry library, `SkyChart` boundary, SVG polar view).
+
+- **D-54 — One geometry module for both views, per-leg resampling.** `lib/skyGeometry.ts` holds `toDome` (the §8.2 frame, pinned by the cardinal and zenith unit vectors), its inverse `fromDome`, `toPolar` (equidistant azimuthal on the unit disc, screen convention with north up; `looking-up` negates x so east is on the left), `interpolatePoint` / `interpolateTrack` (great-circle in the sky, linear in time and range; a sample's own time returns the sample object, so the peak time returns the peak) and `resampleArc`. Resampling divides each of the two legs, start → highest sample and highest sample → end, into equal angular steps along the sampled polyline, so start, peak and end survive as the same objects and the spacing is the step to within one rounding per leg. The first golden pass (a 48 s grazing pass, 13° of sky) resamples to seven points 2.2° apart; the test says so rather than assuming a long arc.
+- **D-55 — `SkyChart` chooses among registered views, and a toggle between identical views is not shown.** `SKY_CHART_VIEWS` is the ordered list of `SkyChartView`s (`{ Component, id, label }`, each exported by its own file: `POLAR_VIEW` now, the dome in R15). The `chartView` preference defaults to `dome` (US-6 AC3), and `viewFor` falls back to the first registered view when no view claims the preference, so until R15 the polar view renders under either value and the view toggle (an `OptionToggle`, `[x] Dome [ ] Polar`) is rendered only when more than one view is registered. `SkyChart.contract.test.tsx` is `describe.each(SKY_CHART_VIEWS)`: R15 registers the dome and the contract covers it without a change to the test. The caption is the FR-GUIDE-1 sentence of the highlighted pass (or the first), rendered by `GuideText` inside the `<figcaption>`, so `PassDetail` shows the sentence once and the `guide-sentence` test id keeps its meaning.
+- **D-56 — The polar view's anchors are data attributes; selection is a click on the pass group.** The drawing is `aria-hidden` (FR-GUIDE-7), so the contract's "labelled anchors" cannot be accessible names: the cardinals are `<text data-anchor="N|E|S|W">`, the pass label `data-anchor="pass"` inside `<g data-pass-id>`, the peak label `data-anchor="peak"` (`max 46°`), and markers are `data-marker="rise|peak|end|shadow|now|arrow"` positioned by `transform="translate(x y)"` so the tests read `toPolar` back off the DOM. `onSelectPass` fires on a click on the pass group; there is no keyboard path inside the hidden drawing, and none is owed: the facts are in the caption and the numbers table, and the detail screen draws one pass. Labels sit beside the track along the normal to the direction of travel (the name inward at the rise, the peak label outward), never along it; a label whose estimated width (0.6 em per character) would leave the viewBox is anchored the other way.
+- **D-57 — Chart preferences are store state like the sort order, and the orientation toggle lives inside the polar view.** `chartView` and `chartOrientation` join `sort` in the prefs slice (read at creation, written through by their setters, preserved by the other write-throughs) and in `wiys:prefs:v1` through `localPrefs` (`.catch(undefined)` each, so an unknown value drops only itself). `SkyPolar` implements `SkyChartProps` exactly (PLAN §8.1), so its orientation is not a prop: it reads and writes the store. The toggle has no visible prefix (`Orientation:` wrapped the group at 390 px); the convention is labelled under the drawing instead, as a full sentence (`Looking up: east on the left, as when lying on your back.`), which is what FR-GUIDE-4's "labelled on the chart" is satisfied by for assistive technology too, the drawing being hidden.
+- **`PassDetail` takes the observer.** Its `timeZone` prop became `observer: Observer` (the chart wants the observer, PLAN §8.1; the zone is `observer.timeZone`), and `App` mounts it only with an observer in the store, which is always the case when a pass is selected.
+- **Playwright (`pass-detail.spec.ts`, 390 px).** After the R6 checks: no `<canvas>` in the document, the figure holds the sentence, the SVG drawing is `aria-hidden` with the four cardinals, the pass and peak labels and one each of the rise / peak / end / arrow markers, and its box is inside the viewport; `E` sits in the left half by default and in the right half after the map toggle, the convention line changes, `wiys:prefs:v1` carries `chartOrientation`, and the choice survives a reload. The sheet is scrolled to the figure before each screenshot (it is `position: fixed`). The spec also opens the highest pass of the night for a second screenshot, since the golden pass grazes the horizon. `identity.spec.ts` asserts no `<canvas>` on every screen it visits.
+
 ## 3. Architecture Overview
 
 ```mermaid
@@ -266,7 +277,7 @@ what-is-in-your-sky-right-now/
 ├── src/
 │   ├── main.tsx
 │   ├── model/                      # shared types only, zero imports
-│   │   ├── catalog.ts  elements.ts  observer.ts  pass.ts  weather.ts  thresholds.ts  prefs.ts (PassSort)
+│   │   ├── catalog.ts  elements.ts  observer.ts  pass.ts  weather.ts  thresholds.ts  prefs.ts (PassSort, ChartView, ChartOrientation)
 │   │   └── index.ts
 │   ├── physics/                    # pure functions; the thing Task Zero validates
 │   │   ├── constants.ts            # MIN_ELEVATION, SUN_ALT_MAX, TWILIGHT_LABEL, MAG_LIMIT, EARTH_RADIUS_KM, steps
@@ -324,13 +335,13 @@ what-is-in-your-sky-right-now/
 │   │   │   ├── guide/ GuideText.tsx  PassNumbers.tsx
 │   │   │   ├── guide/skychart/          # §8 — the isolation boundary
 │   │   │   │   ├── SkyChart.types.ts     # SkyChartProps (the contract both views implement)
-│   │   │   │   ├── SkyChart.tsx          # chooses dome or polar view; the only import the rest of the app uses
+│   │   │   │   ├── SkyChart.tsx          # chooses dome or polar view from the registered SKY_CHART_VIEWS (D-55); the only import the rest of the app uses
 │   │   │   │   ├── dome/                 # the ONLY directory allowed to import @glyphcss/react
 │   │   │   │   │   ├── SkyDome.tsx       # implements SkyChartProps with GlyphScene/GlyphMesh/GlyphHotspot
 │   │   │   │   │   ├── domeGeometry.ts   # pure: passes -> Polygon[] strips, ring/meridian polygons, hotspot anchors
 │   │   │   │   │   └── camera.ts         # pure: rise azimuth -> initial rotX/rotY/zoom; pitch clamp constants
 │   │   │   │   └── polar/
-│   │   │   │       └── SkyPolar.tsx      # implements SkyChartProps as an SVG all-sky chart (FR-GUIDE-2b/4)
+│   │   │   │       └── SkyPolar.tsx      # implements SkyChartProps as an SVG all-sky chart (FR-GUIDE-2b/4); exports POLAR_VIEW
 │   │   │   ├── weather/ CloudBadge.tsx
 │   │   │   └── common/ Countdown.tsx  Banner.tsx  SectionHeading.tsx (character-rule titles, D-49)  Footer.tsx (attributions)
 │   │   └── styles/ tokens.css  global.css
@@ -453,7 +464,7 @@ Persistence:
 | Store | Mechanism | Key | Content |
 |---|---|---|---|
 | Elements | IndexedDB (`idb`), DB `wiys`, store `elementGroups` | `group` | `CachedGroup` (raw, unfiltered — D-9) |
-| Last observer, chart orientation, sort order | `localStorage` | `wiys:prefs:v1` | JSON |
+| Last observer, sort order, chart view, chart orientation | `localStorage` | `wiys:prefs:v1` | JSON |
 | Weather | in-memory `Map` + `localStorage` `wiys:wx:v1` | `cellKey` | `WeatherSnapshot`, evicted after 30 min |
 | Geocode results | in-memory `Map` | normalised query | `Place[]`, session only |
 
@@ -783,11 +794,11 @@ Two further observer locations (one northern mid-latitude, one near the equator)
 | FR-VIS-5 | `state/effects.ts`, `workerClient.ts` (`computeNow` every 10 s; recompute on change) (D-14) |
 | FR-GUIDE-1/3 | `lib/phrases.ts`, `lib/compass.ts`, `ui/components/guide/GuideText.tsx` |
 | FR-GUIDE-2 (3D dome, rotate/tilt, default facing) | `ui/components/guide/skychart/dome/*` (glyphcss), `lib/skyGeometry.ts`, `Pass.track` (D-16, D-17, §8) |
-| FR-GUIDE-2b (2D polar fallback, same data) | `ui/components/guide/skychart/polar/SkyPolar.tsx`, `SkyChart.tsx` toggle, `lib/skyGeometry.ts` |
+| FR-GUIDE-2b (2D polar fallback, same data) | `ui/components/guide/skychart/polar/SkyPolar.tsx`, `SkyChart.tsx` toggle, `lib/skyGeometry.ts` (R13) |
 | FR-GUIDE-4 (polar orientation toggle; dome facing readout) | `SkyPolar.tsx`, `SkyDome.tsx` facing text (§8.4) |
 | FR-GUIDE-5 (DOM only, no WebGL/canvas) | glyphcss renders one `<pre>`; polar view is SVG; lint rule forbids `canvas`/`webgl` imports; e2e asserts no `<canvas>` in the document |
 | FR-GUIDE-6 (interactive performance) | §8.5 spike item 3; release checklist (§9.1) |
-| FR-GUIDE-7 (text alternative, grid hidden from AT) | `SkyChart.tsx` `<figure>`/`<figcaption>`, `aria-hidden` grid; `jest-axe` in the contract test |
+| FR-GUIDE-7 (text alternative, grid hidden from AT) | `SkyChart.tsx` `<figure>`/`<figcaption>`, `aria-hidden` grid; `jest-axe` in the contract test (R13) |
 | FR-WX-1/5 | `data/openMeteo/forecast.ts`, `data/weatherCache.ts` |
 | FR-WX-2/3/4 | `lib/cloudVerdict.ts`, `ui/components/weather/CloudBadge.tsx`, `NowPanel.tsx` |
 | FR-X-1 | `ui/styles/tokens.css` (D-5) |
