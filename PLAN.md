@@ -2,10 +2,10 @@
 
 | Field | Value |
 |---|---|
-| Status | Draft v0.2 — for review (adds the sky-chart component design for spec decision UX-1); §2.1–2.3 record R1–R3 findings |
-| Date | 2026-09-01 |
-| Input | `SPEC.md` v0.4 (Decision Log §12 treated as fixed: OQ-1, OQ-3, OQ-4, OQ-11, UX-1 are not reopened here) |
-| Scope | Architecture, project structure, module boundaries, data model, worker contract, testing strategy, and the Task Zero physics spike. **No task breakdown** — that is the next step. |
+| Status | Draft v0.3 — for review. Plans the v1 phase: §2.17 records decisions D-69..D-86; §3–§9, §11–§13 extended for language, desktop layout, the dome's second pass, the live page, offline, the Moon, share links and the night theme; §16 Delivery added (V1-11). The MVP text (v0.2) is otherwise unchanged. |
+| Date | 2026-09-03 (v0.3); 2026-09-01 (v0.2) |
+| Input | `SPEC.md` v1.0 (Decision Log §12 treated as fixed: OQ-1, OQ-3, OQ-4, OQ-11, UX-1 and V1-1..V1-11 are not reopened here) |
+| Scope | Architecture, project structure, module boundaries, data model, worker contract, testing strategy, the Task Zero physics spike, and how the v1 tasks are delivered (§16). **No task breakdown** — that is `sdd-breakdown`'s job. |
 
 ---
 
@@ -19,6 +19,14 @@ These come from the spec's Decision Log and are not up for debate in this plan:
 - **CelesTrak CORS** is verified; fallback order is the community TLE API, then pulling the v1 proxy forward.
 - **Stack:** React + TypeScript + Vite, static deploy.
 - **Sky chart (UX-1):** a 3D ASCII sky dome the user can rotate and tilt, plus a 2D polar fallback over the same data; both DOM-only, no WebGL, no canvas. Monospace / terminal aesthetic across the whole UI.
+
+From SPEC v1.0's Decision Log (V1-1..V1-11), fixed for the v1 phase:
+
+- **Still no backend.** v1 stays browser-direct against CelesTrak and Open-Meteo; the caching proxy, Nominatim and the full `visual` group move to Phase 3.
+- **Two languages**, English and Spanish, as a preference rather than a route.
+- **The dome is the default view again**, in colour, under a CSP relaxed by exactly one directive; its composition is fixed by a spike before the implementation task.
+- **72 hours** of passes and forecast, stored automatically, with the app shell served by a service worker.
+- **Tasks are delivered in lanes and waves** by a driver script, one model per task, auto-merge with an owner gate on anything visual (§16).
 
 Everything in spec §5 ("Technical Architecture", marked *proposal*) was reviewed. Where this plan agrees, it is simply adopted below. Where it disagrees, the disagreement and rationale are in §2.
 
@@ -234,6 +242,31 @@ Recorded by the R15 implementation (the ASCII dome as the default view, bundle b
 - **D-68 — The polar chart is the default view for now, and both views share one frame.** The owner's call in the R15 review (2026-09-03): the dome reads as confusing, so `DEFAULT_CHART_VIEW` is `polar`, `POLAR_VIEW` is first in `SKY_CHART_VIEWS` and the dome stays registered one toggle away. This departs from spec US-6 AC3 / UX-1 ("dome as the primary view") without a Decision Log entry yet: the entry belongs with the decision on the dome's future (improve it or remove it), which is its own task after R15 merges, since the dome sits behind `SkyChartProps` and either outcome touches nothing else. Both views render inside `skychart/ChartFrame.tsx`: a controls row at least one tap target tall (the polar orientation toggle; the dome's hint), a square drawing box capped at 44 cells for both, and a status row at least one text row tall (the polar convention; the dome readout), so switching views moves neither the caption above nor the numbers below (asserted in `sky-dome.spec.ts`).
 - **Open, for the owner:** the on-device FR-GUIDE-6 check (`docs/RELEASE.md` §3, with the console snippet that counts rasterisations) and the deploy-day comparison against Heavens-Above (§4) were not run here: no phone and no deploy in this task. The proxy measurement stands (D-62).
 
+### 2.17 v1 decisions (2026-09-03)
+
+These plan SPEC v1.0 (V1-1..V1-11). Nothing here is implemented yet; each decision names the requirements it serves so a task can be cut from it.
+
+- **D-69 — Language is two typed catalogs and a hook, no i18n library.** `src/i18n/en.ts` is the source of truth; `type Messages = typeof en` and `es.ts` is declared `const es: Messages`, so a missing or misspelled key fails `tsc` (FR-I18N-2) with no runtime fallback path to write or test. Parameterised messages are **functions** (`passRise: (p: {name: string; dir: string; time: string}) => string`), not template strings with placeholders: a function lets Spanish put the words in a different order, agree in gender and number, and use its own `Intl` calls, and it makes the parameter list part of the type. Plain strings stay plain strings. Rejected: `i18next` (a runtime catalog, a bundle cost, and its missing-key behaviour is a fallback, which FR-I18N-2 forbids) and ICU message syntax (a parser at runtime for what the type system can do at build time).
+- **D-70 — Locale and theme are applied in `main.tsx` before the first render, not by an inline script.** `script-src 'self'` (§11) forbids the usual inline bootstrap, and the app is client-rendered anyway: `main.tsx` reads the prefs, sets `documentElement.lang` and `data-theme`, and only then calls `createRoot().render()`. Nothing paints before that, so FR-THEME-1's "before first paint" holds without relaxing the CSP. The initial `<html lang>` in `index.html` is `en` and is corrected in the same tick.
+- **D-71 — Breakpoints are literal pixels, pinned to the cell token by a test.** FR-DESK-1 states breakpoints in cells, but a media query cannot read `var(--cell)`. `global.css` uses `@media (min-width: 960px)`; a test in `tests/styles/` recomputes `100 × --cell` from `tokens.css` and asserts it equals the literal in the media query, so the two cannot drift. Column and panel widths inside the layout *are* written in cells (`calc(40 * var(--cell))`), as FR-DESK-2 and FR-DESK-3 require.
+- **D-72 — One guide component, two shells.** The compact sheet and the wide side panel (FR-DESK-3) render the same `PassDetail` content; only the wrapper differs. `lib/layout.ts` exposes `useLayoutMode(): 'compact' | 'wide'` over `matchMedia` (a listener, not a resize handler), and `PassDetail.tsx` picks the shell. The selection hash (D-13) and the guide's own state are identical in both, so switching width mid-session keeps the open pass.
+- **D-73 — Shortcuts live in one hook with one guard.** `lib/shortcuts.ts` installs a single `keydown` listener on `document` at the `App` level. It ignores the event when any modifier is held, when `event.isComposing`, or when the target is an `input`, `textarea`, `select` or `[contenteditable]` — that is FR-DESK-4's "no input focused" rule, in one place rather than per component. The overlay (`?`) is generated from the same table that registers the handlers, so a shortcut cannot exist undocumented.
+- **D-74 — The dome is two stacked glyphcss scenes sharing one camera.** FR-DOME-8's base layer is solid mode and its line layer is braille wireframe; `GlyphScene` takes `mode` as a scene prop, so one scene cannot be both. `SkyDome.tsx` renders two `GlyphScene`s in the same CSS grid cell (`grid-area: 1/1`), same grid dimensions and same cell metrics so the glyphs align, base behind lines, `pointer-events: none` on the base. Both receive the camera state that already lives in the component (D-64), so they cannot drift by construction. The finer pass layer (FR-DOME-8c) is a per-mesh density option inside the line scene, not a third `<pre>`; a third scene is the fallback if per-mesh density turns out not to exist in 0.1.6, and the spike answers that. Cost is the open question OQ-15 and is what the spike measures.
+- **D-75 — Colour comes from the tokens through a probe element, and the CSP gains exactly one directive.** `_headers` adds `style-src-attr 'unsafe-inline'` (V1-4) and nothing else; `style-src-elem`, `script-src` and the rest stay `'self'`, and the deploy test (D-25) is extended to assert that, so a later "just add unsafe-inline" cannot pass review. `dome/palette.ts` reads the FR-DOME-2 colours with `getComputedStyle` on a hidden probe element that carries the token classes, at mount and again when `data-theme` changes (a `MutationObserver` on the root's attributes), so both themes work with one code path and the palette is never duplicated in TypeScript.
+- **D-76 — No new worker request: `computeNow` already takes an instant.** SPEC §5.7 proposes a `computeAt(t)` request for FR-LIVE-6, but `computeNow` has carried `t: EpochMs` since §6.2 was written — it is already "the Now pipeline at an arbitrary instant". Adding a second name for it would give the client two ways to do one thing. Instead `computeNow` gains `includeHidden?: boolean` (FR-LIVE-6's dimmed objects with reasons) and `NowState` gains `moon`. Recorded in §15 as a spec amendment.
+- **D-77 — The 72 h search runs night-outer, object-inner, so tonight arrives at MVP speed.** FR-VIS-1 as amended triples the window, and FR-VIS-4's budget is unchanged. The handler loops the three 24 h nights on the outside and the objects on the inside, emitting `passes` per (night, object) pair, `featured` objects first within each night. The first night is therefore complete in the MVP's time and the list renders while the other two compute; FR-OFF-2's grouping falls out of the same order. `progress` counts object×night pairs. No protocol change beyond the wider `window`.
+- **D-78 — Passes are stored per observer cell, two runs at most.** IndexedDB gains a `passRuns` store keyed by the observer rounded to 0.01° (about 1 km — the same pass from anywhere inside it, matching the geocoding non-goal). A run holds the observer, the window, `computedAt`, the oldest elements epoch used and the passes. Writing happens on every `jobDone { cancelled: false }` (FR-OFF-5, no "prepare" action). Only the active run and the previous one are kept and the rest are pruned on write: FR-OFF-7 gives favourites offline data for the active observer only, and three 72 h runs of 30 objects would be the largest thing the app stores.
+- **D-79 — The service worker is `vite-plugin-pwa` in `generateSW` mode with runtime caching switched off.** Workbox's precache manifest is generated from the build, which is the part that is tedious and error-prone to hand-write, and its weight lands in the worker file, not the main chunk. `runtimeCaching: []` and a `navigateFallback` to `index.html` are the whole configuration: FR-OFF-1 forbids caching CelesTrak and Open-Meteo, which already live in IndexedDB. `registerType: 'prompt'` implements OQ-14 — the new worker waits, `UpdateBanner.tsx` offers the reload, and `skipWaiting` is called only from that button, so an update cannot swap the shell under the live page. Dev builds do not register a worker.
+- **D-80 — The Moon is physics, the lore is data.** `physics/moon.ts` wraps `astronomy-engine` the way `sun.ts` does (D-2) and exports `moonAt(t, observer): MoonState` and `moonGlare(moon, peak, thresholds): MoonGlare`, both pure and both tested against published values. It runs in the worker, so `NowState.moon` and `Pass.moonAtPeak` arrive with everything else and the main thread does no astronomy — except the live page's once-per-second re-evaluation (FR-LIVE-5), which imports the same pure module (`src/lib` may import physics types only, so the live page's Sun and Moon evaluation lives in `lib/skyBodies.ts`, which is the one exception, listed in §3). The tradition text is `data/moon/lore.json` with a zod schema and both languages in one file, reviewed by hand like the catalog (FR-MOON-4); phase-name boundaries are constants in `physics/constants.ts` with the usual rationale comment.
+- **D-81 — The live page owns its instant; playback is a rAF loop over wall time.** `LivePage` holds `t` and `speed`. Playing advances `t` by `(wallDelta × speed)` on each `requestAnimationFrame`, so a dropped frame loses no simulated time and the 3600× target (FR-LIVE-5) is a rendering question, not a scheduling one. Satellite positions come from `Pass.track` by interpolation (FR-DOME-5) — the worker is never called per frame; hidden objects (FR-LIVE-6) are a `computeNow` request throttled to one per 250 ms of wall time, with the in-flight request's result discarded if `t` has moved past it.
+- **D-82 — The time stripe is SVG, not glyphcss.** FR-LIVE-4 wants hour ticks, night bands, per-pass segments and a draggable cursor. That is the polar chart's problem again (R13 solved it in SVG, FR-GUIDE-5 permits SVG), and it is not a 3D scene. Reusing `SkyPolar`'s approach keeps the stripe cheap during playback, which is where the frame budget is.
+- **D-83 — Share links are built and parsed in one module.** `lib/shareLinks.ts` owns `#pass?…` and `#live?…` in both directions (FR-SHARE-1, FR-LIVE-9), and `screens/passSelection.ts` (D-13/D-33) delegates to it. Round-trip tests are the whole test surface for FR-SHARE-1 and FR-SHARE-3's fallback ("nearest pass of that satellite, else a message naming it").
+- **D-84 — Night theme is a third token block, not a second stylesheet.** `tokens.css` gains `[data-theme="night"]` beside the existing values; no component learns about themes, and `scripts/contrast.ts` and its test iterate both themes over the same pair table (FR-THEME-2). FR-THEME-3's dome colours come free from D-75's probe.
+- **D-85 — Favourites live in prefs with LRU eviction at 8.** `localPrefs` gains `favourites: Favourite[]` with `lastUsedAt`; adding a ninth evicts the least recently used (FR-OFF-7). They are observers, not places: a favourite carries the full `Observer` including `timeZone`, so selecting one works offline with no geocode call.
+- **D-86 — The task driver is repo tooling, not a task.** `scripts/sdd-run.ts` (§16) is what runs the v1 tasks, so it cannot be one of them: it is written and reviewed before the first wave, like `scripts/bundle-budget.ts` and `scripts/contrast.ts`, and it is proved by a dry run against the existing R1–R15 entries before it is given a real task. TASKS.md stays a list of product slices.
+
+---
+
 ## 3. Architecture Overview
 
 ```mermaid
@@ -277,12 +310,15 @@ flowchart LR
 | `src/worker` | `src/physics`, `src/worker/*`, shared types | React, DOM (other than the worker global), `src/data`, `src/state` |
 | `src/data` | `idb`, `zod`, shared types | React, `src/state`, `src/ui`, `src/worker` |
 | `src/state` | `src/data`, `src/worker/protocol` (types only), `src/lib` | `src/ui`, physics internals |
-| `src/lib` | shared types, `src/physics` **types only** | React, `src/state`, `src/data` |
-| `src/ui` | `src/state`, `src/lib`, shared types | `src/data`, `src/worker`, `src/physics` directly |
+| `src/lib` | shared types, `src/physics` **types only** — plus, in `lib/skyBodies.ts` alone, `src/physics/sun.ts` and `src/physics/moon.ts` at runtime (D-80) | React, `src/state`, `src/data` |
+| `src/i18n` | shared types | everything else (catalogs import nothing) |
+| `src/ui` | `src/state`, `src/lib`, `src/i18n`, shared types | `src/data`, `src/worker`, `src/physics` directly |
 | `src/ui/components/guide/skychart/dome/**` | everything `src/ui` may, plus `@glyphcss/react` | — |
 | everything else | — | **`@glyphcss/react`** (the only place it may be imported is the `dome/` directory above) |
 
 Shared types live in `src/model/` and import nothing.
+
+v1 additions to the rules: `src/i18n` is imported by `src/ui` only — `lib/` returns message *keys and parameters*, never rendered sentences, so a phrase helper cannot hard-code one language (FR-I18N-2). The service worker (`src/sw/`) is generated by the build (D-79) and imports nothing of ours.
 
 ---
 
@@ -298,12 +334,15 @@ what-is-in-your-sky-right-now/
 ├── eslint.config.js
 ├── public/
 │   ├── _headers                    # Cloudflare static assets: CSP and cache headers (§11)
+│   ├── manifest.webmanifest        # PWA install, not localised (FR-OFF-6)
+│   ├── icon-192.png  icon-512.png  # terminal identity
 ├── wrangler.jsonc                  # Cloudflare Workers static-assets config (D-12 amended, §2.5)
 │   └── favicon.svg
 ├── src/
 │   ├── main.tsx
 │   ├── model/                      # shared types only, zero imports
-│   │   ├── catalog.ts  elements.ts  observer.ts  pass.ts  weather.ts  thresholds.ts  prefs.ts (PassSort, ChartView, ChartOrientation)
+│   │   ├── catalog.ts  elements.ts  observer.ts  pass.ts  weather.ts  thresholds.ts  prefs.ts (PassSort, ChartView, ChartOrientation, Locale, Theme)
+│   │   ├── moon.ts  offline.ts   # MoonState/MoonGlare (FR-MOON-1/2); PassRun, Favourite, Readiness (FR-OFF-2/4/7)
 │   │   └── index.ts
 │   ├── physics/                    # pure functions; the thing Task Zero validates
 │   │   ├── constants.ts            # MIN_ELEVATION, SUN_ALT_MAX, TWILIGHT_LABEL, MAG_LIMIT, EARTH_RADIUS_KM, steps
@@ -313,6 +352,7 @@ what-is-in-your-sky-right-now/
 │   │   ├── sun.ts                  # wraps astronomy-engine: sunAltitudeDeg(obs, t), sunVectorEqd(t)
 │   │   ├── shadow.ts               # inUmbra(posEci, sunVec)
 │   │   ├── magnitude.ts            # phaseAngle, apparentMagnitude (D-1)
+│   │   ├── moon.ts                 # wraps astronomy-engine: moonAt(t, obs), moonGlare(...) (D-80)
 │   │   ├── visibility.ts           # isVisibleAt(...) predicate and reasons
 │   │   ├── passes.ts               # findPasses(satrec, observer, window, thresholds) -> Pass[]
 │   │   ├── darkness.ts             # hasDarkness(observer, window, thresholds) for jobDone (spec §5.6)
@@ -322,6 +362,12 @@ what-is-in-your-sky-right-now/
 │   │   ├── protocol.ts             # WorkerRequest / WorkerResponse unions (§6)
 │   │   ├── handlers.ts             # pure: (state, request, emit) -> void; testable in Node
 │   │   └── passes.worker.ts        # thin: onmessage -> handlers, yields between objects
+│   ├── i18n/                       # FR-I18N-1..6 (D-69); imported by src/ui only
+│   │   ├── en.ts                   # the source of truth; `type Messages = typeof en`
+│   │   ├── es.ts                   # `const es: Messages` — a missing key is a tsc error
+│   │   ├── messages.ts             # the Messages type and the parameter types
+│   │   ├── locale.ts               # resolveLocale(navigator.languages, saved) (FR-I18N-1)
+│   │   └── useT.ts                 # context + hook; also sets documentElement.lang (FR-I18N-5)
 │   ├── data/
 │   │   ├── catalog/
 │   │   │   ├── catalog.json        # the ~30 objects (FR-SAT-1/5)
@@ -334,13 +380,17 @@ what-is-in-your-sky-right-now/
 │   │   │   ├── geocode.ts          # search(q) -> Place[]
 │   │   │   ├── forecast.ts         # cloudForecast(lat, lon) -> WeatherSnapshot
 │   │   │   └── schemas.ts
-│   │   ├── weatherCache.ts         # 30 min per 0.1° cell, in-memory + localStorage
+│   │   ├── moon/
+│   │   │   ├── lore.json           # zodiac lines, full-moon names, per-phase one-liners, both languages (FR-MOON-4)
+│   │   │   └── schema.ts           # zod schema, validated in CI like the catalog
+│   │   ├── passesCache.ts          # idb `passRuns` store, keyed by 0.01° observer cell (D-78, FR-OFF-2)
+│   │   ├── weatherCache.ts         # 30 min per 0.1° cell, in-memory + localStorage; survives its TTL offline (FR-OFF-3)
 │   │   ├── storage.ts              # StorageLike + browserStorage, shared by weatherCache and localPrefs (R10)
 │   │   └── localPrefs.ts           # last observer, chart orientation, etc.
 │   ├── state/
 │   │   ├── store.ts                # Zustand store composed of slices
-│   │   ├── slices/ location.ts  elements.ts  passes.ts  weather.ts  now.ts  prefs.ts
-│   │   ├── passWindow.ts           # the 24 h search window (D-20)
+│   │   ├── slices/ location.ts  elements.ts  passes.ts  weather.ts  now.ts  prefs.ts  live.ts (t, speed, hidden objects)
+│   │   ├── passWindow.ts           # the search window: 72 h in three nights (D-20 amended, D-77)
 │   │   ├── workerClient.ts         # owns the Worker instance; request/response correlation; cancel
 │   │   └── effects.ts              # wiring: on observer change -> recompute; 10 s now tick; refresh timers
 │   ├── lib/                        # presentation helpers, pure
@@ -350,15 +400,23 @@ what-is-in-your-sky-right-now/
 │   │   ├── passSort.ts             # chronological / best-first order, hero pass choice (D-52, D-53)
 │   │   ├── format.ts               # degrees, duration, magnitude, range, clock durations (R6)
 │   │   ├── cloudVerdict.ts         # FR-WX-2/4 weighting and interpolation
-│   │   └── skyGeometry.ts          # az/el -> unit vector on the dome; az/el -> polar x,y (equidistant azimuthal); arc resampling. Shared by both chart views
+│   │   ├── skyGeometry.ts          # az/el -> unit vector on the dome; az/el -> polar x,y (equidistant azimuthal); arc resampling. Shared by both chart views
+│   │   ├── skyBodies.ts            # Sun and Moon at an instant for the live page (the one lib file that imports physics at runtime, D-80)
+│   │   ├── shareLinks.ts           # builds and parses #pass?… and #live?… (D-83, FR-SHARE-1, FR-LIVE-9)
+│   │   ├── layout.ts               # useLayoutMode(): 'compact' | 'wide' over matchMedia (D-72)
+│   │   ├── shortcuts.ts            # the shortcut table, the one keydown listener and the guard (D-73)
+│   │   ├── moonPhrases.ts          # phase name, illumination, glare and lore -> message keys (FR-MOON-3/4/5)
+│   │   └── readiness.ts            # stored passes + forecast -> Readiness (FR-OFF-4)
 │   ├── ui/
 │   │   ├── App.tsx
-│   │   ├── screens/ Home.tsx  PassDetail.tsx  passSelection.ts (hash ↔ selected pass, D-13/D-33)
+│   │   ├── screens/ Home.tsx  PassDetail.tsx  Live.tsx (FR-LIVE-1)  passSelection.ts (hash ↔ selected pass, D-13/D-33)
 │   │   ├── components/
 │   │   │   ├── location/ LocationInput.tsx  PlacePicker.tsx  CoordsInput.tsx  UseMyLocation.tsx
 │   │   │   ├── now/ NowPanel.tsx
 │   │   │   ├── passes/ PassList.tsx  PassCard.tsx  IssHeroCard.tsx  SortToggle.tsx
-│   │   │   ├── guide/ GuideText.tsx  PassNumbers.tsx
+│   │   │   ├── guide/ GuideText.tsx  PassNumbers.tsx  GuidePanel.tsx (the wide shell, D-72)
+│   │   │   ├── live/ StatusStrip.tsx  TimeStripe.tsx (SVG, D-82)  PlaybackControls.tsx  FollowPhone.tsx (FR-LIVE-8)
+│   │   │   ├── moon/ MoonLine.tsx  MoonLore.tsx (labelled as tradition, FR-MOON-5)
 │   │   │   ├── guide/skychart/          # §8 — the isolation boundary
 │   │   │   │   ├── SkyChart.types.ts     # SkyChartProps (the contract both views implement)
 │   │   │   │   ├── SkyChart.tsx          # chooses dome or polar view from the registered SKY_CHART_VIEWS (D-55); the only import the rest of the app uses
@@ -367,21 +425,32 @@ what-is-in-your-sky-right-now/
 │   │   │   │   │   ├── SkyDome.module.css  # glyphcss 0.1.6 base rules (D-61) and the 6.5 × 13 px cell
 │   │   │   │   │   ├── domeGeometry.ts   # pure: passes -> Polygon[] strips, ring/meridian polygons, hotspot anchors
 │   │   │   │   │   ├── camera.ts         # pure: facing/tilt state, rise azimuth -> initial camera, clamp, drag and key steps, grid from width (D-65)
+│   │   │   │   │   ├── domeLayers.ts     # pure: which meshes belong to the base scene and which to the line scene (D-74, FR-DOME-8)
+│   │   │   │   │   ├── palette.ts        # FR-DOME-2 colours read from the tokens through a probe element, re-read on theme change (D-75)
 │   │   │   │   │   └── __snapshots__/SkyDome.golden.txt  # the golden pass raster, reviewed in PRs (§9.1)
 │   │   │   │   └── polar/
 │   │   │   │       └── SkyPolar.tsx      # implements SkyChartProps as an SVG all-sky chart (FR-GUIDE-2b/4); exports POLAR_VIEW
 │   │   │   ├── weather/ CloudBadge.tsx
 │   │   │   └── common/ Countdown.tsx  Banner.tsx  SectionHeading.tsx (character-rule titles, D-49)  Footer.tsx (attributions)
+│   │   │       LanguageToggle.tsx  ThemeToggle.tsx  ShortcutsOverlay.tsx (D-73)  ShareButton.tsx
+│   │   │       ReadinessLine.tsx (FR-OFF-4)  UpdateBanner.tsx (FR-OFF-1)  InstallHint.tsx (FR-OFF-6)
 │   │   └── styles/ tokens.css  global.css
 │   └── vite-env.d.ts
 ├── scripts/
 │   ├── validate-iss.ts             # Task Zero (§10) — runs the physics module in Node
 │   ├── check-catalog.ts            # live: every catalog NORAD id present in visual|stations groups
 │   ├── bundle-budget.ts            # gzipped chunk sizes against the §11 budgets, after `vite build` (D-67)
-│   └── contrast.ts                 # WCAG ratios of the tokens.css text pairs (D-50)
+│   ├── contrast.ts                 # WCAG ratios of the tokens.css text pairs, both themes (D-50, D-84)
+│   └── sdd-run.ts                  # the v1 task driver: worktree + one-shot session per task (§16, D-86)
+├── spike/
+│   ├── horizon-panorama/           # R14 candidate second view, kept
+│   └── dome-composition/           # FR-DOME-8: every knob as a URL parameter (the first v1 task)
+├── logs/sdd/                       # driver logs, one per task session (§16); git-ignored
 ├── docs/
 │   ├── RELEASE.md                  # release checklist: headers, phone performance (FR-GUIDE-6), deploy-day Heavens-Above comparison
-│   ├── screenshots/                # per-task 390 px screenshots
+│   ├── screenshots/                # per-task captures at 390 px and 1280 px, both languages, both themes
+│   ├── mockups/                    # the owner-approved desktop reference (FR-DESK-5)
+│   ├── dome-composition/           # the FR-DOME-8 spike's captures, drag rates and findings
 │   └── spike-glyphcss/             # R14 findings, rasters and screenshots
 ├── tests/
 │   ├── fixtures/
@@ -468,6 +537,8 @@ export interface Pass {
   twilight: boolean;                        // FR-VIS-7: sun in (−12°, −6°] at peak
   track: PassPoint[];                       // 10 s samples over [start, end] for the sky chart
   elementsEpochMs: EpochMs;                 // provenance
+  moonAtPeak: MoonState | null;             // v1: null when the Moon is below the horizon at peak
+  moonGlare: MoonGlare;                     // v1, FR-MOON-2
 }
 
 export interface NowItem {
@@ -478,7 +549,7 @@ export interface NowItem {
   visibleUntil?: EpochMs; endReason?: PassBoundaryReason;
 }
 export type SkyState = 'day' | 'bright-twilight' | 'dark';   // sun > −6°, (−12°, −6°], ≤ −12°
-export interface NowState { t: EpochMs; sunAltDeg: number; sky: SkyState; items: NowItem[] }
+export interface NowState { t: EpochMs; sunAltDeg: number; sunAzDeg: number; sky: SkyState; items: NowItem[]; moon: MoonState }  // sunAzDeg and moon added in v1 (FR-DOME-6, FR-MOON-3)
 
 // src/model/weather.ts
 export interface HourlyCloud { t: EpochMs; totalPct: number; lowPct?: number; midPct?: number; highPct?: number }
@@ -490,6 +561,44 @@ export interface WeatherSnapshot {
 }
 export type CloudState = 'clear' | 'partly' | 'obscured' | 'unknown';
 export interface CloudVerdict { state: CloudState; effectivePct: number | null; at: EpochMs }
+
+// ---- v1 ----
+
+// src/model/prefs.ts (additions)
+export type Locale = 'en' | 'es';                 // FR-I18N-1
+export type Theme = 'dark' | 'night';             // FR-THEME-1
+
+// src/model/moon.ts
+export type MoonPhaseName =
+  | 'new' | 'waxing-crescent' | 'first-quarter' | 'waxing-gibbous'
+  | 'full' | 'waning-gibbous' | 'last-quarter' | 'waning-crescent';
+export interface MoonState {
+  t: EpochMs;
+  phaseAngleDeg: number;                    // 0 = new, 180 = full
+  illuminatedFraction: number;              // 0..1
+  phase: MoonPhaseName;                     // band boundaries are constants (FR-MOON-1)
+  azDeg: number; elDeg: number;             // topocentric, geometric like the Sun (D-2)
+  eclipticLonDeg: number;                   // tropical, for the zodiac sign (FR-MOON-4)
+}
+export interface MoonGlare { glare: boolean; separationDeg: number | null }  // FR-MOON-2
+
+// src/model/offline.ts
+export interface PassRun {                  // FR-OFF-2, D-78
+  cellKey: string;                          // observer rounded to 0.01°, "-38.93,-67.99"
+  observer: Observer;
+  window: TimeWindow;                       // 72 h from computedAt
+  computedAt: EpochMs;
+  oldestElementsEpochMs: EpochMs;           // provenance for the FR-SAT-4 banner offline
+  passes: Pass[];
+}
+export interface Favourite {                // FR-OFF-7, D-85
+  id: string; observer: Observer; addedAt: EpochMs; lastUsedAt: EpochMs;
+}
+export interface Readiness {                // FR-OFF-4
+  offlineUntil: EpochMs | null;             // min(last pass end, forecast end)
+  storedAt: EpochMs | null;
+  missing: ('elements' | 'forecast' | 'passes')[];
+}
 ```
 
 Persistence:
@@ -497,9 +606,11 @@ Persistence:
 | Store | Mechanism | Key | Content |
 |---|---|---|---|
 | Elements | IndexedDB (`idb`), DB `wiys`, store `elementGroups` | `group` | `CachedGroup` (raw, unfiltered — D-9) |
-| Last observer, sort order, chart view, chart orientation | `localStorage` | `wiys:prefs:v1` | JSON |
+| Passes *(v1)* | IndexedDB, store `passRuns` | `cellKey` | `PassRun`; at most two kept, pruned on write (D-78) |
+| Last observer, sort order, chart view, chart orientation; *(v1)* locale, theme, favourites, hidden-objects toggle, install-hint dismissal | `localStorage` | `wiys:prefs:v1` | JSON; v1 fields are optional, so an existing prefs object stays readable (no key bump) |
 | Weather | in-memory `Map` + `localStorage` `wiys:wx:v1` | `cellKey` | `WeatherSnapshot`, evicted after 30 min |
 | Geocode results | in-memory `Map` | normalised query | `Place[]`, session only |
+| App shell *(v1)* | Cache Storage via the service worker | Workbox precache manifest | HTML, JS, CSS, the braille font, manifest, icons (FR-OFF-1); never data responses |
 
 ---
 
@@ -524,12 +635,12 @@ The worker is a single module worker (`new Worker(new URL('./passes.worker.ts', 
 export type WorkerRequest =
   | { type: 'loadElements'; requestId: string; records: SatelliteRecord[] }
   | { type: 'computePasses'; jobId: string; observer: Observer; window: TimeWindow; thresholds: VisibilityThresholds }
-  | { type: 'computeNow'; requestId: string; observer: Observer; t: EpochMs; thresholds: VisibilityThresholds }
+  | { type: 'computeNow'; requestId: string; observer: Observer; t: EpochMs; thresholds: VisibilityThresholds; includeHidden?: boolean }  // includeHidden added in v1 (D-76, FR-LIVE-6)
   | { type: 'cancel'; jobId: string };
 
 export type WorkerResponse =
   | { type: 'elementsLoaded'; requestId: string; loaded: NoradId[]; rejected: { noradId: NoradId; reason: string }[] }
-  | { type: 'passes'; jobId: string; noradId: NoradId; passes: Pass[] }          // streamed, one per object
+  | { type: 'passes'; jobId: string; noradId: NoradId; nightIndex: number; passes: Pass[] }   // streamed, one per (night, object) in v1 (D-77)
   | { type: 'progress'; jobId: string; done: number; total: number }
   | { type: 'jobDone'; jobId: string; cancelled: boolean; elapsedMs: number; hasDarkness: boolean } // hasDarkness added in R5 (§2.6)
   | { type: 'nowState'; requestId: string; state: NowState }
@@ -541,7 +652,8 @@ export type WorkerErrorCode = 'NO_ELEMENTS' | 'BAD_OMM' | 'PROPAGATION_FAILED' |
 Rules:
 
 - **Correlation.** Every request carries a `jobId` (long-running) or `requestId` (one-shot). Responses echo it. The client ignores responses for IDs it no longer tracks (stale jobs after cancel).
-- **Streaming.** `computePasses` emits one `passes` message per object as soon as that object is finished, then `jobDone`. The UI renders progressively; the ISS is processed first (catalog `featured` objects go first in the loop).
+- **Streaming.** `computePasses` emits one `passes` message per object as soon as that object is finished, then `jobDone`. The UI renders progressively; the ISS is processed first (catalog `featured` objects go first in the loop). *(v1, D-77)* With the 72 h window the loop is night-outer, object-inner: all of night 1 is emitted (featured first) before night 2 begins, so tonight's list is complete in the MVP's time and `progress` counts object × night pairs. `nightIndex` is 0, 1 or 2 and is what FR-OFF-2's grouping uses.
+- **Hidden objects (v1, FR-LIVE-6).** `computeNow { includeHidden: true }` returns every object above the horizon at `t`, visible or not, each with its `NowItem.visible` flag and the reason fields already in the model. Without the flag the response is unchanged from MVP. There is no `computeAt` request: `computeNow` has always taken an arbitrary `t` (D-76).
 - **Cancellation (D-6).** The handler loop `await`s a zero-delay yield (`MessageChannel` ping) between objects so queued `cancel` messages are processed. A cancelled job still emits `jobDone { cancelled: true }`. The client auto-cancels the previous `computePasses` job when issuing a new one.
 - **Errors.** `BAD_OMM` is per-object and reported inside `elementsLoaded.rejected`, never fatal. `PROPAGATION_FAILED` for one object skips that object and continues. `INTERNAL` aborts the job.
 - **Serialisation.** All payloads are plain JSON-compatible objects (structured clone, no class instances, no `Date`). `satrec` never crosses the boundary.
@@ -558,6 +670,7 @@ Inputs: one `satrec`, `Observer`, `TimeWindow`, `VisibilityThresholds`, `stdMag`
 5. **Peak** = sample with max `elDeg` inside the visible interval, refined by a parabola through its neighbours (D-7).
 6. **Magnitude** = value at peak (D-1). Drop the pass if `> magLimit`.
 7. `twilight = sunAltAtPeak > twilightLabelSunAltDeg`. `track` = every 10th dense sample plus the exact start/peak/end points.
+8. *(v1)* `moonAtPeak = moonAt(peak.t, observer)` when the Moon is above the horizon, else `null`; `moonGlare` from FR-MOON-2's three conditions with the constants from `physics/constants.ts` (D-80). One Moon evaluation per pass, not per sample — the Moon moves ~0.5° in the length of a pass, far below the 30° separation threshold.
 
 Shadow test (`physics/shadow.ts`): with `r` the satellite ECI position and `ŝ` the sun unit vector, `d = r·ŝ`; in umbra iff `d < 0` and `|r − d·ŝ| < 6371.0`.
 
@@ -602,6 +715,38 @@ loadElements():
 
 Validated at build time by `schema.ts` (zod) in a Vitest test, so a malformed entry fails CI. `scripts/check-catalog.ts` (manual / scheduled, live network) confirms every `noradId` is present in `visual` or `stations` and prints the ones that are not, so decayed objects get removed. Initial membership is OQ-2 and is produced during Task Zero.
 
+### 7.5 Stored passes *(v1, FR-OFF-2/4/5, D-78)*
+
+`data/passesCache.ts` owns the `passRuns` IndexedDB store.
+
+```
+onJobDone(job):                                   # every successful compute, no user action (FR-OFF-5)
+  put({ cellKey: cell(observer), observer, window, computedAt: now,
+        oldestElementsEpochMs, passes })
+  prune to the two most recent runs
+
+loadForObserver(observer):
+  run = get(cell(observer))
+  return run when run.window.endMs > now, else null   # expired runs are shown as stored, with their age
+```
+
+- `cell(observer)` rounds latitude and longitude to 0.01°. A pass looks the same anywhere inside that cell, which is the same argument §2.2 of the spec makes about city-level geocoding.
+- Offline start-up order: prefs → stored run for the last observer → render the list from it → try the network. With no network the list is what was stored, and `ReadinessLine.tsx` says how old it is.
+- `lib/readiness.ts` computes `Readiness` from the run and the stored forecast: `offlineUntil = min(last pass end, forecast end)`, `missing` naming whichever of elements, forecast or passes is absent (FR-OFF-4).
+- The store holds passes, not satrecs; a recompute for a *new* observer still needs the elements from the `elementGroups` store, which is what FR-X-4 has always required.
+
+### 7.6 Forecast, offline behaviour *(v1, FR-OFF-3)*
+
+`forecast_days` goes from 3 to 4 so the response covers the 72 h window with a margin; the query is otherwise unchanged, still one call per fetch. The snapshot is persisted (it already was, in `localStorage` under `wiys:wx:v1`) and, when the network fails, is used past its 30 min TTL with `fetchedAt` shown on the badge as "as of <time>". Hours past the response's end are `unknown`, exactly as a missing snapshot is. Online behaviour and the 30 min TTL are unchanged (FR-WX-5).
+
+### 7.7 Service worker and manifest *(v1, FR-OFF-1/6, D-79)*
+
+`vite-plugin-pwa`, `generateSW`, `registerType: 'prompt'`, `runtimeCaching: []`, `navigateFallback: 'index.html'`. The precache list is the build output plus the braille font, the manifest and the icons. Registration happens in `main.tsx` after the first render, and only in production builds.
+
+- **Update (OQ-14).** A waiting worker sets a store flag; `UpdateBanner.tsx` offers "new version ready — reload"; the button posts `SKIP_WAITING` and reloads. Nothing swaps under a running live page.
+- **Data requests are never intercepted.** With `runtimeCaching: []` Workbox generates no fetch handler for cross-origin requests, so CelesTrak and Open-Meteo responses reach the network or fail, and their caching stays in IndexedDB where FR-SAT-6 and FR-WX-5 put it. A test asserts the generated `sw.js` contains no `registerRoute` for those hosts.
+- **Manifest.** One name in one language (FR-OFF-6 says it is not localised), `display: standalone`, the dark theme colour, icons at 192 and 512 px. `InstallHint.tsx` shows once on `beforeinstallprompt`, and on iOS — where that event never fires — shows the "Add to Home Screen" note instead, keyed off `navigator.standalone` being defined and false. Dismissal is remembered in prefs.
+
 ---
 
 ## 8. Sky Chart Component (spec UX-1)
@@ -620,6 +765,11 @@ export interface SkyChartProps {
   now?: EpochMs;                        // optional: marks the satellite's current position on its arc
   initialFacingAzDeg?: number;          // default: highlighted pass's start.azDeg (D-17)
   className?: string;
+  // ---- v1 ----
+  sun?: { azDeg: number; altDeg: number };   // FR-DOME-6 glow; drawn while altDeg is in [−18, 0]
+  moon?: MoonState | null;                   // FR-DOME-6 marker with a phase glyph
+  hidden?: NowItem[];                        // FR-LIVE-6 dimmed objects with reasons; empty by default
+  fill?: boolean;                            // FR-DOME-1 / FR-LIVE-1: no frame, fill the box
 }
 
 export interface SkyChartView {         // both implementations export this shape
@@ -696,7 +846,47 @@ Failing 3 with no configuration fix triggers D-16's replacement path before the 
 |---|---|---|
 | P-OQ-1 | Camera model: external over-the-shoulder view (D-17) vs. observer-centred interior view, and (since the R13 review) whether a first-person horizon panorama reads better than either dome camera as the primary view. The interior view is closest to the spec's wording ("the horizon they'll face") but depends on undocumented library behaviour and gives a fish-eye feel on an orthographic grid. | **Resolved (D-60):** external view; no interior camera exists in glyphcss 0.1.6. The horizon panorama is the observer-centred view; the owner picks the primary view from the R14 screenshots and R15 is re-scoped accordingly. |
 | P-OQ-2 | Cell aspect and grid size on phones: 60×30 keeps text legible but quantises angles to ~5°; 100×50 is finer but characters become tiny. | **Resolved (D-59):** braille char mode, 60×30 at 390 px (6.5 px cells), autosize on wider screens; the grid carries no text, so cells may shrink; exact angles are the numeric table's job. |
-| P-OQ-3 | Colour under a strict CSP (spike item 5). | **Resolved (D-61):** monochrome; `useColors` writes inline styles. glyphcss's injected base stylesheet must be shipped in our CSS. |
+| P-OQ-3 | Colour under a strict CSP (spike item 5). | **Resolved (D-61), reopened and re-resolved by V1-4 / D-75:** the CSP gains `style-src-attr 'unsafe-inline'` and nothing else, so `useColors` works; the injected base stylesheet stays shipped in our CSS either way. |
+| P-OQ-4 *(v1)* | Cost of the two-scene dome (OQ-15): a second rasterisation for the base layer, one `<span>` per colour run in the line layer, and a finer density on the highlighted pass. | **Open — the FR-DOME-8 spike answers it**, under the D-62 method, for every candidate composition. Fallbacks in order: `colorTolerance` 24→128, `interactiveDownscale`, dropping the base layer while dragging. |
+
+### 8.7 Second pass: the layered dome *(v1, FR-DOME-1..8)*
+
+The MVP dome (§8.3) is one wireframe scene in one colour. The v1 dome is two scenes stacked in one grid cell, sharing the camera state that `SkyDome.tsx` already holds (D-64, D-74):
+
+| Layer | Scene | Contents | Notes |
+|---|---|---|---|
+| Base | `GlyphScene mode="solid"`, `pointer-events: none` | Ground disc below the horizon (FR-DOME-3), sky bowl shaded from horizon to zenith, Sun glow (FR-DOME-6) | Directional light set to the Sun's real direction, so twilight brightens the correct side of the sky (FR-DOME-8a). Coarser density than the line layer. |
+| Lines | `GlyphScene mode="wireframe" charMode="braille"` | Horizon ring with 10° ticks and 30° numbers, 30°/60° rings labelled, meridians, pass arcs, markers, arrowhead, the Moon marker (FR-DOME-4, FR-DOME-6) | The highlighted pass and the live marker get a finer per-mesh density (FR-DOME-8c) so the arc is the sharpest thing on screen. |
+| Effect | inside the line scene | At most one: a soft pulse on the live marker (FR-DOME-8d) | Dropped automatically while a drag is in progress if the measured rate is under the FR-GUIDE-6 target. |
+
+- **Alignment.** Both scenes get identical grid dimensions and identical cell metrics from `camera.layoutFor(width)` (D-65). A mismatch of one cell is visible immediately, so the raster snapshot test (§9.1) snapshots *both* layers.
+- **No frame, fills the box (FR-DOME-1).** `layoutFor` takes the container's width and height; the column count grows with the width instead of staying at 60, so the desktop panel gets a finer drawing rather than a scaled-up phone one. The 60-column phone layout and its 6.5 × 13 px cell stay the small end of the same function, and the R15 fit search (half-pixel tolerance) is unchanged.
+- **Colour (FR-DOME-2).** `palette.ts` (D-75) returns one colour per meaning; every mesh takes its colour from that map and its weight from the same options object, so the monochrome reading survives (FR-X-5) and the night theme is a token swap.
+- **Labels (FR-DOME-3).** Compass names keep their hotspots; a label whose box would overlap another moves along its ring in the fixed order compass, peak, rise, end. That resolution is pure and lives in `domeGeometry.ts`, so it is unit-tested rather than eyeballed.
+- **Live marker (FR-DOME-5).** Interpolated from `Pass.track`; the flown part of the arc is a second strip in the "flown" colour. No worker call — on the detail sheet it moves at the 10 s tick, on the live page at the playback rate.
+- **Default view (FR-DOME-7).** `DEFAULT_CHART_VIEW` goes back to `dome` (D-68 closed by V1-4). The polar view gains the same Sun, Moon, live marker and palette, so both views keep telling one story; its SVG makes that cheap.
+- **The composition is not decided here.** FR-DOME-8 requires the spike in `spike/dome-composition/` — every knob as a URL parameter, captures at 390 px and 1280 px of the golden grazing pass and the synthetic high pass, a D-62 drag rate per candidate, and a findings file the owner picks from. Tilt default (35°–55°), which meridians are drawn, weights, exact colours and whether the pulse survives are its outputs. **The dome implementation task cannot be cut until that file exists.**
+
+### 8.8 The live page *(v1, FR-LIVE-1..10)*
+
+```
+Live.tsx
+ ├── owns t (EpochMs) and speed (1 | 60 | 600 | 3600) and playing (D-81)
+ ├── SkyChart { passes: window(now, +24h), now: t, sun, moon, hidden, fill: true }   # FR-LIVE-10
+ ├── StatusStrip   { t, sky, cloud verdict at t, count visible, moon, speed }
+ └── TimeStripe    { now, now+24h, passes, t, onScrub }                              # SVG, D-82
+```
+
+- **One geometry.** The page draws satellites only through `SkyChartProps` (FR-LIVE-10), the same rule FR-GUIDE-2b set for the polar view. It passes `now = t`; nothing in the chart knows the difference between the detail sheet and the live page.
+- **Playback (D-81).** `requestAnimationFrame`, `t += wallDelta × speed`, clamped to the span, stopping at the end. At 3600× the whole 24 h takes 24 s and the chart re-rasterises on every frame — that, not the arithmetic, is the FR-LIVE-5 target, and it is the second thing the FR-DOME-8 spike's numbers have to survive.
+- **Hidden objects (FR-LIVE-6).** Off by default, remembered in prefs. On, they are a `computeNow { includeHidden: true }` throttled to one request per 250 ms of wall time, with a stale response dropped if `t` moved past it. Every other marker comes from the tracks.
+- **Sun and Moon.** `lib/skyBodies.ts` evaluates them at most once per second of wall time regardless of speed (FR-LIVE-5); at 3600× that is one evaluation per simulated hour, which is finer than either body needs.
+- **Layout and wake lock (FR-LIVE-7).** Portrait stacks; landscape on a phone puts the dome left, strip and stripe right — a `useLayoutMode`-style media query, not a device sniff. The wake lock is requested on visible and released on hidden through `document.visibilitychange`, and absent APIs render nothing rather than a disabled control.
+- **Compass follow (FR-LIVE-8).** `FollowPhone.tsx` owns the permission request (iOS `requestPermission()` must be called from the click, so it is in the handler), maps `absolute` / `webkitCompassHeading` to `facingAzDeg`, and turns itself off on the first drag. Hidden entirely when `DeviceOrientationEvent` is absent.
+- **URL state (FR-LIVE-9).** `lib/shareLinks.ts` both ways (D-83); the hash is written at most twice a second while scrubbing and never while playing.
+- **Inert states (FR-LIVE-1).** No observer or no elements renders one line and the return control, not an empty dome.
+
+---
 
 ## 9. Testing Strategy
 
@@ -719,6 +909,20 @@ Failing 3 with no configuration fix triggers D-16's replacement path before the 
 | E2E | Playwright, `page.clock` fixed, routes mocked to fixtures | CI | Coordinates → pass list → detail; geocode pick list; offline reload shows cached passes. |
 | Performance budget | Vitest | CI | 30 objects × 24 h in < 1.5 s in CI Node (proxy for < 1 s on a desktop and ≈ 3 s on a phone). |
 | Live contract | Vitest, `LIVE=1` | Scheduled daily, non-blocking | CelesTrak and Open-Meteo responses still parse; catalog membership check; CORS header still `*`. |
+| **v1** — Messages | Vitest + `tsc` | CI | `es` is typed as `Messages`, so a missing key is a build failure, not a test (FR-I18N-2). The test covers what types cannot: every parameterised message renders with a fixture parameter set in both languages, no message is the empty string, and no Spanish string contains `tú`, `vos`, `usted`, `tu ` or an imperative from a small banned list (FR-I18N-3). |
+| Locale resolution | Vitest | CI | `resolveLocale` over `['es-AR','en']`, `['en-GB']`, `['pt-BR']`, and a saved preference beating all of them (FR-I18N-1). |
+| Formatting | Vitest | CI | `Intl` output for both locales in a fixed zone: dates, times, numbers, lists; compass abbreviations identical in both, spelled-out names translated (FR-I18N-4). |
+| Layout | Vitest + RTL, `matchMedia` stubbed | CI | Wide renders two columns, the guide as a panel, the list at ≥ 44 cells; compact keeps the sheet; the open pass survives a mode switch (FR-DESK-1/2/3, D-71/D-72). The breakpoint literal is checked against the cell token in `tests/styles/`. |
+| Shortcuts | Vitest + RTL | CI | Each key does its thing; none fires while an input, textarea or `[contenteditable]` has focus, while a modifier is held, or during IME composition; the overlay lists exactly the registered table (FR-DESK-4, D-73). |
+| Dome layers | Vitest + RTL (jsdom) | CI | Both scenes get identical grid dimensions and cell metrics; `domeLayers` assigns each mesh to exactly one layer; the label-collision resolution moves the expected label in the expected order (FR-DOME-3/8, D-74). Raster snapshots cover both layers. |
+| Palette | Vitest + RTL | CI | `palette.ts` returns a value for every FR-DOME-2 meaning in both themes and re-reads on a `data-theme` change; no colour is hard-coded in TypeScript (D-75). |
+| Moon | Vitest | CI | `moonAt` against published phase, illumination, altitude and azimuth for fixed instants; phase-name boundaries at each band edge; `moonGlare` over a truth table of the three conditions; `lore.json` validates and has an entry for every phase and every sign in both languages (FR-MOON-1/2/4). |
+| Live page | Vitest + RTL, then Playwright | CI | Scrub sets `t` and the strip follows; arrow keys move 1 min and 10 min; playback advances `t` by wall time × speed with a stubbed rAF clock and stops at the span's end; the hidden-objects request is throttled to one per 250 ms; the URL hash round-trips (FR-LIVE-3/4/5/6/9, D-81). |
+| Share links | Vitest | CI | Build → parse round-trip for both forms; a pass no longer in the window falls back to the nearest pass of that satellite, then to the message (FR-SHARE-1/3). |
+| Offline | Vitest + `fake-indexeddb`, Playwright offline | CI | A finished job writes a `PassRun` and prunes to two; a stored run renders with its age when the network is down; the forecast survives its TTL offline with "as of"; `Readiness` names what is missing (FR-OFF-2/3/4/5, D-78). |
+| Service worker | Vitest over the build output | CI | The generated `sw.js` precaches the shell and contains no route for `celestrak.org` or `open-meteo.com`; the manifest parses and lists both icons (FR-OFF-1/6, D-79). |
+| Themes | Vitest | CI | The contrast table is recomputed for **both** themes: text ≥ 4.5 : 1, non-text ≥ 3 : 1; every token defined in `dark` has a `night` value (FR-THEME-1/2/3, D-84). |
+| Captures | Playwright (`visual-review`) | Per task | 390 px and 1280 px, both languages, both themes, filed under `docs/screenshots/` (FR-DESK-5). |
 
 ### 9.2 Physics unit references
 
@@ -728,6 +932,9 @@ Failing 3 with no configuration fix triggers D-16's replacement path before the 
 - `shadow.ts`: constructed geometry — satellite on the anti-sun axis at 400 km is in umbra; the same radius perpendicular to the axis is lit; a sun-side point is lit.
 - `magnitude.ts`: anchor `m(1000 km, 90°) = stdMag`; `m(2000 km, 90°) = stdMag + 1.505`; full phase brighter than half phase (D-1).
 - `passes.ts`: a synthetic circular polar orbit with a fabricated OMM produces passes with symmetric rise/set elevations, correct duration ordering, and no pass when the observer is in daylight for the whole window.
+- `moon.ts` *(v1)*: illuminated fraction and phase angle at a known new and a known full moon; altitude and azimuth at a fixed instant and place against a published value within 0.1°; ecliptic longitude → zodiac sign at two band edges.
+
+The golden fixtures from R1 are unchanged and must still pass: the 72 h window (D-77) and the Moon fields are additions to the pipeline, not changes to it, and `passes.golden.test.ts` keeps its 24 h windows.
 
 ### 9.3 Determinism rules
 
@@ -791,15 +998,19 @@ Two further observer locations (one northern mid-latitude, one near the equator)
 
   ```
   /*
-    Content-Security-Policy: default-src 'self'; connect-src 'self' https://celestrak.org https://api.open-meteo.com https://geocoding-api.open-meteo.com; img-src 'self' data:; worker-src 'self'; style-src 'self'; script-src 'self'; frame-ancestors 'none'
+    Content-Security-Policy: default-src 'self'; connect-src 'self' https://celestrak.org https://api.open-meteo.com https://geocoding-api.open-meteo.com; img-src 'self' data:; worker-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; script-src 'self'; manifest-src 'self'; frame-ancestors 'none'
     Referrer-Policy: strict-origin-when-cross-origin
     Permissions-Policy: geolocation=(self)
   /assets/*
     Cache-Control: public, max-age=31536000, immutable
   ```
 
+  *(v1, D-75)* `style-src-attr 'unsafe-inline'` is the **only** relaxation, added so glyphcss can colour glyphs (V1-4, FR-DOME-2); `manifest-src 'self'` is added for the PWA manifest. `style-src-elem` and `script-src` stay `'self'`, and the deploy test pins the whole header string and asserts those two directives specifically, so a future "just add unsafe-inline" cannot slip through. The service worker needs no directive of its own: `worker-src 'self'` already covers it.
+
 - **CI** (`ci.yml`): typecheck → lint → unit + golden + component → build → Playwright. **`live-contract.yml`**: daily, `LIVE=1`, never blocks merges; opens an issue on failure.
 - **Bundle budget:** main chunk ≤ 150 KB gzipped **excluding the sky-chart chunk**; the sky-chart chunk (`@glyphcss/react` + `@glyphcss/core` + `dome/`) is code-split behind `React.lazy` in `SkyChart.tsx` and budgeted at ≤ 100 KB gzipped (R14 measured 97 KB; the 60 KB planned before the spike is not reachable from outside the library, D-63); worker chunk (satellite.js + astronomy-engine) ≤ 120 KB gzipped, loaded once. Checked by `npm run bundle:budget` (`scripts/bundle-budget.ts`, D-67) after the build in CI, as a warning; `BUNDLE_STATS=1 npm run build` adds `rollup-plugin-visualizer`'s treemap under `bundle-stats/`. Measured by R15: main 109.2 KB, chart 92.9 KB, worker 34.2 KB.
+
+  *(v1)* The budgets are re-set for the new chunks, as the SPEC §9 definition of done requires: **main ≤ 170 KB** gzipped (the second language catalog, the live page's shell, the offline and share code — the live page itself is a lazy route, so only its entry lands here), **chart ≤ 110 KB** (colour and the second scene are configuration, not new dependencies), **live route ≤ 40 KB** as its own lazy chunk, **worker ≤ 130 KB** (the Moon adds no dependency; `astronomy-engine` is already there), **service worker ≤ 15 KB** (Workbox's runtime, outside the main budget by construction). Both catalogs ship in the main chunk: one language is a few kilobytes of strings, and lazy-loading a language would make the switch flash.
 
 ### 11.1 Runtime dependencies
 
@@ -812,7 +1023,10 @@ Two further observer locations (one northern mid-latitude, one near the equator)
 | `idb` | 8.x | ISC | IndexedDB wrapper (FR-SAT-6) | `src/data/elementsCache.ts` | Low. |
 | `zod` | 3.x/4.x | MIT | Response and catalog schemas | `src/data` | Low. |
 | **`@glyphcss/react`** (+ `@glyphcss/core`) | **0.1.x** (0.1.6 at time of writing) | MIT | ASCII 3D dome rasteriser (D-16, §8) | **`src/ui/components/guide/skychart/dome/` only** | **Pre-1.0 API** — minor releases may break props; pin exact version, upgrade deliberately with the raster snapshot as the tripwire. **Single-maintainer fork** (of polycss) — bus factor 1; vendor-fork plan: the package is small and MIT, so forking into `vendor/` is the fallback if it goes dormant. **Small user base** — few battle-tested edge cases (mobile touch, RTL text, high-DPI), so the spike (§8.5) and the interaction e2e carry more weight than usual. Handedness fixed by R14 (Z up, D-58); no interior camera (D-60); coloured mode writes inline styles and the base stylesheet is injected, both blocked by the strict CSP (D-61); the chart chunk is 97 KB gzipped (D-63). |
+| **`vite-plugin-pwa`** *(v1)* | 0.20.x / 1.x | MIT | Service worker and precache manifest (D-79, FR-OFF-1/6) | build config only; the generated `sw.js` imports nothing of ours | Workbox's weight lands in the service worker, not the main chunk. `runtimeCaching: []` keeps it out of the data path; a test asserts that. Build-time only — no runtime API surface for us to depend on. |
 | `vitest`, `@testing-library/react`, `@playwright/test`, `msw`, `fake-indexeddb`, `jest-axe` | current | MIT | Tests (dev only) | — | — |
+
+No i18n, routing, date or state dependency is added for v1: language is two typed objects (D-69), routes stay in the hash (D-13), dates stay `Intl` (D-3), and the Moon reuses `astronomy-engine` (D-80).
 
 ---
 
@@ -844,6 +1058,26 @@ Two further observer locations (one northern mid-latitude, one near the equator)
 | FR-X-4 | IndexedDB cache + in-memory fallback; e2e offline test |
 | FR-X-5 | component tests with `jest-axe`; chart text duplication in `PassNumbers.tsx` |
 | Spec §5.6 clock skew | **Not in MVP** (D-11) |
+| **v1** — FR-I18N-1..6 | `src/i18n/*` (D-69), `lib/timeFormat.ts`, `lib/phrases.ts` (returns keys, not sentences), `ui/components/common/LanguageToggle.tsx`, `main.tsx` (D-70) |
+| FR-DESK-1..4 | `ui/styles/global.css` + `tests/styles` (D-71), `lib/layout.ts`, `ui/screens/Home.tsx`, `ui/components/guide/GuidePanel.tsx` (D-72), `lib/shortcuts.ts`, `ui/components/common/ShortcutsOverlay.tsx` (D-73) |
+| FR-DESK-5 | `docs/mockups/` (the owner-approved reference), `visual-review` captures at 1280 px |
+| FR-DOME-1..7 | `dome/camera.ts` (`layoutFor` from width and height), `dome/palette.ts`, `dome/domeGeometry.ts`, `dome/SkyDome.tsx`, `polar/SkyPolar.tsx` (same markers and palette) — §8.7 |
+| FR-DOME-8 | `spike/dome-composition/` and `docs/dome-composition/` first; then `dome/domeLayers.ts` + the two scenes in `SkyDome.tsx` (D-74) |
+| FR-LIVE-1..10 | `ui/screens/Live.tsx`, `ui/components/live/*`, `state/slices/live.ts`, `lib/skyBodies.ts`, `lib/shareLinks.ts`, `worker` `computeNow { includeHidden }` (D-76, D-81, D-82) |
+| FR-OFF-1, FR-OFF-6 | `vite.config.ts` (`vite-plugin-pwa`, D-79), `public/manifest.webmanifest`, `ui/components/common/UpdateBanner.tsx`, `InstallHint.tsx` |
+| FR-OFF-2, FR-OFF-5 | `data/passesCache.ts` (D-78), `state/slices/passes.ts`, `state/passWindow.ts` (72 h, D-77) |
+| FR-OFF-3 | `data/openMeteo/forecast.ts` (`forecast_days=4`), `data/weatherCache.ts` |
+| FR-OFF-4 | `lib/readiness.ts`, `ui/components/common/ReadinessLine.tsx` |
+| FR-OFF-7 | `data/localPrefs.ts` (D-85), `ui/components/location/*` |
+| FR-OFF-8 | `state/effects.ts` failure paths, `data/*` catch branches, existing banners |
+| FR-MOON-1..3 | `physics/moon.ts` (D-80), `physics/constants.ts`, `NowState.moon`, `Pass.moonAtPeak`, `ui/components/moon/MoonLine.tsx` |
+| FR-MOON-4/5 | `data/moon/lore.json` + `schema.ts`, `lib/moonPhrases.ts`, `ui/components/moon/MoonLore.tsx` |
+| FR-SHARE-1..3 | `lib/shareLinks.ts` (D-83), `ui/components/common/ShareButton.tsx`, `screens/passSelection.ts` |
+| FR-THEME-1..3 | `ui/styles/tokens.css` `[data-theme="night"]` (D-84), `main.tsx` (D-70), `scripts/contrast.ts`, `dome/palette.ts` |
+| FR-VIS-1 / FR-WX-1 amended (72 h) | `state/passWindow.ts`, `worker/handlers.ts` (D-77), `data/openMeteo/forecast.ts` |
+| FR-GUIDE-5 amended (CSP) | `public/_headers`, `tests/deploy` (D-75) |
+| FR-X-4 amended (shell offline) | `vite-plugin-pwa` (D-79), `data/passesCache.ts` (D-78) |
+| Spec §5.7 `computeAt` | **Not needed** — `computeNow` already takes an instant (D-76); see §15 |
 
 ---
 
@@ -861,15 +1095,23 @@ Two further observer locations (one northern mid-latitude, one near the equator)
 | `@glyphcss/react` cannot hit FR-GUIDE-6 on phones, or a needed capability is missing | Medium | Guide UI blocked or dome dropped | Spike before guide UI (§8.5); D-16 replacement triggers; polar view is a complete fallback behind the same props. |
 | `@glyphcss/react` pre-1.0 breaking change or abandonment | Medium | Upgrade cost / stuck on old version | Exact version pin; raster snapshot as tripwire; MIT fork into `vendor/` if dormant (D-16). |
 | Dome frame convention wrong (mirrored compass) | Medium (undocumented axes) | Users face the wrong way — worst possible bug for this product | Single `toDome` function; spike item 1; contract test asserts N/E/S/W anchor positions; e2e checks "facing" readout against the pass's rise azimuth. |
+| **v1** — The layered dome cannot hold the FR-GUIDE-6 drag rate or FR-LIVE-5's 3600× target | Medium | The signature view gets slower than the MVP's, or the live page stutters | The FR-DOME-8 spike measures every candidate before the task is cut (OQ-15, P-OQ-4); fallbacks are fixed in order — `colorTolerance`, `interactiveDownscale`, dropping the base layer while dragging. If none holds, the composition is chosen from what does, not from what looks best. |
+| glyphcss 0.1.6 has no per-mesh density or no usable solid mode | Medium (undocumented, untried) | FR-DOME-8's layering is not buildable as planned | The spike is the first task precisely so this is known before anything depends on it; the fallback is a third scene for the fine layer, and failing that a single wireframe scene with weight as the only channel — the MVP dome plus colour. |
+| The 72 h window pushes the phone past FR-VIS-4 | Medium | First useful answer gets slower for everyone, not just offline users | Night-outer ordering (D-77): tonight is complete in the MVP's time and the rest streams. The perf budget test covers both the first night and the full 72 h. |
+| Spanish copy drifts from English, or reads as translated | Medium | G7 is missed in the language that most of the first users read | Both catalogs sit in one directory with one type; every parameterised message has a fixture render in both languages; FR-I18N-3's banned-form test catches the commonest slip; Spanish screens are an owner gate, not a CI gate (§16). |
+| The service worker serves a stale shell after a deploy | Low | A fix appears not to ship | `registerType: 'prompt'` with a visible banner (OQ-14, D-79); the release checklist loads the deployed URL twice and confirms the banner and the reload. |
+| Two sessions run tasks that touch the same file | Medium | Merge conflicts that a one-shot session cannot resolve | Lanes own disjoint directories (§16); a wave never contains two tasks in one lane; the driver runs at most two at once and each in its own worktree. |
 
 ---
 
 ## 14. What This Plan Does Not Cover
 
-- Task breakdown, estimates, and sequencing — next step, on request.
+- Task breakdown, estimates, and sequencing — `sdd-breakdown`, next step. §16 says how the resulting tasks are *run*, not what they are.
 - The exact ~30-object catalog contents (produced during Task Zero, OQ-2).
-- v1 items: proxy, Nominatim, compass mode, share links, thresholds UI, full `visual` group.
-- Visual design beyond the token/theme approach in D-5 and the dome composition in §8.3 (glyph palette choice, exact strip widths and grid sizes come out of the spike).
+- Phase 3 items: the caching proxy, Nominatim, Space-Track, thresholds UI (US-9), add-to-calendar, push, the full `visual` group, Starlink trains.
+- The v1 dome's composition — tilt, meridians, weights, exact colours, whether the pulse survives. That is the FR-DOME-8 spike's output (§8.7), by design.
+- The desktop mockup itself (FR-DESK-5). It is an owner-approved artefact under `docs/mockups/`, and it gates the desktop tasks in TASKS.md, not this plan.
+- The wording of any message, in either language. Copy is written in the tasks, against FR-I18N-3's rules.
 
 ---
 
@@ -882,3 +1124,100 @@ For the next `SPEC.md` revision (not applied here, since they touch the architec
 3. §5.6 clock-skew warning → move to v1 (D-11).
 4. §6.5 libraries → remove `date-fns`/Temporal polyfill and `tz-lookup`; add `zod` (D-3).
 5. §5.1 hosting → Cloudflare Workers static assets (D-12 as amended in §2.5, not Pages); styling → CSS Modules (D-5); state → Zustand (D-4).
+6. *(v1)* §5.7 "the worker gains `computeAt`" → **no new request**: `computeNow` already takes an arbitrary `t`, and gains `includeHidden` instead (D-76).
+7. *(v1)* §5.7 "hand-written or `vite-plugin-pwa`, the plan's call" → `vite-plugin-pwa`, `generateSW`, `runtimeCaching: []`, `registerType: 'prompt'` (D-79).
+
+---
+
+## 16. Delivery of the v1 Tasks *(V1-11)*
+
+The MVP was built one task at a time, by hand, on one branch after another. v1 is larger and most of it is independent, so the tasks are cut into lanes, run in waves, and driven by a script. This section is the contract `sdd-breakdown` writes TASKS.md against and `scripts/sdd-run.ts` implements.
+
+### 16.1 Lanes
+
+A lane is a set of directories one task at a time may touch. Two tasks in different lanes cannot conflict, because no file belongs to two lanes.
+
+| Lane | Owns | Typical tasks |
+|---|---|---|
+| `ui` | `src/ui/**` except `guide/skychart/**`, `src/i18n/**`, `src/lib/{layout,shortcuts,shareLinks,moonPhrases,readiness}.ts`, `src/ui/styles/**` | language, desktop layout, shortcuts, theme, share button, Moon line, readiness line, banners |
+| `chart` | `src/ui/components/guide/skychart/**`, `src/lib/skyGeometry.ts`, `src/lib/skyBodies.ts`, `spike/**` | the dome spike, the layered dome, the polar view's v1 markers, the live page's chart wiring |
+| `data` | `src/data/**`, `src/state/**`, `vite.config.ts`, `public/**` | offline store, service worker, manifest, favourites, forecast window, prefs |
+| `physics` | `src/physics/**`, `src/worker/**`, `src/model/**` | the Moon module, the 72 h night-outer search, `includeHidden` |
+
+Rules the breakdown must respect:
+
+- A task declares exactly one lane and touches only that lane's directories. A task that genuinely needs two lanes is two tasks with a dependency, or it is cut differently.
+- `src/model/**` is owned by `physics` because every type change starts there. A UI task that needs a new field waits for the physics task that adds it — that dependency is what puts them in different waves.
+- Shared files that no lane owns (`package.json`, `README.md`, `TASKS.md`, `docs/**`) are touched by every task in small, additive ways: a dependency line, a checkbox, a screenshot directory. Those conflicts are trivial and are resolved by rebasing, which the driver does before it opens the PR.
+
+### 16.2 Waves
+
+A **wave** is the set of tasks whose dependencies are all merged to `main`. It is computed, not written down: the driver reads the checkboxes on `origin/main` and the `Depends on:` fields, and everything unblocked is in the current wave. `sdd-breakdown` prints the expected waves in TASKS.md as a reading aid, but the driver never trusts that list over the graph.
+
+Within a wave the driver runs **at most one task per lane** and **at most two tasks at once**. One per lane removes file conflicts; two at once keeps the review load and the API spend legible, and means a bad run is noticed before four branches have gone wrong.
+
+### 16.3 What TASKS.md must carry
+
+Each task keeps its MVP shape (scope, done-when, acceptance criteria) and gains three fields:
+
+```
+### R17 — The layered dome
+- **Lane:** chart
+- **Model:** fable
+- **Gate:** owner
+- **Depends on:** R16
+```
+
+- **`Lane:`** one of `ui`, `chart`, `data`, `physics`.
+- **`Model:`** `opus` or `fable` (§16.6).
+- **`Gate:`** `auto` or `owner`. `owner` is required whenever the acceptance criteria include captures to compare, Spanish copy to read, or a composition to choose — anything a test cannot check. Everything else is `auto`.
+- **`Depends on:`** task ids, or `—`.
+
+A task with no `Lane:` or no `Gate:` is a breakdown bug and the driver refuses to run it.
+
+### 16.4 `scripts/sdd-run.ts`
+
+```
+npm run sdd -- --status          # merged / ready / blocked / failed, from origin/main and the graph
+npm run sdd -- --dry-run         # print exactly what would run, and stop
+npm run sdd -- --wave            # run the current wave (≤ 1 per lane, ≤ 2 at once)
+npm run sdd -- --task R17        # run one task, dependencies checked
+```
+
+Per task, in order:
+
+1. `git fetch origin`; refuse if the task's dependencies are not checked off on `origin/main`.
+2. `git worktree add ../wiys-tasks/<id> -b <id>-<slug> origin/main` — a fresh worktree from `origin/main`, never from the current checkout. Node modules are installed in it with `npm ci` and `npm_config_cache` pointed at a project-local cache directory, because the user's `~/.npm` is not writable.
+3. One `claude -p` session in that worktree: `--model <task model>`, `--permission-mode acceptEdits`, `--max-turns 120`, a 45-minute wall clock, and the allowlist below. The prompt is one line: use the `sdd-implement` skill on `<id>`, headless — decide and record rather than ask.
+4. On a clean exit the driver checks the branch actually has commits and the task's checkbox is ticked; then it rebases onto `origin/main`, pushes, and opens the PR with `gh`. **The session never pushes and never calls `gh`** — that is the driver's job, so a confused session cannot publish anything.
+5. CI is watched to completion. Red CI ends the task as failed.
+6. A second one-shot session (`--max-turns 40`, 15 minutes, Opus) runs the `code-review` skill over the branch diff. Findings are posted as a PR comment and the task stops there for a human.
+7. Green CI, no findings, `Gate: auto` → `gh pr merge --squash`. `Gate: owner` → the PR is labelled `needs-owner`, the captures are linked in the body, and it waits.
+8. The worktree is removed after a merge and **kept** after a failure, alongside its log.
+
+Allowed tools in an implementation session: file reads and writes, `Grep`/`Glob`, `npm run *`, `npx vitest *`, `npx playwright *`, `npx tsc *`, and `git add <paths>` / `git commit` / `git status` / `git diff` / `git log`. Denied: `git push`, `git add -A` (this repository has parallel sessions sharing a checkout), `gh`, `rm -rf`, anything that reaches the network other than the package installs the setup step already did, and `prettier` (this repository is not formatted with it).
+
+Logging: `logs/sdd/<id>-<ISO8601>.log` holds the full session transcript and every command the driver ran; `logs/sdd/run-<ISO8601>.json` holds the run summary — per task, the branch, the PR number, the exit reason, the durations and the review verdict. `logs/` is git-ignored.
+
+### 16.5 Merge policy
+
+| Condition | Result |
+|---|---|
+| CI green, review clean, `Gate: auto` | squash-merged by the driver |
+| CI green, review clean, `Gate: owner` | PR labelled `needs-owner`, left open |
+| Review has findings | PR left open with the findings as a comment; the task is not retried automatically |
+| CI red, session error, timeout, turn cap, or rebase conflict | task marked failed; branch, worktree and log kept |
+
+A failed task blocks its dependents — they simply never become ready — and the run continues with everything else. The driver never merges to `main` outside `gh pr merge`, never force-pushes, and never rewrites a branch it did not create in this run.
+
+### 16.6 Model policy
+
+| Task kind | Model | Why |
+|---|---|---|
+| The dome spike, the layered dome, the live page | `fable` | Visual and interactive work with many quick iterations; the acceptance is captures and a drag rate, both of which the session can produce and check itself. |
+| Everything else | `opus` | The default. Physics, protocol, offline semantics and copy are where a wrong-but-plausible answer costs the most. |
+| Every review session | `opus` | The review is the only automated gate between a session and `main`. |
+
+### 16.7 What the driver is not
+
+It is not a scheduler, a queue, or a service: it is a script the owner runs, in the foreground, when there is a wave to run. It has no state of its own — `origin/main`, the branches and the PRs are the state, so a run can be interrupted at any point and started again with nothing to reconcile. It is written and reviewed before the first wave (D-86), proved by `--dry-run` against the existing R1–R15 entries, and it is not itself a task in TASKS.md.
