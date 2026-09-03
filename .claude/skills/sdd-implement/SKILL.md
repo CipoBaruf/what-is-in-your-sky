@@ -27,6 +27,6 @@ description: Implement one task from TASKS.md following the project's spec-drive
 3. If the task added or changed user-visible text, both message catalogs (en, es) carry it: `npm run typecheck` is the check (a missing message is a type error, FR-I18N-2), and the Spanish capture shows no English.
 4. Check the task off in TASKS.md on this branch only, adding a one-line note if what was done differs from the task text. Merging to `main` is what marks it done for the project. ← CHANGED
 5. Append any decisions made to the PLAN.md Decisions section.
-6. Push the branch (`git push -u origin <branch>`) and open a PR with `gh pr create --title "R<n>: <goal>"` and a body containing the summary below. Do not merge. ← NEW
-7. Summarize: files touched, requirement IDs covered, follow-ups, PR link, and the next task ID. The PR body carries the task's `Gate:` value on its first line (`Gate: auto` or `Gate: owner`) so the driver knows whether it may merge.
+6. Interactive only: push the branch (`git push -u origin <branch>`) and open a PR with `gh pr create --title "R<n>: <goal>"` and a body containing the summary below. Do not merge. Headless: **never push and never call `gh`** — `scripts/sdd-run.ts` rebases, pushes, opens the PR and watches CI (PLAN §16.4 step 4), so a confused session cannot publish anything.
+7. Summarize: files touched, requirement IDs covered, follow-ups, PR link, and the next task ID. Headless: write that summary to `sdd-run/<id>.summary.md` in the worktree instead — the driver makes it the PR body, under a first line carrying the task's `Gate:` value.
 8. Interactive only: suggest the user `/clear` before the next task. Headless: exit; the driver starts the next session empty.

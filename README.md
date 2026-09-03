@@ -21,6 +21,15 @@ npm run bundle:budget  # after a build: gzipped chunk sizes against the PLAN §1
 npm run check:catalog  # live: every catalog object present in CelesTrak visual|stations
 ```
 
+The v1 tasks are delivered by a driver script rather than by hand (PLAN §16):
+
+```
+npm run sdd -- --status     # what is merged, in review, ready, blocked or failed
+npm run sdd -- --dry-run    # exactly what the next wave would run, and stop
+npm run sdd -- --wave       # run it: one session per task in its own worktree, then CI, review, merge
+npm run sdd -- --task R17   # one task, dependencies checked
+```
+
 ## Deploy
 
 `docs/RELEASE.md` is the release checklist: what to check on the deployed site, the
