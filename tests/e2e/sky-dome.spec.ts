@@ -1,7 +1,9 @@
 /**
  * R15 (US-6 AC3, FR-GUIDE-2, FR-GUIDE-4..7) at 390 px on the production
- * build under the strict CSP: the detail sheet opens on the ASCII dome by
- * default, facing the pass's rise compass point; dragging changes the facing
+ * build under the strict CSP: the detail sheet opens on the polar chart
+ * (D-68) and the dome is one toggle away, facing the pass's rise compass
+ * point; the two views share one frame, so the toggle moves nothing else on
+ * the sheet; dragging changes the facing
  * readout; ArrowLeft changes it by exactly 15°; ArrowUp cannot push the tilt
  * past 80° nor ArrowDown below 5°; toggling to the polar view keeps the same
  * pass highlighted and the choice survives a reload; no `<canvas>` anywhere;
@@ -69,14 +71,25 @@ const facingOf = async (readout: Locator): Promise<{ point: string; az: number; 
   return { point: match[1], az: Number(match[2]), tilt: Number(match[3]) };
 };
 
-test('the dome is the default view, faces the rise point, turns by drag and by keys within the tilt clamp, and the polar toggle keeps the pass', async ({ page }) => {
+test('the dome is one toggle from the polar default, shares its frame, faces the rise point, turns by drag and by keys within the tilt clamp, and the polar toggle keeps the pass', async ({ page }) => {
   const violations: string[] = [];
   const { passId, dialog } = await openGoldenPass(page, violations);
   const figure = dialog.getByRole('figure');
-  await expect(figure).toHaveAttribute('data-view', 'dome');
+  await expect(figure).toHaveAttribute('data-view', 'polar');
   await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.asComputed);
   const viewToggle = figure.getByRole('group', { name: 'Chart view' });
+  await expect(viewToggle.getByRole('button', { name: 'Polar' })).toHaveAttribute('aria-pressed', 'true');
+  // One frame for both views (R15 review): the drawing box and the numbers table stay where they are when the view changes.
+  const frameBox = async () => (await figure.getByTestId('chart-frame').boundingBox()) ?? { x: NaN, y: NaN, width: NaN, height: NaN };
+  const tableY = async () => (await dialog.getByRole('table').boundingBox())?.y ?? NaN;
+  const polarFrame = await frameBox();
+  const polarTableY = await tableY();
+  await viewToggle.getByRole('button', { name: 'Dome' }).click();
+  await expect(figure).toHaveAttribute('data-view', 'dome');
   await expect(viewToggle.getByRole('button', { name: 'Dome' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(figure.locator('[data-drawing="dome"] pre.glyph-output')).toBeVisible({ timeout: 15_000 });
+  expect(await frameBox()).toEqual(polarFrame);
+  expect(await tableY()).toBe(polarTableY);
 
   // The chart chunk lands and draws: one <pre> of 30 rows × 60 braille columns, hidden from AT; no canvas anywhere (FR-GUIDE-5).
   const stage = figure.getByRole('group', { name: 'Sky dome' });
@@ -89,11 +102,17 @@ test('the dome is the default view, faces the rise point, turns by drag and by k
   expect(raster.split('\n')[0]).toHaveLength(60);
   expect(raster.replace(/[\s⠀]/g, '').length).toBeGreaterThan(200);
   expect(await page.evaluate(() => document.querySelector('canvas'))).toBeNull();
-  const box = await drawing.boundingBox();
+  const box = await stage.boundingBox(); // the focusable stage fills the frame's square box; the drawing inside is sized by its raster
   if (!box) throw new Error('drawing has no box');
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width).toBeLessThanOrEqual(390);
   expect(box.width).toBeGreaterThan(300);
+  expect(Math.abs(box.width - box.height)).toBeLessThanOrEqual(2); // the shared square box
+  const preBox = await pre.boundingBox();
+  if (!preBox) throw new Error('raster has no box');
+  // 60 columns fill the box (a 1 px border each side) exactly: the font is sized from the braille cell and spaces are widened to match.
+  expect(Math.abs(preBox.width - (box.width - 2))).toBeLessThanOrEqual(2);
+  expect(Math.abs(preBox.height - (box.height - 2))).toBeLessThanOrEqual(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   for (const cardinal of ['N', 'E', 'S', 'W']) await expect(drawing.locator(`[data-anchor="${cardinal}"]`)).toHaveText(cardinal);
   await expect(drawing.locator(`[data-pass-id="${passId}"] [data-anchor="pass"]`)).toContainText('ISS (Zarya)');

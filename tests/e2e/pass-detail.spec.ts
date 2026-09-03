@@ -7,9 +7,8 @@
  * carries the polar chart as SVG (no canvas anywhere), captioned by the
  * sentence, with the four cardinals, the pass arc and its markers; the
  * orientation toggle moves east from left to right, relabels the convention
- * and survives a reload; the chart fits the 390 px width. R15 made the
- * dome the default view, so the polar checks start by toggling to it (the
- * `chartView` preference then persists across the reload below).
+ * and survives a reload; the chart fits the 390 px width. R15 adds the
+ * view toggle; the polar chart stays the default (D-68).
  */
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
@@ -71,12 +70,11 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   await page.screenshot({ path: 'test-results/r6-pass-detail-390.png' });
 
   // R13: the polar chart, as SVG, captioned by the sentence, hidden from AT, inside the viewport width.
-  // R15: the dome is the default view (sky-dome.spec.ts); this spec switches to the polar view first.
+  // R15: the polar chart is the default view for now (D-68); sky-dome.spec.ts covers the dome.
   expect(await page.evaluate(() => document.querySelector('canvas'))).toBeNull();
   const figure = dialog.getByRole('figure');
-  await expect(figure).toHaveAttribute('data-view', 'dome');
-  await figure.getByRole('group', { name: 'Chart view' }).getByRole('button', { name: 'Polar' }).click();
   await expect(figure).toHaveAttribute('data-view', 'polar');
+  await expect(figure.getByRole('group', { name: 'Chart view' }).getByRole('button', { name: 'Polar' })).toHaveAttribute('aria-pressed', 'true');
   await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.asComputed);
   const drawing = figure.locator('svg[data-drawing="polar"]');
   await expect(drawing).toHaveAttribute('aria-hidden', 'true');
