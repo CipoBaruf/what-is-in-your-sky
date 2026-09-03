@@ -1,14 +1,12 @@
 .polar {
-  display: grid;
-  gap: calc(var(--row) / 2);
+  display: contents;
 }
 
+/* The frame's square box is the drawing's size; the viewBox is square too. */
 .svg {
   display: block;
   width: 100%;
-  max-width: calc(44 * var(--cell));
-  height: auto;
-  margin: 0 auto;
+  height: 100%;
   font-family: inherit;
 }
 

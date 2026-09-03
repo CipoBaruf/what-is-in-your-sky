@@ -16,13 +16,16 @@ npm run build        # dist/, including public/_headers
 npm run preview      # http://localhost:4173, the production build with the Cloudflare headers
 npm test             # Vitest (unit, golden, component, worker in Chromium); never touches the network
 npm run e2e          # production build + Playwright, under the strict CSP
+npm run bundle:budget  # after a build: gzipped chunk sizes against the PLAN §11 budgets (CI prints this table)
 # `npm test` and `npm run e2e` need Chromium once: npx playwright install chromium
 npm run check:catalog  # live: every catalog object present in CelesTrak visual|stations
 ```
 
 ## Deploy
 
-Hosting is Cloudflare Workers static assets wired to this repository through Workers
+`docs/RELEASE.md` is the release checklist: what to check on the deployed site, the
+on-device dome performance check (FR-GUIDE-6) and the deploy-day comparison against
+Heavens-Above. Hosting is Cloudflare Workers static assets wired to this repository through Workers
 Builds (PLAN D-12 as amended in §2.5): a push to `main` builds and deploys production;
 a push to any other branch, once *non-production branch builds* are enabled, uploads a
 preview version with its own URL. `wrangler.jsonc` at the root holds the whole

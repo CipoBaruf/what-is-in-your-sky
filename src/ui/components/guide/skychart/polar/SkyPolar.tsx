@@ -4,6 +4,7 @@ import { interpolateTrack, resampleArc, toPolar } from '../../../../../lib/skyGe
 import { formatClock } from '../../../../../lib/timeFormat';
 import type { ChartOrientation, Pass, PassPoint } from '../../../../../model';
 import { OptionToggle } from '../../../common/OptionToggle';
+import { ChartFrame } from '../ChartFrame';
 import type { SkyChartProps, SkyChartView } from '../SkyChart.types';
 import styles from './SkyPolar.module.css';
 
@@ -18,6 +19,9 @@ import styles from './SkyPolar.module.css';
  * (east on the left) by default, map (east on the right) on toggle; the
  * choice is labelled under the drawing and persisted. The drawing is
  * `aria-hidden` (FR-GUIDE-7): the caption and the numbers carry the facts.
+ * R15 review: laid out in the shared `ChartFrame` (toggle in the controls
+ * row, the SVG in the square box, the convention in the status row) so the
+ * dome and this view occupy the same space.
  */
 export const ORIENTATION_LABELS: Record<ChartOrientation, string> = { 'looking-up': 'Looking up', map: 'Map' };
 export const ORIENTATION_NOTES: Record<ChartOrientation, string> = {
@@ -169,7 +173,14 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
   const ring = (elDeg: number): number => project({ azDeg: 0, elDeg }, orientation).y * -1;
   return (
     <div className={[styles.polar, className].filter(Boolean).join(' ')} data-orientation={orientation}>
-      <OptionToggle name="Chart orientation" options={ORIENTATIONS.map((value) => ({ value, label: ORIENTATION_LABELS[value] }))} value={orientation} onChange={setChartOrientation} />
+      <ChartFrame
+        controls={<OptionToggle name="Chart orientation" options={ORIENTATIONS.map((value) => ({ value, label: ORIENTATION_LABELS[value] }))} value={orientation} onChange={setChartOrientation} />}
+        status={
+          <p className={styles.convention} data-testid="chart-convention">
+            {ORIENTATION_NOTES[orientation]}
+          </p>
+        }
+      >
       <svg className={styles.svg} viewBox={VIEWBOX} aria-hidden="true" data-drawing="polar" focusable="false">
         <circle className={styles.horizon} r={HORIZON_R} />
         <circle className={styles.ring} r={fmt(ring(30))} data-ring="30" />
@@ -192,9 +203,7 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
           <PassArc key={pass.id} pass={pass} orientation={orientation} timeZone={observer.timeZone} dim={highlightedPassId !== null && highlightedPassId !== pass.id} now={now} onSelect={onSelectPass} />
         ))}
       </svg>
-      <p className={styles.convention} data-testid="chart-convention">
-        {ORIENTATION_NOTES[orientation]}
-      </p>
+      </ChartFrame>
     </div>
   );
 }

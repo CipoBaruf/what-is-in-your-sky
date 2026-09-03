@@ -26,13 +26,13 @@ export interface PrefsDeps {
 }
 
 /** US-6 AC3: the dome is the default chart view; until R15 registers it, `SkyChart` falls back to the polar view. */
-export const DEFAULT_CHART_VIEW: ChartView = 'dome';
+export const DEFAULT_CHART_VIEW: ChartView = 'polar'; // D-68: polar for now, the owner's call in the R15 review
 
 export interface PrefsSlice {
   /** The pass list order (US-5 AC2), `chronological` unless saved otherwise. */
   sort: PassSort;
   setSort: (sort: PassSort) => void;
-  /** The sky chart view (US-6 AC5), `dome` unless saved otherwise. */
+  /** The sky chart view (US-6 AC5), `polar` unless saved otherwise (D-68). */
   chartView: ChartView;
   setChartView: (view: ChartView) => void;
   /** The polar chart's convention (FR-GUIDE-4), `looking-up` unless saved otherwise. */

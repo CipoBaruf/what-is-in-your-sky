@@ -39,11 +39,14 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     expect(within(dialog).getByRole('table')).toBeInTheDocument();
     expect(within(dialog).getByText('sky still bright', { selector: 'p span' })).toBeInTheDocument();
     // R13: the chart is a figure captioned by the sentence; the drawing is hidden from AT (FR-GUIDE-7) and is SVG, not canvas (FR-GUIDE-5).
+    // R15: the polar view is the default (D-68) and the dome is one toggle away; the contract test covers the dome itself.
     const figure = within(dialog).getByRole('figure');
     expect(figure).toContainElement(within(dialog).getByTestId('guide-sentence'));
+    expect(figure).toHaveAttribute('data-view', 'polar');
     expect(figure.querySelector('svg[data-drawing]')).toHaveAttribute('aria-hidden', 'true');
     expect(dialog.querySelector('canvas')).toBeNull();
     expect(within(figure).getByRole('group', { name: 'Chart orientation' })).toBeInTheDocument();
+    expect(within(figure).getByRole('group', { name: 'Chart view' })).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
 
