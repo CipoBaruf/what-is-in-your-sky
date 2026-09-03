@@ -45,7 +45,7 @@ export function App() {
         <PassList onOpenPass={open} />
       </main>
       <Footer inert={inert} />
-      {selected && <PassDetail pass={selected} timeZone={observer?.timeZone ?? null} onClose={close} />}
+      {selected && observer && <PassDetail pass={selected} observer={observer} onClose={close} />}
     </>
   );
 }

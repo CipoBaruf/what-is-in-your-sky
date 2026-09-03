@@ -76,4 +76,24 @@ describe('prefs slice', () => {
     store.getState().setObserver(null);
     expect(stored(storage)).toEqual({ sort: 'chronological' }); // the order outlives the location
   });
+
+  it('reads the saved chart view and orientation at creation, writes each through, and the other write-throughs keep them (R13, US-6 AC5, FR-GUIDE-4)', () => {
+    const storage = memoryStorage();
+    const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState();
+    expect(fresh.chartView).toBe('dome');
+    expect(fresh.chartOrientation).toBe('looking-up');
+    storage.map.set(PREFS_KEY, JSON.stringify({ chartView: 'polar', chartOrientation: 'map' }));
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(store.getState().chartView).toBe('polar');
+    expect(store.getState().chartOrientation).toBe('map');
+    store.getState().setChartOrientation('looking-up');
+    expect(store.getState().chartOrientation).toBe('looking-up');
+    expect(stored(storage)).toEqual({ chartView: 'polar', chartOrientation: 'looking-up' });
+    store.getState().setChartView('dome');
+    expect(store.getState().chartView).toBe('dome');
+    expect(stored(storage)).toEqual({ chartView: 'dome', chartOrientation: 'looking-up' });
+    store.getState().setObserver(neuquen);
+    store.getState().setSort('best');
+    expect(stored(storage)).toEqual({ observer: neuquen, sort: 'best', chartView: 'dome', chartOrientation: 'looking-up' });
+  });
 });

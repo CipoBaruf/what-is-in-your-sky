@@ -31,24 +31,38 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     vi.useRealTimers();
   });
 
-  it('is a labelled dialog carrying the guide sentence, the numbers, the twilight label and the chart slot', async () => {
-    const { container } = render(<PassDetail pass={pass} timeZone={null} onClose={() => undefined} />);
+  it('is a labelled dialog carrying the guide sentence (once, as the chart caption), the numbers, the twilight label and the sky chart', async () => {
+    const { container } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
     const dialog = screen.getByRole('dialog', { name: 'ISS (Zarya)' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(within(dialog).getByTestId('guide-sentence').textContent).toBe(golden.asComputed);
     expect(within(dialog).getByRole('table')).toBeInTheDocument();
     expect(within(dialog).getByText('sky still bright', { selector: 'p span' })).toBeInTheDocument();
-    expect(dialog.querySelector('[data-slot="sky-chart"]')).not.toBeNull();
+    // R13: the chart is a figure captioned by the sentence; the drawing is hidden from AT (FR-GUIDE-7) and is SVG, not canvas (FR-GUIDE-5).
+    const figure = within(dialog).getByRole('figure');
+    expect(figure).toContainElement(within(dialog).getByTestId('guide-sentence'));
+    expect(figure.querySelector('svg[data-drawing]')).toHaveAttribute('aria-hidden', 'true');
+    expect(dialog.querySelector('canvas')).toBeNull();
+    expect(within(figure).getByRole('group', { name: 'Chart orientation' })).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it('locks the page scroll while open and restores it on close (one scrollbar, the sheet\'s)', () => {
+    document.documentElement.style.overflow = 'auto';
+    const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
+    expect(document.documentElement.style.overflow).toBe('hidden');
+    unmount();
+    expect(document.documentElement.style.overflow).toBe('auto');
+    document.documentElement.style.overflow = '';
+  });
+
   it('omits the twilight label when the pass is not a twilight one', () => {
-    render(<PassDetail pass={{ ...pass, twilight: false }} timeZone={null} onClose={() => undefined} />);
+    render(<PassDetail pass={{ ...pass, twilight: false }} observer={observer} onClose={() => undefined} />);
     expect(screen.getByRole('dialog')).not.toHaveTextContent('sky still bright');
   });
 
   it('counts down every second without remounting', () => {
-    render(<PassDetail pass={pass} timeZone={null} onClose={() => undefined} />);
+    render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
     const timer = screen.getByRole('timer');
     expect(timer).toHaveTextContent('Appears in 12:34');
     act(() => {
@@ -70,7 +84,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     opener.textContent = 'opener';
     document.body.appendChild(opener);
     opener.focus();
-    const { unmount } = render(<PassDetail pass={pass} timeZone={null} onClose={onClose} />);
+    const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={onClose} />);
     expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'ISS (Zarya)' }));
 
     await user.keyboard('{Escape}');

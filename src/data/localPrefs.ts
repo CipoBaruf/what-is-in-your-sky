@@ -1,4 +1,4 @@
-import type { Observer, PassSort } from '../model';
+import type { ChartOrientation, ChartView, Observer, PassSort } from '../model';
 import { browserStorage, type StorageLike } from './storage';
 import { z } from './zod';
 
@@ -9,15 +9,18 @@ import { z } from './zod';
  * forecast arrives. A body that does not match the schema is treated as
  * empty rather than repaired; storage failures (quota, private mode) are
  * ignored, the session simply is not remembered. R12 adds the pass list
- * order (US-5 AC2); the chart orientation joins in R13. Each preference is
- * optional and read independently, so an unknown or invalid value of one
- * never loses the others.
+ * order (US-5 AC2); R13 the sky chart view (US-6 AC5) and the polar chart's
+ * orientation (FR-GUIDE-4). Each preference is optional and read
+ * independently, so an unknown or invalid value of one never loses the
+ * others.
  */
 export const PREFS_KEY = 'wiys:prefs:v1';
 
 export interface Prefs {
   observer?: Observer;
   sort?: PassSort;
+  chartView?: ChartView;
+  chartOrientation?: ChartOrientation;
 }
 
 const storedObserverSchema = z.object({
@@ -32,6 +35,8 @@ const storedObserverSchema = z.object({
 const storedPrefsSchema = z.object({
   observer: storedObserverSchema.optional().catch(undefined),
   sort: z.enum(['chronological', 'best']).optional().catch(undefined),
+  chartView: z.enum(['dome', 'polar']).optional().catch(undefined),
+  chartOrientation: z.enum(['looking-up', 'map']).optional().catch(undefined),
 });
 
 export interface LocalPrefs {
@@ -48,13 +53,15 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!raw) return {};
         const parsed = storedPrefsSchema.safeParse(JSON.parse(raw));
         if (!parsed.success) return {};
-        const { observer, sort } = parsed.data;
+        const { observer, sort, chartView, chartOrientation } = parsed.data;
         const prefs: Prefs = {};
         if (observer) {
           const { accuracyM, ...rest } = observer;
           prefs.observer = accuracyM === undefined ? rest : { ...rest, accuracyM };
         }
         if (sort) prefs.sort = sort;
+        if (chartView) prefs.chartView = chartView;
+        if (chartOrientation) prefs.chartOrientation = chartOrientation;
         return prefs;
       } catch {
         return {};

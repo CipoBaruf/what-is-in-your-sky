@@ -45,6 +45,7 @@ test.beforeEach(async ({ page }) => {
 /** The FR-X-1 / FR-X-6 / G6 checks every screen must pass at 390 px. */
 async function expectIdentity(page: Page, screenshot: string, { fullPage = true } = {}): Promise<void> {
   expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(GROUND);
+  expect(await page.evaluate(() => document.querySelector('canvas'))).toBeNull(); // FR-GUIDE-5 (R13): DOM and SVG only, on every screen
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const nonMono = await page.evaluate(() =>
     Array.from(document.querySelectorAll('body *'))
