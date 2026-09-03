@@ -17,6 +17,11 @@ import { ommToSatrec } from './sgp4';
 const BUDGET_MS = 1_500;
 const MIN_OBJECTS = 30;
 const RUNS = 3;
+// Three runs that may each cost close to the budget, plus the satrec setup,
+// outlast Vitest's 5 s default on a contended CI core, and a timeout fails the
+// test without printing the number the gate is about. The budget assertion is
+// the gate; this only has to sit well clear of it.
+const TIMEOUT_MS = 30_000;
 
 describe('pass search performance budget', () => {
   it(`searches ≥ ${String(MIN_OBJECTS)} objects × 24 h in under ${String(BUDGET_MS)} ms`, () => {
@@ -50,5 +55,5 @@ describe('pass search performance budget', () => {
     console.info(`[perf] ${String(objects.length)} objects × 24 h: best ${elapsed.toFixed(0)} ms of ${times.map((t) => t.toFixed(0)).join(' / ')} ms, ${String(found)} passes (budget ${String(BUDGET_MS)} ms)`);
     expect(found).toBeGreaterThan(0);
     expect(elapsed).toBeLessThan(BUDGET_MS);
-  });
+  }, TIMEOUT_MS);
 });
