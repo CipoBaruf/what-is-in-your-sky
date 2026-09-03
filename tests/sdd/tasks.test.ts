@@ -1,7 +1,8 @@
 /**
  * PLAN §16.3: the driver reads TASKS.md, so the parser is pinned against the
- * real file (R1–R15 and H, which carry no `Lane:`/`Model:`/`Gate:`) and
- * against the v1 shape `sdd-breakdown` will emit.
+ * real file — the MVP block (R1–R15 and H, which carry no
+ * `Lane:`/`Model:`/`Gate:`) and the v1 block, which carries all three — and
+ * against the v1 shape `sdd-breakdown` emits.
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -9,6 +10,11 @@ import { branchName, byId, modelFor, parseTasks, runBlockers, type Task } from '
 
 const real = parseTasks(readFileSync('TASKS.md', 'utf8'));
 const sample = parseTasks(readFileSync('tests/sdd/fixtures/tasks-v1-sample.md', 'utf8'));
+
+/** The MVP block is everything up to and including H; the v1 block is what `sdd-breakdown` appended after it. */
+const mvpEnd = real.tasks.findIndex((task) => task.id === 'H') + 1;
+const mvpTasks = real.tasks.slice(0, mvpEnd);
+const v1Tasks = real.tasks.slice(mvpEnd);
 
 /** The sample task with this id; the fixture is committed, so a miss is a broken test. */
 function sampleTask(id: string): Task {
@@ -18,14 +24,17 @@ function sampleTask(id: string): Task {
 }
 
 describe('the real TASKS.md', () => {
-  it('reads every task, in file order', () => {
-    expect(real.tasks.map((task) => task.id)).toEqual(['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10', 'R11', 'R12', 'R13', 'R14', 'R15', 'H']);
+  it('reads the MVP block first, in file order', () => {
+    expect(real.tasks.map((task) => task.id).slice(0, 16)).toEqual(['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10', 'R11', 'R12', 'R13', 'R14', 'R15', 'H']);
     expect(real.tasks.map((task) => task.order)).toEqual([...real.tasks.keys()]);
   });
 
-  it('has no breakdown problems and is entirely checked off', () => {
+  it('has no breakdown problems: no duplicate id, no dependency on a task that does not exist', () => {
     expect(real.problems).toEqual([]);
-    expect(real.tasks.every((task) => task.done)).toBe(true);
+  });
+
+  it('has the MVP block checked off', () => {
+    expect(mvpTasks.every((task) => task.done)).toBe(true);
   });
 
   it('reads the dependency graph', () => {
@@ -41,8 +50,13 @@ describe('the real TASKS.md', () => {
     expect(byId(real.tasks, 'R1')?.parallel).toBe(false);
   });
 
-  it('leaves the v1 fields null, since these tasks predate them', () => {
-    for (const task of real.tasks) expect([task.lane, task.model, task.gate]).toEqual([null, null, null]);
+  it('leaves the v1 fields null on the MVP tasks, since they predate them', () => {
+    for (const task of mvpTasks) expect([task.lane, task.model, task.gate]).toEqual([null, null, null]);
+  });
+
+  it('gives every v1 task a lane and a gate, so the driver can run it (§16.3)', () => {
+    expect(v1Tasks.length).toBeGreaterThan(0);
+    for (const task of v1Tasks) expect({ id: task.id, blockers: runBlockers(task) }).toEqual({ id: task.id, blockers: [] });
   });
 });
 

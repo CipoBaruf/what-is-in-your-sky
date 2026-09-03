@@ -55,7 +55,8 @@ describe('the wave', () => {
   });
 
   it('is empty when everything is merged', () => {
-    const merged = parseTasks(readFileSync('TASKS.md', 'utf8')).tasks;
+    // The real TASKS.md with every checkbox ticked: a whole-file corpus with nothing left to run.
+    const merged = parseTasks(readFileSync('TASKS.md', 'utf8').replaceAll('- [ ] **', '- [x] **')).tasks;
     expect(selectWave(statusOf({ tasks: merged, openPrs: new Map(), remoteBranches: new Set() }))).toEqual({ wave: [], skipped: [] });
   });
 });

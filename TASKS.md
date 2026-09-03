@@ -6,6 +6,8 @@
 | Date | 2026-09-01 |
 | Inputs | `SPEC.md` v0.4, `PLAN.md` v0.2 (Decisions D-1..D-17 and §8, §10 treated as fixed) |
 | Scope | MVP (spec Phase 0 + Phase 1). v1 items are not broken down here. |
+| Inputs (v1) | `SPEC.md` v1.0, `PLAN.md` v0.3 (Decision Log V1-1..V1-11 and Decisions D-69..D-87 with §16 treated as fixed) |
+| Scope (v1) | Spec Phase 2 "outdoor-ready": R16–R36 in the `## v1 tasks` block below, delivered by lanes and waves (PLAN §16). |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |
 
 ## Conventions
@@ -315,4 +317,405 @@ flowchart LR
   R6 & R12 --> R13
   R13 --> R14
   R14 --> R15
+```
+
+---
+
+## v1 tasks
+
+Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec Phase 2, "outdoor-ready": language, desktop, the layered dome, the live page, offline for three nights, the Moon, share links, night theme. Delivery is PLAN §16 — one lane per task, waves computed from `main`, run by `scripts/sdd-run.ts`.
+
+### Conventions for this phase
+
+- Every task carries **Lane**, **Model**, **Gate** and **Depends on** as sub-bullets, in the shape PLAN §16.3 fixes and `scripts/sdd/tasks.ts` parses. A task with no `Lane:` or no `Gate:` is a breakdown bug and the driver refuses to run it.
+- **[P]** is gone: lanes and waves say what runs beside what. The driver runs at most one task per lane and at most two at once, from the graph, never from the printed wave list.
+- **Lane** is the set of directories one task at a time may touch (PLAN §16.1):
+  - `ui` — `src/ui/**` except `guide/skychart/**`, `src/i18n/**`, `src/lib/{layout,shortcuts,shareLinks,moonPhrases,readiness}.ts`, `src/ui/styles/**`
+  - `chart` — `src/ui/components/guide/skychart/**`, `src/lib/skyGeometry.ts`, `src/lib/skyBodies.ts`, `spike/**`
+  - `data` — `src/data/**`, `src/state/**`, `vite.config.ts`, `public/**`
+  - `physics` — `src/physics/**`, `src/worker/**`, `src/model/**`
+- **Touches outside the lane** names every file a task edits that its lane does not own, so two tasks in one wave can be checked for a collision. `package.json`, `README.md`, `TASKS.md`, `PLAN.md`, `docs/**` and `tests/e2e/**` are shared by everything, additively, and are resolved by the rebase the driver does before it opens the PR.
+- **Gate:** `owner` wherever acceptance includes captures to compare, Spanish copy to read or a composition to choose; `auto` where tests carry the whole acceptance.
+- Every UI task ships captures through the `visual-review` skill: 390 px always, 1280 px from R23 on, both languages from R17 on, both themes from R20 on.
+
+- [ ] **R16 — Dome composition spike: every knob as a URL parameter, captures and drag rates**
+  - **Lane:** chart
+  - **Model:** fable
+  - **Gate:** owner
+  - **Depends on:** —
+  - **Why not a slice:** FR-DOME-8 and PLAN §8.7 require the findings file before the dome task can be cut; it ships in `spike/`, never in the app.
+  - **Goal:** Fix the layered dome's composition from measured candidates, so R20 has its colours and R21 has its parameters.
+  - **Satisfies:** FR-DOME-8. **Advances:** FR-DOME-1..7. Answers P-OQ-4 / OQ-15.
+  - **Scope:** `spike/dome-composition/` reusing the R14 harness (`spike/capture.ts`, `spike/perf.ts`): tilt (35–55°), which meridians are drawn, base-layer density and shading, line weights, per-mesh density on the highlighted pass, the FR-DOME-2 colour set, the pulse, `colorTolerance` and `interactiveDownscale`, each a URL parameter. The two fixture passes are the R1 golden grazing pass and R14's synthetic high pass. Outputs go to `docs/dome-composition/`.
+  - **Done when:**
+    - One script regenerates every capture and figure from scratch; nothing in `spike/` is imported by `src/` and the bundle budgets are unchanged.
+    - `docs/dome-composition/findings.md` compares at least four candidates, each with its parameter string, captures at 390 px and 1280 px of both fixture passes, and its drag rate under the D-62 method (Playwright, 6× CPU throttle).
+    - It answers P-OQ-4 in writing: whether per-mesh density exists in glyphcss 0.1.6, what the second scene costs, and which fallback (`colorTolerance` 24→128, `interactiveDownscale`, dropping the base layer while dragging) is needed, if any.
+    - The recommendation names the tilt default, the meridian set, the weights, one colour per FR-DOME-2 meaning in both themes, and whether the pulse survives ≥ 30 updates/s.
+    - `npx tsc -b` and `npm run lint` clean.
+
+- [ ] **R17 — Language: two typed catalogs and the header switch**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** —
+  - **Goal:** The whole app in English and Spanish, chosen from the browser and switchable in the header without a reload.
+  - **Satisfies:** FR-I18N-1..6, US-13. **Advances:** FR-X-5.
+  - **Scope:** `src/i18n/{messages,en,es,locale,useT}.ts` (D-69: `en` is the source of truth, `const es: Messages`, parameterised messages are functions). `LanguageToggle.tsx` in the header. `main.tsx` resolves the locale from the prefs then `navigator.languages` and applies it before `createRoot().render()` (D-70), setting `documentElement.lang` and the title (FR-I18N-5). Every string the app renders today moves into both catalogs: header and tagline, location inputs and the pick list, banners, the Now panel, the pass list, cards and the hero, the guide sentence and the numeric table, chart labels and captions, the footer, and every empty and error state. `lib/phrases.ts` returns message keys and parameters, never sentences; `lib/timeFormat.ts` takes the locale (FR-I18N-4).
+  - **Touches outside the lane:** `src/main.tsx`, `index.html`, `src/lib/phrases.ts`, `src/model/prefs.ts` (adds `Locale`), `scripts/bundle-budget.ts` (the v1 main budget of PLAN §11).
+  - **Done when:**
+    - Removing a key from `es.ts` fails `npx tsc -b`, demonstrated by a `@ts-expect-error` fixture in the test file (FR-I18N-2); there is no runtime fallback path.
+    - `src/i18n/messages.test.ts`: every parameterised message renders in both languages from a fixture parameter set, no message is empty, and no Spanish string contains `tú`, `vos`, `usted`, `tu ` or a banned imperative (FR-I18N-3).
+    - `tests/e2e/language.spec.ts`: with `navigator.languages = ['es-AR']` the first load is Spanish; the toggle switches with no reload and keeps the observer and the open pass; the choice survives a reload; `<html lang>` and the title follow.
+    - Times, dates and numbers render through `Intl` in the active language and the observer's zone in both languages (unit test over the golden pass).
+    - `npm test`, `npm run lint`, `npx tsc -b`, `npm run e2e` green; main chunk within the v1 budget; 390 px captures of every screen in both languages.
+
+- [ ] **R18 — 72 h night-outer search and hidden objects in the worker**
+  - **Lane:** physics
+  - **Model:** opus
+  - **Gate:** auto
+  - **Depends on:** —
+  - **Why not a slice:** PLAN §16.1 — the window and the protocol change start in `src/worker` and `src/model`; R24 turns the window on and R33 uses the hidden objects.
+  - **Goal:** The worker can answer for three nights and for everything above the horizon, without changing what MVP callers see.
+  - **Satisfies:** FR-VIS-1 (amended, worker half), FR-LIVE-6 (worker half). **Advances:** FR-OFF-2.
+  - **Scope:** `worker/handlers.ts` loops nights outer, objects inner (D-77); `passes` messages carry `nightIndex` (0, 1, 2) and `progress` counts object × night pairs; featured objects stay first within each night. `computeNow` gains `includeHidden?: boolean`, returning every object above the horizon at `t` with its `visible` flag and reason fields (D-76); no `computeAt` request is added. `worker/protocol.ts` types follow.
+  - **Done when:**
+    - Handler tests in Node: three nights emitted in order, night 1 complete (featured first) before night 2 begins, `progress` counting pairs.
+    - `computeNow` without the flag returns exactly what MVP returned (a fixture comparison); with it, hidden objects arrive with their reasons.
+    - A 72 h × 31-object run in Node stays within the §9.1 budget and night 1 within the MVP budget; the number is in the PR.
+    - `passes.golden.test.ts` unchanged and green for all three fixtures; worker chunk within the v1 budget.
+
+- [ ] **R19 — The Moon in the worker: phase, illumination and glare**
+  - **Lane:** physics
+  - **Model:** opus
+  - **Gate:** auto
+  - **Depends on:** —
+  - **Why not a slice:** the Moon is a model field before it is a line of text; R30 renders it, R22 draws it.
+  - **Goal:** Every pass and every Now state carries the Moon, computed once, in the worker.
+  - **Satisfies:** FR-MOON-1, FR-MOON-2 (computation). **Advances:** FR-MOON-3, FR-DOME-6, US-18.
+  - **Scope:** `physics/moon.ts` wrapping `astronomy-engine` as `sun.ts` does (D-80): `moonAt(t, observer): MoonState` and `moonGlare(moon, peak, thresholds): MoonGlare`, both pure. Phase-band boundaries and the glare thresholds (altitude > 0°, illumination ≥ 50 %, separation < 30°) are constants in `physics/constants.ts` with rationale comments. `model/moon.ts`; `Pass.moonAtPeak` (null when the Moon is below the horizon) and `NowState.moon`; one Moon evaluation per pass, at peak (§6.3 step 8).
+  - **Done when:**
+    - `moon.test.ts` (§9.2): illuminated fraction and phase angle at a known new and a known full moon; altitude and azimuth at a fixed instant and place within 0.1° of a published value; ecliptic longitude → zodiac sign at two band edges.
+    - Glare unit tests over all three conditions, including each one failing alone.
+    - `passes.golden.test.ts` still passes for all three fixtures; the worker gains no dependency and stays within its budget; the recompute time is unchanged within noise.
+
+- [ ] **R29 — The Moon lore data file**
+  - **Lane:** data
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** —
+  - **Why not a slice:** FR-MOON-4 puts the tradition text in a hand-reviewed static file, like the catalog; R30 renders it.
+  - **Goal:** One reviewed file with the zodiac lines, the folk full-moon names and the per-phase one-liners, in both languages.
+  - **Satisfies:** FR-MOON-4 (data), FR-MOON-5.
+  - **Scope:** `src/data/moon/lore.json` — the 12 tropical signs, the 12 folk full-moon names by calendar month (labelled as Northern-hemisphere tradition), and a one-liner per phase and per sign, each in English and Spanish, each with a provenance note in the style of the catalog (FR-SAT-5). `src/data/moon/schema.ts` (zod) validated in CI the way `check-catalog.ts` validates the catalog.
+  - **Done when:**
+    - The schema test passes and CI validates the file; every entry exists in both languages.
+    - A wording test rejects prediction and advice phrasing (FR-MOON-5) and the Spanish `tú` / `vos` / `usted` forms (FR-I18N-3).
+    - The file is the only source of tradition text: nothing in it is generated, and each entry names where the tradition comes from.
+
+- [ ] **R20 — Night theme and the chart colour tokens**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R16, R17
+  - **Goal:** A red-on-black theme that holds AA contrast, and one token per chart meaning with a value in every theme.
+  - **Satisfies:** FR-THEME-1..3, US-19. **Advances:** FR-DOME-2, FR-X-5.
+  - **Scope:** `tokens.css` gains a `[data-theme="night"]` block for every existing token and, in both themes, the FR-DOME-2 meanings — highlighted pass, other passes, peak marker, shadow-entry marker, current position, flown arc, horizon ring, altitude rings, compass labels, Sun glow, Moon — using the colours R16 recommends (D-84). `ThemeToggle.tsx` in the header; `main.tsx` applies `data-theme` from the prefs before the first render (D-70); `model/prefs.ts` gains `Theme`. `scripts/contrast.ts` and `tests/styles/tokens.test.ts` iterate both themes over the same pair table.
+  - **Touches outside the lane:** `src/main.tsx`, `src/model/prefs.ts`, `scripts/contrast.ts`.
+  - **Done when:**
+    - The contrast test is green for both themes (text ≥ 4.5 : 1, non-text ≥ 3 : 1) and the ratio table is in the PR.
+    - A token test asserts every token has a value in both themes and that no night value carries a non-red hue.
+    - e2e: the toggle switches the theme, `data-theme` is on the root, the choice survives a reload, and no dark-palette frame is painted first.
+    - Captures at 390 px in both themes, both languages.
+
+- [ ] **R23 — Desktop: two columns and the guide beside the list**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R17
+  - **Goal:** At 100 cells and above the page is two columns and a pass opens beside the list instead of covering it.
+  - **Satisfies:** FR-DESK-1, FR-DESK-2, FR-DESK-3, FR-DESK-5; US-14 AC1, AC2, AC5. **Advances:** FR-X-1.
+  - **Precondition:** the owner-approved desktop mockup in `docs/mockups/` (FR-DESK-5). If it is absent the session writes `sdd-run/R23.blocked.md` and stops rather than inventing a layout.
+  - **Scope:** `lib/layout.ts` exposes `useLayoutMode(): 'compact' | 'wide'` over `matchMedia` (D-72). `global.css` uses `@media (min-width: 960px)` with a `tests/styles/` test recomputing `100 × --cell` from `tokens.css` and asserting the literal (D-71). Left column fixed at 40 cells (location, banners, Now panel, the Moon line's slot); right column takes the rest (hero, sort, list); the header spans both and carries title, tagline and the right-hand controls (FR-DESK-2). `GuidePanel.tsx` is the wide shell around the same `PassDetail` content (D-72); the list stays scrollable, the selected card is highlighted, `Esc` and the close control close it, and the selection stays in the hash. Compact keeps the MVP sheet.
+  - **Done when:**
+    - The D-71 breakpoint test passes; every column and panel width in the wide layout is written in cells.
+    - e2e at 1280 px: two columns, the guide beside the list, the list still scrollable with the selection highlighted, `Esc` closes, the hash follows. e2e at 390 px: the sheet behaves exactly as before.
+    - Crossing the breakpoint with a pass open keeps the same pass open in the other shell.
+    - Captures at 1280 px in both languages beside the mockup, and the 390 px set unchanged.
+
+- [ ] **R24 — Offline storage: the 72 h window, stored runs and a four-day forecast**
+  - **Lane:** data
+  - **Model:** opus
+  - **Gate:** auto
+  - **Depends on:** R18
+  - **Goal:** Every successful compute is stored, and a cold start with no network shows the last three nights.
+  - **Satisfies:** FR-OFF-2, FR-OFF-3, FR-OFF-5; FR-VIS-1 (amended, client half), FR-WX-1 (amended). **Advances:** FR-OFF-4, FR-X-4.
+  - **Scope:** `state/passWindow.ts` becomes 72 h in three nights (D-20 amended, D-77). `data/passesCache.ts` owns the `passRuns` IndexedDB store keyed by the observer rounded to 0.01°, written on every `jobDone { cancelled: false }` with the observer, the window, `computedAt` and the oldest elements epoch, pruned to the two most recent runs (D-78). `forecast.ts` asks for `forecast_days=4`; offline, the stored snapshot stays in use past its 30 min TTL with `fetchedAt` kept, and hours past its end read `unknown` (FR-OFF-3, §7.6). Start-up order becomes prefs → stored run → render → network.
+  - **Touches outside the lane:** `src/model/offline.ts` (new: `PassRun`, `Readiness`).
+  - **Done when:**
+    - `passesCache` tests over fake-indexeddb: write on job done, prune to two, cell rounding, an expired run read back as stored rather than dropped.
+    - A store test proves the start-up order renders the stored passes before any fetch is made.
+    - Forecast tests cover fresh, stale-but-offline and past-the-end; online behaviour and the 30 min TTL are unchanged.
+    - e2e: a warm load, then a reload with the network blocked, shows the stored list and no request to either provider.
+    - The night-1 recompute time is unchanged within noise; the number is in the PR.
+
+- [ ] **R30 — The Moon on the cards, the guide, the Now panel and the lore line**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R17, R19, R29
+  - **Goal:** The Moon's facts where they change a decision, and the lore clearly labelled as tradition.
+  - **Satisfies:** FR-MOON-2 (UI), FR-MOON-3, FR-MOON-4 (UI), FR-MOON-5 (UI); US-18.
+  - **Scope:** `lib/moonPhrases.ts` maps the Moon state and the lore file to message keys and parameters, never to sentences (FR-I18N-2). The `[moon glare]` label on the pass card and the one-sentence warning in the guide, with the thresholds in the tooltip. The Moon line in the Now panel: phase name, illumination, and direction and elevation when it is up (`MoonLine.tsx`). `MoonLore.tsx` renders the "Moon tonight" line — sign, the full-moon folk name within a day of full, and the one-liner — under a tradition label, as its own line that no observing fact depends on.
+  - **Done when:**
+    - Phrase unit tests in both languages, including the full-moon-name window and a sign at a band edge.
+    - e2e: a fixture pass whose Moon is up, bright and within 30° shows the label and the guide sentence; a pass that fails one condition shows neither.
+    - The lore line never appears inside the facts, and the tradition label is present in both languages.
+    - Captures in both languages and both themes.
+
+- [ ] **R31 — Share a pass**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R17
+  - **Goal:** A link that reproduces this pass on someone else's device, with no server in the path.
+  - **Satisfies:** FR-SHARE-1 (pass form), FR-SHARE-2, FR-SHARE-3; US-12. **Advances:** FR-LIVE-9.
+  - **Scope:** `lib/shareLinks.ts` builds and parses `#pass?lat=&lon=&alt=&norad=&start=` in both directions (D-83) and `screens/passSelection.ts` delegates to it (D-13/D-33). `ShareButton.tsx` on the pass detail: `navigator.share` with title, the guide sentence and the URL where it exists, otherwise the clipboard with an inline confirmation. FR-SHARE-3's fallback selects the nearest pass of that satellite in the window, or shows a message naming the satellite and the original time.
+  - **Done when:**
+    - Round-trip unit tests both ways, including malformed and partial hashes, which must not throw and must leave the app on the home screen.
+    - Fallback tests for both branches of FR-SHARE-3.
+    - e2e: the button copies the link with the clipboard permission granted, and loading that URL in a fresh context lands on the same pass with the observer set from it.
+    - The recipient path makes no request to a first-party server (asserted by the route list in the e2e).
+    - Captures in both languages.
+
+- [ ] **R21 — The layered dome: two scenes, colour, orientation cues and detail**
+  - **Lane:** chart
+  - **Model:** fable
+  - **Gate:** owner
+  - **Depends on:** R16, R20
+  - **Goal:** The dome stops reading as a wire cage and becomes the default view again.
+  - **Satisfies:** FR-DOME-1, FR-DOME-2, FR-DOME-3, FR-DOME-4, FR-DOME-8 (implementation); FR-DOME-7 (the default view). **Advances:** FR-GUIDE-6, FR-THEME-3.
+  - **Scope:** `SkyDome.tsx` renders a base `GlyphScene mode="solid"` and the braille line scene in one grid cell, same grid and cell metrics, base behind and `pointer-events: none`, both driven by the camera state the component already holds (D-74). `domeLayers.ts` decides which meshes belong to which scene; `palette.ts` reads the FR-DOME-2 tokens through a hidden probe and re-reads on a `data-theme` change (D-75); the directional light follows the Sun's real direction. `camera.layoutFor(width, height)` drops the frame, fills the box and grows the column count with the width (FR-DOME-1). Ground disc, observer mark and label-collision resolution in the fixed order compass, peak, rise, end, in `domeGeometry.ts` (FR-DOME-3). Horizon ticks every 10° with degrees every 30°, the 30° and 60° rings labelled, clock times at rise, peak and end, an arrowhead for the direction of travel (FR-DOME-4). The composition is R16's recommendation, not a fresh choice. `DEFAULT_CHART_VIEW` returns to `dome`.
+  - **Touches outside the lane:** `public/_headers` and PLAN §11 gain `style-src-attr 'unsafe-inline'` together, and nothing else (D-75).
+  - **Done when:**
+    - Raster snapshots of both layers for the golden pass, aligned cell for cell.
+    - The deploy test pins the new `_headers` block verbatim and asserts `style-src-elem`, `script-src` and every other directive stay `'self'`.
+    - The drag rate is ≥ 30 updates/s at 6× CPU throttle at both 390 px and 1280 px (the D-62 method); the number is in the PR, and any fallback used is the one R16 named.
+    - Label-collision unit tests; the chart chunk stays within the v1 budget; the polar view is untouched.
+    - Captures at 390 px and 1280 px in both themes, and the `dome` default asserted in e2e.
+
+- [ ] **R25 — Service worker, manifest and the offline shell**
+  - **Lane:** data
+  - **Model:** opus
+  - **Gate:** auto
+  - **Depends on:** R17, R20
+  - **Goal:** The app itself loads with no network, and a new version waits instead of swapping underneath.
+  - **Satisfies:** FR-OFF-1, FR-OFF-6 (manifest half); FR-X-4 (amended, shell half).
+  - **Scope:** `vite-plugin-pwa` in `generateSW` mode with `runtimeCaching: []`, `navigateFallback: 'index.html'` and `registerType: 'prompt'` (D-79); the precache list is the build output plus the braille font, the manifest and the icons. `public/manifest.webmanifest` (one name, not localised, `display: standalone`, the dark theme colour) and icons at 192 and 512 px in the terminal identity. Registration in `main.tsx` after the first render, production builds only; a waiting worker sets a store flag for R28's banner.
+  - **Touches outside the lane:** `src/main.tsx`.
+  - **Done when:**
+    - A test asserts the generated `sw.js` registers no route for CelesTrak or Open-Meteo, so data requests are never intercepted.
+    - e2e: one warm load, then a reload with the network blocked, serves the shell from the cache and renders.
+    - The service worker stays within its own budget and the main chunk is unchanged; a dev build registers nothing.
+    - The manifest and both icons are precached and pass an install audit at 390 px.
+
+- [ ] **R26 — Favourites in the prefs store**
+  - **Lane:** data
+  - **Model:** opus
+  - **Gate:** auto
+  - **Depends on:** R24
+  - **Goal:** Up to eight saved observers, stored locally, with the offline data kept for the active one.
+  - **Satisfies:** FR-OFF-7 (store half), FR-LOC-5 (amended). **Advances:** US-17.
+  - **Scope:** `localPrefs` gains `favourites: Favourite[]` with `lastUsedAt`, read independently of the other preferences, evicting the least recently used at nine (D-85). A favourite carries the full `Observer`, including `timeZone`, so selecting one works offline with no geocode. The prefs slice gains add, select and remove; selecting triggers the FR-VIS-5 recompute and the `passRuns` prune keeps the active observer's run.
+  - **Touches outside the lane:** `src/model/offline.ts` (adds `Favourite`).
+  - **Done when:**
+    - Prefs tests: LRU eviction at nine, a malformed favourite dropping only itself, the full observer round-tripping.
+    - A store test proves select → recompute, and that the stored run for the active observer survives the prune.
+    - Nothing renders yet; the UI arrives in R28.
+
+- [ ] **R27 — Readiness line and the three nights in the list**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R17, R24
+  - **Goal:** The app says, in one line, how long it will keep working without a signal, and the list shows the three nights.
+  - **Satisfies:** FR-OFF-4, FR-OFF-8; US-16 AC2, AC3, AC5. **Advances:** FR-X-4.
+  - **Scope:** `lib/readiness.ts` turns the stored run and the stored forecast into `Readiness`: `offlineUntil = min(last pass end, forecast end)`, and `missing` naming whichever of elements, forecast or passes is absent. `ReadinessLine.tsx` under the location. `PassList.tsx` groups the passes under night headings with tonight expanded by default. The offline soft-fail copy in both languages: place search says it is offline, device location still works, the elements banner says the age of what is in use.
+  - **Done when:**
+    - Readiness unit tests over ready, no forecast, no passes and no elements.
+    - e2e offline: the readiness line states a date and time, the three night groups are present with tonight open, and the place search shows its offline message while device location still works.
+    - The line fits one line at 390 px in both languages.
+    - Captures in both languages and both themes.
+
+- [ ] **R22 — Live marker, Sun and Moon in both chart views**
+  - **Lane:** chart
+  - **Model:** fable
+  - **Gate:** owner
+  - **Depends on:** R19, R21
+  - **Goal:** Both views show where the satellite is now, and where the Sun and Moon are, from the same geometry.
+  - **Satisfies:** FR-DOME-5, FR-DOME-6, FR-DOME-7 (polar parity). **Advances:** FR-LIVE-2, FR-LIVE-10.
+  - **Scope:** `lib/skyBodies.ts` evaluates the Sun and the Moon at an instant — the one `lib` file that imports physics at runtime (D-80). The live marker is interpolated from `Pass.track` with no worker call, and the flown part of the arc is drawn in the flown colour (FR-DOME-5). The Sun is a glow on the horizon ring at its azimuth while its altitude is between −18° and 0°, wider and brighter closer to 0°; the Moon is a marker with a phase glyph while it is up; both labelled (FR-DOME-6). `SkyPolar.tsx` gains the same markers and the FR-DOME-2 palette.
+  - **Done when:**
+    - Interpolation unit tests at sample boundaries and between them; a component test asserts no worker request is made while the marker moves.
+    - Snapshots for both views; the 10 s tick moves the marker in e2e on the detail sheet.
+    - The drag rate still holds ≥ 30 updates/s at 6× throttle; the chart chunk stays within budget.
+    - Captures of both views at 390 px and 1280 px in both themes.
+
+- [ ] **R28 — Install hint, update banner and the favourites list**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R17, R25, R26
+  - **Goal:** The app can be installed, updates are offered rather than imposed, and places can be saved and switched.
+  - **Satisfies:** FR-OFF-6 (UI half), FR-OFF-1 (update banner); US-17 AC1, AC2, AC3.
+  - **Scope:** `InstallHint.tsx` shows once when `beforeinstallprompt` fires and, on iOS where it never fires, shows the "Add to Home Screen" note keyed off `navigator.standalone` being defined and false; dismissal is remembered in the prefs. `UpdateBanner.tsx` offers "new version ready — reload", posts `SKIP_WAITING` and reloads, and is the only caller of it (OQ-14). The favourites control in the location panel: save under a label, pick one, remove with no confirmation dialog, and the limit of eight stated.
+  - **Done when:**
+    - Component tests for both banners, including the iOS branch and the remembered dismissal.
+    - e2e: save two places, switch (the list recomputes for the new observer), remove one, reload and see the remaining favourite; the update banner appears from a faked waiting worker and reloads on click.
+    - Nothing swaps under an open pass or the live page.
+    - Captures in both languages.
+
+- [ ] **R32 — The live page: full-screen dome, status strip and URL state**
+  - **Lane:** ui
+  - **Model:** fable
+  - **Gate:** owner
+  - **Depends on:** R17, R22, R31
+  - **Goal:** A page that shows the whole sky now, with everything that is up drawn on it.
+  - **Satisfies:** FR-LIVE-1, FR-LIVE-2, FR-LIVE-3, FR-LIVE-9, FR-LIVE-10; US-15 AC1, AC2, AC9.
+  - **Scope:** `screens/Live.tsx` at `#live`, reachable from the header and the Now panel, `Esc` returns; inert with one line and the return control when there is no observer or no elements (FR-LIVE-1). The chart is the existing `SkyChartProps` with `now = t` and the passes whose interval overlaps `now … now + 24 h`, coloured per satellite from a palette of at least six distinguishable hues per theme, assigned in pass order; nothing on the page draws satellites by any other path (FR-LIVE-10). `StatusStrip.tsx` shows `t` in the observer's zone with its abbreviation, the sky state in words, cloud cover at `t` or "unknown", the count visible at `t`, and the Moon's phase and illumination. `lib/shareLinks.ts` gains `#live?lat=&lon=&alt=&t=` in both directions (FR-LIVE-9). The route is its own lazy chunk with its own budget.
+  - **Done when:**
+    - e2e: `#live` fills the viewport with the dome, the strip shows its five fields, and the count matches the Now panel at the same instant.
+    - A `#live?…` URL sets the observer (label from the rounded coordinates, source `coords`) and the instant; a bad `t` falls back to real time.
+    - Both inert states render one line and the return control.
+    - The live chunk is within its budget and does not grow the main chunk beyond it.
+    - Captures at 390 px and 1280 px in both themes.
+
+- [ ] **R33 — The time stripe, playback and hidden objects**
+  - **Lane:** ui
+  - **Model:** fable
+  - **Gate:** owner
+  - **Depends on:** R18, R32
+  - **Goal:** Run the coming 24 h forward and see what is up at any instant in it.
+  - **Satisfies:** FR-LIVE-4, FR-LIVE-5, FR-LIVE-6; US-15 AC3, AC4, AC6.
+  - **Scope:** `TimeStripe.tsx` in SVG (D-82): `now` at the left edge and `now + 24 h` at the right, hour ticks, night shading from the three sky states, a segment per pass in its arc's colour, a cursor with its clock time; drag, click and arrow keys (1 min, 10 min with Shift) set `t`, clamped to the span. `PlaybackControls.tsx`: play and pause at 1×, 60×, 600× and 3600×, a `now` action returning to real time and the 10 s tick, stopping at the end of the span; the loop is `requestAnimationFrame` advancing `t` by wall delta × speed (D-81). Hidden objects are off by default and remembered; on, they come from `computeNow { includeHidden: true }` throttled to one request per 250 ms of wall time, with a stale response dropped if `t` moved past it, drawn dimmed with the reason.
+  - **Done when:**
+    - Stripe geometry unit tests (tick positions, the night bands, a pass segment, the cursor) and scrubbing tests for the pointer and both key steps.
+    - A playback test proves a dropped frame loses no simulated time.
+    - ≥ 30 updates/s at 3600× under 6× CPU throttle, measured by the D-62 method; the number is in the PR, and the FR-DOME-8 fallback order is what is used if it is short.
+    - The hash is written at most twice a second while scrubbing and never while playing (asserted).
+    - e2e scrubs, plays, pauses and returns to now; the hidden-objects toggle shows dimmed objects with reasons and its state survives a reload.
+    - Captures in both themes.
+
+- [ ] **R34 — Landscape, wake lock and compass follow**
+  - **Lane:** ui
+  - **Model:** fable
+  - **Gate:** owner
+  - **Depends on:** R33
+  - **Goal:** The live page is usable held up outdoors: it stays awake, works sideways, and turns with the phone.
+  - **Satisfies:** FR-LIVE-7, FR-LIVE-8; US-10, US-15 AC7, AC8.
+  - **Scope:** the landscape layout by media query — dome on the left, strip and stripe on the right — with portrait stacking unchanged; the Screen Wake Lock requested while the page is visible and released on hidden through `visibilitychange`, rendering nothing where the API is absent. `FollowPhone.tsx` requests `DeviceOrientationEvent` permission inside the click handler (iOS, HTTPS), maps `absolute` events or `webkitCompassHeading` to the dome's facing, shows a note on relative-only devices, turns itself off on the first drag, and is hidden entirely where the API does not exist.
+  - **Done when:**
+    - e2e in a landscape phone viewport shows the two-pane layout, and portrait is unchanged.
+    - Tests with the wake lock and orientation APIs stubbed: requested on visible, released on hidden, heading turns the dome, a drag turns following off, the control turns it back on.
+    - With the APIs absent nothing is rendered (desktop e2e asserts no control).
+    - Captures in landscape at a phone size, both themes.
+
+- [ ] **R35 — Keyboard shortcuts and the overlay**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R20, R23, R32
+  - **Goal:** The whole app is drivable from the keyboard, and the list of keys is generated from what is registered.
+  - **Satisfies:** FR-DESK-4; US-14 AC4. **Advances:** FR-X-5.
+  - **Scope:** `lib/shortcuts.ts` installs one `keydown` listener on `document` at the `App` level and holds the single guard: no modifier, not `isComposing`, and the target is not an `input`, `textarea`, `select` or `[contenteditable]` (D-73). One table registers the handlers and generates `ShortcutsOverlay.tsx`, so an undocumented shortcut cannot exist: `j` / `k` move the selection, `Enter` opens, `Esc` closes the guide or the overlay, `l` opens the live page, `v` toggles the chart view, `n` toggles the night theme, `?` opens the overlay.
+  - **Done when:**
+    - Guard unit tests, one per ignored case.
+    - A test asserts every registered shortcut appears in the overlay and every overlay row is registered.
+    - e2e at 1280 px drives the list with `j` / `k` / `Enter` / `Esc`, opens the live page with `l`, toggles view and theme, and opens and closes the overlay; e2e also proves typing in the location field triggers nothing.
+    - Captures of the overlay in both languages.
+
+- [ ] **R36 — v1 release preparation**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R22, R23, R27, R28, R30, R34, R35
+  - **Why not a slice:** it is the phase's definition of done (spec §9 Phase 2), collected once everything is merged; the tag, the deploy and the on-device run stay with the owner.
+  - **Goal:** The repository states v1 truthfully: budgets from the real build, the full capture set, the checklist, the version.
+  - **Satisfies:** spec §9 Phase 2 definition of done.
+  - **Scope:** `scripts/bundle-budget.ts` re-set to what the build produces, within the PLAN §11 v1 ceilings (main, chart, live route, worker, service worker). The complete capture set in `docs/screenshots/`: every screen at 390 px and 1280 px, in both languages and both themes. `docs/RELEASE.md` extended with the v1 checks (the FR-GUIDE-6 phone run, the FR-LIVE-5 3600× run, the install check, the deploy-day Heavens-Above comparison). `package.json` to 1.0.0. The requirement coverage table below filled in from what actually shipped.
+  - **Done when:**
+    - `npm test`, `npm run e2e`, `npx tsc -b`, `npm run lint`, `npm run build` and the budget script are all green, with the measured sizes in the PR.
+    - Every requirement in the spec's Phase 2 definition of done has a row in the coverage table naming the task that met it.
+    - The capture set is complete: no screen is missing a language or a theme.
+    - `package.json` is 1.0.0 and `docs/RELEASE.md` is current. Tagging and deploying are owner steps and are listed as such.
+
+### Expected waves
+
+Computed from the graph, ignoring the driver's concurrency caps (at most one task per lane, at most two at once), so a wave here may take more than one run of `npm run sdd -- --wave`. The driver recomputes this from `origin/main`; the list is a reading aid.
+
+| Wave | Tasks | Lanes |
+|---|---|---|
+| 1 | R16, R17, R18, R19, R29 | chart, ui, physics, physics, data |
+| 2 | R20, R23, R24, R30, R31 | ui ×4, data |
+| 3 | R21, R25, R26, R27 | chart, data ×2, ui |
+| 4 | R22, R28 | chart, ui |
+| 5 | R32 | ui |
+| 6 | R33, R35 | ui ×2 |
+| 7 | R34 | ui |
+| 8 | R36 | ui |
+
+No two tasks in one wave name the same file outside their lanes: `src/main.tsx` is R17 (wave 1), R20 (wave 2) and R25 (wave 3); `src/model/prefs.ts` is R17 and R20; `src/model/offline.ts` is R24 (wave 2) and R26 (wave 3); `public/_headers` is R21's alone. The `ui` lane is the long pole — eleven tasks that can only run one at a time — which is what sets the phase's length, not the two-at-once cap.
+
+### Requirement coverage (v1)
+
+| Requirement | Tasks |
+|---|---|
+| FR-I18N-1..6 | R17 (every later UI task adds its strings to both catalogs) |
+| FR-DESK-1, 2, 3, 5 | R23 |
+| FR-DESK-4 | R35 |
+| FR-DOME-1, 2, 3, 4, 8 | R16 (composition), R20 (tokens), R21 |
+| FR-DOME-5, 6 | R22 |
+| FR-DOME-7 | R21 (dome default), R22 (polar parity) |
+| FR-LIVE-1, 2, 3, 9, 10 | R32 |
+| FR-LIVE-4, 5, 6 | R33 (R18 for the worker half) |
+| FR-LIVE-7, 8 | R34 |
+| FR-OFF-1 | R25 (worker), R28 (banner) |
+| FR-OFF-2, 3, 5 | R24 (R18 for the 72 h search) |
+| FR-OFF-4, 8 | R27 |
+| FR-OFF-6 | R25 (manifest), R28 (hint) |
+| FR-OFF-7 | R26 (store), R28 (UI) |
+| FR-MOON-1, 2 | R19 (computation), R30 (UI) |
+| FR-MOON-3 | R30 |
+| FR-MOON-4, 5 | R29 (data), R30 (UI) |
+| FR-SHARE-1, 2, 3 | R31 (pass), R32 (live form) |
+| FR-THEME-1, 2 | R20 |
+| FR-THEME-3 | R20 (tokens), R21, R22 (chart), R33 (stripe) |
+| FR-VIS-1 (amended) | R18 (worker), R24 (client) |
+| FR-WX-1 (amended) | R24 |
+| FR-GUIDE-5 (amended CSP) | R21 |
+| FR-LOC-5 (amended) | R26 |
+| FR-X-1 (amended) | R23 |
+| FR-X-4 (amended) | R24, R25, R27 |
+| Spec §9 Phase 2 done | R36 |
+
+### Dependency graph (v1)
+
+```mermaid
+flowchart LR
+  R16 --> R20 & R21
+  R17 --> R20 & R23 & R25 & R27 & R30 & R31
+  R18 --> R24 & R33
+  R19 --> R22 & R30
+  R29 --> R30
+  R20 --> R21 & R25 & R35
+  R21 --> R22
+  R23 --> R35
+  R24 --> R26 & R27
+  R25 --> R28
+  R26 --> R28
+  R22 --> R32
+  R31 --> R32
+  R32 --> R33 & R35
+  R33 --> R34
+  R22 & R23 & R27 & R28 & R30 & R34 & R35 --> R36
 ```
