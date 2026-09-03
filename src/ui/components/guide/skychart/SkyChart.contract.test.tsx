@@ -5,13 +5,15 @@
  * E, S, W, the pass name, the peak), fires `onSelectPass` with the pass id,
  * hides its drawing from assistive technology (FR-GUIDE-7) and draws no
  * canvas (FR-GUIDE-5). R15 adds the dome to `SKY_CHART_VIEWS` and this
- * file covers it unchanged.
+ * file covers it with one addition: the dome is code-split behind
+ * `React.lazy`, so each view is mounted once up front and awaited, after
+ * which every render below is synchronous, as the assertions assume.
  */
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../tests/support/catalogFixtures';
 import { FIXTURES_DIR } from '../../../../../tests/support/fixtures';
 import type { Observer } from '../../../../model';
@@ -27,6 +29,14 @@ const initial = appStore.getInitialState();
 const ANCHORS = ['N', 'E', 'S', 'W'];
 
 describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
+  beforeAll(async () => {
+    appStore.getState().setChartView(view.id);
+    const { container, unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    await waitFor(() => {
+      expect(container.querySelector('[data-drawing]')).not.toBeNull();
+    });
+    unmount();
+  });
   beforeEach(() => {
     appStore.getState().setChartView(view.id);
   });

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { useAppStore } from '../../../../state';
 import { OptionToggle } from '../../common/OptionToggle';
 import { GuideText } from '../GuideText';
@@ -10,12 +11,33 @@ import type { SkyChartProps, SkyChartView } from './SkyChart.types';
  * `<figcaption>` is the FR-GUIDE-1 sentence of the highlighted pass (the
  * text alternative, FR-GUIDE-7); the view itself hides its drawing from
  * assistive technology. The view is chosen from the `chartView` preference
- * (US-6 AC5, persisted in `wiys:prefs:v1`) with a dome / polar toggle. R15
- * registers the dome as the first entry of `SKY_CHART_VIEWS`; until then the
- * polar view is the only one, the `dome` preference falls back to it and the
- * toggle is not shown (a toggle between two identical views would be a lie).
+ * (US-6 AC5, persisted in `wiys:prefs:v1`) with a dome / polar toggle. R15:
+ * the dome is the first entry of `SKY_CHART_VIEWS` and the default; it is
+ * code-split behind `React.lazy` (PLAN §11: the chart chunk, `@glyphcss/react`
+ * and `dome/`, is fetched only when a detail sheet opens on the dome view),
+ * so this file, the only one that knows two views exist, imports nothing
+ * from `dome/` statically. The toggle is shown only with more than one
+ * registered view (D-55).
  */
-export const SKY_CHART_VIEWS: readonly SkyChartView[] = [POLAR_VIEW];
+const SkyDome = lazy(() => import('./dome/SkyDome').then((module) => ({ default: module.SkyDome })));
+
+function DomeView(props: SkyChartProps) {
+  return (
+    <Suspense
+      fallback={
+        <p className={styles.loading} data-testid="dome-loading">
+          Loading the sky dome…
+        </p>
+      }
+    >
+      <SkyDome {...props} />
+    </Suspense>
+  );
+}
+
+export const DOME_VIEW: SkyChartView = { Component: DomeView, id: 'dome', label: 'Dome' };
+
+export const SKY_CHART_VIEWS: readonly SkyChartView[] = [DOME_VIEW, POLAR_VIEW];
 
 export function viewFor(id: SkyChartView['id']): SkyChartView {
   const view = SKY_CHART_VIEWS.find((candidate) => candidate.id === id) ?? SKY_CHART_VIEWS[0];

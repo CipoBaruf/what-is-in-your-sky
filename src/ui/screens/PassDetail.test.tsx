@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { readFileSync } from 'node:fs';
@@ -38,12 +38,19 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     expect(within(dialog).getByTestId('guide-sentence').textContent).toBe(golden.asComputed);
     expect(within(dialog).getByRole('table')).toBeInTheDocument();
     expect(within(dialog).getByText('sky still bright', { selector: 'p span' })).toBeInTheDocument();
-    // R13: the chart is a figure captioned by the sentence; the drawing is hidden from AT (FR-GUIDE-7) and is SVG, not canvas (FR-GUIDE-5).
+    // R13: the chart is a figure captioned by the sentence; the drawing is hidden from AT (FR-GUIDE-7) and is DOM text, not canvas (FR-GUIDE-5).
+    // R15: the dome is the default view, code-split, so its drawing lands after the chunk resolves; the polar view is one toggle away.
     const figure = within(dialog).getByRole('figure');
     expect(figure).toContainElement(within(dialog).getByTestId('guide-sentence'));
-    expect(figure.querySelector('svg[data-drawing]')).toHaveAttribute('aria-hidden', 'true');
+    expect(figure).toHaveAttribute('data-view', 'dome');
+    expect(within(figure).getByRole('group', { name: 'Chart view' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(figure.querySelector('[data-drawing="dome"]')).not.toBeNull();
+    });
+    expect(figure.querySelector('[data-drawing="dome"]')).toHaveAttribute('aria-hidden', 'true');
+    expect(figure.querySelector('pre.glyph-output')).not.toBeNull();
     expect(dialog.querySelector('canvas')).toBeNull();
-    expect(within(figure).getByRole('group', { name: 'Chart orientation' })).toBeInTheDocument();
+    expect(within(figure).getByTestId('dome-readout')).toHaveTextContent(/^Facing NE/);
     expect(await axe(container)).toHaveNoViolations();
   });
 
