@@ -222,7 +222,7 @@
     - Polar tests: marker positions equal `toPolar` of start / peak / end in both orientations; the toggle flips east between left and right and changes the label; toggling persists in prefs.
     - `jest-axe` passes on `SkyChart` inside `PassDetail`. Playwright: `document.querySelector('canvas')` is null on every screen (kept valid by R15). Visual check at 390 px: chart fits without horizontal scroll; screenshot in the PR.
 
-- [ ] **R14 — glyphcss feasibility spike for the ASCII dome (throwaway page + findings)**
+- [x] **R14 — glyphcss feasibility spike for the ASCII dome (throwaway page + findings)** — done as written, plus the horizon panorama prototype agreed in the R13 review (PLAN §8.5 item 7). The spike page lives in `spike/` (typechecked, linted, never bundled) rather than being deleted, with a capture script that regenerates every screenshot and figure. `toDome` flipped to Z up (D-58). Item 3 was measured under Chrome CPU throttling in Playwright, not on a phone (D-62); the on-device check stays in R15. Chart chunk 97 KB gzipped, budget set to 100 KB (D-63). P-OQ-1..3 resolved (D-59..D-61); the primary-view pick (dome or panorama) is the owner's from the screenshots, and R15 is re-scoped after it.
   - **Why not a slice:** It is a bounded risk spike whose product is a decision (P-OQ-1..3 and the D-16 replacement trigger); its throwaway page is visible but deliberately unbundled.
   - **Built from:** T19, unchanged apart from dependencies.
   - **Goal:** Answer the six PLAN §8.5 questions with screenshots and measurements before the dome is built, and decide P-OQ-1..3.

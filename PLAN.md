@@ -209,6 +209,18 @@ Recorded by the R13 implementation (sky geometry library, `SkyChart` boundary, S
 - **Review fixes.** The page scroll is locked (`html { overflow: hidden }` from an effect in `PassDetail`, restored on close) while the sheet is up: the sheet is `position: fixed` and scrolls itself, so on desktop the list's scrollbar behind it was a second, dead scrollbar. The performance gate (`passes.perf.test.ts`) judges the best of three runs: Vitest runs it beside the other files and one run on a shared CI core measured the contention (1547 ms on this branch's first CI run against 975–1433 ms on `main`), not the algorithm (362 ms locally).
 - **Playwright (`pass-detail.spec.ts`, 390 px).** After the R6 checks: no `<canvas>` in the document, the figure holds the sentence, the SVG drawing is `aria-hidden` with the four cardinals, the pass and peak labels and one each of the rise / peak / end / arrow markers, and its box is inside the viewport; `E` sits in the left half by default and in the right half after the map toggle, the convention line changes, `wiys:prefs:v1` carries `chartOrientation`, and the choice survives a reload. The sheet is scrolled to the figure before each screenshot (it is `position: fixed`). The spec also opens the highest pass of the night for a second screenshot, since the golden pass grazes the horizon. `identity.spec.ts` asserts no `<canvas>` on every screen it visits.
 
+### 2.15 R14 decisions (2026-09-03)
+
+Recorded by the R14 spike (`docs/spike-glyphcss/FINDINGS.md` has the evidence; `spike/` is the throwaway page, typechecked and linted but never bundled).
+
+- **D-58 — The dome frame is glyphcss's: Z up.** `lib/skyGeometry.toDome` is x south, y east, z up (§8.2 rewritten); the R13 unit-vector tests pin it. glyphcss's camera orbits its Z axis, so at `rotY = 0` it stands south of the observer facing north with east on the right (the D-17 view), `rotY = (360 − facingAz) mod 360` faces any azimuth and `rotX` is the tilt from top-down (0) to horizontal (90). `fromDome` follows; nothing else in the app depended on the old frame.
+- **D-59 — Composition and grid (P-OQ-2 resolved).** Wireframe mode strokes every polygon edge, so strips render as ladders and no ASCII palette resolves the dome at 60×30. The dome is drawn in `charMode="braille"` (2 × 4 dots per cell): rings and meridians as 0.05°-wide strips (one stroke), the pass as a 1.5° strip (a double dotted line, the highlight channel), dashes by omitting every other 5° quad, markers as diamonds at radius 1.02, labels as hotspots outside the grid at 11 px. Default grid 60×30 at 390 px (6.5 px cells; the drawing carries no text, so cells may shrink to 100×50 without a legibility cost); `autoSize` with cols from the measured cell on wider screens. A grazing pass (the golden pass: 13° of sky at 10°) is three cells on the dome and unreadable in any mode; the numbers table and the panorama carry it.
+- **D-60 — Camera model (P-OQ-1 resolved) and the primary view.** glyphcss 0.1.6 has no observer-centred camera: the perspective camera's `distance` is a pull-back from the target, the pinhole legacy mode collapses at the origin, and the first-person controls render nothing. The dome keeps the external camera (D-17); the interior mode is closed. The horizon panorama prototype (§8.5 item 7: SVG, equirectangular, facing the arc, live marker with trail, no dependency) is the observer-centred view and, on the spike's screenshots, reads the grazing pass the dome cannot show. The choice of primary view is the owner's (spec UX-1); R15 is re-scoped after that pick: panorama as primary and dome as a second view, or dome as primary as written. The polar chart is the fallback either way.
+- **D-61 — Colour (P-OQ-3 resolved) and the CSP.** `useColors` emits `<span style="color:…">` through `innerHTML`, which `style-src 'self'` blocks; the dome is monochrome, highlight by line weight. `GlyphScene` also injects a `<style id="glyph-styles">` at mount, which the CSP blocks and without which the hotspot layer loses its containing block: R15 ships those base rules (glyphcss 0.1.6's `injectGlyphBaseStyles` text) in `dome/SkyDome.module.css`, pinned with the version, instead of hashing the injected sheet. Hotspot positions and the host's `cursor` / `touch-action` are set through the CSSOM and survive the CSP.
+- **D-62 — FR-GUIDE-6 measured by proxy; D-16 trigger (a) not fired.** A 5 s real-pointer drag in Playwright's Chromium (Pixel 5 profile, 390 px) under Chrome DevTools CPU throttling: ≥ 64 rasterisations/s at 4× and ≥ 43/s at 6× at every grid (60×30 and 100×50, braille and ASCII, autosize), longest frame 27 ms; glyphcss re-rasterises on every animation frame while dragging. `interactiveDownscale={2}` is the configuration fix if a phone falls short. The on-device check (≥ 30/s on a mid-range 2022 Android phone) stays in R15's release checklist as the real gate.
+- **D-63 — Chart chunk budget is 100 KB gzipped.** The dome behind `React.lazy` measures 97.3 KB gzipped (`@glyphcss/core` 48 KB, `glyphcss` 48 KB, the React binding 5 KB, our geometry 4 KB); the React package re-exports all of core, so the loaders and colour maths cannot be shaken from outside. The OBJ/glTF/VOX/PNG/JPEG loaders and the colour-font atlases are emitted as lazy chunks (pngjs 62 KB, atlases 33 + 29 KB, jpeg-js 9 KB, buffer 9 KB) and are never fetched by the dome. §11 carries the measured figure, as TASKS R15 provides.
+- **Housekeeping.** `@glyphcss/react` is pinned to 0.1.6 in `dependencies` (imported only by `spike/` until R15; the lint override for `spike/**` mirrors the dome's) and `rollup-plugin-visualizer` is a dev dependency. `tsconfig.app.json` includes `spike`, `tsconfig.node.json` the capture script and the bundle probe config. `vite build` bundles only the root `index.html`, so `dist/` never contains the spike page (verified by listing `dist/`).
+
 ## 3. Architecture Overview
 
 ```mermaid
@@ -604,15 +616,15 @@ export interface SkyChartView {         // both implementations export this shap
 
 ### 8.2 Coordinate mapping (dome frame)
 
-Right-handed, **Y up**, unit radius, observer at the origin:
+Right-handed, **Z up** (glyphcss's frame, fixed by the R14 spike, D-58), unit radius, observer at the origin:
 
 ```
-x =  cos(el) · sin(az)      # east
-y =  sin(el)                # up
-z = -cos(el) · cos(az)      # north is −z, so azimuth increases clockwise when seen from above
+x = -cos(el) · cos(az)      # south (north is −x)
+y =  cos(el) · sin(az)      # east
+z =  sin(el)                # up; azimuth increases clockwise when seen from above
 ```
 
-This is a *provisional* convention: glyphcss does not document its handedness or up axis. `domeGeometry.ts` builds everything through one `toDome(azDeg, elDeg): Vec3` function so a sign flip found in the spike is a one-line change. The spike (§8.5) fixes the convention by rendering the four cardinal hotspots and checking they land where expected.
+glyphcss's turntable camera orbits its Z axis: at `rotY = 0`, `rotX = 90` it stands on +x looking toward −x with +y on the screen's right, so in this frame it stands south of the observer facing north with east on the right, and `rotY = (360 − facingAz) mod 360` faces any azimuth (positive `rotY` turns the world clockwise on screen). `rotX` is the tilt from top-down (0) to horizontal (90). `domeGeometry.ts` builds everything through the one `toDome(azDeg, elDeg): Vec3` function in `lib/skyGeometry.ts`, which the R13 tests pin on the cardinals and the zenith.
 
 ### 8.3 Scene composition
 
@@ -632,6 +644,8 @@ This is a *provisional* convention: glyphcss does not document its handedness or
 | Highlight | Highlighted pass drawn as a wider strip; others narrower. With colours off, weight is the only channel — acceptable, verified in the spike | props → geometry options |
 | Camera | `GlyphOrthographicCamera rotX={pitch} rotY={yaw} zoom={z}`; initial `yaw = initialFacingAzDeg` mapped through the frame convention, `pitch ≈ 25°` (horizon and peak both visible) | `camera.initialFor(pass)` |
 | Controls | `GlyphOrbitControls drag wheel={false} clampPitch` | Pitch clamped to roughly 5°–80° so the user can neither go under the horizon nor to a pure top-down view (which is what the polar chart is for). Keyboard: arrow keys adjust yaw/pitch in 15°/5° steps via component state, satisfying FR-GUIDE-2's keyboard requirement independently of glyphcss's own key handling. |
+
+R14 (D-59) fixes the rendering knobs: `charMode="braille"`, rings and meridians as 0.05°-wide strips (wireframe strokes every quad edge, so a wider strip is a ladder), the pass strip 1.5° wide, labels as hotspots outside the grid, glyphcss's base stylesheet shipped in our CSS (D-61), and no interior camera (D-60).
 
 Why our own strips rather than a built-in `sphere`: the built-in sphere in wireframe mode draws its own tessellation, which would compete with the arcs and rings, and it cannot be dashed or labelled. A few hundred quads of our own is a smaller scene, reads like a chart, and mirrors the 2D view's features one-to-one.
 
@@ -660,9 +674,9 @@ Failing 3 with no configuration fix triggers D-16's replacement path before the 
 
 | ID | Question | Default until answered |
 |---|---|---|
-| P-OQ-1 | Camera model: external over-the-shoulder view (D-17) vs. observer-centred interior view, and (since the R13 review) whether a first-person horizon panorama reads better than either dome camera as the primary view. The interior view is closest to the spec's wording ("the horizon they'll face") but depends on undocumented library behaviour and gives a fish-eye feel on an orthographic grid. | External view. Revisit after spike items 4 and 7; the interior view or the panorama may become a further mode behind the same props, and the panorama may be proposed as the primary view, in which case spec UX-1 is amended explicitly before R15 registers it. |
-| P-OQ-2 | Cell aspect and grid size on phones: 60×30 keeps text legible but quantises angles to ~5°; 100×50 is finer but characters become tiny. | Autosize with a minimum cell width of 7 px; readout of exact angles is the numeric table's job, not the dome's. |
-| P-OQ-3 | Colour under a strict CSP (spike item 5). | Monochrome; highlight by line weight and label. If glyphcss uses class names, allow one colour for the highlighted pass. |
+| P-OQ-1 | Camera model: external over-the-shoulder view (D-17) vs. observer-centred interior view, and (since the R13 review) whether a first-person horizon panorama reads better than either dome camera as the primary view. The interior view is closest to the spec's wording ("the horizon they'll face") but depends on undocumented library behaviour and gives a fish-eye feel on an orthographic grid. | **Resolved (D-60):** external view; no interior camera exists in glyphcss 0.1.6. The horizon panorama is the observer-centred view; the owner picks the primary view from the R14 screenshots and R15 is re-scoped accordingly. |
+| P-OQ-2 | Cell aspect and grid size on phones: 60×30 keeps text legible but quantises angles to ~5°; 100×50 is finer but characters become tiny. | **Resolved (D-59):** braille char mode, 60×30 at 390 px (6.5 px cells), autosize on wider screens; the grid carries no text, so cells may shrink; exact angles are the numeric table's job. |
+| P-OQ-3 | Colour under a strict CSP (spike item 5). | **Resolved (D-61):** monochrome; `useColors` writes inline styles. glyphcss's injected base stylesheet must be shipped in our CSS. |
 
 ## 9. Testing Strategy
 
@@ -765,7 +779,7 @@ Two further observer locations (one northern mid-latitude, one near the equator)
   ```
 
 - **CI** (`ci.yml`): typecheck → lint → unit + golden + component → build → Playwright. **`live-contract.yml`**: daily, `LIVE=1`, never blocks merges; opens an issue on failure.
-- **Bundle budget:** main chunk ≤ 150 KB gzipped **excluding the sky-chart chunk**; the sky-chart chunk (`@glyphcss/react` + `@glyphcss/core` + `dome/`) is code-split behind `React.lazy` in `SkyChart.tsx` and budgeted at ≤ 60 KB gzipped (to be confirmed by spike item 6); worker chunk (satellite.js + astronomy-engine) ≤ 120 KB gzipped, loaded once. Checked with `rollup-plugin-visualizer` in CI as a warning.
+- **Bundle budget:** main chunk ≤ 150 KB gzipped **excluding the sky-chart chunk**; the sky-chart chunk (`@glyphcss/react` + `@glyphcss/core` + `dome/`) is code-split behind `React.lazy` in `SkyChart.tsx` and budgeted at ≤ 100 KB gzipped (R14 measured 97 KB; the 60 KB planned before the spike is not reachable from outside the library, D-63); worker chunk (satellite.js + astronomy-engine) ≤ 120 KB gzipped, loaded once. Checked with `rollup-plugin-visualizer` in CI as a warning.
 
 ### 11.1 Runtime dependencies
 
@@ -777,7 +791,7 @@ Two further observer locations (one northern mid-latitude, one near the equator)
 | `astronomy-engine` | 2.x | MIT | Sun altitude and vector (D-2) | `src/physics/sun.ts` only | Bundle size in the worker chunk; not tree-shakeable. |
 | `idb` | 8.x | ISC | IndexedDB wrapper (FR-SAT-6) | `src/data/elementsCache.ts` | Low. |
 | `zod` | 3.x/4.x | MIT | Response and catalog schemas | `src/data` | Low. |
-| **`@glyphcss/react`** (+ `@glyphcss/core`) | **0.1.x** (0.1.6 at time of writing) | MIT | ASCII 3D dome rasteriser (D-16, §8) | **`src/ui/components/guide/skychart/dome/` only** | **Pre-1.0 API** — minor releases may break props; pin exact version, upgrade deliberately with the raster snapshot as the tripwire. **Single-maintainer fork** (of polycss) — bus factor 1; vendor-fork plan: the package is small and MIT, so forking into `vendor/` is the fallback if it goes dormant. **Small user base** — few battle-tested edge cases (mobile touch, RTL text, high-DPI), so the spike (§8.5) and the interaction e2e carry more weight than usual. Undocumented handedness/up-axis and interior-camera behaviour (D-17). Coloured mode may use inline styles incompatible with the strict CSP (P-OQ-3). |
+| **`@glyphcss/react`** (+ `@glyphcss/core`) | **0.1.x** (0.1.6 at time of writing) | MIT | ASCII 3D dome rasteriser (D-16, §8) | **`src/ui/components/guide/skychart/dome/` only** | **Pre-1.0 API** — minor releases may break props; pin exact version, upgrade deliberately with the raster snapshot as the tripwire. **Single-maintainer fork** (of polycss) — bus factor 1; vendor-fork plan: the package is small and MIT, so forking into `vendor/` is the fallback if it goes dormant. **Small user base** — few battle-tested edge cases (mobile touch, RTL text, high-DPI), so the spike (§8.5) and the interaction e2e carry more weight than usual. Handedness fixed by R14 (Z up, D-58); no interior camera (D-60); coloured mode writes inline styles and the base stylesheet is injected, both blocked by the strict CSP (D-61); the chart chunk is 97 KB gzipped (D-63). |
 | `vitest`, `@testing-library/react`, `@playwright/test`, `msw`, `fake-indexeddb`, `jest-axe` | current | MIT | Tests (dev only) | — | — |
 
 ---

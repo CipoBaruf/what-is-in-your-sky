@@ -1,0 +1,1120 @@
+{
+  "frame": {
+    "rotY0": [
+      {
+        "label": "N",
+        "col": 29,
+        "row": 5,
+        "visible": true
+      },
+      {
+        "label": "NE",
+        "col": 44,
+        "row": 8,
+        "visible": true
+      },
+      {
+        "label": "E",
+        "col": 51,
+        "row": 15,
+        "visible": true
+      },
+      {
+        "label": "SE",
+        "col": 44,
+        "row": 23,
+        "visible": true
+      },
+      {
+        "label": "S",
+        "col": 29,
+        "row": 26,
+        "visible": true
+      },
+      {
+        "label": "SW",
+        "col": 13,
+        "row": 23,
+        "visible": true
+      },
+      {
+        "label": "W",
+        "col": 7,
+        "row": 15,
+        "visible": true
+      },
+      {
+        "label": "NW",
+        "col": 13,
+        "row": 8,
+        "visible": true
+      },
+      {
+        "label": "zenith",
+        "col": 29,
+        "row": 11,
+        "visible": true
+      },
+      {
+        "label": "ISS (Zarya) 07:48",
+        "col": 11,
+        "row": 9,
+        "visible": true
+      },
+      {
+        "label": "max 64°",
+        "col": 22,
+        "row": 14,
+        "visible": true
+      },
+      {
+        "label": "→",
+        "col": 42,
+        "row": 22,
+        "visible": true
+      }
+    ],
+    "rotY90": [
+      {
+        "label": "N",
+        "col": 50,
+        "row": 15,
+        "visible": true
+      },
+      {
+        "label": "NE",
+        "col": 44,
+        "row": 23,
+        "visible": true
+      },
+      {
+        "label": "E",
+        "col": 29,
+        "row": 26,
+        "visible": true
+      },
+      {
+        "label": "SE",
+        "col": 13,
+        "row": 23,
+        "visible": true
+      },
+      {
+        "label": "S",
+        "col": 7,
+        "row": 15,
+        "visible": true
+      },
+      {
+        "label": "SW",
+        "col": 13,
+        "row": 8,
+        "visible": true
+      },
+      {
+        "label": "W",
+        "col": 29,
+        "row": 5,
+        "visible": true
+      },
+      {
+        "label": "NW",
+        "col": 44,
+        "row": 8,
+        "visible": true
+      },
+      {
+        "label": "zenith",
+        "col": 29,
+        "row": 11,
+        "visible": true
+      },
+      {
+        "label": "ISS (Zarya) 07:48",
+        "col": 39,
+        "row": 6,
+        "visible": true
+      },
+      {
+        "label": "max 64°",
+        "col": 22,
+        "row": 8,
+        "visible": true
+      },
+      {
+        "label": "→",
+        "col": 13,
+        "row": 21,
+        "visible": true
+      }
+    ],
+    "rotY0-topdown": [
+      {
+        "label": "N",
+        "col": 28,
+        "row": 15,
+        "visible": true
+      },
+      {
+        "label": "NE",
+        "col": 43,
+        "row": 15,
+        "visible": true
+      },
+      {
+        "label": "E",
+        "col": 49,
+        "row": 15,
+        "visible": true
+      },
+      {
+        "label": "SE",
+        "col": 43,
+        "row": 16,
+        "visible": true
+      },
+      {
+        "label": "S",
+        "col": 28,
+        "row": 16,
+        "visible": true
+      },
+      {
+        "label": "SW",
+        "col": 13,
+        "row": 16,
+        "visible": true
+      },
+      {
+        "label": "W",
+        "col": 7,
+        "row": 15,
+        "visible": true
+      },
+      {
+        "label": "NW",
+        "col": 13,
+        "row": 15,
+        "visible": true
+      },
+      {
+        "label": "zenith",
+        "col": 28,
+        "row": 4,
+        "visible": true
+      },
+      {
+        "label": "ISS (Zarya) 07:48",
+        "col": 10,
+        "row": 13,
+        "visible": true
+      },
+      {
+        "label": "max 64°",
+        "col": 21,
+        "row": 5,
+        "visible": true
+      },
+      {
+        "label": "→",
+        "col": 41,
+        "row": 14,
+        "visible": true
+      }
+    ]
+  },
+  "perf": [
+    {
+      "seconds": 5.082300000190735,
+      "mutationBatches": 486,
+      "rasterFrames": 464,
+      "totalFrames": 474,
+      "rasterPerSecond": 91.2972473058628,
+      "longestFrameGapMs": 27.300000000000182,
+      "loafMaxMs": null,
+      "loafCount": 0,
+      "pointerMoves": 243,
+      "grid": "60x30",
+      "cpuThrottle": 1
+    },
+    {
+      "seconds": 5.064299999952317,
+      "mutationBatches": 478,
+      "rasterFrames": 448,
+      "totalFrames": 452,
+      "rasterPerSecond": 88.46237387283892,
+      "longestFrameGapMs": 27.300000000000182,
+      "loafMaxMs": null,
+      "loafCount": 0,
+      "pointerMoves": 239,
+      "grid": "100x50",
+      "cpuThrottle": 1
+    },
+    {
+      "seconds": 5.048799999952316,
+      "mutationBatches": 462,
+      "rasterFrames": 438,
+      "totalFrames": 440,
+      "rasterPerSecond": 86.75328791081776,
+      "longestFrameGapMs": 27.40000000000009,
+      "loafMaxMs": null,
+      "loafCount": 0,
+      "pointerMoves": 230,
+      "grid": "100x50 downscale2",
+      "cpuThrottle": 1
+    },
+    {
+      "seconds": 5.037700000047684,
+      "mutationBatches": 484,
+      "rasterFrames": 466,
+      "totalFrames": 469,
+      "rasterPerSecond": 92.50253091601111,
+      "longestFrameGapMs": 27.300000000000182,
+      "loafMaxMs": null,
+      "loafCount": 0,
+      "pointerMoves": 242,
+      "grid": "60x30 ascii",
+      "cpuThrottle": 1
+    },
+    {
+      "seconds": 5.0332000000476835,
+      "mutationBatches": 488,
+      "rasterFrames": 472,
+      "totalFrames": 476,
+      "rasterPerSecond": 93.77731860357791,
+      "longestFrameGapMs": 27.300000000000182,
+      "loafMaxMs": null,
+      "loafCount": 0,
+      "pointerMoves": 244,
+      "grid": "auto",
+      "cpuThrottle": 1
+    },
+    {
+      "seconds": 5.045199999809265,
+      "mutationBatches": 394,
+      "rasterFrames": 349,
+      "totalFrames": 387,
+      "rasterPerSecond": 69.17466106659677,
+      "longestFrameGapMs": 27.300000000000182,
+      "loafMaxMs": null,
+      "loafCount": 0,
+      "pointerMoves": 197,
+      "grid": "60x30",
+      "cpuThrottle": 4
+    },
+    {
+      "seconds": 5.058299999952316,
+      "mutationBatches": 372,
+      "rasterFrames": 323,
+      "totalFrames": 387,
+      "rasterPerSecond": 63.855445506008905,
+      "longestFrameGapMs": 27.300000000000182,
+      "loafMaxMs": null,
+      "loafCount": 0,
+      "pointerMoves": 186,
+      "grid": "100x50",
+      "cpuThrottle": 4
+    },
+    {
+      "seconds": 5.085399999856949,
+      "mutationBatches": 394,
+      "rasterFrames": 351,
+      "totalFrames": 385,
+      "rasterPerSecond": 69.02111928459385,
+      "longestFrameGapMs": 27.200000000000045,
+      "loafMaxMs": null,
+      "loafCount": 0,
+      "pointerMoves": 196,
+      "grid": "100x50 downscale2",
+      "cpuThrottle": 4
+    },
+    {
+      "seconds": 5.073399999856949,
+      "mutationBatches": 400,
+      "rasterFrames": 352,
+      "totalFrames": 379,
+      "rasterPerSecond": 69.38147987738502,
+      "longestFrameGapMs": 27.300000000000182,
+      "loafMaxMs": null,
+      "loafCount": 0,
+      "pointerMoves": 200,
+      "grid": "60x30 ascii",
+      "cpuThrottle": 4
+    },
+    {
+      "seconds": 5.069200000047684,
+      "mutationBatches": 412,
+      "rasterFrames": 371,
+      "totalFrames": 397,
+      "rasterPerSecond": 73.18709066450528,
+      "longestFrameGapMs": 27.300000000000182,
+      "loafMaxMs": null,
+      "loafCount": 0,
+      "pointerMoves": 206,
+      "grid": "auto",
+      "cpuThrottle": 4
+    },
+    {
+      "seconds": 5.075700000047684,
+      "mutationBatches": 284,
+      "rasterFrames": 242,
+      "totalFrames": 392,
+      "rasterPerSecond": 47.6781527666581,
+      "longestFrameGapMs": 27.200000000000728,
+      "loafMaxMs": null,
+      "loafCount": 0,
+      "pointerMoves": 142,
+      "grid": "60x30",
+      "cpuThrottle": 6
+    },
+    {
+      "seconds": 5.093,
+      "mutationBatches": 244,
+      "rasterFrames": 217,
+      "totalFrames": 381,
+      "rasterPerSecond": 42.607500490869825,
+      "longestFrameGapMs": 27.300000000000182,
+      "loafMaxMs": null,
+      "loafCount": 0,
+      "pointerMoves": 122,
+      "grid": "100x50",
+      "cpuThrottle": 6
+    },
+    {
+      "seconds": 5.097599999904633,
+      "mutationBatches": 286,
+      "rasterFrames": 248,
+      "totalFrames": 386,
+      "rasterPerSecond": 48.65034526142492,
+      "longestFrameGapMs": 27.200000000000273,
+      "loafMaxMs": null,
+      "loafCount": 0,
+      "pointerMoves": 142,
+      "grid": "100x50 downscale2",
+      "cpuThrottle": 6
+    },
+    {
+      "seconds": 5.112899999856949,
+      "mutationBatches": 324,
+      "rasterFrames": 284,
+      "totalFrames": 388,
+      "rasterPerSecond": 55.54577637112908,
+      "longestFrameGapMs": 27.200000000000045,
+      "loafMaxMs": null,
+      "loafCount": 0,
+      "pointerMoves": 162,
+      "grid": "60x30 ascii",
+      "cpuThrottle": 6
+    },
+    {
+      "seconds": 5.078199999809265,
+      "mutationBatches": 322,
+      "rasterFrames": 288,
+      "totalFrames": 392,
+      "rasterPerSecond": 56.71300854846543,
+      "longestFrameGapMs": 27.200000000000273,
+      "loafMaxMs": null,
+      "loafCount": 0,
+      "pointerMoves": 161,
+      "grid": "auto",
+      "cpuThrottle": 6
+    }
+  ],
+  "interior": {
+    "04-interior-default": {
+      "ink": 411,
+      "hotspots": [
+        {
+          "label": "N",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "NE",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "E",
+          "col": 51,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "SE",
+          "col": 44,
+          "row": 23,
+          "visible": true
+        },
+        {
+          "label": "S",
+          "col": 29,
+          "row": 26,
+          "visible": true
+        },
+        {
+          "label": "SW",
+          "col": 13,
+          "row": 23,
+          "visible": true
+        },
+        {
+          "label": "W",
+          "col": 7,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "NW",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "zenith",
+          "col": 29,
+          "row": 10,
+          "visible": true
+        },
+        {
+          "label": "ISS (Zarya) 07:48",
+          "col": 11,
+          "row": 9,
+          "visible": true
+        },
+        {
+          "label": "max 64°",
+          "col": 22,
+          "row": 14,
+          "visible": true
+        },
+        {
+          "label": "→",
+          "col": 42,
+          "row": 22,
+          "visible": true
+        }
+      ]
+    },
+    "04-interior-legacy": {
+      "ink": 1,
+      "hotspots": [
+        {
+          "label": "N",
+          "col": 30,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "NE",
+          "col": 30,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "E",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "SE",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "S",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "SW",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "W",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "NW",
+          "col": 30,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "zenith",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "ISS (Zarya) 07:48",
+          "col": 31,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "max 64°",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "→",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        }
+      ]
+    },
+    "04-interior-legacy-d0.01": {
+      "ink": 101,
+      "hotspots": [
+        {
+          "label": "N",
+          "col": 28,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "NE",
+          "col": 28,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "E",
+          "col": 48,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "SE",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "S",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "SW",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "W",
+          "col": 7,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "NW",
+          "col": 27,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "zenith",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "ISS (Zarya) 07:48",
+          "col": 25,
+          "row": 14,
+          "visible": true
+        },
+        {
+          "label": "max 64°",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "→",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        }
+      ]
+    },
+    "04-interior-persp400": {
+      "ink": 415,
+      "hotspots": [
+        {
+          "label": "N",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "NE",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "E",
+          "col": 50,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "SE",
+          "col": 44,
+          "row": 23,
+          "visible": true
+        },
+        {
+          "label": "S",
+          "col": 28,
+          "row": 27,
+          "visible": true
+        },
+        {
+          "label": "SW",
+          "col": 13,
+          "row": 23,
+          "visible": true
+        },
+        {
+          "label": "W",
+          "col": 7,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "NW",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "zenith",
+          "col": 28,
+          "row": 10,
+          "visible": true
+        },
+        {
+          "label": "ISS (Zarya) 07:48",
+          "col": 11,
+          "row": 10,
+          "visible": true
+        },
+        {
+          "label": "max 64°",
+          "col": 20,
+          "row": 14,
+          "visible": true
+        },
+        {
+          "label": "→",
+          "col": 43,
+          "row": 23,
+          "visible": true
+        }
+      ]
+    },
+    "04-interior-default-ds": {
+      "ink": 411,
+      "hotspots": [
+        {
+          "label": "N",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "NE",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "E",
+          "col": 51,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "SE",
+          "col": 44,
+          "row": 23,
+          "visible": true
+        },
+        {
+          "label": "S",
+          "col": 29,
+          "row": 26,
+          "visible": true
+        },
+        {
+          "label": "SW",
+          "col": 13,
+          "row": 23,
+          "visible": true
+        },
+        {
+          "label": "W",
+          "col": 7,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "NW",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "zenith",
+          "col": 29,
+          "row": 10,
+          "visible": true
+        },
+        {
+          "label": "ISS (Zarya) 07:48",
+          "col": 11,
+          "row": 9,
+          "visible": true
+        },
+        {
+          "label": "max 64°",
+          "col": 22,
+          "row": 14,
+          "visible": true
+        },
+        {
+          "label": "→",
+          "col": 42,
+          "row": 22,
+          "visible": true
+        }
+      ]
+    },
+    "04-interior-legacy-ds": {
+      "ink": 1,
+      "hotspots": [
+        {
+          "label": "N",
+          "col": 30,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "NE",
+          "col": 30,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "E",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "SE",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "S",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "SW",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "W",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "NW",
+          "col": 30,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "zenith",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "ISS (Zarya) 07:48",
+          "col": 31,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "max 64°",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "→",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        }
+      ]
+    },
+    "04-interior-legacy-d0.01-ds": {
+      "ink": 101,
+      "hotspots": [
+        {
+          "label": "N",
+          "col": 28,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "NE",
+          "col": 28,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "E",
+          "col": 48,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "SE",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "S",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "SW",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "W",
+          "col": 7,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "NW",
+          "col": 27,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "zenith",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "ISS (Zarya) 07:48",
+          "col": 25,
+          "row": 14,
+          "visible": true
+        },
+        {
+          "label": "max 64°",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "→",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        }
+      ]
+    },
+    "04-interior-persp400-ds": {
+      "ink": 415,
+      "hotspots": [
+        {
+          "label": "N",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "NE",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "E",
+          "col": 50,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "SE",
+          "col": 44,
+          "row": 23,
+          "visible": true
+        },
+        {
+          "label": "S",
+          "col": 28,
+          "row": 27,
+          "visible": true
+        },
+        {
+          "label": "SW",
+          "col": 13,
+          "row": 23,
+          "visible": true
+        },
+        {
+          "label": "W",
+          "col": 7,
+          "row": 15,
+          "visible": true
+        },
+        {
+          "label": "NW",
+          "col": -1,
+          "row": -14,
+          "visible": false
+        },
+        {
+          "label": "zenith",
+          "col": 28,
+          "row": 10,
+          "visible": true
+        },
+        {
+          "label": "ISS (Zarya) 07:48",
+          "col": 11,
+          "row": 10,
+          "visible": true
+        },
+        {
+          "label": "max 64°",
+          "col": 20,
+          "row": 14,
+          "visible": true
+        },
+        {
+          "label": "→",
+          "col": 43,
+          "row": 23,
+          "visible": true
+        }
+      ]
+    }
+  },
+  "colors": {
+    "on": {
+      "spans": 121,
+      "styledSpans": 121,
+      "sample": "<span style=\"color:#7d8794\">⢀⣠⠄⠐⠒⠂⢸⡗⠒</span>",
+      "classSpans": 0,
+      "styleTags": [
+        {
+          "id": "",
+          "attrs": [
+            "type=text/css",
+            "data-vite-dev-id=/Volumes/Data/Projects/what-is-in-your-sky-right-now/spike/spike.css"
+          ],
+          "head": "/* R14 spike page. Dev only; the app's tokens are reused so the screenshots match the product. */\n:root {\n  --font-mono:"
+        },
+        {
+          "id": "glyph-styles",
+          "attrs": [
+            "id=glyph-styles"
+          ],
+          "head": "\n/* ── React / Vue host wrapper ────────────────────────────────────────── */\n\n.glyph-host {\n  /* Fill the camera wrappe"
+        }
+      ]
+    },
+    "off": {
+      "spans": 0,
+      "styledSpans": 0,
+      "sample": null,
+      "classSpans": 0,
+      "styleTags": [
+        {
+          "id": "",
+          "attrs": [
+            "type=text/css",
+            "data-vite-dev-id=/Volumes/Data/Projects/what-is-in-your-sky-right-now/spike/spike.css"
+          ],
+          "head": "/* R14 spike page. Dev only; the app's tokens are reused so the screenshots match the product. */\n:root {\n  --font-mono:"
+        },
+        {
+          "id": "glyph-styles",
+          "attrs": [
+            "id=glyph-styles"
+          ],
+          "head": "\n/* ── React / Vue host wrapper ────────────────────────────────────────── */\n\n.glyph-host {\n  /* Fill the camera wrappe"
+        }
+      ]
+    }
+  },
+  "csp": {
+    "mono": {
+      "ink": 377,
+      "firstSpanColor": null,
+      "violations": [
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self''. Either the 'unsafe-inline' keyword, a hash ('sha256-5E1B/BpNdTzsU0rPFz3z6mGQmgClygsaEINPr9gvKLc='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked."
+      ],
+      "requests": [
+        "/?colors=0",
+        "/assets/index-BmHni3ic.js",
+        "/assets/index-CLV6tSYo.css",
+        "/assets/DomeChunk-EoG6TDty.js"
+      ]
+    },
+    "colors": {
+      "ink": 377,
+      "firstSpanColor": "rgb(213, 219, 227)",
+      "violations": [
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self''. Either the 'unsafe-inline' keyword, a hash ('sha256-5E1B/BpNdTzsU0rPFz3z6mGQmgClygsaEINPr9gvKLc='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked.",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self''. Either the 'unsafe-inline' keyword, a hash ('sha256-es+nlTJ332dzeevpoOPaygUeZossWXdArYoSBunMxh4='), or a nonce ('nonce-...') is required to enable inline execution. Note that hashes do not apply to eve",
+        "Applying inline style violates the following Content Security Policy directive 'style-src 'self''. Either the 'unsafe-inline' keyword, a hash ('sha256-9BCOWJWprsQajcoPZPlJnCNsirgGYZLBAZEWJAdwENs='), or a nonce ('nonce-...') is required to enable inline execution. Note that hashes do not apply to eve"
+      ],
+      "requests": [
+        "/?colors=1",
+        "/assets/index-BmHni3ic.js",
+        "/assets/index-CLV6tSYo.css",
+        "/assets/DomeChunk-EoG6TDty.js"
+      ]
+    }
+  },
+  "consoleErrors": []
+}
