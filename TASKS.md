@@ -337,10 +337,11 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
 - **Touches outside the lane** names every file a task edits that its lane does not own, so two tasks in one wave can be checked for a collision. `package.json`, `README.md`, `TASKS.md`, `PLAN.md`, `docs/**` and `tests/e2e/**` are shared by everything, additively, and are resolved by the rebase the driver does before it opens the PR.
 - **Gate:** `owner` wherever acceptance includes captures to compare, Spanish copy to read or a composition to choose; `auto` where tests carry the whole acceptance.
 - Every UI task ships captures through the `visual-review` skill: 390 px always, 1280 px from R23 on, both languages from R17 on, both themes from R20 on.
+- **Model** is `opus` on every task (PLAN §16.6 as amended by D-88, 2026-09-03): the account's Fable limit stopped R16 mid-run, and the six tasks that policy put on Fable were the whole dome and live-page line.
 
 - [ ] **R16 — Dome composition spike: every knob as a URL parameter, captures and drag rates**
   - **Lane:** chart
-  - **Model:** fable
+  - **Model:** opus
   - **Gate:** owner
   - **Depends on:** —
   - **Why not a slice:** FR-DOME-8 and PLAN §8.7 require the findings file before the dome task can be cut; it ships in `spike/`, never in the app.
@@ -490,7 +491,7 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
 
 - [ ] **R21 — The layered dome: two scenes, colour, orientation cues and detail**
   - **Lane:** chart
-  - **Model:** fable
+  - **Model:** opus
   - **Gate:** owner
   - **Depends on:** R16, R20
   - **Goal:** The dome stops reading as a wire cage and becomes the default view again.
@@ -549,7 +550,7 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
 
 - [ ] **R22 — Live marker, Sun and Moon in both chart views**
   - **Lane:** chart
-  - **Model:** fable
+  - **Model:** opus
   - **Gate:** owner
   - **Depends on:** R19, R21
   - **Goal:** Both views show where the satellite is now, and where the Sun and Moon are, from the same geometry.
@@ -577,7 +578,7 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
 
 - [ ] **R32 — The live page: full-screen dome, status strip and URL state**
   - **Lane:** ui
-  - **Model:** fable
+  - **Model:** opus
   - **Gate:** owner
   - **Depends on:** R17, R22, R31
   - **Goal:** A page that shows the whole sky now, with everything that is up drawn on it.
@@ -592,7 +593,7 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
 
 - [ ] **R33 — The time stripe, playback and hidden objects**
   - **Lane:** ui
-  - **Model:** fable
+  - **Model:** opus
   - **Gate:** owner
   - **Depends on:** R18, R32
   - **Goal:** Run the coming 24 h forward and see what is up at any instant in it.
@@ -608,7 +609,7 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
 
 - [ ] **R34 — Landscape, wake lock and compass follow**
   - **Lane:** ui
-  - **Model:** fable
+  - **Model:** opus
   - **Gate:** owner
   - **Depends on:** R33
   - **Goal:** The live page is usable held up outdoors: it stays awake, works sideways, and turns with the phone.

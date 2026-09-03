@@ -265,6 +265,7 @@ These plan SPEC v1.0 (V1-1..V1-11). Nothing here is implemented yet; each decisi
 - **D-85 — Favourites live in prefs with LRU eviction at 8.** `localPrefs` gains `favourites: Favourite[]` with `lastUsedAt`; adding a ninth evicts the least recently used (FR-OFF-7). They are observers, not places: a favourite carries the full `Observer` including `timeZone`, so selecting one works offline with no geocode call.
 - **D-86 — The task driver is repo tooling, not a task.** `scripts/sdd-run.ts` (§16) is what runs the v1 tasks, so it cannot be one of them: it is written and reviewed before the first wave, like `scripts/bundle-budget.ts` and `scripts/contrast.ts`, and it is proved by a dry run against the existing R1–R15 entries before it is given a real task. TASKS.md stays a list of product slices.
 - **D-87 — The driver's pure half is a library, its IO is injected.** `scripts/sdd-run.ts` is the CLI; the parts are `scripts/sdd/{tasks,waves,session,git,report}.ts`. Parsing TASKS.md and choosing a wave are pure functions over text and over what git and `gh` said, so `tests/sdd/` proves the §16.2 and §16.3 rules — one per lane, two at once, refuse a task with no `Lane:` or `Gate:` — without a network, a worktree or a session. The session and the driver exchange three files in the worktree's `sdd-run/` directory (§16.4); it is per-run scratch and is never committed.
+- **D-88 — Every v1 task runs on Opus; `fable` is dropped from the model policy.** R16, the dome composition spike, was the first task the driver ran. Its session reached the account's Fable limit after 138 turns and 17 minutes, with the spike page written but no findings file and nothing committed; the driver marked the task failed and kept the worktree (§16.5). The six tasks §16.6 put on Fable — R16, R21, R22 and the three live-page tasks — are the whole dome and live-page line, so a quota that stops one stops all of them, at the point in the phase where the most work depends on them. The owner's call (2026-09-03) is to run the phase on one model rather than schedule around a second account limit: §16.6 becomes Opus for every implementation session, and TASKS.md's six `Model: fable` fields become `opus`. The driver still parses and accepts `fable`, so this is a policy change, not a code change. What it costs is the argument §16.6 made for Fable on captures-and-drag-rate work; what it buys is that no task in the phase is blocked by a limit that is not the phase's own.
 
 ---
 
@@ -1236,9 +1237,10 @@ The branch left on `origin` is how a later `--status` reads the task back as fai
 
 | Task kind | Model | Why |
 |---|---|---|
-| The dome spike, the layered dome, the live page | `fable` | Visual and interactive work with many quick iterations; the acceptance is captures and a drag rate, both of which the session can produce and check itself. |
-| Everything else | `opus` | The default. Physics, protocol, offline semantics and copy are where a wrong-but-plausible answer costs the most. |
+| Every implementation session | `opus` | *(amended 2026-09-03, D-88)* The default, and now the only one. Physics, protocol, offline semantics and copy are where a wrong-but-plausible answer costs the most, and the visual work is not an exception the account can afford. |
 | Every review session | `opus` | The review is the only automated gate between a session and `main`. |
+
+`fable` stays a value the driver accepts (`scripts/sdd/tasks.ts`), so a later phase can put a task back on it without a code change; no v1 task uses it.
 
 ### 16.7 What the driver is not
 
