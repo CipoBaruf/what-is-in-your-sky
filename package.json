@@ -14,6 +14,7 @@
     "test:coverage:physics": "vitest run src/physics --coverage",
     "e2e": "vite build && playwright test",
     "bundle:budget": "tsx scripts/bundle-budget.ts",
+    "spike:dome-composition": "tsx spike/dome-composition/capture.ts",
     "build:braille-font": "tsx scripts/build-braille-font.ts",
     "validate:iss": "tsx scripts/validate-iss.ts",
     "check:catalog": "tsx scripts/check-catalog.ts",

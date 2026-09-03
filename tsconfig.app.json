@@ -7,5 +7,5 @@
     "types": ["node", "vite/client"]
   },
   "include": ["src", "tests/support", "tests/setup", "tests/live", "spike"],
-  "exclude": ["spike/capture.ts", "spike/vite.bundle.config.ts"]
+  "exclude": ["spike/capture.ts", "spike/dome-composition/capture.ts", "spike/vite.bundle.config.ts"]
 }

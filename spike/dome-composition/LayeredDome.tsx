@@ -21,8 +21,16 @@ import { othersFor, passFor } from './fixtures';
 import type { DomePalette } from './palette';
 import type { Params } from './params';
 
-/** R15's zoom rule (`camera.ts`): 140 CSS px per world unit at a 6.5 px cell, scaling with the cell. */
-export const ZOOM_PER_CELL_PX = 140 / 6.5;
+/**
+ * glyphcss's `zoom` is CSS pixels per world unit, measured against the cell
+ * the scene probes at mount — so it is a property of the *box*, not of the
+ * grid, and both layers take the same value however coarse each one is. R15's
+ * 140 px at a 390 px box (`camera.ZOOM_AT_60_COLS`) is the small end: the
+ * unit dome spans 72 % of the width, leaving the labels their margin, and
+ * FR-DOME-1's wider box scales it up rather than adding empty ground.
+ */
+export const ZOOM_AT_390_PX = 140;
+export const REFERENCE_WIDTH_PX = 390;
 /** The advance of one braille cell / one `M` as a fraction of the font size, before anything is measured. */
 export const DEFAULT_ADVANCE = 0.6;
 
@@ -45,7 +53,7 @@ export function layerLayout(widthPx: number, cols: number, advance: number): Lay
     cellWidthPx,
     cellHeightPx: cellWidthPx * 2,
     fontSizePx: cellWidthPx / (advance > 0 ? advance : DEFAULT_ADVANCE),
-    zoom: ZOOM_PER_CELL_PX * cellWidthPx,
+    zoom: (ZOOM_AT_390_PX * widthPx) / REFERENCE_WIDTH_PX,
   };
 }
 
@@ -127,7 +135,7 @@ export function LayeredDome({ params, palette, camera, dragging, pulse, advances
             <GlyphScene
               mode="solid"
               charMode="ascii"
-              glyphPalette="default"
+              glyphPalette={params.basePalette}
               useColors={params.colors}
               cols={baseLayout.cols}
               rows={baseLayout.rows}

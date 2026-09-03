@@ -295,7 +295,7 @@ export interface BaseLayerInput {
  */
 export function baseLayer({ params, palette }: BaseLayerInput): Poly[] {
   const out: Poly[] = [];
-  const GROUND_RADIUS = 1.22;
+  const GROUND_RADIUS = params.groundRadius;
   const BOWL_RADIUS = 0.985;
   if (params.ground) {
     const step = 10;

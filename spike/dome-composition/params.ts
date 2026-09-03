@@ -32,6 +32,10 @@ export interface Params {
   base: boolean;
   /** Base-layer columns as a fraction of the line layer's (PLAN §8.7: "coarser density than the line layer"). */
   baseRatio: number;
+  /** Base-layer glyph ramp: which characters the shading is made of. */
+  basePalette: string;
+  /** How far past the horizon the ground disc reaches, in dome radii (FR-DOME-3). */
+  groundRadius: number;
   /** Base-layer ambient light, 0–1: how flat the sky bowl reads. */
   ambient: number;
   /** Base-layer directional light intensity. */
@@ -94,6 +98,8 @@ export const DEFAULTS: Params = {
   cols: 60,
   base: true,
   baseRatio: 0.5,
+  basePalette: 'blocks',
+  groundRadius: 1.1,
   ambient: 0.35,
   key: 0.85,
   ground: true,
@@ -160,6 +166,8 @@ export function read(search: string): Params {
     cols: Math.max(20, Math.round(num(g('cols'), DEFAULTS.cols))),
     base: bool(g('base'), DEFAULTS.base),
     baseRatio: num(g('baseratio'), DEFAULTS.baseRatio),
+    basePalette: g('basepalette') ?? DEFAULTS.basePalette,
+    groundRadius: num(g('groundradius'), DEFAULTS.groundRadius),
     ambient: num(g('ambient'), DEFAULTS.ambient),
     key: num(g('key'), DEFAULTS.key),
     ground: bool(g('ground'), DEFAULTS.ground),
@@ -202,6 +210,8 @@ const KEYS: Record<string, (p: Params) => string | number | boolean | null> = {
   cols: (p) => p.cols,
   base: (p) => p.base,
   baseratio: (p) => p.baseRatio,
+  basepalette: (p) => p.basePalette,
+  groundradius: (p) => p.groundRadius,
   ambient: (p) => p.ambient,
   key: (p) => p.key,
   ground: (p) => p.ground,
