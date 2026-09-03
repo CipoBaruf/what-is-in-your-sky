@@ -1,7 +1,13 @@
-import { SEARCH_WINDOW_HOURS, useAppStore, type ElementsState, type PassesState } from '../../../state';
+import { useId } from 'react';
+import { nextFeaturedPass, sortPasses } from '../../../lib/passSort';
 import type { Observer } from '../../../model';
+import { SEARCH_WINDOW_HOURS, isFeatured, useAppStore, type ElementsState, type PassesState } from '../../../state';
+import { SectionHeading } from '../common/SectionHeading';
+import { useNow } from '../../hooks/useNow';
+import { IssHeroCard } from './IssHeroCard';
 import { PassCard } from './PassCard';
 import styles from './PassList.module.css';
+import { SortToggle } from './SortToggle';
 
 /**
  * Every upcoming visible pass of the catalog as plain cards, chronological
@@ -10,7 +16,10 @@ import styles from './PassList.module.css';
  * progress meanwhile. R6: each card opens the detail screen through
  * `onOpenPass`. R8: every card gets the forecast for this observer (null
  * until it arrives or when it failed, which the card shows as "weather
- * unknown"). The ISS hero card and the sort toggle come in R12.
+ * unknown"). R12: the next pass of a featured object is pulled out of the
+ * list into the hero card above it (spec §8 rank 1; it is not repeated
+ * below), and the sort toggle orders the rest, chronological or best first,
+ * with the choice persisted through the store (US-5 AC2).
  */
 export function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState): string {
   const hours = String(SEARCH_WINDOW_HOURS);
@@ -34,6 +43,9 @@ export function statusText(observer: Observer | null, elements: ElementsState, p
   }
 }
 
+/** How often the list re-checks which featured pass is next (the hero card itself ticks every second). */
+export const HERO_CHECK_MS = 30_000;
+
 export interface PassListProps {
   /** Opens the detail screen for a pass (R6). Without it the cards are read-only. */
   onOpenPass?: (passId: string) => void;
@@ -44,20 +56,30 @@ export function PassList({ onOpenPass }: PassListProps) {
   const elements = useAppStore((s) => s.elements);
   const passes = useAppStore((s) => s.passes);
   const weather = useAppStore((s) => s.weather);
+  const sort = useAppStore((s) => s.sort);
+  const setSort = useAppStore((s) => s.setSort);
+  const headingId = useId();
+  const now = useNow(HERO_CHECK_MS);
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   const showList = observer !== null && elements.status === 'ready' && passes.passes.length > 0;
   // Busy from the moment there is something to compute until the job ends (the worker may still be booting).
   const busy = observer !== null && elements.status === 'ready' && elements.records.length > 0 && (passes.status === 'idle' || passes.status === 'computing');
+  const hero = showList ? nextFeaturedPass(passes.passes, isFeatured, now) : null;
+  const rest = showList ? sortPasses(hero ? passes.passes.filter((pass) => pass.id !== hero.id) : passes.passes, sort) : [];
+  const open = onOpenPass ? { onOpen: onOpenPass } : {};
   return (
-    <section aria-label="Upcoming passes" className={styles.section}>
+    <section aria-labelledby={headingId} className={styles.section}>
+      <SectionHeading id={headingId}>Upcoming passes</SectionHeading>
       <p role="status" aria-live="polite" aria-busy={busy} className={styles.status}>
         {statusText(observer, elements, passes)}
       </p>
-      {showList && (
+      {showList && hero && <IssHeroCard pass={hero} timeZone={observer.timeZone} weather={snapshot} {...open} />}
+      {showList && <SortToggle value={sort} onChange={setSort} />}
+      {showList && rest.length > 0 && (
         <ol className={styles.list}>
-          {passes.passes.map((pass) => (
+          {rest.map((pass) => (
             <li key={pass.id}>
-              <PassCard pass={pass} timeZone={observer.timeZone} weather={snapshot} {...(onOpenPass ? { onOpen: onOpenPass } : {})} />
+              <PassCard pass={pass} timeZone={observer.timeZone} weather={snapshot} {...open} />
             </li>
           ))}
         </ol>

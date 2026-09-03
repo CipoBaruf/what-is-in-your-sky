@@ -38,6 +38,8 @@ function externalHostsIn(dir: string): Set<string> {
   for (const entry of readdirSync(dir, { recursive: true, withFileTypes: true })) {
     // Code only: catalog.json carries provenance links (McCants, CelesTrak pages) the app never fetches.
     if (!entry.isFile() || /\.test\.tsx?$/.test(entry.name) || !/\.tsx?$/.test(entry.name)) continue;
+    // The footer's attribution links (FR-X-2, R12) are navigation targets the user follows, not connections the page makes; CSP does not govern them.
+    if (entry.name === 'Footer.tsx') continue;
     const text = readFileSync(join(entry.parentPath, entry.name), 'utf8');
     for (const [url] of text.matchAll(/https?:\/\/[a-z0-9.-]+/g)) hosts.add(url);
   }

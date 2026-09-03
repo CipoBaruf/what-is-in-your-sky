@@ -1,4 +1,9 @@
 .section {
+  display: grid;
+  gap: 0;
+}
+
+.section > h2 {
   margin-bottom: var(--row);
 }
 
@@ -13,17 +18,21 @@
   color: var(--fg-dim);
 }
 
+/* A bracketed text control inside the sentence; `inline-control` (global.css) gives it the 48 px box. */
 .clear {
-  font: inherit;
   color: var(--accent);
   background: none;
   border: 0;
-  padding: 0;
-  text-decoration: underline;
-  cursor: pointer;
+  padding-inline: 0;
+  min-height: 0;
 }
 
-.clear:focus {
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
+.clear::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.clear::after {
+  content: ' ]';
+  color: var(--fg-dim);
 }

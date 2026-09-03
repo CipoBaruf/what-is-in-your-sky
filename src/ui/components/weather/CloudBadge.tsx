@@ -9,7 +9,8 @@ import styles from './CloudBadge.module.css';
  * US-7 AC4) with a tooltip that states the thresholds, the effective cloud
  * figure, the provider and when the forecast was fetched. The badge is
  * focusable so the tooltip opens from the keyboard too (FR-X-5); the tooltip
- * is the badge's accessible description.
+ * is the badge's accessible description. R12: the tooltip is a box overlaid
+ * under the badge (see the module CSS), opened by hover, focus or a tap.
  */
 export interface CloudBadgeProps {
   verdict: CloudVerdict;
@@ -49,7 +50,7 @@ export function CloudBadge({ verdict, forecast, timeZone, moment }: CloudBadgePr
   const tipId = useId();
   return (
     <span className={styles.wrap}>
-      <span className={styles.badge} data-state={verdict.state} tabIndex={0} aria-describedby={tipId}>
+      <span className={`inline-control ${styles.badge}`} data-state={verdict.state} tabIndex={0} aria-describedby={tipId}>
         {badgeText(verdict)}
       </span>
       <span role="tooltip" id={tipId} className={styles.tip}>

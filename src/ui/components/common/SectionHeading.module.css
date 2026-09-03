@@ -1,0 +1,26 @@
+.heading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--cell);
+  color: var(--fg-dim);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.heading::before {
+  content: '──';
+  flex: none;
+}
+
+/* A long rule clipped by the heading's overflow: fills the row to the right on the character grid. */
+.heading::after {
+  content: '────────────────────────────────────────────────────────────────────────────────────────────';
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.title {
+  flex: none;
+  color: var(--fg);
+}

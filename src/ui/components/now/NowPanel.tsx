@@ -4,6 +4,7 @@ import { compassPoint } from '../../../lib/compass';
 import { formatClock, formatCountdown } from '../../../lib/timeFormat';
 import type { NowItem, NowState, Observer, PassBoundaryReason } from '../../../model';
 import { DEFAULT_THRESHOLDS, useAppStore, type NowSliceState } from '../../../state';
+import { SectionHeading } from '../common/SectionHeading';
 import { CloudBadge } from '../weather/CloudBadge';
 import styles from './NowPanel.module.css';
 
@@ -110,9 +111,7 @@ export function NowPanel() {
   const state: NowState | null = observer && now.observer === observer ? now.state : null;
   return (
     <section aria-labelledby={headingId} className={styles.section}>
-      <h2 id={headingId} className={styles.heading}>
-        Right now
-      </h2>
+      <SectionHeading id={headingId}>Right now</SectionHeading>
       <p role="status" aria-live="polite" className={styles.status}>
         {summaryText(summary)}
       </p>

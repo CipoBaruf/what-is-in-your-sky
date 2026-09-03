@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import type { Observer } from '../../../model';
+import { SectionHeading } from '../common/SectionHeading';
 import { CoordsInput, coordsLabel } from './CoordsInput';
 import styles from './LocationInput.module.css';
 import { PlacePicker, type PlaceSearchFn } from './PlacePicker';
@@ -14,6 +15,7 @@ import { accuracyText, UseMyLocation, type GeolocationEnv } from './UseMyLocatio
  * (FR-LOC-6). The inputs are pre-filled from the observer present at mount
  * (the restored one) and remounted empty when the saved location is cleared;
  * focus then moves to the place field, since the button it was on is gone.
+ * R12: the section is titled by a character-rule heading (FR-X-6).
  */
 export const COORDS_INPUT_ID = 'coords';
 export const PLACE_INPUT_ID = 'place';
@@ -30,6 +32,7 @@ export interface LocationInputProps {
 export function LocationInput({ observer, onObserver, onClear, search, geolocation }: LocationInputProps) {
   // The observer the inputs were seeded from; a new key remounts them.
   const [seed, setSeed] = useState(() => ({ key: 0, observer }));
+  const headingId = useId();
 
   const clear = (): void => {
     onClear();
@@ -45,7 +48,8 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
   const detail = [observer?.source === 'device' ? 'from your device' : null, observer && observer.altM !== 0 ? `at ${String(Math.round(observer.altM))} m` : null].filter((part): part is string => part !== null).join(' ');
 
   return (
-    <section aria-label="Location" className={styles.section}>
+    <section aria-labelledby={headingId} className={styles.section}>
+      <SectionHeading id={headingId}>Location</SectionHeading>
       <PlacePicker key={`place-${String(seed.key)}`} search={search} onObserver={onObserver} observer={observer} coordsInputId={COORDS_INPUT_ID} inputId={PLACE_INPUT_ID} {...(seed.observer?.source === 'geocode' ? { initialText: seed.observer.label } : {})} />
       <CoordsInput key={`coords-${String(seed.key)}`} id={COORDS_INPUT_ID} onObserver={onObserver} {...(seed.observer?.source === 'coords' ? { initial: { lat: seed.observer.lat, lon: seed.observer.lon, altM: seed.observer.altM } } : {})} />
       <UseMyLocation onObserver={onObserver} {...(geolocation ? { env: geolocation } : {})} />
@@ -59,7 +63,7 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
       {observer && (
         <p className={styles.saved}>
           Saved in this browser only.{' '}
-          <button type="button" onClick={clear} className={styles.clear}>
+          <button type="button" onClick={clear} className={`inline-control ${styles.clear}`}>
             Clear saved location
           </button>
         </p>

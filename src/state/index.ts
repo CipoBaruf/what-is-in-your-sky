@@ -22,6 +22,10 @@ export type PlaceSearch = typeof searchPlaces;
 export function catalogName(noradId: number): string {
   return CATALOG.find((entry) => entry.noradId === noradId)?.name ?? `NORAD ${String(noradId)}`;
 }
+/** R12: whether a catalog object is featured (spec §8 rank 1, the ISS hero card); the UI never reads the catalog itself (PLAN §3). */
+export function isFeatured(noradId: number): boolean {
+  return CATALOG.find((entry) => entry.noradId === noradId)?.featured === true;
+}
 
 /** Creates the worker, wires the effects to the app store and restores the saved location. Called once from `main.tsx`. */
 export function startApp(): () => void {

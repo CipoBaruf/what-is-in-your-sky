@@ -197,7 +197,7 @@
     - Playwright: reload with all routes set to `abort` → cached passes still shown and weather badges read unknown.
     - `LIVE=1 npx vitest run tests/live` passes once manually and the scheduled workflow has one green run.
 
-- [ ] **R12 — Visual identity, accessibility pass, sort toggle, ISS hero card**
+- [x] **R12 — Visual identity, accessibility pass, sort toggle, ISS hero card** — done as written, plus: the hero pass is pulled out of the list rather than repeated, the list re-checks which featured pass is next every 30 s, "best first" is `10^(−0.4·m) × peak elevation` (reference-magnitude independent), and the ratio table in `tokens.css` is pinned by a test (`tests/styles/tokens.test.ts`, `scripts/contrast.ts`); the ratios are in the PR. See D-49..D-53.
   - **Built from:** T10 (colour tokens with contrast ratios, borders, focus styles, tap targets, footer attributions), T15 (sort toggle, hero card), T17 (tab-order e2e).
   - **Goal:** Apply the monospace dark terminal identity and the accessibility bar to every existing screen, add the footer attributions, and finish the pass list with the ISS hero card and sort toggle.
   - **Satisfies:** FR-X-1, FR-X-2, FR-X-5 (contrast, keyboard), FR-X-6 (interface), spec §8 rank 1 (ISS hero), US-5 (sorting). 

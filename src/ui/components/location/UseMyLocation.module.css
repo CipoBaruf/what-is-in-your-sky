@@ -4,16 +4,11 @@
   margin-bottom: var(--row);
 }
 
+/* A bracketed button (FR-X-6); border, height and focus ring come from global.css. */
 .button {
-  font: inherit;
-  color: var(--fg);
-  background: var(--bg);
-  border: 1px solid var(--rule);
-  height: calc(2 * var(--row));
   padding: 0 calc(2 * var(--cell));
   width: max-content;
   max-width: 100%;
-  cursor: pointer;
 }
 
 .button::before {
@@ -24,16 +19,6 @@
 .button::after {
   content: ' ]';
   color: var(--fg-dim);
-}
-
-.button:focus {
-  outline: 1px solid var(--accent);
-  outline-offset: 1px;
-}
-
-.button:disabled {
-  color: var(--fg-dim);
-  cursor: default;
 }
 
 .error {

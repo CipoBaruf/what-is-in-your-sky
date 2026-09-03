@@ -1,0 +1,18 @@
+.footer {
+  padding-top: var(--row);
+  padding-bottom: calc(2 * var(--row));
+  color: var(--fg-dim);
+}
+
+/* A character rule above the credits (FR-X-6). */
+.footer::before {
+  content: '────────────────────────────────────────────────────────────────────────────────────────────';
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  margin-bottom: var(--row);
+}
+
+.line {
+  margin: 0;
+}

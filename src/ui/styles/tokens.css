@@ -1,12 +1,34 @@
-/* Design tokens (PLAN D-5, FR-X-1, FR-X-6). One monospace stack everywhere; the
-   `--cell` unit is one character advance so layout aligns to the same grid the
-   sky dome is drawn on. Dark ground by default; night mode is a later selector swap. */
+/* Design tokens (PLAN D-5, FR-X-1, FR-X-5, FR-X-6). One monospace stack
+   everywhere; `--cell` is one character advance and `--row` one text row, so
+   layout aligns to the grid the sky dome is drawn on. Dark ground by default;
+   night mode is a later selector swap.
+
+   Contrast (WCAG 2.1 AA, R12). Every foreground/background pair used for text,
+   computed with the WCAG relative-luminance formula (`scripts/contrast.ts`):
+
+     text token   on --bg (#0b0f14)   on --bg-raised (#161c24)
+     --fg         13.79 : 1           12.30 : 1
+     --fg-dim      5.28 : 1            4.70 : 1
+     --accent     11.75 : 1           10.48 : 1
+     --danger      8.42 : 1            7.51 : 1
+     --ok         11.18 : 1            9.97 : 1
+     --warn       11.93 : 1           10.63 : 1
+     --bg on --accent (pressed sort button)   11.75 : 1
+
+   All ≥ 4.5 : 1 (AA for normal text). Text is never placed on `--rule`
+   (`--fg-dim` on it would be 3.55 : 1): highlighted rows use `--bg-raised`.
+   Non-text: `--edge` (control borders, focus rings share `--accent`) is
+   3.59 : 1 on `--bg` (3.20 : 1 on `--bg-raised`), above the 3 : 1 of WCAG 1.4.11; `--rule` (1.48 : 1) is
+   decorative only (dividers, card frames), never the sole boundary of a control. */
 :root {
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
   --cell: 1ch;
   --row: 1.5rem;
+  /* G6: minimum tap target, two text rows (48 px at the 16 px base, above the 44 px floor). */
+  --tap: calc(2 * var(--row));
 
   --bg: #0b0f14;
+  --bg-raised: #161c24;
   --fg: #d5dbe3;
   --fg-dim: #7d8794;
   --accent: #9ad0ff;
@@ -14,6 +36,7 @@
   --ok: #8fd694;
   --warn: #f0c674;
   --rule: #2a323d;
+  --edge: #606c7a;
 
   color-scheme: dark;
 }

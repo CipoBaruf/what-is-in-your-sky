@@ -54,6 +54,19 @@ describe('createLocalPrefs', () => {
     expect(prefs.read()).toEqual({});
   });
 
+  it('round-trips the sort order beside the observer, and drops an unknown order without losing the observer (R12, US-5 AC2)', () => {
+    const storage = memoryStorage();
+    const prefs = createLocalPrefs(storage);
+    prefs.write({ sort: 'best' });
+    expect(prefs.read()).toEqual({ sort: 'best' });
+    prefs.write({ observer: coords, sort: 'best' });
+    expect(prefs.read()).toEqual({ observer: coords, sort: 'best' });
+    storage.map.set(PREFS_KEY, JSON.stringify({ observer: coords, sort: 'soonest' }));
+    expect(prefs.read()).toEqual({ observer: coords });
+    storage.map.set(PREFS_KEY, JSON.stringify({ observer: { lat: 91 }, sort: 'best' }));
+    expect(prefs.read()).toEqual({ sort: 'best' });
+  });
+
   it('works without storage and swallows storage errors', () => {
     const none = createLocalPrefs(null);
     none.write({ observer: coords });
