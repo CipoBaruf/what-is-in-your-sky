@@ -22,6 +22,12 @@ Read SPEC.md and PLAN.md first. Do not implement anything.
   - [P] if parallelizable with neighbours
   - Done when: verifiable check (test name, command output, or exact visual state)
 
+## Appending a phase
+
+When TASKS.md already has checked tasks (a finished phase), do not regenerate them. Append a new block under a heading for the phase (`## v1 tasks`, with its own status line naming the spec and plan versions it was cut from) and continue the task numbering (R16 after R15). Checked tasks and their notes stay byte for byte. The new tasks may depend on checked ones by ID.
+
+The header table gets a new row per phase (`Inputs (v1)`, `Scope (v1)`) rather than rewriting the MVP rows.
+
 ## Output
 
-Write TASKS.md, then show only the list of IDs and goals. Ask before regenerating if a TASKS.md with checked items already exists.
+Write TASKS.md, then show only the list of IDs and goals. Ask before regenerating if a TASKS.md with checked items already exists; appending a phase (above) needs no confirmation once the spec and plan for that phase are approved.
