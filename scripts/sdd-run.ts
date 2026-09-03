@@ -26,7 +26,7 @@ const BASE = 'origin/main';
 const WORKTREE_ROOT = '../wiys-tasks';
 const NPM_CACHE = resolve('.sdd-cache/npm');
 const OWNER_LABEL = 'needs-owner';
-const IMPLEMENT = { maxTurns: 120, timeoutMs: 45 * 60_000 };
+const IMPLEMENT = { maxTurns: 250, timeoutMs: 45 * 60_000 };
 const REVIEW = { maxTurns: 40, timeoutMs: 15 * 60_000, model: 'opus' };
 
 interface Options {
@@ -200,7 +200,7 @@ async function runTask(status: TaskStatus): Promise<TaskReport> {
   logger.line('  running the implementation session…');
   const session = await runSession({
     cwd: dir,
-    prompt: `Use the sdd-implement skill on ${task.id}. This is a headless session: decide and record rather than ask.`,
+    prompt: `Use the sdd-implement skill on ${task.id}. This is a headless session: decide and record rather than ask, and commit each coherent step as you finish it — an uncommitted worktree is what the turn cap and the wall clock throw away.`,
     model: modelFor(task),
     maxTurns: IMPLEMENT.maxTurns,
     timeoutMs: IMPLEMENT.timeoutMs,
