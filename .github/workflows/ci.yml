@@ -23,6 +23,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm test
       - run: npm run build
+      # PLAN §11 bundle budgets (R15): a table of gzipped chunk sizes, an annotation on overrun, never a failure.
+      - run: npm run bundle:budget
       - run: npx playwright test
       - uses: actions/upload-artifact@v4
         if: failure()

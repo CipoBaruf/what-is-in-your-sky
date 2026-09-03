@@ -1,15 +1,20 @@
 import { readFileSync } from 'node:fs';
 import react from '@vitejs/plugin-react';
+import { visualizer } from 'rollup-plugin-visualizer';
 import { defineConfig, type Plugin } from 'vite';
 
 // PLAN §11: Vite + plugin-react, ES2022 output. The pass worker
-// (`src/worker/passes.worker.ts`) is bundled from its URL in `state/workerClient.ts`;
-// code-splitting and bundle budgets arrive with R15. Worker chunks are ES modules
-// (D-18): satellite.js 7 ships an optional WASM/pthreads build whose worker entry
-// uses top-level await, which the default IIFE worker format rejects (the build is
-// never loaded; we do not call `createWasmModule`).
+// (`src/worker/passes.worker.ts`) is bundled from its URL in `state/workerClient.ts`.
+// The sky dome is code-split behind `React.lazy` in `SkyChart.tsx` (R15), which is
+// what makes the chart chunk a separate file; `scripts/bundle-budget.ts` measures the
+// gzipped chunks against the §11 budgets after every build, and `BUNDLE_STATS=1`
+// adds `rollup-plugin-visualizer`'s treemap at `bundle-stats/stats.html` (outside
+// `dist/`, so it is never deployed). Worker chunks are ES modules (D-18):
+// satellite.js 7 ships an optional WASM/pthreads build whose worker entry uses
+// top-level await, which the default IIFE worker format rejects (the build is never
+// loaded; we do not call `createWasmModule`).
 export default defineConfig({
-  plugins: [react(), pagesHeaders()],
+  plugins: [react(), pagesHeaders(), ...(process.env['BUNDLE_STATS'] ? [visualizer({ gzipSize: true, filename: 'bundle-stats/stats.html' }) as unknown as Plugin] : [])],
   build: { target: 'es2022' },
   worker: { format: 'es' },
 });

@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:coverage:physics": "vitest run src/physics --coverage",
     "e2e": "vite build && playwright test",
+    "bundle:budget": "tsx scripts/bundle-budget.ts",
     "validate:iss": "tsx scripts/validate-iss.ts",
     "check:catalog": "tsx scripts/check-catalog.ts"
   },
