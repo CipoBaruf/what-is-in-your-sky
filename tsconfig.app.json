@@ -6,5 +6,6 @@
     "jsx": "react-jsx",
     "types": ["node", "vite/client"]
   },
-  "include": ["src", "tests/support", "tests/setup", "tests/live"]
+  "include": ["src", "tests/support", "tests/setup", "tests/live", "spike"],
+  "exclude": ["spike/capture.ts", "spike/vite.bundle.config.ts"]
 }
