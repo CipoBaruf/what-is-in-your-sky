@@ -10,7 +10,22 @@
 import { spawn } from 'node:child_process';
 import type { Logger } from './report';
 
-/** §16.4: file reads and writes, Grep/Glob, the project's commands, and the safe half of git. */
+/**
+ * §16.4: file reads and writes, Grep/Glob, the project's commands, the shell
+ * tools that look at what they produced, and the safe half of git.
+ *
+ * The list has to cover the commands the tasks are actually written in, or a
+ * session ships code it could not run: R20's was refused `npm test` (its own
+ * package script, which is `npm test`, not `npm run test`), `npx tsx
+ * scripts/contrast.ts` — the script its acceptance names — `node`, and every
+ * compound command with an `echo` or a `cat` in it, so it wrote a theme it
+ * never executed and CI found the failure (D-101).
+ *
+ * Breadth here is not the fence. A session that may run `npx vitest` already
+ * runs whatever the repository's own test files run; what keeps it inside the
+ * task is the *disallowed* list — no push, no `gh`, no `rm`, no network — and
+ * that is unchanged.
+ */
 export const IMPLEMENT_TOOLS = [
   'Read',
   'Write',
@@ -20,14 +35,32 @@ export const IMPLEMENT_TOOLS = [
   'TodoWrite',
   'Skill',
   'Bash(npm run:*)',
+  'Bash(npm test:*)',
+  'Bash(npm ci:*)',
   'Bash(npx vitest:*)',
   'Bash(npx playwright:*)',
   'Bash(npx tsc:*)',
+  'Bash(npx eslint:*)',
+  'Bash(npx tsx:*)',
+  'Bash(node:*)',
+  'Bash(cat:*)',
+  'Bash(ls:*)',
+  'Bash(head:*)',
+  'Bash(tail:*)',
+  'Bash(wc:*)',
+  'Bash(sed:*)',
+  'Bash(awk:*)',
+  'Bash(find:*)',
+  'Bash(echo:*)',
+  'Bash(mkdir:*)',
+  'Bash(cp:*)',
+  'Bash(mv:*)',
   'Bash(git add:*)',
   'Bash(git commit:*)',
   'Bash(git status:*)',
   'Bash(git diff:*)',
   'Bash(git log:*)',
+  'Bash(git show:*)',
 ] as const;
 
 /** The review session reads and reports; it does not edit the branch. */
