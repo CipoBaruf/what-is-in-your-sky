@@ -1,5 +1,6 @@
 import type { EpochMs, NoradId, NowItem, NowState, Observer, PassBoundaryReason, SkyState, VisibilityThresholds } from '../model';
 import { DENSE_STEP_MS } from './constants';
+import { moonAt } from './moon';
 import type { SatRec } from './sgp4';
 import { sunAltitudeDeg } from './sun';
 import { failingReason, sampleAt, visibilityAt } from './visibility';
@@ -139,7 +140,9 @@ export function nowState(
     const item = nowItem(object, observer, t, thresholds);
     if (item) items.push(item);
   }
-  const state: NowState = { t, sunAltDeg, sky: skyState(sunAltDeg, thresholds), items };
+  // FR-MOON-3 (D-80): the Moon comes back with everything else, so the main
+  // thread never does astronomy of its own. One evaluation, not one per object.
+  const state: NowState = { t, sunAltDeg, sky: skyState(sunAltDeg, thresholds), items, moon: moonAt(t, observer) };
   if (!options.includeHidden) return state;
   return { ...state, hidden: items.filter((item) => isHidden(item, thresholds)) };
 }

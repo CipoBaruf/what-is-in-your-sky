@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Observer } from '../model';
+import { MOON_FIXTURE } from '../../tests/support/moonFixtures';
 import { DEFAULT_THRESHOLDS } from '../physics/constants';
 import type { WorkerRequest, WorkerResponse } from '../worker/protocol';
 import { createWorkerClient, sequentialIds, type PassesJobHandlers, type WorkerLike } from './workerClient';
@@ -87,7 +88,7 @@ describe('createWorkerClient', () => {
   it('computeNow resolves with the state for its request id and rejects on an error', async () => {
     const worker = fakeWorker();
     const client = createWorkerClient(worker);
-    const state = { t: 5, sunAltDeg: -20, sky: 'dark' as const, items: [] };
+    const state = { t: 5, sunAltDeg: -20, sky: 'dark' as const, items: [], moon: MOON_FIXTURE };
     const first = client.computeNow(observer, 5, DEFAULT_THRESHOLDS);
     const second = client.computeNow(observer, 6, DEFAULT_THRESHOLDS);
     expect(worker.sent).toEqual([

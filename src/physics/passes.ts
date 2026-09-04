@@ -1,6 +1,7 @@
 import type { EpochMs, NoradId, Observer, Pass, PassBoundaryReason, PassPoint, TimeWindow, VisibilityThresholds } from '../model';
-import { BISECTION_TOLERANCE_MS, COARSE_STEP_MS, DENSE_STEP_MS, TRACK_EVERY_N_SAMPLES } from './constants';
+import { BISECTION_TOLERANCE_MS, COARSE_STEP_MS, DEFAULT_MOON_GLARE_THRESHOLDS, DENSE_STEP_MS, TRACK_EVERY_N_SAMPLES } from './constants';
 import { lookAnglesFrom } from './frames';
+import { moonAt, moonGlare } from './moon';
 import { propagateEci, type SatRec } from './sgp4';
 import { failingReason, sampleAt, visibilityAt, type VisibilitySample } from './visibility';
 
@@ -167,6 +168,12 @@ export function findPasses(
     const twilight = peak.sunAltDeg > thresholds.twilightLabelSunAltDeg;
     const track = buildTrack(visible, first, peak, last);
 
+    // Step 8 (v1, FR-MOON-2): one Moon evaluation per pass, at the peak. The
+    // Moon moves about 0.5° in the length of a pass, far below the 30°
+    // separation threshold, so sampling it along the track would buy nothing.
+    const moon = moonAt(peak.t, observer);
+    const moonAtPeak = moon.elDeg > 0 ? moon : null;
+
     passes.push({
       id: `${object.noradId}-${first.t}`,
       noradId: object.noradId,
@@ -182,6 +189,8 @@ export function findPasses(
       twilight,
       track,
       elementsEpochMs: object.elementsEpochMs,
+      moonAtPeak,
+      moonGlare: moonGlare(moonAtPeak, peak, DEFAULT_MOON_GLARE_THRESHOLDS),
     });
   }
   passes.sort((a, b) => a.start.t - b.start.t);

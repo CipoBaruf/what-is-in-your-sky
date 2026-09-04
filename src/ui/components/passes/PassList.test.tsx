@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it } from 'vitest';
 import { fixtureRecords, goldenWindowStart, loadReferenceValues } from '../../../../tests/support/catalogFixtures';
+import { NO_MOON_AT_PEAK } from '../../../../tests/support/moonFixtures';
 import { compassPoint } from '../../../lib/compass';
 import type { Observer, Pass, WeatherSnapshot } from '../../../model';
 import { appStore, type AppState, type ElementsState } from '../../../state';
@@ -32,6 +33,7 @@ const goldenPass: Pass = {
   twilight: golden.twilight,
   track: [],
   elementsEpochMs: ref.t,
+  ...NO_MOON_AT_PEAK, // the Moon reaches the list in R30 (FR-MOON-2)
 };
 const later: Pass = { ...goldenPass, id: 'later', noradId: 2, name: 'Later object', start: { ...goldenPass.start, t: golden.start.t + 3_600_000 } };
 // R12: three non-featured passes for the sort toggle. Chronological: faint-high, bright-low, average. Best first: bright-low, average, faint-high.

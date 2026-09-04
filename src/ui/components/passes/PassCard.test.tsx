@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { NO_MOON_AT_PEAK } from '../../../../tests/support/moonFixtures';
 import type { Pass, WeatherSnapshot } from '../../../model';
 import { PassCard } from './PassCard';
 
@@ -19,6 +20,7 @@ const samplePass: Pass = {
   twilight: true,
   track: [],
   elementsEpochMs: 1788291742677,
+  ...NO_MOON_AT_PEAK, // the Moon reaches the card in R30 (FR-MOON-2)
 };
 
 const HOUR = 3_600_000;

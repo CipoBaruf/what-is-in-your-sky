@@ -10,6 +10,7 @@ import { CATALOG } from '../../src/data/catalog';
 import { filterToCatalog, mergeGroups } from '../../src/data/elementsLoader';
 import type { Pass, PassBoundaryReason, PassPoint, SatelliteRecord } from '../../src/model';
 import { loadOmmFixture } from '../setup/msw';
+import { NO_MOON_AT_PEAK } from './moonFixtures';
 import { REFERENCE_VALUES_PATH } from './fixtures';
 import { ISS_STD_MAG_SEED } from './heavensAbove';
 
@@ -74,5 +75,8 @@ export function goldenPassFixture(ref: ReferenceValues = loadReferenceValues()):
     twilight: golden.twilight,
     track: [point(golden.start), point(golden.peak), point(golden.end)],
     elementsEpochMs: ref.t,
+    // The reference file predates the Moon and pins nothing about it (R19), so
+    // the fixture reports no Moon above the horizon at the peak.
+    ...NO_MOON_AT_PEAK,
   };
 }
