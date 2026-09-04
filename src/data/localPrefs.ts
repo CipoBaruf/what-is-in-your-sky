@@ -1,4 +1,5 @@
-import type { ChartOrientation, ChartView, Locale, Observer, PassSort, Theme } from '../model';
+import type { ChartOrientation, ChartView, Favourite, Locale, Observer, PassSort, Theme } from '../model';
+import { mostRecentlyUsed } from './favourites';
 import { storedObserverSchema, toObserver } from './schemas';
 import { browserStorage, type StorageLike } from './storage';
 import { z } from './zod';
@@ -14,7 +15,10 @@ import { z } from './zod';
  * orientation (FR-GUIDE-4); R17 the language (FR-I18N-1), absent until the
  * header switch is used, so the browser's list keeps deciding; R20 the theme
  * (FR-THEME-1), absent until the header switch is used, so the app stays
- * dark. Each preference is optional and read
+ * dark; R26 the saved places (FR-OFF-7, D-85), which are read item by item as
+ * well as independently — a favourite that does not match the schema drops
+ * only itself, so one bad entry costs one place and not the other seven.
+ * Each preference is optional and read
  * independently, so an unknown or invalid value of one never loses the
  * others.
  */
@@ -27,7 +31,16 @@ export interface Prefs {
   chartOrientation?: ChartOrientation;
   locale?: Locale;
   theme?: Theme;
+  favourites?: Favourite[];
 }
+
+/** One saved place as it is written (FR-OFF-7); the whole observer, so selecting it offline needs no geocode. */
+const storedFavouriteSchema = z.object({
+  cellKey: z.string().min(1),
+  observer: storedObserverSchema,
+  addedAt: z.number().finite(),
+  lastUsedAt: z.number().finite(),
+});
 
 const storedPrefsSchema = z.object({
   observer: storedObserverSchema.optional().catch(undefined),
@@ -36,6 +49,12 @@ const storedPrefsSchema = z.object({
   chartOrientation: z.enum(['looking-up', 'map']).optional().catch(undefined),
   locale: z.enum(['en', 'es']).optional().catch(undefined),
   theme: z.enum(['dark', 'night']).optional().catch(undefined),
+  // `.catch(null)` per item, not on the array: a malformed favourite becomes a hole that is
+  // filtered out, where a schema on the array alone would drop all eight for one bad entry.
+  favourites: z
+    .array(storedFavouriteSchema.nullable().catch(null))
+    .optional()
+    .catch(undefined),
 });
 
 export interface LocalPrefs {
@@ -52,7 +71,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!raw) return {};
         const parsed = storedPrefsSchema.safeParse(JSON.parse(raw));
         if (!parsed.success) return {};
-        const { observer, sort, chartView, chartOrientation, locale, theme } = parsed.data;
+        const { observer, sort, chartView, chartOrientation, locale, theme, favourites } = parsed.data;
         const prefs: Prefs = {};
         if (observer) prefs.observer = toObserver(observer);
         if (sort) prefs.sort = sort;
@@ -60,6 +79,11 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (chartOrientation) prefs.chartOrientation = chartOrientation;
         if (locale) prefs.locale = locale;
         if (theme) prefs.theme = theme;
+        // The limit is applied on read too, so a hand-edited or half-written list is still eight at most.
+        if (favourites) {
+          const kept = favourites.filter((favourite) => favourite !== null).map((favourite) => ({ ...favourite, observer: toObserver(favourite.observer) }));
+          if (kept.length > 0) prefs.favourites = mostRecentlyUsed(kept);
+        }
         return prefs;
       } catch {
         return {};
