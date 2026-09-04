@@ -314,6 +314,10 @@ These plan SPEC v1.0 (V1-1..V1-11). Nothing here is implemented yet; each decisi
 
 - **Reserved for the wave starting on 2026-09-04, after R21 and R23 merged: R30 takes D-121 to D-125, R25 takes D-126 to D-130.** D-110 hands the numbers out in advance and asks each wave to append its own reservation as the last entry before it runs, so this is that entry and nothing more — it decides nothing and consumes no number of its own. The two tasks are the ones the driver selects: `ui` goes to R30 rather than R27 because R30 is ready and stands earlier in TASKS.md, and `data` goes to R25. A session numbers only inside its block, and the numbers it does not use stay unused.
 
+- **D-126 — The service worker is registered by `state/serviceWorker.ts`, not by `virtual:pwa-register`.** D-79 chose `vite-plugin-pwa` for the precache manifest, which is the part that is tedious to hand-write. Its registration helper is a separate offer, and taking it would put "an update is waiting" in two places: the helper's own closure and the store the banner reads. Instead the module registers `/sw.js` itself — thirty lines against the plain `navigator.serviceWorker` API — and reports a waiting worker through the `appUpdate` slice, which is what R28's `UpdateBanner.tsx` reads. `applyUpdate` is a *function* in the store rather than a flag, so the banner posts nothing and knows nothing about workers: the registration hands it whatever "let the waiting version through" means for the worker actually waiting, and is the only place `SKIP_WAITING` is spelled. The lifecycle is then testable without a browser (`serviceWorker.test.ts` scripts `updatefound` → `statechange` → `controllerchange` over a fake container), including the two cases that decide whether a banner is a bug: a worker installing with no controller is the *first* install and offers nothing, and a `controllerchange` nobody asked for does not reload the page. Production-only is a default argument (`import.meta.env.PROD`) rather than a caller's `if`, so "a dev build registers nothing" is a test and not a convention.
+
+- **D-127 — The manifest is hand-written and the icons are drawn from the tokens by a script.** `vite-plugin-pwa` can generate the manifest from its config, but FR-OFF-6 fixes what it must say and the file is then a fifteen-line constant: keeping it at `public/manifest.webmanifest` means the deployed bytes are in the repository, reviewable and pinned by `tests/deploy/manifest.test.ts` the way `public/_headers` is (D-25), rather than assembled at build time. The icons come from `scripts/build-icons.ts`, which writes 8-bit RGB PNGs with `node:zlib` and no image dependency: a 16 × 16 cell grid — the grid the whole app is laid out on — carrying a pass arcing over a horizon rule, in `--chart-pass`, `--chart-peak` and `--chart-horizon` on `--bg`, so the identity is the tokens and a theme change is a one-line edit and a rerun. 16 divides both 192 and 512 exactly, so the two files are one drawing at two resolutions with no resampling, and the drawing stays inside the central 80 % a maskable icon is cropped to, which is why two `any` icons are enough and there is no third file.
+
 ---
 
 ## 3. Architecture Overview
@@ -442,7 +446,8 @@ what-is-in-your-sky-right-now/
 │   │   └── localPrefs.ts           # last observer, chart orientation, etc.
 │   ├── state/
 │   │   ├── store.ts                # Zustand store composed of slices
-│   │   ├── slices/ location.ts  elements.ts  passes.ts  weather.ts  now.ts  prefs.ts  live.ts (t, speed, hidden objects)
+│   │   ├── slices/ location.ts  elements.ts  passes.ts  weather.ts  now.ts  prefs.ts  live.ts (t, speed, hidden objects)  appUpdate.ts (a waiting version, D-126)
+│   │   ├── serviceWorker.ts        # registers the generated `/sw.js`, reports a waiting version (FR-OFF-1, D-126)
 │   │   ├── passWindow.ts           # the search window: 72 h in three nights (D-20 amended, D-77)
 │   │   ├── workerClient.ts         # owns the Worker instance; request/response correlation; cancel
 │   │   └── effects.ts              # wiring: on observer change -> recompute; 10 s now tick; refresh timers
@@ -812,7 +817,9 @@ loadForObserver(observer):
 
 `vite-plugin-pwa`, `generateSW`, `registerType: 'prompt'`, `runtimeCaching: []`, `navigateFallback: 'index.html'`. The precache list is the build output plus the braille font, the manifest and the icons. Registration happens in `main.tsx` after the first render, and only in production builds.
 
-- **Update (OQ-14).** A waiting worker sets a store flag; `UpdateBanner.tsx` offers "new version ready — reload"; the button posts `SKIP_WAITING` and reloads. Nothing swaps under a running live page.
+*(R25)* "Registration" is `state/serviceWorker.ts` over the plain `navigator.serviceWorker` API, not the plugin's `virtual:pwa-register` (D-126); `main.tsx` calls it on `load`, so the precache never competes with the first paint. The generated worker is `dist/sw.js` at the site root, on its own 15 KB budget (§11).
+
+- **Update (OQ-14).** A waiting worker sets a store flag; `UpdateBanner.tsx` offers "new version ready — reload"; the button posts `SKIP_WAITING` and reloads. Nothing swaps under a running live page. *(R25)* The flag is the `appUpdate` slice: `updateReady`, and `applyUpdate`, the function the registration puts there and the banner is the only caller of (D-126).
 - **Data requests are never intercepted.** With `runtimeCaching: []` Workbox generates no fetch handler for cross-origin requests, so CelesTrak and Open-Meteo responses reach the network or fail, and their caching stays in IndexedDB where FR-SAT-6 and FR-WX-5 put it. A test asserts the generated `sw.js` contains no `registerRoute` for those hosts.
 - **Manifest.** One name in one language (FR-OFF-6 says it is not localised), `display: standalone`, the dark theme colour, icons at 192 and 512 px. `InstallHint.tsx` shows once on `beforeinstallprompt`, and on iOS — where that event never fires — shows the "Add to Home Screen" note instead, keyed off `navigator.standalone` being defined and false. Dismissal is remembered in prefs.
 
@@ -1071,7 +1078,7 @@ Two further observer locations (one northern mid-latitude, one near the equator)
 
   ```
   /*
-    Content-Security-Policy: default-src 'self'; connect-src 'self' https://celestrak.org https://api.open-meteo.com https://geocoding-api.open-meteo.com; img-src 'self' data:; worker-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'
+    Content-Security-Policy: default-src 'self'; connect-src 'self' https://celestrak.org https://api.open-meteo.com https://geocoding-api.open-meteo.com; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'
     Referrer-Policy: strict-origin-when-cross-origin
     Permissions-Policy: geolocation=(self)
   /assets/*
@@ -1146,7 +1153,7 @@ No i18n, routing, date or state dependency is added for v1: language is two type
 | FR-DOME-1..7 | `dome/camera.ts` (`layoutFor` from width and height), `dome/palette.ts`, `dome/domeGeometry.ts`, `dome/SkyDome.tsx`, `polar/SkyPolar.tsx` (same markers and palette) — §8.7 |
 | FR-DOME-8 | `spike/dome-composition/` and `docs/dome-composition/` first; then `dome/domeLayers.ts` + the two scenes in `SkyDome.tsx` (D-74) |
 | FR-LIVE-1..10 | `ui/screens/Live.tsx`, `ui/components/live/*`, `state/slices/live.ts`, `lib/skyBodies.ts`, `lib/shareLinks.ts`, `worker` `computeNow { includeHidden }` (D-76, D-81, D-82) |
-| FR-OFF-1, FR-OFF-6 | `vite.config.ts` (`vite-plugin-pwa`, D-79), `public/manifest.webmanifest`, `ui/components/common/UpdateBanner.tsx`, `InstallHint.tsx` |
+| FR-OFF-1, FR-OFF-6 | `vite.config.ts` (`vite-plugin-pwa`, D-79), `state/serviceWorker.ts` + `state/slices/appUpdate.ts` (D-126), `public/manifest.webmanifest` + `scripts/build-icons.ts` (D-127), `ui/components/common/UpdateBanner.tsx`, `InstallHint.tsx` |
 | FR-OFF-2, FR-OFF-5 | `data/passesCache.ts` (D-78), `state/slices/passes.ts`, `state/passWindow.ts` (72 h, D-77) |
 | FR-OFF-3 | `data/openMeteo/forecast.ts` (`forecast_days=4`), `data/weatherCache.ts` |
 | FR-OFF-4 | `lib/readiness.ts`, `ui/components/common/ReadinessLine.tsx` |

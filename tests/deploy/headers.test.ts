@@ -71,6 +71,8 @@ describe('public/_headers', () => {
     expect(directives.get('script-src')).toEqual(["'self'"]);
     expect(directives.get('style-src')).toEqual(["'self'"]);
     expect(directives.get('worker-src')).toEqual(["'self'"]);
+    // R25 (FR-OFF-6, D-75): the manifest is ours, named explicitly rather than left to `default-src`.
+    expect(directives.get('manifest-src')).toEqual(["'self'"]);
     expect(directives.get('frame-ancestors')).toEqual(["'none'"]);
     // D-75: `style-src-attr` is the one relaxation, and it is the only place `unsafe-` may appear.
     for (const [name, sources] of directives) {
