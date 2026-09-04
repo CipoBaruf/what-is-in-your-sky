@@ -15,7 +15,10 @@ import {
   COMPASS,
   COMPASS_LABEL_RADIUS,
   compassAnchors,
+  circleAround,
   diamond,
+  FLOWN_RADIUS,
+  flownStrip,
   glowStrength,
   gridPolygons,
   GROUND_RADIUS,
@@ -26,6 +29,8 @@ import {
   LABELLED_TICK_HEIGHT_DEG,
   MARKER_RADIUS,
   meridian,
+  MOON_MARKER_SIZE_DEG,
+  moonMarker,
   NOW_MARKER_RADIUS,
   nowMarker,
   nowPoint,
@@ -346,5 +351,51 @@ describe('label collisions (FR-DOME-3)', () => {
     const stuck = resolveLabels([request('a', 'compass', 30)], camera, crowded);
     expect(stuck[0]?.shiftedDeg).toBe(0);
     expect(stuck[0]?.azDeg).toBe(30);
+  });
+});
+
+describe('the live marker and the two bodies (FR-DOME-5, FR-DOME-6)', () => {
+  it('places the flown arc over the pass strip and ends it under the live marker (FR-DOME-5)', () => {
+    const arc = resampleArc(pass.track, ARC_STEP_DEG);
+    const midway = Math.round((pass.start.t + pass.end.t) / 2);
+    const flown = flownStrip(pass, midway, { highlighted: true });
+    expect(flown.length).toBeGreaterThan(0);
+    // A hair outside the arc it covers, so it wins the raster where they share a cell.
+    for (const v of everyVertex(flown)) expect(radius(v)).toBeCloseTo(FLOWN_RADIUS, 9);
+    expect(FLOWN_RADIUS).toBeGreaterThan(1);
+    expect(FLOWN_RADIUS).toBeLessThan(MARKER_RADIUS);
+
+    // Its far end is the satellite's position at that instant, which is where the marker is.
+    const marker = nowPoint(pass, midway);
+    if (!marker) throw new Error('the golden pass has no midpoint');
+    // The far edge's midpoint: the strip's vertices are its two sides, half a width off the track.
+    const quad = flown.at(-1)?.vertices;
+    const [right, left] = [quad?.[2], quad?.[3]];
+    if (!right || !left) throw new Error('no flown quad');
+    const end = skyOf([(right[0] + left[0]) / 2, (right[1] + left[1]) / 2, (right[2] + left[2]) / 2]);
+    expect(end.elDeg).toBeCloseTo(marker.elDeg, 0);
+    expect(end.azDeg).toBeCloseTo(marker.azDeg, 0);
+
+    // The whole pass flown at the end, and nothing at all before it starts.
+    expect(flownStrip(pass, pass.end.t, { highlighted: true }).length).toBe(arc.length - 1);
+    expect(flownStrip(pass, pass.start.t, { highlighted: true })).toEqual([]);
+    expect(flownStrip(pass, undefined, { highlighted: true })).toEqual([]);
+  });
+
+  it('draws the Moon as a disc at its own place, and nothing while it is below the horizon (FR-DOME-6)', () => {
+    const moon = { azDeg: 120, elDeg: 40 };
+    const disc = moonMarker(moon);
+    expect(disc.length).toBeGreaterThan(3);
+    for (const v of everyVertex(disc)) expect(radius(v)).toBeCloseTo(MARKER_RADIUS, 9);
+    // Every quad within the marker's own angular size of the Moon's place.
+    for (const v of everyVertex(disc)) {
+      const p = skyOf(v);
+      expect(Math.abs(p.elDeg - moon.elDeg)).toBeLessThan(MOON_MARKER_SIZE_DEG + 1);
+    }
+    expect(moonMarker({ azDeg: 120, elDeg: -1 })).toEqual([]);
+    expect(moonMarker({ azDeg: 120, elDeg: 0 })).toEqual([]);
+    expect(moonMarker(moon, 'moon').every((poly) => poly.color === 'moon')).toBe(true);
+    // The disc closes on itself: a ring, not an arc with two ends.
+    expect(circleAround(moon, MOON_MARKER_SIZE_DEG)).toHaveLength(disc.length);
   });
 });
