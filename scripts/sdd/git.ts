@@ -158,7 +158,53 @@ export async function createPullRequest(dir: string, id: string, title: string, 
 }
 
 /** §16.4 step 5: CI watched to completion; red CI ends the task as failed. */
-export async function watchChecks(dir: string, pr: number, logger: Logger): Promise<boolean> {
+/** How long to wait for GitHub to register a workflow before watching it, and how often to look (D-98). */
+export const CHECKS_APPEAR_TIMEOUT_MS = 5 * 60_000;
+export const CHECKS_APPEAR_INTERVAL_MS = 10_000;
+
+const NO_CHECKS = /no checks reported/i;
+
+const sleep = (ms: number): Promise<void> => new Promise((done) => setTimeout(done, ms));
+
+export interface ChecksWaits {
+  timeoutMs?: number;
+  intervalMs?: number;
+  sleep?: (ms: number) => Promise<void>;
+  now?: () => number;
+}
+
+/**
+ * Polls `missing` until the PR's checks exist, and answers whether they ever
+ * did. In the seconds after `gh pr create`, GitHub has not registered the
+ * workflow yet and `gh pr checks` exits 1 with "no checks reported on the
+ * '<branch>' branch" — the same exit code a red check gets, and one `--watch`
+ * does not wait out, so the driver scored a finished task as red (D-98).
+ */
+export async function waitForChecks(missing: () => Promise<boolean>, waits: ChecksWaits = {}): Promise<boolean> {
+  const timeoutMs = waits.timeoutMs ?? CHECKS_APPEAR_TIMEOUT_MS;
+  const intervalMs = waits.intervalMs ?? CHECKS_APPEAR_INTERVAL_MS;
+  const pause = waits.sleep ?? sleep;
+  const clock = waits.now ?? Date.now;
+  const deadline = clock() + timeoutMs;
+  while (await missing()) {
+    if (clock() >= deadline) return false;
+    await pause(intervalMs);
+  }
+  return true;
+}
+
+/** True while the PR has no checks at all — see `waitForChecks`. */
+async function checksMissing(dir: string, pr: number, logger: Logger): Promise<boolean> {
+  const probe = await gh(['pr', 'checks', String(pr)], { cwd: dir, logger });
+  return NO_CHECKS.test(probe.stdout) || NO_CHECKS.test(probe.stderr);
+}
+
+export async function watchChecks(dir: string, pr: number, logger: Logger, waits: ChecksWaits = {}): Promise<boolean> {
+  const appeared = await waitForChecks(() => checksMissing(dir, pr, logger), waits);
+  if (!appeared) {
+    logger.line(`  PR #${String(pr)} still reports no checks; treating that as red`);
+    return false;
+  }
   const result = await gh(['pr', 'checks', String(pr), '--watch', '--fail-fast'], { cwd: dir, logger, stream: true });
   return ok(result);
 }
