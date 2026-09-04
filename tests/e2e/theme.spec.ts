@@ -25,6 +25,8 @@ const DARK_BG = 'rgb(11, 15, 20)';
 const NIGHT_BG = 'rgb(10, 2, 2)';
 /** `--fg` in night mode: the red the whole page is written in (FR-THEME-3). */
 const NIGHT_FG = 'rgb(255, 143, 125)';
+/** What the canvas would be without `color-scheme: dark` — the flash the meta tag exists to prevent. */
+const UA_LIGHT = 'rgb(255, 255, 255)';
 
 test.use({ locale: 'en-GB', viewport: { width: 390, height: 844 } });
 
@@ -47,27 +49,40 @@ interface Frame {
 }
 
 /**
- * Samples the root element on each of the first three rendering opportunities.
- * The script runs before any page script, so the first sample is taken at the
- * first frame the browser would composite — which is the frame FR-THEME-1
- * says must already be in the chosen palette.
+ * Samples the root element on every rendering opportunity until `data-theme` is
+ * on it, that frame included. The script runs before any page script, so the
+ * first sample is the first frame the browser would composite.
+ *
+ * The attribute cannot be guaranteed on that first frame: `main.tsx` is a
+ * module script, which is deferred, so the browser may paint before it runs
+ * (D-99). What FR-THEME-1 asks, and what these samples check, is that none of
+ * the frames before it carries the *other* palette — `color-scheme: dark` and
+ * a ground that hangs off `html[data-theme]` leave them on the UA's dark
+ * canvas instead.
  */
 async function recordFirstFrames(page: Page): Promise<void> {
   await page.addInitScript(() => {
     const frames: Frame[] = [];
-    (window as unknown as { __frames: Frame[] }).__frames = frames;
+    const window_ = window as unknown as { __frames: Frame[]; __framesDone: boolean };
+    window_.__frames = frames;
+    window_.__framesDone = false;
     const sample = (left: number): void => {
       requestAnimationFrame(() => {
         const html = document.documentElement;
-        frames.push({ theme: html.getAttribute('data-theme'), background: getComputedStyle(html).backgroundColor });
-        if (left > 1) sample(left - 1);
+        const theme = html.getAttribute('data-theme');
+        frames.push({ theme, background: getComputedStyle(html).backgroundColor });
+        if (theme !== null || left <= 1) window_.__framesDone = true;
+        else sample(left - 1);
       });
     };
-    sample(3);
+    sample(120);
   });
 }
 
-const firstFrames = (page: Page): Promise<Frame[]> => page.evaluate(() => (window as unknown as { __frames: Frame[] }).__frames);
+async function firstFrames(page: Page): Promise<Frame[]> {
+  await page.waitForFunction(() => (window as unknown as { __framesDone: boolean }).__framesDone);
+  return page.evaluate(() => (window as unknown as { __frames: Frame[] }).__frames);
+}
 
 test('the header switch turns the page red on black, and the choice survives a reload', async ({ page }) => {
   await withFixtures(page);
@@ -88,14 +103,17 @@ test('the header switch turns the page red on black, and the choice survives a r
   await expect(html).toHaveCSS('color', NIGHT_FG);
   await expect(themes.getByRole('button', { name: 'Night' })).toHaveAttribute('aria-pressed', 'true');
 
-  // FR-THEME-1: saved, and applied before the first paint of the next visit.
+  // FR-THEME-1: saved, and no frame of the next visit is painted in the other palette.
   await page.reload();
   await expect(html).toHaveAttribute('data-theme', 'night');
   await expect(html).toHaveCSS('background-color', NIGHT_BG);
   const frames = await firstFrames(page);
   expect(frames.length).toBeGreaterThan(0);
-  expect(frames[0]?.theme).toBe('night');
-  for (const frame of frames) expect(frame.background).not.toBe(DARK_BG);
+  expect(frames.at(-1)?.theme).toBe('night'); // the attribute lands, and these are the frames before it
+  for (const frame of frames) {
+    expect(frame.background).not.toBe(DARK_BG); // the acceptance: no dark-palette frame is painted first
+    expect(frame.background).not.toBe(UA_LIGHT); // nor a white one: `color-scheme: dark` holds the canvas
+  }
 });
 
 test('night mode reaches the pass list and the guide sheet, in both languages', async ({ page }) => {

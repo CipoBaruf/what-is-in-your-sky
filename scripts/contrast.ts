@@ -2,7 +2,7 @@
  * R12 (FR-X-5), extended by R20 (FR-THEME-1..3, D-84): WCAG 2.1 contrast
  * ratios of the tokens in `src/ui/styles/tokens.css`, computed for **both**
  * themes over the same pair table. It prints every column;
- * `tokens.css` documents three of them (D-96) and
+ * `tokens.css` documents three of them (D-100) and
  * `tests/styles/tokens.test.ts` recomputes those in CI, so the documented
  * numbers cannot drift. Run: `npx tsx scripts/contrast.ts`.
  */
