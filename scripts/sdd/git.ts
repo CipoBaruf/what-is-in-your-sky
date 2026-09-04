@@ -157,7 +157,6 @@ export async function createPullRequest(dir: string, id: string, title: string, 
   return number ? Number.parseInt(number, 10) : null;
 }
 
-/** §16.4 step 5: CI watched to completion; red CI ends the task as failed. */
 /** How long to wait for GitHub to register a workflow before watching it, and how often to look (D-98). */
 export const CHECKS_APPEAR_TIMEOUT_MS = 5 * 60_000;
 export const CHECKS_APPEAR_INTERVAL_MS = 10_000;
@@ -174,35 +173,47 @@ export interface ChecksWaits {
 }
 
 /**
- * Polls `missing` until the PR's checks exist, and answers whether they ever
- * did. In the seconds after `gh pr create`, GitHub has not registered the
+ * Whether the PR's checks exist yet, from one `gh pr checks` run. The exit code
+ * answers where it can: **0** every check finished and passed, **8** some are
+ * pending. **1** is three different things — a check failed, the PR has no
+ * checks at all, or `gh` could not answer (a 404 from an API still catching up
+ * with `gh pr create`, a rate limit, no network) — so it is read further: the
+ * "no checks reported" message, and then stdout, which carries the check table
+ * when there is one and is empty when `gh` only wrote an error to stderr.
+ * Anything that is not an answer counts as "not yet", and the caller keeps
+ * polling until its deadline rather than reading a stumble as a verdict.
+ */
+export function checksExist(result: ExecResult): boolean {
+  if (result.code === 0 || result.code === 8) return true;
+  if (NO_CHECKS.test(result.stdout) || NO_CHECKS.test(result.stderr)) return false;
+  return result.code === 1 && result.stdout.trim() !== ''; // a red check prints its table; a failed call prints nothing
+}
+
+/**
+ * Polls `exists` until the PR's checks are there, and answers whether they ever
+ * were. In the seconds after `gh pr create`, GitHub has not registered the
  * workflow yet and `gh pr checks` exits 1 with "no checks reported on the
  * '<branch>' branch" — the same exit code a red check gets, and one `--watch`
  * does not wait out, so the driver scored a finished task as red (D-98).
  */
-export async function waitForChecks(missing: () => Promise<boolean>, waits: ChecksWaits = {}): Promise<boolean> {
+export async function waitForChecks(exists: () => Promise<boolean>, waits: ChecksWaits = {}): Promise<boolean> {
   const timeoutMs = waits.timeoutMs ?? CHECKS_APPEAR_TIMEOUT_MS;
   const intervalMs = waits.intervalMs ?? CHECKS_APPEAR_INTERVAL_MS;
   const pause = waits.sleep ?? sleep;
   const clock = waits.now ?? Date.now;
   const deadline = clock() + timeoutMs;
-  while (await missing()) {
+  while (!(await exists())) {
     if (clock() >= deadline) return false;
     await pause(intervalMs);
   }
   return true;
 }
 
-/** True while the PR has no checks at all — see `waitForChecks`. */
-async function checksMissing(dir: string, pr: number, logger: Logger): Promise<boolean> {
-  const probe = await gh(['pr', 'checks', String(pr)], { cwd: dir, logger });
-  return NO_CHECKS.test(probe.stdout) || NO_CHECKS.test(probe.stderr);
-}
-
+/** §16.4 step 5: CI watched to completion; red CI ends the task as failed. */
 export async function watchChecks(dir: string, pr: number, logger: Logger, waits: ChecksWaits = {}): Promise<boolean> {
-  const appeared = await waitForChecks(() => checksMissing(dir, pr, logger), waits);
+  const appeared = await waitForChecks(async () => checksExist(await gh(['pr', 'checks', String(pr)], { cwd: dir, logger })), waits);
   if (!appeared) {
-    logger.line(`  PR #${String(pr)} still reports no checks; treating that as red`);
+    logger.line(`  PR #${String(pr)} reports no checks; treating that as red`);
     return false;
   }
   const result = await gh(['pr', 'checks', String(pr), '--watch', '--fail-fast'], { cwd: dir, logger, stream: true });
