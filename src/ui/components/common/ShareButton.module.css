@@ -1,0 +1,30 @@
+.share {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 calc(2 * var(--cell));
+}
+
+.button {
+  color: var(--accent);
+}
+
+.button::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.button::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+.confirmation {
+  color: var(--fg-dim);
+  overflow-wrap: anywhere;
+}
+
+.url {
+  color: var(--fg);
+}
