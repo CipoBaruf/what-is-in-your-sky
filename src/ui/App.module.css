@@ -2,6 +2,11 @@
   padding-top: var(--row);
 }
 
+/* The title block, so that wide can put the header's controls beside it (FR-DESK-2). */
+.titles {
+  min-width: 0;
+}
+
 .tagline {
   margin: 0;
   padding-left: calc(2 * var(--cell));
@@ -20,4 +25,36 @@
 .main {
   display: grid;
   gap: var(--row);
+}
+
+/* Each column is the compact page's own stack; in compact the two of them
+   sit one under the other and the page looks exactly as it did (R23). */
+.column {
+  display: grid;
+  align-content: start;
+  gap: var(--row);
+}
+
+/* R23 (FR-DESK-2). Wide: the header spans both columns and puts its controls
+   at the right of the title; the left column is fixed at 40 cells — location,
+   the elements banners, the Now panel, and the Moon line's slot when R30 adds
+   it — and the right column takes the rest. Three cells between them is the
+   gutter the mockup fixes (docs/mockups/desktop-1280.html). Widths are in
+   cells; the query's own literal is D-71's, checked against `--cell` by
+   `tests/styles/breakpoint.test.ts`. */
+@media (min-width: 960px) {
+  .header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0 calc(2 * var(--cell));
+    padding-bottom: var(--row);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .main {
+    grid-template-columns: calc(40 * var(--cell)) minmax(0, 1fr);
+    gap: var(--row) calc(3 * var(--cell));
+    align-items: start;
+  }
 }

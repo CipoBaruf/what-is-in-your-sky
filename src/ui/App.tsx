@@ -42,18 +42,24 @@ export function App() {
   return (
     <>
       <header inert={inert} className={styles.header}>
-        <h1>{t.app.title}</h1>
-        <p className={styles.tagline}>{t.app.tagline}</p>
+        <div className={styles.titles}>
+          <h1>{t.app.title}</h1>
+          <p className={styles.tagline}>{t.app.tagline}</p>
+        </div>
         <div className={styles.controls}>
           <LanguageToggle />
           <ThemeToggle />
         </div>
       </header>
       <main inert={inert} className={styles.main}>
-        <LocationInput observer={observer} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} />
-        <ElementsBanners />
-        <NowPanel />
-        <PassList onOpenPass={open} />
+        <div className={styles.column}>
+          <LocationInput observer={observer} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} />
+          <ElementsBanners />
+          <NowPanel />
+        </div>
+        <div className={styles.column}>
+          <PassList onOpenPass={open} />
+        </div>
       </main>
       <Footer inert={inert} />
       {selected && observer && <PassDetail pass={selected} observer={observer} onClose={close} />}
