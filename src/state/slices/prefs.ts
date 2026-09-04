@@ -1,8 +1,9 @@
 import type { StateCreator } from 'zustand/vanilla';
 import type { LocalPrefs } from '../../data/localPrefs';
 import { DEFAULT_PASS_SORT } from '../../lib/passSort';
+import { browserLanguages, resolveLocale } from '../../i18n/locale';
 import { DEFAULT_CHART_ORIENTATION } from '../../lib/skyGeometry';
-import type { ChartOrientation, ChartView, PassSort } from '../../model';
+import type { ChartOrientation, ChartView, Locale, PassSort } from '../../model';
 import type { AppState } from '../store';
 
 /**
@@ -19,7 +20,10 @@ import type { AppState } from '../store';
  * as state, read from storage when the store is created and written through
  * by `setSort`; the observer write-through preserves it. R13 adds the sky
  * chart view (US-6 AC5) and the polar chart's orientation (FR-GUIDE-4) the
- * same way.
+ * same way. R17 adds the language (FR-I18N-1): it is resolved once when the
+ * store is created, from the saved preference if there is one and from
+ * `navigator.languages` otherwise, and `setLocale` both changes it and saves
+ * it — after which the browser's list no longer decides.
  */
 export interface PrefsDeps {
   prefs: LocalPrefs;
@@ -38,6 +42,9 @@ export interface PrefsSlice {
   /** The polar chart's convention (FR-GUIDE-4), `looking-up` unless saved otherwise. */
   chartOrientation: ChartOrientation;
   setChartOrientation: (orientation: ChartOrientation) => void;
+  /** The language (FR-I18N-1), from the saved preference or the browser's list. */
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
   /** Sets the saved observer, if there is one; returns whether there was. */
   restoreSavedObserver: () => boolean;
   clearSavedObserver: () => void;
@@ -60,6 +67,11 @@ export const createPrefsSlice =
     setChartOrientation: (chartOrientation) => {
       set({ chartOrientation });
       deps.prefs.write({ ...deps.prefs.read(), chartOrientation });
+    },
+    locale: resolveLocale(browserLanguages(), deps.prefs.read().locale),
+    setLocale: (locale) => {
+      set({ locale });
+      deps.prefs.write({ ...deps.prefs.read(), locale });
     },
     restoreSavedObserver: () => {
       const { observer } = deps.prefs.read();

@@ -1,4 +1,4 @@
-import type { ChartOrientation, ChartView, Observer, PassSort } from '../model';
+import type { ChartOrientation, ChartView, Locale, Observer, PassSort } from '../model';
 import { browserStorage, type StorageLike } from './storage';
 import { z } from './zod';
 
@@ -10,7 +10,9 @@ import { z } from './zod';
  * empty rather than repaired; storage failures (quota, private mode) are
  * ignored, the session simply is not remembered. R12 adds the pass list
  * order (US-5 AC2); R13 the sky chart view (US-6 AC5) and the polar chart's
- * orientation (FR-GUIDE-4). Each preference is optional and read
+ * orientation (FR-GUIDE-4); R17 the language (FR-I18N-1), absent until the
+ * header switch is used, so the browser's list keeps deciding. Each
+ * preference is optional and read
  * independently, so an unknown or invalid value of one never loses the
  * others.
  */
@@ -21,6 +23,7 @@ export interface Prefs {
   sort?: PassSort;
   chartView?: ChartView;
   chartOrientation?: ChartOrientation;
+  locale?: Locale;
 }
 
 const storedObserverSchema = z.object({
@@ -37,6 +40,7 @@ const storedPrefsSchema = z.object({
   sort: z.enum(['chronological', 'best']).optional().catch(undefined),
   chartView: z.enum(['dome', 'polar']).optional().catch(undefined),
   chartOrientation: z.enum(['looking-up', 'map']).optional().catch(undefined),
+  locale: z.enum(['en', 'es']).optional().catch(undefined),
 });
 
 export interface LocalPrefs {
@@ -53,7 +57,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!raw) return {};
         const parsed = storedPrefsSchema.safeParse(JSON.parse(raw));
         if (!parsed.success) return {};
-        const { observer, sort, chartView, chartOrientation } = parsed.data;
+        const { observer, sort, chartView, chartOrientation, locale } = parsed.data;
         const prefs: Prefs = {};
         if (observer) {
           const { accuracyM, ...rest } = observer;
@@ -62,6 +66,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (sort) prefs.sort = sort;
         if (chartView) prefs.chartView = chartView;
         if (chartOrientation) prefs.chartOrientation = chartOrientation;
+        if (locale) prefs.locale = locale;
         return prefs;
       } catch {
         return {};
