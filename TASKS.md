@@ -417,7 +417,8 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - A wording test rejects prediction and advice phrasing (FR-MOON-5) and the Spanish `tú` / `vos` / `usted` forms (FR-I18N-3).
     - The file is the only source of tradition text: nothing in it is generated, and each entry names where the tradition comes from.
 
-- [ ] **R20 — Night theme and the chart colour tokens**
+- [x] **R20 — Night theme and the chart colour tokens**
+  - **Done 2026-09-04:** as specified, with three additions. The theme switch is on the guide sheet as well as the header, for D-94's reason (D-95). The page ground moved from `body` to `html[data-theme]`, because the stylesheet is a blocking `<link>` and the module script deferred, so without it a night reader gets one frame of the dark ground before `main.tsx` runs — `identity.spec.ts` follows the ground to `html` (D-95). The night UI tokens are taken from the colours R16 already measured against the night ground, and the header table pins three ratio columns rather than four (D-96). **Not done in this session: the captures.** The sandbox refused every `node`, `npx` and `npm` invocation, so no check was run here and no screenshot could be taken; `tests/e2e/theme.spec.ts` writes the eight-capture set (both themes × both languages, list and sheet, 390 px) to `test-results/` when `npm run e2e` runs.
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
