@@ -126,7 +126,7 @@ describe('startEffects', () => {
     await waitForSent('computePasses');
     const first = sentOfType('computePasses')[0];
     if (!first) throw new Error('no first job');
-    worker.emit({ type: 'passes', jobId: first.jobId, noradId: 25544, passes: [samplePass(25544, NOW + 1000)] });
+    worker.emit({ type: 'passes', jobId: first.jobId, noradId: 25544, nightIndex: 0, passes: [samplePass(25544, NOW + 1000)] });
     expect(store.getState().passes.passes).toHaveLength(1);
 
     store.getState().setObserver(paris);
@@ -139,13 +139,13 @@ describe('startEffects', () => {
     expect(store.getState().passes).toMatchObject({ jobId: second.jobId, status: 'computing', observer: paris, passes: [] });
 
     // Late messages from the first job: dropped by the client, and the slice ignores the id anyway.
-    worker.emit({ type: 'passes', jobId: first.jobId, noradId: 2, passes: [samplePass(2, NOW + 2000)] });
+    worker.emit({ type: 'passes', jobId: first.jobId, noradId: 2, nightIndex: 0, passes: [samplePass(2, NOW + 2000)] });
     worker.emit({ type: 'jobDone', jobId: first.jobId, cancelled: true, elapsedMs: 3, hasDarkness: true });
     expect(store.getState().passes.passes).toEqual([]);
     expect(store.getState().passes.status).toBe('computing');
 
-    worker.emit({ type: 'passes', jobId: second.jobId, noradId: 3, passes: [samplePass(3, NOW + 5000)] });
-    worker.emit({ type: 'passes', jobId: second.jobId, noradId: 4, passes: [samplePass(4, NOW + 4000)] });
+    worker.emit({ type: 'passes', jobId: second.jobId, noradId: 3, nightIndex: 0, passes: [samplePass(3, NOW + 5000)] });
+    worker.emit({ type: 'passes', jobId: second.jobId, noradId: 4, nightIndex: 0, passes: [samplePass(4, NOW + 4000)] });
     worker.emit({ type: 'progress', jobId: second.jobId, done: 2, total: 31 });
     expect(store.getState().passes.passes.map((p) => p.noradId)).toEqual([4, 3]); // sorted by start as they stream
     expect(store.getState().passes).toMatchObject({ done: 2, total: 31 });
@@ -386,7 +386,7 @@ describe('weather (FR-WX-1, FR-WX-5, FR-LOC-3)', () => {
     await started(neuquen);
     const job = sent('computePasses')[0];
     if (job?.type !== 'computePasses') throw new Error('no job');
-    worker.emit({ type: 'passes', jobId: job.jobId, noradId: 25544, passes: [samplePass(25544, NOW + 1000)] });
+    worker.emit({ type: 'passes', jobId: job.jobId, noradId: 25544, nightIndex: 0, passes: [samplePass(25544, NOW + 1000)] });
     worker.emit({ type: 'nowState', requestId: sent('computeNow')[0]?.requestId ?? '', state: nowState(NOW) });
     await vi.waitFor(() => expect(store.getState().now.state).not.toBeNull());
 
@@ -411,7 +411,7 @@ describe('weather (FR-WX-1, FR-WX-5, FR-LOC-3)', () => {
     await started(neuquen);
     const job = sent('computePasses')[0];
     if (job?.type !== 'computePasses') throw new Error('no job');
-    worker.emit({ type: 'passes', jobId: job.jobId, noradId: 25544, passes: [samplePass(25544, NOW + 1000)] });
+    worker.emit({ type: 'passes', jobId: job.jobId, noradId: 25544, nightIndex: 0, passes: [samplePass(25544, NOW + 1000)] });
     requests[0]?.reject(new Error('Open-Meteo forecast: HTTP 503'));
     await vi.waitFor(() => expect(store.getState().weather.status).toBe('error'));
     expect(store.getState().weather).toMatchObject({ observer: neuquen, error: 'Open-Meteo forecast: HTTP 503', snapshot: null });

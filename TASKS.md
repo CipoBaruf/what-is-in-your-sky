@@ -373,7 +373,8 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - Times, dates and numbers render through `Intl` in the active language and the observer's zone in both languages (unit test over the golden pass).
     - `npm test`, `npm run lint`, `npx tsc -b`, `npm run e2e` green; main chunk within the v1 budget; 390 px captures of every screen in both languages.
 
-- [ ] **R18 — 72 h night-outer search and hidden objects in the worker**
+- [x] **R18 — 72 h night-outer search and hidden objects in the worker**
+  - **Done 2026-09-04:** as specified. Differences: the nights are derived from the request `window` in `worker/nights.ts` (the request still carries one window, §6.2) and each night searches 30 min past its own edges, keeping only the passes whose start it claims, so a pass on a boundary is found whole and emitted once — pinned by a test that the three nights together emit exactly what one search over the whole 72 h window finds (D-95). `includeHidden` adds `NowState.hidden` rather than widening `items`, which has always held every loaded object; its rule is "above the horizon and not worth looking for", magnitude limit included, because the live page's visible objects come from the magnitude-filtered `Pass.track` (D-96). An object whose search throws is reported once, not once per night. The §9.1 budgets moved into their own `perf` project so they stop measuring each other (D-96): 31 objects × 72 h in **1922 ms** (budget 4500), night 1 in **623 ms** (the MVP's 1500), and the MVP 24 h figure improved from ~1.0 s to **580 ms**. Worker chunk 34.5 KB gzipped against 120.
   - **Lane:** physics
   - **Model:** opus
   - **Gate:** auto

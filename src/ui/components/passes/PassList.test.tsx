@@ -81,7 +81,7 @@ describe('<PassList>', () => {
   it('renders cards as passes stream in, chronologically, with progress in the status line; the featured pass moves to the hero card (R12)', () => {
     set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'computing', observer, total: 31 } });
     render(<PassList />);
-    expect(screen.getByRole('status')).toHaveTextContent('Computing passes… 0 of 31 objects, 0 visible so far');
+    expect(screen.getByRole('status')).toHaveTextContent('Computing passes… 0 of 31, 0 visible so far');
     expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByRole('list')).toBeNull();
 
@@ -90,7 +90,7 @@ describe('<PassList>', () => {
       appStore.getState().setProgress('job-1', 1, 31);
     });
     expect(within(screen.getByRole('list')).getAllByRole('listitem')).toHaveLength(1);
-    expect(screen.getByRole('status')).toHaveTextContent('1 of 31 objects, 1 visible so far');
+    expect(screen.getByRole('status')).toHaveTextContent('1 of 31, 1 visible so far');
 
     expect(screen.queryByTestId('iss-hero')).toBeNull(); // a non-featured object gets no hero card
 

@@ -48,4 +48,11 @@ export interface NowState {
   sunAltDeg: number;
   sky: SkyState;
   items: NowItem[];
+  /**
+   * v1, FR-LIVE-6 (D-76): everything above the horizon at `t` that the app
+   * would not tell you to look for — too low, in shadow, in daylight or too
+   * faint. Present only when `computeNow` asked for it (`includeHidden`), so
+   * an MVP response is unchanged. Each item carries its own reason fields.
+   */
+  hidden?: NowItem[];
 }

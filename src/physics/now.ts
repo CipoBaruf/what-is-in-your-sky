@@ -94,13 +94,52 @@ export function nowItem(object: NowObject, observer: Observer, t: EpochMs, thres
   return end ? { ...item, visibleUntil: end.visibleUntil, endReason: end.endReason } : item;
 }
 
+/**
+ * FR-LIVE-6's dimmed set: above the true horizon at `t`, but not something the
+ * app would tell you to look for *now*. The magnitude limit is applied here and
+ * not by `visibilityAt` because a lit object in a dark sky at 40° that is
+ * fainter than `magLimit` produces no pass, so nothing else would draw it. The
+ * reason itself is read off the item: `aboveMinElevation` false is too low,
+ * `lit` false is Earth's shadow, `NowState.sky` other than `dark` is daylight,
+ * and a `magnitude` past the limit is too faint.
+ *
+ * It is **not** the complement of what the live page draws from `Pass.track`,
+ * and it is not meant to be (D-102). This is an instant; a pass is a whole
+ * arc, kept or dropped on its *peak* magnitude. An object therefore ends up in
+ * both sets while it dims past the limit on its way down — measured over the
+ * R1 golden day at Neuquén, 2 of 49 visible object-minutes, both in the last
+ * seconds of a pass: `SL-16 R/B (Cosmos 2369)` at 10.9° and magnitude 4.64,
+ * 593 s into a 605 s pass, and `SL-16 R/B (Cosmos 2406)` at 12.8° and 4.73,
+ * 206 s of 237 s. Both facts are true there — the pass was worth watching and
+ * the object is too dim to see right now — so the live page owns the overlap:
+ * it draws its passes first and dims only what it has not already drawn.
+ */
+export function isHidden(item: NowItem, thresholds: VisibilityThresholds): boolean {
+  if (item.elDeg <= 0) return false;
+  if (!item.visible) return true;
+  return item.magnitude === null || item.magnitude > thresholds.magLimit;
+}
+
+export interface NowOptions {
+  /** FR-LIVE-6 (D-76): also return `hidden`. Off by default, so an MVP response is unchanged. */
+  includeHidden?: boolean;
+}
+
 /** Every object at `t`, in the order given; objects whose propagation fails are left out. */
-export function nowState(objects: readonly NowObject[], observer: Observer, t: EpochMs, thresholds: VisibilityThresholds): NowState {
+export function nowState(
+  objects: readonly NowObject[],
+  observer: Observer,
+  t: EpochMs,
+  thresholds: VisibilityThresholds,
+  options: NowOptions = {},
+): NowState {
   const sunAltDeg = sunAltitudeDeg(observer, t);
   const items: NowItem[] = [];
   for (const object of objects) {
     const item = nowItem(object, observer, t, thresholds);
     if (item) items.push(item);
   }
-  return { t, sunAltDeg, sky: skyState(sunAltDeg, thresholds), items };
+  const state: NowState = { t, sunAltDeg, sky: skyState(sunAltDeg, thresholds), items };
+  if (!options.includeHidden) return state;
+  return { ...state, hidden: items.filter((item) => isHidden(item, thresholds)) };
 }
