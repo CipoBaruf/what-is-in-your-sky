@@ -58,6 +58,12 @@ main {
   main,
   footer {
     max-width: none;
+    /* The `margin: 0 auto` above centres the 80-cell frame in compact. Here
+       there is no frame to centre, and inside D-119's grid an auto margin is
+       not a no-op: it turns off the stretch a grid item gets by default, so
+       the footer shrank to its own text and sat in the middle of the page.
+       Wide is left-aligned like the columns above it. */
+    margin-inline: 0;
   }
 
   /* R23 (D-119). With a pass open the page is a shell exactly one viewport

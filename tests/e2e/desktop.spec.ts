@@ -148,6 +148,23 @@ test('wide: two columns, the guide beside a live list, Escape and the hash (FR-D
   expect(Math.abs(leftNow.height - rightNow.height)).toBeLessThanOrEqual(1);
   expect(leftNow.y + leftNow.height).toBeLessThanOrEqual(WIDE.height + 1);
 
+  // D-120: the footer is one row, left-aligned with the columns above it (an
+  // auto margin inside the shell's grid had it shrink to its text and centre),
+  // and it still names and links every source it is used under.
+  const footer = page.getByRole('contentinfo');
+  await expect(footer).toHaveAttribute('data-form', 'short');
+  expect(await footer.locator('p').count()).toBe(1);
+  // The line itself, not the footer's border box: both carry the same two
+  // cells of side padding, and it is the text that has to line up.
+  const [footerLine, leftBox2] = await Promise.all([footer.locator('p').boundingBox(), page.getByTestId('col-left').boundingBox()]);
+  if (!footerLine || !leftBox2) throw new Error('the footer is not laid out');
+  expect(Math.abs(footerLine.x - leftBox2.x)).toBeLessThanOrEqual(1);
+  for (const name of ['CelesTrak', 'Open-Meteo.com', 'GeoNames']) {
+    await expect(footer.getByRole('link', { name })).toBeVisible();
+  }
+  await expect(footer).toContainText('CC BY 4.0');
+  await expect(footer.getByRole('link', { name: 'Ezequiel Baruf' })).toHaveAttribute('href', 'https://github.com/CipoBaruf');
+
   // The guide's body scrolls itself, and its head stays where it is while it does.
   const body = panel.getByTestId('guide-body');
   // It opens at the top and its first line is whole: nothing inside may start

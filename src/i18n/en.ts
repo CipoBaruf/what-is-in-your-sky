@@ -297,5 +297,14 @@ export const en = {
     openMeteo: { before: 'Weather data by ', link: 'Open-Meteo.com', after: ' (CC BY 4.0).' } satisfies LinkedText,
     geonames: { before: 'Place search by Open-Meteo geocoding, with data from ', link: 'GeoNames', after: ' (CC BY 4.0).' } satisfies LinkedText,
     privacy: 'No analytics, no tracking: your location is saved in this browser only.',
+    credit: { before: 'Built by ', link: 'Ezequiel Baruf', after: '.' } satisfies LinkedText,
+    /* R23 (D-120): the wide footer says the same in one row. The provider
+       names carry the credit on their own, the licence is still named, and
+       the privacy note keeps its subject. */
+    short: {
+      sources: 'Data:',
+      licence: '(CC BY 4.0)',
+      privacy: 'No tracking',
+    },
   },
 };
