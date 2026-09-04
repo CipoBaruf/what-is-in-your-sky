@@ -19,7 +19,7 @@ Both themes when the task touches colour (FR-THEME-*): capture dark and night. B
 
 ## Procedure
 
-1. Build and serve the production bundle so the strict CSP applies: `npm run build && npx vite preview --port 4173` (background).
+1. Build and serve the production bundle so the strict CSP applies: `npm run build && npx vite preview --port ${E2E_PORT:-4173}` (background). A driver session has `E2E_PORT` set (PLAN §16.4, D-132) because another task may be serving 4173 from its own worktree at the same time; use the same port in every URL below.
 2. Write or extend a Playwright script under `tests/e2e/` that reaches the state (typed coordinates, fixture elements through MSW or the recorded fixtures, a chosen pass) and calls `page.screenshot({ path: 'test-results/<task>-<screen>-<width>.png', fullPage })`. Reuse `tests/e2e/identity.spec.ts`'s helpers where they fit.
 3. Run it: `npx playwright test <spec> --project=chromium`.
 4. Look at every capture (Read the PNG). Check against the acceptance criteria and the mockup: alignment to the cell grid, no clipped labels, no horizontal scroll, contrast, both languages complete (no English leaking into Spanish).
