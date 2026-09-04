@@ -297,6 +297,10 @@ export const en = {
     /** The label beside a pass's rise marker: the object's name (never translated) and its rise time. */
     passLabel: (p: { name: string; time: string }) => `${p.name} ${p.time}`,
     peakLabel: (degrees: string) => `max ${degrees}`,
+    /** FR-DOME-6: the label beside the Sun's glow on the horizon. */
+    sunLabel: 'Sun',
+    /** FR-DOME-6: the label beside the Moon's marker; the glyph is its phase and carries no words. */
+    moonLabel: (glyph: string) => `${glyph} Moon`,
     domeGroup: 'Sky dome',
     domeHint: 'Drag the dome, or use the arrow keys, to look around.',
     /** FR-GUIDE-4: where the dome's camera faces, e.g. "Facing SSW (203°) · tilt 25°". */

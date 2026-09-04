@@ -263,6 +263,8 @@ export const es: Messages = {
     } satisfies Record<ChartOrientation, string>,
     passLabel: (p) => `${p.name} ${p.time}`,
     peakLabel: (degrees) => `máx ${degrees}`,
+    sunLabel: 'Sol',
+    moonLabel: (glyph) => `${glyph} Luna`,
     domeGroup: 'Domo celeste',
     domeHint: 'Arrastrar el domo, o usar las flechas del teclado, para mirar alrededor.',
     readout: (p) => `Hacia ${p.point} (${p.azimuth}) · inclinación ${p.tilt}`,

@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
-import type { ChartView, EpochMs, Observer, Pass } from '../../../../model';
+import type { SunState } from '../../../../lib/skyBodies';
+import type { ChartView, EpochMs, MoonState, Observer, Pass } from '../../../../model';
 
 /**
  * PLAN §8.1 (R13): the one props interface both sky chart views implement.
@@ -14,8 +15,17 @@ export interface SkyChartProps {
   /** Emphasised arc + peak; others drawn dim. */
   highlightedPassId: string | null;
   onSelectPass?: (passId: string) => void;
-  /** Optional: marks the satellite's current position on its arc. */
+  /** Optional: marks the satellite's current position on its arc, and is the instant the Sun and Moon are drawn at (FR-DOME-5, FR-DOME-6). */
   now?: EpochMs;
+  /**
+   * FR-DOME-6, PLAN §8.8: where the Sun and the Moon are at `now`. Omitted,
+   * `SkyChart` evaluates them itself from `observer` and `now` (`useSkyBodies`,
+   * which loads `lib/skyBodies.ts` on demand). The live page supplies them so
+   * it can hold the FR-LIVE-5 budget of one evaluation per second of wall time
+   * across playback. `null` means "known to be nothing to draw".
+   */
+  sun?: SunState | null;
+  moon?: MoonState | null;
   /** Default: the highlighted pass's start azimuth (D-17). The polar view has no facing; the dome (R15) uses it. */
   initialFacingAzDeg?: number;
   className?: string;
