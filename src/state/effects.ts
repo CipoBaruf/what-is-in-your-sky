@@ -1,4 +1,5 @@
-import type { CatalogEntry, EpochMs, Observer, SatelliteRecord, WeatherSnapshot } from '../model';
+import type { CatalogEntry, EpochMs, Observer, Pass, PassRun, SatelliteRecord, TimeWindow, WeatherSnapshot } from '../model';
+import type { FinishedRun } from '../data/passesCache';
 import { DEFAULT_THRESHOLDS } from '../physics/constants';
 import { searchWindow } from './passWindow';
 import { sameLocation } from './slices/location';
@@ -25,6 +26,14 @@ import type { WorkerClient } from './workerClient';
  * (verdicts read `unknown`); a snapshot fills `Observer.timeZone` when the
  * observer had none (D-3), which replaces the observer object but is not a
  * location change (`sameLocation`), so nothing is recomputed.
+ *
+ * R24 puts the stored run in front of the network (FR-OFF-2, FR-OFF-5, PLAN
+ * §7.5): an observer change first asks `passesCache` what was stored for that
+ * cell and, if there is anything, renders it as a finished list; only then are
+ * the forecast and the elements requested. Every job that finishes uncancelled
+ * is written back, so storage needs no user action. A start-up with a location
+ * already restored from the prefs takes the same path, which is what makes the
+ * order prefs → stored run → render → network.
  *
  * R11 adds the elements re-check (PLAN §7.1): every ELEMENTS_RECHECK_MS while
  * the tab is visible the loader is asked again; the 2 h rule lives in the
@@ -56,6 +65,10 @@ export interface EffectDeps {
   loadElements: (catalog: readonly CatalogEntry[], options: { signal: AbortSignal }) => Promise<LoadedElements>;
   /** The cached cloud forecast for a location (PLAN §7.3, `data/weatherCache.ts`). */
   loadWeather: (lat: number, lon: number) => Promise<WeatherSnapshot>;
+  /** The stored run for this observer's cell, expired or not (R24, `data/passesCache.ts`). */
+  loadStoredRun: (observer: Observer) => Promise<PassRun | null>;
+  /** Stores a finished job and prunes the older runs (FR-OFF-5). */
+  saveRun: (run: FinishedRun) => Promise<PassRun | null>;
   /** Wall clock for the "Now" requests and the re-check cadence; the only place the effects read time. */
   now: () => EpochMs;
   visibility: VisibilitySource;
@@ -85,7 +98,7 @@ export const ALWAYS_VISIBLE: VisibilitySource = { hidden: () => false, subscribe
 const message = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 /** Wires the effects; returns a function that stops them (aborts the load, cancels the job, stops the timers). */
-export function startEffects({ store, client, catalog, loadElements, loadWeather, now, visibility }: EffectDeps): () => void {
+export function startEffects({ store, client, catalog, loadElements, loadWeather, loadStoredRun, saveRun, now, visibility }: EffectDeps): () => void {
   const controller = new AbortController();
   let generation = 0;
   /** The latest set the loader gave us, or null until the first load succeeds. */
@@ -186,8 +199,28 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
     );
   };
 
+  // --- Stored passes (R24) --------------------------------------------------------
+  /** What was stored for this observer, on screen before anything is requested (FR-OFF-2). Never throws: nothing stored is not a failure. */
+  const showStoredRun = async (observer: Observer, stale: () => boolean): Promise<void> => {
+    const run = await loadStoredRun(observer);
+    if (run && !stale()) store.getState().showStoredPasses(run);
+  };
+
+  /** The oldest element set behind a finished run: what the FR-SAT-4 banner quotes offline, when there is no loader answer to read. */
+  const oldestElementsEpoch = (passes: Pass[]): EpochMs => {
+    const epochs = current && current.records.length > 0 ? current.records.map((record) => record.epochMs) : passes.map((pass) => pass.elementsEpochMs);
+    return epochs.length > 0 ? Math.min(...epochs) : now();
+  };
+
+  /** FR-OFF-5: every job that finishes uncancelled is stored, with no user action. */
+  const storeRun = (jobId: string, observer: Observer, window: TimeWindow): void => {
+    const { passes } = store.getState();
+    if (passes.jobId !== jobId) return; // a newer job already owns the slice; its own `jobDone` will store it
+    void saveRun({ observer, window, oldestElementsEpochMs: oldestElementsEpoch(passes.passes), passes: passes.passes });
+  };
+
   // --- Pass job -----------------------------------------------------------------
-  /** Elements (loaded, in the worker) → `computePasses` for `observer` over the 24 h from `windowStart` → the Now tick. */
+  /** Elements (loaded, in the worker) → `computePasses` for `observer` over the 72 h from `windowStart` → the Now tick. */
   const computeFor = async (observer: Observer, windowStart: EpochMs, stale: () => boolean): Promise<void> => {
     const records = await ensureElements();
     if (stale() || !records) return;
@@ -210,6 +243,7 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
       },
       onDone: (result) => {
         store.getState().finishJob(jobId, result);
+        if (!result.cancelled) storeRun(jobId, observer, window);
       },
       onError: (code, message, terminal) => {
         if (terminal) store.getState().failJob(jobId, `${code}: ${message}`);
@@ -242,6 +276,10 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
       store.getState().resetWeather();
       return;
     }
+    // FR-OFF-2, PLAN §7.5: prefs → stored run → render → network. Nothing is requested until whatever
+    // is stored for this location is on screen, so a cold start with no network shows the last three nights.
+    await showStoredRun(observer, stale);
+    if (stale()) return;
     requestWeather(observer, stale);
     await computeFor(observer, nowMs, stale);
   };
@@ -310,7 +348,10 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
     if (state.nowMs !== previous.nowMs || !sameLocation(state.observer, previous.observer)) void onObserverChange();
   });
   lastCheckAt = now();
-  void ensureElements(); // prefetch while the user types (R3 behaviour)
+  // R24: with a location already restored from the prefs, the start-up chain runs for it — stored run first, then
+  // the network. With no location there is nothing stored to show, so the elements are prefetched while the user types (R3).
+  if (store.getState().observer) void onObserverChange();
+  else void ensureElements();
   startRecheck();
 
   return () => {
