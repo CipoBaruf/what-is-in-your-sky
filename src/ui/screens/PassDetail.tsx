@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
-import { TWILIGHT_LABEL } from '../../lib/phrases';
+import { useLocale, useT } from '../../i18n/useT';
 import { formatDate } from '../../lib/timeFormat';
 import type { Observer, Pass } from '../../model';
 import { Countdown } from '../components/common/Countdown';
@@ -29,6 +29,8 @@ export interface PassDetailProps {
 export const TICK_MS = 1000;
 
 export function PassDetail({ pass, observer, onClose }: PassDetailProps) {
+  const t = useT();
+  const locale = useLocale();
   const timeZone = observer.timeZone;
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -70,14 +72,14 @@ export function PassDetail({ pass, observer, onClose }: PassDetailProps) {
     <div role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.sheet} data-pass-id={pass.id}>
       <div className={styles.frame}>
         <button type="button" className={styles.close} onClick={onClose}>
-          ← Back to the list
+          {t.guide.back}
         </button>
         <h2 id={headingId} ref={headingRef} tabIndex={-1} className={styles.heading}>
           {pass.name}
         </h2>
         <p className={styles.meta}>
-          {formatDate(pass.start.t, timeZone)}
-          {pass.twilight && <span className={styles.twilight}>{TWILIGHT_LABEL}</span>}
+          {formatDate(pass.start.t, timeZone, locale)}
+          {pass.twilight && <span className={styles.twilight}>{t.passes.twilightLabel}</span>}
         </p>
         <Countdown pass={pass} now={now} timeZone={timeZone} />
         <SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} now={now} />

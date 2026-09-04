@@ -1,8 +1,9 @@
 import { useId } from 'react';
+import { useLocale, useT } from '../../../i18n/useT';
 import { cloudVerdict } from '../../../lib/cloudVerdict';
 import { compassPoint } from '../../../lib/compass';
 import { degrees, formatDuration, formatMagnitude } from '../../../lib/format';
-import { TWILIGHT_LABEL, brightnessPhrase } from '../../../lib/phrases';
+import { brightnessBand } from '../../../lib/phrases';
 import { formatClock, formatDate } from '../../../lib/timeFormat';
 import type { Pass, WeatherSnapshot } from '../../../model';
 import { CloudBadge } from '../weather/CloudBadge';
@@ -29,33 +30,29 @@ export interface PassCardProps {
 }
 
 export function PassFields({ pass, timeZone, weather }: Omit<PassCardProps, 'onOpen'>) {
+  const t = useT();
+  const locale = useLocale();
   return (
     <dl className={styles.fields}>
-      <dt>Start</dt>
-      <dd>
-        {formatDate(pass.start.t, timeZone)} {formatClock(pass.start.t, timeZone)}
-      </dd>
-      <dt>Max elevation</dt>
+      <dt>{t.passes.fields.start}</dt>
+      <dd>{t.passes.stamp({ date: formatDate(pass.start.t, timeZone, locale), time: formatClock(pass.start.t, timeZone, locale) })}</dd>
+      <dt>{t.passes.fields.maxElevation}</dt>
       <dd>{degrees(pass.peak.elDeg)}</dd>
-      <dt>Peak direction</dt>
-      <dd>
-        {compassPoint(pass.peak.azDeg)} ({degrees(pass.peak.azDeg)})
-      </dd>
-      <dt>Duration</dt>
+      <dt>{t.passes.fields.peakDirection}</dt>
+      <dd>{t.passes.direction({ point: compassPoint(pass.peak.azDeg), degrees: degrees(pass.peak.azDeg) })}</dd>
+      <dt>{t.passes.fields.duration}</dt>
       <dd>{formatDuration(pass.durationS)}</dd>
-      <dt>Magnitude</dt>
-      <dd>
-        {formatMagnitude(pass.peakMagnitude)}, {brightnessPhrase(pass.peakMagnitude)}
-      </dd>
+      <dt>{t.passes.fields.magnitude}</dt>
+      <dd>{t.passes.magnitudeWithBand({ magnitude: formatMagnitude(pass.peakMagnitude, locale), band: brightnessBand(pass.peakMagnitude) })}</dd>
       {weather !== undefined && (
         <>
-          <dt>Clouds</dt>
+          <dt>{t.passes.fields.clouds}</dt>
           <dd>
             <CloudBadge
               verdict={cloudVerdict(weather, pass.peak.t)}
               forecast={weather ? { provider: weather.provider, fetchedAt: weather.fetchedAt } : null}
               timeZone={timeZone}
-              moment="at the pass peak"
+              moment={t.weather.momentPeak}
             />
           </dd>
         </>
@@ -66,6 +63,7 @@ export function PassFields({ pass, timeZone, weather }: Omit<PassCardProps, 'onO
 
 /** The accessible control ("Open guide → <name>"); its `::after` stretches the hit area over the positioned parent. */
 export function OpenGuide({ pass, headingId, onOpen }: { pass: Pass; headingId: string; onOpen: (passId: string) => void }) {
+  const t = useT();
   const openId = useId();
   return (
     <button
@@ -77,19 +75,20 @@ export function OpenGuide({ pass, headingId, onOpen }: { pass: Pass; headingId: 
         onOpen(pass.id);
       }}
     >
-      Open guide →
+      {t.passes.openGuide}
     </button>
   );
 }
 
 export function PassCard({ pass, timeZone, onOpen, weather }: PassCardProps) {
+  const t = useT();
   const headingId = useId();
   return (
     <article className={styles.card} aria-labelledby={headingId} data-pass-id={pass.id}>
       <h2 id={headingId} className={styles.name}>
         {pass.name}
       </h2>
-      {pass.twilight && <p className={styles.twilight}>{TWILIGHT_LABEL}</p>}
+      {pass.twilight && <p className={styles.twilight}>{t.passes.twilightLabel}</p>}
       <PassFields pass={pass} timeZone={timeZone} {...(weather !== undefined ? { weather } : {})} />
       {onOpen && <OpenGuide pass={pass} headingId={headingId} onOpen={onOpen} />}
     </article>

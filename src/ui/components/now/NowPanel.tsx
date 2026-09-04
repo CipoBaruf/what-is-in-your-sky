@@ -1,8 +1,10 @@
 import { useId } from 'react';
+import type { Messages } from '../../../i18n/messages';
+import { useLocale, useT } from '../../../i18n/useT';
 import { cloudVerdict } from '../../../lib/cloudVerdict';
 import { compassPoint } from '../../../lib/compass';
 import { formatClock, formatCountdown } from '../../../lib/timeFormat';
-import type { NowItem, NowState, Observer, PassBoundaryReason } from '../../../model';
+import type { NowItem, NowState, Observer } from '../../../model';
 import { DEFAULT_THRESHOLDS, useAppStore, type NowSliceState } from '../../../state';
 import { SectionHeading } from '../common/SectionHeading';
 import { CloudBadge } from '../weather/CloudBadge';
@@ -20,15 +22,9 @@ import styles from './NowPanel.module.css';
 export const degrees = (n: number): string => `${String(Math.round(n))}°`;
 
 /** "sets in 3:12" / "enters Earth's shadow in 1:05" / "fades into the brightening sky in 0:40". */
-export function remainingText(item: NowItem, t: number): string {
-  if (item.visibleUntil === undefined) return 'visible for a while yet';
-  const countdown = formatCountdown(item.visibleUntil - t);
-  const verb: Record<PassBoundaryReason, string> = {
-    horizon: 'sets in',
-    shadow: "enters Earth's shadow in",
-    twilight: 'fades into the brightening sky in',
-  };
-  return `${verb[item.endReason ?? 'horizon']} ${countdown}`;
+export function remainingText(item: NowItem, now: number, t: Messages): string {
+  if (item.visibleUntil === undefined) return t.now.remainingUnknown;
+  return t.now.remaining({ reason: item.endReason ?? 'horizon', countdown: formatCountdown(item.visibleUntil - now) });
 }
 
 export type NowSummary =
@@ -55,51 +51,44 @@ export function summarise(observer: Observer | null, now: NowSliceState, hasDark
   return { kind: 'all-in-shadow', count: up.length };
 }
 
-export function summaryText(summary: NowSummary): string {
+export function summaryText(summary: NowSummary, t: Messages): string {
   switch (summary.kind) {
     case 'no-observer':
-      return 'Enter a place name or coordinates to see what is overhead right now.';
+      return t.now.noObserver;
     case 'checking':
-      return 'Checking the sky…';
+      return t.now.checking;
     case 'error':
-      return `Could not check the sky: ${summary.message}`;
+      return t.now.error(summary.message);
     case 'visible':
-      return summary.items.length === 1 ? '1 satellite visible right now' : `${String(summary.items.length)} satellites visible right now`;
+      return t.now.visible(summary.items.length);
     case 'no-darkness':
-      return 'No darkness tonight at this latitude: the sun never gets low enough for satellites to be seen.';
+      return t.now.noDarkness;
     case 'daylight':
-      return `Daylight: the sun is ${formatSunAlt(summary.sunAltDeg)}. Satellites are not visible until the sky is dark.`;
+      return t.now.daylight({ sunDegrees: degrees(Math.abs(summary.sunAltDeg)), above: summary.sunAltDeg >= 0 });
     case 'nothing-up':
-      return `Nothing visible right now: no catalog satellite is above ${degrees(summary.minElevationDeg)}.`;
+      return t.now.nothingUp(degrees(summary.minElevationDeg));
     case 'all-in-shadow':
-      return summary.count === 1
-        ? "Nothing visible right now: 1 satellite is up but in Earth's shadow."
-        : `Nothing visible right now: ${String(summary.count)} satellites are up but all in Earth's shadow.`;
+      return t.now.allInShadow(summary.count);
   }
 }
 
-/** "12° above the horizon" / "3° below the horizon". */
-function formatSunAlt(sunAltDeg: number): string {
-  const n = Math.round(Math.abs(sunAltDeg));
-  return `${String(n)}° ${sunAltDeg >= 0 ? 'above' : 'below'} the horizon`;
-}
-
-function VisibleItem({ item, t }: { item: NowItem; t: number }) {
+function VisibleItem({ item, now }: { item: NowItem; now: number }) {
+  const t = useT();
   return (
     <li>
       <span className={styles.name}>{item.name}</span>
       <div className={styles.where}>
-        <span>
-          {compassPoint(item.azDeg)} {degrees(item.azDeg)}
-        </span>
-        <span>{degrees(item.elDeg)} up</span>
-        <span className={styles.remaining}>{remainingText(item, t)}</span>
+        <span>{t.guide.azimuth({ point: compassPoint(item.azDeg), degrees: degrees(item.azDeg) })}</span>
+        <span>{t.now.elevation(degrees(item.elDeg))}</span>
+        <span className={styles.remaining}>{remainingText(item, now, t)}</span>
       </div>
     </li>
   );
 }
 
 export function NowPanel() {
+  const t = useT();
+  const locale = useLocale();
   const observer = useAppStore((s) => s.observer);
   const now = useAppStore((s) => s.now);
   const passes = useAppStore((s) => s.passes);
@@ -111,29 +100,29 @@ export function NowPanel() {
   const state: NowState | null = observer && now.observer === observer ? now.state : null;
   return (
     <section aria-labelledby={headingId} className={styles.section}>
-      <SectionHeading id={headingId}>Right now</SectionHeading>
+      <SectionHeading id={headingId}>{t.now.heading}</SectionHeading>
       <p role="status" aria-live="polite" className={styles.status}>
-        {summaryText(summary)}
+        {summaryText(summary, t)}
       </p>
       {summary.kind === 'visible' && state && (
         <ul className={styles.list}>
           {summary.items.map((item) => (
-            <VisibleItem key={item.noradId} item={item} t={state.t} />
+            <VisibleItem key={item.noradId} item={item} now={state.t} />
           ))}
         </ul>
       )}
       {state && observer && (
         <p className={styles.cloud}>
-          Clouds now:{' '}
+          {t.now.clouds}{' '}
           <CloudBadge
             verdict={cloudVerdict(snapshot, state.t)}
             forecast={snapshot ? { provider: snapshot.provider, fetchedAt: snapshot.fetchedAt } : null}
             timeZone={observer.timeZone}
-            moment="right now"
+            moment={t.weather.momentNow}
           />
         </p>
       )}
-      {state && observer && <p className={styles.asOf}>as of {formatClock(state.t, observer.timeZone)}</p>}
+      {state && observer && <p className={styles.asOf}>{t.now.asOf(formatClock(state.t, observer.timeZone, locale))}</p>}
     </section>
   );
 }

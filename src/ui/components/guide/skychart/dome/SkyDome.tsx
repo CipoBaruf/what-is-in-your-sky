@@ -1,11 +1,32 @@
 import { GlyphHotspot, GlyphMesh, GlyphOrthographicCamera, GlyphScene } from '@glyphcss/react';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
+import type { Messages } from '../../../../../i18n/messages';
+import { useLocale, useT } from '../../../../../i18n/useT';
 import { degrees } from '../../../../../lib/format';
 import { formatClock } from '../../../../../lib/timeFormat';
-import type { Pass } from '../../../../../model';
+import type { Locale, Pass } from '../../../../../model';
 import { ChartFrame } from '../ChartFrame';
 import type { SkyChartProps } from '../SkyChart.types';
-import { CELL_ASPECT, DEFAULT_ADVANCE, drag, fitLayout, GRID_COLS, GRID_ROWS, initialFor, layoutFor, PITCH_STEP_DEG, readout, tilt, toRotY, turn, YAW_STEP_DEG, type CameraState, type DomeLayout, type GlyphAdvance, type RowMetrics } from './camera';
+import {
+  CELL_ASPECT,
+  DEFAULT_ADVANCE,
+  drag,
+  fitLayout,
+  GRID_COLS,
+  GRID_ROWS,
+  initialFor,
+  layoutFor,
+  PITCH_STEP_DEG,
+  readoutParams,
+  tilt,
+  toRotY,
+  turn,
+  YAW_STEP_DEG,
+  type CameraState,
+  type DomeLayout,
+  type GlyphAdvance,
+  type RowMetrics,
+} from './camera';
 import { compassAnchors, gridPolygons, nowMarker, nowPoint, passAnchors, passMarkers, passStrip, screenSide, type Tuple3 } from './domeGeometry';
 import styles from './SkyDome.module.css';
 
@@ -102,9 +123,11 @@ interface DomePassProps {
   now: number | undefined;
   rotY: number;
   onSelect: ((passId: string) => void) | undefined;
+  t: Messages;
+  locale: Locale;
 }
 
-function DomePass({ pass, highlighted, timeZone, now, rotY, onSelect }: DomePassProps) {
+function DomePass({ pass, highlighted, timeZone, now, rotY, onSelect, t, locale }: DomePassProps) {
   const strip = useMemo(() => passStrip(pass, { highlighted }), [pass, highlighted]);
   const markers = useMemo(() => passMarkers(pass), [pass]);
   const current = nowPoint(pass, now);
@@ -119,13 +142,11 @@ function DomePass({ pass, highlighted, timeZone, now, rotY, onSelect }: DomePass
       {marker.length > 0 && <GlyphMesh id={`now-${pass.id}`} polygons={marker} />}
       <GlyphHotspot id={anchors.rise.id} at={anchors.rise.at} size={[1, 1]} onClick={select}>
         <span className={[styles.label, styles.raised, labelClass].join(' ')} data-side={sideOf(anchors.rise.at, rotY)} data-pass-id={pass.id} onClick={select}>
-          <span data-anchor="pass">
-            {pass.name} {formatClock(pass.start.t, timeZone)}
-          </span>
+          <span data-anchor="pass">{t.chart.passLabel({ name: pass.name, time: formatClock(pass.start.t, timeZone, locale) })}</span>
         </span>
       </GlyphHotspot>
       <Label anchor={anchors.peak} rotY={rotY} className={labelClass} dataAnchor="peak">
-        {`max ${degrees(pass.peak.elDeg)}`}
+        {t.chart.peakLabel(degrees(pass.peak.elDeg))}
       </Label>
       <Label anchor={anchors.end} rotY={rotY} className={labelClass}>
         →
@@ -135,6 +156,8 @@ function DomePass({ pass, highlighted, timeZone, now, rotY, onSelect }: DomePass
 }
 
 export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now, initialFacingAzDeg, className }: SkyChartProps) {
+  const t = useT();
+  const locale = useLocale();
   const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
   const [camera, setCamera] = useState<CameraState>(() => initialFor(highlighted, initialFacingAzDeg));
   const [layout, setLayout] = useState<DomeLayout>(() => layoutFor(null));
@@ -246,16 +269,16 @@ export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now
   return (
     <div className={[styles.dome, className].filter(Boolean).join(' ')} data-facing-az={Math.round(camera.facingAzDeg)} data-tilt={Math.round(camera.tiltDeg)}>
       <ChartFrame
-        controls={<p className={styles.hint}>Drag the dome, or use the arrow keys, to look around.</p>}
+        controls={<p className={styles.hint}>{t.chart.domeHint}</p>}
         status={
           <p className={styles.readout} id={readoutId} data-testid="dome-readout">
-            {readout(camera)}
+            {t.chart.readout(readoutParams(camera))}
           </p>
         }
       >
         <div
           role="group"
-          aria-label="Sky dome"
+          aria-label={t.chart.domeGroup}
           aria-describedby={readoutId}
           tabIndex={0}
           className={styles.stage}
@@ -277,7 +300,17 @@ export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now
                 <GlyphScene mode="wireframe" useColors={false} glyphPalette="ascii" charMode="braille" cellAspect={CELL_ASPECT} cols={GRID_COLS} rows={GRID_ROWS}>
                   <GlyphMesh id="grid" polygons={gridMesh} />
                   {passes.map((pass) => (
-                    <DomePass key={pass.id} pass={pass} highlighted={highlightedPassId === null || highlightedPassId === pass.id} timeZone={observer.timeZone} now={now} rotY={rotY} onSelect={onSelectPass} />
+                    <DomePass
+                      key={pass.id}
+                      pass={pass}
+                      highlighted={highlightedPassId === null || highlightedPassId === pass.id}
+                      timeZone={observer.timeZone}
+                      now={now}
+                      rotY={rotY}
+                      onSelect={onSelectPass}
+                      t={t}
+                      locale={locale}
+                    />
                   ))}
                   {compass.map((anchor) => (
                     <Label key={anchor.id} anchor={anchor} rotY={rotY} className={styles.compass} dataAnchor={anchor.label}>

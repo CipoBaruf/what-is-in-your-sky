@@ -1,6 +1,7 @@
 import { useId } from 'react';
+import type { Messages } from '../../../i18n/messages';
+import { useT } from '../../../i18n/useT';
 import { formatClockDuration } from '../../../lib/format';
-import { TWILIGHT_LABEL } from '../../../lib/phrases';
 import type { EpochMs, Pass, WeatherSnapshot } from '../../../model';
 import { countdownState } from '../common/Countdown';
 import { useNow } from '../../hooks/useNow';
@@ -16,16 +17,15 @@ import styles from './IssHeroCard.module.css';
  */
 export const HERO_TICK_MS = 1000;
 
-/** "Next ISS pass" for the station, "Next <name> pass" for any other featured object. */
-export function heroKicker(pass: Pass): string {
-  return pass.name.startsWith('ISS') ? 'Next ISS pass' : `Next ${pass.name} pass`;
+/** "Next ISS pass" for the station, "Next <name> pass" for any other featured object; the name itself is never translated (FR-I18N-6). */
+export function heroKicker(pass: Pass, t: Messages): string {
+  return t.passes.heroKicker({ name: pass.name, iss: pass.name.startsWith('ISS') });
 }
 
 /** "Appears in 12:34" / "Peak in 0:40" / "Sets in 1:02" / "Ended 3:00 ago". */
-export function heroCountdown(pass: Pass, now: EpochMs): string {
+export function heroCountdown(pass: Pass, now: EpochMs, t: Messages): string {
   const state = countdownState(pass, now);
-  const clock = formatClockDuration(state.seconds);
-  return state.phase === 'over' ? `Ended ${clock} ago` : `${state.label} ${clock}`;
+  return t.countdown.headline({ phase: state.phase, reason: state.reason, clock: formatClockDuration(state.seconds) });
 }
 
 export interface IssHeroCardProps {
@@ -38,20 +38,21 @@ export interface IssHeroCardProps {
 }
 
 export function IssHeroCard({ pass, timeZone, onOpen, weather, now: nowProp }: IssHeroCardProps) {
+  const t = useT();
   const headingId = useId();
   const clock = useNow(HERO_TICK_MS);
   const now = nowProp ?? clock;
   const state = countdownState(pass, now);
   return (
     <article className={styles.hero} aria-labelledby={headingId} data-pass-id={pass.id} data-testid="iss-hero">
-      <p className={styles.kicker}>{heroKicker(pass)}</p>
+      <p className={styles.kicker}>{heroKicker(pass, t)}</p>
       <h2 id={headingId} className={styles.name}>
         {pass.name}
       </h2>
       <p role="timer" aria-live="off" className={styles.countdown} data-phase={state.phase}>
-        {heroCountdown(pass, now)}
+        {heroCountdown(pass, now, t)}
       </p>
-      {pass.twilight && <p className={styles.twilight}>{TWILIGHT_LABEL}</p>}
+      {pass.twilight && <p className={styles.twilight}>{t.passes.twilightLabel}</p>}
       <PassFields pass={pass} timeZone={timeZone} {...(weather !== undefined ? { weather } : {})} />
       {onOpen && <OpenGuide pass={pass} headingId={headingId} onOpen={onOpen} />}
     </article>

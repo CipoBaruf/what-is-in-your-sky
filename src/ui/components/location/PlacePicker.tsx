@@ -1,4 +1,6 @@
 import { useEffect, useId, useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from 'react';
+import type { LinkedText } from '../../../i18n/messages';
+import { useT } from '../../../i18n/useT';
 import { observerFromPlace, placeRegion } from '../../../lib/place';
 import type { Observer, Place } from '../../../model';
 import { coordsLabel } from './CoordsInput';
@@ -38,6 +40,7 @@ type ListState = { kind: 'idle' } | { kind: 'searching'; query: string } | { kin
 const MIN_CHARS = 2;
 
 export function PlacePicker({ search, onObserver, observer, coordsInputId, initialText, inputId: givenId }: PlacePickerProps) {
+  const t = useT();
   const [text, setText] = useState(initialText ?? '');
   const [list, setList] = useState<ListState>({ kind: 'idle' });
   const [open, setOpen] = useState(false);
@@ -160,10 +163,15 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
     }
   };
 
-  const coordsLink = (
-    <a href={`#${coordsInputId}`} onClick={focusCoords}>
-      enter coordinates instead
-    </a>
+  /** A message whose link the language places (FR-I18N-2): "…, or <enter coordinates instead>." */
+  const linked = (text: LinkedText) => (
+    <>
+      {text.before}
+      <a href={`#${coordsInputId}`} onClick={focusCoords}>
+        {text.link}
+      </a>
+      {text.after}
+    </>
   );
 
   const activeId = showList && active >= 0 ? `${listId}-${String(active)}` : undefined;
@@ -171,7 +179,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
 
   return (
     <div className={styles.field}>
-      <label htmlFor={inputId}>Place name</label>
+      <label htmlFor={inputId}>{t.location.placeLabel}</label>
       <input
         id={inputId}
         type="text"
@@ -179,7 +187,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
         inputMode="text"
         autoComplete="off"
         spellCheck={false}
-        placeholder="e.g. Cipolletti"
+        placeholder={t.location.placePlaceholder}
         value={text}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
@@ -190,7 +198,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
         aria-describedby={confirming ? noteId : undefined}
         className={styles.input}
       />
-      <ul id={listId} role="listbox" aria-label="Matching places" className={styles.list} hidden={!showList}>
+      <ul id={listId} role="listbox" aria-label={t.location.placeList} className={styles.list} hidden={!showList}>
         {showList &&
           places.map((place, i) => {
             const region = placeRegion(place);
@@ -218,21 +226,17 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
           })}
       </ul>
       <p role="status" className={styles.status}>
-        {list.kind === 'searching' && `Searching for “${list.query}”…`}
-        {list.kind === 'results' && list.places.length === 0 && (
-          <>
-            No place matches “{list.query}”. Try another spelling, or {coordsLink}.
-          </>
-        )}
+        {list.kind === 'searching' && t.location.searching(list.query)}
+        {list.kind === 'results' && list.places.length === 0 && linked(t.location.noMatch(list.query))}
       </p>
       {list.kind === 'error' && (
         <p role="alert" className={styles.error}>
-          Could not search for places ({list.message}). Try again, or {coordsLink}.
+          {linked(t.location.searchFailed(list.message))}
         </p>
       )}
       {confirming && (
         <p id={noteId} className={styles.note} data-testid="place-confirmation">
-          Using the centre of {confirming.label} ({coordsLabel(confirming.lat, confirming.lon)}).
+          {t.location.placeCentre({ place: confirming.label, coords: coordsLabel(confirming.lat, confirming.lon) })}
         </p>
       )}
     </div>

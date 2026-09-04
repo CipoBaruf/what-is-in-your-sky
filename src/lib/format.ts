@@ -38,6 +38,12 @@ export function formatMagnitude(mag: number, locale: Locale): string {
   return `${rounded < 0 ? '−' : '+'}${digits}`;
 }
 
+/** One decimal, signed with the typographic minus: the sun's altitude at the peak, "+2.4°" / "−12.0°". */
+export function formatSignedDegrees(n: number, locale: Locale): string {
+  const digits = number(Math.abs(n), locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return `${n < 0 ? '−' : '+'}${digits}°`;
+}
+
 /** FR-I18N-4: a list as the language joins one — "A, B and C" in English, "A, B y C" in Spanish. */
 export function formatList(items: readonly string[], locale: Locale): string {
   return new Intl.ListFormat(INTL_LOCALE[locale], { style: 'long', type: 'conjunction' }).format(items);

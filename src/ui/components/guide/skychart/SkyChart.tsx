@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { useT } from '../../../../i18n/useT';
 import { useAppStore } from '../../../../state';
 import { OptionToggle } from '../../common/OptionToggle';
 import { GuideText } from '../GuideText';
@@ -24,10 +25,11 @@ import type { SkyChartProps, SkyChartView } from './SkyChart.types';
 const SkyDome = lazy(() => import('./dome/SkyDome').then((module) => ({ default: module.SkyDome })));
 
 function DomeView(props: SkyChartProps) {
+  const t = useT();
   return (
     <Suspense
       fallback={
-        <ChartFrame status={<p className={styles.loading}>Loading the sky dome…</p>}>
+        <ChartFrame status={<p className={styles.loading}>{t.chart.loadingDome}</p>}>
           <div className={styles.loadingBox} data-testid="dome-loading" />
         </ChartFrame>
       }
@@ -37,7 +39,7 @@ function DomeView(props: SkyChartProps) {
   );
 }
 
-export const DOME_VIEW: SkyChartView = { Component: DomeView, id: 'dome', label: 'Dome' };
+export const DOME_VIEW: SkyChartView = { Component: DomeView, id: 'dome' };
 
 export const SKY_CHART_VIEWS: readonly SkyChartView[] = [POLAR_VIEW, DOME_VIEW];
 
@@ -48,6 +50,7 @@ export function viewFor(id: SkyChartView['id']): SkyChartView {
 }
 
 export function SkyChart(props: SkyChartProps) {
+  const t = useT();
   const chartView = useAppStore((s) => s.chartView);
   const setChartView = useAppStore((s) => s.setChartView);
   const view = viewFor(chartView);
@@ -55,12 +58,12 @@ export function SkyChart(props: SkyChartProps) {
   const captioned = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
   return (
     <figure className={[styles.figure, className].filter(Boolean).join(' ')} data-testid="sky-chart" data-view={view.id}>
-      <figcaption className={styles.caption}>{captioned ? <GuideText pass={captioned} timeZone={observer.timeZone} /> : <p className={styles.empty}>No pass to draw.</p>}</figcaption>
+      <figcaption className={styles.caption}>{captioned ? <GuideText pass={captioned} timeZone={observer.timeZone} /> : <p className={styles.empty}>{t.chart.noPass}</p>}</figcaption>
       {SKY_CHART_VIEWS.length > 1 && (
         <OptionToggle
-          name="Chart view"
-          prefix="View:"
-          options={SKY_CHART_VIEWS.map((candidate) => ({ value: candidate.id, label: candidate.label }))}
+          name={t.chart.viewGroup}
+          prefix={t.chart.viewPrefix}
+          options={SKY_CHART_VIEWS.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))}
           value={view.id}
           onChange={setChartView}
         />

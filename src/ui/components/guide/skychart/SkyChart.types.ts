@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import type { EpochMs, Observer, Pass } from '../../../../model';
+import type { ChartView, EpochMs, Observer, Pass } from '../../../../model';
 
 /**
  * PLAN §8.1 (R13): the one props interface both sky chart views implement.
@@ -21,9 +21,8 @@ export interface SkyChartProps {
   className?: string;
 }
 
-/** Both implementations export this shape; `SkyChart.tsx` is the only file that knows two exist. */
+/** Both implementations export this shape; `SkyChart.tsx` is the only file that knows two exist. The toggle's label is `Messages['chart']['view'][id]` (R17), not a field here. */
 export interface SkyChartView {
   Component: ComponentType<SkyChartProps>;
-  id: 'dome' | 'polar';
-  label: string;
+  id: ChartView;
 }

@@ -1,4 +1,6 @@
 import { useId } from 'react';
+import type { Messages } from '../../../i18n/messages';
+import { useT } from '../../../i18n/useT';
 import { nextFeaturedPass, sortPasses } from '../../../lib/passSort';
 import type { Observer } from '../../../model';
 import { SEARCH_WINDOW_HOURS, isFeatured, useAppStore, type ElementsState, type PassesState } from '../../../state';
@@ -21,25 +23,24 @@ import { SortToggle } from './SortToggle';
  * below), and the sort toggle orders the rest, chronological or best first,
  * with the choice persisted through the store (US-5 AC2).
  */
-export function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState): string {
-  const hours = String(SEARCH_WINDOW_HOURS);
-  if (!observer) return 'Enter a place name or coordinates to see the visible passes.';
-  if (elements.status === 'idle' || elements.status === 'loading') return 'Loading orbital elements from CelesTrak…';
-  if (elements.status === 'error') return `Could not load orbital elements: ${elements.message}`;
-  if (elements.records.length === 0) return 'No catalog objects have orbital elements right now.';
+export function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState, t: Messages): string {
+  const hours = SEARCH_WINDOW_HOURS;
+  if (!observer) return t.passes.noObserver;
+  if (elements.status === 'idle' || elements.status === 'loading') return t.passes.loadingElements;
+  if (elements.status === 'error') return t.passes.elementsError(elements.message);
+  if (elements.records.length === 0) return t.passes.noElements;
+  const place = observer.label;
   switch (passes.status) {
     case 'idle':
-      return 'Computing passes…';
+      return t.passes.computing;
     case 'computing':
-      return `Computing passes… ${String(passes.done)} of ${String(passes.total)} objects, ${String(passes.passes.length)} visible so far`;
+      return t.passes.computingProgress({ done: passes.done, total: passes.total, found: passes.passes.length });
     case 'error':
-      return `Could not compute passes: ${passes.error ?? 'unknown error'}`;
+      return t.passes.passesError(passes.error ?? t.passes.unknownError);
     case 'done':
-      if (passes.passes.length === 0 && passes.hasDarkness === false) {
-        return `No darkness tonight at this latitude: the sun never gets low enough in the next ${hours} h from ${observer.label}.`;
-      }
-      if (passes.passes.length === 0) return `No visible passes in the next ${hours} h from ${observer.label}.`;
-      return `${String(passes.passes.length)} visible passes in the next ${hours} h from ${observer.label}`;
+      if (passes.passes.length === 0 && passes.hasDarkness === false) return t.passes.noDarkness({ hours, place });
+      if (passes.passes.length === 0) return t.passes.none({ hours, place });
+      return t.passes.found({ count: passes.passes.length, hours, place });
   }
 }
 
@@ -52,6 +53,7 @@ export interface PassListProps {
 }
 
 export function PassList({ onOpenPass }: PassListProps) {
+  const t = useT();
   const observer = useAppStore((s) => s.observer);
   const elements = useAppStore((s) => s.elements);
   const passes = useAppStore((s) => s.passes);
@@ -69,9 +71,9 @@ export function PassList({ onOpenPass }: PassListProps) {
   const open = onOpenPass ? { onOpen: onOpenPass } : {};
   return (
     <section aria-labelledby={headingId} className={styles.section}>
-      <SectionHeading id={headingId}>Upcoming passes</SectionHeading>
+      <SectionHeading id={headingId}>{t.passes.heading}</SectionHeading>
       <p role="status" aria-live="polite" aria-busy={busy} className={styles.status}>
-        {statusText(observer, elements, passes)}
+        {statusText(observer, elements, passes, t)}
       </p>
       {showList && hero && <IssHeroCard pass={hero} timeZone={observer.timeZone} weather={snapshot} {...open} />}
       {showList && <SortToggle value={sort} onChange={setSort} />}

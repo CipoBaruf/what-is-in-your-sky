@@ -1,4 +1,5 @@
-import { compassPoint, normalizeAzimuthDeg } from '../../../../../lib/compass';
+import { compassPoint, normalizeAzimuthDeg, type CompassPoint } from '../../../../../lib/compass';
+import { degrees } from '../../../../../lib/format';
 import type { Pass } from '../../../../../model';
 
 /**
@@ -66,9 +67,9 @@ export function drag(state: CameraState, dxPx: number, dyPx: number): CameraStat
   return tilt(turn(state, -dxPx / DRAG_PX_PER_DEG), -dyPx / DRAG_PX_PER_DEG);
 }
 
-/** FR-GUIDE-4: the facing readout, e.g. `Facing SSW (203°) · tilt 25°`. */
-export function readout(state: CameraState): string {
-  return `Facing ${compassPoint(state.facingAzDeg)} (${String(Math.round(state.facingAzDeg))}°) · tilt ${String(Math.round(state.tiltDeg))}°`;
+/** FR-GUIDE-4: what the readout under the dome says, as parameters; `Messages['chart']['readout']` words it (R17, FR-I18N-2). */
+export function readoutParams(state: CameraState): { point: CompassPoint; azimuth: string; tilt: string } {
+  return { point: compassPoint(state.facingAzDeg), azimuth: degrees(state.facingAzDeg), tilt: degrees(state.tiltDeg) };
 }
 
 /**
