@@ -18,14 +18,16 @@ Every candidate is a diff against the spike's defaults, so its query string *is*
 
 | # | Candidate | Query | Captures | Drag rate at 390 px, 6× |
 |---|---|---|---|---|
-| A | mono, one scene (the R15 control) | `?candidate=mono` → `base=0&colors=0&set=mono&tilt=45&pulse=0` | `mono-{golden,high}-{390,1280}.png`, `mono-night-390.png` | **38.4/s** |
-| B | lean: colour, one scene | `?candidate=lean` → `base=0&tilt=40&mer=cardinal&pulse=1` | `lean-*.png` | **35.2/s** |
-| C | layered: PLAN §8.7 in full | `?candidate=layered` → `tilt=45&pulse=1` | `layered-*.png` | **32.8/s** |
-| D | layered with all three fallbacks | `?candidate=layered-coarse` → `tilt=50&baseratio=0.34&tol=128&downscale=2&dropbase=1&pulse=1` | `layered-coarse-*.png` | **34.5/s** |
-| E | ground only, warm set | `?candidate=ground-only` → `bowl=0&set=warm&tilt=35&pulse=1` | `ground-only-*.png` | **33.6/s** |
+| A | mono, one scene (the R15 control) | `?candidate=mono` → `base=0&colors=0&set=mono&tilt=45&pulse=0` | `mono-{golden,high}-{390,1280}.png`, `mono-night-390.png` | ≈ 38–40/s |
+| B | lean: colour, one scene | `?candidate=lean` → `base=0&tilt=40&mer=cardinal&pulse=1` | `lean-*.png` | ≈ 34–35/s |
+| C | layered: PLAN §8.7 in full | `?candidate=layered` → `tilt=45&pulse=1` | `layered-*.png` | ≈ 33/s |
+| D | layered with all three fallbacks | `?candidate=layered-coarse` → `tilt=50&baseratio=0.34&tol=128&downscale=2&dropbase=1&pulse=1` | `layered-coarse-*.png` | ≈ 35/s |
+| E | ground only, warm set | `?candidate=ground-only` → `bowl=0&set=warm&tilt=35&pulse=1` | `ground-only-*.png` | ≈ 33/s |
 
-All five hold the FR-GUIDE-6 target at the phone width. The spread between the cheapest and the most expensive
-composition is about 6 rasterisations per second — the drag rate is **not** what decides this composition.
+The exact figures of the last run are in `measurements.md`; a composition measured three times moved by up to
+3 rasterisations per second, so anything inside that band is a tie. All five candidates hold the FR-GUIDE-6 target at
+the phone width, and the spread between the cheapest and the most expensive is about 6/s of 39 — **the drag rate is not
+what decides this composition at 390 px**. It is what decides the desktop grid (§2).
 
 Supporting captures, all at 390 px on the high pass unless stated:
 
@@ -48,26 +50,34 @@ scale and origin and does not follow the `GlyphOrthographicCamera`'s `zoom`. So:
 > weight (0.75° against 0.05°) and colour. If a sharper arc is wanted later, D-74's fallback — a third scene, with the
 > camera and cell it is given — is the path, and it should be its own task with its own measurement.
 
-**The second scene costs about 5 rasterisations per second — 13 %.** The ablation ladder (`measurements.md`, all at
-390 px / 6×):
+**The second scene costs 5 to 8 rasterisations per second — 13 to 20 %.** The ablation ladder (`measurements.md`, all
+at 390 px / 6×, figures from the run that generated this file, ±3/s):
 
 | rung | rate |
 |---|---|
-| line layer only, monochrome | 38.1/s |
-| line layer only, colour | 37.1/s |
-| + the base scene | 32.2/s |
-| + per-mesh density 2 | 31.9/s |
-| + the pulse | 31.2/s |
+| line layer only, monochrome | ≈ 39/s |
+| line layer only, colour | ≈ 38/s |
+| + the base scene | 30–32/s |
+| + per-mesh density 2 | 28–32/s |
+| + the pulse | 29–31/s |
 
-Colour is nearly free (one row of `<span>`s per raster: 131 spans against 0), the base scene is the whole cost, and it
-is affordable. Unthrottled the same composition runs at 55.5/s.
+Colour is nearly free (127 spans against 0 changes nothing measurable), the base scene is the whole cost, and it is
+affordable at the phone width: the finished candidate C sits at ≈ 33/s, above the target, and runs at ≈ 55/s
+unthrottled.
 
 **The fallbacks are not needed at the phone width, and they are not what saves the desktop one.** At 390 px,
-`colorTolerance=128` (28.8/s), `interactiveDownscale=2` (29.2/s) and dropping the base layer while dragging (34.3/s)
-all land inside the run-to-run noise of the composition they were meant to rescue. What does not hold is the desktop
-grid: FR-DOME-1 taken literally (the 6.5 px cell kept, so 1280 px is 197 columns) measures **20.4/s** with a 70 ms
-longest frame, and all three fallbacks together only bring it to 28.9/s. The answer there is fewer columns, not
-cheaper colour — see the recommendation.
+`colorTolerance=128`, `interactiveDownscale=2` and dropping the base layer while dragging all land inside the
+run-to-run band of the composition they were meant to rescue (30–33/s against 29–32/s). What does not hold is the
+desktop grid: FR-DOME-1 taken literally (the 6.5 px cell kept, so 1280 px is 197 columns) measures **18.7/s** under 6×
+throttling with a 63 ms longest frame; all three fallbacks together reach 26.2/s, 140 columns 24.1/s, 120 columns
+23.9/s and even 100 columns only 28.6/s. **No column count clears 30/s at 1280 px under 6× throttling.**
+
+That is the right measurement applied to the wrong machine, and it is worth being explicit about: D-62's 6× CPU
+throttle is there to model a mid-range phone, and a 1280 px panel is not one. The same grids measured unthrottled are
+in the `layered @1280, no throttle` and `layered @1280, 120 cols, no throttle` rows of `measurements.md`. The
+conclusion R21 should carry is therefore in two parts: **cap the column count** (the cap buys about 10/s at 1280 px
+and costs nothing a reader can see), and **treat the throttled desktop figure as a warning, not a gate** — the gate
+stays the phone, at the phone's width, which is what FR-GUIDE-6 says.
 
 **`interactiveDownscale` is inert unless the component calls `setInteracting`.** The scene lowers its resolution only
 between `sceneHandle.setInteracting(true)` and `(false)`; `@glyphcss/react` 0.1.6 never calls it (the vanilla controls
@@ -112,10 +122,10 @@ The composition to build in R21, as a query string:
 | **Line weights** (strip half-widths) | horizon **0.05°**, rings **0.05°** dashed, meridians **0.05°** (dashed off the cardinals), highlighted pass **0.75°**, other passes **0.05°** | `elements-thin-pass-390.png` (0.05°) loses the highlighted pass among the grid; `elements-fat-pass-390.png` (1.5°) is a band, not an arc, and its two edges read as two passes. 0.75° against 0.05° is a 15 : 1 weight ratio and is what carries FR-X-5's "colour is never the only channel". |
 | **Base layer** | on: ground disc to **1.1 radii**, sky bowl at 0.985, ramp **`blocks`**, **half** the line layer's columns, ambient **0.35**, key **0.85** pointed at the Sun | `base-ramp-default-390.png` scatters dashes over the whole frame and reads as noise; `blocks` reads as a wash. `base-ratio-1-390.png` (same grid as the lines) competes with the arc; a third (`base-ratio-0.34-390.png`) is too blocky at 390 px. `base-ground-1.3-390.png` fills the corners; 1.0 leaves no visible ground at all. |
 | **Sun glow** | keep, width and brightness from the Sun's altitude | `base-sun-at-horizon-390.png` (−2°) against `base-sun-deep-390.png` (−16°): the glow is the only thing in the drawing that says which way the twilight is, and it disappears on its own by −18°. |
-| **Live marker pulse** | keep, driven by `requestAnimationFrame`, **capped at 30 updates/s** | Asking for 60 updates/s the pulse alone measures **35.1/s** at 6× throttle (45/s unthrottled), so it survives the FR-GUIDE-6 bar with room; asking for 20/s measures 17/s, i.e. the rate is exactly what you ask for and the cost is one raster per update. 30/s is the target and there is no reason to pay for more. |
+| **Live marker pulse** | keep, driven by `requestAnimationFrame`, **capped at 30 updates/s** | Asking for 60 updates/s the pulse alone measures **34/s** at 6× throttle (45/s unthrottled), so it clears the FR-GUIDE-6 bar with the whole dome on screen; asking for 20/s measures 17/s — the rate is what you ask for and the cost is one rasterisation per update. 30/s is the target and there is no reason to pay for more. |
 | **Per-mesh density on the highlighted pass (FR-DOME-8c)** | **drop it** | See §2. It is broken in 0.1.6. |
-| **Grid at desktop widths (FR-DOME-1)** | grow the columns with the width but **cap them at 120**; below that keep the 6.5 px cell | 197 columns (the uncapped rule at 1280 px) measures 20.4/s. See the capped measurements in `measurements.md`. The capped grid is still 2× the phone's detail, which is what FR-DOME-1 asks for ("a larger and finer drawing, not a scaled-up phone one"). |
-| **Fallback order** | none needed at the phone width; at desktop widths cap the columns first, then `colorTolerance` | Measured above. `interactiveDownscale` should be the last resort because of the layout distortion, and dropping the base while dragging is a visible flicker for a 2/s gain. |
+| **Grid at desktop widths (FR-DOME-1)** | grow the columns with the width but **cap them at 120**; below that keep the 6.5 px cell | 197 columns (the uncapped rule at 1280 px) measures 18.7/s throttled against 23.9/s at 120, and the capped drawing is still twice the phone's detail — "a larger and finer drawing, not a scaled-up phone one". `layered-*-1280.png` are the uncapped captures; the arc and the labels read at either grid. |
+| **Fallback order** | none needed at the phone width; at desktop widths cap the columns first, then `colorTolerance` | Measured above. `interactiveDownscale` is the last resort because of the layout distortion, and dropping the base while dragging is a visible flicker for about 2/s. |
 
 ### Colours (FR-DOME-2, both themes)
 

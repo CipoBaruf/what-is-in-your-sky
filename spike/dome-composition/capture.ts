@@ -374,6 +374,9 @@ async function main(): Promise<void> {
       runs.push(await measure(desktopPage, desktop, 'layered @1280, 140 cols', at(chosen, { pass: 'high', width: DESKTOP_WIDTH, cols: 140 }), 6, 'drag'));
       runs.push(await measure(desktopPage, desktop, 'layered @1280, 120 cols', at(chosen, { pass: 'high', width: DESKTOP_WIDTH, cols: 120 }), 6, 'drag'));
       runs.push(await measure(desktopPage, desktop, 'layered @1280, 100 cols', at(chosen, { pass: 'high', width: DESKTOP_WIDTH, cols: 100 }), 6, 'drag'));
+      // A 1280 px box is a desktop, which the 6× throttle does not model; these are the same grids on the machine that would draw them.
+      runs.push(await measure(desktopPage, desktop, 'layered @1280, no throttle', at(chosen, { pass: 'high', width: DESKTOP_WIDTH, cols: colsFor(DESKTOP_WIDTH) }), 1, 'drag'));
+      runs.push(await measure(desktopPage, desktop, 'layered @1280, 120 cols, no throttle', at(chosen, { pass: 'high', width: DESKTOP_WIDTH, cols: 120 }), 1, 'drag'));
       // Unthrottled reference, and the pulse on its own (FR-DOME-8d: does it hold ≥ 30 updates/s?).
       runs.push(await measure(phonePage, phone, 'layered, no throttle', at(chosen, { pass: 'high', width: PHONE_WIDTH, cols: colsFor(PHONE_WIDTH) }), 1, 'drag'));
       runs.push(await measure(phonePage, phone, 'pulse only, no drag', at(chosen, { pass: 'high', width: PHONE_WIDTH, cols: colsFor(PHONE_WIDTH), pulse: true }), 6, 'pulse'));
