@@ -1,0 +1,361 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Desktop mockup — wide layout (FR-DESK-1..3)</title>
+<meta name="color-scheme" content="dark">
+<!-- The mockup reads the app's own tokens and base styles, so every colour,
+     the font stack and `--cell` are the real ones (FR-X-6, R20). Only the
+     wide-layout rules below are new; they are the reference R23 implements. -->
+<link rel="stylesheet" href="../../src/ui/styles/tokens.css">
+<link rel="stylesheet" href="../../src/ui/styles/global.css">
+<style>
+  html { background: var(--bg); }
+  body { padding: calc(2 * var(--row)) 0; }
+
+  /* Each frame is one 1280 px screen. */
+  .caption {
+    max-width: 1280px;
+    margin: 0 auto calc(0.5 * var(--row));
+    padding: 0 calc(2 * var(--cell));
+    color: var(--fg-dim);
+    box-sizing: border-box;
+  }
+  .caption b { color: var(--fg); font-weight: normal; }
+  .frame {
+    width: 1280px;
+    margin: 0 auto calc(3 * var(--row));
+    border: 1px solid var(--rule);
+    background: var(--bg);
+    box-sizing: border-box;
+  }
+
+  /* FR-DESK-2. The header spans both columns; the 80-cell frame of the
+     compact layout is dropped, and the page takes the viewport with two
+     cells of side padding. */
+  .frame header,
+  .frame main,
+  .frame footer { max-width: none; }
+
+  .frame header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: calc(2 * var(--cell));
+    padding-top: var(--row);
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: var(--row);
+  }
+  .frame header .tagline { color: var(--fg-dim); margin: 0; }
+  .head-controls { text-align: right; white-space: nowrap; }
+  .head-controls div + div { margin-top: calc(0.25 * var(--row)); }
+  /* The theme toggle shows the theme the capture is in. */
+  .t-dark { color: var(--accent); }
+  .t-night { color: var(--fg-dim); }
+  [data-theme="night"] .t-dark { color: var(--fg-dim); }
+  [data-theme="night"] .t-night { color: var(--accent); }
+  [data-theme="night"] .t-dark::before { content: '[ ] '; }
+  [data-theme="night"] .t-night::before { content: '[x] '; }
+  [data-theme="night"] .t-dark, [data-theme="night"] .t-night { font-size: 0; }
+  [data-theme="night"] .t-dark::after { content: 'Dark'; font-size: 1rem; }
+  [data-theme="night"] .t-night::after { content: 'Night'; font-size: 1rem; }
+  [data-theme="night"] .t-dark::before, [data-theme="night"] .t-night::before { font-size: 1rem; }
+
+  /* FR-DESK-2: left column fixed at 40 cells, right column takes the rest. */
+  .frame main {
+    display: grid;
+    grid-template-columns: calc(40 * var(--cell)) minmax(0, 1fr);
+    gap: calc(3 * var(--cell));
+    align-items: start;
+  }
+
+  /* FR-DESK-3: with a pass open the right column splits, the list holding at
+     least 44 cells and the guide taking the rest. */
+  .col-right { display: grid; gap: calc(3 * var(--cell)); }
+  [data-state="guide"] .col-right {
+    grid-template-columns: minmax(calc(44 * var(--cell)), 1fr) minmax(0, 1.05fr);
+    align-items: start;
+  }
+  [data-state="guide"] .list-column { max-height: calc(34 * var(--row)); overflow-y: auto; }
+
+  h2 { color: var(--fg-dim); white-space: nowrap; overflow: hidden; }
+  h2::after { content: ' ─────────────────────────────────────────────────────────────'; }
+  .block + .block { margin-top: var(--row); }
+  .dim { color: var(--fg-dim); }
+  .accent { color: var(--accent); }
+  .warn { color: var(--warn); }
+  label { display: block; margin-bottom: calc(0.25 * var(--row)); }
+  input { width: 100%; box-sizing: border-box; }
+  .banner { border: 1px solid var(--rule); padding: calc(0.5 * var(--row)) var(--cell); }
+  .banner.is-warning { border-color: var(--warn); }
+
+  .card {
+    border: 1px solid var(--rule);
+    padding: calc(0.5 * var(--row)) var(--cell);
+    margin-bottom: var(--row);
+  }
+  .card.is-hero { border-color: var(--accent); }
+  .card.is-selected { border-color: var(--accent); background: var(--bg-raised); }
+  .card h3 { color: var(--accent); }
+  .card .rows { display: grid; grid-template-columns: 18ch minmax(0, 1fr); }
+  .hero-when { color: var(--accent); font-size: 1.5rem; line-height: var(--row); margin: calc(0.5 * var(--row)) 0; }
+
+  .guide-panel { border: 1px solid var(--rule); padding: calc(0.5 * var(--row)) var(--cell); }
+  .guide-head { display: grid; grid-template-columns: 1fr auto; align-items: baseline; }
+  .chart { margin-top: var(--row); }
+  .chart img { display: block; width: 100%; height: auto; }
+  .dome-night { display: none; }
+  [data-theme="night"] .dome-dark { display: none; }
+  [data-theme="night"] .dome-night { display: block; }
+
+  .frame footer { border-top: 1px solid var(--rule); padding-top: var(--row); padding-bottom: var(--row); color: var(--fg-dim); }
+  .slot { border: 1px dashed var(--edge); padding: calc(0.5 * var(--row)) var(--cell); color: var(--fg-dim); }
+</style>
+
+<div class="caption">
+  <b>State 1 — wide, nothing selected.</b> 1280 px ≈ 133 cells. Left column
+  <b>40 cells</b> fixed; right column takes the rest. Header spans both.
+</div>
+<div class="frame" data-state="list">
+  <header>
+    <div>
+      <h1>What is in your sky right now</h1>
+      <p class="tagline">Naked-eye satellite passes for the coming night: which, when, and where to look.</p>
+    </div>
+    <div class="head-controls">
+      <div><span class="accent">[x] English</span> <span class="dim">[ ] Español</span></div>
+      <div><span class="t-dark">[x] Dark</span> <span class="t-night">[ ] Night</span></div>
+      <div><a href="#">[ Live sky → ]</a></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="col-left">
+      <section class="block">
+        <h2>Location</h2>
+        <label for="m1-place">Place name</label>
+        <input id="m1-place" placeholder="e.g. Cipolletti">
+        <label for="m1-coords" style="margin-top:.75rem">Coordinates (lat, lon)</label>
+        <input id="m1-coords" value="-38.93, -67.99">
+        <label for="m1-alt" style="margin-top:.75rem">Altitude (m)</label>
+        <input id="m1-alt" value="0">
+        <p><a href="#">[ Use my location ]</a></p>
+        <p class="dim">Using −38.93, −67.99.<br>Saved in this browser only.<br>
+          <a href="#">[ Clear saved location ]</a><br>
+          Precision is city-level: a pass looks the same from anywhere within a few kilometres.</p>
+      </section>
+
+      <section class="block">
+        <p class="dim">Orbital elements: newest epoch 9 d 4 h old (2026-09-01 23:20:48 UTC), confirmed with CelesTrak 2026-09-11 03:51:00 UTC.</p>
+        <p class="banner is-warning"><span class="warn">[Warning]</span> The orbital elements are 9 d 4 h old. Predictions lose accuracy after 5 days, and the ISS in particular changes orbit often: expect times to be off by minutes.</p>
+      </section>
+
+      <section class="block">
+        <h2>Right now</h2>
+        <p>Nothing visible right now: no catalog satellite is above 10°.</p>
+        <p>Clouds now: <span class="dim">[Weather unknown]</span></p>
+        <p class="dim">as of 03:51:00 UTC</p>
+      </section>
+
+      <section class="block">
+        <p class="slot">Moon: waxing gibbous, 71 % lit, 34° up in the SE.<br>
+          <span class="dim">— “The Moon rides high tonight.” (FR-MOON-3, filled by R30)</span></p>
+      </section>
+    </div>
+
+    <div class="col-right">
+      <div class="list-column">
+        <p class="dim">7 visible passes in the next 24 h from −38.93, −67.99</p>
+
+        <article class="card is-hero">
+          <p class="dim">[Next ISS pass]</p>
+          <h3>ISS (Zarya)</h3>
+          <p class="hero-when">Appears in 5:57:14</p>
+          <p class="dim">[sky still bright]</p>
+          <div class="rows">
+            <span>Start:</span><span>2026-09-11 09:48:14 UTC</span>
+            <span>Max elevation:</span><span>10°</span>
+            <span>Peak direction:</span><span>NE (53°)</span>
+            <span>Duration:</span><span>48 s</span>
+            <span>Magnitude:</span><span>+0.5, like a bright star</span>
+            <span>Clouds:</span><span class="dim">[Weather unknown]</span>
+          </div>
+          <p><a href="#">Open guide →</a></p>
+        </article>
+
+        <p>Sort: <span class="accent">[x] Soonest first</span> <span class="dim">[ ] Best first</span></p>
+
+        <article class="card">
+          <h3>SL-16 R/B (Cosmos 2369)</h3>
+          <div class="rows">
+            <span>Start:</span><span>2026-09-11 07:36:07 UTC</span>
+            <span>Max elevation:</span><span>32°</span>
+            <span>Peak direction:</span><span>ESE (121°)</span>
+            <span>Duration:</span><span>10 min 5 s</span>
+            <span>Magnitude:</span><span>+3.6, faint, needs dark sky</span>
+            <span>Clouds:</span><span class="dim">[Weather unknown]</span>
+          </div>
+          <p><a href="#">Open guide →</a></p>
+        </article>
+
+        <article class="card">
+          <h3>SL-16 R/B (Cosmos 2406)</h3>
+          <div class="rows">
+            <span>Start:</span><span>2026-09-11 07:59:34 UTC</span>
+            <span>Max elevation:</span><span>45°</span>
+            <span>Peak direction:</span><span>S (174°)</span>
+            <span>Duration:</span><span>3 min 57 s</span>
+            <span>Magnitude:</span><span>+2.2, like an average star</span>
+            <span>Clouds:</span><span class="dim">[Weather unknown]</span>
+          </div>
+          <p><a href="#">Open guide →</a></p>
+        </article>
+
+        <article class="card">
+          <h3>Tiangong (Tianhe)</h3>
+          <div class="rows">
+            <span>Start:</span><span>2026-09-11 08:46:59 UTC</span>
+            <span>Max elevation:</span><span>46°</span>
+            <span>Peak direction:</span><span>SE (132°)</span>
+            <span>Duration:</span><span>2 min 30 s</span>
+            <span>Magnitude:</span><span>−1.8, brighter than any star</span>
+            <span>Clouds:</span><span class="dim">[Weather unknown]</span>
+          </div>
+          <p><a href="#">Open guide →</a></p>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>Orbital elements by <a href="#">CelesTrak</a>. Weather data by <a href="#">Open-Meteo</a> (CC BY 4.0). Place search by <a href="#">Open-Meteo</a> geocoding, with data from <a href="#">GeoNames</a> (CC BY 4.0).</p>
+    <p>No analytics, no tracking: your location is saved in this browser only.</p>
+  </footer>
+</div>
+
+<div class="caption">
+  <b>State 2 — wide, a pass selected.</b> The right column splits: the list keeps
+  <b>at least 44 cells</b> and stays scrollable with the selected card highlighted,
+  the guide takes the rest. <b>Esc</b> or <b>[ × ]</b> closes it; the selection stays in the hash.
+</div>
+<div class="frame" data-state="guide">
+  <header>
+    <div>
+      <h1>What is in your sky right now</h1>
+      <p class="tagline">Naked-eye satellite passes for the coming night: which, when, and where to look.</p>
+    </div>
+    <div class="head-controls">
+      <div><span class="accent">[x] English</span> <span class="dim">[ ] Español</span></div>
+      <div><span class="t-dark">[x] Dark</span> <span class="t-night">[ ] Night</span></div>
+      <div><a href="#">[ Live sky → ]</a></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="col-left">
+      <section class="block">
+        <h2>Location</h2>
+        <label for="m2-place">Place name</label>
+        <input id="m2-place" placeholder="e.g. Cipolletti">
+        <label for="m2-coords" style="margin-top:.75rem">Coordinates (lat, lon)</label>
+        <input id="m2-coords" value="-38.93, -67.99">
+        <label for="m2-alt" style="margin-top:.75rem">Altitude (m)</label>
+        <input id="m2-alt" value="0">
+        <p><a href="#">[ Use my location ]</a></p>
+        <p class="dim">Using −38.93, −67.99.<br>Saved in this browser only.<br><a href="#">[ Clear saved location ]</a></p>
+      </section>
+      <section class="block">
+        <p class="dim">Orbital elements: newest epoch 9 d 4 h old (2026-09-01 23:20:48 UTC), confirmed with CelesTrak 2026-09-11 03:51:00 UTC.</p>
+      </section>
+      <section class="block">
+        <h2>Right now</h2>
+        <p>Nothing visible right now: no catalog satellite is above 10°.</p>
+        <p>Clouds now: <span class="dim">[Weather unknown]</span></p>
+      </section>
+      <section class="block">
+        <p class="slot">Moon: waxing gibbous, 71 % lit, 34° up in the SE.</p>
+      </section>
+    </div>
+
+    <div class="col-right">
+      <div class="list-column">
+        <p class="dim">7 visible passes in the next 24 h</p>
+        <article class="card is-hero is-selected">
+          <p class="dim">[Next ISS pass]</p>
+          <h3>ISS (Zarya)</h3>
+          <p class="hero-when">Appears in 5:57:14</p>
+          <div class="rows">
+            <span>Max elevation:</span><span>10°</span>
+            <span>Peak direction:</span><span>NE (53°)</span>
+            <span>Duration:</span><span>48 s</span>
+          </div>
+        </article>
+        <p>Sort: <span class="accent">[x] Soonest first</span> <span class="dim">[ ] Best first</span></p>
+        <article class="card">
+          <h3>SL-16 R/B (Cosmos 2369)</h3>
+          <div class="rows">
+            <span>Max elevation:</span><span>32°</span>
+            <span>Peak direction:</span><span>ESE (121°)</span>
+            <span>Duration:</span><span>10 min 5 s</span>
+          </div>
+          <p><a href="#">Open guide →</a></p>
+        </article>
+        <article class="card">
+          <h3>SL-16 R/B (Cosmos 2406)</h3>
+          <div class="rows">
+            <span>Max elevation:</span><span>45°</span>
+            <span>Peak direction:</span><span>S (174°)</span>
+            <span>Duration:</span><span>3 min 57 s</span>
+          </div>
+          <p><a href="#">Open guide →</a></p>
+        </article>
+        <article class="card">
+          <h3>H-2A R/B (GCOM-W1)</h3>
+          <div class="rows">
+            <span>Max elevation:</span><span>21°</span>
+            <span>Peak direction:</span><span>SSW (192°)</span>
+            <span>Duration:</span><span>1 min 28 s</span>
+          </div>
+          <p><a href="#">Open guide →</a></p>
+        </article>
+        <article class="card">
+          <h3>Tiangong (Tianhe)</h3>
+          <div class="rows">
+            <span>Max elevation:</span><span>46°</span>
+            <span>Peak direction:</span><span>SE (132°)</span>
+            <span>Duration:</span><span>2 min 30 s</span>
+          </div>
+          <p><a href="#">Open guide →</a></p>
+        </article>
+      </div>
+
+      <aside class="guide-panel">
+        <div class="guide-head">
+          <h3>ISS (Zarya)</h3>
+          <a href="#">[ × ]</a>
+        </div>
+        <p class="dim">2026-09-11 &nbsp; [sky still bright]</p>
+        <p class="hero-when">Appears in 5:57:14</p>
+        <p>rise: 09:48:14 UTC<br>
+          <span class="dim">→ peak:</span> 09:48:38 UTC<br>
+          <span class="dim">→ end:</span> 09:49:02 UTC</p>
+        <p>It appears low in the north-east at 09:48:14 UTC, climbs to 10° (low in
+          the sky) in the north-east at 09:48:38 UTC, and drops below the horizon in
+          the east-north-east at 09:49:02 UTC. As bright as a bright star (magnitude
+          +0.5). The sky will still be light, so it may be hard to see.</p>
+        <p>View: <span class="dim">[ ] Polar</span> <span class="accent">[x] Dome</span></p>
+        <div class="chart">
+          <img class="dome-dark" src="../dome-composition/layered-golden-390.png" alt="The layered dome, candidate C">
+          <img class="dome-night" src="../dome-composition/layered-night-390.png" alt="The layered dome, candidate C, night theme">
+        </div>
+        <p class="dim">The R16 spike's own capture of candidate C (D-92), at the
+          390 px grid — the guide panel is about 44 cells, so the phone grid is the
+          right density here. It fills the panel width with no frame (FR-DOME-1);
+          R21 draws it for real.</p>
+      </aside>
+    </div>
+  </main>
+
+  <footer>
+    <p>Orbital elements by <a href="#">CelesTrak</a>. Weather data by <a href="#">Open-Meteo</a> (CC BY 4.0).</p>
+    <p>No analytics, no tracking: your location is saved in this browser only.</p>
+  </footer>
+</div>
