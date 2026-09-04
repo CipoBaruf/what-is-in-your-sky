@@ -3,6 +3,7 @@ import { useLocale, useT } from '../../i18n/useT';
 import { formatDate } from '../../lib/timeFormat';
 import type { Observer, Pass } from '../../model';
 import { Countdown } from '../components/common/Countdown';
+import { LanguageToggle } from '../components/common/LanguageToggle';
 import { useNow } from '../hooks/useNow';
 import { PassNumbers } from '../components/guide/PassNumbers';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
@@ -18,7 +19,11 @@ import styles from './PassDetail.module.css';
  * observer is passed whole: the chart wants it (PLAN §8.1), the times want
  * its zone. The page's own scroll is locked while the sheet is up: the sheet
  * is fixed and scrolls itself, so the list's scrollbar behind it was a
- * second, dead scrollbar on desktop (R13 review).
+ * second, dead scrollbar on desktop (R13 review). R17 (D-92): the sheet
+ * carries the language switch beside the back control — the page behind it,
+ * header included, is inert while the sheet is up, so without it the
+ * language could not be changed on this screen at all, and R31's share links
+ * open straight onto it.
  */
 export interface PassDetailProps {
   pass: Pass;
@@ -71,9 +76,12 @@ export function PassDetail({ pass, observer, onClose }: PassDetailProps) {
   return (
     <div role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.sheet} data-pass-id={pass.id}>
       <div className={styles.frame}>
-        <button type="button" className={styles.close} onClick={onClose}>
-          {t.guide.back}
-        </button>
+        <div className={styles.topRow}>
+          <button type="button" className={styles.close} onClick={onClose}>
+            {t.guide.back}
+          </button>
+          <LanguageToggle />
+        </div>
         <h2 id={headingId} ref={headingRef} tabIndex={-1} className={styles.heading}>
           {pass.name}
         </h2>

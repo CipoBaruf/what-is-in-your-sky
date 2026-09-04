@@ -137,6 +137,8 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   // Place, coordinates, altitude, device button, clear, Now-panel badge, hero (open guide, cloud badge), two sort buttons, ≥ 1 card × (open guide, badge), 3 footer links.
   expect(expected.length).toBeGreaterThanOrEqual(15);
   expect(expected).toContain('input:place');
+  // R17: the header's language switch is the first pair of controls on the page.
+  expect(expected.slice(0, 2)).toEqual(['button:English', 'button:Español']);
   expect(expected).toContain('button:Use my location');
   expect(expected).toContain('button:Clear saved location');
   expect(expected).toContain('button:Soonest first');
@@ -166,7 +168,7 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   await page.keyboard.press('Tab');
   expect(await page.evaluate(() => document.activeElement === document.body)).toBe(true);
   await page.keyboard.press('Tab');
-  expect(await page.evaluate(() => document.activeElement?.id)).toBe('place');
+  expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('English');
 });
 
 test('the hero card pins the next ISS pass; "best first" reorders the list and the choice survives a reload (US-5 AC2)', async ({ page }) => {
