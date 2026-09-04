@@ -8,6 +8,15 @@
   color: var(--fg-dim);
 }
 
+/* The header's switches (language, theme) sit on the right, side by side when
+   the width allows and stacked when it does not (R17, R20). */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0 calc(3 * var(--cell));
+}
+
 .main {
   display: grid;
   gap: var(--row);

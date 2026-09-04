@@ -5,4 +5,5 @@ export type { Observer, ObserverSource } from './observer';
 export type { Place } from './place';
 export type { PassPoint, PassBoundaryReason, Pass, NowItem, SkyState, NowState } from './pass';
 export type { HourlyCloud, WeatherSnapshot, CloudState, CloudVerdict } from './weather';
-export type { PassSort, ChartView, ChartOrientation, Locale } from './prefs';
+export type { PassSort, ChartView, ChartOrientation, Locale, Theme } from './prefs';
+export { THEMES, DEFAULT_THEME } from './prefs';

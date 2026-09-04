@@ -24,6 +24,14 @@
   gap: 0 calc(2 * var(--cell));
 }
 
+/* The sheet's switches (language, theme) stay together on the right of the top row. */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 calc(3 * var(--cell));
+}
+
 .close {
   color: var(--accent);
   justify-self: start;

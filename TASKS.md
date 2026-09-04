@@ -417,7 +417,8 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - A wording test rejects prediction and advice phrasing (FR-MOON-5) and the Spanish `tú` / `vos` / `usted` forms (FR-I18N-3).
     - The file is the only source of tradition text: nothing in it is generated, and each entry names where the tradition comes from.
 
-- [ ] **R20 — Night theme and the chart colour tokens**
+- [x] **R20 — Night theme and the chart colour tokens**
+  - **Done 2026-09-04:** as specified, with three additions. The theme switch is on the guide sheet as well as the header, for D-94's reason (D-99). The page ground moved from `body` to `html[data-theme]`, because the stylesheet is a blocking `<link>` and the module script deferred, so without it a night reader gets one frame of the dark ground before `main.tsx` runs — `identity.spec.ts` follows the ground to `html` (D-99). The night UI tokens are taken from the colours R16 already measured against the night ground, and the header table pins three ratio columns rather than four (D-100). The session's own sandbox refused every `node`, `npx` and `npm` invocation, so it ran no check and took no capture; both were done from an interactive session afterwards. The eight captures are in `docs/screenshots/r20-{home,passes,detail}-390-{dark,night}-{en,es}.png`, and the first-frame assertion moved to what this task's acceptance actually asks — no frame in the *other* palette — because `main.tsx` is a module script and therefore deferred, so the attribute cannot be promised on the first composited frame (D-99).
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner

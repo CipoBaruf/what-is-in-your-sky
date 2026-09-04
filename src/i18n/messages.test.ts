@@ -43,6 +43,8 @@ function render(t: Messages): string[] {
     t.app.title,
     t.app.tagline,
     t.app.language,
+    t.app.theme,
+    ...Object.values(t.app.themes),
     t.banner.info,
     t.banner.warning,
     ...Object.values(t.compass),

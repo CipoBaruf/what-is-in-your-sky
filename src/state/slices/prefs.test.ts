@@ -114,4 +114,31 @@ describe('prefs slice', () => {
     store.getState().setObserver(neuquen);
     expect(stored(storage)).toEqual({ observer: neuquen, locale: 'es' });
   });
+
+  it('is dark until a theme is saved, then keeps the saved one (R20, FR-THEME-1)', () => {
+    const storage = memoryStorage();
+    // Unlike the language, the theme is never guessed from the device: nothing is written until the switch is used.
+    const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(fresh.getState().theme).toBe('dark');
+    expect(storage.map.has(PREFS_KEY)).toBe(false);
+    fresh.getState().setTheme('night');
+    expect(fresh.getState().theme).toBe('night');
+    expect(stored(storage)).toEqual({ theme: 'night' });
+    // A saved theme wins at the next start, and the other write-throughs keep it.
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(store.getState().theme).toBe('night');
+    store.getState().setObserver(neuquen);
+    store.getState().setLocale('es');
+    expect(stored(storage)).toEqual({ observer: neuquen, locale: 'es', theme: 'night' });
+    store.getState().setTheme('dark');
+    expect(stored(storage)).toEqual({ observer: neuquen, locale: 'es', theme: 'dark' });
+  });
+
+  it('ignores a theme it does not know without losing the other preferences', () => {
+    const storage = memoryStorage();
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'sepia', locale: 'es' }));
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(store.getState().theme).toBe('dark');
+    expect(store.getState().locale).toBe('es');
+  });
 });

@@ -74,6 +74,8 @@ export const es: Messages = {
     title: 'Qué hay en el cielo ahora mismo',
     tagline: 'Pases de satélites visibles a simple vista para la próxima noche: cuáles, cuándo y hacia dónde mirar.',
     language: 'Idioma',
+    theme: 'Tema',
+    themes: { dark: 'Oscuro', night: 'Nocturno' },
   },
 
   banner: { info: 'Nota', warning: 'Aviso' },

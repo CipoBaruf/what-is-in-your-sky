@@ -1,9 +1,11 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { I18nProvider, useT } from '../i18n/useT';
 import { searchPlaces, useAppStore } from '../state';
 import styles from './App.module.css';
+import { applyTheme } from './styles/theme';
 import { Footer } from './components/common/Footer';
 import { LanguageToggle } from './components/common/LanguageToggle';
+import { ThemeToggle } from './components/common/ThemeToggle';
 import { ElementsBanners } from './components/elements/ElementsBanners';
 import { LocationInput } from './components/location/LocationInput';
 import { NowPanel } from './components/now/NowPanel';
@@ -25,7 +27,8 @@ import { findSelectedPass, usePassSelection } from './screens/passSelection';
  * the attributions (FR-X-2). R17: the header also carries the language
  * switch (US-13), and `AppRoot` is what `main.tsx` renders — the store's
  * locale wrapped around the screen, so switching re-renders everything
- * without touching the URL or the state (FR-I18N-5).
+ * without touching the URL or the state (FR-I18N-5). R20 puts the theme
+ * switch beside it (US-19) and `AppRoot` writes `data-theme` from the store.
  */
 export function App() {
   const t = useT();
@@ -41,7 +44,10 @@ export function App() {
       <header inert={inert} className={styles.header}>
         <h1>{t.app.title}</h1>
         <p className={styles.tagline}>{t.app.tagline}</p>
-        <LanguageToggle />
+        <div className={styles.controls}>
+          <LanguageToggle />
+          <ThemeToggle />
+        </div>
       </header>
       <main inert={inert} className={styles.main}>
         <LocationInput observer={observer} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} />
@@ -55,9 +61,19 @@ export function App() {
   );
 }
 
-/** The app as `main.tsx` mounts it: the active language around the screen (D-70). */
+/**
+ * The app as `main.tsx` mounts it: the active language around the screen, and
+ * the active theme on the root element (D-70). `main.tsx` applies both once
+ * before the first render; this keeps them on every later switch, which is
+ * why the effect is here and not in the toggle — the store is the one source
+ * of the choice.
+ */
 export function AppRoot() {
   const locale = useAppStore((s) => s.locale);
+  const theme = useAppStore((s) => s.theme);
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
   return (
     <I18nProvider locale={locale}>
       <App />
