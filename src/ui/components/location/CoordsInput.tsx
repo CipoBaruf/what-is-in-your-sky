@@ -1,6 +1,7 @@
 import { useId, useState, type ChangeEvent } from 'react';
 import type { Messages } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
+import { coordsLabel, observerFromCoords } from '../../../lib/place';
 import type { Observer } from '../../../model';
 import styles from './CoordsInput.module.css';
 
@@ -88,15 +89,10 @@ export function parseAltitude(text: string): ParsedAltitude {
   return { ok: true, altM };
 }
 
-/** Rounded, with a real minus sign: "−38.93, −67.99" (PLAN §5, FR-LOC-4 MVP behaviour). */
-export function coordsLabel(lat: number, lon: number): string {
-  const f = (n: number): string => n.toFixed(2).replace('-', '−');
-  return `${f(lat)}, ${f(lon)}`;
-}
-
-export function observerFromCoords(lat: number, lon: number, altM = 0): Observer {
-  return { lat, lon, altM, label: coordsLabel(lat, lon), source: 'coords', timeZone: null };
-}
+/* R31 moved `coordsLabel` and `observerFromCoords` to `lib/place.ts`, where a
+   shared link can reach them too (FR-SHARE-1); they are re-exported here so
+   that "the coordinate form's observer" keeps one name across the UI. */
+export { coordsLabel, observerFromCoords };
 
 export interface CoordsInputProps {
   /** Called with an observer on every valid value, null when the field is empty or either field is invalid. */
