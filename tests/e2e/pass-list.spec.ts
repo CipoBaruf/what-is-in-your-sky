@@ -55,7 +55,8 @@ test('typing the Neuquén coordinates shows the pass list with the golden ISS pa
   const cards = page.getByRole('list', { name: '' }).getByRole('listitem');
   expect(await cards.count()).toBeGreaterThan(1);
 
-  const iss = page.getByRole('article', { name: 'ISS (Zarya)' });
+  // The hero card is the next ISS pass, which is the golden one; the 72 h window holds later ISS passes too (R24).
+  const iss = page.getByTestId('iss-hero');
   await expect(iss).toHaveCount(1);
   await expect(iss).toContainText(`${hhmmss(golden.start.t)} UTC`);
   // The `<dt>` labels get their colon from CSS (`::after`), which is not part of the text content.

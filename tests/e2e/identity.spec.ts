@@ -179,10 +179,12 @@ test('the hero card pins the next ISS pass; "best first" reorders the list and t
   const hero = page.getByTestId('iss-hero');
   await expect(hero).toContainText('Next ISS pass');
   await expect(hero.getByRole('timer')).toHaveText(/Appears in \d+:\d\d/);
-  expect(Math.abs(Number((await hero.getAttribute('data-pass-id'))?.split('-')[1]) - golden.start.t)).toBeLessThanOrEqual(5_000);
-  await expect(page.getByRole('article', { name: 'ISS (Zarya)' })).toHaveCount(1);
+  const heroId = (await hero.getAttribute('data-pass-id')) ?? '';
+  expect(Math.abs(Number(heroId.split('-')[1]) - golden.start.t)).toBeLessThanOrEqual(5_000);
 
   const list = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('list');
+  // The hero's pass is pulled out of the list, not repeated in it — the other ISS passes of the 72 h window stay (R24).
+  await expect(list.locator(`article[data-pass-id="${heroId}"]`)).toHaveCount(0);
   const scores = async (): Promise<number[]> =>
     list.locator('article').evaluateAll((cards) =>
       cards.map((card) => {
