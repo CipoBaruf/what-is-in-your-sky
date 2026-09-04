@@ -1,6 +1,6 @@
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { CachedGroup, ElementGroup, EpochMs, OmmRecord } from '../model';
 import { fetchGroup as fetchGroupLive, ommRecordSchema, type FetchGroupOptions } from './celestrak';
+import { DB_NAME, ELEMENTS_STORE_NAME, openWiysDb } from './db';
 import { z } from './zod';
 
 /**
@@ -15,15 +15,11 @@ import { z } from './zod';
  * When IndexedDB itself throws (Safari private mode, quota) the cache falls
  * back to memory for the session and reports `persistent: false`.
  */
-export const ELEMENTS_DB_NAME = 'wiys';
-export const ELEMENTS_STORE_NAME = 'elementGroups';
+export const ELEMENTS_DB_NAME = DB_NAME;
+export { ELEMENTS_STORE_NAME };
 export const ELEMENTS_LOCK_NAME = 'wiys:elements';
 export const ELEMENTS_TTL_MS = 2 * 60 * 60_000;
 export const ELEMENT_GROUPS: readonly ElementGroup[] = ['stations', 'visual'];
-
-interface WiysDb extends DBSchema {
-  [ELEMENTS_STORE_NAME]: { key: ElementGroup; value: CachedGroup };
-}
 
 /** What a stored entry must look like to be trusted; anything else reads as absent (a schema change re-fetches). */
 const cachedGroupSchema = z.object({
@@ -51,15 +47,7 @@ export function memoryGroupStore(): GroupStore {
 
 /** The `idb`-backed store over the global `indexedDB` (`fake-indexeddb/auto` in tests); opened on first use. `dbName` is a parameter so tests can isolate. */
 export function idbGroupStore(dbName: string = ELEMENTS_DB_NAME): GroupStore {
-  let db: Promise<IDBPDatabase<WiysDb>> | null = null;
-  const open = (): Promise<IDBPDatabase<WiysDb>> => {
-    db ??= openDB<WiysDb>(dbName, 1, {
-      upgrade(database) {
-        database.createObjectStore(ELEMENTS_STORE_NAME, { keyPath: 'group' });
-      },
-    });
-    return db;
-  };
+  const open = (): ReturnType<typeof openWiysDb> => openWiysDb(dbName);
   return {
     get: async (group) => {
       const raw: unknown = await (await open()).get(ELEMENTS_STORE_NAME, group);
