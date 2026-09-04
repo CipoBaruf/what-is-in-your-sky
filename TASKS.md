@@ -403,7 +403,7 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - Glare unit tests over all three conditions, including each one failing alone.
     - `passes.golden.test.ts` still passes for all three fixtures; the worker gains no dependency and stays within its budget; the recompute time is unchanged within noise.
 
-- [ ] **R29 — The Moon lore data file**
+- [x] **R29 — The Moon lore data file**  *(the CI half only: `check-catalog.ts`'s live membership check has no counterpart for a tradition, so validation is `lore.test.ts` — D-95)*
   - **Lane:** data
   - **Model:** opus
   - **Gate:** owner
