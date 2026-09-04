@@ -66,26 +66,19 @@ main {
     margin-inline: 0;
   }
 
-  /* R23 (D-119). The wide page is a shell of header, main and footer, at
-     least one viewport high. `min-height` and a `1fr` middle row: with little
-     on the page — no location entered yet, so no list and no Now panel — the
-     middle row takes up the slack and the footer sits on the bottom of the
-     screen instead of floating under three short paragraphs with the ground
-     showing below it; with a long list the rows grow and the page scrolls as
-     it always did. The `1fr` here is `minmax(auto, 1fr)`, so the row never
-     shrinks below its own content. */
+  /* R23 (D-119). The wide page is a shell exactly one viewport high: header,
+     main and footer, and the page itself never scrolls. What scrolls is
+     whichever pane has outgrown its share — usually the pass list, which is
+     72 h of them, and which is the thing being read. The header stays, so the
+     language and theme switches are always reachable; the location and the
+     Now panel stay, so what the list is *of* is still on screen while it is
+     read; the footer sits on the bottom of the screen whether the page is
+     full or nearly empty. `minmax(0, 1fr)` and not `1fr`: the middle row has
+     to be allowed to shrink below its content, or the panes have no height to
+     be bounded by and the whole thing scrolls as one again. */
   #root {
-    min-height: 100dvh;
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-  }
-
-  /* With a pass open it is exactly one viewport instead of at least one, and
-     the middle row may shrink below its content — that is what gives the
-     panes inside it a height to be bounded by, so each scrolls itself rather
-     than all three adding up into one page scroll. */
-  #root:has([data-guide='open']) {
     height: 100dvh;
+    display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
   }
 }

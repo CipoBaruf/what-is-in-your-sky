@@ -97,6 +97,40 @@ test('wide: with nothing entered the page still fills the screen and the footer 
   expect(left?.y).toBeLessThan(TALL_HEIGHT / 2);
 });
 
+/**
+ * D-119: with a list and no pass open — the ordinary state of the page — the
+ * scroll belongs to the list and to nothing else. The header keeps the two
+ * switches reachable, the left column keeps saying what the list is of, and
+ * the footer stays on the bottom of the screen.
+ */
+test('wide: with a list and no pass open, only the list scrolls (D-119)', async ({ page }) => {
+  await loadWithPasses(page);
+
+  expect(
+    await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight),
+  ).toBeLessThanOrEqual(1);
+
+  const list = page.getByTestId('list-column');
+  expect(await list.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+  await list.evaluate((el) => {
+    el.scrollTop = 300;
+  });
+  expect(await list.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+  // Scrolling the list moved nothing else: the header, the left column and the
+  // footer are where they were, and the footer is on the bottom of the screen.
+  const [header, left, footer] = await Promise.all([
+    page.getByRole('banner').boundingBox(),
+    page.getByTestId('col-left').boundingBox(),
+    page.getByRole('contentinfo').boundingBox(),
+  ]);
+  if (!header || !left || !footer) throw new Error('the shell is not laid out');
+  expect(header.y).toBeGreaterThanOrEqual(0);
+  expect(left.y).toBeLessThan(WIDE.height / 2);
+  expect(Math.abs(footer.y + footer.height - WIDE.height)).toBeLessThanOrEqual(1);
+});
+
 test('wide: two columns, the guide beside a live list, Escape and the hash (FR-DESK-1/2/3)', async ({ page }) => {
   const golden = reference.firstGoldenPass;
   if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
@@ -222,11 +256,12 @@ test('wide: two columns, the guide beside a live list, Escape and the hash (FR-D
   await expect(page).not.toHaveURL(/#pass=/);
   const closedBox = await page.getByTestId('list-column').boundingBox();
   expect(closedBox?.width).toBeGreaterThan(listBox.width);
-  // D-119 is scoped to an open pass: the list on its own is an ordinary long
-  // page again, scrolling as one rather than inside a bounded shell.
+  // The shell is the wide layout, not a mode a pass puts it into: closing the
+  // guide gives the list the width back and changes nothing about the scroll.
   expect(
-    await page.evaluate(() => document.documentElement.scrollHeight > document.documentElement.clientHeight),
-  ).toBe(true);
+    await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight),
+  ).toBeLessThanOrEqual(1);
+  expect(await page.getByTestId('list-column').evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
 });
 
 /**
