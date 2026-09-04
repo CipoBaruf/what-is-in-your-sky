@@ -7,6 +7,7 @@ import { formatClock, formatCountdown } from '../../../lib/timeFormat';
 import type { NowItem, NowState, Observer } from '../../../model';
 import { DEFAULT_THRESHOLDS, useAppStore, type NowSliceState } from '../../../state';
 import { SectionHeading } from '../common/SectionHeading';
+import { MoonLine } from '../moon/MoonLine';
 import { CloudBadge } from '../weather/CloudBadge';
 import styles from './NowPanel.module.css';
 
@@ -17,7 +18,10 @@ import styles from './NowPanel.module.css';
  * `visible` items are listed (OQ-7: no greyed-out objects in MVP); the
  * others only feed the empty-state reason. R8: the current cloud cover
  * (FR-WX-3), the forecast interpolated to the instant of the last check, or
- * "weather unknown" when there is no forecast (US-7 AC4).
+ * "weather unknown" when there is no forecast (US-7 AC4). R30: the Moon's own
+ * line closes the panel (FR-MOON-3) — a fact about the sky, so it sits with
+ * the other facts and above the "as of" stamp that dates all of them; the
+ * tradition line is a separate section outside this panel (FR-MOON-5).
  */
 export const degrees = (n: number): string => `${String(Math.round(n))}°`;
 
@@ -122,6 +126,7 @@ export function NowPanel() {
           />
         </p>
       )}
+      {state && <MoonLine moon={state.moon} />}
       {state && observer && <p className={styles.asOf}>{t.now.asOf(formatClock(state.t, observer.timeZone, locale))}</p>}
     </section>
   );

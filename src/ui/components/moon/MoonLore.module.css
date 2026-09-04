@@ -1,0 +1,29 @@
+.section {
+  display: grid;
+  gap: calc(var(--row) / 2);
+}
+
+.line {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* FR-MOON-5: the tradition label leads the line and is drawn `[lore]`, the
+   dimmest thing in the section — it is what the line is, not an observing
+   fact. The brackets are CSS, so the accessible name is the word alone. */
+.tradition {
+  color: var(--fg-dim);
+}
+
+.tradition::before {
+  content: '[';
+}
+
+.tradition::after {
+  content: ']';
+}
+
+.note {
+  margin: 0;
+  color: var(--fg-dim);
+}

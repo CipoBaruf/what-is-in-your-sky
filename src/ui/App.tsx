@@ -9,6 +9,7 @@ import { ThemeToggle } from './components/common/ThemeToggle';
 import { ElementsBanners } from './components/elements/ElementsBanners';
 import { useLayoutMode } from './hooks/useLayoutMode';
 import { LocationInput } from './components/location/LocationInput';
+import { MoonLore } from './components/moon/MoonLore';
 import { NowPanel } from './components/now/NowPanel';
 import { PassList } from './components/passes/PassList';
 import { PassDetail } from './screens/PassDetail';
@@ -38,7 +39,9 @@ import { findSelectedPass, usePassSelection } from './screens/passSelection';
  * be made inert around it. With a pass open the wide page is one viewport
  * high and every pane scrolls itself (D-119), which is why the left column
  * carries a class of its own — it is the one that has to stretch to the
- * footer and, on a short screen, scroll.
+ * footer and, on a short screen, scroll. R30 fills the last slot FR-DESK-2
+ * names for that column: the Moon's tradition line, below the Now panel whose
+ * last line is the Moon's observing facts (FR-MOON-3/4, D-122).
  */
 export function App() {
   const t = useT();
@@ -46,6 +49,10 @@ export function App() {
   const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
   const observer = useAppStore((s) => s.observer);
   const passes = useAppStore((s) => s.passes.passes);
+  const now = useAppStore((s) => s.now);
+  // R30: the tradition line needs a Moon, which arrives with the Now state for
+  // this observer; there is nothing to say about the sky before that.
+  const moon = now.observer === observer ? (now.state?.moon ?? null) : null;
   const { selectedId, open, close } = usePassSelection();
   const selected = useMemo(() => findSelectedPass(passes, selectedId), [passes, selectedId]);
   const mode = useLayoutMode();
@@ -69,6 +76,7 @@ export function App() {
           <LocationInput observer={observer} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} />
           <ElementsBanners />
           <NowPanel />
+          {moon && observer && <MoonLore moon={moon} timeZone={observer.timeZone} />}
         </div>
         <div className={styles.column} data-testid="col-right" data-guide={selected !== null ? 'open' : 'closed'}>
           <div className={styles.listColumn} data-testid="list-column">

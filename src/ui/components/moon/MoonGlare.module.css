@@ -1,0 +1,60 @@
+/* The label and the guide sentence both hang a tooltip off a focusable
+   trigger, the way the cloud badge does (R12): a box in normal static
+   position under the trigger's line, absolutely positioned so it overlays
+   what follows instead of pushing it. The containing block is the paragraph
+   itself, which is a full-width block in the card and in the guide, so the
+   tooltip is as wide as the column and never leaves a 390 px screen. */
+.label,
+.note {
+  position: relative;
+  margin: calc(-1 * var(--row) / 2) 0 calc(var(--row) / 2);
+}
+
+.note {
+  margin: 0;
+}
+
+.wrap {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
+}
+
+/* Above the card's "Open guide" overlay, so hover, tap and focus reach it. */
+.badge,
+.sentence {
+  position: relative;
+  z-index: 1;
+  cursor: help;
+  color: var(--warn);
+}
+
+.badge::before {
+  content: '[';
+}
+
+.badge::after {
+  content: ']';
+}
+
+.tip {
+  display: none;
+  position: absolute;
+  top: auto;
+  left: var(--cell);
+  right: var(--cell);
+  z-index: 2;
+  margin-top: calc(var(--row) / 4);
+  padding: calc(var(--row) / 4) var(--cell);
+  border: 1px solid var(--edge);
+  background: var(--bg-raised);
+  color: var(--fg);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.wrap:hover .tip,
+.badge:focus + .tip,
+.sentence:focus + .tip {
+  display: block;
+}
