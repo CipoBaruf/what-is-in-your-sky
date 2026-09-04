@@ -30,20 +30,20 @@ export const CANDIDATES: readonly Candidate[] = [
   {
     name: 'layered',
     title: 'C — layered: the PLAN §8.7 proposal in full',
-    note: 'Both scenes, the sky bowl lit from the Sun (FR-DOME-8a), eight meridians, the highlighted pass at double density (FR-DOME-8c), the pulse on the live marker (FR-DOME-8d).',
-    params: withDefaults({ base: true, bowl: true, ground: true, colors: true, colorSet: 'cool', meridians: 'eight', tilt: 45, passDensity: 2, pulse: true }),
+    note: 'Both scenes, the sky bowl lit from the Sun (FR-DOME-8a), eight meridians, the pulse on the live marker (FR-DOME-8d). FR-DOME-8c is off: per-mesh `density` misplaces the finer `<pre>` in 0.1.6 (`probe-density-2-390.png`).',
+    params: withDefaults({ base: true, bowl: true, ground: true, colors: true, colorSet: 'cool', meridians: 'eight', tilt: 45, passDensity: 1, pulse: true }),
   },
   {
     name: 'layered-coarse',
     title: 'D — layered with the fallbacks on',
     note: 'C with the three PLAN fallbacks applied at once: base layer at a third of the line grid, `colorTolerance` 128, `interactiveDownscale` 2 through `setInteracting`, and the base layer dropped while dragging.',
-    params: withDefaults({ base: true, bowl: true, ground: true, colors: true, colorSet: 'cool', meridians: 'eight', tilt: 50, passDensity: 2, pulse: true, baseRatio: 0.34, tol: 128, downscale: 2, dropBaseOnDrag: true }),
+    params: withDefaults({ base: true, bowl: true, ground: true, colors: true, colorSet: 'cool', meridians: 'eight', tilt: 50, passDensity: 1, pulse: true, baseRatio: 0.34, tol: 128, downscale: 2, dropBaseOnDrag: true }),
   },
   {
     name: 'ground-only',
     title: 'E — ground only, warm set',
     note: 'The base scene carries the ground disc and the Sun glow but no sky bowl, so the sky stays black and the second raster is nearly empty. Warm colour set, tilt at the low end of the FR-DOME-8 range.',
-    params: withDefaults({ base: true, bowl: false, ground: true, colors: true, colorSet: 'warm', meridians: 'eight', tilt: 35, passDensity: 2, pulse: true }),
+    params: withDefaults({ base: true, bowl: false, ground: true, colors: true, colorSet: 'warm', meridians: 'eight', tilt: 35, passDensity: 1, pulse: true }),
   },
 ];
 

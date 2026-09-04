@@ -1,0 +1,1510 @@
+{
+  "generatedBy": "npx tsx spike/dome-composition/capture.ts",
+  "cellWidthPx": 6.5,
+  "shots": {
+    "mono-golden-390": {
+      "query": "set=mono&base=0&colors=0",
+      "layers": [
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 0,
+          "styledSpans": 0,
+          "inkCells": 354,
+          "box": {
+            "width": 389.890625,
+            "height": 390,
+            "left": 8.046875,
+            "top": 312
+          },
+          "cellWidths": [
+            6.498177083333333
+          ]
+        }
+      ]
+    },
+    "mono-golden-1280": {
+      "query": "set=mono&width=1280&cols=197&base=0&colors=0",
+      "layers": [
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 197,
+          "rows": 99,
+          "spans": 0,
+          "styledSpans": 0,
+          "inkCells": 1375,
+          "box": {
+            "width": 1278.921875,
+            "height": 1287,
+            "left": 8.53125,
+            "top": 0
+          },
+          "cellWidths": [
+            6.49198921319797
+          ]
+        }
+      ]
+    },
+    "mono-high-390": {
+      "query": "pass=high&set=mono&base=0&colors=0",
+      "layers": [
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 0,
+          "styledSpans": 0,
+          "inkCells": 412,
+          "box": {
+            "width": 389.890625,
+            "height": 390,
+            "left": 8.046875,
+            "top": 312
+          },
+          "cellWidths": [
+            6.498177083333333
+          ]
+        }
+      ]
+    },
+    "mono-high-1280": {
+      "query": "pass=high&set=mono&width=1280&cols=197&base=0&colors=0",
+      "layers": [
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 197,
+          "rows": 99,
+          "spans": 0,
+          "styledSpans": 0,
+          "inkCells": 1650,
+          "box": {
+            "width": 1278.921875,
+            "height": 1287,
+            "left": 8.53125,
+            "top": 0
+          },
+          "cellWidths": [
+            6.49198921319797
+          ]
+        }
+      ]
+    },
+    "mono-night-390": {
+      "query": "pass=high&theme=night&set=mono&base=0&colors=0"
+    },
+    "lean-golden-390": {
+      "query": "tilt=40&base=0&mer=cardinal&pulse=1",
+      "layers": [
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 115,
+          "styledSpans": 115,
+          "inkCells": 344,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 312
+          },
+          "cellWidths": [
+            6.499479166666666
+          ]
+        }
+      ]
+    },
+    "lean-golden-1280": {
+      "query": "tilt=40&width=1280&cols=197&base=0&mer=cardinal&pulse=1",
+      "layers": [
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 197,
+          "rows": 99,
+          "spans": 464,
+          "styledSpans": 464,
+          "inkCells": 1320,
+          "box": {
+            "width": 1279.078125,
+            "height": 1287,
+            "left": 8.453125,
+            "top": 0
+          },
+          "cellWidths": [
+            6.492782360406092
+          ]
+        }
+      ]
+    },
+    "lean-high-390": {
+      "query": "pass=high&tilt=40&base=0&mer=cardinal&pulse=1",
+      "layers": [
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 127,
+          "styledSpans": 127,
+          "inkCells": 382,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 312
+          },
+          "cellWidths": [
+            6.499479166666666
+          ]
+        }
+      ]
+    },
+    "lean-high-1280": {
+      "query": "pass=high&tilt=40&width=1280&cols=197&base=0&mer=cardinal&pulse=1",
+      "layers": [
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 197,
+          "rows": 99,
+          "spans": 494,
+          "styledSpans": 494,
+          "inkCells": 1532,
+          "box": {
+            "width": 1279.078125,
+            "height": 1287,
+            "left": 8.453125,
+            "top": 0
+          },
+          "cellWidths": [
+            6.492782360406092
+          ]
+        }
+      ]
+    },
+    "lean-night-390": {
+      "query": "pass=high&theme=night&tilt=40&base=0&mer=cardinal&pulse=1"
+    },
+    "layered-golden-390": {
+      "query": "pulse=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 30,
+          "rows": 15,
+          "spans": 24,
+          "styledSpans": 24,
+          "inkCells": 169,
+          "box": {
+            "width": 390,
+            "height": 390,
+            "left": 8,
+            "top": 312
+          },
+          "cellWidths": [
+            13
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 127,
+          "styledSpans": 127,
+          "inkCells": 354,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 314
+          },
+          "cellWidths": [
+            6.499479166666666
+          ]
+        }
+      ]
+    },
+    "layered-golden-1280": {
+      "query": "width=1280&cols=197&pulse=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 99,
+          "rows": 50,
+          "spans": 96,
+          "styledSpans": 96,
+          "inkCells": 1851,
+          "box": {
+            "width": 1279.75,
+            "height": 1292.96875,
+            "left": 8.125,
+            "top": 0
+          },
+          "cellWidths": [
+            12.926767676767676
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 197,
+          "rows": 99,
+          "spans": 518,
+          "styledSpans": 518,
+          "inkCells": 1376,
+          "box": {
+            "width": 1279.09375,
+            "height": 1287,
+            "left": 8.453125,
+            "top": 4.90625
+          },
+          "cellWidths": [
+            6.492861675126903
+          ]
+        }
+      ]
+    },
+    "layered-high-390": {
+      "query": "pass=high&pulse=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 30,
+          "rows": 15,
+          "spans": 17,
+          "styledSpans": 17,
+          "inkCells": 169,
+          "box": {
+            "width": 390,
+            "height": 390,
+            "left": 8,
+            "top": 312
+          },
+          "cellWidths": [
+            13
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 131,
+          "styledSpans": 131,
+          "inkCells": 412,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 314
+          },
+          "cellWidths": [
+            6.499479166666666
+          ]
+        }
+      ]
+    },
+    "layered-high-1280": {
+      "query": "pass=high&width=1280&cols=197&pulse=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 99,
+          "rows": 50,
+          "spans": 59,
+          "styledSpans": 59,
+          "inkCells": 1854,
+          "box": {
+            "width": 1279.75,
+            "height": 1292.96875,
+            "left": 8.125,
+            "top": 0
+          },
+          "cellWidths": [
+            12.926767676767676
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 197,
+          "rows": 99,
+          "spans": 545,
+          "styledSpans": 545,
+          "inkCells": 1654,
+          "box": {
+            "width": 1279.09375,
+            "height": 1287,
+            "left": 8.453125,
+            "top": 4.90625
+          },
+          "cellWidths": [
+            6.492861675126903
+          ]
+        }
+      ]
+    },
+    "layered-night-390": {
+      "query": "pass=high&theme=night&pulse=1"
+    },
+    "layered-coarse-golden-390": {
+      "query": "tilt=50&baseratio=0.34&tol=128&downscale=2&pulse=1&dropbase=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 20,
+          "rows": 10,
+          "spans": 6,
+          "styledSpans": 6,
+          "inkCells": 72,
+          "box": {
+            "width": 389.921875,
+            "height": 390,
+            "left": 8.03125,
+            "top": 312
+          },
+          "cellWidths": [
+            19.49609375
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 96,
+          "styledSpans": 96,
+          "inkCells": 348,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 315.5
+          },
+          "cellWidths": [
+            6.499479166666666
+          ]
+        }
+      ]
+    },
+    "layered-coarse-golden-1280": {
+      "query": "tilt=50&width=1280&cols=197&baseratio=0.34&tol=128&downscale=2&pulse=1&dropbase=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 67,
+          "rows": 34,
+          "spans": 20,
+          "styledSpans": 20,
+          "inkCells": 807,
+          "box": {
+            "width": 1279.9375,
+            "height": 1298.90625,
+            "left": 8.03125,
+            "top": 0
+          },
+          "cellWidths": [
+            19.103544776119403
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 197,
+          "rows": 99,
+          "spans": 444,
+          "styledSpans": 444,
+          "inkCells": 1421,
+          "box": {
+            "width": 1279.09375,
+            "height": 1287,
+            "left": 8.453125,
+            "top": 9.046875
+          },
+          "cellWidths": [
+            6.492861675126903
+          ]
+        }
+      ]
+    },
+    "layered-coarse-high-390": {
+      "query": "pass=high&tilt=50&baseratio=0.34&tol=128&downscale=2&pulse=1&dropbase=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 20,
+          "rows": 10,
+          "spans": 6,
+          "styledSpans": 6,
+          "inkCells": 72,
+          "box": {
+            "width": 389.921875,
+            "height": 390,
+            "left": 8.03125,
+            "top": 312
+          },
+          "cellWidths": [
+            19.49609375
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 98,
+          "styledSpans": 98,
+          "inkCells": 396,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 315.5
+          },
+          "cellWidths": [
+            6.499479166666666
+          ]
+        }
+      ]
+    },
+    "layered-coarse-high-1280": {
+      "query": "pass=high&tilt=50&width=1280&cols=197&baseratio=0.34&tol=128&downscale=2&pulse=1&dropbase=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 67,
+          "rows": 34,
+          "spans": 20,
+          "styledSpans": 20,
+          "inkCells": 808,
+          "box": {
+            "width": 1279.9375,
+            "height": 1298.90625,
+            "left": 8.03125,
+            "top": 0
+          },
+          "cellWidths": [
+            19.103544776119403
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 197,
+          "rows": 99,
+          "spans": 489,
+          "styledSpans": 489,
+          "inkCells": 1577,
+          "box": {
+            "width": 1279.078125,
+            "height": 1287,
+            "left": 8.453125,
+            "top": 9.046875
+          },
+          "cellWidths": [
+            6.492782360406092
+          ]
+        }
+      ]
+    },
+    "layered-coarse-night-390": {
+      "query": "pass=high&theme=night&tilt=50&baseratio=0.34&tol=128&downscale=2&pulse=1&dropbase=1"
+    },
+    "ground-only-golden-390": {
+      "query": "set=warm&tilt=35&bowl=0&pulse=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 30,
+          "rows": 15,
+          "spans": 10,
+          "styledSpans": 10,
+          "inkCells": 186,
+          "box": {
+            "width": 389.984375,
+            "height": 390,
+            "left": 8,
+            "top": 312
+          },
+          "cellWidths": [
+            12.999479166666667
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 145,
+          "styledSpans": 145,
+          "inkCells": 381,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 314
+          },
+          "cellWidths": [
+            6.499479166666666
+          ]
+        }
+      ]
+    },
+    "ground-only-golden-1280": {
+      "query": "set=warm&tilt=35&width=1280&cols=197&bowl=0&pulse=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 99,
+          "rows": 50,
+          "spans": 31,
+          "styledSpans": 31,
+          "inkCells": 1946,
+          "box": {
+            "width": 1279.703125,
+            "height": 1292.96875,
+            "left": 8.140625,
+            "top": 0
+          },
+          "cellWidths": [
+            12.926294191919192
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 197,
+          "rows": 99,
+          "spans": 547,
+          "styledSpans": 547,
+          "inkCells": 1458,
+          "box": {
+            "width": 1279.09375,
+            "height": 1287,
+            "left": 8.453125,
+            "top": 4.90625
+          },
+          "cellWidths": [
+            6.492861675126903
+          ]
+        }
+      ]
+    },
+    "ground-only-high-390": {
+      "query": "pass=high&set=warm&tilt=35&bowl=0&pulse=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 30,
+          "rows": 15,
+          "spans": 11,
+          "styledSpans": 11,
+          "inkCells": 187,
+          "box": {
+            "width": 389.984375,
+            "height": 390,
+            "left": 8,
+            "top": 312
+          },
+          "cellWidths": [
+            12.999479166666667
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 154,
+          "styledSpans": 154,
+          "inkCells": 425,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 314
+          },
+          "cellWidths": [
+            6.499479166666666
+          ]
+        }
+      ]
+    },
+    "ground-only-high-1280": {
+      "query": "pass=high&set=warm&tilt=35&width=1280&cols=197&bowl=0&pulse=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 99,
+          "rows": 50,
+          "spans": 38,
+          "styledSpans": 38,
+          "inkCells": 1969,
+          "box": {
+            "width": 1279.71875,
+            "height": 1292.96875,
+            "left": 8.140625,
+            "top": 0
+          },
+          "cellWidths": [
+            12.92645202020202
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 197,
+          "rows": 99,
+          "spans": 596,
+          "styledSpans": 596,
+          "inkCells": 1702,
+          "box": {
+            "width": 1279.09375,
+            "height": 1287,
+            "left": 8.453125,
+            "top": 4.90625
+          },
+          "cellWidths": [
+            6.492861675126903
+          ]
+        }
+      ]
+    },
+    "ground-only-night-390": {
+      "query": "pass=high&theme=night&set=warm&tilt=35&bowl=0&pulse=1"
+    }
+  },
+  "probe": {
+    "density-1": {
+      "query": "pass=high&pulse=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 30,
+          "rows": 15,
+          "spans": 17,
+          "styledSpans": 17,
+          "inkCells": 169,
+          "box": {
+            "width": 390,
+            "height": 390,
+            "left": 8,
+            "top": 312
+          },
+          "cellWidths": [
+            13
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 131,
+          "styledSpans": 131,
+          "inkCells": 412,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 314
+          },
+          "cellWidths": [
+            6.499479166666666
+          ]
+        }
+      ]
+    },
+    "density-2": {
+      "query": "pass=high&density=2&pulse=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 30,
+          "rows": 15,
+          "spans": 17,
+          "styledSpans": 17,
+          "inkCells": 169,
+          "box": {
+            "width": 390,
+            "height": 390,
+            "left": 8,
+            "top": 312
+          },
+          "cellWidths": [
+            13
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 4,
+          "cols": 60,
+          "rows": 30,
+          "spans": 162,
+          "styledSpans": 162,
+          "inkCells": 393,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 314
+          },
+          "cellWidths": [
+            6.499479166666666,
+            3.2478693181818183,
+            3.2471064814814814,
+            3.25
+          ]
+        }
+      ]
+    },
+    "density-3": {
+      "query": "pass=high&density=3&pulse=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 30,
+          "rows": 15,
+          "spans": 17,
+          "styledSpans": 17,
+          "inkCells": 169,
+          "box": {
+            "width": 390,
+            "height": 390,
+            "left": 8,
+            "top": 312
+          },
+          "cellWidths": [
+            13
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 4,
+          "cols": 60,
+          "rows": 30,
+          "spans": 185,
+          "styledSpans": 185,
+          "inkCells": 393,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 314
+          },
+          "cellWidths": [
+            6.499479166666666,
+            2.1676136363636362,
+            2.166796875,
+            2.16796875
+          ]
+        }
+      ]
+    },
+    "colors-off": {
+      "query": "pass=high&colors=0&pulse=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 30,
+          "rows": 15,
+          "spans": 0,
+          "styledSpans": 0,
+          "inkCells": 169,
+          "box": {
+            "width": 389.953125,
+            "height": 390,
+            "left": 8.015625,
+            "top": 312
+          },
+          "cellWidths": [
+            12.9984375
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 0,
+          "styledSpans": 0,
+          "inkCells": 412,
+          "box": {
+            "width": 389.890625,
+            "height": 390,
+            "left": 8.046875,
+            "top": 314
+          },
+          "cellWidths": [
+            6.498177083333333
+          ]
+        }
+      ]
+    },
+    "tol-128": {
+      "query": "pass=high&tol=128&pulse=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 30,
+          "rows": 15,
+          "spans": 9,
+          "styledSpans": 9,
+          "inkCells": 169,
+          "box": {
+            "width": 389.984375,
+            "height": 390,
+            "left": 8,
+            "top": 312
+          },
+          "cellWidths": [
+            12.999479166666667
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 112,
+          "styledSpans": 112,
+          "inkCells": 412,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 314
+          },
+          "cellWidths": [
+            6.499479166666666
+          ]
+        }
+      ]
+    },
+    "tol-inf": {
+      "query": "pass=high&tol=765&pulse=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 30,
+          "rows": 15,
+          "spans": 9,
+          "styledSpans": 9,
+          "inkCells": 169,
+          "box": {
+            "width": 389.984375,
+            "height": 390,
+            "left": 8,
+            "top": 312
+          },
+          "cellWidths": [
+            12.999479166666667
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 87,
+          "styledSpans": 87,
+          "inkCells": 412,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 314
+          },
+          "cellWidths": [
+            6.499479166666666
+          ]
+        }
+      ]
+    },
+    "atlas": {
+      "query": "pass=high&encoding=atlas&pulse=1",
+      "layers": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 30,
+          "rows": 15,
+          "spans": 0,
+          "styledSpans": 0,
+          "inkCells": 169,
+          "box": {
+            "width": 389.734375,
+            "height": 390,
+            "left": 8.125,
+            "top": 312
+          },
+          "cellWidths": [
+            12.991145833333333
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 131,
+          "styledSpans": 131,
+          "inkCells": 412,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 314
+          },
+          "cellWidths": [
+            6.499479166666666
+          ]
+        }
+      ]
+    },
+    "base-off": {
+      "query": "pass=high&base=0&pulse=1",
+      "layers": [
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 131,
+          "styledSpans": 131,
+          "inkCells": 412,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 312
+          },
+          "cellWidths": [
+            6.499479166666666
+          ]
+        }
+      ]
+    },
+    "interactiveDownscale": {
+      "query": "downscale=2&pulse=1",
+      "before": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 30,
+          "rows": 15,
+          "spans": 24,
+          "styledSpans": 24,
+          "inkCells": 169,
+          "box": {
+            "width": 390,
+            "height": 390,
+            "left": 8,
+            "top": 312
+          },
+          "cellWidths": [
+            13
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 127,
+          "styledSpans": 127,
+          "inkCells": 354,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 314
+          },
+          "cellWidths": [
+            6.499479166666666
+          ]
+        }
+      ],
+      "during": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 30,
+          "rows": 15,
+          "spans": 17,
+          "styledSpans": 17,
+          "inkCells": 81,
+          "box": {
+            "width": 779.9375,
+            "height": 390,
+            "left": 8,
+            "top": 312
+          },
+          "cellWidths": [
+            25.997916666666665
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 30,
+          "rows": 15,
+          "spans": 88,
+          "styledSpans": 88,
+          "inkCells": 173,
+          "box": {
+            "width": 389.96875,
+            "height": 195,
+            "left": 202.984375,
+            "top": 411.5
+          },
+          "cellWidths": [
+            12.998958333333333
+          ]
+        }
+      ],
+      "after": [
+        {
+          "layer": "base",
+          "pres": 1,
+          "cols": 30,
+          "rows": 15,
+          "spans": 23,
+          "styledSpans": 23,
+          "inkCells": 169,
+          "box": {
+            "width": 390,
+            "height": 390,
+            "left": 8,
+            "top": 312
+          },
+          "cellWidths": [
+            13
+          ]
+        },
+        {
+          "layer": "lines",
+          "pres": 1,
+          "cols": 60,
+          "rows": 30,
+          "spans": 126,
+          "styledSpans": 126,
+          "inkCells": 352,
+          "box": {
+            "width": 389.96875,
+            "height": 390,
+            "left": 8.015625,
+            "top": 314
+          },
+          "cellWidths": [
+            6.499479166666666
+          ]
+        }
+      ]
+    },
+    "alignment": {
+      "baseBox": {
+        "width": 390,
+        "height": 390,
+        "left": 8,
+        "top": 312
+      },
+      "linesBox": {
+        "width": 389.96875,
+        "height": 390,
+        "left": 8.015625,
+        "top": 314
+      },
+      "deltaWidthPx": 0.03,
+      "deltaLeftPx": -0.02,
+      "deltaTopPx": -2
+    }
+  },
+  "perf": [
+    {
+      "name": "mono",
+      "query": "pass=high&set=mono&base=0&colors=0",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 37.1,
+      "mutationBatchesPerSecond": 37.1,
+      "longestFrameGapMs": 18.8,
+      "loafMaxMs": null,
+      "pointerMoves": 189,
+      "spans": 0,
+      "meetsTarget": true
+    },
+    {
+      "name": "lean",
+      "query": "pass=high&tilt=40&base=0&mer=cardinal&pulse=1",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 31.9,
+      "mutationBatchesPerSecond": 31.9,
+      "longestFrameGapMs": 35.1,
+      "loafMaxMs": 56.7,
+      "pointerMoves": 153,
+      "spans": 127,
+      "meetsTarget": true
+    },
+    {
+      "name": "layered",
+      "query": "pass=high&pulse=1",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 32.3,
+      "mutationBatchesPerSecond": 32.3,
+      "longestFrameGapMs": 25.7,
+      "loafMaxMs": null,
+      "pointerMoves": 123,
+      "spans": 145,
+      "meetsTarget": true
+    },
+    {
+      "name": "layered-coarse",
+      "query": "pass=high&tilt=50&baseratio=0.34&tol=128&downscale=2&pulse=1&dropbase=1",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 37.2,
+      "mutationBatchesPerSecond": 37.9,
+      "longestFrameGapMs": 40.2,
+      "loafMaxMs": null,
+      "pointerMoves": 152,
+      "spans": 99,
+      "meetsTarget": true
+    },
+    {
+      "name": "ground-only",
+      "query": "pass=high&set=warm&tilt=35&bowl=0&pulse=1",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 32.4,
+      "mutationBatchesPerSecond": 32.6,
+      "longestFrameGapMs": 33.9,
+      "loafMaxMs": null,
+      "pointerMoves": 117,
+      "spans": 163,
+      "meetsTarget": true
+    },
+    {
+      "name": "lines only, mono",
+      "query": "pass=high&base=0&colors=0",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 38.5,
+      "mutationBatchesPerSecond": 38.5,
+      "longestFrameGapMs": 26.3,
+      "loafMaxMs": null,
+      "pointerMoves": 197,
+      "spans": 0,
+      "meetsTarget": true
+    },
+    {
+      "name": "lines only, colour",
+      "query": "pass=high&base=0",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 38.2,
+      "mutationBatchesPerSecond": 38.2,
+      "longestFrameGapMs": 26.3,
+      "loafMaxMs": null,
+      "pointerMoves": 195,
+      "spans": 131,
+      "meetsTarget": true
+    },
+    {
+      "name": "+ base scene",
+      "query": "pass=high",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 38.1,
+      "mutationBatchesPerSecond": 38.3,
+      "longestFrameGapMs": 26.2,
+      "loafMaxMs": null,
+      "pointerMoves": 193,
+      "spans": 147,
+      "meetsTarget": true
+    },
+    {
+      "name": "+ pass density 2",
+      "query": "pass=high&density=2",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 32.4,
+      "mutationBatchesPerSecond": 32.4,
+      "longestFrameGapMs": 27.4,
+      "loafMaxMs": null,
+      "pointerMoves": 163,
+      "spans": 183,
+      "meetsTarget": true
+    },
+    {
+      "name": "+ pulse",
+      "query": "pass=high&density=2&pulse=1",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 30.2,
+      "mutationBatchesPerSecond": 30.4,
+      "longestFrameGapMs": 22.9,
+      "loafMaxMs": null,
+      "pointerMoves": 104,
+      "spans": 176,
+      "meetsTarget": true
+    },
+    {
+      "name": "fallback: colorTolerance 128",
+      "query": "pass=high&density=2&tol=128&pulse=1",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 30.4,
+      "mutationBatchesPerSecond": 30.4,
+      "longestFrameGapMs": 25.1,
+      "loafMaxMs": null,
+      "pointerMoves": 117,
+      "spans": 148,
+      "meetsTarget": true
+    },
+    {
+      "name": "fallback: downscale 2",
+      "query": "pass=high&density=2&downscale=2&pulse=1",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 34.8,
+      "mutationBatchesPerSecond": 35.4,
+      "longestFrameGapMs": 39.5,
+      "loafMaxMs": null,
+      "pointerMoves": 108,
+      "spans": 177,
+      "meetsTarget": true
+    },
+    {
+      "name": "fallback: drop base while dragging",
+      "query": "pass=high&density=2&pulse=1&dropbase=1",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 32.4,
+      "mutationBatchesPerSecond": 32.8,
+      "longestFrameGapMs": 37.9,
+      "loafMaxMs": null,
+      "pointerMoves": 119,
+      "spans": 173,
+      "meetsTarget": true
+    },
+    {
+      "name": "all three fallbacks",
+      "query": "pass=high&density=2&tol=128&downscale=2&pulse=1&dropbase=1",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 32.8,
+      "mutationBatchesPerSecond": 33.2,
+      "longestFrameGapMs": 33.5,
+      "loafMaxMs": null,
+      "pointerMoves": 134,
+      "spans": 153,
+      "meetsTarget": true
+    },
+    {
+      "name": "layered @1280",
+      "query": "pass=high&width=1280&cols=197&pulse=1",
+      "width": 1280,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 20.2,
+      "mutationBatchesPerSecond": 20.4,
+      "longestFrameGapMs": 67.1,
+      "loafMaxMs": 67,
+      "pointerMoves": 55,
+      "spans": 702,
+      "meetsTarget": false
+    },
+    {
+      "name": "layered @1280, fallbacks",
+      "query": "pass=high&width=1280&cols=197&tol=128&downscale=2&pulse=1&dropbase=1",
+      "width": 1280,
+      "cpuThrottle": 6,
+      "action": "drag",
+      "rasterPerSecond": 30.6,
+      "mutationBatchesPerSecond": 31.1,
+      "longestFrameGapMs": 50.7,
+      "loafMaxMs": null,
+      "pointerMoves": 101,
+      "spans": 615,
+      "meetsTarget": true
+    },
+    {
+      "name": "layered, no throttle",
+      "query": "pass=high&pulse=1",
+      "width": 390,
+      "cpuThrottle": 1,
+      "action": "drag",
+      "rasterPerSecond": 54.9,
+      "mutationBatchesPerSecond": 56.9,
+      "longestFrameGapMs": 26.3,
+      "loafMaxMs": null,
+      "pointerMoves": 262,
+      "spans": 148,
+      "meetsTarget": true
+    },
+    {
+      "name": "pulse only, no drag",
+      "query": "pass=high&pulse=1",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "pulse",
+      "rasterPerSecond": 17.4,
+      "mutationBatchesPerSecond": 17.4,
+      "longestFrameGapMs": 26.3,
+      "loafMaxMs": null,
+      "pointerMoves": 0,
+      "spans": 148,
+      "meetsTarget": false
+    },
+    {
+      "name": "pulse only, lines only",
+      "query": "pass=high&base=0&pulse=1",
+      "width": 390,
+      "cpuThrottle": 6,
+      "action": "pulse",
+      "rasterPerSecond": 17.8,
+      "mutationBatchesPerSecond": 17.8,
+      "longestFrameGapMs": 26.2,
+      "loafMaxMs": null,
+      "pointerMoves": 0,
+      "spans": 131,
+      "meetsTarget": false
+    }
+  ],
+  "contrast": {
+    "cool/dark": {
+      "highlighted": 11.75,
+      "flown": 6.73,
+      "dim": 5.28,
+      "peak": 11.93,
+      "shadow": 8.42,
+      "now": 19.22,
+      "horizon": 8.86,
+      "rings": 3.59,
+      "compass": 13.79,
+      "sun": 9.59,
+      "moon": 14.84,
+      "ground": 1.12,
+      "sky": 1.27
+    },
+    "cool/night": {
+      "highlighted": 7.28,
+      "flown": 4.19,
+      "dim": 3.39,
+      "peak": 10.12,
+      "shadow": 5.39,
+      "now": 15.61,
+      "horizon": 4.52,
+      "rings": 2.67,
+      "compass": 9.27,
+      "sun": 7.98,
+      "moon": 11.94,
+      "ground": 1.03,
+      "sky": 1.07
+    },
+    "warm/dark": {
+      "highlighted": 13.68,
+      "flown": 7.43,
+      "dim": 5.58,
+      "peak": 11.18,
+      "shadow": 8.42,
+      "now": 18.47,
+      "horizon": 8.45,
+      "rings": 3.47,
+      "compass": 14.84,
+      "sun": 10.9,
+      "moon": 15.3,
+      "ground": 1.07,
+      "sky": 1.16
+    },
+    "warm/night": {
+      "highlighted": 7.96,
+      "flown": 4.7,
+      "dim": 3.44,
+      "peak": 11.16,
+      "shadow": 5.6,
+      "now": 16.45,
+      "horizon": 5,
+      "rings": 2.87,
+      "compass": 10,
+      "sun": 8.8,
+      "moon": 13.03,
+      "ground": 1.04,
+      "sky": 1.08
+    },
+    "mono/dark": {
+      "highlighted": 13.79,
+      "flown": 13.79,
+      "dim": 5.28,
+      "peak": 13.79,
+      "shadow": 13.79,
+      "now": 19.22,
+      "horizon": 13.79,
+      "rings": 5.28,
+      "compass": 13.79,
+      "sun": 13.79,
+      "moon": 13.79,
+      "ground": 1.12,
+      "sky": 1.27
+    },
+    "mono/night": {
+      "highlighted": 9.27,
+      "flown": 9.27,
+      "dim": 3.39,
+      "peak": 9.27,
+      "shadow": 9.27,
+      "now": 15.61,
+      "horizon": 9.27,
+      "rings": 3.39,
+      "compass": 9.27,
+      "sun": 9.27,
+      "moon": 9.27,
+      "ground": 1.03,
+      "sky": 1.07
+    }
+  },
+  "consoleErrors": []
+}
