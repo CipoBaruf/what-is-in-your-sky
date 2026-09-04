@@ -1,9 +1,10 @@
 /**
  * R12 (FR-X-5), extended by R20 (FR-THEME-1..3, D-84): WCAG 2.1 contrast
  * ratios of the tokens in `src/ui/styles/tokens.css`, computed for **both**
- * themes over the same pair table, printed as the table the file's header
- * comment carries. `tests/styles/tokens.test.ts` recomputes the same numbers
- * in CI. Run: `npx tsx scripts/contrast.ts`.
+ * themes over the same pair table. It prints every column;
+ * `tokens.css` documents three of them (D-96) and
+ * `tests/styles/tokens.test.ts` recomputes those in CI, so the documented
+ * numbers cannot drift. Run: `npx tsx scripts/contrast.ts`.
  */
 import { readFileSync } from 'node:fs';
 
@@ -30,8 +31,9 @@ export const THEME_SELECTORS: Record<Theme, string> = { dark: ':root', night: '[
  * The colour declarations of one theme's block. The file is hand-written and
  * flat — one selector at the start of a line, one `{ … }`, no nesting — so a
  * line-anchored match on the selector and a read to the next `}` is enough.
- * The anchor matters: both selectors are also *named* in the header comment,
- * and an unanchored search would find the prose first.
+ * The anchor matters: `:root` is also *named* in the file's header comment,
+ * and an unanchored search would find the prose first and then read the
+ * wrong block.
  */
 export function readTokens(css: string, theme: Theme = 'dark'): Map<string, string> {
   const selector = THEME_SELECTORS[theme];
@@ -93,7 +95,7 @@ export function isRedHue(hex: string): boolean {
 
 if (process.argv[1]?.endsWith('contrast.ts')) {
   const css = readFileSync(TOKENS_PATH, 'utf8');
-  const byTheme = new Map(THEMES.map((theme) => [theme, readTokens(css, theme)]));
+  const byTheme = new Map<Theme, Map<string, string>>(THEMES.map((theme) => [theme, readTokens(css, theme)] as const));
   const get = (theme: Theme, name: string): string => {
     const value = byTheme.get(theme)?.get(name);
     if (!value) throw new Error(`no --${name} in the ${theme} block of ${TOKENS_PATH}`);
