@@ -90,9 +90,12 @@ export default defineConfig([
     rules: { '@typescript-eslint/no-restricted-imports': restrictedImports({ patterns: [NO_REACT] }) },
   },
   {
-    // `src/lib` may use physics types only (PLAN §3).
+    // `src/lib` may use physics types only (PLAN §3), with one exception named
+    // in the plan itself: `lib/skyBodies.ts` runs `sun.ts` and `moon.ts` on the
+    // main thread so the charts' Sun and Moon can follow the clock without a
+    // worker round trip (D-80, FR-DOME-6, FR-LIVE-5).
     files: ['src/lib/**'],
-    ignores: TESTS,
+    ignores: [...TESTS, 'src/lib/skyBodies.ts'],
     rules: {
       '@typescript-eslint/no-restricted-imports': restrictedImports({
         patterns: [NO_REACT, { group: ['**/physics/**', '**/physics'], allowTypeImports: true, message: 'src/lib may import physics types only (PLAN §3).' }],

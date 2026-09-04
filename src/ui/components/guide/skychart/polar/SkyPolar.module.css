@@ -1,3 +1,9 @@
+/* FR-DOME-2 / FR-DOME-7 / FR-THEME-3 (R22): one colour per meaning, from the
+   same `--chart-*` tokens the dome reads (R20, D-75), so the two views tell one
+   story and the night theme is a token swap. The polar chart takes them
+   straight from CSS — it draws SVG, not glyphs, so it needs no palette probe.
+   Colour is never the only channel (FR-X-5): the dim passes keep their thinner
+   stroke, the shadow marker its half fill, the markers their shapes. */
 .polar {
   display: contents;
 }
@@ -12,28 +18,28 @@
 
 .horizon {
   fill: none;
-  stroke: var(--fg);
+  stroke: var(--chart-horizon);
   stroke-width: 1;
 }
 
 .ring {
   fill: none;
-  stroke: var(--fg-dim);
+  stroke: var(--chart-rings);
   stroke-width: 0.75;
   stroke-dasharray: 3 3;
 }
 
 .zenith {
-  fill: var(--fg-dim);
+  fill: var(--chart-rings);
 }
 
 .tick {
-  stroke: var(--fg-dim);
+  stroke: var(--chart-rings);
   stroke-width: 1;
 }
 
 .cardinal {
-  fill: var(--fg);
+  fill: var(--chart-compass);
   font-size: 12px;
 }
 
@@ -41,62 +47,103 @@
   cursor: pointer;
 }
 
+/* The dim pass is dim by colour and by weight; no opacity, which would take the
+   token's measured contrast (R16) away from it. */
 .passDim {
   cursor: pointer;
-  opacity: 0.55;
 }
 
 .track {
   fill: none;
-  stroke: var(--accent);
+  stroke: var(--chart-pass);
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .passDim .track {
-  stroke: var(--fg-dim);
+  stroke: var(--chart-pass-dim);
+  stroke-width: 1.5;
+}
+
+/* FR-DOME-5: the part already flown, over the arc and in its own colour. */
+.flown {
+  fill: none;
+  stroke: var(--chart-pass-flown);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.passDim .flown {
   stroke-width: 1.5;
 }
 
 .arrow {
-  fill: var(--accent);
+  fill: var(--chart-pass);
 }
 
 .passDim .arrow {
-  fill: var(--fg-dim);
+  fill: var(--chart-pass-dim);
 }
 
 .point {
   fill: var(--bg);
-  stroke: var(--accent);
+  stroke: var(--chart-pass);
   stroke-width: 1.5;
 }
 
 .shadowHalf {
-  fill: var(--accent);
+  fill: var(--chart-shadow);
 }
 
 .peak {
-  fill: var(--accent);
+  fill: var(--chart-peak);
   stroke: var(--bg);
   stroke-width: 1;
 }
 
 .now {
-  fill: var(--warn);
+  fill: var(--chart-now);
   stroke: var(--bg);
   stroke-width: 1;
 }
 
-.passDim .point,
-.passDim .peak {
-  stroke: var(--fg-dim);
+.passDim .point {
+  stroke: var(--chart-pass-dim);
 }
 
-.passDim .peak,
-.passDim .shadowHalf {
-  fill: var(--fg-dim);
+.passDim .peak {
+  fill: var(--chart-peak);
+  stroke: var(--chart-pass-dim);
+}
+
+/* FR-DOME-6: the Sun's glow on the horizon and the Moon's disc where it is.
+   The glow's opacity is its strength, which is also its width and its height
+   (`../bodies`), so a Sun nearing the horizon reads brighter without the
+   marker changing meaning. */
+.glow {
+  fill: none;
+  stroke: var(--chart-sun);
+  stroke-linecap: round;
+}
+
+.moon {
+  fill: none;
+  stroke: var(--chart-moon);
+  stroke-width: 1.5;
+}
+
+.bodyLabel {
+  font-size: 9px;
+}
+
+.sunLabel {
+  fill: var(--chart-sun);
+}
+
+.moonLabel {
+  fill: var(--chart-moon);
 }
 
 .label {
