@@ -6,6 +6,7 @@ import { degrees, formatDuration, formatMagnitude } from '../../../lib/format';
 import { brightnessBand } from '../../../lib/phrases';
 import { formatClock, formatDate } from '../../../lib/timeFormat';
 import type { Pass, WeatherSnapshot } from '../../../model';
+import { MoonGlareLabel } from '../moon/MoonGlare';
 import { CloudBadge } from '../weather/CloudBadge';
 import styles from './PassCard.module.css';
 
@@ -18,7 +19,9 @@ import styles from './PassCard.module.css';
  * when the list passes a forecast (or null for "unknown"); times are in
  * `timeZone`, which the forecast fills in for coordinate input (FR-LOC-3).
  * R12: the field list and the open control are exported for the hero card,
- * which lays them out under its own heading.
+ * which lays them out under its own heading. R30: the `[moon glare]` label
+ * (FR-MOON-2) sits with the twilight one — both say the sky itself will be
+ * working against this pass.
  */
 export interface PassCardProps {
   pass: Pass;
@@ -91,6 +94,7 @@ export function PassCard({ pass, timeZone, onOpen, weather, selected = false }: 
         {pass.name}
       </h2>
       {pass.twilight && <p className={styles.twilight}>{t.passes.twilightLabel}</p>}
+      <MoonGlareLabel moon={pass.moonAtPeak} glare={pass.moonGlare} />
       <PassFields pass={pass} timeZone={timeZone} {...(weather !== undefined ? { weather } : {})} />
       {onOpen && <OpenGuide pass={pass} headingId={headingId} onOpen={onOpen} />}
     </article>

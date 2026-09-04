@@ -9,6 +9,7 @@ import { ThemeToggle } from '../components/common/ThemeToggle';
 import { GuidePanel } from '../components/guide/GuidePanel';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
+import { MoonGlareNote } from '../components/moon/MoonGlare';
 import { PassNumbers } from '../components/guide/PassNumbers';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import styles from './PassDetail.module.css';
@@ -39,6 +40,10 @@ import styles from './PassDetail.module.css';
  * (the header is right there and interactive) nor the scroll lock (nothing is
  * covered). What both shells share is everything that is about the guide
  * rather than its frame: the heading and its focus, Escape, and the content.
+ *
+ * R30 (FR-MOON-2): the glare sentence follows the chart, directly under the
+ * FR-GUIDE-1 sentence the chart captions itself with — one warning about this
+ * pass, right where the reader has just been told what to expect from it.
  */
 export interface PassDetailProps {
   pass: Pass;
@@ -102,6 +107,7 @@ export function PassDetail({ pass, observer, onClose }: PassDetailProps) {
       </p>
       <Countdown pass={pass} now={now} timeZone={timeZone} />
       <SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} now={now} />
+      <MoonGlareNote moon={pass.moonAtPeak} glare={pass.moonGlare} />
       <PassNumbers pass={pass} timeZone={timeZone} />
     </>
   );

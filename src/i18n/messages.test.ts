@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AgeParts } from '../lib/elementsAge';
+import type { MoonFacts, MoonGlareFacts, MoonLoreParams } from '../lib/moonPhrases';
 import type { GuideParams } from '../lib/phrases';
 import type { Locale } from '../model';
 import { en } from './en';
@@ -35,6 +36,9 @@ const GUIDE: GuideParams = {
   twilight: true,
 };
 const PHASES: CountdownPhase[] = ['before', 'to-peak', 'to-end', 'over'];
+const MOON: MoonFacts = { phase: 'waningGibbous', illumination: '74', up: true, direction: 'SSW', azimuth: '190°', elevation: '60°' };
+const MOON_GLARE: MoonGlareFacts = { illumination: '74', separation: '8°', minIllumination: '50', maxSeparation: '30°' };
+const MOON_LORE: MoonLoreParams = { sign: 'Taurus', fullMoonName: null, line: 'The bull carries Aldebaran.', hemisphereNote: null };
 
 /** Every message of a catalog, rendered: plain strings as they are, functions over the fixture parameters. */
 function render(t: Messages): string[] {
@@ -95,6 +99,16 @@ function render(t: Messages): string[] {
     t.now.remainingUnknown,
     t.now.clouds,
     t.now.asOf('21:14:32 GMT-3'),
+    ...Object.values(t.moon.phase),
+    t.moon.line(MOON),
+    t.moon.line({ ...MOON, up: false, phase: 'new' }),
+    t.moon.glare.label,
+    t.moon.glare.sentence,
+    t.moon.glare.tooltip(MOON_GLARE),
+    t.moon.lore.heading,
+    t.moon.lore.tradition,
+    t.moon.lore.line(MOON_LORE),
+    t.moon.lore.line({ ...MOON_LORE, fullMoonName: 'Harvest Moon' }),
     t.passes.heading,
     t.passes.noObserver,
     t.passes.loadingElements,

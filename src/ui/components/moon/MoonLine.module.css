@@ -1,0 +1,5 @@
+/* One line among the Now panel's own, on the same grid; the panel supplies the gap. */
+.line {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

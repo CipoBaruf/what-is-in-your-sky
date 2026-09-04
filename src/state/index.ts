@@ -16,6 +16,16 @@ export { SEARCH_WINDOW_HOURS, SEARCH_WINDOW_NIGHTS } from './passWindow';
 export { NOW_TICK_MS, ELEMENTS_RECHECK_MS } from './effects';
 /** The thresholds the state sends to the worker (D-27); the UI quotes them (e.g. "above 10°") from here, never from `src/physics`. */
 export { DEFAULT_THRESHOLDS } from '../physics/constants';
+/** R30 (FR-MOON-2): the glare thresholds the `[moon glare]` tooltip quotes, beside the visibility ones and for the same reason (D-27). */
+export { DEFAULT_MOON_GLARE_THRESHOLDS } from '../physics/constants';
+/**
+ * R30 (FR-MOON-4): the Moon's tradition file reaches the UI through the state,
+ * the way the catalog does (D-97, PLAN §3). These are lookups over one
+ * hand-reviewed file, never a computation, and nothing else in the app may
+ * produce tradition text (FR-MOON-5).
+ */
+export { MOON_LORE, fullMoonName, phaseLore, signAtLongitude } from '../data/moon';
+export type { FullMoonName, MoonPhaseLore, ZodiacSign, ZodiacSignEntry } from '../data/moon';
 /** R9: place-name search (PLAN §7.2, session-cached in `src/data`), handed to the UI through `src/state` so `src/ui` never imports `src/data` (PLAN §3). */
 export { searchPlaces };
 export type PlaceSearch = typeof searchPlaces;

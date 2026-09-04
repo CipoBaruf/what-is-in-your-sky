@@ -1,7 +1,8 @@
 import type { AgeParts } from '../lib/elementsAge';
 import type { CompassPoint } from '../lib/compass';
+import type { MoonFacts, MoonGlareFacts, MoonLoreParams } from '../lib/moonPhrases';
 import type { BrightnessBand, ElevationBand, GuideParams } from '../lib/phrases';
-import type { ChartOrientation, ChartView, CloudState, PassBoundaryReason, PassSort, Theme } from '../model';
+import type { ChartOrientation, ChartView, CloudState, MoonPhaseName, PassBoundaryReason, PassSort, Theme } from '../model';
 import type { CountdownPhase, LinkedText } from './messages';
 
 /**
@@ -76,6 +77,18 @@ const coordsInstead = 'enter coordinates instead';
 
 const cloudState = { clear: 'Clear', partly: 'Partly cloudy', obscured: 'Likely obscured', unknown: 'Weather unknown' } satisfies Record<CloudState, string>;
 
+/** FR-MOON-1's eight phases as they are read out. The keys are the physics', spelled as the lore file spells them (D-103). */
+const moonPhase = {
+  new: 'new',
+  waxingCrescent: 'waxing crescent',
+  firstQuarter: 'first quarter',
+  waxingGibbous: 'waxing gibbous',
+  full: 'full',
+  waningGibbous: 'waning gibbous',
+  lastQuarter: 'last quarter',
+  waningCrescent: 'waning crescent',
+} satisfies Record<MoonPhaseName, string>;
+
 export const en = {
   app: {
     /** FR-I18N-5: also the document title. */
@@ -141,6 +154,35 @@ export const en = {
     remainingUnknown: 'visible for a while yet',
     clouds: 'Clouds now:',
     asOf: (time: string) => `as of ${time}`,
+  },
+
+  moon: {
+    phase: moonPhase,
+    /**
+     * FR-MOON-3: the Moon's own line. Phase and illumination always; the
+     * direction and the elevation only while it is up, because a compass
+     * point for something under the ground is not a place to look.
+     */
+    line: (p: MoonFacts) => `Moon: ${moonPhase[p.phase]}, ${p.illumination} % lit, ${p.up ? `${p.direction} ${p.azimuth}, ${p.elevation} up` : 'below the horizon'}.`,
+    glare: {
+      /** FR-MOON-2's label on the pass card. */
+      label: 'moon glare',
+      /** …and the sentence the guide adds, in the requirement's own words. */
+      sentence: 'The Moon is bright and close to the track.',
+      tooltip: (p: MoonGlareFacts) =>
+        `The Moon is ${p.illumination} % lit and ${p.separation} from the pass peak. A pass is marked when the Moon is above the horizon at the peak, at least ${p.minIllumination} % lit and closer than ${p.maxSeparation}.`,
+    },
+    /**
+     * FR-MOON-4 / FR-MOON-5: tradition, labelled as tradition, worded as
+     * where a name comes from and never as what the night will bring. No
+     * observing fact is stated here or derived from it.
+     */
+    lore: {
+      heading: 'Moon tonight',
+      tradition: 'lore',
+      line: (p: MoonLoreParams) =>
+        `The Moon is in ${p.sign}${p.fullMoonName === null ? '' : `, and this month's full Moon is known as the ${p.fullMoonName}`}. ${p.line}`,
+    },
   },
 
   passes: {
