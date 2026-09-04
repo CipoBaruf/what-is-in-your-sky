@@ -1,8 +1,11 @@
 import { useEffect, useMemo } from 'react';
-import { I18nProvider, useT } from '../i18n/useT';
-import { searchPlaces, useAppStore } from '../state';
+import { I18nProvider, useLocale, useT } from '../i18n/useT';
+import { resolvePassLink } from '../lib/shareLinks';
+import { formatClock, formatDate } from '../lib/timeFormat';
+import { catalogName, searchPlaces, useAppStore } from '../state';
 import styles from './App.module.css';
 import { applyTheme } from './styles/theme';
+import { Banner } from './components/common/Banner';
 import { Footer } from './components/common/Footer';
 import { LanguageToggle } from './components/common/LanguageToggle';
 import { ThemeToggle } from './components/common/ThemeToggle';
@@ -53,8 +56,27 @@ export function App() {
   // R30: the tradition line needs a Moon, which arrives with the Now state for
   // this observer; there is nothing to say about the sky before that.
   const moon = now.observer === observer ? (now.state?.moon ?? null) : null;
-  const { selectedId, open, close } = usePassSelection();
-  const selected = useMemo(() => findSelectedPass(passes, selectedId), [passes, selectedId]);
+  const locale = useLocale();
+  const passesStatus = useAppStore((s) => s.passes.status);
+  const { selectedId, link, open, close } = usePassSelection();
+  // R31 (FR-SHARE-3): a shared pass is resolved against this device's own
+  // recompute — the same pass, the nearest pass of that object, or none — and
+  // a local selection is still just an id (D-33).
+  const resolution = useMemo(() => (link === null ? null : resolvePassLink(passes, link)), [passes, link]);
+  const selected = useMemo(() => (resolution === null ? findSelectedPass(passes, selectedId) : resolution.pass), [resolution, passes, selectedId]);
+  const timeZone = observer?.timeZone ?? null;
+  /*
+   * The message the recipient of a stale link reads, in both of FR-SHARE-3's
+   * branches: it names the satellite and the instant the link was made for,
+   * which is all the link itself said. It waits for the recompute to finish —
+   * before that, "no pass" would only mean "not yet".
+   */
+  const shareNotice = useMemo(() => {
+    if (link === null || resolution === null || resolution.kind === 'same' || passesStatus !== 'done') return null;
+    const name = resolution.pass?.name ?? catalogName(link.noradId);
+    const time = `${formatDate(link.startT, timeZone, locale)} ${formatClock(link.startT, timeZone, locale)}`;
+    return resolution.kind === 'nearest' ? t.share.nearest({ name, time }) : t.share.missing({ name, time });
+  }, [link, resolution, passesStatus, timeZone, locale, t]);
   const mode = useLayoutMode();
   // Only the compact sheet covers the page; the wide panel opens beside the
   // list, which stays live (FR-DESK-3).
@@ -80,6 +102,11 @@ export function App() {
         </div>
         <div className={styles.column} data-testid="col-right" data-guide={selected !== null ? 'open' : 'closed'}>
           <div className={styles.listColumn} data-testid="list-column">
+            {shareNotice && (
+              <Banner variant="info" testId="share-fallback">
+                {shareNotice}
+              </Banner>
+            )}
             {/* The resolved pass, not the hash: the id in the hash can be a second out (D-33) and would highlight nothing. */}
             <PassList onOpenPass={open} selectedPassId={selected ? selected.id : null} />
           </div>
