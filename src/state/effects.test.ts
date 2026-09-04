@@ -12,8 +12,8 @@ import { idbCache } from '../../tests/support/elementsCache';
 import { MOON_FIXTURE, NO_MOON_AT_PEAK } from '../../tests/support/moonFixtures';
 import { CATALOG } from '../data/catalog';
 import { loadElements } from '../data/elementsLoader';
-import type { CatalogEntry, NowState, Observer, Pass, PassRun, SatelliteRecord, WeatherSnapshot } from '../model';
-import type { FinishedRun } from '../data/passesCache';
+import type { CatalogEntry, EpochMs, NowState, Observer, Pass, PassRun, SatelliteRecord, WeatherSnapshot } from '../model';
+import { createPassesCache, MAX_STORED_RUNS, memoryPassRunStore, passCellKey, type FinishedRun, type PassRunStore } from '../data/passesCache';
 import { ALWAYS_VISIBLE, ELEMENTS_RECHECK_MS, NOW_TICK_MS, startEffects, type EffectDeps, type LoadedElements, type VisibilitySource } from './effects';
 import { SEARCH_WINDOW_MS } from './passWindow';
 import { createLocalPrefs } from '../data/localPrefs';
@@ -778,5 +778,124 @@ describe('stored passes (R24, FR-OFF-2, FR-OFF-5)', () => {
     await vi.waitFor(() => expect(store.getState().elements.status).toBe('ready'));
     expect(store.getState().passes).toMatchObject({ status: 'idle', storedAt: null });
     expect(requestedWhenStoredRendered).toBeNull();
+  });
+});
+
+/**
+ * TASKS R26 (FR-OFF-7, US-17 AC2/AC3, D-139): selecting a favourite is a
+ * `setObserver`, so it takes the ordinary observer-change chain — stored run,
+ * forecast, recompute — and the run it finishes with is written back. With the
+ * real cache behind the effects, the two-run prune (D-78) is what makes
+ * "offline data for the active place only" true, and the active place's run is
+ * the one that always survives it.
+ */
+describe('favourites (R26)', () => {
+  /** Three cells, degrees apart, so none of them rounds into another. */
+  const cordoba: Observer = { lat: -31.42, lon: -64.18, altM: 400, label: 'Córdoba', source: 'geocode', timeZone: 'America/Argentina/Cordoba' };
+  const places: Observer[] = [neuquen, paris, cordoba];
+  const cellFor = (observer: Observer): string => passCellKey(observer.lat, observer.lon);
+
+  let store: AppStore;
+  let worker: ReturnType<typeof fakeWorker>;
+  let client: WorkerClient;
+  let stop: () => void;
+  let runStore: PassRunStore;
+  let clock: EpochMs;
+  let elementsAccepted: boolean;
+
+  const sent = <T extends WorkerRequest['type']>(type: T) => worker.sent.filter((m): m is WorkerRequest & { type: T } => m.type === type);
+
+  /** A store whose prefs already hold the three places, and the effects over a real (in-memory) passes cache. */
+  const start = (): void => {
+    clock = NOW;
+    elementsAccepted = false;
+    runStore = memoryPassRunStore();
+    const cache = createPassesCache({ store: runStore, now: () => clock });
+    const map = new Map<string, string>();
+    const prefs = createLocalPrefs({ getItem: (key) => map.get(key) ?? null, setItem: (key, value) => void map.set(key, value), removeItem: (key) => void map.delete(key) });
+    store = createAppStore({ now: () => clock, prefs });
+    for (const observer of places) store.getState().addFavourite(observer);
+    worker = fakeWorker();
+    client = createWorkerClient(worker);
+    stop = startEffects({
+      store,
+      client,
+      catalog: CATALOG,
+      loadElements: freshLoader(),
+      loadWeather: neverWeather,
+      loadStoredRun: (observer) => cache.loadForObserver(observer),
+      saveRun: (run) => cache.save(run),
+      now: () => clock,
+      visibility: ALWAYS_VISIBLE,
+    });
+  };
+
+  /** Selects a place and drives its job to a finished run: one pass, uncancelled, stored. */
+  const selectAndFinish = async (observer: Observer, at: EpochMs): Promise<string> => {
+    clock = at;
+    expect(store.getState().selectFavourite(cellFor(observer))).toBe(true);
+    if (!elementsAccepted) {
+      await vi.waitFor(() => expect(sent('loadElements')).toHaveLength(1));
+      worker.emit({ type: 'elementsLoaded', requestId: sent('loadElements')[0]?.requestId ?? '', loaded: [], rejected: [] });
+      elementsAccepted = true;
+    }
+    const jobs = sent('computePasses').length;
+    await vi.waitFor(() => expect(sent('computePasses').length).toBeGreaterThan(jobs));
+    const jobId = sent('computePasses').at(-1)?.jobId ?? '';
+    worker.emit({ type: 'passes', jobId, noradId: 25544, nightIndex: 0, passes: [samplePass(25544, at + 60_000)] });
+    worker.emit({ type: 'jobDone', jobId, cancelled: false, elapsedMs: 9, hasDarkness: true });
+    await vi.waitFor(async () => {
+      expect(await runStore.get(cellFor(observer))).toBeDefined();
+    });
+    return jobId;
+  };
+
+  afterEach(() => {
+    stop();
+  });
+
+  it('selecting one makes it the observer and recomputes for it, over a window from the moment it was picked (FR-VIS-5)', async () => {
+    start();
+    const first = await selectAndFinish(paris, NOW + 60_000);
+    const job = sent('computePasses').at(-1);
+    expect(job?.observer).toEqual(paris);
+    expect(job?.window).toEqual({ startMs: NOW + 60_000, endMs: NOW + 60_000 + SEARCH_WINDOW_MS });
+    expect(store.getState().observer).toEqual(paris);
+
+    // And the next selection starts a job for the new place rather than letting the first one answer for it.
+    clock = NOW + 120_000;
+    store.getState().selectFavourite(cellFor(cordoba));
+    await vi.waitFor(() => expect(sent('computePasses')).toHaveLength(2));
+    expect(sent('computePasses')[1]?.jobId).not.toBe(first);
+    expect(sent('computePasses')[1]?.observer).toEqual(cordoba);
+  });
+
+  it('a selected place is served from its own stored run before anything is recomputed, with no geocode (FR-OFF-7, US-17 AC3)', async () => {
+    start();
+    await selectAndFinish(paris, NOW + 60_000);
+    await selectAndFinish(neuquen, NOW + 120_000);
+
+    // Back to Paris: its stored run is on screen as a stored list while the recompute runs.
+    clock = NOW + 180_000;
+    store.getState().selectFavourite(cellFor(paris));
+    await vi.waitFor(() => expect(store.getState().passes.storedAt).toBe(NOW + 60_000));
+    expect(store.getState().passes).toMatchObject({ observer: paris });
+    expect(store.getState().passes.passes.map((pass) => pass.start.t)).toEqual([NOW + 120_000]);
+    expect(store.getState().observer?.timeZone).toBeNull(); // whatever the favourite carried; nothing was looked up
+  });
+
+  it('keeps the active place offline and prunes the rest: three places, two runs, the active one always among them (D-78)', async () => {
+    start();
+    await selectAndFinish(neuquen, NOW + 60_000);
+    await selectAndFinish(paris, NOW + 120_000);
+    expect((await runStore.all()).map((run) => run.cellKey).sort()).toEqual([cellFor(neuquen), cellFor(paris)].sort());
+
+    await selectAndFinish(cordoba, NOW + 180_000);
+    const kept = (await runStore.all()).map((run) => run.cellKey);
+    expect(kept).toHaveLength(MAX_STORED_RUNS);
+    expect(kept).toContain(cellFor(cordoba)); // the active place's run survives the prune
+    expect(kept).not.toContain(cellFor(neuquen)); // the least recent one is the one that went
+    expect(store.getState().observer).toEqual(cordoba);
+    expect(store.getState().favourites).toHaveLength(3); // the place is still saved; only its offline data went
   });
 });
