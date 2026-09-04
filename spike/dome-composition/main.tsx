@@ -10,7 +10,8 @@
  */
 import { StrictMode, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { createRoot } from 'react-dom/client';
-import { drag as dragCamera, initialFor, readout, tilt as tiltCamera, turn, type CameraState } from '../../src/ui/components/guide/skychart/dome/camera';
+import { en } from '../../src/i18n/en';
+import { drag as dragCamera, initialFor, readoutParams, tilt as tiltCamera, turn, type CameraState } from '../../src/ui/components/guide/skychart/dome/camera';
 import { installPerf } from '../perf';
 import { CANDIDATES, candidate } from './candidates';
 import { passFor } from './fixtures';
@@ -170,7 +171,7 @@ function DomeView({ params, advances }: DomeViewProps) {
         <LayeredDome params={params} palette={palette} camera={camera} dragging={dragging} pulse={pulse} advances={advances} clock={clock} />
       </div>
       <p className="readout" data-testid="dome-readout">
-        {readout(camera)} · {params.cols} cols · {params.colors ? params.colorSet : 'mono'} · {params.base ? `base ${String(Math.round(params.cols * params.baseRatio))}` : 'no base'}
+        {en.chart.readout(readoutParams(camera))} · {params.cols} cols · {params.colors ? params.colorSet : 'mono'} · {params.base ? `base ${String(Math.round(params.cols * params.baseRatio))}` : 'no base'}
       </p>
     </div>
   );

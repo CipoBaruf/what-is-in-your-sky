@@ -19,7 +19,7 @@ import styles from './PassDetail.module.css';
  * observer is passed whole: the chart wants it (PLAN §8.1), the times want
  * its zone. The page's own scroll is locked while the sheet is up: the sheet
  * is fixed and scrolls itself, so the list's scrollbar behind it was a
- * second, dead scrollbar on desktop (R13 review). R17 (D-92): the sheet
+ * second, dead scrollbar on desktop (R13 review). R17 (D-94): the sheet
  * carries the language switch beside the back control — the page behind it,
  * header included, is inert while the sheet is up, so without it the
  * language could not be changed on this screen at all, and R31's share links

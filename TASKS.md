@@ -356,7 +356,8 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - The recommendation names the tilt default, the meridian set, the weights, one colour per FR-DOME-2 meaning in both themes, and whether the pulse survives ≥ 30 updates/s.
     - `npx tsc -b` and `npm run lint` clean.
 
-- [ ] **R17 — Language: two typed catalogs and the header switch**
+- [x] **R17 — Language: two typed catalogs and the header switch**
+  - **Done 2026-09-04:** as specified. Differences: the switch is on the guide sheet as well as the header (D-94) — the sheet is a fixed overlay and makes the header inert, so without it the language cannot be changed on the one screen a share link opens onto; `camera.readout` became `readoutParams` so `Messages['chart']['readout']` words the dome's facing line, and the R16 spike page words it with `en`; the main budget moves to its PLAN §11 v1 figure of 170 KB and measures **114.9 KB** (chart 93.6, worker 34.2). Captures: `docs/screenshots/r17-{home,passes,detail,numbers}-390-{en,es}.png`.
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
