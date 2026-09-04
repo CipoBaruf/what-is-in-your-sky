@@ -302,6 +302,8 @@ These plan SPEC v1.0 (V1-1..V1-11). Nothing here is implemented yet; each decisi
 
 - **D-113 — The dome's rise label keeps the polar view's nesting.** `domeLabels` knows the pass id of the peak and end labels too, but only the rise label renders `data-pass-id`, with the name in an inner `<span data-anchor="pass">` — exactly the polar chart's shape. D-56 wants one selector to read both views, and the contract test and two e2e specs do; putting the attributes on one element made `[data-pass-id] [data-anchor="pass"]` match nothing, and putting `data-pass-id` on all three made "one element per pass" false.
 
+- **Reserved for the wave starting on 2026-09-04, after R21 and R23 merged: R30 takes D-121 to D-125, R25 takes D-126 to D-130.** D-110 hands the numbers out in advance and asks each wave to append its own reservation as the last entry before it runs, so this is that entry and nothing more — it decides nothing and consumes no number of its own. The two tasks are the ones the driver selects: `ui` goes to R30 rather than R27 because R30 is ready and stands earlier in TASKS.md, and `data` goes to R25. A session numbers only inside its block, and the numbers it does not use stay unused.
+
 ---
 
 ## 3. Architecture Overview
