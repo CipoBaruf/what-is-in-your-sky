@@ -6,6 +6,12 @@
     <meta name="color-scheme" content="dark" />
     <!-- D-70: `lang` and the title are English here and corrected by `main.tsx` in the same tick, before the first render (FR-I18N-5). -->
     <title>What is in your sky right now</title>
+    <!-- R25 (FR-OFF-6): the manifest is hand-written in `public/`, not generated, and is not
+         localised — one name in one language, whichever language the page is showing. Safari
+         installs from the `apple-touch-icon` instead of the manifest's icons, so the 192 px one
+         is named here as well; the "Add to Home Screen" note that goes with it is R28's. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
   </head>
   <body>
     <div id="root"></div>
