@@ -1,0 +1,50 @@
+<svg viewBox="-125 -125 250 250" aria-hidden="true" data-drawing="polar" focusable="false">
+<g data-body="sun">
+<path d="M88.93 19.81 L90.10 13.55 L90.82 7.24 L91.11 0.88 L90.95 -5.47 L90.34 -11.80 L89.30 -18.08 L87.82 -24.26 L85.91 -30.33 L83.59 -36.25 L80.86 -41.99 L77.73 -47.53 L74.23 -52.84 L70.36 -57.89" stroke-width="17.78" opacity="0.58">
+</path>
+<text data-anchor="sun" x="79.42" y="-21.28" text-anchor="middle" dominant-baseline="central">Sun</text>
+</g>
+<circle r="100">
+</circle>
+<circle r="66.67" data-ring="30">
+</circle>
+<circle r="33.33" data-ring="60">
+</circle>
+<circle r="1.5">
+</circle>
+<line x1="-70.71" y1="-70.71" x2="-67.18" y2="-67.18">
+</line>
+<line x1="-70.71" y1="70.71" x2="-67.18" y2="67.18">
+</line>
+<line x1="70.71" y1="70.71" x2="67.18" y2="67.18">
+</line>
+<line x1="70.71" y1="-70.71" x2="67.18" y2="-67.18">
+</line>
+<text data-anchor="N" x="0.00" y="-114.00" text-anchor="middle" dominant-baseline="central">N</text>
+<text data-anchor="E" x="-114.00" y="-0.00" text-anchor="middle" dominant-baseline="central">E</text>
+<text data-anchor="S" x="-0.00" y="114.00" text-anchor="middle" dominant-baseline="central">S</text>
+<text data-anchor="W" x="114.00" y="0.00" text-anchor="middle" dominant-baseline="central">W</text>
+<g data-pass-id="25544-1789120094063">
+<path d="M-64.41 -61.25 L-66.76 -58.57 L-69.01 -55.81 L-71.16 -52.98 L-73.20 -50.19 L-75.14 -47.33 L-76.99 -44.40">
+</path>
+<path data-marker="flown" d="M-64.41 -61.25 L-66.76 -58.57 L-69.01 -55.81 L-71.07 -53.09">
+</path>
+<path data-marker="arrow" d="M0 0 L-8 -4 L-8 4 Z" transform="translate(-73.20 -50.19) rotate(126.18)">
+</path>
+<circle data-marker="rise" r="4" transform="translate(-64.41 -61.25)">
+</circle>
+<circle data-marker="end" r="4" transform="translate(-76.99 -44.40)">
+</circle>
+<path data-marker="peak" d="M0 -5 L5 0 L0 5 L-5 0 Z" transform="translate(-71.16 -52.98)">
+</path>
+<circle data-marker="now" r="4.5" transform="translate(-71.07 -53.09)">
+</circle>
+<text data-anchor="pass" x="-56.89" y="-46.66" text-anchor="start">ISS (Zarya) 09:48:14 UTC</text>
+<text data-anchor="peak" x="-79.17" y="-58.95" text-anchor="end">max 10°</text>
+</g>
+<g data-body="moon">
+<circle data-marker="moon" r="4.5" transform="translate(-7.92 -67.17)">
+</circle>
+<text data-anchor="moon" x="-7.92" y="-74.17" text-anchor="middle">◕ Moon</text>
+</g>
+</svg>

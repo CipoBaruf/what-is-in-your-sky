@@ -38,12 +38,19 @@ export interface Budget {
  * its own precisely because it is not in the main chunk — nothing the page
  * downloads to paint — and an overrun there would otherwise hide in the
  * unbudgeted rows.
+ *
+ * R22 adds the astronomy chunk at ≤ 30 KB: `lib/skyBodies.ts` and the part of
+ * `astronomy-engine` it pulls in, split out of the main chunk by the dynamic
+ * import in `useSkyBodies` (D-148). It is budgeted for the same reason as the
+ * service worker and unlike the other lazy rows: the app really does fetch it,
+ * once a chart is on screen. It measured 22.0 KB in R22.
  */
 export const BUDGETS: readonly Budget[] = [
   { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 170 },
   { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 100 },
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 120 },
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 15 },
+  { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 30 },
 ];
 
 export interface ChunkSize {

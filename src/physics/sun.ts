@@ -13,15 +13,23 @@ import { unit, type Vec3 } from './frames';
 import { msToDate } from './time';
 
 /**
- * Geometric (unrefracted) altitude of the sun's centre above the observer's
- * horizon, in degrees. Twilight thresholds (−6°, −12°) are geometric, so
- * refraction is deliberately off (D-2).
+ * Where the sun is for `observer` at `t`: azimuth from north through east and
+ * geometric (unrefracted) altitude of its centre, both in degrees. Twilight
+ * thresholds (−6°, −12°) are geometric, so refraction is deliberately off
+ * (D-2). The azimuth is what FR-DOME-6 draws the glow at (R22); the altitude
+ * is what the darkness test has always used.
  */
-export function sunAltitudeDeg(observer: Observer, t: EpochMs): number {
+export function sunAt(observer: Observer, t: EpochMs): { azDeg: number; altDeg: number } {
   const time = MakeTime(msToDate(t));
   const obs = new AeObserver(observer.lat, observer.lon, observer.altM);
   const eq = Equator(Body.Sun, time, obs, true, true);
-  return Horizon(time, obs, eq.ra, eq.dec).altitude; // refraction omitted = none
+  const horizon = Horizon(time, obs, eq.ra, eq.dec); // refraction omitted = none
+  return { azDeg: horizon.azimuth, altDeg: horizon.altitude };
+}
+
+/** Geometric altitude of the sun's centre above the observer's horizon, in degrees. */
+export function sunAltitudeDeg(observer: Observer, t: EpochMs): number {
+  return sunAt(observer, t).altDeg;
 }
 
 /**

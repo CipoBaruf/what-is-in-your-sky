@@ -10,7 +10,7 @@ import { loadFixturePair } from '../../tests/support/fixtures';
 import { runOurPipeline } from '../../tests/support/heavensAbove';
 import { loadReferenceValues } from '../../tests/support/reference';
 import type { PassPoint } from '../model';
-import { angularDistanceDeg, fromDome, interpolatePoint, interpolateTrack, resampleArc, toDome, toPolar, trackPeakIndex } from './skyGeometry';
+import { angularDistanceDeg, fromDome, interpolatePoint, interpolateTrack, resampleArc, splitArcAt, toDome, toPolar, trackPeakIndex } from './skyGeometry';
 
 const EPS = 1e-9;
 const close = (v: object, expected: Record<string, number>): void => {
@@ -139,5 +139,49 @@ describe('interpolateTrack', () => {
     expect(interpolatePoint(a, b, 1)).toBe(b);
     expect(() => interpolateTrack([], 0)).toThrow();
     expect(Math.abs(toDome(0, 0).y)).toBeLessThan(EPS);
+  });
+});
+
+describe('splitArcAt (FR-DOME-5)', () => {
+  const pass = goldenPass();
+  const arc = resampleArc(pass.track, 2);
+
+  it('cuts the golden pass at a sample boundary: the sample itself ends the flown half and begins the rest', () => {
+    const sample = arc[5] as PassPoint;
+    const { flown, remaining } = splitArcAt(arc, sample.t);
+    expect(flown.at(-1)).toEqual(sample);
+    expect(remaining[0]).toEqual(sample);
+    // The shared point is counted once, so the two halves rebuild the arc exactly.
+    expect(flown.length + remaining.length).toBe(arc.length + 1);
+    expect([...flown.slice(0, -1), ...remaining]).toEqual(arc);
+  });
+
+  it('cuts between two samples at the interpolated position, and both halves stay in time order', () => {
+    const a = arc[3] as PassPoint;
+    const b = arc[4] as PassPoint;
+    const t = Math.round((a.t + b.t) / 2);
+    const { flown, remaining } = splitArcAt(arc, t);
+    const cut = flown.at(-1) as PassPoint;
+    expect(cut).toEqual(remaining[0]);
+    expect(cut.t).toBe(t);
+    // The cut lies on the segment (the two legs add up to it) and, the times
+    // being rounded to whole milliseconds, near enough its middle.
+    expect(angularDistanceDeg(a, cut) + angularDistanceDeg(cut, b)).toBeCloseTo(angularDistanceDeg(a, b), 6);
+    expect(angularDistanceDeg(a, cut)).toBeCloseTo(angularDistanceDeg(cut, b), 2);
+    for (const half of [flown, remaining]) {
+      for (let i = 1; i < half.length; i++) expect((half[i] as PassPoint).t).toBeGreaterThanOrEqual((half[i - 1] as PassPoint).t);
+    }
+    expect(flown[0]).toEqual(arc[0]);
+    expect(remaining.at(-1)).toEqual(arc.at(-1));
+  });
+
+  it('leaves the whole arc to come before the pass, the whole arc flown after it, and does not cut without an instant', () => {
+    for (const t of [undefined, pass.start.t - 1, pass.start.t]) {
+      expect(splitArcAt(arc, t)).toEqual({ flown: [], remaining: arc });
+    }
+    for (const t of [pass.end.t, pass.end.t + 60_000]) {
+      expect(splitArcAt(arc, t)).toEqual({ flown: arc, remaining: [] });
+    }
+    expect(splitArcAt([], 0)).toEqual({ flown: [], remaining: [] });
   });
 });

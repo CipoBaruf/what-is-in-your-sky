@@ -180,6 +180,13 @@
   margin-top: -1.3em;
 }
 
+/* FR-DOME-6: the Sun's and the Moon's names. Set at the degree numbers' size —
+   they are context, not the subject — but at full opacity, since a body's name
+   has to stay legible over the glow it sits on. */
+.body {
+  font-size: 9px;
+}
+
 .passLabel {
   color: var(--accent);
 }

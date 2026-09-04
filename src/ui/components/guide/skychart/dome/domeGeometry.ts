@@ -1,5 +1,6 @@
-import { interpolateTrack, resampleArc, toDome, type Vec3 } from '../../../../../lib/skyGeometry';
-import type { Pass, PassPoint } from '../../../../../model';
+import { interpolateTrack, resampleArc, splitArcAt, toDome, type Vec3 } from '../../../../../lib/skyGeometry';
+import type { MoonState, Pass, PassPoint } from '../../../../../model';
+import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible } from '../bodies';
 
 /**
  * PLAN §8.3 / §8.7 (R15, extended by R21): the dome scene as polygon lists for
@@ -223,6 +224,29 @@ export function passStrip(pass: Pass, options: { highlighted: boolean; color?: s
   });
 }
 
+/**
+ * FR-DOME-5: the part of the arc the satellite has already flown at `now`,
+ * drawn in the flown colour over the arc itself. A hair further out
+ * (`FLOWN_RADIUS`) so it wins the raster where the two strips share a cell,
+ * and it ends exactly under the live marker, which `splitArcAt` guarantees by
+ * giving both halves the same cut point. Empty before the pass starts, which
+ * is also what `now === undefined` means here.
+ */
+export const FLOWN_RADIUS = 1.004;
+
+export function flownStrip(pass: Pass, now: number | undefined, options: { highlighted: boolean; color?: string } = { highlighted: true }): Poly[] {
+  const { flown } = splitArcAt(resampleArc(pass.track, ARC_STEP_DEG), now);
+  if (flown.length < 2) return [];
+  return stripAlong(
+    flown.map((p) => tuple(toDome(p.azDeg, p.elDeg))),
+    {
+      halfWidthDeg: options.highlighted ? PASS_HALF_WIDTH_DEG : DIM_PASS_HALF_WIDTH_DEG,
+      radius: FLOWN_RADIUS,
+      ...(options.color ? { color: options.color } : {}),
+    },
+  );
+}
+
 /** Tangent-plane frame at `p`: `e` along the local east-ish direction, `f = p × e`. */
 function tangentFrame(p: Tuple3): [Tuple3, Tuple3] {
   let e = norm(cross([0, 0, 1], p));
@@ -293,6 +317,38 @@ export function nowMarker(point: { azDeg: number; elDeg: number }, color?: strin
   return diamond(point, NOW_MARKER_SIZE_DEG, NOW_MARKER_RADIUS, color);
 }
 
+/** FR-DOME-6: the Moon's disc, and how far above it its label sits. */
+export const MOON_MARKER_SIZE_DEG = 2.5;
+export const MOON_LABEL_OFFSET_DEG = 5;
+const MOON_RING_STEP_DEG = 30;
+
+/**
+ * A small circle of angular radius `sizeDeg` around a sky point: the outline
+ * of a disc, drawn as a closed strip so the wireframe strokes it once.
+ */
+export function circleAround(point: { azDeg: number; elDeg: number }, sizeDeg: number, radius = MARKER_RADIUS, color?: string): Poly[] {
+  const p = tuple(toDome(point.azDeg, point.elDeg));
+  const [e, f] = tangentFrame(p);
+  const s = Math.sin(sizeDeg * DEG);
+  const pts: Tuple3[] = [];
+  for (let a = 0; a < 360; a += MOON_RING_STEP_DEG) {
+    const th = a * DEG;
+    pts.push(mul(norm(add(p, add(mul(e, s * Math.cos(th)), mul(f, s * Math.sin(th))))), radius));
+  }
+  return stripAlong(pts, { halfWidthDeg: GRID_HALF_WIDTH_DEG, radius, closed: true, ...(color ? { color } : {}) });
+}
+
+/**
+ * FR-DOME-6: the Moon as a disc at its own place in the sky, drawn only while
+ * it is above the horizon. A circle rather than a diamond, so it is not read
+ * as one more pass marker; the phase is carried by the label's glyph, which is
+ * where a shape the raster can render it at survives (`../bodies`).
+ */
+export function moonMarker(moon: Pick<MoonState, 'azDeg' | 'elDeg'>, color?: string): Poly[] {
+  if (!moonVisible(moon)) return [];
+  return circleAround(moon, MOON_MARKER_SIZE_DEG, MARKER_RADIUS, color);
+}
+
 export const COMPASS: readonly { label: string; azDeg: number }[] = [
   { label: 'N', azDeg: 0 },
   { label: 'NE', azDeg: 45 },
@@ -357,8 +413,14 @@ export function projectToScreen(at: Tuple3, camera: { rotYDeg: number; tiltDeg: 
 
 /* ---- FR-DOME-3: labels that do not overlap ---- */
 
-/** The fixed resolution order of FR-DOME-3: the compass names win, then the peak, the rise and the end labels. */
-export const LABEL_ORDER = ['compass', 'peak', 'rise', 'end'] as const;
+/**
+ * The fixed resolution order of FR-DOME-3: the compass names win, then the
+ * peak, the rise and the end labels. R22 adds the Sun's and the Moon's names
+ * (FR-DOME-6) at the end of it: the passes are what the drawing is about and
+ * the two bodies are the context they are seen against, so a body's name is
+ * the one that moves when the two want the same place.
+ */
+export const LABEL_ORDER = ['compass', 'peak', 'rise', 'end', 'sun', 'moon'] as const;
 export type LabelKind = (typeof LABEL_ORDER)[number];
 /** How far along its ring a label may move, and in what steps (degrees of azimuth). */
 export const LABEL_SHIFT_STEP_DEG = 5;
@@ -498,19 +560,15 @@ export function skyBowl(color?: string): Poly[] {
   return out;
 }
 
-/** FR-DOME-6: how wide and how bright the Sun's glow is at a Sun altitude — nothing at −18°, full at the horizon. */
-export function glowStrength(sunAltDeg: number): number {
-  if (sunAltDeg > 0) return 1;
-  if (sunAltDeg < -18) return 0;
-  return 1 + sunAltDeg / 18;
-}
+/** FR-DOME-6's ramp, shared with the polar view (`../bodies`) so both draw one Sun. */
+export { glowStrength };
 
 /** FR-DOME-6: the Sun as a patch of light on the horizon ring at its azimuth, wider and taller the closer it is to rising. */
 export function sunGlow(sun: { azDeg: number; altDeg: number }, color?: string): Poly[] {
   const strength = glowStrength(sun.altDeg);
   if (strength <= 0) return [];
-  const halfWidth = 12 + 28 * strength;
-  const height = 6 + 18 * strength;
+  const halfWidth = glowHalfWidthDeg(strength);
+  const height = glowHeightDeg(strength);
   const step = halfWidth / 4;
   const out: Poly[] = [];
   for (let d = -halfWidth; d < halfWidth; d += step) {

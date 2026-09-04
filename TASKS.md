@@ -560,7 +560,7 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - The line fits one line at 390 px in both languages.
     - Captures in both languages and both themes.
 
-- [ ] **R22 — Live marker, Sun and Moon in both chart views**
+- [x] **R22 — Live marker, Sun and Moon in both chart views**
   - **Lane:** chart
   - **Model:** fable
   - **Gate:** owner

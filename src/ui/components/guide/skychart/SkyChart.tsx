@@ -7,6 +7,7 @@ import { ChartFrame } from './ChartFrame';
 import { POLAR_VIEW } from './polar/SkyPolar';
 import styles from './SkyChart.module.css';
 import type { SkyChartProps, SkyChartView } from './SkyChart.types';
+import { useSkyBodies } from './useSkyBodies';
 
 /**
  * PLAN §8.1 (R13): the single boundary the app mounts. A `<figure>` whose
@@ -56,6 +57,9 @@ export function SkyChart(props: SkyChartProps) {
   const view = viewFor(chartView);
   const { passes, highlightedPassId, observer, className } = props;
   const captioned = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
+  // FR-DOME-6: one evaluation for whichever view is mounted, so the toggle
+  // never changes where the Sun and the Moon are (R22).
+  const bodies = useSkyBodies(props);
   return (
     <figure className={[styles.figure, className].filter(Boolean).join(' ')} data-testid="sky-chart" data-view={view.id}>
       <figcaption className={styles.caption}>{captioned ? <GuideText pass={captioned} timeZone={observer.timeZone} /> : <p className={styles.empty}>{t.chart.noPass}</p>}</figcaption>
@@ -68,7 +72,7 @@ export function SkyChart(props: SkyChartProps) {
           onChange={setChartView}
         />
       )}
-      <view.Component {...props} />
+      <view.Component {...props} sun={bodies.sun} moon={bodies.moon} />
     </figure>
   );
 }

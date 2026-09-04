@@ -2,10 +2,12 @@ import { useAppStore } from '../../../../../state';
 import { useLocale, useT } from '../../../../../i18n/useT';
 import type { Messages } from '../../../../../i18n/messages';
 import { degrees } from '../../../../../lib/format';
-import { interpolateTrack, resampleArc, toPolar } from '../../../../../lib/skyGeometry';
+import { interpolateTrack, resampleArc, splitArcAt, toPolar } from '../../../../../lib/skyGeometry';
+import type { SunState } from '../../../../../lib/skyBodies';
 import { formatClock } from '../../../../../lib/timeFormat';
-import type { ChartOrientation, Locale, Pass, PassPoint } from '../../../../../model';
+import type { ChartOrientation, Locale, MoonState, Pass, PassPoint } from '../../../../../model';
 import { OptionToggle } from '../../../common/OptionToggle';
+import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonGlyph, moonVisible, sunVisible } from '../bodies';
 import { ChartFrame } from '../ChartFrame';
 import type { SkyChartProps, SkyChartView } from '../SkyChart.types';
 import styles from './SkyPolar.module.css';
@@ -103,9 +105,15 @@ interface ArcProps {
   locale: Locale;
 }
 
+/** An open polyline through projected points; empty for fewer than two of them. */
+const polyline = (points: readonly Xy[]): string => (points.length < 2 ? '' : points.map((p, i) => `${i === 0 ? 'M' : 'L'}${fmt(p.x)} ${fmt(p.y)}`).join(' '));
+
 function PassArc({ pass, orientation, timeZone, dim, now, onSelect, t, locale }: ArcProps) {
-  const points = resampleArc(pass.track, ARC_STEP_DEG).map((p) => project(p, orientation));
-  const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${fmt(p.x)} ${fmt(p.y)}`).join(' ');
+  const arc = resampleArc(pass.track, ARC_STEP_DEG);
+  const points = arc.map((p) => project(p, orientation));
+  const d = polyline(points);
+  // FR-DOME-5: the part already flown at `now`, drawn over the arc in its own colour.
+  const flown = polyline(splitArcAt(arc, now).flown.map((p) => project(p, orientation)));
   const rise = project(pass.start, orientation);
   const peak = project(pass.peak, orientation);
   const end = project(pass.end, orientation);
@@ -132,6 +140,7 @@ function PassArc({ pass, orientation, timeZone, dim, now, onSelect, t, locale }:
       }}
     >
       <path className={styles.track} d={d} />
+      {flown && <path className={styles.flown} data-marker="flown" d={flown} />}
       <path className={styles.arrow} data-marker="arrow" d="M0 0 L-8 -4 L-8 4 Z" transform={`${at(tip)} rotate(${fmt(headingDeg)})`} />
       <Marker kind={pass.startReason === 'shadow' ? 'shadow' : 'rise'} p={rise} />
       <Marker kind={pass.endReason === 'shadow' ? 'shadow' : 'end'} p={end} />
@@ -142,6 +151,49 @@ function PassArc({ pass, orientation, timeZone, dim, now, onSelect, t, locale }:
       </text>
       <text className={styles.label} data-anchor="peak" {...peakAt}>
         {peakText}
+      </text>
+    </g>
+  );
+}
+
+/** How far above a body's marker its name sits, in user units. */
+const BODY_LABEL_GAP = 7;
+/** The glow is sampled every few degrees of azimuth; enough for a smooth band at this radius. */
+const GLOW_STEP_DEG = 4;
+
+/**
+ * FR-DOME-6: the Sun as a band of light on the horizon at its azimuth, wider,
+ * taller and brighter the closer it is to rising — the same `../bodies` ramp
+ * the dome's glow is built from, so the two views agree about where the Sun is
+ * and how strongly it shows. The band is a thick stroked arc centred half its
+ * own height above the horizon, so it fills the sky from the horizon up.
+ */
+function SunGlow({ sun, orientation, label }: { sun: SunState; orientation: ChartOrientation; label: string }) {
+  const strength = glowStrength(sun.altDeg);
+  const halfWidth = glowHalfWidthDeg(strength);
+  const height = glowHeightDeg(strength);
+  const points: Xy[] = [];
+  for (let d = -halfWidth; d <= halfWidth; d += GLOW_STEP_DEG) points.push(project({ azDeg: sun.azDeg + d, elDeg: height / 2 }, orientation));
+  const width = (HORIZON_R * height) / 90;
+  const name = project({ azDeg: sun.azDeg, elDeg: height }, orientation);
+  return (
+    <g data-body="sun">
+      <path className={styles.glow} d={polyline(points)} strokeWidth={fmt(width)} opacity={fmt(0.3 + 0.5 * strength)} />
+      <text className={[styles.bodyLabel, styles.sunLabel].join(' ')} data-anchor="sun" x={fmt(name.x)} y={fmt(name.y)} textAnchor="middle" dominantBaseline="central">
+        {label}
+      </text>
+    </g>
+  );
+}
+
+/** FR-DOME-6: the Moon's disc where it is, with its phase glyph in the label (`../bodies`). */
+function MoonMarker({ moon, orientation, label }: { moon: MoonState; orientation: ChartOrientation; label: string }) {
+  const p = project(moon, orientation);
+  return (
+    <g data-body="moon">
+      <circle className={styles.moon} data-marker="moon" r="4.5" transform={at(p)} />
+      <text className={[styles.bodyLabel, styles.moonLabel].join(' ')} data-anchor="moon" x={fmt(p.x)} y={fmt(p.y - BODY_LABEL_GAP)} textAnchor="middle">
+        {label}
       </text>
     </g>
   );
@@ -166,7 +218,7 @@ function Marker({ kind, p }: { kind: 'rise' | 'end' | 'shadow' | 'peak' | 'now';
   }
 }
 
-export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, now, className }: SkyChartProps) {
+export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, className }: SkyChartProps) {
   const t = useT();
   const locale = useLocale();
   const orientation = useAppStore((s) => s.chartOrientation);
@@ -183,6 +235,8 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
         }
       >
       <svg className={styles.svg} viewBox={VIEWBOX} aria-hidden="true" data-drawing="polar" focusable="false">
+        {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}
+        {sun && sunVisible(sun) && <SunGlow sun={sun} orientation={orientation} label={t.chart.sunLabel} />}
         <circle className={styles.horizon} r={HORIZON_R} />
         <circle className={styles.ring} r={fmt(ring(30))} data-ring="30" />
         <circle className={styles.ring} r={fmt(ring(60))} data-ring="60" />
@@ -213,6 +267,8 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
             locale={locale}
           />
         ))}
+        {/* …and the Moon over them, so a pass that crosses it does not hide it. */}
+        {moon && moonVisible(moon) && <MoonMarker moon={moon} orientation={orientation} label={t.chart.moonLabel(moonGlyph(moon))} />}
       </svg>
       </ChartFrame>
     </div>

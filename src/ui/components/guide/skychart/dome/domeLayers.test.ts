@@ -12,8 +12,9 @@
  */
 import { describe, expect, it } from 'vitest';
 import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
+import { MOON_DOWN, MOON_FIXTURE } from '../../../../../../tests/support/moonFixtures';
 import type { Pass } from '../../../../../model';
-import { LABEL_SHIFT_MAX_DEG, RING_ELEVATIONS, TICK_LABEL_STEP_DEG, type LabelBox } from './domeGeometry';
+import { LABEL_SHIFT_MAX_DEG, MOON_LABEL_OFFSET_DEG, RING_ELEVATIONS, TICK_LABEL_STEP_DEG, type LabelBox } from './domeGeometry';
 import { baseLayer, domeLabels, domeLayers, lineLayer, type DomeLabel, type LayersInput, type PassLabelText } from './domeLayers';
 import type { DomePalette } from './palette';
 import { MEANINGS } from './palette';
@@ -203,5 +204,85 @@ describe('domeLabels (FR-DOME-3, FR-DOME-4)', () => {
     const labels = domeLabels(input({ passes: [pass, other], highlightedPassId: null }));
     expect(labels.filter((label) => label.kind === 'peak')).toHaveLength(2);
     expect(labels.filter((label) => label.passId !== undefined).every((label) => label.highlighted)).toBe(true);
+  });
+});
+
+describe('the live marker and the flown arc (FR-DOME-5)', () => {
+  const midway = Math.round((pass.start.t + pass.end.t) / 2);
+
+  it('adds a flown mesh in the flown colour and a marker in the now colour once the pass has started', () => {
+    const before = lineLayer(input({ now: pass.start.t - 1000 }));
+    expect(ids(before)).not.toContain(`flown-${pass.id}`);
+    expect(ids(before)).not.toContain(`now-${pass.id}`);
+
+    const during = lineLayer(input({ now: midway }));
+    expect(ids(during)).toContain(`flown-${pass.id}`);
+    expect(ids(during)).toContain(`now-${pass.id}`);
+    const flown = during.find((mesh) => mesh.id === `flown-${pass.id}`);
+    expect(flown?.polygons.every((poly) => poly.color === 'flown')).toBe(true);
+    expect(during.find((mesh) => mesh.id === `now-${pass.id}`)?.polygons.every((poly) => poly.color === 'now')).toBe(true);
+    // The arc itself keeps its own colour: the flown part is drawn over it, not instead of it.
+    expect(during.find((mesh) => mesh.id === `pass-${pass.id}`)?.polygons.every((poly) => poly.color === 'highlighted')).toBe(true);
+  });
+
+  it('grows the flown mesh as the instant advances, and has the whole arc flown at the end', () => {
+    const lengthAt = (now: number): number => lineLayer(input({ now })).find((mesh) => mesh.id === `flown-${pass.id}`)?.polygons.length ?? 0;
+    const quarter = lengthAt(Math.round(pass.start.t + (pass.end.t - pass.start.t) / 4));
+    const half = lengthAt(midway);
+    const whole = lengthAt(pass.end.t);
+    expect(quarter).toBeGreaterThan(0);
+    expect(half).toBeGreaterThan(quarter);
+    expect(whole).toBeGreaterThan(half);
+    // Every quad of the arc, and no marker left to draw: the pass is over.
+    expect(ids(lineLayer(input({ now: pass.end.t + 1000 })))).not.toContain(`now-${pass.id}`);
+  });
+
+  it('draws no flown part and no marker without an instant', () => {
+    const meshes = ids(lineLayer(input()));
+    expect(meshes).not.toContain(`flown-${pass.id}`);
+    expect(meshes).not.toContain(`now-${pass.id}`);
+  });
+});
+
+describe('the Sun and the Moon (FR-DOME-6)', () => {
+  const sun = { azDeg: 285, altDeg: -8 };
+  const moonUp = { ...MOON_FIXTURE };
+  const bodyLabels = { sun: 'Sun', moon: (state: typeof MOON_FIXTURE) => `${state.phase} Moon` };
+
+  it('puts the Moon on the line layer while it is up, in the Moon colour, and nowhere while it is down', () => {
+    const up = lineLayer(input({ moon: moonUp }));
+    expect(ids(up)).toContain('moon');
+    expect(up.find((mesh) => mesh.id === 'moon')?.polygons.every((poly) => poly.color === 'moon')).toBe(true);
+    expect(ids(lineLayer(input({ moon: MOON_DOWN })))).not.toContain('moon');
+    expect(ids(lineLayer(input()))).not.toContain('moon');
+  });
+
+  it('labels both bodies, in their own colours, only where each one is drawn', () => {
+    const labels = domeLabels(input({ sun, moon: moonUp, bodyLabels }));
+    expect(byId(labels, 'sun-label')?.text).toBe('Sun');
+    expect(byId(labels, 'sun-label')?.color).toBe('sun');
+    expect(byId(labels, 'sun-label')?.anchor).toBe('sun');
+    expect(byId(labels, 'moon-label')?.text).toBe('waningGibbous Moon');
+    expect(byId(labels, 'moon-label')?.color).toBe('moon');
+    expect(byId(labels, 'moon-label')?.anchor).toBe('moon');
+
+    // Below −18° there is no glow to label, and below the horizon no Moon.
+    const dark = domeLabels(input({ sun: { azDeg: 285, altDeg: -30 }, moon: MOON_DOWN, bodyLabels }));
+    expect(byId(dark, 'sun-label')).toBeUndefined();
+    expect(byId(dark, 'moon-label')).toBeUndefined();
+    // …and no names to give them means no labels either, whatever is in the sky.
+    expect(byId(domeLabels(input({ sun, moon: moonUp })), 'sun-label')).toBeUndefined();
+  });
+
+  it('gives way to the pass labels, which the fixed order puts first', () => {
+    // Both bodies sit exactly where the highlighted pass's peak label wants to
+    // be; the pass keeps the place and the bodies are the ones that move.
+    const collide = { azDeg: pass.peak.azDeg, altDeg: -1 };
+    const moonOnPeak = { ...MOON_FIXTURE, azDeg: pass.peak.azDeg, elDeg: pass.peak.elDeg - MOON_LABEL_OFFSET_DEG };
+    const labels = domeLabels(input({ sun: collide, moon: moonOnPeak, bodyLabels, measure: () => ({ halfWidth: 0.3, halfHeight: 0.12 }) }));
+    const alone = domeLabels(input({ sun: collide, moon: moonOnPeak, bodyLabels, measure: () => ({ halfWidth: 0.001, halfHeight: 0.001 }) }));
+    const moved = (id: string): boolean => byId(labels, id)?.at.join() !== byId(alone, id)?.at.join();
+    expect(moved(`${pass.id}-peak`)).toBe(false);
+    expect(moved('moon-label')).toBe(true);
   });
 });
