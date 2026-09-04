@@ -14,7 +14,7 @@ import { CHART_MARK_TOKENS, CHART_SURFACE_TOKENS, contrastRatio, GROUND_TOKENS, 
 const css = readFileSync(TOKENS_PATH, 'utf8');
 /** The header comment wraps, so the prose assertions read it as one line. */
 const prose = css.replace(/\s+/g, ' ');
-const byTheme = new Map<Theme, Map<string, string>>(THEMES.map((theme) => [theme, readTokens(css, theme)]));
+const byTheme = new Map<Theme, Map<string, string>>(THEMES.map((theme) => [theme, readTokens(css, theme)] as const));
 const token = (theme: Theme, name: string): string => {
   const value = byTheme.get(theme)?.get(name);
   if (!value) throw new Error(`no --${name} in the ${theme} theme`);
