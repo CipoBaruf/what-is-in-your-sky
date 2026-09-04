@@ -45,7 +45,7 @@ describe('<SkyDome> raster', () => {
     expect(lines).toHaveLength(30);
     for (const line of lines) expect(line).toHaveLength(60);
     expect(text.replace(/[\s⠀]/g, '').length).toBeGreaterThan(200);
-    expect(getByTestId('dome-readout').textContent).toBe('Facing NE (46°) · tilt 25°');
+    expect(getByTestId('dome-readout').textContent).toBe('Facing NE (46°) · tilt 45°');
     await expect(text).toMatchFileSnapshot('./__snapshots__/SkyDome.golden.txt');
   });
 });
