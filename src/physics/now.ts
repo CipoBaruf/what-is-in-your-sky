@@ -96,13 +96,23 @@ export function nowItem(object: NowObject, observer: Observer, t: EpochMs, thres
 
 /**
  * FR-LIVE-6's dimmed set: above the true horizon at `t`, but not something the
- * app would tell you to look for. That is the complement of what the live page
- * draws from `Pass.track`, which is why the magnitude limit is applied here and
- * not by `visibilityAt` — a lit object in a dark sky at 40° that is fainter
- * than `magLimit` produces no pass, so nothing else would draw it. The reason
- * itself is read off the item: `aboveMinElevation` false is too low, `lit`
- * false is Earth's shadow, `NowState.sky` other than `dark` is daylight, and a
- * `magnitude` past the limit is too faint.
+ * app would tell you to look for *now*. The magnitude limit is applied here and
+ * not by `visibilityAt` because a lit object in a dark sky at 40° that is
+ * fainter than `magLimit` produces no pass, so nothing else would draw it. The
+ * reason itself is read off the item: `aboveMinElevation` false is too low,
+ * `lit` false is Earth's shadow, `NowState.sky` other than `dark` is daylight,
+ * and a `magnitude` past the limit is too faint.
+ *
+ * It is **not** the complement of what the live page draws from `Pass.track`,
+ * and it is not meant to be (D-102). This is an instant; a pass is a whole
+ * arc, kept or dropped on its *peak* magnitude. An object therefore ends up in
+ * both sets while it dims past the limit on its way down — measured over the
+ * R1 golden day at Neuquén, 2 of 49 visible object-minutes, both in the last
+ * seconds of a pass: `SL-16 R/B (Cosmos 2369)` at 10.9° and magnitude 4.64,
+ * 593 s into a 605 s pass, and `SL-16 R/B (Cosmos 2406)` at 12.8° and 4.73,
+ * 206 s of 237 s. Both facts are true there — the pass was worth watching and
+ * the object is too dim to see right now — so the live page owns the overlap:
+ * it draws its passes first and dims only what it has not already drawn.
  */
 export function isHidden(item: NowItem, thresholds: VisibilityThresholds): boolean {
   if (item.elDeg <= 0) return false;
