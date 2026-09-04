@@ -7,7 +7,7 @@
  */
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { resolve } from 'node:path';
 import { consoleLogger, LOG_DIR, stamp, type Logger } from './report';
 
 export interface ExecResult {
@@ -133,10 +133,15 @@ export async function push(dir: string, branch: string, logger: Logger): Promise
   return ok(await git(['push', '-u', 'origin', branch], { cwd: dir, logger }));
 }
 
-/** Bodies go through a file: they carry newlines, backticks and markdown. */
+/**
+ * Bodies go through a file: they carry newlines, backticks and markdown.
+ * The path is absolute, because every `gh` call that reads one runs with
+ * `cwd` set to the task's worktree while `LOG_DIR` is relative to the
+ * driver's own checkout (D-93).
+ */
 function bodyFile(id: string, kind: string, body: string): string {
   mkdirSync(LOG_DIR, { recursive: true });
-  const path = join(LOG_DIR, `${id}-${kind}-${stamp()}.md`);
+  const path = resolve(LOG_DIR, `${id}-${kind}-${stamp()}.md`);
   writeFileSync(path, body);
   return path;
 }
