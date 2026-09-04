@@ -72,7 +72,43 @@ describe('public/_headers', () => {
     expect(directives.get('style-src')).toEqual(["'self'"]);
     expect(directives.get('worker-src')).toEqual(["'self'"]);
     expect(directives.get('frame-ancestors')).toEqual(["'none'"]);
-    for (const sources of directives.values()) expect(sources.join(' ')).not.toMatch(/unsafe|nonce|sha\d/);
+    // D-75: `style-src-attr` is the one relaxation, and it is the only place `unsafe-` may appear.
+    for (const [name, sources] of directives) {
+      if (name === 'style-src-attr') continue;
+      expect(sources.join(' '), `${name} must not be relaxed`).not.toMatch(/unsafe|nonce|sha\d/);
+    }
+  });
+
+  /**
+   * V1-4 / D-75, and the assertion FR-GUIDE-5 asks for by name: glyphcss
+   * colours a glyph with an inline `style` attribute, so `style-src-attr`
+   * gains `'unsafe-inline'` — and nothing else does. `style-src-elem` and
+   * `script-src` stay `'self'`, which is what stops a later "just add
+   * unsafe-inline" from riding in on an unrelated PR. Both are checked as
+   * CSP3 resolves them, so falling back to `style-src` counts and a future
+   * explicit directive is held to the same value.
+   */
+  describe('the FR-DOME-2 relaxation (D-75)', () => {
+    /** A fetch directive as the browser resolves it: its own value, or the one it falls back to. */
+    const effective = (name: string, fallback: string): string[] => {
+      const directives = csp();
+      return directives.get(name) ?? directives.get(fallback) ?? directives.get('default-src') ?? [];
+    };
+
+    it('lets a style attribute through, so the dome can be coloured', () => {
+      expect(effective('style-src-attr', 'style-src')).toEqual(["'unsafe-inline'"]);
+    });
+
+    it('keeps stylesheets and scripts on the origin', () => {
+      expect(effective('style-src-elem', 'style-src')).toEqual(["'self'"]);
+      expect(effective('script-src-elem', 'script-src')).toEqual(["'self'"]);
+      expect(csp().get('script-src')).toEqual(["'self'"]);
+    });
+
+    it('relaxes exactly one directive and no other', () => {
+      const relaxed = [...csp()].filter(([, sources]) => sources.some((source) => source.startsWith("'unsafe-"))).map(([name]) => name);
+      expect(relaxed).toEqual(['style-src-attr']);
+    });
   });
 
   it('covers every external host the app code references (FR-X-3)', () => {
