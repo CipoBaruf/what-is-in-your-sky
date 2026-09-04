@@ -52,7 +52,12 @@
    never the only channel. */
 :root {
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
-  --cell: 1ch;
+  /* One character advance. Every family in the stack above advances 0.6 em,
+     so at `global.css`'s 16 px base one cell is 9.6 px; R23 (D-71) recomputes
+     the 960 px breakpoint literal from exactly this number, and
+     `tests/e2e/desktop.spec.ts` measures a real `1ch` in the browser and
+     holds it to the same figure. */
+  --cell: 1ch; /* 0.6 em advance */
   --row: 1.5rem;
   /* G6: minimum tap target, two text rows (48 px at the 16 px base, above the 44 px floor). */
   --tap: calc(2 * var(--row));
