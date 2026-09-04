@@ -67,8 +67,8 @@ const passSchema = z.object({
   twilight: z.boolean(),
   track: z.array(passPointSchema),
   elementsEpochMs: z.number().finite(),
-  moonAtPeak: moonStateSchema.nullable(),
-  moonGlare: z.object({ glare: z.boolean(), separationDeg: z.number().finite().nullable() }),
+  moonAtPeak: moonStateSchema,
+  moonGlare: z.object({ glare: z.boolean(), separationDeg: z.number().finite() }),
 });
 
 /** What a stored run must look like to be trusted; anything else reads as absent, and the app recomputes. */

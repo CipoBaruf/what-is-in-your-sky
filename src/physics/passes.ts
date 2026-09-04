@@ -171,8 +171,7 @@ export function findPasses(
     // Step 8 (v1, FR-MOON-2): one Moon evaluation per pass, at the peak. The
     // Moon moves about 0.5° in the length of a pass, far below the 30°
     // separation threshold, so sampling it along the track would buy nothing.
-    const moon = moonAt(peak.t, observer);
-    const moonAtPeak = moon.elDeg > 0 ? moon : null;
+    const moonAtPeak = moonAt(peak.t, observer);
 
     passes.push({
       id: `${object.noradId}-${first.t}`,
@@ -190,6 +189,9 @@ export function findPasses(
       track,
       elementsEpochMs: object.elementsEpochMs,
       moonAtPeak,
+      // Whether the Moon is high enough to wash the pass out is `moonGlare`'s single
+      // `minAltDeg` comparison, not a `> 0` repeated here: OQ-12 may move that threshold
+      // off zero, and a second copy of the rule would quietly ignore it (D-109).
       moonGlare: moonGlare(moonAtPeak, peak, DEFAULT_MOON_GLARE_THRESHOLDS),
     });
   }

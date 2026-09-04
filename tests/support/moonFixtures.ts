@@ -19,8 +19,11 @@ export const MOON_FIXTURE: MoonState = Object.freeze({
   eclipticLonDeg: 43.8002,
 });
 
-/** No Moon above the horizon at the peak, so no separation to report and no glare (FR-MOON-2). */
-export const NO_MOON_GLARE: MoonGlare = Object.freeze({ glare: false, separationDeg: null });
+/** A Moon far from the track and so no glare, whatever else the fixture is doing (FR-MOON-2). */
+export const NO_MOON_GLARE: MoonGlare = Object.freeze({ glare: false, separationDeg: 120 });
+
+/** A Moon below the horizon: still a phase and an illumination to show (US-18 AC1), never a glare. */
+export const MOON_DOWN: MoonState = Object.freeze({ ...MOON_FIXTURE, azDeg: 186.721, elDeg: -29.1249 });
 
 /** The Moon fields of a `Pass` for a fixture that does not care about them. */
-export const NO_MOON_AT_PEAK = Object.freeze({ moonAtPeak: null, moonGlare: NO_MOON_GLARE });
+export const NO_MOON_AT_PEAK = Object.freeze({ moonAtPeak: MOON_DOWN, moonGlare: NO_MOON_GLARE });

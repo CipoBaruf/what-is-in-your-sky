@@ -51,11 +51,12 @@ export interface MoonGlareThresholds {
 
 /**
  * FR-MOON-2's verdict for one pass. `separationDeg` is the angular distance
- * between the Moon and the pass peak; it is null exactly when there is no Moon
- * to measure from — `Pass.moonAtPeak` is null because the Moon is below the
- * horizon at that instant.
+ * between the Moon and the pass peak — always a real angle, because the Moon
+ * has a direction whether or not it is above the horizon, and `Pass.moonAtPeak`
+ * always carries it (D-109). `glare` is the requirement's three conditions
+ * together; the altitude is one of them and is tested nowhere else.
  */
 export interface MoonGlare {
   glare: boolean;
-  separationDeg: number | null;
+  separationDeg: number;
 }
