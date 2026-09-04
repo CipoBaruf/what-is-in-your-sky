@@ -66,17 +66,26 @@ main {
     margin-inline: 0;
   }
 
-  /* R23 (D-119). With a pass open the page is a shell exactly one viewport
-     high: the header and the footer keep their own heights and `main` takes
-     what is left, which is what gives the panes inside it a height to be
-     bounded by. Without it the guide's length is added to the list's and to
-     the header's and the page scrolls as one — the list's own scrollbar and
-     the page's, neither of them showing the whole of anything.
-     Only with a pass open: the list on its own is an ordinary long page and
-     goes on scrolling like one. */
+  /* R23 (D-119). The wide page is a shell of header, main and footer, at
+     least one viewport high. `min-height` and a `1fr` middle row: with little
+     on the page — no location entered yet, so no list and no Now panel — the
+     middle row takes up the slack and the footer sits on the bottom of the
+     screen instead of floating under three short paragraphs with the ground
+     showing below it; with a long list the rows grow and the page scrolls as
+     it always did. The `1fr` here is `minmax(auto, 1fr)`, so the row never
+     shrinks below its own content. */
+  #root {
+    min-height: 100dvh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  /* With a pass open it is exactly one viewport instead of at least one, and
+     the middle row may shrink below its content — that is what gives the
+     panes inside it a height to be bounded by, so each scrolls itself rather
+     than all three adding up into one page scroll. */
   #root:has([data-guide='open']) {
     height: 100dvh;
-    display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
   }
 }

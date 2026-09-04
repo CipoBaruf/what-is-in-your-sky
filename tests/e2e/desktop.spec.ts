@@ -29,6 +29,8 @@ const reference = JSON.parse(readFileSync('tests/fixtures/reference-values.json'
 const DAY_MS = 86_400_000;
 const WIDE = { width: 1280, height: 900 };
 const COMPACT = { width: 390, height: 844 };
+/** A desktop screen with room to spare, where D-119's slack is visible at all. */
+const TALL_HEIGHT = 1200;
 /** FR-DESK-1: 100 cells, and `--cell` is one character advance (D-71). */
 const WIDE_MIN_PX = 960;
 const WIDE_CELLS = 100;
@@ -68,6 +70,32 @@ async function loadWithPasses(page: Page): Promise<void> {
   await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
 }
+
+/**
+ * D-119: the shortest the wide page ever is — nothing entered, so no list, no
+ * Now panel and three paragraphs in the left column. The footer belongs on
+ * the bottom of the screen there, not under the last paragraph with the
+ * ground showing below it, and the page still must not scroll to manage it.
+ */
+test('wide: with nothing entered the page still fills the screen and the footer sits on the bottom (D-119)', async ({ page }) => {
+  // Tall enough that the empty page does not fill it on its own: at 900 px the
+  // left column's own paragraphs already overflow and the page rightly
+  // scrolls, so there would be no slack to put anywhere.
+  await page.setViewportSize({ width: WIDE.width, height: TALL_HEIGHT });
+  await page.goto('/');
+  await expect(page.getByRole('region', { name: 'Upcoming passes' })).toBeVisible();
+
+  const footer = page.getByRole('contentinfo');
+  const box = await footer.boundingBox();
+  if (!box) throw new Error('the footer is not laid out');
+  expect(Math.abs(box.y + box.height - TALL_HEIGHT)).toBeLessThanOrEqual(1);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight),
+  ).toBeLessThanOrEqual(1);
+  // And it is the footer that moved, not the content: the columns stay at the top.
+  const left = await page.getByTestId('col-left').boundingBox();
+  expect(left?.y).toBeLessThan(TALL_HEIGHT / 2);
+});
 
 test('wide: two columns, the guide beside a live list, Escape and the hash (FR-DESK-1/2/3)', async ({ page }) => {
   const golden = reference.firstGoldenPass;
