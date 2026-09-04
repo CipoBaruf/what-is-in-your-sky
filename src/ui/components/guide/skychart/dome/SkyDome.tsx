@@ -3,7 +3,8 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSPrope
 import { useLocale, useT } from '../../../../../i18n/useT';
 import { degrees } from '../../../../../lib/format';
 import { formatClock } from '../../../../../lib/timeFormat';
-import type { Pass } from '../../../../../model';
+import type { MoonState, Pass } from '../../../../../model';
+import { moonGlyph } from '../bodies';
 import { ChartFrame } from '../ChartFrame';
 import type { SkyChartProps } from '../SkyChart.types';
 import {
@@ -154,6 +155,8 @@ const CLASS_FOR: Record<DomeLabel['kind'], string | undefined> = {
   end: undefined,
   ring: styles.degree,
   tick: styles.degree,
+  sun: styles.body,
+  moon: styles.body,
 };
 
 interface DomeLabelsProps {
@@ -196,7 +199,7 @@ function DomeLabels({ labels, rotY, onSelect }: DomeLabelsProps) {
   );
 }
 
-export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now, initialFacingAzDeg, className }: SkyChartProps) {
+export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, initialFacingAzDeg, className }: SkyChartProps) {
   const t = useT();
   const locale = useLocale();
   const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
@@ -325,13 +328,31 @@ export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now
     [lines.zoom],
   );
 
+  // FR-DOME-6: the two bodies' names. Like every other label they are worded
+  // by the catalogs (FR-I18N-2); the Moon's glyph is its phase (`../bodies`).
+  const bodyLabels = useMemo(() => ({ sun: t.chart.sunLabel, moon: (state: MoonState) => t.chart.moonLabel(moonGlyph(state)) }), [t]);
+
   const layers = useMemo(
-    () => domeLayers({ passes, highlightedPassId, palette, camera: { rotYDeg: rotY, tiltDeg: camera.tiltDeg }, labelsFor, measure, ...(now === undefined ? {} : { now }) }),
-    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, labelsFor, measure, now],
+    () =>
+      domeLayers({
+        passes,
+        highlightedPassId,
+        palette,
+        camera: { rotYDeg: rotY, tiltDeg: camera.tiltDeg },
+        labelsFor,
+        measure,
+        bodyLabels,
+        sun,
+        moon,
+        ...(now === undefined ? {} : { now }),
+      }),
+    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, labelsFor, measure, bodyLabels, sun, moon, now],
   );
 
-  // FR-DOME-8a: the key light points along the Sun's real direction. Until R22 supplies the Sun, that is the fixed twilight direction of D-111.
-  const [lightX, lightY, lightZ] = sunDirection(DEFAULT_SUN);
+  // FR-DOME-8a: the key light points along the Sun's real direction, so twilight
+  // brightens the side of the sky it is really on. Without one (no instant yet,
+  // or the astronomy chunk still loading) it is D-111's fixed twilight direction.
+  const [lightX, lightY, lightZ] = sunDirection(sun ?? DEFAULT_SUN);
   const colored = palette !== null;
   const ready = fontReady && measured;
 

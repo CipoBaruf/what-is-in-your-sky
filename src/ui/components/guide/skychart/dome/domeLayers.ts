@@ -1,9 +1,13 @@
-import type { Pass } from '../../../../../model';
+import type { MoonState, Pass } from '../../../../../model';
+import { glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
 import {
   compassAnchors,
   COMPASS_LABEL_RADIUS,
+  flownStrip,
   gridPolygons,
   groundDisc,
+  MOON_LABEL_OFFSET_DEG,
+  moonMarker,
   nowMarker,
   nowPoint,
   PASS_LABEL_RADIUS,
@@ -76,15 +80,19 @@ export interface PassLabelText {
 export interface LayersInput {
   passes: readonly Pass[];
   highlightedPassId: string | null;
-  /** The instant to mark on the arc, if it falls inside a pass (FR-DOME-5's marker; R22 gives it its flown colour). */
+  /** The instant to mark on the arc, if it falls inside a pass, and the instant everything before it is drawn as flown (FR-DOME-5). */
   now?: number | undefined;
   /** Where the Sun is, for the glow and the key light (FR-DOME-6, FR-DOME-8a). */
-  sun?: { azDeg: number; altDeg: number } | null;
+  sun?: { azDeg: number; altDeg: number } | null | undefined;
+  /** Where the Moon is, for its marker and its phase glyph (FR-DOME-6). */
+  moon?: MoonState | null | undefined;
   /** FR-DOME-2 colours, or `null` for the monochrome reading. */
   palette: DomePalette | null;
   camera: { rotYDeg: number; tiltDeg: number };
   /** The worded labels of a pass (FR-I18N-2: the catalogs word them, this file only places them). */
   labelsFor: (pass: Pass) => PassLabelText;
+  /** The worded names of the two bodies (FR-DOME-6); the Moon's carries its phase glyph. */
+  bodyLabels?: { sun: string; moon: (moon: MoonState) => string };
   /** How big a label is on the drawing, in world units. */
   measure: (text: string) => LabelBox;
 }
@@ -107,14 +115,19 @@ export function baseLayer(input: Pick<LayersInput, 'palette' | 'sun'>): Mesh[] {
   ].filter(colored);
 }
 
-/** The line scene: the grid and one mesh per pass, plus its markers and the live marker. */
-export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId' | 'now' | 'palette'>): Mesh[] {
-  const { passes, highlightedPassId, now, palette } = input;
+/**
+ * The line scene: the grid, one mesh per pass with its markers, the flown part
+ * of each arc and the live marker (FR-DOME-5), and the Moon (FR-DOME-6). The
+ * Moon comes last so it is drawn over whatever it sits on.
+ */
+export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId' | 'now' | 'moon' | 'palette'>): Mesh[] {
+  const { passes, highlightedPassId, now, moon, palette } = input;
   const meshes: Mesh[] = [{ id: 'grid', polygons: gridPolygons({ ...(palette ? { horizon: palette.horizon, rings: palette.rings } : {}) }) }];
   for (const pass of passes) {
     const highlighted = isHighlighted(pass, highlightedPassId);
     const arc = highlighted ? palette?.highlighted : palette?.dim;
     meshes.push({ id: `pass-${pass.id}`, polygons: passStrip(pass, { highlighted, ...(arc ? { color: arc } : {}) }) });
+    meshes.push({ id: `flown-${pass.id}`, polygons: flownStrip(pass, now, { highlighted, ...(palette ? { color: palette.flown } : {}) }) });
     meshes.push({
       id: `markers-${pass.id}`,
       polygons: passMarkers(pass, { ...(palette ? { peak: palette.peak, shadow: palette.shadow } : {}), ...(arc ? { arrow: arc } : {}) }),
@@ -122,6 +135,7 @@ export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId
     const current = nowPoint(pass, now);
     if (current) meshes.push({ id: `now-${pass.id}`, polygons: nowMarker(current, palette?.now) });
   }
+  if (moon) meshes.push({ id: 'moon', polygons: moonMarker(moon, palette?.moon) });
   return meshes.filter(colored);
 }
 
@@ -135,7 +149,7 @@ const isHighlighted = (pass: Pass, highlightedPassId: string | null): boolean =>
  * would make it a lie — and are the obstacles everything else gives way to.
  */
 export function domeLabels(input: LayersInput): DomeLabel[] {
-  const { passes, highlightedPassId, palette, camera, labelsFor, measure } = input;
+  const { passes, highlightedPassId, sun, moon, palette, camera, labelsFor, measure, bodyLabels } = input;
   const fixed: DomeLabel[] = [
     ...tickAnchors().map((anchor) => ({ id: anchor.id, at: anchor.at, text: degreeText(anchor.valueDeg), kind: 'tick' as const, ...(palette ? { color: palette.rings } : {}) })),
     ...ringAnchors().map((anchor) => ({ id: anchor.id, at: anchor.at, text: degreeText(anchor.valueDeg), kind: 'ring' as const, ...(palette ? { color: palette.rings } : {}) })),
@@ -165,6 +179,23 @@ export function domeLabels(input: LayersInput): DomeLabel[] {
     }
     add(anchors.rise.id, 'rise', pass.start, RISE_LABEL_RADIUS, { text: text.rise, anchor: 'pass', ...common });
     if (highlighted) add(anchors.end.id, 'end', pass.end, PASS_LABEL_RADIUS, { text: text.end, ...common });
+  }
+
+  // FR-DOME-6: both bodies labelled. The Sun's name sits over its glow, the
+  // Moon's just above its disc, and both give way to everything else.
+  if (bodyLabels && sun && sunVisible(sun)) {
+    add('sun-label', 'sun', { azDeg: sun.azDeg, elDeg: glowHeightDeg(glowStrength(sun.altDeg)) }, PASS_LABEL_RADIUS, {
+      text: bodyLabels.sun,
+      anchor: 'sun',
+      ...(palette ? { color: palette.sun } : {}),
+    });
+  }
+  if (bodyLabels && moon && moonVisible(moon)) {
+    add('moon-label', 'moon', { azDeg: moon.azDeg, elDeg: Math.min(90, moon.elDeg + MOON_LABEL_OFFSET_DEG) }, PASS_LABEL_RADIUS, {
+      text: bodyLabels.moon(moon),
+      anchor: 'moon',
+      ...(palette ? { color: palette.moon } : {}),
+    });
   }
 
   const placed = resolveLabels(

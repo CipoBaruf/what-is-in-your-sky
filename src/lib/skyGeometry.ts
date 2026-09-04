@@ -165,3 +165,22 @@ export function resampleArc(track: readonly PassPoint[], stepDeg: number): PassP
   }
   return out;
 }
+
+/**
+ * FR-DOME-5 (R22): an arc cut at the instant `t` into the part already flown
+ * and the part still to come, for the two views to draw in their two colours.
+ * The cut point belongs to both halves, so the arc has no gap at the marker;
+ * an instant before the arc leaves the whole of it to come and one after
+ * leaves the whole of it flown. `points` must be in time order — the output of
+ * `resampleArc`, whose samples carry the times they were interpolated at.
+ */
+export function splitArcAt(points: readonly PassPoint[], t: number | undefined): { flown: PassPoint[]; remaining: PassPoint[] } {
+  const first = points[0];
+  const last = points[points.length - 1];
+  if (t === undefined || !first || !last || t <= first.t) return { flown: [], remaining: [...points] };
+  if (t >= last.t) return { flown: [...points], remaining: [] };
+  const cut = interpolateTrack(points, t);
+  const before = points.filter((p) => p.t < cut.t);
+  const after = points.filter((p) => p.t > cut.t);
+  return { flown: [...before, cut], remaining: [cut, ...after] };
+}
