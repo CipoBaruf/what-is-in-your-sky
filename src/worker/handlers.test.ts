@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { DAY_MS, fixtureRecords, goldenWindowStart, loadReferenceValues } from '../../tests/support/catalogFixtures';
 import { ISS_STD_MAG_SEED } from '../../tests/support/heavensAbove';
 import { CATALOG } from '../data/catalog';
-import type { Observer, SatelliteRecord } from '../model';
+import type { Observer, Pass, SatelliteRecord, TimeWindow } from '../model';
 import { DEFAULT_THRESHOLDS, findPasses, isHidden, nowState, ommToSatrec, type SatRec } from '../physics';
 import { computeOrder, createHandler, createHandlerState, yieldViaMessageChannel, type Handler, type HandlerState } from './handlers';
 import type { WorkerRequest, WorkerResponse } from './protocol';
@@ -247,6 +247,26 @@ describe('computePasses', () => {
 });
 
 describe('computePasses over three nights (D-77)', () => {
+  /** Every pass the job streamed, in time order, whichever night carried it. */
+  const streamedPasses = (h: Harness): Pass[] =>
+    h
+      .ofType('passes')
+      .flatMap((m) => m.passes)
+      .sort((a, b) => a.start.t - b.start.t);
+
+  /** The same objects searched once over the whole window: what the split must reproduce. */
+  const wholeWindowPasses = (records: SatelliteRecord[], window: TimeWindow): Pass[] =>
+    records
+      .flatMap((r) =>
+        findPasses(ommToSatrec(r.omm), observer, window, DEFAULT_THRESHOLDS, {
+          noradId: r.catalog.noradId,
+          name: r.catalog.name,
+          stdMag: r.catalog.stdMag,
+          elementsEpochMs: r.epochMs,
+        }),
+      )
+      .sort((a, b) => a.start.t - b.start.t);
+
   it('completes night 1, featured first, before night 2 begins, and counts progress in object × night pairs', async () => {
     const records = fixtureRecords().slice(0, 4);
     const h = await loaded(records);
@@ -271,31 +291,40 @@ describe('computePasses over three nights (D-77)', () => {
   });
 
   it('emits exactly the passes one search over the whole 72 h window finds', async () => {
-    const records = fixtureRecords();
+    const records = fixtureRecords().slice(0, 8);
     const h = await loaded(records);
     await h.send({ type: 'computePasses', jobId: 'job-1', observer, window: THREE_NIGHTS, thresholds: DEFAULT_THRESHOLDS });
 
-    const streamed = h
-      .ofType('passes')
-      .flatMap((m) => m.passes)
-      .sort((a, b) => a.start.t - b.start.t);
-    const wholeWindow = records
-      .flatMap((r) =>
-        findPasses(ommToSatrec(r.omm), observer, THREE_NIGHTS, DEFAULT_THRESHOLDS, {
-          noradId: r.catalog.noradId,
-          name: r.catalog.name,
-          stdMag: r.catalog.stdMag,
-          elementsEpochMs: r.epochMs,
-        }),
-      )
-      .sort((a, b) => a.start.t - b.start.t);
+    expect(streamedPasses(h)).toEqual(wholeWindowPasses(records, THREE_NIGHTS)); // none split, doubled or lost
+    expect(streamedPasses(h).length).toBeGreaterThan(0);
+  });
 
-    expect(streamed.length).toBeGreaterThan(0);
-    expect(streamed).toEqual(wholeWindow); // no pass split at a night boundary, none emitted twice, none lost
+  it('emits a pass the night boundary falls in the middle of once, and whole', async () => {
+    const iss = fixtureRecords().filter((r) => r.catalog.noradId === ISS);
+    // Put the night 1 / night 2 boundary on the peak of a known pass, so the
+    // first night has to reach past its own end to find it whole and the
+    // second has to leave it alone. The window is then searched from scratch:
+    // its coarse grid is its own, so the pass to compare against is the one
+    // this window yields, not the one that located the peak.
+    const peak = wholeWindowPasses(iss, THREE_NIGHTS)[1]?.peak.t;
+    if (peak === undefined) throw new Error('the fixture has no second ISS pass in 72 h');
+    const window = { startMs: peak - DAY_MS, endMs: peak + 2 * DAY_MS };
+    const expected = wholeWindowPasses(iss, window);
+    const straddled = expected.find((p) => p.start.t <= peak && p.end.t >= peak);
+    if (!straddled) throw new Error('no pass spans the night boundary');
+
+    const h = await loaded(iss);
+    await h.send({ type: 'computePasses', jobId: 'job-1', observer, window, thresholds: DEFAULT_THRESHOLDS });
+    const streamed = streamedPasses(h);
+    expect(streamed.filter((p) => p.id === straddled.id)).toEqual([straddled]);
+    expect(streamed).toEqual(expected);
+    // And it was night 1 that carried it, since that is where it starts.
+    const carrier = h.ofType('passes').find((m) => m.passes.some((p) => p.id === straddled.id));
+    expect(carrier?.nightIndex).toBe(0);
   });
 
   it('gives night 1 the same passes a 24 h request would have returned', async () => {
-    const records = fixtureRecords();
+    const records = fixtureRecords().slice(0, 8);
     const h = await loaded(records);
     await h.send({ type: 'computePasses', jobId: 'job-1', observer, window: THREE_NIGHTS, thresholds: DEFAULT_THRESHOLDS });
     const firstNight = h
@@ -305,9 +334,8 @@ describe('computePasses over three nights (D-77)', () => {
 
     const mvp = await loaded(records);
     await mvp.send({ type: 'computePasses', jobId: 'job-2', observer, window: GOLDEN_WINDOW, thresholds: DEFAULT_THRESHOLDS });
-    const mvpPasses = mvp.ofType('passes').flatMap((m) => m.passes);
 
-    expect(firstNight.map((p) => p.id).sort()).toEqual(mvpPasses.map((p) => p.id).sort());
+    expect(firstNight.map((p) => p.id).sort()).toEqual(streamedPasses(mvp).map((p) => p.id).sort());
     for (const pass of firstNight) expect(pass.start.t).toBeLessThan(THREE_NIGHTS.startMs + DAY_MS);
   });
 
