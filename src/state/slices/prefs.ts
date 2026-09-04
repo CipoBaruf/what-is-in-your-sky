@@ -116,8 +116,8 @@ export const createPrefsSlice =
       selectFavourite: (cellKey) => {
         const found = get().favourites.find((favourite) => favourite.cellKey === cellKey);
         if (!found) return false;
-        // Used first, then selected: `setObserver` triggers the observer write-through, which re-reads
-        // the prefs, so the list it preserves is already the one with this place at the front.
+        // Both write-throughs re-read the stored object and replace one field of it, so the use stamped
+        // here and the observer set below survive each other under the one key (D-139).
         saveFavourites(withFavouriteUsed(get().favourites, cellKey, deps.now()));
         get().setObserver(found.observer);
         return true;
