@@ -1071,7 +1071,7 @@ Two further observer locations (one northern mid-latitude, one near the equator)
 
   ```
   /*
-    Content-Security-Policy: default-src 'self'; connect-src 'self' https://celestrak.org https://api.open-meteo.com https://geocoding-api.open-meteo.com; img-src 'self' data:; worker-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'
+    Content-Security-Policy: default-src 'self'; connect-src 'self' https://celestrak.org https://api.open-meteo.com https://geocoding-api.open-meteo.com; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'
     Referrer-Policy: strict-origin-when-cross-origin
     Permissions-Policy: geolocation=(self)
   /assets/*
