@@ -1,0 +1,175 @@
+/* R16 spike page. Dev only. The glyphcss base rules are shipped here the way
+   SkyDome.module.css ships them (D-61), and the raster font is the generated
+   braille font (D-65), so the captures are the product's raster and not a
+   fallback font's. */
+
+@font-face {
+  font-family: 'WIYS Braille';
+  src: url('../../src/ui/components/guide/skychart/dome/wiys-braille.otf') format('opentype');
+  font-display: block;
+}
+
+:root {
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
+  --bg: #0b0f14;
+  --bg-raised: #161c24;
+  --fg: #d5dbe3;
+  --fg-dim: #7d8794;
+  --edge: #606c7a;
+  color-scheme: dark;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.page {
+  padding: 8px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: var(--fg-dim);
+  max-width: 1280px;
+}
+
+.controls label {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.controls input[type='number'] {
+  width: 4.5em;
+}
+
+.controls input,
+.controls select {
+  background: var(--bg-raised);
+  color: var(--fg);
+  border: 1px solid var(--edge);
+  font: inherit;
+}
+
+.stage-inner {
+  position: relative;
+  touch-action: none;
+  cursor: grab;
+  background: var(--bg);
+}
+
+.stage-inner[data-dragging='true'] {
+  cursor: grabbing;
+}
+
+.readout {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+
+/* The two layers share one grid cell (D-74): same box, same camera, base behind. */
+.layers {
+  display: grid;
+  overflow: hidden;
+}
+
+.layer {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layer-base {
+  pointer-events: none;
+}
+
+.layer .glyph-scene {
+  font-size: var(--layer-font-size);
+  line-height: var(--layer-cell-h);
+}
+
+.lines-scene,
+.lines-scene .glyph-output {
+  font-family: 'WIYS Braille', var(--font-mono);
+  font-size: var(--layer-font-size);
+  line-height: var(--layer-cell-h);
+  color: var(--fg);
+}
+
+.base-scene,
+.base-scene .glyph-output {
+  font-family: var(--font-mono);
+  font-size: var(--layer-font-size);
+  line-height: var(--layer-cell-h);
+  color: var(--fg-dim);
+}
+
+.glyph-host {
+  width: auto;
+  height: auto;
+}
+
+/* glyphcss 0.1.6 base rules (injectGlyphBaseStyles), pinned by D-61. */
+.glyph-scene {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  line-height: 1;
+}
+
+.glyph-scene .glyph-output {
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+  white-space: pre;
+  overflow: hidden;
+}
+
+.glyph-output {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.glyph-scene .glyph-hotspot-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.glyph-scene .glyph-hotspot {
+  position: absolute;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--fg);
+}
+
+.label-compass {
+  font-weight: 700;
+}
+
+.label-ring {
+  font-size: 9px;
+}
