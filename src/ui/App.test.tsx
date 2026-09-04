@@ -11,7 +11,8 @@ import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../test
 import type { Observer } from '../model';
 import { appStore, type ElementsState } from '../state';
 import { IDLE_PASSES } from '../state/slices/passes';
-import { App, TAGLINE } from './App';
+import { en } from '../i18n/en';
+import { App } from './App';
 
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
@@ -29,7 +30,7 @@ describe('<App> frame (R12)', () => {
   it('has the title, the tagline, the three titled regions and the footer, with no axe violations while empty', async () => {
     const { container } = render(<App />);
     expect(within(screen.getByRole('banner')).getByRole('heading', { level: 1, name: 'What is in your sky right now' })).toBeInTheDocument();
-    expect(screen.getByRole('banner')).toHaveTextContent(TAGLINE);
+    expect(screen.getByRole('banner')).toHaveTextContent(en.app.tagline);
     for (const name of ['Location', 'Right now', 'Upcoming passes']) {
       const region = screen.getByRole('region', { name });
       expect(within(region).getByRole('heading', { level: 2, name })).toBeInTheDocument();

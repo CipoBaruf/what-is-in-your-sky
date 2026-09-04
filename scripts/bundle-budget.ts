@@ -25,9 +25,15 @@ export interface Budget {
   limitKb: number;
 }
 
-/** PLAN §11: main ≤ 150 KB, chart ≤ 100 KB (D-63), worker ≤ 120 KB, gzipped. */
+/**
+ * PLAN §11: chart ≤ 100 KB (D-63), worker ≤ 120 KB, gzipped. The main chunk
+ * is on its v1 budget of 170 KB from R17 on — the second message catalog,
+ * the live page's shell, the offline and share code all land there, and both
+ * catalogs ship in it by design (lazy-loading a language would make the
+ * switch flash). R17 measured 114.9 KB, 5.7 KB more than R15's 109.2.
+ */
 export const BUDGETS: readonly Budget[] = [
-  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 150 },
+  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 170 },
   { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 100 },
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 120 },
 ];

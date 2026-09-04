@@ -1,3 +1,4 @@
+import { useT } from '../../../i18n/useT';
 import type { PassSort } from '../../../model';
 import styles from './SortToggle.module.css';
 
@@ -8,7 +9,6 @@ import styles from './SortToggle.module.css';
  * (FR-X-5); the choice is persisted by the store (`setSort`). Pure display:
  * the parent owns the value.
  */
-export const SORT_LABELS: Record<PassSort, string> = { chronological: 'Soonest first', best: 'Best first' };
 const ORDER: readonly PassSort[] = ['chronological', 'best'];
 
 export interface SortToggleProps {
@@ -17,10 +17,11 @@ export interface SortToggleProps {
 }
 
 export function SortToggle({ value, onChange }: SortToggleProps) {
+  const t = useT();
   return (
-    <div role="group" aria-label="Sort passes" className={styles.group}>
+    <div role="group" aria-label={t.passes.sortGroup} className={styles.group}>
       <span className={styles.label} aria-hidden="true">
-        Sort:
+        {t.passes.sortPrefix}
       </span>
       {ORDER.map((sort) => (
         <button
@@ -32,7 +33,7 @@ export function SortToggle({ value, onChange }: SortToggleProps) {
             if (sort !== value) onChange(sort);
           }}
         >
-          {SORT_LABELS[sort]}
+          {t.passes.sort[sort]}
         </button>
       ))}
     </div>

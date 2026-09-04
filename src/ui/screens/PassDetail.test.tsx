@@ -12,7 +12,7 @@ import { IDLE_PASSES } from '../../state/slices/passes';
 import { App } from '../App';
 import { PassDetail, TICK_MS } from './PassDetail';
 
-const golden = JSON.parse(readFileSync(join(FIXTURES_DIR, 'guide-sentences.json'), 'utf8')) as { asComputed: string };
+const golden = JSON.parse(readFileSync(join(FIXTURES_DIR, 'guide-sentences.json'), 'utf8')) as { en: { asComputed: string } };
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
@@ -35,7 +35,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     const { container } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
     const dialog = screen.getByRole('dialog', { name: 'ISS (Zarya)' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(within(dialog).getByTestId('guide-sentence').textContent).toBe(golden.asComputed);
+    expect(within(dialog).getByTestId('guide-sentence').textContent).toBe(golden.en.asComputed);
     expect(within(dialog).getByRole('table')).toBeInTheDocument();
     expect(within(dialog).getByText('sky still bright', { selector: 'p span' })).toBeInTheDocument();
     // R13: the chart is a figure captioned by the sentence; the drawing is hidden from AT (FR-GUIDE-7) and is SVG, not canvas (FR-GUIDE-5).

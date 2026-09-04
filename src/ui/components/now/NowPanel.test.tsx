@@ -7,6 +7,8 @@
 import { act, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it } from 'vitest';
+import { en } from '../../../i18n/en';
+import { es } from '../../../i18n/es';
 import type { NowItem, NowState, Observer, WeatherSnapshot } from '../../../model';
 import { appStore, type AppState } from '../../../state';
 import { IDLE_PASSES } from '../../../state/slices/passes';
@@ -54,10 +56,11 @@ const done = (hasDarkness: boolean) => ({ ...IDLE_PASSES, jobId: 'job-1', status
 
 describe('remainingText', () => {
   it('words the end reason with a m:ss countdown', () => {
-    expect(remainingText(item({ visibleUntil: T + 192_000, endReason: 'horizon' }), T)).toBe('sets in 3:12');
-    expect(remainingText(item({ visibleUntil: T + 65_000, endReason: 'shadow' }), T)).toBe("enters Earth's shadow in 1:05");
-    expect(remainingText(item({ visibleUntil: T + 40_000, endReason: 'twilight' }), T)).toBe('fades into the brightening sky in 0:40');
-    expect(remainingText(item(), T)).toBe('visible for a while yet');
+    expect(remainingText(item({ visibleUntil: T + 192_000, endReason: 'horizon' }), T, en)).toBe('sets in 3:12');
+    expect(remainingText(item({ visibleUntil: T + 65_000, endReason: 'shadow' }), T, en)).toBe("enters Earth's shadow in 1:05");
+    expect(remainingText(item({ visibleUntil: T + 40_000, endReason: 'twilight' }), T, en)).toBe('fades into the brightening sky in 0:40');
+    expect(remainingText(item(), T, en)).toBe('visible for a while yet');
+    expect(remainingText(item({ visibleUntil: T + 192_000, endReason: 'horizon' }), T, es)).toBe('se pone en 3:12');
   });
 });
 
@@ -188,7 +191,9 @@ describe('<NowPanel>', () => {
   });
 
   it('summaryText covers every kind', () => {
-    expect(summaryText({ kind: 'visible', items: [item(), item({ noradId: 2 })] })).toBe('2 satellites visible right now');
-    expect(summaryText({ kind: 'daylight', sunAltDeg: -2.6 })).toContain('3° below the horizon');
+    expect(summaryText({ kind: 'visible', items: [item(), item({ noradId: 2 })] }, en)).toBe('2 satellites visible right now');
+    expect(summaryText({ kind: 'daylight', sunAltDeg: -2.6 }, en)).toContain('3° below the horizon');
+    expect(summaryText({ kind: 'visible', items: [item()] }, es)).toBe('1 satélite visible ahora mismo');
+    expect(summaryText({ kind: 'daylight', sunAltDeg: -2.6 }, es)).toContain('3° bajo el horizonte');
   });
 });

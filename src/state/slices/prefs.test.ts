@@ -98,4 +98,20 @@ describe('prefs slice', () => {
     store.getState().setSort('best');
     expect(stored(storage)).toEqual({ observer: neuquen, sort: 'best', chartView: 'dome', chartOrientation: 'looking-up' });
   });
+
+  it('resolves the language from the browser until one is saved, then keeps the saved one (R17, FR-I18N-1)', () => {
+    const storage = memoryStorage();
+    // jsdom reports an English list, so a fresh store is English and nothing is written until the switch is used.
+    const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(fresh.getState().locale).toBe('en');
+    expect(storage.map.has(PREFS_KEY)).toBe(false);
+    fresh.getState().setLocale('es');
+    expect(fresh.getState().locale).toBe('es');
+    expect(stored(storage)).toEqual({ locale: 'es' });
+    // A saved language wins over the browser at the next start, and the observer write-through keeps it.
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(store.getState().locale).toBe('es');
+    store.getState().setObserver(neuquen);
+    expect(stored(storage)).toEqual({ observer: neuquen, locale: 'es' });
+  });
 });

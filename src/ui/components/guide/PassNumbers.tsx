@@ -1,8 +1,9 @@
+import { useLocale, useT } from '../../../i18n/useT';
 import { compassPoint } from '../../../lib/compass';
-import { degrees, formatDuration, formatMagnitude, formatRange } from '../../../lib/format';
-import { TWILIGHT_LABEL, brightnessPhrase, endReasonPhrase, startReasonPhrase } from '../../../lib/phrases';
+import { degrees, formatDuration, formatMagnitude, formatRange, formatSignedDegrees } from '../../../lib/format';
+import { brightnessBand } from '../../../lib/phrases';
 import { formatClock } from '../../../lib/timeFormat';
-import type { Pass, PassPoint } from '../../../model';
+import type { Pass } from '../../../model';
 import styles from './PassNumbers.module.css';
 
 /**
@@ -18,61 +19,52 @@ export interface PassNumbersProps {
   timeZone: string | null;
 }
 
-const POINTS: { key: 'start' | 'peak' | 'end'; name: string }[] = [
-  { key: 'start', name: 'Start' },
-  { key: 'peak', name: 'Peak' },
-  { key: 'end', name: 'End' },
-];
-
-const azimuth = (p: PassPoint): string => `${compassPoint(p.azDeg)} ${degrees(p.azDeg)}`;
-const signedDegrees = (n: number): string => `${n < 0 ? '−' : '+'}${Math.abs(n).toFixed(1)}°`;
+const POINTS = ['start', 'peak', 'end'] as const;
 
 export function PassNumbers({ pass, timeZone }: PassNumbersProps) {
+  const t = useT();
+  const locale = useLocale();
+  const numbers = t.guide.numbers;
   return (
     <div className={styles.numbers}>
       <div className={styles.scroll}>
         <table className={styles.table}>
-          <caption className={styles.caption}>Start, peak and end</caption>
+          <caption className={styles.caption}>{numbers.caption}</caption>
           <thead>
             <tr>
-              <th scope="col">Point</th>
-              <th scope="col">Time</th>
-              <th scope="col">Azimuth</th>
-              <th scope="col">Elevation</th>
-              <th scope="col">Range</th>
+              <th scope="col">{numbers.point}</th>
+              <th scope="col">{numbers.time}</th>
+              <th scope="col">{numbers.azimuth}</th>
+              <th scope="col">{numbers.elevation}</th>
+              <th scope="col">{numbers.range}</th>
             </tr>
           </thead>
           <tbody>
-            {POINTS.map(({ key, name }) => (
+            {POINTS.map((key) => (
               <tr key={key}>
-                <th scope="row">{name}</th>
-                <td>{formatClock(pass[key].t, timeZone)}</td>
-                <td>{azimuth(pass[key])}</td>
+                <th scope="row">{numbers[key]}</th>
+                <td>{formatClock(pass[key].t, timeZone, locale)}</td>
+                <td>{t.guide.azimuth({ point: compassPoint(pass[key].azDeg), degrees: degrees(pass[key].azDeg) })}</td>
                 <td>{degrees(pass[key].elDeg)}</td>
-                <td>{formatRange(pass[key].rangeKm)}</td>
+                <td>{formatRange(pass[key].rangeKm, locale)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <dl className={styles.fields}>
-        <dt>Duration</dt>
+        <dt>{numbers.duration}</dt>
         <dd>{formatDuration(pass.durationS)}</dd>
-        <dt>Magnitude</dt>
-        <dd>
-          {formatMagnitude(pass.peakMagnitude)}, {brightnessPhrase(pass.peakMagnitude)}
-        </dd>
-        <dt>Range at peak</dt>
-        <dd>{formatRange(pass.peak.rangeKm)}</dd>
-        <dt>Starts when it</dt>
-        <dd data-reason={pass.startReason}>{startReasonPhrase(pass.startReason).replace(/,$/, '')}</dd>
-        <dt>Ends when it</dt>
-        <dd data-reason={pass.endReason}>{endReasonPhrase(pass.endReason)}</dd>
-        <dt>Sun at peak</dt>
-        <dd>
-          {signedDegrees(pass.sunAltAtPeakDeg)}
-          {pass.twilight && ` (${TWILIGHT_LABEL})`}
-        </dd>
+        <dt>{numbers.magnitude}</dt>
+        <dd>{t.passes.magnitudeWithBand({ magnitude: formatMagnitude(pass.peakMagnitude, locale), band: brightnessBand(pass.peakMagnitude) })}</dd>
+        <dt>{numbers.rangeAtPeak}</dt>
+        <dd>{formatRange(pass.peak.rangeKm, locale)}</dd>
+        <dt>{numbers.startsWhen}</dt>
+        <dd data-reason={pass.startReason}>{t.guide.startReason[pass.startReason]}</dd>
+        <dt>{numbers.endsWhen}</dt>
+        <dd data-reason={pass.endReason}>{t.guide.endReason[pass.endReason]}</dd>
+        <dt>{numbers.sunAtPeak}</dt>
+        <dd>{numbers.sunWithLabel({ degrees: formatSignedDegrees(pass.sunAltAtPeakDeg, locale), twilight: pass.twilight })}</dd>
       </dl>
     </div>
   );

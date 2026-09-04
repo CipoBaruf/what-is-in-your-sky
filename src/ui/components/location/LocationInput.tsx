@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react';
+import { useT } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
 import { SectionHeading } from '../common/SectionHeading';
 import { CoordsInput, coordsLabel } from './CoordsInput';
@@ -30,6 +31,7 @@ export interface LocationInputProps {
 }
 
 export function LocationInput({ observer, onObserver, onClear, search, geolocation }: LocationInputProps) {
+  const t = useT();
   // The observer the inputs were seeded from; a new key remounts them.
   const [seed, setSeed] = useState(() => ({ key: 0, observer }));
   const headingId = useId();
@@ -44,31 +46,33 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
     if (seed.key > 0) document.getElementById(PLACE_INPUT_ID)?.focus();
   }, [seed.key]);
 
-  const accuracy = observer?.source === 'device' ? accuracyText(observer.accuracyM) : null;
-  const detail = [observer?.source === 'device' ? 'from your device' : null, observer && observer.altM !== 0 ? `at ${String(Math.round(observer.altM))} m` : null].filter((part): part is string => part !== null).join(' ');
+  const accuracy = observer?.source === 'device' ? accuracyText(observer.accuracyM, t) : null;
 
   return (
     <section aria-labelledby={headingId} className={styles.section}>
-      <SectionHeading id={headingId}>Location</SectionHeading>
+      <SectionHeading id={headingId}>{t.location.heading}</SectionHeading>
       <PlacePicker key={`place-${String(seed.key)}`} search={search} onObserver={onObserver} observer={observer} coordsInputId={COORDS_INPUT_ID} inputId={PLACE_INPUT_ID} {...(seed.observer?.source === 'geocode' ? { initialText: seed.observer.label } : {})} />
       <CoordsInput key={`coords-${String(seed.key)}`} id={COORDS_INPUT_ID} onObserver={onObserver} {...(seed.observer?.source === 'coords' ? { initial: { lat: seed.observer.lat, lon: seed.observer.lon, altM: seed.observer.altM } } : {})} />
       <UseMyLocation onObserver={onObserver} {...(geolocation ? { env: geolocation } : {})} />
       {observer && observer.source !== 'geocode' && (
         <p className={styles.active} data-testid="active-location">
-          Using {coordsLabel(observer.lat, observer.lon)}
-          {detail && ` ${detail}`}
-          {accuracy && ` (accurate to ${accuracy})`}.
+          {t.location.active({
+            coords: coordsLabel(observer.lat, observer.lon),
+            fromDevice: observer.source === 'device',
+            altitude: observer.altM === 0 ? null : String(Math.round(observer.altM)),
+            accuracy,
+          })}
         </p>
       )}
       {observer && (
         <p className={styles.saved}>
-          Saved in this browser only.{' '}
+          {t.location.savedHere}{' '}
           <button type="button" onClick={clear} className={`inline-control ${styles.clear}`}>
-            Clear saved location
+            {t.location.clearSaved}
           </button>
         </p>
       )}
-      <p className={styles.note}>Precision is city-level: a pass looks the same from anywhere within a few kilometres, so no street address is resolved.</p>
+      <p className={styles.note}>{t.location.precisionNote}</p>
     </section>
   );
 }

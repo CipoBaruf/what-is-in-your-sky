@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useT } from '../../../i18n/useT';
 import styles from './Banner.module.css';
 
 /**
@@ -18,12 +19,11 @@ export interface BannerProps {
   testId?: string;
 }
 
-const PREFIX: Record<BannerVariant, string> = { info: 'Note', warning: 'Warning' };
-
 export function Banner({ variant, children, testId }: BannerProps) {
+  const t = useT();
   return (
     <p role={variant === 'warning' ? 'alert' : 'status'} data-variant={variant} className={`${styles.banner} ${styles[variant] ?? ''}`} {...(testId ? { 'data-testid': testId } : {})}>
-      <span className={styles.prefix}>[{PREFIX[variant]}]</span> {children}
+      <span className={styles.prefix}>[{t.banner[variant]}]</span> {children}
     </p>
   );
 }

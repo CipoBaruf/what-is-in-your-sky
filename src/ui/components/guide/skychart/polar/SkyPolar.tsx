@@ -1,8 +1,10 @@
 import { useAppStore } from '../../../../../state';
+import { useLocale, useT } from '../../../../../i18n/useT';
+import type { Messages } from '../../../../../i18n/messages';
 import { degrees } from '../../../../../lib/format';
 import { interpolateTrack, resampleArc, toPolar } from '../../../../../lib/skyGeometry';
 import { formatClock } from '../../../../../lib/timeFormat';
-import type { ChartOrientation, Pass, PassPoint } from '../../../../../model';
+import type { ChartOrientation, Locale, Pass, PassPoint } from '../../../../../model';
 import { OptionToggle } from '../../../common/OptionToggle';
 import { ChartFrame } from '../ChartFrame';
 import type { SkyChartProps, SkyChartView } from '../SkyChart.types';
@@ -23,11 +25,6 @@ import styles from './SkyPolar.module.css';
  * row, the SVG in the square box, the convention in the status row) so the
  * dome and this view occupy the same space.
  */
-export const ORIENTATION_LABELS: Record<ChartOrientation, string> = { 'looking-up': 'Looking up', map: 'Map' };
-export const ORIENTATION_NOTES: Record<ChartOrientation, string> = {
-  'looking-up': 'Looking up: east on the left, as when lying on your back.',
-  map: 'Map: east on the right, as on a map.',
-};
 const ORIENTATIONS: readonly ChartOrientation[] = ['looking-up', 'map'];
 
 /** The horizon radius in user units; the viewBox leaves room for the labels outside it. */
@@ -102,9 +99,11 @@ interface ArcProps {
   dim: boolean;
   now: number | undefined;
   onSelect: ((passId: string) => void) | undefined;
+  t: Messages;
+  locale: Locale;
 }
 
-function PassArc({ pass, orientation, timeZone, dim, now, onSelect }: ArcProps) {
+function PassArc({ pass, orientation, timeZone, dim, now, onSelect, t, locale }: ArcProps) {
   const points = resampleArc(pass.track, ARC_STEP_DEG).map((p) => project(p, orientation));
   const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${fmt(p.x)} ${fmt(p.y)}`).join(' ');
   const rise = project(pass.start, orientation);
@@ -116,8 +115,8 @@ function PassArc({ pass, orientation, timeZone, dim, now, onSelect }: ArcProps) 
   const tip = points[head] ?? end;
   const headingDeg = (Math.atan2(tip.y - tail.y, tip.x - tail.x) * 180) / Math.PI;
   const current: PassPoint | null = now !== undefined && now >= pass.start.t && now <= pass.end.t ? interpolateTrack(pass.track, now) : null;
-  const nameText = `${pass.name} ${formatClock(pass.start.t, timeZone)}`;
-  const peakText = `max ${degrees(pass.peak.elDeg)}`;
+  const nameText = t.chart.passLabel({ name: pass.name, time: formatClock(pass.start.t, timeZone, locale) });
+  const peakText = t.chart.peakLabel(degrees(pass.peak.elDeg));
   const second = points[1] ?? peak;
   const nameAt = labelBeside(rise, { x: second.x - rise.x, y: second.y - rise.y }, 'inward', nameText);
   const peakIndex = Math.max(1, points.findIndex((p) => p.x === peak.x && p.y === peak.y));
@@ -168,16 +167,18 @@ function Marker({ kind, p }: { kind: 'rise' | 'end' | 'shadow' | 'peak' | 'now';
 }
 
 export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, now, className }: SkyChartProps) {
+  const t = useT();
+  const locale = useLocale();
   const orientation = useAppStore((s) => s.chartOrientation);
   const setChartOrientation = useAppStore((s) => s.setChartOrientation);
   const ring = (elDeg: number): number => project({ azDeg: 0, elDeg }, orientation).y * -1;
   return (
     <div className={[styles.polar, className].filter(Boolean).join(' ')} data-orientation={orientation}>
       <ChartFrame
-        controls={<OptionToggle name="Chart orientation" options={ORIENTATIONS.map((value) => ({ value, label: ORIENTATION_LABELS[value] }))} value={orientation} onChange={setChartOrientation} />}
+        controls={<OptionToggle name={t.chart.orientationGroup} options={ORIENTATIONS.map((value) => ({ value, label: t.chart.orientation[value] }))} value={orientation} onChange={setChartOrientation} />}
         status={
           <p className={styles.convention} data-testid="chart-convention">
-            {ORIENTATION_NOTES[orientation]}
+            {t.chart.orientationNote[orientation]}
           </p>
         }
       >
@@ -200,7 +201,17 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
           );
         })}
         {passes.map((pass) => (
-          <PassArc key={pass.id} pass={pass} orientation={orientation} timeZone={observer.timeZone} dim={highlightedPassId !== null && highlightedPassId !== pass.id} now={now} onSelect={onSelectPass} />
+          <PassArc
+            key={pass.id}
+            pass={pass}
+            orientation={orientation}
+            timeZone={observer.timeZone}
+            dim={highlightedPassId !== null && highlightedPassId !== pass.id}
+            now={now}
+            onSelect={onSelectPass}
+            t={t}
+            locale={locale}
+          />
         ))}
       </svg>
       </ChartFrame>
@@ -208,4 +219,4 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
   );
 }
 
-export const POLAR_VIEW: SkyChartView = { Component: SkyPolar, id: 'polar', label: 'Polar' };
+export const POLAR_VIEW: SkyChartView = { Component: SkyPolar, id: 'polar' };

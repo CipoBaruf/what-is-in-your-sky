@@ -15,6 +15,15 @@
   gap: var(--row);
 }
 
+/* R17: the sheet replaces the page while it is up (the header behind it is inert), so it carries the language switch itself. */
+.topRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 calc(2 * var(--cell));
+}
+
 .close {
   color: var(--accent);
   justify-self: start;

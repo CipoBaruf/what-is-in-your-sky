@@ -8,22 +8,27 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../tests/support/catalogFixtures';
+import { en } from '../../../i18n/en';
+import { es } from '../../../i18n/es';
 import { HERO_TICK_MS, heroCountdown, heroKicker, IssHeroCard } from './IssHeroCard';
 
 const pass = goldenPassFixture();
 
 describe('heroKicker / heroCountdown', () => {
-  it('says "Next ISS pass" for the station and "Next <name> pass" otherwise', () => {
-    expect(heroKicker(pass)).toBe('Next ISS pass');
-    expect(heroKicker({ ...pass, name: 'Tiangong (Tianhe)' })).toBe('Next Tiangong (Tianhe) pass');
+  it('says "Next ISS pass" for the station and "Next <name> pass" otherwise, with the name untranslated (FR-I18N-6)', () => {
+    expect(heroKicker(pass, en)).toBe('Next ISS pass');
+    expect(heroKicker({ ...pass, name: 'Tiangong (Tianhe)' }, en)).toBe('Next Tiangong (Tianhe) pass');
+    expect(heroKicker(pass, es)).toBe('Próximo pase de la ISS');
+    expect(heroKicker({ ...pass, name: 'Tiangong (Tianhe)' }, es)).toBe('Próximo pase de Tiangong (Tianhe)');
   });
 
   it('counts down to the rise, then the peak, then the end, then counts up since the end', () => {
-    expect(heroCountdown(pass, pass.start.t - 754_000)).toBe('Appears in 12:34');
-    expect(heroCountdown(pass, pass.start.t + 1000)).toMatch(/^Peak in \d+:\d\d$/);
-    expect(heroCountdown(pass, pass.peak.t + 1000)).toMatch(/^Sets in \d+:\d\d$/);
-    expect(heroCountdown({ ...pass, endReason: 'shadow' }, pass.peak.t + 1000)).toMatch(/^Enters shadow in /);
-    expect(heroCountdown(pass, pass.end.t + 180_000)).toBe('Ended 3:00 ago');
+    expect(heroCountdown(pass, pass.start.t - 754_000, en)).toBe('Appears in 12:34');
+    expect(heroCountdown(pass, pass.start.t + 1000, en)).toMatch(/^Peak in \d+:\d\d$/);
+    expect(heroCountdown(pass, pass.peak.t + 1000, en)).toMatch(/^Sets in \d+:\d\d$/);
+    expect(heroCountdown({ ...pass, endReason: 'shadow' }, pass.peak.t + 1000, en)).toMatch(/^Enters shadow in /);
+    expect(heroCountdown(pass, pass.end.t + 180_000, en)).toBe('Ended 3:00 ago');
+    expect(heroCountdown(pass, pass.end.t + 180_000, es)).toBe('Terminó hace 3:00');
   });
 });
 

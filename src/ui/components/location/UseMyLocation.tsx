@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import type { Messages } from '../../../i18n/messages';
+import { useT } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
 import { coordsLabel } from './CoordsInput';
 import styles from './UseMyLocation.module.css';
@@ -21,12 +23,12 @@ export function browserGeolocationEnv(): GeolocationEnv {
   return { geolocation: nav?.geolocation, secure: globalThis.isSecureContext === true };
 }
 
-/** US-3 AC3: shown only when worse than about 1 km, as "about 2 km" / "about 1.5 km". */
+/** US-3 AC3: shown only when worse than about 1 km, as "about 2 km" / "about 1.5 km"; null below that, and the caller says nothing. */
 export const ACCURACY_SHOW_M = 1000;
-export function accuracyText(accuracyM: number | undefined): string | null {
+export function accuracyText(accuracyM: number | undefined, t: Messages): string | null {
   if (accuracyM === undefined || !(accuracyM > ACCURACY_SHOW_M)) return null;
   const km = accuracyM / 1000;
-  return `about ${km >= 10 ? String(Math.round(km)) : String(Math.round(km * 10) / 10)} km`;
+  return t.location.accuracy(km >= 10 ? String(Math.round(km)) : String(Math.round(km * 10) / 10));
 }
 
 export function observerFromPosition(coords: Pick<GeolocationCoordinates, 'latitude' | 'longitude' | 'altitude' | 'accuracy'>): Observer {
@@ -34,14 +36,14 @@ export function observerFromPosition(coords: Pick<GeolocationCoordinates, 'latit
   return { lat, lon, altM: Math.round(coords.altitude ?? 0), label: coordsLabel(lat, lon), source: 'device', timeZone: null, accuracyM: Math.round(coords.accuracy) };
 }
 
-export function positionErrorText(error: Pick<GeolocationPositionError, 'code'>): string {
+export function positionErrorText(error: Pick<GeolocationPositionError, 'code'>, t: Messages): string {
   switch (error.code) {
     case 1:
-      return 'Location permission was denied. You can still enter a place name or coordinates.';
+      return t.location.permissionDenied;
     case 2:
-      return 'Your device could not determine its location. Enter a place name or coordinates instead.';
+      return t.location.positionUnavailable;
     default:
-      return 'Finding your location took too long. Try again, or enter a place name or coordinates.';
+      return t.location.positionTimeout;
   }
 }
 
@@ -54,6 +56,7 @@ export interface UseMyLocationProps {
 }
 
 export function UseMyLocation({ onObserver, env }: UseMyLocationProps) {
+  const t = useT();
   const { geolocation, secure } = env ?? browserGeolocationEnv();
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +82,7 @@ export function UseMyLocation({ onObserver, env }: UseMyLocationProps) {
       (positionError) => {
         if (!mounted.current) return;
         setLocating(false);
-        setError(positionErrorText(positionError));
+        setError(positionErrorText(positionError, t));
       },
       OPTIONS,
     );
@@ -88,7 +91,7 @@ export function UseMyLocation({ onObserver, env }: UseMyLocationProps) {
   return (
     <div className={styles.field}>
       <button type="button" onClick={locate} disabled={locating} aria-busy={locating} className={styles.button}>
-        {locating ? 'Finding your location…' : 'Use my location'}
+        {locating ? t.location.locating : t.location.useMyLocation}
       </button>
       {error && (
         <p role="alert" className={styles.error}>

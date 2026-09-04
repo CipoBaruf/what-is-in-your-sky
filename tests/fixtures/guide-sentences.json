@@ -1,7 +1,15 @@
 {
-  "note": "Golden FR-GUIDE-1 sentences for the first R1 golden pass (tests/fixtures/reference-values.json firstGoldenPass) in UTC. `asComputed` is the pass as the pipeline returns it with the catalog's ISS stdMag (D-22: −2.5, so magnitude +0.5 rather than the reference file's +1.2 from the R1 seed; see goldenPassFixture), horizon/horizon, twilight = true; the other three keep its numbers but force the end reason and clear the twilight flag. Read by src/lib/phrases.test.ts and tests/e2e/pass-detail.spec.ts.",
-  "asComputed": "Appears low in the northeast at 09:48:14 UTC, climbs to 10° (low in the sky) in the northeast at 09:48:38 UTC, drops below the horizon in the east-northeast at 09:49:02 UTC. Like a bright star (magnitude +0.5). The sky will still be bright, so it may be hard to spot.",
-  "endHorizon": "Appears low in the northeast at 09:48:14 UTC, climbs to 10° (low in the sky) in the northeast at 09:48:38 UTC, drops below the horizon in the east-northeast at 09:49:02 UTC. Like a bright star (magnitude +0.5).",
-  "endShadow": "Appears low in the northeast at 09:48:14 UTC, climbs to 10° (low in the sky) in the northeast at 09:48:38 UTC, disappears into Earth's shadow in the east-northeast at 09:49:02 UTC. Like a bright star (magnitude +0.5).",
-  "endTwilight": "Appears low in the northeast at 09:48:14 UTC, climbs to 10° (low in the sky) in the northeast at 09:48:38 UTC, fades into the brightening sky in the east-northeast at 09:49:02 UTC. Like a bright star (magnitude +0.5)."
+  "note": "Golden FR-GUIDE-1 sentences for the first R1 golden pass (tests/fixtures/reference-values.json firstGoldenPass) in UTC, in both languages (R17). `asComputed` is the pass as the pipeline returns it with the catalog's ISS stdMag (D-22: −2.5, so magnitude +0.5 rather than the reference file's +1.2 from the R1 seed; see goldenPassFixture), horizon/horizon, twilight = true; the other three keep its numbers but force the end reason and clear the twilight flag. Read by src/lib/phrases.test.ts and tests/e2e/pass-detail.spec.ts.",
+  "en": {
+    "asComputed": "Appears low in the northeast at 09:48:14 UTC, climbs to 10° (low in the sky) in the northeast at 09:48:38 UTC, drops below the horizon in the east-northeast at 09:49:02 UTC. Like a bright star (magnitude +0.5). The sky will still be bright, so it may be hard to spot.",
+    "endHorizon": "Appears low in the northeast at 09:48:14 UTC, climbs to 10° (low in the sky) in the northeast at 09:48:38 UTC, drops below the horizon in the east-northeast at 09:49:02 UTC. Like a bright star (magnitude +0.5).",
+    "endShadow": "Appears low in the northeast at 09:48:14 UTC, climbs to 10° (low in the sky) in the northeast at 09:48:38 UTC, disappears into Earth's shadow in the east-northeast at 09:49:02 UTC. Like a bright star (magnitude +0.5).",
+    "endTwilight": "Appears low in the northeast at 09:48:14 UTC, climbs to 10° (low in the sky) in the northeast at 09:48:38 UTC, fades into the brightening sky in the east-northeast at 09:49:02 UTC. Like a bright star (magnitude +0.5)."
+  },
+  "es": {
+    "asComputed": "Aparece bajo en el noreste a las 09:48:14 UTC, sube a 10° (bajo en el cielo) en el noreste a las 09:48:38 UTC, baja por debajo del horizonte en el este-noreste a las 09:49:02 UTC. Como una estrella brillante (magnitud +0,5). El cielo todavía estará claro, así que puede costar verlo.",
+    "endHorizon": "Aparece bajo en el noreste a las 09:48:14 UTC, sube a 10° (bajo en el cielo) en el noreste a las 09:48:38 UTC, baja por debajo del horizonte en el este-noreste a las 09:49:02 UTC. Como una estrella brillante (magnitud +0,5).",
+    "endShadow": "Aparece bajo en el noreste a las 09:48:14 UTC, sube a 10° (bajo en el cielo) en el noreste a las 09:48:38 UTC, desaparece en la sombra de la Tierra en el este-noreste a las 09:49:02 UTC. Como una estrella brillante (magnitud +0,5).",
+    "endTwilight": "Aparece bajo en el noreste a las 09:48:14 UTC, sube a 10° (bajo en el cielo) en el noreste a las 09:48:38 UTC, se desvanece en el cielo que aclara en el este-noreste a las 09:49:02 UTC. Como una estrella brillante (magnitud +0,5)."
+  }
 }

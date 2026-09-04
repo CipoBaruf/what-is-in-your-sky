@@ -7,6 +7,9 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { en } from '../../../i18n/en';
+import { es } from '../../../i18n/es';
+import { I18nProvider } from '../../../i18n/useT';
 import { accuracyText, observerFromPosition, UseMyLocation, type GeolocationEnv } from './UseMyLocation';
 
 type Success = (position: { coords: { latitude: number; longitude: number; altitude: number | null; accuracy: number } }) => void;
@@ -18,12 +21,13 @@ function fakeGeolocation(respond: (success: Success, failure: Failure) => void):
 
 describe('accuracyText (US-3 AC3)', () => {
   it('is null at or below 1 km and rounds above', () => {
-    expect(accuracyText(undefined)).toBeNull();
-    expect(accuracyText(300)).toBeNull();
-    expect(accuracyText(1000)).toBeNull();
-    expect(accuracyText(1500)).toBe('about 1.5 km');
-    expect(accuracyText(2000)).toBe('about 2 km');
-    expect(accuracyText(12_345)).toBe('about 12 km');
+    expect(accuracyText(undefined, en)).toBeNull();
+    expect(accuracyText(300, en)).toBeNull();
+    expect(accuracyText(1000, en)).toBeNull();
+    expect(accuracyText(1500, en)).toBe('about 1.5 km');
+    expect(accuracyText(2000, en)).toBe('about 2 km');
+    expect(accuracyText(12_345, en)).toBe('about 12 km');
+    expect(accuracyText(2000, es)).toBe('unos 2 km');
   });
 });
 
@@ -92,5 +96,18 @@ describe('<UseMyLocation>', () => {
     expect(busy).toHaveAttribute('aria-busy', 'true');
     (answer as unknown as Success)({ coords: { latitude: 1, longitude: 2, altitude: null, accuracy: 10 } });
     expect(await screen.findByRole('button', { name: 'Use my location' })).toBeEnabled();
+  });
+
+  it('labels the button and words a denial in Spanish under a Spanish provider (FR-I18N-2)', async () => {
+    const user = userEvent.setup();
+    const env: GeolocationEnv = { geolocation: fakeGeolocation((_s, failure) => failure({ code: 1, message: 'User denied Geolocation' })), secure: true };
+    render(
+      <I18nProvider locale="es">
+        <UseMyLocation onObserver={vi.fn()} env={env} />
+      </I18nProvider>,
+    );
+    await user.click(screen.getByRole('button', { name: es.location.useMyLocation }));
+    expect(screen.getByRole('alert')).toHaveTextContent(es.location.permissionDenied);
+    expect(screen.queryByText(en.location.permissionDenied)).toBeNull();
   });
 });

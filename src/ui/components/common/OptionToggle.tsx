@@ -20,11 +20,13 @@ export interface OptionToggleProps<T extends string> {
   options: readonly OptionToggleOption<T>[];
   value: T;
   onChange: (value: T) => void;
+  /** An extra class on the group, for a caller that places it (the header's language switch). */
+  className?: string | undefined;
 }
 
-export function OptionToggle<T extends string>({ name, prefix, options, value, onChange }: OptionToggleProps<T>) {
+export function OptionToggle<T extends string>({ name, prefix, options, value, onChange, className }: OptionToggleProps<T>) {
   return (
-    <div role="group" aria-label={name} className={styles.group}>
+    <div role="group" aria-label={name} className={[styles.group, className].filter(Boolean).join(' ')}>
       {prefix && (
         <span className={styles.prefix} aria-hidden="true">
           {prefix}

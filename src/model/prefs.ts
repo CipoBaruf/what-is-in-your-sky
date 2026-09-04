@@ -4,3 +4,5 @@ export type PassSort = 'chronological' | 'best';
 export type ChartView = 'dome' | 'polar';
 /** FR-GUIDE-4 (R13): the polar chart's convention, `looking-up` (east on the left, the default) or `map` (east on the right). Persisted in `wiys:prefs:v1`. */
 export type ChartOrientation = 'looking-up' | 'map';
+/** FR-I18N-1 (R17): the language the app renders in, chosen from the browser on the first visit and overridden by the header switch. Persisted in `wiys:prefs:v1`. */
+export type Locale = 'en' | 'es';
