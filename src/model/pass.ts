@@ -1,4 +1,5 @@
 import type { NoradId } from './catalog';
+import type { MoonGlare, MoonState } from './moon';
 import type { EpochMs } from './thresholds';
 
 export interface PassPoint {
@@ -25,6 +26,14 @@ export interface Pass {
   twilight: boolean; // FR-VIS-7: sun in (−12°, −6°] at peak
   track: PassPoint[]; // 10 s samples over [start, end] for the sky chart
   elementsEpochMs: EpochMs; // provenance
+  /**
+   * v1, FR-MOON-2: the Moon at the pass peak, or null when it is below the
+   * horizon there. One evaluation per pass, not per sample — the Moon moves
+   * about 0.5° in the length of a pass, far below the 30° separation threshold
+   * (PLAN §6.3 step 8).
+   */
+  moonAtPeak: MoonState | null;
+  moonGlare: MoonGlare; // v1, FR-MOON-2
 }
 
 export interface NowItem {
@@ -55,4 +64,6 @@ export interface NowState {
    * an MVP response is unchanged. Each item carries its own reason fields.
    */
   hidden?: NowItem[];
+  /** v1, FR-MOON-3: the Moon at `t`, computed with everything else so the main thread does no astronomy (D-80). */
+  moon: MoonState;
 }
