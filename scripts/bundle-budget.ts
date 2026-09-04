@@ -31,11 +31,19 @@ export interface Budget {
  * the live page's shell, the offline and share code all land there, and both
  * catalogs ship in it by design (lazy-loading a language would make the
  * switch flash). R17 measured 114.9 KB, 5.7 KB more than R15's 109.2.
+ *
+ * R25 adds the service worker at ≤ 15 KB: Workbox's runtime and the precache
+ * manifest, generated at the site root rather than under `assets/` because a
+ * worker's scope is the directory it is served from (D-79). It is a budget of
+ * its own precisely because it is not in the main chunk — nothing the page
+ * downloads to paint — and an overrun there would otherwise hide in the
+ * unbudgeted rows.
  */
 export const BUDGETS: readonly Budget[] = [
   { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 170 },
   { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 100 },
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 120 },
+  { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 15 },
 ];
 
 export interface ChunkSize {
@@ -55,13 +63,21 @@ export function mainChunkFile(html: string): string | null {
   return match?.[1] ?? null;
 }
 
+/** The built scripts: everything under `assets/`, and the service worker at the root (D-79). */
+function scripts(distDir: string): { file: string; path: string }[] {
+  const assetsDir = join(distDir, 'assets');
+  return [
+    ...readdirSync(assetsDir).map((file) => ({ file, path: join(assetsDir, file) })),
+    ...readdirSync(distDir)
+      .filter((file) => /^(sw|workbox-.*)\.js$/.test(file))
+      .map((file) => ({ file, path: join(distDir, file) })),
+  ].filter(({ file }) => file.endsWith('.js'));
+}
+
 export function measure(distDir = DIST): ChunkSize[] {
   const mainFile = mainChunkFile(readFileSync(join(distDir, 'index.html'), 'utf8'));
-  const assetsDir = join(distDir, 'assets');
-  return readdirSync(assetsDir)
-    .filter((file) => file.endsWith('.js'))
-    .map((file) => {
-      const path = join(assetsDir, file);
+  return scripts(distDir)
+    .map(({ file, path }) => {
       const budget = BUDGETS.find((candidate) => candidate.match(file, mainFile)) ?? null;
       const gzipKb = kb(gzipSync(readFileSync(path), { level: 9 }).length);
       return { file, budget: budget?.name ?? null, rawKb: kb(statSync(path).size), gzipKb, limitKb: budget?.limitKb ?? null, over: budget !== null && gzipKb > budget.limitKb };
