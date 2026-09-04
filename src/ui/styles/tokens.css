@@ -1,25 +1,55 @@
-/* Design tokens (PLAN D-5, FR-X-1, FR-X-5, FR-X-6). One monospace stack
+/* Design tokens (PLAN D-5, FR-X-1, FR-X-5, FR-X-6, D-84). One monospace stack
    everywhere; `--cell` is one character advance and `--row` one text row, so
-   layout aligns to the grid the sky dome is drawn on. Dark ground by default;
-   night mode is a later selector swap.
+   layout aligns to the grid the sky dome is drawn on.
 
-   Contrast (WCAG 2.1 AA, R12). Every foreground/background pair used for text,
-   computed with the WCAG relative-luminance formula (`scripts/contrast.ts`):
+   Two themes (FR-THEME-1, R20). `:root` is the dark theme and holds the
+   layout tokens as well; the night selector matches the same element and
+   restates every *colour*, so the theme is a selector swap and no component
+   learns about themes. `main.tsx` sets the attribute from the saved
+   preference before the first render (D-70), so nothing paints in the wrong
+   palette. Everything that is not a colour — the font stack, `--cell`,
+   `--row`, `--tap` — is written once and inherited by both.
 
-     text token   on --bg (#0b0f14)   on --bg-raised (#161c24)
-     --fg         13.79 : 1           12.30 : 1
-     --fg-dim      5.28 : 1            4.70 : 1
-     --accent     11.75 : 1           10.48 : 1
-     --danger      8.42 : 1            7.51 : 1
-     --ok         11.18 : 1            9.97 : 1
-     --warn       11.93 : 1           10.63 : 1
-     --bg on --accent (pressed sort button)   11.75 : 1
+   Contrast (WCAG 2.1 AA, R12 and R20). Every foreground/background pair used
+   for text, computed with the WCAG relative-luminance formula
+   (`scripts/contrast.ts`, which prints every column for both themes):
 
-   All ≥ 4.5 : 1 (AA for normal text). Text is never placed on `--rule`
-   (`--fg-dim` on it would be 3.55 : 1): highlighted rows use `--bg-raised`.
-   Non-text: `--edge` (control borders, focus rings share `--accent`) is
-   3.59 : 1 on `--bg` (3.20 : 1 on `--bg-raised`), above the 3 : 1 of WCAG 1.4.11; `--rule` (1.48 : 1) is
-   decorative only (dividers, card frames), never the sole boundary of a control. */
+     text token   on --bg (#0b0f14)   on --bg-raised (#161c24)   night on --bg (#0a0202)
+     --fg         13.79 : 1           12.30 : 1                   9.27 : 1
+     --fg-dim      5.28 : 1            4.70 : 1                   5.39 : 1
+     --accent     11.75 : 1           10.48 : 1                   7.28 : 1
+     --danger      8.42 : 1            7.51 : 1                   7.98 : 1
+     --ok         11.18 : 1            9.97 : 1                  11.94 : 1
+     --warn       11.93 : 1           10.63 : 1                  10.12 : 1
+     --bg on --accent (pressed sort button)   11.75 : 1 dark, 7.28 : 1 night
+
+   All ≥ 4.5 : 1 (AA for normal text). The night column is against the page
+   ground, which is the pair every night value was chosen against in R16;
+   `--bg-raised` is 1.06 : 1 above it, so the raised column is the same
+   numbers scaled by 0.95 and the test asserts the 4.5 floor on it rather than
+   pinning a second set of figures. Text is never placed on `--rule`
+   (`--fg-dim` on it would be 3.55 : 1 dark): highlighted rows use
+   `--bg-raised`. Non-text: `--edge` (control borders; focus rings share
+   `--accent`) is 3.59 : 1 on `--bg` (3.20 : 1 on `--bg-raised`) dark and
+   3.39 : 1 on `--bg` night, above the 3 : 1 of WCAG 1.4.11; `--rule`
+   (1.48 : 1 dark) is decorative only (dividers, card frames), never the sole
+   boundary of a control.
+
+   The `--chart-*` tokens are one value per FR-DOME-2 meaning, taken whole
+   from the R16 spike's recommended `cool` map (D-92,
+   `docs/dome-composition/findings.md`), so the chart tells the same story in
+   both themes; the ratio beside each is the spike's own measurement, against
+   that theme's `--bg`. Every mark clears the 3 : 1 non-text bar. The two base
+   surfaces (`--chart-ground`, `--chart-sky`) are surfaces rather than marks
+   and are *meant* to sit barely above the ground. R21 and R22 are what read
+   these; nothing draws with them yet.
+
+   FR-THEME-3: no night value carries a non-red hue — every one has
+   `r ≥ g ≥ b` and a hue within 30° of red, asserted by
+   `tests/styles/tokens.test.ts`. So in night mode `--danger`, `--warn` and
+   `--ok` differ by lightness and not by hue; every place that uses them also
+   carries a word or a bracketed marker, which is FR-X-5's rule that colour is
+   never the only channel. */
 :root {
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
   --cell: 1ch;
@@ -37,6 +67,57 @@
   --warn: #f0c674;
   --rule: #2a323d;
   --edge: #606c7a;
+
+  /* FR-DOME-2: one token per chart meaning, with its ratio on --bg (D-92). */
+  --chart-pass: #9ad0ff; /* 11.75 : 1 — the highlighted pass */
+  --chart-pass-flown: #5f9fd0; /* 6.73 : 1 — the part already flown (FR-DOME-5) */
+  --chart-pass-dim: #7d8794; /* 5.28 : 1 — every other pass */
+  --chart-peak: #f0c674; /* 11.93 : 1 — the peak marker */
+  --chart-shadow: #ff8a80; /* 8.42 : 1 — the shadow-entry marker */
+  --chart-now: #ffffff; /* 19.22 : 1 — the current position */
+  --chart-horizon: #a7b1bf; /* 8.86 : 1 — the horizon ring */
+  --chart-rings: #606c7a; /* 3.59 : 1 — altitude rings and meridians */
+  --chart-compass: #d5dbe3; /* 13.79 : 1 — the compass labels */
+  --chart-sun: #f0a94a; /* 9.59 : 1 — the Sun glow */
+  --chart-moon: #e8e2d0; /* 14.84 : 1 — the Moon */
+  --chart-ground: #161c24; /* 1.12 : 1 — base layer, the ground disc */
+  --chart-sky: #1d2733; /* 1.27 : 1 — base layer, the sky bowl */
+
+  color-scheme: dark;
+}
+
+/* FR-THEME-1, US-19: red on black, for eyes that have to stay dark-adapted.
+   The night palette is the R16 map read as a whole — the UI tokens take the
+   colours the spike already measured against this ground, so the chart and
+   the page around it are one set of reds rather than two. It runs out of
+   headroom at the dim end, not the bright end, which is why `--fg-dim` is the
+   shadow red and `--edge` the ring red: below those there is nothing left
+   that clears 4.5 : 1 and 3 : 1. */
+[data-theme="night"] {
+  --bg: #0a0202;
+  --bg-raised: #1a0806;
+  --fg: #ff8f7d;
+  --fg-dim: #d95a48;
+  --accent: #ff6a55;
+  --danger: #ff7a52;
+  --ok: #ffb3a0;
+  --warn: #ff9c86;
+  --rule: #3a1512;
+  --edge: #a3453a;
+
+  --chart-pass: #ff6a55; /* 7.28 : 1 */
+  --chart-pass-flown: #c04a3a; /* 4.19 : 1 */
+  --chart-pass-dim: #a3453a; /* 3.39 : 1 — the dim end has no more headroom (R16) */
+  --chart-peak: #ff9c86; /* 10.12 : 1 */
+  --chart-shadow: #d95a48; /* 5.39 : 1 */
+  --chart-now: #ffd8cd; /* 15.61 : 1 */
+  --chart-horizon: #c05545; /* 4.52 : 1 */
+  --chart-rings: #a3453a; /* 3.39 : 1 */
+  --chart-compass: #ff8f7d; /* 9.27 : 1 */
+  --chart-sun: #ff7a52; /* 7.98 : 1 */
+  --chart-moon: #ffb3a0; /* 11.94 : 1 */
+  --chart-ground: #160505; /* 1.03 : 1 */
+  --chart-sky: #1e0908; /* 1.07 : 1 */
 
   color-scheme: dark;
 }
