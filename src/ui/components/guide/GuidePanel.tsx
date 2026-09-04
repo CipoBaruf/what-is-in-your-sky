@@ -15,6 +15,10 @@ import styles from './GuidePanel.module.css';
  * pass is still on screen a column to the left. Focus still moves to the
  * heading on open, and `Esc` still closes: those come from `PassDetail`,
  * which owns them for both shells.
+ *
+ * D-119: the head and the body are two rows rather than one stack, because
+ * the panel is bounded by the column's height — the body scrolls and the
+ * name and the close control stay where they are.
  */
 export interface GuidePanelProps {
   passId: string;
@@ -37,7 +41,9 @@ export function GuidePanel({ passId, name, headingId, headingRef, onClose, child
           ×
         </button>
       </div>
-      {children}
+      <div className={styles.body} data-testid="guide-body">
+        {children}
+      </div>
     </section>
   );
 }

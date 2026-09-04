@@ -35,7 +35,10 @@ import { findSelectedPass, usePassSelection } from './screens/passSelection';
  * right one, the header spanning both. The guide is rendered inside the
  * right column, where the wide shell wants it; the compact sheet portals
  * itself out to the body from there (D-117), which is why the page can still
- * be made inert around it.
+ * be made inert around it. With a pass open the wide page is one viewport
+ * high and every pane scrolls itself (D-119), which is why the left column
+ * carries a class of its own — it is the one that has to stretch to the
+ * footer and, on a short screen, scroll.
  */
 export function App() {
   const t = useT();
@@ -62,7 +65,7 @@ export function App() {
         </div>
       </header>
       <main inert={inert} className={styles.main}>
-        <div className={styles.column} data-testid="col-left">
+        <div className={`${styles.column} ${styles.leftColumn}`} data-testid="col-left">
           <LocationInput observer={observer} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} />
           <ElementsBanners />
           <NowPanel />

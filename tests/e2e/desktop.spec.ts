@@ -7,7 +7,9 @@
  * *beside* a list that is still there and still scrolling, and that the
  * breakpoint really is 100 cells — the D-71 arithmetic is checked against the
  * stylesheets in `tests/styles/breakpoint.test.ts`, and here against a `1ch`
- * the browser measured for itself. The compact sheet at 390 px is
+ * the browser measured for itself. A fourth since D-119: that with a pass
+ * open the page does not scroll at all and each pane scrolls itself, which is
+ * a fact about three boxes and a viewport and exists nowhere in the DOM. The compact sheet at 390 px is
  * `pass-detail.spec.ts`, unchanged.
  */
 import { readFileSync } from 'node:fs';
@@ -128,12 +130,58 @@ test('wide: two columns, the guide beside a live list, Escape and the hash (FR-D
   await expect(panel).toHaveAttribute('data-pass-id', String(secondId));
   await expect(card).not.toHaveAttribute('aria-current', 'true');
 
+  // D-119: the page itself does not scroll with a pass open — every pane that
+  // can outgrow the viewport carries its own scrollbar instead, so nothing
+  // scrolls the guide out from under the list or the list out from under the
+  // guide. One pixel of slack for sub-pixel row heights.
+  expect(
+    await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight),
+  ).toBeLessThanOrEqual(1);
+
+  // The shell is exactly the viewport, and the left column reaches the footer
+  // rather than stopping at the Now panel (the dead space D-119 removes).
+  const [leftNow, rightNow] = await Promise.all([
+    page.getByTestId('col-left').boundingBox(),
+    page.getByTestId('col-right').boundingBox(),
+  ]);
+  if (!leftNow || !rightNow) throw new Error('the columns are not laid out');
+  expect(Math.abs(leftNow.height - rightNow.height)).toBeLessThanOrEqual(1);
+  expect(leftNow.y + leftNow.height).toBeLessThanOrEqual(WIDE.height + 1);
+
+  // The guide's body scrolls itself, and its head stays where it is while it does.
+  const body = panel.getByTestId('guide-body');
+  // It opens at the top and its first line is whole: nothing inside may start
+  // above the box that clips it (`.meta` pulls itself half a row up for the
+  // compact sheet, and did exactly that here).
+  expect(await body.evaluate((el) => el.scrollTop)).toBe(0);
+  expect(
+    await body.evaluate((el) => {
+      const first = el.firstElementChild;
+      return first ? first.getBoundingClientRect().top - el.getBoundingClientRect().top : -1;
+    }),
+  ).toBeGreaterThanOrEqual(0);
+  expect(await body.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+  const headBefore = await panel.getByRole('heading', { level: 2 }).boundingBox();
+  await body.evaluate((el) => {
+    el.scrollTop = 200;
+  });
+  expect(await body.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  const headAfter = await panel.getByRole('heading', { level: 2 }).boundingBox();
+  expect(Math.abs((headAfter?.y ?? 0) - (headBefore?.y ?? -1))).toBeLessThanOrEqual(1);
+  // Scrolling the guide has not moved the list, and the page still has not scrolled.
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
   // Escape closes it and clears the hash; the right column is one column again.
   await page.keyboard.press('Escape');
   await expect(panel).toHaveCount(0);
   await expect(page).not.toHaveURL(/#pass=/);
   const closedBox = await page.getByTestId('list-column').boundingBox();
   expect(closedBox?.width).toBeGreaterThan(listBox.width);
+  // D-119 is scoped to an open pass: the list on its own is an ordinary long
+  // page again, scrolling as one rather than inside a bounded shell.
+  expect(
+    await page.evaluate(() => document.documentElement.scrollHeight > document.documentElement.clientHeight),
+  ).toBe(true);
 });
 
 /**

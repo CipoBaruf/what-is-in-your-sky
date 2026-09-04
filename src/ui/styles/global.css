@@ -59,6 +59,20 @@ main {
   footer {
     max-width: none;
   }
+
+  /* R23 (D-119). With a pass open the page is a shell exactly one viewport
+     high: the header and the footer keep their own heights and `main` takes
+     what is left, which is what gives the panes inside it a height to be
+     bounded by. Without it the guide's length is added to the list's and to
+     the header's and the page scrolls as one — the list's own scrollbar and
+     the page's, neither of them showing the whole of anything.
+     Only with a pass open: the list on its own is an ordinary long page and
+     goes on scrolling like one. */
+  #root:has([data-guide='open']) {
+    height: 100dvh;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
 }
 
 h1,

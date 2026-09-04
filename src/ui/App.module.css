@@ -58,20 +58,50 @@
     align-items: start;
   }
 
+  /* R23 (D-119): inside the shell both columns take the whole of the middle
+     row rather than stopping at their content, so the left one reaches the
+     footer instead of leaving the page's dead space under it, and the right
+     one has a height its two panes can be bounded by. */
+  .main:has([data-guide='open']) {
+    /* One row, the height of the shell's middle band. Left implicit it would
+       be auto — sized to the taller column — and the whole point of the shell
+       would be lost out of the bottom of `#root`. */
+    grid-template-rows: minmax(0, 1fr);
+    align-content: stretch;
+    align-items: stretch;
+    min-height: 0;
+  }
+
+  .main:has([data-guide='open']) > .column {
+    min-height: 0;
+  }
+
+  /* Short viewports: the location, the banners and the Now panel can outgrow
+     the shell too, and this column scrolls itself when they do. */
+  .main:has([data-guide='open']) > .leftColumn {
+    overflow-y: auto;
+  }
+
   /* FR-DESK-3: with a pass open the right column splits in two. The list
      keeps at least 44 cells — the width the cards were designed at, and the
      chart's own square — and the guide takes the rest, a shade wider so the
      chart is not the narrower of the two. */
   .column[data-guide='open'] {
     grid-template-columns: minmax(calc(44 * var(--cell)), 1fr) minmax(0, 1.05fr);
-    align-items: start;
+    grid-template-rows: minmax(0, 1fr);
+    align-content: stretch;
+    align-items: stretch;
     gap: calc(3 * var(--cell));
   }
 
   /* The list scrolls itself rather than the page, so the guide beside it
-     stays in view however long the list is (the mockup's 34 rows). */
+     stays in view however long the list is. Its height is the shell's
+     (D-119) and no longer a fixed 34 rows: a cap written in rows is right at
+     one viewport height and wrong at every other — 816 px overshot a 768 px
+     laptop, so the page scrolled underneath a list that was already
+     scrolling, and wasted the bottom of a tall screen. */
   .column[data-guide='open'] .listColumn {
-    max-height: calc(34 * var(--row));
+    min-height: 0;
     overflow-y: auto;
   }
 }
