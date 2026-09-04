@@ -39,14 +39,17 @@ export const consoleLogger: Logger = {
 class FileLogger implements Logger {
   readonly path: string;
   readonly #stream: WriteStream;
+  /** Put in front of every console line — the task id, when a wave runs more than one task at once (D-132). The file gets the line as is. */
+  readonly #prefix: string;
 
-  constructor(path: string) {
+  constructor(path: string, prefix = '') {
     this.path = path;
+    this.#prefix = prefix;
     this.#stream = createWriteStream(path, { flags: 'a' });
   }
 
   line(text: string): void {
-    consoleLine(text);
+    consoleLine(this.#prefix ? text.replace(/^(\n*)/, `$1${this.#prefix}`) : text);
     this.#stream.write(`${text}\n`);
   }
 
@@ -64,9 +67,9 @@ class FileLogger implements Logger {
 }
 
 /** `logs/sdd/<id>-<ISO8601>.log`, created with its directory. */
-export function openTaskLog(id: string, dir = LOG_DIR, at = new Date()): Logger {
+export function openTaskLog(id: string, dir = LOG_DIR, at = new Date(), options: { prefixConsole?: boolean } = {}): Logger {
   mkdirSync(dir, { recursive: true });
-  return new FileLogger(join(dir, `${id}-${stamp(at)}.log`));
+  return new FileLogger(join(dir, `${id}-${stamp(at)}.log`), options.prefixConsole ? `[${id}] ` : '');
 }
 
 export type TaskOutcome = 'merged' | 'awaiting-owner' | 'findings' | 'blocked' | 'failed' | 'refused';

@@ -11,7 +11,7 @@
  * Pure: the caller supplies the file's text, so the tests need no git.
  */
 
-export const LANES = ['ui', 'chart', 'data', 'physics'] as const;
+export const LANES = ['ui', 'chart', 'data', 'physics', 'live'] as const; // `live` split from `ui` for the live page (D-132)
 export const MODELS = ['opus', 'fable'] as const;
 export const GATES = ['auto', 'owner'] as const;
 

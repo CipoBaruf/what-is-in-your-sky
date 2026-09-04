@@ -36,11 +36,11 @@ export interface TaskStatus {
 export interface WaveLimits {
   /** §16.2: at most one task per lane. */
   maxPerLane: number;
-  /** §16.2: at most two tasks at once. */
+  /** §16.2: at most three tasks at once (D-132) — they run concurrently, and three is what one machine carries. */
   maxTasks: number;
 }
 
-export const DEFAULT_LIMITS: WaveLimits = { maxPerLane: 1, maxTasks: 2 };
+export const DEFAULT_LIMITS: WaveLimits = { maxPerLane: 1, maxTasks: 3 };
 
 export interface WaveSelection {
   wave: readonly TaskStatus[];
@@ -69,7 +69,7 @@ export function statusOf({ tasks, openPrs, remoteBranches }: RemoteFacts): TaskS
 
 /**
  * The current wave: ready tasks in TASKS.md order, at most one per lane and
- * at most two at once (§16.2). A lane with a task in review is busy — that
+ * at most three at once (§16.2, D-132). A lane with a task in review is busy — that
  * PR is unmerged work on the same directories. A task missing `Lane:` or
  * `Gate:` is left out and reported (§16.3).
  */
