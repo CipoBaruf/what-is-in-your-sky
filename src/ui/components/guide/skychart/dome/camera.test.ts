@@ -9,7 +9,10 @@ import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtur
 import { en } from '../../../../../i18n/en';
 import { es } from '../../../../../i18n/es';
 import {
+  baseColsFor,
+  baseLayoutFor,
   clampTilt,
+  colsFor,
   DEFAULT_TILT_DEG,
   drag,
   DRAG_PX_PER_DEG,
@@ -21,7 +24,10 @@ import {
   initialFor,
   layoutFor,
   MAX_CELL_WIDTH_PX,
+  MAX_GRID_COLS,
+  MIN_BASE_COLS,
   MIN_CELL_WIDTH_PX,
+  REFERENCE_WIDTH_PX,
   PITCH_MAX_DEG,
   PITCH_MIN_DEG,
   PITCH_STEP_DEG,
@@ -87,56 +93,97 @@ describe('readoutParams (FR-GUIDE-4)', () => {
   it('names the 16-point compass direction, the azimuth and the tilt, which the catalogs word (R17)', () => {
     expect(readoutParams({ facingAzDeg: 202.5, tiltDeg: 25 })).toEqual({ point: 'SSW', azimuth: '203°', tilt: '25°' });
     expect(en.chart.readout(readoutParams({ facingAzDeg: 202.5, tiltDeg: 25 }))).toBe('Facing SSW (203°) · tilt 25°');
-    expect(en.chart.readout(readoutParams(initialFor(pass)))).toBe('Facing NE (46°) · tilt 25°');
+    expect(en.chart.readout(readoutParams(initialFor(pass)))).toBe('Facing NE (46°) · tilt 45°'); // D-92: the default tilt is 45°
     expect(en.chart.readout(readoutParams({ facingAzDeg: 359.6, tiltDeg: 80 }))).toBe('Facing N (360°) · tilt 80°');
-    expect(es.chart.readout(readoutParams(initialFor(pass)))).toBe('Hacia NE (46°) · inclinación 25°');
+    expect(es.chart.readout(readoutParams(initialFor(pass)))).toBe('Hacia NE (46°) · inclinación 45°');
   });
 });
 
 describe('fitLayout', () => {
-  const exact = (fontSizePx: number) => ({ brailleRowPx: GRID_COLS * 0.6 * fontSizePx, spaceRowPx: GRID_COLS * 0.6 * fontSizePx });
+  const exact = (fontSizePx: number, cols: number) => ({ brailleRowPx: cols * 0.6 * fontSizePx, spaceRowPx: cols * 0.6 * fontSizePx });
   /** Linux Chromium: every advance rounded to whole pixels. */
-  const rounded = (fontSizePx: number) => ({ brailleRowPx: GRID_COLS * Math.round(0.6 * fontSizePx), spaceRowPx: GRID_COLS * Math.round(0.6 * fontSizePx) });
+  const rounded = (fontSizePx: number, cols: number) => ({ brailleRowPx: cols * Math.round(0.6 * fontSizePx), spaceRowPx: cols * Math.round(0.6 * fontSizePx) });
 
   it('keeps the computed size where the row renders at its exact width, and follows the measured row otherwise', () => {
-    const fitted = fitLayout(349.45, DEFAULT_ADVANCE, exact);
+    const fitted = fitLayout(349.45, 349.45, DEFAULT_ADVANCE, exact);
     expect(fitted.fontSizePx).toBeCloseTo(349.45 / 60 / 0.6, 9);
     expect(fitted.cellWidthPx * 60).toBeLessThanOrEqual(349.45 + 0.5);
     expect(fitted.wordSpacingPx).toBeCloseTo(0, 9);
-    const onLinux = fitLayout(349.45, DEFAULT_ADVANCE, rounded);
+    const onLinux = fitLayout(349.45, 349.45, DEFAULT_ADVANCE, rounded);
     expect(onLinux.cellWidthPx).toBe(5); // 6 px cells would be 360 px, over the box; 5 px cells fit
     expect(onLinux.cellHeightPx).toBe(10);
     expect(onLinux.fontSizePx).toBeLessThan(9.17);
-    expect(onLinux.zoom).toBeCloseTo((ZOOM_AT_60_COLS * 5) / 6.5, 9);
-    expect(fitLayout(390, DEFAULT_ADVANCE, exact)).toEqual(layoutFor(390));
+    expect(onLinux.zoom).toBeCloseTo((ZOOM_AT_60_COLS * 349.45) / REFERENCE_WIDTH_PX, 9);
+    expect(fitLayout(390, 390, DEFAULT_ADVANCE, exact)).toEqual(layoutFor(390, 390));
   });
 
   it('widens the space to the braille cell when the two rows differ, and falls back without a measurement', () => {
-    const fitted = fitLayout(390, DEFAULT_ADVANCE, (fs) => ({ brailleRowPx: 60 * 0.6 * fs, spaceRowPx: 60 * 0.55 * fs }));
+    const fitted = fitLayout(390, 390, DEFAULT_ADVANCE, (fs, cols) => ({ brailleRowPx: cols * 0.6 * fs, spaceRowPx: cols * 0.55 * fs }));
     expect(fitted.wordSpacingPx).toBeCloseTo(0.05 * fitted.fontSizePx, 9);
-    expect(fitLayout(390, DEFAULT_ADVANCE, () => ({ brailleRowPx: 0, spaceRowPx: 0 }))).toEqual(layoutFor(390));
-    expect(fitLayout(null, DEFAULT_ADVANCE, exact)).toEqual(layoutFor(null));
+    expect(fitLayout(390, 390, DEFAULT_ADVANCE, () => ({ brailleRowPx: 0, spaceRowPx: 0 }))).toEqual(layoutFor(390, 390));
+    expect(fitLayout(null, null, DEFAULT_ADVANCE, exact)).toEqual(layoutFor(null, null));
     // A row that never fits stops at the smallest cell rather than looping forever.
-    expect(fitLayout(100, DEFAULT_ADVANCE, () => ({ brailleRowPx: 1000, spaceRowPx: 1000 })).fontSizePx).toBeCloseTo(4 / 0.6, 6);
+    expect(fitLayout(100, 100, DEFAULT_ADVANCE, () => ({ brailleRowPx: 1000, spaceRowPx: 1000 })).fontSizePx).toBeCloseTo(4 / 0.6, 6);
+  });
+
+  it('fits the wider grid of a wider box (FR-DOME-1)', () => {
+    const desktop = fitLayout(1280, 1280, DEFAULT_ADVANCE, exact);
+    expect(desktop.cols).toBe(MAX_GRID_COLS);
+    expect(desktop.cellWidthPx).toBeCloseTo(1280 / MAX_GRID_COLS, 9);
   });
 });
 
-describe('layoutFor', () => {
-  it('is a 6.5 × 13 px cell at 390 px and without a measurement, scales with the host between 4 and 12 px, zoom in step', () => {
-    const at390 = { cellWidthPx: DEFAULT_CELL_WIDTH_PX, cellHeightPx: 13, fontSizePx: DEFAULT_CELL_WIDTH_PX / 0.6, wordSpacingPx: 0, zoom: ZOOM_AT_60_COLS };
-    expect(layoutFor(390)).toEqual(at390);
-    expect(layoutFor(null)).toEqual(at390);
-    expect(layoutFor(0)).toEqual(at390);
-    expect(layoutFor(348)).toEqual({ cellWidthPx: 5.8, cellHeightPx: 11.6, fontSizePx: 5.8 / 0.6, wordSpacingPx: 0, zoom: (ZOOM_AT_60_COLS * 5.8) / 6.5 });
-    expect(layoutFor(100).cellWidthPx).toBe(MIN_CELL_WIDTH_PX);
-    expect(layoutFor(2000).cellWidthPx).toBe(MAX_CELL_WIDTH_PX);
-    expect(layoutFor(2000).zoom).toBeCloseTo((ZOOM_AT_60_COLS * 12) / 6.5, 9);
-    // The measured advances set the font size from the braille cell and widen the space to match; a bad measurement falls back.
-    const measured = layoutFor(390, { braille: 0.65, space: 0.6 });
+describe('layoutFor (FR-DOME-1, D-91)', () => {
+  it('is the phone’s 60 × 30 grid at 390 px and without a measurement, at a 6.5 × 13 px cell', () => {
+    const at390 = { cols: 60, rows: 30, cellWidthPx: DEFAULT_CELL_WIDTH_PX, cellHeightPx: 13, fontSizePx: DEFAULT_CELL_WIDTH_PX / 0.6, wordSpacingPx: 0, zoom: ZOOM_AT_60_COLS };
+    expect(layoutFor(390, 390)).toEqual(at390);
+    expect(layoutFor(null, null)).toEqual({ ...at390, rows: 30 });
+    expect(layoutFor(0, 0)).toEqual({ ...at390, rows: 30 });
+    expect(layoutFor(348, 348)).toEqual({ cols: 60, rows: 30, cellWidthPx: 5.8, cellHeightPx: 11.6, fontSizePx: 5.8 / 0.6, wordSpacingPx: 0, zoom: (ZOOM_AT_60_COLS * 348) / REFERENCE_WIDTH_PX });
+    expect(layoutFor(100, 100).cellWidthPx).toBe(MIN_CELL_WIDTH_PX);
+  });
+
+  it('grows the column count with the width and caps it at 120, keeping the cell near 6.5 px', () => {
+    expect(colsFor(null)).toBe(GRID_COLS);
+    expect(colsFor(200)).toBe(GRID_COLS); // never coarser than the phone's grid
+    expect(colsFor(390)).toBe(60);
+    expect(colsFor(650)).toBe(100);
+    expect(colsFor(1280)).toBe(MAX_GRID_COLS); // the literal rule would be 197 (D-91)
+    expect(colsFor(2560)).toBe(MAX_GRID_COLS);
+    const desktop = layoutFor(1280, 1280);
+    expect(desktop.cols).toBe(120);
+    expect(desktop.rows).toBe(60);
+    expect(desktop.cellWidthPx).toBeCloseTo(1280 / 120, 9);
+    expect(layoutFor(2000, 2000).cellWidthPx).toBe(MAX_CELL_WIDTH_PX);
+  });
+
+  it('fills the box’s height in rows, so nothing is letterboxed (FR-DOME-1)', () => {
+    expect(layoutFor(390, 260).rows).toBe(20);
+    expect(layoutFor(390, 780).rows).toBe(60);
+    expect(layoutFor(390, null).rows).toBe(30);
+  });
+
+  it('scales the zoom with the box and not with the cell, so the two layers agree (D-91)', () => {
+    expect(layoutFor(390, 390).zoom).toBe(ZOOM_AT_60_COLS);
+    expect(layoutFor(1280, 1280).zoom).toBeCloseTo((ZOOM_AT_60_COLS * 1280) / REFERENCE_WIDTH_PX, 9);
+    const line = layoutFor(1280, 1280);
+    const base = baseLayoutFor(line, 1280, 1280, 0.6);
+    expect(base.zoom).toBe(line.zoom);
+    expect(base.cols).toBe(60);
+    expect(base.rows).toBe(30);
+    expect(base.cols * base.cellWidthPx).toBeCloseTo(line.cols * line.cellWidthPx, 9);
+    expect(base.rows * base.cellHeightPx).toBeCloseTo(line.rows * line.cellHeightPx, 9);
+    expect(baseColsFor(60)).toBe(30);
+    expect(baseColsFor(4)).toBe(MIN_BASE_COLS);
+    expect(baseLayoutFor(line, null, null, 0).fontSizePx).toBeGreaterThan(0);
+  });
+
+  it('sets the font size from the measured braille cell and widens the space to match', () => {
+    const measured = layoutFor(390, 390, { braille: 0.65, space: 0.6 });
     expect(measured.fontSizePx).toBe(10);
     expect(measured.wordSpacingPx).toBeCloseTo(0.5, 9);
-    expect(layoutFor(390, { braille: 0, space: 0 })).toEqual(at390);
-    expect(layoutFor(390, { braille: NaN, space: 0.6 })).toEqual(at390);
-    expect(layoutFor(390, { braille: 0.65, space: NaN }).wordSpacingPx).toBe(0);
+    expect(layoutFor(390, 390, { braille: 0, space: 0 })).toEqual(layoutFor(390, 390));
+    expect(layoutFor(390, 390, { braille: NaN, space: 0.6 })).toEqual(layoutFor(390, 390));
+    expect(layoutFor(390, 390, { braille: 0.65, space: NaN }).wordSpacingPx).toBe(0);
   });
 });
