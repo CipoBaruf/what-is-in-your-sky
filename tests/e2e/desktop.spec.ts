@@ -136,6 +136,35 @@ test('wide: two columns, the guide beside a live list, Escape and the hash (FR-D
   expect(closedBox?.width).toBeGreaterThan(listBox.width);
 });
 
+/**
+ * FR-DESK-5: the captures the PR is compared against the mockup with, in both
+ * languages. Viewport-sized, like the mockup's own frames, and taken from the
+ * same two states it fixes — nothing selected, and a pass open.
+ */
+test('captures the wide layout in both languages, list and guide (FR-DESK-5)', async ({ page }) => {
+  const golden = reference.firstGoldenPass;
+  if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
+  const passId = `25544-${String(golden.start.t)}`;
+  await loadWithPasses(page);
+  await page.screenshot({ path: 'test-results/r23-home-1280-en.png' });
+
+  await page.locator(`article[data-pass-id="${passId}"]`).getByRole('button', { name: /Open guide/ }).click();
+  const panel = page.getByTestId('guide-panel');
+  // The capture is only evidence once the lazy chart chunk has drawn.
+  await expect(panel.locator(`svg[data-drawing="polar"] [data-pass-id="${passId}"] [data-anchor="pass"]`)).toContainText('ISS (Zarya)');
+  await page.screenshot({ path: 'test-results/r23-guide-1280-en.png' });
+
+  // FR-I18N-2: the header switch, which the wide header carries at the right (FR-DESK-2).
+  await page.getByRole('banner').getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
+  await expect(panel.getByRole('button', { name: 'Cerrar la guía' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Próximos pases' })).toBeVisible();
+  await page.screenshot({ path: 'test-results/r23-guide-1280-es.png' });
+
+  await panel.getByRole('button', { name: 'Cerrar la guía' }).click();
+  await expect(panel).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/r23-home-1280-es.png' });
+});
+
 test('crossing the breakpoint keeps the same pass open, in the other shell (D-72)', async ({ page }) => {
   const golden = reference.firstGoldenPass;
   if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
@@ -149,6 +178,9 @@ test('crossing the breakpoint keeps the same pass open, in the other shell (D-72
   await expect(sheet).toHaveAttribute('data-pass-id', passId);
   await expect(page.getByTestId('guide-panel')).toHaveCount(0);
   await expect(page).toHaveURL(new RegExp(`#pass=${passId}$`));
+  // The compact sheet on this branch, for the PR: the MVP one, unchanged.
+  await expect(sheet.locator(`svg[data-drawing="polar"] [data-pass-id="${passId}"] [data-anchor="pass"]`)).toContainText('ISS (Zarya)');
+  await page.screenshot({ path: 'test-results/r23-guide-390-en.png' });
 
   await page.setViewportSize(WIDE);
   await expect(page.getByTestId('guide-panel')).toHaveAttribute('data-pass-id', passId);
