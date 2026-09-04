@@ -68,14 +68,14 @@ describe('createWorkerClient', () => {
     expect(worker.sent[1]).toEqual({ type: 'cancel', jobId: job1 });
     expect(client.activeJobId()).toBe(job2);
 
-    worker.emit({ type: 'passes', jobId: job1, noradId: 1, passes: [] });
+    worker.emit({ type: 'passes', jobId: job1, noradId: 1, nightIndex: 0, passes: [] });
     worker.emit({ type: 'progress', jobId: job1, done: 1, total: 2 });
     worker.emit({ type: 'jobDone', jobId: job1, cancelled: true, elapsedMs: 1, hasDarkness: true });
     expect(first.onPasses).not.toHaveBeenCalled();
     expect(first.onProgress).not.toHaveBeenCalled();
     expect(first.onDone).not.toHaveBeenCalled();
 
-    worker.emit({ type: 'passes', jobId: job2, noradId: 1, passes: [] });
+    worker.emit({ type: 'passes', jobId: job2, noradId: 1, nightIndex: 0, passes: [] });
     worker.emit({ type: 'progress', jobId: job2, done: 1, total: 2 });
     expect(second.onPasses).toHaveBeenCalledWith(1, []);
     expect(second.onProgress).toHaveBeenCalledWith(1, 2);
@@ -149,7 +149,7 @@ describe('createWorkerClient', () => {
     client.terminate();
     expect(worker.terminated).toBe(true);
     expect(client.activeJobId()).toBeNull();
-    worker.emit({ type: 'passes', jobId: job, noradId: 1, passes: [] });
+    worker.emit({ type: 'passes', jobId: job, noradId: 1, nightIndex: 0, passes: [] });
     expect(h.onPasses).not.toHaveBeenCalled();
   });
 });

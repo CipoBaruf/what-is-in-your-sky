@@ -1,5 +1,6 @@
 import type { CatalogEntry, EpochMs, NoradId, SatelliteRecord } from '../model';
 import { findPasses, hasDarkness, nowState, ommToSatrec, type NowObject, type SatRec } from '../physics';
+import { claimsPass, splitIntoNights } from './nights';
 import type { WorkerRequest, WorkerResponse } from './protocol';
 
 /**
@@ -8,15 +9,20 @@ import type { WorkerRequest, WorkerResponse } from './protocol';
  *
  * - `loadElements` replaces the satrec map; a record `json2satrec` rejects is
  *   reported in `rejected` (BAD_OMM) and the rest load.
- * - `computePasses` streams one `passes` message per object, featured objects
- *   first, then `progress`, and yields to the event loop between objects so a
- *   queued `cancel` is seen (D-6). A cancelled job still ends with
- *   `jobDone { cancelled: true }`. An object whose search throws is skipped
- *   with `PROPAGATION_FAILED`; anything else is `INTERNAL` and aborts the job
- *   (no `jobDone` follows an `INTERNAL` or `NO_ELEMENTS` error).
+ * - `computePasses` cuts its window into 24 h nights (`nights.ts`, D-77) and
+ *   loops nights outer, objects inner: one `passes` message per (night, object)
+ *   pair, featured objects first inside each night, then `progress` over pairs,
+ *   yielding to the event loop between pairs so a queued `cancel` is seen
+ *   (D-6). A 24 h window is one night, so an MVP caller sees exactly what it
+ *   saw before. A cancelled job still ends with `jobDone { cancelled: true }`.
+ *   An object whose search throws is reported once with `PROPAGATION_FAILED`
+ *   and skipped for the remaining nights; anything else is `INTERNAL` and
+ *   aborts the job (no `jobDone` follows an `INTERNAL` or `NO_ELEMENTS` error).
  * - `computeNow` (R7, D-14) evaluates every loaded object at the request's `t`
  *   with `physics/now.ts` and answers one `nowState`; with nothing loaded it
- *   answers `NO_ELEMENTS`. It is a one-shot request and cannot be cancelled.
+ *   answers `NO_ELEMENTS`. `includeHidden` adds FR-LIVE-6's dimmed set (D-76);
+ *   without it the response is the MVP's. It is a one-shot request and cannot
+ *   be cancelled.
  */
 export interface LoadedObject {
   satrec: SatRec;
@@ -89,32 +95,39 @@ export function createHandler(state: HandlerState, options: HandlerOptions = {})
     }
     const t0 = clock();
     const order = computeOrder(state.objects.values());
-    const total = order.length;
+    const nights = splitIntoNights(window);
+    const total = order.length * nights.length;
     const finish = (cancelled: boolean): void => {
       state.cancelled.delete(jobId);
       emit({ type: 'jobDone', jobId, cancelled, elapsedMs: clock() - t0, hasDarkness: hasDarkness(observer, window, thresholds) });
     };
+    const failed = new Set<NoradId>(); // an object that threw is reported once, then skipped for the remaining nights
     let done = 0;
-    for (const object of order) {
-      if (state.cancelled.has(jobId)) {
-        finish(true);
-        return;
+    for (const night of nights) {
+      for (const object of order) {
+        if (state.cancelled.has(jobId)) {
+          finish(true);
+          return;
+        }
+        const { catalog } = object;
+        if (!failed.has(catalog.noradId)) {
+          try {
+            const passes = findPasses(object.satrec, observer, night.search, thresholds, {
+              noradId: catalog.noradId,
+              name: catalog.name,
+              stdMag: catalog.stdMag,
+              elementsEpochMs: object.epochMs,
+            }).filter((pass) => claimsPass(night, pass.start.t));
+            emit({ type: 'passes', jobId, noradId: catalog.noradId, nightIndex: night.index, passes });
+          } catch (error: unknown) {
+            failed.add(catalog.noradId);
+            emit({ type: 'error', ref: { jobId }, code: 'PROPAGATION_FAILED', message: `${catalog.name} (${String(catalog.noradId)}): ${message(error)}` });
+          }
+        }
+        done++;
+        emit({ type: 'progress', jobId, done, total });
+        await yieldToEventLoop();
       }
-      const { catalog } = object;
-      try {
-        const passes = findPasses(object.satrec, observer, window, thresholds, {
-          noradId: catalog.noradId,
-          name: catalog.name,
-          stdMag: catalog.stdMag,
-          elementsEpochMs: object.epochMs,
-        });
-        emit({ type: 'passes', jobId, noradId: catalog.noradId, passes });
-      } catch (error: unknown) {
-        emit({ type: 'error', ref: { jobId }, code: 'PROPAGATION_FAILED', message: `${catalog.name} (${String(catalog.noradId)}): ${message(error)}` });
-      }
-      done++;
-      emit({ type: 'progress', jobId, done, total });
-      await yieldToEventLoop();
     }
     finish(state.cancelled.has(jobId));
   };
@@ -132,7 +145,7 @@ export function createHandler(state: HandlerState, options: HandlerOptions = {})
           state.cancelled.add(request.jobId);
           return;
         case 'computeNow': {
-          const { requestId, observer, t, thresholds } = request;
+          const { requestId, observer, t, thresholds, includeHidden } = request;
           if (state.objects.size === 0) {
             emit({ type: 'error', ref: { requestId }, code: 'NO_ELEMENTS', message: 'No orbital elements loaded; send loadElements first' });
             return;
@@ -143,7 +156,7 @@ export function createHandler(state: HandlerState, options: HandlerOptions = {})
             name: o.catalog.name,
             stdMag: o.catalog.stdMag,
           }));
-          emit({ type: 'nowState', requestId, state: nowState(objects, observer, t, thresholds) });
+          emit({ type: 'nowState', requestId, state: nowState(objects, observer, t, thresholds, { includeHidden: includeHidden === true }) });
           return;
         }
         default: {
