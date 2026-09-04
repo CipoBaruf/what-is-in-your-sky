@@ -69,7 +69,7 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
 
   await page.getByLabel('Coordenadas (lat, lon)').fill(NEUQUEN);
   const passes = page.getByRole('region', { name: 'Próximos pases' }).getByRole('status');
-  await expect(passes).toHaveText(/\d+ pases visibles en las próximas 24 h/, { timeout: 15_000 });
+  await expect(passes).toHaveText(/\d+ pases visibles en las próximas 72 h/, { timeout: 15_000 });
   await page.screenshot({ path: 'test-results/r17-passes-390-es.png', fullPage: true });
 
   // The guide sheet: the FR-GUIDE-1 sentence is the Spanish golden one, times and numbers included.
@@ -109,7 +109,7 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
   // Back on the list, the observer is the one that was typed and the screen is English throughout.
   await dialog.getByRole('button', { name: /Back to the list/ }).click();
   await expect(page.getByLabel('Coordinates (lat, lon)')).toHaveValue(NEUQUEN);
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 24 h/);
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/);
   await page.screenshot({ path: 'test-results/r17-passes-390-en.png', fullPage: true });
 });
 

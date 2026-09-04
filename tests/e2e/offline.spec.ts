@@ -52,7 +52,7 @@ async function firstVisit(page: Page): Promise<string> {
   await page.goto('/');
   await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(/\d+ visible passes in the next 24 h/, { timeout: 15_000 });
+  await expect(status).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 15_000 });
   return (await status.textContent()) ?? '';
 }
 
@@ -109,7 +109,7 @@ test('reload three hours later with CelesTrak unreachable: the cached passes are
   await page.clock.setFixedTime(T0 + 3 * HOUR);
   await page.reload();
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(/\d+ visible passes in the next 24 h/, { timeout: 15_000 });
+  await expect(status).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 15_000 });
   expect(failed).toHaveLength(2); // past the 2 h rule: one attempt per group, both failed
   const banner = page.getByTestId('stale-banner');
   await expect(banner).toHaveCount(1);
@@ -125,7 +125,7 @@ test('five days after the newest epoch the epoch-age warning shows, and the age 
   await page.goto('/');
   await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(/visible passes in the next 24 h|No visible passes/, { timeout: 15_000 });
+  await expect(status).toHaveText(/visible passes in the next 72 h|No visible passes/, { timeout: 15_000 });
   const banner = page.getByTestId('epoch-banner');
   await expect(banner).toHaveCount(1);
   await expect(banner).toContainText('[Warning] The orbital elements are 5 d');

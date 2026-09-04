@@ -14,6 +14,7 @@ import { CATALOG } from '../data/catalog';
 import { loadElements } from '../data/elementsLoader';
 import type { CatalogEntry, NowState, Observer, Pass, SatelliteRecord, WeatherSnapshot } from '../model';
 import { ALWAYS_VISIBLE, ELEMENTS_RECHECK_MS, NOW_TICK_MS, startEffects, type EffectDeps, type LoadedElements, type VisibilitySource } from './effects';
+import { SEARCH_WINDOW_MS } from './passWindow';
 import { createLocalPrefs } from '../data/localPrefs';
 import { createAppStore, type AppStore } from './store';
 import { createWorkerClient, type WorkerClient } from './workerClient';
@@ -106,7 +107,7 @@ describe('startEffects', () => {
     expect(worker.sent).toEqual([]);
   });
 
-  it('observer set → elements to the worker once → computePasses with the 24 h window from the pinned clock', async () => {
+  it('observer set → elements to the worker once → computePasses with the 72 h window from the pinned clock', async () => {
     store.getState().setObserver(neuquen);
     await waitForSent('loadElements');
     const [load] = sentOfType('loadElements');
@@ -114,7 +115,7 @@ describe('startEffects', () => {
     worker.emit({ type: 'elementsLoaded', requestId: load?.requestId ?? '', loaded: [25544], rejected: [{ noradId: 1, reason: 'bad' }] });
     await waitForSent('computePasses');
     const [job] = sentOfType('computePasses');
-    expect(job).toMatchObject({ observer: neuquen, window: { startMs: NOW, endMs: NOW + DAY_MS } });
+    expect(job).toMatchObject({ observer: neuquen, window: { startMs: NOW, endMs: NOW + SEARCH_WINDOW_MS } });
     expect(store.getState().passes).toMatchObject({ jobId: job?.jobId, status: 'computing', observer: neuquen });
     const { elements } = store.getState();
     expect(elements.status === 'ready' && elements.rejected).toEqual([{ noradId: 1, reason: 'bad' }]);

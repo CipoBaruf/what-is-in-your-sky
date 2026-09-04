@@ -6,5 +6,6 @@ export type { Place } from './place';
 export type { PassPoint, PassBoundaryReason, Pass, NowItem, SkyState, NowState } from './pass';
 export type { MoonPhaseName, MoonState, MoonGlare, MoonGlareThresholds } from './moon';
 export type { HourlyCloud, WeatherSnapshot, CloudState, CloudVerdict } from './weather';
+export type { PassRun, Readiness, ReadinessGap } from './offline';
 export type { PassSort, ChartView, ChartOrientation, Locale, Theme } from './prefs';
 export { THEMES, DEFAULT_THEME } from './prefs';

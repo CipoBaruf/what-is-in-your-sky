@@ -1,7 +1,7 @@
 /**
  * R3 smoke test (PLAN §9.1 E2E row): CelesTrak routed to the R1 OMM fixtures
  * (both groups), the clock fixed nine days after the R1 `capturedAt` so the
- * 24 h window contains the first golden pass with the coarse grid in phase
+ * window's first night contains the first golden pass with the coarse grid in phase
  * with R1's (PLAN D-20). The Neuquén flow must show a list of cards and the
  * golden ISS pass must be among them with the expected fields.
  */
@@ -51,7 +51,7 @@ test('typing the Neuquén coordinates shows the pass list with the golden ISS pa
 
   await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
 
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 24 h/, { timeout: 15_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 15_000 });
   const cards = page.getByRole('list', { name: '' }).getByRole('listitem');
   expect(await cards.count()).toBeGreaterThan(1);
 

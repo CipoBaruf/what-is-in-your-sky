@@ -96,7 +96,7 @@ test('search → pick list → confirmation line → pass list for Cipolletti, a
   await expect(page.getByTestId('place-confirmation')).toHaveText('Using the centre of Cipolletti, Rio Negro, Argentina (−38.93, −67.99).');
 
   // The pass list for the picked place: the golden observer, so the golden ISS pass is among the cards, with times in the geocoded zone.
-  await expect(status).toHaveText(/\d+ visible passes in the next 24 h from Cipolletti, Rio Negro, Argentina/, { timeout: 15_000 });
+  await expect(status).toHaveText(/\d+ visible passes in the next 72 h from Cipolletti, Rio Negro, Argentina/, { timeout: 15_000 });
   // The observer stands 267 m up and 0.004° from the golden one, which moves this horizon-grazing pass by about a second.
   const iss = page.getByRole('article', { name: 'ISS (Zarya)' });
   await expect(iss).toHaveCount(1);

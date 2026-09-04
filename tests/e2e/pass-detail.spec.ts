@@ -50,7 +50,7 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   await page.goto('/');
   await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   // R7's Now panel adds a second live status line, so scope to the passes region.
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 24 h/, { timeout: 15_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 15_000 });
 
   const card = page.locator(`article[data-pass-id="${passId}"]`);
   await expect(card).toHaveCount(1);

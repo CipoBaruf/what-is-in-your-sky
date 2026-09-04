@@ -4,7 +4,8 @@
  * wear a cloud badge computed from it, the tooltip states the thresholds and
  * the provider, and every time on screen is in `America/Argentina/Salta`,
  * the zone the response carries. The page clock is the fixture's own fetch
- * time so the 24 h window lies inside the three days the response covers.
+ * time; the v1 window is 72 h and the recorded body stops three days in, so
+ * the last night's cards read `unknown` (FR-OFF-3) and the rest are verdicts.
  * With the Open-Meteo route aborted (FR-X-4, US-7 AC4) the list still
  * renders, every badge reads unknown and times stay in UTC.
  */
@@ -26,6 +27,11 @@ const meta = JSON.parse(readFileSync(`tests/fixtures/open-meteo/${FORECAST}.meta
 const NEUQUEN = `${String(ha.observer.lat)}, ${String(ha.observer.lon)}`;
 const ZONE = 'America/Argentina/Salta';
 const STATES = ['clear', 'partly', 'obscured'];
+/** The last hour the recorded body carries; past it every verdict is `unknown` (FR-OFF-3). */
+const forecast = JSON.parse(readFileSync(`tests/fixtures/open-meteo/${FORECAST}.json`, 'utf8')) as { hourly: { time: number[] } };
+const FORECAST_END_MS = (forecast.hourly.time.at(-1) ?? 0) * 1000;
+/** No LEO pass above 10° lasts this long, so a pass starting this far inside the response peaks inside it too. */
+const PEAK_MARGIN_MS = 30 * 60_000;
 
 /** What `lib/timeFormat` prints for `t` in `zone`: "2026-09-02 21:05:10 GMT-3" (same Intl data in Node and Chromium). */
 function localStamp(t: number, zone: string): string {
@@ -56,33 +62,43 @@ test('badges from the recorded forecast on every card and the Now panel, times i
   await page.goto('/');
   await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(/\d+ visible passes in the next 24 h/, { timeout: 15_000 });
+  await expect(status).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 15_000 });
 
-  // FR-WX-1 / PLAN §7.3: one request, for the 0.1° cell, with exactly the four hourly variables over three days.
+  // FR-WX-1 / PLAN §7.3: one request, for the 0.1° cell, with exactly the four hourly variables over four days (FR-OFF-3).
   expect(forecastRequests).toHaveLength(1);
   const [req] = forecastRequests;
   expect(req?.searchParams.get('latitude')).toBe(meta.cell.lat.toFixed(1));
   expect(req?.searchParams.get('longitude')).toBe(meta.cell.lon.toFixed(1));
   expect(req?.searchParams.get('hourly')?.split(',')).toEqual(['cloud_cover', 'cloud_cover_low', 'cloud_cover_mid', 'cloud_cover_high']);
-  expect(req?.searchParams.get('forecast_days')).toBe('3');
+  expect(req?.searchParams.get('forecast_days')).toBe('4');
   expect(req?.searchParams.get('timezone')).toBe('auto');
   expect(req?.searchParams.get('timeformat')).toBe('unixtime');
 
-  // Every card: a three-state badge (never unknown: the window lies inside the response) and a start time in the Salta zone.
+  // Every card: a three-state badge while the response covers the pass and `unknown` past its last hour (FR-OFF-3 —
+  // the recorded body stops three days in, and the v1 window is 72 h), and a start time in the Salta zone either way.
   const cards = page.locator('article[data-pass-id]');
   const count = await cards.count();
   expect(count).toBeGreaterThan(0);
+  let covered = 0;
   for (let i = 0; i < count; i++) {
     const card = cards.nth(i);
     const badge = card.locator('[data-state]');
     await expect(badge).toHaveCount(1);
-    expect(STATES).toContain(await badge.getAttribute('data-state'));
-    await expect(badge).toHaveText(/^(Clear|Partly cloudy|Likely obscured), \d+ % cloud$/);
     const startMs = Number((await card.getAttribute('data-pass-id'))?.split('-')[1]);
+    if (startMs > FORECAST_END_MS) {
+      await expect(badge).toHaveAttribute('data-state', 'unknown');
+      await expect(badge).toHaveText('Weather unknown');
+    } else if (startMs + PEAK_MARGIN_MS <= FORECAST_END_MS) {
+      // The badge reads the peak, which is minutes after the start; well inside the response it must have a verdict.
+      covered += 1;
+      expect(STATES).toContain(await badge.getAttribute('data-state'));
+      await expect(badge).toHaveText(/^(Clear|Partly cloudy|Likely obscured), \d+ % cloud$/);
+    }
     await expect(card).toContainText(`Start${localStamp(startMs, ZONE)}`);
     await expect(card).toContainText('GMT-3');
     await expect(card).not.toContainText('UTC');
   }
+  expect(covered).toBeGreaterThan(0);
 
   // US-7 AC2/AC3: the tooltip opens from the keyboard and states the thresholds, the provider and the fetch time.
   const firstBadge = cards.first().locator('[data-state]');
@@ -106,7 +122,7 @@ test('with Open-Meteo unreachable the list still renders, every badge reads unkn
   await page.goto('/');
   await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(/\d+ visible passes in the next 24 h/, { timeout: 15_000 });
+  await expect(status).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 15_000 });
 
   const cards = page.locator('article[data-pass-id]');
   const count = await cards.count();

@@ -83,7 +83,7 @@ test('cards appear one at a time with the ISS first; a location change mid-strea
   const neuquenIds = new Set((await page.evaluate(() => window.__cardLog ?? [])).flat());
   expect(neuquenIds.size).toBeGreaterThan(0);
 
-  await expect(status).toHaveText(new RegExp(`\\d+ visible passes in the next 24 h from ${PARIS}`), { timeout: 15_000 });
+  await expect(status).toHaveText(new RegExp(`\\d+ visible passes in the next 72 h from ${PARIS}`), { timeout: 15_000 });
   const finalIds = await page.locator('article[data-pass-id]').evaluateAll((els) => els.map((el) => el.getAttribute('data-pass-id')));
   expect(finalIds.length).toBeGreaterThan(0);
   for (const id of finalIds) expect(neuquenIds.has(id ?? '')).toBe(false);
