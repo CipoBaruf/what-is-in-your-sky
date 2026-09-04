@@ -15,9 +15,13 @@ cannot drift from the palette. Only the wide-layout rules in the page's own
 
 ## Status
 
-**Awaiting owner approval.** R23's precondition (TASKS.md) is an
-owner-approved mockup in this directory; until this file says approved, R23
-does not start.
+**Approved by the owner, 2026-09-04** (PR #32). This satisfies R23's
+precondition in TASKS.md: R23 implements the wide layout against these
+captures and ships its own 1280 px captures beside them for comparison.
+
+A change to the wide layout that this mockup does not show is a change to the
+reference: update the page, regenerate the captures and get them approved,
+rather than letting the implementation and the reference drift apart.
 
 ## What the mockup fixes
 
