@@ -147,7 +147,7 @@ export const en = {
     elementsError: (message: string) => `Could not load orbital elements: ${message}`,
     noElements: 'No catalog objects have orbital elements right now.',
     computing: 'Computing passes…',
-    computingProgress: (p: { done: number; total: number; found: number }) => `Computing passes… ${String(p.done)} of ${String(p.total)} objects, ${String(p.found)} visible so far`,
+    computingProgress: (p: { done: number; total: number; found: number }) => `Computing passes… ${String(p.done)} of ${String(p.total)}, ${String(p.found)} visible so far`, // the count is (night, object) pairs from R18 on, so it names no unit
     passesError: (message: string) => `Could not compute passes: ${message}`,
     unknownError: 'unknown error',
     noDarkness: (p: { hours: number; place: string }) => `No darkness tonight at this latitude: the sun never gets low enough in the next ${String(p.hours)} h from ${p.place}.`,

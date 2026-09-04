@@ -99,7 +99,10 @@ export function createHandler(state: HandlerState, options: HandlerOptions = {})
     const total = order.length * nights.length;
     const finish = (cancelled: boolean): void => {
       state.cancelled.delete(jobId);
-      emit({ type: 'jobDone', jobId, cancelled, elapsedMs: clock() - t0, hasDarkness: hasDarkness(observer, window, thresholds) });
+      // "No darkness tonight" (SPEC §5.6) is a claim about night 1, so it is measured over night 1 alone:
+      // over the whole 72 h window a high-latitude observer whose third night gets dark would never see it.
+      const tonight = nights[0] ?? window;
+      emit({ type: 'jobDone', jobId, cancelled, elapsedMs: clock() - t0, hasDarkness: hasDarkness(observer, { startMs: tonight.startMs, endMs: tonight.endMs }, thresholds) });
     };
     const failed = new Set<NoradId>(); // an object that threw is reported once, then skipped for the remaining nights
     let done = 0;

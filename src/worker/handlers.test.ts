@@ -9,7 +9,7 @@ import { DAY_MS, fixtureRecords, goldenWindowStart, loadReferenceValues } from '
 import { ISS_STD_MAG_SEED } from '../../tests/support/heavensAbove';
 import { CATALOG } from '../data/catalog';
 import type { Observer, Pass, SatelliteRecord, TimeWindow } from '../model';
-import { DEFAULT_THRESHOLDS, findPasses, isHidden, nowState, ommToSatrec, type SatRec } from '../physics';
+import { DEFAULT_THRESHOLDS, findPasses, hasDarkness, isHidden, nowState, ommToSatrec, type SatRec } from '../physics';
 import { computeOrder, createHandler, createHandlerState, yieldViaMessageChannel, type Handler, type HandlerState } from './handlers';
 import type { WorkerRequest, WorkerResponse } from './protocol';
 
@@ -208,6 +208,19 @@ describe('computePasses', () => {
     await h.send({ type: 'computePasses', jobId: 'job-1', observer: tromso, window: { startMs: start, endMs: start + DAY_MS }, thresholds: DEFAULT_THRESHOLDS });
     expect(h.ofType('jobDone')[0]).toMatchObject({ cancelled: false, hasDarkness: false });
     expect(h.ofType('passes').flatMap((p) => p.passes)).toEqual([]);
+  });
+
+  it('measures darkness over night 1 alone, so a dark third night does not silence tonight\u2019s message', async () => {
+    // 72\u00b0N on 2026-08-27 the sun bottoms out at \u22128.23\u00b0 on night 1, \u22128.58\u00b0 on night 2 and \u22128.94\u00b0 on night 3.
+    // With the limit between them, only night 1 stays bright \u2014 and SPEC \u00a75.6's "no darkness tonight" is about night 1.
+    const h = await loaded(fixtureRecords().filter((r) => r.catalog.noradId === ISS));
+    const arctic: Observer = { lat: 72, lon: 0, altM: 0, label: 'Arctic', source: 'coords', timeZone: null };
+    const thresholds = { ...DEFAULT_THRESHOLDS, sunAltMaxDeg: -8.4 };
+    const startMs = Date.parse('2026-08-27T12:00:00Z');
+    const window: TimeWindow = { startMs, endMs: startMs + 3 * DAY_MS };
+    expect(hasDarkness(arctic, window, thresholds)).toBe(true); // the window as a whole does get dark, on nights 2 and 3
+    await h.send({ type: 'computePasses', jobId: 'job-1', observer: arctic, window, thresholds });
+    expect(h.ofType('jobDone')[0]).toMatchObject({ cancelled: false, hasDarkness: false });
   });
 
   it('answers NO_ELEMENTS, and no jobDone, when nothing is loaded', async () => {

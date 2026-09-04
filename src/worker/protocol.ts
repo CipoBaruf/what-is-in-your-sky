@@ -20,8 +20,8 @@ export type WorkerRequest =
 export type WorkerResponse =
   | { type: 'elementsLoaded'; requestId: string; loaded: NoradId[]; rejected: RejectedElement[] }
   | { type: 'passes'; jobId: string; noradId: NoradId; nightIndex: number; passes: Pass[] } // streamed, one per (night, object) pair
-  | { type: 'progress'; jobId: string; done: number; total: number }
-  | { type: 'jobDone'; jobId: string; cancelled: boolean; elapsedMs: number; hasDarkness: boolean }
+  | { type: 'progress'; jobId: string; done: number; total: number } // (night, object) pairs finished of the pairs the window asks for, not objects
+  | { type: 'jobDone'; jobId: string; cancelled: boolean; elapsedMs: number; hasDarkness: boolean } // darkness on night 1 only: it words SPEC §5.6's "tonight"
   | { type: 'nowState'; requestId: string; state: NowState }
   | { type: 'error'; ref: { jobId?: string; requestId?: string }; code: WorkerErrorCode; message: string };
 

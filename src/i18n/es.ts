@@ -140,7 +140,7 @@ export const es: Messages = {
     elementsError: (message) => `No se pudieron cargar los elementos orbitales: ${message}`,
     noElements: 'Ningún objeto del catálogo tiene elementos orbitales en este momento.',
     computing: 'Calculando los pases…',
-    computingProgress: (p) => `Calculando los pases… ${String(p.done)} de ${String(p.total)} objetos, ${String(p.found)} visibles hasta ahora`,
+    computingProgress: (p) => `Calculando los pases… ${String(p.done)} de ${String(p.total)}, ${String(p.found)} visibles hasta ahora`,
     passesError: (message) => `No se pudieron calcular los pases: ${message}`,
     unknownError: 'error desconocido',
     noDarkness: (p) => `Esta noche no hay oscuridad en esta latitud: el sol nunca baja lo suficiente en las próximas ${String(p.hours)} h desde ${p.place}.`,
