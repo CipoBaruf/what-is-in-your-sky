@@ -2,10 +2,13 @@
  * TASKS R8 (FR-WX-5): two locations in the same 0.1° cell share one fetch,
  * a stored entry older than 30 min is refetched, concurrent loads share the
  * in-flight request, storage is optional and storage failures are ignored.
+ * R24 (FR-OFF-3): none of that changes while there is a network — what is new
+ * is that a failed fetch falls back to the stored snapshot past its TTL,
+ * keeping `fetchedAt`, until the snapshot is older than the span it covers.
  */
 import { describe, expect, it, vi } from 'vitest';
 import type { WeatherSnapshot } from '../model';
-import { cellCentre, cellKey, createWeatherCache, WEATHER_CACHE_KEY, WEATHER_TTL_MS, type StorageLike } from './weatherCache';
+import { cellCentre, cellKey, createWeatherCache, WEATHER_CACHE_KEY, WEATHER_RETENTION_MS, WEATHER_TTL_MS, type StorageLike } from './weatherCache';
 
 const T0 = Date.parse('2026-09-02T19:00:00Z');
 
@@ -87,12 +90,18 @@ describe('createWeatherCache', () => {
     expect(second.fetchForecast).not.toHaveBeenCalled();
   });
 
-  it('evicts stale stored entries on write and ignores corrupt storage', async () => {
+  it('evicts stored entries past the retention span on write, keeps merely stale ones, and ignores corrupt storage', async () => {
     const storage = memoryStorage();
-    storage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ '0.0,0.0': snapshotFor(0, 0, '0.0,0.0', T0 - WEATHER_TTL_MS - 1) }));
+    storage.setItem(
+      WEATHER_CACHE_KEY,
+      JSON.stringify({
+        '0.0,0.0': snapshotFor(0, 0, '0.0,0.0', T0 - WEATHER_RETENTION_MS - 1), // covers no future hour: gone
+        '48.9,2.4': snapshotFor(48.9, 2.4, '48.9,2.4', T0 - WEATHER_TTL_MS - 1), // past the TTL but still the offline answer (FR-OFF-3)
+      }),
+    );
     const { cache } = harness(storage);
     await cache.load(-38.9, -68);
-    expect(Object.keys(JSON.parse(storage.map.get(WEATHER_CACHE_KEY) ?? '{}') as object)).toEqual(['-38.9,-68.0']);
+    expect(Object.keys(JSON.parse(storage.map.get(WEATHER_CACHE_KEY) ?? '{}') as object).sort()).toEqual(['-38.9,-68.0', '48.9,2.4']);
 
     storage.setItem(WEATHER_CACHE_KEY, '{not json');
     const { cache: other, fetchForecast } = harness(storage);
@@ -125,6 +134,42 @@ describe('createWeatherCache', () => {
     await expect(cache.load(-38.9, -68)).rejects.toThrow('HTTP 503');
     await expect(cache.load(-38.9, -68)).resolves.toMatchObject({ cellKey: '-38.9,-68.0' });
     expect(fetchForecast).toHaveBeenCalledTimes(2);
+  });
+
+  it('offline, the stored snapshot stays in use past the TTL with its own fetchedAt (FR-OFF-3)', async () => {
+    const storage = memoryStorage();
+    const { cache, fetchForecast, advance } = harness(storage);
+    const fresh = await cache.load(-38.9, -68);
+    expect(fresh.fetchedAt).toBe(T0);
+
+    // Two hours later the network is gone: the same snapshot comes back, not an error and not a blank.
+    advance(2 * 3_600_000);
+    fetchForecast.mockRejectedValue(new Error('Failed to fetch'));
+    const offline = await cache.load(-38.93, -67.99);
+    expect(offline).toEqual(fresh);
+    expect(offline.fetchedAt).toBe(T0); // the age the badge shows
+
+    // Still nothing cached as current: every load keeps trying, so the first one that works wins.
+    await cache.load(-38.9, -68);
+    expect(fetchForecast).toHaveBeenCalledTimes(3);
+  });
+
+  it('a new session offline reads the stored snapshot back from storage', async () => {
+    const storage = memoryStorage();
+    await harness(storage).cache.load(-38.9, -68);
+    const next = harness(storage);
+    next.advance(2 * 3_600_000);
+    next.fetchForecast.mockRejectedValue(new Error('Failed to fetch'));
+    await expect(next.cache.load(-38.9, -68)).resolves.toMatchObject({ cellKey: '-38.9,-68.0', fetchedAt: T0 });
+  });
+
+  it('stops falling back once the stored snapshot is older than the span it covers', async () => {
+    const storage = memoryStorage();
+    const { cache, fetchForecast, advance } = harness(storage);
+    await cache.load(-38.9, -68);
+    advance(WEATHER_RETENTION_MS);
+    fetchForecast.mockRejectedValue(new Error('Failed to fetch'));
+    await expect(cache.load(-38.9, -68)).rejects.toThrow('Failed to fetch');
   });
 
   it('clear() drops memory and storage', async () => {

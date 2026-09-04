@@ -1,4 +1,5 @@
 import type { ChartOrientation, ChartView, Locale, Observer, PassSort, Theme } from '../model';
+import { storedObserverSchema, toObserver } from './schemas';
 import { browserStorage, type StorageLike } from './storage';
 import { z } from './zod';
 
@@ -28,15 +29,6 @@ export interface Prefs {
   theme?: Theme;
 }
 
-const storedObserverSchema = z.object({
-  lat: z.number().min(-90).max(90),
-  lon: z.number().min(-180).max(180),
-  altM: z.number(),
-  label: z.string().min(1),
-  source: z.enum(['geocode', 'coords', 'device']),
-  timeZone: z.string().min(1).nullable(),
-  accuracyM: z.number().optional(),
-});
 const storedPrefsSchema = z.object({
   observer: storedObserverSchema.optional().catch(undefined),
   sort: z.enum(['chronological', 'best']).optional().catch(undefined),
@@ -62,10 +54,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!parsed.success) return {};
         const { observer, sort, chartView, chartOrientation, locale, theme } = parsed.data;
         const prefs: Prefs = {};
-        if (observer) {
-          const { accuracyM, ...rest } = observer;
-          prefs.observer = accuracyM === undefined ? rest : { ...rest, accuracyM };
-        }
+        if (observer) prefs.observer = toObserver(observer);
         if (sort) prefs.sort = sort;
         if (chartView) prefs.chartView = chartView;
         if (chartOrientation) prefs.chartOrientation = chartOrientation;

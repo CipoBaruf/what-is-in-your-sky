@@ -7,6 +7,9 @@ const PORT = 4173;
 
 export default defineConfig({
   testDir: 'tests/e2e',
+  // R24: the window went from 24 h to 72 h (FR-VIS-1 amended), so every test that waits for a
+  // finished list waits about three times as long. The default 30 s left no room on a loaded CI box.
+  timeout: 90_000,
   fullyParallel: true,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 2 : 0,

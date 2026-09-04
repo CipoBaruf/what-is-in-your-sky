@@ -113,7 +113,7 @@ describe('<PassList>', () => {
     act(() => {
       appStore.getState().finishJob('job-1', { cancelled: false, elapsedMs: 300, hasDarkness: true });
     });
-    expect(screen.getByRole('status')).toHaveTextContent('3 visible passes in the next 24 h from −38.93, −67.99');
+    expect(screen.getByRole('status')).toHaveTextContent('3 visible passes in the next 72 h from −38.93, −67.99');
     expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'false');
   });
 
@@ -163,7 +163,7 @@ describe('<PassList>', () => {
     expect(screen.getByRole('status')).toHaveTextContent('No catalog objects have orbital elements');
 
     set({ elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, hasDarkness: true } });
-    expect(screen.getByRole('status')).toHaveTextContent('No visible passes in the next 24 h from −38.93, −67.99.');
+    expect(screen.getByRole('status')).toHaveTextContent('No visible passes in the next 72 h from −38.93, −67.99.');
     expect(screen.queryByRole('list')).toBeNull();
 
     set({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, hasDarkness: false } });

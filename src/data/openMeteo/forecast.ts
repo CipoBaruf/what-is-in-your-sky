@@ -3,14 +3,17 @@ import { openMeteoErrorSchema, forecastResponseSchema } from './schemas';
 
 /**
  * FR-WX-1 / PLAN §7.3: one request per fetch, the exact URL from the plan —
- * four hourly variables and three days, so it counts as a single Open-Meteo
- * call. `timezone=auto` makes the response carry the IANA zone that fills
+ * four hourly variables and, since v1, four days, so it counts as a single
+ * Open-Meteo call and covers the 72 h window with a margin (FR-WX-1 amended,
+ * FR-OFF-3). `timezone=auto` makes the response carry the IANA zone that fills
  * `Observer.timeZone` for coordinate and device input (D-3). No cache here:
- * `weatherCache.ts` owns the 30 min / 0.1° cell rule (FR-WX-5).
+ * `weatherCache.ts` owns the 30 min / 0.1° cell rule (FR-WX-5) and the offline
+ * fallback past it (FR-OFF-3).
  */
 export const OPEN_METEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 export const HOURLY_VARIABLES = ['cloud_cover', 'cloud_cover_low', 'cloud_cover_mid', 'cloud_cover_high'] as const;
-export const FORECAST_DAYS = 3;
+/** Four, not three: the window is 72 h from now, and a day counts from local midnight (FR-OFF-3). */
+export const FORECAST_DAYS = 4;
 
 export class OpenMeteoError extends Error {
   constructor(message: string) {

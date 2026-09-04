@@ -86,7 +86,8 @@ export const openMeteoHandlers = [
     const url = new URL(request.url);
     const expected: Record<string, string> = {
       hourly: 'cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high',
-      forecast_days: '3',
+      forecast_days: '4', // R24, FR-OFF-3: the 72 h window needs four forecast days
+
       timezone: 'auto',
       timeformat: 'unixtime',
     };

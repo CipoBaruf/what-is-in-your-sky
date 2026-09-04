@@ -1,6 +1,7 @@
 /**
  * TASKS R8: the request is exactly PLAN §7.3's (four hourly variables,
- * `forecast_days=3`, unix times, auto zone); the recorded Neuquén response
+ * unix times, auto zone) with R24's `forecast_days=4` (FR-OFF-3, the 72 h
+ * window plus the margin a local-midnight day boundary needs); the recorded Neuquén response
  * parses into a snapshot whose zone is `America/Argentina/Salta`; error
  * bodies, non-JSON bodies and HTTP errors are reported, never thrown raw.
  */
@@ -13,13 +14,13 @@ const meta = loadForecastFixtureMeta();
 const FETCHED_AT = Date.parse(meta.fetchedAt);
 
 describe('forecastUrl', () => {
-  it('is the PLAN §7.3 request: four hourly variables, three days, unix times, auto zone, one-decimal coordinates', () => {
+  it('is the PLAN §7.3 request: four hourly variables, four days, unix times, auto zone, one-decimal coordinates', () => {
     const url = new URL(forecastUrl(-38.9, -68));
     expect(url.origin + url.pathname).toBe(OPEN_METEO_FORECAST);
     expect(url.searchParams.get('hourly')?.split(',')).toEqual(['cloud_cover', 'cloud_cover_low', 'cloud_cover_mid', 'cloud_cover_high']);
     expect(HOURLY_VARIABLES).toHaveLength(4);
-    expect(url.searchParams.get('forecast_days')).toBe('3');
-    expect(FORECAST_DAYS).toBe(3);
+    expect(url.searchParams.get('forecast_days')).toBe('4');
+    expect(FORECAST_DAYS).toBe(4);
     expect(url.searchParams.get('timezone')).toBe('auto');
     expect(url.searchParams.get('timeformat')).toBe('unixtime');
     expect(url.searchParams.get('latitude')).toBe('-38.9');

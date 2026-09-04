@@ -1,5 +1,5 @@
 import type { EpochMs, WeatherSnapshot } from '../model';
-import { fetchCloudForecast } from './openMeteo/forecast';
+import { fetchCloudForecast, FORECAST_DAYS } from './openMeteo/forecast';
 import { storedCacheSchema, type StoredSnapshot } from './openMeteo/schemas';
 import { browserStorage, type StorageLike } from './storage';
 
@@ -9,11 +9,22 @@ export { browserStorage, type StorageLike };
  * FR-WX-5: weather is cached for 30 min per 0.1° cell, in memory and in
  * `localStorage` (`wiys:wx:v1`, PLAN §5). Two observers in the same cell share
  * one snapshot, and concurrent requests for a cell share one in-flight fetch.
- * A stored entry older than the TTL is evicted on read and on write. Storage
- * failures (quota, private mode) never fail a load: the memory map carries on.
+ * Storage failures (quota, private mode) never fail a load: the memory map
+ * carries on.
+ *
+ * v1 (FR-OFF-3, PLAN §7.6): online behaviour and the 30 min TTL are exactly
+ * what they were — a snapshot past the TTL is still refetched every time. What
+ * changed is the failure branch: when the fetch cannot be made the stored
+ * snapshot is handed back past its TTL, with its own `fetchedAt`, so the cards
+ * can say "as of <time>" instead of going blank. Eviction therefore counts
+ * from the span the response covers, not from the TTL: past `FORECAST_DAYS`
+ * an entry describes no future hour and every verdict from it would be
+ * `unknown` anyway.
  */
 export const WEATHER_CACHE_KEY = 'wiys:wx:v1';
 export const WEATHER_TTL_MS = 30 * 60_000;
+/** How long a snapshot is worth keeping for the offline fallback: the span the response itself covers (FR-OFF-3). */
+export const WEATHER_RETENTION_MS = FORECAST_DAYS * 24 * 3_600_000;
 export const CELL_DEG = 0.1;
 
 /** The cell's coordinates: rounded to the nearest 0.1°. */
@@ -46,6 +57,8 @@ export function createWeatherCache({ storage, now, fetchForecast }: WeatherCache
   const inFlight = new Map<string, Promise<WeatherSnapshot>>();
 
   const fresh = (snapshot: WeatherSnapshot): boolean => now() - snapshot.fetchedAt < WEATHER_TTL_MS;
+  /** Worth keeping, and worth handing back when the network is gone (FR-OFF-3). */
+  const usable = (snapshot: WeatherSnapshot): boolean => now() - snapshot.fetchedAt < WEATHER_RETENTION_MS;
 
   const readStorage = (): Record<string, WeatherSnapshot> => {
     try {
@@ -68,12 +81,13 @@ export function createWeatherCache({ storage, now, fetchForecast }: WeatherCache
     }
   };
 
+  /** The snapshot for a cell whatever its age, from memory or storage; null when there is none worth keeping. */
   const lookup = (key: string): WeatherSnapshot | null => {
     const inMemory = memory.get(key);
-    if (inMemory && fresh(inMemory)) return inMemory;
+    if (inMemory && usable(inMemory)) return inMemory;
     memory.delete(key);
     const stored = readStorage()[key];
-    if (stored && fresh(stored)) {
+    if (stored && usable(stored)) {
       memory.set(key, stored);
       return stored;
     }
@@ -82,7 +96,7 @@ export function createWeatherCache({ storage, now, fetchForecast }: WeatherCache
 
   const remember = (key: string, snapshot: WeatherSnapshot): void => {
     memory.set(key, snapshot);
-    const entries = Object.fromEntries(Object.entries(readStorage()).filter(([, v]) => fresh(v)));
+    const entries = Object.fromEntries(Object.entries(readStorage()).filter(([, v]) => usable(v)));
     entries[key] = snapshot;
     writeStorage(entries);
   };
@@ -91,7 +105,7 @@ export function createWeatherCache({ storage, now, fetchForecast }: WeatherCache
     load: (lat, lon, options = {}) => {
       const key = cellKey(lat, lon);
       const hit = lookup(key);
-      if (hit) return Promise.resolve(hit);
+      if (hit && fresh(hit)) return Promise.resolve(hit);
       const pending = inFlight.get(key);
       if (pending) return pending;
       const centre = cellCentre(lat, lon);
@@ -99,6 +113,13 @@ export function createWeatherCache({ storage, now, fetchForecast }: WeatherCache
         .then((snapshot) => {
           remember(key, snapshot);
           return snapshot;
+        })
+        .catch((error: unknown) => {
+          // FR-OFF-3: with no network the stored snapshot stays in use past the TTL, `fetchedAt` and all.
+          // It is not re-remembered, so the next load tries the network again as soon as there is one.
+          const stale = lookup(key);
+          if (!stale) throw error;
+          return stale;
         })
         .finally(() => {
           inFlight.delete(key);

@@ -86,4 +86,11 @@ describe('cloudVerdict', () => {
     const s = snapshot([{ t: T0, totalPct: 20 }]);
     expect(cloudVerdict(s, T0 + 1)).toEqual({ state: 'unknown', effectivePct: null, at: T0 + 1 });
   });
+
+  it('reads unknown for the hours of the 72 h window past the end of a stored forecast (FR-OFF-3)', () => {
+    // What an offline session sees: a snapshot fetched a day ago, still in use, covering four days from its own start.
+    const stored = snapshot(Array.from({ length: 96 }, (_, i) => ({ t: T0 + i * HOUR, totalPct: 20 })));
+    expect(cloudVerdict(stored, T0 + 95 * HOUR)).toEqual({ state: 'clear', effectivePct: 20, at: T0 + 95 * HOUR });
+    expect(cloudVerdict(stored, T0 + 96 * HOUR)).toEqual({ state: 'unknown', effectivePct: null, at: T0 + 96 * HOUR });
+  });
 });

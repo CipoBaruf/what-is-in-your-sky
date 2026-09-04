@@ -57,7 +57,7 @@ async function openGoldenPass(page: Page, violations: string[]): Promise<{ passI
   });
   await page.goto('/');
   await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 24 h/, { timeout: 15_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
   await page.locator(`article[data-pass-id="${passId}"]`).getByRole('button', { name: /Open guide/ }).click();
   const dialog = page.getByRole('dialog', { name: 'ISS (Zarya)' });
   await expect(dialog).toBeVisible();
@@ -87,14 +87,14 @@ test('the dome is one toggle from the polar default, shares its frame, faces the
   await viewToggle.getByRole('button', { name: 'Dome' }).click();
   await expect(figure).toHaveAttribute('data-view', 'dome');
   await expect(viewToggle.getByRole('button', { name: 'Dome' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(figure.locator('[data-drawing="dome"] pre.glyph-output')).toBeVisible({ timeout: 15_000 });
+  await expect(figure.locator('[data-drawing="dome"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
   expect(await frameBox()).toEqual(polarFrame);
   expect(await tableY()).toBe(polarTableY);
 
   // The chart chunk lands and draws: one <pre> of 30 rows × 60 braille columns, hidden from AT; no canvas anywhere (FR-GUIDE-5).
   const stage = figure.getByRole('group', { name: 'Sky dome' });
   const drawing = figure.locator('[data-drawing="dome"]');
-  await expect(drawing).toHaveAttribute('aria-hidden', 'true', { timeout: 15_000 });
+  await expect(drawing).toHaveAttribute('aria-hidden', 'true', { timeout: 30_000 });
   const pre = drawing.locator('pre.glyph-output');
   await expect(pre).toBeVisible();
   const raster = await pre.evaluate((el) => el.textContent ?? '');
@@ -178,11 +178,11 @@ test('the dome is one toggle from the polar default, shares its frame, faces the
   await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
   expect(JSON.parse(await page.evaluate(() => window.localStorage.getItem('wiys:prefs:v1') ?? '{}'))).toMatchObject({ chartView: 'polar' });
   await page.reload();
-  await expect(page.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole('dialog').getByRole('figure')).toHaveAttribute('data-view', 'polar');
   await page.getByRole('group', { name: 'Chart view' }).getByRole('button', { name: 'Dome' }).click();
   await expect(page.getByRole('dialog').getByRole('figure')).toHaveAttribute('data-view', 'dome');
-  await expect(page.getByRole('dialog').locator('[data-drawing="dome"] pre.glyph-output')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('dialog').locator('[data-drawing="dome"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
   expect(await page.evaluate(() => document.querySelector('canvas'))).toBeNull();
 
   // The golden pass grazes the horizon; for the PR's visual check, also capture the highest pass of the night on the dome.
@@ -196,7 +196,7 @@ test('the dome is one toggle from the polar default, shares its frame, faces the
   if (!highest || highest.el < 30) throw new Error(`no high pass among the fixtures (best ${String(highest?.el)}°)`);
   await list.locator(`article[data-pass-id="${highest.id}"]`).getByRole('button', { name: /Open guide/ }).click();
   const highFigure = page.getByRole('dialog').getByRole('figure');
-  await expect(highFigure.locator('[data-drawing="dome"] pre.glyph-output')).toBeVisible({ timeout: 15_000 });
+  await expect(highFigure.locator('[data-drawing="dome"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
   await expect(highFigure.locator('[data-anchor="peak"]')).toHaveText(`max ${String(highest.el)}°`);
   await highFigure.evaluate((el) => el.scrollIntoView({ block: 'start' }));
   await page.screenshot({ path: 'test-results/r15-dome-high-390.png' });

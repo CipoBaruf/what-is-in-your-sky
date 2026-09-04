@@ -12,8 +12,10 @@ import { idbCache } from '../../tests/support/elementsCache';
 import { MOON_FIXTURE, NO_MOON_AT_PEAK } from '../../tests/support/moonFixtures';
 import { CATALOG } from '../data/catalog';
 import { loadElements } from '../data/elementsLoader';
-import type { CatalogEntry, NowState, Observer, Pass, SatelliteRecord, WeatherSnapshot } from '../model';
+import type { CatalogEntry, NowState, Observer, Pass, PassRun, SatelliteRecord, WeatherSnapshot } from '../model';
+import type { FinishedRun } from '../data/passesCache';
 import { ALWAYS_VISIBLE, ELEMENTS_RECHECK_MS, NOW_TICK_MS, startEffects, type EffectDeps, type LoadedElements, type VisibilitySource } from './effects';
+import { SEARCH_WINDOW_MS } from './passWindow';
 import { createLocalPrefs } from '../data/localPrefs';
 import { createAppStore, type AppStore } from './store';
 import { createWorkerClient, type WorkerClient } from './workerClient';
@@ -58,6 +60,9 @@ const freshLoader = (): EffectDeps['loadElements'] => {
 /** A forecast that never arrives, for the tests that are not about weather. */
 const neverWeather = (): Promise<WeatherSnapshot> => new Promise(() => undefined);
 
+/** A device with nothing stored, for the tests that are not about offline storage (R24). */
+const noStorage: Pick<EffectDeps, 'loadStoredRun' | 'saveRun'> = { loadStoredRun: () => Promise.resolve(null), saveRun: () => Promise.resolve(null) };
+
 const snapshotFor = (lat: number, lon: number): WeatherSnapshot => ({
   provider: 'open-meteo',
   lat,
@@ -87,7 +92,7 @@ describe('startEffects', () => {
     store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(null) });
     worker = fakeWorker();
     client = createWorkerClient(worker);
-    stop = startEffects({ store, client, catalog: CATALOG, loadElements: freshLoader(), loadWeather: neverWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
+    stop = startEffects({ ...noStorage, store, client, catalog: CATALOG, loadElements: freshLoader(), loadWeather: neverWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
   });
   afterEach(() => {
     stop();
@@ -106,7 +111,7 @@ describe('startEffects', () => {
     expect(worker.sent).toEqual([]);
   });
 
-  it('observer set → elements to the worker once → computePasses with the 24 h window from the pinned clock', async () => {
+  it('observer set → elements to the worker once → computePasses with the 72 h window from the pinned clock', async () => {
     store.getState().setObserver(neuquen);
     await waitForSent('loadElements');
     const [load] = sentOfType('loadElements');
@@ -114,7 +119,7 @@ describe('startEffects', () => {
     worker.emit({ type: 'elementsLoaded', requestId: load?.requestId ?? '', loaded: [25544], rejected: [{ noradId: 1, reason: 'bad' }] });
     await waitForSent('computePasses');
     const [job] = sentOfType('computePasses');
-    expect(job).toMatchObject({ observer: neuquen, window: { startMs: NOW, endMs: NOW + DAY_MS } });
+    expect(job).toMatchObject({ observer: neuquen, window: { startMs: NOW, endMs: NOW + SEARCH_WINDOW_MS } });
     expect(store.getState().passes).toMatchObject({ jobId: job?.jobId, status: 'computing', observer: neuquen });
     const { elements } = store.getState();
     expect(elements.status === 'ready' && elements.rejected).toEqual([{ noradId: 1, reason: 'bad' }]);
@@ -191,7 +196,7 @@ describe('startEffects', () => {
     store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(null) });
     worker = fakeWorker();
     client = createWorkerClient(worker);
-    stop = startEffects({ store, client, catalog: CATALOG, loadElements: failing, loadWeather: neverWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
+    stop = startEffects({ ...noStorage, store, client, catalog: CATALOG, loadElements: failing, loadWeather: neverWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
     await vi.waitFor(() => expect(store.getState().elements).toEqual({ status: 'error', message: 'HTTP 503' }));
     store.getState().setObserver(neuquen);
     await vi.waitFor(() => expect(store.getState().elements.status).toBe('ready'));
@@ -237,6 +242,7 @@ describe('the "Now" tick (FR-VIS-5, US-4 AC2)', () => {
     client = createWorkerClient(worker);
     visibility = fakeVisibility();
     stop = startEffects({
+      ...noStorage,
       store,
       client,
       catalog: CATALOG,
@@ -361,7 +367,7 @@ describe('weather (FR-WX-1, FR-WX-5, FR-LOC-3)', () => {
     store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(null) });
     worker = fakeWorker();
     client = createWorkerClient(worker);
-    stop = startEffects({ store, client, catalog: CATALOG, loadElements: () => Promise.resolve(loaded(records)), loadWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
+    stop = startEffects({ ...noStorage, store, client, catalog: CATALOG, loadElements: () => Promise.resolve(loaded(records)), loadWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
   });
   afterEach(() => {
     stop();
@@ -379,7 +385,8 @@ describe('weather (FR-WX-1, FR-WX-5, FR-LOC-3)', () => {
 
   it('is requested with the pass job, for the observer coordinates, without waiting for the elements', async () => {
     store.getState().setObserver(neuquen);
-    expect(requests).toHaveLength(1);
+    // R24: the stored run is read first (a local lookup), so the request goes out on the next turn rather than in this one.
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
     expect(requests[0]).toMatchObject({ lat: neuquen.lat, lon: neuquen.lon });
     expect(store.getState().weather).toMatchObject({ observer: neuquen, status: 'loading' });
   });
@@ -426,6 +433,7 @@ describe('weather (FR-WX-1, FR-WX-5, FR-LOC-3)', () => {
   it('does not overwrite a zone the observer already has (geocoded input)', async () => {
     const geocoded: Observer = { ...neuquen, source: 'geocode', label: 'Neuquén, Argentina', timeZone: 'America/Argentina/Buenos_Aires' };
     store.getState().setObserver(geocoded);
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
     requests[0]?.resolve(snapshotFor(-38.9, -68));
     await vi.waitFor(() => expect(store.getState().weather.status).toBe('ready'));
     expect(store.getState().observer).toBe(geocoded);
@@ -433,8 +441,9 @@ describe('weather (FR-WX-1, FR-WX-5, FR-LOC-3)', () => {
 
   it('an observer change drops the previous location’s late snapshot; clearing the observer resets the slice', async () => {
     store.getState().setObserver(neuquen);
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
     store.getState().setObserver(paris);
-    expect(requests).toHaveLength(2);
+    await vi.waitFor(() => expect(requests).toHaveLength(2));
     requests[0]?.resolve(snapshotFor(-38.9, -68));
     await new Promise((r) => setTimeout(r, 0));
     expect(store.getState().weather).toMatchObject({ observer: paris, status: 'loading', snapshot: null });
@@ -466,7 +475,7 @@ describe('the elements re-check (R11, PLAN §7.1, FR-SAT-6)', () => {
     worker = fakeWorker();
     client = createWorkerClient(worker);
     visibility = fakeVisibility();
-    stop = startEffects({ store, client, catalog: CATALOG, loadElements: loader, loadWeather: neverWeather, now: () => clock, visibility });
+    stop = startEffects({ ...noStorage, store, client, catalog: CATALOG, loadElements: loader, loadWeather: neverWeather, now: () => clock, visibility });
   };
   /** Observer set → elements in the worker → job started. */
   const started = async (observer: Observer): Promise<void> => {
@@ -581,5 +590,193 @@ describe('the elements re-check (R11, PLAN §7.1, FR-SAT-6)', () => {
     await elapse(3 * ELEMENTS_RECHECK_MS);
     expect(loader).toHaveBeenCalledTimes(1);
     stop = () => undefined;
+  });
+});
+
+/**
+ * R24 (FR-OFF-2, FR-OFF-5, PLAN §7.5, D-78): the start-up order is prefs →
+ * stored run → render → network, every uncancelled job is written back, and a
+ * stored list stays on screen until the job replacing it has something of its
+ * own to show.
+ */
+describe('stored passes (R24, FR-OFF-2, FR-OFF-5)', () => {
+  const STORED_AT = NOW - 2 * 3_600_000;
+  const storedPass = samplePass(25544, NOW + 5 * 60_000);
+  const storedRun: PassRun = {
+    cellKey: '-38.93,-67.99',
+    observer: neuquen,
+    window: { startMs: STORED_AT, endMs: STORED_AT + SEARCH_WINDOW_MS },
+    computedAt: STORED_AT,
+    newestElementsEpochMs: ref.t,
+    hasDarkness: true,
+    passes: [storedPass],
+  };
+  /** The newest epoch in the fixture set: what a finished run records as its provenance (FR-SAT-4, D-108). */
+  const newestEpoch = Math.max(...fixtureRecords().map((record) => record.epochMs));
+
+  let store: AppStore;
+  let worker: ReturnType<typeof fakeWorker>;
+  let client: WorkerClient;
+  let stop: () => void;
+  let saved: FinishedRun[];
+  let requested: string[];
+  /** How many requests had gone out when the stored passes first reached the screen; zero is the point of the test. */
+  let requestedWhenStoredRendered: number | null;
+  const onRequest = ({ request }: { request: Request }): void => {
+    requested.push(request.url);
+  };
+
+  /** `startApp`'s own order: the saved observer is in the store before the effects are wired. */
+  const start = (stored: PassRun | null, savedObserver: Observer | null = neuquen): void => {
+    store = createAppStore({ now: () => NOW, prefs: { read: () => (savedObserver ? { observer: savedObserver } : {}), write: () => undefined } });
+    store.subscribe((state) => {
+      if (state.passes.storedAt !== null && requestedWhenStoredRendered === null) requestedWhenStoredRendered = requested.length;
+    });
+    worker = fakeWorker();
+    client = createWorkerClient(worker);
+    store.getState().restoreSavedObserver();
+    stop = startEffects({
+      store,
+      client,
+      catalog: CATALOG,
+      loadElements: freshLoader(),
+      loadWeather: neverWeather,
+      loadStoredRun: () => Promise.resolve(stored),
+      saveRun: (run) => {
+        saved.push(run);
+        return Promise.resolve(null);
+      },
+      now: () => NOW,
+      visibility: ALWAYS_VISIBLE,
+    });
+  };
+
+  const sent = <T extends WorkerRequest['type']>(type: T) => worker.sent.filter((m): m is WorkerRequest & { type: T } => m.type === type);
+  /** Elements accepted by the worker → the job for the restored observer. */
+  const jobStarted = async (): Promise<string> => {
+    await vi.waitFor(() => expect(sent('loadElements')).toHaveLength(1));
+    worker.emit({ type: 'elementsLoaded', requestId: sent('loadElements')[0]?.requestId ?? '', loaded: [], rejected: [] });
+    await vi.waitFor(() => expect(sent('computePasses')).toHaveLength(1));
+    return sent('computePasses')[0]?.jobId ?? '';
+  };
+
+  beforeEach(() => {
+    saved = [];
+    requested = [];
+    requestedWhenStoredRendered = null;
+    server.events.on('request:start', onRequest);
+  });
+  afterEach(() => {
+    stop();
+    server.events.removeListener('request:start', onRequest);
+  });
+
+  it('renders the stored run for the saved location before any request goes out', async () => {
+    start(storedRun);
+    await vi.waitFor(() => expect(store.getState().passes.passes).toHaveLength(1));
+    expect(store.getState().passes).toMatchObject({ status: 'done', storedAt: STORED_AT, observer: neuquen, window: storedRun.window, jobId: null });
+    expect(store.getState().passes.passes).toEqual([storedPass]);
+    expect(requestedWhenStoredRendered).toBe(0); // prefs → stored run → render, and only then the network
+
+    // And the network follows on its own: the elements are fetched and the recompute starts.
+    await vi.waitFor(() => expect(requested).toHaveLength(2));
+    expect([...new Set(requested.map((u) => new URL(u).host))]).toEqual(['celestrak.org']);
+    await jobStarted();
+  });
+
+  it('keeps the stored passes on screen while the recompute runs, until the first object of the new job arrives', async () => {
+    start(storedRun);
+    await vi.waitFor(() => expect(store.getState().passes.storedAt).toBe(STORED_AT));
+    const jobId = await jobStarted();
+    // The list does not blank while the worker works: the stored passes stand in, still marked as stored.
+    expect(store.getState().passes).toMatchObject({ status: 'computing', jobId, storedAt: STORED_AT });
+    expect(store.getState().passes.passes).toEqual([storedPass]);
+
+    const fresh = samplePass(25544, NOW + 90 * 60_000);
+    worker.emit({ type: 'passes', jobId, noradId: 25544, nightIndex: 0, passes: [fresh] });
+    expect(store.getState().passes.passes).toEqual([fresh]); // replaced, not appended to
+    expect(store.getState().passes.storedAt).toBeNull();
+  });
+
+  it('brings hasDarkness back with the stored run, so an empty one is not read as "nothing visible" (D-108)', async () => {
+    start({ ...storedRun, passes: [], hasDarkness: false });
+    await vi.waitFor(() => expect(store.getState().passes.storedAt).toBe(STORED_AT));
+    // Without the stored flag this would be `null` and the list would word it as nothing visible,
+    // when the truth is that the window held no darkness at all (spec §5.6).
+    expect(store.getState().passes).toMatchObject({ status: 'done', hasDarkness: false });
+  });
+
+  it('an empty batch does not count as the new job having something to show (D-108)', async () => {
+    start(storedRun);
+    await vi.waitFor(() => expect(store.getState().passes.storedAt).toBe(STORED_AT));
+    const jobId = await jobStarted();
+
+    // The worker reports every (night, object) pair, empty ones included. Night 0 of an object with
+    // no passes must not blank the list a moment into a recompute that runs for seconds.
+    worker.emit({ type: 'passes', jobId, noradId: 25544, nightIndex: 0, passes: [] });
+    worker.emit({ type: 'passes', jobId, noradId: 25544, nightIndex: 1, passes: [] });
+    expect(store.getState().passes.passes).toEqual([storedPass]);
+    expect(store.getState().passes.storedAt).toBe(STORED_AT);
+
+    // The first batch that carries a pass is what takes over.
+    const fresh = samplePass(25544, NOW + 90 * 60_000);
+    worker.emit({ type: 'passes', jobId, noradId: 25544, nightIndex: 2, passes: [fresh] });
+    expect(store.getState().passes.passes).toEqual([fresh]);
+    expect(store.getState().passes.storedAt).toBeNull();
+  });
+
+  it('a recompute that finds nothing clears the stored passes at jobDone', async () => {
+    start(storedRun);
+    await vi.waitFor(() => expect(store.getState().passes.storedAt).toBe(STORED_AT));
+    const jobId = await jobStarted();
+    worker.emit({ type: 'jobDone', jobId, cancelled: false, elapsedMs: 10, hasDarkness: true });
+    expect(store.getState().passes).toMatchObject({ status: 'done', storedAt: null });
+    expect(store.getState().passes.passes).toEqual([]);
+  });
+
+  it('stores every uncancelled job as it finishes, with the window and the newest elements epoch (FR-OFF-5)', async () => {
+    start(null);
+    const jobId = await jobStarted();
+    const found = samplePass(25544, NOW + 1000);
+    worker.emit({ type: 'passes', jobId, noradId: 25544, nightIndex: 0, passes: [found] });
+    expect(saved).toHaveLength(0); // nothing is written mid-stream
+    worker.emit({ type: 'jobDone', jobId, cancelled: false, elapsedMs: 42, hasDarkness: true });
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({ observer: neuquen, window: { startMs: NOW, endMs: NOW + SEARCH_WINDOW_MS }, newestElementsEpochMs: newestEpoch });
+    expect(newestEpoch).toBeGreaterThan(Math.min(...fixtureRecords().map((record) => record.epochMs))); // the two differ, so the assertion above means something
+    expect(saved[0]?.passes).toEqual([found]);
+  });
+
+  it('stores an empty run when the job really found nothing, and keeps hasDarkness (D-108)', async () => {
+    start(null);
+    const jobId = await jobStarted();
+    worker.emit({ type: 'jobDone', jobId, cancelled: false, elapsedMs: 12, hasDarkness: false });
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({ hasDarkness: false });
+    expect(saved[0]?.passes).toEqual([]);
+  });
+
+  it('does not overwrite a good stored run when every object was skipped (D-108)', async () => {
+    start(storedRun);
+    await vi.waitFor(() => expect(store.getState().passes.storedAt).toBe(STORED_AT));
+    const jobId = await jobStarted();
+    worker.emit({ type: 'error', ref: { jobId }, code: 'PROPAGATION_FAILED', message: 'object 25544: boom' });
+    worker.emit({ type: 'jobDone', jobId, cancelled: false, elapsedMs: 12, hasDarkness: true });
+    // Nothing computed is not an answer: the run that is the only offline list survives.
+    expect(saved).toHaveLength(0);
+  });
+
+  it('does not store a cancelled job', async () => {
+    start(null);
+    const jobId = await jobStarted();
+    worker.emit({ type: 'jobDone', jobId, cancelled: true, elapsedMs: 5, hasDarkness: true });
+    expect(saved).toEqual([]);
+  });
+
+  it('with no saved location nothing is read back and the elements are still prefetched', async () => {
+    start(storedRun, null);
+    await vi.waitFor(() => expect(store.getState().elements.status).toBe('ready'));
+    expect(store.getState().passes).toMatchObject({ status: 'idle', storedAt: null });
+    expect(requestedWhenStoredRendered).toBeNull();
   });
 });

@@ -73,7 +73,7 @@ async function expectIdentity(page: Page, screenshot: string, { fullPage = true 
 async function homeWithPasses(page: Page): Promise<void> {
   await page.goto('/');
   await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 24 h/, { timeout: 15_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
   await expect(page.getByRole('region', { name: 'Right now' }).getByText(/as of /)).toBeVisible();
 }
 
@@ -179,10 +179,12 @@ test('the hero card pins the next ISS pass; "best first" reorders the list and t
   const hero = page.getByTestId('iss-hero');
   await expect(hero).toContainText('Next ISS pass');
   await expect(hero.getByRole('timer')).toHaveText(/Appears in \d+:\d\d/);
-  expect(Math.abs(Number((await hero.getAttribute('data-pass-id'))?.split('-')[1]) - golden.start.t)).toBeLessThanOrEqual(5_000);
-  await expect(page.getByRole('article', { name: 'ISS (Zarya)' })).toHaveCount(1);
+  const heroId = (await hero.getAttribute('data-pass-id')) ?? '';
+  expect(Math.abs(Number(heroId.split('-')[1]) - golden.start.t)).toBeLessThanOrEqual(5_000);
 
   const list = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('list');
+  // The hero's pass is pulled out of the list, not repeated in it — the other ISS passes of the 72 h window stay (R24).
+  await expect(list.locator(`article[data-pass-id="${heroId}"]`)).toHaveCount(0);
   const scores = async (): Promise<number[]> =>
     list.locator('article').evaluateAll((cards) =>
       cards.map((card) => {
@@ -205,7 +207,7 @@ test('the hero card pins the next ISS pass; "best first" reorders the list and t
   expect(JSON.parse((await page.evaluate(() => localStorage.getItem('wiys:prefs:v1'))) ?? '{}')).toMatchObject({ sort: 'best' });
 
   await page.reload();
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 24 h/, { timeout: 15_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
   await expect(page.getByRole('button', { name: 'Best first' })).toHaveAttribute('aria-pressed', 'true');
   expect([...(await scores())].sort((a, b) => b - a)).toEqual(await scores());
 });

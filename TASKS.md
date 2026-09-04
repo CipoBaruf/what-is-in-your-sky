@@ -449,7 +449,7 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - Crossing the breakpoint with a pass open keeps the same pass open in the other shell.
     - Captures at 1280 px in both languages beside the mockup, and the 390 px set unchanged.
 
-- [ ] **R24 — Offline storage: the 72 h window, stored runs and a four-day forecast**
+- [x] **R24 — Offline storage: the 72 h window, stored runs and a four-day forecast**
   - **Lane:** data
   - **Model:** opus
   - **Gate:** auto
@@ -464,6 +464,7 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - Forecast tests cover fresh, stale-but-offline and past-the-end; online behaviour and the 30 min TTL are unchanged.
     - e2e: a warm load, then a reload with the network blocked, shows the stored list and no request to either provider.
     - The night-1 recompute time is unchanged within noise; the number is in the PR.
+  - **Note:** `loadForObserver` returns an expired run instead of `null` — PLAN §7.5's pseudocode contradicted its own comment, and the "Done when" line above; D-105 records the resolution. The tripled window also forced two test-wide changes: the e2e wait for a finished list (D-105) and the six specs that located the golden pass as the only ISS article.
 
 - [ ] **R30 — The Moon on the cards, the guide, the Now panel and the lore line**
   - **Lane:** ui
