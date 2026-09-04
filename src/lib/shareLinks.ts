@@ -22,7 +22,7 @@ import { observerFromCoords } from './place';
  * D-15 keeps `src/lib` clock-free, and the lint rule that enforces it bans the
  * `Date` global outright, so the ISO-8601 instant of FR-SHARE-1 is converted
  * here by arithmetic (`daysFromCivil` / `civilFromDays`) rather than by
- * `physics/time.ts`, which `src/lib` may import for types only (D-132).
+ * `physics/time.ts`, which `src/lib` may import for types only (D-133).
  */
 
 /** The part of an `Observer` a link carries. The rest — label, source, zone — is derived on arrival. */
