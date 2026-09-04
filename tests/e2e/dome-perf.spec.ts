@@ -16,7 +16,7 @@
  * table in the PR, which is what R21 asks for.
  */
 import { readFileSync } from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 interface HaFixture {
   capturedAt: string;
@@ -100,17 +100,20 @@ async function openDome(page: Page): Promise<void> {
   await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
   await page.locator(`article[data-pass-id="25544-${String(pass.start.t)}"]`).getByRole('button', { name: /Open guide/ }).click();
-  // FR-DOME-7: the sheet opens on the dome, so there is nothing to toggle.
-  await expect(page.getByRole('dialog').locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+  // FR-DOME-7: the guide opens on the dome, so there is nothing to toggle.
+  await expect(guide(page).locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
 }
+
+/** R23 (D-72): the guide is a modal sheet on a phone and a column beside the list on a wide screen. */
+const guide = (page: Page): Locator => page.locator('[role="dialog"], [data-testid="guide-panel"]').first();
 
 /** One drag across the drawing, at `THROTTLE`× CPU, reported as rasterisations per second. */
 async function measure(page: Page): Promise<Sample & { cols: number }> {
-  const drawing = page.getByRole('dialog').locator('[data-drawing="dome"]');
+  const drawing = guide(page).locator('[data-drawing="dome"]');
   await drawing.scrollIntoViewIfNeeded();
   const box = await drawing.boundingBox();
   if (!box) throw new Error('dome has no box');
-  const cols = await page.getByRole('dialog').locator('[data-layer="lines"] pre.glyph-output').evaluate((el) => (el.textContent ?? '').split('\n')[0]?.length ?? 0);
+  const cols = await guide(page).locator('[data-layer="lines"] pre.glyph-output').evaluate((el) => (el.textContent ?? '').split('\n')[0]?.length ?? 0);
 
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: THROTTLE });

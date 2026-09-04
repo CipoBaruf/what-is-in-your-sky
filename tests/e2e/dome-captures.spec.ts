@@ -5,7 +5,7 @@
  * a drawn dome rather than a Suspense fallback or an empty box.
  */
 import { readFileSync } from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 interface HaFixture {
   capturedAt: string;
@@ -54,19 +54,30 @@ async function openSheet(page: Page, which: Which): Promise<void> {
     await list.locator(`article[data-pass-id="${highest.id}"]`).getByRole('button', { name: /Open guide/ }).click();
   }
 
-  const figure = page.getByRole('dialog').getByRole('figure');
-  // FR-DOME-7: no toggle needed — the sheet opens on the dome.
+  const figure = guide(page).getByRole('figure');
+  // FR-DOME-7: no toggle needed — the guide opens on the dome.
   await expect(figure).toHaveAttribute('data-view', 'dome');
   await expect(figure.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
   await expect(figure.locator('[data-layer="base"] pre.glyph-output')).toBeVisible();
-  await figure.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await showDome(page);
 }
 
+/** D-119: the wide guide column is its own scrollport, so the drawing is scrolled into view rather than the page. */
+async function showDome(page: Page): Promise<void> {
+  await guide(page).locator('[data-drawing="dome"]').scrollIntoViewIfNeeded();
+}
+
+/** R23 (D-72): the guide is a modal sheet on a phone and a column beside the list on a wide screen. */
+const guide = (page: Page): Locator => page.locator('[role="dialog"], [data-testid="guide-panel"]').first();
+
 async function setNight(page: Page): Promise<void> {
-  await page.getByRole('dialog').getByRole('group', { name: 'Theme' }).getByRole('button', { name: 'Night' }).click();
+  // D-99: the compact sheet carries its own switch, because it covers the header's. The wide shell has only the header's.
+  const inGuide = guide(page).getByRole('group', { name: 'Theme' });
+  const themes = (await inGuide.count()) > 0 ? inGuide : page.getByRole('banner').getByRole('group', { name: 'Theme' });
+  await themes.getByRole('button', { name: 'Night' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'night');
-  // The switch is at the top of the sheet, so bring the drawing back into frame before the capture.
-  await page.getByRole('dialog').getByRole('figure').evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  // Bring the drawing back into frame before the capture.
+  await showDome(page);
 }
 
 for (const width of [390, 1280] as const) {
