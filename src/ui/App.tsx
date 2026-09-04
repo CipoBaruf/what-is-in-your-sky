@@ -62,13 +62,13 @@ export function App() {
         </div>
       </header>
       <main inert={inert} className={styles.main}>
-        <div className={styles.column}>
+        <div className={styles.column} data-testid="col-left">
           <LocationInput observer={observer} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} />
           <ElementsBanners />
           <NowPanel />
         </div>
-        <div className={styles.column} data-guide={selected !== null ? 'open' : 'closed'}>
-          <div className={styles.listColumn}>
+        <div className={styles.column} data-testid="col-right" data-guide={selected !== null ? 'open' : 'closed'}>
+          <div className={styles.listColumn} data-testid="list-column">
             {/* The resolved pass, not the hash: the id in the hash can be a second out (D-33) and would highlight nothing. */}
             <PassList onOpenPass={open} selectedPassId={selected ? selected.id : null} />
           </div>
