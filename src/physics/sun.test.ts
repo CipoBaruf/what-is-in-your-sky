@@ -4,7 +4,7 @@ import { sunPos } from 'satellite.js';
 import { loadReferenceValues, referenceObserver } from '../../tests/support/reference';
 import { lookAnglesFrom, norm, scale, unit } from './frames';
 import { msToJulianDate } from './time';
-import { sunAltitudeDeg, sunVectorEqd } from './sun';
+import { sunAltitudeDeg, sunAt, sunVectorEqd } from './sun';
 
 const equator: Observer = { lat: 0, lon: 0, altM: 0, label: 'equator', source: 'coords', timeZone: null };
 const neuquen: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: 'Neuquen', source: 'coords', timeZone: 'UTC' };
@@ -123,8 +123,45 @@ describe('sun', () => {
     expect(sunAltitudeDeg(neuquen, Date.UTC(2026, 8, 2, 16, 0))).toBeGreaterThan(30);
   });
 
+  it('sunAt reports the same altitude as sunAltitudeDeg and an azimuth satellite.js agrees with within 0.02° (FR-DOME-6)', () => {
+    // Same independent path as the altitude comparison above: satellite.js's
+    // Vallado sun at 1 AU through our own frames. R22 draws the glow at this
+    // azimuth, so it gets a reference of its own rather than riding on the
+    // altitude's.
+    const AU_KM = 149_597_870.7;
+    for (const [obs, hms] of [
+      [neuquen, '22:12:07'],
+      [neuquen, '10:30:00'],
+      [greenwich, '18:46:33'],
+      [greenwich, '06:15:00'],
+      [equator, '12:01:30'],
+    ] as const) {
+      const t = Date.parse(`2026-09-02T${hms}Z`);
+      const sun = sunAt(obs, t);
+      expect(sun.altDeg).toBe(sunAltitudeDeg(obs, t));
+      expect(sun.azDeg).toBeGreaterThanOrEqual(0);
+      expect(sun.azDeg).toBeLessThan(360);
+      const viaSatelliteJs = lookAnglesFrom(obs, scale(unit(sunPos(msToJulianDate(t)).rsun), AU_KM), t).azDeg;
+      // Wrapped, because the two paths can straddle due north; 0.05° rather
+      // than the altitude's 0.02° because azimuth is the ill-conditioned
+      // coordinate near the zenith, and the equator-at-noon sample is 67° up.
+      const delta = Math.abs(((sun.azDeg - viaSatelliteJs + 540) % 360) - 180);
+      expect(delta, `${obs.label} ${hms}`).toBeLessThan(0.05);
+    }
+  });
+
+  it('sunAt puts the sun north at southern-hemisphere noon and south at northern-hemisphere noon', () => {
+    // Solar noon at lon −67.99 on 2026-09-02 is ≈ 16:32 UTC (equation of time ≈ 0 min).
+    // The azimuth wraps at due north, so the assertion is on the distance to it.
+    const fromNorth = (azDeg: number): number => Math.min(azDeg, 360 - azDeg);
+    expect(fromNorth(sunAt(neuquen, Date.UTC(2026, 8, 2, 16, 32)).azDeg)).toBeLessThan(1);
+    // Greenwich, same day: solar noon ≈ 12:00 UTC, and the sun is due south.
+    expect(sunAt(greenwich, Date.UTC(2026, 8, 2, 12, 0)).azDeg).toBeCloseTo(180, 0);
+  });
+
   it('reproduces the reference sun altitude and equator-of-date unit vector at capturedAt (reference-values.json)', () => {
     expect(sunAltitudeDeg(referenceObserver(ref), ref.t)).toBeCloseTo(ref.sunAltitudeDeg, 6);
+    expect(sunAt(referenceObserver(ref), ref.t).altDeg).toBeCloseTo(ref.sunAltitudeDeg, 6);
     const v = sunVectorEqd(ref.t);
     expect(v.x).toBeCloseTo(ref.sunUnitVectorEqd.x, 9);
     expect(v.y).toBeCloseTo(ref.sunUnitVectorEqd.y, 9);
