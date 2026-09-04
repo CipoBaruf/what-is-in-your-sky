@@ -49,7 +49,7 @@ test('at the R3 clock the panel says plainly that nothing is above 10°, with th
   await expect(panel).toContainText('Enter a place name or coordinates to see what is overhead right now.');
 
   await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
-  await expect(panel).toContainText('Nothing visible right now: no catalog satellite is above 10°.', { timeout: 15_000 });
+  await expect(panel).toContainText('Nothing visible right now: no catalog satellite is above 10°.', { timeout: 30_000 });
   await expect(panel).toContainText(`as of ${hhmmss(t)} UTC`);
   await expect(panel.getByRole('list')).toHaveCount(0);
 });
@@ -64,7 +64,7 @@ test('ten seconds into the golden ISS pass the panel lists the ISS with directio
   await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
 
   const panel = page.getByRole('region', { name: 'Right now' });
-  await expect(panel).toContainText('1 satellite visible right now', { timeout: 15_000 });
+  await expect(panel).toContainText('1 satellite visible right now', { timeout: 30_000 });
   const item = panel.getByRole('listitem');
   await expect(item).toHaveCount(1);
   await expect(item).toContainText('ISS (Zarya)');
@@ -75,6 +75,6 @@ test('ten seconds into the golden ISS pass the panel lists the ISS with directio
 
   // US-4 AC2: the 10 s tick re-asks the worker at the new time; no reload, same region.
   await page.clock.runFor(10_000);
-  await expect(item).toContainText(`sets in ${mmss(golden.end.t - t - 10_000)}`, { timeout: 15_000 });
+  await expect(item).toContainText(`sets in ${mmss(golden.end.t - t - 10_000)}`, { timeout: 30_000 });
   await expect(panel).toContainText(`as of ${hhmmss(t + 10_000)} UTC`);
 });

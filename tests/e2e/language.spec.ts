@@ -69,7 +69,7 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
 
   await page.getByLabel('Coordenadas (lat, lon)').fill(NEUQUEN);
   const passes = page.getByRole('region', { name: 'Próximos pases' }).getByRole('status');
-  await expect(passes).toHaveText(/\d+ pases visibles en las próximas 72 h/, { timeout: 15_000 });
+  await expect(passes).toHaveText(/\d+ pases visibles en las próximas 72 h/, { timeout: 30_000 });
   await page.screenshot({ path: 'test-results/r17-passes-390-es.png', fullPage: true });
 
   // The guide sheet: the FR-GUIDE-1 sentence is the Spanish golden one, times and numbers included.

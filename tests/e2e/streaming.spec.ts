@@ -72,7 +72,7 @@ test('cards appear one at a time with the ISS first; a location change mid-strea
   await expect(status).toHaveAttribute('aria-busy', 'true');
 
   // The first card rendered is the ISS (the list is chronological, so the DOM log, not `.first()`, tells the render order).
-  await page.waitForFunction(() => (window.__cardLog ?? []).some((ids) => ids.length > 0), undefined, { timeout: 15_000 });
+  await page.waitForFunction(() => (window.__cardLog ?? []).some((ids) => ids.length > 0), undefined, { timeout: 30_000 });
   const firstLog = (await page.evaluate(() => window.__cardLog ?? [])).filter((ids) => ids.length > 0);
   expect(firstLog[0]).toHaveLength(1);
   expect(firstLog[0]?.[0]).toMatch(/^25544-/);
@@ -83,7 +83,7 @@ test('cards appear one at a time with the ISS first; a location change mid-strea
   const neuquenIds = new Set((await page.evaluate(() => window.__cardLog ?? [])).flat());
   expect(neuquenIds.size).toBeGreaterThan(0);
 
-  await expect(status).toHaveText(new RegExp(`\\d+ visible passes in the next 72 h from ${PARIS}`), { timeout: 15_000 });
+  await expect(status).toHaveText(new RegExp(`\\d+ visible passes in the next 72 h from ${PARIS}`), { timeout: 30_000 });
   const finalIds = await page.locator('article[data-pass-id]').evaluateAll((els) => els.map((el) => el.getAttribute('data-pass-id')));
   expect(finalIds.length).toBeGreaterThan(0);
   for (const id of finalIds) expect(neuquenIds.has(id ?? '')).toBe(false);

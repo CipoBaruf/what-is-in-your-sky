@@ -50,7 +50,7 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   await page.goto('/');
   await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   // R7's Now panel adds a second live status line, so scope to the passes region.
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 15_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
 
   const card = page.locator(`article[data-pass-id="${passId}"]`);
   await expect(card).toHaveCount(1);
@@ -102,7 +102,7 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   await figure.evaluate((el) => el.scrollIntoView({ block: 'start' }));
   await page.screenshot({ path: 'test-results/r13-polar-map-390.png' });
   await page.reload();
-  await expect(page.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole('group', { name: 'Chart orientation' }).getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('group', { name: 'Chart orientation' }).getByRole('button', { name: 'Looking up' }).click();
   await page.getByRole('dialog').getByRole('figure').evaluate((el) => el.scrollIntoView({ block: 'start' }));

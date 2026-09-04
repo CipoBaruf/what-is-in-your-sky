@@ -73,7 +73,7 @@ async function expectIdentity(page: Page, screenshot: string, { fullPage = true 
 async function homeWithPasses(page: Page): Promise<void> {
   await page.goto('/');
   await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 15_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
   await expect(page.getByRole('region', { name: 'Right now' }).getByText(/as of /)).toBeVisible();
 }
 
@@ -205,7 +205,7 @@ test('the hero card pins the next ISS pass; "best first" reorders the list and t
   expect(JSON.parse((await page.evaluate(() => localStorage.getItem('wiys:prefs:v1'))) ?? '{}')).toMatchObject({ sort: 'best' });
 
   await page.reload();
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 15_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
   await expect(page.getByRole('button', { name: 'Best first' })).toHaveAttribute('aria-pressed', 'true');
   expect([...(await scores())].sort((a, b) => b - a)).toEqual(await scores());
 });

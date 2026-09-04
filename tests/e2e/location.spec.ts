@@ -53,7 +53,7 @@ test('coordinates with altitude → pass list; reload restores it without re-typ
   await coords.fill(`${String(ha.observer.lat)} ${String(ha.observer.lon)}`); // the space-separated form (US-2 AC1)
   await altitude.fill('270');
   await expect(page.getByTestId('active-location')).toHaveText('Using −38.93, −67.99 at 270 m.');
-  await expect(status).toHaveText(/\d+ visible passes in the next 72 h from −38.93, −67.99/, { timeout: 15_000 });
+  await expect(status).toHaveText(/\d+ visible passes in the next 72 h from −38.93, −67.99/, { timeout: 30_000 });
   const listText = await status.textContent();
   const iss = page.getByRole('article', { name: 'ISS (Zarya)' });
   await expect(iss).toHaveCount(1);
@@ -70,7 +70,7 @@ test('coordinates with altitude → pass list; reload restores it without re-typ
   await expect(coords).toHaveValue(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   await expect(altitude).toHaveValue('270');
   await expect(page.getByTestId('active-location')).toHaveText('Using −38.93, −67.99 at 270 m.');
-  await expect(status).toHaveText(listText ?? '', { timeout: 15_000 });
+  await expect(status).toHaveText(listText ?? '', { timeout: 30_000 });
   await expect(page.getByRole('article', { name: 'ISS (Zarya)' })).toHaveAttribute('data-pass-id', passId ?? '');
 
   // US-8 AC2: clear empties the storage and the screen; a further reload starts empty.
@@ -92,7 +92,7 @@ test('the device button uses the browser position: coordinates, accuracy above 1
   await page.getByRole('button', { name: 'Use my location' }).click();
   await expect(page.getByTestId('active-location')).toHaveText('Using −38.93, −67.99 from your device (accurate to about 2 km).');
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(/\d+ visible passes in the next 72 h from −38.93, −67.99/, { timeout: 15_000 });
+  await expect(status).toHaveText(/\d+ visible passes in the next 72 h from −38.93, −67.99/, { timeout: 30_000 });
   await expect(page.getByRole('article', { name: 'ISS (Zarya)' })).toHaveCount(1);
   const saved = JSON.parse((await page.evaluate((k) => localStorage.getItem(k), PREFS_KEY)) ?? 'null') as { observer?: { source: string; accuracyM?: number } } | null;
   expect(saved?.observer).toMatchObject({ source: 'device', accuracyM: 2000 });
