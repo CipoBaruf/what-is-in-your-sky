@@ -103,8 +103,12 @@ test('the dome is the default view, shares the polar frame, faces the rise point
   const pre = drawing.locator('[data-layer="lines"] pre.glyph-output');
   await expect(pre).toBeVisible();
   const raster = await pre.evaluate((el) => el.textContent ?? '');
-  expect(raster.split('\n')).toHaveLength(30);
-  expect(raster.split('\n')[0]).toHaveLength(60);
+  const rows = raster.split('\n');
+  // FR-DOME-1: the columns are the phone's 60 at this width (an integer rule, so exact everywhere), and the rows follow the
+  // box's height at cell aspect 2. The row count is therefore platform-dependent: where glyph advances round to whole pixels
+  // (Linux Chromium) the fitted cell is a little narrower, so a few more rows fit the same square box. 30 is the floor.
+  expect(rows[0]).toHaveLength(60);
+  expect(rows.length).toBeGreaterThanOrEqual(30);
   expect(raster.replace(/[\s⠀]/g, '').length).toBeGreaterThan(200);
   expect(await page.evaluate(() => document.querySelector('canvas'))).toBeNull();
   const box = await stage.boundingBox(); // the focusable stage fills the frame's square box; the drawing inside is sized by its raster
@@ -128,8 +132,11 @@ test('the dome is the default view, shares the polar frame, faces the rise point
   const basePre = drawing.locator('[data-layer="base"] pre.glyph-output');
   await expect(basePre).toBeVisible();
   const baseRaster = await basePre.evaluate((el) => el.textContent ?? '');
-  expect(baseRaster.split('\n')).toHaveLength(15);
-  expect(baseRaster.split('\n')[0]).toHaveLength(30);
+  const baseRows = baseRaster.split('\n');
+  // Half the line layer's grid in both directions (D-92). The rows are each layer's own `round(height / cellHeight)`, so they
+  // can land one apart from an exact half after rounding; the columns are integer arithmetic and are exact.
+  expect(baseRows[0]).toHaveLength(30);
+  expect(Math.abs(baseRows.length - rows.length / 2)).toBeLessThanOrEqual(1);
   expect(baseRaster.trim().length).toBeGreaterThan(0);
   expect(await drawing.locator('[data-layer="base"]').evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none');
   // Both layers fill the same box, which is what keeps them aligned as it changes size.
