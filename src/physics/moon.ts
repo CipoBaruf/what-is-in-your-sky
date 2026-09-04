@@ -72,13 +72,11 @@ export function angularSeparationDeg(a: { azDeg: number; elDeg: number }, b: { a
 /**
  * FR-MOON-2: the Moon washes out this pass when all three hold at the peak —
  * it is above the horizon, at least half lit, and closer to the peak than the
- * separation threshold. `separationDeg` is null only when there is no Moon
- * state to measure from, which is how `findPasses` reports a Moon below the
- * horizon (`Pass.moonAtPeak === null`); a `MoonState` passed in below the
- * horizon still gets its separation, because the angle is a fact either way.
+ * separation threshold. A Moon below the horizon still gets its separation
+ * measured, because the angle between two directions is a fact either way; it
+ * simply fails the altitude condition and so raises no glare (D-109).
  */
-export function moonGlare(moon: MoonState | null, peak: { azDeg: number; elDeg: number }, thresholds: MoonGlareThresholds): MoonGlare {
-  if (!moon) return { glare: false, separationDeg: null };
+export function moonGlare(moon: MoonState, peak: { azDeg: number; elDeg: number }, thresholds: MoonGlareThresholds): MoonGlare {
   const separationDeg = angularSeparationDeg(moon, peak);
   const glare = moon.elDeg > thresholds.minAltDeg && moon.illuminatedFraction >= thresholds.minIlluminatedFraction && separationDeg < thresholds.maxSeparationDeg;
   return { glare, separationDeg };

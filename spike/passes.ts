@@ -15,7 +15,10 @@ interface RefPoint {
 }
 
 /** The dome spike draws the arc, not the sky around it: neither fixture carries a Moon (R19, FR-MOON-2). */
-const NO_MOON = { moonAtPeak: null, moonGlare: { glare: false, separationDeg: null } } satisfies Pick<Pass, 'moonAtPeak' | 'moonGlare'>;
+const NO_MOON = {
+  moonAtPeak: { t: 0, phaseAngleDeg: 0, illuminatedFraction: 0, phase: 'new', azDeg: 0, elDeg: -30, eclipticLonDeg: 0 },
+  moonGlare: { glare: false, separationDeg: 120 },
+} satisfies Pick<Pass, 'moonAtPeak' | 'moonGlare'>;
 
 const golden = (reference as { firstGoldenPass: { start: RefPoint; peak: RefPoint; end: RefPoint; peakMagnitude: number; sunAltAtPeakDeg?: number; twilight: boolean }; t: number }).firstGoldenPass;
 const point = (p: RefPoint): PassPoint => ({ t: p.t, azDeg: p.azDeg, elDeg: p.elDeg, rangeKm: p.rangeKm ?? 1500 });

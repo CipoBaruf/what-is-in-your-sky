@@ -9,6 +9,7 @@ import { fixtureObserver, runOurPipeline, SPIKE_THRESHOLDS } from '../../tests/s
 import { loadReferenceValues, referenceObserver } from '../../tests/support/reference';
 import { loadOmmFixture } from '../../tests/setup/msw';
 import { CATALOG } from '../data/catalog';
+import { moonAt } from './moon';
 import type { NowItem, Observer } from '../model';
 import { DEFAULT_THRESHOLDS } from './constants';
 import { isHidden, LOOKAHEAD_STEP_MS, MAX_LOOKAHEAD_MS, nowItem, nowState, skyState, visibleUntil, type NowObject } from './now';
@@ -91,6 +92,24 @@ describe('nowState inside the R1 golden pass (visible)', () => {
     const end = visibleUntil(issObject(), observer, t, DEFAULT_THRESHOLDS);
     expect(end?.visibleUntil).toBe(golden.end.t);
     expect((golden.end.t - t) % LOOKAHEAD_STEP_MS).not.toBe(0); // the answer is not on the coarse grid
+  });
+});
+
+describe('the Moon in the Now state (R19 review, D-109)', () => {
+  it('is the Moon at the instant asked for, for the observer asked about (FR-MOON-3)', () => {
+    const state = nowState([issObject()], observer, ref.t, DEFAULT_THRESHOLDS);
+    expect(state.moon.t).toBe(ref.t);
+    expect(state.moon).toEqual(moonAt(ref.t, observer));
+  });
+
+  it('follows the observer: the same instant puts the Moon at a different altitude elsewhere', () => {
+    const antipode: Observer = { ...observer, lat: -observer.lat, lon: observer.lon + 180 };
+    const here = nowState([issObject()], observer, ref.t, DEFAULT_THRESHOLDS).moon;
+    const there = nowState([issObject()], antipode, ref.t, DEFAULT_THRESHOLDS).moon;
+    expect(there.elDeg).not.toBeCloseTo(here.elDeg, 1);
+    // Same instant, so the phase is a fact about the Sun and the Moon alone, not about the place.
+    expect(there.illuminatedFraction).toBeCloseTo(here.illuminatedFraction, 12);
+    expect(there.phase).toBe(here.phase);
   });
 });
 

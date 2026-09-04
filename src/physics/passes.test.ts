@@ -3,7 +3,8 @@ import type { Observer, OmmRecord, TimeWindow } from '../model';
 import { loadFixturePair } from '../../tests/support/fixtures';
 import { ISS_NORAD_ID, ISS_STD_MAG_SEED, SPIKE_THRESHOLDS } from '../../tests/support/heavensAbove';
 import { loadReferenceValues, referenceObserver } from '../../tests/support/reference';
-import { DEFAULT_THRESHOLDS, DENSE_STEP_MS } from './constants';
+import { DEFAULT_MOON_GLARE_THRESHOLDS, DEFAULT_THRESHOLDS, DENSE_STEP_MS } from './constants';
+import { angularSeparationDeg, moonGlare } from './moon';
 import { coarseSegments, findPasses, parabolicPeakTime, type PassObject } from './passes';
 import { ommToSatrec } from './sgp4';
 import { parseOmmEpoch } from './time';
@@ -108,6 +109,45 @@ describe('findPasses', () => {
     }
     const cut = findPasses(ommToSatrec(polar), observer, twoDays, { ...DEFAULT_THRESHOLDS, magLimit: -100 }, object);
     expect(cut).toEqual([]);
+  });
+});
+
+describe('the Moon on every pass (R19 review, D-109)', () => {
+  // Six days, not the two the other cases use: near this epoch the Moon is a waxing crescent
+  // losing about 13° of altitude a day at the morning pass, and it takes until day six for one
+  // peak to fall with the Moon below the horizon — the case US-18 AC1 turns on.
+  const sixDays: TimeWindow = { startMs: t0, endMs: t0 + 6 * 86_400_000 };
+  const passes = findPasses(ommToSatrec(polar), observer, sixDays, geometryOnly, object);
+
+  it('carries the Moon at the peak instant, up or down, on every pass', () => {
+    expect(passes.length).toBeGreaterThan(0);
+    for (const pass of passes) {
+      // The evaluation instant is the peak's, not the start's: `moonGlare` measures from the peak.
+      expect(pass.moonAtPeak.t).toBe(pass.peak.t);
+      expect(pass.moonAtPeak.illuminatedFraction).toBeGreaterThanOrEqual(0);
+      expect(pass.moonAtPeak.illuminatedFraction).toBeLessThanOrEqual(1);
+    }
+    // Both cases are present, and both carry a Moon: US-18 AC1 wants the phase either way.
+    expect(passes.some((pass) => pass.moonAtPeak.elDeg > 0)).toBe(true);
+    expect(passes.some((pass) => pass.moonAtPeak.elDeg <= 0)).toBe(true);
+  });
+
+  it('measures the separation from the peak of that pass, not from another point on it', () => {
+    for (const pass of passes) {
+      const fromPeak = angularSeparationDeg(pass.moonAtPeak, pass.peak);
+      expect(pass.moonGlare.separationDeg).toBeCloseTo(fromPeak, 9);
+    }
+    // The start of a pass is a different direction, so this is a real distinction.
+    const first = passes[0];
+    if (!first) throw new Error('no pass to check');
+    expect(Math.abs(angularSeparationDeg(first.moonAtPeak, first.start) - first.moonGlare.separationDeg)).toBeGreaterThan(1);
+  });
+
+  it('raises glare only where moonGlare does, so the altitude rule lives in exactly one place', () => {
+    for (const pass of passes) {
+      expect(pass.moonGlare).toEqual(moonGlare(pass.moonAtPeak, pass.peak, DEFAULT_MOON_GLARE_THRESHOLDS));
+      if (pass.moonGlare.glare) expect(pass.moonAtPeak.elDeg).toBeGreaterThan(DEFAULT_MOON_GLARE_THRESHOLDS.minAltDeg);
+    }
   });
 });
 

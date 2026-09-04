@@ -349,8 +349,15 @@ describe('moonGlare (FR-MOON-2)', () => {
     expect(moonGlare(bright(), peak, { ...thresholds, maxSeparationDeg: separationDeg + 0.001 }).glare).toBe(true);
   });
 
-  it('reports no separation at all when there is no Moon above the horizon', () => {
-    expect(moonGlare(null, peak, thresholds)).toEqual({ glare: false, separationDeg: null });
+  it('still measures the separation to a Moon below the horizon, and raises no glare (D-109)', () => {
+    // US-18 AC1 shows the phase whether or not the Moon is up, so a below-horizon Moon reaches
+    // `moonGlare` rather than a null. The angle between two directions is a fact either way; it is
+    // the altitude condition, and only that, which keeps the warning off.
+    const down = bright({ elDeg: -20, azDeg: peak.azDeg });
+    const glare = moonGlare(down, peak, thresholds);
+    expect(glare.glare).toBe(false);
+    expect(glare.separationDeg).toBeCloseTo(angularSeparationDeg(down, peak), 12);
+    expect(glare.separationDeg).toBeGreaterThan(0);
   });
 
   it('takes its thresholds as an argument, so OQ-12 can be answered without touching the rule', () => {

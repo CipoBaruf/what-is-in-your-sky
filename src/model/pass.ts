@@ -27,12 +27,15 @@ export interface Pass {
   track: PassPoint[]; // 10 s samples over [start, end] for the sky chart
   elementsEpochMs: EpochMs; // provenance
   /**
-   * v1, FR-MOON-2: the Moon at the pass peak, or null when it is below the
-   * horizon there. One evaluation per pass, not per sample — the Moon moves
-   * about 0.5° in the length of a pass, far below the 30° separation threshold
-   * (PLAN §6.3 step 8).
+   * v1, FR-MOON-1/2: the Moon at the pass peak, up or not. US-18 AC1 asks the
+   * card and the guide for its phase and illumination unconditionally — those
+   * are facts about the Moon, not about whether it is in the sky — while
+   * FR-MOON-2's glare warning is what the altitude decides, and `moonGlare`
+   * decides it. One evaluation per pass, not per sample: the Moon moves about
+   * 0.5° in the length of a pass, far below the 30° separation threshold
+   * (PLAN §6.3 step 8, D-109).
    */
-  moonAtPeak: MoonState | null;
+  moonAtPeak: MoonState;
   moonGlare: MoonGlare; // v1, FR-MOON-2
 }
 
