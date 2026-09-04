@@ -37,13 +37,13 @@ describe('<SkyDome>', () => {
     vi.unstubAllGlobals();
   });
 
-  it('faces the rise azimuth at tilt 25° by default, and the given facing when there is one', () => {
+  it('faces the rise azimuth at tilt 45° by default, and the given facing when there is one', () => {
     const { readout, facing, unmount } = mount();
-    expect(readout()).toBe('Facing NE (46°) · tilt 25°');
+    expect(readout()).toBe('Facing NE (46°) · tilt 45°');
     expect(facing()).toBe(46);
     unmount();
     const explicit = mount({ initialFacingAzDeg: 202.5 });
-    expect(explicit.readout()).toBe('Facing SSW (203°) · tilt 25°');
+    expect(explicit.readout()).toBe('Facing SSW (203°) · tilt 45°');
   });
 
   it('hides the drawing from assistive technology, draws no canvas, and the wrapper is a labelled focusable group described by the readout', async () => {
@@ -64,7 +64,7 @@ describe('<SkyDome>', () => {
     const { stage, readout, facing, tilt } = mount();
     fireEvent.keyDown(stage, { key: 'ArrowLeft' });
     expect(facing()).toBe(31);
-    expect(readout()).toBe('Facing NNE (31°) · tilt 25°');
+    expect(readout()).toBe('Facing NNE (31°) · tilt 45°');
     fireEvent.keyDown(stage, { key: 'ArrowRight' });
     fireEvent.keyDown(stage, { key: 'ArrowRight' });
     expect(facing()).toBe(61);
@@ -95,7 +95,7 @@ describe('<SkyDome>', () => {
       await new Promise((resolve) => setTimeout(resolve, 5));
     });
     expect(facing()).toBe(26);
-    expect(tilt()).toBe(17);
+    expect(tilt()).toBe(37);
     // A second pointer is ignored; the first one ends the drag.
     fireEvent.pointerMove(stage, { pointerId: 2, clientX: 0, clientY: 0 });
     fireEvent.pointerUp(stage, { pointerId: 1, clientX: 180, clientY: 132 });

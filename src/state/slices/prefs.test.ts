@@ -80,17 +80,18 @@ describe('prefs slice', () => {
   it('reads the saved chart view and orientation at creation, writes each through, and the other write-throughs keep them (R13, US-6 AC5, FR-GUIDE-4)', () => {
     const storage = memoryStorage();
     const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState();
-    expect(fresh.chartView).toBe('polar'); // D-68
+    expect(fresh.chartView).toBe('dome'); // FR-DOME-7, closing D-68
     expect(fresh.chartOrientation).toBe('looking-up');
-    storage.map.set(PREFS_KEY, JSON.stringify({ chartView: 'dome', chartOrientation: 'map' }));
+    // The saved view is the one the default is not, so this proves the read rather than agreeing with it by accident.
+    storage.map.set(PREFS_KEY, JSON.stringify({ chartView: 'polar', chartOrientation: 'map' }));
     const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
-    expect(store.getState().chartView).toBe('dome');
+    expect(store.getState().chartView).toBe('polar');
     expect(store.getState().chartOrientation).toBe('map');
     store.getState().setChartOrientation('looking-up');
     expect(store.getState().chartOrientation).toBe('looking-up');
-    expect(stored(storage)).toEqual({ chartView: 'dome', chartOrientation: 'looking-up' });
-    store.getState().setChartView('polar');
     expect(stored(storage)).toEqual({ chartView: 'polar', chartOrientation: 'looking-up' });
+    store.getState().setChartView('dome');
+    expect(stored(storage)).toEqual({ chartView: 'dome', chartOrientation: 'looking-up' });
     store.getState().setChartView('dome');
     expect(store.getState().chartView).toBe('dome');
     expect(stored(storage)).toEqual({ chartView: 'dome', chartOrientation: 'looking-up' });

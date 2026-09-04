@@ -39,14 +39,17 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     expect(within(dialog).getByTestId('guide-sentence').textContent).toBe(golden.en.asComputed);
     expect(within(dialog).getByRole('table')).toBeInTheDocument();
     expect(within(dialog).getByText('sky still bright', { selector: 'p span' })).toBeInTheDocument();
-    // R13: the chart is a figure captioned by the sentence; the drawing is hidden from AT (FR-GUIDE-7) and is SVG, not canvas (FR-GUIDE-5).
-    // R15: the polar view is the default (D-68) and the dome is one toggle away; the contract test covers the dome itself.
+    // R13: the chart is a figure captioned by the sentence; the drawing is hidden from AT (FR-GUIDE-7) and is DOM, never canvas (FR-GUIDE-5).
+    // R21 (FR-DOME-7): the dome is the default again and the polar view is one toggle away; the contract test covers both views themselves.
     const figure = within(dialog).getByRole('figure');
     expect(figure).toContainElement(within(dialog).getByTestId('guide-sentence'));
-    expect(figure).toHaveAttribute('data-view', 'polar');
-    expect(figure.querySelector('svg[data-drawing]')).toHaveAttribute('aria-hidden', 'true');
+    expect(figure).toHaveAttribute('data-view', 'dome');
+    // PLAN §11: the dome is the chart chunk, behind `React.lazy`, so the drawing arrives a tick after the sheet.
+    await within(figure).findByRole('group', { name: 'Sky dome' });
+    expect(figure.querySelector('[data-drawing="dome"]')).toHaveAttribute('aria-hidden', 'true');
     expect(dialog.querySelector('canvas')).toBeNull();
-    expect(within(figure).getByRole('group', { name: 'Chart orientation' })).toBeInTheDocument();
+    // The orientation toggle is the polar view's (FR-GUIDE-4); the dome is turned by dragging it instead.
+    expect(within(figure).queryByRole('group', { name: 'Chart orientation' })).toBeNull();
     expect(within(figure).getByRole('group', { name: 'Chart view' })).toBeInTheDocument();
     expect(await axe(document.body)).toHaveNoViolations();
   });

@@ -68,17 +68,15 @@
   display: contents;
 }
 
+/* FR-DOME-1 (R21): no frame. The drawing fills its box, so the border R15
+   drew around it is gone and the box itself is the edge. */
 .stage {
-  --dome-cell-w: 6.5px;
-  --dome-cell-h: 13px;
-  --dome-font-size: calc(6.5px / 0.6);
-  --dome-word-spacing: 0px;
+  position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
   touch-action: none;
   cursor: grab;
-  border: 1px solid var(--rule);
   box-sizing: border-box;
   background: var(--bg);
 }
@@ -87,12 +85,34 @@
   cursor: grabbing;
 }
 
-/* The raster is centred in the box: where the platform rounds glyph advances to whole pixels the fitted row is a little narrower than the box. */
-.stage > [data-drawing] {
+/* D-74: the two scenes stack in one box. The base is behind and takes no
+   pointer — every hotspot lives on the line layer — so a drag started
+   anywhere on the drawing reaches the stage. */
+.layers {
+  position: relative;
   height: 100%;
+}
+
+.layer {
+  --dome-cell-w: 6.5px;
+  --dome-cell-h: 13px;
+  --dome-font-size: calc(6.5px / 0.6);
+  --dome-word-spacing: 0px;
+  position: absolute;
+  inset: 0;
+  /* The raster is centred in the box: where the platform rounds glyph advances to whole pixels the fitted row is a little narrower than the box. */
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.layer[data-layer='base'] {
+  pointer-events: none;
+}
+
+/* D-75: the probe carries no marks of its own; it exists so `getComputedStyle` can resolve the `--chart-*` tokens in force here. */
+.probe {
+  position: absolute;
 }
 
 .stage :global(.glyph-host) {
@@ -145,6 +165,14 @@
 
 .compass {
   font-weight: 700;
+}
+
+/* FR-DOME-4: the horizon ticks' degree numbers and the 30°/60° ring labels.
+   They name a fixed angle, so they never move (FR-DOME-3 gives way to them)
+   and they are set smaller than the names they make way for. */
+.degree {
+  font-size: 9px;
+  opacity: 0.8;
 }
 
 /* The rise label is raised one line so it clears the peak label and the arrow of a short, low pass. */
