@@ -93,7 +93,7 @@ describe('bad values', () => {
   it('names each one against its task and leaves the field null', () => {
     expect(bad.tasks[0]).toMatchObject({ lane: null, model: null, gate: null });
     expect(bad.problems).toEqual([
-      'R30: `Lane: everything` is not one of ui, chart, data, physics.',
+      'R30: `Lane: everything` is not one of ui, chart, data, physics, live.',
       'R30: `Model: haiku` is not one of opus, fable.',
       'R30: `Gate: maybe` is not one of auto, owner.',
       'R30: appears twice in TASKS.md.',

@@ -328,15 +328,17 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
 ### Conventions for this phase
 
 - Every task carries **Lane**, **Model**, **Gate** and **Depends on** as sub-bullets, in the shape PLAN §16.3 fixes and `scripts/sdd/tasks.ts` parses. A task with no `Lane:` or no `Gate:` is a breakdown bug and the driver refuses to run it.
-- **[P]** is gone: lanes and waves say what runs beside what. The driver runs at most one task per lane and at most two at once, from the graph, never from the printed wave list.
+- **[P]** is gone: lanes and waves say what runs beside what. The driver runs at most one task per lane and at most three at once, concurrently, from the graph, never from the printed wave list (PLAN §16.2, D-132).
 - **Lane** is the set of directories one task at a time may touch (PLAN §16.1):
-  - `ui` — `src/ui/**` except `guide/skychart/**`, `src/i18n/**`, `src/lib/{layout,shortcuts,shareLinks,moonPhrases,readiness}.ts`, `src/ui/styles/**`
+  - `ui` — `src/ui/**` except `guide/skychart/**`, `screens/Live*` and `components/live/**`; `src/i18n/**`, `src/lib/{layout,shortcuts,shareLinks,moonPhrases,readiness}.ts`, `src/ui/styles/**`
+  - `live` — `src/ui/screens/Live*`, `src/ui/components/live/**`, `src/lib/{timeStripe,playback}.ts` (D-132: cut from `ui` so the live page runs beside the rest of it; its message keys are one `live` section in each catalog, placed after `chart`)
   - `chart` — `src/ui/components/guide/skychart/**`, `src/lib/skyGeometry.ts`, `src/lib/skyBodies.ts`, `spike/**`
   - `data` — `src/data/**`, `src/state/**`, `vite.config.ts`, `public/**`
   - `physics` — `src/physics/**`, `src/worker/**`, `src/model/**`
 - **Touches outside the lane** names every file a task edits that its lane does not own, so two tasks in one wave can be checked for a collision. `package.json`, `README.md`, `TASKS.md`, `PLAN.md`, `docs/**` and `tests/e2e/**` are shared by everything, additively, and are resolved by the rebase the driver does before it opens the PR.
 - **Gate:** `owner` wherever acceptance includes captures to compare, Spanish copy to read or a composition to choose; `auto` where tests carry the whole acceptance.
 - Every UI task ships captures through the `visual-review` skill: 390 px always, 1280 px from R23 on, both languages from R17 on, both themes from R20 on.
+- Decision numbers for every open task are reserved in one PLAN entry after D-132 (R31 D-133..137, R26 138..142, R27 143..147, R22 148..152, R28 153..157, R32 158..162, R35 163..167, R33 168..172, R34 173..177, R36 178..182); a session numbers only inside its block.
 - **Model** is `opus` by default and `fable` on the four open dome and live-page tasks — R22, R32, R33, R34 (PLAN §16.6, D-131, 2026-09-04). D-88 had put every task on Opus after the account's Fable limit stopped R16 mid-run; with Fable now the account's default the §16.6 criterion applies again, and a run stopped by a model limit is rerun with `--task <id> --model opus` (that run only, never a wave).
 
 - [x] **R16 — Dome composition spike: every knob as a URL parameter, captures and drag rates**
@@ -587,13 +589,14 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - Captures in both languages.
 
 - [ ] **R32 — The live page: full-screen dome, status strip and URL state**
-  - **Lane:** ui
+  - **Lane:** live
   - **Model:** fable
   - **Gate:** owner
   - **Depends on:** R17, R22, R31
   - **Goal:** A page that shows the whole sky now, with everything that is up drawn on it.
   - **Satisfies:** FR-LIVE-1, FR-LIVE-2, FR-LIVE-3, FR-LIVE-9, FR-LIVE-10; US-15 AC1, AC2, AC9.
   - **Scope:** `screens/Live.tsx` at `#live`, reachable from the header and the Now panel, `Esc` returns; inert with one line and the return control when there is no observer or no elements (FR-LIVE-1). The chart is the existing `SkyChartProps` with `now = t` and the passes whose interval overlaps `now … now + 24 h`, coloured per satellite from a palette of at least six distinguishable hues per theme, assigned in pass order; nothing on the page draws satellites by any other path (FR-LIVE-10). `StatusStrip.tsx` shows `t` in the observer's zone with its abbreviation, the sky state in words, cloud cover at `t` or "unknown", the count visible at `t`, and the Moon's phase and illumination. `lib/shareLinks.ts` gains `#live?lat=&lon=&alt=&t=` in both directions (FR-LIVE-9). The route is its own lazy chunk with its own budget.
+  - **Touches outside the lane:** `src/ui/App.tsx` (the `#live` route), the header and the Now panel (the link to the page), `src/lib/shareLinks.ts` (the `#live` form, beside R31's `#pass`), `src/i18n/{en,es}.ts` (a new `live` section, placed after `chart`), `scripts/bundle-budget.ts` (the live chunk's budget).
   - **Done when:**
     - e2e: `#live` fills the viewport with the dome, the strip shows its five fields, and the count matches the Now panel at the same instant.
     - A `#live?…` URL sets the observer (label from the rounded coordinates, source `coords`) and the instant; a bad `t` falls back to real time.
@@ -602,13 +605,14 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - Captures at 390 px and 1280 px in both themes.
 
 - [ ] **R33 — The time stripe, playback and hidden objects**
-  - **Lane:** ui
+  - **Lane:** live
   - **Model:** fable
   - **Gate:** owner
   - **Depends on:** R18, R32
   - **Goal:** Run the coming 24 h forward and see what is up at any instant in it.
   - **Satisfies:** FR-LIVE-4, FR-LIVE-5, FR-LIVE-6; US-15 AC3, AC4, AC6.
   - **Scope:** `TimeStripe.tsx` in SVG (D-82): `now` at the left edge and `now + 24 h` at the right, hour ticks, night shading from the three sky states, a segment per pass in its arc's colour, a cursor with its clock time; drag, click and arrow keys (1 min, 10 min with Shift) set `t`, clamped to the span. `PlaybackControls.tsx`: play and pause at 1×, 60×, 600× and 3600×, a `now` action returning to real time and the 10 s tick, stopping at the end of the span; the loop is `requestAnimationFrame` advancing `t` by wall delta × speed (D-81). Hidden objects are off by default and remembered; on, they come from `computeNow { includeHidden: true }` throttled to one request per 250 ms of wall time, with a stale response dropped if `t` moved past it, drawn dimmed with the reason.
+  - **Touches outside the lane:** `src/i18n/{en,es}.ts` (keys inside the `live` section only).
   - **Done when:**
     - Stripe geometry unit tests (tick positions, the night bands, a pass segment, the cursor) and scrubbing tests for the pointer and both key steps.
     - A playback test proves a dropped frame loses no simulated time.
@@ -618,13 +622,14 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - Captures in both themes.
 
 - [ ] **R34 — Landscape, wake lock and compass follow**
-  - **Lane:** ui
+  - **Lane:** live
   - **Model:** fable
   - **Gate:** owner
   - **Depends on:** R33
   - **Goal:** The live page is usable held up outdoors: it stays awake, works sideways, and turns with the phone.
   - **Satisfies:** FR-LIVE-7, FR-LIVE-8; US-10, US-15 AC7, AC8.
   - **Scope:** the landscape layout by media query — dome on the left, strip and stripe on the right — with portrait stacking unchanged; the Screen Wake Lock requested while the page is visible and released on hidden through `visibilitychange`, rendering nothing where the API is absent. `FollowPhone.tsx` requests `DeviceOrientationEvent` permission inside the click handler (iOS, HTTPS), maps `absolute` events or `webkitCompassHeading` to the dome's facing, shows a note on relative-only devices, turns itself off on the first drag, and is hidden entirely where the API does not exist.
+  - **Touches outside the lane:** `src/i18n/{en,es}.ts` (keys inside the `live` section only), `src/ui/styles/**` only if the landscape layout needs a token that does not exist.
   - **Done when:**
     - e2e in a landscape phone viewport shows the two-pane layout, and portrait is unchanged.
     - Tests with the wake lock and orientation APIs stubbed: requested on visible, released on hidden, heading turns the dome, a drag turns following off, the control turns it back on.
@@ -662,20 +667,17 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
 
 ### Expected waves
 
-Computed from the graph, ignoring the driver's concurrency caps (at most one task per lane, at most two at once), so a wave here may take more than one run of `npm run sdd -- --wave`. The driver recomputes this from `origin/main`; the list is a reading aid.
+Computed from the graph with the driver's caps (at most one task per lane, at most three at once, run concurrently — PLAN §16.2, D-132). The driver recomputes this from `origin/main`; the list is a reading aid. Waves 1–3 of the original cut are merged (R16–R21, R23–R25, R29, R30); what follows is the rest of the phase as of 2026-09-04.
 
-| Wave | Tasks | Lanes |
-|---|---|---|
-| 1 | R16, R17, R18, R19, R29 | chart, ui, physics, physics, data |
-| 2 | R20, R23, R24, R30, R31 | ui ×4, data |
-| 3 | R21, R25, R26, R27 | chart, data ×2, ui |
-| 4 | R22, R28 | chart, ui |
-| 5 | R32 | ui |
-| 6 | R33, R35 | ui ×2 |
-| 7 | R34 | ui |
-| 8 | R36 | ui |
+| Wave | Tasks | Lanes | Models |
+|---|---|---|---|
+| 4 | R31, R26, R22 | ui, data, chart | opus, opus, fable |
+| 5 | R27, R32 | ui, live | opus, fable |
+| 6 | R28, R33 | ui, live | opus, fable |
+| 7 | R35, R34 | ui, live | opus, fable |
+| 8 | R36 | ui | opus |
 
-No two tasks in one wave name the same file outside their lanes: `src/main.tsx` is R17 (wave 1), R20 (wave 2) and R25 (wave 3); `src/model/prefs.ts` is R17 and R20; `src/model/offline.ts` is R24 (wave 2) and R26 (wave 3); `public/_headers` is R21's alone. The `ui` lane is the long pole — eleven tasks that can only run one at a time — which is what sets the phase's length, not the two-at-once cap.
+No two tasks in one wave name the same file outside their lanes: `src/lib/shareLinks.ts` is R31 (wave 4) and R32 (wave 5); `src/ui/App.tsx` is R32 (wave 5) and R35 (wave 7); the message catalogs get their `live` section from R32 and are extended inside it by R33 and R34, each a wave apart from the `ui` task beside it. Before D-132 the `ui` lane held eight of these ten tasks and was the long pole — eight waves run one task at a time; the `live` lane and the concurrent wave make it five waves of overlapping runs.
 
 ### Requirement coverage (v1)
 

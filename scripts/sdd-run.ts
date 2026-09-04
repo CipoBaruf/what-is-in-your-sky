@@ -6,7 +6,7 @@
  *
  *   npm run sdd -- --status          # merged / ready / blocked / failed
  *   npm run sdd -- --dry-run         # print exactly what would run, and stop
- *   npm run sdd -- --wave            # run the current wave (<= 1 per lane, <= 2 at once)
+ *   npm run sdd -- --wave            # run the current wave (<= 1 per lane, <= 3 at once, concurrently)
  *   npm run sdd -- --task R17        # run one task, dependencies checked
  *   npm run sdd -- --task R22 --model opus   # the same, on another model than TASKS.md says
  *
@@ -30,6 +30,21 @@ const NPM_CACHE = resolve('.sdd-cache/npm');
 const OWNER_LABEL = 'needs-owner';
 const IMPLEMENT = { maxTurns: 250, timeoutMs: 45 * 60_000 };
 const REVIEW = { maxTurns: 40, timeoutMs: 15 * 60_000, model: 'opus' };
+/** D-132: each concurrent task gets its own `vite preview` port, so no session's e2e runs against another's build. `E2E_PORT` in the driver's own environment moves the base, for a `--task` run beside a wave. */
+const E2E_BASE_PORT = Number(process.env['E2E_PORT'] ?? 4173);
+
+/**
+ * D-132: the tasks of a wave run at the same time, but `git worktree add` and
+ * `git worktree remove` write to the shared `.git`, so they are queued here
+ * and happen one after another. Everything else a task does is in its own
+ * worktree, its own PR, or on the network.
+ */
+let sharedGit: Promise<unknown> = Promise.resolve();
+function withSharedGit<T>(work: () => Promise<T>): Promise<T> {
+  const next = sharedGit.then(work, work);
+  sharedGit = next.catch(() => undefined);
+  return next;
+}
 
 /** Everything the wave logic needs, read from the remote. */
 async function readFacts(options: Options, logger: Logger): Promise<{ statuses: TaskStatus[]; problems: readonly string[] }> {
@@ -121,10 +136,11 @@ function prBody(task: Task, handoff: Handoff, screenshots: readonly string[], lo
   return lines.join('\n');
 }
 
-/** §16.4 steps 1–8 for one task. */
-async function runTask(status: TaskStatus): Promise<TaskReport> {
+/** §16.4 steps 1–8 for one task. `slot` is its place in the wave: the e2e port and, when the wave has more than one task, the console prefix. */
+async function runTask(status: TaskStatus, slot: { index: number; count: number }): Promise<TaskReport> {
   const { task } = status;
-  const logger = openTaskLog(task.id);
+  const logger = openTaskLog(task.id, undefined, undefined, { prefixConsole: slot.count > 1 });
+  const env = { npm_config_cache: NPM_CACHE, E2E_PORT: String(E2E_BASE_PORT + slot.index) };
   const startedAt = Date.now();
   const dir = join(WORKTREE_ROOT, task.id);
   const report: TaskReport = {
@@ -155,7 +171,7 @@ async function runTask(status: TaskStatus): Promise<TaskReport> {
   logger.line(`  lane ${String(task.lane)}, model ${modelFor(task)}, gate ${String(task.gate)}, branch ${task.branch}`);
 
   try {
-    await addWorktree(dir, task.branch, BASE, logger);
+    await withSharedGit(() => addWorktree(dir, task.branch, BASE, logger));
     await installDeps(dir, NPM_CACHE, logger);
   } catch (error) {
     return finish('failed', `worktree setup: ${error instanceof Error ? error.message : String(error)}`);
@@ -170,7 +186,7 @@ async function runTask(status: TaskStatus): Promise<TaskReport> {
     timeoutMs: IMPLEMENT.timeoutMs,
     allowedTools: IMPLEMENT_TOOLS,
     logger,
-    env: { npm_config_cache: NPM_CACHE },
+    env,
   });
   report.durations.implementMs = session.durationMs;
 
@@ -206,6 +222,7 @@ async function runTask(status: TaskStatus): Promise<TaskReport> {
     timeoutMs: REVIEW.timeoutMs,
     allowedTools: REVIEW_TOOLS,
     logger,
+    env,
   });
   report.durations.reviewMs = review.durationMs;
   const findings = readHandoff(dir, task.id).findings;
@@ -225,7 +242,7 @@ async function runTask(status: TaskStatus): Promise<TaskReport> {
     return finish('awaiting-owner', `CI green, review clean, \`Gate: owner\` — PR #${String(pr)} labelled \`${OWNER_LABEL}\``);
   }
   if (!(await mergePullRequest(dir, pr, logger))) return finish('failed', 'squash merge failed');
-  await removeWorktree(dir, logger);
+  await withSharedGit(() => removeWorktree(dir, logger));
   return finish('merged', `PR #${String(pr)} squash-merged`);
 }
 
@@ -273,7 +290,9 @@ async function main(): Promise<number> {
   printPlanned(planned, skipped, consoleLogger);
   const startedAt = new Date();
   const reports: TaskReport[] = [];
-  for (const status of planned) reports.push(await runTask(status));
+  // D-132: the wave runs concurrently; each task has its own worktree, log, port and PR.
+  if (planned.length > 1) consoleLogger.line(`\nRunning ${String(planned.length)} at once; console lines are prefixed with the task id, the full transcripts are the per-task logs.`);
+  reports.push(...(await Promise.all(planned.map((status, index) => runTask(status, { index, count: planned.length })))));
   const run: RunReport = { startedAt: startedAt.toISOString(), finishedAt: new Date().toISOString(), mode: options.mode, tasks: reports };
   consoleLogger.line(`\nRun summary: ${writeRunReport(run)}`);
   for (const report of reports) consoleLogger.line(`  ${report.id.padEnd(4)} ${report.outcome.padEnd(15)} ${report.reason}`);

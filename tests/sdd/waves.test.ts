@@ -35,10 +35,16 @@ describe('status', () => {
 });
 
 describe('the wave', () => {
-  it('runs at most one per lane and at most two at once, in file order', () => {
+  it('runs at most one per lane and at most three at once, in file order', () => {
     const { wave, skipped } = selectWave(facts());
+    expect(ids(wave)).toEqual(['R17', 'R18', 'R20']);
+    expect(wave.map((status) => status.task.lane)).toEqual(['chart', 'ui', 'data']);
+    expect(skipped.find((entry) => entry.task.id === 'R19')?.reason).toBe('lane `chart` is busy');
+  });
+
+  it('fills the wave to the cap and says so for the rest', () => {
+    const { wave, skipped } = selectWave(facts(), { maxPerLane: 1, maxTasks: 2 });
     expect(ids(wave)).toEqual(['R17', 'R18']);
-    expect(wave.map((status) => status.task.lane)).toEqual(['chart', 'ui']);
     expect(skipped.find((entry) => entry.task.id === 'R19')?.reason).toBe('wave is full (2 at once)');
   });
 
