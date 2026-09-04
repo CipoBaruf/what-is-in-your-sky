@@ -108,6 +108,26 @@ export const MAX_CELL_WIDTH_PX = 12;
 export const BASE_COLS_RATIO = 0.5;
 export const MIN_BASE_COLS = 8;
 
+/**
+ * The base layer's shading (D-92, from the R16 spike): the `blocks` ramp
+ * reads as a wash where the default ramp scatters dashes and reads as noise,
+ * and the two light intensities are the ones the spike's captures were
+ * picked from.
+ */
+export const BASE_GLYPH_PALETTE = 'blocks';
+export const AMBIENT_INTENSITY = 0.35;
+export const KEY_INTENSITY = 0.85;
+
+/**
+ * D-93: FR-DOME-6 puts the real Sun on the chart, and that is R22's task —
+ * it owns the prop that carries it. Until then the base layer's key light
+ * points along a fixed civil-twilight direction, so the bowl is shaded from
+ * one side rather than lit flat, and R22 replaces this with the Sun the
+ * worker reports. The altitude is inside the −18°..0° band of FR-DOME-6, so
+ * the same number drives a glow once there is a Sun to draw.
+ */
+export const DEFAULT_SUN = { azDeg: 270, altDeg: -8 } as const;
+
 /** FR-DOME-1: how many columns a host of this width gets, between the phone's 60 and the D-91 cap. */
 export function colsFor(hostWidthPx: number | null): number {
   if (hostWidthPx === null || !Number.isFinite(hostWidthPx) || hostWidthPx <= 0) return GRID_COLS;
