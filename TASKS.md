@@ -484,7 +484,8 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - The lore line never appears inside the facts, and the tradition label is present in both languages.
     - Captures in both languages and both themes.
 
-- [ ] **R31 — Share a pass**
+- [x] **R31 — Share a pass**
+  - **Done 2026-09-04:** as specified, with five decisions. `lib/shareLinks.ts` owns all three hashes — `#pass=<id>`, `#pass?…` and `#live?…` — and converts the ISO-8601 instant by arithmetic, because `src/lib` may not touch `Date` (D-15) and a runtime exception to §3 would have cost a cross-lane edit to `physics/time.ts` (D-133). `coordsLabel` and `observerFromCoords` moved to `lib/place.ts` so `src/state` can build the link's observer without importing `src/ui` (D-134), and `startApp` sets it before the effects are wired, so the recipient's chain runs once for the place the link names; it is saved like any other observer (D-135). `ShareButton.tsx` takes `url`, `title` and `text` and nothing about passes, so R32's live share reuses it; a dismissed share sheet says nothing, a refused clipboard shows the link to copy by hand (D-136). FR-SHARE-3 is a banner above the list in both branches, naming the object from the catalog when no pass carries the name, and held back until the recompute is done (D-137). The e2e shares the golden Neuquén pass and opens the link in a fresh browser context: same pass, same sentence, observer from the hash, and every same-origin request is a static file of the build. Captures: `docs/screenshots/r31-share-{390,1280}-{en,es}.png` and `r31-received-390-en.png`.
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner

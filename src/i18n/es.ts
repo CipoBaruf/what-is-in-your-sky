@@ -270,6 +270,15 @@ export const es: Messages = {
     readout: (p) => `Hacia ${p.point} (${p.azimuth}) · inclinación ${p.tilt}`,
   },
 
+  share: {
+    pass: 'Compartir este paso',
+    title: (p) => `${p.name} en tu cielo`,
+    copied: 'Enlace copiado',
+    copyFailed: 'No se pudo copiar el enlace. Acá está:',
+    nearest: (p) => `El paso de ${p.name} para el que se hizo este enlace (${p.time}) ya no está en la ventana. Este es el paso de ${p.name} más cercano.`,
+    missing: (p) => `El paso de ${p.name} para el que se hizo este enlace (${p.time}) ya no está en la ventana, y no hay ningún otro paso de ${p.name} en ella.`,
+  },
+
   weather: {
     state: cloudState,
     badge: (p) => (p.percent === null ? cloudState[p.state] : `${cloudState[p.state]}, ${p.percent} % de nubes`),

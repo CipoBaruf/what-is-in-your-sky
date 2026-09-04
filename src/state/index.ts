@@ -3,6 +3,7 @@ import { loadElements } from '../data/elementsLoader';
 import { appPassesCache } from '../data/passesCache';
 import { loadCloudForecast } from '../data/weatherCache';
 import { searchPlaces } from '../data/openMeteo/geocode';
+import { observerFromLink, parseHash } from '../lib/shareLinks';
 import { documentVisibility, startEffects } from './effects';
 import { appStore } from './store';
 import { createAppWorker, createWorkerClient } from './workerClient';
@@ -55,7 +56,16 @@ export function isFeatured(noradId: number): boolean {
 export function startApp(): () => void {
   const client = createWorkerClient(createAppWorker());
   const cache = appPassesCache();
-  appStore.getState().restoreSavedObserver();
+  // R31 (FR-SHARE-1, FR-LIVE-9): a link carries its own observer, and it wins
+  // over the saved one — someone who opens it asked to look from there. It is
+  // set here, before the effects are wired, for the reason R24 moved the
+  // restore here: the chain then runs once, for the right place, instead of
+  // computing the saved location's passes and throwing them away a tick later
+  // (D-135). It goes through `setObserver` like any other, so it is saved like
+  // any other: the recipient's next visit opens where the link left them.
+  const link = parseHash(window.location.hash);
+  if (link !== null && link.kind !== 'passId') appStore.getState().setObserver(observerFromLink(link));
+  else appStore.getState().restoreSavedObserver();
   const stop = startEffects({
     store: appStore,
     client,

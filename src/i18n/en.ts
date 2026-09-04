@@ -307,6 +307,26 @@ export const en = {
     readout: (p: { point: CompassPoint; azimuth: string; tilt: string }) => `Facing ${p.point} (${p.azimuth}) · tilt ${p.tilt}`,
   },
 
+  /**
+   * R31 (US-12, FR-SHARE-1..3). The link itself is the whole payload — there
+   * is no server to word anything for us — so these are the only strings a
+   * recipient ever sees about sharing: what the action does, what the share
+   * sheet is titled, that the link is on the clipboard, and what happened when
+   * the pass someone was sent is no longer in the window.
+   */
+  share: {
+    pass: 'Share this pass',
+    /** The share sheet's title (FR-SHARE-2); the text beside it is the guide sentence. */
+    title: (p: { name: string }) => `${p.name} in your sky`,
+    copied: 'Link copied',
+    /** The clipboard can be refused; the link is still shown so it can be copied by hand. */
+    copyFailed: 'The link could not be copied. Here it is:',
+    /** FR-SHARE-3, first branch: names the satellite and the time the link was made for. */
+    nearest: (p: { name: string; time: string }) => `The ${p.name} pass this link was made for (${p.time}) is no longer in the window. This is the nearest ${p.name} pass instead.`,
+    /** FR-SHARE-3, second branch: same naming, and nothing to show. */
+    missing: (p: { name: string; time: string }) => `The ${p.name} pass this link was made for (${p.time}) is no longer in the window, and no other ${p.name} pass is in it either.`,
+  },
+
   weather: {
     state: cloudState,
     badge: (p: { state: CloudState; percent: string | null }) => (p.percent === null ? cloudState[p.state] : `${cloudState[p.state]}, ${p.percent} % cloud`),

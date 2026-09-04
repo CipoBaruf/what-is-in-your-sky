@@ -19,3 +19,20 @@ export function placeRegion(place: Place): string {
 export function observerFromPlace(place: Place): Observer {
   return { lat: place.lat, lon: place.lon, altM: place.elevationM, label: placeLabel(place), source: 'geocode', timeZone: place.timeZone };
 }
+
+/**
+ * Rounded, with a real minus sign: "−38.93, −67.99" (PLAN §5, FR-LOC-4 MVP
+ * behaviour). R31 moved this and `observerFromCoords` down from
+ * `ui/components/location/CoordsInput.tsx`: a shared link also arrives as bare
+ * coordinates (FR-SHARE-1, FR-LIVE-9) and is turned into an observer by
+ * `lib/shareLinks.ts`, which `src/state` calls before the first render — and
+ * `src/state` may not import `src/ui` (PLAN §3).
+ */
+export function coordsLabel(lat: number, lon: number): string {
+  const f = (n: number): string => n.toFixed(2).replace('-', '−');
+  return `${f(lat)}, ${f(lon)}`;
+}
+
+export function observerFromCoords(lat: number, lon: number, altM = 0): Observer {
+  return { lat, lon, altM, label: coordsLabel(lat, lon), source: 'coords', timeZone: null };
+}

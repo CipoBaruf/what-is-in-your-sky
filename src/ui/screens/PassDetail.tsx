@@ -1,9 +1,12 @@
 import { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocale, useT } from '../../i18n/useT';
+import { guideParams } from '../../lib/phrases';
+import { passLinkFor, shareUrl } from '../../lib/shareLinks';
 import { formatDate } from '../../lib/timeFormat';
 import type { Observer, Pass } from '../../model';
 import { Countdown } from '../components/common/Countdown';
+import { ShareButton } from '../components/common/ShareButton';
 import { LanguageToggle } from '../components/common/LanguageToggle';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { GuidePanel } from '../components/guide/GuidePanel';
@@ -44,6 +47,13 @@ import styles from './PassDetail.module.css';
  * R30 (FR-MOON-2): the glare sentence follows the chart, directly under the
  * FR-GUIDE-1 sentence the chart captions itself with — one warning about this
  * pass, right where the reader has just been told what to expect from it.
+ *
+ * R31 (US-12, FR-SHARE-1/2): the share action closes the guide, below the
+ * numbers — the end of what there is to read about this pass is where handing
+ * it on belongs, and it is part of the shared content, so both shells carry
+ * it. The link is built here rather than in the button: the observer and the
+ * pass are what identify it (D-83), and the page's own URL is what it is
+ * relative to.
  */
 export interface PassDetailProps {
   pass: Pass;
@@ -109,6 +119,7 @@ export function PassDetail({ pass, observer, onClose }: PassDetailProps) {
       <SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} now={now} />
       <MoonGlareNote moon={pass.moonAtPeak} glare={pass.moonGlare} />
       <PassNumbers pass={pass} timeZone={timeZone} />
+      <ShareButton url={shareUrl(window.location.href, passLinkFor(observer, pass))} title={t.share.title({ name: pass.name })} text={t.guide.sentence(guideParams(pass, timeZone, locale))} />
     </>
   );
 
