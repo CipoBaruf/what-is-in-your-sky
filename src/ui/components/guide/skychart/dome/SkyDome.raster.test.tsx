@@ -82,7 +82,7 @@ describe('<SkyDome> raster', () => {
     for (const line of base.lines) expect(line).toHaveLength(baseCols);
 
     // A wash, not a wireframe: the ground and the bowl cover most of the drawing.
-    expect(base.text.replace(/[\s ]/g, '').length).toBeGreaterThan(100);
+    expect(base.text.replace(/\s/g, '').length).toBeGreaterThan(100);
     await expect(base.text).toMatchFileSnapshot('./__snapshots__/SkyDome.golden.base.txt');
   });
 });

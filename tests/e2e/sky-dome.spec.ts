@@ -1,15 +1,17 @@
 /**
- * R15 (US-6 AC3, FR-GUIDE-2, FR-GUIDE-4..7) at 390 px on the production
- * build under the strict CSP: the detail sheet opens on the polar chart
- * (D-68) and the dome is one toggle away, facing the pass's rise compass
- * point; the two views share one frame, so the toggle moves nothing else on
- * the sheet; dragging changes the facing
+ * R15 (US-6 AC3, FR-GUIDE-2, FR-GUIDE-4..7), R21 (FR-DOME-1..4, FR-DOME-7,
+ * FR-DOME-8) at 390 px on the production build under the relaxed-by-exactly-
+ * one CSP: the detail sheet now opens on the *dome* (FR-DOME-7, closing
+ * D-68), facing the pass's rise compass point; the dome is two stacked
+ * scenes on one grid (FR-DOME-8, D-74) with no frame around it (FR-DOME-1);
+ * the polar view is one toggle away and the two share one frame, so the
+ * toggle moves nothing else on the sheet; dragging changes the facing
  * readout; ArrowLeft changes it by exactly 15°; ArrowUp cannot push the tilt
  * past 80° nor ArrowDown below 5°; toggling to the polar view keeps the same
  * pass highlighted and the choice survives a reload; no `<canvas>` anywhere;
- * no CSP violation while the dome chunk loads and draws. Screenshots of the
- * dome for the golden (grazing) pass and the highest pass of the night are
- * saved for the PR.
+ * no CSP violation while the dome chunk loads, draws and colours itself.
+ * Screenshots of the dome for the golden (grazing) pass and the highest pass
+ * of the night are saved for the PR.
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
@@ -71,31 +73,34 @@ const facingOf = async (readout: Locator): Promise<{ point: string; az: number; 
   return { point: match[1], az: Number(match[2]), tilt: Number(match[3]) };
 };
 
-test('the dome is one toggle from the polar default, shares its frame, faces the rise point, turns by drag and by keys within the tilt clamp, and the polar toggle keeps the pass', async ({ page }) => {
+test('the dome is the default view, shares the polar frame, faces the rise point, turns by drag and by keys within the tilt clamp, and the polar toggle keeps the pass', async ({ page }) => {
   const violations: string[] = [];
   const { passId, dialog } = await openGoldenPass(page, violations);
   const figure = dialog.getByRole('figure');
-  await expect(figure).toHaveAttribute('data-view', 'polar');
+  // FR-DOME-7: the dome is what the sheet opens on, with no toggle needed.
+  await expect(figure).toHaveAttribute('data-view', 'dome');
   await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
   const viewToggle = figure.getByRole('group', { name: 'Chart view' });
-  await expect(viewToggle.getByRole('button', { name: 'Polar' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(viewToggle.getByRole('button', { name: 'Dome' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(figure.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+
   // One frame for both views (R15 review): the drawing box and the numbers table stay where they are when the view changes.
   const frameBox = async () => (await figure.getByTestId('chart-frame').boundingBox()) ?? { x: NaN, y: NaN, width: NaN, height: NaN };
   const tableY = async () => (await dialog.getByRole('table').boundingBox())?.y ?? NaN;
-  const polarFrame = await frameBox();
-  const polarTableY = await tableY();
+  const domeFrame = await frameBox();
+  const domeTableY = await tableY();
+  await viewToggle.getByRole('button', { name: 'Polar' }).click();
+  await expect(figure).toHaveAttribute('data-view', 'polar');
+  expect(await frameBox()).toEqual(domeFrame);
+  expect(await tableY()).toBe(domeTableY);
   await viewToggle.getByRole('button', { name: 'Dome' }).click();
   await expect(figure).toHaveAttribute('data-view', 'dome');
-  await expect(viewToggle.getByRole('button', { name: 'Dome' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(figure.locator('[data-drawing="dome"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
-  expect(await frameBox()).toEqual(polarFrame);
-  expect(await tableY()).toBe(polarTableY);
 
   // The chart chunk lands and draws: one <pre> of 30 rows × 60 braille columns, hidden from AT; no canvas anywhere (FR-GUIDE-5).
   const stage = figure.getByRole('group', { name: 'Sky dome' });
   const drawing = figure.locator('[data-drawing="dome"]');
   await expect(drawing).toHaveAttribute('aria-hidden', 'true', { timeout: 30_000 });
-  const pre = drawing.locator('pre.glyph-output');
+  const pre = drawing.locator('[data-layer="lines"] pre.glyph-output');
   await expect(pre).toBeVisible();
   const raster = await pre.evaluate((el) => el.textContent ?? '');
   expect(raster.split('\n')).toHaveLength(30);
@@ -117,17 +122,40 @@ test('the dome is one toggle from the polar default, shares its frame, faces the
   expect(Math.abs(preBox.height - preBox.width)).toBeLessThanOrEqual(2);
   expect(Math.abs(preBox.x + preBox.width / 2 - (box.x + box.width / 2))).toBeLessThanOrEqual(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+  // FR-DOME-8 / D-74: a second scene of surfaces sits behind the lines, on half the grid (D-92), taking no pointer.
+  const basePre = drawing.locator('[data-layer="base"] pre.glyph-output');
+  await expect(basePre).toBeVisible();
+  const baseRaster = await basePre.evaluate((el) => el.textContent ?? '');
+  expect(baseRaster.split('\n')).toHaveLength(15);
+  expect(baseRaster.split('\n')[0]).toHaveLength(30);
+  expect(baseRaster.trim().length).toBeGreaterThan(0);
+  expect(await drawing.locator('[data-layer="base"]').evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none');
+  // Both layers fill the same box, which is what keeps them aligned as it changes size.
+  const boxOf = async (layer: string) => (await drawing.locator(`[data-layer="${layer}"]`).boundingBox()) ?? { x: NaN, y: NaN, width: NaN, height: NaN };
+  expect(await boxOf('base')).toEqual(await boxOf('lines'));
+
+  // FR-DOME-1: no frame around the drawing.
+  expect(await stage.evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe('0px');
+
+  // FR-DOME-2 under the D-75 CSP: glyphcss colours glyphs with inline `style` attributes, and the browser must not block them.
+  const colours = await pre.evaluate((el) => Array.from(el.querySelectorAll('span')).map((span) => getComputedStyle(span).color));
+  expect(new Set(colours).size).toBeGreaterThan(1);
+
+  // FR-DOME-4: the degree numbers on the horizon and the two labelled rings.
+  for (const degrees of ['30°', '60°']) await expect(drawing.getByText(degrees, { exact: true }).first()).toBeVisible();
+
   for (const cardinal of ['N', 'E', 'S', 'W']) await expect(drawing.locator(`[data-anchor="${cardinal}"]`)).toHaveText(cardinal);
   await expect(drawing.locator(`[data-pass-id="${passId}"] [data-anchor="pass"]`)).toContainText('ISS (Zarya)');
   await expect(drawing.locator('[data-anchor="peak"]')).toHaveText(/^max \d+°$/);
 
-  // FR-GUIDE-2 default view, FR-GUIDE-4 readout: facing the rise compass point at tilt 25°.
+  // FR-GUIDE-2 default view, FR-GUIDE-4 readout: facing the rise compass point at the D-92 default tilt.
   const readout = figure.getByTestId('dome-readout');
   const rise = reference.firstGoldenPass?.start.azDeg ?? 0;
   const initial = await facingOf(readout);
   expect(initial.point).toBe(compass16(rise));
   expect(initial.az).toBe(Math.round(rise));
-  expect(initial.tilt).toBe(25);
+  expect(initial.tilt).toBe(45);
   await figure.evaluate((el) => el.scrollIntoView({ block: 'start' }));
   await page.screenshot({ path: 'test-results/r15-dome-390.png' });
 
@@ -146,8 +174,8 @@ test('the dome is one toggle from the polar default, shares its frame, faces the
   expect((await facingOf(readout)).tilt).toBe(5);
   await page.keyboard.press('ArrowDown');
   expect((await facingOf(readout)).tilt).toBe(5);
-  for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowUp');
-  expect((await facingOf(readout)).tilt).toBe(25);
+  for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowUp');
+  expect((await facingOf(readout)).tilt).toBe(45);
 
   // Drag: a real pointer drag across the drawing changes the facing readout, and the raster with it.
   const before = await facingOf(readout);
@@ -182,7 +210,7 @@ test('the dome is one toggle from the polar default, shares its frame, faces the
   await expect(page.getByRole('dialog').getByRole('figure')).toHaveAttribute('data-view', 'polar');
   await page.getByRole('group', { name: 'Chart view' }).getByRole('button', { name: 'Dome' }).click();
   await expect(page.getByRole('dialog').getByRole('figure')).toHaveAttribute('data-view', 'dome');
-  await expect(page.getByRole('dialog').locator('[data-drawing="dome"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('dialog').locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
   expect(await page.evaluate(() => document.querySelector('canvas'))).toBeNull();
 
   // The golden pass grazes the horizon; for the PR's visual check, also capture the highest pass of the night on the dome.
@@ -196,13 +224,13 @@ test('the dome is one toggle from the polar default, shares its frame, faces the
   if (!highest || highest.el < 30) throw new Error(`no high pass among the fixtures (best ${String(highest?.el)}°)`);
   await list.locator(`article[data-pass-id="${highest.id}"]`).getByRole('button', { name: /Open guide/ }).click();
   const highFigure = page.getByRole('dialog').getByRole('figure');
-  await expect(highFigure.locator('[data-drawing="dome"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+  await expect(highFigure.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
   await expect(highFigure.locator('[data-anchor="peak"]')).toHaveText(`max ${String(highest.el)}°`);
   await highFigure.evaluate((el) => el.scrollIntoView({ block: 'start' }));
   await page.screenshot({ path: 'test-results/r15-dome-high-390.png' });
-  for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowUp');
   await page.getByRole('dialog').getByRole('group', { name: 'Sky dome' }).focus();
-  for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowUp');
+  // Two steps up from the D-92 default of 45°, so this capture is the same 55° view R15 filed.
+  for (let i = 0; i < 2; i++) await page.keyboard.press('ArrowUp');
   await expect(page.getByRole('dialog').getByTestId('dome-readout')).toHaveText(/tilt 55°$/);
   await page.screenshot({ path: 'test-results/r15-dome-high-tilt-390.png' });
 });

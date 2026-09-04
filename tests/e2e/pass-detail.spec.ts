@@ -70,11 +70,15 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   await page.screenshot({ path: 'test-results/r6-pass-detail-390.png' });
 
   // R13: the polar chart, as SVG, captioned by the sentence, hidden from AT, inside the viewport width.
-  // R15: the polar chart is the default view for now (D-68); sky-dome.spec.ts covers the dome.
+  // R21 (FR-DOME-7): the dome is the default again, so this spec toggles to the polar view and then checks it is exactly what R13 built.
+  // sky-dome.spec.ts covers the dome itself.
   expect(await page.evaluate(() => document.querySelector('canvas'))).toBeNull();
   const figure = dialog.getByRole('figure');
+  await expect(figure).toHaveAttribute('data-view', 'dome');
+  const views = figure.getByRole('group', { name: 'Chart view' });
+  await views.getByRole('button', { name: 'Polar' }).click();
   await expect(figure).toHaveAttribute('data-view', 'polar');
-  await expect(figure.getByRole('group', { name: 'Chart view' }).getByRole('button', { name: 'Polar' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(views.getByRole('button', { name: 'Polar' })).toHaveAttribute('aria-pressed', 'true');
   await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
   const drawing = figure.locator('svg[data-drawing="polar"]');
   await expect(drawing).toHaveAttribute('aria-hidden', 'true');

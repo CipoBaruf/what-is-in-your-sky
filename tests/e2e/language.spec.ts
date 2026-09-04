@@ -79,10 +79,18 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
   await expect(dialog.getByTestId('guide-sentence')).toHaveText(golden.es.asComputed);
   // The capture is only evidence once the lazy chart chunk has drawn: its caption and labels are translated too.
   // The sheet is a fixed overlay, so these two are viewport captures — a fullPage one stretches the document and clips it.
+  // R21 (FR-DOME-7): the sheet opens on the dome, whose hint and readout are translated too.
+  const dome = dialog.locator(`[data-layer="lines"] [data-pass-id="${passId}"] [data-anchor="pass"]`);
+  await expect(dome).toContainText('ISS (Zarya)', { timeout: 30_000 });
+  await expect(dialog.getByRole('figure')).toContainText('Arrastrar el domo');
+  await expect(dialog.getByTestId('dome-readout')).toHaveText(/^Hacia .+ · inclinación \d+°$/);
+  await page.screenshot({ path: 'test-results/r17-detail-390-es.png' });
+  // The polar view is one toggle away and carries its own translated convention line (FR-GUIDE-4).
+  // It stays in force from here on, so the switch back to English is checked on the same view.
+  await dialog.getByRole('group', { name: 'Vista del gráfico' }).getByRole('button', { name: 'Polar' }).click();
   const track = dialog.locator(`svg[data-drawing="polar"] [data-pass-id="${passId}"] [data-anchor="pass"]`);
   await expect(track).toContainText('ISS (Zarya)');
   await expect(dialog.getByRole('figure')).toContainText('Vista al cielo: el este a la izquierda');
-  await page.screenshot({ path: 'test-results/r17-detail-390-es.png' });
   // Further down the sheet: the chart's caption and the numeric table, which carry translated text of their own.
   await showNumbers(dialog);
   await page.screenshot({ path: 'test-results/r17-numbers-390-es.png' });
