@@ -3,6 +3,7 @@ export * from './time';
 export * from './frames';
 export * from './sgp4';
 export * from './sun';
+export * from './moon';
 export * from './shadow';
 export * from './magnitude';
 export * from './visibility';
