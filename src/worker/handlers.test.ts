@@ -9,13 +9,15 @@ import { DAY_MS, fixtureRecords, goldenWindowStart, loadReferenceValues } from '
 import { ISS_STD_MAG_SEED } from '../../tests/support/heavensAbove';
 import { CATALOG } from '../data/catalog';
 import type { Observer, SatelliteRecord } from '../model';
-import { DEFAULT_THRESHOLDS, nowState, type SatRec } from '../physics';
+import { DEFAULT_THRESHOLDS, findPasses, isHidden, nowState, ommToSatrec, type SatRec } from '../physics';
 import { computeOrder, createHandler, createHandlerState, yieldViaMessageChannel, type Handler, type HandlerState } from './handlers';
 import type { WorkerRequest, WorkerResponse } from './protocol';
 
 const ref = loadReferenceValues();
 const observer: Observer = { ...ref.observer, label: 'Neuquen (spike)', source: 'coords', timeZone: null };
 const GOLDEN_WINDOW = { startMs: goldenWindowStart(ref), endMs: goldenWindowStart(ref) + DAY_MS };
+/** FR-VIS-1 as amended: three nights from the same instant the golden window starts at (D-77). */
+const THREE_NIGHTS = { startMs: goldenWindowStart(ref), endMs: goldenWindowStart(ref) + 3 * DAY_MS };
 const ISS = 25544;
 
 interface Harness {
@@ -114,6 +116,8 @@ describe('computePasses', () => {
     expect(passes[0]?.noradId).toBe(ISS);
     expect(new Set(passes.map((p) => p.noradId)).size).toBe(passes.length);
     for (const p of passes) expect(p.jobId).toBe('job-1');
+    // A 24 h window is one night, so an MVP caller sees the MVP's stream (D-77).
+    expect(new Set(passes.map((p) => p.nightIndex))).toEqual(new Set([0]));
 
     const progress = h.ofType('progress');
     expect(progress.map((p) => p.done)).toEqual(passes.map((_, i) => i + 1));
@@ -242,6 +246,101 @@ describe('computePasses', () => {
   });
 });
 
+describe('computePasses over three nights (D-77)', () => {
+  it('completes night 1, featured first, before night 2 begins, and counts progress in object × night pairs', async () => {
+    const records = fixtureRecords().slice(0, 4);
+    const h = await loaded(records);
+    await h.send({ type: 'computePasses', jobId: 'job-1', observer, window: THREE_NIGHTS, thresholds: DEFAULT_THRESHOLDS });
+
+    const messages = h.ofType('passes');
+    expect(messages).toHaveLength(records.length * 3);
+    expect(messages.map((p) => p.nightIndex)).toEqual([0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2]);
+    // Featured first inside each night, and each object answered once per night.
+    for (const nightIndex of [0, 1, 2]) {
+      const night = messages.filter((p) => p.nightIndex === nightIndex);
+      expect(night[0]?.noradId).toBe(ISS);
+      expect(new Set(night.map((p) => p.noradId)).size).toBe(records.length);
+    }
+
+    const progress = h.ofType('progress');
+    expect(progress).toHaveLength(records.length * 3);
+    expect(progress.map((p) => p.done)).toEqual(progress.map((_, i) => i + 1));
+    expect(progress.every((p) => p.total === records.length * 3)).toBe(true);
+    expect(h.responses.at(-1)?.type).toBe('jobDone');
+    expect(h.ofType('error')).toEqual([]);
+  });
+
+  it('emits exactly the passes one search over the whole 72 h window finds', async () => {
+    const records = fixtureRecords();
+    const h = await loaded(records);
+    await h.send({ type: 'computePasses', jobId: 'job-1', observer, window: THREE_NIGHTS, thresholds: DEFAULT_THRESHOLDS });
+
+    const streamed = h
+      .ofType('passes')
+      .flatMap((m) => m.passes)
+      .sort((a, b) => a.start.t - b.start.t);
+    const wholeWindow = records
+      .flatMap((r) =>
+        findPasses(ommToSatrec(r.omm), observer, THREE_NIGHTS, DEFAULT_THRESHOLDS, {
+          noradId: r.catalog.noradId,
+          name: r.catalog.name,
+          stdMag: r.catalog.stdMag,
+          elementsEpochMs: r.epochMs,
+        }),
+      )
+      .sort((a, b) => a.start.t - b.start.t);
+
+    expect(streamed.length).toBeGreaterThan(0);
+    expect(streamed).toEqual(wholeWindow); // no pass split at a night boundary, none emitted twice, none lost
+  });
+
+  it('gives night 1 the same passes a 24 h request would have returned', async () => {
+    const records = fixtureRecords();
+    const h = await loaded(records);
+    await h.send({ type: 'computePasses', jobId: 'job-1', observer, window: THREE_NIGHTS, thresholds: DEFAULT_THRESHOLDS });
+    const firstNight = h
+      .ofType('passes')
+      .filter((m) => m.nightIndex === 0)
+      .flatMap((m) => m.passes);
+
+    const mvp = await loaded(records);
+    await mvp.send({ type: 'computePasses', jobId: 'job-2', observer, window: GOLDEN_WINDOW, thresholds: DEFAULT_THRESHOLDS });
+    const mvpPasses = mvp.ofType('passes').flatMap((m) => m.passes);
+
+    expect(firstNight.map((p) => p.id).sort()).toEqual(mvpPasses.map((p) => p.id).sort());
+    for (const pass of firstNight) expect(pass.start.t).toBeLessThan(THREE_NIGHTS.startMs + DAY_MS);
+  });
+
+  it('reports an object that throws once, not once per night, and still counts every pair', async () => {
+    const h = await loaded(fixtureRecords().slice(0, 3));
+    const victim = [...h.state.objects.values()][1];
+    if (!victim) throw new Error('no victim');
+    victim.satrec = new Proxy({} as SatRec, {
+      get() {
+        throw new Error('boom');
+      },
+    });
+    await h.send({ type: 'computePasses', jobId: 'job-1', observer, window: THREE_NIGHTS, thresholds: DEFAULT_THRESHOLDS });
+    expect(h.ofType('error')).toHaveLength(1);
+    expect(h.ofType('passes').map((p) => p.noradId)).not.toContain(victim.catalog.noradId);
+    expect(h.ofType('progress').at(-1)).toMatchObject({ done: 9, total: 9 });
+    expect(h.ofType('jobDone')[0]?.cancelled).toBe(false);
+  });
+
+  it('a cancel during night 1 stops the job without starting night 2', async () => {
+    let h: Harness | null = null;
+    let yields = 0;
+    const yieldToEventLoop = async (): Promise<void> => {
+      if (++yields === 2) await h?.send({ type: 'cancel', jobId: 'job-1' });
+    };
+    h = await loaded(fixtureRecords().slice(0, 3), { yieldToEventLoop });
+    await h.send({ type: 'computePasses', jobId: 'job-1', observer, window: THREE_NIGHTS, thresholds: DEFAULT_THRESHOLDS });
+    expect(h.ofType('passes').map((p) => p.nightIndex)).toEqual([0, 0]);
+    expect(h.ofType('jobDone')[0]).toMatchObject({ cancelled: true });
+    expect(h.responses.at(-1)?.type).toBe('jobDone');
+  });
+});
+
 describe('computeNow', () => {
   it('returns a NowState matching physics/now.ts on the R1 fixture, every object, the ISS first', async () => {
     const golden = ref.firstGoldenPass;
@@ -270,6 +369,44 @@ describe('computeNow', () => {
     const h = harness();
     await h.send({ type: 'computeNow', requestId: 'req-9', observer, t: ref.t, thresholds: DEFAULT_THRESHOLDS });
     expect(h.responses).toEqual([{ type: 'error', ref: { requestId: 'req-9' }, code: 'NO_ELEMENTS', message: expect.any(String) as string }]);
+  });
+
+  it('answers the MVP state, with no `hidden` key at all, when `includeHidden` is absent or false (D-76)', async () => {
+    const t = (ref.firstGoldenPass?.start.t ?? ref.t) + 10_000;
+    const h = await loaded();
+    await h.send({ type: 'computeNow', requestId: 'req-off', observer, t, thresholds: DEFAULT_THRESHOLDS });
+    await h.send({ type: 'computeNow', requestId: 'req-false', observer, t, thresholds: DEFAULT_THRESHOLDS, includeHidden: false });
+    const [absent, explicit] = h.ofType('nowState');
+    expect(absent?.state).not.toHaveProperty('hidden');
+    expect(explicit?.state).toEqual(absent?.state);
+  });
+
+  it('adds the objects above the horizon that are not worth looking for, with their reasons (FR-LIVE-6)', async () => {
+    const t = (ref.firstGoldenPass?.start.t ?? ref.t) + 10_000;
+    const h = await loaded();
+    await h.send({ type: 'computeNow', requestId: 'req-off', observer, t, thresholds: DEFAULT_THRESHOLDS });
+    await h.send({ type: 'computeNow', requestId: 'req-on', observer, t, thresholds: DEFAULT_THRESHOLDS, includeHidden: true });
+    const [off, on] = h.ofType('nowState');
+    const hidden = on?.state.hidden;
+
+    // The flag adds a set and changes nothing else.
+    expect(on?.state.items).toEqual(off?.state.items);
+    expect(hidden).toBeDefined();
+    expect(hidden?.length).toBeGreaterThan(0);
+    // Every hidden object is above the horizon, and no object worth looking for is in the set.
+    for (const item of hidden ?? []) {
+      expect(item.elDeg).toBeGreaterThan(0);
+      expect(isHidden(item, DEFAULT_THRESHOLDS)).toBe(true);
+    }
+    // Each carries a reason readable off its own fields: too low, in shadow, in daylight or too faint.
+    for (const item of hidden ?? []) {
+      const tooFaint = item.magnitude !== null && item.magnitude > DEFAULT_THRESHOLDS.magLimit;
+      expect(!item.aboveMinElevation || !item.lit || on?.state.sky !== 'dark' || tooFaint).toBe(true);
+    }
+    // Anything above the horizon that the panel would list as visible and bright enough stays out of it.
+    const bright = (off?.state.items ?? []).filter((i) => i.visible && i.magnitude !== null && i.magnitude <= DEFAULT_THRESHOLDS.magLimit);
+    expect(bright.length).toBeGreaterThan(0);
+    for (const item of bright) expect(hidden?.map((i) => i.noradId)).not.toContain(item.noradId);
   });
 
   it('is answered between the objects of a running computePasses job (D-6 yield)', async () => {

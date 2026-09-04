@@ -9,9 +9,9 @@ import { fixtureObserver, runOurPipeline, SPIKE_THRESHOLDS } from '../../tests/s
 import { loadReferenceValues, referenceObserver } from '../../tests/support/reference';
 import { loadOmmFixture } from '../../tests/setup/msw';
 import { CATALOG } from '../data/catalog';
-import type { Observer } from '../model';
+import type { NowItem, Observer } from '../model';
 import { DEFAULT_THRESHOLDS } from './constants';
-import { LOOKAHEAD_STEP_MS, MAX_LOOKAHEAD_MS, nowItem, nowState, skyState, visibleUntil, type NowObject } from './now';
+import { isHidden, LOOKAHEAD_STEP_MS, MAX_LOOKAHEAD_MS, nowItem, nowState, skyState, visibleUntil, type NowObject } from './now';
 import { ommToSatrec } from './sgp4';
 import { sunAltitudeDeg } from './sun';
 
@@ -120,6 +120,80 @@ describe('nowState with an object above 10° but in Earth’s shadow', () => {
     // And just before the end: visible, ending in shadow at the pass end.
     const before = nowItem(object, paris, shadowPass.end.t - 5_000, SPIKE_THRESHOLDS);
     expect(before).toMatchObject({ visible: true, endReason: 'shadow', visibleUntil: shadowPass.end.t });
+  });
+});
+
+describe('isHidden (FR-LIVE-6)', () => {
+  const item = (over: Partial<NowItem> = {}): NowItem => ({
+    noradId: 1,
+    name: 'Test',
+    azDeg: 180,
+    elDeg: 40,
+    rangeKm: 600,
+    magnitude: 1,
+    lit: true,
+    aboveMinElevation: true,
+    visible: true,
+    ...over,
+  });
+
+  it('excludes an object below the horizon, however it fails', () => {
+    expect(isHidden(item({ elDeg: -0.1, visible: false, aboveMinElevation: false }), DEFAULT_THRESHOLDS)).toBe(false);
+    expect(isHidden(item({ elDeg: 0, visible: false, aboveMinElevation: false }), DEFAULT_THRESHOLDS)).toBe(false);
+  });
+
+  it('includes an object up but under the minimum elevation', () => {
+    expect(isHidden(item({ elDeg: 4, aboveMinElevation: false, visible: false }), DEFAULT_THRESHOLDS)).toBe(true);
+  });
+
+  it('includes an object in Earth’s shadow and one in daylight', () => {
+    expect(isHidden(item({ lit: false, visible: false, magnitude: null }), DEFAULT_THRESHOLDS)).toBe(true);
+    expect(isHidden(item({ visible: false }), DEFAULT_THRESHOLDS)).toBe(true); // daylight: nothing else failed
+  });
+
+  it('includes a lit object in a dark sky that is too faint to look for, at the magnitude limit exactly', () => {
+    const limit = DEFAULT_THRESHOLDS.magLimit;
+    expect(isHidden(item({ magnitude: limit }), DEFAULT_THRESHOLDS)).toBe(false);
+    expect(isHidden(item({ magnitude: limit + 0.1 }), DEFAULT_THRESHOLDS)).toBe(true);
+  });
+
+  it('excludes the objects the app does tell you to look for', () => {
+    expect(isHidden(item(), DEFAULT_THRESHOLDS)).toBe(false);
+  });
+});
+
+describe('nowState with includeHidden (D-76)', () => {
+  const golden = ref.firstGoldenPass;
+  const t = (golden?.start.t ?? ref.t) + 10_000;
+
+  it('omits the key entirely without the option, so an MVP response is unchanged', () => {
+    const state = nowState([issObject()], observer, t, DEFAULT_THRESHOLDS);
+    expect(state).not.toHaveProperty('hidden');
+    expect(nowState([issObject()], observer, t, DEFAULT_THRESHOLDS, {})).toEqual(state);
+    expect(nowState([issObject()], observer, t, DEFAULT_THRESHOLDS, { includeHidden: false })).toEqual(state);
+  });
+
+  it('returns the hidden subset of the same items, leaving `items` alone', () => {
+    const plain = nowState([issObject()], observer, t, DEFAULT_THRESHOLDS);
+    const withHidden = nowState([issObject()], observer, t, DEFAULT_THRESHOLDS, { includeHidden: true });
+    expect(withHidden.items).toEqual(plain.items);
+    expect(withHidden.hidden).toEqual(plain.items.filter((i) => isHidden(i, DEFAULT_THRESHOLDS)));
+  });
+
+  it('names the shadowed object above 10° after a shadow-bounded Paris pass', () => {
+    const pair = loadFixturePair('2026-09-02-paris-iss');
+    const paris: Observer = fixtureObserver(pair.ha);
+    const shadowPass = runOurPipeline(pair.ha, pair.omm).find((p) => p.endReason === 'shadow');
+    if (!shadowPass) throw new Error('the Paris fixture has no shadow-bounded pass');
+    const state = nowState([issObject(pair.ommFixture)], paris, shadowPass.end.t + 2_000, SPIKE_THRESHOLDS, { includeHidden: true });
+    expect(state.hidden?.map((i) => i.noradId)).toEqual([ISS]);
+    expect(state.hidden?.[0]).toMatchObject({ lit: false, visible: false, aboveMinElevation: true });
+  });
+
+  it('is empty when the only object is below the horizon', () => {
+    const state = nowState([issObject()], observer, ref.t, DEFAULT_THRESHOLDS, { includeHidden: true });
+    expect(state.items[0]?.elDeg).toBeLessThan(0);
+    expect(state.hidden).toEqual([]);
   });
 });
 
