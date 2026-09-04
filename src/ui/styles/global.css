@@ -5,7 +5,6 @@
    ring for every control (`:focus-visible`, never removed without a
    replacement), and every control is at least `--tap` (48 px) tall. */
 html {
-  background: var(--bg);
   color: var(--fg);
   font-family: var(--font-mono);
   font-size: 16px;
@@ -13,9 +12,21 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* R20 (FR-THEME-1, "applied before first paint"). The page ground waits for
+   the attribute `main.tsx` sets before the first render (D-70). The
+   stylesheet is a blocking `<link>` and the module script is deferred, so
+   without this a night reader could get one frame of the dark palette while
+   the bundle parses; until the attribute lands the canvas is the UA's own
+   dark one (`<meta name="color-scheme" content="dark">`), which is nearer to
+   both palettes than either is to the other. `body` deliberately has no
+   background of its own: an unset `html` background would otherwise propagate
+   the body's to the canvas and undo this. */
+html[data-theme] {
+  background: var(--bg);
+}
+
 body {
   margin: 0;
-  background: var(--bg);
   color: var(--fg);
 }
 

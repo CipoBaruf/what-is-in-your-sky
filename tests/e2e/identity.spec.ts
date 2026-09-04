@@ -44,7 +44,8 @@ test.beforeEach(async ({ page }) => {
 
 /** The FR-X-1 / FR-X-6 / G6 checks every screen must pass at 390 px. */
 async function expectIdentity(page: Page, screenshot: string, { fullPage = true } = {}): Promise<void> {
-  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(GROUND);
+  // R20: the ground moved from `body` to `html[data-theme]`, so that a night reader gets no dark frame before `main.tsx` runs (FR-THEME-1).
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor)).toBe(GROUND);
   expect(await page.evaluate(() => document.querySelector('canvas'))).toBeNull(); // FR-GUIDE-5 (R13): DOM and SVG only, on every screen
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const nonMono = await page.evaluate(() =>
@@ -137,8 +138,8 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   // Place, coordinates, altitude, device button, clear, Now-panel badge, hero (open guide, cloud badge), two sort buttons, ≥ 1 card × (open guide, badge), 3 footer links.
   expect(expected.length).toBeGreaterThanOrEqual(15);
   expect(expected).toContain('input:place');
-  // R17: the header's language switch is the first pair of controls on the page.
-  expect(expected.slice(0, 2)).toEqual(['button:English', 'button:Español']);
+  // R17 and R20: the header's language and theme switches are the first four controls on the page, in that order.
+  expect(expected.slice(0, 4)).toEqual(['button:English', 'button:Español', 'button:Dark', 'button:Night']);
   expect(expected).toContain('button:Use my location');
   expect(expected).toContain('button:Clear saved location');
   expect(expected).toContain('button:Soonest first');
