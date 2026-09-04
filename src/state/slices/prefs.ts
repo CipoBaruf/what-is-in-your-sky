@@ -3,7 +3,7 @@ import type { LocalPrefs } from '../../data/localPrefs';
 import { DEFAULT_PASS_SORT } from '../../lib/passSort';
 import { browserLanguages, resolveLocale } from '../../i18n/locale';
 import { DEFAULT_CHART_ORIENTATION } from '../../lib/skyGeometry';
-import type { ChartOrientation, ChartView, Locale, PassSort } from '../../model';
+import { DEFAULT_THEME, type ChartOrientation, type ChartView, type Locale, type PassSort, type Theme } from '../../model';
 import type { AppState } from '../store';
 
 /**
@@ -23,7 +23,9 @@ import type { AppState } from '../store';
  * same way. R17 adds the language (FR-I18N-1): it is resolved once when the
  * store is created, from the saved preference if there is one and from
  * `navigator.languages` otherwise, and `setLocale` both changes it and saves
- * it — after which the browser's list no longer decides.
+ * it — after which the browser's list no longer decides. R20 adds the theme
+ * (FR-THEME-1) as a plain saved preference: unlike the language it is never
+ * guessed from the device, so it is dark until someone asks for night.
  */
 export interface PrefsDeps {
   prefs: LocalPrefs;
@@ -45,6 +47,9 @@ export interface PrefsSlice {
   /** The language (FR-I18N-1), from the saved preference or the browser's list. */
   locale: Locale;
   setLocale: (locale: Locale) => void;
+  /** The palette (FR-THEME-1), `dark` unless saved otherwise. */
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
   /** Sets the saved observer, if there is one; returns whether there was. */
   restoreSavedObserver: () => boolean;
   clearSavedObserver: () => void;
@@ -72,6 +77,11 @@ export const createPrefsSlice =
     setLocale: (locale) => {
       set({ locale });
       deps.prefs.write({ ...deps.prefs.read(), locale });
+    },
+    theme: deps.prefs.read().theme ?? DEFAULT_THEME,
+    setTheme: (theme) => {
+      set({ theme });
+      deps.prefs.write({ ...deps.prefs.read(), theme });
     },
     restoreSavedObserver: () => {
       const { observer } = deps.prefs.read();

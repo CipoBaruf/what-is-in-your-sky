@@ -4,6 +4,7 @@ import { formatDate } from '../../lib/timeFormat';
 import type { Observer, Pass } from '../../model';
 import { Countdown } from '../components/common/Countdown';
 import { LanguageToggle } from '../components/common/LanguageToggle';
+import { ThemeToggle } from '../components/common/ThemeToggle';
 import { useNow } from '../hooks/useNow';
 import { PassNumbers } from '../components/guide/PassNumbers';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
@@ -23,7 +24,9 @@ import styles from './PassDetail.module.css';
  * carries the language switch beside the back control — the page behind it,
  * header included, is inert while the sheet is up, so without it the
  * language could not be changed on this screen at all, and R31's share links
- * open straight onto it.
+ * open straight onto it. R20 puts the theme switch beside it for the same
+ * reason, and a stronger one: this is the screen someone is looking at while
+ * standing outside in the dark (US-19).
  */
 export interface PassDetailProps {
   pass: Pass;
@@ -80,7 +83,10 @@ export function PassDetail({ pass, observer, onClose }: PassDetailProps) {
           <button type="button" className={styles.close} onClick={onClose}>
             {t.guide.back}
           </button>
-          <LanguageToggle />
+          <div className={styles.controls}>
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
         </div>
         <h2 id={headingId} ref={headingRef} tabIndex={-1} className={styles.heading}>
           {pass.name}

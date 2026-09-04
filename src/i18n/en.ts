@@ -1,7 +1,7 @@
 import type { AgeParts } from '../lib/elementsAge';
 import type { CompassPoint } from '../lib/compass';
 import type { BrightnessBand, ElevationBand, GuideParams } from '../lib/phrases';
-import type { ChartOrientation, ChartView, CloudState, PassBoundaryReason, PassSort } from '../model';
+import type { ChartOrientation, ChartView, CloudState, PassBoundaryReason, PassSort, Theme } from '../model';
 import type { CountdownPhase, LinkedText } from './messages';
 
 /**
@@ -82,6 +82,9 @@ export const en = {
     title: 'What is in your sky right now',
     tagline: 'Naked-eye satellite passes for the coming night: which, when, and where to look.',
     language: 'Language',
+    /** FR-THEME-1: the palette switch. Unlike the languages, both names are translated — whoever reads this can read the page. */
+    theme: 'Theme',
+    themes: { dark: 'Dark', night: 'Night' } satisfies Record<Theme, string>,
   },
 
   banner: { info: 'Note', warning: 'Warning' },
