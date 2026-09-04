@@ -1,0 +1,386 @@
+{
+  "signs": [
+    {
+      "key": "aries",
+      "startLonDeg": 0,
+      "name": { "en": "Aries", "es": "Aries" },
+      "line": {
+        "en": "The tropical zodiac opens with the ram, the figure Greek writers put where the Babylonians had drawn a hired man.",
+        "es": "El zodíaco tropical abre con el carnero, la figura que los autores griegos pusieron donde los babilonios habían dibujado un jornalero."
+      },
+      "source": {
+        "source": "Babylonian star list MUL.APIN (c. 1000 BCE), by way of Ptolemy, Tetrabiblos (2nd century CE)",
+        "date": "2026-09-04",
+        "note": "MUL.APIN's LÚ.ḪUN.GÁ, the hired man, became the Greek Krios. The tropical zodiac counts from 0° here because the March equinox stood in Aries when the scheme was fixed."
+      }
+    },
+    {
+      "key": "taurus",
+      "startLonDeg": 30,
+      "name": { "en": "Taurus", "es": "Tauro" },
+      "line": {
+        "en": "The bull carries Aldebaran, the star Arabic astronomers called the follower for trailing the Pleiades across the sky.",
+        "es": "El toro lleva a Aldebarán, la estrella que los astrónomos árabes llamaron «el que sigue» porque va detrás de las Pléyades."
+      },
+      "source": {
+        "source": "Babylonian star list MUL.APIN (c. 1000 BCE); star name from the Arabic astronomical tradition",
+        "date": "2026-09-04",
+        "note": "One of the oldest recorded constellations, MUL.APIN's Bull of Heaven. Aldebaran is from al-dabarān, the follower, for rising behind the Pleiades."
+      }
+    },
+    {
+      "key": "gemini",
+      "startLonDeg": 60,
+      "name": { "en": "Gemini", "es": "Géminis" },
+      "line": {
+        "en": "The twins are Castor and Pollux, the Dioscuri of Greek myth and the Great Twins of the Babylonian star lists.",
+        "es": "Los gemelos son Cástor y Pólux, los Dioscuros del mito griego y los Grandes Gemelos de las listas babilónicas."
+      },
+      "source": {
+        "source": "Babylonian star list MUL.APIN (c. 1000 BCE); Greek and Roman myth of the Dioscuri",
+        "date": "2026-09-04",
+        "note": "MAŠ.TAB.BA.GAL.GAL, the Great Twins. In Greek and Roman practice the Dioscuri were the protectors of sailors, which is how the pair reached the Latin zodiac."
+      }
+    },
+    {
+      "key": "cancer",
+      "startLonDeg": 90,
+      "name": { "en": "Cancer", "es": "Cáncer" },
+      "line": {
+        "en": "The dimmest sign of the twelve holds Praesepe, the star cluster Greek writers called the Manger.",
+        "es": "El signo más tenue de los doce guarda Praesepe, el cúmulo de estrellas que los autores griegos llamaban el Pesebre."
+      },
+      "source": {
+        "source": "Aratus, Phaenomena (3rd century BCE); the crab of the Greek Hydra myth",
+        "date": "2026-09-04",
+        "note": "Aratus records the Manger and the two asses feeding at it, and reads its haze as a weather sign. The crab itself comes from the labour of Heracles against the Hydra."
+      }
+    },
+    {
+      "key": "leo",
+      "startLonDeg": 120,
+      "name": { "en": "Leo", "es": "Leo" },
+      "line": {
+        "en": "Regulus sits at the lion's heart, one of the four stars Persian astronomers set as guardians of the sky.",
+        "es": "Régulo está en el corazón del león, una de las cuatro estrellas que los astrónomos persas tomaron como guardianas del cielo."
+      },
+      "source": {
+        "source": "The four royal stars of Persian tradition (c. 3000 BCE); star name from Copernicus, De revolutionibus (1543)",
+        "date": "2026-09-04",
+        "note": "Aldebaran, Regulus, Antares and Fomalhaut are the four guardians. Regulus is Copernicus's Latin for the little king, after the Greek Basiliskos."
+      }
+    },
+    {
+      "key": "virgo",
+      "startLonDeg": 150,
+      "name": { "en": "Virgo", "es": "Virgo" },
+      "line": {
+        "en": "The maiden holds Spica, an ear of wheat, and the older texts tie the figure to Demeter and the grain harvest.",
+        "es": "La doncella sostiene a Spica, una espiga de trigo, y los textos más antiguos ligan la figura a Deméter y a la cosecha del grano."
+      },
+      "source": {
+        "source": "Babylonian star list MUL.APIN (c. 1000 BCE); Greek myth of Demeter, via Eratosthenes' Catasterismi",
+        "date": "2026-09-04",
+        "note": "The Babylonian AB.SÍN, the furrow, held these stars. Spica is Latin for the ear of grain the figure carries."
+      }
+    },
+    {
+      "key": "libra",
+      "startLonDeg": 180,
+      "name": { "en": "Libra", "es": "Libra" },
+      "line": {
+        "en": "The scorpion's claws became a pair of scales when Roman writers cut them free and weighed the equinox with them.",
+        "es": "Las pinzas del escorpión se hicieron balanza cuando los autores romanos las separaron y con ellas pesaron el equinoccio."
+      },
+      "source": {
+        "source": "Greek Chelae (the Claws) in Ptolemy's Almagest; the Roman scales in Geminus, Introduction to the Phenomena (1st century BCE)",
+        "date": "2026-09-04",
+        "note": "The only sign of the twelve that is an object rather than a creature. The autumn equinox lay in these stars when the Romans named them, which is the balance the scales stand for."
+      }
+    },
+    {
+      "key": "scorpio",
+      "startLonDeg": 210,
+      "name": { "en": "Scorpio", "es": "Escorpio" },
+      "line": {
+        "en": "Red Antares burns at the scorpion's heart, and its Greek name marks it as the rival of Mars.",
+        "es": "El rojo Antares arde en el corazón del escorpión, y su nombre griego lo señala como rival de Marte."
+      },
+      "source": {
+        "source": "Babylonian star list MUL.APIN (c. 1000 BCE); Greek star name Antares (anti-Ares)",
+        "date": "2026-09-04",
+        "note": "GÍR.TAB, the scorpion, in the Babylonian lists. Antares is anti-Ares, the rival of Ares, for a red that is close to the planet's."
+      }
+    },
+    {
+      "key": "sagittarius",
+      "startLonDeg": 240,
+      "name": { "en": "Sagittarius", "es": "Sagitario" },
+      "line": {
+        "en": "The archer draws the bow at the scorpion, and the arrow points at the centre of the galaxy.",
+        "es": "El arquero tensa el arco hacia el escorpión, y la flecha apunta al centro de la galaxia."
+      },
+      "source": {
+        "source": "Babylonian PA.BIL.SAG in MUL.APIN (c. 1000 BCE); Greek and Roman archer figures",
+        "date": "2026-09-04",
+        "note": "PA.BIL.SAG was drawn as an archer and the Greeks kept the pose. The galactic centre lies a few degrees from γ Sagittarii, the arrowhead — an astronomical fact the tradition did not know."
+      }
+    },
+    {
+      "key": "capricorn",
+      "startLonDeg": 270,
+      "name": { "en": "Capricorn", "es": "Capricornio" },
+      "line": {
+        "en": "The sea-goat is half goat and half fish, a Babylonian figure every later zodiac copied without changing it.",
+        "es": "La cabra marina es mitad cabra y mitad pez, una figura babilónica que todos los zodíacos posteriores copiaron sin cambiarla."
+      },
+      "source": {
+        "source": "Babylonian SUḪUR.MAŠ (the goat-fish) in MUL.APIN (c. 1000 BCE); Greek myth of Pan and Typhon",
+        "date": "2026-09-04",
+        "note": "The goat-fish is one of the oldest surviving composite figures. The Greeks explained it as Pan escaping Typhon by turning his lower half into a fish."
+      }
+    },
+    {
+      "key": "aquarius",
+      "startLonDeg": 300,
+      "name": { "en": "Aquarius", "es": "Acuario" },
+      "line": {
+        "en": "The water bearer pours a stream that runs down to the mouth of the Southern Fish, in a stretch of sky the old maps filled with water.",
+        "es": "El aguador vierte una corriente que baja hasta la boca del Pez Austral, en un tramo de cielo que los mapas antiguos llenaron de agua."
+      },
+      "source": {
+        "source": "Babylonian GU.LA (the Great One) in MUL.APIN (c. 1000 BCE); the Greek region called the Sea",
+        "date": "2026-09-04",
+        "note": "Greek and Roman maps called this whole region the Sea: the river, the two fishes, the sea-goat, the whale and the Southern Fish that the stream falls into."
+      }
+    },
+    {
+      "key": "pisces",
+      "startLonDeg": 330,
+      "name": { "en": "Pisces", "es": "Piscis" },
+      "line": {
+        "en": "Two fish tied by a cord close the round of signs, and the March equinox has drifted into them since the zodiac was drawn.",
+        "es": "Dos peces atados por un cordel cierran la rueda de los signos, y el equinoccio de marzo se corrió hacia ellos desde que se trazó el zodíaco."
+      },
+      "source": {
+        "source": "Babylonian ribbon joining the two fish (MUL.APIN, c. 1000 BCE); star name Alrescha from Arabic al-rishāʼ, the cord",
+        "date": "2026-09-04",
+        "note": "Precession has carried the March equinox from Aries into Pisces since the scheme was fixed, which is why the tropical signs no longer sit on the constellations that named them."
+      }
+    }
+  ],
+  "fullMoons": {
+    "hemisphereNote": {
+      "en": "These names follow the seasons of the northern hemisphere, where the list was made; south of the equator the month and the season do not agree.",
+      "es": "Estos nombres siguen las estaciones del hemisferio norte, donde se armó la lista; al sur del ecuador el mes y la estación no coinciden."
+    },
+    "months": [
+      {
+        "month": 1,
+        "name": { "en": "Wolf Moon", "es": "Luna del Lobo" },
+        "source": {
+          "source": "The Old Farmer's Almanac full Moon names (Yankee Publishing, annual since 1792)",
+          "date": "2026-09-04",
+          "note": "For the wolves heard in midwinter. The Almanac gives it among the Colonial American and Algonquian names it collected."
+        }
+      },
+      {
+        "month": 2,
+        "name": { "en": "Snow Moon", "es": "Luna de Nieve" },
+        "source": {
+          "source": "The Old Farmer's Almanac full Moon names (Yankee Publishing, annual since 1792)",
+          "date": "2026-09-04",
+          "note": "February carries the heaviest snowfall in the north-east of North America, where the list was collected."
+        }
+      },
+      {
+        "month": 3,
+        "name": { "en": "Worm Moon", "es": "Luna del Gusano" },
+        "source": {
+          "source": "The Old Farmer's Almanac full Moon names (Yankee Publishing, annual since 1792)",
+          "date": "2026-09-04",
+          "note": "For the earthworm casts that appear as the ground thaws. The Almanac also records Sap Moon for the same month, after the maple run."
+        }
+      },
+      {
+        "month": 4,
+        "name": { "en": "Pink Moon", "es": "Luna Rosa" },
+        "source": {
+          "source": "The Old Farmer's Almanac full Moon names (Yankee Publishing, annual since 1792)",
+          "date": "2026-09-04",
+          "note": "For the moss phlox, an early pink wildflower of eastern North America. The Moon itself takes no colour from it."
+        }
+      },
+      {
+        "month": 5,
+        "name": { "en": "Flower Moon", "es": "Luna de las Flores" },
+        "source": {
+          "source": "The Old Farmer's Almanac full Moon names (Yankee Publishing, annual since 1792)",
+          "date": "2026-09-04",
+          "note": "The month of full bloom in the northern spring."
+        }
+      },
+      {
+        "month": 6,
+        "name": { "en": "Strawberry Moon", "es": "Luna de Fresa" },
+        "source": {
+          "source": "The Old Farmer's Almanac full Moon names (Yankee Publishing, annual since 1792)",
+          "date": "2026-09-04",
+          "note": "For the short strawberry harvest of the north-eastern woodlands, which falls in June."
+        }
+      },
+      {
+        "month": 7,
+        "name": { "en": "Buck Moon", "es": "Luna del Ciervo" },
+        "source": {
+          "source": "The Old Farmer's Almanac full Moon names (Yankee Publishing, annual since 1792)",
+          "date": "2026-09-04",
+          "note": "The new antlers of male deer push out in July, which is where the name comes from."
+        }
+      },
+      {
+        "month": 8,
+        "name": { "en": "Sturgeon Moon", "es": "Luna del Esturión" },
+        "source": {
+          "source": "The Old Farmer's Almanac full Moon names (Yankee Publishing, annual since 1792)",
+          "date": "2026-09-04",
+          "note": "Sturgeon were most readily taken from the Great Lakes in this month."
+        }
+      },
+      {
+        "month": 9,
+        "name": { "en": "Corn Moon", "es": "Luna del Maíz" },
+        "source": {
+          "source": "The Old Farmer's Almanac full Moon names (Yankee Publishing, annual since 1792)",
+          "date": "2026-09-04",
+          "note": "For the corn harvest. The Almanac's Harvest Moon is the full Moon nearest the September equinox, which lands in October about one year in three, so this list keeps Corn Moon as the September name."
+        }
+      },
+      {
+        "month": 10,
+        "name": { "en": "Hunter's Moon", "es": "Luna del Cazador" },
+        "source": {
+          "source": "The Old Farmer's Almanac full Moon names (Yankee Publishing, annual since 1792)",
+          "date": "2026-09-04",
+          "note": "The hunt after the harvest, with the fields cleared and the game visible in them."
+        }
+      },
+      {
+        "month": 11,
+        "name": { "en": "Beaver Moon", "es": "Luna del Castor" },
+        "source": {
+          "source": "The Old Farmer's Almanac full Moon names (Yankee Publishing, annual since 1792)",
+          "date": "2026-09-04",
+          "note": "Beavers finish their lodges before the freeze, and November was the season of the beaver traps."
+        }
+      },
+      {
+        "month": 12,
+        "name": { "en": "Cold Moon", "es": "Luna Fría" },
+        "source": {
+          "source": "The Old Farmer's Almanac full Moon names (Yankee Publishing, annual since 1792)",
+          "date": "2026-09-04",
+          "note": "For the long cold nights of December. The Almanac records Long Night Moon for the same month."
+        }
+      }
+    ]
+  },
+  "phases": [
+    {
+      "key": "new",
+      "line": {
+        "en": "The old lunisolar calendars turn the month on this moment, when the Moon rides with the Sun and shows no light at all.",
+        "es": "Los antiguos calendarios lunisolares hacen girar el mes en este momento, cuando la Luna acompaña al Sol y no muestra nada de luz."
+      },
+      "source": {
+        "source": "Chinese lunisolar calendar, which sets the first day of the month at conjunction",
+        "date": "2026-09-04",
+        "note": "The Moon is in conjunction with the Sun and the lit side faces away. The Chinese calendar begins the month at this computed instant rather than at first sight of the crescent."
+      }
+    },
+    {
+      "key": "waxingCrescent",
+      "line": {
+        "en": "A thin crescent first sighted after sunset is what opened the month in Babylon, and still opens it in the Islamic calendar.",
+        "es": "Un creciente fino avistado tras el ocaso es lo que abría el mes en Babilonia, y todavía lo abre en el calendario islámico."
+      },
+      "source": {
+        "source": "Babylonian, Hebrew and Islamic month reckoning; the hilāl, the first visible crescent",
+        "date": "2026-09-04",
+        "note": "The month began with the first evening sighting of the crescent. The Islamic calendar still fixes it that way; the Hebrew calendar computes the same moment instead of sighting it."
+      }
+    },
+    {
+      "key": "firstQuarter",
+      "line": {
+        "en": "Half the face is lit at the first quarter: the name counts a quarter of the cycle, not a quarter of the disc.",
+        "es": "En el cuarto creciente la mitad de la cara está iluminada: el nombre cuenta un cuarto del ciclo, no un cuarto del disco."
+      },
+      "source": {
+        "source": "English almanac usage for the four quarters of the lunation",
+        "date": "2026-09-04",
+        "note": "One quarter of the way through the 29.5-day cycle. The mismatch between the name and the shape has been confusing readers of almanacs for centuries."
+      }
+    },
+    {
+      "key": "waxingGibbous",
+      "line": {
+        "en": "Gibbous is from the Latin for humped, the almanacs' word for the swollen shape between the quarter and the full Moon.",
+        "es": "Gibosa viene del latín gibbus, joroba: la palabra de los almanaques para la forma hinchada entre el cuarto y la luna llena."
+      },
+      "source": {
+        "source": "Latin gibbus (hump), taken into English astronomical usage in the 17th century",
+        "date": "2026-09-04",
+        "note": "The word covers both sides of full and is one of the few purely descriptive phase names in the almanac vocabulary."
+      }
+    },
+    {
+      "key": "full",
+      "line": {
+        "en": "The full Moon rises as the Sun sets, and it is the one that carries the month names the old almanacs kept.",
+        "es": "La luna llena sale cuando el Sol se pone, y es la que lleva los nombres de mes que guardaban los almanaques antiguos."
+      },
+      "source": {
+        "source": "Farmers' almanac tradition; the folk month names collected in this same file",
+        "date": "2026-09-04",
+        "note": "At opposition the Moon rises near sunset and sets near sunrise, which is the whole reason a working calendar counted by it."
+      }
+    },
+    {
+      "key": "waningGibbous",
+      "line": {
+        "en": "Past full, the almanacs speak of the Moon on the wane, rising later into the night and thinning from one edge.",
+        "es": "Pasada la llena, los almanaques hablan de la luna en menguante, que sale cada noche más tarde y adelgaza desde un borde."
+      },
+      "source": {
+        "source": "English almanac usage; wane from Old English wanian, to lessen",
+        "date": "2026-09-04",
+        "note": "Wax and wane are the older pair of terms and cover the whole cycle between them: wax from new to full, wane from full to new."
+      }
+    },
+    {
+      "key": "lastQuarter",
+      "line": {
+        "en": "The last quarter rises near midnight and stands highest at dawn, the half of the month the old reckoning treats as the closing one.",
+        "es": "El último cuarto sale cerca de la medianoche y alcanza su punto más alto al amanecer, la mitad del mes que el cómputo antiguo toma como final."
+      },
+      "source": {
+        "source": "English almanac usage; also recorded as the third quarter",
+        "date": "2026-09-04",
+        "note": "Three quarters of the way through the lunation, with the other half of the face lit than at the first quarter."
+      }
+    },
+    {
+      "key": "waningCrescent",
+      "line": {
+        "en": "The last sliver before dawn is the old Moon of English usage, the counterpart of the young crescent of the evening sky.",
+        "es": "La última hoz antes del alba es la «luna vieja» del uso inglés, la contraparte del creciente joven del cielo del atardecer."
+      },
+      "source": {
+        "source": "English usage: the old Moon, the morning crescent before conjunction",
+        "date": "2026-09-04",
+        "note": "The old Moon rises just ahead of the Sun. The young and the old crescents frame the month between them, one in the evening and one at dawn."
+      }
+    }
+  ]
+}
