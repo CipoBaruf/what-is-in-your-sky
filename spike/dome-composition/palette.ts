@@ -64,7 +64,8 @@ export const PALETTES: Record<string, Record<string, DomePalette>> = {
       shadow: '#d95a48',
       now: '#ffd8cd',
       horizon: '#c05545',
-      rings: '#8a3a2e',
+      // 3.39 : 1 on the night ground; the darker #8a3a2e this started from measured 2.67 and fails FR-THEME-2's non-text bar.
+      rings: '#a3453a',
       compass: '#ff8f7d',
       sun: '#ff7a52',
       moon: '#ffb3a0',
@@ -100,7 +101,8 @@ export const PALETTES: Record<string, Record<string, DomePalette>> = {
       shadow: '#d9604a',
       now: '#ffe0cf',
       horizon: '#c46046',
-      rings: '#8c4230',
+      // 3.44 : 1; #8c4230 measured 2.87 and fails FR-THEME-2.
+      rings: '#a04a33',
       compass: '#ff9b7a',
       sun: '#ff8a4d',
       moon: '#ffc0a3',

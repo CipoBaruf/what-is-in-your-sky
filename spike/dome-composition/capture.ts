@@ -370,10 +370,16 @@ async function main(): Promise<void> {
       // The desktop grid (FR-DOME-1): the same composition with the column count the width buys.
       runs.push(await measure(desktopPage, desktop, 'layered @1280', at(chosen, { pass: 'high', width: DESKTOP_WIDTH, cols: colsFor(DESKTOP_WIDTH) }), 6, 'drag'));
       runs.push(await measure(desktopPage, desktop, 'layered @1280, fallbacks', at(chosen, { pass: 'high', width: DESKTOP_WIDTH, cols: colsFor(DESKTOP_WIDTH), tol: 128, downscale: 2, dropBaseOnDrag: true }), 6, 'drag'));
+      // The same box with the column count capped: is a coarser desktop grid the cheaper answer than the fallbacks?
+      runs.push(await measure(desktopPage, desktop, 'layered @1280, 140 cols', at(chosen, { pass: 'high', width: DESKTOP_WIDTH, cols: 140 }), 6, 'drag'));
+      runs.push(await measure(desktopPage, desktop, 'layered @1280, 120 cols', at(chosen, { pass: 'high', width: DESKTOP_WIDTH, cols: 120 }), 6, 'drag'));
+      runs.push(await measure(desktopPage, desktop, 'layered @1280, 100 cols', at(chosen, { pass: 'high', width: DESKTOP_WIDTH, cols: 100 }), 6, 'drag'));
       // Unthrottled reference, and the pulse on its own (FR-DOME-8d: does it hold ≥ 30 updates/s?).
       runs.push(await measure(phonePage, phone, 'layered, no throttle', at(chosen, { pass: 'high', width: PHONE_WIDTH, cols: colsFor(PHONE_WIDTH) }), 1, 'drag'));
       runs.push(await measure(phonePage, phone, 'pulse only, no drag', at(chosen, { pass: 'high', width: PHONE_WIDTH, cols: colsFor(PHONE_WIDTH), pulse: true }), 6, 'pulse'));
       runs.push(await measure(phonePage, phone, 'pulse only, lines only', at(chosen, { pass: 'high', width: PHONE_WIDTH, cols: colsFor(PHONE_WIDTH), pulse: true, base: false }), 6, 'pulse'));
+      runs.push(await measure(phonePage, phone, 'pulse only, asking for 60/s', at(chosen, { pass: 'high', width: PHONE_WIDTH, cols: colsFor(PHONE_WIDTH), pulse: true, pulseHz: 60 }), 6, 'pulse'));
+      runs.push(await measure(phonePage, phone, 'pulse only, asking for 60/s, no throttle', at(chosen, { pass: 'high', width: PHONE_WIDTH, cols: colsFor(PHONE_WIDTH), pulse: true, pulseHz: 60 }), 1, 'pulse'));
     }
     results['perf'] = runs;
     console.table(runs.map(({ name, cpuThrottle, action, rasterPerSecond, longestFrameGapMs, spans }) => ({ name, cpuThrottle, action, rasterPerSecond, longestFrameGapMs, spans })));

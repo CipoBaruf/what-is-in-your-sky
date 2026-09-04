@@ -339,7 +339,8 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
 - Every UI task ships captures through the `visual-review` skill: 390 px always, 1280 px from R23 on, both languages from R17 on, both themes from R20 on.
 - **Model** is `opus` on every task (PLAN §16.6 as amended by D-88, 2026-09-03): the account's Fable limit stopped R16 mid-run, and the six tasks that policy put on Fable were the whole dome and live-page line.
 
-- [ ] **R16 — Dome composition spike: every knob as a URL parameter, captures and drag rates**
+- [x] **R16 — Dome composition spike: every knob as a URL parameter, captures and drag rates**
+  - **Done 2026-09-03:** as specified. `spike/dome-composition/` (page, geometry, palettes, candidates, capture script) with `npm run spike:dome-composition` regenerating every capture and figure in `docs/dome-composition/`; five candidates compared in `findings.md`. Differences from the task text: the highlighted pass is **not** recommended at a finer per-mesh density — the knob exists in glyphcss 0.1.6 but misplaces its `<pre>`, so FR-DOME-8c is dropped (D-90); and the fallback that saves the desktop grid is a column cap, not one of the three PLAN §8.7 fallbacks (D-91). P-OQ-4 answered in §2 of the findings; the recommendation is D-92.
   - **Lane:** chart
   - **Model:** opus
   - **Gate:** owner
