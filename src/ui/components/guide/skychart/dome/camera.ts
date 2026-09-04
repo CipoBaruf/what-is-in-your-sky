@@ -119,7 +119,7 @@ export const AMBIENT_INTENSITY = 0.35;
 export const KEY_INTENSITY = 0.85;
 
 /**
- * D-93: FR-DOME-6 puts the real Sun on the chart, and that is R22's task —
+ * D-111: FR-DOME-6 puts the real Sun on the chart, and that is R22's task —
  * it owns the prop that carries it. Until then the base layer's key light
  * points along a fixed civil-twilight direction, so the bowl is shaded from
  * one side rather than lit flat, and R22 replaces this with the Sun the

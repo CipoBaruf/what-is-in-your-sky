@@ -115,10 +115,11 @@ test('the dome is the default view, shares the polar frame, faces the rise point
   expect(Math.abs(box.width - box.height)).toBeLessThanOrEqual(2); // the shared square box
   const preBox = await pre.boundingBox();
   if (!preBox) throw new Error('raster has no box');
-  // 60 columns fit the box (a 1 px border each side) and nearly fill it: the font is fitted to the measured row, so a platform that rounds
-  // glyph advances to whole pixels (Linux Chromium) gets a slightly smaller, centred raster rather than an overflowing one.
-  expect(preBox.width).toBeLessThanOrEqual(box.width - 2 + 1);
-  expect(preBox.width).toBeGreaterThanOrEqual((box.width - 2) * 0.8);
+  // FR-DOME-1: no frame, so the columns fill the box itself rather than the box less a border. The font is fitted to the measured
+  // row, so a platform that rounds glyph advances to whole pixels (Linux Chromium) gets a slightly smaller, centred raster
+  // rather than an overflowing one — hence the 1 px of slack.
+  expect(preBox.width).toBeLessThanOrEqual(box.width + 1);
+  expect(preBox.width).toBeGreaterThanOrEqual(box.width * 0.8);
   expect(Math.abs(preBox.height - preBox.width)).toBeLessThanOrEqual(2);
   expect(Math.abs(preBox.x + preBox.width / 2 - (box.x + box.width / 2))).toBeLessThanOrEqual(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

@@ -182,11 +182,12 @@ function DomeLabels({ labels, rotY, onSelect }: DomeLabelsProps) {
               className={[styles.label, CLASS_FOR[label.kind], passClass].filter(Boolean).join(' ')}
               data-side={sideOf(label.at, rotY)}
               {...(label.color ? { style: { color: label.color } } : {})}
-              {...(label.anchor ? { 'data-anchor': label.anchor } : {})}
+              {...(label.anchor && !selectable ? { 'data-anchor': label.anchor } : {})}
               {...(selectable ? { 'data-pass-id': passId } : {})}
               {...(select ? { onClick: select } : {})}
             >
-              {label.text}
+              {/* D-56: the polar view nests the name inside the element carrying `data-pass-id`, so the dome does too and one selector reads both. */}
+              {selectable && label.anchor ? <span data-anchor={label.anchor}>{label.text}</span> : label.text}
             </span>
           </GlyphHotspot>
         );
@@ -329,7 +330,7 @@ export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now
     [passes, highlightedPassId, palette, rotY, camera.tiltDeg, labelsFor, measure, now],
   );
 
-  // FR-DOME-8a: the key light points along the Sun's real direction. Until R22 supplies the Sun, that is the fixed twilight direction of D-93.
+  // FR-DOME-8a: the key light points along the Sun's real direction. Until R22 supplies the Sun, that is the fixed twilight direction of D-111.
   const [lightX, lightY, lightZ] = sunDirection(DEFAULT_SUN);
   const colored = palette !== null;
   const ready = fontReady && measured;
