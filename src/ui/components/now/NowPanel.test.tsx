@@ -7,6 +7,7 @@
 import { act, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it } from 'vitest';
+import { MOON_FIXTURE } from '../../../../tests/support/moonFixtures';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
 import type { NowItem, NowState, Observer, WeatherSnapshot } from '../../../model';
@@ -31,7 +32,7 @@ const item = (over: Partial<NowItem> = {}): NowItem => ({
   visible: true,
   ...over,
 });
-const state = (over: Partial<NowState> = {}): NowState => ({ t: T, sunAltDeg: -30, sky: 'dark', items: [], ...over });
+const state = (over: Partial<NowState> = {}): NowState => ({ t: T, sunAltDeg: -30, sky: 'dark', items: [], moon: MOON_FIXTURE, ...over });
 const set = (patch: Partial<AppState>): void => {
   act(() => {
     appStore.setState(patch);

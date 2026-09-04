@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { Pass } from '../model';
+import { NO_MOON_AT_PEAK } from '../../tests/support/moonFixtures';
 import { bestScore, isPassSort, nextFeaturedPass, sortPasses } from './passSort';
 
 const T0 = 1_789_120_000_000;
@@ -25,6 +26,7 @@ function pass(id: string, noradId: number, startOffsetS: number, elDeg: number, 
     twilight: false,
     track: [],
     elementsEpochMs: T0,
+    ...NO_MOON_AT_PEAK, // the sort does not read the Moon (R19)
   };
 }
 

@@ -389,7 +389,8 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - A 72 h × 31-object run in Node stays within the §9.1 budget and night 1 within the MVP budget; the number is in the PR.
     - `passes.golden.test.ts` unchanged and green for all three fixtures; worker chunk within the v1 budget.
 
-- [ ] **R19 — The Moon in the worker: phase, illumination and glare**
+- [x] **R19 — The Moon in the worker: phase, illumination and glare**
+  - **Done 2026-09-04:** as specified. Differences: `MoonPhaseName` takes the camelCase spelling of R29's `MoonPhaseKey` rather than §5's hyphenated one, so `phaseLore(moon.phase)` needs no translation table, and a test pins the two lists equal (D-103); the phase bands are the four cardinal names ±7.5° with crescent and gibbous filling the rest, so "gibbous" always means more than half lit; `moonGlare`'s `separationDeg` is null only when there is no `MoonState` at all — a Moon below the horizon still gets its separation measured, because the angle is a fact either way. The published reference is Meeus's worked examples 47.a / 48.a / 49.a with the frame conversion reimplemented in the test, `sun.test.ts`'s arrangement with the NOAA calculator (D-104); agreement is 0.002° against the 0.1° the acceptance asks for. Cost: 24 h search 597 ms against 580 before (budget 1500), 72 h 1988 ms against 1922 (budget 4500), night 1 640 ms; worker chunk 36.1 KB gzipped against 120, no new dependency. `MoonGlareThresholds` was added to `model/moon.ts` — the scope names the parameter but §5 did not type it.
   - **Lane:** physics
   - **Model:** opus
   - **Gate:** auto

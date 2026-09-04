@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { server } from '../../tests/setup/msw';
 import { DAY_MS, fixtureRecords, goldenWindowStart, loadReferenceValues } from '../../tests/support/catalogFixtures';
 import { idbCache } from '../../tests/support/elementsCache';
+import { MOON_FIXTURE, NO_MOON_AT_PEAK } from '../../tests/support/moonFixtures';
 import { CATALOG } from '../data/catalog';
 import { loadElements } from '../data/elementsLoader';
 import type { CatalogEntry, NowState, Observer, Pass, SatelliteRecord, WeatherSnapshot } from '../model';
@@ -41,6 +42,7 @@ const samplePass = (noradId: number, startT: number): Pass => {
     twilight: false,
     track: [],
     elementsEpochMs: ref.t,
+    ...NO_MOON_AT_PEAK, // the effects do not read the Moon (R19)
   };
 };
 
@@ -215,7 +217,7 @@ function fakeVisibility(): VisibilitySource & { set: (hidden: boolean) => void }
   };
 }
 
-const nowState = (t: number): NowState => ({ t, sunAltDeg: -30, sky: 'dark', items: [] });
+const nowState = (t: number): NowState => ({ t, sunAltDeg: -30, sky: 'dark', items: [], moon: MOON_FIXTURE });
 
 describe('the "Now" tick (FR-VIS-5, US-4 AC2)', () => {
   let store: AppStore;
