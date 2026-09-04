@@ -13,6 +13,9 @@ export type { PassesState, PassesStatus } from './slices/passes';
 export type { NowSliceState } from './slices/now';
 export type { WeatherSliceState, WeatherStatus } from './slices/weather';
 export { SEARCH_WINDOW_HOURS, SEARCH_WINDOW_NIGHTS } from './passWindow';
+/** R25 (FR-OFF-1): the app shell's service worker; `main.tsx` registers it, the store carries the waiting version (D-79, D-126). */
+export { registerServiceWorker, SERVICE_WORKER_URL, SKIP_WAITING } from './serviceWorker';
+export type { AppUpdateSlice } from './slices/appUpdate';
 export { NOW_TICK_MS, ELEMENTS_RECHECK_MS } from './effects';
 /** The thresholds the state sends to the worker (D-27); the UI quotes them (e.g. "above 10°") from here, never from `src/physics`. */
 export { DEFAULT_THRESHOLDS } from '../physics/constants';

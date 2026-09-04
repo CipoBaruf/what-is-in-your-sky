@@ -1,6 +1,7 @@
 import { useStore } from 'zustand/react';
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import { localPrefs } from '../data/localPrefs';
+import { createAppUpdateSlice, type AppUpdateSlice } from './slices/appUpdate';
 import { createElementsSlice, type ElementsSlice } from './slices/elements';
 import { createLocationSlice, type LocationDeps, type LocationSlice } from './slices/location';
 import { createNowSlice, type NowSlice } from './slices/now';
@@ -17,7 +18,7 @@ import { createWeatherSlice, type WeatherSlice } from './slices/weather';
  * (FR-LOC-5), the whole `Prefs` object being rewritten with the new observer
  * (or without one) so other preferences survive.
  */
-export type AppState = LocationSlice & ElementsSlice & PassesSlice & NowSlice & WeatherSlice & PrefsSlice;
+export type AppState = LocationSlice & ElementsSlice & PassesSlice & NowSlice & WeatherSlice & PrefsSlice & AppUpdateSlice;
 export type AppStore = StoreApi<AppState>;
 
 export type AppStoreDeps = LocationDeps & PrefsDeps;
@@ -30,6 +31,7 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
     ...createNowSlice(...a),
     ...createWeatherSlice(...a),
     ...createPrefsSlice(deps)(...a),
+    ...createAppUpdateSlice(...a),
   }));
   store.subscribe((state, previous) => {
     if (state.observer === previous.observer) return;
