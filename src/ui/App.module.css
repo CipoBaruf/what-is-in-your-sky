@@ -57,4 +57,21 @@
     gap: var(--row) calc(3 * var(--cell));
     align-items: start;
   }
+
+  /* FR-DESK-3: with a pass open the right column splits in two. The list
+     keeps at least 44 cells — the width the cards were designed at, and the
+     chart's own square — and the guide takes the rest, a shade wider so the
+     chart is not the narrower of the two. */
+  .column[data-guide='open'] {
+    grid-template-columns: minmax(calc(44 * var(--cell)), 1fr) minmax(0, 1.05fr);
+    align-items: start;
+    gap: calc(3 * var(--cell));
+  }
+
+  /* The list scrolls itself rather than the page, so the guide beside it
+     stays in view however long the list is (the mockup's 34 rows). */
+  .column[data-guide='open'] .listColumn {
+    max-height: calc(34 * var(--row));
+    overflow-y: auto;
+  }
 }

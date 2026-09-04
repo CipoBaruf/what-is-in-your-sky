@@ -4,6 +4,15 @@
   padding: calc(var(--row) / 2) var(--cell);
 }
 
+/* R23 (FR-DESK-3): the pass the guide is open on. Wide keeps the list beside
+   the guide, so the card says which one it is showing — the accent frame and
+   the raised ground of the mockup, on top of `aria-current` for anyone who is
+   not looking at it. */
+.card[data-selected] {
+  border-color: var(--accent);
+  background: var(--bg-raised);
+}
+
 /* The card is the hit area, so the card wears the focus ring. */
 .card:has(.open:focus-visible) {
   outline: 2px solid var(--accent);

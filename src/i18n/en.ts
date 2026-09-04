@@ -199,6 +199,10 @@ export const en = {
 
   guide: {
     back: '← Back to the list',
+    /** R23 (FR-DESK-3): the wide panel's close control. The glyph is `×`; this is what it is called. */
+    close: 'Close the guide',
+    /** The wide panel is a labelled region rather than a dialog (D-118), so it says what kind of region it is. */
+    panelLabel: (p: { name: string }) => `Guide: ${p.name}`,
     /**
      * FR-GUIDE-1 / US-6 AC1, plus the FR-VIS-7 clause. The whole sentence is
      * one function: English puts the direction after the elevation and the

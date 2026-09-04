@@ -50,9 +50,11 @@ export const HERO_CHECK_MS = 30_000;
 export interface PassListProps {
   /** Opens the detail screen for a pass (R6). Without it the cards are read-only. */
   onOpenPass?: (passId: string) => void;
+  /** The open pass, marked on its card (FR-DESK-3). The wide layout leaves the list on screen beside the guide, so it has to say which one is open. */
+  selectedPassId?: string | null;
 }
 
-export function PassList({ onOpenPass }: PassListProps) {
+export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
   const t = useT();
   const observer = useAppStore((s) => s.observer);
   const elements = useAppStore((s) => s.elements);
@@ -78,13 +80,13 @@ export function PassList({ onOpenPass }: PassListProps) {
       <p role="status" aria-live="polite" aria-busy={busy} className={styles.status}>
         {statusText(observer, elements, passes, t)}
       </p>
-      {showList && hero && <IssHeroCard pass={hero} timeZone={observer.timeZone} weather={snapshot} {...open} />}
+      {showList && hero && <IssHeroCard pass={hero} timeZone={observer.timeZone} weather={snapshot} selected={hero.id === selectedPassId} {...open} />}
       {showList && <SortToggle value={sort} onChange={setSort} />}
       {showList && rest.length > 0 && (
         <ol className={styles.list}>
           {rest.map((pass) => (
             <li key={pass.id}>
-              <PassCard pass={pass} timeZone={observer.timeZone} weather={snapshot} {...open} />
+              <PassCard pass={pass} timeZone={observer.timeZone} weather={snapshot} selected={pass.id === selectedPassId} {...open} />
             </li>
           ))}
         </ol>

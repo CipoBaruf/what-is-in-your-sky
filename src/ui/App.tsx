@@ -7,6 +7,7 @@ import { Footer } from './components/common/Footer';
 import { LanguageToggle } from './components/common/LanguageToggle';
 import { ThemeToggle } from './components/common/ThemeToggle';
 import { ElementsBanners } from './components/elements/ElementsBanners';
+import { useLayoutMode } from './hooks/useLayoutMode';
 import { LocationInput } from './components/location/LocationInput';
 import { NowPanel } from './components/now/NowPanel';
 import { PassList } from './components/passes/PassList';
@@ -29,6 +30,12 @@ import { findSelectedPass, usePassSelection } from './screens/passSelection';
  * locale wrapped around the screen, so switching re-renders everything
  * without touching the URL or the state (FR-I18N-5). R20 puts the theme
  * switch beside it (US-19) and `AppRoot` writes `data-theme` from the store.
+ * R23 (FR-DESK-2/3): the same elements in two columns from 100 cells up —
+ * location, banners and the Now panel in the left one, the passes in the
+ * right one, the header spanning both. The guide is rendered inside the
+ * right column, where the wide shell wants it; the compact sheet portals
+ * itself out to the body from there (D-117), which is why the page can still
+ * be made inert around it.
  */
 export function App() {
   const t = useT();
@@ -38,7 +45,10 @@ export function App() {
   const passes = useAppStore((s) => s.passes.passes);
   const { selectedId, open, close } = usePassSelection();
   const selected = useMemo(() => findSelectedPass(passes, selectedId), [passes, selectedId]);
-  const inert = selected !== null;
+  const mode = useLayoutMode();
+  // Only the compact sheet covers the page; the wide panel opens beside the
+  // list, which stays live (FR-DESK-3).
+  const inert = selected !== null && mode === 'compact';
   return (
     <>
       <header inert={inert} className={styles.header}>
@@ -57,12 +67,15 @@ export function App() {
           <ElementsBanners />
           <NowPanel />
         </div>
-        <div className={styles.column}>
-          <PassList onOpenPass={open} />
+        <div className={styles.column} data-guide={selected !== null ? 'open' : 'closed'}>
+          <div className={styles.listColumn}>
+            {/* The resolved pass, not the hash: the id in the hash can be a second out (D-33) and would highlight nothing. */}
+            <PassList onOpenPass={open} selectedPassId={selected ? selected.id : null} />
+          </div>
+          {selected && observer && <PassDetail pass={selected} observer={observer} onClose={close} />}
         </div>
       </main>
       <Footer inert={inert} />
-      {selected && observer && <PassDetail pass={selected} observer={observer} onClose={close} />}
     </>
   );
 }
