@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { applyLocale } from './i18n/useT';
-import { appStore, registerServiceWorker, startApp } from './state';
+import { appStore, startApp } from './state';
 import { AppRoot } from './ui/App';
 import { applyTheme } from './ui/styles/theme';
 import './ui/styles/tokens.css';
@@ -30,12 +30,14 @@ createRoot(root).render(
   </StrictMode>,
 );
 
-/**
- * R25 (FR-OFF-1, D-79): the app shell's service worker, registered after the
- * first render — on `load`, so fetching and installing the precache never
- * competes with the first paint or with the elements the page came here for.
- * Production only, and a browser without service workers simply gets none:
- * `registerServiceWorker` decides both (PLAN §7.7).
+/*
+ * R25 (FR-OFF-1, D-79), still to come: the app shell's service worker is
+ * registered here, after the first render — on `load`, so installing the
+ * precache never competes with the first paint. `state/serviceWorker.ts` and
+ * its tests are done; the two lines below wait on `vite-plugin-pwa`, because
+ * registering a `/sw.js` no build generates gets the static host's HTML
+ * fallback and an error in every console (see the R25 note in TASKS.md).
+ *
+ *   if (document.readyState === 'complete') void registerServiceWorker(appStore);
+ *   else window.addEventListener('load', () => void registerServiceWorker(appStore), { once: true });
  */
-if (document.readyState === 'complete') void registerServiceWorker(appStore);
-else window.addEventListener('load', () => void registerServiceWorker(appStore), { once: true });
