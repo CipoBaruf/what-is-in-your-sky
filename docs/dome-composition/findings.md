@@ -16,13 +16,16 @@
 Every candidate is a diff against the spike's defaults, so its query string *is* its definition. Open any of them with
 `/spike/dome-composition/?candidate=<name>` and turn any knob from there.
 
-| # | Candidate | Query | Captures | Drag rate at 390 px, 6× |
+| # | Candidate | Parameters (the diff from the defaults) | Captures | Drag rate at 390 px, 6× |
 |---|---|---|---|---|
-| A | mono, one scene (the R15 control) | `?candidate=mono` → `base=0&colors=0&set=mono&tilt=45&pulse=0` | `mono-{golden,high}-{390,1280}.png`, `mono-night-390.png` | ≈ 38–40/s |
-| B | lean: colour, one scene | `?candidate=lean` → `base=0&tilt=40&mer=cardinal&pulse=1` | `lean-*.png` | ≈ 34–35/s |
-| C | layered: PLAN §8.7 in full | `?candidate=layered` → `tilt=45&pulse=1` | `layered-*.png` | ≈ 33/s |
-| D | layered with all three fallbacks | `?candidate=layered-coarse` → `tilt=50&baseratio=0.34&tol=128&downscale=2&dropbase=1&pulse=1` | `layered-coarse-*.png` | ≈ 35/s |
-| E | ground only, warm set | `?candidate=ground-only` → `bowl=0&set=warm&tilt=35&pulse=1` | `ground-only-*.png` | ≈ 33/s |
+| A | mono, one scene (the R15 control) | `?candidate=mono` — `base=0 colors=0 set=mono pulse=0` | `mono-{golden,high}-{390,1280}.png`, `mono-night-390.png` | ≈ 38–40/s |
+| B | lean: colour, one scene | `?candidate=lean` — `base=0 mer=cardinal tilt=40 pulse=1` | `lean-*.png` | ≈ 34–35/s |
+| C | layered: PLAN §8.7 in full | `?candidate=layered` — `pulse=1` (everything else is the default composition) | `layered-*.png` | ≈ 33/s |
+| D | layered with all three fallbacks | `?candidate=layered-coarse` — `tilt=50 baseratio=0.34 tol=128 downscale=2 dropbase=1 pulse=1` | `layered-coarse-*.png` | ≈ 35/s |
+| E | ground only, warm set | `?candidate=ground-only` — `bowl=0 set=warm tilt=35 pulse=1` | `ground-only-*.png` | ≈ 33/s |
+
+The exact query string behind every capture is recorded in `measurements.json` (`shots.<name>.query`); the page writes
+the same string back to the address bar as you turn knobs, so a composition found by hand is a link.
 
 The exact figures of the last run are in `measurements.md`; a composition measured three times moved by up to
 3 rasterisations per second, so anything inside that band is a tie. All five candidates hold the FR-GUIDE-6 target at
@@ -109,11 +112,12 @@ R15's `layoutFor` does, where the grid is fixed at 60 columns) makes a coarser l
 The composition to build in R21, as a query string:
 
 ```
-/spike/dome-composition/?tilt=45&mer=eight&basepalette=blocks&baseratio=0.5&ambient=0.35&groundradius=1.1
+/spike/dome-composition/?candidate=layered
 ```
 
-(that is candidate **C**, `?candidate=layered`, which is the spike's default — the parameters below are the defaults in
-`spike/dome-composition/params.ts`.)
+That is candidate **C**, and every value below is already the default in `spike/dome-composition/params.ts` — the
+spike was left pointing at what it recommends, so `?candidate=layered` and a bare `/spike/dome-composition/` differ
+only by the pulse.
 
 | Decision | Value | Why |
 |---|---|---|
@@ -160,10 +164,16 @@ reading).
 
 ## 4. What this spike does not settle
 
-- **Label collisions.** The compass names and the pass labels still overlap at some cameras (`layered-golden-390.png`,
-  where `STARLINK-1130` sits on the horizon ring). FR-DOME-3's fixed resolution order is pure geometry and belongs in
+- **Label collisions.** The compass names and the pass labels still overlap at some cameras — in
+  `layered-golden-390.png` three of them (`STARLINK-1130`, the ISS name and time, and `max 10°`) pile up above the
+  dome and become one grey smear. FR-DOME-3's fixed resolution order is pure geometry and belongs in
   `domeGeometry.ts` with unit tests, as §8.7 says; the spike draws every label unmoved on purpose, so the collisions
-  are visible.
+  are visible rather than hidden by a half-measure.
+- **The grazing pass at 390 px.** The golden pass covers 13° of sky, which at 60 columns is four or five cells of arc
+  (`layered-golden-390.png` against `layered-high-390.png`). No composition fixes that — it is the grid's resolution,
+  and the 0.75° weight plus the highlight colour is the most that can be done inside it. It is an argument for the
+  numeric table beside the chart, not for a finer dome; the same pass at 1280 px (`layered-golden-1280.png`) reads
+  cleanly, which is FR-DOME-1's whole point.
 - **The two-pixel seam** between the layers (§2). It is a layout fix, not a composition one.
 - **FR-LIVE-5's 3600× playback.** The pulse measurement is the closest proxy here — a marker moving on its own at a
   fixed rate — and it holds 35/s at 6× throttle with the whole dome on screen. The real test is the live page's own
