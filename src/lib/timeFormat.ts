@@ -37,6 +37,16 @@ export function formatDate(t: EpochMs, timeZone: string | null, locale: Locale):
   return `${p.get('year') ?? '????'}-${p.get('month') ?? '??'}-${p.get('day') ?? '??'}`;
 }
 
+/**
+ * The calendar month, 1–12, of this instant in the display zone. The folk
+ * full-moon names are keyed by it (FR-MOON-4), and a month number is a number
+ * in both languages, so this one takes no locale.
+ */
+export function calendarMonth(t: EpochMs, timeZone: string | null): number {
+  const p = parts(t, timeZone, 'en', { month: 'numeric' });
+  return Number(p.get('month') ?? '1');
+}
+
 /** The zone abbreviation Intl gives, or the literal "UTC" when no zone is known yet. */
 export function zoneLabel(p: Map<string, string>, timeZone: string | null): string {
   if (!timeZone) return 'UTC';

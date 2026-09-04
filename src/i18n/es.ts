@@ -1,7 +1,7 @@
 import type { AgeParts } from '../lib/elementsAge';
 import type { CompassPoint } from '../lib/compass';
 import type { BrightnessBand, ElevationBand, GuideParams } from '../lib/phrases';
-import type { ChartOrientation, ChartView, CloudState, PassBoundaryReason, PassSort } from '../model';
+import type { ChartOrientation, ChartView, CloudState, MoonPhaseName, PassBoundaryReason, PassSort } from '../model';
 import type { Messages } from './messages';
 
 /**
@@ -69,6 +69,18 @@ const coordsInstead = 'ingresar coordenadas';
 
 const cloudState = { clear: 'Despejado', partly: 'Parcialmente nublado', obscured: 'Probablemente cubierto', unknown: 'Clima desconocido' } satisfies Record<CloudState, string>;
 
+/** Las ocho fases de FR-MOON-1. Los nombres tradicionales en español: los cuartos cuentan un cuarto del ciclo, no del disco. */
+const moonPhase = {
+  new: 'nueva',
+  waxingCrescent: 'creciente',
+  firstQuarter: 'cuarto creciente',
+  waxingGibbous: 'gibosa creciente',
+  full: 'llena',
+  waningGibbous: 'gibosa menguante',
+  lastQuarter: 'cuarto menguante',
+  waningCrescent: 'menguante',
+} satisfies Record<MoonPhaseName, string>;
+
 export const es: Messages = {
   app: {
     title: 'Qué hay en el cielo ahora mismo',
@@ -133,6 +145,22 @@ export const es: Messages = {
     remainingUnknown: 'visible por un rato más',
     clouds: 'Nubes ahora:',
     asOf: (time) => `a las ${time}`,
+  },
+
+  moon: {
+    phase: moonPhase,
+    line: (p) => `Luna: ${moonPhase[p.phase]}, ${p.illumination} % iluminada, ${p.up ? `${p.direction} ${p.azimuth}, ${p.elevation} de altura` : 'bajo el horizonte'}.`,
+    glare: {
+      label: 'resplandor lunar',
+      sentence: 'La Luna está brillante y cerca del recorrido.',
+      tooltip: (p) =>
+        `La Luna está iluminada al ${p.illumination} % y a ${p.separation} del máximo del pase. Un pase queda marcado cuando la Luna está sobre el horizonte en el máximo, iluminada al menos al ${p.minIllumination} % y a menos de ${p.maxSeparation}.`,
+    },
+    lore: {
+      heading: 'La Luna esta noche',
+      tradition: 'tradición',
+      line: (p) => `La Luna está en ${p.sign}${p.fullMoonName === null ? '' : ` y la luna llena de este mes se conoce como ${p.fullMoonName}`}. ${p.line}`,
+    },
   },
 
   passes: {
