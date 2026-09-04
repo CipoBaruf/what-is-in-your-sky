@@ -318,6 +318,8 @@ These plan SPEC v1.0 (V1-1..V1-11). Nothing here is implemented yet; each decisi
 
 - **D-127 — The manifest is hand-written and the icons are drawn from the tokens by a script.** `vite-plugin-pwa` can generate the manifest from its config, but FR-OFF-6 fixes what it must say and the file is then a fifteen-line constant: keeping it at `public/manifest.webmanifest` means the deployed bytes are in the repository, reviewable and pinned by `tests/deploy/manifest.test.ts` the way `public/_headers` is (D-25), rather than assembled at build time. The icons come from `scripts/build-icons.ts`, which writes 8-bit RGB PNGs with `node:zlib` and no image dependency: a 16 × 16 cell grid — the grid the whole app is laid out on — carrying a pass arcing over a horizon rule, in `--chart-pass`, `--chart-peak` and `--chart-horizon` on `--bg`, so the identity is the tokens and a theme change is a one-line edit and a rerun. 16 divides both 192 and 512 exactly, so the two files are one drawing at two resolutions with no resampling, and the drawing stays inside the central 80 % a maskable icon is cropped to, which is why two `any` icons are enough and there is no third file.
 
+- **D-131 — The four open dome and live-page tasks go back on Fable, with a per-run override for the retry.** D-88 moved every v1 task to Opus because R16's Fable session hit the account's limit, and the six tasks on Fable were one dependency line — the argument was never that Fable was the wrong model for them, only that the phase could not afford a second limit. On 2026-09-04 the owner made Fable the account's default model, and the question came back with the queue at ten tasks. The §16.6 criterion is applied as written: R22, R32, R33 and R34 — the live marker in both views, the live page, the time stripe and playback, landscape and compass follow — are captures, snapshots and a ≥ 30 updates/s drag rate the session can produce and check itself, so their `Model:` is `fable` again; R16 and R21 are merged, so nothing is re-run. R31, R26, R27, R28, R35 and R36 stay on Opus for D-88's reason: a hash a stranger's device must parse, an LRU over stored observers, one line of offline copy in two languages, `SKIP_WAITING` and "nothing swaps under an open pass", a single `keydown` guard and the release table are where a plausible wrong answer is the expensive kind. What D-88 feared is answered by a flag rather than a policy: `--task <id> --model opus` reruns a task stopped by a limit on the other model, for that run only, so a Fable stop costs one deleted branch and not an edit to `main`. The wave still runs every task on the model TASKS.md prints — `--model` is refused on `--wave` — and the four are consecutive on the `ui` and `chart` lanes, so at most two of them are ever running at once, which is the exposure the phase accepts.
+
 ---
 
 ## 3. Architecture Overview
@@ -1277,6 +1279,7 @@ npm run sdd -- --status          # merged / in review / ready / blocked / failed
 npm run sdd -- --dry-run         # print exactly what would run, and stop
 npm run sdd -- --wave            # run the current wave (≤ 1 per lane, ≤ 2 at once)
 npm run sdd -- --task R17        # run one task, dependencies checked
+npm run sdd -- --task R22 --model opus   # the same, on another model than TASKS.md says (§16.6)
 ```
 
 Per task, in order:
@@ -1311,10 +1314,11 @@ The branch left on `origin` is how a later `--status` reads the task back as fai
 
 | Task kind | Model | Why |
 |---|---|---|
-| Every implementation session | `opus` | *(amended 2026-09-03, D-88)* The default, and now the only one. Physics, protocol, offline semantics and copy are where a wrong-but-plausible answer costs the most, and the visual work is not an exception the account can afford. |
+| The live marker and the live page — R22, R32, R33, R34 | `fable` | *(D-131, 2026-09-04, restoring the half of the original row that is still open)* Visual and interactive work with many quick iterations; the acceptance is captures, snapshots and a drag rate, all of which the session can produce and check itself. |
+| Every other implementation session | `opus` | The default. Physics, protocol, offline semantics and copy are where a wrong-but-plausible answer costs the most: the share-link protocol (R31), the favourites store (R26), the readiness rule and the offline copy (R27), the update and install semantics (R28), the keyboard guard (R35) and the release bookkeeping (R36). |
 | Every review session | `opus` | The review is the only automated gate between a session and `main`. |
 
-`fable` stays a value the driver accepts (`scripts/sdd/tasks.ts`), so a later phase can put a task back on it without a code change; no v1 task uses it.
+`Model:` in TASKS.md is what a wave runs a task on. A session that ends on a model limit is a failed task like any other (§16.5) — the branch is deleted and the task is rerun — but the rerun may be `--task <id> --model opus` (or `fable`), which overrides the field for that one run and nothing else: the log, the PR body and the run report say the model actually used, and TASKS.md is not edited on `main` to get one task through. `--model` is refused on `--wave`, so the printed policy stays the policy for everything the driver picks on its own. D-88 records why the phase ran a day on Opus alone.
 
 ### 16.7 What the driver is not
 
