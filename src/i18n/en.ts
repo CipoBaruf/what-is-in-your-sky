@@ -199,6 +199,10 @@ export const en = {
 
   guide: {
     back: '← Back to the list',
+    /** R23 (FR-DESK-3): the wide panel's close control. The glyph is `×`; this is what it is called. */
+    close: 'Close the guide',
+    /** The wide panel is a labelled region rather than a dialog (D-118), so it says what kind of region it is. */
+    panelLabel: (p: { name: string }) => `Guide: ${p.name}`,
     /**
      * FR-GUIDE-1 / US-6 AC1, plus the FR-VIS-7 clause. The whole sentence is
      * one function: English puts the direction after the elevation and the
@@ -293,5 +297,14 @@ export const en = {
     openMeteo: { before: 'Weather data by ', link: 'Open-Meteo.com', after: ' (CC BY 4.0).' } satisfies LinkedText,
     geonames: { before: 'Place search by Open-Meteo geocoding, with data from ', link: 'GeoNames', after: ' (CC BY 4.0).' } satisfies LinkedText,
     privacy: 'No analytics, no tracking: your location is saved in this browser only.',
+    credit: { before: 'Built by ', link: 'Ezequiel Baruf', after: '.' } satisfies LinkedText,
+    /* R23 (D-120): the wide footer says the same in one row. The provider
+       names carry the credit on their own, the licence is still named, and
+       the privacy note keeps its subject. */
+    short: {
+      sources: 'Data:',
+      licence: '(CC BY 4.0)',
+      privacy: 'No tracking',
+    },
   },
 };

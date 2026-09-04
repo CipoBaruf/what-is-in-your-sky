@@ -16,3 +16,26 @@
 .line {
   margin: 0;
 }
+
+/* R23 (D-120): the short form is one row that wraps rather than overflows —
+   the Spanish sentence is the longer of the two and 960 px is the narrowest
+   wide viewport. The separators are their own elements so that the spaces
+   around them survive the wrap. */
+.footer[data-form='short'] {
+  padding-bottom: var(--row);
+  /* The character rule above is a fixed 92-character string, which was the
+     80-cell frame's width and stops short of a viewport that no longer has
+     one. FR-X-6 takes either a plain-character border or a box-drawing one,
+     and the 1 px line in the rule colour is the box-drawing weight every card
+     on the page is already drawn at (`global.css`) — the difference is that
+     it is as wide as whatever contains it. */
+  border-top: 1px solid var(--rule);
+}
+
+.footer[data-form='short']::before {
+  content: none;
+}
+
+.dot {
+  padding: 0 var(--cell);
+}

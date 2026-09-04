@@ -27,6 +27,8 @@ export interface PassCardProps {
   onOpen?: (passId: string) => void;
   /** The forecast to judge the peak by; `null` shows "weather unknown"; omitted hides the row. */
   weather?: WeatherSnapshot | null;
+  /** This is the pass the guide is open on (FR-DESK-3): the card is framed in the accent colour and announced as the current item. */
+  selected?: boolean;
 }
 
 export function PassFields({ pass, timeZone, weather }: Omit<PassCardProps, 'onOpen'>) {
@@ -80,11 +82,11 @@ export function OpenGuide({ pass, headingId, onOpen }: { pass: Pass; headingId: 
   );
 }
 
-export function PassCard({ pass, timeZone, onOpen, weather }: PassCardProps) {
+export function PassCard({ pass, timeZone, onOpen, weather, selected = false }: PassCardProps) {
   const t = useT();
   const headingId = useId();
   return (
-    <article className={styles.card} aria-labelledby={headingId} data-pass-id={pass.id}>
+    <article className={styles.card} aria-labelledby={headingId} data-pass-id={pass.id} {...(selected ? { 'data-selected': 'true', 'aria-current': true as const } : {})}>
       <h2 id={headingId} className={styles.name}>
         {pass.name}
       </h2>

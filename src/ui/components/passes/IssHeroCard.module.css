@@ -4,6 +4,12 @@
   padding: calc(var(--row) / 2) var(--cell);
 }
 
+/* R23 (FR-DESK-3): already accent-framed as the hero, so being the open pass
+   shows as the raised ground alone. */
+.hero[data-selected] {
+  background: var(--bg-raised);
+}
+
 .hero:has(button:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;

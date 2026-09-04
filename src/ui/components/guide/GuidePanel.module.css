@@ -1,0 +1,76 @@
+/* R23 (FR-DESK-3): the guide beside the list. A framed box in the rule
+   colour, like every other card on the page; it is the right column's second
+   track, so its width is set there and not here. */
+.panel {
+  border: 1px solid var(--rule);
+  padding: calc(var(--row) / 2) var(--cell);
+  display: grid;
+  align-content: start;
+  gap: var(--row);
+  box-sizing: border-box;
+  /* R23 (D-119): the panel is as tall as the column and no taller, and the
+     two rows are the head that stays and the body that scrolls under it. The
+     name and the close control are what someone reaches for after reading to
+     the bottom of a long guide, so they are the part that does not move. */
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+/* The guide itself — meta line, countdown, chart and numbers — under the head. */
+.body {
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: var(--row);
+  /* One cell between the text and its own scrollbar. */
+  padding-right: var(--cell);
+}
+
+/* The guide's first line is `PassDetail`'s `.meta`, which pulls itself half a
+   row up to sit tight under the compact sheet's heading. Here the head is a
+   grid row of its own and `.body` is a scroll container, so that negative
+   margin puts the line half a row *outside* the box and the clip cuts it in
+   half — which is what it did. The panel's own `gap` is the spacing this
+   shell wants, so the pull is dropped for whatever comes first. */
+.body > :first-child {
+  margin-top: 0;
+}
+
+/* The name at the left, the close control at the right, on one line. */
+.head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0 calc(2 * var(--cell));
+}
+
+.heading {
+  font-size: 1.25rem;
+  font-weight: normal;
+  margin: 0;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+.heading::before {
+  content: '> ';
+  color: var(--fg-dim);
+}
+
+.close {
+  color: var(--accent);
+  background: none;
+  border: 0;
+  min-width: var(--tap);
+}
+
+.close::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.close::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}

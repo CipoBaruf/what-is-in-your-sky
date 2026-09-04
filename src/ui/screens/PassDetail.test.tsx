@@ -31,8 +31,9 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     vi.useRealTimers();
   });
 
+  // R23 (D-117): the compact sheet is portaled to the body, so the axe runs here take the document and not RTL's container — which no longer holds the sheet at all.
   it('is a labelled dialog carrying the guide sentence (once, as the chart caption), the numbers, the twilight label and the sky chart', async () => {
-    const { container } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
+    render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
     const dialog = screen.getByRole('dialog', { name: 'ISS (Zarya)' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(within(dialog).getByTestId('guide-sentence').textContent).toBe(golden.en.asComputed);
@@ -47,7 +48,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     expect(dialog.querySelector('canvas')).toBeNull();
     expect(within(figure).getByRole('group', { name: 'Chart orientation' })).toBeInTheDocument();
     expect(within(figure).getByRole('group', { name: 'Chart view' })).toBeInTheDocument();
-    expect(await axe(container)).toHaveNoViolations();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 
   it('locks the page scroll while open and restores it on close (one scrollbar, the sheet\'s)', () => {
@@ -141,8 +142,8 @@ describe('<App> with the detail sheet (D-13)', () => {
   it('has no axe violations with the sheet open', async () => {
     window.location.hash = `#pass=${pass.id}`;
     withPasses();
-    const { container } = render(<App />);
+    render(<App />);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(await axe(container)).toHaveNoViolations();
+    expect(await axe(document.body)).toHaveNoViolations();
   });
 });

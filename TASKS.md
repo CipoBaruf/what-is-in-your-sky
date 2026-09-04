@@ -434,7 +434,8 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - e2e: the toggle switches the theme, `data-theme` is on the root, the choice survives a reload, and no dark-palette frame is painted first.
     - Captures at 390 px in both themes, both languages.
 
-- [ ] **R23 — Desktop: two columns and the guide beside the list**
+- [x] **R23 — Desktop: two columns and the guide beside the list**
+  - **Done 2026-09-04:** as specified, against the mockup approved in PR #33, with three placements decided along the way. `useLayoutMode` is `ui/hooks/useLayoutMode.ts` and not `lib/layout.ts`: PLAN §3 forbids React in `src/lib` and the lint config enforces it, so the file as drawn in §5 could not have been written; `lib/layout.ts` keeps the breakpoint numbers, which the Node-side style test imports (D-116). `PassDetail` renders once, in the right column, and portals its compact sheet to the body, which is what lets one component pick both shells while the page around the sheet stays inert (D-117). The wide panel is a labelled region rather than a dialog, because the list beside it is still live (D-118). The scope line's `Home.tsx` is `App.tsx` in this codebase — there has never been a separate Home screen — and the Moon line's slot is R30's, so the left column holds location, banners and the Now panel today. Captures: `docs/screenshots/r23-{home,guide}-1280-{en,es}.png` and `r23-guide-390-en.png`.
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner

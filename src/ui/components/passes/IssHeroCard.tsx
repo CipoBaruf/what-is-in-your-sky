@@ -35,16 +35,18 @@ export interface IssHeroCardProps {
   weather?: WeatherSnapshot | null;
   /** The clock, for tests; the card ticks itself otherwise. */
   now?: EpochMs;
+  /** This is the pass the guide is open on (FR-DESK-3); the hero is already accent-framed, so it takes the raised ground. */
+  selected?: boolean;
 }
 
-export function IssHeroCard({ pass, timeZone, onOpen, weather, now: nowProp }: IssHeroCardProps) {
+export function IssHeroCard({ pass, timeZone, onOpen, weather, now: nowProp, selected = false }: IssHeroCardProps) {
   const t = useT();
   const headingId = useId();
   const clock = useNow(HERO_TICK_MS);
   const now = nowProp ?? clock;
   const state = countdownState(pass, now);
   return (
-    <article className={styles.hero} aria-labelledby={headingId} data-pass-id={pass.id} data-testid="iss-hero">
+    <article className={styles.hero} aria-labelledby={headingId} data-pass-id={pass.id} data-testid="iss-hero" {...(selected ? { 'data-selected': 'true', 'aria-current': true as const } : {})}>
       <p className={styles.kicker}>{heroKicker(pass, t)}</p>
       <h2 id={headingId} className={styles.name}>
         {pass.name}

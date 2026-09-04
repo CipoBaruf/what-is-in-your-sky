@@ -45,6 +45,44 @@ main {
   padding-bottom: var(--row);
 }
 
+/* R23 (FR-DESK-1, D-71): wide at 100 cells. `--cell` is `1ch` at a 0.6 em
+   advance and the base above is 16 px, so 100 cells are 960 px — the literal
+   here, recomputed from those three numbers by
+   `tests/styles/breakpoint.test.ts`, which also holds every other `min-width`
+   in `src/ui` and `WIDE_MIN_PX` in `lib/layout.ts` to the same value.
+   The 80-cell frame is what compact is: one column, centred. Wide drops it
+   and takes the viewport, keeping the two cells of side padding, so that the
+   two columns of FR-DESK-2 have the width to be two columns. */
+@media (min-width: 960px) {
+  header,
+  main,
+  footer {
+    max-width: none;
+    /* The `margin: 0 auto` above centres the 80-cell frame in compact. Here
+       there is no frame to centre, and inside D-119's grid an auto margin is
+       not a no-op: it turns off the stretch a grid item gets by default, so
+       the footer shrank to its own text and sat in the middle of the page.
+       Wide is left-aligned like the columns above it. */
+    margin-inline: 0;
+  }
+
+  /* R23 (D-119). The wide page is a shell exactly one viewport high: header,
+     main and footer, and the page itself never scrolls. What scrolls is
+     whichever pane has outgrown its share — usually the pass list, which is
+     72 h of them, and which is the thing being read. The header stays, so the
+     language and theme switches are always reachable; the location and the
+     Now panel stay, so what the list is *of* is still on screen while it is
+     read; the footer sits on the bottom of the screen whether the page is
+     full or nearly empty. `minmax(0, 1fr)` and not `1fr`: the middle row has
+     to be allowed to shrink below its content, or the panes have no height to
+     be bounded by and the whole thing scrolls as one again. */
+  #root {
+    height: 100dvh;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+}
+
 h1,
 h2,
 h3 {

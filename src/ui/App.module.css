@@ -2,6 +2,11 @@
   padding-top: var(--row);
 }
 
+/* The title block, so that wide can put the header's controls beside it (FR-DESK-2). */
+.titles {
+  min-width: 0;
+}
+
 .tagline {
   margin: 0;
   padding-left: calc(2 * var(--cell));
@@ -20,4 +25,79 @@
 .main {
   display: grid;
   gap: var(--row);
+}
+
+/* Each column is the compact page's own stack; in compact the two of them
+   sit one under the other and the page looks exactly as it did (R23). */
+.column {
+  display: grid;
+  align-content: start;
+  gap: var(--row);
+}
+
+/* R23 (FR-DESK-2). Wide: the header spans both columns and puts its controls
+   at the right of the title; the left column is fixed at 40 cells — location,
+   the elements banners, the Now panel, and the Moon line's slot when R30 adds
+   it — and the right column takes the rest. Three cells between them is the
+   gutter the mockup fixes (docs/mockups/desktop-1280.html). Widths are in
+   cells; the query's own literal is D-71's, checked against `--cell` by
+   `tests/styles/breakpoint.test.ts`. */
+@media (min-width: 960px) {
+  .header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0 calc(2 * var(--cell));
+    padding-bottom: var(--row);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  /* R23 (D-119): both columns take the whole of the shell's middle row rather
+     than stopping at their content, so the left one reaches the footer instead
+     of leaving dead space under it and the right one has a height its panes
+     can be bounded by. The single row is written out because left implicit it
+     would be auto — sized to the taller column — and the shell would be lost
+     out of the bottom of `#root`. */
+  .main {
+    grid-template-columns: calc(40 * var(--cell)) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: var(--row) calc(3 * var(--cell));
+    align-content: stretch;
+    align-items: stretch;
+    min-height: 0;
+  }
+
+  .main > .column {
+    min-height: 0;
+  }
+
+  /* The location, the banners and the Now panel can outgrow the shell on a
+     short screen, and this column scrolls itself when they do. */
+  .leftColumn {
+    overflow-y: auto;
+  }
+
+  /* FR-DESK-3: with a pass open the right column splits in two. The list
+     keeps at least 44 cells — the width the cards were designed at, and the
+     chart's own square — and the guide takes the rest, a shade wider so the
+     chart is not the narrower of the two. */
+  .column[data-guide='open'] {
+    grid-template-columns: minmax(calc(44 * var(--cell)), 1fr) minmax(0, 1.05fr);
+    grid-template-rows: minmax(0, 1fr);
+    align-content: stretch;
+    align-items: stretch;
+    gap: calc(3 * var(--cell));
+  }
+
+  /* The list scrolls itself rather than the page, whether or not a guide is
+     open beside it: it is 72 h of passes and the one thing on the screen long
+     enough to need it. Its height is the shell's (D-119) and no longer a
+     fixed 34 rows — a cap written in rows is right at one viewport height and
+     wrong at every other: 816 px overshot a 768 px laptop, so the page
+     scrolled underneath a list that was already scrolling, and wasted the
+     bottom of a tall screen. */
+  .listColumn {
+    min-height: 0;
+    overflow-y: auto;
+  }
 }
