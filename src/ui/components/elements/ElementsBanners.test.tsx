@@ -85,7 +85,7 @@ describe('ElementsBanners (R11: FR-SAT-4, FR-SAT-6, FR-X-4)', () => {
     const { container } = render(<ElementsBanners now={FETCHED_AT} />);
     expect(screen.getByTestId('not-cached-banner')).toHaveTextContent('[Note] The elements could not be saved in this browser');
     expect(screen.getByTestId('not-cached-banner')).toHaveAttribute('role', 'status');
-    expect(screen.getByTestId('unavailable-banner')).toHaveTextContent('[Note] No current elements from CelesTrak for 2 catalog objects: ISS (Zarya), NORAD 999999. Left out of the list.');
+    expect(screen.getByTestId('unavailable-banner')).toHaveTextContent('[Note] No current elements from CelesTrak for 2 catalog objects: ISS (Zarya) and NORAD 999999. Left out of the list.');
     expect(screen.queryByTestId('stale-banner')).toBeNull();
     expect(await axe(container)).toHaveNoViolations();
   });

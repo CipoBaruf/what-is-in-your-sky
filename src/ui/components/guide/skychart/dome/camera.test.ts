@@ -6,6 +6,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
+import { en } from '../../../../../i18n/en';
+import { es } from '../../../../../i18n/es';
 import {
   clampTilt,
   DEFAULT_TILT_DEG,
@@ -23,7 +25,7 @@ import {
   PITCH_MAX_DEG,
   PITCH_MIN_DEG,
   PITCH_STEP_DEG,
-  readout,
+  readoutParams,
   tilt,
   toRotY,
   turn,
@@ -81,11 +83,13 @@ describe('moves', () => {
   });
 });
 
-describe('readout (FR-GUIDE-4)', () => {
-  it('names the 16-point compass direction, the azimuth and the tilt', () => {
-    expect(readout({ facingAzDeg: 202.5, tiltDeg: 25 })).toBe('Facing SSW (203°) · tilt 25°');
-    expect(readout(initialFor(pass))).toBe('Facing NE (46°) · tilt 25°');
-    expect(readout({ facingAzDeg: 359.6, tiltDeg: 80 })).toBe('Facing N (360°) · tilt 80°');
+describe('readoutParams (FR-GUIDE-4)', () => {
+  it('names the 16-point compass direction, the azimuth and the tilt, which the catalogs word (R17)', () => {
+    expect(readoutParams({ facingAzDeg: 202.5, tiltDeg: 25 })).toEqual({ point: 'SSW', azimuth: '203°', tilt: '25°' });
+    expect(en.chart.readout(readoutParams({ facingAzDeg: 202.5, tiltDeg: 25 }))).toBe('Facing SSW (203°) · tilt 25°');
+    expect(en.chart.readout(readoutParams(initialFor(pass)))).toBe('Facing NE (46°) · tilt 25°');
+    expect(en.chart.readout(readoutParams({ facingAzDeg: 359.6, tiltDeg: 80 }))).toBe('Facing N (360°) · tilt 80°');
+    expect(es.chart.readout(readoutParams(initialFor(pass)))).toBe('Hacia NE (46°) · inclinación 25°');
   });
 });
 

@@ -7,6 +7,8 @@ import { render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { describe, expect, it } from 'vitest';
 import type { CloudVerdict } from '../../../model';
+import { en } from '../../../i18n/en';
+import { es } from '../../../i18n/es';
 import { badgeText, CloudBadge, tooltipText } from './CloudBadge';
 
 const T = 1_789_120_094_063; // 2026-09-11T09:48:14Z
@@ -16,10 +18,12 @@ const verdict = (state: CloudVerdict['state'], effectivePct: number | null): Clo
 
 describe('badgeText', () => {
   it('names the state and rounds the effective cloud', () => {
-    expect(badgeText(verdict('clear', 12.4))).toBe('Clear, 12 % cloud');
-    expect(badgeText(verdict('partly', 45))).toBe('Partly cloudy, 45 % cloud');
-    expect(badgeText(verdict('obscured', 88.6))).toBe('Likely obscured, 89 % cloud');
-    expect(badgeText(verdict('unknown', null))).toBe('Weather unknown');
+    expect(badgeText(verdict('clear', 12.4), en)).toBe('Clear, 12 % cloud');
+    expect(badgeText(verdict('partly', 45), en)).toBe('Partly cloudy, 45 % cloud');
+    expect(badgeText(verdict('obscured', 88.6), en)).toBe('Likely obscured, 89 % cloud');
+    expect(badgeText(verdict('unknown', null), en)).toBe('Weather unknown');
+    expect(badgeText(verdict('clear', 12.4), es)).toBe('Despejado, 12 % de nubes');
+    expect(badgeText(verdict('unknown', null), es)).toBe('Clima desconocido');
   });
 });
 
@@ -49,7 +53,14 @@ describe('<CloudBadge>', () => {
     expect(tip).toHaveTextContent('70');
     expect(tip).toHaveTextContent('Forecast by Open-Meteo, fetched 2026-09-10 23:05:10 GMT-3.');
     expect(screen.getByText('Partly cloudy, 45 % cloud')).toHaveAccessibleDescription(tip.textContent ?? '');
-    expect(tooltipText(verdict('partly', 45), forecast, null, 'right now')).toContain('fetched 2026-09-11 02:05:10 UTC');
+    expect(tooltipText(verdict('partly', 45), forecast, null, en.weather.momentNow, en, 'en')).toContain('fetched 2026-09-11 02:05:10 UTC');
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('words the whole tooltip in Spanish, provider name apart (FR-I18N-2, FR-I18N-6)', () => {
+    const tip = tooltipText(verdict('partly', 45), forecast, 'America/Argentina/Salta', es.weather.momentPeak, es, 'es');
+    expect(tip).toContain('45 % de nubosidad efectiva en el máximo del pase.');
+    expect(tip).toContain('Pronóstico de Open-Meteo, obtenido 2026-09-10 23:05:10 GMT-3.');
+    expect(tip).not.toContain('Forecast by');
   });
 });

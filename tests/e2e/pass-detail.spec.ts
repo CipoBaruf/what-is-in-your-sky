@@ -24,7 +24,7 @@ interface Reference {
 const FIXTURE_DATE = '2026-09-02';
 const ha = JSON.parse(readFileSync(`tests/fixtures/heavens-above/${FIXTURE_DATE}-neuquen-iss.json`, 'utf8')) as HaFixture;
 const reference = JSON.parse(readFileSync('tests/fixtures/reference-values.json', 'utf8')) as Reference;
-const golden = JSON.parse(readFileSync('tests/fixtures/guide-sentences.json', 'utf8')) as { asComputed: string };
+const golden = JSON.parse(readFileSync('tests/fixtures/guide-sentences.json', 'utf8')) as { en: { asComputed: string } };
 const DAY_MS = 86_400_000;
 
 test.use({ viewport: { width: 390, height: 844 } });
@@ -60,7 +60,7 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   const dialog = page.getByRole('dialog', { name: 'ISS (Zarya)' });
   await expect(dialog).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`#pass=${passId}$`));
-  await expect(dialog.getByTestId('guide-sentence')).toHaveText(golden.asComputed);
+  await expect(dialog.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
   await expect(dialog.getByRole('timer')).toHaveText(/Appears in \d+:\d\d/);
   await expect(dialog.getByRole('heading', { name: 'ISS (Zarya)' })).toBeFocused();
   // The sheet fits the phone width: no horizontal scroll on the page.
@@ -75,7 +75,7 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   const figure = dialog.getByRole('figure');
   await expect(figure).toHaveAttribute('data-view', 'polar');
   await expect(figure.getByRole('group', { name: 'Chart view' }).getByRole('button', { name: 'Polar' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.asComputed);
+  await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
   const drawing = figure.locator('svg[data-drawing="polar"]');
   await expect(drawing).toHaveAttribute('aria-hidden', 'true');
   for (const cardinal of ['N', 'E', 'S', 'W']) await expect(drawing.locator(`[data-anchor="${cardinal}"]`)).toHaveText(cardinal);

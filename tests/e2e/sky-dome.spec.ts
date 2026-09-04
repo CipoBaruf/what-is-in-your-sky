@@ -25,7 +25,7 @@ interface Reference {
 const FIXTURE_DATE = '2026-09-02';
 const ha = JSON.parse(readFileSync(`tests/fixtures/heavens-above/${FIXTURE_DATE}-neuquen-iss.json`, 'utf8')) as HaFixture;
 const reference = JSON.parse(readFileSync('tests/fixtures/reference-values.json', 'utf8')) as Reference;
-const golden = JSON.parse(readFileSync('tests/fixtures/guide-sentences.json', 'utf8')) as { asComputed: string };
+const golden = JSON.parse(readFileSync('tests/fixtures/guide-sentences.json', 'utf8')) as { en: { asComputed: string } };
 const DAY_MS = 86_400_000;
 const COMPASS_16 = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
 const compass16 = (az: number): string => COMPASS_16[Math.round((((az % 360) + 360) % 360) / 22.5) % 16] ?? 'N';
@@ -76,7 +76,7 @@ test('the dome is one toggle from the polar default, shares its frame, faces the
   const { passId, dialog } = await openGoldenPass(page, violations);
   const figure = dialog.getByRole('figure');
   await expect(figure).toHaveAttribute('data-view', 'polar');
-  await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.asComputed);
+  await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
   const viewToggle = figure.getByRole('group', { name: 'Chart view' });
   await expect(viewToggle.getByRole('button', { name: 'Polar' })).toHaveAttribute('aria-pressed', 'true');
   // One frame for both views (R15 review): the drawing box and the numbers table stay where they are when the view changes.
@@ -175,7 +175,7 @@ test('the dome is one toggle from the polar default, shares its frame, faces the
   await viewToggle.getByRole('button', { name: 'Polar' }).click();
   await expect(figure).toHaveAttribute('data-view', 'polar');
   await expect(figure.locator(`svg[data-drawing="polar"] [data-pass-id="${passId}"] [data-anchor="pass"]`)).toContainText('ISS (Zarya)');
-  await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.asComputed);
+  await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
   expect(JSON.parse(await page.evaluate(() => window.localStorage.getItem('wiys:prefs:v1') ?? '{}'))).toMatchObject({ chartView: 'polar' });
   await page.reload();
   await expect(page.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeVisible({ timeout: 15_000 });

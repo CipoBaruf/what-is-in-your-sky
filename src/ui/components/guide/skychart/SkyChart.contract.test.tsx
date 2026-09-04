@@ -21,7 +21,7 @@ import { appStore } from '../../../../state';
 import { SKY_CHART_VIEWS, SkyChart } from './SkyChart';
 import type { SkyChartProps } from './SkyChart.types';
 
-const golden = JSON.parse(readFileSync(join(FIXTURES_DIR, 'guide-sentences.json'), 'utf8')) as { asComputed: string };
+const golden = JSON.parse(readFileSync(join(FIXTURES_DIR, 'guide-sentences.json'), 'utf8')) as { en: { asComputed: string } };
 const pass = goldenPassFixture();
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
 const initial = appStore.getInitialState();
@@ -51,7 +51,7 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
     render(<SkyChart {...props()} />);
     const figure = screen.getByRole('figure');
     expect(figure).toHaveAttribute('data-view', view.id);
-    expect(within(figure).getByTestId('guide-sentence').textContent).toBe(golden.asComputed);
+    expect(within(figure).getByTestId('guide-sentence').textContent).toBe(golden.en.asComputed);
     expect(figure.querySelector('figcaption')).toContainElement(within(figure).getByTestId('guide-sentence'));
   });
 
@@ -85,7 +85,7 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
   it('captions the highlighted pass among several, and says so when there is none to draw', () => {
     const other = { ...pass, id: 'other', name: 'Tiangong', start: { ...pass.start, t: pass.start.t + 3_600_000 } };
     const { rerender } = render(<SkyChart {...props({ passes: [other, pass] })} />);
-    expect(screen.getByTestId('guide-sentence').textContent).toBe(golden.asComputed);
+    expect(screen.getByTestId('guide-sentence').textContent).toBe(golden.en.asComputed);
     rerender(<SkyChart {...props({ passes: [] , highlightedPassId: null })} />);
     expect(screen.getByRole('figure')).toHaveTextContent('No pass to draw.');
   });
