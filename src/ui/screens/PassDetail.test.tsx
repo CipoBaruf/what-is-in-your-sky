@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../tests/support/catalogFixtures';
 import { FIXTURES_DIR } from '../../../tests/support/fixtures';
+import { MOON_FIXTURE } from '../../../tests/support/moonFixtures';
 import type { Observer } from '../../model';
 import { appStore, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
@@ -61,6 +62,16 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     unmount();
     expect(document.documentElement.style.overflow).toBe('auto');
     document.documentElement.style.overflow = '';
+  });
+
+  it('adds the Moon warning under the chart when the pass has glare, and nothing when it has not (FR-MOON-2)', () => {
+    const { rerender } = render(
+      <PassDetail pass={{ ...pass, moonAtPeak: MOON_FIXTURE, moonGlare: { glare: true, separationDeg: 8.2 } }} observer={observer} onClose={() => undefined} />,
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('The Moon is bright and close to the track.')).toHaveAccessibleDescription(/at least 50 % lit and closer than 30°/);
+    rerender(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
+    expect(screen.getByRole('dialog')).not.toHaveTextContent('The Moon is bright');
   });
 
   it('omits the twilight label when the pass is not a twilight one', () => {

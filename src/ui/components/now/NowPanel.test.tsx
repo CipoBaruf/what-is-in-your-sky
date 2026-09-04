@@ -191,6 +191,21 @@ describe('<NowPanel>', () => {
     expect(screen.getByText('Weather unknown')).toBeInTheDocument();
   });
 
+  it('closes with the Moon’s line, and carries no tradition text (FR-MOON-3, FR-MOON-5)', () => {
+    set({ observer, passes: done(true), now: { observer, state: state(), error: null } });
+    render(<NowPanel />);
+    const panel = screen.getByRole('region', { name: 'Right now' });
+    expect(within(panel).getByTestId('moon-line')).toHaveTextContent('Moon: waning gibbous, 72 % lit, N 7°, 29° up.');
+    expect(panel).not.toHaveTextContent('Moon tonight');
+    expect(within(panel).queryByTestId('moon-lore')).toBeNull();
+  });
+
+  it('has no Moon line before the first state for this observer arrives', () => {
+    set({ observer, now: { observer: other, state: state(), error: null } });
+    render(<NowPanel />);
+    expect(screen.queryByTestId('moon-line')).toBeNull();
+  });
+
   it('summaryText covers every kind', () => {
     expect(summaryText({ kind: 'visible', items: [item(), item({ noradId: 2 })] }, en)).toBe('2 satellites visible right now');
     expect(summaryText({ kind: 'daylight', sunAltDeg: -2.6 }, en)).toContain('3° below the horizon');

@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { NO_MOON_AT_PEAK } from '../../../../tests/support/moonFixtures';
+import { MOON_FIXTURE, NO_MOON_AT_PEAK } from '../../../../tests/support/moonFixtures';
 import type { Pass, WeatherSnapshot } from '../../../model';
 import { PassCard } from './PassCard';
 
@@ -63,6 +63,14 @@ describe('<PassCard>', () => {
     expect(screen.getByRole('article')).toHaveTextContent('sky still bright');
     rerender(<PassCard pass={{ ...samplePass, twilight: false }} timeZone={null} />);
     expect(screen.getByRole('article')).not.toHaveTextContent('sky still bright');
+  });
+
+  it('carries the "[moon glare]" label only when the pass has the verdict (FR-MOON-2)', () => {
+    const { rerender } = render(<PassCard pass={{ ...samplePass, moonAtPeak: MOON_FIXTURE, moonGlare: { glare: true, separationDeg: 8.2 } }} timeZone={null} />);
+    const card = screen.getByRole('article');
+    expect(within(card).getByText('moon glare')).toHaveAccessibleDescription(/at least 50 % lit and closer than 30°/);
+    rerender(<PassCard pass={samplePass} timeZone={null} />);
+    expect(card).not.toHaveTextContent('moon glare');
   });
 
   it('wears the cloud verdict at the peak when given a forecast, "weather unknown" for null, and no row when omitted (FR-WX-3)', () => {
