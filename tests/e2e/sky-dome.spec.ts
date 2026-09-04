@@ -135,11 +135,16 @@ test('the dome is the default view, shares the polar frame, faces the rise point
   await expect(basePre).toBeVisible();
   const baseRaster = await basePre.evaluate((el) => el.textContent ?? '');
   const baseRows = baseRaster.split('\n');
-  // Half the line layer's grid in both directions (D-92). The rows are each layer's own `round(height / cellHeight)`, so they
-  // can land one apart from an exact half after rounding; the columns are integer arithmetic and are exact.
+  // Half the line layer's columns (D-92) — integer arithmetic, so exact everywhere. The row counts are *not* asserted against
+  // each other: each layer rounds `height / cellHeight` with its own cell, and the two glyphs round differently on a platform
+  // with whole-pixel advances, so the cell-for-cell half only holds where nothing rounds (the unit test pins it there).
+  // What has to hold in a browser is the alignment itself, which is pixels: both layers cover the same box, at the same zoom,
+  // each raster filling that box's height.
   expect(baseRows[0]).toHaveLength(30);
-  expect(Math.abs(baseRows.length - rows.length / 2)).toBeLessThanOrEqual(1);
   expect(baseRaster.trim().length).toBeGreaterThan(0);
+  const basePreBox = await basePre.boundingBox();
+  if (!basePreBox) throw new Error('base raster has no box');
+  expect(Math.abs(basePreBox.height - box.height)).toBeLessThanOrEqual(basePreBox.height / baseRows.length + 1);
   expect(await drawing.locator('[data-layer="base"]').evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none');
   // Both layers fill the same box, which is what keeps them aligned as it changes size.
   const boxOf = async (layer: string) => (await drawing.locator(`[data-layer="${layer}"]`).boundingBox()) ?? { x: NaN, y: NaN, width: NaN, height: NaN };
