@@ -8,6 +8,7 @@
  *   npm run sdd -- --dry-run         # print exactly what would run, and stop
  *   npm run sdd -- --wave            # run the current wave (<= 1 per lane, <= 2 at once)
  *   npm run sdd -- --task R17        # run one task, dependencies checked
+ *   npm run sdd -- --task R22 --model opus   # the same, on another model than TASKS.md says
  *
  * It is not a scheduler or a service (§16.7): it is a script the owner runs
  * in the foreground, with no state of its own. `origin/main`, the branches
@@ -16,6 +17,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { helpText, parseArgs, type Options } from './sdd/cli';
 import { modelFor, parseTasks, type Task } from './sdd/tasks';
 import { addWorktree, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, fetchOrigin, installDeps, labelPullRequest, mergePullRequest, openPullRequests, push, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
 import { consoleLogger, openTaskLog, writeRunReport, type Logger, type RunReport, type TaskReport } from './sdd/report';
@@ -28,44 +30,6 @@ const NPM_CACHE = resolve('.sdd-cache/npm');
 const OWNER_LABEL = 'needs-owner';
 const IMPLEMENT = { maxTurns: 250, timeoutMs: 45 * 60_000 };
 const REVIEW = { maxTurns: 40, timeoutMs: 15 * 60_000, model: 'opus' };
-
-interface Options {
-  mode: 'status' | 'dry-run' | 'wave' | 'task' | 'help';
-  taskId: string | null;
-  tasksFile: string | null;
-}
-
-function parseArgs(argv: readonly string[]): Options {
-  const options: Options = { mode: 'help', taskId: null, tasksFile: null };
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index];
-    if (arg === '--status') options.mode = 'status';
-    else if (arg === '--dry-run') options.mode = 'dry-run';
-    else if (arg === '--wave') options.mode = 'wave';
-    else if (arg === '--task') {
-      options.mode = 'task';
-      index += 1;
-      options.taskId = argv[index] ?? null;
-    } else if (arg === '--tasks-file') {
-      index += 1;
-      options.tasksFile = argv[index] ?? null;
-    } else if (arg === '--help' || arg === '-h') options.mode = 'help';
-    else throw new Error(`unknown argument \`${String(arg)}\``);
-  }
-  if (options.mode === 'task' && !options.taskId) throw new Error('--task needs a task id, e.g. `--task R17`');
-  return options;
-}
-
-const HELP = `sdd-run — the v1 task driver (PLAN §16)
-
-  npm run sdd -- --status                 what is merged, ready, blocked, in review or failed
-  npm run sdd -- --dry-run                print exactly what would run, and stop
-  npm run sdd -- --wave                   run the current wave (<= 1 per lane, <= 2 at once)
-  npm run sdd -- --task R17               run one task, dependencies checked
-
-  --tasks-file <path>                     read TASKS.md from a file instead of ${BASE}
-                                          (--status and --dry-run only)
-`;
 
 /** Everything the wave logic needs, read from the remote. */
 async function readFacts(options: Options, logger: Logger): Promise<{ statuses: TaskStatus[]; problems: readonly string[] }> {
@@ -268,10 +232,9 @@ async function runTask(status: TaskStatus): Promise<TaskReport> {
 async function main(): Promise<number> {
   const options = parseArgs(process.argv.slice(2));
   if (options.mode === 'help') {
-    process.stdout.write(HELP);
+    process.stdout.write(helpText(BASE));
     return 0;
   }
-  if (options.tasksFile && (options.mode === 'wave' || options.mode === 'task')) throw new Error('--tasks-file is for --status and --dry-run only');
 
   const { statuses, problems } = await readFacts(options, consoleLogger);
 
@@ -288,7 +251,10 @@ async function main(): Promise<number> {
       consoleLogger.line(`Refusing: ${refusal}`);
       return 1;
     }
-    planned = statuses.filter((status) => status.task.id.toLowerCase() === options.taskId?.toLowerCase());
+    planned = statuses
+      .filter((status) => status.task.id.toLowerCase() === options.taskId?.toLowerCase())
+      // §16.6: `--model` is the owner's hand on one run — the log, the PR body and the run report all say the model actually used.
+      .map((status) => (options.model ? { ...status, task: { ...status.task, model: options.model } } : status));
   } else {
     const selection = selectWave(statuses);
     planned = [...selection.wave];
