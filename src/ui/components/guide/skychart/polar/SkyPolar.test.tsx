@@ -6,11 +6,15 @@
  * their own markers; the other passes are drawn dim.
  */
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
+import { MOON_DOWN, MOON_FIXTURE } from '../../../../../../tests/support/moonFixtures';
 import { toPolar } from '../../../../../lib/skyGeometry';
 import type { ChartOrientation, Observer, PassPoint } from '../../../../../model';
 import { appStore } from '../../../../../state';
+import { MOON_PHASE_GLYPH } from '../bodies';
 import { HORIZON_R, SkyPolar } from './SkyPolar';
 
 const pass = goldenPassFixture();
@@ -96,5 +100,79 @@ describe('<SkyPolar>', () => {
     // Ten seconds in, the marker is between the rise and the peak.
     expect(Math.hypot(current.x - rise.x, current.y - rise.y)).toBeLessThan(Math.hypot(peak.x - rise.x, peak.y - rise.y));
     expect(Math.hypot(current.x - rise.x, current.y - rise.y)).toBeGreaterThan(0);
+  });
+
+  it('moves the live marker and grows the flown arc as the instant advances (FR-DOME-5)', () => {
+    const early = pass.start.t + 20_000;
+    const later = early + 10_000;
+    const { container, rerender } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} now={early} />);
+    const first = markerAt(container, 'now');
+    const flownAt = (): string => container.querySelector('[data-marker="flown"]')?.getAttribute('d') ?? '';
+    const shortArc = flownAt();
+    expect(shortArc).not.toBe('');
+
+    rerender(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} now={later} />);
+    const second = markerAt(container, 'now');
+    expect(Math.hypot(second.x - first.x, second.y - first.y)).toBeGreaterThan(0);
+    // The flown path is the arc up to the marker, so it lengthens with it…
+    expect(flownAt().length).toBeGreaterThan(shortArc.length);
+    expect(flownAt().startsWith(shortArc.slice(0, 12))).toBe(true);
+
+    // …and there is none of it before the pass starts.
+    rerender(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} now={pass.start.t - 1000} />);
+    expect(container.querySelector('[data-marker="flown"]')).toBeNull();
+  });
+
+  it('draws the Sun on the horizon and the Moon where it is, both labelled, and neither when there is nothing to draw (FR-DOME-6)', () => {
+    const sun = { t: MOON_FIXTURE.t, azDeg: 285, altDeg: -8 };
+    const props = { passes: [pass], observer, highlightedPassId: pass.id };
+    const { container, rerender } = render(<SkyPolar {...props} sun={sun} moon={MOON_FIXTURE} />);
+
+    // The glow sits at the Sun's azimuth, near the horizon: its band's midpoint
+    // is further from the zenith than the 60° ring is.
+    const glow = container.querySelector('[data-body="sun"] path');
+    const start = /M(-?[\d.]+) (-?[\d.]+)/.exec(glow?.getAttribute('d') ?? '');
+    if (!start) throw new Error('no glow path');
+    expect(Math.hypot(Number(start[1]), Number(start[2]))).toBeGreaterThan(HORIZON_R / 2);
+    expect(container.querySelector('[data-anchor="sun"]')?.textContent).toBe('Sun');
+
+    expectAt(markerAt(container, 'moon'), expected({ ...MOON_FIXTURE, rangeKm: 0 }, 'looking-up'));
+    // The label carries the phase glyph, not the phase's name.
+    const moonLabel = container.querySelector('[data-anchor="moon"]')?.textContent ?? '';
+    expect(moonLabel).toContain('Moon');
+    expect(moonLabel).toContain(MOON_PHASE_GLYPH.waningGibbous);
+
+    rerender(<SkyPolar {...props} sun={{ ...sun, altDeg: -30 }} moon={MOON_DOWN} />);
+    expect(container.querySelector('[data-body="sun"]')).toBeNull();
+    expect(container.querySelector('[data-body="moon"]')).toBeNull();
+
+    rerender(<SkyPolar {...props} />);
+    expect(container.querySelector('[data-body="sun"]')).toBeNull();
+    expect(container.querySelector('[data-body="moon"]')).toBeNull();
+  });
+
+  it('draws the same story as the dome at the same instant, as the committed SVG', async () => {
+    // The polar counterpart of the dome's raster snapshots (PLAN §9.1): the
+    // golden pass halfway through, the Sun eight degrees under the horizon and
+    // the Moon up, reviewed in the PR and regenerated deliberately. Class
+    // names are dropped — they are the stylesheet's business, and this
+    // snapshot is about the geometry.
+    const now = Math.round((pass.start.t + pass.end.t) / 2);
+    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} now={now} sun={{ t: now, azDeg: 285, altDeg: -8 }} moon={MOON_FIXTURE} />);
+    const svg = container.querySelector('svg');
+    if (!svg) throw new Error('no drawing');
+    const markup = svg.outerHTML.replace(/ class="[^"]*"/g, '').replace(/></g, '>\n<');
+    await expect(markup).toMatchFileSnapshot('./__snapshots__/SkyPolar.live.svg');
+  });
+
+  it('takes every colour from the FR-DOME-2 chart tokens, so the night theme is a token swap (FR-THEME-3)', () => {
+    // The stylesheet is a CSS module, so what the test can hold is the file:
+    // no chart element may reach for a general foreground or accent colour.
+    const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/polar/SkyPolar.module.css'), 'utf8');
+    const drawing = css.slice(css.indexOf('.horizon'), css.indexOf('.label {'));
+    expect(drawing).not.toMatch(/var\(--(accent|warn|fg|fg-dim)\)/);
+    for (const token of ['--chart-horizon', '--chart-rings', '--chart-compass', '--chart-pass', '--chart-pass-dim', '--chart-pass-flown', '--chart-peak', '--chart-shadow', '--chart-now', '--chart-sun', '--chart-moon']) {
+      expect(drawing, token).toContain(`var(${token})`);
+    }
   });
 });
