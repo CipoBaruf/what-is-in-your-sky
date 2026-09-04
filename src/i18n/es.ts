@@ -19,21 +19,21 @@ const capitalise = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1)
 
 const compass = {
   N: 'norte',
-  NNE: 'nornoreste',
+  NNE: 'norte-noreste',
   NE: 'noreste',
-  ENE: 'estenoreste',
+  ENE: 'este-noreste',
   E: 'este',
-  ESE: 'estesureste',
+  ESE: 'este-sureste',
   SE: 'sureste',
-  SSE: 'sursureste',
+  SSE: 'sur-sureste',
   S: 'sur',
-  SSW: 'sursuroeste',
+  SSW: 'sur-suroeste',
   SW: 'suroeste',
-  WSW: 'oestesuroeste',
+  WSW: 'oeste-suroeste',
   W: 'oeste',
-  WNW: 'oestenoroeste',
+  WNW: 'oeste-noroeste',
   NW: 'noroeste',
-  NNW: 'nornoroeste',
+  NNW: 'norte-noroeste',
 } satisfies Record<CompassPoint, string>;
 
 const elevationWord = { low: 'bajo', mid: 'a media altura', high: 'alto', overhead: 'casi en el cenit' } satisfies Record<ElevationBand, string>;
