@@ -21,7 +21,7 @@ const observerAt = (lat: number, lon: number, label = `${String(lat)}, ${String(
 const neuquen = observerAt(ref.observer.lat, ref.observer.lon, '−38.93, −67.99');
 
 const window = (startMs: number): TimeWindow => ({ startMs, endMs: startMs + WINDOW_MS });
-const finished = (observer: Observer, startMs: number, passes: Pass[] = [golden]): FinishedRun => ({ observer, window: window(startMs), oldestElementsEpochMs: ref.t, passes });
+const finished = (observer: Observer, startMs: number, passes: Pass[] = [golden]): FinishedRun => ({ observer, window: window(startMs), newestElementsEpochMs: ref.t, hasDarkness: true, passes });
 
 const idbCache = (now: () => number, dbName = uniqueDbName()) => createPassesCache({ store: idbPassRunStore(dbName), now, warn: () => undefined });
 
@@ -40,7 +40,7 @@ describe('createPassesCache', () => {
   it('stores a finished run whole and reads it back for any observer in the cell', async () => {
     const cache = idbCache(() => T0);
     const saved = await cache.save(finished(neuquen, T0));
-    expect(saved).toMatchObject({ cellKey: '-38.93,-67.99', computedAt: T0, oldestElementsEpochMs: ref.t, window: window(T0) });
+    expect(saved).toMatchObject({ cellKey: '-38.93,-67.99', computedAt: T0, newestElementsEpochMs: ref.t, hasDarkness: true, window: window(T0) });
 
     const read = await cache.loadForObserver(observerAt(ref.observer.lat + 0.002, ref.observer.lon - 0.003));
     expect(read).toEqual(saved);

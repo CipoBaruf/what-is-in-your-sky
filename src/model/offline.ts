@@ -17,8 +17,17 @@ export interface PassRun {
   /** The window the run covers: 72 h from `computedAt` (FR-VIS-1 amended). */
   window: TimeWindow;
   computedAt: EpochMs;
-  /** The oldest element set the run used, for the FR-SAT-4 banner offline. */
-  oldestElementsEpochMs: EpochMs;
+  /**
+   * The newest epoch among the elements the run used, for the FR-SAT-4 banner offline. Newest,
+   * not oldest: that is how `lib/elementsAge.ts` defines a set's age (D-108).
+   */
+  newestElementsEpochMs: EpochMs;
+  /**
+   * Whether the window held any darkness at all. Stored, because an empty run means two different
+   * things — "nothing is visible" and "the sun never sets far enough" — and offline there is no
+   * recompute to tell them apart (D-108).
+   */
+  hasDarkness: boolean;
   passes: Pass[];
 }
 

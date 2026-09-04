@@ -607,11 +607,12 @@ describe('stored passes (R24, FR-OFF-2, FR-OFF-5)', () => {
     observer: neuquen,
     window: { startMs: STORED_AT, endMs: STORED_AT + SEARCH_WINDOW_MS },
     computedAt: STORED_AT,
-    oldestElementsEpochMs: ref.t,
+    newestElementsEpochMs: ref.t,
+    hasDarkness: true,
     passes: [storedPass],
   };
-  /** The oldest epoch in the fixture set: what a finished run records as its provenance. */
-  const oldestEpoch = Math.min(...fixtureRecords().map((record) => record.epochMs));
+  /** The newest epoch in the fixture set: what a finished run records as its provenance (FR-SAT-4, D-108). */
+  const newestEpoch = Math.max(...fixtureRecords().map((record) => record.epochMs));
 
   let store: AppStore;
   let worker: ReturnType<typeof fakeWorker>;
@@ -697,6 +698,33 @@ describe('stored passes (R24, FR-OFF-2, FR-OFF-5)', () => {
     expect(store.getState().passes.storedAt).toBeNull();
   });
 
+  it('brings hasDarkness back with the stored run, so an empty one is not read as "nothing visible" (D-108)', async () => {
+    start({ ...storedRun, passes: [], hasDarkness: false });
+    await vi.waitFor(() => expect(store.getState().passes.storedAt).toBe(STORED_AT));
+    // Without the stored flag this would be `null` and the list would word it as nothing visible,
+    // when the truth is that the window held no darkness at all (spec §5.6).
+    expect(store.getState().passes).toMatchObject({ status: 'done', hasDarkness: false });
+  });
+
+  it('an empty batch does not count as the new job having something to show (D-108)', async () => {
+    start(storedRun);
+    await vi.waitFor(() => expect(store.getState().passes.storedAt).toBe(STORED_AT));
+    const jobId = await jobStarted();
+
+    // The worker reports every (night, object) pair, empty ones included. Night 0 of an object with
+    // no passes must not blank the list a moment into a recompute that runs for seconds.
+    worker.emit({ type: 'passes', jobId, noradId: 25544, nightIndex: 0, passes: [] });
+    worker.emit({ type: 'passes', jobId, noradId: 25544, nightIndex: 1, passes: [] });
+    expect(store.getState().passes.passes).toEqual([storedPass]);
+    expect(store.getState().passes.storedAt).toBe(STORED_AT);
+
+    // The first batch that carries a pass is what takes over.
+    const fresh = samplePass(25544, NOW + 90 * 60_000);
+    worker.emit({ type: 'passes', jobId, noradId: 25544, nightIndex: 2, passes: [fresh] });
+    expect(store.getState().passes.passes).toEqual([fresh]);
+    expect(store.getState().passes.storedAt).toBeNull();
+  });
+
   it('a recompute that finds nothing clears the stored passes at jobDone', async () => {
     start(storedRun);
     await vi.waitFor(() => expect(store.getState().passes.storedAt).toBe(STORED_AT));
@@ -706,7 +734,7 @@ describe('stored passes (R24, FR-OFF-2, FR-OFF-5)', () => {
     expect(store.getState().passes.passes).toEqual([]);
   });
 
-  it('stores every uncancelled job as it finishes, with the window and the oldest elements epoch (FR-OFF-5)', async () => {
+  it('stores every uncancelled job as it finishes, with the window and the newest elements epoch (FR-OFF-5)', async () => {
     start(null);
     const jobId = await jobStarted();
     const found = samplePass(25544, NOW + 1000);
@@ -714,8 +742,28 @@ describe('stored passes (R24, FR-OFF-2, FR-OFF-5)', () => {
     expect(saved).toHaveLength(0); // nothing is written mid-stream
     worker.emit({ type: 'jobDone', jobId, cancelled: false, elapsedMs: 42, hasDarkness: true });
     expect(saved).toHaveLength(1);
-    expect(saved[0]).toMatchObject({ observer: neuquen, window: { startMs: NOW, endMs: NOW + SEARCH_WINDOW_MS }, oldestElementsEpochMs: oldestEpoch });
+    expect(saved[0]).toMatchObject({ observer: neuquen, window: { startMs: NOW, endMs: NOW + SEARCH_WINDOW_MS }, newestElementsEpochMs: newestEpoch });
+    expect(newestEpoch).toBeGreaterThan(Math.min(...fixtureRecords().map((record) => record.epochMs))); // the two differ, so the assertion above means something
     expect(saved[0]?.passes).toEqual([found]);
+  });
+
+  it('stores an empty run when the job really found nothing, and keeps hasDarkness (D-108)', async () => {
+    start(null);
+    const jobId = await jobStarted();
+    worker.emit({ type: 'jobDone', jobId, cancelled: false, elapsedMs: 12, hasDarkness: false });
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({ hasDarkness: false });
+    expect(saved[0]?.passes).toEqual([]);
+  });
+
+  it('does not overwrite a good stored run when every object was skipped (D-108)', async () => {
+    start(storedRun);
+    await vi.waitFor(() => expect(store.getState().passes.storedAt).toBe(STORED_AT));
+    const jobId = await jobStarted();
+    worker.emit({ type: 'error', ref: { jobId }, code: 'PROPAGATION_FAILED', message: 'object 25544: boom' });
+    worker.emit({ type: 'jobDone', jobId, cancelled: false, elapsedMs: 12, hasDarkness: true });
+    // Nothing computed is not an answer: the run that is the only offline list survives.
+    expect(saved).toHaveLength(0);
   });
 
   it('does not store a cancelled job', async () => {

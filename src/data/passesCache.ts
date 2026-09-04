@@ -1,5 +1,6 @@
 import type { EpochMs, Observer, Pass, PassRun, TimeWindow } from '../model';
 import { openWiysDb, PASS_RUNS_STORE_NAME } from './db';
+import { MOON_PHASES } from './moon/schema';
 import { storedObserverSchema, toObserver } from './schemas';
 import { z } from './zod';
 
@@ -36,6 +37,21 @@ const passPointSchema = z.object({
   rangeKm: z.number().finite(),
 });
 
+/**
+ * The Moon at the pass peak (R19, FR-MOON-1/2). The eight names come from `moon/schema.ts`, which
+ * is where the lore file's keys are already declared: one list, and a stored run cannot come back
+ * with a ninth name that `phaseLore` has no line for (D-103).
+ */
+const moonStateSchema = z.object({
+  t: z.number().finite(),
+  phaseAngleDeg: z.number().finite(),
+  illuminatedFraction: z.number().finite(),
+  phase: z.enum(MOON_PHASES),
+  azDeg: z.number().finite(),
+  elDeg: z.number().finite(),
+  eclipticLonDeg: z.number().finite(),
+});
+
 const passSchema = z.object({
   id: z.string().min(1),
   noradId: z.number().int(),
@@ -51,6 +67,8 @@ const passSchema = z.object({
   twilight: z.boolean(),
   track: z.array(passPointSchema),
   elementsEpochMs: z.number().finite(),
+  moonAtPeak: moonStateSchema.nullable(),
+  moonGlare: z.object({ glare: z.boolean(), separationDeg: z.number().finite().nullable() }),
 });
 
 /** What a stored run must look like to be trusted; anything else reads as absent, and the app recomputes. */
@@ -59,7 +77,8 @@ const storedRunSchema = z.object({
   observer: storedObserverSchema,
   window: z.object({ startMs: z.number().finite(), endMs: z.number().finite() }),
   computedAt: z.number().finite(),
-  oldestElementsEpochMs: z.number().finite(),
+  newestElementsEpochMs: z.number().finite(),
+  hasDarkness: z.boolean(),
   passes: z.array(passSchema),
 });
 
@@ -125,7 +144,8 @@ export interface PassesCacheDeps {
 export interface FinishedRun {
   observer: Observer;
   window: TimeWindow;
-  oldestElementsEpochMs: EpochMs;
+  newestElementsEpochMs: EpochMs;
+  hasDarkness: boolean;
   passes: Pass[];
 }
 
@@ -151,9 +171,9 @@ export function createPassesCache({ store, now, warn = (m) => console.warn(m) }:
   };
 
   return {
-    save: async ({ observer, window, oldestElementsEpochMs, passes }) => {
+    save: async ({ observer, window, newestElementsEpochMs, hasDarkness, passes }) => {
       if (!store) return null;
-      const run: PassRun = { cellKey: passCellKey(observer.lat, observer.lon), observer, window, computedAt: now(), oldestElementsEpochMs, passes };
+      const run: PassRun = { cellKey: passCellKey(observer.lat, observer.lon), observer, window, computedAt: now(), newestElementsEpochMs, hasDarkness, passes };
       try {
         await store.put(run);
         await prune(store);

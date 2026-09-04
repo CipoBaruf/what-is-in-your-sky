@@ -18,7 +18,7 @@
  * the offline recompute.
  */
 import { readFileSync } from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 interface HaFixture {
   capturedAt: string;
@@ -86,7 +86,7 @@ test('reload with every route aborted: the cached passes are still shown, no Cel
   await page.clock.setFixedTime(T0 + 30 * 60_000);
   await page.reload();
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(onlineStatus, { timeout: 30_000 });
+  await waitForRecompute(status, onlineStatus);
   expect(celestrakRequests).toHaveLength(2); // the aborted routes never reach the fixture handler, and the cache is younger than 2 h anyway
   const offlineIds = await page.locator('article[data-pass-id]').evaluateAll((cards) => cards.map((c) => c.getAttribute('data-pass-id')));
   expect(offlineIds).toEqual(onlineIds);
@@ -149,6 +149,19 @@ interface StoredRun {
   passes: { id: string }[];
 }
 
+/**
+ * Waits for the recompute, not for the stored run standing in for it. A stored run renders as a
+ * *finished* list (FR-OFF-2) carrying the same passes, so it produces the same status text: waiting
+ * on the text alone can resolve before the recompute has even started, and the list read straight
+ * after is then whatever the job has replaced so far. The busy flag goes up when the job starts and
+ * down at `jobDone`, so waiting for both edges gates on the real thing (D-108).
+ */
+async function waitForRecompute(status: Locator, text: string): Promise<void> {
+  await expect(status).toHaveAttribute('aria-busy', 'true', { timeout: 30_000 });
+  await expect(status).toHaveAttribute('aria-busy', 'false', { timeout: 30_000 });
+  await expect(status).toHaveText(text, { timeout: 30_000 });
+}
+
 /** Everything in the `passRuns` store of the real IndexedDB, read from the page (FR-OFF-2, D-78). */
 async function storedRuns(page: Page): Promise<StoredRun[]> {
   return page.evaluate(
@@ -204,7 +217,7 @@ test('the finished run is stored, and a reload with the network blocked shows it
   await page.reload();
 
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(onlineStatus, { timeout: 30_000 });
+  await waitForRecompute(status, onlineStatus);
   const offlineIds = await page.locator('article[data-pass-id]').evaluateAll((cards) => cards.map((c) => c.getAttribute('data-pass-id')));
   expect(offlineIds).toEqual(onlineIds);
   // Elements inside the 2 h rule, forecast inside its 30 min TTL: nothing to ask either provider for.

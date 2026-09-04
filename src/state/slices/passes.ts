@@ -76,7 +76,9 @@ export const createPassesSlice: StateCreator<PassesSlice, [], [], PassesSlice> =
     passes: IDLE_PASSES,
     showStoredPasses: (run) => {
       set({
-        passes: { ...IDLE_PASSES, status: 'done', observer: run.observer, window: run.window, passes: [...run.passes].sort(byStart), storedAt: run.computedAt },
+        // `hasDarkness` comes back with the run: without it an empty stored run would report
+        // "no visible passes" when the truth is that the window held no darkness at all (D-108).
+        passes: { ...IDLE_PASSES, status: 'done', observer: run.observer, window: run.window, passes: [...run.passes].sort(byStart), hasDarkness: run.hasDarkness, storedAt: run.computedAt },
       });
     },
     startJob: (jobId, observer, window) => {
@@ -87,7 +89,16 @@ export const createPassesSlice: StateCreator<PassesSlice, [], [], PassesSlice> =
       });
     },
     addPasses: (jobId, passes) => {
-      update(jobId, (current) => (current.storedAt === null ? { passes: [...current.passes, ...passes].sort(byStart) } : { passes: [...passes].sort(byStart), storedAt: null }));
+      update(jobId, (current) => {
+        if (current.storedAt === null) return { passes: [...current.passes, ...passes].sort(byStart) };
+        // Stored passes are still standing in. The worker emits a `passes` message for every
+        // (night, object) pair, empty ones included, so an empty batch is not yet something of
+        // this job's own to show: taking over on one would blank the list a moment into a
+        // multi-second recompute, which is the blanking D-105 forbids. The first batch that
+        // carries a pass takes over.
+        if (passes.length === 0) return {};
+        return { passes: [...passes].sort(byStart), storedAt: null };
+      });
     },
     setProgress: (jobId, done, total) => {
       update(jobId, () => ({ done, total }));

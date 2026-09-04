@@ -63,7 +63,10 @@ export function PassList({ onOpenPass }: PassListProps) {
   const headingId = useId();
   const now = useNow(HERO_CHECK_MS);
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
-  const showList = observer !== null && elements.status === 'ready' && passes.passes.length > 0;
+  // A stored run is shown whatever the elements are doing: it was computed from elements that had
+  // already loaded once, and gating it on this load would hide it for the whole fetch and for good
+  // when the fetch fails — which is the cold start with no signal that FR-OFF-2 is about (D-108).
+  const showList = observer !== null && passes.passes.length > 0 && (elements.status === 'ready' || passes.storedAt !== null);
   // Busy from the moment there is something to compute until the job ends (the worker may still be booting).
   const busy = observer !== null && elements.status === 'ready' && elements.records.length > 0 && (passes.status === 'idle' || passes.status === 'computing');
   const hero = showList ? nextFeaturedPass(passes.passes, isFeatured, now) : null;

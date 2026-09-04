@@ -206,17 +206,27 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
     if (run && !stale()) store.getState().showStoredPasses(run);
   };
 
-  /** The oldest element set behind a finished run: what the FR-SAT-4 banner quotes offline, when there is no loader answer to read. */
-  const oldestElementsEpoch = (passes: Pass[]): EpochMs => {
+  /**
+   * The element set behind a finished run, as the FR-SAT-4 banner quotes it offline when there is
+   * no loader answer to read. The age of a set is that of its *newest* epoch, not its oldest
+   * (`lib/elementsAge.ts`): an old oldest epoch is normal for a quiet rocket body, while an old
+   * newest epoch means the whole fetch is old. Taking the minimum here made a fresh set read as
+   * weeks old and would have tripped R27's 5-day warning on it (D-108).
+   */
+  const newestElementsEpoch = (passes: Pass[]): EpochMs => {
     const epochs = current && current.records.length > 0 ? current.records.map((record) => record.epochMs) : passes.map((pass) => pass.elementsEpochMs);
-    return epochs.length > 0 ? Math.min(...epochs) : now();
+    return epochs.length > 0 ? Math.max(...epochs) : now();
   };
 
   /** FR-OFF-5: every job that finishes uncancelled is stored, with no user action. */
   const storeRun = (jobId: string, observer: Observer, window: TimeWindow): void => {
     const { passes } = store.getState();
     if (passes.jobId !== jobId) return; // a newer job already owns the slice; its own `jobDone` will store it
-    void saveRun({ observer, window, oldestElementsEpochMs: oldestElementsEpoch(passes.passes), passes: passes.passes });
+    // An empty run is a real answer — a window with no darkness, or nothing bright enough — and is
+    // worth storing. An empty run with objects skipped is not: propagation failed, and writing it
+    // back would destroy the good run that is the only thing the app can show offline (D-108).
+    if (passes.passes.length === 0 && passes.skipped.length > 0) return;
+    void saveRun({ observer, window, newestElementsEpochMs: newestElementsEpoch(passes.passes), passes: passes.passes, hasDarkness: passes.hasDarkness ?? true });
   };
 
   // --- Pass job -----------------------------------------------------------------
