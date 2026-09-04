@@ -31,6 +31,30 @@ export interface PassRun {
   passes: Pass[];
 }
 
+/**
+ * A saved place (FR-OFF-7, US-17, D-85). It carries the whole `Observer`,
+ * `timeZone` included, so selecting one offline needs no geocode call and the
+ * times are local from the first render. `id` is the observer's 0.01° cell —
+ * the same key `PassRun` is stored under (D-138) — so one favourite is one
+ * stored run, and saving a place already on the list refreshes it instead of
+ * spending a second slot. `addedAt` is when it was first saved and never
+ * changes; `lastUsedAt` moves on every selection and is what the eviction
+ * reads.
+ */
+export interface Favourite {
+  cellKey: string;
+  observer: Observer;
+  addedAt: EpochMs;
+  lastUsedAt: EpochMs;
+}
+
+/**
+ * FR-OFF-7: eight saved places, the ninth evicting the least recently used
+ * (D-85). A value in `src/model` because both sides need it — `data/favourites.ts`
+ * to evict and R28's panel to state the limit.
+ */
+export const MAX_FAVOURITES = 8;
+
 /** What is missing before the app can answer offline (FR-OFF-4). */
 export type ReadinessGap = 'elements' | 'forecast' | 'passes';
 

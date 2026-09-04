@@ -143,3 +143,103 @@ describe('prefs slice', () => {
     expect(store.getState().locale).toBe('es');
   });
 });
+
+/**
+ * TASKS R26 (FR-OFF-7, US-17, D-85, D-138, D-139): the saved places are store
+ * state read from `wiys:prefs:v1` at creation, and the three operations write
+ * the list back. Selecting one is a `setObserver`, which is what starts the
+ * FR-VIS-5 recompute; `effects.test.ts` proves the recompute itself.
+ */
+describe('favourites', () => {
+  const MINUTE = 60_000;
+  const NEUQUEN_CELL = '-38.93,-67.99';
+  const PARIS_CELL = '48.86,2.35';
+
+  it('starts empty, saves the whole observer under its cell, and writes the list through', () => {
+    const storage = memoryStorage();
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(store.getState().favourites).toEqual([]);
+    expect(storage.map.has(PREFS_KEY)).toBe(false);
+
+    store.getState().addFavourite(neuquen);
+    expect(store.getState().favourites).toEqual([{ cellKey: NEUQUEN_CELL, observer: neuquen, addedAt: NOW, lastUsedAt: NOW }]);
+    expect(stored(storage)).toEqual({ favourites: [{ cellKey: NEUQUEN_CELL, observer: neuquen, addedAt: NOW, lastUsedAt: NOW }] });
+
+    // And they come back at the next start, the zone and accuracy of each observer included.
+    store.getState().addFavourite(paris);
+    const restarted = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(restarted.getState().favourites.map((favourite) => favourite.observer)).toEqual([paris, neuquen]);
+  });
+
+  it('selects a saved place: it becomes the observer, with the window start from the clock (FR-VIS-5, US-17 AC2)', () => {
+    const storage = memoryStorage();
+    let clock = NOW;
+    const store = createAppStore({ now: () => clock, prefs: createLocalPrefs(storage) });
+    store.getState().addFavourite(neuquen);
+    store.getState().addFavourite(paris);
+    expect(store.getState().observer).toBeNull(); // saving a place does not select it
+
+    clock = NOW + 5 * MINUTE;
+    expect(store.getState().selectFavourite(NEUQUEN_CELL)).toBe(true);
+    expect(store.getState()).toMatchObject({ observer: neuquen, nowMs: NOW + 5 * MINUTE });
+    // Used, so it is now the front of the list and the last thing the eviction would drop.
+    expect(store.getState().favourites.map((favourite) => favourite.cellKey)).toEqual([NEUQUEN_CELL, PARIS_CELL]);
+    expect(store.getState().favourites[0]).toMatchObject({ addedAt: NOW, lastUsedAt: NOW + 5 * MINUTE });
+    // The observer write-through and the favourites write-through do not overwrite each other.
+    expect(stored(storage)).toMatchObject({ observer: neuquen });
+    expect(createLocalPrefs(storage).read().favourites?.map((favourite) => favourite.cellKey)).toEqual([NEUQUEN_CELL, PARIS_CELL]);
+  });
+
+  it('reports an unknown place rather than clearing the observer', () => {
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(memoryStorage()) });
+    store.getState().setObserver(paris);
+    expect(store.getState().selectFavourite(NEUQUEN_CELL)).toBe(false);
+    expect(store.getState().observer).toBe(paris);
+    expect(store.getState().favourites).toEqual([]);
+  });
+
+  it('removes one place with no other effect, and an empty list leaves no key behind (US-17 AC2)', () => {
+    const storage = memoryStorage();
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    store.getState().addFavourite(neuquen);
+    store.getState().addFavourite(paris);
+    store.getState().selectFavourite(PARIS_CELL);
+
+    store.getState().removeFavourite(PARIS_CELL);
+    expect(store.getState().favourites.map((favourite) => favourite.cellKey)).toEqual([NEUQUEN_CELL]);
+    expect(store.getState().observer).toBe(paris); // removing a place is not leaving it
+    expect(createLocalPrefs(storage).read().favourites).toHaveLength(1);
+
+    store.getState().removeFavourite(NEUQUEN_CELL);
+    expect(store.getState().favourites).toEqual([]);
+    expect(createLocalPrefs(storage).read()).toEqual({ observer: paris });
+  });
+
+  it('keeps the ninth place and drops the least recently used, across a restart (D-85)', () => {
+    const storage = memoryStorage();
+    let clock = NOW;
+    const store = createAppStore({ now: () => clock, prefs: createLocalPrefs(storage) });
+    for (let n = 0; n < 8; n++) {
+      clock = NOW + n * MINUTE;
+      store.getState().addFavourite({ ...neuquen, lat: -38.93 + n, label: `place ${n}` });
+    }
+    expect(store.getState().favourites).toHaveLength(8);
+    clock = NOW + 8 * MINUTE;
+    store.getState().addFavourite(paris);
+    expect(store.getState().favourites).toHaveLength(8);
+    expect(store.getState().favourites.map((favourite) => favourite.observer.label)).not.toContain('place 0');
+
+    const restarted = createAppStore({ now: () => clock, prefs: createLocalPrefs(storage) });
+    expect(restarted.getState().favourites.map((favourite) => favourite.observer.label)).toEqual(store.getState().favourites.map((favourite) => favourite.observer.label));
+  });
+
+  it('drops a malformed saved place without losing the others or the observer', () => {
+    const storage = memoryStorage();
+    const good = { cellKey: NEUQUEN_CELL, observer: neuquen, addedAt: NOW, lastUsedAt: NOW };
+    storage.map.set(PREFS_KEY, JSON.stringify({ observer: paris, favourites: [good, { cellKey: PARIS_CELL, observer: { lat: 91 }, addedAt: NOW, lastUsedAt: NOW }] }));
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(store.getState().favourites).toEqual([good]);
+    expect(store.getState().restoreSavedObserver()).toBe(true);
+    expect(store.getState().observer).toEqual(paris);
+  });
+});
