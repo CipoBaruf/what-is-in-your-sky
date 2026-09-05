@@ -19,8 +19,11 @@ import styles from './PassDetail.module.css';
 
 /**
  * US-6 (R6): the guide for one pass. A labelled modal dialog: focus moves to
- * its heading on open and back to the opener on close; Escape and the close
- * control both return to the list. The parent decides what "close" means
+ * its heading on open and back to the opener on close, and the close control
+ * returns to the list. Escape returns to the list too, but from the shortcut
+ * table rather than from here (R35, D-73): it is one of FR-DESK-4's keys, and
+ * the one listener is what decides that Escape closes the shortcuts overlay
+ * before it closes the guide. The parent decides what "close" means
  * (D-13: it clears the URL hash). R13: the sky chart (`SkyChart`, the
  * PLAN §8.1 boundary) sits between the countdown and the numbers; its
  * caption is the FR-GUIDE-1 sentence, so the screen shows it once. The
@@ -42,7 +45,7 @@ import styles from './PassDetail.module.css';
  * that stays live — so it carries neither the language and theme switches
  * (the header is right there and interactive) nor the scroll lock (nothing is
  * covered). What both shells share is everything that is about the guide
- * rather than its frame: the heading and its focus, Escape, and the content.
+ * rather than its frame: the heading and its focus, and the content.
  *
  * R30 (FR-MOON-2): the glare sentence follows the chart, directly under the
  * FR-GUIDE-1 sentence the chart captions itself with — one warning about this
@@ -95,19 +98,6 @@ export function PassDetail({ pass, observer, onClose }: PassDetailProps) {
       root.style.overflow = previous;
     };
   }, [compact]);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [onClose]);
 
   const body = (
     <>

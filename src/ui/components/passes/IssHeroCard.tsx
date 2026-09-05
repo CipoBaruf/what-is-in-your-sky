@@ -47,7 +47,7 @@ export function IssHeroCard({ pass, timeZone, onOpen, weather, now: nowProp, sel
   const now = nowProp ?? clock;
   const state = countdownState(pass, now);
   return (
-    <article className={styles.hero} aria-labelledby={headingId} data-pass-id={pass.id} data-testid="iss-hero" {...(selected ? { 'data-selected': 'true', 'aria-current': true as const } : {})}>
+    <article className={styles.hero} aria-labelledby={headingId} data-pass-id={pass.id} data-pass-card="" data-testid="iss-hero" tabIndex={-1} {...(selected ? { 'data-selected': 'true', 'aria-current': true as const } : {})}>
       <p className={styles.kicker}>{heroKicker(pass, t)}</p>
       <h2 id={headingId} className={styles.name}>
         {pass.name}

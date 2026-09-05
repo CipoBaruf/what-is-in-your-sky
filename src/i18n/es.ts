@@ -380,6 +380,23 @@ export const es: Messages = {
     dismiss: 'Ahora no',
   },
 
+  shortcuts: {
+    title: 'Atajos de teclado',
+    keyHeading: 'Tecla',
+    doesHeading: 'Acción',
+    close: 'Cerrar',
+    does: {
+      next: 'Pase siguiente de la lista',
+      previous: 'Pase anterior de la lista',
+      open: 'Abrir el pase donde está el cursor',
+      close: 'Cerrar la guía, o esta lista',
+      live: 'Abrir el cielo en vivo',
+      view: 'Cambiar el gráfico entre el domo y la vista polar',
+      theme: 'Cambiar la paleta entre oscura y nocturna',
+      help: 'Mostrar esta lista',
+    },
+  },
+
   footer: {
     celestrak: { before: 'Elementos orbitales de ', link: 'CelesTrak', after: '.' },
     openMeteo: { before: 'Datos meteorológicos de ', link: 'Open-Meteo.com', after: ' (CC BY 4.0).' },

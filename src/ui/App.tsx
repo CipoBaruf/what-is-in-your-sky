@@ -1,6 +1,7 @@
-import { lazy, Suspense, useEffect, useMemo } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { I18nProvider, useLocale, useT } from '../i18n/useT';
 import { resolvePassLink } from '../lib/shareLinks';
+import type { ShortcutActions } from '../lib/shortcuts';
 import { formatClock, formatDate } from '../lib/timeFormat';
 import { catalogName, searchPlaces, useAppStore } from '../state';
 import styles from './App.module.css';
@@ -10,14 +11,17 @@ import { Footer } from './components/common/Footer';
 import { InstallHint } from './components/common/InstallHint';
 import { LanguageToggle } from './components/common/LanguageToggle';
 import { ReadinessLine } from './components/common/ReadinessLine';
+import { ShortcutsOverlay } from './components/common/ShortcutsOverlay';
 import { UpdateBanner } from './components/common/UpdateBanner';
 import { ThemeToggle } from './components/common/ThemeToggle';
 import { ElementsBanners } from './components/elements/ElementsBanners';
 import { useLayoutMode } from './hooks/useLayoutMode';
+import { useShortcuts } from './hooks/useShortcuts';
 import { LocationInput } from './components/location/LocationInput';
 import { MoonLore } from './components/moon/MoonLore';
 import { NowPanel } from './components/now/NowPanel';
 import { PassList } from './components/passes/PassList';
+import { moveCursor, passIdAtCursor } from './components/passes/passCursor';
 import { useLiveRoute } from './screens/LiveRoute';
 import { PassDetail } from './screens/PassDetail';
 import { findSelectedPass, usePassSelection } from './screens/passSelection';
@@ -63,7 +67,11 @@ const LivePage = lazy(() => import('./screens/Live').then((module) => ({ default
  * instead of this one. R28 puts the update offer and the install hint at the
  * head of the left column (FR-OFF-1, FR-OFF-6): they are page-level statements
  * like the elements banners, and being inside the shell is what keeps them out
- * of reach under an open pass and off the live page altogether (D-154).
+ * of reach under an open pass and off the live page altogether (D-154). R35
+ * (FR-DESK-4, D-73): this is also where the app's one `keydown` listener is
+ * mounted, because this is the component that has the selection, the guide,
+ * the route and the preferences in scope at once — every handler in the
+ * shortcut table is a line of it.
  */
 export function App() {
   const t = useT();
@@ -98,9 +106,64 @@ export function App() {
   }, [link, resolution, passesStatus, timeZone, locale, t]);
   const mode = useLayoutMode();
   const live = useLiveRoute();
+  /*
+   * R35 (FR-DESK-4, D-73): the shortcut table's handlers, the one place the
+   * keys reach the app's state. Each says whether it did something, which is
+   * what decides whether the key press was the app's or the browser's.
+   *
+   * The cursor `j` and `k` move is DOM focus on a pass card, not state here
+   * (`components/passes/passCursor.ts`), so the list keeps deciding which
+   * cards there are and in what order.
+   */
+  const [helpOpen, setHelpOpen] = useState(false);
+  const theme = useAppStore((s) => s.theme);
+  const setTheme = useAppStore((s) => s.setTheme);
+  const chartView = useAppStore((s) => s.chartView);
+  const setChartView = useAppStore((s) => s.setChartView);
+  const actions: ShortcutActions = {
+    next: () => moveCursor(document, 1) !== null,
+    previous: () => moveCursor(document, -1) !== null,
+    open: () => {
+      const passId = passIdAtCursor(document);
+      if (passId === null) return false;
+      open(passId);
+      return true;
+    },
+    // The overlay first: it is what is on top, and it is where the reader just
+    // read that Esc closes the guide.
+    close: () => {
+      if (helpOpen) {
+        setHelpOpen(false);
+        return true;
+      }
+      if (selected === null) return false;
+      close();
+      return true;
+    },
+    live: () => {
+      setHelpOpen(false);
+      window.location.hash = 'live';
+      return true;
+    },
+    view: () => {
+      setChartView(chartView === 'dome' ? 'polar' : 'dome');
+      return true;
+    },
+    theme: () => {
+      setTheme(theme === 'night' ? 'dark' : 'night');
+      return true;
+    },
+    help: () => {
+      setHelpOpen(true);
+      return true;
+    },
+  };
+  // Not on the live page: it is a screen of its own with its own keys (R32, R33).
+  useShortcuts(actions, !live.active);
   // Only the compact sheet covers the page; the wide panel opens beside the
-  // list, which stays live (FR-DESK-3).
-  const inert = selected !== null && mode === 'compact';
+  // list, which stays live (FR-DESK-3). The shortcuts overlay covers it at
+  // every width, so nothing behind it is reachable either.
+  const inert = helpOpen || (selected !== null && mode === 'compact');
   if (live.active) {
     return (
       <Suspense fallback={<p className={styles.liveLoading}>{t.live.loading}</p>}>
@@ -150,6 +213,13 @@ export function App() {
         </div>
       </main>
       <Footer inert={inert} />
+      {helpOpen && (
+        <ShortcutsOverlay
+          onClose={() => {
+            setHelpOpen(false);
+          }}
+        />
+      )}
     </>
   );
 }
