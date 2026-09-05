@@ -1,0 +1,35 @@
+/* R34 (FR-LIVE-8): the follow toggle reads `[x]` / `[ ]` like the hidden-objects
+   toggle beside it (FR-X-5), and its note wraps under it in the dim ink. On a
+   36-cell phone the toggle and the share action share the actions row's last
+   line in English (16 + 2 + 18 cells); Spanish wraps to one more. */
+.follow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--cell);
+}
+
+.toggle {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--fg-dim);
+}
+
+.toggle::before {
+  content: '[ ] ';
+  color: var(--fg-dim);
+}
+
+.toggle[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+.toggle[aria-pressed='true']::before {
+  content: '[x] ';
+  color: var(--accent);
+}
+
+.note {
+  color: var(--fg-dim);
+}
