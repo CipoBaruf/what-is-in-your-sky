@@ -173,8 +173,8 @@ describe('<SkyPolar>', () => {
     const strength = glowStrength(sun.altDeg);
     const halfWidth = glowHalfWidthDeg(strength);
     const height = glowHeightDeg(strength);
-    const left = expected({ azDeg: sun.azDeg - halfWidth, elDeg: height / 2 }, 'looking-up');
-    const right = expected({ azDeg: sun.azDeg + halfWidth, elDeg: height / 2 }, 'looking-up');
+    const left = expected({ t: sun.t, azDeg: sun.azDeg - halfWidth, elDeg: height / 2, rangeKm: 0 }, 'looking-up');
+    const right = expected({ t: sun.t, azDeg: sun.azDeg + halfWidth, elDeg: height / 2, rangeKm: 0 }, 'looking-up');
     expectAt(points[0] ?? { x: NaN, y: NaN }, left);
     expectAt(points[points.length - 1] ?? { x: NaN, y: NaN }, right);
   });
