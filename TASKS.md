@@ -577,7 +577,7 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - The drag rate still holds ≥ 30 updates/s at 6× throttle; the chart chunk stays within budget.
     - Captures of both views at 390 px and 1280 px in both themes.
 
-- [ ] **R28 — Install hint, update banner and the favourites list**
+- [x] **R28 — Install hint, update banner and the favourites list**
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
@@ -590,6 +590,8 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - e2e: save two places, switch (the list recomputes for the new observer), remove one, reload and see the remaining favourite; the update banner appears from a faked waiting worker and reloads on click.
     - Nothing swaps under an open pass or the live page.
     - Captures in both languages.
+  - **Touches outside the lane:** `src/data/localPrefs.ts` and `src/state/slices/prefs.ts` (the install-hint dismissal the scope asks be "remembered in the prefs" — the `data` lane's files, and PLAN §5 already listed the field), `src/state/index.ts` (`favouriteCellKey` re-exported so `src/ui` never imports `src/data`).
+  - **Done 2026-09-05:** as specified, with three decisions (D-153..D-155) and one recorded lane crossing. "Shown once" is read as a latch written by every answer to the hint, `appinstalled` included, because `beforeinstallprompt` cannot be replayed and a hint that survived a half-answered dialog would come back offering a dead button (D-153); the iOS branch is keyed off `navigator.standalone` through an `InstallEnv` prop, so both shapes are unit-tested with no browser. "Nothing swaps under an open pass or the live page" is met by *placement*, not by a guard: both offers sit inside `main`, which the compact sheet makes inert and the live route replaces, so `UpdateBanner` still knows nothing but two store fields (D-154); the wide layout deliberately keeps the offer reachable, since FR-DESK-3 keeps that page live. The favourites panel owns no rules (D-155) — the store's from R26 — only readings: drawn whenever there is a place to save or one saved, the save button enabled even for a place already listed (re-saving refreshes it, D-138) with the feedback on the entry marked `aria-current` and "(in use)", removal with nothing in front of it, and the limit stated with its consequence. Two things the tests caught rather than review: stacked `inline-control` rows overlap, so the list rows carry the 48 px height themselves and the hint's two answers moved to a row of their own; and `favouriteCellKey` is re-exported from `src/state`, since the panel needs the one answer to "which saved place is this" and PLAN §3 forbids `src/ui` reaching `src/data`. Measured: main 132.7 KB gzipped against the 170 KB budget, every other chunk unchanged. Captures: `docs/screenshots/r28-{favourites-390,favourites-1280,install-390,install-ios-390,update-390}-dark-{en,es}.png` (the wide favourites capture is English only — the same list in a wider column).
 
 - [x] **R32 — The live page: full-screen dome, status strip and URL state**
   - **Lane:** live

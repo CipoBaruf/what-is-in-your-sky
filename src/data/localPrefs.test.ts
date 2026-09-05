@@ -130,6 +130,18 @@ describe('createLocalPrefs', () => {
     expect(read.at(-1)?.observer.label).toBe('place 4');
   });
 
+  it('reads the install-hint dismissal only when it is true (R28, FR-OFF-6)', () => {
+    const storage = memoryStorage();
+    const prefs = createLocalPrefs(storage);
+    prefs.write({ theme: 'night', installHintDismissed: true });
+    expect(prefs.read()).toEqual({ theme: 'night', installHintDismissed: true });
+    // `false` and a non-boolean both mean "not answered", which is the absent key.
+    for (const bad of [false, 'yes', 1, null]) {
+      storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night', installHintDismissed: bad }));
+      expect(prefs.read(), JSON.stringify(bad)).toEqual({ theme: 'night' });
+    }
+  });
+
   it('works without storage and swallows storage errors', () => {
     const none = createLocalPrefs(null);
     none.write({ observer: coords });
