@@ -18,7 +18,7 @@ const files = new Set(readdirSync(CAPTURE_DIR));
 const v1Files = [...files].filter((file) => file.startsWith('v1-')).sort();
 
 describe('the v1 capture set', () => {
-  it('names every screen at both widths, in both themes and both languages', () => {
+  it('F-50: names every screen at both widths, in as many themes and languages as there are', () => {
     // F-50 (R37): the variants are counted, not remembered. The hard-coded `* 4` was the two
     // themes times the two languages, so a third theme or a third language would have been a set
     // this test called complete while a quarter of it was missing.
