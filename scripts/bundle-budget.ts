@@ -44,7 +44,7 @@ export interface Budget {
  * | chart          | `SkyDome-*.js`      |     97.1 |    110 |     110 |
  * | worker         | `passes.worker-*`   |     36.1 |     40 |     130 |
  * | astronomy      | `skyBodies-*.js`    |     22.1 |     25 |      30 |
- * | live           | `Live-*.js`         |      6.3 |     10 |      40 |
+ * | live           | `Live-*.js`         |     12.6 |     15 |      40 |
  * | service worker | `workbox-*.js`      |      5.0 |     10 |      15 |
  *
  * What each one holds, and why it is a budget of its own rather than a row in
@@ -65,7 +65,12 @@ export interface Budget {
  *   fetch it, once a chart is on screen.
  * - **live** — `screens/Live.tsx` and the status strip, split out by the
  *   `React.lazy` in `App.tsx`, so the home page pays nothing for a page it may
- *   never open.
+ *   never open. R44 doubled it: `geomagnetism` and the four WMM coefficient
+ *   files are 6.3 KB gzipped of the 12.6 (D-185 measured 6.2 with esbuild), and
+ *   they land here rather than in main because `lib/declination.ts` is reached
+ *   only from the live page. Re-set to 15 KB by D-178's rule, well under the
+ *   §11 ceiling of 40 — the number to watch is whether the *next* change adds
+ *   another six.
  * - **service worker** — Workbox's runtime and the precache manifest, emitted
  *   at the site root rather than under `assets/` because a worker's scope is
  *   the directory it is served from (D-79). Nothing the page downloads to
@@ -81,7 +86,7 @@ export const BUDGETS: readonly Budget[] = [
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 40 },
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10 },
   { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 25 },
-  { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 10 },
+  { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 15 }, // R44: re-set from 10 for the World Magnetic Model (D-178, D-185)
 ];
 
 export interface ChunkSize {
