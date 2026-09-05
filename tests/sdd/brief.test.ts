@@ -38,7 +38,7 @@ describe('citedIds', () => {
 describe('the extractors, on the real documents', () => {
   it('takes a task entry from its heading to the next line at the margin', () => {
     const entry = taskEntry(sources.tasks, 'R37');
-    expect(entry?.startsWith('- [ ] **R37 — CI time')).toBe(true);
+    expect(entry).toMatch(/^- \[[ x]\] \*\*R37 — CI time/); // ticked on R37's own branch, so either box
     expect(entry).toContain('- **Done when:**');
     expect(entry).not.toContain('**R38');
   });
@@ -68,7 +68,7 @@ describe('buildBrief', () => {
     const { markdown, missing } = buildBrief(task('R37'), sources, tools);
     expect(missing).toEqual([]);
     expect(markdown).toContain('# R37 — CI time');
-    expect(markdown).toContain('- [ ] **R37 — CI time');
+    expect(markdown).toMatch(/- \[[ x]\] \*\*R37 — CI time/);
     for (const id of ['FR-CI-1', 'FR-CI-2', 'FR-CI-3', 'FR-FIX-2']) expect(markdown).toContain(`- **${id}**`);
     for (const id of ['F-46', 'F-47', 'F-48', 'F-49', 'F-50']) expect(markdown).toContain(`| ${id} | R36 #58 | ui |`);
     expect(markdown).toContain('- **D-195 —');
