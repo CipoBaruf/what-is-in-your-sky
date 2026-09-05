@@ -106,10 +106,12 @@ describe('<FollowPhone> with useFollowPhone (FR-LIVE-8)', () => {
     expect(screen.getByTestId('facing')).toHaveTextContent('none');
 
     fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'on');
+    // R39 (F-42): the click arms the listener; the first reading is what says the dome is following.
+    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
     expect(screen.queryByTestId('follow-note')).toBeNull();
     reading({ alpha: 270, absolute: true });
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'on');
     expect(screen.getByTestId('facing')).toHaveTextContent('none'); // not before the frame
     reading({ alpha: 269.6, absolute: true });
     frame();
@@ -199,11 +201,45 @@ describe('<FollowPhone> with useFollowPhone (FR-LIVE-8)', () => {
     await act(async () => {
       await Promise.resolve();
     });
-    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'on');
+    // Granted, so listening — and off until the sensor says otherwise, like the permission-less path (F-42).
+    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
     expect(screen.queryByTestId('follow-note')).toBeNull();
     reading({ alpha: 0, absolute: true });
     frame();
+    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'on');
     expect(screen.getByTestId('facing')).toHaveTextContent('0');
+  });
+
+  /**
+   * R39 (F-42): where `requestPermission` is absent — Android, and any desktop
+   * browser that still carries the constructor — the state went to `on` on the
+   * click and stayed there with no sensor behind it: a control that said the
+   * dome was following while the dome stood still.
+   */
+  it('stays off on the permission-less path until a reading arrives, and the click still disarms it (F-42)', () => {
+    const frame = scriptedFrames();
+    withPhone();
+    render(<Harness />);
+    const toggle = screen.getByRole('button', { name: en.live.follow });
+    fireEvent.click(toggle);
+    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByTestId('follow-note')).toBeNull();
+    frame();
+    expect(screen.getByTestId('facing')).toHaveTextContent('none');
+    // It is listening, though: the second click turns the listener off again, and readings are ignored.
+    fireEvent.click(toggle);
+    reading({ alpha: 90, absolute: true });
+    frame();
+    expect(screen.getByTestId('facing')).toHaveTextContent('none');
+    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
+    // Armed again, the first reading is what turns it on.
+    fireEvent.click(toggle);
+    reading({ alpha: 90, absolute: true });
+    frame();
+    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'on');
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('facing')).toHaveTextContent('270');
   });
 
   it('treats a request that throws (an insecure context) as denied', async () => {

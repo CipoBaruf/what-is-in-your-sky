@@ -818,7 +818,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
     - The stepping pick lands `t` within 1 min of a rise in ≤ 3 taps on the owner's phone (US-22 AC6).
   - **How it runs:** the owner opens a session in this checkout and drives the spike with the phone on the local network (`vite --host`); the driver lists the task and never runs it.
 
-- [ ] **R39 — Live findings: playback, the stripe's focus and memoisation, the follow control, the shared-link observer**
+- [x] **R39 — Live findings: playback, the stripe's focus and memoisation, the follow control, the shared-link observer**
   - **Lane:** live
   - **Model:** opus
   - **Gate:** auto
@@ -829,6 +829,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Scope:** `usePlayback` clamps the held instant on resume (F-36); `live.spec.ts` uses `exact: true` for `60×` (F-37); `hourTicks`, `nightBands`, `passSegments` memoised on `(span, passes, zone)` (F-38); pointer-down no longer prevents default, the stripe is focusable and focuses itself (F-39); `FollowPhone` hidden when the view is polar (F-40); the permission-less path stays `off` until a reading arrives (F-42); a same-document navigation to `#live?lat=…` applies the link's observer through `startApp`'s parser, not only at mount (F-34).
   - **Touches outside the lane:** `src/ui/App.tsx` (F-34's hash listener, one hunk), `tests/e2e/live.spec.ts`.
   - **Done when:** a test per finding, named by it; `npm test` and `live.spec.ts` green; no capture (nothing visible changes).
+  - *Done as written, with three notes: F-37's locator is in `live-playback.spec.ts`, not `live.spec.ts`, and needed an anchored pattern rather than `exact` (the accessible name carries the `[x] ` the CSS writes); F-38 took the shown instant out of `passSegments` (`isCurrent(segment, t)` at draw time) so the memo can hold on `(passes, span, width)`; F-42 makes `aria-pressed` follow the first reading, which moved three follow assertions in `Live.test.tsx` and `live-landscape.spec.ts`.*
 
 - [ ] **R40 — Chart findings: the astronomy import retry, the flown strip, the polar Sun label and glow, the zoom guard**
   - **Lane:** chart

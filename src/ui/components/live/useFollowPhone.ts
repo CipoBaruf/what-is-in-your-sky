@@ -12,12 +12,15 @@ import { deviceHeading, facingFrom, orientationApiPresent, orientationEventName,
  * whole-degree facing at most once per animation frame, the pace the drag
  * already updates the dome at.
  *
- *   - `off`: not listening; the dome is the viewer's.
- *   - `on`: listening; `facingAzDeg` is the last heading, or `null` before
- *     the first reading lands.
- *   - `relative`: listening, but the readings carry no north (no
- *     `absolute`, no `webkitCompassHeading`), so the page shows a note and
- *     the dome stays where it is. A later reading with a heading recovers.
+ *   - `off`: not following; the dome is the viewer's. R39 (F-42): this is also
+ *     the state of a phone that has been asked and has said nothing yet. The
+ *     listener is armed, but the state names what the dome is doing, and where
+ *     no reading ever arrives — a desktop with the constructor and no sensor,
+ *     a page whose permissions policy drops the events — that is nothing.
+ *   - `on`: a reading with a heading has landed; `facingAzDeg` is the last one.
+ *   - `relative`: a reading landed, but it carries no north (no `absolute`, no
+ *     `webkitCompassHeading`), so the page shows a note and the dome stays
+ *     where it is. A later reading with a heading recovers.
  *   - `denied`: the permission was refused, or the request failed (an
  *     insecure context); a note, and the control asks again on the next
  *     click.
@@ -38,16 +41,16 @@ export interface FollowPhoneHandle {
   stop: () => void;
 }
 
-const listening = (state: FollowState): boolean => state === 'on' || state === 'relative';
-
 export function useFollowPhone(): FollowPhoneHandle {
   const available = useMemo(() => typeof window !== 'undefined' && orientationApiPresent(), []);
+  // R39 (F-42): armed — the listener is on — is not the same as following. The click arms; the first
+  // reading is what names the state, so a device that never sends one leaves the control alone.
+  const [armed, setArmed] = useState(false);
   const [state, setState] = useState<FollowState>('off');
   const [facingAzDeg, setFacing] = useState<number | null>(null);
-  const active = listening(state);
 
   useEffect(() => {
-    if (!active) return;
+    if (!armed) return;
     let frame = 0;
     let pending: number | null = null;
     const flush = (): void => {
@@ -59,10 +62,10 @@ export function useFollowPhone(): FollowPhoneHandle {
     const onReading = (event: Event): void => {
       const heading = deviceHeading(readingFrom(event as DeviceOrientationEvent));
       if (heading === null) {
-        setState((current) => (current === 'on' ? 'relative' : current));
+        setState('relative');
         return;
       }
-      setState((current) => (current === 'relative' ? 'on' : current));
+      setState('on');
       pending = quantise(facingFrom(heading, screenAngle()));
       if (!frame) frame = requestAnimationFrame(flush);
     };
@@ -72,32 +75,40 @@ export function useFollowPhone(): FollowPhoneHandle {
       window.removeEventListener(name, onReading);
       if (frame) cancelAnimationFrame(frame);
     };
-  }, [active]);
+  }, [armed]);
 
   const stop = useCallback(() => {
+    setArmed(false);
     setState((current) => (current === 'denied' ? current : 'off'));
     setFacing(null);
   }, []);
 
+  const arm = useCallback(() => {
+    setArmed(true);
+    // The refusal's note belongs to the answer before this click, not to the reading this one is waiting for.
+    setState((current) => (current === 'denied' ? 'off' : current));
+  }, []);
+
   const toggle = useCallback(() => {
-    if (listening(state)) {
+    if (armed) {
       stop();
       return;
     }
     const request = permissionRequest();
     if (request === null) {
-      setState('on');
+      arm();
       return;
     }
     // iOS: inside the click, so the gesture carries. The answer arrives later; a refusal shows the note.
     request()
       .then((answer) => {
-        setState(answer === 'granted' ? 'on' : 'denied');
+        if (answer === 'granted') arm();
+        else setState('denied');
       })
       .catch(() => {
         setState('denied');
       });
-  }, [state, stop]);
+  }, [armed, arm, stop]);
 
   return { available, state, facingAzDeg, toggle, stop };
 }

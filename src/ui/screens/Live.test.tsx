@@ -360,8 +360,10 @@ describe('<LivePage>', () => {
       frame(16);
     };
     fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    // R39 (F-42): the click arms the sensor; the first reading is what says the dome is following.
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
     heading(270);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
     expect(facing()).toBe(90);
     heading(180);
     expect(facing()).toBe(180);
@@ -376,9 +378,51 @@ describe('<LivePage>', () => {
     expect(facing()).toBe(170);
     // The control turns it back on and the next heading turns the dome.
     fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
     heading(90);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
     expect(facing()).toBe(270);
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+  });
+
+  /**
+   * R39 (F-40, FR-LIVE-8 as amended): the facing is the dome's. The polar view
+   * draws the whole sky at once and takes no facing, so the control was a
+   * toggle that did nothing there; it is not shown, and a view change while
+   * following stops it rather than leaving the sensor on with no way off.
+   */
+  it('shows no follow control on the polar view and stops following when the view changes (F-40)', async () => {
+    const frame = scriptedFrames();
+    vi.stubGlobal('DeviceOrientationEvent', function DeviceOrientationEvent() {
+      return undefined;
+    });
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
+    withSky(); // the polar view, as every test here draws it
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.queryByTestId('follow-phone')).toBeNull();
+
+    // On the dome it is there, and it follows.
+    act(() => {
+      appStore.getState().setChartView('dome');
+    });
+    await screen.findByRole('group', { name: 'Sky dome' }, { timeout: 10_000 });
+    const toggle = screen.getByRole('button', { name: en.live.follow });
+    fireEvent.click(toggle);
+    act(() => {
+      window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: 270, absolute: true }));
+    });
+    frame(16);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(Number(screen.getByTestId('live-dome').querySelector('[data-facing-az]')?.getAttribute('data-facing-az'))).toBe(90);
+
+    // Back to polar: no control, and nothing left following behind it.
+    act(() => {
+      appStore.getState().setChartView('polar');
+    });
+    expect(screen.queryByTestId('follow-phone')).toBeNull();
+    act(() => {
+      appStore.getState().setChartView('dome');
+    });
+    expect(screen.getByRole('button', { name: en.live.follow })).toHaveAttribute('aria-pressed', 'false');
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
   });
 

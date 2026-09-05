@@ -1,7 +1,7 @@
-import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { useLocale, useT } from '../../../i18n/useT';
 import { formatClock, formatShortClock } from '../../../lib/timeFormat';
-import { cursorAt, hourTicks, keyStep, nightBands, passSegments, timeAt, type SkyBand, type Span } from '../../../lib/timeStripe';
+import { cursorAt, hourTicks, isCurrent, keyStep, nightBands, passSegments, timeAt, type SkyBand, type Span } from '../../../lib/timeStripe';
 import type { EpochMs, Pass } from '../../../model';
 import styles from './TimeStripe.module.css';
 
@@ -73,7 +73,11 @@ export function TimeStripe({ span, passes, bands, t, timeZone, onScrub }: TimeSt
   );
   const onPointerDown = (event: PointerEvent<SVGSVGElement>): void => {
     if (event.button !== 0) return;
-    event.preventDefault();
+    // R39 (F-39): no `preventDefault()` here. It suppressed the focus the press would have given the
+    // stripe, so the arrow keys did nothing after a click or a drag; the stripe takes focus itself
+    // instead. There is nothing else to prevent — the CSS already says `touch-action: none` and
+    // `user-select: none`, which is what stops the scroll and the text selection a drag would start.
+    event.currentTarget.focus({ preventScroll: true });
     // jsdom has no pointer capture; the browser keeps the drag on the stripe when the pointer leaves it.
     if (typeof event.currentTarget.setPointerCapture === 'function') event.currentTarget.setPointerCapture(event.pointerId);
     setDragging(true);
@@ -93,9 +97,16 @@ export function TimeStripe({ span, passes, bands, t, timeZone, onScrub }: TimeSt
     onScrub(next);
   };
 
-  const ticks = hourTicks(span, width, timeZone);
-  const night = nightBands(bands, span, width);
-  const segments = passSegments(passes, span, width, t);
+  /*
+   * R39 (F-38): the geometry does not depend on the shown instant, which moves
+   * on every frame while playback runs — at 3600× that was the hour ticks, the
+   * night bands and the lane packing recomputed sixty times a second, each with
+   * a fresh `Intl.DateTimeFormat` for the zone. Only the cursor and the
+   * `current` flag follow `t`, and both are arithmetic on what is memoised here.
+   */
+  const ticks = useMemo(() => hourTicks(span, width, timeZone), [span, width, timeZone]);
+  const night = useMemo(() => nightBands(bands, span, width), [bands, span, width]);
+  const segments = useMemo(() => passSegments(passes, span, width), [passes, span, width]);
   const cursor = cursorAt(t, span, width);
 
   return (
@@ -138,10 +149,10 @@ export function TimeStripe({ span, passes, bands, t, timeZone, onScrub }: TimeSt
       {segments.map((segment) => (
         <rect
           key={segment.passId}
-          className={[styles.segment, segment.current ? styles.current : undefined].filter(Boolean).join(' ')}
+          className={[styles.segment, isCurrent(segment, t) ? styles.current : undefined].filter(Boolean).join(' ')}
           data-pass-segment={segment.passId}
           data-series={segment.series}
-          data-current={segment.current}
+          data-current={isCurrent(segment, t)}
           x={fmt(segment.x)}
           y={SEGMENTS_Y + segment.lane * LANE_H}
           width={fmt(segment.width)}

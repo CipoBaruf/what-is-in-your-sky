@@ -95,6 +95,21 @@ describe('usePlayback', () => {
     expect(result.current.playing).toBe(false);
   });
 
+  // R39 (F-36): a link whose `t` is before the span — the span starts at real time, so any `t` in the past is —
+  // showed the span's start but played from the link's instant, an hour of wall time before anything moved.
+  it('clamps the held instant into the span on resume, so playback starts where the page is (F-36)', () => {
+    const { raf, tick } = scriptedRaf();
+    const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: NOW - 2 * HOUR_MS, raf }));
+    expect(result.current.t).toBe(span.start);
+    act(() => {
+      result.current.setSpeed(60);
+      result.current.play();
+    });
+    tick(0);
+    tick(1000); // one second at 60× is one minute — from the span's start, not from two hours before it
+    expect(result.current.t).toBe(span.start + 60_000);
+  });
+
   it('a scrub moves the instant, playing on from there; `now` returns to real time and stops', () => {
     const { raf, tick } = scriptedRaf();
     let realNow = NOW;

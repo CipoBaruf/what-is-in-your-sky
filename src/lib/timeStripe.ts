@@ -60,15 +60,15 @@ export function daysFromCivil(year: number, month: number, day: number): number 
   return era * 146_097 + doe - 719_468;
 }
 
-/**
- * The offset of `timeZone` from UTC at `t`, in milliseconds, from the wall
- * clock Intl reads there; `0` for an unknown zone, whose clocks read UTC
- * everywhere else on the page (`lib/timeFormat.ts`).
- */
-export function zoneOffsetMs(t: EpochMs, timeZone: string | null): number {
-  if (!timeZone) return 0;
+/** R39 (F-38): one formatter per zone. Constructing one is the expensive part of `zoneOffsetMs`, and the zone rarely changes. */
+const zoneFormats = new Map<string, Intl.DateTimeFormat | null>();
+
+function zoneFormat(timeZone: string): Intl.DateTimeFormat | null {
+  const cached = zoneFormats.get(timeZone);
+  if (cached !== undefined) return cached;
+  let made: Intl.DateTimeFormat | null;
   try {
-    const parts = new Intl.DateTimeFormat('en-US', {
+    made = new Intl.DateTimeFormat('en-US', {
       timeZone,
       hourCycle: 'h23',
       year: 'numeric',
@@ -77,7 +77,25 @@ export function zoneOffsetMs(t: EpochMs, timeZone: string | null): number {
       hour: 'numeric',
       minute: 'numeric',
       second: 'numeric',
-    }).formatToParts(t);
+    });
+  } catch {
+    made = null;
+  }
+  zoneFormats.set(timeZone, made);
+  return made;
+}
+
+/**
+ * The offset of `timeZone` from UTC at `t`, in milliseconds, from the wall
+ * clock Intl reads there; `0` for an unknown zone, whose clocks read UTC
+ * everywhere else on the page (`lib/timeFormat.ts`).
+ */
+export function zoneOffsetMs(t: EpochMs, timeZone: string | null): number {
+  if (!timeZone) return 0;
+  const format = zoneFormat(timeZone);
+  if (format === null) return 0;
+  try {
+    const parts = format.formatToParts(t);
     const get = (type: Intl.DateTimeFormatPartTypes): number => Number(parts.find((p) => p.type === type)?.value ?? '0');
     const wall = daysFromCivil(get('year'), get('month'), get('day')) * 86_400_000 + (get('hour') % 24) * HOUR_MS + get('minute') * MINUTE_MS + get('second') * 1000;
     // Intl gives whole seconds; the sub-second part of `t` is not part of the offset.
@@ -177,8 +195,14 @@ export interface PassSegment {
   series: number;
   /** Which row the segment sits on, 0 first: passes that overlap in time take different rows. */
   lane: number;
-  /** Whether the shown instant is inside this pass (the arc carrying a live marker). */
-  current: boolean;
+  /** The pass's own interval, unclipped: what `isCurrent` asks the shown instant about. */
+  start: EpochMs;
+  end: EpochMs;
+}
+
+/** Whether the shown instant is inside this pass (the arc carrying a live marker). */
+export function isCurrent(segment: PassSegment, t: EpochMs): boolean {
+  return segment.start <= t && t <= segment.end;
 }
 
 /** The six series tokens of the chart, cycled in pass order (`SkyPolar.SERIES_COUNT`). */
@@ -193,8 +217,13 @@ export const MAX_LANES = 3;
  * Overlapping passes are stacked into lanes greedily in `passes` order, so
  * two satellites up at once are two marks and not one; a pass wholly outside
  * the span is left out.
+ *
+ * R39 (F-38): the shown instant is not an argument. It moves every frame while
+ * playback runs, and the lanes and the pixels do not move with it, so the
+ * component memoises this on `(passes, span, width)` and asks `isCurrent`
+ * about each segment as it draws.
  */
-export function passSegments(passes: readonly Pass[], span: Span, width: number, t: EpochMs): PassSegment[] {
+export function passSegments(passes: readonly Pass[], span: Span, width: number): PassSegment[] {
   const laneEnds: EpochMs[] = [];
   const out: PassSegment[] = [];
   passes.forEach((pass, index) => {
@@ -214,7 +243,8 @@ export function passSegments(passes: readonly Pass[], span: Span, width: number,
       width: Math.max(MIN_SEGMENT_PX, xAt(to, span, width) - x),
       series: (index % SERIES_COUNT) + 1,
       lane,
-      current: pass.start.t <= t && t <= pass.end.t,
+      start: pass.start.t,
+      end: pass.end.t,
     });
   });
   return out;

@@ -196,6 +196,18 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   // FR-LIVE-8 (US-10): the phone's heading as the dome's facing while following; a drag on the dome turns it off.
   const follow = useFollowPhone();
   const facingAzDeg = follow.state === 'on' && follow.facingAzDeg !== null ? follow.facingAzDeg : undefined;
+  /*
+   * R39 (F-40, FR-LIVE-8 as amended): the facing belongs to the dome. The polar
+   * view draws the whole sky at once and consumes no facing, so the control had
+   * nothing to turn there — it is not shown, and following stops if the view
+   * changes under it rather than leaving the sensor listening with no way off.
+   */
+  const chartView = useAppStore((s) => s.chartView);
+  const followable = chartView === 'dome';
+  const stopFollowing = follow.stop;
+  useEffect(() => {
+    if (!followable) stopFollowing();
+  }, [followable, stopFollowing]);
   // FR-SHARE-1's live form: the place, and the instant only when this page is showing one (real time is the recipient's own).
   const url = shareUrl(window.location.href, liveLinkHash({ observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t: playback.realTime ? null : shown }));
   return (
@@ -231,7 +243,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
             onNow={playback.toNow}
             onToggleHidden={toggleHidden}
           />
-          <FollowPhone follow={follow} />
+          {followable && <FollowPhone follow={follow} />}
           <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={t.live.share} />
         </div>
         <StatusStrip t={shown} timeZone={observer.timeZone} sky={bodies.sky} cloud={cloud} count={count} moon={bodies.moon} speed={playback.playing ? playback.speed : null} />
