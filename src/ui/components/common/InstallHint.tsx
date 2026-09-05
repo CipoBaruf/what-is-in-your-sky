@@ -94,17 +94,20 @@ export function InstallHint({ env }: InstallHintProps) {
 
   return (
     <Banner variant="info" testId="install-hint">
-      {offer === null ? t.install.ios : t.install.offer}{' '}
-      {offer !== null && (
-        <>
-          <button type="button" onClick={install} className={`inline-control ${styles.action}`}>
+      {offer === null ? t.install.ios : t.install.offer}
+      {/* The two answers sit on a row of their own, each a tap target tall: side
+          by side on one wrapped line their 48 px boxes would overlap, and
+          "install" and "not now" are not a pair to be vague about. */}
+      <span className={styles.actions}>
+        {offer !== null && (
+          <button type="button" onClick={install} className={styles.action}>
             {t.install.action}
-          </button>{' '}
-        </>
-      )}
-      <button type="button" onClick={dismiss} className={`inline-control ${styles.action}`}>
-        {t.install.dismiss}
-      </button>
+          </button>
+        )}
+        <button type="button" onClick={dismiss} className={styles.action}>
+          {t.install.dismiss}
+        </button>
+      </span>
     </Banner>
   );
 }
