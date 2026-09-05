@@ -643,7 +643,7 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - With the APIs absent nothing is rendered (desktop e2e asserts no control).
     - Captures in landscape at a phone size, both themes.
 
-- [ ] **R35 — Keyboard shortcuts and the overlay**
+- [x] **R35 — Keyboard shortcuts and the overlay** — the guard is D-73's four typing targets, not FR-DESK-4's "or button": a declined press keeps its default instead, so `Enter` on a focused button is still the browser's click (D-164). `Esc` left `PassDetail` for the table (D-166) and the keys are not installed on the live page (D-167).
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
