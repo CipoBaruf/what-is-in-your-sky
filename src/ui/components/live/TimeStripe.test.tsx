@@ -4,13 +4,37 @@
  * pass segments in their series and the cursor with its clock; a pointer
  * press, a drag and the arrow keys each name an instant, clamped to the span.
  */
-import { fireEvent, render, screen } from '@testing-library/react';
+import { createEvent, fireEvent, render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../tests/support/catalogFixtures';
 import { HOUR_MS, type SkyBand, type Span } from '../../../lib/timeStripe';
 import type { Pass } from '../../../model';
 import { DEFAULT_WIDTH, TimeStripe } from './TimeStripe';
+
+/**
+ * R39 (F-38): the geometry calls are counted, so a rerender at a new instant —
+ * a frame of playback — can be held to recomputing none of them.
+ */
+const calls = vi.hoisted(() => ({ hourTicks: 0, nightBands: 0, passSegments: 0 }));
+vi.mock('../../../lib/timeStripe', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../lib/timeStripe')>();
+  return {
+    ...actual,
+    hourTicks: (...args: Parameters<typeof actual.hourTicks>) => {
+      calls.hourTicks++;
+      return actual.hourTicks(...args);
+    },
+    nightBands: (...args: Parameters<typeof actual.nightBands>) => {
+      calls.nightBands++;
+      return actual.nightBands(...args);
+    },
+    passSegments: (...args: Parameters<typeof actual.passSegments>) => {
+      calls.passSegments++;
+      return actual.passSegments(...args);
+    },
+  };
+});
 
 const pass = goldenPassFixture();
 const START = Date.UTC(2026, 8, 11, 9, 30, 0);
@@ -85,6 +109,41 @@ describe('<TimeStripe>', () => {
     // A secondary button is not a scrub.
     fireEvent.pointerDown(stripe, { button: 2, clientX: 300, pointerId: 1 });
     expect(onScrub).toHaveBeenCalledTimes(4);
+  });
+
+  // R39 (F-39): `preventDefault()` on pointer-down suppressed the focus the press gives the stripe,
+  // so after clicking or dragging it the arrow keys went to the page and the instant stood still.
+  it('takes focus on a press and leaves the event alone, so the arrow keys step right after a drag (F-39)', () => {
+    const { stripe, onScrub } = mount(START + HOUR_MS);
+    const press = createEvent.pointerDown(stripe, { button: 0, clientX: 150, pointerId: 1 });
+    fireEvent(stripe, press);
+    expect(press.defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(stripe);
+    fireEvent.pointerUp(stripe, { pointerId: 1 });
+    expect(document.activeElement).toBe(stripe);
+    // The keys the focused stripe now receives are its own.
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'ArrowRight' });
+    expect(onScrub).toHaveBeenLastCalledWith(START + HOUR_MS + 60_000);
+  });
+
+  // R39 (F-38): at 3600× the instant moves on every frame; the ticks, the bands and the lanes do not.
+  it('recomputes no geometry when only the shown instant moves (F-38)', () => {
+    const onScrub = vi.fn();
+    const view = render(<TimeStripe span={span} passes={passes} bands={bands} t={START} timeZone="America/Argentina/Salta" onScrub={onScrub} />);
+    const after = { ...calls };
+    for (const step of [1, 2, 3]) {
+      view.rerender(<TimeStripe span={span} passes={passes} bands={bands} t={START + step * 60_000} timeZone="America/Argentina/Salta" onScrub={onScrub} />);
+    }
+    expect(calls).toEqual(after);
+    // The instant still moves what follows it: the cursor and the current segment.
+    view.rerender(<TimeStripe span={span} passes={passes} bands={bands} t={START + 6 * HOUR_MS + 60_000} timeZone="America/Argentina/Salta" onScrub={onScrub} />);
+    expect(screen.getByTestId('time-stripe').querySelector('[data-pass-segment="b"]')).toHaveAttribute('data-current', 'true');
+    // A new span — the 10 s tick, or a resize — is what recomputes them.
+    const moved: Span = { start: START + 10_000, end: span.end + 10_000 };
+    view.rerender(<TimeStripe span={moved} passes={passes} bands={bands} t={START + 10_000} timeZone="America/Argentina/Salta" onScrub={onScrub} />);
+    expect(calls.hourTicks).toBe(after.hourTicks + 1);
+    expect(calls.nightBands).toBe(after.nightBands + 1);
+    expect(calls.passSegments).toBe(after.passSegments + 1);
   });
 
   it('the arrow keys move one minute, ten with Shift, clamped; other keys are left to the page', () => {

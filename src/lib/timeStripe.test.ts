@@ -11,6 +11,7 @@ import {
   daysFromCivil,
   HOUR_MS,
   hourTicks,
+  isCurrent,
   keyStep,
   labelEveryHours,
   nightBands,
@@ -149,17 +150,21 @@ describe('passSegments', () => {
     end: { ...golden.end, t: START + fromMs + durationMs },
   });
 
-  it('is one segment per pass in its series colour, clipped to the span, and marks the pass containing the instant', () => {
+  it('is one segment per pass in its series colour, clipped to the span, carrying the pass its own interval', () => {
     const passes = [at('a', -30 * 60_000, HOUR_MS), at('b', 6 * HOUR_MS, 30 * 60_000), at('c', 30 * HOUR_MS, HOUR_MS)];
-    const segments = passSegments(passes, span, WIDTH, START + 6 * HOUR_MS + 60_000);
+    const segments = passSegments(passes, span, WIDTH);
     expect(segments).toEqual([
-      { passId: 'a', x: 0, width: 25, series: 1, lane: 0, current: false },
-      { passId: 'b', x: 300, width: 25, series: 2, lane: 0, current: true },
+      { passId: 'a', x: 0, width: 25, series: 1, lane: 0, start: START - 30 * 60_000, end: START + 30 * 60_000 },
+      { passId: 'b', x: 300, width: 25, series: 2, lane: 0, start: START + 6 * HOUR_MS, end: START + 6.5 * HOUR_MS },
     ]);
+    // R39 (F-38): which pass is under way is asked of the segment, not baked into it — the instant moves every frame and the geometry does not.
+    const instant = START + 6 * HOUR_MS + 60_000;
+    expect(segments.map((segment) => isCurrent(segment, instant))).toEqual([false, true]);
+    expect(segments.map((segment) => isCurrent(segment, START))).toEqual([true, false]);
   });
   it('gives overlapping passes their own rows and lets a short pass keep a visible width', () => {
     const passes = [at('a', HOUR_MS, HOUR_MS), at('b', HOUR_MS + 10 * 60_000, HOUR_MS), at('c', HOUR_MS + 20 * 60_000, 60_000), at('d', 3 * HOUR_MS, 60_000)];
-    const segments = passSegments(passes, span, WIDTH, START);
+    const segments = passSegments(passes, span, WIDTH);
     expect(segments.map((s) => [s.passId, s.lane])).toEqual([
       ['a', 0],
       ['b', 1],
@@ -168,7 +173,7 @@ describe('passSegments', () => {
     ]);
     expect(segments[2]?.width).toBe(2);
     // The seventh pass cycles back to the first series colour.
-    const seven = passSegments(Array.from({ length: 7 }, (_, i) => at(String(i), i * 2 * HOUR_MS, HOUR_MS)), span, WIDTH, START);
+    const seven = passSegments(Array.from({ length: 7 }, (_, i) => at(String(i), i * 2 * HOUR_MS, HOUR_MS)), span, WIDTH);
     expect(seven.map((s) => s.series)).toEqual([1, 2, 3, 4, 5, 6, 1]);
   });
 });
