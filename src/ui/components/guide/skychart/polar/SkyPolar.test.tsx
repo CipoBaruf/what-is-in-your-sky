@@ -165,6 +165,25 @@ describe('<SkyPolar>', () => {
     await expect(markup).toMatchFileSnapshot('./__snapshots__/SkyPolar.live.svg');
   });
 
+  /** FR-LIVE-2 (R32, D-158): the live page's colouring, one series per pass in pass order. */
+  it('numbers every arc by its place in the passes with colorBy="pass", cycling after six, with no dim arc and no peak label', () => {
+    const many = Array.from({ length: 7 }, (_, i) => ({ ...pass, id: `p${String(i)}`, start: { ...pass.start, t: pass.start.t + i * 600_000 } }));
+    const { container } = render(<SkyPolar passes={many} observer={observer} highlightedPassId={null} colorBy="pass" />);
+    const series = [...container.querySelectorAll('[data-pass-id]')].map((el) => el.getAttribute('data-series'));
+    expect(series).toEqual(['1', '2', '3', '4', '5', '6', '1']);
+    expect(container.querySelectorAll('[data-anchor="peak"]')).toHaveLength(0);
+    expect(container.querySelectorAll('[data-anchor="pass"]')).toHaveLength(7);
+    // The stylesheet maps each number to its own token and nothing else.
+    const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/polar/SkyPolar.module.css'), 'utf8');
+    for (let n = 1; n <= 6; n++) expect(css).toContain(`.series[data-series='${String(n)}'] {\n  --series: var(--chart-series-${String(n)});`);
+  });
+
+  it('draws no series attribute in the guide reading, where the highlighted pass and the dim ones carry the colour', () => {
+    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    expect(container.querySelector('[data-series]')).toBeNull();
+    expect(container.querySelector('[data-anchor="peak"]')).not.toBeNull();
+  });
+
   it('takes every colour from the FR-DOME-2 chart tokens, so the night theme is a token swap (FR-THEME-3)', () => {
     // The stylesheet is a CSS module, so what the test can hold is the file:
     // no chart element may reach for a general foreground or accent colour.

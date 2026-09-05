@@ -88,6 +88,20 @@
   --chart-ground: #161c24; /* 1.12 : 1 — base layer, the ground disc */
   --chart-sky: #1d2733; /* 1.27 : 1 — base layer, the sky bowl */
 
+  /* FR-LIVE-2 (R32, D-158): the live page draws every pass of the coming 24 h
+     at once, one colour per satellite in pass order, from these six. Six
+     hues a normal eye tells apart on the dark ground, each clearing the 3 : 1
+     non-text bar; the night set below is six *reds* that differ by lightness
+     and by their place inside the 30° band, because FR-THEME-3 leaves the
+     night theme no other hue to give. Colour is never the only channel: every
+     arc carries the satellite's name at its rise (FR-X-5). */
+  --chart-series-1: #8ec5ff; /* 10.60 : 1 */
+  --chart-series-2: #ffb86c; /* 11.28 : 1 */
+  --chart-series-3: #8fd694; /* 11.18 : 1 */
+  --chart-series-4: #f48fb1; /* 8.61 : 1 */
+  --chart-series-5: #c8a6ff; /* 9.48 : 1 */
+  --chart-series-6: #7fe0d6; /* 12.39 : 1 */
+
   color-scheme: dark;
 }
 
@@ -123,6 +137,13 @@
   --chart-moon: #ffb3a0; /* 11.94 : 1 */
   --chart-ground: #160505; /* 1.03 : 1 */
   --chart-sky: #1e0908; /* 1.07 : 1 */
+
+  --chart-series-1: #ff5c4a; /* 6.73 : 1 */
+  --chart-series-2: #ffa07a; /* 10.33 : 1 */
+  --chart-series-3: #e0433a; /* 4.92 : 1 */
+  --chart-series-4: #ffd0c0; /* 14.71 : 1 */
+  --chart-series-5: #ff8c42; /* 8.88 : 1 */
+  --chart-series-6: #c8574b; /* 4.81 : 1 */
 
   color-scheme: dark;
 }

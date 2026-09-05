@@ -14,12 +14,14 @@ export interface ChartFrameProps {
   controls?: ReactNode;
   status?: ReactNode;
   className?: string;
+  /** FR-LIVE-1 (R32): the drawing takes the frame's whole height instead of a capped square; the frame takes its parent's. */
+  fill?: boolean;
   children: ReactNode;
 }
 
-export function ChartFrame({ controls, status, className, children }: ChartFrameProps) {
+export function ChartFrame({ controls, status, className, fill = false, children }: ChartFrameProps) {
   return (
-    <div className={[styles.frame, className].filter(Boolean).join(' ')} data-testid="chart-frame">
+    <div className={[styles.frame, fill ? styles.fill : undefined, className].filter(Boolean).join(' ')} data-testid="chart-frame" data-fill={fill}>
       <div className={styles.controls}>{controls}</div>
       <div className={styles.drawing}>{children}</div>
       <div className={styles.status}>{status}</div>

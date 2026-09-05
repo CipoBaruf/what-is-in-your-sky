@@ -166,6 +166,10 @@ describe('layoutFor (FR-DOME-1, D-91)', () => {
   it('scales the zoom with the box and not with the cell, so the two layers agree (D-91)', () => {
     expect(layoutFor(390, 390).zoom).toBe(ZOOM_AT_60_COLS);
     expect(layoutFor(1280, 1280).zoom).toBeCloseTo((ZOOM_AT_60_COLS * 1280) / REFERENCE_WIDTH_PX, 9);
+    // R32 (D-161): a box wider than tall zooms to its height, so the top of the dome stays inside it; a taller one to its width.
+    expect(layoutFor(1240, 450).zoom).toBeCloseTo((ZOOM_AT_60_COLS * 450) / REFERENCE_WIDTH_PX, 9);
+    expect(layoutFor(352, 600).zoom).toBeCloseTo((ZOOM_AT_60_COLS * 352) / REFERENCE_WIDTH_PX, 9);
+    expect(layoutFor(390, null).zoom).toBe(ZOOM_AT_60_COLS);
     const line = layoutFor(1280, 1280);
     const base = baseLayoutFor(line, 1280, 1280, 0.6);
     expect(base.zoom).toBe(line.zoom);

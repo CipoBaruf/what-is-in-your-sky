@@ -26,7 +26,7 @@ import {
   type Poly,
   type Tuple3,
 } from './domeGeometry';
-import type { DomePalette } from './palette';
+import { seriesColor, type DomePalette } from './palette';
 
 /**
  * FR-DOME-8 (R21, D-74): which meshes belong to which scene. The dome is two
@@ -88,6 +88,13 @@ export interface LayersInput {
   moon?: MoonState | null | undefined;
   /** FR-DOME-2 colours, or `null` for the monochrome reading. */
   palette: DomePalette | null;
+  /**
+   * FR-LIVE-2 (R32, D-158): `pass` colours every arc at full weight from the
+   * series tokens in `passes` order, with the rise label only — the live page
+   * has twenty arcs, not one to explain. Default `highlight`: the guide's
+   * reading, the highlighted pass in the pass colour and the rest dim.
+   */
+  colorBy?: 'highlight' | 'pass' | undefined;
   camera: { rotYDeg: number; tiltDeg: number };
   /** The worded labels of a pass (FR-I18N-2: the catalogs word them, this file only places them). */
   labelsFor: (pass: Pass) => PassLabelText;
@@ -120,12 +127,12 @@ export function baseLayer(input: Pick<LayersInput, 'palette' | 'sun'>): Mesh[] {
  * of each arc and the live marker (FR-DOME-5), and the Moon (FR-DOME-6). The
  * Moon comes last so it is drawn over whatever it sits on.
  */
-export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId' | 'now' | 'moon' | 'palette'>): Mesh[] {
-  const { passes, highlightedPassId, now, moon, palette } = input;
+export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId' | 'now' | 'moon' | 'palette' | 'colorBy'>): Mesh[] {
+  const { passes, highlightedPassId, now, moon, palette, colorBy = 'highlight' } = input;
   const meshes: Mesh[] = [{ id: 'grid', polygons: gridPolygons({ ...(palette ? { horizon: palette.horizon, rings: palette.rings } : {}) }) }];
-  for (const pass of passes) {
-    const highlighted = isHighlighted(pass, highlightedPassId);
-    const arc = highlighted ? palette?.highlighted : palette?.dim;
+  passes.forEach((pass, index) => {
+    const highlighted = colorBy === 'pass' || isHighlighted(pass, highlightedPassId);
+    const arc = arcColor(pass, index, highlightedPassId, palette, colorBy);
     meshes.push({ id: `pass-${pass.id}`, polygons: passStrip(pass, { highlighted, ...(arc ? { color: arc } : {}) }) });
     meshes.push({ id: `flown-${pass.id}`, polygons: flownStrip(pass, now, { highlighted, ...(palette ? { color: palette.flown } : {}) }) });
     meshes.push({
@@ -134,12 +141,19 @@ export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId
     });
     const current = nowPoint(pass, now);
     if (current) meshes.push({ id: `now-${pass.id}`, polygons: nowMarker(current, palette?.now) });
-  }
+  });
   if (moon) meshes.push({ id: 'moon', polygons: moonMarker(moon, palette?.moon) });
   return meshes.filter(colored);
 }
 
 const isHighlighted = (pass: Pass, highlightedPassId: string | null): boolean => highlightedPassId === null || highlightedPassId === pass.id;
+
+/** The colour an arc and its labels take: its series colour by pass order (FR-LIVE-2), or the guide's highlighted / dim pair (FR-DOME-2). */
+function arcColor(pass: Pass, index: number, highlightedPassId: string | null, palette: DomePalette | null, colorBy: 'highlight' | 'pass'): string | undefined {
+  if (!palette) return undefined;
+  if (colorBy === 'pass') return seriesColor(palette, index);
+  return isHighlighted(pass, highlightedPassId) ? palette.highlighted : palette.dim;
+}
 
 /**
  * Every label the dome draws, with FR-DOME-3's collision resolution already
@@ -149,7 +163,7 @@ const isHighlighted = (pass: Pass, highlightedPassId: string | null): boolean =>
  * would make it a lie — and are the obstacles everything else gives way to.
  */
 export function domeLabels(input: LayersInput): DomeLabel[] {
-  const { passes, highlightedPassId, sun, moon, palette, camera, labelsFor, measure, bodyLabels } = input;
+  const { passes, highlightedPassId, sun, moon, palette, camera, labelsFor, measure, bodyLabels, colorBy = 'highlight' } = input;
   const fixed: DomeLabel[] = [
     ...tickAnchors().map((anchor) => ({ id: anchor.id, at: anchor.at, text: degreeText(anchor.valueDeg), kind: 'tick' as const, ...(palette ? { color: palette.rings } : {}) })),
     ...ringAnchors().map((anchor) => ({ id: anchor.id, at: anchor.at, text: degreeText(anchor.valueDeg), kind: 'ring' as const, ...(palette ? { color: palette.rings } : {}) })),
@@ -167,18 +181,20 @@ export function domeLabels(input: LayersInput): DomeLabel[] {
   }
 
   // The highlighted pass first, so its labels take the nearest free places (FR-DOME-3's order is between kinds; within a kind it is this order).
-  const ordered = [...passes].sort((a, b) => Number(isHighlighted(b, highlightedPassId)) - Number(isHighlighted(a, highlightedPassId)));
-  for (const pass of ordered) {
-    const highlighted = isHighlighted(pass, highlightedPassId);
+  // The series index is the pass's place in `passes` (FR-LIVE-2), whatever order the labels are placed in.
+  const ordered = passes.map((pass, index) => ({ pass, index })).sort((a, b) => Number(isHighlighted(b.pass, highlightedPassId)) - Number(isHighlighted(a.pass, highlightedPassId)));
+  for (const { pass, index } of ordered) {
+    // FR-LIVE-2: every arc named at its rise and nothing more — the peak and end labels are the guide's, for the one pass it explains.
+    const explained = colorBy === 'highlight' && isHighlighted(pass, highlightedPassId);
     const text = labelsFor(pass);
     const anchors = passAnchors(pass);
-    const color = highlighted ? palette?.highlighted : palette?.dim;
-    const common = { passId: pass.id, highlighted, ...(color ? { color } : {}) };
-    if (highlighted) {
+    const color = arcColor(pass, index, highlightedPassId, palette, colorBy);
+    const common = { passId: pass.id, highlighted: colorBy === 'pass' || explained, ...(color ? { color } : {}) };
+    if (explained) {
       add(anchors.peak.id, 'peak', pass.peak, PASS_LABEL_RADIUS, { text: text.peak, anchor: 'peak', ...common, ...(palette ? { color: palette.peak } : {}) });
     }
     add(anchors.rise.id, 'rise', pass.start, RISE_LABEL_RADIUS, { text: text.rise, anchor: 'pass', ...common });
-    if (highlighted) add(anchors.end.id, 'end', pass.end, PASS_LABEL_RADIUS, { text: text.end, ...common });
+    if (explained) add(anchors.end.id, 'end', pass.end, PASS_LABEL_RADIUS, { text: text.end, ...common });
   }
 
   // FR-DOME-6: both bodies labelled. The Sun's name sits over its glow, the

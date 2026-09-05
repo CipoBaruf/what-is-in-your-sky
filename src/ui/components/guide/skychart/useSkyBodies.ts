@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SkyBodies } from '../../../../lib/skyBodies';
-import type { EpochMs, MoonState, Observer } from '../../../../model';
+import type { EpochMs, MoonState, Observer, SkyState } from '../../../../model';
 import type { SkyChartProps } from './SkyChart.types';
 
 /**
@@ -31,9 +31,11 @@ function loadSkyBodies(): Promise<Evaluate> {
 export interface ChartBodies {
   sun: SkyBodies['sun'] | null;
   moon: MoonState | null;
+  /** FR-LIVE-3 (R32): the sky in words at `now`; `null` until evaluated, or when the caller supplied the bodies itself. */
+  sky: SkyState | null;
 }
 
-const EMPTY: ChartBodies = { sun: null, moon: null };
+const EMPTY: ChartBodies = { sun: null, moon: null, sky: null };
 
 export function useSkyBodies({ observer, now, sun, moon }: Pick<SkyChartProps, 'observer' | 'now' | 'sun' | 'moon'>): ChartBodies {
   // Either body given — including as an explicit `null` — means the caller owns both.
@@ -59,9 +61,9 @@ export function useSkyBodies({ observer, now, sun, moon }: Pick<SkyChartProps, '
   }, [wanted, evaluate]);
 
   return useMemo(() => {
-    if (supplied) return { sun: sun ?? null, moon: moon ?? null };
+    if (supplied) return { sun: sun ?? null, moon: moon ?? null, sky: null };
     if (!evaluate || now === undefined) return EMPTY;
     const bodies = evaluate(now, observer);
-    return { sun: bodies.sun, moon: bodies.moon };
+    return { sun: bodies.sun, moon: bodies.moon, sky: bodies.sky };
   }, [supplied, sun, moon, evaluate, now, observer]);
 }

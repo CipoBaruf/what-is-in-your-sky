@@ -40,3 +40,22 @@
   margin: 0;
   color: var(--fg-dim);
 }
+
+/* R32 (FR-LIVE-1): the link to the live page, a bracketed control like the header's. */
+.live {
+  margin: 0;
+}
+
+.liveLink {
+  text-decoration: none;
+}
+
+.liveLink::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.liveLink::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}

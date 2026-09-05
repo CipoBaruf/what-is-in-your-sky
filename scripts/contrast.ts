@@ -19,7 +19,26 @@ export const GROUND_TOKENS = ['bg', 'bg-raised'] as const;
  * `chart-sky` are the dome's base surfaces (D-92), not marks: their job is to
  * sit *barely* above the page ground, so they are listed apart.
  */
-export const CHART_MARK_TOKENS = ['chart-pass', 'chart-pass-flown', 'chart-pass-dim', 'chart-peak', 'chart-shadow', 'chart-now', 'chart-horizon', 'chart-rings', 'chart-compass', 'chart-sun', 'chart-moon'] as const;
+export const CHART_MARK_TOKENS = [
+  'chart-pass',
+  'chart-pass-flown',
+  'chart-pass-dim',
+  'chart-peak',
+  'chart-shadow',
+  'chart-now',
+  'chart-horizon',
+  'chart-rings',
+  'chart-compass',
+  'chart-sun',
+  'chart-moon',
+  // FR-LIVE-2 (R32): the live page's six per-satellite arc colours.
+  'chart-series-1',
+  'chart-series-2',
+  'chart-series-3',
+  'chart-series-4',
+  'chart-series-5',
+  'chart-series-6',
+] as const;
 export const CHART_SURFACE_TOKENS = ['chart-ground', 'chart-sky'] as const;
 
 /** The themes `tokens.css` defines, and the selector each is written under (D-84). */

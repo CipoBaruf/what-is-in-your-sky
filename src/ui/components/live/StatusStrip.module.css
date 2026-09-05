@@ -1,0 +1,45 @@
+/* R32 (FR-LIVE-3): five facts in one strip. Each field is a label over its
+   value; the fields flow across the width and wrap on a phone, where two rows
+   of them fit under the dome. `dl` margins are reset so the strip sits on the
+   grid the page lays out. */
+.strip {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 calc(3 * var(--cell));
+  border-top: 1px solid var(--rule);
+  padding-top: calc(var(--row) / 2);
+}
+
+.field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--cell);
+  min-width: 0;
+}
+
+.label {
+  color: var(--fg-dim);
+}
+
+.label::after {
+  content: ':';
+}
+
+.value {
+  margin: 0;
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+
+/* The cloud state keeps the badge's bracketed reading without its tooltip (FR-X-5: the words, not the colour). */
+.value [data-state]::before {
+  content: '[';
+  color: var(--fg-dim);
+}
+
+.value [data-state]::after {
+  content: ']';
+  color: var(--fg-dim);
+}
