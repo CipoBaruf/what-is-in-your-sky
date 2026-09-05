@@ -116,6 +116,29 @@ describe('domeLabels with colorBy="pass" (FR-LIVE-2)', () => {
   });
 });
 
+describe('hidden objects (FR-LIVE-6, R33)', () => {
+  const hidden = [
+    { id: 'hidden-1', azDeg: 40, elDeg: 20, label: 'Cosmos 2369 · in shadow' },
+    { id: 'hidden-2', azDeg: 200, elDeg: 5, label: 'Envisat · too faint' },
+  ];
+
+  it('adds one small mesh per object in the dim colour, under the Moon, and nothing without them', () => {
+    const meshes = lineLayer({ passes: [pass], highlightedPassId: pass.id, now: undefined, moon: MOON_FIXTURE, hidden, palette });
+    expect(ids(meshes).slice(-3)).toEqual(['hidden-1', 'hidden-2', 'moon']);
+    const mark = meshes.find((mesh) => mesh.id === 'hidden-1');
+    expect(mark?.polygons.length).toBeGreaterThan(0);
+    expect(mark?.polygons.every((poly) => poly.color === 'dim')).toBe(true);
+    expect(ids(lineLayer({ passes: [pass], highlightedPassId: pass.id, now: undefined, palette })).some((id) => id.startsWith('hidden-'))).toBe(false);
+  });
+
+  it('labels each with the words the page gave it, in the dim colour, with the anchor the tests read, and last in the order', () => {
+    const labels = domeLabels(input({ hidden }));
+    expect(byId(labels, 'hidden-1-label')).toMatchObject({ kind: 'hidden', text: 'Cosmos 2369 · in shadow', color: 'dim', anchor: 'hidden' });
+    expect(byId(labels, 'hidden-2-label')?.text).toBe('Envisat · too faint');
+    expect(byId(domeLabels(input({ hidden, palette: null })), 'hidden-1-label')?.color).toBeUndefined();
+  });
+});
+
 describe('the two layers together', () => {
   it('put every mesh on exactly one of them', () => {
     const layers = domeLayers(input({ passes: [pass, other], sun: { azDeg: 270, altDeg: -8 } }));

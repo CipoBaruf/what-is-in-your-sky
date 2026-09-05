@@ -151,6 +151,22 @@ describe('<SkyPolar>', () => {
     expect(container.querySelector('[data-body="moon"]')).toBeNull();
   });
 
+  it('draws the hidden objects dimmed where they are, each with the label it was given, and none by default (FR-LIVE-6, R33)', () => {
+    const hidden = [
+      { id: 'hidden-1', azDeg: 40, elDeg: 20, label: 'Cosmos 2369 · in shadow' },
+      { id: 'hidden-2', azDeg: 200, elDeg: 5, label: 'Envisat · too faint' },
+    ];
+    const props = { passes: [pass], observer, highlightedPassId: null };
+    const { container, rerender } = render(<SkyPolar {...props} hidden={hidden} />);
+    expect(container.querySelectorAll('[data-marker="hidden"]')).toHaveLength(2);
+    const first = container.querySelector('[data-hidden-id="hidden-1"]');
+    expect(first?.querySelector('[data-anchor="hidden"]')?.textContent).toBe('Cosmos 2369 · in shadow');
+    expect(first?.querySelector('circle')?.getAttribute('class')).toMatch(/hidden/);
+    expectAt(markerAt(container, 'hidden'), expected({ azDeg: 40, elDeg: 20, rangeKm: 0, t: 0 }, 'looking-up'));
+    rerender(<SkyPolar {...props} />);
+    expect(container.querySelectorAll('[data-marker="hidden"]')).toHaveLength(0);
+  });
+
   it('draws the same story as the dome at the same instant, as the committed SVG', async () => {
     // The polar counterpart of the dome's raster snapshots (PLAN §9.1): the
     // golden pass halfway through, the Sun eight degrees under the horizon and

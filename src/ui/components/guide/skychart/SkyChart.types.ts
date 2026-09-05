@@ -41,7 +41,27 @@ export interface SkyChartProps {
    * included. The guide's chart keeps the framed square and its sentence.
    */
   fill?: boolean;
+  /**
+   * FR-LIVE-6 (R33, D-168): objects above the horizon at `now` that are not
+   * worth looking for, drawn dimmed with their reason. Already worded: the
+   * page reads the reason off the `NowItem` and words it through its own
+   * catalog section, and the chart only places the marker and its label — the
+   * same split `labelsFor` makes for the pass labels (FR-I18N-2). Empty or
+   * absent draws nothing extra. The page has already taken out whatever it
+   * draws from a pass (D-102), so no object gets two marks.
+   */
+  hidden?: readonly HiddenMarker[];
   className?: string;
+}
+
+/** One dimmed object for the chart to place (FR-LIVE-6). */
+export interface HiddenMarker {
+  /** Stable per object (`hidden-<noradId>`), for keys and the `data-hidden-id` the tests read. */
+  id: string;
+  azDeg: number;
+  elDeg: number;
+  /** The name and the reason, worded by the caller: "Cosmos 2369 · in shadow". */
+  label: string;
 }
 
 /** Both implementations export this shape; `SkyChart.tsx` is the only file that knows two exist. The toggle's label is `Messages['chart']['view'][id]` (R17), not a field here. */

@@ -193,6 +193,19 @@
   font-size: 9px;
 }
 
+/* FR-LIVE-6 (R33): an object that is up but not worth looking for — hollow,
+   thin and in the dim pass colour, with its reason in the dim foreground. Dim
+   by colour and by weight, never by opacity (FR-X-5, the same rule as `.passDim`). */
+.hidden {
+  fill: none;
+  stroke: var(--chart-pass-dim);
+  stroke-width: 1;
+}
+
+.hiddenLabel {
+  fill: var(--fg-dim);
+}
+
 .convention {
   margin: 0;
   color: var(--fg-dim);

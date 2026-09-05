@@ -157,6 +157,7 @@ const CLASS_FOR: Record<DomeLabel['kind'], string | undefined> = {
   tick: styles.degree,
   sun: styles.body,
   moon: styles.body,
+  hidden: styles.hiddenLabel,
 };
 
 interface DomeLabelsProps {
@@ -199,7 +200,7 @@ function DomeLabels({ labels, rotY, onSelect }: DomeLabelsProps) {
   );
 }
 
-export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, initialFacingAzDeg, colorBy, fill = false, className }: SkyChartProps) {
+export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, colorBy, fill = false, className }: SkyChartProps) {
   const t = useT();
   const locale = useLocale();
   const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
@@ -344,10 +345,11 @@ export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now
         bodyLabels,
         sun,
         moon,
+        hidden,
         colorBy,
         ...(now === undefined ? {} : { now }),
       }),
-    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, labelsFor, measure, bodyLabels, sun, moon, now, colorBy],
+    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, labelsFor, measure, bodyLabels, sun, moon, hidden, now, colorBy],
   );
 
   // FR-DOME-8a: the key light points along the Sun's real direction, so twilight

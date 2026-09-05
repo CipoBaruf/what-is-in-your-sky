@@ -6,6 +6,8 @@ import {
   flownStrip,
   gridPolygons,
   groundDisc,
+  HIDDEN_LABEL_OFFSET_DEG,
+  hiddenMarker,
   MOON_LABEL_OFFSET_DEG,
   moonMarker,
   nowMarker,
@@ -26,6 +28,7 @@ import {
   type Poly,
   type Tuple3,
 } from './domeGeometry';
+import type { HiddenMarker } from '../SkyChart.types';
 import { seriesColor, type DomePalette } from './palette';
 
 /**
@@ -86,6 +89,8 @@ export interface LayersInput {
   sun?: { azDeg: number; altDeg: number } | null | undefined;
   /** Where the Moon is, for its marker and its phase glyph (FR-DOME-6). */
   moon?: MoonState | null | undefined;
+  /** FR-LIVE-6 (R33): the dimmed objects, already worded by the page (`SkyChartProps.hidden`). */
+  hidden?: readonly HiddenMarker[] | undefined;
   /** FR-DOME-2 colours, or `null` for the monochrome reading. */
   palette: DomePalette | null;
   /**
@@ -127,8 +132,8 @@ export function baseLayer(input: Pick<LayersInput, 'palette' | 'sun'>): Mesh[] {
  * of each arc and the live marker (FR-DOME-5), and the Moon (FR-DOME-6). The
  * Moon comes last so it is drawn over whatever it sits on.
  */
-export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId' | 'now' | 'moon' | 'palette' | 'colorBy'>): Mesh[] {
-  const { passes, highlightedPassId, now, moon, palette, colorBy = 'highlight' } = input;
+export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId' | 'now' | 'moon' | 'hidden' | 'palette' | 'colorBy'>): Mesh[] {
+  const { passes, highlightedPassId, now, moon, hidden = [], palette, colorBy = 'highlight' } = input;
   const meshes: Mesh[] = [{ id: 'grid', polygons: gridPolygons({ ...(palette ? { horizon: palette.horizon, rings: palette.rings } : {}) }) }];
   passes.forEach((pass, index) => {
     const highlighted = colorBy === 'pass' || isHighlighted(pass, highlightedPassId);
@@ -142,6 +147,8 @@ export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId
     const current = nowPoint(pass, now);
     if (current) meshes.push({ id: `now-${pass.id}`, polygons: nowMarker(current, palette?.now) });
   });
+  // FR-LIVE-6: the dimmed objects, in the dim pass colour, under the Moon.
+  for (const marker of hidden) meshes.push({ id: marker.id, polygons: hiddenMarker(marker, palette?.dim) });
   if (moon) meshes.push({ id: 'moon', polygons: moonMarker(moon, palette?.moon) });
   return meshes.filter(colored);
 }
@@ -163,7 +170,7 @@ function arcColor(pass: Pass, index: number, highlightedPassId: string | null, p
  * would make it a lie — and are the obstacles everything else gives way to.
  */
 export function domeLabels(input: LayersInput): DomeLabel[] {
-  const { passes, highlightedPassId, sun, moon, palette, camera, labelsFor, measure, bodyLabels, colorBy = 'highlight' } = input;
+  const { passes, highlightedPassId, sun, moon, hidden = [], palette, camera, labelsFor, measure, bodyLabels, colorBy = 'highlight' } = input;
   const fixed: DomeLabel[] = [
     ...tickAnchors().map((anchor) => ({ id: anchor.id, at: anchor.at, text: degreeText(anchor.valueDeg), kind: 'tick' as const, ...(palette ? { color: palette.rings } : {}) })),
     ...ringAnchors().map((anchor) => ({ id: anchor.id, at: anchor.at, text: degreeText(anchor.valueDeg), kind: 'ring' as const, ...(palette ? { color: palette.rings } : {}) })),
@@ -211,6 +218,15 @@ export function domeLabels(input: LayersInput): DomeLabel[] {
       text: bodyLabels.moon(moon),
       anchor: 'moon',
       ...(palette ? { color: palette.moon } : {}),
+    });
+  }
+
+  // FR-LIVE-6: each dimmed object's reason, just above its mark, in the dim colour, last in the order.
+  for (const marker of hidden) {
+    add(`${marker.id}-label`, 'hidden', { azDeg: marker.azDeg, elDeg: Math.min(90, marker.elDeg + HIDDEN_LABEL_OFFSET_DEG) }, PASS_LABEL_RADIUS, {
+      text: marker.label,
+      anchor: 'hidden',
+      ...(palette ? { color: palette.dim } : {}),
     });
   }
 

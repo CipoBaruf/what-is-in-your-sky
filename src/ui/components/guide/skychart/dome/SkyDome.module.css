@@ -195,6 +195,12 @@
   color: var(--fg-dim);
 }
 
+/* FR-LIVE-6 (R33): a hidden object's reason — the degree numbers' size, the dim foreground; the palette colours it when there is one. */
+.hiddenLabel {
+  font-size: 9px;
+  color: var(--fg-dim);
+}
+
 .readout {
   margin: 0;
   color: var(--fg);
