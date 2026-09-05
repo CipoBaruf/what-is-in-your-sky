@@ -32,12 +32,17 @@ export function mostRecentlyUsed(favourites: readonly Favourite[]): Favourite[] 
 /**
  * Saves `observer`, or refreshes the entry for its cell, keeping `addedAt` from
  * the entry that was there. Adding a ninth evicts the least recently used.
+ * The just-saved entry always survives (F-11): the rest of the list is capped
+ * to seven *before* the new entry joins it, rather than sorting all of them
+ * together and slicing, which could drop the entry just saved if a stored
+ * `lastUsedAt` were somehow newer than `at`.
  */
 export function addFavourite(favourites: readonly Favourite[], observer: Observer, at: EpochMs): Favourite[] {
   const cellKey = favouriteCellKey(observer);
+  const rest = favourites.filter((favourite) => favourite.cellKey !== cellKey);
   const existing = favourites.find((favourite) => favourite.cellKey === cellKey);
   const saved: Favourite = { cellKey, observer, addedAt: existing?.addedAt ?? at, lastUsedAt: at };
-  return mostRecentlyUsed([saved, ...favourites.filter((favourite) => favourite.cellKey !== cellKey)]);
+  return mostRecentlyUsed([saved, ...mostRecentlyUsed(rest).slice(0, MAX_FAVOURITES - 1)]);
 }
 
 /** Marks a favourite as used now, which is what keeps it out of the eviction's way; an unknown cell changes nothing. */
