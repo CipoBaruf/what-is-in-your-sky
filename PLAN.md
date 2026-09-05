@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Status | Draft v0.3 — for review. Plans the v1 phase: §2.17 records decisions D-69..D-87; §3–§9, §11–§13 extended for language, desktop layout, the dome's second pass, the live page, offline, the Moon, share links and the night theme; §16 Delivery added (V1-11), then sharpened in §16.3 and §16.4 when `scripts/sdd-run.ts` was built (D-87). The MVP text (v0.2) is otherwise unchanged. |
-| Date | 2026-09-03 (v0.3); 2026-09-01 (v0.2) |
-| Input | `SPEC.md` v1.0 (Decision Log §12 treated as fixed: OQ-1, OQ-3, OQ-4, OQ-11, UX-1 and V1-1..V1-11 are not reopened here) |
+| Status | Draft v0.4 — for review. Plans the v1.1 phase ("phone pass", SPEC v1.1): §2.18 records decisions D-183..D-199; §4, §5, §7, §8.9–§8.11, §9, §11, §12 extended for the feature flag, the compact layout and settings page, the chart legend, the sky window, the live trajectories and stripe, the v1 findings, true north and CI time; §16 recut for the phase (lanes, a per-task model policy across four models, token and delivery-time rules, §16.8). The v1 text (v0.3) is otherwise unchanged. |
+| Date | 2026-09-05 (v0.4); 2026-09-03 (v0.3); 2026-09-01 (v0.2) |
+| Input | `SPEC.md` v1.1 (Decision Log §12 treated as fixed: OQ-1, OQ-3, OQ-4, OQ-11, UX-1, V1-1..V1-11 and V11-1..V11-13 are not reopened here) |
 | Scope | Architecture, project structure, module boundaries, data model, worker contract, testing strategy, the Task Zero physics spike, and how the v1 tasks are delivered (§16). **No task breakdown** — that is `sdd-breakdown`'s job. |
 
 ---
@@ -23,6 +23,14 @@ These come from the spec's Decision Log and are not up for debate in this plan:
 From SPEC v1.0's Decision Log (V1-1..V1-11), fixed for the v1 phase:
 
 - **Still no backend.** v1 stays browser-direct against CelesTrak and Open-Meteo; the caching proxy, Nominatim and the full `visual` group move to Phase 3.
+
+From SPEC v1.1's Decision Log (V11-1..V11-13), fixed for the v1.1 phase:
+
+- **v1.1 comes after the v1.0.0 tag** (V11-1); the Moon lore line sits behind a build flag, off by default (V11-2).
+- **Compact gets a settings page and a one-row header; every control row fits 36 cells; the chart is full-bleed and at least square and fills 90 % of its box at every width** (V11-3, V11-4). A 390 px mockup set gates the home, settings and detail tasks.
+- **The sky window is a third view, SVG, touch devices only, fixed by a spike the owner runs on a phone** (V11-5); **the legend replaces every name, time and caption on the drawings** (V11-6); **live-page arcs appear, grow and fade** (V11-7); **the live link moves beside the title** (V11-8).
+- **All fifty open review findings are in scope, one findings task per lane in the first wave** (V11-11); **CI has a 10 min budget on pull requests and the capture set runs on `main`** (V11-10); **headings are true north** (V11-12); **desktop mid widths are fixed by rule with a 1024 px profile** (V11-13).
+- **Delivery reuses the driver with lanes recut** (V11-9): `ui`, `chart`, `window`, `live` (and `data` for its three findings).
 - **Two languages**, English and Spanish, as a preference rather than a route.
 - **The dome is the default view again**, in colour, under a CSP relaxed by exactly one directive; its composition is fixed by a spike before the implementation task.
 - **72 hours** of passes and forecast, stored automatically, with the app shell served by a service worker.
@@ -411,6 +419,30 @@ These plan SPEC v1.0 (V1-1..V1-11). Nothing here is implemented yet; each decisi
 
 ---
 
+### 2.18 v1.1 decisions (2026-09-05)
+
+These plan SPEC v1.1 (V11-1..V11-13). D-180..D-182 are the unspent tail of R36's reserved block (D-178..D-182) and stay unused; v1.1 starts at D-183.
+
+- **D-183 — The flag is a Vite `define`d constant, and the lore is a lazy import behind it.** `lib/flags.ts` exports `MOON_LORE: boolean` from `import.meta.env.VITE_MOON_LORE === 'on'`; `vite.config.ts` declares the variable in `envPrefix` and the build prints it. `App.tsx` renders `<MoonLore>` through `React.lazy` inside `if (MOON_LORE)`, so with the flag off Rollup drops the chunk and `data/moon/lore.json` with it (FR-FLAG-1); `tests/build/flags.test.ts` builds with the flag off and asserts no chunk contains a lore key, and the existing `MoonLore.test.tsx` runs with `VITE_MOON_LORE=on` set in `vitest.config.ts` (FR-FLAG-2). No other module reads `import.meta.env`; an ESLint `no-restricted-syntax` rule pins that.
+- **D-184 — `#settings` is a screen in the hash router, not a state; the compact header is a variant of one `Header` component.** `screens/Settings.tsx` composes the existing `LocationInput`, `PlacePicker`, `CoordsInput`, `UseMyLocation`, the favourites list, `LanguageToggle` and `ThemeToggle` unchanged; nothing about how they write the store moves. The route joins `passSelection.ts`'s parser as a third form beside `#pass` and `#live` (D-13), and `Esc` closes it through the D-73 listener with the same guard as the guide. `Header.tsx` renders the wide row (title, `[ Live sky ]`, prefs at the right on one grid row) or the compact row (title, `[ live ]`, `[ settings ]`) from `useLayoutMode`; the compact home's location summary is `LocationSummary.tsx`, one line from the observer and the accuracy (FR-COMP-1..3). The wide layout never links to `#settings` but renders it if navigated to (FR-COMP-2).
+- **D-185 — True north is `geomagnetism` 0.2.0, whole, evaluated once per observer in `lib/declination.ts`.** Measured 2026-09-05 with esbuild: the whole package bundles to 6.2 KB gzipped (WMM2015–2025 coefficients included), 4.3 KB importing `lib/model.js` with `data/wmm-2025.json` alone. The whole package is used: 2 KB is not worth a deep import into an unexported path that a patch release can move. It is CommonJS with `require`d JSON, which Vite pre-bundles; the boundary rule is `lib/declination.ts` only (Apache-2.0, §11.1). `declinationDeg(observer, date)` returns the WMM value; `compassHeading.ts` adds it to the magnetic heading and the strip prints "true north, declination +1.1°" (Neuquén, 2026-09-05: +1.12°). The value is computed when the observer changes, on the main thread, and cached on the live slice; the worker is untouched (FR-WIN-3, F-41).
+- **D-186 — Legend rows are derived in one pure module from `SkyChartProps`, and every view draws the key instead of the text.** `lib/legend.ts`: `legendRows(props): LegendRow[]` — `{ key, passId, name, colorToken, riseMs, peakMs, endMs, state }` with `state` from the FR-TRAJ-1 arc state or the FR-LIVE-6 reason; the explained pass first on the detail, the pass nearest the zenith first on the live page (FR-LEG-4). `SkyChartProps` gains `legendKeys: Record<passId, string>` so the three views draw the same letter at the peak (FR-LEG-1); the dome's label hotspots and the polar's `<text>` labels for names and times are removed, the compass and ring labels stay. `Legend.tsx` (in `skychart/`, inside the boundary so the chart's palette is the swatch's) renders the list as buttons; `ChartFrame` places it under the chart on compact and in a 24-cell column at the right on wide (FR-LEG-2). On the pass detail `PassNumbers.tsx` becomes the legend's first block (FR-LEG-3): it moves under the chart and takes the key and swatch; no second table.
+- **D-187 — The chart box is sized by `ChartFrame`, the drawing by the D-177 fit rule.** `ChartFrame` owns the box: on compact it breaks out of the page padding with negative margins and sets `aspect-ratio: 1 / 1` on the detail; on the live page in portrait its height is `100dvh` minus the measured header, strip, stripe and control rows (a `ResizeObserver` on those, not arithmetic in CSS), floored at the width (FR-COMP-5). Inside, `camera.ts` takes `zoom = min(width / 2.4, height / 1.6)` (D-177's proposal, now adopted) so the drawing's extent with labels is ≥ 90 % of the shorter side; the raster grid keeps D-65's rule. Every dome capture changes; the raster snapshot is re-baked once by the chart findings task and the D-172 rate is re-measured in the same task.
+- **D-188 — The sky window is a third registered view with its own pure projection and an orientation hook that extends compass follow.** `skychart/window/`: `projection.ts` (pure: a device rotation as a quaternion from `alpha`/`beta`/`gamma` plus the screen angle, azimuth/altitude → unit vector → view coordinates under the projection the spike picks, `WINDOW_FOV` clipping); `useDeviceOrientation.ts` (the D-175 permission and event path, now three angles, smoothed by `WINDOW_SMOOTHING`, at most one update per frame); `SkyWindow.tsx` (SVG; arcs from `Pass.track` clipped to the field, markers, keys, the horizon and altitude lines, Sun and Moon). It registers in `SKY_CHART_VIEWS` (D-55) with an `available()` predicate — D-175's presence test — so the toggle offers it only on touch devices (FR-WIN-4). The saved `chartView` (D-57) gains `'window'`; when it is saved and orientation needs a gesture, `SkyChart` renders `[ point at the sky ]` in the window's place (FR-WIN-5). The window ignores `facingAzDeg` and `onDrag`. In `Live.tsx`, choosing the window dispatches `now()` and sets `windowMode`, which hides the stripe and playback (FR-WIN-6).
+- **D-189 — Arc state is computed by a pure module and carried per pass in the props; the pass detail passes `'full'`.** `lib/arcReveal.ts`: `arcState(pass, t): 'hidden' | 'ahead' | 'live' | 'linger' | 'full'` with `ARC_LOOKAHEAD_MS` and `ARC_LINGER_MS` in `physics/constants.ts` beside the other thresholds (FR-TRAJ-2), and `cutTrack(pass, t)` returning the samples up to `t` with the interpolated position appended. `SkyChartProps.passes[i].arc` is that state; the dome's `domeGeometry`, the polar and the window draw `'live'` as the cut track solid, `'ahead'` dotted faint, `'linger'` faint, `'hidden'` not at all and `'full'` as today (FR-TRAJ-1, FR-TRAJ-3). `Live.tsx` sets it from `t`; `PassDetail` sets `'full'`. The legend's `state` is the same value (D-186), so the two cannot disagree.
+- **D-190 — The stripe is three SVG rows with memoised geometry; the readout is a heading above it; stepping is added by the spike's choice.** `TimeStripe.tsx` renders labels, band and segments as three `<g>` rows in body-cell units, the date at each midnight from `Intl` in the observer's zone; `hourTicks`, `nightBands` and `passSegments` are `useMemo`d on `(span, passes, zone)` (F-38); pointer-down no longer calls `preventDefault`, and the stripe is `tabIndex=0` and focuses itself on pointer-down (F-39). `TimeReadout.tsx` prints `t` at the heading size with the weekday when not today (FR-TRAJ-4). `usePlayback` clamps the held instant on resume (F-36). The stepping control is a second component added after the spike names it (FR-TRAJ-5); its contract is one function, `stepTo(ms)`, on the playback hook.
+- **D-191 — The compact mockups are pages on the app's own stylesheets, like the desktop one.** `docs/mockups/compact-390.html` follows `desktop-1280.html` (D-119's precedent): it links `tokens.css` and `global.css`, has one `<style>` block for the compact rules, and shows home, settings and the pass detail with its legend in both themes; `npm run mockup:compact` regenerates the PNGs through `scripts/mockup-capture.ts`. It is the FR-COMP-6 artefact and the `Precondition:` of the settings, header and detail-legend tasks, checked the way R23 checked for the desktop one.
+- **D-192 — Mid widths: one constant, one CSS rule, one profile.** `lib/layout.ts` gains `WIDE_SPLIT_MIN_CELLS = 124` (40 left + 44 list + 40 guide) and the breakpoint test pins its pixel twin; below it `App.module.css` gives an open guide the whole right column and `GuidePanel` shows `[ list ]`, which sets `data-guide="list"` and swaps back (FR-DESK-3). `playwright.config.ts` gains a `desktop-1024` project used by `wide.spec.ts` and the capture set (FR-DESK-5, F-6).
+- **D-193 — The control-row fit test measures strings, not pixels.** `tests/styles/controlRows.test.ts` renders each control row named in FR-COMP-4 with RTL at compact, joins its visible text with the cell counts of its brackets and gaps, and asserts ≤ 36 for both locales. It cannot see CSS wrapping, but every control here is monospace text whose width is its length, which is the FR-X-6 invariant the test relies on; a capture at 390 px in the task confirms it once.
+- **D-194 — Findings close in their lane's task, each by its number, with the test first.** `F-<n>` is the commit subject's prefix and the acceptance line; a finding the session verifies as already fixed on `main` is recorded in the task's summary with the commit that fixed it and not touched (FR-FIX-1). The three `data` findings (F-11..F-13) are one small `data` task; F-41 (declination) and F-6 (mid widths) are closed by the true-north and mid-widths work, not by the findings tasks. F-46..F-50 are the CI task's.
+- **D-195 — CI is two workflows: a budgeted PR job and a main-branch capture job.** `ci.yml` keeps its stages, sets `timeout-minutes: 10` (FR-CI-1's budget, by name in a comment), and adds a `time` step that wraps each stage with `date +%s` and writes the table to `$GITHUB_STEP_SUMMARY`. `v1-captures.spec.ts` gains `test.skip(process.env['CAPTURES'] !== '1')` like `dome-perf`, and `captures.yml` (on `push` to `main` and `workflow_dispatch`) runs `CAPTURES=1 npx playwright test v1-captures`, uploads `docs/screenshots/v1-*.png` as an artefact and fails on a missing file; it commits nothing, and `tests/docs/captures.test.ts` keeps checking the committed set (FR-CI-2). Playwright on CI runs `workers: '100%'` with `reuseExistingServer` off, and `e2e/liveHelpers.ts` gains `seedStoredRun()` so page specs load a stored run instead of waiting on the 72 h search; a `--reporter=list` timing line over 60 s is a finding by FR-CI-3.
+- **D-196 — Lanes for the phase: `window` is new, `chart` gains the legend, `ui` keeps everything else.** §16.1's table is amended. `window` owns `skychart/window/**`, `spike/window/**` and `docs/window/**`; `chart` keeps `skychart/**` minus `window/` and gains `lib/{legend,arcReveal}.ts`; `live` gains `lib/declination.ts` and `components/live/**` as before; `data` is unchanged; `physics` has no task this phase. The catalogs stay in `ui` with the D-132 positional rule: a `chart` or `live` task appends keys only to its own section of `en.ts` / `es.ts`.
+- **D-197 — Model policy is per task kind across four models, with a limit fallback.** §16.6 is rewritten (V11-9, the owner's ask on 2026-09-05 for a per-task check). Fable takes the visual and interactive work whose acceptance the session can verify itself (the window, the legend and fit rule in the views, the trajectory drawing, the stripe); Opus takes semantics, copy in two languages and anything a plausible wrong answer makes expensive (settings and routing, the findings in `ui` and `live`, true north, CI); Sonnet takes tasks that are fully specified by a test or a table and mechanical to execute (the `data` and `chart` findings, the flag, the catalog split, the mid-width rule, the mockup capture script); Haiku takes nothing that ships code. Reviews: Opus where the review is the gate (`Gate: auto`), Sonnet where the owner reads the PR anyway (`Gate: owner`). The driver gains `--fallback`: a session that ends on a model limit is retried once on the next model of `fable → opus → sonnet`, with the worktree kept, so a limit costs a retry and not a wave.
+- **D-198 — Sessions read a brief, not the three documents.** The largest fixed cost of a task session is the ~40 k tokens of SPEC, PLAN and TASKS read at the start, twice (implementation and review). The driver writes `sdd-run/<id>.brief.md` before the session: the task's TASKS.md entry in full; every SPEC requirement and user story it names (extracted by ID); every PLAN decision it cites and the lane's row of §16.1; the D-89 commit rule; the allowlist. `sdd-implement` under `SDD_HEADLESS` reads the brief and opens the three documents only by `rg -n` for an ID it does not have. The review session gets the same brief and the diff. Measured target: under 12 k tokens of context before the first edit.
+- **D-199 — Delivery time: smaller tasks, a split catalog, narrow test runs, and the wave as the unit of review.** (1) A v1.1 task is sized to 25 turns of implementation or less where the cut allows; the findings tasks are the exception and are capped at ten findings each. (2) The message catalogs are split per lane before the feature wave (`i18n/en/{ui,chart,live,window}.ts` merged by `en.ts`), so the one file every lane touched in v1 no longer conflicts (a Sonnet task, first wave). (3) A session runs `npx vitest run <its directories>` and its own e2e spec while iterating and the full `npm test` once before its last commit; CI runs everything. (4) Captures are shot only by `Gate: owner` tasks and only for the screens the task changed. (5) The wave cap stays three (D-132, the machine's memory); the lanes are now five, so a wave is usually full.
+
+---
+
 ## 3. Architecture Overview
 
 ```mermaid
@@ -557,15 +589,20 @@ what-is-in-your-sky-right-now/
 │   │   ├── shortcuts.ts            # the shortcut table, the one keydown listener and the guard (D-73, D-163, D-164); the hook itself is ui/hooks/useShortcuts.ts (D-116)
 │   │   ├── moonPhrases.ts          # phase name, illumination, glare and lore -> message keys (FR-MOON-3/4/5)
 │   │   └── readiness.ts            # stored passes + forecast -> Readiness (FR-OFF-4)
+│   │   ├── flags.ts                # v1.1: MOON_LORE from VITE_MOON_LORE, the only env reader (D-183)
+│   │   ├── legend.ts               # v1.1: SkyChartProps -> LegendRow[] with keys and states (D-186)
+│   │   ├── arcReveal.ts            # v1.1: arcState(pass, t) and cutTrack (D-189, FR-TRAJ-1)
+│   │   └── declination.ts          # v1.1: WMM declination per observer, the only importer of geomagnetism (D-185)
 │   ├── ui/
 │   │   ├── App.tsx
-│   │   ├── screens/ Home.tsx  PassDetail.tsx  Live.tsx (FR-LIVE-1)  passSelection.ts (hash ↔ selected pass, D-13/D-33)
+│   │   ├── screens/ Home.tsx  PassDetail.tsx  Live.tsx (FR-LIVE-1)  Settings.tsx (v1.1, #settings, D-184)  passSelection.ts (hash ↔ selected pass, D-13/D-33)
 │   │   ├── components/
 │   │   │   ├── location/ LocationInput.tsx  PlacePicker.tsx  CoordsInput.tsx  UseMyLocation.tsx
 │   │   │   ├── now/ NowPanel.tsx
 │   │   │   ├── passes/ PassList.tsx  PassCard.tsx  IssHeroCard.tsx  SortToggle.tsx  nightGroups.ts (the run's window -> one group per night, D-146)  passCursor.ts (where j/k move: focus over the cards on offer, D-165)
 │   │   │   ├── guide/ GuideText.tsx  PassNumbers.tsx  GuidePanel.tsx (the wide shell, D-72)
 │   │   │   ├── live/ StatusStrip.tsx  TimeStripe.tsx (SVG, D-82)  PlaybackControls.tsx  FollowPhone.tsx + useFollowPhone.ts + compassHeading.ts (FR-LIVE-8, D-175)  useWakeLock.ts (FR-LIVE-7, D-174)
+│   │   │   │     v1.1: TimeReadout.tsx (FR-TRAJ-4)  the stepping control the spike names (FR-TRAJ-5)  the strip's declination line (D-185)
 │   │   │   ├── moon/ MoonLine.tsx  MoonGlare.tsx (label + guide sentence, FR-MOON-2)  MoonLore.tsx (labelled as tradition, FR-MOON-5)
 │   │   │   ├── guide/skychart/          # §8 — the isolation boundary
 │   │   │   │   ├── SkyChart.types.ts     # SkyChartProps (the contract both views implement)
@@ -580,12 +617,19 @@ what-is-in-your-sky-right-now/
 │   │   │   │   │   ├── domeLayers.ts     # pure: which meshes belong to the base scene and which to the line scene (D-74, FR-DOME-8)
 │   │   │   │   │   ├── palette.ts        # FR-DOME-2 colours read from the tokens through a probe element, re-read on theme change (D-75)
 │   │   │   │   │   └── __snapshots__/SkyDome.golden.txt  # the golden pass raster, reviewed in PRs (§9.1)
-│   │   │   │   └── polar/
+│   │   │   │   ├── polar/
 │   │   │   │       └── SkyPolar.tsx      # implements SkyChartProps as an SVG all-sky chart (FR-GUIDE-2b/4); exports POLAR_VIEW
+│   │   │   │   ├── window/               # v1.1 — the sky window (D-188, FR-WIN-1..6); lane `window`
+│   │   │   │   │   ├── projection.ts     # pure: device rotation + az/alt -> view x/y under the spike's projection, WINDOW_FOV clip
+│   │   │   │   │   ├── useDeviceOrientation.ts  # heading, pitch, roll; D-175's permission path; WINDOW_SMOOTHING; one update per frame
+│   │   │   │   │   └── SkyWindow.tsx     # SVG; registers WINDOW_VIEW with available() = the D-175 presence test
+│   │   │   │   ├── Legend.tsx            # v1.1: the FR-LEG rows as buttons, swatch from the chart palette (D-186)
+│   │   │   │   └── ChartFrame.tsx        # v1.1: owns the box (full-bleed, square / live height) and the legend's slot (D-187)
 │   │   │   ├── weather/ CloudBadge.tsx
 │   │   │   └── common/ Countdown.tsx  Banner.tsx  SectionHeading.tsx (character-rule titles, D-49)  Footer.tsx (attributions)
 │   │   │       LanguageToggle.tsx  ThemeToggle.tsx  ShortcutsOverlay.tsx (D-73)  ShareButton.tsx
 │   │   │       ReadinessLine.tsx (FR-OFF-4)  UpdateBanner.tsx (FR-OFF-1)  InstallHint.tsx (FR-OFF-6)
+│   │   │       v1.1: Header.tsx (wide row / compact row, D-184)  LocationSummary.tsx (FR-COMP-3)
 │   │   ├── hooks/ useNow.ts (the wall clock, shared from R11)  useLayoutMode.ts (compact | wide over matchMedia, D-72/D-116)  useOnline.ts (navigator.onLine, FR-OFF-8, D-147)  useShortcuts.ts (mounts the one keydown listener, D-163/D-167)
 │   │   └── styles/ tokens.css  global.css  theme.ts (the one writer of `data-theme`, D-99)
 │   └── vite-env.d.ts
@@ -604,11 +648,14 @@ what-is-in-your-sky-right-now/
 ├── spike/
 │   ├── horizon-panorama/           # R14 candidate second view, kept
 │   └── dome-composition/           # FR-DOME-8: every knob as a URL parameter (the first v1 task)
+│   └── window/                     # v1.1, FR-WIN-7: projection, field of view, sensor path and stripe stepping as URL parameters (the first v1.1 task)
 ├── logs/sdd/                       # driver logs, one per task session (§16); git-ignored
 ├── docs/
 │   ├── RELEASE.md                  # release checklist: headers, phone performance (FR-GUIDE-6), deploy-day Heavens-Above comparison
 │   ├── screenshots/                # per-task captures at 390 px and 1280 px, both languages, both themes
 │   ├── mockups/                    # the owner-approved desktop reference (FR-DESK-5)
+│   │                               # v1.1: compact-390.html and its PNGs, the FR-COMP-6 reference (D-191)
+│   ├── window/                     # v1.1: the FR-WIN-7 spike's captures, rates and findings
 │   ├── dome-composition/           # the FR-DOME-8 spike's captures, drag rates and findings
 │   └── spike-glyphcss/             # R14 findings, rasters and screenshots
 ├── tests/
@@ -628,6 +675,8 @@ Unit tests are co-located (`*.test.ts` beside the source). `tests/` holds fixtur
 ---
 
 ## 5. Data Model
+
+*(v1.1)* Three additions, all UI-side; the worker protocol and `Pass` are unchanged. `ArcState = 'hidden' | 'ahead' | 'live' | 'linger' | 'full'` (D-189) travels on `SkyChartProps.passes[i].arc`. `LegendRow` (D-186) is derived, never stored. `Prefs.chartView` widens to `'dome' | 'polar' | 'window'` (D-57, D-188). The live slice gains `declinationDeg: number | null` (D-185) and `windowMode: boolean` (FR-WIN-6).
 
 All times are `EpochMs = number` (UTC). All angles in the model are **degrees**; conversion to radians happens inside `src/physics` only. Distances are kilometres.
 
@@ -921,6 +970,12 @@ loadForObserver(observer):
 
 ### 7.8 Moon lore *(v1, FR-MOON-4/5, D-80, D-97)*
 
+*(v1.1)* Loaded only when `MOON_LORE` is on (D-183); the file and its schema are unchanged.
+
+### 7.9 Prefs additions *(v1.1)*
+
+`chartView` accepts `'window'` (D-188) and is validated by the existing prefs schema so an old value falls back to the default. Nothing else is stored: the settings page (D-184) writes through the slices the components already use.
+
 `data/moon/lore.json`, one hand-reviewed file in the catalog's style: the twelve tropical signs (key, `startLonDeg`, name, one line), the twelve folk full-moon names by calendar month under a Northern-hemisphere note, and one line per phase of FR-MOON-1 — every one of them in both languages, every one with a `{ source, date, note }` provenance. `data/moon/schema.ts` (zod) fixes the order and the bands of the signs, the month numbers and the phase keys; `lore.test.ts` validates the file in CI the way `catalog.test.ts` validates the catalog and gates the wording (FR-MOON-5, FR-I18N-3). `data/moon/index.ts` exposes `MOON_LORE`, `signAtLongitude`, `signByKey`, `fullMoonName` and `phaseLore` — lookups over the file, never a computation. The lore reaches the UI through `src/state`, as the catalog does (§3 keeps `src/lib` and `src/ui` out of `src/data`).
 
 ---
@@ -1068,6 +1123,19 @@ Live.tsx
 
 ---
 
+### 8.9 The legend and the fit rule *(v1.1, FR-LEG-1..5, FR-COMP-5, D-186, D-187)*
+
+The chart contract test (§9.1) gains a third implementation and a fourth assertion: every view draws each pass's `legendKeys` letter once, at the peak, and draws no other text than compass and ring labels. `Legend.tsx` is tested once against a fixture `SkyChartProps` for order, states, colours in both themes and the highlight round-trip; `PassNumbers` is tested as the detail's first legend block. `ChartFrame` is tested with a stubbed `ResizeObserver` for the compact box (full-bleed, square; the live height floor) and `camera.ts` for the fit rule (`zoom` from the shorter side, ≥ 90 % extent on the fixture pass at 390 × 390 and 1240 × 450).
+
+### 8.10 The sky window *(v1.1, FR-WIN-1..7, D-188)*
+
+Not designed here beyond the boundary: `projection.ts` is pure and unit-tested against hand-computed points (north on the horizon at heading 0°, the zenith at pitch 90°, a roll of 90° swapping the axes); `useDeviceOrientation` is tested with synthetic events for the permission path, the smoothing and the once-per-frame rate; `SkyWindow` is tested through the contract test. The spike (`spike/window/`, FR-WIN-7) fixes the projection, `WINDOW_FOV`, `WINDOW_SMOOTHING`, the sensor facts of OQ-17 and the stripe stepping of FR-TRAJ-5, and writes `docs/window/FINDINGS.md`; the owner drives it on a phone in an interactive session (§16.6), so its acceptance is the findings file, not a driver run.
+
+### 8.11 Live trajectories *(v1.1, FR-TRAJ-1..5, D-189, D-190)*
+
+`arcReveal.ts` is tested at the five states' boundaries (`t` at rise − lookahead − 1 ms, at rise, inside, at end, at end + linger, past) and `cutTrack` for the interpolated last point; each view's geometry module is tested once per state on the fixture pass; the live e2e scrubs across one pass and asserts the legend's `state` and the drawn segment count follow. The stripe's three rows, the midnight date and the readout are RTL tests in a fixed zone; the stepping control's test is written with it, after the spike.
+
+
 ## 9. Testing Strategy
 
 ### 9.1 Layers
@@ -1104,6 +1172,18 @@ Live.tsx
 | Themes | Vitest | CI | The contrast table is recomputed for **both** themes: text ≥ 4.5 : 1, non-text ≥ 3 : 1; every token defined in `dark` has a `night` value (FR-THEME-1/2/3, D-84). |
 | Captures | Playwright (`visual-review`) | Per task | 390 px and 1280 px, both languages, both themes, filed under `docs/screenshots/` (FR-DESK-5). |
 | Capture set (v1) | Playwright + Vitest | Per release | `tests/e2e/v1-captures.spec.ts` shoots `v1-<screen>-<width>-<theme>-<locale>.png` for every screen in `tests/e2e/captureSet.ts`; `tests/docs/captures.test.ts` fails `npm test` when the directory does not match the list (SPEC §9 Phase 2, D-179). |
+| **v1.1** — Flags | Vitest over the build output | CI | With `VITE_MOON_LORE=off` no chunk holds a lore key; with `on` the component renders (FR-FLAG-2, D-183). |
+| Control rows | Vitest + RTL | CI | Every FR-COMP-4 row ≤ 36 cells in both locales (D-193). |
+| Settings route | Vitest + RTL, Playwright | CI | `#settings` renders the page; each control writes the same store field it wrote on the home screen; `Esc`, back and the hash round-trip (D-184). |
+| Legend | Vitest + RTL | CI | Rows, order, states and colours in both themes; highlight round-trip; keys drawn once per pass in every view (D-186, §8.9). |
+| Chart box and fit | Vitest + RTL, Playwright at 390 px | CI | Full-bleed square on compact; live height floor; `zoom` from the shorter side; ≥ 90 % extent (D-187). |
+| Sky window | Vitest, Playwright with `hasTouch` and stubbed orientation | CI | Projection points; permission path; the option absent without touch; `[ point at the sky ]` when saved (D-188, §8.10). |
+| Arc reveal | Vitest, Playwright | CI | State boundaries; cut track; scrub across a pass follows in legend and drawing (D-189, §8.11). |
+| Stripe | Vitest + RTL, Playwright | CI | Three rows, midnight date, readout; memoised geometry; focus after pointer-down; stepping lands within 1 min in ≤ 3 taps (D-190). |
+| Declination | Vitest | CI | `declinationDeg` at three observers against NOAA calculator values (±0.2°); the heading sum; the strip line (D-185). |
+| Mid widths | Playwright `desktop-1024` | CI | Open guide takes the column; `[ list ]` swaps back; no element narrower than 40 cells (D-192). |
+| Findings | Vitest, Playwright | CI | One test per closed F-number, named by it (D-194). |
+| CI time | GitHub Actions | Every PR | The job fails past 10 min; the step summary lists stage times (D-195). |
 
 ### 9.2 Physics unit references
 
@@ -1197,7 +1277,7 @@ Two further observer locations (one northern mid-latitude, one near the equator)
 
   `style-src-elem` and `script-src` stay `'self'`, and the deploy test gains an assertion on those two directives specifically, so a later "just add unsafe-inline" cannot ride in on an unrelated PR. The service worker needs no directive of its own: `worker-src 'self'` already covers it.
 
-- **CI** (`ci.yml`): typecheck → lint → unit + golden + component → build → Playwright. **`live-contract.yml`**: daily, `LIVE=1`, never blocks merges; opens an issue on failure.
+- **CI** (`ci.yml`): typecheck → lint → unit + golden + component → build → Playwright. **`live-contract.yml`**: daily, `LIVE=1`, never blocks merges; opens an issue on failure. *(v1.1, D-195)* `ci.yml` runs under a 10 min `timeout-minutes` with a stage-time table in the step summary (FR-CI-1); **`captures.yml`** runs the D-179 capture set with `CAPTURES=1` on pushes to `main` and on dispatch, uploads the PNGs as an artefact and never commits (FR-CI-2). Build-time env: `VITE_MOON_LORE` (`on` | `off`, default `off`, D-183), printed by the build.
 - **Bundle budget:** main chunk ≤ 150 KB gzipped **excluding the sky-chart chunk**; the sky-chart chunk (`@glyphcss/react` + `@glyphcss/core` + `dome/`) is code-split behind `React.lazy` in `SkyChart.tsx` and budgeted at ≤ 100 KB gzipped (R14 measured 97 KB; the 60 KB planned before the spike is not reachable from outside the library, D-63); worker chunk (satellite.js + astronomy-engine) ≤ 120 KB gzipped, loaded once. Checked by `npm run bundle:budget` (`scripts/bundle-budget.ts`, D-67) after the build in CI, as a warning; `BUNDLE_STATS=1 npm run build` adds `rollup-plugin-visualizer`'s treemap under `bundle-stats/`. Measured by R15: main 109.2 KB, chart 92.9 KB, worker 34.2 KB.
 
   *(v1)* The budgets are re-set for the new chunks, as the SPEC §9 definition of done requires: **main ≤ 170 KB** gzipped (the second language catalog, the live page's shell, the offline and share code — the live page itself is a lazy route, so only its entry lands here), **chart ≤ 110 KB** (colour and the second scene are configuration, not new dependencies), **live route ≤ 40 KB** as its own lazy chunk, **worker ≤ 130 KB** (the Moon adds no dependency; `astronomy-engine` is already there), **service worker ≤ 15 KB** (Workbox's runtime, outside the main budget by construction) and, from R22, **astronomy ≤ 30 KB** (`lib/skyBodies.ts` and the part of `astronomy-engine` it reaches, split out of the main chunk by the dynamic import of D-148 and fetched once a chart is on screen). Both catalogs ship in the main chunk: one language is a few kilobytes of strings, and lazy-loading a language would make the switch flash.
@@ -1212,6 +1292,7 @@ Two further observer locations (one northern mid-latitude, one near the equator)
 | `zustand` | 5.x | MIT | Store (D-4) | `src/state` | Low. |
 | `satellite.js` | 7.x | MIT | SGP4/SDP4, frames (spec §6.5) | `src/physics` only | OMM field-name compatibility checked in Task Zero. |
 | `astronomy-engine` | 2.x | MIT | Sun altitude and vector (D-2) | `src/physics/sun.ts` only | Bundle size in the worker chunk; not tree-shakeable. |
+| `geomagnetism` *(v1.1)* | 0.2.0 | Apache-2.0 | Magnetic declination for true-north headings (FR-WIN-3, D-185) | `src/lib/declination.ts` only | CommonJS with `require`d JSON (Vite pre-bundles it); 6.2 KB gzipped in the live chunk; WMM2025 valid to 2029-11, after which the package must be updated. |
 | `idb` | 8.x | ISC | IndexedDB wrapper (FR-SAT-6, FR-OFF-2) | `src/data/db.ts`, `elementsCache.ts`, `passesCache.ts` | Low. |
 | `zod` | 3.x/4.x | MIT | Response and catalog schemas | `src/data` | Low. |
 | **`@glyphcss/react`** (+ `@glyphcss/core`) | **0.1.x** (0.1.6 at time of writing) | MIT | ASCII 3D dome rasteriser (D-16, §8) | **`src/ui/components/guide/skychart/dome/` only** | **Pre-1.0 API** — minor releases may break props; pin exact version, upgrade deliberately with the raster snapshot as the tripwire. **Single-maintainer fork** (of polycss) — bus factor 1; vendor-fork plan: the package is small and MIT, so forking into `vendor/` is the fallback if it goes dormant. **Small user base** — few battle-tested edge cases (mobile touch, RTL text, high-DPI), so the spike (§8.5) and the interaction e2e carry more weight than usual. Handedness fixed by R14 (Z up, D-58); no interior camera (D-60); coloured mode writes inline styles and the base stylesheet is injected, both blocked by the strict CSP (D-61); the chart chunk is 97 KB gzipped (D-63). |
@@ -1270,6 +1351,25 @@ No i18n, routing, date or state dependency is added for v1: language is two type
 | FR-GUIDE-5 amended (CSP) | `public/_headers`, `tests/deploy` (D-75) |
 | FR-X-4 amended (shell offline) | `vite-plugin-pwa` (D-79), `data/passesCache.ts` (D-78) |
 | Spec §5.7 `computeAt` | **Not needed** — `computeNow` already takes an instant (D-76); see §15 |
+| **v1.1** — FR-FLAG-1..2 | `lib/flags.ts`, `vite.config.ts`, `ui/App.tsx` lazy branch, `tests/build/flags.test.ts` (D-183) |
+| FR-COMP-1..3 | `ui/components/common/Header.tsx`, `LocationSummary.tsx`, `ui/screens/Settings.tsx`, `screens/passSelection.ts` (D-184) |
+| FR-COMP-4 | `tests/styles/controlRows.test.ts`, `SortToggle.tsx` short labels (D-193) |
+| FR-COMP-5 | `skychart/ChartFrame.tsx`, `dome/camera.ts` fit rule (D-187) |
+| FR-COMP-6 | `docs/mockups/compact-390.html` + PNGs, `scripts/mockup-capture.ts` (D-191) |
+| FR-LEG-1..5 | `lib/legend.ts`, `skychart/Legend.tsx`, `SkyChart.types.ts` `legendKeys`, the three views' label code, `guide/PassNumbers.tsx` (D-186) |
+| FR-WIN-1..6 | `skychart/window/*`, `SkyChart.tsx` registration, `state/slices/prefs.ts` `chartView`, `ui/screens/Live.tsx` `windowMode` (D-188) |
+| FR-WIN-7 | `spike/window/`, `docs/window/FINDINGS.md` (§8.10) |
+| FR-TRAJ-1..3 | `lib/arcReveal.ts`, `physics/constants.ts`, `SkyChartProps.passes[].arc`, the three views (D-189) |
+| FR-TRAJ-4..5 | `components/live/TimeStripe.tsx`, `TimeReadout.tsx`, the stepping control, `usePlayback.ts` (D-190) |
+| FR-FIX-1..2 | one findings task per lane; `F-<n>` commit prefixes and test names (D-194) |
+| FR-CI-1..3 | `.github/workflows/ci.yml`, `captures.yml`, `tests/e2e/v1-captures.spec.ts` gate, `playwright.config.ts` workers, `e2e/liveHelpers.ts` `seedStoredRun` (D-195) |
+| FR-DESK-2 amended | `Header.tsx` wide row (D-184) |
+| FR-DESK-3 / FR-DESK-5 amended | `lib/layout.ts` `WIDE_SPLIT_MIN_CELLS`, `App.module.css`, `GuidePanel.tsx` `[ list ]`, `playwright.config.ts` `desktop-1024` (D-192) |
+| FR-WIN-3 / FR-LIVE-8 amended (true north) | `lib/declination.ts`, `components/live/compassHeading.ts`, `StatusStrip.tsx` (D-185) |
+| FR-DOME-1 amended (fill) | `dome/camera.ts` (D-187) |
+| FR-DOME-4 / FR-DOME-6 / FR-LIVE-6 amended (labels to the legend) | `dome/domeGeometry.ts` hotspots, `polar/SkyPolar.tsx` labels, `lib/legend.ts` (D-186) |
+| FR-LIVE-2 / FR-LIVE-4 / FR-LIVE-7 amended | `Live.tsx`, `Live.module.css`, `arcReveal.ts`, `TimeStripe.tsx` (D-189, D-190, D-187) |
+| FR-MOON-4 amended | `App.tsx` behind `MOON_LORE` (D-183) |
 
 ---
 
@@ -1321,7 +1421,7 @@ For the next `SPEC.md` revision (not applied here, since they touch the architec
 
 ---
 
-## 16. Delivery of the v1 Tasks *(V1-11)*
+## 16. Delivery of the v1 and v1.1 Tasks *(V1-11, V11-9)*
 
 The MVP was built one task at a time, by hand, on one branch after another. v1 is larger and most of it is independent, so the tasks are cut into lanes, run in waves, and driven by a script. This section is the contract `sdd-breakdown` writes TASKS.md against and `scripts/sdd-run.ts` implements.
 
@@ -1331,9 +1431,10 @@ A lane is a set of directories one task at a time may touch. Two tasks in differ
 
 | Lane | Owns | Typical tasks |
 |---|---|---|
-| `ui` | `src/ui/**` except `guide/skychart/**`, `screens/Live*` and `components/live/**`; `src/i18n/**`, `src/lib/{layout,shortcuts,shareLinks,moonPhrases,readiness}.ts`, `src/ui/styles/**` | language, desktop layout, shortcuts, theme, share button, Moon line, readiness line, banners |
-| `live` | `src/ui/screens/Live*`, `src/ui/components/live/**`, `src/lib/{timeStripe,playback}.ts` | *(D-132)* the live page, the status strip, the time stripe and playback, landscape, wake lock and compass follow |
-| `chart` | `src/ui/components/guide/skychart/**`, `src/lib/skyGeometry.ts`, `src/lib/skyBodies.ts`, `spike/**` | the dome spike, the layered dome, the polar view's v1 markers, the live page's chart wiring |
+| `ui` | `src/ui/**` except `guide/skychart/**`, `screens/Live*` and `components/live/**`; `src/i18n/**`, `src/lib/{layout,shortcuts,shareLinks,moonPhrases,readiness,flags}.ts`, `src/ui/styles/**`, `.github/workflows/**`, `tests/e2e/v1-captures.spec.ts`, `docs/mockups/**` | language, desktop layout, shortcuts, theme, share button, Moon line, readiness line, banners; *(v1.1)* CI time, the flag, the catalog split, the mockups, the settings page and header, the ui findings, mid widths, the detail's legend block, release |
+| `live` | `src/ui/screens/Live*`, `src/ui/components/live/**`, `src/lib/{timeStripe,playback}.ts`; *(v1.1)* `src/lib/declination.ts` | *(D-132)* the live page, the status strip, the time stripe and playback, landscape, wake lock and compass follow; *(v1.1)* the live findings, true north, the stripe rework and stepping, the live page's compact layout and window mode |
+| `chart` | `src/ui/components/guide/skychart/**` except `window/`, `src/lib/skyGeometry.ts`, `src/lib/skyBodies.ts`, `spike/dome-composition/**`; *(v1.1, D-196)* `src/lib/{legend,arcReveal}.ts`, `skychart/Legend.tsx`, `skychart/ChartFrame.tsx` | the dome spike, the layered dome, the polar view's v1 markers, the live page's chart wiring; *(v1.1)* the legend, the box and fit rule, the arc states in the dome and polar views, the chart findings |
+| `window` *(v1.1, D-196)* | `src/ui/components/guide/skychart/window/**`, `spike/window/**`, `docs/window/**` | the sky-window spike and the window view |
 | `data` | `src/data/**`, `src/state/**`, `vite.config.ts`, `public/**` | offline store, service worker, manifest, favourites, forecast window, prefs |
 | `physics` | `src/physics/**`, `src/worker/**`, `src/model/**` | the Moon module, the 72 h night-outer search, `includeHidden` |
 
@@ -1347,7 +1448,7 @@ Rules the breakdown must respect:
 
 A **wave** is the set of tasks whose dependencies are all merged to `main`. It is computed, not written down: the driver reads the checkboxes on `origin/main` and the `Depends on:` fields, and everything unblocked is in the current wave. `sdd-breakdown` prints the expected waves in TASKS.md as a reading aid, but the driver never trusts that list over the graph.
 
-A lane with an unmerged PR open counts as busy, so a task waiting on review holds its lane until it merges or closes. Within a wave the driver runs **at most one task per lane** and **at most three tasks at once, concurrently** (D-132). One per lane removes file conflicts; three is what one machine carries — every session builds, runs the unit suite and drives a browser — and keeps the review load legible. A wave's tasks start together and the run ends when the last of them does; a lane freed early is picked up by the next `--wave`, not by this one.
+A lane with an unmerged PR open counts as busy, so a task waiting on review holds its lane until it merges or closes. Within a wave the driver runs **at most one task per lane** and **at most three tasks at once, concurrently** (D-132). *(v1.1)* The lanes are five (`ui`, `chart`, `window`, `live`, `data`; `physics` has no task this phase), so a wave usually fills its three slots. One per lane removes file conflicts; three is what one machine carries — every session builds, runs the unit suite and drives a browser — and keeps the review load legible. A wave's tasks start together and the run ends when the last of them does; a lane freed early is picked up by the next `--wave`, not by this one.
 
 `live` is the one lane cut from another (D-132). It shares two places with `ui`, and both are handled by position rather than by ownership: `App.tsx` gets the `#live` route from R32 and the keyboard listener from R35, which depends on R32 and so never runs beside it; the message catalogs (`src/i18n/**`, owned by `ui`) get one `live` section, added by R32 directly after `chart` and extended only by later `live` tasks, so a `ui` task's keys and a `live` task's keys are never adjacent hunks.
 
@@ -1367,10 +1468,12 @@ Each task keeps its MVP shape (scope, done-when, acceptance criteria) and gains 
 
 The checkbox is the shape TASKS.md already uses and the driver reads it as the merged signal (§16.2), so a v1 task is an MVP task with three more sub-bullets — nothing about the file's structure changes.
 
-- **`Lane:`** one of `ui`, `chart`, `data`, `physics`.
-- **`Model:`** `opus` or `fable` (§16.6).
+- **`Lane:`** one of `ui`, `chart`, `data`, `physics`, `live`, `window`.
+- **`Model:`** `fable`, `opus`, `sonnet` or `haiku` (§16.6); *(v1.1)* `interactive` marks a task the owner drives in a session by hand, which the driver lists and never runs.
 - **`Gate:`** `auto` or `owner`. `owner` is required whenever the acceptance criteria include captures to compare, Spanish copy to read, or a composition to choose — anything a test cannot check. Everything else is `auto`.
 - **`Depends on:`** task ids, or `—`.
+- **`Precondition:`** *(v1.1, optional)* a file that must exist on `origin/main` before the task may start (a mockup, a findings file); the driver checks it and skips the task, as R23's session would have blocked, so a lane's slot is not burnt on a task that cannot run.
+- **`Findings:`** *(v1.1, optional)* the `F-<n>` ids a task closes (D-194), so `--status` can print which findings are still open.
 
 A task with no `Model:` runs on Opus, the stated default of §16.6.
 
@@ -1379,24 +1482,27 @@ A task with no `Lane:` or no `Gate:` is a breakdown bug and the driver refuses t
 ### 16.4 `scripts/sdd-run.ts`
 
 ```
-npm run sdd -- --status          # merged / in review / ready / blocked / failed, from origin/main and the graph
+npm run sdd -- --status          # merged / in review / ready / blocked / failed, from origin/main and the graph; open F-numbers (v1.1)
 npm run sdd -- --dry-run         # print exactly what would run, and stop
 npm run sdd -- --wave            # run the current wave (≤ 1 per lane, ≤ 3 at once, concurrently)
 npm run sdd -- --task R17        # run one task, dependencies checked
 npm run sdd -- --task R22 --model opus   # the same, on another model than TASKS.md says (§16.6)
+npm run sdd -- --wave --no-fallback      # v1.1: do not retry a limit-stopped session on the next model
 ```
 
 Per task, in order:
 
 1. `git fetch origin`; refuse if the task's dependencies are not checked off on `origin/main`.
 2. `git worktree add ../wiys-tasks/<id> -b <id>-<slug> origin/main` — a fresh worktree from `origin/main`, never from the current checkout. Node modules are installed in it with `npm ci` and `npm_config_cache` pointed at a project-local cache directory, because the user's `~/.npm` is not writable. Worktree creation and removal are queued, since both write the shared `.git`; everything else a task does happens in its own worktree, on its own PR, or on the network, and runs beside the other tasks of the wave (D-132).
-3. One `claude -p` session in that worktree: `--model <task model>`, `--permission-mode acceptEdits`, `--max-turns 250`, a 45-minute wall clock, and the allowlist below. Its environment carries `SDD_HEADLESS=1`, the npm cache, and `E2E_PORT` — 4173 plus the task's slot in the wave, or `E2E_PORT` from the driver's own environment plus the slot, for a `--task` run started beside a wave — which `playwright.config.ts` and the `visual-review` skill read; under `SDD_HEADLESS` Playwright never adopts a preview server it did not start, since with two worktrees it could be another task's build (D-132). The prompt is one line: use the `sdd-implement` skill on `<id>`, headless — decide and record rather than ask, and commit each coherent step as it is finished (D-89).
+3. *(v1.1, D-198)* The driver writes `sdd-run/<id>.brief.md`: the task's entry, the SPEC requirements and stories it names (by ID, extracted verbatim), the PLAN decisions it cites, its lane's §16.1 row, the D-89 commit rule and the allowlist. The session reads the brief instead of the three documents; `rg -n` on an ID is how it reaches anything else.
+4. One `claude -p` session in that worktree: `--model <task model>`, `--permission-mode acceptEdits`, `--max-turns 250`, a 45-minute wall clock, and the allowlist below. Its environment carries `SDD_HEADLESS=1`, the npm cache, and `E2E_PORT` — 4173 plus the task's slot in the wave, or `E2E_PORT` from the driver's own environment plus the slot, for a `--task` run started beside a wave — which `playwright.config.ts` and the `visual-review` skill read; under `SDD_HEADLESS` Playwright never adopts a preview server it did not start, since with two worktrees it could be another task's build (D-132). The prompt is one line: use the `sdd-implement` skill on `<id>`, headless — decide and record rather than ask, and commit each coherent step as it is finished (D-89).
    The session and the driver exchange three files in the worktree's `sdd-run/` directory: `<id>.blocked.md` (written instead of a PR when the task cannot be done as written), `<id>.summary.md` (the session's summary, which becomes the PR body), and `<id>.review.json` (`{ "findings": [...] }`, written by the review session in step 6). The directory is scratch and is never committed.
-4. On a clean exit the driver checks the branch actually has commits and the task's checkbox is ticked; then it rebases onto `origin/main`, pushes, and opens the PR with `gh`, titled `<id>: <goal>` with `Gate: <gate>` as the body's first line and the session's `<id>.summary.md` under it. **The session never pushes and never calls `gh`** — that is the driver's job, so a confused session cannot publish anything, and `sdd-implement`'s push-and-open-a-PR step is interactive-only for exactly this reason.
-5. CI is watched to completion. Red CI ends the task as failed.
-6. A second one-shot session (`--max-turns 40`, 15 minutes, Opus) runs the `code-review` skill over the branch diff and writes its verdict to `sdd-run/<id>.review.json`. Findings are posted as a PR comment and the task stops there for a human. A session that ends without a verdict counts as findings: nothing merges on a review that did not finish.
-7. Green CI, no findings, `Gate: auto` → `gh pr merge --squash`. `Gate: owner` → the PR is labelled `needs-owner`, the captures are linked in the body, and it waits.
-8. The worktree is removed after a merge and **kept** after a failure, alongside its log.
+5. On a clean exit the driver checks the branch actually has commits and the task's checkbox is ticked; then it rebases onto `origin/main`, pushes, and opens the PR with `gh`, titled `<id>: <goal>` with `Gate: <gate>` as the body's first line and the session's `<id>.summary.md` under it. **The session never pushes and never calls `gh`** — that is the driver's job, so a confused session cannot publish anything, and `sdd-implement`'s push-and-open-a-PR step is interactive-only for exactly this reason.
+6. CI is watched to completion. Red CI ends the task as failed.
+7. A second one-shot session (`--max-turns 40`, 15 minutes; Opus for `Gate: auto`, Sonnet for `Gate: owner`, D-197) reads the same brief and runs the `code-review` skill over the branch diff and writes its verdict to `sdd-run/<id>.review.json`. Findings are posted as a PR comment and the task stops there for a human. A session that ends without a verdict counts as findings: nothing merges on a review that did not finish.
+8. Green CI, no findings, `Gate: auto` → `gh pr merge --squash`. `Gate: owner` → the PR is labelled `needs-owner`, the captures are linked in the body, and it waits.
+9. The worktree is removed after a merge and **kept** after a failure, alongside its log.
+10. *(v1.1, D-197)* `--fallback` (on by default for `--wave`): a session that ends with the account-limit signature is retried once, in the same worktree, on the next model of `fable → opus → sonnet`; a second limit ends the task as failed. The log records both attempts.
 
 Allowed tools in an implementation session: file reads and writes, `Grep`/`Glob`, the project's commands — `npm run *`, `npm test *`, `npm ci *`, `npx vitest *`, `npx playwright *`, `npx tsc *`, `npx eslint *`, `npx tsx *`, `node *` — the shell tools that look at what those produced (`cat`, `ls`, `head`, `tail`, `wc`, `sed`, `awk`, `find`, `echo`, `mkdir`, `cp`, `mv`), and `git add <paths>` / `git commit` / `git status` / `git diff` / `git log` / `git show`. The list has to cover the commands the tasks are written in or a session ships code it could not run (D-101); breadth is not the fence here, the denied list is. Denied: `git push`, `git add -A` (this repository has parallel sessions sharing a checkout), `gh`, `rm -rf`, anything that reaches the network other than the package installs the setup step already did, and `prettier` (this repository is not formatted with it).
 
@@ -1416,14 +1522,36 @@ The branch left on `origin` is how a later `--status` reads the task back as fai
 
 ### 16.6 Model policy
 
+*(rewritten for v1.1, D-197; the v1 rows are history in D-88 and D-131.)* Four models are available to `claude -p` on this account: `fable`, `opus`, `sonnet`, `haiku`. The rule is to spend the most capable model where a plausible wrong answer is the expensive kind and the least where the task is fully specified by a test or a table.
+
 | Task kind | Model | Why |
 |---|---|---|
-| The live marker and the live page — R22, R32, R33, R34 | `fable` | *(D-131, 2026-09-04, restoring the half of the original row that is still open)* Visual and interactive work with many quick iterations; the acceptance is captures, snapshots and a drag rate, all of which the session can produce and check itself. |
-| Every other implementation session | `opus` | The default. Physics, protocol, offline semantics and copy are where a wrong-but-plausible answer costs the most: the share-link protocol (R31), the favourites store (R26), the readiness rule and the offline copy (R27), the update and install semantics (R28), the keyboard guard (R35) and the release bookkeeping (R36). |
-| Every review session | `opus` | The review is the only automated gate between a session and `main`. |
+| Visual and interactive work the session can verify itself: the sky-window view, the legend and the fit rule inside the three views, the arc states in the views, the stripe rework and the live page's compact layout | `fable` | Acceptance is captures, raster snapshots and a rate the session measures; many short iterations against what it draws. The account's limit is shared with the owner's interactive sessions (D-88), so `--fallback` retries on Opus. |
+| The spike (FR-WIN-7) | `interactive` | The owner drives it on a phone (V11-5); the driver never runs it. Fable in that session. |
+| Semantics, routing, copy in two languages, and anything that a stranger's device or a test cannot check: the settings page and header, the mid-width rule and `[ list ]`, the detail's legend block, the `ui` and `live` findings, true north, CI time, release | `opus` | D-88's reason stands: a hash, a route guard, an offline sentence, a workflow gate. |
+| Mechanical tasks with a complete spec: the flag (D-183), the catalog split (D-199), the `data` findings (F-11..F-13), the `chart` findings (F-1..F-5, F-35), the compact mockup capture script, the 1024 px profile | `sonnet` | Each is a table, a constant or a test written down here; the session executes and checks. |
+| Nothing that ships code | `haiku` | Reserved for driver-side summaries if the driver ever needs one. |
+| Review of a `Gate: auto` task | `opus` | The review is the only gate between the session and `main`. |
+| Review of a `Gate: owner` task | `sonnet` | The owner reads the PR anyway; the review's job is to list what to look at. |
 
-`Model:` in TASKS.md is what a wave runs a task on. A session that ends on a model limit is a failed task like any other (§16.5) — the branch is deleted and the task is rerun — but the rerun may be `--task <id> --model opus` (or `fable`), which overrides the field for that one run and nothing else: the log, the PR body and the run report say the model actually used, and TASKS.md is not edited on `main` to get one task through. `--model` is refused on `--wave`, so the printed policy stays the policy for everything the driver picks on its own. D-88 records why the phase ran a day on Opus alone.
+`Model:` in TASKS.md is what a wave runs a task on; `--model` overrides it for one run. A session that ends on a model limit is retried once on the next model of `fable → opus → sonnet` in the same worktree (`--fallback`, §16.4 step 10); a second limit fails the task as §16.5 says.
 
 ### 16.7 What the driver is not
 
 It is not a scheduler, a queue, or a service: it is a script the owner runs, in the foreground, when there is a wave to run. It has no state of its own — `origin/main`, the branches and the PRs are the state, so a run can be interrupted at any point and started again with nothing to reconcile. It is written and reviewed before the first wave (D-86), proved by `--dry-run` against the existing R1–R15 entries, and it is not itself a task in TASKS.md.
+
+### 16.8 Tokens and delivery time *(v1.1, D-198, D-199)*
+
+What a v1 task cost, from the logs: a session read SPEC, PLAN and TASKS in full at its start (≈ 40 k tokens, twice with the review), ran the whole unit suite and the whole e2e suite several times, and the `ui` lane ran eleven tasks one after another. The rules below are what the driver, the skills and the breakdown do differently in v1.1; the driver and skill changes are repo tooling made before the first wave (D-86's precedent), not tasks.
+
+| Rule | Where | Effect |
+|---|---|---|
+| The brief replaces the three documents in a session's context (D-198). | `scripts/sdd/brief.ts`, `sdd-implement` under `SDD_HEADLESS` | Under 12 k tokens before the first edit; the review session gets the same brief. |
+| Narrow test runs while iterating, the full `npm test` once before the last commit (D-199). | `sdd-implement` | Minutes per iteration instead of the whole suite. |
+| No PR spec waits on a 72 h search it does not test (FR-CI-3). | `tests/e2e/liveHelpers.ts` `seedStoredRun` | The e2e suite drops under the 10 min PR budget with room. |
+| Captures only from `Gate: owner` tasks and only for the changed screens; the capture set runs on `main` (D-195). | `visual-review`, `captures.yml` | No PR pays the 8.5 min capture job. |
+| The catalogs are split per lane before the feature wave (D-199). | `src/i18n/en/*.ts`, `es/*.ts` | The one file every v1 lane touched no longer conflicts on rebase. |
+| A task is sized to about 25 implementation turns; findings tasks hold at most ten findings (D-199). | `sdd-breakdown` | A limit or a cap costs a small branch, not a wave. |
+| Sonnet for mechanical tasks and owner-gated reviews, Fable only where the session verifies its own output (D-197). | `Model:` fields | Roughly a third of the phase's sessions on the cheapest model that can do them. |
+| Five lanes and a wave cap of three (D-132, D-196). | the driver | A wave is usually full; the `ui` chain is shorter because the findings, the flag and the mockups are split off it. |
+| `Precondition:` is checked by the driver (§16.3). | `scripts/sdd/tasks.ts` | A gated task never burns a lane's slot on a blocked session. |

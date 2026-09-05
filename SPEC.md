@@ -632,7 +632,7 @@ Design principles: monospace / terminal aesthetic throughout (FR-X-6), dark back
 - **Sky window.** `skychart/window/`: a pure projection module (azimuth/altitude and a device rotation to x/y within the field of view), an orientation hook that extends the compass-follow hook with pitch and roll, and an SVG component. The spike lives under `spike/window/` beside the dome spike.
 - **Trajectories.** A pure module takes a pass and `t` and returns its FR-TRAJ-1 state and the cut track; the chart props carry that state per pass so the three views draw the same thing.
 - **Stripe.** The existing stripe component is re-laid out to three rows with the readout above it; the stepping control is added after the spike.
-- **True north.** A small pure-JS World Magnetic Model package (candidate: `geomagnetism`, MIT, coefficients for the current WMM epoch), installed by the owner on `main` before the wave that needs it (task sessions have no network, the R25 precedent); declination computed once per observer in `lib/` and applied in `compassHeading.ts`. If the package's bundle cost exceeds 15 KB gzipped, the plan chooses shipping the coefficient table instead (OQ-20).
+- **True north.** `geomagnetism` 0.2.0 (Apache-2.0), installed 2026-09-05 on the spec branch so it is in the lockfile before the wave that needs it (task sessions have no network, the R25 precedent); declination computed once per observer in `lib/` and applied in `compassHeading.ts`. Measured at 6.2 KB gzipped for the whole package, under OQ-20's 15 KB rule (PLAN D-185).
 - **Findings.** One findings task per lane in the first wave (V11-11); each fix names its F-number in the commit and adds the test that fails on the old code.
 - **CI.** The workflow gains a wall-time step and the 10 min budget; the capture spec is gated by `CAPTURES=1`, run by a second workflow on pushes to `main` and on dispatch that uploads an artefact.
 
@@ -693,7 +693,7 @@ MVP geocodes to the centre of the chosen place. Satellite pass geometry changes 
 |---|---|---|
 | `satellite.js` ^7 | SGP4/SDP4, coordinate frames, look angles | MIT. Supports OMM JSON input. |
 | `astronomy-engine` | Sun position, twilight, moon (later: moon glare warnings) | MIT. Sub-arcminute accuracy. |
-| `geomagnetism` (or equivalent WMM, v1.1) | Magnetic declination for true-north headings (FR-WIN-3) | MIT | Pure JS, no network; installed by the owner (§5.8). Alternative: our own coefficient table. |
+| `geomagnetism` 0.2.0 (v1.1) | Magnetic declination for true-north headings (FR-WIN-3) | Apache-2.0 | Pure JS, WMM2015–WMM2025 coefficients bundled, 6.2 KB gzipped whole (PLAN D-185); installed 2026-09-05. |
 | `idb` | Promise wrapper over IndexedDB for the elements cache (FR-SAT-6) | Tiny, TS types. |
 | `tz-lookup` | lat/lon → IANA zone offline | Optional; Open-Meteo supplies the zone in MVP. |
 | `date-fns` / `date-fns-tz` or Temporal polyfill | Time formatting in observer zone | |
@@ -721,7 +721,7 @@ MVP geocodes to the centre of the chosen place. Satellite pass geometry changes 
 | OQ-17 *(v1.1)* | The iOS sensor path (FR-WIN-3): whether `deviceorientation` gives `webkitCompassHeading` together with usable `beta`/`gamma` in one event, and whether the heading needs the interface-orientation correction D-175 assumed. | A wrong assumption turns the window ninety degrees on the phone the owner uses. | Measured on a device in the spike; the dome stays the fallback either way. |
 | OQ-18 *(v1.1)* | Touch stepping on the stripe (FR-TRAJ-5): step buttons, tap-to-jump on a segment, or a slow-scrub gesture. | Dragging is 4 min per pixel on a phone; the live page is unusable for planning without a precise step. | Fixed by the FR-WIN-7 spike; buttons if nothing else wins. |
 | OQ-19 *(v1.1)* | `ARC_LOOKAHEAD` (5 min) and `ARC_LINGER` (10 min) values (FR-TRAJ-2). | Too short and the chart is empty between passes; too long and it fills at 3600×. | Ship the defaults; revisit after a few nights of field use with OQ-5 and OQ-12. |
-| OQ-20 *(v1.1)* | Which World Magnetic Model package, and its bundle cost (FR-WIN-3). | The heading is a few degrees off without it; a heavy package is a phone-page cost paid on every load. | `geomagnetism` if it is under 15 KB gzipped in the live chunk; otherwise the WMM2025 coefficient table in `src/physics` with a golden test against NOAA values. |
+| OQ-20 *(v1.1)* | Which World Magnetic Model package, and its bundle cost (FR-WIN-3). | The heading is a few degrees off without it; a heavy package is a phone-page cost paid on every load. | **Resolved 2026-09-05:** `geomagnetism` 0.2.0, Apache-2.0, 6.2 KB gzipped (4.3 KB importing the WMM2025 model alone); PLAN D-185. |
 
 Resolved questions (OQ-1, OQ-3, OQ-4, OQ-11) are recorded in §12.
 
