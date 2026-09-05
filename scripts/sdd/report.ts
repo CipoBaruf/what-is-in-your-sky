@@ -87,7 +87,9 @@ export interface TaskReport {
   worktree: string | null;
   log: string | null;
   durations: { implementMs?: number; ciMs?: number; reviewMs?: number; totalMs: number };
-  review: { findings: number } | null;
+  /** §16.4 step 10 (D-197): every session the task ran, in order — a limit fallback is a second entry on the next model. */
+  attempts: { stage: 'implement' | 'review'; model: string; outcome: string; durationMs: number }[];
+  review: { findings: number; model: string } | null;
 }
 
 export interface RunReport {

@@ -6,7 +6,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { branchName, byId, modelFor, ownerDriven, parseTasks, runBlockers, type Task } from '../../scripts/sdd/tasks';
+import { branchName, byId, modelFor, nextModel, ownerDriven, parseTasks, reviewModelFor, runBlockers, type Task } from '../../scripts/sdd/tasks';
 
 const real = parseTasks(readFileSync('TASKS.md', 'utf8'));
 const sample = parseTasks(readFileSync('tests/sdd/fixtures/tasks-v1-sample.md', 'utf8'));
@@ -113,5 +113,21 @@ describe('bad values', () => {
 
   it('treats an em dash, a hyphen or nothing as no dependencies', () => {
     for (const value of ['—', '-', 'none', '']) expect(parseTasks(`- [ ] **R31 — A task**\n  - **Depends on:** ${value}`).tasks[0]?.deps).toEqual([]);
+  });
+});
+
+describe('the model chain and the review model (§16.6, D-197)', () => {
+  it('falls back fable → opus → sonnet and stops there', () => {
+    expect(nextModel('fable')).toBe('opus');
+    expect(nextModel('opus')).toBe('sonnet');
+    expect(nextModel('sonnet')).toBeNull();
+    expect(nextModel('haiku')).toBeNull();
+  });
+
+  it('reviews on Opus where the review is the gate and on Sonnet where the owner reads the PR', () => {
+    expect(reviewModelFor(sampleTask('R17'))).toBe('sonnet');
+    expect(sampleTask('R17').gate).toBe('owner');
+    expect(reviewModelFor(sampleTask('R19'))).toBe('opus');
+    expect(sampleTask('R19').gate).toBe('auto');
   });
 });

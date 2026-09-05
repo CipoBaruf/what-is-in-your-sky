@@ -86,7 +86,19 @@ export const DENIED_TOOLS = [
   'Task',
 ] as const;
 
-export type SessionOutcome = 'ok' | 'error' | 'timeout' | 'max-turns';
+/** `limit` (v1.1, D-197): the session ended on the account's usage limit and `--fallback` may retry it on the next model. */
+export type SessionOutcome = 'ok' | 'error' | 'timeout' | 'max-turns' | 'limit';
+
+/**
+ * §16.4 step 10: the account-limit signature. Claude Code ends a `-p` session
+ * whose account is out of usage with a result carrying one of these phrases
+ * (the v1 logs never hit it, so this is the CLI's wording, not a captured
+ * line); a 429 from the API arrives as `rate_limit_error`. Matched on the
+ * result text and on stderr.
+ */
+export const LIMIT_SIGNATURE = /hit your limit|usage limit|limit reached|out of extra usage|rate_limit_error|rate limit/i;
+
+export const isLimitStop = (text: string | null | undefined): boolean => text !== null && text !== undefined && LIMIT_SIGNATURE.test(text);
 
 export interface SessionResult {
   outcome: SessionOutcome;
@@ -142,6 +154,7 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
     let outcome: SessionOutcome = 'ok';
     let result: string | null = null;
     let pending = '';
+    let stderr = '';
 
     const timer = setTimeout(() => {
       timedOut = true;
@@ -162,6 +175,7 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
         if (event.type !== 'result') return;
         result = event.result ?? null;
         if (event.subtype === 'error_max_turns') outcome = 'max-turns';
+        else if (isLimitStop(result)) outcome = 'limit';
         else if (event.is_error === true || (event.subtype && event.subtype !== 'success')) outcome = 'error';
       } catch {
         // not a JSON event line; it is already in the log
@@ -174,7 +188,11 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
       pending = lines.pop() ?? '';
       for (const line of lines) readLine(line);
     });
-    child.stderr.on('data', (chunk: Buffer) => logger.raw(chunk.toString()));
+    child.stderr.on('data', (chunk: Buffer) => {
+      const text = chunk.toString();
+      stderr += text.slice(-2000);
+      logger.raw(text);
+    });
     child.on('error', (error) => {
       clearTimeout(timer);
       logger.line(`  session could not start: ${error.message}`);
@@ -184,6 +202,7 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
       clearTimeout(timer);
       readLine(pending);
       if (timedOut) outcome = 'timeout';
+      else if (outcome !== 'max-turns' && outcome !== 'limit' && isLimitStop(stderr)) outcome = 'limit';
       else if (code !== 0 && outcome === 'ok') outcome = 'error';
       resolve({ outcome, code, durationMs: Date.now() - startedAt, result });
     });

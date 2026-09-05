@@ -169,4 +169,17 @@ export function runBlockers(task: Task): string[] {
 /** §16.6: the model a task's session runs on; Opus is the default. An owner-driven task has no session, so it reads as Opus here only for reporting. */
 export const modelFor = (task: Task): SessionModel => (task.model === null || task.model === 'interactive' ? 'opus' : task.model);
 
+/** §16.6 (D-197): the review runs on Opus where it is the gate (`Gate: auto`) and on Sonnet where the owner reads the PR anyway. */
+export const reviewModelFor = (task: Task): SessionModel => (task.gate === 'owner' ? 'sonnet' : 'opus');
+
+/**
+ * §16.4 step 10 (D-197): the model a limit-stopped session is retried on,
+ * once, along `fable → opus → sonnet`; `null` at the end of the chain.
+ */
+export function nextModel(model: SessionModel): SessionModel | null {
+  if (model === 'fable') return 'opus';
+  if (model === 'opus') return 'sonnet';
+  return null;
+}
+
 export const byId = (tasks: readonly Task[], id: string): Task | undefined => tasks.find((task) => task.id.toLowerCase() === id.toLowerCase());
