@@ -66,8 +66,12 @@ async function stubNetwork(page: Page, elements: 'fixtures' | 'down' = 'fixtures
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
 }
 
-/** The app at `t` with the fixtures, Neuquén typed in, and the Now panel's verdict for that instant. */
-async function homeAt(page: Page, t: number, locale: 'en' | 'es' = 'en'): Promise<number> {
+/**
+ * The app at `t` with the fixtures, Neuquén typed in, and the Now panel's verdict for that instant.
+ * `wholeList` waits for the 72 h search to finish first, so a capture shows every arc of the coming night
+ * rather than the first few to stream in.
+ */
+async function homeAt(page: Page, t: number, locale: 'en' | 'es' = 'en', wholeList = false): Promise<number> {
   await page.clock.install({ time: t });
   await page.clock.pauseAt(t);
   await stubNetwork(page);
@@ -76,13 +80,23 @@ async function homeAt(page: Page, t: number, locale: 'en' | 'es' = 'en'): Promis
   await page.getByLabel(LABEL[locale].coords).fill(NEUQUEN);
   const panel = page.getByRole('region', { name: LABEL[locale].now });
   await expect(panel.getByRole('status')).toHaveText(LABEL[locale].visible, { timeout: 60_000 });
+  if (wholeList) {
+    const passes = page.getByRole('region', { name: locale === 'es' ? 'Próximos pases' : 'Upcoming passes' });
+    await expect(passes.getByRole('status')).toHaveText(/\d+ (visible passes in the next 72 h|pases visibles en las próximas 72 h)/, { timeout: 60_000 });
+  }
   const match = LABEL[locale].visible.exec((await panel.getByRole('status').textContent()) ?? '');
   return Number(match?.[1] ?? '0');
 }
 
-/** The live page with its dome drawn: the chunk, the raster font and the first rasterisation wait on timers the installed clock holds. */
+/**
+ * The live page with its dome drawn. React reveals a lazy chunk behind its
+ * Suspense fallback on a timer, and the chart chunk, the raster font and the
+ * first rasterisation wait on timers too — all of them held by the installed
+ * clock, so it is run for a second before each expectation.
+ */
 async function domeDrawn(page: Page): Promise<void> {
-  await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'live');
+  await page.clock.runFor(1000);
+  await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'live', { timeout: 30_000 });
   await page.clock.runFor(1000);
   await expect(page.getByTestId('live-dome').locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
 }
@@ -204,7 +218,7 @@ test.describe('the live page', () => {
 for (const width of [390, 1280] as const) {
   test(`captures at ${String(width)} px, in both themes`, async ({ page }) => {
     await page.setViewportSize({ width, height: width === 390 ? 844 : 800 });
-    await homeAt(page, T);
+    await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
     await domeDrawn(page);
     await stripFilled(page);
@@ -219,7 +233,7 @@ for (const width of [390, 1280] as const) {
 
 test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await homeAt(page, T, 'es');
+  await homeAt(page, T, 'es', true);
   await page.getByTestId('live-link').click();
   await expect(page.getByTestId('live-link')).toHaveCount(0);
   await domeDrawn(page);

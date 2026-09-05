@@ -216,6 +216,11 @@ function rowsFor(hostHeightPx: number | null, cellHeightPx: number, cols: number
  * The grid and the cell for a box of this size. `zoom` is CSS pixels per
  * world unit against the box, not the cell (D-91), so both layers of the
  * stacked dome take the same value however coarse each one is.
+ *
+ * R32 (FR-LIVE-1, D-161): against the box's *shorter* side. The guide's box
+ * is square, so nothing changes there; the live page's is the viewport's
+ * leftover, wider than tall on a desktop, and a zoom taken from its width
+ * put the top of the dome — north, and every label up there — outside it.
  */
 export function layoutFor(hostWidthPx: number | null, hostHeightPx: number | null = null, advance: GlyphAdvance = DEFAULT_ADVANCE, cols = colsFor(hostWidthPx)): DomeLayout {
   const measured = hostWidthPx !== null && Number.isFinite(hostWidthPx) && hostWidthPx > 0;
@@ -224,6 +229,7 @@ export function layoutFor(hostWidthPx: number | null, hostHeightPx: number | nul
   const space = usable(advance.space, braille);
   const fontSizePx = cellWidthPx / braille;
   const width = measured ? hostWidthPx : REFERENCE_WIDTH_PX;
+  const height = hostHeightPx !== null && Number.isFinite(hostHeightPx) && hostHeightPx > 0 ? hostHeightPx : width;
   return {
     cols,
     rows: rowsFor(hostHeightPx, cellWidthPx * CELL_ASPECT, cols),
@@ -231,7 +237,7 @@ export function layoutFor(hostWidthPx: number | null, hostHeightPx: number | nul
     cellHeightPx: cellWidthPx * CELL_ASPECT,
     fontSizePx,
     wordSpacingPx: cellWidthPx - space * fontSizePx,
-    zoom: (ZOOM_AT_60_COLS * width) / REFERENCE_WIDTH_PX,
+    zoom: (ZOOM_AT_60_COLS * Math.min(width, height)) / REFERENCE_WIDTH_PX,
   };
 }
 
