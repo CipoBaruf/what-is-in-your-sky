@@ -6,7 +6,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { branchName, byId, modelFor, parseTasks, runBlockers, type Task } from '../../scripts/sdd/tasks';
+import { branchName, byId, modelFor, ownerDriven, parseTasks, runBlockers, type Task } from '../../scripts/sdd/tasks';
 
 const real = parseTasks(readFileSync('TASKS.md', 'utf8'));
 const sample = parseTasks(readFileSync('tests/sdd/fixtures/tasks-v1-sample.md', 'utf8'));
@@ -79,6 +79,15 @@ describe('the v1 task shape', () => {
     expect(modelFor(sampleTask('R17'))).toBe('fable');
   });
 
+  it('reads the v1.1 fields: a precondition, the findings, and the owner-driven model (§16.3, D-197)', () => {
+    expect(sampleTask('R23')).toMatchObject({ lane: 'window', model: 'interactive', precondition: null, findings: [] });
+    expect(ownerDriven(sampleTask('R23'))).toBe(true);
+    expect(modelFor(sampleTask('R23'))).toBe('opus');
+    expect(sampleTask('R24')).toMatchObject({ lane: 'docs', model: 'sonnet', precondition: 'docs/window/FINDINGS.md', findings: ['F-3', 'F-35'] });
+    expect(ownerDriven(sampleTask('R24'))).toBe(false);
+    expect(sampleTask('R17')).toMatchObject({ precondition: null, findings: [] });
+  });
+
   it('names a branch per task, capped at four words', () => {
     expect(byId(sample.tasks, 'R17')?.branch).toBe('r17-the-layered-dome');
     expect(byId(sample.tasks, 'R16')?.branch).toBe('r16-language-preference-and-the');
@@ -88,14 +97,15 @@ describe('the v1 task shape', () => {
 });
 
 describe('bad values', () => {
-  const bad = parseTasks(['- [ ] **R30 — A task**', '  - **Lane:** everything', '  - **Model:** haiku', '  - **Gate:** maybe', '  - **Depends on:** R99', '', '- [ ] **R30 — Again**'].join('\n'));
+  const bad = parseTasks(['- [ ] **R30 — A task**', '  - **Lane:** everything', '  - **Model:** gemini', '  - **Gate:** maybe', '  - **Depends on:** R99', '  - **Findings:** F-1, bug-2', '', '- [ ] **R30 — Again**'].join('\n'));
 
   it('names each one against its task and leaves the field null', () => {
     expect(bad.tasks[0]).toMatchObject({ lane: null, model: null, gate: null });
     expect(bad.problems).toEqual([
-      'R30: `Lane: everything` is not one of ui, chart, data, physics, live.',
-      'R30: `Model: haiku` is not one of opus, fable.',
+      'R30: `Lane: everything` is not one of ui, chart, data, physics, live, window, docs.',
+      'R30: `Model: gemini` is not one of opus, fable, sonnet, haiku, interactive.',
       'R30: `Gate: maybe` is not one of auto, owner.',
+      'R30: `Findings: bug-2` is not an F-<n> id.',
       'R30: appears twice in TASKS.md.',
       'R30: depends on R99, which is not a task.',
     ]);

@@ -50,3 +50,17 @@ the wave logic can be proved end to end without spending a session:
   - **Lane:** physics
   - **Model:** opus
   - **Depends on:** —
+
+- [ ] **R23 — The window spike the owner drives**
+  - **Lane:** window
+  - **Model:** interactive
+  - **Gate:** owner
+  - **Depends on:** —
+
+- [ ] **R24 — A task behind a precondition**
+  - **Lane:** docs
+  - **Model:** sonnet
+  - **Gate:** auto
+  - **Depends on:** —
+  - **Precondition:** docs/window/FINDINGS.md
+  - **Findings:** F-3, F-35

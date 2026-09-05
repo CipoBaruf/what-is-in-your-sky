@@ -11,9 +11,10 @@
  * Pure: the caller supplies what git and `gh` said, so the tests need no
  * network.
  */
-import { runBlockers, type Lane, type Task } from './tasks';
+import { ownerDriven, runBlockers, type Lane, type Task } from './tasks';
 
-export type TaskState = 'merged' | 'in-review' | 'failed' | 'blocked' | 'ready';
+/** `owner-driven` (v1.1, D-197): a `Model: interactive` task that is not merged; the owner runs it, the driver only lists it. */
+export type TaskState = 'merged' | 'in-review' | 'failed' | 'blocked' | 'ready' | 'owner-driven';
 
 export interface RemoteFacts {
   tasks: readonly Task[];
@@ -21,6 +22,8 @@ export interface RemoteFacts {
   openPrs: ReadonlyMap<string, number>;
   /** Branch names present on `origin`. */
   remoteBranches: ReadonlySet<string>;
+  /** Whether a path exists on `origin/main` (§16.3 `Precondition:`); absent means every precondition is taken as met. */
+  fileOnMain?: (path: string) => boolean;
 }
 
 export interface TaskStatus {
@@ -30,6 +33,8 @@ export interface TaskStatus {
   missingDeps: readonly string[];
   /** §16.3 breakdown bugs that stop the driver running it. */
   blockers: readonly string[];
+  /** The `Precondition:` file that is not on `origin/main` yet, or `null`. */
+  missingPrecondition: string | null;
   pr: number | null;
 }
 
@@ -49,7 +54,7 @@ export interface WaveSelection {
 }
 
 /** Every task's state, in file order. */
-export function statusOf({ tasks, openPrs, remoteBranches }: RemoteFacts): TaskStatus[] {
+export function statusOf({ tasks, openPrs, remoteBranches, fileOnMain }: RemoteFacts): TaskStatus[] {
   const merged = new Set(tasks.filter((task) => task.done).map((task) => task.id));
   return tasks.map((task) => {
     const missingDeps = task.deps.filter((dep) => !merged.has(dep));
@@ -62,8 +67,11 @@ export function statusOf({ tasks, openPrs, remoteBranches }: RemoteFacts): TaskS
           ? 'failed'
           : missingDeps.length > 0
             ? 'blocked'
-            : 'ready';
-    return { task, state, missingDeps, blockers: runBlockers(task), pr };
+            : ownerDriven(task)
+              ? 'owner-driven'
+              : 'ready';
+    const missingPrecondition = task.precondition !== null && fileOnMain !== undefined && !fileOnMain(task.precondition) ? task.precondition : null;
+    return { task, state, missingDeps, blockers: runBlockers(task), missingPrecondition, pr };
   });
 }
 
@@ -83,6 +91,10 @@ export function selectWave(statuses: readonly TaskStatus[], limits: WaveLimits =
     if (status.state !== 'ready') continue;
     if (status.blockers.length > 0) {
       skipped.push({ task: status.task, reason: `breakdown bug: ${status.blockers.join(', ')}` });
+      continue;
+    }
+    if (status.missingPrecondition !== null) {
+      skipped.push({ task: status.task, reason: `precondition \`${status.missingPrecondition}\` is not on origin/main yet (§16.3)` });
       continue;
     }
     if (wave.length >= limits.maxTasks) {
@@ -109,11 +121,13 @@ export function selectWave(statuses: readonly TaskStatus[], limits: WaveLimits =
 export function refusalFor(statuses: readonly TaskStatus[], id: string): string | null {
   const status = statuses.find((candidate) => candidate.task.id.toLowerCase() === id.toLowerCase());
   if (!status) return `${id} is not a task in TASKS.md.`;
-  const { task, state, missingDeps, blockers, pr } = status;
+  const { task, state, missingDeps, blockers, missingPrecondition, pr } = status;
   if (state === 'merged') return `${task.id} is already checked off on origin/main.`;
+  if (state === 'owner-driven') return `${task.id} is \`Model: interactive\`: the owner drives it in a session by hand (§16.6).`;
   if (state === 'in-review') return `${task.id} has an open PR (#${String(pr)}); merge or close it first.`;
   if (state === 'failed') return `${task.id} left the branch \`${task.branch}\` on origin from an earlier run; delete it before retrying (§16.5).`;
   if (missingDeps.length > 0) return `${task.id} depends on ${missingDeps.join(', ')}, not checked off on origin/main.`;
   if (blockers.length > 0) return `${task.id} has a breakdown bug: ${blockers.join(', ')} (§16.3).`;
+  if (missingPrecondition !== null) return `${task.id} waits for \`${missingPrecondition}\` to exist on origin/main (§16.3).`;
   return null;
 }

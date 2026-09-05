@@ -10,7 +10,8 @@ import { refusalFor, selectWave, statusOf, type TaskStatus } from '../../scripts
 
 const { tasks } = parseTasks(readFileSync('tests/sdd/fixtures/tasks-v1-sample.md', 'utf8'));
 
-const facts = (openPrs: [string, number][] = [], branches: string[] = []): TaskStatus[] => statusOf({ tasks, openPrs: new Map(openPrs), remoteBranches: new Set(branches) });
+const facts = (openPrs: [string, number][] = [], branches: string[] = [], onMain?: string[]): TaskStatus[] =>
+  statusOf({ tasks, openPrs: new Map(openPrs), remoteBranches: new Set(branches), ...(onMain ? { fileOnMain: (path: string) => onMain.includes(path) } : {}) });
 
 const state = (statuses: readonly TaskStatus[], id: string): string | undefined => statuses.find((status) => status.task.id === id)?.state;
 const ids = (list: readonly { task: Task }[]): string[] => list.map((entry) => entry.task.id);
@@ -50,14 +51,30 @@ describe('the wave', () => {
 
   it('holds a lane that already has a PR in review', () => {
     const { wave, skipped } = selectWave(facts([['R17', 42]]));
-    expect(ids(wave)).toEqual(['R18', 'R20']);
+    expect(ids(wave)).toEqual(['R18', 'R20', 'R24']);
     expect(skipped.find((entry) => entry.task.id === 'R19')?.reason).toBe('lane `chart` is busy');
   });
 
   it('refuses a task with no `Gate:` and says so (§16.3)', () => {
-    const { wave, skipped } = selectWave(facts(), { maxPerLane: 1, maxTasks: 4 });
-    expect(ids(wave)).toEqual(['R17', 'R18', 'R20']);
+    const { wave, skipped } = selectWave(facts(), { maxPerLane: 1, maxTasks: 5 });
+    expect(ids(wave)).toEqual(['R17', 'R18', 'R20', 'R24']);
     expect(skipped).toContainEqual({ task: expect.objectContaining({ id: 'R22' }) as Task, reason: 'breakdown bug: no `Gate:`' });
+  });
+
+  it('lists an owner-driven task and never runs it (§16.6, D-197)', () => {
+    const statuses = facts();
+    expect(state(statuses, 'R23')).toBe('owner-driven');
+    expect(ids(selectWave(statuses, { maxPerLane: 1, maxTasks: 9 }).wave)).not.toContain('R23');
+    expect(refusalFor(statuses, 'R23')).toBe('R23 is `Model: interactive`: the owner drives it in a session by hand (§16.6).');
+  });
+
+  it('holds a task whose precondition is not on origin/main yet, and takes it as met when nothing is known (§16.3)', () => {
+    const held = facts([], [], []);
+    expect(state(held, 'R24')).toBe('ready');
+    expect(selectWave(held, { maxPerLane: 1, maxTasks: 9 }).skipped).toContainEqual({ task: expect.objectContaining({ id: 'R24' }) as Task, reason: 'precondition `docs/window/FINDINGS.md` is not on origin/main yet (§16.3)' });
+    expect(refusalFor(held, 'R24')).toBe('R24 waits for `docs/window/FINDINGS.md` to exist on origin/main (§16.3).');
+    expect(ids(selectWave(facts([], [], ['docs/window/FINDINGS.md']), { maxPerLane: 1, maxTasks: 9 }).wave)).toContain('R24');
+    expect(ids(selectWave(facts(), { maxPerLane: 1, maxTasks: 9 }).wave)).toContain('R24');
   });
 
   it('is empty when everything is merged', () => {
