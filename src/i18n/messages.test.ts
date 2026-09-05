@@ -284,6 +284,7 @@ describe('the Spanish catalog (FR-I18N-3)', () => {
     const shared = new Set([
       en.location.coordsPlaceholder,
       en.chart.view.polar,
+      en.live.pending, // an ellipsis is an ellipsis (R32)
       en.footer.celestrak.link,
       en.footer.openMeteo.link,
       en.footer.geonames.link,
