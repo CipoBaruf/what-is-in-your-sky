@@ -167,8 +167,6 @@ function PassArc({ pass, orientation, timeZone, dim, series, now, onSelect, t, l
 
 /** How far above a body's marker its name sits, in user units. */
 const BODY_LABEL_GAP = 7;
-/** The glow is sampled every few degrees of azimuth; enough for a smooth band at this radius. */
-const GLOW_STEP_DEG = 4;
 
 /**
  * FR-DOME-6: the Sun as a band of light on the horizon at its azimuth, wider,
@@ -176,18 +174,37 @@ const GLOW_STEP_DEG = 4;
  * the dome's glow is built from, so the two views agree about where the Sun is
  * and how strongly it shows. The band is a thick stroked arc centred half its
  * own height above the horizon, so it fills the sky from the horizon up.
+ *
+ * F-4: the sample step is a quarter of the half-width, like the dome's
+ * `sunGlow` (`dome/domeGeometry.ts`), so the band's edge always lands exactly
+ * on the Sun's azimuth ± `halfWidth` instead of stopping short by up to a
+ * fixed step's worth of degrees.
  */
-function SunGlow({ sun, orientation, label }: { sun: SunState; orientation: ChartOrientation; label: string }) {
+function SunGlow({ sun, orientation }: { sun: SunState; orientation: ChartOrientation }) {
   const strength = glowStrength(sun.altDeg);
   const halfWidth = glowHalfWidthDeg(strength);
   const height = glowHeightDeg(strength);
+  const step = halfWidth / 4;
   const points: Xy[] = [];
-  for (let d = -halfWidth; d <= halfWidth; d += GLOW_STEP_DEG) points.push(project({ azDeg: sun.azDeg + d, elDeg: height / 2 }, orientation));
+  for (let d = -halfWidth; d <= halfWidth; d += step) points.push(project({ azDeg: sun.azDeg + d, elDeg: height / 2 }, orientation));
   const width = (HORIZON_R * height) / 90;
-  const name = project({ azDeg: sun.azDeg, elDeg: height }, orientation);
   return (
     <g data-body="sun">
       <path className={styles.glow} d={polyline(points)} strokeWidth={fmt(width)} opacity={fmt(0.3 + 0.5 * strength)} />
+    </g>
+  );
+}
+
+/**
+ * F-3: the Sun's name, drawn separately from its glow so it can sit above the
+ * grid group instead of under it — the glow is a surface and stays under the
+ * grid, but the label is text and the rings, ticks and arcs drew over it.
+ */
+function SunLabel({ sun, orientation, label }: { sun: SunState; orientation: ChartOrientation; label: string }) {
+  const height = glowHeightDeg(glowStrength(sun.altDeg));
+  const name = project({ azDeg: sun.azDeg, elDeg: height }, orientation);
+  return (
+    <g data-body="sun">
       <text className={[styles.bodyLabel, styles.sunLabel].join(' ')} data-anchor="sun" x={fmt(name.x)} y={fmt(name.y)} textAnchor="middle" dominantBaseline="central">
         {label}
       </text>
@@ -262,8 +279,8 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
         }
       >
       <svg className={styles.svg} viewBox={VIEWBOX} aria-hidden="true" data-drawing="polar" focusable="false">
-        {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}
-        {sun && sunVisible(sun) && <SunGlow sun={sun} orientation={orientation} label={t.chart.sunLabel} />}
+        {/* FR-DOME-6: the glow is a surface, so it goes under the grid; the label is text and goes above it (F-3). */}
+        {sun && sunVisible(sun) && <SunGlow sun={sun} orientation={orientation} />}
         <circle className={styles.horizon} r={HORIZON_R} />
         <circle className={styles.ring} r={fmt(ring(30))} data-ring="30" />
         <circle className={styles.ring} r={fmt(ring(60))} data-ring="60" />
@@ -299,6 +316,8 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
         {hidden.map((marker) => (
           <HiddenPoint key={marker.id} marker={marker} orientation={orientation} />
         ))}
+        {/* F-3: the Sun's name, above the grid group instead of under it. */}
+        {sun && sunVisible(sun) && <SunLabel sun={sun} orientation={orientation} label={t.chart.sunLabel} />}
         {/* …and the Moon over them, so a pass that crosses it does not hide it. */}
         {moon && moonVisible(moon) && <MoonMarker moon={moon} orientation={orientation} label={t.chart.moonLabel(moonGlyph(moon))} />}
       </svg>
