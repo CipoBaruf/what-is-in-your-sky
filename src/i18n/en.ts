@@ -387,7 +387,6 @@ export const en = {
    * is its own row and shows only for a run that came out of the store.
    */
   readiness: {
-    region: 'Offline readiness',
     ready: (until: string) => `Ready offline until ${until}`,
     stored: (at: string) => `Stored ${at}`,
     notReady: (gaps: string) => `Not ready offline: no ${gaps} stored yet.`,

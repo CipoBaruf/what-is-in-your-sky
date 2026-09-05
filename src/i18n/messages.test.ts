@@ -190,7 +190,6 @@ function render(t: Messages): string[] {
     t.elements.notCached,
     t.elements.unavailable({ count: 1, names: 'CSS (Tianhe)' }),
     t.elements.unavailable({ count: 3, names: 'A, B and C' }),
-    t.readiness.region,
     t.readiness.ready('2026-09-14 21:14'),
     t.readiness.stored('2026-09-11 21:14'),
     t.readiness.notReady(t.readiness.gaps.forecast),

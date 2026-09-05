@@ -318,7 +318,6 @@ export const es: Messages = {
   },
 
   readiness: {
-    region: 'Autonomía sin conexión',
     ready: (until) => `Sin conexión hasta ${until}`,
     stored: (at) => `Guardado ${at}`,
     notReady: (gaps) => `Sin conexión: falta guardar ${gaps}.`,
