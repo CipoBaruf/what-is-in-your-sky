@@ -1,0 +1,62 @@
+/* R35 (FR-DESK-4): the same full-screen shell the compact guide sheet uses, on the character grid (FR-X-6). */
+.overlay {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  background: var(--bg);
+  color: var(--fg);
+  z-index: 20;
+}
+
+.frame {
+  max-width: calc(72 * var(--cell));
+  margin: 0 auto;
+  padding: var(--row) calc(2 * var(--cell)) calc(2 * var(--row));
+  display: grid;
+  gap: var(--row);
+}
+
+.topRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--cell);
+}
+
+.heading {
+  margin: 0;
+}
+
+.close {
+  min-height: var(--tap);
+}
+
+.table {
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: calc(var(--row) / 4) calc(2 * var(--cell)) calc(var(--row) / 4) 0;
+  vertical-align: baseline;
+}
+
+.table th {
+  color: var(--fg-dim);
+  font-weight: normal;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* The key column is as wide as the longest key name plus its border, so the descriptions line up. */
+.table td:first-child {
+  white-space: nowrap;
+  width: calc(9 * var(--cell));
+}
+
+.key {
+  font: inherit;
+  padding: 0 calc(var(--cell) / 2);
+  border: 1px solid var(--edge);
+  color: var(--accent);
+}
