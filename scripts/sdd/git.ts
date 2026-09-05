@@ -104,6 +104,18 @@ export async function addWorktree(dir: string, branch: string, base: string, log
   if (!ok(result)) throw new Error(`git worktree add failed: ${result.stderr.trim()}`);
 }
 
+/** The branch checked out in `dir`, or `null` when it is not a git worktree. */
+export async function branchAt(dir: string, logger: Logger): Promise<string | null> {
+  const result = await git(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: dir, logger });
+  return ok(result) ? result.stdout.trim() : null;
+}
+
+/** Paths with staged or unstaged changes in `dir`. */
+export async function dirtyFiles(dir: string, logger: Logger): Promise<string[]> {
+  const result = await git(['status', '--porcelain'], { cwd: dir, logger });
+  return ok(result) ? result.stdout.split('\n').filter(Boolean) : [];
+}
+
 export async function removeWorktree(dir: string, logger: Logger): Promise<void> {
   await git(['worktree', 'remove', '--force', dir], { logger });
 }

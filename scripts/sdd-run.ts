@@ -21,9 +21,9 @@ import { join, resolve } from 'node:path';
 import { buildBrief } from './sdd/brief';
 import { helpText, parseArgs, type Options } from './sdd/cli';
 import { modelFor, nextModel, parseTasks, reviewModelFor, type SessionModel, type Task } from './sdd/tasks';
-import { addWorktree, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, fetchOrigin, fileExistsAtRef, installDeps, labelPullRequest, mergePullRequest, openPullRequests, push, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
+import { addWorktree, branchAt, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, fetchOrigin, fileExistsAtRef, installDeps, labelPullRequest, mergePullRequest, openPullRequests, push, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
 import { consoleLogger, openTaskLog, writeRunReport, type Logger, type RunReport, type TaskReport } from './sdd/report';
-import { DENIED_TOOLS, IMPLEMENT_TOOLS, REVIEW_TOOLS, runSession, type SessionOptions, type SessionResult } from './sdd/session';
+import { DENIED_TOOLS, IMPLEMENT_TOOLS, resetTime, REVIEW_TOOLS, runSession, type SessionOptions, type SessionResult } from './sdd/session';
 import { openFindings, refusalFor, selectWave, statusOf, type TaskStatus } from './sdd/waves';
 
 const BASE = 'origin/main';
@@ -155,17 +155,22 @@ function writeBrief(dir: string, task: Task, logger: Logger): string {
 
 /**
  * §16.4 step 10 (D-197): one session, retried once on the next model of
- * `fable → opus → sonnet` when it ends on the account limit and `--fallback`
- * is on. The worktree is kept between the two, so the retry continues from
- * whatever the first session committed. Every attempt lands in `attempts`.
+ * `fable → opus → sonnet` when it ends on a limit that is not the account's
+ * and `--fallback` is on. The limit seen on 2026-09-05 was the account's
+ * five-hour window, which every model shares, so that one ends the task
+ * `limit` with the reset time and keeps the worktree for a later run to
+ * resume. Every attempt lands in `attempts`.
  */
 async function runWithFallback(stage: 'implement' | 'review', model: SessionModel, options: Omit<SessionOptions, 'model'>, fallback: boolean, attempts: TaskReport['attempts']): Promise<{ session: SessionResult; model: SessionModel }> {
   let current = model;
   for (;;) {
     const session = await runSession({ ...options, model: current });
     attempts.push({ stage, model: current, outcome: session.outcome, durationMs: session.durationMs });
-    const next = session.outcome === 'limit' && fallback ? nextModel(current) : null;
-    if (next === null) return { session, model: current };
+    const next = session.outcome === 'limit' && fallback && !session.limit?.accountWide ? nextModel(current) : null;
+    if (next === null) {
+      if (session.outcome === 'limit') options.logger.line(`  the ${stage} session ended on the account limit (${session.limit?.window ?? 'window unknown'}, resets ${resetTime(session.limit)}); no model escapes it, the worktree is kept`);
+      return { session, model: current };
+    }
     options.logger.line(`  the ${stage} session ended on the account limit after ${String(Math.round(session.durationMs / 60_000))} min; retrying once on ${next} in the same worktree (§16.4 step 10)`);
     current = next;
   }
@@ -214,9 +219,20 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
   logger.line(`\n${task.id} — ${task.title}`);
   logger.line(`  lane ${String(task.lane)}, model ${modelFor(task)}, gate ${String(task.gate)}, branch ${task.branch}`);
 
+  // A kept worktree on the task's branch is a session the limit or the clock cut short (§16.5):
+  // the new session continues from its commits and its working tree instead of starting over.
+  let resumed = false;
   try {
-    await withSharedGit(() => addWorktree(dir, task.branch, BASE, logger));
-    await installDeps(dir, NPM_CACHE, logger);
+    if (existsSync(dir) && (await branchAt(dir, logger)) === task.branch) {
+      resumed = true;
+      const ahead = await commitsAhead(dir, BASE, logger);
+      const dirty = await dirtyFiles(dir, logger);
+      logger.line(`  resuming the kept worktree: ${String(ahead)} commit(s) ahead of ${BASE}, ${String(dirty.length)} uncommitted file(s)`);
+      if (!existsSync(join(dir, 'node_modules'))) await installDeps(dir, NPM_CACHE, logger);
+    } else {
+      await withSharedGit(() => addWorktree(dir, task.branch, BASE, logger));
+      await installDeps(dir, NPM_CACHE, logger);
+    }
   } catch (error) {
     return finish('failed', `worktree setup: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -234,7 +250,7 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
     modelFor(task),
     {
       cwd: dir,
-      prompt: `Use the sdd-implement skill on ${task.id}. Read ${brief} first: it replaces SPEC.md, PLAN.md and TASKS.md for this session. This is a headless session: decide and record rather than ask, and commit each coherent step as you finish it — an uncommitted worktree is what the turn cap and the wall clock throw away. If the branch already has commits, continue from them.`,
+      prompt: `Use the sdd-implement skill on ${task.id}. Read ${brief} first: it replaces SPEC.md, PLAN.md and TASKS.md for this session. This is a headless session: decide and record rather than ask, and commit each coherent step as you finish it — an uncommitted worktree is what the turn cap and the wall clock throw away.${resumed ? ` An earlier session on this branch was cut short: read \`git log ${BASE}..HEAD\` and \`git status\` first, commit what it left in the working tree if it is coherent, and continue from there rather than starting over.` : ''}`,
       maxTurns: IMPLEMENT.maxTurns,
       timeoutMs: IMPLEMENT.timeoutMs,
       allowedTools: IMPLEMENT_TOOLS,
@@ -249,7 +265,7 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
 
   const handoff = readHandoff(dir, task.id);
   if (handoff.blocked !== null) return finish('blocked', `the session stopped: ${handoff.blocked.trim().split('\n')[0] ?? 'see the blocked note'}`);
-  if (session.outcome === 'limit') return finish('failed', fallback ? `session ended on the account limit twice (${report.attempts.map((attempt) => attempt.model).join(', ')})` : 'session ended on the account limit (--no-fallback)');
+  if (session.outcome === 'limit') return finish('limit', `the account limit ended the session (resets ${resetTime(session.limit)}); the worktree is kept — \`--wave\` or \`--task ${task.id}\` resumes it after that`);
   if (session.outcome !== 'ok') return finish('failed', `session ended ${session.outcome}`);
 
   const commits = await commitsAhead(dir, BASE, logger);
@@ -291,6 +307,10 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
   const findings = readHandoff(dir, task.id).findings;
   report.review = findings === null ? null : { findings, model: reviewModel };
 
+  if (review.outcome === 'limit') {
+    await commentOnPullRequest(dir, task.id, pr, `The review session ended on the account limit (resets ${resetTime(review.limit)}) without a verdict, so this PR is not merged automatically. Review it by hand or rerun the review.`, logger);
+    return finish('limit', `CI green; the account limit ended the review (resets ${resetTime(review.limit)}); PR #${String(pr)} waits for a review`);
+  }
   if (findings === null) {
     await commentOnPullRequest(dir, task.id, pr, `The review session ended \`${review.outcome}\` without a verdict, so this PR is not merged automatically.\n\n${review.result ?? ''}`, logger);
     return finish('findings', 'the review left no verdict');
@@ -360,7 +380,7 @@ async function main(): Promise<number> {
   const run: RunReport = { startedAt: startedAt.toISOString(), finishedAt: new Date().toISOString(), mode: options.mode, tasks: reports };
   consoleLogger.line(`\nRun summary: ${writeRunReport(run)}`);
   for (const report of reports) consoleLogger.line(`  ${report.id.padEnd(4)} ${report.outcome.padEnd(15)} ${report.reason}`);
-  return reports.some((report) => report.outcome === 'failed') ? 1 : 0;
+  return reports.some((report) => report.outcome === 'failed' || report.outcome === 'limit') ? 1 : 0;
 }
 
 main()
