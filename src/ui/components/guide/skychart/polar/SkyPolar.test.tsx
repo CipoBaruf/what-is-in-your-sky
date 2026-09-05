@@ -14,7 +14,7 @@ import { MOON_DOWN, MOON_FIXTURE } from '../../../../../../tests/support/moonFix
 import { toPolar } from '../../../../../lib/skyGeometry';
 import type { ChartOrientation, Observer, PassPoint } from '../../../../../model';
 import { appStore } from '../../../../../state';
-import { MOON_PHASE_GLYPH } from '../bodies';
+import { glowHalfWidthDeg, glowHeightDeg, glowStrength, MOON_PHASE_GLYPH } from '../bodies';
 import { HORIZON_R, SkyPolar } from './SkyPolar';
 
 const pass = goldenPassFixture();
@@ -149,6 +149,34 @@ describe('<SkyPolar>', () => {
     rerender(<SkyPolar {...props} />);
     expect(container.querySelector('[data-body="sun"]')).toBeNull();
     expect(container.querySelector('[data-body="moon"]')).toBeNull();
+  });
+
+  it('draws the Sun label above the grid group, not under it where the rings, ticks and arcs would draw over it (F-3)', () => {
+    const sun = { t: MOON_FIXTURE.t, azDeg: 285, altDeg: -8 };
+    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} />);
+    const horizon = container.querySelector('circle');
+    const label = container.querySelector('[data-anchor="sun"]');
+    if (!horizon || !label) throw new Error('no horizon ring or Sun label');
+    // The glow itself stays a surface under the grid; only its label moves.
+    expect(horizon.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const glow = container.querySelector('[data-body="sun"] path');
+    expect(horizon.compareDocumentPosition(glow as Node) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+  });
+
+  it('samples the glow all the way to ±halfWidth around the Sun, not short by up to half a fixed step (F-4)', () => {
+    const sun = { t: MOON_FIXTURE.t, azDeg: 200, altDeg: -8 };
+    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} />);
+    const glow = container.querySelector('[data-body="sun"] path');
+    const d = glow?.getAttribute('d') ?? '';
+    const points = [...d.matchAll(/(-?[\d.]+) (-?[\d.]+)/g)].map(([, x, y]) => ({ x: Number(x), y: Number(y) }));
+    if (points.length < 2) throw new Error('no glow points');
+    const strength = glowStrength(sun.altDeg);
+    const halfWidth = glowHalfWidthDeg(strength);
+    const height = glowHeightDeg(strength);
+    const left = expected({ azDeg: sun.azDeg - halfWidth, elDeg: height / 2 }, 'looking-up');
+    const right = expected({ azDeg: sun.azDeg + halfWidth, elDeg: height / 2 }, 'looking-up');
+    expectAt(points[0] ?? { x: NaN, y: NaN }, left);
+    expectAt(points[points.length - 1] ?? { x: NaN, y: NaN }, right);
   });
 
   it('draws the hidden objects dimmed where they are, each with the label it was given, and none by default (FR-LIVE-6, R33)', () => {

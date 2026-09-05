@@ -214,12 +214,18 @@ export function gridPolygons(options: GridOptions = {}): Poly[] {
   ];
 }
 
+/** FR-DOME-4's direction-of-travel dashes: gaps in the last fifth of `n` quads, alternating from the end. */
+const directionGapOmit =
+  (n: number) =>
+  (i: number): boolean =>
+    i >= Math.floor(n * DIRECTION_GAP_FRACTION) && (n - 1 - i) % 2 === 1;
+
 /** The pass as a strip through the resampled track, the last fifth gapped for the direction of travel. */
 export function passStrip(pass: Pass, options: { highlighted: boolean; color?: string }): Poly[] {
   const pts = resampleArc(pass.track, ARC_STEP_DEG).map((p) => tuple(toDome(p.azDeg, p.elDeg)));
   return stripAlong(pts, {
     halfWidthDeg: options.highlighted ? PASS_HALF_WIDTH_DEG : DIM_PASS_HALF_WIDTH_DEG,
-    omit: (i, n) => i >= Math.floor(n * DIRECTION_GAP_FRACTION) && (n - 1 - i) % 2 === 1,
+    omit: (i, n) => directionGapOmit(n)(i),
     ...(options.color ? { color: options.color } : {}),
   });
 }
@@ -235,13 +241,18 @@ export function passStrip(pass: Pass, options: { highlighted: boolean; color?: s
 export const FLOWN_RADIUS = 1.004;
 
 export function flownStrip(pass: Pass, now: number | undefined, options: { highlighted: boolean; color?: string } = { highlighted: true }): Poly[] {
-  const { flown } = splitArcAt(resampleArc(pass.track, ARC_STEP_DEG), now);
+  const full = resampleArc(pass.track, ARC_STEP_DEG);
+  const { flown } = splitArcAt(full, now);
   if (flown.length < 2) return [];
+  // F-2: the flown strip is a prefix of the same points `passStrip` draws, so the direction gap has to
+  // fall at the same quads — omit against the full arc's quad count, not the shorter flown one.
+  const omit = directionGapOmit(full.length - 1);
   return stripAlong(
     flown.map((p) => tuple(toDome(p.azDeg, p.elDeg))),
     {
       halfWidthDeg: options.highlighted ? PASS_HALF_WIDTH_DEG : DIM_PASS_HALF_WIDTH_DEG,
       radius: FLOWN_RADIUS,
+      omit: (i) => omit(i),
       ...(options.color ? { color: options.color } : {}),
     },
   );
