@@ -376,10 +376,22 @@ describe('the live marker and the two bodies (FR-DOME-5, FR-DOME-6)', () => {
     expect(end.elDeg).toBeCloseTo(marker.elDeg, 0);
     expect(end.azDeg).toBeCloseTo(marker.azDeg, 0);
 
-    // The whole pass flown at the end, and nothing at all before it starts.
-    expect(flownStrip(pass, pass.end.t, { highlighted: true }).length).toBe(arc.length - 1);
+    // The whole pass flown at the end, gapped the same as passStrip's own direction dashes (F-2).
+    expect(flownStrip(pass, pass.end.t, { highlighted: true }).length).toBe(passStrip(pass, { highlighted: true }).length);
     expect(flownStrip(pass, pass.start.t, { highlighted: true })).toEqual([]);
     expect(flownStrip(pass, undefined, { highlighted: true })).toEqual([]);
+  });
+
+  it("keeps passStrip's direction-of-travel gap once the flown arc reaches it, instead of painting over the dashes (F-2)", () => {
+    const arc = resampleArc(pass.track, ARC_STEP_DEG);
+    expect(arc.length).toBeGreaterThan(5);
+    // Old, buggy behaviour: every quad up to the cut, none omitted — more than passStrip's own gapped count.
+    const naiveFullFlownCount = arc.length - 1;
+    for (const highlighted of [true, false]) {
+      const gapped = passStrip(pass, { highlighted }).length;
+      expect(gapped).toBeLessThan(naiveFullFlownCount);
+      expect(flownStrip(pass, pass.end.t, { highlighted }).length).toBe(gapped);
+    }
   });
 
   it('draws the Moon as a disc at its own place, and nothing while it is below the horizon (FR-DOME-6)', () => {
