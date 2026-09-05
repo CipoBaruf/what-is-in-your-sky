@@ -356,7 +356,6 @@ describe('label collisions (FR-DOME-3)', () => {
 
 describe('the live marker and the two bodies (FR-DOME-5, FR-DOME-6)', () => {
   it('places the flown arc over the pass strip and ends it under the live marker (FR-DOME-5)', () => {
-    const arc = resampleArc(pass.track, ARC_STEP_DEG);
     const midway = Math.round((pass.start.t + pass.end.t) / 2);
     const flown = flownStrip(pass, midway, { highlighted: true });
     expect(flown.length).toBeGreaterThan(0);
