@@ -128,14 +128,18 @@ export function LivePage({ link, onLeave }: LivePageProps) {
  * D-171: the hash follows the shown instant so a reload or a share lands on
  * it — written with `replaceState` (no history entry, no `hashchange`), at
  * most twice a second while scrubbing and never while playing, where it would
- * be a write per frame for a URL nobody can copy in time. Real time is a link
- * without `t` (FR-LIVE-9).
+ * be a write per frame for a URL nobody can copy in time. Real time is the
+ * bare route, `#live`, not a link: a reload then opens on the saved observer
+ * with its own label, where a `#live?lat=…` would rename it to coordinates
+ * (D-162); the share action is where the observer goes into a URL.
  */
+export const LIVE_ROUTE_HASH = '#live';
+
 function useHashFollows(observer: Observer, shown: EpochMs, realTime: boolean, playing: boolean): void {
   const lastWrite = useRef<number | null>(null);
   useEffect(() => {
     if (playing) return;
-    const hash = liveLinkHash({ observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t: realTime ? null : shown });
+    const hash = realTime ? LIVE_ROUTE_HASH : liveLinkHash({ observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t: shown });
     const write = (): void => {
       if (window.location.hash === hash) return;
       lastWrite.current = Date.now();
