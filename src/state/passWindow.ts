@@ -10,6 +10,8 @@ import type { EpochMs, TimeWindow } from '../model';
  * reads the number for its status text.
  */
 export const NIGHT_HOURS = 24;
+/** One night as the worker cuts it (D-95) and as R27 groups the list by, in ms. */
+export const NIGHT_MS = NIGHT_HOURS * 3_600_000;
 export const SEARCH_WINDOW_NIGHTS = 3;
 export const SEARCH_WINDOW_HOURS = SEARCH_WINDOW_NIGHTS * NIGHT_HOURS;
 export const SEARCH_WINDOW_MS = SEARCH_WINDOW_HOURS * 3_600_000;

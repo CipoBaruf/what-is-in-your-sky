@@ -13,7 +13,7 @@ export type { ElementsState } from './slices/elements';
 export type { PassesState, PassesStatus } from './slices/passes';
 export type { NowSliceState } from './slices/now';
 export type { WeatherSliceState, WeatherStatus } from './slices/weather';
-export { SEARCH_WINDOW_HOURS, SEARCH_WINDOW_NIGHTS } from './passWindow';
+export { NIGHT_MS, SEARCH_WINDOW_HOURS, SEARCH_WINDOW_NIGHTS } from './passWindow';
 /** R25 (FR-OFF-1): the app shell's service worker; `main.tsx` registers it, the store carries the waiting version (D-79, D-126). */
 export { registerServiceWorker, SERVICE_WORKER_URL, SKIP_WAITING } from './serviceWorker';
 export type { AppUpdateSlice } from './slices/appUpdate';
