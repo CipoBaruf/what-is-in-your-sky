@@ -32,6 +32,7 @@ import {
   PITCH_MIN_DEG,
   PITCH_STEP_DEG,
   readoutParams,
+  sameLayout,
   tilt,
   toRotY,
   turn,
@@ -189,5 +190,28 @@ describe('layoutFor (FR-DOME-1, D-91)', () => {
     expect(layoutFor(390, 390, { braille: 0, space: 0 })).toEqual(layoutFor(390, 390));
     expect(layoutFor(390, 390, { braille: NaN, space: 0.6 })).toEqual(layoutFor(390, 390));
     expect(layoutFor(390, 390, { braille: 0.65, space: NaN }).wordSpacingPx).toBe(0);
+  });
+});
+
+describe('sameLayout (F-35)', () => {
+  it('says two identical layouts are the same', () => {
+    expect(sameLayout(layoutFor(390, 390), layoutFor(390, 390))).toBe(true);
+  });
+
+  it('catches a zoom-only change, which a height-only resize can produce (D-161, F-35) while cols, rows, cell and font hold', () => {
+    // A box wider than tall zooms to its height (D-161): two heights close enough to round to the
+    // same row count still move `zoom`, since it is a continuous function of the shorter side.
+    const shorter = layoutFor(1280, 310);
+    const taller = layoutFor(1280, 330);
+    expect(taller.rows).toBe(shorter.rows);
+    expect(taller.cols).toBe(shorter.cols);
+    expect(taller.cellWidthPx).toBe(shorter.cellWidthPx);
+    expect(taller.fontSizePx).toBe(shorter.fontSizePx);
+    expect(taller.zoom).not.toBeCloseTo(shorter.zoom, 2);
+    expect(sameLayout(taller, shorter)).toBe(false);
+  });
+
+  it('still catches a cols/rows/cell/font change on its own', () => {
+    expect(sameLayout(layoutFor(390, 390), layoutFor(1280, 1280))).toBe(false);
   });
 });
