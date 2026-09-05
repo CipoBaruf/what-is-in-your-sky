@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { parseTasks, type Task } from '../../scripts/sdd/tasks';
-import { refusalFor, selectWave, statusOf, type TaskStatus } from '../../scripts/sdd/waves';
+import { openFindings, refusalFor, selectWave, statusOf, type TaskStatus } from '../../scripts/sdd/waves';
 
 const { tasks } = parseTasks(readFileSync('tests/sdd/fixtures/tasks-v1-sample.md', 'utf8'));
 
@@ -96,5 +96,13 @@ describe('refusing --task', () => {
     expect(refusalFor(facts(), 'R22')).toBe('R22 has a breakdown bug: no `Gate:` (§16.3).');
     expect(refusalFor(facts([['R17', 42]]), 'R17')).toBe('R17 has an open PR (#42); merge or close it first.');
     expect(refusalFor(facts([], ['r17-the-layered-dome']), 'R17')).toContain('delete it before retrying');
+  });
+});
+
+describe('open findings (§16.3 `Findings:`, D-194)', () => {
+  it('lists the F-ids of every unmerged task, in numeric order, and drops them once the task merges', () => {
+    expect(openFindings(facts())).toEqual(['F-3', 'F-35']);
+    const merged = facts().map((status) => (status.task.findings.length > 0 ? { ...status, state: 'merged' as const } : status));
+    expect(openFindings(merged)).toEqual([]);
   });
 });

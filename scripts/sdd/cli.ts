@@ -13,10 +13,12 @@ export interface Options {
   tasksFile: string | null;
   /** §16.6: `--model` overrides a task's `Model:` for this one `--task` run. */
   model: SessionModel | null;
+  /** §16.4 step 10 (D-197): retry a limit-stopped session once on the next model. On unless `--no-fallback`. */
+  fallback: boolean;
 }
 
 export function parseArgs(argv: readonly string[]): Options {
-  const options: Options = { mode: 'help', taskId: null, tasksFile: null, model: null };
+  const options: Options = { mode: 'help', taskId: null, tasksFile: null, model: null, fallback: true };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--status') options.mode = 'status';
@@ -35,7 +37,9 @@ export function parseArgs(argv: readonly string[]): Options {
       const model = SESSION_MODELS.find((candidate) => candidate === value);
       if (!model) throw new Error(`--model needs one of ${SESSION_MODELS.join(', ')}, e.g. \`--model opus\``);
       options.model = model;
-    } else if (arg === '--help' || arg === '-h') options.mode = 'help';
+    } else if (arg === '--fallback') options.fallback = true;
+    else if (arg === '--no-fallback') options.fallback = false;
+    else if (arg === '--help' || arg === '-h') options.mode = 'help';
     else throw new Error(`unknown argument \`${String(arg)}\``);
   }
   if (options.mode === 'task' && !options.taskId) throw new Error('--task needs a task id, e.g. `--task R17`');
@@ -51,6 +55,7 @@ export const helpText = (base: string): string => `sdd-run — the v1 task drive
   npm run sdd -- --wave                   run the current wave (<= 1 per lane, <= 2 at once)
   npm run sdd -- --task R17               run one task, dependencies checked
   npm run sdd -- --task R22 --model opus  the same, on another model than TASKS.md says (§16.6)
+  npm run sdd -- --wave --no-fallback     do not retry a limit-stopped session on the next model (§16.4 step 10)
 
   --tasks-file <path>                     read TASKS.md from a file instead of ${base}
                                           (--status and --dry-run only)

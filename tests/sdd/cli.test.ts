@@ -38,3 +38,13 @@ describe('parseArgs', () => {
     expect(helpText('origin/main')).toContain('--task R22 --model opus');
   });
 });
+
+describe('--fallback (§16.4 step 10, D-197)', () => {
+  it('is on unless --no-fallback, on a wave and on one task', () => {
+    expect(parseArgs(['--wave']).fallback).toBe(true);
+    expect(parseArgs(['--task', 'R22']).fallback).toBe(true);
+    expect(parseArgs(['--wave', '--no-fallback']).fallback).toBe(false);
+    expect(parseArgs(['--no-fallback', '--task', 'R22', '--fallback']).fallback).toBe(true);
+    expect(helpText('origin/main')).toContain('--no-fallback');
+  });
+});

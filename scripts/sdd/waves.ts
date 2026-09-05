@@ -114,6 +114,13 @@ export function selectWave(statuses: readonly TaskStatus[], limits: WaveLimits =
   return { wave, skipped };
 }
 
+/** §16.3 `Findings:` (D-194): the `F-<n>` ids no merged task has closed, in numeric order, for `--status`. */
+export function openFindings(statuses: readonly TaskStatus[]): string[] {
+  const open = new Set<string>();
+  for (const { task, state } of statuses) if (state !== 'merged') for (const finding of task.findings) open.add(finding);
+  return [...open].sort((a, b) => Number(a.slice(2)) - Number(b.slice(2)));
+}
+
 /**
  * §16.4 step 1 and §16.5, for `--task <id>`: why the driver will not run it,
  * or `null` when it will.

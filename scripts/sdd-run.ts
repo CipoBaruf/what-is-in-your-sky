@@ -9,27 +9,29 @@
  *   npm run sdd -- --wave            # run the current wave (<= 1 per lane, <= 3 at once, concurrently)
  *   npm run sdd -- --task R17        # run one task, dependencies checked
  *   npm run sdd -- --task R22 --model opus   # the same, on another model than TASKS.md says
+ *   npm run sdd -- --wave --no-fallback      # do not retry a limit-stopped session on the next model
  *
  * It is not a scheduler or a service (§16.7): it is a script the owner runs
  * in the foreground, with no state of its own. `origin/main`, the branches
  * and the PRs are the state, so an interrupted run needs no reconciling.
  * D-86 makes it repo tooling rather than a task in TASKS.md.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { buildBrief } from './sdd/brief';
 import { helpText, parseArgs, type Options } from './sdd/cli';
-import { modelFor, parseTasks, type Task } from './sdd/tasks';
+import { modelFor, nextModel, parseTasks, reviewModelFor, type SessionModel, type Task } from './sdd/tasks';
 import { addWorktree, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, fetchOrigin, fileExistsAtRef, installDeps, labelPullRequest, mergePullRequest, openPullRequests, push, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
 import { consoleLogger, openTaskLog, writeRunReport, type Logger, type RunReport, type TaskReport } from './sdd/report';
-import { IMPLEMENT_TOOLS, REVIEW_TOOLS, runSession } from './sdd/session';
-import { refusalFor, selectWave, statusOf, type TaskStatus } from './sdd/waves';
+import { DENIED_TOOLS, IMPLEMENT_TOOLS, REVIEW_TOOLS, runSession, type SessionOptions, type SessionResult } from './sdd/session';
+import { openFindings, refusalFor, selectWave, statusOf, type TaskStatus } from './sdd/waves';
 
 const BASE = 'origin/main';
 const WORKTREE_ROOT = '../wiys-tasks';
 const NPM_CACHE = resolve('.sdd-cache/npm');
 const OWNER_LABEL = 'needs-owner';
 const IMPLEMENT = { maxTurns: 250, timeoutMs: 45 * 60_000 };
-const REVIEW = { maxTurns: 40, timeoutMs: 15 * 60_000, model: 'opus' };
+const REVIEW = { maxTurns: 40, timeoutMs: 15 * 60_000 };
 /** D-132: each concurrent task gets its own `vite preview` port, so no session's e2e runs against another's build. `E2E_PORT` in the driver's own environment moves the base, for a `--task` run beside a wave. */
 const E2E_BASE_PORT = Number(process.env['E2E_PORT'] ?? 4173);
 
@@ -92,6 +94,8 @@ function printStatus(statuses: readonly TaskStatus[], problems: readonly string[
     ].filter(Boolean);
     logger.line(`  ${task.id.padEnd(4)} ${state.padEnd(10)} ${task.title}${notes.length > 0 ? `  (${notes.join('; ')})` : ''}`);
   }
+  const open = openFindings(statuses);
+  logger.line(`\nOpen findings: ${open.length > 0 ? `${open.join(', ')} (${String(open.length)})` : 'none'}`);
   if (problems.length > 0) {
     logger.line('\nBreakdown problems:');
     for (const problem of problems) logger.line(`  - ${problem}`);
@@ -102,7 +106,7 @@ function printPlanned(wave: readonly TaskStatus[], skipped: readonly { task: Tas
   if (wave.length === 0) logger.line('\nNothing to run: no task is ready.');
   else {
     logger.line('\nWould run:');
-    for (const { task } of wave) logger.line(`  ${task.id.padEnd(4)} lane ${String(task.lane).padEnd(8)} model ${modelFor(task).padEnd(6)} gate ${String(task.gate).padEnd(6)} branch ${task.branch}`);
+    for (const { task } of wave) logger.line(`  ${task.id.padEnd(4)} lane ${String(task.lane).padEnd(8)} model ${modelFor(task).padEnd(6)} review ${reviewModelFor(task).padEnd(6)} gate ${String(task.gate).padEnd(6)} branch ${task.branch}`);
   }
   if (skipped.length > 0) {
     logger.line('\nHeld back:');
@@ -134,16 +138,49 @@ function readHandoff(dir: string, id: string): Handoff {
   return { blocked: read('blocked.md'), summary: read('summary.md'), findings };
 }
 
-function prBody(task: Task, handoff: Handoff, screenshots: readonly string[], logPath: string | null): string {
+/**
+ * §16.4 step 3 (D-198): `sdd-run/<id>.brief.md`, from the documents as the
+ * fresh worktree has them, which is `origin/main`. Returns the path relative
+ * to the worktree, which is how the prompt names it.
+ */
+function writeBrief(dir: string, task: Task, logger: Logger): string {
+  const read = (name: string): string => readFileSync(join(dir, name), 'utf8');
+  const brief = buildBrief(task, { spec: read('SPEC.md'), plan: read('PLAN.md'), tasks: read('TASKS.md') }, { allowedTools: IMPLEMENT_TOOLS, deniedTools: DENIED_TOOLS });
+  mkdirSync(join(dir, 'sdd-run'), { recursive: true });
+  const relative = join('sdd-run', `${task.id}.brief.md`);
+  writeFileSync(join(dir, relative), brief.markdown);
+  logger.line(`  brief: ${relative}, ${String(brief.markdown.length)} chars (~${String(Math.round(brief.markdown.length / 4))} tokens)${brief.missing.length > 0 ? `; cited but not found: ${brief.missing.join(', ')}` : ''}`);
+  return relative;
+}
+
+/**
+ * §16.4 step 10 (D-197): one session, retried once on the next model of
+ * `fable → opus → sonnet` when it ends on the account limit and `--fallback`
+ * is on. The worktree is kept between the two, so the retry continues from
+ * whatever the first session committed. Every attempt lands in `attempts`.
+ */
+async function runWithFallback(stage: 'implement' | 'review', model: SessionModel, options: Omit<SessionOptions, 'model'>, fallback: boolean, attempts: TaskReport['attempts']): Promise<{ session: SessionResult; model: SessionModel }> {
+  let current = model;
+  for (;;) {
+    const session = await runSession({ ...options, model: current });
+    attempts.push({ stage, model: current, outcome: session.outcome, durationMs: session.durationMs });
+    const next = session.outcome === 'limit' && fallback ? nextModel(current) : null;
+    if (next === null) return { session, model: current };
+    options.logger.line(`  the ${stage} session ended on the account limit after ${String(Math.round(session.durationMs / 60_000))} min; retrying once on ${next} in the same worktree (§16.4 step 10)`);
+    current = next;
+  }
+}
+
+function prBody(task: Task, handoff: Handoff, screenshots: readonly string[], logPath: string | null, model: string): string {
   const lines = [`Gate: ${String(task.gate)}`, '', handoff.summary?.trim() ?? '_The session left no summary._', ''];
   if (screenshots.length > 0) lines.push('## Captures', ...screenshots.map((path) => `- \`${path}\``), '');
-  lines.push(`Driven by \`scripts/sdd-run.ts\` (PLAN §16), model \`${modelFor(task)}\`.`);
+  lines.push(`Driven by \`scripts/sdd-run.ts\` (PLAN §16), model \`${model}\`.`);
   if (logPath) lines.push(`Session log: \`${logPath}\`.`);
   return lines.join('\n');
 }
 
 /** §16.4 steps 1–8 for one task. `slot` is its place in the wave: the e2e port and, when the wave has more than one task, the console prefix. */
-async function runTask(status: TaskStatus, slot: { index: number; count: number }): Promise<TaskReport> {
+async function runTask(status: TaskStatus, slot: { index: number; count: number }, fallback: boolean): Promise<TaskReport> {
   const { task } = status;
   const logger = openTaskLog(task.id, undefined, undefined, { prefixConsole: slot.count > 1 });
   const env = { npm_config_cache: NPM_CACHE, E2E_PORT: String(E2E_BASE_PORT + slot.index) };
@@ -161,6 +198,7 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
     worktree: dir,
     log: logger.path,
     durations: { totalMs: 0 },
+    attempts: [],
     review: null,
   };
   const finish = (outcome: TaskReport['outcome'], reason: string): TaskReport => {
@@ -183,21 +221,35 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
     return finish('failed', `worktree setup: ${error instanceof Error ? error.message : String(error)}`);
   }
 
+  let brief: string;
+  try {
+    brief = writeBrief(dir, task, logger);
+  } catch (error) {
+    return finish('failed', `brief: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
   logger.line('  running the implementation session…');
-  const session = await runSession({
-    cwd: dir,
-    prompt: `Use the sdd-implement skill on ${task.id}. This is a headless session: decide and record rather than ask, and commit each coherent step as you finish it — an uncommitted worktree is what the turn cap and the wall clock throw away.`,
-    model: modelFor(task),
-    maxTurns: IMPLEMENT.maxTurns,
-    timeoutMs: IMPLEMENT.timeoutMs,
-    allowedTools: IMPLEMENT_TOOLS,
-    logger,
-    env,
-  });
-  report.durations.implementMs = session.durationMs;
+  const { session, model } = await runWithFallback(
+    'implement',
+    modelFor(task),
+    {
+      cwd: dir,
+      prompt: `Use the sdd-implement skill on ${task.id}. Read ${brief} first: it replaces SPEC.md, PLAN.md and TASKS.md for this session. This is a headless session: decide and record rather than ask, and commit each coherent step as you finish it — an uncommitted worktree is what the turn cap and the wall clock throw away. If the branch already has commits, continue from them.`,
+      maxTurns: IMPLEMENT.maxTurns,
+      timeoutMs: IMPLEMENT.timeoutMs,
+      allowedTools: IMPLEMENT_TOOLS,
+      logger,
+      env,
+    },
+    fallback,
+    report.attempts,
+  );
+  report.model = model;
+  report.durations.implementMs = report.attempts.filter((attempt) => attempt.stage === 'implement').reduce((sum, attempt) => sum + attempt.durationMs, 0);
 
   const handoff = readHandoff(dir, task.id);
   if (handoff.blocked !== null) return finish('blocked', `the session stopped: ${handoff.blocked.trim().split('\n')[0] ?? 'see the blocked note'}`);
+  if (session.outcome === 'limit') return finish('failed', fallback ? `session ended on the account limit twice (${report.attempts.map((attempt) => attempt.model).join(', ')})` : 'session ended on the account limit (--no-fallback)');
   if (session.outcome !== 'ok') return finish('failed', `session ended ${session.outcome}`);
 
   const commits = await commitsAhead(dir, BASE, logger);
@@ -209,7 +261,7 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
   if (!(await push(dir, task.branch, logger))) return finish('failed', 'push failed');
 
   const screenshots = (await changedFiles(dir, BASE, logger)).filter((path) => path.startsWith('docs/screenshots/'));
-  const pr = await createPullRequest(dir, task.id, `${task.id}: ${task.title}`, prBody(task, handoff, screenshots, logger.path), logger);
+  const pr = await createPullRequest(dir, task.id, `${task.id}: ${task.title}`, prBody(task, handoff, screenshots, logger.path, model), logger);
   if (pr === null) return finish('failed', 'gh pr create failed');
   report.pr = pr;
 
@@ -219,20 +271,25 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
   report.durations.ciMs = Date.now() - ciStartedAt;
   if (!green) return finish('failed', 'CI is red');
 
-  logger.line('  running the review session…');
-  const review = await runSession({
-    cwd: dir,
-    prompt: `Use the code-review skill on this branch's diff against ${BASE}, then write {"findings":[{"file":"","line":0,"summary":""}]} listing what you found to sdd-run/${task.id}.review.json. Change nothing else.`,
-    model: REVIEW.model,
-    maxTurns: REVIEW.maxTurns,
-    timeoutMs: REVIEW.timeoutMs,
-    allowedTools: REVIEW_TOOLS,
-    logger,
-    env,
-  });
-  report.durations.reviewMs = review.durationMs;
+  logger.line(`  running the review session on ${reviewModelFor(task)}…`);
+  const { session: review, model: reviewModel } = await runWithFallback(
+    'review',
+    reviewModelFor(task),
+    {
+      cwd: dir,
+      prompt: `Read ${brief} first: it replaces SPEC.md, PLAN.md and TASKS.md for this session. Then use the code-review skill on this branch's diff against ${BASE}, and write {"findings":[{"file":"","line":0,"summary":""}]} listing what you found to sdd-run/${task.id}.review.json. Change nothing else.`,
+      maxTurns: REVIEW.maxTurns,
+      timeoutMs: REVIEW.timeoutMs,
+      allowedTools: REVIEW_TOOLS,
+      logger,
+      env,
+    },
+    fallback,
+    report.attempts,
+  );
+  report.durations.reviewMs = report.attempts.filter((attempt) => attempt.stage === 'review').reduce((sum, attempt) => sum + attempt.durationMs, 0);
   const findings = readHandoff(dir, task.id).findings;
-  report.review = findings === null ? null : { findings };
+  report.review = findings === null ? null : { findings, model: reviewModel };
 
   if (findings === null) {
     await commentOnPullRequest(dir, task.id, pr, `The review session ended \`${review.outcome}\` without a verdict, so this PR is not merged automatically.\n\n${review.result ?? ''}`, logger);
@@ -298,7 +355,8 @@ async function main(): Promise<number> {
   const reports: TaskReport[] = [];
   // D-132: the wave runs concurrently; each task has its own worktree, log, port and PR.
   if (planned.length > 1) consoleLogger.line(`\nRunning ${String(planned.length)} at once; console lines are prefixed with the task id, the full transcripts are the per-task logs.`);
-  reports.push(...(await Promise.all(planned.map((status, index) => runTask(status, { index, count: planned.length })))));
+  if (!options.fallback) consoleLogger.line('--no-fallback: a session that ends on the account limit fails its task (§16.4 step 10).');
+  reports.push(...(await Promise.all(planned.map((status, index) => runTask(status, { index, count: planned.length }, options.fallback)))));
   const run: RunReport = { startedAt: startedAt.toISOString(), finishedAt: new Date().toISOString(), mode: options.mode, tasks: reports };
   consoleLogger.line(`\nRun summary: ${writeRunReport(run)}`);
   for (const report of reports) consoleLogger.line(`  ${report.id.padEnd(4)} ${report.outcome.padEnd(15)} ${report.reason}`);
