@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand/vanilla';
+import { favouriteCellKey } from '../../data/favourites';
 import type { Observer, WeatherSnapshot } from '../../model';
 import type { AppState } from '../store';
 
@@ -9,7 +10,9 @@ import type { AppState } from '../store';
  * reads `unknown` (US-7 AC4). `fillTimeZone` is the D-3 hand-off: the
  * forecast's IANA zone completes a coordinate/device observer, replacing the
  * observer object and re-pointing every slice that referenced it, so the
- * identity checks elsewhere keep holding.
+ * identity checks elsewhere keep holding. F-12: a favourite already saved for
+ * this cell, with no zone of its own (saved before the forecast resolved),
+ * gets the same zone, so an offline selection of it stops rendering in UTC.
  */
 export type WeatherStatus = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -32,7 +35,7 @@ export interface WeatherSlice {
   fillTimeZone: (timeZone: string) => void;
 }
 
-export const createWeatherSlice: StateCreator<AppState, [], [], WeatherSlice> = (set) => ({
+export const createWeatherSlice: StateCreator<AppState, [], [], WeatherSlice> = (set, get) => ({
   weather: IDLE_WEATHER,
   startWeather: (observer) => {
     set({ weather: { observer, status: 'loading', snapshot: null, error: null } });
@@ -47,12 +50,13 @@ export const createWeatherSlice: StateCreator<AppState, [], [], WeatherSlice> = 
     set({ weather: IDLE_WEATHER });
   },
   fillTimeZone: (timeZone) => {
+    const previous = get().observer;
+    if (!previous || previous.timeZone !== null) return;
     set((state) => {
-      const previous = state.observer;
-      if (!previous || previous.timeZone !== null) return {};
       const observer: Observer = { ...previous, timeZone };
       const repoint = <T extends { observer: Observer | null }>(slice: T): T => (slice.observer === previous ? { ...slice, observer } : slice);
       return { observer, passes: repoint(state.passes), now: repoint(state.now), weather: repoint(state.weather) };
     });
+    get().refreshFavouriteTimeZone(favouriteCellKey(previous), timeZone);
   },
 });

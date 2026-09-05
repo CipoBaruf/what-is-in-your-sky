@@ -34,7 +34,7 @@ export interface PassRun {
 /**
  * A saved place (FR-OFF-7, US-17, D-85). It carries the whole `Observer`,
  * `timeZone` included, so selecting one offline needs no geocode call and the
- * times are local from the first render. `id` is the observer's 0.01° cell —
+ * times are local from the first render. `cellKey` is the observer's 0.01° cell —
  * the same key `PassRun` is stored under (D-138) — so one favourite is one
  * stored run, and saving a place already on the list refreshes it instead of
  * spending a second slot. `addedAt` is when it was first saved and never

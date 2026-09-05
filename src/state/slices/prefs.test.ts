@@ -248,6 +248,34 @@ describe('favourites', () => {
     expect(restarted.getState().favourites.map((favourite) => favourite.observer.label)).toEqual(store.getState().favourites.map((favourite) => favourite.observer.label));
   });
 
+  it('gives the active favourite the zone once the forecast resolves it, so it is not stuck in UTC offline (F-12)', () => {
+    const storage = memoryStorage();
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    store.getState().addFavourite(neuquen); // saved before any forecast: timeZone is null
+    store.getState().selectFavourite(NEUQUEN_CELL);
+    expect(store.getState().favourites[0]?.observer.timeZone).toBeNull();
+
+    store.getState().fillTimeZone('America/Argentina/Salta');
+    expect(store.getState().favourites.find((favourite) => favourite.cellKey === NEUQUEN_CELL)?.observer.timeZone).toBe('America/Argentina/Salta');
+    // Persisted, so the next restore has it too, and no forecast is needed to render local times offline.
+    const restarted = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(restarted.getState().favourites.find((favourite) => favourite.cellKey === NEUQUEN_CELL)?.observer.timeZone).toBe('America/Argentina/Salta');
+  });
+
+  it('leaves an already-zoned favourite alone, and an unknown cell changes nothing', () => {
+    const storage = memoryStorage();
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    store.getState().addFavourite(neuquen);
+    store.getState().selectFavourite(NEUQUEN_CELL);
+    store.getState().fillTimeZone('America/Argentina/Salta');
+
+    store.getState().refreshFavouriteTimeZone(NEUQUEN_CELL, 'Europe/Paris'); // a later, different zone does not overwrite one already filled
+    expect(store.getState().favourites[0]?.observer.timeZone).toBe('America/Argentina/Salta');
+
+    store.getState().refreshFavouriteTimeZone('nowhere', 'Europe/Paris');
+    expect(store.getState().favourites).toHaveLength(1);
+  });
+
   it('drops a malformed saved place without losing the others or the observer', () => {
     const storage = memoryStorage();
     const good = { cellKey: NEUQUEN_CELL, observer: neuquen, addedAt: NOW, lastUsedAt: NOW };

@@ -33,6 +33,9 @@ import type { AppState } from '../store';
  * write it back. Selecting goes through `setObserver` (D-139), so a favourite
  * starts the ordinary FR-VIS-5 recompute and nothing in the effects, the
  * worker or the caches has to learn that favourites exist.
+ * `refreshFavouriteTimeZone` (F-12) is the weather slice's `fillTimeZone`
+ * reaching in to update the matching favourite, so one saved before its first
+ * forecast resolved does not keep `timeZone: null` forever.
  * R28 (FR-OFF-6) adds the install hint's dismissal, the one preference with no
  * setter, only a latch: `dismissInstallHint` writes `true` and there is no way
  * back, because "shown once" is the requirement (D-153).
@@ -74,6 +77,8 @@ export interface PrefsSlice {
   selectFavourite: (cellKey: string) => boolean;
   /** Forgets a saved place. The active observer, if it was that place, stays: removing is not leaving. */
   removeFavourite: (cellKey: string) => void;
+  /** F-12: gives the matching favourite a zone once the forecast resolves one, if it was still saved without one. */
+  refreshFavouriteTimeZone: (cellKey: string, timeZone: string) => void;
   /** FR-OFF-6: whether the install hint has already been answered on this device. */
   installHintDismissed: boolean;
   /** Answers the install hint for good — installed, declined or waved away, it is the same latch. */
@@ -139,6 +144,11 @@ export const createPrefsSlice =
       },
       removeFavourite: (cellKey) => {
         saveFavourites(withoutFavourite(get().favourites, cellKey));
+      },
+      refreshFavouriteTimeZone: (cellKey, timeZone) => {
+        const found = get().favourites.find((favourite) => favourite.cellKey === cellKey);
+        if (!found || found.observer.timeZone !== null) return;
+        saveFavourites(get().favourites.map((favourite) => (favourite.cellKey === cellKey ? { ...favourite, observer: { ...favourite.observer, timeZone } } : favourite)));
       },
       installHintDismissed: deps.prefs.read().installHintDismissed ?? false,
       dismissInstallHint: () => {

@@ -64,6 +64,14 @@ describe('addFavourite', () => {
     expect(ninth.map((favourite) => favourite.observer.label)).not.toContain('place 1');
   });
 
+  it('keeps the just-saved entry even when every stored stamp is newer than `at` (F-11)', () => {
+    let eight = saved(MAX_FAVOURITES);
+    for (const favourite of eight) eight = touchFavourite(eight, favourite.cellKey, NOW + 1_000 * MINUTE); // every stamp far "in the future" relative to the save below
+    const ninth = addFavourite(eight, place(8), NOW + 8 * MINUTE);
+    expect(ninth).toHaveLength(MAX_FAVOURITES);
+    expect(ninth.map((favourite) => favourite.observer.label)).toContain('place 8'); // the just-saved entry, not evicted by an older `at`
+  });
+
   it('keeps the newest of a set saved in the same millisecond, a frozen clock included', () => {
     let list: Favourite[] = [];
     for (let n = 0; n < MAX_FAVOURITES + 1; n++) list = addFavourite(list, place(n), NOW);
