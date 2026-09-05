@@ -90,15 +90,30 @@ async function homeAt(page: Page, t: number, locale: 'en' | 'es' = 'en', wholeLi
 
 /**
  * The live page with its dome drawn. React reveals a lazy chunk behind its
- * Suspense fallback on a timer, and the chart chunk, the raster font and the
- * first rasterisation wait on timers too — all of them held by the installed
- * clock, so it is run for a second before each expectation.
+ * Suspense fallback on a timer (its 300 ms fallback throttle), and the chart
+ * chunk, the raster font and the first rasterisation wait on timers too — all
+ * of them held by the installed clock. A single `runFor` before the expectation
+ * is a race: when the chunk lands after it, the reveal timer is set on a clock
+ * nobody advances again and the page stays on its fallback (main CI, run
+ * 33943966372). So the clock is ticked until each expectation holds, in steps
+ * small enough to keep the shown instant inside the ten-second bucket the
+ * strip assertions read (`realTimeField`).
  */
 async function domeDrawn(page: Page): Promise<void> {
-  await page.clock.runFor(1000);
-  await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'live', { timeout: 30_000 });
-  await page.clock.runFor(1000);
-  await expect(page.getByTestId('live-dome').locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+  // `getAttribute` would wait for the element and hold the poll on its first tick; `count` does not.
+  const livePage = page.getByTestId('live-page');
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      return (await livePage.count()) === 0 ? null : livePage.getAttribute('data-state');
+    }, { timeout: 30_000 })
+    .toBe('live');
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      return page.getByTestId('live-dome').locator('[data-layer="lines"] pre.glyph-output').isVisible();
+    }, { timeout: 30_000 })
+    .toBe(true);
 }
 
 /** The five fields, each with a value that is not the pending ellipsis. */
