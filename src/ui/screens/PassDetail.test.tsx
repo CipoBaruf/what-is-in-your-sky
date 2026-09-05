@@ -95,7 +95,9 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     expect(timer).toHaveTextContent('Sets in 0:22');
   });
 
-  it('moves focus to its heading on open and back to the opener on close; Escape and the close control both close', async () => {
+  // R35 (D-73): Escape is no longer this component's; it is the `close` row of
+  // the shortcut table, asserted end to end in `App.shortcuts.test.tsx`.
+  it('moves focus to its heading on open and back to the opener on close; the close control closes', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const onClose = vi.fn();
     const opener = document.createElement('button');
@@ -105,10 +107,8 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={onClose} />);
     expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'ISS (Zarya)' }));
 
-    await user.keyboard('{Escape}');
-    expect(onClose).toHaveBeenCalledTimes(1);
     await user.click(screen.getByRole('button', { name: '← Back to the list' }));
-    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(onClose).toHaveBeenCalledTimes(1);
 
     unmount();
     expect(document.activeElement).toBe(opener);

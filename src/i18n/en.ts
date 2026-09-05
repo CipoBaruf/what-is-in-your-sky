@@ -2,6 +2,7 @@ import type { AgeParts } from '../lib/elementsAge';
 import type { CompassPoint } from '../lib/compass';
 import type { MoonFacts, MoonGlareFacts, MoonLoreParams } from '../lib/moonPhrases';
 import type { BrightnessBand, ElevationBand, GuideParams } from '../lib/phrases';
+import type { ShortcutId } from '../lib/shortcuts';
 import type { ChartOrientation, ChartView, CloudState, MoonPhaseName, PassBoundaryReason, PassSort, ReadinessGap, SkyState, Theme } from '../model';
 import type { CountdownPhase, HiddenReason, LinkedText } from './messages';
 
@@ -491,6 +492,30 @@ export const en = {
     ios: 'To install: tap Share, then “Add to Home Screen”.',
     action: 'Install',
     dismiss: 'Not now',
+  },
+
+  /**
+   * R35 (FR-DESK-4, US-14 AC4): the overlay `?` opens. `does` is keyed by
+   * `ShortcutId`, so a row added to `lib/shortcuts.ts` without a description
+   * here is a `tsc -b` failure in both catalogs (D-73, FR-I18N-2) — that is
+   * what makes an undocumented shortcut impossible.
+   */
+  shortcuts: {
+    title: 'Keyboard shortcuts',
+    /** Read out for the key column; the keys themselves are printed as they are written on the keyboard. */
+    keyHeading: 'Key',
+    doesHeading: 'Does',
+    close: 'Close',
+    does: {
+      next: 'Next pass in the list',
+      previous: 'Previous pass in the list',
+      open: 'Open the pass the cursor is on',
+      close: 'Close the guide, or this list',
+      live: 'Open the live sky',
+      view: 'Switch the chart between the dome and the polar view',
+      theme: 'Switch the palette between dark and night',
+      help: 'Show this list',
+    } satisfies Record<ShortcutId, string>,
   },
 
   footer: {
