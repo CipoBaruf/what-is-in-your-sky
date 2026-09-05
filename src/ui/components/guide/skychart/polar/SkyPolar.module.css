@@ -160,6 +160,46 @@
   fill: var(--series);
 }
 
+/* FR-LEG-4 (R45): a legend row activated on the live page dims the other arcs
+   by weight — the series colour stays, it is the arc's identity. */
+.series[data-dim='true'] .track,
+.series[data-dim='true'] .point {
+  stroke-width: 1;
+}
+
+/* FR-TRAJ-1 (R45): the arc's other states. `ahead` is thin and dotted, `linger`
+   thin and unbroken; both keep their colour (FR-X-5: weight and pattern, never
+   opacity, carry the difference). `live` is the cut track at full weight. */
+.ahead .track {
+  stroke-width: 1;
+  stroke-dasharray: 1.5 3;
+}
+
+.linger .track {
+  stroke-width: 1;
+}
+
+/* FR-LEG-1, FR-LEG-5 (R45): the legend key at the peak, bold, in the arc's
+   colour, on a stroke of the page background so it reads over the track. */
+.key {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--chart-pass);
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.passDim .key,
+.hiddenKey {
+  fill: var(--chart-pass-dim);
+}
+
+.series .key {
+  fill: var(--series);
+}
+
 /* FR-DOME-6: the Sun's glow on the horizon and the Moon's disc where it is.
    The glow's opacity is its strength, which is also its width and its height
    (`../bodies`), so a Sun nearing the horizon reads brighter without the
@@ -176,34 +216,18 @@
   stroke-width: 1.5;
 }
 
-.bodyLabel {
-  font-size: 9px;
-}
-
-.sunLabel {
-  fill: var(--chart-sun);
-}
-
-.moonLabel {
-  fill: var(--chart-moon);
-}
-
-.label {
-  fill: var(--fg);
-  font-size: 9px;
-}
-
 /* FR-LIVE-6 (R33): an object that is up but not worth looking for — hollow,
-   thin and in the dim pass colour, with its reason in the dim foreground. Dim
-   by colour and by weight, never by opacity (FR-X-5, the same rule as `.passDim`). */
+   thin and in the dim pass colour; its reason is a legend row (R45). Dim by
+   colour and by weight, never by opacity (FR-X-5, the same rule as `.passDim`). */
 .hidden {
   fill: none;
   stroke: var(--chart-pass-dim);
   stroke-width: 1;
 }
 
-.hiddenLabel {
-  fill: var(--fg-dim);
+.label {
+  fill: var(--fg);
+  font-size: 9px;
 }
 
 .convention {

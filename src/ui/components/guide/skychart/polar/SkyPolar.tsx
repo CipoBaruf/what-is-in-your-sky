@@ -1,15 +1,13 @@
 import { useAppStore } from '../../../../../state';
-import { useLocale, useT } from '../../../../../i18n/useT';
-import type { Messages } from '../../../../../i18n/messages';
-import { degrees } from '../../../../../lib/format';
+import { useT } from '../../../../../i18n/useT';
+import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
 import { interpolateTrack, resampleArc, splitArcAt, toPolar } from '../../../../../lib/skyGeometry';
 import type { SunState } from '../../../../../lib/skyBodies';
-import { formatClock } from '../../../../../lib/timeFormat';
-import type { ChartOrientation, Locale, MoonState, Pass, PassPoint } from '../../../../../model';
+import type { ChartOrientation, MoonState, PassPoint } from '../../../../../model';
 import { OptionToggle } from '../../../common/OptionToggle';
-import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonGlyph, moonVisible, sunVisible } from '../bodies';
+import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
 import { ChartFrame } from '../ChartFrame';
-import type { HiddenMarker, SkyChartProps, SkyChartView } from '../SkyChart.types';
+import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps, type SkyChartView } from '../SkyChart.types';
 import styles from './SkyPolar.module.css';
 
 /**
@@ -26,6 +24,13 @@ import styles from './SkyPolar.module.css';
  * R15 review: laid out in the shared `ChartFrame` (toggle in the controls
  * row, the SVG in the square box, the convention in the status row) so the
  * dome and this view occupy the same space.
+ *
+ * R45 (FR-LEG-1, FR-TRAJ-1, D-186, D-189): no name, no time, no body caption
+ * and no reason is drawn — each arc carries its legend key at the peak, and
+ * the legend `SkyChart` renders sits in the frame's slot. Each pass is drawn
+ * in its `arc` state: `full` as before, `live` as the cut track solid with
+ * the marker, `ahead` dotted and thin with the rise marked, `linger` thin
+ * with nothing marked, `hidden` not at all.
  */
 const ORIENTATIONS: readonly ChartOrientation[] = ['looking-up', 'map'];
 
@@ -98,53 +103,90 @@ function labelBeside(p: Xy, travel: Xy, side: 'inward' | 'outward', text: string
 export const SERIES_COUNT = 6;
 
 interface ArcProps {
-  pass: Pass;
+  pass: ChartPass;
   orientation: ChartOrientation;
-  timeZone: string | null;
   dim: boolean;
   /** FR-LIVE-2 (R32): 1–6 in `colorBy="pass"` mode, `null` in the guide's highlight mode. */
   series: number | null;
   now: number | undefined;
+  /** FR-LEG-1: the legend key drawn at the peak; none where the view is mounted without a legend. */
+  legendKey: string | undefined;
   onSelect: ((passId: string) => void) | undefined;
-  t: Messages;
-  locale: Locale;
 }
 
 /** An open polyline through projected points; empty for fewer than two of them. */
 const polyline = (points: readonly Xy[]): string => (points.length < 2 ? '' : points.map((p, i) => `${i === 0 ? 'M' : 'L'}${fmt(p.x)} ${fmt(p.y)}`).join(' '));
 
-function PassArc({ pass, orientation, timeZone, dim, series, now, onSelect, t, locale }: ArcProps) {
+/** FR-LEG-1: the key beside the peak marker, on the outward side of the arc so it does not sit on the track. */
+function KeyLabel({ points, peak, rise, end, text }: { points: readonly Xy[]; peak: Xy; rise: Xy; end: Xy; text: string }) {
+  const peakIndex = Math.max(1, points.findIndex((p) => p.x === peak.x && p.y === peak.y));
+  const beforePeak = points[peakIndex - 1] ?? rise;
+  const afterPeak = points[peakIndex + 1] ?? end;
+  const keyAt = labelBeside(peak, { x: afterPeak.x - beforePeak.x, y: afterPeak.y - beforePeak.y }, 'outward', text);
+  return (
+    <text className={styles.key} data-anchor="key" data-key={text} {...keyAt}>
+      {text}
+    </text>
+  );
+}
+
+function PassArc({ pass, orientation, dim, series, now, legendKey, onSelect }: ArcProps) {
+  const state: ArcState = arcOf(pass);
+  if (state === 'hidden') return null;
   const arc = resampleArc(pass.track, ARC_STEP_DEG);
   const points = arc.map((p) => project(p, orientation));
-  const d = polyline(points);
-  // FR-DOME-5: the part already flown at `now`, drawn over the arc in its own colour.
-  const flown = polyline(splitArcAt(arc, now).flown.map((p) => project(p, orientation)));
   const rise = project(pass.start, orientation);
   const peak = project(pass.peak, orientation);
   const end = project(pass.end, orientation);
+  const group = {
+    className: [series !== null ? styles.series : dim ? styles.passDim : styles.pass, state !== 'full' ? styles[state] : undefined].filter(Boolean).join(' '),
+    'data-pass-id': pass.id,
+    'data-arc': state,
+    ...(series !== null ? { 'data-series': series } : {}),
+    ...(series !== null && dim ? { 'data-dim': true } : {}),
+    onClick: () => {
+      onSelect?.(pass.id);
+    },
+  };
+  const key = legendKey === undefined ? null : <KeyLabel points={points} peak={peak} rise={rise} end={end} text={legendKey} />;
+
+  // FR-TRAJ-1, `live`: the cut track from the rise to the position at `now`, solid, with the marker; nothing beyond it.
+  if (state === 'live') {
+    const t = now ?? pass.end.t;
+    const cut = resampleArc(cutTrack(pass, t), ARC_STEP_DEG).map((p) => project(p, orientation));
+    const current = interpolateTrack(pass.track, t);
+    return (
+      <g {...group}>
+        {cut.length > 1 && <path className={styles.track} data-marker="live" d={polyline(cut)} />}
+        <Marker kind={pass.startReason === 'shadow' ? 'shadow' : 'rise'} p={rise} />
+        {t >= pass.peak.t && <Marker kind="peak" p={peak} />}
+        <Marker kind="now" p={project(current, orientation)} />
+        {key}
+      </g>
+    );
+  }
+  // `ahead`: the whole arc, thin and dotted, with the rise point marked. `linger`: the whole arc, thin, nothing marked.
+  if (state === 'ahead' || state === 'linger') {
+    return (
+      <g {...group}>
+        <path className={styles.track} data-marker={state} d={polyline(points)} />
+        {state === 'ahead' && <Marker kind={pass.startReason === 'shadow' ? 'shadow' : 'rise'} p={rise} />}
+        {key}
+      </g>
+    );
+  }
+
+  // `full`: the pass detail's whole arc — FR-DOME-5's flown part over it, every marker, the arrowhead.
+  const d = polyline(points);
+  const flown = polyline(splitArcAt(arc, now).flown.map((p) => project(p, orientation)));
   // The arrowhead sits four fifths of the way along the arc, pointing the way the satellite moves.
   const head = Math.max(1, Math.floor(0.8 * (points.length - 1)));
   const tail = points[head - 1] ?? rise;
   const tip = points[head] ?? end;
   const headingDeg = (Math.atan2(tip.y - tail.y, tip.x - tail.x) * 180) / Math.PI;
   const current: PassPoint | null = now !== undefined && now >= pass.start.t && now <= pass.end.t ? interpolateTrack(pass.track, now) : null;
-  const nameText = t.chart.passLabel({ name: pass.name, time: formatClock(pass.start.t, timeZone, locale) });
-  const peakText = t.chart.peakLabel(degrees(pass.peak.elDeg));
-  const second = points[1] ?? peak;
-  const nameAt = labelBeside(rise, { x: second.x - rise.x, y: second.y - rise.y }, 'inward', nameText);
-  const peakIndex = Math.max(1, points.findIndex((p) => p.x === peak.x && p.y === peak.y));
-  const beforePeak = points[peakIndex - 1] ?? rise;
-  const afterPeak = points[peakIndex + 1] ?? end;
-  const peakAt = labelBeside(peak, { x: afterPeak.x - beforePeak.x, y: afterPeak.y - beforePeak.y }, 'outward', peakText);
   return (
-    <g
-      className={series !== null ? styles.series : dim ? styles.passDim : styles.pass}
-      data-pass-id={pass.id}
-      {...(series !== null ? { 'data-series': series } : {})}
-      onClick={() => {
-        onSelect?.(pass.id);
-      }}
-    >
+    <g {...group}>
       <path className={styles.track} d={d} />
       {flown && <path className={styles.flown} data-marker="flown" d={flown} />}
       <path className={styles.arrow} data-marker="arrow" d="M0 0 L-8 -4 L-8 4 Z" transform={`${at(tip)} rotate(${fmt(headingDeg)})`} />
@@ -152,21 +194,13 @@ function PassArc({ pass, orientation, timeZone, dim, series, now, onSelect, t, l
       <Marker kind={pass.endReason === 'shadow' ? 'shadow' : 'end'} p={end} />
       <Marker kind="peak" p={peak} />
       {current && <Marker kind="now" p={project(current, orientation)} />}
-      <text className={styles.label} data-anchor="pass" {...nameAt}>
-        {nameText}
-      </text>
-      {/* FR-LIVE-2: in series mode every arc is named and none is explained; the peak label is the guide's. */}
-      {series === null && (
-        <text className={styles.label} data-anchor="peak" {...peakAt}>
-          {peakText}
-        </text>
-      )}
+      {key}
     </g>
   );
 }
 
-/** How far above a body's marker its name sits, in user units. */
-const BODY_LABEL_GAP = 7;
+/** How far above a hidden object's mark its key sits, in user units. */
+const HIDDEN_KEY_GAP = 7;
 
 /**
  * FR-DOME-6: the Sun as a band of light on the horizon at its azimuth, wider,
@@ -196,49 +230,32 @@ function SunGlow({ sun, orientation }: { sun: SunState; orientation: ChartOrient
   );
 }
 
-/**
- * F-3: the Sun's name, drawn separately from its glow so it can sit above the
- * grid group instead of under it — the glow is a surface and stays under the
- * grid, but the label is text and the rings, ticks and arcs drew over it.
- */
-function SunLabel({ sun, orientation, label }: { sun: SunState; orientation: ChartOrientation; label: string }) {
-  const height = glowHeightDeg(glowStrength(sun.altDeg));
-  const name = project({ azDeg: sun.azDeg, elDeg: height }, orientation);
-  return (
-    <g data-body="sun">
-      <text className={[styles.bodyLabel, styles.sunLabel].join(' ')} data-anchor="sun" x={fmt(name.x)} y={fmt(name.y)} textAnchor="middle" dominantBaseline="central">
-        {label}
-      </text>
-    </g>
-  );
-}
-
-/** FR-DOME-6: the Moon's disc where it is, with its phase glyph in the label (`../bodies`). */
-function MoonMarker({ moon, orientation, label }: { moon: MoonState; orientation: ChartOrientation; label: string }) {
+/** FR-DOME-6: the Moon's disc where it is. Its phase glyph and its name are a legend line since R45 (FR-DOME-6 as amended). */
+function MoonMarker({ moon, orientation }: { moon: MoonState; orientation: ChartOrientation }) {
   const p = project(moon, orientation);
   return (
     <g data-body="moon">
       <circle className={styles.moon} data-marker="moon" r="4.5" transform={at(p)} />
-      <text className={[styles.bodyLabel, styles.moonLabel].join(' ')} data-anchor="moon" x={fmt(p.x)} y={fmt(p.y - BODY_LABEL_GAP)} textAnchor="middle">
-        {label}
-      </text>
     </g>
   );
 }
 
 /**
  * FR-LIVE-6 (R33): an object that is up but not worth looking for, dimmed —
- * a small hollow point in the dim pass colour and its worded label beside it.
- * Dim by colour and by weight (FR-X-5), like the other passes in the guide.
+ * a small hollow point in the dim pass colour. Dim by colour and by weight
+ * (FR-X-5), like the other passes in the guide. R45 (FR-LIVE-6 as amended):
+ * its reason is a legend row; the mark carries the legend key only.
  */
-function HiddenPoint({ marker, orientation }: { marker: HiddenMarker; orientation: ChartOrientation }) {
+function HiddenPoint({ marker, orientation, legendKey }: { marker: HiddenMarker; orientation: ChartOrientation; legendKey: string | undefined }) {
   const p = project(marker, orientation);
   return (
     <g data-hidden-id={marker.id}>
       <circle className={styles.hidden} data-marker="hidden" r="3" transform={at(p)} />
-      <text className={[styles.label, styles.hiddenLabel].join(' ')} data-anchor="hidden" x={fmt(p.x)} y={fmt(p.y - BODY_LABEL_GAP)} textAnchor="middle">
-        {marker.label}
-      </text>
+      {legendKey !== undefined && (
+        <text className={[styles.key, styles.hiddenKey].join(' ')} data-anchor="key" data-key={legendKey} x={fmt(p.x)} y={fmt(p.y - HIDDEN_KEY_GAP)} textAnchor="middle">
+          {legendKey}
+        </text>
+      )}
     </g>
   );
 }
@@ -262,9 +279,8 @@ function Marker({ kind, p }: { kind: 'rise' | 'end' | 'shadow' | 'peak' | 'now';
   }
 }
 
-export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], colorBy = 'highlight', fill = false, className }: SkyChartProps) {
+export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], colorBy = 'highlight', fill = false, legendKeys = {}, legend, className }: SkyChartProps) {
   const t = useT();
-  const locale = useLocale();
   const orientation = useAppStore((s) => s.chartOrientation);
   const setChartOrientation = useAppStore((s) => s.setChartOrientation);
   const ring = (elDeg: number): number => project({ azDeg: 0, elDeg }, orientation).y * -1;
@@ -272,6 +288,7 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
     <div className={[styles.polar, className].filter(Boolean).join(' ')} data-orientation={orientation}>
       <ChartFrame
         fill={fill}
+        legend={legend}
         controls={<OptionToggle name={t.chart.orientationGroup} options={ORIENTATIONS.map((value) => ({ value, label: t.chart.orientation[value] }))} value={orientation} onChange={setChartOrientation} />}
         status={
           <p className={styles.convention} data-testid="chart-convention">
@@ -280,7 +297,7 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
         }
       >
       <svg className={styles.svg} viewBox={VIEWBOX} aria-hidden="true" data-drawing="polar" focusable="false">
-        {/* FR-DOME-6: the glow is a surface, so it goes under the grid; the label is text and goes above it (F-3). */}
+        {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}
         {sun && sunVisible(sun) && <SunGlow sun={sun} orientation={orientation} />}
         <circle className={styles.horizon} r={HORIZON_R} />
         <circle className={styles.ring} r={fmt(ring(30))} data-ring="30" />
@@ -304,23 +321,19 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
             key={pass.id}
             pass={pass}
             orientation={orientation}
-            timeZone={observer.timeZone}
             dim={highlightedPassId !== null && highlightedPassId !== pass.id}
             series={colorBy === 'pass' ? (index % SERIES_COUNT) + 1 : null}
             now={now}
+            legendKey={legendKeys[pass.id]}
             onSelect={onSelectPass}
-            t={t}
-            locale={locale}
           />
         ))}
         {/* FR-LIVE-6: the dimmed objects, under the Moon and over the arcs they are not part of. */}
         {hidden.map((marker) => (
-          <HiddenPoint key={marker.id} marker={marker} orientation={orientation} />
+          <HiddenPoint key={marker.id} marker={marker} orientation={orientation} legendKey={legendKeys[marker.id]} />
         ))}
-        {/* F-3: the Sun's name, above the grid group instead of under it. */}
-        {sun && sunVisible(sun) && <SunLabel sun={sun} orientation={orientation} label={t.chart.sunLabel} />}
         {/* …and the Moon over them, so a pass that crosses it does not hide it. */}
-        {moon && moonVisible(moon) && <MoonMarker moon={moon} orientation={orientation} label={t.chart.moonLabel(moonGlyph(moon))} />}
+        {moon && moonVisible(moon) && <MoonMarker moon={moon} orientation={orientation} />}
       </svg>
       </ChartFrame>
     </div>
