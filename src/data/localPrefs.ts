@@ -18,7 +18,9 @@ import { z } from './zod';
  * dark; R26 the saved places (FR-OFF-7, D-85), which are read item by item as
  * well as independently — a favourite that does not match the schema drops
  * only itself, so one bad entry costs one place and not the other seven.
- * Each preference is optional and read
+ * R28 the install hint's dismissal (FR-OFF-6): written only when the hint has
+ * been answered, and only ever `true`, so an untouched browser has no key for
+ * it. Each preference is optional and read
  * independently, so an unknown or invalid value of one never loses the
  * others.
  */
@@ -32,6 +34,8 @@ export interface Prefs {
   locale?: Locale;
   theme?: Theme;
   favourites?: Favourite[];
+  /** FR-OFF-6: the install hint has been answered and is not offered again. Absent until then. */
+  installHintDismissed?: boolean;
 }
 
 /** One saved place as it is written (FR-OFF-7); the whole observer, so selecting it offline needs no geocode. */
@@ -55,6 +59,7 @@ const storedPrefsSchema = z.object({
     .array(storedFavouriteSchema.nullable().catch(null))
     .optional()
     .catch(undefined),
+  installHintDismissed: z.boolean().optional().catch(undefined),
 });
 
 export interface LocalPrefs {
@@ -71,7 +76,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!raw) return {};
         const parsed = storedPrefsSchema.safeParse(JSON.parse(raw));
         if (!parsed.success) return {};
-        const { observer, sort, chartView, chartOrientation, locale, theme, favourites } = parsed.data;
+        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, installHintDismissed } = parsed.data;
         const prefs: Prefs = {};
         if (observer) prefs.observer = toObserver(observer);
         if (sort) prefs.sort = sort;
@@ -84,6 +89,8 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
           const kept = favourites.filter((favourite) => favourite !== null).map((favourite) => ({ ...favourite, observer: toObserver(favourite.observer) }));
           if (kept.length > 0) prefs.favourites = mostRecentlyUsed(kept);
         }
+        // Only `true` is a preference; `false` is what an absent key already means.
+        if (installHintDismissed) prefs.installHintDismissed = true;
         return prefs;
       } catch {
         return {};

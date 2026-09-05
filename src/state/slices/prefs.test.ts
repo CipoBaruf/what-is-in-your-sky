@@ -242,4 +242,19 @@ describe('favourites', () => {
     expect(store.getState().restoreSavedObserver()).toBe(true);
     expect(store.getState().observer).toEqual(paris);
   });
+
+  it('latches the install hint dismissal and keeps the rest of the prefs (R28, FR-OFF-6)', () => {
+    const storage = memoryStorage();
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    store.getState().setObserver(neuquen);
+    expect(store.getState().installHintDismissed).toBe(false);
+    store.getState().dismissInstallHint();
+    expect(store.getState().installHintDismissed).toBe(true);
+    expect(stored(storage)).toEqual({ observer: neuquen, installHintDismissed: true });
+    // The latch survives a restart, which is what "shown once" means (D-153).
+    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().installHintDismissed).toBe(true);
+    // And a later observer change does not undo it: the write-through replaces one field.
+    store.getState().setObserver(paris);
+    expect(stored(storage)).toEqual({ observer: paris, installHintDismissed: true });
+  });
 });
