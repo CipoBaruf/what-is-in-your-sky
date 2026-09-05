@@ -843,7 +843,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Touches outside the lane:** none.
   - **Done when:** a test per finding; `SkyChart.contract.test.tsx` and the snapshot green.
 
-- [ ] **R41 — Data findings: the favourites' sort, the stale zone, the doc block**
+- [x] **R41 — Data findings: the favourites' sort, the stale zone, the doc block**
   - **Lane:** data
   - **Model:** sonnet
   - **Gate:** auto
