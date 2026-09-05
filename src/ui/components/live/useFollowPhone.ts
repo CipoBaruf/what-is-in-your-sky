@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { deviceHeading, facingFrom, orientationApiPresent, orientationEventName, permissionRequest, quantise, readingFrom, screenAngle } from './compassHeading';
+import { deviceHeading, facingFrom, orientationApiPresent, orientationEventName, permissionRequest, quantise, readingFrom, screenAngle, trueHeading } from './compassHeading';
 
 /**
  * R34 (FR-LIVE-8, US-10, US-15 AC8; D-175): the phone's compass as the
@@ -29,6 +29,12 @@ import { deviceHeading, facingFrom, orientationApiPresent, orientationEventName,
  * dome by hand, and following stays off until the control turns it on again.
  * `available` is false where there is no phone to follow, and the control is
  * not rendered at all (PLAN §8.8).
+ *
+ * R44 (FR-WIN-3, F-41, D-185): the sensor reads magnetic north and the dome is
+ * drawn in true azimuths, so `declinationDeg` — the observer's, from
+ * `useDeclination` — is added to every reading before it becomes a facing. It
+ * is a dependency of the listener rather than a ref: it changes only when the
+ * observer does, which is rarer than the resubscription costs.
  */
 export type FollowState = 'off' | 'on' | 'relative' | 'denied';
 
@@ -41,7 +47,7 @@ export interface FollowPhoneHandle {
   stop: () => void;
 }
 
-export function useFollowPhone(): FollowPhoneHandle {
+export function useFollowPhone(declinationDeg = 0): FollowPhoneHandle {
   const available = useMemo(() => typeof window !== 'undefined' && orientationApiPresent(), []);
   // R39 (F-42): armed — the listener is on — is not the same as following. The click arms; the first
   // reading is what names the state, so a device that never sends one leaves the control alone.
@@ -66,7 +72,8 @@ export function useFollowPhone(): FollowPhoneHandle {
         return;
       }
       setState('on');
-      pending = quantise(facingFrom(heading, screenAngle()));
+      // Magnetic → true (R44) → the viewer's facing, then whole degrees.
+      pending = quantise(facingFrom(trueHeading(heading, declinationDeg), screenAngle()));
       if (!frame) frame = requestAnimationFrame(flush);
     };
     const name = orientationEventName();
@@ -75,7 +82,7 @@ export function useFollowPhone(): FollowPhoneHandle {
       window.removeEventListener(name, onReading);
       if (frame) cancelAnimationFrame(frame);
     };
-  }, [armed]);
+  }, [armed, declinationDeg]);
 
   const stop = useCallback(() => {
     setArmed(false);

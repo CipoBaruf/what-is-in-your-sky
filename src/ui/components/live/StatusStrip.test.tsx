@@ -64,6 +64,34 @@ describe('<StatusStrip>', () => {
     expect(screen.queryByTestId('live-speed')).toBeNull();
   });
 
+  /** R44 (FR-WIN-3, US-21 AC6, F-41): the seventh field, shown only while the dome is following the phone. */
+  it('names the true-north correction while following, in both languages, and drops the field otherwise', () => {
+    const { rerender } = render(<StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} declinationDeg={1.1187} />);
+    expect(within(screen.getByTestId('status-strip')).getAllByRole('term').map((term) => term.textContent)).toEqual(['Time', 'Sky', 'Clouds', 'Visible', 'Moon', 'Heading']);
+    expect(field('heading')).toHaveTextContent('true north, declination +1.1°');
+    expect(field('heading').querySelector('[data-declination]')).toHaveAttribute('data-declination', '1.1');
+
+    // West of true north is a signed value, with the typographic minus `formatSignedDegrees` writes.
+    rerender(<StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} declinationDeg={-12.4943} />);
+    expect(field('heading')).toHaveTextContent('true north, declination −12.5°');
+
+    // Zero is still a correction worth naming: it says the compass and the sky agree here.
+    rerender(<StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} declinationDeg={0} />);
+    expect(field('heading')).toHaveTextContent('true north, declination +0.0°');
+
+    // Not following: no heading is being corrected, so there is nothing to say.
+    rerender(<StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} declinationDeg={null} />);
+    expect(screen.queryByTestId('live-heading')).toBeNull();
+
+    render(
+      <I18nProvider locale="es">
+        <StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} declinationDeg={1.1187} />
+      </I18nProvider>,
+    );
+    // Spanish takes the comma as the decimal mark (FR-I18N-4, `formatSignedDegrees`).
+    expect(screen.getAllByTestId('live-heading')[0]).toHaveTextContent('Rumbo norte verdadero, declinación +1,1°');
+  });
+
   it('speaks Spanish (FR-I18N-2), with the zone abbreviation Intl gives that language', () => {
     render(
       <I18nProvider locale="es">

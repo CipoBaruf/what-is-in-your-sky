@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useLocale, useT } from '../../../i18n/useT';
+import { formatSignedDegrees } from '../../../lib/format';
 import { moonFacts } from '../../../lib/moonPhrases';
 import type { Speed } from '../../../lib/playback';
 import { formatClock, formatDate } from '../../../lib/timeFormat';
@@ -34,6 +35,12 @@ export interface StatusStripProps {
   moon: MoonState | null;
   /** R33 (FR-LIVE-3): the playback speed while playing, as a sixth field; `null` or absent otherwise. */
   speed?: Speed | null;
+  /**
+   * R44 (FR-WIN-3, US-21 AC6): the observer's magnetic declination while the
+   * dome is following the phone, as a seventh field; `null` or absent when it
+   * is not, because there is no heading being corrected then.
+   */
+  declinationDeg?: number | null;
 }
 
 function Field({ id, label, children }: { id: string; label: string; children: ReactNode }) {
@@ -45,7 +52,7 @@ function Field({ id, label, children }: { id: string; label: string; children: R
   );
 }
 
-export function StatusStrip({ t, timeZone, sky, cloud, count, moon, speed = null }: StatusStripProps) {
+export function StatusStrip({ t, timeZone, sky, cloud, count, moon, speed = null, declinationDeg = null }: StatusStripProps) {
   const m = useT();
   const locale = useLocale();
   return (
@@ -70,6 +77,11 @@ export function StatusStrip({ t, timeZone, sky, cloud, count, moon, speed = null
       {speed !== null && (
         <Field id="speed" label={m.live.speedLabel}>
           <span data-speed={speed}>{m.live.speed(speed)}</span>
+        </Field>
+      )}
+      {declinationDeg !== null && (
+        <Field id="heading" label={m.live.headingLabel}>
+          <span data-declination={declinationDeg.toFixed(1)}>{m.live.trueNorth({ declination: formatSignedDegrees(declinationDeg, locale) })}</span>
         </Field>
       )}
     </dl>

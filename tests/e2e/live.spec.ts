@@ -15,7 +15,7 @@
  *     Spanish at the phone width.
  */
 import { expect, test } from '@playwright/test';
-import { domeDrawn, golden, ha, hhmmss, homeAt, LABEL, realTimeField, stripFilled, stubNetwork, T } from './liveHelpers';
+import { domeDrawn, golden, ha, heading, hhmmss, homeAt, LABEL, realTimeField, stripFilled, stubCompass, stubNetwork, T } from './liveHelpers';
 
 test.describe('the live page', () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -123,6 +123,52 @@ test.describe('the live page', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByRole('banner')).toBeVisible();
   });
+});
+
+/**
+ * R44 (FR-WIN-3, FR-LIVE-8 as amended, US-21 AC6; F-41, D-185): the follow
+ * case, on the phone viewport with a touch screen — the one profile the
+ * control is rendered in (D-175).
+ *
+ * The dome is drawn in true azimuths and the sensor reads magnetic north, so
+ * the facing the page turns to is the reading plus the observer's declination:
+ * +1.12° at Neuquén on the fixtures' date, which the strip states in whole
+ * words rather than leaving the viewer to wonder why the dome sits a degree
+ * off the compass they are holding. Both languages, because the field is text
+ * on the page and FR-I18N-2 admits no English on the Spanish one.
+ */
+test.describe('the live page following a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  for (const [locale, line] of [
+    ['en', 'Heading true north, declination +1.1°'],
+    ['es', 'Rumbo norte verdadero, declinación +1,1°'],
+  ] as const) {
+    test(`corrects the heading to true north and names the declination on the strip (${locale})`, async ({ page }) => {
+      await stubCompass(page);
+      await homeAt(page, T, locale);
+      await page.getByTestId('live-link').click();
+      await domeDrawn(page);
+      await stripFilled(page);
+
+      // Not following: no heading is being corrected, so the strip has its five fields and no sixth.
+      const field = page.getByTestId('live-heading');
+      await expect(field).toHaveCount(0);
+
+      // Following. `360 − alpha` is the magnetic heading, 90° here; the screen is not rotated in this
+      // emulation, so the facing is that plus the declination, rounded to the whole degree the dome uses.
+      expect(await page.evaluate(() => screen.orientation.angle)).toBe(0);
+      await page.getByRole('button', { name: locale === 'en' ? 'Follow phone' : 'Seguir al teléfono' }).click();
+      await heading(page, 270);
+      await expect(page.getByTestId('follow-phone')).toHaveAttribute('data-state', 'on');
+      await expect(page.getByTestId('live-dome').locator('[data-facing-az]')).toHaveAttribute('data-facing-az', '91');
+      await expect(field).toHaveText(line);
+      // The tenth of a degree the line prints is the value itself, not a coincidence of the wording.
+      await expect(field.locator('[data-declination]')).toHaveAttribute('data-declination', '1.1');
+      // The capture the PR carries: the strip with its heading field, at the phone width, in each language.
+      await page.screenshot({ path: `docs/screenshots/r44-live-390-following-dark-${locale}.png` });
+    });
+  }
 });
 
 /**

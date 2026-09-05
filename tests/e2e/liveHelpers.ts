@@ -205,6 +205,40 @@ export async function domeDrawn(page: Page): Promise<void> {
     .toBe(true);
 }
 
+/**
+ * Only the spec's readings reach the page (R34, moved here by R44 so
+ * `live.spec.ts` can follow a phone too). Chrome fires one orientation event
+ * with every value `null` when the first listener is added on a machine with no
+ * sensor — a CI runner — and the hook rightly reads that as "no compass
+ * heading". Landing between a click and an assertion, or between a dispatched
+ * reading and its animation frame, it turned the follow test into a race (PR
+ * #57's merged head). The browser's own events are trusted and the dispatched
+ * ones are not, so a capturing listener installed before the app's stops the
+ * trusted ones.
+ */
+export async function stubCompass(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    for (const name of ['deviceorientationabsolute', 'deviceorientation']) {
+      window.addEventListener(
+        name,
+        (event) => {
+          if (event.isTrusted) event.stopImmediatePropagation();
+        },
+        true,
+      );
+    }
+  });
+}
+
+/** A reading from the phone's compass: Chrome's absolute event, `alpha` counter-clockwise from north. */
+export async function heading(page: Page, alpha: number): Promise<void> {
+  await page.evaluate((value) => {
+    window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: value, beta: 0, gamma: 0, absolute: true }));
+  }, alpha);
+  // The facing is handed out on the next animation frame, which the installed clock holds.
+  await page.clock.runFor(100);
+}
+
 /** The five fields, each with a value that is not the pending ellipsis. */
 export async function stripFilled(page: Page): Promise<void> {
   for (const field of ['time', 'sky', 'cloud', 'count', 'moon']) {

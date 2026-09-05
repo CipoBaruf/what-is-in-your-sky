@@ -364,23 +364,30 @@ describe('<LivePage>', () => {
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
     heading(270);
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    expect(facing()).toBe(90);
+    // R44 (FR-WIN-3, F-41): `360 − alpha` is the *magnetic* heading, 90° here, and the dome is drawn in
+    // true azimuths, so the observer's declination is added: +1.12° at Neuquén, 91° whole.
+    expect(facing()).toBe(91);
+    // …and the strip names the correction while following (US-21 AC6).
+    expect(screen.getByTestId('live-heading')).toHaveTextContent('Heading true north, declination +1.1°');
     heading(180);
-    expect(facing()).toBe(180);
+    expect(facing()).toBe(181);
     // A drag on the dome: following off, the dome stays where the drag left it, headings are ignored.
     fireEvent.pointerDown(stage, { pointerId: 1, clientX: 100, clientY: 100, button: 0, pointerType: 'touch' });
     fireEvent.pointerMove(stage, { pointerId: 1, clientX: 140, clientY: 100 });
     fireEvent.pointerUp(stage, { pointerId: 1, clientX: 140, clientY: 100 });
     frame(32);
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    expect(facing()).toBe(170);
+    expect(facing()).toBe(171);
+    // Not following: no heading is being corrected, so the strip drops the field (R44).
+    expect(screen.queryByTestId('live-heading')).toBeNull();
     heading(0);
-    expect(facing()).toBe(170);
+    expect(facing()).toBe(171);
     // The control turns it back on and the next heading turns the dome.
     fireEvent.click(toggle);
     heading(90);
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    expect(facing()).toBe(270);
+    expect(facing()).toBe(271);
+    expect(screen.getByTestId('live-heading')).toHaveTextContent('true north, declination +1.1°');
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
   });
 
@@ -412,7 +419,8 @@ describe('<LivePage>', () => {
     });
     frame(16);
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    expect(Number(screen.getByTestId('live-dome').querySelector('[data-facing-az]')?.getAttribute('data-facing-az'))).toBe(90);
+    // R44: the magnetic 90° plus Neuquén's +1.12° declination.
+    expect(Number(screen.getByTestId('live-dome').querySelector('[data-facing-az]')?.getAttribute('data-facing-az'))).toBe(91);
 
     // Back to polar: no control, and nothing left following behind it.
     act(() => {
