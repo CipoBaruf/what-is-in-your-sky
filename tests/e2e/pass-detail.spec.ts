@@ -41,7 +41,8 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   // stubs the two providers the way this spec did — no forecast, so the zone stays unknown and the
   // times stay in UTC, which is what the assertions below read (weather.spec.ts covers the forecast)
   // — and opens the page on the stored 72 h run, the golden pass among them.
-  await seedStoredRun(page);
+  // Settled: the highest pass is read off every card below, which the recompute's first batch would otherwise be replacing.
+  await seedStoredRun(page, { settled: true });
 
   const card = page.locator(`article[data-pass-id="${passId}"]`);
   await expect(card).toHaveCount(1);

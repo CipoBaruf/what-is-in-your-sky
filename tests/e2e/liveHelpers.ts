@@ -59,6 +59,8 @@ export async function stubNetwork(page: Page, elements: 'fixtures' | 'down' = 'f
   });
   // No forecast: the zone stays unknown, the clocks read UTC and the clouds are unknown (weather.spec.ts covers the forecast).
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
+  // No geocoder either: a spec that types a place name must not reach the real one (place-search.spec.ts fulfils its own).
+  await page.route('https://geocoding-api.open-meteo.com/**', (route) => route.abort('failed'));
 }
 
 /**
@@ -168,6 +170,10 @@ export async function seedStoredRun(page: Page, { locale = 'en', prefs = {}, set
  * fixtures at the same instant.
  */
 export async function listSettled(page: Page): Promise<void> {
+  // The stored list is on screen with nothing busy *before* the recompute starts — the elements
+  // load first, then the worker — so "nothing busy" alone can return in that gap and the spec
+  // then reads a list the first batch is about to replace. Wait for the job to show, then to end.
+  await page.locator('[aria-busy="true"]').first().waitFor({ state: 'attached', timeout: 30_000 });
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
 }
 

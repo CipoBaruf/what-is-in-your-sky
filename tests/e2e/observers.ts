@@ -11,7 +11,7 @@
  * `lib/place.ts` closes that off: the label, the altitude and the null zone are
  * whatever the coordinates box would have produced.
  *
- * No Playwright import: `tests/docs/observers.test.ts` reads this file too.
+ * No Playwright import: `tests/docs/ci.test.ts` and `scripts/build-stored-run.ts` read this file too.
  */
 import { readFileSync } from 'node:fs';
 import type { Observer } from '../../src/model';

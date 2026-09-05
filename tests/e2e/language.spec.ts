@@ -70,7 +70,8 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
 
   // FR-CI-3 (R37): the language is not the pass search. The page reopens on a stored 72 h run —
   // in Spanish, with the place already saved — which is the same screen the typing arrived at.
-  await seedStoredRun(page, { locale: 'es' });
+  // Settled: the status line is read again at the end, after the switch back to English, and it must say the count, not the progress of the recompute behind the stored run.
+  await seedStoredRun(page, { locale: 'es', settled: true });
   await page.screenshot({ path: 'test-results/r17-passes-390-es.png', fullPage: true });
 
   // The guide sheet: the FR-GUIDE-1 sentence is the Spanish golden one, times and numbers included.
