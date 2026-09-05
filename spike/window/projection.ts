@@ -205,7 +205,7 @@ export function smoothRotation(previous: Mat3 | null, next: Mat3, weight: number
  * heading combines with the same event's beta and gamma as if it were
  * `alpha = 360 − heading`; the spike lets the owner switch and see.
  */
-export function alphaFor(reading: { alpha: number | null; absolute: boolean; webkitCompassHeading: number | null }, source: 'auto' | 'webkit' | 'alpha'): number | null {
+export function alphaFor(reading: { alpha: number | null; absolute: boolean | undefined; webkitCompassHeading: number | null }, source: 'auto' | 'webkit' | 'alpha'): number | null {
   const webkit = reading.webkitCompassHeading;
   const useWebkit = source === 'webkit' || (source === 'auto' && typeof webkit === 'number' && Number.isFinite(webkit));
   if (useWebkit) return typeof webkit === 'number' && Number.isFinite(webkit) ? ((360 - webkit) % 360 + 360) % 360 : null;

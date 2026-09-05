@@ -60,6 +60,7 @@ function App() {
   const meter = useRef(new RateMeter());
   const facts = useRef<Facts>({ userAgent: navigator.userAgent, permission: 'pending', eventNames: [], first: null, samples: [], stats: null });
   const frame = useRef<number | null>(null);
+  const listeningRef = useRef(false);
   const paramsRef = useRef(params);
   useEffect(() => {
     paramsRef.current = params;
@@ -102,6 +103,9 @@ function App() {
     smoothed.current = next;
     setMatrix(next);
     meter.current.draw();
+    // The phone's sensor came at 10 readings a second on iOS Chrome (R38's first run): the window
+    // keeps drawing at the display rate, easing toward the latest reading, until it has arrived.
+    if (!p.manual && listeningRef.current && p.smoothing > 0 && !converged(next, target)) frame.current ??= requestAnimationFrame(draw);
   }, []);
 
   const schedule = useCallback(() => {
@@ -153,6 +157,7 @@ function App() {
     if (state === 'granted' || state === 'not-needed') {
       meter.current.reset();
       listen(onReading);
+      listeningRef.current = true;
       setListening(true);
       update({ manual: null });
     }
@@ -279,7 +284,7 @@ function App() {
               {fmt(raw.alpha)} / {fmt(raw.beta)} / {fmt(raw.gamma)}
             </dd>
             <dt>absolute</dt>
-            <dd>{String(raw.absolute)}</dd>
+            <dd>{raw.absolute === undefined ? 'undefined' : String(raw.absolute)}</dd>
             <dt>webkitCompassHeading</dt>
             <dd>
               {fmt(raw.webkitCompassHeading)} (±{fmt(raw.webkitCompassAccuracy)})
@@ -304,6 +309,12 @@ function App() {
 }
 
 const fmt = (n: number | null): string => (n === null ? 'null' : n.toFixed(1));
+
+/** Within a tenth of a degree on every axis: nothing left to ease. */
+const converged = (a: Mat3, b: Mat3): boolean => {
+  for (const r of [0, 1, 2] as const) for (const c of [0, 1, 2] as const) if (Math.abs(a[r][c] - b[r][c]) > 0.0017) return false;
+  return true;
+};
 
 const root = document.getElementById('root');
 if (root)

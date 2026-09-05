@@ -17,7 +17,7 @@ export interface RawReading {
   alpha: number | null;
   beta: number | null;
   gamma: number | null;
-  absolute: boolean;
+  absolute: boolean | undefined;
   webkitCompassHeading: number | null;
   webkitCompassAccuracy: number | null;
   screenAngle: number;
@@ -45,6 +45,7 @@ export function readRaw(event: DeviceOrientationEvent, name: RawReading['event']
     alpha: event.alpha,
     beta: event.beta,
     gamma: event.gamma,
+    // iOS leaves it `undefined` (R38, measured on iPhone), shown as it came.
     absolute: event.absolute,
     webkitCompassHeading: typeof any.webkitCompassHeading === 'number' ? any.webkitCompassHeading : null,
     webkitCompassAccuracy: typeof any.webkitCompassAccuracy === 'number' ? any.webkitCompassAccuracy : null,
