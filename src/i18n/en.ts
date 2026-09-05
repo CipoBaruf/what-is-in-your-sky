@@ -143,6 +143,22 @@ export const en = {
     precisionNote: 'Precision is city-level: a pass looks the same from anywhere within a few kilometres, so no street address is resolved.',
   },
 
+  /**
+   * FR-OFF-7, US-17: the saved places, in the location section. The limit is
+   * stated with what happens at it, because the eviction is silent (D-85) and
+   * "up to 8" alone would not warn anyone that a ninth costs them one.
+   */
+  favourites: {
+    heading: 'Saved places',
+    save: 'Save this place',
+    empty: 'No places saved yet.',
+    use: (label: string) => `Use ${label}`,
+    /** Marks the entry the app is currently computing for; the button still works, it just changes nothing. */
+    current: 'in use',
+    remove: (label: string) => `Remove ${label}`,
+    limit: (max: number) => `Up to ${String(max)} places. Saving another forgets the one you have not used for longest.`,
+  },
+
   now: {
     heading: 'Right now',
     noObserver: 'Enter a place name or coordinates to see what is overhead right now.',
@@ -430,6 +446,29 @@ export const en = {
     stored: (at: string) => `Stored ${at}`,
     notReady: (gaps: string) => `Not ready offline: no ${gaps} stored yet.`,
     gaps: { elements: 'orbital elements', forecast: 'cloud forecast', passes: 'passes' } satisfies Record<ReadinessGap, string>,
+  },
+
+  /**
+   * FR-OFF-1 (OQ-14): the update is offered, never imposed. The line says what
+   * is waiting and what the button will do, because the button reloads the
+   * page and a reader on a pass or a live sky should be able to say "later".
+   */
+  update: {
+    ready: 'A new version is ready.',
+    reload: 'Reload now',
+  },
+
+  /**
+   * FR-OFF-6: the install hint, shown once. The first line is the browser
+   * that offers an install of its own; the second is iOS, where the event
+   * never fires and the only route is the share sheet, so the note spells the
+   * two taps out rather than offering a button that cannot exist (D-153).
+   */
+  install: {
+    offer: 'Install this app to open it from your home screen and use it with no signal.',
+    ios: 'To install: tap Share, then “Add to Home Screen”.',
+    action: 'Install',
+    dismiss: 'Not now',
   },
 
   footer: {

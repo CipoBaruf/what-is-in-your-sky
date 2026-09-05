@@ -128,6 +128,16 @@ export const es: Messages = {
     precisionNote: 'La precisión es a nivel de ciudad: un pase se ve igual desde cualquier punto a unos pocos kilómetros, así que no se resuelve ninguna dirección postal.',
   },
 
+  favourites: {
+    heading: 'Lugares guardados',
+    save: 'Guardar este lugar',
+    empty: 'Todavía no hay lugares guardados.',
+    use: (label) => `Usar ${label}`,
+    current: 'en uso',
+    remove: (label) => `Quitar ${label}`,
+    limit: (max) => `Hasta ${String(max)} lugares. Al guardar otro se olvida el que hace más tiempo que no se usa.`,
+  },
+
   now: {
     heading: 'Ahora mismo',
     noObserver: 'Con un nombre de lugar o coordenadas aparece lo que cruza el cielo en este momento.',
@@ -345,6 +355,18 @@ export const es: Messages = {
     stored: (at) => `Guardado ${at}`,
     notReady: (gaps) => `Sin conexión: falta guardar ${gaps}.`,
     gaps: { elements: 'los elementos orbitales', forecast: 'el pronóstico de nubes', passes: 'los pases' },
+  },
+
+  update: {
+    ready: 'Hay una versión nueva lista.',
+    reload: 'Recargar ahora',
+  },
+
+  install: {
+    offer: 'Se puede instalar la app para abrirla desde la pantalla de inicio y usarla sin señal.',
+    ios: 'Para instalarla: tocar Compartir y después «Agregar a la pantalla de inicio».',
+    action: 'Instalar',
+    dismiss: 'Ahora no',
   },
 
   footer: {
