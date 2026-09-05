@@ -68,6 +68,11 @@ export async function readTasksAtRef(ref: string, logger: Logger): Promise<strin
   return result.stdout;
 }
 
+/** §16.3 `Precondition:`: whether `path` exists on `ref`. */
+export async function fileExistsAtRef(ref: string, path: string, logger: Logger): Promise<boolean> {
+  return ok(await git(['cat-file', '-e', `${ref}:${path}`], { logger }));
+}
+
 /** Branch names on `origin` — the trace a failed run leaves (§16.5). */
 export async function remoteBranches(logger: Logger): Promise<Set<string>> {
   const result = await git(['ls-remote', '--heads', 'origin'], { logger });

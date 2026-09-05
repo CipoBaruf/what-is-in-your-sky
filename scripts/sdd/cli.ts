@@ -2,14 +2,17 @@
  * PLAN §16.4: the driver's command line. Kept apart from `sdd-run.ts`, which
  * runs `main()` on import, so the parsing is testable without a run.
  */
-import { MODELS, type Model } from './tasks';
+import { MODELS, type SessionModel } from './tasks';
+
+/** The models `--model` accepts: everything `claude -p` can be given, so not `interactive` (§16.6, D-197). */
+const SESSION_MODELS: readonly SessionModel[] = MODELS.filter((model): model is SessionModel => model !== 'interactive');
 
 export interface Options {
   mode: 'status' | 'dry-run' | 'wave' | 'task' | 'help';
   taskId: string | null;
   tasksFile: string | null;
   /** §16.6: `--model` overrides a task's `Model:` for this one `--task` run. */
-  model: Model | null;
+  model: SessionModel | null;
 }
 
 export function parseArgs(argv: readonly string[]): Options {
@@ -29,8 +32,8 @@ export function parseArgs(argv: readonly string[]): Options {
     } else if (arg === '--model') {
       index += 1;
       const value = argv[index];
-      const model = MODELS.find((candidate) => candidate === value);
-      if (!model) throw new Error(`--model needs one of ${MODELS.join(', ')}, e.g. \`--model opus\``);
+      const model = SESSION_MODELS.find((candidate) => candidate === value);
+      if (!model) throw new Error(`--model needs one of ${SESSION_MODELS.join(', ')}, e.g. \`--model opus\``);
       options.model = model;
     } else if (arg === '--help' || arg === '-h') options.mode = 'help';
     else throw new Error(`unknown argument \`${String(arg)}\``);

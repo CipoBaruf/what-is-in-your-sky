@@ -8,6 +8,8 @@
 | Scope | MVP (spec Phase 0 + Phase 1). v1 items are not broken down here. |
 | Inputs (v1) | `SPEC.md` v1.0, `PLAN.md` v0.3 (Decision Log V1-1..V1-11 and Decisions D-69..D-87 with §16 treated as fixed) |
 | Scope (v1) | Spec Phase 2 "outdoor-ready": R16–R36 in the `## v1 tasks` block below, delivered by lanes and waves (PLAN §16). |
+| Inputs (v1.1) | `SPEC.md` v1.1, `PLAN.md` v0.4 (Decision Log V11-1..V11-13 and Decisions D-183..D-199 with §16 as amended treated as fixed) |
+| Scope (v1.1) | Spec Phase 2b "phone pass": R37–R53 in the `## v1.1 tasks` block below, five lanes, four models, the findings first (PLAN §16.6, §16.8). |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |
 
 ## Conventions
@@ -758,4 +760,331 @@ flowchart LR
   R32 --> R33 & R35
   R33 --> R34
   R22 & R23 & R27 & R28 & R30 & R34 & R35 --> R36
+```
+
+
+## v1.1 tasks
+
+Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec Phase 2b, "phone pass": the fifty open v1 findings, CI time, the compact layout and settings page, the chart legend, the sky window, the live trajectories and stripe, true north. Delivery is PLAN §16 as amended for the phase: five lanes, four models, the findings and the CI budget in the first wave, the sky-window spike driven by the owner.
+
+**Before the first wave** (repo tooling, not tasks — PLAN D-86, D-197, D-198): `scripts/sdd/tasks.ts` accepts the lanes `window` and `docs`, the models `sonnet`, `haiku` and `interactive`, and the fields `Precondition:` and `Findings:`; `scripts/sdd/brief.ts` writes the brief; `session.ts` gains `--fallback`; `sdd-implement` reads the brief under `SDD_HEADLESS` and runs narrow tests while iterating. `--status` prints the open F-numbers.
+
+### Conventions for this phase
+
+- Everything in the v1 conventions holds. Lanes are PLAN §16.1 as amended (D-196), plus `docs` for the one task that touches no source:
+  - `ui` — `src/ui/**` except `guide/skychart/**`, `screens/Live*` and `components/live/**`; `src/i18n/**`, `src/lib/{layout,shortcuts,shareLinks,moonPhrases,readiness,flags}.ts`, `src/ui/styles/**`, `.github/workflows/**`, `tests/e2e/v1-captures.spec.ts`
+  - `chart` — `src/ui/components/guide/skychart/**` except `window/`, `src/lib/{skyGeometry,skyBodies,legend,arcReveal}.ts`, `spike/dome-composition/**`
+  - `window` — `src/ui/components/guide/skychart/window/**`, `spike/window/**`, `docs/window/**`
+  - `live` — `src/ui/screens/Live*`, `src/ui/components/live/**`, `src/lib/{timeStripe,playback,declination}.ts`
+  - `data` — `src/data/**`, `src/state/**`, `vite.config.ts`, `public/**`
+  - `docs` — `docs/mockups/**`, `scripts/mockup-capture.ts`
+- **Model** is per task from PLAN §16.6 (D-197): `fable` where the session verifies its own drawing, `opus` for semantics and copy, `sonnet` for mechanical work with a complete spec, `interactive` for the spike the owner drives. Reviews: `opus` on `Gate: auto`, `sonnet` on `Gate: owner`. A limit-stopped session is retried once on the next model (`fable → opus → sonnet`).
+- **Findings:** lists the `F-<n>` ids (SPEC §4.20) a task closes. Each fix is one commit `F-<n>: …` with a test that fails on the old code; a finding the session verifies as already fixed on `main` is recorded in the summary with the commit (D-194). A task holds about ten findings at most (D-199).
+- **Precondition:** a file that must exist on `origin/main`; the driver skips the task until it does (PLAN §16.3).
+- The message catalogs are split per lane by R42 (`src/i18n/{en,es}/{ui,chart,live,window}.ts`); from R42 on a task edits only its lane's file, and `Touches outside the lane` need not name it.
+- Captures: 390 px always, both languages and both themes; 1280 px and, from R50, 1024 px where the wide layout changed. Only `Gate: owner` tasks shoot captures, and only for the screens they changed (PLAN §16.8). The D-179 capture set is re-shot by `captures.yml` on `main`, never in a task.
+- Decision numbers are reserved in one PLAN entry after D-199: R37 D-200..203, R38 204..207, R39 208..211, R40 212..215, R41 216..219, R42 220..223, R43 224..227, R44 228..231, R45 232..235, R46 236..239, R47 240..243, R48 244..247, R49 248..251, R50 252..255, R51 256..259, R52 260..263, R53 264..267.
+
+### Tasks
+
+- [ ] **R37 — CI time: the 10 min budget, the capture set off the PR path, and the R36 findings**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** auto
+  - **Depends on:** —
+  - **Findings:** F-46, F-47, F-48, F-49, F-50
+  - **Goal:** A pull request's CI finishes inside ten minutes, and the release captures are a main-branch job.
+  - **Satisfies:** FR-CI-1, FR-CI-2, FR-CI-3; FR-FIX-2 for the five R36 findings.
+  - **Scope (PLAN D-195):** `ci.yml`: `timeout-minutes: 10` with FR-CI-1 named in a comment, a `time` step wrapping each stage with `date +%s` and a table in `$GITHUB_STEP_SUMMARY`. `v1-captures.spec.ts`: `test.skip(process.env['CAPTURES'] !== '1', …)` like `dome-perf`; the helpers taken from `liveHelpers.ts` (F-47); a fixed shot instant (F-48); seeded observers as the app produces them (F-49); `THEMES.length * LOCALES.length` (F-50). `captures.yml`: on `push` to `main` and `workflow_dispatch`, `CAPTURES=1 npx playwright test v1-captures`, upload `docs/screenshots/v1-*.png` as an artefact, fail on a missing file, commit nothing. `playwright.config.ts`: `workers: '100%'` on CI. `liveHelpers.ts`: `seedStoredRun()` so a page spec loads a stored run; every spec that only needs a rendered page uses it (FR-CI-3).
+  - **Touches outside the lane:** `.github/workflows/captures.yml` (new), `playwright.config.ts`, `tests/e2e/liveHelpers.ts`, `tests/e2e/*.spec.ts` (the `seedStoredRun` switch), `tests/docs/captures.test.ts`.
+  - **Done when:**
+    - The PR's own CI run finishes under 10 min and its step summary shows the stage table.
+    - `npx playwright test` locally skips the 60 capture tests without `CAPTURES=1`; with it they run and write the set.
+    - `captures.yml` runs on the merge to `main` and uploads the artefact.
+    - `--reporter=list` shows no spec over 60 s on CI.
+    - A test per closed finding, named by its F-number.
+
+- [ ] **R38 — Sky-window spike: projection, field of view, the sensor path and the stripe's touch stepping**
+  - **Lane:** window
+  - **Model:** interactive
+  - **Gate:** owner
+  - **Depends on:** —
+  - **Goal:** The owner picks, on a phone, how the sky window projects and how the stripe steps.
+  - **Satisfies:** FR-WIN-7; resolves OQ-16, OQ-17, OQ-18.
+  - **Scope (PLAN §8.10):** `spike/window/` — one page with every knob as a URL parameter: `projection=gnomonic|stereographic`, `fov`, `smoothing`, the three orientation angles live, screen-angle correction on and off; the two fixture passes (the golden grazing pass and R14's synthetic high pass) drawn in the window; a second page with the stripe at 390 px and the three stepping candidates (`step` buttons, tap-to-jump on a segment, slow drag) each behind a parameter. Measured: the update rate by the D-62 method; the iOS facts of OQ-17 (`webkitCompassHeading` with `beta`/`gamma` in one event; interface-orientation correction). Captures at 390 px. `docs/window/FINDINGS.md`: the owner's picks as constants (`WINDOW_FOV`, `WINDOW_SMOOTHING`, the projection, the stepping control) and the sensor facts.
+  - **Touches outside the lane:** none.
+  - **Done when:**
+    - `docs/window/FINDINGS.md` exists on `main` with the four picks and the OQ-17 answers, each with a capture or a number behind it.
+    - The stepping pick lands `t` within 1 min of a rise in ≤ 3 taps on the owner's phone (US-22 AC6).
+  - **How it runs:** the owner opens a session in this checkout and drives the spike with the phone on the local network (`vite --host`); the driver lists the task and never runs it.
+
+- [ ] **R39 — Live findings: playback, the stripe's focus and memoisation, the follow control, the shared-link observer**
+  - **Lane:** live
+  - **Model:** opus
+  - **Gate:** auto
+  - **Depends on:** —
+  - **Findings:** F-34, F-36, F-37, F-38, F-39, F-40, F-42
+  - **Goal:** The live page's seven open review findings closed, each by a test.
+  - **Satisfies:** FR-FIX-1 for the live lane; FR-LIVE-8 as amended (the control hidden on polar, F-40).
+  - **Scope:** `usePlayback` clamps the held instant on resume (F-36); `live.spec.ts` uses `exact: true` for `60×` (F-37); `hourTicks`, `nightBands`, `passSegments` memoised on `(span, passes, zone)` (F-38); pointer-down no longer prevents default, the stripe is focusable and focuses itself (F-39); `FollowPhone` hidden when the view is polar (F-40); the permission-less path stays `off` until a reading arrives (F-42); a same-document navigation to `#live?lat=…` applies the link's observer through `startApp`'s parser, not only at mount (F-34).
+  - **Touches outside the lane:** `src/ui/App.tsx` (F-34's hash listener, one hunk), `tests/e2e/live.spec.ts`.
+  - **Done when:** a test per finding, named by it; `npm test` and `live.spec.ts` green; no capture (nothing visible changes).
+
+- [ ] **R40 — Chart findings: the astronomy import retry, the flown strip, the polar Sun label and glow, the zoom guard**
+  - **Lane:** chart
+  - **Model:** sonnet
+  - **Gate:** auto
+  - **Depends on:** —
+  - **Findings:** F-1, F-2, F-3, F-4, F-5, F-35
+  - **Goal:** The chart's six open findings closed.
+  - **Satisfies:** FR-FIX-1 for the chart lane.
+  - **Scope:** `useSkyBodies` clears `pending` on rejection so the chunk is retried (F-1); `flownStrip` keeps `passStrip`'s `omit` gap (F-2); the polar Sun label moves above the grid group (F-3); the polar glow's step derives from its half-width like the dome's (F-4); the flown strip takes `highlighted` into its colour (F-5); the dome's keep guard compares `zoom` (F-35). The raster snapshot is re-baked only if F-2 or F-5 change it.
+  - **Touches outside the lane:** none.
+  - **Done when:** a test per finding; `SkyChart.contract.test.tsx` and the snapshot green.
+
+- [ ] **R41 — Data findings: the favourites' sort, the stale zone, the doc block**
+  - **Lane:** data
+  - **Model:** sonnet
+  - **Gate:** auto
+  - **Depends on:** —
+  - **Findings:** F-11, F-12, F-13
+  - **Goal:** The favourites store's three open findings closed.
+  - **Satisfies:** FR-FIX-1 for the data lane.
+  - **Scope:** `addFavourite` keeps the just-saved entry whatever the stored stamps say (F-11); `fillTimeZone` refreshes the matching favourite when the zone resolves (F-12); the `Favourite` doc block names `cellKey` (F-13).
+  - **Touches outside the lane:** none.
+  - **Done when:** a test per finding; `npm test` green.
+
+- [ ] **R42 — The catalogs split per lane, and the Moon lore behind its flag**
+  - **Lane:** ui
+  - **Model:** sonnet
+  - **Gate:** auto
+  - **Depends on:** R37
+  - **Goal:** Each lane owns its own message file, and the lore line is off by default.
+  - **Satisfies:** FR-FLAG-1, FR-FLAG-2; FR-MOON-4 as amended; PLAN D-183, D-199 (2).
+  - **Scope:** `src/i18n/en/{ui,chart,live,window}.ts` and the same for `es`, merged by `en.ts` / `es.ts` into the unchanged `Messages` type so no consumer changes (the split is by the key's owning lane, using the sections the catalogs already have; `window.ts` starts empty). `lib/flags.ts` exporting `MOON_LORE` from `import.meta.env.VITE_MOON_LORE === 'on'`; `vite.config.ts` `envPrefix` and a build-time log line; `App.tsx` renders `MoonLore` through `React.lazy` inside `if (MOON_LORE)`; `tests/build/flags.test.ts` builds with the flag off and asserts no chunk holds a lore key; `vitest.config.ts` sets `VITE_MOON_LORE=on` for the unit run; an ESLint `no-restricted-syntax` rule forbids `import.meta.env` outside `lib/flags.ts`.
+  - **Touches outside the lane:** `vite.config.ts`, `vitest.config.ts`, `eslint.config.js`, `tests/build/flags.test.ts` (new).
+  - **Done when:**
+    - `npm run typecheck` green with the split; no key moved, added or renamed (a test diffs the flattened key sets before and after).
+    - `npm run build` prints `VITE_MOON_LORE=off` and `flags.test.ts` passes; with `on`, `MoonLore.test.tsx` passes and the home renders the line.
+    - The default capture set (on `main`) shows no lore line.
+
+- [ ] **R43 — The compact mockups: home, settings and the pass detail with its legend**
+  - **Lane:** docs
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R37
+  - **Goal:** The owner approves what the phone screens will look like before they are built.
+  - **Satisfies:** FR-COMP-6; PLAN D-191.
+  - **Scope:** `docs/mockups/compact-390.html` on the app's own `tokens.css` and `global.css`, one `<style>` block for the compact rules, three screens (home with the one-row header and the location summary, `#settings`, the pass detail with the full-bleed square chart and the table as its legend) in both themes; `npm run mockup:compact` through `scripts/mockup-capture.ts` writing `compact-390-{home,settings,detail}-{dark,night}.png`; `docs/mockups/README.md` says what is illustrative (the chart is R22's capture with its labels blanked).
+  - **Touches outside the lane:** `package.json` (the script).
+  - **Done when:** the six PNGs exist and the owner has approved them on the PR; every control row in the mockup is ≤ 36 cells (FR-COMP-4, counted by hand in the README).
+
+- [ ] **R44 — True north: the declination in the heading and on the strip**
+  - **Lane:** live
+  - **Model:** opus
+  - **Gate:** auto
+  - **Depends on:** R37, R39
+  - **Findings:** F-41
+  - **Goal:** The dome that follows the phone faces true north.
+  - **Satisfies:** FR-WIN-3 (the heading correction), FR-LIVE-8 as amended; US-21 AC6; PLAN D-185.
+  - **Scope:** `lib/declination.ts` — `declinationDeg(observer, date)` over `geomagnetism` 0.2.0 (the only importer; the boundary rule in `eslint.config.js`); the live slice computes and caches it when the observer changes; `compassHeading.ts` adds it to the magnetic heading; `StatusStrip` prints "true north, declination +1.1°" in both languages while following. Tests: three observers against NOAA calculator values (±0.2°); the heading sum; the strip line.
+  - **Touches outside the lane:** `eslint.config.js` (the boundary rule), `scripts/bundle-budget.ts` (the live chunk's budget, re-set by D-178's rule).
+  - **Done when:** the tests above; `npm run bundle:budget` shows the live chunk within its re-set budget; `live.spec.ts`'s follow case asserts the strip line.
+
+- [ ] **R45 — The legend, the fit rule and the arc states in the dome and polar views**
+  - **Lane:** chart
+  - **Model:** fable
+  - **Gate:** owner
+  - **Depends on:** R37, R40
+  - **Goal:** The drawings carry keys instead of text, fill their box, and can draw a pass in any of the five arc states.
+  - **Satisfies:** FR-LEG-1, FR-LEG-2, FR-LEG-4, FR-LEG-5 (the legend component and its placement); FR-COMP-5, FR-DOME-1 as amended (the box and the fit rule); FR-TRAJ-1 and FR-TRAJ-3 for the dome and polar (the drawing per state); FR-DOME-4, FR-DOME-6 as amended; US-23 AC1, AC2, AC4, AC5. **Advances** FR-LEG-3 (the detail's table, R51) and FR-TRAJ-1 on the live page (R48).
+  - **Scope (PLAN D-186, D-187, D-189, §8.9):** `lib/legend.ts` (`legendRows`), `lib/arcReveal.ts` (`arcState`, `cutTrack`; the constants in `physics/constants.ts` — one additive hunk, named below), `SkyChart.types.ts` gains `legendKeys` and `passes[i].arc` (default `'full'`), `skychart/Legend.tsx`, `ChartFrame.tsx` owning the box (full-bleed and square on compact; the live height floor through a `ResizeObserver`) and the legend's slot (under on compact, a 24-cell column on wide); `camera.ts` `zoom = min(width / 2.4, height / 1.6)`; the dome's name and time hotspots and the polar's name and time `<text>` removed, the key drawn at each peak; `domeGeometry` and `SkyPolar` draw `live` as the cut track solid, `ahead` dotted faint, `linger` faint, `hidden` not at all. The raster snapshot re-baked once; the D-172 rate re-measured at 390 px and recorded.
+  - **Touches outside the lane:** `src/physics/constants.ts` (`ARC_LOOKAHEAD_MS`, `ARC_LINGER_MS`, additive), `src/i18n/{en,es}/chart.ts`.
+  - **Done when:**
+    - The contract test's new assertions: each view draws each pass's key once at the peak and no other text than compass and ring labels; the legend lists the same passes in the same order in both views.
+    - `camera.test.ts`: extent ≥ 90 % of the shorter side at 390 × 390 and 1240 × 450.
+    - `arcReveal.test.ts` at the five boundaries; each view's geometry test per state.
+    - Captures: the pass detail at 390 px (full-bleed square, legend under) and 1280 px (legend beside), both themes, both languages; the D-172 figure in the summary ≥ 30/s.
+
+- [ ] **R46 — ui findings A: the readiness line, the nights and the place picker offline**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R42
+  - **Findings:** F-21, F-22, F-23, F-24, F-25, F-26, F-27, F-28
+  - **Goal:** R27's eight open findings closed.
+  - **Satisfies:** FR-FIX-1 for the ui lane, part one.
+  - **Scope:** no readiness verdict before the first requests settle on a warm start (F-21); the offline notice keyed to the picker's own query, not the restored label (F-22); `offlineUntil` compared with now (F-23); night overrides reset per run (F-24); the heading count excludes the hero pass (F-25); "tomorrow night" from the observer's calendar day (F-26); the readiness stamp carries the zone (F-27); the Spanish offline sentence reworded so it cannot read as the opposite state (F-28, owner reads it).
+  - **Touches outside the lane:** none.
+  - **Done when:** a test per finding; captures of the readiness line and the night headings at 390 px in Spanish.
+
+- [ ] **R47 — The sky window view**
+  - **Lane:** window
+  - **Model:** fable
+  - **Gate:** owner
+  - **Depends on:** R38, R45
+  - **Precondition:** `docs/window/FINDINGS.md`
+  - **Goal:** Hold the phone up and see the passes in the part of the sky it points at.
+  - **Satisfies:** FR-WIN-1, FR-WIN-2, FR-WIN-4, FR-WIN-5, FR-WIN-3 (the three-angle rotation and smoothing; the declination comes from R44 through `compassHeading.ts`); FR-GUIDE-2b as amended; US-21 AC1..AC4, AC7. **Advances** FR-WIN-6 (R48).
+  - **Scope (PLAN D-188, §8.10):** `skychart/window/projection.ts` (pure; the spike's projection and `WINDOW_FOV`), `useDeviceOrientation.ts` (heading, pitch, roll; D-175's permission path; `WINDOW_SMOOTHING`; one update per frame), `SkyWindow.tsx` (SVG: horizon with compass names, altitude lines and zenith mark, azimuth ticks, arcs clipped to the field with markers and keys, live marker and flown part, Sun and Moon; the legend through `ChartFrame`); registered in `SKY_CHART_VIEWS` with `available()`; `chartView` accepts `'window'`; `[ point at the sky ]` in the window's place when saved and a gesture is needed.
+  - **Touches outside the lane:** `SkyChart.tsx` (the registration, one hunk), `state/slices/prefs.ts` (`chartView`'s union), `src/i18n/{en,es}/window.ts`, `scripts/bundle-budget.ts`.
+  - **Done when:**
+    - `projection.test.ts` hand-computed points; the hook's permission, smoothing and rate tests; the contract test over three views.
+    - Playwright with `hasTouch` and stubbed orientation: the option present, the window drawn, the horizon moving with a synthetic event; without touch the option absent.
+    - Captures at 390 px, both themes, both languages, from the stubbed orientation; the rate figure in the summary.
+
+- [ ] **R48 — Live trajectories, the three-row stripe, the stepping control and window mode**
+  - **Lane:** live
+  - **Model:** fable
+  - **Gate:** owner
+  - **Depends on:** R38, R44, R45
+  - **Precondition:** `docs/window/FINDINGS.md`
+  - **Goal:** On the live page the tracks appear, grow and fade as time moves, and the stripe can be read and stepped on a phone.
+  - **Satisfies:** FR-TRAJ-1, FR-TRAJ-2, FR-TRAJ-3 (the live page's use of the states), FR-TRAJ-4, FR-TRAJ-5, FR-WIN-6, FR-LIVE-2, FR-LIVE-4, FR-LIVE-7 as amended; US-22 AC1..AC7; US-21 AC5. **Advances** FR-COMP-4 (the live rows, tested in R52).
+  - **Scope (PLAN D-189, D-190, §8.11):** `Live.tsx` sets `passes[i].arc` from `arcState(pass, t)` and passes `legendKeys`; the legend on the page; `TimeStripe` as three rows in body cells (labels every 2 h wide / 3 h compact with the date at midnight, band with hourly ticks, segments), `TimeReadout.tsx` above it; the stepping control the findings file names, on `usePlayback.stepTo`; `windowMode`: choosing the window dispatches `now()` and hides the stripe block and playback; the compact portrait layout per FR-LIVE-7 as amended (one-row header slot, the chart box taking the remaining height, two-line strip, at most two control rows, no drag hint).
+  - **Touches outside the lane:** `src/i18n/{en,es}/live.ts`, `tests/e2e/live.spec.ts`.
+  - **Done when:**
+    - e2e: scrubbing across one pass moves it through `ahead`, `live`, `linger`, gone, with the legend's state and the drawn segments following; playing at 3600× keeps the D-172 rate (measured, in the summary).
+    - The stripe's three rows and the readout in RTL tests in a fixed zone; the stepping lands within 1 min of a rise in ≤ 3 taps in Playwright with `hasTouch`.
+    - Window mode hides the stripe and playback and returns `t` to now; leaving restores them.
+    - Captures at 390 px portrait and 844 × 390 landscape, both themes, both languages.
+
+- [ ] **R49 — ui findings B: favourites and coordinates, the install and update offers, the Moon on the cards, the leftovers**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R46
+  - **Findings:** F-29, F-30, F-31, F-32, F-33, F-14, F-15, F-16, F-20
+  - **Goal:** R28's and R30's open findings closed, and the two stray files gone.
+  - **Satisfies:** FR-FIX-1 for the ui lane, part two; US-18 AC1 completed (F-14).
+  - **Scope:** picking a favourite reseeds `CoordsInput` (F-29); the update offer is inert under an open pass on wide too (F-30); the `beforeinstallprompt` listener lives outside the shell's mount (F-31); `prompt()` rejections caught (F-32); the first-visit e2e assertion waits for hydration (F-33); the phase name and illumination on the card and in the guide whenever the Moon is up, glare or not (F-14, owner reads the Spanish); the altitude condition parameterised like the other two (F-15); the debug script and the scratch Playwright config deleted and git-ignored (F-16, F-20).
+  - **Touches outside the lane:** `.gitignore`, `tests/e2e/*.spec.ts` (F-33).
+  - **Done when:** a test per finding; captures of a card with the Moon line at 390 px in Spanish.
+
+- [ ] **R50 — ui findings C: mid widths, the Escape guard, focus and `inert`, the breakpoint's font**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R49
+  - **Findings:** F-6, F-7, F-8, F-9, F-10, F-43, F-44, F-45
+  - **Goal:** R23's and R35's open findings closed, with the desktop usable at every wide width.
+  - **Satisfies:** FR-FIX-1 for the ui lane, part three; FR-DESK-3, FR-DESK-5 as amended; PLAN D-192.
+  - **Scope:** `lib/layout.ts` `WIDE_SPLIT_MIN_CELLS = 124` pinned by the breakpoint test; below it an open guide takes the right column and `GuidePanel` shows `[ list ]` (F-6); the `Escape` listener guarded by the picker's open state (F-7); `PassDetail` keyed by the pass so focus moves to the new heading (F-8); the list's height from the shell, not a fixed 34 rows (F-9); the breakpoint derivation measured from the actual font rather than assumed (F-10); the opener captured before `inert` blurs it (F-43); `moveCursor` confirms focus moved (F-44); `inert` covers the compact sheet's portal (F-45). `playwright.config.ts` gains `desktop-1024`; `wide.spec.ts` runs at both widths.
+  - **Touches outside the lane:** `playwright.config.ts`, `tests/e2e/wide.spec.ts`, `tests/styles/breakpoint.test.ts`.
+  - **Done when:** a test per finding; captures of the home and the guide at 1024 px and 1280 px, both themes, English.
+
+- [ ] **R51 — The pass detail's legend block and the share findings**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R45, R50
+  - **Findings:** F-17, F-18, F-19
+  - **Goal:** On the pass detail the table is the legend, and a share link no longer holds the page hostage.
+  - **Satisfies:** FR-LEG-3 (the detail), FR-GUIDE-7 as amended; US-23 AC3; FR-FIX-1 for the ui lane, part four.
+  - **Scope:** `PassNumbers.tsx` moves directly under the chart, takes the key and the swatch in its heading, adds the shadow-entry row where one applies, and is followed by one row per dim pass and one line each for the Sun and the Moon (all from `legendRows`); `GuideText` stays above the chart. A share link is consumed once and cleared from the hash when the user changes the observer (F-17); the substitute pass waits for `passes.status === 'done'` before opening (F-18); the altitude bounds shared from one module (F-19).
+  - **Touches outside the lane:** none (the legend rows come from `lib/legend.ts`, chart-owned and merged by R45).
+  - **Done when:** the detail's contract test (the table is the first legend block, one row per dim pass, the Sun and Moon lines); a test per finding; captures of the detail at 390 px and 1280 px, both themes, both languages.
+
+- [ ] **R52 — The settings page, the two headers, the location summary and the rows that fit**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R43, R51
+  - **Precondition:** `docs/mockups/compact-390-home-dark.png`
+  - **Goal:** On a phone the home screen is the answer, the form is one tap away, and nothing wraps.
+  - **Satisfies:** FR-COMP-1, FR-COMP-2, FR-COMP-3, FR-COMP-4, FR-DESK-2 as amended, US-5 AC2 as amended; US-20 AC1..AC6; PLAN D-184, D-193.
+  - **Scope:** `common/Header.tsx` with the wide row (title, `[ Live sky ]` beside it, language and theme at the right on one grid row) and the compact row (title, `[ live ]`, `[ settings ]`); `screens/Settings.tsx` at `#settings` composing the existing location, favourites, language and theme components; `passSelection.ts` parses the third route; `Esc` through the D-73 listener; `common/LocationSummary.tsx` on the compact home; `SortToggle` short labels on compact; `tests/styles/controlRows.test.ts` over every FR-COMP-4 row in both locales (the live page's rows included, rendered from R48's components).
+  - **Touches outside the lane:** none.
+  - **Done when:**
+    - RTL: `#settings` renders; each control writes the store field it wrote on the home screen; `Esc`, back and the hash round-trip; the wide layout shows no `#settings` link and its header row is one grid line.
+    - `controlRows.test.ts` ≤ 36 cells for every row in both locales.
+    - e2e at 390 px: header, summary, settings, and the sort row on one line; at 1280 px the live link beside the title.
+    - Captures of home, settings and the wide header, both themes, both languages, against the R43 mockups.
+
+- [ ] **R53 — v1.1 release preparation**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R41, R47, R48, R52
+  - **Goal:** v1.1 is releasable: every finding accounted for, the capture set extended, the budgets re-set, the version bumped.
+  - **Satisfies:** SPEC §9 Phase 2b definition of done; FR-FIX-1's "none silently open".
+  - **Scope:** `captureSet.ts` gains the settings page, the window (stubbed orientation), the legend states and the 1024 px profile; `captures.yml` re-shoots on `main`; `tests/docs/captures.test.ts` matches; `bundle-budget.ts` re-set by D-178's rule; `docs/RELEASE.md` gains the phone checks (the window on a real iPhone and Android, the FR-GUIDE-6 and FR-LIVE-5 rates); a table in the summary listing F-1..F-50 with the commit or the Decision Log row that closed each; `package.json` 1.1.0.
+  - **Touches outside the lane:** `tests/e2e/captureSet.ts`, `tests/docs/captures.test.ts`, `scripts/bundle-budget.ts`, `docs/RELEASE.md`, `package.json`.
+  - **Done when:** `npm test`, `npm run build`, `npm run bundle:budget` all `ok`; the `captures.yml` run on the merge is green; the findings table has no empty row; the owner tags `v1.1.0`.
+
+### Expected waves (v1.1)
+
+Computed from the graph with the driver's caps (one task per lane, three at once, concurrently). R38 is `interactive` and sits outside the driver's waves; R47 and R48 wait on its findings file.
+
+| Wave | Tasks | Lanes | Models |
+|---|---|---|---|
+| 1 | R37, R39, R40 | ui, live, chart | opus, opus, sonnet |
+| 1b | R41 (the fourth ready task; picked up by the next `--wave`) | data | sonnet |
+| 2 | R42, R44, R45 | ui, live, chart | sonnet, opus, fable |
+| 3 | R46, R43 | ui, docs | opus, opus |
+| 4 | R49, R47, R48 | ui, window, live | opus, fable, fable |
+| 5 | R50 | ui | opus |
+| 6 | R51 | ui | opus |
+| 7 | R52 | ui | opus |
+| 8 | R53 | ui | opus |
+
+The `ui` lane is again the long pole: eight of its tasks in a row, because the findings live where the bugs were and the settings page is the phase's last feature. Everything else is done by wave 4. If the owner wants the phone screens sooner, R52's dependency on R51 can be dropped at the cost of two rebases on `App.tsx`; the findings tasks would then follow it. Model spend: five of seventeen sessions on Sonnet, three on Fable, one interactive, the rest on Opus; reviews are Sonnet on the eleven `Gate: owner` tasks.
+
+No two tasks in one wave name the same shared file: R37 and R39 both touch `tests/e2e/live.spec.ts` only through R37's `seedStoredRun` switch, which is one additive import per spec; the driver's rebase settles it. `src/physics/constants.ts` is touched by R45 alone. From R42 on the catalogs are per lane.
+
+### Requirement coverage (v1.1)
+
+| Requirement | Tasks |
+|---|---|
+| FR-FLAG-1, 2 | R42 |
+| FR-COMP-1, 2, 3, 4 | R52 |
+| FR-COMP-5 | R45 |
+| FR-COMP-6 | R43 |
+| FR-LEG-1, 2, 4, 5 | R45 |
+| FR-LEG-3 | R51 (the detail), R48 (the live page's rows) |
+| FR-WIN-1, 2, 4, 5 | R47 |
+| FR-WIN-3 | R44 (declination), R47 (the rotation) |
+| FR-WIN-6 | R48 |
+| FR-WIN-7 | R38 |
+| FR-TRAJ-1, 3 | R45 (the views), R48 (the live page) |
+| FR-TRAJ-2, 4, 5 | R48 |
+| FR-FIX-1 | R39, R40, R41, R46, R49, R50, R51, R44 (F-41), R53 (the table) |
+| FR-FIX-2 | R37 |
+| FR-CI-1, 2, 3 | R37 |
+| FR-DESK-2 amended | R52 |
+| FR-DESK-3, 5 amended | R50 |
+| FR-DOME-1, 4, 6 amended | R45 |
+| FR-GUIDE-2b amended | R47 |
+| FR-GUIDE-7 amended | R51 |
+| FR-LIVE-2, 4, 7 amended | R48 |
+| FR-LIVE-6 amended | R45 (the reason as a legend state), R48 |
+| FR-LIVE-8 amended | R39 (hidden on polar), R44 (true north) |
+| FR-MOON-4 amended | R42 |
+| US-5 AC2 amended | R52 |
+| Spec §9 Phase 2b done | R53 |
+
+| Story | Tasks |
+|---|---|
+| US-20 — Set things up on a phone | R43 (the mockup), R52 |
+| US-21 — Point my phone at the sky | R38 (the spike), R44 (true north), R47 (the view), R48 (window mode) |
+| US-22 — Watch the trajectories appear | R38 (the stepping), R45 (the states in the views), R48 |
+| US-23 — Read the chart by its legend | R45 (the legend and the keys), R51 (the detail's table), R48 (the live page) |
+
+### Dependency graph (v1.1)
+
+```mermaid
+flowchart LR
+  R37 --> R42 & R43 & R44 & R45
+  R39 --> R44
+  R40 --> R45
+  R42 --> R46
+  R46 --> R49
+  R49 --> R50
+  R50 --> R51
+  R45 --> R47 & R48 & R51
+  R38 --> R47 & R48
+  R44 --> R48
+  R43 --> R52
+  R51 --> R52
+  R41 & R47 & R48 & R52 --> R53
 ```

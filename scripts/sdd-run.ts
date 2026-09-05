@@ -19,7 +19,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { helpText, parseArgs, type Options } from './sdd/cli';
 import { modelFor, parseTasks, type Task } from './sdd/tasks';
-import { addWorktree, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, fetchOrigin, installDeps, labelPullRequest, mergePullRequest, openPullRequests, push, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
+import { addWorktree, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, fetchOrigin, fileExistsAtRef, installDeps, labelPullRequest, mergePullRequest, openPullRequests, push, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
 import { consoleLogger, openTaskLog, writeRunReport, type Logger, type RunReport, type TaskReport } from './sdd/report';
 import { IMPLEMENT_TOOLS, REVIEW_TOOLS, runSession } from './sdd/session';
 import { refusalFor, selectWave, statusOf, type TaskStatus } from './sdd/waves';
@@ -66,21 +66,27 @@ async function readFacts(options: Options, logger: Logger): Promise<{ statuses: 
     const pr = prsByBranch.get(task.branch);
     if (pr !== undefined) openPrs.set(task.id, pr);
   }
-  return { statuses: statusOf({ tasks, openPrs, remoteBranches: branches }), problems };
+  // §16.3 `Precondition:`: read once per path from origin/main; with --tasks-file nothing is checked.
+  const present = new Map<string, boolean>();
+  if (!options.tasksFile) for (const task of tasks) if (task.precondition !== null && !present.has(task.precondition)) present.set(task.precondition, await fileExistsAtRef(BASE, task.precondition, logger));
+  const fileOnMain = options.tasksFile ? undefined : (path: string): boolean => present.get(path) ?? false;
+  return { statuses: statusOf({ tasks, openPrs, remoteBranches: branches, ...(fileOnMain ? { fileOnMain } : {}) }), problems };
 }
 
 function printStatus(statuses: readonly TaskStatus[], problems: readonly string[], logger: Logger): void {
   const counts = new Map<string, number>();
   for (const status of statuses) counts.set(status.state, (counts.get(status.state) ?? 0) + 1);
   logger.line(`\n${String(statuses.length)} tasks`);
-  for (const state of ['merged', 'in-review', 'ready', 'blocked', 'failed']) logger.line(`  ${state.padEnd(10)} ${String(counts.get(state) ?? 0)}`);
+  for (const state of ['merged', 'in-review', 'ready', 'blocked', 'failed', 'owner-driven']) logger.line(`  ${state.padEnd(10)} ${String(counts.get(state) ?? 0)}`);
   logger.line('');
-  for (const { task, state, missingDeps, blockers, pr } of statuses) {
+  for (const { task, state, missingDeps, blockers, missingPrecondition, pr } of statuses) {
     const notes = [
       task.lane ? `lane ${task.lane}` : null,
       task.gate ? `gate ${task.gate}` : null,
-      state === 'merged' ? null : `model ${modelFor(task)}`,
+      state === 'merged' ? null : `model ${task.model === 'interactive' ? 'interactive' : modelFor(task)}`,
       missingDeps.length > 0 ? `waiting on ${missingDeps.join(', ')}` : null,
+      missingPrecondition !== null ? `waiting for ${missingPrecondition}` : null,
+      task.findings.length > 0 && state !== 'merged' ? `closes ${task.findings.join(', ')}` : null,
       pr !== null ? `PR #${String(pr)}` : null,
       blockers.length > 0 && state !== 'merged' ? `breakdown bug: ${blockers.join(', ')}` : null,
     ].filter(Boolean);

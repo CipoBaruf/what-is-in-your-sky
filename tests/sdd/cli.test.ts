@@ -22,8 +22,10 @@ describe('parseArgs', () => {
 
   it('refuses --model on a wave, and a model the policy does not know', () => {
     expect(() => parseArgs(['--wave', '--model', 'opus'])).toThrow(/--model is for --task only/);
-    expect(() => parseArgs(['--task', 'R22', '--model', 'sonnet'])).toThrow(/one of opus, fable/);
-    expect(() => parseArgs(['--task', 'R22', '--model'])).toThrow(/one of opus, fable/);
+    expect(() => parseArgs(['--task', 'R22', '--model', 'interactive'])).toThrow(/one of opus, fable, sonnet, haiku/);
+    expect(() => parseArgs(['--task', 'R22', '--model', 'gemini'])).toThrow(/one of opus, fable, sonnet, haiku/);
+    expect(() => parseArgs(['--task', 'R22', '--model'])).toThrow(/one of opus, fable, sonnet, haiku/);
+    expect(parseArgs(['--task', 'R22', '--model', 'sonnet'])).toMatchObject({ model: 'sonnet' });
   });
 
   it('keeps the old refusals', () => {
