@@ -44,6 +44,11 @@ export interface Budget {
  * import in `useSkyBodies` (D-148). It is budgeted for the same reason as the
  * service worker and unlike the other lazy rows: the app really does fetch it,
  * once a chart is on screen. It measured 22.0 KB in R22.
+ *
+ * R32 adds the live route at ≤ 40 KB (PLAN §11): `screens/Live.tsx` and the
+ * status strip, split out by the `React.lazy` in `App.tsx`, so the home page
+ * pays nothing for a page it may never open. The chart, the astronomy and the
+ * catalogs it uses are already in their own chunks.
  */
 export const BUDGETS: readonly Budget[] = [
   { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 170 },
@@ -51,6 +56,7 @@ export const BUDGETS: readonly Budget[] = [
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 120 },
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 15 },
   { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 30 },
+  { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 40 },
 ];
 
 export interface ChunkSize {

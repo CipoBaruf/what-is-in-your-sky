@@ -86,6 +86,34 @@ describe('lineLayer (FR-DOME-8b)', () => {
     const meshes = lineLayer({ passes: [pass], highlightedPassId: pass.id, now: undefined, palette: null });
     expect(meshes.flatMap((mesh) => mesh.polygons).every((poly) => poly.color === undefined)).toBe(true);
   });
+
+  /** FR-LIVE-2 (R32, D-158): the live page's colouring, one series colour per pass in pass order, every arc at full weight. */
+  it('colours every arc from the series in pass order with colorBy="pass", cycling after the sixth, and none is dim', () => {
+    const many: Pass[] = Array.from({ length: 8 }, (_, i) => ({ ...pass, id: `p${String(i)}`, start: { ...pass.start, t: pass.start.t + i * 600_000 } }));
+    const meshes = lineLayer({ passes: many, highlightedPassId: null, now: undefined, palette, colorBy: 'pass' });
+    const colorOf = (id: string): string | undefined => meshes.find((mesh) => mesh.id === `pass-${id}`)?.polygons[0]?.color;
+    expect(many.map((p) => colorOf(p.id))).toEqual(['series1', 'series2', 'series3', 'series4', 'series5', 'series6', 'series1', 'series2']);
+    // Full weight: a series arc has the highlighted strip's polygon count, not the dim strip's.
+    const highlighted = lineLayer({ passes: [pass], highlightedPassId: pass.id, now: undefined, palette }).find((mesh) => mesh.id === `pass-${pass.id}`);
+    const series = meshes.find((mesh) => mesh.id === 'pass-p0');
+    expect(series?.polygons.length).toBe(highlighted?.polygons.length);
+  });
+
+  it('keeps the guide reading by default: highlightedPassId decides the colour, not the position', () => {
+    const meshes = lineLayer({ passes: [other, pass], highlightedPassId: pass.id, now: undefined, palette });
+    expect(meshes.find((mesh) => mesh.id === `pass-${pass.id}`)?.polygons[0]?.color).toBe('highlighted');
+    expect(meshes.find((mesh) => mesh.id === 'pass-other')?.polygons[0]?.color).toBe('dim');
+  });
+});
+
+describe('domeLabels with colorBy="pass" (FR-LIVE-2)', () => {
+  it('names every arc at its rise in its series colour, and explains none with peak or end labels', () => {
+    const labels = domeLabels(input({ passes: [pass, other], highlightedPassId: null, colorBy: 'pass' }));
+    expect(byId(labels, `${pass.id}-rise`)?.color).toBe('series1');
+    expect(byId(labels, 'other-rise')?.color).toBe('series2');
+    expect(labels.filter((label) => label.kind === 'peak' || label.kind === 'end')).toEqual([]);
+    expect(labels.filter((label) => label.kind === 'rise').every((label) => label.highlighted)).toBe(true);
+  });
 });
 
 describe('the two layers together', () => {

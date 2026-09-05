@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { Observer, Pass } from '../model';
 import {
   SAME_PASS_TOLERANCE_MS,
+  isLiveRoute,
   isoInstant,
+  liveLinkFromHash,
   liveLinkHash,
   nearestPassOf,
   observerFromLink,
@@ -113,6 +115,25 @@ describe('the live link (FR-LIVE-9)', () => {
     expect(realTime).toBe('#live?lat=-38.93&lon=-67.99&alt=270');
     expect(parseHash(realTime)).toEqual({ kind: 'live', observer: OBSERVER, t: null });
   });
+
+  /** R32: a `t` that names no instant is real time, so the place in the link is still looked from. */
+  it('falls back to real time on a t it cannot read, and keeps the observer', () => {
+    for (const t of ['soon', '2026-02-30T00:00:00Z', '2026-09-02T03:04:05', '']) {
+      expect(parseHash(`#live?lat=-38.93&lon=-67.99&alt=270&t=${t}`), t).toEqual({ kind: 'live', observer: OBSERVER, t: null });
+    }
+    expect(liveLinkFromHash('#live?lat=-38.93&lon=-67.99&alt=270&t=soon')).toEqual({ kind: 'live', observer: OBSERVER, t: null });
+    expect(liveLinkFromHash('#live')).toBeNull();
+    expect(liveLinkFromHash(`#pass?lat=-38.93&lon=-67.99&alt=270&norad=25544&start=2026-09-02T03:04:05Z`)).toBeNull();
+  });
+
+  it('knows the live route with or without a readable link (FR-LIVE-1)', () => {
+    for (const hash of ['#live', 'live', '#live?', '#live?lat=-38.93', '#live?lat=-38.93&lon=-67.99&t=soon', liveLinkHash({ observer: OBSERVER, t: START })]) {
+      expect(isLiveRoute(hash), hash).toBe(true);
+    }
+    for (const hash of ['', '#', '#lives', '#live=1', '#pass=25544-1', '#livestream?lat=1&lon=2', `#pass?lat=-38.93&lon=-67.99&norad=25544&start=2026-09-02T03:04:05Z`]) {
+      expect(isLiveRoute(hash), hash).toBe(false);
+    }
+  });
 });
 
 describe('the selection hash of the MVP (D-13)', () => {
@@ -146,7 +167,7 @@ describe('a hash the app does not understand', () => {
     '#pass?lat=&lon=&norad=&start=',
     '#live',
     '#live?lat=-38.93',
-    '#live?lat=-38.93&lon=-67.99&t=soon',
+    '#live?lat=-99&lon=-67.99',
     '#elsewhere?lat=-38.93&lon=-67.99',
     '#lat=1&lon=2',
     '%%%',

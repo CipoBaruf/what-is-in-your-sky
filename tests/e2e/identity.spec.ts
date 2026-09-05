@@ -140,8 +140,8 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   // Place, coordinates, altitude, device button, clear, Now-panel badge, hero (open guide, cloud badge), two sort buttons, three night headings, ≥ 1 card × (open guide, badge), 3 footer links.
   expect(expected.length).toBeGreaterThanOrEqual(15);
   expect(expected).toContain('input:place');
-  // R17 and R20: the header's language and theme switches are the first four controls on the page, in that order.
-  expect(expected.slice(0, 4)).toEqual(['button:English', 'button:Español', 'button:Dark', 'button:Night']);
+  // R32: the live page's link opens the header's controls; R17 and R20: the language and theme switches follow it, in that order.
+  expect(expected.slice(0, 5)).toEqual(['a:Live sky', 'button:English', 'button:Español', 'button:Dark', 'button:Night']);
   expect(expected).toContain('button:Use my location');
   expect(expected).toContain('button:Clear saved location');
   expect(expected).toContain('button:Soonest first');
@@ -171,7 +171,7 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   await page.keyboard.press('Tab');
   expect(await page.evaluate(() => document.activeElement === document.body)).toBe(true);
   await page.keyboard.press('Tab');
-  expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('English');
+  expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('Live sky');
 });
 
 test('the hero card pins the next ISS pass; "best first" reorders the list and the choice survives a reload (US-5 AC2)', async ({ page }) => {

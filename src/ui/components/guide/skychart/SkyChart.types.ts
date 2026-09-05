@@ -28,6 +28,19 @@ export interface SkyChartProps {
   moon?: MoonState | null;
   /** Default: the highlighted pass's start azimuth (D-17). The polar view has no facing; the dome (R15) uses it. */
   initialFacingAzDeg?: number;
+  /**
+   * FR-LIVE-2 (R32, D-158): how the arcs are coloured. `highlight` (the
+   * default) is the guide's reading — the highlighted pass in the pass colour
+   * and the others dim. `pass` is the live page's: every arc at full weight in
+   * its own colour, the six `--chart-series-*` tokens taken in `passes` order.
+   */
+  colorBy?: 'highlight' | 'pass';
+  /**
+   * FR-LIVE-1 / PLAN §8.1 (R32): no caption, no square box — the drawing fills
+   * whatever box the caller gives the chart, the live page's whole viewport
+   * included. The guide's chart keeps the framed square and its sentence.
+   */
+  fill?: boolean;
   className?: string;
 }
 

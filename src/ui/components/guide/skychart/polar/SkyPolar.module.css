@@ -118,6 +118,48 @@
   stroke: var(--chart-pass-dim);
 }
 
+/* FR-LIVE-2 (R32, D-158): the live page's arcs, one colour per satellite in
+   pass order. The colour is a custom property set by `data-series`, so the
+   track, the arrow and the points read one declaration each, and the six
+   values are the `--chart-series-*` tokens and nothing else — the same
+   token swap the rest of the drawing gets in night mode (FR-THEME-3). */
+.series {
+  cursor: pointer;
+}
+
+.series[data-series='1'] {
+  --series: var(--chart-series-1);
+}
+
+.series[data-series='2'] {
+  --series: var(--chart-series-2);
+}
+
+.series[data-series='3'] {
+  --series: var(--chart-series-3);
+}
+
+.series[data-series='4'] {
+  --series: var(--chart-series-4);
+}
+
+.series[data-series='5'] {
+  --series: var(--chart-series-5);
+}
+
+.series[data-series='6'] {
+  --series: var(--chart-series-6);
+}
+
+.series .track,
+.series .point {
+  stroke: var(--series);
+}
+
+.series .arrow {
+  fill: var(--series);
+}
+
 /* FR-DOME-6: the Sun's glow on the horizon and the Moon's disc where it is.
    The glow's opacity is its strength, which is also its width and its height
    (`../bodies`), so a Sun nearing the horizon reads brighter without the

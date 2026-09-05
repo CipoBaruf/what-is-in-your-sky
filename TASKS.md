@@ -591,7 +591,7 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - Nothing swaps under an open pass or the live page.
     - Captures in both languages.
 
-- [ ] **R32 — The live page: full-screen dome, status strip and URL state**
+- [x] **R32 — The live page: full-screen dome, status strip and URL state**
   - **Lane:** live
   - **Model:** fable
   - **Gate:** owner
@@ -606,6 +606,7 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - Both inert states render one line and the return control.
     - The live chunk is within its budget and does not grow the main chunk beyond it.
     - Captures at 390 px and 1280 px in both themes.
+  - **Done 2026-09-04:** as specified, with five decisions (D-158..D-162) and one recorded lane crossing. The chart gained `colorBy="pass"`, `fill` and six `--chart-series-*` tokens per theme, because FR-LIVE-10 leaves the colouring to the chart and no chart task existed to add them (D-158; `skychart/**` is the `chart` lane's). The sky state comes from `lib/skyBodies.ts` beside the Sun and the Moon, restated over the physics thresholds and held to `physics/now.ts` by a sweep (D-159). The strip's count is the passes containing `t` — the markers on the dome — held to the Now panel at the golden instant (D-160). The dome's zoom follows the shorter side of its box, since a desktop's wide box cut off north (D-161). The route replaces the shell rather than covering it, and a link whose `t` cannot be read keeps its observer and opens at real time (D-162). Measured: main 129.9 KB, chart 96.9 KB, live 1.4 KB, astronomy 22.1 KB gzipped, all inside §11. Captures: `docs/screenshots/r32-live-{390,1280}-{dark,night}-en.png` and `r32-live-390-dark-es.png`. Left loose: the portrait page at 390 px gives the dome about 330 px (the top row wraps to three lines and the chart keeps its hint and readout rows), which R33's stripe and R34's landscape are the place to settle.
 
 - [ ] **R33 — The time stripe, playback and hidden objects**
   - **Lane:** live

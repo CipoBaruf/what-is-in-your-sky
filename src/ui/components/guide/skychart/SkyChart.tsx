@@ -50,19 +50,30 @@ export function viewFor(id: SkyChartView['id']): SkyChartView {
   return view;
 }
 
+/**
+ * R32 (FR-LIVE-1, FR-LIVE-10): with `fill` the chart is the live page's whole
+ * drawing. There is no single pass to caption — the page's status strip is
+ * the text alternative (FR-GUIDE-7) — so the figure carries a name instead of
+ * a caption, and it fills the box it is given rather than the guide's square.
+ */
 export function SkyChart(props: SkyChartProps) {
   const t = useT();
   const chartView = useAppStore((s) => s.chartView);
   const setChartView = useAppStore((s) => s.setChartView);
   const view = viewFor(chartView);
-  const { passes, highlightedPassId, observer, className } = props;
+  const { passes, highlightedPassId, observer, className, fill = false } = props;
   const captioned = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
   // FR-DOME-6: one evaluation for whichever view is mounted, so the toggle
   // never changes where the Sun and the Moon are (R22).
   const bodies = useSkyBodies(props);
   return (
-    <figure className={[styles.figure, className].filter(Boolean).join(' ')} data-testid="sky-chart" data-view={view.id}>
-      <figcaption className={styles.caption}>{captioned ? <GuideText pass={captioned} timeZone={observer.timeZone} /> : <p className={styles.empty}>{t.chart.noPass}</p>}</figcaption>
+    <figure
+      className={[styles.figure, fill ? styles.fill : undefined, className].filter(Boolean).join(' ')}
+      data-testid="sky-chart"
+      data-view={view.id}
+      {...(fill ? { 'aria-label': t.chart.liveLabel } : {})}
+    >
+      {!fill && <figcaption className={styles.caption}>{captioned ? <GuideText pass={captioned} timeZone={observer.timeZone} /> : <p className={styles.empty}>{t.chart.noPass}</p>}</figcaption>}
       {SKY_CHART_VIEWS.length > 1 && (
         <OptionToggle
           name={t.chart.viewGroup}

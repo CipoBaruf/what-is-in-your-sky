@@ -30,12 +30,28 @@ export const CHART_TOKENS = {
   moon: '--chart-moon',
   ground: '--chart-ground',
   sky: '--chart-sky',
+  // FR-LIVE-2 (R32): one colour per satellite on the live page, in pass order.
+  series1: '--chart-series-1',
+  series2: '--chart-series-2',
+  series3: '--chart-series-3',
+  series4: '--chart-series-4',
+  series5: '--chart-series-5',
+  series6: '--chart-series-6',
 } as const;
 
 export type DomeMeaning = keyof typeof CHART_TOKENS;
 export type DomePalette = Record<DomeMeaning, string>;
 
 export const MEANINGS = Object.keys(CHART_TOKENS) as readonly DomeMeaning[];
+
+/** The FR-LIVE-2 series, in the order passes take them. */
+export const SERIES_MEANINGS = ['series1', 'series2', 'series3', 'series4', 'series5', 'series6'] as const satisfies readonly DomeMeaning[];
+
+/** The series colour of the pass at `index`, cycling through the six (FR-LIVE-2: "assigned in pass order"). */
+export function seriesColor(palette: DomePalette, index: number): string {
+  const meaning = SERIES_MEANINGS[((index % SERIES_MEANINGS.length) + SERIES_MEANINGS.length) % SERIES_MEANINGS.length] ?? 'series1';
+  return palette[meaning];
+}
 
 /**
  * The palette in force on `probe`, or `null` if any meaning has no value —

@@ -11,8 +11,8 @@ import { observerFromCoords } from './place';
  *   carries everything the recipient's device needs to recompute the pass
  *   locally: no server, no shortener, no id that only means something here.
  * - `#live?lat=&lon=&alt=&t=` — a shared live moment (FR-LIVE-9), `t` absent
- *   for real time. R32 renders it; the grammar is here so both share actions
- *   are one round-trip test surface.
+ *   (or, since R32, unreadable) for real time. R32 renders it; the grammar is
+ *   here so both share actions are one round-trip test surface.
  *
  * Nothing in here throws on a hash it does not understand: a stranger's URL is
  * arbitrary text, and FR-SHARE-1's failure mode is the home screen, not an
@@ -238,13 +238,31 @@ export function parseHash(hash: string): AppHash | null {
   }
 
   if (route === 'live') {
+    // R32 (FR-LIVE-9): a `t` that names no instant falls back to real time
+    // rather than breaking the link — the place is still worth looking from.
     const raw = params.get('t');
-    if (raw === null || raw.trim() === '') return { kind: 'live', observer, t: null };
-    const t = parseIsoInstant(raw.trim());
-    return t === null ? null : { kind: 'live', observer, t };
+    const t = raw === null ? null : parseIsoInstant(raw.trim());
+    return { kind: 'live', observer, t };
   }
 
   return null;
+}
+
+/**
+ * R32 (FR-LIVE-1): whether the app is on the live page — `#live` on its own,
+ * or a `#live?…` link whether or not it parses. A link that parses also sets
+ * the observer (`parseHash`); one that does not still opens the page, which
+ * then says it has no observer to draw for.
+ */
+export function isLiveRoute(hash: string): boolean {
+  const text = hash.startsWith('#') ? hash.slice(1) : hash;
+  return text === 'live' || text.startsWith('live?');
+}
+
+/** The live link the hash carries, if it is one that parses (FR-LIVE-9). */
+export function liveLinkFromHash(hash: string): LiveLink | null {
+  const parsed = parseHash(hash);
+  return parsed?.kind === 'live' ? parsed : null;
 }
 
 /**

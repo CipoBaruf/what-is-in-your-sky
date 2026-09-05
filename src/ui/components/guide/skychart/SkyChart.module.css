@@ -8,6 +8,16 @@
   display: contents;
 }
 
+/* FR-LIVE-1 (R32): the live page's chart is as tall as its box; the view
+   toggle keeps its row and the view (whose frame is `display: contents`)
+   takes the rest. */
+.fill {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: calc(var(--row) / 2);
+}
+
 .empty {
   margin: 0;
   color: var(--fg-dim);

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { loadReferenceValues, referenceObserver } from '../../tests/support/reference';
+import { DEFAULT_THRESHOLDS } from '../physics/constants';
 import { moonAt } from '../physics/moon';
+import { skyState } from '../physics/now';
 import { sunAltitudeDeg, sunAt } from '../physics/sun';
-import { skyBodiesAt } from './skyBodies';
+import { skyBodiesAt, skyStateOf } from './skyBodies';
 
 /**
  * R22, FR-DOME-6: `skyBodies` is the main thread's one door to the astronomy
@@ -32,6 +34,15 @@ describe('skyBodiesAt', () => {
       expect({ azDeg: bodies.sun.azDeg, altDeg: bodies.sun.altDeg }).toEqual(sunAt(observer, t));
       expect(bodies.moon).toEqual(moonAt(t, observer));
     }
+  });
+
+  /** R32 (FR-LIVE-3, D-159): the sky state is restated here, so it is held to the worker's own function. */
+  it('names the sky exactly as physics/now.ts does, across the whole range of Sun altitudes', () => {
+    for (let alt = -90; alt <= 90; alt += 0.25) expect(skyStateOf(alt), String(alt)).toBe(skyState(alt, DEFAULT_THRESHOLDS));
+    for (const edge of [DEFAULT_THRESHOLDS.sunAltMaxDeg, DEFAULT_THRESHOLDS.twilightLabelSunAltDeg]) {
+      for (const alt of [edge - 1e-9, edge, edge + 1e-9]) expect(skyStateOf(alt), String(alt)).toBe(skyState(alt, DEFAULT_THRESHOLDS));
+    }
+    expect(skyBodiesAt(ref.t, observer).sky).toBe(skyState(sunAltitudeDeg(observer, ref.t), DEFAULT_THRESHOLDS));
   });
 
   it('moves both bodies with the instant: the Sun by about 15° of azimuth an hour, the Moon by about half a degree of sky', () => {

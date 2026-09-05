@@ -89,6 +89,18 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
     rerender(<SkyChart {...props({ passes: [] , highlightedPassId: null })} />);
     expect(screen.getByRole('figure')).toHaveTextContent('No pass to draw.');
   });
+
+  /** FR-LIVE-1 / FR-LIVE-10 (R32): the live page's chart is the same component, named rather than captioned, filling its box. */
+  it('with fill: no caption, a named figure, the frame in fill mode, and the same labelled anchors', async () => {
+    const { container } = render(<SkyChart {...props({ fill: true, highlightedPassId: null, colorBy: 'pass' })} />);
+    const figure = screen.getByRole('figure', { name: 'The whole sky at the shown instant' });
+    expect(figure.querySelector('figcaption')).toBeNull();
+    expect(screen.queryByTestId('guide-sentence')).toBeNull();
+    expect(container.querySelector('[data-testid="chart-frame"]')).toHaveAttribute('data-fill', 'true');
+    for (const label of ANCHORS) expect(container.querySelector(`[data-anchor="${label}"]`), label).not.toBeNull();
+    expect(container.querySelector('[data-anchor="pass"]')?.textContent).toContain(pass.name);
+    expect(await axe(container)).toHaveNoViolations();
+  });
 });
 
 describe('<SkyChart> view choice (US-6 AC5)', () => {
