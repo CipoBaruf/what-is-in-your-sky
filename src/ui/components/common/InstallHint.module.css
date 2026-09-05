@@ -1,0 +1,19 @@
+/* Bracketed text controls inside the hint's sentence, like the location
+   section's clear action; `inline-control` (global.css) gives them the 48 px box. */
+.action {
+  color: var(--accent);
+  background: none;
+  border: 0;
+  padding-inline: 0;
+  min-height: 0;
+}
+
+.action::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.action::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
