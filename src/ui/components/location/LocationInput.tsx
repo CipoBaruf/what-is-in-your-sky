@@ -3,6 +3,7 @@ import { useT } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
 import { SectionHeading } from '../common/SectionHeading';
 import { CoordsInput, coordsLabel } from './CoordsInput';
+import { Favourites } from './Favourites';
 import styles from './LocationInput.module.css';
 import { PlacePicker, type PlaceSearchFn } from './PlacePicker';
 import { accuracyText, UseMyLocation, type GeolocationEnv } from './UseMyLocation';
@@ -17,6 +18,12 @@ import { accuracyText, UseMyLocation, type GeolocationEnv } from './UseMyLocatio
  * (the restored one) and remounted empty when the saved location is cleared;
  * focus then moves to the place field, since the button it was on is gone.
  * R12: the section is titled by a character-rule heading (FR-X-6).
+ * R28: the saved places (FR-OFF-7) close the section — they are how the
+ * location is chosen once there are some, so they belong with the inputs that
+ * choose it. They read the store themselves rather than arriving as props: the
+ * observer is only half of what they need and every operation is the store's
+ * (D-139), so a prop for each would be four to pass through this component
+ * untouched.
  */
 export const COORDS_INPUT_ID = 'coords';
 export const PLACE_INPUT_ID = 'place';
@@ -73,6 +80,8 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
         </p>
       )}
       <p className={styles.note}>{t.location.precisionNote}</p>
+      {/* R28 (FR-OFF-7, US-17): the saved places, below the inputs and the notes about them. */}
+      <Favourites />
     </section>
   );
 }

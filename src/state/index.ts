@@ -30,6 +30,13 @@ export { DEFAULT_MOON_GLARE_THRESHOLDS } from '../physics/constants';
  */
 export { MOON_LORE, fullMoonName, phaseLore, signAtLongitude } from '../data/moon';
 export type { FullMoonName, MoonPhaseLore, ZodiacSign, ZodiacSignEntry } from '../data/moon';
+/**
+ * R28 (FR-OFF-7): which saved place the active observer *is*. The answer is
+ * `data/favourites.ts`'s cell key (D-138) and there must not be a second one,
+ * so the panel that marks the entry in use reaches it through here rather than
+ * comparing coordinates of its own (PLAN §3: `src/ui` never imports `src/data`).
+ */
+export { favouriteCellKey } from '../data/favourites';
 /** R9: place-name search (PLAN §7.2, session-cached in `src/data`), handed to the UI through `src/state` so `src/ui` never imports `src/data` (PLAN §3). */
 export { searchPlaces };
 export type PlaceSearch = typeof searchPlaces;
