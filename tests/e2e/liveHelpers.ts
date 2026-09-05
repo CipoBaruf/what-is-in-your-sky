@@ -140,9 +140,11 @@ export async function seedStoredRun(page: Page, { locale = 'en', prefs = {}, set
       };
     });
   }, STORED_RUN);
+  // Only when nothing is saved yet: an init script runs on every navigation, and a seed that
+  // overwrote the key each time would undo the preferences a test then sets and reloads to check.
   await page.addInitScript(
     ([key, value]: [string, string]) => {
-      localStorage.setItem(key, value);
+      if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
     },
     [PREFS_KEY, JSON.stringify({ locale, observer: NEUQUEN_OBSERVER, ...prefs })] as [string, string],
   );
