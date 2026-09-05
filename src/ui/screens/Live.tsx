@@ -18,6 +18,7 @@ import { TimeStripe } from '../components/live/TimeStripe';
 import { useHiddenObjects } from '../components/live/useHiddenObjects';
 import { usePlayback } from '../components/live/usePlayback';
 import { useSkyBands } from '../components/live/useSkyBands';
+import { useWakeLock } from '../components/live/useWakeLock';
 import { useWallThrottle } from '../components/live/useWallThrottle';
 import { useNow } from '../hooks/useNow';
 import styles from './Live.module.css';
@@ -96,9 +97,11 @@ export function LivePage({ link, onLeave }: LivePageProps) {
   }, [onLeave]);
 
   const inert = observer === null ? t.live.noObserver : elements.status !== 'ready' ? t.live.noElements : null;
+  // R34 (FR-LIVE-7): the screen stays awake while there is a sky to watch; an inert page asks for nothing.
+  const wakeLock = useWakeLock(inert === null);
 
   return (
-    <div className={styles.page} data-testid="live-page" data-state={inert === null ? 'live' : 'inert'}>
+    <div className={styles.page} data-testid="live-page" data-state={inert === null ? 'live' : 'inert'} data-wake-lock={wakeLock}>
       <div className={styles.topRow}>
         <button type="button" className={styles.back} onClick={onLeave}>
           {t.live.back}
