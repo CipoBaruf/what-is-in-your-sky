@@ -19,12 +19,15 @@ const DOME = 'src/ui/components/guide/skychart/dome/**';
 const NO_CANVAS_WEBGL = { group: ['*canvas*', '*webgl*'], caseSensitive: false, message: 'No canvas / WebGL (FR-GUIDE-5, PLAN §3).' };
 /** D-16: `@glyphcss/react` is confined to the dome directory. */
 const NO_GLYPHCSS = { name: '@glyphcss/react', message: `Only ${DOME} may import @glyphcss/react (PLAN §3, D-16).` };
+/** R44 / D-185: the World Magnetic Model is confined to `lib/declination.ts`, the one module that evaluates it. */
+const DECLINATION = 'src/lib/declination.ts';
+const NO_GEOMAGNETISM = { name: 'geomagnetism', message: `Only ${DECLINATION} may import geomagnetism (PLAN §3, D-185).` };
 const NO_REACT = { group: ['react', 'react-dom', 'react/*', 'react-dom/*'], message: 'This directory must not import React (PLAN §3).' };
 
 /** `no-restricted-imports` is not merged across config blocks, so every block restates the app-wide bans. */
 const restrictedImports = (extra = {}) => [
   'error',
-  { paths: [NO_GLYPHCSS, ...(extra.paths ?? [])], patterns: [NO_CANVAS_WEBGL, ...(extra.patterns ?? [])] },
+  { paths: [NO_GLYPHCSS, NO_GEOMAGNETISM, ...(extra.paths ?? [])], patterns: [NO_CANVAS_WEBGL, ...(extra.patterns ?? [])] },
 ];
 
 const zone = (target, from, except) => ({ target: `./${target}`, from: `./${from}`, ...(except ? { except } : {}), message: `${target} must not import ${from} (PLAN §3).` });
@@ -100,6 +103,21 @@ export default defineConfig([
       '@typescript-eslint/no-restricted-imports': restrictedImports({
         patterns: [NO_REACT, { group: ['**/physics/**', '**/physics'], allowTypeImports: true, message: 'src/lib may import physics types only (PLAN §3).' }],
       }),
+    },
+  },
+  {
+    // R44 / D-185: the one module allowed to import `geomagnetism`. Everything
+    // else in `src/lib` keeps the rule above; this block restates it without
+    // the World Magnetic Model on the list.
+    files: [DECLINATION],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: [NO_GLYPHCSS],
+          patterns: [NO_CANVAS_WEBGL, NO_REACT, { group: ['**/physics/**', '**/physics'], allowTypeImports: true, message: 'src/lib may import physics types only (PLAN §3).' }],
+        },
+      ],
     },
   },
   {
