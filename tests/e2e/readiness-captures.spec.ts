@@ -105,6 +105,30 @@ test('the wide page carries both at once, in both languages and both themes', as
   }
 });
 
+test('the other half of the line: what is missing, with the storage time under it', async ({ page }) => {
+  await offlineHome(page, 390, 'en');
+  // The elements are dropped from IndexedDB, so the offline reload has nothing to recompute from: the
+  // stored run stays on screen as stored, which is the only settled state that carries a storage time.
+  await page.evaluate(
+    async () =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('wiys');
+        open.onerror = () => reject(new Error('could not open the wiys database'));
+        open.onsuccess = () => {
+          const tx = open.result.transaction('elementGroups', 'readwrite');
+          tx.objectStore('elementGroups').clear();
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(new Error('could not clear elementGroups'));
+        };
+      }),
+  );
+  await page.reload();
+  await expect(page.getByTestId('readiness')).toHaveText('Not ready offline: no orbital elements stored yet.');
+  await expect(page.getByTestId('readiness-stored')).toHaveText(/^Stored \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+  await page.getByTestId('readiness').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: 'test-results/r27-not-ready-390-dark-en.png' });
+});
+
 test('the place field says it is offline, in both languages', async ({ page, context }) => {
   for (const locale of ['en', 'es'] as const) {
     await offlineHome(page, 390, locale);
