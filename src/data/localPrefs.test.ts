@@ -108,6 +108,17 @@ describe('createLocalPrefs', () => {
     expect(prefs.read()).toEqual({ theme: 'night' });
   });
 
+  it('reads the live page hidden-objects flag as a boolean and drops anything else (R33, FR-LIVE-6)', () => {
+    const storage = memoryStorage();
+    const prefs = createLocalPrefs(storage);
+    prefs.write({ theme: 'night', liveHidden: true });
+    expect(prefs.read()).toEqual({ theme: 'night', liveHidden: true });
+    prefs.write({ liveHidden: false });
+    expect(prefs.read()).toEqual({ liveHidden: false });
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night', liveHidden: 'yes' }));
+    expect(prefs.read()).toEqual({ theme: 'night' });
+  });
+
   it('reads at most eight places, newest use first, whatever the stored list says (R26, D-85)', () => {
     const storage = memoryStorage();
     const prefs = createLocalPrefs(storage);

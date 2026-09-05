@@ -1,0 +1,59 @@
+/* R33 (FR-LIVE-5, FR-LIVE-6): one row of text controls, wrapping on a phone.
+   The actions read `[ Play ]` like the return control and the share action;
+   the hidden-objects toggle reads `[x]` / `[ ]` like every other text toggle
+   (FR-X-5: the state is in the characters, not only the colour). */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--cell);
+}
+
+/* D-172: the four speeds are 34 cells with no gap between them, which is what
+   keeps them on one line of a 36-cell phone; each option keeps its own cell of
+   padding, so they still read as four. */
+.speeds {
+  gap: 0;
+}
+
+.action {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+}
+
+.action::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.action::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+.action:disabled {
+  color: var(--fg-dim);
+}
+
+.toggle {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--fg-dim);
+}
+
+.toggle::before {
+  content: '[ ] ';
+  color: var(--fg-dim);
+}
+
+.toggle[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+.toggle[aria-pressed='true']::before {
+  content: '[x] ';
+  color: var(--accent);
+}

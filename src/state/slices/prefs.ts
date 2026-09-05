@@ -63,6 +63,9 @@ export interface PrefsSlice {
   /** The palette (FR-THEME-1), `dark` unless saved otherwise. */
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  /** R33 (FR-LIVE-6): whether the live page draws the hidden objects dimmed. Off unless saved otherwise. */
+  liveHidden: boolean;
+  setLiveHidden: (liveHidden: boolean) => void;
   /** The saved places (FR-OFF-7), newest use first, eight at most. Empty until one is saved. */
   favourites: Favourite[];
   /** Saves the observer under its own label, or refreshes the place already saved for its cell (D-138). */
@@ -115,6 +118,11 @@ export const createPrefsSlice =
       setTheme: (theme) => {
         set({ theme });
         deps.prefs.write({ ...deps.prefs.read(), theme });
+      },
+      liveHidden: deps.prefs.read().liveHidden ?? false,
+      setLiveHidden: (liveHidden) => {
+        set({ liveHidden });
+        deps.prefs.write({ ...deps.prefs.read(), liveHidden });
       },
       favourites: deps.prefs.read().favourites ?? [],
       addFavourite: (observer) => {

@@ -34,6 +34,8 @@ export interface Prefs {
   locale?: Locale;
   theme?: Theme;
   favourites?: Favourite[];
+  /** R33 (FR-LIVE-6): whether the live page draws the hidden objects. Absent until the toggle is used; off by default. */
+  liveHidden?: boolean;
   /** FR-OFF-6: the install hint has been answered and is not offered again. Absent until then. */
   installHintDismissed?: boolean;
 }
@@ -53,6 +55,7 @@ const storedPrefsSchema = z.object({
   chartOrientation: z.enum(['looking-up', 'map']).optional().catch(undefined),
   locale: z.enum(['en', 'es']).optional().catch(undefined),
   theme: z.enum(['dark', 'night']).optional().catch(undefined),
+  liveHidden: z.boolean().optional().catch(undefined),
   // `.catch(null)` per item, not on the array: a malformed favourite becomes a hole that is
   // filtered out, where a schema on the array alone would drop all eight for one bad entry.
   favourites: z
@@ -76,7 +79,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!raw) return {};
         const parsed = storedPrefsSchema.safeParse(JSON.parse(raw));
         if (!parsed.success) return {};
-        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, installHintDismissed } = parsed.data;
+        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, installHintDismissed } = parsed.data;
         const prefs: Prefs = {};
         if (observer) prefs.observer = toObserver(observer);
         if (sort) prefs.sort = sort;
@@ -84,6 +87,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (chartOrientation) prefs.chartOrientation = chartOrientation;
         if (locale) prefs.locale = locale;
         if (theme) prefs.theme = theme;
+        if (liveHidden !== undefined) prefs.liveHidden = liveHidden;
         // The limit is applied on read too, so a hand-edited or half-written list is still eight at most.
         if (favourites) {
           const kept = favourites.filter((favourite) => favourite !== null).map((favourite) => ({ ...favourite, observer: toObserver(favourite.observer) }));

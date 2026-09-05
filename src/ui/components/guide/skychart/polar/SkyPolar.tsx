@@ -9,7 +9,7 @@ import type { ChartOrientation, Locale, MoonState, Pass, PassPoint } from '../..
 import { OptionToggle } from '../../../common/OptionToggle';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonGlyph, moonVisible, sunVisible } from '../bodies';
 import { ChartFrame } from '../ChartFrame';
-import type { SkyChartProps, SkyChartView } from '../SkyChart.types';
+import type { HiddenMarker, SkyChartProps, SkyChartView } from '../SkyChart.types';
 import styles from './SkyPolar.module.css';
 
 /**
@@ -208,6 +208,23 @@ function MoonMarker({ moon, orientation, label }: { moon: MoonState; orientation
   );
 }
 
+/**
+ * FR-LIVE-6 (R33): an object that is up but not worth looking for, dimmed —
+ * a small hollow point in the dim pass colour and its worded label beside it.
+ * Dim by colour and by weight (FR-X-5), like the other passes in the guide.
+ */
+function HiddenPoint({ marker, orientation }: { marker: HiddenMarker; orientation: ChartOrientation }) {
+  const p = project(marker, orientation);
+  return (
+    <g data-hidden-id={marker.id}>
+      <circle className={styles.hidden} data-marker="hidden" r="3" transform={at(p)} />
+      <text className={[styles.label, styles.hiddenLabel].join(' ')} data-anchor="hidden" x={fmt(p.x)} y={fmt(p.y - BODY_LABEL_GAP)} textAnchor="middle">
+        {marker.label}
+      </text>
+    </g>
+  );
+}
+
 function Marker({ kind, p }: { kind: 'rise' | 'end' | 'shadow' | 'peak' | 'now'; p: Xy }) {
   switch (kind) {
     case 'peak':
@@ -227,7 +244,7 @@ function Marker({ kind, p }: { kind: 'rise' | 'end' | 'shadow' | 'peak' | 'now';
   }
 }
 
-export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, colorBy = 'highlight', fill = false, className }: SkyChartProps) {
+export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], colorBy = 'highlight', fill = false, className }: SkyChartProps) {
   const t = useT();
   const locale = useLocale();
   const orientation = useAppStore((s) => s.chartOrientation);
@@ -277,6 +294,10 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
             t={t}
             locale={locale}
           />
+        ))}
+        {/* FR-LIVE-6: the dimmed objects, under the Moon and over the arcs they are not part of. */}
+        {hidden.map((marker) => (
+          <HiddenPoint key={marker.id} marker={marker} orientation={orientation} />
         ))}
         {/* …and the Moon over them, so a pass that crosses it does not hide it. */}
         {moon && moonVisible(moon) && <MoonMarker moon={moon} orientation={orientation} label={t.chart.moonLabel(moonGlyph(moon))} />}

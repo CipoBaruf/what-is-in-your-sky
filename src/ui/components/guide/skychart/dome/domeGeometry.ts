@@ -317,6 +317,14 @@ export function nowMarker(point: { azDeg: number; elDeg: number }, color?: strin
   return diamond(point, NOW_MARKER_SIZE_DEG, NOW_MARKER_RADIUS, color);
 }
 
+/** FR-LIVE-6 (R33): a hidden object's mark — the plain marker size, on the marker radius, so it is smaller and lower than a live marker. */
+export function hiddenMarker(point: { azDeg: number; elDeg: number }, color?: string): Poly[] {
+  return diamond(point, MARKER_SIZE_DEG, MARKER_RADIUS, color);
+}
+
+/** How far above a hidden object's mark its reason sits, in degrees. */
+export const HIDDEN_LABEL_OFFSET_DEG = 4;
+
 /** FR-DOME-6: the Moon's disc, and how far above it its label sits. */
 export const MOON_MARKER_SIZE_DEG = 2.5;
 export const MOON_LABEL_OFFSET_DEG = 5;
@@ -420,7 +428,8 @@ export function projectToScreen(at: Tuple3, camera: { rotYDeg: number; tiltDeg: 
  * the two bodies are the context they are seen against, so a body's name is
  * the one that moves when the two want the same place.
  */
-export const LABEL_ORDER = ['compass', 'peak', 'rise', 'end', 'sun', 'moon'] as const;
+// R33 adds the hidden objects' reasons (FR-LIVE-6) after the bodies: they are the least of what the drawing says.
+export const LABEL_ORDER = ['compass', 'peak', 'rise', 'end', 'sun', 'moon', 'hidden'] as const;
 export type LabelKind = (typeof LABEL_ORDER)[number];
 /** How far along its ring a label may move, and in what steps (degrees of azimuth). */
 export const LABEL_SHIFT_STEP_DEG = 5;

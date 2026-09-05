@@ -5,6 +5,7 @@ import { loadCloudForecast } from '../data/weatherCache';
 import { searchPlaces } from '../data/openMeteo/geocode';
 import { observerFromLink, parseHash } from '../lib/shareLinks';
 import { documentVisibility, startEffects } from './effects';
+import { setLiveNowClient } from './liveNow';
 import { appStore } from './store';
 import { createAppWorker, createWorkerClient } from './workerClient';
 
@@ -18,6 +19,8 @@ export { NIGHT_MS, SEARCH_WINDOW_HOURS, SEARCH_WINDOW_NIGHTS } from './passWindo
 export { registerServiceWorker, SERVICE_WORKER_URL, SKIP_WAITING } from './serviceWorker';
 export type { AppUpdateSlice } from './slices/appUpdate';
 export { NOW_TICK_MS, ELEMENTS_RECHECK_MS } from './effects';
+/** R33 (FR-LIVE-6): the live page's request for the dimmed set at the shown instant (D-169). */
+export { computeNowAt, setLiveNowClient } from './liveNow';
 /** The thresholds the state sends to the worker (D-27); the UI quotes them (e.g. "above 10°") from here, never from `src/physics`. */
 export { DEFAULT_THRESHOLDS } from '../physics/constants';
 /** R30 (FR-MOON-2): the glare thresholds the `[moon glare]` tooltip quotes, beside the visibility ones and for the same reason (D-27). */
@@ -62,6 +65,7 @@ export function isFeatured(noradId: number): boolean {
  */
 export function startApp(): () => void {
   const client = createWorkerClient(createAppWorker());
+  setLiveNowClient(client);
   const cache = appPassesCache();
   // R31 (FR-SHARE-1, FR-LIVE-9): a link carries its own observer, and it wins
   // over the saved one — someone who opens it asked to look from there. It is
@@ -86,6 +90,7 @@ export function startApp(): () => void {
   });
   return () => {
     stop();
+    setLiveNowClient(null);
     client.terminate();
   };
 }

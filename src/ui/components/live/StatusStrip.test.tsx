@@ -55,6 +55,15 @@ describe('<StatusStrip>', () => {
     expect(field('moon')).toHaveTextContent('…');
   });
 
+  it('adds the speed as a sixth field while playing, and not otherwise (R33, FR-LIVE-3)', () => {
+    const { rerender } = render(<StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} speed={600} />);
+    expect(within(screen.getByTestId('status-strip')).getAllByRole('term').map((term) => term.textContent)).toEqual(['Time', 'Sky', 'Clouds', 'Visible', 'Moon', 'Speed']);
+    expect(field('speed')).toHaveTextContent('600×');
+    expect(field('speed').querySelector('[data-speed]')).toHaveAttribute('data-speed', '600');
+    rerender(<StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} speed={null} />);
+    expect(screen.queryByTestId('live-speed')).toBeNull();
+  });
+
   it('speaks Spanish (FR-I18N-2), with the zone abbreviation Intl gives that language', () => {
     render(
       <I18nProvider locale="es">

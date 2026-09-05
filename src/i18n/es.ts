@@ -310,6 +310,17 @@ export const es: Messages = {
     share: 'Compartir este cielo',
     shareTitle: 'El cielo ahora mismo',
     shareText: (place) => `Todo el cielo sobre ${place}, en vivo.`,
+    stripe: 'Franja de tiempo: las próximas 24 horas',
+    playback: 'Reproducción',
+    play: 'Reproducir',
+    pause: 'Pausa',
+    now: 'Ahora',
+    speedGroup: 'Velocidad de reproducción',
+    speed: (factor) => `${String(factor)}×`,
+    speedLabel: 'Velocidad',
+    hiddenToggle: 'Objetos ocultos',
+    hiddenReason: { low: 'muy bajo', shadow: 'en sombra', daylight: 'de día', faint: 'muy tenue' },
+    hiddenLabel: (p) => `${p.name} · ${p.reason}`,
   },
 
   share: {

@@ -52,6 +52,11 @@
   min-height: var(--row);
 }
 
+/* R33 (D-172): on the live page the hint row is as tall as its text, not the tap target; every pixel it gives back is the dome's. */
+.fill .controls {
+  min-height: 0;
+}
+
 .status > p {
   margin: 0;
 }

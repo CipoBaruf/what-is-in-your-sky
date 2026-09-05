@@ -17,10 +17,13 @@ import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../tests/support/catalogFixtures';
 import { en } from '../../i18n/en';
+import { isoInstant } from '../../lib/shareLinks';
 import { skyBodiesAt } from '../../lib/skyBodies';
 import type { Observer, Pass } from '../../model';
-import { appStore, type ElementsState } from '../../state';
+import type { NowItem, NowState } from '../../model';
+import { appStore, setLiveNowClient, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
+import { MOON_FIXTURE } from '../../../tests/support/moonFixtures';
 import { LIVE_WINDOW_MS, LivePage, livePasses, TICK_MS, visibleCount } from './Live';
 
 const pass = goldenPassFixture();
@@ -72,15 +75,45 @@ describe('livePasses / visibleCount (FR-LIVE-2, D-160)', () => {
   });
 });
 
+/** A hand-driven `requestAnimationFrame` in place of the window's: `frame(wall)` runs every pending callback. */
+function scriptedFrames() {
+  let next = 1;
+  const pending = new Map<number, FrameRequestCallback>();
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback): number => {
+    const id = next++;
+    pending.set(id, callback);
+    return id;
+  });
+  vi.stubGlobal('cancelAnimationFrame', (id: number): void => {
+    pending.delete(id);
+  });
+  return (wall: number): void => {
+    const callbacks = [...pending.values()];
+    pending.clear();
+    act(() => {
+      for (const callback of callbacks) callback(wall);
+    });
+  };
+}
+
 describe('<LivePage>', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
     vi.setSystemTime(T);
   });
+  /** The throttles run on `setTimeout`; faking it makes Testing Library's `findBy*` think jest is in charge, so only the tests that need it take it. */
+  const withTimeouts = (): void => {
+    vi.useRealTimers();
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout', 'Date'] });
+    vi.setSystemTime(T);
+  };
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
+    setLiveNowClient(null);
     appStore.setState(initial, true);
     window.localStorage.clear();
+    window.history.replaceState(null, '', window.location.pathname);
   });
 
   it('is inert with one line and the return control when there is no observer (FR-LIVE-1)', async () => {
@@ -185,5 +218,155 @@ describe('<LivePage>', () => {
     expect(screen.getByRole('group', { name: 'Language' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Theme' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Chart view' })).toBeInTheDocument();
+  });
+
+  /** R33 (FR-LIVE-4, US-15 AC3): the stripe moves the instant and everything follows — the dome, the marker, the strip, the share link. */
+  it('scrubbing the stripe sets the shown instant: the marker, the count, the strip and the share link follow', () => {
+    withSky();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+    const stripe = screen.getByTestId('time-stripe');
+    expect(stripe).toHaveAttribute('aria-valuemin', String(T));
+    expect(stripe).toHaveAttribute('aria-valuemax', String(T + LIVE_WINDOW_MS));
+    // The stripe carries the drawn passes as segments in the same series order as the dome.
+    expect([...container.querySelectorAll('[data-pass-segment]')].map((el) => el.getAttribute('data-series'))).toEqual(['1', '2', '3']);
+    // At jsdom's default 600 px, 75 px is three hours in: inside the `later` pass (which starts at 3 h).
+    const threeHours = T + 3 * HOUR + 30_000;
+    fireEvent.pointerDown(stripe, { button: 0, clientX: (600 * (threeHours - T)) / LIVE_WINDOW_MS, pointerId: 1 });
+    fireEvent.pointerUp(stripe, { pointerId: 1 });
+    expect(Number(stripe.getAttribute('aria-valuenow'))).toBeCloseTo(threeHours, -3);
+    const marker = screen.getByTestId('live-dome').querySelector('[data-marker="now"]');
+    expect(marker?.closest('[data-pass-id]')).toHaveAttribute('data-pass-id', 'later');
+    expect(screen.getByTestId('live-count')).toHaveTextContent('1 satellite');
+    expect(screen.getByTestId('live-time')).toHaveTextContent(/2026-09-11 12:48:\d\d UTC/);
+    expect(container.querySelector('[data-pass-segment="later"]')).toHaveAttribute('data-current', 'true');
+    // The arrow keys step from there (FR-LIVE-4), and the share link now carries the instant (FR-LIVE-9).
+    fireEvent.keyDown(stripe, { key: 'ArrowLeft', shiftKey: true });
+    fireEvent.keyDown(stripe, { key: 'ArrowRight' });
+    const shown = Number(stripe.getAttribute('aria-valuenow'));
+    expect(shown).toBeCloseTo(threeHours - 9 * 60_000, -3);
+    fireEvent.click(screen.getByRole('button', { name: 'Share this sky' }));
+    expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining(`#live?lat=-38.93&lon=-67.99&alt=0&t=${isoInstant(shown)}`));
+  });
+
+  /** R33 (FR-LIVE-5, US-15 AC4, D-81): play advances the instant by wall time × speed and `now` comes back to the tick. */
+  it('plays at the chosen speed, shows the speed in the strip, stops at the end of the span, and `now` returns to real time', () => {
+    const frame = scriptedFrames();
+    withSky();
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    const stripe = screen.getByTestId('time-stripe');
+    expect(screen.getByRole('button', { name: 'Now' })).toBeDisabled();
+    expect(screen.queryByTestId('live-speed')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '600×' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    expect(screen.getByTestId('live-speed')).toHaveTextContent('600×');
+    frame(1000);
+    frame(1500);
+    // Half a second at 600× is five minutes.
+    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T + 300_000);
+    frame(1700); // a dropped frame: the gap is still simulated time
+    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T + 420_000);
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    expect(screen.queryByTestId('live-speed')).toBeNull();
+    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T + 420_000);
+    // The `now` action: back to the tick, which keeps moving.
+    fireEvent.click(screen.getByRole('button', { name: 'Now' }));
+    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T);
+    act(() => {
+      vi.advanceTimersByTime(TICK_MS); // the fake Date moves with the timers
+    });
+    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T + TICK_MS);
+    // At 3600× the whole span runs in 24 s and stops at its end.
+    fireEvent.click(screen.getByRole('button', { name: '3600×' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    frame(2000);
+    frame(30_000);
+    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T + TICK_MS + LIVE_WINDOW_MS);
+    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
+    expect(screen.queryByTestId('live-speed')).toBeNull();
+  });
+
+  /** D-171: the hash is written at most twice a second while scrubbing and never while playing. */
+  it('writes the hash at most twice a second while scrubbing, never while playing, and once on pause', () => {
+    withTimeouts();
+    const frame = scriptedFrames();
+    withSky();
+    window.location.hash = '#live';
+    const replaceState = vi.spyOn(window.history, 'replaceState');
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    // Real time under the bare route: nothing to write.
+    expect(replaceState).not.toHaveBeenCalled();
+    const stripe = screen.getByTestId('time-stripe');
+    // The first scrub writes at once; twenty more steps inside the next 400 ms write nothing; the 500 ms mark writes the last instant.
+    fireEvent.keyDown(stripe, { key: 'ArrowRight' });
+    expect(replaceState).toHaveBeenCalledTimes(1);
+    expect(window.location.hash).toBe(`#live?lat=-38.93&lon=-67.99&alt=0&t=${new Date(T + 60_000).toISOString().replace('.000Z', 'Z')}`);
+    for (let i = 1; i <= 20; i++) {
+      fireEvent.keyDown(stripe, { key: 'ArrowRight' });
+      act(() => {
+        vi.advanceTimersByTime(20);
+      });
+    }
+    expect(replaceState).toHaveBeenCalledTimes(1);
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(replaceState).toHaveBeenCalledTimes(2);
+    expect(window.location.hash).toBe(`#live?lat=-38.93&lon=-67.99&alt=0&t=${new Date(T + 21 * 60_000).toISOString().replace('.000Z', 'Z')}`);
+    replaceState.mockClear();
+    // Playing: frames move the instant and nothing is written.
+    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    for (let wall = 0; wall <= 3000; wall += 100) {
+      frame(wall);
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+    }
+    expect(replaceState).not.toHaveBeenCalled();
+    // Pause: the instant it stopped at is written (the last write was over half a second ago).
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    expect(replaceState).toHaveBeenCalledTimes(1);
+    expect(window.location.hash).toBe(`#live?lat=-38.93&lon=-67.99&alt=0&t=${new Date(T + 21 * 60_000 + 3000 * 60).toISOString().replace('.000Z', 'Z')}`);
+    // `Now`: back to the bare route.
+    fireEvent.click(screen.getByRole('button', { name: 'Now' }));
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    expect(window.location.hash).toBe('#live');
+  });
+
+  /** R33 (FR-LIVE-6, US-15 AC6, D-102): the toggle asks the worker for the dimmed set and draws it, minus what is already on an arc. */
+  it('draws the hidden objects dimmed with their reasons when the toggle is on, skips what an arc already draws, and remembers the toggle', async () => {
+    withSky();
+    const item = (over: Partial<NowItem>): NowItem => ({ noradId: 1, name: 'x', azDeg: 40, elDeg: 20, rangeKm: 900, magnitude: 5.2, lit: true, aboveMinElevation: true, visible: false, ...over });
+    const hidden: NowItem[] = [
+      item({ noradId: pass.noradId, name: pass.name }), // the ISS: on its arc at T, so not dimmed as well (D-102)
+      item({ noradId: 2, name: 'Envisat', lit: false, azDeg: 200, elDeg: 5 }),
+      item({ noradId: 3, name: 'Tiangong', azDeg: 300, elDeg: 45 }),
+    ];
+    const computeNow = vi.fn((_observer: unknown, t: number) => Promise.resolve<NowState>({ t, sunAltDeg: -30, sky: 'dark', items: [], hidden, moon: MOON_FIXTURE }));
+    setLiveNowClient({ computeNow });
+    const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(container.querySelectorAll('[data-marker="hidden"]')).toHaveLength(0);
+    expect(computeNow).not.toHaveBeenCalled();
+    const toggle = screen.getByRole('button', { name: 'Hidden objects' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(computeNow).toHaveBeenCalledWith(observer, T, expect.anything(), { includeHidden: true });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(within(screen.getByTestId('live-dome')).getByText('Envisat · in shadow')).toBeInTheDocument();
+    expect(container.querySelectorAll('[data-marker="hidden"]')).toHaveLength(2);
+    expect(container.querySelector('[data-hidden-id="hidden-3"] [data-anchor="hidden"]')?.textContent).toBe('Tiangong · too faint');
+    expect(container.querySelector(`[data-hidden-id="hidden-${String(pass.noradId)}"]`)).toBeNull();
+    // Remembered (FR-LIVE-6 "off by default and remembered").
+    expect(appStore.getState().liveHidden).toBe(true);
+    expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ liveHidden: true });
+    fireEvent.click(toggle);
+    expect(container.querySelectorAll('[data-marker="hidden"]')).toHaveLength(0);
+    expect(appStore.getState().liveHidden).toBe(false);
   });
 });
