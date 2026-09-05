@@ -135,6 +135,21 @@ describe('prefs slice', () => {
     expect(stored(storage)).toEqual({ observer: neuquen, locale: 'es', theme: 'dark' });
   });
 
+  it('keeps the hidden objects off until the live page turns them on, then remembers it (R33, FR-LIVE-6)', () => {
+    const storage = memoryStorage();
+    const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(fresh.getState().liveHidden).toBe(false);
+    expect(stored(storage)).toBeNull();
+    fresh.getState().setLiveHidden(true);
+    expect(fresh.getState().liveHidden).toBe(true);
+    expect(stored(storage)).toEqual({ liveHidden: true });
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(store.getState().liveHidden).toBe(true);
+    store.getState().setTheme('night');
+    store.getState().setLiveHidden(false);
+    expect(stored(storage)).toEqual({ theme: 'night', liveHidden: false });
+  });
+
   it('ignores a theme it does not know without losing the other preferences', () => {
     const storage = memoryStorage();
     storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'sepia', locale: 'es' }));

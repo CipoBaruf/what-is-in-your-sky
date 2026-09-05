@@ -31,11 +31,20 @@ export interface WorkerClient {
   loadElements: (records: SatelliteRecord[]) => Promise<ElementsLoaded>;
   /** Cancels the previous job, if any, and returns the new job's id. */
   computePasses: (observer: Observer, window: TimeWindow, thresholds: VisibilityThresholds, handlers: PassesJobHandlers) => string;
-  /** R7 (D-14): every loaded object at `t`; the worker answers between the objects of a running job. */
-  computeNow: (observer: Observer, t: EpochMs, thresholds: VisibilityThresholds) => Promise<NowState>;
+  /**
+   * R7 (D-14): every loaded object at `t`; the worker answers between the
+   * objects of a running job. R33 (FR-LIVE-6, D-76): with `includeHidden` the
+   * state also carries `hidden`, the dimmed set at `t`; without it the request
+   * is the MVP one, byte for byte.
+   */
+  computeNow: (observer: Observer, t: EpochMs, thresholds: VisibilityThresholds, options?: NowRequestOptions) => Promise<NowState>;
   cancel: (jobId: string) => void;
   activeJobId: () => string | null;
   terminate: () => void;
+}
+
+export interface NowRequestOptions {
+  includeHidden?: boolean;
 }
 
 export const TERMINAL_JOB_ERRORS: readonly WorkerErrorCode[] = ['NO_ELEMENTS', 'INTERNAL'];
@@ -123,9 +132,9 @@ export function createWorkerClient(worker: WorkerLike, nextId: (prefix: string) 
         (requestId) => ({ type: 'loadElements', requestId, records }),
         (r) => (r.type === 'elementsLoaded' ? { loaded: r.loaded, rejected: r.rejected } : null),
       ),
-    computeNow: (observer, t, thresholds) =>
+    computeNow: (observer, t, thresholds, options = {}) =>
       request(
-        (requestId) => ({ type: 'computeNow', requestId, observer, t, thresholds }),
+        (requestId) => ({ type: 'computeNow', requestId, observer, t, thresholds, ...(options.includeHidden ? { includeHidden: true } : {}) }),
         (r) => (r.type === 'nowState' ? r.state : null),
       ),
     computePasses: (observer, window, thresholds, handlers) => {

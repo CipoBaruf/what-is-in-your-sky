@@ -106,6 +106,19 @@ describe('createWorkerClient', () => {
     await expect(third).rejects.toThrow('NO_ELEMENTS: nothing loaded');
   });
 
+  it('computeNow carries includeHidden only when asked for it (R33, FR-LIVE-6, D-76)', () => {
+    const worker = fakeWorker();
+    const client = createWorkerClient(worker);
+    void client.computeNow(observer, 5, DEFAULT_THRESHOLDS, { includeHidden: true });
+    void client.computeNow(observer, 6, DEFAULT_THRESHOLDS, { includeHidden: false });
+    void client.computeNow(observer, 7, DEFAULT_THRESHOLDS, {});
+    expect(worker.sent).toEqual([
+      { type: 'computeNow', requestId: 'req-1', observer, t: 5, thresholds: DEFAULT_THRESHOLDS, includeHidden: true },
+      { type: 'computeNow', requestId: 'req-2', observer, t: 6, thresholds: DEFAULT_THRESHOLDS },
+      { type: 'computeNow', requestId: 'req-3', observer, t: 7, thresholds: DEFAULT_THRESHOLDS },
+    ]);
+  });
+
   it('a reply of the wrong type rejects the request', async () => {
     const worker = fakeWorker();
     const client = createWorkerClient(worker);
