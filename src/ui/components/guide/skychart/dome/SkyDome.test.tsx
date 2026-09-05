@@ -118,6 +118,47 @@ describe('<SkyDome>', () => {
     expect(stage).toHaveAttribute('data-dragging', 'false');
   });
 
+  /** R34 (FR-LIVE-8, D-176): the live page turns the dome to the phone's heading, and learns of a drag. */
+  it('turns to a facing set from outside, keeps the tilt, reports the first movement of a drag once, and not a tap', async () => {
+    const onDrag = vi.fn();
+    const { stage, facing, tilt, readout, rerender } = mount({ facingAzDeg: 90, onDrag });
+    expect(facing()).toBe(90);
+    expect(readout()).toBe('Facing E (90°) · tilt 45°');
+    const turned = (to: number | undefined) => rerender(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} facingAzDeg={to} onDrag={onDrag} />);
+    turned(180);
+    expect(facing()).toBe(180);
+    turned(-30);
+    expect(facing()).toBe(330);
+    // Undefined leaves the camera where it is; the keys still move it in between.
+    turned(undefined);
+    expect(facing()).toBe(330);
+    fireEvent.keyDown(stage, { key: 'ArrowUp' });
+    fireEvent.keyDown(stage, { key: 'ArrowRight' });
+    expect(facing()).toBe(345);
+    turned(10);
+    expect(facing()).toBe(10);
+    expect(tilt()).toBe(50);
+    expect(onDrag).not.toHaveBeenCalled();
+    // A tap: down and up with no movement is not a drag.
+    fireEvent.pointerDown(stage, { pointerId: 1, clientX: 100, clientY: 100, button: 0, pointerType: 'touch' });
+    fireEvent.pointerMove(stage, { pointerId: 1, clientX: 100, clientY: 100 });
+    fireEvent.pointerUp(stage, { pointerId: 1, clientX: 100, clientY: 100 });
+    expect(onDrag).not.toHaveBeenCalled();
+    // A drag: reported on its first movement, once, however many moves follow.
+    fireEvent.pointerDown(stage, { pointerId: 2, clientX: 100, clientY: 100, button: 0, pointerType: 'touch' });
+    fireEvent.pointerMove(stage, { pointerId: 2, clientX: 104, clientY: 100 });
+    fireEvent.pointerMove(stage, { pointerId: 2, clientX: 108, clientY: 100 });
+    expect(onDrag).toHaveBeenCalledTimes(1);
+    fireEvent.pointerUp(stage, { pointerId: 2, clientX: 108, clientY: 100 });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+    expect(facing()).toBe(8);
+    fireEvent.pointerDown(stage, { pointerId: 3, clientX: 100, clientY: 100, button: 0, pointerType: 'touch' });
+    fireEvent.pointerMove(stage, { pointerId: 3, clientX: 100, clientY: 104 });
+    expect(onDrag).toHaveBeenCalledTimes(2);
+  });
+
   it('labels the compass points, the pass and its peak; labels run away from the drawing edge; a click on the pass reports its id', () => {
     const onSelectPass = vi.fn();
     const { container } = mount({ onSelectPass });

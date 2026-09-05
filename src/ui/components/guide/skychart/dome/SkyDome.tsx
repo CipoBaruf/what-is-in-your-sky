@@ -1,6 +1,7 @@
 import { GlyphHotspot, GlyphMesh, GlyphOrthographicCamera, GlyphScene, useGlyphSceneContext } from '@glyphcss/react';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import { useLocale, useT } from '../../../../../i18n/useT';
+import { normalizeAzimuthDeg } from '../../../../../lib/compass';
 import { degrees } from '../../../../../lib/format';
 import { formatClock } from '../../../../../lib/timeFormat';
 import type { MoonState, Pass } from '../../../../../model';
@@ -200,16 +201,28 @@ function DomeLabels({ labels, rotY, onSelect }: DomeLabelsProps) {
   );
 }
 
-export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, colorBy, fill = false, className }: SkyChartProps) {
+export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, className }: SkyChartProps) {
   const t = useT();
   const locale = useLocale();
   const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
-  const [camera, setCamera] = useState<CameraState>(() => initialFor(highlighted, initialFacingAzDeg));
+  const [camera, setCamera] = useState<CameraState>(() => initialFor(highlighted, facingAzDeg ?? initialFacingAzDeg));
+
+  // R34 (FR-LIVE-8, D-176): a facing set from outside turns the dome to it on the render it arrives, and the
+  // tilt stays the viewer's. Derived during render rather than in an effect, so the frame that carries the
+  // heading is the frame that draws it.
+  const [followed, setFollowed] = useState(facingAzDeg);
+  if (facingAzDeg !== followed) {
+    setFollowed(facingAzDeg);
+    if (facingAzDeg !== undefined && Number.isFinite(facingAzDeg)) {
+      const facing = normalizeAzimuthDeg(facingAzDeg);
+      setCamera((state) => (state.facingAzDeg === facing ? state : { ...state, facingAzDeg: facing }));
+    }
+  }
   const [lines, setLines] = useState<DomeLayout>(() => layoutFor(null));
   const [base, setBase] = useState<DomeLayout>(() => layoutFor(null, null, DEFAULT_ADVANCE, baseColsFor(layoutFor(null).cols)));
   const stageRef = useRef<HTMLDivElement>(null);
   const probeRef = useRef<HTMLSpanElement>(null);
-  const dragRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
+  const dragRef = useRef<{ pointerId: number; x: number; y: number; moved: boolean } | null>(null);
   const pendingRef = useRef<{ dx: number; dy: number } | null>(null);
   const frameRef = useRef(0);
   const [dragging, setDragging] = useState(false);
@@ -266,7 +279,7 @@ export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now
   }, []);
   const onPointerDown = (event: PointerEvent<HTMLDivElement>): void => {
     if (event.button !== 0 && event.pointerType === 'mouse') return;
-    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
@@ -279,8 +292,14 @@ export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now
     if (!active || active.pointerId !== event.pointerId) return;
     const dx = event.clientX - active.x;
     const dy = event.clientY - active.y;
+    if (dx === 0 && dy === 0) return;
     active.x = event.clientX;
     active.y = event.clientY;
+    // FR-LIVE-8: the viewer took the dome by hand — once per drag, and never for a tap that moved nothing.
+    if (!active.moved) {
+      active.moved = true;
+      onDrag?.();
+    }
     const pending = pendingRef.current ?? { dx: 0, dy: 0 };
     pendingRef.current = { dx: pending.dx + dx, dy: pending.dy + dy };
     if (!frameRef.current) frameRef.current = requestAnimationFrame(flush);

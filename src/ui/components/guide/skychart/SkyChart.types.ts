@@ -29,6 +29,16 @@ export interface SkyChartProps {
   /** Default: the highlighted pass's start azimuth (D-17). The polar view has no facing; the dome (R15) uses it. */
   initialFacingAzDeg?: number;
   /**
+   * FR-LIVE-8 (R34, D-176): a facing the caller sets from outside — the
+   * phone's compass heading. Each new value turns the dome to it; the drag and
+   * the keys still move the camera in between, and `onDrag` is how the caller
+   * learns the viewer took the dome by hand. `undefined` leaves the camera
+   * where it is. The polar view has no facing and ignores both.
+   */
+  facingAzDeg?: number | undefined;
+  /** FR-LIVE-8: called once per pointer drag, on its first movement. A tap that moves nothing is not a drag. */
+  onDrag?: () => void;
+  /**
    * FR-LIVE-2 (R32, D-158): how the arcs are coloured. `highlight` (the
    * default) is the guide's reading — the highlighted pass in the pass colour
    * and the others dim. `pass` is the live page's: every arc at full weight in
