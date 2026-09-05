@@ -19,7 +19,7 @@
  * `live.spec.ts`, beside the layout facts it already holds.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { domeDrawn, homeAt, LABEL, stripFilled, T } from './liveHelpers';
+import { domeDrawn, heading, homeAt, LABEL, stripFilled, stubCompass, T } from './liveHelpers';
 
 const LANDSCAPE = { width: 844, height: 390 };
 const FOLLOW = { en: 'Follow phone', es: 'Seguir al teléfono' } as const;
@@ -60,42 +60,11 @@ async function stubWakeLock(page: Page): Promise<void> {
 
 const wakeLog = (page: Page): Promise<string[]> => page.evaluate(() => window.__wakeLock);
 
-/**
- * Only this file's readings reach the page. Chrome fires one orientation event with every value
- * `null` when the first listener is added on a machine with no sensor — a CI runner — and the hook
- * rightly reads that as "no compass heading". Landing between a click and an assertion, or between a
- * dispatched reading and its animation frame, it turned this test into a race (PR #57's merged head).
- * The browser's own events are trusted and the dispatched ones are not, so a capturing listener
- * installed before the app's stops the trusted ones.
- */
-async function stubCompass(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    for (const name of ['deviceorientationabsolute', 'deviceorientation']) {
-      window.addEventListener(
-        name,
-        (event) => {
-          if (event.isTrusted) event.stopImmediatePropagation();
-        },
-        true,
-      );
-    }
-  });
-}
-
 async function setVisibility(page: Page, state: 'visible' | 'hidden'): Promise<void> {
   await page.evaluate((value) => {
     Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => value });
     document.dispatchEvent(new Event('visibilitychange'));
   }, state);
-}
-
-/** A reading from the phone's compass: Chrome's absolute event, `alpha` counter-clockwise from north. */
-async function heading(page: Page, alpha: number): Promise<void> {
-  await page.evaluate((value) => {
-    window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: value, beta: 0, gamma: 0, absolute: true }));
-  }, alpha);
-  // The facing is handed out on the next animation frame, which the installed clock holds.
-  await page.clock.runFor(100);
 }
 
 async function liveLandscape(page: Page, locale: 'en' | 'es' = 'en', wholeList = false): Promise<void> {
@@ -156,7 +125,14 @@ test.describe('the live page on a landscape phone', () => {
     expect(await wakeLog(page)).toEqual(['request:screen', 'release', 'request:screen', 'release']);
   });
 
-  test('follow phone: a heading turns the dome, a drag turns following off, and the control turns it on again (FR-LIVE-8)', async ({ page }) => {
+  /**
+   * R44 (FR-WIN-3, US-21 AC6, F-41, D-185): every facing below is the magnetic
+   * heading plus Neuquén's declination, +1.12° on the fixtures' date. That is
+   * the whole point of the correction being here and not in a unit test: the
+   * number the dome is turned to is a true azimuth, the same frame the arcs and
+   * the compass names are drawn in, and the strip says so while it is following.
+   */
+  test('follow phone: a heading turns the dome to true north, a drag turns following off, and the control turns it on again (FR-LIVE-8, FR-WIN-3)', async ({ page }) => {
     await stubCompass(page);
     await liveLandscape(page);
     const dome = page.getByTestId('live-dome');
@@ -177,10 +153,13 @@ test.describe('the live page on a landscape phone', () => {
     await heading(page, 270);
     await expect(toggle).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByTestId('follow-phone')).toHaveAttribute('data-state', 'on');
-    await expect(facing).toHaveAttribute('data-facing-az', '90');
-    await expect(page.getByTestId('dome-readout')).toHaveText('Facing E (90°) · tilt 45°');
+    // The magnetic 90° plus the +1.12° declination (R44).
+    await expect(facing).toHaveAttribute('data-facing-az', '91');
+    await expect(page.getByTestId('dome-readout')).toHaveText('Facing E (91°) · tilt 45°');
+    // US-21 AC6: the strip names the correction while following.
+    await expect(page.getByTestId('live-heading')).toHaveText('Heading true north, declination +1.1°');
     await heading(page, 180);
-    await expect(facing).toHaveAttribute('data-facing-az', '180');
+    await expect(facing).toHaveAttribute('data-facing-az', '181');
 
     // A drag: following off, the dome where the drag left it (40 px right is 10° left), the next reading ignored.
     const stage = dome.getByRole('group', { name: 'Sky dome' });
@@ -196,22 +175,25 @@ test.describe('the live page on a landscape phone', () => {
     await page.clock.runFor(100);
     await expect(toggle).toHaveAttribute('aria-pressed', 'false');
     await expect(page.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
-    await expect(facing).toHaveAttribute('data-facing-az', '170');
+    await expect(facing).toHaveAttribute('data-facing-az', '171');
+    // Nothing is following, so no heading is being corrected and the strip drops the field (R44).
+    await expect(page.getByTestId('live-heading')).toHaveCount(0);
     await heading(page, 0);
-    await expect(facing).toHaveAttribute('data-facing-az', '170');
+    await expect(facing).toHaveAttribute('data-facing-az', '171');
 
     // The control turns it on again, and the next reading turns the dome.
     await toggle.click();
     await heading(page, 90);
     await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    await expect(facing).toHaveAttribute('data-facing-az', '270');
+    await expect(facing).toHaveAttribute('data-facing-az', '271');
+    await expect(page.getByTestId('live-heading')).toHaveText('Heading true north, declination +1.1°');
     // A relative-only reading: the note, the control still pressed, the dome where it was.
     await page.evaluate(() => {
       window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: 45, beta: 0, gamma: 0, absolute: false }));
     });
     await expect(page.getByTestId('follow-note')).toHaveText('This phone gives no compass heading, so the dome cannot turn with it.');
     await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    await expect(facing).toHaveAttribute('data-facing-az', '270');
+    await expect(facing).toHaveAttribute('data-facing-az', '271');
   });
 
   test('captures in landscape, both themes', async ({ page }) => {
