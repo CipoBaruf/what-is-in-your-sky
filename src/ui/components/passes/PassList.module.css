@@ -16,3 +16,51 @@
   display: grid;
   gap: var(--row);
 }
+
+/* US-16 AC5: one disclosure per night. The heading is a `summary`, so the
+   keyboard and assistive technology get the open/closed state for free and no
+   ARIA is written by hand; the marker is the terminal identity's own bracketed
+   text rather than the UA triangle. */
+.night {
+  display: grid;
+  gap: var(--row);
+}
+
+.nightHeading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--cell);
+  align-items: baseline;
+  min-height: var(--tap);
+  align-content: center;
+  cursor: pointer;
+  list-style: none;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Safari still draws the disclosure triangle through this pseudo-element. */
+.nightHeading::-webkit-details-marker {
+  display: none;
+}
+
+.nightHeading::before {
+  content: '[+] ';
+  color: var(--fg-dim);
+}
+
+.night[open] > .nightHeading::before {
+  content: '[−] ';
+}
+
+.nightName {
+  color: var(--fg);
+}
+
+.nightCount {
+  color: var(--fg-dim);
+}
+
+.nightEmpty {
+  margin: 0;
+  color: var(--fg-dim);
+}

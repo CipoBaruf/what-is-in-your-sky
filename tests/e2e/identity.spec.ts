@@ -133,9 +133,11 @@ test.describe('cloud badge tooltip (R12 review)', () => {
 test('Tab reaches every control on the Home screen in DOM order, then wraps to the first', async ({ page }) => {
   await homeWithPasses(page);
   const expected = await page.evaluate(() =>
-    Array.from(document.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, [tabindex="0"]')).filter((el) => el.checkVisibility()).map((el) => `${el.tagName.toLowerCase()}:${(el.textContent?.trim() || el.getAttribute('aria-label') || el.id).slice(0, 40)}`),
+    // `summary` is in the list from R27: a night heading is focusable, and a closed night's own
+    // controls are not — `checkVisibility` drops them, exactly as sequential focus does.
+    Array.from(document.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, summary, [tabindex="0"]')).filter((el) => el.checkVisibility()).map((el) => `${el.tagName.toLowerCase()}:${(el.textContent?.trim() || el.getAttribute('aria-label') || el.id).slice(0, 40)}`),
   );
-  // Place, coordinates, altitude, device button, clear, Now-panel badge, hero (open guide, cloud badge), two sort buttons, ≥ 1 card × (open guide, badge), 3 footer links.
+  // Place, coordinates, altitude, device button, clear, Now-panel badge, hero (open guide, cloud badge), two sort buttons, three night headings, ≥ 1 card × (open guide, badge), 3 footer links.
   expect(expected.length).toBeGreaterThanOrEqual(15);
   expect(expected).toContain('input:place');
   // R32: the live page's link opens the header's controls; R17 and R20: the language and theme switches follow it, in that order.

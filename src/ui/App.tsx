@@ -8,6 +8,7 @@ import { applyTheme } from './styles/theme';
 import { Banner } from './components/common/Banner';
 import { Footer } from './components/common/Footer';
 import { LanguageToggle } from './components/common/LanguageToggle';
+import { ReadinessLine } from './components/common/ReadinessLine';
 import { ThemeToggle } from './components/common/ThemeToggle';
 import { ElementsBanners } from './components/elements/ElementsBanners';
 import { useLayoutMode } from './hooks/useLayoutMode';
@@ -52,9 +53,12 @@ const LivePage = lazy(() => import('./screens/Live').then((module) => ({ default
  * carries a class of its own — it is the one that has to stretch to the
  * footer and, on a short screen, scroll. R30 fills the last slot FR-DESK-2
  * names for that column: the Moon's tradition line, below the Now panel whose
- * last line is the Moon's observing facts (FR-MOON-3/4, D-122). R32: the
- * header's controls gain the link to the live page (FR-LIVE-1), and under
- * `#live` the whole screen is that page instead of this one.
+ * last line is the Moon's observing facts (FR-MOON-3/4, D-122). R27 puts the
+ * readiness line directly under the location, above the elements banners, which
+ * is where FR-OFF-4 asks for it and where the other statements about what the
+ * app is running on already are. R32: the header's controls gain the link to
+ * the live page (FR-LIVE-1), and under `#live` the whole screen is that page
+ * instead of this one.
  */
 export function App() {
   const t = useT();
@@ -117,6 +121,7 @@ export function App() {
       <main inert={inert} className={styles.main}>
         <div className={`${styles.column} ${styles.leftColumn}`} data-testid="col-left">
           <LocationInput observer={observer} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} />
+          <ReadinessLine />
           <ElementsBanners />
           <NowPanel />
           {moon && observer && <MoonLore moon={moon} timeZone={observer.timeZone} />}

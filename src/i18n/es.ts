@@ -102,6 +102,7 @@ export const es: Messages = {
     searching: (query) => `Búsqueda de “${query}”…`,
     noMatch: (query) => ({ before: `Ningún lugar coincide con “${query}”. Se puede probar otra grafía, o `, link: coordsInstead, after: '.' }),
     searchFailed: (message) => ({ before: `No se pudo buscar lugares (${message}). Se puede reintentar, o `, link: coordsInstead, after: '.' }),
+    searchOffline: { before: 'Sin conexión, así que no se pueden buscar lugares. El botón de ubicación del dispositivo sigue funcionando, o ', link: coordsInstead, after: '.' },
     placeCentre: (p) => `Centro de ${p.place} (${p.coords}).`,
     coordsLabel: 'Coordenadas (lat, lon)',
     coordsPlaceholder: '-38.93, -67.99',
@@ -193,6 +194,14 @@ export const es: Messages = {
     stamp: (p) => `${p.date} ${p.time}`,
     direction: (p) => `${p.point} (${p.degrees})`,
     magnitudeWithBand: (p) => `${p.magnitude}, ${brightness[p.band]}`,
+    nights: {
+      tonight: 'Esta noche',
+      tomorrow: 'Mañana a la noche',
+      dated: (date) => `Noche del ${date}`,
+      count: (count) => (count === 1 ? '1 pase' : `${String(count)} pases`),
+      empty: 'No hay pases visibles.',
+      heroOnly: 'Su único pase es el de arriba.',
+    },
   },
 
   countdown: {
@@ -329,6 +338,13 @@ export const es: Messages = {
       `Los elementos orbitales son de hace ${p.age}. Las predicciones pierden precisión después de ${String(p.days)} días, y la ISS en particular cambia de órbita a menudo: las horas pueden desviarse algunos minutos.`,
     notCached: 'Los elementos no se pudieron guardar en este navegador, así que quedan en memoria solo para esta sesión y se van a pedir de nuevo la próxima vez.',
     unavailable: (p) => `Sin elementos actuales de CelesTrak para ${String(p.count)} objeto${p.count === 1 ? '' : 's'} del catálogo: ${p.names}. Quedan fuera de la lista.`,
+  },
+
+  readiness: {
+    ready: (until) => `Sin conexión hasta ${until}`,
+    stored: (at) => `Guardado ${at}`,
+    notReady: (gaps) => `Sin conexión: falta guardar ${gaps}.`,
+    gaps: { elements: 'los elementos orbitales', forecast: 'el pronóstico de nubes', passes: 'los pases' },
   },
 
   footer: {

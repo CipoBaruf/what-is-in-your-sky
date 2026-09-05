@@ -172,6 +172,85 @@ describe('<PassList>', () => {
     set({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'error', observer, error: 'INTERNAL: boom' } });
     expect(screen.getByRole('status')).toHaveTextContent('Could not compute passes: INTERNAL: boom');
   });
+  /**
+   * R27 (US-16 AC5, FR-OFF-2). The window is the run's, so the nights are the
+   * ones the worker searched; the observer here has no zone, so every date is
+   * UTC and "tonight" is decided on the UTC calendar.
+   */
+  describe('the three nights', () => {
+    const NIGHT = 24 * HOUR;
+    const window = { startMs: NOW, endMs: NOW + 3 * NIGHT };
+    // Three plain passes, one per night, none of them featured, all in the future of the golden window.
+    const first = shifted(goldenPass, 'first', 2, 'First night', 1, 40, 1.0);
+    const second = shifted(goldenPass, 'second', 3, 'Second night', 25, 40, 1.0);
+    const third = shifted(goldenPass, 'third', 4, 'Third night', 49, 40, 1.0);
+    const threeNights = (): void => {
+      set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window, passes: [first, second, third], hasDarkness: true } });
+    };
+    const groups = () => screen.getAllByTestId('night-group');
+
+    it('groups the list under one heading per night, with the first open and the rest closed', async () => {
+      threeNights();
+      const { container } = render(<PassList />);
+      expect(groups()).toHaveLength(3);
+      expect(groups().map((group) => group.hasAttribute('open'))).toEqual([true, false, false]);
+      // Each night holds its own pass, and the heading counts it.
+      for (const [i, name] of ['First night', 'Second night', 'Third night'].entries()) {
+        const group = groups()[i];
+        expect(group).not.toBeUndefined();
+        // `hidden: true`: a closed night's cards are still in the document, which is what the collapse is.
+        expect(within(group as HTMLElement).getByRole('article', { hidden: true })).toHaveAccessibleName(name);
+        expect(within(group as HTMLElement).getByText('1 pass')).toBeInTheDocument();
+      }
+      expect(await axe(container)).toHaveNoViolations();
+    });
+
+    it('names the nights from the reader’s own clock: tonight, tomorrow night, then the date', () => {
+      threeNights();
+      render(<PassList />);
+      const day = (t: number): string => new Date(t).toISOString().slice(0, 10);
+      expect(groups()[0]).toHaveTextContent(day(NOW) === day(Date.now()) ? 'Tonight' : `Night of ${day(NOW)}`);
+      // Whatever today is, the second night is one calendar day after the first and the third two.
+      expect(groups()[1]).toHaveTextContent(/Tomorrow night|Night of \d{4}-\d{2}-\d{2}/);
+      expect(groups()[2]).toHaveTextContent(`Night of ${day(NOW + 2 * NIGHT)}`);
+    });
+
+    it('a night with nothing in it keeps its heading and says so', () => {
+      set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window, passes: [first, third], hasDarkness: true } });
+      render(<PassList />);
+      expect(groups()[1]).toHaveTextContent('0 passes');
+      expect(groups()[1]).toHaveTextContent('No visible passes.');
+    });
+
+    it('a night whose only pass is the hero says where it went, rather than reading as empty', () => {
+      // The golden ISS pass is night 1's and is pulled out into the hero card.
+      const iss = { ...goldenPass, start: { ...goldenPass.start, t: Date.now() + HOUR }, peak: { ...goldenPass.peak, t: Date.now() + HOUR + 60_000 }, end: { ...goldenPass.end, t: Date.now() + HOUR + 120_000 } };
+      const heroWindow = { startMs: Date.now(), endMs: Date.now() + 3 * NIGHT };
+      set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window: heroWindow, passes: [iss], hasDarkness: true } });
+      render(<PassList />);
+      expect(screen.getByTestId('iss-hero')).toBeInTheDocument();
+      expect(groups()[0]).toHaveTextContent('1 pass');
+      expect(groups()[0]).toHaveTextContent('Its only pass is the one above.');
+    });
+
+    it('the reader can open and close nights, and the choice sticks', async () => {
+      threeNights();
+      render(<PassList />);
+      const summary = (index: number): HTMLElement => (groups()[index] as HTMLElement).querySelector('summary') as HTMLElement;
+      await userEvent.click(summary(1));
+      expect(groups().map((group) => group.hasAttribute('open'))).toEqual([true, true, false]);
+      await userEvent.click(summary(0));
+      expect(groups().map((group) => group.hasAttribute('open'))).toEqual([false, true, false]);
+    });
+
+    it('one night is no grouping at all: a 24 h window renders the plain list', () => {
+      set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window: { startMs: NOW, endMs: NOW + NIGHT }, passes: [first], hasDarkness: true } });
+      render(<PassList />);
+      expect(screen.queryAllByTestId('night-group')).toHaveLength(0);
+      expect(within(screen.getByRole('list')).getAllByRole('listitem')).toHaveLength(1);
+    });
+  });
+
   it('badges every card with the verdict from this observer’s forecast, and "weather unknown" until it arrives (FR-WX-3)', () => {
     const HOUR = 3_600_000;
     const hour = Math.floor(golden.peak.t / HOUR) * HOUR;

@@ -1,0 +1,14 @@
+/* FR-OFF-4. Two rows at most, on the page's own grid: the readiness sentence
+   and, for a stored run, its storage time. Both are secondary to the location
+   above them, so both take the dim foreground the elements age line uses. The
+   sentence is written to fit one row at 390 px (D-145) and is not clipped to
+   it: a font that advances wider than the stack's 0.6 em wraps rather than
+   overflowing the frame. */
+.block {
+  display: grid;
+}
+
+.line {
+  margin: 0;
+  color: var(--fg-dim);
+}
