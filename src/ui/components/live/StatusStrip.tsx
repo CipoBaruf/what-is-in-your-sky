@@ -36,7 +36,7 @@ export interface StatusStripProps {
 function Field({ id, label, children }: { id: string; label: string; children: ReactNode }) {
   return (
     <div className={styles.field} data-testid={`live-${id}`}>
-      <dt className={styles.label}>{label}</dt>
+      <dt className={styles.label}>{label}</dt>{' '}
       <dd className={styles.value}>{children}</dd>
     </div>
   );

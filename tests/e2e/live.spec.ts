@@ -30,6 +30,11 @@ const ha = JSON.parse(readFileSync(`tests/fixtures/heavens-above/${FIXTURE_DATE}
 const reference = JSON.parse(readFileSync('tests/fixtures/reference-values.json', 'utf8')) as Reference;
 const NEUQUEN = `${String(ha.observer.lat)}, ${String(ha.observer.lon)}`;
 const hhmmss = (t: number): string => new Date(t).toISOString().slice(11, 19);
+/**
+ * The strip's time field for real time at `t`, to the ten-second tick the page reads the clock at
+ * (FR-VIS-5): whether the page mounted before or after the second `domeDrawn` lets run is not the point.
+ */
+const realTimeField = (t: number): RegExp => new RegExp(`^Time ${new Date(t).toISOString().slice(0, 10)} ${hhmmss(t).slice(0, 7)}\\d UTC$`);
 
 const golden = (): { start: number; peak: number; end: number } => {
   const pass = reference.firstGoldenPass;
@@ -106,21 +111,22 @@ test.describe('the live page', () => {
     expect(box?.height).toBe(844);
     expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
     await expect(page.getByRole('banner')).toHaveCount(0);
-    // The dome is the whole width and most of the height.
+    // The dome is the whole width inside the two cells of side padding, and most of the height.
     const dome = await page.getByTestId('live-dome').boundingBox();
-    expect(dome?.width).toBeGreaterThan(380);
+    expect(dome?.width).toBeGreaterThan(390 - 4 * 9.6 - 1);
     expect(dome?.height).toBeGreaterThan(400);
 
     // FR-LIVE-3: the five fields.
     await stripFilled(page);
-    await expect(page.getByTestId('live-time')).toHaveText(`Time ${new Date(T).toISOString().slice(0, 10)} ${hhmmss(T)} UTC`);
+    await expect(page.getByTestId('live-time')).toHaveText(realTimeField(T));
     await expect(page.getByTestId('live-sky')).toHaveText(/Sky (dark|bright twilight|day)/);
     await expect(page.getByTestId('live-cloud')).toHaveText('Clouds Weather unknown');
     await expect(page.getByTestId('live-count').locator('[data-count]')).toHaveAttribute('data-count', String(panelCount));
     await expect(page.getByTestId('live-moon')).toHaveText(/Moon (new|waxing crescent|first quarter|waxing gibbous|full|waning gibbous|last quarter|waning crescent), \d+ % lit/);
-    // FR-LIVE-2 / FR-LIVE-10: the ISS is drawn on the chart, by the chart, named at its rise.
+    // FR-LIVE-2 / FR-LIVE-10: the ISS is drawn on the chart, by the chart, named at its rise. (The search
+    // window starts at now, so the pass under way is listed from this instant and its id is not the golden one.)
     await expect(page.getByTestId('live-dome').locator('[data-pass-id]').first()).toBeAttached();
-    await expect(page.getByTestId('live-dome').locator(`[data-pass-id="25544-${String(golden().start)}"]`)).toHaveCount(1);
+    await expect(page.getByTestId('live-dome').locator('[data-pass-id^="25544-"]')).toHaveCount(1);
     // FR-SHARE-1's live form.
     await expect(page.getByRole('button', { name: 'Share this sky' })).toBeVisible();
 
@@ -157,10 +163,13 @@ test.describe('the live page', () => {
     await expect(page.getByRole('region', { name: LABEL.en.now })).toContainText(`as of ${hhmmss(T)} UTC`, { timeout: 60_000 });
     await expect(page.getByTestId('active-location')).toContainText('−38.93, −67.99');
 
-    // A t that names no instant: the place is kept and the instant is real time.
+    // A t that names no instant: the place is kept and the instant is real time. (A hash-only
+    // navigation stays in the document; the reload is what makes it a fresh arrival on the link.)
     await page.goto(`/#live?lat=${String(ha.observer.lat)}&lon=${String(ha.observer.lon)}&alt=0&t=soon`);
+    await page.reload();
     await expect(page.getByTestId('live-place')).toHaveText('−38.93, −67.99');
-    await expect(page.getByTestId('live-time')).toHaveText(`Time ${new Date(T).toISOString().slice(0, 10)} ${hhmmss(T)} UTC`);
+    // Real time: the installed clock, not the link.
+    await expect(page.getByTestId('live-time')).toHaveText(realTimeField(T));
   });
 
   test('is inert with one line and the return control without an observer, and without elements (FR-LIVE-1)', async ({ page }) => {
@@ -176,7 +185,9 @@ test.describe('the live page', () => {
     await expect(page.getByRole('banner')).toBeVisible();
 
     // An observer from a link, and CelesTrak down with nothing cached: no elements, so nothing to draw.
+    // A hash-only navigation stays in the document, so the page is reloaded for `startApp` to read the link.
     await page.goto(`/#live?lat=${String(ha.observer.lat)}&lon=${String(ha.observer.lon)}`);
+    await page.reload();
     await expect(page.getByTestId('live-place')).toHaveText('−38.93, −67.99');
     await expect(inert).toHaveText('No orbital elements yet, so there is nothing to draw.', { timeout: 30_000 });
     await expect(page.getByTestId('sky-chart')).toHaveCount(0);
