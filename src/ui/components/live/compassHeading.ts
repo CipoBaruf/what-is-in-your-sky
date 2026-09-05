@@ -42,6 +42,22 @@ export function deviceHeading(reading: OrientationReading): number | null {
   return null;
 }
 
+/**
+ * R44 (FR-WIN-3, FR-LIVE-8 as amended, US-21 AC6; F-41, D-185): the true-north
+ * heading of a magnetic one. Both `webkitCompassHeading` and the W3C `alpha`
+ * are read off a magnetometer and point at *magnetic* north, while every
+ * azimuth the app draws — the compass names on the horizon, the arcs, the
+ * markers — is true. The two are the same number only where the declination is
+ * zero, so the reading is corrected before it becomes a facing: positive east,
+ * a magnetic 90° at Neuquén (+1.1°) is a true 91.1°.
+ *
+ * The declination comes from `lib/declination.ts`, evaluated once per observer
+ * (`useDeclination`), not once per reading.
+ */
+export function trueHeading(magneticHeadingDeg: number, declinationDeg: number): number {
+  return normalizeAzimuthDeg(magneticHeadingDeg + declinationDeg);
+}
+
 /** The azimuth the viewer faces: the device's heading turned by the screen's rotation from portrait. */
 export function facingFrom(headingDeg: number, screenAngleDeg: number): number {
   return normalizeAzimuthDeg(headingDeg + screenAngleDeg);

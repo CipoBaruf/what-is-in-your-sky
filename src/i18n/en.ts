@@ -404,6 +404,14 @@ export const en = {
     followRelative: 'This phone gives no compass heading, so the dome cannot turn with it.',
     /** iOS refused `requestPermission()`, or the request failed (an insecure context). */
     followDenied: 'Motion access was refused, so the dome cannot turn with the phone.',
+    /**
+     * R44 (FR-WIN-3, US-21 AC6): the strip's heading field, shown only while
+     * the dome is following the phone. It says what the correction is as much
+     * as that there is one: a compass reads magnetic north, the sky is drawn
+     * in true azimuths, and this is the angle between them here.
+     */
+    headingLabel: 'Heading',
+    trueNorth: (p: { declination: string }) => `true north, declination ${p.declination}`,
   },
 
   /**

@@ -324,6 +324,8 @@ export const es: Messages = {
     follow: 'Seguir al teléfono',
     followRelative: 'Este teléfono no da un rumbo de brújula, así que la cúpula no puede girar con él.',
     followDenied: 'Se rechazó el acceso al movimiento, así que la cúpula no puede girar con el teléfono.',
+    headingLabel: 'Rumbo',
+    trueNorth: (p) => `norte verdadero, declinación ${p.declination}`,
   },
 
   share: {

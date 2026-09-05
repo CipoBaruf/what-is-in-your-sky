@@ -16,6 +16,7 @@ import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { PlaybackControls } from '../components/live/PlaybackControls';
 import { StatusStrip } from '../components/live/StatusStrip';
 import { TimeStripe } from '../components/live/TimeStripe';
+import { useDeclination } from '../components/live/useDeclination';
 import { useFollowPhone } from '../components/live/useFollowPhone';
 import { useHiddenObjects } from '../components/live/useHiddenObjects';
 import { usePlayback } from '../components/live/usePlayback';
@@ -193,8 +194,11 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
     setLiveHidden(!liveHidden);
   }, [liveHidden, setLiveHidden]);
   useHashFollows(observer, shown, playback.realTime, playback.playing);
+  // R44 (FR-WIN-3, US-21 AC6; F-41, D-185): the observer's magnetic declination, evaluated once per
+  // observer, so the phone's magnetic heading becomes a true-north facing and the strip can name the correction.
+  const declinationDeg = useDeclination(observer);
   // FR-LIVE-8 (US-10): the phone's heading as the dome's facing while following; a drag on the dome turns it off.
-  const follow = useFollowPhone();
+  const follow = useFollowPhone(declinationDeg);
   const facingAzDeg = follow.state === 'on' && follow.facingAzDeg !== null ? follow.facingAzDeg : undefined;
   /*
    * R39 (F-40, FR-LIVE-8 as amended): the facing belongs to the dome. The polar
@@ -246,7 +250,16 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           {followable && <FollowPhone follow={follow} />}
           <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={t.live.share} />
         </div>
-        <StatusStrip t={shown} timeZone={observer.timeZone} sky={bodies.sky} cloud={cloud} count={count} moon={bodies.moon} speed={playback.playing ? playback.speed : null} />
+        <StatusStrip
+          t={shown}
+          timeZone={observer.timeZone}
+          sky={bodies.sky}
+          cloud={cloud}
+          count={count}
+          moon={bodies.moon}
+          speed={playback.playing ? playback.speed : null}
+          declinationDeg={follow.state === 'on' ? declinationDeg : null}
+        />
       </div>
     </>
   );
