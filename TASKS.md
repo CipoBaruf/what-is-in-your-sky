@@ -830,7 +830,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Touches outside the lane:** `src/ui/App.tsx` (F-34's hash listener, one hunk), `tests/e2e/live.spec.ts`.
   - **Done when:** a test per finding, named by it; `npm test` and `live.spec.ts` green; no capture (nothing visible changes).
 
-- [ ] **R40 — Chart findings: the astronomy import retry, the flown strip, the polar Sun label and glow, the zoom guard**
+- [x] **R40 — Chart findings: the astronomy import retry, the flown strip, the polar Sun label and glow, the zoom guard**
   - **Lane:** chart
   - **Model:** sonnet
   - **Gate:** auto
