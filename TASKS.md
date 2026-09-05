@@ -831,7 +831,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Done when:** a test per finding, named by it; `npm test` and `live.spec.ts` green; no capture (nothing visible changes).
   - *Done as written, with three notes: F-37's locator is in `live-playback.spec.ts`, not `live.spec.ts`, and needed an anchored pattern rather than `exact` (the accessible name carries the `[x] ` the CSS writes); F-38 took the shown instant out of `passSegments` (`isCurrent(segment, t)` at draw time) so the memo can hold on `(passes, span, width)`; F-42 makes `aria-pressed` follow the first reading, which moved three follow assertions in `Live.test.tsx` and `live-landscape.spec.ts`.*
 
-- [ ] **R40 — Chart findings: the astronomy import retry, the flown strip, the polar Sun label and glow, the zoom guard**
+- [x] **R40 — Chart findings: the astronomy import retry, the flown strip, the polar Sun label and glow, the zoom guard**
   - **Lane:** chart
   - **Model:** sonnet
   - **Gate:** auto

@@ -22,6 +22,7 @@ import {
   layoutFor,
   PITCH_STEP_DEG,
   readoutParams,
+  sameLayout,
   tilt,
   toRotY,
   turn,
@@ -251,8 +252,7 @@ export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now
     const blockAdvance = measureAdvance(stage, BLOCK_GLYPH);
     const brailleRows = rowMetrics(stage, BRAILLE_GLYPH);
     const blockRows = rowMetrics(stage, BLOCK_GLYPH);
-    const keep = (next: DomeLayout) => (previous: DomeLayout) =>
-      Math.abs(next.cellWidthPx - previous.cellWidthPx) < 0.01 && next.fontSizePx === previous.fontSizePx && next.cols === previous.cols && next.rows === previous.rows ? previous : next;
+    const keep = (next: DomeLayout) => (previous: DomeLayout) => (sameLayout(next, previous) ? previous : next);
     const observerRO = new ResizeObserver((entries) => {
       const box = entries[0]?.contentRect;
       const width = box?.width ?? null;

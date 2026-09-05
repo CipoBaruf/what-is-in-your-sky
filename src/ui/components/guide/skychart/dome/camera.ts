@@ -241,6 +241,17 @@ export function layoutFor(hostWidthPx: number | null, hostHeightPx: number | nul
   };
 }
 
+/**
+ * F-35: whether two layouts draw the same thing, so a resize observer can
+ * skip a state update that would change nothing on screen. `zoom` follows the
+ * box's shorter side (D-161) and can move on a height-only resize even when
+ * the column-driven cell, font and row count do not, so it has to be
+ * compared alongside them rather than left out.
+ */
+export function sameLayout(a: DomeLayout, b: DomeLayout): boolean {
+  return Math.abs(a.cellWidthPx - b.cellWidthPx) < 0.01 && Math.abs(a.zoom - b.zoom) < 0.01 && a.fontSizePx === b.fontSizePx && a.cols === b.cols && a.rows === b.rows;
+}
+
 /** The base layer's layout (D-92): the same box and the same zoom, half the columns, in the page's monospace font. */
 export function baseLayoutFor(line: DomeLayout, hostWidthPx: number | null, hostHeightPx: number | null, monoAdvance: number): DomeLayout {
   const cols = baseColsFor(line.cols);

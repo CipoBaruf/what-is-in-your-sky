@@ -24,7 +24,14 @@ let pending: Promise<Evaluate> | null = null;
 
 /** The evaluator, loaded once per session and shared by every chart on the page. */
 function loadSkyBodies(): Promise<Evaluate> {
-  pending ??= import('../../../../lib/skyBodies').then((module) => module.skyBodiesAt);
+  pending ??= import('../../../../lib/skyBodies').then(
+    (module) => module.skyBodiesAt,
+    (error: unknown) => {
+      // F-1: a failed chunk is not memoised — the next mount that wants the bodies gets a fresh attempt.
+      pending = null;
+      throw error;
+    },
+  );
   return pending;
 }
 
