@@ -98,7 +98,8 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     await domeDrawn(page);
     await stripFilled(page);
     await expect(page.getByTestId('live-speed')).toHaveCount(0);
-    await page.getByRole('button', { name: '3600×' }).click();
+    // R39 (F-37): `exact` on every speed — a name option is a substring match, so `60×` also names `600×` and `3600×`.
+    await page.getByRole('button', { name: '3600×', exact: true }).click();
     await page.getByRole('button', { name: 'Play' }).click();
     await expect(page.getByTestId('live-speed')).toHaveText('Speed 3600×');
     // Two seconds of wall time at 3600× is two hours — within a frame's worth either way.
@@ -116,7 +117,8 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     // Paused: the held instant is in the hash.
     await expect(page).toHaveURL(/#live\?lat=-38\.93&lon=-67\.99&alt=0&t=/);
     // Play again at 60×: one second is one minute.
-    await page.getByRole('button', { name: '60×' }).click();
+    await page.getByRole('button', { name: '60×', exact: true }).click();
+    await expect(page.getByRole('button', { name: '60×', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: 'Play' }).click();
     await page.clock.runFor(1000);
     const later = await shownInstant(page);
