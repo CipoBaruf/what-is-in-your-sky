@@ -1,17 +1,13 @@
 /**
  * PLAN §11 bundle budgets (R15): gzipped sizes of the built chunks against
- * the three budgets, printed as a table after `vite build`. Never fails the
+ * their budgets, printed as a table after `vite build`. Never fails the
  * build (a warning, per PLAN §11): an overrun is a `::warning::` annotation
  * in CI and an exit code of 0, and the PR records an accepted overrun.
  *
  *   npm run build && npm run bundle:budget
  *
- * Chunks are classified by what the app loads: the main chunk is the script
- * `index.html` references, the worker chunk is `passes.worker-*.js`, the
- * chart chunk is the `React.lazy` split of `SkyDome` (`@glyphcss/react`,
- * `@glyphcss/core` and `dome/`). Everything else is listed but unbudgeted:
- * satellite.js's WASM entry (D-18) and glyphcss's loaders and font atlases
- * (D-63) are emitted as lazy chunks the app never fetches.
+ * Chunks are classified by what the app loads; `BUDGETS` below says which
+ * file each budget matches and where its number comes from.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -26,37 +22,66 @@ export interface Budget {
 }
 
 /**
- * PLAN §11: chart ≤ 100 KB (D-63), worker ≤ 120 KB, gzipped. The main chunk
- * is on its v1 budget of 170 KB from R17 on — the second message catalog,
- * the live page's shell, the offline and share code all land there, and both
- * catalogs ship in it by design (lazy-loading a language would make the
- * switch flash). R17 measured 114.9 KB, 5.7 KB more than R15's 109.2.
+ * The v1 budgets, re-set by R36 from the real 1.0.0 build (D-178). Until then
+ * each chunk carried the ceiling PLAN §11 reserved for it while the phase was
+ * still being written — main 170 KB, chart 100, worker 120, astronomy 30,
+ * live 40, service worker 15 — which is the right number to plan against and
+ * a useless number to regress against: the worker sat at 36 KB under a 120 KB
+ * budget, so tripling it would still have passed.
  *
- * R25 adds the service worker at ≤ 15 KB: Workbox's runtime and the precache
- * manifest, generated at the site root rather than under `assets/` because a
- * worker's scope is the directory it is served from (D-79). It is a budget of
- * its own precisely because it is not in the main chunk — nothing the page
- * downloads to paint — and an overrun there would otherwise hide in the
- * unbudgeted rows.
+ * Every budget below is `measured × 1.1`, rounded up to the next 5 KB and
+ * floored at 10 KB, and none of them exceeds its PLAN §11 v1 ceiling. That
+ * leaves about a tenth of each chunk as headroom — enough that a legitimate
+ * feature lands without ceremony, tight enough that a stray dependency shows
+ * up as a `::warning::` in the build log on the PR that added it. Re-measure
+ * and re-set them the same way whenever the ceiling is raised.
  *
- * R22 adds the astronomy chunk at ≤ 30 KB: `lib/skyBodies.ts` and the part of
- * `astronomy-engine` it pulls in, split out of the main chunk by the dynamic
- * import in `useSkyBodies` (D-148). It is budgeted for the same reason as the
- * service worker and unlike the other lazy rows: the app really does fetch it,
- * once a chart is on screen. It measured 22.0 KB in R22.
+ * Measured on the R36 build (gzip level 9, the numbers in the release PR):
  *
- * R32 adds the live route at ≤ 40 KB (PLAN §11): `screens/Live.tsx` and the
- * status strip, split out by the `React.lazy` in `App.tsx`, so the home page
- * pays nothing for a page it may never open. The chart, the astronomy and the
- * catalogs it uses are already in their own chunks.
+ * | chunk          | file                | measured | budget | ceiling |
+ * |----------------|---------------------|---------:|-------:|--------:|
+ * | main           | `index-*.js`        |    134.7 |    150 |     170 |
+ * | chart          | `SkyDome-*.js`      |     97.1 |    110 |     110 |
+ * | worker         | `passes.worker-*`   |     36.1 |     40 |     130 |
+ * | astronomy      | `skyBodies-*.js`    |     22.1 |     25 |      30 |
+ * | live           | `Live-*.js`         |      6.3 |     10 |      40 |
+ * | service worker | `workbox-*.js`      |      5.0 |     10 |      15 |
+ *
+ * What each one holds, and why it is a budget of its own rather than a row in
+ * the main chunk:
+ *
+ * - **main** — the app shell plus both message catalogs, by design: one
+ *   language is a few kilobytes of strings and lazy-loading a language would
+ *   make the switch flash. R15 measured 109.2 KB, R17 114.9 after the second
+ *   catalog; the offline, share and live-route entry code took it to 134.7.
+ * - **chart** — `@glyphcss/react`, `@glyphcss/core` and `dome/`, behind the
+ *   `React.lazy` in `SkyChart.tsx`. The 60 KB planned before the R14 spike is
+ *   not reachable from outside the library (D-63), which is why its ceiling
+ *   and its budget are the same number.
+ * - **worker** — satellite.js and the propagation code, loaded once.
+ * - **astronomy** — `lib/skyBodies.ts` and the part of `astronomy-engine` it
+ *   reaches, split out of main by the dynamic import in `useSkyBodies`
+ *   (D-148). Budgeted rather than left unbudgeted because the app really does
+ *   fetch it, once a chart is on screen.
+ * - **live** — `screens/Live.tsx` and the status strip, split out by the
+ *   `React.lazy` in `App.tsx`, so the home page pays nothing for a page it may
+ *   never open.
+ * - **service worker** — Workbox's runtime and the precache manifest, emitted
+ *   at the site root rather than under `assets/` because a worker's scope is
+ *   the directory it is served from (D-79). Nothing the page downloads to
+ *   paint, so an overrun there would otherwise hide in the unbudgeted rows.
+ *
+ * Everything else is listed but unbudgeted: satellite.js's WASM entry (D-18)
+ * and glyphcss's loaders and font atlases (D-63) are emitted as lazy chunks
+ * the app never fetches.
  */
 export const BUDGETS: readonly Budget[] = [
-  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 170 },
-  { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 100 },
-  { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 120 },
-  { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 15 },
-  { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 30 },
-  { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 40 },
+  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 150 },
+  { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 110 },
+  { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 40 },
+  { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10 },
+  { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 25 },
+  { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 10 },
 ];
 
 export interface ChunkSize {
