@@ -7,6 +7,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, type Page } from '@playwright/test';
+import { FIXTURE_DATE } from './observers';
 
 interface HaFixture {
   capturedAt: string;
@@ -16,7 +17,7 @@ interface Reference {
   firstGoldenPass: { start: { t: number }; peak: { t: number }; end: { t: number } } | null;
 }
 
-export const FIXTURE_DATE = '2026-09-02';
+export { FIXTURE_DATE };
 export const ha = JSON.parse(readFileSync(`tests/fixtures/heavens-above/${FIXTURE_DATE}-neuquen-iss.json`, 'utf8')) as HaFixture;
 const reference = JSON.parse(readFileSync('tests/fixtures/reference-values.json', 'utf8')) as Reference;
 export const NEUQUEN = `${String(ha.observer.lat)}, ${String(ha.observer.lon)}`;

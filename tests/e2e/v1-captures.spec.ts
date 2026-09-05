@@ -32,36 +32,29 @@
  * the list has three nights in it. One place would have cost one of the two,
  * and a flat picture of a rich screen is worth less than a tidy postcode.
  */
-import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import type { Observer } from '../../src/model';
 import { CAPTURE_DIR, captureName, LOCALES, SCREENS, THEMES, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
+import { domeDrawn, hhmmss, stripFilled } from './liveHelpers';
+// Both observers are at altitude 0, which is what typing a coordinate pair gives (FR-LOC-4) and what
+// the committed pass ids were computed at: a seeded altitude would move every pass start by a second
+// or two and the glare pass would no longer be found by its id. Only Paris is observed from; Neuquén
+// is here to be the second row of the saved places.
+import { FIXTURE_DATE, NEUQUEN, PARIS } from './observers';
 
-interface HaFixture {
-  observer: { lat: number; lon: number };
-}
-interface StoredObserver {
-  lat: number;
-  lon: number;
-  altM: number;
-  label: string;
-  source: string;
-  timeZone: string;
-}
-
-const FIXTURE_DATE = '2026-09-02';
-const ha = JSON.parse(readFileSync(`tests/fixtures/heavens-above/${FIXTURE_DATE}-neuquen-iss.json`, 'utf8')) as HaFixture;
 const DAY_MS = 86_400_000;
 const PREFS_KEY = 'wiys:prefs:v1';
 
 /**
- * Both observers are at altitude 0, which is what typing a coordinate pair
- * gives (FR-LOC-4) and what the committed pass ids were computed at: a seeded
- * altitude would move every pass start by a second or two and the glare pass
- * would no longer be found by its id. Only Paris is observed from; Neuquén is
- * here to be the second row of the saved places.
+ * FR-CI-2 (R37, F-46): sixty captures off one build take about 8.5 min, which
+ * was most of FR-CI-1's ten-minute budget on every pull request that had
+ * nothing to do with them. The set is a release artefact, so it is shot where
+ * release artefacts are shot: `.github/workflows/captures.yml` on `main`, and
+ * here on demand, the way `dome-perf.spec.ts` is run.
+ *
+ *   CAPTURES=1 npx playwright test v1-captures
  */
-const PARIS: StoredObserver = { lat: 48.86, lon: 2.35, altM: 0, label: '48.86, 2.35', source: 'coords', timeZone: 'Europe/Paris' };
-const NEUQUEN: StoredObserver = { lat: ha.observer.lat, lon: ha.observer.lon, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: 'America/Argentina/Salta' };
+test.skip(process.env['CAPTURES'] !== '1', 'the release capture set: run with CAPTURES=1 (FR-CI-2)');
 
 /**
  * The pass the Moon stands 8° from (`live-captures.spec.ts`, R22), and the
@@ -98,9 +91,9 @@ const FULL_PAGE = new Set(['location', 'home']);
 interface SeedPrefs {
   locale: CaptureLocale;
   theme: CaptureTheme;
-  observer?: StoredObserver;
+  observer?: Observer;
   chartView?: 'dome' | 'polar';
-  favourites?: { cellKey: string; observer: StoredObserver; addedAt: number; lastUsedAt: number }[];
+  favourites?: { cellKey: string; observer: Observer; addedAt: number; lastUsedAt: number }[];
 }
 
 /** The elements from the fixtures, and nothing else: no forecast over Paris, and no geocoder, since every observer here is a coordinate pair. */
@@ -148,32 +141,19 @@ async function listSettled(page: Page): Promise<void> {
 }
 
 /**
- * The live page's dome, drawn. React reveals a lazy chunk behind its Suspense
- * fallback on a timer, and the chart chunk, the raster font and the first
- * rasterisation wait on timers too — all of them held by the paused clock, so
- * it is ticked until each expectation holds rather than once before them
- * (`liveHelpers.ts` carries the same note and the CI run that proved it).
+ * F-48 (R37): every capture is shot at `SHOWN`, on the dot.
+ *
+ * Waiting for a drawn chart means ticking the paused clock (`domeDrawn`), and
+ * how many ticks that takes is a property of the run, not of the picture: R36's
+ * live captures were shot wherever the last tick left the clock, so the time
+ * field and the marker moved between two runs of the same file. So the waiting
+ * is done first and the clock is only then put where the capture wants it —
+ * one tick short of the instant, then a tick, which is how the page arrives at
+ * a new `now` in the app as well (`NOW_TICK_MS`).
  */
-async function domeDrawn(page: Page): Promise<void> {
-  const livePage = page.getByTestId('live-page');
-  await expect
-    .poll(
-      async () => {
-        await page.clock.runFor(200);
-        return (await livePage.count()) === 0 ? null : livePage.getAttribute('data-state');
-      },
-      { timeout: 30_000 },
-    )
-    .toBe('live');
-  await expect
-    .poll(
-      async () => {
-        await page.clock.runFor(200);
-        return page.getByTestId('live-dome').locator('[data-layer="lines"] pre.glyph-output').isVisible();
-      },
-      { timeout: 30_000 },
-    )
-    .toBe(true);
+async function pinnedAt(page: Page, t: number): Promise<void> {
+  await page.clock.setSystemTime(t - TICK_MS);
+  await page.clock.runFor(TICK_MS);
 }
 
 /** The chart screens: the glare pass open on `view`, three minutes in. */
@@ -195,8 +175,7 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
   if (view === 'dome') await expect(figure.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
 
   // …and then into the pass, arriving on the tick the sheet lives by rather than through three hundred of them.
-  await page.clock.setSystemTime(SHOWN - TICK_MS);
-  await page.clock.runFor(TICK_MS);
+  await pinnedAt(page, SHOWN);
   await expect(figure.locator('[data-anchor="sun"]')).toHaveCount(1);
   await expect(figure.locator('[data-anchor="moon"]')).toHaveCount(1);
   if (view === 'polar') await expect(figure.locator('[data-marker="now"]')).toHaveCount(1);
@@ -287,8 +266,15 @@ const REACH: Record<string, Reach> = {
     // reveal is one of the timers the paused clock is holding until `domeDrawn` ticks it.
     await domeDrawn(page);
     await expect(page.getByTestId('live-place')).toHaveText(PARIS.label);
-    // The strip settled: five fields, none of them still on its pending ellipsis.
-    for (const field of ['time', 'sky', 'cloud', 'count', 'moon']) await expect(page.getByTestId(`live-${field}`)).not.toContainText('…', { timeout: 60_000 });
+    // The strip settled: five fields, each visible and none still on its pending ellipsis (F-47:
+    // `liveHelpers.ts` owns that check, and this file had been carrying a copy without the visibility half).
+    await stripFilled(page);
+    // F-48: `domeDrawn` left the clock wherever its last tick fell, so the shown instant is put back
+    // on `SHOWN` before the picture — and the strip is read to prove the page went there with it.
+    await pinnedAt(page, SHOWN);
+    // …to the ten-second tick the strip reads the clock at (FR-VIS-5), and in neither language's words:
+    // the zone is unknown over Paris, so both of them print the UTC time of `SHOWN`.
+    await expect(page.getByTestId('live-time')).toContainText(hhmmss(SHOWN).slice(0, 7));
     await page.mouse.move(0, 0);
   },
 };
