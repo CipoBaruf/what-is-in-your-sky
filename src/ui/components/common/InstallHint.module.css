@@ -1,0 +1,26 @@
+/* Inside the banner's `<p>`, so a span rather than a div; a row of its own
+   under the sentence, tall enough that each answer keeps its 48 px box. */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--cell);
+  min-height: var(--tap);
+}
+
+/* Bracketed text controls, like the location section's clear action. */
+.action {
+  color: var(--accent);
+  background: none;
+  border: 0;
+  padding-inline: 0;
+}
+
+.action::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.action::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}

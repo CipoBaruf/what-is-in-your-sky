@@ -7,8 +7,10 @@ import styles from './App.module.css';
 import { applyTheme } from './styles/theme';
 import { Banner } from './components/common/Banner';
 import { Footer } from './components/common/Footer';
+import { InstallHint } from './components/common/InstallHint';
 import { LanguageToggle } from './components/common/LanguageToggle';
 import { ReadinessLine } from './components/common/ReadinessLine';
+import { UpdateBanner } from './components/common/UpdateBanner';
 import { ThemeToggle } from './components/common/ThemeToggle';
 import { ElementsBanners } from './components/elements/ElementsBanners';
 import { useLayoutMode } from './hooks/useLayoutMode';
@@ -58,7 +60,10 @@ const LivePage = lazy(() => import('./screens/Live').then((module) => ({ default
  * is where FR-OFF-4 asks for it and where the other statements about what the
  * app is running on already are. R32: the header's controls gain the link to
  * the live page (FR-LIVE-1), and under `#live` the whole screen is that page
- * instead of this one.
+ * instead of this one. R28 puts the update offer and the install hint at the
+ * head of the left column (FR-OFF-1, FR-OFF-6): they are page-level statements
+ * like the elements banners, and being inside the shell is what keeps them out
+ * of reach under an open pass and off the live page altogether (D-154).
  */
 export function App() {
   const t = useT();
@@ -120,6 +125,11 @@ export function App() {
       </header>
       <main inert={inert} className={styles.main}>
         <div className={`${styles.column} ${styles.leftColumn}`} data-testid="col-left">
+          {/* R28 (D-154): both offers sit above everything, inside the region the
+              open sheet makes inert and outside the live route, so neither can
+              be acted on while a pass or the live sky is up. */}
+          <UpdateBanner />
+          <InstallHint />
           <LocationInput observer={observer} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} />
           <ReadinessLine />
           <ElementsBanners />

@@ -56,4 +56,38 @@ describe('<App> frame (R12)', () => {
     expect(screen.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeInTheDocument();
     for (const role of ['banner', 'main', 'contentinfo']) expect(screen.getByRole(role, { hidden: true })).toHaveAttribute('inert');
   });
+
+  /**
+   * R28 (FR-OFF-1, FR-OFF-6, D-154): "nothing swaps under an open pass or the
+   * live page" is a fact about where the two offers are rendered, not a rule
+   * either of them enforces. Both sit inside `main`, which the compact sheet
+   * makes inert and which the live route replaces outright, so this is the
+   * test that keeps that placement — moving either one outside the shell would
+   * break it here and nowhere else.
+   */
+  it('the update offer and the install hint sit inside the shell, so a pass makes them inert and the live page has neither', () => {
+    act(() => {
+      appStore.setState({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [pass], hasDarkness: true }, updateReady: true, applyUpdate: () => undefined });
+    });
+    render(<App />);
+    act(() => {
+      window.dispatchEvent(Object.assign(new Event('beforeinstallprompt', { cancelable: true }), { prompt: () => Promise.resolve() }));
+    });
+    const main = screen.getByRole('main');
+    expect(main).toContainElement(screen.getByTestId('update-banner'));
+    expect(main).toContainElement(screen.getByTestId('install-hint'));
+
+    act(() => {
+      window.location.hash = `#pass=${pass.id}`;
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    expect(screen.getByRole('main', { hidden: true })).toHaveAttribute('inert');
+
+    act(() => {
+      window.location.hash = '#live';
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    expect(screen.queryByTestId('update-banner')).toBeNull();
+    expect(screen.queryByTestId('install-hint')).toBeNull();
+  });
 });

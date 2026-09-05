@@ -33,6 +33,9 @@ import type { AppState } from '../store';
  * write it back. Selecting goes through `setObserver` (D-139), so a favourite
  * starts the ordinary FR-VIS-5 recompute and nothing in the effects, the
  * worker or the caches has to learn that favourites exist.
+ * R28 (FR-OFF-6) adds the install hint's dismissal, the one preference with no
+ * setter, only a latch: `dismissInstallHint` writes `true` and there is no way
+ * back, because "shown once" is the requirement (D-153).
  */
 export interface PrefsDeps {
   prefs: LocalPrefs;
@@ -68,6 +71,10 @@ export interface PrefsSlice {
   selectFavourite: (cellKey: string) => boolean;
   /** Forgets a saved place. The active observer, if it was that place, stays: removing is not leaving. */
   removeFavourite: (cellKey: string) => void;
+  /** FR-OFF-6: whether the install hint has already been answered on this device. */
+  installHintDismissed: boolean;
+  /** Answers the install hint for good — installed, declined or waved away, it is the same latch. */
+  dismissInstallHint: () => void;
   /** Sets the saved observer, if there is one; returns whether there was. */
   restoreSavedObserver: () => boolean;
   clearSavedObserver: () => void;
@@ -124,6 +131,11 @@ export const createPrefsSlice =
       },
       removeFavourite: (cellKey) => {
         saveFavourites(withoutFavourite(get().favourites, cellKey));
+      },
+      installHintDismissed: deps.prefs.read().installHintDismissed ?? false,
+      dismissInstallHint: () => {
+        set({ installHintDismissed: true });
+        deps.prefs.write({ ...deps.prefs.read(), installHintDismissed: true });
       },
       restoreSavedObserver: () => {
         const { observer } = deps.prefs.read();
