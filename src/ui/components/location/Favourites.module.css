@@ -6,8 +6,7 @@
 
 .heading,
 .empty,
-.limit,
-.saveRow {
+.limit {
   margin: 0;
 }
 
@@ -23,19 +22,25 @@
   padding: 0;
 }
 
-.item {
+/*
+ * One saved place per row, and the row is a tap target tall. The location
+ * section's `.clear` can be an `inline-control` — a 48 px box hung off a line
+ * of prose with negative margins — because nothing else is clickable near it.
+ * Here the controls stack, so the same trick would have each row's box overlap
+ * its neighbours and swallow their clicks: the rows carry the height instead
+ * and the buttons fill them.
+ */
+.item,
+.saveRow {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--cell);
+  min-height: var(--tap);
 }
 
 /* The place name itself is the control; the remove action sits at the end of the row. */
 .use {
   color: var(--accent);
-  background: none;
-  border: 0;
-  padding-inline: 0;
-  min-height: 0;
   text-align: start;
   overflow-wrap: anywhere;
 }
@@ -43,10 +48,18 @@
 .remove {
   margin-inline-start: auto;
   color: var(--fg-dim);
+}
+
+.save {
+  color: var(--accent);
+}
+
+.use,
+.remove,
+.save {
   background: none;
   border: 0;
   padding-inline: 0;
-  min-height: 0;
 }
 
 /* Bracketed text controls, like the location section's clear action. */
@@ -62,12 +75,4 @@
 .save::after {
   content: ' ]';
   color: var(--fg-dim);
-}
-
-.save {
-  color: var(--accent);
-  background: none;
-  border: 0;
-  padding-inline: 0;
-  min-height: 0;
 }

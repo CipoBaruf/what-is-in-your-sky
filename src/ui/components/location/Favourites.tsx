@@ -50,7 +50,7 @@ export function Favourites() {
               <li key={favourite.cellKey} className={styles.item} data-testid="favourite" data-current={current ? 'yes' : 'no'}>
                 <button
                   type="button"
-                  className={`inline-control ${styles.use}`}
+                  className={styles.use}
                   aria-label={t.favourites.use(favourite.observer.label)}
                   {...(current ? { 'aria-current': true as const } : {})}
                   onClick={() => {
@@ -62,7 +62,7 @@ export function Favourites() {
                 {current && <span className={styles.current}>({t.favourites.current})</span>}
                 <button
                   type="button"
-                  className={`inline-control ${styles.remove}`}
+                  className={styles.remove}
                   aria-label={t.favourites.remove(favourite.observer.label)}
                   onClick={() => {
                     remove(favourite.cellKey);
@@ -76,10 +76,10 @@ export function Favourites() {
         </ul>
       )}
       {observer !== null && (
-        <p className={styles.saveRow}>
+        <div className={styles.saveRow}>
           <button
             type="button"
-            className={`inline-control ${styles.save}`}
+            className={styles.save}
             data-testid="save-favourite"
             onClick={() => {
               add(observer);
@@ -87,7 +87,7 @@ export function Favourites() {
           >
             {t.favourites.save}
           </button>
-        </p>
+        </div>
       )}
       <p className={styles.limit}>{t.favourites.limit(MAX_FAVOURITES)}</p>
     </div>
