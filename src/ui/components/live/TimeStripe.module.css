@@ -1,0 +1,93 @@
+/* R33 (FR-LIVE-4, FR-THEME-3): the time stripe. Every colour is a token the
+   dome already reads, so the night theme is a token swap: the day is the
+   raised background, the twilight the ground's colour, the dark the sky
+   bowl's; the segments take the six series tokens their arcs take; the cursor
+   is the live marker's colour. Colour is never the only channel (FR-X-5): the
+   bands differ in shade, the current segment carries a stroke, the labelled
+   ticks are taller. */
+.stripe {
+  display: block;
+  width: 100%;
+  touch-action: none;
+  user-select: none;
+  cursor: col-resize;
+  font-family: inherit;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+.stripe:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.stripe[data-dragging='true'] {
+  cursor: grabbing;
+}
+
+.day {
+  fill: var(--bg-raised);
+}
+
+.night[data-sky='bright-twilight'] {
+  fill: var(--chart-ground);
+}
+
+.night[data-sky='dark'] {
+  fill: var(--chart-sky);
+}
+
+.tick {
+  stroke: var(--chart-rings);
+  stroke-width: 1;
+}
+
+.hour {
+  fill: var(--fg-dim);
+  font-size: 9px;
+}
+
+.segment {
+  fill: var(--chart-pass-dim);
+}
+
+.segment[data-series='1'] {
+  fill: var(--chart-series-1);
+}
+
+.segment[data-series='2'] {
+  fill: var(--chart-series-2);
+}
+
+.segment[data-series='3'] {
+  fill: var(--chart-series-3);
+}
+
+.segment[data-series='4'] {
+  fill: var(--chart-series-4);
+}
+
+.segment[data-series='5'] {
+  fill: var(--chart-series-5);
+}
+
+.segment[data-series='6'] {
+  fill: var(--chart-series-6);
+}
+
+/* The pass under way at the shown instant: the one with a live marker on the dome. */
+.current {
+  stroke: var(--chart-now);
+  stroke-width: 1;
+}
+
+.cursor {
+  stroke: var(--chart-now);
+  stroke-width: 1.5;
+}
+
+.clock {
+  fill: var(--fg);
+  font-size: 11px;
+}

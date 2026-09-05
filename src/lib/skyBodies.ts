@@ -47,6 +47,11 @@ export function skyStateOf(sunAltDeg: number, thresholds: Pick<VisibilityThresho
   return 'dark';
 }
 
+/** R33 (FR-LIVE-4): the sky state alone — the Sun without the Moon — for the time stripe's night bands, which sample it a few hundred times over the span. */
+export function skyStateAt(t: EpochMs, observer: Observer): SkyState {
+  return skyStateOf(sunAt(observer, t).altDeg);
+}
+
 /** The Sun and the Moon for `observer` at `t`. One evaluation of each; the caller decides how often. */
 export function skyBodiesAt(t: EpochMs, observer: Observer): SkyBodies {
   const sun = sunAt(observer, t);

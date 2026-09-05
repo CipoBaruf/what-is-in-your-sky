@@ -26,6 +26,14 @@ export interface LinkedText {
 }
 
 /**
+ * R33 (FR-LIVE-6, US-15 AC6): why an object above the horizon is not worth
+ * looking for, read off its `NowItem` by the live page (`components/live/
+ * hiddenObjects.ts`) in D-96's order — too low, in Earth's shadow, a sky
+ * that is not dark, or fainter than the limit.
+ */
+export type HiddenReason = 'low' | 'shadow' | 'daylight' | 'faint';
+
+/**
  * Where a pass is against the clock (`common/Countdown.tsx`): before its
  * rise, on the way to its peak, on the way to its end, or over. The
  * countdown's headline is one message per language, so the phase reaches the

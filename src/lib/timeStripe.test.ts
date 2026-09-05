@@ -8,6 +8,7 @@ import type { Pass } from '../model';
 import {
   clampToSpan,
   cursorAt,
+  daysFromCivil,
   HOUR_MS,
   hourTicks,
   keyStep,
@@ -54,6 +55,17 @@ describe('keyStep (FR-LIVE-4: 1 min, 10 min with Shift)', () => {
     expect(keyStep(span.end - 30_000, 'ArrowRight', true, span)).toBe(span.end);
     expect(keyStep(t, 'Enter', false, span)).toBeNull();
     expect(keyStep(t, 'a', true, span)).toBeNull();
+  });
+});
+
+describe('daysFromCivil', () => {
+  it('agrees with the epoch calendar on both sides of a leap day and of 1970', () => {
+    expect(daysFromCivil(1970, 1, 1)).toBe(0);
+    expect(daysFromCivil(2026, 9, 11)).toBe(Date.UTC(2026, 8, 11) / 86_400_000);
+    expect(daysFromCivil(2024, 2, 29)).toBe(Date.UTC(2024, 1, 29) / 86_400_000);
+    expect(daysFromCivil(2024, 3, 1)).toBe(Date.UTC(2024, 2, 1) / 86_400_000);
+    expect(daysFromCivil(1969, 12, 31)).toBe(-1);
+    expect(daysFromCivil(2000, 1, 1)).toBe(Date.UTC(2000, 0, 1) / 86_400_000);
   });
 });
 

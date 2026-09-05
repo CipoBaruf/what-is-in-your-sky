@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useLocale, useT } from '../../../i18n/useT';
 import { moonFacts } from '../../../lib/moonPhrases';
+import type { Speed } from '../../../lib/playback';
 import { formatClock, formatDate } from '../../../lib/timeFormat';
 import type { CloudVerdict, EpochMs, MoonState, SkyState } from '../../../model';
 import { badgeText } from '../weather/CloudBadge';
@@ -18,7 +19,7 @@ import styles from './StatusStrip.module.css';
  *
  * Pure display: the page computes every value and this component words it
  * through the catalogs (FR-I18N-2). R33 adds the playback speed as a sixth
- * field while playing.
+ * field while playing (FR-LIVE-3's "while playing, the speed").
  */
 export interface StatusStripProps {
   /** The shown instant `t` (FR-LIVE-2), not necessarily now. */
@@ -31,6 +32,8 @@ export interface StatusStripProps {
   count: number;
   /** `null` until evaluated, like `sky`. */
   moon: MoonState | null;
+  /** R33 (FR-LIVE-3): the playback speed while playing, as a sixth field; `null` or absent otherwise. */
+  speed?: Speed | null;
 }
 
 function Field({ id, label, children }: { id: string; label: string; children: ReactNode }) {
@@ -42,7 +45,7 @@ function Field({ id, label, children }: { id: string; label: string; children: R
   );
 }
 
-export function StatusStrip({ t, timeZone, sky, cloud, count, moon }: StatusStripProps) {
+export function StatusStrip({ t, timeZone, sky, cloud, count, moon, speed = null }: StatusStripProps) {
   const m = useT();
   const locale = useLocale();
   return (
@@ -64,6 +67,11 @@ export function StatusStrip({ t, timeZone, sky, cloud, count, moon }: StatusStri
       <Field id="moon" label={m.live.moonLabel}>
         {moon ? m.live.moon(moonFacts(moon)) : m.live.pending}
       </Field>
+      {speed !== null && (
+        <Field id="speed" label={m.live.speedLabel}>
+          <span data-speed={speed}>{m.live.speed(speed)}</span>
+        </Field>
+      )}
     </dl>
   );
 }

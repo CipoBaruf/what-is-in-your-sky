@@ -1,18 +1,30 @@
 /* R32 (FR-LIVE-1): the live page is exactly one viewport high and never
-   scrolls: the controls row, the dome taking every row left, the status
-   strip and the share action. Two cells of side padding, like the frame the
-   rest of the app draws in; no 80-cell cap, because the dome is the point.
-   `minmax(0, 1fr)` so the dome row can shrink below its content and the grid
-   bounds it (D-119's lesson). R34 turns this sideways on a landscape phone. */
+   scrolls: the controls row, the dome taking every row left, then (R33) the
+   time stripe, the playback row with the share action, and the status strip.
+   Two cells of side padding, like the frame the rest of the app draws in; no
+   80-cell cap, because the dome is the point. `minmax(0, 1fr)` so the dome
+   row can shrink below its content and the grid bounds it (D-119's lesson).
+   The gaps are a quarter row: the stripe took a row from the dome at 390 px
+   and the gaps give half of it back (D-162's loose end). R34 turns this
+   sideways on a landscape phone. */
 .page {
   height: 100dvh;
   box-sizing: border-box;
-  padding: calc(var(--row) / 2) calc(2 * var(--cell));
+  padding: calc(var(--row) / 4) calc(2 * var(--cell));
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
-  gap: calc(var(--row) / 2);
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  gap: calc(var(--row) / 4);
   background: var(--bg);
   color: var(--fg);
+}
+
+/* The playback controls and the share action on one wrapping row. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 calc(2 * var(--cell));
 }
 
 /* The return control, the place, and the switches the header would have carried. */

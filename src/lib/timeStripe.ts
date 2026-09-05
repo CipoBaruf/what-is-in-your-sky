@@ -50,6 +50,16 @@ export function keyStep(t: EpochMs, key: string, shift: boolean, span: Span): Ep
   return clampToSpan(t + direction * (shift ? SHIFT_KEY_STEP_MS : KEY_STEP_MS), span);
 }
 
+/** Days from 1970-01-01 to a proleptic Gregorian date (Howard Hinnant's `days_from_civil`); no `Date` in `src/lib` (D-15). */
+export function daysFromCivil(year: number, month: number, day: number): number {
+  const y = month <= 2 ? year - 1 : year;
+  const era = Math.floor(y / 400);
+  const yoe = y - era * 400;
+  const doy = Math.floor((153 * (month + (month > 2 ? -3 : 9)) + 2) / 5) + day - 1;
+  const doe = yoe * 365 + Math.floor(yoe / 4) - Math.floor(yoe / 100) + doy;
+  return era * 146_097 + doe - 719_468;
+}
+
 /**
  * The offset of `timeZone` from UTC at `t`, in milliseconds, from the wall
  * clock Intl reads there; `0` for an unknown zone, whose clocks read UTC
@@ -67,9 +77,9 @@ export function zoneOffsetMs(t: EpochMs, timeZone: string | null): number {
       hour: 'numeric',
       minute: 'numeric',
       second: 'numeric',
-    }).formatToParts(new Date(t));
+    }).formatToParts(t);
     const get = (type: Intl.DateTimeFormatPartTypes): number => Number(parts.find((p) => p.type === type)?.value ?? '0');
-    const wall = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour') % 24, get('minute'), get('second'));
+    const wall = daysFromCivil(get('year'), get('month'), get('day')) * 86_400_000 + (get('hour') % 24) * HOUR_MS + get('minute') * MINUTE_MS + get('second') * 1000;
     // Intl gives whole seconds; the sub-second part of `t` is not part of the offset.
     return wall - (t - (t % 1000));
   } catch {

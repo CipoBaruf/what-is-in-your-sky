@@ -3,7 +3,7 @@ import type { CompassPoint } from '../lib/compass';
 import type { MoonFacts, MoonGlareFacts, MoonLoreParams } from '../lib/moonPhrases';
 import type { BrightnessBand, ElevationBand, GuideParams } from '../lib/phrases';
 import type { ChartOrientation, ChartView, CloudState, MoonPhaseName, PassBoundaryReason, PassSort, ReadinessGap, SkyState, Theme } from '../model';
-import type { CountdownPhase, LinkedText } from './messages';
+import type { CountdownPhase, HiddenReason, LinkedText } from './messages';
 
 /**
  * FR-I18N-2 (D-69): every string the app renders, in English, and the type
@@ -365,6 +365,22 @@ export const en = {
     share: 'Share this sky',
     shareTitle: 'The sky right now',
     shareText: (place: string) => `The whole sky over ${place}, live.`,
+    /** R33 (FR-LIVE-4): the time stripe is a slider; its value text is the cursor's clock time. */
+    stripe: 'Time stripe: the coming 24 hours',
+    /** R33 (FR-LIVE-5): the playback controls. */
+    playback: 'Playback',
+    play: 'Play',
+    pause: 'Pause',
+    /** The action that returns the shown instant to real time. */
+    now: 'Now',
+    speedGroup: 'Playback speed',
+    speed: (factor: number) => `${String(factor)}×`,
+    /** The strip's sixth field, shown while playing (FR-LIVE-3). */
+    speedLabel: 'Speed',
+    /** R33 (FR-LIVE-6): the toggle, and the reasons an object up there is not worth looking for. */
+    hiddenToggle: 'Hidden objects',
+    hiddenReason: { low: 'too low', shadow: 'in shadow', daylight: 'daylight', faint: 'too faint' } satisfies Record<HiddenReason, string>,
+    hiddenLabel: (p: { name: string; reason: string }) => `${p.name} · ${p.reason}`,
   },
 
   /**
