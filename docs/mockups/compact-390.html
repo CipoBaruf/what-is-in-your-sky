@@ -49,7 +49,9 @@
     z-index: 2;
   }
   .fold::after {
-    content: '844 px — the fold on an iPhone 15 Pro';
+    /* Short on purpose: the label is opaque, so every cell it spans is a cell
+       of the screen the reader cannot see. The device is in the README. */
+    content: '844 px — the fold';
     display: block;
     position: absolute;
     right: calc(2 * var(--cell));

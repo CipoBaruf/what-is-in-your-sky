@@ -86,7 +86,10 @@ content. That is the number FR-COMP-4 holds every control row to, and the
 number R52's `tests/styles/controlRows.test.ts` asserts.
 
 Each frame is drawn down to its full height, with a dashed rule at 845 px
-marking the fold — what a reader sees before scrolling.
+marking the fold — what a reader sees before scrolling on an iPhone 15 Pro,
+whose viewport is 390 × 844. The rule's label is short (`844 px — the fold`)
+because it is opaque: every cell it spans is a cell of the screen the frame
+stops showing.
 
 ## What the mockup fixes
 
