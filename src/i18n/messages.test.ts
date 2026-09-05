@@ -42,7 +42,7 @@ const MOON_LORE: MoonLoreParams = { sign: 'Taurus', fullMoonName: null, line: 'T
 
 /** Every message of a catalog, rendered: plain strings as they are, functions over the fixture parameters. */
 function render(t: Messages): string[] {
-  const linked = [t.footer.celestrak, t.footer.openMeteo, t.footer.geonames, t.location.noMatch('Cipolletti'), t.location.searchFailed('offline')];
+  const linked = [t.footer.celestrak, t.footer.openMeteo, t.footer.geonames, t.location.noMatch('Cipolletti'), t.location.searchFailed('offline'), t.location.searchOffline];
   return [
     t.app.title,
     t.app.tagline,
@@ -132,6 +132,13 @@ function render(t: Messages): string[] {
     t.passes.stamp({ date: '2026-09-11', time: '21:14:32 GMT-3' }),
     t.passes.direction({ point: 'NE', degrees: '46°' }),
     t.passes.magnitudeWithBand({ magnitude: '−1.8', band: 'any-star' }),
+    t.passes.nights.tonight,
+    t.passes.nights.tomorrow,
+    t.passes.nights.dated('2026-09-13'),
+    t.passes.nights.count(1),
+    t.passes.nights.count(4),
+    t.passes.nights.empty,
+    t.passes.nights.heroOnly,
     ...PHASES.flatMap((phase) => (['horizon', 'shadow', 'twilight'] as const).map((reason) => t.countdown.headline({ phase, reason, clock: '12:34' }))),
     t.countdown.steps,
     t.countdown.rise,
@@ -183,6 +190,11 @@ function render(t: Messages): string[] {
     t.elements.notCached,
     t.elements.unavailable({ count: 1, names: 'CSS (Tianhe)' }),
     t.elements.unavailable({ count: 3, names: 'A, B and C' }),
+    t.readiness.region,
+    t.readiness.ready('2026-09-14 21:14'),
+    t.readiness.stored('2026-09-11 21:14'),
+    t.readiness.notReady(t.readiness.gaps.forecast),
+    ...Object.values(t.readiness.gaps),
     t.footer.privacy,
     ...linked.flatMap((text) => [text.before, text.link, text.after]),
   ];
@@ -201,6 +213,21 @@ describe.each([...LOCALES])('the %s catalog', (locale: Locale) => {
       expect(message.trim()).not.toBe('');
       expect(message).not.toMatch(/undefined|\[object|\{\{/);
     }
+  });
+});
+
+/**
+ * TASKS R27: the readiness line has to fit one row at 390 px in both languages.
+ * The page frame keeps two cells of padding each side and a cell is 9.6 px at
+ * the 16 px base (D-71), so a 390 px phone gives (390 − 4 × 9.6) / 9.6 = 36.6
+ * characters. The e2e measures the rendered box; this pins the copy itself, at
+ * the point where a translator would grow it (D-145).
+ */
+describe('the readiness line fits one row at 390 px (FR-OFF-4)', () => {
+  const CELLS_AT_390 = 36;
+  it.each([...LOCALES])('%s', (locale: Locale) => {
+    expect(CATALOGS[locale].readiness.ready('2026-09-14 21:14').length).toBeLessThanOrEqual(CELLS_AT_390);
+    expect(CATALOGS[locale].readiness.stored('2026-09-11 21:14').length).toBeLessThanOrEqual(CELLS_AT_390);
   });
 });
 

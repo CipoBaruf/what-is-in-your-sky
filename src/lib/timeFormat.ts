@@ -38,6 +38,17 @@ export function formatDate(t: EpochMs, timeZone: string | null, locale: Locale):
 }
 
 /**
+ * "21:14": the clock to the minute, without the seconds or the zone. R27's
+ * readiness line has one row to say a date and a time in at 390 px (FR-OFF-4),
+ * and seconds are noise in a statement about the next three days; the zone is
+ * the observer's, named by every other time on the page.
+ */
+export function formatShortClock(t: EpochMs, timeZone: string | null, locale: Locale): string {
+  const p = parts(t, timeZone, locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  return `${p.get('hour') ?? '??'}:${p.get('minute') ?? '??'}`;
+}
+
+/**
  * The calendar month, 1–12, of this instant in the display zone. The folk
  * full-moon names are keyed by it (FR-MOON-4), and a month number is a number
  * in both languages, so this one takes no locale.

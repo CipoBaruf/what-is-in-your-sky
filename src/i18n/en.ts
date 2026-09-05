@@ -2,7 +2,7 @@ import type { AgeParts } from '../lib/elementsAge';
 import type { CompassPoint } from '../lib/compass';
 import type { MoonFacts, MoonGlareFacts, MoonLoreParams } from '../lib/moonPhrases';
 import type { BrightnessBand, ElevationBand, GuideParams } from '../lib/phrases';
-import type { ChartOrientation, ChartView, CloudState, MoonPhaseName, PassBoundaryReason, PassSort, Theme } from '../model';
+import type { ChartOrientation, ChartView, CloudState, MoonPhaseName, PassBoundaryReason, PassSort, ReadinessGap, Theme } from '../model';
 import type { CountdownPhase, LinkedText } from './messages';
 
 /**
@@ -112,6 +112,12 @@ export const en = {
     searching: (query: string) => `Searching for “${query}”…`,
     noMatch: (query: string): LinkedText => ({ before: `No place matches “${query}”. Try another spelling, or `, link: coordsInstead, after: '.' }),
     searchFailed: (message: string): LinkedText => ({ before: `Could not search for places (${message}). Try again, or `, link: coordsInstead, after: '.' }),
+    /**
+     * FR-OFF-8: place search is the one input that cannot fail soft, because it
+     * needs a provider. With no connection it is not attempted at all, and the
+     * line names the two inputs that still work instead of reporting a failure.
+     */
+    searchOffline: { before: 'No connection, so places cannot be searched. The device location button still works, or ', link: coordsInstead, after: '.' } satisfies LinkedText,
     placeCentre: (p: { place: string; coords: string }) => `Using the centre of ${p.place} (${p.coords}).`,
     coordsLabel: 'Coordinates (lat, lon)',
     coordsPlaceholder: '-38.93, -67.99',
@@ -217,6 +223,21 @@ export const en = {
     /** "N (46°)" on the card; the abbreviation and the degrees are the same in both languages, their order is not. */
     direction: (p: { point: CompassPoint; degrees: string }) => `${p.point} (${p.degrees})`,
     magnitudeWithBand: (p: { magnitude: string; band: BrightnessBand }) => `${p.magnitude}, ${brightness[p.band]}`,
+    /**
+     * US-16 AC5 / FR-OFF-2: the 72 h list under one heading per 24 h night,
+     * tonight open and the rest closed. The relative words are used only when
+     * they are true of the reader's own clock; an older stored run's first
+     * night is named by its date instead (D-146).
+     */
+    nights: {
+      tonight: 'Tonight',
+      tomorrow: 'Tomorrow night',
+      dated: (date: string) => `Night of ${date}`,
+      count: (count: number) => (count === 1 ? '1 pass' : `${String(count)} passes`),
+      empty: 'No visible passes.',
+      /** The night's only pass is the hero card above the list, so the group is not empty even though its list is. */
+      heroOnly: 'Its only pass is the one above.',
+    },
   },
 
   countdown: {
@@ -356,6 +377,21 @@ export const en = {
     notCached: 'The elements could not be saved in this browser, so they are kept in memory for this session only and will be fetched again next time.',
     unavailable: (p: { count: number; names: string }) =>
       `No current elements from CelesTrak for ${String(p.count)} catalog object${p.count === 1 ? '' : 's'}: ${p.names}. Left out of the list.`,
+  },
+
+  /**
+   * FR-OFF-4: how long the app can keep answering with no signal, in one row
+   * under the location. "Ready offline until" is the requirement's own wording;
+   * the stamp is a date and a clock to the minute, which is what makes the
+   * sentence fit one row at 390 px in both languages (D-145). The storage time
+   * is its own row and shows only for a run that came out of the store.
+   */
+  readiness: {
+    region: 'Offline readiness',
+    ready: (until: string) => `Ready offline until ${until}`,
+    stored: (at: string) => `Stored ${at}`,
+    notReady: (gaps: string) => `Not ready offline: no ${gaps} stored yet.`,
+    gaps: { elements: 'orbital elements', forecast: 'cloud forecast', passes: 'passes' } satisfies Record<ReadinessGap, string>,
   },
 
   footer: {
