@@ -1,6 +1,7 @@
+import { DEFAULT_THRESHOLDS } from '../physics/constants';
 import { moonAt } from '../physics/moon';
 import { sunAt } from '../physics/sun';
-import type { EpochMs, MoonState, Observer } from '../model';
+import type { EpochMs, MoonState, Observer, SkyState, VisibilityThresholds } from '../model';
 
 /**
  * FR-DOME-6 / FR-LIVE-5 (R22, D-80): where the Sun and the Moon are at one
@@ -28,10 +29,26 @@ export interface SkyBodies {
   t: EpochMs;
   sun: SunState;
   moon: MoonState;
+  /** FR-LIVE-3 (R32): the sky in words at `t`, from the Sun's altitude — day, bright twilight or dark. */
+  sky: SkyState;
+}
+
+/**
+ * R32 (FR-LIVE-3, D-159): the `SkyState` of a Sun altitude, by the same two
+ * thresholds the worker's `physics/now.ts` uses (`skyState` there; the test
+ * holds the two to the same answer over a sweep). It is restated here rather
+ * than imported because `now.ts` is the whole Now pipeline, and this module
+ * is the one piece of `src/physics` the page loads outside the worker — its
+ * chunk is budgeted at 30 KB (D-148), and satellite.js is not in that budget.
+ */
+export function skyStateOf(sunAltDeg: number, thresholds: Pick<VisibilityThresholds, 'sunAltMaxDeg' | 'twilightLabelSunAltDeg'> = DEFAULT_THRESHOLDS): SkyState {
+  if (sunAltDeg > thresholds.sunAltMaxDeg) return 'day';
+  if (sunAltDeg > thresholds.twilightLabelSunAltDeg) return 'bright-twilight';
+  return 'dark';
 }
 
 /** The Sun and the Moon for `observer` at `t`. One evaluation of each; the caller decides how often. */
 export function skyBodiesAt(t: EpochMs, observer: Observer): SkyBodies {
   const sun = sunAt(observer, t);
-  return { t, sun: { t, ...sun }, moon: moonAt(t, observer) };
+  return { t, sun: { t, ...sun }, moon: moonAt(t, observer), sky: skyStateOf(sun.altDeg) };
 }
