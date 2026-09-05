@@ -1,14 +1,24 @@
 /* R15 review: the same box for every view. `--chart-size` caps the square
-   drawing (44 cells, the polar chart's width since R13); on a phone the
-   sheet's own width is the cap. The rows above and below keep their height
-   whatever the view puts in them, so the view toggle moves nothing. */
+   drawing (44 cells, the polar chart's width since R13) on wide; on compact
+   the box is the viewport's own width (FR-COMP-5, R45). The rows above and
+   below keep their height whatever the view puts in them, so the view toggle
+   moves nothing. R45 (FR-LEG-2, D-187): a fourth slot for the legend — under
+   the drawing on compact, a 24-cell column at the right on wide — and the
+   shell is the frame's `data-compact`, the same answer `useLayoutMode` gives
+   the pages, so this file carries no breakpoint of its own. */
 .frame {
   --chart-size: calc(44 * var(--cell));
   display: grid;
   gap: calc(var(--row) / 2);
+  grid-template-areas:
+    'controls'
+    'drawing'
+    'status'
+    'legend';
 }
 
 .controls {
+  grid-area: controls;
   min-height: var(--tap);
   display: flex;
   flex-wrap: wrap;
@@ -17,6 +27,7 @@
 }
 
 .drawing {
+  grid-area: drawing;
   width: 100%;
   max-width: var(--chart-size);
   aspect-ratio: 1 / 1;
@@ -27,7 +38,37 @@
 
 /* Two rows: the polar convention sentence wraps on a phone, the dome readout does not. */
 .status {
+  grid-area: status;
   min-height: calc(2 * var(--row));
+}
+
+.legend {
+  grid-area: legend;
+  min-width: 0;
+}
+
+/* FR-COMP-5 (R45, D-187): on compact the box is full-bleed — it breaks out
+   of the page's side padding with negative margins — and square. The pages
+   all pad two cells at the side (the global frame, the detail sheet, the live
+   page); a page that pads otherwise sets `--page-pad-x`. */
+.frame[data-compact='true'] .drawing {
+  width: auto;
+  max-width: none;
+  margin: 0 calc(-1 * var(--page-pad-x, calc(2 * var(--cell))));
+}
+
+/* FR-LEG-2: wide puts the legend beside the drawing, 24 cells, the full height of the three rows. */
+.frame[data-compact='false'][data-legend='true'] {
+  grid-template-columns: minmax(0, 1fr) calc(24 * var(--cell));
+  grid-template-areas:
+    'controls legend'
+    'drawing legend'
+    'status legend';
+  column-gap: calc(2 * var(--cell));
+}
+
+.frame[data-compact='false'][data-legend='true'] .legend {
+  align-self: start;
 }
 
 /* FR-LIVE-1 (R32): the live page's chart. The frame is as tall as the box it
@@ -38,7 +79,7 @@
 .fill {
   height: 100%;
   min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
 }
 
 .fill .drawing {
@@ -46,6 +87,12 @@
   aspect-ratio: auto;
   height: 100%;
   min-height: 0;
+}
+
+/* FR-COMP-5 (R45): …and on compact never shorter than it is wide. The floor is
+   the frame's measured width (`ChartFrame`'s ResizeObserver), not a CSS sum. */
+.fill[data-compact='true'] .drawing {
+  min-height: var(--chart-floor, 0px);
 }
 
 .fill .status {

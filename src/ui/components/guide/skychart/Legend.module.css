@@ -1,0 +1,134 @@
+/* FR-LEG-1..5 (R45): the legend. A list of rows, each a button: the key, a
+   two-cell swatch, the name, then the three times and the state on a second
+   line under the name where the row is narrow (the 24-cell column on wide,
+   a long name on compact). Colour comes from the same `--chart-*` tokens the
+   arcs use (FR-LEG-5, FR-THEME-3), mapped from `data-color` here and nowhere
+   else, and the key is the channel that survives without it (FR-DOME-2). */
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+
+.item {
+  margin: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  column-gap: var(--cell);
+  align-items: baseline;
+  width: 100%;
+  min-height: var(--tap);
+  padding: calc(var(--row) / 4) 0;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+/* FR-LEG-4: the highlighted row reads as such without colour too — a pressed row is the one whose arc is alone at full weight. */
+.row[aria-pressed='true'] .name {
+  color: var(--accent);
+}
+
+.row[data-highlighted='false'] .name,
+.row[data-highlighted='false'] .times {
+  color: var(--fg-dim);
+}
+
+.key {
+  font-weight: 700;
+  min-width: var(--cell);
+}
+
+/* Two cells wide, one row's cap height tall, in the arc's colour. */
+.swatch,
+.bodySwatch {
+  display: inline-block;
+  width: calc(2 * var(--cell));
+  height: 0.7em;
+  border-radius: 1px;
+  background: var(--fg-dim);
+}
+
+.swatch[data-color='pass'] {
+  background: var(--chart-pass);
+}
+
+.swatch[data-color='pass-dim'] {
+  background: var(--chart-pass-dim);
+}
+
+.swatch[data-color='series-1'] {
+  background: var(--chart-series-1);
+}
+
+.swatch[data-color='series-2'] {
+  background: var(--chart-series-2);
+}
+
+.swatch[data-color='series-3'] {
+  background: var(--chart-series-3);
+}
+
+.swatch[data-color='series-4'] {
+  background: var(--chart-series-4);
+}
+
+.swatch[data-color='series-5'] {
+  background: var(--chart-series-5);
+}
+
+.swatch[data-color='series-6'] {
+  background: var(--chart-series-6);
+}
+
+.bodySwatch[data-color='sun'] {
+  background: var(--chart-sun);
+}
+
+.bodySwatch[data-color='moon'] {
+  background: var(--chart-moon);
+}
+
+.name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.times {
+  grid-column: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--cell);
+  color: var(--fg);
+}
+
+.time {
+  font-variant-numeric: tabular-nums;
+}
+
+.state {
+  color: var(--fg-dim);
+}
+
+.state::before {
+  content: '· ';
+}
+
+/* FR-DOME-6 as amended: the two bodies, one line each, not buttons. */
+.body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--cell);
+  align-items: baseline;
+  padding: calc(var(--row) / 4) 0 calc(var(--row) / 4) calc(var(--cell) * 2);
+  color: var(--fg-dim);
+}

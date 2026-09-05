@@ -1,9 +1,12 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
 import { useT } from '../../../../i18n/useT';
+import { bodyLines, legendKeys, legendRows, promoteRow } from '../../../../lib/legend';
 import { useAppStore } from '../../../../state';
 import { OptionToggle } from '../../common/OptionToggle';
 import { GuideText } from '../GuideText';
+import { moonVisible, sunVisible } from './bodies';
 import { ChartFrame } from './ChartFrame';
+import { Legend } from './Legend';
 import { POLAR_VIEW } from './polar/SkyPolar';
 import styles from './SkyChart.module.css';
 import type { SkyChartProps, SkyChartView } from './SkyChart.types';
@@ -22,6 +25,15 @@ import { useSkyBodies } from './useSkyBodies';
  * and the default for now (D-68, the owner's call in the R15 review); the
  * toggle is shown only with more than one registered view (D-55). Both
  * views lay themselves out in `ChartFrame`, so the toggle moves nothing.
+ *
+ * R45 (FR-LEG-1..5, D-186): this boundary derives the legend from the same
+ * props the view draws — `legendRows` in `lib/legend.ts` — and hands the
+ * view both the keys to draw at each peak and the rendered list to place
+ * in the frame's slot, so the legend and the drawing cannot disagree
+ * whichever view is mounted. A row the reader activates (tap, click or
+ * focus) pins that pass as the highlighted one, listed first, until another
+ * row or the chart is activated (FR-LEG-4); the pin is dropped when the
+ * caller's own highlight changes or the pass leaves the set.
  */
 const SkyDome = lazy(() => import('./dome/SkyDome').then((module) => ({ default: module.SkyDome })));
 
@@ -30,7 +42,7 @@ function DomeView(props: SkyChartProps) {
   return (
     <Suspense
       fallback={
-        <ChartFrame status={<p className={styles.loading}>{t.chart.loadingDome}</p>}>
+        <ChartFrame status={<p className={styles.loading}>{t.chart.loadingDome}</p>} legend={props.legend} fill={props.fill ?? false}>
           <div className={styles.loadingBox} data-testid="dome-loading" />
         </ChartFrame>
       }
@@ -61,11 +73,31 @@ export function SkyChart(props: SkyChartProps) {
   const chartView = useAppStore((s) => s.chartView);
   const setChartView = useAppStore((s) => s.setChartView);
   const view = viewFor(chartView);
-  const { passes, highlightedPassId, observer, className, fill = false } = props;
-  const captioned = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
+  const { passes, observer, className, fill = false, now, hidden, colorBy, onSelectPass } = props;
   // FR-DOME-6: one evaluation for whichever view is mounted, so the toggle
   // never changes where the Sun and the Moon are (R22).
   const bodies = useSkyBodies(props);
+
+  // FR-LEG-4: the row (or arc) the reader activated, remembered against the caller's own highlight so a new pass drops it.
+  const [pinned, setPinned] = useState<{ id: string; over: string | null } | null>(null);
+  const pinnedId = pinned !== null && pinned.over === props.highlightedPassId && (passes.some((pass) => pass.id === pinned.id) || hidden?.some((marker) => marker.id === pinned.id)) ? pinned.id : null;
+  const highlightedPassId = pinnedId ?? props.highlightedPassId;
+  const select = useCallback(
+    (passId: string) => {
+      setPinned({ id: passId, over: props.highlightedPassId });
+      onSelectPass?.(passId);
+    },
+    [props.highlightedPassId, onSelectPass],
+  );
+
+  // FR-LEG-1, FR-LEG-2: the rows and the keys from the caller's props; the pinned row moves first but keeps its key.
+  const baseRows = useMemo(() => legendRows({ passes, highlightedPassId: props.highlightedPassId, now, hidden, colorBy }), [passes, props.highlightedPassId, now, hidden, colorBy]);
+  const rows = useMemo(() => promoteRow(baseRows, pinnedId), [baseRows, pinnedId]);
+  const keys = useMemo(() => legendKeys(baseRows), [baseRows]);
+  const lines = bodyLines({ sun: bodies.sun, moon: bodies.moon }, { sun: bodies.sun ? sunVisible(bodies.sun) : false, moon: bodies.moon ? moonVisible(bodies.moon) : false });
+
+  const captioned = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
+  const legend = <Legend rows={rows} bodies={lines} timeZone={observer.timeZone} highlightedPassId={highlightedPassId} onActivate={select} />;
   return (
     <figure
       className={[styles.figure, fill ? styles.fill : undefined, className].filter(Boolean).join(' ')}
@@ -83,7 +115,7 @@ export function SkyChart(props: SkyChartProps) {
           onChange={setChartView}
         />
       )}
-      <view.Component {...props} sun={bodies.sun} moon={bodies.moon} />
+      <view.Component {...props} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legend} />
     </figure>
   );
 }
