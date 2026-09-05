@@ -184,9 +184,10 @@ function SunGlow({ sun, orientation }: { sun: SunState; orientation: ChartOrient
   const strength = glowStrength(sun.altDeg);
   const halfWidth = glowHalfWidthDeg(strength);
   const height = glowHeightDeg(strength);
-  const step = halfWidth / 4;
+  // Nine samples by index, not by accumulating `step`: `d += step` drifts past `halfWidth` by a rounding error for about one altitude in seven and drops the last sample (F-4).
+  const samples = 8;
   const points: Xy[] = [];
-  for (let d = -halfWidth; d <= halfWidth; d += step) points.push(project({ azDeg: sun.azDeg + d, elDeg: height / 2 }, orientation));
+  for (let k = 0; k <= samples; k += 1) points.push(project({ azDeg: sun.azDeg - halfWidth + (2 * halfWidth * k) / samples, elDeg: height / 2 }, orientation));
   const width = (HORIZON_R * height) / 90;
   return (
     <g data-body="sun">

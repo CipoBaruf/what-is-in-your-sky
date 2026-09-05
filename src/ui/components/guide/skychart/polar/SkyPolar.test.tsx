@@ -163,8 +163,9 @@ describe('<SkyPolar>', () => {
     expect(horizon.compareDocumentPosition(glow as Node) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
   });
 
-  it('samples the glow all the way to ±halfWidth around the Sun, not short by up to half a fixed step (F-4)', () => {
-    const sun = { t: MOON_FIXTURE.t, azDeg: 200, altDeg: -8 };
+  // -3 and -5 are altitudes where `d += step` used to drift past halfWidth and drop the last sample.
+  it.each([-8, -3, -5])('samples the glow all the way to ±halfWidth around the Sun, not short by up to half a fixed step (F-4), at %d°', (altDeg) => {
+    const sun = { t: MOON_FIXTURE.t, azDeg: 200, altDeg };
     const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} />);
     const glow = container.querySelector('[data-body="sun"] path');
     const d = glow?.getAttribute('d') ?? '';
