@@ -6,7 +6,14 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0 calc(2 * var(--cell));
+  gap: 0 var(--cell);
+}
+
+/* D-172: the four speeds are 34 cells with no gap between them, which is what
+   keeps them on one line of a 36-cell phone; each option keeps its own cell of
+   padding, so they still read as four. */
+.speeds {
+  gap: 0;
 }
 
 .action {

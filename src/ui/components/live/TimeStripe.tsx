@@ -29,18 +29,18 @@ export interface TimeStripeProps {
   onScrub: (t: EpochMs) => void;
 }
 
-/** The stripe's height in CSS pixels; the rows below are laid out in it. */
-export const STRIPE_HEIGHT = 60;
+/** The stripe's height in CSS pixels — two text rows, the tap target (G6); the rows below are laid out in it. */
+export const STRIPE_HEIGHT = 48;
 /** Before the first measurement, and in a layout with no width (tests). */
 export const DEFAULT_WIDTH = 600;
 const LABEL_Y = 10;
-const SEGMENTS_Y = 14;
-const LANE_H = 7;
-const SEGMENT_H = 5;
-const TICK_Y = 40;
-const TICK_H = 6;
-const LABELLED_TICK_H = 9;
-const HOUR_Y = 57;
+const SEGMENTS_Y = 13;
+const LANE_H = 6;
+const SEGMENT_H = 4;
+const TICK_Y = 32;
+const TICK_H = 5;
+const LABELLED_TICK_H = 8;
+const HOUR_Y = 46;
 
 export function TimeStripe({ span, passes, bands, t, timeZone, onScrub }: TimeStripeProps) {
   const m = useT();

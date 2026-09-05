@@ -27,11 +27,19 @@ export function PlaybackControls({ playing, speed, realTime, hidden, onPlay, onP
   const t = useT();
   return (
     <div className={styles.controls} role="group" aria-label={t.live.playback} data-testid="playback-controls">
+      {/* D-172: play, now and the toggle first (35 cells, one line at 390 px), the four speeds as a line of their own. */}
       <button type="button" className={styles.action} data-testid="live-play" data-playing={playing} onClick={playing ? onPause : onPlay}>
         {playing ? t.live.pause : t.live.play}
       </button>
+      <button type="button" className={styles.action} data-testid="live-now" onClick={onNow} disabled={realTime}>
+        {t.live.now}
+      </button>
+      <button type="button" className={styles.toggle} data-testid="live-hidden-toggle" aria-pressed={hidden} onClick={onToggleHidden}>
+        {t.live.hiddenToggle}
+      </button>
       <OptionToggle
         name={t.live.speedGroup}
+        className={styles.speeds}
         options={SPEEDS.map((value) => ({ value: String(value), label: t.live.speed(value) }))}
         value={String(speed)}
         onChange={(value) => {
@@ -39,12 +47,6 @@ export function PlaybackControls({ playing, speed, realTime, hidden, onPlay, onP
           if (isSpeed(next)) onSpeed(next);
         }}
       />
-      <button type="button" className={styles.action} data-testid="live-now" onClick={onNow} disabled={realTime}>
-        {t.live.now}
-      </button>
-      <button type="button" className={styles.toggle} data-testid="live-hidden-toggle" aria-pressed={hidden} onClick={onToggleHidden}>
-        {t.live.hiddenToggle}
-      </button>
     </div>
   );
 }
