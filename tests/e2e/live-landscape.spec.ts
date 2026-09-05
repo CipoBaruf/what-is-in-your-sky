@@ -171,9 +171,12 @@ test.describe('the live page on a landscape phone', () => {
     // Following: `360 − alpha`, turned by the screen's angle (0 in this emulation; asserted so the number below means what it says).
     expect(await page.evaluate(() => screen.orientation.angle)).toBe(0);
     await toggle.click();
+    // R39 (F-42): the click arms the sensor and the first reading is what says the dome is following,
+    // so a device that answers nothing leaves the control alone instead of claiming a facing it has not got.
+    await expect(page.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
+    await heading(page, 270);
     await expect(toggle).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByTestId('follow-phone')).toHaveAttribute('data-state', 'on');
-    await heading(page, 270);
     await expect(facing).toHaveAttribute('data-facing-az', '90');
     await expect(page.getByTestId('dome-readout')).toHaveText('Facing E (90°) · tilt 45°');
     await heading(page, 180);
@@ -199,8 +202,8 @@ test.describe('the live page on a landscape phone', () => {
 
     // The control turns it on again, and the next reading turns the dome.
     await toggle.click();
-    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
     await heading(page, 90);
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
     await expect(facing).toHaveAttribute('data-facing-az', '270');
     // A relative-only reading: the note, the control still pressed, the dome where it was.
     await page.evaluate(() => {

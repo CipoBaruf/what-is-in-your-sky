@@ -94,10 +94,14 @@ export function usePlayback({ span, realNow, initial, raf = windowRaf }: Playbac
   );
   const play = useCallback(() => {
     // From real time, playback starts where the tick is; from the end of the span there is nowhere to go.
-    if (heldRef.current === null) setHeld(realNow);
-    else if (heldRef.current >= spanEnd) return;
+    // R39 (F-36): the held instant is clamped here, not only on the way out. It is set unclamped — a link's
+    // `t` before the span, or one real time has walked past — and the frame loop reads the held value itself,
+    // so without this playback would run from outside the span while the page went on showing its edge.
+    const from = heldRef.current === null ? realNow : clampToSpan(heldRef.current, span);
+    if (from >= spanEnd) return;
+    setHeld(from);
     setPlaying(true);
-  }, [realNow, spanEnd, setHeld]);
+  }, [realNow, span, spanEnd, setHeld]);
   const pause = useCallback(() => {
     setPlaying(false);
   }, []);

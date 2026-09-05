@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { I18nProvider, useLocale, useT } from '../i18n/useT';
-import { resolvePassLink } from '../lib/shareLinks';
+import { observerFromLink, resolvePassLink } from '../lib/shareLinks';
 import type { ShortcutActions } from '../lib/shortcuts';
 import { formatClock, formatDate } from '../lib/timeFormat';
 import { catalogName, searchPlaces, useAppStore } from '../state';
@@ -106,6 +106,23 @@ export function App() {
   }, [link, resolution, passesStatus, timeZone, locale, t]);
   const mode = useLayoutMode();
   const live = useLiveRoute();
+  /*
+   * R39 (F-34): `startApp` reads a link's observer once, before the first
+   * render (D-135), which covers the arrival — a pasted URL, a reload. A
+   * same-document navigation to a shared `#live?lat=…` never reaches it: the
+   * route changed, the observer did not, and the page drew this device's sky at
+   * the link's instant and offered to share that. The route has already parsed
+   * the hash; this applies what it parsed, through the same `setObserver` the
+   * link takes on arrival. Coordinates that are already the store's are left
+   * alone — on arrival they are, and a fresh observer would restart the whole
+   * compute chain for the place it is already showing.
+   */
+  useEffect(() => {
+    if (live.link === null) return;
+    const next = observerFromLink(live.link);
+    if (observer !== null && observer.lat === next.lat && observer.lon === next.lon && observer.altM === next.altM) return;
+    setObserver(next);
+  }, [live.link, observer, setObserver]);
   /*
    * R35 (FR-DESK-4, D-73): the shortcut table's handlers, the one place the
    * keys reach the app's state. Each says whether it did something, which is

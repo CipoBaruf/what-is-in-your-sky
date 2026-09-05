@@ -24,6 +24,16 @@ const HOUR = 3_600_000;
 /** The time field's instant: the `<time>` element's `datetime`. */
 const shownInstant = async (page: Page): Promise<number> => Date.parse((await page.getByTestId('live-time').locator('time').getAttribute('datetime')) ?? '');
 
+/**
+ * R39 (F-37): a speed button, named exactly. A `name` option is a substring
+ * match, so `60×` also named `600×` and `3600×` — three buttons, a strict-mode
+ * failure the moment it was clicked, and the `60×` half of the test below never
+ * ran. `exact` is not the answer either: the accessible name carries the
+ * `[ ]`/`[x]` the CSS writes before the label (FR-X-5), so an anchored pattern
+ * is what names one button and only one.
+ */
+const speedButton = (page: Page, factor: number) => page.getByRole('button', { name: new RegExp(`^\\[[ x]\\] ${String(factor)}×$`) });
+
 /** Presses the stripe `fraction` of the way along and lets go. */
 async function pressStripe(page: Page, fraction: number): Promise<void> {
   const box = await page.getByTestId('time-stripe').boundingBox();
@@ -98,7 +108,8 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     await domeDrawn(page);
     await stripFilled(page);
     await expect(page.getByTestId('live-speed')).toHaveCount(0);
-    await page.getByRole('button', { name: '3600×' }).click();
+    await expect(speedButton(page, 60)).toHaveCount(1);
+    await speedButton(page, 3600).click();
     await page.getByRole('button', { name: 'Play' }).click();
     await expect(page.getByTestId('live-speed')).toHaveText('Speed 3600×');
     // Two seconds of wall time at 3600× is two hours — within a frame's worth either way.
@@ -116,7 +127,8 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     // Paused: the held instant is in the hash.
     await expect(page).toHaveURL(/#live\?lat=-38\.93&lon=-67\.99&alt=0&t=/);
     // Play again at 60×: one second is one minute.
-    await page.getByRole('button', { name: '60×' }).click();
+    await speedButton(page, 60).click();
+    await expect(speedButton(page, 60)).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: 'Play' }).click();
     await page.clock.runFor(1000);
     const later = await shownInstant(page);
