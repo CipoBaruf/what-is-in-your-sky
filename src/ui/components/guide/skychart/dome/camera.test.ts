@@ -27,7 +27,8 @@ import {
   MAX_GRID_COLS,
   MIN_BASE_COLS,
   MIN_CELL_WIDTH_PX,
-  REFERENCE_WIDTH_PX,
+  MIN_EXTENT_RATIO,
+  drawingExtent,
   PITCH_MAX_DEG,
   PITCH_MIN_DEG,
   PITCH_STEP_DEG,
@@ -37,7 +38,7 @@ import {
   toRotY,
   turn,
   YAW_STEP_DEG,
-  ZOOM_AT_60_COLS,
+  zoomFor,
 } from './camera';
 
 const pass = goldenPassFixture();
@@ -114,7 +115,7 @@ describe('fitLayout', () => {
     expect(onLinux.cellWidthPx).toBe(5); // 6 px cells would be 360 px, over the box; 5 px cells fit
     expect(onLinux.cellHeightPx).toBe(10);
     expect(onLinux.fontSizePx).toBeLessThan(9.17);
-    expect(onLinux.zoom).toBeCloseTo((ZOOM_AT_60_COLS * 349.45) / REFERENCE_WIDTH_PX, 9);
+    expect(onLinux.zoom).toBeCloseTo(zoomFor(349.45, 349.45), 9);
     expect(fitLayout(390, 390, DEFAULT_ADVANCE, exact)).toEqual(layoutFor(390, 390));
   });
 
@@ -136,11 +137,11 @@ describe('fitLayout', () => {
 
 describe('layoutFor (FR-DOME-1, D-91)', () => {
   it('is the phone’s 60 × 30 grid at 390 px and without a measurement, at a 6.5 × 13 px cell', () => {
-    const at390 = { cols: 60, rows: 30, cellWidthPx: DEFAULT_CELL_WIDTH_PX, cellHeightPx: 13, fontSizePx: DEFAULT_CELL_WIDTH_PX / 0.6, wordSpacingPx: 0, zoom: ZOOM_AT_60_COLS };
+    const at390 = { cols: 60, rows: 30, cellWidthPx: DEFAULT_CELL_WIDTH_PX, cellHeightPx: 13, fontSizePx: DEFAULT_CELL_WIDTH_PX / 0.6, wordSpacingPx: 0, zoom: zoomFor(390, 390) };
     expect(layoutFor(390, 390)).toEqual(at390);
     expect(layoutFor(null, null)).toEqual({ ...at390, rows: 30 });
     expect(layoutFor(0, 0)).toEqual({ ...at390, rows: 30 });
-    expect(layoutFor(348, 348)).toEqual({ cols: 60, rows: 30, cellWidthPx: 5.8, cellHeightPx: 11.6, fontSizePx: 5.8 / 0.6, wordSpacingPx: 0, zoom: (ZOOM_AT_60_COLS * 348) / REFERENCE_WIDTH_PX });
+    expect(layoutFor(348, 348)).toEqual({ cols: 60, rows: 30, cellWidthPx: 5.8, cellHeightPx: 11.6, fontSizePx: 5.8 / 0.6, wordSpacingPx: 0, zoom: zoomFor(348, 348) });
     expect(layoutFor(100, 100).cellWidthPx).toBe(MIN_CELL_WIDTH_PX);
   });
 
@@ -165,12 +166,12 @@ describe('layoutFor (FR-DOME-1, D-91)', () => {
   });
 
   it('scales the zoom with the box and not with the cell, so the two layers agree (D-91)', () => {
-    expect(layoutFor(390, 390).zoom).toBe(ZOOM_AT_60_COLS);
-    expect(layoutFor(1280, 1280).zoom).toBeCloseTo((ZOOM_AT_60_COLS * 1280) / REFERENCE_WIDTH_PX, 9);
+    expect(layoutFor(390, 390).zoom).toBe(zoomFor(390, 390));
+    expect(layoutFor(1280, 1280).zoom).toBeCloseTo(zoomFor(1280, 1280), 9);
     // R32 (D-161): a box wider than tall zooms to its height, so the top of the dome stays inside it; a taller one to its width.
-    expect(layoutFor(1240, 450).zoom).toBeCloseTo((ZOOM_AT_60_COLS * 450) / REFERENCE_WIDTH_PX, 9);
-    expect(layoutFor(352, 600).zoom).toBeCloseTo((ZOOM_AT_60_COLS * 352) / REFERENCE_WIDTH_PX, 9);
-    expect(layoutFor(390, null).zoom).toBe(ZOOM_AT_60_COLS);
+    expect(layoutFor(1240, 450).zoom).toBeCloseTo(zoomFor(1240, 450), 9);
+    expect(layoutFor(352, 600).zoom).toBeCloseTo(zoomFor(352, 600), 9);
+    expect(layoutFor(390, null).zoom).toBe(zoomFor(390, 390));
     const line = layoutFor(1280, 1280);
     const base = baseLayoutFor(line, 1280, 1280, 0.6);
     expect(base.zoom).toBe(line.zoom);
@@ -190,6 +191,37 @@ describe('layoutFor (FR-DOME-1, D-91)', () => {
     expect(layoutFor(390, 390, { braille: 0, space: 0 })).toEqual(layoutFor(390, 390));
     expect(layoutFor(390, 390, { braille: NaN, space: 0.6 })).toEqual(layoutFor(390, 390));
     expect(layoutFor(390, 390, { braille: 0.65, space: NaN }).wordSpacingPx).toBe(0);
+  });
+});
+
+/** FR-DOME-1 as amended / D-177, D-187 (R45): the drawing's extent, labels included, is at least 90 % of the box's shorter side. */
+describe('the fit rule (FR-DOME-1, D-187)', () => {
+  it('takes the zoom from the shorter side through the two divisors', () => {
+    expect(zoomFor(390, 390)).toBe(390 / 2.4);
+    expect(zoomFor(1240, 450)).toBe(450 / 1.6);
+    expect(zoomFor(352, 600)).toBe(352 / 2.4);
+  });
+
+  it.each([
+    [390, 390],
+    [1240, 450],
+    [1280, 1280],
+    [844, 324],
+  ])('covers at least 90 %% of the shorter side and fits the box at %d × %d, at the default tilt', (width, height) => {
+    const { zoom } = layoutFor(width, height);
+    const extent = drawingExtent(zoom, DEFAULT_TILT_DEG);
+    const shorter = Math.min(width, height);
+    expect(Math.max(extent.width, extent.height)).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO * shorter);
+    expect(extent.width).toBeLessThanOrEqual(width);
+    expect(extent.height).toBeLessThanOrEqual(height);
+  });
+
+  it('is the same whichever way the dome is turned: the compass ring is round', () => {
+    const { zoom } = layoutFor(390, 390);
+    const a = drawingExtent(zoom, DEFAULT_TILT_DEG, 0);
+    const b = drawingExtent(zoom, DEFAULT_TILT_DEG, 137);
+    expect(a.width).toBeCloseTo(b.width, 0);
+    expect(a.height).toBeCloseTo(b.height, 0);
   });
 });
 
