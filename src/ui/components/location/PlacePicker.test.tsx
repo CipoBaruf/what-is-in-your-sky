@@ -218,6 +218,62 @@ describe('<PlacePicker>', () => {
     expect(onObserver).toHaveBeenCalledWith(CIPOLLETTI_OBSERVER);
   });
 
+  /**
+   * R27 (FR-OFF-8). `navigator.onLine` is read through `useOnline`, so the
+   * tests move it and fire the event the hook subscribes to, exactly as the
+   * browser does.
+   */
+  describe('with no connection', () => {
+    const setOnline = (value: boolean): void => {
+      Object.defineProperty(window.navigator, 'onLine', { configurable: true, value });
+      act(() => {
+        window.dispatchEvent(new Event(value ? 'online' : 'offline'));
+      });
+    };
+
+    afterEach(() => {
+      setOnline(true);
+    });
+
+    it('says it is offline instead of searching, and never asks the provider', async () => {
+      const user = userEvent.setup();
+      const search = vi.fn<PlaceSearchFn>().mockResolvedValue([CIPOLLETTI]);
+      const { input } = setup(search);
+      setOnline(false);
+      await user.type(input, 'Cipolletti{Enter}');
+      expect(search).not.toHaveBeenCalled();
+      const status = screen.getByTestId('place-search-status');
+      expect(status).toHaveTextContent('No connection, so places cannot be searched. The device location button still works, or enter coordinates instead.');
+      expect(within(status).getByRole('link')).toHaveAttribute('href', '#coords');
+      expect(screen.queryByRole('alert')).toBeNull();
+      expect(screen.queryByRole('option')).toBeNull();
+      expect(input).not.toBeDisabled(); // the field stays usable; it is the provider that is gone
+    });
+
+    it('says nothing while the field is empty or too short to be a query', async () => {
+      const user = userEvent.setup();
+      const { input } = setup(vi.fn<PlaceSearchFn>().mockResolvedValue([]));
+      setOnline(false);
+      expect(screen.getByTestId('place-search-status')).toBeEmptyDOMElement();
+      await user.type(input, 'C');
+      expect(screen.getByTestId('place-search-status')).toBeEmptyDOMElement();
+    });
+
+    it('the message goes when the connection returns, and the next Enter searches', async () => {
+      const user = userEvent.setup();
+      const search = vi.fn<PlaceSearchFn>().mockResolvedValue([CIPOLLETTI]);
+      const { input } = setup(search);
+      setOnline(false);
+      await user.type(input, 'Cipolletti{Enter}');
+      expect(screen.getByTestId('place-search-status')).toHaveTextContent('No connection');
+      setOnline(true);
+      expect(screen.getByTestId('place-search-status')).toBeEmptyDOMElement();
+      await user.type(input, '{Enter}');
+      expect(await screen.findAllByRole('option')).toHaveLength(1);
+      expect(search).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('shows no confirmation for a coordinates observer and has no axe violations with the list open', async () => {
     const user = userEvent.setup();
     const search = vi.fn<PlaceSearchFn>().mockResolvedValue([ROSARIO_AR, SINGAPORE]);

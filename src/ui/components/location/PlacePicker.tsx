@@ -3,6 +3,7 @@ import type { LinkedText } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
 import { observerFromPlace, placeRegion } from '../../../lib/place';
 import type { Observer, Place } from '../../../model';
+import { useOnline } from '../../hooks/useOnline';
 import { coordsLabel } from './CoordsInput';
 import styles from './PlacePicker.module.css';
 
@@ -16,6 +17,13 @@ import styles from './PlacePicker.module.css';
  * say so and point at the coordinates input (US-1 AC3); the field stays
  * usable throughout. The search function is injected: the app passes
  * `searchPlaces` from `src/state`, tests a stub.
+ *
+ * R27 (FR-OFF-8): place search is the one input that cannot fail soft, because
+ * it needs a provider. With the browser reporting no connection the request is
+ * not made at all — a timeout says nothing a reader can act on — and the line
+ * under the field says so and names the two inputs that still work: the device
+ * button and the coordinates. Nothing is retried when the connection comes
+ * back; the message goes, and the next keystroke or Enter searches (D-147).
  */
 export const DEBOUNCE_MS = 500;
 
@@ -49,6 +57,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
   const inputId = givenId ?? generatedId;
   const listId = useId();
   const noteId = useId();
+  const online = useOnline();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const controller = useRef<AbortController | null>(null);
   const seq = useRef(0);
@@ -62,12 +71,24 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
 
   useEffect(() => cancelPending, []);
 
+  /** Nothing to ask and nothing to wait for: the offline line is derived from the text, so it clears itself when the connection returns. */
+  const stopForOffline = (): void => {
+    cancelPending();
+    seq.current++;
+    setList({ kind: 'idle' });
+    setOpen(false);
+  };
+
   const runSearch = (query: string): void => {
     cancelPending();
     const trimmed = query.trim();
     if (trimmed.length < MIN_CHARS) {
       setList({ kind: 'idle' });
       setOpen(false);
+      return;
+    }
+    if (!online) {
+      stopForOffline();
       return;
     }
     const mine = ++seq.current;
@@ -96,6 +117,10 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
       setOpen(false);
       return;
     }
+    if (!online) {
+      stopForOffline();
+      return;
+    }
     timer.current = setTimeout(() => {
       timer.current = null;
       runSearch(query);
@@ -121,6 +146,8 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
 
   const places = list.kind === 'results' ? list.places : [];
   const showList = open && list.kind === 'results' && places.length > 0;
+  /** FR-OFF-8: said as soon as there is something the reader meant to search for, and only then. */
+  const offline = !online && text.trim().length >= MIN_CHARS;
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
     switch (event.key) {
@@ -225,11 +252,12 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
             );
           })}
       </ul>
-      <p role="status" className={styles.status}>
-        {list.kind === 'searching' && t.location.searching(list.query)}
-        {list.kind === 'results' && list.places.length === 0 && linked(t.location.noMatch(list.query))}
+      <p role="status" className={styles.status} data-testid="place-search-status">
+        {offline && linked(t.location.searchOffline)}
+        {!offline && list.kind === 'searching' && t.location.searching(list.query)}
+        {!offline && list.kind === 'results' && list.places.length === 0 && linked(t.location.noMatch(list.query))}
       </p>
-      {list.kind === 'error' && (
+      {!offline && list.kind === 'error' && (
         <p role="alert" className={styles.error}>
           {linked(t.location.searchFailed(list.message))}
         </p>
