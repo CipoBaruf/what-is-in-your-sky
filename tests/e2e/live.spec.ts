@@ -38,6 +38,12 @@ test.describe('the live page', () => {
     expect(dome?.width).toBeGreaterThan(390 - 4 * 9.6 - 1);
     // R33 (D-172): the stripe and the playback row took their share; 300 px is what the portrait dome keeps, and R34's landscape is the phone's real answer.
     expect(dome?.height).toBeGreaterThan(300);
+    // R34 (FR-LIVE-7): portrait still stacks — the side column is under the dome, not beside it (`live-landscape.spec.ts` is the other case).
+    const side = await page.getByTestId('live-side').boundingBox();
+    expect(side?.y).toBeGreaterThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) - 1);
+    expect(side?.x).toBeLessThan((dome?.x ?? 0) + 1);
+    // R34 (FR-LIVE-8, D-175): no touch screen in this profile, so no phone to follow and no control.
+    await expect(page.getByTestId('follow-phone')).toHaveCount(0);
 
     // FR-LIVE-3: the five fields.
     await stripFilled(page);
@@ -131,6 +137,11 @@ for (const width of [390, 1280] as const) {
     await page.getByTestId('live-link').click();
     await domeDrawn(page);
     await stripFilled(page);
+    // R34 (FR-LIVE-7, FR-LIVE-8): a desktop keeps the stack and gets no follow control.
+    const dome = await page.getByTestId('live-dome').boundingBox();
+    const side = await page.getByTestId('live-side').boundingBox();
+    expect(side?.y).toBeGreaterThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) - 1);
+    await expect(page.getByTestId('follow-phone')).toHaveCount(0);
     await page.screenshot({ path: `docs/screenshots/r32-live-${String(width)}-dark-en.png` });
     await page.getByRole('group', { name: LABEL.en.theme }).getByRole('button', { name: LABEL.en.night }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'night');
