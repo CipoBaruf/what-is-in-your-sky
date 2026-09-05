@@ -293,6 +293,12 @@ describe('the live marker and the flown arc (FR-DOME-5)', () => {
     expect(meshes).not.toContain(`flown-${pass.id}`);
     expect(meshes).not.toContain(`now-${pass.id}`);
   });
+
+  it("takes highlighted into the flown mesh's colour, so a dim pass's flown half does not outshine the highlighted one (F-5)", () => {
+    const meshes = lineLayer({ passes: [pass, other], highlightedPassId: pass.id, now: midway, palette });
+    expect(meshes.find((mesh) => mesh.id === `flown-${pass.id}`)?.polygons.every((poly) => poly.color === 'flown')).toBe(true);
+    expect(meshes.find((mesh) => mesh.id === 'flown-other')?.polygons.every((poly) => poly.color === 'dim')).toBe(true);
+  });
 });
 
 describe('the Sun and the Moon (FR-DOME-6)', () => {

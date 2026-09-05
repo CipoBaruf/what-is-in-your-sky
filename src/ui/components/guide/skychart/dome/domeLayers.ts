@@ -139,7 +139,8 @@ export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId
     const highlighted = colorBy === 'pass' || isHighlighted(pass, highlightedPassId);
     const arc = arcColor(pass, index, highlightedPassId, palette, colorBy);
     meshes.push({ id: `pass-${pass.id}`, polygons: passStrip(pass, { highlighted, ...(arc ? { color: arc } : {}) }) });
-    meshes.push({ id: `flown-${pass.id}`, polygons: flownStrip(pass, now, { highlighted, ...(palette ? { color: palette.flown } : {}) }) });
+    // F-5: a dim pass's flown half takes the dim colour too, so it does not outshine the highlighted pass's own flown colour.
+    meshes.push({ id: `flown-${pass.id}`, polygons: flownStrip(pass, now, { highlighted, ...(palette ? { color: highlighted ? palette.flown : palette.dim } : {}) }) });
     meshes.push({
       id: `markers-${pass.id}`,
       polygons: passMarkers(pass, { ...(palette ? { peak: palette.peak, shadow: palette.shadow } : {}), ...(arc ? { arrow: arc } : {}) }),
