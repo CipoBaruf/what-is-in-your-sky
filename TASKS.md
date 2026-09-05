@@ -804,7 +804,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
     - `--reporter=list` shows no spec over 60 s on CI.
     - A test per closed finding, named by its F-number.
 
-- [ ] **R38 — Sky-window spike: projection, field of view, the sensor path and the stripe's touch stepping**
+- [x] **R38 — Sky-window spike: projection, field of view, the sensor path and the stripe's touch stepping** — done on an iPhone with Safari and Chrome; Android Chrome is the one line of `FINDINGS.md` left for a later run. The heading pick is `fused` (alpha calibrated by the compass while upright), a fifth pick the entry did not foresee.
   - **Lane:** window
   - **Model:** interactive
   - **Gate:** owner
