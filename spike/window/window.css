@@ -1,0 +1,217 @@
+/* R38 spike pages. Dev only. */
+:root {
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
+  --bg: #0b0f14;
+  --bg-raised: #161c24;
+  --fg: #d5dbe3;
+  --fg-dim: #7d8794;
+  --edge: #606c7a;
+  --horizon: #9aa7b8;
+  --accent: #7cc4ff;
+  color-scheme: dark;
+}
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 0 24px;
+}
+svg.window {
+  display: block;
+  touch-action: none;
+  user-select: none;
+}
+.window-ground {
+  fill: #06080b;
+}
+.window-grid .horizon {
+  fill: none;
+  stroke: var(--horizon);
+  stroke-width: 1.5;
+}
+.window-grid .alt {
+  fill: none;
+  stroke: var(--edge);
+  stroke-width: 1;
+  stroke-dasharray: 4 6;
+}
+.window-grid .tick {
+  stroke: var(--horizon);
+  stroke-width: 1;
+}
+.window-grid .zenith line {
+  stroke: var(--fg-dim);
+  stroke-width: 1;
+}
+.window-grid .compass {
+  fill: var(--fg-dim);
+  font-size: 12px;
+  text-anchor: middle;
+}
+.window-grid .compass.major {
+  fill: var(--fg);
+  font-size: 15px;
+  font-weight: 700;
+}
+.pass .arc {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-dasharray: 3 5;
+}
+.pass .flown {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+}
+.pass.dim {
+  opacity: 0.45;
+}
+.pass .marker.rise {
+  fill: var(--bg);
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+.pass .marker.peak {
+  fill: currentColor;
+}
+.pass .arrow {
+  fill: currentColor;
+}
+.pass .key {
+  fill: currentColor;
+  font-size: 14px;
+  font-weight: 700;
+}
+.pass .live {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+}
+.look {
+  margin: 0 8px;
+  color: var(--fg-dim);
+}
+.controls,
+.readout {
+  margin: 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+}
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+  color: var(--fg-dim);
+}
+select,
+button,
+input[type='range'] {
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg-raised);
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+button {
+  cursor: pointer;
+  min-height: 40px;
+}
+button.step {
+  min-width: 56px;
+}
+.ok {
+  color: #b8f07c;
+}
+.readout h2 {
+  font-size: 14px;
+  margin: 8px 0 0;
+  color: var(--fg-dim);
+}
+dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  margin: 0;
+}
+dt {
+  color: var(--fg-dim);
+}
+dd {
+  margin: 0;
+}
+textarea {
+  font: inherit;
+  font-size: 12px;
+  color: var(--fg);
+  background: var(--bg-raised);
+  border: 1px solid var(--edge);
+  width: 100%;
+  box-sizing: border-box;
+}
+.links {
+  margin: 8px;
+}
+a {
+  color: var(--accent);
+}
+/* the stripe page */
+svg.stripe {
+  display: block;
+  touch-action: none;
+  user-select: none;
+}
+.stripe .band {
+  fill: #101722;
+}
+.stripe .night {
+  fill: #0d1b2e;
+}
+.stripe .hour {
+  stroke: var(--edge);
+  stroke-width: 1;
+}
+.stripe .hour-label {
+  fill: var(--fg-dim);
+  font-size: 11px;
+  text-anchor: middle;
+}
+.stripe .segment {
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+.stripe .cursor {
+  stroke: #fff;
+  stroke-width: 2;
+}
+.stripe .cursor-label {
+  fill: #fff;
+  font-size: 12px;
+}
+.readout .big {
+  font-size: 22px;
+  margin: 0;
+}
+.readout .ac6 {
+  color: #b8f07c;
+}
+.readout .miss {
+  color: #ffb86b;
+}

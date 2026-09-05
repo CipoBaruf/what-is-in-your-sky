@@ -15,6 +15,8 @@
     "e2e": "vite build && playwright test",
     "bundle:budget": "tsx scripts/bundle-budget.ts",
     "spike:dome-composition": "tsx spike/dome-composition/capture.ts",
+    "spike:window": "vite --config spike/window/https.config.ts --host",
+    "spike:window:capture": "tsx spike/window/capture.ts",
     "build:braille-font": "tsx scripts/build-braille-font.ts",
     "build:icons": "tsx scripts/build-icons.ts",
     "build:stored-run": "tsx scripts/build-stored-run.ts",
