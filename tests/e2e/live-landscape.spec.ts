@@ -60,6 +60,28 @@ async function stubWakeLock(page: Page): Promise<void> {
 
 const wakeLog = (page: Page): Promise<string[]> => page.evaluate(() => window.__wakeLock);
 
+/**
+ * Only this file's readings reach the page. Chrome fires one orientation event with every value
+ * `null` when the first listener is added on a machine with no sensor — a CI runner — and the hook
+ * rightly reads that as "no compass heading". Landing between a click and an assertion, or between a
+ * dispatched reading and its animation frame, it turned this test into a race (PR #57's merged head).
+ * The browser's own events are trusted and the dispatched ones are not, so a capturing listener
+ * installed before the app's stops the trusted ones.
+ */
+async function stubCompass(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    for (const name of ['deviceorientationabsolute', 'deviceorientation']) {
+      window.addEventListener(
+        name,
+        (event) => {
+          if (event.isTrusted) event.stopImmediatePropagation();
+        },
+        true,
+      );
+    }
+  });
+}
+
 async function setVisibility(page: Page, state: 'visible' | 'hidden'): Promise<void> {
   await page.evaluate((value) => {
     Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => value });
@@ -135,6 +157,7 @@ test.describe('the live page on a landscape phone', () => {
   });
 
   test('follow phone: a heading turns the dome, a drag turns following off, and the control turns it on again (FR-LIVE-8)', async ({ page }) => {
+    await stubCompass(page);
     await liveLandscape(page);
     const dome = page.getByTestId('live-dome');
     const facing = dome.locator('[data-facing-az]');
