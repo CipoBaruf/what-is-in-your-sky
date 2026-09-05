@@ -195,22 +195,25 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
       <div className={styles.dome} data-testid="live-dome">
         <SkyChart passes={passes} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} />
       </div>
-      <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} onScrub={playback.scrub} />
-      <div className={styles.actions}>
-        <PlaybackControls
-          playing={playback.playing}
-          speed={playback.speed}
-          realTime={playback.realTime}
-          hidden={liveHidden}
-          onPlay={playback.play}
-          onPause={playback.pause}
-          onSpeed={playback.setSpeed}
-          onNow={playback.toNow}
-          onToggleHidden={toggleHidden}
-        />
-        <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={t.live.share} />
+      {/* R34 (FR-LIVE-7, D-173): the side column — under the dome in portrait, beside it on a landscape phone. */}
+      <div className={styles.side} data-testid="live-side">
+        <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} onScrub={playback.scrub} />
+        <div className={styles.actions}>
+          <PlaybackControls
+            playing={playback.playing}
+            speed={playback.speed}
+            realTime={playback.realTime}
+            hidden={liveHidden}
+            onPlay={playback.play}
+            onPause={playback.pause}
+            onSpeed={playback.setSpeed}
+            onNow={playback.toNow}
+            onToggleHidden={toggleHidden}
+          />
+          <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={t.live.share} />
+        </div>
+        <StatusStrip t={shown} timeZone={observer.timeZone} sky={bodies.sky} cloud={cloud} count={count} moon={bodies.moon} speed={playback.playing ? playback.speed : null} />
       </div>
-      <StatusStrip t={shown} timeZone={observer.timeZone} sky={bodies.sky} cloud={cloud} count={count} moon={bodies.moon} speed={playback.playing ? playback.speed : null} />
     </>
   );
 }
