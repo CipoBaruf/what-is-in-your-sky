@@ -113,7 +113,7 @@ async function stubNetwork(page: Page): Promise<void> {
 }
 
 /** A page at `width` on the paused clock, with the preferences already in storage and the network stubbed. Called once per test. */
-async function open(page: Page, width: CaptureWidth, prefs: SeedPrefs): Promise<void> {
+async function open(page: Page, width: CaptureWidth, prefs: SeedPrefs, time = CLOCK): Promise<void> {
   await page.setViewportSize(VIEWPORTS[width]);
   await page.addInitScript(
     ([key, value]: [string, string]) => {
@@ -122,8 +122,8 @@ async function open(page: Page, width: CaptureWidth, prefs: SeedPrefs): Promise<
     [PREFS_KEY, JSON.stringify(prefs)] as [string, string],
   );
   await stubNetwork(page);
-  await page.clock.install({ time: CLOCK });
-  await page.clock.pauseAt(CLOCK);
+  await page.clock.install({ time });
+  await page.clock.pauseAt(time);
 }
 
 /** R23 (D-72): the guide is a modal sheet on a phone and a column beside the list on a wide screen. */
@@ -139,6 +139,10 @@ async function listSettled(page: Page): Promise<void> {
   await expect(page.getByTestId('iss-hero')).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
   expect(await page.getByTestId('night-group').count()).toBeGreaterThan(0);
+  // The readiness line appears once the finished run has been stored (FR-OFF-4), which is a
+  // beat after the search itself ends: without this wait two runs of the same capture
+  // disagree about whether the location block has a line under it.
+  await expect(page.getByTestId('readiness')).toBeVisible({ timeout: 60_000 });
   // The pointer is wherever the last action left it, and a cloud badge under it opens its tooltip over the capture.
   await page.mouse.move(0, 0);
 }
@@ -181,7 +185,7 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
   await expect(card).toBeVisible({ timeout: 60_000 });
   // The wide layout keeps the list beside the guide, so the capture would otherwise carry
   // "Computing passes… 17 of 93" next to a finished chart. The search is let finish first.
-  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
+  await listSettled(page);
   await card.getByRole('button', { name: OPEN_GUIDE[locale] }).click();
   const figure = guide(page).getByRole('figure');
   // The view came from the seeded preference (US-6 AC5), so there is no toggle to click and no frame drawn on the other one.
@@ -244,6 +248,9 @@ const REACH: Record<string, Reach> = {
     await open(page, width, { locale, theme, observer: PARIS, favourites });
     await page.goto('/');
     await expect(page.getByTestId('favourite')).toHaveCount(2);
+    // The list is beside the places on the wide layout, and the readiness line is right above
+    // them on both, so this screen waits for the same settled state the others do.
+    await listSettled(page);
     await page.getByTestId('favourites').scrollIntoViewIfNeeded();
     await page.mouse.move(0, 0);
   },
@@ -261,12 +268,25 @@ const REACH: Record<string, Reach> = {
   },
 
   async live(page, width, theme, locale) {
-    await open(page, width, { locale, theme });
-    // FR-LIVE-9's link: the place and the instant come out of the URL, so the page needs neither a saved location
-    // nor the clock walked forward — it opens straight at the moment the ISS is overhead.
-    await page.goto(`/#live?lat=${String(PARIS.lat)}&lon=${String(PARIS.lon)}&alt=0&t=${new Date(SHOWN).toISOString().replace('.000Z', 'Z')}`);
-    await expect(page.getByTestId('live-place')).toHaveText(PARIS.label);
+    // The one screen reached through the home page rather than through a URL. A `#live?…t=`
+    // link (FR-LIVE-9) opens the page in one step, but it opens it on a search that has only
+    // just started, and the strip's "visible" count then keeps climbing as the passes stream
+    // in — two runs of the same capture disagreed about how many satellites were up. Going
+    // through the home page and waiting for the list to settle first means the live page
+    // inherits a finished search, and the count is the count. The clock is at the shown
+    // instant from the start, so the page opens on real time and needs no scrubbing.
+    await open(page, width, { locale, theme, observer: PARIS }, SHOWN);
+    await page.goto('/');
+    await listSettled(page);
+    // The router listens for `hashchange`, so setting the hash in the page navigates without
+    // reloading it — which is the point: a reload would start the search again.
+    await page.evaluate(() => {
+      location.hash = '#live';
+    });
+    // The place is asserted after the dome, not before: the route is lazy, and its Suspense
+    // reveal is one of the timers the paused clock is holding until `domeDrawn` ticks it.
     await domeDrawn(page);
+    await expect(page.getByTestId('live-place')).toHaveText(PARIS.label);
     // The strip settled: five fields, none of them still on its pending ellipsis.
     for (const field of ['time', 'sky', 'cloud', 'count', 'moon']) await expect(page.getByTestId(`live-${field}`)).not.toContainText('…', { timeout: 60_000 });
     await page.mouse.move(0, 0);
