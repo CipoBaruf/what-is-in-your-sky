@@ -1,0 +1,387 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Compact mockup — 390 px (FR-COMP-1..6)</title>
+<meta name="color-scheme" content="dark">
+<meta name="viewport" content="width=390">
+<!-- Like `desktop-1280.html` (D-119, D-191), this page reads the app's own
+     tokens and base styles, so every colour, the font stack and `--cell` are
+     the real ones and the reference cannot drift from the palette. Only the
+     compact rules below are new; they are what R52 (home, settings, header)
+     and R51 (the detail's legend) implement.
+
+     The page is opened at a 390 px viewport, so the app's own 960 px wide
+     breakpoint does not match and everything here is laid out the way the
+     compact app lays it out: the 80-cell frame with two cells of side
+     padding, which at 390 px leaves 36 cells of content (390 / 9.6 = 40.6
+     cells, less the four cells of padding) — the number FR-COMP-4 counts. -->
+<link rel="stylesheet" href="../../src/ui/styles/tokens.css">
+<link rel="stylesheet" href="../../src/ui/styles/global.css">
+<style>
+  html { background: var(--bg); }
+  body { margin: 0; }
+
+  .caption {
+    padding: var(--row) calc(2 * var(--cell)) calc(0.5 * var(--row));
+    color: var(--fg-dim);
+  }
+  .caption b { color: var(--fg); font-weight: normal; }
+
+  /* One frame is one 390 px screen, drawn top to bottom. The dashed rule is
+     where an iPhone 15 Pro's viewport ends (844 px), so what is above it is
+     what the reader sees without scrolling. */
+  .frame {
+    position: relative;
+    width: 390px;
+    border: 1px solid var(--rule);
+    border-inline: 0;
+    background: var(--bg);
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .fold {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 845px;
+    border-top: 1px dashed var(--edge);
+    pointer-events: none;
+  }
+  .fold::after {
+    content: '844 px — the fold on an iPhone 15 Pro';
+    display: block;
+    color: var(--fg-dim);
+    font-size: 0.75rem;
+    padding-left: calc(2 * var(--cell));
+  }
+
+  /* FR-COMP-1: one header row of at most 36 cells — the title, `[ live ]` and
+     `[ settings ]`. No tagline on compact. */
+  .frame header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--cell);
+    padding-top: var(--row);
+    padding-bottom: var(--row);
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  .head-links a + a { margin-left: var(--cell); }
+  .head-links .current { color: var(--fg-dim); }
+
+  /* The theme control shows the theme the capture is in, the way the desktop
+     mockup does: the marker and the accent follow `data-theme`. */
+  .t-dark { color: var(--accent); }
+  .t-night { color: var(--fg-dim); }
+  [data-theme="night"] .t-dark { color: var(--fg-dim); }
+  [data-theme="night"] .t-night { color: var(--accent); }
+  [data-theme="night"] .t-dark { font-size: 0; }
+  [data-theme="night"] .t-night { font-size: 0; }
+  [data-theme="night"] .t-dark::after { content: '[ ] Dark'; font-size: 1rem; }
+  [data-theme="night"] .t-night::after { content: '[x] Night'; font-size: 1rem; }
+
+  h2 { color: var(--fg-dim); white-space: nowrap; overflow: hidden; }
+  h2::after { content: ' ──────────────────────────────────────'; }
+  .block + .block { margin-top: var(--row); }
+  .dim { color: var(--fg-dim); }
+  .accent { color: var(--accent); }
+  .warn { color: var(--warn); }
+  .row { white-space: nowrap; }
+  label { display: block; margin-bottom: calc(0.25 * var(--row)); }
+  input { width: 100%; box-sizing: border-box; }
+  .banner { border: 1px solid var(--rule); padding: calc(0.5 * var(--row)) var(--cell); }
+  .banner.is-warning { border-color: var(--warn); }
+  .slot { border: 1px dashed var(--edge); padding: calc(0.5 * var(--row)) var(--cell); color: var(--fg-dim); }
+
+  .card {
+    border: 1px solid var(--rule);
+    padding: calc(0.5 * var(--row)) var(--cell);
+    margin-bottom: var(--row);
+  }
+  .card.is-hero { border-color: var(--accent); }
+  .card h3 { color: var(--accent); }
+  .card .rows { display: grid; grid-template-columns: 15ch minmax(0, 1fr); }
+  .hero-when { color: var(--accent); font-size: 1.5rem; line-height: var(--row); margin: calc(0.5 * var(--row)) 0; }
+
+  /* Saved places (FR-OFF-7): the name takes the width, the two controls sit at
+     the right of the same row. */
+  .place { display: flex; justify-content: space-between; align-items: baseline; gap: var(--cell); white-space: nowrap; }
+
+  /* FR-COMP-5: the chart box is full-bleed — it spans the viewport and ignores
+     `main`'s two cells of side padding — and is a square on the pass detail. */
+  .chart-box {
+    position: relative;
+    width: 390px;
+    margin-inline: calc(-2 * var(--cell));
+    aspect-ratio: 1;
+    overflow: hidden;
+    margin-block: calc(0.5 * var(--row));
+  }
+  /* The illustration: R22's own 390 px capture of the dome, cropped to the
+     drawing (source x 58..342, y 302..527) and scaled 1.373× so that the
+     drawing covers 95 % of the square's width — FR-DOME-1's 90 % rule, met on
+     the box's shorter side. R45 re-rasters at this size instead (D-65: the
+     cell keeps its size and the grid gains rows and columns), so the real
+     drawing is finer than this one. */
+  .chart-box img {
+    position: absolute;
+    width: 535.6px;
+    height: auto;
+    left: -79.6px;
+    top: -374.2px;
+  }
+  .chart-night { display: none; }
+  [data-theme="night"] .chart-dark { display: none; }
+  [data-theme="night"] .chart-night { display: block; }
+  /* FR-LEG-1 blanks what the drawing no longer carries: the satellite name and
+     the clock times, the peak's `max 45°` caption and the Sun and Moon
+     captions. The compass names, the ring labels and the degree ticks stay. */
+  .blank { position: absolute; background: var(--bg); }
+  .b-name { left: 95px; top: 17px; width: 236px; height: 24px; }
+  .b-peak { left: 93px; top: 75px; width: 75px; height: 22px; }
+  .b-moon { left: 111px; top: 95px; width: 52px; height: 18px; }
+  .b-sun { left: 293px; top: 268px; width: 28px; height: 18px; }
+  .b-time { left: 160px; top: 305px; width: 124px; height: 22px; }
+  /* FR-LEG-1's new mark: the one-character key at the arc's peak marker. */
+  .key-on-chart {
+    position: absolute;
+    left: 94px;
+    top: 73px;
+    color: var(--chart-peak);
+  }
+
+  /* FR-LEG-3: on the pass detail the numeric table is the legend and sits
+     directly under the chart. Its heading carries the key and the swatch. */
+  .legend { margin-top: calc(0.5 * var(--row)); }
+  .legend-head { display: flex; gap: var(--cell); align-items: baseline; white-space: nowrap; }
+  .legend-head .name { color: var(--accent); }
+  .swatch { letter-spacing: 0; }
+  .s-pass { color: var(--chart-pass); }
+  .s-dim { color: var(--chart-pass-dim); }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: 0; font-weight: normal; white-space: nowrap; }
+  thead th { color: var(--fg-dim); }
+  .facts { display: grid; grid-template-columns: 16ch minmax(0, 1fr); }
+  /* The detail's own heading is the pass, not a section: accent, no rule. */
+  h2.pass-name { color: var(--accent); }
+  h2.pass-name::after { content: none; }
+
+  .frame footer { border-top: 1px solid var(--rule); padding-top: var(--row); padding-bottom: var(--row); color: var(--fg-dim); }
+</style>
+
+<div class="caption">
+  <b>Home — compact, 390 px.</b> The one-row header (FR-COMP-1), the location
+  summary and the order of FR-COMP-3.
+</div>
+<div class="frame" id="home">
+  <div class="fold"></div>
+  <header>
+    <h1>Your sky</h1>
+    <div class="head-links"><a href="#">[ live ]</a><a href="#settings">[ settings ]</a></div>
+  </header>
+
+  <main>
+    <p class="row">Using −38.93, −67.99 · <a href="#settings">[ change ]</a></p>
+    <p class="dim">from your device, accurate to 3 km</p>
+
+    <p class="dim">Ready offline until 2026-09-11 09:49<br>Stored 2026-09-11 03:51</p>
+
+    <section class="block">
+      <p class="dim">Orbital elements: newest epoch 9 d 4 h old (2026-09-01 23:20:48 UTC), confirmed with CelesTrak 2026-09-11 03:51:00 UTC.</p>
+      <p class="banner is-warning"><span class="warn">[Warning]</span> The orbital elements are 9 d 4 h old. Predictions lose accuracy after 5 days, and the ISS in particular changes orbit often: expect times to be off by minutes.</p>
+    </section>
+
+    <section class="block">
+      <h2>Right now</h2>
+      <p>Nothing visible right now: no catalog satellite is above 10°.</p>
+      <p>Clouds now: <span class="dim">[Weather unknown]</span></p>
+    </section>
+
+    <section class="block">
+      <p class="slot">Moon: waxing gibbous, 71 % lit, SE 132°, 34° up.<br>
+        <span class="dim">— the lore line (FR-MOON-3) sits here behind its flag.</span></p>
+    </section>
+
+    <section class="block">
+      <p class="dim">7 visible passes in the next 24 h</p>
+
+      <article class="card is-hero">
+        <p class="dim">[Next ISS pass]</p>
+        <h3>ISS (Zarya)</h3>
+        <p class="hero-when">Appears in 5:57:14</p>
+        <p class="dim">[sky still bright]</p>
+        <div class="rows">
+          <span>Start:</span><span>09:48:14</span>
+          <span>Max elevation:</span><span>10°</span>
+          <span>Peak direction:</span><span>NE (53°)</span>
+          <span>Duration:</span><span>48 s</span>
+          <span>Magnitude:</span><span>+0.5, like a bright star</span>
+          <span>Clouds:</span><span class="dim">[Weather unknown]</span>
+        </div>
+        <p><a href="#detail">Open guide →</a></p>
+      </article>
+
+      <p class="row">Sort: <span class="accent">[x] Soonest</span> <span class="dim">[ ] Best</span></p>
+
+      <article class="card">
+        <h3>SL-16 R/B (Cosmos 2369)</h3>
+        <div class="rows">
+          <span>Start:</span><span>07:36:07</span>
+          <span>Max elevation:</span><span>32°</span>
+          <span>Peak direction:</span><span>ESE (121°)</span>
+          <span>Duration:</span><span>10 min 5 s</span>
+          <span>Magnitude:</span><span>+3.6, faint, needs dark sky</span>
+        </div>
+        <p><a href="#detail">Open guide →</a></p>
+      </article>
+
+      <article class="card">
+        <h3>Tiangong (Tianhe)</h3>
+        <div class="rows">
+          <span>Start:</span><span>08:46:59</span>
+          <span>Max elevation:</span><span>46°</span>
+          <span>Peak direction:</span><span>SE (132°)</span>
+          <span>Duration:</span><span>2 min 30 s</span>
+          <span>Magnitude:</span><span>−1.8, brighter than any star</span>
+        </div>
+        <p><a href="#detail">Open guide →</a></p>
+      </article>
+    </section>
+  </main>
+
+  <footer>
+    <p>Orbital elements by <a href="#">CelesTrak</a>. Weather data by <a href="#">Open-Meteo</a> (CC BY 4.0). Place search by <a href="#">Open-Meteo</a> geocoding, with data from <a href="#">GeoNames</a> (CC BY 4.0).</p>
+    <p>No analytics, no tracking: your location is saved in this browser only.</p>
+  </footer>
+</div>
+
+<div class="caption">
+  <b>Settings — <code>#settings</code>.</b> FR-COMP-2's order: language, theme,
+  location, saved places, clear. Every change applies at once; there is no save
+  action.
+</div>
+<div class="frame" id="settings">
+  <div class="fold"></div>
+  <header>
+    <h1>Your sky</h1>
+    <div class="head-links"><a href="#">[ live ]</a><span class="current">[ settings ]</span></div>
+  </header>
+
+  <main>
+    <p><a href="#home">[ ← Back ]</a></p>
+
+    <section class="block">
+      <h2>Language</h2>
+      <p class="row"><span class="accent">[x] English</span> <span class="dim">[ ] Español</span></p>
+    </section>
+
+    <section class="block">
+      <h2>Theme</h2>
+      <p class="row"><span class="t-dark">[x] Dark</span> <span class="t-night">[ ] Night</span></p>
+    </section>
+
+    <section class="block">
+      <h2>Location</h2>
+      <label for="s-place">Place name</label>
+      <input id="s-place" placeholder="e.g. Cipolletti">
+      <label for="s-coords" style="margin-top:.75rem">Coordinates (lat, lon)</label>
+      <input id="s-coords" value="-38.93, -67.99">
+      <label for="s-alt" style="margin-top:.75rem">Altitude (m)</label>
+      <input id="s-alt" value="0">
+      <p><a href="#">[ Use my location ]</a></p>
+      <p class="dim">Using −38.93, −67.99.<br>Saved in this browser only.</p>
+      <p class="dim">Precision is city-level: a pass looks the same from anywhere within a few kilometres, so no street address is resolved.</p>
+    </section>
+
+    <section class="block">
+      <h2>Saved places</h2>
+      <p class="place"><span>Cipolletti</span><span><a href="#">[ use ]</a> <a href="#">[ × ]</a></span></p>
+      <p class="place"><span>Bariloche</span><span><a href="#">[ use ]</a> <a href="#">[ × ]</a></span></p>
+      <p class="place"><span>−38.93, −67.99 <span class="dim">in use</span></span><span><a href="#">[ × ]</a></span></p>
+      <p><a href="#">[ Save this place ]</a></p>
+      <p class="dim">Up to 8 places. Saving another forgets the one you have not used for longest.</p>
+    </section>
+
+    <section class="block">
+      <p><a href="#">[ Clear saved location ]</a></p>
+    </section>
+  </main>
+
+  <footer>
+    <p>No analytics, no tracking: your location is saved in this browser only.</p>
+  </footer>
+</div>
+
+<div class="caption">
+  <b>Pass detail — the full-bleed square chart (FR-COMP-5) with the numeric
+  table as its legend (FR-LEG-3).</b>
+</div>
+<div class="frame" id="detail">
+  <div class="fold"></div>
+  <header>
+    <h1>Your sky</h1>
+    <div class="head-links"><a href="#">[ live ]</a><a href="#settings">[ settings ]</a></div>
+  </header>
+
+  <main>
+    <p><a href="#home">[ ← Back to the list ]</a></p>
+    <h2 class="pass-name">ISS (Zarya)</h2>
+    <p class="dim">2026-09-11 <span class="dim">[sky still bright]</span></p>
+    <p class="hero-when">Appears in 5:57:14</p>
+    <p>It appears low in the west-north-west at 03:52:46, climbs to 45°
+      (mid-sky) in the south-west at 03:55:34, and enters the Earth's shadow in
+      the south-east at 03:58:52. Brighter than Venus (magnitude −4.9). The sky
+      will still be bright, so it may be hard to spot.</p>
+
+    <p class="row">View: <span class="dim">[ ] Polar</span> <span class="accent">[x] Dome</span></p>
+    <p class="dim">Drag the dome, or use the arrow keys, to look around.</p>
+
+    <div class="chart-box">
+      <img class="chart-dark" src="../screenshots/r22-dome-390-dark-en.png" alt="The dome, from R22's own capture, with the labels FR-LEG-1 drops blanked out">
+      <img class="chart-night" src="../screenshots/r22-dome-390-night-en.png" alt="The dome in the night theme, from R22's own capture, with the labels FR-LEG-1 drops blanked out">
+      <span class="blank b-name"></span>
+      <span class="blank b-peak"></span>
+      <span class="blank b-moon"></span>
+      <span class="blank b-sun"></span>
+      <span class="blank b-time"></span>
+      <span class="key-on-chart">A</span>
+    </div>
+
+    <div class="legend">
+      <p class="legend-head"><span>A</span><span class="swatch s-pass">██</span><span class="name">ISS (Zarya)</span></p>
+      <table>
+        <thead>
+          <tr><th>Point</th><th>Time</th><th>Azimuth</th><th>Elevation</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Start</td><td>03:52:46</td><td>WNW 286°</td><td>14°</td></tr>
+          <tr><td>Peak</td><td>03:55:34</td><td>SW 231°</td><td>45°</td></tr>
+          <tr><td>Shadow</td><td>03:58:52</td><td>SE 132°</td><td>21°</td></tr>
+          <tr><td>End</td><td>03:58:52</td><td>SE 132°</td><td>21°</td></tr>
+        </tbody>
+      </table>
+
+      <p class="place"><span><span>B</span> <span class="swatch s-dim">██</span> SL-16 R/B</span><span class="dim">03:36 → 03:46</span></p>
+
+      <p class="row"><span class="dim">Sun</span> WNW 291° · 8° below</p>
+      <p class="row"><span class="dim">Moon</span> ☽ SE 132° · 34° up</p>
+    </div>
+
+    <p class="dim">The Moon is bright and close to the track.</p>
+
+    <div class="facts">
+      <span>Duration:</span><span>6 min 6 s</span>
+      <span>Magnitude:</span><span>−4.9</span>
+      <span>Range at peak:</span><span>562 km</span>
+      <span>Sun at peak:</span><span>−7° (sky still bright)</span>
+      <span>Starts when it:</span><span>rises</span>
+      <span>Ends when it:</span><span>enters the shadow</span>
+    </div>
+
+    <p><a href="#">[ Share this pass ]</a></p>
+  </main>
+
+  <footer>
+    <p>No analytics, no tracking: your location is saved in this browser only.</p>
+  </footer>
+</div>
