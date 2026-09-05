@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Draft v1.1 — for review. Adds the v1.1 scope "phone pass": goals G12–G14 (§2.4), US-20..US-23, §4.15–§4.19 (feature flags, compact layout and settings, chart legend, sky window, live trajectories and the stripe), US-5 AC2 / FR-GUIDE-2b / FR-GUIDE-7 / FR-DESK-2 / FR-DOME-1 / FR-DOME-4 / FR-DOME-6 / FR-LIVE-2 / FR-LIVE-4 / FR-LIVE-6 / FR-LIVE-7 / FR-LIVE-8 / FR-MOON-4 amended, §5.8 v1.1 architecture additions, OQ-16..OQ-19, §8 rows 20–24, §9 Phase 2b, Decision Log V11-1..V11-9. The v1 text (v1.0) is otherwise unchanged. |
+| Status | Draft v1.1 — for review. Adds the v1.1 scope "phone pass": goals G12–G14 (§2.4), US-20..US-23, §4.15–§4.21 (feature flags, compact layout and settings, chart legend, sky window, live trajectories and the stripe, the v1 findings, CI time), US-5 AC2 / FR-GUIDE-2b / FR-GUIDE-7 / FR-DESK-2 / FR-DOME-1 / FR-DOME-4 / FR-DOME-6 / FR-LIVE-2 / FR-LIVE-4 / FR-LIVE-6 / FR-LIVE-7 / FR-LIVE-8 / FR-MOON-4 / FR-DESK-3 / FR-DESK-5 amended, §5.8 v1.1 architecture additions, §6.5 WMM row, OQ-16..OQ-20, §8 rows 20–24, §9 Phase 2b, Decision Log V11-1..V11-13. The v1 text (v1.0) is otherwise unchanged. |
 | Date | 2026-09-05 (v1.1); 2026-09-03 (v1.0); 2026-09-01 (v0.4) |
 | Owner | Ezequiel Baruf |
 | Scope of this document | Product + technical specification only. No implementation plan or task breakdown (requested as a separate step). |
@@ -207,7 +207,8 @@ As a user outside, I hold my phone up and see, through it, where the passes run 
 - AC3: Turning, tilting and rolling the phone moves the view smoothly (the FR-GUIDE-6 target), and lifting the phone past the zenith keeps the picture continuous.
 - AC4: Where orientation is absent or denied the option is absent or shows a note, and the dome stays the view.
 - AC5: On the live page the window shows real time: entering it returns the shown instant to now and hides the time stripe and playback; leaving it brings them back.
-- AC6: The chosen chart view is remembered on the device. When the window is the remembered view and the browser needs a tap before it will give orientation, the chart shows a single `[ point at the sky ]` control in the window's place until tapped.
+- AC6: The heading is true north: the window and the following dome apply the local magnetic declination, and the strip shows it ("true north, declination +2.1°").
+- AC7: The chosen chart view is remembered on the device. When the window is the remembered view and the browser needs a tap before it will give orientation, the chart shows a single `[ point at the sky ]` control in the window's place until tapped.
 
 **US-22 — Watch the trajectories appear** *(v1.1)*
 As a user on the live page, I move time forward and see each satellite's track appear, grow and fade, instead of a chart full of every arc of the coming day.
@@ -309,9 +310,9 @@ A pass is **visible** when, for a contiguous interval of time, all of the follow
 
 - **FR-DESK-1** Breakpoints are in cells (`--cell`, FR-X-6): *compact* below 100 cells of viewport width, *wide* at 100 cells and above (about 960 px at the 16 px base). Column and panel widths are in cells.
 - **FR-DESK-2** Wide: two columns. The left column is fixed at 40 cells and holds, in order, location (inputs, favourites, clear), the elements banners, the Now panel and the Moon line (FR-MOON-3). The right column fills the rest and holds the hero card, the sort control and the pass list. The header spans both columns and carries the title, the tagline and, at the right, the language, night-theme and live-page controls. *(amended v1.1, V11-8)* The live-page control leaves the right-hand group: `[ Live sky ]` sits on the title line beside the title, as navigation; the right of the header holds the language and night-theme controls on one baseline row, aligned in cells. The Now panel keeps its own live link (FR-LIVE-1).
-- **FR-DESK-3** Wide: a selected pass opens the guide in a panel beside the list. The right column splits into the list (44 cells minimum) and the guide (the rest); the list stays scrollable and the selected card is highlighted; `Esc` or the close control closes the panel. Compact keeps the full-screen sheet of MVP. The selection stays in the URL hash (D-13) in both cases.
+- **FR-DESK-3** Wide: a selected pass opens the guide in a panel beside the list. The right column splits into the list (44 cells minimum) and the guide (the rest); the list stays scrollable and the selected card is highlighted; `Esc` or the close control closes the panel. Compact keeps the full-screen sheet of MVP. The selection stays in the URL hash (D-13) in both cases. *(amended v1.1, V11-13)* Between the wide breakpoint and the width at which the 44-cell list and a 40-cell guide both fit (`WIDE_SPLIT_MIN_CELLS`, default 124 cells, a constant pinned by the breakpoint test), an open guide takes the whole right column and the list is one `[ list ]` control away, the way the compact sheet works; the split returns at that width. The guide column MUST never be narrower than 40 cells while open.
 - **FR-DESK-4** Keyboard shortcuts, active when no input or button has focus and listed in an overlay opened with `?`: `j` / `k` move the selection down and up the list, `Enter` opens it, `Esc` closes the guide or the overlay, `l` opens the live page, `v` toggles the chart view, `n` toggles the night theme. Shortcuts are single keys with no modifier and MUST NOT collide with browser or screen-reader defaults.
-- **FR-DESK-5** A desktop mockup approved by the owner is the visual reference for the wide layout (V1-3). Every desktop task ships 1280 px captures for comparison (the `visual-review` skill), alongside the 390 px ones.
+- **FR-DESK-5** A desktop mockup approved by the owner is the visual reference for the wide layout (V1-3). Every desktop task ships 1280 px captures for comparison (the `visual-review` skill), alongside the 390 px ones. *(amended v1.1, V11-13)* Wide captures are shot at 1024 px as well as 1280 px for the home and guide screens; the D-179 capture set gains the 1024 px profile.
 
 ### 4.9 Sky dome, second pass *(v1)*
 
@@ -335,7 +336,7 @@ The R15 dome reads as a wire cage: rings, meridians and arc in one colour at nea
 - **FR-LIVE-5** Playback: play and pause; speeds 1×, 60×, 600× and 3600× (24 h in 24 s); a `now` action returns `t` to real time, which then advances with the 10 s tick; playing stops at the end of the span. Target: ≥ 30 updates/s at 3600× on the FR-GUIDE-6 device. The worker is never called per frame: satellite positions come from the tracks (FR-DOME-5); the Sun and Moon are evaluated on the main thread at most once per second of wall time.
 - **FR-LIVE-6** Objects above the horizon at `t` but not visible (daylight, in shadow, too faint) are hidden by default. A toggle draws them dimmed with a reason label. Their positions come from the worker for the instant `t` (a `computeAt` request, the Now pipeline at an arbitrary time), throttled to one request per 250 ms of wall time while scrubbing or playing. *(amended v1.1, V11-6)* The reason label is a legend row (FR-LEG-3); the dimmed position on the drawing carries the legend key only.
 - **FR-LIVE-7** Layout: portrait stacks dome, strip and stripe; landscape on a phone puts the dome on the left and the strip and stripe on the right. The page requests a Screen Wake Lock while it is visible and releases it when hidden; where the API is unsupported nothing is shown. *(amended v1.1, V11-4)* Portrait on compact: the one-row header (FR-COMP-1), the dome box (FR-COMP-5), the status strip in two lines, the stripe block (FR-TRAJ-4) and at most two rows of controls, every row within FR-COMP-4. The "drag the dome" hint is not shown on the live page. In window mode (FR-WIN-6) the stripe block and the playback row are absent.
-- **FR-LIVE-8** Compass follow (US-10): a `[ follow phone ]` control requests `DeviceOrientationEvent` permission where required (iOS `requestPermission()`, HTTPS) and turns the dome's facing to the device heading (`absolute` events or `webkitCompassHeading`; relative-only devices show a note). A drag turns following off; the control turns it on again. The control is hidden where the API is absent (desktop). *(amended v1.1, V11-5)* The control belongs to the dome view. In the sky window (§4.18) following is implicit and the control is not shown.
+- **FR-LIVE-8** Compass follow (US-10): a `[ follow phone ]` control requests `DeviceOrientationEvent` permission where required (iOS `requestPermission()`, HTTPS) and turns the dome's facing to the device heading (`absolute` events or `webkitCompassHeading`; relative-only devices show a note). A drag turns following off; the control turns it on again. The control is hidden where the API is absent (desktop). *(amended v1.1, V11-5)* The control belongs to the dome view. In the sky window (§4.18) following is implicit and the control is not shown. *(amended v1.1, V11-12)* The heading is corrected to true north as FR-WIN-3 says; the control is hidden on the polar view, which does not consume the facing.
 - **FR-LIVE-9** URL state: `#live?lat=&lon=&alt=&t=`, `t` an ISO-8601 instant or absent for real time. Loading such a URL sets the observer (label from the rounded coordinates until geocoded, source `coords`) and `t`. The hash is updated while scrubbing at most twice per second and never while playing.
 - **FR-LIVE-10** The live page reuses `SkyChartProps` with `now = t` and a `passes` array; nothing in the live page draws satellites by any other path (FR-GUIDE-2b's "same geometry" rule).
 
@@ -398,7 +399,7 @@ The R15 dome reads as a wire cage: rings, meridians and arc in one colour at nea
 
 - **FR-WIN-1** A third chart view, "window": a 2D projection of the sky as seen from the observer in the direction the device points, drawn in SVG (FR-GUIDE-5 permits it for 2D) from `SkyChartProps` (FR-LIVE-10). Nothing in the window draws satellites by any other path. The field of view (`WINDOW_FOV`, default 60° across the shorter side) and the projection (gnomonic or stereographic) are constants fixed by the spike (FR-WIN-7).
 - **FR-WIN-2** Content: the horizon line with compass names along it where it is in view; the altitude lines at 30° and 60° and a zenith mark; azimuth ticks every 30° on the horizon; the arcs of the passes that cross the view with their rise, peak, end and shadow-entry markers and the arrowhead; the live marker and the flown part (FR-DOME-5); the Sun glow and the Moon glyph (FR-DOME-6); the legend keys at the peaks (FR-LEG-1). Colours per FR-DOME-2 and FR-LIVE-2; the legend of §4.17 applies.
-- **FR-WIN-3** Orientation: heading, pitch and roll from `DeviceOrientationEvent` (an `absolute` event or `webkitCompassHeading`, as FR-LIVE-8), taken as one rotation so the view stays continuous past the zenith and when the phone rolls; the screen's orientation is applied. A smoothing constant (`WINDOW_SMOOTHING`, default fixed by the spike) steadies the sensor. Target: ≥ 30 updates/s on the FR-GUIDE-6 device; the worker is never called for the view.
+- **FR-WIN-3** Orientation: heading, pitch and roll from `DeviceOrientationEvent` (an `absolute` event or `webkitCompassHeading`, as FR-LIVE-8), taken as one rotation so the view stays continuous past the zenith and when the phone rolls; the screen's orientation is applied. A smoothing constant (`WINDOW_SMOOTHING`, default fixed by the spike) steadies the sensor. Target: ≥ 30 updates/s on the FR-GUIDE-6 device; the worker is never called for the view. Heading is corrected to true north with the local magnetic declination from the World Magnetic Model at the observer's position, computed once per observer on the main thread; the strip names the correction ("true north, declination +2.1°"). The same correction applies to FR-LIVE-8.
 - **FR-WIN-4** Availability and permission: the window is offered only where FR-LIVE-8's presence test passes (a touch device with the constructor). Permission is requested in the tap that chooses the view or the `[ point at the sky ]` control, never on load. A denial shows a one-line note and leaves the dome as the view; a relative-only device (no heading) shows FR-LIVE-8's note and does not offer the window. Desktop never sees the option.
 - **FR-WIN-5** The chart view (dome, polar, window) is a saved preference on the device. When the window is the saved view and orientation still needs a tap, the chart area shows one `[ point at the sky ]` control in the window's place until tapped. The window has no manual pan or drag: the dome is the hand-driven view.
 - **FR-WIN-6** On the live page, entering the window returns `t` to real time (FR-LIVE-5's `now` action), hides the stripe block and the playback row and keeps the two-line strip; leaving it restores them. The pass detail's window draws the whole arc (FR-DOME-5); the live page's window follows FR-TRAJ-1.
@@ -411,6 +412,74 @@ The R15 dome reads as a wire cage: rings, meridians and arc in one colour at nea
 - **FR-TRAJ-3** FR-TRAJ-1 applies to the dome, the polar chart and the window on the live page at every width. The pass detail is not affected: it keeps the whole arc of the explained pass and the dim arcs of the others (FR-DOME-5). The legend lists exactly the drawn passes with their FR-TRAJ-1 states (FR-LEG-3).
 - **FR-TRAJ-4** The stripe: three rows in body-size cells. Row 1: hour labels, every 2 h on wide and every 3 h on compact, with the date (day and month, short) at each midnight crossing. Row 2: the band, with FR-LIVE-4's night shading and a tick every hour. Row 3: the pass segments in their arc colours. A cursor crosses all three rows at `t`, and a clock readout in the observer's zone (hours and minutes, and the weekday when `t` is not today) stands above the stripe in the heading size. The stripe is at least 36 cells wide on compact; wider viewports scale it to the box.
 - **FR-TRAJ-5** Touch stepping: the spike (FR-WIN-7) chooses among step buttons (`[ −1 h ] [ −10 min ] [ +10 min ] [ +1 h ]` under the stripe), tapping a pass segment to jump `t` to that pass's rise, and a slow-scrub gesture; the arrow keys keep FR-LIVE-4's 1 min and 10 min steps. Whatever is chosen MUST let the user land `t` within 1 min of a pass's rise in at most three taps (US-22 AC6) and MUST fit FR-COMP-4.
+
+### 4.20 The v1 findings *(v1.1)*
+
+Every v1 task PR was merged with its review findings open (V1-11's gate merges on the owner's word, not on a clean review). They are listed here so the phase closes them, with the PR they came from and the lane that owns the code. The wording is the reviewer's, shortened.
+
+- **FR-FIX-1** Each finding below MUST be closed by a change with a test that fails on the old code, or recorded as *already fixed on main* with the commit that fixed it, or moved to Phase 3 by an explicit Decision Log row. A findings task per lane (V11-11) carries them; a finding whose code a v1.1 feature task rewrites MAY be closed by that task instead, named in its acceptance.
+- **FR-FIX-2** Findings that are e2e or CI defects (F-33, F-34, F-36, F-37, F-38) are closed in the first wave together with §4.21, before any feature task runs.
+
+| ID | From | Lane | Finding |
+|---|---|---|---|
+| F-1 | R22 #48 | chart | A failed dynamic import of the astronomy chunk is memoised, so the Sun and Moon stay absent for the session and the dome falls back to the default key light. |
+| F-2 | R22 #48 | chart | The flown strip drops the `omit` gap, so the dashed direction-of-travel tail is painted over once `now` passes 80 % of the arc. |
+| F-3 | R22 #48 | chart | The polar Sun label is drawn under the grid, so rings, ticks and arcs draw over it. |
+| F-4 | R22 #48 | chart | A fixed 4° sampling step leaves the twilight glow up to 2° off the Sun's azimuth on the polar chart. |
+| F-5 | R22 #48 | chart | The flown strip ignores `highlighted`, so a dim pass's flown half outshines the highlighted one. |
+| F-6 | R23 #39 | ui | Between 960 px and about 1350 px the list pins at its 44-cell floor and the guide collapses to 43–107 px (FR-DESK-3 as amended). |
+| F-7 | R23 #39 | ui | The document `Escape` listener has no guard, so an `Escape` meant for the place picker's suggestions also closes the guide and clears the hash. |
+| F-8 | R23 #39 | ui | Opening a second pass reuses the `PassDetail` instance, so the new heading is never focused and closing returns focus to the first opener. |
+| F-9 | R23 #39 | ui | The list's fixed `max-height` (34 rows) is taller than a 720 px laptop viewport. |
+| F-10 | R23 #39 | ui | The "0.6 em advance" the 960 px derivation and the breakpoint test rely on is false for Consolas (0.55 em); the breakpoint is 109 cells on Windows. |
+| F-11 | R26 #49 | data | `addFavourite` re-sorts by `lastUsedAt`, so on a full list a stamp newer than `at` pushes the just-saved entry off the end. |
+| F-12 | R26 #49 | data | A favourite saved before the forecast resolves keeps `timeZone: null` forever, so offline selections render every time in UTC. |
+| F-13 | R26 #49 | data | The `Favourite` doc block still describes `id` as the cell while the field is `cellKey`. |
+| F-14 | R30 #44 | ui | US-18 AC1 is half done: the Moon's phase and illumination never appear on a pass card or in the guide unless glare is set. |
+| F-15 | R30 #44 | ui | The minimum-altitude glare condition is hard-coded into both catalogs as prose, unlike the other two thresholds. |
+| F-16 | R30 #44 | ui | A leftover debug script is untracked in the tree and inside ESLint's glob. |
+| F-17 | R31 #50 | ui | A share link stays authoritative while it is in the hash: a recipient typing their own coordinates has the detail unmounted and re-opened from the link. |
+| F-18 | R31 #50 | ui | The FR-SHARE-3 substitute pass opens without its explanation while the job is still computing. |
+| F-19 | R31 #50 | ui | Altitude bounds are copied from `CoordsInput` instead of shared, so the form can emit links the parser rejects. |
+| F-20 | R31 #50 | ui | An uncommitted scratch Playwright config hard-codes a port with `reuseExistingServer: true`. |
+| F-21 | R27 #52 | ui | Every warm start flashes "Not ready offline: no orbital elements and cloud forecast" before the requests return. |
+| F-22 | R27 #52 | ui | The place picker's offline notice keys off the field's pre-filled text, so opening offline with a saved place shows "No connection". |
+| F-23 | R27 #52 | ui | `offlineUntil` is never compared with now, so an expired stored run reads "Ready offline until <a past date>". |
+| F-24 | R27 #52 | ui | Night-group overrides are never reset per run, so after a location change tonight can stay closed and no night is open. |
+| F-25 | R27 #52 | ui | The night heading counts the pass promoted to the hero card, so "3 passes" lists 2. |
+| F-26 | R27 #52 | ui | "Tomorrow night" is now + 24 h, off by a calendar day across a DST transition. |
+| F-27 | R27 #52 | ui | The readiness stamp drops the zone, so with no zone it shows an unlabelled UTC time. |
+| F-28 | R27 #52 | ui | Spanish "Sin conexión hasta <date>" reads as "no connection until" and opens like the opposite state. |
+| F-29 | R28 #54 | ui | Picking a saved place does not reseed `CoordsInput`, so a later altitude edit re-emits the old place or wipes the observer. |
+| F-30 | R28 #54 | ui | The update offer stays reachable under an open pass on wide because `inert` is applied only on compact. |
+| F-31 | R28 #54 | ui | The `beforeinstallprompt` listener exists only while the shell is mounted, so a session that opens on `#live` never shows the install hint. |
+| F-32 | R28 #54 | ui | `prompt()` has no catch, so a rejected prompt is an unhandled rejection. |
+| F-33 | R28 #54 | ui | The "no panel on a first visit" e2e assertion runs before hydration and passes without the guard. |
+| F-34 | R32 #51 | live | A same-document navigation to a shared `#live?lat=…` URL renders the current observer's sky at the link's instant and re-shares that. |
+| F-35 | R32 #51 | chart | The dome's keep guard compares columns, rows, cell and font but not zoom, so a height-only resize keeps a stale zoom. |
+| F-36 | R33 #55 | live | Playback resumes from the unclamped held instant, so a link with `t` before the span starts plays from outside the span. |
+| F-37 | R33 #55 | live | The `60×` e2e locator also matches `600×` and `3600×`; the `60×` half of the test never runs. |
+| F-38 | R33 #55 | live | Hour ticks, night bands and pass segments are recomputed on every frame while playing, with a fresh `Intl.DateTimeFormat` each time. |
+| F-39 | R33 #55 | live | `preventDefault()` on pointer-down suppresses focus, so after clicking or dragging the stripe the arrow keys do nothing. |
+| F-40 | R34 #57 | live | The follow-phone control is a dead toggle on the polar view (FR-LIVE-8 as amended). |
+| F-41 | R34 #57 | live | A magnetic heading is used as a true-north azimuth; no declination is applied (FR-WIN-3, FR-LIVE-8 as amended). |
+| F-42 | R34 #57 | live | Where `requestPermission` is absent the state goes to `on` and stays there when no reading ever arrives. |
+| F-43 | R35 #56 | ui | The opener is captured after `inert` has blurred the focused card, so `Escape` never restores focus to the pass. |
+| F-44 | R35 #56 | ui | `moveCursor` reports handled without confirming focus moved, so `j` / `k` swallow the key under the overlay or the sheet. |
+| F-45 | R35 #56 | ui | `inert` misses the compact sheet's body-level portal, so `?` leaves the sheet's controls live under the overlay. |
+| F-46 | R36 #58 | ui | The 60 capture tests run unconditionally in CI, about 8.5 min per PR, with no env gate (§4.21). |
+| F-47 | R36 #58 | ui | The capture spec duplicates `liveHelpers.ts` helpers and drops the original's visibility check. |
+| F-48 | R36 #58 | ui | Captures are shot at a run-dependent instant, so the time field and markers differ between runs. |
+| F-49 | R36 #58 | ui | Seeded observers pair `source: 'coords'` with a real zone, a state the app never produces. |
+| F-50 | R36 #58 | ui | The expected capture-set size hard-codes `* 4` instead of themes × locales. |
+
+The NaN facing loop from R34 (#57) was fixed on main before the merge and is not listed.
+
+### 4.21 CI time *(v1.1)*
+
+- **FR-CI-1** A pull request's CI MUST finish within `CI_PR_BUDGET_MIN` (default 10 min wall time, a constant in the workflow) and the job fails when it does not, so the PR that made CI slower is the one that shows it. The budget is the job's `timeout-minutes`; a separate step prints the wall time of each stage (typecheck, lint, unit, build, e2e) in the job summary.
+- **FR-CI-2** The capture set (D-179) does not run on pull requests. It runs behind an env flag, like the perf spec's `DOME_PERF=1`, on every push to `main` and on `workflow_dispatch`; a PR that changes a screen ships its own captures through the `visual-review` skill as before. The main-branch run commits nothing: it uploads the captures as a workflow artefact and fails when the set is incomplete (the `captures.test.ts` check keeps running in unit tests against the committed files).
+- **FR-CI-3** The e2e suite on a PR runs in one Playwright worker per available core with the browser reused, and no spec waits on a full 72 h search unless it tests the search: specs that only need a rendered page use the stored-run fixture path. Any spec longer than 60 s on CI is a defect to fix, not a budget to raise.
 
 ---
 
@@ -563,6 +632,9 @@ Design principles: monospace / terminal aesthetic throughout (FR-X-6), dark back
 - **Sky window.** `skychart/window/`: a pure projection module (azimuth/altitude and a device rotation to x/y within the field of view), an orientation hook that extends the compass-follow hook with pitch and roll, and an SVG component. The spike lives under `spike/window/` beside the dome spike.
 - **Trajectories.** A pure module takes a pass and `t` and returns its FR-TRAJ-1 state and the cut track; the chart props carry that state per pass so the three views draw the same thing.
 - **Stripe.** The existing stripe component is re-laid out to three rows with the readout above it; the stepping control is added after the spike.
+- **True north.** A small pure-JS World Magnetic Model package (candidate: `geomagnetism`, MIT, coefficients for the current WMM epoch), installed by the owner on `main` before the wave that needs it (task sessions have no network, the R25 precedent); declination computed once per observer in `lib/` and applied in `compassHeading.ts`. If the package's bundle cost exceeds 15 KB gzipped, the plan chooses shipping the coefficient table instead (OQ-20).
+- **Findings.** One findings task per lane in the first wave (V11-11); each fix names its F-number in the commit and adds the test that fails on the old code.
+- **CI.** The workflow gains a wall-time step and the 10 min budget; the capture spec is gated by `CAPTURES=1`, run by a second workflow on pushes to `main` and on dispatch that uploads an artefact.
 
 ---
 
@@ -621,6 +693,7 @@ MVP geocodes to the centre of the chosen place. Satellite pass geometry changes 
 |---|---|---|
 | `satellite.js` ^7 | SGP4/SDP4, coordinate frames, look angles | MIT. Supports OMM JSON input. |
 | `astronomy-engine` | Sun position, twilight, moon (later: moon glare warnings) | MIT. Sub-arcminute accuracy. |
+| `geomagnetism` (or equivalent WMM, v1.1) | Magnetic declination for true-north headings (FR-WIN-3) | MIT | Pure JS, no network; installed by the owner (§5.8). Alternative: our own coefficient table. |
 | `idb` | Promise wrapper over IndexedDB for the elements cache (FR-SAT-6) | Tiny, TS types. |
 | `tz-lookup` | lat/lon → IANA zone offline | Optional; Open-Meteo supplies the zone in MVP. |
 | `date-fns` / `date-fns-tz` or Temporal polyfill | Time formatting in observer zone | |
@@ -648,6 +721,7 @@ MVP geocodes to the centre of the chosen place. Satellite pass geometry changes 
 | OQ-17 *(v1.1)* | The iOS sensor path (FR-WIN-3): whether `deviceorientation` gives `webkitCompassHeading` together with usable `beta`/`gamma` in one event, and whether the heading needs the interface-orientation correction D-175 assumed. | A wrong assumption turns the window ninety degrees on the phone the owner uses. | Measured on a device in the spike; the dome stays the fallback either way. |
 | OQ-18 *(v1.1)* | Touch stepping on the stripe (FR-TRAJ-5): step buttons, tap-to-jump on a segment, or a slow-scrub gesture. | Dragging is 4 min per pixel on a phone; the live page is unusable for planning without a precise step. | Fixed by the FR-WIN-7 spike; buttons if nothing else wins. |
 | OQ-19 *(v1.1)* | `ARC_LOOKAHEAD` (5 min) and `ARC_LINGER` (10 min) values (FR-TRAJ-2). | Too short and the chart is empty between passes; too long and it fills at 3600×. | Ship the defaults; revisit after a few nights of field use with OQ-5 and OQ-12. |
+| OQ-20 *(v1.1)* | Which World Magnetic Model package, and its bundle cost (FR-WIN-3). | The heading is a few degrees off without it; a heavy package is a phone-page cost paid on every load. | `geomagnetism` if it is under 15 KB gzipped in the live chunk; otherwise the WMM2025 coefficient table in `src/physics` with a golden test against NOAA values. |
 
 Resolved questions (OQ-1, OQ-3, OQ-4, OQ-11) are recorded in §12.
 
@@ -730,10 +804,13 @@ After the `v1.0.0` tag. Still no backend; the same two providers.
 - Chart legend: names, times and captions leave the drawings for a colour-keyed list; the detail table is the legend there (§4.17).
 - Sky window: a third view that shows the sky in the direction the phone points, fixed by a spike that is the **first task of the phase** and also settles the stripe's touch stepping (§4.18).
 - Live trajectories: arcs appear, grow and fade with the shown instant; the stripe is re-laid out with readable hours and a clock readout (§4.19).
+- The v1 findings: the fifty open review findings closed, one findings task per lane in the first wave (§4.20); true-north headings; the mid-width desktop guide fixed with a 1024 px profile.
+- CI time: a 10 min budget on pull requests, the capture set moved to `main` and on-demand runs (§4.21). This lands first, because every task of the phase pays for it.
 
 Definition of done:
-- US-20..US-23 accepted; FR-FLAG-1..2, FR-COMP-1..6, FR-LEG-1..5, FR-WIN-1..7, FR-TRAJ-1..5 met; the amended US-5 AC2, FR-GUIDE-2b, FR-GUIDE-7, FR-DESK-2, FR-DOME-1, FR-DOME-4, FR-DOME-6, FR-LIVE-2, FR-LIVE-4, FR-LIVE-6, FR-LIVE-7, FR-LIVE-8, FR-MOON-4 met.
-- The v1 definition of done still holds: golden tests, headers, the FR-GUIDE-6 and FR-LIVE-5 rates on the reference device, the D-179 capture set extended with the settings page, the legend and the window, re-shot in both languages and themes, and the bundle budgets re-set by the D-178 rule.
+- US-20..US-23 accepted; FR-FLAG-1..2, FR-COMP-1..6, FR-LEG-1..5, FR-WIN-1..7, FR-TRAJ-1..5, FR-FIX-1..2, FR-CI-1..3 met; the amended US-5 AC2, FR-GUIDE-2b, FR-GUIDE-7, FR-DESK-2, FR-DESK-3, FR-DESK-5, FR-DOME-1, FR-DOME-4, FR-DOME-6, FR-LIVE-2, FR-LIVE-4, FR-LIVE-6, FR-LIVE-7, FR-LIVE-8, FR-MOON-4 met.
+- Every finding F-1..F-50 is closed, recorded as already fixed, or moved to Phase 3 by a Decision Log row; none is silently open.
+- The v1 definition of done still holds: golden tests, headers, the FR-GUIDE-6 and FR-LIVE-5 rates on the reference device, the D-179 capture set extended with the settings page, the legend, the window and the 1024 px profile, re-shot in both languages and themes on `main`, and the bundle budgets re-set by the D-178 rule.
 - The owner has approved the compact mockups (FR-COMP-6) and the spike findings (FR-WIN-7) before the tasks behind them ran.
 - `package.json` version 1.1.0, a `v1.1.0` tag, and the release checklist run on the deploy.
 
@@ -802,3 +879,7 @@ Definition of done:
 | 2026-09-05 | V11-7 | **On the live page arcs appear at the rise, grow to the shown instant and fade after the end; the pass detail keeps whole arcs.** A pass ahead within `ARC_LOOKAHEAD` (5 min) is a faint dotted hint; one ended within `ARC_LINGER` (10 min) lingers faint; everything else is absent. The stripe becomes three rows with readable hours, the date at midnight and a clock readout; touch stepping is chosen by the spike and must land within a minute of a rise in three taps. | US-22; FR-TRAJ-1..5; FR-LIVE-2, FR-LIVE-4 amended; OQ-19. |
 | 2026-09-05 | V11-8 | **Desktop header: the live link moves beside the title; language and theme stay at the right on one baseline.** The owner's review: the live control was misaligned with the preference controls and is a feature, not a setting. | FR-DESK-2 amended. |
 | 2026-09-05 | V11-9 | **Delivery reuses V1-11 with lanes recut for the phase.** The same driver, waves and merge policy (Opus, auto-merge with the owner's gate on tasks with captures or Spanish copy). Lanes: `ui` (flag, header, settings, sort, fit test), `chart` (legend, dome box and fill rule, trajectory states in the views), `window` (the sky window), `live` (the stripe, stepping, the live page's compact layout). The spike is the first task, runs alone, and is driven interactively with the owner on a device rather than headless; the mockup task is the second and gates the `ui` screens. | PLAN §16 amended; TASKS.md gains the v1.1 block from R37. |
+| 2026-09-05 | V11-10 | **CI time is a budget: pull requests finish in 10 min, the capture set runs on `main` and on demand.** The owner: "CI time is an important topic". The 60 capture tests (R36) cost every PR 8.5 min for evidence only a release needs; they move behind an env flag to a main-branch workflow that uploads an artefact, the PR job gets a wall-time step and a hard budget, and no PR spec may wait on a 72 h search it does not test. | FR-CI-1..3; F-46; §9 Phase 2b (lands first). |
+| 2026-09-05 | V11-11 | **All fifty open review findings from the v1 PRs are in scope, one findings task per lane in the first wave.** The owner asked to include everything the reviews left open rather than pick. Each is closed with a test, recorded as already fixed, or moved to Phase 3 by a row here; a feature task that rewrites the code may close the finding instead, by name. | FR-FIX-1..2; §4.20 table F-1..F-50. |
+| 2026-09-05 | V11-12 | **Headings are true north.** R34's magnetic heading is corrected with the World Magnetic Model at the observer's position; the strip shows the declination. A pure-JS WMM package is installed by the owner before the wave, since task sessions cannot add dependencies; the plan falls back to shipping the coefficient table if the package is heavy. The follow control is hidden on the polar view. | FR-WIN-3, FR-LIVE-8 amended; F-40, F-41; §6.5 row; OQ-20. |
+| 2026-09-05 | V11-13 | **Desktop mid widths: an open guide takes the whole right column below `WIDE_SPLIT_MIN_CELLS`, and 1024 px joins the capture and e2e profiles.** R23's finding #1 (the guide column collapses between 960 and about 1350 px) is fixed by rule rather than by raising the breakpoint. | FR-DESK-3, FR-DESK-5 amended; F-6. |
