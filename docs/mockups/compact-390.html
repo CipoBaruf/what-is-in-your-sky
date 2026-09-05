@@ -45,13 +45,18 @@
     top: 845px;
     border-top: 1px dashed var(--edge);
     pointer-events: none;
+    /* Above the chart box, which is positioned and comes later. */
+    z-index: 2;
   }
   .fold::after {
     content: '844 px — the fold on an iPhone 15 Pro';
     display: block;
+    position: absolute;
+    right: calc(2 * var(--cell));
+    background: var(--bg);
     color: var(--fg-dim);
     font-size: 0.75rem;
-    padding-left: calc(2 * var(--cell));
+    padding-inline: calc(0.5 * var(--cell));
   }
 
   /* FR-COMP-1: one header row of at most 36 cells — the title, `[ live ]` and
@@ -66,7 +71,7 @@
     border-bottom: 1px solid var(--rule);
     white-space: nowrap;
   }
-  .head-links a + a { margin-left: var(--cell); }
+  .head-links > * + * { margin-left: var(--cell); }
   .head-links .current { color: var(--fg-dim); }
 
   /* The theme control shows the theme the capture is in, the way the desktop
@@ -100,7 +105,7 @@
   }
   .card.is-hero { border-color: var(--accent); }
   .card h3 { color: var(--accent); }
-  .card .rows { display: grid; grid-template-columns: 15ch minmax(0, 1fr); }
+  .card .rows { display: grid; grid-template-columns: 16ch minmax(0, 1fr); }
   .hero-when { color: var(--accent); font-size: 1.5rem; line-height: var(--row); margin: calc(0.5 * var(--row)) 0; }
 
   /* Saved places (FR-OFF-7): the name takes the width, the two controls sit at
