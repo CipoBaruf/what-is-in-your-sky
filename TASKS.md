@@ -658,7 +658,7 @@ Draft, cut 2026-09-03 from `SPEC.md` v1.0 and `PLAN.md` v0.3, for review. Spec P
     - e2e at 1280 px drives the list with `j` / `k` / `Enter` / `Esc`, opens the live page with `l`, toggles view and theme, and opens and closes the overlay; e2e also proves typing in the location field triggers nothing.
     - Captures of the overlay in both languages.
 
-- [ ] **R36 — v1 release preparation**
+- [x] **R36 — v1 release preparation** — the capture set is a new `v1-*` matrix with a test over it rather than a top-up of the per-task captures (D-179), and the budgets are the measured build plus a tenth rather than the PLAN §11 ceilings (D-178). The tag, the deploy and the on-device runs stay with the owner, as `docs/RELEASE.md` §6 now says.
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
@@ -718,6 +718,25 @@ No two tasks in one wave name the same file outside their lanes: `src/lib/shareL
 | FR-X-1 (amended) | R23 |
 | FR-X-4 (amended) | R24, R25, R27 |
 | Spec §9 Phase 2 done | R36 |
+
+The user stories the same definition of done names, and the tasks whose acceptance
+criteria carry them:
+
+| Story | Tasks |
+|---|---|
+| US-10 — Point my phone at the sky | R32 (the page), R34 (landscape, wake lock, compass follow) |
+| US-12 — Share a pass | R31 (a pass), R32 (a live moment) |
+| US-13 — Read the app in my language | R17 (both catalogs and the switch; every later UI task extends them) |
+| US-14 — Use the app on a desktop | R23 (two columns, the side guide), R35 (the keys and the overlay) |
+| US-15 — Watch the sky live and ahead | R32 (the dome and the strip), R33 (the stripe, playback, hidden objects), R34 (landscape) |
+| US-16 — Take the app off-grid for three nights | R24 (72 h and the stored run), R25 (the service worker), R27 (the readiness line and the nights), R28 (the update banner) |
+| US-17 — Keep a few places | R26 (the store), R28 (the panel) |
+| US-18 — Know about the Moon | R19 (phase and position), R29 (the lore), R30 (the panel, the glare badge, the chart marker) |
+| US-19 — Use the app in the dark | R20 (the palette and the switch), R21, R22 (the charts), R33 (the stripe) |
+
+This table is the record of what shipped, not a plan: every row names a task that is
+merged to `main`. Where two tasks share a row, the first is the one that built the
+thing and the second is the one that put it on screen.
 
 ### Dependency graph (v1)
 

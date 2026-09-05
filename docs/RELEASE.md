@@ -1,18 +1,26 @@
 # Release checklist
 
 Run this once per deploy that changes the physics, the worker, the sky chart or the
-headers, and once on the MVP deploy day (spec Phase 1 definition of done). Every item
+headers, and once on each phase's deploy day (spec §9 definition of done). Every item
 is a check with a stated expectation; note the result and the date in the PR that
 ships the release. CI already gates the automated parts (typecheck, lint, unit and
 golden tests, the worker in Chromium, the production build, Playwright under the
 strict CSP): this list is what CI cannot see.
 
+Sections 1–5 are every release. **Section 6 is the v1 list** (spec §9 Phase 2): the
+checks the v1 surface added, plus the tag and the deploy, which are the owner's.
+
 ## 1. Before merging
 
 - [ ] CI is green on the branch, and the build log's bundle table (`npm run bundle:budget`)
-      shows every budgeted chunk within its PLAN §11 budget: main ≤ 150 KB, chart ≤ 100 KB,
-      worker ≤ 120 KB gzipped. An overrun is a `::warning::` annotation; if one is accepted,
-      the PR says so and PLAN §11 is amended.
+      shows every budgeted chunk within its budget: main ≤ 150 KB, chart ≤ 110 KB,
+      worker ≤ 40 KB, astronomy ≤ 25 KB, live ≤ 10 KB and the service worker ≤ 10 KB
+      gzipped (D-178 — the measured build plus a tenth, all of them inside the PLAN §11
+      ceilings). An overrun is a `::warning::` annotation; if one is accepted, the PR says
+      so, and the fix is to re-measure and re-set the budgets rather than widen one.
+- [ ] The capture set matches the app: `npx playwright test v1-captures --project=chromium`
+      re-shoots `docs/screenshots/v1-*.png` and `npm test` (`tests/docs/captures.test.ts`)
+      says the set is complete. Look at the files that changed.
 - [ ] The golden suite covers all three observers: `npx tsx scripts/validate-iss.ts --all`
       prints `OVERALL: PASS` for Neuquén, Paris and Singapore.
 - [ ] The dome raster snapshot (`src/ui/components/guide/skychart/dome/__snapshots__/SkyDome.golden.txt`)
@@ -79,7 +87,7 @@ Chromium (D-62); this is the on-device check that it stands for.
 
 ## 4. Deploy day: a manual pass against Heavens-Above
 
-Once, on the day the MVP goes live, for the place the owner will actually observe from:
+Once, on the day a phase goes live, for the place the owner will actually observe from:
 
 - [ ] On Heavens-Above, set the same location (to 0.01°) and altitude, and list the ISS
       passes for the coming 24 h (any elevation, then read off those above 10°).
@@ -100,3 +108,70 @@ Once, on the day the MVP goes live, for the place the owner will actually observ
 - [ ] `live-contract.yml` has run green since the deploy (the daily CelesTrak and Open-Meteo
       contract check).
 - [ ] The README's live link still resolves.
+
+## 6. v1 (spec §9 Phase 2)
+
+Everything above still applies. These are the checks the v1 surface added, and they are
+on the same phone as §3 — a mid-range 2022 Android, Chrome, on the deployed site — unless
+an item says otherwise. §3 and §4 are part of the v1 list too: the dome's drag rate and the
+Heavens-Above comparison are what the phase is judged on, not just the MVP.
+
+### 6.1 The live page on the phone (FR-LIVE-5, FR-LIVE-7, FR-LIVE-8)
+
+- [ ] Open the live page (the header's "Live sky", or `l` on a keyboard) and let it settle:
+      the dome fills the screen, the status strip carries five filled fields, and nothing
+      scrolls sideways.
+- [ ] Playback at 3600×: press play at 3600× and, with the phone on `chrome://inspect`,
+      paste the §3 snippet and let it run five seconds without touching the screen.
+      Expect ≥ 30 rasterisations/s and a longest frame under 66 ms, which is FR-LIVE-5's
+      target for the whole 24 h in 24 s. Playing stops at the end of the span rather than
+      wrapping, and `now` puts the page back on real time.
+- [ ] Scrub the time stripe with one finger: the shown instant follows the touch, the strip
+      follows the instant, and the page never scrolls under the drag.
+- [ ] Turn the phone sideways: the dome moves to the left and the stripe, the controls and
+      the strip to the right, in one screen with no page scroll (FR-LIVE-7). Turn it back.
+- [ ] Wake lock: with the live page open and untouched, the screen does not dim for longer
+      than the device's timeout would allow; switching apps and coming back leaves the page
+      live. Nothing about the lock is shown either way (D-174).
+- [ ] "Follow phone" is offered (a touch screen with an orientation API) and turning on the
+      spot turns the dome with you, within a few degrees of where you are actually facing;
+      a drag takes the camera back. On a desktop the control is absent (FR-LIVE-8, D-175).
+
+### 6.2 Install and offline for three nights (FR-OFF-1, FR-OFF-6, FR-OFF-2/3/4)
+
+- [ ] The install hint appears once on the phone, and installing it puts the app on the home
+      screen with the terminal icon; opening it from there is standalone (no browser chrome)
+      and the app works. Dismissing the hint instead is remembered across reloads.
+      On an iPhone the hint is the "Add to Home Screen" note instead, and the same Share
+      → Add to Home Screen flow installs it.
+- [ ] Ship a change, reload the installed app twice: the first load shows the "new version
+      ready" banner and the second, after taking it, runs the new build (FR-OFF-1, OQ-14).
+- [ ] With the app used once online, turn the phone to flight mode and open it from the home
+      screen: the shell loads, the readiness line says how long it is ready for, the stored
+      passes are there with their age, and the forecast shows with its "as of" time.
+      A new location typed offline still recomputes from the cached elements, with the clouds
+      unknown (FR-X-4).
+- [ ] Save two places, switch between them offline, and confirm the switch needs no network.
+
+### 6.3 Language, theme and the desktop (FR-I18N-*, FR-THEME-*, FR-DESK-*)
+
+- [ ] Switch to Spanish on the phone and walk the screens of `docs/screenshots/v1-*`: no
+      English is left anywhere, nothing is clipped, and the choice survives a reload
+      (FR-I18N-2/5).
+- [ ] Switch to the night theme outdoors, in the dark, adapted: the screen is readable and
+      nothing is bright enough to cost night vision (FR-THEME-1). Both themes survive a
+      reload.
+- [ ] On a desktop browser at ≥ 100 cells: two columns with the guide beside the list, and
+      `j` / `k` / `Enter` / `Esc` / `l` / `v` / `n` / `?` all do what the `?` overlay says.
+      Typing in the place field fires none of them (FR-DESK-1..4, D-73).
+
+### 6.4 The release itself
+
+Owner steps, in this order, and none of them belong to a task session:
+
+- [ ] `package.json` is `1.0.0` on `main` and `docs/RELEASE.md` is this file.
+- [ ] Tag it: `git tag -a v1.0.0 -m "v1: outdoor-ready" && git push origin v1.0.0`.
+- [ ] Deploy `main` to `https://in-your-sky.ezequiel-baruf.workers.dev` and run §2 and §5
+      against production.
+- [ ] Record in the release PR: the bundle table, the §3 and §6.1 device numbers, the §4
+      Heavens-Above comparison with the observer and both element epochs, and the date.
