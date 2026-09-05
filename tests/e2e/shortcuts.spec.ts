@@ -12,44 +12,26 @@
  * bottom — evidence for the PR, with an assertion that each shows what it is
  * named after.
  */
-import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { seedStoredRun } from './liveHelpers';
 
-interface HaFixture {
-  capturedAt: string;
-  observer: { lat: number; lon: number };
-}
-
-const FIXTURE_DATE = '2026-09-02';
-const ha = JSON.parse(readFileSync(`tests/fixtures/heavens-above/${FIXTURE_DATE}-neuquen-iss.json`, 'utf8')) as HaFixture;
-const DAY_MS = 86_400_000;
 const WIDE = { width: 1280, height: 900 };
 
 test.use({ viewport: WIDE });
 
-test.beforeEach(async ({ page }) => {
-  await page.clock.setFixedTime(Date.parse(ha.capturedAt) + 9 * DAY_MS);
-  await page.route('https://celestrak.org/**', async (route) => {
-    const url = new URL(route.request().url());
-    await route.fulfill({
-      path: `tests/fixtures/omm/${FIXTURE_DATE}-${url.searchParams.get('GROUP') ?? 'unknown'}.json`,
-      contentType: 'application/json',
-      headers: { 'access-control-allow-origin': '*' },
-    });
-  });
-  await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
-  await page.route('https://geocoding-api.open-meteo.com/**', (route) => route.abort('failed'));
-});
-
-async function loadWithPasses(page: Page, locale: 'en' | 'es' = 'en'): Promise<void> {
-  await page.goto('/');
-  if (locale === 'es') await page.getByRole('banner').getByRole('button', { name: 'Español' }).click();
-  await page.getByLabel(locale === 'es' ? 'Coordenadas (lat, lon)' : 'Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
-  const passes = page.getByRole('region', { name: locale === 'es' ? 'Próximos pases' : 'Upcoming passes' });
-  await expect(passes.getByRole('status')).toHaveText(/\d+ (visible passes in the next 72 h|pases visibles en las próximas 72 h)/, { timeout: 60_000 });
-  // Typing the coordinates left the caret in the field, where FR-DESK-4 says
-  // the keys are the field's. Clicking the title is how a reader leaves it, and
-  // it is what makes the shortcuts live for the rest of the test.
+/**
+ * FR-CI-3 (R37): the shortcuts are not the pass search, so this file no longer
+ * waits for one. `seedStoredRun` opens the page on a stored 72 h run, the way
+ * a returning reader's browser does, and the keys have a list to work on from
+ * the first frame.
+ */
+async function loadWithPasses(page: Page, locale: 'en' | 'es' = 'en', { cards = false } = {}): Promise<void> {
+  // `cards`: a test that walks the list with j and k waits for the recompute behind the stored run
+  // to land first, because the first object of it replaces the list (see `listSettled`). The tests
+  // that only open the overlay do not, and those are most of this file.
+  await seedStoredRun(page, { locale, settled: cards });
+  // Nothing was typed, so nothing has the caret — but the click is kept: FR-DESK-4 says the keys are
+  // the page's only while no field holds it, and starting from a known focus is what makes that true here.
   await page.getByRole('heading', { level: 1 }).click();
   expect(await page.evaluate(() => document.activeElement?.tagName.toLowerCase())).toBe('body');
 }
@@ -69,7 +51,7 @@ async function cardIds(page: Page): Promise<string[]> {
 }
 
 test('j and k move the cursor over the list, Enter opens the pass and Esc closes it (US-14 AC4)', async ({ page }) => {
-  await loadWithPasses(page);
+  await loadWithPasses(page, 'en', { cards: true });
   const ids = await cardIds(page);
   expect(ids.length).toBeGreaterThan(2);
   const [first, second] = ids as [string, string];
@@ -94,7 +76,7 @@ test('j and k move the cursor over the list, Enter opens the pass and Esc closes
 });
 
 test('k from the bottom, and the ends of the list stop rather than wrap', async ({ page }) => {
-  await loadWithPasses(page);
+  await loadWithPasses(page, 'en', { cards: true });
   const ids = await cardIds(page);
   const last = ids[ids.length - 1] as string;
 
@@ -112,7 +94,7 @@ test('l opens the live page (FR-LIVE-1)', async ({ page }) => {
 });
 
 test('v toggles the chart view and n toggles the palette (FR-DOME-7, FR-THEME-1)', async ({ page }) => {
-  await loadWithPasses(page);
+  await loadWithPasses(page, 'en', { cards: true });
   await page.keyboard.press('j');
   await page.keyboard.press('Enter');
   const chart = page.getByTestId('sky-chart');

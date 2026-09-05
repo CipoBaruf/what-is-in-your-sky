@@ -7,6 +7,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, type Page } from '@playwright/test';
+import { FIXTURE_DATE, NEUQUEN as NEUQUEN_OBSERVER, NINE_DAYS_ON, STORED_RUN_FILE } from './observers';
 
 interface HaFixture {
   capturedAt: string;
@@ -16,7 +17,7 @@ interface Reference {
   firstGoldenPass: { start: { t: number }; peak: { t: number }; end: { t: number } } | null;
 }
 
-export const FIXTURE_DATE = '2026-09-02';
+export { FIXTURE_DATE, NINE_DAYS_ON };
 export const ha = JSON.parse(readFileSync(`tests/fixtures/heavens-above/${FIXTURE_DATE}-neuquen-iss.json`, 'utf8')) as HaFixture;
 const reference = JSON.parse(readFileSync('tests/fixtures/reference-values.json', 'utf8')) as Reference;
 export const NEUQUEN = `${String(ha.observer.lat)}, ${String(ha.observer.lon)}`;
@@ -36,9 +37,12 @@ export const golden = (): { start: number; peak: number; end: number } => {
 export const T = golden().start + 10_000;
 
 export const LABEL = {
-  en: { coords: 'Coordinates (lat, lon)', now: 'Right now', visible: /(\d+) satellites? visible right now/, live: 'Live sky', fromNow: 'Watch the sky live', back: '← Back', theme: 'Theme', night: 'Night', dark: 'Dark' },
-  es: { coords: 'Coordenadas (lat, lon)', now: 'Ahora mismo', visible: /(\d+) satélites? visibles? ahora mismo/, live: 'Cielo en vivo', fromNow: 'Ver el cielo en vivo', back: '← Volver', theme: 'Tema', night: 'Nocturno', dark: 'Oscuro' },
+  en: { coords: 'Coordinates (lat, lon)', now: 'Right now', visible: /(\d+) satellites? visible right now/, live: 'Live sky', fromNow: 'Watch the sky live', back: '← Back', theme: 'Theme', night: 'Night', dark: 'Dark', passes: 'Upcoming passes' },
+  es: { coords: 'Coordenadas (lat, lon)', now: 'Ahora mismo', visible: /(\d+) satélites? visibles? ahora mismo/, live: 'Cielo en vivo', fromNow: 'Ver el cielo en vivo', back: '← Volver', theme: 'Tema', night: 'Nocturno', dark: 'Oscuro', passes: 'Próximos pases' },
 } as const;
+
+/** The pass list's status line once the window has been searched, in either language. */
+export const PASS_COUNT = /\d+ (visible passes in the next 72 h|pases visibles en las próximas 72 h)/;
 
 export async function stubNetwork(page: Page, elements: 'fixtures' | 'down' = 'fixtures'): Promise<void> {
   await page.route('https://celestrak.org/**', async (route) => {
@@ -55,6 +59,8 @@ export async function stubNetwork(page: Page, elements: 'fixtures' | 'down' = 'f
   });
   // No forecast: the zone stays unknown, the clocks read UTC and the clouds are unknown (weather.spec.ts covers the forecast).
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
+  // No geocoder either: a spec that types a place name must not reach the real one (place-search.spec.ts fulfils its own).
+  await page.route('https://geocoding-api.open-meteo.com/**', (route) => route.abort('failed'));
 }
 
 /**
@@ -72,11 +78,103 @@ export async function homeAt(page: Page, t: number, locale: 'en' | 'es' = 'en', 
   const panel = page.getByRole('region', { name: LABEL[locale].now });
   await expect(panel.getByRole('status')).toHaveText(LABEL[locale].visible, { timeout: 60_000 });
   if (wholeList) {
-    const passes = page.getByRole('region', { name: locale === 'es' ? 'Próximos pases' : 'Upcoming passes' });
-    await expect(passes.getByRole('status')).toHaveText(/\d+ (visible passes in the next 72 h|pases visibles en las próximas 72 h)/, { timeout: 60_000 });
+    const passes = page.getByRole('region', { name: LABEL[locale].passes });
+    await expect(passes.getByRole('status')).toHaveText(PASS_COUNT, { timeout: 60_000 });
   }
   const match = LABEL[locale].visible.exec((await panel.getByRole('status').textContent()) ?? '');
   return Number(match?.[1] ?? '0');
+}
+
+/**
+ * FR-CI-3 (R37): the home screen with a finished 72 h run already on it.
+ *
+ * A spec whose subject is the rendered page — the palette, the language, the
+ * desktop layout, the shortcut overlay — used to type a coordinate pair and
+ * then wait out the whole search, thirty objects over three nights, before it
+ * could look at a heading. The app does not make a returning reader wait for
+ * that either: FR-OFF-2 puts the stored run on screen before the first request
+ * goes out. So the spec starts where the reader starts.
+ *
+ * The run is `tests/fixtures/stored-run-neuquen.json`, computed by
+ * `scripts/build-stored-run.ts` from the committed elements at exactly
+ * `NINE_DAYS_ON` — the instant these specs run at. The recompute that follows
+ * therefore finds the same passes, and the list does not change under the test
+ * when it lands.
+ *
+ * Three loads' worth of ordering, in one function: the page is opened once
+ * with nothing saved (no observer, so nothing is searched and nothing is
+ * fetched), the run is written into IndexedDB from inside the page and
+ * *awaited* — an `addInitScript` would race the app's own read of the same
+ * store — and the reload then boots the app the way a returning reader's
+ * browser does.
+ */
+const STORED_RUN = JSON.parse(readFileSync(STORED_RUN_FILE, 'utf8')) as { cellKey: string; computedAt: number; passes: unknown[] };
+const PREFS_KEY = 'wiys:prefs:v1';
+
+export async function seedStoredRun(page: Page, { locale = 'en', prefs = {}, settled = false }: { locale?: 'en' | 'es'; prefs?: Record<string, unknown>; settled?: boolean } = {}): Promise<void> {
+  await page.clock.setFixedTime(NINE_DAYS_ON);
+  await stubNetwork(page);
+  await page.goto('/');
+  await page.evaluate(async (run: unknown) => {
+    await new Promise<void>((resolve, reject) => {
+      // Version 2 and both stores, which is what `data/db.ts` opens: whichever of the two
+      // connections is first must not leave the other one an upgrade to run.
+      const request = indexedDB.open('wiys', 2);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('elementGroups')) db.createObjectStore('elementGroups', { keyPath: 'group' });
+        if (!db.objectStoreNames.contains('passRuns')) db.createObjectStore('passRuns', { keyPath: 'cellKey' });
+      };
+      request.onerror = () => {
+        reject(new Error('could not open the wiys database'));
+      };
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction('passRuns', 'readwrite');
+        tx.objectStore('passRuns').put(run);
+        tx.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        tx.onerror = () => {
+          reject(new Error('could not store the run'));
+        };
+      };
+    });
+  }, STORED_RUN);
+  // Only when nothing is saved yet: an init script runs on every navigation, and a seed that
+  // overwrote the key each time would undo the preferences a test then sets and reloads to check.
+  await page.addInitScript(
+    ([key, value]: [string, string]) => {
+      if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
+    },
+    [PREFS_KEY, JSON.stringify({ locale, observer: NEUQUEN_OBSERVER, ...prefs })] as [string, string],
+  );
+  await page.reload();
+  // The stored list, on screen without a search: the count is what a spec that follows builds on,
+  // and a seed that silently failed fails here rather than three assertions later.
+  await expect(page.getByRole('region', { name: LABEL[locale].passes }).getByRole('status')).toHaveText(PASS_COUNT, { timeout: 30_000 });
+  if (settled) await listSettled(page);
+}
+
+/**
+ * The recompute finished: nothing on the page is `aria-busy` any more.
+ *
+ * The stored run is on screen before the network is touched, and the app then
+ * recomputes it — and when the first object of the new job arrives it
+ * *replaces* the stored list rather than adding to it (R24, `effects.ts`), so
+ * for a moment the list is one satellite's passes. A spec that only reads the
+ * page never notices; a spec that counts cards or walks them with the keyboard
+ * would, so it waits here first. The passes it then sees are the same ones the
+ * seed put there: `scripts/build-stored-run.ts` computed them from the same
+ * fixtures at the same instant.
+ */
+export async function listSettled(page: Page): Promise<void> {
+  // The stored list is on screen with nothing busy *before* the recompute starts — the elements
+  // load first, then the worker — so "nothing busy" alone can return in that gap and the spec
+  // then reads a list the first batch is about to replace. Wait for the job to show, then to end.
+  await page.locator('[aria-busy="true"]').first().waitFor({ state: 'attached', timeout: 30_000 });
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
 }
 
 /**

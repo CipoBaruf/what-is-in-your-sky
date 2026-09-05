@@ -12,14 +12,18 @@
 import { readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CAPTURE_DIR, captureSet, SCREENS } from '../e2e/captureSet';
+import { CAPTURE_DIR, captureSet, LOCALES, SCREENS, THEMES } from '../e2e/captureSet';
 
 const files = new Set(readdirSync(CAPTURE_DIR));
 const v1Files = [...files].filter((file) => file.startsWith('v1-')).sort();
 
 describe('the v1 capture set', () => {
-  it('names every screen at both widths, in both themes and both languages', () => {
-    expect(captureSet()).toHaveLength(SCREENS.reduce((total, screen) => total + screen.widths.length * 4, 0));
+  it('F-50: names every screen at both widths, in as many themes and languages as there are', () => {
+    // F-50 (R37): the variants are counted, not remembered. The hard-coded `* 4` was the two
+    // themes times the two languages, so a third theme or a third language would have been a set
+    // this test called complete while a quarter of it was missing.
+    const variants = THEMES.length * LOCALES.length;
+    expect(captureSet()).toHaveLength(SCREENS.reduce((total, screen) => total + screen.widths.length * variants, 0));
     // Every screen is on the phone and on the wide layout; nothing is desktop-only or phone-only.
     for (const screen of SCREENS) {
       expect(screen.widths, screen.name).toContain(390);

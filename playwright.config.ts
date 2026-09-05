@@ -16,7 +16,11 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 2 : 0,
-  reporter: process.env['CI'] ? [['github'], ['html', { open: 'never' }]] : 'list',
+  // FR-CI-3: `list` on CI too, because its per-test durations are how a spec over 60 s is found.
+  reporter: process.env['CI'] ? [['list'], ['github'], ['html', { open: 'never' }]] : 'list',
+  // FR-CI-3 (D-195): one worker per available core on CI. The default is half of them, which on a
+  // two-core runner is one worker for the whole suite — half the box idle for the whole e2e stage.
+  ...(process.env['CI'] ? { workers: '100%' as const } : {}),
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: 'on-first-retry',

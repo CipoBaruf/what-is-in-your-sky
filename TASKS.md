@@ -787,7 +787,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
 
 ### Tasks
 
-- [ ] **R37 — CI time: the 10 min budget, the capture set off the PR path, and the R36 findings**
+- [x] **R37 — CI time: the 10 min budget, the capture set off the PR path, and the R36 findings** — the stored-run switch is on four specs (`shortcuts`, `desktop`, `pass-detail`, `language`), not on every page spec; the rest are listed as follow-ups in the PR body.
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** auto

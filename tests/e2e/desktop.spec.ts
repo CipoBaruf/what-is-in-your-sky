@@ -14,6 +14,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { seedStoredRun } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -65,10 +66,13 @@ async function cellPx(page: Page): Promise<number> {
   });
 }
 
+/**
+ * FR-CI-3 (R37): the layout is not the pass search. The page opens on a stored
+ * 72 h run — the way a returning reader's does (FR-OFF-2) — so what is measured
+ * here is a full page, reached without waiting for one to be computed.
+ */
 async function loadWithPasses(page: Page): Promise<void> {
-  await page.goto('/');
-  await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  await seedStoredRun(page);
 }
 
 /**

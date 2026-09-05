@@ -1,0 +1,52 @@
+name: Captures
+
+# FR-CI-2 (R37, D-195): the v1 capture set (D-179) is not a pull request's
+# business. Sixty screenshots off one build cost about 8.5 min, which was most
+# of the PR budget FR-CI-1 sets, and a PR that changes a screen ships its own
+# captures through the `visual-review` skill anyway. So the set is shot here:
+# on every push to `main` and on demand.
+#
+# This job commits nothing. It uploads the set as an artefact and fails when a
+# capture is missing — the committed files under `docs/screenshots/` are cleared
+# before the run, so the check is about what this run produced and not about
+# what someone committed last month. `tests/docs/captures.test.ts` keeps
+# checking the committed set in the unit suite, which is the other half of it.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  captures:
+    runs-on: ubuntu-latest
+    # Twice the observed 8.5 min: this job is off the PR path, so its ceiling is a stuck run, not a budget.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # The spec runs against the production build served by `vite preview` (playwright.config.ts).
+      - run: npm run build
+      # A capture that fails to be written must not be answered by the file the last run left behind.
+      - name: clear the committed set
+        run: find docs/screenshots -name 'v1-*.png' -delete
+      - name: shoot the set
+        env:
+          CAPTURES: '1'
+        run: npx playwright test v1-captures --reporter=list
+      # FR-CI-2: incomplete is a failure. The same check the unit suite runs, now against this run's files.
+      - name: check the set is complete
+        run: npx vitest run tests/docs/captures.test.ts
+      - uses: actions/upload-artifact@v5
+        # Even on a failure: the captures that were shot are how the missing one gets diagnosed.
+        if: always()
+        with:
+          name: v1-captures
+          path: docs/screenshots/v1-*.png
+          retention-days: 30
+          if-no-files-found: error

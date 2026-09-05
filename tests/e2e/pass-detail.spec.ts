@@ -12,6 +12,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import { seedStoredRun } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -35,22 +36,13 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   const passId = `25544-${String(pass.start.t)}`;
 
   await page.clock.setFixedTime(Date.parse(ha.capturedAt) + 9 * DAY_MS);
-  await page.route('https://celestrak.org/**', async (route) => {
-    const url = new URL(route.request().url());
-    await route.fulfill({
-      path: `tests/fixtures/omm/${FIXTURE_DATE}-${url.searchParams.get('GROUP') ?? 'unknown'}.json`,
-      contentType: 'application/json',
-      headers: { 'access-control-allow-origin': '*' },
-    });
-  });
 
-  // R8: without a forecast the zone stays unknown and times stay in UTC, which is what this spec asserts (weather.spec.ts covers the forecast).
-  await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
-
-  await page.goto('/');
-  await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
-  // R7's Now panel adds a second live status line, so scope to the passes region.
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  // FR-CI-3 (R37): the sheet is the subject, not the search that finds the pass. `seedStoredRun`
+  // stubs the two providers the way this spec did — no forecast, so the zone stays unknown and the
+  // times stay in UTC, which is what the assertions below read (weather.spec.ts covers the forecast)
+  // — and opens the page on the stored 72 h run, the golden pass among them.
+  // Settled: the highest pass is read off every card below, which the recompute's first batch would otherwise be replacing.
+  await seedStoredRun(page, { settled: true });
 
   const card = page.locator(`article[data-pass-id="${passId}"]`);
   await expect(card).toHaveCount(1);

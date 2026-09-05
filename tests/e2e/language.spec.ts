@@ -7,6 +7,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { seedStoredRun } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -67,9 +68,10 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
   await expect(page.locator('body')).not.toContainText('Enter a place name');
   await page.screenshot({ path: 'test-results/r17-home-390-es.png', fullPage: true });
 
-  await page.getByLabel('Coordenadas (lat, lon)').fill(NEUQUEN);
-  const passes = page.getByRole('region', { name: 'Próximos pases' }).getByRole('status');
-  await expect(passes).toHaveText(/\d+ pases visibles en las próximas 72 h/, { timeout: 30_000 });
+  // FR-CI-3 (R37): the language is not the pass search. The page reopens on a stored 72 h run —
+  // in Spanish, with the place already saved — which is the same screen the typing arrived at.
+  // Settled: the status line is read again at the end, after the switch back to English, and it must say the count, not the progress of the recompute behind the stored run.
+  await seedStoredRun(page, { locale: 'es', settled: true });
   await page.screenshot({ path: 'test-results/r17-passes-390-es.png', fullPage: true });
 
   // The guide sheet: the FR-GUIDE-1 sentence is the Spanish golden one, times and numbers included.
@@ -114,7 +116,7 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
   await page.screenshot({ path: 'test-results/r17-numbers-390-en.png' });
   await dialog.evaluate((el) => el.scrollTo(0, 0));
 
-  // Back on the list, the observer is the one that was typed and the screen is English throughout.
+  // Back on the list, the observer is the one the page opened with and the screen is English throughout.
   await dialog.getByRole('button', { name: /Back to the list/ }).click();
   await expect(page.getByLabel('Coordinates (lat, lon)')).toHaveValue(NEUQUEN);
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/);
