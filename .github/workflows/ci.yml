@@ -5,27 +5,53 @@ on:
     branches: [main]
   pull_request:
 
+env:
+  # FR-CI-1's budget (R37, D-195): a pull request's CI finishes inside ten
+  # minutes. This is the constant; `timeout-minutes` below is the same number
+  # written out, because a job-level `timeout-minutes` cannot read `env`.
+  CI_PR_BUDGET_MIN: 10
+  STAGE_TIMES: stage-times.tsv
+
 jobs:
   ci:
     # PLAN §11: typecheck → lint → unit + golden + component + worker integration → build → Playwright.
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # FR-CI-1: CI_PR_BUDGET_MIN. The job fails when it runs over, rather than the budget being raised.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
+      # FR-CI-1: each stage is wrapped so the summary below can name what took the time.
+      - run: bash .github/workflows/stage.sh install npm ci
+      - run: bash .github/workflows/stage.sh typecheck npm run typecheck
+      - run: bash .github/workflows/stage.sh lint npm run lint
       # Chromium is needed by `npm test` too: the Vitest browser project boots the real worker (R5).
-      - run: npx playwright install --with-deps chromium
-      - run: npm test
-      - run: npm run build
+      - run: bash .github/workflows/stage.sh browsers npx playwright install --with-deps chromium
+      - run: bash .github/workflows/stage.sh unit npm test
+      - run: bash .github/workflows/stage.sh build npm run build
       # PLAN §11 bundle budgets (R15): a table of gzipped chunk sizes, an annotation on overrun, never a failure.
-      - run: npm run bundle:budget
-      - run: npx playwright test
+      - run: bash .github/workflows/stage.sh bundle npm run bundle:budget
+      # FR-CI-2: the v1 capture set is not here. It runs on `main` (captures.yml) behind CAPTURES=1.
+      # FR-CI-3: one worker per core (playwright.config.ts), and page specs load a stored run
+      # instead of waiting on the 72 h search. A spec over 60 s on the list reporter is a defect.
+      - run: bash .github/workflows/stage.sh e2e npx playwright test
+      # FR-CI-1: the stage table, in the job summary, on a pass and on a failure alike.
+      - name: stage times
+        if: always()
+        run: |
+          {
+            echo "## CI stages"
+            echo
+            echo "| stage | wall time | |"
+            echo "|---|---:|---|"
+            awk -F'\t' '
+              { total += $2; printf "| %s | %d:%02d | %s |\n", $1, $2 / 60, $2 % 60, ($3 == 0 ? "" : "failed") }
+              END { printf "| **total** | **%d:%02d** | budget %s:00 (FR-CI-1) |\n", total / 60, total % 60, ENVIRON["CI_PR_BUDGET_MIN"] }
+            ' "$STAGE_TIMES"
+          } >>"$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v5
         if: failure()
         with:
