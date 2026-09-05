@@ -5,7 +5,7 @@
  * are made on a window that points where the phone points.
  */
 import { describe, expect, it } from 'vitest';
-import { alphaFor, greatCircle, lookDirection, project, rollDevice, rotationMatrix, smoothRotation, type View } from '../../spike/window/projection';
+import { alphaFor, calibrationSample, greatCircle, lookDirection, OffsetEstimate, project, rollDevice, rotationMatrix, smoothRotation, type View } from '../../spike/window/projection';
 
 const view: View = { projection: 'gnomonic', fovDeg: 60, width: 390, height: 390, screenAngleDeg: 0 };
 const stereo: View = { ...view, projection: 'stereographic' };
@@ -122,5 +122,28 @@ describe('smoothing and the heading source', () => {
     expect(arc.length).toBe(19);
     expect(arc[9]?.azDeg).toBeCloseTo(45, 6);
     expect(arc[9]?.elDeg).toBeCloseTo(0, 6);
+  });
+});
+
+describe('the fused heading (OQ-17, measured on the iPhone)', () => {
+  // Two readings from the phone: alpha 80.9 with heading 4.7, then 80.6 with heading 1.4 — alpha is relative, the compass is not.
+  const upright = { alpha: 80.9, beta: 99.9, gamma: 4.7, absolute: undefined, webkitCompassHeading: 4.7, webkitCompassAccuracy: 13.9 };
+
+  it('calibrates only while upright and while the compass says it is accurate', () => {
+    expect(calibrationSample(upright)).toBeCloseTo((360 - 4.7 - 80.9 + 360) % 360, 6);
+    expect(calibrationSample({ ...upright, webkitCompassAccuracy: -1 })).toBeNull(); // the first iOS event, before the compass settles
+    expect(calibrationSample({ ...upright, beta: 170 })).toBeNull(); // pointing at the zenith: the compass field has no answer
+    expect(calibrationSample({ ...upright, alpha: null })).toBeNull();
+  });
+
+  it('averages the offset on the circle and applies it to alpha', () => {
+    const estimate = new OffsetEstimate();
+    estimate.add(359);
+    estimate.add(1, 0.5);
+    expect(estimate.get()).toBeCloseTo(0, 4);
+    expect(alphaFor({ alpha: 10, absolute: undefined, webkitCompassHeading: 123 }, 'fused', 350)).toBeCloseTo(0, 6);
+    // auto: the compass until a calibration exists, then the fused alpha.
+    expect(alphaFor(upright, 'auto', null)).toBeCloseTo(355.3, 6);
+    expect(alphaFor(upright, 'auto', 274.4)).toBeCloseTo(355.3, 6);
   });
 });

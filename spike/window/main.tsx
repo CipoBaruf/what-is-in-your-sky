@@ -17,7 +17,7 @@ import { createRoot } from 'react-dom/client';
 import type { Pass } from '../../src/model';
 import { othersFor, passFor } from '../dome-composition/fixtures';
 import { readWindowParams, windowQuery, type WindowParams } from './params';
-import { alphaFor, lookDirection, rotationMatrix, smoothRotation, type Mat3, type View } from './projection';
+import { alphaFor, calibrationSample, lookDirection, OffsetEstimate, rotationMatrix, smoothRotation, type Mat3, type View } from './projection';
 import { listen, RateMeter, requestOrientation, type PermissionState, type RawReading, type SensorStats } from './sensors';
 import { SkyWindow } from './SkyWindow';
 import './window.css';
@@ -52,12 +52,16 @@ function App() {
   const [raw, setRaw] = useState<RawReading | null>(null);
   const [matrix, setMatrix] = useState<Mat3>(() => rotationMatrix(0, 90, 0));
   const [stats, setStats] = useState<SensorStats | null>(null);
+  /** The calibration as of the last stats tick, for the readout; the ref is what the drawing reads. */
+  const [calibration, setCalibration] = useState<{ deg: number | null; samples: number }>({ deg: null, samples: 0 });
   const [factsText, setFactsText] = useState('');
-  const [size, setSize] = useState(() => Math.min(params.width, window.innerWidth));
+  const [size, setSize] = useState(() => viewSize(params.width));
 
   const smoothed = useRef<Mat3 | null>(null);
   const latest = useRef<RawReading | null>(null);
   const meter = useRef(new RateMeter());
+  /** OQ-17: the compass-to-alpha offset, learned while the phone is upright. */
+  const offset = useRef(new OffsetEstimate());
   const facts = useRef<Facts>({ userAgent: navigator.userAgent, permission: 'pending', eventNames: [], first: null, samples: [], stats: null });
   const frame = useRef<number | null>(null);
   const listeningRef = useRef(false);
@@ -77,7 +81,7 @@ function App() {
 
   useEffect(() => {
     const onResize = (): void => {
-      setSize(Math.min(paramsRef.current.width, window.innerWidth));
+      setSize(viewSize(paramsRef.current.width));
     };
     window.addEventListener('resize', onResize);
     return () => {
@@ -94,7 +98,7 @@ function App() {
     else {
       const r = latest.current;
       if (r) {
-        const alpha = alphaFor(r, p.heading);
+        const alpha = alphaFor(r, p.heading, offset.current.get());
         if (alpha !== null && r.beta !== null && r.gamma !== null) target = rotationMatrix(alpha, r.beta, r.gamma);
       }
     }
@@ -116,6 +120,8 @@ function App() {
     (reading: RawReading) => {
       latest.current = reading;
       meter.current.event();
+      const sample = calibrationSample(reading);
+      if (sample !== null) offset.current.add(sample);
       const f = facts.current;
       if (!f.eventNames.includes(reading.event)) f.eventNames.push(reading.event);
       f.first ??= reading;
@@ -137,6 +143,7 @@ function App() {
       const s = meter.current.stats();
       facts.current.stats = s;
       setStats(s);
+      setCalibration({ deg: offset.current.get(), samples: offset.current.samples });
     }, 1000);
     window.__window = {
       stats: () => meter.current.stats(),
@@ -175,6 +182,7 @@ function App() {
       `samples:`,
       ...(f.samples.length > 0 ? f.samples.map(line) : ['  none']),
       `rate: ${f.stats ? `${String(f.stats.eventsPerSecond)} events/s, ${String(f.stats.drawsPerSecond)} draws/s, longest gap ${String(f.stats.longestGapMs)} ms` : 'not measured'}`,
+      `compass offset: ${calibration.deg === null ? 'none yet' : `${calibration.deg.toFixed(1)}° from ${String(calibration.samples)} upright samples`}`,
       `settings: ${windowQuery(params)}`,
     ].join('\n');
     setFactsText(text);
@@ -182,7 +190,7 @@ function App() {
   };
 
   const passes: Pass[] = useMemo(() => [passFor(params.pass), ...othersFor(params.others)], [params.pass, params.others]);
-  const view: View = { projection: params.projection, fovDeg: params.fov, width: size, height: size, screenAngleDeg: params.correction === 'off' ? 0 : (params.correction === 'neg' ? -1 : 1) * (raw?.screenAngle ?? 0) };
+  const view: View = { projection: params.projection, fovDeg: params.fov, width: size.width, height: size.height, screenAngleDeg: params.correction === 'off' ? 0 : (params.correction === 'neg' ? -1 : 1) * (raw?.screenAngle ?? 0) };
   const look = lookDirection(matrix);
   const manual = params.manual ?? { alpha: 0, beta: 90, gamma: 0 };
 
@@ -238,7 +246,8 @@ function App() {
           <label>
             heading from
             <select value={params.heading} onChange={(e) => update({ heading: e.target.value as WindowParams['heading'] })}>
-              <option value="auto">auto</option>
+              <option value="auto">auto (fused once calibrated)</option>
+              <option value="fused">fused: alpha + compass offset</option>
               <option value="webkit">webkitCompassHeading</option>
               <option value="alpha">alpha</option>
             </select>
@@ -294,7 +303,9 @@ function App() {
               {String(raw.screenAngle)}° {raw.screenType ?? '-'}
             </dd>
             <dt>alpha used</dt>
-            <dd>{fmt(alphaFor(raw, params.heading))}</dd>
+            <dd>
+              {fmt(alphaFor(raw, params.heading, calibration.deg))} (offset {fmt(calibration.deg)}, {String(calibration.samples)} samples)
+            </dd>
           </dl>
         ) : (
           <p>{params.manual ? 'manual orientation' : 'no event yet — tap start sensors'}</p>
@@ -309,6 +320,12 @@ function App() {
 }
 
 const fmt = (n: number | null): string => (n === null ? 'null' : n.toFixed(1));
+
+/** The screen's width up to the parameter, and the shorter of that and the room above the controls: square in portrait, wide in landscape. */
+const viewSize = (maxWidth: number): { width: number; height: number } => {
+  const width = Math.min(maxWidth, window.innerWidth);
+  return { width, height: Math.min(width, Math.max(200, window.innerHeight - 140)) };
+};
 
 /** Within a tenth of a degree on every axis: nothing left to ease. */
 const converged = (a: Mat3, b: Mat3): boolean => {

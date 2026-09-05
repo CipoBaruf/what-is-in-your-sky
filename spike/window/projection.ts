@@ -205,11 +205,52 @@ export function smoothRotation(previous: Mat3 | null, next: Mat3, weight: number
  * heading combines with the same event's beta and gamma as if it were
  * `alpha = 360 − heading`; the spike lets the owner switch and see.
  */
-export function alphaFor(reading: { alpha: number | null; absolute: boolean | undefined; webkitCompassHeading: number | null }, source: 'auto' | 'webkit' | 'alpha'): number | null {
+export function alphaFor(reading: { alpha: number | null; absolute: boolean | undefined; webkitCompassHeading: number | null }, source: 'auto' | 'webkit' | 'alpha' | 'fused', offsetDeg: number | null = null): number | null {
   const webkit = reading.webkitCompassHeading;
-  const useWebkit = source === 'webkit' || (source === 'auto' && typeof webkit === 'number' && Number.isFinite(webkit));
-  if (useWebkit) return typeof webkit === 'number' && Number.isFinite(webkit) ? ((360 - webkit) % 360 + 360) % 360 : null;
-  return reading.alpha !== null && Number.isFinite(reading.alpha) ? reading.alpha : null;
+  const hasWebkit = typeof webkit === 'number' && Number.isFinite(webkit);
+  const alpha = reading.alpha !== null && Number.isFinite(reading.alpha) ? reading.alpha : null;
+  const wrap = (deg: number): number => ((deg % 360) + 360) % 360;
+  const mode = source === 'auto' ? (hasWebkit ? (offsetDeg !== null ? 'fused' : 'webkit') : 'alpha') : source;
+  if (mode === 'fused') return alpha !== null && offsetDeg !== null ? wrap(alpha + offsetDeg) : hasWebkit ? wrap(360 - webkit) : alpha;
+  if (mode === 'webkit') return hasWebkit ? wrap(360 - webkit) : null;
+  return alpha;
+}
+
+/** The compass heading is trustworthy for calibrating alpha: the phone roughly upright, top up, and the platform's accuracy figure not the −1 iOS sends before the compass settles (R38, measured). */
+export function calibrationSample(reading: { alpha: number | null; beta: number | null; webkitCompassHeading: number | null; webkitCompassAccuracy: number | null }): number | null {
+  const { alpha, beta, webkitCompassHeading: webkit, webkitCompassAccuracy: accuracy } = reading;
+  if (alpha === null || beta === null || webkit === null || !Number.isFinite(webkit)) return null;
+  if (accuracy !== null && (accuracy < 0 || accuracy > 30)) return null;
+  if (beta < 45 || beta > 135) return null;
+  return (((360 - webkit - alpha) % 360) + 360) % 360;
+}
+
+/**
+ * A circular running mean of the calibration offset: a unit vector per
+ * sample, blended by `weight`, so 359° and 1° average to 0° and not 180°.
+ */
+export class OffsetEstimate {
+  private x = 0;
+  private y = 0;
+  private count = 0;
+
+  add(offsetDeg: number, weight = 0.1): void {
+    const r = offsetDeg * RAD;
+    const w = this.count === 0 ? 1 : weight;
+    this.x = (1 - w) * this.x + w * Math.cos(r);
+    this.y = (1 - w) * this.y + w * Math.sin(r);
+    this.count += 1;
+  }
+
+  /** Degrees, or `null` before the first sample. */
+  get(): number | null {
+    if (this.count === 0) return null;
+    return ((Math.atan2(this.y, this.x) / RAD) % 360 + 360) % 360;
+  }
+
+  get samples(): number {
+    return this.count;
+  }
 }
 
 /**

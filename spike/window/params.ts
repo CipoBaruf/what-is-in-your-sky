@@ -9,8 +9,14 @@
 
 export type Projection = 'gnomonic' | 'stereographic';
 export type PassName = 'golden' | 'high';
-/** Where the heading comes from on iOS: the WebKit compass field, or `alpha` as if it were absolute (OQ-17). */
-export type HeadingSource = 'auto' | 'webkit' | 'alpha';
+/**
+ * Where the heading comes from on iOS (OQ-17): the WebKit compass field on every reading, `alpha`
+ * as if it were absolute, or `fused` — the event's own continuous alpha, offset by the compass as
+ * calibrated while the phone is held upright, so the picture follows the gyro through the zenith
+ * where the compass field (the direction of the phone's *top* along the ground) has no answer.
+ * `auto` is `fused` once a calibration exists, `webkit` before that.
+ */
+export type HeadingSource = 'auto' | 'webkit' | 'alpha' | 'fused';
 /** The screen-angle correction (FR-WIN-3): applied, not applied, or applied with the opposite sign — the phone says which is right. */
 export type Correction = 'on' | 'off' | 'neg';
 /** The stripe's stepping candidates (FR-TRAJ-5, OQ-18). */
@@ -29,7 +35,7 @@ export interface WindowParams {
   others: number;
   /** Manual orientation instead of the sensor: alpha, beta, gamma in degrees. `null` means the sensor drives. */
   manual: { alpha: number; beta: number; gamma: number } | null;
-  /** Host width in CSS px; the view is square on it. */
+  /** The view's largest width in CSS px; it takes the screen's width up to this, and its height is the shorter of that and the screen's room. */
   width: number;
 }
 
@@ -42,7 +48,7 @@ export const WINDOW_DEFAULTS: WindowParams = {
   pass: 'high',
   others: 2,
   manual: null,
-  width: 390,
+  width: 1400,
 };
 
 export interface StripeParams {
@@ -72,7 +78,7 @@ export function readWindowParams(search: string): WindowParams {
     fov: num(q, 'fov', WINDOW_DEFAULTS.fov, 20, 140),
     smoothing: num(q, 'smoothing', WINDOW_DEFAULTS.smoothing, 0, 0.95),
     correction: pick(q, 'correction', ['on', 'off', 'neg'], WINDOW_DEFAULTS.correction),
-    heading: pick(q, 'heading', ['auto', 'webkit', 'alpha'], WINDOW_DEFAULTS.heading),
+    heading: pick(q, 'heading', ['auto', 'webkit', 'alpha', 'fused'], WINDOW_DEFAULTS.heading),
     pass: pick(q, 'pass', ['golden', 'high'], WINDOW_DEFAULTS.pass),
     others: num(q, 'others', WINDOW_DEFAULTS.others, 0, 3),
     manual,
