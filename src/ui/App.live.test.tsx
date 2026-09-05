@@ -75,6 +75,28 @@ describe('<App> and the live route', () => {
     expect(screen.getByRole('region', { name: 'Upcoming passes' })).toBeInTheDocument();
   });
 
+  /**
+   * R39 (F-34): `startApp` sets a link's observer before the first render
+   * (D-135), which is the arrival. A navigation inside the document — a shared
+   * link opened from a page of the app, the back button — only changed the
+   * hash, so the live page drew this device's own sky at the link's instant and
+   * offered to share that back as if it were the sender's.
+   */
+  it("applies a shared #live?… link's observer on a same-document navigation too (F-34)", async () => {
+    withSky();
+    render(<App />);
+    const own = appStore.getState().observer;
+    go('#live?lat=51.48&lon=-0.01&alt=0');
+    expect(await screen.findByTestId('live-place')).toHaveTextContent('51.48, −0.01');
+    const shared = appStore.getState().observer;
+    expect(shared).toMatchObject({ lat: 51.48, lon: -0.01, altM: 0, source: 'coords', label: '51.48, −0.01' });
+    expect(shared).not.toBe(own);
+    // The same place again is not a new observer: a fresh one would restart the whole compute chain for the sky already shown.
+    go('#live');
+    go('#live?lat=51.48&lon=-0.01&alt=0');
+    expect(appStore.getState().observer).toBe(shared);
+  });
+
   it('is the inert live page under #live with no observer, and a #live?… link that does not parse', async () => {
     render(<App />);
     go('#live');

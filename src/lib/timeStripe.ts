@@ -66,7 +66,7 @@ const zoneFormats = new Map<string, Intl.DateTimeFormat | null>();
 function zoneFormat(timeZone: string): Intl.DateTimeFormat | null {
   const cached = zoneFormats.get(timeZone);
   if (cached !== undefined) return cached;
-  let made: Intl.DateTimeFormat | null = null;
+  let made: Intl.DateTimeFormat | null;
   try {
     made = new Intl.DateTimeFormat('en-US', {
       timeZone,
