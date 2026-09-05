@@ -305,6 +305,8 @@ export const en = {
     domeHint: 'Drag the dome, or use the arrow keys, to look around.',
     /** FR-GUIDE-4: where the dome's camera faces, e.g. "Facing SSW (203°) · tilt 25°". */
     readout: (p: { point: CompassPoint; azimuth: string; tilt: string }) => `Facing ${p.point} (${p.azimuth}) · tilt ${p.tilt}`,
+    /** FR-LIVE-1 (R32): the live page's chart has no pass to caption, so the figure is named instead; the status strip carries the facts. */
+    liveLabel: 'The whole sky at the shown instant',
   },
 
   /**

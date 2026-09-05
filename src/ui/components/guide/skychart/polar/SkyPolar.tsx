@@ -94,11 +94,16 @@ function labelBeside(p: Xy, travel: Xy, side: 'inward' | 'outward', text: string
   return { x: fmt(x), y: fmt(y), textAnchor };
 }
 
+/** FR-LIVE-2: the six series tokens, cycled in pass order; `SkyPolar.module.css` maps `data-series` to `--chart-series-N`. */
+export const SERIES_COUNT = 6;
+
 interface ArcProps {
   pass: Pass;
   orientation: ChartOrientation;
   timeZone: string | null;
   dim: boolean;
+  /** FR-LIVE-2 (R32): 1–6 in `colorBy="pass"` mode, `null` in the guide's highlight mode. */
+  series: number | null;
   now: number | undefined;
   onSelect: ((passId: string) => void) | undefined;
   t: Messages;
@@ -108,7 +113,7 @@ interface ArcProps {
 /** An open polyline through projected points; empty for fewer than two of them. */
 const polyline = (points: readonly Xy[]): string => (points.length < 2 ? '' : points.map((p, i) => `${i === 0 ? 'M' : 'L'}${fmt(p.x)} ${fmt(p.y)}`).join(' '));
 
-function PassArc({ pass, orientation, timeZone, dim, now, onSelect, t, locale }: ArcProps) {
+function PassArc({ pass, orientation, timeZone, dim, series, now, onSelect, t, locale }: ArcProps) {
   const arc = resampleArc(pass.track, ARC_STEP_DEG);
   const points = arc.map((p) => project(p, orientation));
   const d = polyline(points);
@@ -133,8 +138,9 @@ function PassArc({ pass, orientation, timeZone, dim, now, onSelect, t, locale }:
   const peakAt = labelBeside(peak, { x: afterPeak.x - beforePeak.x, y: afterPeak.y - beforePeak.y }, 'outward', peakText);
   return (
     <g
-      className={dim ? styles.passDim : styles.pass}
+      className={series !== null ? styles.series : dim ? styles.passDim : styles.pass}
       data-pass-id={pass.id}
+      {...(series !== null ? { 'data-series': series } : {})}
       onClick={() => {
         onSelect?.(pass.id);
       }}
@@ -149,9 +155,12 @@ function PassArc({ pass, orientation, timeZone, dim, now, onSelect, t, locale }:
       <text className={styles.label} data-anchor="pass" {...nameAt}>
         {nameText}
       </text>
-      <text className={styles.label} data-anchor="peak" {...peakAt}>
-        {peakText}
-      </text>
+      {/* FR-LIVE-2: in series mode every arc is named and none is explained; the peak label is the guide's. */}
+      {series === null && (
+        <text className={styles.label} data-anchor="peak" {...peakAt}>
+          {peakText}
+        </text>
+      )}
     </g>
   );
 }
@@ -218,7 +227,7 @@ function Marker({ kind, p }: { kind: 'rise' | 'end' | 'shadow' | 'peak' | 'now';
   }
 }
 
-export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, className }: SkyChartProps) {
+export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, colorBy = 'highlight', fill = false, className }: SkyChartProps) {
   const t = useT();
   const locale = useLocale();
   const orientation = useAppStore((s) => s.chartOrientation);
@@ -227,6 +236,7 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
   return (
     <div className={[styles.polar, className].filter(Boolean).join(' ')} data-orientation={orientation}>
       <ChartFrame
+        fill={fill}
         controls={<OptionToggle name={t.chart.orientationGroup} options={ORIENTATIONS.map((value) => ({ value, label: t.chart.orientation[value] }))} value={orientation} onChange={setChartOrientation} />}
         status={
           <p className={styles.convention} data-testid="chart-convention">
@@ -254,13 +264,14 @@ export function SkyPolar({ passes, observer, highlightedPassId, onSelectPass, no
             </text>
           );
         })}
-        {passes.map((pass) => (
+        {passes.map((pass, index) => (
           <PassArc
             key={pass.id}
             pass={pass}
             orientation={orientation}
             timeZone={observer.timeZone}
             dim={highlightedPassId !== null && highlightedPassId !== pass.id}
+            series={colorBy === 'pass' ? (index % SERIES_COUNT) + 1 : null}
             now={now}
             onSelect={onSelectPass}
             t={t}

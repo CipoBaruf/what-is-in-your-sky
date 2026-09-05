@@ -268,6 +268,7 @@ export const es: Messages = {
     domeGroup: 'Domo celeste',
     domeHint: 'Arrastrar el domo, o usar las flechas del teclado, para mirar alrededor.',
     readout: (p) => `Hacia ${p.point} (${p.azimuth}) · inclinación ${p.tilt}`,
+    liveLabel: 'Todo el cielo en el instante mostrado',
   },
 
   share: {

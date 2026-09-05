@@ -30,6 +30,28 @@
   min-height: calc(2 * var(--row));
 }
 
+/* FR-LIVE-1 (R32): the live page's chart. The frame is as tall as the box it
+   is given, the controls and status rows keep their own height, and the
+   drawing takes every pixel between them — no square, no cap, so the dome's
+   grid (FR-DOME-1) grows to the viewport. `minmax(0, 1fr)`, not `1fr`: the
+   drawing row must be allowed to shrink below its content or nothing bounds it. */
+.fill {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.fill .drawing {
+  max-width: none;
+  aspect-ratio: auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.fill .status {
+  min-height: var(--row);
+}
+
 .status > p {
   margin: 0;
 }
