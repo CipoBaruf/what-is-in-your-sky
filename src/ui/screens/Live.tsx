@@ -11,13 +11,16 @@ import { ShareButton } from '../components/common/ShareButton';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
+import { FollowPhone } from '../components/live/FollowPhone';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { PlaybackControls } from '../components/live/PlaybackControls';
 import { StatusStrip } from '../components/live/StatusStrip';
 import { TimeStripe } from '../components/live/TimeStripe';
+import { useFollowPhone } from '../components/live/useFollowPhone';
 import { useHiddenObjects } from '../components/live/useHiddenObjects';
 import { usePlayback } from '../components/live/usePlayback';
 import { useSkyBands } from '../components/live/useSkyBands';
+import { useWakeLock } from '../components/live/useWakeLock';
 import { useWallThrottle } from '../components/live/useWallThrottle';
 import { useNow } from '../hooks/useNow';
 import styles from './Live.module.css';
@@ -96,9 +99,11 @@ export function LivePage({ link, onLeave }: LivePageProps) {
   }, [onLeave]);
 
   const inert = observer === null ? t.live.noObserver : elements.status !== 'ready' ? t.live.noElements : null;
+  // R34 (FR-LIVE-7): the screen stays awake while there is a sky to watch; an inert page asks for nothing.
+  const wakeLock = useWakeLock(inert === null);
 
   return (
-    <div className={styles.page} data-testid="live-page" data-state={inert === null ? 'live' : 'inert'}>
+    <div className={styles.page} data-testid="live-page" data-state={inert === null ? 'live' : 'inert'} data-wake-lock={wakeLock}>
       <div className={styles.topRow}>
         <button type="button" className={styles.back} onClick={onLeave}>
           {t.live.back}
@@ -188,29 +193,49 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
     setLiveHidden(!liveHidden);
   }, [liveHidden, setLiveHidden]);
   useHashFollows(observer, shown, playback.realTime, playback.playing);
+  // FR-LIVE-8 (US-10): the phone's heading as the dome's facing while following; a drag on the dome turns it off.
+  const follow = useFollowPhone();
+  const facingAzDeg = follow.state === 'on' && follow.facingAzDeg !== null ? follow.facingAzDeg : undefined;
   // FR-SHARE-1's live form: the place, and the instant only when this page is showing one (real time is the recipient's own).
   const url = shareUrl(window.location.href, liveLinkHash({ observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t: playback.realTime ? null : shown }));
   return (
     <>
       <div className={styles.dome} data-testid="live-dome">
-        <SkyChart passes={passes} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} />
-      </div>
-      <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} onScrub={playback.scrub} />
-      <div className={styles.actions}>
-        <PlaybackControls
-          playing={playback.playing}
-          speed={playback.speed}
-          realTime={playback.realTime}
-          hidden={liveHidden}
-          onPlay={playback.play}
-          onPause={playback.pause}
-          onSpeed={playback.setSpeed}
-          onNow={playback.toNow}
-          onToggleHidden={toggleHidden}
+        <SkyChart
+          passes={passes}
+          observer={observer}
+          highlightedPassId={null}
+          now={shown}
+          sun={bodies.sun}
+          moon={bodies.moon}
+          hidden={hidden}
+          colorBy="pass"
+          fill
+          initialFacingAzDeg={0}
+          facingAzDeg={facingAzDeg}
+          onDrag={follow.stop}
         />
-        <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={t.live.share} />
       </div>
-      <StatusStrip t={shown} timeZone={observer.timeZone} sky={bodies.sky} cloud={cloud} count={count} moon={bodies.moon} speed={playback.playing ? playback.speed : null} />
+      {/* R34 (FR-LIVE-7, D-173): the side column — under the dome in portrait, beside it on a landscape phone. */}
+      <div className={styles.side} data-testid="live-side">
+        <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} onScrub={playback.scrub} />
+        <div className={styles.actions}>
+          <PlaybackControls
+            playing={playback.playing}
+            speed={playback.speed}
+            realTime={playback.realTime}
+            hidden={liveHidden}
+            onPlay={playback.play}
+            onPause={playback.pause}
+            onSpeed={playback.setSpeed}
+            onNow={playback.toNow}
+            onToggleHidden={toggleHidden}
+          />
+          <FollowPhone follow={follow} />
+          <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={t.live.share} />
+        </div>
+        <StatusStrip t={shown} timeZone={observer.timeZone} sky={bodies.sky} cloud={cloud} count={count} moon={bodies.moon} speed={playback.playing ? playback.speed : null} />
+      </div>
     </>
   );
 }

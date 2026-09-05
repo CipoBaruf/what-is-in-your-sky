@@ -1,21 +1,64 @@
 /* R32 (FR-LIVE-1): the live page is exactly one viewport high and never
    scrolls: the controls row, the dome taking every row left, then (R33) the
-   time stripe, the playback row with the share action, and the status strip.
-   Two cells of side padding, like the frame the rest of the app draws in; no
-   80-cell cap, because the dome is the point. `minmax(0, 1fr)` so the dome
-   row can shrink below its content and the grid bounds it (D-119's lesson).
-   The gaps are a quarter row: the stripe took a row from the dome at 390 px
-   and the gaps give half of it back (D-162's loose end). R34 turns this
-   sideways on a landscape phone. */
+   side column — the time stripe, the playback row with the share action, and
+   the status strip. Two cells of side padding, like the frame the rest of the
+   app draws in; no 80-cell cap, because the dome is the point. `minmax(0, 1fr)`
+   so the dome row can shrink below its content and the grid bounds it
+   (D-119's lesson). The gaps are a quarter row: the stripe took a row from
+   the dome at 390 px and the gaps give half of it back (D-162's loose end).
+
+   R34 (FR-LIVE-7, D-173): on a landscape phone the same three areas go
+   sideways — the top row across the top, the dome on the left with every row
+   under it, the side column on the right — by a media query and not a device
+   sniff (PLAN §8.8). Portrait keeps the stack above, unchanged. */
 .page {
   height: 100dvh;
   box-sizing: border-box;
   padding: calc(var(--row) / 4) calc(2 * var(--cell));
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  grid-template-areas:
+    'top'
+    'dome'
+    'side';
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: calc(var(--row) / 4);
   background: var(--bg);
   color: var(--fg);
+}
+
+/* D-173: a landscape phone is a viewport wider than tall and under 500 px
+   high — a desktop is wider than tall too, and keeps the stack (its dome has
+   the height to spare, D-161). The top row spans both columns: at 82 cells it
+   is one line, where inside the side column it was three of the 48 px rows
+   every button is (G6) and pushed the strip below the fold. The side column
+   takes three fifths of the width — 49 cells at 844 px, where the playback
+   controls are three lines and the strip four, and the whole column fits the
+   324 px under the top row in English — and the dome the rest: its zoom
+   follows the shorter side of its box (D-161), so width past the height buys
+   only label margin. The side column scrolls itself where the strip wraps
+   past the viewport (Spanish, a smaller phone; D-119), so the page never does. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .page {
+    grid-template-areas:
+      'top top'
+      'dome side';
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: calc(2 * var(--cell));
+  }
+
+  .side {
+    overflow-y: auto;
+  }
+}
+
+/* The stripe, the playback row and the strip, stacked with the page's gap. */
+.side {
+  grid-area: side;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--row) / 4);
 }
 
 /* The playback controls and the share action on one wrapping row. */
@@ -29,6 +72,7 @@
 
 /* The return control, the place, and the switches the header would have carried. */
 .topRow {
+  grid-area: top;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -66,11 +110,13 @@
 }
 
 .dome {
+  grid-area: dome;
   min-height: 0;
 }
 
 /* FR-LIVE-1's inert states: one line where the dome would be. */
 .inert {
+  grid-area: dome;
   margin: 0;
   align-self: start;
 }

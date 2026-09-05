@@ -336,6 +336,52 @@ describe('<LivePage>', () => {
     expect(window.location.hash).toBe('#live');
   });
 
+  /** R34 (FR-LIVE-8, US-10, US-15 AC8): on the dome view, the phone's heading turns the dome; a drag turns following off; the control turns it back on. */
+  it('follows the phone: a heading turns the dome, a drag turns following off, and the control turns it on again', async () => {
+    const frame = scriptedFrames();
+    vi.stubGlobal('DeviceOrientationEvent', function DeviceOrientationEvent() {
+      return undefined;
+    });
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
+    withSky();
+    act(() => {
+      appStore.getState().setChartView('dome');
+    });
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    // The dome is a lazy chunk; it lands with a readout that faces north (the page's initial facing).
+    const stage = await screen.findByRole('group', { name: 'Sky dome' }, { timeout: 10_000 });
+    const facing = () => Number(screen.getByTestId('live-dome').querySelector('[data-facing-az]')?.getAttribute('data-facing-az'));
+    expect(facing()).toBe(0);
+    const toggle = screen.getByRole('button', { name: en.live.follow });
+    const heading = (alpha: number) => {
+      act(() => {
+        window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha, absolute: true }));
+      });
+      frame(16);
+    };
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    heading(270);
+    expect(facing()).toBe(90);
+    heading(180);
+    expect(facing()).toBe(180);
+    // A drag on the dome: following off, the dome stays where the drag left it, headings are ignored.
+    fireEvent.pointerDown(stage, { pointerId: 1, clientX: 100, clientY: 100, button: 0, pointerType: 'touch' });
+    fireEvent.pointerMove(stage, { pointerId: 1, clientX: 140, clientY: 100 });
+    fireEvent.pointerUp(stage, { pointerId: 1, clientX: 140, clientY: 100 });
+    frame(32);
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(facing()).toBe(170);
+    heading(0);
+    expect(facing()).toBe(170);
+    // The control turns it back on and the next heading turns the dome.
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    heading(90);
+    expect(facing()).toBe(270);
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+  });
+
   /** R33 (FR-LIVE-6, US-15 AC6, D-102): the toggle asks the worker for the dimmed set and draws it, minus what is already on an arc. */
   it('draws the hidden objects dimmed with their reasons when the toggle is on, skips what an arc already draws, and remembers the toggle', async () => {
     withSky();

@@ -398,6 +398,12 @@ export const en = {
     hiddenToggle: 'Hidden objects',
     hiddenReason: { low: 'too low', shadow: 'in shadow', daylight: 'daylight', faint: 'too faint' } satisfies Record<HiddenReason, string>,
     hiddenLabel: (p: { name: string; reason: string }) => `${p.name} · ${p.reason}`,
+    /** R34 (FR-LIVE-8, US-10): the compass-follow toggle, shown only where there is a phone to follow, and its two notes. */
+    follow: 'Follow phone',
+    /** The readings carry no north (`absolute` false, no WebKit heading): the dome cannot turn with the phone. */
+    followRelative: 'This phone gives no compass heading, so the dome cannot turn with it.',
+    /** iOS refused `requestPermission()`, or the request failed (an insecure context). */
+    followDenied: 'Motion access was refused, so the dome cannot turn with the phone.',
   },
 
   /**

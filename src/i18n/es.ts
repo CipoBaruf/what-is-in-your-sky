@@ -321,6 +321,9 @@ export const es: Messages = {
     hiddenToggle: 'Objetos ocultos',
     hiddenReason: { low: 'muy bajo', shadow: 'en sombra', daylight: 'de día', faint: 'muy tenue' },
     hiddenLabel: (p) => `${p.name} · ${p.reason}`,
+    follow: 'Seguir al teléfono',
+    followRelative: 'Este teléfono no da un rumbo de brújula, así que la cúpula no puede girar con él.',
+    followDenied: 'Se rechazó el acceso al movimiento, así que la cúpula no puede girar con el teléfono.',
   },
 
   share: {
