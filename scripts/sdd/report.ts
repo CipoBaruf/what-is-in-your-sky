@@ -72,7 +72,8 @@ export function openTaskLog(id: string, dir = LOG_DIR, at = new Date(), options:
   return new FileLogger(join(dir, `${id}-${stamp(at)}.log`), options.prefixConsole ? `[${id}] ` : '');
 }
 
-export type TaskOutcome = 'merged' | 'awaiting-owner' | 'findings' | 'blocked' | 'failed' | 'refused';
+/** `limit` (v1.1): the account limit ended a session; the worktree is kept and `--wave` or `--task` resumes it once the window resets. */
+export type TaskOutcome = 'merged' | 'awaiting-owner' | 'findings' | 'blocked' | 'failed' | 'refused' | 'limit';
 
 export interface TaskReport {
   id: string;

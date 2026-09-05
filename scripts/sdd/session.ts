@@ -90,15 +90,44 @@ export const DENIED_TOOLS = [
 export type SessionOutcome = 'ok' | 'error' | 'timeout' | 'max-turns' | 'limit';
 
 /**
- * §16.4 step 10: the account-limit signature. Claude Code ends a `-p` session
- * whose account is out of usage with a result carrying one of these phrases
- * (the v1 logs never hit it, so this is the CLI's wording, not a captured
- * line); a 429 from the API arrives as `rate_limit_error`. Matched on the
- * result text and on stderr.
+ * §16.4 step 10: the account-limit signature, as captured on 2026-09-05 when
+ * wave 2 hit it. The stream carries a `rate_limit_event` whose
+ * `rate_limit_info.status` is `rejected`, then a synthetic assistant message
+ * "You've hit your session limit · resets 7:10pm (…)", then an ordinary
+ * `result` whose text is that sentence. The event names the window
+ * (`five_hour`, `seven_day`) and `resetsAt` in epoch seconds; both windows
+ * are the account's, shared by every model, so a retry on another model
+ * meets the same wall. The text is matched too, for a CLI that changes the
+ * event before it changes the sentence.
  */
-export const LIMIT_SIGNATURE = /hit your limit|usage limit|limit reached|out of extra usage|rate_limit_error|rate limit/i;
+export const LIMIT_SIGNATURE = /hit your (session |weekly |usage )?limit|usage limit|limit reached|out of extra usage|rate_limit_error/i;
 
 export const isLimitStop = (text: string | null | undefined): boolean => text !== null && text !== undefined && LIMIT_SIGNATURE.test(text);
+
+export interface LimitInfo {
+  /** `five_hour`, `seven_day`, or whatever the event said; `null` when only the sentence was seen. */
+  window: string | null;
+  /** Epoch milliseconds, or `null` when the event did not say. */
+  resetsAt: number | null;
+  /** The account's shared windows: a model change does not escape them (§16.4 step 10, as amended). */
+  accountWide: boolean;
+}
+
+interface RateLimitEvent {
+  type?: string;
+  rate_limit_info?: { status?: string; resetsAt?: number; rateLimitType?: string };
+}
+
+/** The limit a stream event announces, or `null` for any other event. */
+export function limitFromEvent(event: RateLimitEvent): LimitInfo | null {
+  if (event.type !== 'rate_limit_event' || event.rate_limit_info?.status !== 'rejected') return null;
+  const info = event.rate_limit_info;
+  const window = info.rateLimitType ?? null;
+  return { window, resetsAt: typeof info.resetsAt === 'number' ? info.resetsAt * 1000 : null, accountWide: window === null || window === 'five_hour' || window === 'seven_day' };
+}
+
+/** `19:10` in the machine's zone, for the log and the run summary. */
+export const resetTime = (limit: LimitInfo | null): string => (limit?.resetsAt ? new Date(limit.resetsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'unknown');
 
 export interface SessionResult {
   outcome: SessionOutcome;
@@ -106,6 +135,8 @@ export interface SessionResult {
   durationMs: number;
   /** The session's final message, when `--output-format stream-json` gave one. */
   result: string | null;
+  /** What the limit said, when `outcome` is `limit`. */
+  limit: LimitInfo | null;
 }
 
 export interface SessionOptions {
@@ -153,6 +184,7 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
     let timedOut = false;
     let outcome: SessionOutcome = 'ok';
     let result: string | null = null;
+    let limit: LimitInfo | null = null;
     let pending = '';
     let stderr = '';
 
@@ -171,12 +203,21 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
       if (!line.trim()) return;
       logger.raw(`${line}\n`);
       try {
-        const event = JSON.parse(line) as { type?: string; subtype?: string; result?: string; is_error?: boolean };
+        const event = JSON.parse(line) as { type?: string; subtype?: string; result?: string; is_error?: boolean } & RateLimitEvent;
+        const announced = limitFromEvent(event);
+        if (announced) {
+          limit = announced;
+          outcome = 'limit';
+          return;
+        }
         if (event.type !== 'result') return;
         result = event.result ?? null;
+        if (outcome === 'limit') return; // the event already said so; the result is the synthetic sentence
         if (event.subtype === 'error_max_turns') outcome = 'max-turns';
-        else if (isLimitStop(result)) outcome = 'limit';
-        else if (event.is_error === true || (event.subtype && event.subtype !== 'success')) outcome = 'error';
+        else if (isLimitStop(result)) {
+          outcome = 'limit';
+          limit ??= { window: null, resetsAt: null, accountWide: true };
+        } else if (event.is_error === true || (event.subtype && event.subtype !== 'success')) outcome = 'error';
       } catch {
         // not a JSON event line; it is already in the log
       }
@@ -196,15 +237,17 @@ export function runSession(options: SessionOptions): Promise<SessionResult> {
     child.on('error', (error) => {
       clearTimeout(timer);
       logger.line(`  session could not start: ${error.message}`);
-      resolve({ outcome: 'error', code: null, durationMs: Date.now() - startedAt, result: null });
+      resolve({ outcome: 'error', code: null, durationMs: Date.now() - startedAt, result: null, limit: null });
     });
     child.on('close', (code) => {
       clearTimeout(timer);
       readLine(pending);
       if (timedOut) outcome = 'timeout';
-      else if (outcome !== 'max-turns' && outcome !== 'limit' && isLimitStop(stderr)) outcome = 'limit';
-      else if (code !== 0 && outcome === 'ok') outcome = 'error';
-      resolve({ outcome, code, durationMs: Date.now() - startedAt, result });
+      else if (outcome !== 'max-turns' && outcome !== 'limit' && isLimitStop(stderr)) {
+        outcome = 'limit';
+        limit ??= { window: null, resetsAt: null, accountWide: true };
+      } else if (code !== 0 && outcome === 'ok') outcome = 'error';
+      resolve({ outcome, code, durationMs: Date.now() - startedAt, result, limit: outcome === 'limit' ? limit : null });
     });
   });
 }
