@@ -128,6 +128,14 @@ export function NowPanel() {
       )}
       {state && <MoonLine moon={state.moon} />}
       {state && observer && <p className={styles.asOf}>{t.now.asOf(formatClock(state.t, observer.timeZone, locale))}</p>}
+      {/* R32 (FR-LIVE-1): the live page is reached from here as well as from the header — this panel is the one that says what is up right now. */}
+      {observer && (
+        <p className={styles.live}>
+          <a href="#live" className={styles.liveLink} data-testid="now-live-link">
+            {t.live.openFromNow}
+          </a>
+        </p>
+      )}
     </section>
   );
 }

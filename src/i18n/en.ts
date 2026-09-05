@@ -2,7 +2,7 @@ import type { AgeParts } from '../lib/elementsAge';
 import type { CompassPoint } from '../lib/compass';
 import type { MoonFacts, MoonGlareFacts, MoonLoreParams } from '../lib/moonPhrases';
 import type { BrightnessBand, ElevationBand, GuideParams } from '../lib/phrases';
-import type { ChartOrientation, ChartView, CloudState, MoonPhaseName, PassBoundaryReason, PassSort, Theme } from '../model';
+import type { ChartOrientation, ChartView, CloudState, MoonPhaseName, PassBoundaryReason, PassSort, SkyState, Theme } from '../model';
 import type { CountdownPhase, LinkedText } from './messages';
 
 /**
@@ -307,6 +307,43 @@ export const en = {
     readout: (p: { point: CompassPoint; azimuth: string; tilt: string }) => `Facing ${p.point} (${p.azimuth}) · tilt ${p.tilt}`,
     /** FR-LIVE-1 (R32): the live page's chart has no pass to caption, so the figure is named instead; the status strip carries the facts. */
     liveLabel: 'The whole sky at the shown instant',
+  },
+
+  /**
+   * R32 (FR-LIVE-1, FR-LIVE-3, FR-LIVE-9; US-15). The live page: how it is
+   * reached, what it says when it cannot draw, and the five fields of the
+   * status strip. Later `live` tasks (R33, R34) extend this section and no
+   * other (PLAN §16.2).
+   */
+  live: {
+    /** The header control (FR-LIVE-1). */
+    open: 'Live sky',
+    /** The Now panel's link to the same page. */
+    openFromNow: 'Watch the sky live',
+    back: '← Back',
+    loading: 'Loading the live sky…',
+    /** FR-LIVE-1's two inert states: one line each, beside the return control. */
+    noObserver: 'The live sky needs somewhere to look from: a place name or coordinates on the home page.',
+    noElements: 'No orbital elements yet, so there is nothing to draw.',
+    /** The status strip's accessible name; the five fields below are its labels (FR-LIVE-3). */
+    strip: 'Sky status',
+    timeLabel: 'Time',
+    skyLabel: 'Sky',
+    cloudLabel: 'Clouds',
+    countLabel: 'Visible',
+    moonLabel: 'Moon',
+    /** The sky state in words (FR-LIVE-3, `SkyState`). */
+    sky: { day: 'day', 'bright-twilight': 'bright twilight', dark: 'dark' } satisfies Record<SkyState, string>,
+    /** A field whose value is not known yet — the astronomy is still loading. */
+    pending: '…',
+    /** How many satellites have a marker on the dome at the shown instant. */
+    visible: (count: number) => (count === 1 ? '1 satellite' : `${String(count)} satellites`),
+    /** The Moon's phase and illumination, and nothing about where it is: the dome shows that. */
+    moon: (p: Pick<MoonFacts, 'phase' | 'illumination'>) => `${moonPhase[p.phase]}, ${p.illumination} % lit`,
+    /** FR-SHARE-1's live form: the same button as the pass's, with the page's own words. */
+    share: 'Share this sky',
+    shareTitle: 'The sky right now',
+    shareText: (place: string) => `The whole sky over ${place}, live.`,
   },
 
   /**

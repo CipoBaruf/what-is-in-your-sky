@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { lazy, Suspense, useEffect, useMemo } from 'react';
 import { I18nProvider, useLocale, useT } from '../i18n/useT';
 import { resolvePassLink } from '../lib/shareLinks';
 import { formatClock, formatDate } from '../lib/timeFormat';
@@ -15,8 +15,16 @@ import { LocationInput } from './components/location/LocationInput';
 import { MoonLore } from './components/moon/MoonLore';
 import { NowPanel } from './components/now/NowPanel';
 import { PassList } from './components/passes/PassList';
+import { useLiveRoute } from './screens/LiveRoute';
 import { PassDetail } from './screens/PassDetail';
 import { findSelectedPass, usePassSelection } from './screens/passSelection';
+
+/**
+ * R32 (FR-LIVE-1, PLAN §11): the live page is its own lazy chunk, fetched the
+ * first time `#live` is opened, so the home page pays nothing for it. The
+ * route is read from the hash beside the pass selection (D-13).
+ */
+const LivePage = lazy(() => import('./screens/Live').then((module) => ({ default: module.LivePage })));
 
 /**
  * R5: the screen only writes the observer to the store; the effects started
@@ -44,7 +52,9 @@ import { findSelectedPass, usePassSelection } from './screens/passSelection';
  * carries a class of its own — it is the one that has to stretch to the
  * footer and, on a short screen, scroll. R30 fills the last slot FR-DESK-2
  * names for that column: the Moon's tradition line, below the Now panel whose
- * last line is the Moon's observing facts (FR-MOON-3/4, D-122).
+ * last line is the Moon's observing facts (FR-MOON-3/4, D-122). R32: the
+ * header's controls gain the link to the live page (FR-LIVE-1), and under
+ * `#live` the whole screen is that page instead of this one.
  */
 export function App() {
   const t = useT();
@@ -78,9 +88,17 @@ export function App() {
     return resolution.kind === 'nearest' ? t.share.nearest({ name, time }) : t.share.missing({ name, time });
   }, [link, resolution, passesStatus, timeZone, locale, t]);
   const mode = useLayoutMode();
+  const live = useLiveRoute();
   // Only the compact sheet covers the page; the wide panel opens beside the
   // list, which stays live (FR-DESK-3).
   const inert = selected !== null && mode === 'compact';
+  if (live.active) {
+    return (
+      <Suspense fallback={<p className={styles.liveLoading}>{t.live.loading}</p>}>
+        <LivePage link={live.link} onLeave={live.leave} />
+      </Suspense>
+    );
+  }
   return (
     <>
       <header inert={inert} className={styles.header}>
@@ -89,6 +107,9 @@ export function App() {
           <p className={styles.tagline}>{t.app.tagline}</p>
         </div>
         <div className={styles.controls}>
+          <a href="#live" className={styles.liveLink} data-testid="live-link">
+            {t.live.open}
+          </a>
           <LanguageToggle />
           <ThemeToggle />
         </div>

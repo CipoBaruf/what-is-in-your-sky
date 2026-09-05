@@ -1,0 +1,64 @@
+/* R32 (FR-LIVE-1): the live page is exactly one viewport high and never
+   scrolls: the controls row, the dome taking every row left, the status
+   strip and the share action. Two cells of side padding, like the frame the
+   rest of the app draws in; no 80-cell cap, because the dome is the point.
+   `minmax(0, 1fr)` so the dome row can shrink below its content and the grid
+   bounds it (D-119's lesson). R34 turns this sideways on a landscape phone. */
+.page {
+  height: 100dvh;
+  box-sizing: border-box;
+  padding: calc(var(--row) / 2) calc(2 * var(--cell));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: calc(var(--row) / 2);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+/* The return control, the place, and the switches the header would have carried. */
+.topRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 calc(2 * var(--cell));
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 calc(3 * var(--cell));
+  margin-left: auto;
+}
+
+.back {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+}
+
+.back::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.back::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+.place {
+  color: var(--fg-dim);
+}
+
+.dome {
+  min-height: 0;
+}
+
+/* FR-LIVE-1's inert states: one line where the dome would be. */
+.inert {
+  margin: 0;
+  align-self: start;
+}

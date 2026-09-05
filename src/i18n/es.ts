@@ -1,7 +1,7 @@
 import type { AgeParts } from '../lib/elementsAge';
 import type { CompassPoint } from '../lib/compass';
 import type { BrightnessBand, ElevationBand, GuideParams } from '../lib/phrases';
-import type { ChartOrientation, ChartView, CloudState, MoonPhaseName, PassBoundaryReason, PassSort } from '../model';
+import type { ChartOrientation, ChartView, CloudState, MoonPhaseName, PassBoundaryReason, PassSort, SkyState } from '../model';
 import type { Messages } from './messages';
 
 /**
@@ -269,6 +269,28 @@ export const es: Messages = {
     domeHint: 'Arrastrar el domo, o usar las flechas del teclado, para mirar alrededor.',
     readout: (p) => `Hacia ${p.point} (${p.azimuth}) · inclinación ${p.tilt}`,
     liveLabel: 'Todo el cielo en el instante mostrado',
+  },
+
+  live: {
+    open: 'Cielo en vivo',
+    openFromNow: 'Ver el cielo en vivo',
+    back: '← Volver',
+    loading: 'Cargando el cielo en vivo…',
+    noObserver: 'El cielo en vivo necesita desde dónde mirar: un nombre de lugar o unas coordenadas en la página de inicio.',
+    noElements: 'Todavía no hay elementos orbitales, así que no hay nada que dibujar.',
+    strip: 'Estado del cielo',
+    timeLabel: 'Hora',
+    skyLabel: 'Cielo',
+    cloudLabel: 'Nubes',
+    countLabel: 'Visibles',
+    moonLabel: 'Luna',
+    sky: { day: 'de día', 'bright-twilight': 'crepúsculo claro', dark: 'oscuro' } satisfies Record<SkyState, string>,
+    pending: '…',
+    visible: (count) => (count === 1 ? '1 satélite' : `${String(count)} satélites`),
+    moon: (p) => `${moonPhase[p.phase]}, ${p.illumination} % iluminada`,
+    share: 'Compartir este cielo',
+    shareTitle: 'El cielo ahora mismo',
+    shareText: (place) => `Todo el cielo sobre ${place}, en vivo.`,
   },
 
   share: {
