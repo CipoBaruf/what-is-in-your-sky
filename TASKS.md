@@ -880,7 +880,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Touches outside the lane:** `package.json` (the script).
   - **Done when:** the six PNGs exist and the owner has approved them on the PR; every control row in the mockup is ≤ 36 cells (FR-COMP-4, counted by hand in the README).
 
-- [ ] **R44 — True north: the declination in the heading and on the strip**
+- [x] **R44 — True north: the declination in the heading and on the strip**
   - **Lane:** live
   - **Model:** opus
   - **Gate:** auto
@@ -891,6 +891,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Scope:** `lib/declination.ts` — `declinationDeg(observer, date)` over `geomagnetism` 0.2.0 (the only importer; the boundary rule in `eslint.config.js`); the live slice computes and caches it when the observer changes; `compassHeading.ts` adds it to the magnetic heading; `StatusStrip` prints "true north, declination +1.1°" in both languages while following. Tests: three observers against NOAA calculator values (±0.2°); the heading sum; the strip line.
   - **Touches outside the lane:** `eslint.config.js` (the boundary rule), `scripts/bundle-budget.ts` (the live chunk's budget, re-set by D-178's rule).
   - **Done when:** the tests above; `npm run bundle:budget` shows the live chunk within its re-set budget; `live.spec.ts`'s follow case asserts the strip line.
+  - *Done as written, with three notes.* There is no live slice in `src/state` (the lane's "live slice" is the page), so the cache is `useDeclination`, a per-observer `useMemo` in `src/ui/components/live/`. `declinationDeg` passes `allowOutOfBoundsModel: true`: `geomagnetism` throws outside the WMM epochs, and a static site still being loaded after November 2029 must extrapolate rather than fail to render. The follow case `live.spec.ts` was to assert on did not exist there — the R34 one is in `live-landscape.spec.ts` — so both now assert the line, and `live.spec.ts` gains a portrait follow case in both languages.
 
 - [ ] **R45 — The legend, the fit rule and the arc states in the dome and polar views**
   - **Lane:** chart

@@ -165,6 +165,8 @@ test.describe('the live page following a phone', () => {
       await expect(field).toHaveText(line);
       // The tenth of a degree the line prints is the value itself, not a coincidence of the wording.
       await expect(field.locator('[data-declination]')).toHaveAttribute('data-declination', '1.1');
+      // The capture the PR carries: the strip with its heading field, at the phone width, in each language.
+      await page.screenshot({ path: `docs/screenshots/r44-live-390-following-dark-${locale}.png` });
     });
   }
 });
