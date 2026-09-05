@@ -89,7 +89,7 @@ export function PassCard({ pass, timeZone, onOpen, weather, selected = false }: 
   const t = useT();
   const headingId = useId();
   return (
-    <article className={styles.card} aria-labelledby={headingId} data-pass-id={pass.id} {...(selected ? { 'data-selected': 'true', 'aria-current': true as const } : {})}>
+    <article className={styles.card} aria-labelledby={headingId} data-pass-id={pass.id} data-pass-card="" tabIndex={-1} {...(selected ? { 'data-selected': 'true', 'aria-current': true as const } : {})}>
       <h2 id={headingId} className={styles.name}>
         {pass.name}
       </h2>
