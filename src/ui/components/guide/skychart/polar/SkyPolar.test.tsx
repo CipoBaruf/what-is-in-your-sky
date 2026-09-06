@@ -123,7 +123,7 @@ describe('<SkyPolar>', () => {
     expect(container.querySelector('[data-marker="flown"]')).toBeNull();
   });
 
-  it('draws the Sun on the horizon and the Moon where it is, both labelled, and neither when there is nothing to draw (FR-DOME-6)', () => {
+  it('draws the Sun on the horizon and the Moon where it is, neither captioned (FR-DOME-6 as amended), and neither when there is nothing to draw', () => {
     const sun = { t: MOON_FIXTURE.t, azDeg: 285, altDeg: -8 };
     const props = { passes: [pass], observer, highlightedPassId: pass.id };
     const { container, rerender } = render(<SkyPolar {...props} sun={sun} moon={MOON_FIXTURE} />);
@@ -134,13 +134,13 @@ describe('<SkyPolar>', () => {
     const start = /M(-?[\d.]+) (-?[\d.]+)/.exec(glow?.getAttribute('d') ?? '');
     if (!start) throw new Error('no glow path');
     expect(Math.hypot(Number(start[1]), Number(start[2]))).toBeGreaterThan(HORIZON_R / 2);
-    expect(container.querySelector('[data-anchor="sun"]')?.textContent).toBe('Sun');
+    // R45: the names and the phase glyph are legend lines; the drawing carries the glow and the disc only.
+    expect(container.querySelector('[data-anchor="sun"]')).toBeNull();
+    expect(container.querySelector('[data-anchor="moon"]')).toBeNull();
+    expect(container.querySelector('svg')?.textContent).not.toMatch(/Sun|Moon/);
+    expect(container.querySelector('svg')?.textContent).not.toContain(MOON_PHASE_GLYPH.waningGibbous);
 
     expectAt(markerAt(container, 'moon'), expected({ ...MOON_FIXTURE, rangeKm: 0 }, 'looking-up'));
-    // The label carries the phase glyph, not the phase's name.
-    const moonLabel = container.querySelector('[data-anchor="moon"]')?.textContent ?? '';
-    expect(moonLabel).toContain('Moon');
-    expect(moonLabel).toContain(MOON_PHASE_GLYPH.waningGibbous);
 
     rerender(<SkyPolar {...props} sun={{ ...sun, altDeg: -30 }} moon={MOON_DOWN} />);
     expect(container.querySelector('[data-body="sun"]')).toBeNull();
@@ -151,16 +151,78 @@ describe('<SkyPolar>', () => {
     expect(container.querySelector('[data-body="moon"]')).toBeNull();
   });
 
-  it('draws the Sun label above the grid group, not under it where the rings, ticks and arcs would draw over it (F-3)', () => {
+  it('keeps the glow a surface under the grid (F-3)', () => {
     const sun = { t: MOON_FIXTURE.t, azDeg: 285, altDeg: -8 };
     const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} />);
     const horizon = container.querySelector('circle');
-    const label = container.querySelector('[data-anchor="sun"]');
-    if (!horizon || !label) throw new Error('no horizon ring or Sun label');
-    // The glow itself stays a surface under the grid; only its label moves.
-    expect(horizon.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const glow = container.querySelector('[data-body="sun"] path');
-    expect(horizon.compareDocumentPosition(glow as Node) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    if (!horizon || !glow) throw new Error('no horizon ring or glow');
+    expect(horizon.compareDocumentPosition(glow) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+  });
+
+  /** FR-LEG-1 (R45): the key at the peak is the arc's one label and the one element carrying the pass id is its group. */
+  it('draws the legend key once at the peak and no name or time; without keys, no label at all', () => {
+    const { container, unmount } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} legendKeys={{ [pass.id]: 'A' }} />);
+    const key = container.querySelector('[data-anchor="key"]');
+    expect(key?.textContent).toBe('A');
+    expect(key).toHaveAttribute('data-key', 'A');
+    expect(key?.closest('[data-pass-id]')).toHaveAttribute('data-pass-id', pass.id);
+    expect(container.querySelectorAll('[data-anchor="key"]')).toHaveLength(1);
+    expect(container.querySelector('[data-anchor="pass"]')).toBeNull();
+    expect(container.querySelector('[data-anchor="peak"]')).toBeNull();
+    expect(container.querySelector('svg')?.textContent).not.toContain('ISS');
+    // The key sits beside the peak marker: within a label gap of it.
+    const x = Number(key?.getAttribute('x'));
+    const y = Number(key?.getAttribute('y'));
+    const peak = markerAt(container, 'peak');
+    expect(Math.hypot(x - peak.x, y - peak.y)).toBeLessThan(20);
+    unmount();
+    const bare = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    expect(bare.container.querySelector('[data-anchor="key"]')).toBeNull();
+  });
+
+  /** FR-TRAJ-1 / D-189 (R45): the same pass in its other states. */
+  it('draws a pass in its arc state: live as the cut track with the marker and no arrow, ahead dotted with the rise marked, linger thin with nothing marked, hidden not at all', () => {
+    const keys = { [pass.id]: 'A' };
+    const props = { observer, highlightedPassId: null, legendKeys: keys };
+    const { container, rerender } = render(<SkyPolar {...props} passes={[{ ...pass, arc: 'live' }]} now={pass.start.t + 20_000} />);
+    const group = () => container.querySelector(`[data-pass-id="${pass.id}"]`);
+    expect(group()).toHaveAttribute('data-arc', 'live');
+    expect(group()?.querySelector('[data-marker="live"]')).not.toBeNull();
+    expect(group()?.querySelector('[data-marker="now"]')).not.toBeNull();
+    expect(group()?.querySelector('[data-marker="rise"]')).not.toBeNull();
+    expect(group()?.querySelector('[data-marker="peak"]')).toBeNull(); // not reached yet
+    expect(group()?.querySelector('[data-marker="arrow"]')).toBeNull();
+    expect(group()?.querySelector('[data-marker="flown"]')).toBeNull();
+    expect(group()?.querySelector('[data-anchor="key"]')?.textContent).toBe('A');
+    const shortCut = group()?.querySelector('[data-marker="live"]')?.getAttribute('d') ?? '';
+
+    rerender(<SkyPolar {...props} passes={[{ ...pass, arc: 'live' }]} now={pass.peak.t + 1000} />);
+    expect(group()?.querySelector('[data-marker="peak"]')).not.toBeNull();
+    expect((group()?.querySelector('[data-marker="live"]')?.getAttribute('d') ?? '').length).toBeGreaterThan(shortCut.length);
+
+    rerender(<SkyPolar {...props} passes={[{ ...pass, arc: 'ahead' }]} now={pass.start.t - 60_000} />);
+    expect(group()).toHaveAttribute('data-arc', 'ahead');
+    expect(group()?.querySelector('[data-marker="ahead"]')).not.toBeNull();
+    expect(group()?.querySelector('[data-marker="rise"]')).not.toBeNull();
+    expect(group()?.querySelector('[data-marker="now"]')).toBeNull();
+    expect(group()?.querySelector('[data-marker="peak"]')).toBeNull();
+    expect(group()?.querySelector('[data-anchor="key"]')?.textContent).toBe('A');
+
+    rerender(<SkyPolar {...props} passes={[{ ...pass, arc: 'linger' }]} now={pass.end.t + 60_000} />);
+    expect(group()).toHaveAttribute('data-arc', 'linger');
+    expect(group()?.querySelector('[data-marker="linger"]')).not.toBeNull();
+    expect(group()?.querySelectorAll('[data-marker]')).toHaveLength(1);
+
+    rerender(<SkyPolar {...props} passes={[{ ...pass, arc: 'hidden' }]} now={pass.end.t + 3_600_000} />);
+    expect(group()).toBeNull();
+    expect(container.querySelector('[data-anchor="key"]')).toBeNull();
+
+    // The stylesheet gives the two faint states their weight and pattern, without opacity (FR-X-5).
+    const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/polar/SkyPolar.module.css'), 'utf8');
+    expect(css).toMatch(/\.ahead \.track \{[^}]*stroke-dasharray/);
+    expect(css).toMatch(/\.linger \.track \{[^}]*stroke-width: 1;/);
+    expect(css).not.toMatch(/opacity: 0\.[0-9]+;\n\}\n\n\.(ahead|linger)/);
   });
 
   // -3 and -5 are altitudes where `d += step` used to drift past halfWidth and drop the last sample.
@@ -180,16 +242,17 @@ describe('<SkyPolar>', () => {
     expectAt(points[points.length - 1] ?? { x: NaN, y: NaN }, right);
   });
 
-  it('draws the hidden objects dimmed where they are, each with the label it was given, and none by default (FR-LIVE-6, R33)', () => {
+  it('draws the hidden objects dimmed where they are, each with its legend key and not its words, and none by default (FR-LIVE-6 as amended)', () => {
     const hidden = [
       { id: 'hidden-1', azDeg: 40, elDeg: 20, label: 'Cosmos 2369 · in shadow' },
       { id: 'hidden-2', azDeg: 200, elDeg: 5, label: 'Envisat · too faint' },
     ];
-    const props = { passes: [pass], observer, highlightedPassId: null };
+    const props = { passes: [pass], observer, highlightedPassId: null, legendKeys: { [pass.id]: 'A', 'hidden-1': 'B', 'hidden-2': 'C' } };
     const { container, rerender } = render(<SkyPolar {...props} hidden={hidden} />);
     expect(container.querySelectorAll('[data-marker="hidden"]')).toHaveLength(2);
     const first = container.querySelector('[data-hidden-id="hidden-1"]');
-    expect(first?.querySelector('[data-anchor="hidden"]')?.textContent).toBe('Cosmos 2369 · in shadow');
+    expect(first?.querySelector('[data-anchor="key"]')?.textContent).toBe('B');
+    expect(first?.textContent).not.toContain('Cosmos');
     expect(first?.querySelector('circle')?.getAttribute('class')).toMatch(/hidden/);
     expectAt(markerAt(container, 'hidden'), expected({ azDeg: 40, elDeg: 20, rangeKm: 0, t: 0 }, 'looking-up'));
     rerender(<SkyPolar {...props} />);
@@ -203,7 +266,7 @@ describe('<SkyPolar>', () => {
     // names are dropped — they are the stylesheet's business, and this
     // snapshot is about the geometry.
     const now = Math.round((pass.start.t + pass.end.t) / 2);
-    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} now={now} sun={{ t: now, azDeg: 285, altDeg: -8 }} moon={MOON_FIXTURE} />);
+    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} now={now} sun={{ t: now, azDeg: 285, altDeg: -8 }} moon={MOON_FIXTURE} legendKeys={{ [pass.id]: 'A' }} />);
     const svg = container.querySelector('svg');
     if (!svg) throw new Error('no drawing');
     const markup = svg.outerHTML.replace(/ class="[^"]*"/g, '').replace(/></g, '>\n<');
@@ -211,22 +274,29 @@ describe('<SkyPolar>', () => {
   });
 
   /** FR-LIVE-2 (R32, D-158): the live page's colouring, one series per pass in pass order. */
-  it('numbers every arc by its place in the passes with colorBy="pass", cycling after six, with no dim arc and no peak label', () => {
+  it('numbers every arc by its place in the passes with colorBy="pass", cycling after six, with no dim arc and one key each', () => {
     const many = Array.from({ length: 7 }, (_, i) => ({ ...pass, id: `p${String(i)}`, start: { ...pass.start, t: pass.start.t + i * 600_000 } }));
-    const { container } = render(<SkyPolar passes={many} observer={observer} highlightedPassId={null} colorBy="pass" />);
+    const keys = Object.fromEntries(many.map((p, i) => [p.id, String.fromCharCode(65 + i)]));
+    const { container, rerender } = render(<SkyPolar passes={many} observer={observer} highlightedPassId={null} colorBy="pass" legendKeys={keys} />);
     const series = [...container.querySelectorAll('[data-pass-id]')].map((el) => el.getAttribute('data-series'));
     expect(series).toEqual(['1', '2', '3', '4', '5', '6', '1']);
-    expect(container.querySelectorAll('[data-anchor="peak"]')).toHaveLength(0);
-    expect(container.querySelectorAll('[data-anchor="pass"]')).toHaveLength(7);
+    expect(container.querySelectorAll('[data-dim]')).toHaveLength(0);
+    expect([...container.querySelectorAll('[data-anchor="key"]')].map((el) => el.textContent)).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G']);
+    // FR-LEG-4: a highlight in series mode dims the others by weight, keeping every series colour.
+    rerender(<SkyPolar passes={many} observer={observer} highlightedPassId="p2" colorBy="pass" legendKeys={keys} />);
+    expect(container.querySelectorAll('[data-dim="true"]')).toHaveLength(6);
+    expect(container.querySelector('[data-pass-id="p2"]')).not.toHaveAttribute('data-dim');
+    expect(container.querySelector('[data-pass-id="p2"]')).toHaveAttribute('data-series', '3');
     // The stylesheet maps each number to its own token and nothing else.
     const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/polar/SkyPolar.module.css'), 'utf8');
     for (let n = 1; n <= 6; n++) expect(css).toContain(`.series[data-series='${String(n)}'] {\n  --series: var(--chart-series-${String(n)});`);
+    expect(css).toMatch(/\.series\[data-dim='true'\] \.track/);
   });
 
   it('draws no series attribute in the guide reading, where the highlighted pass and the dim ones carry the colour', () => {
-    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} legendKeys={{ [pass.id]: 'A' }} />);
     expect(container.querySelector('[data-series]')).toBeNull();
-    expect(container.querySelector('[data-anchor="peak"]')).not.toBeNull();
+    expect(container.querySelector('[data-anchor="key"]')).not.toBeNull();
   });
 
   it('takes every colour from the FR-DOME-2 chart tokens, so the night theme is a token swap (FR-THEME-3)', () => {
