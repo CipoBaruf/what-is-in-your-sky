@@ -38,14 +38,35 @@ export function formatDate(t: EpochMs, timeZone: string | null, locale: Locale):
 }
 
 /**
- * "21:14": the clock to the minute, without the seconds or the zone. R27's
- * readiness line has one row to say a date and a time in at 390 px (FR-OFF-4),
- * and seconds are noise in a statement about the next three days; the zone is
- * the observer's, named by every other time on the page.
+ * "21:14", or "21:14 GMT-3" with `zone`: the clock to the minute, without the
+ * seconds. R27's readiness line has one row to say a date and a time in at
+ * 390 px (FR-OFF-4), and seconds are noise in a statement about the next three
+ * days.
+ *
+ * The zone is optional because most times on the page sit beside another that
+ * names it. It is not optional where a time stands alone: with no observer zone
+ * the digits are UTC, and unlabelled UTC digits are a time a reader will read as
+ * their own (R46, F-27).
  */
-export function formatShortClock(t: EpochMs, timeZone: string | null, locale: Locale): string {
-  const p = parts(t, timeZone, locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-  return `${p.get('hour') ?? '??'}:${p.get('minute') ?? '??'}`;
+export function formatShortClock(t: EpochMs, timeZone: string | null, locale: Locale, zone = false): string {
+  const p = parts(t, timeZone, locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...(zone && timeZone ? { timeZoneName: 'short' } : {}) });
+  const hm = `${p.get('hour') ?? '??'}:${p.get('minute') ?? '??'}`;
+  return zone ? `${hm} ${zoneLabel(p, timeZone)}` : hm;
+}
+
+/**
+ * The calendar day after `date`, an ISO `YYYY-MM-DD` from `formatDate`, as
+ * another one. "Tomorrow" is a step on the calendar and not 24 h on the clock:
+ * across a DST transition a day is 23 or 25 h long, and now + 24 h then lands on
+ * today's date or skips one, so the night the reader would call tomorrow's is
+ * named by its date instead (R46, F-26). Parsed and stepped in UTC, where every
+ * day is 24 h long, which is what makes the arithmetic safe.
+ */
+export function nextCalendarDate(date: string): string {
+  const stepped = new Date(`${date}T00:00:00Z`);
+  if (Number.isNaN(stepped.getTime())) return date;
+  stepped.setUTCDate(stepped.getUTCDate() + 1);
+  return stepped.toISOString().slice(0, 10);
 }
 
 /**
