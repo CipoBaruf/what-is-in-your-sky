@@ -25,7 +25,18 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    // Desktop Chrome is 1280 × 720: the width the approved mockup fixes (FR-DESK-5).
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    /*
+     * R50 (FR-DESK-5 as amended, D-192): the mid width. Between the wide
+     * breakpoint and `WIDE_SPLIT_MIN_PX` the right column shows one thing at a
+     * time (F-6), and no test at 1280 px can see it. Only `wide.spec.ts` runs
+     * here — the rest of the suite has nothing to say twice — and the capture
+     * set shoots the home and the guide at this width as well.
+     */
+    { name: 'desktop-1024', testMatch: /wide\.spec\.ts/, use: { ...devices['Desktop Chrome'], viewport: { width: 1024, height: 768 } } },
+  ],
   webServer: {
     command: `npx vite preview --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
