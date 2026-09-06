@@ -81,5 +81,33 @@ export const live = {
      */
     headingLabel: 'Heading',
     trueNorth: (p: { declination: string }) => `true north, declination ${p.declination}`,
+    /**
+     * R48 (FR-TRAJ-5, FR-COMP-4): the stepping row under the stripe, the six
+     * buttons the spike chose (`docs/window/FINDINGS.md`). The visible labels
+     * are the spike's glyphs, 33 cells in a row with their gaps; the
+     * accessible names say the same in words.
+     */
+    stepping: 'Step the shown instant',
+    step: { prevRise: '|◀ rise', back10: '−10m', back1: '−1m', forward1: '+1m', forward10: '+10m', nextRise: 'rise ▶|' },
+    stepName: {
+      prevRise: 'Previous rise',
+      back10: 'Back ten minutes',
+      back1: 'Back one minute',
+      forward1: 'Forward one minute',
+      forward10: 'Forward ten minutes',
+      nextRise: 'Next rise',
+    },
+    /**
+     * R48 (FR-LIVE-7 as amended, FR-COMP-4): the compact page's two control
+     * rows, each within 36 cells (D-234). Play and pause are glyphs whose
+     * accessible names are still the words; the toggles and the share action
+     * keep one word of their wide labels. Labels may differ between the
+     * shells; meaning may not (US-5 AC2).
+     */
+    playShort: '▶',
+    pauseShort: '‖',
+    hiddenShort: 'Hidden',
+    followShort: 'Follow',
+    shareShort: 'Share',
   },
 };

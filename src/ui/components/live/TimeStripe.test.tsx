@@ -10,7 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../tests/support/catalogFixtures';
 import { HOUR_MS, type SkyBand, type Span } from '../../../lib/timeStripe';
 import type { Pass } from '../../../model';
-import { DEFAULT_WIDTH, TimeStripe } from './TimeStripe';
+import { DEFAULT_WIDTH, STRIPE_HEIGHT, TimeStripe } from './TimeStripe';
 
 /**
  * R39 (F-38): the geometry calls are counted, so a rerender at a new instant —
@@ -69,24 +69,31 @@ describe('<TimeStripe>', () => {
     expect(stripe).toHaveAttribute('aria-valuenow', String(t));
     expect(stripe).toHaveAttribute('aria-valuetext', '12:35:00 GMT-3');
     expect(stripe).toHaveAttribute('aria-label', 'Time stripe: the coming 24 hours');
-    // 24 whole hours of the Neuquén clock from 07:00; at 600 px every second is labelled (25 px per hour).
-    expect(container.querySelectorAll('[data-tick]')).toHaveLength(24);
-    expect(container.querySelector('[data-tick="7"] text')).toBeNull();
-    expect(container.querySelector('[data-tick="8"] text')?.textContent).toBe('08');
-    expect(container.querySelector('[data-tick="0"] text')?.textContent).toBe('00');
+    // R48 (FR-TRAJ-4): three rows — the labels, the band with its ticks, the segments — and the cursor across all of them.
+    expect(stripe).toHaveAttribute('data-rows', '3');
+    expect(['labels', 'band', 'segments'].map((row) => container.querySelector(`[data-row="${row}"]`) !== null)).toEqual([true, true, true]);
+    // 24 whole hours of the Neuquén clock from 07:00, every one a tick on the band; jsdom has no `matchMedia`, so the
+    // shell is compact and every third hour from midnight is labelled, the midnight itself with its date.
+    expect(container.querySelectorAll('[data-row="band"] [data-tick]')).toHaveLength(24);
+    expect(container.querySelector('[data-tick="7"]')).toHaveAttribute('data-labelled', 'false');
+    expect(container.querySelector('[data-tick="9"]')).toHaveAttribute('data-labelled', 'true');
+    expect([...container.querySelectorAll('[data-row="labels"] text')].map((el) => el.textContent)).toEqual(['09', '12', '15', '18', '21', '12 Sept', '03', '06']);
+    expect(container.querySelector('[data-label="0"]')).toHaveAttribute('data-midnight', 'true');
     // Two night bands; the day is the stripe's own background.
     expect([...container.querySelectorAll('[data-sky]')].map((el) => el.getAttribute('data-sky'))).toEqual(['bright-twilight', 'dark']);
     expect(container.querySelector('[data-sky="dark"]')).toHaveAttribute('width', String((10 / 24) * DEFAULT_WIDTH) + '.0');
+    expect(container.querySelector('[data-sky="dark"]')).toHaveAttribute('height', '24.0');
     // One segment per pass in its series; the second contains the instant.
     const segments = [...container.querySelectorAll('[data-pass-segment]')];
     expect(segments.map((el) => [el.getAttribute('data-pass-segment'), el.getAttribute('data-series'), el.getAttribute('data-current')])).toEqual([
       ['a', '1', 'false'],
       ['b', '2', 'true'],
     ]);
-    // The cursor at a quarter of the width, its clock in the zone.
+    // The cursor at a quarter of the width, the full height of the three rows; the clock is the readout's now (`TimeReadout`).
     const cursor = screen.getByTestId('stripe-cursor');
     expect(Number(cursor.getAttribute('data-x'))).toBeCloseTo((6.0833 / 24) * DEFAULT_WIDTH, 0);
-    expect(cursor.querySelector('text')?.textContent).toBe('12:35');
+    expect(cursor.querySelector('line')).toHaveAttribute('y2', String(STRIPE_HEIGHT) + '.0');
+    expect(cursor.querySelector('text')).toBeNull();
     expect(await axe(container)).toHaveNoViolations();
   });
 

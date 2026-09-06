@@ -20,6 +20,7 @@ import {
   passSegments,
   previousRise,
   RISE_SLACK_MS,
+  shortWeekday,
   skyBands,
   timeAt,
   xAt,
@@ -119,6 +120,12 @@ describe('midnightDate (FR-TRAJ-4)', () => {
     expect(midnightDate(midnight, 'America/Argentina/Buenos_Aires', 'es')).toBe('12 sept');
     expect(midnightDate(Date.UTC(2026, 11, 1), null, 'en')).toBe('1 Dec');
     expect(midnightDate(Date.UTC(2026, 11, 1), 'Not/AZone', 'en')).toBe('');
+  });
+  it('names the weekday short in either language', () => {
+    const saturday = Date.UTC(2026, 8, 12, 15, 0, 0);
+    expect(shortWeekday(saturday, 'America/Argentina/Buenos_Aires', 'en')).toBe('Sat');
+    expect(shortWeekday(saturday, 'America/Argentina/Buenos_Aires', 'es')).toBe('sáb');
+    expect(shortWeekday(saturday, 'Not/AZone', 'en')).toBe('');
   });
 });
 

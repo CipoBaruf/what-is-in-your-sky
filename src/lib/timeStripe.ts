@@ -164,6 +164,15 @@ export function midnightDate(t: EpochMs, timeZone: string | null, locale: Locale
   }
 }
 
+/** R48 (FR-TRAJ-4): the short weekday of an instant in the zone, "Sat" / "sáb", for the readout when the instant is not today. */
+export function shortWeekday(t: EpochMs, timeZone: string | null, locale: Locale): string {
+  try {
+    return new Intl.DateTimeFormat(INTL_LOCALE[locale], { timeZone: timeZone ?? 'UTC', weekday: 'short' }).format(t).replace(/\.$/, '');
+  } catch {
+    return '';
+  }
+}
+
 /** R48 (FR-TRAJ-5): a rise within this many milliseconds of `t` counts as reached, so the next tap moves on to the one after. */
 export const RISE_SLACK_MS = 1000;
 

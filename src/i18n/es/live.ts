@@ -51,5 +51,21 @@ export const live: typeof EnLive = {
     followDenied: 'Se rechazó el acceso al movimiento, así que la cúpula no puede girar con el teléfono.',
     headingLabel: 'Rumbo',
     trueNorth: (p) => `norte verdadero, declinación ${p.declination}`,
+    /** R48 (FR-TRAJ-5): "sale" (the pass rises) and not "salida" — the six buttons must stay within 36 cells with their gaps (FR-COMP-4), and "salida" is two cells too many. */
+    stepping: 'Mover el instante mostrado',
+    step: { prevRise: '|◀ sale', back10: '−10m', back1: '−1m', forward1: '+1m', forward10: '+10m', nextRise: 'sale ▶|' },
+    stepName: {
+      prevRise: 'Salida anterior',
+      back10: 'Diez minutos atrás',
+      back1: 'Un minuto atrás',
+      forward1: 'Un minuto adelante',
+      forward10: 'Diez minutos adelante',
+      nextRise: 'Salida siguiente',
+    },
+    playShort: '▶',
+    pauseShort: '‖',
+    hiddenShort: 'Ocultos',
+    followShort: 'Seguir',
+    shareShort: 'Compartir',
   },
 };
