@@ -58,7 +58,7 @@ function DomeView(props: SkyChartProps) {
   return (
     <Suspense
       fallback={
-        <ChartFrame status={<p className={styles.loading}>{t.chart.loadingDome}</p>} legend={props.legend} fill={props.fill ?? false}>
+        <ChartFrame controls={props.controls} status={<p className={styles.loading}>{t.chart.loadingDome}</p>} legend={props.legend} fill={props.fill ?? false}>
           <div className={styles.loadingBox} data-testid="dome-loading" />
         </ChartFrame>
       }
@@ -74,7 +74,7 @@ function WindowView(props: SkyChartProps) {
   return (
     <Suspense
       fallback={
-        <ChartFrame legend={props.legend} fill={props.fill ?? false}>
+        <ChartFrame controls={props.controls} legend={props.legend} fill={props.fill ?? false}>
           <div className={styles.loadingBox} data-testid="window-loading" />
         </ChartFrame>
       }
@@ -165,14 +165,10 @@ export function SkyChart(props: SkyChartProps) {
 
   const captioned = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
   const legend = <Legend rows={rows} bodies={lines} timeZone={observer.timeZone} highlightedPassId={highlightedPassId} onActivate={select} />;
-  return (
-    <figure
-      className={[styles.figure, fill ? styles.fill : undefined, className].filter(Boolean).join(' ')}
-      data-testid="sky-chart"
-      data-view={view.id}
-      {...(fill ? { 'aria-label': t.chart.liveLabel } : {})}
-    >
-      {!fill && <figcaption className={styles.caption}>{captioned ? <GuideText pass={captioned} timeZone={observer.timeZone} /> : <p className={styles.empty}>{t.chart.noPass}</p>}</figcaption>}
+  // R54 (FR-LIVE-7 as amended v1.1.1, D-269): the view toggle and its note. On the guide they head the figure; on the live
+  // page (`fill`) they go to the view for the frame's controls slot, so the row above the drawing is one row.
+  const chartControls = (
+    <>
       {offered.length > 1 && (
         <OptionToggle name={t.chart.viewGroup} prefix={t.chart.viewPrefix} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
       )}
@@ -181,7 +177,18 @@ export function SkyChart(props: SkyChartProps) {
           {t.window[note]}
         </p>
       )}
-      <view.Component {...props} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legend} onUnavailable={unavailable} />
+    </>
+  );
+  return (
+    <figure
+      className={[styles.figure, fill ? styles.fill : undefined, className].filter(Boolean).join(' ')}
+      data-testid="sky-chart"
+      data-view={view.id}
+      {...(fill ? { 'aria-label': t.chart.liveLabel } : {})}
+    >
+      {!fill && <figcaption className={styles.caption}>{captioned ? <GuideText pass={captioned} timeZone={observer.timeZone} /> : <p className={styles.empty}>{t.chart.noPass}</p>}</figcaption>}
+      {!fill && chartControls}
+      <view.Component {...props} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legend} onUnavailable={unavailable} {...(fill ? { controls: chartControls } : {})} />
     </figure>
   );
 }

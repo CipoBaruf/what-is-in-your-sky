@@ -302,7 +302,7 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
   );
 }
 
-export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, onUnavailable, className }: SkyChartProps) {
+export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, controls, onUnavailable, className }: SkyChartProps) {
   const t = useT();
   const locale = useLocale();
   // R44: the observer's declination, once per observer; the hook folds it into every heading.
@@ -360,7 +360,17 @@ export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, n
 
   return (
     <div className={[styles.window, className].filter(Boolean).join(' ')} data-state={state} data-look-az={quantise(look.azDeg)} data-look-alt={Math.round(look.altDeg)}>
-      <ChartFrame fill={fill} legend={legend} controls={<p className={styles.hint}>{t.window.hint}</p>} status={status}>
+      <ChartFrame
+        fill={fill}
+        legend={legend}
+        controls={
+          <>
+            {controls}
+            <p className={styles.hint}>{t.window.hint}</p>
+          </>
+        }
+        status={status}
+      >
         <div className={styles.box} ref={boxRef}>
           <svg className={styles.svg} viewBox={`0 0 ${String(view.width)} ${String(view.height)}`} aria-hidden="true" data-drawing="window" focusable="false">
             {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}

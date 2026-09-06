@@ -197,7 +197,7 @@ function DomeLabels({ labels, rotY, onSelect }: DomeLabelsProps) {
   );
 }
 
-export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, className }: SkyChartProps) {
+export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, controls, className }: SkyChartProps) {
   const t = useT();
   const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
   const [camera, setCamera] = useState<CameraState>(() => initialFor(highlighted, facingAzDeg ?? initialFacingAzDeg));
@@ -362,7 +362,13 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
         fill={fill}
         legend={legend}
         // R48 (FR-LIVE-7 as amended): the hint is not shown on the live page — `fill` is that page — where the row it took is the dome's.
-        controls={fill ? undefined : <p className={styles.hint}>{t.chart.domeHint}</p>}
+        // R54 (D-269): what the page hands down (the view toggle) heads the slot instead.
+        controls={
+          <>
+            {controls}
+            {!fill && <p className={styles.hint}>{t.chart.domeHint}</p>}
+          </>
+        }
         status={
           <p className={styles.readout} id={readoutId} data-testid="dome-readout">
             {t.chart.readout(readoutParams(camera))}

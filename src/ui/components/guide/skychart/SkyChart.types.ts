@@ -92,6 +92,15 @@ export interface SkyChartProps {
    */
   legend?: ReactNode;
   /**
+   * FR-LIVE-7 as amended (v1.1.1) / D-268, D-269 (R54): on the live page the
+   * chart's own controls — the view toggle and its note — reach the view
+   * already rendered, for the view to put first in `ChartFrame`'s controls
+   * slot before its own control. So the row above the drawing is one row: the
+   * toggle, the view's control and the readout. Absent on the guide, where
+   * the toggle stays in the figure above the frame.
+   */
+  controls?: ReactNode;
+  /**
    * FR-WIN-4 / D-240 (R47): a view that cannot stay mounted says why — the
    * window after a refused orientation permission (`denied`) or on a phone
    * whose readings carry no compass heading (`relative`). `SkyChart` shows
