@@ -9,9 +9,13 @@ import type { EpochMs, Pass, Readiness, ReadinessGap, WeatherSnapshot } from '..
  * is absent is named instead, in `missing`, so the line can say what to go and
  * fetch rather than only that something is wrong.
  *
- * Pure, and time is never read here (D-15): `now` is not even a parameter,
- * because readiness is a statement about the data and not about the clock. The
- * caller renders the two epochs.
+ * Absent includes spent (R46, F-23). A bound that has gone past is data the
+ * device still holds and can no longer answer with: passes that have all ended
+ * name nothing to go outside for, and a snapshot whose last sample is behind us
+ * makes `interpolateCloud` return null for every badge. Reading them back as
+ * "ready offline until <a date last week>" was the one wrong thing this line
+ * could say, so `now` is a parameter — the function still never reads the clock
+ * itself (D-15), and it is still pure. The caller renders the two epochs.
  */
 export interface ReadinessInput {
   /**
@@ -26,6 +30,8 @@ export interface ReadinessInput {
   forecast: WeatherSnapshot | null;
   /** Whether a usable element set is loaded (from the network or from IndexedDB). */
   hasElements: boolean;
+  /** The wall clock, read by the caller (D-15). A bound at or before it is spent. */
+  now: EpochMs;
 }
 
 /**
@@ -50,9 +56,11 @@ export function forecastEnd(forecast: WeatherSnapshot | null): EpochMs | null {
   return last ? last.t : null;
 }
 
-export function readiness({ passes, storedAt, forecast, hasElements }: ReadinessInput): Readiness {
-  const passEnd = lastPassEnd(passes);
-  const wxEnd = forecastEnd(forecast);
+export function readiness({ passes, storedAt, forecast, hasElements, now }: ReadinessInput): Readiness {
+  // Spent is absent: a bound that is not still ahead of `now` answers for nothing (F-23).
+  const live = (end: EpochMs | null): EpochMs | null => (end !== null && end > now ? end : null);
+  const passEnd = live(lastPassEnd(passes));
+  const wxEnd = live(forecastEnd(forecast));
   const missing: ReadinessGap[] = [];
   if (!hasElements) missing.push('elements');
   if (wxEnd === null) missing.push('forecast');

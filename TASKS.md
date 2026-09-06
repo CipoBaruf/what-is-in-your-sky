@@ -909,7 +909,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
     - Captures: the pass detail at 390 px (full-bleed square, legend under) and 1280 px (legend beside), both themes, both languages; the D-172 figure in the summary ≥ 30/s.
   - *Done as written, with four notes.* The legend goes beside the drawing only where the frame has 62 cells (D-232): at 1280 px the guide column is 40 cells and the detail's legend stays under; the live page at 1280 px is the beside capture. The portrait floor is behind a page switch the live page holds off until R48 re-cuts its rows (D-233). The catalog split (D-199) is not on `main`, so the legend's keys went into the chart section of `en.ts` / `es.ts`. The D-172 rate is 45.3/s at 390 px and 34.0/s at 1280 px (D-234).
 
-- [ ] **R46 — ui findings A: the readiness line, the nights and the place picker offline**
+- [x] **R46 — ui findings A: the readiness line, the nights and the place picker offline**
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
@@ -920,6 +920,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Scope:** no readiness verdict before the first requests settle on a warm start (F-21); the offline notice keyed to the picker's own query, not the restored label (F-22); `offlineUntil` compared with now (F-23); night overrides reset per run (F-24); the heading count excludes the hero pass (F-25); "tomorrow night" from the observer's calendar day (F-26); the readiness stamp carries the zone (F-27); the Spanish offline sentence reworded so it cannot read as the opposite state (F-28, owner reads it).
   - **Touches outside the lane:** none.
   - **Done when:** a test per finding; captures of the readiness line and the night headings at 390 px in Spanish.
+  - *Done 2026-09-06, with three notes.* F-27 was closed as written and no further: D-145 leaves the zone off this stamp to keep it inside the 36 characters a 390 px phone has, and that reasoning holds for the observer's own zone, so only the unlabelled UTC fallback — the case the finding names — gained a label. F-24 is keyed to the coordinates rather than to the run, because a re-compute for the same place is the same three nights and closing the reader's disclosures for it would be its own bug. F-28's Spanish reads "Listo sin red hasta …" / "No está listo sin red: …": "sin conexión" makes the sentence 40 characters and D-145 allows 36, and the place picker — where the sentence really is about an absent connection — keeps it. Captures: `docs/screenshots/r46-{readiness,nights,nights-later}-390-dark-es.png`.
 
 - [ ] **R47 — The sky window view**
   - **Lane:** window

@@ -50,6 +50,16 @@ const MIN_CHARS = 2;
 export function PlacePicker({ search, onObserver, observer, coordsInputId, initialText, inputId: givenId }: PlacePickerProps) {
   const t = useT();
   const [text, setText] = useState(initialText ?? '');
+  /**
+   * What this picker has been asked to look up, which is not the same thing as
+   * what is in the field (R46, F-22). `initialText` pre-fills the field with a
+   * restored observer's label and searches nothing for it (US-8), so keying the
+   * offline line off the text meant that opening the location screen with no
+   * connection and a saved place answered "No connection" to a question nobody
+   * asked — under a place that was already resolved and working offline. It is
+   * set where a search is actually wanted and cleared when one is picked.
+   */
+  const [asked, setAsked] = useState('');
   const [list, setList] = useState<ListState>({ kind: 'idle' });
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
@@ -71,7 +81,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
 
   useEffect(() => cancelPending, []);
 
-  /** Nothing to ask and nothing to wait for: the offline line is derived from the text, so it clears itself when the connection returns. */
+  /** Nothing to ask and nothing to wait for: the offline line is derived from `asked`, so it clears itself when the connection returns. */
   const stopForOffline = (): void => {
     cancelPending();
     seq.current++;
@@ -82,6 +92,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
   const runSearch = (query: string): void => {
     cancelPending();
     const trimmed = query.trim();
+    setAsked(trimmed);
     if (trimmed.length < MIN_CHARS) {
       setList({ kind: 'idle' });
       setOpen(false);
@@ -112,6 +123,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
   const schedule = (query: string): void => {
     cancelPending();
     seq.current++; // an answer to the previous text is no longer wanted
+    setAsked(query.trim());
     if (query.trim().length < MIN_CHARS) {
       setList({ kind: 'idle' });
       setOpen(false);
@@ -132,6 +144,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
     seq.current++;
     const chosen = observerFromPlace(place);
     setText(chosen.label);
+    setAsked(''); // the label in the field is an answer, not a new question
     setList({ kind: 'idle' });
     setOpen(false);
     setActive(-1);
@@ -146,8 +159,8 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
 
   const places = list.kind === 'results' ? list.places : [];
   const showList = open && list.kind === 'results' && places.length > 0;
-  /** FR-OFF-8: said as soon as there is something the reader meant to search for, and only then. */
-  const offline = !online && text.trim().length >= MIN_CHARS;
+  /** FR-OFF-8: said as soon as there is something the reader meant to search for, and only then (F-22). */
+  const offline = !online && asked.length >= MIN_CHARS;
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
     switch (event.key) {

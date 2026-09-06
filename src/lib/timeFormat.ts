@@ -38,14 +38,46 @@ export function formatDate(t: EpochMs, timeZone: string | null, locale: Locale):
 }
 
 /**
- * "21:14": the clock to the minute, without the seconds or the zone. R27's
- * readiness line has one row to say a date and a time in at 390 px (FR-OFF-4),
- * and seconds are noise in a statement about the next three days; the zone is
- * the observer's, named by every other time on the page.
+ * "21:14", or "21:14 GMT-3" with `zone`: the clock to the minute, without the
+ * seconds. R27's readiness line has one row to say a date and a time in at
+ * 390 px (FR-OFF-4), and seconds are noise in a statement about the next three
+ * days.
+ *
+ * The zone is optional because most times on the page sit beside another that
+ * names it. It is not optional where a time stands alone: with no observer zone
+ * the digits are UTC, and unlabelled UTC digits are a time a reader will read as
+ * their own (R46, F-27).
  */
-export function formatShortClock(t: EpochMs, timeZone: string | null, locale: Locale): string {
-  const p = parts(t, timeZone, locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-  return `${p.get('hour') ?? '??'}:${p.get('minute') ?? '??'}`;
+export function formatShortClock(t: EpochMs, timeZone: string | null, locale: Locale, zone = false): string {
+  const p = parts(t, timeZone, locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', ...(zone && timeZone ? { timeZoneName: 'short' } : {}) });
+  const hm = `${p.get('hour') ?? '??'}:${p.get('minute') ?? '??'}`;
+  return zone ? `${hm} ${zoneLabel(p, timeZone)}` : hm;
+}
+
+/**
+ * The calendar day after `date`, an ISO `YYYY-MM-DD` from `formatDate`, as
+ * another one. "Tomorrow" is a step on the calendar and not 24 h on the clock:
+ * across a DST transition a day is 23 or 25 h long, and now + 24 h then lands on
+ * today's date or skips one, so the night the reader would call tomorrow's is
+ * named by its date instead (R46, F-26). Counted on the calendar itself rather
+ * than through a `Date`, which `src/lib` may not touch (D-15, §9.3) and which
+ * would only be a longer way of saying the same three lines.
+ */
+const MONTH_LENGTHS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const pad = (n: number): string => String(n).padStart(2, '0');
+
+export function nextCalendarDate(date: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) return date;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1) return date;
+  const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  const length = month === 2 && leap ? 29 : (MONTH_LENGTHS[month - 1] as number);
+  if (day < length) return `${String(year)}-${pad(month)}-${pad(day + 1)}`;
+  if (month < 12) return `${String(year)}-${pad(month + 1)}-01`;
+  return `${String(year + 1)}-01-01`;
 }
 
 /**

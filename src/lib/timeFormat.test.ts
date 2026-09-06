@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatClock, formatCountdown, formatDate } from './timeFormat';
+import { formatClock, formatCountdown, formatDate, formatShortClock, nextCalendarDate } from './timeFormat';
 
 // First golden pass start from tests/fixtures/reference-values.json (R1).
 const GOLDEN_START_MS = 1789120094063; // 2026-09-11T09:48:14.063Z
@@ -73,5 +73,48 @@ describe('formatCountdown', () => {
   it('clamps negative and non-finite input to 0:00', () => {
     expect(formatCountdown(-5_000)).toBe('0:00');
     expect(formatCountdown(Number.NaN)).toBe('0:00');
+  });
+});
+
+/** R46 (F-27): the readiness line's stamp stands alone, so it asks for the zone. */
+describe('formatShortClock', () => {
+  it('is the clock to the minute, with no zone by default', () => {
+    expect(formatShortClock(GOLDEN_START_MS, null, 'en')).toBe('09:48');
+    expect(formatShortClock(GOLDEN_START_MS, 'America/Argentina/Buenos_Aires', 'en')).toBe('06:48');
+  });
+
+  it('labels the digits when asked, and says UTC when there is no zone to label them with', () => {
+    expect(formatShortClock(GOLDEN_START_MS, null, 'en', true)).toBe('09:48 UTC');
+    const s = formatShortClock(GOLDEN_START_MS, 'America/Argentina/Buenos_Aires', 'en', true);
+    expect(s.startsWith('06:48 ')).toBe(true);
+    expect(s.endsWith(' UTC')).toBe(false);
+  });
+});
+
+/** R46 (F-26): "tomorrow" is a calendar step, and a calendar day is not always 24 h long. */
+describe('nextCalendarDate', () => {
+  it('steps one day, across a month and a year end', () => {
+    expect(nextCalendarDate('2026-09-11')).toBe('2026-09-12');
+    expect(nextCalendarDate('2026-09-30')).toBe('2026-10-01');
+    expect(nextCalendarDate('2026-12-31')).toBe('2027-01-01');
+    expect(nextCalendarDate('2028-02-28')).toBe('2028-02-29'); // a leap year
+    expect(nextCalendarDate('2100-02-28')).toBe('2100-03-01'); // a century that is not one
+    expect(nextCalendarDate('2000-02-28')).toBe('2000-02-29'); // a century that is
+    expect(nextCalendarDate('not a date')).toBe('not a date'); // nothing to step
+  });
+
+  it('steps the calendar and not the clock, so a 23 h DST day still has a tomorrow', () => {
+    // Chile springs forward at 00:00 on 2026-09-06, which makes that day 23 h long. Late on the
+    // 5th, now + 24 h has already skipped over the 6th and landed on the 7th — so the night of
+    // the 6th, the reader's actual tomorrow, would never be called tomorrow night (F-26).
+    const zone = 'America/Santiago';
+    const late = Date.parse('2026-09-06T03:30:00Z'); // 2026-09-05 23:30 local
+    expect(formatDate(late, zone, 'en')).toBe('2026-09-05');
+    expect(formatDate(late + 24 * 3_600_000, zone, 'en')).toBe('2026-09-07');
+    expect(nextCalendarDate(formatDate(late, zone, 'en'))).toBe('2026-09-06');
+  });
+
+  it('hands back anything it cannot parse rather than throwing', () => {
+    expect(nextCalendarDate('????-??-??')).toBe('????-??-??');
   });
 });

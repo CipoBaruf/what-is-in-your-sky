@@ -10,6 +10,8 @@ import { forecastEnd, lastPassEnd, readiness } from './readiness';
 
 const T0 = 1_789_120_000_000;
 const HOUR = 3_600_000;
+/** The clock the caller reads (D-15). An hour before the fixtures start, so nothing in them is spent. */
+const NOW = T0 - HOUR;
 
 function pass(id: string, startOffsetH: number, durationMin: number): Pass {
   const start = T0 + startOffsetH * HOUR;
@@ -74,7 +76,7 @@ describe('forecastEnd', () => {
 describe('readiness', () => {
   it('ready: nothing missing, and the date is the earlier of the two ends', () => {
     // 96 h of forecast against passes reaching 68 h + 4 min: the passes run out first.
-    expect(readiness({ passes: threeNights, storedAt: null, forecast: snapshot(96), hasElements: true })).toEqual({
+    expect(readiness({ passes: threeNights, storedAt: null, forecast: snapshot(96), hasElements: true, now: NOW })).toEqual({
       offlineUntil: T0 + 68 * HOUR + 4 * 60_000,
       storedAt: null,
       missing: [],
@@ -83,7 +85,7 @@ describe('readiness', () => {
 
   it('ready: a forecast that stops before the last pass is what the date states', () => {
     // 48 h of forecast: the app can name a pass on the third night but nothing about its sky.
-    expect(readiness({ passes: threeNights, storedAt: T0 - HOUR, forecast: snapshot(48), hasElements: true })).toEqual({
+    expect(readiness({ passes: threeNights, storedAt: T0 - HOUR, forecast: snapshot(48), hasElements: true, now: NOW })).toEqual({
       offlineUntil: T0 + 47 * HOUR,
       storedAt: T0 - HOUR,
       missing: [],
@@ -91,11 +93,11 @@ describe('readiness', () => {
   });
 
   it('carries the storage time through untouched, so the line can say how old the run is', () => {
-    expect(readiness({ passes: threeNights, storedAt: T0 - 20 * HOUR, forecast: snapshot(96), hasElements: true }).storedAt).toBe(T0 - 20 * HOUR);
+    expect(readiness({ passes: threeNights, storedAt: T0 - 20 * HOUR, forecast: snapshot(96), hasElements: true, now: NOW }).storedAt).toBe(T0 - 20 * HOUR);
   });
 
   it('no forecast: named as missing, and no date is promised even though the passes have one', () => {
-    expect(readiness({ passes: threeNights, storedAt: T0, forecast: null, hasElements: true })).toEqual({
+    expect(readiness({ passes: threeNights, storedAt: T0, forecast: null, hasElements: true, now: NOW })).toEqual({
       offlineUntil: null,
       storedAt: T0,
       missing: ['forecast'],
@@ -103,7 +105,7 @@ describe('readiness', () => {
   });
 
   it('no passes: named as missing, and no date', () => {
-    expect(readiness({ passes: [], storedAt: null, forecast: snapshot(96), hasElements: true })).toEqual({
+    expect(readiness({ passes: [], storedAt: null, forecast: snapshot(96), hasElements: true, now: NOW })).toEqual({
       offlineUntil: null,
       storedAt: null,
       missing: ['passes'],
@@ -113,14 +115,28 @@ describe('readiness', () => {
   it('no elements: named as missing even while the stored run still gives a date', () => {
     // The elements failed to load this session; the stored run is still on screen (D-108). The date is
     // true and the gap is true, and the line decides which of the two to say.
-    expect(readiness({ passes: threeNights, storedAt: T0 - HOUR, forecast: snapshot(96), hasElements: false })).toEqual({
+    expect(readiness({ passes: threeNights, storedAt: T0 - HOUR, forecast: snapshot(96), hasElements: false, now: NOW })).toEqual({
       offlineUntil: T0 + 68 * HOUR + 4 * 60_000,
       storedAt: T0 - HOUR,
       missing: ['elements'],
     });
   });
 
+  /** R46 (F-23). A run stored last week is still on screen offline (D-105); what it is not is an answer about tonight. */
+  it('a spent run is not ready: bounds at or before now are missing, not a date in the past', () => {
+    const after = T0 + 80 * HOUR; // past the last pass, which ended at 68 h; the forecast still reaches 95 h
+    expect(readiness({ passes: threeNights, storedAt: T0 - HOUR, forecast: snapshot(96), hasElements: true, now: after })).toEqual({
+      offlineUntil: null,
+      storedAt: T0 - HOUR,
+      missing: ['passes'],
+    });
+    // Both spent: the whole stored run has run out and the line names both halves of it.
+    expect(readiness({ passes: threeNights, storedAt: T0 - HOUR, forecast: snapshot(96), hasElements: true, now: T0 + 100 * HOUR }).missing).toEqual(['forecast', 'passes']);
+    // The boundary is exclusive: an end exactly at now can no longer be spoken about in the future tense.
+    expect(readiness({ passes: threeNights, storedAt: null, forecast: snapshot(96), hasElements: true, now: T0 + 68 * HOUR + 4 * 60_000 }).offlineUntil).toBeNull();
+  });
+
   it('a cold start with no signal is missing all three, in the order the line reads them', () => {
-    expect(readiness({ passes: [], storedAt: null, forecast: null, hasElements: false }).missing).toEqual(['elements', 'forecast', 'passes']);
+    expect(readiness({ passes: [], storedAt: null, forecast: null, hasElements: false, now: NOW }).missing).toEqual(['elements', 'forecast', 'passes']);
   });
 });

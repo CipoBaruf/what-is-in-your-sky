@@ -4,6 +4,7 @@ import { readiness } from '../../../lib/readiness';
 import { formatDate, formatShortClock } from '../../../lib/timeFormat';
 import type { EpochMs, Locale } from '../../../model';
 import { useAppStore } from '../../../state';
+import { useNow } from '../../hooks/useNow';
 import styles from './ReadinessLine.module.css';
 
 /**
@@ -17,13 +18,32 @@ import styles from './ReadinessLine.module.css';
  * Nothing is said until there is something true to say. A first visit spends
  * seconds loading elements and computing, and "not ready" during those seconds
  * would be a verdict on a job in progress rather than on the device: the line
- * waits for a finished run, a stored one standing in for it (D-105), or an
- * elements load that failed — the cold start with no signal, which is exactly
- * the case the line exists for.
+ * waits until every input it reads has an answer for this observer.
+ *
+ * R46 (F-21) that is every input and not just the passes. A warm start puts the
+ * stored run on screen first, by design (PLAN §7.5), and the old gate took that
+ * as the whole answer — so every second visit flashed "Not ready offline: no
+ * orbital elements and cloud forecast" for as long as those two requests were in
+ * the air, which is a verdict on the network rather than on the device. A gap is
+ * now named only once the request that would have filled it has come back. The
+ * cold start with no signal still gets there: the elements load fails, the
+ * forecast fails, and no job runs without elements, so all three answers land
+ * within the same second or two.
+ *
+ * The stamp names its zone when it is not the observer's (F-27). D-145 leaves
+ * the abbreviation out to keep the sentence inside the 36 characters a 390 px
+ * phone has, on the grounds that every other time on the page names it — which
+ * is true of the observer's own zone and not of the fallback. With no zone yet
+ * the digits are UTC, an unlabelled time a reader takes for their own and a
+ * promise off by hours, so that one case says "UTC" and spends the row it
+ * needs; the ordinary line is unchanged and still fits.
  */
 export function readinessStamp(at: EpochMs, timeZone: string | null, locale: Locale): string {
-  return `${formatDate(at, timeZone, locale)} ${formatShortClock(at, timeZone, locale)}`;
+  return `${formatDate(at, timeZone, locale)} ${formatShortClock(at, timeZone, locale, timeZone === null)}`;
 }
+
+/** How often the line re-checks whether its own date has gone past (F-23). A minute is finer than the date it states. */
+export const READINESS_CHECK_MS = 60_000;
 
 export function ReadinessLine() {
   const t = useT();
@@ -32,15 +52,21 @@ export function ReadinessLine() {
   const passes = useAppStore((s) => s.passes);
   const elements = useAppStore((s) => s.elements);
   const weather = useAppStore((s) => s.weather);
+  const now = useNow(READINESS_CHECK_MS);
   const timeZone = observer?.timeZone ?? null;
-  const settled = passes.storedAt !== null || passes.status === 'done' || elements.status === 'error';
-  if (observer === null || !settled) return null;
+  const elementsAnswered = elements.status === 'ready' || elements.status === 'error';
+  const forecastAnswered = weather.observer === observer && (weather.status === 'ready' || weather.status === 'error');
+  // No job is started without a usable element set, so a failed or empty load is the passes' answer too.
+  const noJob = elements.status === 'error' || (elements.status === 'ready' && elements.records.length === 0);
+  const passesAnswered = passes.storedAt !== null || passes.status === 'done' || passes.status === 'error' || noJob;
+  if (observer === null || !elementsAnswered || !forecastAnswered || !passesAnswered) return null;
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   const state = readiness({
     passes: passes.passes,
     storedAt: passes.storedAt,
     forecast: snapshot,
     hasElements: elements.status === 'ready' && elements.records.length > 0,
+    now,
   });
   return (
     <div className={styles.block}>
