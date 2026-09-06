@@ -146,25 +146,43 @@ export function SkyChart(props: SkyChartProps) {
   const bodies = useSkyBodies(props);
 
   // FR-LEG-4: the row (or arc) the reader activated, remembered against the caller's own highlight so a new pass drops it.
-  const [pinned, setPinned] = useState<{ id: string; over: string | null } | null>(null);
-  const pinnedId = pinned !== null && pinned.over === props.highlightedPassId && (passes.some((pass) => pass.id === pinned.id) || hidden?.some((marker) => marker.id === pinned.id)) ? pinned.id : null;
+  // R54 (D-271, F-53): two memories, not one. `pinned` is the highlight and follows a click, a tap or keyboard focus;
+  // `promoted` is the row at the top of the legend and follows a click or a tap only, so the list holds still while Tab
+  // walks it — focus moves the highlight along the rows and leaves the order alone.
+  type Pin = { id: string; over: string | null };
+  const [pinned, setPinned] = useState<Pin | null>(null);
+  const [promoted, setPromoted] = useState<Pin | null>(null);
+  const valid = (pin: Pin | null): string | null => (pin !== null && pin.over === props.highlightedPassId && (passes.some((pass) => pass.id === pin.id) || hidden?.some((marker) => marker.id === pin.id)) ? pin.id : null);
+  const pinnedId = valid(pinned);
+  const promotedId = valid(promoted);
   const highlightedPassId = pinnedId ?? props.highlightedPassId;
   const select = useCallback(
     (passId: string) => {
       setPinned({ id: passId, over: props.highlightedPassId });
+      setPromoted({ id: passId, over: props.highlightedPassId });
       onSelectPass?.(passId);
     },
     [props.highlightedPassId, onSelectPass],
   );
+  const focusRow = useCallback(
+    (passId: string) => {
+      setPinned({ id: passId, over: props.highlightedPassId });
+    },
+    [props.highlightedPassId],
+  );
 
   // FR-LEG-1, FR-LEG-2: the rows and the keys from the caller's props; the pinned row moves first but keeps its key.
   const baseRows = useMemo(() => legendRows({ passes, highlightedPassId: props.highlightedPassId, now, hidden, colorBy }), [passes, props.highlightedPassId, now, hidden, colorBy]);
-  const rows = useMemo(() => promoteRow(baseRows, pinnedId), [baseRows, pinnedId]);
+  // The row reads as its arc does (FR-LEG-4): the highlight follows `highlightedPassId`, whichever row is at the top.
+  const rows = useMemo(
+    () => promoteRow(baseRows, promotedId).map((row) => (row.state === 'hidden-object' ? row : { ...row, highlighted: highlightedPassId === null || row.passId === highlightedPassId })),
+    [baseRows, promotedId, highlightedPassId],
+  );
   const keys = useMemo(() => legendKeys(baseRows), [baseRows]);
   const lines = bodyLines({ sun: bodies.sun, moon: bodies.moon }, { sun: bodies.sun ? sunVisible(bodies.sun) : false, moon: bodies.moon ? moonVisible(bodies.moon) : false });
 
   const captioned = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
-  const legend = <Legend rows={rows} bodies={lines} timeZone={observer.timeZone} highlightedPassId={highlightedPassId} onActivate={select} />;
+  const legend = <Legend rows={rows} bodies={lines} timeZone={observer.timeZone} highlightedPassId={highlightedPassId} onActivate={select} onFocusRow={focusRow} />;
   // R54 (FR-LIVE-7 as amended v1.1.1, D-269): the view toggle and its note. On the guide they head the figure; on the live
   // page (`fill`) they go to the view for the frame's controls slot, so the row above the drawing is one row.
   const chartControls = (

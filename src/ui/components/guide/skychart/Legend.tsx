@@ -13,7 +13,9 @@ import styles from './Legend.module.css';
  * the rise, peak and end clock times in the observer's zone and the state at
  * the shown instant (`up`, `soon`, `gone`; nothing for a whole arc). A tap,
  * a click or keyboard focus on a row highlights its arc and dims the others
- * (FR-LEG-4). A hidden object (FR-LIVE-6) gets a dim row with the words the
+ * (FR-LEG-4); R54 (D-271, F-53): a click or tap *activates* — pins the row
+ * and moves it to the top — while focus only highlights, so the list holds
+ * still under a keyboard walking it. A hidden object (FR-LIVE-6) gets a dim row with the words the
  * page gave it; the Sun and the Moon get one line each with azimuth and
  * altitude (FR-DOME-6 as amended). Inside `skychart/` so the chart's palette
  * is the swatch's; rendered by `SkyChart` from the props the drawing gets
@@ -25,10 +27,13 @@ export interface LegendProps {
   timeZone: string | null;
   /** The pass the drawing emphasises alone, or null when every arc is at full weight. */
   highlightedPassId: string | null;
+  /** A click or a tap: pin the row and promote it (FR-LEG-4). */
   onActivate: (passId: string) => void;
+  /** Keyboard focus: highlight the row's arc without reordering the list (R54, D-271). */
+  onFocusRow: (passId: string) => void;
 }
 
-export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate }: LegendProps) {
+export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow }: LegendProps) {
   const t = useT();
   const locale = useLocale();
   const words = t.chart.legend;
@@ -49,7 +54,7 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate }
               onActivate(row.passId);
             }}
             onFocus={() => {
-              onActivate(row.passId);
+              onFocusRow(row.passId);
             }}
           >
             <span className={styles.key}>{row.key}</span>
