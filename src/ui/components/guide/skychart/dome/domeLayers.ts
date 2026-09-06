@@ -1,24 +1,26 @@
 import type { MoonState, Pass } from '../../../../../model';
-import { glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
 import {
+  aheadStrip,
   compassAnchors,
   COMPASS_LABEL_RADIUS,
+  diamond,
   flownStrip,
   gridPolygons,
   groundDisc,
   HIDDEN_LABEL_OFFSET_DEG,
   hiddenMarker,
-  MOON_LABEL_OFFSET_DEG,
+  keyAnchor,
+  lingerStrip,
+  liveStrip,
   moonMarker,
   nowMarker,
   nowPoint,
   PASS_LABEL_RADIUS,
-  passAnchors,
   passMarkers,
   passStrip,
   resolveLabels,
+  riseMarker,
   ringAnchors,
-  RISE_LABEL_RADIUS,
   skyBowl,
   sunGlow,
   tickAnchors,
@@ -28,7 +30,7 @@ import {
   type Poly,
   type Tuple3,
 } from './domeGeometry';
-import type { HiddenMarker } from '../SkyChart.types';
+import { arcOf, type ChartPass, type HiddenMarker } from '../SkyChart.types';
 import { seriesColor, type DomePalette } from './palette';
 
 /**
@@ -44,10 +46,16 @@ import { seriesColor, type DomePalette } from './palette';
  * the component then renders each list into its own scene without deciding
  * anything, and the split is unit-tested rather than read off the screen.
  *
- * Pure: no React, no glyphcss, no clock and no words — the label text arrives
- * already worded and formatted (FR-I18N-2 keeps the sentences in the
- * catalogs), and the label box is measured by the caller, which is the only
- * one that knows the font.
+ * Pure: no React, no glyphcss, no clock and no words — the only text the
+ * drawing carries since R45 (FR-LEG-1, D-186) is the compass names, the
+ * FR-DOME-4 degree numbers and one legend key per drawn arc (and per hidden
+ * object), which arrive as `legendKeys`; the label box is measured by the
+ * caller, which is the only one that knows the font.
+ *
+ * R45 (FR-TRAJ-1, D-189): each pass is drawn in its `arc` state — `full` as
+ * before, `live` as the cut track solid with the marker, `ahead` dotted and
+ * faint with the rise marked, `linger` faint with nothing marked, `hidden`
+ * not at all.
  */
 
 export interface Mesh {
@@ -64,24 +72,19 @@ export interface DomeLabel {
   kind: DomeLabelKind;
   /** FR-DOME-2: the colour the label takes; absent leaves it in the page's foreground. */
   color?: string;
-  /** Set on a pass's labels, so a click on one selects that pass (D-56). */
+  /** Set on a pass's key, so a click on it selects that pass (D-56). */
   passId?: string;
+  /** Set on a hidden object's key (FR-LIVE-6), which selects nothing. */
+  hiddenId?: string;
   highlighted?: boolean;
   /** The `data-anchor` the contract test and the e2e read (D-56). */
   anchor?: string;
 }
 
-export interface PassLabelText {
-  /** The satellite's name and its rise time. */
-  rise: string;
-  /** The peak: its clock time and the maximum elevation. */
-  peak: string;
-  /** The end: its clock time (the arrowhead carries the direction). */
-  end: string;
-}
-
 export interface LayersInput {
-  passes: readonly Pass[];
+  passes: readonly ChartPass[];
+  /** FR-LEG-1: the key each pass (by id) and each hidden object (by id) carries at its peak; an id with no key draws no label. */
+  legendKeys?: Readonly<Record<string, string>> | undefined;
   highlightedPassId: string | null;
   /** The instant to mark on the arc, if it falls inside a pass, and the instant everything before it is drawn as flown (FR-DOME-5). */
   now?: number | undefined;
@@ -101,10 +104,6 @@ export interface LayersInput {
    */
   colorBy?: 'highlight' | 'pass' | undefined;
   camera: { rotYDeg: number; tiltDeg: number };
-  /** The worded labels of a pass (FR-I18N-2: the catalogs word them, this file only places them). */
-  labelsFor: (pass: Pass) => PassLabelText;
-  /** The worded names of the two bodies (FR-DOME-6); the Moon's carries its phase glyph. */
-  bodyLabels?: { sun: string; moon: (moon: MoonState) => string };
   /** How big a label is on the drawing, in world units. */
   measure: (text: string) => LabelBox;
 }
@@ -136,17 +135,45 @@ export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId
   const { passes, highlightedPassId, now, moon, hidden = [], palette, colorBy = 'highlight' } = input;
   const meshes: Mesh[] = [{ id: 'grid', polygons: gridPolygons({ ...(palette ? { horizon: palette.horizon, rings: palette.rings } : {}) }) }];
   passes.forEach((pass, index) => {
-    const highlighted = colorBy === 'pass' || isHighlighted(pass, highlightedPassId);
+    // FR-LEG-4 (R45): a highlight dims the others in either colouring — by weight in series mode, where the colour is the pass's identity.
+    const highlighted = isHighlighted(pass, highlightedPassId);
     const arc = arcColor(pass, index, highlightedPassId, palette, colorBy);
-    meshes.push({ id: `pass-${pass.id}`, polygons: passStrip(pass, { highlighted, ...(arc ? { color: arc } : {}) }) });
-    // F-5: a dim pass's flown half takes the dim colour too, so it does not outshine the highlighted pass's own flown colour.
-    meshes.push({ id: `flown-${pass.id}`, polygons: flownStrip(pass, now, { highlighted, ...(palette ? { color: highlighted ? palette.flown : palette.dim } : {}) }) });
-    meshes.push({
-      id: `markers-${pass.id}`,
-      polygons: passMarkers(pass, { ...(palette ? { peak: palette.peak, shadow: palette.shadow } : {}), ...(arc ? { arrow: arc } : {}) }),
-    });
-    const current = nowPoint(pass, now);
-    if (current) meshes.push({ id: `now-${pass.id}`, polygons: nowMarker(current, palette?.now) });
+    const color = arc ? { color: arc } : {};
+    const state = arcOf(pass);
+    switch (state) {
+      case 'hidden':
+        return;
+      case 'live': {
+        // FR-TRAJ-1: the arc from the rise to the position at `now`, solid, in its colour, with the marker; nothing beyond.
+        const t = now ?? pass.end.t;
+        meshes.push({ id: `pass-${pass.id}`, polygons: liveStrip(pass, t, { highlighted, ...color }) });
+        const markers: Poly[] = [];
+        if (pass.startReason === 'shadow') markers.push(...diamond(pass.start, undefined, undefined, palette?.shadow));
+        if (t >= pass.peak.t) markers.push(...diamond(pass.peak, undefined, undefined, palette?.peak));
+        meshes.push({ id: `markers-${pass.id}`, polygons: markers });
+        const current = nowPoint(pass, t);
+        if (current) meshes.push({ id: `now-${pass.id}`, polygons: nowMarker(current, palette?.now) });
+        return;
+      }
+      case 'ahead':
+        meshes.push({ id: `pass-${pass.id}`, polygons: aheadStrip(pass, arc) });
+        meshes.push({ id: `rise-${pass.id}`, polygons: riseMarker(pass, arc) });
+        return;
+      case 'linger':
+        meshes.push({ id: `pass-${pass.id}`, polygons: lingerStrip(pass, arc) });
+        return;
+      case 'full': {
+        meshes.push({ id: `pass-${pass.id}`, polygons: passStrip(pass, { highlighted, ...color }) });
+        // F-5: a dim pass's flown half takes the dim colour too, so it does not outshine the highlighted pass's own flown colour.
+        meshes.push({ id: `flown-${pass.id}`, polygons: flownStrip(pass, now, { highlighted, ...(palette ? { color: highlighted ? palette.flown : palette.dim } : {}) }) });
+        meshes.push({
+          id: `markers-${pass.id}`,
+          polygons: passMarkers(pass, { ...(palette ? { peak: palette.peak, shadow: palette.shadow } : {}), ...(arc ? { arrow: arc } : {}) }),
+        });
+        const current = nowPoint(pass, now);
+        if (current) meshes.push({ id: `now-${pass.id}`, polygons: nowMarker(current, palette?.now) });
+      }
+    }
   });
   // FR-LIVE-6: the dimmed objects, in the dim pass colour, under the Moon.
   for (const marker of hidden) meshes.push({ id: marker.id, polygons: hiddenMarker(marker, palette?.dim) });
@@ -165,13 +192,15 @@ function arcColor(pass: Pass, index: number, highlightedPassId: string | null, p
 
 /**
  * Every label the dome draws, with FR-DOME-3's collision resolution already
- * applied: the compass names first, then the highlighted pass's peak, the
- * rise labels (the highlighted pass's first) and the end label. The degree
- * numbers of FR-DOME-4 never move — they name a fixed angle, so moving one
- * would make it a lie — and are the obstacles everything else gives way to.
+ * applied: the compass names first, then the legend keys — the highlighted
+ * pass's first, so it takes the nearest free place — and the hidden objects'
+ * keys last (FR-LEG-1, R45). The degree numbers of FR-DOME-4 never move —
+ * they name a fixed angle, so moving one would make it a lie — and are the
+ * obstacles everything else gives way to. No name, no time, no body caption
+ * and no reason is drawn: the legend carries them.
  */
 export function domeLabels(input: LayersInput): DomeLabel[] {
-  const { passes, highlightedPassId, sun, moon, hidden = [], palette, camera, labelsFor, measure, bodyLabels, colorBy = 'highlight' } = input;
+  const { passes, highlightedPassId, hidden = [], palette, camera, measure, colorBy = 'highlight', legendKeys = {} } = input;
   const fixed: DomeLabel[] = [
     ...tickAnchors().map((anchor) => ({ id: anchor.id, at: anchor.at, text: degreeText(anchor.valueDeg), kind: 'tick' as const, ...(palette ? { color: palette.rings } : {}) })),
     ...ringAnchors().map((anchor) => ({ id: anchor.id, at: anchor.at, text: degreeText(anchor.valueDeg), kind: 'ring' as const, ...(palette ? { color: palette.rings } : {}) })),
@@ -188,45 +217,26 @@ export function domeLabels(input: LayersInput): DomeLabel[] {
     add(anchor.id, 'compass', { azDeg: anchor.azDeg, elDeg: 0 }, COMPASS_LABEL_RADIUS, { text: anchor.label, anchor: anchor.label, ...(palette ? { color: palette.compass } : {}) });
   }
 
-  // The highlighted pass first, so its labels take the nearest free places (FR-DOME-3's order is between kinds; within a kind it is this order).
+  // The highlighted pass first, so its key takes the nearest free place (FR-DOME-3's order is between kinds; within a kind it is this order).
   // The series index is the pass's place in `passes` (FR-LIVE-2), whatever order the labels are placed in.
   const ordered = passes.map((pass, index) => ({ pass, index })).sort((a, b) => Number(isHighlighted(b.pass, highlightedPassId)) - Number(isHighlighted(a.pass, highlightedPassId)));
   for (const { pass, index } of ordered) {
-    // FR-LIVE-2: every arc named at its rise and nothing more — the peak and end labels are the guide's, for the one pass it explains.
-    const explained = colorBy === 'highlight' && isHighlighted(pass, highlightedPassId);
-    const text = labelsFor(pass);
-    const anchors = passAnchors(pass);
+    // FR-LEG-1: one key at the peak of every drawn arc, whatever its state; a pass with no key (a view mounted alone) draws nothing.
+    const key = legendKeys[pass.id];
+    if (arcOf(pass) === 'hidden' || key === undefined) continue;
     const color = arcColor(pass, index, highlightedPassId, palette, colorBy);
-    const common = { passId: pass.id, highlighted: colorBy === 'pass' || explained, ...(color ? { color } : {}) };
-    if (explained) {
-      add(anchors.peak.id, 'peak', pass.peak, PASS_LABEL_RADIUS, { text: text.peak, anchor: 'peak', ...common, ...(palette ? { color: palette.peak } : {}) });
-    }
-    add(anchors.rise.id, 'rise', pass.start, RISE_LABEL_RADIUS, { text: text.rise, anchor: 'pass', ...common });
-    if (explained) add(anchors.end.id, 'end', pass.end, PASS_LABEL_RADIUS, { text: text.end, ...common });
+    add(keyAnchor(pass).id, 'key', pass.peak, PASS_LABEL_RADIUS, { text: key, anchor: 'key', passId: pass.id, highlighted: isHighlighted(pass, highlightedPassId), ...(color ? { color } : {}) });
   }
 
-  // FR-DOME-6: both bodies labelled. The Sun's name sits over its glow, the
-  // Moon's just above its disc, and both give way to everything else.
-  if (bodyLabels && sun && sunVisible(sun)) {
-    add('sun-label', 'sun', { azDeg: sun.azDeg, elDeg: glowHeightDeg(glowStrength(sun.altDeg)) }, PASS_LABEL_RADIUS, {
-      text: bodyLabels.sun,
-      anchor: 'sun',
-      ...(palette ? { color: palette.sun } : {}),
-    });
-  }
-  if (bodyLabels && moon && moonVisible(moon)) {
-    add('moon-label', 'moon', { azDeg: moon.azDeg, elDeg: Math.min(90, moon.elDeg + MOON_LABEL_OFFSET_DEG) }, PASS_LABEL_RADIUS, {
-      text: bodyLabels.moon(moon),
-      anchor: 'moon',
-      ...(palette ? { color: palette.moon } : {}),
-    });
-  }
-
-  // FR-LIVE-6: each dimmed object's reason, just above its mark, in the dim colour, last in the order.
+  // FR-LIVE-6 as amended: each dimmed object's key, just above its mark, in the dim colour, last in the order; its reason is a legend row.
   for (const marker of hidden) {
-    add(`${marker.id}-label`, 'hidden', { azDeg: marker.azDeg, elDeg: Math.min(90, marker.elDeg + HIDDEN_LABEL_OFFSET_DEG) }, PASS_LABEL_RADIUS, {
-      text: marker.label,
-      anchor: 'hidden',
+    const key = legendKeys[marker.id];
+    if (key === undefined) continue;
+    add(`${marker.id}-key`, 'key', { azDeg: marker.azDeg, elDeg: Math.min(90, marker.elDeg + HIDDEN_LABEL_OFFSET_DEG) }, PASS_LABEL_RADIUS, {
+      text: key,
+      anchor: 'key',
+      hiddenId: marker.id,
+      highlighted: false,
       ...(palette ? { color: palette.dim } : {}),
     });
   }

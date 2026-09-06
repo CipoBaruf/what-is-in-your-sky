@@ -1,14 +1,36 @@
 /* R15 review: the same box for every view. `--chart-size` caps the square
-   drawing (44 cells, the polar chart's width since R13); on a phone the
-   sheet's own width is the cap. The rows above and below keep their height
-   whatever the view puts in them, so the view toggle moves nothing. */
+   drawing (44 cells, the polar chart's width since R13) on wide; on compact
+   the box is the viewport's own width (FR-COMP-5, R45). The rows above and
+   below keep their height whatever the view puts in them, so the view toggle
+   moves nothing. R45 (FR-LEG-2, D-187): a fourth slot for the legend — under
+   the drawing on compact, a 24-cell column at the right on wide — and the
+   shell is the frame's `data-compact`, the same answer `useLayoutMode` gives
+   the pages, so this file carries no breakpoint of its own. The shell around
+   the frame is a size container so the "beside" rule can ask the frame's own
+   width (D-232): the wide guide column is 40 cells, where a 24-cell legend
+   beside the drawing would leave it 14. */
+.shell {
+  container-type: inline-size;
+  min-height: 0;
+}
+
+.shellFill {
+  height: 100%;
+}
+
 .frame {
   --chart-size: calc(44 * var(--cell));
   display: grid;
   gap: calc(var(--row) / 2);
+  grid-template-areas:
+    'controls'
+    'drawing'
+    'status'
+    'legend';
 }
 
 .controls {
+  grid-area: controls;
   min-height: var(--tap);
   display: flex;
   flex-wrap: wrap;
@@ -17,6 +39,7 @@
 }
 
 .drawing {
+  grid-area: drawing;
   width: 100%;
   max-width: var(--chart-size);
   aspect-ratio: 1 / 1;
@@ -27,7 +50,53 @@
 
 /* Two rows: the polar convention sentence wraps on a phone, the dome readout does not. */
 .status {
+  grid-area: status;
   min-height: calc(2 * var(--row));
+}
+
+.legend {
+  grid-area: legend;
+  min-width: 0;
+}
+
+/* FR-COMP-5 (R45, D-187): on compact the box is full-bleed — it breaks out
+   of the page's side padding with negative margins — and square. The pages
+   all pad two cells at the side (the global frame, the detail sheet, the live
+   page); a page that pads otherwise sets `--page-pad-x`. */
+.frame[data-compact='true'] .drawing {
+  width: auto;
+  max-width: none;
+  margin: 0 calc(-1 * var(--page-pad-x, calc(2 * var(--cell))));
+}
+
+/* FR-LEG-2 / D-232: wide puts the legend beside the drawing, 24 cells, the
+   full height of the three rows — where the frame has the room: 36 cells for
+   the drawing (the compact chart's own width), a 2-cell gap and the 24. In a
+   narrower wide frame (the 40-cell guide column of the three-column layout)
+   the legend goes under, as on compact. `ch` here is the frame's own cell:
+   font-relative units in a container condition resolve against the container. */
+@container (min-width: 62ch) {
+  .frame[data-compact='false'][data-legend='true'] {
+    grid-template-columns: minmax(0, 1fr) calc(24 * var(--cell));
+    grid-template-areas:
+      'controls legend'
+      'drawing legend'
+      'status legend';
+    column-gap: calc(2 * var(--cell));
+  }
+
+  .frame[data-compact='false'][data-legend='true'] .legend {
+    align-self: start;
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* A live frame is as tall as its box, so the column is too and scrolls inside rather than over the rows under the box. */
+  .fill[data-compact='false'][data-legend='true'] .legend {
+    align-self: stretch;
+    min-height: 0;
+    overflow-y: auto;
+  }
 }
 
 /* FR-LIVE-1 (R32): the live page's chart. The frame is as tall as the box it
@@ -38,7 +107,7 @@
 .fill {
   height: 100%;
   min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
 }
 
 .fill .drawing {
@@ -46,6 +115,28 @@
   aspect-ratio: auto;
   height: 100%;
   min-height: 0;
+}
+
+/* FR-COMP-5 (R45): …and on compact in portrait never shorter than it is wide.
+   The floor is the frame's measured width (`ChartFrame`'s ResizeObserver), not
+   a CSS sum. Portrait only, as the requirement says: the landscape phone gives
+   the dome the whole height beside the strip (FR-LIVE-7), and a floor at the
+   pane's width there would be taller than the page. `--chart-floor-on` is the
+   page's switch (1 by default): a page whose rows do not yet leave the box its
+   width sets it to 0 rather than have the drawing spill over the rows under
+   it — the live page does until R48 re-cuts its portrait rows (D-233). */
+@media (orientation: portrait) {
+  .fill[data-compact='true'] .drawing {
+    min-height: calc(var(--chart-floor, 0px) * var(--chart-floor-on, 1));
+  }
+}
+
+/* The live page's legend, under the drawing (compact, or a wide frame without
+   the room): at most four rows, scrolling inside, so the legend never costs
+   the page its budget (FR-LIVE-7); the page's own layout of it is R48's. */
+.fill .legend {
+  max-height: calc(4 * var(--row));
+  overflow-y: auto;
 }
 
 .fill .status {

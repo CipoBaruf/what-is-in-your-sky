@@ -76,8 +76,8 @@ async function openChart(page: Page, width: 390 | 1280, locale: 'en' | 'es', vie
   // What the capture is named after: the live marker, the flown arc, the Sun
   // and the Moon. In the dome they live in the raster, so the labels stand for
   // the two bodies there and the polar view carries the markers as elements.
-  await expect(figure.locator('[data-anchor="sun"]')).toHaveCount(1);
-  await expect(figure.locator('[data-anchor="moon"]')).toHaveCount(1);
+  await expect(figure.getByTestId('chart-legend').locator('[data-body="sun"]')).toHaveCount(1);
+  await expect(figure.getByTestId('chart-legend').locator('[data-body="moon"]')).toHaveCount(1);
   if (view === 'polar') {
     await expect(figure.locator('[data-marker="now"]')).toHaveCount(1);
     await expect(figure.locator('[data-marker="flown"]')).toHaveCount(1);
@@ -109,8 +109,8 @@ for (const width of [390, 1280] as const) {
 test('both views mid-pass in Spanish at 390 px: the Sun and the Moon are named in the page language', async ({ page }) => {
   for (const view of ['dome', 'polar'] as const) {
     await openChart(page, 390, 'es', view);
-    await expect(guide(page).locator('[data-anchor="sun"]')).toHaveText('Sol');
-    await expect(guide(page).locator('[data-anchor="moon"]')).toContainText('Luna');
+    await expect(guide(page).getByTestId('chart-legend').locator('[data-body="sun"]')).toContainText('Sol');
+    await expect(guide(page).getByTestId('chart-legend').locator('[data-body="moon"]')).toContainText('Luna');
     await page.screenshot({ path: `docs/screenshots/r22-${view}-390-dark-es.png` });
   }
 });

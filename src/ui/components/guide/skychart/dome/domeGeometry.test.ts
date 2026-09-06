@@ -18,8 +18,14 @@ import {
   circleAround,
   diamond,
   FLOWN_RADIUS,
+  aheadStrip,
   flownStrip,
   glowStrength,
+  keyAnchor,
+  lingerStrip,
+  liveStrip,
+  PASS_LABEL_RADIUS,
+  riseMarker,
   gridPolygons,
   GROUND_RADIUS,
   groundDisc,
@@ -299,10 +305,64 @@ describe('base layer (FR-DOME-3, FR-DOME-8a)', () => {
   });
 });
 
+/** FR-TRAJ-1 / D-189 (R45): the arc in each of its states, on the golden pass. */
+describe('arc states (FR-TRAJ-1)', () => {
+  const midway = Math.round((pass.start.t + pass.end.t) / 2);
+  const width = (polys: Poly[]): number => {
+    const [a, b] = polys[0]?.vertices ?? [];
+    if (!a || !b) throw new Error('no quad');
+    return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  };
+
+  it('live: the cut track solid at the full weight, growing with the instant, no direction gap, nothing beyond it', () => {
+    const half = liveStrip(pass, midway, { highlighted: true, color: '#1' });
+    const whole = liveStrip(pass, pass.end.t, { highlighted: true });
+    expect(half.length).toBeGreaterThan(0);
+    expect(whole.length).toBeGreaterThan(half.length);
+    // No quad omitted: the live strip has every segment of the resampled cut, unlike passStrip's gapped last fifth.
+    expect(whole).toHaveLength(resampleArc(pass.track, ARC_STEP_DEG).length - 1);
+    expect(width(half)).toBeCloseTo(width(passStrip(pass, { highlighted: true })), 9);
+    expect(half.every((poly) => poly.color === '#1')).toBe(true);
+    for (const v of everyVertex(half)) expect(radius(v)).toBeCloseTo(1, 9);
+    // At the rise there is one point and nothing to draw yet; the marker says where.
+    expect(liveStrip(pass, pass.start.t, { highlighted: true })).toEqual([]);
+    expect(width(liveStrip(pass, midway, { highlighted: false }))).toBeLessThan(width(half) / 5);
+  });
+
+  it('ahead: the whole arc at the dim width, every other quad left out, and the rise point marked', () => {
+    const ahead = aheadStrip(pass, '#2');
+    const segments = resampleArc(pass.track, ARC_STEP_DEG).length - 1;
+    expect(ahead).toHaveLength(Math.ceil(segments / 2));
+    expect(width(ahead)).toBeCloseTo(width(passStrip(pass, { highlighted: false })), 9);
+    expect(ahead.every((poly) => poly.color === '#2')).toBe(true);
+    const rise = riseMarker(pass, '#2');
+    expect(rise).toHaveLength(2);
+    for (const v of everyVertex(rise)) {
+      expect(radius(v)).toBeCloseTo(MARKER_RADIUS, 9);
+      expect(Math.abs(skyOf(v).elDeg - pass.start.elDeg)).toBeLessThan(1.51);
+    }
+  });
+
+  it('linger: the whole arc at the dim width, unbroken', () => {
+    const linger = lingerStrip(pass);
+    expect(linger).toHaveLength(resampleArc(pass.track, ARC_STEP_DEG).length - 1);
+    expect(width(linger)).toBeCloseTo(width(passStrip(pass, { highlighted: false })), 9);
+    expect(linger.every((poly) => poly.color === undefined)).toBe(true);
+  });
+
+  it('puts the legend key at the peak, just outside the dome (FR-LEG-1)', () => {
+    const anchor = keyAnchor(pass);
+    expect(anchor.id).toBe(`${pass.id}-key`);
+    expect(radius(anchor.at)).toBeCloseTo(PASS_LABEL_RADIUS, 9);
+    expect(skyOf(anchor.at).elDeg).toBeCloseTo(pass.peak.elDeg, 6);
+    expect(skyOf(anchor.at).azDeg).toBeCloseTo(pass.peak.azDeg, 6);
+  });
+});
+
 describe('label collisions (FR-DOME-3)', () => {
   const box = { halfWidth: 0.08, halfHeight: 0.05 };
   const camera = { rotYDeg: 0, tiltDeg: 45 };
-  const request = (id: string, kind: 'compass' | 'peak' | 'rise' | 'end', azDeg: number, elDeg = 0) => ({ id, kind, azDeg, elDeg, radius: COMPASS_LABEL_RADIUS, ...box });
+  const request = (id: string, kind: 'compass' | 'key', azDeg: number, elDeg = 0) => ({ id, kind, azDeg, elDeg, radius: COMPASS_LABEL_RADIUS, ...box });
 
   it('projects a point the way the turntable draws it: the zenith is high, the far horizon is behind it', () => {
     expect(projectToScreen([0, 0, 1], { rotYDeg: 0, tiltDeg: 90 })).toEqual({ x: 0, y: 1 });
@@ -313,27 +373,27 @@ describe('label collisions (FR-DOME-3)', () => {
   });
 
   it('leaves labels that do not collide where they are', () => {
-    const placed = resolveLabels([request('a', 'compass', 90), request('b', 'peak', 270)], camera);
+    const placed = resolveLabels([request('a', 'compass', 90), request('b', 'key', 270)], camera);
     expect(placed.map((label) => label.shiftedDeg)).toEqual([0, 0]);
     expect(placed.map((label) => label.id)).toEqual(['a', 'b']);
   });
 
-  it('moves the later label along its ring, in the order compass, peak, rise, end', () => {
-    const placed = resolveLabels([request('end', 'end', 90), request('rise', 'rise', 90), request('peak', 'peak', 90), request('compass', 'compass', 90)], camera);
+  it('moves the later label along its ring, in the order compass, then the keys in the order they were placed (R45)', () => {
+    const placed = resolveLabels([request('first', 'key', 90), request('second', 'key', 90), request('third', 'key', 90), request('compass', 'compass', 90)], camera);
     const by = (id: string) => placed.find((label) => label.id === id);
     expect(by('compass')?.shiftedDeg).toBe(0);
-    for (const id of ['peak', 'rise', 'end']) expect(Math.abs(by(id)?.shiftedDeg ?? 0), id).toBeGreaterThan(0);
+    for (const id of ['first', 'second', 'third']) expect(Math.abs(by(id)?.shiftedDeg ?? 0), id).toBeGreaterThan(0);
     // Each label takes the nearest offset still free, so a later one never lands closer to its place than an earlier one.
     const distance = (id: string): number => Math.abs(by(id)?.shiftedDeg ?? 0);
-    expect(distance('peak')).toBeLessThanOrEqual(distance('rise'));
-    expect(distance('rise')).toBeLessThanOrEqual(distance('end'));
+    expect(distance('first')).toBeLessThanOrEqual(distance('second'));
+    expect(distance('second')).toBeLessThanOrEqual(distance('third'));
     expect(new Set(placed.map((label) => label.azDeg)).size).toBe(4);
     // The order the caller gave is the order it gets back, so the scene never reorders under a collision.
-    expect(placed.map((label) => label.id)).toEqual(['end', 'rise', 'peak', 'compass']);
+    expect(placed.map((label) => label.id)).toEqual(['first', 'second', 'third', 'compass']);
   });
 
   it('keeps a moved label on its own ring and inside the shift limit', () => {
-    const placed = resolveLabels([request('a', 'compass', 45, 30), request('b', 'peak', 45, 30)], camera);
+    const placed = resolveLabels([request('a', 'compass', 45, 30), request('b', 'key', 45, 30)], camera);
     for (const label of placed) {
       expect(skyOf(label.at).elDeg).toBeCloseTo(30, 6);
       expect(radius(label.at)).toBeCloseTo(COMPASS_LABEL_RADIUS, 9);

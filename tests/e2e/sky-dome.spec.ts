@@ -161,8 +161,11 @@ test('the dome is the default view, shares the polar frame, faces the rise point
   for (const degrees of ['30°', '60°']) await expect(drawing.getByText(degrees, { exact: true }).first()).toBeVisible();
 
   for (const cardinal of ['N', 'E', 'S', 'W']) await expect(drawing.locator(`[data-anchor="${cardinal}"]`)).toHaveText(cardinal);
-  await expect(drawing.locator(`[data-pass-id="${passId}"] [data-anchor="pass"]`)).toContainText('ISS (Zarya)');
-  await expect(drawing.locator('[data-anchor="peak"]')).toHaveText(/^max \d+°$/);
+  // R45 (FR-LEG-1, FR-DOME-4 as amended): the key at the peak is the arc's one label; the name and the times are the legend's.
+  await expect(drawing.locator(`[data-pass-id="${passId}"][data-anchor="key"]`)).toHaveText('A');
+  await expect(drawing.locator('[data-anchor="pass"]')).toHaveCount(0);
+  await expect(drawing.locator('[data-anchor="peak"]')).toHaveCount(0);
+  await expect(figure.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toContainText('ISS (Zarya)');
 
   // FR-GUIDE-2 default view, FR-GUIDE-4 readout: facing the rise compass point at the D-92 default tilt.
   const readout = figure.getByTestId('dome-readout');
@@ -217,7 +220,7 @@ test('the dome is the default view, shares the polar frame, faces the rise point
   // FR-GUIDE-2b: the polar fallback is one toggle away, shows the same pass, and the choice survives a reload (US-6 AC5).
   await viewToggle.getByRole('button', { name: 'Polar' }).click();
   await expect(figure).toHaveAttribute('data-view', 'polar');
-  await expect(figure.locator(`svg[data-drawing="polar"] [data-pass-id="${passId}"] [data-anchor="pass"]`)).toContainText('ISS (Zarya)');
+  await expect(figure.locator(`svg[data-drawing="polar"] [data-pass-id="${passId}"] [data-anchor="key"]`)).toHaveText('A');
   await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
   expect(JSON.parse(await page.evaluate(() => window.localStorage.getItem('wiys:prefs:v1') ?? '{}'))).toMatchObject({ chartView: 'polar' });
   await page.reload();
@@ -240,7 +243,7 @@ test('the dome is the default view, shares the polar frame, faces the rise point
   await list.locator(`article[data-pass-id="${highest.id}"]`).getByRole('button', { name: /Open guide/ }).click();
   const highFigure = page.getByRole('dialog').getByRole('figure');
   await expect(highFigure.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
-  await expect(highFigure.locator('[data-anchor="peak"]')).toHaveText(`max ${String(highest.el)}°`);
+  await expect(highFigure.locator(`[data-pass-id="${highest.id}"][data-anchor="key"]`)).toHaveText('A');
   await highFigure.evaluate((el) => el.scrollIntoView({ block: 'start' }));
   await page.screenshot({ path: 'test-results/r15-dome-high-390.png' });
   await page.getByRole('dialog').getByRole('group', { name: 'Sky dome' }).focus();

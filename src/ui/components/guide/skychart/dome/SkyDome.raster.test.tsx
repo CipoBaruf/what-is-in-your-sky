@@ -8,7 +8,8 @@
  * answers glyphcss's cell probe (a `<pre>` of twenty `M` lines) with the
  * 6.5 × 13 px cell the stylesheet sets at 390 px, and the rasters are the
  * ones a phone shows: 60 × 30 braille cells of lines over 30 × 15 blocks of
- * base (D-92).
+ * base (D-92). R45 (D-187) re-baked all four: the fit rule's zoom is 162.5
+ * at 390 px where it was 140, so the dome is 16 % larger on the same grid.
  *
  * The alignment assertion is the point of having two snapshots (D-74): the
  * base is exactly half the line layer's grid in both directions, so one base
@@ -99,10 +100,10 @@ describe('<SkyDome> raster', () => {
     const still = render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
     const live = render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} now={now} sun={sun} moon={MOON_FIXTURE} />);
 
-    // Both bodies are labelled, in the language of the catalogs (FR-I18N-2).
-    expect(live.container.querySelector('[data-anchor="sun"]')?.textContent).toBe('Sun');
-    expect(live.container.querySelector('[data-anchor="moon"]')?.textContent).toContain('Moon');
-    expect(still.container.querySelector('[data-anchor="moon"]')).toBeNull();
+    // FR-DOME-6 as amended (R45): neither body is captioned on the drawing — the legend carries their lines.
+    expect(live.container.querySelector('[data-anchor="sun"]')).toBeNull();
+    expect(live.container.querySelector('[data-anchor="moon"]')).toBeNull();
+    expect(live.container.textContent).not.toMatch(/Sun|Moon/);
 
     // More ink on both layers than the same drawing without them.
     const ink = (text: string): number => text.replace(/[\s⠀]/g, '').length;

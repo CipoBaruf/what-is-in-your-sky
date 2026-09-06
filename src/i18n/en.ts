@@ -332,13 +332,21 @@ export const en = {
       'looking-up': 'Looking up: east on the left, as when lying on your back.',
       map: 'Map: east on the right, as on a map.',
     } satisfies Record<ChartOrientation, string>,
-    /** The label beside a pass's rise marker: the object's name (never translated) and its rise time. */
-    passLabel: (p: { name: string; time: string }) => `${p.name} ${p.time}`,
-    peakLabel: (degrees: string) => `max ${degrees}`,
-    /** FR-DOME-6: the label beside the Sun's glow on the horizon. */
-    sunLabel: 'Sun',
-    /** FR-DOME-6: the label beside the Moon's marker; the glyph is its phase and carries no words. */
-    moonLabel: (glyph: string) => `${glyph} Moon`,
+    /**
+     * FR-LEG-1..5 (R45): the legend beside or under the chart. The drawing
+     * carries no words any more — the names, the times, the bodies' captions
+     * and the hidden objects' reasons are rows here. The state words are
+     * FR-LEG-3's: `up` (the marker is on the arc), `soon` (the arc is ahead,
+     * dotted), `gone` (it lingers faint). The two bodies get one line each
+     * with azimuth and altitude (FR-DOME-6 as amended); the Moon's glyph is
+     * its phase and carries no words.
+     */
+    legend: {
+      label: 'Legend',
+      state: { live: 'up', ahead: 'soon', linger: 'gone' } satisfies Record<'live' | 'ahead' | 'linger', string>,
+      sun: (p: { azimuth: string; altitude: string }) => `Sun · az ${p.azimuth} · alt ${p.altitude}`,
+      moon: (p: { glyph: string; azimuth: string; altitude: string }) => `${p.glyph} Moon · az ${p.azimuth} · alt ${p.altitude}`,
+    },
     domeGroup: 'Sky dome',
     domeHint: 'Drag the dome, or use the arrow keys, to look around.',
     /** FR-GUIDE-4: where the dome's camera faces, e.g. "Facing SSW (203°) · tilt 25°". */

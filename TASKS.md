@@ -893,7 +893,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Done when:** the tests above; `npm run bundle:budget` shows the live chunk within its re-set budget; `live.spec.ts`'s follow case asserts the strip line.
   - *Done as written, with three notes.* There is no live slice in `src/state` (the lane's "live slice" is the page), so the cache is `useDeclination`, a per-observer `useMemo` in `src/ui/components/live/`. `declinationDeg` passes `allowOutOfBoundsModel: true`: `geomagnetism` throws outside the WMM epochs, and a static site still being loaded after November 2029 must extrapolate rather than fail to render. The follow case `live.spec.ts` was to assert on did not exist there — the R34 one is in `live-landscape.spec.ts` — so both now assert the line, and `live.spec.ts` gains a portrait follow case in both languages.
 
-- [ ] **R45 — The legend, the fit rule and the arc states in the dome and polar views**
+- [x] **R45 — The legend, the fit rule and the arc states in the dome and polar views**
   - **Lane:** chart
   - **Model:** fable
   - **Gate:** owner
@@ -907,6 +907,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
     - `camera.test.ts`: extent ≥ 90 % of the shorter side at 390 × 390 and 1240 × 450.
     - `arcReveal.test.ts` at the five boundaries; each view's geometry test per state.
     - Captures: the pass detail at 390 px (full-bleed square, legend under) and 1280 px (legend beside), both themes, both languages; the D-172 figure in the summary ≥ 30/s.
+  - *Done as written, with four notes.* The legend goes beside the drawing only where the frame has 62 cells (D-232): at 1280 px the guide column is 40 cells and the detail's legend stays under; the live page at 1280 px is the beside capture. The portrait floor is behind a page switch the live page holds off until R48 re-cuts its rows (D-233). The catalog split (D-199) is not on `main`, so the legend's keys went into the chart section of `en.ts` / `es.ts`. The D-172 rate is 45.3/s at 390 px and 34.0/s at 1280 px (D-234).
 
 - [ ] **R46 — ui findings A: the readiness line, the nights and the place picker offline**
   - **Lane:** ui

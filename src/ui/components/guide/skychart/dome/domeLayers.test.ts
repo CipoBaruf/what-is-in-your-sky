@@ -6,16 +6,18 @@
  * The two things this file is the contract for:
  *   - FR-DOME-8: every mesh is on exactly one layer, surfaces on the base and
  *     marks on the lines, and an empty mesh is never emitted.
- *   - FR-DOME-3: labels resolve collisions in the order compass, peak, rise,
- *     end, moving along their own ring, and the FR-DOME-4 degree numbers
- *     never move.
+ *   - FR-DOME-3: labels resolve collisions in the order compass, then the
+ *     legend keys, moving along their own ring, and the FR-DOME-4 degree
+ *     numbers never move.
+ *   - R45 (FR-LEG-1, FR-TRAJ-1): the only pass label is the key at the
+ *     peak, and each arc is drawn in its state.
  */
 import { describe, expect, it } from 'vitest';
 import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
 import { MOON_DOWN, MOON_FIXTURE } from '../../../../../../tests/support/moonFixtures';
 import type { Pass } from '../../../../../model';
-import { LABEL_SHIFT_MAX_DEG, MOON_LABEL_OFFSET_DEG, RING_ELEVATIONS, TICK_LABEL_STEP_DEG, type LabelBox } from './domeGeometry';
-import { baseLayer, domeLabels, domeLayers, lineLayer, type DomeLabel, type LayersInput, type PassLabelText } from './domeLayers';
+import { LABEL_SHIFT_MAX_DEG, RING_ELEVATIONS, TICK_LABEL_STEP_DEG, type LabelBox } from './domeGeometry';
+import { baseLayer, domeLabels, domeLayers, lineLayer, type DomeLabel, type LayersInput } from './domeLayers';
 import type { DomePalette } from './palette';
 import { MEANINGS } from './palette';
 
@@ -25,7 +27,8 @@ const other: Pass = { ...pass, id: 'other', name: 'Tiangong', start: { ...pass.s
 /** A palette whose every value names its meaning, so a mesh's colour says where it came from. */
 const palette = Object.fromEntries(MEANINGS.map((meaning) => [meaning, meaning])) as DomePalette;
 
-const labelsFor = (p: Pass): PassLabelText => ({ rise: p.name, peak: 'max 10°', end: '09:52' });
+/** The keys `SkyChart` would hand the view for these fixtures (FR-LEG-1). */
+const legendKeys = { [pass.id]: 'A', other: 'B', 'hidden-1': 'C', 'hidden-2': 'D' };
 /** Every label the same size, so a collision is about the geometry and not about the words. */
 const measure = (): LabelBox => ({ halfWidth: 0.08, halfHeight: 0.03 });
 
@@ -34,7 +37,7 @@ const input = (over: Partial<LayersInput> = {}): LayersInput => ({
   highlightedPassId: pass.id,
   palette,
   camera: { rotYDeg: 0, tiltDeg: 45 },
-  labelsFor,
+  legendKeys,
   measure,
   ...over,
 });
@@ -107,12 +110,60 @@ describe('lineLayer (FR-DOME-8b)', () => {
 });
 
 describe('domeLabels with colorBy="pass" (FR-LIVE-2)', () => {
-  it('names every arc at its rise in its series colour, and explains none with peak or end labels', () => {
+  it('keys every arc at its peak in its series colour, all at full weight with no highlight', () => {
     const labels = domeLabels(input({ passes: [pass, other], highlightedPassId: null, colorBy: 'pass' }));
-    expect(byId(labels, `${pass.id}-rise`)?.color).toBe('series1');
-    expect(byId(labels, 'other-rise')?.color).toBe('series2');
-    expect(labels.filter((label) => label.kind === 'peak' || label.kind === 'end')).toEqual([]);
-    expect(labels.filter((label) => label.kind === 'rise').every((label) => label.highlighted)).toBe(true);
+    expect(byId(labels, `${pass.id}-key`)).toMatchObject({ kind: 'key', text: 'A', color: 'series1', anchor: 'key', passId: pass.id, highlighted: true });
+    expect(byId(labels, 'other-key')).toMatchObject({ text: 'B', color: 'series2', highlighted: true });
+    expect(labels.filter((label) => label.passId !== undefined)).toHaveLength(2);
+  });
+
+  /** FR-LEG-4: a legend row activated on the live page highlights that arc alone — by weight, the series colour being the arc's identity. */
+  it('dims the other arcs by weight, not colour, once a pass is highlighted in series mode', () => {
+    const meshes = lineLayer({ passes: [pass, other], highlightedPassId: 'other', now: undefined, palette, colorBy: 'pass' });
+    const width = (id: string): number => {
+      const [a, b] = meshes.find((mesh) => mesh.id === id)?.polygons[0]?.vertices ?? [];
+      if (!a || !b) throw new Error(`no ${id}`);
+      return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+    };
+    expect(width(`pass-${pass.id}`)).toBeLessThan(width('pass-other') / 5);
+    expect(meshes.find((mesh) => mesh.id === `pass-${pass.id}`)?.polygons[0]?.color).toBe('series1');
+    expect(byId(domeLabels(input({ passes: [pass, other], highlightedPassId: 'other', colorBy: 'pass' })), `${pass.id}-key`)?.highlighted).toBe(false);
+  });
+});
+
+/** FR-TRAJ-1 / D-189 (R45): the line layer per arc state, on the golden pass. */
+describe('arc states (FR-TRAJ-1)', () => {
+  const count = (meshes: readonly { id: string; polygons: unknown[] }[], id: string): number => meshes.find((mesh) => mesh.id === id)?.polygons.length ?? 0;
+
+  it('live: the cut track solid in the arc colour with the marker, the peak marked once passed, no flown mesh and no arrowhead', () => {
+    const early = lineLayer(input({ passes: [{ ...pass, arc: 'live' }], now: pass.start.t + 20_000 }));
+    expect(ids(early)).toEqual(['grid', `pass-${pass.id}`, `now-${pass.id}`]);
+    expect(early.find((mesh) => mesh.id === `pass-${pass.id}`)?.polygons.every((poly) => poly.color === 'highlighted')).toBe(true);
+    const late = lineLayer(input({ passes: [{ ...pass, arc: 'live' }], now: pass.peak.t + 1000 }));
+    expect(ids(late)).toEqual(['grid', `pass-${pass.id}`, `markers-${pass.id}`, `now-${pass.id}`]);
+    expect(count(late, `markers-${pass.id}`)).toBe(2); // the peak diamond's two windings, no arrowhead
+    expect(count(late, `pass-${pass.id}`)).toBeGreaterThan(count(early, `pass-${pass.id}`));
+    expect(ids(late)).not.toContain(`flown-${pass.id}`);
+  });
+
+  it('ahead: the whole arc dotted in the arc colour with the rise point marked and nothing else', () => {
+    const meshes = lineLayer(input({ passes: [{ ...pass, arc: 'ahead' }], now: pass.start.t - 60_000 }));
+    expect(ids(meshes)).toEqual(['grid', `pass-${pass.id}`, `rise-${pass.id}`]);
+    expect(meshes.find((mesh) => mesh.id === `rise-${pass.id}`)?.polygons.every((poly) => poly.color === 'highlighted')).toBe(true);
+    expect(count(meshes, `pass-${pass.id}`)).toBeLessThan(count(lineLayer(input({ passes: [{ ...pass, arc: 'linger' }] })), `pass-${pass.id}`));
+  });
+
+  it('linger: the whole arc faint with no marker of any kind', () => {
+    const meshes = lineLayer(input({ passes: [{ ...pass, arc: 'linger' }], now: pass.end.t + 60_000 }));
+    expect(ids(meshes)).toEqual(['grid', `pass-${pass.id}`]);
+  });
+
+  it('hidden: nothing drawn and no key, while a full arc beside it is drawn as before', () => {
+    const meshes = lineLayer(input({ passes: [{ ...pass, arc: 'hidden' }, { ...other, arc: 'full' }] }));
+    expect(ids(meshes)).toEqual(['grid', 'pass-other', 'markers-other']);
+    const labels = domeLabels(input({ passes: [{ ...pass, arc: 'hidden' }, other] }));
+    expect(byId(labels, `${pass.id}-key`)).toBeUndefined();
+    expect(byId(labels, 'other-key')?.text).toBe('B');
   });
 });
 
@@ -131,11 +182,13 @@ describe('hidden objects (FR-LIVE-6, R33)', () => {
     expect(ids(lineLayer({ passes: [pass], highlightedPassId: pass.id, now: undefined, palette })).some((id) => id.startsWith('hidden-'))).toBe(false);
   });
 
-  it('labels each with the words the page gave it, in the dim colour, with the anchor the tests read, and last in the order', () => {
+  it('keys each at its mark, in the dim colour, with no words (the reason is a legend row), last in the order', () => {
     const labels = domeLabels(input({ hidden }));
-    expect(byId(labels, 'hidden-1-label')).toMatchObject({ kind: 'hidden', text: 'Cosmos 2369 · in shadow', color: 'dim', anchor: 'hidden' });
-    expect(byId(labels, 'hidden-2-label')?.text).toBe('Envisat · too faint');
-    expect(byId(domeLabels(input({ hidden, palette: null })), 'hidden-1-label')?.color).toBeUndefined();
+    expect(byId(labels, 'hidden-1-key')).toMatchObject({ kind: 'key', text: 'C', color: 'dim', anchor: 'key', hiddenId: 'hidden-1', highlighted: false });
+    expect(byId(labels, 'hidden-2-key')?.text).toBe('D');
+    expect(labels.some((label) => label.text.includes('Cosmos'))).toBe(false);
+    expect(byId(domeLabels(input({ hidden, palette: null })), 'hidden-1-key')?.color).toBeUndefined();
+    expect(labels.map((label) => label.id).indexOf('hidden-1-key')).toBeGreaterThan(labels.map((label) => label.id).indexOf(`${pass.id}-key`));
   });
 });
 
@@ -154,30 +207,28 @@ describe('the two layers together', () => {
 });
 
 describe('domeLabels (FR-DOME-3, FR-DOME-4)', () => {
-  it('draws the eight compass names, the degree numbers and the highlighted pass s three labels', () => {
-    const labels = domeLabels(input());
+  it('draws the eight compass names, the degree numbers and one key per pass, and nothing else (FR-LEG-1)', () => {
+    const labels = domeLabels(input({ passes: [pass, other] }));
     const kinds = labels.reduce<Record<string, number>>((acc, label) => ({ ...acc, [label.kind]: (acc[label.kind] ?? 0) + 1 }), {});
     expect(kinds.compass).toBe(8);
     // FR-DOME-4: every 30° of azimuth except the four cardinals, whose compass name already says the number.
     expect(kinds.tick).toBe(360 / TICK_LABEL_STEP_DEG - 4);
     expect(kinds.ring).toBe(RING_ELEVATIONS.length);
-    expect(kinds.peak).toBe(1);
-    expect(kinds.rise).toBe(1);
-    expect(kinds.end).toBe(1);
+    expect(kinds.key).toBe(2);
+    expect(Object.keys(kinds).sort()).toEqual(['compass', 'key', 'ring', 'tick']);
   });
 
-  it('gives a pass that is not highlighted its name only: no peak and no end label to crowd the drawing', () => {
+  it('gives a pass that is not highlighted its key dim, and the highlighted one its key full', () => {
     const labels = domeLabels(input({ passes: [pass, other] }));
-    const dim = labels.filter((label) => label.passId === 'other');
-    expect(dim.map((label) => label.kind)).toEqual(['rise']);
-    expect(dim[0]?.highlighted).toBe(false);
+    expect(byId(labels, 'other-key')).toMatchObject({ text: 'B', highlighted: false, color: 'dim' });
+    expect(byId(labels, `${pass.id}-key`)).toMatchObject({ text: 'A', highlighted: true, color: 'highlighted' });
   });
 
-  it('words nothing itself: the pass labels are exactly what the catalogs gave it (FR-I18N-2)', () => {
+  it('words nothing itself: no name, no time, no caption — the key is the letter it was given and a pass without one draws no label', () => {
     const labels = domeLabels(input());
-    expect(byId(labels, `${pass.id}-rise`)?.text).toBe(pass.name);
-    expect(byId(labels, `${pass.id}-peak`)?.text).toBe('max 10°');
-    expect(byId(labels, `${pass.id}-end`)?.text).toBe('09:52');
+    expect(labels.map((label) => label.text)).not.toContain(pass.name);
+    expect(labels.filter((label) => label.kind === 'key').map((label) => label.text)).toEqual(['A']);
+    expect(domeLabels(input({ legendKeys: {} })).filter((label) => label.kind === 'key')).toEqual([]);
   });
 
   it('numbers the degrees identically in every language, so they are not catalog entries (FR-I18N-4)', () => {
@@ -191,8 +242,7 @@ describe('domeLabels (FR-DOME-3, FR-DOME-4)', () => {
   it('colours a label by what it names (FR-DOME-2)', () => {
     const labels = domeLabels(input());
     expect(byId(labels, 'compass-N')?.color).toBe('compass');
-    expect(byId(labels, `${pass.id}-rise`)?.color).toBe('highlighted');
-    expect(byId(labels, `${pass.id}-peak`)?.color).toBe('peak');
+    expect(byId(labels, `${pass.id}-key`)?.color).toBe('highlighted');
     expect(labels.find((label) => label.kind === 'tick')?.color).toBe('rings');
   });
 
@@ -217,7 +267,7 @@ describe('domeLabels (FR-DOME-3, FR-DOME-4)', () => {
     for (const radius of radii) expect(radius).toBeCloseTo(radii[0] as number, 9);
   });
 
-  it('resolves in the order compass, peak, rise, end: the compass keeps its place and the pass labels give way', () => {
+  it('resolves in the order compass, then keys: the compass keeps its place and the keys give way', () => {
     const wide = () => ({ halfWidth: 0.3, halfHeight: 0.12 });
     const placedCompass = domeLabels(input({ passes: [], measure: wide })).filter((label) => label.kind === 'compass');
     const withPasses = domeLabels(input({ passes: [pass, other], measure: wide })).filter((label) => label.kind === 'compass');
@@ -228,7 +278,7 @@ describe('domeLabels (FR-DOME-3, FR-DOME-4)', () => {
     // Half a radius wide: nothing fits anywhere, so every label must still come back.
     const labels = domeLabels(input({ passes: [pass, other], measure: () => ({ halfWidth: 0.5, halfHeight: 0.5 }) }));
     expect(labels.filter((label) => label.kind === 'compass')).toHaveLength(8);
-    expect(byId(labels, `${pass.id}-rise`)).toBeDefined();
+    expect(byId(labels, `${pass.id}-key`)).toBeDefined();
     expect(labels.every((label) => label.at.every(Number.isFinite))).toBe(true);
   });
 
@@ -246,14 +296,14 @@ describe('domeLabels (FR-DOME-3, FR-DOME-4)', () => {
 
   it('carries the anchors the contract test and the e2e read (D-56)', () => {
     const labels = domeLabels(input());
-    expect(byId(labels, `${pass.id}-rise`)?.anchor).toBe('pass');
-    expect(byId(labels, `${pass.id}-peak`)?.anchor).toBe('peak');
+    expect(byId(labels, `${pass.id}-key`)?.anchor).toBe('key');
+    expect(byId(labels, `${pass.id}-key`)?.passId).toBe(pass.id);
     expect(labels.filter((label) => label.kind === 'compass').map((label) => label.anchor)).toEqual(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']);
   });
 
   it('treats a null highlight as "every pass is the subject", which is the overview the list draws', () => {
     const labels = domeLabels(input({ passes: [pass, other], highlightedPassId: null }));
-    expect(labels.filter((label) => label.kind === 'peak')).toHaveLength(2);
+    expect(labels.filter((label) => label.kind === 'key')).toHaveLength(2);
     expect(labels.filter((label) => label.passId !== undefined).every((label) => label.highlighted)).toBe(true);
   });
 });
@@ -304,7 +354,6 @@ describe('the live marker and the flown arc (FR-DOME-5)', () => {
 describe('the Sun and the Moon (FR-DOME-6)', () => {
   const sun = { azDeg: 285, altDeg: -8 };
   const moonUp = { ...MOON_FIXTURE };
-  const bodyLabels = { sun: 'Sun', moon: (state: typeof MOON_FIXTURE) => `${state.phase} Moon` };
 
   it('puts the Moon on the line layer while it is up, in the Moon colour, and nowhere while it is down', () => {
     const up = lineLayer(input({ moon: moonUp }));
@@ -314,32 +363,10 @@ describe('the Sun and the Moon (FR-DOME-6)', () => {
     expect(ids(lineLayer(input()))).not.toContain('moon');
   });
 
-  it('labels both bodies, in their own colours, only where each one is drawn', () => {
-    const labels = domeLabels(input({ sun, moon: moonUp, bodyLabels }));
-    expect(byId(labels, 'sun-label')?.text).toBe('Sun');
-    expect(byId(labels, 'sun-label')?.color).toBe('sun');
-    expect(byId(labels, 'sun-label')?.anchor).toBe('sun');
-    expect(byId(labels, 'moon-label')?.text).toBe('waningGibbous Moon');
-    expect(byId(labels, 'moon-label')?.color).toBe('moon');
-    expect(byId(labels, 'moon-label')?.anchor).toBe('moon');
-
-    // Below −18° there is no glow to label, and below the horizon no Moon.
-    const dark = domeLabels(input({ sun: { azDeg: 285, altDeg: -30 }, moon: MOON_DOWN, bodyLabels }));
-    expect(byId(dark, 'sun-label')).toBeUndefined();
-    expect(byId(dark, 'moon-label')).toBeUndefined();
-    // …and no names to give them means no labels either, whatever is in the sky.
-    expect(byId(domeLabels(input({ sun, moon: moonUp })), 'sun-label')).toBeUndefined();
-  });
-
-  it('gives way to the pass labels, which the fixed order puts first', () => {
-    // Both bodies sit exactly where the highlighted pass's peak label wants to
-    // be; the pass keeps the place and the bodies are the ones that move.
-    const collide = { azDeg: pass.peak.azDeg, altDeg: -1 };
-    const moonOnPeak = { ...MOON_FIXTURE, azDeg: pass.peak.azDeg, elDeg: pass.peak.elDeg - MOON_LABEL_OFFSET_DEG };
-    const labels = domeLabels(input({ sun: collide, moon: moonOnPeak, bodyLabels, measure: () => ({ halfWidth: 0.3, halfHeight: 0.12 }) }));
-    const alone = domeLabels(input({ sun: collide, moon: moonOnPeak, bodyLabels, measure: () => ({ halfWidth: 0.001, halfHeight: 0.001 }) }));
-    const moved = (id: string): boolean => byId(labels, id)?.at.join() !== byId(alone, id)?.at.join();
-    expect(moved(`${pass.id}-peak`)).toBe(false);
-    expect(moved('moon-label')).toBe(true);
+  /** FR-DOME-6 as amended (R45): "both labelled" is a legend line each; the drawing carries the glow and the disc only. */
+  it('captions neither body on the drawing', () => {
+    const labels = domeLabels(input({ sun, moon: moonUp }));
+    expect(labels.filter((label) => label.kind !== 'compass' && label.kind !== 'tick' && label.kind !== 'ring' && label.kind !== 'key')).toEqual([]);
+    expect(labels.some((label) => /sun|moon/i.test(label.text))).toBe(false);
   });
 });

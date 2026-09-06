@@ -54,8 +54,10 @@ test.describe('the live page', () => {
     await expect(page.getByTestId('live-moon')).toHaveText(/Moon (new|waxing crescent|first quarter|waxing gibbous|full|waning gibbous|last quarter|waning crescent), \d+ % lit/);
     // FR-LIVE-2 / FR-LIVE-10: the ISS is drawn on the chart, by the chart, named at its rise. (The search
     // window starts at now, so the pass under way is listed from this instant and its id is not the golden one.)
-    await expect(page.getByTestId('live-dome').locator('[data-pass-id]').first()).toBeAttached();
-    await expect(page.getByTestId('live-dome').locator('[data-pass-id^="25544-"]')).toHaveCount(1);
+    // R45: the legend's rows carry the pass id too, so the drawing's are read inside the drawing.
+    await expect(page.getByTestId('live-dome').locator('[data-drawing] [data-pass-id]').first()).toBeAttached();
+    await expect(page.getByTestId('live-dome').locator('[data-drawing] [data-pass-id^="25544-"]')).toHaveCount(1);
+    await expect(page.getByTestId('live-dome').getByTestId('chart-legend').locator('button[data-pass-id^="25544-"]')).toContainText('ISS (Zarya)');
     // FR-SHARE-1's live form.
     await expect(page.getByRole('button', { name: 'Share this sky' })).toBeVisible();
 

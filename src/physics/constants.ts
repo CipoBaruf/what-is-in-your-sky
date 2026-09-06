@@ -72,6 +72,17 @@ export const MOON_GLARE_MIN_ILLUMINATION = 0.5;
  */
 export const MOON_GLARE_MAX_SEPARATION_DEG = 30;
 
+/**
+ * FR-TRAJ-2 (v1.1, R45): how far ahead of the shown instant a pass is drawn
+ * as a faint dotted hint, and how long after its end it lingers faint. Both
+ * in shown time, not wall time: at 60× five minutes is five seconds of
+ * watching, long enough to see where to look next and what just passed; at
+ * 3600× they are a twelfth and a sixth of a second, so the chart does not
+ * fill with arcs. OQ-19 holds the values open until field use.
+ */
+export const ARC_LOOKAHEAD_MS = 5 * 60_000;
+export const ARC_LINGER_MS = 10 * 60_000;
+
 /** The FR-MOON-2 thresholds as one object. Not user settings and not carried by the protocol; `findPasses` uses these defaults. */
 export const DEFAULT_MOON_GLARE_THRESHOLDS: Readonly<MoonGlareThresholds> = Object.freeze({
   minAltDeg: MOON_GLARE_MIN_ALT_DEG,

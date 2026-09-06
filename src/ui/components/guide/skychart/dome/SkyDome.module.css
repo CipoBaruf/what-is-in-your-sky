@@ -134,7 +134,8 @@
   pointer-events: none;
 }
 
-.stage :global(.glyph-scene .glyph-hotspot[data-hotspot-id$='-rise']) {
+/* R45 (FR-LEG-1, D-56): the key at the peak is the pass's one clickable label. */
+.stage :global(.glyph-scene .glyph-hotspot[data-hotspot-id$='-key']) {
   pointer-events: all;
   cursor: pointer;
 }
@@ -175,16 +176,16 @@
   opacity: 0.8;
 }
 
-/* The rise label is raised one line so it clears the peak label and the arrow of a short, low pass. */
-.raised {
-  margin-top: -1.3em;
-}
-
-/* FR-DOME-6: the Sun's and the Moon's names. Set at the degree numbers' size —
-   they are context, not the subject — but at full opacity, since a body's name
-   has to stay legible over the glow it sits on. */
-.body {
-  font-size: 9px;
+/* R45 (FR-LEG-1, FR-LEG-5): the legend key at an arc's peak — one bold
+   character in the arc's own colour, the channel that carries the mapping to
+   the legend row without colour. Set on a small pill of the page background so
+   it reads over the braille it sits beside. */
+.key {
+  font-weight: 700;
+  font-size: 12px;
+  padding: 0 0.2em;
+  border-radius: 2px;
+  background: var(--bg);
 }
 
 .passLabel {
@@ -192,12 +193,6 @@
 }
 
 .passLabelDim {
-  color: var(--fg-dim);
-}
-
-/* FR-LIVE-6 (R33): a hidden object's reason — the degree numbers' size, the dim foreground; the palette colours it when there is one. */
-.hiddenLabel {
-  font-size: 9px;
   color: var(--fg-dim);
 }
 

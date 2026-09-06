@@ -1,6 +1,8 @@
 import { compassPoint, normalizeAzimuthDeg, type CompassPoint } from '../../../../../lib/compass';
 import { degrees } from '../../../../../lib/format';
+import { toDome } from '../../../../../lib/skyGeometry';
 import type { Pass } from '../../../../../model';
+import { COMPASS_LABEL_RADIUS, projectToScreen, type Tuple3 } from './domeGeometry';
 
 /**
  * PLAN §8.3/§8.4 (R15): the dome's camera as two numbers the user controls,
@@ -32,15 +34,59 @@ export const PITCH_STEP_DEG = 5;
 /** Drag sensitivity, the same as glyphcss's orbit controls: 4 px per degree. */
 export const DRAG_PX_PER_DEG = 4;
 /**
- * Orthographic zoom in CSS px per world unit at the reference 390 px box: the
- * unit dome spans ≈ 72 % of the width, leaving the labels their margin. It
- * scales with the *box* and not with the cell (D-91): glyphcss measures zoom
- * against the cell it probes at mount, so two stacked layers of different
- * coarseness must take the same number or the coarser one is drawn twice the
- * size.
+ * FR-DOME-1 as amended / D-177, D-187 (R45): the fit rule. The orthographic
+ * zoom is CSS px per world unit, and it is the box's *shorter* side that sets
+ * it: `zoom = min(width / 2.4, height / 1.6)`. The compass ring sits at
+ * 1.08 radii, so 2.16 world units across is the drawing's width with its
+ * labels and 2.4 leaves the names their margin; at the default 45° tilt the
+ * ring is 2 × 1.08 × cos 45° ≈ 1.53 units tall, and 1.6 leaves the same
+ * margin. Either way the drawing covers ≥ 90 % of the shorter side, which
+ * `drawingExtent` measures and `camera.test.ts` holds. The zoom scales with
+ * the *box* and not with the cell (D-91): glyphcss measures zoom against the
+ * cell it probes at mount, so two stacked layers of different coarseness
+ * must take the same number or the coarser one is drawn twice the size.
+ * Before R45 it was 140 at 390 px, the dome at ≈ 72 % of the width.
  */
-export const ZOOM_AT_60_COLS = 140;
+export const ZOOM_WIDTH_DIVISOR = 2.4;
+export const ZOOM_HEIGHT_DIVISOR = 1.6;
 export const REFERENCE_WIDTH_PX = 390;
+/** FR-DOME-1's number: the drawing's extent, labels included, against the shorter side of its box. */
+export const MIN_EXTENT_RATIO = 0.9;
+/** `.label` in the stylesheet: the font size and the advance a label is laid out at, so a label's box can be sized in world units. */
+export const LABEL_FONT_PX = 11;
+export const LABEL_ADVANCE = 0.6;
+
+/** The fit rule: CSS px per world unit for a box, from its shorter side (D-177). */
+export function zoomFor(widthPx: number, heightPx: number): number {
+  return Math.min(widthPx / ZOOM_WIDTH_DIVISOR, heightPx / ZOOM_HEIGHT_DIVISOR);
+}
+
+/**
+ * The drawing's extent on screen in CSS px at a zoom and a tilt: the bounding
+ * box of the compass ring (the outermost anchors, `COMPASS_LABEL_RADIUS`) and
+ * the zenith, grown by half a two-letter compass name on each side. What
+ * FR-DOME-1's 90 % rule is measured against.
+ */
+export function drawingExtent(zoom: number, tiltDeg: number, rotYDeg = 0): { width: number; height: number } {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  const take = (at: Tuple3): void => {
+    const p = projectToScreen(at, { rotYDeg, tiltDeg });
+    minX = Math.min(minX, p.x);
+    maxX = Math.max(maxX, p.x);
+    minY = Math.min(minY, p.y);
+    maxY = Math.max(maxY, p.y);
+  };
+  for (let az = 0; az < 360; az += 5) {
+    const v = toDome(az, 0);
+    take([v.x * COMPASS_LABEL_RADIUS, v.y * COMPASS_LABEL_RADIUS, v.z * COMPASS_LABEL_RADIUS]);
+  }
+  take([0, 0, COMPASS_LABEL_RADIUS]);
+  const label = LABEL_FONT_PX * LABEL_ADVANCE;
+  return { width: (maxX - minX) * zoom + 2 * label, height: (maxY - minY) * zoom + LABEL_FONT_PX };
+}
 
 export function clampTilt(tiltDeg: number): number {
   return Math.min(PITCH_MAX_DEG, Math.max(PITCH_MIN_DEG, tiltDeg));
@@ -221,6 +267,8 @@ function rowsFor(hostHeightPx: number | null, cellHeightPx: number, cols: number
  * is square, so nothing changes there; the live page's is the viewport's
  * leftover, wider than tall on a desktop, and a zoom taken from its width
  * put the top of the dome — north, and every label up there — outside it.
+ * R45 (D-187): the shorter side through `zoomFor`'s two divisors, so the
+ * drawing fills ≥ 90 % of it.
  */
 export function layoutFor(hostWidthPx: number | null, hostHeightPx: number | null = null, advance: GlyphAdvance = DEFAULT_ADVANCE, cols = colsFor(hostWidthPx)): DomeLayout {
   const measured = hostWidthPx !== null && Number.isFinite(hostWidthPx) && hostWidthPx > 0;
@@ -237,7 +285,7 @@ export function layoutFor(hostWidthPx: number | null, hostHeightPx: number | nul
     cellHeightPx: cellWidthPx * CELL_ASPECT,
     fontSizePx,
     wordSpacingPx: cellWidthPx - space * fontSizePx,
-    zoom: (ZOOM_AT_60_COLS * Math.min(width, height)) / REFERENCE_WIDTH_PX,
+    zoom: zoomFor(width, height),
   };
 }
 

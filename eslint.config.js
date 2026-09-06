@@ -93,12 +93,14 @@ export default defineConfig([
     rules: { '@typescript-eslint/no-restricted-imports': restrictedImports({ patterns: [NO_REACT] }) },
   },
   {
-    // `src/lib` may use physics types only (PLAN §3), with one exception named
+    // `src/lib` may use physics types only (PLAN §3), with two exceptions named
     // in the plan itself: `lib/skyBodies.ts` runs `sun.ts` and `moon.ts` on the
     // main thread so the charts' Sun and Moon can follow the clock without a
-    // worker round trip (D-80, FR-DOME-6, FR-LIVE-5).
+    // worker round trip (D-80, FR-DOME-6, FR-LIVE-5), and `lib/arcReveal.ts`
+    // reads the two FR-TRAJ-2 thresholds that D-189 keeps in
+    // `physics/constants.ts` beside the other thresholds (R45).
     files: ['src/lib/**'],
-    ignores: [...TESTS, 'src/lib/skyBodies.ts'],
+    ignores: [...TESTS, 'src/lib/skyBodies.ts', 'src/lib/arcReveal.ts'],
     rules: {
       '@typescript-eslint/no-restricted-imports': restrictedImports({
         patterns: [NO_REACT, { group: ['**/physics/**', '**/physics'], allowTypeImports: true, message: 'src/lib may import physics types only (PLAN §3).' }],

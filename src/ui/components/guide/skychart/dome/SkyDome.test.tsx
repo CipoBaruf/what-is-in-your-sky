@@ -159,32 +159,63 @@ describe('<SkyDome>', () => {
     expect(onDrag).toHaveBeenCalledTimes(2);
   });
 
-  it('labels the compass points, the pass and its peak; labels run away from the drawing edge; a click on the pass reports its id', () => {
+  it('labels the compass points and the pass with its legend key at the peak, nothing else; compass labels run away from the drawing edge; a click on the key reports the pass id', () => {
     const onSelectPass = vi.fn();
-    const { container } = mount({ onSelectPass });
+    const { container, unmount } = mount({ onSelectPass, legendKeys: { [pass.id]: 'A' } });
     for (const label of ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']) expect(container.querySelector(`[data-anchor="${label}"]`)?.textContent).toBe(label);
     // Facing NE: NW and W are on the left half, SE and E on the right; N and SW straddle the centre line.
     expect(container.querySelector('[data-anchor="NW"]')).toHaveAttribute('data-side', 'left');
     expect(container.querySelector('[data-anchor="SE"]')).toHaveAttribute('data-side', 'right');
     expect(container.querySelector('[data-anchor="NE"]')).toHaveAttribute('data-side', 'centre');
-    const name = container.querySelector('[data-anchor="pass"]');
-    expect(name?.textContent).toBe('ISS (Zarya) 09:48:14 UTC');
-    expect(container.querySelector('[data-anchor="peak"]')?.textContent).toBe('max 10°');
-    const group = name?.closest('[data-pass-id]');
-    expect(group).toHaveAttribute('data-pass-id', pass.id);
-    if (!group) throw new Error('no pass element');
-    fireEvent.click(group);
+    // FR-LEG-1 (R45): the key is the pass's one label, and the one element carrying `data-pass-id`.
+    const key = container.querySelector('[data-anchor="key"]');
+    expect(key?.textContent).toBe('A');
+    expect(key).toHaveAttribute('data-key', 'A');
+    expect(key).toHaveAttribute('data-pass-id', pass.id);
+    expect(container.querySelectorAll('[data-pass-id]')).toHaveLength(1);
+    expect(container.querySelector('[data-anchor="pass"]')).toBeNull();
+    expect(container.querySelector('[data-anchor="peak"]')).toBeNull();
+    expect(container.textContent).not.toContain('ISS');
+    expect(container.textContent).not.toContain('max ');
+    if (!key) throw new Error('no key element');
+    fireEvent.click(key);
     expect(onSelectPass).toHaveBeenCalledWith(pass.id);
+    // Without keys (a view mounted alone) the pass draws no label at all.
+    unmount();
+    expect(mount().container.querySelector('[data-anchor="key"]')).toBeNull();
   });
 
   it('draws every pass, the highlighted one in the accent and the others dim, and marks the current position only inside a pass', () => {
-    const { container, rerender } = mount({ passes: [other, pass], now: pass.start.t + 10_000 });
+    const keys = { [pass.id]: 'A', other: 'B' };
+    const { container, rerender } = mount({ passes: [other, pass], now: pass.start.t + 10_000, legendKeys: keys });
     expect(container.querySelectorAll('[data-pass-id]')).toHaveLength(2);
     expect(container.querySelector(`[data-pass-id="${pass.id}"]`)?.className).toMatch(/passLabel(?!Dim)/);
     expect(container.querySelector('[data-pass-id="other"]')?.className).toMatch(/passLabelDim/);
     expect(container.querySelector(`[data-glyph-mesh-id="now-${pass.id}"]`)).not.toBeNull();
     expect(container.querySelector('[data-glyph-mesh-id="now-other"]')).toBeNull();
-    rerender(<SkyDome passes={[other, pass]} observer={observer} highlightedPassId={pass.id} now={pass.end.t + 1} />);
+    rerender(<SkyDome passes={[other, pass]} observer={observer} highlightedPassId={pass.id} now={pass.end.t + 1} legendKeys={keys} />);
     expect(container.querySelector(`[data-glyph-mesh-id="now-${pass.id}"]`)).toBeNull();
+  });
+
+  /** FR-TRAJ-1 / D-189 (R45): the same pass in its other states, as the meshes glyphcss is given. */
+  it('draws a pass in its arc state: the cut track with the marker when live, a rise marker when ahead, the strip alone when lingering, nothing when hidden', () => {
+    const mesh = (container: HTMLElement, id: string) => container.querySelector(`[data-glyph-mesh-id="${id}"]`);
+    const live = mount({ passes: [{ ...pass, arc: 'live' }], now: pass.start.t + 20_000, legendKeys: { [pass.id]: 'A' } });
+    expect(mesh(live.container, `pass-${pass.id}`)).not.toBeNull();
+    expect(mesh(live.container, `now-${pass.id}`)).not.toBeNull();
+    expect(mesh(live.container, `flown-${pass.id}`)).toBeNull();
+    live.unmount();
+    const ahead = mount({ passes: [{ ...pass, arc: 'ahead' }], now: pass.start.t - 60_000, legendKeys: { [pass.id]: 'A' } });
+    expect(mesh(ahead.container, `rise-${pass.id}`)).not.toBeNull();
+    expect(mesh(ahead.container, `now-${pass.id}`)).toBeNull();
+    expect(ahead.container.querySelector('[data-anchor="key"]')?.textContent).toBe('A');
+    ahead.unmount();
+    const linger = mount({ passes: [{ ...pass, arc: 'linger' }], now: pass.end.t + 60_000, legendKeys: { [pass.id]: 'A' } });
+    expect(mesh(linger.container, `pass-${pass.id}`)).not.toBeNull();
+    expect(mesh(linger.container, `markers-${pass.id}`)).toBeNull();
+    linger.unmount();
+    const hidden = mount({ passes: [{ ...pass, arc: 'hidden' }], now: pass.end.t + 3_600_000, legendKeys: { [pass.id]: 'A' } });
+    expect(mesh(hidden.container, `pass-${pass.id}`)).toBeNull();
+    expect(hidden.container.querySelector('[data-anchor="key"]')).toBeNull();
   });
 });

@@ -1,6 +1,20 @@
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
+import type { ArcState } from '../../../../lib/arcReveal';
 import type { SunState } from '../../../../lib/skyBodies';
 import type { ChartView, EpochMs, MoonState, Observer, Pass } from '../../../../model';
+
+/**
+ * FR-TRAJ-1 / D-189 (R45): a pass with the state its arc is drawn in at the
+ * shown instant. `arc` defaults to `'full'` — the whole arc, the pass
+ * detail's reading — so a plain `Pass` is still a valid entry; the live page
+ * sets it from `lib/arcReveal`'s `arcState(pass, t)` (R48).
+ */
+export interface ChartPass extends Pass {
+  arc?: ArcState | undefined;
+}
+
+/** The state a `ChartPass` is drawn in: `'full'` unless the caller said otherwise. */
+export const arcOf = (pass: ChartPass): ArcState => pass.arc ?? 'full';
 
 /**
  * PLAN §8.1 (R13): the one props interface both sky chart views implement.
@@ -9,8 +23,8 @@ import type { ChartView, EpochMs, MoonState, Observer, Pass } from '../../../../
  * the time zone.
  */
 export interface SkyChartProps {
-  /** What to draw; usually one, may be several for a "tonight" overview. */
-  passes: readonly Pass[];
+  /** What to draw; usually one, may be several for a "tonight" overview. Each may carry its FR-TRAJ-1 `arc` state (R45). */
+  passes: readonly ChartPass[];
   observer: Observer;
   /** Emphasised arc + peak; others drawn dim. */
   highlightedPassId: string | null;
@@ -61,6 +75,22 @@ export interface SkyChartProps {
    * draws from a pass (D-102), so no object gets two marks.
    */
   hidden?: readonly HiddenMarker[];
+  /**
+   * FR-LEG-1 / D-186 (R45): the one-character key each drawn pass (and each
+   * hidden object, by its `id`) carries at its peak marker, `A`, `B`, `C`…
+   * in legend order. `SkyChart` derives it from `lib/legend.ts` and hands it
+   * to whichever view is mounted, so the three views draw the same letter
+   * and the legend's row is the drawing's key. Absent (a view mounted on its
+   * own) nothing is lettered.
+   */
+  legendKeys?: Readonly<Record<string, string>>;
+  /**
+   * FR-LEG-2 / D-186: the legend, already rendered by `SkyChart` from the
+   * same props as the drawing, for the view to place in `ChartFrame`'s slot
+   * — under the drawing on compact, in the 24-cell column at its right on
+   * wide. The view never builds it: one list, whichever view is mounted.
+   */
+  legend?: ReactNode;
   className?: string;
 }
 

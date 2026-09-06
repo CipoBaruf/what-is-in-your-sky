@@ -1,3 +1,4 @@
+import { cutTrack } from '../../../../../lib/arcReveal';
 import { interpolateTrack, resampleArc, splitArcAt, toDome, type Vec3 } from '../../../../../lib/skyGeometry';
 import type { MoonState, Pass, PassPoint } from '../../../../../model';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible } from '../bodies';
@@ -258,6 +259,37 @@ export function flownStrip(pass: Pass, now: number | undefined, options: { highl
   );
 }
 
+/* ---- FR-TRAJ-1 / D-189 (R45): the arc in its other states ---- */
+
+/**
+ * `live`: the arc from the rise to the position at `t`, solid, in its own
+ * colour and at full weight when highlighted — the cut track of
+ * `lib/arcReveal` resampled like the whole arc, with no direction gap (the
+ * live marker at its head is the direction). Nothing beyond `t` is drawn.
+ * Empty before the second sample: a strip needs two points.
+ */
+export function liveStrip(pass: Pass, t: number, options: { highlighted: boolean; color?: string }): Poly[] {
+  const pts = resampleArc(cutTrack(pass, t), ARC_STEP_DEG).map((p) => tuple(toDome(p.azDeg, p.elDeg)));
+  return stripAlong(pts, { halfWidthDeg: options.highlighted ? PASS_HALF_WIDTH_DEG : DIM_PASS_HALF_WIDTH_DEG, ...(options.color ? { color: options.color } : {}) });
+}
+
+/** `ahead`: the whole arc faint (the dim width) and dotted — every other quad left out — in its own colour. */
+export function aheadStrip(pass: Pass, color?: string): Poly[] {
+  const pts = resampleArc(pass.track, ARC_STEP_DEG).map((p) => tuple(toDome(p.azDeg, p.elDeg)));
+  return stripAlong(pts, { halfWidthDeg: DIM_PASS_HALF_WIDTH_DEG, omit: dashed, ...(color ? { color } : {}) });
+}
+
+/** `linger`: the whole arc faint, unbroken, in its own colour; no marker of any kind. */
+export function lingerStrip(pass: Pass, color?: string): Poly[] {
+  const pts = resampleArc(pass.track, ARC_STEP_DEG).map((p) => tuple(toDome(p.azDeg, p.elDeg)));
+  return stripAlong(pts, { halfWidthDeg: DIM_PASS_HALF_WIDTH_DEG, ...(color ? { color } : {}) });
+}
+
+/** FR-TRAJ-1's "rise point marked" for an `ahead` arc: the plain marker at the start. */
+export function riseMarker(pass: Pass, color?: string): Poly[] {
+  return diamond(pass.start, MARKER_SIZE_DEG, MARKER_RADIUS, color);
+}
+
 /** Tangent-plane frame at `p`: `e` along the local east-ish direction, `f = p × e`. */
 function tangentFrame(p: Tuple3): [Tuple3, Tuple3] {
   let e = norm(cross([0, 0, 1], p));
@@ -395,13 +427,23 @@ export interface PassAnchors {
   end: Anchor;
 }
 
-/** Hotspot anchors for a pass's labels: the name at the rise point, `max N°` at the peak, the direction arrow at the end. */
+/**
+ * Hotspot anchors for a pass's labels. R45 (FR-LEG-1): only the peak's is
+ * drawn, and it carries the legend key rather than `max N°`; the rise and
+ * end anchors stay computed for the geometry test and for a view that wants
+ * to hang something else there.
+ */
 export function passAnchors(pass: Pass): PassAnchors {
   return {
     rise: { id: `${pass.id}-rise`, at: tuple(toDome(pass.start.azDeg, pass.start.elDeg), RISE_LABEL_RADIUS) },
     peak: { id: `${pass.id}-peak`, at: tuple(toDome(pass.peak.azDeg, pass.peak.elDeg), PASS_LABEL_RADIUS) },
     end: { id: `${pass.id}-end`, at: tuple(toDome(pass.end.azDeg, pass.end.elDeg), PASS_LABEL_RADIUS) },
   };
+}
+
+/** FR-LEG-1 (R45): the legend key's anchor, at the peak marker, just outside the dome like the other pass labels were. */
+export function keyAnchor(pass: Pass): Anchor {
+  return { id: `${pass.id}-key`, at: tuple(toDome(pass.peak.azDeg, pass.peak.elDeg), PASS_LABEL_RADIUS) };
 }
 
 /**
@@ -434,13 +476,15 @@ export function projectToScreen(at: Tuple3, camera: { rotYDeg: number; tiltDeg: 
 
 /**
  * The fixed resolution order of FR-DOME-3: the compass names win, then the
- * peak, the rise and the end labels. R22 adds the Sun's and the Moon's names
- * (FR-DOME-6) at the end of it: the passes are what the drawing is about and
- * the two bodies are the context they are seen against, so a body's name is
- * the one that moves when the two want the same place.
+ * passes' labels. Up to R44 those were the peak, the rise and the end labels
+ * and, after them, the Sun's and the Moon's names (R22) and the hidden
+ * objects' reasons (R33). R45 (FR-LEG-1, D-186) takes every word off the
+ * drawing: what a pass carries is its one-character legend `key` at the
+ * peak, and a hidden object the same key at its dimmed position, so the
+ * order is the compass names, then the keys — the passes' first, in the
+ * order the caller places them, the hidden objects' last.
  */
-// R33 adds the hidden objects' reasons (FR-LIVE-6) after the bodies: they are the least of what the drawing says.
-export const LABEL_ORDER = ['compass', 'peak', 'rise', 'end', 'sun', 'moon', 'hidden'] as const;
+export const LABEL_ORDER = ['compass', 'key'] as const;
 export type LabelKind = (typeof LABEL_ORDER)[number];
 /** How far along its ring a label may move, and in what steps (degrees of azimuth). */
 export const LABEL_SHIFT_STEP_DEG = 5;

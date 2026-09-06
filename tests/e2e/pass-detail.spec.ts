@@ -75,8 +75,11 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   const drawing = figure.locator('svg[data-drawing="polar"]');
   await expect(drawing).toHaveAttribute('aria-hidden', 'true');
   for (const cardinal of ['N', 'E', 'S', 'W']) await expect(drawing.locator(`[data-anchor="${cardinal}"]`)).toHaveText(cardinal);
-  await expect(drawing.locator(`[data-pass-id="${passId}"] [data-anchor="pass"]`)).toContainText('ISS (Zarya)');
-  await expect(drawing.locator('[data-anchor="peak"]')).toHaveText(/^max \d+°$/);
+  // R45 (FR-LEG-1): the key at the peak, and the name in the legend under the chart.
+  await expect(drawing.locator(`[data-pass-id="${passId}"] [data-anchor="key"]`)).toHaveText('A');
+  await expect(drawing.locator('[data-anchor="pass"]')).toHaveCount(0);
+  await expect(drawing.locator('[data-anchor="peak"]')).toHaveCount(0);
+  await expect(figure.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toContainText('ISS (Zarya)');
   for (const marker of ['rise', 'peak', 'end', 'arrow']) await expect(drawing.locator(`[data-marker="${marker}"]`)).toHaveCount(1);
   const box = await drawing.boundingBox();
   if (!box) throw new Error('drawing has no box');
@@ -126,7 +129,7 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   });
   await highCard.getByRole('button', { name: /Open guide/ }).click();
   const highFigure = page.getByRole('dialog').getByRole('figure');
-  await expect(highFigure.locator('[data-anchor="peak"]')).toHaveText(`max ${String(highest.el)}°`);
+  await expect(highFigure.locator(`[data-pass-id="${highest.id}"] [data-anchor="key"]`)).toHaveText('A');
   await highFigure.evaluate((el) => el.scrollIntoView({ block: 'start' }));
   await page.screenshot({ path: 'test-results/r13-polar-high-390.png' });
 });

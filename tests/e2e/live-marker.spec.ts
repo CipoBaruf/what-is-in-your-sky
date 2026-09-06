@@ -78,8 +78,10 @@ test('the dome redraws at every tick while the satellite is up, and labels the S
 
   // FR-DOME-6: the Sun is 10.6° under the horizon here, inside the glow's
   // band; the Moon is 11° below it and is drawn nowhere.
-  await expect(dialog.locator('[data-anchor="sun"]')).toHaveText('Sun');
-  await expect(dialog.locator('[data-anchor="moon"]')).toHaveCount(0);
+  // R45 (FR-DOME-6 as amended): the two bodies are legend lines, not captions in the drawing.
+  await expect(dialog.getByTestId('chart-legend').locator('[data-body="sun"]')).toContainText('Sun');
+  await expect(dialog.getByTestId('chart-legend').locator('[data-body="moon"]')).toHaveCount(0);
+  await expect(dialog.locator('[data-anchor="sun"]')).toHaveCount(0);
 
   // FR-DOME-5: into the pass, and the drawing moves on with each tick.
   await page.clock.runFor(60_000);
@@ -102,7 +104,8 @@ test('the polar view moves the live marker and grows the flown arc behind it at 
   // Before the pass there is nothing to mark and nothing flown.
   await expect(drawing.locator('[data-marker="now"]')).toHaveCount(0);
   await expect(drawing.locator('[data-marker="flown"]')).toHaveCount(0);
-  await expect(drawing.locator('[data-anchor="sun"]')).toHaveText('Sun');
+  await expect(drawing.locator('[data-body="sun"]')).toHaveCount(1);
+  await expect(dialog.getByTestId('chart-legend').locator('[data-body="sun"]')).toContainText('Sun');
 
   await page.clock.runFor(70_000);
   const marker = drawing.locator('[data-marker="now"]');

@@ -1,11 +1,7 @@
 import { GlyphHotspot, GlyphMesh, GlyphOrthographicCamera, GlyphScene, useGlyphSceneContext } from '@glyphcss/react';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
-import { useLocale, useT } from '../../../../../i18n/useT';
+import { useT } from '../../../../../i18n/useT';
 import { normalizeAzimuthDeg } from '../../../../../lib/compass';
-import { degrees } from '../../../../../lib/format';
-import { formatClock } from '../../../../../lib/timeFormat';
-import type { MoonState, Pass } from '../../../../../model';
-import { moonGlyph } from '../bodies';
 import { ChartFrame } from '../ChartFrame';
 import type { SkyChartProps } from '../SkyChart.types';
 import {
@@ -19,6 +15,8 @@ import {
   fitLayout,
   initialFor,
   KEY_INTENSITY,
+  LABEL_ADVANCE,
+  LABEL_FONT_PX,
   layoutFor,
   PITCH_STEP_DEG,
   readoutParams,
@@ -33,7 +31,7 @@ import {
   type RowMetrics,
 } from './camera';
 import { screenSide, sunDirection, type Tuple3 } from './domeGeometry';
-import { domeLayers, type DomeLabel, type PassLabelText } from './domeLayers';
+import { domeLayers, type DomeLabel } from './domeLayers';
 import { useDomePalette } from './palette';
 import styles from './SkyDome.module.css';
 
@@ -55,10 +53,14 @@ import styles from './SkyDome.module.css';
  * tilt, driven by a pointer drag on the drawing and by the arrow keys on the
  * focusable wrapper (15° yaw, 5° tilt), clamped to [5°, 80°] of tilt; the
  * readout under the drawing says where the view faces (FR-GUIDE-4). The
- * drawing is `aria-hidden` (FR-GUIDE-7): the caption and the numbers carry
- * the facts. Labels are hotspots outside the dome, with the polar view's data
- * attributes (D-56) so the contract test reads both views alike; which label
- * sits where is `domeLayers.domeLabels`, not this file (FR-DOME-3).
+ * drawing is `aria-hidden` (FR-GUIDE-7): the caption, the numbers and the
+ * legend carry the facts. Labels are hotspots outside the dome, with the
+ * polar view's data attributes (D-56) so the contract test reads both views
+ * alike; which label sits where is `domeLayers.domeLabels`, not this file
+ * (FR-DOME-3). R45 (FR-LEG-1, D-186): the only labels left are the compass
+ * names, the degree numbers and one legend key per drawn arc at its peak;
+ * the names, the times and the bodies' captions moved to the legend, which
+ * `SkyChart` renders and this view places in the frame's slot.
  *
  * Colour (FR-DOME-2) is read from the `--chart-*` tokens through a hidden
  * probe (D-75). Where no stylesheet is in force the palette is `null` and the
@@ -78,10 +80,6 @@ export const DOME_FONT = 'WIYS Braille';
 /** The glyphs the two layers are measured with: a full braille cell and a full block. */
 const BRAILLE_GLYPH = '⣿';
 const BLOCK_GLYPH = '█';
-/** `.label` in the stylesheet: the font size and the advance a label is laid out at. */
-const LABEL_FONT_PX = 11;
-const LABEL_ADVANCE = 0.6;
-
 function domeFontReady(): Promise<void> {
   const fonts = typeof document === 'undefined' ? undefined : document.fonts;
   if (!fonts) return Promise.resolve();
@@ -152,14 +150,9 @@ const sideOf = (at: Tuple3, rotY: number): 'left' | 'right' | 'centre' => {
 /** The stylesheet class a label's kind takes; the colour itself comes from the palette (FR-DOME-2). */
 const CLASS_FOR: Record<DomeLabel['kind'], string | undefined> = {
   compass: styles.compass,
-  peak: undefined,
-  rise: styles.raised,
-  end: undefined,
+  key: styles.key,
   ring: styles.degree,
   tick: styles.degree,
-  sun: styles.body,
-  moon: styles.body,
-  hidden: styles.hiddenLabel,
 };
 
 interface DomeLabelsProps {
@@ -171,29 +164,31 @@ interface DomeLabelsProps {
 /**
  * The labels, already placed by `domeLabels` (FR-DOME-3). A label runs away
  * from the drawing's edge — left-aligned on the left half, right-aligned on
- * the right — and a pass's rise label selects that pass (D-56).
+ * the right — and a pass's key selects that pass (D-56). A key is centred on
+ * its anchor: one character, so there is no edge to run from.
  */
 function DomeLabels({ labels, rotY, onSelect }: DomeLabelsProps) {
   return (
     <>
       {labels.map((label) => {
         const passId = label.passId;
-        // D-56: exactly one element per pass carries `data-pass-id`, and it is the one a click selects — the rise label, which is the pass's name.
-        const selectable = passId !== undefined && label.kind === 'rise';
+        // D-56: exactly one element per pass carries `data-pass-id`, and it is the one a click selects — since R45 the key at the peak.
+        const selectable = passId !== undefined && label.kind === 'key';
         const select = selectable && onSelect ? () => onSelect(passId) : undefined;
         const passClass = passId === undefined ? undefined : label.highlighted ? styles.passLabel : styles.passLabelDim;
         return (
           <GlyphHotspot key={label.id} id={label.id} at={label.at} size={[1, 1]} {...(select ? { onClick: select } : {})}>
             <span
               className={[styles.label, CLASS_FOR[label.kind], passClass].filter(Boolean).join(' ')}
-              data-side={sideOf(label.at, rotY)}
+              data-side={label.kind === 'key' ? 'centre' : sideOf(label.at, rotY)}
               {...(label.color ? { style: { color: label.color } } : {})}
-              {...(label.anchor && !selectable ? { 'data-anchor': label.anchor } : {})}
+              {...(label.anchor ? { 'data-anchor': label.anchor } : {})}
+              {...(label.kind === 'key' ? { 'data-key': label.text } : {})}
               {...(selectable ? { 'data-pass-id': passId } : {})}
+              {...(label.hiddenId !== undefined ? { 'data-hidden-id': label.hiddenId } : {})}
               {...(select ? { onClick: select } : {})}
             >
-              {/* D-56: the polar view nests the name inside the element carrying `data-pass-id`, so the dome does too and one selector reads both. */}
-              {selectable && label.anchor ? <span data-anchor={label.anchor}>{label.text}</span> : label.text}
+              {label.text}
             </span>
           </GlyphHotspot>
         );
@@ -202,9 +197,8 @@ function DomeLabels({ labels, rotY, onSelect }: DomeLabelsProps) {
   );
 }
 
-export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, className }: SkyChartProps) {
+export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, className }: SkyChartProps) {
   const t = useT();
-  const locale = useLocale();
   const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
   const [camera, setCamera] = useState<CameraState>(() => initialFor(highlighted, facingAzDeg ?? initialFacingAzDeg));
 
@@ -330,27 +324,12 @@ export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now
   };
 
   const rotY = toRotY(camera.facingAzDeg);
-  const timeZone = observer.timeZone;
-
-  // FR-I18N-2: the catalogs word every label; this component only places them.
-  const labelsFor = useCallback(
-    (pass: Pass): PassLabelText => ({
-      rise: t.chart.passLabel({ name: pass.name, time: formatClock(pass.start.t, timeZone, locale) }),
-      peak: t.chart.peakLabel(degrees(pass.peak.elDeg)),
-      end: formatClock(pass.end.t, timeZone, locale),
-    }),
-    [t, timeZone, locale],
-  );
 
   // A label's size in world units: `zoom` is CSS pixels per world unit (D-91), so this is the same on either layer.
   const measure = useCallback(
     (text: string) => ({ halfWidth: (text.length * LABEL_FONT_PX * LABEL_ADVANCE) / 2 / lines.zoom, halfHeight: LABEL_FONT_PX / 2 / lines.zoom }),
     [lines.zoom],
   );
-
-  // FR-DOME-6: the two bodies' names. Like every other label they are worded
-  // by the catalogs (FR-I18N-2); the Moon's glyph is its phase (`../bodies`).
-  const bodyLabels = useMemo(() => ({ sun: t.chart.sunLabel, moon: (state: MoonState) => t.chart.moonLabel(moonGlyph(state)) }), [t]);
 
   const layers = useMemo(
     () =>
@@ -359,16 +338,15 @@ export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now
         highlightedPassId,
         palette,
         camera: { rotYDeg: rotY, tiltDeg: camera.tiltDeg },
-        labelsFor,
         measure,
-        bodyLabels,
+        legendKeys,
         sun,
         moon,
         hidden,
         colorBy,
         ...(now === undefined ? {} : { now }),
       }),
-    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, labelsFor, measure, bodyLabels, sun, moon, hidden, now, colorBy],
+    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, measure, legendKeys, sun, moon, hidden, now, colorBy],
   );
 
   // FR-DOME-8a: the key light points along the Sun's real direction, so twilight
@@ -382,6 +360,7 @@ export function SkyDome({ passes, observer, highlightedPassId, onSelectPass, now
     <div className={[styles.dome, className].filter(Boolean).join(' ')} data-facing-az={Math.round(camera.facingAzDeg)} data-tilt={Math.round(camera.tiltDeg)}>
       <ChartFrame
         fill={fill}
+        legend={legend}
         controls={<p className={styles.hint}>{t.chart.domeHint}</p>}
         status={
           <p className={styles.readout} id={readoutId} data-testid="dome-readout">
