@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef } from 'react';
+import { useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useT } from '../../../i18n/useT';
 import { SHORTCUTS } from '../../../lib/shortcuts';
+import { useOpenerFocus } from '../../hooks/useOpenerFocus';
 import styles from './ShortcutsOverlay.module.css';
 
 /**
@@ -28,16 +29,10 @@ export function ShortcutsOverlay({ onClose }: ShortcutsOverlayProps) {
   const t = useT();
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const openerRef = useRef<Element | null>(null);
-
-  useEffect(() => {
-    openerRef.current = document.activeElement;
-    headingRef.current?.focus();
-    return () => {
-      const opener = openerRef.current;
-      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
-    };
-  }, []);
+  // R50 (F-43): the opener is read during the render, because by the time a
+  // mount effect runs the page behind this is `inert` and the card that had
+  // focus has been blurred — `?` on a pass then landed the reader on the body.
+  useOpenerFocus(headingRef);
 
   return createPortal(
     <div role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.overlay} data-testid="shortcuts-overlay">

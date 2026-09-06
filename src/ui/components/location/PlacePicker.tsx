@@ -185,8 +185,21 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
         return;
       }
       case 'Escape':
+        /*
+         * R50 (F-7): guarded by this field's own open state, and when it is
+         * open the key stops here. `Escape` is also the app's `close`
+         * shortcut, on one `keydown` listener on the document (D-73), and the
+         * suggestions and the guide are on screen together at every wide
+         * width — so an `Escape` aimed at this list would otherwise also shut
+         * the guide and clear the pass out of the hash. The listener's own
+         * guard declines a key press whose target takes typing, which is what
+         * has been keeping the two apart since R35; this says it at the end
+         * that knows, rather than relying on the other end guessing from the
+         * element the press landed on.
+         */
         if (open) {
           event.preventDefault();
+          event.stopPropagation();
           setOpen(false);
           setActive(-1);
         }

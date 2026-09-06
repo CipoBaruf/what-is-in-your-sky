@@ -1,21 +1,83 @@
 /**
- * R23 (FR-DESK-1, D-71): the one place that says where compact ends and wide
- * begins.
+ * R23 (FR-DESK-1, D-71), R50 (FR-DESK-3 amended, D-252/D-253): the one place
+ * that says where compact ends, where wide begins, and where the wide right
+ * column is finally wide enough to show the list and the guide at once.
  *
- * FR-DESK-1 states the breakpoint in cells — wide at 100 cells of viewport
- * width — but a media query cannot read `var(--cell)`, so the CSS carries the
- * literal and `tests/styles/breakpoint.test.ts` recomputes it from
- * `tokens.css` (`--cell: 1ch`, a 0.6 em advance) and `global.css` (the 16 px
- * base): 100 × 0.6 × 16 = 960. That test asserts every `min-width` in
- * `src/ui` and the constant below are that one number, so the stylesheet and
- * the hook cannot drift apart.
+ * The requirements state both thresholds in cells, but a media query cannot
+ * read `var(--cell)` — font-relative units in a media query are resolved
+ * against the browser's initial font, not the app's — so each threshold is
+ * carried into the CSS as a pixel literal and `tests/styles/breakpoint.test.ts`
+ * recomputes it from the numbers below.
  *
- * The hook itself is `ui/hooks/useLayoutMode.ts`, not this file: PLAN §3
- * forbids React in `src/lib` (D-116).
+ * R50 (F-10) is why that computation is no longer `cells × 0.6 em × 16 px`.
+ * `--cell` is `1ch`, one character advance of whichever family in
+ * `--font-mono` the device actually has, and the advances differ: the 0.6 em
+ * the old derivation assumed is right for SF Mono and Liberation Mono, 0.602
+ * for Menlo and DejaVu Sans Mono, and 0.55 for Consolas — so the old 960 px
+ * was 100 cells on a Mac and 109 cells on Windows. One literal cannot be one
+ * cell count everywhere; what it can be is never *fewer* cells than the
+ * threshold names. Each literal is therefore derived from the widest advance
+ * in the stack and rounded up (`thresholdPx`): a layout that needs 124 cells
+ * never engages before 124 cells of it exist. The other direction — Consolas
+ * reaching the threshold a few cells late — costs a reader on a narrow window
+ * nothing but the wider layout arriving slightly later, which is the safe way
+ * to be wrong.
+ *
+ * The hook is `ui/hooks/useLayoutMode.ts`, not this file: PLAN §3 forbids
+ * React in `src/lib` (D-116).
  */
+
+/** `html { font-size }` in `styles/global.css`: what every `em` and `rem` is measured against. */
+export const BASE_FONT_PX = 16;
+
+/**
+ * One character advance in em, per family of the `--font-mono` stack in
+ * `styles/tokens.css`, from each font's own metrics (advanceWidth / unitsPerEm).
+ * `ui-monospace` is the platform's own — SF Mono on Apple, and elsewhere it
+ * falls through to one of the named families.
+ */
+export const CELL_ADVANCE_EM: Readonly<Record<string, number>> = {
+  'SF Mono': 0.6,
+  Menlo: 1233 / 2048,
+  Consolas: 1126 / 2048,
+  'DejaVu Sans Mono': 1233 / 2048,
+  'Liberation Mono': 0.6,
+};
+
+const advances = Object.values(CELL_ADVANCE_EM);
+/** The widest cell in the stack (Menlo, DejaVu Sans Mono): what a threshold in px has to survive. */
+export const CELL_ADVANCE_EM_MAX = Math.max(...advances);
+/** The narrowest (Consolas): the font on which a px threshold lands latest in cells. */
+export const CELL_ADVANCE_EM_MIN = Math.min(...advances);
+
+/** The pixel literal a threshold of `cells` needs, on every font in the stack (F-10). */
+export function thresholdPx(cells: number): number {
+  return Math.ceil(cells * CELL_ADVANCE_EM_MAX * BASE_FONT_PX);
+}
+
+/** FR-DESK-1: wide starts at 100 cells of viewport width; 964 px, up from D-71's 960 (F-10). */
 export const WIDE_CELLS = 100;
-export const WIDE_MIN_PX = 960;
+export const WIDE_MIN_PX = thresholdPx(WIDE_CELLS);
 export const WIDE_QUERY = `(min-width: ${String(WIDE_MIN_PX)}px)`;
+
+/** The gutter between two columns of the wide shell, in cells (`App.module.css`). */
+export const GUTTER_CELLS = 3;
+
+/**
+ * FR-DESK-3 as amended (V11-13, D-192): the width at which the right column
+ * can hold the 44-cell list and a 40-cell guide side by side. The constant
+ * counts the three columns — 40 left + 44 list + 40 guide — and the two
+ * gutters between them are added to its pixel twin, because they are width
+ * the reader's screen has to find too: 124 cells of column in a 124-cell
+ * viewport would leave the guide 34 cells, and FR-DESK-3 says it may never be
+ * narrower than 40 while open.
+ *
+ * Below this width an open guide takes the whole right column and the list is
+ * one `[ list ]` control away, the way the compact sheet works (F-6).
+ */
+export const WIDE_SPLIT_MIN_CELLS = 124;
+export const WIDE_SPLIT_MIN_PX = thresholdPx(WIDE_SPLIT_MIN_CELLS + 2 * GUTTER_CELLS);
+export const WIDE_SPLIT_QUERY = `(min-width: ${String(WIDE_SPLIT_MIN_PX)}px)`;
 
 export type LayoutMode = 'compact' | 'wide';
 

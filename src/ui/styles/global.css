@@ -45,15 +45,16 @@ main {
   padding-bottom: var(--row);
 }
 
-/* R23 (FR-DESK-1, D-71): wide at 100 cells. `--cell` is `1ch` at a 0.6 em
-   advance and the base above is 16 px, so 100 cells are 960 px — the literal
-   here, recomputed from those three numbers by
-   `tests/styles/breakpoint.test.ts`, which also holds every other `min-width`
-   in `src/ui` and `WIDE_MIN_PX` in `lib/layout.ts` to the same value.
+/* R23 (FR-DESK-1, D-71), R50 (F-10, D-252): wide at 100 cells. `--cell` is
+   `1ch`, one character advance of whatever family of `--font-mono` the device
+   has, and the widest of them is 0.602 em, so 100 cells never need more than
+   964 px — the literal here, recomputed from `lib/layout.ts`'s advance table
+   and the base above by `tests/styles/breakpoint.test.ts`, which also holds
+   every other `min-width` in `src/ui` to one of the two layout thresholds.
    The 80-cell frame is what compact is: one column, centred. Wide drops it
    and takes the viewport, keeping the two cells of side padding, so that the
    two columns of FR-DESK-2 have the width to be two columns. */
-@media (min-width: 960px) {
+@media (min-width: 964px) {
   header,
   main,
   footer {

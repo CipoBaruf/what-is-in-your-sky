@@ -34,7 +34,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
 
   // R23 (D-117): the compact sheet is portaled to the body, so the axe runs here take the document and not RTL's container — which no longer holds the sheet at all.
   it('is a labelled dialog carrying the guide sentence (once, as the chart caption), the numbers, the twilight label and the sky chart', async () => {
-    render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
+    render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
     const dialog = screen.getByRole('dialog', { name: 'ISS (Zarya)' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(within(dialog).getByTestId('guide-sentence').textContent).toBe(golden.en.asComputed);
@@ -57,7 +57,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
 
   it('locks the page scroll while open and restores it on close (one scrollbar, the sheet\'s)', () => {
     document.documentElement.style.overflow = 'auto';
-    const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
+    const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
     expect(document.documentElement.style.overflow).toBe('hidden');
     unmount();
     expect(document.documentElement.style.overflow).toBe('auto');
@@ -66,11 +66,11 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
 
   it('adds the Moon warning under the chart when the pass has glare, and nothing when it has not (FR-MOON-2)', () => {
     const { rerender } = render(
-      <PassDetail pass={{ ...pass, moonAtPeak: MOON_FIXTURE, moonGlare: { glare: true, separationDeg: 8.2 } }} observer={observer} onClose={() => undefined} />,
+      <PassDetail pass={{ ...pass, moonAtPeak: MOON_FIXTURE, moonGlare: { glare: true, separationDeg: 8.2 } }} observer={observer} onClose={() => undefined} onShowList={() => undefined} />,
     );
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByText('The Moon is bright and close to the track.')).toHaveAccessibleDescription(/at least 50 % lit and closer than 30°/);
-    rerender(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
+    rerender(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
     expect(screen.getByRole('dialog')).not.toHaveTextContent('The Moon is bright');
   });
 
@@ -78,23 +78,23 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
   // when the worker found no glare in it.
   it('names the Moon at the peak whenever it is up, glare or not', () => {
     const upNoGlare = { ...pass, moonAtPeak: MOON_FIXTURE, moonGlare: { glare: false, separationDeg: 120 } };
-    const { rerender } = render(<PassDetail pass={upNoGlare} observer={observer} onClose={() => undefined} />);
+    const { rerender } = render(<PassDetail pass={upNoGlare} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByTestId('moon-at-peak')).toHaveTextContent('Moon at the peak: waning gibbous, 72 % lit');
     expect(dialog).not.toHaveTextContent('The Moon is bright');
 
     // With the Moon below the horizon there is nothing to say about it here.
-    rerender(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
+    rerender(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
     expect(within(screen.getByRole('dialog')).queryByTestId('moon-at-peak')).toBeNull();
   });
 
   it('omits the twilight label when the pass is not a twilight one', () => {
-    render(<PassDetail pass={{ ...pass, twilight: false }} observer={observer} onClose={() => undefined} />);
+    render(<PassDetail pass={{ ...pass, twilight: false }} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
     expect(screen.getByRole('dialog')).not.toHaveTextContent('sky still bright');
   });
 
   it('counts down every second without remounting', () => {
-    render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
+    render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
     const timer = screen.getByRole('timer');
     expect(timer).toHaveTextContent('Appears in 12:34');
     act(() => {
@@ -118,7 +118,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     opener.textContent = 'opener';
     document.body.appendChild(opener);
     opener.focus();
-    const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={onClose} />);
+    const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={onClose} onShowList={() => undefined} />);
     expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'ISS (Zarya)' }));
 
     await user.click(screen.getByRole('button', { name: '← Back to the list' }));

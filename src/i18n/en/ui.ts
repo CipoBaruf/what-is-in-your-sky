@@ -295,6 +295,13 @@ export const ui = {
     /** The wide panel is a labelled region rather than a dialog (D-118), so it says what kind of region it is. */
     panelLabel: (p: { name: string }) => `Guide: ${p.name}`,
     /**
+     * R50 (FR-DESK-3 as amended, F-6): between the wide breakpoint and the
+     * width where both fit, the guide has the right column to itself and this
+     * is what brings the list back. One word, bracketed by the stylesheet like
+     * every other control.
+     */
+    toList: 'list',
+    /**
      * FR-GUIDE-1 / US-6 AC1, plus the FR-VIS-7 clause. The whole sentence is
      * one function: English puts the direction after the elevation and the
      * magnitude last, and another language need not.

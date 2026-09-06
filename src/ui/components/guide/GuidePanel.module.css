@@ -58,19 +58,39 @@
   color: var(--fg-dim);
 }
 
-.close {
+/* The head's right-hand side: `[ list ]` where it applies, then `×`. */
+.controls {
+  display: flex;
+  align-items: baseline;
+  gap: 0 var(--cell);
+}
+
+.close,
+.toList {
   color: var(--accent);
   background: none;
   border: 0;
   min-width: var(--tap);
+  white-space: nowrap;
 }
 
-.close::before {
+.close::before,
+.toList::before {
   content: '[ ';
   color: var(--fg-dim);
 }
 
-.close::after {
+.close::after,
+.toList::after {
   content: ' ]';
   color: var(--fg-dim);
+}
+
+/* R50 (F-6): from `WIDE_SPLIT_MIN_PX` up, the list is beside the panel and
+   there is nothing for this control to bring back. `lib/layout.ts` owns the
+   literal; `tests/styles/breakpoint.test.ts` holds it to that. */
+@media (min-width: 1253px) {
+  .toList {
+    display: none;
+  }
 }

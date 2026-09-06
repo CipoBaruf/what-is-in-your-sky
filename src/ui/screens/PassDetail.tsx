@@ -12,6 +12,7 @@ import { ThemeToggle } from '../components/common/ThemeToggle';
 import { GuidePanel } from '../components/guide/GuidePanel';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
+import { useOpenerFocus } from '../hooks/useOpenerFocus';
 import { MoonAtPeak } from '../components/moon/MoonAtPeak';
 import { MoonGlareNote } from '../components/moon/MoonGlare';
 import { PassNumbers } from '../components/guide/PassNumbers';
@@ -52,6 +53,13 @@ import styles from './PassDetail.module.css';
  * FR-GUIDE-1 sentence the chart captions itself with — one warning about this
  * pass, right where the reader has just been told what to expect from it.
  *
+ * R50 (F-43, F-45): the focus in and out is `useOpenerFocus`, which reads the
+ * opener during the render rather than in the mount effect — by the effect the
+ * page around this is already `inert` and the card that opened it has been
+ * blurred. And the sheet takes an `inert` of its own: it is portaled to the
+ * body, so the flag `App` puts on the header, the main and the footer does not
+ * reach it, and with the shortcuts overlay up its controls were live under it.
+ *
  * R31 (US-12, FR-SHARE-1/2): the share action closes the guide, below the
  * numbers — the end of what there is to read about this pass is where handing
  * it on belongs, and it is part of the shared content, so both shells carry
@@ -63,11 +71,15 @@ export interface PassDetailProps {
   pass: Pass;
   observer: Observer;
   onClose: () => void;
+  /** R50 (F-6): the wide panel's `[ list ]`; the compact sheet has `← Back`, which closes instead. */
+  onShowList: () => void;
+  /** R50 (F-45): the compact sheet portals out of everything `App` makes inert, so the overlay has to say so here. */
+  inert?: boolean;
 }
 
 export const TICK_MS = 1000;
 
-export function PassDetail({ pass, observer, onClose }: PassDetailProps) {
+export function PassDetail({ pass, observer, onClose, onShowList, inert = false }: PassDetailProps) {
   const t = useT();
   const locale = useLocale();
   const mode = useLayoutMode();
@@ -76,17 +88,12 @@ export function PassDetail({ pass, observer, onClose }: PassDetailProps) {
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const now = useNow(TICK_MS);
-
   // Focus in on open, back to the opener on close. Once, on open: crossing
   // the breakpoint swaps the shell around the same guide and must not take
-  // the reader's focus away from wherever they had put it.
-  useEffect(() => {
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    headingRef.current?.focus();
-    return () => {
-      opener?.focus();
-    };
-  }, []);
+  // the reader's focus away from wherever they had put it. R50 (F-8): a
+  // second pass is a second instance — `App` keys this by the pass — so
+  // "on open" is once per guide and not once per selection.
+  useOpenerFocus(headingRef);
 
   // Lock the page scroll behind the sheet; the list keeps its scroll position
   // for the return. Only compact: the wide panel covers nothing.
@@ -117,14 +124,14 @@ export function PassDetail({ pass, observer, onClose }: PassDetailProps) {
 
   if (!compact) {
     return (
-      <GuidePanel passId={pass.id} name={pass.name} headingId={headingId} headingRef={headingRef} onClose={onClose}>
+      <GuidePanel passId={pass.id} name={pass.name} headingId={headingId} headingRef={headingRef} onClose={onClose} onShowList={onShowList}>
         {body}
       </GuidePanel>
     );
   }
 
   return createPortal(
-    <div role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.sheet} data-pass-id={pass.id}>
+    <div inert={inert} role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.sheet} data-pass-id={pass.id}>
       <div className={styles.frame}>
         <div className={styles.topRow}>
           <button type="button" className={styles.close} onClick={onClose}>
