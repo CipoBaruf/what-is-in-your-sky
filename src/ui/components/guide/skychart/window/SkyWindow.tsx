@@ -7,6 +7,7 @@ import { SERIES_COUNT } from '../../../../../lib/legend';
 import type { SunState } from '../../../../../lib/skyBodies';
 import { interpolateTrack, resampleArc, splitArcAt } from '../../../../../lib/skyGeometry';
 import type { MoonState, PassPoint } from '../../../../../model';
+import { quantise } from '../../../live/compassHeading';
 import { useDeclination } from '../../../live/useDeclination';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
 import { ChartFrame } from '../ChartFrame';
@@ -326,7 +327,7 @@ export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, n
   const live = state === 'on';
   const status = live ? (
     <p className={styles.readout} data-testid="window-readout">
-      <span>{t.window.readout({ point: compassPoint(look.azDeg), azimuth: degrees(look.azDeg), altitude: degrees(look.altDeg) })}</span>
+      <span>{t.window.readout({ point: compassPoint(look.azDeg), azimuth: degrees(quantise(look.azDeg)), altitude: degrees(look.altDeg) })}</span>
       <br />
       <span className={styles.declination} data-testid="window-heading" data-declination={declinationDeg.toFixed(1)}>
         {t.window.trueNorth({ declination: formatSignedDegrees(declinationDeg, locale) })}
@@ -339,7 +340,7 @@ export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, n
   ) : null;
 
   return (
-    <div className={[styles.window, className].filter(Boolean).join(' ')} data-state={state} data-look-az={Math.round(look.azDeg)} data-look-alt={Math.round(look.altDeg)}>
+    <div className={[styles.window, className].filter(Boolean).join(' ')} data-state={state} data-look-az={quantise(look.azDeg)} data-look-alt={Math.round(look.altDeg)}>
       <ChartFrame fill={fill} legend={legend} controls={<p className={styles.hint}>{t.window.hint}</p>} status={status}>
         <div className={styles.box} ref={boxRef}>
           <svg className={styles.svg} viewBox={`0 0 ${String(view.width)} ${String(view.height)}`} aria-hidden="true" data-drawing="window" focusable="false">
