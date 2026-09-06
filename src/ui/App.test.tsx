@@ -13,6 +13,7 @@ import { appStore, type ElementsState } from '../state';
 import { IDLE_PASSES } from '../state/slices/passes';
 import { en } from '../i18n/en';
 import { App } from './App';
+import { forgetInstallOffer } from './components/common/installOffer';
 
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
@@ -25,6 +26,8 @@ describe('<App> frame (R12)', () => {
   afterEach(() => {
     appStore.setState(initial, true);
     window.history.replaceState(null, '', window.location.pathname);
+    // R49 (F-31): the held `beforeinstallprompt` lives outside the store.
+    forgetInstallOffer();
   });
 
   it('has the title, the tagline, the three titled regions and the footer, with no axe violations while empty', async () => {

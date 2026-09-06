@@ -144,6 +144,21 @@ describe('InstallHint (R28: FR-OFF-6)', () => {
     expect(screen.queryByTestId('install-hint')).toBeNull();
   });
 
+  it('writes the latch once: after the install, a later mount neither paints the hint nor rewrites the prefs', () => {
+    act(() => {
+      window.dispatchEvent(new Event(APP_INSTALLED));
+    });
+    show(IOS_TAB).unmount();
+    expect(state().installHintDismissed).toBe(true);
+    const dismiss = vi.fn();
+    act(() => {
+      appStore.setState({ dismissInstallHint: dismiss });
+    });
+    show(IOS_TAB);
+    expect(dismiss).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('install-hint')).toBeNull();
+  });
+
   it('a rejected browser dialog is not an unhandled rejection (R49, F-32)', async () => {
     const user = userEvent.setup();
     const prompt = vi.fn(() => Promise.reject(new Error('prompt() was not eligible')));

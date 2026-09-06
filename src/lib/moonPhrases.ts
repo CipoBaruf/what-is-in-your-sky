@@ -82,16 +82,7 @@ export function moonGlareFacts(moon: MoonState, glare: MoonGlare, thresholds: Mo
  * about a pass, and "no Moon" is the ordinary case, not news. The Now panel,
  * which is about the sky rather than about one pass, does say it (`line`).
  */
-export interface MoonPeakFacts {
-  phase: MoonPhaseName;
-  illumination: string;
-  /** Above the horizon at the peak — the same test `moonFacts` makes for the Now panel. */
-  up: boolean;
-}
-
-export function moonPeakFacts(moon: MoonState): MoonPeakFacts {
-  return { phase: moon.phase, illumination: percent(moon.illuminatedFraction), up: moon.elDeg > 0 };
-}
+export type MoonPeakFacts = Pick<MoonFacts, 'phase' | 'illumination'>;
 
 /**
  * One line of the lore file in both languages. Structurally the same type as
