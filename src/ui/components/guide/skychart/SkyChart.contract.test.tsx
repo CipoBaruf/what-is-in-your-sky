@@ -187,9 +187,9 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
 
   it('floors the live drawing at the frame width in portrait only, behind the page switch, and bounds the legend under a live drawing to four rows', () => {
     expect(css).toMatch(/@media \(orientation: portrait\) \{\s+\.fill\[data-compact='true'\] \.drawing \{\s+min-height: calc\(var\(--chart-floor, 0px\) \* var\(--chart-floor-on, 1\)\);/);
-    // D-233: the live page holds the switch off until R48 re-cuts its rows; the frame's default is on.
+    // D-233: the live page held the switch off until R48 re-cut its rows (D-235); now nothing on the page turns it off.
     const live = readFileSync(join(process.cwd(), 'src/ui/screens/Live.module.css'), 'utf8');
-    expect(live).toMatch(/\.page \{[^}]*--chart-floor-on: 0;/);
+    expect(live).not.toContain('--chart-floor-on');
     expect(css).toMatch(/\.fill \.legend \{\s+max-height: calc\(4 \* var\(--row\)\);\s+overflow-y: auto;/);
   });
 });

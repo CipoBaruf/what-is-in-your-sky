@@ -57,3 +57,34 @@
   content: '[x] ';
   color: var(--accent);
 }
+
+/* R48 (FR-COMP-4, D-234): the compact speeds — no `[x]` marks, the chosen
+   speed in brackets, one cell between the options: 19 cells for the four. The
+   brackets are text the button paints, so the row's width is the same
+   whichever speed is chosen. */
+.speedsCompact {
+  display: flex;
+  align-items: baseline;
+  gap: 0 var(--cell);
+}
+
+.speed {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--fg-dim);
+}
+
+.speed[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+.speed[aria-pressed='true']::before {
+  content: '[';
+  color: var(--fg-dim);
+}
+
+.speed[aria-pressed='true']::after {
+  content: ']';
+  color: var(--fg-dim);
+}

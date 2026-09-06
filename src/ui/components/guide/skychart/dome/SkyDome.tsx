@@ -361,7 +361,8 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
       <ChartFrame
         fill={fill}
         legend={legend}
-        controls={<p className={styles.hint}>{t.chart.domeHint}</p>}
+        // R48 (FR-LIVE-7 as amended): the hint is not shown on the live page — `fill` is that page — where the row it took is the dome's.
+        controls={fill ? undefined : <p className={styles.hint}>{t.chart.domeHint}</p>}
         status={
           <p className={styles.readout} id={readoutId} data-testid="dome-readout">
             {t.chart.readout(readoutParams(camera))}

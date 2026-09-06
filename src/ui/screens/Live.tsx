@@ -10,11 +10,15 @@ import { LanguageToggle } from '../components/common/LanguageToggle';
 import { ShareButton } from '../components/common/ShareButton';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
+import type { ChartPass } from '../components/guide/skychart/SkyChart.types';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { FollowPhone } from '../components/live/FollowPhone';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
-import { PlaybackControls } from '../components/live/PlaybackControls';
+import { withArcStates } from '../components/live/liveArcs';
+import { HiddenToggle, PlaybackControls } from '../components/live/PlaybackControls';
 import { StatusStrip } from '../components/live/StatusStrip';
+import { StepControls } from '../components/live/StepControls';
+import { TimeReadout } from '../components/live/TimeReadout';
 import { TimeStripe } from '../components/live/TimeStripe';
 import { useDeclination } from '../components/live/useDeclination';
 import { useFollowPhone } from '../components/live/useFollowPhone';
@@ -23,6 +27,7 @@ import { usePlayback } from '../components/live/usePlayback';
 import { useSkyBands } from '../components/live/useSkyBands';
 import { useWakeLock } from '../components/live/useWakeLock';
 import { useWallThrottle } from '../components/live/useWallThrottle';
+import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import styles from './Live.module.css';
 
@@ -57,7 +62,13 @@ import styles from './Live.module.css';
  *
  * **Inert states (FR-LIVE-1).** No observer, or no elements, is one line and
  * the return control — the top row stays, so the language and the theme are
- * still reachable on a page with no header.
+ * still reachable on a page with no header (on wide; compact is D-235).
+ *
+ * **Trajectories (R48: FR-TRAJ-1..5, FR-WIN-6, FR-LIVE-7 as amended).** Each
+ * pass carries its arc state at the shown instant (`liveArcs.ts`, D-189), so
+ * the tracks appear, grow and fade as time moves; the stripe block is the
+ * readout, the three-row stripe and the stepping row (D-190); the window view
+ * shows real time and hides the block and the playback row (FR-WIN-6).
  */
 export interface LivePageProps {
   /** The `#live?…` link, or `null` for the bare route. */
@@ -85,6 +96,14 @@ export function LivePage({ link, onLeave }: LivePageProps) {
   const t = useT();
   const observer = useAppStore((s) => s.observer);
   const elements = useAppStore((s) => s.elements);
+  /*
+   * R48 (FR-LIVE-7 as amended, FR-COMP-1, D-235): on compact the top row is one
+   * row — the return control and the place, which ellipsises — and the language
+   * and theme switches are not on it: with them it was three rows of 48 px
+   * tap targets, and FR-COMP-2 puts both on the settings page on a phone
+   * (R52). Wide has the room and keeps them, as R32 laid the page out.
+   */
+  const compact = useLayoutMode() === 'compact';
 
   // FR-LIVE-1: Esc returns. R35 moves this into the app-wide listener.
   useEffect(() => {
@@ -104,8 +123,8 @@ export function LivePage({ link, onLeave }: LivePageProps) {
   const wakeLock = useWakeLock(inert === null);
 
   return (
-    <div className={styles.page} data-testid="live-page" data-state={inert === null ? 'live' : 'inert'} data-wake-lock={wakeLock}>
-      <div className={styles.topRow}>
+    <div className={styles.page} data-testid="live-page" data-state={inert === null ? 'live' : 'inert'} data-wake-lock={wakeLock} data-compact={compact}>
+      <div className={styles.topRow} data-testid="live-top-row">
         <button type="button" className={styles.back} onClick={onLeave}>
           {t.live.back}
         </button>
@@ -114,10 +133,12 @@ export function LivePage({ link, onLeave }: LivePageProps) {
             {observer.label}
           </span>
         )}
-        <div className={styles.controls}>
-          <LanguageToggle />
-          <ThemeToggle />
-        </div>
+        {!compact && (
+          <div className={styles.controls}>
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
+        )}
       </div>
       {inert !== null || observer === null ? (
         <p className={styles.inert} data-testid="live-inert">
@@ -163,9 +184,10 @@ function useHashFollows(observer: Observer, shown: EpochMs, realTime: boolean, p
   }, [observer, shown, realTime, playing]);
 }
 
-/** The page with something to draw: the chart, the stripe, the controls, the strip and the share action, for one observer. */
+/** The page with something to draw: the chart, the strip, the stripe block, the controls and the share action, for one observer. */
 function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null }) {
   const t = useT();
+  const compact = useLayoutMode() === 'compact';
   const passesState = useAppStore((s) => s.passes);
   const weather = useAppStore((s) => s.weather);
   const liveHidden = useAppStore((s) => s.liveHidden);
@@ -212,13 +234,33 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   useEffect(() => {
     if (!followable) stopFollowing();
   }, [followable, stopFollowing]);
+  /*
+   * R48 (FR-WIN-6, US-21 AC5): window mode. The window shows real time —
+   * entering it dispatches the `now` action, and the stripe block and the
+   * playback row are not rendered while it is the view; leaving it brings
+   * them back, at real time. The view's id is read by name: R47 registers the
+   * view and widens `chartView`'s union, and this page needs no change when
+   * it does (the `string` reading is what lets it compile before then).
+   */
+  const windowMode = (chartView as string) === 'window';
+  const toNow = playback.toNow;
+  useEffect(() => {
+    if (windowMode) toNow();
+  }, [windowMode, toNow]);
+  // R48 (FR-TRAJ-1, FR-TRAJ-3, D-189): each pass carries the state its arc is drawn in at the shown instant; the legend reads the same value.
+  const arcsRef = useRef<readonly ChartPass[] | null>(null);
+  const chartPasses = useMemo(() => {
+    const next = withArcStates(passes, shown, arcsRef.current);
+    arcsRef.current = next;
+    return next;
+  }, [passes, shown]);
   // FR-SHARE-1's live form: the place, and the instant only when this page is showing one (real time is the recipient's own).
   const url = shareUrl(window.location.href, liveLinkHash({ observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t: playback.realTime ? null : shown }));
   return (
     <>
       <div className={styles.dome} data-testid="live-dome">
         <SkyChart
-          passes={passes}
+          passes={chartPasses}
           observer={observer}
           highlightedPassId={null}
           now={shown}
@@ -232,24 +274,12 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           onDrag={follow.stop}
         />
       </div>
-      {/* R34 (FR-LIVE-7, D-173): the side column — under the dome in portrait, beside it on a landscape phone. */}
-      <div className={styles.side} data-testid="live-side">
-        <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} onScrub={playback.scrub} />
-        <div className={styles.actions}>
-          <PlaybackControls
-            playing={playback.playing}
-            speed={playback.speed}
-            realTime={playback.realTime}
-            hidden={liveHidden}
-            onPlay={playback.play}
-            onPause={playback.pause}
-            onSpeed={playback.setSpeed}
-            onNow={playback.toNow}
-            onToggleHidden={toggleHidden}
-          />
-          {followable && <FollowPhone follow={follow} />}
-          <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={t.live.share} />
-        </div>
+      {/*
+       * R34 (FR-LIVE-7, D-173): the side column — under the dome in portrait, beside it on a landscape phone.
+       * R48 (FR-LIVE-7 as amended, D-235): in the order the requirement lists — the strip, the stripe block
+       * (readout, stripe, stepping row) and the two control rows: playback, and the actions.
+       */}
+      <div className={styles.side} data-testid="live-side" data-window-mode={windowMode}>
         <StatusStrip
           t={shown}
           timeZone={observer.timeZone}
@@ -260,6 +290,21 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           speed={playback.playing ? playback.speed : null}
           declinationDeg={follow.state === 'on' ? declinationDeg : null}
         />
+        {!windowMode && (
+          <div className={styles.stripeBlock} data-testid="stripe-block">
+            <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />
+            <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} onScrub={playback.scrub} />
+            <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} />
+          </div>
+        )}
+        {!windowMode && (
+          <PlaybackControls playing={playback.playing} speed={playback.speed} realTime={playback.realTime} onPlay={playback.play} onPause={playback.pause} onSpeed={playback.setSpeed} onNow={playback.toNow} />
+        )}
+        <div className={styles.actions} data-testid="live-actions">
+          <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />
+          {followable && <FollowPhone follow={follow} />}
+          <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : t.live.share} ariaLabel={t.live.share} />
+        </div>
       </div>
     </>
   );

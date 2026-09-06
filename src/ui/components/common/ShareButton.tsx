@@ -27,6 +27,8 @@ export interface ShareButtonProps {
   text: string;
   /** The button's own words; defaults to "Share this pass". */
   label?: string;
+  /** R48 (FR-COMP-4): the accessible name when the visible label is a short form of it — the live page's compact row says "Share" for "Share this sky". */
+  ariaLabel?: string;
 }
 
 /** How long the inline confirmation stays. Long enough to read, short enough not to outlive the action. */
@@ -34,7 +36,7 @@ export const CONFIRMATION_MS = 4000;
 
 type Confirmation = 'idle' | 'copied' | 'failed';
 
-export function ShareButton({ url, title, text, label }: ShareButtonProps) {
+export function ShareButton({ url, title, text, label, ariaLabel }: ShareButtonProps) {
   const t = useT();
   const [confirmation, setConfirmation] = useState<Confirmation>('idle');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -76,6 +78,7 @@ export function ShareButton({ url, title, text, label }: ShareButtonProps) {
       <button
         type="button"
         className={styles.button}
+        {...(ariaLabel === undefined ? {} : { 'aria-label': ariaLabel })}
         onClick={() => {
           void onClick();
         }}

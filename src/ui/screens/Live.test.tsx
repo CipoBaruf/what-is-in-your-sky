@@ -19,7 +19,7 @@ import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../t
 import { en } from '../../i18n/en';
 import { isoInstant } from '../../lib/shareLinks';
 import { skyBodiesAt } from '../../lib/skyBodies';
-import type { Observer, Pass } from '../../model';
+import type { ChartView, Observer, Pass } from '../../model';
 import type { NowItem, NowState } from '../../model';
 import { appStore, setLiveNowClient, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
@@ -145,13 +145,14 @@ describe('<LivePage>', () => {
     const figure = screen.getByRole('figure', { name: en.chart.liveLabel });
     expect(figure.querySelector('figcaption')).toBeNull();
     // R45: the legend's rows carry the pass id too, so the drawing's are read inside the drawing.
-    const drawn = [...container.querySelectorAll('[data-drawing] [data-pass-id]')].map((el) => [el.getAttribute('data-pass-id'), el.getAttribute('data-series')]);
-    expect(drawn).toEqual([
-      [pass.id, '1'],
-      ['later', '2'],
-      ['tomorrow', '3'],
-    ]);
+    // R48 (FR-TRAJ-1): at the shown instant only the pass under way is drawn — `later` (3 h on) and
+    // `tomorrow` are hidden until their rise is within ARC_LOOKAHEAD — and it keeps its series colour.
+    const drawn = [...container.querySelectorAll('[data-drawing] [data-pass-id]')].map((el) => [el.getAttribute('data-pass-id'), el.getAttribute('data-series'), el.getAttribute('data-arc')]);
+    expect(drawn).toEqual([[pass.id, '1', 'live']]);
+    expect(container.querySelectorAll('[data-testid="chart-legend"] [data-pass-id]')).toHaveLength(1);
     expect(container.querySelectorAll('[data-marker="now"]')).toHaveLength(1);
+    // The stripe still carries every pass of the coming 24 h as a segment (FR-LIVE-4).
+    expect([...container.querySelectorAll('[data-pass-segment]')].map((el) => el.getAttribute('data-pass-segment'))).toEqual([pass.id, 'later', 'tomorrow']);
     expect(within(screen.getByTestId('live-count')).getByText('1 satellite')).toBeInTheDocument();
     expect(screen.getByTestId('live-time')).toHaveTextContent('2026-09-11 09:48:24 UTC');
     expect(screen.getByTestId('live-cloud')).toHaveTextContent('Weather unknown');
@@ -175,9 +176,11 @@ describe('<LivePage>', () => {
     });
     expect(container.querySelectorAll('[data-marker="now"]')).toHaveLength(0);
     expect(screen.getByTestId('live-count')).toHaveTextContent('0 satellites');
-    // The window moved with real time: the golden pass is over and no longer drawn.
+    // The window moved with real time: the golden pass is over and no longer drawn. `later` is in the
+    // window — a segment on the stripe — and, three hours from its rise, not yet on the chart (FR-TRAJ-1).
     expect(container.querySelector(`[data-pass-id="${pass.id}"]`)).toBeNull();
-    expect(container.querySelector('[data-pass-id="later"]')).not.toBeNull();
+    expect(container.querySelector('[data-pass-segment="later"]')).not.toBeNull();
+    expect(container.querySelector('[data-drawing] [data-pass-id="later"]')).toBeNull();
   });
 
   it('shows the instant a #live?… link names instead of real time, and shares it back in the same form (FR-LIVE-9, FR-SHARE-1)', () => {
@@ -215,12 +218,120 @@ describe('<LivePage>', () => {
     expect(onLeave).toHaveBeenCalledTimes(2);
   });
 
-  it('carries the language and the theme switches, since there is no header on this page', () => {
+  it('carries the language and the theme switches on wide, since there is no header on this page; compact keeps one top row without them (D-235)', () => {
     withSky();
+    // jsdom has no `matchMedia`: the compact shell. The top row is the return control and the place.
+    const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'true');
+    expect(screen.queryByRole('group', { name: 'Language' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Theme' })).toBeNull();
+    expect(within(screen.getByTestId('live-top-row')).getByTestId('live-place')).toHaveTextContent(observer.label);
+    expect(screen.getByRole('group', { name: 'Chart view' })).toBeInTheDocument();
+    // R48 (FR-LIVE-7 as amended): no "drag the dome" hint on this page, whichever view.
+    expect(screen.queryByText(en.chart.domeHint)).toBeNull();
+    unmount();
+    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener: () => undefined, removeEventListener: () => undefined }));
     render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
     expect(screen.getByRole('group', { name: 'Language' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Theme' })).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: 'Chart view' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Share this sky' })).toHaveTextContent('Share this sky');
+  });
+
+  /** R48 (FR-TRAJ-1, FR-TRAJ-3, US-22 AC1..AC3, D-189): the arcs appear, grow and fade with the shown instant, and the legend says the same. */
+  it('scrubs a pass through ahead, live, linger and gone, with the drawn arc and the legend state following (FR-TRAJ-1)', () => {
+    withSky();
+    const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+    const stripe = screen.getByTestId('time-stripe');
+    const arc = (): string | null => container.querySelector('[data-drawing] [data-pass-id="later"]')?.getAttribute('data-arc') ?? null;
+    const legendState = (): string | null => container.querySelector('[data-testid="chart-legend"] [data-pass-id="later"]')?.getAttribute('data-state') ?? null;
+    // Three hours before its rise, `later` is not drawn and not listed.
+    expect(arc()).toBeNull();
+    expect(legendState()).toBeNull();
+    // `rise ▶|`: one tap lands on the rise (US-22 AC6) — the arc is live from its rise, with the marker.
+    fireEvent.click(screen.getByRole('button', { name: 'Next rise' }));
+    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(later.start.t);
+    expect(arc()).toBe('live');
+    expect(legendState()).toBe('live');
+    expect(container.querySelector('[data-drawing] [data-pass-id="later"] [data-marker="now"]')).not.toBeNull();
+    // A minute before the rise: the whole arc faint and dotted, the rise marked, no marker.
+    fireEvent.click(screen.getByRole('button', { name: 'Back one minute' }));
+    expect(arc()).toBe('ahead');
+    expect(legendState()).toBe('ahead');
+    expect(container.querySelector('[data-drawing] [data-pass-id="later"] [data-marker="ahead"]')).not.toBeNull();
+    expect(container.querySelector('[data-drawing] [data-pass-id="later"] [data-marker="now"]')).toBeNull();
+    // Ten minutes at a time past its end: the arc lingers, faint, without a marker…
+    for (let steps = 0; steps < 20 && Number(stripe.getAttribute('aria-valuenow')) <= later.end.t; steps++) {
+      fireEvent.keyDown(stripe, { key: 'ArrowRight', shiftKey: true });
+    }
+    expect(Number(stripe.getAttribute('aria-valuenow'))).toBeGreaterThan(later.end.t);
+    expect(arc()).toBe('linger');
+    expect(legendState()).toBe('linger');
+    expect(container.querySelector('[data-drawing] [data-pass-id="later"] [data-marker="now"]')).toBeNull();
+    // …and ten minutes on it is gone from the drawing and the legend.
+    fireEvent.keyDown(stripe, { key: 'ArrowRight', shiftKey: true });
+    expect(arc()).toBeNull();
+    expect(legendState()).toBeNull();
+  });
+
+  /** R48 (FR-TRAJ-4, FR-TRAJ-5, US-22 AC5, AC6): the readout above the stripe and the stepping row under it. */
+  it('shows the readout above the stripe with the weekday past midnight, and the stepping row lands on rises and steps minutes', () => {
+    withSky();
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    const stripe = screen.getByTestId('time-stripe');
+    const block = screen.getByTestId('stripe-block');
+    const readout = within(block).getByTestId('time-readout');
+    // The block's order: the readout, the stripe, the stepping row.
+    expect([...block.children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'time-stripe', 'step-controls']);
+    expect(readout).toHaveTextContent(/^09:48$/);
+    expect(readout).toHaveAttribute('data-today', 'true');
+    // Forward ten minutes, twice; back one.
+    fireEvent.click(screen.getByRole('button', { name: 'Forward ten minutes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Forward ten minutes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back one minute' }));
+    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T + 19 * 60_000);
+    expect(readout).toHaveTextContent(/^10:07$/);
+    // The next rise is `later`, then `tomorrow`; from there nothing ahead, and `later` is behind.
+    fireEvent.click(screen.getByRole('button', { name: 'Next rise' }));
+    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(later.start.t);
+    fireEvent.click(screen.getByRole('button', { name: 'Next rise' }));
+    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(tomorrow.start.t);
+    expect(screen.getByRole('button', { name: 'Next rise' })).toBeDisabled();
+    // Past midnight UTC (the zone is unknown here): the weekday is in front of the clock.
+    expect(readout).toHaveTextContent(/^Sat \d\d:\d\d$/);
+    expect(readout).toHaveAttribute('data-today', 'false');
+    fireEvent.click(screen.getByRole('button', { name: 'Previous rise' }));
+    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(later.start.t);
+  });
+
+  /** R48 (FR-WIN-6, US-21 AC5): the window shows real time, without the stripe block and the playback row. */
+  it('window mode returns the instant to now and hides the stripe block and playback; leaving restores them (FR-WIN-6)', () => {
+    withSky();
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Next rise' }));
+    expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
+    expect(screen.getByRole('button', { name: 'Now' })).toBeEnabled();
+    // R47 registers the view; the page reads the preference by name and needs nothing from it.
+    act(() => {
+      appStore.getState().setChartView('window' as unknown as ChartView);
+    });
+    expect(screen.getByTestId('live-side')).toHaveAttribute('data-window-mode', 'true');
+    expect(screen.queryByTestId('stripe-block')).toBeNull();
+    expect(screen.queryByTestId('time-stripe')).toBeNull();
+    expect(screen.queryByTestId('playback-controls')).toBeNull();
+    // The strip stays, at real time; so do the actions.
+    expect(screen.getByTestId('live-time')).toHaveTextContent('2026-09-11 09:48:24 UTC');
+    expect(screen.getByRole('button', { name: 'Hidden objects' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Share this sky' })).toBeInTheDocument();
+    // Leaving the window: the block and the row are back, and the instant is still real time.
+    act(() => {
+      appStore.getState().setChartView('polar');
+    });
+    expect(screen.getByTestId('live-side')).toHaveAttribute('data-window-mode', 'false');
+    expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
+    expect(screen.getByTestId('playback-controls')).toBeInTheDocument();
+    expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(T);
+    expect(screen.getByRole('button', { name: 'Now' })).toBeDisabled();
   });
 
   /** R33 (FR-LIVE-4, US-15 AC3): the stripe moves the instant and everything follows — the dome, the marker, the strip, the share link. */
