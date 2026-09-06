@@ -19,7 +19,7 @@
  * `live.spec.ts`, beside the layout facts it already holds.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { domeDrawn, heading, homeAt, LABEL, stripFilled, stubCompass, T } from './liveHelpers';
+import { domeDrawn, heading, homeAt, LABEL, reenterLiveWithTheme, stripFilled, stubCompass, T } from './liveHelpers';
 
 const LANDSCAPE = { width: 844, height: 390 };
 const FOLLOW = { en: 'Follow phone', es: 'Seguir al teléfono' } as const;
@@ -101,11 +101,12 @@ test.describe('the live page on a landscape phone', () => {
     expect(dome.width).toBeGreaterThan(280);
     expect(dome.height).toBeGreaterThan(310);
     expect(dome.y + dome.height).toBeGreaterThan(LANDSCAPE.height - 12);
-    // The stripe, the controls and the strip are all in the side column, in that order, and the
-    // whole strip is on the screen — the side column is what the layout is for.
+    // The strip, the stripe block and the controls are all in the side column, in that order (R48:
+    // FR-LIVE-7 as amended puts the strip first), and the whole strip is on the screen — the side
+    // column is what the layout is for.
     expect(stripe.x).toBeGreaterThanOrEqual(dome.x + dome.width - 1);
     expect(strip.x).toBeGreaterThanOrEqual(dome.x + dome.width - 1);
-    expect(strip.y).toBeGreaterThan(stripe.y + stripe.height - 1);
+    expect(stripe.y).toBeGreaterThan(strip.y + strip.height - 1);
     expect(strip.y + strip.height).toBeLessThanOrEqual(LANDSCAPE.height);
     for (const field of ['time', 'sky', 'cloud', 'count', 'moon']) await expect(page.getByTestId(`live-${field}`)).toBeInViewport({ ratio: 1 });
     // The side column may scroll itself where its content wraps past the viewport; the page never does.
@@ -200,11 +201,10 @@ test.describe('the live page on a landscape phone', () => {
     await liveLandscape(page, 'en', true);
     await expect(page.getByRole('button', { name: FOLLOW.en })).toBeVisible();
     await page.screenshot({ path: 'docs/screenshots/r34-live-844-landscape-dark-en.png' });
-    await page.getByRole('group', { name: LABEL.en.theme }).getByRole('button', { name: LABEL.en.night }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'night');
+    // R48 (D-244): a landscape phone is compact, and the compact live page carries no theme switch.
+    await reenterLiveWithTheme(page, 'en', 'night');
     await page.clock.runFor(500);
     await page.screenshot({ path: 'docs/screenshots/r34-live-844-landscape-night-en.png' });
-    await page.getByRole('group', { name: LABEL.en.theme }).getByRole('button', { name: LABEL.en.dark }).click();
   });
 
   test('captures in landscape in Spanish: the control and its row carry no English (FR-I18N-2)', async ({ page }) => {
@@ -224,13 +224,15 @@ test.describe('the live page on a portrait phone with the control', () => {
     const toggle = page.getByRole('button', { name: FOLLOW.en });
     await expect(toggle).toBeVisible();
     await page.screenshot({ path: 'docs/screenshots/r34-live-390-follow-dark-en.png' });
-    // D-177: the toggle (16 cells) and the boxed share action (20) are 38 cells with their gap, two more
-    // than the phone has, so the share action takes a fourth line and the dome pays a row for it —
-    // 291 px against the 300 the untouched profile keeps (D-172). Landscape is the phone's answer.
+    // D-177 had the boxed share action on a fourth line, 38 cells with the toggle. R48 (FR-COMP-4,
+    // D-245): the actions row is `Hidden · Follow · Share` on compact, 31 cells, so the three share
+    // one line and the dome keeps its floor — never shorter than it is wide (D-233, FR-COMP-5).
     const dome = await page.getByTestId('live-dome').boundingBox();
-    expect(dome?.height).toBeGreaterThan(280);
+    expect(dome?.height).toBeGreaterThanOrEqual((dome?.width ?? Infinity) - 1);
     const follow = await toggle.boundingBox();
     const share = await page.getByRole('button', { name: 'Share this sky' }).boundingBox();
-    expect(share?.y).toBeGreaterThan((follow?.y ?? 0) + (follow?.height ?? 0) - 1);
+    const hidden = await page.getByRole('button', { name: 'Hidden objects' }).boundingBox();
+    expect(Math.abs((share?.y ?? 0) - (follow?.y ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((hidden?.y ?? 0) - (follow?.y ?? 0))).toBeLessThanOrEqual(1);
   });
 });

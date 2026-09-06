@@ -10,7 +10,7 @@ import styles from './PlaybackControls.module.css';
  * already shows it — and the four speeds. Pure display: the page owns the
  * state.
  *
- * R48 (FR-LIVE-7 as amended, FR-COMP-4, D-234): on compact the row is one of
+ * R48 (FR-LIVE-7 as amended, FR-COMP-4, D-245): on compact the row is one of
  * the page's two control rows and must fit 36 cells, so play and pause are
  * glyphs (`▶`, `‖`) whose accessible names are still the words, and the
  * speeds are a group where the chosen one is bracketed, `1× [60×] 600×

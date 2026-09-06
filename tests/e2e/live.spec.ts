@@ -15,7 +15,7 @@
  *     Spanish at the phone width.
  */
 import { expect, test } from '@playwright/test';
-import { domeDrawn, golden, ha, heading, hhmmss, homeAt, LABEL, realTimeField, stripFilled, stubCompass, stubNetwork, T } from './liveHelpers';
+import { domeDrawn, golden, ha, heading, hhmmss, homeAt, LABEL, realTimeField, reenterLiveWithTheme, stripFilled, stubCompass, stubNetwork, T } from './liveHelpers';
 
 test.describe('the live page', () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -191,11 +191,10 @@ for (const width of [390, 1280] as const) {
     expect(side?.y).toBeGreaterThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) - 1);
     await expect(page.getByTestId('follow-phone')).toHaveCount(0);
     await page.screenshot({ path: `docs/screenshots/r32-live-${String(width)}-dark-en.png` });
-    await page.getByRole('group', { name: LABEL.en.theme }).getByRole('button', { name: LABEL.en.night }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'night');
+    // R48 (D-244): the compact live page carries no theme switch, so the theme is set on the home page.
+    await reenterLiveWithTheme(page, 'en', 'night');
     await page.clock.runFor(500);
     await page.screenshot({ path: `docs/screenshots/r32-live-${String(width)}-night-en.png` });
-    await page.getByRole('group', { name: LABEL.en.theme }).getByRole('button', { name: LABEL.en.dark }).click();
   });
 }
 

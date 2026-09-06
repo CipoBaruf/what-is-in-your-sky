@@ -58,7 +58,7 @@
   color: var(--accent);
 }
 
-/* R48 (FR-COMP-4, D-234): the compact speeds — no `[x]` marks, the chosen
+/* R48 (FR-COMP-4, D-245): the compact speeds — no `[x]` marks, the chosen
    speed in brackets, one cell between the options: 19 cells for the four. The
    brackets are text the button paints, so the row's width is the same
    whichever speed is chosen. */

@@ -99,7 +99,7 @@ export const live = {
     },
     /**
      * R48 (FR-LIVE-7 as amended, FR-COMP-4): the compact page's two control
-     * rows, each within 36 cells (D-234). Play and pause are glyphs whose
+     * rows, each within 36 cells (D-245). Play and pause are glyphs whose
      * accessible names are still the words; the toggles and the share action
      * keep one word of their wide labels. Labels may differ between the
      * shells; meaning may not (US-5 AC2).

@@ -62,7 +62,7 @@ import styles from './Live.module.css';
  *
  * **Inert states (FR-LIVE-1).** No observer, or no elements, is one line and
  * the return control — the top row stays, so the language and the theme are
- * still reachable on a page with no header (on wide; compact is D-235).
+ * still reachable on a page with no header (on wide; compact is D-244).
  *
  * **Trajectories (R48: FR-TRAJ-1..5, FR-WIN-6, FR-LIVE-7 as amended).** Each
  * pass carries its arc state at the shown instant (`liveArcs.ts`, D-189), so
@@ -97,7 +97,7 @@ export function LivePage({ link, onLeave }: LivePageProps) {
   const observer = useAppStore((s) => s.observer);
   const elements = useAppStore((s) => s.elements);
   /*
-   * R48 (FR-LIVE-7 as amended, FR-COMP-1, D-235): on compact the top row is one
+   * R48 (FR-LIVE-7 as amended, FR-COMP-1, D-244): on compact the top row is one
    * row — the return control and the place, which ellipsises — and the language
    * and theme switches are not on it: with them it was three rows of 48 px
    * tap targets, and FR-COMP-2 puts both on the settings page on a phone
@@ -276,7 +276,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
       </div>
       {/*
        * R34 (FR-LIVE-7, D-173): the side column — under the dome in portrait, beside it on a landscape phone.
-       * R48 (FR-LIVE-7 as amended, D-235): in the order the requirement lists — the strip, the stripe block
+       * R48 (FR-LIVE-7 as amended, D-244): in the order the requirement lists — the strip, the stripe block
        * (readout, stripe, stepping row) and the two control rows: playback, and the actions.
        */}
       <div className={styles.side} data-testid="live-side" data-window-mode={windowMode}>

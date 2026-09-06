@@ -218,7 +218,7 @@ describe('<LivePage>', () => {
     expect(onLeave).toHaveBeenCalledTimes(2);
   });
 
-  it('carries the language and the theme switches on wide, since there is no header on this page; compact keeps one top row without them (D-235)', () => {
+  it('carries the language and the theme switches on wide, since there is no header on this page; compact keeps one top row without them (D-244)', () => {
     withSky();
     // jsdom has no `matchMedia`: the compact shell. The top row is the return control and the place.
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);

@@ -13,7 +13,7 @@
    under it, the side column on the right — by a media query and not a device
    sniff (PLAN §8.8). Portrait keeps the stack above, unchanged.
 
-   R48 (FR-COMP-5, D-235): the portrait rows are re-cut — one top row, the
+   R48 (FR-COMP-5, D-244): the portrait rows are re-cut — one top row, the
    strip, the stripe block (a heading row, three stripe rows, a stepping row)
    and two control rows — and the chart's floor (never shorter than wide) is
    back on: at 390 × 844 the rows leave the dome about 400 px, its width. */
@@ -92,7 +92,7 @@
   gap: 0 calc(2 * var(--cell));
 }
 
-/* R48 (FR-COMP-1, D-235): on compact the top row is one row: nothing wraps, and the place ellipsises. */
+/* R48 (FR-COMP-1, D-244): on compact the top row is one row: nothing wraps, and the place ellipsises. */
 .page[data-compact='true'] .topRow {
   flex-wrap: nowrap;
 }

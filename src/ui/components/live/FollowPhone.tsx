@@ -13,7 +13,7 @@ import type { FollowPhoneHandle } from './useFollowPhone';
  */
 export function FollowPhone({ follow }: { follow: FollowPhoneHandle }) {
   const t = useT();
-  // R48 (FR-COMP-4, D-234): one word on compact, under the full accessible name.
+  // R48 (FR-COMP-4, D-245): one word on compact, under the full accessible name.
   const compact = useLayoutMode() === 'compact';
   if (!follow.available) return null;
   const pressed = follow.state === 'on' || follow.state === 'relative';
