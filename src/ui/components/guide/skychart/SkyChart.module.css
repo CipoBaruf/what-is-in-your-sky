@@ -15,7 +15,8 @@
   height: 100%;
   min-height: 0;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: calc(var(--row) / 2);
+  /* R48 (D-246): a quarter row, like the live page's own gaps. */
+  gap: calc(var(--row) / 4);
 }
 
 .empty {

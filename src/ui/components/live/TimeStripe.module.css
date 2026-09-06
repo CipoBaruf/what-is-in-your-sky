@@ -4,10 +4,16 @@
    bowl's; the segments take the six series tokens their arcs take; the cursor
    is the live marker's colour. Colour is never the only channel (FR-X-5): the
    bands differ in shade, the current segment carries a stroke, the labelled
-   ticks are taller. */
+   ticks are taller.
+
+   R48 (FR-TRAJ-4): three text rows tall — the labels, the band, the segments —
+   and the labels are body-size type, readable at arm's length (US-22 AC5). The
+   component reads the height back and lays the rows out in thirds of it, so
+   `--row` is the only place the row is set. */
 .stripe {
   display: block;
   width: 100%;
+  height: calc(3 * var(--row));
   touch-action: none;
   user-select: none;
   cursor: col-resize;
@@ -43,9 +49,14 @@
   stroke-width: 1;
 }
 
-.hour {
+.hour,
+.date {
   fill: var(--fg-dim);
-  font-size: 9px;
+  font-size: 1rem;
+}
+
+.date {
+  fill: var(--fg);
 }
 
 .segment {
@@ -85,9 +96,4 @@
 .cursor {
   stroke: var(--chart-now);
   stroke-width: 1.5;
-}
-
-.clock {
-  fill: var(--fg);
-  font-size: 11px;
 }

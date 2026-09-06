@@ -1,4 +1,5 @@
 import { useT } from '../../../i18n/useT';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
 import styles from './FollowPhone.module.css';
 import type { FollowPhoneHandle } from './useFollowPhone';
 
@@ -12,13 +13,15 @@ import type { FollowPhoneHandle } from './useFollowPhone';
  */
 export function FollowPhone({ follow }: { follow: FollowPhoneHandle }) {
   const t = useT();
+  // R48 (FR-COMP-4, D-245): one word on compact, under the full accessible name.
+  const compact = useLayoutMode() === 'compact';
   if (!follow.available) return null;
   const pressed = follow.state === 'on' || follow.state === 'relative';
   const note = follow.state === 'relative' ? t.live.followRelative : follow.state === 'denied' ? t.live.followDenied : null;
   return (
     <div className={styles.follow} data-testid="follow-phone" data-state={follow.state}>
-      <button type="button" className={styles.toggle} aria-pressed={pressed} onClick={follow.toggle} data-testid="follow-toggle">
-        {t.live.follow}
+      <button type="button" className={styles.toggle} aria-pressed={pressed} aria-label={t.live.follow} onClick={follow.toggle} data-testid="follow-toggle">
+        {compact ? t.live.followShort : t.live.follow}
       </button>
       {note !== null && (
         <span role="status" className={styles.note} data-testid="follow-note">

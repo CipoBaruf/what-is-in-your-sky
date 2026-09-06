@@ -43,3 +43,48 @@
   content: ']';
   color: var(--fg-dim);
 }
+
+/* R48 (FR-LIVE-7 as amended, FR-COMP-4, D-246): on compact the strip is two
+   lines — the clock and the sky, then the clouds, the count and the Moon —
+   each at most 36 cells at its longest (`StatusStrip.test.tsx`), with two
+   cells between the fields, no colons and no brackets: the labels are the
+   words, the values the numbers. The `dl` stays flat (its content model, and
+   the definition-list a11y rule, allow groups and nothing around them), so
+   the lines are an inline formatting context's: the fields are inline, two
+   cells apart, and the field that ends a line is followed by a newline. Each
+   line is therefore its own, and a wide zone abbreviation on the first
+   (`GMT+12:45`) moves nothing on the second, which a shared grid column
+   would. The speed and the heading, when present, take a line each under
+   them. The rule above it keeps a quarter row of air, not a half: the row is
+   the dome's. */
+.strip[data-compact='true'] {
+  display: block;
+  padding-top: calc(var(--row) / 4);
+  line-height: var(--row);
+}
+
+.strip[data-compact='true'] .field {
+  display: inline;
+  white-space: nowrap;
+  margin-right: calc(2 * var(--cell));
+}
+
+.strip[data-compact='true'] .field[data-line-end='true'] {
+  margin-right: 0;
+}
+
+.strip[data-compact='true'] .field[data-line-end='true']::after {
+  content: '\A';
+  white-space: pre;
+}
+
+.strip[data-compact='true'] .label,
+.strip[data-compact='true'] .value {
+  display: inline;
+}
+
+.strip[data-compact='true'] .label::after,
+.strip[data-compact='true'] .value [data-state]::before,
+.strip[data-compact='true'] .value [data-state]::after {
+  content: none;
+}

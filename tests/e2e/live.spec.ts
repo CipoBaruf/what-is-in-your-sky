@@ -15,7 +15,7 @@
  *     Spanish at the phone width.
  */
 import { expect, test } from '@playwright/test';
-import { domeDrawn, golden, ha, heading, hhmmss, homeAt, LABEL, realTimeField, stripFilled, stubCompass, stubNetwork, T } from './liveHelpers';
+import { domeDrawn, golden, ha, heading, hhmmss, homeAt, LABEL, realTimeField, reenterLiveWithTheme, stripFilled, stubCompass, stubNetwork, T } from './liveHelpers';
 
 test.describe('the live page', () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -49,9 +49,10 @@ test.describe('the live page', () => {
     await stripFilled(page);
     await expect(page.getByTestId('live-time')).toHaveText(realTimeField(T));
     await expect(page.getByTestId('live-sky')).toHaveText(/Sky (dark|bright twilight|day)/);
-    await expect(page.getByTestId('live-cloud')).toHaveText('Clouds Weather unknown');
+    // R48 (D-246): the compact strip is two lines — the numbers, `n/a` for the clouds without a forecast.
+    await expect(page.getByTestId('live-cloud')).toHaveText('Clouds n/a');
     await expect(page.getByTestId('live-count').locator('[data-count]')).toHaveAttribute('data-count', String(panelCount));
-    await expect(page.getByTestId('live-moon')).toHaveText(/Moon (new|waxing crescent|first quarter|waxing gibbous|full|waning gibbous|last quarter|waning crescent), \d+ % lit/);
+    await expect(page.getByTestId('live-moon')).toHaveText(/^Moon \d+ %$/);
     // FR-LIVE-2 / FR-LIVE-10: the ISS is drawn on the chart, by the chart, named at its rise. (The search
     // window starts at now, so the pass under way is listed from this instant and its id is not the golden one.)
     // R45: the legend's rows carry the pass id too, so the drawing's are read inside the drawing.
@@ -85,7 +86,7 @@ test.describe('the live page', () => {
     await expect(page.getByTestId('live-place')).toHaveText('−38.93, −67.99');
     await domeDrawn(page);
     // The shown instant is the link's, not the clock's.
-    await expect(page.getByTestId('live-time')).toHaveText(`Time ${new Date(peak).toISOString().slice(0, 10)} ${hhmmss(peak)} UTC`);
+    await expect(page.getByTestId('live-time')).toHaveText(`Time ${hhmmss(peak)} UTC`);
     // At the peak the ISS is up: one marker, once the passes are in.
     await expect(page.getByTestId('live-count').locator('[data-count]')).toHaveAttribute('data-count', '1', { timeout: 60_000 });
     await stripFilled(page);
@@ -191,11 +192,10 @@ for (const width of [390, 1280] as const) {
     expect(side?.y).toBeGreaterThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) - 1);
     await expect(page.getByTestId('follow-phone')).toHaveCount(0);
     await page.screenshot({ path: `docs/screenshots/r32-live-${String(width)}-dark-en.png` });
-    await page.getByRole('group', { name: LABEL.en.theme }).getByRole('button', { name: LABEL.en.night }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'night');
+    // R48 (D-244): the compact live page carries no theme switch, so the theme is set on the home page.
+    await reenterLiveWithTheme(page, 'en', 'night');
     await page.clock.runFor(500);
     await page.screenshot({ path: `docs/screenshots/r32-live-${String(width)}-night-en.png` });
-    await page.getByRole('group', { name: LABEL.en.theme }).getByRole('button', { name: LABEL.en.dark }).click();
   });
 }
 
@@ -209,7 +209,7 @@ test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async 
   await expect(page.getByRole('button', { name: LABEL.es.back })).toBeVisible();
   await expect(page.getByTestId('status-strip')).toHaveAttribute('aria-label', 'Estado del cielo');
   await expect(page.getByTestId('live-sky')).toHaveText(/Cielo (oscuro|crepúsculo claro|de día)/);
-  await expect(page.getByTestId('live-cloud')).toHaveText('Nubes Clima desconocido');
+  await expect(page.getByTestId('live-cloud')).toHaveText('Nubes s/d');
   await expect(page.getByRole('button', { name: 'Compartir este cielo' })).toBeVisible();
   await page.screenshot({ path: 'docs/screenshots/r32-live-390-dark-es.png' });
 });

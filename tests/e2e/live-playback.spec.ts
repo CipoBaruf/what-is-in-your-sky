@@ -17,7 +17,7 @@
  * `runFor` is playback's wall time.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { domeDrawn, homeAt, LABEL, realTimeField, stripFilled, T } from './liveHelpers';
+import { domeDrawn, homeAt, realTimeField, setThemeOnHome, stripFilled, T } from './liveHelpers';
 
 const HOUR = 3_600_000;
 
@@ -32,7 +32,7 @@ const shownInstant = async (page: Page): Promise<number> => Date.parse((await pa
  * `[ ]`/`[x]` the CSS writes before the label (FR-X-5), so an anchored pattern
  * is what names one button and only one.
  */
-const speedButton = (page: Page, factor: number) => page.getByRole('button', { name: new RegExp(`^\\[[ x]\\] ${String(factor)}×$`) });
+const speedButton = (page: Page, factor: number) => page.getByRole('button', { name: new RegExp(`^(\\[[ x]\\] )?\\[?${String(factor)}×\\]?$`) });
 
 /** Presses the stripe `fraction` of the way along and lets go. */
 async function pressStripe(page: Page, fraction: number): Promise<void> {
@@ -194,11 +194,14 @@ for (const width of [390, 1280] as const) {
     await homeAt(page, T, 'en', true);
     await scrubbedWithHidden(page, 'en');
     await page.screenshot({ path: `docs/screenshots/r33-live-${String(width)}-dark-en.png` });
-    await page.getByRole('group', { name: LABEL.en.theme }).getByRole('button', { name: LABEL.en.night }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'night');
+    // R48 (D-244): the theme is switched on the home page, since the compact live page carries no switch.
+    await page.keyboard.press('Escape');
+    await setThemeOnHome(page, 'en', 'night');
+    await scrubbedWithHidden(page, 'en');
     await page.clock.runFor(500);
     await page.screenshot({ path: `docs/screenshots/r33-live-${String(width)}-night-en.png` });
-    await page.getByRole('group', { name: LABEL.en.theme }).getByRole('button', { name: LABEL.en.dark }).click();
+    await page.keyboard.press('Escape');
+    await setThemeOnHome(page, 'en', 'dark');
   });
 }
 

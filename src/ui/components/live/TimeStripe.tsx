@@ -1,17 +1,26 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { useLocale, useT } from '../../../i18n/useT';
-import { formatClock, formatShortClock } from '../../../lib/timeFormat';
-import { cursorAt, hourTicks, isCurrent, keyStep, nightBands, passSegments, timeAt, type SkyBand, type Span } from '../../../lib/timeStripe';
+import { formatClock } from '../../../lib/timeFormat';
+import { cursorAt, hourTicks, isCurrent, keyStep, MAX_LANES, midnightDate, nightBands, passSegments, timeAt, type SkyBand, type Span } from '../../../lib/timeStripe';
 import type { EpochMs, Pass } from '../../../model';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
 import styles from './TimeStripe.module.css';
 
 /**
  * R33 (FR-LIVE-4, US-15 AC3, D-82): the time stripe under the dome, in SVG.
- * `now` at the left edge and `now + 24 h` at the right, a tick on every whole
- * hour of the observer's clock, the night shaded from the three sky states,
- * one segment per pass in the series colour its arc carries, and a cursor at
- * the shown instant with its clock time. Drag, click and the arrow keys (one
- * minute; ten with Shift) move the instant, clamped to the span.
+ * `now` at the left edge and `now + 24 h` at the right, the night shaded from
+ * the three sky states, one segment per pass in the series colour its arc
+ * carries, and a cursor at the shown instant. Drag, click and the arrow keys
+ * (one minute; ten with Shift) move the instant, clamped to the span.
+ *
+ * R48 (FR-TRAJ-4, D-190): three rows of body-size cells. Row 1 is the hour
+ * labels — every 2 h on wide and every 3 h on compact, counted from midnight,
+ * with the date (day and short month) at each midnight crossing in place of
+ * `00`. Row 2 is the band: the night shading and a tick on every whole hour
+ * of the observer's clock. Row 3 is the pass segments. The cursor crosses all
+ * three; the clock readout that used to ride on it is `TimeReadout`, above
+ * the stripe, in the heading size. The rows are the measured height in
+ * thirds, so `--row` sets them and the text is never scaled.
  *
  * The geometry is `lib/timeStripe.ts`, in pixels of the measured width, so
  * the text is never scaled: the SVG's viewBox is its own box. The stripe is
@@ -29,31 +38,30 @@ export interface TimeStripeProps {
   onScrub: (t: EpochMs) => void;
 }
 
-/** The stripe's height in CSS pixels — two text rows, the tap target (G6); the rows below are laid out in it. */
-export const STRIPE_HEIGHT = 48;
+/** One text row in CSS pixels at the 16 px base (`--row`, 1.5 rem); the stripe is three of them. Before the first measurement, and in a layout with no height (tests). */
+export const ROW_PX = 24;
+export const ROWS = 3;
+export const STRIPE_HEIGHT = ROWS * ROW_PX;
 /** Before the first measurement, and in a layout with no width (tests). */
 export const DEFAULT_WIDTH = 600;
-const LABEL_Y = 10;
-const SEGMENTS_Y = 13;
-const LANE_H = 6;
-const SEGMENT_H = 4;
-const TICK_Y = 32;
-const TICK_H = 5;
-const LABELLED_TICK_H = 8;
-const HOUR_Y = 46;
+/** A cell at the 16 px base (`--cell`, 0.6 em): only the edge rule below reads it, to keep a label from spilling out of the stripe. */
+const CELL_PX = 9.6;
 
 export function TimeStripe({ span, passes, bands, t, timeZone, onScrub }: TimeStripeProps) {
   const m = useT();
   const locale = useLocale();
+  const mode = useLayoutMode();
   const ref = useRef<SVGSVGElement>(null);
-  const [width, setWidth] = useState(DEFAULT_WIDTH);
+  const [size, setSize] = useState({ width: DEFAULT_WIDTH, height: STRIPE_HEIGHT });
   const [dragging, setDragging] = useState(false);
+  const { width, height } = size;
+  const rowH = height / ROWS;
 
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
     const measure = (): void => {
-      setWidth(el.clientWidth || DEFAULT_WIDTH);
+      setSize({ width: el.clientWidth || DEFAULT_WIDTH, height: el.clientHeight || STRIPE_HEIGHT });
     };
     measure();
     if (typeof ResizeObserver === 'undefined') return;
@@ -104,18 +112,29 @@ export function TimeStripe({ span, passes, bands, t, timeZone, onScrub }: TimeSt
    * a fresh `Intl.DateTimeFormat` for the zone. Only the cursor and the
    * `current` flag follow `t`, and both are arithmetic on what is memoised here.
    */
-  const ticks = useMemo(() => hourTicks(span, width, timeZone), [span, width, timeZone]);
+  const ticks = useMemo(() => hourTicks(span, width, timeZone, mode), [span, width, timeZone, mode]);
   const night = useMemo(() => nightBands(bands, span, width), [bands, span, width]);
   const segments = useMemo(() => passSegments(passes, span, width), [passes, span, width]);
+  // FR-TRAJ-4: the labels of row 1 — the hour, or the date at a midnight — dropped where they would spill past an edge.
+  const labels = useMemo(
+    () =>
+      ticks
+        .filter((tick) => tick.labelled)
+        .map((tick) => ({ tick, text: tick.midnight ? midnightDate(tick.t, timeZone, locale) : String(tick.hour).padStart(2, '0') }))
+        .filter(({ tick, text }) => text !== '' && tick.x >= (text.length * CELL_PX) / 2 && tick.x <= width - (text.length * CELL_PX) / 2),
+    [ticks, timeZone, locale, width],
+  );
   const cursor = cursorAt(t, span, width);
+  const laneH = rowH / MAX_LANES;
+  const bandTop = rowH;
+  const bandBottom = 2 * rowH;
 
   return (
     <svg
       ref={ref}
       className={styles.stripe}
-      viewBox={`0 0 ${String(width)} ${String(STRIPE_HEIGHT)}`}
+      viewBox={`0 0 ${String(width)} ${String(height)}`}
       width="100%"
-      height={STRIPE_HEIGHT}
       role="slider"
       tabIndex={0}
       aria-label={m.live.stripe}
@@ -126,45 +145,57 @@ export function TimeStripe({ span, passes, bands, t, timeZone, onScrub }: TimeSt
       aria-orientation="horizontal"
       data-testid="time-stripe"
       data-dragging={dragging}
+      data-rows={ROWS}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
       onKeyDown={onKeyDown}
     >
-      <rect className={styles.day} x="0" y="0" width={width} height={STRIPE_HEIGHT} />
-      {night.map((band) => (
-        <rect key={band.x} className={styles.night} data-sky={band.sky} x={fmt(band.x)} y="0" width={fmt(band.width)} height={STRIPE_HEIGHT} />
-      ))}
-      {ticks.map((tick) => (
-        <g key={tick.t} data-tick={tick.hour}>
-          <line className={styles.tick} x1={fmt(tick.x)} x2={fmt(tick.x)} y1={TICK_Y} y2={TICK_Y + (tick.labelled ? LABELLED_TICK_H : TICK_H)} />
-          {tick.labelled && (
-            <text className={styles.hour} x={fmt(tick.x)} y={HOUR_Y} textAnchor="middle">
-              {String(tick.hour).padStart(2, '0')}
-            </text>
-          )}
-        </g>
-      ))}
-      {segments.map((segment) => (
-        <rect
-          key={segment.passId}
-          className={[styles.segment, isCurrent(segment, t) ? styles.current : undefined].filter(Boolean).join(' ')}
-          data-pass-segment={segment.passId}
-          data-series={segment.series}
-          data-current={isCurrent(segment, t)}
-          x={fmt(segment.x)}
-          y={SEGMENTS_Y + segment.lane * LANE_H}
-          width={fmt(segment.width)}
-          height={SEGMENT_H}
-          rx="1"
-        />
-      ))}
+      {/* Row 2 first, so the band sits under the ticks and the cursor. */}
+      <g data-row="band">
+        <rect className={styles.day} x="0" y={fmt(bandTop)} width={width} height={fmt(rowH)} />
+        {night.map((band) => (
+          <rect key={band.x} className={styles.night} data-sky={band.sky} x={fmt(band.x)} y={fmt(bandTop)} width={fmt(band.width)} height={fmt(rowH)} />
+        ))}
+        {ticks.map((tick) => (
+          <line
+            key={tick.t}
+            className={styles.tick}
+            data-tick={tick.hour}
+            data-labelled={tick.labelled}
+            x1={fmt(tick.x)}
+            x2={fmt(tick.x)}
+            y1={fmt(bandBottom - (tick.labelled ? rowH / 2 : rowH / 4))}
+            y2={fmt(bandBottom)}
+          />
+        ))}
+      </g>
+      <g data-row="labels">
+        {labels.map(({ tick, text }) => (
+          <text key={tick.t} className={tick.midnight ? styles.date : styles.hour} data-label={tick.hour} data-midnight={tick.midnight} x={fmt(tick.x)} y={fmt(rowH * 0.75)} textAnchor="middle">
+            {text}
+          </text>
+        ))}
+      </g>
+      <g data-row="segments">
+        {segments.map((segment) => (
+          <rect
+            key={segment.passId}
+            className={[styles.segment, isCurrent(segment, t) ? styles.current : undefined].filter(Boolean).join(' ')}
+            data-pass-segment={segment.passId}
+            data-series={segment.series}
+            data-current={isCurrent(segment, t)}
+            x={fmt(segment.x)}
+            y={fmt(bandBottom + 1 + segment.lane * laneH)}
+            width={fmt(segment.width)}
+            height={fmt(Math.max(1, laneH - 2))}
+            rx="1"
+          />
+        ))}
+      </g>
       <g data-testid="stripe-cursor" data-x={fmt(cursor.x)}>
-        <line className={styles.cursor} x1={fmt(cursor.x)} x2={fmt(cursor.x)} y1={LABEL_Y + 2} y2={STRIPE_HEIGHT} />
-        <text className={styles.clock} x={fmt(cursor.x)} y={LABEL_Y} textAnchor={cursor.anchor}>
-          {formatShortClock(t, timeZone, locale)}
-        </text>
+        <line className={styles.cursor} x1={fmt(cursor.x)} x2={fmt(cursor.x)} y1="0" y2={fmt(height)} />
       </g>
     </svg>
   );

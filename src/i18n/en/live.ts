@@ -47,6 +47,15 @@ export const live = {
     visible: (count: number) => (count === 1 ? '1 satellite' : `${String(count)} satellites`),
     /** The Moon's phase and illumination, and nothing about where it is: the dome shows that. */
     moon: (p: Pick<MoonFacts, 'phase' | 'illumination'>) => `${moonPhase[p.phase]}, ${p.illumination} % lit`,
+    /**
+     * R48 (FR-LIVE-7 as amended, FR-COMP-4, D-246): the compact strip is two
+     * lines of at most 36 cells — `06:48:24 GMT-3 bright twilight` over
+     * `Clouds 12 % Visible 3 Moon 72 %`. The clouds and the Moon are their
+     * percentages and the count its number; the first line's labels are
+     * spoken, not shown. Without a forecast the clouds read `n/a`.
+     */
+    cloudPercent: (percent: string | null) => (percent === null ? 'n/a' : `${percent} %`),
+    moonPercent: (illumination: string) => `${illumination} %`,
     /** FR-SHARE-1's live form: the same button as the pass's, with the page's own words. */
     share: 'Share this sky',
     shareTitle: 'The sky right now',
@@ -81,5 +90,33 @@ export const live = {
      */
     headingLabel: 'Heading',
     trueNorth: (p: { declination: string }) => `true north, declination ${p.declination}`,
+    /**
+     * R48 (FR-TRAJ-5, FR-COMP-4): the stepping row under the stripe, the six
+     * buttons the spike chose (`docs/window/FINDINGS.md`). The visible labels
+     * are the spike's glyphs, 33 cells in a row with their gaps; the
+     * accessible names say the same in words.
+     */
+    stepping: 'Step the shown instant',
+    step: { prevRise: '|◀ rise', back10: '−10m', back1: '−1m', forward1: '+1m', forward10: '+10m', nextRise: 'rise ▶|' },
+    stepName: {
+      prevRise: 'Previous rise',
+      back10: 'Back ten minutes',
+      back1: 'Back one minute',
+      forward1: 'Forward one minute',
+      forward10: 'Forward ten minutes',
+      nextRise: 'Next rise',
+    },
+    /**
+     * R48 (FR-LIVE-7 as amended, FR-COMP-4): the compact page's two control
+     * rows, each within 36 cells (D-245). Play and pause are glyphs whose
+     * accessible names are still the words; the toggles and the share action
+     * keep one word of their wide labels. Labels may differ between the
+     * shells; meaning may not (US-5 AC2).
+     */
+    playShort: '▶',
+    pauseShort: '‖',
+    hiddenShort: 'Hidden',
+    followShort: 'Follow',
+    shareShort: 'Share',
   },
 };

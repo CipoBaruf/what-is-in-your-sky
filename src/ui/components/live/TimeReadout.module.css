@@ -1,0 +1,14 @@
+/* R48 (FR-TRAJ-4): the readout is the heading size the pass detail's title
+   and the hero card use (1.25 rem), on one text row, so it costs the dome no
+   more than a line; the weekday, when there is one, in the dim ink. */
+.readout {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: var(--row);
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.weekday {
+  color: var(--fg-dim);
+}

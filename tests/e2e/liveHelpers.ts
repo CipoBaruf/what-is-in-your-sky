@@ -26,7 +26,7 @@ export const hhmmss = (t: number): string => new Date(t).toISOString().slice(11,
  * The strip's time field for real time at `t`, to the ten-second tick the page reads the clock at
  * (FR-VIS-5): whether the page mounted before or after the second `domeDrawn` lets run is not the point.
  */
-export const realTimeField = (t: number): RegExp => new RegExp(`^Time ${new Date(t).toISOString().slice(0, 10)} ${hhmmss(t).slice(0, 7)}\\d UTC$`);
+export const realTimeField = (t: number): RegExp => new RegExp(`^Time (${new Date(t).toISOString().slice(0, 10)} )?${hhmmss(t).slice(0, 7)}\\d UTC$`);
 
 export const golden = (): { start: number; peak: number; end: number } => {
   const pass = reference.firstGoldenPass;
@@ -237,6 +237,28 @@ export async function heading(page: Page, alpha: number): Promise<void> {
   }, alpha);
   // The facing is handed out on the next animation frame, which the installed clock holds.
   await page.clock.runFor(100);
+}
+
+/**
+ * R48 (D-244): the compact live page carries no theme switch — on a phone the
+ * theme is the settings page's (FR-COMP-2) — so a capture run sets the theme
+ * on the home page's header before entering, and comes back to change it.
+ * The theme is remembered (US-19), so the run puts it back when it is done.
+ */
+export async function setThemeOnHome(page: Page, locale: 'en' | 'es', theme: 'dark' | 'night'): Promise<void> {
+  const words = LABEL[locale];
+  await page.getByRole('banner').getByRole('group', { name: words.theme }).getByRole('button', { name: theme === 'night' ? words.night : words.dark }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+}
+
+/** Leaves the live page for the home one, sets the theme there and comes back with the dome drawn. */
+export async function reenterLiveWithTheme(page: Page, locale: 'en' | 'es', theme: 'dark' | 'night'): Promise<void> {
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('banner')).toBeVisible();
+  await setThemeOnHome(page, locale, theme);
+  await page.getByTestId('live-link').click();
+  await domeDrawn(page);
+  await stripFilled(page);
 }
 
 /** The five fields, each with a value that is not the pending ellipsis. */

@@ -1,4 +1,6 @@
-import type { EpochMs, Pass, SkyState } from '../model';
+import { INTL_LOCALE } from '../i18n/locale';
+import type { EpochMs, Locale, Pass, SkyState } from '../model';
+import type { LayoutMode } from './layout';
 
 /**
  * R33 (FR-LIVE-4, D-82): the time stripe's geometry, pure and clock-free
@@ -110,20 +112,22 @@ export interface HourTick {
   x: number;
   /** The hour of the observer's clock, 0–23. */
   hour: number;
-  /** Whether this tick carries its hour as text: every `labelEveryHours`-th hour, counted from midnight. */
+  /** Whether this tick carries a label: every `labelEveryHours`-th hour, counted from midnight. */
   labelled: boolean;
+  /** R48 (FR-TRAJ-4): a midnight crossing, whose label is the date rather than `00`. */
+  midnight: boolean;
 }
 
-/** Hour labels are two characters wide; ticks nearer than this many pixels share one label between them. */
-export const MIN_LABEL_GAP_PX = 40;
+/**
+ * R48 (FR-TRAJ-4): the labelled ticks are every 2 h on wide and every 3 h on
+ * compact, counted from midnight — a rule of the shell, not of the pixel
+ * width, since the labels are body-size cells and the compact stripe is 36
+ * of them: 1.5 cells an hour, so a two-cell label every third hour.
+ */
+export const LABEL_EVERY_HOURS: Readonly<Record<LayoutMode, number>> = { compact: 3, wide: 2 };
 
-/** How many hours apart the labelled ticks are, for a stripe of this width: the finest of 1, 2, 3, 6 that keeps labels `MIN_LABEL_GAP_PX` apart. */
-export function labelEveryHours(span: Span, width: number): number {
-  const hourPx = (HOUR_MS / (span.end - span.start)) * width;
-  for (const step of [1, 2, 3, 6]) {
-    if (hourPx * step >= MIN_LABEL_GAP_PX) return step;
-  }
-  return 12;
+export function labelEveryHours(mode: LayoutMode): number {
+  return LABEL_EVERY_HOURS[mode];
 }
 
 /**
@@ -132,16 +136,70 @@ export function labelEveryHours(span: Span, width: number): number {
  * span's start; a DST change inside the 24 h moves the later ticks by an hour
  * on the clock, which the labels show and the ticks do not.
  */
-export function hourTicks(span: Span, width: number, timeZone: string | null): HourTick[] {
+export function hourTicks(span: Span, width: number, timeZone: string | null, mode: LayoutMode = 'wide'): HourTick[] {
   const offset = zoneOffsetMs(span.start, timeZone);
-  const every = labelEveryHours(span, width);
+  const every = labelEveryHours(mode);
   const first = Math.ceil((span.start + offset) / HOUR_MS) * HOUR_MS - offset;
   const ticks: HourTick[] = [];
   for (let t = first; t <= span.end; t += HOUR_MS) {
     const hour = Math.round(((t + offset) / HOUR_MS) % 24 + 24) % 24;
-    ticks.push({ t, x: xAt(t, span, width), hour, labelled: hour % every === 0 });
+    ticks.push({ t, x: xAt(t, span, width), hour, labelled: hour % every === 0, midnight: hour === 0 });
   }
   return ticks;
+}
+
+/**
+ * R48 (FR-TRAJ-4): the date at a midnight crossing — the day and the short
+ * month in the observer's zone and the page's language, "12 Sep" / "12 sept".
+ * Built from the parts so the order is the same in both languages; a trailing
+ * period some CLDR month abbreviations carry is dropped, a cell being a cell.
+ */
+export function midnightDate(t: EpochMs, timeZone: string | null, locale: Locale): string {
+  try {
+    const parts = new Intl.DateTimeFormat(INTL_LOCALE[locale], { timeZone: timeZone ?? 'UTC', day: 'numeric', month: 'short' }).formatToParts(t);
+    const get = (type: Intl.DateTimeFormatPartTypes): string => parts.find((p) => p.type === type)?.value ?? '';
+    return `${get('day')} ${get('month').replace(/\.$/, '')}`.trim();
+  } catch {
+    return '';
+  }
+}
+
+/** R48 (FR-TRAJ-4): the short weekday of an instant in the zone, "Sat" / "sáb", for the readout when the instant is not today. */
+export function shortWeekday(t: EpochMs, timeZone: string | null, locale: Locale): string {
+  try {
+    return new Intl.DateTimeFormat(INTL_LOCALE[locale], { timeZone: timeZone ?? 'UTC', weekday: 'short' }).format(t).replace(/\.$/, '');
+  } catch {
+    return '';
+  }
+}
+
+/** R48 (FR-TRAJ-5): a rise within this many milliseconds of `t` counts as reached, so the next tap moves on to the one after. */
+export const RISE_SLACK_MS = 1000;
+
+/**
+ * FR-TRAJ-5's rise buttons: the first rise after `t` (or the last before it)
+ * among the passes whose rise is inside the span — a pass already under way at
+ * real time rose before the stripe starts and has no rise to land on. `null`
+ * when there is none, which is the button's disabled state.
+ */
+export function nextRise(passes: readonly Pick<Pass, 'start'>[], t: EpochMs, span: Span): EpochMs | null {
+  let best: EpochMs | null = null;
+  for (const pass of passes) {
+    const rise = pass.start.t;
+    if (rise <= t + RISE_SLACK_MS || rise < span.start || rise > span.end) continue;
+    if (best === null || rise < best) best = rise;
+  }
+  return best;
+}
+
+export function previousRise(passes: readonly Pick<Pass, 'start'>[], t: EpochMs, span: Span): EpochMs | null {
+  let best: EpochMs | null = null;
+  for (const pass of passes) {
+    const rise = pass.start.t;
+    if (rise >= t - RISE_SLACK_MS || rise < span.start || rise > span.end) continue;
+    if (best === null || rise > best) best = rise;
+  }
+  return best;
 }
 
 /** One stretch of sky in one `SkyState`, in instants; the stripe shades `bright-twilight` and `dark` (FR-LIVE-4's night shading). */

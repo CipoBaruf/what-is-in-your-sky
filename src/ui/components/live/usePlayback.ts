@@ -25,6 +25,13 @@ export interface Playback {
   speed: Speed;
   /** FR-LIVE-4: sets the held instant (a scrub, a click, a key step); playback, if running, continues from it. */
   scrub: (t: EpochMs) => void;
+  /**
+   * R48 (FR-TRAJ-5, D-190): the stepping control's one contract — land the
+   * shown instant on `t` (a rise, or the instant a minute or ten away),
+   * clamped to the span. The same write as a scrub: playback, if running,
+   * continues from there.
+   */
+  stepTo: (t: EpochMs) => void;
   play: () => void;
   pause: () => void;
   setSpeed: (speed: Speed) => void;
@@ -116,6 +123,7 @@ export function usePlayback({ span, realNow, initial, raf = windowRaf }: Playbac
     playing,
     speed,
     scrub,
+    stepTo: scrub,
     play,
     pause,
     setSpeed,

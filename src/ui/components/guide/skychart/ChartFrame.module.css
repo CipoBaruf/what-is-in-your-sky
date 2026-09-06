@@ -107,7 +107,9 @@
 .fill {
   height: 100%;
   min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto minmax(0, auto);
+  /* R48 (D-246): a quarter row between the rows, like the live page's own gaps; each half row was the dome's. */
+  gap: calc(var(--row) / 4);
 }
 
 .fill .drawing {
@@ -129,14 +131,26 @@
   .fill[data-compact='true'] .drawing {
     min-height: calc(var(--chart-floor, 0px) * var(--chart-floor-on, 1));
   }
+
+  /* R48 (FR-COMP-5, D-246): the floor is the drawing track's minimum too. A
+     track whose minimum is 0 sizes to what the rows around it leave, and a
+     drawing floored above that spills over the status line, the legend and
+     the strip under the box; floored at the track, the grid hands the drawing
+     its width first and the legend (`minmax(0, auto)`, scrolling inside)
+     whatever is left. */
+  .fill[data-compact='true'] {
+    grid-template-rows: auto minmax(calc(var(--chart-floor, 0px) * var(--chart-floor-on, 1)), 1fr) auto minmax(0, auto);
+  }
 }
 
 /* The live page's legend, under the drawing (compact, or a wide frame without
    the room): at most four rows, scrolling inside, so the legend never costs
-   the page its budget (FR-LIVE-7); the page's own layout of it is R48's. */
+   the page its budget (FR-LIVE-7); on a portrait phone it is what is left
+   under the floored drawing (R48, above), down to nothing. */
 .fill .legend {
   max-height: calc(4 * var(--row));
   overflow-y: auto;
+  min-height: 0;
 }
 
 .fill .status {

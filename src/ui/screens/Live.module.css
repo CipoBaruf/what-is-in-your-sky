@@ -1,21 +1,23 @@
 /* R32 (FR-LIVE-1): the live page is exactly one viewport high and never
    scrolls: the controls row, the dome taking every row left, then (R33) the
-   side column — the time stripe, the playback row with the share action, and
-   the status strip. Two cells of side padding, like the frame the rest of the
-   app draws in; no 80-cell cap, because the dome is the point. `minmax(0, 1fr)`
-   so the dome row can shrink below its content and the grid bounds it
-   (D-119's lesson). The gaps are a quarter row: the stripe took a row from
-   the dome at 390 px and the gaps give half of it back (D-162's loose end).
+   side column — the status strip, the stripe block and the two control rows
+   (R48's order, FR-LIVE-7 as amended). Two cells of side padding, like the
+   frame the rest of the app draws in; no 80-cell cap, because the dome is the
+   point. `minmax(0, 1fr)` so the dome row can shrink below its content and
+   the grid bounds it (D-119's lesson). The gaps are a quarter row: the stripe
+   took a row from the dome at 390 px and the gaps give half of it back
+   (D-162's loose end).
 
    R34 (FR-LIVE-7, D-173): on a landscape phone the same three areas go
    sideways — the top row across the top, the dome on the left with every row
    under it, the side column on the right — by a media query and not a device
-   sniff (PLAN §8.8). Portrait keeps the stack above, unchanged. */
+   sniff (PLAN §8.8). Portrait keeps the stack above, unchanged.
+
+   R48 (FR-COMP-5, D-244): the portrait rows are re-cut — one top row, the
+   strip, the stripe block (a heading row, three stripe rows, a stepping row)
+   and two control rows — and the chart's floor (never shorter than wide) is
+   back on: at 390 × 844 the rows leave the dome about 400 px, its width. */
 .page {
-  /* R45 (FR-COMP-5, D-233): the chart frame floors a portrait dome at its width, and this page's rows do not yet leave
-     it that height at 390 × 844 — the floor would spill the raster over the stripe and the controls. Off until R48
-     re-cuts the portrait rows (FR-LIVE-7 as amended), which removes this line. */
-  --chart-floor-on: 0;
   height: 100dvh;
   box-sizing: border-box;
   padding: calc(var(--row) / 4) calc(2 * var(--cell));
@@ -56,7 +58,7 @@
   }
 }
 
-/* The stripe, the playback row and the strip, stacked with the page's gap. */
+/* The strip, the stripe block and the control rows, stacked with the page's gap. */
 .side {
   grid-area: side;
   min-height: 0;
@@ -65,16 +67,39 @@
   gap: calc(var(--row) / 4);
 }
 
-/* The playback controls and the share action on one wrapping row. */
+/* R48 (FR-TRAJ-4, FR-TRAJ-5): the readout, the stripe and the stepping row, one block. */
+.stripeBlock {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--row) / 4);
+}
+
+/* The hidden-objects toggle, the follow control and the share action on one row (R48: the second control row, 31 cells on a phone). */
 .actions {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 0 calc(2 * var(--cell));
+  gap: 0 var(--cell);
 }
 
-/* The return control, the place, and the switches the header would have carried. */
+/* R48 (FR-COMP-4, D-245): on compact the share action is bracketed text like
+   the two toggles beside it, not the boxed button: the box's cell of padding
+   each side put the Spanish row (`[ ] Ocultos [ ] Seguir [ Compartir ]`, 36
+   cells) at 38 and wrapped it, and the wrap cost the dome a row. */
+.page[data-compact='true'] .actions button {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* …and the share action's own row (the button and its confirmation, a flex row two cells apart) keeps no
+   gap before an empty confirmation: those two cells were the 37th and 38th. The confirmation, when it
+   comes, wraps under the row as before. */
+.page[data-compact='true'] .actions p {
+  gap: 0;
+}
+
+/* The return control, the place, and (on wide) the switches the header would have carried. */
 .topRow {
   grid-area: top;
   display: flex;
@@ -82,6 +107,29 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 0 calc(2 * var(--cell));
+}
+
+/* R48 (FR-COMP-1, D-244): on compact the top row is one row: nothing wraps, and the place ellipsises. */
+.page[data-compact='true'] .topRow {
+  flex-wrap: nowrap;
+}
+
+/* R48 (FR-COMP-5, D-246): …and one text row tall. The return control keeps
+   its 48 px hit box the way links in prose do (the global inline-control
+   rule: vertical padding, the matching negative margin) rather than by its
+   height, so the row is 24 px and the dome has the other 24. */
+.page[data-compact='true'] .back {
+  padding-block: calc((var(--tap) - var(--row)) / 2);
+  margin-block: calc(-1 * (var(--tap) - var(--row)) / 2);
+}
+
+.page[data-compact='true'] .place {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
 }
 
 .controls {

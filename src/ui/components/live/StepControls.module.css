@@ -1,0 +1,24 @@
+/* R48 (FR-TRAJ-5): six text buttons on one line, spread across the stripe's
+   width so each is its own tap target (the global `button` rule makes every
+   one 48 px tall). No brackets: the glyphs are the affordance the spike
+   tested, and brackets would take the row past 36 cells (FR-COMP-4). A rise
+   button with nowhere to go dims. */
+.steps {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 var(--cell);
+}
+
+.step {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.step:disabled {
+  color: var(--fg-dim);
+}
