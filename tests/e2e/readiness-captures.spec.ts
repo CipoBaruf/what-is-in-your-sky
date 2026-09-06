@@ -85,9 +85,10 @@ test('the readiness line and the three nights at 390 px, in both languages and b
     // The later nights, closed, with their counts: the one view that shows the grouping as grouping.
     await toHeading(page, 1);
     await page.screenshot({ path: `test-results/r27-nights-later-390-dark-${locale}.png` });
+    // Tonight's heading in both languages since R46: its count is the one the hero card changes (F-25).
+    await toHeading(page, 0);
+    await page.screenshot({ path: `test-results/r27-nights-390-dark-${locale}.png` });
     if (locale === 'en') {
-      await toHeading(page, 0);
-      await page.screenshot({ path: `test-results/r27-nights-390-dark-${locale}.png` });
       await setTheme(page, 'night');
       await page.getByTestId('readiness').scrollIntoViewIfNeeded();
       await page.screenshot({ path: `test-results/r27-readiness-390-night-${locale}.png` });
