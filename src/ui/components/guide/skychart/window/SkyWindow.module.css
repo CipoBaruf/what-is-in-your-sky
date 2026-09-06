@@ -1,0 +1,278 @@
+/* R47 (FR-WIN-2, FR-DOME-2, FR-LIVE-2, FR-THEME-3): the sky window's colours
+   are the `--chart-*` tokens the polar and the dome read, one per meaning, so
+   the three views tell one story and the night theme is a token swap. Colour
+   is never the only channel (FR-X-5): the dim passes keep their thinner
+   stroke, the shadow marker its half fill, the markers their shapes, the
+   `ahead` arc its dots. */
+.window {
+  display: contents;
+}
+
+/* The measured box: the drawing fills it, and the gate sits over it. */
+.box {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  font-family: inherit;
+  touch-action: none;
+  user-select: none;
+}
+
+.horizon {
+  fill: none;
+  stroke: var(--chart-horizon);
+  stroke-width: 1.5;
+}
+
+.altitude {
+  fill: none;
+  stroke: var(--chart-rings);
+  stroke-width: 1;
+  stroke-dasharray: 4 6;
+}
+
+.tick {
+  stroke: var(--chart-horizon);
+  stroke-width: 1;
+}
+
+.zenith line {
+  stroke: var(--chart-rings);
+  stroke-width: 1;
+}
+
+.compass {
+  fill: var(--chart-rings);
+  font-size: 12px;
+}
+
+.compassMajor {
+  fill: var(--chart-compass);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pass {
+  cursor: pointer;
+}
+
+/* The dim pass is dim by colour and by weight; no opacity, which would take the
+   token's measured contrast (R16) away from it. */
+.passDim {
+  cursor: pointer;
+}
+
+.track {
+  fill: none;
+  stroke: var(--chart-pass);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.passDim .track {
+  stroke: var(--chart-pass-dim);
+  stroke-width: 1.5;
+}
+
+/* FR-DOME-5: the part already flown, over the arc and in its own colour. */
+.flown {
+  fill: none;
+  stroke: var(--chart-pass-flown);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.passDim .flown {
+  stroke-width: 1.5;
+}
+
+.arrow {
+  fill: var(--chart-pass);
+}
+
+.passDim .arrow {
+  fill: var(--chart-pass-dim);
+}
+
+.point {
+  fill: var(--bg);
+  stroke: var(--chart-pass);
+  stroke-width: 2;
+}
+
+.shadowHalf {
+  fill: var(--chart-shadow);
+}
+
+.peak {
+  fill: var(--chart-peak);
+  stroke: var(--bg);
+  stroke-width: 1;
+}
+
+.now {
+  fill: var(--chart-now);
+  stroke: var(--bg);
+  stroke-width: 1;
+}
+
+.passDim .point {
+  stroke: var(--chart-pass-dim);
+}
+
+.passDim .peak {
+  fill: var(--chart-peak);
+  stroke: var(--chart-pass-dim);
+}
+
+/* FR-LIVE-2 (R32, D-158): the live page's arcs, one colour per satellite in
+   pass order, the six `--chart-series-*` tokens through `data-series`. */
+.series {
+  cursor: pointer;
+}
+
+.series[data-series='1'] {
+  --series: var(--chart-series-1);
+}
+
+.series[data-series='2'] {
+  --series: var(--chart-series-2);
+}
+
+.series[data-series='3'] {
+  --series: var(--chart-series-3);
+}
+
+.series[data-series='4'] {
+  --series: var(--chart-series-4);
+}
+
+.series[data-series='5'] {
+  --series: var(--chart-series-5);
+}
+
+.series[data-series='6'] {
+  --series: var(--chart-series-6);
+}
+
+.series .track,
+.series .point {
+  stroke: var(--series);
+}
+
+.series .arrow {
+  fill: var(--series);
+}
+
+/* FR-LEG-4 (R45): a legend row activated on the live page dims the other arcs by weight. */
+.series[data-dim='true'] .track,
+.series[data-dim='true'] .point {
+  stroke-width: 1.5;
+}
+
+/* FR-TRAJ-1 (R45): `ahead` thin and dotted, `linger` thin and unbroken; both keep their colour. */
+.ahead .track {
+  stroke-width: 1.5;
+  stroke-dasharray: 2 5;
+}
+
+.linger .track {
+  stroke-width: 1.5;
+}
+
+/* FR-LEG-1, FR-LEG-5 (R45): the legend key at the peak, bold, in the arc's
+   colour, on a stroke of the page background so it reads over the track. */
+.key {
+  font-size: 14px;
+  font-weight: 700;
+  fill: var(--chart-pass);
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+
+.passDim .key,
+.hiddenKey {
+  fill: var(--chart-pass-dim);
+}
+
+.series .key {
+  fill: var(--series);
+}
+
+/* FR-DOME-6: the Sun's glow on the horizon and the Moon's disc where it is. */
+.glow {
+  fill: none;
+  stroke: var(--chart-sun);
+  stroke-linecap: round;
+}
+
+.moon {
+  fill: none;
+  stroke: var(--chart-moon);
+  stroke-width: 2;
+}
+
+/* FR-LIVE-6 (R33): an object up but not worth looking for — hollow, thin, dim. */
+.hidden {
+  fill: none;
+  stroke: var(--chart-pass-dim);
+  stroke-width: 1;
+}
+
+/* FR-WIN-5: the one control in the window's place, over the placeholder picture, bracketed like every action. */
+.gate {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+}
+
+.gateButton {
+  border: 0;
+  background: none;
+  padding: var(--row) var(--cell);
+  min-height: var(--tap);
+  color: var(--accent);
+  font: inherit;
+}
+
+.gateButton::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.gateButton::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+.hint {
+  margin: 0;
+  color: var(--fg-dim);
+}
+
+.readout {
+  margin: 0;
+  color: var(--fg);
+}
+
+.declination {
+  color: var(--fg-dim);
+}
+
+.note {
+  margin: 0;
+  color: var(--fg-dim);
+}

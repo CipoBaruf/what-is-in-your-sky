@@ -23,6 +23,12 @@
   color: var(--fg-dim);
 }
 
+/* FR-WIN-4 (R47): the one-line note a refused or compass-less window leaves under the toggle. */
+.note {
+  margin: 0;
+  color: var(--fg-dim);
+}
+
 /* R15: the dome chunk's placeholder fills the frame's drawing box so the sheet does not jump when the chunk lands. */
 .loading {
   margin: 0;

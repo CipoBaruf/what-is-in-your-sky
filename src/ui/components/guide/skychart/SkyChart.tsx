@@ -1,8 +1,11 @@
 import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
 import { useT } from '../../../../i18n/useT';
 import { bodyLines, legendKeys, legendRows, promoteRow } from '../../../../lib/legend';
+import type { ChartView } from '../../../../model';
 import { useAppStore } from '../../../../state';
+import { DEFAULT_CHART_VIEW } from '../../../../state/slices/prefs';
 import { OptionToggle } from '../../common/OptionToggle';
+import { orientationApiPresent } from '../../live/compassHeading';
 import { GuideText } from '../GuideText';
 import { moonVisible, sunVisible } from './bodies';
 import { ChartFrame } from './ChartFrame';
@@ -11,6 +14,7 @@ import { POLAR_VIEW } from './polar/SkyPolar';
 import styles from './SkyChart.module.css';
 import type { SkyChartProps, SkyChartView } from './SkyChart.types';
 import { useSkyBodies } from './useSkyBodies';
+import { requestOrientationAccess } from './window/orientationAccess';
 
 /**
  * PLAN §8.1 (R13): the single boundary the app mounts. A `<figure>` whose
@@ -34,8 +38,20 @@ import { useSkyBodies } from './useSkyBodies';
  * focus) pins that pass as the highlighted one, listed first, until another
  * row or the chart is activated (FR-LEG-4); the pin is dropped when the
  * caller's own highlight changes or the pass leaves the set.
+ *
+ * R47 (FR-WIN-1, FR-WIN-4, FR-WIN-5, FR-GUIDE-2b as amended; D-188, D-240):
+ * the sky window is the third registered view, code-split like the dome and
+ * offered only where its `available()` — D-175's presence test, a touch
+ * screen with the constructor — says so; a desktop never sees the option, and
+ * a saved `chartView` of `'window'` there falls back to the dome. Its
+ * `choose()` runs inside the toggle's tap and makes the orientation request
+ * (iOS grants it only from a gesture). A view that reports itself
+ * unavailable once mounted — the permission refused, or a phone with no
+ * compass heading — gets a one-line note under the toggle, the dome as the
+ * view and, for the compass-less phone, no option for the rest of the session.
  */
 const SkyDome = lazy(() => import('./dome/SkyDome').then((module) => ({ default: module.SkyDome })));
+const SkyWindow = lazy(() => import('./window/SkyWindow').then((module) => ({ default: module.SkyWindow })));
 
 function DomeView(props: SkyChartProps) {
   const t = useT();
@@ -54,10 +70,39 @@ function DomeView(props: SkyChartProps) {
 
 export const DOME_VIEW: SkyChartView = { Component: DomeView, id: 'dome' };
 
-export const SKY_CHART_VIEWS: readonly SkyChartView[] = [POLAR_VIEW, DOME_VIEW];
+function WindowView(props: SkyChartProps) {
+  return (
+    <Suspense
+      fallback={
+        <ChartFrame legend={props.legend} fill={props.fill ?? false}>
+          <div className={styles.loadingBox} data-testid="window-loading" />
+        </ChartFrame>
+      }
+    >
+      <SkyWindow {...props} />
+    </Suspense>
+  );
+}
 
-export function viewFor(id: SkyChartView['id']): SkyChartView {
-  const view = SKY_CHART_VIEWS.find((candidate) => candidate.id === id) ?? SKY_CHART_VIEWS[0];
+export const WINDOW_VIEW: SkyChartView = {
+  Component: WindowView,
+  id: 'window',
+  available: () => typeof window !== 'undefined' && orientationApiPresent(),
+  choose: () => {
+    void requestOrientationAccess();
+  },
+};
+
+export const SKY_CHART_VIEWS: readonly SkyChartView[] = [POLAR_VIEW, DOME_VIEW, WINDOW_VIEW];
+
+/** The views this device is offered: the registered ones minus those `available()` rules out and those lost for the session. */
+export function offeredViews(lost: ReadonlySet<ChartView> = new Set()): SkyChartView[] {
+  return SKY_CHART_VIEWS.filter((candidate) => !lost.has(candidate.id) && (candidate.available?.() ?? true));
+}
+
+/** The view for a preference: itself where offered, else the dome (the default), else the first one offered. */
+export function viewFor(id: SkyChartView['id'], offered: readonly SkyChartView[] = offeredViews()): SkyChartView {
+  const view = offered.find((candidate) => candidate.id === id) ?? offered.find((candidate) => candidate.id === DEFAULT_CHART_VIEW) ?? offered[0];
   if (!view) throw new Error('SkyChart: no views registered');
   return view;
 }
@@ -72,7 +117,29 @@ export function SkyChart(props: SkyChartProps) {
   const t = useT();
   const chartView = useAppStore((s) => s.chartView);
   const setChartView = useAppStore((s) => s.setChartView);
-  const view = viewFor(chartView);
+  // FR-WIN-4 (R47): the views this device is offered, less any lost for the session; the note a lost one left.
+  const [lost, setLost] = useState<ReadonlySet<ChartView>>(() => new Set());
+  const [note, setNote] = useState<'denied' | 'relative' | null>(null);
+  const offered = useMemo(() => offeredViews(lost), [lost]);
+  const view = viewFor(chartView, offered);
+  const choose = useCallback(
+    (id: ChartView) => {
+      setNote(null);
+      // Inside the tap: the window's permission request must be (FR-WIN-4).
+      viewFor(id, offered).choose?.();
+      setChartView(id);
+    },
+    [offered, setChartView],
+  );
+  const viewId = view.id;
+  const unavailable = useCallback(
+    (reason: 'denied' | 'relative') => {
+      setNote(reason);
+      if (reason === 'relative') setLost((current) => new Set([...current, viewId]));
+      setChartView(DEFAULT_CHART_VIEW);
+    },
+    [viewId, setChartView],
+  );
   const { passes, observer, className, fill = false, now, hidden, colorBy, onSelectPass } = props;
   // FR-DOME-6: one evaluation for whichever view is mounted, so the toggle
   // never changes where the Sun and the Moon are (R22).
@@ -106,16 +173,15 @@ export function SkyChart(props: SkyChartProps) {
       {...(fill ? { 'aria-label': t.chart.liveLabel } : {})}
     >
       {!fill && <figcaption className={styles.caption}>{captioned ? <GuideText pass={captioned} timeZone={observer.timeZone} /> : <p className={styles.empty}>{t.chart.noPass}</p>}</figcaption>}
-      {SKY_CHART_VIEWS.length > 1 && (
-        <OptionToggle
-          name={t.chart.viewGroup}
-          prefix={t.chart.viewPrefix}
-          options={SKY_CHART_VIEWS.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))}
-          value={view.id}
-          onChange={setChartView}
-        />
+      {offered.length > 1 && (
+        <OptionToggle name={t.chart.viewGroup} prefix={t.chart.viewPrefix} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
       )}
-      <view.Component {...props} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legend} />
+      {note !== null && (
+        <p className={styles.note} role="status" data-testid="chart-view-note">
+          {t.window[note]}
+        </p>
+      )}
+      <view.Component {...props} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legend} onUnavailable={unavailable} />
     </figure>
   );
 }

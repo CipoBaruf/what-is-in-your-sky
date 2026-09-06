@@ -47,6 +47,11 @@ export interface Budget {
  * | live           | `Live-*.js`         |     12.6 |     15 |      40 |
  * | service worker | `workbox-*.js`      |      5.0 |     10 |      15 |
  *
+ * Added on the R47 build (the live row there reads 6.3, see below):
+ *
+ * | window         | `SkyWindow-*.js`     |      5.3 |     10 |       — |
+ * | declination    | `useDeclination-*.js`|      6.1 |     10 |       — |
+ *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
  *
@@ -71,6 +76,17 @@ export interface Budget {
  *   only from the live page. Re-set to 15 KB by D-178's rule, well under the
  *   §11 ceiling of 40 — the number to watch is whether the *next* change adds
  *   another six.
+ * - **window** — `window/SkyWindow.tsx`, its projection and its orientation
+ *   hook, behind the second `React.lazy` in `SkyChart.tsx` (R47, D-188): SVG
+ *   and arithmetic, no library, so 5.3 KB gzipped on the R47 build and the
+ *   10 KB floor as its budget. The chart chunk did not move: the window shares
+ *   nothing with glyphcss.
+ * - **declination** — `live/useDeclination.ts`, `lib/declination.ts` and the
+ *   World Magnetic Model behind them. R44 put them in the live chunk; the
+ *   window reaches them too (FR-WIN-3), so Vite splits them into a chunk both
+ *   pages share and the live chunk falls back to 6.3 KB. 6.1 KB measured on the
+ *   R47 build, the 10 KB floor as its budget, and the live budget stays at 15
+ *   for the same reason as before: the number to watch is the next addition.
  * - **service worker** — Workbox's runtime and the precache manifest, emitted
  *   at the site root rather than under `assets/` because a worker's scope is
  *   the directory it is served from (D-79). Nothing the page downloads to
@@ -87,6 +103,8 @@ export const BUDGETS: readonly Budget[] = [
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10 },
   { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 25 },
   { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 15 }, // R44: re-set from 10 for the World Magnetic Model (D-178, D-185)
+  { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 10 }, // R47: 5.3 measured, floored at 10 (D-178)
+  { name: 'declination', match: (file) => /^useDeclination-.*\.js$/.test(file), limitKb: 10 }, // R47: split out of live once the window reached it too
 ];
 
 export interface ChunkSize {

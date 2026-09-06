@@ -1,2 +1,14 @@
-/** FR-I18N-2 (D-199 (2)): la sección del lane `window` en el catálogo español. Vacía: el lane todavía no tiene mensajes. */
-export const windowMessages = {};
+import type { windowMessages as EnWindow } from '../en/window';
+
+/** FR-I18N-2 (D-199 (2)): la sección del lane `window` en el catálogo español. R47: las palabras de la ventana al cielo. */
+export const windowMessages: typeof EnWindow = {
+  window: {
+    pointAtSky: 'apuntar al cielo',
+    waiting: 'Esperando los sensores del teléfono…',
+    denied: 'Se rechazó el acceso al movimiento, así que la cúpula sigue siendo la vista.',
+    relative: 'Este teléfono no da un rumbo de brújula, así que la ventana no puede encontrar el norte.',
+    hint: 'Levantá el teléfono: la ventana muestra el cielo al que apunta.',
+    readout: (p) => `Mirando al ${p.point} (${p.azimuth}) · ${p.altitude} de altura`,
+    trueNorth: (p) => `norte verdadero, declinación ${p.declination}`,
+  },
+};

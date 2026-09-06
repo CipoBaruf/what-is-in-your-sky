@@ -29,6 +29,7 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".chart.readout:function",
   ".chart.view.dome:string",
   ".chart.view.polar:string",
+  ".chart.view.window:string",
   ".chart.viewGroup:string",
   ".chart.viewPrefix:string",
   ".compass.E:string",
@@ -286,5 +287,12 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".weather.state.unknown:string",
   ".weather.thresholds:function",
   ".weather.tooltipHead:function",
+  ".window.denied:string",
+  ".window.hint:string",
+  ".window.pointAtSky:string",
+  ".window.readout:function",
+  ".window.relative:string",
+  ".window.trueNorth:function",
+  ".window.waiting:string",
 ]
 `;

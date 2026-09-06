@@ -51,7 +51,7 @@ const storedFavouriteSchema = z.object({
 const storedPrefsSchema = z.object({
   observer: storedObserverSchema.optional().catch(undefined),
   sort: z.enum(['chronological', 'best']).optional().catch(undefined),
-  chartView: z.enum(['dome', 'polar']).optional().catch(undefined),
+  chartView: z.enum(['dome', 'polar', 'window']).optional().catch(undefined),
   chartOrientation: z.enum(['looking-up', 'map']).optional().catch(undefined),
   locale: z.enum(['en', 'es']).optional().catch(undefined),
   theme: z.enum(['dark', 'night']).optional().catch(undefined),

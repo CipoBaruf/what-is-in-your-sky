@@ -922,7 +922,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Done when:** a test per finding; captures of the readiness line and the night headings at 390 px in Spanish.
   - *Done 2026-09-06, with three notes.* F-27 was closed as written and no further: D-145 leaves the zone off this stamp to keep it inside the 36 characters a 390 px phone has, and that reasoning holds for the observer's own zone, so only the unlabelled UTC fallback — the case the finding names — gained a label. F-24 is keyed to the coordinates rather than to the run, because a re-compute for the same place is the same three nights and closing the reader's disclosures for it would be its own bug. F-28's Spanish reads "Listo sin red hasta …" / "No está listo sin red: …": "sin conexión" makes the sentence 40 characters and D-145 allows 36, and the place picker — where the sentence really is about an absent connection — keeps it. Captures: `docs/screenshots/r46-{readiness,nights,nights-later}-390-dark-es.png`.
 
-- [ ] **R47 — The sky window view**
+- [x] **R47 — The sky window view** *(done 2026-09-06; the placeholder aims 20° up or as high as the peak needs, D-241; the window and declination chunks get budgets, D-242)*
   - **Lane:** window
   - **Model:** fable
   - **Gate:** owner

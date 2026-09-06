@@ -6,7 +6,7 @@ export const chart: typeof EnChart = {
   chart: {
     viewGroup: 'Vista del gráfico',
     viewPrefix: 'Vista:',
-    view: { dome: 'Domo', polar: 'Polar' } satisfies Record<ChartView, string>,
+    view: { dome: 'Domo', polar: 'Polar', window: 'Ventana' } satisfies Record<ChartView, string>,
     loadingDome: 'Cargando el domo celeste…',
     noPass: 'Ningún pase para dibujar.',
     orientationGroup: 'Orientación del gráfico',
