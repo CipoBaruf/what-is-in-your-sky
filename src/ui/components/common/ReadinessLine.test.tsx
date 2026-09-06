@@ -113,8 +113,12 @@ describe('ReadinessLine (R27: FR-OFF-4)', () => {
 
   it('F-27: with no observer zone the stamp says UTC, so the digits are not read as local', () => {
     const noZone: Observer = { ...observer, timeZone: null };
-    const state = ready([pass('a', 4), pass('b', 68)], null);
-    set({ ...state, observer: noZone, passes: { ...state.passes!, observer: noZone }, weather: { ...state.weather!, observer: noZone } });
+    set({
+      observer: noZone,
+      passes: { ...initial.passes, status: 'done', observer: noZone, window: { startMs: T0, endMs: T0 + 72 * HOUR }, passes: [pass('a', 4), pass('b', 68)], hasDarkness: true, storedAt: null },
+      elements: withRecords,
+      weather: { observer: noZone, status: 'ready', snapshot, error: null },
+    });
     show();
     expect(screen.getByTestId('readiness')).toHaveTextContent('Ready offline until 2026-09-14 17:05 UTC');
   });

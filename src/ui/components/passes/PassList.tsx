@@ -2,9 +2,9 @@ import { useId, useState } from 'react';
 import type { Messages } from '../../../i18n/messages';
 import { useLocale, useT } from '../../../i18n/useT';
 import { nextFeaturedPass, sortPasses } from '../../../lib/passSort';
-import { formatDate } from '../../../lib/timeFormat';
+import { formatDate, nextCalendarDate } from '../../../lib/timeFormat';
 import type { EpochMs, Locale, Observer } from '../../../model';
-import { NIGHT_MS, SEARCH_WINDOW_HOURS, isFeatured, useAppStore, type ElementsState, type PassesState } from '../../../state';
+import { SEARCH_WINDOW_HOURS, isFeatured, useAppStore, type ElementsState, type PassesState } from '../../../state';
 import { SectionHeading } from '../common/SectionHeading';
 import { useNow } from '../../hooks/useNow';
 import { IssHeroCard } from './IssHeroCard';
@@ -62,11 +62,19 @@ export const HERO_CHECK_MS = 30_000;
  * (D-146). The date is the night's *start*, which is the calendar day the
  * evening in it belongs to for every start time but the last hour before
  * midnight.
+ *
+ * R46 (F-26): tomorrow is the next date on the observer's calendar and not
+ * now + 24 h. The two agree on every ordinary day and part on the two that are
+ * not: a spring-forward day is 23 h long, so now + 24 h lands on the day after
+ * tomorrow and the night that is genuinely tomorrow's gets called by its date;
+ * an autumn day is 25 h long, so now + 24 h stays on today and tomorrow's
+ * heading reads "tonight" twice.
  */
 export function nightLabel(group: NightGroup, now: EpochMs, timeZone: string | null, locale: Locale, t: Messages): string {
   const date = formatDate(group.startMs, timeZone, locale);
-  if (date === formatDate(now, timeZone, locale)) return t.passes.nights.tonight;
-  if (date === formatDate(now + NIGHT_MS, timeZone, locale)) return t.passes.nights.tomorrow;
+  const today = formatDate(now, timeZone, locale);
+  if (date === today) return t.passes.nights.tonight;
+  if (date === nextCalendarDate(today)) return t.passes.nights.tomorrow;
   return t.passes.nights.dated(date);
 }
 
@@ -104,8 +112,22 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
    * touched are here: every other night follows `defaultOpenNight`, so the
    * default keeps moving with the clock and the arriving passes until the
    * reader has an opinion about that night.
+   *
+   * R46 (F-24): the opinions belong to the location they were formed at. A
+   * night index means a different night once the observer moves, so carrying
+   * "night 0 closed" across a location change closed tonight over a list the
+   * reader had never seen, and `defaultOpenNight` opens exactly one night —
+   * the overridden one — so nothing else opened in its place and the new list
+   * came up entirely shut. Keyed on the coordinates rather than on the run: a
+   * re-compute for the same place (newer elements, the 15 min re-check) is the
+   * same three nights, and slamming the reader's disclosures shut for it would
+   * be its own bug. The zone arriving from the forecast replaces the observer
+   * object without moving it, which is why this is not a reference check.
    */
-  const [overrides, setOverrides] = useState<Record<number, boolean>>({});
+  const placeKey = observer ? `${String(observer.lat)},${String(observer.lon)}` : '';
+  const [nights, setNights] = useState<{ place: string; overrides: Record<number, boolean> }>({ place: placeKey, overrides: {} });
+  const overrides = nights.place === placeKey ? nights.overrides : {};
+  if (nights.place !== placeKey) setNights({ place: placeKey, overrides: {} });
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   // A stored run is shown whatever the elements are doing: it was computed from elements that had
   // already loaded once, and gating it on this load would hide it for the whole fetch and for good
@@ -154,12 +176,14 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
               open={overrides[group.index] ?? group.index === openDefault}
               onToggle={(event) => {
                 const isOpen = event.currentTarget.open;
-                setOverrides((current) => ({ ...current, [group.index]: isOpen }));
+                setNights((current) => ({ place: placeKey, overrides: { ...(current.place === placeKey ? current.overrides : {}), [group.index]: isOpen } }));
               }}
             >
               <summary className={styles.nightHeading}>
                 <span className={styles.nightName}>{nightLabel(group, now, zone, locale, t)}</span>
-                <span className={styles.nightCount}>{t.passes.nights.count(group.passes.length)}</span>
+                {/* What the heading counts is what the disclosure opens onto (F-25): the hero's pass is
+                    shown above and not repeated here, so counting it left "3 passes" over a list of two. */}
+                <span className={styles.nightCount}>{t.passes.nights.count(items.length)}</span>
               </summary>
               {items.length > 0 && cards(items)}
               {items.length === 0 && <p className={styles.nightEmpty}>{group.passes.length === 0 ? t.passes.nights.empty : t.passes.nights.heroOnly}</p>}

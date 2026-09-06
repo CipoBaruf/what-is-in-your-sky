@@ -1,7 +1,7 @@
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenWindowStart, loadReferenceValues } from '../../../../tests/support/catalogFixtures';
 import { NO_MOON_AT_PEAK } from '../../../../tests/support/moonFixtures';
 import { compassPoint } from '../../../lib/compass';
@@ -62,6 +62,7 @@ const cardNames = (): string[] => within(screen.getByRole('list')).getAllByRole(
 
 describe('<PassList>', () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     appStore.setState(initial, true);
     window.localStorage.clear();
   });
@@ -229,8 +230,62 @@ describe('<PassList>', () => {
       set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window: heroWindow, passes: [iss], hasDarkness: true } });
       render(<PassList />);
       expect(screen.getByTestId('iss-hero')).toBeInTheDocument();
-      expect(groups()[0]).toHaveTextContent('1 pass');
+      // R46 (F-25): the count is of the list the heading opens onto, and the hero's pass is not in it.
+      expect(groups()[0]).toHaveTextContent('0 passes');
       expect(groups()[0]).toHaveTextContent('Its only pass is the one above.');
+    });
+
+    it('F-25: the heading counts the cards under it, not the one promoted to the hero card', () => {
+      // Three passes in the first night, the ISS among them: the hero takes it and the heading says two.
+      vi.spyOn(Date, 'now').mockReturnValue(NOW);
+      const iss = shifted(goldenPass, 'iss', 25544, 'ISS (Zarya)', 3, 40, 1.0);
+      set({
+        observer,
+        nowMs: NOW,
+        elements: ready,
+        passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window, passes: [first, iss, shifted(goldenPass, 'other', 5, 'Other', 5, 40, 1.0)], hasDarkness: true },
+      });
+      render(<PassList />);
+      expect(screen.getByTestId('iss-hero')).toBeInTheDocument();
+      expect(within(groups()[0] as HTMLElement).getAllByRole('article', { hidden: true })).toHaveLength(2);
+      expect(groups()[0]).toHaveTextContent('2 passes');
+    });
+
+    it('F-24: a location change forgets which nights the reader closed, so the new list opens on one', async () => {
+      threeNights();
+      const { rerender } = render(<PassList />);
+      const summary = (index: number): HTMLElement => (groups()[index] as HTMLElement).querySelector('summary') as HTMLElement;
+      await userEvent.click(summary(0));
+      expect(groups().map((group) => group.hasAttribute('open'))).toEqual([false, false, false]);
+      // Somewhere else: the same three night indexes, but nights the reader has never seen.
+      const elsewhere: Observer = { ...observer, lat: 40.42, lon: -3.7, label: 'Madrid' };
+      set({
+        observer: elsewhere,
+        passes: { ...IDLE_PASSES, jobId: 'job-2', status: 'done', observer: elsewhere, window, passes: [first, second, third], hasDarkness: true },
+      });
+      rerender(<PassList />);
+      expect(groups().map((group) => group.hasAttribute('open'))).toEqual([true, false, false]);
+    });
+
+    it('F-26: tomorrow night is the next date on the observer’s calendar, not now + 24 h', () => {
+      // Santiago moves its clocks forward at midnight into 2026-09-06, so that day is 23 h long.
+      // The run starts at 23:30 on the 5th; 24 h of clock later is 00:30 on the *7th*, and the
+      // second night — which is the 7th's — used to be labelled "tomorrow night" from that sum.
+      const zoned: Observer = { ...observer, timeZone: 'America/Santiago' };
+      const start = Date.UTC(2026, 8, 6, 3, 30, 0);
+      const dstWindow = { startMs: start, endMs: start + 2 * NIGHT };
+      const at = (t: number, id: string) => ({ ...first, id, start: { ...first.start, t }, peak: { ...first.peak, t }, end: { ...first.end, t: t + 60_000 } });
+      set({
+        observer: zoned,
+        nowMs: start,
+        elements: ready,
+        passes: { ...IDLE_PASSES, jobId: 'job-3', status: 'done', observer: zoned, window: dstWindow, passes: [at(start + HOUR, 'n0'), at(start + NIGHT + HOUR, 'n1')], hasDarkness: true },
+      });
+      vi.spyOn(Date, 'now').mockReturnValue(start);
+      render(<PassList />);
+      expect(groups()[0]).toHaveTextContent('Tonight');
+      expect(groups()[1]).toHaveTextContent('Night of 2026-09-07');
+      expect(screen.queryByText('Tomorrow night')).toBeNull();
     });
 
     it('the reader can open and close nights, and the choice sticks', async () => {
