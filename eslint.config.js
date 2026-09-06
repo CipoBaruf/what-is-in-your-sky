@@ -44,6 +44,18 @@ export default defineConfig([
     },
   },
   {
+    // FR-FLAG-1 (D-183): `lib/flags.ts` is the only module that reads a build flag off
+    // `import.meta.env`; everywhere else gets its typed constant instead.
+    files: SRC,
+    ignores: [...TESTS, 'src/lib/flags.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        { selector: "MemberExpression[object.type='MetaProperty'][property.name='env']", message: 'Only src/lib/flags.ts may read import.meta.env (PLAN D-183).' },
+      ],
+    },
+  },
+  {
     // PLAN §3 dependency rules, one zone per table row. `except` paths are relative to `from`.
     files: SRC,
     ignores: TESTS,

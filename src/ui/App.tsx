@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { I18nProvider, useLocale, useT } from '../i18n/useT';
+import { MOON_LORE } from '../lib/flags';
 import { observerFromLink, resolvePassLink } from '../lib/shareLinks';
 import type { ShortcutActions } from '../lib/shortcuts';
 import { formatClock, formatDate } from '../lib/timeFormat';
@@ -18,7 +19,6 @@ import { ElementsBanners } from './components/elements/ElementsBanners';
 import { useLayoutMode } from './hooks/useLayoutMode';
 import { useShortcuts } from './hooks/useShortcuts';
 import { LocationInput } from './components/location/LocationInput';
-import { MoonLore } from './components/moon/MoonLore';
 import { NowPanel } from './components/now/NowPanel';
 import { PassList } from './components/passes/PassList';
 import { moveCursor, passIdAtCursor } from './components/passes/passCursor';
@@ -32,6 +32,14 @@ import { findSelectedPass, usePassSelection } from './screens/passSelection';
  * route is read from the hash beside the pass selection (D-13).
  */
 const LivePage = lazy(() => import('./screens/Live').then((module) => ({ default: module.LivePage })));
+
+/**
+ * FR-FLAG-1 (D-183): the import lives inside the `if`, not just the render,
+ * so with `MOON_LORE` statically `false` Rollup never registers the dynamic
+ * import as a chunk boundary — `lore.json` and its component ship in no file
+ * of the build, not merely one the app declines to fetch.
+ */
+const MoonLore = MOON_LORE ? lazy(() => import('./components/moon/MoonLore').then((module) => ({ default: module.MoonLore }))) : undefined;
 
 /**
  * R5: the screen only writes the observer to the store; the effects started
@@ -214,7 +222,11 @@ export function App() {
           <ReadinessLine />
           <ElementsBanners />
           <NowPanel />
-          {moon && observer && <MoonLore moon={moon} timeZone={observer.timeZone} />}
+          {MoonLore && moon && observer && (
+            <Suspense fallback={null}>
+              <MoonLore moon={moon} timeZone={observer.timeZone} />
+            </Suspense>
+          )}
         </div>
         <div className={styles.column} data-testid="col-right" data-guide={selected !== null ? 'open' : 'closed'}>
           <div className={styles.listColumn} data-testid="list-column">

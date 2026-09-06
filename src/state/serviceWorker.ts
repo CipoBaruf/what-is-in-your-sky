@@ -1,3 +1,4 @@
+import { IS_PROD } from '../lib/flags';
 import type { AppStore } from './store';
 
 /**
@@ -47,8 +48,8 @@ export function browserHost(): ServiceWorkerHost {
  * Returns the registration, or null when there is nothing to do: no service
  * worker support (older Safari, and any browser with storage blocked), or a
  * development build, where no worker is generated and a stale precache would
- * hide every edit (`enabled` defaults to `import.meta.env.PROD`, so this is
- * the behaviour and not a convention anyone has to remember).
+ * hide every edit (`enabled` defaults to `IS_PROD`, so this is the behaviour
+ * and not a convention anyone has to remember).
  *
  * A failed registration is swallowed on purpose. Offline is an enhancement
  * here: everything the app does, it does without a worker, so a browser that
@@ -57,7 +58,7 @@ export function browserHost(): ServiceWorkerHost {
 export async function registerServiceWorker(
   store: AppStore,
   host: ServiceWorkerHost = browserHost(),
-  enabled: boolean = import.meta.env.PROD,
+  enabled: boolean = IS_PROD,
 ): Promise<ServiceWorkerRegistration | null> {
   const { container } = host;
   if (!enabled || !container) return null;

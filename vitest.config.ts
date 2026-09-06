@@ -21,6 +21,10 @@ export default defineConfig({
   worker: { format: 'es' }, // D-18, same as vite.config.ts
   optimizeDeps: { include: ['satellite.js', 'astronomy-engine'] }, // browser project: pre-bundle so Vite does not reload mid-test
   test: {
+    // FR-FLAG-2 (D-183): the unit run exercises the flag "on" (MoonLore.test.tsx and
+    // whatever else reads `lib/flags.ts`); the "off" state is proven by `tests/build/flags.test.ts`,
+    // which builds for real, and by the default capture set (D-179), which builds with no override.
+    env: { VITE_MOON_LORE: 'on' },
     // TASKS H: `npm run test:coverage:physics` must show every file in src/physics at ≥ 90 % lines.
     // Only applied when `--coverage` is passed; plain `npm test` is unaffected.
     coverage: {

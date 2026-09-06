@@ -60,7 +60,7 @@ describe('registerServiceWorker', () => {
 
   it('registers nothing in a development build', async () => {
     const { container, register, reload } = fakes();
-    // The default `enabled` is `import.meta.env.PROD`, which is false under Vitest.
+    // The default `enabled` is `IS_PROD` (`import.meta.env.PROD`), which is false under Vitest.
     expect(await registerServiceWorker(store(), { container, reload })).toBeNull();
     expect(register).not.toHaveBeenCalled();
   });

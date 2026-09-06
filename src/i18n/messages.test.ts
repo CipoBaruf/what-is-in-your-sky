@@ -352,4 +352,17 @@ describe('the two catalogs (FR-I18N-2)', () => {
       typeof value === 'object' && value !== null ? Object.entries(value).flatMap(([key, child]) => shape(child, `${path}.${key}`)) : [`${path}:${typeof value}`];
     expect(shape(es, '')).toEqual(shape(en, ''));
   });
+
+  /**
+   * D-199 (2): the split moved every key from one file into four, by hand.
+   * The committed snapshot is the flattened key set the split produced,
+   * checked against the pre-split catalog before it was committed — a key a
+   * later edit moves, adds or renames changes this snapshot, which is the
+   * point (`npx vitest run --update` after a deliberate change).
+   */
+  it('keeps the same flattened key set the single-file catalog had (the per-lane split, D-199)', () => {
+    const flatten = (value: unknown, path: string): string[] =>
+      typeof value === 'object' && value !== null ? Object.entries(value).flatMap(([key, child]) => flatten(child, `${path}.${key}`)) : [`${path}:${typeof value}`];
+    expect(flatten(en, '').sort()).toMatchSnapshot();
+  });
 });
