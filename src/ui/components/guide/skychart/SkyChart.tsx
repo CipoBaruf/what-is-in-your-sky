@@ -149,7 +149,10 @@ export function SkyChart(props: SkyChartProps) {
   // R54 (D-271, F-53): two memories, not one. `pinned` is the highlight and follows a click, a tap or keyboard focus;
   // `promoted` is the row at the top of the legend and follows a click or a tap only, so the list holds still while Tab
   // walks it — focus moves the highlight along the rows and leaves the order alone.
-  type Pin = { id: string; over: string | null };
+  interface Pin {
+    id: string;
+    over: string | null;
+  }
   const [pinned, setPinned] = useState<Pin | null>(null);
   const [promoted, setPromoted] = useState<Pin | null>(null);
   const valid = (pin: Pin | null): string | null => (pin !== null && pin.over === props.highlightedPassId && (passes.some((pass) => pass.id === pin.id) || hidden?.some((marker) => marker.id === pin.id)) ? pin.id : null);
