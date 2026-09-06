@@ -144,7 +144,8 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-state', 'live');
     const figure = screen.getByRole('figure', { name: en.chart.liveLabel });
     expect(figure.querySelector('figcaption')).toBeNull();
-    const drawn = [...container.querySelectorAll('[data-pass-id]')].map((el) => [el.getAttribute('data-pass-id'), el.getAttribute('data-series')]);
+    // R45: the legend's rows carry the pass id too, so the drawing's are read inside the drawing.
+    const drawn = [...container.querySelectorAll('[data-drawing] [data-pass-id]')].map((el) => [el.getAttribute('data-pass-id'), el.getAttribute('data-series')]);
     expect(drawn).toEqual([
       [pass.id, '1'],
       ['later', '2'],
@@ -158,7 +159,9 @@ describe('<LivePage>', () => {
     const expected = skyBodiesAt(T, observer);
     await within(screen.getByTestId('live-sky')).findByText(en.live.sky[expected.sky]);
     expect(screen.getByTestId('live-moon')).toHaveTextContent(`${en.moon.phase[expected.moon.phase]}, ${String(Math.round(expected.moon.illuminatedFraction * 100))} % lit`);
-    expect(figure.querySelector('[data-anchor="sun"]') !== null).toBe(expected.sun.altDeg > -18 && expected.sun.altDeg < 0);
+    // R45 (FR-DOME-6 as amended): the Sun is a glow in the raster and a legend line, not a caption in the drawing.
+    expect(figure.querySelector('[data-testid="chart-legend"] [data-body="sun"]') !== null).toBe(expected.sun.altDeg > -18 && expected.sun.altDeg < 0);
+    expect(figure.querySelector('[data-anchor="sun"]')).toBeNull();
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -456,9 +459,14 @@ describe('<LivePage>', () => {
     await act(async () => {
       await Promise.resolve();
     });
-    expect(within(screen.getByTestId('live-dome')).getByText('Envisat · in shadow')).toBeInTheDocument();
+    // R45 (FR-LEG-1): the reason is a legend row; the drawing carries the dimmed position and the row's key.
+    const legend = within(screen.getByTestId('live-dome')).getByTestId('chart-legend');
+    expect(within(legend).getByText('Envisat · in shadow')).toBeInTheDocument();
+    const tiangongKey = within(legend).getByText('Tiangong · too faint').closest('button')?.getAttribute('data-key');
+    expect(tiangongKey).toMatch(/^[A-Z]$/);
     expect(container.querySelectorAll('[data-marker="hidden"]')).toHaveLength(2);
-    expect(container.querySelector('[data-hidden-id="hidden-3"] [data-anchor="hidden"]')?.textContent).toBe('Tiangong · too faint');
+    expect(container.querySelector('[data-hidden-id="hidden-3"] [data-anchor="key"]')?.textContent).toBe(tiangongKey);
+    expect(container.querySelector('[data-hidden-id="hidden-3"]')?.textContent).not.toContain('Tiangong');
     expect(container.querySelector(`[data-hidden-id="hidden-${String(pass.noradId)}"]`)).toBeNull();
     // Remembered (FR-LIVE-6 "off by default and remembered").
     expect(appStore.getState().liveHidden).toBe(true);

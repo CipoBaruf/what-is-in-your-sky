@@ -133,7 +133,6 @@ describe('domeLabels with colorBy="pass" (FR-LIVE-2)', () => {
 
 /** FR-TRAJ-1 / D-189 (R45): the line layer per arc state, on the golden pass. */
 describe('arc states (FR-TRAJ-1)', () => {
-  const midway = Math.round((pass.start.t + pass.end.t) / 2);
   const count = (meshes: readonly { id: string; polygons: unknown[] }[], id: string): number => meshes.find((mesh) => mesh.id === id)?.polygons.length ?? 0;
 
   it('live: the cut track solid in the arc colour with the marker, the peak marked once passed, no flown mesh and no arrowhead', () => {
