@@ -48,6 +48,14 @@ export function moonFacts(moon: MoonState): MoonFacts {
 export interface MoonGlareFacts {
   illumination: string;
   separation: string;
+  /**
+   * R49 (F-15): the altitude the Moon has to clear, as a number like the other
+   * two. It was prose in both catalogs — "above the horizon" — which is true of
+   * the default and of nothing else: OQ-12 can move the threshold to 5° and the
+   * tooltip would go on describing the old rule in two languages, which is the
+   * one thing this tooltip exists not to do.
+   */
+  minAltitude: string;
   minIllumination: string;
   maxSeparation: string;
 }
@@ -56,9 +64,33 @@ export function moonGlareFacts(moon: MoonState, glare: MoonGlare, thresholds: Mo
   return {
     illumination: percent(moon.illuminatedFraction),
     separation: degrees(glare.separationDeg),
+    minAltitude: degrees(thresholds.minAltDeg),
     minIllumination: percent(thresholds.minIlluminatedFraction),
     maxSeparation: degrees(thresholds.maxSeparationDeg),
   };
+}
+
+/**
+ * US-18 AC1, R49 (F-14): the Moon on a pass card and in the guide. The phase
+ * and the illumination are facts about the night the reader is planning, not a
+ * warning, so they are shown whenever the Moon is above the horizon at the
+ * peak — a 20 % crescent washes nothing out and is still what is up there. The
+ * glare label is the separate judgement, on top of this line when it applies
+ * (FR-MOON-2).
+ *
+ * Below the horizon there is no line at all: a card is a short list of facts
+ * about a pass, and "no Moon" is the ordinary case, not news. The Now panel,
+ * which is about the sky rather than about one pass, does say it (`line`).
+ */
+export interface MoonPeakFacts {
+  phase: MoonPhaseName;
+  illumination: string;
+  /** Above the horizon at the peak — the same test `moonFacts` makes for the Now panel. */
+  up: boolean;
+}
+
+export function moonPeakFacts(moon: MoonState): MoonPeakFacts {
+  return { phase: moon.phase, illumination: percent(moon.illuminatedFraction), up: moon.elDeg > 0 };
 }
 
 /**

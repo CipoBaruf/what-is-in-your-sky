@@ -51,7 +51,11 @@ test('save two places, switch between them, remove one, and the other survives a
   const save = page.getByTestId('save-favourite');
 
   // Nothing is saved yet, and the panel says so rather than showing an empty list.
-  await expect(page.getByText('No places saved yet.')).toHaveCount(0); // no observer either: the whole panel is absent
+  // R49 (F-33): the absence is only evidence once the app has rendered — before
+  // hydration every count is zero and the guard this asserts is never run.
+  await expect(coords).toBeVisible();
+  await expect(page.getByTestId('favourites')).toHaveCount(0); // no observer either: the whole panel is absent
+  await expect(page.getByText('No places saved yet.')).toHaveCount(0);
   await coords.fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   await expect(page.getByText('No places saved yet.')).toBeVisible();
   await expect(page.getByText('Up to 8 places. Saving another forgets the one you have not used for longest.')).toBeVisible();

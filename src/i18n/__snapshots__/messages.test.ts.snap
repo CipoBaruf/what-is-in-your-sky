@@ -207,6 +207,7 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".location.signOrSuffix:string",
   ".location.suffixOnBoth:string",
   ".location.useMyLocation:string",
+  ".moon.atPeak:function",
   ".moon.glare.label:string",
   ".moon.glare.sentence:string",
   ".moon.glare.tooltip:function",

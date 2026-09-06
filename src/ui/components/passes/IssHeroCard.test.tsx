@@ -8,6 +8,7 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../tests/support/catalogFixtures';
+import { MOON_DOWN, MOON_FIXTURE } from '../../../../tests/support/moonFixtures';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
 import { HERO_TICK_MS, heroCountdown, heroKicker, IssHeroCard } from './IssHeroCard';
@@ -56,6 +57,18 @@ describe('<IssHeroCard>', () => {
     expect(card).not.toHaveTextContent('sky still bright');
     expect(within(card).queryByRole('button')).toBeNull();
     expect(within(card).queryByText('Clouds', { selector: 'dt' })).toBeNull();
+  });
+
+  // R49 (F-14), US-18 AC1: the hero card is a pass card too, so it carries the
+  // Moon at the peak on the same terms.
+  it('names the Moon at the peak whenever it is up, glare or not', () => {
+    const { rerender } = render(<IssHeroCard pass={{ ...pass, moonAtPeak: MOON_FIXTURE, moonGlare: { glare: false, separationDeg: 120 } }} timeZone={null} />);
+    const card = screen.getByTestId('iss-hero');
+    expect(within(card).getByTestId('moon-at-peak')).toHaveTextContent('Moon at the peak: waning gibbous, 72 % lit');
+    expect(card).not.toHaveTextContent('moon glare');
+
+    rerender(<IssHeroCard pass={{ ...pass, moonAtPeak: MOON_DOWN, moonGlare: { glare: false, separationDeg: 120 } }} timeZone={null} />);
+    expect(within(screen.getByTestId('iss-hero')).queryByTestId('moon-at-peak')).toBeNull();
   });
 
   describe('ticking', () => {

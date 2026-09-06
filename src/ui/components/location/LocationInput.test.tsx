@@ -69,6 +69,45 @@ describe('<LocationInput>', () => {
     expect(onObserver).not.toHaveBeenCalled();
   });
 
+  /**
+   * R49 (F-29): `Favourites` picks through the store, so all this component
+   * sees is a new observer prop. Before the fix the fields kept whatever was in
+   * them, and the next altitude keystroke re-emitted the old place — or, from
+   * the empty field of a fresh visit, emitted null and dropped the observer.
+   */
+  it('reseeds the fields from an observer picked outside them, so a later altitude edit keeps that place (F-29)', async () => {
+    const user = userEvent.setup();
+    const onObserver = vi.fn();
+    const { rerender } = render(<LocationInput observer={null} onObserver={onObserver} onClear={vi.fn()} search={search} geolocation={geo} />);
+    expect(screen.getByLabelText('Coordinates (lat, lon)')).toHaveValue('');
+
+    rerender(<LocationInput observer={coords} onObserver={onObserver} onClear={vi.fn()} search={search} geolocation={geo} />);
+    expect(screen.getByLabelText('Coordinates (lat, lon)')).toHaveValue('-38.93, -67.99');
+    expect(screen.getByLabelText('Altitude (m)')).toHaveValue('270');
+    // Nothing is emitted for it: the store already has this observer.
+    expect(onObserver).not.toHaveBeenCalled();
+    // And the focus stays where the reader put it; only the clear moves it.
+    expect(screen.getByRole('combobox', { name: 'Place name' })).not.toHaveFocus();
+
+    const altitude = screen.getByLabelText('Altitude (m)');
+    await user.clear(altitude);
+    await user.type(altitude, '300');
+    expect(onObserver).toHaveBeenLastCalledWith(expect.objectContaining({ lat: -38.93, lon: -67.99, altM: 300 }));
+  });
+
+  it('does not remount the fields when the same place comes back with its zone filled in (D-3)', async () => {
+    const user = userEvent.setup();
+    const onObserver = vi.fn();
+    const { rerender } = render(<LocationInput observer={null} onObserver={onObserver} onClear={vi.fn()} search={search} geolocation={geo} />);
+    const field = screen.getByLabelText('Coordinates (lat, lon)');
+    await user.type(field, '-38.93, -67.99');
+    expect(onObserver).toHaveBeenLastCalledWith(expect.objectContaining({ lat: -38.93, lon: -67.99 }));
+
+    rerender(<LocationInput observer={{ ...coords, altM: 0, timeZone: 'America/Argentina/Salta' }} onObserver={onObserver} onClear={vi.fn()} search={search} geolocation={geo} />);
+    // The text the reader typed, not the label the store made of it.
+    expect(screen.getByLabelText('Coordinates (lat, lon)')).toHaveValue('-38.93, -67.99');
+  });
+
   it('the clear action calls onClear, empties the fields and moves focus to the place field (US-8 AC2)', async () => {
     const user = userEvent.setup();
     const { onClear, rerender } = setup(coords);

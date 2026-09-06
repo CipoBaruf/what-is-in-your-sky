@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useT } from '../../../i18n/useT';
 import { useAppStore } from '../../../state';
 import { Banner } from './Banner';
+import { installOfferState, subscribeToInstallOffer } from './installOffer';
 import styles from './InstallHint.module.css';
 
 /**
@@ -26,6 +27,11 @@ import styles from './InstallHint.module.css';
  * which is the point of the requirement: an install offer that returns is an
  * install offer that nags.
  *
+ * What the browser has said is not this component's state (R49, F-31): the two
+ * events are held by `installOffer.ts`, which listens from the moment the app's
+ * modules load, so an event fired while the reader was on `#live` — or before
+ * this hint had ever been mounted — is still there to be read. This reads it.
+ *
  * The environment is a prop so a test can be either browser; the app reads the
  * real `navigator`.
  */
@@ -40,46 +46,23 @@ export function browserInstallEnv(): InstallEnv {
   return { standalone: nav?.standalone };
 }
 
-/**
- * The event Chromium fires and no TypeScript DOM library declares. `prompt` is
- * the browser's own dialog; it can only be called once, and only from the
- * gesture that our button is.
- */
-export interface BeforeInstallPromptEvent extends Event {
-  prompt?: () => Promise<unknown>;
-}
-
-export const BEFORE_INSTALL_PROMPT = 'beforeinstallprompt';
-export const APP_INSTALLED = 'appinstalled';
-
 export interface InstallHintProps {
   env?: InstallEnv;
+  /** R49 (F-30): out of reach while a pass guide is open, at either width — the offer above it is under the same rule (D-154). */
+  inert?: boolean;
 }
 
-export function InstallHint({ env }: InstallHintProps) {
+export function InstallHint({ env, inert = false }: InstallHintProps) {
   const t = useT();
   const dismissed = useAppStore((s) => s.installHintDismissed);
   const dismiss = useAppStore((s) => s.dismissInstallHint);
-  const [offer, setOffer] = useState<BeforeInstallPromptEvent | null>(null);
+  const { event: offer, installed } = useSyncExternalStore(subscribeToInstallOffer, installOfferState);
   // Read once, at mount: `navigator.standalone` does not change under a page.
   const [standalone] = useState(() => (env ?? browserInstallEnv()).standalone);
 
   useEffect(() => {
-    const held = (event: Event): void => {
-      // Keep the browser's own mini-infobar out of the way; the offer is ours now.
-      event.preventDefault();
-      setOffer(event);
-    };
-    const installed = (): void => {
-      dismiss();
-    };
-    window.addEventListener(BEFORE_INSTALL_PROMPT, held);
-    window.addEventListener(APP_INSTALLED, installed);
-    return () => {
-      window.removeEventListener(BEFORE_INSTALL_PROMPT, held);
-      window.removeEventListener(APP_INSTALLED, installed);
-    };
-  }, [dismiss]);
+    if (installed) dismiss();
+  }, [installed, dismiss]);
 
   const ios = standalone === false;
   if (dismissed || (offer === null && !ios)) return null;
@@ -88,12 +71,19 @@ export function InstallHint({ env }: InstallHintProps) {
     // Whatever the reader answers the browser, the hint has been offered and
     // answered: `beforeinstallprompt` cannot be replayed and a second bar for
     // the same decision is what "once" forbids.
-    void offer?.prompt?.();
+    //
+    // R49 (F-32): including an answer the browser gives as a rejection. Chromium
+    // rejects `prompt()` when it decides the call is not eligible after all —
+    // a second call, a gesture it did not like — and an uncaught rejection is a
+    // console error and, behind a reporter, a logged incident, for a reader
+    // simply not installing the app. There is nothing to say and nothing to
+    // undo: the hint is answered either way.
+    void offer?.prompt?.()?.catch(() => undefined);
     dismiss();
   };
 
   return (
-    <Banner variant="info" testId="install-hint">
+    <Banner variant="info" testId="install-hint" inert={inert}>
       {offer === null ? t.install.ios : t.install.offer}
       {/* The two answers sit on a row of their own, each a tap target tall: side
           by side on one wrapped line their 48 px boxes would overlap, and

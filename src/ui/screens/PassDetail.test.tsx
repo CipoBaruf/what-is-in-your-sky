@@ -74,6 +74,20 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     expect(screen.getByRole('dialog')).not.toHaveTextContent('The Moon is bright');
   });
 
+  // R49 (F-14), US-18 AC1: the guide says which Moon is up at the peak even
+  // when the worker found no glare in it.
+  it('names the Moon at the peak whenever it is up, glare or not', () => {
+    const upNoGlare = { ...pass, moonAtPeak: MOON_FIXTURE, moonGlare: { glare: false, separationDeg: 120 } };
+    const { rerender } = render(<PassDetail pass={upNoGlare} observer={observer} onClose={() => undefined} />);
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByTestId('moon-at-peak')).toHaveTextContent('Moon at the peak: waning gibbous, 72 % lit');
+    expect(dialog).not.toHaveTextContent('The Moon is bright');
+
+    // With the Moon below the horizon there is nothing to say about it here.
+    rerender(<PassDetail pass={pass} observer={observer} onClose={() => undefined} />);
+    expect(within(screen.getByRole('dialog')).queryByTestId('moon-at-peak')).toBeNull();
+  });
+
   it('omits the twilight label when the pass is not a twilight one', () => {
     render(<PassDetail pass={{ ...pass, twilight: false }} observer={observer} onClose={() => undefined} />);
     expect(screen.getByRole('dialog')).not.toHaveTextContent('sky still bright');

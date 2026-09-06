@@ -4,7 +4,8 @@ import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../i18n/useT';
 import { appStore, type AppState } from '../../../state';
-import { APP_INSTALLED, BEFORE_INSTALL_PROMPT, InstallHint, type BeforeInstallPromptEvent, type InstallEnv } from './InstallHint';
+import { InstallHint, type InstallEnv } from './InstallHint';
+import { APP_INSTALLED, BEFORE_INSTALL_PROMPT, forgetInstallOffer, type BeforeInstallPromptEvent } from './installOffer';
 
 /**
  * TASKS R28 (FR-OFF-6, US-16 AC4): the hint is shown once, in either of the
@@ -47,6 +48,8 @@ afterEach(() => {
   appStore.setState(initial, true);
   // The store writes the latch through to `localStorage`; jsdom's is shared by the whole file.
   localStorage.clear();
+  // R49 (F-31): so is the held offer, which now outlives any one render.
+  forgetInstallOffer();
 });
 
 describe('InstallHint (R28: FR-OFF-6)', () => {
@@ -115,6 +118,64 @@ describe('InstallHint (R28: FR-OFF-6)', () => {
     fire(new Event(APP_INSTALLED));
     expect(state().installHintDismissed).toBe(true);
     expect(screen.queryByTestId('install-hint')).toBeNull();
+  });
+
+  it('shows an offer the browser made before the hint was ever mounted (R49, F-31)', () => {
+    // The live page: the app is running, this component is not. Chromium fires
+    // its one `beforeinstallprompt` here, and on the old code nothing was
+    // listening — leaving the route showed no offer for the rest of the session.
+    const { event } = installable();
+    act(() => {
+      window.dispatchEvent(event);
+    });
+    expect(event.defaultPrevented).toBe(true);
+
+    show(CHROMIUM);
+    expect(screen.getByTestId('install-hint')).toHaveTextContent('Install this app');
+    expect(screen.getByRole('button', { name: 'Install' })).toBeInTheDocument();
+  });
+
+  it('an install reported while the hint was unmounted answers it too (R49, F-31)', () => {
+    act(() => {
+      window.dispatchEvent(new Event(APP_INSTALLED));
+    });
+    show(IOS_TAB);
+    expect(state().installHintDismissed).toBe(true);
+    expect(screen.queryByTestId('install-hint')).toBeNull();
+  });
+
+  it('a rejected browser dialog is not an unhandled rejection (R49, F-32)', async () => {
+    const user = userEvent.setup();
+    const prompt = vi.fn(() => Promise.reject(new Error('prompt() was not eligible')));
+    const event = Object.assign(new Event(BEFORE_INSTALL_PROMPT, { cancelable: true }), { prompt }) as BeforeInstallPromptEvent;
+    const unhandled: unknown[] = [];
+    const noted = (reason: unknown): void => {
+      unhandled.push(reason);
+    };
+    process.on('unhandledRejection', noted);
+    try {
+      show(CHROMIUM);
+      fire(event);
+      await user.click(screen.getByRole('button', { name: 'Install' }));
+      expect(prompt).toHaveBeenCalledTimes(1);
+      // The rejection reaches the process on the tick after the microtasks drain.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', noted);
+    }
+    // The hint is answered whatever the browser said.
+    expect(state().installHintDismissed).toBe(true);
+  });
+
+  it('is out of reach while a pass is open (R49, F-30)', () => {
+    render(
+      <I18nProvider locale="en">
+        <InstallHint env={IOS_TAB} inert />
+      </I18nProvider>,
+    );
+    expect(screen.getByTestId('install-hint')).toHaveAttribute('inert');
   });
 
   it('reads in Spanish (FR-I18N-2)', () => {

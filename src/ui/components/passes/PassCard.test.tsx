@@ -73,6 +73,27 @@ describe('<PassCard>', () => {
     expect(card).not.toHaveTextContent('moon glare');
   });
 
+  /**
+   * R49 (F-14), US-18 AC1: the phase and the illumination are on the card for
+   * any Moon that is up at the peak — the glare label is the extra, not the
+   * condition. `samplePass` carries a Moon below the horizon, which is the one
+   * case with nothing to say.
+   */
+  it('names the Moon at the peak whenever it is up, glare or not', () => {
+    const upNoGlare = { ...samplePass, moonAtPeak: MOON_FIXTURE, moonGlare: { glare: false, separationDeg: 120 } };
+    const { rerender } = render(<PassCard pass={upNoGlare} timeZone={null} />);
+    const card = screen.getByRole('article');
+    expect(within(card).getByTestId('moon-at-peak')).toHaveTextContent('Moon at the peak: waning gibbous, 72 % lit');
+    expect(card).not.toHaveTextContent('moon glare');
+
+    rerender(<PassCard pass={{ ...upNoGlare, moonGlare: { glare: true, separationDeg: 8.2 } }} timeZone={null} />);
+    expect(within(card).getByTestId('moon-at-peak')).toBeInTheDocument();
+    expect(within(card).getByText('moon glare')).toBeInTheDocument();
+
+    rerender(<PassCard pass={samplePass} timeZone={null} />);
+    expect(within(card).queryByTestId('moon-at-peak')).toBeNull();
+  });
+
   it('wears the cloud verdict at the peak when given a forecast, "weather unknown" for null, and no row when omitted (FR-WX-3)', () => {
     const { rerender } = render(<PassCard pass={samplePass} timeZone="America/Argentina/Salta" weather={forecast} />);
     const card = screen.getByRole('article');

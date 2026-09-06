@@ -19,7 +19,8 @@ describe('<MoonGlareLabel> (FR-MOON-2)', () => {
   it('labels a pass the worker marked, and describes it with the measurement and the thresholds', async () => {
     const { container } = render(<MoonGlareLabel moon={MOON_FIXTURE} glare={GLARE} />);
     const label = screen.getByText('moon glare');
-    expect(label).toHaveAccessibleDescription('The Moon is 72 % lit and 8° from the pass peak. A pass is marked when the Moon is above the horizon at the peak, at least 50 % lit and closer than 30°.');
+    // R49 (F-15): the altitude is quoted from the thresholds like the other two, not written into the sentence.
+    expect(label).toHaveAccessibleDescription('The Moon is 72 % lit and 8° from the pass peak. A pass is marked when the Moon is higher than 0° at the peak, at least 50 % lit and closer than 30°.');
     expect(label).toHaveAttribute('tabindex', '0');
     expect(await axe(container)).toHaveNoViolations();
   });
@@ -42,7 +43,7 @@ describe('<MoonGlareLabel> (FR-MOON-2)', () => {
       </I18nProvider>,
     );
     const label = screen.getByText('resplandor lunar');
-    expect(label).toHaveAccessibleDescription(/iluminada al 72 % y a 8° del máximo del pase.*al menos al 50 % y a menos de 30°/);
+    expect(label).toHaveAccessibleDescription(/iluminada al 72 % y a 8° del máximo del pase.*a más de 0° de altura.*al menos al 50 % y a menos de 30°/);
     expect(screen.queryByText('moon glare')).toBeNull();
   });
 });

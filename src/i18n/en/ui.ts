@@ -1,6 +1,6 @@
 import type { AgeParts } from '../../lib/elementsAge';
 import type { CompassPoint } from '../../lib/compass';
-import type { MoonFacts, MoonGlareFacts, MoonLoreParams } from '../../lib/moonPhrases';
+import type { MoonFacts, MoonGlareFacts, MoonLoreParams, MoonPeakFacts } from '../../lib/moonPhrases';
 import type { BrightnessBand, ElevationBand, GuideParams } from '../../lib/phrases';
 import type { ShortcutId } from '../../lib/shortcuts';
 import type { CloudState, MoonPhaseName, PassBoundaryReason, PassSort, ReadinessGap, Theme } from '../../model';
@@ -192,13 +192,19 @@ export const ui = {
      * point for something under the ground is not a place to look.
      */
     line: (p: MoonFacts) => `Moon: ${moonPhase[p.phase]}, ${p.illumination} % lit, ${p.up ? `${p.direction} ${p.azimuth}, ${p.elevation} up` : 'below the horizon'}.`,
+    /**
+     * US-18 AC1 (R49, F-14): the same two facts on a pass card and in the
+     * guide, where the pass is what the reader is looking at and "at the peak"
+     * is what makes them about it.
+     */
+    atPeak: (p: MoonPeakFacts) => `Moon at the peak: ${moonPhase[p.phase]}, ${p.illumination} % lit`,
     glare: {
       /** FR-MOON-2's label on the pass card. */
       label: 'moon glare',
       /** …and the sentence the guide adds, in the requirement's own words. */
       sentence: 'The Moon is bright and close to the track.',
       tooltip: (p: MoonGlareFacts) =>
-        `The Moon is ${p.illumination} % lit and ${p.separation} from the pass peak. A pass is marked when the Moon is above the horizon at the peak, at least ${p.minIllumination} % lit and closer than ${p.maxSeparation}.`,
+        `The Moon is ${p.illumination} % lit and ${p.separation} from the pass peak. A pass is marked when the Moon is higher than ${p.minAltitude} at the peak, at least ${p.minIllumination} % lit and closer than ${p.maxSeparation}.`,
     },
     /**
      * FR-MOON-4 / FR-MOON-5: tradition, labelled as tradition, worded as

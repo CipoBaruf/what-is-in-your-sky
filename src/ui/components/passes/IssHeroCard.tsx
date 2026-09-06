@@ -4,6 +4,7 @@ import { useT } from '../../../i18n/useT';
 import { formatClockDuration } from '../../../lib/format';
 import type { EpochMs, Pass, WeatherSnapshot } from '../../../model';
 import { countdownState } from '../common/Countdown';
+import { MoonAtPeak } from '../moon/MoonAtPeak';
 import { MoonGlareLabel } from '../moon/MoonGlare';
 import { useNow } from '../../hooks/useNow';
 import { OpenGuide, PassFields } from './PassCard';
@@ -57,6 +58,7 @@ export function IssHeroCard({ pass, timeZone, onOpen, weather, now: nowProp, sel
       </p>
       {pass.twilight && <p className={styles.twilight}>{t.passes.twilightLabel}</p>}
       <MoonGlareLabel moon={pass.moonAtPeak} glare={pass.moonGlare} />
+      <MoonAtPeak moon={pass.moonAtPeak} />
       <PassFields pass={pass} timeZone={timeZone} {...(weather !== undefined ? { weather } : {})} />
       {onOpen && <OpenGuide pass={pass} headingId={headingId} onOpen={onOpen} />}
     </article>

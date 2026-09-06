@@ -165,11 +165,12 @@ export const ui: typeof EnUi = {
   moon: {
     phase: moonPhase,
     line: (p) => `Luna: ${moonPhase[p.phase]}, ${p.illumination} % iluminada, ${p.up ? `${p.direction} ${p.azimuth}, ${p.elevation} de altura` : 'bajo el horizonte'}.`,
+    atPeak: (p) => `Luna en el máximo: ${moonPhase[p.phase]}, ${p.illumination} % iluminada`,
     glare: {
       label: 'resplandor lunar',
       sentence: 'La Luna está brillante y cerca del recorrido.',
       tooltip: (p) =>
-        `La Luna está iluminada al ${p.illumination} % y a ${p.separation} del máximo del pase. Un pase queda marcado cuando la Luna está sobre el horizonte en el máximo, iluminada al menos al ${p.minIllumination} % y a menos de ${p.maxSeparation}.`,
+        `La Luna está iluminada al ${p.illumination} % y a ${p.separation} del máximo del pase. Un pase queda marcado cuando la Luna está a más de ${p.minAltitude} de altura en el máximo, iluminada al menos al ${p.minIllumination} % y a menos de ${p.maxSeparation}.`,
     },
     lore: {
       heading: 'La Luna esta noche',

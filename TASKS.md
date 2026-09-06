@@ -954,7 +954,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
     - Captures at 390 px portrait and 844 × 390 landscape, both themes, both languages.
   - *Done as written, with three notes.* The stepping is the spike's six buttons (`|◀ rise −10m −1m +1m +10m rise ▶|`), and `rise ▶|` lands on a rise in one tap. The compact strip is two lines of numbers (D-246) and the compact top row drops the language and theme switches (D-244); the portrait floor is D-233's frame width, 351 px at 390 px, not the full-bleed 390. Window mode's e2e goes with R47, since the preference schema rejects a view it does not know; the RTL test covers FR-WIN-6. The D-172 rate is 59.1/s at both widths (D-247).
 
-- [ ] **R49 — ui findings B: favourites and coordinates, the install and update offers, the Moon on the cards, the leftovers**
+- [x] **R49 — ui findings B: favourites and coordinates, the install and update offers, the Moon on the cards, the leftovers**
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
