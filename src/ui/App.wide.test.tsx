@@ -127,6 +127,64 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     for (const offer of offers()) expect(offer).not.toHaveAttribute('inert');
   });
 
+  /**
+   * R50 (FR-DESK-3 as amended, F-6). Which of the two tracks the right column
+   * shows is `data-guide`, and the stylesheet is what turns it into a layout:
+   * below `WIDE_SPLIT_MIN_CELLS` one at a time, above it both at once. What is
+   * testable here is the contract the stylesheet keys off — and that `[ list ]`
+   * is a swap and not a close: the pass stays open, stays in the hash, and the
+   * reader comes back to the card they were reading about.
+   */
+  it('marks the right column open, list or closed, and swaps between them on [ list ] (F-6)', async () => {
+    withPasses();
+    render(<App />);
+    const right = screen.getByTestId('col-right');
+    expect(right).toHaveAttribute('data-guide', 'closed');
+
+    await userEvent.click(screen.getAllByRole('button', { name: /Open guide/ })[0] as HTMLElement);
+    expect(right).toHaveAttribute('data-guide', 'open');
+
+    await userEvent.click(within(screen.getByRole('region', { name: panelName })).getByRole('button', { name: en.guide.toList }));
+    expect(right).toHaveAttribute('data-guide', 'list');
+    // Not a close: the guide is still mounted, the pass is still the selected
+    // one, and the hash still carries it (D-13).
+    expect(screen.getByRole('region', { name: panelName })).toBeInTheDocument();
+    expect(window.location.hash).toBe(`#pass=${pass.id}`);
+    expect(screen.getByTestId('iss-hero')).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByTestId('iss-hero')).toHaveFocus();
+
+    // Opening a pass is what asks for the guide again.
+    await userEvent.click(screen.getAllByRole('button', { name: /Open guide/ })[1] as HTMLElement);
+    expect(right).toHaveAttribute('data-guide', 'open');
+
+    await userEvent.keyboard('{Escape}');
+    expect(right).toHaveAttribute('data-guide', 'closed');
+  });
+
+  /**
+   * R50 (F-8): the panel stays on the page between two passes, so React reused
+   * the instance — the mount effect never ran again, the new guide's heading
+   * was never focused, and closing it put the reader back on whatever had
+   * opened the *first* one. `App` keys it by the pass; a second pass is a
+   * second guide.
+   */
+  it('moves focus to the second guide when another pass is opened beside it, and back to its own opener (F-8)', async () => {
+    withPasses();
+    render(<App />);
+    const openers = screen.getAllByRole('button', { name: /Open guide/ });
+    await userEvent.click(openers[0] as HTMLElement);
+    expect(within(screen.getByRole('region', { name: panelName })).getByRole('heading', { level: 2 })).toHaveFocus();
+
+    const second = openers[1] as HTMLElement;
+    await userEvent.click(second);
+    const panel = screen.getByRole('region', { name: en.guide.panelLabel({ name: other.name }) });
+    expect(panel).toHaveAttribute('data-pass-id', other.id);
+    expect(within(panel).getByRole('heading', { level: 2 })).toHaveFocus();
+
+    await userEvent.keyboard('{Escape}');
+    expect(second).toHaveFocus();
+  });
+
   it('keeps the same pass open across the breakpoint, in the other shell (D-72)', async () => {
     withPasses();
     render(<App />);

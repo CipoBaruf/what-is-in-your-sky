@@ -82,6 +82,30 @@ describe('the pass cursor (FR-DESK-4)', () => {
     expect(moveCursor(document, 1)?.dataset.passId).toBe('c');
   });
 
+  /**
+   * R50 (F-44). `App` turns this return value into `preventDefault`, so a card
+   * that did not take focus has to come back as no move at all. The card the
+   * shortcuts overlay or the compact sheet is over is inside an `inert`
+   * subtree, where `focus()` does nothing — which jsdom has no `inert` for, so
+   * a card whose `focus` does nothing is the case itself.
+   */
+  it('reports no move when the card cannot take focus, leaving the key to the browser (F-44)', () => {
+    page(`${card('a')}${card('b')}`);
+    const cards = [...document.querySelectorAll<HTMLElement>('[data-pass-card]')];
+    for (const element of cards) element.focus = () => undefined;
+    expect(moveCursor(document, 1)).toBeNull();
+    expect(document.activeElement).toBe(document.body);
+
+    // And from a cursor that is already somewhere — the first card can take
+    // focus again, the one after it still cannot: the move is refused, not
+    // half made, and the cursor stays where the reader left it.
+    delete (cards[0] as Partial<HTMLElement>).focus;
+    cards[0]?.focus();
+    expect(focused()).toBe('a');
+    expect(moveCursor(document, 1)).toBeNull();
+    expect(focused()).toBe('a');
+  });
+
   it('opens the card that has focus itself, and leaves a focused button to the browser (D-73)', () => {
     page(`${card('a')}${card('b')}`);
     expect(passIdAtCursor(document)).toBeNull();
