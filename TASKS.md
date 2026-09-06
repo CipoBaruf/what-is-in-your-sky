@@ -8,8 +8,8 @@
 | Scope | MVP (spec Phase 0 + Phase 1). v1 items are not broken down here. |
 | Inputs (v1) | `SPEC.md` v1.0, `PLAN.md` v0.3 (Decision Log V1-1..V1-11 and Decisions D-69..D-87 with §16 treated as fixed) |
 | Scope (v1) | Spec Phase 2 "outdoor-ready": R16–R36 in the `## v1 tasks` block below, delivered by lanes and waves (PLAN §16). |
-| Inputs (v1.1) | `SPEC.md` v1.1, `PLAN.md` v0.4 (Decision Log V11-1..V11-13 and Decisions D-183..D-199 with §16 as amended treated as fixed) |
-| Scope (v1.1) | Spec Phase 2b "phone pass": R37–R53 in the `## v1.1 tasks` block below, five lanes, four models, the findings first (PLAN §16.6, §16.8). |
+| Inputs (v1.1) | `SPEC.md` v1.1.1, `PLAN.md` v0.4.1 (Decision Log V11-1..V11-14 and Decisions D-183..D-199 and D-268 with §16 as amended treated as fixed) |
+| Scope (v1.1) | Spec Phase 2b "phone pass": R37–R54 in the `## v1.1 tasks` block below, five lanes, four models, the findings first (PLAN §16.6, §16.8). |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |
 
 ## Conventions
@@ -765,7 +765,7 @@ flowchart LR
 
 ## v1.1 tasks
 
-Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec Phase 2b, "phone pass": the fifty open v1 findings, CI time, the compact layout and settings page, the chart legend, the sky window, the live trajectories and stripe, true north. Delivery is PLAN §16 as amended for the phase: five lanes, four models, the findings and the CI budget in the first wave, the sky-window spike driven by the owner.
+Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec Phase 2b, "phone pass": the fifty open v1 findings, CI time, the compact layout and settings page, the chart legend, the sky window, the live trajectories and stripe, true north. Delivery is PLAN §16 as amended for the phase: five lanes, four models, the findings and the CI budget in the first wave, the sky-window spike driven by the owner. *(v1.1.1, 2026-09-06)* R54 appended from `SPEC.md` v1.1.1 and `PLAN.md` v0.4.1: the owner's wide live-page findings F-51..F-53 (V11-14, D-268), on the idle `live` lane beside the `ui` chain.
 
 **Before the first wave** (repo tooling, not tasks — PLAN D-86, D-197, D-198): `scripts/sdd/tasks.ts` accepts the lanes `window` and `docs`, the models `sonnet`, `haiku` and `interactive`, and the fields `Precondition:` and `Findings:`; `scripts/sdd/brief.ts` writes the brief; `session.ts` gains `--fallback`; `sdd-implement` reads the brief under `SDD_HEADLESS` and runs narrow tests while iterating. `--status` prints the open F-numbers.
 
@@ -783,7 +783,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
 - **Precondition:** a file that must exist on `origin/main`; the driver skips the task until it does (PLAN §16.3).
 - The message catalogs are split per lane by R42 (`src/i18n/{en,es}/{ui,chart,live,window}.ts`); from R42 on a task edits only its lane's file, and `Touches outside the lane` need not name it.
 - Captures: 390 px always, both languages and both themes; 1280 px and, from R50, 1024 px where the wide layout changed. Only `Gate: owner` tasks shoot captures, and only for the screens they changed (PLAN §16.8). The D-179 capture set is re-shot by `captures.yml` on `main`, never in a task.
-- Decision numbers are reserved in one PLAN entry after D-199: R37 D-200..203, R38 204..207, R39 208..211, R40 212..215, R41 216..219, R42 220..223, R43 224..227, R44 228..231, R45 232..235, R46 236..239, R47 240..243, R48 244..247, R49 248..251, R50 252..255, R51 256..259, R52 260..263, R53 264..267.
+- Decision numbers are reserved in one PLAN entry after D-199: R37 D-200..203, R38 204..207, R39 208..211, R40 212..215, R41 216..219, R42 220..223, R43 224..227, R44 228..231, R45 232..235, R46 236..239, R47 240..243, R48 244..247, R49 248..251, R50 252..255, R51 256..259, R52 260..263, R53 264..267. *(v1.1.1)* R54 takes D-269..D-271 (D-268 is its decision, already written).
 
 ### Tasks
 
@@ -1010,12 +1010,28 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
-  - **Depends on:** R41, R47, R48, R52
+  - **Depends on:** R41, R47, R48, R52, R54
   - **Goal:** v1.1 is releasable: every finding accounted for, the capture set extended, the budgets re-set, the version bumped.
   - **Satisfies:** SPEC §9 Phase 2b definition of done; FR-FIX-1's "none silently open".
   - **Scope:** `captureSet.ts` gains the settings page, the window (stubbed orientation), the legend states and the 1024 px profile; `captures.yml` re-shoots on `main`; `tests/docs/captures.test.ts` matches; `bundle-budget.ts` re-set by D-178's rule; `docs/RELEASE.md` gains the phone checks (the window on a real iPhone and Android, the FR-GUIDE-6 and FR-LIVE-5 rates); a table in the summary listing F-1..F-50 with the commit or the Decision Log row that closed each; `package.json` 1.1.0.
   - **Touches outside the lane:** `tests/e2e/captureSet.ts`, `tests/docs/captures.test.ts`, `scripts/bundle-budget.ts`, `docs/RELEASE.md`, `package.json`.
   - **Done when:** `npm test`, `npm run build`, `npm run bundle:budget` all `ok`; the `captures.yml` run on the merge is green; the findings table has no empty row; the owner tags `v1.1.0`.
+
+- [ ] **R54 — The wide live page: the raster inside its box, the rows folded, the legend scrolling**
+  - **Lane:** live
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R45, R48
+  - **Findings:** F-51, F-52, F-53
+  - **Goal:** On a large screen the dome sits inside its box with its north and south rows whole, gets the height the folded rows give back, and every legend row can be reached.
+  - **Satisfies:** FR-DOME-1 as amended (v1.1.1, the ceiling), FR-LIVE-7 as amended (v1.1.1, wide), FR-LEG-2 (the column reachable); FR-FIX-1 for F-51..F-53.
+  - **Scope (PLAN D-268):** `dome/camera.ts`'s fit rule bounded above — the extent, labels included, at most the shorter side of the box, the 90 % test pinning 100 % too (F-51). `Live.module.css` gains a wide branch at FR-DESK-1's 100 cells beside D-173's landscape one, areas `top` / `dome` / `bottom` / `strip`: the view control, the facing readout and the hint on the top row; the playback controls at the left, the stripe block with its readout filling the rest and the share action at the right on the bottom row; the strip one line; the dome row `minmax(0, 1fr)` takes the rest (F-52). `Legend.module.css` scrolls the column within the box's height (`overflow-y: auto`, `min-height: 0` up the grid) and `Legend.tsx` scrolls the activated row into view (F-53). Portrait, landscape on a phone and window mode are unchanged. Opus rather than Fable: D-268 fixes every number and file, so the session verifies against a written rule, not against what it draws.
+  - **Touches outside the lane:** `src/ui/components/guide/skychart/dome/camera.ts` and its test, `src/ui/components/guide/skychart/Legend.tsx` and `Legend.module.css` (the `chart` lane, named here per FR-FIX-1), `tests/e2e/live.spec.ts`.
+  - **Done when:**
+    - The fit test asserts 90 % ≤ extent ≤ 100 % of the shorter side at 1280 × 800 and 1920 × 1080, and fails on the old rule at 1920 (F-51).
+    - `live.spec.ts` at 1920 × 1080: one row above the dome and two under it, the dome box at least 75 % of the viewport height, no page scroll; at 390 × 844 the portrait rows are as R48 left them (F-52).
+    - A legend test reaches the last drawn pass by keyboard and its row is within the column's visible box (F-53).
+    - Captures: the live page at 1920 × 1080 dark en, and at 1280 × 800 both themes en; `npm test` and `live.spec.ts` green.
 
 ### Expected waves (v1.1)
 
@@ -1028,12 +1044,12 @@ Computed from the graph with the driver's caps (one task per lane, three at once
 | 2 | R42, R44, R45 | ui, live, chart | sonnet, opus, fable |
 | 3 | R46, R43 | ui, docs | opus, opus |
 | 4 | R49, R47, R48 | ui, window, live | opus, fable, fable |
-| 5 | R50 | ui | opus |
+| 5 | R50, R54 | ui, live | opus, opus |
 | 6 | R51 | ui | opus |
 | 7 | R52 | ui | opus |
 | 8 | R53 | ui | opus |
 
-The `ui` lane is again the long pole: eight of its tasks in a row, because the findings live where the bugs were and the settings page is the phase's last feature. Everything else is done by wave 4. If the owner wants the phone screens sooner, R52's dependency on R51 can be dropped at the cost of two rebases on `App.tsx`; the findings tasks would then follow it. Model spend: five of seventeen sessions on Sonnet, three on Fable, one interactive, the rest on Opus; reviews are Sonnet on the eleven `Gate: owner` tasks.
+The `ui` lane is again the long pole: eight of its tasks in a row, because the findings live where the bugs were and the settings page is the phase's last feature. Everything else is done by wave 4, and R54 (v1.1.1) rides beside R50 in wave 5 on the idle `live` lane. If the owner wants the phone screens sooner, R52's dependency on R51 can be dropped at the cost of two rebases on `App.tsx`; the findings tasks would then follow it. Model spend: five of seventeen sessions on Sonnet, three on Fable, one interactive, the rest on Opus; reviews are Sonnet on the eleven `Gate: owner` tasks.
 
 No two tasks in one wave name the same shared file: R37 and R39 both touch `tests/e2e/live.spec.ts` only through R37's `seedStoredRun` switch, which is one additive import per spec; the driver's rebase settles it. `src/physics/constants.ts` is touched by R45 alone. From R42 on the catalogs are per lane.
 
@@ -1053,12 +1069,14 @@ No two tasks in one wave name the same shared file: R37 and R39 both touch `test
 | FR-WIN-7 | R38 |
 | FR-TRAJ-1, 3 | R45 (the views), R48 (the live page) |
 | FR-TRAJ-2, 4, 5 | R48 |
-| FR-FIX-1 | R39, R40, R41, R46, R49, R50, R51, R44 (F-41), R53 (the table) |
+| FR-FIX-1 | R39, R40, R41, R46, R49, R50, R51, R44 (F-41), R54 (F-51..F-53), R53 (the table) |
 | FR-FIX-2 | R37 |
 | FR-CI-1, 2, 3 | R37 |
 | FR-DESK-2 amended | R52 |
 | FR-DESK-3, 5 amended | R50 |
 | FR-DOME-1, 4, 6 amended | R45 |
+| FR-DOME-1 amended (ceiling, v1.1.1) | R54 |
+| FR-LIVE-7 amended (wide, v1.1.1) | R54 |
 | FR-GUIDE-2b amended | R47 |
 | FR-GUIDE-7 amended | R51 |
 | FR-LIVE-2, 4, 7 amended | R48 |
@@ -1091,5 +1109,6 @@ flowchart LR
   R44 --> R48
   R43 --> R52
   R51 --> R52
-  R41 & R47 & R48 & R52 --> R53
+  R45 & R48 --> R54
+  R41 & R47 & R48 & R52 & R54 --> R53
 ```
