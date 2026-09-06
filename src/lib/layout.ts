@@ -89,7 +89,6 @@ export const SHELL_PADDING_CELLS = 2;
  */
 export const WIDE_SPLIT_MIN_CELLS = 124;
 export const WIDE_SPLIT_MIN_PX = thresholdPx(WIDE_SPLIT_MIN_CELLS + 2 * GUTTER_CELLS + SHELL_PADDING_CELLS);
-export const WIDE_SPLIT_QUERY = `(min-width: ${String(WIDE_SPLIT_MIN_PX)}px)`;
 
 export type LayoutMode = 'compact' | 'wide';
 

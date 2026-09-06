@@ -122,9 +122,15 @@ export function App() {
    * The selection is untouched by the swap: the pass stays open and stays in
    * the hash (D-13), which is what makes `[ list ]` different from closing.
    */
-  const [guideView, setGuideView] = useState<'guide' | 'list'>('guide');
+  // The pass the reader asked to see the list beside (F-6's `[ list ]`), if
+  // any. The view is derived from it rather than stored, so a pass that
+  // arrives by any other route — Back, a pasted link, `j` — is a new guide,
+  // exactly as one opened from a card is: the list was asked for at *that*
+  // pass, and a different pass is a different question.
+  const [listFor, setListFor] = useState<string | null>(null);
+  const guideView: 'guide' | 'list' = selected !== null && listFor === selected.id ? 'list' : 'guide';
   const openPass = (passId: string): void => {
-    setGuideView('guide');
+    setListFor(null);
     open(passId);
   };
   /*
@@ -135,7 +141,15 @@ export function App() {
    */
   useEffect(() => {
     if (guideView !== 'list') return;
-    document.querySelector<HTMLElement>(`${PASS_CARD}[data-selected]`)?.focus();
+    const card = document.querySelector<HTMLElement>(`${PASS_CARD}[data-selected]`);
+    if (!card) return;
+    // A card inside a folded night is in the DOM but not on the page, and
+    // `focus()` on it does nothing (`passCursor`): the reader asked for the
+    // list at this pass, so its night unfolds first — through the element,
+    // so the disclosure's own toggle event keeps the list's memory of it.
+    const night = card.closest<HTMLDetailsElement>('details:not([open])');
+    if (night) night.open = true;
+    card.focus();
   }, [guideView]);
   /*
    * R39 (F-34): `startApp` reads a link's observer once, before the first
@@ -288,7 +302,7 @@ export function App() {
               observer={observer}
               onClose={close}
               onShowList={() => {
-                setGuideView('list');
+                setListFor(selected.id);
               }}
               inert={helpOpen}
             />

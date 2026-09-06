@@ -14,7 +14,7 @@ import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../test
 import { COMPACT_PX, stubMatchMedia, WIDE_PX, type MatchMediaStub } from '../../tests/support/matchMedia';
 import { en } from '../i18n/en';
 import type { Observer } from '../model';
-import { appStore, type ElementsState } from '../state';
+import { appStore, NIGHT_MS, type ElementsState } from '../state';
 import { IDLE_PASSES } from '../state/slices/passes';
 import { App } from './App';
 import { BEFORE_INSTALL_PROMPT, forgetInstallOffer } from './components/common/installOffer';
@@ -159,6 +159,53 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
 
     await userEvent.keyboard('{Escape}');
     expect(right).toHaveAttribute('data-guide', 'closed');
+  });
+
+  /**
+   * Review of #79: the list view was a stored flag that only opening a card
+   * reset, so a pass arriving by the hash — Back, a pasted link — kept the
+   * list in front of the new pass's guide. The view is now derived from the
+   * pass the list was asked for.
+   */
+  it('a pass arriving by the hash while the list is shown is a new guide, not the list again', async () => {
+    withPasses();
+    render(<App />);
+    const right = screen.getByTestId('col-right');
+    await userEvent.click(screen.getAllByRole('button', { name: /Open guide/ })[0] as HTMLElement);
+    await userEvent.click(within(screen.getByRole('region', { name: panelName })).getByRole('button', { name: en.guide.toList }));
+    expect(right).toHaveAttribute('data-guide', 'list');
+
+    act(() => {
+      window.location.hash = `#pass=${other.id}`;
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    expect(right).toHaveAttribute('data-guide', 'open');
+    expect(screen.getByRole('region', { name: en.guide.panelLabel({ name: other.name }) })).toBeInTheDocument();
+  });
+
+  /**
+   * Review of #79: `focus()` on a card inside a folded night does nothing
+   * (`passCursor` skips them for the same reason), so `[ list ]` at such a
+   * pass left focus on the body. The night unfolds first.
+   */
+  it('[ list ] at a pass inside a folded night unfolds the night and focuses the card', async () => {
+    const later = { ...pass, id: 'later', noradId: 3, name: 'Later object', start: { ...pass.start, t: pass.start.t + 26 * 3_600_000 } };
+    act(() => {
+      appStore.setState({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window: { startMs: NOW, endMs: NOW + 2 * NIGHT_MS }, passes: [pass, other, later], hasDarkness: true } });
+    });
+    render(<App />);
+    const nights = screen.getAllByTestId('night-group');
+    expect(nights).toHaveLength(2);
+    const secondNight = nights[1] as HTMLDetailsElement;
+    expect(secondNight.open).toBe(false);
+
+    act(() => {
+      window.location.hash = `#pass=${later.id}`;
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    await userEvent.click(within(screen.getByRole('region', { name: en.guide.panelLabel({ name: later.name }) })).getByRole('button', { name: en.guide.toList }));
+    expect(secondNight.open).toBe(true);
+    expect(within(secondNight).getByRole('article', { current: true })).toHaveFocus();
   });
 
   /**
