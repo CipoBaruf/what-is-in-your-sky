@@ -213,3 +213,78 @@ test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async 
   await expect(page.getByRole('button', { name: 'Compartir este cielo' })).toBeVisible();
   await page.screenshot({ path: 'docs/screenshots/r32-live-390-dark-es.png' });
 });
+
+/**
+ * R54 (FR-LIVE-7 as amended v1.1.1, FR-DOME-1 as amended, FR-LEG-2, D-268; F-51, F-52, F-53): the wide live page.
+ * At 1920 × 1080 one row stands above the dome (the view toggle and the facing readout) and two under it (the
+ * playback row, the stripe block and the share action on one; the strip on the next), the box has at least three
+ * quarters of the viewport, nothing scrolls, and the stepping row is absent without touch. At 1280 × 800 the row
+ * has no room for the stripe (`STRIPE_ROW_MIN_CELLS`), which takes a row of its own under the playback row, the
+ * readout at its left. (F-53's legend reach needs an instant with several passes: `r54-captures.spec.ts`.)
+ */
+test.describe('the wide live page (R54)', () => {
+  const band = (inner: { y: number; height: number } | null, outer: { y: number; height: number } | null): void => {
+    if (!inner || !outer) throw new Error('a row is missing');
+    expect(inner.y).toBeGreaterThanOrEqual(outer.y - 1);
+    expect(inner.y + inner.height).toBeLessThanOrEqual(outer.y + outer.height + 1);
+  };
+  const below = (lower: { y: number } | null, upper: { y: number; height: number } | null): void => {
+    if (!lower || !upper) throw new Error('a row is missing');
+    expect(lower.y).toBeGreaterThanOrEqual(upper.y + upper.height - 1);
+  };
+
+  test('at 1920 × 1080: one row above the dome, two under it, the box at least 75 % of the viewport, nothing scrolls, no stepping row (F-52)', async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await homeAt(page, T, 'en', true);
+    await page.getByTestId('live-link').click();
+    await domeDrawn(page);
+    await stripFilled(page);
+    const toggle = await page.getByRole('group', { name: 'Chart view' }).boundingBox();
+    const readout = await page.getByTestId('dome-readout').boundingBox();
+    const box = await page.getByTestId('chart-box').boundingBox();
+    const playback = await page.getByTestId('playback-row').boundingBox();
+    const block = await page.getByTestId('stripe-block').boundingBox();
+    const actions = await page.getByTestId('live-actions').boundingBox();
+    const strip = await page.getByTestId('status-strip').boundingBox();
+    // One row above: the readout shares the toggle's row, and the box starts right under it.
+    band(readout, toggle);
+    below(box, toggle);
+    // Two rows under: the playback row and the share action within the stripe block's row, the strip under all three.
+    band(playback, block);
+    band(actions, block);
+    below(strip, block);
+    below(block, box);
+    // The hidden-objects toggle is on the playback row, and there is no stepping row without touch.
+    await expect(page.getByTestId('playback-row').getByTestId('live-hidden-toggle')).toBeVisible();
+    await expect(page.getByTestId('step-controls')).toHaveCount(0);
+    // The box has at least three quarters of the viewport, and the page does not scroll.
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(0.75 * 1080);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1080);
+  });
+
+  test('at 1280 × 800: the stripe takes a row of its own under the playback row, the readout at its left (F-52)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await homeAt(page, T, 'en', true);
+    await page.getByTestId('live-link').click();
+    await domeDrawn(page);
+    await stripFilled(page);
+    const toggle = await page.getByRole('group', { name: 'Chart view' }).boundingBox();
+    const readout = await page.getByTestId('dome-readout').boundingBox();
+    const playback = await page.getByTestId('playback-row').boundingBox();
+    const actions = await page.getByTestId('live-actions').boundingBox();
+    const block = await page.getByTestId('stripe-block').boundingBox();
+    const stripe = await page.getByTestId('time-stripe').boundingBox();
+    const clock = await page.getByTestId('time-readout').boundingBox();
+    const strip = await page.getByTestId('status-strip').boundingBox();
+    band(readout, toggle);
+    band(actions, playback);
+    below(block, playback);
+    below(strip, block);
+    band(clock, stripe);
+    if (!clock || !stripe) throw new Error('no stripe');
+    expect(clock.x + clock.width).toBeLessThanOrEqual(stripe.x);
+    // FR-TRAJ-4: the stripe keeps the width its twelve hour labels need.
+    expect(stripe.width).toBeGreaterThanOrEqual(60 * 9.6);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(800);
+  });
+});
