@@ -6,7 +6,7 @@ export const chart = {
   chart: {
     viewGroup: 'Chart view',
     viewPrefix: 'View:',
-    view: { dome: 'Dome', polar: 'Polar' } satisfies Record<ChartView, string>,
+    view: { dome: 'Dome', polar: 'Polar', window: 'Window' } satisfies Record<ChartView, string>,
     loadingDome: 'Loading the sky dome…',
     noPass: 'No pass to draw.',
     orientationGroup: 'Chart orientation',
