@@ -130,9 +130,10 @@ test.describe('the sky window on a phone', () => {
     const w = figure.locator('[data-look-az]');
     await expect(w).toHaveAttribute('data-state', 'idle');
     await expect(figure.getByTestId('window-note')).toHaveText('Waiting for the phone’s sensors…');
-    // The placeholder: at the pass's peak azimuth, 20° up, the key at the peak in view.
+    // The placeholder: at the pass's peak azimuth, raised from 20° so the 61° peak keeps 8° inside the top of the
+    // 60° box (61 − 30 + 8), the key at the peak in view.
     const placeholder = await look(w);
-    expect(placeholder.alt).toBe(20);
+    expect(placeholder.alt).toBe(39);
     await expect(figure.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
     await expect(figure.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveText('A');
     await expect(figure.locator('[data-anchor="pass"], [data-anchor="peak"]')).toHaveCount(0);
@@ -259,16 +260,16 @@ test.describe('the sky window on a phone', () => {
         await expect(figure).toHaveAttribute('data-view', 'window');
         const w = figure.locator('[data-look-az]');
         await expect(w).toBeAttached();
-        // The placeholder already points at the peak, 20° up: the reading puts the phone there, then again less
-        // Paris's declination (known once the window is on), so the true look is the peak.
-        const peakAz = Number(await w.getAttribute('data-look-az'));
-        await point(page, peakAz, 20);
+        // The placeholder already points at the peak azimuth, as high as the peak needs: the reading puts the phone
+        // there, then again less Paris's declination (known once the window is on), so the true look is the placeholder's.
+        const aim = await look(w);
+        await point(page, aim.az, aim.alt);
         await settle(page);
         await expect(w).toHaveAttribute('data-state', 'on');
         const declination = Number(await figure.getByTestId('window-heading').getAttribute('data-declination'));
-        await point(page, peakAz - declination, 20);
+        await point(page, aim.az - declination, aim.alt);
         await settle(page);
-        expect(await look(w)).toEqual({ az: peakAz, alt: 20 });
+        expect(await look(w)).toEqual(aim);
         await expect(figure.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         await expect(page.locator('html')).toHaveAttribute('lang', locale);
@@ -280,6 +281,29 @@ test.describe('the sky window on a phone', () => {
       });
     }
   }
+
+  test('capture: the horizon with its compass names, aimed 12° up toward the peak', async ({ page }) => {
+    await stubCompass(page);
+    await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
+    const figure = await openDetail(page, 'en');
+    await chooseWindow(page, figure, 'en');
+    const w = figure.locator('[data-look-az]');
+    const peakAz = Number(await w.getAttribute('data-look-az'));
+    await point(page, peakAz, 12);
+    await settle(page);
+    await expect(w).toHaveAttribute('data-state', 'on');
+    const declination = Number(await figure.getByTestId('window-heading').getAttribute('data-declination'));
+    await point(page, peakAz - declination, 12);
+    await settle(page);
+    expect(await look(w)).toEqual({ az: peakAz, alt: 12 });
+    // The peak is in the south-southwest: the names either side of it are on the horizon in view, and the ticks between them.
+    await expect(figure.locator('[data-horizon]')).toHaveAttribute('d', /^M/);
+    await expect(figure.locator('[data-anchor="S"]')).toHaveAttribute('data-in-view', 'true');
+    await expect(figure.locator('[data-tick][data-in-view="true"]')).not.toHaveCount(0);
+    await figure.locator('[data-drawing]').scrollIntoViewIfNeeded();
+    await page.mouse.move(0, 0);
+    await page.screenshot({ path: `${CAPTURE_DIR}/r47-window-390-horizon-dark-en.png` });
+  });
 });
 
 test.describe('the sky window without a touch screen', () => {

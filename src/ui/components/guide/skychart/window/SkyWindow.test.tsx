@@ -18,7 +18,7 @@ import { appStore } from '../../../../../state';
 import { SkyChart } from '../SkyChart';
 import type { HiddenMarker } from '../SkyChart.types';
 import { resetOrientationAccess } from './orientationAccess';
-import { SkyWindow } from './SkyWindow';
+import { placeholderAltDeg, SkyWindow } from './SkyWindow';
 
 const pass = goldenPassFixture();
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
@@ -91,6 +91,20 @@ describe('<SkyWindow>', () => {
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
     appStore.setState(initial, true);
     window.localStorage.clear();
+  });
+
+  it('the placeholder looks 20° up, or as high as the peak needs to keep 8° inside the top of the box', () => {
+    const square = { fovDeg: 60, width: 390, height: 390, screenAngleDeg: 0 };
+    expect(placeholderAltDeg(undefined, square)).toBe(20);
+    expect(placeholderAltDeg(10, square)).toBe(20);
+    expect(placeholderAltDeg(42, square)).toBeCloseTo(20, 6);
+    // 61 − 30 + 8: the half-field of a square 60° box is 30°.
+    expect(placeholderAltDeg(61, square)).toBeCloseTo(39, 6);
+    expect(placeholderAltDeg(90, square)).toBeCloseTo(68, 6);
+    // A taller box sees further up (56° above the centre at twice the width), so the same peak asks for nothing.
+    const tall = { ...square, height: 780 };
+    expect(placeholderAltDeg(61, tall)).toBe(20);
+    expect(placeholderAltDeg(85, tall)).toBeCloseTo(85 - 2 * Math.atan(390 / (195 / Math.tan(Math.PI / 12))) * (180 / Math.PI) + 8, 6);
   });
 
   it('before a reading points at the peak 20° up, keeps every name and marker in the DOM marked in or out of view, and lists nothing in words but names and keys', () => {

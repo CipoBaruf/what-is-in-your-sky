@@ -57,6 +57,22 @@ import { useDeviceOrientation } from './useDeviceOrientation';
 const ARC_STEP_DEG = 2;
 /** The placeholder's altitude before the first reading: the horizon and the arc's lower part both in view. */
 const PLACEHOLDER_ALT_DEG = 20;
+/** How far inside the top of the box the placeholder keeps the peak, so its marker and key (9 px up) stay in view. */
+const PEAK_INSET_DEG = 8;
+const DEG = 180 / Math.PI;
+
+/**
+ * Where the placeholder looks in altitude: 20° up, so the horizon sits in the
+ * lower part of the box, raised as far as the explained pass's peak needs to
+ * stay inside the top with its key (a 61° peak in a square box at 60° across
+ * asks for 39°). The vertical half-field comes from the measured box, not the
+ * constant, because the box is only square on the phone's floor (D-233).
+ */
+export function placeholderAltDeg(peakElDeg: number | undefined, view: View): number {
+  if (peakElDeg === undefined) return PLACEHOLDER_ALT_DEG;
+  const topDeg = 2 * Math.atan(view.height / 2 / scaleFor(view)) * DEG;
+  return Math.min(90, Math.max(PLACEHOLDER_ALT_DEG, peakElDeg - topDeg + PEAK_INSET_DEG));
+}
 /** The box in jsdom, where nothing can be measured: the compact phone's square. */
 const UNMEASURED = { width: 390, height: 390 };
 /** How far outside the box a positioned thing is still "in view", so a marker leaves the frame rather than winking out at the edge. */
@@ -316,10 +332,11 @@ export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, n
   const view: View = useMemo(() => ({ fovDeg: WINDOW_FOV, width: size.width, height: size.height, screenAngleDeg: orientation.screenAngleDeg }), [size, orientation.screenAngleDeg]);
   const limitDeg = drawableDeg(view);
 
-  // Before the first reading: upright toward the explained pass's peak (or the caller's facing), 20° up.
+  // Before the first reading: upright toward the explained pass's peak (or the caller's facing), 20° up or as high as the peak needs.
   const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
   const placeholderAz = initialFacingAzDeg ?? highlighted?.peak.azDeg ?? 0;
-  const m = useMemo(() => orientation.rotation ?? uprightRotation(placeholderAz, PLACEHOLDER_ALT_DEG), [orientation.rotation, placeholderAz]);
+  const placeholderAlt = placeholderAltDeg(highlighted?.peak.elDeg, view);
+  const m = useMemo(() => orientation.rotation ?? uprightRotation(placeholderAz, placeholderAlt), [orientation.rotation, placeholderAz, placeholderAlt]);
   const look = lookDirection(m);
   const at = useCallback((p: SkyPoint): Projected => project(m, p.azDeg, p.elDeg, view), [m, view]);
   const zenith = at({ azDeg: 0, elDeg: 90 });
