@@ -1,0 +1,14 @@
+/* One dim line, drawn like the card's other secondary rows (R12's twilight
+   label): the negative top margin closes the gap the block above it leaves, so
+   the labels and this line read as one group under the pass name. */
+.line {
+  margin: calc(-1 * var(--row) / 2) 0 calc(var(--row) / 2);
+  color: var(--fg-dim);
+}
+
+/* In the guide it sits between the chart and the glare sentence, both of which
+   own their spacing. */
+.guideLine {
+  margin: 0;
+  color: var(--fg-dim);
+}

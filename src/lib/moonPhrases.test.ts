@@ -11,6 +11,7 @@ import {
   moonFacts,
   moonGlareFacts,
   moonLoreParams,
+  moonPeakFacts,
   showsFullMoonName,
   type MoonLoreEntries,
 } from './moonPhrases';
@@ -78,18 +79,57 @@ describe('moonGlareFacts (FR-MOON-2)', () => {
     expect(moonGlareFacts(moon(), { glare: true, separationDeg: 8.2 }, DEFAULT_MOON_GLARE_THRESHOLDS)).toEqual({
       illumination: '72',
       separation: '8°',
+      minAltitude: '0°',
       minIllumination: '50',
       maxSeparation: '30°',
     });
   });
 
+  // R49 (F-15): the altitude comes from the thresholds like the other two, so
+  // moving it moves the sentence rather than making the sentence wrong.
+  it('reads the altitude from the thresholds, not from a sentence about the horizon', () => {
+    const moved = { ...DEFAULT_MOON_GLARE_THRESHOLDS, minAltDeg: 5 };
+    expect(moonGlareFacts(moon(), { glare: true, separationDeg: 8.2 }, moved).minAltitude).toBe('5°');
+  });
+
   describe.each([...LOCALES])('the %s tooltip', (locale: Locale) => {
-    it('states both thresholds, so the label can be judged', () => {
+    it('states all three thresholds, so the label can be judged', () => {
       const tooltip = CATALOGS[locale].moon.glare.tooltip(moonGlareFacts(moon(), { glare: true, separationDeg: 8.2 }, DEFAULT_MOON_GLARE_THRESHOLDS));
+      expect(tooltip).toContain('0°');
       expect(tooltip).toContain('50 %');
       expect(tooltip).toContain('30°');
       expect(tooltip).toContain('8°');
     });
+
+    it('follows a moved altitude threshold into both languages (F-15)', () => {
+      const moved = { ...DEFAULT_MOON_GLARE_THRESHOLDS, minAltDeg: 5 };
+      expect(CATALOGS[locale].moon.glare.tooltip(moonGlareFacts(moon(), { glare: true, separationDeg: 8.2 }, moved))).toContain('5°');
+    });
+  });
+});
+
+describe('moonPeakFacts (US-18 AC1, R49: F-14)', () => {
+  it('carries the phase and the illumination, whether or not there is any glare', () => {
+    expect(moonPeakFacts(moon())).toEqual({ phase: 'waningGibbous', illumination: '72', up: true });
+  });
+
+  it('is down at and below the horizon, the same test the Now panel makes', () => {
+    expect(moonPeakFacts(moon({ elDeg: 0 })).up).toBe(false);
+    expect(moonPeakFacts(moon({ elDeg: -0.1 })).up).toBe(false);
+    expect(moonPeakFacts(moon({ elDeg: 0.1 })).up).toBe(true);
+  });
+
+  describe.each([...LOCALES])('the %s line', (locale: Locale) => {
+    it('names the phase in this language with the illumination, and says nothing about glare', () => {
+      const line = CATALOGS[locale].moon.atPeak(moonPeakFacts(moon()));
+      expect(line).toContain('72 %');
+      expect(line).toContain(CATALOGS[locale].moon.phase.waningGibbous);
+      expect(line).not.toContain(CATALOGS[locale].moon.glare.label);
+    });
+  });
+
+  it('says something different in each language', () => {
+    expect(CATALOGS.en.moon.atPeak(moonPeakFacts(moon()))).not.toBe(CATALOGS.es.moon.atPeak(moonPeakFacts(moon())));
   });
 });
 

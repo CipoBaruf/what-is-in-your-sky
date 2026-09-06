@@ -6,6 +6,7 @@ import { degrees, formatDuration, formatMagnitude } from '../../../lib/format';
 import { brightnessBand } from '../../../lib/phrases';
 import { formatClock, formatDate } from '../../../lib/timeFormat';
 import type { Pass, WeatherSnapshot } from '../../../model';
+import { MoonAtPeak } from '../moon/MoonAtPeak';
 import { MoonGlareLabel } from '../moon/MoonGlare';
 import { CloudBadge } from '../weather/CloudBadge';
 import styles from './PassCard.module.css';
@@ -95,6 +96,7 @@ export function PassCard({ pass, timeZone, onOpen, weather, selected = false }: 
       </h2>
       {pass.twilight && <p className={styles.twilight}>{t.passes.twilightLabel}</p>}
       <MoonGlareLabel moon={pass.moonAtPeak} glare={pass.moonGlare} />
+      <MoonAtPeak moon={pass.moonAtPeak} />
       <PassFields pass={pass} timeZone={timeZone} {...(weather !== undefined ? { weather } : {})} />
       {onOpen && <OpenGuide pass={pass} headingId={headingId} onOpen={onOpen} />}
     </article>

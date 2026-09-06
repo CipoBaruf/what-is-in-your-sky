@@ -12,6 +12,7 @@ import { ThemeToggle } from '../components/common/ThemeToggle';
 import { GuidePanel } from '../components/guide/GuidePanel';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
+import { MoonAtPeak } from '../components/moon/MoonAtPeak';
 import { MoonGlareNote } from '../components/moon/MoonGlare';
 import { PassNumbers } from '../components/guide/PassNumbers';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
@@ -107,6 +108,7 @@ export function PassDetail({ pass, observer, onClose }: PassDetailProps) {
       </p>
       <Countdown pass={pass} now={now} timeZone={timeZone} />
       <SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} now={now} />
+      <MoonAtPeak moon={pass.moonAtPeak} variant="guide" />
       <MoonGlareNote moon={pass.moonAtPeak} glare={pass.moonGlare} />
       <PassNumbers pass={pass} timeZone={timeZone} />
       <ShareButton url={shareUrl(window.location.href, passLinkFor(observer, pass))} title={t.share.title({ name: pass.name })} text={t.guide.sentence(guideParams(pass, timeZone, locale))} />
