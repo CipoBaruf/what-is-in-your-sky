@@ -59,14 +59,25 @@ export function formatShortClock(t: EpochMs, timeZone: string | null, locale: Lo
  * another one. "Tomorrow" is a step on the calendar and not 24 h on the clock:
  * across a DST transition a day is 23 or 25 h long, and now + 24 h then lands on
  * today's date or skips one, so the night the reader would call tomorrow's is
- * named by its date instead (R46, F-26). Parsed and stepped in UTC, where every
- * day is 24 h long, which is what makes the arithmetic safe.
+ * named by its date instead (R46, F-26). Counted on the calendar itself rather
+ * than through a `Date`, which `src/lib` may not touch (D-15, §9.3) and which
+ * would only be a longer way of saying the same three lines.
  */
+const MONTH_LENGTHS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const pad = (n: number): string => String(n).padStart(2, '0');
+
 export function nextCalendarDate(date: string): string {
-  const stepped = new Date(`${date}T00:00:00Z`);
-  if (Number.isNaN(stepped.getTime())) return date;
-  stepped.setUTCDate(stepped.getUTCDate() + 1);
-  return stepped.toISOString().slice(0, 10);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) return date;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1) return date;
+  const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  const length = month === 2 && leap ? 29 : (MONTH_LENGTHS[month - 1] as number);
+  if (day < length) return `${String(year)}-${pad(month)}-${pad(day + 1)}`;
+  if (month < 12) return `${String(year)}-${pad(month + 1)}-01`;
+  return `${String(year + 1)}-01-01`;
 }
 
 /**

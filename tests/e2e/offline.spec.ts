@@ -281,7 +281,7 @@ test('offline: the readiness line, the three nights, and the soft failures (R27,
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await rows(readiness)).toBeLessThanOrEqual(1);
   await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
-  await expect(readiness).toHaveText(/^Sin conexión hasta \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+  await expect(readiness).toHaveText(/^Listo sin red hasta \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
   expect(await rows(readiness)).toBeLessThanOrEqual(1);
   await page.getByRole('group', { name: 'Idioma' }).getByRole('button', { name: 'English' }).click();
 

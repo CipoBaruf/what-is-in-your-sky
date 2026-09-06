@@ -12,8 +12,8 @@ import { ReadinessLine } from './ReadinessLine';
  * TASKS R27 (FR-OFF-4, US-16 AC2): the line states a date and a time when the
  * device is ready, names what is missing when it is not, and says nothing at
  * all until one of the two is actually true. R46 closes F-21 (no verdict before
- * the requests settle), F-23 (a spent date is not a promise) and F-27 (the
- * stamp carries its zone).
+ * the requests settle), F-23 (a spent date is not a promise), F-27 (an
+ * unlabelled UTC stamp) and F-28 (the Spanish wording).
  */
 const T0 = Date.UTC(2026, 8, 11, 21, 0, 0);
 const HOUR = 3_600_000;
@@ -103,10 +103,10 @@ describe('ReadinessLine (R27: FR-OFF-4)', () => {
 
   it('ready: states the earlier of the last pass end and the forecast end, as a date and a time in the observer’s zone', async () => {
     // Passes to 68 h, forecast to 95 h: the passes run out first. 68 h after 21:00 UTC on the 11th is
-    // 17:05 UTC on the 14th, which is 14:05 in GMT-3. F-27: the zone is named, not left to be guessed.
+    // 17:05 UTC on the 14th, which is 14:05 in GMT-3. D-145 keeps the abbreviation out of this one.
     set(ready([pass('a', 4), pass('b', 68)], null));
     const { container } = show();
-    expect(screen.getByTestId('readiness')).toHaveTextContent('Ready offline until 2026-09-14 14:05 GMT-3');
+    expect(screen.getByTestId('readiness')).toHaveTextContent('Ready offline until 2026-09-14 14:05');
     expect(screen.queryByTestId('readiness-stored')).toBeNull();
     expect(await axe(container)).toHaveNoViolations();
   });
@@ -128,7 +128,7 @@ describe('ReadinessLine (R27: FR-OFF-4)', () => {
     show();
     expect(screen.getByTestId('readiness')).toHaveTextContent('Ready offline until');
     // T0 is 21:00 UTC, 18:00 in GMT-3; twenty hours before that is 22:00 the previous evening.
-    expect(screen.getByTestId('readiness-stored')).toHaveTextContent('Stored 2026-09-10 22:00 GMT-3');
+    expect(screen.getByTestId('readiness-stored')).toHaveTextContent('Stored 2026-09-10 22:00');
   });
 
   it('F-23: a stored run whose passes have all ended names the gap instead of a date in the past', () => {
@@ -177,7 +177,22 @@ describe('ReadinessLine (R27: FR-OFF-4)', () => {
         <ReadinessLine />
       </I18nProvider>,
     );
-    expect(screen.getByTestId('readiness')).toHaveTextContent('Sin conexión hasta 2026-09-14 14:05 GMT-3');
-    expect(screen.getByTestId('readiness-stored')).toHaveTextContent('Guardado 2026-09-11 17:00 GMT-3');
+    // F-28: the state comes first, so the sentence cannot be read as "no connection until".
+    expect(screen.getByTestId('readiness')).toHaveTextContent('Listo sin red hasta 2026-09-14 14:05');
+    expect(screen.getByTestId('readiness-stored')).toHaveTextContent('Guardado 2026-09-11 17:00');
+  });
+
+  it('F-28: neither Spanish state opens with the bare words for "no connection"', () => {
+    set({ observer, elements: { status: 'error', message: 'network error' }, weather: { observer, status: 'error', snapshot: null, error: 'offline' } });
+    const es = () =>
+      render(
+        <I18nProvider locale="es">
+          <ReadinessLine />
+        </I18nProvider>,
+      );
+    es();
+    // The negative is the plain negative of the positive, so the two cannot be told apart by their first two words.
+    expect(screen.getByTestId('readiness')).toHaveTextContent('No está listo sin red: falta guardar los elementos orbitales, el pronóstico de nubes y los pases.');
+    expect(screen.getByTestId('readiness').textContent?.startsWith('Sin conexión')).toBe(false);
   });
 });

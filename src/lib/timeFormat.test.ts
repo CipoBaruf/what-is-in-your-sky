@@ -98,6 +98,9 @@ describe('nextCalendarDate', () => {
     expect(nextCalendarDate('2026-09-30')).toBe('2026-10-01');
     expect(nextCalendarDate('2026-12-31')).toBe('2027-01-01');
     expect(nextCalendarDate('2028-02-28')).toBe('2028-02-29'); // a leap year
+    expect(nextCalendarDate('2100-02-28')).toBe('2100-03-01'); // a century that is not one
+    expect(nextCalendarDate('2000-02-28')).toBe('2000-02-29'); // a century that is
+    expect(nextCalendarDate('not a date')).toBe('not a date'); // nothing to step
   });
 
   it('steps the calendar and not the clock, so a 23 h DST day still has a tomorrow', () => {

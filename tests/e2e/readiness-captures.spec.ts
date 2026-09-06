@@ -57,7 +57,7 @@ async function offlineHome(page: Page, width: 390 | 1280, locale: 'en' | 'es'): 
   // the busy flag, so the captures show a settled page and not a job half done.
   await expect(status).toHaveAttribute('aria-busy', 'true', { timeout: 60_000 });
   await expect(status).toHaveAttribute('aria-busy', 'false', { timeout: 60_000 });
-  await expect(page.getByTestId('readiness')).toHaveText(/^(Ready offline until|Sin conexión hasta) /);
+  await expect(page.getByTestId('readiness')).toHaveText(/^(Ready offline until|Listo sin red hasta) /);
   await expect(page.getByTestId('night-group')).toHaveCount(3);
 }
 

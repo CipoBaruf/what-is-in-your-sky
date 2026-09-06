@@ -30,12 +30,16 @@ import styles from './ReadinessLine.module.css';
  * forecast fails, and no job runs without elements, so all three answers land
  * within the same second or two.
  *
- * The stamp carries its zone (F-27). Every other time on the page sits beside
- * one that names it; this line stands alone under the location, and with no
- * observer zone its digits are UTC — read as local, a promise off by hours.
+ * The stamp names its zone when it is not the observer's (F-27). D-145 leaves
+ * the abbreviation out to keep the sentence inside the 36 characters a 390 px
+ * phone has, on the grounds that every other time on the page names it — which
+ * is true of the observer's own zone and not of the fallback. With no zone yet
+ * the digits are UTC, an unlabelled time a reader takes for their own and a
+ * promise off by hours, so that one case says "UTC" and spends the row it
+ * needs; the ordinary line is unchanged and still fits.
  */
 export function readinessStamp(at: EpochMs, timeZone: string | null, locale: Locale): string {
-  return `${formatDate(at, timeZone, locale)} ${formatShortClock(at, timeZone, locale, true)}`;
+  return `${formatDate(at, timeZone, locale)} ${formatShortClock(at, timeZone, locale, timeZone === null)}`;
 }
 
 /** How often the line re-checks whether its own date has gone past (F-23). A minute is finer than the date it states. */

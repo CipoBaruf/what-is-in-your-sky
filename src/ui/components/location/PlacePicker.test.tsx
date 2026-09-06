@@ -259,6 +259,28 @@ describe('<PlacePicker>', () => {
       expect(screen.getByTestId('place-search-status')).toBeEmptyDOMElement();
     });
 
+    it('F-22: a restored place in the field is not a query, so opening offline says nothing', async () => {
+      const user = userEvent.setup();
+      const search = vi.fn<PlaceSearchFn>().mockResolvedValue([CIPOLLETTI]);
+      setOnline(false);
+      const onObserver = vi.fn();
+      render(
+        <>
+          <PlacePicker search={search} onObserver={onObserver} observer={CIPOLLETTI_OBSERVER} coordsInputId="coords" initialText={CIPOLLETTI_OBSERVER.label} />
+          <input id="coords" aria-label="Coordinates (lat, lon)" />
+        </>,
+      );
+      const input = screen.getByRole('combobox', { name: 'Place name' });
+      expect(input).toHaveValue('Cipolletti, Rio Negro, Argentina');
+      // The place is already resolved and the app works offline with it; there is nothing to report.
+      expect(screen.getByTestId('place-search-status')).toBeEmptyDOMElement();
+      // Asking for something else is a question, and that one gets the answer.
+      await user.clear(input);
+      await user.type(input, 'Rosario');
+      expect(screen.getByTestId('place-search-status')).toHaveTextContent('No connection');
+      expect(search).not.toHaveBeenCalled();
+    });
+
     it('the message goes when the connection returns, and the next Enter searches', async () => {
       const user = userEvent.setup();
       const search = vi.fn<PlaceSearchFn>().mockResolvedValue([CIPOLLETTI]);

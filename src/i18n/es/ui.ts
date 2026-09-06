@@ -310,10 +310,26 @@ export const ui: typeof EnUi = {
     unavailable: (p) => `Sin elementos actuales de CelesTrak para ${String(p.count)} objeto${p.count === 1 ? '' : 's'} del catálogo: ${p.names}. Quedan fuera de la lista.`,
   },
 
+  /**
+   * R46 (F-28). «Sin conexión hasta <fecha>» was the good news read as the bad:
+   * it opens with the two words a Spanish reader sees when something has gone
+   * wrong, and «hasta» after them dates the end of the trouble rather than the
+   * end of the promise. What fixes it is saying the state first, as the English
+   * does — «Listo …» cannot be read as its own negative — and «No está listo …»
+   * is then the plain negative of it and not a second reading of the same two
+   * words.
+   *
+   * «Sin red» and not «sin conexión» because of D-145: the line has 36
+   * characters at 390 px and the stamp spends 16 of them, so «Listo sin
+   * conexión hasta » (24) does not fit and «Listo sin red hasta » (20) does, at
+   * exactly the 36 the English sentence also uses. The picker keeps «sin
+   * conexión»: there the sentence really is about the connection being absent,
+   * while this one is about the app working without one.
+   */
   readiness: {
-    ready: (until) => `Sin conexión hasta ${until}`,
+    ready: (until) => `Listo sin red hasta ${until}`,
     stored: (at) => `Guardado ${at}`,
-    notReady: (gaps) => `Sin conexión: falta guardar ${gaps}.`,
+    notReady: (gaps) => `No está listo sin red: falta guardar ${gaps}.`,
     gaps: { elements: 'los elementos orbitales', forecast: 'el pronóstico de nubes', passes: 'los pases' },
   },
 
