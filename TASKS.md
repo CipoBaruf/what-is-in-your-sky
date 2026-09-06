@@ -869,7 +869,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
     - `npm run build` prints `VITE_MOON_LORE=off` and `flags.test.ts` passes; with `on`, `MoonLore.test.tsx` passes and the home renders the line.
     - The default capture set (on `main`) shows no lore line.
 
-- [ ] **R43 — The compact mockups: home, settings and the pass detail with its legend**
+- [x] **R43 — The compact mockups: home, settings and the pass detail with its legend**
   - **Lane:** docs
   - **Model:** opus
   - **Gate:** owner
