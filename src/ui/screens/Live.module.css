@@ -12,6 +12,10 @@
    under it, the side column on the right — by a media query and not a device
    sniff (PLAN §8.8). Portrait keeps the stack above, unchanged. */
 .page {
+  /* R45 (FR-COMP-5, D-233): the chart frame floors a portrait dome at its width, and this page's rows do not yet leave
+     it that height at 390 × 844 — the floor would spill the raster over the stripe and the controls. Off until R48
+     re-cuts the portrait rows (FR-LIVE-7 as amended), which removes this line. */
+  --chart-floor-on: 0;
   height: 100dvh;
   box-sizing: border-box;
   padding: calc(var(--row) / 4) calc(2 * var(--cell));

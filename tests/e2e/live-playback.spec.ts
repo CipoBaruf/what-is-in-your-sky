@@ -145,27 +145,31 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     await domeDrawn(page);
     const toggle = page.getByRole('button', { name: 'Hidden objects' });
     await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.getByTestId('live-dome').locator('[data-anchor="hidden"]')).toHaveCount(0);
+    const dome = page.getByTestId('live-dome');
+    await expect(dome.locator('[data-hidden-id]')).toHaveCount(0);
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-pressed', 'true');
     // The worker answers off the fake clock; the dome relabels on its next frame.
-    const hidden = page.getByTestId('live-dome').locator('[data-anchor="hidden"]');
+    // R45 (FR-LEG-1): the drawing carries the dimmed position and a key; the reason is the legend's row.
+    const hidden = dome.locator('[data-hidden-id]');
     await expect
       .poll(async () => {
         await page.clock.runFor(200);
         return hidden.count();
       }, { timeout: 30_000 })
       .toBeGreaterThan(0);
-    await expect(hidden.first()).toHaveText(/ · (too low|in shadow|daylight|too faint)$/);
+    await expect(hidden.first()).toHaveText(/^[A-Z]$/);
+    const rows = dome.getByTestId('chart-legend').locator('button[data-state="hidden-object"]');
+    await expect(rows.first()).toHaveText(/ · (too low|in shadow|daylight|too faint)$/);
     // The ISS is on its arc, so it is not among the dimmed (D-102).
-    await expect(page.getByTestId('live-dome').locator('[data-anchor="hidden"]', { hasText: 'ISS' })).toHaveCount(0);
+    await expect(rows.filter({ hasText: 'ISS' })).toHaveCount(0);
 
     await page.reload();
     await domeDrawn(page);
     await expect(page.getByRole('button', { name: 'Hidden objects' })).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: 'Hidden objects' }).click();
     await expect(page.getByRole('button', { name: 'Hidden objects' })).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.getByTestId('live-dome').locator('[data-anchor="hidden"]')).toHaveCount(0);
+    await expect(page.getByTestId('live-dome').locator('[data-hidden-id]')).toHaveCount(0);
   });
 });
 

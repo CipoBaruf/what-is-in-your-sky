@@ -162,7 +162,7 @@ export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId
       case 'linger':
         meshes.push({ id: `pass-${pass.id}`, polygons: lingerStrip(pass, arc) });
         return;
-      case 'full':
+      case 'full': {
         meshes.push({ id: `pass-${pass.id}`, polygons: passStrip(pass, { highlighted, ...color }) });
         // F-5: a dim pass's flown half takes the dim colour too, so it does not outshine the highlighted pass's own flown colour.
         meshes.push({ id: `flown-${pass.id}`, polygons: flownStrip(pass, now, { highlighted, ...(palette ? { color: highlighted ? palette.flown : palette.dim } : {}) }) });
@@ -172,6 +172,7 @@ export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId
         });
         const current = nowPoint(pass, now);
         if (current) meshes.push({ id: `now-${pass.id}`, polygons: nowMarker(current, palette?.now) });
+      }
     }
   });
   // FR-LIVE-6: the dimmed objects, in the dim pass colour, under the Moon.

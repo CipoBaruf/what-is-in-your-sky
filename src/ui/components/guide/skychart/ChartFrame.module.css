@@ -5,7 +5,19 @@
    moves nothing. R45 (FR-LEG-2, D-187): a fourth slot for the legend — under
    the drawing on compact, a 24-cell column at the right on wide — and the
    shell is the frame's `data-compact`, the same answer `useLayoutMode` gives
-   the pages, so this file carries no breakpoint of its own. */
+   the pages, so this file carries no breakpoint of its own. The shell around
+   the frame is a size container so the "beside" rule can ask the frame's own
+   width (D-232): the wide guide column is 40 cells, where a 24-cell legend
+   beside the drawing would leave it 14. */
+.shell {
+  container-type: inline-size;
+  min-height: 0;
+}
+
+.shellFill {
+  height: 100%;
+}
+
 .frame {
   --chart-size: calc(44 * var(--cell));
   display: grid;
@@ -57,18 +69,34 @@
   margin: 0 calc(-1 * var(--page-pad-x, calc(2 * var(--cell))));
 }
 
-/* FR-LEG-2: wide puts the legend beside the drawing, 24 cells, the full height of the three rows. */
-.frame[data-compact='false'][data-legend='true'] {
-  grid-template-columns: minmax(0, 1fr) calc(24 * var(--cell));
-  grid-template-areas:
-    'controls legend'
-    'drawing legend'
-    'status legend';
-  column-gap: calc(2 * var(--cell));
-}
+/* FR-LEG-2 / D-232: wide puts the legend beside the drawing, 24 cells, the
+   full height of the three rows — where the frame has the room: 36 cells for
+   the drawing (the compact chart's own width), a 2-cell gap and the 24. In a
+   narrower wide frame (the 40-cell guide column of the three-column layout)
+   the legend goes under, as on compact. `ch` here is the frame's own cell:
+   font-relative units in a container condition resolve against the container. */
+@container (min-width: 62ch) {
+  .frame[data-compact='false'][data-legend='true'] {
+    grid-template-columns: minmax(0, 1fr) calc(24 * var(--cell));
+    grid-template-areas:
+      'controls legend'
+      'drawing legend'
+      'status legend';
+    column-gap: calc(2 * var(--cell));
+  }
 
-.frame[data-compact='false'][data-legend='true'] .legend {
-  align-self: start;
+  .frame[data-compact='false'][data-legend='true'] .legend {
+    align-self: start;
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* A live frame is as tall as its box, so the column is too and scrolls inside rather than over the rows under the box. */
+  .fill[data-compact='false'][data-legend='true'] .legend {
+    align-self: stretch;
+    min-height: 0;
+    overflow-y: auto;
+  }
 }
 
 /* FR-LIVE-1 (R32): the live page's chart. The frame is as tall as the box it
@@ -89,10 +117,26 @@
   min-height: 0;
 }
 
-/* FR-COMP-5 (R45): …and on compact never shorter than it is wide. The floor is
-   the frame's measured width (`ChartFrame`'s ResizeObserver), not a CSS sum. */
-.fill[data-compact='true'] .drawing {
-  min-height: var(--chart-floor, 0px);
+/* FR-COMP-5 (R45): …and on compact in portrait never shorter than it is wide.
+   The floor is the frame's measured width (`ChartFrame`'s ResizeObserver), not
+   a CSS sum. Portrait only, as the requirement says: the landscape phone gives
+   the dome the whole height beside the strip (FR-LIVE-7), and a floor at the
+   pane's width there would be taller than the page. `--chart-floor-on` is the
+   page's switch (1 by default): a page whose rows do not yet leave the box its
+   width sets it to 0 rather than have the drawing spill over the rows under
+   it — the live page does until R48 re-cuts its portrait rows (D-233). */
+@media (orientation: portrait) {
+  .fill[data-compact='true'] .drawing {
+    min-height: calc(var(--chart-floor, 0px) * var(--chart-floor-on, 1));
+  }
+}
+
+/* The live page's legend, under the drawing (compact, or a wide frame without
+   the room): at most four rows, scrolling inside, so the legend never costs
+   the page its budget (FR-LIVE-7); the page's own layout of it is R48's. */
+.fill .legend {
+  max-height: calc(4 * var(--row));
+  overflow-y: auto;
 }
 
 .fill .status {

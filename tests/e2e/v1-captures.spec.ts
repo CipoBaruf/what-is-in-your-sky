@@ -176,8 +176,9 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
 
   // …and then into the pass, arriving on the tick the sheet lives by rather than through three hundred of them.
   await pinnedAt(page, SHOWN);
-  await expect(figure.locator('[data-anchor="sun"]')).toHaveCount(1);
-  await expect(figure.locator('[data-anchor="moon"]')).toHaveCount(1);
+  // R45 (FR-DOME-6 as amended): the two bodies are legend lines, not captions in the drawing.
+  await expect(figure.getByTestId('chart-legend').locator('[data-body="sun"]')).toHaveCount(1);
+  await expect(figure.getByTestId('chart-legend').locator('[data-body="moon"]')).toHaveCount(1);
   if (view === 'polar') await expect(figure.locator('[data-marker="now"]')).toHaveCount(1);
   await figure.locator('[data-drawing]').scrollIntoViewIfNeeded();
   await page.mouse.move(0, 0);

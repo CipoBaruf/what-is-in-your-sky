@@ -170,6 +170,30 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
   });
 });
 
+/** FR-LEG-2 / FR-COMP-5 / D-232: the frame's placement rules, read from the stylesheet (jsdom lays nothing out). */
+describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
+  const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/ChartFrame.module.css'), 'utf8');
+
+  it('puts the legend beside the drawing only on wide and only where the frame has 62 cells: 36 for the drawing, a 2-cell gap and the 24-cell column', () => {
+    // The container is the frame's shell, not the frame: a container query never answers for the container itself.
+    expect(css).toMatch(/\.shell \{\s+container-type: inline-size;/);
+    const beside = /@container \(min-width: 62ch\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(beside).toContain(".frame[data-compact='false'][data-legend='true'] {");
+    expect(beside).toContain('grid-template-columns: minmax(0, 1fr) calc(24 * var(--cell));');
+    expect(beside).toContain("'drawing legend'");
+    // Outside the query the legend is the fourth row, under the status line, for every shell.
+    expect(css).toMatch(/\.frame \{[^}]*'status'\n\s+'legend';/);
+  });
+
+  it('floors the live drawing at the frame width in portrait only, behind the page switch, and bounds the legend under a live drawing to four rows', () => {
+    expect(css).toMatch(/@media \(orientation: portrait\) \{\s+\.fill\[data-compact='true'\] \.drawing \{\s+min-height: calc\(var\(--chart-floor, 0px\) \* var\(--chart-floor-on, 1\)\);/);
+    // D-233: the live page holds the switch off until R48 re-cuts its rows; the frame's default is on.
+    const live = readFileSync(join(process.cwd(), 'src/ui/screens/Live.module.css'), 'utf8');
+    expect(live).toMatch(/\.page \{[^}]*--chart-floor-on: 0;/);
+    expect(css).toMatch(/\.fill \.legend \{\s+max-height: calc\(4 \* var\(--row\)\);\s+overflow-y: auto;/);
+  });
+});
+
 describe('<SkyChart> contract across views', () => {
   /** FR-LEG-2: "the same in all three views" — the two registered ones agree on what the legend lists and in which order. */
   it('lists the same passes in the same order in every registered view', () => {
