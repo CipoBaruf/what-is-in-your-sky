@@ -152,4 +152,28 @@ describe('usePlayback', () => {
     });
     expect(result.current.t).toBe(current.end);
   });
+
+  // R48 (FR-TRAJ-5, D-190): the stepping control's one contract.
+  it('`stepTo` lands the instant, clamped, and playback goes on from there', () => {
+    const { raf, tick } = scriptedRaf();
+    const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null, raf }));
+    act(() => {
+      result.current.stepTo(NOW + 2 * HOUR_MS);
+    });
+    expect(result.current).toMatchObject({ t: NOW + 2 * HOUR_MS, realTime: false, playing: false });
+    act(() => {
+      result.current.stepTo(NOW - HOUR_MS);
+    });
+    expect(result.current.t).toBe(NOW);
+    act(() => {
+      result.current.play();
+    });
+    tick(1000);
+    act(() => {
+      result.current.stepTo(NOW + 3 * HOUR_MS);
+    });
+    tick(2000);
+    expect(result.current.playing).toBe(true);
+    expect(result.current.t).toBe(NOW + 3 * HOUR_MS + 60 * 1000);
+  });
 });

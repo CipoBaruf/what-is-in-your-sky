@@ -14,8 +14,12 @@ import {
   isCurrent,
   keyStep,
   labelEveryHours,
+  midnightDate,
+  nextRise,
   nightBands,
   passSegments,
+  previousRise,
+  RISE_SLACK_MS,
   skyBands,
   timeAt,
   xAt,
@@ -94,13 +98,48 @@ describe('hourTicks', () => {
     expect(new Date(ticks[0]?.t ?? 0).toISOString()).toBe('2026-09-11T09:30:00.000Z'); // 15:00 IST is a whole hour, at the span's very start
     expect(ticks[0]?.hour).toBe(15);
   });
-  it('labels every hour when they fit, every third at a phone width, and always from midnight', () => {
-    expect(labelEveryHours(span, WIDTH)).toBe(1); // 50 px per hour
-    expect(labelEveryHours(span, 350)).toBe(3); // 14.6 px per hour: 1 and 2 are too close, 3 gives 44 px
-    expect(labelEveryHours(span, 100)).toBe(12);
-    const narrow = hourTicks(span, 350, 'UTC');
-    expect(narrow.filter((tick) => tick.labelled).map((tick) => tick.hour)).toEqual([12, 15, 18, 21, 0, 3, 6, 9]);
-    expect(hourTicks(span, WIDTH, 'UTC').every((tick) => tick.labelled)).toBe(true);
+  // R48 (FR-TRAJ-4): every 2 h on wide, every 3 h on compact, always from midnight; the midnight tick is flagged for its date.
+  it('labels every second hour on wide and every third on compact, from midnight, and flags the midnight crossing', () => {
+    expect(labelEveryHours('wide')).toBe(2);
+    expect(labelEveryHours('compact')).toBe(3);
+    const compact = hourTicks(span, 350, 'UTC', 'compact');
+    expect(compact.filter((tick) => tick.labelled).map((tick) => tick.hour)).toEqual([12, 15, 18, 21, 0, 3, 6, 9]);
+    const wide = hourTicks(span, WIDTH, 'UTC', 'wide');
+    expect(wide.filter((tick) => tick.labelled).map((tick) => tick.hour)).toEqual([10, 12, 14, 16, 18, 20, 22, 0, 2, 4, 6, 8]);
+    expect(wide.filter((tick) => tick.midnight).map((tick) => tick.t)).toEqual([Date.UTC(2026, 8, 12)]);
+    // The default is the wide cadence (the spike page passes no mode).
+    expect(hourTicks(span, WIDTH, 'UTC')).toEqual(wide);
+  });
+});
+
+describe('midnightDate (FR-TRAJ-4)', () => {
+  it('is the day and the short month in the zone, in either language, without a trailing period', () => {
+    const midnight = Date.UTC(2026, 8, 12, 3, 0, 0); // 00:00 in Neuquén
+    expect(midnightDate(midnight, 'America/Argentina/Buenos_Aires', 'en')).toBe('12 Sept');
+    expect(midnightDate(midnight, 'America/Argentina/Buenos_Aires', 'es')).toBe('12 sept');
+    expect(midnightDate(Date.UTC(2026, 11, 1), null, 'en')).toBe('1 Dec');
+    expect(midnightDate(Date.UTC(2026, 11, 1), 'Not/AZone', 'en')).toBe('');
+  });
+});
+
+describe('nextRise / previousRise (FR-TRAJ-5)', () => {
+  const golden = goldenPassFixture();
+  const rising = (id: string, atMs: number): Pass => ({ ...golden, id, start: { ...golden.start, t: START + atMs } });
+  const passes = [rising('under-way', -20 * 60_000), rising('a', HOUR_MS), rising('b', 6 * HOUR_MS), rising('far', 30 * HOUR_MS)];
+
+  it('jumps to the first rise after and the last rise before the instant, inside the span only', () => {
+    expect(nextRise(passes, START, span)).toBe(START + HOUR_MS);
+    expect(nextRise(passes, START + HOUR_MS, span)).toBe(START + 6 * HOUR_MS);
+    expect(nextRise(passes, START + 6 * HOUR_MS, span)).toBeNull();
+    expect(previousRise(passes, START + 6 * HOUR_MS, span)).toBe(START + HOUR_MS);
+    expect(previousRise(passes, START + HOUR_MS, span)).toBeNull();
+    expect(previousRise(passes, START + 12 * HOUR_MS, span)).toBe(START + 6 * HOUR_MS);
+    expect(nextRise([], START, span)).toBeNull();
+  });
+  it('treats a rise within a second as reached, so a second tap moves on', () => {
+    expect(nextRise(passes, START + HOUR_MS - 500, span)).toBe(START + 6 * HOUR_MS);
+    expect(previousRise(passes, START + 6 * HOUR_MS + 500, span)).toBe(START + HOUR_MS);
+    expect(nextRise(passes, START + HOUR_MS - RISE_SLACK_MS - 1, span)).toBe(START + HOUR_MS);
   });
 });
 
