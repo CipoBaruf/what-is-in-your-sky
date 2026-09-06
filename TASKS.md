@@ -1017,7 +1017,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Touches outside the lane:** `tests/e2e/captureSet.ts`, `tests/docs/captures.test.ts`, `scripts/bundle-budget.ts`, `docs/RELEASE.md`, `package.json`.
   - **Done when:** `npm test`, `npm run build`, `npm run bundle:budget` all `ok`; the `captures.yml` run on the merge is green; the findings table has no empty row; the owner tags `v1.1.0`.
 
-- [ ] **R54 — The wide live page: the raster inside its box, the rows folded, the legend scrolling**
+- [x] **R54 — The wide live page: the raster inside its box, the rows folded, the legend scrolling**
   - **Lane:** live
   - **Model:** opus
   - **Gate:** owner
@@ -1032,6 +1032,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
     - `live.spec.ts` at 1920 × 1080: one row above the dome and two under it, the dome box at least 75 % of the viewport height, no page scroll; at 390 × 844 the portrait rows are as R48 left them (F-52).
     - A legend test reaches the last drawn pass by keyboard and its row is within the column's visible box (F-53).
     - Captures: the live page at 1920 × 1080 dark en, and at 1280 × 800 both themes en; `npm test` and `live.spec.ts` green.
+  - *Done as written, with three notes.* The row above the dome is the chart's, not the page's, so the fold moved the view toggle into the frame's controls slot and touched `SkyChart`, `ChartFrame` and the three views (D-269). The stripe joins the bottom row only from 164 cells (`STRIPE_ROW_MIN_CELLS`, D-270): 1920 px folds to two rows, 1280 and 1440 keep the stripe on its own row, three where R48 had five. F-53's pointer half was already fixed by R45's scroll rule — the finding had measured the list, not the slot — and is recorded as such; its keyboard half was real, since focus promoted the row to the top and Tab looped over the first two rows, so focus now highlights without promoting (D-271).
 
 ### Expected waves (v1.1)
 

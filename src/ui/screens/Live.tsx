@@ -19,6 +19,7 @@ import { StatusStrip } from '../components/live/StatusStrip';
 import { StepControls } from '../components/live/StepControls';
 import { TimeReadout } from '../components/live/TimeReadout';
 import { TimeStripe } from '../components/live/TimeStripe';
+import { pageHasTouch } from '../components/live/touch';
 import { useDeclination } from '../components/live/useDeclination';
 import { useFollowPhone } from '../components/live/useFollowPhone';
 import { useHiddenObjects } from '../components/live/useHiddenObjects';
@@ -242,6 +243,8 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
    * it does (the `string` reading is what lets it compile before then).
    */
   const windowMode = (chartView as string) === 'window';
+  // R54 (FR-TRAJ-5, FR-LIVE-7 as amended v1.1.1): the stepping row is for fingers; a pointer has the arrow keys.
+  const touch = pageHasTouch();
   const toNow = playback.toNow;
   useEffect(() => {
     if (windowMode) toNow();
@@ -274,6 +277,10 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
        * R34 (FR-LIVE-7, D-173): the side column — under the dome in portrait, beside it on a landscape phone.
        * R48 (FR-LIVE-7 as amended, D-244): in the order the requirement lists — the strip, the stripe block
        * (readout, stripe, stepping row) and the two control rows: playback, and the actions.
+       * R54 (FR-LIVE-7 as amended v1.1.1, D-268, F-52): on wide the same children fold into two rows by grid
+       * areas — the playback row, the stripe block and the actions on one, the strip on the next — and the
+       * hidden-objects toggle joins the playback row, where the requirement lists it. The DOM order stays
+       * the compact one, which is the reading order too.
        */}
       <div className={styles.side} data-testid="live-side" data-window-mode={windowMode}>
         <StatusStrip
@@ -290,14 +297,17 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           <div className={styles.stripeBlock} data-testid="stripe-block">
             <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />
             <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} onScrub={playback.scrub} />
-            <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} />
+            {touch && <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} />}
           </div>
         )}
         {!windowMode && (
-          <PlaybackControls playing={playback.playing} speed={playback.speed} realTime={playback.realTime} onPlay={playback.play} onPause={playback.pause} onSpeed={playback.setSpeed} onNow={playback.toNow} />
+          <div className={styles.playbackRow} data-testid="playback-row">
+            <PlaybackControls playing={playback.playing} speed={playback.speed} realTime={playback.realTime} onPlay={playback.play} onPause={playback.pause} onSpeed={playback.setSpeed} onNow={playback.toNow} />
+            {!compact && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
+          </div>
         )}
         <div className={styles.actions} data-testid="live-actions">
-          <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />
+          {(compact || windowMode) && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
           {followable && <FollowPhone follow={follow} />}
           <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : t.live.share} ariaLabel={t.live.share} />
         </div>

@@ -97,6 +97,44 @@
     min-height: 0;
     overflow-y: auto;
   }
+
+  /* R54 (FR-LIVE-7 as amended v1.1.1, D-268, D-269, F-52): the wide live frame with the legend beside — the one row above
+     the drawing (below) keeps the 24-cell column at its right. */
+  .fill[data-compact='false'][data-legend='true'] {
+    grid-template-columns: auto minmax(0, 1fr) calc(24 * var(--cell));
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      'controls status legend'
+      'drawing drawing legend';
+  }
+}
+
+/* R54 (FR-LIVE-7 as amended v1.1.1, D-268, D-269, F-52): on the wide live page
+   the row above the drawing is one row. The controls slot — the view toggle
+   the page hands down (D-269), then the view's own control: the polar
+   orientation toggle, the window hint — and the status slot — the dome's
+   facing readout, the polar convention line — sit side by side on one
+   baseline, and the drawing takes the rows the fold gives back. At 1920 × 1080
+   the toggle's row and the readout's row were 48 + 24 px plus two gaps of the
+   box's height; now they are one 48 px row. Compact keeps the stack: the
+   readout under the drawing is what R48's portrait rows count on. */
+.fill[data-compact='false'] {
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, auto);
+  grid-template-areas:
+    'controls status'
+    'drawing drawing'
+    'legend legend';
+  column-gap: calc(3 * var(--cell));
+}
+
+.fill[data-compact='false'] .controls,
+.fill[data-compact='false'] .status {
+  align-self: baseline;
+}
+
+.fill[data-compact='false'] .status {
+  min-height: 0;
 }
 
 /* FR-LIVE-1 (R32): the live page's chart. The frame is as tall as the box it

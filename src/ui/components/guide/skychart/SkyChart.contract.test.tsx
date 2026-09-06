@@ -144,8 +144,12 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
     legendOrders.set(view.id, entries.map(([, id]) => id));
   });
 
-  /** FR-LEG-4 / US-23 AC4: a row activated by pointer or keyboard highlights its arc and moves first, keeping its key. */
-  it('highlights the pass whose legend row is clicked or focused and lists it first, until another row is activated', () => {
+  /**
+   * FR-LEG-4 / US-23 AC4: a row activated by pointer highlights its arc and moves first, keeping its key. R54 (D-271,
+   * F-53): keyboard focus highlights the row's arc too but leaves the order alone, so Tab can walk the list — the row at
+   * the top is the last one clicked or tapped, and the highlight follows the focus.
+   */
+  it('highlights the pass whose legend row is clicked and lists it first; focus highlights without reordering', () => {
     const onSelectPass = vi.fn();
     const { container } = render(<SkyChart {...props({ passes: [other, pass], onSelectPass })} />);
     const row = (id: string) => container.querySelector(`[data-testid="chart-legend"] button[data-pass-id="${id}"]`);
@@ -158,9 +162,18 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
     ]);
     expect(row('other')).toHaveAttribute('aria-pressed', 'true');
     expect(row(pass.id)).toHaveAttribute('aria-pressed', 'false');
+    // Focus moves the highlight, not the row: `other` stays first, `pass` is the one pressed and the one at full weight.
     fireEvent.focus(row(pass.id) as Element);
-    expect(legendEntries(container).map(([, id]) => id)).toEqual([pass.id, 'other']);
+    expect(legendEntries(container).map(([, id]) => id)).toEqual(['other', pass.id]);
     expect(row(pass.id)).toHaveAttribute('aria-pressed', 'true');
+    expect(row(pass.id)).toHaveAttribute('data-highlighted', 'true');
+    expect(row('other')).toHaveAttribute('aria-pressed', 'false');
+    expect(row('other')).toHaveAttribute('data-highlighted', 'false');
+    expect(onSelectPass).toHaveBeenCalledTimes(1);
+    // A click on the focused row then promotes it, as before.
+    fireEvent.click(row(pass.id) as Element);
+    expect(legendEntries(container).map(([, id]) => id)).toEqual([pass.id, 'other']);
+    expect(onSelectPass).toHaveBeenCalledWith(pass.id);
   });
 
   it('reports the pass id through onSelectPass', () => {

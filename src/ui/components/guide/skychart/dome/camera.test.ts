@@ -27,6 +27,7 @@ import {
   MAX_GRID_COLS,
   MIN_BASE_COLS,
   MIN_CELL_WIDTH_PX,
+  MAX_EXTENT_RATIO,
   MIN_EXTENT_RATIO,
   drawingExtent,
   PITCH_MAX_DEG,
@@ -165,6 +166,16 @@ describe('layoutFor (FR-DOME-1, D-91)', () => {
     expect(layoutFor(390, null).rows).toBe(30);
   });
 
+  it('rounds the row count down, so no row is drawn past the box (R54, F-51)', () => {
+    // 991 × 325 (the live box at 1280 × 800): 120 columns, an 8.26 px cell, 16.5 px rows — 19 fit, the 20th would not.
+    const live = layoutFor(991, 325);
+    expect(live.rows).toBe(Math.floor(325 / live.cellHeightPx));
+    expect(live.rows * live.cellHeightPx).toBeLessThanOrEqual(325);
+    // A box that is an exact number of rows keeps them all.
+    expect(layoutFor(1280, 1280).rows).toBe(60);
+    expect(layoutFor(390, 273).rows).toBe(21);
+  });
+
   it('scales the zoom with the box and not with the cell, so the two layers agree (D-91)', () => {
     expect(layoutFor(390, 390).zoom).toBe(zoomFor(390, 390));
     expect(layoutFor(1280, 1280).zoom).toBeCloseTo(zoomFor(1280, 1280), 9);
@@ -194,11 +205,17 @@ describe('layoutFor (FR-DOME-1, D-91)', () => {
   });
 });
 
-/** FR-DOME-1 as amended / D-177, D-187 (R45): the drawing's extent, labels included, is at least 90 % of the box's shorter side. */
-describe('the fit rule (FR-DOME-1, D-187)', () => {
+/**
+ * FR-DOME-1 as amended / D-177, D-187 (R45): the drawing's extent, labels
+ * included, is at least 90 % of the box's shorter side. R54 (v1.1.1, D-268,
+ * F-51): and at most the whole of it, counting the half-cell snap of every
+ * label's hotspot — the live page's boxes at 1280 × 800 (991 × 325) and
+ * 1920 × 1080 (1631 × 605) are the two the finding was measured on.
+ */
+describe('the fit rule (FR-DOME-1, D-187, D-268)', () => {
   it('takes the zoom from the shorter side through the two divisors', () => {
     expect(zoomFor(390, 390)).toBe(390 / 2.4);
-    expect(zoomFor(1240, 450)).toBe(450 / 1.6);
+    expect(zoomFor(1240, 450)).toBe(450 / 1.7);
     expect(zoomFor(352, 600)).toBe(352 / 2.4);
   });
 
@@ -207,13 +224,32 @@ describe('the fit rule (FR-DOME-1, D-187)', () => {
     [1240, 450],
     [1280, 1280],
     [844, 324],
-  ])('covers at least 90 %% of the shorter side and fits the box at %d × %d, at the default tilt', (width, height) => {
-    const { zoom } = layoutFor(width, height);
-    const extent = drawingExtent(zoom, DEFAULT_TILT_DEG);
+    [991, 325],
+    [1631, 605],
+    [330, 324],
+  ])('covers between 90 %% and 100 %% of the shorter side, labels and cell snap included, at %d × %d, at the default tilt (F-51)', (width, height) => {
+    const layout = layoutFor(width, height);
+    const extent = drawingExtent(layout.zoom, DEFAULT_TILT_DEG, 0, { widthPx: layout.cellWidthPx, heightPx: layout.cellHeightPx });
     const shorter = Math.min(width, height);
     expect(Math.max(extent.width, extent.height)).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO * shorter);
-    expect(extent.width).toBeLessThanOrEqual(width);
-    expect(extent.height).toBeLessThanOrEqual(height);
+    // The ceiling is per side: the ring is 1.4× wider than tall at 45°, so in a wide box it is the height that meets the shorter side.
+    expect(extent.width).toBeLessThanOrEqual(MAX_EXTENT_RATIO * width);
+    expect(extent.height).toBeLessThanOrEqual(MAX_EXTENT_RATIO * height);
+    // The raster itself stays inside the box too: no row is drawn past its bottom.
+    expect(layout.rows * layout.cellHeightPx).toBeLessThanOrEqual(height + 1e-6);
+  });
+
+  it('would have left the box under the old height divisor at the 1280 × 800 live box, which is F-51', () => {
+    const layout = layoutFor(991, 325);
+    const oldZoom = Math.min(991 / 2.4, 325 / 1.6);
+    const extent = drawingExtent(oldZoom, DEFAULT_TILT_DEG, 0, { widthPx: layout.cellWidthPx, heightPx: layout.cellHeightPx });
+    expect(extent.height).toBeGreaterThan(325);
+    expect(drawingExtent(layout.zoom, DEFAULT_TILT_DEG, 0, { widthPx: layout.cellWidthPx, heightPx: layout.cellHeightPx }).height).toBeLessThanOrEqual(325);
+  });
+
+  it('is unchanged where the width binds: the phone and the square guide box', () => {
+    expect(layoutFor(390, 390).zoom).toBe(390 / 2.4);
+    expect(layoutFor(390, 450).zoom).toBe(390 / 2.4);
   });
 
   it('is the same whichever way the dome is turned: the compass ring is round', () => {
@@ -233,7 +269,8 @@ describe('sameLayout (F-35)', () => {
   it('catches a zoom-only change, which a height-only resize can produce (D-161, F-35) while cols, rows, cell and font hold', () => {
     // A box wider than tall zooms to its height (D-161): two heights close enough to round to the
     // same row count still move `zoom`, since it is a continuous function of the shorter side.
-    const shorter = layoutFor(1280, 310);
+    // Two heights inside the same 21.3 px row (R54 rounds the count down, so both are 15 rows).
+    const shorter = layoutFor(1280, 322);
     const taller = layoutFor(1280, 330);
     expect(taller.rows).toBe(shorter.rows);
     expect(taller.cols).toBe(shorter.cols);
