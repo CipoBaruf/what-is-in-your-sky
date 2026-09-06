@@ -32,6 +32,8 @@ export const live: typeof EnLive = {
     pending: '…',
     visible: (count) => (count === 1 ? '1 satélite' : `${String(count)} satélites`),
     moon: (p) => `${moonPhase[p.phase]}, ${p.illumination} % iluminada`,
+    cloudPercent: (percent) => (percent === null ? 's/d' : `${percent} %`),
+    moonPercent: (illumination) => `${illumination} %`,
     share: 'Compartir este cielo',
     shareTitle: 'El cielo ahora mismo',
     shareText: (place) => `Todo el cielo sobre ${place}, en vivo.`,

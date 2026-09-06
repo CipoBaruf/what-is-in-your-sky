@@ -47,6 +47,15 @@ export const live = {
     visible: (count: number) => (count === 1 ? '1 satellite' : `${String(count)} satellites`),
     /** The Moon's phase and illumination, and nothing about where it is: the dome shows that. */
     moon: (p: Pick<MoonFacts, 'phase' | 'illumination'>) => `${moonPhase[p.phase]}, ${p.illumination} % lit`,
+    /**
+     * R48 (FR-LIVE-7 as amended, FR-COMP-4, D-246): the compact strip is two
+     * lines of at most 36 cells — `06:48:24 GMT-3 bright twilight` over
+     * `Clouds 12 % Visible 3 Moon 72 %`. The clouds and the Moon are their
+     * percentages and the count its number; the first line's labels are
+     * spoken, not shown. Without a forecast the clouds read `n/a`.
+     */
+    cloudPercent: (percent: string | null) => (percent === null ? 'n/a' : `${percent} %`),
+    moonPercent: (illumination: string) => `${illumination} %`,
     /** FR-SHARE-1's live form: the same button as the pass's, with the page's own words. */
     share: 'Share this sky',
     shareTitle: 'The sky right now',

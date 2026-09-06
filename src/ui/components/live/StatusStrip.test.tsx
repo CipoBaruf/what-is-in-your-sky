@@ -7,8 +7,10 @@
  */
 import { render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MOON_FIXTURE } from '../../../../tests/support/moonFixtures';
+import { en } from '../../../i18n/en';
+import { es } from '../../../i18n/es';
 import { I18nProvider } from '../../../i18n/useT';
 import type { CloudVerdict } from '../../../model';
 import { StatusStrip } from './StatusStrip';
@@ -19,7 +21,60 @@ const clear: CloudVerdict = { state: 'clear', effectivePct: 12.4, at: T };
 
 const field = (id: string): HTMLElement => screen.getByTestId(`live-${id}`);
 
+/** The wide shell: a `matchMedia` that says the viewport is past the breakpoint. jsdom has none, which is compact. */
+const stubWide = (): void => {
+  vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener: () => undefined, removeEventListener: () => undefined }));
+};
+
+/** FR-COMP-4: the cells of one line — every field's text, and two cells between the fields. */
+const cells = (fields: readonly string[]): number => fields.reduce((sum, text) => sum + [...text].length, 0) + 2 * (fields.length - 1);
+
 describe('<StatusStrip>', () => {
+  // The wide form is the one R32 worded; the compact two-line form (R48) is the last test's.
+  beforeEach(stubWide);
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /** R48 (FR-LIVE-7 as amended, FR-COMP-4, D-246): two lines on compact, the numbers in place of the words, each line within 36 cells at its longest. */
+  it('on compact is two lines: the clock and the sky with their labels spoken, then the clouds, the count and the Moon as numbers', async () => {
+    vi.unstubAllGlobals();
+    const { container, rerender } = render(<StatusStrip t={T} timeZone="America/Argentina/Salta" sky="bright-twilight" cloud={clear} count={3} moon={MOON_FIXTURE} />);
+    const strip = screen.getByTestId('status-strip');
+    expect(strip).toHaveAttribute('data-compact', 'true');
+    // Every term is still there for assistive technology; the first line's are not shown.
+    expect(within(strip).getAllByRole('term').map((term) => term.textContent)).toEqual(['Time', 'Sky', 'Clouds', 'Visible', 'Moon']);
+    expect(field('time').querySelector('dt')).toHaveClass('sr-only');
+    expect(field('sky').querySelector('dt')).toHaveClass('sr-only');
+    expect(field('cloud').querySelector('dt')).not.toHaveClass('sr-only');
+    // The clock keeps its zone and its `datetime`; the date is the stripe's and the readout's.
+    expect(field('time')).toHaveTextContent(/^Time 06:48:24 GMT-3$/);
+    expect(field('time').querySelector('time')).toHaveAttribute('datetime', '2026-09-11T09:48:24.063Z');
+    expect(field('sky')).toHaveTextContent(/^Sky bright twilight$/);
+    expect(field('cloud')).toHaveTextContent(/^Clouds 12 %$/);
+    expect(field('cloud').querySelector('[data-state]')).toHaveAttribute('data-state', 'clear');
+    expect(field('count')).toHaveTextContent(/^Visible 3$/);
+    expect(field('count').querySelector('[data-count]')).toHaveAttribute('data-count', '3');
+    expect(field('moon')).toHaveTextContent(/^Moon 72 %$/);
+    expect(await axe(container)).toHaveNoViolations();
+    // No forecast: the clouds are `n/a`, still in the unknown state; the speed and the heading take a line each.
+    rerender(<StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} speed={3600} declinationDeg={1.1187} />);
+    expect(field('cloud')).toHaveTextContent(/^Clouds n\/a$/);
+    expect(field('cloud').querySelector('[data-state]')).toHaveAttribute('data-state', 'unknown');
+    expect(field('speed')).toHaveTextContent(/^Speed 3600×$/);
+    expect(field('heading')).toHaveTextContent(/^Heading true north, declination \+1\.1°$/);
+    expect(field('heading').querySelector('dt')).toHaveClass('sr-only');
+
+    // The `dl` stays flat; the sky, the Moon, the speed and the heading each end a line (the stylesheet breaks after them).
+    expect([...strip.children].filter((el) => el.getAttribute('data-line-end') === 'true').map((el) => el.getAttribute('data-testid'))).toEqual(['live-sky', 'live-moon', 'live-speed', 'live-heading']);
+    // FR-COMP-4: both lines at their longest — the widest zone abbreviation Intl writes, the longest sky, three-digit percentages, a two-digit count — in both languages.
+    for (const m of [en.live, es.live]) {
+      expect(cells(['06:48:24 GMT+12:45', m.sky['bright-twilight']])).toBeLessThanOrEqual(36);
+      expect(cells([`${m.cloudLabel} ${m.cloudPercent('100')}`, `${m.countLabel} 12`, `${m.moonLabel} ${m.moonPercent('100')}`])).toBeLessThanOrEqual(36);
+      expect(cells([`${m.cloudLabel} ${m.cloudPercent(null)}`])).toBeLessThanOrEqual(12);
+    }
+  });
+
   it('shows the five fields: the instant in the zone with its abbreviation, the sky, the clouds, the count and the Moon', async () => {
     const { container } = render(<StatusStrip t={T} timeZone="America/Argentina/Salta" sky="dark" cloud={clear} count={3} moon={MOON_FIXTURE} />);
     const strip = screen.getByTestId('status-strip');

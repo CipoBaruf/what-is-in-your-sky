@@ -19,7 +19,7 @@
  * `live.spec.ts`, beside the layout facts it already holds.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { domeDrawn, heading, homeAt, LABEL, reenterLiveWithTheme, stripFilled, stubCompass, T } from './liveHelpers';
+import { domeDrawn, heading, homeAt, reenterLiveWithTheme, stripFilled, stubCompass, T } from './liveHelpers';
 
 const LANDSCAPE = { width: 844, height: 390 };
 const FOLLOW = { en: 'Follow phone', es: 'Seguir al teléfono' } as const;
@@ -88,7 +88,8 @@ test.describe('the live page on a landscape phone', () => {
 
     const dome = await page.getByTestId('live-dome').boundingBox();
     const side = await page.getByTestId('live-side').boundingBox();
-    const back = await page.getByRole('button', { name: LABEL.en.back }).boundingBox();
+    // R48 (D-246): the return control's 48 px hit box overhangs its 24 px row, so the row is what is measured.
+    const back = await page.getByTestId('live-top-row').boundingBox();
     const stripe = await page.getByTestId('time-stripe').boundingBox();
     const strip = await page.getByTestId('status-strip').boundingBox();
     if (!dome || !side || !back || !stripe || !strip) throw new Error('the live page is not laid out');

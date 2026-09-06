@@ -26,7 +26,7 @@ export const hhmmss = (t: number): string => new Date(t).toISOString().slice(11,
  * The strip's time field for real time at `t`, to the ten-second tick the page reads the clock at
  * (FR-VIS-5): whether the page mounted before or after the second `domeDrawn` lets run is not the point.
  */
-export const realTimeField = (t: number): RegExp => new RegExp(`^Time ${new Date(t).toISOString().slice(0, 10)} ${hhmmss(t).slice(0, 7)}\\d UTC$`);
+export const realTimeField = (t: number): RegExp => new RegExp(`^Time (${new Date(t).toISOString().slice(0, 10)} )?${hhmmss(t).slice(0, 7)}\\d UTC$`);
 
 export const golden = (): { start: number; peak: number; end: number } => {
   const pass = reference.firstGoldenPass;

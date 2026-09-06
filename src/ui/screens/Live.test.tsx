@@ -153,13 +153,14 @@ describe('<LivePage>', () => {
     expect(container.querySelectorAll('[data-marker="now"]')).toHaveLength(1);
     // The stripe still carries every pass of the coming 24 h as a segment (FR-LIVE-4).
     expect([...container.querySelectorAll('[data-pass-segment]')].map((el) => el.getAttribute('data-pass-segment'))).toEqual([pass.id, 'later', 'tomorrow']);
-    expect(within(screen.getByTestId('live-count')).getByText('1 satellite')).toBeInTheDocument();
-    expect(screen.getByTestId('live-time')).toHaveTextContent('2026-09-11 09:48:24 UTC');
-    expect(screen.getByTestId('live-cloud')).toHaveTextContent('Weather unknown');
+    // R48 (D-246): jsdom is the compact shell, where the strip is the two-line form — the numbers, and no date.
+    expect(screen.getByTestId('live-count')).toHaveTextContent(/^Visible 1$/);
+    expect(screen.getByTestId('live-time')).toHaveTextContent(/^Time 09:48:24 UTC$/);
+    expect(screen.getByTestId('live-cloud')).toHaveTextContent(/^Clouds n\/a$/);
     // The Sun and the Moon arrive with the astronomy chunk; until then the two fields are pending.
     const expected = skyBodiesAt(T, observer);
     await within(screen.getByTestId('live-sky')).findByText(en.live.sky[expected.sky]);
-    expect(screen.getByTestId('live-moon')).toHaveTextContent(`${en.moon.phase[expected.moon.phase]}, ${String(Math.round(expected.moon.illuminatedFraction * 100))} % lit`);
+    expect(screen.getByTestId('live-moon')).toHaveTextContent(`Moon ${String(Math.round(expected.moon.illuminatedFraction * 100))} %`);
     // R45 (FR-DOME-6 as amended): the Sun is a glow in the raster and a legend line, not a caption in the drawing.
     expect(figure.querySelector('[data-testid="chart-legend"] [data-body="sun"]') !== null).toBe(expected.sun.altDeg > -18 && expected.sun.altDeg < 0);
     expect(figure.querySelector('[data-anchor="sun"]')).toBeNull();
@@ -175,7 +176,7 @@ describe('<LivePage>', () => {
       vi.advanceTimersByTime(TICK_MS);
     });
     expect(container.querySelectorAll('[data-marker="now"]')).toHaveLength(0);
-    expect(screen.getByTestId('live-count')).toHaveTextContent('0 satellites');
+    expect(screen.getByTestId('live-count')).toHaveTextContent(/^Visible 0$/);
     // The window moved with real time: the golden pass is over and no longer drawn. `later` is in the
     // window — a segment on the stripe — and, three hours from its rise, not yet on the chart (FR-TRAJ-1).
     expect(container.querySelector(`[data-pass-id="${pass.id}"]`)).toBeNull();
@@ -187,11 +188,11 @@ describe('<LivePage>', () => {
     withSky();
     const t = later.start.t + 30_000;
     render(<LivePage link={{ kind: 'live', observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t }} onLeave={() => undefined} />);
-    expect(screen.getByTestId('live-time')).toHaveTextContent('2026-09-11 12:48:44 UTC');
+    expect(screen.getByTestId('live-time')).toHaveTextContent(/^Time 12:48:44 UTC$/);
     // The marker is on the pass that contains the link's instant, not the one under way in real time.
     const marker = screen.getByTestId('live-dome').querySelector('[data-marker="now"]');
     expect(marker?.closest('[data-pass-id]')).toHaveAttribute('data-pass-id', 'later');
-    expect(screen.getByTestId('live-count')).toHaveTextContent('1 satellite');
+    expect(screen.getByTestId('live-count')).toHaveTextContent(/^Visible 1$/);
     expect(screen.getByRole('button', { name: 'Share this sky' })).toBeInTheDocument();
   });
 
@@ -320,7 +321,7 @@ describe('<LivePage>', () => {
     expect(screen.queryByTestId('time-stripe')).toBeNull();
     expect(screen.queryByTestId('playback-controls')).toBeNull();
     // The strip stays, at real time; so do the actions.
-    expect(screen.getByTestId('live-time')).toHaveTextContent('2026-09-11 09:48:24 UTC');
+    expect(screen.getByTestId('live-time')).toHaveTextContent(/^Time 09:48:24 UTC$/);
     expect(screen.getByRole('button', { name: 'Hidden objects' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Share this sky' })).toBeInTheDocument();
     // Leaving the window: the block and the row are back, and the instant is still real time.
@@ -352,8 +353,8 @@ describe('<LivePage>', () => {
     expect(Number(stripe.getAttribute('aria-valuenow'))).toBeCloseTo(threeHours, -3);
     const marker = screen.getByTestId('live-dome').querySelector('[data-marker="now"]');
     expect(marker?.closest('[data-pass-id]')).toHaveAttribute('data-pass-id', 'later');
-    expect(screen.getByTestId('live-count')).toHaveTextContent('1 satellite');
-    expect(screen.getByTestId('live-time')).toHaveTextContent(/2026-09-11 12:48:\d\d UTC/);
+    expect(screen.getByTestId('live-count')).toHaveTextContent(/^Visible 1$/);
+    expect(screen.getByTestId('live-time')).toHaveTextContent(/^Time 12:48:\d\d UTC$/);
     expect(container.querySelector('[data-pass-segment="later"]')).toHaveAttribute('data-current', 'true');
     // The arrow keys step from there (FR-LIVE-4), and the share link now carries the instant (FR-LIVE-9).
     fireEvent.keyDown(stripe, { key: 'ArrowLeft', shiftKey: true });

@@ -82,6 +82,23 @@
   gap: 0 var(--cell);
 }
 
+/* R48 (FR-COMP-4, D-245): on compact the share action is bracketed text like
+   the two toggles beside it, not the boxed button: the box's cell of padding
+   each side put the Spanish row (`[ ] Ocultos [ ] Seguir [ Compartir ]`, 36
+   cells) at 38 and wrapped it, and the wrap cost the dome a row. */
+.page[data-compact='true'] .actions button {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* …and the share action's own row (the button and its confirmation, a flex row two cells apart) keeps no
+   gap before an empty confirmation: those two cells were the 37th and 38th. The confirmation, when it
+   comes, wraps under the row as before. */
+.page[data-compact='true'] .actions p {
+  gap: 0;
+}
+
 /* The return control, the place, and (on wide) the switches the header would have carried. */
 .topRow {
   grid-area: top;
@@ -95,6 +112,15 @@
 /* R48 (FR-COMP-1, D-244): on compact the top row is one row: nothing wraps, and the place ellipsises. */
 .page[data-compact='true'] .topRow {
   flex-wrap: nowrap;
+}
+
+/* R48 (FR-COMP-5, D-246): …and one text row tall. The return control keeps
+   its 48 px hit box the way links in prose do (the global inline-control
+   rule: vertical padding, the matching negative margin) rather than by its
+   height, so the row is 24 px and the dome has the other 24. */
+.page[data-compact='true'] .back {
+  padding-block: calc((var(--tap) - var(--row)) / 2);
+  margin-block: calc(-1 * (var(--tap) - var(--row)) / 2);
 }
 
 .page[data-compact='true'] .place {

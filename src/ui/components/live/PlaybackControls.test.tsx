@@ -95,7 +95,8 @@ describe('<PlaybackControls>', () => {
     expect(screen.getByRole('group', { name: 'Velocidad de reproducción' })).toBeInTheDocument();
   });
 
-  // FR-COMP-4 (D-245): the live page's two compact control rows, counted from the catalogs.
+  // FR-COMP-4 (D-245): the live page's two compact control rows, counted from the catalogs. The count is
+  // the characters: on compact every control on the two rows is text with no box or padding (`Live.module.css`).
   it('the two compact control rows fit 36 cells in both languages (FR-COMP-4)', () => {
     for (const catalog of [en, es]) {
       const m = catalog.live;
