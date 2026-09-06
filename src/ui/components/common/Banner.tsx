@@ -17,12 +17,19 @@ export interface BannerProps {
   children: ReactNode;
   /** Marks the banner for tests and the e2e; not rendered as text. */
   testId?: string;
+  /**
+   * R49 (F-30): out of reach, whatever is around it. A banner that carries an
+   * action is made inert by the thing that covers it, and on wide that thing
+   * covers this banner without covering its container (FR-DESK-3 keeps the
+   * column live), so the flag has to reach the banner itself.
+   */
+  inert?: boolean;
 }
 
-export function Banner({ variant, children, testId }: BannerProps) {
+export function Banner({ variant, children, testId, inert = false }: BannerProps) {
   const t = useT();
   return (
-    <p role={variant === 'warning' ? 'alert' : 'status'} data-variant={variant} className={`${styles.banner} ${styles[variant] ?? ''}`} {...(testId ? { 'data-testid': testId } : {})}>
+    <p role={variant === 'warning' ? 'alert' : 'status'} inert={inert} data-variant={variant} className={`${styles.banner} ${styles[variant] ?? ''}`} {...(testId ? { 'data-testid': testId } : {})}>
       <span className={styles.prefix}>[{t.banner[variant]}]</span> {children}
     </p>
   );

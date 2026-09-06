@@ -189,6 +189,16 @@ export function App() {
   // list, which stays live (FR-DESK-3). The shortcuts overlay covers it at
   // every width, so nothing behind it is reachable either.
   const inert = helpOpen || (selected !== null && mode === 'compact');
+  /*
+   * R49 (F-30): the two offers are under a stricter rule than the rest of the
+   * page. D-154 says a reload button cannot be reached while a pass is open,
+   * because applying an update swaps the shell under a reader who is in the
+   * middle of something; on wide the guide is a panel beside a list that stays
+   * live (FR-DESK-3), so `inert` above never reaches them there and the button
+   * was one Tab away from a reader following a pass. The rule is the pass, not
+   * the width.
+   */
+  const offersInert = inert || selected !== null;
   if (live.active) {
     return (
       <Suspense fallback={<p className={styles.liveLoading}>{t.live.loading}</p>}>
@@ -215,9 +225,10 @@ export function App() {
         <div className={`${styles.column} ${styles.leftColumn}`} data-testid="col-left">
           {/* R28 (D-154): both offers sit above everything, inside the region the
               open sheet makes inert and outside the live route, so neither can
-              be acted on while a pass or the live sky is up. */}
-          <UpdateBanner />
-          <InstallHint />
+              be acted on while a pass or the live sky is up. R49 (F-30): on wide
+              nothing around them is made inert, so they are told directly. */}
+          <UpdateBanner inert={offersInert} />
+          <InstallHint inert={offersInert} />
           <LocationInput observer={observer} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} />
           <ReadinessLine />
           <ElementsBanners />

@@ -17,6 +17,7 @@ import type { Observer } from '../model';
 import { appStore, type ElementsState } from '../state';
 import { IDLE_PASSES } from '../state/slices/passes';
 import { App } from './App';
+import { BEFORE_INSTALL_PROMPT, forgetInstallOffer } from './components/common/installOffer';
 
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
@@ -41,6 +42,8 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
   afterEach(() => {
     media.restore();
     appStore.setState(initial, true);
+    forgetInstallOffer();
+    localStorage.clear();
     window.history.replaceState(null, '', window.location.pathname);
   });
 
@@ -92,6 +95,36 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('region', { name: panelName })).toBeNull();
     expect(window.location.hash).toBe('');
+  });
+
+  /**
+   * R49 (F-30), D-154: the reload button may not be reachable under an open
+   * pass, and on wide nothing around it is made inert — the guide is a panel
+   * beside a live list (FR-DESK-3). The offers carry the flag themselves, so
+   * the rule holds at both widths while the page around them stays usable.
+   */
+  it('puts the update offer and the install hint out of reach while the guide is open, without touching the rest of the page', async () => {
+    withPasses();
+    act(() => {
+      appStore.setState({ updateReady: true, applyUpdate: () => undefined });
+    });
+    render(<App />);
+    act(() => {
+      window.dispatchEvent(Object.assign(new Event(BEFORE_INSTALL_PROMPT, { cancelable: true }), { prompt: () => Promise.resolve() }));
+    });
+    const offers = () => [screen.getByTestId('update-banner'), screen.getByTestId('install-hint')];
+    for (const offer of offers()) expect(offer).not.toHaveAttribute('inert');
+
+    await userEvent.click(screen.getAllByRole('button', { name: /Open guide/ })[0] as HTMLElement);
+    expect(screen.getByRole('region', { name: panelName })).toBeInTheDocument();
+    for (const offer of offers()) expect(offer).toHaveAttribute('inert');
+    // Only the offers: the list, the guide and the controls around them are still live.
+    for (const role of ['banner', 'main', 'contentinfo']) expect(screen.getByRole(role)).not.toHaveAttribute('inert');
+    expect(screen.getByRole('region', { name: 'Location' })).not.toHaveAttribute('inert');
+
+    // Closing the guide gives them back, with no timer in it (D-154).
+    await userEvent.keyboard('{Escape}');
+    for (const offer of offers()) expect(offer).not.toHaveAttribute('inert');
   });
 
   it('keeps the same pass open across the breakpoint, in the other shell (D-72)', async () => {

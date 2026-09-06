@@ -15,19 +15,26 @@ import styles from './UpdateBanner.module.css';
  * button, so an update cannot swap the shell under a reader.
  *
  * Where it renders is the other half of that promise (D-154). It sits at the
- * top of the home screen, which the compact layout makes `inert` while a pass
- * sheet is open and which is not rendered at all under `#live`, so on both of
- * the screens the task names the button cannot be reached, no timer hides it,
- * and it comes back by itself the moment the reader closes the sheet or
- * leaves the live page.
+ * top of the home screen, which is made `inert` while a pass guide is open and
+ * which is not rendered at all under `#live`, so on both of the screens the
+ * task names the button cannot be reached, no timer hides it, and it comes
+ * back by itself the moment the reader closes the guide or leaves the live
+ * page. R49 (F-30): on wide the guide is a panel beside a list that stays live,
+ * so the page around it is not made inert and the caller has to say so here —
+ * a reload offer under an open guide is exactly what D-154 rules out, at either
+ * width.
  */
-export function UpdateBanner() {
+export interface UpdateBannerProps {
+  inert?: boolean;
+}
+
+export function UpdateBanner({ inert = false }: UpdateBannerProps) {
   const t = useT();
   const updateReady = useAppStore((s) => s.updateReady);
   const applyUpdate = useAppStore((s) => s.applyUpdate);
   if (!updateReady || applyUpdate === null) return null;
   return (
-    <Banner variant="info" testId="update-banner">
+    <Banner variant="info" testId="update-banner" inert={inert}>
       {t.update.ready}{' '}
       <button type="button" onClick={applyUpdate} className={`inline-control ${styles.reload}`}>
         {t.update.reload}
