@@ -46,12 +46,28 @@ export const DRAG_PX_PER_DEG = 4;
  * cell it probes at mount, so two stacked layers of different coarseness
  * must take the same number or the coarser one is drawn twice the size.
  * Before R45 it was 140 at 390 px, the dome at ≈ 72 % of the width.
+ *
+ * R54 (FR-DOME-1 as amended v1.1.1, D-268, F-51): the rule has a ceiling too —
+ * nothing the drawing puts on screen may leave the box. The width divisor
+ * always had the room for it: 2.4 against 2.16 is a 10 % margin, and a label
+ * is 11 px in a 1-cell hotspot whose corner, not centre, is the projected
+ * point, so a label's box sits half a cell off its anchor. The height divisor
+ * was 1.6 against 1.53, a 4.6 % margin, which at the live page's 991 × 325 box
+ * (1280 × 800) is 15 px — less than the 11 px label plus the 14 px cell, and
+ * the `S` label and the raster's last row were drawn past the box's bottom.
+ * 1.7 gives the height the same 10 % the width has (1.53 / 1.7 ≈ 0.9), so the
+ * extent with its labels and the cell snap (`drawingExtent`) stays between
+ * `MIN_EXTENT_RATIO` and `MAX_EXTENT_RATIO` of the shorter side at every box
+ * the app draws, from the landscape phone's 324 px up. A width-bound box (the
+ * phone, the guide's square) is unchanged.
  */
 export const ZOOM_WIDTH_DIVISOR = 2.4;
-export const ZOOM_HEIGHT_DIVISOR = 1.6;
+export const ZOOM_HEIGHT_DIVISOR = 1.7;
 export const REFERENCE_WIDTH_PX = 390;
 /** FR-DOME-1's number: the drawing's extent, labels included, against the shorter side of its box. */
 export const MIN_EXTENT_RATIO = 0.9;
+/** FR-DOME-1 as amended (v1.1.1, F-51): …and never more than the whole of it. */
+export const MAX_EXTENT_RATIO = 1;
 /** `.label` in the stylesheet: the font size and the advance a label is laid out at, so a label's box can be sized in world units. */
 export const LABEL_FONT_PX = 11;
 export const LABEL_ADVANCE = 0.6;
@@ -61,13 +77,23 @@ export function zoomFor(widthPx: number, heightPx: number): number {
   return Math.min(widthPx / ZOOM_WIDTH_DIVISOR, heightPx / ZOOM_HEIGHT_DIVISOR);
 }
 
+/** The raster's cell, for `drawingExtent`'s snap allowance; zero where the drawing is measured without a grid. */
+export interface CellSize {
+  widthPx: number;
+  heightPx: number;
+}
+export const NO_CELL: CellSize = { widthPx: 0, heightPx: 0 };
+
 /**
  * The drawing's extent on screen in CSS px at a zoom and a tilt: the bounding
  * box of the compass ring (the outermost anchors, `COMPASS_LABEL_RADIUS`) and
  * the zenith, grown by half a two-letter compass name on each side. What
- * FR-DOME-1's 90 % rule is measured against.
+ * FR-DOME-1's 90 % rule is measured against. R54 (F-51): grown by one cell
+ * too when the raster's cell is given — a label lives in a one-cell hotspot
+ * whose corner is the projected point, so on screen its centre is up to half
+ * a cell right of and below the anchor, and the ceiling has to count it.
  */
-export function drawingExtent(zoom: number, tiltDeg: number, rotYDeg = 0): { width: number; height: number } {
+export function drawingExtent(zoom: number, tiltDeg: number, rotYDeg = 0, cell: CellSize = NO_CELL): { width: number; height: number } {
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
@@ -85,7 +111,7 @@ export function drawingExtent(zoom: number, tiltDeg: number, rotYDeg = 0): { wid
   }
   take([0, 0, COMPASS_LABEL_RADIUS]);
   const label = LABEL_FONT_PX * LABEL_ADVANCE;
-  return { width: (maxX - minX) * zoom + 2 * label, height: (maxY - minY) * zoom + LABEL_FONT_PX };
+  return { width: (maxX - minX) * zoom + 2 * label + cell.widthPx, height: (maxY - minY) * zoom + LABEL_FONT_PX + cell.heightPx };
 }
 
 export function clampTilt(tiltDeg: number): number {
@@ -251,11 +277,19 @@ export function fitLayout(hostWidthPx: number | null, hostHeightPx: number | nul
   return base;
 }
 
-/** FR-DOME-1: rows enough to fill the box's height at cell aspect 2; a square box is `cols / 2` rows, the phone's 30. */
+/**
+ * FR-DOME-1: rows enough to fill the box's height at cell aspect 2; a square
+ * box is `cols / 2` rows, the phone's 30. R54 (F-51): the count rounds down,
+ * not to nearest — a row that only half fits was a row drawn past the box
+ * (24 rows of 14 px in a 325 px box, 11 px over at 1280 × 800), and a box is
+ * never more than one row short of full. The tolerance absorbs the float
+ * error of a box that is an exact number of rows.
+ */
+const ROWS_TOLERANCE = 1e-6;
 function rowsFor(hostHeightPx: number | null, cellHeightPx: number, cols: number): number {
   const square = Math.max(2, Math.round(cols / CELL_ASPECT));
   if (hostHeightPx === null || !Number.isFinite(hostHeightPx) || hostHeightPx <= 0 || cellHeightPx <= 0) return square;
-  return Math.max(2, Math.round(hostHeightPx / cellHeightPx));
+  return Math.max(2, Math.floor(hostHeightPx / cellHeightPx + ROWS_TOLERANCE));
 }
 
 /**
