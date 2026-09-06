@@ -239,6 +239,27 @@ describe('<LivePage>', () => {
     expect(screen.getByRole('button', { name: 'Share this sky' })).toHaveTextContent('Share this sky');
   });
 
+  /** R54 (FR-LIVE-7 as amended v1.1.1, FR-TRAJ-5, D-268): the wide rows, and the stepping row only with touch. */
+  it('on wide puts the hidden-objects toggle on the playback row and draws the stepping row only where the page has touch', () => {
+    withSky();
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+    const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
+    // Compact, no touch: the toggle is on the actions row, and the block is the readout and the stripe alone.
+    expect(within(screen.getByTestId('live-actions')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
+    expect(within(screen.getByTestId('playback-row')).queryByTestId('live-hidden-toggle')).toBeNull();
+    expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'time-stripe']);
+    unmount();
+    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener: () => undefined, removeEventListener: () => undefined }));
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 1 });
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
+    expect(within(screen.getByTestId('playback-row')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
+    expect(within(screen.getByTestId('live-actions')).queryByTestId('live-hidden-toggle')).toBeNull();
+    // The side column's children keep the compact order; the wide rows are grid areas in the stylesheet.
+    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'stripe-block', 'playback-row', 'live-actions']);
+    expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'time-stripe', 'step-controls']);
+  });
+
   /** R48 (FR-TRAJ-1, FR-TRAJ-3, US-22 AC1..AC3, D-189): the arcs appear, grow and fade with the shown instant, and the legend says the same. */
   it('scrubs a pass through ahead, live, linger and gone, with the drawn arc and the legend state following (FR-TRAJ-1)', () => {
     withSky();
@@ -278,6 +299,8 @@ describe('<LivePage>', () => {
   /** R48 (FR-TRAJ-4, FR-TRAJ-5, US-22 AC5, AC6): the readout above the stripe and the stepping row under it. */
   it('shows the readout above the stripe with the weekday past midnight, and the stepping row lands on rises and steps minutes', () => {
     withSky();
+    // R54 (FR-TRAJ-5): the stepping row is drawn where the page has touch.
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 1 });
     render(<LivePage link={null} onLeave={() => undefined} />);
     const stripe = screen.getByTestId('time-stripe');
     const block = screen.getByTestId('stripe-block');
