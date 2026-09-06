@@ -323,3 +323,14 @@ export function cursorAt(t: EpochMs, span: Span, width: number): Cursor {
   const anchor = x < CURSOR_LABEL_HALF_PX ? 'start' : x > width - CURSOR_LABEL_HALF_PX ? 'end' : 'middle';
   return { x, anchor };
 }
+
+/**
+ * R54 (FR-LIVE-7 as amended v1.1.1, D-270): the page width in cells from which
+ * the stripe shares a row with the playback controls and the share action on
+ * wide. The playback row is 50 cells, the hidden-objects toggle 18, the clock
+ * readout 5, the boxed share action 22 and the gaps 9 — 104 cells before the
+ * stripe — and FR-TRAJ-4's twelve two-character hour labels want 60 more.
+ * `Live.module.css` carries the same number in its `@container` rule and
+ * `Live.test.tsx` holds the two equal; 1920 px is 200 cells, 1440 is 150.
+ */
+export const STRIPE_ROW_MIN_CELLS = 164;

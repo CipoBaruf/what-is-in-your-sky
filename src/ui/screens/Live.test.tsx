@@ -12,6 +12,7 @@
  *   - the share action builds the `#live?…` form (FR-SHARE-1);
  *   - the two inert states, and the two ways back.
  */
+import { readFileSync } from 'node:fs';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,6 +20,7 @@ import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../t
 import { en } from '../../i18n/en';
 import { isoInstant } from '../../lib/shareLinks';
 import { skyBodiesAt } from '../../lib/skyBodies';
+import { STRIPE_ROW_MIN_CELLS } from '../../lib/timeStripe';
 import type { ChartView, Observer, Pass } from '../../model';
 import type { NowItem, NowState } from '../../model';
 import { appStore, setLiveNowClient, type ElementsState } from '../../state';
@@ -237,6 +239,16 @@ describe('<LivePage>', () => {
     expect(screen.getByRole('group', { name: 'Language' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Theme' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Share this sky' })).toHaveTextContent('Share this sky');
+  });
+
+  /** R54 (D-270): the width from which the stripe joins the playback row, read from the stylesheet (jsdom lays nothing out). */
+  it('folds the stripe onto the playback row only from STRIPE_ROW_MIN_CELLS, with the page as the size container', () => {
+    const css = readFileSync('src/ui/screens/Live.module.css', 'utf8');
+    expect(css).toContain(`@container (min-width: ${String(STRIPE_ROW_MIN_CELLS)}ch)`);
+    expect(css).toMatch(/\.page\[data-compact='false'\] \{\n\s+container-type: inline-size;/);
+    // Under the threshold the stripe has a row of its own; over it the three share one.
+    expect(css).toMatch(/'playback actions'\n\s+'stripe stripe'\n\s+'strip strip'/);
+    expect(css).toMatch(/'playback stripe actions'\n\s+'strip strip strip'/);
   });
 
   /** R54 (FR-LIVE-7 as amended v1.1.1, FR-TRAJ-5, D-268): the wide rows, and the stepping row only with touch. */
