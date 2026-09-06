@@ -63,20 +63,32 @@ export const WIDE_QUERY = `(min-width: ${String(WIDE_MIN_PX)}px)`;
 /** The gutter between two columns of the wide shell, in cells (`App.module.css`). */
 export const GUTTER_CELLS = 3;
 
+/** The side padding of the header, the main and the footer, in cells (`styles/global.css`). */
+export const SHELL_PADDING_CELLS = 2;
+
 /**
  * FR-DESK-3 as amended (V11-13, D-192): the width at which the right column
- * can hold the 44-cell list and a 40-cell guide side by side. The constant
- * counts the three columns — 40 left + 44 list + 40 guide — and the two
- * gutters between them are added to its pixel twin, because they are width
- * the reader's screen has to find too: 124 cells of column in a 124-cell
- * viewport would leave the guide 34 cells, and FR-DESK-3 says it may never be
- * narrower than 40 while open.
+ * can hold the 44-cell list and a 40-cell guide side by side. Below it an open
+ * guide takes the whole right column and the list is one `[ list ]` control
+ * away, the way the compact sheet works (F-6).
  *
- * Below this width an open guide takes the whole right column and the list is
- * one `[ list ]` control away, the way the compact sheet works (F-6).
+ * The constant is D-192's, and it counts the three columns: 40 left + 44 list
+ * + 40 guide. Its pixel twin counts what the reader's screen also has to find
+ * for them to be three columns (D-253) — the two 3-cell gutters between them,
+ * and the shell's own side padding. Only the left half of that padding: the
+ * shell is 2 cells clear on each side, and where the tracks are a few pixels
+ * wider than the space between them the panel leans into the right margin
+ * rather than the layout folding, which costs the guide's border a few pixels
+ * of air and nothing else. Counting both halves instead would put the
+ * threshold at 1291 px and take the split away from 1280 — the width of the
+ * approved desktop mockup (FR-DESK-5), where the two columns have been since
+ * R23. The one thing the twin may never do is let that lean become a page
+ * that scrolls sideways, which is what `WIDE_SPLIT_MIN_CELLS` + the gutters +
+ * one padding is exactly the width for; `tests/styles/breakpoint.test.ts`
+ * holds it there and `tests/e2e/wide.spec.ts` looks for the scrollbar.
  */
 export const WIDE_SPLIT_MIN_CELLS = 124;
-export const WIDE_SPLIT_MIN_PX = thresholdPx(WIDE_SPLIT_MIN_CELLS + 2 * GUTTER_CELLS);
+export const WIDE_SPLIT_MIN_PX = thresholdPx(WIDE_SPLIT_MIN_CELLS + 2 * GUTTER_CELLS + SHELL_PADDING_CELLS);
 export const WIDE_SPLIT_QUERY = `(min-width: ${String(WIDE_SPLIT_MIN_PX)}px)`;
 
 export type LayoutMode = 'compact' | 'wide';

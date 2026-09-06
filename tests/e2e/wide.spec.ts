@@ -98,6 +98,11 @@ test('an open guide either splits the column with the list or takes it whole, by
   if (!right || !guide) throw new Error('the right column is not laid out');
   // FR-DESK-3: the guide is never narrower than 40 cells while it is open.
   expect(guide.width).toBeGreaterThanOrEqual(GUIDE_MIN_CELLS * cell - 1);
+  // D-253: the split literal counts the columns, the gutters and one of the
+  // shell's two paddings, so just above it the pair leans into the right
+  // margin. The one thing that lean may never do is make the page scroll
+  // sideways, and this is the width where it would first show.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 'the page scrolls sideways with the guide open').toBeLessThanOrEqual(1);
 
   if (split) {
     await expect(list).toBeVisible();
@@ -125,6 +130,29 @@ test('an open guide either splits the column with the list or takes it whole, by
   const listBox = await list.boundingBox();
   if (!listBox) throw new Error('the list is not laid out');
   expect(Math.abs(listBox.width - right.width)).toBeLessThanOrEqual(1);
+});
+
+/**
+ * D-253 at the one width that can disprove it. The split literal is the three
+ * columns, the two gutters and one of the shell's two paddings, so at the
+ * literal itself the pair of tracks is a padding wider than the column that
+ * holds them and leans into the right margin. Either width the projects run at
+ * is a few pixels clear of that; this sets the viewport to the literal, where
+ * the margin is exactly used up, and asks for both halves of the claim.
+ */
+test('at the split literal itself the two tracks fit the margin and the page does not scroll sideways (D-253)', async ({ page }) => {
+  await page.setViewportSize({ width: WIDE_SPLIT_MIN_PX, height: 800 });
+  const cell = await cellPx(page);
+  await openTheGuide(page);
+  await expect(page.getByTestId('guide-panel')).toBeVisible();
+  await expect(page.getByTestId('list-column')).toBeVisible();
+
+  const [listBox, guide] = await Promise.all([page.getByTestId('list-column').boundingBox(), page.getByTestId('guide-panel').boundingBox()]);
+  if (!listBox || !guide) throw new Error('the two tracks are not laid out');
+  expect(listBox.width).toBeGreaterThanOrEqual(LIST_MIN_CELLS * cell - 1);
+  expect(guide.width).toBeGreaterThanOrEqual(GUIDE_MIN_CELLS * cell - 1);
+  expect(guide.x + guide.width, 'the guide runs off the screen').toBeLessThanOrEqual(WIDE_SPLIT_MIN_PX + 1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 'the page scrolls sideways at the split literal').toBeLessThanOrEqual(1);
 });
 
 /**

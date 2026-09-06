@@ -24,10 +24,17 @@ export type CaptureLocale = (typeof LOCALES)[number];
  * (the MVP reference profile), 1280 × 800 the wide layout (FR-DESK-1, ≥ 100
  * cells), and 844 × 390 the same phone turned sideways — the live page only,
  * which is the one screen with a landscape layout of its own (FR-LIVE-7).
+ *
+ * R50 (FR-DESK-5 as amended, D-192): 1024 × 768 is the laptop between the wide
+ * breakpoint and `WIDE_SPLIT_MIN_PX`, where an open guide has the right column
+ * to itself and the list is one `[ list ]` control away (FR-DESK-3, F-6). The
+ * home and the guide are the two screens that look different there, and 768 is
+ * the height F-9 was about.
  */
 export const VIEWPORTS = {
   390: { width: 390, height: 844 },
   844: { width: 844, height: 390 },
+  1024: { width: 1024, height: 768 },
   1280: { width: 1280, height: 800 },
 } as const;
 export type CaptureWidth = keyof typeof VIEWPORTS;
@@ -48,8 +55,8 @@ export interface CaptureScreen {
  */
 export const SCREENS: readonly CaptureScreen[] = [
   { name: 'location', widths: [390, 1280], what: 'Home before a location is known: the place field, the coordinates, the device button, the footer.' },
-  { name: 'home', widths: [390, 1280], what: 'Home with passes: the Now panel, the ISS hero, the Moon, the readiness line and the three nights.' },
-  { name: 'guide', widths: [390, 1280], what: 'A pass open on the dome view, mid-pass, with the Sun and the Moon on the chart.' },
+  { name: 'home', widths: [390, 1024, 1280], what: 'Home with passes: the Now panel, the ISS hero, the Moon, the readiness line and the three nights. 1024 is the mid-width laptop.' },
+  { name: 'guide', widths: [390, 1024, 1280], what: 'A pass open on the dome view, mid-pass, with the Sun and the Moon on the chart. At 1024 it has the right column to itself (F-6).' },
   { name: 'polar', widths: [390, 1280], what: 'The same pass on the polar view: the live marker and the flown arc as elements.' },
   { name: 'favourites', widths: [390, 1280], what: 'The saved places, with the one in use marked.' },
   { name: 'shortcuts', widths: [390, 1280], what: 'The keyboard shortcuts overlay over an inert page.' },

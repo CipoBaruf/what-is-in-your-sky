@@ -136,13 +136,16 @@
 
 /* R50 (FR-DESK-3 as amended, D-253): the split returns at
    `WIDE_SPLIT_MIN_CELLS` — 40 cells of left column, 44 of list and 40 of
-   guide, plus the two gutters between them. The list keeps at least 44 cells
-   — the width the cards were designed at, and the chart's own square — and
-   the guide at least 40, which is the width FR-DESK-3 says it may never be
-   under while open; above the threshold the leftover goes to the guide, a
-   shade faster, so the chart is not the narrower of the two. The literal is
-   `WIDE_SPLIT_MIN_PX` in `lib/layout.ts` (`tests/styles/breakpoint.test.ts`). */
-@media (min-width: 1253px) {
+   guide, plus the two gutters between them and the shell's own padding. The
+   list keeps at least 44 cells — the width the cards were designed at, and the
+   chart's own square — and the guide at least 40, which is the width FR-DESK-3
+   says it may never be under while open; above the threshold the leftover goes
+   to the guide, a shade faster, so the chart is not the narrower of the two.
+   Both floors are real minima, so just above the threshold the pair is a few
+   pixels wider than the column and leans into the shell's right margin: that
+   is what the twin of the constant is calculated to keep inside
+   (`lib/layout.ts`, `tests/styles/breakpoint.test.ts`). */
+@media (min-width: 1272px) {
   /* Both tracks are on the page again. The values are the two elements' own —
      the list column is a plain block, the panel is the grid of head and body
      that `GuidePanel.module.css` gives it — because `display` has no keyword

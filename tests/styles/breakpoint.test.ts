@@ -22,7 +22,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { BASE_FONT_PX, CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, GUTTER_CELLS, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_CELLS, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
+import { BASE_FONT_PX, CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, GUTTER_CELLS, SHELL_PADDING_CELLS, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_CELLS, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
 
 const UI_DIR = 'src/ui';
 const TOKENS_PATH = 'src/ui/styles/tokens.css';
@@ -92,8 +92,9 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
 
   it.each([
     ['the wide breakpoint', WIDE_CELLS, WIDE_MIN_PX],
-    // The two gutters are width the screen has to find as well as the three columns (D-253).
-    ['the split breakpoint', WIDE_SPLIT_MIN_CELLS + 2 * GUTTER_CELLS, WIDE_SPLIT_MIN_PX],
+    // The two gutters, and one of the shell's two paddings, are width the
+    // screen has to find as well as the three columns (D-253).
+    ['the split breakpoint', WIDE_SPLIT_MIN_CELLS + 2 * GUTTER_CELLS + SHELL_PADDING_CELLS, WIDE_SPLIT_MIN_PX],
   ])('%s is at least its cells on every font in the stack, and no more than one cell over on the widest', (_name, cells, px) => {
     for (const [family, advanceEm] of Object.entries(CELL_ADVANCE_EM)) {
       expect(px, `${family} reaches ${String(cells)} cells before the literal does`).toBeGreaterThanOrEqual(pxFor(cells, advanceEm));
@@ -101,14 +102,22 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
     expect(px).toBeLessThan(pxFor(cells + 1, CELL_ADVANCE_EM_MAX));
   });
 
+  it('takes the shell padding of the split literal from the stylesheet, not from memory (D-253)', () => {
+    const padding = /padding:\s*0\s*calc\((\d+)\s*\*\s*var\(--cell\)\)/.exec(global);
+    expect(padding, `${GLOBAL_PATH} should give the shell's side padding in cells`).not.toBeNull();
+    expect(Number(padding?.[1])).toBe(SHELL_PADDING_CELLS);
+  });
+
   it('leaves the guide the 40 cells FR-DESK-3 says it may never be under', () => {
     const LIST_MIN_CELLS = 44;
     const GUIDE_MIN_CELLS = 40;
     const LEFT_COLUMN_CELLS = 40;
     expect(WIDE_SPLIT_MIN_CELLS).toBe(LEFT_COLUMN_CELLS + LIST_MIN_CELLS + GUIDE_MIN_CELLS);
-    // At the literal itself, on the font the literal is tightest for.
+    // At the literal itself, on the font the literal is tightest for, with the
+    // gutters and the one padding of D-253 taken off the top first: what is
+    // left after the left column and the list's floor is still the guide's 40.
     const cells = WIDE_SPLIT_MIN_PX / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX);
-    expect(cells - LEFT_COLUMN_CELLS - 2 * GUTTER_CELLS - LIST_MIN_CELLS).toBeGreaterThanOrEqual(GUIDE_MIN_CELLS);
+    expect(cells - SHELL_PADDING_CELLS - LEFT_COLUMN_CELLS - 2 * GUTTER_CELLS - LIST_MIN_CELLS).toBeGreaterThanOrEqual(GUIDE_MIN_CELLS);
   });
 
   it('is written once: every min-width in src/ui is one of the two thresholds', () => {

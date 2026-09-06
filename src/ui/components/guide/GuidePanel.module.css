@@ -89,7 +89,7 @@
 /* R50 (F-6): from `WIDE_SPLIT_MIN_PX` up, the list is beside the panel and
    there is nothing for this control to bring back. `lib/layout.ts` owns the
    literal; `tests/styles/breakpoint.test.ts` holds it to that. */
-@media (min-width: 1253px) {
+@media (min-width: 1272px) {
   .toList {
     display: none;
   }
