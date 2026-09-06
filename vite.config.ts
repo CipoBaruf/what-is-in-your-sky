@@ -15,10 +15,23 @@ import { VitePWA } from 'vite-plugin-pwa';
 // top-level await, which the default IIFE worker format rejects (the build is never
 // loaded; we do not call `createWasmModule`).
 export default defineConfig({
-  plugins: [react(), pagesHeaders(), appShellWorker(), ...(process.env['BUNDLE_STATS'] ? [visualizer({ gzipSize: true, filename: 'bundle-stats/stats.html' }) as unknown as Plugin] : [])],
+  // FR-FLAG-1 (D-183): the only client env var the app reads; naming it here
+  // is what keeps a future `VITE_`-prefixed typo from silently reaching the bundle.
+  envPrefix: 'VITE_MOON_LORE',
+  plugins: [react(), pagesHeaders(), appShellWorker(), moonLoreFlagLog(), ...(process.env['BUNDLE_STATS'] ? [visualizer({ gzipSize: true, filename: 'bundle-stats/stats.html' }) as unknown as Plugin] : [])],
   build: { target: 'es2022' },
   worker: { format: 'es' },
 });
+
+/** FR-FLAG-2: the flag's resolved value, printed once per build so a log is the record of which build shipped. */
+function moonLoreFlagLog(): Plugin {
+  return {
+    name: 'wiys:moon-lore-flag-log',
+    configResolved(config) {
+      console.log(`VITE_MOON_LORE=${config.env['VITE_MOON_LORE'] === 'on' ? 'on' : 'off'}`);
+    },
+  };
+}
 
 interface HeaderRule {
   pattern: RegExp;

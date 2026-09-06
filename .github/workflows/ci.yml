@@ -31,7 +31,13 @@ jobs:
       # Chromium is needed by `npm test` too: the Vitest browser project boots the real worker (R5).
       - run: bash .github/workflows/stage.sh browsers npx playwright install --with-deps chromium
       - run: bash .github/workflows/stage.sh unit npm test
+      # FR-FLAG-2 (D-183): this build and the e2e stage below run with the flag on, so
+      # `tests/e2e/moon.spec.ts` keeps covering the tradition line end to end. The "off"
+      # state — the default a plain `npm run build` ships — is `tests/build/flags.test.ts`
+      # and the capture set (D-179, captures.yml), neither of which is this build.
       - run: bash .github/workflows/stage.sh build npm run build
+        env:
+          VITE_MOON_LORE: 'on'
       # PLAN §11 bundle budgets (R15): a table of gzipped chunk sizes, an annotation on overrun, never a failure.
       - run: bash .github/workflows/stage.sh bundle npm run bundle:budget
       # FR-CI-2: the v1 capture set is not here. It runs on `main` (captures.yml) behind CAPTURES=1.

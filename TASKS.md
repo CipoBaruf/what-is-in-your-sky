@@ -855,7 +855,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Touches outside the lane:** none.
   - **Done when:** a test per finding; `npm test` green.
 
-- [ ] **R42 — The catalogs split per lane, and the Moon lore behind its flag**
+- [x] **R42 — The catalogs split per lane, and the Moon lore behind its flag**
   - **Lane:** ui
   - **Model:** sonnet
   - **Gate:** auto
