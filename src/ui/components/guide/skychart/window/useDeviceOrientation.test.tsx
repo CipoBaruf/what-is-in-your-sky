@@ -8,6 +8,7 @@
  * readings, the declination and the screen angle.
  */
 import { act, render, screen } from '@testing-library/react';
+import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetOrientationAccess, requestOrientationAccess } from './orientationAccess';
 import { lookDirection } from './projection';
@@ -17,7 +18,10 @@ let renders = 0;
 
 function Harness({ declinationDeg = 0 }: { declinationDeg?: number }) {
   const o = useDeviceOrientation(declinationDeg);
-  renders += 1;
+  // Commits, counted after each: the rate test's "one update per frame".
+  useEffect(() => {
+    renders += 1;
+  });
   const look = o.rotation ? lookDirection(o.rotation) : null;
   /** A tenth of a degree, with −0.0 read as 0.0. */
   const fmt = (v: number): string => (Math.round(v * 10) / 10 + 0).toFixed(1);

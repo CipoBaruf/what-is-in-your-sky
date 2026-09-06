@@ -15,6 +15,14 @@
  * the legend beside the drawing carries the words, lists the same passes
  * in the same order whichever view is mounted, and its keys are the ones
  * the drawing shows.
+ *
+ * R47 (FR-WIN-1, FR-WIN-4, FR-GUIDE-2b as amended): the window is the third
+ * view. It is offered only on a phone (D-175's presence test), so its cases
+ * run with the constructor and a touch screen stubbed; with neither, the
+ * toggle has two options and a saved `'window'` falls back to the dome. Its
+ * compass names and keys are in the DOM whether or not they are in the field
+ * (hidden by `visibility`), which is what lets the same anchor assertions
+ * hold for a view that shows a sixth of the sky.
  */
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
@@ -48,19 +56,36 @@ function legendEntries(container: HTMLElement): [string, string][] {
   return [...container.querySelectorAll('[data-testid="chart-legend"] button[data-pass-id]')].map((row) => [row.getAttribute('data-key') ?? '', row.getAttribute('data-pass-id') ?? '']);
 }
 
+/** D-175: a phone to point — the constructor and a touch screen — for the window's cases. */
+function withPhone(): void {
+  vi.stubGlobal('DeviceOrientationEvent', function DeviceOrientationEvent() {
+    return undefined;
+  });
+  Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
+}
+
+function withoutPhone(): void {
+  vi.unstubAllGlobals();
+  Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+}
+
 describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
   beforeAll(async () => {
+    if (view.id === 'window') withPhone();
     appStore.getState().setChartView(view.id);
     const { container, unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
     await waitFor(() => {
       expect(container.querySelector('[data-drawing]')).not.toBeNull();
     });
     unmount();
+    withoutPhone();
   });
   beforeEach(() => {
+    if (view.id === 'window') withPhone();
     appStore.getState().setChartView(view.id);
   });
   afterEach(() => {
+    withoutPhone();
     appStore.setState(initial, true);
     window.localStorage.clear();
   });
@@ -195,16 +220,18 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
 });
 
 describe('<SkyChart> contract across views', () => {
-  /** FR-LEG-2: "the same in all three views" — the two registered ones agree on what the legend lists and in which order. */
+  /** FR-LEG-2 / FR-GUIDE-2b as amended: "the same in all three views" — every registered view agrees on what the legend lists and in which order. */
   it('lists the same passes in the same order in every registered view', () => {
+    expect(SKY_CHART_VIEWS.map((view) => view.id).sort()).toEqual(['dome', 'polar', 'window']);
     expect([...legendOrders.keys()].sort()).toEqual(SKY_CHART_VIEWS.map((view) => view.id).sort());
     const orders = [...legendOrders.values()];
     for (const order of orders) expect(order).toEqual(orders[0]);
   });
 });
 
-describe('<SkyChart> view choice (US-6 AC5)', () => {
+describe('<SkyChart> view choice (US-6 AC5, FR-WIN-4)', () => {
   afterEach(() => {
+    withoutPhone();
     appStore.setState(initial, true);
     window.localStorage.clear();
   });
@@ -216,5 +243,24 @@ describe('<SkyChart> view choice (US-6 AC5)', () => {
     expect(screen.getByRole('figure')).toHaveAttribute('data-view', registered.includes('dome') ? 'dome' : registered[0]);
     if (SKY_CHART_VIEWS.length > 1) expect(screen.getByRole('group', { name: 'Chart view' })).toBeInTheDocument();
     else expect(screen.queryByRole('group', { name: 'Chart view' })).toBeNull();
+  });
+
+  /** FR-WIN-4 / US-21 AC4: a desktop never sees the option, and a saved window there is the dome. */
+  it('offers the window only where there is a phone to point, and falls a saved window back to the dome elsewhere', async () => {
+    appStore.getState().setChartView('window');
+    const { unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'dome');
+    const toggle = screen.getByRole('group', { name: 'Chart view' });
+    expect(within(toggle).getAllByRole('button').map((button) => button.textContent)).toEqual(['Polar', 'Dome']);
+    expect(appStore.getState().chartView).toBe('window'); // the preference is kept for the phone it was saved on
+    unmount();
+
+    withPhone();
+    const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'window');
+    expect(within(screen.getByRole('group', { name: 'Chart view' })).getAllByRole('button').map((button) => button.textContent)).toEqual(['Polar', 'Dome', 'Window']);
+    await waitFor(() => {
+      expect(container.querySelector('[data-drawing="window"]')).not.toBeNull();
+    });
   });
 });

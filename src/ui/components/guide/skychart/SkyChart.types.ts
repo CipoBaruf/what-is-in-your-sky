@@ -91,6 +91,15 @@ export interface SkyChartProps {
    * wide. The view never builds it: one list, whichever view is mounted.
    */
   legend?: ReactNode;
+  /**
+   * FR-WIN-4 / D-240 (R47): a view that cannot stay mounted says why — the
+   * window after a refused orientation permission (`denied`) or on a phone
+   * whose readings carry no compass heading (`relative`). `SkyChart` shows
+   * the one-line note, leaves the dome as the view and, for `relative`,
+   * stops offering the view for the session. The dome and the polar never
+   * call it.
+   */
+  onUnavailable?: (reason: 'denied' | 'relative') => void;
   className?: string;
 }
 
@@ -108,4 +117,17 @@ export interface HiddenMarker {
 export interface SkyChartView {
   Component: ComponentType<SkyChartProps>;
   id: ChartView;
+  /**
+   * FR-WIN-4 / D-188 (R47): whether this device can show the view at all;
+   * absent means always. The toggle offers only the available views, and a
+   * saved preference for one that is not falls back to the dome.
+   */
+  available?: () => boolean;
+  /**
+   * D-240 (R47): called inside the tap that picks the view, before it mounts.
+   * The window's orientation permission is requested here (FR-WIN-4: in the
+   * tap that chooses the view, never on load), since iOS grants it only from
+   * a user gesture and the view does not exist yet to ask.
+   */
+  choose?: () => void;
 }

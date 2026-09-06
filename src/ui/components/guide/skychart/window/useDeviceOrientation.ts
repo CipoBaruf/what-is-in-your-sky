@@ -55,8 +55,11 @@ export interface DeviceOrientationHandle {
 export function useDeviceOrientation(declinationDeg = 0): DeviceOrientationHandle {
   const available = useMemo(() => typeof window !== 'undefined' && orientationApiPresent(), []);
   const [needsGesture, setNeedsGesture] = useState(() => available && orientationGestureNeeded());
-  const [armed, setArmed] = useState(false);
-  const [state, setState] = useState<OrientationState>('idle');
+  // What the toggle's tap left behind, read once at mount: a refusal is the state (no second prompt), a request
+  // still in flight is awaited below, and where no gesture is needed at all the listener is armed at once
+  // (Android; the toggle's grant). Listening is not a request: FR-WIN-4's "never on load" is about the prompt.
+  const [state, setState] = useState<OrientationState>(() => (!available ? 'idle' : orientationAnswer() === 'denied' ? 'denied' : orientationRequestInFlight() ? 'waiting' : 'idle'));
+  const [armed, setArmed] = useState(() => available && orientationAnswer() !== 'denied' && orientationRequestInFlight() === null && !orientationGestureNeeded());
   const [rotation, setRotation] = useState<Mat3 | null>(null);
   const [screenAngleDeg, setScreenAngleDeg] = useState(() => (typeof window === 'undefined' ? 0 : screenAngle()));
 
@@ -75,27 +78,17 @@ export function useDeviceOrientation(declinationDeg = 0): DeviceOrientationHandl
     setState('denied');
   }, []);
 
-  // Armed without a tap where none is needed (Android; the toggle's grant), or the tap's request awaited.
+  // The toggle's tap made the request before this mounted: its answer arms or refuses.
   useEffect(() => {
-    if (!available) return;
-    if (orientationAnswer() === 'denied') {
-      // The toggle's tap was refused before this mounted: the note, not a second prompt.
-      setState('denied');
-      return;
-    }
-    const pending = orientationRequestInFlight();
-    if (pending) {
-      let live = true;
-      setState('waiting');
-      void pending.then((answer) => {
-        if (live) answered(answer);
-      });
-      return () => {
-        live = false;
-      };
-    }
-    if (!orientationGestureNeeded()) setArmed(true);
-    return undefined;
+    const pending = available ? orientationRequestInFlight() : null;
+    if (!pending) return;
+    let live = true;
+    void pending.then((answer) => {
+      if (live) answered(answer);
+    });
+    return () => {
+      live = false;
+    };
   }, [available, answered]);
 
   useEffect(() => {
