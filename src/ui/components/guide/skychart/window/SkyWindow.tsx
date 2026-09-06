@@ -43,8 +43,10 @@ import { useDeviceOrientation } from './useDeviceOrientation';
  * The drawing's box is measured (`ResizeObserver`), so the field spans the
  * shorter side whatever the frame gives it: the guide's square, the live
  * page's whole height. Before the first reading the picture is the phone held
- * upright toward the highlighted pass's peak, 20° up. `facingAzDeg` and
- * `onDrag` are ignored: the window has no hand-driven view (FR-WIN-5).
+ * upright toward the highlighted pass's peak, 20° up or as high as the peak
+ * needs to stay inside the top of the box with its key (`placeholderAltDeg`,
+ * D-241). `facingAzDeg` and `onDrag` are ignored: the window has no
+ * hand-driven view (FR-WIN-5).
  *
  * FR-WIN-5: when the browser still needs a tap for orientation — the window
  * saved as the view and reloaded on iOS — the one `[ point at the sky ]`
