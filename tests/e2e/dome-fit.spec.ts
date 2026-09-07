@@ -35,7 +35,7 @@ async function paintedExtent(drawing: Locator): Promise<{ x: number; y: number; 
   return drawing.evaluate((el) => {
     // A tick behind the dome (D-56's ring runs all the way round) is `display: none` rather than
     // drawn off-box, and reports an all-zero rect — excluded, or it would drag the extent to (0, 0).
-    const rects = [...el.querySelectorAll('pre.glyph-output, [data-side]')]
+    const rects = Array.from(el.querySelectorAll('pre.glyph-output, [data-side]'))
       .map((node) => node.getBoundingClientRect())
       .filter((r) => r.width > 0 && r.height > 0);
     const left = Math.min(...rects.map((r) => r.left));
