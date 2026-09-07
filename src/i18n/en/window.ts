@@ -22,5 +22,9 @@ export const windowMessages = {
     readout: (p: { point: CompassPoint; azimuth: string; altitude: string }) => `Looking ${p.point} (${p.azimuth}) · up ${p.altitude}`,
     /** FR-WIN-3 / US-21 AC6: the correction named, as the live strip names it. */
     trueNorth: (p: { declination: string }) => `true north, declination ${p.declination}`,
+    /** R56 (FR-FOL-5, US-21 AC10): the note over the hatched ground while some sky is still in the field. */
+    ground: 'Pointing at the ground — raise the phone.',
+    /** R56 (FR-FOL-5): the same, when no sky is left in the field and the box is the ground. */
+    buried: 'You are pointing at the ground — raise the phone.',
   },
 };

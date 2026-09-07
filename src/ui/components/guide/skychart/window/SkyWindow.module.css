@@ -229,6 +229,48 @@
   stroke-width: 1;
 }
 
+/* R56 (FR-FOL-5, D-278): the phone pointed at the ground. The hatch is a
+   pattern and not a colour, so the ground reads with the colours off (FR-X-5);
+   the tile is the ground token under the ring stroke, turned 45°, and the veil
+   is clipped to the horizon while some sky is still in the field. */
+.groundFill {
+  fill: var(--chart-ground);
+  fill-opacity: 0.88;
+}
+
+.groundHatch {
+  stroke: var(--chart-rings);
+  stroke-width: 1.5;
+}
+
+.groundVeil {
+  stroke: none;
+}
+
+/* The note stands in the drawing: over the hatch at the bottom of the box while
+   sky is left, in the middle of it when the box is the ground. It is a line of
+   text, never a dialog — nothing to dismiss, and no pointer to catch. */
+.groundNote,
+.buriedNote {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0 var(--cell);
+  color: var(--fg);
+  text-align: center;
+  pointer-events: none;
+}
+
+.groundNote {
+  bottom: var(--row);
+}
+
+.buriedNote {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
 /* FR-WIN-5: the one control in the window's place, over the placeholder picture, bracketed like every action. */
 .gate {
   position: absolute;
