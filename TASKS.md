@@ -1056,7 +1056,7 @@ The `ui` lane is again the long pole: eight of its tasks in a row, because the f
 
 No two tasks in one wave name the same shared file: R37 and R39 both touch `tests/e2e/live.spec.ts` only through R37's `seedStoredRun` switch, which is one additive import per spec; the driver's rebase settles it. `src/physics/constants.ts` is touched by R45 alone. From R42 on the catalogs are per lane.
 
-- [ ] **R55 — The install offer comes back: "Not now" snoozes it, 7 days then 30, then never**
+- [x] **R55 — The install offer comes back: "Not now" snoozes it, 7 days then 30, then never** — done as written; the three stored fields travel as one `InstallAnswer` through the store so the pure rule and the slice cannot read the device differently, and the e2e is `install-snooze.spec.ts` on the pull-request path (two tests, 0.8 s) with the captures behind `CAPTURES=1`. The iOS note snoozes too, since "Not now" is the only answer it has.
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
