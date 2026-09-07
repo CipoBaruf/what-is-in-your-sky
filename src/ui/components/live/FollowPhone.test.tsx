@@ -25,17 +25,11 @@ import { useFollowPhone } from './useFollowPhone';
 const initial = appStore.getInitialState();
 const PREFS_KEY = 'wiys:prefs:v1';
 
-/** The hook and the control together, with a `stop` the page would call. */
+/** The hook and the control together. Following ends through the control or on unmount — R59 left
+ *  the page no way to end it, since the dome no longer turns while following. */
 function Harness() {
   const follow = useFollowPhone();
-  return (
-    <>
-      <FollowPhone follow={follow} />
-      <button type="button" onClick={follow.stop}>
-        leave
-      </button>
-    </>
-  );
+  return <FollowPhone follow={follow} />;
 }
 
 interface Reading {

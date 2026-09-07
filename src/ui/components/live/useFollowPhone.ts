@@ -54,8 +54,6 @@ export interface FollowPhoneHandle {
   available: boolean;
   state: FollowState;
   toggle: () => void;
-  /** Ends following and gives the view back; harmless when nothing is following. */
-  stop: () => void;
 }
 
 /** FR-FOL-1: the view the control opens. */
@@ -133,5 +131,7 @@ export function useFollowPhone(): FollowPhoneHandle {
     });
   }, [following, armed, stop]);
 
-  return { available, state, toggle, stop };
+  // R59 review: `stop` stays internal. The dome no longer turns while following, so there is no
+  // drag to end it and nothing outside calls it — the hook's own toggle and unmount do.
+  return { available, state, toggle };
 }

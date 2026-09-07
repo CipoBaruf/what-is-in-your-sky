@@ -92,6 +92,9 @@
 .page[data-compact='true'] {
   --live-row-gap: calc(var(--row) / 6);
   gap: var(--live-row-gap);
+  /* …and `--chart-floor-on`, the switch the block below explains, set here so the compact page
+     states its own variables in one place. */
+  --chart-floor-on: 0;
 }
 
 .page[data-compact='true'] .side,
@@ -118,9 +121,6 @@
    where there is room for it and everything that is left where there is not.
    Nothing overlaps at either phone height, and the page does not scroll
    (`live-compact.spec.ts`). */
-.page[data-compact='true'] {
-  --chart-floor-on: 0;
-}
 
 /* R48/R54: the playback controls and, on wide, the hidden-objects toggle beside them (FR-LIVE-7 as amended v1.1.1). */
 .playbackRow {
