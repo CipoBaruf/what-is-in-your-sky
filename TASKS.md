@@ -1158,7 +1158,7 @@ Delivery is PLAN §16 unchanged, cut by §16.9: five tasks, three waves, one tas
     - Captures (touch context, as R53's window shots): the two states at 390 px, both themes, English and Spanish.
     - `npm test` green; no change to the FR-GUIDE-6 rate path.
 
-- [ ] **R57 — The dome fits its box at every size, not at the two the test pins**
+- [x] **R57 — The dome fits its box at every size, not at the two the test pins**
   - **Lane:** chart
   - **Model:** sonnet
   - **Gate:** owner
