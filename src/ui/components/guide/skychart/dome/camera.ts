@@ -60,6 +60,14 @@ export const DRAG_PX_PER_DEG = 4;
  * `MIN_EXTENT_RATIO` and `MAX_EXTENT_RATIO` of the shorter side at every box
  * the app draws, from the landscape phone's 324 px up. A width-bound box (the
  * phone, the guide's square) is unchanged.
+ *
+ * R57 (FR-DOME-1 as amended v1.2, D-279, F-54): `zoomFor` is still taken from
+ * the box, but `layoutFor` now clamps its two arguments to what the raster can
+ * actually paint — `min(box, cols × cellWidthPx)` and `min(box, rows ×
+ * cellHeightPx)` — so a raster that falls short of the box (the retired
+ * `MAX_CELL_WIDTH_PX` cap did, past 1440 CSS px of width) cannot leave the
+ * drawing sized for more than the grid holds. Below that the grid always
+ * covered the box exactly, so this is a no-op there.
  */
 export const ZOOM_WIDTH_DIVISOR = 2.4;
 export const ZOOM_HEIGHT_DIVISOR = 1.7;
@@ -175,7 +183,6 @@ export const MAX_GRID_COLS = 120;
 export const CELL_ASPECT = 2;
 export const DEFAULT_CELL_WIDTH_PX = 6.5;
 export const MIN_CELL_WIDTH_PX = 4;
-export const MAX_CELL_WIDTH_PX = 12;
 /** D-92: the base layer is a wash under the lines, at half their columns. */
 export const BASE_COLS_RATIO = 0.5;
 export const MIN_BASE_COLS = 8;
@@ -306,20 +313,29 @@ function rowsFor(hostHeightPx: number | null, cellHeightPx: number, cols: number
  */
 export function layoutFor(hostWidthPx: number | null, hostHeightPx: number | null = null, advance: GlyphAdvance = DEFAULT_ADVANCE, cols = colsFor(hostWidthPx)): DomeLayout {
   const measured = hostWidthPx !== null && Number.isFinite(hostWidthPx) && hostWidthPx > 0;
-  const cellWidthPx = measured ? Math.min(MAX_CELL_WIDTH_PX, Math.max(MIN_CELL_WIDTH_PX, hostWidthPx / cols)) : DEFAULT_CELL_WIDTH_PX;
+  // R57 (D-279): no upper cap — once the column cap binds the cell keeps growing, so `cols ×
+  // cellWidthPx` covers the box at every width instead of stalling at 12 px past 1440 CSS px.
+  const cellWidthPx = measured ? Math.max(MIN_CELL_WIDTH_PX, hostWidthPx / cols) : DEFAULT_CELL_WIDTH_PX;
   const braille = usable(advance.braille, DEFAULT_ADVANCE.braille);
   const space = usable(advance.space, braille);
   const fontSizePx = cellWidthPx / braille;
   const width = measured ? hostWidthPx : REFERENCE_WIDTH_PX;
   const height = hostHeightPx !== null && Number.isFinite(hostHeightPx) && hostHeightPx > 0 ? hostHeightPx : width;
+  const cellHeightPx = cellWidthPx * CELL_ASPECT;
+  const rows = rowsFor(hostHeightPx, cellHeightPx, cols);
   return {
     cols,
-    rows: rowsFor(hostHeightPx, cellWidthPx * CELL_ASPECT, cols),
+    rows,
     cellWidthPx,
-    cellHeightPx: cellWidthPx * CELL_ASPECT,
+    cellHeightPx,
     fontSizePx,
     wordSpacingPx: cellWidthPx - space * fontSizePx,
-    zoom: zoomFor(width, height),
+    // R57 (D-279): the ceiling holds by construction even if a cell cap is ever reintroduced —
+    // `zoomFor` never sizes the drawing for more box than the raster it will actually paint covers.
+    // Only where a box was actually measured: unmeasured, `cols` may be the base layer's caller-
+    // supplied override (D-92, half the line layer's) rather than `colsFor`'s own count, and the
+    // two layers must still share one zoom (D-91) against the same `REFERENCE_WIDTH_PX` box.
+    zoom: measured ? zoomFor(Math.min(width, cols * cellWidthPx), Math.min(height, rows * cellHeightPx)) : zoomFor(width, height),
   };
 }
 

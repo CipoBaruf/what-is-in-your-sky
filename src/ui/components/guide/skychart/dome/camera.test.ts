@@ -11,6 +11,7 @@ import { es } from '../../../../../i18n/es';
 import {
   baseColsFor,
   baseLayoutFor,
+  CELL_ASPECT,
   clampTilt,
   colsFor,
   DEFAULT_TILT_DEG,
@@ -23,7 +24,6 @@ import {
   GRID_COLS,
   initialFor,
   layoutFor,
-  MAX_CELL_WIDTH_PX,
   MAX_GRID_COLS,
   MIN_BASE_COLS,
   MIN_CELL_WIDTH_PX,
@@ -157,7 +157,10 @@ describe('layoutFor (FR-DOME-1, D-91)', () => {
     expect(desktop.cols).toBe(120);
     expect(desktop.rows).toBe(60);
     expect(desktop.cellWidthPx).toBeCloseTo(1280 / 120, 9);
-    expect(layoutFor(2000, 2000).cellWidthPx).toBe(MAX_CELL_WIDTH_PX);
+    // R57 (D-279, F-54): past 1440 px the old code capped the cell at 12 px, leaving the raster
+    // narrower than the box; the cell now keeps growing so the raster still covers it.
+    expect(layoutFor(2000, 2000).cellWidthPx).toBeCloseTo(2000 / 120, 9);
+    expect(layoutFor(2000, 2000).cols * layoutFor(2000, 2000).cellWidthPx).toBeCloseTo(2000, 9);
   });
 
   it('fills the box’s height in rows, so nothing is letterboxed (FR-DOME-1)', () => {
@@ -180,7 +183,10 @@ describe('layoutFor (FR-DOME-1, D-91)', () => {
     expect(layoutFor(390, 390).zoom).toBe(zoomFor(390, 390));
     expect(layoutFor(1280, 1280).zoom).toBeCloseTo(zoomFor(1280, 1280), 9);
     // R32 (D-161): a box wider than tall zooms to its height, so the top of the dome stays inside it; a taller one to its width.
-    expect(layoutFor(1240, 450).zoom).toBeCloseTo(zoomFor(1240, 450), 9);
+    // R57 (D-279): against the *raster's* height (rows × cellHeightPx, 434 px of the 450), not the
+    // box's — F-51's rounded-down rows already leave a few px of the box below the last row.
+    const wide = layoutFor(1240, 450);
+    expect(wide.zoom).toBeCloseTo(zoomFor(1240, wide.rows * wide.cellHeightPx), 9);
     expect(layoutFor(352, 600).zoom).toBeCloseTo(zoomFor(352, 600), 9);
     expect(layoutFor(390, null).zoom).toBe(zoomFor(390, 390));
     const line = layoutFor(1280, 1280);
@@ -261,23 +267,87 @@ describe('the fit rule (FR-DOME-1, D-187, D-268)', () => {
   });
 });
 
+/**
+ * F-54 / D-279 (v1.2): R54's ceiling test only pinned 1280 × 800 and
+ * 1920 × 1080. Past 1440 CSS px of width `colsFor`'s 120-column cap forced
+ * `layoutFor`'s cell against the old `MAX_CELL_WIDTH_PX = 12`, so the raster
+ * stayed 1440 px wide (1920 px at 1920 × 1080, where the label margin still
+ * absorbed the 80 px shortfall) while `zoomFor` kept sizing the drawing from
+ * the box — at 2560 × 1440 the drawing wants 1650 px of raster and only 1440
+ * are there, so the east and west columns fall off the grid. The fix (this
+ * file's `layoutFor`) makes the raster cover the box at every width, so the
+ * ceiling is now checked against the raster's own painted pixels
+ * (`cols × cellWidthPx`, `rows × cellHeightPx`), not just the box — the
+ * stronger claim FR-DOME-1 v1.2 makes, and the one the old rule fails here at
+ * 2560 × 1440 and above while still (barely) holding at the two sizes R54
+ * pinned.
+ */
+describe('the fit rule holds above the R54 pins too (FR-DOME-1 v1.2, D-279, F-54)', () => {
+  it.each([
+    [1280, 800],
+    [1920, 1080],
+    [2560, 1440],
+    [3840, 2160],
+  ])('covers between 90 %% and 100 %% of the shorter side, and never outgrows the raster, at %d × %d', (width, height) => {
+    const layout = layoutFor(width, height);
+    const extent = drawingExtent(layout.zoom, DEFAULT_TILT_DEG, 0, { widthPx: layout.cellWidthPx, heightPx: layout.cellHeightPx });
+    const shorter = Math.min(width, height);
+    const rasterWidth = layout.cols * layout.cellWidthPx;
+    const rasterHeight = layout.rows * layout.cellHeightPx;
+    expect(Math.max(extent.width, extent.height)).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO * shorter);
+    // The raster never exceeds its box (F-51's rounded-down rows, and now the uncapped cell).
+    expect(rasterWidth).toBeLessThanOrEqual(width + 1e-6);
+    expect(rasterHeight).toBeLessThanOrEqual(height + 1e-6);
+    // F-54: and the drawing never exceeds the raster it is painted on, box or no box.
+    expect(extent.width).toBeLessThanOrEqual(MAX_EXTENT_RATIO * rasterWidth);
+    expect(extent.height).toBeLessThanOrEqual(MAX_EXTENT_RATIO * rasterHeight);
+  });
+
+  it('would have cut the east and west columns under the old cell cap at 2560 × 1440, which is F-54', () => {
+    const oldCellWidthPx = 12; // the retired MAX_CELL_WIDTH_PX
+    const oldRasterWidth = MAX_GRID_COLS * oldCellWidthPx; // 1440, whatever the box's width
+    const oldZoom = zoomFor(2560, 1440); // the old rule sized the drawing from the box, uncapped
+    const extent = drawingExtent(oldZoom, DEFAULT_TILT_DEG, 0, { widthPx: oldCellWidthPx, heightPx: oldCellWidthPx * CELL_ASPECT });
+    expect(extent.width).toBeGreaterThan(oldRasterWidth);
+    const fixed = layoutFor(2560, 1440);
+    const fixedExtent = drawingExtent(fixed.zoom, DEFAULT_TILT_DEG, 0, { widthPx: fixed.cellWidthPx, heightPx: fixed.cellHeightPx });
+    expect(fixedExtent.width).toBeLessThanOrEqual(fixed.cols * fixed.cellWidthPx);
+  });
+});
+
 describe('sameLayout (F-35)', () => {
   it('says two identical layouts are the same', () => {
     expect(sameLayout(layoutFor(390, 390), layoutFor(390, 390))).toBe(true);
   });
 
-  it('catches a zoom-only change, which a height-only resize can produce (D-161, F-35) while cols, rows, cell and font hold', () => {
-    // A box wider than tall zooms to its height (D-161): two heights close enough to round to the
-    // same row count still move `zoom`, since it is a continuous function of the shorter side.
-    // Two heights inside the same 21.3 px row (R54 rounds the count down, so both are 15 rows).
+  it('two heights inside the same row bucket now paint the same picture (R57, D-279)', () => {
+    // Before R57 `zoom` scaled continuously with the raw box height even once `rows` (a floor,
+    // R54) had already settled on the raster it could paint; the two boxes below round to the
+    // same 15 rows of 21.3 px and, since `zoom` is now taken against that raster height rather
+    // than the box's, they are genuinely the same drawing.
     const shorter = layoutFor(1280, 322);
     const taller = layoutFor(1280, 330);
     expect(taller.rows).toBe(shorter.rows);
     expect(taller.cols).toBe(shorter.cols);
     expect(taller.cellWidthPx).toBe(shorter.cellWidthPx);
     expect(taller.fontSizePx).toBe(shorter.fontSizePx);
-    expect(taller.zoom).not.toBeCloseTo(shorter.zoom, 2);
-    expect(sameLayout(taller, shorter)).toBe(false);
+    expect(taller.zoom).toBe(shorter.zoom);
+    expect(sameLayout(taller, shorter)).toBe(true);
+  });
+
+  it('still catches a zoom-only change from a narrow, MIN_CELL_WIDTH_PX-bound resize (F-35)', () => {
+    // Below 240 px `colsFor` is already at its floor (60, GRID_COLS) and the cell clamps to
+    // MIN_CELL_WIDTH_PX, so the raster (240 px) is wider than the box and `zoomFor` takes the
+    // box's own width — the one range left where zoom still varies continuously while cols, rows,
+    // cell and font all hold, so a resize inside it still needs `sameLayout` to notice.
+    const narrower = layoutFor(150, 1000);
+    const wider = layoutFor(200, 1000);
+    expect(wider.cols).toBe(narrower.cols);
+    expect(wider.rows).toBe(narrower.rows);
+    expect(wider.cellWidthPx).toBe(narrower.cellWidthPx);
+    expect(wider.fontSizePx).toBe(narrower.fontSizePx);
+    expect(wider.zoom).not.toBeCloseTo(narrower.zoom, 2);
+    expect(sameLayout(wider, narrower)).toBe(false);
   });
 
   it('still catches a cols/rows/cell/font change on its own', () => {
