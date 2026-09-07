@@ -101,6 +101,14 @@ export const INK_HEIGHT_UNITS = 2 * GROUND_RADIUS * Math.cos((DEFAULT_TILT_DEG *
  * has not got to give.
  */
 export const INK_MARGIN_CELLS = 1;
+/**
+ * A hair off the ink so an edge that lands exactly on a cell boundary falls
+ * *inside* the last blank column rather than on it. Without it a box where the
+ * clamp binds at equality (676.6 px square with whole-pixel advances: 612 px of
+ * ink in a 624 px raster of 6 px cells) leaves the margin to float error, and
+ * the reader sees the dome touch the edge of the grid.
+ */
+const INK_EPSILON_PX = 1e-6;
 
 /** The raster a layer is painted on: its size in CSS px, and one cell of it. */
 export interface RasterSize {
@@ -132,7 +140,7 @@ export interface RasterSize {
  * 0.89 of the shorter side against FR-DOME-1's 0.9 floor (D-291).
  */
 export function zoomWithinRaster(widthPx: number, heightPx: number, raster: RasterSize): number {
-  const inkWidthPx = Math.min(widthPx, raster.widthPx) - 2 * INK_MARGIN_CELLS * raster.cellWidthPx;
+  const inkWidthPx = Math.min(widthPx, raster.widthPx) - 2 * INK_MARGIN_CELLS * raster.cellWidthPx - INK_EPSILON_PX;
   return Math.min(zoomFor(widthPx, heightPx), inkWidthPx / INK_WIDTH_UNITS, Math.min(heightPx, raster.heightPx) / INK_HEIGHT_UNITS);
 }
 
@@ -317,13 +325,15 @@ const FIT_SLACK_PX = 0.5;
  * column count and the zoom follow the measured row. Falls back to
  * `layoutFor` when nothing can be measured.
  *
- * D-293 (R57): the settled cell also sets the column count, because a cell
- * rounded down to a whole pixel would otherwise leave the raster short of the
- * box — `MAX_GRID_COLS` caps what `colsFor` asks of the box, and the fit loop
- * then replaces the width that platform's rounding took, up to about a tenth
- * more columns of a proportionally smaller cell. Where the advance is exact
- * (macOS, and anything with subpixel positioning) the loop settles on its
- * first step and nothing here changes.
+ * D-293 (R57): the column count is **not** touched here. A cell rounded down to
+ * a whole pixel leaves the raster short of the box — 60 cells of 5 px in a
+ * 354 px box — and the drawing on it is short of the box with it, below
+ * FR-DOME-1's 0.9 floor. Giving the settled cell the columns it leaves room for
+ * would recover that, but it lets the grid pass `MAX_GRID_COLS` and makes the
+ * count depend on the platform's glyph rounding, so the same box would be a
+ * 60-column picture here and a 69-column one on Linux. The grid is the
+ * picture's texture; the exact, platform-independent count is worth more than
+ * the last few per cent of fill.
  */
 export function fitLayout(hostWidthPx: number | null, hostHeightPx: number | null, advance: GlyphAdvance, measureRows: (fontSizePx: number, cols: number) => RowMetrics, cols = colsFor(hostWidthPx)): DomeLayout {
   const base = layoutFor(hostWidthPx, hostHeightPx, advance, cols);
@@ -336,20 +346,14 @@ export function fitLayout(hostWidthPx: number | null, hostHeightPx: number | nul
     if (rows.brailleRowPx <= hostWidthPx + FIT_SLACK_PX || fontSizePx <= minFontPx) {
       const cellWidthPx = rows.brailleRowPx / cols;
       const cellHeightPx = cellWidthPx * CELL_ASPECT;
-      // D-293 (R57, FR-DOME-1 v1.2): the columns the settled cell leaves room for. A font stepped
-      // down for whole-pixel advances paints a cell narrower than `hostWidthPx / cols`, so the
-      // requested count no longer covers the box — 60 cells of 5 px in a 354 px box is a raster
-      // 15 % short of it, and in a width-bound box the drawing can never be wider than its raster,
-      // whatever the zoom. The lost width comes back as columns rather than as a coarser drawing.
-      const fitCols = Math.max(cols, Math.floor((hostWidthPx + FIT_SLACK_PX) / cellWidthPx));
-      const fitRows = rowsFor(hostHeightPx, cellHeightPx, fitCols);
+      const fitRows = rowsFor(hostHeightPx, cellHeightPx, cols);
       const spaceRowPx = rows.spaceRowPx > 0 ? rows.spaceRowPx : rows.brailleRowPx;
       const height = hostHeightPx !== null && Number.isFinite(hostHeightPx) && hostHeightPx > 0 ? hostHeightPx : hostWidthPx;
       // R57 (D-279, D-290, F-54): re-clamp against the raster the fit loop actually settled on,
       // not the pre-fit cell `base.zoom` was sized for — a font that steps down here paints a
       // narrower raster than `layoutFor`'s own clamp accounted for.
-      const zoom = zoomWithinRaster(hostWidthPx, height, { widthPx: fitCols * cellWidthPx, heightPx: fitRows * cellHeightPx, cellWidthPx });
-      return { ...base, cols: fitCols, rows: fitRows, cellWidthPx, cellHeightPx, fontSizePx, wordSpacingPx: (rows.brailleRowPx - spaceRowPx) / cols, zoom };
+      const zoom = zoomWithinRaster(hostWidthPx, height, { widthPx: cols * cellWidthPx, heightPx: fitRows * cellHeightPx, cellWidthPx });
+      return { ...base, rows: fitRows, cellWidthPx, cellHeightPx, fontSizePx, wordSpacingPx: (rows.brailleRowPx - spaceRowPx) / cols, zoom };
     }
     fontSizePx = Math.max(minFontPx, fontSizePx - FIT_STEP_PX);
   }
