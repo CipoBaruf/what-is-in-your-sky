@@ -765,7 +765,7 @@ flowchart LR
 
 ## v1.1 tasks
 
-Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec Phase 2b, "phone pass": the fifty open v1 findings, CI time, the compact layout and settings page, the chart legend, the sky window, the live trajectories and stripe, true north. Delivery is PLAN §16 as amended for the phase: five lanes, four models, the findings and the CI budget in the first wave, the sky-window spike driven by the owner. *(v1.1.1, 2026-09-06)* R54 appended from `SPEC.md` v1.1.1 and `PLAN.md` v0.4.1: the owner's wide live-page findings F-51..F-53 (V11-14, D-268), on the idle `live` lane beside the `ui` chain. *(v1.1.2, 2026-09-06)* R55 appended from `SPEC.md` v1.1.2 and `PLAN.md` v0.4.2: the install offer is snoozed by "Not now" rather than ended by it (V11-15, D-272). It depends on nothing in the phase and runs in any wave.
+Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec Phase 2b, "phone pass": the fifty open v1 findings, CI time, the compact layout and settings page, the chart legend, the sky window, the live trajectories and stripe, true north. Delivery is PLAN §16 as amended for the phase: five lanes, four models, the findings and the CI budget in the first wave, the sky-window spike driven by the owner. *(v1.1.1, 2026-09-06)* R54 appended from `SPEC.md` v1.1.1 and `PLAN.md` v0.4.1: the owner's wide live-page findings F-51..F-53 (V11-14, D-268), on the idle `live` lane beside the `ui` chain. *(v1.1.2, 2026-09-06)* R55 appended from `SPEC.md` v1.1.2 and `PLAN.md` v0.4.2: the install offer is snoozed by "Not now" rather than ended by it (V11-15, D-272). It depends on nothing in the phase and runs in any wave; V11-16 also puts the offer on the settings page, which is R52's, so R52 now waits for it.
 
 **Before the first wave** (repo tooling, not tasks — PLAN D-86, D-197, D-198): `scripts/sdd/tasks.ts` accepts the lanes `window` and `docs`, the models `sonnet`, `haiku` and `interactive`, and the fields `Precondition:` and `Findings:`; `scripts/sdd/brief.ts` writes the brief; `session.ts` gains `--fallback`; `sdd-implement` reads the brief under `SDD_HEADLESS` and runs narrow tests while iterating. `--status` prints the open F-numbers.
 
@@ -995,17 +995,18 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
-  - **Depends on:** R43, R51
+  - **Depends on:** R43, R51, R55 (the hint's two answers, which the settings action is pulled out beside)
   - **Precondition:** `docs/mockups/compact-390-home-dark.png`
   - **Goal:** On a phone the home screen is the answer, the form is one tap away, and nothing wraps.
-  - **Satisfies:** FR-COMP-1, FR-COMP-2, FR-COMP-3, FR-COMP-4, FR-DESK-2 as amended, US-5 AC2 as amended; US-20 AC1..AC6; PLAN D-184, D-193.
-  - **Scope:** `common/Header.tsx` with the wide row (title, `[ Live sky ]` beside it, language and theme at the right on one grid row) and the compact row (title, `[ live ]`, `[ settings ]`); `screens/Settings.tsx` at `#settings` composing the existing location, favourites, language and theme components; `passSelection.ts` parses the third route; `Esc` through the D-73 listener; `common/LocationSummary.tsx` on the compact home; `SortToggle` short labels on compact; `tests/styles/controlRows.test.ts` over every FR-COMP-4 row in both locales (the live page's rows included, rendered from R48's components).
+  - **Satisfies:** FR-COMP-1, FR-COMP-2 as amended (v1.1.2, the Install row), FR-COMP-3, FR-COMP-4, FR-DESK-2 as amended, US-5 AC2 as amended, FR-OFF-6 as amended (v1.1.2, V11-16), US-16 AC4 as amended; US-20 AC1..AC6; PLAN D-184, D-193, D-260.
+  - **Scope:** `common/Header.tsx` with the wide row (title, `[ Live sky ]` beside it, language and theme at the right on one grid row) and the compact row (title, `[ live ]`, `[ settings ]`); `screens/Settings.tsx` at `#settings` composing the existing location, favourites, language and theme components; `passSelection.ts` parses the third route; `Esc` through the D-73 listener; `common/LocationSummary.tsx` on the compact home; `SortToggle` short labels on compact; `tests/styles/controlRows.test.ts` over every FR-COMP-4 row in both locales (the live page's rows included, rendered from R48's components). **Install (V11-16, D-260):** `common/InstallAction.tsx` pulled out of `InstallHint.tsx` — whichever of the two shapes the environment calls for, over the event `installOffer.ts` holds, with no decline beside it — placed on the settings page between Saved places and Clear saved location. It reads the browser, never `installOfferVisibility`, so it survives the third "Not now"; taking it calls `dismissInstallHint`, and it does not render when the browser has nothing to offer, which is also what "already installed" looks like. `InstallHint` keeps the snooze and wraps the same action, so the copy exists once.
   - **Touches outside the lane:** none.
   - **Done when:**
     - RTL: `#settings` renders; each control writes the store field it wrote on the home screen; `Esc`, back and the hash round-trip; the wide layout shows no `#settings` link and its header row is one grid line.
     - `controlRows.test.ts` ≤ 36 cells for every row in both locales.
     - e2e at 390 px: header, summary, settings, and the sort row on one line; at 1280 px the live link beside the title.
-    - Captures of home, settings and the wide header, both themes, both languages, against the R43 mockups.
+    - The settings Install row: shown after the third decline and while a snooze is running, both shapes by the environment prop, absent when the browser offers nothing, and taking it installs and ends the hint. Its row fits FR-COMP-4's 36 cells in both locales.
+    - Captures of home, settings and the wide header, both themes, both languages, against the R43 mockups; the settings capture shows the Install row.
 
 - [ ] **R53 — v1.1 release preparation**
   - **Lane:** ui
@@ -1081,7 +1082,7 @@ No two tasks in one wave name the same shared file: R37 and R39 both touch `test
 | FR-COMP-6 | R43 |
 | FR-LEG-1, 2, 4, 5 | R45 |
 | FR-LEG-3 | R51 (the detail), R48 (the live page's rows) |
-| FR-OFF-6 as amended (v1.1.2) | R55 |
+| FR-OFF-6 as amended (v1.1.2) | R55 (the snooze), R52 (the settings action, V11-16) |
 | FR-WIN-1, 2, 4, 5 | R47 |
 | FR-WIN-3 | R44 (declination), R47 (the rotation) |
 | FR-WIN-6 | R48 |
@@ -1128,7 +1129,7 @@ flowchart LR
   R44 --> R48
   R43 --> R52
   R51 --> R52
+  R55 --> R52
   R45 & R48 --> R54
   R41 & R47 & R48 & R52 & R54 --> R53
-  R55
 ```
