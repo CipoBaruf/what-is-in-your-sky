@@ -1,13 +1,14 @@
 import { CATALOG } from '../data/catalog';
 import { loadElements } from '../data/elementsLoader';
-import { appPassesCache } from '../data/passesCache';
+import { localPrefs, type LocalPrefs } from '../data/localPrefs';
+import { appPassesCache, type PassesCache } from '../data/passesCache';
 import { loadCloudForecast } from '../data/weatherCache';
 import { searchPlaces } from '../data/openMeteo/geocode';
-import { observerFromLink, parseHash } from '../lib/shareLinks';
-import { documentVisibility, startEffects } from './effects';
+import { observerFromLink, parseHash, sameHashPlace } from '../lib/shareLinks';
+import { documentVisibility, startEffects, type EffectDeps } from './effects';
 import { setLiveNowClient } from './liveNow';
-import { appStore } from './store';
-import { createAppWorker, createWorkerClient } from './workerClient';
+import { appStore, type AppStore } from './store';
+import { createAppWorker, createWorkerClient, type WorkerLike } from './workerClient';
 
 export { appStore, useAppStore, type AppState } from './store';
 export type { ElementsState } from './slices/elements';
@@ -48,6 +49,27 @@ export function isFeatured(noradId: number): boolean {
 }
 
 /**
+ * The pieces `startApp` would otherwise reach for itself: the singleton store,
+ * the device's prefs and cache, a real `Worker`, the network loaders and the
+ * wall clock. Production passes none of them. A test passes all of them, which
+ * is the only way the guard below can be exercised *as it ships* rather than
+ * mirrored in the test (a mirrored branch stays green when the real one is
+ * deleted, which is what this seam exists to prevent).
+ */
+export interface StartAppOverrides {
+  store?: AppStore;
+  prefs?: LocalPrefs;
+  cache?: Pick<PassesCache, 'loadForObserver' | 'save'>;
+  createWorker?: () => WorkerLike;
+  loadElements?: EffectDeps['loadElements'];
+  loadWeather?: EffectDeps['loadWeather'];
+  now?: EffectDeps['now'];
+  visibility?: EffectDeps['visibility'];
+  /** The hash to boot on; `window.location.hash` unless a test names one. */
+  hash?: string;
+}
+
+/**
  * Creates the worker, restores the saved location and wires the effects to
  * the app store. Called once from `main.tsx`.
  *
@@ -58,10 +80,12 @@ export function isFeatured(noradId: number): boolean {
  * whatever was stored for that location on screen. Nothing reaches the
  * network before that, so a cold start with no signal still shows a list.
  */
-export function startApp(): () => void {
-  const client = createWorkerClient(createAppWorker());
+export function startApp(overrides: StartAppOverrides = {}): () => void {
+  const store = overrides.store ?? appStore;
+  const prefs = overrides.prefs ?? localPrefs;
+  const client = createWorkerClient((overrides.createWorker ?? createAppWorker)());
   setLiveNowClient(client);
-  const cache = appPassesCache();
+  const cache = overrides.cache ?? appPassesCache();
   // R31 (FR-SHARE-1, FR-LIVE-9): a link carries its own observer, and it wins
   // over the saved one — someone who opens it asked to look from there. It is
   // set here, before the effects are wired, for the reason R24 moved the
@@ -69,19 +93,26 @@ export function startApp(): () => void {
   // computing the saved location's passes and throwing them away a tick later
   // (D-135). It goes through `setObserver` like any other, so it is saved like
   // any other: the recipient's next visit opens where the link left them.
-  const link = parseHash(window.location.hash);
-  if (link !== null && link.kind !== 'passId') appStore.getState().setObserver(observerFromLink(link));
-  else appStore.getState().restoreSavedObserver();
+  // R58 (D-280): a `#live` link for the place already saved is not "someone
+  // asking to look from there" — FR-LIVE-9 writes it into the hash on the
+  // first scrub, which is how an ordinary session's own reload arrives here —
+  // so that one restores the saved observer instead, stored run and all.
+  // `sameHashPlace` (D-295) compares at the precision the hash carries, which
+  // is `shareLinks.ts`'s own rounding and not a second copy of it.
+  const link = parseHash(overrides.hash ?? window.location.hash);
+  if (link !== null && link.kind === 'live' && sameHashPlace(prefs.read().observer ?? null, link.observer)) store.getState().restoreSavedObserver();
+  else if (link !== null && link.kind !== 'passId') store.getState().setObserver(observerFromLink(link));
+  else store.getState().restoreSavedObserver();
   const stop = startEffects({
-    store: appStore,
+    store,
     client,
     catalog: CATALOG,
-    loadElements,
-    loadWeather: loadCloudForecast,
+    loadElements: overrides.loadElements ?? loadElements,
+    loadWeather: overrides.loadWeather ?? loadCloudForecast,
     loadStoredRun: (observer) => cache.loadForObserver(observer),
     saveRun: (run) => cache.save(run),
-    now: () => Date.now(),
-    visibility: documentVisibility(document),
+    now: overrides.now ?? (() => Date.now()),
+    visibility: overrides.visibility ?? documentVisibility(document),
   });
   return () => {
     stop();

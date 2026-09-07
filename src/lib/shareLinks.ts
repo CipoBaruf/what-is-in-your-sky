@@ -141,7 +141,30 @@ export function parseIsoInstant(text: string): EpochMs | null {
 /* -------------------------------------------------------------------------- */
 
 /** Five decimals is about a metre: more than the pass search can tell apart, and short enough to read in a message. */
-const coord = (n: number): string => String(Math.round(n * 1e5) / 1e5);
+const COORD_SCALE = 1e5;
+
+/** A coordinate at the precision the hash carries. The one place that rounding is decided (D-295). */
+export const hashCoord = (n: number): number => Math.round(n * COORD_SCALE) / COORD_SCALE;
+
+const coord = (n: number): string => String(hashCoord(n));
+
+/**
+ * D-280, D-295 (FR-LIVE-11, F-56): whether a link's observer names the place
+ * the app already holds — the same coordinates *to the precision the hash
+ * carries*, which is what `observerQuery` writes: five decimals of latitude
+ * and longitude, whole metres of altitude. It is deliberately the same
+ * rounding as `coord` above, from the same helper, so a link built here and
+ * the comparison cannot drift apart.
+ *
+ * A link that matches names no new place, so `startApp` and the live route
+ * leave the observer they have alone — its label, its zone, its stored run —
+ * rather than building a fresh `source: 'coords'` one that drops them and
+ * starts a search. A hash for a different place is a different place.
+ */
+export function sameHashPlace(place: SharedObserver | null, link: SharedObserver): boolean {
+  if (place === null) return false;
+  return hashCoord(place.lat) === hashCoord(link.lat) && hashCoord(place.lon) === hashCoord(link.lon) && Math.round(place.altM) === Math.round(link.altM);
+}
 
 function observerQuery(observer: SharedObserver): string {
   return `lat=${coord(observer.lat)}&lon=${coord(observer.lon)}&alt=${String(Math.round(observer.altM))}`;

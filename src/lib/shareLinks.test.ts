@@ -15,6 +15,7 @@ import {
   passLinkFor,
   passLinkHash,
   resolvePassLink,
+  sameHashPlace,
   shareUrl,
   type PassLink,
 } from './shareLinks';
@@ -124,6 +125,26 @@ describe('the live link (FR-LIVE-9)', () => {
     expect(liveLinkFromHash('#live?lat=-38.93&lon=-67.99&alt=270&t=soon')).toEqual({ kind: 'live', observer: OBSERVER, t: null });
     expect(liveLinkFromHash('#live')).toBeNull();
     expect(liveLinkFromHash(`#pass?lat=-38.93&lon=-67.99&alt=270&norad=25544&start=2026-09-02T03:04:05Z`)).toBeNull();
+  });
+
+  /**
+   * D-295 (FR-LIVE-11): "the precision the hash carries" is one thing, not two.
+   * The place a link is built from is the same place when the link comes back,
+   * however many digits the observer had; a place the hash would write
+   * differently is a different place, even where `coordsLabel`'s two decimals
+   * would agree (−38.929 and −38.93392 are both "−38.93" and half a kilometre
+   * apart).
+   */
+  it('recognises the place a link was built from, at the precision the link carries (D-295)', () => {
+    const gps = { lat: -38.933921274, lon: -67.990318617, altM: 270.4 };
+    const link = liveLinkFromHash(liveLinkHash({ observer: gps, t: START }));
+    expect(link).not.toBeNull();
+    expect(link?.observer).not.toEqual(gps); // the hash rounded the fix away
+    expect(sameHashPlace(gps, link?.observer ?? gps)).toBe(true);
+    expect(sameHashPlace(null, gps)).toBe(false);
+    for (const other of [{ ...gps, lat: -38.929 }, { ...gps, lon: -67.994 }, { ...gps, altM: 470 }, { ...gps, lat: -38.93393 }]) {
+      expect(sameHashPlace(gps, other), JSON.stringify(other)).toBe(false);
+    }
   });
 
   it('knows the live route with or without a readable link (FR-LIVE-1)', () => {

@@ -381,6 +381,10 @@ describe('<SkyWindow>', () => {
       });
       expect(screen.getByTestId('chart-view-note')).toHaveTextContent(en.window.denied);
       expect(appStore.getState().chartView).toBe('dome');
+      // R58 review (D-277, FR-WIN-5 as amended): the refusal ends the view, it does not rewrite the preference — this
+      // reader saved the window, and R59's follow control opens it over whatever they saved on top of that.
+      expect(appStore.getState().savedChartView).toBe('window');
+      expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'window' });
       const toggle = screen.getByRole('group', { name: 'Chart view' });
       expect(within(toggle).getByRole('button', { name: 'Window' })).toBeInTheDocument();
       // Choosing another view clears the note.
