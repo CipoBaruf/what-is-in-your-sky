@@ -120,6 +120,30 @@ describe('prefs slice', () => {
     expect(store.getState()).toMatchObject({ chartView: 'dome', savedChartView: 'dome', viewOverride: null });
   });
 
+  /**
+   * R58 review (D-277, FR-WIN-5 as amended): a view that reports itself
+   * unavailable — the orientation permission refused — stops being the view
+   * and writes nothing. Through `setChartView` it saved the fallback, so a
+   * refusal inside a followed window overwrote the view the reader had picked.
+   */
+  it('drops a view that cannot run here without writing the preference, whether it was the override or the choice', () => {
+    const storage = memoryStorage();
+    storage.map.set(PREFS_KEY, JSON.stringify({ chartView: 'polar' }));
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+
+    // Followed into the window (R59) and the orientation refused: back to the polar chart the reader chose, nothing written.
+    store.getState().setViewOverride('window');
+    store.getState().dropChartView('window');
+    expect(store.getState()).toMatchObject({ chartView: 'polar', savedChartView: 'polar', viewOverride: null });
+    expect(stored(storage)).toEqual({ chartView: 'polar' });
+
+    // The window is the saved view on this phone and it is refused: the dome is shown, and the preference is still the reader's.
+    store.getState().setChartView('window');
+    store.getState().dropChartView('window');
+    expect(store.getState()).toMatchObject({ chartView: 'dome', savedChartView: 'window', viewOverride: 'dome' });
+    expect(stored(storage)).toEqual({ chartView: 'window' });
+  });
+
   it('resolves the language from the browser until one is saved, then keeps the saved one (R17, FR-I18N-1)', () => {
     const storage = memoryStorage();
     // jsdom reports an English list, so a fresh store is English and nothing is written until the switch is used.

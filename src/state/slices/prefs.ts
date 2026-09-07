@@ -47,8 +47,12 @@ import type { AppState } from '../store';
  * R58 (D-277) splits the chart view in two: `savedChartView` is the written
  * preference and `viewOverride` is the follow control's, held only in memory.
  * `chartView` is the effective value the rest of the app already reads
- * (`viewOverride ?? savedChartView`), kept in sync by both setters rather than
- * computed lazily, so `SkyChart` and every other reader need no change.
+ * (`viewOverride ?? savedChartView`), kept in sync by the setters rather than
+ * computed lazily, so `SkyChart` and every other reader need no change. There
+ * are three of them and only one writes: `setChartView` is the view control,
+ * `setViewOverride` is the follow control, and `dropChartView` is a view
+ * saying it cannot run here (FR-WIN-5's refused orientation), which must leave
+ * the saved preference exactly as the reader left it.
  */
 export interface PrefsDeps {
   prefs: LocalPrefs;
@@ -73,6 +77,19 @@ export interface PrefsSlice {
   savedChartView: ChartView;
   /** Sets the saved view, through to storage, and ends any override: a reader who picks a view by hand while following simply stops following. */
   setChartView: (view: ChartView) => void;
+  /**
+   * R58 review (D-277, FR-WIN-5 as amended): a view that reports itself
+   * unavailable — orientation refused, no compass heading — stops being the
+   * view, and nothing is written. This is the only way out of a failed view:
+   * `setChartView` would save it, and the reader chose neither the failure nor,
+   * when the follow control opened the window, the view that failed.
+   *
+   * Clearing the override is enough when the failed view *is* the override
+   * (the reader returns to what they chose). When it is what they chose, the
+   * override becomes the default instead, so the effective view still leaves
+   * the failed one while the preference waits for the phone it was saved on.
+   */
+  dropChartView: (view: ChartView) => void;
   /** The polar chart's convention (FR-GUIDE-4), `looking-up` unless saved otherwise. */
   chartOrientation: ChartOrientation;
   setChartOrientation: (orientation: ChartOrientation) => void;
@@ -158,6 +175,12 @@ export const createPrefsSlice =
       setChartView: (chartView) => {
         set({ chartView, savedChartView: chartView, viewOverride: null });
         deps.prefs.write({ ...deps.prefs.read(), chartView });
+      },
+      dropChartView: (view) => {
+        set((state) => {
+          const viewOverride = state.savedChartView === view ? DEFAULT_CHART_VIEW : null;
+          return { viewOverride, chartView: viewOverride ?? state.savedChartView };
+        });
       },
       chartOrientation: deps.prefs.read().chartOrientation ?? DEFAULT_CHART_ORIENTATION,
       setChartOrientation: (chartOrientation) => {

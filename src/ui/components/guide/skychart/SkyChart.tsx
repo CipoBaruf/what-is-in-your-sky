@@ -117,6 +117,7 @@ export function SkyChart(props: SkyChartProps) {
   const t = useT();
   const chartView = useAppStore((s) => s.chartView);
   const setChartView = useAppStore((s) => s.setChartView);
+  const dropChartView = useAppStore((s) => s.dropChartView);
   // FR-WIN-4 (R47): the views this device is offered, less any lost for the session; the note a lost one left.
   const [lost, setLost] = useState<ReadonlySet<ChartView>>(() => new Set());
   const [note, setNote] = useState<'denied' | 'relative' | null>(null);
@@ -132,13 +133,18 @@ export function SkyChart(props: SkyChartProps) {
     [offered, setChartView],
   );
   const viewId = view.id;
+  // R58 review (D-277, FR-WIN-5 as amended): a view that cannot run here ends
+  // through `dropChartView`, which writes nothing. `setChartView` would have
+  // saved the fallback — and since the follow control opens the window as an
+  // override (R59), a refused permission would then have overwritten the view
+  // the reader picked, which is the one thing the amendment forbids.
   const unavailable = useCallback(
     (reason: 'denied' | 'relative') => {
       setNote(reason);
       if (reason === 'relative') setLost((current) => new Set([...current, viewId]));
-      setChartView(DEFAULT_CHART_VIEW);
+      dropChartView(viewId);
     },
-    [viewId, setChartView],
+    [viewId, dropChartView],
   );
   const { passes, observer, className, fill = false, now, hidden, colorBy, onSelectPass } = props;
   // FR-DOME-6: one evaluation for whichever view is mounted, so the toggle

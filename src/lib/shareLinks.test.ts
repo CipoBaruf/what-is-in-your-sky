@@ -137,8 +137,8 @@ describe('the live link (FR-LIVE-9)', () => {
    */
   it('recognises the place a link was built from, at the precision the link carries (D-295)', () => {
     const gps = { lat: -38.933921274, lon: -67.990318617, altM: 270.4 };
-    const link = parseHash(liveLinkHash({ observer: gps, t: START }));
-    expect(link?.kind).toBe('live');
+    const link = liveLinkFromHash(liveLinkHash({ observer: gps, t: START }));
+    expect(link).not.toBeNull();
     expect(link?.observer).not.toEqual(gps); // the hash rounded the fix away
     expect(sameHashPlace(gps, link?.observer ?? gps)).toBe(true);
     expect(sameHashPlace(null, gps)).toBe(false);
