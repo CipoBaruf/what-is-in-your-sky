@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useLocale, useT } from '../../../../../i18n/useT';
 import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
 import { compassPoint } from '../../../../../lib/compass';
@@ -12,7 +12,7 @@ import { useDeclination } from '../../../live/useDeclination';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
 import { ChartFrame } from '../ChartFrame';
 import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
-import { drawableDeg, lookDirection, project, scaleFor, uprightRotation, WINDOW_FOV, type Mat3, type Projected, type View } from './projection';
+import { drawableDeg, groundState, lookDirection, project, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type View } from './projection';
 import styles from './SkyWindow.module.css';
 import { useDeviceOrientation } from './useDeviceOrientation';
 
@@ -61,7 +61,6 @@ const ARC_STEP_DEG = 2;
 const PLACEHOLDER_ALT_DEG = 20;
 /** How far inside the top of the box the placeholder keeps the peak, so its marker and key (9 px up) stay in view. */
 const PEAK_INSET_DEG = 8;
-const DEG = 180 / Math.PI;
 
 /**
  * Where the placeholder looks in altitude: 20° up, so the horizon sits in the
@@ -72,8 +71,7 @@ const DEG = 180 / Math.PI;
  */
 export function placeholderAltDeg(peakElDeg: number | undefined, view: View): number {
   if (peakElDeg === undefined) return PLACEHOLDER_ALT_DEG;
-  const topDeg = 2 * Math.atan(view.height / 2 / scaleFor(view)) * DEG;
-  return Math.min(90, Math.max(PLACEHOLDER_ALT_DEG, peakElDeg - topDeg + PEAK_INSET_DEG));
+  return Math.min(90, Math.max(PLACEHOLDER_ALT_DEG, peakElDeg - verticalHalfFieldDeg(view) + PEAK_INSET_DEG));
 }
 /** The box in jsdom, where nothing can be measured: the compact phone's square. */
 const UNMEASURED = { width: 390, height: 390 };
@@ -124,6 +122,29 @@ function pathFrom(points: readonly Projected[], limitDeg: number): string {
     pen = true;
   }
   return d;
+}
+
+/**
+ * R56 (FR-FOL-5, D-278): the closed image of the horizon, for clipping the
+ * ground's hatch to it. The projection is stereographic, so the horizon — a
+ * great circle — draws a circle on the plane, and the point at infinity is the
+ * antipode of where the phone points: with the centre of the field *below* the
+ * horizon (which is every state this is drawn in) the sky is the part that
+ * runs off to infinity, so the ground is exactly the inside of that closed
+ * curve. It is the horizon the picture already computes, sampled the same way,
+ * but taken whole instead of clipped to the drawable field: the curve may run
+ * far outside the box, and closing it is what makes the clip a region.
+ */
+function groundClipPath(m: Mat3, view: View): string {
+  let d = '';
+  for (const point of HORIZON) {
+    const p = project(m, point.azDeg, point.elDeg, view);
+    // Within a hair of the antipode the projection has no answer (`projectDevice` returns the centre);
+    // those samples are hundreds of box-widths away and only exist when the centre is on the horizon itself.
+    if (p.offAxisDeg > 179.5 || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+    d += `${d ? 'L' : 'M'}${fmt(p.x)} ${fmt(p.y)} `;
+  }
+  return d ? `${d}Z` : '';
 }
 
 const inFrame = (p: Projected, view: View): boolean => p.front && p.x >= -EDGE_MARGIN && p.x <= view.width + EDGE_MARGIN && p.y >= -EDGE_MARGIN && p.y <= view.height + EDGE_MARGIN;
@@ -343,6 +364,15 @@ export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, n
   const at = useCallback((p: SkyPoint): Projected => project(m, p.azDeg, p.elDeg, view), [m, view]);
   const zenith = at({ azDeg: 0, elDeg: 90 });
 
+  // FR-FOL-5 (D-278): pointed at the ground, in two steps — the hatch over the part of the field below the
+  // horizon, and, once no sky is left in it, the whole box. Neither is modal: raising the phone is what leaves.
+  const ground = groundState(m, view);
+  const veilClip = ground === 'ground' ? groundClipPath(m, view) : '';
+  const veil = ground === 'buried' || veilClip !== '';
+  const uid = useId().replaceAll(':', '');
+  const hatchId = `${uid}-hatch`;
+  const clipId = `${uid}-ground`;
+
   const live = state === 'on';
   const status = live ? (
     <p className={styles.readout} data-testid="window-readout">
@@ -359,7 +389,7 @@ export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, n
   ) : null;
 
   return (
-    <div className={[styles.window, className].filter(Boolean).join(' ')} data-state={state} data-look-az={quantise(look.azDeg)} data-look-alt={Math.round(look.altDeg)}>
+    <div className={[styles.window, className].filter(Boolean).join(' ')} data-state={state} data-ground={ground} data-look-az={quantise(look.azDeg)} data-look-alt={Math.round(look.altDeg)}>
       <ChartFrame
         fill={fill}
         legend={legend}
@@ -373,53 +403,91 @@ export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, n
       >
         <div className={styles.box} ref={boxRef}>
           <svg className={styles.svg} viewBox={`0 0 ${String(view.width)} ${String(view.height)}`} aria-hidden="true" data-drawing="window" focusable="false">
-            {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}
-            {sun && sunVisible(sun) && <SunGlow sun={sun} m={m} view={view} limitDeg={limitDeg} />}
-            <g className={styles.grid}>
-              <path className={styles.altitude} data-ring="60" d={pathFrom(ALT_60.map(at), limitDeg)} />
-              <path className={styles.altitude} data-ring="30" d={pathFrom(ALT_30.map(at), limitDeg)} />
-              <path className={styles.horizon} data-horizon d={pathFrom(HORIZON.map(at), limitDeg)} />
-              {TICKS.map((azDeg) => {
-                const a = at({ azDeg, elDeg: 0 });
-                const b = at({ azDeg, elDeg: 2 });
-                const visible = inFrame(a, view) && b.front;
-                return <line key={azDeg} className={styles.tick} data-tick={azDeg} x1={fmt(a.x)} y1={fmt(a.y)} x2={fmt(b.x)} y2={fmt(b.y)} data-in-view={visible} {...(visible ? {} : { visibility: 'hidden' as const })} />;
-              })}
-              <g className={styles.zenith} data-marker="zenith" {...placed(zenith, view)}>
-                <line x1={-6} y1={0} x2={6} y2={0} />
-                <line x1={0} y1={-6} x2={0} y2={6} />
-              </g>
-              {COMPASS.map(({ azDeg, name, major }) => (
-                <text
-                  key={name}
-                  className={major ? styles.compassMajor : styles.compass}
-                  {...(major ? { 'data-anchor': name } : { 'data-compass': name })}
-                  textAnchor="middle"
-                  {...placed(at({ azDeg, elDeg: NAME_ALT_DEG }), view)}
-                >
-                  {name}
-                </text>
-              ))}
-            </g>
-            {passes.map((pass, index) => (
-              <PassArc
-                key={pass.id}
-                pass={pass}
-                m={m}
-                view={view}
-                limitDeg={limitDeg}
-                dim={highlightedPassId !== null && highlightedPassId !== pass.id}
-                series={colorBy === 'pass' ? (index % SERIES_COUNT) + 1 : null}
-                now={now}
-                legendKey={legendKeys[pass.id]}
-                onSelect={onSelectPass}
+            {/* FR-FOL-5: the ground's hatch — a pattern, not a colour, so it reads without one (FR-X-5). */}
+            {ground !== 'sky' && (
+              <defs>
+                <pattern id={hatchId} data-pattern="ground" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                  <rect className={styles.groundFill} width="8" height="8" />
+                  <line className={styles.groundHatch} x1="0" y1="0" x2="0" y2="8" />
+                </pattern>
+                {veilClip && (
+                  <clipPath id={clipId}>
+                    <path d={veilClip} />
+                  </clipPath>
+                )}
+              </defs>
+            )}
+            {/* FR-FOL-5: with no sky left in the field there is nothing to draw but the ground. */}
+            {ground !== 'buried' && (
+              <>
+                {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}
+                {sun && sunVisible(sun) && <SunGlow sun={sun} m={m} view={view} limitDeg={limitDeg} />}
+                <g className={styles.grid}>
+                  <path className={styles.altitude} data-ring="60" d={pathFrom(ALT_60.map(at), limitDeg)} />
+                  <path className={styles.altitude} data-ring="30" d={pathFrom(ALT_30.map(at), limitDeg)} />
+                  <path className={styles.horizon} data-horizon d={pathFrom(HORIZON.map(at), limitDeg)} />
+                  {TICKS.map((azDeg) => {
+                    const a = at({ azDeg, elDeg: 0 });
+                    const b = at({ azDeg, elDeg: 2 });
+                    const visible = inFrame(a, view) && b.front;
+                    return <line key={azDeg} className={styles.tick} data-tick={azDeg} x1={fmt(a.x)} y1={fmt(a.y)} x2={fmt(b.x)} y2={fmt(b.y)} data-in-view={visible} {...(visible ? {} : { visibility: 'hidden' as const })} />;
+                  })}
+                  <g className={styles.zenith} data-marker="zenith" {...placed(zenith, view)}>
+                    <line x1={-6} y1={0} x2={6} y2={0} />
+                    <line x1={0} y1={-6} x2={0} y2={6} />
+                  </g>
+                  {COMPASS.map(({ azDeg, name, major }) => (
+                    <text
+                      key={name}
+                      className={major ? styles.compassMajor : styles.compass}
+                      {...(major ? { 'data-anchor': name } : { 'data-compass': name })}
+                      textAnchor="middle"
+                      {...placed(at({ azDeg, elDeg: NAME_ALT_DEG }), view)}
+                    >
+                      {name}
+                    </text>
+                  ))}
+                </g>
+                {passes.map((pass, index) => (
+                  <PassArc
+                    key={pass.id}
+                    pass={pass}
+                    m={m}
+                    view={view}
+                    limitDeg={limitDeg}
+                    dim={highlightedPassId !== null && highlightedPassId !== pass.id}
+                    series={colorBy === 'pass' ? (index % SERIES_COUNT) + 1 : null}
+                    now={now}
+                    legendKey={legendKeys[pass.id]}
+                    onSelect={onSelectPass}
+                  />
+                ))}
+                {hidden.map((marker) => (
+                  <HiddenPoint key={marker.id} marker={marker} m={m} view={view} legendKey={legendKeys[marker.id]} />
+                ))}
+                {moon && moonVisible(moon) && <MoonMarker moon={moon} m={m} view={view} />}
+              </>
+            )}
+            {/* FR-FOL-5: the hatch over the ground — clipped to the horizon while some sky is left, the whole box once none is. */}
+            {veil && (
+              <rect
+                className={styles.groundVeil}
+                data-ground-veil={ground}
+                x="0"
+                y="0"
+                width={view.width}
+                height={view.height}
+                fill={`url(#${hatchId})`}
+                {...(ground === 'ground' ? { clipPath: `url(#${clipId})` } : {})}
               />
-            ))}
-            {hidden.map((marker) => (
-              <HiddenPoint key={marker.id} marker={marker} m={m} view={view} legendKey={legendKeys[marker.id]} />
-            ))}
-            {moon && moonVisible(moon) && <MoonMarker moon={moon} m={m} view={view} />}
+            )}
           </svg>
+          {/* FR-FOL-5: the note in the drawing, spoken (`role="status"`), never modal: raising the phone is what leaves it. */}
+          {ground !== 'sky' && (
+            <p className={ground === 'buried' ? styles.buriedNote : styles.groundNote} role="status" data-testid="window-ground-note" data-ground={ground}>
+              {ground === 'buried' ? t.window.buried : t.window.ground}
+            </p>
+          )}
           {/* FR-WIN-5: the one control in the window's place until the tap the browser needs. */}
           {orientation.needsGesture && state !== 'waiting' && (
             <div className={styles.gate}>

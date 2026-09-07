@@ -13,6 +13,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
 import { MOON_DOWN, MOON_FIXTURE } from '../../../../../../tests/support/moonFixtures';
 import { en } from '../../../../../i18n/en';
+import { es } from '../../../../../i18n/es';
+import { I18nProvider } from '../../../../../i18n/useT';
 import type { Observer } from '../../../../../model';
 import { appStore } from '../../../../../state';
 import { SkyChart } from '../SkyChart';
@@ -79,6 +81,18 @@ const flush = async (): Promise<void> => {
 const aim = (azDeg: number, altDeg: number): { alpha: number; beta: number } => ({ alpha: (360 - azDeg) % 360, beta: 90 + altDeg });
 
 const inView = (el: Element | null): boolean => el?.getAttribute('data-in-view') === 'true';
+
+/** Is the point inside the closed `M … L … Z` polygon? A ray cast to the right, for the ground clip (R56). */
+function encloses(d: string, x: number, y: number): boolean {
+  const points = [...d.matchAll(/[ML](-?[\d.]+) (-?[\d.]+)/g)].map((match) => [Number(match[1]), Number(match[2])] as const);
+  let inside = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i, i += 1) {
+    const [xi, yi] = points[i] ?? [0, 0];
+    const [xj, yj] = points[j] ?? [0, 0];
+    if (yi > y !== yj > y && x < xi + ((y - yi) * (xj - xi)) / (yj - yi)) inside = !inside;
+  }
+  return inside;
+}
 const wrapper = (container: HTMLElement): Element => container.querySelector('[data-look-az]') as Element;
 
 describe('<SkyWindow>', () => {
@@ -212,6 +226,119 @@ describe('<SkyWindow>', () => {
     const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} onSelectPass={onSelectPass} />);
     fireEvent.click(container.querySelector(`[data-pass-id="${pass.id}"]`) as Element);
     expect(onSelectPass).toHaveBeenCalledWith(pass.id);
+  });
+
+  /**
+   * R56 (FR-FOL-4, FR-FOL-5; US-21 AC9, AC10): the phone swept down out of the
+   * sky. The golden pass sits about 10° up around the north-east, so a phone
+   * pointed 10° *below* the horizon there still holds it in the top of a 60°
+   * field: that is the `ground` state, hatch below and picture above.
+   */
+  describe('pointing at the ground (FR-FOL-5)', () => {
+    const sun = { t: MOON_FIXTURE.t, azDeg: 285, altDeg: -8 };
+    const aimAt = (frame: () => void, altDeg: number): void => {
+      reading(aim(pass.peak.azDeg, altDeg));
+      frame();
+      settle(frame);
+    };
+
+    it('hatches the field below the horizon with a spoken note, and keeps drawing everything above it', () => {
+      const frame = scriptedFrames();
+      const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} moon={MOON_FIXTURE} legendKeys={{ [pass.id]: 'A' }} />);
+      expect(wrapper(container)).toHaveAttribute('data-ground', 'sky');
+      expect(container.querySelector('[data-ground-veil]')).toBeNull();
+      expect(screen.queryByTestId('window-ground-note')).toBeNull();
+
+      aimAt(frame, -10);
+      expect(wrapper(container)).toHaveAttribute('data-ground', 'ground');
+      // The veil is a pattern and not a colour (FR-X-5), clipped to the closed horizon the picture computes.
+      const veil = container.querySelector('[data-ground-veil="ground"]');
+      expect(veil).toHaveAttribute('fill', expect.stringMatching(/^url\(#.+-hatch\)$/));
+      const clip = veil?.getAttribute('clip-path') ?? '';
+      expect(clip).toMatch(/^url\(#.+-ground\)$/);
+      const clipPath = container.querySelector(`clipPath[id="${clip.slice(5, -1)}"] path`);
+      const region = clipPath?.getAttribute('d') ?? '';
+      expect(region).toMatch(/^M[-\d. L]+Z$/);
+      // The clip is the ground and not the sky: the bottom of the box is inside it, the top — where the arc is — outside.
+      expect(encloses(region, 195, 330)).toBe(true);
+      expect(encloses(region, 195, 40)).toBe(false);
+      expect(container.querySelector('[data-pattern="ground"]')).not.toBeNull();
+      const note = screen.getByTestId('window-ground-note');
+      expect(note).toHaveAttribute('role', 'status');
+      expect(note).toHaveTextContent(en.window.ground);
+      // Above the horizon nothing changes: the arc, its markers, the horizon, the Sun and the Moon are all still drawn.
+      expect(container.querySelector(`[data-pass-id="${pass.id}"] path`)?.getAttribute('d')).toMatch(/^M/);
+      expect(container.querySelector('[data-horizon]')?.getAttribute('d')).toMatch(/^M/);
+      expect(inView(container.querySelector('[data-marker="peak"]'))).toBe(true);
+      expect(container.querySelector('[data-body="sun"]')).not.toBeNull();
+      expect(container.querySelector('[data-body="moon"]')).not.toBeNull();
+    });
+
+    it('at buried is the ground panel and its note, and nothing else', () => {
+      const frame = scriptedFrames();
+      const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} moon={MOON_FIXTURE} legendKeys={{ [pass.id]: 'A' }} />);
+      aimAt(frame, -80);
+      expect(wrapper(container)).toHaveAttribute('data-ground', 'buried');
+      const veil = container.querySelector('[data-ground-veil="buried"]');
+      expect(veil).toHaveAttribute('fill', expect.stringMatching(/^url\(#.+-hatch\)$/));
+      // The whole box is the ground: no clip, and the box's own width and height.
+      expect(veil?.getAttribute('clip-path')).toBeNull();
+      expect(veil).toHaveAttribute('width', '390');
+      const note = screen.getByTestId('window-ground-note');
+      expect(note).toHaveAttribute('role', 'status');
+      expect(note).toHaveTextContent(en.window.buried);
+      for (const selector of ['[data-pass-id]', '[data-marker]', '[data-body="sun"]', '[data-body="moon"]', '[data-horizon]', '[data-anchor="N"]', '[data-tick]']) {
+        expect(container.querySelector(selector)).toBeNull();
+      }
+      // Neither state is modal and neither needs a tap: raising the phone is what leaves it.
+      aimAt(frame, 20);
+      expect(wrapper(container)).toHaveAttribute('data-ground', 'sky');
+      expect(screen.queryByTestId('window-ground-note')).toBeNull();
+      expect(container.querySelector(`[data-pass-id="${pass.id}"]`)).not.toBeNull();
+    });
+
+    it('speaks both notes in Spanish (FR-I18N-2)', () => {
+      const frame = scriptedFrames();
+      render(
+        <I18nProvider locale="es">
+          <SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} />
+        </I18nProvider>,
+      );
+      aimAt(frame, -10);
+      expect(screen.getByTestId('window-ground-note')).toHaveTextContent(es.window.ground);
+      aimAt(frame, -80);
+      expect(screen.getByTestId('window-ground-note')).toHaveTextContent(es.window.buried);
+      expect(es.window.ground).not.toBe(en.window.ground);
+    });
+
+    it('is swept through and back — sky, ground, buried, ground, sky — with the smoothing never reset (FR-FOL-4, US-21 AC9)', () => {
+      const frame = scriptedFrames();
+      const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+      const w = wrapper(container);
+      const sweep: number[] = [];
+      for (let altDeg = 80; altDeg >= -80; altDeg -= 5) sweep.push(altDeg);
+      for (let altDeg = -75; altDeg <= 80; altDeg += 5) sweep.push(altDeg);
+
+      const states: (string | null)[] = [];
+      let previous: number | null = null;
+      for (const altDeg of sweep) {
+        reading(aim(pass.peak.azDeg, altDeg));
+        frame();
+        // One frame is a step *from where the picture was*, never a jump to the reading: the smoothing kept the
+        // previous rotation, which is what "no reset" means (FR-WIN-3), and nothing is clipped to a region.
+        const partWay = Number(w.getAttribute('data-look-alt'));
+        if (previous !== null) {
+          expect(Math.abs(partWay - previous)).toBeGreaterThan(0);
+          expect(Math.abs(partWay - previous)).toBeLessThan(5);
+        }
+        settle(frame);
+        expect(w).toHaveAttribute('data-state', 'on');
+        expect(Number(w.getAttribute('data-look-alt'))).toBe(altDeg);
+        states.push(w.getAttribute('data-ground'));
+        previous = altDeg;
+      }
+      expect(states.filter((state, index) => state !== states[index - 1])).toEqual(['sky', 'ground', 'buried', 'ground', 'sky']);
+    });
   });
 
   describe('the gate and the notes (FR-WIN-4, FR-WIN-5)', () => {
