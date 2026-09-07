@@ -95,7 +95,12 @@ describe('buildBrief', () => {
   });
 
   it(`stays under ${String(BRIEF_BUDGET_CHARS)} characters and cites nothing missing, for every open task (§16.8)`, () => {
-    expect(open.length).toBeGreaterThan(0);
+    // R53: the guard used to be `open.length > 0`, which made "the phase is finished" a test
+    // failure — the last task of v1.1 checking itself off turned this red. What the guard is
+    // really for is a parser that has stopped returning tasks, since the loop below would then
+    // pass by being empty; so it asks the whole list, which is never empty while TASKS.md exists,
+    // and an empty backlog is left to mean what it says.
+    expect(tasks.length).toBeGreaterThan(0);
     for (const candidate of open) {
       const { markdown, missing } = buildBrief(candidate, sources, tools);
       expect(missing, `${candidate.id} cites ids the documents do not carry`).toEqual([]);
