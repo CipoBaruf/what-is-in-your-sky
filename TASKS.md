@@ -765,14 +765,14 @@ flowchart LR
 
 ## v1.1 tasks
 
-Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec Phase 2b, "phone pass": the fifty open v1 findings, CI time, the compact layout and settings page, the chart legend, the sky window, the live trajectories and stripe, true north. Delivery is PLAN §16 as amended for the phase: five lanes, four models, the findings and the CI budget in the first wave, the sky-window spike driven by the owner. *(v1.1.1, 2026-09-06)* R54 appended from `SPEC.md` v1.1.1 and `PLAN.md` v0.4.1: the owner's wide live-page findings F-51..F-53 (V11-14, D-268), on the idle `live` lane beside the `ui` chain.
+Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec Phase 2b, "phone pass": the fifty open v1 findings, CI time, the compact layout and settings page, the chart legend, the sky window, the live trajectories and stripe, true north. Delivery is PLAN §16 as amended for the phase: five lanes, four models, the findings and the CI budget in the first wave, the sky-window spike driven by the owner. *(v1.1.1, 2026-09-06)* R54 appended from `SPEC.md` v1.1.1 and `PLAN.md` v0.4.1: the owner's wide live-page findings F-51..F-53 (V11-14, D-268), on the idle `live` lane beside the `ui` chain. *(v1.1.2, 2026-09-06)* R55 appended from `SPEC.md` v1.1.2 and `PLAN.md` v0.4.2: the install offer is snoozed by "Not now" rather than ended by it (V11-15, D-272). It depends on nothing in the phase and runs in any wave.
 
 **Before the first wave** (repo tooling, not tasks — PLAN D-86, D-197, D-198): `scripts/sdd/tasks.ts` accepts the lanes `window` and `docs`, the models `sonnet`, `haiku` and `interactive`, and the fields `Precondition:` and `Findings:`; `scripts/sdd/brief.ts` writes the brief; `session.ts` gains `--fallback`; `sdd-implement` reads the brief under `SDD_HEADLESS` and runs narrow tests while iterating. `--status` prints the open F-numbers.
 
 ### Conventions for this phase
 
 - Everything in the v1 conventions holds. Lanes are PLAN §16.1 as amended (D-196), plus `docs` for the one task that touches no source:
-  - `ui` — `src/ui/**` except `guide/skychart/**`, `screens/Live*` and `components/live/**`; `src/i18n/**`, `src/lib/{layout,shortcuts,shareLinks,moonPhrases,readiness,flags}.ts`, `src/ui/styles/**`, `.github/workflows/**`, `tests/e2e/v1-captures.spec.ts`
+  - `ui` — `src/ui/**` except `guide/skychart/**`, `screens/Live*` and `components/live/**`; `src/i18n/**`, `src/lib/{layout,shortcuts,shareLinks,moonPhrases,readiness,flags}.ts` and, from v1.1.2, `src/lib/installSnooze.ts`; `src/ui/styles/**`, `.github/workflows/**`, `tests/e2e/v1-captures.spec.ts`
   - `chart` — `src/ui/components/guide/skychart/**` except `window/`, `src/lib/{skyGeometry,skyBodies,legend,arcReveal}.ts`, `spike/dome-composition/**`
   - `window` — `src/ui/components/guide/skychart/window/**`, `spike/window/**`, `docs/window/**`
   - `live` — `src/ui/screens/Live*`, `src/ui/components/live/**`, `src/lib/{timeStripe,playback,declination}.ts`
@@ -783,7 +783,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
 - **Precondition:** a file that must exist on `origin/main`; the driver skips the task until it does (PLAN §16.3).
 - The message catalogs are split per lane by R42 (`src/i18n/{en,es}/{ui,chart,live,window}.ts`); from R42 on a task edits only its lane's file, and `Touches outside the lane` need not name it.
 - Captures: 390 px always, both languages and both themes; 1280 px and, from R50, 1024 px where the wide layout changed. Only `Gate: owner` tasks shoot captures, and only for the screens they changed (PLAN §16.8). The D-179 capture set is re-shot by `captures.yml` on `main`, never in a task.
-- Decision numbers are reserved in one PLAN entry after D-199: R37 D-200..203, R38 204..207, R39 208..211, R40 212..215, R41 216..219, R42 220..223, R43 224..227, R44 228..231, R45 232..235, R46 236..239, R47 240..243, R48 244..247, R49 248..251, R50 252..255, R51 256..259, R52 260..263, R53 264..267. *(v1.1.1)* R54 takes D-269..D-271 (D-268 is its decision, already written).
+- Decision numbers are reserved in one PLAN entry after D-199: R37 D-200..203, R38 204..207, R39 208..211, R40 212..215, R41 216..219, R42 220..223, R43 224..227, R44 228..231, R45 232..235, R46 236..239, R47 240..243, R48 244..247, R49 248..251, R50 252..255, R51 256..259, R52 260..263, R53 264..267. *(v1.1.1)* R54 takes D-269..D-271 (D-268 is its decision, already written). *(v1.1.2)* R55 takes D-273..D-275 (D-272 is its decision, already written).
 
 ### Tasks
 
@@ -1055,6 +1055,22 @@ The `ui` lane is again the long pole: eight of its tasks in a row, because the f
 
 No two tasks in one wave name the same shared file: R37 and R39 both touch `tests/e2e/live.spec.ts` only through R37's `seedStoredRun` switch, which is one additive import per spec; the driver's rebase settles it. `src/physics/constants.ts` is touched by R45 alone. From R42 on the catalogs are per lane.
 
+- [ ] **R55 — The install offer comes back: "Not now" snoozes it, 7 days then 30, then never**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** none (R28 built the hint and is merged)
+  - **Goal:** A reader who is not ready to install the app today is asked again in a week, and twice more at most; one who installs it is never asked again.
+  - **Satisfies:** FR-OFF-6 as amended (v1.1.2), US-16 AC4 as amended; PLAN D-272.
+  - **Scope (PLAN D-272):** `src/lib/installSnooze.ts` — new — holds `INSTALL_SNOOZE_DAYS = [7, 30]` with its rationale (FR-VIS-6) and one pure function from `{ dismissed, declines, snoozedUntil }` plus an instant to `'shown' | 'snoozed' | 'answered'`; `data/localPrefs.ts` gains `installHintDeclines` and `installHintSnoozedUntil`, both optional in the zod schema and both absent on a device that has never declined; `state/slices/prefs.ts` gains `declineInstallHint` beside the existing `dismissInstallHint`, which keeps writing the latch for Install and `appinstalled`; `InstallHint.tsx` asks the pure function at mount (`Date.now()`, read once) instead of reading the latch, and its "Not now" calls the new action. The copy does not change.
+  - **Touches outside the lane:** `src/data/localPrefs.ts`, `src/state/slices/prefs.ts` (the `data` lane), and the new `src/lib/installSnooze.ts`, which no lane owns yet — the conventions list gains it under `ui`.
+  - **Done when:**
+    - `installSnooze.test.ts` at the boundaries: nothing stored shows the offer; one decline at `t` hides it at `t + 7 d − 1 ms` and shows it at `t + 7 d`; a second hides it 30 days; a third answers it for good; a stored `installHintDismissed` answers it whatever the count says.
+    - `localPrefs.test.ts`: the two keys round-trip, and a blob written before v1.1.2 (the latch alone, or neither key) reads as a device with no declines.
+    - `InstallHint.test.tsx`: "Not now" writes a decline and not the latch; the install action and `appinstalled` still write the latch; a snoozed hint renders nothing; a hint whose snooze has expired renders again when the browser is still offering.
+    - An e2e case at 390 px: "Not now", reload, no hint; the clock moved past the snooze with `page.clock`, reload, the hint is back.
+    - Captures: the home screen at 390 px with the hint up, both themes and both languages, against R28's.
+
 ### Requirement coverage (v1.1)
 
 | Requirement | Tasks |
@@ -1065,6 +1081,7 @@ No two tasks in one wave name the same shared file: R37 and R39 both touch `test
 | FR-COMP-6 | R43 |
 | FR-LEG-1, 2, 4, 5 | R45 |
 | FR-LEG-3 | R51 (the detail), R48 (the live page's rows) |
+| FR-OFF-6 as amended (v1.1.2) | R55 |
 | FR-WIN-1, 2, 4, 5 | R47 |
 | FR-WIN-3 | R44 (declination), R47 (the rotation) |
 | FR-WIN-6 | R48 |
@@ -1113,4 +1130,5 @@ flowchart LR
   R51 --> R52
   R45 & R48 --> R54
   R41 & R47 & R48 & R52 & R54 --> R53
+  R55
 ```
