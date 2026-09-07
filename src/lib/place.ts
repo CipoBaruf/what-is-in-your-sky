@@ -36,3 +36,23 @@ export function coordsLabel(lat: number, lon: number): string {
 export function observerFromCoords(lat: number, lon: number, altM = 0): Observer {
   return { lat, lon, altM, label: coordsLabel(lat, lon), source: 'coords', timeZone: null };
 }
+
+/**
+ * F-19 (R51): the bounds an observer's coordinates must be inside, in the one
+ * module both sides of a share link can reach. `CoordsInput` validates the
+ * form against them and `shareLinks.ts` validates an incoming link against
+ * them; they were copied into each, so the form could accept an altitude the
+ * parser would then reject and the link would open on the saved location
+ * instead. `src/state` may not import `src/ui` (PLAN §3), so `lib` is where
+ * the pair meets.
+ */
+export const LATITUDE_RANGE = { min: -90, max: 90 };
+export const LONGITUDE_RANGE = { min: -180, max: 180 };
+/** Below the Dead Sea shore and above every town; guards against a typo like "27000". */
+export const ALTITUDE_RANGE = { min: -500, max: 9000 };
+
+const inside = (value: number, range: { min: number; max: number }): boolean => value >= range.min && value <= range.max;
+
+export const latitudeInRange = (lat: number): boolean => inside(lat, LATITUDE_RANGE);
+export const longitudeInRange = (lon: number): boolean => inside(lon, LONGITUDE_RANGE);
+export const altitudeInRange = (altM: number): boolean => inside(altM, ALTITUDE_RANGE);

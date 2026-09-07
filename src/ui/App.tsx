@@ -98,7 +98,21 @@ export function App() {
   // recompute — the same pass, the nearest pass of that object, or none — and
   // a local selection is still just an id (D-33).
   const resolution = useMemo(() => (link === null ? null : resolvePassLink(passes, link)), [passes, link]);
-  const selected = useMemo(() => (resolution === null ? findSelectedPass(passes, selectedId) : resolution.pass), [resolution, passes, selectedId]);
+  /*
+   * R51 (F-18): the substitute pass waits for the recompute to finish. The
+   * cards stream in (D-5), so until `passes.status === 'done'` the "nearest
+   * pass of that object" is only the nearest one computed *so far* — the
+   * guide opened on it silently, and the FR-SHARE-3 sentence that explains
+   * why this is not the pass the link named appears next to it a second
+   * later, by which time the pass underneath may have changed. The link's own
+   * pass (`same`) is an exact match within the D-33 tolerance and needs no
+   * explanation, so it opens as soon as it is computed.
+   */
+  const selected = useMemo(() => {
+    if (resolution === null) return findSelectedPass(passes, selectedId);
+    if (resolution.kind !== 'same' && passesStatus !== 'done') return null;
+    return resolution.pass;
+  }, [resolution, passes, selectedId, passesStatus]);
   const timeZone = observer?.timeZone ?? null;
   /*
    * The message the recipient of a stale link reads, in both of FR-SHARE-3's
@@ -112,6 +126,25 @@ export function App() {
     const time = `${formatDate(link.startT, timeZone, locale)} ${formatClock(link.startT, timeZone, locale)}`;
     return resolution.kind === 'nearest' ? t.share.nearest({ name, time }) : t.share.missing({ name, time });
   }, [link, resolution, passesStatus, timeZone, locale, t]);
+  /*
+   * R51 (F-17): a share link is consumed once. It arrives authoritative — its
+   * observer wins over the saved one (D-135) and its pass is what the screen
+   * opens on — but it stayed authoritative for as long as it sat in the hash,
+   * so a recipient who typed their own coordinates had the guide torn down by
+   * the recompute and put straight back up from the link, on a pass belonging
+   * to somebody else's sky, with no way out but editing the URL. Once the
+   * observer is no longer the one the link named, the link has been consumed:
+   * it is cleared from the hash in place, which closes the guide and leaves
+   * the reader on their own list. The comparison is the coordinates alone, as
+   * R39's `#live` effect makes it — the label and the zone are filled in later
+   * from the forecast and are not what identifies a place.
+   */
+  useEffect(() => {
+    if (link === null || observer === null) return;
+    const linked = observerFromLink(link);
+    if (observer.lat === linked.lat && observer.lon === linked.lon && observer.altM === linked.altM) return;
+    close();
+  }, [link, observer, close]);
   const mode = useLayoutMode();
   const live = useLiveRoute();
   /*

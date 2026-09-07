@@ -1,5 +1,5 @@
 import type { EpochMs, NoradId, Observer, Pass } from '../model';
-import { observerFromCoords } from './place';
+import { altitudeInRange, latitudeInRange, longitudeInRange, observerFromCoords } from './place';
 
 /**
  * R31 (FR-SHARE-1, FR-LIVE-9, D-83): the app's URL hashes, built and parsed in
@@ -58,8 +58,6 @@ export type AppHash = PassIdHash | PassLink | LiveLink;
 export const SAME_PASS_TOLERANCE_MS = 120_000;
 
 const MS_PER_DAY = 86_400_000;
-const ALTITUDE_MIN_M = -500;
-const ALTITUDE_MAX_M = 9000;
 
 /* -------------------------------------------------------------------------- */
 /* ISO-8601 instants, without the clock                                        */
@@ -194,11 +192,11 @@ function number(params: URLSearchParams, key: string): number | null {
 function sharedObserver(params: URLSearchParams): SharedObserver | null {
   const lat = number(params, 'lat');
   const lon = number(params, 'lon');
-  if (lat === null || lon === null || lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  if (lat === null || lon === null || !latitudeInRange(lat) || !longitudeInRange(lon)) return null;
   // A link with no altitude means sea level, the same default the coordinate input uses; a nonsense one is a broken link.
   const altRaw = params.get('alt');
   const altM = altRaw === null || altRaw.trim() === '' ? 0 : number(params, 'alt');
-  if (altM === null || altM < ALTITUDE_MIN_M || altM > ALTITUDE_MAX_M) return null;
+  if (altM === null || !altitudeInRange(altM)) return null;
   return { lat, lon, altM };
 }
 
