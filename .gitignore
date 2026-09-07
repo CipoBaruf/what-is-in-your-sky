@@ -15,8 +15,9 @@ sdd-run/
 # a working tree once each — a debug script beside the source, and a second
 # Playwright config with a hard-coded port. Ignoring them is what keeps the next
 # one out of `git status` and out of a commit; `tests/docs/hygiene.test.ts` is
-# what keeps them out of the tree at all.
-debug-*
-scripts/debug-*
-playwright.*.config.*
-playwright-*.config.*
+# what keeps them out of the tree at all. Anchored: `debug-*` alone would also
+# swallow a `src/ui/debug-overlay.tsx` someone meant to commit.
+/debug-*
+/scripts/debug-*
+/playwright.*.config.*
+/playwright-*.config.*

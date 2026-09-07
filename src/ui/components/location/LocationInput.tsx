@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useT } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
+import { sameLocation } from '../../../state/slices/location';
 import { SectionHeading } from '../common/SectionHeading';
 import { CoordsInput, coordsLabel } from './CoordsInput';
 import { Favourites } from './Favourites';
@@ -39,13 +40,6 @@ import { accuracyText, UseMyLocation, type GeolocationEnv } from './UseMyLocatio
 export const COORDS_INPUT_ID = 'coords';
 export const PLACE_INPUT_ID = 'place';
 
-/** Same place: the fields' worth of an observer, ignoring the zone (`state/slices/location.ts` compares the same five for the same reason). */
-function sameObserver(a: Observer | null, b: Observer | null): boolean {
-  if (a === b) return true;
-  if (a === null || b === null) return false;
-  return a.lat === b.lat && a.lon === b.lon && a.altM === b.altM && a.source === b.source && a.label === b.label;
-}
-
 export interface LocationInputProps {
   observer: Observer | null;
   onObserver: (observer: Observer | null) => void;
@@ -76,9 +70,11 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
     setSeed((s) => ({ key: s.key + 1, observer: null, focus: true }));
   };
 
-  // F-29: a saved place picked below reseeds the fields above.
+  // F-29: a saved place picked below reseeds the fields above. "Same place" is
+  // the effects' own test — everything but the zone (D-3) — so the store and
+  // the form cannot disagree about what counts as a change.
   useEffect(() => {
-    if (sameObserver(observer, shown.current)) return;
+    if (sameLocation(observer, shown.current)) return;
     shown.current = observer;
     setSeed((s) => ({ key: s.key + 1, observer, focus: false }));
   }, [observer]);

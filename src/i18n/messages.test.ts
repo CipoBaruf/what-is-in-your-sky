@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AgeParts } from '../lib/elementsAge';
-import type { MoonFacts, MoonGlareFacts, MoonLoreParams, MoonPeakFacts } from '../lib/moonPhrases';
+import type { MoonFacts, MoonGlareFacts, MoonLoreParams } from '../lib/moonPhrases';
 import type { GuideParams } from '../lib/phrases';
 import type { Locale } from '../model';
 import { en } from './en';
@@ -38,7 +38,6 @@ const GUIDE: GuideParams = {
 const PHASES: CountdownPhase[] = ['before', 'to-peak', 'to-end', 'over'];
 const MOON: MoonFacts = { phase: 'waningGibbous', illumination: '74', up: true, direction: 'SSW', azimuth: '190°', elevation: '60°' };
 const MOON_GLARE: MoonGlareFacts = { illumination: '74', separation: '8°', minAltitude: '0°', minIllumination: '50', maxSeparation: '30°' };
-const MOON_AT_PEAK: MoonPeakFacts = { phase: 'waningGibbous', illumination: '74', up: true };
 const MOON_LORE: MoonLoreParams = { sign: 'Taurus', fullMoonName: null, line: 'The bull carries Aldebaran.', hemisphereNote: null };
 
 /** Every message of a catalog, rendered: plain strings as they are, functions over the fixture parameters. */
@@ -103,7 +102,7 @@ function render(t: Messages): string[] {
     ...Object.values(t.moon.phase),
     t.moon.line(MOON),
     t.moon.line({ ...MOON, up: false, phase: 'new' }),
-    t.moon.atPeak(MOON_AT_PEAK),
+    t.moon.atPeak(MOON),
     t.moon.glare.label,
     t.moon.glare.sentence,
     t.moon.glare.tooltip(MOON_GLARE),

@@ -11,7 +11,6 @@ import {
   moonFacts,
   moonGlareFacts,
   moonLoreParams,
-  moonPeakFacts,
   showsFullMoonName,
   type MoonLoreEntries,
 } from './moonPhrases';
@@ -108,20 +107,12 @@ describe('moonGlareFacts (FR-MOON-2)', () => {
   });
 });
 
-describe('moonPeakFacts (US-18 AC1, R49: F-14)', () => {
-  it('carries the phase and the illumination, whether or not there is any glare', () => {
-    expect(moonPeakFacts(moon())).toEqual({ phase: 'waningGibbous', illumination: '72', up: true });
-  });
-
-  it('is down at and below the horizon, the same test the Now panel makes', () => {
-    expect(moonPeakFacts(moon({ elDeg: 0 })).up).toBe(false);
-    expect(moonPeakFacts(moon({ elDeg: -0.1 })).up).toBe(false);
-    expect(moonPeakFacts(moon({ elDeg: 0.1 })).up).toBe(true);
-  });
-
+describe('the Moon at the peak line (US-18 AC1, R49: F-14)', () => {
+  // The line takes the Now panel's facts (`moonFacts`): one derivation of the
+  // phase, the illumination and "up", so the card cannot drift from the panel.
   describe.each([...LOCALES])('the %s line', (locale: Locale) => {
     it('names the phase in this language with the illumination, and says nothing about glare', () => {
-      const line = CATALOGS[locale].moon.atPeak(moonPeakFacts(moon()));
+      const line = CATALOGS[locale].moon.atPeak(moonFacts(moon()));
       expect(line).toContain('72 %');
       expect(line).toContain(CATALOGS[locale].moon.phase.waningGibbous);
       expect(line).not.toContain(CATALOGS[locale].moon.glare.label);
@@ -129,7 +120,7 @@ describe('moonPeakFacts (US-18 AC1, R49: F-14)', () => {
   });
 
   it('says something different in each language', () => {
-    expect(CATALOGS.en.moon.atPeak(moonPeakFacts(moon()))).not.toBe(CATALOGS.es.moon.atPeak(moonPeakFacts(moon())));
+    expect(CATALOGS.en.moon.atPeak(moonFacts(moon()))).not.toBe(CATALOGS.es.moon.atPeak(moonFacts(moon())));
   });
 });
 

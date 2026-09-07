@@ -1,5 +1,5 @@
 import { useT } from '../../../i18n/useT';
-import { moonPeakFacts } from '../../../lib/moonPhrases';
+import { moonFacts } from '../../../lib/moonPhrases';
 import type { MoonState } from '../../../model';
 import styles from './MoonAtPeak.module.css';
 
@@ -16,10 +16,11 @@ import styles from './MoonAtPeak.module.css';
  * the track — it is the same sentence's other half, and it is why this
  * component does not take the verdict at all.
  *
- * Below the horizon it renders nothing (`moonPeakFacts`). The Now panel is
- * where "below the horizon" is worth saying, because it describes the sky; a
- * pass card is a short list of facts about one pass and a Moon that is not
- * there is not one of them.
+ * Below the horizon it renders nothing, by the Now panel's own test of "up"
+ * (`moonFacts`, the one set of facts for both). The Now panel is where "below
+ * the horizon" is worth saying, because it describes the sky; a pass card is a
+ * short list of facts about one pass and a Moon that is not there is not one
+ * of them.
  */
 export interface MoonAtPeakProps {
   moon: MoonState;
@@ -29,7 +30,7 @@ export interface MoonAtPeakProps {
 
 export function MoonAtPeak({ moon, variant = 'card' }: MoonAtPeakProps) {
   const t = useT();
-  const facts = moonPeakFacts(moon);
+  const facts = moonFacts(moon);
   if (!facts.up) return null;
   return (
     <p className={variant === 'guide' ? styles.guideLine : styles.line} data-testid="moon-at-peak">

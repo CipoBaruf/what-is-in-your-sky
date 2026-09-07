@@ -60,12 +60,16 @@ export function InstallHint({ env, inert = false }: InstallHintProps) {
   // Read once, at mount: `navigator.standalone` does not change under a page.
   const [standalone] = useState(() => (env ?? browserInstallEnv()).standalone);
 
+  // An install by any route answers the hint for good (FR-OFF-6: once). The
+  // latch is written when it is not yet set — `dismissInstallHint` rewrites
+  // the prefs blob on every call — and the render below reads `installed`
+  // itself, so the banner is never painted for the frame before this runs.
   useEffect(() => {
-    if (installed) dismiss();
-  }, [installed, dismiss]);
+    if (installed && !dismissed) dismiss();
+  }, [installed, dismissed, dismiss]);
 
   const ios = standalone === false;
-  if (dismissed || (offer === null && !ios)) return null;
+  if (dismissed || installed || (offer === null && !ios)) return null;
 
   const install = (): void => {
     // Whatever the reader answers the browser, the hint has been offered and

@@ -196,9 +196,9 @@ export function App() {
    * middle of something; on wide the guide is a panel beside a list that stays
    * live (FR-DESK-3), so `inert` above never reaches them there and the button
    * was one Tab away from a reader following a pass. The rule is the pass, not
-   * the width.
+   * the width — and the help sheet, as for everything else.
    */
-  const offersInert = inert || selected !== null;
+  const offersInert = helpOpen || selected !== null;
   if (live.active) {
     return (
       <Suspense fallback={<p className={styles.liveLoading}>{t.live.loading}</p>}>
