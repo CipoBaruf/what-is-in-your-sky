@@ -6,6 +6,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { CAPTURE_DIR } from './captureSet';
 import { domeDrawn, seedStoredRun, setThemeOnHome, stripFilled } from './liveHelpers';
 
 interface Reference {
@@ -38,7 +39,7 @@ test.describe('at 2560 × 1440', () => {
 
   test('the live page, dark, English', async ({ page }) => {
     await openLive(page);
-    await page.screenshot({ path: 'test-results/r57-live-2560-dark-en.png' });
+    await page.screenshot({ path: `${CAPTURE_DIR}/r57-live-2560-dark-en.png` });
   });
 });
 
@@ -48,7 +49,7 @@ test.describe('at 1280 × 800', () => {
   test('the pass detail, dark, English', async ({ page }) => {
     const panel = await openPassDetail(page);
     await expect(panel.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible();
-    await page.screenshot({ path: 'test-results/r57-guide-1280-dark-en.png' });
+    await page.screenshot({ path: `${CAPTURE_DIR}/r57-guide-1280-dark-en.png` });
   });
 
   test('the pass detail, night, English', async ({ page }) => {
@@ -58,6 +59,6 @@ test.describe('at 1280 × 800', () => {
     const panel = page.getByTestId('guide-panel');
     await expect(panel.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
     await panel.locator('[data-drawing="dome"]').scrollIntoViewIfNeeded();
-    await page.screenshot({ path: 'test-results/r57-guide-1280-night-en.png' });
+    await page.screenshot({ path: `${CAPTURE_DIR}/r57-guide-1280-night-en.png` });
   });
 });
