@@ -74,6 +74,54 @@
   gap: calc(var(--row) / 4);
 }
 
+/* R59 (FR-LIVE-7 as amended v1.2, F-55, D-281): one spacing token under the box
+   on compact. The rows the requirement names — the facing readout inside the
+   frame, the status strip, the clock readout, the stripe and the stepping row —
+   were spaced by four separate quarter-row rules that added up (the page's gap,
+   the column's, the block's, the frame's, and the strip's own padding), and on
+   a 667 px phone the sum was what pushed the drawing past the rows under it.
+   They take it from here now: `--live-row-gap` is a sixth of a row, and
+   `StatusStrip.module.css` reads the same property for the air above its rule.
+
+   The frame's gap is in this list because the facing readout is one of the
+   rows: it sits under the drawing inside the frame, so the space above it is
+   the frame's own. `[data-fill]` is the live chart's frame (`ChartFrame` sets
+   it), reached from here rather than by editing the chart's stylesheet: the
+   spacing under the box is the live page's arithmetic, and every other page
+   the frame draws on keeps the half row it had. */
+.page[data-compact='true'] {
+  --live-row-gap: calc(var(--row) / 6);
+  gap: var(--live-row-gap);
+}
+
+.page[data-compact='true'] .side,
+.page[data-compact='true'] .stripeBlock,
+.page[data-compact='true'] .dome [data-fill='true'] {
+  gap: var(--live-row-gap);
+}
+
+/* …and the box is what gives last (D-281). `--chart-floor` (D-187) is the
+   frame's measured width, and `ChartFrame.module.css` applies it as a hard
+   minimum on both the drawing and its track. Where the rows leave less than
+   that, a hard minimum is not a floor but an overflow: the frame's grid grew
+   past its own box and every row of the frame under the drawing — the facing
+   readout — landed on the rows of the page beneath it, which is what F-55 saw
+   on a 390 × 667 phone. And the rows do leave less than that: on a phone the
+   view control is two 48 px rows (three views, FR-WIN-1) and the legend four,
+   so the box's own frame takes some 190 px before the page's rows are counted.
+
+   `--chart-floor-on` is the page's switch, and this is the case it was put
+   there for (D-233): "a page whose rows do not yet leave the box its width
+   sets it to 0 rather than have the drawing spill over the rows under it". So
+   the page turns it off and the floor becomes the page's own `minmax(0, 1fr)`
+   dome row — every pixel the rows leave, which is more than the frame's width
+   where there is room for it and everything that is left where there is not.
+   Nothing overlaps at either phone height, and the page does not scroll
+   (`live-compact.spec.ts`). */
+.page[data-compact='true'] {
+  --chart-floor-on: 0;
+}
+
 /* R48/R54: the playback controls and, on wide, the hidden-objects toggle beside them (FR-LIVE-7 as amended v1.1.1). */
 .playbackRow {
   display: flex;

@@ -59,7 +59,9 @@
    the dome's. */
 .strip[data-compact='true'] {
   display: block;
-  padding-top: calc(var(--row) / 4);
+  /* R59 (D-281): the air above the rule is one of the gaps under the box, so it comes from the live page's
+     one spacing token (`--live-row-gap`); the quarter row is what it is worth anywhere else the strip is drawn. */
+  padding-top: var(--live-row-gap, calc(var(--row) / 4));
   line-height: var(--row);
 }
 

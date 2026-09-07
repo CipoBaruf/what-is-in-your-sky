@@ -235,9 +235,17 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
 
   it('floors the live drawing at the frame width in portrait only, behind the page switch, and bounds the legend under a live drawing to four rows', () => {
     expect(css).toMatch(/@media \(orientation: portrait\) \{\s+\.fill\[data-compact='true'\] \.drawing \{\s+min-height: calc\(var\(--chart-floor, 0px\) \* var\(--chart-floor-on, 1\)\);/);
-    // D-233: the live page held the switch off until R48 re-cut its rows (D-244); now nothing on the page turns it off.
+    /*
+     * D-233: the live page held the switch off until R48 re-cut its rows
+     * (D-244), and R59 (D-300, F-55) turns it off again — a phone's frame
+     * spends some 190 px on the view control's two rows and the legend's four
+     * before the page's own rows are counted, so the floor could only be met
+     * by overflowing the frame onto them. The property is read here rather
+     * than assumed absent: the switch is the contract, and a page that leans
+     * on it says so in this file's own terms.
+     */
     const live = readFileSync(join(process.cwd(), 'src/ui/screens/Live.module.css'), 'utf8');
-    expect(live).not.toContain('--chart-floor-on');
+    expect(live).toMatch(/\.page\[data-compact='true'\] \{\s+--chart-floor-on: 0;\s+\}/);
     expect(css).toMatch(/\.fill \.legend \{\s+max-height: calc\(4 \* var\(--row\)\);\s+overflow-y: auto;/);
   });
 });
