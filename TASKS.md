@@ -1008,7 +1008,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
     - The settings Install row: shown after the third decline and while a snooze is running, both shapes by the environment prop, absent when the browser offers nothing, and taking it installs and ends the hint. Its row fits FR-COMP-4's 36 cells in both locales.
     - Captures of home, settings and the wide header, both themes, both languages, against the R43 mockups; the settings capture shows the Install row.
 
-- [ ] **R53 — v1.1 release preparation**
+- [x] **R53 — v1.1 release preparation** — the set is 92 files, not a top-up: `settings`, `window` and `legend` are three new screens and the whole set was cleared and re-shot, which is what caught `v1-favourites-390-*` still showing the saved places on a home screen R52 moved to `#settings` (D-273). The window's captures need a touch context, so they are a `test.describe` of their own; the legend's are shot two minutes past the search instant, where the rows read `up` and `gone` rather than four `soon`s. The budget re-set moves one row — the live chunk from 15 KB back to the 10 KB floor (D-274) — and every other chunk re-measures to the number it already had. The findings register is the PR's table, F-1..F-53 and not F-1..F-50: the last three were written after this entry was (D-275). The tag, the deploy, the two phones of `docs/RELEASE.md` §7 and the `captures.yml` run on the merge stay with the owner.
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
