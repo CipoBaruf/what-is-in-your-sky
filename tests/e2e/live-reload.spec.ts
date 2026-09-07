@@ -18,6 +18,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { HASH_EVERY_MS } from '../../src/lib/playback';
+import { isoInstant } from '../../src/lib/shareLinks';
 import { domeDrawn, seedStoredRun, stripFilled } from './liveHelpers';
 
 const GEOCODED = { lat: -38.93, lon: -67.99, altM: 0, label: 'Neuquén, Argentina', source: 'geocode' as const, timeZone: 'America/Argentina/Buenos_Aires' };
@@ -131,7 +132,9 @@ test('a click on the stripe, and a reload of the link it writes, keep the same p
   // off the stripe's own `aria-valuenow` rather than `midT`, which the click's pixel rounding may miss by a beat.
   await page.clock.runFor(HASH_EVERY_MS);
   const shownAtClick = await page.getByTestId('time-stripe').getAttribute('aria-valuenow');
-  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(`#live?lat=-38.93&lon=-67.99&alt=0&t=${new Date(Number(shownAtClick)).toISOString()}`);
+  // `isoInstant`, not `toISOString`: the app leaves out zero milliseconds and `Date` always renders
+  // them, so the two agree on 999 instants in 1000 and this would fail on the thousandth.
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(`#live?lat=-38.93&lon=-67.99&alt=0&t=${isoInstant(Number(shownAtClick))}`);
 
   await page.reload();
   await domeDrawn(page);
