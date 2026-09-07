@@ -6,6 +6,10 @@ name: Captures
 # captures through the `visual-review` skill anyway. So the set is shot here:
 # on every push to `main` and on demand.
 #
+# R53: the set is 92 files since v1.1 gave it the settings page, the sky window
+# and the legend, so the run is about half as long again — call it 13 min on a
+# two-core runner.
+#
 # This job commits nothing. It uploads the set as an artefact and fails when a
 # capture is missing — the committed files under `docs/screenshots/` are cleared
 # before the run, so the check is about what this run produced and not about
@@ -20,8 +24,8 @@ on:
 jobs:
   captures:
     runs-on: ubuntu-latest
-    # Twice the observed 8.5 min: this job is off the PR path, so its ceiling is a stuck run, not a budget.
-    timeout-minutes: 20
+    # Twice the expected 13 min (R53): this job is off the PR path, so its ceiling is a stuck run, not a budget.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

@@ -52,6 +52,33 @@ export interface Budget {
  * | window         | `SkyWindow-*.js`     |      5.3 |     10 |       — |
  * | declination    | `useDeclination-*.js`|      6.1 |     10 |       — |
  *
+ * R53 re-set them the same way on the 1.1.0 build (SPEC §9 Phase 2b: "the
+ * bundle budgets re-set by the D-178 rule"). A phase that added the settings
+ * page, the legend, the sky window and the live trajectories cost the main
+ * chunk 0.6 KB and the chart chunk nothing; only one budget moves, and it moves
+ * *down*:
+ *
+ * | chunk          | file                 | measured | budget | was | ceiling |
+ * |----------------|----------------------|---------:|-------:|----:|--------:|
+ * | main           | `index-*.js`         |    135.3 |    150 | 150 |     170 |
+ * | chart          | `SkyDome-*.js`       |     97.1 |    110 | 110 |     110 |
+ * | worker         | `passes.worker-*`    |     36.1 |     40 |  40 |     130 |
+ * | astronomy      | `skyBodies-*.js`     |     22.1 |     25 |  25 |      30 |
+ * | live           | `Live-*.js`          |      7.6 |     10 |  15 |      40 |
+ * | declination    | `useDeclination-*.js`|      6.1 |     10 |  10 |       — |
+ * | window         | `SkyWindow-*.js`     |      5.3 |     10 |  10 |       — |
+ * | service worker | `workbox-*.js`       |      5.0 |     10 |  10 |      15 |
+ *
+ * The live chunk is the one that moves. R44 raised it to 15 for the World
+ * Magnetic Model and R47 then split the model out into its own chunk, which
+ * left `Live-*.js` at 6.3 KB under a budget more than twice its size — R47 kept
+ * the 15 on the ground that the next addition was the number to watch, and v1.1
+ * has now made those additions (the trajectories, the stripe's three rows, the
+ * stepping control, the wide fold) for 1.3 KB. A release re-set is where that
+ * headroom is handed back: at the 10 KB floor the chunk has the same tenth of
+ * room every other row has, and the next six kilobytes are a `::warning::`
+ * instead of silence.
+ *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
  *
@@ -73,9 +100,10 @@ export interface Budget {
  *   never open. R44 doubled it: `geomagnetism` and the four WMM coefficient
  *   files are 6.3 KB gzipped of the 12.6 (D-185 measured 6.2 with esbuild), and
  *   they land here rather than in main because `lib/declination.ts` is reached
- *   only from the live page. Re-set to 15 KB by D-178's rule, well under the
- *   §11 ceiling of 40 — the number to watch is whether the *next* change adds
- *   another six.
+ *   only from the live page. R47 then split that model into the declination
+ *   chunk below and left the budget at 15; R53 re-measured 7.6 on the 1.1.0
+ *   build with v1.1's live page in it and put the budget back on the 10 KB
+ *   floor, well under the §11 ceiling of 40.
  * - **window** — `window/SkyWindow.tsx`, its projection and its orientation
  *   hook, behind the second `React.lazy` in `SkyChart.tsx` (R47, D-188): SVG
  *   and arithmetic, no library, so 5.3 KB gzipped on the R47 build and the
@@ -85,8 +113,8 @@ export interface Budget {
  *   World Magnetic Model behind them. R44 put them in the live chunk; the
  *   window reaches them too (FR-WIN-3), so Vite splits them into a chunk both
  *   pages share and the live chunk falls back to 6.3 KB. 6.1 KB measured on the
- *   R47 build, the 10 KB floor as its budget, and the live budget stays at 15
- *   for the same reason as before: the number to watch is the next addition.
+ *   R47 build and again on 1.1.0, the 10 KB floor as its budget: the model is
+ *   the whole chunk, so what would move this number is a new coefficient set.
  * - **service worker** — Workbox's runtime and the precache manifest, emitted
  *   at the site root rather than under `assets/` because a worker's scope is
  *   the directory it is served from (D-79). Nothing the page downloads to
@@ -102,7 +130,7 @@ export const BUDGETS: readonly Budget[] = [
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 40 },
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10 },
   { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 25 },
-  { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 15 }, // R44: re-set from 10 for the World Magnetic Model (D-178, D-185)
+  { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 10 }, // R53: back to the floor — R47 moved the World Magnetic Model to its own chunk and 1.1.0 measures 7.6 (D-178)
   { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 10 }, // R47: 5.3 measured, floored at 10 (D-178)
   { name: 'declination', match: (file) => /^useDeclination-.*\.js$/.test(file), limitKb: 10 }, // R47: split out of live once the window reached it too
 ];
