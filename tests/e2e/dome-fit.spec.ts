@@ -56,6 +56,14 @@ if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
 const PASS_ID = `25544-${String(golden.start.t)}`;
 
 const MIN_EXTENT_RATIO = 0.9;
+/**
+ * D-293: what the drawing may shrink to where the platform rounds a glyph advance to a whole device
+ * pixel. `camera.test.ts` measures 0.818 at a device pixel ratio of 1 and 0.9001 at a ratio of 2;
+ * this is the lower of the two with a little room, so a further regression still fails here.
+ */
+const WHOLE_PIXEL_MIN_RATIO = 0.81;
+/** A fitted cell this far under `box / cols` means the platform rounded the advance, not float noise. */
+const CELL_EPS_PX = 0.01;
 /** Sub-pixel rounding (worse at a device pixel ratio of 2), and the label snap the unit side already accounts for. */
 const FIT_EPS_PX = 3;
 
@@ -74,6 +82,8 @@ interface LayerInk {
   ink: Rect;
   /** Blank columns between the ink and each side of the grid; 0 means the drawing runs into the edge. */
   margin: { left: number; right: number };
+  /** The grid's own cell, `<pre>` width over columns: below `box / cols` where the platform rounded the advance. */
+  cellWidthPx: number;
 }
 
 interface Painted {
@@ -129,6 +139,7 @@ async function painted(drawing: Locator): Promise<Painted> {
           height: (maxRow + 1 - minRow) * cellHeightPx,
         },
         margin: { left: minCol, right: cols - 1 - maxCol },
+        cellWidthPx,
       });
     }
     // A tick behind the dome (D-56's ring runs all the way round) is `display: none` rather than
@@ -162,30 +173,26 @@ async function expectFit(chartBox: Locator, drawing: Locator): Promise<void> {
   expect(extent.y + extent.height).toBeLessThanOrEqual(box.y + box.height + FIT_EPS_PX);
   const shorter = Math.min(box.width, box.height);
   /*
-   * D-293: the floor is asked of the raster the drawing actually has. Where a glyph advance renders
-   * at the width it was asked for, the raster covers its box and the drawing is sized by the box, so
-   * FR-DOME-1's floor applies to the box as written. Where the advance rounds to a whole device
-   * pixel — Linux Chromium at a device pixel ratio of 1, which is what CI runs — the fitted cell is
-   * narrower than `box / cols`, so 60 columns fall short of the box and the drawing, painted on that
-   * raster, is short with it. The owner chose the exact column count over the last few per cent of
-   * fill, so that shortfall is the accepted behaviour; `camera.test.ts` pins how far it may go
-   * (0.818 of the box, and no further). What still has to hold everywhere is that the drawing fills
-   * the raster it was given, which is the half of F-54 that regressed.
+   * D-293: which floor applies depends on whether this platform renders a glyph advance at the width
+   * it was asked for. Where it does, the fitted cell is `box / cols` and FR-DOME-1's 0.9 holds as
+   * written. Where the advance rounds to a whole device pixel — Linux Chromium at a device pixel
+   * ratio of 1, which is what CI runs — the fitted cell is measurably narrower, and two things
+   * follow: the raster can fall short of the box, and the blank column D-290 keeps either side of
+   * the ink costs a larger share of it. Both shrink the drawing, and the owner chose the exact
+   * column count over recovering that (D-293), so the shortfall is the accepted behaviour.
+   * `camera.test.ts` pins how far it may go — 0.818 of the box at ratio 1, and no further.
+   *
+   * The condition is tested directly rather than inferred from the raster: a raster can cover its
+   * box and the drawing still be short, which is what the margin costs.
    */
-  const rasterWidth = Math.max(
-    ...layers.map(({ cols, ink, margin }) => {
-      const inkCols = cols - margin.left - margin.right;
-      return inkCols > 0 ? (ink.width / inkCols) * cols : ink.width;
-    }),
-  );
-  const rasterCoversBox = rasterWidth >= MIN_EXTENT_RATIO * box.width;
-  const floorAgainst = rasterCoversBox ? shorter : Math.min(rasterWidth, box.height);
+  const rounded = layers.some(({ cols, cellWidthPx }) => cellWidthPx < box.width / cols - CELL_EPS_PX);
+  const floor = rounded ? WHOLE_PIXEL_MIN_RATIO : MIN_EXTENT_RATIO;
   expect(
-    Math.max(extent.width, extent.height),
-    rasterCoversBox
-      ? `the drawing against its ${shorter.toFixed(0)} px box`
-      : `the drawing against the ${rasterWidth.toFixed(0)} px raster this platform's glyph rounding left it, in a ${box.width.toFixed(0)} px box (D-293)`,
-  ).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO * floorAgainst);
+    Math.max(extent.width, extent.height) / shorter,
+    rounded
+      ? `the drawing over its ${shorter.toFixed(0)} px box, where this platform rounds the glyph advance so the fitted cell is under ${(box.width / Math.max(...layers.map((l) => l.cols))).toFixed(2)} px (D-293's accepted shortfall)`
+      : `the drawing over its ${shorter.toFixed(0)} px box, where the advance is exact so FR-DOME-1's floor applies as written`,
+  ).toBeGreaterThanOrEqual(floor);
   for (const { layer, cols, margin } of layers) {
     expect(margin.left, `blank columns west of the ${layer} layer's ink, in its ${String(cols)}-column grid`).toBeGreaterThan(0);
     expect(margin.right, `blank columns east of the ${layer} layer's ink, in its ${String(cols)}-column grid`).toBeGreaterThan(0);
