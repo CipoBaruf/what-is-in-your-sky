@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import { useLocale, useT } from '../../../../i18n/useT';
 import { degrees, formatSignedDegrees } from '../../../../lib/format';
 import type { BodyLine, LegendRow } from '../../../../lib/legend';
 import { formatClock } from '../../../../lib/timeFormat';
 import { moonGlyph } from './bodies';
+import { LegendSwatch } from './LegendSwatch';
 import styles from './Legend.module.css';
 
 /**
@@ -20,6 +22,13 @@ import styles from './Legend.module.css';
  * altitude (FR-DOME-6 as amended). Inside `skychart/` so the chart's palette
  * is the swatch's; rendered by `SkyChart` from the props the drawing gets
  * and placed by `ChartFrame`.
+ *
+ * R51 (FR-LEG-3, US-23 AC3): on the pass detail the FR-GUIDE-1 numeric table
+ * is the legend, so the caller hands in a `lead` — the table, already
+ * rendered against the row it stands for — and it takes that row's place at
+ * the head of the list. The rows left are the passes drawn dim, and they
+ * carry rise and end only: the explained pass's peak is in the table, and a
+ * dim arc on the detail is context, not a second pass to time to the second.
  */
 export interface LegendProps {
   rows: readonly LegendRow[];
@@ -31,16 +40,29 @@ export interface LegendProps {
   onActivate: (passId: string) => void;
   /** Keyboard focus: highlight the row's arc without reordering the list (R54, D-271). */
   onFocusRow: (passId: string) => void;
+  /**
+   * FR-LEG-3 (R51): the pass detail's numeric table, standing in for the row
+   * of the pass it explains. Given one, the list opens with it and drops that
+   * pass's own row; the rest of the rows read as the detail's dim arcs.
+   */
+  lead?: { passId: string; node: ReactNode } | undefined;
 }
 
-export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow }: LegendProps) {
+export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow, lead }: LegendProps) {
   const t = useT();
   const locale = useLocale();
   const words = t.chart.legend;
   const clock = (ms: number | null): string => (ms === null ? '' : formatClock(ms, timeZone, locale));
+  // The lead's row is the table itself, so it is not repeated as a button below it (FR-LEG-3).
+  const listed = lead === undefined ? rows : rows.filter((row) => row.passId !== lead.passId);
   return (
     <ol className={styles.legend} aria-label={words.label} data-testid="chart-legend">
-      {rows.map((row) => (
+      {lead !== undefined && (
+        <li className={[styles.item, styles.lead].join(' ')} data-testid="legend-lead" data-pass-id={lead.passId}>
+          {lead.node}
+        </li>
+      )}
+      {listed.map((row) => (
         <li key={row.passId} className={styles.item}>
           <button
             type="button"
@@ -58,12 +80,12 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
             }}
           >
             <span className={styles.key}>{row.key}</span>
-            <span className={styles.swatch} data-color={row.colorToken} aria-hidden="true" />
+            <LegendSwatch color={row.colorToken} />
             <span className={styles.name}>{row.name}</span>
             {row.riseMs !== null && (
               <span className={styles.times}>
                 <span className={styles.time}>{clock(row.riseMs)}</span>
-                <span className={styles.time}>{clock(row.peakMs)}</span>
+                {lead === undefined && <span className={styles.time}>{clock(row.peakMs)}</span>}
                 <span className={styles.time}>{clock(row.endMs)}</span>
                 {(row.state === 'live' || row.state === 'ahead' || row.state === 'linger') && <span className={styles.state}>{words.state[row.state]}</span>}
               </span>
@@ -73,7 +95,7 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
       ))}
       {bodies.map((line) => (
         <li key={line.body} className={[styles.item, styles.body].join(' ')} data-body={line.body}>
-          <span className={styles.bodySwatch} data-color={line.body} aria-hidden="true" />
+          <LegendSwatch color={line.body} />
           <span className={styles.name}>
             {line.body === 'sun'
               ? words.sun({ azimuth: degrees(line.azDeg), altitude: formatSignedDegrees(line.altDeg, locale) })

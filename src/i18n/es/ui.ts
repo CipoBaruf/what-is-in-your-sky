@@ -263,6 +263,8 @@ export const ui: typeof EnUi = {
       start: 'Salida',
       peak: 'Máximo',
       end: 'Fin',
+      entersShadow: 'Entra en sombra',
+      leavesShadow: 'Sale de la sombra',
       duration: 'Duración',
       magnitude: 'Magnitud',
       rangeAtPeak: 'Distancia en el máximo',

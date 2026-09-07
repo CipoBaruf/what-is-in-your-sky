@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from 'react';
 import type { ArcState } from '../../../../lib/arcReveal';
+import type { LegendRow } from '../../../../lib/legend';
 import type { SunState } from '../../../../lib/skyBodies';
 import type { ChartView, EpochMs, MoonState, Observer, Pass } from '../../../../model';
 
@@ -91,6 +92,15 @@ export interface SkyChartProps {
    * wide. The view never builds it: one list, whichever view is mounted.
    */
   legend?: ReactNode;
+  /**
+   * FR-LEG-3 / US-23 AC3 (R51): the block that stands in for the explained
+   * pass's legend row — the pass detail's FR-GUIDE-1 numeric table, which is
+   * the legend there. It is called with the row it replaces, so the key and
+   * the colour it shows are the ones `lib/legend.ts` derived and the drawing
+   * drew, and the caller never has to work out either. Absent, the legend is
+   * the plain list.
+   */
+  legendLead?: (row: LegendRow) => ReactNode;
   /**
    * FR-LIVE-7 as amended (v1.1.1) / D-268, D-269 (R54): on the live page the
    * chart's own controls — the view toggle and its note — reach the view

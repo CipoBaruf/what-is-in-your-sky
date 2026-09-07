@@ -53,6 +53,14 @@ import styles from './PassDetail.module.css';
  * FR-GUIDE-1 sentence the chart captions itself with — one warning about this
  * pass, right where the reader has just been told what to expect from it.
  *
+ * R51 (FR-LEG-3, US-23 AC3): the numeric table is no longer a block of its own
+ * further down the sheet — it is the chart's legend, handed to `SkyChart` as
+ * the block that stands in for the explained pass's row, so it lands directly
+ * under the drawing with the drawing's key and the arc's colour in its
+ * heading, and any other pass drawn dim is listed under it. The screen still
+ * shows the FR-GUIDE-1 sentence once, above the drawing, as the figure's
+ * caption.
+ *
  * R50 (F-43, F-45): the focus in and out is `useOpenerFocus`, which reads the
  * opener during the render rather than in the mount effect — by the effect the
  * page around this is already `inert` and the card that opened it has been
@@ -114,10 +122,15 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
         {pass.twilight && <span className={styles.twilight}>{t.passes.twilightLabel}</span>}
       </p>
       <Countdown pass={pass} now={now} timeZone={timeZone} />
-      <SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} now={now} />
+      <SkyChart
+        passes={[pass]}
+        observer={observer}
+        highlightedPassId={pass.id}
+        now={now}
+        legendLead={(row) => <PassNumbers pass={pass} timeZone={timeZone} legendKey={row.key} colorToken={row.colorToken} />}
+      />
       <MoonAtPeak moon={pass.moonAtPeak} variant="guide" />
       <MoonGlareNote moon={pass.moonAtPeak} glare={pass.moonGlare} />
-      <PassNumbers pass={pass} timeZone={timeZone} />
       <ShareButton url={shareUrl(window.location.href, passLinkFor(observer, pass))} title={t.share.title({ name: pass.name })} text={t.guide.sentence(guideParams(pass, timeZone, locale))} />
     </>
   );

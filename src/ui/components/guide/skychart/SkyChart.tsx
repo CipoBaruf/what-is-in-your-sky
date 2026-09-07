@@ -185,7 +185,12 @@ export function SkyChart(props: SkyChartProps) {
   const lines = bodyLines({ sun: bodies.sun, moon: bodies.moon }, { sun: bodies.sun ? sunVisible(bodies.sun) : false, moon: bodies.moon ? moonVisible(bodies.moon) : false });
 
   const captioned = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
-  const legend = <Legend rows={rows} bodies={lines} timeZone={observer.timeZone} highlightedPassId={highlightedPassId} onActivate={select} onFocusRow={focusRow} />;
+  // FR-LEG-3 (R51): on the pass detail the numeric table is the legend's first block, in place of the explained
+  // pass's row. It is the *caller's* highlighted pass, not the pinned one: pinning a dim row moves that row to the
+  // top of the list, but the table is what the guide is about and stays at its head.
+  const leadRow = props.legendLead === undefined ? undefined : rows.find((row) => row.passId === props.highlightedPassId);
+  const lead = props.legendLead !== undefined && leadRow !== undefined ? { passId: leadRow.passId, node: props.legendLead(leadRow) } : undefined;
+  const legend = <Legend rows={rows} bodies={lines} timeZone={observer.timeZone} highlightedPassId={highlightedPassId} onActivate={select} onFocusRow={focusRow} lead={lead} />;
   // R54 (FR-LIVE-7 as amended v1.1.1, D-269): the view toggle and its note. On the guide they head the figure; on the live
   // page (`fill`) they go to the view for the frame's controls slot, so the row above the drawing is one row.
   const chartControls = (

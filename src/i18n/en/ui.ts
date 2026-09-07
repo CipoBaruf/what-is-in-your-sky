@@ -326,6 +326,9 @@ export const ui = {
       start: 'Start',
       peak: 'Peak',
       end: 'End',
+      /** FR-LEG-3 (R51): the row of a boundary the satellite crosses in Earth's shadow, which is the drawing's shadow marker. */
+      entersShadow: 'Enters shadow',
+      leavesShadow: 'Leaves shadow',
       duration: 'Duration',
       magnitude: 'Magnitude',
       rangeAtPeak: 'Range at peak',
