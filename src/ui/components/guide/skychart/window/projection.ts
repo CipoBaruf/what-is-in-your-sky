@@ -138,6 +138,42 @@ export function drawableDeg(view: View): number {
   return Math.min(150, (2 * Math.atan(r)) / RAD + 5);
 }
 
+// --- The ground (FR-FOL-5, D-278) ----------------------------------------------
+
+/**
+ * Half the field's vertical extent, in degrees: the angle from the centre of
+ * the view to the middle of its top edge. `WINDOW_FOV` spans the *shorter*
+ * side (FR-WIN-1), so this is `FOV / 2` exactly in a square box and in any box
+ * wider than it is tall, and more than that in a tall one — the box is only
+ * square on the phone's floor (D-233), so it is read from the measured box and
+ * never from the constant.
+ */
+export function verticalHalfFieldDeg(view: View): number {
+  return (2 * Math.atan(view.height / 2 / scaleFor(view))) / RAD;
+}
+
+/** FR-FOL-5: how much sky the field still holds. */
+export type GroundState = 'sky' | 'ground' | 'buried';
+
+/**
+ * FR-FOL-5 (D-278): the ground state, a pure function of where the phone
+ * points and how big the box is — the altitude at the centre of the field and
+ * the vertical half-field, no constant of its own:
+ *
+ *   `sky`     the centre is on or above the horizon; the picture is the sky's.
+ *   `ground`  the centre is below the horizon but the top edge is above it:
+ *             some sky is still in the field, and the part below is hatched.
+ *   `buried`  the top edge is at or below the horizon: no sky is left.
+ *
+ * The roll is not read: a rolled phone turns the box, not the centre of it,
+ * and FR-FOL-5 asks for the altitude at the centre.
+ */
+export function groundState(m: Mat3, view: View): GroundState {
+  const { altDeg } = lookDirection(m);
+  if (altDeg >= 0) return 'sky';
+  return altDeg + verticalHalfFieldDeg(view) > 0 ? 'ground' : 'buried';
+}
+
 // --- Smoothing (FR-WIN-3's `WINDOW_SMOOTHING`) ---------------------------------
 
 const dot = (a: Vec3, b: Vec3): number => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];

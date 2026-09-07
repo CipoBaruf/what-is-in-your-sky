@@ -11,6 +11,7 @@ import {
   calibrationSample,
   converged,
   drawableDeg,
+  groundState,
   lookDirection,
   OffsetEstimate,
   project,
@@ -18,6 +19,7 @@ import {
   settling,
   smoothRotation,
   uprightRotation,
+  verticalHalfFieldDeg,
   WINDOW_FOV,
   WINDOW_SMOOTHING,
   windowReadingFrom,
@@ -225,5 +227,54 @@ describe('the heading (FR-WIN-3, FR-WIN-4; R38 fused; R44 declination)', () => {
     expect(alphaFor({ alpha: 270, beta: 90, gamma: 0, absolute: true, webkitCompassHeading: null, webkitCompassAccuracy: null }, null, 1.1)).toBeCloseTo(268.9, 6);
     expect(lookDirection(rotationMatrix(268.9, 90, 0)).azDeg).toBeCloseTo(91.1, 6);
     expect(alphaFor({ ...ios, webkitCompassHeading: 90 }, null, -5)).toBeCloseTo(275, 6);
+  });
+});
+
+/**
+ * R56 (FR-FOL-5, US-21 AC10; PLAN D-278): the ground state, derived from the
+ * altitude at the centre of the field and the vertical half-field of the
+ * measured box — the same `WINDOW_FOV` across the shorter side, no constant of
+ * its own.
+ */
+describe('the ground state (FR-FOL-5)', () => {
+  /** The guide's square box, a tall phone box, and a box turned on its side. */
+  const square: View = { fovDeg: WINDOW_FOV, width: 390, height: 390, screenAngleDeg: 0 };
+  const portrait: View = { ...square, width: 390, height: 780 };
+  const landscape: View = { ...square, width: 780, height: 390, screenAngleDeg: 90 };
+  /** The half-field of a box twice as tall as it is wide: 2·atan(2·tan 15°). */
+  const portraitHalf = (2 * Math.atan(2 * Math.tan(Math.PI / 12)) * 180) / Math.PI;
+  const looking = (altDeg: number): Mat3 => uprightRotation(120, altDeg);
+
+  it('spans WINDOW_FOV across the shorter side, so the landscape half-field is the narrower one', () => {
+    // 60° across the shorter side: in a square box, and in any box wider than it is tall, the shorter side is the height.
+    expect(verticalHalfFieldDeg(square)).toBeCloseTo(WINDOW_FOV / 2, 6);
+    expect(verticalHalfFieldDeg(landscape)).toBeCloseTo(WINDOW_FOV / 2, 6);
+    // A tall box sees further up and down than that; turning the phone is what narrows the field.
+    expect(portraitHalf).toBeCloseTo(56.374, 3);
+    expect(verticalHalfFieldDeg(portrait)).toBeCloseTo(portraitHalf, 6);
+    expect(verticalHalfFieldDeg(landscape)).toBeLessThan(verticalHalfFieldDeg(portrait));
+  });
+
+  it('is sky down to the horizon and ground below it, in portrait and in landscape', () => {
+    for (const box of [portrait, landscape]) {
+      expect(groundState(looking(40), box)).toBe('sky');
+      // The boundary is the horizon itself: a hair above it is the sky's picture, a hair below it the ground's.
+      // (Exactly 0 falls inside the rotation's own rounding, and either answer draws the same box: the horizon
+      // through its centre.)
+      expect(groundState(looking(0.05), box)).toBe('sky');
+      expect(groundState(looking(-0.05), box)).toBe('ground');
+      expect(groundState(looking(-10), box)).toBe('ground');
+    }
+  });
+
+  it('is buried once the top edge of the field is at or below the horizon, which the tall box reaches later', () => {
+    expect(groundState(looking(-(portraitHalf - 0.05)), portrait)).toBe('ground');
+    expect(groundState(looking(-(portraitHalf + 0.05)), portrait)).toBe('buried');
+    expect(groundState(looking(-29.95), landscape)).toBe('ground');
+    expect(groundState(looking(-30.05), landscape)).toBe('buried');
+    // The same aim in two boxes: the narrower field has already lost the sky the taller one still holds.
+    expect(groundState(looking(-45), portrait)).toBe('ground');
+    expect(groundState(looking(-45), landscape)).toBe('buried');
+    expect(groundState(looking(-90), portrait)).toBe('buried');
   });
 });
