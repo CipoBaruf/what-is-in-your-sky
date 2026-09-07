@@ -165,7 +165,10 @@ test('the dome is the default view, shares the polar frame, faces the rise point
   await expect(drawing.locator(`[data-pass-id="${passId}"][data-anchor="key"]`)).toHaveText('A');
   await expect(drawing.locator('[data-anchor="pass"]')).toHaveCount(0);
   await expect(drawing.locator('[data-anchor="peak"]')).toHaveCount(0);
-  await expect(figure.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toContainText('ISS (Zarya)');
+  // R51 (FR-LEG-3): the explained pass's legend row is the numeric table, keyed and swatched.
+  await expect(figure.getByTestId('legend-lead').getByRole('table')).toBeVisible();
+  await expect(figure.getByTestId('legend-lead').locator('caption')).toContainText('A');
+  await expect(figure.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toHaveCount(0);
 
   // FR-GUIDE-2 default view, FR-GUIDE-4 readout: facing the rise compass point at the D-92 default tilt.
   const readout = figure.getByTestId('dome-readout');

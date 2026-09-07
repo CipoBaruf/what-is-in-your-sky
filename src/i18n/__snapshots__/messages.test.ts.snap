@@ -96,6 +96,8 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".guide.numbers.elevation:string",
   ".guide.numbers.end:string",
   ".guide.numbers.endsWhen:string",
+  ".guide.numbers.entersShadow:string",
+  ".guide.numbers.leavesShadow:string",
   ".guide.numbers.magnitude:string",
   ".guide.numbers.peak:string",
   ".guide.numbers.point:string",

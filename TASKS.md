@@ -979,7 +979,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Done when:** a test per finding; captures of the home and the guide at 1024 px and 1280 px, both themes, English.
   - *Done. `WIDE_SPLIT_MIN_PX` counts the two gutters and one of the shell's two side paddings as well as the 124 cells, so the split is at 1272 px rather than 1253 and 1280 keeps both columns (D-253).*
 
-- [ ] **R51 — The pass detail's legend block and the share findings**
+- [x] **R51 — The pass detail's legend block and the share findings** — the shadow boundary renames its table row rather than adding a fourth, since `Pass` has three points and the drawing swaps the marker there (D-273, the owner's call in session); the table reaches the legend as `SkyChartProps.legendLead`, called with the row it replaces (D-272). The detail's chart is still given only the explained pass, so FR-TRAJ-3's dim arcs of the others never appear on it — the rows are there the moment it is, and the contract test covers them; listed as a follow-up.
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner

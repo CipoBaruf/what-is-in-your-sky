@@ -137,7 +137,9 @@ test.describe('the sky window on a phone', () => {
     await expect(figure.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
     await expect(figure.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveText('A');
     await expect(figure.locator('[data-anchor="pass"], [data-anchor="peak"]')).toHaveCount(0);
-    await expect(figure.getByTestId('chart-legend').locator(`button[data-pass-id="${GLARE_PASS}"]`)).toContainText('ISS (Zarya)');
+    // R51 (FR-LEG-3): on the detail the explained pass's legend row is the numeric table, keyed and swatched.
+    await expect(figure.getByTestId('legend-lead').locator('caption')).toContainText('A');
+    await expect(figure.getByTestId('chart-legend').locator(`button[data-pass-id="${GLARE_PASS}"]`)).toHaveCount(0);
     // No hand-driven view (FR-WIN-5): a drag on the drawing turns nothing.
     const box = (await drawing.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);

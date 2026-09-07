@@ -75,11 +75,14 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   const drawing = figure.locator('svg[data-drawing="polar"]');
   await expect(drawing).toHaveAttribute('aria-hidden', 'true');
   for (const cardinal of ['N', 'E', 'S', 'W']) await expect(drawing.locator(`[data-anchor="${cardinal}"]`)).toHaveText(cardinal);
-  // R45 (FR-LEG-1): the key at the peak, and the name in the legend under the chart.
+  // R45 (FR-LEG-1): the key at the peak, and the words in the legend under the chart. R51 (FR-LEG-3): here the
+  // legend opens with the numeric table, which stands in for the explained pass's row and carries the same key.
   await expect(drawing.locator(`[data-pass-id="${passId}"] [data-anchor="key"]`)).toHaveText('A');
   await expect(drawing.locator('[data-anchor="pass"]')).toHaveCount(0);
   await expect(drawing.locator('[data-anchor="peak"]')).toHaveCount(0);
-  await expect(figure.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toContainText('ISS (Zarya)');
+  await expect(figure.getByTestId('legend-lead').getByRole('table')).toBeVisible();
+  await expect(figure.getByTestId('legend-lead').locator('caption')).toContainText('A');
+  await expect(figure.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toHaveCount(0);
   for (const marker of ['rise', 'peak', 'end', 'arrow']) await expect(drawing.locator(`[data-marker="${marker}"]`)).toHaveCount(1);
   const box = await drawing.boundingBox();
   if (!box) throw new Error('drawing has no box');
