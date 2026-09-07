@@ -16,10 +16,16 @@ import { normalizeAzimuthDeg } from '../../../lib/compass';
  *     a relative-only device: there is no north in the reading, and the page
  *     says so rather than turning the dome to a direction it made up.
  *
- * The heading is the device's top; what the viewer faces holding it up is that
- * turned by the screen's angle, so a phone held sideways (the FR-LIVE-7
- * layout) faces where the viewer looks and not 90° from it. This module does
- * not read the sensor; `useFollowPhone` does, and hands each reading here.
+ * This module does not read the sensor; `useFollowPhone` does, and hands each
+ * reading here.
+ *
+ * R59 (D-276): the dome no longer turns with the phone — the `[ follow phone ]`
+ * control opens the sky window (FR-FOL-1) — so the heading path that fed it
+ * (`trueHeading`, `facingFrom`) is gone. What is left is what the window and
+ * the control still ask: whether there is a phone at all, which event carries
+ * its readings, whether a reading has a north in it, the screen's rotation and
+ * the rounding. `window/useDeviceOrientation` does its own magnetic-to-true
+ * correction, on the rotation rather than on a bare heading.
  */
 export interface OrientationReading {
   alpha: number | null;
@@ -40,27 +46,6 @@ export function deviceHeading(reading: OrientationReading): number | null {
   if (typeof webkit === 'number' && Number.isFinite(webkit)) return normalizeAzimuthDeg(webkit);
   if (reading.absolute && reading.alpha !== null && Number.isFinite(reading.alpha)) return normalizeAzimuthDeg(360 - reading.alpha);
   return null;
-}
-
-/**
- * R44 (FR-WIN-3, FR-LIVE-8 as amended, US-21 AC6; F-41, D-185): the true-north
- * heading of a magnetic one. Both `webkitCompassHeading` and the W3C `alpha`
- * are read off a magnetometer and point at *magnetic* north, while every
- * azimuth the app draws — the compass names on the horizon, the arcs, the
- * markers — is true. The two are the same number only where the declination is
- * zero, so the reading is corrected before it becomes a facing: positive east,
- * a magnetic 90° at Neuquén (+1.1°) is a true 91.1°.
- *
- * The declination comes from `lib/declination.ts`, evaluated once per observer
- * (`useDeclination`), not once per reading.
- */
-export function trueHeading(magneticHeadingDeg: number, declinationDeg: number): number {
-  return normalizeAzimuthDeg(magneticHeadingDeg + declinationDeg);
-}
-
-/** The azimuth the viewer faces: the device's heading turned by the screen's rotation from portrait. */
-export function facingFrom(headingDeg: number, screenAngleDeg: number): number {
-  return normalizeAzimuthDeg(headingDeg + screenAngleDeg);
 }
 
 /** Whole degrees: a sensor jitters by fractions, and a re-rasterisation per fraction is FR-LIVE-5's budget spent on nothing visible. */

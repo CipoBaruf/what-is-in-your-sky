@@ -10,13 +10,18 @@ import type { FollowPhoneHandle } from './useFollowPhone';
  * permission. Pure display: `useFollowPhone` owns the sensor and the state,
  * and the page passes the handle down. Nothing at all where there is no phone
  * to follow — a desktop gets no disabled control (PLAN §8.8).
+ *
+ * R59 (FR-FOL-1, FR-FOL-2): pressed is the window being shown because this
+ * control opened it, and nothing else. A relative-only device leaves it
+ * unpressed the way a refusal does — neither opened anything (FR-FOL-2) — so
+ * the characters say what the chart is doing.
  */
 export function FollowPhone({ follow }: { follow: FollowPhoneHandle }) {
   const t = useT();
   // R48 (FR-COMP-4, D-245): one word on compact, under the full accessible name.
   const compact = useLayoutMode() === 'compact';
   if (!follow.available) return null;
-  const pressed = follow.state === 'on' || follow.state === 'relative';
+  const pressed = follow.state === 'on';
   const note = follow.state === 'relative' ? t.live.followRelative : follow.state === 'denied' ? t.live.followDenied : null;
   return (
     <div className={styles.follow} data-testid="follow-phone" data-state={follow.state}>

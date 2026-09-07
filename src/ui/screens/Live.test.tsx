@@ -486,101 +486,89 @@ describe('<LivePage>', () => {
     expect(window.location.hash).toBe('#live');
   });
 
-  /** R34 (FR-LIVE-8, US-10, US-15 AC8): on the dome view, the phone's heading turns the dome; a drag turns following off; the control turns it back on. */
-  it('follows the phone: a heading turns the dome, a drag turns following off, and the control turns it on again', async () => {
-    const frame = scriptedFrames();
+  /**
+   * R59 (FR-FOL-1, FR-FOL-3, US-10, US-21 AC8): the control opens the sky
+   * window over whatever view is showing. Entering it is FR-WIN-6's route by
+   * any other name — the instant goes back to real time, the stripe block and
+   * the playback row go — and the second press gives the view back with them.
+   */
+  const withPhone = (): void => {
     vi.stubGlobal('DeviceOrientationEvent', function DeviceOrientationEvent() {
       return undefined;
     });
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
+  };
+  /** A reading with a north in it: what the press waits for before it opens anything. */
+  const reading = (absolute: boolean): void => {
+    act(() => {
+      window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: 270, absolute }));
+    });
+  };
+
+  it.each(['polar', 'dome'] as const)('the follow control opens the window over the %s at real time and the second press gives that view back (FR-FOL-1, FR-FOL-3)', (from) => {
+    withPhone();
     withSky();
     act(() => {
-      appStore.getState().setChartView('dome');
+      appStore.getState().setChartView(from);
     });
     render(<LivePage link={null} onLeave={() => undefined} />);
-    // The dome is a lazy chunk; it lands with a readout that faces north (the page's initial facing).
-    const stage = await screen.findByRole('group', { name: 'Sky dome' }, { timeout: 10_000 });
-    const facing = () => Number(screen.getByTestId('live-dome').querySelector('[data-facing-az]')?.getAttribute('data-facing-az'));
-    expect(facing()).toBe(0);
+    // Somewhere other than now, so that entering the window is seen to bring it back (FR-WIN-6).
+    fireEvent.click(screen.getByRole('button', { name: 'Next rise' }));
+    expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
+
     const toggle = screen.getByRole('button', { name: en.live.follow });
-    const heading = (alpha: number) => {
-      act(() => {
-        window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha, absolute: true }));
-      });
-      frame(16);
-    };
     fireEvent.click(toggle);
-    // R39 (F-42): the click arms the sensor; the first reading is what says the dome is following.
+    // The press arms the sensor; the reading is what opens the window (F-42's lesson, D-276).
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    heading(270);
+    expect(screen.getByTestId('live-side')).toHaveAttribute('data-window-mode', 'false');
+    reading(true);
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    // R44 (FR-WIN-3, F-41): `360 − alpha` is the *magnetic* heading, 90° here, and the dome is drawn in
-    // true azimuths, so the observer's declination is added: +1.12° at Neuquén, 91° whole.
-    expect(facing()).toBe(91);
-    // …and the strip names the correction while following (US-21 AC6).
+    // FR-WIN-5 as amended (D-277): the window is the view, and the reader's own preference is untouched.
+    expect(appStore.getState()).toMatchObject({ chartView: 'window', savedChartView: from, viewOverride: 'window' });
+    expect(screen.getByTestId('live-side')).toHaveAttribute('data-window-mode', 'true');
+    expect(screen.queryByTestId('stripe-block')).toBeNull();
+    expect(screen.queryByTestId('playback-controls')).toBeNull();
+    expect(screen.getByTestId('live-time')).toHaveTextContent(/^Time 09:48:24 UTC$/);
+    // R44 (FR-WIN-3, US-21 AC6, D-185): the strip names the correction the window is applying.
     expect(screen.getByTestId('live-heading')).toHaveTextContent('Heading true north, declination +1.1°');
-    heading(180);
-    expect(facing()).toBe(181);
-    // A drag on the dome: following off, the dome stays where the drag left it, headings are ignored.
-    fireEvent.pointerDown(stage, { pointerId: 1, clientX: 100, clientY: 100, button: 0, pointerType: 'touch' });
-    fireEvent.pointerMove(stage, { pointerId: 1, clientX: 140, clientY: 100 });
-    fireEvent.pointerUp(stage, { pointerId: 1, clientX: 140, clientY: 100 });
-    frame(32);
-    expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    expect(facing()).toBe(171);
-    // Not following: no heading is being corrected, so the strip drops the field (R44).
-    expect(screen.queryByTestId('live-heading')).toBeNull();
-    heading(0);
-    expect(facing()).toBe(171);
-    // The control turns it back on and the next heading turns the dome.
+
     fireEvent.click(toggle);
-    heading(90);
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    expect(facing()).toBe(271);
-    expect(screen.getByTestId('live-heading')).toHaveTextContent('true north, declination +1.1°');
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(appStore.getState()).toMatchObject({ chartView: from, savedChartView: from, viewOverride: null });
+    expect(screen.getByTestId('live-side')).toHaveAttribute('data-window-mode', 'false');
+    expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
+    expect(screen.getByTestId('playback-controls')).toBeInTheDocument();
+    expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(T);
+    expect(screen.queryByTestId('live-heading')).toBeNull();
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
   });
 
   /**
-   * R39 (F-40, FR-LIVE-8 as amended): the facing is the dome's. The polar view
-   * draws the whole sky at once and takes no facing, so the control was a
-   * toggle that did nothing there; it is not shown, and a view change while
-   * following stops it rather than leaving the sensor on with no way off.
+   * R59 (FR-FOL-2): a relative-only device has no north to point the window at,
+   * so nothing opens: the note, the view where it was, and the control
+   * unpressed. R39's F-40 rule is gone with the dome's following — the control
+   * belongs to both drawn views now — but its shape survives here: the state
+   * says what the chart is doing and nothing else.
    */
-  it('shows no follow control on the polar view and stops following when the view changes (F-40)', async () => {
-    const frame = scriptedFrames();
-    vi.stubGlobal('DeviceOrientationEvent', function DeviceOrientationEvent() {
-      return undefined;
-    });
-    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
-    withSky(); // the polar view, as every test here draws it
+  it('leaves the view alone with a note where the phone gives no heading, and is not shown on the window the reader chose (FR-FOL-2, FR-LIVE-8 as amended)', () => {
+    withPhone();
+    withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
-    expect(screen.queryByTestId('follow-phone')).toBeNull();
-
-    // On the dome it is there, and it follows.
-    act(() => {
-      appStore.getState().setChartView('dome');
-    });
-    await screen.findByRole('group', { name: 'Sky dome' }, { timeout: 10_000 });
     const toggle = screen.getByRole('button', { name: en.live.follow });
     fireEvent.click(toggle);
-    act(() => {
-      window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: 270, absolute: true }));
-    });
-    frame(16);
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    // R44: the magnetic 90° plus Neuquén's +1.12° declination.
-    expect(Number(screen.getByTestId('live-dome').querySelector('[data-facing-az]')?.getAttribute('data-facing-az'))).toBe(91);
+    reading(false);
+    expect(screen.getByTestId('follow-note')).toHaveTextContent(en.live.followRelative);
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(appStore.getState()).toMatchObject({ chartView: 'polar', viewOverride: null });
+    expect(screen.getByTestId('live-side')).toHaveAttribute('data-window-mode', 'false');
 
-    // Back to polar: no control, and nothing left following behind it.
+    // The window chosen from the view control: following is what the view is, so there is no control to press…
     act(() => {
-      appStore.getState().setChartView('polar');
+      appStore.getState().setChartView('window');
     });
     expect(screen.queryByTestId('follow-phone')).toBeNull();
-    act(() => {
-      appStore.getState().setChartView('dome');
-    });
-    expect(screen.getByRole('button', { name: en.live.follow })).toHaveAttribute('aria-pressed', 'false');
+    // …and the strip's declination line follows the window being shown, whichever route opened it (D-276).
+    expect(screen.getByTestId('live-heading')).toHaveTextContent('Heading true north, declination +1.1°');
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
   });
 

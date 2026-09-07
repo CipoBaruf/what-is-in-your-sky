@@ -216,24 +216,15 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
     setLiveHidden(!liveHidden);
   }, [liveHidden, setLiveHidden]);
   useHashFollows(observer, shown, playback.realTime, playback.playing);
-  // R44 (FR-WIN-3, US-21 AC6; F-41, D-185): the observer's magnetic declination, evaluated once per
-  // observer, so the phone's magnetic heading becomes a true-north facing and the strip can name the correction.
+  // R44 (FR-WIN-3, US-21 AC6; F-41, D-185): the observer's magnetic declination, evaluated once per observer, so
+  // the strip can name the correction the window is applying — which is why R59 hangs the line on the window
+  // being shown rather than on the control: entering it from the view control corrects the heading just the same.
   const declinationDeg = useDeclination(observer);
-  // FR-LIVE-8 (US-10): the phone's heading as the dome's facing while following; a drag on the dome turns it off.
-  const follow = useFollowPhone(declinationDeg);
-  const facingAzDeg = follow.state === 'on' && follow.facingAzDeg !== null ? follow.facingAzDeg : undefined;
-  /*
-   * R39 (F-40, FR-LIVE-8 as amended): the facing belongs to the dome. The polar
-   * view draws the whole sky at once and consumes no facing, so the control had
-   * nothing to turn there — it is not shown, and following stops if the view
-   * changes under it rather than leaving the sensor listening with no way off.
-   */
+  // R59 (FR-FOL-1, FR-LIVE-8 as amended v1.2, D-276): the control opens the sky window over the view that is
+  // showing and the second press gives that view back. The dome's facing is the drag's alone (FR-GUIDE-4), so
+  // the page passes none: while following, the window is what is drawn and it reads the sensor itself.
+  const follow = useFollowPhone();
   const chartView = useAppStore((s) => s.chartView);
-  const followable = chartView === 'dome';
-  const stopFollowing = follow.stop;
-  useEffect(() => {
-    if (!followable) stopFollowing();
-  }, [followable, stopFollowing]);
   /*
    * R48 (FR-WIN-6, US-21 AC5): window mode. The window shows real time —
    * entering it dispatches the `now` action, and the stripe block and the
@@ -243,6 +234,13 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
    * it does (the `string` reading is what lets it compile before then).
    */
   const windowMode = (chartView as string) === 'window';
+  /*
+   * R59 (FR-FOL-1): the control is offered on the dome and on the polar chart wherever the window is
+   * offered — `FollowPhone` renders nothing where there is no phone to follow — and never on the window
+   * *chosen* from the view control, where following is what the view is (FR-LIVE-8 as amended v1.1). It
+   * stays while the window is the one this control opened: that press is what the second press undoes.
+   */
+  const followable = !windowMode || follow.state === 'on';
   // R54 (FR-TRAJ-5, FR-LIVE-7 as amended v1.1.1): the stepping row is for fingers; a pointer has the arrow keys.
   const touch = pageHasTouch();
   const toNow = playback.toNow;
@@ -269,8 +267,6 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           colorBy="pass"
           fill
           initialFacingAzDeg={0}
-          facingAzDeg={facingAzDeg}
-          onDrag={follow.stop}
         />
       </div>
       {/*
@@ -291,7 +287,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           count={count}
           moon={bodies.moon}
           speed={playback.playing ? playback.speed : null}
-          declinationDeg={follow.state === 'on' ? declinationDeg : null}
+          declinationDeg={windowMode ? declinationDeg : null}
         />
         {!windowMode && (
           <div className={styles.stripeBlock} data-testid="stripe-block">

@@ -1,50 +1,41 @@
 /**
- * R34 (FR-LIVE-8, US-10): the follow control with the orientation API
- * stubbed — nothing rendered where there is no phone to follow; the click
- * listens (or asks iOS first, inside the click); an absolute reading is a
- * facing, turned by the screen angle and rounded, one per frame; a relative
- * reading is the note; a refusal is the other note; `stop` ends listening.
+ * R34 (FR-LIVE-8, US-10), rewritten by R59 (FR-FOL-1, FR-FOL-2, D-276, D-277):
+ * the follow control with the orientation API stubbed. Following is the sky
+ * window being shown, so what is asserted here is the *view*: nothing rendered
+ * where there is no phone to follow; the press asks (iOS inside the click) and
+ * then waits for one reading; a reading with a heading opens the window over
+ * whatever view was showing and the second press gives that view back; a
+ * relative-only device and a refusal show their note and leave the view alone,
+ * with the control unpressed; and the saved preference is never what following
+ * opened — `savedChartView`, and the key on the device, stay the reader's.
+ *
+ * The states are the store's, not the hook's alone: `viewOverride` is what
+ * following *is* (D-277), so a view picked by hand while following ends it.
  */
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { en } from '../../../i18n/en';
+import type { ChartView } from '../../../model';
+import { appStore } from '../../../state';
+import { resetOrientationAccess } from '../guide/skychart/window/orientationAccess';
 import { FollowPhone } from './FollowPhone';
 import { useFollowPhone } from './useFollowPhone';
 
-/** The hook and the control together, with the facing and a `stop` the dome's `onDrag` would call. */
+const initial = appStore.getInitialState();
+const PREFS_KEY = 'wiys:prefs:v1';
+
+/** The hook and the control together, with a `stop` the page would call. */
 function Harness() {
   const follow = useFollowPhone();
   return (
     <>
       <FollowPhone follow={follow} />
-      <output data-testid="facing">{follow.facingAzDeg === null ? 'none' : String(follow.facingAzDeg)}</output>
       <button type="button" onClick={follow.stop}>
-        drag
+        leave
       </button>
     </>
   );
-}
-
-/** A hand-driven `requestAnimationFrame`: `frame()` runs every pending callback. */
-function scriptedFrames() {
-  let next = 1;
-  const pending = new Map<number, FrameRequestCallback>();
-  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback): number => {
-    const id = next++;
-    pending.set(id, callback);
-    return id;
-  });
-  vi.stubGlobal('cancelAnimationFrame', (id: number): void => {
-    pending.delete(id);
-  });
-  return (): void => {
-    const callbacks = [...pending.values()];
-    pending.clear();
-    act(() => {
-      for (const callback of callbacks) callback(16);
-    });
-  };
 }
 
 interface Reading {
@@ -73,13 +64,30 @@ function withPhone(requestPermission?: () => Promise<'granted' | 'denied'>): voi
   Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
 }
 
-describe('<FollowPhone> with useFollowPhone (FR-LIVE-8)', () => {
+/** The view the reader chose, saved as the view control saves it. */
+function chose(view: ChartView): void {
+  act(() => {
+    appStore.getState().setChartView(view);
+  });
+}
+
+const views = () => {
+  const { chartView, savedChartView, viewOverride } = appStore.getState();
+  return { chartView, savedChartView, viewOverride };
+};
+
+const saved = (): unknown => (JSON.parse(window.localStorage.getItem(PREFS_KEY) ?? '{}') as { chartView?: unknown }).chartView;
+
+describe('<FollowPhone> with useFollowPhone (FR-FOL-1, FR-FOL-2)', () => {
   beforeEach(() => {
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+    resetOrientationAccess();
   });
   afterEach(() => {
     vi.unstubAllGlobals();
     Reflect.deleteProperty(window, 'ondeviceorientationabsolute');
+    appStore.setState(initial, true);
+    window.localStorage.clear();
   });
 
   it('renders nothing where there is no phone to follow (D-175): no constructor, or no touch screen', () => {
@@ -93,94 +101,81 @@ describe('<FollowPhone> with useFollowPhone (FR-LIVE-8)', () => {
     expect(screen.queryByTestId('follow-phone')).toBeNull();
   });
 
-  it('listens on the click, turns an absolute reading into a whole-degree facing once per frame, and stops on a drag', async () => {
-    const frame = scriptedFrames();
+  it.each(['dome', 'polar'] as const)('opens the window over the %s and gives that view back on the second press (FR-FOL-1)', async (from) => {
     withPhone();
+    chose(from);
     const { container } = render(<Harness />);
     const toggle = screen.getByRole('button', { name: en.live.follow });
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
-    // Not listening yet: a reading changes nothing.
+    // Not listening yet: a reading opens nothing.
     reading({ alpha: 270, absolute: true });
-    frame();
-    expect(screen.getByTestId('facing')).toHaveTextContent('none');
+    expect(views()).toMatchObject({ chartView: from, viewOverride: null });
 
     fireEvent.click(toggle);
-    // R39 (F-42): the click arms the listener; the first reading is what says the dome is following.
-    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
-    expect(screen.queryByTestId('follow-note')).toBeNull();
+    // The press arms; the reading is what says this phone has a north to point at (F-42's lesson).
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(views()).toMatchObject({ chartView: from, viewOverride: null });
     reading({ alpha: 270, absolute: true });
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'on');
-    expect(screen.getByTestId('facing')).toHaveTextContent('none'); // not before the frame
-    reading({ alpha: 269.6, absolute: true });
-    frame();
-    expect(screen.getByTestId('facing')).toHaveTextContent('90'); // the last reading of the frame, rounded
-    // iOS's heading wins over alpha, and the screen's rotation turns it.
-    reading({ alpha: 5, absolute: false, webkitCompassHeading: 45.2 });
-    frame();
-    expect(screen.getByTestId('facing')).toHaveTextContent('45');
-    Object.defineProperty(window.screen, 'orientation', { configurable: true, value: { angle: 90 } });
-    reading({ alpha: 0, absolute: true });
-    frame();
-    expect(screen.getByTestId('facing')).toHaveTextContent('90');
-    Reflect.deleteProperty(window.screen, 'orientation');
+    // FR-WIN-5 as amended: the window is the view, and the reader's own preference is untouched.
+    expect(views()).toEqual({ chartView: 'window', savedChartView: from, viewOverride: 'window' });
+    expect(saved()).toBe(from);
     expect(await axe(container)).toHaveNoViolations();
 
-    // A drag: off, the facing forgotten, readings ignored.
-    fireEvent.click(screen.getByRole('button', { name: 'drag' }));
-    expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getByTestId('facing')).toHaveTextContent('none');
-    reading({ alpha: 180, absolute: true });
-    frame();
-    expect(screen.getByTestId('facing')).toHaveTextContent('none');
-    // The control turns it back on, and the second click turns it off.
-    fireEvent.click(toggle);
-    reading({ alpha: 180, absolute: true });
-    frame();
-    expect(screen.getByTestId('facing')).toHaveTextContent('180');
+    // The second press gives back the view it came from, and nothing was written on the way.
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getByTestId('facing')).toHaveTextContent('none');
+    expect(views()).toEqual({ chartView: from, savedChartView: from, viewOverride: null });
+    expect(saved()).toBe(from);
   });
 
-  it("prefers Chrome's absolute event where the window has it", () => {
-    const frame = scriptedFrames();
+  it('leaving the live page gives the view back too (FR-FOL-1)', () => {
     withPhone();
-    (window as Window & { ondeviceorientationabsolute?: unknown }).ondeviceorientationabsolute = null;
-    render(<Harness />);
+    chose('dome');
+    const { unmount } = render(<Harness />);
     fireEvent.click(screen.getByRole('button', { name: en.live.follow }));
-    reading({ alpha: 90, absolute: true }); // the plain event: not listened to here
-    frame();
-    expect(screen.getByTestId('facing')).toHaveTextContent('none');
-    reading({ alpha: 90, absolute: true }, 'deviceorientationabsolute');
-    frame();
-    expect(screen.getByTestId('facing')).toHaveTextContent('270');
+    reading({ alpha: 270, absolute: true });
+    expect(views()).toMatchObject({ chartView: 'window', viewOverride: 'window' });
+    unmount();
+    expect(views()).toEqual({ chartView: 'dome', savedChartView: 'dome', viewOverride: null });
   });
 
-  it('shows the note for a relative-only phone, keeps the control pressed, and recovers when a heading arrives', () => {
-    const frame = scriptedFrames();
+  it('shows the note for a relative-only phone and leaves the view alone, unpressed (FR-FOL-2)', () => {
     withPhone();
+    chose('dome');
     render(<Harness />);
     const toggle = screen.getByRole('button', { name: en.live.follow });
     fireEvent.click(toggle);
     reading({ alpha: 30, absolute: false });
-    frame();
     expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'relative');
     expect(screen.getByTestId('follow-note')).toHaveTextContent(en.live.followRelative);
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByTestId('facing')).toHaveTextContent('none');
-    reading({ alpha: 30, absolute: true });
-    frame();
-    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'on');
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(views()).toEqual({ chartView: 'dome', savedChartView: 'dome', viewOverride: null });
+    // A phone that finds its north on a later press opens the window after all.
+    fireEvent.click(toggle);
     expect(screen.queryByTestId('follow-note')).toBeNull();
-    expect(screen.getByTestId('facing')).toHaveTextContent('330');
+    reading({ alpha: 30, absolute: true });
+    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'on');
+    expect(views()).toMatchObject({ chartView: 'window', savedChartView: 'dome' });
   });
 
-  it('asks iOS inside the click: granted listens, denied shows the note and the next click asks again', async () => {
-    const frame = scriptedFrames();
+  it("prefers Chrome's absolute event where the window has it", () => {
+    withPhone();
+    (window as Window & { ondeviceorientationabsolute?: unknown }).ondeviceorientationabsolute = null;
+    chose('dome');
+    render(<Harness />);
+    fireEvent.click(screen.getByRole('button', { name: en.live.follow }));
+    reading({ alpha: 90, absolute: true }); // the plain event: not listened to here
+    expect(views()).toMatchObject({ viewOverride: null });
+    reading({ alpha: 90, absolute: true }, 'deviceorientationabsolute');
+    expect(views()).toMatchObject({ viewOverride: 'window' });
+  });
+
+  it('asks iOS inside the press: a refusal is the note and the view is left alone; the next press asks again (FR-FOL-2, FR-WIN-4)', async () => {
     const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValueOnce('denied').mockResolvedValueOnce('granted');
     withPhone(requestPermission);
+    chose('polar');
     render(<Harness />);
     const toggle = screen.getByRole('button', { name: en.live.follow });
     fireEvent.click(toggle);
@@ -191,55 +186,20 @@ describe('<FollowPhone> with useFollowPhone (FR-LIVE-8)', () => {
     expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'denied');
     expect(screen.getByTestId('follow-note')).toHaveTextContent(en.live.followDenied);
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(views()).toEqual({ chartView: 'polar', savedChartView: 'polar', viewOverride: null });
     // Nothing is listened to while denied.
     reading({ alpha: 0, absolute: true });
-    frame();
-    expect(screen.getByTestId('facing')).toHaveTextContent('none');
+    expect(views()).toMatchObject({ viewOverride: null });
 
     fireEvent.click(toggle);
     expect(requestPermission).toHaveBeenCalledTimes(2);
     await act(async () => {
       await Promise.resolve();
     });
-    // Granted, so listening — and off until the sensor says otherwise, like the permission-less path (F-42).
-    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
     expect(screen.queryByTestId('follow-note')).toBeNull();
     reading({ alpha: 0, absolute: true });
-    frame();
     expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'on');
-    expect(screen.getByTestId('facing')).toHaveTextContent('0');
-  });
-
-  /**
-   * R39 (F-42): where `requestPermission` is absent — Android, and any desktop
-   * browser that still carries the constructor — the state went to `on` on the
-   * click and stayed there with no sensor behind it: a control that said the
-   * dome was following while the dome stood still.
-   */
-  it('stays off on the permission-less path until a reading arrives, and the click still disarms it (F-42)', () => {
-    const frame = scriptedFrames();
-    withPhone();
-    render(<Harness />);
-    const toggle = screen.getByRole('button', { name: en.live.follow });
-    fireEvent.click(toggle);
-    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
-    expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.queryByTestId('follow-note')).toBeNull();
-    frame();
-    expect(screen.getByTestId('facing')).toHaveTextContent('none');
-    // It is listening, though: the second click turns the listener off again, and readings are ignored.
-    fireEvent.click(toggle);
-    reading({ alpha: 90, absolute: true });
-    frame();
-    expect(screen.getByTestId('facing')).toHaveTextContent('none');
-    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
-    // Armed again, the first reading is what turns it on.
-    fireEvent.click(toggle);
-    reading({ alpha: 90, absolute: true });
-    frame();
-    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'on');
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByTestId('facing')).toHaveTextContent('270');
+    expect(views()).toMatchObject({ chartView: 'window', savedChartView: 'polar' });
   });
 
   it('treats a request that throws (an insecure context) as denied', async () => {
@@ -251,5 +211,55 @@ describe('<FollowPhone> with useFollowPhone (FR-LIVE-8)', () => {
       await Promise.resolve();
     });
     expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'denied');
+    expect(views()).toMatchObject({ viewOverride: null });
+  });
+
+  /** D-277: picking a view by hand while following is the reader taking the chart back — the override goes, and so does following. */
+  it('stops following when the reader picks a view themselves, and that view is what is saved', () => {
+    withPhone();
+    chose('dome');
+    render(<Harness />);
+    const toggle = screen.getByRole('button', { name: en.live.follow });
+    fireEvent.click(toggle);
+    reading({ alpha: 270, absolute: true });
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    chose('polar');
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
+    expect(views()).toEqual({ chartView: 'polar', savedChartView: 'polar', viewOverride: null });
+    expect(saved()).toBe('polar');
+  });
+
+  /**
+   * FR-WIN-5 as amended: a window that reports it cannot run here — the
+   * permission refused after the fact, a phone that loses its heading — ends
+   * through `dropChartView`, which writes nothing. Following ends with it.
+   */
+  it('stops following when the window reports it cannot run here, and writes nothing', () => {
+    withPhone();
+    chose('dome');
+    render(<Harness />);
+    const toggle = screen.getByRole('button', { name: en.live.follow });
+    fireEvent.click(toggle);
+    reading({ alpha: 270, absolute: true });
+    act(() => {
+      appStore.getState().dropChartView('window');
+    });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(views()).toEqual({ chartView: 'dome', savedChartView: 'dome', viewOverride: null });
+    expect(saved()).toBe('dome');
+  });
+
+  /** The press that is waiting for its first reading is still a press: the next one calls it off and the view never moves. */
+  it('a second press before any reading disarms the sensor', () => {
+    withPhone();
+    chose('dome');
+    render(<Harness />);
+    const toggle = screen.getByRole('button', { name: en.live.follow });
+    fireEvent.click(toggle);
+    fireEvent.click(toggle);
+    reading({ alpha: 270, absolute: true });
+    expect(views()).toEqual({ chartView: 'dome', savedChartView: 'dome', viewOverride: null });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
   });
 });
