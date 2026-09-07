@@ -142,6 +142,29 @@ describe('createLocalPrefs', () => {
     }
   });
 
+  /** R55 (FR-OFF-6 as amended v1.1.2, D-272): the snooze beside the latch, and what an older blob reads as. */
+  it('round-trips the install-hint declines and expiry, and reads a pre-v1.1.2 blob as a device with none', () => {
+    const storage = memoryStorage();
+    const prefs = createLocalPrefs(storage);
+    const until = Date.UTC(2026, 8, 13, 21, 0);
+    prefs.write({ theme: 'night', installHintDeclines: 2, installHintSnoozedUntil: until });
+    expect(prefs.read()).toEqual({ theme: 'night', installHintDeclines: 2, installHintSnoozedUntil: until });
+
+    // Written before v1.1.2: the latch alone, or neither key. Both read as no declines, so nothing migrates.
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night', installHintDismissed: true }));
+    expect(prefs.read()).toEqual({ theme: 'night', installHintDismissed: true });
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night' }));
+    expect(prefs.read()).toEqual({ theme: 'night' });
+
+    // A nonsense count or expiry drops itself and leaves the rest: zero declines is the absent key.
+    for (const bad of ['soon', -1, 1.5, null]) {
+      storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night', installHintDeclines: bad, installHintSnoozedUntil: until }));
+      expect(prefs.read(), JSON.stringify(bad)).toEqual({ theme: 'night', installHintSnoozedUntil: until });
+    }
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night', installHintDeclines: 1, installHintSnoozedUntil: 'never' }));
+    expect(prefs.read()).toEqual({ theme: 'night', installHintDeclines: 1 });
+  });
+
   it('works without storage and swallows storage errors', () => {
     const none = createLocalPrefs(null);
     none.write({ observer: coords });

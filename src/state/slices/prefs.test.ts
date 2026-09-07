@@ -286,18 +286,38 @@ describe('favourites', () => {
     expect(store.getState().observer).toEqual(paris);
   });
 
-  it('latches the install hint dismissal and keeps the rest of the prefs (R28, FR-OFF-6)', () => {
+  it('latches the install hint on an install and keeps the rest of the prefs (R28, FR-OFF-6)', () => {
     const storage = memoryStorage();
     const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
     store.getState().setObserver(neuquen);
-    expect(store.getState().installHintDismissed).toBe(false);
+    expect(store.getState().installAnswer).toEqual({});
     store.getState().dismissInstallHint();
-    expect(store.getState().installHintDismissed).toBe(true);
+    expect(store.getState().installAnswer).toEqual({ dismissed: true });
     expect(stored(storage)).toEqual({ observer: neuquen, installHintDismissed: true });
-    // The latch survives a restart, which is what "shown once" means (D-153).
-    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().installHintDismissed).toBe(true);
+    // The latch survives a restart, which is what "answered" means (D-153, D-272).
+    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().installAnswer).toEqual({ dismissed: true });
     // And a later observer change does not undo it: the write-through replaces one field.
     store.getState().setObserver(paris);
     expect(stored(storage)).toEqual({ observer: paris, installHintDismissed: true });
+  });
+
+  /** R55 (FR-OFF-6 as amended v1.1.2, D-272): "Not now" is a snooze until the decline past the last one. */
+  it('writes a decline and an expiry for "Not now", and the latch on the third', () => {
+    const storage = memoryStorage();
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    store.getState().setObserver(neuquen);
+
+    store.getState().declineInstallHint();
+    expect(store.getState().installAnswer).toEqual({ declines: 1, snoozedUntil: NOW + 7 * 86_400_000 });
+    expect(stored(storage)).toEqual({ observer: neuquen, installHintDeclines: 1, installHintSnoozedUntil: NOW + 7 * 86_400_000 });
+
+    store.getState().declineInstallHint();
+    expect(store.getState().installAnswer).toEqual({ declines: 2, snoozedUntil: NOW + 30 * 86_400_000 });
+
+    store.getState().declineInstallHint();
+    expect(store.getState().installAnswer).toEqual({ dismissed: true, declines: 3 });
+    // The expiry is gone with the latch: nothing is left that could bring the offer back.
+    expect(stored(storage)).toEqual({ observer: neuquen, installHintDismissed: true, installHintDeclines: 3 });
+    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().installAnswer).toEqual({ dismissed: true, declines: 3 });
   });
 });
