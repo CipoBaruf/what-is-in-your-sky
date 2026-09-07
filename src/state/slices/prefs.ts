@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand/vanilla';
 import { addFavourite as withFavourite, removeFavourite as withoutFavourite, touchFavourite as withFavouriteUsed } from '../../data/favourites';
 import type { LocalPrefs } from '../../data/localPrefs';
+import { decline, type InstallAnswer } from '../../lib/installSnooze';
 import { DEFAULT_PASS_SORT } from '../../lib/passSort';
 import { browserLanguages, resolveLocale } from '../../i18n/locale';
 import { DEFAULT_CHART_ORIENTATION } from '../../lib/skyGeometry';
@@ -36,9 +37,13 @@ import type { AppState } from '../store';
  * `refreshFavouriteTimeZone` (F-12) is the weather slice's `fillTimeZone`
  * reaching in to update the matching favourite, so one saved before its first
  * forecast resolved does not keep `timeZone: null` forever.
- * R28 (FR-OFF-6) adds the install hint's dismissal, the one preference with no
- * setter, only a latch: `dismissInstallHint` writes `true` and there is no way
- * back, because "shown once" is the requirement (D-153).
+ * R28 (FR-OFF-6) adds the install hint's answer. R55 (FR-OFF-6 as amended
+ * v1.1.2, D-272) makes it two actions rather than one latch: `dismissInstallHint`
+ * still ends the offer for good — an install, by our action or any other route
+ * — and `declineInstallHint` is what "Not now" writes, a count and an expiry
+ * from `lib/installSnooze.ts`, until the decline past the last snooze, which
+ * ends it after all. The three fields are held together as one `InstallAnswer`
+ * so the pure rule and the store cannot read the device differently.
  */
 export interface PrefsDeps {
   prefs: LocalPrefs;
@@ -79,13 +84,42 @@ export interface PrefsSlice {
   removeFavourite: (cellKey: string) => void;
   /** F-12: gives the matching favourite a zone once the forecast resolves one, if it was still saved without one. */
   refreshFavouriteTimeZone: (cellKey: string, timeZone: string) => void;
-  /** FR-OFF-6: whether the install hint has already been answered on this device. */
-  installHintDismissed: boolean;
-  /** Answers the install hint for good — installed, declined or waved away, it is the same latch. */
+  /** FR-OFF-6 as amended (D-272): what this device remembers about the install offer — the latch, the declines and the current expiry. */
+  installAnswer: InstallAnswer;
+  /** Answers the install hint for good: the app was installed, or our install action was pressed. */
   dismissInstallHint: () => void;
+  /** FR-OFF-6 as amended: "Not now" — a snooze, until the decline past the last one, which is the latch (D-272). */
+  declineInstallHint: () => void;
   /** Sets the saved observer, if there is one; returns whether there was. */
   restoreSavedObserver: () => boolean;
   clearSavedObserver: () => void;
+}
+
+/**
+ * The three stored fields as one answer, and back (D-272). Reading is where
+ * the shape is normalised — an absent count is no declines — so the pure rule
+ * in `lib/installSnooze.ts` never has to know what the storage leaves out.
+ */
+function readInstallAnswer(prefs: LocalPrefs): InstallAnswer {
+  const stored = prefs.read();
+  const answer: InstallAnswer = {};
+  if (stored.installHintDismissed === true) answer.dismissed = true;
+  if (stored.installHintDeclines !== undefined) answer.declines = stored.installHintDeclines;
+  if (stored.installHintSnoozedUntil !== undefined) answer.snoozedUntil = stored.installHintSnoozedUntil;
+  return answer;
+}
+
+/** Writes the answer through to the device and to the store, which is what the hint reads. */
+function writeInstallAnswer(set: (partial: Partial<AppState>) => void, prefs: LocalPrefs, answer: InstallAnswer): void {
+  set({ installAnswer: answer });
+  const stored = { ...prefs.read() };
+  delete stored.installHintDismissed;
+  delete stored.installHintDeclines;
+  delete stored.installHintSnoozedUntil;
+  if (answer.dismissed === true) stored.installHintDismissed = true;
+  if (answer.declines !== undefined) stored.installHintDeclines = answer.declines;
+  if (answer.snoozedUntil !== undefined) stored.installHintSnoozedUntil = answer.snoozedUntil;
+  prefs.write(stored);
 }
 
 export const createPrefsSlice =
@@ -150,10 +184,12 @@ export const createPrefsSlice =
         if (!found || found.observer.timeZone !== null) return;
         saveFavourites(get().favourites.map((favourite) => (favourite.cellKey === cellKey ? { ...favourite, observer: { ...favourite.observer, timeZone } } : favourite)));
       },
-      installHintDismissed: deps.prefs.read().installHintDismissed ?? false,
+      installAnswer: readInstallAnswer(deps.prefs),
       dismissInstallHint: () => {
-        set({ installHintDismissed: true });
-        deps.prefs.write({ ...deps.prefs.read(), installHintDismissed: true });
+        writeInstallAnswer(set, deps.prefs, { ...readInstallAnswer(deps.prefs), dismissed: true });
+      },
+      declineInstallHint: () => {
+        writeInstallAnswer(set, deps.prefs, decline(readInstallAnswer(deps.prefs), deps.now()));
       },
       restoreSavedObserver: () => {
         const { observer } = deps.prefs.read();

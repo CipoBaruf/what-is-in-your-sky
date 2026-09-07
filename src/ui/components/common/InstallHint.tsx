@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useT } from '../../../i18n/useT';
+import { installOfferVisibility } from '../../../lib/installSnooze';
 import { useAppStore } from '../../../state';
 import { Banner } from './Banner';
 import { installOfferState, subscribeToInstallOffer } from './installOffer';
@@ -20,12 +21,22 @@ import styles from './InstallHint.module.css';
  * iOS browser tab, defined and true is the app already installed and nothing is
  * said at all (D-153).
  *
- * "Once" is a latch in the prefs, not a counter: anything the reader does with
- * the hint — install it, decline the browser's dialog, wave it away — answers
- * it for good, and so does an install that happened by some other route
- * (`appinstalled`). Nothing brings it back but clearing the browser's storage,
- * which is the point of the requirement: an install offer that returns is an
- * install offer that nags.
+ * R55 (FR-OFF-6 as amended v1.1.2, D-272): the answer is a latch for the ways
+ * of saying yes and a snooze for the way of saying not yet. Installing the app
+ * — our action, or any other route, which is what `appinstalled` reports —
+ * ends the offer for good, and so does *pressing* our action whatever the
+ * browser's own dialog then returns, because `beforeinstallprompt` cannot be
+ * replayed and a hint that survived that would come back offering a button
+ * that no longer works. "Not now" writes a decline instead: the hint is away
+ * for `INSTALL_SNOOZE_DAYS[n]` and then may return, until the decline past the
+ * last of them, which ends it after all. Three refusals, by default, and no
+ * more — an install offer that returns forever is an install offer that nags.
+ *
+ * The clock is read once, at mount: this is a banner on the home screen, and a
+ * snooze that runs out while the reader is looking at the page can wait for
+ * the next load. What the browser is offering still gates the Chromium shape,
+ * so a returning hint only appears where `beforeinstallprompt` has fired on
+ * this load — which is exactly when its button works.
  *
  * What the browser has said is not this component's state (R49, F-31): the two
  * events are held by `installOffer.ts`, which listens from the moment the app's
@@ -54,22 +65,25 @@ export interface InstallHintProps {
 
 export function InstallHint({ env, inert = false }: InstallHintProps) {
   const t = useT();
-  const dismissed = useAppStore((s) => s.installHintDismissed);
+  const answer = useAppStore((s) => s.installAnswer);
   const dismiss = useAppStore((s) => s.dismissInstallHint);
+  const declineOffer = useAppStore((s) => s.declineInstallHint);
   const { event: offer, installed } = useSyncExternalStore(subscribeToInstallOffer, installOfferState);
-  // Read once, at mount: `navigator.standalone` does not change under a page.
+  // Read once, at mount: `navigator.standalone` does not change under a page, and the snooze is not ticked (D-272).
   const [standalone] = useState(() => (env ?? browserInstallEnv()).standalone);
+  const [now] = useState(() => Date.now());
+  const visibility = installOfferVisibility(answer, now);
 
-  // An install by any route answers the hint for good (FR-OFF-6: once). The
-  // latch is written when it is not yet set — `dismissInstallHint` rewrites
-  // the prefs blob on every call — and the render below reads `installed`
-  // itself, so the banner is never painted for the frame before this runs.
+  // An install by any route answers the hint for good. The latch is written
+  // when it is not yet set — `dismissInstallHint` rewrites the prefs blob on
+  // every call — and the render below reads `installed` itself, so the banner
+  // is never painted for the frame before this runs.
   useEffect(() => {
-    if (installed && !dismissed) dismiss();
-  }, [installed, dismissed, dismiss]);
+    if (installed && answer.dismissed !== true) dismiss();
+  }, [installed, answer.dismissed, dismiss]);
 
   const ios = standalone === false;
-  if (dismissed || installed || (offer === null && !ios)) return null;
+  if (visibility !== 'shown' || installed || (offer === null && !ios)) return null;
 
   const install = (): void => {
     // Whatever the reader answers the browser, the hint has been offered and
@@ -81,7 +95,8 @@ export function InstallHint({ env, inert = false }: InstallHintProps) {
     // a second call, a gesture it did not like — and an uncaught rejection is a
     // console error and, behind a reporter, a logged incident, for a reader
     // simply not installing the app. There is nothing to say and nothing to
-    // undo: the hint is answered either way.
+    // undo: the hint is answered either way. R55 keeps this the latch and not a
+    // decline, for the same reason it always was — the event is spent.
     void offer?.prompt?.()?.catch(() => undefined);
     dismiss();
   };
@@ -98,7 +113,7 @@ export function InstallHint({ env, inert = false }: InstallHintProps) {
             {t.install.action}
           </button>
         )}
-        <button type="button" onClick={dismiss} className={styles.action}>
+        <button type="button" onClick={declineOffer} className={styles.action}>
           {t.install.dismiss}
         </button>
       </span>
