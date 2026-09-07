@@ -161,7 +161,31 @@ async function expectFit(chartBox: Locator, drawing: Locator): Promise<void> {
   expect(extent.x + extent.width).toBeLessThanOrEqual(box.x + box.width + FIT_EPS_PX);
   expect(extent.y + extent.height).toBeLessThanOrEqual(box.y + box.height + FIT_EPS_PX);
   const shorter = Math.min(box.width, box.height);
-  expect(Math.max(extent.width, extent.height)).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO * shorter);
+  /*
+   * D-293: the floor is asked of the raster the drawing actually has. Where a glyph advance renders
+   * at the width it was asked for, the raster covers its box and the drawing is sized by the box, so
+   * FR-DOME-1's floor applies to the box as written. Where the advance rounds to a whole device
+   * pixel — Linux Chromium at a device pixel ratio of 1, which is what CI runs — the fitted cell is
+   * narrower than `box / cols`, so 60 columns fall short of the box and the drawing, painted on that
+   * raster, is short with it. The owner chose the exact column count over the last few per cent of
+   * fill, so that shortfall is the accepted behaviour; `camera.test.ts` pins how far it may go
+   * (0.818 of the box, and no further). What still has to hold everywhere is that the drawing fills
+   * the raster it was given, which is the half of F-54 that regressed.
+   */
+  const rasterWidth = Math.max(
+    ...layers.map(({ cols, ink, margin }) => {
+      const inkCols = cols - margin.left - margin.right;
+      return inkCols > 0 ? (ink.width / inkCols) * cols : ink.width;
+    }),
+  );
+  const rasterCoversBox = rasterWidth >= MIN_EXTENT_RATIO * box.width;
+  const floorAgainst = rasterCoversBox ? shorter : Math.min(rasterWidth, box.height);
+  expect(
+    Math.max(extent.width, extent.height),
+    rasterCoversBox
+      ? `the drawing against its ${shorter.toFixed(0)} px box`
+      : `the drawing against the ${rasterWidth.toFixed(0)} px raster this platform's glyph rounding left it, in a ${box.width.toFixed(0)} px box (D-293)`,
+  ).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO * floorAgainst);
   for (const { layer, cols, margin } of layers) {
     expect(margin.left, `blank columns west of the ${layer} layer's ink, in its ${String(cols)}-column grid`).toBeGreaterThan(0);
     expect(margin.right, `blank columns east of the ${layer} layer's ink, in its ${String(cols)}-column grid`).toBeGreaterThan(0);

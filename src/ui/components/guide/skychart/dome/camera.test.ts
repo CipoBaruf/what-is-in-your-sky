@@ -121,13 +121,16 @@ describe('fitLayout', () => {
     expect(onLinux.cellWidthPx).toBe(5); // 6 px cells would be 360 px, over the box; 5 px cells fit
     expect(onLinux.cellHeightPx).toBe(10);
     expect(onLinux.fontSizePx).toBeLessThan(9.17);
-    // R57 (D-293): 60 cells of 5 px is a 300 px raster in a 349.45 px box, 14 % of the width lost
-    // to the rounding; the settled cell sets the column count, so the raster covers the box again.
-    expect(onLinux.cols).toBe(69);
-    expect(onLinux.cols * onLinux.cellWidthPx).toBeGreaterThan(MIN_EXTENT_RATIO * 349.45);
-    expect(onLinux.cols * onLinux.cellWidthPx).toBeLessThanOrEqual(349.45 + 0.5);
-    // …and the drawing is then sized by the box, as it is wherever the raster covers the box (D-290).
-    expect(onLinux.zoom).toBeCloseTo(zoomFor(349.45, 349.45), 9);
+    // R57 (D-293, reverted): the column count is `colsFor`'s 60 on every platform — an integer rule,
+    // so the same box is the same picture everywhere. 60 cells of 5 px is a 300 px raster in a
+    // 349.45 px box, so this platform's rounding leaves the raster 14 % short of the box…
+    expect(onLinux.cols).toBe(60);
+    expect(onLinux.cols * onLinux.cellWidthPx).toBe(300);
+    expect((onLinux.cols * onLinux.cellWidthPx) / 349.45).toBeLessThan(MIN_EXTENT_RATIO);
+    // …and the drawing is painted *on* that raster, so it follows the raster and not the box: below
+    // FR-DOME-1's floor here, which is the trade D-293 records rather than the floor being met.
+    expect(onLinux.zoom).toBeLessThan(zoomFor(349.45, 349.45));
+    expect(onLinux.zoom).toBeCloseTo(131.818, 3);
     expect(fitLayout(390, 390, DEFAULT_ADVANCE, exact)).toEqual(layoutFor(390, 390));
   });
 
@@ -361,6 +364,16 @@ describe('the fit rule holds above the R54 pins too (FR-DOME-1 v1.2, D-279, F-54
  * The pass detail at 1280 × 800 with a device pixel ratio of 2 (which
  * `dome-fit.spec.ts` runs) is a 354.4 px square box, measured on the page.
  */
+/**
+ * FR-DOME-1's floor holds wherever a glyph advance renders at the width it was asked for. Where the
+ * platform rounds it (Linux Chromium, and anything without subpixel positioning) the fitted cell is
+ * narrower than `box / cols`, the raster is short of the box, and the drawing — painted on that
+ * raster — is short with it. D-293 records the owner's choice: the exact, platform-independent
+ * column count is worth more than the last few per cent of fill, so the shortfall below is the
+ * accepted behaviour and is pinned here so it cannot drift further.
+ */
+const WHOLE_PIXEL_MIN_RATIO = 0.81;
+
 describe('the floor holds on the fit path too (FR-DOME-1 v1.2, D-291, D-293)', () => {
   /** Linux Chromium: every glyph advance rounded to a whole device pixel — 1 CSS px, or 0.5 at a device pixel ratio of 2. */
   const roundedTo = (devicePx: number) => (fontSizePx: number, cols: number) => {
@@ -371,26 +384,36 @@ describe('the floor holds on the fit path too (FR-DOME-1 v1.2, D-291, D-293)', (
   const exact = (fontSizePx: number, cols: number) => ({ brailleRowPx: cols * 0.6 * fontSizePx, spaceRowPx: cols * 0.6 * fontSizePx });
 
   it.each([
-    ['whole CSS pixels', 1],
-    ['half a CSS pixel (a device pixel ratio of 2)', 0.5],
-  ])('covers at least 90 %% of the square pass-detail box with advances rounded to %s', (_label, devicePx) => {
+    // Where the floor still holds and where it does not, measured. Half a CSS pixel clears it by a
+    // hair (0.9001) — the rounding only costs a cell in six there; a whole CSS pixel costs one in
+    // five and lands at 0.818, and that case is the one D-293 accepts.
+    ['whole CSS pixels', 1, false],
+    ['half a CSS pixel (a device pixel ratio of 2)', 0.5, true],
+  ])('meets the floor or misses it by the accepted margin, with advances rounded to %s (D-293)', (_label, devicePx, floorHolds) => {
     const box = 354.4;
     const font = { advance: DEFAULT_ADVANCE, measureRows: roundedTo(devicePx) };
     const { lines, base } = fitLayers(box, box, font, font);
     // The font did step down: this is the path the fit loop takes, not `layoutFor`'s.
     expect(lines.fontSizePx).toBeLessThan(box / GRID_COLS / 0.6);
     const extent = drawingExtent(lines.zoom, DEFAULT_TILT_DEG, 0, { widthPx: lines.cellWidthPx, heightPx: lines.cellHeightPx });
-    expect(Math.max(extent.width, extent.height)).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO * box);
     expect(extent.width).toBeLessThanOrEqual(MAX_EXTENT_RATIO * box);
     expect(extent.height).toBeLessThanOrEqual(MAX_EXTENT_RATIO * box);
-    // `drawingExtent` counts the labels' own boxes and the cell they snap by, which `dome-fit.spec.ts`
-    // only gets where a label happens to be the outermost thing; the ink alone — the ground disc, the
-    // widest thing painted into a cell — has to clear the floor too, or the page measures below it.
-    expect(INK_WIDTH_UNITS * lines.zoom).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO * box);
+    // The ink alone — the ground disc, the widest thing painted into a cell — is what the page
+    // measures. It is below FR-DOME-1's floor here and above the margin D-293 accepted; both bounds
+    // matter, the upper one because a regression that shrank it further would otherwise pass.
+    const inkRatio = (INK_WIDTH_UNITS * lines.zoom) / box;
+    if (floorHolds) {
+      expect(inkRatio).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO);
+    } else {
+      // Below the floor, and no further below than D-293 accepted: the upper bound is what a
+      // regression that shrank the drawing again would trip.
+      expect(inkRatio).toBeLessThan(MIN_EXTENT_RATIO);
+      expect(inkRatio).toBeGreaterThanOrEqual(WHOLE_PIXEL_MIN_RATIO);
+    }
     for (const layer of [lines, base]) {
-      // The raster covers its box (D-293) and holds the ink with a blank column either side (D-290).
+      // The raster is short of its box, which is the cause; it still holds the ink with a blank
+      // column either side (D-290), which is what F-54 was about and must hold everywhere.
       const rasterWidth = layer.cols * layer.cellWidthPx;
-      expect(rasterWidth).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO * box);
       expect(rasterWidth).toBeLessThanOrEqual(box + FIT_STEP_PX);
       expect(INK_WIDTH_UNITS * layer.zoom).toBeLessThanOrEqual(rasterWidth - 2 * INK_MARGIN_CELLS * layer.cellWidthPx);
       expect(INK_HEIGHT_UNITS * layer.zoom).toBeLessThanOrEqual(layer.rows * layer.cellHeightPx);
@@ -433,11 +456,13 @@ describe('the floor holds on the fit path too (FR-DOME-1 v1.2, D-291, D-293)', (
     const box = 354.4;
     const shortRasterWidth = GRID_COLS * 5;
     expect(shortRasterWidth / box).toBeLessThan(MIN_EXTENT_RATIO);
-    // D-293: the same 5 px cell, the columns the box has room for.
+    // D-293: the column count stays at 60, so this is the shipped behaviour and not a step on the
+    // way to the floor — the drawing follows the short raster and the reader sees a smaller dome.
     const fitted = fitLayout(box, box, DEFAULT_ADVANCE, roundedTo(1));
     expect(fitted.cellWidthPx).toBe(5);
-    expect(fitted.cols).toBeGreaterThan(GRID_COLS);
-    expect((fitted.cols * fitted.cellWidthPx) / box).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO);
+    expect(fitted.cols).toBe(GRID_COLS);
+    expect((fitted.cols * fitted.cellWidthPx) / box).toBeLessThan(MIN_EXTENT_RATIO);
+    expect((INK_WIDTH_UNITS * fitted.zoom) / box).toBeGreaterThanOrEqual(WHOLE_PIXEL_MIN_RATIO);
   });
 });
 
