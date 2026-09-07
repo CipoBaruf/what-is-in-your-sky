@@ -13,6 +13,19 @@ import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { withSettings } from './liveHelpers';
 
+/*
+ * FR-CI-2 (R37, D-195): off the pull-request path. These are evidence, as the
+ * comment above says, and re-shooting them on every pull request bought
+ * nothing and cost the FR-CI-1 budget the minute R52 needed. R37 moved the
+ * `v1-*` set and four page specs and listed the rest as follow-ups; this is
+ * the rest. The files stay committed and a task that changes these screens
+ * re-shoots them on purpose:
+ *
+ *   CAPTURES=1 npx playwright test <this spec> --project=chromium
+ */
+test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
+
+
 interface HaFixture {
   observer: { lat: number; lon: number };
 }

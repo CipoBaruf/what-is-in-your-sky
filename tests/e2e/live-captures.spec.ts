@@ -13,6 +13,19 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { withSettings } from './liveHelpers';
 
+/*
+ * FR-CI-2 (R37, D-195): off the pull-request path. These are evidence, as the
+ * comment above says, and re-shooting them on every pull request bought
+ * nothing and cost the FR-CI-1 budget the minute R52 needed. R37 moved the
+ * `v1-*` set and four page specs and listed the rest as follow-ups; this is
+ * the rest. The files stay committed and a task that changes these screens
+ * re-shoots them on purpose:
+ *
+ *   CAPTURES=1 npx playwright test <this spec> --project=chromium
+ */
+test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
+
+
 const FIXTURE_DATE = '2026-09-02';
 const PARIS = '48.86, 2.35';
 const GLARE_PASS_START = Date.parse('2026-09-02T03:52:46.469Z');
