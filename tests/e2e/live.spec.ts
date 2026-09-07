@@ -130,16 +130,20 @@ test.describe('the live page', () => {
 });
 
 /**
- * R44 (FR-WIN-3, FR-LIVE-8 as amended, US-21 AC6; F-41, D-185): the follow
- * case, on the phone viewport with a touch screen — the one profile the
- * control is rendered in (D-175).
+ * R44 (FR-WIN-3, US-21 AC6; F-41, D-185), rewritten by R59 (FR-FOL-1..3,
+ * FR-LIVE-8 as amended v1.2, D-276): the follow case, on the phone viewport
+ * with a touch screen — the one profile the control is rendered in (D-175).
  *
- * The dome is drawn in true azimuths and the sensor reads magnetic north, so
- * the facing the page turns to is the reading plus the observer's declination:
- * +1.12° at Neuquén on the fixtures' date, which the strip states in whole
- * words rather than leaving the viewer to wonder why the dome sits a degree
- * off the compass they are holding. Both languages, because the field is text
- * on the page and FR-I18N-2 admits no English on the Spanish one.
+ * The control opens the sky window over the view that is showing rather than
+ * turning the dome, so what this asserts is the switch: the press asks and
+ * arms, the first reading with a north in it makes the window the view, the
+ * shown instant goes back to real time with the stripe block and the playback
+ * row gone (FR-WIN-6), and the second press gives the dome back. The strip's
+ * true-north line goes with the window, in whole words rather than leaving the
+ * viewer to wonder why the picture sits a degree off the compass they are
+ * holding: +1.12° at Neuquén on the fixtures' date. Both languages, because
+ * the field is text on the page and FR-I18N-2 admits no English on the
+ * Spanish one.
  */
 test.describe('the live page following a phone', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
@@ -148,29 +152,48 @@ test.describe('the live page following a phone', () => {
     ['en', 'Heading true north, declination +1.1°'],
     ['es', 'Rumbo norte verdadero, declinación +1,1°'],
   ] as const) {
-    test(`corrects the heading to true north and names the declination on the strip (${locale})`, async ({ page }) => {
+    test(`opens the sky window, at real time, and names the declination on the strip (${locale})`, async ({ page }) => {
       await stubCompass(page);
       await homeAt(page, T, locale);
       await page.getByTestId('live-link').click();
       await domeDrawn(page);
       await stripFilled(page);
 
-      // Not following: no heading is being corrected, so the strip has its five fields and no sixth.
+      // Not following: the dome is the view, with the stripe block and the playback row under it,
+      // and no heading is being corrected, so the strip has its five fields and no sixth.
+      const chart = page.getByTestId('sky-chart');
       const field = page.getByTestId('live-heading');
+      await expect(chart).toHaveAttribute('data-view', 'dome');
       await expect(field).toHaveCount(0);
+      await expect(page.getByTestId('stripe-block')).toBeVisible();
 
-      // Following. `360 − alpha` is the magnetic heading, 90° here; the screen is not rotated in this
-      // emulation, so the facing is that plus the declination, rounded to the whole degree the dome uses.
+      // Following: the press arms the sensor and the first reading with a north in it opens the window.
       expect(await page.evaluate(() => screen.orientation.angle)).toBe(0);
-      await page.getByRole('button', { name: locale === 'en' ? 'Follow phone' : 'Seguir al teléfono' }).click();
+      const toggle = page.getByRole('button', { name: locale === 'en' ? 'Follow phone' : 'Seguir al teléfono' });
+      await toggle.click();
+      await expect(page.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
       await heading(page, 270);
       await expect(page.getByTestId('follow-phone')).toHaveAttribute('data-state', 'on');
-      await expect(page.getByTestId('live-dome').locator('[data-facing-az]')).toHaveAttribute('data-facing-az', '91');
+      await expect(chart).toHaveAttribute('data-view', 'window');
+      // FR-FOL-3 / FR-WIN-6: a "now" mode — the stripe block and the playback row are not on the page.
+      await expect(page.getByTestId('stripe-block')).toHaveCount(0);
+      await expect(page.getByTestId('playback-row')).toHaveCount(0);
       await expect(field).toHaveText(line);
       // The tenth of a degree the line prints is the value itself, not a coincidence of the wording.
       await expect(field.locator('[data-declination]')).toHaveAttribute('data-declination', '1.1');
       // The capture the PR carries: the strip with its heading field, at the phone width, in each language.
       await page.screenshot({ path: `docs/screenshots/r44-live-390-following-dark-${locale}.png` });
+
+      // FR-FOL-1: the second press gives back the view it came from, and what is saved is still that view.
+      await toggle.click();
+      await expect(chart).toHaveAttribute('data-view', 'dome');
+      await expect(page.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
+      await expect(field).toHaveCount(0);
+      await expect(page.getByTestId('stripe-block')).toBeVisible();
+      // FR-WIN-5 as amended: nothing was saved on the way through — the reader picked no view, so the
+      // device still carries none, and what following opened was never written over the one they have.
+      const prefs = await page.evaluate(() => JSON.parse(localStorage.getItem('wiys:prefs:v1') ?? '{}') as { chartView?: string });
+      expect(prefs.chartView ?? 'dome').toBe('dome');
     });
   }
 });

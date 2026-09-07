@@ -147,11 +147,18 @@ test.describe('the live page on a portrait phone', () => {
     const steps = await box(page, 'step-controls');
     const playback = await box(page, 'playback-controls');
     const actions = await box(page, 'live-actions');
-    // FR-COMP-1: one text row at the top (D-246); FR-COMP-5: the box is full-bleed and never shorter than
-    // the frame is wide (D-233's floor: the frame's measured width, inside the page's side padding).
+    // FR-COMP-1: one text row at the top (D-246); FR-COMP-5: the box is full-bleed.
     expect(top.height).toBeLessThanOrEqual(row + 1);
     expect(chart.width).toBe(PORTRAIT.width);
-    expect(chart.height).toBeGreaterThanOrEqual(dome.width - 1);
+    // R59 (D-300, F-55): the box no longer carries D-233's floor on this page — a touch phone's frame
+    // spends its first rows on the three-view control and the legend, and a floor that could not be met
+    // was met by overflowing the frame onto the rows below. What holds instead is that the box takes what
+    // the frame's own rows leave and the frame stays inside the pane the page gives it.
+    expect(chart.height).toBeGreaterThan(0);
+    // The legend's *slot* is the frame's last row; the list inside it scrolls (D-187), so it is the slot
+    // that has to sit inside the pane and the list that may be taller than the four rows it is given.
+    const legendSlot = await box(page, 'chart-legend-slot');
+    expect(legendSlot.y + legendSlot.height).toBeLessThanOrEqual(dome.y + dome.height + 1);
     // The dome's readout and its legend are under the box, not under it: nothing of the frame spills.
     expect(domeReadout.y).toBeGreaterThanOrEqual(chart.y + chart.height - 1);
     expect(legend.y).toBeGreaterThanOrEqual(domeReadout.y + domeReadout.height - 1);
