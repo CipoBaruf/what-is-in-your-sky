@@ -245,7 +245,12 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
      * on it says so in this file's own terms.
      */
     const live = readFileSync(join(process.cwd(), 'src/ui/screens/Live.module.css'), 'utf8');
-    expect(live).toMatch(/\.page\[data-compact='true'\] \{\s+--chart-floor-on: 0;\s+\}/);
+    // The declaration is the contract, not its neighbours: the compact page states its variables in
+    // one block (R59 review), so this matches `--chart-floor-on: 0` anywhere inside that block
+    // rather than pinning the block to exactly one property.
+    const compactBlock = /\.page\[data-compact='true'\] \{([^}]*)\}/.exec(live);
+    expect(compactBlock, 'a .page[data-compact=\'true\'] block in Live.module.css').not.toBeNull();
+    expect(compactBlock?.[1]).toMatch(/--chart-floor-on:\s*0;/);
     expect(css).toMatch(/\.fill \.legend \{\s+max-height: calc\(4 \* var\(--row\)\);\s+overflow-y: auto;/);
   });
 });
