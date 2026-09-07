@@ -276,8 +276,15 @@ export function fitLayout(hostWidthPx: number | null, hostHeightPx: number | nul
     if (!(rows.brailleRowPx > 0)) return base;
     if (rows.brailleRowPx <= hostWidthPx + FIT_SLACK_PX || fontSizePx <= minFontPx) {
       const cellWidthPx = rows.brailleRowPx / cols;
+      const cellHeightPx = cellWidthPx * CELL_ASPECT;
+      const fitRows = rowsFor(hostHeightPx, cellHeightPx, cols);
       const spaceRowPx = rows.spaceRowPx > 0 ? rows.spaceRowPx : rows.brailleRowPx;
-      return { ...base, cols, rows: rowsFor(hostHeightPx, cellWidthPx * CELL_ASPECT, cols), cellWidthPx, cellHeightPx: cellWidthPx * CELL_ASPECT, fontSizePx, wordSpacingPx: (rows.brailleRowPx - spaceRowPx) / cols };
+      const height = hostHeightPx !== null && Number.isFinite(hostHeightPx) && hostHeightPx > 0 ? hostHeightPx : hostWidthPx;
+      // R57 (D-279, F-54): re-clamp against the raster the fit loop actually settled on, not the
+      // pre-fit cell `base.zoom` was sized for — a font that steps down here paints a narrower
+      // raster than `layoutFor`'s own clamp (line 338) accounted for.
+      const zoom = zoomFor(Math.min(hostWidthPx, cols * cellWidthPx), Math.min(height, fitRows * cellHeightPx));
+      return { ...base, cols, rows: fitRows, cellWidthPx, cellHeightPx, fontSizePx, wordSpacingPx: (rows.brailleRowPx - spaceRowPx) / cols, zoom };
     }
     fontSizePx = Math.max(minFontPx, fontSizePx - FIT_STEP_PX);
   }

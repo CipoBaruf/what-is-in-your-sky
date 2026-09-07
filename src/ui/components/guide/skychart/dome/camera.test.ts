@@ -116,7 +116,9 @@ describe('fitLayout', () => {
     expect(onLinux.cellWidthPx).toBe(5); // 6 px cells would be 360 px, over the box; 5 px cells fit
     expect(onLinux.cellHeightPx).toBe(10);
     expect(onLinux.fontSizePx).toBeLessThan(9.17);
-    expect(onLinux.zoom).toBeCloseTo(zoomFor(349.45, 349.45), 9);
+    // R57 (D-279, F-54): the raster settles at 5 px cells, 300 × 340 CSS px, narrower than the
+    // 349.45 px box on both sides — the zoom must follow that raster, not the pre-fit box.
+    expect(onLinux.zoom).toBeCloseTo(zoomFor(300, 340), 9);
     expect(fitLayout(390, 390, DEFAULT_ADVANCE, exact)).toEqual(layoutFor(390, 390));
   });
 
@@ -312,6 +314,22 @@ describe('the fit rule holds above the R54 pins too (FR-DOME-1 v1.2, D-279, F-54
     const fixed = layoutFor(2560, 1440);
     const fixedExtent = drawingExtent(fixed.zoom, DEFAULT_TILT_DEG, 0, { widthPx: fixed.cellWidthPx, heightPx: fixed.cellHeightPx });
     expect(fixedExtent.width).toBeLessThanOrEqual(fixed.cols * fixed.cellWidthPx);
+  });
+
+  it('re-clamps the zoom to the raster fitLayout actually settles on, not the pre-fit one (F-54)', () => {
+    // A measureRows stub that, like Linux Chromium's whole-pixel rounding, forces the font size
+    // (and so the cell) to step down at least once before the row fits.
+    const steppedDown = (fontSizePx: number, cols: number) => ({ brailleRowPx: cols * Math.floor(0.6 * fontSizePx * 10) / 10, spaceRowPx: cols * Math.floor(0.6 * fontSizePx * 10) / 10 });
+    const fitted = fitLayout(2560, 1440, DEFAULT_ADVANCE, steppedDown);
+    const rasterWidth = fitted.cols * fitted.cellWidthPx;
+    const rasterHeight = fitted.rows * fitted.cellHeightPx;
+    expect(rasterWidth).toBeLessThan(2560);
+    // The old rule left `zoom` from the pre-fit `layoutFor` call, sized for the wider raster the
+    // font stepped down from — the fixed zoom must fit the raster fitLayout actually painted.
+    expect(fitted.zoom).toBeCloseTo(zoomFor(rasterWidth, Math.min(1440, rasterHeight)), 9);
+    const extent = drawingExtent(fitted.zoom, DEFAULT_TILT_DEG, 0, { widthPx: fitted.cellWidthPx, heightPx: fitted.cellHeightPx });
+    expect(extent.width).toBeLessThanOrEqual(MAX_EXTENT_RATIO * rasterWidth);
+    expect(extent.height).toBeLessThanOrEqual(MAX_EXTENT_RATIO * rasterHeight);
   });
 });
 
