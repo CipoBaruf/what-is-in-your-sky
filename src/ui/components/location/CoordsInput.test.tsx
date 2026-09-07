@@ -7,7 +7,9 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { CoordsInput, coordsLabel, parseAltitude, parseCoords } from './CoordsInput';
+import * as place from '../../../lib/place';
+import { parseHash, passLinkHash } from '../../../lib/shareLinks';
+import { ALTITUDE_RANGE, CoordsInput, LATITUDE_RANGE, LONGITUDE_RANGE, coordsLabel, parseAltitude, parseCoords } from './CoordsInput';
 
 describe('parseCoords', () => {
   it('accepts "lat, lon" decimals with optional sign and spaces', () => {
@@ -47,6 +49,30 @@ describe('parseAltitude', () => {
     expect(parseAltitude('-400')).toEqual({ ok: true, altM: -400 });
     expect(parseAltitude('abc')).toMatchObject({ ok: false, error: /number of metres/ });
     expect(parseAltitude('27000')).toMatchObject({ ok: false, error: /between -500 and 9000/ });
+  });
+});
+
+/**
+ * F-19 (R51): the form and the share-link parser judge an observer by the same
+ * rule. Each had its own copy of the three ranges — they happened to hold the
+ * same numbers, so nothing was wrong yet, and any edit to one of them would
+ * have let the form emit links its own parser rejects. The identity check is
+ * what fails on the old code; the agreement below is the behaviour it buys.
+ */
+describe('the coordinate bounds (F-19)', () => {
+  it('are the ones lib/place owns, not a copy in the form', () => {
+    expect(LATITUDE_RANGE).toBe(place.LATITUDE_RANGE);
+    expect(LONGITUDE_RANGE).toBe(place.LONGITUDE_RANGE);
+    expect(ALTITUDE_RANGE).toBe(place.ALTITUDE_RANGE);
+  });
+
+  it('give the form and the link parser the same verdict on every altitude at the edges', () => {
+    const link = (altM: number): string => passLinkHash({ observer: { lat: -38.93, lon: -67.99, altM }, noradId: 25544, startT: Date.UTC(2026, 8, 2, 22, 14) });
+    for (const altM of [ALTITUDE_RANGE.min - 1, ALTITUDE_RANGE.min, 0, ALTITUDE_RANGE.max, ALTITUDE_RANGE.max + 1]) {
+      const accepted = parseAltitude(String(altM)).ok;
+      expect(accepted, `form at ${String(altM)} m`).toBe(place.altitudeInRange(altM));
+      expect(parseHash(link(altM)) !== null, `link at ${String(altM)} m`).toBe(accepted);
+    }
   });
 });
 
