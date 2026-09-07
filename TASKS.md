@@ -1142,7 +1142,7 @@ Draft, cut 2026-09-07 from `SPEC.md` v1.2 and `PLAN.md` v0.5, for review. Spec P
 
 Delivery is PLAN §16 unchanged, cut by §16.9: five tasks, three waves, one task per lane, three at once. Lanes and their directories are the v1.1 conventions above, with D-283's clarification that `src/i18n/{en,es}/window.ts` belongs to `window`, `live.ts` to `live` and `chart.ts` to `chart`, so a lane ships its own copy. Decision blocks are reserved in PLAN §16.9: **R56 D-285..D-289, R57 D-290..D-294, R58 D-295..D-299, R59 D-300..D-306, R60 D-307..D-311.**
 
-- [ ] **R56 — The sky window says when the phone is pointed at the ground**
+- [x] **R56 — The sky window says when the phone is pointed at the ground** *(the vertical half-field is read from the measured box, so `FOV / 2` in a landscape box and wider in a tall one — D-278's parenthetical had the two orientations swapped; D-285 records it.)*
   - **Lane:** window
   - **Model:** opus
   - **Gate:** owner
