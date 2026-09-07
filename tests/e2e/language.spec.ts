@@ -85,7 +85,10 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
   // R45 (FR-LEG-1): the drawing carries the key at the peak; the name is the legend's row, under the chart on the phone.
   const dome = dialog.locator(`[data-layer="lines"] [data-pass-id="${passId}"][data-anchor="key"]`);
   await expect(dome).toHaveText('A', { timeout: 30_000 });
-  await expect(dialog.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toContainText('ISS (Zarya)');
+  // R51 (FR-LEG-3): the explained pass's legend row is the numeric table, whose caption is translated and carries the key.
+  await expect(dialog.getByTestId('legend-lead').locator('caption')).toContainText('A');
+  await expect(dialog.getByTestId('legend-lead').locator('caption')).toContainText('Salida, máximo y fin');
+  await expect(dialog.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toHaveCount(0);
   await expect(dialog.getByTestId('chart-legend')).toHaveAttribute('aria-label', 'Leyenda');
   await expect(dialog.getByRole('figure')).toContainText('Arrastrar el domo');
   await expect(dialog.getByTestId('dome-readout')).toHaveText(/^Hacia .+ · inclinación \d+°$/);

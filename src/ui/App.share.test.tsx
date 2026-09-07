@@ -93,6 +93,49 @@ describe('landing on a shared pass link', () => {
     expect(screen.getByTestId('share-fallback')).toHaveTextContent('El paso de ISS (Zarya) para el que se hizo este enlace');
   });
 
+  /**
+   * F-18 (R51): the substitute pass is held back until the recompute is done.
+   * The cards stream in, so "the nearest pass of that object" is provisional
+   * until then — it opened silently, and the sentence explaining why this is
+   * not the pass the link named arrived after it.
+   */
+  it('holds the substitute pass back until the recompute is done, then opens it with its explanation (F-18)', () => {
+    const asked = pass.start.t - 6 * 3_600_000;
+    window.location.hash = passLinkHash({ observer: shared, noradId: pass.noradId, startT: asked });
+    act(() => {
+      appStore.setState({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'computing', observer, passes: [other, pass], hasDarkness: true } });
+    });
+    render(<App />);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByTestId('share-fallback')).toBeNull();
+
+    act(() => {
+      appStore.setState({ passes: { ...appStore.getState().passes, status: 'done' } });
+    });
+    expect(screen.getByRole('dialog', { name: pass.name })).toBeInTheDocument();
+    expect(screen.getByTestId('share-fallback')).toHaveTextContent('is the nearest');
+  });
+
+  /**
+   * F-17 (R51): the link is authoritative once. It stayed so for as long as it
+   * sat in the hash, so a recipient who entered their own coordinates had the
+   * guide torn down by the recompute and put straight back up from the link.
+   */
+  it('lets the link go — hash and guide — once the observer is no longer the one it named (F-17)', () => {
+    landOn(passLinkHash({ observer: shared, noradId: pass.noradId, startT: pass.start.t + 30_000 }), [other, pass]);
+    render(<App />);
+    expect(screen.getByRole('dialog', { name: pass.name })).toBeInTheDocument();
+
+    // The reader's own place. The passes are left as they are: the recompute has not landed yet, which is
+    // exactly the moment the link used to win.
+    act(() => {
+      appStore.setState({ observer: { ...observer, lat: 51.48, lon: -0.13, altM: 11, label: '51.48, −0.13' } });
+    });
+    expect(window.location.hash).toBe('');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByTestId('share-fallback')).toBeNull();
+  });
+
   it('leaves a malformed or partial link on the home screen', () => {
     for (const hash of ['#pass?lat=-38.93', '#pass?lat=&lon=&norad=&start=', '#pass?lat=-38.93&lon=-67.99&alt=270&norad=25544&start=never', '#%%%']) {
       landOn(hash, [other, pass]);

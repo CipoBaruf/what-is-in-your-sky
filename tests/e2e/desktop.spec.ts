@@ -286,8 +286,11 @@ test('captures the wide layout in both languages, list and guide (FR-DESK-5)', a
   const panel = page.getByTestId('guide-panel');
   // The capture is only evidence once the lazy chart chunk has drawn. R21 (FR-DOME-7): that chart is the dome.
   await expect(panel.locator(`[data-layer="lines"] [data-pass-id="${passId}"][data-anchor="key"]`)).toHaveText('A', { timeout: 30_000 });
-  // R45 (FR-LEG-2): on wide the legend is a column beside the drawing, and it carries the name.
-  await expect(panel.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toContainText('ISS (Zarya)');
+  // R45 (FR-LEG-2) / R51 (FR-LEG-3): the legend is under the drawing in the 40-cell guide column, and the explained
+  // pass's row there is the numeric table, carrying the drawing's key.
+  await expect(panel.getByTestId('legend-lead').getByRole('table')).toBeVisible();
+  await expect(panel.getByTestId('legend-lead').locator('caption')).toContainText('A');
+  await expect(panel.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toHaveCount(0);
   await page.screenshot({ path: 'test-results/r23-guide-1280-en.png' });
 
   // FR-I18N-2: the header switch, which the wide header carries at the right (FR-DESK-2).
@@ -322,4 +325,44 @@ test('crossing the breakpoint keeps the same pass open, in the other shell (D-72
   await expect(page.getByTestId('guide-panel')).toHaveAttribute('data-pass-id', passId);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page).toHaveURL(new RegExp(`#pass=${passId}$`));
+});
+
+/**
+ * R51 (FR-LEG-3, D-259): the guide column grows with the screen (`1.05fr`,
+ * D-253), so on a large desktop the chart frame passes D-232's 62 cells and
+ * the legend would move into the 24-cell column beside the drawing. That is
+ * right for a list of passes and wrong for the pass detail, where the legend
+ * is a five-column table of figures: it folds, and the drawing is squeezed
+ * beside it. Only a browser answers this — jsdom resolves no container query
+ * — so the check is the measurement, at a width no other spec runs at.
+ */
+test('the detail table stays under the drawing on a large desktop, however wide the guide column gets (D-259)', async ({ page }) => {
+  const golden = reference.firstGoldenPass;
+  if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
+  const passId = `25544-${String(golden.start.t)}`;
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await loadWithPasses(page);
+  await page.locator(`article[data-pass-id="${passId}"]`).getByRole('button', { name: /Open guide/ }).click();
+  const panel = page.getByTestId('guide-panel');
+  await expect(panel.locator(`[data-layer="lines"] [data-pass-id="${passId}"][data-anchor="key"]`)).toHaveText('A', { timeout: 30_000 });
+
+  // The frame is past the threshold — so this is the case the rule has to exclude, not a width where it never applied.
+  const frame = await panel.getByTestId('chart-frame').boundingBox();
+  const cell = await page.evaluate(() => {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute;visibility:hidden;width:100ch';
+    document.body.append(probe);
+    const width = probe.getBoundingClientRect().width / 100;
+    probe.remove();
+    return width;
+  });
+  if (!frame) throw new Error('no chart frame');
+  expect(frame.width / cell).toBeGreaterThan(62);
+
+  const box = await panel.getByTestId('chart-box').boundingBox();
+  const lead = await panel.getByTestId('legend-lead').boundingBox();
+  if (!box || !lead) throw new Error('no chart box or table');
+  expect(lead.y).toBeGreaterThanOrEqual(box.y + box.height);
+  // And it has the frame's width to lay its five columns out in, not a 24-cell column.
+  expect(lead.width).toBeGreaterThan(frame.width * 0.8);
 });

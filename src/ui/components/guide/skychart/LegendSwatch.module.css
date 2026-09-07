@@ -1,0 +1,51 @@
+/* FR-LEG-5 (R45, extracted R51): two cells wide, one row's cap height tall,
+   in the arc's colour. `data-color` is mapped to the `--chart-*` tokens here
+   and nowhere else, so the legend's list and the pass detail's table cannot
+   drift apart, and both themes come with the token (FR-THEME-3). */
+.swatch {
+  display: inline-block;
+  width: calc(2 * var(--cell));
+  height: 0.7em;
+  border-radius: 1px;
+  background: var(--fg-dim);
+}
+
+.swatch[data-color='pass'] {
+  background: var(--chart-pass);
+}
+
+.swatch[data-color='pass-dim'] {
+  background: var(--chart-pass-dim);
+}
+
+.swatch[data-color='series-1'] {
+  background: var(--chart-series-1);
+}
+
+.swatch[data-color='series-2'] {
+  background: var(--chart-series-2);
+}
+
+.swatch[data-color='series-3'] {
+  background: var(--chart-series-3);
+}
+
+.swatch[data-color='series-4'] {
+  background: var(--chart-series-4);
+}
+
+.swatch[data-color='series-5'] {
+  background: var(--chart-series-5);
+}
+
+.swatch[data-color='series-6'] {
+  background: var(--chart-series-6);
+}
+
+.swatch[data-color='sun'] {
+  background: var(--chart-sun);
+}
+
+.swatch[data-color='moon'] {
+  background: var(--chart-moon);
+}

@@ -1,9 +1,13 @@
 /* FR-LEG-1..5 (R45): the legend. A list of rows, each a button: the key, a
-   two-cell swatch, the name, then the three times and the state on a second
-   line under the name where the row is narrow (the 24-cell column on wide,
-   a long name on compact). Colour comes from the same `--chart-*` tokens the
-   arcs use (FR-LEG-5, FR-THEME-3), mapped from `data-color` here and nowhere
-   else, and the key is the channel that survives without it (FR-DOME-2). */
+   two-cell swatch (`LegendSwatch`, which owns the `--chart-*` mapping for
+   the list and for the pass detail's table alike), the name, then the three
+   times and the state on a second line under the name where the row is narrow
+   (the 24-cell column on wide, a long name on compact). The key is the
+   channel that survives without colour (FR-DOME-2).
+
+   R51 (FR-LEG-3): with a lead block — the pass detail's numeric table, which
+   is the legend for the explained pass there — the list opens with it, and the
+   rows under it are the passes drawn dim, rise and end only. */
 .legend {
   list-style: none;
   margin: 0;
@@ -48,56 +52,6 @@
   min-width: var(--cell);
 }
 
-/* Two cells wide, one row's cap height tall, in the arc's colour. */
-.swatch,
-.bodySwatch {
-  display: inline-block;
-  width: calc(2 * var(--cell));
-  height: 0.7em;
-  border-radius: 1px;
-  background: var(--fg-dim);
-}
-
-.swatch[data-color='pass'] {
-  background: var(--chart-pass);
-}
-
-.swatch[data-color='pass-dim'] {
-  background: var(--chart-pass-dim);
-}
-
-.swatch[data-color='series-1'] {
-  background: var(--chart-series-1);
-}
-
-.swatch[data-color='series-2'] {
-  background: var(--chart-series-2);
-}
-
-.swatch[data-color='series-3'] {
-  background: var(--chart-series-3);
-}
-
-.swatch[data-color='series-4'] {
-  background: var(--chart-series-4);
-}
-
-.swatch[data-color='series-5'] {
-  background: var(--chart-series-5);
-}
-
-.swatch[data-color='series-6'] {
-  background: var(--chart-series-6);
-}
-
-.bodySwatch[data-color='sun'] {
-  background: var(--chart-sun);
-}
-
-.bodySwatch[data-color='moon'] {
-  background: var(--chart-moon);
-}
-
 .name {
   min-width: 0;
   overflow-wrap: anywhere;
@@ -131,4 +85,11 @@
   align-items: baseline;
   padding: calc(var(--row) / 4) 0 calc(var(--row) / 4) calc(var(--cell) * 2);
   color: var(--fg-dim);
+}
+
+/* R51 (FR-LEG-3): the lead block stands where the explained pass's row would
+   be — the whole numeric table, no button around it. Its own caption carries
+   the key and the swatch at the same left edge as the rows below it. */
+.lead {
+  margin: 0 0 var(--row);
 }

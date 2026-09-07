@@ -76,7 +76,9 @@ async function openDetail(page: Page, width: Width, theme: CaptureTheme, locale:
   await expect(key).toHaveText('A');
   await expect(figure.locator('[data-anchor="pass"], [data-anchor="peak"], [data-anchor="sun"], [data-anchor="moon"]')).toHaveCount(0);
   const legend = figure.getByTestId('chart-legend');
-  await expect(legend.locator(`button[data-pass-id="${GLARE_PASS}"]`)).toContainText('ISS (Zarya)');
+  // R51 (FR-LEG-3): on the detail the explained pass's row is the numeric table, at the head of the legend.
+  await expect(legend.getByTestId('legend-lead').locator('caption')).toContainText('A');
+  await expect(legend.locator(`button[data-pass-id="${GLARE_PASS}"]`)).toHaveCount(0);
   await expect(legend.locator('[data-body="sun"]')).toHaveCount(1);
   await expect(legend.locator('[data-body="moon"]')).toHaveCount(1);
   await expect(legend).toHaveAttribute('aria-label', locale === 'es' ? 'Leyenda' : 'Legend');

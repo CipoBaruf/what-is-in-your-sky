@@ -31,6 +31,9 @@ import { join } from 'node:path';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../tests/support/catalogFixtures';
 import { FIXTURES_DIR } from '../../../../../tests/support/fixtures';
+import { MOON_FIXTURE } from '../../../../../tests/support/moonFixtures';
+import { formatClock } from '../../../../lib/timeFormat';
+import { PassNumbers } from '../PassNumbers';
 import type { Observer } from '../../../../model';
 import { appStore } from '../../../../state';
 import { SKY_CHART_VIEWS, SkyChart } from './SkyChart';
@@ -219,6 +222,13 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
     expect(beside).toContain(".frame[data-compact='false'][data-legend='true'] {");
     expect(beside).toContain('grid-template-columns: minmax(0, 1fr) calc(24 * var(--cell));');
     expect(beside).toContain("'drawing legend'");
+    // R51 (D-259): a legend that is the detail's numeric table takes that back, as an override at the end of the
+    // block and not as an exception on the rule above — the extra specificity step of a `:not(:has(…))` there put
+    // this grid over the wide live page's and cost the live legend its scroll (CI on #80). So the live rule keeps
+    // the weight it had, and the one rule that outweighs it is the one no live frame can match.
+    const lead = beside.indexOf(".frame[data-compact='false'][data-legend='true']:has([data-lead='true']) {");
+    expect(lead).toBeGreaterThan(beside.indexOf(".fill[data-compact='false'][data-legend='true'] {"));
+    expect(beside.slice(lead)).toContain('grid-template-columns: minmax(0, 1fr);');
     // Outside the query the legend is the fourth row, under the status line, for every shell.
     expect(css).toMatch(/\.frame \{[^}]*'status'\n\s+'legend';/);
   });
@@ -275,5 +285,87 @@ describe('<SkyChart> view choice (US-6 AC5, FR-WIN-4)', () => {
     await waitFor(() => {
       expect(container.querySelector('[data-drawing="window"]')).not.toBeNull();
     });
+  });
+});
+
+/**
+ * FR-LEG-3 / US-23 AC3 (R51): the pass detail's reading of the legend. The
+ * FR-GUIDE-1 numeric table stands in for the explained pass's row at the head
+ * of the list, carrying the key the drawing puts at that arc's peak and a
+ * swatch in the arc's colour; every other drawn pass keeps a row of its own,
+ * and the Sun and the Moon keep their line each. This is `SkyChart`'s
+ * contract, not the screen's: the screen hands in the table and the boundary
+ * decides where it goes and what it stands for (D-256).
+ */
+describe("<SkyChart> with the detail's numeric table as the legend (FR-LEG-3, US-23 AC3)", () => {
+  afterEach(() => {
+    appStore.setState(initial, true);
+    window.localStorage.clear();
+  });
+
+  const sun = { t: pass.peak.t, azDeg: 291.2, altDeg: -9.4 };
+  const detail = (extra: Partial<SkyChartProps> = {}) => (
+    <SkyChart
+      passes={[pass]}
+      observer={observer}
+      highlightedPassId={pass.id}
+      sun={sun}
+      moon={MOON_FIXTURE}
+      legendLead={(row) => <PassNumbers pass={pass} timeZone={null} legendKey={row.key} colorToken={row.colorToken} />}
+      {...extra}
+    />
+  );
+
+  it('opens the legend with the table, keyed and swatched, and lists no second row for the pass it explains', () => {
+    const { container } = render(detail());
+    const legend = container.querySelector('[data-testid="chart-legend"]');
+    const lead = container.querySelector('[data-testid="legend-lead"]');
+    expect(lead).not.toBeNull();
+    expect(legend?.firstElementChild).toBe(lead);
+    expect(lead).toHaveAttribute('data-pass-id', pass.id);
+    // The table is inside it, and its caption carries the drawing's key and the arc's colour (FR-LEG-5).
+    const caption = within(lead as HTMLElement).getByRole('table').querySelector('caption');
+    expect(caption?.textContent).toContain('A');
+    expect(caption?.querySelector('[data-color]')).toHaveAttribute('data-color', 'pass');
+    expect(container.querySelector(`[data-testid="chart-legend"] button[data-pass-id="${pass.id}"]`)).toBeNull();
+    // …and it is the key the drawing draws at that arc's peak (FR-LEG-1).
+    expect(container.querySelector('[data-anchor="key"]')?.textContent).toBe('A');
+  });
+
+  it('follows the table with one row per pass drawn dim, rise and end only', () => {
+    const { container } = render(detail({ passes: [pass, other] }));
+    expect(legendEntries(container)).toEqual([['B', 'other']]);
+    const row = container.querySelector('[data-testid="chart-legend"] button[data-pass-id="other"]');
+    expect(row?.querySelector('[data-color]')).toHaveAttribute('data-color', 'pass-dim');
+    expect(row?.textContent).toContain(other.name);
+    // The dim row times the arc's ends; the explained pass's peak is a line of the table.
+    const times = row?.textContent ?? '';
+    expect(times).toContain(formatClock(other.start.t, null, 'en'));
+    expect(times).toContain(formatClock(other.end.t, null, 'en'));
+    expect(times).not.toContain(formatClock(other.peak.t, null, 'en'));
+  });
+
+  it('keeps the Sun and the Moon to one line each under the rows (FR-DOME-6 as amended)', () => {
+    const { container } = render(detail());
+    const bodies = [...container.querySelectorAll('[data-testid="chart-legend"] [data-body]')];
+    expect(bodies.map((line) => line.getAttribute('data-body'))).toEqual(['sun', 'moon']);
+    expect(bodies[0]?.textContent).toContain('Sun');
+    expect(bodies[1]?.textContent).toContain('Moon');
+  });
+
+  it("names a boundary crossed in Earth's shadow in the table rather than repeating it (D-257)", () => {
+    const shadowed = { ...pass, endReason: 'shadow' as const };
+    const { container } = render(
+      <SkyChart
+        passes={[shadowed]}
+        observer={observer}
+        highlightedPassId={shadowed.id}
+        legendLead={(row) => <PassNumbers pass={shadowed} timeZone={null} legendKey={row.key} colorToken={row.colorToken} />}
+      />,
+    );
+    const rows = [...container.querySelectorAll('[data-testid="legend-lead"] tbody tr')];
+    expect(rows.map((row) => row.getAttribute('data-point'))).toEqual(['start', 'peak', 'shadow']);
+    expect(rows[2]?.querySelector('th')?.textContent).toBe('Enters shadow');
+    expect(rows.filter((row) => row.querySelector('th')?.textContent === 'End')).toHaveLength(0);
   });
 });

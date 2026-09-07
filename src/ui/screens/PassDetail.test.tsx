@@ -55,6 +55,32 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
+  /**
+   * FR-LEG-3 / US-23 AC3 (R51): the table is the legend. It is inside the
+   * chart's legend slot, directly under the drawing, with the key the drawing
+   * puts at the arc's peak and a swatch in the arc's colour — and it is there
+   * once, not once as the legend and once as a block further down the sheet.
+   */
+  it('shows the numeric table as the chart legend, under the drawing, keyed and swatched', () => {
+    render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+    const dialog = screen.getByRole('dialog', { name: 'ISS (Zarya)' });
+    const table = within(dialog).getByRole('table');
+    const lead = dialog.querySelector('[data-testid="legend-lead"]');
+    expect(lead).toContainElement(table);
+    const slot = dialog.querySelector('[data-testid="chart-legend-slot"]');
+    expect(slot).toContainElement(lead as HTMLElement);
+    // Directly under the drawing: the frame's box comes first, the legend's slot after it.
+    const frame = dialog.querySelector('[data-testid="chart-frame"]');
+    const children = [...(frame?.children ?? [])];
+    expect(children.indexOf(dialog.querySelector('[data-testid="chart-box"]') as Element)).toBeLessThan(children.indexOf(slot as Element));
+    const caption = table.querySelector('caption');
+    expect(caption?.textContent).toContain('A');
+    expect(caption?.querySelector('[data-color]')).toHaveAttribute('data-color', 'pass');
+    // The guide sentence stays above the drawing, as the figure's caption, and the table is not repeated below the Moon lines.
+    expect(within(dialog).getAllByRole('table')).toHaveLength(1);
+    expect(within(dialog).getByRole('figure').querySelector('figcaption')).toContainElement(within(dialog).getByTestId('guide-sentence'));
+  });
+
   it('locks the page scroll while open and restores it on close (one scrollbar, the sheet\'s)', () => {
     document.documentElement.style.overflow = 'auto';
     const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);

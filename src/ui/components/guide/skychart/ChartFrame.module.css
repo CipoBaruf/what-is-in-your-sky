@@ -74,7 +74,11 @@
    the drawing (the compact chart's own width), a 2-cell gap and the 24. In a
    narrower wide frame (the 40-cell guide column of the three-column layout)
    the legend goes under, as on compact. `ch` here is the frame's own cell:
-   font-relative units in a container condition resolve against the container. */
+   font-relative units in a container condition resolve against the container.
+
+   R51 (D-259): a legend that is the pass detail's numeric table takes it back
+   at the end of this block — see there for why it is written as an override
+   and not as an exception here. */
 @container (min-width: 62ch) {
   .frame[data-compact='false'][data-legend='true'] {
     grid-template-columns: minmax(0, 1fr) calc(24 * var(--cell));
@@ -106,6 +110,26 @@
     grid-template-areas:
       'controls status legend'
       'drawing drawing legend';
+  }
+
+  /* R51 (D-259): the pass detail's numeric table takes the beside rule back. The guide column grows with the
+     screen (D-253), so on a large desktop the frame passes 62 cells and the table — five columns of figures —
+     folded itself into 24 while the drawing was squeezed beside it.
+
+     Written as an override at the end of the block rather than as `:not(:has(…))` on the rules above, and that
+     is the whole point of it: `:not(:has(…))` there adds a specificity step, which put the guide's two-column
+     grid over the wide live page's three-column one and took the live legend's own scroll away (CI on #80).
+     Here the extra step is what the rule wants — nothing else in this block matches a frame with a lead, and
+     the live page never has one, so every rule above keeps the weight it had. `Legend` sets `data-lead` on its
+     own list, so the frame's markup learns nothing about what it was handed. */
+  .frame[data-compact='false'][data-legend='true']:has([data-lead='true']) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'controls'
+      'drawing'
+      'status'
+      'legend';
+    column-gap: 0;
   }
 }
 

@@ -54,3 +54,17 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+/* R51 (FR-LEG-3): where the table is the legend, its caption opens with the
+   drawing's key and a swatch in the arc's colour, on the same left edge as
+   the dim rows under it. Both are absent on any other use of the table. */
+.key {
+  font-weight: 700;
+  color: var(--fg);
+  padding-right: var(--cell);
+}
+
+.swatch {
+  margin-right: var(--cell);
+  vertical-align: baseline;
+}

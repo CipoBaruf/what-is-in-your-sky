@@ -1,7 +1,7 @@
 import { useId, useState, type ChangeEvent } from 'react';
 import type { Messages } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
-import { coordsLabel, observerFromCoords } from '../../../lib/place';
+import { ALTITUDE_RANGE, LATITUDE_RANGE, LONGITUDE_RANGE, altitudeInRange, coordsLabel, latitudeInRange, longitudeInRange, observerFromCoords } from '../../../lib/place';
 import type { Observer } from '../../../model';
 import styles from './CoordsInput.module.css';
 
@@ -23,11 +23,6 @@ const NUM = String.raw`([+-]?\d+(?:\.\d+)?)`;
 const PART = String.raw`${NUM}\s*°?\s*([NSEWnsew])?`;
 const PAIR = new RegExp(`^\\s*${PART}(?:\\s*,\\s*|\\s+)${PART}\\s*$`);
 
-export const LATITUDE_RANGE = { min: -90, max: 90 };
-export const LONGITUDE_RANGE = { min: -180, max: 180 };
-/** Below the Dead Sea shore and above every town; guards against a typo like "27000". */
-export const ALTITUDE_MIN_M = -500;
-export const ALTITUDE_MAX_M = 9000;
 
 export function coordsErrorText(t: Messages, error: CoordsError): string {
   switch (error) {
@@ -47,7 +42,7 @@ export function coordsErrorText(t: Messages, error: CoordsError): string {
 }
 
 export function altitudeErrorText(t: Messages, error: AltitudeError): string {
-  return error === 'not-a-number' ? t.location.altitudeNumber : t.location.altitudeRange({ min: ALTITUDE_MIN_M, max: ALTITUDE_MAX_M });
+  return error === 'not-a-number' ? t.location.altitudeNumber : t.location.altitudeRange(ALTITUDE_RANGE);
 }
 
 export function parseCoords(text: string): ParsedCoords {
@@ -68,8 +63,8 @@ export function parseCoords(text: string): ParsedCoords {
     lat = a.axis === 'lat' ? a.value : b.value;
     lon = a.axis === 'lon' ? a.value : b.value;
   }
-  if (lat < LATITUDE_RANGE.min || lat > LATITUDE_RANGE.max) return { ok: false, error: 'latitude-range' };
-  if (lon < LONGITUDE_RANGE.min || lon > LONGITUDE_RANGE.max) return { ok: false, error: 'longitude-range' };
+  if (!latitudeInRange(lat)) return { ok: false, error: 'latitude-range' };
+  if (!longitudeInRange(lon)) return { ok: false, error: 'longitude-range' };
   return { ok: true, lat, lon };
 }
 
@@ -85,14 +80,16 @@ export function parseAltitude(text: string): ParsedAltitude {
   if (trimmed === '') return { ok: true, altM: 0 };
   const altM = /^[+-]?\d+(?:\.\d+)?$/.test(trimmed) ? Number(trimmed) : Number.NaN;
   if (Number.isNaN(altM)) return { ok: false, error: 'not-a-number' };
-  if (altM < ALTITUDE_MIN_M || altM > ALTITUDE_MAX_M) return { ok: false, error: 'range' };
+  if (!altitudeInRange(altM)) return { ok: false, error: 'range' };
   return { ok: true, altM };
 }
 
 /* R31 moved `coordsLabel` and `observerFromCoords` to `lib/place.ts`, where a
-   shared link can reach them too (FR-SHARE-1); they are re-exported here so
-   that "the coordinate form's observer" keeps one name across the UI. */
-export { coordsLabel, observerFromCoords };
+   shared link can reach them too (FR-SHARE-1); R51 (F-19) moved the three
+   coordinate ranges down beside them, so the form and the link parser cannot
+   disagree about what a valid observer is. All are re-exported here so that
+   "the coordinate form's rules" keep one name across the UI. */
+export { coordsLabel, observerFromCoords, ALTITUDE_RANGE, LATITUDE_RANGE, LONGITUDE_RANGE };
 
 export interface CoordsInputProps {
   /** Called with an observer on every valid value, null when the field is empty or either field is invalid. */
