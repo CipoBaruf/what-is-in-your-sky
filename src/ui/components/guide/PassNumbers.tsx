@@ -23,7 +23,7 @@ import styles from './PassNumbers.module.css';
  * at. A boundary the satellite crosses in Earth's shadow names itself: the
  * drawing swaps the rise or end marker for the shadow marker there rather
  * than adding a fourth point (`Pass` has three), so the row is renamed rather
- * than repeated under a second heading (D-273).
+ * than repeated under a second heading (D-257).
  */
 export interface PassNumbersProps {
   pass: Pass;
@@ -40,7 +40,7 @@ export function PassNumbers({ pass, timeZone, legendKey, colorToken }: PassNumbe
   const t = useT();
   const locale = useLocale();
   const numbers = t.guide.numbers;
-  // The shadow boundary, where there is one: the row is the drawing's shadow marker, so it is named for it (D-273).
+  // The shadow boundary, where there is one: the row is the drawing's shadow marker, so it is named for it (D-257).
   const shadow = (key: (typeof POINTS)[number]): boolean => (key === 'start' && pass.startReason === 'shadow') || (key === 'end' && pass.endReason === 'shadow');
   const pointLabel = (key: (typeof POINTS)[number]): string => (shadow(key) ? (key === 'start' ? numbers.leavesShadow : numbers.entersShadow) : numbers[key]);
   return (

@@ -288,7 +288,7 @@ describe('<SkyChart> view choice (US-6 AC5, FR-WIN-4)', () => {
  * swatch in the arc's colour; every other drawn pass keeps a row of its own,
  * and the Sun and the Moon keep their line each. This is `SkyChart`'s
  * contract, not the screen's: the screen hands in the table and the boundary
- * decides where it goes and what it stands for (D-272).
+ * decides where it goes and what it stands for (D-256).
  */
 describe("<SkyChart> with the detail's numeric table as the legend (FR-LEG-3, US-23 AC3)", () => {
   afterEach(() => {
@@ -346,7 +346,7 @@ describe("<SkyChart> with the detail's numeric table as the legend (FR-LEG-3, US
     expect(bodies[1]?.textContent).toContain('Moon');
   });
 
-  it("names a boundary crossed in Earth's shadow in the table rather than repeating it (D-273)", () => {
+  it("names a boundary crossed in Earth's shadow in the table rather than repeating it (D-257)", () => {
     const shadowed = { ...pass, endReason: 'shadow' as const };
     const { container } = render(
       <SkyChart
