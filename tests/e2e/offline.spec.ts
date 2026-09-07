@@ -25,6 +25,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { leaveSettings, openSettings, withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -64,7 +65,9 @@ async function abortEverything(page: Page): Promise<void> {
 /** Types the coordinates and waits for the finished list; returns the status text. */
 async function firstVisit(page: Page): Promise<string> {
   await page.goto('/');
-  await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+  await withSettings(page, async () => {
+    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+  });
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(status).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
   return (await status.textContent()) ?? '';
@@ -137,7 +140,9 @@ test('five days after the newest epoch the epoch-age warning shows, and the age 
   await serveCelestrak(page, celestrakRequests);
   await page.clock.setFixedTime(T0 + 5 * DAY + 60_000);
   await page.goto('/');
-  await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+  await withSettings(page, async () => {
+    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+  });
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(status).toHaveText(/visible passes in the next 72 h|No visible passes/, { timeout: 30_000 });
   const banner = page.getByTestId('epoch-banner');
@@ -280,13 +285,19 @@ test('offline: the readiness line, the three nights, and the soft failures (R27,
   // The line fits one row on a phone, in both languages.
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await rows(readiness)).toBeLessThanOrEqual(1);
-  await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
+  await withSettings(page, async () => {
+    await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
+  });
   await expect(readiness).toHaveText(/^Listo sin red hasta \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
   expect(await rows(readiness)).toBeLessThanOrEqual(1);
-  await page.getByRole('group', { name: 'Idioma' }).getByRole('button', { name: 'English' }).click();
+  await withSettings(page, async () => {
+    await page.getByRole('group', { name: 'Idioma' }).getByRole('button', { name: 'English' }).click();
+  });
 
   // FR-OFF-8. `navigator.onLine` is what the app reads, so the browser itself goes offline here.
   await context.setOffline(true);
+  // R52 (FR-COMP-2): the place field and the device button are on `#settings` at this width.
+  await openSettings(page);
   await page.getByLabel('Place name').fill('Cipolletti');
   await expect(page.getByTestId('place-search-status')).toHaveText('No connection, so places cannot be searched. The device location button still works, or enter coordinates instead.');
   await expect(page.getByRole('option')).toHaveCount(0);
@@ -296,6 +307,7 @@ test('offline: the readiness line, the three nights, and the soft failures (R27,
   await context.setGeolocation({ latitude: ha.observer.lat + 0.5, longitude: ha.observer.lon, accuracy: 300 });
   await page.getByRole('button', { name: 'Use my location' }).click();
   await expect(page.getByTestId('active-location')).toContainText('from your device');
+  await leaveSettings(page);
   await expect(status).toHaveText(/visible passes in the next 72 h|No visible passes|No darkness/, { timeout: 60_000 });
   // Recomputed from the cached elements, with no forecast for the new cell: FR-X-4's "weather then shows unknown".
   await expect(page.getByTestId('readiness')).toHaveText(/^Not ready offline: no cloud forecast/);

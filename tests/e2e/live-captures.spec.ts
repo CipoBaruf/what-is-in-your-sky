@@ -11,6 +11,7 @@
  * 60° up and the Sun is inside FR-DOME-6's twilight band all at once.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { withSettings } from './liveHelpers';
 
 const FIXTURE_DATE = '2026-09-02';
 const PARIS = '48.86, 2.35';
@@ -51,7 +52,9 @@ async function openChart(page: Page, width: 390 | 1280, locale: 'en' | 'es', vie
   // The choice is remembered (FR-I18N-5), so the group's own name is already
   // Spanish on the second pass; the option's label is the same in both.
   if (locale === 'es') await page.getByRole('banner').getByRole('button', { name: 'Español' }).click();
-  await page.getByLabel(locale === 'es' ? 'Coordenadas (lat, lon)' : 'Coordinates (lat, lon)').fill(PARIS);
+  await withSettings(page, async () => {
+    await page.getByLabel(locale === 'es' ? 'Coordenadas (lat, lon)' : 'Coordinates (lat, lon)').fill(PARIS);
+  });
   const passes = page.getByRole('region', { name: locale === 'es' ? 'Próximos pases' : 'Upcoming passes' });
   await expect(passes.getByRole('status')).toHaveText(/\d+ (visible passes in the next 72 h|pases visibles en las próximas 72 h)/, { timeout: 60_000 });
   await page.locator(`article[data-pass-id="${GLARE_PASS}"]`).getByRole('button', { name: locale === 'es' ? /Abrir la guía/ : /Open guide/ }).click();

@@ -7,6 +7,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import { withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -49,7 +50,11 @@ test('typing the Neuquén coordinates shows the pass list with the golden ISS pa
   await page.goto('/');
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/Enter a place name or coordinates/);
 
-  await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
+  await withSettings(page, async () => {
+
+    await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
+
+  });
 
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
   const cards = page.getByRole('list', { name: '' }).getByRole('listitem');

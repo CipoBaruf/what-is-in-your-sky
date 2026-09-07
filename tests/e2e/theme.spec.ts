@@ -9,6 +9,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -93,15 +94,19 @@ test('the header switch turns the page red on black, and the choice survives a r
   await expect(html).toHaveAttribute('data-theme', 'dark');
   await expect(html).toHaveCSS('background-color', DARK_BG);
 
+  // R52 (FR-COMP-2): at this width the switch is on `#settings`; the palette it
+  // writes is the whole page's, which is what the frames below are about.
   const themes = page.getByRole('group', { name: 'Theme' });
-  await expect(themes.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true');
-  await themes.getByRole('button', { name: 'Night' }).click();
+  await withSettings(page, async () => {
+    await expect(themes.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true');
+    await themes.getByRole('button', { name: 'Night' }).click();
 
-  // FR-THEME-1: the attribute is the whole mechanism, and nothing reloads to apply it.
-  await expect(html).toHaveAttribute('data-theme', 'night');
-  await expect(html).toHaveCSS('background-color', NIGHT_BG);
-  await expect(html).toHaveCSS('color', NIGHT_FG);
-  await expect(themes.getByRole('button', { name: 'Night' })).toHaveAttribute('aria-pressed', 'true');
+    // FR-THEME-1: the attribute is the whole mechanism, and nothing reloads to apply it.
+    await expect(html).toHaveAttribute('data-theme', 'night');
+    await expect(html).toHaveCSS('background-color', NIGHT_BG);
+    await expect(html).toHaveCSS('color', NIGHT_FG);
+    await expect(themes.getByRole('button', { name: 'Night' })).toHaveAttribute('aria-pressed', 'true');
+  });
 
   // FR-THEME-1: saved, and no frame of the next visit is painted in the other palette.
   await page.reload();
@@ -121,10 +126,16 @@ test('night mode reaches the pass list and the guide sheet, in both languages', 
   await page.goto('/');
   const html = page.locator('html');
 
-  await page.getByRole('group', { name: 'Theme' }).getByRole('button', { name: 'Night' }).click();
+  await withSettings(page, async () => {
+    await page.getByRole('group', { name: 'Theme' }).getByRole('button', { name: 'Night' }).click();
+  });
   await page.screenshot({ path: 'test-results/r20-home-390-night-en.png', fullPage: true });
 
-  await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+  await withSettings(page, async () => {
+
+    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+
+  });
   const passes = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(passes).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
   await page.screenshot({ path: 'test-results/r20-passes-390-night-en.png', fullPage: true });
@@ -149,14 +160,20 @@ test('night mode reaches the pass list and the guide sheet, in both languages', 
   await dialog.getByRole('button', { name: /Volver a la lista/ }).click();
   await page.screenshot({ path: 'test-results/r20-passes-390-dark-es.png', fullPage: true });
 
-  await page.getByRole('group', { name: 'Tema' }).getByRole('button', { name: 'Nocturno' }).click();
+  await withSettings(page, async () => {
+    await page.getByRole('group', { name: 'Tema' }).getByRole('button', { name: 'Nocturno' }).click();
+  });
   await expect(html).toHaveCSS('background-color', NIGHT_BG);
   await page.screenshot({ path: 'test-results/r20-passes-390-night-es.png', fullPage: true });
 
   // Back to English on the same palette: dark × en is the fourth of the four combinations.
-  await page.getByRole('group', { name: 'Idioma' }).getByRole('button', { name: 'English' }).click();
+  await withSettings(page, async () => {
+    await page.getByRole('group', { name: 'Idioma' }).getByRole('button', { name: 'English' }).click();
+  });
   await expect(html).toHaveAttribute('lang', 'en');
-  await page.getByRole('group', { name: 'Theme' }).getByRole('button', { name: 'Dark' }).click();
+  await withSettings(page, async () => {
+    await page.getByRole('group', { name: 'Theme' }).getByRole('button', { name: 'Dark' }).click();
+  });
   await expect(html).toHaveCSS('background-color', DARK_BG);
   await page.screenshot({ path: 'test-results/r20-passes-390-dark-en.png', fullPage: true });
 });

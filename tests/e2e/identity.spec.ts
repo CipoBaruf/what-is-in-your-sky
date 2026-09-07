@@ -10,6 +10,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -72,14 +73,17 @@ async function expectIdentity(page: Page, screenshot: string, { fullPage = true 
 
 async function homeWithPasses(page: Page): Promise<void> {
   await page.goto('/');
-  await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
+  await withSettings(page, async () => {
+    await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
+  });
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
   await expect(page.getByRole('region', { name: 'Right now' }).getByText(/as of /)).toBeVisible();
 }
 
 test('Home: dark monospace frame, no sideways scroll, every control ≥ 44 px, empty and with passes; the detail sheet likewise', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('banner').getByRole('heading', { level: 1 })).toHaveText('What is in your sky right now');
+  // R52 (FR-COMP-1): at 390 px the header's heading is the short title; the document title keeps the full one.
+  await expect(page.getByRole('banner').getByRole('heading', { level: 1 })).toHaveText('Your sky');
   await expect(page.getByRole('contentinfo')).toContainText('Orbital elements by CelesTrak.');
   await expect(page.getByRole('contentinfo')).toContainText('Weather data by Open-Meteo.com (CC BY 4.0).');
   await expect(page.getByRole('contentinfo')).toContainText('Place search by Open-Meteo geocoding, with data from GeoNames (CC BY 4.0).');
@@ -137,15 +141,18 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
     // controls are not — `checkVisibility` drops them, exactly as sequential focus does.
     Array.from(document.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, summary, [tabindex="0"]')).filter((el) => el.checkVisibility()).map((el) => `${el.tagName.toLowerCase()}:${(el.textContent?.trim() || el.getAttribute('aria-label') || el.id).slice(0, 40)}`),
   );
-  // Place, coordinates, altitude, device button, clear, Now-panel badge, hero (open guide, cloud badge), two sort buttons, three night headings, ≥ 1 card × (open guide, badge), 3 footer links.
+  // R52 (FR-COMP-1, FR-COMP-3): the compact home no longer holds the form. Its
+  // controls are the header's two links, the summary's `[ change ]`, the
+  // Now-panel badge and live link, the hero (open guide, cloud badge), two sort
+  // buttons, three night headings, ≥ 1 card × (open guide, badge) and 3 footer
+  // links. The ones that moved are one tap away, and reached below.
   expect(expected.length).toBeGreaterThanOrEqual(15);
-  expect(expected).toContain('input:place');
-  // R32: the live page's link opens the header's controls; R17 and R20: the language and theme switches follow it, in that order.
-  expect(expected.slice(0, 5)).toEqual(['a:Live sky', 'button:English', 'button:Español', 'button:Dark', 'button:Night']);
-  expect(expected).toContain('button:Use my location');
-  expect(expected).toContain('button:Clear saved location');
-  expect(expected).toContain('button:Soonest first');
-  expect(expected).toContain('button:Best first');
+  // R32/R52: the header's two links open the order, and no preference control is on this screen.
+  expect(expected.slice(0, 3)).toEqual(['a:live', 'a:settings', 'a:change']);
+  expect(expected).not.toContain('input:place');
+  expect(expected).not.toContain('button:English');
+  expect(expected).toContain('button:Soonest');
+  expect(expected).toContain('button:Best');
   expect(expected).toContain('a:CelesTrak');
   expect(expected.filter((c) => c.startsWith('button:Open guide')).length).toBeGreaterThanOrEqual(2);
 
@@ -171,7 +178,7 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   await page.keyboard.press('Tab');
   expect(await page.evaluate(() => document.activeElement === document.body)).toBe(true);
   await page.keyboard.press('Tab');
-  expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('Live sky');
+  expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('live');
 });
 
 test('the hero card pins the next ISS pass; "best first" reorders the list and the choice survives a reload (US-5 AC2)', async ({ page }) => {
@@ -201,8 +208,9 @@ test('the hero card pins the next ISS pass; "best first" reorders the list and t
   expect(chronological.length).toBeGreaterThan(2);
   expect([...chronological].sort()).toEqual(chronological);
 
-  await page.getByRole('button', { name: 'Best first' }).click();
-  await expect(page.getByRole('button', { name: 'Best first' })).toHaveAttribute('aria-pressed', 'true');
+  // R52 (US-5 AC2 as amended): the short labels, at this width.
+  await page.getByRole('button', { name: 'Best' }).click();
+  await expect(page.getByRole('button', { name: 'Best' })).toHaveAttribute('aria-pressed', 'true');
   const best = await scores();
   expect([...best].sort((a, b) => b - a)).toEqual(best);
   expect(await starts()).not.toEqual(chronological);
@@ -210,6 +218,6 @@ test('the hero card pins the next ISS pass; "best first" reorders the list and t
 
   await page.reload();
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
-  await expect(page.getByRole('button', { name: 'Best first' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Best' })).toHaveAttribute('aria-pressed', 'true');
   expect([...(await scores())].sort((a, b) => b - a)).toEqual(await scores());
 });

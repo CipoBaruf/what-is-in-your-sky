@@ -11,6 +11,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import { withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -48,7 +49,11 @@ test('at the R3 clock the panel says plainly that nothing is above 10°, with th
   const panel = page.getByRole('region', { name: 'Right now' });
   await expect(panel).toContainText('Enter a place name or coordinates to see what is overhead right now.');
 
-  await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+  await withSettings(page, async () => {
+
+    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+
+  });
   await expect(panel).toContainText('Nothing visible right now: no catalog satellite is above 10°.', { timeout: 30_000 });
   await expect(panel).toContainText(`as of ${hhmmss(t)} UTC`);
   await expect(panel.getByRole('list')).toHaveCount(0);
@@ -61,7 +66,9 @@ test('ten seconds into the golden ISS pass the panel lists the ISS with directio
   await page.clock.install({ time: t });
   await page.clock.pauseAt(t);
   await page.goto('/');
-  await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+  await withSettings(page, async () => {
+    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+  });
 
   const panel = page.getByRole('region', { name: 'Right now' });
   await expect(panel).toContainText('1 satellite visible right now', { timeout: 30_000 });

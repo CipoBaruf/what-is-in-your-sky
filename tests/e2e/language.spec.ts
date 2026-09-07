@@ -7,7 +7,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { seedStoredRun } from './liveHelpers';
+import { seedStoredRun, withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -26,6 +26,9 @@ const NEUQUEN = `${String(ha.observer.lat)}, ${String(ha.observer.lon)}`;
 
 const EN_TITLE = 'What is in your sky right now';
 const ES_TITLE = 'Qué hay en el cielo ahora mismo';
+/* R52 (FR-COMP-1): at 390 px the header's heading is the short title; the *document* title is still the full one. */
+const EN_HEADING = 'Your sky';
+const ES_HEADING = 'Tu cielo';
 
 // FR-I18N-1: the browser reports `es-AR`, so the first visit is Spanish without any saved preference.
 test.use({ locale: 'es-AR', viewport: { width: 390, height: 844 } });
@@ -60,7 +63,7 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
   // FR-I18N-5: the document follows the language, from the first render.
   await expect(page.locator('html')).toHaveAttribute('lang', 'es');
   await expect(page).toHaveTitle(ES_TITLE);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(ES_TITLE);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(ES_HEADING);
   await expect(page.getByRole('region', { name: 'Próximos pases' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Ahora mismo' })).toBeVisible();
   await expect(page.getByRole('contentinfo')).toContainText('Sin analítica ni rastreo');
@@ -125,7 +128,11 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
 
   // Back on the list, the observer is the one the page opened with and the screen is English throughout.
   await dialog.getByRole('button', { name: /Back to the list/ }).click();
-  await expect(page.getByLabel('Coordinates (lat, lon)')).toHaveValue(NEUQUEN);
+  // R52: the field that holds the observer is on `#settings` now; the home screen names it in the summary line.
+  await expect(page.getByTestId('location-summary')).toBeVisible();
+  await withSettings(page, async () => {
+    await expect(page.getByLabel('Coordinates (lat, lon)')).toHaveValue(NEUQUEN);
+  });
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/);
   await page.screenshot({ path: 'test-results/r17-passes-390-en.png', fullPage: true });
 });
@@ -133,18 +140,22 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
 test('the chosen language survives a reload, browser preference notwithstanding', async ({ page }) => {
   await withFixtures(page);
   await page.goto('/');
-  await page.getByRole('group', { name: 'Idioma' }).getByRole('button', { name: 'English' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(EN_TITLE);
+  await withSettings(page, async () => {
+    await page.getByRole('group', { name: 'Idioma' }).getByRole('button', { name: 'English' }).click();
+  });
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(EN_HEADING);
 
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(page).toHaveTitle(EN_TITLE);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(EN_TITLE);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(EN_HEADING);
   await page.screenshot({ path: 'test-results/r17-home-390-en.png', fullPage: true });
 
   // And back: Spanish is saved the same way.
-  await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
+  await withSettings(page, async () => {
+    await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
+  });
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('lang', 'es');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(ES_TITLE);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(ES_HEADING);
 });

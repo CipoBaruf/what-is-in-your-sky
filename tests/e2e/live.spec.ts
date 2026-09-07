@@ -93,7 +93,8 @@ test.describe('the live page', () => {
     // Real time was not touched by the link.
     await page.keyboard.press('Escape');
     await expect(page.getByRole('region', { name: LABEL.en.now })).toContainText(`as of ${hhmmss(T)} UTC`, { timeout: 60_000 });
-    await expect(page.getByTestId('active-location')).toContainText('−38.93, −67.99');
+    // R52 (FR-COMP-3): the home screen names the observer in its summary line; the form that holds it is on `#settings`.
+    await expect(page.getByTestId('location-summary')).toContainText('−38.93, −67.99');
 
     // A t that names no instant: the place is kept and the instant is real time. (A hash-only
     // navigation stays in the document; the reload is what makes it a fresh arrival on the link.)

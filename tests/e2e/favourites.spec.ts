@@ -11,6 +11,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import { leaveSettings, openSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -47,6 +48,10 @@ test('save two places, switch between them, remove one, and the other survives a
   test.slow();
   await page.goto('/');
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
+  // R52 (FR-COMP-2): the saved places live with the form, on `#settings` at this
+  // width. The whole of this test is that panel, so it stays on the page and
+  // steps back to the home screen once, at the end, for the list.
+  const compact = await openSettings(page);
   const coords = page.getByLabel('Coordinates (lat, lon)');
   const save = page.getByTestId('save-favourite');
 
@@ -59,13 +64,13 @@ test('save two places, switch between them, remove one, and the other survives a
   await coords.fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   await expect(page.getByText('No places saved yet.')).toBeVisible();
   await expect(page.getByText('Up to 8 places. Saving another forgets the one you have not used for longest.')).toBeVisible();
-  await expect(status).toHaveText(new RegExp(`from ${NEUQUEN_LABEL}`), { timeout: 30_000 });
+  await expect(page.getByTestId('active-location')).toHaveText(`Using ${NEUQUEN_LABEL}.`);
   await save.click();
   await expect(page.getByTestId('favourite')).toHaveCount(1);
 
   // A second place, saved the same way; the panel now marks it as the one in use.
   await coords.fill(`${String(PARIS.lat)}, ${String(PARIS.lon)}`);
-  await expect(status).toHaveText(new RegExp(`from ${PARIS_LABEL}`), { timeout: 30_000 });
+  await expect(page.getByTestId('active-location')).toHaveText(`Using ${PARIS_LABEL}.`);
   await save.click();
   await expect(page.getByTestId('favourite')).toHaveCount(2);
   const saved = JSON.parse((await page.evaluate((k) => localStorage.getItem(k), PREFS_KEY)) ?? 'null') as { favourites?: { observer: { label: string } }[] } | null;
@@ -76,8 +81,16 @@ test('save two places, switch between them, remove one, and the other survives a
   // US-17 AC2: picking one makes it the observer, and the list recomputes for it.
   await page.getByRole('button', { name: `Use ${NEUQUEN_LABEL}` }).click();
   await expect(page.getByTestId('active-location')).toHaveText(`Using ${NEUQUEN_LABEL}.`);
-  await expect(status).toHaveText(new RegExp(`from ${NEUQUEN_LABEL}`), { timeout: 30_000 });
   await expect(page.getByRole('button', { name: `Use ${NEUQUEN_LABEL}` })).toHaveAttribute('aria-current', 'true');
+  if (compact) {
+    // The place the panel chose is the one the home screen is computing for.
+    await leaveSettings(page);
+    // The recompute for this place starts when the panel picks it, so the wait is the whole 72 h search.
+    await expect(status).toHaveText(new RegExp(`from ${NEUQUEN_LABEL}`), { timeout: 60_000 });
+    await openSettings(page);
+  } else {
+    await expect(status).toHaveText(new RegExp(`from ${NEUQUEN_LABEL}`), { timeout: 30_000 });
+  }
 
   // Removing is one click with nothing in front of it, and it does not change the observer.
   await page.getByRole('button', { name: `Remove ${PARIS_LABEL}` }).click();
@@ -89,5 +102,7 @@ test('save two places, switch between them, remove one, and the other survives a
   await expect(page.getByTestId('favourite')).toHaveCount(1);
   await expect(page.getByRole('button', { name: `Use ${NEUQUEN_LABEL}` })).toBeVisible();
   await expect(page.getByRole('button', { name: `Use ${PARIS_LABEL}` })).toHaveCount(0);
+  // The reload came back on `#settings`, where it left off (D-13); the list is a screen away.
+  if (compact) await leaveSettings(page);
   await expect(status).toHaveText(new RegExp(`from ${NEUQUEN_LABEL}`), { timeout: 30_000 });
 });

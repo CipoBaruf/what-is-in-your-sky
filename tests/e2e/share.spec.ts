@@ -12,6 +12,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -52,7 +53,9 @@ async function stubNetwork(page: Page): Promise<void> {
 }
 
 async function listPasses(page: Page, locale: 'en' | 'es'): Promise<void> {
-  await page.getByLabel(LABEL[locale].coords).fill(COORDS);
+  await withSettings(page, async () => {
+    await page.getByLabel(LABEL[locale].coords).fill(COORDS);
+  });
   await expect(page.getByRole('region', { name: LABEL[locale].passes }).getByRole('status')).toHaveText(LABEL[locale].count, { timeout: 60_000 });
 }
 
@@ -95,7 +98,8 @@ test('the share action copies a link, and a fresh device opens the same pass fro
   await expect(opened).toHaveAttribute('data-pass-id', passId);
   await expect(opened.getByTestId('guide-sentence').first()).toHaveText(sentence);
   // The observer came out of the link: the same coordinates, as a typed pair (FR-LOC-4 label, source `coords`).
-  await expect(recipient.getByTestId('active-location')).toContainText('−38.93, −67.99');
+  // R52 (FR-COMP-3): the home screen names the observer in its summary line.
+  await expect(recipient.getByTestId('location-summary')).toContainText('−38.93, −67.99');
   await expect(recipient.getByTestId('share-fallback')).toHaveCount(0);
   await recipient.screenshot({ path: 'test-results/r31-received-390-en.png' });
 
@@ -128,7 +132,11 @@ for (const width of [390, 1280] as const) {
       await page.clock.setFixedTime(CLOCK);
       await stubNetwork(page);
       await page.goto('/');
-      if (locale === 'es') await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
+      if (locale === 'es') {
+        await withSettings(page, async () => {
+          await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
+        });
+      }
       await listPasses(page, locale);
 
       await page.locator(`article[data-pass-id="25544-${String(golden.start.t)}"]`).getByRole('button', { name: LABEL[locale].open }).click();

@@ -9,6 +9,7 @@
  * hour before the ISS pass whose peak the Moon stands 8° from.
  */
 import { expect, test, type Page } from '@playwright/test';
+import { withSettings } from './liveHelpers';
 
 const FIXTURE_DATE = '2026-09-02';
 const PARIS = '48.86, 2.35';
@@ -29,7 +30,9 @@ async function open(page: Page, width: 390 | 1280, locale: 'en' | 'es'): Promise
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
   await page.goto('/');
   if (locale === 'es') await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
-  await page.getByLabel(locale === 'es' ? 'Coordenadas (lat, lon)' : 'Coordinates (lat, lon)').fill(PARIS);
+  await withSettings(page, async () => {
+    await page.getByLabel(locale === 'es' ? 'Coordenadas (lat, lon)' : 'Coordinates (lat, lon)').fill(PARIS);
+  });
   const passes = page.getByRole('region', { name: locale === 'es' ? 'Próximos pases' : 'Upcoming passes' });
   await expect(passes.getByRole('status')).toHaveText(/\d+ (visible passes in the next 72 h|pases visibles en las próximas 72 h)/, { timeout: 60_000 });
   await expect(page.getByTestId('moon-line')).toBeVisible();

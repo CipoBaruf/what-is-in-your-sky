@@ -11,6 +11,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { withSettings } from './liveHelpers';
 
 interface HaFixture {
   observer: { lat: number; lon: number };
@@ -46,7 +47,9 @@ async function offlineHome(page: Page, width: 390 | 1280, locale: 'en' | 'es'): 
   await page.route('https://geocoding-api.open-meteo.com/**', (route) => route.abort('failed'));
   await page.goto('/');
   if (locale === 'es') await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
-  await page.getByLabel(LABEL[locale].coords).fill(NEUQUEN);
+  await withSettings(page, async () => {
+    await page.getByLabel(LABEL[locale].coords).fill(NEUQUEN);
+  });
   const status = page.getByRole('region', { name: LABEL[locale].passes }).getByRole('status');
   await expect(status).toHaveText(/\d+ (visible passes in the next 72 h|pases visibles en las próximas 72 h)/, { timeout: 60_000 });
 
