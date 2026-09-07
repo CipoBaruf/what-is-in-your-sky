@@ -1175,7 +1175,7 @@ Delivery is PLAN §16 unchanged, cut by §16.9: five tasks, three waves, one tas
     - Captures: the live page at 2560 × 1440 dark English, and the pass detail at 1280 × 800 both themes.
     - `npm test` green.
 
-- [ ] **R58 — A live link for the place already in the store keeps its passes, and following will not rewrite the saved view**
+- [x] **R58 — A live link for the place already in the store keeps its passes, and following will not rewrite the saved view**
   - **Lane:** data
   - **Model:** sonnet
   - **Gate:** auto
