@@ -424,7 +424,7 @@ The R15 dome reads as a wire cage: rings, meridians and arc in one colour at nea
 
 ### 4.20 The v1 findings *(v1.1)*
 
-Every v1 task PR was merged with its review findings open (V1-11's gate merges on the owner's word, not on a clean review). They are listed here so the phase closes them, with the PR they came from and the lane that owns the code. The wording is the reviewer's, shortened. *(v1.1.1)* F-51..F-53 are the owner's findings on the wide live page after wave 4 (V11-14), measured on the fixtures at 1280 × 800, 1920 × 1080 and 2560 × 1440. *(v1.2)* F-54..F-56 are the owner's findings on the released v1.1 build (V12-3..V12-5); FR-FIX-1 governs them as it governs the rest, and the v1.2 tasks carry them.
+Every v1 task PR was merged with its review findings open (V1-11's gate merges on the owner's word, not on a clean review). They are listed here so the phase closes them, with the PR they came from and the lane that owns the code. The wording is the reviewer's, shortened. *(v1.1.1)* F-51..F-53 are the owner's findings on the wide live page after wave 4 (V11-14), measured on the fixtures at 1280 × 800, 1920 × 1080 and 2560 × 1440. *(v1.2)* F-54..F-56 are the owner's findings on the released v1.1 build (V12-3..V12-5); FR-FIX-1 governs them as it governs the rest, and the v1.2 tasks carry them. F-57 and F-58 are R56's review findings, merged open with #87 and written down here for a later phase as V12-6 asks; no v1.2 task carries them.
 
 - **FR-FIX-1** Each finding below MUST be closed by a change with a test that fails on the old code, or recorded as *already fixed on main* with the commit that fixed it, or moved to Phase 3 by an explicit Decision Log row. A findings task per lane (V11-11) carries them; a finding whose code a v1.1 feature task rewrites MAY be closed by that task instead, named in its acceptance.
 - **FR-FIX-2** Findings that are e2e or CI defects (F-33, F-34, F-36, F-37, F-38) are closed in the first wave together with §4.21, before any feature task runs.
@@ -487,6 +487,8 @@ Every v1 task PR was merged with its review findings open (V1-11's gate merges o
 | F-54 | owner, v1.1 build | chart | On a desktop wider than 1920 px the dome's drawing is still larger than its box: the raster's extent with its labels exceeds the shorter side, so the outer rows and columns are cut and part of the picture cannot be seen. R54's ceiling is pinned only at 1280 × 800 and 1920 × 1080. |
 | F-55 | owner, v1.1 build | live | On a phone the clock readout above the stripe overlaps the facing-and-tilt line under the drawing: the rows under the box ask for more height than portrait leaves them. |
 | F-56 | owner, v1.1 build | live | A click on the stripe, or a reload of the live page, empties it: no arcs on the drawing, no segments on the stripe, a count of zero, and it stays empty until the home page searches again. |
+| F-57 | R56 #87 | window | `groundClipPath` re-projects all 181 horizon points from scratch instead of reusing the `HORIZON.map(at)` array the horizon grid path already computed, doubling the projection work on every render while the ground state is shown. |
+| F-58 | R56 #87 | window | `lookDirection` is computed twice per render, once for the look direction and again inside the ground-state test. |
 
 The NaN facing loop from R34 (#57) was fixed on main before the merge and is not listed.
 
