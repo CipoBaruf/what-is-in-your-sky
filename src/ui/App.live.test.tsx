@@ -8,6 +8,7 @@ import { act, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../tests/support/catalogFixtures';
 import { MOON_FIXTURE } from '../../tests/support/moonFixtures';
+import { liveLinkHash } from '../lib/shareLinks';
 import type { Observer } from '../model';
 import { appStore, type ElementsState } from '../state';
 import { IDLE_PASSES } from '../state/slices/passes';
@@ -96,6 +97,30 @@ describe('<App> and the live route', () => {
     go('#live');
     go('#live?lat=51.48&lon=-0.01&alt=0');
     expect(appStore.getState().observer).toBe(shared);
+  });
+
+  /**
+   * R58 review (F-56, FR-LIVE-11, D-280, D-295): the guard `startApp` applies
+   * on arrival has to hold a render later too. A phone's own fix keeps every
+   * digit the device reported (`observerFromPosition`), and the link FR-LIVE-9
+   * writes for it carries five decimals, so the two are the same place without
+   * being equal number for number — which is all the old exact-equality test
+   * looked at. It replaced the reader's geocoded observer with a bare
+   * `source: 'coords'` one, and with it went the label, the zone and the
+   * stored run: F-56, one render after `startApp` had just refused it.
+   */
+  it("leaves the observer alone for a #live link at its own place, however many digits the fix had (F-56)", async () => {
+    const fix: Observer = { lat: -38.933921274, lon: -67.990318617, altM: 270.4, label: 'Neuquén, Argentina', source: 'geocode', timeZone: 'America/Argentina/Buenos_Aires' };
+    withSky();
+    act(() => {
+      appStore.setState({ observer: fix, now: { observer: fix, state: { t: NOW, sunAltDeg: -30, sky: 'dark', items: [], moon: MOON_FIXTURE }, error: null } });
+    });
+    render(<App />);
+    const passesBefore = appStore.getState().passes;
+    go(liveLinkHash({ observer: fix, t: null })); // '#live?lat=-38.93392&lon=-67.99032&alt=270'
+    expect(await screen.findByTestId('live-place')).toHaveTextContent('Neuquén, Argentina');
+    expect(appStore.getState().observer).toBe(fix);
+    expect(appStore.getState().passes).toBe(passesBefore);
   });
 
   it('is the inert live page under #live with no observer, and a #live?… link that does not parse', async () => {

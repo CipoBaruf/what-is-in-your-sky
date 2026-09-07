@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { I18nProvider, useLocale, useT } from '../i18n/useT';
 import { MOON_LORE } from '../lib/flags';
-import { observerFromLink, resolvePassLink } from '../lib/shareLinks';
+import { observerFromLink, resolvePassLink, sameHashPlace } from '../lib/shareLinks';
 import type { ShortcutActions } from '../lib/shortcuts';
 import { formatClock, formatDate } from '../lib/timeFormat';
 import { catalogName, searchPlaces, useAppStore } from '../state';
@@ -197,12 +197,18 @@ export function App() {
    * link takes on arrival. Coordinates that are already the store's are left
    * alone — on arrival they are, and a fresh observer would restart the whole
    * compute chain for the place it is already showing.
+   *
+   * R58 (D-280, D-295, FR-LIVE-11): "already the store's" is `sameHashPlace`,
+   * the test `startApp`'s guard uses, and not equality digit for digit. The
+   * hash carries five decimals; an observer the device fixed itself
+   * (`observerFromPosition` keeps the whole reading) never matches its own
+   * link exactly, and a fresh `source: 'coords'` observer here drops that
+   * reader's label, zone and stored run — F-56 again, a render after
+   * `startApp` refused it.
    */
   useEffect(() => {
-    if (live.link === null) return;
-    const next = observerFromLink(live.link);
-    if (observer !== null && observer.lat === next.lat && observer.lon === next.lon && observer.altM === next.altM) return;
-    setObserver(next);
+    if (live.link === null || sameHashPlace(observer, live.link.observer)) return;
+    setObserver(observerFromLink(live.link));
   }, [live.link, observer, setObserver]);
   /*
    * R35 (FR-DESK-4, D-73): the shortcut table's handlers, the one place the
