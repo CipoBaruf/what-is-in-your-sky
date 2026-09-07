@@ -21,8 +21,12 @@ import {
   DEFAULT_CELL_WIDTH_PX,
   facingFromRotY,
   fitLayout,
+  FIT_STEP_PX,
   GRID_COLS,
   initialFor,
+  INK_HEIGHT_UNITS,
+  INK_MARGIN_CELLS,
+  INK_WIDTH_UNITS,
   layoutFor,
   MAX_GRID_COLS,
   MIN_BASE_COLS,
@@ -35,6 +39,7 @@ import {
   PITCH_STEP_DEG,
   readoutParams,
   sameLayout,
+  fitLayers,
   tilt,
   toRotY,
   turn,
@@ -116,9 +121,13 @@ describe('fitLayout', () => {
     expect(onLinux.cellWidthPx).toBe(5); // 6 px cells would be 360 px, over the box; 5 px cells fit
     expect(onLinux.cellHeightPx).toBe(10);
     expect(onLinux.fontSizePx).toBeLessThan(9.17);
-    // R57 (D-279, F-54): the raster settles at 5 px cells, 300 × 340 CSS px, narrower than the
-    // 349.45 px box on both sides — the zoom must follow that raster, not the pre-fit box.
-    expect(onLinux.zoom).toBeCloseTo(zoomFor(300, 340), 9);
+    // R57 (D-293): 60 cells of 5 px is a 300 px raster in a 349.45 px box, 14 % of the width lost
+    // to the rounding; the settled cell sets the column count, so the raster covers the box again.
+    expect(onLinux.cols).toBe(69);
+    expect(onLinux.cols * onLinux.cellWidthPx).toBeGreaterThan(MIN_EXTENT_RATIO * 349.45);
+    expect(onLinux.cols * onLinux.cellWidthPx).toBeLessThanOrEqual(349.45 + 0.5);
+    // …and the drawing is then sized by the box, as it is wherever the raster covers the box (D-290).
+    expect(onLinux.zoom).toBeCloseTo(zoomFor(349.45, 349.45), 9);
     expect(fitLayout(390, 390, DEFAULT_ADVANCE, exact)).toEqual(layoutFor(390, 390));
   });
 
@@ -185,10 +194,12 @@ describe('layoutFor (FR-DOME-1, D-91)', () => {
     expect(layoutFor(390, 390).zoom).toBe(zoomFor(390, 390));
     expect(layoutFor(1280, 1280).zoom).toBeCloseTo(zoomFor(1280, 1280), 9);
     // R32 (D-161): a box wider than tall zooms to its height, so the top of the dome stays inside it; a taller one to its width.
-    // R57 (D-279): against the *raster's* height (rows × cellHeightPx, 434 px of the 450), not the
-    // box's — F-51's rounded-down rows already leave a few px of the box below the last row.
+    // R57 (D-290): from the box, and only held to the raster where the raster falls short of it —
+    // 434 px of raster in a 450 px box is not short enough to bind, the labels overhanging the last
+    // row being what the box's own 1.7 divisor leaves room for.
     const wide = layoutFor(1240, 450);
-    expect(wide.zoom).toBeCloseTo(zoomFor(1240, wide.rows * wide.cellHeightPx), 9);
+    expect(wide.zoom).toBeCloseTo(zoomFor(1240, 450), 9);
+    expect(INK_HEIGHT_UNITS * wide.zoom).toBeLessThanOrEqual(wide.rows * wide.cellHeightPx);
     expect(layoutFor(352, 600).zoom).toBeCloseTo(zoomFor(352, 600), 9);
     expect(layoutFor(390, null).zoom).toBe(zoomFor(390, 390));
     const line = layoutFor(1280, 1280);
@@ -323,13 +334,110 @@ describe('the fit rule holds above the R54 pins too (FR-DOME-1 v1.2, D-279, F-54
     const fitted = fitLayout(2560, 1440, DEFAULT_ADVANCE, steppedDown);
     const rasterWidth = fitted.cols * fitted.cellWidthPx;
     const rasterHeight = fitted.rows * fitted.cellHeightPx;
-    expect(rasterWidth).toBeLessThan(2560);
-    // The old rule left `zoom` from the pre-fit `layoutFor` call, sized for the wider raster the
-    // font stepped down from — the fixed zoom must fit the raster fitLayout actually painted.
-    expect(fitted.zoom).toBeCloseTo(zoomFor(rasterWidth, Math.min(1440, rasterHeight)), 9);
+    // The old rule left `zoom` from the pre-fit `layoutFor` call, sized for the cell the font
+    // stepped down from — the fixed zoom must fit the raster fitLayout actually painted.
+    expect(INK_WIDTH_UNITS * fitted.zoom).toBeLessThanOrEqual(rasterWidth - 2 * INK_MARGIN_CELLS * fitted.cellWidthPx);
+    expect(INK_HEIGHT_UNITS * fitted.zoom).toBeLessThanOrEqual(rasterHeight);
     const extent = drawingExtent(fitted.zoom, DEFAULT_TILT_DEG, 0, { widthPx: fitted.cellWidthPx, heightPx: fitted.cellHeightPx });
     expect(extent.width).toBeLessThanOrEqual(MAX_EXTENT_RATIO * rasterWidth);
     expect(extent.height).toBeLessThanOrEqual(MAX_EXTENT_RATIO * rasterHeight);
+  });
+});
+
+/**
+ * D-291, D-293 (R57, FR-DOME-1 v1.2): the floor on the `fitLayout` path, which
+ * is the path CI's Linux takes and this machine does not. Linux Chromium lays
+ * glyphs out without subpixel positioning, so every advance rounds to a whole
+ * device pixel: the fit loop steps the font down until a row fits, and a cell
+ * rounded down from 5.9 px to 5 px is a raster 15 % narrower than its box. In
+ * a *square* box the dome is width-bound — `zoomFor` is `min(w / 2.4, h / 1.7)`
+ * and 2.4 is the divisor that wins — so the drawing is as wide as the raster
+ * lets it be, and the painted extent cannot exceed the raster it is painted on
+ * however the zoom is chosen. D-279 clamped the zoom to that short raster and
+ * the drawing came out at 0.81 of the shorter side against FR-DOME-1's 0.9;
+ * D-293 gives the lost width back as columns instead, and D-290's clamp then
+ * has no reason to bind.
+ *
+ * The pass detail at 1280 × 800 with a device pixel ratio of 2 (which
+ * `dome-fit.spec.ts` runs) is a 354.4 px square box, measured on the page.
+ */
+describe('the floor holds on the fit path too (FR-DOME-1 v1.2, D-291, D-293)', () => {
+  /** Linux Chromium: every glyph advance rounded to a whole device pixel — 1 CSS px, or 0.5 at a device pixel ratio of 2. */
+  const roundedTo = (devicePx: number) => (fontSizePx: number, cols: number) => {
+    const advancePx = Math.round((0.6 * fontSizePx) / devicePx) * devicePx;
+    return { brailleRowPx: cols * advancePx, spaceRowPx: cols * advancePx };
+  };
+  /** A platform with subpixel positioning: the row renders at exactly the width it was asked for. */
+  const exact = (fontSizePx: number, cols: number) => ({ brailleRowPx: cols * 0.6 * fontSizePx, spaceRowPx: cols * 0.6 * fontSizePx });
+
+  it.each([
+    ['whole CSS pixels', 1],
+    ['half a CSS pixel (a device pixel ratio of 2)', 0.5],
+  ])('covers at least 90 %% of the square pass-detail box with advances rounded to %s', (_label, devicePx) => {
+    const box = 354.4;
+    const font = { advance: DEFAULT_ADVANCE, measureRows: roundedTo(devicePx) };
+    const { lines, base } = fitLayers(box, box, font, font);
+    // The font did step down: this is the path the fit loop takes, not `layoutFor`'s.
+    expect(lines.fontSizePx).toBeLessThan(box / GRID_COLS / 0.6);
+    const extent = drawingExtent(lines.zoom, DEFAULT_TILT_DEG, 0, { widthPx: lines.cellWidthPx, heightPx: lines.cellHeightPx });
+    expect(Math.max(extent.width, extent.height)).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO * box);
+    expect(extent.width).toBeLessThanOrEqual(MAX_EXTENT_RATIO * box);
+    expect(extent.height).toBeLessThanOrEqual(MAX_EXTENT_RATIO * box);
+    // `drawingExtent` counts the labels' own boxes and the cell they snap by, which `dome-fit.spec.ts`
+    // only gets where a label happens to be the outermost thing; the ink alone — the ground disc, the
+    // widest thing painted into a cell — has to clear the floor too, or the page measures below it.
+    expect(INK_WIDTH_UNITS * lines.zoom).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO * box);
+    for (const layer of [lines, base]) {
+      // The raster covers its box (D-293) and holds the ink with a blank column either side (D-290).
+      const rasterWidth = layer.cols * layer.cellWidthPx;
+      expect(rasterWidth).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO * box);
+      expect(rasterWidth).toBeLessThanOrEqual(box + FIT_STEP_PX);
+      expect(INK_WIDTH_UNITS * layer.zoom).toBeLessThanOrEqual(rasterWidth - 2 * INK_MARGIN_CELLS * layer.cellWidthPx);
+      expect(INK_HEIGHT_UNITS * layer.zoom).toBeLessThanOrEqual(layer.rows * layer.cellHeightPx);
+    }
+  });
+
+  it('draws both layers at one zoom, whatever each layer’s own raster settles on (D-91, D-292)', () => {
+    // What `SkyDome` builds, and why `fitLayers` builds it rather than the component: each layer
+    // floors its own rows and settles its own cell, so their D-290 clamps differ, and glyphcss
+    // measures zoom against the cell it probes at mount — the two must draw at one number or the
+    // coarser layer is drawn at a different size from the finer one over it. Taken layer by layer
+    // at 2271 × 1193 (the live page at 2560 × 1440) the two come out 690.2 and 667.9, 3.2 % apart.
+    const boxes: [number, number][] = [
+      [2271.02, 1193],
+      [354.4, 354.4],
+      [991, 325],
+      [390, 390],
+      [1631, 605],
+    ];
+    for (const [width, height] of boxes) {
+      for (const measureRows of [exact, roundedTo(1), roundedTo(0.5)]) {
+        const font = { advance: DEFAULT_ADVANCE, measureRows };
+        const { lines, base } = fitLayers(width, height, font, font);
+        // The base layer is asked for half the line layer's columns (D-92) and, like the line
+        // layer, keeps whatever its own settled cell then leaves room for (D-293).
+        expect(base.cols).toBeGreaterThanOrEqual(baseColsFor(lines.cols));
+        expect(base.zoom).toBe(lines.zoom);
+        // And the shared number is one both rasters can hold (D-279): neither layer's ink runs
+        // into the first or last column of its own grid.
+        for (const layer of [lines, base]) expect(INK_WIDTH_UNITS * layer.zoom).toBeLessThanOrEqual(layer.cols * layer.cellWidthPx - 2 * INK_MARGIN_CELLS * layer.cellWidthPx);
+      }
+    }
+  });
+
+  it('is the fit path that D-279 alone left short of the floor: 60 cells of 5 px in a 354.4 px box', () => {
+    // The measurement behind D-291, held here so the reason the rule needs D-293 does not go
+    // unrecorded: with the column count fixed at `colsFor`'s 60, a whole-pixel cell is 5 px, the
+    // raster is 300 px of a 354.4 px box, and the drawing — which is painted *on* that raster and
+    // so can never be wider than it — reaches 0.85 of the box at best, whatever the zoom.
+    const box = 354.4;
+    const shortRasterWidth = GRID_COLS * 5;
+    expect(shortRasterWidth / box).toBeLessThan(MIN_EXTENT_RATIO);
+    // D-293: the same 5 px cell, the columns the box has room for.
+    const fitted = fitLayout(box, box, DEFAULT_ADVANCE, roundedTo(1));
+    expect(fitted.cellWidthPx).toBe(5);
+    expect(fitted.cols).toBeGreaterThan(GRID_COLS);
+    expect((fitted.cols * fitted.cellWidthPx) / box).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO);
   });
 });
 
@@ -338,19 +446,19 @@ describe('sameLayout (F-35)', () => {
     expect(sameLayout(layoutFor(390, 390), layoutFor(390, 390))).toBe(true);
   });
 
-  it('two heights inside the same row bucket now paint the same picture (R57, D-279)', () => {
-    // Before R57 `zoom` scaled continuously with the raw box height even once `rows` (a floor,
-    // R54) had already settled on the raster it could paint; the two boxes below round to the
-    // same 15 rows of 21.3 px and, since `zoom` is now taken against that raster height rather
-    // than the box's, they are genuinely the same drawing.
+  it('catches two heights inside the same row bucket, which draw at different zooms (D-290)', () => {
+    // The two boxes round to the same 15 rows of 21.3 px, so cols, rows, cell and font all hold
+    // and only `zoom` moves. D-279 briefly took the zoom from that shared raster height, which
+    // made them the same drawing; D-290 clamps against the raster only where the raster falls
+    // short of the box, so a taller box is a larger drawing again and the observer has to notice.
     const shorter = layoutFor(1280, 322);
     const taller = layoutFor(1280, 330);
     expect(taller.rows).toBe(shorter.rows);
     expect(taller.cols).toBe(shorter.cols);
     expect(taller.cellWidthPx).toBe(shorter.cellWidthPx);
     expect(taller.fontSizePx).toBe(shorter.fontSizePx);
-    expect(taller.zoom).toBe(shorter.zoom);
-    expect(sameLayout(taller, shorter)).toBe(true);
+    expect(taller.zoom).toBeGreaterThan(shorter.zoom);
+    expect(sameLayout(taller, shorter)).toBe(false);
   });
 
   it('still catches a zoom-only change from a narrow, MIN_CELL_WIDTH_PX-bound resize (F-35)', () => {
