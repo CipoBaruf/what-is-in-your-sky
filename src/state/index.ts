@@ -1,9 +1,11 @@
 import { CATALOG } from '../data/catalog';
 import { loadElements } from '../data/elementsLoader';
+import { localPrefs } from '../data/localPrefs';
 import { appPassesCache } from '../data/passesCache';
 import { loadCloudForecast } from '../data/weatherCache';
 import { searchPlaces } from '../data/openMeteo/geocode';
-import { observerFromLink, parseHash } from '../lib/shareLinks';
+import { observerFromLink, parseHash, type SharedObserver } from '../lib/shareLinks';
+import type { Observer } from '../model';
 import { documentVisibility, startEffects } from './effects';
 import { setLiveNowClient } from './liveNow';
 import { appStore } from './store';
@@ -48,6 +50,21 @@ export function isFeatured(noradId: number): boolean {
 }
 
 /**
+ * D-280 (FR-LIVE-11, F-56): whether a `#live` link's coordinates are the
+ * saved observer, at the precision the hash carries (`shareLinks.ts`'s two
+ * decimals) — close enough that the link names no new place, so `startApp`
+ * restores the saved observer (its label, its zone, its stored run) instead
+ * of building a fresh `source: 'coords'` one that would drop them and start a
+ * search. A hash for a different place stays what it is today: a new
+ * observer.
+ */
+export function sameRoundedPlace(saved: Observer | null, link: SharedObserver): boolean {
+  if (saved === null) return false;
+  const round = (n: number): number => Math.round(n * 100);
+  return round(saved.lat) === round(link.lat) && round(saved.lon) === round(link.lon);
+}
+
+/**
  * Creates the worker, restores the saved location and wires the effects to
  * the app store. Called once from `main.tsx`.
  *
@@ -69,8 +86,13 @@ export function startApp(): () => void {
   // computing the saved location's passes and throwing them away a tick later
   // (D-135). It goes through `setObserver` like any other, so it is saved like
   // any other: the recipient's next visit opens where the link left them.
+  // R58 (D-280): a `#live` link for the place already saved is not "someone
+  // asking to look from there" — FR-LIVE-9 writes it into the hash on the
+  // first scrub, which is how an ordinary session's own reload arrives here —
+  // so that one restores the saved observer instead, stored run and all.
   const link = parseHash(window.location.hash);
-  if (link !== null && link.kind !== 'passId') appStore.getState().setObserver(observerFromLink(link));
+  if (link !== null && link.kind === 'live' && sameRoundedPlace(localPrefs.read().observer ?? null, link.observer)) appStore.getState().restoreSavedObserver();
+  else if (link !== null && link.kind !== 'passId') appStore.getState().setObserver(observerFromLink(link));
   else appStore.getState().restoreSavedObserver();
   const stop = startEffects({
     store: appStore,

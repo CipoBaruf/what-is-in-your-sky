@@ -17,6 +17,8 @@ import { createPassesCache, MAX_STORED_RUNS, memoryPassRunStore, passCellKey, ty
 import { ALWAYS_VISIBLE, ELEMENTS_RECHECK_MS, NOW_TICK_MS, startEffects, type EffectDeps, type LoadedElements, type VisibilitySource } from './effects';
 import { SEARCH_WINDOW_MS } from './passWindow';
 import { createLocalPrefs } from '../data/localPrefs';
+import { observerFromLink, parseHash } from '../lib/shareLinks';
+import { sameRoundedPlace } from './index';
 import { createAppStore, type AppStore } from './store';
 import { createWorkerClient, type WorkerClient } from './workerClient';
 import type { WorkerRequest } from '../worker/protocol';
@@ -778,6 +780,79 @@ describe('stored passes (R24, FR-OFF-2, FR-OFF-5)', () => {
     await vi.waitFor(() => expect(store.getState().elements.status).toBe('ready'));
     expect(store.getState().passes).toMatchObject({ status: 'idle', storedAt: null });
     expect(requestedWhenStoredRendered).toBeNull();
+  });
+});
+
+/**
+ * TASKS R58 (FR-LIVE-11, F-56, D-280): a `#live` link for the place the store
+ * already holds is not a new observer. `startApp` (`state/index.ts`) is not
+ * called directly — it owns a real Worker and the singleton store, which is
+ * why R24's start-up order above is tested the same way — so `bootAt` mirrors
+ * its exact sequence with the real building blocks (`parseHash`,
+ * `sameRoundedPlace`, `restoreSavedObserver`, `setObserver`) over a real
+ * (in-memory) prefs object and passes cache, `favourites (R26)`'s pattern.
+ */
+describe('the #live link guard (R58, FR-LIVE-11, F-56, D-280)', () => {
+  /** The R1 golden observer, geocoded (PLAN §7.2): a real label, a real zone, unlike the coordinates a link carries. */
+  const geocoded: Observer = { lat: -38.93392, lon: -67.99032, altM: 270, label: 'Cipolletti, Río Negro, Argentina', source: 'geocode', timeZone: 'America/Argentina/Salta' };
+  const STORED_AT = NOW - 2 * 3_600_000;
+  const storedPass = samplePass(25544, NOW + 5 * 60_000);
+
+  let store: AppStore;
+  let worker: ReturnType<typeof fakeWorker>;
+  let client: WorkerClient;
+  let stop: () => void;
+
+  const sent = <T extends WorkerRequest['type']>(type: T) => worker.sent.filter((m): m is WorkerRequest & { type: T } => m.type === type);
+
+  /** `startApp`'s own sequence: parse the hash, restore the saved observer when it names the same place, otherwise set the link's. */
+  const bootAt = async (hash: string): Promise<void> => {
+    const map = new Map<string, string>();
+    map.set('wiys:prefs:v1', JSON.stringify({ observer: geocoded }));
+    const prefs = createLocalPrefs({ getItem: (key) => map.get(key) ?? null, setItem: (key, value) => void map.set(key, value), removeItem: (key) => void map.delete(key) });
+    const runStore = memoryPassRunStore();
+    await runStore.put({ cellKey: passCellKey(geocoded.lat, geocoded.lon), observer: geocoded, window: { startMs: STORED_AT, endMs: STORED_AT + SEARCH_WINDOW_MS }, computedAt: STORED_AT, newestElementsEpochMs: ref.t, hasDarkness: true, passes: [storedPass] });
+    const cache = createPassesCache({ store: runStore, now: () => NOW });
+    store = createAppStore({ now: () => NOW, prefs });
+    worker = fakeWorker();
+    client = createWorkerClient(worker);
+    const link = parseHash(hash);
+    const saved = prefs.read().observer ?? null;
+    if (link !== null && link.kind === 'live' && sameRoundedPlace(saved, link.observer)) store.getState().restoreSavedObserver();
+    else if (link !== null && link.kind !== 'passId') store.getState().setObserver(observerFromLink(link));
+    else store.getState().restoreSavedObserver();
+    stop = startEffects({
+      store,
+      client,
+      catalog: CATALOG,
+      loadElements: freshLoader(),
+      loadWeather: neverWeather,
+      loadStoredRun: (observer) => cache.loadForObserver(observer),
+      saveRun: (run) => cache.save(run),
+      now: () => NOW,
+      visibility: ALWAYS_VISIBLE,
+    });
+  };
+
+  afterEach(() => {
+    stop();
+  });
+
+  it('a hash for the same place, rounded, restores the saved observer, its zone and its stored run — failing on the old code', async () => {
+    await bootAt('#live?lat=-38.93&lon=-67.99');
+    // The saved observer itself, not a fresh `source: 'coords'` one: the label and the zone survive.
+    expect(store.getState().observer).toEqual(geocoded);
+    await vi.waitFor(() => expect(store.getState().passes.passes).toHaveLength(1));
+    expect(store.getState().passes).toMatchObject({ status: 'done', storedAt: STORED_AT, observer: geocoded });
+    expect(store.getState().passes.passes).toEqual([storedPass]);
+  });
+
+  it('a hash for another place is a new observer and starts a search, with nothing stored to render offline', async () => {
+    await bootAt('#live?lat=48.86&lon=2.35');
+    expect(store.getState().observer).toMatchObject({ lat: 48.86, lon: 2.35, source: 'coords' });
+    expect(store.getState().observer).not.toEqual(geocoded);
+    expect(store.getState().passes).toMatchObject({ storedAt: null });
+    await vi.waitFor(() => expect(sent('loadElements')).toHaveLength(1));
   });
 });
 
