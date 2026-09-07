@@ -92,9 +92,16 @@ export const ui: typeof EnUi = {
     language: 'Idioma',
     theme: 'Tema',
     themes: { dark: 'Oscuro', night: 'Nocturno' },
+    shortTitle: 'Tu cielo',
   },
 
   banner: { info: 'Nota', warning: 'Aviso' },
+
+  settings: {
+    open: 'ajustes',
+    back: '\u2190 Volver',
+    heading: 'Ajustes',
+  },
 
   compass,
 
@@ -130,6 +137,11 @@ export const ui: typeof EnUi = {
     savedHere: 'Guardada solo en este navegador.',
     clearSaved: 'Borrar la ubicación guardada',
     precisionNote: 'La precisión es a nivel de ciudad: un pase se ve igual desde cualquier punto a unos pocos kilómetros, así que no se resuelve ninguna dirección postal.',
+    summary: (label: string) => `Se usa ${label}`,
+    summaryChange: 'cambiar',
+    summaryAccuracy: (accuracy: string) => `desde tu dispositivo, con precisión de ${accuracy}`,
+    summaryNone: 'Sin lugar elegido.',
+    summarySet: 'elegir lugar',
   },
 
   favourites: {
@@ -195,6 +207,7 @@ export const ui: typeof EnUi = {
     sortGroup: 'Ordenar los pases',
     sortPrefix: 'Orden:',
     sort: { chronological: 'Los más próximos', best: 'Los mejores' } satisfies Record<PassSort, string>,
+    sortShort: { chronological: 'Próximos', best: 'Mejores' } satisfies Record<PassSort, string>,
     heroKicker: (p) => (p.iss ? 'Próximo pase de la ISS' : `Próximo pase de ${p.name}`),
     twilightLabel: 'cielo todavía claro',
     openGuide: 'Abrir la guía →',

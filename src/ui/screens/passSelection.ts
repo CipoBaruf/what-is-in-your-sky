@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { SAME_PASS_TOLERANCE_MS, nearestPassOf, parseHash, passIdHash, passIdOf, type PassLink } from '../../lib/shareLinks';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { SAME_PASS_TOLERANCE_MS, SETTINGS_HASH, isSettingsRoute, nearestPassOf, parseHash, passIdHash, passIdOf, type PassLink } from '../../lib/shareLinks';
 import type { Pass } from '../../model';
 
 /**
@@ -54,6 +54,64 @@ export interface PassSelection {
   link: PassLink | null;
   open: (passId: string) => void;
   close: () => void;
+}
+
+
+/**
+ * R52 (FR-COMP-2, US-20, D-184): the third route, read the way the other two
+ * are. `#settings` is a screen, not a state — it survives a reload, the
+ * browser's Back leaves it, and `Esc` and the page's own `[ ← Back ]` close it
+ * by clearing the hash in place, which is what closing a pass already does
+ * (D-13).
+ *
+ * `useSyncExternalStore` rather than an effect writing state, for the reason
+ * `LiveRoute` gives: the first render already knows which page it is on, so the
+ * home screen is never painted for a frame under a `#settings` URL.
+ *
+ * The route exists at every width (FR-COMP-2); only the compact header links to
+ * it (US-20 AC5), which is the header's business and not this file's.
+ */
+export interface SettingsRoute {
+  active: boolean;
+  /** Opens the page, as a history entry, so the browser's Back closes it (US-20 AC4). */
+  enter: () => void;
+  /** Returns to the home screen, clearing the hash in place. */
+  leave: () => void;
+}
+
+function subscribeToHash(onChange: () => void): () => void {
+  window.addEventListener('hashchange', onChange);
+  return () => {
+    window.removeEventListener('hashchange', onChange);
+  };
+}
+
+const hashNow = (): string => window.location.hash;
+const noHash = (): string => '';
+
+/**
+ * Clears the hash without a history entry and dispatches the `hashchange` that
+ * `replaceState` does not, so every hash subscriber — this route and the pass
+ * selection — sees the home page at once. `leaveLive` does the same for `#live`.
+ */
+export function leaveSettings(): void {
+  if (window.location.hash !== '') {
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}`);
+  }
+  window.dispatchEvent(new HashChangeEvent('hashchange'));
+}
+
+export function useSettingsRoute(): SettingsRoute {
+  const hash = useSyncExternalStore(subscribeToHash, hashNow, noHash);
+  const enter = useCallback(() => {
+    // An assignment, not `replaceState`: opening the page is a step the reader
+    // took, and Back is one of the three ways US-20 AC4 asks them out of it.
+    window.location.hash = SETTINGS_HASH.slice(1);
+  }, []);
+  const leave = useCallback(() => {
+    leaveSettings();
+  }, []);
+  return useMemo(() => ({ active: isSettingsRoute(hash), enter, leave }), [hash, enter, leave]);
 }
 
 export function usePassSelection(): PassSelection {

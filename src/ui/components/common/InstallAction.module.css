@@ -1,5 +1,7 @@
-/* Inside the banner's `<p>`, so a span rather than a div; a row of its own
-   under the sentence, tall enough that each answer keeps its 48 px box. */
+/* R52: shared by the offer and by the hint's "Not now" beside it, so the two
+   answers are one control style and not two. Inside the banner's `<p>`, so a
+   span rather than a div; a row of its own under the sentence, tall enough
+   that each answer keeps its 48 px box. */
 .actions {
   display: flex;
   align-items: center;

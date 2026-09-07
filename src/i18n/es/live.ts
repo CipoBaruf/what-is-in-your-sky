@@ -17,6 +17,7 @@ const moonPhase = {
 export const live: typeof EnLive = {
   live: {
     open: 'Cielo en vivo',
+    openShort: 'vivo',
     openFromNow: 'Ver el cielo en vivo',
     back: '← Volver',
     loading: 'Cargando el cielo en vivo…',

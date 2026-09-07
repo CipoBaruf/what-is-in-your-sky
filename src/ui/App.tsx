@@ -9,12 +9,12 @@ import styles from './App.module.css';
 import { applyTheme } from './styles/theme';
 import { Banner } from './components/common/Banner';
 import { Footer } from './components/common/Footer';
+import { Header } from './components/common/Header';
 import { InstallHint } from './components/common/InstallHint';
-import { LanguageToggle } from './components/common/LanguageToggle';
+import { LocationSummary } from './components/common/LocationSummary';
 import { ReadinessLine } from './components/common/ReadinessLine';
 import { ShortcutsOverlay } from './components/common/ShortcutsOverlay';
 import { UpdateBanner } from './components/common/UpdateBanner';
-import { ThemeToggle } from './components/common/ThemeToggle';
 import { ElementsBanners } from './components/elements/ElementsBanners';
 import { useLayoutMode } from './hooks/useLayoutMode';
 import { useShortcuts } from './hooks/useShortcuts';
@@ -24,7 +24,8 @@ import { PassList } from './components/passes/PassList';
 import { moveCursor, passIdAtCursor, PASS_CARD } from './components/passes/passCursor';
 import { useLiveRoute } from './screens/LiveRoute';
 import { PassDetail } from './screens/PassDetail';
-import { findSelectedPass, usePassSelection } from './screens/passSelection';
+import { findSelectedPass, usePassSelection, useSettingsRoute } from './screens/passSelection';
+import { SettingsPage } from './screens/Settings';
 
 /**
  * R32 (FR-LIVE-1, PLAN §11): the live page is its own lazy chunk, fetched the
@@ -147,6 +148,8 @@ export function App() {
   }, [link, observer, close]);
   const mode = useLayoutMode();
   const live = useLiveRoute();
+  // R52 (FR-COMP-2, D-184): the third route, read from the hash beside the other two.
+  const settings = useSettingsRoute();
   /*
    * R50 (FR-DESK-3 as amended, F-6, D-253): which of the right column's two
    * tracks the reader asked for. Below `WIDE_SPLIT_MIN_CELLS` only one of them
@@ -231,6 +234,13 @@ export function App() {
         setHelpOpen(false);
         return true;
       }
+      // R52 (US-20 AC4): `Esc` leaves the settings page, through the same one
+      // listener and with the same guard as the guide (D-73) — so a press
+      // inside the place field or the coordinate field is still that field's.
+      if (settings.active) {
+        settings.leave();
+        return true;
+      }
       if (selected === null) return false;
       close();
       return true;
@@ -282,21 +292,23 @@ export function App() {
       </Suspense>
     );
   }
+  /*
+   * R52 (FR-COMP-2): the settings page is a screen, like the live one — the
+   * whole of it, at every width, with its own header and the shell's footer
+   * under it. Rendered after `#live` so a hash that is somehow both is the live
+   * page, which is the one with a share link behind it.
+   */
+  if (settings.active) {
+    return (
+      <>
+        <SettingsPage onLeave={settings.leave} />
+        <Footer />
+      </>
+    );
+  }
   return (
     <>
-      <header inert={inert} className={styles.header}>
-        <div className={styles.titles}>
-          <h1>{t.app.title}</h1>
-          <p className={styles.tagline}>{t.app.tagline}</p>
-        </div>
-        <div className={styles.controls}>
-          <a href="#live" className={styles.liveLink} data-testid="live-link">
-            {t.live.open}
-          </a>
-          <LanguageToggle />
-          <ThemeToggle />
-        </div>
-      </header>
+      <Header inert={inert} />
       <main inert={inert} className={styles.main}>
         <div className={`${styles.column} ${styles.leftColumn}`} data-testid="col-left">
           {/* R28 (D-154): both offers sit above everything, inside the region the
@@ -305,7 +317,10 @@ export function App() {
               nothing around them is made inert, so they are told directly. */}
           <UpdateBanner inert={offersInert} />
           <InstallHint inert={offersInert} />
-          <LocationInput observer={observer} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} />
+          {/* R52 (FR-COMP-3, US-20 AC3): on compact the form is one tap away and
+              its place is taken by the line that names the observer; wide keeps
+              the whole of it, where US-14 and FR-DESK-2 put it (US-20 AC5). */}
+          {mode === 'wide' ? <LocationInput observer={observer} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} /> : <LocationSummary />}
           <ReadinessLine />
           <ElementsBanners />
           <NowPanel />

@@ -1,0 +1,94 @@
+.header {
+  padding-top: var(--row);
+}
+
+/* R52 (FR-COMP-1): the compact row. One grid line, the title at the left and
+   the two controls at the right, and `nowrap` on both halves — the row is
+   measured at 36 cells by `tests/styles/controlRows.test.ts`, so it may not
+   wrap, and a viewport narrower than the mockup's 390 px should scroll the
+   page rather than fold the header into two lines. */
+.compact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 calc(2 * var(--cell));
+  white-space: nowrap;
+}
+
+.shortTitle {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.links {
+  display: flex;
+  gap: 0 var(--cell);
+  white-space: nowrap;
+}
+
+/* R32 (FR-LIVE-1), R52: every header control is bracketed like the rest of the
+   app's controls and without the underline a prose link gets. The current
+   page's own control is a `span` with the same box, dim rather than accent. */
+.link {
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.link::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.link::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+.currentLink {
+  color: var(--fg-dim);
+}
+
+/* The title block, so wide can put the header's controls beside it (FR-DESK-2). */
+.titles {
+  min-width: 0;
+}
+
+/* FR-DESK-2 as amended (V11-8): `[ Live sky ]` on the title's own line, as
+   navigation, rather than in the group of preferences at the right. */
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0 calc(2 * var(--cell));
+  flex-wrap: wrap;
+}
+
+.tagline {
+  margin: 0;
+  padding-left: calc(2 * var(--cell));
+  color: var(--fg-dim);
+}
+
+/* The header's switches (language, theme) sit on the right, side by side when
+   the width allows and stacked when it does not (R17, R20). */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0 calc(3 * var(--cell));
+}
+
+/* R23 (FR-DESK-2): the header spans both columns of the wide shell and puts
+   its preference controls at the right of the title. The query's own literal
+   is D-71's, checked against `--cell` by `tests/styles/breakpoint.test.ts`. */
+@media (min-width: 964px) {
+  .wide {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0 calc(2 * var(--cell));
+    padding-bottom: var(--row);
+    border-bottom: 1px solid var(--rule);
+  }
+}

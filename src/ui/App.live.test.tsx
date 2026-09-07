@@ -50,7 +50,8 @@ describe('<App> and the live route', () => {
     withSky();
     render(<App />);
     expect(screen.getByTestId('live-link')).toHaveAttribute('href', '#live');
-    expect(screen.getByTestId('live-link')).toHaveTextContent('Live sky');
+    // R52 (FR-COMP-1): the header's control is `[ live ]` on compact, which is what jsdom is without a `matchMedia` stub; `App.wide.test.tsx` has the wide name.
+    expect(screen.getByTestId('live-link')).toHaveTextContent('live');
     expect(screen.getByTestId('now-live-link')).toHaveAttribute('href', '#live');
     expect(screen.getByTestId('now-live-link')).toHaveTextContent('Watch the sky live');
   });

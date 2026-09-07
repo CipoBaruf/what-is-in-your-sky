@@ -25,6 +25,8 @@ export const live = {
   live: {
     /** The header control (FR-LIVE-1). */
     open: 'Live sky',
+    /** FR-COMP-1 (R52): the same control on the compact header's 36-cell row, lower case beside `[ settings ]`. */
+    openShort: 'live',
     /** The Now panel's link to the same page. */
     openFromNow: 'Watch the sky live',
     back: '← Back',

@@ -1,0 +1,51 @@
+/* R52 (FR-COMP-2): one column at every width. The page is a form, and a form
+   read top to bottom in the order FR-COMP-2 states is the whole of its layout —
+   the wide shell's two columns are for a screen that has a list beside its
+   controls, and this one has none. */
+.page {
+  display: grid;
+  align-content: start;
+  gap: var(--row);
+}
+
+.backRow {
+  margin: 0;
+}
+
+/* A bracketed text control, like the location section's clear action. */
+.back {
+  color: var(--accent);
+  background: none;
+  border: 0;
+  padding-inline: 0;
+  min-height: 0;
+}
+
+.back::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.back::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+.section {
+  display: grid;
+  align-content: start;
+  gap: calc(0.5 * var(--row));
+}
+
+.install {
+  margin: 0;
+}
+
+/* FR-COMP-2 holds at every width; only the compact header links here. The page
+   is narrow prose either way, so on a wide screen it stops rather than
+   stretching a 36-cell row of toggles across 100 cells of empty line. */
+@media (min-width: 964px) {
+  .page {
+    max-width: calc(60 * var(--cell));
+  }
+}
