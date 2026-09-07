@@ -35,7 +35,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
 import { CAPTURE_DIR, captureName, LOCALES, SCREENS, THEMES, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
-import { domeDrawn, hhmmss, stripFilled } from './liveHelpers';
+import { domeDrawn, hhmmss, openSettings, stripFilled, stubCompass } from './liveHelpers';
 // Both observers are at altitude 0, which is what typing a coordinate pair gives (FR-LOC-4) and what
 // the committed pass ids were computed at: a seeded altitude would move every pass start by a second
 // or two and the glare pass would no longer be found by its id. Only Paris is observed from; Neuquén
@@ -81,12 +81,37 @@ const GLARE_PASS = `25544-${String(GLARE_PASS_START)}`;
 const CLOCK = Date.parse('2026-09-02T03:00:00Z');
 /** Three minutes into a six-minute pass: the marker near the peak, half the arc behind it (FR-DOME-5's two colours). */
 const SHOWN = GLARE_PASS_START + 180_000;
+/** R53: the legend screen's instant, two minutes further on — see the `legend` route. */
+const LEGEND_SHOWN = SHOWN + 120_000;
 const TICK_MS = 10_000;
 
 const OPEN_GUIDE = { en: /Open guide/, es: /Abrir la guía/ } as const;
 
-/** The two screens whose point is everything on them, so the capture is the whole document and not the first 844 px of it. */
-const FULL_PAGE = new Set(['location', 'home']);
+/** Neuquén saved but not in use, Paris in use: the "in use" mark is on one row and not the other. Two screens seed them (R53: the settings page lists them too, FR-COMP-2). */
+const SAVED_PLACES = [
+  { cellKey: '-38.93,-67.99', observer: NEUQUEN, addedAt: CLOCK - 2 * DAY_MS, lastUsedAt: CLOCK - 2 * DAY_MS },
+  { cellKey: '48.86,2.35', observer: PARIS, addedAt: CLOCK - DAY_MS, lastUsedAt: CLOCK - 60_000 },
+];
+
+/**
+ * The screens whose point is everything on them, so the capture is the whole
+ * document and not the first 844 px of it. R53 adds the settings page, which is
+ * seven sections and a footer on a phone.
+ */
+const FULL_PAGE = new Set(['location', 'home', 'settings']);
+
+/**
+ * R53 (FR-WIN-4): the window is offered where the presence test passes — a
+ * touch device with the constructor — and that is a property of the device, not
+ * of the width, so its two profiles are the phone and a wide screen that has a
+ * touch panel. Playwright grants touch per context, so these tests need a
+ * `test.use` of their own and the rest of the set must not have it.
+ */
+const TOUCH = new Set(['window']);
+
+const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
+const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
+const FRAME_MS = 16;
 
 interface SeedPrefs {
   locale: CaptureLocale;
@@ -184,6 +209,66 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
   await page.mouse.move(0, 0);
 }
 
+/**
+ * The live page, settled, at `SHOWN` (R36; lifted out of the `live` route by
+ * R53 so the `legend` screen photographs the same page rather than a second
+ * route to it).
+ *
+ * The one screen reached through the home page rather than through a URL. A
+ * `#live?…t=` link (FR-LIVE-9) opens the page in one step, but it opens it on a
+ * search that has only just started, and the strip's "visible" count then keeps
+ * climbing as the passes stream in — two runs of the same capture disagreed
+ * about how many satellites were up. Going through the home page and waiting
+ * for the list to settle first means the live page inherits a finished search,
+ * and the count is the count. The clock is at the shown instant from the start,
+ * so the page opens on real time and needs no scrubbing.
+ */
+async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale): Promise<void> {
+  await open(page, width, { locale, theme, observer: PARIS }, SHOWN);
+  await page.goto('/');
+  await listSettled(page);
+  // The router listens for `hashchange`, so setting the hash in the page navigates without
+  // reloading it — which is the point: a reload would start the search again.
+  await page.evaluate(() => {
+    location.hash = '#live';
+  });
+  // The place is asserted after the dome, not before: the route is lazy, and its Suspense
+  // reveal is one of the timers the paused clock is holding until `domeDrawn` ticks it.
+  await domeDrawn(page);
+  await expect(page.getByTestId('live-place')).toHaveText(PARIS.label);
+  // The strip settled: five fields, each visible and none still on its pending ellipsis (F-47:
+  // `liveHelpers.ts` owns that check, and this file had been carrying a copy without the visibility half).
+  await stripFilled(page);
+  // F-48: `domeDrawn` left the clock wherever its last tick fell, so the shown instant is put back
+  // on `SHOWN` before the picture — and the strip is read to prove the page went there with it.
+  await pinnedAt(page, SHOWN);
+  // …to the ten-second tick the strip reads the clock at (FR-VIS-5), and in neither language's words:
+  // the zone is unknown over Paris, so both of them print the UTC time of `SHOWN`.
+  await expect(page.getByTestId('live-time')).toContainText(hhmmss(SHOWN).slice(0, 7));
+  await page.mouse.move(0, 0);
+}
+
+/**
+ * R53 (FR-WIN-3): a reading from the phone — the W3C alpha for a back facing
+ * `azDeg`, tilted `altDeg` up — and then one frame, which the installed clock
+ * is holding. `sky-window.spec.ts` has the same two helpers; they are four
+ * lines each and copying them keeps this file's clock discipline in one place.
+ */
+async function point(page: Page, azDeg: number, altDeg: number): Promise<void> {
+  await page.evaluate(
+    ([alpha, beta]) => {
+      window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha, beta, gamma: 0, absolute: true }));
+    },
+    [(360 - azDeg) % 360, 90 + altDeg] as [number, number],
+  );
+  await page.clock.runFor(FRAME_MS);
+}
+
+/** Frames until the FR-WIN-3 smoothing has settled on the last reading. */
+async function settle(page: Page): Promise<void> {
+  await page.clock.runFor(40 * FRAME_MS);
+}
+
 type Reach = (page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale) => Promise<void>;
 
 /** Every screen's route to itself, by the name it carries in `captureSet.ts`. */
@@ -219,18 +304,109 @@ const REACH: Record<string, Reach> = {
     await openChart(page, width, theme, locale, 'polar');
   },
 
-  async favourites(page, width, theme, locale) {
-    // Neuquén is saved but not in use, so the capture shows the "in use" mark on one row and not the other.
-    const favourites = [
-      { cellKey: '-38.93,-67.99', observer: NEUQUEN, addedAt: CLOCK - 2 * DAY_MS, lastUsedAt: CLOCK - 2 * DAY_MS },
-      { cellKey: '48.86,2.35', observer: PARIS, addedAt: CLOCK - DAY_MS, lastUsedAt: CLOCK - 60_000 },
-    ];
-    await open(page, width, { locale, theme, observer: PARIS, favourites });
+  /**
+   * R53 (FR-COMP-2, V11-16): the settings page, reached by the hash at both
+   * widths — on compact the header links to it, on wide nothing does and the
+   * route still exists. The browser is made to offer an install first, so the
+   * row FR-OFF-6 as amended puts between the saved places and the clear action
+   * is in the picture; without the event there is nothing to offer and the
+   * section is rightly absent.
+   */
+  async settings(page, width, theme, locale) {
+    await open(page, width, { locale, theme, observer: PARIS, favourites: SAVED_PLACES });
     await page.goto('/');
+    // The form's fields are the observer's, and the readiness line above them is the settled run's.
+    await listSettled(page);
+    await page.evaluate(() => {
+      location.hash = '#settings';
+    });
+    await expect(page.getByTestId('settings-back')).toBeVisible();
+    await page.evaluate(() => {
+      window.dispatchEvent(Object.assign(new Event('beforeinstallprompt', { cancelable: true }), { prompt: () => Promise.resolve() }));
+    });
+    await expect(page.getByTestId('settings-install')).toBeVisible();
+    await expect(page.getByTestId('clear-saved-location')).toBeVisible();
     await expect(page.getByTestId('favourite')).toHaveCount(2);
+    await page.mouse.move(0, 0);
+  },
+
+  /**
+   * R53 (FR-WIN-1..5): the sky window, on the same pass as the dome and the
+   * polar captures. `sky-window.spec.ts` is where the view is tested; here it
+   * only has to be aimed somewhere worth photographing, which is the peak of
+   * the pass the whole set is shot on.
+   *
+   * Aiming is two readings, as it is in that spec: the placeholder already
+   * points at the peak (D-241), and the second reading takes off the local
+   * declination the window applies (FR-WIN-3), so the look lands exactly where
+   * the placeholder promised rather than a couple of degrees beside it.
+   */
+  async window(page, width, theme, locale) {
+    await stubCompass(page);
+    await openChart(page, width, theme, locale, 'dome');
+    const figure = guide(page).getByRole('figure');
+    await figure.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
+    // The paused clock holds the lazy chunk's Suspense reveal (R32), as it does for the dome.
+    await page.clock.runFor(1000);
+    await expect(figure).toHaveAttribute('data-view', 'window');
+    const drawing = figure.locator('[data-look-az]');
+    await expect(drawing).toBeAttached();
+    const aim = { az: Number(await drawing.getAttribute('data-look-az')), alt: Number(await drawing.getAttribute('data-look-alt')) };
+    await point(page, aim.az, aim.alt);
+    await settle(page);
+    await expect(drawing).toHaveAttribute('data-state', 'on');
+    const declination = Number(await figure.getByTestId('window-heading').getAttribute('data-declination'));
+    await point(page, aim.az - declination, aim.alt);
+    await settle(page);
+    await expect(figure.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
+    await page.mouse.move(0, 0);
+  },
+
+  /**
+   * R53 (FR-LEG-2..4): the legend with something in every column. The live page
+   * is the only screen that has all of it at once — the drawn passes in their
+   * FR-TRAJ-1 states (`up`, `soon`, `gone`) and, with the FR-LIVE-6 toggle on,
+   * the hidden objects with their reasons — and the first row is activated, so
+   * the picture also carries FR-LEG-4: one arc at full weight, the others dim.
+   * Under the drawing at 390, beside it at 1280 (FR-LEG-2), which is why the
+   * screen is shot at both widths and not only where the column is.
+   */
+  async legend(page, width, theme, locale) {
+    await liveAt(page, width, theme, locale);
+    await page.getByTestId('live-hidden-toggle').click();
+    // The hidden objects are a `computeAt` request, throttled to one per 250 ms of wall time (FR-LIVE-6).
+    await page.clock.runFor(1000);
+    // Two minutes past the instant the search ran, which is what makes this screen the legend's:
+    // at `SHOWN` every drawn arc has just been clipped to `now` and every row reads `soon`, and
+    // two minutes on the same rows are `up`, one has run out to `gone`, and the FR-LIVE-6 rows
+    // underneath say why they are not drawn. Deterministic, like every other instant here (F-48).
+    await pinnedAt(page, LEGEND_SHOWN);
+    const legend = page.getByTestId('chart-legend');
+    const rows = legend.locator('button[data-pass-id]');
+    await expect(rows.first()).toBeVisible();
+    // The row is activated *after* the instant is set, not before: a new `shown` rebuilds the rows
+    // and drops the pin, so a click and then a scrub photographs a legend with nothing highlighted.
+    await rows.first().click();
+    await expect(rows.first()).toHaveAttribute('aria-pressed', 'true');
+    await page.mouse.move(0, 0);
+  },
+
+  async favourites(page, width, theme, locale) {
+    await open(page, width, { locale, theme, observer: PARIS, favourites: SAVED_PLACES });
+    await page.goto('/');
     // The list is beside the places on the wide layout, and the readiness line is right above
     // them on both, so this screen waits for the same settled state the others do.
     await listSettled(page);
+    /*
+     * R53 (FR-COMP-2, FR-COMP-3): on compact the saved places are no longer on the home screen —
+     * R52 moved the whole location block to `#settings` — so the route to them is the header's
+     * link, and this is what the re-shoot caught: the committed `v1-favourites-390-*` files were
+     * pictures of a home screen the app has not had since R52. The capture stays a viewport shot
+     * of the places in place, which is what makes it a different picture from the settings page's
+     * full-page one.
+     */
+    await openSettings(page);
+    await expect(page.getByTestId('favourite')).toHaveCount(2);
     await page.getByTestId('favourites').scrollIntoViewIfNeeded();
     await page.mouse.move(0, 0);
   },
@@ -248,39 +424,12 @@ const REACH: Record<string, Reach> = {
   },
 
   async live(page, width, theme, locale) {
-    // The one screen reached through the home page rather than through a URL. A `#live?…t=`
-    // link (FR-LIVE-9) opens the page in one step, but it opens it on a search that has only
-    // just started, and the strip's "visible" count then keeps climbing as the passes stream
-    // in — two runs of the same capture disagreed about how many satellites were up. Going
-    // through the home page and waiting for the list to settle first means the live page
-    // inherits a finished search, and the count is the count. The clock is at the shown
-    // instant from the start, so the page opens on real time and needs no scrubbing.
-    await open(page, width, { locale, theme, observer: PARIS }, SHOWN);
-    await page.goto('/');
-    await listSettled(page);
-    // The router listens for `hashchange`, so setting the hash in the page navigates without
-    // reloading it — which is the point: a reload would start the search again.
-    await page.evaluate(() => {
-      location.hash = '#live';
-    });
-    // The place is asserted after the dome, not before: the route is lazy, and its Suspense
-    // reveal is one of the timers the paused clock is holding until `domeDrawn` ticks it.
-    await domeDrawn(page);
-    await expect(page.getByTestId('live-place')).toHaveText(PARIS.label);
-    // The strip settled: five fields, each visible and none still on its pending ellipsis (F-47:
-    // `liveHelpers.ts` owns that check, and this file had been carrying a copy without the visibility half).
-    await stripFilled(page);
-    // F-48: `domeDrawn` left the clock wherever its last tick fell, so the shown instant is put back
-    // on `SHOWN` before the picture — and the strip is read to prove the page went there with it.
-    await pinnedAt(page, SHOWN);
-    // …to the ten-second tick the strip reads the clock at (FR-VIS-5), and in neither language's words:
-    // the zone is unknown over Paris, so both of them print the UTC time of `SHOWN`.
-    await expect(page.getByTestId('live-time')).toContainText(hhmmss(SHOWN).slice(0, 7));
-    await page.mouse.move(0, 0);
+    await liveAt(page, width, theme, locale);
   },
 };
 
-for (const screen of SCREENS) {
+/** One test per capture: reach the screen, prove the seed took, shoot the file. */
+function shoot(screen: (typeof SCREENS)[number]): void {
   const reach = REACH[screen.name];
   if (!reach) throw new Error(`no route to the ${screen.name} screen`);
   for (const width of screen.widths) {
@@ -294,5 +443,19 @@ for (const screen of SCREENS) {
         });
       }
     }
+  }
+}
+
+for (const screen of SCREENS) {
+  if (TOUCH.has(screen.name)) {
+    // `test.use` is per file or per describe, and touch belongs to the browser context, so the
+    // screens that need a touch device are grouped rather than the whole set being given one:
+    // every other capture is of the app on the device the reader of that width really has.
+    test.describe(`${screen.name} (a touch device, FR-WIN-4)`, () => {
+      test.use({ hasTouch: true });
+      shoot(screen);
+    });
+  } else {
+    shoot(screen);
   }
 }
