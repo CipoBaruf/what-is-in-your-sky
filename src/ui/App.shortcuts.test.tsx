@@ -12,7 +12,7 @@ import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../tests/support/catalogFixtures';
-import { stubMatchMedia, WIDE_PX, type MatchMediaStub } from '../../tests/support/matchMedia';
+import { COMPACT_PX, stubMatchMedia, WIDE_PX, type MatchMediaStub } from '../../tests/support/matchMedia';
 import { en } from '../i18n/en';
 import type { Observer } from '../model';
 import { appStore, type ElementsState } from '../state';
@@ -174,5 +174,62 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
     await userEvent.keyboard('n');
     expect(appStore.getState().theme).toBe('dark');
     expect(screen.queryByRole('dialog', { name: en.shortcuts.title })).toBeNull();
+  });
+
+  /**
+   * R50 (F-44). `j` and `k` under the overlay used to be claimed and then not
+   * acted on: the cards are still in the DOM, `moveCursor` walked to one and
+   * called `focus()` on it, `inert` made that do nothing, and the press was
+   * `preventDefault`ed all the same — so the key moved no cursor and did not
+   * scroll the overlay either. jsdom has no `inert`, so what stands in for it
+   * is the same thing it does: the cards cannot take focus.
+   */
+  it('leaves j and k to the browser under the overlay, rather than claiming a move that cannot happen (F-44)', async () => {
+    withPasses();
+    render(<App />);
+    await userEvent.keyboard('j');
+    expect(cursor()).toBe(pass.id);
+
+    await userEvent.keyboard('?');
+    for (const card of screen.getAllByRole('article', { hidden: true })) card.focus = () => undefined;
+    const pressed = new KeyboardEvent('keydown', { key: 'j', cancelable: true, bubbles: true });
+    document.dispatchEvent(pressed);
+    expect(pressed.defaultPrevented).toBe(false);
+  });
+});
+
+/**
+ * R50 (F-45): the compact sheet is portaled to the body (D-117), which is what
+ * lets the page behind it be inert while it is not — and is why the `inert`
+ * `App` puts on the header, the main and the footer misses it entirely. With
+ * the shortcuts overlay up, the sheet is behind it like everything else and
+ * its back control, its switches and its share button were all still live.
+ */
+describe('<App> the shortcuts overlay over the compact sheet (F-45)', () => {
+  beforeEach(() => {
+    media = stubMatchMedia(COMPACT_PX);
+  });
+  afterEach(() => {
+    media.restore();
+    appStore.setState(initial, true);
+    window.history.replaceState(null, '', window.location.pathname);
+  });
+
+  it('makes the sheet inert as well, and gives it back when the overlay closes', async () => {
+    withPasses();
+    render(<App />);
+    await userEvent.click(screen.getAllByRole('button', { name: /Open guide/ })[0] as HTMLElement);
+    const sheet = screen.getByRole('dialog', { name: pass.name });
+    expect(sheet).not.toHaveAttribute('inert');
+
+    await userEvent.keyboard('?');
+    expect(screen.getByRole('dialog', { name: en.shortcuts.title })).toBeInTheDocument();
+    expect(sheet).toHaveAttribute('inert');
+    for (const role of ['banner', 'main', 'contentinfo']) expect(screen.getByRole(role, { hidden: true })).toHaveAttribute('inert');
+
+    // One Esc, one thing closed: the overlay goes and the sheet is the reader's again.
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: en.shortcuts.title })).toBeNull();
+    expect(sheet).not.toHaveAttribute('inert');
   });
 });

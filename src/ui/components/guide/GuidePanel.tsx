@@ -19,6 +19,14 @@ import styles from './GuidePanel.module.css';
  * D-119: the head and the body are two rows rather than one stack, because
  * the panel is bounded by the column's height — the body scrolls and the
  * name and the close control stay where they are.
+ *
+ * R50 (FR-DESK-3 as amended, F-6, D-253): below `WIDE_SPLIT_MIN_CELLS` the
+ * panel has the right column to itself, because the split there left the
+ * guide a column too narrow to read a chart in. `[ list ]` is what the reader
+ * gets back to the list with while it does — the compact sheet's `← Back`
+ * without the closing, since the pass stays selected and in the hash. Which
+ * of the two is on the page is the stylesheet's business (`App.module.css`),
+ * so this control is always rendered and hidden above that width.
  */
 export interface GuidePanelProps {
   passId: string;
@@ -26,20 +34,28 @@ export interface GuidePanelProps {
   headingId: string;
   headingRef: Ref<HTMLHeadingElement>;
   onClose: () => void;
+  /** R50 (F-6): show the list instead of this panel, below `WIDE_SPLIT_MIN_CELLS` where only one of them is on the page. */
+  onShowList: () => void;
   children: ReactNode;
 }
 
-export function GuidePanel({ passId, name, headingId, headingRef, onClose, children }: GuidePanelProps) {
+export function GuidePanel({ passId, name, headingId, headingRef, onClose, onShowList, children }: GuidePanelProps) {
   const t = useT();
   return (
-    <section className={styles.panel} aria-label={t.guide.panelLabel({ name })} data-pass-id={passId} data-testid="guide-panel">
+    <section className={styles.panel} aria-label={t.guide.panelLabel({ name })} data-pass-id={passId} data-guide-panel="" data-testid="guide-panel">
       <div className={styles.head}>
         <h2 id={headingId} ref={headingRef} tabIndex={-1} className={styles.heading}>
           {name}
         </h2>
-        <button type="button" className={styles.close} onClick={onClose} aria-label={t.guide.close}>
-          ×
-        </button>
+        <div className={styles.controls}>
+          {/* Hidden by the stylesheet from the width at which the list is beside the panel anyway (F-6). */}
+          <button type="button" className={styles.toList} onClick={onShowList} data-testid="guide-to-list">
+            {t.guide.toList}
+          </button>
+          <button type="button" className={styles.close} onClick={onClose} aria-label={t.guide.close}>
+            ×
+          </button>
+        </div>
       </div>
       <div className={styles.body} data-testid="guide-body">
         {children}

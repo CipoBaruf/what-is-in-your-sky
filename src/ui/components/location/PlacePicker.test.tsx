@@ -296,6 +296,37 @@ describe('<PlacePicker>', () => {
     });
   });
 
+  /**
+   * R50 (F-7). The app's `close` shortcut is one `keydown` listener on the
+   * document (D-73) and `Escape` is its key, so an `Escape` that dismisses
+   * these suggestions must not travel on: at every wide width the picker and
+   * an open guide are on screen together, and the guide would close and take
+   * the pass out of the hash with it. The guard is this field's own open
+   * state — with the list already closed the key is nobody's here and goes
+   * where it was going.
+   */
+  it('keeps an Escape that closes the suggestions from reaching the document (F-7)', async () => {
+    const user = userEvent.setup();
+    const onDocument = vi.fn();
+    document.addEventListener('keydown', onDocument);
+    try {
+      const search = vi.fn<PlaceSearchFn>().mockResolvedValue([ROSARIO_AR, SINGAPORE]);
+      const { input } = setup(search);
+      await user.type(input, 'Rosario{Enter}');
+      expect(await screen.findAllByRole('option')).toHaveLength(2);
+      onDocument.mockClear();
+
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('option')).toBeNull();
+      expect(onDocument).not.toHaveBeenCalled();
+
+      await user.keyboard('{Escape}');
+      expect(onDocument).toHaveBeenCalledTimes(1);
+    } finally {
+      document.removeEventListener('keydown', onDocument);
+    }
+  });
+
   it('shows no confirmation for a coordinates observer and has no axe violations with the list open', async () => {
     const user = userEvent.setup();
     const search = vi.fn<PlaceSearchFn>().mockResolvedValue([ROSARIO_AR, SINGAPORE]);

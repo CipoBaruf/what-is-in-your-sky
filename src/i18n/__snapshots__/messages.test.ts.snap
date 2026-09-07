@@ -111,6 +111,7 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".guide.startReason.horizon:string",
   ".guide.startReason.shadow:string",
   ".guide.startReason.twilight:string",
+  ".guide.toList:string",
   ".install.action:string",
   ".install.dismiss:string",
   ".install.ios:string",

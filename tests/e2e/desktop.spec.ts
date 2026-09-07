@@ -14,6 +14,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
 import { seedStoredRun } from './liveHelpers';
 
 interface HaFixture {
@@ -32,9 +33,6 @@ const WIDE = { width: 1280, height: 900 };
 const COMPACT = { width: 390, height: 844 };
 /** A desktop screen with room to spare, where D-119's slack is visible at all. */
 const TALL_HEIGHT = 1200;
-/** FR-DESK-1: 100 cells, and `--cell` is one character advance (D-71). */
-const WIDE_MIN_PX = 960;
-const WIDE_CELLS = 100;
 const LEFT_COLUMN_CELLS = 40;
 const LIST_MIN_CELLS = 44;
 
@@ -141,9 +139,13 @@ test('wide: two columns, the guide beside a live list, Escape and the hash (FR-D
   const passId = `25544-${String(golden.start.t)}`;
   await loadWithPasses(page);
 
-  // FR-DESK-1: the breakpoint the stylesheet uses really is 100 cells wide here.
+  // FR-DESK-1: the breakpoint the stylesheet uses really is 100 cells wide
+  // here. R50 (F-10): "at least", not "exactly" — one literal is a different
+  // number of cells on each font of the stack, and `wide.spec.ts` is where
+  // that is measured against `lib/layout.ts`'s table.
   const cell = await cellPx(page);
-  expect(Math.abs(WIDE_CELLS * cell - WIDE_MIN_PX)).toBeLessThanOrEqual(cell / 2);
+  expect(WIDE_MIN_PX / cell).toBeGreaterThanOrEqual(WIDE_CELLS);
+  expect(WIDE_MIN_PX / cell).toBeLessThan(WIDE_CELLS + 1);
 
   // FR-DESK-2: two columns side by side, the left one 40 cells, the header spanning both.
   const left = page.getByTestId('col-left');

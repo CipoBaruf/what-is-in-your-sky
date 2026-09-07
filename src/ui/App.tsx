@@ -21,7 +21,7 @@ import { useShortcuts } from './hooks/useShortcuts';
 import { LocationInput } from './components/location/LocationInput';
 import { NowPanel } from './components/now/NowPanel';
 import { PassList } from './components/passes/PassList';
-import { moveCursor, passIdAtCursor } from './components/passes/passCursor';
+import { moveCursor, passIdAtCursor, PASS_CARD } from './components/passes/passCursor';
 import { useLiveRoute } from './screens/LiveRoute';
 import { PassDetail } from './screens/PassDetail';
 import { findSelectedPass, usePassSelection } from './screens/passSelection';
@@ -115,6 +115,43 @@ export function App() {
   const mode = useLayoutMode();
   const live = useLiveRoute();
   /*
+   * R50 (FR-DESK-3 as amended, F-6, D-253): which of the right column's two
+   * tracks the reader asked for. Below `WIDE_SPLIT_MIN_CELLS` only one of them
+   * is on the page — the guide when a pass is opened, the list when `[ list ]`
+   * is pressed — and above it the stylesheet shows both and this says nothing.
+   * The selection is untouched by the swap: the pass stays open and stays in
+   * the hash (D-13), which is what makes `[ list ]` different from closing.
+   */
+  // The pass the reader asked to see the list beside (F-6's `[ list ]`), if
+  // any. The view is derived from it rather than stored, so a pass that
+  // arrives by any other route — Back, a pasted link, `j` — is a new guide,
+  // exactly as one opened from a card is: the list was asked for at *that*
+  // pass, and a different pass is a different question.
+  const [listFor, setListFor] = useState<string | null>(null);
+  const guideView: 'guide' | 'list' = selected !== null && listFor === selected.id ? 'list' : 'guide';
+  const openPass = (passId: string): void => {
+    setListFor(null);
+    open(passId);
+  };
+  /*
+   * The control the reader pressed goes away with the panel, so focus would
+   * fall to the body and `j` would start from the top of the list again. It
+   * goes to the card of the pass they were reading, which is where the compact
+   * sheet's `← Back` leaves them too.
+   */
+  useEffect(() => {
+    if (guideView !== 'list') return;
+    const card = document.querySelector<HTMLElement>(`${PASS_CARD}[data-selected]`);
+    if (!card) return;
+    // A card inside a folded night is in the DOM but not on the page, and
+    // `focus()` on it does nothing (`passCursor`): the reader asked for the
+    // list at this pass, so its night unfolds first — through the element,
+    // so the disclosure's own toggle event keeps the list's memory of it.
+    const night = card.closest<HTMLDetailsElement>('details:not([open])');
+    if (night) night.open = true;
+    card.focus();
+  }, [guideView]);
+  /*
    * R39 (F-34): `startApp` reads a link's observer once, before the first
    * render (D-135), which covers the arrival — a pasted URL, a reload. A
    * same-document navigation to a shared `#live?lat=…` never reaches it: the
@@ -151,7 +188,7 @@ export function App() {
     open: () => {
       const passId = passIdAtCursor(document);
       if (passId === null) return false;
-      open(passId);
+      openPass(passId);
       return true;
     },
     // The overlay first: it is what is on top, and it is where the reader just
@@ -188,6 +225,12 @@ export function App() {
   // Only the compact sheet covers the page; the wide panel opens beside the
   // list, which stays live (FR-DESK-3). The shortcuts overlay covers it at
   // every width, so nothing behind it is reachable either.
+  //
+  // R50 (F-45): this covers the header, the main and the footer, and the
+  // compact sheet is in none of them — it portals itself to the body (D-117),
+  // which is exactly what lets it stay live while they are inert. With the
+  // overlay up the sheet is behind it like everything else, so it is told
+  // separately (`inert` on `PassDetail` below).
   const inert = helpOpen || (selected !== null && mode === 'compact');
   /*
    * R49 (F-30): the two offers are under a stricter rule than the rest of the
@@ -239,7 +282,7 @@ export function App() {
             </Suspense>
           )}
         </div>
-        <div className={styles.column} data-testid="col-right" data-guide={selected !== null ? 'open' : 'closed'}>
+        <div className={styles.column} data-testid="col-right" data-guide={selected === null ? 'closed' : guideView === 'list' ? 'list' : 'open'}>
           <div className={styles.listColumn} data-testid="list-column">
             {shareNotice && (
               <Banner variant="info" testId="share-fallback">
@@ -247,9 +290,23 @@ export function App() {
               </Banner>
             )}
             {/* The resolved pass, not the hash: the id in the hash can be a second out (D-33) and would highlight nothing. */}
-            <PassList onOpenPass={open} selectedPassId={selected ? selected.id : null} />
+            <PassList onOpenPass={openPass} selectedPassId={selected ? selected.id : null} />
           </div>
-          {selected && observer && <PassDetail pass={selected} observer={observer} onClose={close} />}
+          {/* R50 (F-8): keyed by the pass, so opening a second one from the list beside the panel
+              is a new guide — its heading takes focus, and closing it returns to the card that
+              opened it rather than to the first one's. */}
+          {selected && observer && (
+            <PassDetail
+              key={selected.id}
+              pass={selected}
+              observer={observer}
+              onClose={close}
+              onShowList={() => {
+                setListFor(selected.id);
+              }}
+              inert={helpOpen}
+            />
+          )}
         </div>
       </main>
       <Footer inert={inert} />

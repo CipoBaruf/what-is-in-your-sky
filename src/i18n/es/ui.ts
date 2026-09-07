@@ -242,6 +242,7 @@ export const ui: typeof EnUi = {
     back: '← Volver a la lista',
     close: 'Cerrar la guía',
     panelLabel: (p: { name: string }) => `Guía: ${p.name}`,
+    toList: 'lista',
     sentence: (p: GuideParams) => {
       const start = `${sentenceStart[p.startReason]} ${elevationWord[p.startBand]} en el ${compass[p.startDir]} a las ${p.startTime}`;
       const peak = `sube a ${p.peakDegrees} (${elevationPhrase[p.peakBand]}) en el ${compass[p.peakDir]} a las ${p.peakTime}`;

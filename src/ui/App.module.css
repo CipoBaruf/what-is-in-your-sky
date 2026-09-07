@@ -66,7 +66,7 @@
    gutter the mockup fixes (docs/mockups/desktop-1280.html). Widths are in
    cells; the query's own literal is D-71's, checked against `--cell` by
    `tests/styles/breakpoint.test.ts`. */
-@media (min-width: 960px) {
+@media (min-width: 964px) {
   .header {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -101,16 +101,24 @@
     overflow-y: auto;
   }
 
-  /* FR-DESK-3: with a pass open the right column splits in two. The list
-     keeps at least 44 cells — the width the cards were designed at, and the
-     chart's own square — and the guide takes the rest, a shade wider so the
-     chart is not the narrower of the two. */
-  .column[data-guide='open'] {
-    grid-template-columns: minmax(calc(44 * var(--cell)), 1fr) minmax(0, 1.05fr);
+  /* R50 (FR-DESK-3 as amended, F-6, D-253): between the wide breakpoint and
+     the width where both floors fit, an open guide takes the whole right
+     column and the list is one `[ list ]` control away — the way the compact
+     sheet works. Before this the column split at every wide width, so the
+     list sat pinned at its 44-cell floor and the guide got whatever was left,
+     which between 960 px and about 1350 px was 43 to 107 px of chart.
+     Only one of the two tracks is on the page here, so the column keeps its
+     single-track grid and the other is simply not displayed. */
+  .column[data-guide='open'] > .listColumn,
+  .column[data-guide='list'] > [data-guide-panel] {
+    display: none;
+  }
+
+  .column[data-guide='open'],
+  .column[data-guide='list'] {
     grid-template-rows: minmax(0, 1fr);
     align-content: stretch;
     align-items: stretch;
-    gap: calc(3 * var(--cell));
   }
 
   /* The list scrolls itself rather than the page, whether or not a guide is
@@ -123,5 +131,36 @@
   .listColumn {
     min-height: 0;
     overflow-y: auto;
+  }
+}
+
+/* R50 (FR-DESK-3 as amended, D-253): the split returns at
+   `WIDE_SPLIT_MIN_CELLS` — 40 cells of left column, 44 of list and 40 of
+   guide, plus the two gutters between them and the shell's own padding. The
+   list keeps at least 44 cells — the width the cards were designed at, and the
+   chart's own square — and the guide at least 40, which is the width FR-DESK-3
+   says it may never be under while open; above the threshold the leftover goes
+   to the guide, a shade faster, so the chart is not the narrower of the two.
+   Both floors are real minima, so just above the threshold the pair is a few
+   pixels wider than the column and leans into the shell's right margin: that
+   is what the twin of the constant is calculated to keep inside
+   (`lib/layout.ts`, `tests/styles/breakpoint.test.ts`). */
+@media (min-width: 1272px) {
+  /* Both tracks are on the page again. The values are the two elements' own —
+     the list column is a plain block, the panel is the grid of head and body
+     that `GuidePanel.module.css` gives it — because `display` has no keyword
+     for "whatever the earlier rule said". */
+  .column[data-guide='open'] > .listColumn {
+    display: block;
+  }
+
+  .column[data-guide='list'] > [data-guide-panel] {
+    display: grid;
+  }
+
+  .column[data-guide='open'],
+  .column[data-guide='list'] {
+    grid-template-columns: minmax(calc(44 * var(--cell)), 1fr) minmax(calc(40 * var(--cell)), 1.05fr);
+    gap: calc(3 * var(--cell));
   }
 }

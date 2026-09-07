@@ -41,6 +41,15 @@ export function cursorCard(root: Document): HTMLElement | null {
  *
  * With no cursor yet, `j` starts at the first card and `k` at the last, so the
  * first press always lands somewhere.
+ *
+ * R50 (F-44): the return value is what tells `App` the key press was the
+ * app's, and `App` is what calls `preventDefault` on it, so it has to be the
+ * truth. `focus()` is a request, not an instruction — a card under the
+ * shortcuts overlay or under the compact sheet is inside an `inert` subtree,
+ * where it does nothing at all. Reporting a move that never happened swallowed
+ * `j` and `k` under both: the cursor stayed put and the browser's own scrolling
+ * was suppressed as well, so the key did nothing twice over. The move is
+ * therefore confirmed against `activeElement` before it is claimed.
  */
 export function moveCursor(root: Document, delta: 1 | -1): HTMLElement | null {
   const cards = cursorCards(root);
@@ -50,6 +59,7 @@ export function moveCursor(root: Document, delta: 1 | -1): HTMLElement | null {
   const next = index === -1 ? (delta === 1 ? cards[0] : cards[cards.length - 1]) : cards[Math.min(Math.max(index + delta, 0), cards.length - 1)];
   if (!next) return null;
   next.focus();
+  if (root.activeElement !== next) return null;
   next.scrollIntoView?.({ block: 'nearest' });
   return next;
 }

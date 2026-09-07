@@ -14,7 +14,7 @@ import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../test
 import { COMPACT_PX, stubMatchMedia, WIDE_PX, type MatchMediaStub } from '../../tests/support/matchMedia';
 import { en } from '../i18n/en';
 import type { Observer } from '../model';
-import { appStore, type ElementsState } from '../state';
+import { appStore, NIGHT_MS, type ElementsState } from '../state';
 import { IDLE_PASSES } from '../state/slices/passes';
 import { App } from './App';
 import { BEFORE_INSTALL_PROMPT, forgetInstallOffer } from './components/common/installOffer';
@@ -125,6 +125,111 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     // Closing the guide gives them back, with no timer in it (D-154).
     await userEvent.keyboard('{Escape}');
     for (const offer of offers()) expect(offer).not.toHaveAttribute('inert');
+  });
+
+  /**
+   * R50 (FR-DESK-3 as amended, F-6). Which of the two tracks the right column
+   * shows is `data-guide`, and the stylesheet is what turns it into a layout:
+   * below `WIDE_SPLIT_MIN_CELLS` one at a time, above it both at once. What is
+   * testable here is the contract the stylesheet keys off — and that `[ list ]`
+   * is a swap and not a close: the pass stays open, stays in the hash, and the
+   * reader comes back to the card they were reading about.
+   */
+  it('marks the right column open, list or closed, and swaps between them on [ list ] (F-6)', async () => {
+    withPasses();
+    render(<App />);
+    const right = screen.getByTestId('col-right');
+    expect(right).toHaveAttribute('data-guide', 'closed');
+
+    await userEvent.click(screen.getAllByRole('button', { name: /Open guide/ })[0] as HTMLElement);
+    expect(right).toHaveAttribute('data-guide', 'open');
+
+    await userEvent.click(within(screen.getByRole('region', { name: panelName })).getByRole('button', { name: en.guide.toList }));
+    expect(right).toHaveAttribute('data-guide', 'list');
+    // Not a close: the guide is still mounted, the pass is still the selected
+    // one, and the hash still carries it (D-13).
+    expect(screen.getByRole('region', { name: panelName })).toBeInTheDocument();
+    expect(window.location.hash).toBe(`#pass=${pass.id}`);
+    expect(screen.getByTestId('iss-hero')).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByTestId('iss-hero')).toHaveFocus();
+
+    // Opening a pass is what asks for the guide again.
+    await userEvent.click(screen.getAllByRole('button', { name: /Open guide/ })[1] as HTMLElement);
+    expect(right).toHaveAttribute('data-guide', 'open');
+
+    await userEvent.keyboard('{Escape}');
+    expect(right).toHaveAttribute('data-guide', 'closed');
+  });
+
+  /**
+   * Review of #79: the list view was a stored flag that only opening a card
+   * reset, so a pass arriving by the hash — Back, a pasted link — kept the
+   * list in front of the new pass's guide. The view is now derived from the
+   * pass the list was asked for.
+   */
+  it('a pass arriving by the hash while the list is shown is a new guide, not the list again', async () => {
+    withPasses();
+    render(<App />);
+    const right = screen.getByTestId('col-right');
+    await userEvent.click(screen.getAllByRole('button', { name: /Open guide/ })[0] as HTMLElement);
+    await userEvent.click(within(screen.getByRole('region', { name: panelName })).getByRole('button', { name: en.guide.toList }));
+    expect(right).toHaveAttribute('data-guide', 'list');
+
+    act(() => {
+      window.location.hash = `#pass=${other.id}`;
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    expect(right).toHaveAttribute('data-guide', 'open');
+    expect(screen.getByRole('region', { name: en.guide.panelLabel({ name: other.name }) })).toBeInTheDocument();
+  });
+
+  /**
+   * Review of #79: `focus()` on a card inside a folded night does nothing
+   * (`passCursor` skips them for the same reason), so `[ list ]` at such a
+   * pass left focus on the body. The night unfolds first.
+   */
+  it('[ list ] at a pass inside a folded night unfolds the night and focuses the card', async () => {
+    const later = { ...pass, id: 'later', noradId: 3, name: 'Later object', start: { ...pass.start, t: pass.start.t + 26 * 3_600_000 } };
+    act(() => {
+      appStore.setState({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window: { startMs: NOW, endMs: NOW + 2 * NIGHT_MS }, passes: [pass, other, later], hasDarkness: true } });
+    });
+    render(<App />);
+    const nights = screen.getAllByTestId('night-group');
+    expect(nights).toHaveLength(2);
+    const secondNight = nights[1] as HTMLDetailsElement;
+    expect(secondNight.open).toBe(false);
+
+    act(() => {
+      window.location.hash = `#pass=${later.id}`;
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    await userEvent.click(within(screen.getByRole('region', { name: en.guide.panelLabel({ name: later.name }) })).getByRole('button', { name: en.guide.toList }));
+    expect(secondNight.open).toBe(true);
+    expect(within(secondNight).getByRole('article', { current: true })).toHaveFocus();
+  });
+
+  /**
+   * R50 (F-8): the panel stays on the page between two passes, so React reused
+   * the instance — the mount effect never ran again, the new guide's heading
+   * was never focused, and closing it put the reader back on whatever had
+   * opened the *first* one. `App` keys it by the pass; a second pass is a
+   * second guide.
+   */
+  it('moves focus to the second guide when another pass is opened beside it, and back to its own opener (F-8)', async () => {
+    withPasses();
+    render(<App />);
+    const openers = screen.getAllByRole('button', { name: /Open guide/ });
+    await userEvent.click(openers[0] as HTMLElement);
+    expect(within(screen.getByRole('region', { name: panelName })).getByRole('heading', { level: 2 })).toHaveFocus();
+
+    const second = openers[1] as HTMLElement;
+    await userEvent.click(second);
+    const panel = screen.getByRole('region', { name: en.guide.panelLabel({ name: other.name }) });
+    expect(panel).toHaveAttribute('data-pass-id', other.id);
+    expect(within(panel).getByRole('heading', { level: 2 })).toHaveFocus();
+
+    await userEvent.keyboard('{Escape}');
+    expect(second).toHaveFocus();
   });
 
   it('keeps the same pass open across the breakpoint, in the other shell (D-72)', async () => {

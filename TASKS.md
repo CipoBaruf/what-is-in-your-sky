@@ -966,7 +966,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Touches outside the lane:** `.gitignore`, `tests/e2e/*.spec.ts` (F-33).
   - **Done when:** a test per finding; captures of a card with the Moon line at 390 px in Spanish.
 
-- [ ] **R50 — ui findings C: mid widths, the Escape guard, focus and `inert`, the breakpoint's font**
+- [x] **R50 — ui findings C: mid widths, the Escape guard, focus and `inert`, the breakpoint's font**
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
@@ -977,6 +977,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Scope:** `lib/layout.ts` `WIDE_SPLIT_MIN_CELLS = 124` pinned by the breakpoint test; below it an open guide takes the right column and `GuidePanel` shows `[ list ]` (F-6); the `Escape` listener guarded by the picker's open state (F-7); `PassDetail` keyed by the pass so focus moves to the new heading (F-8); the list's height from the shell, not a fixed 34 rows (F-9); the breakpoint derivation measured from the actual font rather than assumed (F-10); the opener captured before `inert` blurs it (F-43); `moveCursor` confirms focus moved (F-44); `inert` covers the compact sheet's portal (F-45). `playwright.config.ts` gains `desktop-1024`; `wide.spec.ts` runs at both widths.
   - **Touches outside the lane:** `playwright.config.ts`, `tests/e2e/wide.spec.ts`, `tests/styles/breakpoint.test.ts`.
   - **Done when:** a test per finding; captures of the home and the guide at 1024 px and 1280 px, both themes, English.
+  - *Done. `WIDE_SPLIT_MIN_PX` counts the two gutters and one of the shell's two side paddings as well as the 124 cells, so the split is at 1272 px rather than 1253 and 1280 keeps both columns (D-253).*
 
 - [ ] **R51 — The pass detail's legend block and the share findings**
   - **Lane:** ui
