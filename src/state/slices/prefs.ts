@@ -44,6 +44,11 @@ import type { AppState } from '../store';
  * from `lib/installSnooze.ts`, until the decline past the last snooze, which
  * ends it after all. The three fields are held together as one `InstallAnswer`
  * so the pure rule and the store cannot read the device differently.
+ * R58 (D-277) splits the chart view in two: `savedChartView` is the written
+ * preference and `viewOverride` is the follow control's, held only in memory.
+ * `chartView` is the effective value the rest of the app already reads
+ * (`viewOverride ?? savedChartView`), kept in sync by both setters rather than
+ * computed lazily, so `SkyChart` and every other reader need no change.
  */
 export interface PrefsDeps {
   prefs: LocalPrefs;
@@ -59,8 +64,14 @@ export interface PrefsSlice {
   /** The pass list order (US-5 AC2), `chronological` unless saved otherwise. */
   sort: PassSort;
   setSort: (sort: PassSort) => void;
-  /** The sky chart view (US-6 AC5), `polar` unless saved otherwise (D-68). */
+  /** The sky chart view (US-6 AC5), `polar` unless saved otherwise (D-68) — the *effective* view: `viewOverride ?? savedChartView`. */
   chartView: ChartView;
+  /** R58 (D-277, FR-FOL-1, FR-WIN-5 as amended): the view the follow control opened, while it is following. Never saved, and cleared when the live page leaves it (R59). */
+  viewOverride: ChartView | null;
+  setViewOverride: (view: ChartView | null) => void;
+  /** R58 (D-277): the saved chart view underneath the override — what the view toggle reads and `setChartView` writes. */
+  savedChartView: ChartView;
+  /** Sets the saved view, through to storage, and ends any override: a reader who picks a view by hand while following simply stops following. */
   setChartView: (view: ChartView) => void;
   /** The polar chart's convention (FR-GUIDE-4), `looking-up` unless saved otherwise. */
   chartOrientation: ChartOrientation;
@@ -139,8 +150,13 @@ export const createPrefsSlice =
         deps.prefs.write({ ...deps.prefs.read(), sort });
       },
       chartView: deps.prefs.read().chartView ?? DEFAULT_CHART_VIEW,
+      viewOverride: null,
+      setViewOverride: (viewOverride) => {
+        set((state) => ({ viewOverride, chartView: viewOverride ?? state.savedChartView }));
+      },
+      savedChartView: deps.prefs.read().chartView ?? DEFAULT_CHART_VIEW,
       setChartView: (chartView) => {
-        set({ chartView });
+        set({ chartView, savedChartView: chartView, viewOverride: null });
         deps.prefs.write({ ...deps.prefs.read(), chartView });
       },
       chartOrientation: deps.prefs.read().chartOrientation ?? DEFAULT_CHART_ORIENTATION,

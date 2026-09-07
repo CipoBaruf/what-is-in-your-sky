@@ -100,6 +100,26 @@ describe('prefs slice', () => {
     expect(stored(storage)).toEqual({ observer: neuquen, sort: 'best', chartView: 'dome', chartOrientation: 'looking-up' });
   });
 
+  /** R58 (D-277, FR-FOL-1, FR-WIN-5 as amended): the follow control's view is an override, never a written preference. */
+  it('resolves chartView as the override over the saved view, never writes the override, and setChartView clears it', () => {
+    const storage = memoryStorage();
+    storage.map.set(PREFS_KEY, JSON.stringify({ chartView: 'polar' }));
+    const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(store.getState()).toMatchObject({ chartView: 'polar', savedChartView: 'polar', viewOverride: null });
+
+    store.getState().setViewOverride('window');
+    expect(store.getState()).toMatchObject({ chartView: 'window', savedChartView: 'polar', viewOverride: 'window' });
+    expect(stored(storage)).toEqual({ chartView: 'polar' }); // the override never reaches storage
+
+    // A view picked by hand while following ends the override: setChartView writes through and chartView is what it wrote.
+    store.getState().setChartView('dome');
+    expect(store.getState()).toMatchObject({ chartView: 'dome', savedChartView: 'dome', viewOverride: null });
+    expect(stored(storage)).toEqual({ chartView: 'dome' });
+
+    store.getState().setViewOverride(null);
+    expect(store.getState()).toMatchObject({ chartView: 'dome', savedChartView: 'dome', viewOverride: null });
+  });
+
   it('resolves the language from the browser until one is saved, then keeps the saved one (R17, FR-I18N-1)', () => {
     const storage = memoryStorage();
     // jsdom reports an English list, so a fresh store is English and nothing is written until the switch is used.
