@@ -17,8 +17,7 @@ import { createPassesCache, MAX_STORED_RUNS, memoryPassRunStore, passCellKey, ty
 import { ALWAYS_VISIBLE, ELEMENTS_RECHECK_MS, NOW_TICK_MS, startEffects, type EffectDeps, type LoadedElements, type VisibilitySource } from './effects';
 import { SEARCH_WINDOW_MS } from './passWindow';
 import { createLocalPrefs } from '../data/localPrefs';
-import { observerFromLink, parseHash } from '../lib/shareLinks';
-import { sameRoundedPlace } from './index';
+import { startApp } from './index';
 import { createAppStore, type AppStore } from './store';
 import { createWorkerClient, type WorkerClient } from './workerClient';
 import type { WorkerRequest } from '../worker/protocol';
@@ -784,28 +783,35 @@ describe('stored passes (R24, FR-OFF-2, FR-OFF-5)', () => {
 });
 
 /**
- * TASKS R58 (FR-LIVE-11, F-56, D-280): a `#live` link for the place the store
- * already holds is not a new observer. `startApp` (`state/index.ts`) is not
- * called directly — it owns a real Worker and the singleton store, which is
- * why R24's start-up order above is tested the same way — so `bootAt` mirrors
- * its exact sequence with the real building blocks (`parseHash`,
- * `sameRoundedPlace`, `restoreSavedObserver`, `setObserver`) over a real
- * (in-memory) prefs object and passes cache, `favourites (R26)`'s pattern.
+ * TASKS R58 (FR-LIVE-11, F-56, D-280, D-295): a `#live` link for the place the
+ * store already holds is not a new observer. This drives the real `startApp`
+ * (`state/index.ts`) through its `StartAppOverrides` seam — its own hash
+ * parsing, its own guard, its own effect wiring — over a fake worker, an
+ * in-memory prefs object and an in-memory passes cache. Mirroring the branch
+ * here instead would leave the suite green with the shipped guard deleted,
+ * which is exactly the defect this test is for.
  */
 describe('the #live link guard (R58, FR-LIVE-11, F-56, D-280)', () => {
-  /** The R1 golden observer, geocoded (PLAN §7.2): a real label, a real zone, unlike the coordinates a link carries. */
-  const geocoded: Observer = { lat: -38.93392, lon: -67.99032, altM: 270, label: 'Cipolletti, Río Negro, Argentina', source: 'geocode', timeZone: 'America/Argentina/Salta' };
+  /**
+   * The saved observer is geocoded (a real label, a real zone) and carries the
+   * full precision `observerFromPosition` keeps for a GPS fix: the hash the app
+   * writes for it (`lat=-38.93392&lon=-67.99032&alt=270`) rounds those digits
+   * away, so the link and the saved observer are the same place without being
+   * equal number for number. That is the case the arrival is really about.
+   */
+  const geocoded: Observer = { lat: -38.933921274, lon: -67.990318617, altM: 270.4, label: 'Cipolletti, Río Negro, Argentina', source: 'geocode', timeZone: 'America/Argentina/Salta' };
+  /** What `liveLinkHash` writes for that observer: five decimals, whole metres (D-295). */
+  const HASH_FOR_SAVED = '#live?lat=-38.93392&lon=-67.99032&alt=270';
   const STORED_AT = NOW - 2 * 3_600_000;
   const storedPass = samplePass(25544, NOW + 5 * 60_000);
 
   let store: AppStore;
   let worker: ReturnType<typeof fakeWorker>;
-  let client: WorkerClient;
   let stop: () => void;
 
   const sent = <T extends WorkerRequest['type']>(type: T) => worker.sent.filter((m): m is WorkerRequest & { type: T } => m.type === type);
 
-  /** `startApp`'s own sequence: parse the hash, restore the saved observer when it names the same place, otherwise set the link's. */
+  /** The real `startApp`, with the device's singletons replaced: the sequence under test is its own. */
   const bootAt = async (hash: string): Promise<void> => {
     const map = new Map<string, string>();
     map.set('wiys:prefs:v1', JSON.stringify({ observer: geocoded }));
@@ -815,22 +821,16 @@ describe('the #live link guard (R58, FR-LIVE-11, F-56, D-280)', () => {
     const cache = createPassesCache({ store: runStore, now: () => NOW });
     store = createAppStore({ now: () => NOW, prefs });
     worker = fakeWorker();
-    client = createWorkerClient(worker);
-    const link = parseHash(hash);
-    const saved = prefs.read().observer ?? null;
-    if (link !== null && link.kind === 'live' && sameRoundedPlace(saved, link.observer)) store.getState().restoreSavedObserver();
-    else if (link !== null && link.kind !== 'passId') store.getState().setObserver(observerFromLink(link));
-    else store.getState().restoreSavedObserver();
-    stop = startEffects({
+    stop = startApp({
       store,
-      client,
-      catalog: CATALOG,
+      prefs,
+      cache,
+      createWorker: () => worker,
       loadElements: freshLoader(),
       loadWeather: neverWeather,
-      loadStoredRun: (observer) => cache.loadForObserver(observer),
-      saveRun: (run) => cache.save(run),
       now: () => NOW,
       visibility: ALWAYS_VISIBLE,
+      hash,
     });
   };
 
@@ -838,9 +838,9 @@ describe('the #live link guard (R58, FR-LIVE-11, F-56, D-280)', () => {
     stop();
   });
 
-  it('a hash for the same place, rounded, restores the saved observer, its zone and its stored run — failing on the old code', async () => {
-    await bootAt('#live?lat=-38.93&lon=-67.99');
-    // The saved observer itself, not a fresh `source: 'coords'` one: the label and the zone survive.
+  it('a hash at the precision it carries restores the saved observer, its zone and its stored run — failing on the old code', async () => {
+    await bootAt(HASH_FOR_SAVED);
+    // The saved observer itself, not a fresh `source: 'coords'` one: the label, the zone and the full precision survive.
     expect(store.getState().observer).toEqual(geocoded);
     await vi.waitFor(() => expect(store.getState().passes.passes).toHaveLength(1));
     expect(store.getState().passes).toMatchObject({ status: 'done', storedAt: STORED_AT, observer: geocoded });
@@ -853,6 +853,18 @@ describe('the #live link guard (R58, FR-LIVE-11, F-56, D-280)', () => {
     expect(store.getState().observer).not.toEqual(geocoded);
     expect(store.getState().passes).toMatchObject({ storedAt: null });
     await vi.waitFor(() => expect(sent('loadElements')).toHaveLength(1));
+  });
+
+  /**
+   * D-295: the guard compares at the five decimals the hash carries, not at
+   * `coordsLabel`'s two. This place is half a kilometre north of the saved one
+   * and rounds to the same two decimals (−38.93), so the guard as it first
+   * shipped swallowed it and drew that reader the wrong sky's stored run.
+   */
+  it('a hash half a kilometre away is a different place, even where two decimals would agree', async () => {
+    await bootAt('#live?lat=-38.929&lon=-67.99032&alt=270');
+    expect(store.getState().observer).toMatchObject({ lat: -38.929, source: 'coords' });
+    expect(store.getState().passes).toMatchObject({ storedAt: null });
   });
 });
 
