@@ -76,14 +76,11 @@
    the legend goes under, as on compact. `ch` here is the frame's own cell:
    font-relative units in a container condition resolve against the container.
 
-   R51 (D-259): except where the legend is the pass detail's numeric table
-   (`data-lead`), which is five columns of figures and belongs under the
-   drawing at every width — the guide column grows with the screen, so on a
-   large desktop this rule would otherwise fold the table into 24 cells and
-   squeeze the drawing beside it. The `ol` carries the flag, so the frame's
-   own markup does not have to learn what kind of legend it was handed. */
+   R51 (D-259): a legend that is the pass detail's numeric table takes it back
+   at the end of this block — see there for why it is written as an override
+   and not as an exception here. */
 @container (min-width: 62ch) {
-  .frame[data-compact='false'][data-legend='true']:not(:has([data-lead='true'])) {
+  .frame[data-compact='false'][data-legend='true'] {
     grid-template-columns: minmax(0, 1fr) calc(24 * var(--cell));
     grid-template-areas:
       'controls legend'
@@ -92,10 +89,6 @@
     column-gap: calc(2 * var(--cell));
   }
 
-  /* Only the grid above is excluded for a lead: this one has to keep the selector it had, because the live
-     rule under it is `.fill[…] .legend` and a `:not(:has(…))` here would out-specify it and take the live
-     column's scroll away. It says nothing a legend under the drawing minds — the base `.legend` sets no
-     max-height and no overflow outside `.fill` — so leaving it to match every wide frame costs nothing. */
   .frame[data-compact='false'][data-legend='true'] .legend {
     align-self: start;
     max-height: none;
@@ -117,6 +110,26 @@
     grid-template-areas:
       'controls status legend'
       'drawing drawing legend';
+  }
+
+  /* R51 (D-259): the pass detail's numeric table takes the beside rule back. The guide column grows with the
+     screen (D-253), so on a large desktop the frame passes 62 cells and the table — five columns of figures —
+     folded itself into 24 while the drawing was squeezed beside it.
+
+     Written as an override at the end of the block rather than as `:not(:has(…))` on the rules above, and that
+     is the whole point of it: `:not(:has(…))` there adds a specificity step, which put the guide's two-column
+     grid over the wide live page's three-column one and took the live legend's own scroll away (CI on #80).
+     Here the extra step is what the rule wants — nothing else in this block matches a frame with a lead, and
+     the live page never has one, so every rule above keeps the weight it had. `Legend` sets `data-lead` on its
+     own list, so the frame's markup learns nothing about what it was handed. */
+  .frame[data-compact='false'][data-legend='true']:has([data-lead='true']) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'controls'
+      'drawing'
+      'status'
+      'legend';
+    column-gap: 0;
   }
 }
 

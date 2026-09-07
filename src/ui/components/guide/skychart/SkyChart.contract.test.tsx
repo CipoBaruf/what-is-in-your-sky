@@ -219,12 +219,16 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
     // The container is the frame's shell, not the frame: a container query never answers for the container itself.
     expect(css).toMatch(/\.shell \{\s+container-type: inline-size;/);
     const beside = /@container \(min-width: 62ch\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
-    expect(beside).toContain(".frame[data-compact='false'][data-legend='true']:not(:has([data-lead='true'])) {");
+    expect(beside).toContain(".frame[data-compact='false'][data-legend='true'] {");
     expect(beside).toContain('grid-template-columns: minmax(0, 1fr) calc(24 * var(--cell));');
     expect(beside).toContain("'drawing legend'");
-    // R51 (D-259): a legend that is the detail's numeric table stays under the drawing however wide the frame gets —
-    // the guide column grows with the screen, and five columns of figures do not fit 24 cells.
-    expect(beside).not.toMatch(/\.frame\[data-compact='false'\]\[data-legend='true'\] \{/);
+    // R51 (D-259): a legend that is the detail's numeric table takes that back, as an override at the end of the
+    // block and not as an exception on the rule above — the extra specificity step of a `:not(:has(…))` there put
+    // this grid over the wide live page's and cost the live legend its scroll (CI on #80). So the live rule keeps
+    // the weight it had, and the one rule that outweighs it is the one no live frame can match.
+    const lead = beside.indexOf(".frame[data-compact='false'][data-legend='true']:has([data-lead='true']) {");
+    expect(lead).toBeGreaterThan(beside.indexOf(".fill[data-compact='false'][data-legend='true'] {"));
+    expect(beside.slice(lead)).toContain('grid-template-columns: minmax(0, 1fr);');
     // Outside the query the legend is the fourth row, under the status line, for every shell.
     expect(css).toMatch(/\.frame \{[^}]*'status'\n\s+'legend';/);
   });
