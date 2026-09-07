@@ -247,6 +247,21 @@ export function parseHash(hash: string): AppHash | null {
 }
 
 /**
+ * R52 (FR-COMP-2, D-184): whether the app is on the settings page. `#settings`
+ * carries nothing — no id, no parameters — so it is not a form `parseHash`
+ * answers for: that function's grammar starts at the `=` or `?` a route's
+ * payload begins with, and a bare word has neither. It is a route all the same,
+ * and the hash is the only route state there is (D-13), so a reload on
+ * `#settings` reopens it and the browser's Back leaves it.
+ */
+export function isSettingsRoute(hash: string): boolean {
+  return (hash.startsWith('#') ? hash.slice(1) : hash) === 'settings';
+}
+
+/** The hash the compact header's `[ settings ]` control points at. */
+export const SETTINGS_HASH = '#settings';
+
+/**
  * R32 (FR-LIVE-1): whether the app is on the live page — `#live` on its own,
  * or a `#live?…` link whether or not it parses. A link that parses also sets
  * the observer (`parseHash`); one that does not still opens the page, which

@@ -15,6 +15,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -58,7 +59,9 @@ async function openGoldenPass(page: Page, violations: string[]): Promise<{ passI
     if (/Content Security Policy/i.test(message.text())) violations.push(message.text().slice(0, 200));
   });
   await page.goto('/');
-  await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
+  await withSettings(page, async () => {
+    await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
+  });
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
   await page.locator(`article[data-pass-id="${passId}"]`).getByRole('button', { name: /Open guide/ }).click();
   const dialog = page.getByRole('dialog', { name: 'ISS (Zarya)' });

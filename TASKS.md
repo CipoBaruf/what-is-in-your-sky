@@ -991,7 +991,7 @@ Draft, cut 2026-09-05 from `SPEC.md` v1.1 and `PLAN.md` v0.4, for review. Spec P
   - **Touches outside the lane:** none (the legend rows come from `lib/legend.ts`, chart-owned and merged by R45).
   - **Done when:** the detail's contract test (the table is the first legend block, one row per dim pass, the Sun and Moon lines); a test per finding; captures of the detail at 390 px and 1280 px, both themes, both languages.
 
-- [ ] **R52 — The settings page, the two headers, the location summary and the rows that fit**
+- [x] **R52 — The settings page, the two headers, the location summary and the rows that fit** — the compact header needed a short title, which the entry did not name: "What is in your sky right now" is 29 of FR-COMP-4's 36 cells before the two controls have said anything (D-261). The clear action is lifted out of `LocationInput` by a `showClear` prop so FR-COMP-2's order can hold, and the language switch's right alignment moved from the component to the two callers that want it (D-262). `controlRows.test.ts` reads each row's brackets out of its own stylesheet and applies a state's decoration only to the element in that state, without which the live page's playback row measures 39 cells instead of its real 33 (D-263). It found one row over budget: the Spanish "no place set" prompt, at 37. `InstallAction` and `installEnv.ts` are D-260's split, and `InstallHint` now wraps the same action with its "Not now" passed in, so the copy exists once. Moving the form off the compact home rippled through a dozen e2e specs, which reach it through `liveHelpers`' new `withSettings` / `openSettings` / `leaveSettings`.
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner

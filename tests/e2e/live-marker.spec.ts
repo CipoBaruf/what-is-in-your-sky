@@ -18,6 +18,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -54,7 +55,9 @@ async function openGoldenPassAt(page: Page, t: number): Promise<{ passId: string
   });
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
   await page.goto('/');
-  await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
+  await withSettings(page, async () => {
+    await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
+  });
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
   await page.locator(`article[data-pass-id="${passId}"]`).getByRole('button', { name: /Open guide/ }).click();
   await expect(page.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeVisible();

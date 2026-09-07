@@ -11,6 +11,20 @@
  * 60° up and the Sun is inside FR-DOME-6's twilight band all at once.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { withSettings } from './liveHelpers';
+
+/*
+ * FR-CI-2 (R37, D-195): off the pull-request path. These are evidence, as the
+ * comment above says, and re-shooting them on every pull request bought
+ * nothing and cost the FR-CI-1 budget the minute R52 needed. R37 moved the
+ * `v1-*` set and four page specs and listed the rest as follow-ups; this is
+ * the rest. The files stay committed and a task that changes these screens
+ * re-shoots them on purpose:
+ *
+ *   CAPTURES=1 npx playwright test <this spec> --project=chromium
+ */
+test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
+
 
 const FIXTURE_DATE = '2026-09-02';
 const PARIS = '48.86, 2.35';
@@ -51,7 +65,9 @@ async function openChart(page: Page, width: 390 | 1280, locale: 'en' | 'es', vie
   // The choice is remembered (FR-I18N-5), so the group's own name is already
   // Spanish on the second pass; the option's label is the same in both.
   if (locale === 'es') await page.getByRole('banner').getByRole('button', { name: 'Español' }).click();
-  await page.getByLabel(locale === 'es' ? 'Coordenadas (lat, lon)' : 'Coordinates (lat, lon)').fill(PARIS);
+  await withSettings(page, async () => {
+    await page.getByLabel(locale === 'es' ? 'Coordenadas (lat, lon)' : 'Coordinates (lat, lon)').fill(PARIS);
+  });
   const passes = page.getByRole('region', { name: locale === 'es' ? 'Próximos pases' : 'Upcoming passes' });
   await expect(passes.getByRole('status')).toHaveText(/\d+ (visible passes in the next 72 h|pases visibles en las próximas 72 h)/, { timeout: 60_000 });
   await page.locator(`article[data-pass-id="${GLARE_PASS}"]`).getByRole('button', { name: locale === 'es' ? /Abrir la guía/ : /Open guide/ }).click();

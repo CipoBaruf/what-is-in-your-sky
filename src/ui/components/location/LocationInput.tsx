@@ -47,9 +47,18 @@ export interface LocationInputProps {
   onClear: () => void;
   search: PlaceSearchFn;
   geolocation?: GeolocationEnv;
+  /**
+   * R52 (FR-COMP-2): whether the clear action rides in the "saved in this
+   * browser only" sentence. The wide panel says yes, which is where the
+   * approved desktop mockup has it; the settings page says no and renders
+   * `ClearSavedLocation` itself, last on the page, after the saved places and
+   * the install offer. The sentence stays either way — it is a statement about
+   * the location, not a label for the button.
+   */
+  showClear?: boolean;
 }
 
-export function LocationInput({ observer, onObserver, onClear, search, geolocation }: LocationInputProps) {
+export function LocationInput({ observer, onObserver, onClear, search, geolocation, showClear = true }: LocationInputProps) {
   const t = useT();
   // The observer the inputs were seeded from; a new key remounts them. `focus`
   // is set only by the clear, the one reseed that moves the reader's focus.
@@ -76,7 +85,11 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
   useEffect(() => {
     if (sameLocation(observer, shown.current)) return;
     shown.current = observer;
-    setSeed((s) => ({ key: s.key + 1, observer, focus: false }));
+    // R52: a clear is the one reseed that moves focus, wherever it came from —
+    // the sentence's own button, or the settings page's `ClearSavedLocation`,
+    // which is removed by the very change it makes. The place field is where
+    // the reader has to go next either way.
+    setSeed((s) => ({ key: s.key + 1, observer, focus: observer === null }));
   }, [observer]);
 
   // After a clear the inputs are remounted, so the focus goes to the new place
@@ -106,10 +119,15 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
       )}
       {observer && (
         <p className={styles.saved}>
-          {t.location.savedHere}{' '}
-          <button type="button" onClick={clear} className={`inline-control ${styles.clear}`}>
-            {t.location.clearSaved}
-          </button>
+          {t.location.savedHere}
+          {showClear && (
+            <>
+              {' '}
+              <button type="button" onClick={clear} className={`inline-control ${styles.clear}`} data-testid="clear-saved-location">
+                {t.location.clearSaved}
+              </button>
+            </>
+          )}
         </p>
       )}
       <p className={styles.note}>{t.location.precisionNote}</p>

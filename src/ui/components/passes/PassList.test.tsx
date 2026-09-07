@@ -137,23 +137,24 @@ describe('<PassList>', () => {
     expect(screen.getAllByRole('article', { name: 'ISS (Zarya)' })).toHaveLength(2); // the ended one in the list, the next one as hero
   });
 
+  // R52: jsdom without a `matchMedia` stub is the compact layout, where the two orders carry their short names (US-5 AC2 as amended, FR-COMP-4). The order they produce is the same.
   it('sorts the list best first on request, persists the order in wiys:prefs:v1, and restores it (US-5 AC2)', async () => {
     set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [average, faintHigh, brightLow], hasDarkness: true } });
     const { unmount, container } = render(<PassList onOpenPass={() => undefined} />);
     expect(cardNames()).toEqual(['Faint high', 'Bright low', 'Average']);
-    expect(screen.getByRole('button', { name: 'Soonest first' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Soonest' })).toHaveAttribute('aria-pressed', 'true');
     expect(await axe(container)).toHaveNoViolations();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Best first' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Best' }));
     expect(cardNames()).toEqual(['Bright low', 'Average', 'Faint high']);
-    expect(screen.getByRole('button', { name: 'Best first' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Best' })).toHaveAttribute('aria-pressed', 'true');
     expect(appStore.getState().sort).toBe('best');
     expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ sort: 'best' });
 
     unmount();
     render(<PassList />);
     expect(cardNames()).toEqual(['Bright low', 'Average', 'Faint high']);
-    await userEvent.click(screen.getByRole('button', { name: 'Soonest first' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Soonest' }));
     expect(cardNames()).toEqual(['Faint high', 'Bright low', 'Average']);
     expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ sort: 'chronological' });
   });

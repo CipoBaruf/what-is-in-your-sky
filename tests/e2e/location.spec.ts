@@ -9,6 +9,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import { leaveSettings, openSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -48,11 +49,21 @@ test('coordinates with altitude → pass list; reload restores it without re-typ
   await expect(status).toHaveText(/Enter a place name or coordinates/);
   expect(await page.evaluate((k) => localStorage.getItem(k), PREFS_KEY)).toBeNull();
 
+  // R52 (FR-COMP-2): at 390 px the form is on `#settings`, one tap from here.
+  // The list it fills is on the home screen, so this walks between the two the
+  // way the reader does rather than making the trip for every assertion.
   const coords = page.getByLabel('Coordinates (lat, lon)');
   const altitude = page.getByLabel('Altitude (m)');
+  const compact = await openSettings(page);
   await coords.fill(`${String(ha.observer.lat)} ${String(ha.observer.lon)}`); // the space-separated form (US-2 AC1)
   await altitude.fill('270');
   await expect(page.getByTestId('active-location')).toHaveText('Using −38.93, −67.99 at 270 m.');
+  await expect(page.getByText(/Precision is city-level/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Clear saved location' })).toBeVisible();
+  const saved = JSON.parse((await page.evaluate((k) => localStorage.getItem(k), PREFS_KEY)) ?? 'null') as { observer?: { lat: number; lon: number; altM: number; source: string } } | null;
+  expect(saved?.observer).toMatchObject({ lat: ha.observer.lat, lon: ha.observer.lon, altM: 270, source: 'coords' });
+  if (compact) await leaveSettings(page);
+
   await expect(status).toHaveText(/\d+ visible passes in the next 72 h from −38.93, −67.99/, { timeout: 30_000 });
   const listText = await status.textContent();
   // The hero card, not "the ISS article": the 72 h window holds several ISS passes (R24).
@@ -60,29 +71,28 @@ test('coordinates with altitude → pass list; reload restores it without re-typ
   await expect(iss).toHaveCount(1);
   const passId = await iss.getAttribute('data-pass-id');
   expect(Math.abs(Number(passId?.split('-')[1]) - golden.start.t)).toBeLessThanOrEqual(5_000);
-  await expect(page.getByText(/Precision is city-level/)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Clear saved location' })).toBeVisible();
-  const saved = JSON.parse((await page.evaluate((k) => localStorage.getItem(k), PREFS_KEY)) ?? 'null') as { observer?: { lat: number; lon: number; altM: number; source: string } } | null;
-  expect(saved?.observer).toMatchObject({ lat: ha.observer.lat, lon: ha.observer.lon, altM: 270, source: 'coords' });
   await page.screenshot({ path: 'test-results/r10-location-390.png' });
 
   // US-8: reload restores the same list from the saved observer, and the fields are pre-filled.
   await page.reload();
+  await expect(status).toHaveText(listText ?? '', { timeout: 30_000 });
+  await expect(page.getByTestId('iss-hero')).toHaveAttribute('data-pass-id', passId ?? '');
+  await openSettings(page);
   await expect(coords).toHaveValue(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   await expect(altitude).toHaveValue('270');
   await expect(page.getByTestId('active-location')).toHaveText('Using −38.93, −67.99 at 270 m.');
-  await expect(status).toHaveText(listText ?? '', { timeout: 30_000 });
-  await expect(page.getByTestId('iss-hero')).toHaveAttribute('data-pass-id', passId ?? '');
 
   // US-8 AC2: clear empties the storage and the screen; a further reload starts empty.
   await page.getByRole('button', { name: 'Clear saved location' }).click();
-  await expect(status).toHaveText(/Enter a place name or coordinates/);
   await expect(coords).toHaveValue('');
   await expect(page.getByRole('combobox', { name: 'Place name' })).toBeFocused();
   expect(await page.evaluate((k) => localStorage.getItem(k), PREFS_KEY)).toBeNull();
   await expect(page.getByRole('button', { name: 'Clear saved location' })).toHaveCount(0);
+  if (compact) await leaveSettings(page);
+  await expect(status).toHaveText(/Enter a place name or coordinates/);
   await page.reload();
   await expect(status).toHaveText(/Enter a place name or coordinates/);
+  await openSettings(page);
   await expect(coords).toHaveValue('');
 });
 
@@ -90,17 +100,22 @@ test('the device button uses the browser position: coordinates, accuracy above 1
   await context.grantPermissions(['geolocation']);
   await context.setGeolocation({ latitude: ha.observer.lat, longitude: ha.observer.lon, accuracy: 2000 });
   await page.goto('/');
+  const compact = await openSettings(page);
   await page.getByRole('button', { name: 'Use my location' }).click();
   await expect(page.getByTestId('active-location')).toHaveText('Using −38.93, −67.99 from your device (accurate to about 2 km).');
+  const saved = JSON.parse((await page.evaluate((k) => localStorage.getItem(k), PREFS_KEY)) ?? 'null') as { observer?: { source: string; accuracyM?: number } } | null;
+  expect(saved?.observer).toMatchObject({ source: 'device', accuracyM: 2000 });
+  if (compact) await leaveSettings(page);
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(status).toHaveText(/\d+ visible passes in the next 72 h from −38.93, −67.99/, { timeout: 30_000 });
   await expect(page.getByTestId('iss-hero')).toHaveCount(1);
-  const saved = JSON.parse((await page.evaluate((k) => localStorage.getItem(k), PREFS_KEY)) ?? 'null') as { observer?: { source: string; accuracyM?: number } } | null;
-  expect(saved?.observer).toMatchObject({ source: 'device', accuracyM: 2000 });
+  // US-3 AC3: the accuracy is on the home screen too, under the summary line.
+  if (compact) await expect(page.getByTestId('location-summary-accuracy')).toHaveText('from your device, accurate to about 2 km');
   await page.screenshot({ path: 'test-results/r10-device-390.png' });
 
   // A precise fix hides the accuracy (US-3 AC3).
   await context.setGeolocation({ latitude: ha.observer.lat, longitude: ha.observer.lon, accuracy: 300 });
+  await openSettings(page);
   await page.getByRole('button', { name: 'Use my location' }).click();
   await expect(page.getByTestId('active-location')).toHaveText('Using −38.93, −67.99 from your device.');
 });
@@ -108,6 +123,7 @@ test('the device button uses the browser position: coordinates, accuracy above 1
 test('a denied permission shows the message and leaves the inputs usable (US-3 AC2)', async ({ page, context }) => {
   await context.clearPermissions();
   await page.goto('/');
+  await openSettings(page);
   await page.getByRole('button', { name: 'Use my location' }).click();
   // Scoped to the location section: the elements banners (R11) can add a page-level alert when the fixture elements are old.
   await expect(page.getByRole('region', { name: 'Location' }).getByRole('alert')).toContainText('Location permission was denied');

@@ -36,3 +36,10 @@
   content: ' ]';
   color: var(--fg-dim);
 }
+
+/* R52: the settings page's placement — a control on a line of its own, last on
+   the page (FR-COMP-2), rather than hung off the sentence about where the
+   location is kept. */
+.standaloneClear {
+  margin: 0;
+}

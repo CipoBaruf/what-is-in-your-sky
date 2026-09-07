@@ -15,6 +15,7 @@
  * these fail loudly here rather than quietly showing the wrong card.
  */
 import { expect, test, type Page } from '@playwright/test';
+import { withSettings } from './liveHelpers';
 
 const FIXTURE_DATE = '2026-09-02';
 const PARIS = '48.86, 2.35';
@@ -41,7 +42,9 @@ test.beforeEach(async ({ page }) => {
 /** Enter the observer and wait for the finished list (D-105: the 72 h search takes three nights). */
 async function listed(page: Page): Promise<void> {
   await page.goto('/');
-  await page.getByLabel('Coordinates (lat, lon)').fill(PARIS);
+  await withSettings(page, async () => {
+    await page.getByLabel('Coordinates (lat, lon)').fill(PARIS);
+  });
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 60_000 });
 }
 
@@ -89,7 +92,9 @@ test('the Now panel carries the Moon’s facts and the tradition line is a separ
   await expect(page.getByRole('region', { name: 'Upcoming passes' })).not.toContainText('The Moon is in Taurus');
 
   // Both languages carry the tradition label (FR-MOON-5, FR-I18N-2).
-  await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
+  await withSettings(page, async () => {
+    await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
+  });
   const tradicion = page.getByRole('region', { name: 'La Luna esta noche' });
   await expect(tradicion).toContainText('tradición');
   await expect(tradicion).toContainText('La Luna está en Tauro');

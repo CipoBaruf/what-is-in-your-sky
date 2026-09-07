@@ -104,9 +104,26 @@ export const ui = {
     /** FR-THEME-1: the palette switch. Unlike the languages, both names are translated — whoever reads this can read the page. */
     theme: 'Theme',
     themes: { dark: 'Dark', night: 'Night' } satisfies Record<Theme, string>,
+    /**
+     * FR-COMP-1 (R52): the compact header's title. The full one is 29 cells and
+     * the row it shares with `[ live ]` and `[ settings ]` has 36, so compact
+     * gets a short name rather than a wrapped one. Meaning may not differ
+     * between the widths (FR-COMP-4); a name may.
+     */
+    shortTitle: 'Your sky',
   },
 
   banner: { info: 'Note', warning: 'Warning' },
+
+  /** FR-COMP-2, US-20 (R52): the settings page and the compact header's way in. */
+  settings: {
+    /** The compact header's control. Lower case, like `[ live ]` beside it: they are one row of the same kind. */
+    open: 'settings',
+    /** The page's own way back, beside `Esc` and the browser's Back (US-20 AC4). */
+    back: '\u2190 Back',
+    /** Names the region for assistive technology; the page shows no title of its own (the mockup). */
+    heading: 'Settings',
+  },
 
   compass,
 
@@ -147,6 +164,18 @@ export const ui = {
     savedHere: 'Saved in this browser only.',
     clearSaved: 'Clear saved location',
     precisionNote: 'Precision is city-level: a pass looks the same from anywhere within a few kilometres, so no street address is resolved.',
+    /**
+     * FR-COMP-3 (R52): the one line the compact home shows where the wide
+     * layout shows the whole form. It names the place and opens `#settings`;
+     * the device's accuracy (US-3 AC3) goes on a second line rather than into
+     * the row, which has 36 cells to spend and a place name of unknown length
+     * already in it.
+     */
+    summary: (label: string) => `Using ${label}`,
+    summaryChange: 'change',
+    summaryAccuracy: (accuracy: string) => `from your device, accurate to ${accuracy}`,
+    summaryNone: 'No place set.',
+    summarySet: 'set a place',
   },
 
   /**
@@ -235,6 +264,8 @@ export const ui = {
     sortGroup: 'Sort passes',
     sortPrefix: 'Sort:',
     sort: { chronological: 'Soonest first', best: 'Best first' } satisfies Record<PassSort, string>,
+    /** US-5 AC2 as amended (v1.1), FR-COMP-4: the same two orders named short enough for a 36-cell row. */
+    sortShort: { chronological: 'Soonest', best: 'Best' } satisfies Record<PassSort, string>,
     heroKicker: (p: { name: string; iss: boolean }) => (p.iss ? 'Next ISS pass' : `Next ${p.name} pass`),
     twilightLabel: 'sky still bright',
     openGuide: 'Open guide →',

@@ -12,7 +12,7 @@
  * is tried, in that order.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { ha, stubNetwork, T } from './liveHelpers';
+import { ha, stubNetwork, T, withSettings } from './liveHelpers';
 
 const THROTTLE = 6;
 const PLAY_SECONDS = 5;
@@ -68,7 +68,9 @@ async function openLive(page: Page): Promise<void> {
   await page.clock.setFixedTime(T);
   await stubNetwork(page);
   await page.goto('/');
-  await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
+  await withSettings(page, async () => {
+    await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
+  });
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 60_000 });
   await page.getByTestId('live-link').click();
   await expect(page.getByTestId('live-dome').locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });

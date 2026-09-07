@@ -1,4 +1,0 @@
-/* The switch sits on the header's right, on the tagline's row at any width. */
-.toggle {
-  justify-content: flex-end;
-}

@@ -11,6 +11,20 @@
  * every pass that night has something to say about it.
  */
 import { expect, test, type Page } from '@playwright/test';
+import { withSettings } from './liveHelpers';
+
+/*
+ * FR-CI-2 (R37, D-195): off the pull-request path. These are evidence, as the
+ * comment above says, and re-shooting them on every pull request bought
+ * nothing and cost the FR-CI-1 budget the minute R52 needed. R37 moved the
+ * `v1-*` set and four page specs and listed the rest as follow-ups; this is
+ * the rest. The files stay committed and a task that changes these screens
+ * re-shoots them on purpose:
+ *
+ *   CAPTURES=1 npx playwright test <this spec> --project=chromium
+ */
+test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
+
 
 const FIXTURE_DATE = '2026-09-02';
 const PARIS = '48.86, 2.35';
@@ -30,7 +44,9 @@ async function open(page: Page, width: 390 | 1280, locale: 'en' | 'es'): Promise
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
   await page.goto('/');
   if (locale === 'es') await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
-  await page.getByLabel(locale === 'es' ? 'Coordenadas (lat, lon)' : 'Coordinates (lat, lon)').fill(PARIS);
+  await withSettings(page, async () => {
+    await page.getByLabel(locale === 'es' ? 'Coordenadas (lat, lon)' : 'Coordinates (lat, lon)').fill(PARIS);
+  });
   const passes = page.getByRole('region', { name: locale === 'es' ? 'Próximos pases' : 'Upcoming passes' });
   await expect(passes.getByRole('status')).toHaveText(/\d+ (visible passes in the next 72 h|pases visibles en las próximas 72 h)/, { timeout: 60_000 });
 }

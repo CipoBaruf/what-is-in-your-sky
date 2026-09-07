@@ -11,6 +11,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import { withSettings } from './liveHelpers';
 
 interface HaFixture {
   observer: { lat: number; lon: number };
@@ -60,7 +61,9 @@ test('badges from the recorded forecast on every card and the Now panel, times i
   });
 
   await page.goto('/');
-  await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+  await withSettings(page, async () => {
+    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+  });
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(status).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
 
@@ -120,7 +123,9 @@ test('with Open-Meteo unreachable the list still renders, every badge reads unkn
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
 
   await page.goto('/');
-  await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+  await withSettings(page, async () => {
+    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+  });
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(status).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
 

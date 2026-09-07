@@ -30,11 +30,24 @@ describe('<App> frame (R12)', () => {
     forgetInstallOffer();
   });
 
-  it('has the title, the tagline, the three titled regions and the footer, with no axe violations while empty', async () => {
+  /*
+   * R52 (FR-COMP-1, FR-COMP-3): jsdom without a `matchMedia` stub is the
+   * compact layout, and this is now the compact frame — the one-row header with
+   * the short title, the location summary where the form used to be, and the
+   * two titled regions that are left. The wide frame, with the full title, the
+   * tagline and the location section, is `App.wide.test.tsx`.
+   */
+  it('has the compact header, the location summary, the titled regions and the footer, with no axe violations while empty', async () => {
     const { container } = render(<App />);
-    expect(within(screen.getByRole('banner')).getByRole('heading', { level: 1, name: 'What is in your sky right now' })).toBeInTheDocument();
-    expect(screen.getByRole('banner')).toHaveTextContent(en.app.tagline);
-    for (const name of ['Location', 'Right now', 'Upcoming passes']) {
+    const banner = screen.getByRole('banner');
+    expect(within(banner).getByRole('heading', { level: 1, name: en.app.shortTitle })).toBeInTheDocument();
+    expect(banner).not.toHaveTextContent(en.app.tagline);
+    expect(screen.getByTestId('live-link')).toHaveTextContent(en.live.openShort);
+    expect(screen.getByTestId('settings-link')).toHaveAttribute('href', '#settings');
+    // The form is one tap away; the summary with no observer is the prompt to set one (FR-COMP-3).
+    expect(screen.queryByRole('region', { name: 'Location' })).toBeNull();
+    expect(screen.getByTestId('location-summary')).toHaveTextContent(en.location.summaryNone);
+    for (const name of ['Right now', 'Upcoming passes']) {
       const region = screen.getByRole('region', { name });
       expect(within(region).getByRole('heading', { level: 2, name })).toBeInTheDocument();
     }

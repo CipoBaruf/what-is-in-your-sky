@@ -6,6 +6,7 @@
  * typed in, and the live page with its dome drawn.
  */
 import { readFileSync } from 'node:fs';
+import { WIDE_QUERY } from '../../src/lib/layout';
 import { expect, type Page } from '@playwright/test';
 import { FIXTURE_DATE, NEUQUEN as NEUQUEN_OBSERVER, NINE_DAYS_ON, STORED_RUN_FILE } from './observers';
 
@@ -64,6 +65,47 @@ export async function stubNetwork(page: Page, elements: 'fixtures' | 'down' = 'f
 }
 
 /**
+ * R52 (FR-COMP-2): runs `body` where the language switch, the theme switch and
+ * the location form are, and comes back.
+ *
+ * On compact they are on `#settings`, one tap from the home screen; on wide
+ * they are still on the home screen itself (US-20 AC5). Which of the two this
+ * viewport is showing is read off the page — the `[ settings ]` control exists
+ * only on the compact header — so a spec that only wants "the app in Neuquén,
+ * in Spanish" says nothing about where the form lives.
+ */
+export async function withSettings(page: Page, body: () => Promise<void>): Promise<void> {
+  const compact = await openSettings(page);
+  await body();
+  if (compact) await leaveSettings(page);
+}
+
+/**
+ * Opens the settings page if this viewport has one, and says whether it did —
+ * for a spec whose subject *is* the form, which stays on it across several
+ * steps rather than making the trip for each.
+ */
+export async function openSettings(page: Page): Promise<boolean> {
+  // The app's own media query, asked of the browser, rather than "is the
+  // `[ settings ]` link in the DOM yet": after a `setViewportSize` the query
+  // answers immediately and React has not necessarily re-rendered the header,
+  // so probing the DOM reads the layout the page is leaving rather than the one
+  // it is in.
+  const compact = !(await page.evaluate((query: string) => window.matchMedia(query).matches, WIDE_QUERY));
+  if (!compact) return false;
+  const link = page.getByTestId('settings-link');
+  await link.click();
+  await expect(page.getByTestId('settings-back')).toBeVisible();
+  return true;
+}
+
+/** Back to the home screen, through the page's own control. */
+export async function leaveSettings(page: Page): Promise<void> {
+  await page.getByTestId('settings-back').click();
+  await expect(page.getByTestId('settings-back')).toHaveCount(0);
+}
+
+/**
  * The app at `t` with the fixtures, Neuquén typed in, and the Now panel's verdict for that instant.
  * `wholeList` waits for the 72 h search to finish first, so a capture shows every arc of the coming night
  * rather than the first few to stream in.
@@ -73,8 +115,10 @@ export async function homeAt(page: Page, t: number, locale: 'en' | 'es' = 'en', 
   await page.clock.pauseAt(t);
   await stubNetwork(page);
   await page.goto('/');
-  if (locale === 'es') await page.getByRole('banner').getByRole('button', { name: 'Español' }).click();
-  await page.getByLabel(LABEL[locale].coords).fill(NEUQUEN);
+  await withSettings(page, async () => {
+    if (locale === 'es') await page.getByRole('button', { name: 'Español' }).click();
+    await page.getByLabel(LABEL[locale].coords).fill(NEUQUEN);
+  });
   const panel = page.getByRole('region', { name: LABEL[locale].now });
   await expect(panel.getByRole('status')).toHaveText(LABEL[locale].visible, { timeout: 60_000 });
   if (wholeList) {
@@ -247,7 +291,11 @@ export async function heading(page: Page, alpha: number): Promise<void> {
  */
 export async function setThemeOnHome(page: Page, locale: 'en' | 'es', theme: 'dark' | 'night'): Promise<void> {
   const words = LABEL[locale];
-  await page.getByRole('banner').getByRole('group', { name: words.theme }).getByRole('button', { name: theme === 'night' ? words.night : words.dark }).click();
+  // R52: which is now literally true — on compact the switch is on `#settings`,
+  // one tap from the home screen; on wide it is still in the header.
+  await withSettings(page, async () => {
+    await page.getByRole('group', { name: words.theme }).getByRole('button', { name: theme === 'night' ? words.night : words.dark }).click();
+  });
   await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
 }
 

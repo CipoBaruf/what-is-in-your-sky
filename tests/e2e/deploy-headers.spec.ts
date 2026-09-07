@@ -9,6 +9,7 @@
 /// <reference lib="dom" />
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import { withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -86,7 +87,9 @@ test('the R3 flow completes under the strict CSP with zero violations and only s
   });
 
   await page.goto('/');
-  await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
+  await withSettings(page, async () => {
+    await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
+  });
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
   // The hero card, not "the ISS article": the 72 h window holds several ISS passes (R24).
   const iss = page.getByTestId('iss-hero');

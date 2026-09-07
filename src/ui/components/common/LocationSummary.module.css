@@ -1,0 +1,43 @@
+/* FR-COMP-3, FR-COMP-4: one line, and one line only. The label is the part
+   that gives — a place name has no length the app can promise — so it takes
+   the leftover width and clips; the separator and the `[ change ]` control
+   keep theirs. */
+.summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0 var(--cell);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.separator {
+  color: var(--fg-dim);
+}
+
+.change {
+  text-decoration: none;
+  white-space: nowrap;
+  flex: none;
+}
+
+.change::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.change::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+/* US-3 AC3: the accuracy, on its own line and out of the row's 36 cells. */
+.accuracy {
+  margin: 0;
+  color: var(--fg-dim);
+}

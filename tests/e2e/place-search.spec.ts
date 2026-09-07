@@ -12,6 +12,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+import { leaveSettings, openSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -76,6 +77,8 @@ test('search → pick list → confirmation line → pass list for Cipolletti, a
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(status).toHaveText(/Enter a place name or coordinates/);
 
+  // R52 (FR-COMP-2): the place field is on `#settings` at this width; the list it fills is back on the home screen.
+  const compact = await openSettings(page);
   const field = page.getByRole('combobox', { name: 'Place name' });
   await field.pressSequentially('Cipolletti', { delay: 30 }); // ten keystrokes inside 400 ms → one request (FR-LOC-2)
   const options = page.getByRole('listbox', { name: 'Matching places' }).getByRole('option');
@@ -94,6 +97,7 @@ test('search → pick list → confirmation line → pass list for Cipolletti, a
   await expect(options).toHaveCount(0);
   await expect(field).toHaveValue('Cipolletti, Rio Negro, Argentina');
   await expect(page.getByTestId('place-confirmation')).toHaveText('Using the centre of Cipolletti, Rio Negro, Argentina (−38.93, −67.99).');
+  if (compact) await leaveSettings(page);
 
   // The pass list for the picked place: the golden observer, so the golden ISS pass is among the cards, with times in the geocoded zone.
   await expect(status).toHaveText(/\d+ visible passes in the next 72 h from Cipolletti, Rio Negro, Argentina/, { timeout: 30_000 });
@@ -113,6 +117,7 @@ test('an ambiguous name shows a pick list readable at arm\'s length: eight rows,
   const requests: URL[] = [];
   await routeGeocoding(page, requests);
   await page.goto('/');
+  await openSettings(page);
   const field = page.getByRole('combobox', { name: 'Place name' });
   await field.fill('Rosario');
   const options = page.getByRole('listbox', { name: 'Matching places' }).getByRole('option');
@@ -149,6 +154,7 @@ test('no match points at the coordinates input; a failed search leaves the field
     await route.fulfill({ json: { generationtime_ms: 0.5 }, headers: { 'access-control-allow-origin': '*' } });
   });
   await page.goto('/');
+  await openSettings(page);
   const field = page.getByRole('combobox', { name: 'Place name' });
   await field.fill('Cipolletti');
   const alert = page.getByRole('region', { name: 'Location' }).getByRole('alert'); // not the elements banners (R11)
