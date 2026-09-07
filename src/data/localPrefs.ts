@@ -20,7 +20,11 @@ import { z } from './zod';
  * only itself, so one bad entry costs one place and not the other seven.
  * R28 the install hint's dismissal (FR-OFF-6): written only when the hint has
  * been answered, and only ever `true`, so an untouched browser has no key for
- * it. Each preference is optional and read
+ * it. R55 (FR-OFF-6 as amended v1.1.2, D-272) puts the snooze beside it —
+ * a count of declines and the instant the current one runs out — both absent
+ * on a device that has never pressed "Not now", so a blob written before
+ * v1.1.2 reads as a device with no declines and no migration is needed. Each
+ * preference is optional and read
  * independently, so an unknown or invalid value of one never loses the
  * others.
  */
@@ -38,6 +42,10 @@ export interface Prefs {
   liveHidden?: boolean;
   /** FR-OFF-6: the install hint has been answered and is not offered again. Absent until then. */
   installHintDismissed?: boolean;
+  /** FR-OFF-6 as amended (D-272): how many times "Not now" has been pressed. Absent until the first. */
+  installHintDeclines?: number;
+  /** FR-OFF-6 as amended (D-272): when the current snooze runs out, epoch ms. Absent until the first decline. */
+  installHintSnoozedUntil?: number;
 }
 
 /** One saved place as it is written (FR-OFF-7); the whole observer, so selecting it offline needs no geocode. */
@@ -63,6 +71,10 @@ const storedPrefsSchema = z.object({
     .optional()
     .catch(undefined),
   installHintDismissed: z.boolean().optional().catch(undefined),
+  // A count and an instant, each read independently: a nonsense one drops itself and leaves the
+  // other, which at worst offers the hint a snooze early — never the other way round.
+  installHintDeclines: z.number().int().nonnegative().optional().catch(undefined),
+  installHintSnoozedUntil: z.number().finite().optional().catch(undefined),
 });
 
 export interface LocalPrefs {
@@ -79,7 +91,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!raw) return {};
         const parsed = storedPrefsSchema.safeParse(JSON.parse(raw));
         if (!parsed.success) return {};
-        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, installHintDismissed } = parsed.data;
+        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, installHintDismissed, installHintDeclines, installHintSnoozedUntil } = parsed.data;
         const prefs: Prefs = {};
         if (observer) prefs.observer = toObserver(observer);
         if (sort) prefs.sort = sort;
@@ -95,6 +107,9 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         }
         // Only `true` is a preference; `false` is what an absent key already means.
         if (installHintDismissed) prefs.installHintDismissed = true;
+        // Zero declines is what an absent key already means, so it is not written back either.
+        if (installHintDeclines) prefs.installHintDeclines = installHintDeclines;
+        if (installHintSnoozedUntil !== undefined) prefs.installHintSnoozedUntil = installHintSnoozedUntil;
         return prefs;
       } catch {
         return {};

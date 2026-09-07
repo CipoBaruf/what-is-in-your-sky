@@ -8,8 +8,11 @@ import { InstallHint, type InstallEnv } from './InstallHint';
 import { APP_INSTALLED, BEFORE_INSTALL_PROMPT, forgetInstallOffer, type BeforeInstallPromptEvent } from './installOffer';
 
 /**
- * TASKS R28 (FR-OFF-6, US-16 AC4): the hint is shown once, in either of the
- * two shapes the browsers give it, and remembered when it is answered.
+ * TASKS R28 (FR-OFF-6, US-16 AC4): the hint is shown in either of the two
+ * shapes the browsers give it, and remembered when it is answered. R55
+ * (FR-OFF-6 as amended v1.1.2, D-272): installing answers it for good and
+ * "Not now" only snoozes it, so these cases separate the two answers. The
+ * clock is read at mount, so a case that moves past a snooze mounts again.
  *
  * `beforeinstallprompt` is faked as the browser fires it: a plain event with a
  * `prompt` method on it. The two branches are told apart by the environment
@@ -72,25 +75,73 @@ describe('InstallHint (R28: FR-OFF-6)', () => {
     await user.click(screen.getByRole('button', { name: 'Install' }));
     expect(prompt).toHaveBeenCalledTimes(1);
     // Answered, whatever the browser's dialog goes on to say: the event cannot be replayed.
-    expect(state().installHintDismissed).toBe(true);
+    expect(state().installAnswer).toEqual({ dismissed: true });
     expect(screen.queryByTestId('install-hint')).toBeNull();
   });
 
-  it('"Not now" remembers the dismissal, and a later offer is not shown again', async () => {
+  it('"Not now" snoozes rather than answers: a decline, an expiry, and nothing shown until it runs out', async () => {
     const user = userEvent.setup();
     const { unmount } = show(CHROMIUM);
     fire(installable().event);
     await user.click(screen.getByRole('button', { name: 'Not now' }));
-    expect(state().installHintDismissed).toBe(true);
+    expect(state().installAnswer.dismissed).toBeUndefined();
+    expect(state().installAnswer.declines).toBe(1);
     expect(screen.queryByTestId('install-hint')).toBeNull();
     unmount();
 
-    // A fresh page with the preference already in the store: nothing is shown, on either browser.
+    // A fresh page inside the snooze: nothing is shown, on either browser.
     show(CHROMIUM);
     fire(installable().event);
     expect(screen.queryByTestId('install-hint')).toBeNull();
     show(IOS_TAB);
     expect(screen.queryByTestId('install-hint')).toBeNull();
+  });
+
+  /** FR-OFF-6 as amended / US-16 AC4: the offer comes back when the snooze has run out and the browser is still offering. */
+  it('shows the offer again once the snooze has expired, and answers it for good on the third decline', async () => {
+    const user = userEvent.setup();
+    const day = 86_400_000;
+    const start = Date.UTC(2026, 8, 6, 21, 0);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(start);
+      const first = show(CHROMIUM);
+      fire(installable().event);
+      await user.click(screen.getByRole('button', { name: 'Not now' }));
+      first.unmount();
+
+      // A day short of the week: still away.
+      vi.setSystemTime(start + 7 * day - 1);
+      const early = show(CHROMIUM);
+      fire(installable().event);
+      expect(screen.queryByTestId('install-hint')).toBeNull();
+      early.unmount();
+
+      // The week is up and the browser is offering again: the hint is back, with a button that works.
+      vi.setSystemTime(start + 7 * day);
+      const back = show(CHROMIUM);
+      fire(installable().event);
+      expect(screen.getByTestId('install-hint')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Not now' }));
+      expect(state().installAnswer).toEqual({ declines: 2, snoozedUntil: start + 7 * day + 30 * day });
+      back.unmount();
+
+      // The third refusal is the last one: the offer is answered, and no expiry is left to run out.
+      vi.setSystemTime(start + 37 * day);
+      const last = show(CHROMIUM);
+      fire(installable().event);
+      expect(screen.getByTestId('install-hint')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Not now' }));
+      expect(state().installAnswer).toEqual({ dismissed: true, declines: 3 });
+      last.unmount();
+
+      vi.setSystemTime(start + 3650 * day);
+      show(CHROMIUM);
+      fire(installable().event);
+      expect(screen.queryByTestId('install-hint')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('iOS, where the event never fires: the share-sheet note, with no install button', async () => {
@@ -102,8 +153,9 @@ describe('InstallHint (R28: FR-OFF-6)', () => {
     expect(screen.queryByRole('button', { name: 'Install' })).toBeNull();
     expect(await axe(container)).toHaveNoViolations();
 
+    // The rule is the same on iOS, where "Not now" is the only answer there is (FR-OFF-6 as amended).
     await user.click(screen.getByRole('button', { name: 'Not now' }));
-    expect(state().installHintDismissed).toBe(true);
+    expect(state().installAnswer).toEqual({ declines: 1, snoozedUntil: expect.any(Number) });
     expect(screen.queryByTestId('install-hint')).toBeNull();
   });
 
@@ -116,7 +168,7 @@ describe('InstallHint (R28: FR-OFF-6)', () => {
     show(IOS_TAB);
     expect(screen.getByTestId('install-hint')).toBeInTheDocument();
     fire(new Event(APP_INSTALLED));
-    expect(state().installHintDismissed).toBe(true);
+    expect(state().installAnswer.dismissed).toBe(true);
     expect(screen.queryByTestId('install-hint')).toBeNull();
   });
 
@@ -140,7 +192,7 @@ describe('InstallHint (R28: FR-OFF-6)', () => {
       window.dispatchEvent(new Event(APP_INSTALLED));
     });
     show(IOS_TAB);
-    expect(state().installHintDismissed).toBe(true);
+    expect(state().installAnswer.dismissed).toBe(true);
     expect(screen.queryByTestId('install-hint')).toBeNull();
   });
 
@@ -149,7 +201,7 @@ describe('InstallHint (R28: FR-OFF-6)', () => {
       window.dispatchEvent(new Event(APP_INSTALLED));
     });
     show(IOS_TAB).unmount();
-    expect(state().installHintDismissed).toBe(true);
+    expect(state().installAnswer.dismissed).toBe(true);
     const dismiss = vi.fn();
     act(() => {
       appStore.setState({ dismissInstallHint: dismiss });
@@ -181,7 +233,7 @@ describe('InstallHint (R28: FR-OFF-6)', () => {
       process.off('unhandledRejection', noted);
     }
     // The hint is answered whatever the browser said.
-    expect(state().installHintDismissed).toBe(true);
+    expect(state().installAnswer.dismissed).toBe(true);
   });
 
   it('is out of reach while a pass is open (R49, F-30)', () => {
