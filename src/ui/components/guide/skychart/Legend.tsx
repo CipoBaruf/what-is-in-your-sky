@@ -29,6 +29,9 @@ import styles from './Legend.module.css';
  * the head of the list. The rows left are the passes drawn dim, and they
  * carry rise and end only: the explained pass's peak is in the table, and a
  * dim arc on the detail is context, not a second pass to time to the second.
+ * `data-lead` says so on the list itself, which is how `ChartFrame` knows to
+ * keep this legend under the drawing at every width (D-259): a five-column
+ * table does not go in a 24-cell column.
  */
 export interface LegendProps {
   rows: readonly LegendRow[];
@@ -56,7 +59,7 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
   // The lead's row is the table itself, so it is not repeated as a button below it (FR-LEG-3).
   const listed = lead === undefined ? rows : rows.filter((row) => row.passId !== lead.passId);
   return (
-    <ol className={styles.legend} aria-label={words.label} data-testid="chart-legend">
+    <ol className={styles.legend} aria-label={words.label} data-testid="chart-legend" data-lead={lead !== undefined}>
       {lead !== undefined && (
         <li className={[styles.item, styles.lead].join(' ')} data-testid="legend-lead" data-pass-id={lead.passId}>
           {lead.node}

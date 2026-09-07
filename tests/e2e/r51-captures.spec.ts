@@ -30,7 +30,7 @@ const SHOWN = GLARE_PASS_START + 180_000;
 const TICK_MS = 10_000;
 const OPEN_GUIDE = { en: /Open guide/, es: /Abrir la guía/ } as const;
 
-const VIEWPORTS = { 390: { width: 390, height: 844 }, 1280: { width: 1280, height: 800 } } as const;
+const VIEWPORTS = { 390: { width: 390, height: 844 }, 1280: { width: 1280, height: 800 }, 1920: { width: 1920, height: 1080 } } as const;
 type Width = keyof typeof VIEWPORTS;
 
 const guide = (page: Page): Locator => page.locator('[role="dialog"], [data-testid="guide-panel"]').first();
@@ -94,3 +94,34 @@ for (const width of [390, 1280] as const) {
     }
   }
 }
+
+/**
+ * D-259: the large desktop, where the guide column is past D-232's 62 cells
+ * and the table would have gone into the 24-cell column beside the drawing.
+ * One capture, dark and English: what is being shown is a placement.
+ */
+test('the pass detail at 1920 px, dark, en: the table under the drawing, not beside it', async ({ page }) => {
+  await open(page, 1920, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
+  await page.goto('/');
+  const card = page.locator(`article[data-pass-id="${GLARE_PASS}"]`);
+  await expect(card).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
+  await card.getByRole('button', { name: OPEN_GUIDE.en }).click();
+  const figure = guide(page).getByRole('figure');
+  await page.clock.runFor(1000);
+  await expect(figure.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+  await page.clock.setSystemTime(SHOWN - TICK_MS);
+  await page.clock.runFor(TICK_MS);
+
+  const box = await figure.getByTestId('chart-box').boundingBox();
+  const lead = await figure.getByTestId('legend-lead').boundingBox();
+  if (!box || !lead) throw new Error('no chart box or table');
+  expect(lead.y).toBeGreaterThanOrEqual(box.y + box.height);
+  // The readout in the middle of the panel, which is what holds the dome and the table under it in one shot;
+  // `scrollIntoViewIfNeeded` would not move at all here, since the readout is already on screen.
+  await figure.getByTestId('dome-readout').evaluate((el) => {
+    el.scrollIntoView({ block: 'center' });
+  });
+  await page.mouse.move(0, 0);
+  await page.screenshot({ path: `${CAPTURE_DIR}/r51-detail-1920-dark-en.png` });
+});
