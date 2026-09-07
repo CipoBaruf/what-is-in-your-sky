@@ -140,7 +140,7 @@ export const ui: typeof EnUi = {
     summary: (label: string) => `Se usa ${label}`,
     summaryChange: 'cambiar',
     summaryAccuracy: (accuracy: string) => `desde tu dispositivo, con precisión de ${accuracy}`,
-    summaryNone: 'Sin lugar elegido.',
+    summaryNone: 'Sin lugar aún.',
     summarySet: 'elegir lugar',
   },
 
