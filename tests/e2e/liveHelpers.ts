@@ -6,6 +6,7 @@
  * typed in, and the live page with its dome drawn.
  */
 import { readFileSync } from 'node:fs';
+import { WIDE_QUERY } from '../../src/lib/layout';
 import { expect, type Page } from '@playwright/test';
 import { FIXTURE_DATE, NEUQUEN as NEUQUEN_OBSERVER, NINE_DAYS_ON, STORED_RUN_FILE } from './observers';
 
@@ -85,8 +86,14 @@ export async function withSettings(page: Page, body: () => Promise<void>): Promi
  * steps rather than making the trip for each.
  */
 export async function openSettings(page: Page): Promise<boolean> {
+  // The app's own media query, asked of the browser, rather than "is the
+  // `[ settings ]` link in the DOM yet": after a `setViewportSize` the query
+  // answers immediately and React has not necessarily re-rendered the header,
+  // so probing the DOM reads the layout the page is leaving rather than the one
+  // it is in.
+  const compact = !(await page.evaluate((query: string) => window.matchMedia(query).matches, WIDE_QUERY));
+  if (!compact) return false;
   const link = page.getByTestId('settings-link');
-  if ((await link.count()) === 0) return false;
   await link.click();
   await expect(page.getByTestId('settings-back')).toBeVisible();
   return true;

@@ -71,12 +71,17 @@
 }
 
 /* The header's switches (language, theme) sit on the right, side by side when
-   the width allows and stacked when it does not (R17, R20). */
+   the width allows and stacked when it does not (R17, R20). The language group
+   is the one that wraps, so it carries the alignment itself. */
 .controls {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0 calc(3 * var(--cell));
+}
+
+.prefsToggle {
+  justify-content: flex-end;
 }
 
 /* R23 (FR-DESK-2): the header spans both columns of the wide shell and puts

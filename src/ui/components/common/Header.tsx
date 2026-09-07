@@ -76,7 +76,7 @@ export function Header({ inert = false, current = 'home' }: HeaderProps) {
         <p className={styles.tagline}>{t.app.tagline}</p>
       </div>
       <div className={styles.controls}>
-        <LanguageToggle />
+        <LanguageToggle className={styles.prefsToggle} />
         <ThemeToggle />
       </div>
     </header>

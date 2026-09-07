@@ -151,7 +151,7 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
             {t.guide.back}
           </button>
           <div className={styles.controls}>
-            <LanguageToggle />
+            <LanguageToggle className={styles.prefsToggle} />
             <ThemeToggle />
           </div>
         </div>

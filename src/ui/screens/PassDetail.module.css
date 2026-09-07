@@ -75,3 +75,10 @@
 .twilight::after {
   content: ']';
 }
+
+/* R52: the sheet's preference group keeps the header's right alignment; the
+   class moved out of `LanguageToggle` when the settings page wanted the other
+   one (the alignment is a placement, not the control). */
+.prefsToggle {
+  justify-content: flex-end;
+}
