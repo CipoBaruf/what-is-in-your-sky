@@ -92,7 +92,11 @@
     column-gap: calc(2 * var(--cell));
   }
 
-  .frame[data-compact='false'][data-legend='true']:not(:has([data-lead='true'])) .legend {
+  /* Only the grid above is excluded for a lead: this one has to keep the selector it had, because the live
+     rule under it is `.fill[…] .legend` and a `:not(:has(…))` here would out-specify it and take the live
+     column's scroll away. It says nothing a legend under the drawing minds — the base `.legend` sets no
+     max-height and no overflow outside `.fill` — so leaving it to match every wide frame costs nothing. */
+  .frame[data-compact='false'][data-legend='true'] .legend {
     align-self: start;
     max-height: none;
     overflow: visible;
