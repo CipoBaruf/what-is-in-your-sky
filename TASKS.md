@@ -1253,6 +1253,7 @@ Delivery is PLAN §16 unchanged, cut by §16.9: five tasks, three waves, one tas
     - The budget table equals the measured build plus a tenth; `npm run build` is inside it.
     - `npm test`, lint, typecheck and the PR e2e path green inside FR-CI-1's 10 min.
     - The tag, the deploy and the on-device run stay with the owner, as `docs/RELEASE.md` says.
+  - **Done 2026-09-08 (D-345..D-347):** as written, with one thing the entry did not foresee: the *declination* chunk no longer exists. R66 took the live page's last call to `useDeclination` away with the strip's true-north line (D-341), so Vite folds the World Magnetic Model back into the window chunk — `SkyWindow-*.js` is 12.0 KB where it was 5.9, neither half grown — and the budget follows to 15 while the declination row is deleted rather than left matching nothing (D-345). The `chart` and `live` rows the entry expected to re-state both hold at the numbers they already carried (94.2 → 105, 7.4 → 10), and `main` measures 137.9 inside its 155. The set is 116 files, all re-shot: 35 changed, and only the screens that carry a view control or the live page's actions row (D-346). `docs/RELEASE.md` gains §9, whose §9.1 replaces §8.1's follow checks — that section asks the owner to press a control the app no longer has (D-347). Nothing new was found to write into SPEC §4.20; F-64 stands as R66 left it.
 
 ### Expected waves (v1.2)
 
@@ -1365,7 +1366,7 @@ Delivery is PLAN §16 unchanged, cut by §16.10: four tasks, three waves, one ta
     - `npm test`, lint, typecheck green.
   - **Done 2026-09-08 (D-358..D-363):** as written, with six decisions the scope did not foresee, all recorded. The compact view control drops its visible `View:` prefix, because three options plus the prefix are 38 cells at 390 px and the row wrapped to two — the thing V13-4 had taken away (D-358). The note, the lost option and a one-shot focus flag are the store's rather than `SkyChart`'s, since the window that fails is the one on the screen and the control that answers for it is on the page underneath, which is also unmounted while the layer is up (D-359). The screen takes its initial facing from the page that opens it, so the guide's screen still aims at the pass it is about (D-360). `[ point at the sky ]` is deleted rather than left unreachable (D-361). The pass detail's `Esc` is a capture listener that stops the press before the app's own shortcut listener reads it (D-362). And the capture set's `window` becomes the screen opened from a pass at 844 while its two ground states leave, `r59-captures.spec.ts` and `r62-captures.spec.ts` going with the states they asserted (D-363). Two things found on the way and not fixed here: F-64 in SPEC §4.20, a `moon.spec.ts` failure that reproduces on `origin/main`, and the phone run itself, which is the owner's gate.
 
-- [ ] **R65 — v1.3 release preparation**
+- [x] **R65 — v1.3 release preparation**
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
