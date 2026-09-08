@@ -172,8 +172,15 @@
 
 /* R61 (FR-LIVE-7 as amended v1.2.1, V12-14, D-319): the one-column wide page,
    under `LIVE_TWO_COLUMN_MIN_PX`. The page has its third row back — the status
-   strip and the actions, on one line, centred under the frame, which stacks
-   the drawing, the stripe and the legend centred at the box's width. */
+   strip and the actions, on one line under the frame, which stacks the
+   drawing, the stripe (the page's whole width, V12-15) and the legend.
+
+   V12-15 (D-320): that line reads from the left, not from the centre. Centred,
+   the five facts of the strip moved sideways under a dome that does not as the
+   longest of them changed — the cloud words, the count, the Moon's phase — and
+   read as a caption rather than as a row of values. Against the left edge they
+   are where the stripe's first hour label is, and the actions follow the strip
+   on the same line. */
 .page[data-compact='false'][data-columns='one'] {
   grid-template-areas:
     'top'
@@ -185,7 +192,7 @@
 .page[data-compact='false'][data-columns='one'] .side {
   flex-direction: row;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: baseline;
   gap: 0 calc(3 * var(--cell));
 }

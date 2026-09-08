@@ -346,11 +346,12 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
   });
 
   /**
-   * R61 (FR-LIVE-7 as amended v1.2.1, D-319): `stacked` is the one-column wide live page — no rail, the drawing,
-   * the stripe and the legend under one another, centred at the box's width, and the legend's height counted
-   * in the box's as the stripe's is. An aside wins over it: the rail is what the rail is for.
+   * R61 (FR-LIVE-7 as amended v1.2.1, D-319, D-320): `stacked` is the one-column wide live page — no rail, the
+   * drawing, the stripe and the legend under one another, the drawing and the legend centred at the box's width
+   * and the stripe the frame's whole width (V12-15), and the legend's height counted in the box's as the
+   * stripe's is. An aside wins over it: the rail is what the rail is for.
    */
-  it('stacks the drawing, the stripe and the legend centred at the box width where it is stacked, and lets an aside win', () => {
+  it('stacks the drawing, the stripe and the legend where it is stacked — the stripe full width, the drawing and the legend centred at the box width — and lets an aside win', () => {
     const media = stubMatchMedia(1280);
     try {
       const { unmount } = render(
@@ -378,7 +379,8 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
     const beside = /@container \(min-width: 62ch\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
     expect(beside).toMatch(/\[data-stacked='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\);\n\s+grid-template-rows: auto auto auto auto;\n\s+grid-template-areas:\n\s+'controls status'\n\s+'drawing drawing'\n\s+'stripe stripe'\n\s+'legend legend';/);
     expect(beside).toMatch(/\[data-stacked='true'\]\[data-box='true'\] \.drawing \{\n\s+width: var\(--chart-box-w\);\n\s+height: var\(--chart-box-h\);\n\s+margin: 0 auto;/);
-    expect(beside).toMatch(/\[data-stacked='true'\]\[data-box='true'\] \.stripe \{\n\s+width: clamp\(calc\(60 \* var\(--cell\)\), var\(--chart-box-w\), 100%\);\n\s+margin: 0 auto;/);
+    // D-320 (V12-15): the stripe spans the frame — the page's whole width — where the legend keeps the box's.
+    expect(beside).toMatch(/\[data-stacked='true'\]\[data-box='true'\] \.stripe \{\n\s+width: 100%;\n\s+\}/);
     expect(beside).toMatch(/\[data-stacked='true'\] \.legend \{\n\s+width: clamp\(calc\(60 \* var\(--cell\)\), var\(--chart-box-w, 100%\), 100%\);\n\s+margin: 0 auto;\n\s+align-self: start;\n\s+max-height: calc\(4 \* var\(--row\)\);/);
   });
 

@@ -102,21 +102,28 @@ for (const [width, height] of [
         const widthBound = width - (rail.x + rail.width) <= UNDER_PX;
         expect(heightBound || widthBound, `the box is bound by the height (${String(height - block.y - block.height)} px under it) or by the width (${String(width - rail.x - rail.width)} px past the rail)`).toBe(true);
       } else {
-        // D-319 (V12-14): one column — no rail; the box, the stripe and the legend centred at the box's width, and
-        // the strip with the actions on one line under the frame, centred; the lowest row reaches the page's bottom.
+        // D-319 (V12-14): one column — no rail; the box and the legend centred at the box's width, the stripe the
+        // frame's whole width (D-320, V12-15), and the strip with the actions on one line under the frame; the
+        // lowest row reaches the page's bottom.
         await expect(page.getByTestId('chart-aside')).toHaveCount(0);
         await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
         expect(Math.abs(box.x + box.width / 2 - width / 2), 'the box is centred').toBeLessThanOrEqual(2);
+        const frame = await page.getByTestId('chart-frame').boundingBox();
         const legend = await page.getByTestId('chart-legend-slot').boundingBox();
         const side = await page.getByTestId('live-side').boundingBox();
         const strip = await page.getByTestId('status-strip').boundingBox();
         const actions = await page.getByTestId('live-actions').boundingBox();
-        if (!legend || !side || !strip || !actions) throw new Error('the rows are not laid out');
+        if (!frame || !legend || !side || !strip || !actions) throw new Error('the rows are not laid out');
         expect(legend.y).toBeGreaterThanOrEqual(block.y + block.height - 1);
         expect(Math.abs(legend.x + legend.width / 2 - width / 2), 'the legend is centred').toBeLessThanOrEqual(2);
         expect(side.y).toBeGreaterThanOrEqual(legend.y + legend.height - 1);
         expect(Math.abs(strip.y - actions.y), 'the strip and the actions share a line').toBeLessThanOrEqual(strip.height);
         expect(height - (side.y + side.height)).toBeLessThanOrEqual(UNDER_PX);
+        // D-320 (V12-15): the stripe spans the frame, and the row under it starts at the same edge — the strip first, the actions after it.
+        expect(Math.abs(block.x - frame.x), 'the stripe starts at the frame’s left edge').toBeLessThanOrEqual(1);
+        expect(Math.abs(block.width - frame.width), 'the stripe is the frame’s whole width').toBeLessThanOrEqual(1);
+        expect(Math.abs(strip.x - side.x), 'the status strip is at the left of its row').toBeLessThanOrEqual(1);
+        expect(actions.x).toBeGreaterThanOrEqual(strip.x - 1);
       }
 
       // D-315 (V12-12): a row of the frame's own under the box at every wide width, the box's width. Its

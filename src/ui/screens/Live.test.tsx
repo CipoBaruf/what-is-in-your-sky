@@ -270,6 +270,8 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
     expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
     expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\]\[data-columns='one'\] \{\n\s+grid-template-areas:\n\s+'top'\n\s+'dome'\n\s+'side';/);
+    // D-320 (V12-15): that row reads from the left — the strip at the page's content edge, the actions after it.
+    expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\]\[data-columns='one'\] \.side \{\n\s+flex-direction: row;\n\s+flex-wrap: wrap;\n\s+justify-content: flex-start;/);
     one.unmount();
     media.restore();
     media = stubMatchMedia(LIVE_TWO_COLUMN_MIN_PX, 1080);

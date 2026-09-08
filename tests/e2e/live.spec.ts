@@ -331,7 +331,7 @@ test.describe('the wide live page (R61)', () => {
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1080);
   });
 
-  test('at 1280 × 800: one column — the box, the stripe and the legend centred, the strip and the actions under them — and no label over another', async ({ page }) => {
+  test('at 1280 × 800: one column — the box and the legend centred, the stripe full width, the strip and the actions under them at the left — and no label over another', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
@@ -344,8 +344,9 @@ test.describe('the wide live page (R61)', () => {
     const clock = await page.getByTestId('time-readout').boundingBox();
     band(readout, toggle);
     below(box, toggle);
-    // D-319 (V12-14): under 1660 px there is no rail. The stripe block is under the box at its width, the legend
-    // under that, and the page's own row — the strip and the actions on one line — under the frame, all centred.
+    // D-319 (V12-14): under 1660 px there is no rail. The stripe block is under the box, the legend under that,
+    // and the page's own row — the strip and the actions on one line — under the frame. The box and the legend are
+    // centred; the stripe takes the page's whole width and the row under it reads from its left edge (D-320, V12-15).
     await expect(page.getByTestId('live-dome')).toHaveAttribute('data-columns', 'one');
     await expect(page.getByTestId('chart-aside')).toHaveCount(0);
     const block = await page.getByTestId('stripe-block').boundingBox();
@@ -355,12 +356,15 @@ test.describe('the wide live page (R61)', () => {
     below(block, box);
     below(legend, block);
     below(strip, legend);
-    // The strip and the actions are one centred row that wraps: the actions on the strip's line where the width allows it, under it where not — never above.
+    // The strip and the actions are one row that wraps: the actions on the strip's line where the width allows it, under it where not — never above.
     expect(actions?.y ?? 0).toBeGreaterThanOrEqual((strip?.y ?? 0) - 1);
     const sideRow = await page.getByTestId('live-side').boundingBox();
     expect(Math.abs((sideRow?.x ?? 0) + (sideRow?.width ?? 0) / 2 - 640)).toBeLessThanOrEqual(2);
     expect(Math.abs((box?.x ?? 0) + (box?.width ?? 0) / 2 - 640)).toBeLessThanOrEqual(2);
-    // The block stacks: the clock readout over the stripe, which takes the box's width.
+    // D-320 (V12-15): the stripe is the page's whole width — wider than the box the height cut here — and the strip starts at its left edge.
+    expect((block?.width ?? 0)).toBeGreaterThan((box?.width ?? 0));
+    expect(Math.abs((strip?.x ?? 0) - (block?.x ?? 0))).toBeLessThanOrEqual(1);
+    // The block stacks: the clock readout over the stripe.
     below(stripe, clock);
     await expectLabelsClear(page);
     // The box is the dome's shape (D-314) and height-bound: the last row reaches the page's bottom. The page does not scroll.
