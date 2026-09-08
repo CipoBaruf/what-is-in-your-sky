@@ -42,9 +42,22 @@
    324 px under the top row in English — and the dome the rest: its zoom
    follows the shorter side of its box (D-161), so width past the height buys
    only label margin. The side column scrolls itself where the strip wraps
-   past the viewport (Spanish, a smaller phone; D-119), so the page never does. */
+   past the viewport (Spanish, a smaller phone; D-119), so the page never does.
+
+   R69 (FR-SHP-1, FR-SHP-2; F-65; D-379): the shape is the media query and
+   the mode is the selector, and this block has both. It used to match `.page`
+   alone, on the assumption the comment above states — a landscape phone is
+   compact — and a wide window dragged under 500 px is landscape too: it took
+   these two column tracks while `.page[data-compact='false']`'s one-column
+   areas won on specificity, and the whole page was drawn inside the `2fr`
+   column with a drawing of zero height and a scrollbar (F-65, 1200 × 450).
+   Every rule here is the compact page's now, said in the selector, so a short
+   wide window keeps the desktop layout with a smaller box (FR-SHP-3).
+   `tests/styles/liveShape.test.ts` holds it: no `@media` block in this file
+   has a selector without `[data-compact=`, and no block re-cuts one half of
+   the grid without the other. */
 @media (orientation: landscape) and (max-height: 500px) {
-  .page {
+  .page[data-compact='true'] {
     grid-template-areas:
       'top top'
       'dome side';
@@ -63,11 +76,11 @@
      stripe in the column beside it — 19 px off the left edge of the page and
      15 px into the strip at 844 x 390. The pane says there is nothing to break
      out of, and the box is the column's width. */
-  .dome {
+  .page[data-compact='true'] .dome {
     --page-pad-x: 0px;
   }
 
-  .side {
+  .page[data-compact='true'] .side {
     overflow-y: auto;
   }
 }
