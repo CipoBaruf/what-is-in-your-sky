@@ -107,7 +107,7 @@ const FULL_PAGE = new Set(['location', 'home', 'settings']);
  * touch panel. Playwright grants touch per context, so these tests need a
  * `test.use` of their own and the rest of the set must not have it.
  */
-const TOUCH = new Set(['window', 'window-ground', 'window-buried', 'live-following']);
+const TOUCH = new Set(['window', 'window-ground', 'window-buried', 'follow-screen-sky', 'follow-screen-ground', 'follow-screen-buried', 'follow-screen-portrait']);
 
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
@@ -296,24 +296,57 @@ async function windowGroundState(page: Page, width: CaptureWidth, theme: Capture
   await page.mouse.move(0, 0);
 }
 
-/** R59's following state: the follow control pressed, and a heading turned until the pass's arc is in the window. */
-async function liveFollowing(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale): Promise<void> {
+/**
+ * R64 (FR-FSC-1, FR-FSC-7): the follow screen, in the state its own screen name
+ * carries. The route is the reader's: the live page, `[ follow phone ]`, and the
+ * reading with a north in it that the press waits for (D-276) — the layer opens
+ * on that reading and not on the click.
+ *
+ * `sky` is turned to where the pass is, as `live-following` was: a picture with
+ * an arc in it is worth more than an empty sky. The two ground states are swept
+ * down the look's own azimuth, as `window-ground` is. `portrait` is the phone
+ * held upright, where FR-FSC-4 says there is nothing to aim.
+ */
+type FollowState = 'sky' | 'ground' | 'buried' | 'portrait';
+
+async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, state: FollowState): Promise<void> {
   await stubCompass(page);
   await liveAt(page, width, theme, locale);
   await page.getByRole('button', { name: FOLLOW[locale] }).click();
-  await heading(page, 270);
-  await expect(page.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
+  await expect
+    .poll(
+      async () => {
+        await heading(page, 270);
+        return page.getByTestId('follow-screen').count();
+      },
+      { timeout: 15_000 },
+    )
+    .toBe(1);
   // The paused clock holds the lazy chunk's Suspense reveal (R32).
   await page.clock.runFor(1000);
-  await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+  // FR-FSC-1: none of the live page is under the layer any more — the rows are not rendered at all.
   await expect(page.getByTestId('stripe-block')).toHaveCount(0);
-  const window_ = page.locator('[data-look-az]');
-  await expect(window_).toBeAttached();
-  // Turned to where the pass is: the picture is worth more with an arc in it than with an empty sky.
-  for (const azDeg of [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]) {
-    await point(page, azDeg, 20);
+  await expect(page.getByTestId('follow-close')).toBeVisible();
+  if (state === 'portrait') {
+    await expect(page.getByTestId('window-portrait-note')).toBeVisible();
+    await page.mouse.move(0, 0);
+    return;
+  }
+  const drawing = page.locator('[data-look-az]');
+  await expect(drawing).toBeAttached();
+  if (state === 'sky') {
+    for (const azDeg of [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]) {
+      await point(page, azDeg, 20);
+      await settle(page);
+      if ((await page.locator('[data-drawing="window"] [data-pass-id]').count()) > 0) break;
+    }
+    await expect(drawing).toHaveAttribute('data-ground', 'sky');
+  } else {
+    // Down the look's own azimuth, so the sky the `ground` state still holds is the sky the reader was in.
+    const azDeg = Number(await drawing.getAttribute('data-look-az'));
+    await point(page, azDeg, GROUND_STATE[state === 'ground' ? 'window-ground' : 'window-buried'].altDeg);
     await settle(page);
-    if ((await page.locator('[data-drawing="window"] [data-pass-id]').count()) > 0) break;
+    await expect(drawing).toHaveAttribute('data-ground', state);
   }
   await page.mouse.move(0, 0);
 }
@@ -490,9 +523,21 @@ const REACH: Record<string, Reach> = {
     await liveAt(page, width, theme, locale);
   },
 
-  /** R60 (FR-FOL-1, R59): the live page with `[ follow phone ]` pressed. */
-  async 'live-following'(page, width, theme, locale) {
-    await liveFollowing(page, width, theme, locale);
+  /** R64 (FR-FSC-1, FR-FSC-4, FR-FSC-7): the four states of the screen `[ follow phone ]` opens. */
+  async 'follow-screen-sky'(page, width, theme, locale) {
+    await followScreen(page, width, theme, locale, 'sky');
+  },
+
+  async 'follow-screen-ground'(page, width, theme, locale) {
+    await followScreen(page, width, theme, locale, 'ground');
+  },
+
+  async 'follow-screen-buried'(page, width, theme, locale) {
+    await followScreen(page, width, theme, locale, 'buried');
+  },
+
+  async 'follow-screen-portrait'(page, width, theme, locale) {
+    await followScreen(page, width, theme, locale, 'portrait');
   },
 };
 

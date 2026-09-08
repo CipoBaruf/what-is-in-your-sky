@@ -91,6 +91,12 @@ export const live = {
     /** iOS refused `requestPermission()`, or the request failed (an insecure context). */
     followDenied: 'Motion access was refused, so the sky window cannot open.',
     /**
+     * R64 (FR-FSC-2, D-321): the accessible name of the follow screen's `×`.
+     * The character is the whole control — the one icon in the app, the
+     * owner's ask — so the word is the name and never the label.
+     */
+    followClose: 'Close',
+    /**
      * R44 (FR-WIN-3, US-21 AC6): the strip's heading field, shown only while
      * the dome is following the phone. It says what the correction is as much
      * as that there is one: a compass reads magnetic north, the sky is drawn

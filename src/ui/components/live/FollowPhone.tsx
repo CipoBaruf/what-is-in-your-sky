@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import { useT } from '../../../i18n/useT';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import styles from './FollowPhone.module.css';
@@ -16,7 +17,7 @@ import type { FollowPhoneHandle } from './useFollowPhone';
  * unpressed the way a refusal does — neither opened anything (FR-FOL-2) — so
  * the characters say what the chart is doing.
  */
-export function FollowPhone({ follow }: { follow: FollowPhoneHandle }) {
+export function FollowPhone({ follow, buttonRef }: { follow: FollowPhoneHandle; buttonRef?: RefObject<HTMLButtonElement | null> }) {
   const t = useT();
   // R48 (FR-COMP-4, D-245): one word on compact, under the full accessible name.
   const compact = useLayoutMode() === 'compact';
@@ -25,7 +26,8 @@ export function FollowPhone({ follow }: { follow: FollowPhoneHandle }) {
   const note = follow.state === 'relative' ? t.live.followRelative : follow.state === 'denied' ? t.live.followDenied : null;
   return (
     <div className={styles.follow} data-testid="follow-phone" data-state={follow.state}>
-      <button type="button" className={styles.toggle} aria-pressed={pressed} aria-label={t.live.follow} onClick={follow.toggle} data-testid="follow-toggle">
+      {/* R64 (FR-FSC-2, D-321): the ref is how the follow screen's `×` gives focus back — the control is not on the screen and is a new element by the time it returns. */}
+      <button type="button" ref={buttonRef} className={styles.toggle} aria-pressed={pressed} aria-label={t.live.follow} onClick={follow.toggle} data-testid="follow-toggle">
         {compact ? t.live.followShort : t.live.follow}
       </button>
       {note !== null && (

@@ -82,6 +82,16 @@ export interface ChartFrameProps {
   children: ReactNode;
 }
 
+/**
+ * R64 (FR-FSC-2, D-321): the id of the screen's status slot — the facing
+ * readout — so the follow screen's `role="dialog"` can name itself with the
+ * line the reader is looking at rather than with a label of its own. There is
+ * at most one screen frame in the document (the live page renders one layer),
+ * so a constant is unique; the slot is absent in the portrait state, where the
+ * layer falls back to its `aria-label` (FR-FSC-4).
+ */
+export const SCREEN_STATUS_ID = 'follow-screen-readout';
+
 export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect, stacked = false, screen = false, overlay, className, fill = false, children }: ChartFrameProps) {
   const compact = useLayoutMode() === 'compact';
   const frameRef = useRef<HTMLDivElement>(null);
@@ -181,7 +191,7 @@ export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect,
             {children}
           </div>
           {status !== undefined && status !== null && (
-            <div className={styles.status} data-testid="chart-status">
+            <div className={styles.status} id={SCREEN_STATUS_ID} data-testid="chart-status">
               {status}
             </div>
           )}

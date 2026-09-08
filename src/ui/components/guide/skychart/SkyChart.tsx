@@ -74,7 +74,20 @@ function WindowView(props: SkyChartProps) {
   return (
     <Suspense
       fallback={
-        <ChartFrame controls={props.controls} legend={props.legend} aside={props.aside} stripe={props.stripe} {...(props.boxAspect === undefined ? {} : { boxAspect: props.boxAspect })} {...(props.stacked === undefined ? {} : { stacked: props.stacked })} fill={props.fill ?? false}>
+        // R64 (FR-FSC-1, D-321): the screen's chunk loads with the screen's frame, so the follow screen's `×` — the
+        // page's `overlay`, and the one way out of the layer — is in the document from the first frame and not only
+        // once the window has arrived. Off a screen this is R47's fallback unchanged.
+        <ChartFrame
+          controls={props.controls}
+          legend={props.legend}
+          aside={props.aside}
+          stripe={props.stripe}
+          {...(props.boxAspect === undefined ? {} : { boxAspect: props.boxAspect })}
+          {...(props.stacked === undefined ? {} : { stacked: props.stacked })}
+          {...(props.screen === undefined ? {} : { screen: props.screen })}
+          {...(props.overlay === undefined ? {} : { overlay: props.overlay })}
+          fill={props.fill ?? false}
+        >
           <div className={styles.loadingBox} data-testid="window-loading" />
         </ChartFrame>
       }
