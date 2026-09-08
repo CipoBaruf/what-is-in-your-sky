@@ -251,7 +251,8 @@
    sky is left, in the middle of it when the box is the ground. It is a line of
    text, never a dialog — nothing to dismiss, and no pointer to catch. */
 .groundNote,
-.buriedNote {
+.buriedNote,
+.portraitNote {
   position: absolute;
   left: 0;
   right: 0;
@@ -266,7 +267,11 @@
   bottom: var(--row);
 }
 
-.buriedNote {
+/* R63 (FR-FSC-4, D-323): the portrait note is drawn where `buried` is — the
+   middle of a box that has nothing else in it. Turning the phone is what
+   leaves it, so it catches no pointer either. */
+.buriedNote,
+.portraitNote {
   top: 50%;
   transform: translateY(-50%);
 }

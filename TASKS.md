@@ -1297,7 +1297,7 @@ Delivery is PLAN §16 unchanged, cut by §16.10: four tasks, three waves, one ta
     - Captures: the compact live page at 390 px in both locales and themes, showing the two-option view control on one row (these replace the R59 live captures).
     - `npm test` green; no dome or polar capture moves.
 
-- [ ] **R63 — The window on a screen: no chrome, and a portrait state that says to turn the phone**
+- [x] **R63 — The window on a screen: no chrome, and a portrait state that says to turn the phone**
   - **Lane:** window
   - **Model:** opus
   - **Gate:** owner
@@ -1313,6 +1313,7 @@ Delivery is PLAN §16 unchanged, cut by §16.10: four tasks, three waves, one ta
     - The Spanish and English notes are in the catalog snapshot.
     - Captures (touch context): the portrait note at 390 × 844 in both locales and themes, shot through the window rendered with `screen`.
     - `npm test` green; the FR-GUIDE-6 rate path untouched.
+  - **Done 2026-09-08:** as written, with three additions the scope did not foresee, all recorded. `SkyWindow` also passes `screen` on to `ChartFrame`, because the window is what renders the frame and neither end of that seam is R62's (D-333). `tests/support/matchMedia.ts` threw on `(orientation: …)`, so the shared stub learned to read it off the size it already tracks — the task's one crossing out of its lane (D-334). And the captures are shot from `spike/window/screen.tsx`, a lane-owned harness that mounts the production window with `screen`, because in wave 1 no page passes the prop; `docs/screenshots/r63-window-390-portrait-{dark,night}-{en,es}.png` and `r63-window-844-landscape-dark-en.png`, superseded by R64's `follow-screen-390-portrait-*` (D-335). The permission check counts the browser's own `requestPermission`, which is what "asked once" means, rather than the memoising `requestOrientationAccess` around it; the "no `OptionToggle`" check is made at the window's `controls` prop, since `SkyChart` cannot pass `screen` until R62.
 
 - [ ] **R64 — The follow screen: the layer, the `×`, `Esc`, hidden objects off it, the e2e and the captures**
   - **Lane:** live

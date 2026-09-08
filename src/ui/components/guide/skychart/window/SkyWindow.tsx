@@ -7,6 +7,7 @@ import { SERIES_COUNT } from '../../../../../lib/legend';
 import type { SunState } from '../../../../../lib/skyBodies';
 import { interpolateTrack, resampleArc, splitArcAt } from '../../../../../lib/skyGeometry';
 import type { MoonState, PassPoint } from '../../../../../model';
+import { useMediaQuery } from '../../../../hooks/useMediaQuery';
 import { quantise } from '../../../live/compassHeading';
 import { useDeclination } from '../../../live/useDeclination';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
@@ -53,6 +54,19 @@ import { useDeviceOrientation } from './useDeviceOrientation';
  * control sits in the window's place until tapped. A refusal, or a phone with
  * no compass heading, is reported through `onUnavailable`, and `SkyChart`
  * shows the note and leaves the dome as the view (FR-WIN-4).
+ *
+ * R63 (FR-FSC-1, FR-FSC-4; US-21 AC11, AC12; D-323): on the follow screen —
+ * `props.screen` — the window has no chrome of its own: the frame gets no
+ * `controls`, so neither the view control the page handed down nor the hint is
+ * drawn, and the readout stays the `status` slot the frame turns into an
+ * overlay. The screen is for a phone held sideways, so `(orientation:
+ * landscape)` decides a fourth veil beside the ground ones: held upright the
+ * box is the `portrait` note and nothing else — no drawing, no readout, no
+ * legend — and turning the phone brings the picture back with no tap, because
+ * `useDeviceOrientation` never unmounts and so is never asked twice
+ * (FR-FOL-2). The ground states are only computed in landscape, which is what
+ * makes `portrait` win over them. Without `screen` none of this happens: the
+ * pass detail's window is the square box R47 built, in either orientation.
  */
 
 /** Resampling step along each arc (PLAN §8.3), the polar's. */
@@ -77,6 +91,8 @@ export function placeholderAltDeg(peakElDeg: number | undefined, view: View): nu
 const UNMEASURED = { width: 390, height: 390 };
 /** How far outside the box a positioned thing is still "in view", so a marker leaves the frame rather than winking out at the edge. */
 const EDGE_MARGIN = 14;
+/** FR-FSC-4 (D-323): the follow screen draws only while the viewport is wider than it is tall. */
+const LANDSCAPE_QUERY = '(orientation: landscape)';
 
 interface SkyPoint {
   azDeg: number;
@@ -323,7 +339,10 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
   );
 }
 
-export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, aside, stripe, boxAspect, stacked, controls, onUnavailable, className }: SkyChartProps) {
+export function SkyWindow(props: SkyChartProps) {
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, aside, stripe, boxAspect, stacked, controls, onUnavailable, className } = props;
+  // D-323: `screen` reaches `SkyChartProps` with R62 (D-322); read through a cast, so this compiles either side of it.
+  const onScreen = (props as SkyChartProps & { screen?: boolean }).screen === true;
   const t = useT();
   const locale = useLocale();
   // R44: the observer's declination, once per observer; the hook folds it into every heading.
@@ -364,9 +383,15 @@ export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, n
   const at = useCallback((p: SkyPoint): Projected => project(m, p.azDeg, p.elDeg, view), [m, view]);
   const zenith = at({ azDeg: 0, elDeg: 90 });
 
+  // FR-FSC-4 (D-323): on the screen, held upright, the note is the whole box. The query is read whatever the
+  // mode, because a hook may not be called conditionally; only `screen` lets its answer decide anything.
+  const landscape = useMediaQuery(LANDSCAPE_QUERY);
+  const portrait = onScreen && !landscape;
+
   // FR-FOL-5 (D-278): pointed at the ground, in two steps — the hatch over the part of the field below the
   // horizon, and, once no sky is left in it, the whole box. Neither is modal: raising the phone is what leaves.
-  const ground = groundState(m, view);
+  // D-323: only in landscape, so the portrait note wins over both.
+  const ground = portrait ? 'sky' : groundState(m, view);
   const veilClip = ground === 'ground' ? groundClipPath(m, view) : '';
   const veil = ground === 'buried' || veilClip !== '';
   const uid = useId().replaceAll(':', '');
@@ -389,21 +414,33 @@ export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, n
   ) : null;
 
   return (
-    <div className={[styles.window, className].filter(Boolean).join(' ')} data-state={state} data-ground={ground} data-look-az={quantise(look.azDeg)} data-look-alt={Math.round(look.altDeg)}>
+    <div
+      className={[styles.window, className].filter(Boolean).join(' ')}
+      data-state={state}
+      data-ground={ground}
+      {...(onScreen ? { 'data-orientation': portrait ? 'portrait' : 'landscape' } : {})}
+      data-look-az={quantise(look.azDeg)}
+      data-look-alt={Math.round(look.altDeg)}
+    >
       <ChartFrame
         fill={fill}
-        legend={legend}
+        legend={portrait ? null : legend}
         aside={aside}
         stripe={stripe}
         {...(boxAspect === undefined ? {} : { boxAspect })}
         {...(stacked === undefined ? {} : { stacked })}
+        /* D-322: the frame's screen mode is the window's to pass on — it is the window that renders the frame. Cast, like `screen` itself, so this compiles either side of R62. */
+        {...({ screen: onScreen } as { screen?: boolean })}
+        /* FR-FSC-1, D-323: the screen has no control row — neither the page's view control nor the hint. */
         controls={
-          <>
-            {controls}
-            <p className={styles.hint}>{t.window.hint}</p>
-          </>
+          onScreen ? undefined : (
+            <>
+              {controls}
+              <p className={styles.hint}>{t.window.hint}</p>
+            </>
+          )
         }
-        status={status}
+        status={portrait ? null : status}
       >
         <div className={styles.box} ref={boxRef}>
           <svg className={styles.svg} viewBox={`0 0 ${String(view.width)} ${String(view.height)}`} aria-hidden="true" data-drawing="window" focusable="false">
@@ -421,8 +458,8 @@ export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, n
                 )}
               </defs>
             )}
-            {/* FR-FOL-5: with no sky left in the field there is nothing to draw but the ground. */}
-            {ground !== 'buried' && (
+            {/* FR-FOL-5: with no sky left in the field there is nothing to draw but the ground. FR-FSC-4: nor is there anything to draw with the phone upright. */}
+            {ground !== 'buried' && !portrait && (
               <>
                 {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}
                 {sun && sunVisible(sun) && <SunGlow sun={sun} m={m} view={view} limitDeg={limitDeg} />}
@@ -492,8 +529,14 @@ export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, n
               {ground === 'buried' ? t.window.buried : t.window.ground}
             </p>
           )}
-          {/* FR-WIN-5: the one control in the window's place until the tap the browser needs. */}
-          {orientation.needsGesture && state !== 'waiting' && (
+          {/* FR-FSC-4: held upright, the note is the whole box — the screen carries it and the `×` and nothing else. */}
+          {portrait && (
+            <p className={styles.portraitNote} role="status" data-testid="window-portrait-note">
+              {t.window.portrait}
+            </p>
+          )}
+          {/* FR-WIN-5: the one control in the window's place until the tap the browser needs. The screen never shows it: the follow control's own tap is what asked (FR-FOL-2). */}
+          {orientation.needsGesture && state !== 'waiting' && !onScreen && (
             <div className={styles.gate}>
               <button type="button" className={styles.gateButton} data-testid="window-gate" onClick={orientation.start}>
                 {t.window.pointAtSky}
