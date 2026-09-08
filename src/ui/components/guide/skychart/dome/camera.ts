@@ -69,6 +69,8 @@ export const DRAG_PX_PER_DEG = 4;
  */
 export const ZOOM_WIDTH_DIVISOR = 2.4;
 export const ZOOM_HEIGHT_DIVISOR = 1.7;
+/** R61 (D-314): the box shape at which both divisors bind at once — the wide live page's box is cut to it. */
+export const DOME_BOX_ASPECT = ZOOM_WIDTH_DIVISOR / ZOOM_HEIGHT_DIVISOR;
 export const REFERENCE_WIDTH_PX = 390;
 /** FR-DOME-1's number: the drawing's extent, labels included, against the shorter side of its box. */
 export const MIN_EXTENT_RATIO = 0.9;

@@ -65,6 +65,14 @@
   min-width: 0;
 }
 
+/* R61 (D-314): the rail's minimum as a length the frame can read in px — out of the grid, out of the flow, no height. */
+.railProbe {
+  position: absolute;
+  visibility: hidden;
+  height: 0;
+  width: calc(44 * var(--cell));
+}
+
 /* FR-COMP-5 (R45, D-187): on compact the box is full-bleed — it breaks out
    of the page's side padding with negative margins — and square. The pages
    all pad two cells at the side (the global frame, the detail sheet, the live
@@ -165,22 +173,24 @@
     flex: 0 0 auto;
   }
 
-  /* R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315, F-59): the fixed box. With
-     `box` the page has picked a step of the dome's ladder, and the drawing is
-     that size — `--chart-box-w` / `--chart-box-h`, set inline by `ChartFrame`
-     from `lib/layout.ts`, since no px may be written here — rather than
+  /* R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315, F-59): the aspect-locked
+     box. With `boxAspect` the frame measures what it leaves the drawing and
+     cuts the box to the largest rectangle of the dome's own shape that fits —
+     `--chart-box-w` / `--chart-box-h`, written inline by `ChartFrame` from
+     `lib/layout.ts`'s `fitBox`, since no px may be written here — rather than
      whatever the rows leave. The two columns the drawing spans are `auto`, so
      they are the drawing's width and no more, and the grid packs at the start
      so the rail stands beside the box, takes what is left up to its cap
-     (D-313), and the rest of the page is blank at the right. The rows are
-     `auto` too and packed at the top: a `1fr` drawing track would put the
-     stripe row at the bottom of the page instead of under the box.
+     (D-313), and whatever a wide page has past that is blank at the right. The
+     rows are `auto` too and packed at the top: a `1fr` drawing track would put
+     the stripe row at the bottom of the page instead of under the box.
 
      `stripe` (D-315) is the stripe block in a row of its own under the box,
      the box's width, where the page hands it here rather than into the rail:
-     step 2 of the ladder and above, the owner's stripe at the bottom on a big
-     screen. Its labels are every two hours there (FR-TRAJ-4: the stripe is
-     the box's width, 122 cells at step 2, past the 60 twelve labels want). */
+     from 1666 px of viewport (`STRIPE_UNDER_MIN_PX`), the owner's stripe at
+     the bottom on a big screen. Its labels are every two hours there
+     (FR-TRAJ-4: the stripe is the box's width, past the 60 cells twelve labels
+     want). */
   .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-box='true'] {
     grid-template-columns: auto auto minmax(calc(44 * var(--cell)), calc(60 * var(--cell)));
     grid-template-rows: auto auto;

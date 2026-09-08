@@ -301,7 +301,7 @@ test.describe('the wide live page (R61)', () => {
     }
   };
 
-  test('at 1920 × 1080: one row above the box, the strip and the controls in the rail beside it, the stripe under the box at step 2, nothing scrolls, no stepping row', async ({ page }) => {
+  test('at 1920 × 1080: one row above the box, the strip and the controls in the rail beside it, the stripe under the box, nothing scrolls, no stepping row', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
@@ -318,10 +318,11 @@ test.describe('the wide live page (R61)', () => {
     // The hidden-objects toggle is on the playback row, and there is no stepping row without touch.
     await expect(page.getByTestId('playback-row').getByTestId('live-hidden-toggle')).toBeVisible();
     await expect(page.getByTestId('step-controls')).toHaveCount(0);
-    // The box is step 2's (D-314), and the page does not scroll.
-    await expect(page.getByTestId('live-dome')).toHaveAttribute('data-dome-step', '2');
-    expect(box?.width ?? 0).toBeCloseTo(1176, 0);
-    expect(box?.height ?? 0).toBeCloseTo(833, 0);
+    // The box is the dome's shape and reaches the page's bottom through the stripe (D-314), and the page does not scroll.
+    await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
+    expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(2.4 / 1.7, 2);
+    const stripeBlock = await page.getByTestId('stripe-block').boundingBox();
+    expect(1080 - ((stripeBlock?.y ?? 0) + (stripeBlock?.height ?? 0))).toBeLessThanOrEqual(24);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1080);
   });
 
@@ -342,10 +343,11 @@ test.describe('the wide live page (R61)', () => {
     // In a 44-cell rail the block stacks: the clock readout over the stripe, which takes the column's width.
     below(stripe, clock);
     await expectLabelsClear(page);
-    // The box is step 1's (D-314), and the page does not scroll.
-    await expect(page.getByTestId('live-dome')).toHaveAttribute('data-dome-step', '1');
-    expect(box?.width ?? 0).toBeCloseTo(768, 0);
-    expect(box?.height ?? 0).toBeCloseTo(544, 0);
+    // The box is the dome's shape and, at 1280 px, width-bound: the rail beside it is hard against the page's right edge (D-314). The page does not scroll.
+    await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
+    expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(2.4 / 1.7, 2);
+    const rail = await page.getByTestId('chart-aside').boundingBox();
+    expect(1280 - ((rail?.x ?? 0) + (rail?.width ?? 0))).toBeLessThanOrEqual(24);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(800);
   });
 });

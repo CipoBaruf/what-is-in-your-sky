@@ -121,12 +121,13 @@ export interface SkyChartProps {
    */
   stripe?: ReactNode;
   /**
-   * FR-LIVE-7 as amended (v1.2.1) / D-314 (R61): the box's fixed size, CSS px,
-   * where the page has picked a step of the dome's ladder (`lib/layout.ts`
-   * `DOME_STEPS`). The frame sizes the drawing to it and stands the side
-   * column beside it; absent, the box is fluid — every row the page leaves.
+   * FR-LIVE-7 as amended (v1.2.1) / D-314 (R61): the box's aspect, width over
+   * height — the dome's `DOME_BOX_ASPECT`. Given, the frame cuts the drawing
+   * box to the largest rectangle of that shape the frame leaves it
+   * (`lib/layout.ts` `fitBox`) and stands the side column beside it; absent,
+   * the box is fluid — every row the page leaves, whatever its shape.
    */
-  box?: { widthPx: number; heightPx: number };
+  boxAspect?: number;
   /**
    * FR-LIVE-7 as amended (v1.1.1) / D-268, D-269 (R54): on the live page the
    * chart's own controls — the view toggle and its note — reach the view

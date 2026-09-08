@@ -99,77 +99,54 @@ export function layoutMode(matchesWide: boolean): LayoutMode {
 
 /**
  * R61 (FR-LIVE-7 as amended v1.2.1, D-314, F-59): the wide live page's dome box
- * is one of four fixed sizes — the largest that fits the viewport in both
- * directions — and not whatever the page leaves. Every step is 2.4 : 1.7,
- * `zoomFor`'s two divisors (`dome/camera.ts`), the one shape at which the
- * drawing's fit binds across and down at once, so the drawing fills the box
- * both ways at every step. Below the first step the box is fluid, as before.
+ * is the largest rectangle at the drawing's own aspect that the window leaves
+ * — not whatever the page leaves (a third of it blank, F-59) and not a step of
+ * a table (which wasted most of a real browser window, whose viewport is some
+ * 200 px shorter than the screen it is on: V12-10). The aspect is `zoomFor`'s
+ * two divisors, 2.4 : 1.7 (`dome/camera.ts` `DOME_BOX_ASPECT`), the one shape
+ * at which the drawing's fit binds across and down at once.
  *
- * The viewport each step fits from is arithmetic on the page's own rows, in
- * px at the 9.6 px cell of a 1280 px page (D-314 has the table): across, the
- * box beside a rail of at least `RAIL_MIN_CELLS` with the page's two cells of
- * side padding either side and the frame's three-cell column gap; down, the
- * box under the page's top row and the frame's controls row with their gaps
- * (`DOME_ROWS_ABOVE_PX`), over the page's bottom padding (`DOME_ROWS_BELOW_PX`)
- * and, from step 2, over the stripe block (`STRIPE_BLOCK_PX`: the clock
- * readout, the three stripe rows and the gap — D-315 puts the stripe under
- * the box there). The steps are evaluated as media queries on the viewport
- * (`domeStepQuery`), so the hook that reads them (`ui/hooks/useDomeStep.ts`)
- * fires on a crossing and never on a pixel of a drag, like `useLayoutMode`.
- *
- * The numbers are px literals here and nowhere in a stylesheet: the frame
- * takes the box through an inline custom property, since a wide-layout block
- * may hold no length in px (`tests/styles/breakpoint.test.ts`).
+ * `fitBox` is the rule, pure, so it is a unit test: the box is as tall as the
+ * height the frame leaves it — under its controls row and, where the stripe is
+ * under the box, over the stripe row, gaps counted — unless the width beside a
+ * rail of `RAIL_MIN_CELLS` binds first, in which case it is as wide as that.
+ * `ChartFrame` measures the four inputs and writes the answer inline as two
+ * custom properties (px may not be written in a wide stylesheet block,
+ * `tests/styles/breakpoint.test.ts`).
  */
-export interface DomeStep {
-  /** 1 to 4; 0 is the fluid box and is never in this table. */
-  step: 1 | 2 | 3 | 4;
-  /** The drawing box, CSS px, at 2.4 : 1.7. */
-  box: { widthPx: number; heightPx: number };
-  /** The smallest viewport the step fits, CSS px. */
-  from: { widthPx: number; heightPx: number };
-  /** The viewport the step was cut for. */
-  reference: { widthPx: number; heightPx: number };
+export interface BoxFit {
+  /** The frame's own box, CSS px. */
+  frameWidthPx: number;
+  frameHeightPx: number;
+  /** The rows the frame keeps above the drawing (its controls row) and, under it, the stripe row; each with the gap it costs. */
+  aboveHeightPx: number;
+  belowHeightPx: number;
+  /** The rail's minimum, in px, plus the column gap before it. */
+  besideWidthPx: number;
+  /** Width over height. */
+  aspect: number;
 }
 
 /** The rail's minimum, `ChartFrame.module.css` (D-313): what the playback row and the strip need to be read. */
 export const RAIL_MIN_CELLS = 44;
-/** A cell on the reference pages, `--cell` at `--font-mono`'s 0.6 em (D-314's arithmetic, not a threshold). */
-const REFERENCE_CELL_PX = 9.6;
-/** The frame's column gap between the box and its side column, in cells (`ChartFrame.module.css`). */
-const FRAME_COLUMN_GAP_CELLS = 3;
-/** Above the box: the page's top padding, the top row, the frame's controls row and the two gaps (measured: 114 px). */
-export const DOME_ROWS_ABOVE_PX = 114;
-/** Under the box: the page's bottom padding (measured: 6 px). */
-export const DOME_ROWS_BELOW_PX = 6;
-/** The stripe block under the box from step 2: the clock readout, three stripe rows and the frame's gap (measured: 108 px). */
-export const STRIPE_BLOCK_PX = 108;
-/** The step from which the stripe block stands under the box rather than in the rail (D-315). */
-export const STRIPE_UNDER_BOX_FROM_STEP = 2;
 
-const ACROSS_PX = Math.ceil((RAIL_MIN_CELLS + 2 * SHELL_PADDING_CELLS + FRAME_COLUMN_GAP_CELLS) * REFERENCE_CELL_PX);
-
-function step(n: 1 | 2 | 3 | 4, widthPx: number, heightPx: number, referenceW: number, referenceH: number): DomeStep {
-  const stripe = n >= STRIPE_UNDER_BOX_FROM_STEP ? STRIPE_BLOCK_PX : 0;
-  return {
-    step: n,
-    box: { widthPx, heightPx },
-    from: { widthPx: widthPx + ACROSS_PX, heightPx: heightPx + DOME_ROWS_ABOVE_PX + DOME_ROWS_BELOW_PX + stripe },
-    reference: { widthPx: referenceW, heightPx: referenceH },
-  };
+/** The largest `aspect` box the frame leaves, height-bound or width-bound; never negative. */
+export function fitBox({ frameWidthPx, frameHeightPx, aboveHeightPx, belowHeightPx, besideWidthPx, aspect }: BoxFit): { widthPx: number; heightPx: number } {
+  const heightPx = Math.max(0, frameHeightPx - aboveHeightPx - belowHeightPx);
+  const widthPx = Math.max(0, frameWidthPx - besideWidthPx);
+  if (heightPx * aspect <= widthPx) return { widthPx: Math.floor(heightPx * aspect), heightPx: Math.floor(heightPx) };
+  return { widthPx: Math.floor(widthPx), heightPx: Math.floor(widthPx / aspect) };
 }
 
-/** The ladder, smallest first: each box is the largest 2.4 : 1.7 rectangle its reference viewport fits with about 20 px to spare. */
-export const DOME_STEPS: readonly DomeStep[] = [step(1, 768, 544, 1280, 800), step(2, 1176, 833, 1920, 1080), step(3, 1680, 1190, 2560, 1440), step(4, 2688, 1904, 3840, 2160)];
-
-/** The media query that says a step fits: both sides, so a wide but short window drops a step rather than clip. */
-export function domeStepQuery(entry: DomeStep): string {
-  return `(min-width: ${String(entry.from.widthPx)}px) and (min-height: ${String(entry.from.heightPx)}px)`;
-}
-
-/** The highest step whose query matches, or `null` for the fluid box; the hook's rule, kept here so it is a unit test. */
-export function domeStepFor(matches: (entry: DomeStep) => boolean): DomeStep | null {
-  let found: DomeStep | null = null;
-  for (const entry of DOME_STEPS) if (matches(entry)) found = entry;
-  return found;
-}
+/**
+ * FR-LIVE-7 and FR-TRAJ-4 as amended (v1.2.1, D-315): the width from which the
+ * stripe block stands under the box, the box's width, rather than in the rail
+ * — the owner's stripe at the bottom on a big screen. Below it the height is
+ * the scarcer side, and the rail is where the stripe costs the box nothing.
+ * 1666 px is where a box of the height a 1080 p browser window leaves (about
+ * 840 px, so 1186 wide at 2.4 : 1.7) stands beside a full 44-cell rail with the
+ * page's padding and the column gap: the first width at which the stripe
+ * under the box makes the box no narrower.
+ */
+export const STRIPE_UNDER_MIN_PX = 1666;
+export const STRIPE_UNDER_QUERY = `(min-width: ${String(STRIPE_UNDER_MIN_PX)}px)`;

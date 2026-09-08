@@ -26,7 +26,7 @@ import { openParisLive } from './parisLive';
 
 test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
 
-/** The rail is beside the box with its rows top to bottom, and the box is its step's size (D-314): 1280 is step 1, 1920 step 2, 2560 step 3, 3840 step 4. */
+/** The rail is beside the box with its rows top to bottom, the box is the dome's shape (D-314), and the stripe is under it from 1920 (D-315). */
 const shoot = async (page: import('@playwright/test').Page, width: 1280 | 1920 | 2560 | 3840, theme: 'dark' | 'night'): Promise<void> => {
   await openParisLive(page, width, theme);
   const box = await page.getByTestId('chart-box').boundingBox();
@@ -36,8 +36,8 @@ const shoot = async (page: import('@playwright/test').Page, width: 1280 | 1920 |
   if (!box || !rail || !strip || !actions) throw new Error('the page is not laid out');
   expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
   expect(strip.y).toBeLessThan(actions.y);
-  const step = { 1280: 1, 1920: 2, 2560: 3, 3840: 4 }[width];
-  await expect(page.getByTestId('live-dome')).toHaveAttribute('data-dome-step', String(step));
+  expect(box.width / box.height).toBeCloseTo(2.4 / 1.7, 1);
+  await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', String(width >= 1920));
   await page.screenshot({ path: `${CAPTURE_DIR}/r61-live-${String(width)}-${theme}-en.png` });
 };
 

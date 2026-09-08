@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
-import { STRIPE_UNDER_BOX_FROM_STEP } from '../../lib/layout';
+import { STRIPE_UNDER_QUERY } from '../../lib/layout';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import type { Span } from '../../lib/timeStripe';
@@ -10,6 +10,7 @@ import { useAppStore } from '../../state';
 import { LanguageToggle } from '../components/common/LanguageToggle';
 import { ShareButton } from '../components/common/ShareButton';
 import { ThemeToggle } from '../components/common/ThemeToggle';
+import { DOME_BOX_ASPECT } from '../components/guide/skychart/dome/camera';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { FollowPhone } from '../components/live/FollowPhone';
@@ -28,7 +29,7 @@ import { usePlayback } from '../components/live/usePlayback';
 import { useSkyBands } from '../components/live/useSkyBands';
 import { useWakeLock } from '../components/live/useWakeLock';
 import { useWallThrottle } from '../components/live/useWallThrottle';
-import { useDomeStep } from '../hooks/useDomeStep';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import styles from './Live.module.css';
@@ -191,13 +192,12 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   const t = useT();
   const compact = useLayoutMode() === 'compact';
   /*
-   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315): the step of the dome's size ladder the viewport fits, or
-   * none for the fluid box. On wide the box is the step's size, and from step 2 the stripe block stands under
-   * the box rather than in the rail — the owner's stripe at the bottom on a big screen. Compact ignores it.
+   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315): on wide the box is cut to the dome's own aspect from what
+   * the frame leaves it (`boxAspect`), and from `STRIPE_UNDER_MIN_PX` the stripe block stands under the box
+   * rather than in the rail — the owner's stripe at the bottom on a big screen. Compact ignores both.
    */
-  const step = useDomeStep();
-  const domeStep = compact || step === null ? 0 : step.step;
-  const stripeUnder = domeStep >= STRIPE_UNDER_BOX_FROM_STEP;
+  const wideEnoughForStripeUnder = useMediaQuery(STRIPE_UNDER_QUERY);
+  const stripeUnder = !compact && wideEnoughForStripeUnder;
   const passesState = useAppStore((s) => s.passes);
   const weather = useAppStore((s) => s.weather);
   const liveHidden = useAppStore((s) => s.liveHidden);
@@ -309,7 +309,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
 
   return (
     <>
-      <div className={styles.dome} data-testid="live-dome" data-dome-step={domeStep}>
+      <div className={styles.dome} data-testid="live-dome" data-stripe-under={stripeUnder}>
         <SkyChart
           passes={chartPasses}
           observer={observer}
@@ -322,7 +322,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           fill
           initialFacingAzDeg={0}
           {...(compact ? {} : { aside: side })}
-          {...(domeStep > 0 && step ? { box: step.box } : {})}
+          {...(compact ? {} : { boxAspect: DOME_BOX_ASPECT })}
           {...(stripeUnder ? { stripe: stripeBlock } : {})}
         />
       </div>

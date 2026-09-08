@@ -24,13 +24,14 @@
  * (hidden by `visibility`), which is what lets the same anchor assertions
  * hold for a view that shows a sixth of the sky.
  */
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../tests/support/catalogFixtures';
 import { FIXTURES_DIR } from '../../../../../tests/support/fixtures';
+import { stubMatchMedia } from '../../../../../tests/support/matchMedia';
 import { MOON_FIXTURE } from '../../../../../tests/support/moonFixtures';
 import { formatClock } from '../../../../lib/timeFormat';
 import { PassNumbers } from '../PassNumbers';
@@ -259,23 +260,81 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
   });
 
   /**
-   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315): a `box` is the ladder's fixed size, reaching the
-   * stylesheet as two custom properties on the frame — no px may be written in the wide block — and a
-   * `stripe` is a row of the frame's own under the drawing. Both halves again: the DOM, and the rules.
+   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315): with `boxAspect` the frame cuts the drawing box to the
+   * largest rectangle of that shape it leaves, measured on a `ResizeObserver` and written as two custom
+   * properties — no px may be written in the wide block — and a `stripe` is a row of the frame's own under
+   * the drawing. jsdom lays nothing out, so the measurement is stubbed — the rects, the gaps and the
+   * observer — and the arithmetic is asserted both ways round, height-bound and width-bound.
    */
-  it('sizes the drawing to a given box through custom properties, and gives a stripe its own row under the drawing', () => {
-    render(
-      <ChartFrame fill legend={<p>legend</p>} aside={<p>rail</p>} stripe={<p>stripe</p>} box={{ widthPx: 1176, heightPx: 833 }}>
-        <div />
-      </ChartFrame>,
+  it('cuts the drawing to the given aspect from what it measures, and gives a stripe its own row under the drawing', () => {
+    const heights = new Map<string, DOMRect>();
+    const rect = (width: number, height: number): DOMRect => ({ width, height, x: 0, y: 0, top: 0, left: 0, right: width, bottom: height, toJSON: () => ({}) });
+    const realGetRect = HTMLElement.prototype.getBoundingClientRect;
+    const realGetComputedStyle = window.getComputedStyle;
+    // Wide: the box is cut only on the wide fill frame with an aside (compact and the guide keep their own boxes).
+    const media = stubMatchMedia(1920);
+    const instances: { trigger: () => void }[] = [];
+    const resizeObservers = () => instances;
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(private readonly callback: () => void) {
+          instances.push(this);
+        }
+        observe() {
+          /* the test triggers by hand */
+        }
+        disconnect() {
+          /* nothing to detach */
+        }
+        trigger() {
+          this.callback();
+        }
+      },
     );
-    const frame = screen.getByTestId('chart-frame');
-    expect(frame).toHaveAttribute('data-box', 'true');
-    expect(frame).toHaveAttribute('data-stripe', 'true');
-    expect(frame.style.getPropertyValue('--chart-box-w')).toBe('1176px');
-    expect(frame.style.getPropertyValue('--chart-box-h')).toBe('833px');
-    expect([...frame.children].map((el) => el.getAttribute('data-testid'))).toEqual([null, 'chart-box', null, 'chart-stripe', 'chart-legend-slot']);
-    expect(within(screen.getByTestId('chart-stripe')).getByText('stripe')).toBeInTheDocument();
+    HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+      return heights.get(this.dataset['testid'] ?? this.className) ?? realGetRect.call(this);
+    };
+    window.getComputedStyle = ((el: Element) => ({ ...realGetComputedStyle(el), rowGap: '12px', columnGap: '29px' })) as typeof window.getComputedStyle;
+    try {
+      const { unmount } = render(
+        <ChartFrame fill legend={<p>legend</p>} aside={<p>rail</p>} stripe={<p>stripe</p>} boxAspect={2.4 / 1.7}>
+          <div />
+        </ChartFrame>,
+      );
+      const frame = screen.getByTestId('chart-frame');
+      // Before any measurement the properties are what the effect wrote from jsdom's zero rects: a 0 × 0 box.
+      expect(frame).toHaveAttribute('data-box', 'true');
+      expect(frame).toHaveAttribute('data-stripe', 'true');
+      expect([...frame.children].map((el) => el.getAttribute('data-testid'))).toEqual([null, null, 'chart-box', null, 'chart-stripe', 'chart-legend-slot']);
+      expect(within(screen.getByTestId('chart-stripe')).getByText('stripe')).toBeInTheDocument();
+      // Now the sizes: the frame 1700 × 1000; controls 48 tall; stripe 108 tall; the rail probe 422 wide.
+      heights.set('chart-frame', rect(1700, 1000));
+      heights.set('chart-stripe', rect(1103, 108));
+      heights.set(frame.children[0]?.className ?? '', rect(422, 0));
+      heights.set(frame.children[1]?.className ?? '', rect(1103, 48));
+      // Height-bound: 1000 − (48 + 12) − (108 + 12) = 820 tall, 1157 wide at 2.4 : 1.7; the width beside the rail (1700 − 451 = 1249) allows it.
+      // The observer is triggered by hand: every instance shares the class above, so the last constructed one is the frame's.
+      act(() => {
+        for (const instance of resizeObservers()) instance.trigger();
+      });
+      expect(frame.style.getPropertyValue('--chart-box-h')).toBe('820px');
+      expect(frame.style.getPropertyValue('--chart-box-w')).toBe(`${String(Math.floor((820 * 2.4) / 1.7))}px`);
+      // Width-bound: a frame 900 wide leaves 449 beside the rail, so the box is 449 × 318.
+      heights.set('chart-frame', rect(900, 1000));
+      act(() => {
+        for (const instance of resizeObservers()) instance.trigger();
+      });
+      expect(frame.style.getPropertyValue('--chart-box-w')).toBe('449px');
+      expect(frame.style.getPropertyValue('--chart-box-h')).toBe(`${String(Math.floor(449 / (2.4 / 1.7)))}px`);
+      unmount();
+      expect(frame.style.getPropertyValue('--chart-box-w')).toBe('');
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = realGetRect;
+      window.getComputedStyle = realGetComputedStyle;
+      vi.unstubAllGlobals();
+      media.restore();
+    }
     const beside = /@container \(min-width: 62ch\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
     // The two columns the drawing spans are the drawing's own width, the rail takes what is left up to its cap, and nothing stretches.
     expect(beside).toMatch(/\[data-box='true'\] \{\n\s+grid-template-columns: auto auto minmax\(calc\(44 \* var\(--cell\)\), calc\(60 \* var\(--cell\)\)\);\n\s+grid-template-rows: auto auto;\n\s+justify-content: start;\n\s+align-content: start;/);
@@ -294,6 +353,7 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'false');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
     expect(screen.getByTestId('chart-frame').style.getPropertyValue('--chart-box-w')).toBe('');
+    expect(screen.getByTestId('chart-frame').children).toHaveLength(4);
     expect(screen.queryByTestId('chart-aside')).toBeNull();
     expect(screen.queryByTestId('chart-stripe')).toBeNull();
     expect(screen.getByTestId('chart-legend-slot').firstElementChild).toBe(screen.getByText('legend'));

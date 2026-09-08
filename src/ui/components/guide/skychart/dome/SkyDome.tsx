@@ -209,7 +209,7 @@ function DomeLabels({ labels, rotY, onSelect }: DomeLabelsProps) {
   );
 }
 
-export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, aside, stripe, box, controls, className }: SkyChartProps) {
+export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, aside, stripe, boxAspect, controls, className }: SkyChartProps) {
   const t = useT();
   const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
   const [camera, setCamera] = useState<CameraState>(() => initialFor(highlighted, facingAzDeg ?? initialFacingAzDeg));
@@ -378,7 +378,7 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
         legend={legend}
         aside={aside}
         stripe={stripe}
-        {...(box ? { box } : {})}
+        {...(boxAspect === undefined ? {} : { boxAspect })}
         // R48 (FR-LIVE-7 as amended): the hint is not shown on the live page — `fill` is that page — where the row it took is the dome's.
         // R54 (D-269): what the page hands down (the view toggle) heads the slot instead.
         controls={

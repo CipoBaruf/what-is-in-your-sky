@@ -18,6 +18,7 @@ import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../tests/support/catalogFixtures';
 import { en } from '../../i18n/en';
+import { STRIPE_UNDER_MIN_PX } from '../../lib/layout';
 import { isoInstant } from '../../lib/shareLinks';
 import { skyBodiesAt } from '../../lib/skyBodies';
 import type { ChartView, Observer, Pass } from '../../model';
@@ -268,48 +269,44 @@ describe('<LivePage>', () => {
       /\[data-aside='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\) clamp\(calc\(44 \* var\(--cell\)\), 26%, calc\(60 \* var\(--cell\)\)\);/,
     );
     expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\] \{\n\s+grid-template-areas:\n\s+'top'\n\s+'dome';/);
-    // R61 (D-314): 1280 × 800 is step 1 of the ladder — the box is 768 × 544 and the stripe is still in the rail.
-    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-dome-step', '1');
+    // R61 (D-314, D-315): the box is cut to the dome's aspect, and under 1666 px the stripe is still in the rail.
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
-    expect(screen.getByTestId('chart-frame').style.getPropertyValue('--chart-box-w')).toBe('768px');
-    expect(screen.getByTestId('chart-frame').style.getPropertyValue('--chart-box-h')).toBe('544px');
     expect(screen.getByTestId('stripe-block').closest('[data-testid="chart-aside"]')).not.toBeNull();
   });
 
   /**
-   * R61 (FR-LIVE-7 and FR-TRAJ-4 as amended v1.2.1, D-314, D-315): from step 2 of the ladder — 1920 × 1080 is
-   * its reference — the stripe block leaves the rail for the frame's row under the box, and the box is the
-   * step's size. Compact ignores the ladder: a phone never has a fixed box. The step follows the viewport
-   * both ways, so a window as wide as step 2 but too short for it drops to step 1 rather than clip.
+   * R61 (FR-LIVE-7 and FR-TRAJ-4 as amended v1.2.1, D-314, D-315): from `STRIPE_UNDER_MIN_PX` of viewport the
+   * stripe block leaves the rail for the frame's row under the box — the same element, moved — and the chart
+   * is handed the dome's aspect so the frame cuts the box to it. Compact ignores both: a phone never has a
+   * cut box. The threshold is a width alone; the height is what the frame measures for itself.
    */
-  it('puts the stripe block under the box from step 2 of the ladder, with the box at the step\'s size, and drops a step when the window is too short', () => {
+  it('puts the stripe block under the box from 1666 px, in the rail below that, and hands the chart the dome\'s aspect on wide only', () => {
     withSky();
     media = stubMatchMedia(1920, 1080);
     render(<LivePage link={null} onLeave={() => undefined} />);
-    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-dome-step', '2');
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
-    expect(screen.getByTestId('chart-frame').style.getPropertyValue('--chart-box-w')).toBe('1176px');
-    expect(screen.getByTestId('chart-frame').style.getPropertyValue('--chart-box-h')).toBe('833px');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
     expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
     expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'playback-row', 'live-actions']);
-    // Too short for step 2: step 1, and the stripe is back in the rail, the same element.
+    // Narrower than the threshold: the stripe is back in the rail, the same element.
     act(() => {
-      media?.setSize(1920, 900);
+      media?.setSize(STRIPE_UNDER_MIN_PX - 1, 1080);
     });
-    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-dome-step', '1');
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
     expect(screen.getByTestId('stripe-block').closest('[data-testid="chart-aside"]')).not.toBeNull();
-    // Step 4 at the largest reference, and none at all on compact whatever the height.
     act(() => {
-      media?.setSize(3840, 2160);
+      media?.setSize(STRIPE_UNDER_MIN_PX, 700);
     });
-    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-dome-step', '4');
-    expect(screen.getByTestId('chart-frame').style.getPropertyValue('--chart-box-w')).toBe('2688px');
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
+    // Compact: no cut box, no stripe row, whatever the width says.
     act(() => {
       media?.setSize(390, 3000);
     });
-    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-dome-step', '0');
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'false');
   });
 
