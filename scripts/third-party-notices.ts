@@ -30,7 +30,13 @@ const ROOT = resolve('.');
 export const RULE = '-'.repeat(76);
 
 /** One package, as it is written out. */
-export type Notice = { name: string; version: string; license: string; source: string; text: string };
+export interface Notice {
+  name: string;
+  version: string;
+  license: string;
+  source: string;
+  text: string;
+}
 
 /** A licence file, by the names packages actually use. */
 const LICENSE_FILE = /^(licen[cs]e|copying|notice)(\.(md|txt))?$/i;
@@ -44,7 +50,12 @@ const PERMISSION = /permission is hereby granted|redistribution and use|apache l
  * it exists in the tree, so none of it can reach the bundle, and there is
  * nothing to quote.
  */
-type LsNode = { version?: string; license?: string | { type?: string }; path?: string; dependencies?: Record<string, LsNode> };
+interface LsNode {
+  version?: string;
+  license?: string | { type?: string };
+  path?: string;
+  dependencies?: Record<string, LsNode>;
+}
 
 /** Every installed production package, by `name@version`, deepest duplicates included. */
 export function productionPackages(): Map<string, { name: string; version: string; license: string; path: string }> {

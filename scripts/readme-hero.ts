@@ -72,14 +72,14 @@ export const SOURCES = [
 const INK = { bg: '#0b0f14', fg: '#d5dbe3', dim: '#7d8794', edge: '#161c24' } as const;
 
 /** One composition. `portrait` is the width of a phone tile; the landscape tile takes the rest of the row. */
-type Layout = {
+interface Layout {
   width: number;
   height: number | null;
   pad: number;
   gap: number;
   portrait: number;
   title: boolean;
-};
+}
 
 /** 390 x 844 is the phone every capture in the set is shot at. */
 const PHONE = { width: 390, height: 844 } as const;
