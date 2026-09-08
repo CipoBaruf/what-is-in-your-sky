@@ -1,5 +1,11 @@
 # R14 — glyphcss feasibility spike: findings
 
+> **Note, 2026-09-08 (P1, FR-PUB-7 (b), D-373).** `measurements.json` recorded the
+> stylesheet's `data-vite-dev-id` attribute twice, and Vite writes that attribute as the
+> absolute path of the file on the machine the dev server ran on. Both strings have been
+> rewritten to the repository-relative `spike/spike.css`, which is what they identify. No
+> measured number, raster or screenshot in this directory was touched.
+
 Date: 2026-09-03. Library: `@glyphcss/react` 0.1.6 (`@glyphcss/core` 0.1.6, `glyphcss` 0.1.6), pinned exactly. Page: `spike/` (dev only: `npm run dev`, then `/spike/`; every knob is a URL parameter). Driver: `npx tsx spike/capture.ts` writes every screenshot, raster text (`raster/*.txt`, the `<pre>` content) and number in this folder; `measurements.json` is the raw output. Viewport 390 × 844 (Pixel 5 profile, device pixel ratio 2), Chromium from Playwright 1.62.
 
 The composition is PLAN §8.3 built through `spike/domeGeometry.ts` from `lib/skyGeometry.toDome`: horizon ring, dashed 30°/60° rings, eight meridians, the pass as a strip with the last fifth gapped for direction, peak and shadow diamonds at radius 1.02, compass / zenith / pass labels as `GlyphHotspot`s. Two passes: the first golden pass (grazing, 13° of sky, peak 10°) and a synthetic high pass (rises WNW, peak 64° SW, ends in shadow SE) for the cases the golden pass cannot show.

@@ -1049,7 +1049,7 @@
           "id": "",
           "attrs": [
             "type=text/css",
-            "data-vite-dev-id=/Volumes/Data/Projects/what-is-in-your-sky-right-now/spike/spike.css"
+            "data-vite-dev-id=spike/spike.css"
           ],
           "head": "/* R14 spike page. Dev only; the app's tokens are reused so the screenshots match the product. */\n:root {\n  --font-mono:"
         },
@@ -1072,7 +1072,7 @@
           "id": "",
           "attrs": [
             "type=text/css",
-            "data-vite-dev-id=/Volumes/Data/Projects/what-is-in-your-sky-right-now/spike/spike.css"
+            "data-vite-dev-id=spike/spike.css"
           ],
           "head": "/* R14 spike page. Dev only; the app's tokens are reused so the screenshots match the product. */\n:root {\n  --font-mono:"
         },

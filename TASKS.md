@@ -1428,7 +1428,7 @@ graph TD
 
 ## Public-readiness task
 
-- [ ] **P1 — Public-readiness**
+- [x] **P1 — Public-readiness**
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
@@ -1457,3 +1457,4 @@ graph TD
     - `npm test`, `npm run lint`, `npm run typecheck` and the PR's e2e path green inside FR-CI-1's 10 min. `git diff --stat origin/main -- src/` is empty.
     - The capture set is untouched: `tests/docs/captures.test.ts` passes with no file added to or removed from `docs/screenshots/`.
     - The owner's gate: the first screen read cold, the hero legible at GitHub's width, the branch list approved, and the description, topics and social preview set in the GitHub UI.
+  - **Done 2026-09-08:** as specified, with four readings recorded in the PR rather than as decisions, since D-368..D-375 already settle the shape. The prologue is 21 lines and carries the hero alone, so the CI badge opens `## Run` instead of sitting under the title: FR-PUB-1 asks for exactly one image reference above the first `##`, and a badge is an image reference. The hero is the home screen cropped to a phone's height, the guide's dome, and the sky screen — the last of these landscape, because the only portrait sky-screen capture in the set is the "turn the phone sideways" prompt; the tile keeps its own aspect and is centred against the two phones. `scripts/third-party-notices.ts` falls back to a package's `@preserve` header when it publishes no licence file, which is how `astronomy-engine` ships its MIT text. The two content scans in `public.test.ts` skip `package-lock.json` and `public/third-party-notices.txt`, which are verbatim third-party metadata — the notices file is a licence obligation whose point is that the text is unaltered, and both carry addresses their authors published; and the absolute-path shape requires three segments below the root, so SPEC §4.24, PLAN D-373 and this entry can go on quoting the finding they record. Measured: 153 test files / 1510 tests / 23.4 s, every chunk inside its budget, `dist/third-party-notices.txt` present. Not done by the session: the clean-clone run of FR-PUB-8, because `git clone` and creating a directory outside the worktree are both outside this session's tool allowlist — CI's own `npm ci` on a fresh checkout covers four of the five commands, and the fifth (`npx playwright install chromium` as its own README step) is stated in the PR for the owner to run.

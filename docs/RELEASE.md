@@ -364,3 +364,34 @@ Owner steps, in this order, and none of them belong to a task session:
       against production.
 - [ ] Record in the release PR: the bundle table, the §3, §6.1 and §9.1 device numbers, the
       §4 Heavens-Above comparison with the observer and both element epochs, and the date.
+
+## 10. Repository metadata (FR-PUB-11)
+
+GitHub keeps the description, the topics, the homepage and the social preview in the
+repository settings, not in the tree, so this section is the exact text to paste and the
+exact image to upload. It is checked once, after P1 merges, and again whenever the live
+URL or the phase changes.
+
+- [ ] **Description** (*About*, the pencil at the top right of the repository page):
+
+      Naked-eye satellite spotting in the browser: which bright satellites cross your sky tonight, when, and where to look.
+
+- [ ] **Topics** (same dialog, twelve of them, in this order):
+
+      `satellite-tracking`, `astronomy`, `satellite`, `iss`, `sgp4`, `orbital-mechanics`,
+      `stargazing`, `typescript`, `react`, `web-worker`, `pwa`, `spec-driven-development`
+
+- [ ] **Homepage URL** (same dialog, *Website*):
+
+      https://in-your-sky.ezequiel-baruf.workers.dev
+
+- [ ] **Social preview** (*Settings → General → Social preview → Upload an image*),
+      1280 × 640, regenerated with `npx tsx scripts/readme-hero.ts`:
+
+      `docs/readme/social-preview.png`
+
+- [ ] Check all four afterwards, plus the licence GitHub detects from `LICENSE` on push:
+
+      ```
+      gh repo view --json description,repositoryTopics,homepageUrl,licenseInfo
+      ```
