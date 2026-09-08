@@ -70,7 +70,7 @@ for (const [width, height] of [
   test.describe(`at ${String(width)} x ${String(height)}`, () => {
     test.use({ viewport: { width, height } });
 
-    test(`cuts the box to the dome's shape from what the window leaves, the rows beside it, and the stripe ${stripeUnder ? 'under the box' : 'in the rail'}`, async ({ page }) => {
+    test(`cuts the box to the dome's shape from what the window leaves, the rows beside it, the stripe ${stripeUnder ? 'under the box' : 'in the rail'}, and the drawing filling it both ways`, async ({ page }) => {
       await openLive(page);
       await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', String(stripeUnder));
       const box = await page.getByTestId('live-dome').getByTestId('chart-box').boundingBox();
@@ -111,10 +111,9 @@ for (const [width, height] of [
 
       // The page never scrolls to make room: the box was cut from what fits.
       expect(await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight])).toEqual([width, height]);
-    });
 
-    test('covers at least 90 % of its box across and down, centred, not two thirds of it with the top cut off', async ({ page }) => {
-      await openLive(page);
+      // …and the drawing in it: at least 90 % across and down, centred, not two thirds of it with the top cut off.
+      // One load per size (FR-CI-1): the coverage is read off the same page as the layout.
       const dome = page.getByTestId('live-dome');
       /*
        * Polled, not read once: the raster re-fits its box on a `ResizeObserver`, and on a loaded machine
@@ -137,16 +136,14 @@ for (const [width, height] of [
        * other. On the old rule the extent ran to the box's top row (no blank above, a fifth of the box
        * blank below) and the outline of the bowl was missing.
        */
-      const box = await dome.getByTestId('chart-box').boundingBox();
       const { extent, layers } = await painted(dome.locator('[data-drawing="dome"]'));
-      if (!box) throw new Error('no box');
       const cell = Math.max(...layers.map((layer) => layer.cellWidthPx)) * 2;
-      expect(extent.height / box.height).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO * (fitFloor(layers, box.width) / MIN_EXTENT_RATIO));
+      expect(extent.height / box.height).toBeGreaterThanOrEqual(fitFloor(layers, box.width));
       expect(extent.y).toBeGreaterThanOrEqual(box.y);
       expect(extent.y + extent.height).toBeLessThanOrEqual(box.y + box.height + 1);
-      const above = extent.y - box.y;
-      const below = box.y + box.height - extent.y - extent.height;
-      expect(Math.abs(above - below), `blank above ${String(above)} px, below ${String(below)} px`).toBeLessThanOrEqual(cell);
+      const blankAbove = extent.y - box.y;
+      const blankBelow = box.y + box.height - extent.y - extent.height;
+      expect(Math.abs(blankAbove - blankBelow), `blank above ${String(blankAbove)} px, below ${String(blankBelow)} px`).toBeLessThanOrEqual(cell);
     });
   });
 }

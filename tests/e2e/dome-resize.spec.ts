@@ -7,13 +7,15 @@
  * 1920. The remount key carried the column count alone, which every desktop
  * box caps at 120, so on a desktop it never changed (D-316).
  *
- * One page is driven through four sizes and the painted extent at each is
- * compared with what a fresh load at that size gives, within one cell of the
- * raster: the two are the same picture or the resize is wrong. Fails on the
- * old key at the second size.
+ * One page is driven through four sizes. At each the painted extent must be
+ * inside its box and cover it as FR-DOME-1 asks — the old key ran it past the
+ * box at the second size — and at 1280 x 800 after 3840 x 2160, the worst
+ * case the owner saw (107 % across, the labels off the dome), it is compared
+ * with a fresh load at that size within one cell of the raster: the two are
+ * the same picture or the resize is wrong. Two page loads in all (FR-CI-1).
  */
 import { expect, test, type Page } from '@playwright/test';
-import { painted, type Painted } from './domeInk';
+import { fitFloor, painted, type Painted } from './domeInk';
 import { domeDrawn, seedStoredRun, stripFilled } from './liveHelpers';
 
 const SIZES = [
@@ -22,6 +24,8 @@ const SIZES = [
   { width: 1280, height: 800 },
   { width: 2560, height: 1440 },
 ] as const;
+/** The size compared against a fresh load: the one the owner's screenshots showed worst. */
+const REFERENCE = SIZES[2];
 
 async function openLive(page: Page): Promise<void> {
   await seedStoredRun(page, { settled: true });
@@ -51,17 +55,12 @@ async function settledExtent(page: Page): Promise<Painted> {
 }
 
 test('draws the same dome after a resize as a fresh load at that size gives', async ({ browser }) => {
-  // Five page loads in one test: three times the budget, so a loaded CI box does not fail it on time alone.
-  test.slow();
-  // Fresh loads first, one page each, so the chain is compared against pictures no resize ever touched.
-  const fresh = new Map<string, Painted>();
-  for (const size of SIZES) {
-    const context = await browser.newContext({ viewport: size });
-    const page = await context.newPage();
-    await openLive(page);
-    fresh.set(`${String(size.width)}x${String(size.height)}`, await settledExtent(page));
-    await context.close();
-  }
+  // The fresh reference first, on a page of its own, so the chain is compared against a picture no resize touched.
+  const referenceContext = await browser.newContext({ viewport: REFERENCE });
+  const referencePage = await referenceContext.newPage();
+  await openLive(referencePage);
+  const reference: Painted = await settledExtent(referencePage);
+  await referenceContext.close();
 
   const context = await browser.newContext({ viewport: SIZES[0] });
   const page = await context.newPage();
@@ -70,17 +69,20 @@ test('draws the same dome after a resize as a fresh load at that size gives', as
     await page.setViewportSize(size);
     const key = `${String(size.width)}x${String(size.height)}`;
     const resized = await settledExtent(page);
-    const reference = fresh.get(key);
-    if (!reference) throw new Error(`no fresh load at ${key}`);
-    const cell = Math.max(...resized.layers.map((layer) => layer.cellWidthPx));
-    for (const side of ['x', 'y', 'width', 'height'] as const) {
-      expect(Math.abs(resized.extent[side] - reference.extent[side]), `${side} of the extent at ${key} after a resize, against a fresh load`).toBeLessThanOrEqual(cell + 1);
-    }
-    // …and inside its box, which the old key also broke: the drawing ran past the box after growing the window.
     const box = await page.getByTestId('chart-box').first().boundingBox();
     if (!box) throw new Error('no box');
-    expect(resized.extent.x).toBeGreaterThanOrEqual(box.x - 1);
-    expect(resized.extent.x + resized.extent.width).toBeLessThanOrEqual(box.x + box.width + 1);
+    // Inside its box on both axes, and covering it as a fresh load would — the old key ran the drawing past the box after growing the window.
+    expect(resized.extent.x, `${key}: the drawing starts inside the box`).toBeGreaterThanOrEqual(box.x - 1);
+    expect(resized.extent.x + resized.extent.width, `${key}: the drawing ends inside the box`).toBeLessThanOrEqual(box.x + box.width + 1);
+    expect(resized.extent.y, `${key}: the drawing's top is inside the box`).toBeGreaterThanOrEqual(box.y - 1);
+    expect(resized.extent.y + resized.extent.height, `${key}: the drawing's bottom is inside the box`).toBeLessThanOrEqual(box.y + box.height + 1);
+    expect(resized.extent.width / box.width, `${key}: the drawing over the box's width`).toBeGreaterThanOrEqual(fitFloor(resized.layers, box.width));
+    if (size.width === REFERENCE.width && size.height === REFERENCE.height) {
+      const cell = Math.max(...resized.layers.map((layer) => layer.cellWidthPx));
+      for (const side of ['x', 'y', 'width', 'height'] as const) {
+        expect(Math.abs(resized.extent[side] - reference.extent[side]), `${side} of the extent at ${key} after a resize, against a fresh load`).toBeLessThanOrEqual(cell + 1);
+      }
+    }
   }
   await context.close();
 });
