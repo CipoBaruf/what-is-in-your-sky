@@ -61,13 +61,28 @@ export interface ChartFrameProps {
    * rows leave. Only meaningful on a wide fill frame without an aside.
    */
   stacked?: boolean;
+  /**
+   * FR-FSC-1, FR-FSC-3 (R62, D-322): the frame is a screen. The box is the
+   * host's whole size — no aspect, no floor, no full-bleed margins, nothing
+   * measured — and the rows around it become overlays over it: the `status`
+   * slot in the top-left corner, the `legend` slot as a strip along the bottom
+   * edge two rows high, both on `--follow-overlay`, and the `overlay` slot over
+   * both. There is no controls row, no stripe row and no side column, so
+   * `controls`, `stripe` and `aside` are not rendered.
+   */
+  screen?: boolean;
+  /**
+   * FR-FSC-1 (R62, D-322): the page's own children over everything — the follow
+   * screen's `×`. Only placed on a `screen`; the frame does not read it.
+   */
+  overlay?: ReactNode;
   className?: string;
   /** FR-LIVE-1 (R32): the drawing takes the frame's whole height instead of a capped square; the frame takes its parent's. */
   fill?: boolean;
   children: ReactNode;
 }
 
-export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect, stacked = false, className, fill = false, children }: ChartFrameProps) {
+export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect, stacked = false, screen = false, overlay, className, fill = false, children }: ChartFrameProps) {
   const compact = useLayoutMode() === 'compact';
   const frameRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
@@ -79,7 +94,8 @@ export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect,
   const hasLegend = legend !== undefined && legend !== null;
   // D-319: stacked only where there is no rail to stand beside; an aside wins, since the rail is what it is for.
   const isStacked = stacked && !hasAside;
-  const boxed = fill && !compact && boxAspect !== undefined && (hasAside || isStacked);
+  // D-322: a screen measures nothing. The box is the host's, so neither the aspect fit nor the compact floor runs.
+  const boxed = !screen && fill && !compact && boxAspect !== undefined && (hasAside || isStacked);
 
   /*
    * R61 (FR-LIVE-7 as amended v1.2.1, D-314, F-59): the aspect-locked box. The frame is as tall as the page's
@@ -133,7 +149,7 @@ export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect,
   // portrait phone never gets a dome shorter than it is wide whatever the rows around it take.
   useEffect(() => {
     const frame = frameRef.current;
-    if (!fill || !compact || !frame || typeof ResizeObserver === 'undefined') return;
+    if (screen || !fill || !compact || !frame || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width ?? 0;
       frame.style.setProperty('--chart-floor', `${String(Math.round(width))}px`);
@@ -143,7 +159,46 @@ export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect,
       observer.disconnect();
       frame.style.removeProperty('--chart-floor');
     };
-  }, [fill, compact]);
+  }, [fill, compact, screen]);
+
+  /*
+   * R62 (FR-FSC-1, FR-FSC-3, D-322): the screen. A frame of its own — not
+   * `.frame`, not `.fill` — so none of the rules above can reach it: it has no
+   * grid, no rows and no column, and the box is the host's whole size. Over the
+   * box, in this order and in this stacking order, the facing readout at the
+   * top-left, the legend strip along the bottom edge, and whatever the page
+   * puts over both. `aside` and `stripe` have nowhere to go here and are not
+   * rendered; neither is the controls row, since a screen has no controls
+   * (FR-FSC-1). A slot with nothing in it is left out rather than drawn empty:
+   * the two overlays carry a surface, and R63's portrait state hands the frame
+   * `status={null}` and `legend={null}` precisely so the note is all there is.
+   */
+  if (screen) {
+    return (
+      <div className={[styles.shell, styles.shellFill].join(' ')}>
+        <div className={[styles.screen, className].filter(Boolean).join(' ')} ref={frameRef} data-testid="chart-frame" data-screen="true" data-fill={fill} data-legend={hasLegend}>
+          <div className={styles.drawing} data-testid="chart-box">
+            {children}
+          </div>
+          {status !== undefined && status !== null && (
+            <div className={styles.status} data-testid="chart-status">
+              {status}
+            </div>
+          )}
+          {hasLegend && (
+            <div className={styles.legend} data-testid="chart-legend-slot">
+              {legend}
+            </div>
+          )}
+          {overlay !== undefined && overlay !== null && (
+            <div className={styles.overlay} data-testid="chart-overlay">
+              {overlay}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // The shell is the size container the frame's "beside" rule queries (D-232): a container query
   // answers for descendants, never for the container itself, so the frame needs a parent to ask.

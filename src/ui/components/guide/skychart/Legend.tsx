@@ -49,9 +49,17 @@ export interface LegendProps {
    * pass's own row; the rest of the rows read as the detail's dim arcs.
    */
   lead?: { passId: string; node: ReactNode } | undefined;
+  /**
+   * FR-FSC-3 / FR-LEG-2 as amended v1.3 (R62, D-322): the follow screen's
+   * strip. The rows are FR-LEG-3's short form — key, swatch, name, rise and end
+   * — on one line each, so the two rows the strip is allowed are two lines of
+   * text at 844 px and the drawing keeps the rest of the screen. The peak time
+   * is what goes: on a screen the picture is the peak.
+   */
+  screen?: boolean;
 }
 
-export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow, lead }: LegendProps) {
+export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow, lead, screen = false }: LegendProps) {
   const t = useT();
   const locale = useLocale();
   const words = t.chart.legend;
@@ -59,7 +67,7 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
   // The lead's row is the table itself, so it is not repeated as a button below it (FR-LEG-3).
   const listed = lead === undefined ? rows : rows.filter((row) => row.passId !== lead.passId);
   return (
-    <ol className={styles.legend} aria-label={words.label} data-testid="chart-legend" data-lead={lead !== undefined}>
+    <ol className={[styles.legend, screen ? styles.screen : undefined].filter(Boolean).join(' ')} aria-label={words.label} data-testid="chart-legend" data-lead={lead !== undefined} data-screen={screen}>
       {lead !== undefined && (
         <li className={[styles.item, styles.lead].join(' ')} data-testid="legend-lead" data-pass-id={lead.passId}>
           {lead.node}
@@ -88,7 +96,7 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
             {row.riseMs !== null && (
               <span className={styles.times}>
                 <span className={styles.time}>{clock(row.riseMs)}</span>
-                {lead === undefined && <span className={styles.time}>{clock(row.peakMs)}</span>}
+                {lead === undefined && !screen && <span className={styles.time}>{clock(row.peakMs)}</span>}
                 <span className={styles.time}>{clock(row.endMs)}</span>
                 {(row.state === 'live' || row.state === 'ahead' || row.state === 'linger') && <span className={styles.state}>{words.state[row.state]}</span>}
               </span>
