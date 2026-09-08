@@ -35,7 +35,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
 import { CAPTURE_DIR, captureName, LOCALES, SCREENS, THEMES, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
-import { domeDrawn, hhmmss, openSettings, stripFilled, stubCompass } from './liveHelpers';
+import { domeDrawn, heading, hhmmss, openSettings, stripFilled, stubCompass } from './liveHelpers';
 // Both observers are at altitude 0, which is what typing a coordinate pair gives (FR-LOC-4) and what
 // the committed pass ids were computed at: a seeded altitude would move every pass start by a second
 // or two and the glare pass would no longer be found by its id. Only Paris is observed from; Neuquén
@@ -107,11 +107,18 @@ const FULL_PAGE = new Set(['location', 'home', 'settings']);
  * touch panel. Playwright grants touch per context, so these tests need a
  * `test.use` of their own and the rest of the set must not have it.
  */
-const TOUCH = new Set(['window']);
+const TOUCH = new Set(['window', 'window-ground', 'window-buried', 'live-following']);
 
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
+const FOLLOW = { en: 'Follow phone', es: 'Seguir al teléfono' } as const;
 const FRAME_MS = 16;
+
+/** The two states R56 added to the window: `state` is how far below the horizon the phone points, in a square 60° box (R56's own numbers). */
+const GROUND_STATE: Record<'window-ground' | 'window-buried', { altDeg: number; state: 'ground' | 'buried' }> = {
+  'window-ground': { altDeg: -10, state: 'ground' },
+  'window-buried': { altDeg: -60, state: 'buried' },
+};
 
 interface SeedPrefs {
   locale: CaptureLocale;
@@ -269,6 +276,48 @@ async function settle(page: Page): Promise<void> {
   await page.clock.runFor(40 * FRAME_MS);
 }
 
+/** R56's two ground states, reached the same way `window` is: the pass's dome view, switched to the window, then swept down. */
+async function windowGroundState(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, screen: 'window-ground' | 'window-buried'): Promise<void> {
+  const { altDeg, state } = GROUND_STATE[screen];
+  await stubCompass(page);
+  await openChart(page, width, theme, locale, 'dome');
+  const figure = guide(page).getByRole('figure');
+  await figure.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
+  // The paused clock holds the lazy chunk's Suspense reveal (R32), as it does for the dome.
+  await page.clock.runFor(1000);
+  await expect(figure).toHaveAttribute('data-view', 'window');
+  const drawing = figure.locator('[data-look-az]');
+  await expect(drawing).toBeAttached();
+  // Down the pass's own azimuth, so the sky the `ground` state still holds is the sky with the arc in it.
+  const azDeg = Number(await drawing.getAttribute('data-look-az'));
+  await point(page, azDeg, altDeg);
+  await settle(page);
+  await expect(drawing).toHaveAttribute('data-ground', state);
+  await page.mouse.move(0, 0);
+}
+
+/** R59's following state: the follow control pressed, and a heading turned until the pass's arc is in the window. */
+async function liveFollowing(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale): Promise<void> {
+  await stubCompass(page);
+  await liveAt(page, width, theme, locale);
+  await page.getByRole('button', { name: FOLLOW[locale] }).click();
+  await heading(page, 270);
+  await expect(page.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
+  // The paused clock holds the lazy chunk's Suspense reveal (R32).
+  await page.clock.runFor(1000);
+  await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+  await expect(page.getByTestId('stripe-block')).toHaveCount(0);
+  const window_ = page.locator('[data-look-az]');
+  await expect(window_).toBeAttached();
+  // Turned to where the pass is: the picture is worth more with an arc in it than with an empty sky.
+  for (const azDeg of [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]) {
+    await point(page, azDeg, 20);
+    await settle(page);
+    if ((await page.locator('[data-drawing="window"] [data-pass-id]').count()) > 0) break;
+  }
+  await page.mouse.move(0, 0);
+}
+
 type Reach = (page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale) => Promise<void>;
 
 /** Every screen's route to itself, by the name it carries in `captureSet.ts`. */
@@ -363,6 +412,20 @@ const REACH: Record<string, Reach> = {
   },
 
   /**
+   * R60 (FR-FOL-5, R56): the window swept down out of the sky, at whichever of
+   * the two states its own screen name carries. The look direction is down the
+   * pass's own azimuth, as R56's captures do it, so the `ground` state still
+   * has an arc left to show above the hatch.
+   */
+  async 'window-ground'(page, width, theme, locale) {
+    await windowGroundState(page, width, theme, locale, 'window-ground');
+  },
+
+  async 'window-buried'(page, width, theme, locale) {
+    await windowGroundState(page, width, theme, locale, 'window-buried');
+  },
+
+  /**
    * R53 (FR-LEG-2..4): the legend with something in every column. The live page
    * is the only screen that has all of it at once — the drawn passes in their
    * FR-TRAJ-1 states (`up`, `soon`, `gone`) and, with the FR-LIVE-6 toggle on,
@@ -425,6 +488,11 @@ const REACH: Record<string, Reach> = {
 
   async live(page, width, theme, locale) {
     await liveAt(page, width, theme, locale);
+  },
+
+  /** R60 (FR-FOL-1, R59): the live page with `[ follow phone ]` pressed. */
+  async 'live-following'(page, width, theme, locale) {
+    await liveFollowing(page, width, theme, locale);
   },
 };
 
