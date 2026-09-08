@@ -249,12 +249,12 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
     );
     const slot = screen.getByTestId('chart-legend-slot');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
-    expect([...slot.children].map((el) => el.getAttribute('data-testid'))).toEqual([null, 'chart-aside']);
+    expect([...slot.children].map((el) => el.getAttribute('data-testid'))).toEqual(['chart-legend-scroll', 'chart-aside']);
     expect(within(screen.getByTestId('chart-aside')).getByText('rail')).toBeInTheDocument();
     // The legend keeps a box of its own inside the column, because that box is what scrolls: the rail must not.
     expect(slot.firstElementChild).toContainElement(screen.getByText('legend'));
     const beside = /@container \(min-width: 62ch\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
-    expect(beside).toContain("grid-template-columns: auto minmax(0, 1fr) max(calc(44 * var(--cell)), 26%);");
+    expect(beside).toContain("grid-template-columns: auto minmax(0, 1fr) clamp(calc(44 * var(--cell)), 26%, calc(60 * var(--cell)));");
     expect(beside).toMatch(/\[data-aside='true'\] \.legendScroll \{\n\s+flex: 0 1 auto;\n\s+min-height: 0;\n\s+overflow-y: auto;/);
   });
 

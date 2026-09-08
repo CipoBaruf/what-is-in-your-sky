@@ -86,7 +86,9 @@ export function ChartFrame({ controls, status, legend, aside, className, fill = 
               legend
             ) : (
               <>
-                <div className={styles.legendScroll}>{legend}</div>
+                <div className={styles.legendScroll} data-testid="chart-legend-scroll">
+                  {legend}
+                </div>
                 <div className={styles.aside} data-testid="chart-aside">
                   {aside}
                 </div>

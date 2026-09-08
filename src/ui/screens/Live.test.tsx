@@ -258,9 +258,9 @@ describe('<LivePage>', () => {
     render(<LivePage link={null} onLeave={() => undefined} />);
     expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).not.toBeNull();
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
-    // The rail is 26 % of the frame and never under 44 cells, and the page's third row goes with the rows that moved.
+    // The rail is 26 % of the frame between 44 and 60 cells, so its share falls as the page grows (D-313); the page's third row goes with the rows that moved.
     expect(readFileSync('src/ui/components/guide/skychart/ChartFrame.module.css', 'utf8')).toMatch(
-      /\[data-aside='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\) max\(calc\(44 \* var\(--cell\)\), 26%\);/,
+      /\[data-aside='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\) clamp\(calc\(44 \* var\(--cell\)\), 26%, calc\(60 \* var\(--cell\)\)\);/,
     );
     expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\] \{\n\s+grid-template-areas:\n\s+'top'\n\s+'dome';/);
   });

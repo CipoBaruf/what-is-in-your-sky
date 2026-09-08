@@ -112,22 +112,31 @@
       'drawing drawing legend';
   }
 
-  /* R61 (FR-LIVE-7 as amended v1.2, D-312, F-59): the wide live page's rail.
-     With an aside the column is the page's side column and not a legend's
-     width — 26 % of the frame, never under 44 cells, which is what the stripe
-     and the playback row need to read — and the rows that were under the box
-     are in it, so the box takes the page's whole height. The dome is sized
-     from the shorter side of that box (D-187), and a box at about the
-     drawing's own 1.41 : 1 is one the drawing fills in both directions: at
-     1920 x 1080 it went from 1631 x 833, which the drawing covered to 66 %
-     of its width, to 1356 x 960 at 90 %.
+  /* R61 (FR-LIVE-7 as amended v1.2, D-312, D-313, F-59): the wide live page's
+     rail. With an aside the column is the page's side column and not a
+     legend's width, and the rows that were under the box are in it, so the box
+     takes the page's whole height. The dome is sized from the shorter side of
+     that box (D-187), and a box at about the drawing's own 1.41 : 1 is one the
+     drawing fills in both directions: at 1920 x 1080 it went from 1631 x 833,
+     which the drawing covered to 66 % of its width, to 1373 x 960 at 92 %.
+
+     The width is `clamp(44 cells, 26 %, 60 cells)`, so the rail's *share* of
+     the page falls as the page grows — 34 % at 1280 px, 26 % at 1920, 23 % at
+     2560, 15 % at 3840 (D-313, the owner on the deployed build). Each end is a
+     measurement of the rail's own contents, not of the box: under 44 cells the
+     playback row and the strip wrap past what is readable, and past 60 the
+     rail gains nothing, since 60 is what FR-TRAJ-4's twelve hour labels want
+     and the rows above and below the stripe are shorter than that. Above
+     2222 px the cap binds and the box keeps the rest — the drawing does not
+     grow with it, because by then it is the box's *height* that sizes it, so
+     what the cap really buys is a rail in proportion to what is in it.
 
      The legend scrolls inside what the rail leaves it rather than the column
      scrolling as a whole: the playback controls and the share action are the
      page's, and a list long enough to push them under the fold would take
      them off the page. */
   .fill[data-compact='false'][data-legend='true'][data-aside='true'] {
-    grid-template-columns: auto minmax(0, 1fr) max(calc(44 * var(--cell)), 26%);
+    grid-template-columns: auto minmax(0, 1fr) clamp(calc(44 * var(--cell)), 26%, calc(60 * var(--cell)));
   }
 
   .fill[data-compact='false'][data-legend='true'][data-aside='true'] .legend {
