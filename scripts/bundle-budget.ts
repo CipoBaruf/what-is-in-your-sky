@@ -79,6 +79,34 @@ export interface Budget {
  * room every other row has, and the next six kilobytes are a `::warning::`
  * instead of silence.
  *
+ * R60 re-set them the same way on the 1.2.0 build (SPEC §9 Phase 2c, D-307),
+ * built with `VITE_MOON_LORE=on` as CI's bundle stage does (R42), since that
+ * is the build the script's budget is actually enforced against — a plain
+ * flag-off `npm run build` is a few tenths of a KB smaller in `main` and is
+ * what `tests/build/flags.test.ts` and the capture set measure instead (D-183).
+ * Two chunks move, one each way: `SkyDome-*.js` moves *down* — R57's fit rule
+ * (D-279) trims the raster back to a size the grid can hold rather than
+ * running it coarser, and R61's centring (D-317) samples the silhouette
+ * instead of the ring, so the chart chunk shed 2.9 KB it had carried since
+ * R53 (97.1 → 94.2) — and `index-*.js` moves *up* one rounding step: `main`
+ * measures 136.6 against the 1.1.0 build's 135.3, and ×1.1 (150.3) crosses
+ * the next 5 KB line the 1.1.0 figure (148.8) had not reached:
+ *
+ * | chunk          | file                  | measured | budget | was | ceiling |
+ * |----------------|-----------------------|---------:|-------:|----:|--------:|
+ * | main           | `index-*.js`          |    136.6 |    155 | 150 |     170 |
+ * | chart          | `SkyDome-*.js`        |     94.2 |    105 | 110 |     110 |
+ * | worker         | `passes.worker-*`     |     36.1 |     40 |  40 |     130 |
+ * | astronomy      | `skyBodies-*.js`      |     22.1 |     25 |  25 |      30 |
+ * | live           | `Live-*.js`           |      8.0 |     10 |  10 |      40 |
+ * | declination    | `useDeclination-*.js` |      6.1 |     10 |  10 |       — |
+ * | window         | `SkyWindow-*.js`      |      5.9 |     10 |  10 |       — |
+ * | service worker | `workbox-*.js`        |      5.0 |     10 |  10 |      15 |
+ *
+ * `live` and `window` measure a little higher than the 1.1.0 build (R59's
+ * follow control and R56's ground state on one, nothing on the other's own
+ * code) but neither crosses a 5 KB line, so both budgets hold at the floor.
+ *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
  *
@@ -125,8 +153,8 @@ export interface Budget {
  * the app never fetches.
  */
 export const BUDGETS: readonly Budget[] = [
-  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 150 },
-  { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 110 },
+  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 155 }, // R60: 136.6 measured (flag on), crossing the 150 line (D-307)
+  { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 105 }, // R60: 94.2 measured, down from 97.1 (D-307)
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 40 },
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10 },
   { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 25 },
