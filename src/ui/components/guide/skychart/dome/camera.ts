@@ -2,7 +2,7 @@ import { compassPoint, normalizeAzimuthDeg, type CompassPoint } from '../../../.
 import { degrees } from '../../../../../lib/format';
 import { toDome } from '../../../../../lib/skyGeometry';
 import type { Pass } from '../../../../../model';
-import { COMPASS_LABEL_RADIUS, projectToScreen, type Tuple3 } from './domeGeometry';
+import { COMPASS_LABEL_RADIUS, GROUND_RADIUS, projectToScreen, type Tuple3 } from './domeGeometry';
 
 /**
  * PLAN §8.3/§8.4 (R15): the dome's camera as two numbers the user controls,
@@ -60,6 +60,12 @@ export const DRAG_PX_PER_DEG = 4;
  * `MIN_EXTENT_RATIO` and `MAX_EXTENT_RATIO` of the shorter side at every box
  * the app draws, from the landscape phone's 324 px up. A width-bound box (the
  * phone, the guide's square) is unchanged.
+ *
+ * R57 (FR-DOME-1 as amended v1.2, D-279, F-54): `zoomFor` is still taken from
+ * the box, and `zoomWithinRaster` then holds it to what the raster can
+ * actually paint, so a raster that falls short of the box (the retired
+ * `MAX_CELL_WIDTH_PX` cap did, past 1440 CSS px of width) cannot leave the
+ * drawing sized for more than the grid holds.
  */
 export const ZOOM_WIDTH_DIVISOR = 2.4;
 export const ZOOM_HEIGHT_DIVISOR = 1.7;
@@ -75,6 +81,67 @@ export const LABEL_ADVANCE = 0.6;
 /** The fit rule: CSS px per world unit for a box, from its shorter side (D-177). */
 export function zoomFor(widthPx: number, heightPx: number): number {
   return Math.min(widthPx / ZOOM_WIDTH_DIVISOR, heightPx / ZOOM_HEIGHT_DIVISOR);
+}
+
+/**
+ * D-290 (R57, F-54): what the *raster* has to hold, in world units, as against
+ * the divisors above, which are what the *box* has to hold. The two differ by
+ * the labels: a label is a DOM element positioned over the grid, not a cell of
+ * it, so it may overhang the raster as long as it stays inside the box. The
+ * widest thing painted into a cell is the base layer's ground disc at
+ * `GROUND_RADIUS` — 2.2 units across, and 2.2 cos 45° tall at the default tilt,
+ * the tilt every other divisor here is derived at.
+ */
+export const INK_WIDTH_UNITS = 2 * GROUND_RADIUS;
+export const INK_HEIGHT_UNITS = 2 * GROUND_RADIUS * Math.cos((DEFAULT_TILT_DEG * Math.PI) / 180);
+/**
+ * The blank columns the clamp keeps either side of the ink — `dome-fit.spec.ts`'s
+ * rule. One: on the base layer's coarse grid (half the line layer's columns, so
+ * twice the cell) a second column is 7 % of the box, which FR-DOME-1's 0.9 floor
+ * has not got to give.
+ */
+export const INK_MARGIN_CELLS = 1;
+/**
+ * A hair off the ink so an edge that lands exactly on a cell boundary falls
+ * *inside* the last blank column rather than on it. Without it a box where the
+ * clamp binds at equality (676.6 px square with whole-pixel advances: 612 px of
+ * ink in a 624 px raster of 6 px cells) leaves the margin to float error, and
+ * the reader sees the dome touch the edge of the grid.
+ */
+const INK_EPSILON_PX = 1e-6;
+
+/** The raster a layer is painted on: its size in CSS px, and one cell of it. */
+export interface RasterSize {
+  widthPx: number;
+  heightPx: number;
+  cellWidthPx: number;
+}
+
+/**
+ * D-290 (R57, amending D-279): the fit rule for a box, held to the raster the
+ * layer is actually painted on. `zoomFor` sizes the drawing from the box; where
+ * the raster covers the box this is the whole rule, and where the raster falls
+ * short of it — the retired `MAX_CELL_WIDTH_PX` cap past 1440 CSS px (F-54), or
+ * a fit loop that steps the font down for whole-pixel glyph advances — the ink
+ * is held inside the grid instead.
+ *
+ * The width allows `INK_MARGIN_CELLS` either side, which is `dome-fit.spec.ts`'s
+ * rule made structural: a drawing wider than its raster is not painted outside
+ * it, it is cut at the edge, and the grid it was cut against is the only place
+ * the loss shows. The height allows none: `rowsFor` floors the row count, so a
+ * cell is a large share of the drawing's height and a dome that tapers smoothly
+ * lights its top and bottom row legitimately (the spec asserts the columns
+ * only).
+ *
+ * D-279 clamped both sides with the *box's* divisors, which cost the drawing
+ * the 10 % margin the box leaves the labels a second time, on the raster where
+ * there are no labels to leave it for: on the pass detail's square box the fit
+ * loop settles a raster some 7 % short of the box, and the drawing came out at
+ * 0.89 of the shorter side against FR-DOME-1's 0.9 floor (D-291).
+ */
+export function zoomWithinRaster(widthPx: number, heightPx: number, raster: RasterSize): number {
+  const inkWidthPx = Math.min(widthPx, raster.widthPx) - 2 * INK_MARGIN_CELLS * raster.cellWidthPx - INK_EPSILON_PX;
+  return Math.min(zoomFor(widthPx, heightPx), inkWidthPx / INK_WIDTH_UNITS, Math.min(heightPx, raster.heightPx) / INK_HEIGHT_UNITS);
 }
 
 /** The raster's cell, for `drawingExtent`'s snap allowance; zero where the drawing is measured without a grid. */
@@ -175,7 +242,6 @@ export const MAX_GRID_COLS = 120;
 export const CELL_ASPECT = 2;
 export const DEFAULT_CELL_WIDTH_PX = 6.5;
 export const MIN_CELL_WIDTH_PX = 4;
-export const MAX_CELL_WIDTH_PX = 12;
 /** D-92: the base layer is a wash under the lines, at half their columns. */
 export const BASE_COLS_RATIO = 0.5;
 export const MIN_BASE_COLS = 8;
@@ -255,9 +321,19 @@ const FIT_SLACK_PX = 0.5;
  * without subpixel positioning) round every glyph advance to whole pixels,
  * so the font size computed from the advance ratio can render a row wider
  * than the box. Starting from that size, the font shrinks in 0.1 px steps
- * until a measured 60-cell row fits, and the cell, the word spacing and the
- * zoom follow the measured row. Falls back to `layoutFor` when nothing can be
- * measured.
+ * until a measured 60-cell row fits, and the cell, the word spacing, the
+ * column count and the zoom follow the measured row. Falls back to
+ * `layoutFor` when nothing can be measured.
+ *
+ * D-293 (R57): the column count is **not** touched here. A cell rounded down to
+ * a whole pixel leaves the raster short of the box — 60 cells of 5 px in a
+ * 354 px box — and the drawing on it is short of the box with it, below
+ * FR-DOME-1's 0.9 floor. Giving the settled cell the columns it leaves room for
+ * would recover that, but it lets the grid pass `MAX_GRID_COLS` and makes the
+ * count depend on the platform's glyph rounding, so the same box would be a
+ * 60-column picture here and a 69-column one on Linux. The grid is the
+ * picture's texture; the exact, platform-independent count is worth more than
+ * the last few per cent of fill.
  */
 export function fitLayout(hostWidthPx: number | null, hostHeightPx: number | null, advance: GlyphAdvance, measureRows: (fontSizePx: number, cols: number) => RowMetrics, cols = colsFor(hostWidthPx)): DomeLayout {
   const base = layoutFor(hostWidthPx, hostHeightPx, advance, cols);
@@ -269,8 +345,15 @@ export function fitLayout(hostWidthPx: number | null, hostHeightPx: number | nul
     if (!(rows.brailleRowPx > 0)) return base;
     if (rows.brailleRowPx <= hostWidthPx + FIT_SLACK_PX || fontSizePx <= minFontPx) {
       const cellWidthPx = rows.brailleRowPx / cols;
+      const cellHeightPx = cellWidthPx * CELL_ASPECT;
+      const fitRows = rowsFor(hostHeightPx, cellHeightPx, cols);
       const spaceRowPx = rows.spaceRowPx > 0 ? rows.spaceRowPx : rows.brailleRowPx;
-      return { ...base, cols, rows: rowsFor(hostHeightPx, cellWidthPx * CELL_ASPECT, cols), cellWidthPx, cellHeightPx: cellWidthPx * CELL_ASPECT, fontSizePx, wordSpacingPx: (rows.brailleRowPx - spaceRowPx) / cols };
+      const height = hostHeightPx !== null && Number.isFinite(hostHeightPx) && hostHeightPx > 0 ? hostHeightPx : hostWidthPx;
+      // R57 (D-279, D-290, F-54): re-clamp against the raster the fit loop actually settled on,
+      // not the pre-fit cell `base.zoom` was sized for — a font that steps down here paints a
+      // narrower raster than `layoutFor`'s own clamp accounted for.
+      const zoom = zoomWithinRaster(hostWidthPx, height, { widthPx: cols * cellWidthPx, heightPx: fitRows * cellHeightPx, cellWidthPx });
+      return { ...base, rows: fitRows, cellWidthPx, cellHeightPx, fontSizePx, wordSpacingPx: (rows.brailleRowPx - spaceRowPx) / cols, zoom };
     }
     fontSizePx = Math.max(minFontPx, fontSizePx - FIT_STEP_PX);
   }
@@ -306,21 +389,60 @@ function rowsFor(hostHeightPx: number | null, cellHeightPx: number, cols: number
  */
 export function layoutFor(hostWidthPx: number | null, hostHeightPx: number | null = null, advance: GlyphAdvance = DEFAULT_ADVANCE, cols = colsFor(hostWidthPx)): DomeLayout {
   const measured = hostWidthPx !== null && Number.isFinite(hostWidthPx) && hostWidthPx > 0;
-  const cellWidthPx = measured ? Math.min(MAX_CELL_WIDTH_PX, Math.max(MIN_CELL_WIDTH_PX, hostWidthPx / cols)) : DEFAULT_CELL_WIDTH_PX;
+  // R57 (D-279): no upper cap — once the column cap binds the cell keeps growing, so `cols ×
+  // cellWidthPx` covers the box at every width instead of stalling at 12 px past 1440 CSS px.
+  const cellWidthPx = measured ? Math.max(MIN_CELL_WIDTH_PX, hostWidthPx / cols) : DEFAULT_CELL_WIDTH_PX;
   const braille = usable(advance.braille, DEFAULT_ADVANCE.braille);
   const space = usable(advance.space, braille);
   const fontSizePx = cellWidthPx / braille;
   const width = measured ? hostWidthPx : REFERENCE_WIDTH_PX;
   const height = hostHeightPx !== null && Number.isFinite(hostHeightPx) && hostHeightPx > 0 ? hostHeightPx : width;
+  const cellHeightPx = cellWidthPx * CELL_ASPECT;
+  const rows = rowsFor(hostHeightPx, cellHeightPx, cols);
   return {
     cols,
-    rows: rowsFor(hostHeightPx, cellWidthPx * CELL_ASPECT, cols),
+    rows,
     cellWidthPx,
-    cellHeightPx: cellWidthPx * CELL_ASPECT,
+    cellHeightPx,
     fontSizePx,
     wordSpacingPx: cellWidthPx - space * fontSizePx,
-    zoom: zoomFor(width, height),
+    // R57 (D-279, D-290): the ceiling holds by construction even if a cell cap is ever
+    // reintroduced — the drawing is never sized for more box than the raster it will actually
+    // paint covers. Only where a box was actually measured: unmeasured, `cols` may be the base
+    // layer's caller-supplied override (D-92, half the line layer's) rather than `colsFor`'s own
+    // count, and the two layers must still share one zoom (D-91) against the same
+    // `REFERENCE_WIDTH_PX` box.
+    zoom: measured ? zoomWithinRaster(width, height, { widthPx: cols * cellWidthPx, heightPx: rows * cellHeightPx, cellWidthPx }) : zoomFor(width, height),
   };
+}
+
+/** One raster layer's font, as `SkyDome` measures it on the stage at mount. */
+export interface LayerFont {
+  advance: GlyphAdvance;
+  measureRows: (fontSizePx: number, cols: number) => RowMetrics;
+}
+
+/**
+ * The stacked dome's two layouts for one box: the line layer at `colsFor`'s
+ * count, the base layer under it at half of that (D-92), both fitted to the
+ * same box in their own font.
+ *
+ * D-91, restored by D-292 (R57): the two draw at **one** zoom. glyphcss
+ * measures zoom against the cell it probes at mount, so a coarser layer left at
+ * its own number is drawn at a different size from the finer one over it.
+ * Before R57 both layers took `zoomFor(width, height)` and were equal by
+ * construction; D-279's clamp is per layer, computed from that layer's own
+ * floored `rows × cellHeightPx` and its own settled cell, so the two diverged —
+ * 690.2 against 667.9, 3.2 % apart, on the live page at 2560 × 1440. The pair
+ * takes the smaller of the two, which is the one zoom that fits both rasters
+ * and so keeps D-279's guarantee for both. The composition lives here rather
+ * than in the component so the rule is a unit test rather than a render one.
+ */
+export function fitLayers(hostWidthPx: number | null, hostHeightPx: number | null, lineFont: LayerFont, baseFont: LayerFont): { lines: DomeLayout; base: DomeLayout } {
+  const lines = fitLayout(hostWidthPx, hostHeightPx, lineFont.advance, lineFont.measureRows);
+  const base = fitLayout(hostWidthPx, hostHeightPx, baseFont.advance, baseFont.measureRows, baseColsFor(lines.cols));
+  const zoom = Math.min(lines.zoom, base.zoom);
+  return { lines: { ...lines, zoom }, base: { ...base, zoom } };
 }
 
 /**

@@ -12,7 +12,7 @@ import {
   DEFAULT_ADVANCE,
   DEFAULT_SUN,
   drag,
-  fitLayout,
+  fitLayers,
   initialFor,
   KEY_INTENSITY,
   LABEL_ADVANCE,
@@ -251,9 +251,12 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
       const box = entries[0]?.contentRect;
       const width = box?.width ?? null;
       const height = box?.height ?? null;
-      const nextLines = fitLayout(width, height, brailleAdvance, brailleRows);
+      // D-91 / D-292: `domeLayers` fits both layers to this box and gives them the one zoom that
+      // fits both rasters — each layer's own clamp (D-279) is taken from its own grid, so the two
+      // numbers are not equal by themselves.
+      const { lines: nextLines, base: nextBase } = fitLayers(width, height, { advance: brailleAdvance, measureRows: brailleRows }, { advance: blockAdvance, measureRows: blockRows });
       setLines(keep(nextLines));
-      setBase(keep(fitLayout(width, height, blockAdvance, blockRows, baseColsFor(nextLines.cols))));
+      setBase(keep(nextBase));
       setMeasured(true);
     });
     observerRO.observe(stage);

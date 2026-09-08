@@ -27,7 +27,7 @@ export default defineConfig({
   },
   projects: [
     // Desktop Chrome is 1280 × 720: the width the approved mockup fixes (FR-DESK-5).
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', testIgnore: /dome-fit\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
     /*
      * R50 (FR-DESK-5 as amended, D-192): the mid width. Between the wide
      * breakpoint and `WIDE_SPLIT_MIN_PX` the right column shows one thing at a
@@ -36,6 +36,14 @@ export default defineConfig({
      * set shoots the home and the guide at this width as well.
      */
     { name: 'desktop-1024', testMatch: /wide\.spec\.ts/, use: { ...devices['Desktop Chrome'], viewport: { width: 1024, height: 768 } } },
+    /*
+     * R57 (FR-DOME-1 as amended v1.2, D-279, F-54): the width R54's ceiling
+     * test never pinned. `dome-fit.spec.ts` sets its own viewports and device
+     * pixel ratios test by test (2560 × 1440, and 1280 × 800 at a DPR of 2), so
+     * this project's own `use.viewport` is only the project's default; it runs
+     * nowhere else, so the suite does not pay for it twice.
+     */
+    { name: 'desktop-2560', testMatch: /dome-fit\.spec\.ts/, use: { ...devices['Desktop Chrome'], viewport: { width: 2560, height: 1440 } } },
   ],
   webServer: {
     command: `npx vite preview --port ${PORT} --strictPort`,
