@@ -347,11 +347,15 @@ describe('hygiene (FR-PUB-7, D-372)', () => {
   });
 
   it('and the shapes are the shapes: the R14 attribute would fail, the documents that discuss it do not', () => {
-    expect(ABSOLUTE.test('/Volumes/Data/Projects/what-is-in-your-sky-right-now/spike/spike.css')).toBe(true);
-    expect(ABSOLUTE.test('/Users/someone/src/app/vite.config.ts')).toBe(true);
-    expect(ABSOLUTE.test('`/Volumes/Data/Projects/…`')).toBe(false);
+    // The two positives are assembled rather than written out, because this
+    // file is tracked and the two assertions above read it: a test that spells
+    // out the thing it forbids is the thing it forbids.
+    const path = (...segments: string[]): string => `/${segments.join('/')}`;
+    expect(ABSOLUTE.test(path('Volumes', 'Data', 'Projects', 'app', 'spike', 'spike.css'))).toBe(true);
+    expect(ABSOLUTE.test(path('Users', 'someone', 'src', 'app', 'vite.config.ts'))).toBe(true);
+    expect(ABSOLUTE.test(path('Volumes', 'Data', 'Projects'))).toBe(false);
     expect(ABSOLUTE.test('`/Users/`, `/home/` or `/Volumes/`')).toBe(false);
-    expect(EMAIL.test('name@example.com')).toBe(true);
+    expect(EMAIL.test(['someone', 'example.com'].join('@'))).toBe(true);
     expect(EMAIL.test('@glyphcss/react')).toBe(false);
   });
 
