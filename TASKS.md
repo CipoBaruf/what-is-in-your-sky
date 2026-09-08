@@ -1238,12 +1238,14 @@ Delivery is PLAN §16 unchanged, cut by §16.9: five tasks, three waves, one tas
   - **Model:** sonnet
   - **Gate:** owner
   - **Depends on:** R56, R57, R58, R59, R61
-  - **Goal:** The phase closes: the capture set covers the new screens, the budgets are re-set, the findings register has no open row, and the build is 1.2.0.
+  - **Goal:** The phase closes: the capture set covers the new screens, the budgets are re-set, every finding the phase carries is closed, and the build is 1.2.0. (F-57, F-58 and F-62 stay open by V12-6 — written down for a later phase, carried by no v1.2 task.)
   - **Satisfies:** the Phase 2c definition of done (SPEC §9).
-  - **Scope:** `package.json` at 1.2.0; the D-179 capture set topped up rather than re-shot — the window's two ground states, the live page following, and the sizes R57 added — with `captures.test.ts` matching the new set; the bundle budgets re-measured by the D-178 rule (the measured build plus a tenth) with the `chart`, `live` and `window` chunks re-stated; `docs/RELEASE.md` updated for the phase, including the phone run the owner owns; F-54..F-56 marked closed in the register with the PR that closed each.
+  - **Scope:** `package.json` at 1.2.0; the D-179 capture set topped up rather than re-shot — the window's two ground states, the live page following, the sizes R57 added, and R61's wide live page at 1280, 1920, 2560 and 3840 — with `captures.test.ts` matching the new set; the desktop dome captures V12-11 moved re-shot, since the centring and the 2.0 divisor changed every one of them (R61 re-shot its own and the v1 set's live and legend at 1280; the rest are this task's); the bundle budgets re-measured by the D-178 rule (the measured build plus a tenth) with the `chart`, `live` and `window` chunks re-stated; `docs/RELEASE.md` updated for the phase, including the phone run the owner owns; F-54..F-56 and F-59..F-61 marked closed in the register with the PR that closed each, and F-57, F-58 and F-62 left open with the note that no v1.2 task carries them.
   - **Touches outside the lane:** `SPEC.md` §4.20 (the findings' closing note), `TASKS.md`.
   - **Done when:**
-    - `captures.test.ts` and the committed set agree, and the set includes the R56 and R59 screens in both themes and locales.
+    - `captures.test.ts` and the committed set agree, and the set includes the R56 and R59 screens in both themes and locales, and R61's wide sizes.
+    - No dome capture in the set predates V12-11's centring: every one shows the whole bowl, its outline included.
+    - The register has a closing PR against each of F-54..F-56 and F-59..F-61, and no other row has been closed or opened silently.
     - The budget table equals the measured build plus a tenth; `npm run build` is inside it.
     - `npm test`, lint, typecheck and the PR e2e path green inside FR-CI-1's 10 min.
     - The tag, the deploy and the on-device run stay with the owner, as `docs/RELEASE.md` says.
