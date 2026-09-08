@@ -36,5 +36,15 @@ export const chart = {
     readout: (p: { point: CompassPoint; azimuth: string; tilt: string }) => `Facing ${p.point} (${p.azimuth}) · tilt ${p.tilt}`,
     /** FR-LIVE-1 (R32): the live page's chart has no pass to caption, so the figure is named instead; the status strip carries the facts. */
     liveLabel: 'The whole sky at the shown instant',
+    /**
+     * R66 (FR-FSC-2, FR-FSC-4; V13-6, D-356): the sky screen the "window"
+     * option opens, from `live.followClose` and the control that no longer
+     * exists. The `×` is the whole control — the one icon in the app, the
+     * owner's ask — so the word is its accessible name and never its label;
+     * `screenLabel` names the dialog itself while the phone is upright, where
+     * FR-FSC-4 leaves no readout for it to be named by.
+     */
+    screenClose: 'Close',
+    screenLabel: 'Sky window',
   },
 };

@@ -4,39 +4,45 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { SCREEN_STATUS_ID } from '../guide/skychart/ChartFrame';
 import { SkyChart } from '../guide/skychart/SkyChart';
 import type { SkyChartProps } from '../guide/skychart/SkyChart.types';
-import styles from './FollowScreen.module.css';
+import styles from './SkyScreen.module.css';
 
 /**
- * R64 (FR-FSC-1, FR-FSC-2, FR-FSC-5, FR-FOL-1, FR-FOL-3, FR-WIN-6 as amended
- * v1.3; US-21 AC11..AC13; D-321, D-325): the follow screen.
+ * R64 (D-321, D-325) → R66 (FR-FSC-1, FR-FSC-2, FR-FSC-4, FR-FSC-5, FR-FSC-8,
+ * FR-FSC-9; US-21 AC11..AC14; V13-6, V13-9, D-351): the **sky screen**.
  *
- * `[ follow phone ]` does not switch a view in the live page's layout any more:
- * it opens *this*, a layer over the whole visual viewport with four things on
- * it and nothing else — the sky the phone points at filling the screen, the
- * `×`, the facing readout and the legend. The readout and the legend are the
- * chart's own overlays (`screen`, R62's frame); this file owns the layer, the
- * `×` and the keyboard.
+ * Choosing "window" from the chart's view control does not lay a third view
+ * out in the page: it opens *this*, a layer over the whole visual viewport
+ * with four things on it and nothing else — the sky the phone points at
+ * filling the screen, the `×`, the facing readout and the legend. The readout
+ * and the legend are the chart's own overlays (`screen`, R62's frame); this
+ * file owns the layer, the `×` and the keyboard.
+ *
+ * It was `FollowScreen`, the live page's own, opened by `[ follow phone ]`.
+ * R66 removed the control and gave the pass detail the same screen (V13-9), so
+ * the layer belongs to neither page: each renders it over its own chrome and
+ * hands it the passes, the observer and the instant *it* is showing (FR-FSC-8
+ * — the live page's `shown`, not real time).
  *
  * **The layer, not a route.** `position: fixed; inset: 0; height: 100dvh` at
- * `--z-follow`, on the theme's page background, so the live page under it —
- * its one-row header included — is covered rather than unmounted and every one
- * of the page's hooks keeps running (the passes, playback, the wake lock).
- * Nothing goes in the hash and no history entry is pushed (OQ-22): the back
- * button leaves the live page as it always did.
+ * `--z-screen`, on the theme's page background, so the page under it — the
+ * live page's one-row header, or the pass detail's sheet — is covered rather
+ * than unmounted and every one of that page's hooks keeps running (the passes,
+ * playback, the wake lock). Nothing goes in the hash and no history entry is
+ * pushed (OQ-22): the back button leaves the page as it always did.
  *
  * **Hidden objects are not here** (FR-FSC-5). No `hidden` prop is passed at
  * all, so the screen cannot draw a dimmed mark whatever the toggle's saved
  * state; the page has already stopped asking the worker for them (D-325).
  *
  * **The keyboard.** `role="dialog"` with `aria-modal="true"`, named by the
- * readout's line where there is one (`SCREEN_STATUS_ID`) and by the control
- * that opened it in the portrait state, which has no readout (FR-FSC-4).
- * Focus moves to the `×` on open and `Tab` wraps inside the layer; the page's
- * own `Esc` listener closes the screen before it can leave the page (D-321),
- * and `Live.tsx` gives focus back to the follow control on the way out.
+ * readout's line where there is one (`SCREEN_STATUS_ID`) and by the screen's
+ * own name in the portrait state, which has no readout (FR-FSC-4). Focus moves
+ * to the `×` on open and `Tab` wraps inside the layer; the page's own `Esc`
+ * listener closes the screen before it can leave the page (D-321), and the
+ * page gives focus back to the view control on the way out.
  */
-export interface FollowScreenProps extends Required<Pick<SkyChartProps, 'passes' | 'observer' | 'now' | 'sun' | 'moon'>> {
-  /** FR-FSC-2: `follow.toggle()`, the call the second press used to make. */
+export interface SkyScreenProps extends Required<Pick<SkyChartProps, 'passes' | 'observer' | 'now'>>, Partial<Pick<SkyChartProps, 'sun' | 'moon' | 'highlightedPassId'>> {
+  /** FR-FSC-2: the `×` and `Esc`; the page decides what closing restores. */
   onClose: () => void;
 }
 
@@ -46,7 +52,14 @@ const LANDSCAPE_QUERY = '(orientation: landscape)';
 /** What `Tab` may reach inside the layer: the `×` and the legend's rows (FR-LEG-4). */
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function FollowScreen({ passes, observer, now, sun, moon, onClose }: FollowScreenProps) {
+/**
+ * The bodies are the page's where it has already evaluated them — the live page
+ * has, for its status strip — and the chart's own `useSkyBodies` where it has
+ * not, which is the pass detail (D-149: one evaluation either way). The
+ * highlight is the pass detail's explained pass and nothing on the live page,
+ * where every arc is equal.
+ */
+export function SkyScreen({ passes, observer, now, sun, moon, highlightedPassId = null, onClose }: SkyScreenProps) {
   const t = useT();
   const layerRef = useRef<HTMLDivElement>(null);
   const landscape = useMediaQuery(LANDSCAPE_QUERY);
@@ -93,24 +106,24 @@ export function FollowScreen({ passes, observer, now, sun, moon, onClose }: Foll
       ref={layerRef}
       role="dialog"
       aria-modal="true"
-      {...(landscape ? { 'aria-labelledby': SCREEN_STATUS_ID } : { 'aria-label': t.live.follow })}
-      data-testid="follow-screen"
+      {...(landscape ? { 'aria-labelledby': SCREEN_STATUS_ID } : { 'aria-label': t.chart.screenLabel })}
+      data-testid="sky-screen"
       data-orientation={landscape ? 'landscape' : 'portrait'}
       onKeyDown={onKeyDown}
     >
       <SkyChart
         passes={passes}
         observer={observer}
-        highlightedPassId={null}
+        highlightedPassId={highlightedPassId}
         now={now}
-        sun={sun}
-        moon={moon}
+        {...(sun === undefined ? {} : { sun })}
+        {...(moon === undefined ? {} : { moon })}
         colorBy="pass"
         screen
-        // The facing the window shows before its first reading; the page passed the same 0 while the window was a view of it.
+        // The facing the window shows before its first reading; the same 0 the pages passed while the window was a view of them.
         initialFacingAzDeg={0}
         overlay={
-          <button type="button" ref={closeRef} className={styles.close} aria-label={t.live.followClose} onClick={onClose} data-testid="follow-close">
+          <button type="button" ref={closeRef} className={styles.close} aria-label={t.chart.screenClose} onClick={onClose} data-testid="sky-screen-close">
             ×
           </button>
         }

@@ -400,14 +400,14 @@
    `inset: 0` inside it, so there is nothing to measure and nothing to write —
    whatever the host is, at 844 x 390 or at 390 x 844, is what the drawing gets.
 
-   `--follow-overlay` is the surface both overlays sit on: the theme's raised
-   surface at `--follow-overlay-alpha` (FR-FSC-3's 85 %), so the horizon and the
+   `--screen-overlay` is the surface both overlays sit on: the theme's raised
+   surface at `--screen-overlay-alpha` (FR-FSC-3's 85 %), so the horizon and the
    arcs under the strip still read while the text over it keeps FR-THEME-2's
    contrast (`tests/styles/followOverlay.test.ts` computes the composite).
    `--legend-row` is one legend row's height — the tap target, which is what a
    compact row measures — so the strip's two-row cap is two lines of text. */
 .screen {
-  --follow-overlay: color-mix(in srgb, var(--bg-raised) var(--follow-overlay-alpha), transparent);
+  --screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
   --legend-row: var(--tap);
   position: relative;
   width: 100%;
@@ -435,7 +435,7 @@
   min-height: 0;
   max-width: 100%;
   padding: calc(var(--row) / 4) var(--cell);
-  background: var(--follow-overlay);
+  background: var(--screen-overlay);
 }
 
 /* FR-FSC-3 / FR-LEG-2 as amended: the strip along the bottom edge, at most two
@@ -450,7 +450,7 @@
   min-height: 0;
   overflow-y: auto;
   padding: 0 var(--cell);
-  background: var(--follow-overlay);
+  background: var(--screen-overlay);
 }
 
 /* The page's own children over everything (the `×`). The layer itself is not a

@@ -66,7 +66,7 @@ export interface ChartFrameProps {
    * host's whole size — no aspect, no floor, no full-bleed margins, nothing
    * measured — and the rows around it become overlays over it: the `status`
    * slot in the top-left corner, the `legend` slot as a strip along the bottom
-   * edge two rows high, both on `--follow-overlay`, and the `overlay` slot over
+   * edge two rows high, both on `--screen-overlay`, and the `overlay` slot over
    * both. There is no controls row, no stripe row and no side column, so
    * `controls`, `stripe` and `aside` are not rendered.
    */

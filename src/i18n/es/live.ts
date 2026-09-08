@@ -49,12 +49,6 @@ export const live: typeof EnLive = {
     hiddenToggle: 'Objetos ocultos',
     hiddenReason: { low: 'muy bajo', shadow: 'en sombra', daylight: 'de día', faint: 'muy tenue' },
     hiddenLabel: (p) => `${p.name} · ${p.reason}`,
-    follow: 'Seguir al teléfono',
-    /** R59 (FR-FOL-2): el control abre la ventana al cielo, así que los avisos dicen qué no se abrió y no qué no giró. */
-    followRelative: 'Este teléfono no da un rumbo de brújula, así que la ventana al cielo no puede abrirse.',
-    followDenied: 'Se rechazó el acceso al movimiento, así que la ventana al cielo no puede abrirse.',
-    /** R64 (FR-FSC-2): el nombre accesible de la `×` de la pantalla de seguimiento. */
-    followClose: 'Cerrar',
     headingLabel: 'Rumbo',
     trueNorth: (p) => `norte verdadero, declinación ${p.declination}`,
     /** R48 (FR-TRAJ-5): "sale" (the pass rises) and not "salida" — the six buttons must stay within 36 cells with their gaps (FR-COMP-4), and "salida" is two cells too many. */
@@ -71,7 +65,6 @@ export const live: typeof EnLive = {
     playShort: '▶',
     pauseShort: '‖',
     hiddenShort: 'Ocultos',
-    followShort: 'Seguir',
     shareShort: 'Compartir',
   },
 };

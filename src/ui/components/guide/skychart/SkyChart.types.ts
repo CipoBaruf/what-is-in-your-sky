@@ -156,16 +156,6 @@ export interface SkyChartProps {
    */
   screen?: boolean;
   /**
-   * FR-FSC-6 / D-324 (R62): the views this page offers, of the registered ones,
-   * in whatever order — `offeredViews` keeps the registered order and drops
-   * what is not listed. The live page offers `['dome', 'polar']`, so the window
-   * is reached there by the follow control alone; a page that passes nothing
-   * offers all three, which is the pass detail unchanged. A saved view the page
-   * does not offer is *drawn* as the dome and left alone in the preference
-   * (FR-WIN-4, FR-WIN-5 as amended): nothing writes it on the way.
-   */
-  views?: readonly ChartView[];
-  /**
    * FR-FSC-1 / D-322 (R62): the page's own children over everything on a
    * `screen` — the follow screen's `×`. The chart neither builds this nor reads
    * it: the frame places it in its overlay slot, above the drawing, the readout

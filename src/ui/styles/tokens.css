@@ -65,24 +65,24 @@
   /* G6: minimum tap target, two text rows (48 px at the 16 px base, above the 44 px floor). */
   --tap: calc(2 * var(--row));
 
-  /* FR-FSC-3 (R62, D-322): how much of the theme's surface colour the follow
+  /* FR-FSC-3 (R62, D-322): how much of the theme's surface colour the sky
      screen's two overlays — the facing readout and the legend strip — put
      between their text and the drawing under them. One number for both, in one
      place, because the pair is a single decision: high enough that body text
      over the darkest sky token still clears FR-THEME-2's 4.5 : 1
-     (`tests/styles/followOverlay.test.ts` computes the composite and holds it
+     (`tests/styles/screenOverlay.test.ts` computes the composite and holds it
      there), low enough that the horizon line under the strip still reads. It is
      an alpha and not a colour, so it has no per-theme value: the colour it is
      mixed with is `--bg-raised`, which each theme already sets. */
-  --follow-overlay-alpha: 85%;
+  --screen-overlay-alpha: 85%;
 
-  /* FR-FSC-1 (R64, D-321): the follow screen's stacking order. The layer is
+  /* FR-FSC-1 (R64, D-321): the sky screen's stacking order. The layer is
      over everything the live page has — its one-row header included, which is
      covered rather than unmounted — so the number is above the two the app
      already uses as literals (the pass detail's sheet at 10, the shortcuts
      overlay at 20). It is a token and not a third literal because it is the
      only one whose meaning is "above the whole page". */
-  --z-follow: 30;
+  --z-screen: 30;
 
   --bg: #0b0f14;
   --bg-raised: #161c24;

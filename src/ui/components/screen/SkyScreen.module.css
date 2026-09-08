@@ -1,4 +1,5 @@
-/* R64 (FR-FSC-1, FR-FSC-2, D-321): the follow screen's layer and its `×`.
+/* R64 (FR-FSC-1, FR-FSC-2, D-321), R66 (FR-FSC-9, D-351, D-354): the sky
+   screen's layer and its `×`.
 
    The layer covers the whole visual viewport — `inset: 0` for the box and
    `100dvh` for the height a phone's collapsing address bar keeps moving — on
@@ -6,6 +7,11 @@
    the whole page". Nothing here lays anything out: the chart's screen frame
    (`ChartFrame.module.css`, R62) owns the drawing and the two overlays, and
    this file only has to make the host the viewport.
+
+   FR-FSC-9: the layer is the viewport and never scrolls — nothing in it is
+   taller than it is — and `overscroll-behavior: contain` keeps a drag at the
+   edge of the drawing off whatever is behind it, which on the pass detail is
+   a sheet that does scroll (D-354).
 
    The `×` goes in the frame's overlay slot, which is `inset: 0` over the
    drawing and passes taps through except on its own children, so the corner is
@@ -17,9 +23,11 @@
   position: fixed;
   inset: 0;
   height: 100dvh;
-  z-index: var(--z-follow);
+  z-index: var(--z-screen);
   background: var(--bg);
   color: var(--fg);
+  overflow: hidden;
+  overscroll-behavior: contain;
 }
 
 .close {
@@ -34,7 +42,7 @@
   min-height: var(--tap);
   padding: 0;
   border: 0;
-  background: var(--follow-overlay);
+  background: var(--screen-overlay);
   color: var(--fg);
   font-family: inherit;
   font-size: var(--row);

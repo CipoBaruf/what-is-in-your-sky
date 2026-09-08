@@ -5,7 +5,7 @@ import { decline, type InstallAnswer } from '../../lib/installSnooze';
 import { DEFAULT_PASS_SORT } from '../../lib/passSort';
 import { browserLanguages, resolveLocale } from '../../i18n/locale';
 import { DEFAULT_CHART_ORIENTATION } from '../../lib/skyGeometry';
-import { DEFAULT_THEME, type ChartOrientation, type ChartView, type EpochMs, type Favourite, type Locale, type Observer, type PassSort, type Theme } from '../../model';
+import { DEFAULT_THEME, savedChartView as narrowChartView, type ChartOrientation, type EpochMs, type Favourite, type Locale, type Observer, type PassSort, type SavedChartView, type Theme } from '../../model';
 import type { AppState } from '../store';
 
 /**
@@ -44,15 +44,22 @@ import type { AppState } from '../store';
  * from `lib/installSnooze.ts`, until the decline past the last snooze, which
  * ends it after all. The three fields are held together as one `InstallAnswer`
  * so the pure rule and the store cannot read the device differently.
- * R58 (D-277) splits the chart view in two: `savedChartView` is the written
- * preference and `viewOverride` is the follow control's, held only in memory.
- * `chartView` is the effective value the rest of the app already reads
- * (`viewOverride ?? savedChartView`), kept in sync by the setters rather than
- * computed lazily, so `SkyChart` and every other reader need no change. There
- * are three of them and only one writes: `setChartView` is the view control,
- * `setViewOverride` is the follow control, and `dropChartView` is a view
- * saying it cannot run here (FR-WIN-5's refused orientation), which must leave
- * the saved preference exactly as the reader left it.
+ * R58 (D-277) split the chart view in two, the written preference and the
+ * follow control's override. R66 (FR-WIN-5 as amended v1.3.1, V13-8, D-352)
+ * puts it back together and replaces the override with what it always meant:
+ * the sky screen is up. `chartView` is one saved value again, narrowed to the
+ * dome and the polar chart — the window is a mode, not a view a page can be
+ * left in — and a `'window'` written by an older build is migrated to the dome
+ * on load, once, so nothing downstream has to know the old shape.
+ *
+ * Beside it are the three things the screen and the page that opened it have
+ * to agree on, all session-only: `skyScreen`, whether the layer is up;
+ * `windowNote`, the one line a refused permission or a phone with no compass
+ * heading leaves beside the view control (FR-FOL-2); and `windowLost`, the
+ * relative-only phone's answer, which takes the option away for the rest of
+ * the session (FR-WIN-4). They live here rather than in `SkyChart`'s own state
+ * because the window that fails is the one *on the screen*, and the control
+ * that has to show for it is on the page underneath.
  */
 export interface PrefsDeps {
   prefs: LocalPrefs;
@@ -62,34 +69,36 @@ export interface PrefsDeps {
 
 /** US-6 AC3: the dome is the default chart view; until R15 registers it, `SkyChart` falls back to the polar view. */
 // FR-DOME-7: the dome again, now that FR-DOME-1..4 and FR-DOME-8 have made it readable. D-68 (polar for now) is closed by V1-4.
-export const DEFAULT_CHART_VIEW: ChartView = 'dome';
+export const DEFAULT_CHART_VIEW: SavedChartView = 'dome';
 
 export interface PrefsSlice {
   /** The pass list order (US-5 AC2), `chronological` unless saved otherwise. */
   sort: PassSort;
   setSort: (sort: PassSort) => void;
-  /** The sky chart view (US-6 AC5), `polar` unless saved otherwise (D-68) — the *effective* view: `viewOverride ?? savedChartView`. */
-  chartView: ChartView;
-  /** R58 (D-277, FR-FOL-1, FR-WIN-5 as amended): the view the follow control opened, while it is following. Never saved, and cleared when the live page leaves it (R59). */
-  viewOverride: ChartView | null;
-  setViewOverride: (view: ChartView | null) => void;
-  /** R58 (D-277): the saved chart view underneath the override — what the view toggle reads and `setChartView` writes. */
-  savedChartView: ChartView;
-  /** Sets the saved view, through to storage, and ends any override: a reader who picks a view by hand while following simply stops following. */
-  setChartView: (view: ChartView) => void;
+  /** The sky chart view (US-6 AC5), the dome unless saved otherwise (V1-4); never the window, which is a mode (D-352). */
+  chartView: SavedChartView;
+  /** Sets the view, through to storage. The window is not one of them: choosing it opens the screen and writes nothing. */
+  setChartView: (view: SavedChartView) => void;
+  /** R66 (FR-FSC-1, D-351): whether the sky screen is up. Session only — no page restores it and no hash carries it (FR-FSC-2). */
+  skyScreen: boolean;
+  /** Opens the screen. The caller has already asked for the permission inside its tap and had a reading with a heading (FR-WIN-4, D-350). */
+  openSkyScreen: () => void;
+  /** Closes it: the `×`, `Esc`, leaving the page, or a window that reports it cannot run here. */
+  closeSkyScreen: () => void;
+  /** FR-FOL-2: the one line beside the view control after a refusal or a phone with no north; cleared by the next choice. */
+  windowNote: 'denied' | 'relative' | null;
+  setWindowNote: (note: 'denied' | 'relative' | null) => void;
+  /** FR-WIN-4: a phone that gives a relative heading only is not offered the window again this session. */
+  windowLost: boolean;
   /**
-   * R58 review (D-277, FR-WIN-5 as amended): a view that reports itself
-   * unavailable — orientation refused, no compass heading — stops being the
-   * view, and nothing is written. This is the only way out of a failed view:
-   * `setChartView` would save it, and the reader chose neither the failure nor,
-   * when the follow control opened the window, the view that failed.
-   *
-   * Clearing the override is enough when the failed view *is* the override
-   * (the reader returns to what they chose). When it is what they chose, the
-   * override becomes the default instead, so the effective view still leaves
-   * the failed one while the preference waits for the phone it was saved on.
+   * R66 (FR-WIN-4, FR-FOL-2, D-352; replaces R58's `dropChartView`): the
+   * window, once mounted, says it cannot run here. It closes the screen, shows
+   * the note beside the control on the page underneath, and — for a phone with
+   * no compass heading, which will not have one on the next tap either — takes
+   * the option off the control for the session. Nothing is written: the reader
+   * chose neither the failure nor a view to fall back to.
    */
-  dropChartView: (view: ChartView) => void;
+  dropWindowView: (reason: 'denied' | 'relative') => void;
   /** The polar chart's convention (FR-GUIDE-4), `looking-up` unless saved otherwise. */
   chartOrientation: ChartOrientation;
   setChartOrientation: (orientation: ChartOrientation) => void;
@@ -121,6 +130,19 @@ export interface PrefsSlice {
   /** Sets the saved observer, if there is one; returns whether there was. */
   restoreSavedObserver: () => boolean;
   clearSavedObserver: () => void;
+}
+
+/**
+ * D-352: the stored view, narrowed, and the migration that goes with it. A
+ * device that chose the window before v1.3.1 has `'window'` under the key;
+ * it reads as the dome and is rewritten at once, so the preference the reader
+ * sees is the one the app will keep using.
+ */
+function migrateChartView(prefs: LocalPrefs): SavedChartView {
+  const stored = prefs.read();
+  const view = narrowChartView(stored.chartView, DEFAULT_CHART_VIEW);
+  if (stored.chartView === 'window') prefs.write({ ...stored, chartView: view });
+  return view;
 }
 
 /**
@@ -166,21 +188,25 @@ export const createPrefsSlice =
         set({ sort });
         deps.prefs.write({ ...deps.prefs.read(), sort });
       },
-      chartView: deps.prefs.read().chartView ?? DEFAULT_CHART_VIEW,
-      viewOverride: null,
-      setViewOverride: (viewOverride) => {
-        set((state) => ({ viewOverride, chartView: viewOverride ?? state.savedChartView }));
-      },
-      savedChartView: deps.prefs.read().chartView ?? DEFAULT_CHART_VIEW,
+      chartView: migrateChartView(deps.prefs),
       setChartView: (chartView) => {
-        set({ chartView, savedChartView: chartView, viewOverride: null });
+        set({ chartView, windowNote: null });
         deps.prefs.write({ ...deps.prefs.read(), chartView });
       },
-      dropChartView: (view) => {
-        set((state) => {
-          const viewOverride = state.savedChartView === view ? DEFAULT_CHART_VIEW : null;
-          return { viewOverride, chartView: viewOverride ?? state.savedChartView };
-        });
+      skyScreen: false,
+      openSkyScreen: () => {
+        set({ skyScreen: true, windowNote: null });
+      },
+      closeSkyScreen: () => {
+        set({ skyScreen: false });
+      },
+      windowNote: null,
+      setWindowNote: (windowNote) => {
+        set({ windowNote });
+      },
+      windowLost: false,
+      dropWindowView: (reason) => {
+        set((state) => ({ skyScreen: false, windowNote: reason, windowLost: state.windowLost || reason === 'relative' }));
       },
       chartOrientation: deps.prefs.read().chartOrientation ?? DEFAULT_CHART_ORIENTATION,
       setChartOrientation: (chartOrientation) => {
