@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useT } from '../../../i18n/useT';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { SCREEN_STATUS_ID } from '../guide/skychart/ChartFrame';
@@ -49,12 +49,18 @@ const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select
 export function FollowScreen({ passes, observer, now, sun, moon, onClose }: FollowScreenProps) {
   const t = useT();
   const layerRef = useRef<HTMLDivElement>(null);
-  const closeRef = useRef<HTMLButtonElement>(null);
   const landscape = useMediaQuery(LANDSCAPE_QUERY);
 
-  // FR-FSC-2 / D-321: the reader's hands are on the screen, so the keyboard's first stop is the way out.
-  useEffect(() => {
-    closeRef.current?.focus();
+  /*
+   * FR-FSC-2 / D-321: the keyboard's first stop on the screen is the way out of it. A callback ref and not a
+   * mount effect, because the `×` is attached twice — the window is a lazy chunk (PLAN §11), so the frame that
+   * carries the overlay is the Suspense fallback's first and the window's own a moment later, and React
+   * replaces the button rather than moving it. Focus is only taken when nothing else holds it: on the mount the
+   * control that opened the screen has just been removed and focus has fallen to the body, and after the swap it
+   * has fallen there again — but a legend row the reader has tabbed to keeps it.
+   */
+  const closeRef = useCallback((node: HTMLButtonElement | null) => {
+    if (node && (document.activeElement === null || document.activeElement === document.body)) node.focus();
   }, []);
 
   /*
@@ -104,7 +110,7 @@ export function FollowScreen({ passes, observer, now, sun, moon, onClose }: Foll
         // The facing the window shows before its first reading; the page passed the same 0 while the window was a view of it.
         initialFacingAzDeg={0}
         overlay={
-          <button type="button" className={styles.close} aria-label={t.live.followClose} onClick={onClose} data-testid="follow-close">
+          <button type="button" ref={closeRef} className={styles.close} aria-label={t.live.followClose} onClick={onClose} data-testid="follow-close">
             ×
           </button>
         }

@@ -124,6 +124,7 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".live.cloudPercent:function",
   ".live.countLabel:string",
   ".live.follow:string",
+  ".live.followClose:string",
   ".live.followDenied:string",
   ".live.followRelative:string",
   ".live.followShort:string",
