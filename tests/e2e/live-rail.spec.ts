@@ -2,9 +2,9 @@
  * FR-LIVE-7 as amended (v1.2.1, D-312..D-315, F-59): the wide live page is two
  * columns and the box is cut to the drawing's own shape. The status strip, the
  * playback row and the share action are a rail beside the box, under the
- * legend; the stripe block is in that rail under 1666 px of viewport and in a
- * row of its own under the box, the box's width, from there; and the box is
- * the largest 2.4 : 1.7 rectangle the frame leaves — as tall as the rows allow
+ * legend; the stripe block is a row of its own under the box, the box's width,
+ * at every wide width (V12-12); and the box is the largest rectangle of the
+ * dome's own shape the frame leaves — as tall as the rows allow
  * or as wide as the space beside the rail, whichever binds first.
  *
  * What this measures is the thing the owner reported and no test could see:
@@ -29,7 +29,6 @@
  * Every test sets its own viewport, so this file runs in the default project.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { STRIPE_UNDER_MIN_PX } from '../../src/lib/layout';
 import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { fitFloor, MIN_EXTENT_RATIO, painted } from './domeInk';
 import { domeDrawn, seedStoredRun, stripFilled } from './liveHelpers';
@@ -65,14 +64,12 @@ for (const [width, height] of [
   [2560, 1235],
   [3840, 2160],
 ] as const) {
-  const stripeUnder = width >= STRIPE_UNDER_MIN_PX;
-
   test.describe(`at ${String(width)} x ${String(height)}`, () => {
     test.use({ viewport: { width, height } });
 
-    test(`cuts the box to the dome's shape from what the window leaves, the rows beside it, the stripe ${stripeUnder ? 'under the box' : 'in the rail'}, and the drawing filling it both ways`, async ({ page }) => {
+    test("cuts the box to the dome's shape from what the window leaves, the rows beside it, the stripe under the box, and the drawing filling it both ways", async ({ page }) => {
       await openLive(page);
-      await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', String(stripeUnder));
+      await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
       const box = await page.getByTestId('live-dome').getByTestId('chart-box').boundingBox();
       const rail = await page.getByTestId('chart-aside').boundingBox();
       const block = await page.getByTestId('stripe-block').boundingBox();
@@ -81,7 +78,7 @@ for (const [width, height] of [
       // The box is the dome's shape, to the pixel the grid rounds to…
       expect(box.width / box.height).toBeCloseTo(DOME_BOX_ASPECT, 2);
       // …and the largest of that shape: either the lowest row reaches the page's bottom, or the rail is hard against the page's right edge.
-      const lowest = stripeUnder ? block.y + block.height : box.y + box.height;
+      const lowest = block.y + block.height;
       const heightBound = height - lowest <= UNDER_PX;
       const widthBound = width - (rail.x + rail.width) <= UNDER_PX;
       expect(heightBound || widthBound, `the box is bound by the height (${String(height - lowest)} px under it) or by the width (${String(width - rail.x - rail.width)} px past the rail)`).toBe(true);
@@ -97,17 +94,14 @@ for (const [width, height] of [
         above = row.y + row.height;
       }
 
-      if (stripeUnder) {
-        // D-315: a row of the frame's own under the box, the box's width, so its labels are every two hours.
-        expect(block.y).toBeGreaterThanOrEqual(box.y + box.height - 1);
-        expect(block.x).toBeCloseTo(box.x, 0);
-        expect(block.width).toBeCloseTo(box.width, 0);
-        // Every two hours is twelve slots; the date takes one of them at midnight (FR-TRAJ-4), so eleven or twelve, never the rail's eight.
-        expect(await page.locator('[data-row="labels"] text').count()).toBeGreaterThanOrEqual(11);
-      } else {
-        expect(block.x).toBeGreaterThanOrEqual(rail.x - 1);
-        expect(block.y).toBeLessThan(box.y + box.height);
-      }
+      // D-315 (V12-12): a row of the frame's own under the box at every wide width, the box's width. Its
+      // cadence is the stripe's own (FR-TRAJ-4, `labelEveryHours` on the width it measures): every two hours
+      // where twelve labels fit — eleven or twelve, one slot being the date at midnight — and every three
+      // hours in the short desktop's narrower box, eight or nine. `live.spec.ts` holds that none overlap.
+      expect(block.y).toBeGreaterThanOrEqual(box.y + box.height - 1);
+      expect(block.x).toBeCloseTo(box.x, 0);
+      expect(block.width).toBeCloseTo(box.width, 0);
+      expect(await page.locator('[data-row="labels"] text').count()).toBeGreaterThanOrEqual(8);
 
       // The page never scrolls to make room: the box was cut from what fits.
       expect(await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight])).toEqual([width, height]);

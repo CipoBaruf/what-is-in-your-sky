@@ -18,7 +18,7 @@ import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../tests/support/catalogFixtures';
 import { en } from '../../i18n/en';
-import { STRIPE_UNDER_MIN_PX } from '../../lib/layout';
+import { WIDE_MIN_PX } from '../../lib/layout';
 import { isoInstant } from '../../lib/shareLinks';
 import { skyBodiesAt } from '../../lib/skyBodies';
 import type { ChartView, Observer, Pass } from '../../model';
@@ -269,20 +269,20 @@ describe('<LivePage>', () => {
       /\[data-aside='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\) clamp\(calc\(44 \* var\(--cell\)\), 26%, calc\(60 \* var\(--cell\)\)\);/,
     );
     expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\] \{\n\s+grid-template-areas:\n\s+'top'\n\s+'dome';/);
-    // R61 (D-314, D-315): the box is cut to the dome's aspect, and under 1666 px the stripe is still in the rail.
-    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
+    // R61 (D-314, D-315): the box is cut to the dome's aspect, and the stripe block is the frame's row under it.
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
-    expect(screen.getByTestId('stripe-block').closest('[data-testid="chart-aside"]')).not.toBeNull();
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
   });
 
   /**
-   * R61 (FR-LIVE-7 and FR-TRAJ-4 as amended v1.2.1, D-314, D-315): from `STRIPE_UNDER_MIN_PX` of viewport the
-   * stripe block leaves the rail for the frame's row under the box — the same element, moved — and the chart
-   * is handed the dome's aspect so the frame cuts the box to it. Compact ignores both: a phone never has a
-   * cut box. The threshold is a width alone; the height is what the frame measures for itself.
+   * R61 (FR-LIVE-7 and FR-TRAJ-4 as amended v1.2.1, D-314, D-315, V12-12): on every wide page the stripe block
+   * is the frame's row under the box rather than a row of the rail — the same element, placed there — and the
+   * chart is handed the dome's aspect so the frame cuts the box to it. Compact keeps both in the page: a phone
+   * never has a cut box, and its stripe is a row of the page under the drawing as it has been since R48.
    */
-  it('puts the stripe block under the box from 1666 px, in the rail below that, and hands the chart the dome\'s aspect on wide only', () => {
+  it('puts the stripe block under the box on wide at every width, hands the chart the dome\'s aspect there, and keeps both in the page on compact', () => {
     withSky();
     media = stubMatchMedia(1920, 1080);
     render(<LivePage link={null} onLeave={() => undefined} />);
@@ -291,23 +291,20 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
     expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
     expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'playback-row', 'live-actions']);
-    // Narrower than the threshold: the stripe is back in the rail, the same element.
+    // The narrowest wide page: the same.
     act(() => {
-      media?.setSize(STRIPE_UNDER_MIN_PX - 1, 1080);
-    });
-    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
-    expect(screen.getByTestId('stripe-block').closest('[data-testid="chart-aside"]')).not.toBeNull();
-    act(() => {
-      media?.setSize(STRIPE_UNDER_MIN_PX, 700);
+      media?.setSize(WIDE_MIN_PX, 700);
     });
     expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
-    // Compact: no cut box, no stripe row, whatever the width says.
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
+    // Compact: no cut box, no stripe row; the block is a row of the page's own side column.
     act(() => {
       media?.setSize(390, 3000);
     });
     expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'false');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
+    expect(screen.getByTestId('stripe-block').closest('[data-testid="live-side"]')).not.toBeNull();
   });
 
   /** R54 (FR-LIVE-7 as amended v1.1.1, FR-TRAJ-5, D-268): the wide rows, and the stepping row only with touch. */
@@ -326,8 +323,9 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
     expect(within(screen.getByTestId('playback-row')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
     expect(within(screen.getByTestId('live-actions')).queryByTestId('live-hidden-toggle')).toBeNull();
-    // The side column's children keep the compact order; the wide rows are grid areas in the stylesheet.
-    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'stripe-block', 'playback-row', 'live-actions']);
+    // The side column keeps the compact order less the stripe block, which is the frame's row under the box on wide (D-315).
+    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'playback-row', 'live-actions']);
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
     expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'time-stripe', 'step-controls']);
   });
 

@@ -17,8 +17,12 @@ const TICK_MS = 10_000;
 export const LIVE_VIEWPORTS = {
   1920: { width: 1920, height: 1080 },
   1280: { width: 1280, height: 800 },
-  /** A short 1280: the legend column is shorter than its list, so F-53's scroll is exercised. */
-  short: { width: 1280, height: 720 },
+  /**
+   * A short 1280: the legend column is shorter than its list, so F-53's scroll is exercised. 720 px until
+   * R61 (V12-12) took the stripe block out of the rail, which gave the legend the stripe's rows; 540 is a
+   * laptop window with the browser's own chrome above it, and the four-pass list is longer than that column.
+   */
+  short: { width: 1280, height: 540 },
   /** R61 (F-59): the width the owner reported the blank third of the box at. */
   2560: { width: 2560, height: 1440 },
   /** R61 (D-314): step 4 of the ladder, the largest reference viewport. */

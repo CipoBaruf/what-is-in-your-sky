@@ -339,6 +339,8 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
     // The two columns the drawing spans are the drawing's own width, the rail takes what is left up to its cap, and nothing stretches.
     expect(beside).toMatch(/\[data-box='true'\] \{\n\s+grid-template-columns: auto auto minmax\(calc\(44 \* var\(--cell\)\), calc\(60 \* var\(--cell\)\)\);\n\s+grid-template-rows: auto auto;\n\s+justify-content: start;\n\s+align-content: start;/);
     expect(beside).toMatch(/\[data-box='true'\] \.drawing \{\n\s+width: var\(--chart-box-w\);\n\s+height: var\(--chart-box-h\);/);
+    // …and the stripe row is the box's width by rule, so a stripe that measured a wider window cannot hold the track open.
+    expect(beside).toMatch(/\[data-box='true'\] \.stripe \{\n\s+width: var\(--chart-box-w\);/);
     expect(beside).toMatch(/\[data-stripe='true'\] \{\n\s+grid-template-rows: auto auto auto;\n\s+grid-template-areas:\n\s+'controls status legend'\n\s+'drawing drawing legend'\n\s+'stripe stripe legend';/);
     expect(css).toMatch(/\.stripe \{\n\s+grid-area: stripe;/);
   });

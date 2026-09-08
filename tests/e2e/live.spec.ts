@@ -271,7 +271,7 @@ test.describe('the wide live page (R61)', () => {
 
   /**
    * The rail's rows, top to bottom, and every one of them beside the box rather than under it. The stripe
-   * block is one of them at step 1 of the ladder and a row under the box from step 2 (D-315).
+   * block is a row under the box on every wide page (D-315, V12-12); `'in the rail'` is kept for the record.
    */
   const expectTheRail = async (page: Page, box: { x: number; y: number; width: number; height: number } | null, stripe: 'in the rail' | 'under the box'): Promise<void> => {
     const strip = await page.getByTestId('status-strip').boundingBox();
@@ -327,7 +327,7 @@ test.describe('the wide live page (R61)', () => {
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1080);
   });
 
-  test('at 1280 × 800: the same rail, with the clock readout above the stripe and no label over another', async ({ page }) => {
+  test('at 1280 × 800: the same rail, the stripe under the box with the clock readout above it, and no label over another', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
@@ -340,15 +340,15 @@ test.describe('the wide live page (R61)', () => {
     const clock = await page.getByTestId('time-readout').boundingBox();
     band(readout, toggle);
     below(box, toggle);
-    await expectTheRail(page, box, 'in the rail');
-    // In a 44-cell rail the block stacks: the clock readout over the stripe, which takes the column's width.
+    await expectTheRail(page, box, 'under the box');
+    // The block stacks: the clock readout over the stripe, which takes the box's width.
     below(stripe, clock);
     await expectLabelsClear(page);
-    // The box is the dome's shape and, at 1280 px, width-bound: the rail beside it is hard against the page's right edge (D-314). The page does not scroll.
-    await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
+    // The box is the dome's shape (D-314) and, with the stripe under it, height-bound: the stripe reaches the page's bottom. The page does not scroll.
+    await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
     expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(DOME_BOX_ASPECT, 2);
-    const rail = await page.getByTestId('chart-aside').boundingBox();
-    expect(1280 - ((rail?.x ?? 0) + (rail?.width ?? 0))).toBeLessThanOrEqual(24);
+    const stripeBlock = await page.getByTestId('stripe-block').boundingBox();
+    expect(800 - ((stripeBlock?.y ?? 0) + (stripeBlock?.height ?? 0))).toBeLessThanOrEqual(24);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(800);
   });
 });

@@ -39,8 +39,8 @@ export interface ChartFrameProps {
   aside?: ReactNode;
   /**
    * FR-LIVE-7 and FR-TRAJ-4 as amended (v1.2.1, D-315): the stripe block in a
-   * row of its own under the drawing, the drawing's width — the wide live page
-   * from step 2 of the ladder. Absent, the frame has no such row.
+   * row of its own under the drawing, the drawing's width — every wide live
+   * page. Absent, the frame has no such row.
    */
   stripe?: ReactNode;
   /**

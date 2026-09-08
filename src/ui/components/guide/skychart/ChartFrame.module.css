@@ -187,10 +187,9 @@
 
      `stripe` (D-315) is the stripe block in a row of its own under the box,
      the box's width, where the page hands it here rather than into the rail:
-     from 1666 px of viewport (`STRIPE_UNDER_MIN_PX`), the owner's stripe at
-     the bottom on a big screen. Its labels are every two hours there
-     (FR-TRAJ-4: the stripe is the box's width, past the 60 cells twelve labels
-     want). */
+     every wide live page (V12-12), the owner's stripe under the dome. Its
+     labels are every two hours there (FR-TRAJ-4: the stripe is the box's
+     width, past the 60 cells twelve labels want). */
   .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-box='true'] {
     grid-template-columns: auto auto minmax(calc(44 * var(--cell)), calc(60 * var(--cell)));
     grid-template-rows: auto auto;
@@ -201,6 +200,14 @@
   .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-box='true'] .drawing {
     width: var(--chart-box-w);
     height: var(--chart-box-h);
+  }
+
+  /* The stripe row is the box's width by rule, not by content: the stripe measures its own width to pick a
+     label cadence (FR-TRAJ-4) and its raster keeps the width it last measured, so after a window shrinks an
+     `auto` track sized from it would hold the old width, and the box — centred in the two tracks it spans —
+     would drift off the page's left edge (seen in `dome-resize.spec.ts`: 761 px of stripe over a 686 px box). */
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-box='true'] .stripe {
+    width: var(--chart-box-w);
   }
 
   .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-stripe='true'] {

@@ -114,10 +114,10 @@ export interface SkyChartProps {
   aside?: ReactNode;
   /**
    * FR-LIVE-7 and FR-TRAJ-4 as amended (v1.2.1) / D-315 (R61): the stripe
-   * block under the drawing, the box's width, on a wide live page at step 2 of
-   * the size ladder and above — the owner's stripe at the bottom on a big
-   * screen. The page hands it here instead of into `aside` there; the frame
-   * places it in a row of its own under the box. Absent, there is no such row.
+   * block under the drawing, the box's width, on every wide live page — the
+   * owner's stripe under the dome (V12-12). The page hands it here instead of
+   * into `aside`; the frame places it in a row of its own under the box.
+   * Absent, there is no such row.
    */
   stripe?: ReactNode;
   /**

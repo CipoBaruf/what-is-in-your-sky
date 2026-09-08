@@ -1,11 +1,10 @@
 /**
  * R61 (FR-LIVE-7 as amended v1.2.1, D-314): the box rule. Height-bound where
  * the frame is wide, width-bound where the rail leaves less than the aspect
- * wants, whole pixels, never negative, and the stripe threshold is the one
- * literal the live page's media query is built from.
+ * wants, whole pixels, never negative.
  */
 import { describe, expect, it } from 'vitest';
-import { fitBox, RAIL_MIN_CELLS, STRIPE_UNDER_MIN_PX, STRIPE_UNDER_QUERY } from './layout';
+import { fitBox, RAIL_MIN_CELLS } from './layout';
 
 const ASPECT = 2.4 / 1.7;
 
@@ -26,9 +25,7 @@ describe('fitBox', () => {
     expect(fitBox({ frameWidthPx: 400, frameHeightPx: 100, aboveHeightPx: 60, belowHeightPx: 120, besideWidthPx: 451, aspect: ASPECT })).toEqual({ widthPx: 0, heightPx: 0 });
   });
 
-  it('states the rail minimum and the stripe threshold once, and the query is built from the threshold', () => {
+  it('states the rail minimum once', () => {
     expect(RAIL_MIN_CELLS).toBe(44);
-    expect(STRIPE_UNDER_MIN_PX).toBe(1666);
-    expect(STRIPE_UNDER_QUERY).toBe('(min-width: 1666px)');
   });
 });

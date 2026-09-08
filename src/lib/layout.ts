@@ -137,16 +137,3 @@ export function fitBox({ frameWidthPx, frameHeightPx, aboveHeightPx, belowHeight
   if (heightPx * aspect <= widthPx) return { widthPx: Math.floor(heightPx * aspect), heightPx: Math.floor(heightPx) };
   return { widthPx: Math.floor(widthPx), heightPx: Math.floor(widthPx / aspect) };
 }
-
-/**
- * FR-LIVE-7 and FR-TRAJ-4 as amended (v1.2.1, D-315): the width from which the
- * stripe block stands under the box, the box's width, rather than in the rail
- * — the owner's stripe at the bottom on a big screen. Below it the height is
- * the scarcer side, and the rail is where the stripe costs the box nothing.
- * 1666 px is where a box of the height a 1080 p browser window leaves (about
- * 840 px, so 1186 wide at 2.4 : 2.0) stands beside a full 44-cell rail with the
- * page's padding and the column gap: the first width at which the stripe
- * under the box makes the box no narrower.
- */
-export const STRIPE_UNDER_MIN_PX = 1666;
-export const STRIPE_UNDER_QUERY = `(min-width: ${String(STRIPE_UNDER_MIN_PX)}px)`;

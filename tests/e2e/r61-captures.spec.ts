@@ -27,7 +27,7 @@ import { openParisLive } from './parisLive';
 
 test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
 
-/** The rail is beside the box with its rows top to bottom, the box is the dome's shape (D-314), and the stripe is under it from 1920 (D-315). */
+/** The rail is beside the box with its rows top to bottom, the box is the dome's shape (D-314), and the stripe is under it (D-315). */
 const shoot = async (page: import('@playwright/test').Page, width: 1280 | 1920 | 2560 | 3840, theme: 'dark' | 'night'): Promise<void> => {
   await openParisLive(page, width, theme);
   const box = await page.getByTestId('chart-box').boundingBox();
@@ -38,7 +38,7 @@ const shoot = async (page: import('@playwright/test').Page, width: 1280 | 1920 |
   expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
   expect(strip.y).toBeLessThan(actions.y);
   expect(box.width / box.height).toBeCloseTo(DOME_BOX_ASPECT, 1);
-  await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', String(width >= 1920));
+  await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
   await page.screenshot({ path: `${CAPTURE_DIR}/r61-live-${String(width)}-${theme}-en.png` });
 };
 

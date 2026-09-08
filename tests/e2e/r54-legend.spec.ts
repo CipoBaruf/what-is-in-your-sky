@@ -3,7 +3,8 @@
  * inside the box, its last row is reached by pointer, and every row is a
  * keyboard stop — focus highlights a row without promoting it, so Tab walks
  * the list in order. On the four-pass Paris instant (`parisLive.ts`), at a
- * 1280 × 720 viewport where the column is shorter than its list.
+ * short 1280 px viewport (`LIVE_VIEWPORTS.short`) where the column is shorter
+ * than its list.
  */
 import { expect, test } from '@playwright/test';
 import { openParisLive } from './parisLive';
