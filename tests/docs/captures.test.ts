@@ -24,8 +24,19 @@ describe('the v1 capture set', () => {
     // this test called complete while a quarter of it was missing.
     const variants = THEMES.length * LOCALES.length;
     expect(captureSet()).toHaveLength(SCREENS.reduce((total, screen) => total + screen.widths.length * variants, 0));
-    // Every screen is on the phone and on the wide layout; nothing is desktop-only or phone-only.
+    /*
+     * Every screen is on the phone and on the wide layout; nothing is desktop-only or phone-only.
+     *
+     * R64 (FR-FSC-7) is the one exception, and it is an exception because the app is: the follow screen
+     * is reached by `[ follow phone ]`, which is absent on desktop (FR-FOL-1), and it is drawn only with
+     * the phone held sideways (FR-FSC-4). So its widths are the landscape phone for the drawing and the
+     * portrait phone for the note, and a 1280 px file would be a picture of a screen no reader can be on.
+     */
     for (const screen of SCREENS) {
+      if (screen.name.startsWith('follow-screen-')) {
+        expect(screen.widths, screen.name).toEqual(screen.name === 'follow-screen-portrait' ? [390] : [844]);
+        continue;
+      }
       expect(screen.widths, screen.name).toContain(390);
       expect(screen.widths, screen.name).toContain(1280);
     }

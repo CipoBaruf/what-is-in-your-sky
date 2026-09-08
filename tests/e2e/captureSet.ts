@@ -21,6 +21,17 @@
  * and the guide (D-192) is the fourth thing SPEC §9 asks for and is already
  * here.
  *
+ * R64 (SPEC §9 Phase 2d, FR-FSC-7): v1.3 replaces the live page's `following`
+ * state with a screen of its own — `[ follow phone ]` opens a layer over the
+ * whole viewport (FR-FSC-1), so what a reader is looking at is not the live
+ * page at all. It is captured where it is used and nowhere else: at 844 × 390,
+ * a phone held sideways, in the three states the drawing can be in, and at
+ * 390 × 844, upright, where it is FR-FSC-4's note. That makes it the one screen
+ * in this set with no 1280 px picture — the control is absent on desktop
+ * (FR-FOL-1), so there is no such screen to shoot — and `captures.test.ts`
+ * carries the exception by name. The v1.2 `live-following` captures go with the
+ * state they showed.
+ *
  * R60 (SPEC §9 Phase 2c): v1.2 added two states the window can be in (FR-FOL-5,
  * R56) and one the live page can be in (FR-FOL-1, R59), so `window-ground` and
  * `window-buried` join `window` and `live-following` joins `live` — a state
@@ -85,7 +96,14 @@ export const SCREENS: readonly CaptureScreen[] = [
   { name: 'favourites', widths: [390, 1280], what: 'The saved places, with the one in use marked.' },
   { name: 'shortcuts', widths: [390, 1280], what: 'The keyboard shortcuts overlay over an inert page.' },
   { name: 'live', widths: [390, 844, 1280, 1920, 2560, 3840], what: 'The live sky page: the dome, the status strip, the time stripe and the controls. 844 is the landscape phone; 1920, 2560 and 3840 are R61\'s wide rail (F-59).' },
-  { name: 'live-following', widths: [390, 1280], what: 'The live page with `[ follow phone ]` pressed (FR-FOL-1, R59): the sky window in the box, the stripe block and the playback row gone, the strip carrying the true-north line.' },
+  {
+    name: 'follow-screen-sky',
+    widths: [844],
+    what: 'The follow screen (FR-FSC-1, R64) on a phone held sideways, aimed at a pass: the drawing filling the viewport, the `×` in the top-right corner, the facing readout in the top-left and the legend along the bottom — and nothing of the live page under it.',
+  },
+  { name: 'follow-screen-ground', widths: [844], what: 'The same screen swept 10° below the horizon (FR-FOL-5): the hatch fills the ground and the sky above it keeps drawing, under the same three overlays.' },
+  { name: 'follow-screen-buried', widths: [844], what: 'The same screen swept 60° below the horizon (FR-FOL-5): no sky is left in the field, and the box is the hatched panel with its note — the `×` is still the way out.' },
+  { name: 'follow-screen-portrait', widths: [390], what: 'The follow screen with the phone held upright (FR-FSC-4, US-21 AC12): the note asking for the phone to be turned, and the `×`, and nothing else — no drawing, no readout, no legend.' },
 ];
 
 export const CAPTURE_DIR = 'docs/screenshots';
