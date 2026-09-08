@@ -13,7 +13,7 @@ checks the v1 surface added, plus the tag and the deploy, which are the owner's.
 ## 1. Before merging
 
 - [ ] CI is green on the branch, and the build log's bundle table (`npm run bundle:budget`)
-      shows every budgeted chunk within its budget: main ≤ 150 KB, chart ≤ 105 KB,
+      shows every budgeted chunk within its budget: main ≤ 155 KB, chart ≤ 105 KB,
       worker ≤ 40 KB, astronomy ≤ 25 KB, live ≤ 10 KB and the service worker ≤ 10 KB
       gzipped (D-178 — the measured build plus a tenth, all of them inside the PLAN §11
       ceilings). An overrun is a `::warning::` annotation; if one is accepted, the PR says
