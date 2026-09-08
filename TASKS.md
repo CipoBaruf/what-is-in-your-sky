@@ -1466,7 +1466,7 @@ graph TD
   - **Model:** opus
   - **Gate:** owner
   - **Depends on:** P1
-  - **Done 2026-09-08:** as specified. Found on the way and fixed in the writing: `git branch -r --merged origin/main` is meaningless in a squash-merging repository — it called 20 branches merged where GitHub has 103 merged pull requests — so FR-PUB-13's rule is GitHub's record (D-377). Measured after the change: 94 of 94 branches on `origin` belong to a merged pull request.
+  - **Done 2026-09-08:** as specified, plus the deploy split the owner asked for mid-task (V13-16, D-378). Found on the way and fixed in the writing: `git branch -r --merged origin/main` is meaningless in a squash-merging repository — it called 20 branches merged where GitHub has 103 merged pull requests — so FR-PUB-13's rule is GitHub's record (D-377). Measured after the change: 94 of 94 branches on `origin` belong to a merged pull request.
   - **Goal:** The two P1 findings that are not judgement calls stop needing one: the trailer count cannot grow, and the branch list is produced by a script instead of by hand. The three decisions themselves stay the owner's.
   - **Satisfies:** FR-PUB-12, FR-PUB-13 (spec §4.24).
   - **Why not a slice:** Same reason as P1: the reader it serves is not the app's user.
@@ -1475,6 +1475,7 @@ graph TD
     - `.github/workflows/ci.yml`: a `trailers` job at `fetch-depth: 0`, parallel to `ci`, spending none of FR-CI-1's budget.
     - `scripts/prune-merged-branches.ts`: lists every branch on `origin` against GitHub's merged and open pull-request heads, deletes only merged ones, only with `--delete`, never `main`, in batches of twenty. `deletable()` is pure and exported.
     - `tests/docs/trailers.test.ts`: the shape of both rules, without a repository in a known state.
+    - *(added mid-task, V13-16, D-378)* The deploy runbook leaves the README for `docs/DEPLOY.md`: the README keeps one paragraph on what the deployment is — `main` deploys, every branch gets a preview URL, the strict headers are the ones the Playwright suite runs the app under — and links the rest. FR-PUB-1 amended with it.
     - The three findings themselves are **not** acted on: no history rewritten, no branch deleted, no repository setting changed.
   - **Touches outside the lane:** `scripts/`, `tests/docs/`, `.github/workflows/`, `SPEC.md`, `PLAN.md`, `TASKS.md`. **Nothing under `src/`.**
   - **Done when:**
@@ -1482,4 +1483,5 @@ graph TD
     - `npx tsx scripts/prune-merged-branches.ts` prints the two lists and deletes nothing without `--delete`.
     - `npx vitest run tests/docs/trailers.test.ts` passes, including that the prune script does not reach for `--merged`.
     - `npm test`, lint, typecheck green; `git diff --stat origin/main -- src/` empty; the capture set untouched.
+    - `## Deploy` is at most 20 lines and links `docs/DEPLOY.md`; the four strings that identify the runbook are in that file and in neither the README nor anywhere else.
     - The owner's gate: the branch deletion, the trailer rewrite and the repository metadata, all three still theirs.

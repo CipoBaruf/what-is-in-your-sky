@@ -83,6 +83,25 @@ describe('the first screen (FR-PUB-1)', () => {
     expect(targets).toContain('LICENSE');
   });
 
+  it('keeps the deploy runbook out of the README and one click away (FR-PUB-1 amended, D-378)', () => {
+    // V13-16: the section was 45 of the file's 144 lines and only the holder of
+    // the Cloudflare account could act on any of it. What stays is the shape of
+    // the deployment, which is the reader's evidence; what goes is the runbook.
+    const deploy = section(readme, 'Deploy');
+    expect(deploy.split('\n').length).toBeLessThanOrEqual(20);
+    expect(deploy).toContain('docs/DEPLOY.md');
+    expect(existsSync('docs/DEPLOY.md')).toBe(true);
+    // The facts a reader can use are still stated.
+    for (const fact of ['preview', 'Content-Security-Policy', 'wrangler.jsonc']) expect(deploy).toContain(fact);
+    // And the runbook is in the other file, not this one. These are the strings
+    // that identify it; the failure mode is somebody helpfully putting a step back.
+    const runbook = readFileSync('docs/DEPLOY.md', 'utf8');
+    for (const step of ['Workers & Pages', 'Branch control', 'curl -sI', 'account subdomain']) {
+      expect(runbook, `docs/DEPLOY.md should carry: ${step}`).toContain(step);
+      expect(readme, `README.md should not carry: ${step}`).not.toContain(step);
+    }
+  });
+
   it('keeps the four operational headings below it', () => {
     for (const heading of ['## Run', '## Deploy', '## Data sources and attributions', '## Catalog maintenance']) {
       expect(readme.indexOf(heading)).toBeGreaterThan(prologue.length - 1);
