@@ -21,7 +21,7 @@ import { en } from '../../i18n/en';
 import { LIVE_TWO_COLUMN_MIN_PX, WIDE_MIN_PX } from '../../lib/layout';
 import { isoInstant } from '../../lib/shareLinks';
 import { skyBodiesAt } from '../../lib/skyBodies';
-import type { ChartView, Observer, Pass } from '../../model';
+import type { Observer, Pass } from '../../model';
 import type { NowItem, NowState } from '../../model';
 import { appStore, setLiveNowClient, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
@@ -34,6 +34,9 @@ const NOW = goldenWindowStart();
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
 const ready: ElementsState = { status: 'ready', records: fixtureRecords(), unavailable: [], rejected: [], fetchedAt: NOW, stale: false, persistent: true };
 const initial = appStore.getInitialState();
+
+/** R66 (V13-6, D-350): the way into the sky screen — the view control's "window" option, on this page as on the pass detail. */
+const windowOption = (): HTMLElement => within(screen.getByRole('group', { name: en.chart.viewGroup })).getByRole('button', { name: en.chart.view.window });
 const HOUR = 3_600_000;
 
 const shifted = (id: string, name: string, byMs: number): Pass => ({
@@ -231,31 +234,29 @@ describe('<LivePage>', () => {
    * where the window's presence test passes and the option used to be a third
    * one — the live page's control offers the dome and the polar chart only. The
    * window is reached here by `[ follow phone ]`, and a `window` this device
-   * saved is drawn as the dome and left in the preference, which is what keeps
-   * the pass detail on this phone opening on the window.
+   * R66 (FR-FSC-6 as amended v1.3.1, V13-6): the control offers all three
+   * again — the live page is no longer the exception — and "Window" is a mode
+   * the tap opens rather than a view the page switches to.
    */
-  it('offers the dome and the polar chart in the view control, and no window, on a phone (FR-FSC-6)', () => {
+  it('offers all three views in the control on a phone, and draws the one the reader picked (FR-FSC-6 as amended v1.3.1)', () => {
     withSky();
     vi.stubGlobal('DeviceOrientationEvent', function DeviceOrientationEvent() {
       return undefined;
     });
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
-    appStore.getState().setChartView('window');
+    appStore.getState().setChartView('dome');
     try {
       render(<LivePage link={null} onLeave={() => undefined} />);
       expect(
         within(screen.getByRole('group', { name: 'Chart view' }))
           .getAllByRole('button')
           .map((button) => button.textContent),
-      ).toEqual(['Polar', 'Dome']);
+      ).toEqual(['Polar', 'Dome', 'Window']);
+      // The option is a mode: until it is tapped the page is the dome, with every row it has.
       expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
-      expect(appStore.getState().savedChartView).toBe('window');
-      // The R62 review's finding: the page reads what is drawn, not the raw preference — the dome is on
-      // screen, so the stripe block, the playback row and the follow control are all there.
-      expect(screen.queryByTestId('follow-screen')).toBeNull();
+      expect(screen.queryByTestId('sky-screen')).toBeNull();
       expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
       expect(screen.getByTestId('playback-controls')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: en.live.follow })).toBeInTheDocument();
     } finally {
       vi.unstubAllGlobals();
       Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
@@ -460,38 +461,36 @@ describe('<LivePage>', () => {
   });
 
   /**
-   * R48 (FR-WIN-6, US-21 AC5), rewritten by R64 (FR-FSC-1, FR-FOL-3, FR-WIN-6
-   * as amended v1.3; D-321): the window on this page is the follow screen, so
-   * the stripe block and the playback row are not merely absent while it is up
-   * — nothing of the page is. The instant rule is unchanged: entering returns
-   * to real time and leaving brings the rows back, at real time.
+   * R48 (FR-WIN-6, US-21 AC5) → R64 (D-321) → R66 (FR-FSC-8, FR-WIN-6 and
+   * FR-FOL-3 as amended v1.3.1; V13-7, D-353): the screen replaces the page,
+   * and it shows **the instant the page was showing**. R48's reset to real time
+   * is gone: it is what stopped a reader watching a pass that has not happened
+   * yet through the phone, which is the whole point of the window.
    */
-  it('the follow screen replaces the page at real time and closing brings it back, at real time (FR-FSC-1, FR-WIN-6)', () => {
+  it('the sky screen replaces the page at the instant the page was showing, and closing brings the rows back there (FR-FSC-1, FR-FSC-8)', () => {
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
     fireEvent.click(screen.getByRole('button', { name: 'Next rise' }));
     expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
     expect(screen.getByRole('button', { name: 'Now' })).toBeEnabled();
-    // R62 (FR-FSC-6): the window is on this page only as the follow control's override (D-277).
     act(() => {
-      appStore.getState().setViewOverride('window' as unknown as ChartView);
+      appStore.getState().openSkyScreen();
     });
-    expect(screen.getByTestId('follow-screen')).toBeInTheDocument();
+    expect(screen.getByTestId('sky-screen')).toBeInTheDocument();
     for (const testid of ['live-side', 'stripe-block', 'time-stripe', 'playback-controls', 'playback-row', 'live-actions', 'live-time']) expect(screen.queryByTestId(testid)).toBeNull();
     // The page's one-row header is covered rather than unmounted, and out of the accessible tree with it.
     expect(screen.getByTestId('live-top-row')).toHaveAttribute('aria-hidden', 'true');
     expect(screen.queryByRole('button', { name: en.live.back })).toBeNull();
-    // Leaving the screen: the whole page is back, and the instant is real time.
+    // Leaving the screen: the whole page is back, at the instant it was left at — not at now.
     act(() => {
-      appStore.getState().setViewOverride(null);
+      appStore.getState().closeSkyScreen();
     });
-    expect(screen.queryByTestId('follow-screen')).toBeNull();
+    expect(screen.queryByTestId('sky-screen')).toBeNull();
     expect(screen.getByTestId('live-top-row')).not.toHaveAttribute('aria-hidden');
     expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
     expect(screen.getByTestId('playback-controls')).toBeInTheDocument();
-    expect(screen.getByTestId('live-time')).toHaveTextContent(/^Time 09:48:24 UTC$/);
-    expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(T);
-    expect(screen.getByRole('button', { name: 'Now' })).toBeDisabled();
+    expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
+    expect(screen.getByRole('button', { name: 'Now' })).toBeEnabled();
   });
 
   /** R33 (FR-LIVE-4, US-15 AC3): the stripe moves the instant and everything follows — the dome, the marker, the strip, the share link. */
@@ -638,44 +637,42 @@ describe('<LivePage>', () => {
     });
   };
 
-  it.each(['polar', 'dome'] as const)('the follow control mounts the screen over the %s at real time and its × gives the page back (FR-FSC-1, FR-FSC-2, FR-FOL-1, FR-FOL-3)', (from) => {
+  it.each(['polar', 'dome'] as const)('the window option mounts the screen over the %s at the page\'s instant, and its × gives the page back there (FR-FSC-1, FR-FSC-2, FR-FSC-8)', (from) => {
     withPhone();
     withSky();
     act(() => {
       appStore.getState().setChartView(from);
     });
     render(<LivePage link={null} onLeave={() => undefined} />);
-    // Somewhere other than now, so that opening the screen is seen to bring it back (FR-WIN-6).
+    // Somewhere other than now: FR-FSC-8's case, the pass the reader wants to watch through the phone before it happens.
     fireEvent.click(screen.getByRole('button', { name: 'Next rise' }));
     expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
 
-    const toggle = screen.getByRole('button', { name: en.live.follow });
-    fireEvent.click(toggle);
-    // The press arms the sensor; the reading is what opens the screen (F-42's lesson, D-276).
-    expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.queryByTestId('follow-screen')).toBeNull();
-    // The page's own chart never switches to the window: what the control opens is a layer, not a view (D-321).
+    fireEvent.click(windowOption());
+    // The tap arms the sensor; the reading is what opens the screen (F-42's lesson, D-350).
+    expect(screen.queryByTestId('sky-screen')).toBeNull();
+    // The page's own chart never switches to the window: the option opens a layer, not a view (D-321, D-352).
     expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', from);
     reading(true);
-    // FR-WIN-5 as amended (D-277): the override is what following is, and the reader's own preference is untouched.
-    expect(appStore.getState()).toMatchObject({ chartView: 'window', savedChartView: from, viewOverride: 'window' });
-    const layer = screen.getByTestId('follow-screen');
+    // FR-WIN-5 as amended v1.3.1: nothing is written, and the preference is still the view the reader picked.
+    expect(appStore.getState()).toMatchObject({ chartView: from, skyScreen: true });
+    const layer = screen.getByTestId('sky-screen');
     expect(layer).toHaveAttribute('role', 'dialog');
     expect(layer).toHaveAttribute('aria-modal', 'true');
-    // FR-FSC-1: none of the page is on it — the control that opened it included, so the `×` is the second press.
-    for (const testid of ['live-side', 'stripe-block', 'playback-controls', 'live-actions', 'follow-phone', 'live-time']) expect(screen.queryByTestId(testid)).toBeNull();
+    // FR-FSC-1: none of the page is on it — the view control that opened it included, so the `×` is the way back.
+    for (const testid of ['live-side', 'stripe-block', 'playback-controls', 'live-actions', 'live-time']) expect(screen.queryByTestId(testid)).toBeNull();
+    expect(screen.queryByRole('group', { name: en.chart.viewGroup })).toBeNull();
 
-    // FR-FSC-2: the `×` closes, and the page comes back as it was — the view it had, the rows at real time.
-    const close = screen.getByRole('button', { name: en.live.followClose });
+    // FR-FSC-2: the `×` closes, and the page comes back as it was — the view it had, and the instant it was at.
+    const close = screen.getByRole('button', { name: en.chart.screenClose });
     expect(close).toHaveTextContent('×');
     fireEvent.click(close);
-    expect(screen.queryByTestId('follow-screen')).toBeNull();
-    expect(screen.getByRole('button', { name: en.live.follow })).toHaveAttribute('aria-pressed', 'false');
-    expect(appStore.getState()).toMatchObject({ chartView: from, savedChartView: from, viewOverride: null });
+    expect(screen.queryByTestId('sky-screen')).toBeNull();
+    expect(appStore.getState()).toMatchObject({ chartView: from, skyScreen: false });
     expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', from);
     expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
     expect(screen.getByTestId('playback-controls')).toBeInTheDocument();
-    expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(T);
+    expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
     // R64 (FR-WIN-6 as amended v1.3): the declination is the screen's readout line; the strip does not carry it any more.
     expect(screen.queryByTestId('live-heading')).toBeNull();
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
@@ -687,13 +684,13 @@ describe('<LivePage>', () => {
     withSky();
     const onLeave = vi.fn();
     render(<LivePage link={null} onLeave={onLeave} />);
-    fireEvent.click(screen.getByRole('button', { name: en.live.follow }));
+    fireEvent.click(windowOption());
     reading(true);
-    expect(screen.getByTestId('follow-screen')).toBeInTheDocument();
+    expect(screen.getByTestId('sky-screen')).toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onLeave).not.toHaveBeenCalled();
-    expect(screen.queryByTestId('follow-screen')).toBeNull();
-    expect(appStore.getState().viewOverride).toBeNull();
+    expect(screen.queryByTestId('sky-screen')).toBeNull();
+    expect(appStore.getState().skyScreen).toBe(false);
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onLeave).toHaveBeenCalledTimes(1);
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
@@ -704,11 +701,11 @@ describe('<LivePage>', () => {
     withPhone();
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
-    fireEvent.click(screen.getByRole('button', { name: en.live.follow }));
+    fireEvent.click(windowOption());
     reading(true);
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: en.live.followClose }));
-    fireEvent.click(screen.getByRole('button', { name: en.live.followClose }));
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: en.live.follow }));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: en.chart.screenClose }));
+    fireEvent.click(screen.getByRole('button', { name: en.chart.screenClose }));
+    expect(document.activeElement).toBe(windowOption());
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
   });
 
@@ -729,9 +726,9 @@ describe('<LivePage>', () => {
     await act(async () => {
       await Promise.resolve();
     });
-    fireEvent.click(screen.getByRole('button', { name: en.live.follow }));
+    fireEvent.click(windowOption());
     reading(true);
-    expect(screen.getByTestId('follow-screen')).toBeInTheDocument();
+    expect(screen.getByTestId('sky-screen')).toBeInTheDocument();
     expect(appStore.getState().liveHidden).toBe(true);
     // Nothing more was asked for, and the screen draws nothing dimmed.
     expect(computeNow).toHaveBeenCalledTimes(1);
@@ -746,28 +743,24 @@ describe('<LivePage>', () => {
    * belongs to both drawn views now — but its shape survives here: the state
    * says what the chart is doing and nothing else.
    */
-  it('leaves the page alone with a note where the phone gives no heading, and stays offered over the dome a saved window falls back to (FR-FOL-2, FR-FSC-6)', () => {
+  it('leaves the page alone with a note where the phone gives no heading, and drops the option for the session (FR-FOL-2, FR-WIN-4)', () => {
     withPhone();
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
-    const toggle = screen.getByRole('button', { name: en.live.follow });
-    fireEvent.click(toggle);
+    fireEvent.click(windowOption());
     reading(false);
-    expect(screen.getByTestId('follow-note')).toHaveTextContent(en.live.followRelative);
-    expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    expect(appStore.getState()).toMatchObject({ chartView: 'polar', viewOverride: null });
+    expect(screen.getByTestId('chart-view-note')).toHaveTextContent(en.window.relative);
+    expect(appStore.getState()).toMatchObject({ chartView: 'polar', skyScreen: false });
     // FR-FOL-2: nothing opened, so the page is untouched — the layer is not there and the rows still are.
-    expect(screen.queryByTestId('follow-screen')).toBeNull();
+    expect(screen.queryByTestId('sky-screen')).toBeNull();
     expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
 
-    // R62 (FR-FSC-6, D-324): a window saved from the pass detail is drawn as the dome on this page, so the
-    // page draws no window and the control is still the one way to the follow screen here.
-    act(() => {
-      appStore.getState().setChartView('window');
-    });
-    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
-    expect(screen.queryByTestId('follow-screen')).toBeNull();
-    expect(screen.getByTestId('follow-phone')).toBeInTheDocument();
+    // FR-WIN-4: and this phone is not offered the window again for the rest of the session.
+    expect(
+      within(screen.getByRole('group', { name: en.chart.viewGroup }))
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual(['Polar', 'Dome']);
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
   });
 
@@ -776,16 +769,16 @@ describe('<LivePage>', () => {
     withPhone(() => Promise.resolve('denied'));
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
-    const toggle = screen.getByRole('button', { name: en.live.follow });
-    fireEvent.click(toggle);
+    fireEvent.click(windowOption());
     await act(async () => {
       await Promise.resolve();
     });
-    expect(screen.getByTestId('follow-note')).toHaveTextContent(en.live.followDenied);
-    expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.queryByTestId('follow-screen')).toBeNull();
+    expect(screen.getByTestId('chart-view-note')).toHaveTextContent(en.window.denied);
+    expect(screen.queryByTestId('sky-screen')).toBeNull();
     expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
-    expect(appStore.getState().viewOverride).toBeNull();
+    expect(appStore.getState().skyScreen).toBe(false);
+    // FR-FOL-2: a refusal keeps the option — the next tap asks again.
+    expect(windowOption()).toBeInTheDocument();
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
   });
 

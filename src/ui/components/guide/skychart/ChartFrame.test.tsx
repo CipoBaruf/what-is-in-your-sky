@@ -134,18 +134,18 @@ describe('<ChartFrame> as a screen (FR-FSC-1, D-322)', () => {
   /** FR-FSC-3, FR-LEG-2 as amended: the readout in the top-left corner, the legend two rows along the bottom edge, both on the overlay surface. */
   it('places the two overlays on the follow surface, the strip capped at two legend rows and scrolling inside', () => {
     const frame = /\.screen \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
-    expect(frame).toContain('--follow-overlay: color-mix(in srgb, var(--bg-raised) var(--follow-overlay-alpha), transparent);');
+    expect(frame).toContain('--screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);');
     expect(frame).toContain('--legend-row: var(--tap);');
     const status = /\.screen \.status \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
     expect(status).toContain('position: absolute;');
     expect(status).toContain('top: 0;');
     expect(status).toContain('left: 0;');
-    expect(status).toContain('background: var(--follow-overlay);');
+    expect(status).toContain('background: var(--screen-overlay);');
     const legend = /\.screen \.legend \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
     expect(legend).toContain('bottom: 0;');
     expect(legend).toContain('max-height: calc(2 * var(--legend-row));');
     expect(legend).toContain('overflow-y: auto;');
-    expect(legend).toContain('background: var(--follow-overlay);');
+    expect(legend).toContain('background: var(--screen-overlay);');
     // The layer over both is not itself a target, or the strip under it would stop taking taps (FR-LEG-4).
     expect(/\.screen \.overlay \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '').toContain('pointer-events: none;');
     expect(css).toContain('.screen .overlay > * {\n  pointer-events: auto;\n}');

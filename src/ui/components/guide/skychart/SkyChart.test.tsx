@@ -2,30 +2,35 @@
  * R62 (FR-FSC-3, FR-FSC-6, FR-WIN-4 and FR-WIN-5 as amended v1.3; D-322,
  * D-324): the two things a page may now say to the chart.
  *
- * `views` is the list of views the page offers. The live page offers the dome
- * and the polar chart, so "Window" is not in its control and the window is
- * reached there by the follow control alone (FR-FSC-6); the pass detail passes
- * nothing and is unchanged by construction. A `window` saved on that device is
- * *drawn* as the dome — `viewFor` already falls back for a view that is not
- * offered — and left where it is in the preference, which is the amendment's
- * one hard rule: nothing on the path calls `setChartView`, so the phone that
- * saved it still opens the pass detail on the window.
+ * R66 (FR-FSC-6, FR-WIN-4/FR-WIN-5 as amended v1.3.1; V13-6, V13-8, D-350,
+ * D-352) rewrites the first half: `views` is gone. Every page offers all three
+ * views where the phone has them, and "Window" is a *mode* — the tap asks for
+ * the permission, waits for one reading and opens the sky screen, while the
+ * chart under it stays on the view the reader picked and nothing is written.
  *
- * `screen` is the follow screen. The chart is the window whatever `chartView`
+ * `screen` is the sky screen. The chart is the window whatever `chartView`
  * says, with no caption, no toggle and no controls: the frame it mounts is the
  * screen frame, whose overlays `ChartFrame.test.tsx` covers.
  *
  * The three views' shared contract — the same geometry, the same legend, the
  * same anchors — is `SkyChart.contract.test.tsx`, which R62 leaves alone.
  */
-import { render, screen as rtl, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen as rtl, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../tests/support/catalogFixtures';
 import { stubMatchMedia } from '../../../../../tests/support/matchMedia';
 import { formatClock } from '../../../../lib/timeFormat';
 import type { Observer } from '../../../../model';
 import { appStore } from '../../../../state';
+import { resetOrientationAccess } from './window/orientationAccess';
 import { offeredViews, SKY_CHART_VIEWS, SkyChart } from './SkyChart';
+
+/** A reading on the window, on the event `useSkyScreen` listens to (the old follow control's helper). */
+function reading(fields: { alpha?: number | null; absolute?: boolean }): void {
+  act(() => {
+    window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: null, absolute: false, ...fields }));
+  });
+}
 
 const pass = goldenPassFixture();
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
@@ -53,50 +58,75 @@ function options(): string[] {
 }
 
 afterEach(() => {
+  resetOrientationAccess();
   withoutPhone();
   appStore.setState(initial, true);
   window.localStorage.clear();
 });
 
-describe('the views a page offers (FR-FSC-6, D-324)', () => {
-  it('keeps the registered order and drops what the page does not list', () => {
+describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350)', () => {
+  it('keeps the registered order and drops only what this device has lost', () => {
     withPhone();
     expect(offeredViews().map((view) => view.id)).toEqual(['polar', 'dome', 'window']);
-    expect(offeredViews(new Set(), ['dome', 'polar']).map((view) => view.id)).toEqual(['polar', 'dome']);
-    // The page lists ids, not an order: naming the dome first does not put it first in the control.
-    expect(offeredViews(new Set(), ['window', 'dome', 'polar']).map((view) => view.id)).toEqual(['polar', 'dome', 'window']);
-    // A view lost for the session goes whether or not the page offers it (FR-WIN-4's relative-only phone).
-    expect(offeredViews(new Set(['polar']), ['dome', 'polar']).map((view) => view.id)).toEqual(['dome']);
+    // FR-WIN-4's relative-only phone: the option goes for the session, and it is the only thing that removes one.
+    expect(offeredViews(new Set(['window'])).map((view) => view.id)).toEqual(['polar', 'dome']);
+    expect(offeredViews(new Set(['polar'])).map((view) => view.id)).toEqual(['dome', 'window']);
   });
 
-  it('offers the live page two views on a phone, with no "Window" in the control', () => {
+  /** V13-6: the live page's two-option control is gone — every page offers all three where the phone has them. */
+  it('offers all three on a phone, on any page', () => {
     withPhone();
-    render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} views={['dome', 'polar']} />);
-    expect(options()).toEqual(['Polar', 'Dome']);
-  });
-
-  /** FR-WIN-4, FR-WIN-5 as amended: drawn as the dome, kept as `window` — the pass detail on this phone still opens on it. */
-  it('draws a saved window as the dome where the page does not offer it, and writes nothing', () => {
-    withPhone();
-    appStore.getState().setChartView('window');
-    expect(savedChartView()).toBe('window');
-
-    render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} views={['dome', 'polar']} />);
-    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'dome');
-    expect(options()).toEqual(['Polar', 'Dome']);
-    expect(appStore.getState().savedChartView).toBe('window');
-    expect(appStore.getState().chartView).toBe('window');
-    expect(savedChartView()).toBe('window');
-  });
-
-  /** The pass detail's case: no `views`, so all three where the presence test passes — R47's behaviour, unchanged. */
-  it('offers every registered view to a page that names none', () => {
-    withPhone();
-    appStore.getState().setChartView('window');
     render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
     expect(options()).toEqual(['Polar', 'Dome', 'Window']);
     expect(SKY_CHART_VIEWS.map((view) => view.id)).toEqual(['polar', 'dome', 'window']);
+  });
+
+  it('offers no window at all where the device has no orientation (a desktop)', () => {
+    render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    expect(options()).toEqual(['Polar', 'Dome']);
+  });
+
+  /**
+   * FR-FSC-6, FR-WIN-5 as amended v1.3.1 (V13-6, V13-8, D-350, D-352): the
+   * window's option is a mode, not a view. The tap opens the screen — through
+   * the permission and the one reading `useSkyScreen` waits for — and the chart
+   * stays on the view the reader picked, which is what the `×` comes back to.
+   */
+  it('opens the sky screen from the window option and writes nothing', () => {
+    withPhone();
+    appStore.getState().setChartView('polar');
+    render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+
+    fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
+    // Armed, not open: the reading is what decides (F-42).
+    expect(appStore.getState().skyScreen).toBe(false);
+    reading({ alpha: 30, absolute: true });
+    expect(appStore.getState().skyScreen).toBe(true);
+    expect(appStore.getState().chartView).toBe('polar');
+    expect(savedChartView()).toBe('polar');
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'polar');
+  });
+
+  /** FR-FOL-2: a phone whose readings carry no north opens nothing, says so beside the control, and loses the option. */
+  it('shows the note and drops the option where the readings carry no north', () => {
+    withPhone();
+    appStore.getState().setChartView('dome');
+    render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+
+    fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
+    reading({ alpha: 30, absolute: false });
+    expect(appStore.getState().skyScreen).toBe(false);
+    expect(rtl.getByTestId('chart-view-note')).toHaveTextContent('This phone gives no compass heading');
+    expect(options()).toEqual(['Polar', 'Dome']);
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'dome');
+  });
+
+  /** FR-WIN-5 as amended v1.3.1: nothing on a page can be left showing the window — it is only ever the screen's. */
+  it('never draws the window as a page view', () => {
+    withPhone();
+    appStore.getState().openSkyScreen();
+    render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'dome');
   });
 });
 
@@ -122,7 +152,7 @@ describe('the chart as a screen (FR-FSC-1, FR-FSC-3, D-322)', () => {
     });
     // Nor in the frame's controls row, where `fill` would otherwise have put the toggle (D-269).
     expect(rtl.queryByRole('group', { name: 'Chart view' })).toBeNull();
-    expect(appStore.getState().savedChartView).toBe('polar');
+    expect(appStore.getState().chartView).toBe('polar');
     expect(savedChartView()).toBe('polar');
   });
 

@@ -9,9 +9,9 @@
  *   - the wake lock, stubbed so the requests can be read: asked on entry,
  *     released when the document hides, asked again when it shows, released
  *     on leaving;
- *   - the follow control: a heading turns the dome, a drag turns following
- *     off and the dome stays where the drag left it, the control turns it on
- *     again;
+ *   - F-63 (R66): the drawing stays inside the dome pane rather than lying
+ *     over the status strip beside it, at every size a phone gives this
+ *     layout;
  *   - the captures the PR carries: landscape in both themes and in Spanish,
  *     and portrait with the control, where it costs the dome a line.
  *
@@ -19,10 +19,9 @@
  * `live.spec.ts`, beside the layout facts it already holds.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { domeDrawn, heading, homeAt, reenterLiveWithTheme, stripFilled, stubCompass, T } from './liveHelpers';
+import { domeDrawn, homeAt, reenterLiveWithTheme, stripFilled, T } from './liveHelpers';
 
 const LANDSCAPE = { width: 844, height: 390 };
-const FOLLOW = { en: 'Follow phone', es: 'Seguir al teléfono' } as const;
 
 declare global {
   interface Window {
@@ -128,79 +127,44 @@ test.describe('the live page on a landscape phone', () => {
   });
 
   /**
-   * R59 (FR-FOL-1, FR-FOL-2, FR-LIVE-8 as amended v1.2, D-276), amended by R64
-   * (FR-FSC-1, FR-FSC-2, D-321): the control opens the follow screen here too —
-   * a landscape phone is a phone — and the dome's facing is the drag's alone
-   * (FR-GUIDE-4). What the layer itself does at this size is
-   * `follow-screen.spec.ts`; what is here is the control's own contract: the
-   * press opens the screen, the `×` gives the page back exactly as it was
-   * (including a facing a drag had moved), and a phone with no north opens
-   * nothing at all.
+   * R66 (F-63, FR-COMP-5 and FR-LIVE-7 as amended v1.3.1; V13-10, D-355): the
+   * drawing stays inside the dome pane.
+   *
+   * The compact chart box is full-bleed — it breaks out of the page's side
+   * padding with a negative margin on each side (R45, D-187) — which is right
+   * in portrait, where the pane is the whole page, and wrong here, where the
+   * pane is the left column of a two-column grid. On the R64 build the box came
+   * out one padding wider than its pane on each side and lay over the status
+   * strip: at 844 x 390 the pane ran x 19 -> 340, the side column started at
+   * 344, and the box ran 0 -> 359. The panes themselves never overlapped, which
+   * is why the layout test above never saw it — so what is measured here is the
+   * *drawing*, at the three sizes a phone gives this layout.
    */
-  test('follow phone: the control opens the screen, the × gives the page back, and a phone with no north opens nothing (FR-FOL-1, FR-FOL-2)', async ({ page }) => {
-    await stubCompass(page);
-    await liveLandscape(page);
-    const chart = page.getByTestId('sky-chart');
-    const dome = page.getByTestId('live-dome');
-    const facing = dome.locator('[data-facing-az]');
-    await expect(facing).toHaveAttribute('data-facing-az', '0');
-    const toggle = page.getByRole('button', { name: FOLLOW.en });
-    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    // Not following: a reading opens nothing and turns nothing.
-    await heading(page, 270);
-    await expect(facing).toHaveAttribute('data-facing-az', '0');
-    await expect(chart).toHaveAttribute('data-view', 'dome');
-
-    expect(await page.evaluate(() => screen.orientation.angle)).toBe(0);
-    await toggle.click();
-    // R39 (F-42), D-276: the click arms the sensor and the first reading is what opens the screen, so a
-    // device that answers nothing leaves the page alone instead of showing a window with nothing to point at.
-    await expect(page.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
-    await expect(page.getByTestId('follow-screen')).toHaveCount(0);
-    await expect(chart).toHaveAttribute('data-view', 'dome');
-    await heading(page, 270);
-    await expect(page.getByTestId('follow-screen')).toHaveCount(1);
-    // FR-FSC-1: the page's chart is not what draws the window — the control is not even on the screen.
-    await expect(page.getByTestId('sky-chart')).toHaveCount(1);
-    await expect(page.getByTestId('follow-phone')).toHaveCount(0);
-    await expect(page.getByTestId('live-heading')).toHaveCount(0);
-
-    // FR-FSC-2: the `×` is the second press, and it gives the dome back where it was — the readings never moved it (FR-GUIDE-4).
-    await page.getByTestId('follow-close').click();
-    await expect(page.getByTestId('follow-screen')).toHaveCount(0);
-    await expect(chart).toHaveAttribute('data-view', 'dome');
-    await expect(page.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
-    await expect(facing).toHaveAttribute('data-facing-az', '0');
-
-    // A drag is the dome's own, and following is not part of it: 40 px right is 10° left, and the control stays as it was.
-    const stage = dome.getByRole('group', { name: 'Sky dome' });
-    const box = await stage.boundingBox();
-    if (!box) throw new Error('the dome is not laid out');
-    const [cx, cy] = [box.x + box.width / 2, box.y + box.height / 2];
-    await page.mouse.move(cx, cy);
-    await page.mouse.down();
-    await page.mouse.move(cx + 20, cy, { steps: 2 });
-    await page.mouse.move(cx + 40, cy, { steps: 2 });
-    await page.clock.runFor(100);
-    await page.mouse.up();
-    await page.clock.runFor(100);
-    await expect(facing).toHaveAttribute('data-facing-az', '350');
-    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-
-    // FR-FOL-2: a phone whose readings carry no north shows the note, leaves the view alone and stays unpressed.
-    await toggle.click();
-    await page.evaluate(() => {
-      window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: 45, beta: 0, gamma: 0, absolute: false }));
-    });
-    await expect(page.getByTestId('follow-note')).toHaveText('This phone gives no compass heading, so the sky window cannot open.');
-    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    await expect(chart).toHaveAttribute('data-view', 'dome');
-    await expect(facing).toHaveAttribute('data-facing-az', '350');
+  test('the drawing stays inside the dome pane and clear of the side column at every landscape phone size (F-63)', async ({ page }) => {
+    for (const size of [
+      { width: 844, height: 390 },
+      { width: 932, height: 430 },
+      { width: 740, height: 360 },
+    ]) {
+      await page.setViewportSize(size);
+      if (size.width === 844) await liveLandscape(page);
+      await page.clock.runFor(500);
+      const pane = await page.getByTestId('live-dome').boundingBox();
+      const box = await page.getByTestId('chart-box').boundingBox();
+      const side = await page.getByTestId('live-side').boundingBox();
+      const label = `${String(size.width)} x ${String(size.height)}`;
+      if (!pane || !box || !side) throw new Error(`the live page is not laid out at ${label}`);
+      // Inside its pane on both edges, and clear of the column beside it.
+      expect(box.x, label).toBeGreaterThanOrEqual(pane.x - 0.5);
+      expect(box.x + box.width, label).toBeLessThanOrEqual(pane.x + pane.width + 0.5);
+      expect(box.x + box.width, label).toBeLessThanOrEqual(side.x + 0.5);
+      // And still worth having: the box is most of the pane it is in.
+      expect(box.width, label).toBeGreaterThan(pane.width * 0.9);
+    }
   });
 
   test('captures in landscape, both themes', async ({ page }) => {
     await liveLandscape(page, 'en', true);
-    await expect(page.getByRole('button', { name: FOLLOW.en })).toBeVisible();
     await page.screenshot({ path: 'docs/screenshots/r34-live-844-landscape-dark-en.png' });
     // R48 (D-244): a landscape phone is compact, and the compact live page carries no theme switch.
     await reenterLiveWithTheme(page, 'en', 'night');
@@ -210,34 +174,37 @@ test.describe('the live page on a landscape phone', () => {
 
   test('captures in landscape in Spanish: the control and its row carry no English (FR-I18N-2)', async ({ page }) => {
     await liveLandscape(page, 'es', true);
-    await expect(page.getByRole('button', { name: FOLLOW.es })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Compartir este cielo' })).toBeVisible();
     await expect(page.getByTestId('live-sky')).toHaveText(/Cielo (oscuro|crepúsculo claro|de día)/);
     await page.screenshot({ path: 'docs/screenshots/r34-live-844-landscape-dark-es.png' });
   });
 });
 
-test.describe('the live page on a portrait phone with the control', () => {
+test.describe('the live page on a portrait phone with a compass', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  test('captures portrait with the follow control: one more controls line, and the dome about 290 px (D-177)', async ({ page }) => {
+  /**
+   * R34's capture of the page with `[ follow phone ]` on it, re-shot by R66
+   * (V13-6) as what a phone gets now: the three-option view control, and an
+   * actions row of two — the hidden-objects toggle and the share action.
+   */
+  test('captures portrait on a phone: three view options, two actions on one row, and the box inside its pane', async ({ page }) => {
     await liveLandscape(page, 'en', true);
-    const toggle = page.getByRole('button', { name: FOLLOW.en });
-    await expect(toggle).toBeVisible();
-    await page.screenshot({ path: 'docs/screenshots/r34-live-390-follow-dark-en.png' });
-    // D-177 had the boxed share action on a fourth line, 38 cells with the toggle. R48 (FR-COMP-4,
-    // D-245): the actions row is `Hidden · Follow · Share` on compact, 31 cells, so the three share one line.
-    // R59 (D-300, F-55): the dome no longer keeps a floor here — on a touch phone the frame spends its
-    // first 190 px on the three-view control and the legend, and a floor that overflowed onto the rows
-    // under the box is what the finding was — so what is asserted is that the box stays inside its pane.
+    const toggle = page.getByRole('group', { name: 'Chart view' });
+    await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
+    await page.screenshot({ path: 'docs/screenshots/r66-live-390-views-dark-en.png' });
+    // R59 (D-300, F-55): the dome keeps no floor here — what is asserted is that the box stays inside its pane.
     // `live-compact.spec.ts` is where the fit itself is measured, row by row, at both phone heights.
     const dome = await page.getByTestId('live-dome').boundingBox();
     const drawing = await page.getByTestId('chart-box').boundingBox();
     expect((drawing?.y ?? 0) + (drawing?.height ?? 0)).toBeLessThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) + 0.5);
-    const follow = await toggle.boundingBox();
+    // FR-COMP-4: the actions row is `Hidden · Share` and stays one line.
     const share = await page.getByRole('button', { name: 'Share this sky' }).boundingBox();
     const hidden = await page.getByRole('button', { name: 'Hidden objects' }).boundingBox();
-    expect(Math.abs((share?.y ?? 0) - (follow?.y ?? 0))).toBeLessThanOrEqual(1);
-    expect(Math.abs((hidden?.y ?? 0) - (follow?.y ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((share?.y ?? 0) - (hidden?.y ?? 0))).toBeLessThanOrEqual(1);
+    // The view control is one row too, with three options (V13-4's two-option row is withdrawn).
+    const options = await toggle.getByRole('button').all();
+    const tops = await Promise.all(options.map(async (option) => (await option.boundingBox())?.y ?? 0));
+    for (const top of tops) expect(Math.abs(top - (tops[0] ?? 0))).toBeLessThanOrEqual(1);
   });
 });

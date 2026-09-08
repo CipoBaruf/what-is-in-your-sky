@@ -7,7 +7,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { WIDE_QUERY } from '../../src/lib/layout';
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { FIXTURE_DATE, NEUQUEN as NEUQUEN_OBSERVER, NINE_DAYS_ON, STORED_RUN_FILE } from './observers';
 
 interface HaFixture {
@@ -291,6 +291,35 @@ export async function heading(page: Page, alpha: number): Promise<void> {
   }, alpha);
   // The facing is handed out on the next animation frame, which the installed clock holds.
   await page.clock.runFor(100);
+}
+
+/** The view control's options, by locale (`i18n/{en,es}/chart.ts`). */
+export const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
+export const VIEW_OPTION = { en: { dome: 'Dome', polar: 'Polar', window: 'Window' }, es: { dome: 'Domo', polar: 'Polar', window: 'Ventana' } } as const;
+export const SCREEN_CLOSE = { en: 'Close', es: 'Cerrar' } as const;
+
+/**
+ * R66 (FR-FSC-1, FR-FSC-6; V13-6, D-350): the way into the sky screen, on the
+ * live page and on the pass detail alike — the view control's "window" option,
+ * then the reading with a north in it that the tap waits for (F-42). The layer
+ * opens on that reading and not on the click, so the poll keeps sending one
+ * until it is up.
+ */
+export async function openSkyScreen(page: Page, locale: 'en' | 'es' = 'en', within: Locator | null = null): Promise<Locator> {
+  const group = (within ?? page).getByRole('group', { name: VIEW_GROUP[locale] });
+  await group.getByRole('button', { name: VIEW_OPTION[locale].window }).click();
+  await expect
+    .poll(
+      async () => {
+        await heading(page, 270);
+        return page.getByTestId('sky-screen').count();
+      },
+      { timeout: 15_000 },
+    )
+    .toBe(1);
+  // The paused clock holds the lazy chunk's Suspense reveal (R32).
+  await page.clock.runFor(1000);
+  return page.getByTestId('sky-screen');
 }
 
 /**

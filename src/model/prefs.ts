@@ -2,6 +2,18 @@
 export type PassSort = 'chronological' | 'best';
 /** US-6 AC3/AC5 (R13): which sky chart view is shown, the 2D polar chart (default for now, D-68), the ASCII dome (R15) or, on a phone, the sky window (R47, FR-WIN-5). Persisted in `wiys:prefs:v1`. */
 export type ChartView = 'dome' | 'polar' | 'window';
+/**
+ * R66 (FR-WIN-5 as amended v1.3.1, V13-8, D-352): the views a *preference* can
+ * hold. The window is a mode, not a view a page can be left in — it is entered
+ * by the tap that chooses it and left by the sky screen's `×` — so nothing
+ * writes it and a value stored by an older build reads as the dome.
+ */
+export type SavedChartView = Exclude<ChartView, 'window'>;
+export const SAVED_CHART_VIEWS: readonly SavedChartView[] = ['dome', 'polar'];
+/** A stored `chartView`, narrowed: anything that is not a saved view (a `window` from a build before v1.3.1) is the dome. */
+export function savedChartView(view: ChartView | undefined, fallback: SavedChartView): SavedChartView {
+  return view === undefined || view === 'window' ? fallback : view;
+}
 /** FR-GUIDE-4 (R13): the polar chart's convention, `looking-up` (east on the left, the default) or `map` (east on the right). Persisted in `wiys:prefs:v1`. */
 export type ChartOrientation = 'looking-up' | 'map';
 /** FR-I18N-1 (R17): the language the app renders in, chosen from the browser on the first visit and overridden by the header switch. Persisted in `wiys:prefs:v1`. */

@@ -5,7 +5,7 @@ import { LIVE_TWO_COLUMN_QUERY } from '../../lib/layout';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import type { Span } from '../../lib/timeStripe';
-import type { ChartView, EpochMs, Observer, Pass } from '../../model';
+import type { EpochMs, Observer, Pass } from '../../model';
 import { useAppStore } from '../../state';
 import { LanguageToggle } from '../components/common/LanguageToggle';
 import { ShareButton } from '../components/common/ShareButton';
@@ -13,8 +13,6 @@ import { ThemeToggle } from '../components/common/ThemeToggle';
 import { DOME_BOX_ASPECT } from '../components/guide/skychart/dome/camera';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
-import { FollowPhone } from '../components/live/FollowPhone';
-import { FollowScreen } from '../components/live/FollowScreen';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
 import { HiddenToggle, PlaybackControls } from '../components/live/PlaybackControls';
@@ -23,12 +21,12 @@ import { StepControls } from '../components/live/StepControls';
 import { TimeReadout } from '../components/live/TimeReadout';
 import { TimeStripe } from '../components/live/TimeStripe';
 import { pageHasTouch } from '../components/live/touch';
-import { useFollowing, useFollowPhone } from '../components/live/useFollowPhone';
 import { useHiddenObjects } from '../components/live/useHiddenObjects';
 import { usePlayback } from '../components/live/usePlayback';
 import { useSkyBands } from '../components/live/useSkyBands';
 import { useWakeLock } from '../components/live/useWakeLock';
 import { useWallThrottle } from '../components/live/useWallThrottle';
+import { SkyScreen } from '../components/screen/SkyScreen';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useNow } from '../hooks/useNow';
@@ -114,19 +112,20 @@ export function LivePage({ link, onLeave }: LivePageProps) {
   /*
    * FR-LIVE-1: Esc returns. R35 moves this into the app-wide listener.
    *
-   * R64 (FR-FSC-2, D-321): with the follow screen up, Esc closes the screen and
+   * R64 (FR-FSC-2, D-321): with the sky screen up, Esc closes the screen and
    * stops — the branch is here, in the page's one listener, rather than in a
-   * second listener racing this one for the same key. Closing is what the
-   * second press made: clearing the override *is* ending follow (D-277).
+   * second listener racing this one for the same key. R66 (D-351): what closes
+   * it is the store's own flag, since the screen is no longer this page's to
+   * own; leaving the page closes it too, on the way out.
    */
-  const following = useFollowing();
-  const setViewOverride = useAppStore((s) => s.setViewOverride);
+  const screenOpen = useAppStore((s) => s.skyScreen);
+  const closeSkyScreen = useAppStore((s) => s.closeSkyScreen);
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return;
       event.preventDefault();
-      if (following) {
-        setViewOverride(null);
+      if (screenOpen) {
+        closeSkyScreen();
         return;
       }
       onLeave();
@@ -135,7 +134,19 @@ export function LivePage({ link, onLeave }: LivePageProps) {
     return () => {
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [onLeave, following, setViewOverride]);
+  }, [onLeave, screenOpen, closeSkyScreen]);
+  // FR-FSC-2: leaving the live page by any route closes the screen; the ref is the last committed answer, so the
+  // cleanup that runs on unmount reads it without depending on it.
+  const openRef = useRef(screenOpen);
+  useEffect(() => {
+    openRef.current = screenOpen;
+  }, [screenOpen]);
+  useEffect(
+    () => () => {
+      if (openRef.current) closeSkyScreen();
+    },
+    [closeSkyScreen],
+  );
 
   const inert = observer === null ? t.live.noObserver : elements.status !== 'ready' ? t.live.noElements : null;
   // R34 (FR-LIVE-7): the screen stays awake while there is a sky to watch; an inert page asks for nothing.
@@ -143,10 +154,10 @@ export function LivePage({ link, onLeave }: LivePageProps) {
 
   return (
     <div className={styles.page} data-testid="live-page" data-state={inert === null ? 'live' : 'inert'} data-wake-lock={wakeLock} data-compact={compact} data-columns={columns}>
-      {/* FR-FSC-1 (D-321): the follow screen covers this row for the eye; `inert` is the other half — nothing under
+      {/* FR-FSC-1 (D-321): the sky screen covers this row for the eye; `inert` is the other half — nothing under
           the layer is reachable, by Tab or by a tap that lands past it — and `aria-hidden` is what takes it out of
           the accessible tree, since `inert` alone is a browser behaviour and not a name a test can read. */}
-      <div className={styles.topRow} data-testid="live-top-row" {...(following ? { inert: true, 'aria-hidden': true } : {})}>
+      <div className={styles.topRow} data-testid="live-top-row" {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
         <button type="button" className={styles.back} onClick={onLeave}>
           {t.live.back}
         </button>
@@ -183,20 +194,6 @@ export function LivePage({ link, onLeave }: LivePageProps) {
  * (D-162); the share action is where the observer goes into a URL.
  */
 export const LIVE_ROUTE_HASH = '#live';
-
-/**
- * FR-FSC-6 / FR-WIN-4, FR-WIN-5 as amended v1.3 (R62, D-324): the views this
- * page offers. The window is not one of them — on the live page it is reached
- * by `[ follow phone ]` alone, and a `window` this device saved is drawn as the
- * dome and left in the preference for the pass detail, which still offers it.
- *
- * R62 kept one exception — while the follow control held the override, the page
- * offered the window again, or the chart it opened would have fallen back to
- * the dome under it. R64 (D-321) takes it back: what the control opens is a
- * screen of its own, drawn by `FollowScreen` and not by this chart, so this
- * page's list is now the same two views whatever the control is doing.
- */
-const LIVE_VIEWS: readonly ChartView[] = ['dome', 'polar'];
 
 function useHashFollows(observer: Observer, shown: EpochMs, realTime: boolean, playing: boolean): void {
   const lastWrite = useRef<number | null>(null);
@@ -257,18 +254,18 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   // R59 (FR-FOL-1, FR-LIVE-8 as amended v1.2, D-276): the control opens the sky window; R64 (FR-FSC-1, D-321) makes
   // what it opens a screen of its own rather than a view of this page. The dome's facing is the drag's alone
   // (FR-GUIDE-4), so the page passes none: the screen's window reads the sensor itself.
-  const follow = useFollowPhone();
   /*
-   * R62 (FR-FSC-6, D-324): the page offers the dome and the polar chart, so a saved `window` is drawn as the
-   * dome here and the window is reached by the follow control alone (`viewOverride`, D-277) — which is what
-   * `follow.state === 'on'` reads. R64: that state is now the *screen*, not a view laid out in the page, so
-   * this is the one flag that says whether the page is drawn at all.
+   * R66 (FR-FSC-1, FR-FSC-6; V13-6, D-350, D-351): the screen is opened from the chart's own view control and
+   * held in the store, so what this page needs is the one flag that says whether it is drawn at all. The page
+   * still decides everything *around* the layer: the inert header, `Esc`, the hidden objects, and closing on
+   * the way out.
    */
-  const following = follow.state === 'on';
+  const screenOpen = useAppStore((s) => s.skyScreen);
+  const closeScreen = useAppStore((s) => s.closeSkyScreen);
   // FR-LIVE-6: the dimmed set at the shown instant, minus what is already on an arc (D-102), worded here (FR-I18N-2).
-  // FR-FSC-5 (D-325): held off the follow screen at the hook — while following the worker is not asked at all, so
+  // FR-FSC-5 (D-325): held off the sky screen at the hook — while it is up the worker is not asked at all, so
   // no `computeAt` message leaves the page and there is nothing dimmed for the screen to draw even by accident.
-  const hiddenState = useHiddenObjects(observer, shown, liveHidden && !following);
+  const hiddenState = useHiddenObjects(observer, shown, liveHidden && !screenOpen);
   const hidden = useMemo(
     () => hiddenMarkers(hiddenState, drawnAt(passes, shown), (name, reason) => t.live.hiddenLabel({ name, reason: t.live.hiddenReason[reason] })),
     [hiddenState, passes, shown, t],
@@ -277,32 +274,15 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
     setLiveHidden(!liveHidden);
   }, [liveHidden, setLiveHidden]);
   useHashFollows(observer, shown, playback.realTime, playback.playing);
-  /*
-   * R59 (FR-FOL-1): the control is offered on the dome and on the polar chart wherever the window is
-   * offered — `FollowPhone` renders nothing where there is no phone to follow. The window *chosen* from
-   * the view control cannot show on this page any more (FR-FSC-6), so the control is always rendered.
-   *
-   * R64 (FR-FSC-2, D-321): the screen's `×` is the second press, and the control is not on the screen, so
-   * the ref is how focus comes back to it — the control unmounts while the layer is up and is a new element
-   * when it returns, which is why this is an effect on the flag and not `useOpenerFocus`'s remembered node.
-   */
-  const followRef = useRef<HTMLButtonElement>(null);
-  const wasFollowing = useRef(following);
-  useEffect(() => {
-    if (wasFollowing.current && !following) followRef.current?.focus();
-    wasFollowing.current = following;
-  }, [following]);
   // R54 (FR-TRAJ-5, FR-LIVE-7 as amended v1.1.1): the stepping row is for fingers; a pointer has the arrow keys.
   const touch = pageHasTouch();
   /*
-   * R48 (FR-WIN-6, US-21 AC5; FR-FOL-3): following is a "now" mode. Opening the screen dispatches the `now`
-   * action, and the stripe block and the playback row are not merely hidden while it is up — nothing of the
-   * page is (FR-FSC-1). Closing brings them back, at real time.
+   * R66 (FR-FSC-8, FR-WIN-6 and FR-FOL-3 as amended v1.3.1; V13-7, D-353): the screen shows *this* instant.
+   * R48's `if (following) toNow()` is gone — opening the window used to reset the page to real time, which is
+   * exactly what stopped a reader watching a pass that has not happened yet. The layer replaces the page's grid
+   * with every hook still mounted, so `usePlayback` keeps its interval and the screen advances at the page's own
+   * speed; closing gives the page back at the instant playback has reached, which is `shown` and needs no restore.
    */
-  const toNow = playback.toNow;
-  useEffect(() => {
-    if (following) toNow();
-  }, [following, toNow]);
   // R48 (FR-TRAJ-1, FR-TRAJ-3, D-189): each pass carries the state its arc is drawn in at the shown instant; the
   // legend reads the same value. Memoised on the states, not the instant, so a frame that changes no state remakes nothing.
   const arcs = arcKey(passes, shown);
@@ -322,7 +302,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   /*
    * R61 (FR-LIVE-7 as amended v1.2.1, V12-13, D-318): the playback controls belong with the stripe they drive.
    * On wide they share the clock readout's row above the stripe — the time row — and the rail keeps what is
-   * about the sky: the strip, then the actions (hidden objects, follow, share). On compact the rows are R48's,
+   * about the sky: the strip, then the actions (hidden objects, share — the follow control went with R66). On compact the rows are R48's,
    * unchanged: the readout over the stripe, the playback row and the actions under it.
    */
   const playbackControls = <PlaybackControls playing={playback.playing} speed={playback.speed} realTime={playback.realTime} onPlay={playback.play} onPause={playback.pause} onSpeed={playback.setSpeed} onNow={playback.toNow} />;
@@ -345,7 +325,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   );
   /*
    * R64 (FR-WIN-6 as amended v1.3, D-185's loose end): the strip's true-north line went with the window's
-   * being a view of this page. The declination is the follow screen's readout line now (FR-FSC-4), and the
+   * being a view of this page. The declination is the sky screen's readout line now (FR-FSC-4), and the
    * strip — which the screen does not carry — has no state left in which it would say it.
    */
   const side = (
@@ -359,7 +339,6 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
       )}
       <div className={styles.actions} data-testid="live-actions">
         <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />
-        <FollowPhone follow={follow} buttonRef={followRef} />
         <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : t.live.share} ariaLabel={t.live.share} />
       </div>
     </div>
@@ -371,7 +350,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
    * wake lock, the hash — so closing gives back the page that has been running underneath all along; only its
    * grid is not built. `LivePage`'s one-row header is left mounted and covered, `inert` (FR-FSC-1).
    */
-  if (following) return <FollowScreen passes={chartPasses} observer={observer} now={shown} sun={bodies.sun} moon={bodies.moon} onClose={follow.toggle} />;
+  if (screenOpen) return <SkyScreen passes={chartPasses} observer={observer} now={shown} sun={bodies.sun} moon={bodies.moon} initialFacingAzDeg={0} onClose={closeScreen} />;
 
   return (
     <>
@@ -387,7 +366,6 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           colorBy="pass"
           fill
           initialFacingAzDeg={0}
-          views={LIVE_VIEWS}
           {...(columns === 'two' ? { aside: side } : {})}
           {...(compact ? {} : { boxAspect: DOME_BOX_ASPECT, stacked: oneColumn })}
           {...(stripeUnder ? { stripe: stripeBlock } : {})}

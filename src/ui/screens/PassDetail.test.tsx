@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { readFileSync } from 'node:fs';
@@ -8,6 +8,7 @@ import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../t
 import { FIXTURES_DIR } from '../../../tests/support/fixtures';
 import { MOON_FIXTURE } from '../../../tests/support/moonFixtures';
 import type { Observer } from '../../model';
+import { en } from '../../i18n/en';
 import { appStore, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { App } from '../App';
@@ -88,6 +89,81 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     unmount();
     expect(document.documentElement.style.overflow).toBe('auto');
     document.documentElement.style.overflow = '';
+  });
+
+  /**
+   * R66 (FR-FSC-1, FR-FSC-6, FR-FSC-9; US-21 AC13, AC14; V13-9, D-351, D-354):
+   * the pass detail's window is the sky screen, the same layer the live page
+   * opens, over a sheet that is held still under it and gets its place back.
+   */
+  describe('the sky screen (FR-FSC-1, FR-FSC-9, US-21 AC14)', () => {
+    /** D-175's presence test: a phone to point. */
+    function withPhone(): void {
+      vi.stubGlobal('DeviceOrientationEvent', function DeviceOrientationEvent() {
+        return undefined;
+      });
+      Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
+    }
+
+    const openScreen = (): void => {
+      fireEvent.click(within(screen.getByRole('group', { name: en.chart.viewGroup })).getByRole('button', { name: en.chart.view.window }));
+      act(() => {
+        window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: 270, absolute: true }));
+      });
+    };
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+    });
+
+    it('opens from the view control over the sheet, holds the sheet still, and the × gives it back', () => {
+      withPhone();
+      appStore.getState().setChartView('dome');
+      render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+      const sheet = screen.getByRole('dialog', { name: 'ISS (Zarya)' });
+      sheet.scrollTop = 120;
+
+      openScreen();
+      const layer = screen.getByTestId('sky-screen');
+      // FR-FSC-1: nothing of the sheet is on it, and the sheet under it is inert and held still (FR-FSC-9).
+      expect(within(layer).queryByTestId('guide-sentence')).toBeNull();
+      expect(within(layer).queryByTestId('pass-numbers')).toBeNull();
+      expect(within(layer).queryByRole('group', { name: en.chart.viewGroup })).toBeNull();
+      expect(sheet).toHaveAttribute('inert');
+      expect(sheet.style.overflow).toBe('hidden');
+      // FR-FSC-2: the `×` is the way out, and the sheet comes back where it was.
+      fireEvent.click(within(layer).getByRole('button', { name: en.chart.screenClose }));
+      expect(screen.queryByTestId('sky-screen')).toBeNull();
+      expect(sheet).not.toHaveAttribute('inert');
+      expect(sheet.style.overflow).toBe('');
+      expect(sheet.scrollTop).toBe(120);
+      expect(appStore.getState()).toMatchObject({ chartView: 'dome', skyScreen: false });
+    });
+
+    it('closes on Esc without closing the guide, and on leaving the guide (FR-FSC-2)', () => {
+      withPhone();
+      const onClose = vi.fn();
+      const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={onClose} onShowList={() => undefined} />);
+      // The app's own listener is a bubble listener on the document (`lib/shortcuts.ts`); this stands in for it.
+      const appListener = vi.fn();
+      document.addEventListener('keydown', appListener);
+      openScreen();
+      expect(screen.getByTestId('sky-screen')).toBeInTheDocument();
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(screen.queryByTestId('sky-screen')).toBeNull();
+      // FR-FSC-2: the press closed the screen and went no further, so nothing closed the guide with it.
+      expect(appListener).not.toHaveBeenCalled();
+      expect(onClose).not.toHaveBeenCalled();
+      // With the screen gone the next press is the app's again.
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(appListener).toHaveBeenCalledTimes(1);
+      document.removeEventListener('keydown', appListener);
+
+      openScreen();
+      unmount();
+      expect(appStore.getState().skyScreen).toBe(false);
+    });
   });
 
   it('adds the Moon warning under the chart when the pass has glare, and nothing when it has not (FR-MOON-2)', () => {

@@ -75,10 +75,25 @@ function withoutPhone(): void {
 }
 
 describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
+  /*
+   * R66 (FR-FSC-1, FR-WIN-5 as amended v1.3.1; V13-6, V13-8, D-352): the window
+   * is never a page's view any more — it is the sky screen's, and the only way
+   * to mount it is `screen`. So the contract is asserted on the window as the
+   * screen renders it, and on the other two as a page does; what the three
+   * still share — one geometry, one legend, the same anchors — is what this
+   * file is about, and none of it moves with the frame around it.
+   */
+  const asScreen = view.id === 'window';
+  /*
+   * FR-FSC-4 (D-323): a screen upright is the note and nothing else, and jsdom's
+   * viewport is portrait by default, so the window's cases stub a landscape
+   * phone — 844 x 390, the size the captures use — for as long as they run.
+   */
+  let media: { restore: () => void } | null = null;
   beforeAll(async () => {
-    if (view.id === 'window') withPhone();
-    appStore.getState().setChartView(view.id);
-    const { container, unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    if (asScreen) withPhone();
+    else if (view.id !== 'window') appStore.getState().setChartView(view.id);
+    const { container, unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} {...(asScreen ? { screen: true } : {})} />);
     await waitFor(() => {
       expect(container.querySelector('[data-drawing]')).not.toBeNull();
     });
@@ -86,21 +101,31 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
     withoutPhone();
   });
   beforeEach(() => {
-    if (view.id === 'window') withPhone();
-    appStore.getState().setChartView(view.id);
+    if (asScreen) {
+      withPhone();
+      media = stubMatchMedia(844, 390);
+    } else if (view.id !== 'window') appStore.getState().setChartView(view.id);
   });
   afterEach(() => {
+    media?.restore();
+    media = null;
     withoutPhone();
     appStore.setState(initial, true);
     window.localStorage.clear();
   });
 
-  const props = (extra: Partial<SkyChartProps> = {}): SkyChartProps => ({ passes: [pass], observer, highlightedPassId: pass.id, ...extra });
+  const props = (extra: Partial<SkyChartProps> = {}): SkyChartProps => ({ passes: [pass], observer, highlightedPassId: pass.id, ...(asScreen ? { screen: true } : {}), ...extra });
 
   it('mounts the chosen view in a figure whose caption is the guide sentence', () => {
     render(<SkyChart {...props()} />);
     const figure = screen.getByRole('figure');
     expect(figure).toHaveAttribute('data-view', view.id);
+    // D-322: a screen has no caption — the readout and the legend are its only words (FR-FSC-1).
+    if (asScreen) {
+      expect(figure.querySelector('figcaption')).toBeNull();
+      expect(screen.queryByTestId('guide-sentence')).toBeNull();
+      return;
+    }
     expect(within(figure).getByTestId('guide-sentence').textContent).toBe(golden.en.asComputed);
     expect(figure.querySelector('figcaption')).toContainElement(within(figure).getByTestId('guide-sentence'));
   });
@@ -192,8 +217,13 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
 
   it('captions the highlighted pass among several, and says so when there is none to draw', () => {
     const { rerender } = render(<SkyChart {...props({ passes: [other, pass] })} />);
+    if (asScreen) {
+      // The screen has no caption to carry either sentence; what it draws with no pass is an empty sky.
+      expect(screen.queryByTestId('guide-sentence')).toBeNull();
+      return;
+    }
     expect(screen.getByTestId('guide-sentence').textContent).toBe(golden.en.asComputed);
-    rerender(<SkyChart {...props({ passes: [] , highlightedPassId: null })} />);
+    rerender(<SkyChart {...props({ passes: [], highlightedPassId: null })} />);
     expect(screen.getByRole('figure')).toHaveTextContent('No pass to draw.');
   });
 
@@ -448,20 +478,28 @@ describe('<SkyChart> view choice (US-6 AC5, FR-WIN-4)', () => {
     else expect(screen.queryByRole('group', { name: 'Chart view' })).toBeNull();
   });
 
-  /** FR-WIN-4 / US-21 AC4: a desktop never sees the option, and a saved window there is the dome. */
-  it('offers the window only where there is a phone to point, and falls a saved window back to the dome elsewhere', async () => {
-    appStore.getState().setChartView('window');
+  /**
+   * FR-WIN-4 / US-21 AC4, as amended v1.3.1 (V13-6, V13-8): a desktop never sees
+   * the option; a phone sees all three, on every page. The option is a mode, so
+   * the view under it stays what the reader picked and the window is only ever
+   * drawn on the screen.
+   */
+  it('offers the window only where there is a phone to point, and draws it only as the screen', async () => {
+    appStore.getState().setChartView('dome');
     const { unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
     expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'dome');
     const toggle = screen.getByRole('group', { name: 'Chart view' });
     expect(within(toggle).getAllByRole('button').map((button) => button.textContent)).toEqual(['Polar', 'Dome']);
-    expect(appStore.getState().chartView).toBe('window'); // the preference is kept for the phone it was saved on
     unmount();
 
     withPhone();
-    const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-    expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'window');
+    const { unmount: unmountPage } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'dome');
     expect(within(screen.getByRole('group', { name: 'Chart view' })).getAllByRole('button').map((button) => button.textContent)).toEqual(['Polar', 'Dome', 'Window']);
+    unmountPage();
+
+    const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} screen />);
+    expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'window');
     await waitFor(() => {
       expect(container.querySelector('[data-drawing="window"]')).not.toBeNull();
     });

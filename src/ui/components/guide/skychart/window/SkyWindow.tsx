@@ -539,14 +539,10 @@ export function SkyWindow(props: SkyChartProps) {
               {t.window.portrait}
             </p>
           )}
-          {/* FR-WIN-5: the one control in the window's place until the tap the browser needs. The screen never shows it: the follow control's own tap is what asked (FR-FOL-2). */}
-          {orientation.needsGesture && state !== 'waiting' && !onScreen && (
-            <div className={styles.gate}>
-              <button type="button" className={styles.gateButton} data-testid="window-gate" onClick={orientation.start}>
-                {t.window.pointAtSky}
-              </button>
-            </div>
-          )}
+          {/* R66 (FR-WIN-5 as amended v1.3.1, V13-8): no `[ point at the sky ]`. The window is only ever mounted
+              on the sky screen, and the tap that opened the screen is the tap that asked (FR-WIN-4, D-350), so
+              the gate had nothing left to guard: it was already suppressed on a screen (R64), and a screen is
+              now the only place a window is. `useDeviceOrientation` keeps `start` for the state machine. */}
         </div>
       </ChartFrame>
     </div>

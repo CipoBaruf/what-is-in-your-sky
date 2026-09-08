@@ -24,7 +24,7 @@ import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../.
 import { stubMatchMedia, type MatchMediaStub } from '../../../../tests/support/matchMedia';
 import { MOON_FIXTURE } from '../../../../tests/support/moonFixtures';
 import { en } from '../../../i18n/en';
-import type { ChartView, NowState, Observer } from '../../../model';
+import type { NowState, Observer, SavedChartView } from '../../../model';
 import { appStore, setLiveNowClient, type ElementsState } from '../../../state';
 import { IDLE_PASSES } from '../../../state/slices/passes';
 import type { SkyChartProps } from '../guide/skychart/SkyChart.types';
@@ -54,7 +54,7 @@ const initial = appStore.getInitialState();
 const LANDSCAPE = [844, 390] as const;
 const PORTRAIT = [390, 844] as const;
 
-const withSky = (view: ChartView = 'polar'): void => {
+const withSky = (view: SavedChartView = 'polar'): void => {
   act(() => {
     appStore.getState().setChartView(view);
     appStore.setState({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [pass], hasDarkness: true } });
@@ -128,19 +128,19 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
    * somewhere.
    */
   const open = async (): Promise<HTMLElement> => {
-    fireEvent.click(screen.getByRole('button', { name: en.live.follow }));
+    fireEvent.click(screen.getByRole('button', { name: en.chart.view.window }));
     reading();
     // Real turns of the event loop and not microtasks: the first mount in a file is the one that really fetches
     // the chunk, and the loader reads and transforms a file to do it. `setTimeout` is not among the faked timers
     // for exactly this; `waitFor` cannot be used, since the fake `setInterval` it polls on never fires.
-    for (let i = 0; i < 50 && screen.getByTestId('follow-screen').querySelector('[data-look-az]') === null; i += 1) {
+    for (let i = 0; i < 50 && screen.getByTestId('sky-screen').querySelector('[data-look-az]') === null; i += 1) {
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
       });
     }
     reading();
     settle();
-    return screen.getByTestId('follow-screen');
+    return screen.getByTestId('sky-screen');
   };
 
   it('is the drawing, the ×, the readout and the legend, and nothing of the page (FR-FSC-1, US-21 AC11)', async () => {
@@ -151,7 +151,7 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     // The four things on it (FR-FSC-1).
     expect(within(layer).getByTestId('sky-chart')).toHaveAttribute('data-screen', 'true');
     expect(layer.querySelector('[data-drawing="window"]')).not.toBeNull();
-    expect(within(layer).getByTestId('follow-close')).toHaveTextContent('×');
+    expect(within(layer).getByTestId('sky-screen-close')).toHaveTextContent('×');
     expect(within(layer).getByTestId('window-readout')).toBeInTheDocument();
     expect(within(layer).getByTestId('chart-legend')).toBeInTheDocument();
 
@@ -166,7 +166,7 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     // FR-FSC-2: the `×` is the one icon in the app, named rather than bracketed, and the layer is a modal dialog.
     expect(layer).toHaveAttribute('role', 'dialog');
     expect(layer).toHaveAttribute('aria-modal', 'true');
-    expect(within(layer).getByRole('button', { name: en.live.followClose })).toBeInTheDocument();
+    expect(within(layer).getByRole('button', { name: en.chart.screenClose })).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -195,6 +195,25 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     expect(appStore.getState().liveHidden).toBe(true);
   });
 
+  /**
+   * FR-FSC-8 (V13-7, D-353): the screen draws the instant its page is showing.
+   * The page is scrubbed forward before the screen opens — a pass that has not
+   * happened yet, which is the case the requirement exists for — and what the
+   * chart is handed is that instant, not real time.
+   */
+  it('draws the instant the page was showing, not now (FR-FSC-8, US-21 AC5)', async () => {
+    withSky();
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Next rise' }));
+    const scrubbed = Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'));
+    expect(scrubbed).toBeGreaterThan(NOW);
+    recorded.props.length = 0;
+    await open();
+    const screens = recorded.props.filter((props) => props.screen === true);
+    expect(screens.length).toBeGreaterThan(0);
+    for (const props of screens) expect(props.now).toBe(scrubbed);
+  });
+
   /** FR-FSC-2 / FR-FOL-1: three ways out, and each gives back the view the press came from with the rows at real time. */
   it.each(['dome', 'polar'] as const)('closes back to the %s with the stripe block and the playback row at real time', async (from) => {
     withSky(from);
@@ -202,41 +221,41 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
 
     // The `×`.
     await open();
-    fireEvent.click(screen.getByTestId('follow-close'));
-    expect(screen.queryByTestId('follow-screen')).toBeNull();
+    fireEvent.click(screen.getByTestId('sky-screen-close'));
+    expect(screen.queryByTestId('sky-screen')).toBeNull();
     expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', from);
     expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
     expect(screen.getByTestId('playback-controls')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Now' })).toBeDisabled();
-    expect(appStore.getState()).toMatchObject({ chartView: from, savedChartView: from, viewOverride: null });
+    expect(appStore.getState()).toMatchObject({ chartView: from, skyScreen: false });
 
     // `Esc`, which closes the screen before it can leave the page (D-321).
     await open();
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByTestId('follow-screen')).toBeNull();
+    expect(screen.queryByTestId('sky-screen')).toBeNull();
     expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', from);
     expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
-    expect(appStore.getState()).toMatchObject({ chartView: from, viewOverride: null });
+    expect(appStore.getState()).toMatchObject({ chartView: from, skyScreen: false });
 
     // And leaving the live page altogether (FR-FOL-1's "leaving the live page").
     await open();
     unmount();
-    expect(appStore.getState()).toMatchObject({ chartView: from, savedChartView: from, viewOverride: null });
+    expect(appStore.getState()).toMatchObject({ chartView: from, skyScreen: false });
   });
 
   /** D-321: focus lands on the way out, and comes back to the control that opened the screen — a new element by then. */
-  it('moves focus to the × and gives it back to the follow control', async () => {
+  it('moves focus to the × and gives it back to the window option', async () => {
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
     await open();
-    const close = screen.getByTestId('follow-close');
+    const close = screen.getByTestId('sky-screen-close');
     expect(document.activeElement).toBe(close);
     /*
      * D-321: `Tab` wraps inside the layer. The frame stacks the `×` over the legend, so in document order it
      * is the *last* stop and the legend's first row is the first — the reader arrives on the way out and
      * tabs forward into the sky, or straight back out of it, and neither direction reaches the covered page.
      */
-    const stops = [...screen.getByTestId('follow-screen').querySelectorAll<HTMLElement>('button')];
+    const stops = [...screen.getByTestId('sky-screen').querySelectorAll<HTMLElement>('button')];
     const first = stops[0];
     expect(stops.at(-1)).toBe(close);
     expect(first).toBeDefined();
@@ -246,7 +265,8 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     expect(document.activeElement).toBe(close);
 
     fireEvent.click(close);
-    expect(document.activeElement).toBe(screen.getByTestId('follow-toggle'));
+    // R66 (D-351): back to the option that opened it — the view control's "Window", a new element by now.
+    expect(document.activeElement).toBe(within(screen.getByRole('group', { name: en.chart.viewGroup })).getByRole('button', { name: en.chart.view.window }));
   });
 
   /**
@@ -267,7 +287,7 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
       media?.setSize(...PORTRAIT);
     });
     expect(screen.getByTestId('window-portrait-note')).toHaveTextContent(en.window.portrait);
-    expect(screen.getByTestId('follow-close')).toBeInTheDocument();
+    expect(screen.getByTestId('sky-screen-close')).toBeInTheDocument();
     expect(layer.querySelector('[data-look-az]')).toHaveAttribute('data-orientation', 'portrait');
     // The note is the whole box: no readout, no legend, and no drawn sky under it.
     expect(screen.queryByTestId('window-readout')).toBeNull();

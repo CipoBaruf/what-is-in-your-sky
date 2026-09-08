@@ -1,11 +1,13 @@
-import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '../../../../i18n/useT';
 import { bodyLines, legendKeys, legendRows, promoteRow } from '../../../../lib/legend';
-import type { ChartView } from '../../../../model';
+import type { ChartView, SavedChartView } from '../../../../model';
 import { useAppStore } from '../../../../state';
 import { DEFAULT_CHART_VIEW } from '../../../../state/slices/prefs';
+import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { OptionToggle } from '../../common/OptionToggle';
 import { orientationApiPresent } from '../../live/compassHeading';
+import { useSkyScreen } from '../../screen/useSkyScreen';
 import { GuideText } from '../GuideText';
 import { moonVisible, sunVisible } from './bodies';
 import { ChartFrame } from './ChartFrame';
@@ -14,7 +16,6 @@ import { POLAR_VIEW } from './polar/SkyPolar';
 import styles from './SkyChart.module.css';
 import type { SkyChartProps, SkyChartView } from './SkyChart.types';
 import { useSkyBodies } from './useSkyBodies';
-import { requestOrientationAccess } from './window/orientationAccess';
 
 /**
  * PLAN §8.1 (R13): the single boundary the app mounts. A `<figure>` whose
@@ -42,13 +43,19 @@ import { requestOrientationAccess } from './window/orientationAccess';
  * R47 (FR-WIN-1, FR-WIN-4, FR-WIN-5, FR-GUIDE-2b as amended; D-188, D-240):
  * the sky window is the third registered view, code-split like the dome and
  * offered only where its `available()` — D-175's presence test, a touch
- * screen with the constructor — says so; a desktop never sees the option, and
- * a saved `chartView` of `'window'` there falls back to the dome. Its
- * `choose()` runs inside the toggle's tap and makes the orientation request
- * (iOS grants it only from a gesture). A view that reports itself
- * unavailable once mounted — the permission refused, or a phone with no
- * compass heading — gets a one-line note under the toggle, the dome as the
- * view and, for the compass-less phone, no option for the rest of the session.
+ * screen with the constructor — says so; a desktop never sees the option.
+ *
+ * R66 (FR-FSC-6, FR-WIN-4/FR-WIN-5 as amended v1.3.1; V13-6, V13-8, D-350,
+ * D-352): the window's option is not a view this chart switches to. Choosing
+ * it hands the tap to `useSkyScreen`, which asks for the permission inside the
+ * gesture and opens the sky screen on the first reading that carries a heading
+ * — the page renders that layer, and this chart, still showing the dome or the
+ * polar chart, is what is underneath it. So nothing writes `'window'` to the
+ * preference any more (it is not even in `SavedChartView`), there is no
+ * `[ point at the sky ]` to gate a saved one, and the two answers a phone can
+ * give — a refused permission, no compass heading — are the store's
+ * `windowNote` and `windowLost`, because the window that gives them is the one
+ * on the screen and this control is on the page beneath it.
  */
 const SkyDome = lazy(() => import('./dome/SkyDome').then((module) => ({ default: module.SkyDome })));
 const SkyWindow = lazy(() => import('./window/SkyWindow').then((module) => ({ default: module.SkyWindow })));
@@ -101,23 +108,19 @@ export const WINDOW_VIEW: SkyChartView = {
   Component: WindowView,
   id: 'window',
   available: () => typeof window !== 'undefined' && orientationApiPresent(),
-  choose: () => {
-    void requestOrientationAccess();
-  },
 };
 
 export const SKY_CHART_VIEWS: readonly SkyChartView[] = [POLAR_VIEW, DOME_VIEW, WINDOW_VIEW];
 
 /**
  * The views this device is offered: the registered ones minus those
- * `available()` rules out and those lost for the session, and — since R62
- * (FR-FSC-6, D-324) — minus those the *page* does not offer. `views` is a set
- * of ids, not an order: the registered order is what the toggle shows, so a
- * page cannot reshuffle the control by the order it lists them in. A page that
- * passes nothing offers all three, which is the pass detail unchanged.
+ * `available()` rules out and those lost for the session. R62's `views` prop,
+ * which let a page offer fewer, is gone with the rule it served (V13-6): every
+ * page offers all three where the device has them, and the live page is no
+ * longer the exception.
  */
-export function offeredViews(lost: ReadonlySet<ChartView> = new Set(), views?: readonly ChartView[]): SkyChartView[] {
-  return SKY_CHART_VIEWS.filter((candidate) => !lost.has(candidate.id) && (views === undefined || views.includes(candidate.id)) && (candidate.available?.() ?? true));
+export function offeredViews(lost: ReadonlySet<ChartView> = new Set()): SkyChartView[] {
+  return SKY_CHART_VIEWS.filter((candidate) => !lost.has(candidate.id) && (candidate.available?.() ?? true));
 }
 
 /** The view for a preference: itself where offered, else the dome (the default), else the first one offered. */
@@ -133,52 +136,66 @@ export function viewFor(id: SkyChartView['id'], offered: readonly SkyChartView[]
  * the text alternative (FR-GUIDE-7) — so the figure carries a name instead of
  * a caption, and it fills the box it is given rather than the guide's square.
  *
- * R62 (FR-FSC-1, FR-FSC-3, FR-FSC-6; D-322, D-324): two more things a page may
- * say. `screen` is the follow screen — the window, filling the host, with no
- * caption, no toggle, no controls row and no rails, its readout and its legend
- * overlaid on the drawing by the frame. `views` is the list of views the page
- * offers: the live page offers the dome and the polar chart, so the window is
- * reached there by the follow control alone, and a `window` saved on that
- * device is drawn as the dome and left in the preference untouched — `viewFor`
- * already falls back to the dome for a view that is not offered, and nothing
- * on that path calls `setChartView`.
+ * R62 (FR-FSC-1, FR-FSC-3; D-322): `screen` is the sky screen — the window,
+ * filling the host, with no caption, no toggle, no controls row and no rails,
+ * its readout and its legend overlaid on the drawing by the frame. It is the
+ * only way the window is ever mounted since R66 (D-351): the pages render
+ * `SkyScreen`, `SkyScreen` renders this chart with `screen`, and the chart a
+ * page lays out is always the dome or the polar chart.
  */
 export function SkyChart(props: SkyChartProps) {
   const t = useT();
+  const compact = useLayoutMode() === 'compact';
   const chartView = useAppStore((s) => s.chartView);
   const setChartView = useAppStore((s) => s.setChartView);
-  const dropChartView = useAppStore((s) => s.dropChartView);
-  // FR-WIN-4 (R47): the views this device is offered, less any lost for the session; the note a lost one left.
-  const [lost, setLost] = useState<ReadonlySet<ChartView>>(() => new Set());
-  const [note, setNote] = useState<'denied' | 'relative' | null>(null);
+  const dropWindowView = useAppStore((s) => s.dropWindowView);
+  // FR-FOL-2: the one line the last answer left, and (FR-WIN-4) the option a compass-less phone has lost for the session.
+  const note = useAppStore((s) => s.windowNote);
+  const windowLost = useAppStore((s) => s.windowLost);
+  // D-350: the tap that chooses the window — the permission inside the gesture, then the reading that decides.
+  const entry = useSkyScreen();
+  /*
+   * FR-FSC-2 (D-351): the screen's `×` gives focus back to the option that opened it. The page's chart is
+   * unmounted while the layer is up and is a new element when it returns, so what says "the screen just
+   * closed" is the store's one-shot flag and not a ref of this component's. The option is queried inside the
+   * figure — wherever the frame has put the control, its own row or the frame's slot — because it is one of
+   * three the toggle builds from a list (`data-option`); where the phone has just lost the window (FR-WIN-4)
+   * the first option takes it instead, so focus never falls to the body.
+   */
+  const refocus = useAppStore((s) => s.refocusWindow);
+  const windowRefocused = useAppStore((s) => s.windowRefocused);
+  const figureRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (props.screen === true || !refocus) return;
+    const group = figureRef.current;
+    (group?.querySelector<HTMLElement>('[data-option="window"]') ?? group?.querySelector<HTMLElement>('[data-option]'))?.focus();
+    windowRefocused();
+  }, [refocus, props.screen, windowRefocused]);
+  const lost = useMemo<ReadonlySet<ChartView>>(() => (windowLost ? new Set<ChartView>(['window']) : new Set<ChartView>()), [windowLost]);
   // FR-FSC-1 / D-322 (R62): asked for a screen the chart is the window and nothing else — `viewFor` is not consulted,
   // so the saved preference is neither read for the view nor written on the way (FR-WIN-5 as amended).
   const screen = props.screen ?? false;
-  const views = props.views;
-  const offered = useMemo(() => offeredViews(lost, views), [lost, views]);
+  const offered = useMemo(() => offeredViews(lost), [lost]);
   const view = screen ? WINDOW_VIEW : viewFor(chartView, offered);
   const choose = useCallback(
     (id: ChartView) => {
-      setNote(null);
-      // Inside the tap: the window's permission request must be (FR-WIN-4).
+      // D-350: the window is a mode, so its option opens the screen and writes nothing; the tap is where iOS is asked.
+      if (id === 'window') {
+        entry.open();
+        return;
+      }
       viewFor(id, offered).choose?.();
-      setChartView(id);
+      setChartView(id as SavedChartView);
     },
-    [offered, setChartView],
+    [offered, setChartView, entry],
   );
-  const viewId = view.id;
-  // R58 review (D-277, FR-WIN-5 as amended): a view that cannot run here ends
-  // through `dropChartView`, which writes nothing. `setChartView` would have
-  // saved the fallback — and since the follow control opens the window as an
-  // override (R59), a refused permission would then have overwritten the view
-  // the reader picked, which is the one thing the amendment forbids.
+  // R58 review (D-277) → R66 (D-352): a window that cannot run here closes the screen and leaves the note beside
+  // this control; nothing is written, because the reader chose neither the failure nor a view to fall back to.
   const unavailable = useCallback(
     (reason: 'denied' | 'relative') => {
-      setNote(reason);
-      if (reason === 'relative') setLost((current) => new Set([...current, viewId]));
-      dropChartView(viewId);
+      dropWindowView(reason);
     },
-    [viewId, dropChartView],
+    [dropWindowView],
   );
   // D-322: a screen fills what it is given by construction — the page hands the chart the whole viewport.
   const { passes, observer, className, now, hidden, colorBy, onSelectPass } = props;
@@ -239,7 +256,14 @@ export function SkyChart(props: SkyChartProps) {
   const chartControls = screen ? null : (
     <>
       {offered.length > 1 && (
-        <OptionToggle name={t.chart.viewGroup} prefix={t.chart.viewPrefix} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
+        /*
+         * R66 (FR-COMP-4, US-5 AC2; V13-6, D-358): no visible `View:` on compact. With the window back in
+         * the control (V13-6) the three options plus the prefix are 38 cells at 390 px — the row wrapped to
+         * two, which is what V13-4 had taken away and what the owner did not want back — and the prefix is
+         * the one part of it that carries nothing: it is `aria-hidden`, and the group is named `Chart view`
+         * for anything that reads the page. Dropping it leaves 33 cells, one row, with the same meaning.
+         */
+        <OptionToggle name={t.chart.viewGroup} {...(compact ? {} : { prefix: t.chart.viewPrefix })} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
       )}
       {note !== null && (
         <p className={styles.note} role="status" data-testid="chart-view-note">
@@ -254,6 +278,7 @@ export function SkyChart(props: SkyChartProps) {
   const forwarded = screen ? { ...bare, fill: true } : props;
   return (
     <figure
+      ref={figureRef}
       className={[styles.figure, fill ? styles.fill : undefined, className].filter(Boolean).join(' ')}
       data-testid="sky-chart"
       data-view={view.id}

@@ -38,6 +38,8 @@ export function OptionToggle<T extends string>({ name, prefix, options, value, o
           type="button"
           aria-pressed={value === option.value}
           className={styles.option}
+          /* R66 (FR-FSC-2, D-351): an option a caller can find in its own group — the chart focuses "window" again when the sky screen closes. */
+          data-option={option.value}
           onClick={() => {
             if (option.value !== value) onChange(option.value);
           }}

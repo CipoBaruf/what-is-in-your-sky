@@ -16,7 +16,7 @@
  */
 import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { expect, test, type Page } from '@playwright/test';
-import { domeDrawn, golden, ha, heading, hhmmss, homeAt, LABEL, realTimeField, reenterLiveWithTheme, stripFilled, stubCompass, stubNetwork, T } from './liveHelpers';
+import { domeDrawn, golden, ha, heading, hhmmss, homeAt, LABEL, realTimeField, reenterLiveWithTheme, stripFilled, stubCompass, stubNetwork, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
 
 test.describe('the live page', () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -43,8 +43,8 @@ test.describe('the live page', () => {
     const side = await page.getByTestId('live-side').boundingBox();
     expect(side?.y).toBeGreaterThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) - 1);
     expect(side?.x).toBeLessThan((dome?.x ?? 0) + 1);
-    // R34 (FR-LIVE-8, D-175): no touch screen in this profile, so no phone to follow and no control.
-    await expect(page.getByTestId('follow-phone')).toHaveCount(0);
+    // R66 (FR-WIN-4, V13-6): no touch screen in this profile, so no window to point and the control offers two views.
+    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome']);
 
     // FR-LIVE-3: the five fields.
     await stripFilled(page);
@@ -137,25 +137,25 @@ test.describe('the live page', () => {
  * viewport with a touch screen — the one profile the control is rendered in
  * (D-175).
  *
- * What the control opens is the follow screen, a layer over the whole viewport,
+ * What the option opens is the sky screen, a layer over the whole viewport,
  * and this viewport is a phone held *upright*: so what a reader gets here is
  * FR-FSC-4's note asking them to turn it, in their own language, with the `×`
  * beside it and nothing else. The screen drawn sideways is
- * `follow-screen.spec.ts`; what this holds is that the layer covers the page in
+ * `sky-screen.spec.ts`; what this holds is that the layer covers the page in
  * portrait too, that the note is translated (FR-I18N-2 admits no English on the
  * Spanish page), and that the `×` gives the page back with nothing saved on the
  * way through. The strip's true-north line is gone with the window's being a
  * view of this page: the declination is the screen's readout line now
  * (FR-FSC-4).
  */
-test.describe('the live page following a phone', () => {
+test.describe('the live page with the sky screen open upright', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
   for (const [locale, note] of [
     ['en', 'Turn the phone sideways to follow the sky.'],
     ['es', 'Gira el teléfono de lado para seguir el cielo.'],
   ] as const) {
-    test(`opens the follow screen, which is the note and the × while the phone is upright (${locale})`, async ({ page }) => {
+    test(`the window option opens the sky screen, which is the note and the × while the phone is upright (${locale})`, async ({ page }) => {
       await stubCompass(page);
       await homeAt(page, T, locale);
       await page.getByTestId('live-link').click();
@@ -168,15 +168,14 @@ test.describe('the live page following a phone', () => {
       await expect(chart).toHaveAttribute('data-view', 'dome');
       await expect(page.getByTestId('live-heading')).toHaveCount(0);
       await expect(page.getByTestId('stripe-block')).toBeVisible();
-      await expect(page.getByTestId('follow-screen')).toHaveCount(0);
+      await expect(page.getByTestId('sky-screen')).toHaveCount(0);
 
-      // Following: the press arms the sensor and the first reading with a north in it opens the screen.
+      // The tap arms the sensor and the first reading with a north in it opens the screen (D-350).
       expect(await page.evaluate(() => screen.orientation.angle)).toBe(0);
-      const toggle = page.getByRole('button', { name: locale === 'en' ? 'Follow phone' : 'Seguir al teléfono' });
-      await toggle.click();
-      await expect(page.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
+      await page.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: VIEW_OPTION[locale].window }).click();
+      await expect(page.getByTestId('sky-screen')).toHaveCount(0);
       await heading(page, 270);
-      const layer = page.getByTestId('follow-screen');
+      const layer = page.getByTestId('sky-screen');
       await expect(layer).toHaveCount(1);
       // The paused clock holds the lazy chunk's Suspense reveal (R32).
       await page.clock.runFor(1000);
@@ -188,16 +187,15 @@ test.describe('the live page following a phone', () => {
       await expect(page.getByTestId('window-portrait-note')).toHaveText(note);
       await expect(page.getByRole('button', { name: locale === 'en' ? 'Close' : 'Cerrar' })).toBeVisible();
       // The capture the PR carries: the screen as an upright phone gets it, in each language.
-      await page.screenshot({ path: `docs/screenshots/r64-live-390-following-dark-${locale}.png` });
+      await page.screenshot({ path: `docs/screenshots/r66-live-390-screen-portrait-dark-${locale}.png` });
 
-      // FR-FSC-2: the `×` is what the second press was, and what is saved is still the view the page had.
-      await page.getByTestId('follow-close').click();
+      // FR-FSC-2: the `×` is the way out, and what is saved is still the view the page had.
+      await page.getByTestId('sky-screen-close').click();
       await expect(layer).toHaveCount(0);
       await expect(chart).toHaveAttribute('data-view', 'dome');
-      await expect(page.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
       await expect(page.getByTestId('stripe-block')).toBeVisible();
-      // FR-WIN-5 as amended: nothing was saved on the way through — the reader picked no view, so the
-      // device still carries none, and what following opened was never written over the one they have.
+      // FR-WIN-5 as amended v1.3.1: nothing was saved on the way through — the window is a mode, and the
+      // reader picked no view, so the device still carries none.
       const prefs = await page.evaluate(() => JSON.parse(localStorage.getItem('wiys:prefs:v1') ?? '{}') as { chartView?: string });
       expect(prefs.chartView ?? 'dome').toBe('dome');
     });
@@ -217,14 +215,14 @@ for (const width of [390, 1280] as const) {
     await domeDrawn(page);
     await stripFilled(page);
     /*
-     * R34 (FR-LIVE-7, FR-LIVE-8): a desktop gets no follow control. R61 (D-312, D-319): the side column is under
+     * R34 (FR-LIVE-7), R66 (FR-WIN-4): a desktop is offered no window. R61 (D-312, D-319): the side column is under
      * the box on the phone and on the one-column wide page (1280 px is under `LIVE_TWO_COLUMN_MIN_PX`); it is
      * the rail beside the box only from 1660 px, which `live-rail.spec.ts` measures.
      */
     const box = await page.getByTestId('chart-box').boundingBox();
     const side = await page.getByTestId('live-side').boundingBox();
     expect(side?.y).toBeGreaterThanOrEqual((box?.y ?? 0) + (box?.height ?? 0) - 1);
-    await expect(page.getByTestId('follow-phone')).toHaveCount(0);
+    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome']);
     await page.screenshot({ path: `docs/screenshots/r32-live-${String(width)}-dark-en.png` });
     // R48 (D-244): the compact live page carries no theme switch, so the theme is set on the home page.
     await reenterLiveWithTheme(page, 'en', 'night');

@@ -10,7 +10,6 @@ import type { CompassPoint } from '../../lib/compass';
 export const windowMessages = {
   window: {
     /** FR-WIN-5: the one control in the window's place while the browser still needs a tap before it gives orientation. */
-    pointAtSky: 'point at the sky',
     /** Between the tap and the first reading. */
     waiting: 'Waiting for the phone’s sensors…',
     /** FR-WIN-4: the permission was refused; the dome is the view again. */

@@ -16,7 +16,9 @@ import { useOpenerFocus } from '../hooks/useOpenerFocus';
 import { MoonAtPeak } from '../components/moon/MoonAtPeak';
 import { MoonGlareNote } from '../components/moon/MoonGlare';
 import { PassNumbers } from '../components/guide/PassNumbers';
+import { useAppStore } from '../../state';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
+import { SkyScreen } from '../components/screen/SkyScreen';
 import styles from './PassDetail.module.css';
 
 /**
@@ -95,7 +97,67 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   const timeZone = observer.timeZone;
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const now = useNow(TICK_MS);
+  /*
+   * R66 (FR-FSC-1, FR-FSC-9; V13-9, D-351, D-354): the sky screen over this
+   * sheet. The window is a view this page offers again (FR-FSC-6) and what
+   * choosing it opens is the same layer the live page opens — the chart's view
+   * control sets the flag, this page renders the screen, and the `×` closes it.
+   *
+   * The layer is portaled to the body like the sheet itself: inside the sheet
+   * it would be a fixed child of a scrolling container, and on iOS a fixed
+   * child of a scrolled ancestor is not reliably the viewport.
+   */
+  const screenOpen = useAppStore((s) => s.skyScreen);
+  const closeScreen = useAppStore((s) => s.closeSkyScreen);
+  /*
+   * FR-FSC-2: `Esc` closes the screen and stops, before the app's one `keydown`
+   * listener (`lib/shortcuts.ts`) can read the same press as "close the guide".
+   * Capture, so it runs before that listener's bubble phase on the same
+   * document, and `stopPropagation` is what keeps the press from reaching it.
+   */
+  useEffect(() => {
+    if (!screenOpen) return;
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeScreen();
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [screenOpen, closeScreen]);
+  // FR-FSC-2: leaving the guide by any route closes the screen.
+  const openRef = useRef(screenOpen);
+  useEffect(() => {
+    openRef.current = screenOpen;
+  }, [screenOpen]);
+  useEffect(
+    () => () => {
+      if (openRef.current) closeScreen();
+    },
+    [closeScreen],
+  );
+  /*
+   * FR-FSC-9: the sheet is held still under the layer and gets its place back.
+   * It is the app's one scrolling container (`.sheet`), so without this a drag
+   * on the screen that the layer does not consume scrolls the guide behind it,
+   * and closing would come back somewhere else.
+   */
+  useEffect(() => {
+    const sheet = sheetRef.current;
+    if (!screenOpen || !sheet) return;
+    const top = sheet.scrollTop;
+    const previous = sheet.style.overflow;
+    sheet.style.overflow = 'hidden';
+    return () => {
+      sheet.style.overflow = previous;
+      sheet.scrollTop = top;
+    };
+  }, [screenOpen]);
   // Focus in on open, back to the opener on close. Once, on open: crossing
   // the breakpoint swaps the shell around the same guide and must not take
   // the reader's focus away from wherever they had put it. R50 (F-8): a
@@ -135,16 +197,23 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
     </>
   );
 
+  // The screen is the same layer on both shells; the sheet is what has a scroll to hold still.
+  const screen = screenOpen && createPortal(<SkyScreen passes={[pass]} observer={observer} now={now} highlightedPassId={pass.id} onClose={closeScreen} />, document.body);
+
   if (!compact) {
     return (
-      <GuidePanel passId={pass.id} name={pass.name} headingId={headingId} headingRef={headingRef} onClose={onClose} onShowList={onShowList}>
-        {body}
-      </GuidePanel>
+      <>
+        <GuidePanel passId={pass.id} name={pass.name} headingId={headingId} headingRef={headingRef} onClose={onClose} onShowList={onShowList}>
+          {body}
+        </GuidePanel>
+        {screen}
+      </>
     );
   }
 
   return createPortal(
-    <div inert={inert} role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.sheet} data-pass-id={pass.id}>
+    <>
+    <div ref={sheetRef} inert={inert || screenOpen} role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.sheet} data-pass-id={pass.id}>
       <div className={styles.frame}>
         <div className={styles.topRow}>
           <button type="button" className={styles.close} onClick={onClose}>
@@ -160,7 +229,9 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
         </h2>
         {body}
       </div>
-    </div>,
+    </div>
+    {screen}
+    </>,
     document.body,
   );
 }

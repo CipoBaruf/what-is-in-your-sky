@@ -3,7 +3,6 @@ import type { windowMessages as EnWindow } from '../en/window';
 /** FR-I18N-2 (D-199 (2)): la sección del lane `window` en el catálogo español. R47: las palabras de la ventana al cielo; R56 (FR-FOL-5): los dos avisos de apuntar al suelo; R63 (FR-FSC-4): el aviso de girar el teléfono. */
 export const windowMessages: typeof EnWindow = {
   window: {
-    pointAtSky: 'apuntar al cielo',
     waiting: 'Esperando los sensores del teléfono…',
     denied: 'Se rechazó el acceso al movimiento, así que la cúpula sigue siendo la vista.',
     relative: 'Este teléfono no da un rumbo de brújula, así que la ventana no puede encontrar el norte.',

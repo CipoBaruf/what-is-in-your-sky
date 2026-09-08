@@ -8,7 +8,7 @@
  * refusal's note with the dome as the view and the compass-less phone losing
  * the option.
  */
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
 import { stubMatchMedia, type MatchMediaStub } from '../../../../../../tests/support/matchMedia';
@@ -342,69 +342,63 @@ describe('<SkyWindow>', () => {
     });
   });
 
-  describe('the gate and the notes (FR-WIN-4, FR-WIN-5)', () => {
-    it('shows [ point at the sky ] in the window where a tap is needed, asks on the tap only, and draws once granted', async () => {
+  describe('the notes (FR-WIN-4, FR-WIN-5 as amended v1.3.1)', () => {
+    /**
+     * R66 (V13-8, D-350): there is no `[ point at the sky ]` any more. The
+     * window is only mounted on the sky screen, and the tap that opened the
+     * screen is the tap that asked, so what a mount finds is a grant already
+     * given: the window waits for its first reading and then draws, and it
+     * never asks for anything itself.
+     */
+    it('asks for nothing on mount and draws from the grant the tap already had', async () => {
       const frame = scriptedFrames();
       const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
       withPhone(requestPermission);
+      // What the entry made: the permission asked and granted inside the tap (D-350).
+      await requestOrientationAccess();
+      requestPermission.mockClear();
       const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-      const gate = screen.getByTestId('window-gate');
-      expect(gate).toHaveTextContent(en.window.pointAtSky);
-      expect(container.querySelector('[data-testid="chart-box"]')).toContainElement(gate);
-      expect(requestPermission).not.toHaveBeenCalled();
-      expect(screen.queryByTestId('window-note')).toBeNull();
-      // The picture is there behind the control, and a reading before the tap changes nothing.
-      reading(aim(0, 0));
-      frame();
-      expect(wrapper(container)).toHaveAttribute('data-state', 'idle');
-
-      fireEvent.click(gate);
-      expect(requestPermission).toHaveBeenCalledTimes(1);
       expect(screen.queryByTestId('window-gate')).toBeNull();
-      expect(screen.getByTestId('window-note')).toHaveTextContent(en.window.waiting);
+      expect(requestPermission).not.toHaveBeenCalled();
       await flush();
       reading(aim(0, 0));
       frame();
       expect(wrapper(container)).toHaveAttribute('data-state', 'on');
-      expect(screen.queryByTestId('window-gate')).toBeNull();
     });
 
-    it('through SkyChart: a refusal leaves the dome as the view with the note, and the option stays; a compass-less phone loses it', async () => {
+    it('through SkyChart: a refusal keeps the page on its view with the note, and the option stays; a compass-less phone loses it', async () => {
       const frame = scriptedFrames();
       withPhone(() => Promise.resolve('denied'));
-      appStore.getState().setChartView('window');
+      appStore.getState().setChartView('dome');
       render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
       const figure = screen.getByRole('figure');
-      expect(figure).toHaveAttribute('data-view', 'window');
-      fireEvent.click(await screen.findByTestId('window-gate'));
-      await waitFor(() => {
-        expect(figure).toHaveAttribute('data-view', 'dome');
-      });
+      const toggle = screen.getByRole('group', { name: 'Chart view' });
+      fireEvent.click(within(toggle).getByRole('button', { name: 'Window' }));
+      await flush();
+      // FR-FOL-2: nothing opened, the page is on the view it was on, and the note says why.
+      expect(appStore.getState().skyScreen).toBe(false);
+      expect(figure).toHaveAttribute('data-view', 'dome');
       expect(screen.getByTestId('chart-view-note')).toHaveTextContent(en.window.denied);
       expect(appStore.getState().chartView).toBe('dome');
-      // R58 review (D-277, FR-WIN-5 as amended): the refusal ends the view, it does not rewrite the preference — this
-      // reader saved the window, and R59's follow control opens it over whatever they saved on top of that.
-      expect(appStore.getState().savedChartView).toBe('window');
-      expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'window' });
-      const toggle = screen.getByRole('group', { name: 'Chart view' });
+      expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'dome' });
       expect(within(toggle).getByRole('button', { name: 'Window' })).toBeInTheDocument();
       // Choosing another view clears the note.
       fireEvent.click(within(toggle).getByRole('button', { name: 'Polar' }));
       expect(screen.queryByTestId('chart-view-note')).toBeNull();
 
-      // A phone with no north in its readings: the note, the dome, and no window option for the session.
+      // A phone with no north in its readings: the note, no screen, and no window option for the session.
       withPhone();
       resetOrientationAccess();
       fireEvent.click(within(toggle).getByRole('button', { name: 'Window' }));
-      await screen.findByTestId('window-note');
       reading({ alpha: 30, beta: 90, absolute: false });
       frame();
-      expect(figure).toHaveAttribute('data-view', 'dome');
+      expect(appStore.getState().skyScreen).toBe(false);
+      expect(figure).toHaveAttribute('data-view', 'polar');
       expect(screen.getByTestId('chart-view-note')).toHaveTextContent(en.window.relative);
       expect(within(screen.getByRole('group', { name: 'Chart view' })).queryByRole('button', { name: 'Window' })).toBeNull();
     });
 
-    it('asks for the permission inside the tap that chooses the view (FR-WIN-4), before the window mounts', async () => {
+    it('asks for the permission inside the tap that chooses the view (FR-WIN-4), and opens the screen on the first reading', async () => {
       const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
       withPhone(requestPermission);
       appStore.getState().setChartView('dome');
@@ -412,11 +406,13 @@ describe('<SkyWindow>', () => {
       expect(requestPermission).not.toHaveBeenCalled();
       fireEvent.click(within(screen.getByRole('group', { name: 'Chart view' })).getByRole('button', { name: 'Window' }));
       expect(requestPermission).toHaveBeenCalledTimes(1);
-      expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'window');
+      // Granted, but not yet open: the reading with a heading is what decides (F-42, D-350).
       await flush();
-      await screen.findByTestId('window-note');
-      // Granted from the toggle's tap: no gate, the window waits for its first reading.
-      expect(screen.queryByTestId('window-gate')).toBeNull();
+      expect(appStore.getState().skyScreen).toBe(false);
+      expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'dome');
+      reading({ alpha: 30, beta: 90, absolute: true });
+      expect(appStore.getState().skyScreen).toBe(true);
+      // One prompt in total: the window the screen mounts inherits the grant (D-350).
       expect(requestPermission).toHaveBeenCalledTimes(1);
     });
   });
@@ -543,17 +539,18 @@ describe('<SkyWindow>', () => {
       expect(screen.getByTestId('window-ground-note')).toHaveTextContent(en.window.buried);
     });
 
-    it('never shows [ point at the sky ] on the screen, in landscape either: the follow control’s tap is what asked (FR-FSC-1, FR-FOL-2)', () => {
+    it('shows no [ point at the sky ] anywhere, and asks for nothing itself (FR-WIN-5 as amended v1.3.1, FR-FOL-2)', () => {
       media = stubMatchMedia(...LANDSCAPE);
       const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
       withPhone(requestPermission);
       const { container: onScreenBox } = render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
       expect(within(onScreenBox).queryByTestId('window-gate')).toBeNull();
-      expect(within(onScreenBox).queryByText(en.window.pointAtSky)).toBeNull();
       expect(requestPermission).not.toHaveBeenCalled();
 
+      // R66 (V13-8): off a screen either — the gate is gone with the saved view it guarded.
       const { container: page } = render(<SkyWindow fill passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-      expect(within(page).getByTestId('window-gate')).toHaveTextContent(en.window.pointAtSky);
+      expect(within(page).queryByTestId('window-gate')).toBeNull();
+      expect(requestPermission).not.toHaveBeenCalled();
     });
 
     it('carries no view control and no hint; the pass detail’s window carries both', () => {

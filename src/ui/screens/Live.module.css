@@ -53,6 +53,20 @@
     column-gap: calc(2 * var(--cell));
   }
 
+  /* R66 (F-63, FR-COMP-5 and FR-LIVE-7 as amended v1.3.1, D-355): full-bleed is
+     the pane's, not the viewport's. The compact chart box breaks out of the
+     page's side padding with a negative margin of `--page-pad-x` on each side
+     (`ChartFrame.module.css`, D-187), which is right in portrait, where this
+     pane is the whole page. Here it is the left column of a two-column grid,
+     with no page padding under it to escape: the drawing came out one padding
+     wider than its pane on each side and lay over the status strip and the
+     stripe in the column beside it — 19 px off the left edge of the page and
+     15 px into the strip at 844 x 390. The pane says there is nothing to break
+     out of, and the box is the column's width. */
+  .dome {
+    --page-pad-x: 0px;
+  }
+
   .side {
     overflow-y: auto;
   }

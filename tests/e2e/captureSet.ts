@@ -22,15 +22,24 @@
  * here.
  *
  * R64 (SPEC §9 Phase 2d, FR-FSC-7): v1.3 replaces the live page's `following`
- * state with a screen of its own — `[ follow phone ]` opens a layer over the
- * whole viewport (FR-FSC-1), so what a reader is looking at is not the live
- * page at all. It is captured where it is used and nowhere else: at 844 × 390,
- * a phone held sideways, in the three states the drawing can be in, and at
- * 390 × 844, upright, where it is FR-FSC-4's note. That makes it the one screen
- * in this set with no 1280 px picture — the control is absent on desktop
- * (FR-FOL-1), so there is no such screen to shoot — and `captures.test.ts`
- * carries the exception by name. The v1.2 `live-following` captures go with the
- * state they showed.
+ * state with a screen of its own — a layer over the whole viewport (FR-FSC-1),
+ * so what a reader is looking at is not the live page at all. It is captured
+ * where it is used and nowhere else: at 844 × 390, a phone held sideways, in
+ * the three states the drawing can be in, and at 390 × 844, upright, where it
+ * is FR-FSC-4's note. That makes it the one screen in this set with no 1280 px
+ * picture — the window is offered only where FR-WIN-4's presence test passes,
+ * so there is no such screen to shoot — and `captures.test.ts` carries the
+ * exception by name. The v1.2 `live-following` captures go with the state they
+ * showed.
+ *
+ * R66 (SPEC v1.3.1, FR-FSC-7 as amended; V13-6, V13-9): the screen is the
+ * **sky screen** and the view control is the way in, on the pass detail as well
+ * as the live page — so `follow-screen-*` is renamed and `window`, which was
+ * the pass detail's window laid out in the sheet at 390 and 1280, is that same
+ * screen opened from a pass, at 844. Its `ground` and `buried` states leave the
+ * set with it: they are the same two states as `sky-screen-ground` and
+ * `sky-screen-buried`, which are shot from the live page, and a second picture
+ * of each from a pass shows nothing the first does not.
  *
  * R60 (SPEC §9 Phase 2c): v1.2 added two states the window can be in (FR-FOL-5,
  * R56) and one the live page can be in (FR-FOL-1, R59), so `window-ground` and
@@ -89,21 +98,23 @@ export const SCREENS: readonly CaptureScreen[] = [
   { name: 'settings', widths: [390, 1280], what: 'The settings page (FR-COMP-2): language, theme, location, saved places, the install offer, the clear action, in that order. Reached by the header link on compact and by the hash on wide, where nothing links to it.' },
   { name: 'guide', widths: [390, 1024, 1280], what: 'A pass open on the dome view, mid-pass, with the Sun and the Moon on the chart. At 1024 it has the right column to itself (F-6).' },
   { name: 'polar', widths: [390, 1280], what: 'The same pass on the polar view: the live marker and the flown arc as elements.' },
-  { name: 'window', widths: [390, 1280], what: 'The sky window (FR-WIN-1) on the same pass, aimed at its peak by a stubbed orientation reading: the horizon, the compass names, the arc and the legend. A touch device at both widths, since that — not the width — is what FR-WIN-4 offers the view on.' },
-  { name: 'window-ground', widths: [390, 1280], what: 'The window swept 10° below the horizon (FR-FOL-5, R56): the hatch fills the ground and the sky above it keeps drawing.' },
-  { name: 'window-buried', widths: [390, 1280], what: 'The window swept 60° below the horizon (FR-FOL-5, R56): no sky is left in the field, and the box is the hatched panel with its note.' },
+  {
+    name: 'window',
+    widths: [844],
+    what: 'The sky screen opened from a pass detail (FR-FSC-1, FR-FSC-6, R66), aimed at that pass\'s peak by a stubbed orientation reading: the whole arc (FR-DOME-5) filling the viewport, the `×`, the facing readout and the legend. A phone held sideways, which since v1.3.1 is the only place the window is drawn.',
+  },
   { name: 'legend', widths: [390, 1280], what: 'The legend in its states (FR-LEG-3): the live page with the hidden objects shown, so the rows carry `up`, `soon`, `gone` and the FR-LIVE-6 reasons, and one row activated so its arc is highlighted and the others dim (FR-LEG-4). Under the drawing at 390, beside it at 1280 (FR-LEG-2).' },
   { name: 'favourites', widths: [390, 1280], what: 'The saved places, with the one in use marked.' },
   { name: 'shortcuts', widths: [390, 1280], what: 'The keyboard shortcuts overlay over an inert page.' },
   { name: 'live', widths: [390, 844, 1280, 1920, 2560, 3840], what: 'The live sky page: the dome, the status strip, the time stripe and the controls. 844 is the landscape phone; 1920, 2560 and 3840 are R61\'s wide rail (F-59).' },
   {
-    name: 'follow-screen-sky',
+    name: 'sky-screen-sky',
     widths: [844],
-    what: 'The follow screen (FR-FSC-1, R64) on a phone held sideways, aimed at a pass: the drawing filling the viewport, the `×` in the top-right corner, the facing readout in the top-left and the legend along the bottom — and nothing of the live page under it.',
+    what: 'The sky screen (FR-FSC-1, R64, R66) on a phone held sideways, aimed at a pass: the drawing filling the viewport, the `×` in the top-right corner, the facing readout in the top-left and the legend along the bottom — and nothing of the live page under it.',
   },
-  { name: 'follow-screen-ground', widths: [844], what: 'The same screen swept 10° below the horizon (FR-FOL-5): the hatch fills the ground and the sky above it keeps drawing, under the same three overlays.' },
-  { name: 'follow-screen-buried', widths: [844], what: 'The same screen swept 60° below the horizon (FR-FOL-5): no sky is left in the field, and the box is the hatched panel with its note — the `×` is still the way out.' },
-  { name: 'follow-screen-portrait', widths: [390], what: 'The follow screen with the phone held upright (FR-FSC-4, US-21 AC12): the note asking for the phone to be turned, and the `×`, and nothing else — no drawing, no readout, no legend.' },
+  { name: 'sky-screen-ground', widths: [844], what: 'The same screen swept 10° below the horizon (FR-FOL-5): the hatch fills the ground and the sky above it keeps drawing, under the same three overlays.' },
+  { name: 'sky-screen-buried', widths: [844], what: 'The same screen swept 60° below the horizon (FR-FOL-5): no sky is left in the field, and the box is the hatched panel with its note — the `×` is still the way out.' },
+  { name: 'sky-screen-portrait', widths: [390], what: 'The sky screen with the phone held upright (FR-FSC-4, US-21 AC12): the note asking for the phone to be turned, and the `×`, and nothing else — no drawing, no readout, no legend.' },
 ];
 
 export const CAPTURE_DIR = 'docs/screenshots';
