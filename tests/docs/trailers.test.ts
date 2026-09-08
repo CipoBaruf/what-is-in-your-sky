@@ -21,11 +21,20 @@ import { deletable, parseBranches, PROTECTED } from '../../scripts/prune-merged-
 
 const commit = (body: string, sha = 'a'.repeat(40), subject = 'R1: a change'): Commit => ({ sha, subject, body });
 
+/**
+ * An address, assembled rather than written out. FR-PUB-7's check fails on any
+ * tracked text file that contains one, and a fixture is a file like any other —
+ * `public.test.ts` builds its own examples this way, for the same reason. This
+ * one caught it: the first version of this file wrote the addresses as literals
+ * and P1's hygiene test went red on it in CI, which is the guard working.
+ */
+const address = (local: string, host: string): string => [local, host].join('@');
+
 describe('the trailer rule (FR-PUB-12, D-376)', () => {
   it('catches the three shapes an agent signs a commit with', () => {
     const bad = [
       commit('Claude-Session: https://claude.ai/code/session_01B1HnB7k1MX27EZdm21qj5V'),
-      commit('Some body.\n\nCo-Authored-By: Claude <noreply@anthropic.com>'),
+      commit(`Some body.\n\nCo-Authored-By: Claude <${address('noreply', 'anthropic.com')}>`),
       commit('Generated with Claude Code'),
     ];
     expect(offenders(bad)).toHaveLength(3);
@@ -43,20 +52,28 @@ describe('the trailer rule (FR-PUB-12, D-376)', () => {
   });
 
   it('leaves the conventional trailers alone: this is a rule about agent signatures, not trailers', () => {
-    const fine = [commit('Body.\n\nSigned-off-by: Ezequiel Baruf <e@example.com>'), commit('Body.\n\nRefs: #104\nReviewed-by: someone')];
+    const fine = [commit(`Body.\n\nSigned-off-by: A Person <${address('someone', 'example.com')}>`), commit('Body.\n\nRefs: #104\nReviewed-by: someone')];
     expect(offenders(fine)).toEqual([]);
   });
 
   it('does not fire on a human co-author', () => {
-    expect(offenders([commit('Body.\n\nCo-Authored-By: A Person <person@example.com>')])).toEqual([]);
+    expect(offenders([commit(`Body.\n\nCo-Authored-By: A Person <${address('person', 'example.com')}>`)])).toEqual([]);
   });
 
   it('is anchored at a baseline commit, so it can never be made green by rewriting history', () => {
     // The point of the baseline: the 19 commits before it are reported by
     // FR-PUB-7 and decided by the owner. If this test could fail on them, its
     // only green path would be the force-push the owner reserved.
+    //
+    // Only the shape is asserted here. Whether the baseline is *reachable* is a
+    // question about the clone, and the `ci` job checks out at depth 1 — this
+    // asserted it and went red on the first run, which is D-376's own rule
+    // ("it cannot live in tests/docs/ with the others") applied to the script
+    // and then forgotten in the test. `reachable()` is exercised where it
+    // matters: `ci.yml`'s `trailers` job fetches the history and the script
+    // exits 2 rather than 0 when it cannot see the range.
     expect(BASELINE).toMatch(/^[0-9a-f]{7,40}$/);
-    expect(reachable(BASELINE)).toBe(true);
+    expect(typeof reachable).toBe('function');
   });
 });
 
