@@ -146,6 +146,33 @@ export interface SkyChartProps {
    */
   controls?: ReactNode;
   /**
+   * FR-FSC-1, FR-FSC-3 / D-322 (R62): the chart *is* the screen. The window is
+   * the view whatever `chartView` says, there is no caption, no view toggle and
+   * no controls row, `fill` is implied, and the frame drops the rails: the box
+   * is the host's whole size with the facing readout and the legend as overlays
+   * over the drawing. The dome and the polar chart never see it — the type
+   * allows it and `SkyChart` ignores it for them — so the three views draw the
+   * same geometry as before.
+   */
+  screen?: boolean;
+  /**
+   * FR-FSC-6 / D-324 (R62): the views this page offers, of the registered ones,
+   * in whatever order — `offeredViews` keeps the registered order and drops
+   * what is not listed. The live page offers `['dome', 'polar']`, so the window
+   * is reached there by the follow control alone; a page that passes nothing
+   * offers all three, which is the pass detail unchanged. A saved view the page
+   * does not offer is *drawn* as the dome and left alone in the preference
+   * (FR-WIN-4, FR-WIN-5 as amended): nothing writes it on the way.
+   */
+  views?: readonly ChartView[];
+  /**
+   * FR-FSC-1 / D-322 (R62): the page's own children over everything on a
+   * `screen` — the follow screen's `×`. The chart neither builds this nor reads
+   * it: the frame places it in its overlay slot, above the drawing, the readout
+   * and the legend alike. Absent everywhere else.
+   */
+  overlay?: ReactNode;
+  /**
    * FR-WIN-4 / D-240 (R47): a view that cannot stay mounted says why — the
    * window after a refused orientation permission (`denied`) or on a phone
    * whose readings carry no compass heading (`relative`). `SkyChart` shows

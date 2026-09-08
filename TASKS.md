@@ -1279,7 +1279,7 @@ Draft, cut 2026-09-08 from `SPEC.md` v1.3 and `PLAN.md` v0.6, for review. Spec P
 
 Delivery is PLAN §16 unchanged, cut by §16.10: four tasks, three waves, one task per lane, and every task on `opus` — the owner's instruction for the phase. Lanes and their directories are the v1.1 conventions above with D-283's catalog rule (`window.ts` to `window`, `live.ts` to `live`, `chart.ts` to `chart`). Decision blocks are reserved in PLAN §16.10: **R62 D-328..D-332, R63 D-333..D-337, R64 D-338..D-344, R65 D-345..D-349.** All four wait for R60, so v1.2 ships as it is.
 
-- [ ] **R62 — The chart can be a screen, and a page says which views it offers**
+- [x] **R62 — The chart can be a screen, and a page says which views it offers**
   - **Lane:** chart
   - **Model:** opus
   - **Gate:** owner
@@ -1296,6 +1296,7 @@ Delivery is PLAN §16 unchanged, cut by §16.10: four tasks, three waves, one ta
     - The overlay token passes FR-THEME-2's contrast for body text over the darkest sky token in both themes (a unit check against the token values, as R19's theme tests do).
     - Captures: the compact live page at 390 px in both locales and themes, showing the two-option view control on one row (these replace the R59 live captures).
     - `npm test` green; no dome or polar capture moves.
+  - **Done 2026-09-08 (D-328, D-329):** three departures from the scope text, all recorded. There is no `--surface` token, so the overlay is `--bg-raised` — the app's panel surface — and what `tokens.css` gains is the alpha alone (`--follow-overlay-alpha: 85%`), with `--follow-overlay` derived in `ChartFrame.module.css`; an alpha is invisible to the tokens test's `#rrggbb` pair table, so no theme rule needed an exception. The screen frame carries a class of its own rather than `.frame` / `.fill`, so none of the eleven framed-chart rules can reach it. And `overlay` is on `SkyChartProps` as well as `ChartFrame`, since D-321's page reaches the frame only through the chart; the last link, `SkyWindow`'s `<ChartFrame>` call, is the `window` lane's and goes with R63's rewrite of it, so until R63 `screen` reaches `SkyChart` and stops there. The live page's `views` was taken here rather than left to R64, because the capture bullet and D-327's gate both ask for it, with one exception: while `follow.state === 'on'` the page offers the window again, or R59's follow control would draw the dome under itself — R64 deletes the exception with the override. Captures `r62-live-390-{dark,night}-{en,es}.png`; the four `r59-live-390-*` they supersede stay in `docs/screenshots/` as the record of the three-option control, as R54's fold captures did.
 
 - [x] **R63 — The window on a screen: no chrome, and a portrait state that says to turn the phone**
   - **Lane:** window

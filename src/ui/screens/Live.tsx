@@ -5,7 +5,7 @@ import { LIVE_TWO_COLUMN_QUERY } from '../../lib/layout';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import type { Span } from '../../lib/timeStripe';
-import type { EpochMs, Observer, Pass } from '../../model';
+import type { ChartView, EpochMs, Observer, Pass } from '../../model';
 import { useAppStore } from '../../state';
 import { LanguageToggle } from '../components/common/LanguageToggle';
 import { ShareButton } from '../components/common/ShareButton';
@@ -168,6 +168,19 @@ export function LivePage({ link, onLeave }: LivePageProps) {
  */
 export const LIVE_ROUTE_HASH = '#live';
 
+/**
+ * FR-FSC-6 / FR-WIN-4, FR-WIN-5 as amended v1.3 (R62, D-324): the views this
+ * page offers. The window is not one of them — on the live page it is reached
+ * by `[ follow phone ]` alone, and a `window` this device saved is drawn as the
+ * dome and left in the preference for the pass detail, which still offers it.
+ *
+ * The exception is the window this control opened. Until R64 the follow control
+ * *is* the view override (D-277), so while it holds the page offers the window
+ * again or the chart it opened would fall back to the dome under it; R64
+ * replaces that with a screen of its own and the exception goes with it.
+ */
+const LIVE_VIEWS: readonly ChartView[] = ['dome', 'polar'];
+
 function useHashFollows(observer: Observer, shown: EpochMs, realTime: boolean, playing: boolean): void {
   const lastWrite = useRef<number | null>(null);
   useEffect(() => {
@@ -242,23 +255,23 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   // showing and the second press gives that view back. The dome's facing is the drag's alone (FR-GUIDE-4), so
   // the page passes none: while following, the window is what is drawn and it reads the sensor itself.
   const follow = useFollowPhone();
-  const chartView = useAppStore((s) => s.chartView);
   /*
    * R48 (FR-WIN-6, US-21 AC5): window mode. The window shows real time —
    * entering it dispatches the `now` action, and the stripe block and the
    * playback row are not rendered while it is the view; leaving it brings
-   * them back, at real time. The view's id is read by name: R47 registers the
-   * view and widens `chartView`'s union, and this page needs no change when
-   * it does (the `string` reading is what lets it compile before then).
+   * them back, at real time.
    */
-  const windowMode = (chartView as string) === 'window';
+  // R62 (FR-FSC-6, D-324): the page offers the dome and the polar chart (`LIVE_VIEWS`), so a saved
+  // `window` is drawn as the dome here and the window is on this page only while the follow control
+  // holds it (`viewOverride`, D-277) — which is what `follow.state === 'on'` reads. Reading the raw
+  // preference would hide the stripe and the playback row beside a dome (the R62 review's finding).
+  const windowMode = follow.state === 'on';
   /*
    * R59 (FR-FOL-1): the control is offered on the dome and on the polar chart wherever the window is
-   * offered — `FollowPhone` renders nothing where there is no phone to follow — and never on the window
-   * *chosen* from the view control, where following is what the view is (FR-LIVE-8 as amended v1.1). It
-   * stays while the window is the one this control opened: that press is what the second press undoes.
+   * offered — `FollowPhone` renders nothing where there is no phone to follow — and it stays while the
+   * window is the one this control opened: that press is what the second press undoes. The window
+   * *chosen* from the view control cannot show on this page any more (FR-FSC-6), so the control is always rendered.
    */
-  const followable = !windowMode || follow.state === 'on';
   // R54 (FR-TRAJ-5, FR-LIVE-7 as amended v1.1.1): the stepping row is for fingers; a pointer has the arrow keys.
   const touch = pageHasTouch();
   const toNow = playback.toNow;
@@ -325,7 +338,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
       )}
       <div className={styles.actions} data-testid="live-actions">
         <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />
-        {followable && <FollowPhone follow={follow} />}
+        <FollowPhone follow={follow} />
         <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : t.live.share} ariaLabel={t.live.share} />
       </div>
     </div>
@@ -345,6 +358,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           colorBy="pass"
           fill
           initialFacingAzDeg={0}
+          {...(follow.state === 'on' ? {} : { views: LIVE_VIEWS })}
           {...(columns === 'two' ? { aside: side } : {})}
           {...(compact ? {} : { boxAspect: DOME_BOX_ASPECT, stacked: oneColumn })}
           {...(stripeUnder ? { stripe: stripeBlock } : {})}

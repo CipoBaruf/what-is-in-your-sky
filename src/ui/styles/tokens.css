@@ -65,6 +65,17 @@
   /* G6: minimum tap target, two text rows (48 px at the 16 px base, above the 44 px floor). */
   --tap: calc(2 * var(--row));
 
+  /* FR-FSC-3 (R62, D-322): how much of the theme's surface colour the follow
+     screen's two overlays — the facing readout and the legend strip — put
+     between their text and the drawing under them. One number for both, in one
+     place, because the pair is a single decision: high enough that body text
+     over the darkest sky token still clears FR-THEME-2's 4.5 : 1
+     (`tests/styles/followOverlay.test.ts` computes the composite and holds it
+     there), low enough that the horizon line under the strip still reads. It is
+     an alpha and not a colour, so it has no per-theme value: the colour it is
+     mixed with is `--bg-raised`, which each theme already sets. */
+  --follow-overlay-alpha: 85%;
+
   --bg: #0b0f14;
   --bg-raised: #161c24;
   --fg: #d5dbe3;

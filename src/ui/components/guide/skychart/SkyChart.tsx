@@ -95,9 +95,16 @@ export const WINDOW_VIEW: SkyChartView = {
 
 export const SKY_CHART_VIEWS: readonly SkyChartView[] = [POLAR_VIEW, DOME_VIEW, WINDOW_VIEW];
 
-/** The views this device is offered: the registered ones minus those `available()` rules out and those lost for the session. */
-export function offeredViews(lost: ReadonlySet<ChartView> = new Set()): SkyChartView[] {
-  return SKY_CHART_VIEWS.filter((candidate) => !lost.has(candidate.id) && (candidate.available?.() ?? true));
+/**
+ * The views this device is offered: the registered ones minus those
+ * `available()` rules out and those lost for the session, and — since R62
+ * (FR-FSC-6, D-324) — minus those the *page* does not offer. `views` is a set
+ * of ids, not an order: the registered order is what the toggle shows, so a
+ * page cannot reshuffle the control by the order it lists them in. A page that
+ * passes nothing offers all three, which is the pass detail unchanged.
+ */
+export function offeredViews(lost: ReadonlySet<ChartView> = new Set(), views?: readonly ChartView[]): SkyChartView[] {
+  return SKY_CHART_VIEWS.filter((candidate) => !lost.has(candidate.id) && (views === undefined || views.includes(candidate.id)) && (candidate.available?.() ?? true));
 }
 
 /** The view for a preference: itself where offered, else the dome (the default), else the first one offered. */
@@ -112,6 +119,16 @@ export function viewFor(id: SkyChartView['id'], offered: readonly SkyChartView[]
  * drawing. There is no single pass to caption — the page's status strip is
  * the text alternative (FR-GUIDE-7) — so the figure carries a name instead of
  * a caption, and it fills the box it is given rather than the guide's square.
+ *
+ * R62 (FR-FSC-1, FR-FSC-3, FR-FSC-6; D-322, D-324): two more things a page may
+ * say. `screen` is the follow screen — the window, filling the host, with no
+ * caption, no toggle, no controls row and no rails, its readout and its legend
+ * overlaid on the drawing by the frame. `views` is the list of views the page
+ * offers: the live page offers the dome and the polar chart, so the window is
+ * reached there by the follow control alone, and a `window` saved on that
+ * device is drawn as the dome and left in the preference untouched — `viewFor`
+ * already falls back to the dome for a view that is not offered, and nothing
+ * on that path calls `setChartView`.
  */
 export function SkyChart(props: SkyChartProps) {
   const t = useT();
@@ -121,8 +138,12 @@ export function SkyChart(props: SkyChartProps) {
   // FR-WIN-4 (R47): the views this device is offered, less any lost for the session; the note a lost one left.
   const [lost, setLost] = useState<ReadonlySet<ChartView>>(() => new Set());
   const [note, setNote] = useState<'denied' | 'relative' | null>(null);
-  const offered = useMemo(() => offeredViews(lost), [lost]);
-  const view = viewFor(chartView, offered);
+  // FR-FSC-1 / D-322 (R62): asked for a screen the chart is the window and nothing else — `viewFor` is not consulted,
+  // so the saved preference is neither read for the view nor written on the way (FR-WIN-5 as amended).
+  const screen = props.screen ?? false;
+  const views = props.views;
+  const offered = useMemo(() => offeredViews(lost, views), [lost, views]);
+  const view = screen ? WINDOW_VIEW : viewFor(chartView, offered);
   const choose = useCallback(
     (id: ChartView) => {
       setNote(null);
@@ -146,7 +167,9 @@ export function SkyChart(props: SkyChartProps) {
     },
     [viewId, dropChartView],
   );
-  const { passes, observer, className, fill = false, now, hidden, colorBy, onSelectPass } = props;
+  // D-322: a screen fills what it is given by construction — the page hands the chart the whole viewport.
+  const { passes, observer, className, now, hidden, colorBy, onSelectPass } = props;
+  const fill = screen || (props.fill ?? false);
   // FR-DOME-6: one evaluation for whichever view is mounted, so the toggle
   // never changes where the Sun and the Moon are (R22).
   const bodies = useSkyBodies(props);
@@ -196,10 +219,11 @@ export function SkyChart(props: SkyChartProps) {
   // top of the list, but the table is what the guide is about and stays at its head.
   const leadRow = props.legendLead === undefined ? undefined : rows.find((row) => row.passId === props.highlightedPassId);
   const lead = props.legendLead !== undefined && leadRow !== undefined ? { passId: leadRow.passId, node: props.legendLead(leadRow) } : undefined;
-  const legend = <Legend rows={rows} bodies={lines} timeZone={observer.timeZone} highlightedPassId={highlightedPassId} onActivate={select} onFocusRow={focusRow} lead={lead} />;
+  const legend = <Legend rows={rows} bodies={lines} timeZone={observer.timeZone} highlightedPassId={highlightedPassId} onActivate={select} onFocusRow={focusRow} lead={lead} screen={screen} />;
   // R54 (FR-LIVE-7 as amended v1.1.1, D-269): the view toggle and its note. On the guide they head the figure; on the live
   // page (`fill`) they go to the view for the frame's controls slot, so the row above the drawing is one row.
-  const chartControls = (
+  // D-322: a screen has no controls at all — not in the figure, not in the frame's row — so there is nothing to build.
+  const chartControls = screen ? null : (
     <>
       {offered.length > 1 && (
         <OptionToggle name={t.chart.viewGroup} prefix={t.chart.viewPrefix} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
@@ -211,16 +235,21 @@ export function SkyChart(props: SkyChartProps) {
       )}
     </>
   );
+  // D-322: on a screen the rails are not the chart's to place — there is no stripe row and no side column to
+  // stand one in — so they are dropped here rather than left for the frame to ignore.
+  const { aside, stripe, ...bare } = props;
+  const forwarded = screen ? { ...bare, fill: true } : props;
   return (
     <figure
       className={[styles.figure, fill ? styles.fill : undefined, className].filter(Boolean).join(' ')}
       data-testid="sky-chart"
       data-view={view.id}
+      data-screen={screen}
       {...(fill ? { 'aria-label': t.chart.liveLabel } : {})}
     >
       {!fill && <figcaption className={styles.caption}>{captioned ? <GuideText pass={captioned} timeZone={observer.timeZone} /> : <p className={styles.empty}>{t.chart.noPass}</p>}</figcaption>}
       {!fill && chartControls}
-      <view.Component {...props} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legend} onUnavailable={unavailable} {...(fill ? { controls: chartControls } : {})} />
+      <view.Component {...forwarded} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legend} onUnavailable={unavailable} {...(fill && !screen ? { controls: chartControls } : {})} />
     </figure>
   );
 }

@@ -384,3 +384,84 @@
 .status > p {
   margin: 0;
 }
+
+/* R62 (FR-FSC-1, FR-FSC-3, FR-LEG-2 as amended v1.3, D-322): the screen.
+
+   Everything above this point is the framed chart: rows above and below a box,
+   a column beside it, a square on the guide and an aspect-cut rectangle on the
+   wide live page. A screen is none of that — the drawing *is* the surface, and
+   the two things that must stay legible over it are the facing readout and the
+   legend. So the frame here carries its own class rather than `.frame` and
+   `.fill`: no rule above can reach `.screen`, and this block does not have to
+   unpick a grid, a container query, a floor and a full-bleed margin one by one.
+
+   The box is the host's whole size by construction: the frame fills its shell
+   (which `.shellFill` has already made the page's height) and the drawing is
+   `inset: 0` inside it, so there is nothing to measure and nothing to write —
+   whatever the host is, at 844 x 390 or at 390 x 844, is what the drawing gets.
+
+   `--follow-overlay` is the surface both overlays sit on: the theme's raised
+   surface at `--follow-overlay-alpha` (FR-FSC-3's 85 %), so the horizon and the
+   arcs under the strip still read while the text over it keeps FR-THEME-2's
+   contrast (`tests/styles/followOverlay.test.ts` computes the composite).
+   `--legend-row` is one legend row's height — the tap target, which is what a
+   compact row measures — so the strip's two-row cap is two lines of text. */
+.screen {
+  --follow-overlay: color-mix(in srgb, var(--bg-raised) var(--follow-overlay-alpha), transparent);
+  --legend-row: var(--tap);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.screen .drawing {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  max-width: none;
+  min-height: 0;
+  aspect-ratio: auto;
+  margin: 0;
+}
+
+/* FR-FSC-3: the readout in the top-left corner, as wide as its own two lines and no wider. */
+.screen .status {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-height: 0;
+  max-width: 100%;
+  padding: calc(var(--row) / 4) var(--cell);
+  background: var(--follow-overlay);
+}
+
+/* FR-FSC-3 / FR-LEG-2 as amended: the strip along the bottom edge, at most two
+   rows high and scrolling inside past that. It covers the lowest part of the
+   field, which with the phone held up is ground (OQ-23). */
+.screen .legend {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  max-height: calc(2 * var(--legend-row));
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--cell);
+  background: var(--follow-overlay);
+}
+
+/* The page's own children over everything (the `×`). The layer itself is not a
+   target — the legend under it must stay tappable (FR-LEG-4) — but what the
+   page puts in it is. */
+.screen .overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.screen .overlay > * {
+  pointer-events: auto;
+}

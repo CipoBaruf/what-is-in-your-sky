@@ -87,6 +87,35 @@
   color: var(--fg-dim);
 }
 
+/* R62 (FR-FSC-3, FR-LEG-2 as amended v1.3, D-322): the follow screen's strip.
+   The times take a fourth column instead of a second line, so a row is one line
+   and the two rows FR-FSC-3 allows the strip are two lines of text — at 844 px
+   there is room for the short form (rise and end, the peak is the picture) and
+   the name beside it. The times never wrap: a name long enough to need the room
+   is what is truncated, since the clock figures are the row's fixed part.
+
+   The tap target stays: `--tap` is still the row's minimum height, so the strip
+   is two rows of 48 px whatever the text does, and FR-LEG-4's tap has something
+   to land on. `--legend-row` (`ChartFrame`, screen mode) is that same height,
+   which is what makes `max-height: calc(2 * var(--legend-row))` two rows. */
+.screen .row {
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.screen .times {
+  grid-column: 4;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.screen .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
 /* R51 (FR-LEG-3): the lead block stands where the explained pass's row would
    be — the whole numeric table, no button around it. Its own caption carries
    the key and the swatch at the same left edge as the rows below it. */
