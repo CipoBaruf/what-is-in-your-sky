@@ -11,6 +11,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
+import { stubMatchMedia, type MatchMediaStub } from '../../../../../../tests/support/matchMedia';
 import { MOON_DOWN, MOON_FIXTURE } from '../../../../../../tests/support/moonFixtures';
 import { en } from '../../../../../i18n/en';
 import { es } from '../../../../../i18n/es';
@@ -19,7 +20,7 @@ import type { Observer } from '../../../../../model';
 import { appStore } from '../../../../../state';
 import { SkyChart } from '../SkyChart';
 import type { HiddenMarker } from '../SkyChart.types';
-import { resetOrientationAccess } from './orientationAccess';
+import { requestOrientationAccess, resetOrientationAccess } from './orientationAccess';
 import { placeholderAltDeg, SkyWindow } from './SkyWindow';
 
 const pass = goldenPassFixture();
@@ -417,6 +418,156 @@ describe('<SkyWindow>', () => {
       // Granted from the toggle's tap: no gate, the window waits for its first reading.
       expect(screen.queryByTestId('window-gate')).toBeNull();
       expect(requestPermission).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  /**
+   * R63 (FR-FSC-1, FR-FSC-4; US-21 AC11, AC12; D-323): the window on the
+   * follow screen. `screen` reaches `SkyChartProps` with R62, so the tests ask
+   * for it the way the component reads it — through a cast — and the screen's
+   * own layout (the overlays, the `×`) is R62's and R64's to test.
+   */
+  describe('on the follow screen (FR-FSC-4)', () => {
+    /** D-322's prop, before the type carries it. */
+    const asScreen = { screen: true } as { screen?: boolean };
+    const legend = <p data-testid="window-legend">A · ISS</p>;
+    const viewControl = <span data-testid="view-control">Chart view</span>;
+    /** 844 × 390 is the follow screen's landscape phone (D-326); 390 × 844 the same phone upright. */
+    const LANDSCAPE = [844, 390] as const;
+    const PORTRAIT = [390, 844] as const;
+    let media: MatchMediaStub | null = null;
+
+    afterEach(() => {
+      media?.restore();
+      media = null;
+    });
+
+    const paint = (container: HTMLElement): number => container.querySelectorAll('[data-drawing="window"] *').length;
+
+    it('held upright is the note and nothing else, with the sensor still running under it', () => {
+      media = stubMatchMedia(...PORTRAIT);
+      const detach = vi.spyOn(window, 'removeEventListener');
+      const frame = scriptedFrames();
+      const { container } = render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} legend={legend} controls={viewControl} legendKeys={{ [pass.id]: 'A' }} />);
+      const w = wrapper(container);
+      expect(w).toHaveAttribute('data-orientation', 'portrait');
+
+      // The readings keep arriving — the hook is mounted whatever the orientation — and still nothing is drawn.
+      reading(aim(pass.peak.azDeg, 20));
+      frame();
+      settle(frame);
+      expect(w).toHaveAttribute('data-state', 'on');
+      expect(paint(container)).toBe(0);
+
+      const note = screen.getByTestId('window-portrait-note');
+      expect(note).toHaveAttribute('role', 'status');
+      expect(note).toHaveTextContent(en.window.portrait);
+      // FR-FSC-4: the note *is* the box — no readout, no legend, no gate, no ground note, nothing written in the drawing.
+      expect(container.querySelector('[data-testid="chart-box"]')).toHaveTextContent(en.window.portrait);
+      expect(container.querySelector('[data-testid="chart-box"]')?.textContent?.trim()).toBe(en.window.portrait);
+      expect(screen.queryByTestId('window-readout')).toBeNull();
+      expect(screen.queryByTestId('window-note')).toBeNull();
+      expect(screen.queryByTestId('window-legend')).toBeNull();
+      expect(screen.queryByTestId('chart-legend-slot')).toBeNull();
+      expect(screen.queryByTestId('window-ground-note')).toBeNull();
+      expect(screen.queryByTestId('window-gate')).toBeNull();
+
+      // FR-FOL-2: nothing detached the sensor on the way into the state, so nothing has to be asked again to leave it.
+      const dropped = detach.mock.calls.filter(([type]) => String(type).startsWith('deviceorientation'));
+      expect(dropped).toEqual([]);
+    });
+
+    it('turning the phone brings the drawing back with no tap and no second permission prompt', async () => {
+      const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
+      withPhone(requestPermission);
+      // The follow control's own tap is what asked (D-277); the screen opens with the answer already given.
+      await requestOrientationAccess();
+      expect(requestPermission).toHaveBeenCalledTimes(1);
+
+      media = stubMatchMedia(...PORTRAIT);
+      const frame = scriptedFrames();
+      const { container } = render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} legend={legend} legendKeys={{ [pass.id]: 'A' }} />);
+      reading(aim(pass.peak.azDeg, 20));
+      frame();
+      settle(frame);
+      expect(paint(container)).toBe(0);
+
+      act(() => {
+        media?.setSize(...LANDSCAPE);
+      });
+      const w = wrapper(container);
+      expect(w).toHaveAttribute('data-orientation', 'landscape');
+      expect(screen.queryByTestId('window-portrait-note')).toBeNull();
+      // The arcs, the grid and the readout are there, at the reading the sensor went on giving.
+      expect(container.querySelector(`[data-pass-id="${pass.id}"] [data-marker]`)).not.toBeNull();
+      expect(container.querySelector('[data-horizon]')?.getAttribute('d')).toMatch(/^M/);
+      expect(inView(container.querySelector('[data-marker="peak"]'))).toBe(true);
+      expect(screen.getByTestId('window-readout')).toHaveTextContent('Looking');
+      expect(screen.getByTestId('window-legend')).toBeInTheDocument();
+      expect(screen.queryByTestId('window-gate')).toBeNull();
+      expect(requestPermission).toHaveBeenCalledTimes(1);
+
+      // And back: the note again, still without a tap.
+      act(() => {
+        media?.setSize(...PORTRAIT);
+      });
+      expect(screen.getByTestId('window-portrait-note')).toBeInTheDocument();
+      expect(paint(container)).toBe(0);
+      expect(requestPermission).toHaveBeenCalledTimes(1);
+    });
+
+    it('says it in Spanish', () => {
+      media = stubMatchMedia(...PORTRAIT);
+      render(
+        <I18nProvider locale="es">
+          <SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} />
+        </I18nProvider>,
+      );
+      expect(screen.getByTestId('window-portrait-note')).toHaveTextContent(es.window.portrait);
+      expect(es.window.portrait).not.toBe(en.window.portrait);
+    });
+
+    it('sweeps the ground states in landscape as R56 left them (FR-FOL-5)', () => {
+      media = stubMatchMedia(...LANDSCAPE);
+      const frame = scriptedFrames();
+      const { container } = render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+      const w = wrapper(container);
+      const states: (string | null)[] = [];
+      for (let altDeg = 80; altDeg >= -80; altDeg -= 5) {
+        reading(aim(pass.peak.azDeg, altDeg));
+        frame();
+        settle(frame);
+        states.push(w.getAttribute('data-ground'));
+      }
+      expect(states.filter((state, index) => state !== states[index - 1])).toEqual(['sky', 'ground', 'buried']);
+      expect(screen.getByTestId('window-ground-note')).toHaveTextContent(en.window.buried);
+    });
+
+    it('carries no view control and no hint; the pass detail’s window carries both', () => {
+      media = stubMatchMedia(...LANDSCAPE);
+      const { container: onScreenBox } = render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} controls={viewControl} />);
+      expect(within(onScreenBox).queryByTestId('view-control')).toBeNull();
+      expect(within(onScreenBox).queryByText(en.window.hint)).toBeNull();
+
+      const { container: page } = render(<SkyWindow fill passes={[pass]} observer={observer} highlightedPassId={pass.id} controls={viewControl} />);
+      expect(within(page).getByTestId('view-control')).toBeInTheDocument();
+      expect(within(page).getByText(en.window.hint)).toBeInTheDocument();
+    });
+
+    it('leaves the window without `screen` drawing in portrait, as R47 built it', () => {
+      media = stubMatchMedia(...PORTRAIT);
+      const frame = scriptedFrames();
+      const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} legend={legend} legendKeys={{ [pass.id]: 'A' }} />);
+      reading(aim(pass.peak.azDeg, 20));
+      frame();
+      settle(frame);
+      const w = wrapper(container);
+      expect(w).not.toHaveAttribute('data-orientation');
+      expect(screen.queryByTestId('window-portrait-note')).toBeNull();
+      expect(paint(container)).toBeGreaterThan(0);
+      expect(inView(container.querySelector('[data-marker="peak"]'))).toBe(true);
+      expect(screen.getByTestId('window-readout')).toBeInTheDocument();
+      expect(screen.getByTestId('window-legend')).toBeInTheDocument();
     });
   });
 });
