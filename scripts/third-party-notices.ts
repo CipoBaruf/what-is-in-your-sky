@@ -78,27 +78,59 @@ export function productionPackages(): Map<string, { name: string; version: strin
 }
 
 /**
+ * The files a package offers as its own code, in the order worth reading: what
+ * `exports` publishes, then `module`, then `main`, then `index.js`.
+ *
+ * `main` alone is not enough, and that was the review finding on the first P1
+ * run. A package that ships ESM only declares `exports` and no `main` — every
+ * new one does — so `pkg.main ?? 'index.js'` would look for a file that is not
+ * there, `licenseText` would return `null`, and `collect` would stop the build
+ * on a package whose notice is sitting in the very file `exports` points at.
+ * Today no production dependency takes this path (all eleven but one ship a
+ * licence file, and `astronomy-engine` has a `main`); the next one added would.
+ *
+ * `exports` is a tree of strings, conditions and subpath keys, so it is walked
+ * rather than indexed, and anything that is not a relative path to JavaScript
+ * is dropped.
+ */
+function entryFiles(dir: string, pkg: { main?: string; module?: string; exports?: unknown }): string[] {
+  const fromExports: string[] = [];
+  const walk = (node: unknown): void => {
+    if (typeof node === 'string') fromExports.push(node);
+    else if (Array.isArray(node)) for (const item of node) walk(item);
+    else if (node !== null && typeof node === 'object') for (const value of Object.values(node)) walk(value);
+  };
+  walk(pkg.exports);
+  const files = [...fromExports, pkg.module, pkg.main, 'index.js']
+    .filter((name): name is string => typeof name === 'string' && !name.startsWith('/') && /\.[cm]?js$/.test(name))
+    .map((name) => join(dir, name))
+    .filter((path) => existsSync(path));
+  return [...new Set(files)];
+}
+
+/**
  * The verbatim licence text of one package: its own licence file when it has
- * one, and otherwise the `@preserve` header of the file it publishes, which is
+ * one, and otherwise the `@preserve` header of a file it publishes, which is
  * where a single-file library keeps it (`astronomy-engine`).
  */
 function licenseText(dir: string): { source: string; text: string } | null {
   const file = readdirSync(dir).find((name) => LICENSE_FILE.test(name));
   if (file !== undefined) return { source: join(relative(ROOT, dir), file), text: readFileSync(join(dir, file), 'utf8').trim() };
 
-  const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as { main?: string };
-  const entry = join(dir, pkg.main ?? 'index.js');
-  if (!existsSync(entry)) return null;
-  const header = /^\s*\/\*[\s\S]*?\*\//.exec(readFileSync(entry, 'utf8'));
-  if (header === null || !PERMISSION.test(header[0])) return null;
-  // The comment markers and the indentation the header is written with go; the wording does not.
-  const text = header[0]
-    .replace(/^\s*\/\*+/, '')
-    .replace(/\*+\/\s*$/, '')
-    .replace(/^[ \t]*\*? ?/gm, '')
-    .replace(/@preserve/g, '')
-    .trim();
-  return { source: relative(ROOT, entry), text };
+  const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as { main?: string; module?: string; exports?: unknown };
+  for (const entry of entryFiles(dir, pkg)) {
+    const header = /^\s*\/\*[\s\S]*?\*\//.exec(readFileSync(entry, 'utf8'));
+    if (header === null || !PERMISSION.test(header[0])) continue;
+    // The comment markers and the indentation the header is written with go; the wording does not.
+    const text = header[0]
+      .replace(/^\s*\/\*+/, '')
+      .replace(/\*+\/\s*$/, '')
+      .replace(/^[ \t]*\*? ?/gm, '')
+      .replace(/@preserve/g, '')
+      .trim();
+    return { source: relative(ROOT, entry), text };
+  }
+  return null;
 }
 
 /** Every notice, sorted by name so the file only changes when the tree does. */
