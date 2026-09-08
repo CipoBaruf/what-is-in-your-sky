@@ -536,7 +536,7 @@ export function SkyWindow(props: SkyChartProps) {
             </p>
           )}
           {/* FR-WIN-5: the one control in the window's place until the tap the browser needs. The screen never shows it: the follow control's own tap is what asked (FR-FOL-2). */}
-          {orientation.needsGesture && state !== 'waiting' && !portrait && (
+          {orientation.needsGesture && state !== 'waiting' && !onScreen && (
             <div className={styles.gate}>
               <button type="button" className={styles.gateButton} data-testid="window-gate" onClick={orientation.start}>
                 {t.window.pointAtSky}

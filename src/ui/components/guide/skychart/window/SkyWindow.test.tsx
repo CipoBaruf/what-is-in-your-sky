@@ -543,6 +543,19 @@ describe('<SkyWindow>', () => {
       expect(screen.getByTestId('window-ground-note')).toHaveTextContent(en.window.buried);
     });
 
+    it('never shows [ point at the sky ] on the screen, in landscape either: the follow control’s tap is what asked (FR-FSC-1, FR-FOL-2)', () => {
+      media = stubMatchMedia(...LANDSCAPE);
+      const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
+      withPhone(requestPermission);
+      const { container: onScreenBox } = render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+      expect(within(onScreenBox).queryByTestId('window-gate')).toBeNull();
+      expect(within(onScreenBox).queryByText(en.window.pointAtSky)).toBeNull();
+      expect(requestPermission).not.toHaveBeenCalled();
+
+      const { container: page } = render(<SkyWindow fill passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+      expect(within(page).getByTestId('window-gate')).toHaveTextContent(en.window.pointAtSky);
+    });
+
     it('carries no view control and no hint; the pass detail’s window carries both', () => {
       media = stubMatchMedia(...LANDSCAPE);
       const { container: onScreenBox } = render(<SkyWindow {...asScreen} fill passes={[pass]} observer={observer} highlightedPassId={pass.id} controls={viewControl} />);
