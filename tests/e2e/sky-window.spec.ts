@@ -91,7 +91,24 @@ async function point(page: Page, azDeg: number, altDeg: number): Promise<void> {
 }
 
 /** The tap that chooses the window; the clock runs after it because the paused clock holds React's lazy reveal (R32). */
-async function chooseWindow(page: Page, figure: Locator, locale: CaptureLocale): Promise<void> {
+/**
+ * R66 (FR-FSC-1, FR-FSC-6; V13-6, V13-9, D-350, D-351): choosing "window" on
+ * the pass detail opens the **sky screen** — the same layer the live page
+ * opens — and not a third view laid out in the sheet. The tap arms the sensor
+ * and the first reading with a north in it is what opens anything, so the
+ * caller gets a reading in before it waits for the layer.
+ */
+async function chooseWindow(page: Page, figure: Locator, locale: CaptureLocale): Promise<Locator> {
+  await figure.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
+  await page.evaluate(() => {
+    window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: 0, beta: 90, gamma: 0, absolute: true }));
+  });
+  await page.clock.runFor(1000);
+  return page.getByTestId('sky-screen');
+}
+
+/** The option's tap where nothing is expected to open: a refusal, or a phone with no north. */
+async function tapWindow(page: Page, figure: Locator, locale: CaptureLocale): Promise<void> {
   await figure.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
   await page.clock.runFor(1000);
 }
@@ -109,37 +126,32 @@ const look = async (window: Locator): Promise<{ az: number; alt: number }> => ({
 test.describe('the sky window on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  test('is offered, draws in the shared frame, and turns with the phone one frame at a time', async ({ page }) => {
+  test('is offered on the pass detail, opens the sky screen, and turns with the phone one frame at a time', async ({ page }) => {
     await stubCompass(page);
-    await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
+    // R66 (FR-FSC-4): the screen draws sideways, so the phone is held sideways for every drawing case here.
+    await open(page, { width: 844, height: 390 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     const figure = await openDetail(page, 'en');
     await expect(figure).toHaveAttribute('data-view', 'dome');
     const toggle = figure.getByRole('group', { name: VIEW_GROUP.en });
     await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
-    const frameBox = async () => (await figure.getByTestId('chart-frame').boundingBox()) ?? { x: NaN, y: NaN, width: NaN, height: NaN };
-    const domeFrame = await frameBox();
 
-    // US-21 AC1: the tap chooses the view; Chromium has no permission prompt, so the window is drawn at once.
-    await chooseWindow(page, figure, 'en');
-    await expect(figure).toHaveAttribute('data-view', 'window');
-    const drawing = figure.locator('[data-drawing="window"]');
+    // US-21 AC1, AC14: the tap chooses the view and what it opens is the screen, over the sheet.
+    const layer = await chooseWindow(page, figure, 'en');
+    await expect(layer).toHaveCount(1);
+    // The sheet is untouched under it: the guide is still on the view the reader picked.
+    await expect(figure).toHaveAttribute('data-view', 'dome');
+    const drawing = layer.locator('[data-drawing="window"]');
     await expect(drawing).toBeVisible();
     await expect(drawing).toHaveAttribute('aria-hidden', 'true');
-    expect(await frameBox()).toEqual(domeFrame); // one frame for the three views
     expect(await page.locator('canvas').count()).toBe(0);
-    const w = figure.locator('[data-look-az]');
-    await expect(w).toHaveAttribute('data-state', 'idle');
-    await expect(figure.getByTestId('window-note')).toHaveText('Waiting for the phone’s sensors…');
+    const w = layer.locator('[data-look-az]');
     // The placeholder: at the pass's peak azimuth, raised from 20° so the 61° peak keeps 8° inside the top of the
     // 60° box (61 − 30 + 8), the key at the peak in view.
     const placeholder = await look(w);
     expect(placeholder.alt).toBe(39);
-    await expect(figure.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
-    await expect(figure.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveText('A');
-    await expect(figure.locator('[data-anchor="pass"], [data-anchor="peak"]')).toHaveCount(0);
-    // R51 (FR-LEG-3): on the detail the explained pass's legend row is the numeric table, keyed and swatched.
-    await expect(figure.getByTestId('legend-lead').locator('caption')).toContainText('A');
-    await expect(figure.getByTestId('chart-legend').locator(`button[data-pass-id="${GLARE_PASS}"]`)).toHaveCount(0);
+    await expect(layer.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
+    await expect(layer.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveText('A');
+    await expect(layer.locator('[data-anchor="pass"], [data-anchor="peak"]')).toHaveCount(0);
     // No hand-driven view (FR-WIN-5): a drag on the drawing turns nothing.
     const box = (await drawing.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -149,21 +161,21 @@ test.describe('the sky window on a phone', () => {
     expect(await look(w)).toEqual(placeholder);
 
     // US-21 AC3: a reading north on the horizon; the compass name N comes into view, S is not.
-    const horizonBefore = await figure.locator('[data-horizon]').getAttribute('d');
+    const horizonBefore = await layer.locator('[data-horizon]').getAttribute('d');
     await point(page, 0, 0);
     await settle(page);
     await expect(w).toHaveAttribute('data-state', 'on');
     const north = await look(w);
     // Paris: the declination is about +2°, so magnetic north is a true 2° (US-21 AC6).
-    const declination = Number(await figure.getByTestId('window-heading').getAttribute('data-declination'));
+    const declination = Number(await layer.getByTestId('window-heading').getAttribute('data-declination'));
     expect(Math.abs(declination)).toBeGreaterThan(0.5);
     expect(north.az).toBe((Math.round(declination) + 360) % 360);
     expect(north.alt).toBe(0);
-    await expect(figure.getByTestId('window-readout')).toContainText(`Looking N (${String(north.az)}°) · up 0°`);
-    await expect(figure.getByTestId('window-heading')).toHaveText(/^true north, declination [+−-]\d\.\d°$/);
-    await expect(figure.locator('[data-anchor="N"]')).toHaveAttribute('data-in-view', 'true');
-    await expect(figure.locator('[data-anchor="S"]')).toHaveAttribute('data-in-view', 'false');
-    expect(await figure.locator('[data-horizon]').getAttribute('d')).not.toBe(horizonBefore);
+    await expect(layer.getByTestId('window-readout')).toContainText(`Looking N (${String(north.az)}°) · up 0°`);
+    await expect(layer.getByTestId('window-heading')).toHaveText(/^true north, declination [+−-]\d\.\d°$/);
+    await expect(layer.locator('[data-anchor="N"]')).toHaveAttribute('data-in-view', 'true');
+    await expect(layer.locator('[data-anchor="S"]')).toHaveAttribute('data-in-view', 'false');
+    expect(await layer.locator('[data-horizon]').getAttribute('d')).not.toBe(horizonBefore);
 
     // A quarter turn east and 30° up, then the rate: thirty readings a degree apart, one frame each, and every
     // frame drew — the look moved on each (FR-WIN-3: the window draws at the display rate, 60/s under the clock).
@@ -173,8 +185,8 @@ test.describe('the sky window on a phone', () => {
     expect(partWay.az).toBeLessThan(85);
     await settle(page);
     expect(await look(w)).toEqual({ az: (90 + Math.round(declination) + 360) % 360, alt: 30 });
-    await expect(figure.locator('[data-anchor="N"]')).toHaveAttribute('data-in-view', 'false');
-    await expect(figure.locator('[data-anchor="E"]')).toHaveAttribute('data-in-view', 'true');
+    await expect(layer.locator('[data-anchor="N"]')).toHaveAttribute('data-in-view', 'false');
+    await expect(layer.locator('[data-anchor="E"]')).toHaveAttribute('data-in-view', 'true');
     let drawn = 0;
     let previous = (await look(w)).az;
     for (let i = 1; i <= 30; i += 1) {
@@ -189,64 +201,42 @@ test.describe('the sky window on a phone', () => {
     await point(page, 180, 89);
     await settle(page);
     expect((await look(w)).alt).toBe(89);
-    await expect(figure.locator('[data-marker="zenith"]')).toHaveAttribute('data-in-view', 'true');
+    await expect(layer.locator('[data-marker="zenith"]')).toHaveAttribute('data-in-view', 'true');
 
-    // US-21 AC7: the choice is saved on the device.
-    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'window' });
+    // FR-WIN-5 as amended v1.3.1 (V13-8): the window is a mode — the device still carries the view the reader picked.
+    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'dome' });
   });
 
-  test('a saved window that needs a tap shows [ point at the sky ]; the tap asks and, granted, the window follows the phone', async ({ page }) => {
-    await stubCompass(page);
-    await withPermissionPrompt(page, 'granted');
-    await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'window' });
-    const figure = await openDetail(page, 'en');
-    await expect(figure).toHaveAttribute('data-view', 'window');
-    await page.clock.runFor(1000);
-    const gate = figure.getByTestId('window-gate');
-    await expect(gate).toHaveText('point at the sky');
-    await expect(gate).toBeVisible();
-    await expect(figure.getByTestId('chart-box')).toContainText('point at the sky');
-    // Before the tap, readings change nothing.
-    const w = figure.locator('[data-look-az]');
-    await point(page, 0, 0);
-    await expect(w).toHaveAttribute('data-state', 'idle');
-    await gate.click();
-    await page.clock.runFor(100);
-    await expect(gate).toHaveCount(0);
-    await point(page, 0, 0);
-    await settle(page);
-    await expect(w).toHaveAttribute('data-state', 'on');
-    await page.screenshot({ path: `${CAPTURE_DIR}/r47-window-390-gate-tapped-dark-en.png` });
-  });
-
-  test('a refused permission leaves the dome as the view with the note, and the option stays', async ({ page }) => {
+  /** FR-FOL-2 as amended v1.3.1: a refusal opens no screen, leaves the guide on its view, and keeps the option. */
+  test('a refused permission opens nothing, leaves the guide on its view with the note, and the option stays', async ({ page }) => {
     await stubCompass(page);
     await withPermissionPrompt(page, 'denied');
     await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     const figure = await openDetail(page, 'en');
     const toggle = figure.getByRole('group', { name: VIEW_GROUP.en });
-    await chooseWindow(page, figure, 'en');
+    await tapWindow(page, figure, 'en');
+    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(figure).toHaveAttribute('data-view', 'dome');
     await expect(figure.getByTestId('chart-view-note')).toHaveText('Motion access was refused, so the dome stays the view.');
-    await expect(toggle.getByRole('button', { name: 'Window' })).toHaveAttribute('aria-pressed', 'false');
-    await page.screenshot({ path: `${CAPTURE_DIR}/r47-window-390-denied-dark-en.png` });
+    await page.screenshot({ path: `${CAPTURE_DIR}/r66-window-390-denied-dark-en.png` });
     // Any other choice clears the note.
     await toggle.getByRole('button', { name: 'Polar' }).click();
     await expect(figure.getByTestId('chart-view-note')).toHaveCount(0);
+    await expect(toggle.getByRole('button', { name: 'Window' })).toBeVisible();
   });
 
-  test('a phone with no compass heading gets the note, the dome, and no window option', async ({ page }) => {
+  /** FR-WIN-4: a phone whose readings carry no north opens nothing and is not offered the window again. */
+  test('a phone with no compass heading gets the note and loses the option', async ({ page }) => {
     await stubCompass(page);
     await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     const figure = await openDetail(page, 'en');
     const toggle = figure.getByRole('group', { name: VIEW_GROUP.en });
-    await chooseWindow(page, figure, 'en');
-    await expect(figure).toHaveAttribute('data-view', 'window');
-    await expect(figure.locator('[data-drawing="window"]')).toBeVisible();
+    await tapWindow(page, figure, 'en');
     await page.evaluate(() => {
       window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: 30, beta: 90, gamma: 0, absolute: false }));
     });
     await page.clock.runFor(FRAME_MS);
+    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(figure).toHaveAttribute('data-view', 'dome');
     await expect(figure.getByTestId('chart-view-note')).toHaveText('This phone gives no compass heading, so the window cannot find north.');
     await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome']);
@@ -254,13 +244,12 @@ test.describe('the sky window on a phone', () => {
 
   for (const theme of THEMES) {
     for (const locale of LOCALES) {
-      test(`capture: the window at 390 px, ${theme}, ${locale}, aimed at the peak from the stubbed orientation`, async ({ page }) => {
+      test(`capture: the sky screen from a pass detail at 844 x 390, ${theme}, ${locale}, aimed at the peak`, async ({ page }) => {
         await stubCompass(page);
-        await open(page, { width: 390, height: 844 }, { locale, theme, observer: PARIS, chartView: 'dome' });
+        await open(page, { width: 844, height: 390 }, { locale, theme, observer: PARIS, chartView: 'dome' });
         const figure = await openDetail(page, locale);
-        await chooseWindow(page, figure, locale);
-        await expect(figure).toHaveAttribute('data-view', 'window');
-        const w = figure.locator('[data-look-az]');
+        const layer = await chooseWindow(page, figure, locale);
+        const w = layer.locator('[data-look-az]');
         await expect(w).toBeAttached();
         // The placeholder already points at the peak azimuth, as high as the peak needs: the reading puts the phone
         // there, then again less Paris's declination (known once the window is on), so the true look is the placeholder's.
@@ -268,43 +257,42 @@ test.describe('the sky window on a phone', () => {
         await point(page, aim.az, aim.alt);
         await settle(page);
         await expect(w).toHaveAttribute('data-state', 'on');
-        const declination = Number(await figure.getByTestId('window-heading').getAttribute('data-declination'));
+        const declination = Number(await layer.getByTestId('window-heading').getAttribute('data-declination'));
         await point(page, aim.az - declination, aim.alt);
         await settle(page);
         expect(await look(w)).toEqual(aim);
-        await expect(figure.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
+        await expect(layer.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         await expect(page.locator('html')).toHaveAttribute('lang', locale);
-        await expect(figure.getByTestId('window-readout')).toContainText(locale === 'es' ? 'Mirando al' : 'Looking');
-        await expect(figure.getByTestId('window-heading')).toContainText(locale === 'es' ? 'norte verdadero' : 'true north');
-        await figure.locator('[data-drawing]').scrollIntoViewIfNeeded();
+        await expect(layer.getByTestId('window-readout')).toContainText(locale === 'es' ? 'Mirando al' : 'Looking');
+        await expect(layer.getByTestId('window-heading')).toContainText(locale === 'es' ? 'norte verdadero' : 'true north');
         await page.mouse.move(0, 0);
-        await page.screenshot({ path: `${CAPTURE_DIR}/r47-window-390-${theme}-${locale}.png` });
+        await page.screenshot({ path: `${CAPTURE_DIR}/r66-window-844-${theme}-${locale}.png` });
       });
     }
   }
 
   test('capture: the horizon with its compass names, aimed 12° up toward the peak', async ({ page }) => {
     await stubCompass(page);
-    await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
+    await open(page, { width: 844, height: 390 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     const figure = await openDetail(page, 'en');
-    await chooseWindow(page, figure, 'en');
-    const w = figure.locator('[data-look-az]');
+    const layer = await chooseWindow(page, figure, 'en');
+    const w = layer.locator('[data-look-az]');
     const peakAz = Number(await w.getAttribute('data-look-az'));
     await point(page, peakAz, 12);
     await settle(page);
     await expect(w).toHaveAttribute('data-state', 'on');
-    const declination = Number(await figure.getByTestId('window-heading').getAttribute('data-declination'));
+    const declination = Number(await layer.getByTestId('window-heading').getAttribute('data-declination'));
     await point(page, peakAz - declination, 12);
     await settle(page);
     expect(await look(w)).toEqual({ az: peakAz, alt: 12 });
     // The peak is in the south-southwest: the names either side of it are on the horizon in view, and the ticks between them.
-    await expect(figure.locator('[data-horizon]')).toHaveAttribute('d', /^M/);
-    await expect(figure.locator('[data-anchor="S"]')).toHaveAttribute('data-in-view', 'true');
-    await expect(figure.locator('[data-tick][data-in-view="true"]')).not.toHaveCount(0);
-    await figure.locator('[data-drawing]').scrollIntoViewIfNeeded();
+    await expect(layer.locator('[data-horizon]')).toHaveAttribute('d', /^M/);
+    await expect(layer.locator('[data-anchor="S"]')).toHaveAttribute('data-in-view', 'true');
+    await expect(layer.locator('[data-tick][data-in-view="true"]')).not.toHaveCount(0);
+    await layer.locator('[data-drawing]').scrollIntoViewIfNeeded();
     await page.mouse.move(0, 0);
-    await page.screenshot({ path: `${CAPTURE_DIR}/r47-window-390-horizon-dark-en.png` });
+    await page.screenshot({ path: `${CAPTURE_DIR}/r66-window-844-horizon-dark-en.png` });
   });
 });
 

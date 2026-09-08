@@ -350,7 +350,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
    * wake lock, the hash — so closing gives back the page that has been running underneath all along; only its
    * grid is not built. `LivePage`'s one-row header is left mounted and covered, `inert` (FR-FSC-1).
    */
-  if (screenOpen) return <SkyScreen passes={chartPasses} observer={observer} now={shown} sun={bodies.sun} moon={bodies.moon} onClose={closeScreen} />;
+  if (screenOpen) return <SkyScreen passes={chartPasses} observer={observer} now={shown} sun={bodies.sun} moon={bodies.moon} initialFacingAzDeg={0} onClose={closeScreen} />;
 
   return (
     <>

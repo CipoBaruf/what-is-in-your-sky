@@ -41,7 +41,7 @@ import styles from './SkyScreen.module.css';
  * listener closes the screen before it can leave the page (D-321), and the
  * page gives focus back to the view control on the way out.
  */
-export interface SkyScreenProps extends Required<Pick<SkyChartProps, 'passes' | 'observer' | 'now'>>, Partial<Pick<SkyChartProps, 'sun' | 'moon' | 'highlightedPassId'>> {
+export interface SkyScreenProps extends Required<Pick<SkyChartProps, 'passes' | 'observer' | 'now'>>, Partial<Pick<SkyChartProps, 'sun' | 'moon' | 'highlightedPassId' | 'initialFacingAzDeg'>> {
   /** FR-FSC-2: the `×` and `Esc`; the page decides what closing restores. */
   onClose: () => void;
 }
@@ -59,7 +59,7 @@ const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select
  * highlight is the pass detail's explained pass and nothing on the live page,
  * where every arc is equal.
  */
-export function SkyScreen({ passes, observer, now, sun, moon, highlightedPassId = null, onClose }: SkyScreenProps) {
+export function SkyScreen({ passes, observer, now, sun, moon, highlightedPassId = null, initialFacingAzDeg, onClose }: SkyScreenProps) {
   const t = useT();
   const layerRef = useRef<HTMLDivElement>(null);
   const landscape = useMediaQuery(LANDSCAPE_QUERY);
@@ -120,8 +120,12 @@ export function SkyScreen({ passes, observer, now, sun, moon, highlightedPassId 
         {...(moon === undefined ? {} : { moon })}
         colorBy="pass"
         screen
-        // The facing the window shows before its first reading; the same 0 the pages passed while the window was a view of them.
-        initialFacingAzDeg={0}
+        /*
+         * The facing the window shows before its first reading. The live page passes 0 — its sky has no one
+         * pass to aim at — and the pass detail passes none, so R47's placeholder aims the box at the pass the
+         * guide is about and its key is in view from the first frame (D-188).
+         */
+        {...(initialFacingAzDeg === undefined ? {} : { initialFacingAzDeg })}
         overlay={
           <button type="button" ref={closeRef} className={styles.close} aria-label={t.chart.screenClose} onClick={onClose} data-testid="sky-screen-close">
             ×
