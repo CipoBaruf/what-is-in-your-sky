@@ -1510,7 +1510,7 @@ Delivery is PLAN §16 unchanged, cut by §16.14: six tasks, five waves, one task
     - `npm test`, lint and typecheck green; no other spec file changed.
     - F-64's row in spec §4.20 is marked closed with this PR's number, and no other row is touched.
 
-- [ ] **R68 — F-57 and F-58: the window stops doing the same work twice per render** [P]
+- [x] **R68 — F-57 and F-58: the window stops doing the same work twice per render** [P] — closed; SPEC.md §4.20's PR number is filled in once known (R60 precedent).
   - **Lane:** window
   - **Model:** sonnet
   - **Gate:** auto
