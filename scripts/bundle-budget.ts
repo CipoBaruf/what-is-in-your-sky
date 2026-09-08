@@ -107,6 +107,31 @@ export interface Budget {
  * follow control and R56's ground state on one, nothing on the other's own
  * code) but neither crosses a 5 KB line, so both budgets hold at the floor.
  *
+ * R65 re-sets them again on the 1.3.0 build (SPEC §9 Phase 2d, D-345, D-346),
+ * built the same way. One row moves and one row goes. `SkyWindow-*.js`
+ * measures 12.0 KB against a budget of 10, because v1.3.1 took the last
+ * caller of `useDeclination` off the live page (D-341) and left the window as
+ * its only one, so Vite folds the World Magnetic Model back into the window
+ * chunk: 5.9 + 6.1 is the 12.0, and neither number grew. ×1.1 is 13.2, so the
+ * budget follows to 15 and the declination row is deleted rather than left
+ * matching nothing — an unmatched budget prints a `::warning::` of its own,
+ * which would have been a permanent one:
+ *
+ * | chunk          | file                  | measured | budget | was | ceiling |
+ * |----------------|-----------------------|---------:|-------:|----:|--------:|
+ * | main           | `index-*.js`          |    137.9 |    155 | 155 |     170 |
+ * | chart          | `SkyDome-*.js`        |     94.2 |    105 | 105 |     110 |
+ * | worker         | `passes.worker-*`     |     36.1 |     40 |  40 |     130 |
+ * | astronomy      | `skyBodies-*.js`      |     22.1 |     25 |  25 |      30 |
+ * | window         | `SkyWindow-*.js`      |     12.0 |     15 |  10 |       — |
+ * | live           | `Live-*.js`           |      7.4 |     10 |  10 |      40 |
+ * | service worker | `workbox-*.js`        |      5.0 |     10 |  10 |      15 |
+ *
+ * `main` measures 1.3 KB above the 1.2.0 build (137.9 against 136.6) — the
+ * sky screen's copy and the view control's third option — and ×1.1 (151.7)
+ * stays inside the 155 the phase before it crossed. `live` falls 0.6 KB with
+ * the follow control deleted (D-350). Every other chunk measures what it did.
+ *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
  *
@@ -128,21 +153,22 @@ export interface Budget {
  *   never open. R44 doubled it: `geomagnetism` and the four WMM coefficient
  *   files are 6.3 KB gzipped of the 12.6 (D-185 measured 6.2 with esbuild), and
  *   they land here rather than in main because `lib/declination.ts` is reached
- *   only from the live page. R47 then split that model into the declination
- *   chunk below and left the budget at 15; R53 re-measured 7.6 on the 1.1.0
- *   build with v1.1's live page in it and put the budget back on the 10 KB
- *   floor, well under the §11 ceiling of 40.
+ *   only from the live page. R47 then split that model into a declination
+ *   chunk the live page and the window shared, and left the budget at 15; R53
+ *   re-measured 7.6 on the 1.1.0 build with v1.1's live page in it and put the
+ *   budget back on the 10 KB floor, well under the §11 ceiling of 40. R66 took
+ *   the live page's last call to it away (D-341), so the shared chunk is gone
+ *   and the model is the window's alone; 7.4 KB on the 1.3.0 build.
  * - **window** — `window/SkyWindow.tsx`, its projection and its orientation
  *   hook, behind the second `React.lazy` in `SkyChart.tsx` (R47, D-188): SVG
  *   and arithmetic, no library, so 5.3 KB gzipped on the R47 build and the
  *   10 KB floor as its budget. The chart chunk did not move: the window shares
- *   nothing with glyphcss.
- * - **declination** — `live/useDeclination.ts`, `lib/declination.ts` and the
- *   World Magnetic Model behind them. R44 put them in the live chunk; the
- *   window reaches them too (FR-WIN-3), so Vite splits them into a chunk both
- *   pages share and the live chunk falls back to 6.3 KB. 6.1 KB measured on the
- *   R47 build and again on 1.1.0, the 10 KB floor as its budget: the model is
- *   the whole chunk, so what would move this number is a new coefficient set.
+ *   nothing with glyphcss. Since v1.3.1 it also carries `useDeclination`,
+ *   `lib/declination.ts` and the World Magnetic Model — R44 put them in the
+ *   live chunk, R47 split them out into a chunk the live page and the window
+ *   shared (FR-WIN-3), and R66 left the window as the only caller, so Vite
+ *   folds them back in here. 12.0 KB on the 1.3.0 build against a budget of
+ *   15, and what would move the model's 6.1 of that is a new coefficient set.
  * - **service worker** — Workbox's runtime and the precache manifest, emitted
  *   at the site root rather than under `assets/` because a worker's scope is
  *   the directory it is served from (D-79). Nothing the page downloads to
@@ -159,8 +185,7 @@ export const BUDGETS: readonly Budget[] = [
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10 },
   { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 25 },
   { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 10 }, // R53: back to the floor — R47 moved the World Magnetic Model to its own chunk and 1.1.0 measures 7.6 (D-178)
-  { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 10 }, // R47: 5.3 measured, floored at 10 (D-178)
-  { name: 'declination', match: (file) => /^useDeclination-.*\.js$/.test(file), limitKb: 10 }, // R47: split out of live once the window reached it too
+  { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 15 }, // R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345)
 ];
 
 export interface ChunkSize {
