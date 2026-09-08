@@ -208,13 +208,14 @@ export const LIVE_KEPT_ROWS_PX: readonly number[] = [TAP_PX, TAP_PX, TAP_PX, 3 *
 export const LIVE_KEPT_GAPS = 5;
 export const LIVE_KEPT_PX = LIVE_PAGE_PADDING_PX + LIVE_KEPT_ROWS_PX.reduce((sum, row) => sum + row, 0) + LIVE_KEPT_GAPS * LIVE_GAP_PX;
 /**
- * What each fold gives the box back, in px. `actions`: its own row (48), the four tap-target rows at one text
- * row (4 × 24), the five gaps at the compact token (5 × 2) and the strip's half row of air at the token (8),
- * less the line the actions take when the strip's fields already fill the first (24) — 138, as measured at
- * 1200 × 450 on the branch (a 107 px box unfolded, 245 folded).
+ * What each fold gives the box back, in px, measured at 1200 × 450 on the branch (a 107 px box unfolded, 213
+ * folded). `actions`: the top row and the controls row at one text row (24 each), the time row at its clock's
+ * heading line (22), the five gaps at the compact token (2 each), the strip's air at the token (8), and the
+ * actions' own row (48) less the second line they take beside the strip's fields (24) and the half row under
+ * the last line's hit box (6).
  */
 export const LIVE_FOLD_GIVES_PX: Readonly<Record<LiveFold, number>> = {
-  actions: TAP_PX + 4 * (TAP_PX - ROW_PX) + LIVE_KEPT_GAPS * (LIVE_GAP_PX - ROW_PX / 6) + (ROW_PX / 2 - ROW_PX / 6) - ROW_PX,
+  actions: 2 * (TAP_PX - ROW_PX) + 22 + LIVE_KEPT_GAPS * (LIVE_GAP_PX - ROW_PX / 6) + (ROW_PX / 2 - ROW_PX / 6) + (TAP_PX - ROW_PX) - ROW_PX / 4,
 };
 
 /** FR-SHP-3: which rows the wide page folds at `heightPx` of viewport — the head of the order, as far as the floor asks. */

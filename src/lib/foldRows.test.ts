@@ -68,7 +68,7 @@ describe('the box floor and the fold (FR-SHP-3)', () => {
 
   it('gives the box back more than the row it names: the four tap rows at one text row and the gaps at the compact token', () => {
     expect(LIVE_FOLD_GIVES_PX.actions).toBeGreaterThan(TAP_PX);
-    // 48 for the row, 96 for the four rows, 10 for the five gaps, 8 for the strip's air, 24 back for the line the actions take: 138.
-    expect(LIVE_FOLD_GIVES_PX.actions).toBe(138);
+    // Measured at 1200 × 450: a 107 px box unfolded, 213 folded.
+    expect(LIVE_FOLD_GIVES_PX.actions).toBe(106);
   });
 });
