@@ -23,14 +23,18 @@ interface Registered {
 }
 
 /**
- * `(min-width: 960px)` (`useLayoutMode`) and, since R61, `(min-width: …px) and (min-height: …px)` — the dome
- * ladder's queries (`useDomeStep`, D-314). Nothing else: a query with neither is a mistake, not a match.
+ * `(min-width: 960px)` (`useLayoutMode`), since R61 `(min-width: …px) and (min-height: …px)` — the dome
+ * ladder's queries (`useDomeStep`, D-314) — and since R63 `(orientation: landscape)`, the follow screen's
+ * (D-323), which is the stubbed size read the way CSS reads it: landscape unless it is taller than it is wide.
+ * Nothing else: a query with none of the three is a mistake, not a match.
  */
 function evaluate(query: string, widthPx: number, heightPx: number): boolean {
   const min = /min-width:\s*(\d+(?:\.\d+)?)px/.exec(query);
   const minHeight = /min-height:\s*(\d+(?:\.\d+)?)px/.exec(query);
-  if (!min && !minHeight) throw new Error(`the matchMedia stub only understands min-width and min-height queries, not "${query}"`);
-  return (!min || widthPx >= Number(min[1])) && (!minHeight || heightPx >= Number(minHeight[1]));
+  const orientation = /orientation:\s*(landscape|portrait)/.exec(query);
+  if (!min && !minHeight && !orientation) throw new Error(`the matchMedia stub only understands min-width, min-height and orientation queries, not "${query}"`);
+  const landscape = widthPx >= heightPx;
+  return (!min || widthPx >= Number(min[1])) && (!minHeight || heightPx >= Number(minHeight[1])) && (!orientation || (orientation[1] === 'landscape') === landscape);
 }
 
 export function stubMatchMedia(widthPx: number, heightPx = DEFAULT_HEIGHT_PX): MatchMediaStub {
