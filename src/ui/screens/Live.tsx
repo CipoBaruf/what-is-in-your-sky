@@ -270,9 +270,26 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
    * The same children in the same order either way — the block is built once
    * and placed twice.
    */
+  /*
+   * R61 (FR-LIVE-7 as amended v1.2.1, V12-13, D-318): the playback controls belong with the stripe they drive.
+   * On wide they share the clock readout's row above the stripe — the time row — and the rail keeps what is
+   * about the sky: the strip, then the actions (hidden objects, follow, share). On compact the rows are R48's,
+   * unchanged: the readout over the stripe, the playback row and the actions under it.
+   */
+  const playbackControls = !windowMode && <PlaybackControls playing={playback.playing} speed={playback.speed} realTime={playback.realTime} onPlay={playback.play} onPause={playback.pause} onSpeed={playback.setSpeed} onNow={playback.toNow} />;
+  const readout = <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />;
   const stripeBlock = !windowMode && (
     <div className={styles.stripeBlock} data-testid="stripe-block">
-      <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />
+      {stripeUnder ? (
+        <div className={styles.timeRow} data-testid="time-row">
+          {readout}
+          <div className={styles.playbackRow} data-testid="playback-row">
+            {playbackControls}
+          </div>
+        </div>
+      ) : (
+        readout
+      )}
       <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} onScrub={playback.scrub} />
       {touch && <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} />}
     </div>
@@ -290,14 +307,13 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
         declinationDeg={windowMode ? declinationDeg : null}
       />
       {!stripeUnder && stripeBlock}
-      {!windowMode && (
+      {!windowMode && !stripeUnder && (
         <div className={styles.playbackRow} data-testid="playback-row">
-          <PlaybackControls playing={playback.playing} speed={playback.speed} realTime={playback.realTime} onPlay={playback.play} onPause={playback.pause} onSpeed={playback.setSpeed} onNow={playback.toNow} />
-          {!compact && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
+          {playbackControls}
         </div>
       )}
       <div className={styles.actions} data-testid="live-actions">
-        {(compact || windowMode) && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
+        <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />
         {followable && <FollowPhone follow={follow} />}
         <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : t.live.share} ariaLabel={t.live.share} />
       </div>

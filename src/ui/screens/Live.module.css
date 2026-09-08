@@ -122,7 +122,17 @@
    Nothing overlaps at either phone height, and the page does not scroll
    (`live-compact.spec.ts`). */
 
-/* R48/R54: the playback controls and, on wide, the hidden-objects toggle beside them (FR-LIVE-7 as amended v1.1.1). */
+/* R61 (FR-LIVE-7 as amended v1.2.1, V12-13, D-318): on wide the clock readout and the playback controls share
+   one row above the stripe, under the dome — the controls beside the instant they set. The readout keeps its
+   heading size; the controls sit on its baseline, two cells off, and wrap under it in a box too narrow for both. */
+.timeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 calc(2 * var(--cell));
+}
+
+/* R48/R54: the playback controls (FR-LIVE-7 as amended v1.1.1); R61 (V12-13): on wide, on the time row. */
 .playbackRow {
   display: flex;
   flex-wrap: wrap;

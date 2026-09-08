@@ -290,7 +290,7 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
     expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
-    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'playback-row', 'live-actions']);
+    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'live-actions']);
     // The narrowest wide page: the same.
     act(() => {
       media?.setSize(WIDE_MIN_PX, 700);
@@ -307,26 +307,32 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('stripe-block').closest('[data-testid="live-side"]')).not.toBeNull();
   });
 
-  /** R54 (FR-LIVE-7 as amended v1.1.1, FR-TRAJ-5, D-268): the wide rows, and the stepping row only with touch. */
-  it('on wide puts the hidden-objects toggle on the playback row and draws the stepping row only where the page has touch', () => {
+  /**
+   * R54 (FR-LIVE-7 as amended v1.1.1, FR-TRAJ-5, D-268) and R61 (V12-13, D-318): the wide rows — the playback
+   * controls on the clock's row above the stripe, the hidden-objects toggle with the actions in the rail — and
+   * the stepping row only with touch.
+   */
+  it('on wide puts the playback controls on the time row above the stripe, the hidden-objects toggle with the actions, and draws the stepping row only where the page has touch', () => {
     withSky();
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
-    // Compact, no touch: the toggle is on the actions row, and the block is the readout and the stripe alone.
+    // Compact, no touch: the toggle is on the actions row, the playback row is the page's own, and the block is the readout and the stripe alone.
     expect(within(screen.getByTestId('live-actions')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
-    expect(within(screen.getByTestId('playback-row')).queryByTestId('live-hidden-toggle')).toBeNull();
+    expect(screen.getByTestId('playback-row').parentElement).toBe(screen.getByTestId('live-side'));
     expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'time-stripe']);
     unmount();
     media = stubMatchMedia(1280, 800);
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 1 });
     render(<LivePage link={null} onLeave={() => undefined} />);
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
-    expect(within(screen.getByTestId('playback-row')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
-    expect(within(screen.getByTestId('live-actions')).queryByTestId('live-hidden-toggle')).toBeNull();
-    // The side column keeps the compact order less the stripe block, which is the frame's row under the box on wide (D-315).
-    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'playback-row', 'live-actions']);
+    // The rail is the strip and the actions, the toggle among them.
+    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'live-actions']);
+    expect(within(screen.getByTestId('live-actions')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
+    // The stripe block is the frame's row under the box (D-315): the time row — the readout and the playback row — then the stripe, then the stepping row.
     expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
-    expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'time-stripe', 'step-controls']);
+    expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-row', 'time-stripe', 'step-controls']);
+    expect([...screen.getByTestId('time-row').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'playback-row']);
+    expect(within(screen.getByTestId('playback-row')).getByRole('button', { name: 'Play' })).toBeInTheDocument();
   });
 
   /** R48 (FR-TRAJ-1, FR-TRAJ-3, US-22 AC1..AC3, D-189): the arcs appear, grow and fade with the shown instant, and the legend says the same. */

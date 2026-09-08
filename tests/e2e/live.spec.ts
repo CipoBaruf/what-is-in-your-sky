@@ -278,17 +278,22 @@ test.describe('the wide live page (R61)', () => {
     const block = await page.getByTestId('stripe-block').boundingBox();
     const playback = await page.getByTestId('playback-row').boundingBox();
     const actions = await page.getByTestId('live-actions').boundingBox();
-    for (const row of [strip, playback, actions]) rightOf(row, box);
-    below(playback, strip);
-    below(actions, playback);
+    for (const row of [strip, actions]) rightOf(row, box);
+    below(actions, strip);
     if (stripe === 'in the rail') {
       rightOf(block, box);
+      rightOf(playback, box);
       below(block, strip);
       below(playback, block);
+      below(actions, playback);
     } else {
+      // V12-13: the playback row is the stripe block's, on the clock's row above the stripe, under the box.
       below(block, box);
       expect(block?.x ?? 0).toBeCloseTo(box?.x ?? -1, 0);
       expect(block?.width ?? 0).toBeCloseTo(box?.width ?? -1, 0);
+      band(playback, block);
+      const stripeRows = await page.getByTestId('time-stripe').boundingBox();
+      below(stripeRows, playback);
     }
   };
 
@@ -302,7 +307,7 @@ test.describe('the wide live page (R61)', () => {
     }
   };
 
-  test('at 1920 × 1080: one row above the box, the strip and the controls in the rail beside it, the stripe under the box, nothing scrolls, no stepping row', async ({ page }) => {
+  test('at 1920 × 1080: one row above the box, the strip and the actions in the rail beside it, the stripe under the box with the playback on its clock row, nothing scrolls, no stepping row', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
@@ -316,8 +321,8 @@ test.describe('the wide live page (R61)', () => {
     below(box, toggle);
     await expectTheRail(page, box, 'under the box');
     await expectLabelsClear(page);
-    // The hidden-objects toggle is on the playback row, and there is no stepping row without touch.
-    await expect(page.getByTestId('playback-row').getByTestId('live-hidden-toggle')).toBeVisible();
+    // The hidden-objects toggle is with the actions in the rail (V12-13), and there is no stepping row without touch.
+    await expect(page.getByTestId('live-actions').getByTestId('live-hidden-toggle')).toBeVisible();
     await expect(page.getByTestId('step-controls')).toHaveCount(0);
     // The box is the dome's shape and reaches the page's bottom through the stripe (D-314), and the page does not scroll.
     await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');

@@ -3,7 +3,8 @@
  * columns and the box is cut to the drawing's own shape. The status strip, the
  * playback row and the share action are a rail beside the box, under the
  * legend; the stripe block is a row of its own under the box, the box's width,
- * at every wide width (V12-12); and the box is the largest rectangle of the
+ * at every wide width (V12-12), the playback controls on its clock's row
+ * (V12-13); and the box is the largest rectangle of the
  * dome's own shape the frame leaves — as tall as the rows allow
  * or as wide as the space beside the rail, whichever binds first.
  *
@@ -83,10 +84,10 @@ for (const [width, height] of [
       const widthBound = width - (rail.x + rail.width) <= UNDER_PX;
       expect(heightBound || widthBound, `the box is bound by the height (${String(height - lowest)} px under it) or by the width (${String(width - rail.x - rail.width)} px past the rail)`).toBe(true);
 
-      // The rail is a column beside the box, and the three rows are in it, top to bottom.
+      // The rail is a column beside the box, and its two rows are in it, top to bottom (V12-13: the playback row is the stripe's).
       expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
       let above = 0;
-      for (const id of ['status-strip', 'playback-row', 'live-actions']) {
+      for (const id of ['status-strip', 'live-actions']) {
         const row = await page.getByTestId(id).boundingBox();
         if (!row) throw new Error(`${id} is not laid out`);
         expect(row.x, `${id} is in the rail`).toBeGreaterThanOrEqual(rail.x - 1);
@@ -102,6 +103,19 @@ for (const [width, height] of [
       expect(block.x).toBeCloseTo(box.x, 0);
       expect(block.width).toBeCloseTo(box.width, 0);
       expect(await page.locator('[data-row="labels"] text').count()).toBeGreaterThanOrEqual(8);
+      // D-318: the playback controls share the clock's row above the stripe, under the box — not the rail. Beside
+      // the clock where the box is wide enough for both, wrapped under it where it is not (the short desktop's
+      // 590 px box), and in either case above the stripe's rows and left of the rail.
+      const clock = await page.getByTestId('time-readout').boundingBox();
+      const playback = await page.getByTestId('playback-row').boundingBox();
+      const stripe = await page.getByTestId('time-stripe').boundingBox();
+      if (!clock || !playback || !stripe) throw new Error('the time row is not laid out');
+      expect(playback.x + playback.width).toBeLessThanOrEqual(rail.x + 1);
+      expect(playback.y).toBeGreaterThanOrEqual(box.y + box.height - 1);
+      expect(playback.y + playback.height).toBeLessThanOrEqual(stripe.y + 1);
+      const beside = playback.x >= clock.x + clock.width - 1 && playback.y < clock.y + clock.height && playback.y + playback.height > clock.y;
+      const wrapped = playback.y >= clock.y + clock.height - 1 && Math.abs(playback.x - clock.x) <= 1;
+      expect(beside || wrapped, `the playback row is beside the clock or wrapped under it (clock ${String(clock.x)},${String(clock.y)} ${String(clock.width)}×${String(clock.height)}; playback ${String(playback.x)},${String(playback.y)} ${String(playback.width)}×${String(playback.height)})`).toBe(true);
 
       // The page never scrolls to make room: the box was cut from what fits.
       expect(await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight])).toEqual([width, height]);
