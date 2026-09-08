@@ -18,7 +18,7 @@ import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../tests/support/catalogFixtures';
 import { en } from '../../i18n/en';
-import { WIDE_MIN_PX } from '../../lib/layout';
+import { LIVE_TWO_COLUMN_MIN_PX, WIDE_MIN_PX } from '../../lib/layout';
 import { isoInstant } from '../../lib/shareLinks';
 import { skyBodiesAt } from '../../lib/skyBodies';
 import type { ChartView, Observer, Pass } from '../../model';
@@ -253,17 +253,31 @@ describe('<LivePage>', () => {
    * placement is React's and asserted here; the width the rail takes is the
    * stylesheet's, read from the file because jsdom lays nothing out.
    */
-  it('gives the side column to the chart on wide and keeps it in the page on compact', () => {
+  it('gives the side column to the chart on the two-column page, and keeps it in the page on compact and on the one-column page', () => {
     withSky();
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'true');
+    expect(screen.getByTestId('live-page')).toHaveAttribute('data-columns', 'compact');
     expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).toBeNull();
     expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
     unmount();
-    media = stubMatchMedia(1280, 800);
+    // D-319: under 1660 px the wide page is one column — the frame stacks, the page keeps its row.
+    media = stubMatchMedia(LIVE_TWO_COLUMN_MIN_PX - 1, 800);
+    const one = render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.getByTestId('live-page')).toHaveAttribute('data-columns', 'one');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'false');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
+    expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
+    expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\]\[data-columns='one'\] \{\n\s+grid-template-areas:\n\s+'top'\n\s+'dome'\n\s+'side';/);
+    one.unmount();
+    media.restore();
+    media = stubMatchMedia(LIVE_TWO_COLUMN_MIN_PX, 1080);
     render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.getByTestId('live-page')).toHaveAttribute('data-columns', 'two');
     expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).not.toBeNull();
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'false');
     // The fluid rail is 26 % of the frame between 44 and 60 cells, so its share falls as the page grows (D-313); the page's third row goes with the rows that moved.
     expect(readFileSync('src/ui/components/guide/skychart/ChartFrame.module.css', 'utf8')).toMatch(
       /\[data-aside='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\) clamp\(calc\(44 \* var\(--cell\)\), 26%, calc\(60 \* var\(--cell\)\)\);/,
@@ -291,11 +305,15 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
     expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
     expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'live-actions']);
-    // The narrowest wide page: the same.
+    // The narrowest wide page: the same stripe row, in the one-column frame (D-319), the side row the page's own.
     act(() => {
       media?.setSize(WIDE_MIN_PX, 700);
     });
     expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-columns', 'one');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
+    expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
     // Compact: no cut box, no stripe row; the block is a row of the page's own side column.
     act(() => {
@@ -325,7 +343,7 @@ describe('<LivePage>', () => {
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 1 });
     render(<LivePage link={null} onLeave={() => undefined} />);
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
-    // The rail is the strip and the actions, the toggle among them.
+    // The side row (the page's own at 1280, the rail from 1660) is the strip and the actions, the toggle among them.
     expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'live-actions']);
     expect(within(screen.getByTestId('live-actions')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
     // The stripe block is the frame's row under the box (D-315): the time row — the readout and the playback row — then the stripe, then the stepping row.

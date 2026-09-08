@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
+import { LIVE_TWO_COLUMN_QUERY } from '../../lib/layout';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import type { Span } from '../../lib/timeStripe';
@@ -29,6 +30,7 @@ import { useSkyBands } from '../components/live/useSkyBands';
 import { useWakeLock } from '../components/live/useWakeLock';
 import { useWallThrottle } from '../components/live/useWallThrottle';
 import { useLayoutMode } from '../hooks/useLayoutMode';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useNow } from '../hooks/useNow';
 import styles from './Live.module.css';
 
@@ -105,6 +107,9 @@ export function LivePage({ link, onLeave }: LivePageProps) {
    * (R52). Wide has the room and keeps them, as R32 laid the page out.
    */
   const compact = useLayoutMode() === 'compact';
+  // D-319: the page's rows follow the column count the frame is in (`LiveSky` reads the same query for the frame).
+  const twoColumns = useMediaQuery(LIVE_TWO_COLUMN_QUERY);
+  const columns = compact ? 'compact' : twoColumns ? 'two' : 'one';
 
   // FR-LIVE-1: Esc returns. R35 moves this into the app-wide listener.
   useEffect(() => {
@@ -124,7 +129,7 @@ export function LivePage({ link, onLeave }: LivePageProps) {
   const wakeLock = useWakeLock(inert === null);
 
   return (
-    <div className={styles.page} data-testid="live-page" data-state={inert === null ? 'live' : 'inert'} data-wake-lock={wakeLock} data-compact={compact}>
+    <div className={styles.page} data-testid="live-page" data-state={inert === null ? 'live' : 'inert'} data-wake-lock={wakeLock} data-compact={compact} data-columns={columns}>
       <div className={styles.topRow} data-testid="live-top-row">
         <button type="button" className={styles.back} onClick={onLeave}>
           {t.live.back}
@@ -190,11 +195,17 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   const t = useT();
   const compact = useLayoutMode() === 'compact';
   /*
-   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315): on wide the box is cut to the dome's own aspect from what
-   * the frame leaves it (`boxAspect`), and the stripe block stands under the box rather than in the rail — the
-   * owner's stripe at the bottom of the dome, at every wide width (V12-12). Compact ignores both.
+   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315, D-319): on wide the box is cut to the dome's own aspect
+   * from what the frame leaves it (`boxAspect`), and the stripe block stands under the box rather than in the
+   * rail — the owner's stripe at the bottom of the dome, at every wide width (V12-12). From
+   * `LIVE_TWO_COLUMN_MIN_PX` the page is two columns, the rail beside the box; under it, one column — the
+   * frame stacks the drawing, the stripe and the legend, centred, and the page's own row of the strip and the
+   * actions is under the frame, as on compact (V12-14). Compact ignores all three.
    */
+  const twoColumns = useMediaQuery(LIVE_TWO_COLUMN_QUERY);
   const stripeUnder = !compact;
+  const oneColumn = !compact && !twoColumns;
+  const columns = compact ? 'compact' : oneColumn ? 'one' : 'two';
   const passesState = useAppStore((s) => s.passes);
   const weather = useAppStore((s) => s.weather);
   const liveHidden = useAppStore((s) => s.liveHidden);
@@ -322,7 +333,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
 
   return (
     <>
-      <div className={styles.dome} data-testid="live-dome" data-stripe-under={stripeUnder}>
+      <div className={styles.dome} data-testid="live-dome" data-stripe-under={stripeUnder} data-columns={columns}>
         <SkyChart
           passes={chartPasses}
           observer={observer}
@@ -334,12 +345,12 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           colorBy="pass"
           fill
           initialFacingAzDeg={0}
-          {...(compact ? {} : { aside: side })}
-          {...(compact ? {} : { boxAspect: DOME_BOX_ASPECT })}
+          {...(columns === 'two' ? { aside: side } : {})}
+          {...(compact ? {} : { boxAspect: DOME_BOX_ASPECT, stacked: oneColumn })}
           {...(stripeUnder ? { stripe: stripeBlock } : {})}
         />
       </div>
-      {compact && side}
+      {columns !== 'two' && side}
     </>
   );
 }

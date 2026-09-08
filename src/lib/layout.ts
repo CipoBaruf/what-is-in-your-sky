@@ -137,3 +137,16 @@ export function fitBox({ frameWidthPx, frameHeightPx, aboveHeightPx, belowHeight
   if (heightPx * aspect <= widthPx) return { widthPx: Math.floor(heightPx * aspect), heightPx: Math.floor(heightPx) };
   return { widthPx: Math.floor(widthPx), heightPx: Math.floor(widthPx / aspect) };
 }
+
+/**
+ * FR-LIVE-7 as amended (v1.2.1, V12-14, D-319): the viewport width from which
+ * the wide live page is two columns — the box with the rail beside it. Below
+ * it, and above `WIDE_MIN_PX`, the page is one column: the box, the stripe and
+ * the legend stacked and centred at the box's width, the status strip and the
+ * actions on one line under them. The owner's number, 2026-09-08: under it the
+ * rail is the 44-cell minimum beside a box the height has already cut down,
+ * and the page reads better as one centred column. A px literal, like the
+ * other thresholds, read by `useMediaQuery` and never written in a stylesheet.
+ */
+export const LIVE_TWO_COLUMN_MIN_PX = 1660;
+export const LIVE_TWO_COLUMN_QUERY = `(min-width: ${String(LIVE_TWO_COLUMN_MIN_PX)}px)`;

@@ -129,6 +129,14 @@ export interface SkyChartProps {
    */
   boxAspect?: number;
   /**
+   * FR-LIVE-7 as amended (v1.2.1) / D-319 (R61): the one-column wide live page,
+   * below `LIVE_TWO_COLUMN_MIN_PX`. The frame stacks the drawing, the stripe
+   * and the legend, each centred at the box's width, instead of standing a
+   * rail beside the drawing; the page lays its own rows out under the frame.
+   * Absent, the frame is the two-column one where it has an `aside`.
+   */
+  stacked?: boolean;
+  /**
    * FR-LIVE-7 as amended (v1.1.1) / D-268, D-269 (R54): on the live page the
    * chart's own controls — the view toggle and its note — reach the view
    * already rendered, for the view to put first in `ChartFrame`'s controls

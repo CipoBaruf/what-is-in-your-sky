@@ -30,6 +30,7 @@
  * Every test sets its own viewport, so this file runs in the default project.
  */
 import { expect, test, type Page } from '@playwright/test';
+import { LIVE_TWO_COLUMN_MIN_PX } from '../../src/lib/layout';
 import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { fitFloor, MIN_EXTENT_RATIO, painted } from './domeInk';
 import { domeDrawn, seedStoredRun, stripFilled } from './liveHelpers';
@@ -65,52 +66,77 @@ for (const [width, height] of [
   [2560, 1235],
   [3840, 2160],
 ] as const) {
-  test.describe(`at ${String(width)} x ${String(height)}`, () => {
+  const twoColumns = width >= LIVE_TWO_COLUMN_MIN_PX;
+
+  test.describe(`at ${String(width)} x ${String(height)} (${twoColumns ? 'two columns' : 'one column'})`, () => {
     test.use({ viewport: { width, height } });
 
-    test("cuts the box to the dome's shape from what the window leaves, the rows beside it, the stripe under the box, and the drawing filling it both ways", async ({ page }) => {
+    test("cuts the box to the dome's shape from what the window leaves, places the rows, and fills the box both ways", async ({ page }) => {
       await openLive(page);
       await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
+      await expect(page.getByTestId('live-dome')).toHaveAttribute('data-columns', twoColumns ? 'two' : 'one');
       const box = await page.getByTestId('live-dome').getByTestId('chart-box').boundingBox();
-      const rail = await page.getByTestId('chart-aside').boundingBox();
       const block = await page.getByTestId('stripe-block').boundingBox();
-      if (!box || !rail || !block) throw new Error('the page is not laid out');
+      if (!box || !block) throw new Error('the page is not laid out');
 
-      // The box is the dome's shape, to the pixel the grid rounds to…
+      // The box is the dome's shape, to the pixel the grid rounds to.
       expect(box.width / box.height).toBeCloseTo(DOME_BOX_ASPECT, 2);
-      // …and the largest of that shape: either the lowest row reaches the page's bottom, or the rail is hard against the page's right edge.
-      const lowest = block.y + block.height;
-      const heightBound = height - lowest <= UNDER_PX;
-      const widthBound = width - (rail.x + rail.width) <= UNDER_PX;
-      expect(heightBound || widthBound, `the box is bound by the height (${String(height - lowest)} px under it) or by the width (${String(width - rail.x - rail.width)} px past the rail)`).toBe(true);
 
-      // The rail is a column beside the box, and its two rows are in it, top to bottom (V12-13: the playback row is the stripe's).
-      expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
-      let above = 0;
-      for (const id of ['status-strip', 'live-actions']) {
-        const row = await page.getByTestId(id).boundingBox();
-        if (!row) throw new Error(`${id} is not laid out`);
-        expect(row.x, `${id} is in the rail`).toBeGreaterThanOrEqual(rail.x - 1);
-        expect(row.y, `${id} is under the row before it`).toBeGreaterThanOrEqual(above - 1);
-        above = row.y + row.height;
+      let rightEdge: number = width;
+      if (twoColumns) {
+        // D-312: the rail is a column beside the box, and its two rows are in it, top to bottom (V12-13: the playback row is the stripe's).
+        const rail = await page.getByTestId('chart-aside').boundingBox();
+        if (!rail) throw new Error('no rail');
+        expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
+        let above = 0;
+        for (const id of ['status-strip', 'live-actions']) {
+          const row = await page.getByTestId(id).boundingBox();
+          if (!row) throw new Error(`${id} is not laid out`);
+          expect(row.x, `${id} is in the rail`).toBeGreaterThanOrEqual(rail.x - 1);
+          expect(row.y, `${id} is under the row before it`).toBeGreaterThanOrEqual(above - 1);
+          above = row.y + row.height;
+        }
+        rightEdge = rail.x;
+        // …and the largest of that shape: either the lowest row reaches the page's bottom, or the rail is hard against the page's right edge.
+        const heightBound = height - (block.y + block.height) <= UNDER_PX;
+        const widthBound = width - (rail.x + rail.width) <= UNDER_PX;
+        expect(heightBound || widthBound, `the box is bound by the height (${String(height - block.y - block.height)} px under it) or by the width (${String(width - rail.x - rail.width)} px past the rail)`).toBe(true);
+      } else {
+        // D-319 (V12-14): one column — no rail; the box, the stripe and the legend centred at the box's width, and
+        // the strip with the actions on one line under the frame, centred; the lowest row reaches the page's bottom.
+        await expect(page.getByTestId('chart-aside')).toHaveCount(0);
+        await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
+        expect(Math.abs(box.x + box.width / 2 - width / 2), 'the box is centred').toBeLessThanOrEqual(2);
+        const legend = await page.getByTestId('chart-legend-slot').boundingBox();
+        const side = await page.getByTestId('live-side').boundingBox();
+        const strip = await page.getByTestId('status-strip').boundingBox();
+        const actions = await page.getByTestId('live-actions').boundingBox();
+        if (!legend || !side || !strip || !actions) throw new Error('the rows are not laid out');
+        expect(legend.y).toBeGreaterThanOrEqual(block.y + block.height - 1);
+        expect(Math.abs(legend.x + legend.width / 2 - width / 2), 'the legend is centred').toBeLessThanOrEqual(2);
+        expect(side.y).toBeGreaterThanOrEqual(legend.y + legend.height - 1);
+        expect(Math.abs(strip.y - actions.y), 'the strip and the actions share a line').toBeLessThanOrEqual(strip.height);
+        expect(height - (side.y + side.height)).toBeLessThanOrEqual(UNDER_PX);
       }
 
       // D-315 (V12-12): a row of the frame's own under the box at every wide width, the box's width. Its
       // cadence is the stripe's own (FR-TRAJ-4, `labelEveryHours` on the width it measures): every two hours
       // where twelve labels fit — eleven or twelve, one slot being the date at midnight — and every three
-      // hours in the short desktop's narrower box, eight or nine. `live.spec.ts` holds that none overlap.
+      // hours in a narrower box, eight or nine — six where `keepLabels` drops the ones that would touch, in the
+      // short one-column window's 40-cell box. `live.spec.ts` holds that none overlap.
       expect(block.y).toBeGreaterThanOrEqual(box.y + box.height - 1);
-      expect(block.x).toBeCloseTo(box.x, 0);
-      expect(block.width).toBeCloseTo(box.width, 0);
-      expect(await page.locator('[data-row="labels"] text').count()).toBeGreaterThanOrEqual(8);
+      // Centred on the box and never narrower than it: the box's width, or the 60-cell floor over a box a short window cut smaller.
+      expect(Math.abs(block.x + block.width / 2 - (box.x + box.width / 2))).toBeLessThanOrEqual(2);
+      expect(block.width).toBeGreaterThanOrEqual(box.width - 1);
+      expect(await page.locator('[data-row="labels"] text').count()).toBeGreaterThanOrEqual(6);
       // D-318: the playback controls share the clock's row above the stripe, under the box — not the rail. Beside
-      // the clock where the box is wide enough for both, wrapped under it where it is not (the short desktop's
-      // 590 px box), and in either case above the stripe's rows and left of the rail.
+      // the clock where the box is wide enough for both, wrapped under it where it is not, and in either case
+      // above the stripe's rows and left of the rail.
       const clock = await page.getByTestId('time-readout').boundingBox();
       const playback = await page.getByTestId('playback-row').boundingBox();
       const stripe = await page.getByTestId('time-stripe').boundingBox();
       if (!clock || !playback || !stripe) throw new Error('the time row is not laid out');
-      expect(playback.x + playback.width).toBeLessThanOrEqual(rail.x + 1);
+      expect(playback.x + playback.width).toBeLessThanOrEqual(rightEdge + 1);
       expect(playback.y).toBeGreaterThanOrEqual(box.y + box.height - 1);
       expect(playback.y + playback.height).toBeLessThanOrEqual(stripe.y + 1);
       const beside = playback.x >= clock.x + clock.width - 1 && playback.y < clock.y + clock.height && playback.y + playback.height > clock.y;
@@ -123,27 +149,15 @@ for (const [width, height] of [
       // …and the drawing in it: at least 90 % across and down, centred, not two thirds of it with the top cut off.
       // One load per size (FR-CI-1): the coverage is read off the same page as the layout.
       const dome = page.getByTestId('live-dome');
-      /*
-       * Polled, not read once: the raster re-fits its box on a `ResizeObserver`, and on a loaded machine
-       * the first paint after `domeDrawn` can still be the mount's. The value polled is the coverage
-       * normalised to FR-DOME-1's own floor, so a platform that rounds the glyph advance to a whole device
-       * pixel — where the whole drawing is measurably smaller (D-293) — is compared on the same scale.
-       */
       await expect
         .poll(async () => {
-          const box = await dome.getByTestId('chart-box').boundingBox();
-          if (!box) return 0;
+          const boxNow = await dome.getByTestId('chart-box').boundingBox();
+          if (!boxNow) return 0;
           const { extent, layers } = await painted(dome.locator('[data-drawing="dome"]'));
           if (layers.length === 0) return 0;
-          return (extent.width / box.width) * (MIN_EXTENT_RATIO / fitFloor(layers, box.width));
+          return (extent.width / boxNow.width) * (MIN_EXTENT_RATIO / fitFloor(layers, boxNow.width));
         }, { message: 'the drawing over the width of its box, at FR-DOME-1’s own floor' })
         .toBeGreaterThanOrEqual(MIN_EXTENT_RATIO);
-      /*
-       * D-317 (F-61): and down — the bowl's silhouette is in the box, not cut at its top edge, and the
-       * drawing sits in the middle: the blank above it and the blank below it are within a cell of each
-       * other. On the old rule the extent ran to the box's top row (no blank above, a fifth of the box
-       * blank below) and the outline of the bowl was missing.
-       */
       const { extent, layers } = await painted(dome.locator('[data-drawing="dome"]'));
       const cell = Math.max(...layers.map((layer) => layer.cellWidthPx)) * 2;
       expect(extent.height / box.height).toBeGreaterThanOrEqual(fitFloor(layers, box.width));

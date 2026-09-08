@@ -54,21 +54,32 @@ export interface ChartFrameProps {
    * fluid.
    */
   boxAspect?: number;
+  /**
+   * FR-LIVE-7 as amended (v1.2.1, D-319): the one-column wide live page. The
+   * drawing, the stripe and the legend stack, each centred at the box's width,
+   * and the box is cut from the frame's whole width and the height the three
+   * rows leave. Only meaningful on a wide fill frame without an aside.
+   */
+  stacked?: boolean;
   className?: string;
   /** FR-LIVE-1 (R32): the drawing takes the frame's whole height instead of a capped square; the frame takes its parent's. */
   fill?: boolean;
   children: ReactNode;
 }
 
-export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect, className, fill = false, children }: ChartFrameProps) {
+export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect, stacked = false, className, fill = false, children }: ChartFrameProps) {
   const compact = useLayoutMode() === 'compact';
   const frameRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
   const stripeRef = useRef<HTMLDivElement>(null);
   const railProbeRef = useRef<HTMLSpanElement>(null);
+  const legendRef = useRef<HTMLDivElement>(null);
   const hasAside = aside !== undefined && aside !== null;
   const hasStripe = stripe !== undefined && stripe !== null;
-  const boxed = fill && !compact && hasAside && boxAspect !== undefined;
+  const hasLegend = legend !== undefined && legend !== null;
+  // D-319: stacked only where there is no rail to stand beside; an aside wins, since the rail is what it is for.
+  const isStacked = stacked && !hasAside;
+  const boxed = fill && !compact && boxAspect !== undefined && (hasAside || isStacked);
 
   /*
    * R61 (FR-LIVE-7 as amended v1.2.1, D-314, F-59): the aspect-locked box. The frame is as tall as the page's
@@ -86,15 +97,18 @@ export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect,
       const gap = parseFloat(getComputedStyle(frame).rowGap) || 0;
       const columnGap = parseFloat(getComputedStyle(frame).columnGap) || 0;
       const above = controlsRef.current?.getBoundingClientRect().height ?? 0;
-      const below = stripeRef.current?.getBoundingClientRect().height ?? 0;
+      const stripeHeight = stripeRef.current?.getBoundingClientRect().height ?? 0;
+      // D-319: stacked, the legend is a row under the stripe and costs the box its height too; beside, it is the rail's.
+      const legendHeight = isStacked ? (legendRef.current?.getBoundingClientRect().height ?? 0) : 0;
+      const below = (stripeHeight > 0 ? stripeHeight + gap : 0) + (legendHeight > 0 ? legendHeight + gap : 0);
       const rail = railProbeRef.current?.getBoundingClientRect().width ?? 0;
       const { width, height } = frame.getBoundingClientRect();
       const box = fitBox({
         frameWidthPx: width,
         frameHeightPx: height,
         aboveHeightPx: above + gap,
-        belowHeightPx: below > 0 ? below + gap : 0,
-        besideWidthPx: rail + columnGap,
+        belowHeightPx: below,
+        besideWidthPx: isStacked ? 0 : rail + columnGap,
         aspect: boxAspect,
       });
       const next = { w: `${String(box.widthPx)}px`, h: `${String(box.heightPx)}px` };
@@ -106,13 +120,14 @@ export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect,
     // The stripe row's height is content, not the frame's size: a stripe that arrives or leaves is a remeasure too.
     if (stripeRef.current) observer.observe(stripeRef.current);
     if (controlsRef.current) observer.observe(controlsRef.current);
+    if (isStacked && legendRef.current) observer.observe(legendRef.current);
     measure();
     return () => {
       observer.disconnect();
       frame.style.removeProperty('--chart-box-w');
       frame.style.removeProperty('--chart-box-h');
     };
-  }, [boxed, boxAspect, hasStripe]);
+  }, [boxed, boxAspect, hasStripe, isStacked, hasLegend]);
 
   // FR-COMP-5 / D-187: the live floor. The drawing's minimum height is the frame's width, measured, so a
   // portrait phone never gets a dome shorter than it is wide whatever the rows around it take.
@@ -144,9 +159,10 @@ export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect,
         data-aside={hasAside}
         data-stripe={hasStripe}
         data-box={boxed}
+        data-stacked={isStacked}
       >
         {/* D-314: the rail's minimum in px, read off this probe — `--cell` is `1ch`, which no script can turn into px by itself. */}
-        {boxed && <span className={styles.railProbe} ref={railProbeRef} aria-hidden="true" />}
+        {boxed && !isStacked && <span className={styles.railProbe} ref={railProbeRef} aria-hidden="true" />}
         <div className={styles.controls} ref={controlsRef}>
           {controls}
         </div>
@@ -159,8 +175,8 @@ export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect,
             {stripe}
           </div>
         )}
-        {legend !== undefined && legend !== null && (
-          <div className={styles.legend} data-testid="chart-legend-slot">
+        {hasLegend && (
+          <div className={styles.legend} data-testid="chart-legend-slot" ref={legendRef}>
             {aside === undefined || aside === null ? (
               legend
             ) : (

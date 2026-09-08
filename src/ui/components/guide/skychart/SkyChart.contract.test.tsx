@@ -340,9 +340,46 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
     expect(beside).toMatch(/\[data-box='true'\] \{\n\s+grid-template-columns: auto auto minmax\(calc\(44 \* var\(--cell\)\), calc\(60 \* var\(--cell\)\)\);\n\s+grid-template-rows: auto auto;\n\s+justify-content: start;\n\s+align-content: start;/);
     expect(beside).toMatch(/\[data-box='true'\] \.drawing \{\n\s+width: var\(--chart-box-w\);\n\s+height: var\(--chart-box-h\);/);
     // …and the stripe row is the box's width by rule, so a stripe that measured a wider window cannot hold the track open.
-    expect(beside).toMatch(/\[data-box='true'\] \.stripe \{\n\s+width: var\(--chart-box-w\);/);
+    expect(beside).toMatch(/\[data-aside='true'\]\[data-box='true'\] \.stripe \{\n\s+width: max\(var\(--chart-box-w\), calc\(44 \* var\(--cell\)\)\);/);
     expect(beside).toMatch(/\[data-stripe='true'\] \{\n\s+grid-template-rows: auto auto auto;\n\s+grid-template-areas:\n\s+'controls status legend'\n\s+'drawing drawing legend'\n\s+'stripe stripe legend';/);
     expect(css).toMatch(/\.stripe \{\n\s+grid-area: stripe;/);
+  });
+
+  /**
+   * R61 (FR-LIVE-7 as amended v1.2.1, D-319): `stacked` is the one-column wide live page — no rail, the drawing,
+   * the stripe and the legend under one another, centred at the box's width, and the legend's height counted
+   * in the box's as the stripe's is. An aside wins over it: the rail is what the rail is for.
+   */
+  it('stacks the drawing, the stripe and the legend centred at the box width where it is stacked, and lets an aside win', () => {
+    const media = stubMatchMedia(1280);
+    try {
+      const { unmount } = render(
+        <ChartFrame fill legend={<p>legend</p>} stripe={<p>stripe</p>} boxAspect={1.2} stacked>
+          <div />
+        </ChartFrame>,
+      );
+      const frame = screen.getByTestId('chart-frame');
+      expect(frame).toHaveAttribute('data-stacked', 'true');
+      expect(frame).toHaveAttribute('data-box', 'true');
+      expect(frame).toHaveAttribute('data-aside', 'false');
+      // No rail probe: the box is cut from the frame's whole width.
+      expect([...frame.children].map((el) => el.getAttribute('data-testid'))).toEqual([null, 'chart-box', null, 'chart-stripe', 'chart-legend-slot']);
+      unmount();
+      render(
+        <ChartFrame fill legend={<p>legend</p>} aside={<p>rail</p>} stripe={<p>stripe</p>} boxAspect={1.2} stacked>
+          <div />
+        </ChartFrame>,
+      );
+      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'false');
+      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
+    } finally {
+      media.restore();
+    }
+    const beside = /@container \(min-width: 62ch\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(beside).toMatch(/\[data-stacked='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\);\n\s+grid-template-rows: auto auto auto auto;\n\s+grid-template-areas:\n\s+'controls status'\n\s+'drawing drawing'\n\s+'stripe stripe'\n\s+'legend legend';/);
+    expect(beside).toMatch(/\[data-stacked='true'\]\[data-box='true'\] \.drawing \{\n\s+width: var\(--chart-box-w\);\n\s+height: var\(--chart-box-h\);\n\s+margin: 0 auto;/);
+    expect(beside).toMatch(/\[data-stacked='true'\]\[data-box='true'\] \.stripe \{\n\s+width: clamp\(calc\(60 \* var\(--cell\)\), var\(--chart-box-w\), 100%\);\n\s+margin: 0 auto;/);
+    expect(beside).toMatch(/\[data-stacked='true'\] \.legend \{\n\s+width: clamp\(calc\(60 \* var\(--cell\)\), var\(--chart-box-w, 100%\), 100%\);\n\s+margin: 0 auto;\n\s+align-self: start;\n\s+max-height: calc\(4 \* var\(--row\)\);/);
   });
 
   it('leaves the frame and its column alone with no aside', () => {

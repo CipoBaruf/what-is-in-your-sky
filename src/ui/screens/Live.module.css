@@ -170,6 +170,26 @@
   grid-template-rows: auto minmax(0, 1fr);
 }
 
+/* R61 (FR-LIVE-7 as amended v1.2.1, V12-14, D-319): the one-column wide page,
+   under `LIVE_TWO_COLUMN_MIN_PX`. The page has its third row back — the status
+   strip and the actions, on one line, centred under the frame, which stacks
+   the drawing, the stripe and the legend centred at the box's width. */
+.page[data-compact='false'][data-columns='one'] {
+  grid-template-areas:
+    'top'
+    'dome'
+    'side';
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.page[data-compact='false'][data-columns='one'] .side {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0 calc(3 * var(--cell));
+}
+
 /* The hidden-objects toggle, the follow control and the share action on one row (R48: the second control row, 31 cells on a phone). */
 .actions {
   display: flex;

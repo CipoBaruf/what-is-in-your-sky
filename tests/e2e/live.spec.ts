@@ -212,14 +212,13 @@ for (const width of [390, 1280] as const) {
     await domeDrawn(page);
     await stripFilled(page);
     /*
-     * R34 (FR-LIVE-7, FR-LIVE-8): a desktop gets no follow control. R61 (D-312): and the side column is under
-     * the box on the phone, beside it on wide — where "beside" is measured against the *box*, since the rail
-     * lives inside the chart the `live-dome` wrapper holds.
+     * R34 (FR-LIVE-7, FR-LIVE-8): a desktop gets no follow control. R61 (D-312, D-319): the side column is under
+     * the box on the phone and on the one-column wide page (1280 px is under `LIVE_TWO_COLUMN_MIN_PX`); it is
+     * the rail beside the box only from 1660 px, which `live-rail.spec.ts` measures.
      */
     const box = await page.getByTestId('chart-box').boundingBox();
     const side = await page.getByTestId('live-side').boundingBox();
-    if (width === 390) expect(side?.y).toBeGreaterThanOrEqual((box?.y ?? 0) + (box?.height ?? 0) - 1);
-    else expect(side?.x).toBeGreaterThanOrEqual((box?.x ?? 0) + (box?.width ?? 0) - 1);
+    expect(side?.y).toBeGreaterThanOrEqual((box?.y ?? 0) + (box?.height ?? 0) - 1);
     await expect(page.getByTestId('follow-phone')).toHaveCount(0);
     await page.screenshot({ path: `docs/screenshots/r32-live-${String(width)}-dark-en.png` });
     // R48 (D-244): the compact live page carries no theme switch, so the theme is set on the home page.
@@ -332,7 +331,7 @@ test.describe('the wide live page (R61)', () => {
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1080);
   });
 
-  test('at 1280 × 800: the same rail, the stripe under the box with the clock readout above it, and no label over another', async ({ page }) => {
+  test('at 1280 × 800: one column — the box, the stripe and the legend centred, the strip and the actions under them — and no label over another', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
@@ -345,15 +344,29 @@ test.describe('the wide live page (R61)', () => {
     const clock = await page.getByTestId('time-readout').boundingBox();
     band(readout, toggle);
     below(box, toggle);
-    await expectTheRail(page, box, 'under the box');
+    // D-319 (V12-14): under 1660 px there is no rail. The stripe block is under the box at its width, the legend
+    // under that, and the page's own row — the strip and the actions on one line — under the frame, all centred.
+    await expect(page.getByTestId('live-dome')).toHaveAttribute('data-columns', 'one');
+    await expect(page.getByTestId('chart-aside')).toHaveCount(0);
+    const block = await page.getByTestId('stripe-block').boundingBox();
+    const legend = await page.getByTestId('chart-legend-slot').boundingBox();
+    const strip = await page.getByTestId('status-strip').boundingBox();
+    const actions = await page.getByTestId('live-actions').boundingBox();
+    below(block, box);
+    below(legend, block);
+    below(strip, legend);
+    // The strip and the actions are one centred row that wraps: the actions on the strip's line where the width allows it, under it where not — never above.
+    expect(actions?.y ?? 0).toBeGreaterThanOrEqual((strip?.y ?? 0) - 1);
+    const sideRow = await page.getByTestId('live-side').boundingBox();
+    expect(Math.abs((sideRow?.x ?? 0) + (sideRow?.width ?? 0) / 2 - 640)).toBeLessThanOrEqual(2);
+    expect(Math.abs((box?.x ?? 0) + (box?.width ?? 0) / 2 - 640)).toBeLessThanOrEqual(2);
     // The block stacks: the clock readout over the stripe, which takes the box's width.
     below(stripe, clock);
     await expectLabelsClear(page);
-    // The box is the dome's shape (D-314) and, with the stripe under it, height-bound: the stripe reaches the page's bottom. The page does not scroll.
+    // The box is the dome's shape (D-314) and height-bound: the last row reaches the page's bottom. The page does not scroll.
     await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
     expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(DOME_BOX_ASPECT, 2);
-    const stripeBlock = await page.getByTestId('stripe-block').boundingBox();
-    expect(800 - ((stripeBlock?.y ?? 0) + (stripeBlock?.height ?? 0))).toBeLessThanOrEqual(24);
+    expect(800 - ((actions?.y ?? 0) + (actions?.height ?? 0))).toBeLessThanOrEqual(24);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(800);
   });
 });

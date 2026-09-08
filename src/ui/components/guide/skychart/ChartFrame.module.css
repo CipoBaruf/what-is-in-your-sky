@@ -207,7 +207,7 @@
      `auto` track sized from it would hold the old width, and the box — centred in the two tracks it spans —
      would drift off the page's left edge (seen in `dome-resize.spec.ts`: 761 px of stripe over a 686 px box). */
   .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-box='true'] .stripe {
-    width: var(--chart-box-w);
+    width: max(var(--chart-box-w), calc(44 * var(--cell)));
   }
 
   .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-stripe='true'] {
@@ -216,6 +216,51 @@
       'controls status legend'
       'drawing drawing legend'
       'stripe stripe legend';
+  }
+
+  /* R61 (FR-LIVE-7 as amended v1.2.1, V12-14, D-319): the one-column wide
+     live page, under `LIVE_TWO_COLUMN_MIN_PX`. No rail: the row above the
+     drawing is the two-column one, and under it the drawing, the stripe and
+     the legend stack, each the box's width and centred — the box cut by
+     `fitBox` from the frame's whole width and the height the three rows leave
+     (`ChartFrame` measures the legend here as it measures the stripe). The
+     legend is the compact page's: at most four rows, scrolling inside. The
+     page's own rows — the status strip and the actions — are under the frame.
+     Rows `auto` and packed at the top, as the two-column rule's are. */
+  .fill[data-compact='false'][data-legend='true'][data-stacked='true'] {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas:
+      'controls status'
+      'drawing drawing'
+      'stripe stripe'
+      'legend legend';
+    column-gap: calc(3 * var(--cell));
+    align-content: start;
+  }
+
+  .fill[data-compact='false'][data-legend='true'][data-stacked='true'][data-box='true'] .drawing {
+    width: var(--chart-box-w);
+    height: var(--chart-box-h);
+    margin: 0 auto;
+  }
+
+  /* The stripe and the legend are the box's width, but never under 60 cells (the twelve hour labels' width) nor
+     over the frame's: a box cut small by a short window would otherwise wrap the time row into a column, and the
+     taller row would cut the box smaller still, down to nothing (seen at 1280 x 540). Wider than a small box they
+     stand centred over it. */
+  .fill[data-compact='false'][data-legend='true'][data-stacked='true'][data-box='true'] .stripe {
+    width: clamp(calc(60 * var(--cell)), var(--chart-box-w), 100%);
+    margin: 0 auto;
+  }
+
+  .fill[data-compact='false'][data-legend='true'][data-stacked='true'] .legend {
+    width: clamp(calc(60 * var(--cell)), var(--chart-box-w, 100%), 100%);
+    margin: 0 auto;
+    align-self: start;
+    max-height: calc(4 * var(--row));
+    min-height: 0;
+    overflow-y: auto;
   }
 
   /* R51 (D-259): the pass detail's numeric table takes the beside rule back. The guide column grows with the
