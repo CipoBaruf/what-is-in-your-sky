@@ -1343,7 +1343,8 @@ Delivery is PLAN §16 unchanged, cut by §16.10: four tasks, three waves, one ta
   - **Gate:** owner
   - **Depends on:** R64
   - **Goal:** Choosing "window" from the view control — on the live page or on a pass detail — opens the sky screen at the moment the page is showing; the `[ follow phone ]` control is gone, the window is never a saved view, nothing scrolls, and the drawing no longer lies over the status strip on a landscape phone.
-  - **Satisfies:** FR-FSC-8, FR-FSC-9; FR-FSC-1, FR-FSC-2, FR-FSC-3, FR-FSC-4, FR-FSC-6, FR-FSC-7, FR-COMP-5, FR-LIVE-7, FR-LIVE-8, FR-WIN-4, FR-WIN-5, FR-WIN-6 as amended v1.3.1; F-63 (FR-FIX-1). FR-FOL-1 and FR-FOL-2 withdrawn as a control, FR-FOL-3 withdrawn. **Advances:** US-21 AC1, AC5, AC7, AC8, AC11, AC13, AC14; US-10 as amended.
+  - **Satisfies:** FR-FSC-8, FR-FSC-9; FR-FSC-1, FR-FSC-2, FR-FSC-3, FR-FSC-4, FR-FSC-6, FR-FSC-7, FR-COMP-5, FR-WIN-4, FR-WIN-5, FR-WIN-6 as amended v1.3.1; F-63 (FR-FIX-1). **Advances:** US-21 AC1, AC5, AC7, AC8, AC11, AC13, AC14.
+  - **Also amended, and deliberately not cited by id here** (§16.8: naming them pulls five long requirements into the brief and puts it over budget, and each says the same thing from the other end): the live page's layout requirement, whose landscape overlap invariant F-63 breaks; the compass-follow requirement and the whole of §4.22, which the deleted control leaves behind; and the phone-pointing story of §3.2. What a session needs of all four is in FR-FSC-6, FR-FSC-8, D-355 and the F-63 row. The requirement-coverage table at the end of this block is the traceability record.
   - **Scope (PLAN D-350..D-356):** five changes on one branch.
     1. **The way in** (D-350, D-352): `components/screen/useSkyScreen.ts` — `useFollowPhone` moved and renamed, keeping the presence test, the permission inside the tap, F-42's one-reading rule and the `relative` / `denied` notes, and setting a `skyScreen` boolean in the prefs slice instead of `viewOverride`. `SkyChart`'s view control offers the window on both pages (no `views` prop anywhere, no live-page exception) and its `window` option calls `open()` rather than `setChartView`; the note renders beside the control from `chart` copy. `savedChartView` narrows to `'dome' | 'polar'` with a stored `'window'` migrated to `'dome'` on load; the `[ point at the sky ]` gate goes; `dropChartView` closes the screen. Delete `FollowPhone.tsx` + module + `useFollowPhone.ts` and the `live.follow*` keys.
     2. **The shared screen** (D-351): `components/live/FollowScreen.tsx` + module move to `components/screen/SkyScreen.tsx` + module, unchanged in what they draw. `Live.tsx` renders it in place of the grid as R64 does; `PassDetail.tsx` renders it over the sheet, portaled to the body with the sheet `inert`. Focus returns to the view control's `window` option.
@@ -1408,6 +1409,7 @@ Token rules for the phase (PLAN D-284): every session takes the D-198 brief with
 | FR-FOL-1 / FR-FOL-3 / FR-LIVE-7 / FR-LIVE-8 / FR-WIN-6 as amended | R64 |
 | US-21 AC11..AC13 | R64 (AC12 with R63, AC13 with R62) |
 | FR-FSC-8, FR-FSC-9 | R66 |
+| FR-LIVE-7, FR-LIVE-8, FR-FOL-1..3, US-10 as amended v1.3.1 | R66 |
 | FR-FSC-1, FR-FSC-2, FR-FSC-6, FR-COMP-5, FR-LIVE-7, FR-LIVE-8, FR-WIN-4, FR-WIN-5, FR-WIN-6 as amended v1.3.1 | R66 |
 | F-63 | R66 |
 | US-21 AC14, and AC1/AC5/AC7/AC8/AC11/AC13 as amended v1.3.1 | R66 |
