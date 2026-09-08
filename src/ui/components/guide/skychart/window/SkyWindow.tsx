@@ -382,8 +382,6 @@ export function SkyWindow(props: SkyChartProps) {
   const look = lookDirection(m);
   const at = useCallback((p: SkyPoint): Projected => project(m, p.azDeg, p.elDeg, view), [m, view]);
   const zenith = at({ azDeg: 0, elDeg: 90 });
-  // F-57: the grid's horizon path and the ground clip share this — one projection of the 181 points, not two.
-  const horizonProjected = useMemo(() => HORIZON.map(at), [at]);
 
   // FR-FSC-4 (D-323): on the screen, held upright, the note is the whole box. The query is read whatever the
   // mode, because a hook may not be called conditionally; only `screen` lets its answer decide anything.
@@ -394,6 +392,11 @@ export function SkyWindow(props: SkyChartProps) {
   // horizon, and, once no sky is left in it, the whole box. Neither is modal: raising the phone is what leaves.
   // D-323: only in landscape, so the portrait note wins over both. F-58: `look` above is the one `lookDirection` per render.
   const ground = portrait ? 'sky' : groundState(look.altDeg, view);
+  // F-57: the grid's horizon path and the ground clip share this — one projection of the 181 points, not two —
+  // under the grid path's own condition, since the clip exists only in the `ground` state, which is inside it.
+  // Buried, and in portrait, the horizon is drawn by neither and projected not at all.
+  const drawsHorizon = ground !== 'buried' && !portrait;
+  const horizonProjected = useMemo(() => (drawsHorizon ? HORIZON.map(at) : []), [at, drawsHorizon]);
   const veilClip = ground === 'ground' ? groundClipPath(horizonProjected) : '';
   const veil = ground === 'buried' || veilClip !== '';
   const uid = useId().replaceAll(':', '');

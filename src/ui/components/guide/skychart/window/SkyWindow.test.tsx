@@ -9,7 +9,7 @@
  * the option.
  */
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
 import { stubMatchMedia, type MatchMediaStub } from '../../../../../../tests/support/matchMedia';
 import { MOON_DOWN, MOON_FIXTURE } from '../../../../../../tests/support/moonFixtures';
@@ -286,6 +286,11 @@ describe('<SkyWindow>', () => {
 
       const projectSpy = vi.spyOn(projection, 'project');
       const lookSpy = vi.spyOn(projection, 'lookDirection');
+      // Nothing restores mocks between tests in this file, and these two call through: restore them here.
+      onTestFinished(() => {
+        projectSpy.mockRestore();
+        lookSpy.mockRestore();
+      });
       // One more render, still `ground`: the smoothing keeps every earlier frame's rotation, so this one alone is measured.
       reading(aim(0, -12));
       frame();
