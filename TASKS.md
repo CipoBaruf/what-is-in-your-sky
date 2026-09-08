@@ -18,6 +18,8 @@
 | Scope (v1.3.1) | The owner's findings from the R64 phone run: **R66** in the `## v1.3 tasks` block below, one task on Opus before R65 (PLAN §16.11). |
 | Inputs (v1.3.2) | `SPEC.md` v1.3.2, `PLAN.md` v0.6.2 (Decision Log V13-11..V13-14 and Decisions D-368..D-375 with §16.12 treated as fixed) |
 | Scope (v1.3.2) | Spec Phase 2e "public readiness": **P1** in the `## Public-readiness task` block below, one task, one wave, on Opus. The repository is the deliverable; the app does not change. |
+| Inputs (v1.3.3) | `SPEC.md` v1.3.3, `PLAN.md` v0.6.3 (Decision Log V13-15 and Decisions D-376, D-377 with §16.13 treated as fixed) |
+| Scope (v1.3.3) | The two P1 findings that are not judgement calls: **P2** in the `## Public-readiness task` block below, one task on Opus after P1. |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |
 
 ## Conventions
@@ -1458,3 +1460,28 @@ graph TD
     - The capture set is untouched: `tests/docs/captures.test.ts` passes with no file added to or removed from `docs/screenshots/`.
     - The owner's gate: the first screen read cold, the hero legible at GitHub's width, the branch list approved, and the description, topics and social preview set in the GitHub UI.
   - **Done 2026-09-08:** as specified, with four readings recorded in the PR rather than as decisions, since D-368..D-375 already settle the shape. The prologue is 21 lines and carries the hero alone, so the CI badge opens `## Run` instead of sitting under the title: FR-PUB-1 asks for exactly one image reference above the first `##`, and a badge is an image reference. The hero is the home screen cropped to a phone's height, the guide's dome, and the sky screen — the last of these landscape, because the only portrait sky-screen capture in the set is the "turn the phone sideways" prompt; the tile keeps its own aspect and is centred against the two phones. `scripts/third-party-notices.ts` falls back to a package's `@preserve` header when it publishes no licence file, which is how `astronomy-engine` ships its MIT text. The two content scans in `public.test.ts` skip `package-lock.json` and `public/third-party-notices.txt`, which are verbatim third-party metadata — the notices file is a licence obligation whose point is that the text is unaltered, and both carry addresses their authors published; and the absolute-path shape requires three segments below the root, so SPEC §4.24, PLAN D-373 and this entry can go on quoting the finding they record. Measured: 153 test files / 1510 tests / 23.4 s, every chunk inside its budget, `dist/third-party-notices.txt` present. Not done by the session: the clean-clone run of FR-PUB-8, because `git clone` and creating a directory outside the worktree are both outside this session's tool allowlist — CI's own `npm ci` on a fresh checkout covers four of the five commands, and the fifth (`npx playwright install chromium` as its own README step) is stated in the PR for the owner to run.
+
+- [x] **P2 — The owner's three, guarded**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** P1
+  - **Done 2026-09-08:** as specified, plus the deploy split the owner asked for mid-task (V13-16, D-378). Found on the way and fixed in the writing: `git branch -r --merged origin/main` is meaningless in a squash-merging repository — it called 20 branches merged where GitHub has 103 merged pull requests — so FR-PUB-13's rule is GitHub's record (D-377). Measured after the change: 94 of 94 branches on `origin` belong to a merged pull request.
+  - **Goal:** The two P1 findings that are not judgement calls stop needing one: the trailer count cannot grow, and the branch list is produced by a script instead of by hand. The three decisions themselves stay the owner's.
+  - **Satisfies:** FR-PUB-12, FR-PUB-13 (spec §4.24).
+  - **Why not a slice:** Same reason as P1: the reader it serves is not the app's user.
+  - **Scope (spec §4.24, PLAN §2.22, §16.13):**
+    - `scripts/check-trailers.ts`: walks `BASELINE..HEAD` (`d7514ec`) and exits non-zero naming each commit carrying `Claude-Session:`, a Claude/Anthropic `Co-Authored-By:`, or a "Generated with Claude" line; exits 2 rather than 0 when the baseline is not in the clone. `offenders()` is pure and exported.
+    - `.github/workflows/ci.yml`: a `trailers` job at `fetch-depth: 0`, parallel to `ci`, spending none of FR-CI-1's budget.
+    - `scripts/prune-merged-branches.ts`: lists every branch on `origin` against GitHub's merged and open pull-request heads, deletes only merged ones, only with `--delete`, never `main`, in batches of twenty. `deletable()` is pure and exported.
+    - `tests/docs/trailers.test.ts`: the shape of both rules, without a repository in a known state.
+    - *(added mid-task, V13-16, D-378)* The deploy runbook leaves the README for `docs/DEPLOY.md`: the README keeps one paragraph on what the deployment is — `main` deploys, every branch gets a preview URL, the strict headers are the ones the Playwright suite runs the app under — and links the rest. FR-PUB-1 amended with it.
+    - The three findings themselves are **not** acted on: no history rewritten, no branch deleted, no repository setting changed.
+  - **Touches outside the lane:** `scripts/`, `tests/docs/`, `.github/workflows/`, `SPEC.md`, `PLAN.md`, `TASKS.md`. **Nothing under `src/`.**
+  - **Done when:**
+    - `npx tsx scripts/check-trailers.ts` prints `13 commits since d7514ec, none carrying an agent trailer` and exits 0; run against a range that contains one (`8b5395e~30`) it names `54253af6e` and exits 1.
+    - `npx tsx scripts/prune-merged-branches.ts` prints the two lists and deletes nothing without `--delete`.
+    - `npx vitest run tests/docs/trailers.test.ts` passes, including that the prune script does not reach for `--merged`.
+    - `npm test`, lint, typecheck green; `git diff --stat origin/main -- src/` empty; the capture set untouched.
+    - `## Deploy` is at most 20 lines and links `docs/DEPLOY.md`; the four strings that identify the runbook are in that file and in neither the README nor anywhere else.
+    - The owner's gate: the branch deletion, the trailer rewrite and the repository metadata, all three still theirs.

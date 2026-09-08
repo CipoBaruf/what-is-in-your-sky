@@ -66,3 +66,24 @@ jobs:
           retention-days: 7
           # A failure before Playwright runs leaves no report; that is not itself a problem.
           if-no-files-found: ignore
+
+  # FR-PUB-12 (D-376): no commit written after the baseline carries an agent
+  # trailer. Its own job, because it needs history the `ci` job deliberately
+  # does not fetch — that one checks out at depth 1 and a shallow clone has no
+  # range to walk. It runs beside `ci`, so it spends none of FR-CI-1's budget,
+  # and it never looks at the commits before `BASELINE`: the trailers already
+  # on `main` are reported by FR-PUB-7 and are the owner's to decide about, and
+  # a check that went red on them could only ever be made green by a rewrite.
+  trailers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx tsx scripts/check-trailers.ts
