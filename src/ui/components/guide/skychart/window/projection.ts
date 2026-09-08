@@ -166,10 +166,11 @@ export type GroundState = 'sky' | 'ground' | 'buried';
  *   `buried`  the top edge is at or below the horizon: no sky is left.
  *
  * The roll is not read: a rolled phone turns the box, not the centre of it,
- * and FR-FOL-5 asks for the altitude at the centre.
+ * and FR-FOL-5 asks for the altitude at the centre. Takes the altitude
+ * already read from `lookDirection` (F-58) rather than the matrix, so a
+ * render's one `lookDirection` call serves both the readout and this.
  */
-export function groundState(m: Mat3, view: View): GroundState {
-  const { altDeg } = lookDirection(m);
+export function groundState(altDeg: number, view: View): GroundState {
   if (altDeg >= 0) return 'sky';
   return altDeg + verticalHalfFieldDeg(view) > 0 ? 'ground' : 'buried';
 }

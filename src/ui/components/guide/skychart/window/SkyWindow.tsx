@@ -147,14 +147,14 @@ function pathFrom(points: readonly Projected[], limitDeg: number): string {
  * antipode of where the phone points: with the centre of the field *below* the
  * horizon (which is every state this is drawn in) the sky is the part that
  * runs off to infinity, so the ground is exactly the inside of that closed
- * curve. It is the horizon the picture already computes, sampled the same way,
- * but taken whole instead of clipped to the drawable field: the curve may run
- * far outside the box, and closing it is what makes the clip a region.
+ * curve. It takes the horizon points the grid path already projected (F-57),
+ * sampled the same way, but whole instead of clipped to the drawable field:
+ * the curve may run far outside the box, and closing it is what makes the
+ * clip a region.
  */
-function groundClipPath(m: Mat3, view: View): string {
+function groundClipPath(points: readonly Projected[]): string {
   let d = '';
-  for (const point of HORIZON) {
-    const p = project(m, point.azDeg, point.elDeg, view);
+  for (const p of points) {
     // Within a hair of the antipode the projection has no answer (`projectDevice` returns the centre);
     // those samples are hundreds of box-widths away and only exist when the centre is on the horizon itself.
     if (p.offAxisDeg > 179.5 || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
@@ -390,9 +390,14 @@ export function SkyWindow(props: SkyChartProps) {
 
   // FR-FOL-5 (D-278): pointed at the ground, in two steps — the hatch over the part of the field below the
   // horizon, and, once no sky is left in it, the whole box. Neither is modal: raising the phone is what leaves.
-  // D-323: only in landscape, so the portrait note wins over both.
-  const ground = portrait ? 'sky' : groundState(m, view);
-  const veilClip = ground === 'ground' ? groundClipPath(m, view) : '';
+  // D-323: only in landscape, so the portrait note wins over both. F-58: `look` above is the one `lookDirection` per render.
+  const ground = portrait ? 'sky' : groundState(look.altDeg, view);
+  // F-57: the grid's horizon path and the ground clip share this — one projection of the 181 points, not two —
+  // under the grid path's own condition, since the clip exists only in the `ground` state, which is inside it.
+  // Buried, and in portrait, the horizon is drawn by neither and projected not at all.
+  const drawsHorizon = ground !== 'buried' && !portrait;
+  const horizonProjected = useMemo(() => (drawsHorizon ? HORIZON.map(at) : []), [at, drawsHorizon]);
+  const veilClip = ground === 'ground' ? groundClipPath(horizonProjected) : '';
   const veil = ground === 'buried' || veilClip !== '';
   const uid = useId().replaceAll(':', '');
   const hatchId = `${uid}-hatch`;
@@ -470,7 +475,7 @@ export function SkyWindow(props: SkyChartProps) {
                 <g className={styles.grid}>
                   <path className={styles.altitude} data-ring="60" d={pathFrom(ALT_60.map(at), limitDeg)} />
                   <path className={styles.altitude} data-ring="30" d={pathFrom(ALT_30.map(at), limitDeg)} />
-                  <path className={styles.horizon} data-horizon d={pathFrom(HORIZON.map(at), limitDeg)} />
+                  <path className={styles.horizon} data-horizon d={pathFrom(horizonProjected, limitDeg)} />
                   {TICKS.map((azDeg) => {
                     const a = at({ azDeg, elDeg: 0 });
                     const b = at({ azDeg, elDeg: 2 });

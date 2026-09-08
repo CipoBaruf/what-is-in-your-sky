@@ -9,7 +9,7 @@
  * the option.
  */
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
 import { stubMatchMedia, type MatchMediaStub } from '../../../../../../tests/support/matchMedia';
 import { MOON_DOWN, MOON_FIXTURE } from '../../../../../../tests/support/moonFixtures';
@@ -21,6 +21,7 @@ import { appStore } from '../../../../../state';
 import { SkyChart } from '../SkyChart';
 import type { HiddenMarker } from '../SkyChart.types';
 import { requestOrientationAccess, resetOrientationAccess } from './orientationAccess';
+import * as projection from './projection';
 import { placeholderAltDeg, SkyWindow } from './SkyWindow';
 
 const pass = goldenPassFixture();
@@ -273,6 +274,34 @@ describe('<SkyWindow>', () => {
       expect(inView(container.querySelector('[data-marker="peak"]'))).toBe(true);
       expect(container.querySelector('[data-body="sun"]')).not.toBeNull();
       expect(container.querySelector('[data-body="moon"]')).not.toBeNull();
+    });
+
+    it('projects the horizon once per render, not twice, and reads lookDirection once (F-57, F-58)', () => {
+      const frame = scriptedFrames();
+      const { container } = render(<SkyWindow passes={[]} observer={observer} highlightedPassId={null} />);
+      reading(aim(0, -10));
+      frame();
+      settle(frame);
+      expect(wrapper(container)).toHaveAttribute('data-ground', 'ground');
+
+      const projectSpy = vi.spyOn(projection, 'project');
+      const lookSpy = vi.spyOn(projection, 'lookDirection');
+      // Nothing restores mocks between tests in this file, and these two call through: restore them here.
+      onTestFinished(() => {
+        projectSpy.mockRestore();
+        lookSpy.mockRestore();
+      });
+      // One more render, still `ground`: the smoothing keeps every earlier frame's rotation, so this one alone is measured.
+      reading(aim(0, -12));
+      frame();
+      expect(wrapper(container)).toHaveAttribute('data-ground', 'ground');
+
+      // Every azimuth tick projects one point at elDeg 0 too (12, one every 30°, unaffected by the fix);
+      // the rest of the elDeg-0 calls are the horizon's — 181 with the grid path and the ground clip
+      // sharing one projection (F-57), 362 when `groundClipPath` re-projects them itself (the old code).
+      const elevationZeroCalls = projectSpy.mock.calls.filter(([, , elDeg]) => elDeg === 0).length;
+      expect(elevationZeroCalls - 12).toBe(181);
+      expect(lookSpy).toHaveBeenCalledTimes(1);
     });
 
     it('at buried is the ground panel and its note, and nothing else', () => {
