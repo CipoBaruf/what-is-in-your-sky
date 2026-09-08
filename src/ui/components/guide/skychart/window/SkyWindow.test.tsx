@@ -278,7 +278,7 @@ describe('<SkyWindow>', () => {
 
     it('projects the horizon once per render, not twice, and reads lookDirection once (F-57, F-58)', () => {
       const frame = scriptedFrames();
-      const { container } = render(<SkyWindow passes={[]} observer={observer} />);
+      const { container } = render(<SkyWindow passes={[]} observer={observer} highlightedPassId={null} />);
       reading(aim(0, -10));
       frame();
       settle(frame);
