@@ -243,7 +243,8 @@ describe('the ground state (FR-FOL-5)', () => {
   const landscape: View = { ...square, width: 780, height: 390, screenAngleDeg: 90 };
   /** The half-field of a box twice as tall as it is wide: 2·atan(2·tan 15°). */
   const portraitHalf = (2 * Math.atan(2 * Math.tan(Math.PI / 12)) * 180) / Math.PI;
-  const looking = (altDeg: number): Mat3 => uprightRotation(120, altDeg);
+  /** `groundState` now takes the altitude `lookDirection` already read (F-58), not the matrix. */
+  const looking = (altDeg: number): number => lookDirection(uprightRotation(120, altDeg)).altDeg;
 
   it('spans WINDOW_FOV across the shorter side, so the landscape half-field is the narrower one', () => {
     // 60° across the shorter side: in a square box, and in any box wider than it is tall, the shorter side is the height.
