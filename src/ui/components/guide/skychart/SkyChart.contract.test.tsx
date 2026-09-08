@@ -444,10 +444,12 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
     const live = readFileSync(join(process.cwd(), 'src/ui/screens/Live.module.css'), 'utf8');
     // The declaration is the contract, not its neighbours: the compact page states its variables in
     // one block (R59 review), so this matches `--chart-floor-on: 0` anywhere inside that block
-    // rather than pinning the block to exactly one property.
-    const compactBlock = /\.page\[data-compact='true'\] \{([^}]*)\}/.exec(live);
-    expect(compactBlock, 'a .page[data-compact=\'true\'] block in Live.module.css').not.toBeNull();
-    expect(compactBlock?.[1]).toMatch(/--chart-floor-on:\s*0;/);
+    // rather than pinning the block to exactly one property. R69 (D-379) gave the landscape-phone
+    // media block the same selector, so the file holds more than one: the switch is still stated
+    // once, and which block states it is the page's business, not this contract's.
+    const compactBlocks = [...live.matchAll(/\.page\[data-compact='true'\] \{([^}]*)\}/g)];
+    expect(compactBlocks.length, 'a .page[data-compact=\'true\'] block in Live.module.css').toBeGreaterThan(0);
+    expect(compactBlocks.filter((block) => /--chart-floor-on:\s*0;/.test(block[1] ?? '')), 'exactly one block sets the floor switch').toHaveLength(1);
     expect(css).toMatch(/\.fill \.legend \{\s+max-height: calc\(4 \* var\(--row\)\);\s+overflow-y: auto;/);
   });
 });
