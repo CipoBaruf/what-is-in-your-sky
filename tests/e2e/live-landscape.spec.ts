@@ -128,15 +128,16 @@ test.describe('the live page on a landscape phone', () => {
   });
 
   /**
-   * R59 (FR-FOL-1, FR-FOL-2, FR-LIVE-8 as amended v1.2, D-276): the control
-   * opens the sky window here too — a landscape phone is a phone — and the
-   * dome's facing is the drag's alone (FR-GUIDE-4). R44's correction is still
-   * what the strip states while the window is the view (US-21 AC6): +1.12° at
-   * Neuquén on the fixtures' date, printed in whole words rather than leaving
-   * the viewer to wonder why the picture sits a degree off the compass they
-   * are holding.
+   * R59 (FR-FOL-1, FR-FOL-2, FR-LIVE-8 as amended v1.2, D-276), amended by R64
+   * (FR-FSC-1, FR-FSC-2, D-321): the control opens the follow screen here too —
+   * a landscape phone is a phone — and the dome's facing is the drag's alone
+   * (FR-GUIDE-4). What the layer itself does at this size is
+   * `follow-screen.spec.ts`; what is here is the control's own contract: the
+   * press opens the screen, the `×` gives the page back exactly as it was
+   * (including a facing a drag had moved), and a phone with no north opens
+   * nothing at all.
    */
-  test('follow phone: the control opens the window, the second press gives the dome back, and a phone with no north opens nothing (FR-FOL-1, FR-FOL-2)', async ({ page }) => {
+  test('follow phone: the control opens the screen, the × gives the page back, and a phone with no north opens nothing (FR-FOL-1, FR-FOL-2)', async ({ page }) => {
     await stubCompass(page);
     await liveLandscape(page);
     const chart = page.getByTestId('sky-chart');
@@ -152,22 +153,23 @@ test.describe('the live page on a landscape phone', () => {
 
     expect(await page.evaluate(() => screen.orientation.angle)).toBe(0);
     await toggle.click();
-    // R39 (F-42), D-276: the click arms the sensor and the first reading is what opens the window, so a
+    // R39 (F-42), D-276: the click arms the sensor and the first reading is what opens the screen, so a
     // device that answers nothing leaves the page alone instead of showing a window with nothing to point at.
     await expect(page.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
+    await expect(page.getByTestId('follow-screen')).toHaveCount(0);
     await expect(chart).toHaveAttribute('data-view', 'dome');
     await heading(page, 270);
-    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByTestId('follow-phone')).toHaveAttribute('data-state', 'on');
-    await expect(chart).toHaveAttribute('data-view', 'window');
-    // US-21 AC6: the strip names the correction while the window is what is drawn.
-    await expect(page.getByTestId('live-heading')).toHaveText('Heading true north, declination +1.1°');
+    await expect(page.getByTestId('follow-screen')).toHaveCount(1);
+    // FR-FSC-1: the page's chart is not what draws the window — the control is not even on the screen.
+    await expect(page.getByTestId('sky-chart')).toHaveCount(1);
+    await expect(page.getByTestId('follow-phone')).toHaveCount(0);
+    await expect(page.getByTestId('live-heading')).toHaveCount(0);
 
-    // The second press gives the dome back, where it was: the readings never moved it (FR-GUIDE-4).
-    await toggle.click();
+    // FR-FSC-2: the `×` is the second press, and it gives the dome back where it was — the readings never moved it (FR-GUIDE-4).
+    await page.getByTestId('follow-close').click();
+    await expect(page.getByTestId('follow-screen')).toHaveCount(0);
     await expect(chart).toHaveAttribute('data-view', 'dome');
     await expect(page.getByTestId('follow-phone')).toHaveAttribute('data-state', 'off');
-    await expect(page.getByTestId('live-heading')).toHaveCount(0);
     await expect(facing).toHaveAttribute('data-facing-az', '0');
 
     // A drag is the dome's own, and following is not part of it: 40 px right is 10° left, and the control stays as it was.
