@@ -12,6 +12,8 @@
 | Scope (v1.1) | Spec Phase 2b "phone pass": R37–R54 in the `## v1.1 tasks` block below, five lanes, four models, the findings first (PLAN §16.6, §16.8). |
 | Inputs (v1.2) | `SPEC.md` v1.2, `PLAN.md` v0.5 (Decision Log V12-1..V12-6 and Decisions D-276..D-284 with §16.9 treated as fixed) |
 | Scope (v1.2) | Spec Phase 2c "follow and the fixes": R56–R60 in the `## v1.2 tasks` block below, three waves, five lanes (PLAN §16.9). |
+| Inputs (v1.3) | `SPEC.md` v1.3, `PLAN.md` v0.6 (Decision Log V13-1..V13-5 and Decisions D-321..D-327 with §16.10 treated as fixed) |
+| Scope (v1.3) | Spec Phase 2d "the follow screen": R62–R65 in the `## v1.3 tasks` block below, three waves, four lanes, every task on Opus (PLAN §16.10). |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |
 
 ## Conventions
@@ -1269,4 +1271,113 @@ Token rules for the phase (PLAN D-284): every session takes the D-198 brief with
 graph TD
   R58 --> R59
   R56 & R57 & R58 & R59 & R61 --> R60
+```
+
+## v1.3 tasks
+
+Draft, cut 2026-09-08 from `SPEC.md` v1.3 and `PLAN.md` v0.6, for review. Spec Phase 2d, "the follow screen": on the live page the follow control opens a screen of its own — the window drawing over the whole viewport, a `×` to close, the facing readout and the legend as overlays, nothing else of the page — drawn only with the phone held sideways, with a note in portrait; hidden objects are never on it; the window leaves the live page's view control, so follow is the only way in there and the pass detail is unchanged (§4.23, V13-1..V13-4). One item and nothing else (V13-5): anything found on the way is a finding for a later phase.
+
+Delivery is PLAN §16 unchanged, cut by §16.10: four tasks, three waves, one task per lane, and every task on `opus` — the owner's instruction for the phase. Lanes and their directories are the v1.1 conventions above with D-283's catalog rule (`window.ts` to `window`, `live.ts` to `live`, `chart.ts` to `chart`). Decision blocks are reserved in PLAN §16.10: **R62 D-328..D-332, R63 D-333..D-337, R64 D-338..D-344, R65 D-345..D-349.** All four wait for R60, so v1.2 ships as it is.
+
+- [ ] **R62 — The chart can be a screen, and a page says which views it offers**
+  - **Lane:** chart
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R60
+  - **[P]** with R63.
+  - **Goal:** `SkyChart` renders the window with no chrome and the readout and legend as overlays when a page asks for a screen, and the live page's view control offers the dome and the polar chart only.
+  - **Satisfies:** FR-FSC-3, FR-FSC-6; FR-LEG-2, FR-WIN-4, FR-WIN-5 as amended v1.3. **Advances:** FR-FSC-1 (the frame half), US-21 AC13 (the view-control half), US-21 AC1 as amended.
+  - **Scope (PLAN D-322, D-324):** `SkyChart.types.ts` gains `screen?: boolean` and `views?: readonly ChartView[]`, and `ChartFrame` an `overlay` slot. `SkyChart.tsx`: with `screen` the view is `WINDOW_VIEW` (no `viewFor`), no `OptionToggle`, no `figcaption`, no controls, `fill` implied, `aside` and `stripe` dropped; `offeredViews(lost, views)` filters the registered views by the page's list in registered order, and a page that passes nothing offers all three. `ChartFrame.tsx` + module with `screen`: the box is the host's whole size — no aspect, no floor, no full-bleed margins, no column measurement — `status` absolutely at the top-left, `legend` along the bottom edge at most two rows high scrolling inside, `overlay` over everything, both overlays on `--follow-overlay` (`color-mix(in srgb, var(--surface) 85%, transparent)`; `FOLLOW_OVERLAY_ALPHA` as one token in `styles/tokens.css`). `Legend.tsx` with `screen` draws the compact rows. The dome and the polar chart ignore `screen`. `viewFor`'s fallback to the dome is what draws a saved `window` as the dome where the window is not offered, and nothing writes the preference on the way.
+  - **Touches outside the lane:** `src/ui/styles/tokens.css` (one token; named here as the task's shared file).
+  - **Done when:**
+    - `SkyChart.test.tsx`: `views={['dome', 'polar']}` renders a two-option toggle with no "Window", a saved `window` draws the dome and `localPrefs` still reads `window`; no `views` renders three where the presence test passes (the pass detail's case, unchanged); `screen` renders the window view with no toggle, caption or controls whatever `chartView` says.
+    - `ChartFrame` test: with `screen` the box is the host's size at 844 × 390 and at 390 × 844 (jsdom sizes mocked), the `status`, `legend` and `overlay` slots are in the tree in that order, `aside` and `stripe` are not; without `screen` nothing in the existing frame tests changes.
+    - `SkyChart.contract.test.tsx` unchanged and green: the three views draw the same geometry.
+    - The overlay token passes FR-THEME-2's contrast for body text over the darkest sky token in both themes (a unit check against the token values, as R19's theme tests do).
+    - Captures: the compact live page at 390 px in both locales and themes, showing the two-option view control on one row (these replace the R59 live captures).
+    - `npm test` green; no dome or polar capture moves.
+
+- [ ] **R63 — The window on a screen: no chrome, and a portrait state that says to turn the phone**
+  - **Lane:** window
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R60
+  - **[P]** with R62.
+  - **Goal:** Asked for a screen, the window renders no view control and no hint, keeps its readout as the status overlay, and — held upright — shows only "Turn the phone sideways to follow the sky." until the phone is turned, with the sensor running throughout.
+  - **Satisfies:** FR-FSC-4. **Advances:** US-21 AC12, FR-FSC-1 (the window half).
+  - **Scope (PLAN D-323, D-283):** `SkyWindow.tsx` reads `props.screen` (through the same cast R48 used for `chartView`, so it compiles before and after R62): with it, no `controls` for the frame; `useMediaQuery('(orientation: landscape)')` (`hooks/useMediaQuery.ts`) drives a `portrait` state drawn like `buried` — no SVG content, the `role="status"` note `t.window.portrait` as the whole box, `data-orientation="portrait"` on the root, `status={null}` and `legend={null}` handed to the frame. `useDeviceOrientation` stays mounted across the state. The ground states are computed only in landscape. Without `screen` nothing changes. Copy in `i18n/{en,es}/window.ts` (`portrait`, both languages).
+  - **Touches outside the lane:** none (`useMediaQuery` is read, not changed).
+  - **Done when:**
+    - `SkyWindow.test.tsx`: with `screen` and portrait the note is the only text in the box, the readout and the legend are absent, the orientation hook's listener is still attached (a spy on `removeEventListener` sees no call); flipping the mocked query to landscape draws the arcs with no new permission request (`requestOrientationAccess` spy called once); the ground sweep of R56 still passes in landscape; without `screen` a portrait box draws as before.
+    - With `screen` the tree holds no `OptionToggle` and no hint; without it both are there.
+    - The Spanish and English notes are in the catalog snapshot.
+    - Captures (touch context): the portrait note at 390 × 844 in both locales and themes, shot through the window rendered with `screen`.
+    - `npm test` green; the FR-GUIDE-6 rate path untouched.
+
+- [ ] **R64 — The follow screen: the layer, the `×`, `Esc`, hidden objects off it, the e2e and the captures**
+  - **Lane:** live
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R62, R63
+  - **Goal:** Pressing `[ follow phone ]` on a phone replaces the live page with the sky the phone points at, a `×`, where it is looking and the legend, and nothing else; the `×` puts the page back exactly as it was.
+  - **Satisfies:** FR-FSC-1, FR-FSC-2, FR-FSC-5, FR-FSC-7; FR-FOL-1, FR-FOL-3, FR-LIVE-6, FR-LIVE-7, FR-LIVE-8, FR-WIN-6 as amended v1.3. **Advances:** US-21 AC11, AC12, AC13, and AC5/AC8 as amended; US-10 as amended.
+  - **Scope (PLAN D-321, D-325, D-326):** `components/live/FollowScreen.tsx` + module: a `position: fixed; inset: 0; height: 100dvh` layer on the page background, `--z-follow` above the header, `role="dialog"` `aria-modal="true"`, rendering `SkyChart` with `screen`, the page's `passes`, `observer`, `now`, `sun`, `moon`, `colorBy="pass"` and **no** `hidden`, and the `×` (`<button>`, text `×`, 44 × 44 px, `aria-label` `t.live.followClose`) in the `overlay` slot; focus to the `×` on open, back to the follow control on close, `Tab` wrapping inside. `Live.tsx`: while `follow.state === 'on'` the layer replaces the `.page` grid with every hook still mounted (passes, playback and R48's `now` effect, the wake lock); `Esc` closes the screen before it can leave the page; unmount closes it; `useHiddenObjects(observer, shown, liveHidden && !following)`; `SkyChart` on the page gets `views={['dome', 'polar']}`. Copy in `i18n/{en,es}/live.ts` (`followClose`). `tests/e2e/follow-screen.spec.ts` at 844 × 390 with `hasTouch` and `sky-window.spec.ts`'s orientation helpers. Captures in `v1-captures.spec.ts` with the `captures.test.ts` list updated: `follow-screen-844-{sky,ground,buried}-{dark,night}-{en,es}` and `follow-screen-390-portrait-{dark,night}-{en,es}`; the v1.2 `following` captures leave the set and `docs/screenshots/`.
+  - **Touches outside the lane:** `tests/e2e/v1-captures.spec.ts` and `captures.test.ts` (the `ui` lane's capture list; the one shared file, additive) — and the removal of the `r59-live-390-following-*` files.
+  - **Done when:**
+    - `FollowScreen.test.tsx` (jsdom, `matchMedia` mocked, synthetic orientation events): open shows the drawing, the `×`, the readout and the legend and none of `live-side`, `stripe-block`, `playback-row`, `live-actions` or the app header; `×`, `Esc` and unmount each restore the previous view (dome and polar) with the stripe block and the playback row back at real time; focus lands on the `×` and returns to the follow control; portrait shows the note and the `×` only; no `hidden` prop reaches the chart; with the hidden toggle on, no `computeAt` message leaves the page while following.
+    - `App.live.test.tsx`'s follow states rewritten: the control mounts the layer instead of switching the page's `data-view`; a denial and a relative-only device still leave the page alone with the note (FR-FOL-2).
+    - `follow-screen.spec.ts`: the layer's box equals `innerWidth × innerHeight`, the header is not hit-testable under it, the `×` restores the page, `setViewportSize(390, 844)` shows the note and back to 844 × 390 the drawing, with one permission request in total.
+    - The capture set holds the sixteen `follow-screen-*` files in both themes and locales and no `following` file; `captures.test.ts` agrees.
+    - The owner has run it on a phone, sideways and upright, and accepted it (V11-9).
+    - `npm test`, lint, typecheck green.
+
+- [ ] **R65 — v1.3 release preparation**
+  - **Lane:** ui
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R64
+  - **Goal:** The phase closes: the capture set is re-shot on `main` with the follow screen in it, the budgets are re-set, and the build is 1.3.0.
+  - **Satisfies:** the Phase 2d definition of done (SPEC §9).
+  - **Scope:** `package.json` at 1.3.0; the D-179 capture set re-shot on `main` (the follow screen's sixteen, the compact live page's two-option control, the pass detail unchanged) with `captures.test.ts` matching; the bundle budgets re-measured by the D-178 rule with the `chart`, `live` and `window` chunks re-stated; `docs/RELEASE.md` updated for the phase, the phone run the owner owns named in it; anything found on the way written into SPEC §4.20 as a finding for a later phase, none fixed here.
+  - **Touches outside the lane:** `SPEC.md` §4.20 (findings only), `TASKS.md`.
+  - **Done when:**
+    - `captures.test.ts` and the committed set agree, and the set includes the R62, R63 and R64 screens in both themes and locales.
+    - The budget table equals the measured build plus a tenth; `npm run build` is inside it.
+    - `npm test`, lint, typecheck and the PR e2e path green inside FR-CI-1's 10 min.
+    - The tag, the deploy and the on-device run stay with the owner, as `docs/RELEASE.md` says.
+
+### Expected waves (v1.3)
+
+Computed from the graph with the driver's caps (one task per lane, three at once, concurrently), after R60 is checked on `main`.
+
+| Wave | Tasks | Lanes | Models |
+|---|---|---|---|
+| 1 | R62, R63 | chart, window | opus, opus |
+| 2 | R64 | live | opus |
+| 3 | R65 | ui | opus |
+
+Wave 1 runs the two lanes that share no file: R62 stays inside `skychart/**` less `window/` plus one token, R63 inside `window/` and its own catalog; each reads `screen` off `props` so neither needs the other to compile. R64 is one task because the switch, the layer, the e2e and the captures are one screen and one phone run. R65 is the only task that touches `package.json` or the budgets.
+
+Token rules for the phase (PLAN D-284): every session takes the D-198 brief with only the sections §16.10 names for it, none reads the three documents in full, test runs stay narrow until the last commit, and captures come only from the screens a task changes.
+
+### Requirement coverage (v1.3)
+
+| Requirement | Task |
+|---|---|
+| FR-FSC-1 | R62 (the frame), R63 (the window), R64 (the layer) |
+| FR-FSC-2 | R64 |
+| FR-FSC-3, FR-LEG-2 as amended | R62 |
+| FR-FSC-4 | R63 |
+| FR-FSC-5, FR-LIVE-6 as amended | R64 |
+| FR-FSC-6, FR-WIN-4 / FR-WIN-5 as amended | R62 (the prop), R64 (the live page passes it) |
+| FR-FSC-7 | R64, R65 |
+| FR-FOL-1 / FR-FOL-3 / FR-LIVE-7 / FR-LIVE-8 / FR-WIN-6 as amended | R64 |
+| US-21 AC11..AC13 | R64 (AC12 with R63, AC13 with R62) |
+| Phase 2d definition of done | R65 |
+
+```mermaid
+graph TD
+  R60 --> R62 & R63
+  R62 & R63 --> R64
+  R64 --> R65
 ```
