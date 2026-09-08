@@ -1316,7 +1316,7 @@ Delivery is PLAN §16 unchanged, cut by §16.10: four tasks, three waves, one ta
     - `npm test` green; the FR-GUIDE-6 rate path untouched.
   - **Done 2026-09-08:** as written, with three additions the scope did not foresee, all recorded. `SkyWindow` also passes `screen` on to `ChartFrame`, because the window is what renders the frame and neither end of that seam is R62's (D-333). `tests/support/matchMedia.ts` threw on `(orientation: …)`, so the shared stub learned to read it off the size it already tracks — the task's one crossing out of its lane (D-334). And the captures are shot from `spike/window/screen.tsx`, a lane-owned harness that mounts the production window with `screen`, because in wave 1 no page passes the prop; `docs/screenshots/r63-window-390-portrait-{dark,night}-{en,es}.png` and `r63-window-844-landscape-dark-en.png`, superseded by R64's `follow-screen-390-portrait-*` (D-335). The permission check counts the browser's own `requestPermission`, which is what "asked once" means, rather than the memoising `requestOrientationAccess` around it; the "no `OptionToggle`" check is made at the window's `controls` prop, since `SkyChart` cannot pass `screen` until R62.
 
-- [ ] **R64 — The follow screen: the layer, the `×`, `Esc`, hidden objects off it, the e2e and the captures**
+- [x] **R64 — The follow screen: the layer, the `×`, `Esc`, hidden objects off it, the e2e and the captures**
   - **Lane:** live
   - **Model:** opus
   - **Gate:** owner
@@ -1332,6 +1332,7 @@ Delivery is PLAN §16 unchanged, cut by §16.10: four tasks, three waves, one ta
     - The capture set holds the sixteen `follow-screen-*` files in both themes and locales and no `following` file; `captures.test.ts` agrees.
     - The owner has run it on a phone, sideways and upright, and accepted it (V11-9).
     - `npm test`, lint, typecheck green.
+  - **Done 2026-09-08 (D-338..D-342):** as written, with five departures, all recorded. The layer replaces `LiveSky`'s grid rather than `LivePage`'s, because every hook the scope says stays mounted lives there, and the header it covers is made `inert` *and* `aria-hidden` where it stands (D-338). `SkyWindow` had to pass `overlay` on to the frame — R62's last link, which R63 did not take — and `WindowView`'s Suspense fallback had to become a screen too, or the `×` would have been missing for the frames the lazy chunk takes to land (D-339). Focus is a callback ref rather than a mount effect for the same reason, and the dialog's name is the readout where there is one and the control's name in the portrait state, where there is no element to point `aria-labelledby` at (D-340). The strip's true-north line is gone with the window's being a view of this page, so `Live.tsx` stops calling `useDeclination` (D-341). And the captures are four *screens* in D-179's naming, `v1-follow-screen-{sky,ground,buried}-844-*` and `v1-follow-screen-portrait-390-*` — the sixteen files the scope asks for, with the state before the width as `window-ground` already has it, and the first screen in the set with no 1280 px picture (D-342). The follow states rewritten are `Live.test.tsx`'s; `App.live.test.tsx` has none and never had.
 
 - [ ] **R65 — v1.3 release preparation**
   - **Lane:** ui
