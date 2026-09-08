@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, type KeyboardEvent } from 'react';
 import { useT } from '../../../i18n/useT';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { SCREEN_STATUS_ID } from '../guide/skychart/ChartFrame';
@@ -69,7 +69,7 @@ export function FollowScreen({ passes, observer, now, sun, moon, onClose }: Foll
    * chrome and back on the `×` — the one control that is always here, whatever
    * the drawing is doing.
    */
-  const onKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Tab') return;
     const layer = layerRef.current;
     if (!layer) return;
