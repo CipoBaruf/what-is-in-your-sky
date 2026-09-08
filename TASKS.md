@@ -1191,7 +1191,8 @@ Delivery is PLAN §16 unchanged, cut by §16.9: five tasks, three waves, one tas
     - `live-reload.spec.ts`: seed a stored run, open `#live`, click the stripe, reload, and assert the arc count, the stripe's segment count and the strip's satellite count are what they were before the click — failing on the old code. The click-only report is reproduced first in the same spec; if it is a second defect it is closed here and named in the PR body.
     - `npm test` green.
 
-- [ ] **R59 — Follow opens the window, and the compact rows stop overlapping**
+- [x] **R59 — Follow opens the window, and the compact rows stop overlapping**
+  - *Done differently in two places (PLAN D-300, D-301): the press waits for one reading before it opens the window, so a phone with no north in its readings never changes the view; and `--chart-floor` yields by the page turning `--chart-floor-on` off (D-233's switch), which is a one-line change to the `chart` lane's contract test — the third file outside the lane, with `live-landscape.spec.ts` and `r48-trajectories.spec.ts`, whose floor assertions moved with it. The rows still do not fit beneath a floored box at 390 × 667; the arithmetic is in D-300 and the gap is a finding for the register.*
   - **Lane:** live
   - **Model:** opus
   - **Gate:** owner

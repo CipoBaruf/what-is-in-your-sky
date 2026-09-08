@@ -50,8 +50,9 @@ export const live: typeof EnLive = {
     hiddenReason: { low: 'muy bajo', shadow: 'en sombra', daylight: 'de día', faint: 'muy tenue' },
     hiddenLabel: (p) => `${p.name} · ${p.reason}`,
     follow: 'Seguir al teléfono',
-    followRelative: 'Este teléfono no da un rumbo de brújula, así que la cúpula no puede girar con él.',
-    followDenied: 'Se rechazó el acceso al movimiento, así que la cúpula no puede girar con el teléfono.',
+    /** R59 (FR-FOL-2): el control abre la ventana al cielo, así que los avisos dicen qué no se abrió y no qué no giró. */
+    followRelative: 'Este teléfono no da un rumbo de brújula, así que la ventana al cielo no puede abrirse.',
+    followDenied: 'Se rechazó el acceso al movimiento, así que la ventana al cielo no puede abrirse.',
     headingLabel: 'Rumbo',
     trueNorth: (p) => `norte verdadero, declinación ${p.declination}`,
     /** R48 (FR-TRAJ-5): "sale" (the pass rises) and not "salida" — the six buttons must stay within 36 cells with their gaps (FR-COMP-4), and "salida" is two cells too many. */

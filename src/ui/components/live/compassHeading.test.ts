@@ -4,35 +4,13 @@
  * reading has none; the screen's rotation turns the heading into the facing;
  * and the control shows where the constructor exists on a touch screen.
  *
- * R44 (FR-WIN-3, F-41) adds the correction that makes the reading a true-north
- * one: the declination is added before the screen's angle, and the sum is what
- * the dome is turned to.
+ * R59 (D-276): the dome's heading path is gone with the dome's following —
+ * `trueHeading` and `facingFrom` went with it, and so did their tests. What a
+ * reading is still asked is whether it has a north in it at all: that is what
+ * decides between opening the window and showing FR-FOL-2's note.
  */
 import { describe, expect, it } from 'vitest';
-import { declinationDeg } from '../../../lib/declination';
-import { deviceHeading, facingFrom, orientationApiPresent, orientationEventName, permissionRequest, quantise, screenAngle, trueHeading } from './compassHeading';
-
-/** R44 (FR-WIN-3, US-21 AC6, F-41, D-185): the sum that makes a magnetic reading a true-north one. */
-describe('trueHeading', () => {
-  it('adds the declination, east positive, and wraps', () => {
-    expect(trueHeading(90, 1.12)).toBeCloseTo(91.12, 5);
-    expect(trueHeading(90, -12.49)).toBeCloseTo(77.51, 5);
-    expect(trueHeading(0, 0)).toBe(0);
-    // Past north in either direction the result stays in [0, 360).
-    expect(trueHeading(359.5, 1.12)).toBeCloseTo(0.62, 5);
-    expect(trueHeading(2, -12.49)).toBeCloseTo(349.51, 5);
-  });
-
-  it('is the whole chain the hook runs: a reading, the declination, the screen, whole degrees', () => {
-    // Neuquén at the R1 fixtures' place and date: Chrome's absolute alpha 270 is a magnetic 90°.
-    const decl = declinationDeg({ lat: -38.93, lon: -67.99, altM: 0 }, new Date('2026-09-11T09:48:24Z'));
-    const magnetic = deviceHeading({ alpha: 270, absolute: true });
-    expect(magnetic).toBe(90);
-    expect(quantise(facingFrom(trueHeading(magnetic ?? 0, decl), 0))).toBe(91);
-    // A phone held sideways: the screen's 90° is added to the corrected heading, not to the raw one.
-    expect(quantise(facingFrom(trueHeading(magnetic ?? 0, decl), 90))).toBe(181);
-  });
-});
+import { deviceHeading, orientationApiPresent, orientationEventName, permissionRequest, quantise, screenAngle } from './compassHeading';
 
 describe('deviceHeading', () => {
   it('takes the WebKit heading as it is, whatever alpha says', () => {
@@ -56,14 +34,7 @@ describe('deviceHeading', () => {
   });
 });
 
-describe('facingFrom / quantise', () => {
-  it('turns the heading by the screen angle: sideways, the viewer faces 90° from the top of the phone', () => {
-    expect(facingFrom(30, 0)).toBe(30);
-    expect(facingFrom(30, 90)).toBe(120);
-    expect(facingFrom(30, 270)).toBe(300);
-    expect(facingFrom(350, 90)).toBe(80);
-  });
-
+describe('quantise', () => {
   it('rounds to whole degrees inside [0, 360)', () => {
     expect(quantise(12.4)).toBe(12);
     expect(quantise(12.6)).toBe(13);

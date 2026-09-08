@@ -1,121 +1,137 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { deviceHeading, facingFrom, orientationApiPresent, orientationEventName, permissionRequest, quantise, readingFrom, screenAngle, trueHeading } from './compassHeading';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useAppStore } from '../../../state';
+import { requestOrientationAccess } from '../guide/skychart/window/orientationAccess';
+import { deviceHeading, orientationApiPresent, orientationEventName, permissionRequest, readingFrom } from './compassHeading';
 
 /**
- * R34 (FR-LIVE-8, US-10, US-15 AC8; D-175): the phone's compass as the
- * dome's facing. `toggle` is the control's click handler and the only place
- * the sensor is asked for: iOS grants `DeviceOrientationEvent` only from a
- * user gesture (`requestPermission()`, HTTPS), so the request is made inside
- * the click and nowhere else. Granted — or not needed — the hook listens to
- * Chrome's absolute event where the window has it and the plain one
- * elsewhere, maps each reading through `compassHeading.ts`, and hands out a
- * whole-degree facing at most once per animation frame, the pace the drag
- * already updates the dome at.
+ * R34 (FR-LIVE-8, US-10, US-15 AC8; D-175), rewritten by R59 (FR-FOL-1..3,
+ * FR-LIVE-8 as amended v1.2, D-276): the `[ follow phone ]` control's state.
  *
- *   - `off`: not following; the dome is the viewer's. R39 (F-42): this is also
- *     the state of a phone that has been asked and has said nothing yet. The
- *     listener is armed, but the state names what the dome is doing, and where
- *     no reading ever arrives — a desktop with the constructor and no sensor,
- *     a page whose permissions policy drops the events — that is nothing.
- *   - `on`: a reading with a heading has landed; `facingAzDeg` is the last one.
- *   - `relative`: a reading landed, but it carries no north (no `absolute`, no
- *     `webkitCompassHeading`), so the page shows a note and the dome stays
- *     where it is. A later reading with a heading recovers.
- *   - `denied`: the permission was refused, or the request failed (an
- *     insecure context); a note, and the control asks again on the next
- *     click.
+ * Following is no longer the dome turning; it is the sky window being shown.
+ * The control opens the window over whatever view is showing and the second
+ * press gives that view back, so what this hook owns is the *view override*
+ * (D-277) and the two answers a phone can give before there is a window to
+ * show: a refused permission, and a device with no north in its readings.
+ * `window/useDeviceOrientation` is the only listener on the sensor once the
+ * window is up, so there is never a second subscription and never two
+ * smoothing states to disagree.
  *
- * `stop` is what the dome's `onDrag` calls: a drag is the viewer taking the
- * dome by hand, and following stays off until the control turns it on again.
- * `available` is false where there is no phone to follow, and the control is
- * not rendered at all (PLAN §8.8).
+ *   - `off`: not following; the chart is the reader's own view.
+ *   - `on`: the window is showing because this control opened it.
+ *   - `relative`: the one reading this hook waits for carried no north (no
+ *     `absolute`, no `webkitCompassHeading`), so the window is not opened at
+ *     all: it would have nothing to point at. A note, and the view is left
+ *     exactly as it was (FR-FOL-2).
+ *   - `denied`: the permission was refused, or the request failed (an insecure
+ *     context); a note, and the control asks again on the next press.
  *
- * R44 (FR-WIN-3, F-41, D-185): the sensor reads magnetic north and the dome is
- * drawn in true azimuths, so `declinationDeg` — the observer's, from
- * `useDeclination` — is added to every reading before it becomes a facing. It
- * is a dependency of the listener rather than a ref: it changes only when the
- * observer does, which is rarer than the resubscription costs.
+ * **The tap is where the browser is asked** (FR-WIN-4, FR-FOL-2). iOS grants
+ * `DeviceOrientationEvent` only from a user gesture, so the request is made
+ * inside the click through `orientationAccess.ts` — the same one place the
+ * view control's "Window" option asks from, so the window this press opens
+ * arms its own listener at once instead of showing `[ point at the sky ]`.
+ *
+ * **One reading before the switch** (F-42's lesson). Granted is not the same
+ * as followable: a phone with no compass heading answers the permission and
+ * then sends readings with no north in them. So the press arms a listener,
+ * and it is the first reading that decides — a heading opens the window and
+ * the listener goes (the window takes the sensor from there); no heading is
+ * the `relative` note with the view untouched. A device that sends nothing at
+ * all leaves the control unpressed and the page alone, which is what it did
+ * before.
+ *
+ * **Leaving.** The second press, and unmounting the live page, clear the
+ * override; `viewOverride ?? savedChartView` is what the chart reads, so
+ * clearing it *is* restoring the view the press came from — there is no
+ * second memory of it to go stale. Anything else that clears the override —
+ * the reader picking a view by hand (`setChartView`), a window that reports it
+ * cannot run here (`dropChartView`) — ends following too, and the control goes
+ * back to unpressed.
  */
 export type FollowState = 'off' | 'on' | 'relative' | 'denied';
 
 export interface FollowPhoneHandle {
   available: boolean;
   state: FollowState;
-  /** The facing while following, whole degrees clockwise from north; `null` until a heading has been read. */
-  facingAzDeg: number | null;
   toggle: () => void;
-  stop: () => void;
 }
 
-export function useFollowPhone(declinationDeg = 0): FollowPhoneHandle {
+/** FR-FOL-1: the view the control opens. */
+const FOLLOW_VIEW = 'window';
+
+export function useFollowPhone(): FollowPhoneHandle {
+  // FR-WIN-4's presence test, the window's own: the control is offered exactly where the window is.
   const available = useMemo(() => typeof window !== 'undefined' && orientationApiPresent(), []);
-  // R39 (F-42): armed — the listener is on — is not the same as following. The click arms; the first
-  // reading is what names the state, so a device that never sends one leaves the control alone.
+  const viewOverride = useAppStore((s) => s.viewOverride);
+  const setViewOverride = useAppStore((s) => s.setViewOverride);
+  // Armed — waiting for the reading that says whether this phone has north — is not yet following.
   const [armed, setArmed] = useState(false);
-  const [state, setState] = useState<FollowState>('off');
-  const [facingAzDeg, setFacing] = useState<number | null>(null);
+  const [note, setNote] = useState<'relative' | 'denied' | null>(null);
+  /*
+   * D-277: the override *is* following — nothing else in the app sets one — so
+   * the state is read off the store rather than mirrored beside it. That is
+   * what makes a view picked by hand (`setChartView`) or a window that reports
+   * it cannot run here (`dropChartView`) end following with no listener of our
+   * own watching for it, and what makes the two impossible to disagree.
+   */
+  const following = viewOverride === FOLLOW_VIEW;
+  const state: FollowState = following ? 'on' : (note ?? 'off');
 
   useEffect(() => {
     if (!armed) return;
-    let frame = 0;
-    let pending: number | null = null;
-    const flush = (): void => {
-      frame = 0;
-      if (pending === null) return;
-      setFacing(pending);
-      pending = null;
-    };
     const onReading = (event: Event): void => {
-      const heading = deviceHeading(readingFrom(event as DeviceOrientationEvent));
-      if (heading === null) {
-        setState('relative');
+      setArmed(false);
+      if (deviceHeading(readingFrom(event as DeviceOrientationEvent)) === null) {
+        setNote('relative');
         return;
       }
-      setState('on');
-      // Magnetic → true (R44) → the viewer's facing, then whole degrees.
-      pending = quantise(facingFrom(trueHeading(heading, declinationDeg), screenAngle()));
-      if (!frame) frame = requestAnimationFrame(flush);
+      setViewOverride(FOLLOW_VIEW);
     };
     const name = orientationEventName();
     window.addEventListener(name, onReading);
     return () => {
       window.removeEventListener(name, onReading);
-      if (frame) cancelAnimationFrame(frame);
     };
-  }, [armed, declinationDeg]);
+  }, [armed, setViewOverride]);
+
+  // FR-FOL-1: leaving the live page gives the view back, as the second press does. The ref is the
+  // last committed answer, so the cleanup that runs on unmount reads it without depending on it.
+  const followingRef = useRef(following);
+  useEffect(() => {
+    followingRef.current = following;
+  }, [following]);
+  useEffect(
+    () => () => {
+      if (followingRef.current) setViewOverride(null);
+    },
+    [setViewOverride],
+  );
 
   const stop = useCallback(() => {
     setArmed(false);
-    setState((current) => (current === 'denied' ? current : 'off'));
-    setFacing(null);
-  }, []);
-
-  const arm = useCallback(() => {
-    setArmed(true);
-    // The refusal's note belongs to the answer before this click, not to the reading this one is waiting for.
-    setState((current) => (current === 'denied' ? 'off' : current));
-  }, []);
+    setNote(null);
+    if (following) setViewOverride(null);
+  }, [following, setViewOverride]);
 
   const toggle = useCallback(() => {
-    if (armed) {
+    if (following || armed) {
       stop();
       return;
     }
-    const request = permissionRequest();
-    if (request === null) {
-      arm();
+    // The note belongs to the answer before this press, not to the reading this one is waiting for.
+    setNote(null);
+    if (permissionRequest() === null) {
+      setArmed(true);
       return;
     }
     // iOS: inside the click, so the gesture carries. The answer arrives later; a refusal shows the note.
-    request()
-      .then((answer) => {
-        if (answer === 'granted') arm();
-        else setState('denied');
-      })
-      .catch(() => {
-        setState('denied');
-      });
-  }, [armed, arm, stop]);
+    void requestOrientationAccess().then((answer) => {
+      if (answer === 'granted') setArmed(true);
+      else setNote('denied');
+    });
+  }, [following, armed, stop]);
 
-  return { available, state, facingAzDeg, toggle, stop };
+  // R59 review: `stop` stays internal. The dome no longer turns while following, so there is no
+  // drag to end it and nothing outside calls it — the hook's own toggle and unmount do.
+  return { available, state, toggle };
 }

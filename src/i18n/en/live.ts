@@ -78,12 +78,18 @@ export const live = {
     hiddenToggle: 'Hidden objects',
     hiddenReason: { low: 'too low', shadow: 'in shadow', daylight: 'daylight', faint: 'too faint' } satisfies Record<HiddenReason, string>,
     hiddenLabel: (p: { name: string; reason: string }) => `${p.name} · ${p.reason}`,
-    /** R34 (FR-LIVE-8, US-10): the compass-follow toggle, shown only where there is a phone to follow, and its two notes. */
+    /**
+     * R34 (FR-LIVE-8, US-10): the compass-follow toggle, shown only where there
+     * is a phone to follow, and its two notes. R59 (FR-FOL-1, FR-FOL-2): the
+     * control opens the sky window rather than turning the dome, so the notes
+     * say what did not open instead of what did not turn; the view is left as
+     * it was in both cases.
+     */
     follow: 'Follow phone',
-    /** The readings carry no north (`absolute` false, no WebKit heading): the dome cannot turn with the phone. */
-    followRelative: 'This phone gives no compass heading, so the dome cannot turn with it.',
+    /** The readings carry no north (`absolute` false, no WebKit heading): there is nothing to point the window at. */
+    followRelative: 'This phone gives no compass heading, so the sky window cannot open.',
     /** iOS refused `requestPermission()`, or the request failed (an insecure context). */
-    followDenied: 'Motion access was refused, so the dome cannot turn with the phone.',
+    followDenied: 'Motion access was refused, so the sky window cannot open.',
     /**
      * R44 (FR-WIN-3, US-21 AC6): the strip's heading field, shown only while
      * the dome is following the phone. It says what the correction is as much
