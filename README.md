@@ -6,7 +6,7 @@ gets. It runs in the browser, with no backend and no account.
 
 **Live:** <https://in-your-sky.ezequiel-baruf.workers.dev>
 
-![Three phone screens side by side: tonight's passes with the next one, the pass drawn on the sky dome, and the sky screen held up at the sky](docs/readme/hero.png)
+![Three screens: a phone showing the sky over you drawn as braille text with the passes and the time stripe under it, a phone turned sideways held up at the sky, and a laptop showing when the next pass starts, how high it climbs and how bright it gets](docs/readme/hero.png)
 
 It was built spec-driven, and mostly not by hand. Every line traces to a numbered
 requirement in `SPEC.md`; each slice in `TASKS.md` was delivered by one Claude Code

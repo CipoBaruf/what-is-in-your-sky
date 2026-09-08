@@ -18,7 +18,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join, normalize } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { HERO, PREVIEW, SOURCES } from '../../scripts/readme-hero';
+import { geometry, HERO, PREVIEW, previewSources, SOURCES } from '../../scripts/readme-hero';
 import { productionPackages, RULE } from '../../scripts/third-party-notices';
 
 const readme = readFileSync('README.md', 'utf8');
@@ -141,11 +141,46 @@ describe('the hero and the social preview (FR-PUB-2, FR-PUB-11, D-370)', () => {
     return { width: header.readUInt32BE(16), height: header.readUInt32BE(20) };
   }
 
-  it('is composed from captures that are in the committed set', () => {
-    expect(SOURCES.length).toBe(3);
+  it('is composed from captures that are in the committed set, at the sizes it declares', () => {
+    expect(SOURCES.length).toBeGreaterThanOrEqual(2);
     for (const source of SOURCES) {
-      expect(existsSync(join('docs/screenshots', source.file)), `missing capture ${source.file}`).toBe(true);
+      const path = join('docs/screenshots', source.file);
+      expect(existsSync(path), `missing capture ${source.file}`).toBe(true);
+      // The declared size is what every box is derived from, so a capture
+      // re-shot at another size must fail here rather than skew the layout.
+      expect(size(path), `declared size of ${source.file}`).toEqual({ width: source.w, height: source.h });
     }
+  });
+
+  it('lays every source out, with no geometry written down twice', () => {
+    // The review finding on the first P1 run: `compose()` hardcoded two portrait
+    // tiles and one landscape one, so a change to SOURCES moved the pictures and
+    // not the boxes. Every tile is placed from its own declared size now, and
+    // this is what says so — the placed tiles are exactly the sources.
+    const layout = { width: HERO.width, height: null, pad: 20, gap: 20, mainWidth: 400, title: false };
+    const { main, stack, height } = geometry(layout);
+    expect([main, ...stack].map((tile) => tile.source.file)).toEqual(SOURCES.map((source) => source.file));
+    for (const tile of [main, ...stack]) {
+      expect(tile.height, `${tile.source.file} keeps its aspect`).toBe(Math.round((tile.width * tile.source.h) / tile.source.w));
+    }
+    // Every stacked tile is one column, so they share a width; and the sheet is
+    // as tall as the taller of the two columns, never taller.
+    expect(new Set(stack.map((tile) => tile.width)).size).toBe(1);
+    expect(height).toBe(size(HERO.path).height);
+  });
+
+  it('refuses a source list it cannot draw', () => {
+    const layout = { width: HERO.width, height: null, pad: 20, gap: 20, mainWidth: 400, title: false };
+    expect(() => geometry(layout, SOURCES.filter((source) => source.slot === 'stack'))).toThrow(/exactly one main tile/);
+    expect(() => geometry(layout, SOURCES.filter((source) => source.slot === 'main'))).toThrow(/at least one stacked tile/);
+    expect(() => geometry({ ...layout, mainWidth: HERO.width }, SOURCES)).toThrow(/leaves no room/);
+  });
+
+  it('the preview drops to two tiles, because 1280 x 640 cannot hold three', () => {
+    const chosen = previewSources();
+    expect(chosen.map((source) => source.slot)).toEqual(['main', 'stack']);
+    const declared = new Set<string>(SOURCES.map((source) => source.file));
+    expect(chosen.every((source) => declared.has(source.file))).toBe(true);
   });
 
   it('and writes nothing into docs/screenshots/, which captures.test.ts owns', () => {
