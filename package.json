@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage:physics": "vitest run src/physics --coverage",
-    "e2e": "vite build && playwright test",
+    "e2e": "VITE_MOON_LORE=on vite build && playwright test",
     "bundle:budget": "tsx scripts/bundle-budget.ts",
     "spike:dome-composition": "tsx spike/dome-composition/capture.ts",
     "spike:window": "vite --config spike/window/https.config.ts --host",

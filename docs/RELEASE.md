@@ -18,9 +18,12 @@ checks the v1 surface added, plus the tag and the deploy, which are the owner's.
       gzipped (D-178 — the measured build plus a tenth, all of them inside the PLAN §11
       ceilings). An overrun is a `::warning::` annotation; if one is accepted, the PR says
       so, and the fix is to re-measure and re-set the budgets rather than widen one.
-- [ ] The capture set matches the app: `npx playwright test v1-captures --project=chromium`
+- [ ] The capture set matches the app: `npm run build && npx playwright test v1-captures --project=chromium`
       re-shoots `docs/screenshots/v1-*.png` and `npm test` (`tests/docs/captures.test.ts`)
-      says the set is complete. Look at the files that changed.
+      says the set is complete. Look at the files that changed. The build is part of the
+      command: the specs preview whatever `dist/` is there, and a preceding `npm run e2e`
+      leaves one built with `VITE_MOON_LORE=on`, while `captures.yml` builds the flag off
+      (D-179, FR-FLAG-1). A plain `npm run build` is the state the set is meant to show.
 - [ ] The golden suite covers all three observers: `npx tsx scripts/validate-iss.ts --all`
       prints `OVERALL: PASS` for Neuquén, Paris and Singapore.
 - [ ] The dome raster snapshot (`src/ui/components/guide/skychart/dome/__snapshots__/SkyDome.golden.txt`)
