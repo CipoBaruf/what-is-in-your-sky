@@ -107,11 +107,11 @@ const FULL_PAGE = new Set(['location', 'home', 'settings']);
  * touch panel. Playwright grants touch per context, so these tests need a
  * `test.use` of their own and the rest of the set must not have it.
  */
-const TOUCH = new Set(['window', 'window-ground', 'window-buried', 'follow-screen-sky', 'follow-screen-ground', 'follow-screen-buried', 'follow-screen-portrait']);
+const TOUCH = new Set(['window', 'sky-screen-sky', 'sky-screen-ground', 'sky-screen-buried', 'sky-screen-portrait']);
 
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
-const FOLLOW = { en: 'Follow phone', es: 'Seguir al teléfono' } as const;
+const VIEW_OPTION_WINDOW = { en: 'Window', es: 'Ventana' } as const;
 const FRAME_MS = 16;
 
 /** The two states R56 added to the window: `state` is how far below the horizon the phone points, in a square 60° box (R56's own numbers). */
@@ -276,48 +276,28 @@ async function settle(page: Page): Promise<void> {
   await page.clock.runFor(40 * FRAME_MS);
 }
 
-/** R56's two ground states, reached the same way `window` is: the pass's dome view, switched to the window, then swept down. */
-async function windowGroundState(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, screen: 'window-ground' | 'window-buried'): Promise<void> {
-  const { altDeg, state } = GROUND_STATE[screen];
-  await stubCompass(page);
-  await openChart(page, width, theme, locale, 'dome');
-  const figure = guide(page).getByRole('figure');
-  await figure.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
-  // The paused clock holds the lazy chunk's Suspense reveal (R32), as it does for the dome.
-  await page.clock.runFor(1000);
-  await expect(figure).toHaveAttribute('data-view', 'window');
-  const drawing = figure.locator('[data-look-az]');
-  await expect(drawing).toBeAttached();
-  // Down the pass's own azimuth, so the sky the `ground` state still holds is the sky with the arc in it.
-  const azDeg = Number(await drawing.getAttribute('data-look-az'));
-  await point(page, azDeg, altDeg);
-  await settle(page);
-  await expect(drawing).toHaveAttribute('data-ground', state);
-  await page.mouse.move(0, 0);
-}
-
 /**
- * R64 (FR-FSC-1, FR-FSC-7): the follow screen, in the state its own screen name
- * carries. The route is the reader's: the live page, `[ follow phone ]`, and the
- * reading with a north in it that the press waits for (D-276) — the layer opens
- * on that reading and not on the click.
+ * R64 (FR-FSC-1, FR-FSC-7), R66 (V13-6): the sky screen, in the state its own
+ * screen name carries. The route is the reader's: the live page, the view
+ * control's "window", and the reading with a north in it that the tap waits for
+ * (D-350) — the layer opens on that reading and not on the click.
  *
  * `sky` is turned to where the pass is, as `live-following` was: a picture with
  * an arc in it is worth more than an empty sky. The two ground states are swept
- * down the look's own azimuth, as `window-ground` is. `portrait` is the phone
- * held upright, where FR-FSC-4 says there is nothing to aim.
+ * down the look's own azimuth. `portrait` is the phone held upright, where
+ * FR-FSC-4 says there is nothing to aim.
  */
 type FollowState = 'sky' | 'ground' | 'buried' | 'portrait';
 
 async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, state: FollowState): Promise<void> {
   await stubCompass(page);
   await liveAt(page, width, theme, locale);
-  await page.getByRole('button', { name: FOLLOW[locale] }).click();
+  await page.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: VIEW_OPTION_WINDOW[locale] }).click();
   await expect
     .poll(
       async () => {
         await heading(page, 270);
-        return page.getByTestId('follow-screen').count();
+        return page.getByTestId('sky-screen').count();
       },
       { timeout: 15_000 },
     )
@@ -326,7 +306,7 @@ async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme
   await page.clock.runFor(1000);
   // FR-FSC-1: none of the live page is under the layer any more — the rows are not rendered at all.
   await expect(page.getByTestId('stripe-block')).toHaveCount(0);
-  await expect(page.getByTestId('follow-close')).toBeVisible();
+  await expect(page.getByTestId('sky-screen-close')).toBeVisible();
   if (state === 'portrait') {
     await expect(page.getByTestId('window-portrait-note')).toBeVisible();
     await page.mouse.move(0, 0);
@@ -427,20 +407,25 @@ const REACH: Record<string, Reach> = {
     await stubCompass(page);
     await openChart(page, width, theme, locale, 'dome');
     const figure = guide(page).getByRole('figure');
+    // R66 (V13-6, V13-9): the option opens the sky screen over the sheet, and the reading is what opens it (D-350).
     await figure.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
+    await page.evaluate(() => {
+      window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: 0, beta: 90, gamma: 0, absolute: true }));
+    });
     // The paused clock holds the lazy chunk's Suspense reveal (R32), as it does for the dome.
     await page.clock.runFor(1000);
-    await expect(figure).toHaveAttribute('data-view', 'window');
-    const drawing = figure.locator('[data-look-az]');
+    const layer = page.getByTestId('sky-screen');
+    await expect(layer).toHaveCount(1);
+    const drawing = layer.locator('[data-look-az]');
     await expect(drawing).toBeAttached();
     const aim = { az: Number(await drawing.getAttribute('data-look-az')), alt: Number(await drawing.getAttribute('data-look-alt')) };
     await point(page, aim.az, aim.alt);
     await settle(page);
     await expect(drawing).toHaveAttribute('data-state', 'on');
-    const declination = Number(await figure.getByTestId('window-heading').getAttribute('data-declination'));
+    const declination = Number(await layer.getByTestId('window-heading').getAttribute('data-declination'));
     await point(page, aim.az - declination, aim.alt);
     await settle(page);
-    await expect(figure.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
+    await expect(layer.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
     await page.mouse.move(0, 0);
   },
 
@@ -450,13 +435,6 @@ const REACH: Record<string, Reach> = {
    * pass's own azimuth, as R56's captures do it, so the `ground` state still
    * has an arc left to show above the hatch.
    */
-  async 'window-ground'(page, width, theme, locale) {
-    await windowGroundState(page, width, theme, locale, 'window-ground');
-  },
-
-  async 'window-buried'(page, width, theme, locale) {
-    await windowGroundState(page, width, theme, locale, 'window-buried');
-  },
 
   /**
    * R53 (FR-LEG-2..4): the legend with something in every column. The live page
@@ -524,19 +502,19 @@ const REACH: Record<string, Reach> = {
   },
 
   /** R64 (FR-FSC-1, FR-FSC-4, FR-FSC-7): the four states of the screen `[ follow phone ]` opens. */
-  async 'follow-screen-sky'(page, width, theme, locale) {
+  async 'sky-screen-sky'(page, width, theme, locale) {
     await followScreen(page, width, theme, locale, 'sky');
   },
 
-  async 'follow-screen-ground'(page, width, theme, locale) {
+  async 'sky-screen-ground'(page, width, theme, locale) {
     await followScreen(page, width, theme, locale, 'ground');
   },
 
-  async 'follow-screen-buried'(page, width, theme, locale) {
+  async 'sky-screen-buried'(page, width, theme, locale) {
     await followScreen(page, width, theme, locale, 'buried');
   },
 
-  async 'follow-screen-portrait'(page, width, theme, locale) {
+  async 'sky-screen-portrait'(page, width, theme, locale) {
     await followScreen(page, width, theme, locale, 'portrait');
   },
 };

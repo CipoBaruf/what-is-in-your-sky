@@ -27,14 +27,16 @@ describe('the v1 capture set', () => {
     /*
      * Every screen is on the phone and on the wide layout; nothing is desktop-only or phone-only.
      *
-     * R64 (FR-FSC-7) is the one exception, and it is an exception because the app is: the follow screen
-     * is reached by `[ follow phone ]`, which is absent on desktop (FR-FOL-1), and it is drawn only with
-     * the phone held sideways (FR-FSC-4). So its widths are the landscape phone for the drawing and the
-     * portrait phone for the note, and a 1280 px file would be a picture of a screen no reader can be on.
+     * R64 (FR-FSC-7), widened by R66 (V13-6, V13-9), is the one exception, and it is an exception because
+     * the app is: the sky screen is reached by the view control's "window", which is offered only where
+     * FR-WIN-4's presence test passes — never on a desktop — and it is drawn only with the phone held
+     * sideways (FR-FSC-4). So its widths are the landscape phone for the drawing and the portrait phone
+     * for the note, and a 1280 px file would be a picture of a screen no reader can be on. `window`, the
+     * same screen opened from a pass detail, is in the exception for the same reason.
      */
     for (const screen of SCREENS) {
-      if (screen.name.startsWith('follow-screen-')) {
-        expect(screen.widths, screen.name).toEqual(screen.name === 'follow-screen-portrait' ? [390] : [844]);
+      if (screen.name.startsWith('sky-screen-') || screen.name === 'window') {
+        expect(screen.widths, screen.name).toEqual(screen.name === 'sky-screen-portrait' ? [390] : [844]);
         continue;
       }
       expect(screen.widths, screen.name).toContain(390);
