@@ -4,6 +4,7 @@ import { bodyLines, legendKeys, legendRows, promoteRow } from '../../../../lib/l
 import type { ChartView, SavedChartView } from '../../../../model';
 import { useAppStore } from '../../../../state';
 import { DEFAULT_CHART_VIEW } from '../../../../state/slices/prefs';
+import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { OptionToggle } from '../../common/OptionToggle';
 import { orientationApiPresent } from '../../live/compassHeading';
 import { useSkyScreen } from '../../screen/useSkyScreen';
@@ -144,6 +145,7 @@ export function viewFor(id: SkyChartView['id'], offered: readonly SkyChartView[]
  */
 export function SkyChart(props: SkyChartProps) {
   const t = useT();
+  const compact = useLayoutMode() === 'compact';
   const chartView = useAppStore((s) => s.chartView);
   const setChartView = useAppStore((s) => s.setChartView);
   const dropWindowView = useAppStore((s) => s.dropWindowView);
@@ -254,7 +256,14 @@ export function SkyChart(props: SkyChartProps) {
   const chartControls = screen ? null : (
     <>
       {offered.length > 1 && (
-        <OptionToggle name={t.chart.viewGroup} prefix={t.chart.viewPrefix} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
+        /*
+         * R66 (FR-COMP-4, US-5 AC2; V13-6, D-358): no visible `View:` on compact. With the window back in
+         * the control (V13-6) the three options plus the prefix are 38 cells at 390 px — the row wrapped to
+         * two, which is what V13-4 had taken away and what the owner did not want back — and the prefix is
+         * the one part of it that carries nothing: it is `aria-hidden`, and the group is named `Chart view`
+         * for anything that reads the page. Dropping it leaves 33 cells, one row, with the same meaning.
+         */
+        <OptionToggle name={t.chart.viewGroup} {...(compact ? {} : { prefix: t.chart.viewPrefix })} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
       )}
       {note !== null && (
         <p className={styles.note} role="status" data-testid="chart-view-note">
