@@ -226,6 +226,36 @@ describe('<LivePage>', () => {
     expect(onLeave).toHaveBeenCalledTimes(2);
   });
 
+  /**
+   * R62 (FR-FSC-6, FR-WIN-4 and FR-WIN-5 as amended v1.3; D-324): on a phone —
+   * where the window's presence test passes and the option used to be a third
+   * one — the live page's control offers the dome and the polar chart only. The
+   * window is reached here by `[ follow phone ]`, and a `window` this device
+   * saved is drawn as the dome and left in the preference, which is what keeps
+   * the pass detail on this phone opening on the window.
+   */
+  it('offers the dome and the polar chart in the view control, and no window, on a phone (FR-FSC-6)', () => {
+    withSky();
+    vi.stubGlobal('DeviceOrientationEvent', function DeviceOrientationEvent() {
+      return undefined;
+    });
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
+    appStore.getState().setChartView('window');
+    try {
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(
+        within(screen.getByRole('group', { name: 'Chart view' }))
+          .getAllByRole('button')
+          .map((button) => button.textContent),
+      ).toEqual(['Polar', 'Dome']);
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
+      expect(appStore.getState().savedChartView).toBe('window');
+    } finally {
+      vi.unstubAllGlobals();
+      Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+    }
+  });
+
   it('carries the language and the theme switches on wide, since there is no header on this page; compact keeps one top row without them (D-244)', () => {
     withSky();
     // jsdom has no `matchMedia`: the compact shell. The top row is the return control and the place.

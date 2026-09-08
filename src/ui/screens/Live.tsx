@@ -5,7 +5,7 @@ import { LIVE_TWO_COLUMN_QUERY } from '../../lib/layout';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import type { Span } from '../../lib/timeStripe';
-import type { EpochMs, Observer, Pass } from '../../model';
+import type { ChartView, EpochMs, Observer, Pass } from '../../model';
 import { useAppStore } from '../../state';
 import { LanguageToggle } from '../components/common/LanguageToggle';
 import { ShareButton } from '../components/common/ShareButton';
@@ -167,6 +167,19 @@ export function LivePage({ link, onLeave }: LivePageProps) {
  * (D-162); the share action is where the observer goes into a URL.
  */
 export const LIVE_ROUTE_HASH = '#live';
+
+/**
+ * FR-FSC-6 / FR-WIN-4, FR-WIN-5 as amended v1.3 (R62, D-324): the views this
+ * page offers. The window is not one of them — on the live page it is reached
+ * by `[ follow phone ]` alone, and a `window` this device saved is drawn as the
+ * dome and left in the preference for the pass detail, which still offers it.
+ *
+ * The exception is the window this control opened. Until R64 the follow control
+ * *is* the view override (D-277), so while it holds the page offers the window
+ * again or the chart it opened would fall back to the dome under it; R64
+ * replaces that with a screen of its own and the exception goes with it.
+ */
+const LIVE_VIEWS: readonly ChartView[] = ['dome', 'polar'];
 
 function useHashFollows(observer: Observer, shown: EpochMs, realTime: boolean, playing: boolean): void {
   const lastWrite = useRef<number | null>(null);
@@ -345,6 +358,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           colorBy="pass"
           fill
           initialFacingAzDeg={0}
+          {...(follow.state === 'on' ? {} : { views: LIVE_VIEWS })}
           {...(columns === 'two' ? { aside: side } : {})}
           {...(compact ? {} : { boxAspect: DOME_BOX_ASPECT, stacked: oneColumn })}
           {...(stripeUnder ? { stripe: stripeBlock } : {})}
