@@ -36,6 +36,7 @@ import { formatClock } from '../../../../lib/timeFormat';
 import { PassNumbers } from '../PassNumbers';
 import type { Observer } from '../../../../model';
 import { appStore } from '../../../../state';
+import { ChartFrame } from './ChartFrame';
 import { SKY_CHART_VIEWS, SkyChart } from './SkyChart';
 import type { SkyChartProps } from './SkyChart.types';
 
@@ -231,6 +232,41 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
     expect(beside.slice(lead)).toContain('grid-template-columns: minmax(0, 1fr);');
     // Outside the query the legend is the fourth row, under the status line, for every shell.
     expect(css).toMatch(/\.frame \{[^}]*'status'\n\s+'legend';/);
+  });
+
+  /**
+   * R61 (FR-LIVE-7 as amended v1.2, D-312, F-59): with an `aside` the column
+   * is the page's rail and not a legend's width. The placement is the frame's
+   * — the page hands it a node and never learns where it went — so both halves
+   * are asserted: the DOM the frame builds, and the width the stylesheet gives
+   * the column it builds it in.
+   */
+  it('widens the column to the page rail where it is given an aside, and puts the aside under the legend inside it', () => {
+    render(
+      <ChartFrame fill legend={<p>legend</p>} aside={<p>rail</p>}>
+        <div />
+      </ChartFrame>,
+    );
+    const slot = screen.getByTestId('chart-legend-slot');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
+    expect([...slot.children].map((el) => el.getAttribute('data-testid'))).toEqual([null, 'chart-aside']);
+    expect(within(screen.getByTestId('chart-aside')).getByText('rail')).toBeInTheDocument();
+    // The legend keeps a box of its own inside the column, because that box is what scrolls: the rail must not.
+    expect(slot.firstElementChild).toContainElement(screen.getByText('legend'));
+    const beside = /@container \(min-width: 62ch\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(beside).toContain("grid-template-columns: auto minmax(0, 1fr) max(calc(44 * var(--cell)), 26%);");
+    expect(beside).toMatch(/\[data-aside='true'\] \.legendScroll \{\n\s+flex: 0 1 auto;\n\s+min-height: 0;\n\s+overflow-y: auto;/);
+  });
+
+  it('leaves the frame and its column alone with no aside', () => {
+    render(
+      <ChartFrame fill legend={<p>legend</p>}>
+        <div />
+      </ChartFrame>,
+    );
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'false');
+    expect(screen.queryByTestId('chart-aside')).toBeNull();
+    expect(screen.getByTestId('chart-legend-slot').firstElementChild).toBe(screen.getByText('legend'));
   });
 
   it('floors the live drawing at the frame width in portrait only, behind the page switch, and bounds the legend under a live drawing to four rows', () => {

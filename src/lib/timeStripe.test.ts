@@ -12,6 +12,7 @@ import {
   HOUR_MS,
   hourTicks,
   isCurrent,
+  keepLabels,
   keyStep,
   labelEveryHours,
   midnightDate,
@@ -22,10 +23,12 @@ import {
   RISE_SLACK_MS,
   shortWeekday,
   skyBands,
+  STRIPE_LABEL_MIN_CELLS,
   timeAt,
   xAt,
   zoneOffsetMs,
   type Span,
+  type StripeLabel,
 } from './timeStripe';
 
 const START = Date.UTC(2026, 8, 11, 9, 30, 0);
@@ -99,17 +102,54 @@ describe('hourTicks', () => {
     expect(new Date(ticks[0]?.t ?? 0).toISOString()).toBe('2026-09-11T09:30:00.000Z'); // 15:00 IST is a whole hour, at the span's very start
     expect(ticks[0]?.hour).toBe(15);
   });
-  // R48 (FR-TRAJ-4): every 2 h on wide, every 3 h on compact, always from midnight; the midnight tick is flagged for its date.
-  it('labels every second hour on wide and every third on compact, from midnight, and flags the midnight crossing', () => {
-    expect(labelEveryHours('wide')).toBe(2);
-    expect(labelEveryHours('compact')).toBe(3);
-    const compact = hourTicks(span, 350, 'UTC', 'compact');
-    expect(compact.filter((tick) => tick.labelled).map((tick) => tick.hour)).toEqual([12, 15, 18, 21, 0, 3, 6, 9]);
-    const wide = hourTicks(span, WIDTH, 'UTC', 'wide');
-    expect(wide.filter((tick) => tick.labelled).map((tick) => tick.hour)).toEqual([10, 12, 14, 16, 18, 20, 22, 0, 2, 4, 6, 8]);
-    expect(wide.filter((tick) => tick.midnight).map((tick) => tick.t)).toEqual([Date.UTC(2026, 8, 12)]);
-    // The default is the wide cadence (the spike page passes no mode).
-    expect(hourTicks(span, WIDTH, 'UTC')).toEqual(wide);
+  /*
+   * R48 (FR-TRAJ-4): every 2 h where twelve two-character labels fit and every
+   * 3 h where they do not, always from midnight; the midnight tick is flagged
+   * for its date. R61 (D-312): the room is the *stripe's*, measured in cells of
+   * its own width, and no longer the shell's — the wide live page draws the
+   * stripe in a 44- to 68-cell rail, where the shell's answer overlapped the
+   * numbers (F-59).
+   */
+  it('labels every second hour where twelve fit and every third where they do not, from midnight, and flags the midnight crossing', () => {
+    expect(labelEveryHours(STRIPE_LABEL_MIN_CELLS)).toBe(2);
+    expect(labelEveryHours(STRIPE_LABEL_MIN_CELLS - 1)).toBe(3);
+    // 350 px is 36 cells, the phone's stripe.
+    const narrow = hourTicks(span, 350, 'UTC');
+    expect(narrow.filter((tick) => tick.labelled).map((tick) => tick.hour)).toEqual([12, 15, 18, 21, 0, 3, 6, 9]);
+    // 1200 px is 125 of them.
+    const roomy = hourTicks(span, WIDTH, 'UTC');
+    expect(roomy.filter((tick) => tick.labelled).map((tick) => tick.hour)).toEqual([10, 12, 14, 16, 18, 20, 22, 0, 2, 4, 6, 8]);
+    expect(roomy.filter((tick) => tick.midnight).map((tick) => tick.t)).toEqual([Date.UTC(2026, 8, 12)]);
+    // The cells can be given instead of measured, for a caller whose cell is not the base one.
+    expect(hourTicks(span, WIDTH, 'UTC', 36).filter((tick) => tick.labelled).map((tick) => tick.hour)).toEqual([12, 15, 18, 21, 0, 3, 6, 9]);
+  });
+});
+
+/**
+ * R61 (FR-TRAJ-4, D-312, F-59): which of the labelled ticks are drawn. A label
+ * is centred on its tick and `text.length` cells wide.
+ */
+describe('keepLabels', () => {
+  const label = (x: number, text: string, midnight = false): StripeLabel => ({ tick: { t: START + x, x, hour: midnight ? 0 : 12, labelled: true, midnight }, text });
+
+  it('drops a label that would spill past either edge', () => {
+    const kept = keepLabels([label(2, '06'), label(300, '12'), label(595, '18')], 600);
+    expect(kept.map(({ text }) => text)).toEqual(['12']);
+  });
+
+  it('drops a label that would touch the one beside it, and the date is the one that stays', () => {
+    // Two-character labels are 19.2 px, the date 67.2; 50 px apart, the date reaches both of its neighbours.
+    const kept = keepLabels([label(250, '22'), label(300, '12 Sept', true), label(350, '02'), label(400, '04')], 600);
+    expect(kept.map(({ text }) => text)).toEqual(['12 Sept', '04']);
+  });
+
+  it('keeps every label where they clear each other, in the order the stripe draws them', () => {
+    const kept = keepLabels([label(100, '20'), label(300, '12 Sept', true), label(500, '04')], 600);
+    expect(kept.map(({ text }) => text)).toEqual(['20', '12 Sept', '04']);
+  });
+
+  it('drops a label with no text (a zone the date cannot be formatted in)', () => {
+    expect(keepLabels([label(300, '')], 600)).toEqual([]);
   });
 });
 

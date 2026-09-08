@@ -20,7 +20,6 @@ import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../t
 import { en } from '../../i18n/en';
 import { isoInstant } from '../../lib/shareLinks';
 import { skyBodiesAt } from '../../lib/skyBodies';
-import { STRIPE_ROW_MIN_CELLS } from '../../lib/timeStripe';
 import type { ChartView, Observer, Pass } from '../../model';
 import type { NowItem, NowState } from '../../model';
 import { appStore, setLiveNowClient, type ElementsState } from '../../state';
@@ -241,14 +240,29 @@ describe('<LivePage>', () => {
     expect(screen.getByRole('button', { name: 'Share this sky' })).toHaveTextContent('Share this sky');
   });
 
-  /** R54 (D-270): the width from which the stripe joins the playback row, read from the stylesheet (jsdom lays nothing out). */
-  it('folds the stripe onto the playback row only from STRIPE_ROW_MIN_CELLS, with the page as the size container', () => {
-    const css = readFileSync('src/ui/screens/Live.module.css', 'utf8');
-    expect(css).toContain(`@container (min-width: ${String(STRIPE_ROW_MIN_CELLS)}ch)`);
-    expect(css).toMatch(/\.page\[data-compact='false'\] \{\n\s+container-type: inline-size;/);
-    // Under the threshold the stripe has a row of its own; over it the three share one.
-    expect(css).toMatch(/'playback actions'\n\s+'stripe stripe'\n\s+'strip strip'/);
-    expect(css).toMatch(/'playback stripe actions'\n\s+'strip strip strip'/);
+  /**
+   * R61 (FR-LIVE-7 as amended v1.2, D-312, F-59): on wide the side column is
+   * the chart's rail — the column beside the drawing, under the legend — and
+   * not a row under the box, so the box keeps the page's whole height. The
+   * placement is React's and asserted here; the width the rail takes is the
+   * stylesheet's, read from the file because jsdom lays nothing out.
+   */
+  it('gives the side column to the chart on wide and keeps it in the page on compact', () => {
+    withSky();
+    const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'true');
+    expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).toBeNull();
+    expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
+    unmount();
+    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener: () => undefined, removeEventListener: () => undefined }));
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).not.toBeNull();
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
+    // The rail is 26 % of the frame and never under 44 cells, and the page's third row goes with the rows that moved.
+    expect(readFileSync('src/ui/components/guide/skychart/ChartFrame.module.css', 'utf8')).toMatch(
+      /\[data-aside='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\) max\(calc\(44 \* var\(--cell\)\), 26%\);/,
+    );
+    expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\] \{\n\s+grid-template-areas:\n\s+'top'\n\s+'dome';/);
   });
 
   /** R54 (FR-LIVE-7 as amended v1.1.1, FR-TRAJ-5, D-268): the wide rows, and the stepping row only with touch. */

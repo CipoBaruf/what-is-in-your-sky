@@ -28,13 +28,21 @@ export interface ChartFrameProps {
   status?: ReactNode;
   /** FR-LEG-2: the legend `SkyChart` rendered; the frame places it. */
   legend?: ReactNode;
+  /**
+   * FR-LIVE-7 as amended (v1.2, D-312): what the page hangs under the legend
+   * in that same column — the wide live page's rail. With one, the column is
+   * the page's side column and not a legend's width: it is sized from the
+   * frame, the legend scrolls inside what the rail leaves it, and the rail
+   * itself keeps its height.
+   */
+  aside?: ReactNode;
   className?: string;
   /** FR-LIVE-1 (R32): the drawing takes the frame's whole height instead of a capped square; the frame takes its parent's. */
   fill?: boolean;
   children: ReactNode;
 }
 
-export function ChartFrame({ controls, status, legend, className, fill = false, children }: ChartFrameProps) {
+export function ChartFrame({ controls, status, legend, aside, className, fill = false, children }: ChartFrameProps) {
   const compact = useLayoutMode() === 'compact';
   const frameRef = useRef<HTMLDivElement>(null);
 
@@ -65,6 +73,7 @@ export function ChartFrame({ controls, status, legend, className, fill = false, 
         data-fill={fill}
         data-compact={compact}
         data-legend={legend !== undefined && legend !== null}
+        data-aside={aside !== undefined && aside !== null}
       >
         <div className={styles.controls}>{controls}</div>
         <div className={styles.drawing} data-testid="chart-box">
@@ -73,7 +82,16 @@ export function ChartFrame({ controls, status, legend, className, fill = false, 
         <div className={styles.status}>{status}</div>
         {legend !== undefined && legend !== null && (
           <div className={styles.legend} data-testid="chart-legend-slot">
-            {legend}
+            {aside === undefined || aside === null ? (
+              legend
+            ) : (
+              <>
+                <div className={styles.legendScroll}>{legend}</div>
+                <div className={styles.aside} data-testid="chart-aside">
+                  {aside}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

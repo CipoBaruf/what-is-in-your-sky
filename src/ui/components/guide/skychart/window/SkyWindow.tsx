@@ -323,7 +323,7 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
   );
 }
 
-export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, controls, onUnavailable, className }: SkyChartProps) {
+export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, aside, controls, onUnavailable, className }: SkyChartProps) {
   const t = useT();
   const locale = useLocale();
   // R44: the observer's declination, once per observer; the hook folds it into every heading.
@@ -393,6 +393,7 @@ export function SkyWindow({ passes, observer, highlightedPassId, onSelectPass, n
       <ChartFrame
         fill={fill}
         legend={legend}
+        aside={aside}
         controls={
           <>
             {controls}

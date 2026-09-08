@@ -19,6 +19,8 @@ export const LIVE_VIEWPORTS = {
   1280: { width: 1280, height: 800 },
   /** A short 1280: the legend column is shorter than its list, so F-53's scroll is exercised. */
   short: { width: 1280, height: 720 },
+  /** R61 (F-59): the width the owner reported the blank third of the box at. */
+  2560: { width: 2560, height: 1440 },
 } as const;
 
 export async function openParisLive(page: Page, width: keyof typeof LIVE_VIEWPORTS, theme: CaptureTheme): Promise<void> {

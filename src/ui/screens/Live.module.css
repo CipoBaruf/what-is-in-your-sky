@@ -130,89 +130,34 @@
   gap: 0 calc(2 * var(--cell));
 }
 
-/* R54 (FR-LIVE-7 as amended v1.1.1, D-268, F-52): wide. The rows under the
-   dome fold to two: the playback row at the left, the stripe block filling
-   the rest and the actions (the share control) at the right on the first,
-   the strip on one line on the second; inside the block the clock readout
-   sits at the stripe's left on the same row, and the stepping row, where
-   there is one (touch), stays under the stripe. At 1920 × 1080 the readout,
-   the stripe, the stepping row, the playback row and the actions were five
-   rows under the strip, 307 px with their gaps; the two rows are 72 + 37.
-   `data-compact` is `useLayoutMode`'s answer (FR-DESK-1's 100 cells), so this
-   file carries no breakpoint of its own, and the landscape phone (D-173) is
-   compact and keeps its column. */
-/* The page is the side column's size container: a container query never answers for the container itself (D-232's
-   lesson), and the column spans the page, so the page's inline size is the column's. The chart frame's own shell is
-   the nearer container for the frame's rule, so the two do not meet. */
+/* R61 (FR-LIVE-7 as amended v1.2, D-312, F-59): wide is two columns, not
+   stacked rows. R54 folded the rows under the box from five to two and gave
+   the box the three it saved; the box was still the whole width of the page,
+   and the drawing cannot be: it is 2.16 world units across and 1.53 tall at
+   the default tilt, about 1.41 : 1, in a box that is 1.96 : 1 at 1920 x 1080
+   and wider still above it. D-187 sizes it from the shorter side, so the
+   height set it and a third of the width was left blank at every desktop size
+   (F-59, measured: 65 % of the box at 1280, 66 % at 1920, 69 % at 3840).
+
+   So the side column moves beside the box instead of under it — `Live.tsx`
+   hands it to the chart, which places it in the column it already keeps for
+   the legend (`aside`, D-312) — and the rows it took go to the box: 833 px
+   tall to 960 at 1920 x 1080, in a column 1356 px wide, which is the drawing's
+   own shape and a drawing that covers 90 % of it. The column's own rules are
+   the stacked ones above, which is what a 44-cell column wants: the strip
+   wraps, the stripe block stacks its readout over its stripe, and the
+   playback row wraps its speeds — the same arrangement a phone gets, at the
+   width the rail has. Nothing here is a media query: `data-compact` is
+   `useLayoutMode`'s answer (FR-DESK-1's 100 cells), and the landscape phone
+   (D-173) is compact and keeps its own two columns.
+
+   The page's third row goes with the rows: on wide the page is the top row
+   and the box, and the box is `minmax(0, 1fr)` as before. */
 .page[data-compact='false'] {
-  container-type: inline-size;
-}
-
-.page[data-compact='false'] .side {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
   grid-template-areas:
-    'playback actions'
-    'stripe stripe'
-    'strip strip';
-  align-items: center;
-  column-gap: calc(3 * var(--cell));
-  row-gap: calc(var(--row) / 4);
-}
-
-/* …and the stripe joins the first row where the row has the room. The playback
-   row is 50 cells and the hidden-objects toggle 18, the readout 5, the boxed
-   share action 22, the gaps 9 — 104 cells before the stripe — and FR-TRAJ-4's
-   stripe wants 60 cells for twelve two-character hour labels with their
-   space: 164 cells (`STRIPE_ROW_MIN_CELLS`, a constant pinned by
-   `Live.test.tsx`). 1920 px is 200 cells and folds to two rows; 1280 and 1440
-   are 133 and 150 and keep the stripe on a row of its own, three rows where
-   R48 had five. `ch` in a container condition is the container's own cell; the page pads two cells a side, so its
-   inline size is four cells under the viewport's. */
-@container (min-width: 164ch) {
-  .page[data-compact='false'] .side {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas:
-      'playback stripe actions'
-      'strip strip strip';
-  }
-}
-
-.page[data-compact='false'] .side > dl {
-  grid-area: strip;
-}
-
-.page[data-compact='false'] .playbackRow {
-  grid-area: playback;
-}
-
-.page[data-compact='false'] .actions {
-  grid-area: actions;
-  justify-content: flex-end;
-}
-
-.page[data-compact='false'] .stripeBlock {
-  grid-area: stripe;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-areas:
-    'readout stripe'
-    '. steps';
-  align-items: center;
-  column-gap: calc(2 * var(--cell));
-  row-gap: calc(var(--row) / 4);
-}
-
-.page[data-compact='false'] .stripeBlock > p {
-  grid-area: readout;
-}
-
-.page[data-compact='false'] .stripeBlock > svg {
-  grid-area: stripe;
-}
-
-.page[data-compact='false'] .stripeBlock > [role='group'] {
-  grid-area: steps;
+    'top'
+    'dome';
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 /* The hidden-objects toggle, the follow control and the share action on one row (R48: the second control row, 31 cells on a phone). */

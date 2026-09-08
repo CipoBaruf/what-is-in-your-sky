@@ -112,6 +112,44 @@
       'drawing drawing legend';
   }
 
+  /* R61 (FR-LIVE-7 as amended v1.2, D-312, F-59): the wide live page's rail.
+     With an aside the column is the page's side column and not a legend's
+     width — 26 % of the frame, never under 44 cells, which is what the stripe
+     and the playback row need to read — and the rows that were under the box
+     are in it, so the box takes the page's whole height. The dome is sized
+     from the shorter side of that box (D-187), and a box at about the
+     drawing's own 1.41 : 1 is one the drawing fills in both directions: at
+     1920 x 1080 it went from 1631 x 833, which the drawing covered to 66 %
+     of its width, to 1356 x 960 at 90 %.
+
+     The legend scrolls inside what the rail leaves it rather than the column
+     scrolling as a whole: the playback controls and the share action are the
+     page's, and a list long enough to push them under the fold would take
+     them off the page. */
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'] {
+    grid-template-columns: auto minmax(0, 1fr) max(calc(44 * var(--cell)), 26%);
+  }
+
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'] .legend {
+    display: flex;
+    flex-direction: column;
+    gap: var(--row);
+    overflow: visible;
+  }
+
+  /* `0 1 auto`, not `1 1 auto`: the legend is as tall as its rows and no
+     taller, so the rail's rows follow the last pass instead of the column's
+     bottom edge, and a list longer than the column scrolls. */
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'] .legendScroll {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'] .aside {
+    flex: 0 0 auto;
+  }
+
   /* R51 (D-259): the pass detail's numeric table takes the beside rule back. The guide column grows with the
      screen (D-253), so on a large desktop the frame passes 62 cells and the table — five columns of figures —
      folded itself into 24 while the drawing was squeezed beside it.

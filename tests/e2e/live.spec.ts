@@ -14,7 +14,7 @@
  *   - the captures the PR carries, at both widths, in both themes, and in
  *     Spanish at the phone width.
  */
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { domeDrawn, golden, ha, heading, hhmmss, homeAt, LABEL, realTimeField, reenterLiveWithTheme, stripFilled, stubCompass, stubNetwork, T } from './liveHelpers';
 
 test.describe('the live page', () => {
@@ -210,10 +210,15 @@ for (const width of [390, 1280] as const) {
     await page.getByTestId('live-link').click();
     await domeDrawn(page);
     await stripFilled(page);
-    // R34 (FR-LIVE-7, FR-LIVE-8): a desktop keeps the stack and gets no follow control.
-    const dome = await page.getByTestId('live-dome').boundingBox();
+    /*
+     * R34 (FR-LIVE-7, FR-LIVE-8): a desktop gets no follow control. R61 (D-312): and the side column is under
+     * the box on the phone, beside it on wide — where "beside" is measured against the *box*, since the rail
+     * lives inside the chart the `live-dome` wrapper holds.
+     */
+    const box = await page.getByTestId('chart-box').boundingBox();
     const side = await page.getByTestId('live-side').boundingBox();
-    expect(side?.y).toBeGreaterThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) - 1);
+    if (width === 390) expect(side?.y).toBeGreaterThanOrEqual((box?.y ?? 0) + (box?.height ?? 0) - 1);
+    else expect(side?.x).toBeGreaterThanOrEqual((box?.x ?? 0) + (box?.width ?? 0) - 1);
     await expect(page.getByTestId('follow-phone')).toHaveCount(0);
     await page.screenshot({ path: `docs/screenshots/r32-live-${String(width)}-dark-en.png` });
     // R48 (D-244): the compact live page carries no theme switch, so the theme is set on the home page.
@@ -239,14 +244,16 @@ test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async 
 });
 
 /**
- * R54 (FR-LIVE-7 as amended v1.1.1, FR-DOME-1 as amended, FR-LEG-2, D-268; F-51, F-52, F-53): the wide live page.
- * At 1920 × 1080 one row stands above the dome (the view toggle and the facing readout) and two under it (the
- * playback row, the stripe block and the share action on one; the strip on the next), the box has at least three
- * quarters of the viewport, nothing scrolls, and the stepping row is absent without touch. At 1280 × 800 the row
- * has no room for the stripe (`STRIPE_ROW_MIN_CELLS`), which takes a row of its own under the playback row, the
- * readout at its left. (F-53's legend reach needs an instant with several passes: `r54-captures.spec.ts`.)
+ * R61 (FR-LIVE-7 as amended v1.2, FR-TRAJ-4 as amended, FR-LEG-2 as amended, D-312; F-59): the wide live page.
+ * R54 (D-268) folded the rows under the box from five to two; the box was still the page's whole width, which
+ * the drawing cannot fill — it is about 1.41 : 1 at the default tilt — so a third of it stayed blank at every
+ * desktop size. The rows are a rail beside the box now, in the order the requirement lists them (the strip, the
+ * stripe block, the playback row, the actions), under the legend and inside the chart's own side column, and the
+ * box takes every row of the page's height. `live-rail.spec.ts` measures what the drawing then covers; this file
+ * keeps the page's rows in their places. (F-53's legend reach needs an instant with several passes:
+ * `r61-captures.spec.ts`.)
  */
-test.describe('the wide live page (R54)', () => {
+test.describe('the wide live page (R61)', () => {
   const band = (inner: { y: number; height: number } | null, outer: { y: number; height: number } | null): void => {
     if (!inner || !outer) throw new Error('a row is missing');
     expect(inner.y).toBeGreaterThanOrEqual(outer.y - 1);
@@ -256,8 +263,34 @@ test.describe('the wide live page (R54)', () => {
     if (!lower || !upper) throw new Error('a row is missing');
     expect(lower.y).toBeGreaterThanOrEqual(upper.y + upper.height - 1);
   };
+  const rightOf = (row: { x: number } | null, box: { x: number; width: number } | null): void => {
+    if (!row || !box) throw new Error('a row is missing');
+    expect(row.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
+  };
 
-  test('at 1920 × 1080: one row above the dome, two under it, the box at least 75 % of the viewport, nothing scrolls, no stepping row (F-52)', async ({ page }) => {
+  /** The rail's rows, top to bottom, and every one of them beside the box rather than under it. */
+  const expectTheRail = async (page: Page, box: { x: number; y: number; width: number; height: number } | null): Promise<void> => {
+    const strip = await page.getByTestId('status-strip').boundingBox();
+    const block = await page.getByTestId('stripe-block').boundingBox();
+    const playback = await page.getByTestId('playback-row').boundingBox();
+    const actions = await page.getByTestId('live-actions').boundingBox();
+    for (const row of [strip, block, playback, actions]) rightOf(row, box);
+    below(block, strip);
+    below(playback, block);
+    below(actions, playback);
+  };
+
+  /** FR-TRAJ-4: whatever cadence the stripe's width buys, no label is drawn over the one beside it. */
+  const expectLabelsClear = async (page: Page): Promise<void> => {
+    const labels = await page.locator('[data-row="labels"] text').evaluateAll((els) => els.map((el) => el.getBoundingClientRect()).map(({ left, width }) => ({ left, right: left + width })));
+    expect(labels.length).toBeGreaterThan(3);
+    for (const [i, label] of labels.entries()) {
+      const previous = labels[i - 1];
+      if (previous) expect(label.left, `label ${String(i)} clears the one before it`).toBeGreaterThanOrEqual(previous.right);
+    }
+  };
+
+  test('at 1920 × 1080: one row above the box, the rest in the rail beside it, the box the height of the page, nothing scrolls, no stepping row', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
@@ -266,27 +299,21 @@ test.describe('the wide live page (R54)', () => {
     const toggle = await page.getByRole('group', { name: 'Chart view' }).boundingBox();
     const readout = await page.getByTestId('dome-readout').boundingBox();
     const box = await page.getByTestId('chart-box').boundingBox();
-    const playback = await page.getByTestId('playback-row').boundingBox();
-    const block = await page.getByTestId('stripe-block').boundingBox();
-    const actions = await page.getByTestId('live-actions').boundingBox();
-    const strip = await page.getByTestId('status-strip').boundingBox();
     // One row above: the readout shares the toggle's row, and the box starts right under it.
     band(readout, toggle);
     below(box, toggle);
-    // Two rows under: the playback row and the share action within the stripe block's row, the strip under all three.
-    band(playback, block);
-    band(actions, block);
-    below(strip, block);
-    below(block, box);
+    await expectTheRail(page, box);
+    await expectLabelsClear(page);
     // The hidden-objects toggle is on the playback row, and there is no stepping row without touch.
     await expect(page.getByTestId('playback-row').getByTestId('live-hidden-toggle')).toBeVisible();
     await expect(page.getByTestId('step-controls')).toHaveCount(0);
-    // The box has at least three quarters of the viewport, and the page does not scroll.
-    expect(box?.height ?? 0).toBeGreaterThanOrEqual(0.75 * 1080);
+    // Nothing is under the box but the page's own padding, and the page does not scroll.
+    expect(1080 - ((box?.y ?? 0) + (box?.height ?? 0))).toBeLessThanOrEqual(32);
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(0.85 * 1080);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1080);
   });
 
-  test('at 1280 × 800: the stripe takes a row of its own under the playback row, the readout at its left (F-52)', async ({ page }) => {
+  test('at 1280 × 800: the same rail, with the clock readout above the stripe and no label over another', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
@@ -294,21 +321,16 @@ test.describe('the wide live page (R54)', () => {
     await stripFilled(page);
     const toggle = await page.getByRole('group', { name: 'Chart view' }).boundingBox();
     const readout = await page.getByTestId('dome-readout').boundingBox();
-    const playback = await page.getByTestId('playback-row').boundingBox();
-    const actions = await page.getByTestId('live-actions').boundingBox();
-    const block = await page.getByTestId('stripe-block').boundingBox();
+    const box = await page.getByTestId('chart-box').boundingBox();
     const stripe = await page.getByTestId('time-stripe').boundingBox();
     const clock = await page.getByTestId('time-readout').boundingBox();
-    const strip = await page.getByTestId('status-strip').boundingBox();
     band(readout, toggle);
-    band(actions, playback);
-    below(block, playback);
-    below(strip, block);
-    band(clock, stripe);
-    if (!clock || !stripe) throw new Error('no stripe');
-    expect(clock.x + clock.width).toBeLessThanOrEqual(stripe.x);
-    // FR-TRAJ-4: the stripe keeps the width its twelve hour labels need.
-    expect(stripe.width).toBeGreaterThanOrEqual(60 * 9.6);
+    below(box, toggle);
+    await expectTheRail(page, box);
+    // In a 44-cell rail the block stacks: the clock readout over the stripe, which takes the column's width.
+    below(stripe, clock);
+    await expectLabelsClear(page);
+    expect(800 - ((box?.y ?? 0) + (box?.height ?? 0))).toBeLessThanOrEqual(32);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(800);
   });
 });

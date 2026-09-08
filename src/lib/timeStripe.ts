@@ -1,6 +1,5 @@
 import { INTL_LOCALE } from '../i18n/locale';
 import type { EpochMs, Locale, Pass, SkyState } from '../model';
-import type { LayoutMode } from './layout';
 
 /**
  * R33 (FR-LIVE-4, D-82): the time stripe's geometry, pure and clock-free
@@ -118,16 +117,59 @@ export interface HourTick {
   midnight: boolean;
 }
 
+/** A cell at the 16 px base (`--cell`, 0.6 em), which is what the stripe's labels are laid out in. */
+export const CELL_PX = 9.6;
 /**
- * R48 (FR-TRAJ-4): the labelled ticks are every 2 h on wide and every 3 h on
- * compact, counted from midnight — a rule of the shell, not of the pixel
- * width, since the labels are body-size cells and the compact stripe is 36
- * of them: 1.5 cells an hour, so a two-cell label every third hour.
+ * R48 (FR-TRAJ-4): the labelled ticks are every 2 h where the stripe has the
+ * room and every 3 h where it has not, counted from midnight. The labels are
+ * body-size cells, two characters and a space apart, so twelve of them over a
+ * 24 h span want 60 cells; under that they are every third hour, which is the
+ * 36-cell phone's 1.5 cells an hour.
+ *
+ * R61 (D-312): the rule reads the stripe's own measured width, not the shell
+ * it is drawn in. Up to R54 the two agreed — a wide page gave the stripe most
+ * of its width — but the wide live page now draws it in a rail of 44 to 68
+ * cells (F-59), where a shell-wide rule labels every second hour in 51 cells
+ * and the numbers overlap. The two answers are the ones the shell rule gave;
+ * only what picks between them has changed.
  */
-export const LABEL_EVERY_HOURS: Readonly<Record<LayoutMode, number>> = { compact: 3, wide: 2 };
+export const LABEL_EVERY_HOURS = { dense: 3, roomy: 2 } as const;
+/** The width in cells from which twelve two-character labels fit (FR-TRAJ-4). */
+export const STRIPE_LABEL_MIN_CELLS = 60;
 
-export function labelEveryHours(mode: LayoutMode): number {
-  return LABEL_EVERY_HOURS[mode];
+export function labelEveryHours(widthCells: number): number {
+  return widthCells >= STRIPE_LABEL_MIN_CELLS ? LABEL_EVERY_HOURS.roomy : LABEL_EVERY_HOURS.dense;
+}
+
+/** One label of row 1: the tick it is centred on and the text drawn there (the hour, or the date at a midnight). */
+export interface StripeLabel {
+  tick: HourTick;
+  text: string;
+}
+
+/**
+ * FR-TRAJ-4 (R61, D-312): the labels row 1 can show at this width. A label is
+ * centred on its tick and `text.length` cells wide, so one near an edge would
+ * spill past it — dropped, as it always was — and one whose box reaches its
+ * neighbour's would be drawn over it. The second rule is new: the date at a
+ * midnight is seven cells against the hours' two, and where the labelled ticks
+ * are closer than that the three ran together ("22 12 Sept 02"), which the
+ * rail's 44 to 68 cells (F-59) meet at every width the wide page has.
+ *
+ * The date is placed first and the hours after it, left to right: it carries
+ * the day, which no other label repeats, so where the two collide the hour is
+ * the one to lose. A cell of air between two labels counts as a collision —
+ * touching numbers read as one number.
+ */
+export function keepLabels(labels: readonly StripeLabel[], width: number): StripeLabel[] {
+  const half = (label: StripeLabel): number => (label.text.length * CELL_PX) / 2;
+  const inside = labels.filter((label) => label.text !== '' && label.tick.x >= half(label) && label.tick.x <= width - half(label));
+  const kept: StripeLabel[] = [];
+  for (const label of [...inside.filter((l) => l.tick.midnight), ...inside.filter((l) => !l.tick.midnight)]) {
+    if (kept.some((k) => Math.abs(k.tick.x - label.tick.x) < half(k) + half(label) + CELL_PX)) continue;
+    kept.push(label);
+  }
+  return kept.sort((a, b) => a.tick.x - b.tick.x);
 }
 
 /**
@@ -136,9 +178,9 @@ export function labelEveryHours(mode: LayoutMode): number {
  * span's start; a DST change inside the 24 h moves the later ticks by an hour
  * on the clock, which the labels show and the ticks do not.
  */
-export function hourTicks(span: Span, width: number, timeZone: string | null, mode: LayoutMode = 'wide'): HourTick[] {
+export function hourTicks(span: Span, width: number, timeZone: string | null, widthCells: number = width / CELL_PX): HourTick[] {
   const offset = zoneOffsetMs(span.start, timeZone);
-  const every = labelEveryHours(mode);
+  const every = labelEveryHours(widthCells);
   const first = Math.ceil((span.start + offset) / HOUR_MS) * HOUR_MS - offset;
   const ticks: HourTick[] = [];
   for (let t = first; t <= span.end; t += HOUR_MS) {
@@ -325,12 +367,11 @@ export function cursorAt(t: EpochMs, span: Span, width: number): Cursor {
 }
 
 /**
- * R54 (FR-LIVE-7 as amended v1.1.1, D-270): the page width in cells from which
- * the stripe shares a row with the playback controls and the share action on
- * wide. The playback row is 50 cells, the hidden-objects toggle 18, the clock
- * readout 5, the boxed share action 22 and the gaps 9 — 104 cells before the
- * stripe — and FR-TRAJ-4's twelve two-character hour labels want 60 more.
- * `Live.module.css` carries the same number in its `@container` rule and
- * `Live.test.tsx` holds the two equal; 1920 px is 200 cells, 1440 is 150.
+ * R54 (FR-LIVE-7 as amended v1.1.1, D-270) put the stripe on the playback
+ * row's line from a page width of 164 cells. R61 (D-312) takes the whole fold
+ * back: on wide the rows under the box are a rail beside it (F-59), where the
+ * stripe has a line of its own at every width and the page's width says
+ * nothing about how much of it the stripe gets. `STRIPE_LABEL_MIN_CELLS`
+ * above is the part of that derivation that outlives it — the 60 cells
+ * FR-TRAJ-4's twelve labels want — and it is now measured on the stripe.
  */
-export const STRIPE_ROW_MIN_CELLS = 164;

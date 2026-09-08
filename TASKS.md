@@ -1211,11 +1211,30 @@ Delivery is PLAN §16 unchanged, cut by §16.9: five tasks, three waves, one tas
     - The owner has run it on a phone — the switch, the sweep, the ground state, the second press — and the run is recorded in the PR body (V11-9's rule; the sensor path cannot be verified headlessly).
     - `npm test` green.
 
+- [x] **R61 — The wide live page's rail: the rows go beside the dome, and the dome fills the width** *(added 2026-09-07 as a hotfix on the owner's ask, out of wave order; PLAN §16.9 gives it D-312..D-316.)*
+  - **Lane:** live
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** none
+  - **Findings:** F-59
+  - **Goal:** On a desktop the dome fills the width it is given instead of two thirds of it, and the width that was blank carries the rows that were under it.
+  - **Satisfies:** FR-LIVE-7, FR-LEG-2 and FR-TRAJ-4 as amended (v1.2.1); FR-FIX-1 for F-59. **Holds:** FR-DOME-1 as amended (v1.2), unchanged.
+  - **Scope (PLAN D-312):** the cause is written down first — the drawing is about 1.41 : 1 at the default tilt and D-187 sizes it from the box's shorter side, so a box at the page's full width (1.96 : 1 at 1920 × 1080) can never be filled across, and a steeper tilt cannot do it either (the extent's aspect is 1.73 even at the 80° clamp). `Live.tsx` builds its side column once and places it twice: the page's own row on compact, the chart's `aside` on wide. `SkyChartProps` gains `aside`, threaded through the three views to `ChartFrame` as `legend` is; `ChartFrame` puts it under the legend in that column and `ChartFrame.module.css` widens the column to `max(44 * var(--cell), 26%)`, with the legend scrolling inside what the rail leaves it. `Live.module.css` drops D-268's fold, its `@container` rule and the page's third row. `lib/timeStripe.ts`: `labelEveryHours` reads the stripe's measured width instead of the shell, and `keepLabels` drops a label that would be drawn over its neighbour (the date wins), because the rail's stripe is 44 to 68 cells.
+  - **Touches outside the lane:** `chart` — `skychart/SkyChart.types.ts`, `SkyChart.tsx`, `ChartFrame.tsx` + module, `dome/SkyDome.tsx`, `polar/SkyPolar.tsx`, `window/SkyWindow.tsx` (the `aside` slot, additive); `tests/e2e/{live,dome-fit}.spec.ts`, `tests/e2e/domeInk.ts` (the ink helper, extracted from `dome-fit.spec.ts` so both specs measure one thing).
+  - **Done when:**
+    - `live-rail.spec.ts` at 1280 × 800, 1920 × 1080 and 2560 × 1440: the rows stand beside the box, nothing but the page's padding is under it, and the painted drawing covers at least 90 % of the box's **width** — **failing on the old layout** at all three (65 %, 66 %, 68 %).
+    - `dome-fit.spec.ts` still passes: FR-DOME-1's floor and ceiling are untouched.
+    - `live.spec.ts`'s wide block asserts the rail's order and that no stripe label is drawn over another; `Live.test.tsx` and `SkyChart.contract.test.tsx` assert the placement and the column's width from the stylesheet.
+    - `timeStripe.test.ts` covers the width-driven cadence and `keepLabels`.
+    - Captures: the live page at 1280, 1920 and 2560 px, dark, English, plus 1280 night.
+    - `npm test`, lint, typecheck and the e2e suite green.
+  - **Done 2026-09-07:** as specified, with one decision (D-312) and one recorded lane crossing (the `aside` slot in `chart`). Measured, box then drawing: 1280 × 800 → 798 × 680, 732 px (65 % → 92 % of the box's width); 1920 × 1080 → 1373 × 960, 1258 px (66 % → 92 %); 2560 × 1440 → 1847 × 1320, 1693 px (68 % → 92 %); 3840 × 2160 → 2794 × 2040, 2561 px (69 % → 92 %). The dome grows 10 to 17 % in absolute size at the same time. The tilt was measured and not taken (D-312 has the numbers). Captures: `docs/screenshots/r61-live-{1280,1920,2560}-dark-en.png` and `r61-live-1280-night-en.png`; the v1 set's live and legend captures at 1280 px re-shot, and R54's fold captures left as the record of the layout this replaces.
+
 - [ ] **R60 — v1.2 release preparation**
   - **Lane:** ui
   - **Model:** sonnet
   - **Gate:** owner
-  - **Depends on:** R56, R57, R58, R59
+  - **Depends on:** R56, R57, R58, R59, R61
   - **Goal:** The phase closes: the capture set covers the new screens, the budgets are re-set, the findings register has no open row, and the build is 1.2.0.
   - **Satisfies:** the Phase 2c definition of done (SPEC §9).
   - **Scope:** `package.json` at 1.2.0; the D-179 capture set topped up rather than re-shot — the window's two ground states, the live page following, and the sizes R57 added — with `captures.test.ts` matching the new set; the bundle budgets re-measured by the D-178 rule (the measured build plus a tenth) with the `chart`, `live` and `window` chunks re-stated; `docs/RELEASE.md` updated for the phase, including the phone run the owner owns; F-54..F-56 marked closed in the register with the PR that closed each.
@@ -1234,6 +1253,7 @@ Computed from the graph with the driver's caps (one task per lane, three at once
 |---|---|---|---|
 | 1 | R56, R57, R58 | window, chart, data | opus, sonnet, sonnet |
 | 2 | R59 | live | opus |
+| — | R61 | live | opus |
 | 3 | R60 | ui | sonnet |
 
 Wave 1 fills all three slots with the phase's three independent pieces; they share no file, since R56 stays inside `window/` and its own catalog, R57 inside `dome/camera.ts` plus a Playwright project, and R58 inside `src/state/**`. R59 is one task rather than two because the `live` lane runs one at a time either way, and the follow switch and the row spacing are the same screen, the same captures and the same phone run. R60 is the only task that touches `package.json`, the budgets or the capture set. Three of the five sessions are Sonnet, since D-279, D-280 and the release rules leave those tasks a written answer to implement; the two that carry judgement — the ground state's composition and copy, the follow states — are Opus. Reviews are Sonnet on the four `Gate: owner` tasks.
@@ -1243,5 +1263,5 @@ Token rules for the phase (PLAN D-284): every session takes the D-198 brief with
 ```mermaid
 graph TD
   R58 --> R59
-  R56 & R57 & R58 & R59 --> R60
+  R56 & R57 & R58 & R59 & R61 --> R60
 ```
