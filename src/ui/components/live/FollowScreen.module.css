@@ -1,0 +1,48 @@
+/* R64 (FR-FSC-1, FR-FSC-2, D-321): the follow screen's layer and its `×`.
+
+   The layer covers the whole visual viewport — `inset: 0` for the box and
+   `100dvh` for the height a phone's collapsing address bar keeps moving — on
+   the theme's page ground, at the one stacking token the app has for "above
+   the whole page". Nothing here lays anything out: the chart's screen frame
+   (`ChartFrame.module.css`, R62) owns the drawing and the two overlays, and
+   this file only has to make the host the viewport.
+
+   The `×` goes in the frame's overlay slot, which is `inset: 0` over the
+   drawing and passes taps through except on its own children, so the corner is
+   the button's and the legend under it stays tappable (FR-LEG-4). It is the
+   one icon in the app, so it is not bracketed the way the text controls are;
+   what makes it a control is the tap target (G6's 44 px floor, `--tap` is 48),
+   the surface the other two overlays already use and the focus ring. */
+.screen {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  z-index: var(--z-follow);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  background: var(--follow-overlay);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: var(--row);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:focus-visible {
+  outline: calc(var(--row) / 12) solid var(--accent);
+  outline-offset: calc(var(--row) / -12);
+}

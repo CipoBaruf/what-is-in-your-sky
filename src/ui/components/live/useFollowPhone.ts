@@ -59,6 +59,17 @@ export interface FollowPhoneHandle {
 /** FR-FOL-1: the view the control opens. */
 const FOLLOW_VIEW = 'window';
 
+/**
+ * R64 (FR-FSC-1, D-321): whether the follow screen is up, for the parts of the
+ * live page that are outside the component holding the control — its one-row
+ * header, which the layer covers. Following *is* the override (D-277), so this
+ * reads the store rather than the hook: calling `useFollowPhone` a second time
+ * would arm a second sensor and keep a second note.
+ */
+export function useFollowing(): boolean {
+  return useAppStore((s) => s.viewOverride) === FOLLOW_VIEW;
+}
+
 export function useFollowPhone(): FollowPhoneHandle {
   // FR-WIN-4's presence test, the window's own: the control is offered exactly where the window is.
   const available = useMemo(() => typeof window !== 'undefined' && orientationApiPresent(), []);
