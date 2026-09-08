@@ -1493,7 +1493,7 @@ Draft, cut 2026-09-08 from `SPEC.md` v1.4 and `PLAN.md` v0.6.4, for review. Spec
 
 Delivery is PLAN §16 unchanged, cut by §16.14: six tasks, five waves, one task per lane in each. Wave 1 is the two findings tasks in different lanes, F-64 first because it is red on `origin/main` and every later task would inherit it. The three layout tasks are one per wave because all three are the `live` lane and each changes what `ChartFrame` measures; the order — the shape rules, then the rows under the box, then the box's own width — is so that no task is measured against CSS a later one deletes (D-390). Models follow §16.6 rather than a phase override (`sonnet` for the two mechanical findings, `fable` for the two visual tasks the session can measure itself, `opus` where three lanes and a stored preference meet). Decision blocks: **R67 D-391..D-393, R68 D-394..D-396, R69 D-397..D-403, R70 D-404..D-410, R71 D-411..D-418, R72 D-419..D-423.**
 
-- [ ] **R67 — F-64: the Moon lore line the Now panel does not show** [P]
+- [x] **R67 — F-64: the Moon lore line the Now panel does not show** [P] — the catalogue and the fixture were already right; the cause was the local `e2e` npm script building with `VITE_MOON_LORE` off while CI already built it on, so `npm run e2e`'s build was fixed to match.
   - **Lane:** ui
   - **Model:** sonnet
   - **Gate:** auto
