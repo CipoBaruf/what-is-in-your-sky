@@ -250,6 +250,12 @@ describe('<LivePage>', () => {
       ).toEqual(['Polar', 'Dome']);
       expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
       expect(appStore.getState().savedChartView).toBe('window');
+      // The R62 review's finding: the page reads what is drawn, not the raw preference — the dome is on
+      // screen, so the stripe block, the playback row and the follow control are all there.
+      expect(screen.getByTestId('live-side')).toHaveAttribute('data-window-mode', 'false');
+      expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
+      expect(screen.getByTestId('playback-controls')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: en.live.follow })).toBeInTheDocument();
     } finally {
       vi.unstubAllGlobals();
       Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
@@ -460,9 +466,9 @@ describe('<LivePage>', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Next rise' }));
     expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
     expect(screen.getByRole('button', { name: 'Now' })).toBeEnabled();
-    // R47 registers the view; the page reads the preference by name and needs nothing from it.
+    // R62 (FR-FSC-6): the window is on this page only as the follow control's override (D-277).
     act(() => {
-      appStore.getState().setChartView('window' as unknown as ChartView);
+      appStore.getState().setViewOverride('window' as unknown as ChartView);
     });
     expect(screen.getByTestId('live-side')).toHaveAttribute('data-window-mode', 'true');
     expect(screen.queryByTestId('stripe-block')).toBeNull();
@@ -474,7 +480,7 @@ describe('<LivePage>', () => {
     expect(screen.getByRole('button', { name: 'Share this sky' })).toBeInTheDocument();
     // Leaving the window: the block and the row are back, and the instant is still real time.
     act(() => {
-      appStore.getState().setChartView('polar');
+      appStore.getState().setViewOverride(null);
     });
     expect(screen.getByTestId('live-side')).toHaveAttribute('data-window-mode', 'false');
     expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
@@ -663,7 +669,7 @@ describe('<LivePage>', () => {
    * belongs to both drawn views now — but its shape survives here: the state
    * says what the chart is doing and nothing else.
    */
-  it('leaves the view alone with a note where the phone gives no heading, and is not shown on the window the reader chose (FR-FOL-2, FR-LIVE-8 as amended)', () => {
+  it('leaves the view alone with a note where the phone gives no heading, and stays offered over the dome a saved window falls back to (FR-FOL-2, FR-FSC-6)', () => {
     withPhone();
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
@@ -675,13 +681,14 @@ describe('<LivePage>', () => {
     expect(appStore.getState()).toMatchObject({ chartView: 'polar', viewOverride: null });
     expect(screen.getByTestId('live-side')).toHaveAttribute('data-window-mode', 'false');
 
-    // The window chosen from the view control: following is what the view is, so there is no control to press…
+    // R62 (FR-FSC-6, D-324): a window saved from the pass detail is drawn as the dome on this page, so the
+    // page is not in window mode and the control is still the one way to the window here.
     act(() => {
       appStore.getState().setChartView('window');
     });
-    expect(screen.queryByTestId('follow-phone')).toBeNull();
-    // …and the strip's declination line follows the window being shown, whichever route opened it (D-276).
-    expect(screen.getByTestId('live-heading')).toHaveTextContent('Heading true north, declination +1.1°');
+    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
+    expect(screen.getByTestId('live-side')).toHaveAttribute('data-window-mode', 'false');
+    expect(screen.getByTestId('follow-phone')).toBeInTheDocument();
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
   });
 
