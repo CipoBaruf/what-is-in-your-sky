@@ -251,17 +251,18 @@
      that is centred anyway. At 100 % it also clears the 60 cells twelve hour labels want at every wide width,
      whatever the height does to the box, so the clamp that guarded that case goes with it.
 
-     The legend keeps the box's width, but never under 60 cells (the twelve hour labels' width) nor over the
-     frame's: a box cut small by a short window would otherwise wrap the time row into a column, and the taller
-     row would cut the box smaller still, down to nothing (seen at 1280 x 540). Wider than a small box it
-     stands centred over it. */
+     The legend goes with it: its rows start at the same left edge as the stripe's first hour label and the
+     status strip under it, so everything below the drawing shares one margin. It keeps its four rows and its
+     own scroll (FR-LEG-2); the width only decides how many of its lines wrap, and a wide row wraps fewer,
+     which leaves the box a little more height. Neither is the box's width now, so the clamp that guarded a box
+     a short window had cut small — where the time row wrapped into a column and the taller row cut the box
+     smaller still, down to nothing at 1280 x 540 — is not needed by either. */
   .fill[data-compact='false'][data-legend='true'][data-stacked='true'][data-box='true'] .stripe {
     width: 100%;
   }
 
   .fill[data-compact='false'][data-legend='true'][data-stacked='true'] .legend {
-    width: clamp(calc(60 * var(--cell)), var(--chart-box-w, 100%), 100%);
-    margin: 0 auto;
+    width: 100%;
     align-self: start;
     max-height: calc(4 * var(--row));
     min-height: 0;

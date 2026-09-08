@@ -331,7 +331,7 @@ test.describe('the wide live page (R61)', () => {
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1080);
   });
 
-  test('at 1280 × 800: one column — the box and the legend centred, the stripe full width, the strip and the actions under them at the left — and no label over another', async ({ page }) => {
+  test('at 1280 × 800: one column — the box centred, the stripe and the legend full width, the strip and the actions under them at the left — and no label over another', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
@@ -345,8 +345,8 @@ test.describe('the wide live page (R61)', () => {
     band(readout, toggle);
     below(box, toggle);
     // D-319 (V12-14): under 1660 px there is no rail. The stripe block is under the box, the legend under that,
-    // and the page's own row — the strip and the actions on one line — under the frame. The box and the legend are
-    // centred; the stripe takes the page's whole width and the row under it reads from its left edge (D-320, V12-15).
+    // and the page's own row — the strip and the actions on one line — under the frame. The box is centred; the
+    // stripe and the legend take the page's whole width and every row under them reads from that left edge (D-320, V12-15).
     await expect(page.getByTestId('live-dome')).toHaveAttribute('data-columns', 'one');
     await expect(page.getByTestId('chart-aside')).toHaveCount(0);
     const block = await page.getByTestId('stripe-block').boundingBox();
@@ -361,8 +361,9 @@ test.describe('the wide live page (R61)', () => {
     const sideRow = await page.getByTestId('live-side').boundingBox();
     expect(Math.abs((sideRow?.x ?? 0) + (sideRow?.width ?? 0) / 2 - 640)).toBeLessThanOrEqual(2);
     expect(Math.abs((box?.x ?? 0) + (box?.width ?? 0) / 2 - 640)).toBeLessThanOrEqual(2);
-    // D-320 (V12-15): the stripe is the page's whole width — wider than the box the height cut here — and the strip starts at its left edge.
+    // D-320 (V12-15): the stripe and the legend are the page's whole width — wider than the box the height cut here — and the strip starts at that edge.
     expect((block?.width ?? 0)).toBeGreaterThan((box?.width ?? 0));
+    expect(Math.abs((legend?.x ?? 0) - (block?.x ?? 0))).toBeLessThanOrEqual(1);
     expect(Math.abs((strip?.x ?? 0) - (block?.x ?? 0))).toBeLessThanOrEqual(1);
     // The block stacks: the clock readout over the stripe.
     below(stripe, clock);
