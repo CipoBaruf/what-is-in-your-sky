@@ -72,12 +72,14 @@ describe('<TimeStripe>', () => {
     // R48 (FR-TRAJ-4): three rows — the labels, the band with its ticks, the segments — and the cursor across all of them.
     expect(stripe).toHaveAttribute('data-rows', '3');
     expect(['labels', 'band', 'segments'].map((row) => container.querySelector(`[data-row="${row}"]`) !== null)).toEqual([true, true, true]);
-    // 24 whole hours of the Neuquén clock from 07:00, every one a tick on the band; jsdom has no `matchMedia`, so the
-    // shell is compact and every third hour from midnight is labelled, the midnight itself with its date.
+    // 24 whole hours of the Neuquén clock from 07:00, every one a tick on the band. R61 (D-312): the label cadence
+    // follows the stripe's own width, and jsdom lays nothing out, so it is `DEFAULT_WIDTH` — 62 cells, room for
+    // twelve labels, so every second hour from midnight is labelled and the midnight itself carries its date.
     expect(container.querySelectorAll('[data-row="band"] [data-tick]')).toHaveLength(24);
     expect(container.querySelector('[data-tick="7"]')).toHaveAttribute('data-labelled', 'false');
-    expect(container.querySelector('[data-tick="9"]')).toHaveAttribute('data-labelled', 'true');
-    expect([...container.querySelectorAll('[data-row="labels"] text')].map((el) => el.textContent)).toEqual(['09', '12', '15', '18', '21', '12 Sept', '03', '06']);
+    expect(container.querySelector('[data-tick="8"]')).toHaveAttribute('data-labelled', 'true');
+    // …and the two hours either side of the date are not drawn, because at 50 px apart its box reaches theirs (`keepLabels`).
+    expect([...container.querySelectorAll('[data-row="labels"] text')].map((el) => el.textContent)).toEqual(['08', '10', '12', '14', '16', '18', '20', '12 Sept', '04', '06']);
     expect(container.querySelector('[data-label="0"]')).toHaveAttribute('data-midnight', 'true');
     // Two night bands; the day is the stripe's own background.
     expect([...container.querySelectorAll('[data-sky]')].map((el) => el.getAttribute('data-sky'))).toEqual(['bright-twilight', 'dark']);

@@ -13,6 +13,7 @@ import {
   DEFAULT_SUN,
   drag,
   fitLayers,
+  layerCenter,
   initialFor,
   KEY_INTENSITY,
   LABEL_ADVANCE,
@@ -117,6 +118,18 @@ const rowMetrics =
   (stage: HTMLElement, glyph: string) =>
   (fontSizePx: number, cols: number): RowMetrics => ({ brailleRowPx: probeWidth(stage, glyph, cols, fontSizePx), spaceRowPx: probeWidth(stage, ' ', cols, fontSizePx) });
 
+/**
+ * D-316 (FR-DOME-1 as amended v1.2.1, F-60): the key that remounts a layer's scene. glyphcss measures its
+ * cell once, at mount, so a layout whose cell changed must be a new scene — and `cols` alone is not that:
+ * `colsFor` is capped at `MAX_GRID_COLS`, which every desktop box reaches, so on a desktop the count never
+ * changed and a resize left the scene drawing the new font size through the cell it measured at mount
+ * (107 % of the box at 1280 × 800 after 3840 × 2160, clipped at 3840 after 1920). The font size is what
+ * sets the cell (`fitLayout`), so it is in the key.
+ */
+function layerKey(layer: 'base' | 'lines', layout: DomeLayout): string {
+  return `${layer}-${String(layout.cols)}-${String(layout.fontSizePx)}`;
+}
+
 /** The cell metrics a layer reaches its stylesheet with (through the CSSOM, which `style-src 'self'` allows). */
 const layerStyle = (layout: DomeLayout): CSSProperties =>
   ({
@@ -197,7 +210,7 @@ function DomeLabels({ labels, rotY, onSelect }: DomeLabelsProps) {
   );
 }
 
-export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, controls, className }: SkyChartProps) {
+export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, aside, stripe, boxAspect, stacked, controls, className }: SkyChartProps) {
   const t = useT();
   const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
   const [camera, setCamera] = useState<CameraState>(() => initialFor(highlighted, facingAzDeg ?? initialFacingAzDeg));
@@ -364,6 +377,10 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
       <ChartFrame
         fill={fill}
         legend={legend}
+        aside={aside}
+        stripe={stripe}
+        {...(boxAspect === undefined ? {} : { boxAspect })}
+        {...(stacked === undefined ? {} : { stacked })}
         // R48 (FR-LIVE-7 as amended): the hint is not shown on the live page — `fill` is that page — where the row it took is the dome's.
         // R54 (D-269): what the page hands down (the view toggle) heads the slot instead.
         controls={
@@ -400,7 +417,7 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
           <div className={styles.layers} aria-hidden="true" data-drawing="dome">
             {ready && layers.base.length > 0 && (
               <div className={styles.layer} data-layer="base" style={layerStyle(base)}>
-                <GlyphOrthographicCamera key={`base-${String(base.cols)}`} rotX={camera.tiltDeg} rotY={rotY} zoom={base.zoom}>
+                <GlyphOrthographicCamera key={layerKey('base', base)} rotX={camera.tiltDeg} rotY={rotY} zoom={base.zoom} center={layerCenter(base, camera.tiltDeg)}>
                   <GlyphScene
                     mode="solid"
                     charMode="ascii"
@@ -422,7 +439,7 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
             )}
             {ready && (
               <div className={styles.layer} data-layer="lines" style={layerStyle(lines)}>
-                <GlyphOrthographicCamera key={`lines-${String(lines.cols)}`} rotX={camera.tiltDeg} rotY={rotY} zoom={lines.zoom}>
+                <GlyphOrthographicCamera key={layerKey('lines', lines)} rotX={camera.tiltDeg} rotY={rotY} zoom={lines.zoom} center={layerCenter(lines, camera.tiltDeg)}>
                   <GlyphScene mode="wireframe" charMode="braille" glyphPalette="ascii" useColors={colored} cols={lines.cols} rows={lines.rows} cellAspect={CELL_ASPECT}>
                     <SceneInteracting active={dragging} />
                     {layers.lines.map((mesh) => (

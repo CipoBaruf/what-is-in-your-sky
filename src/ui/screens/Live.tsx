@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
+import { LIVE_TWO_COLUMN_QUERY } from '../../lib/layout';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import type { Span } from '../../lib/timeStripe';
@@ -9,6 +10,7 @@ import { useAppStore } from '../../state';
 import { LanguageToggle } from '../components/common/LanguageToggle';
 import { ShareButton } from '../components/common/ShareButton';
 import { ThemeToggle } from '../components/common/ThemeToggle';
+import { DOME_BOX_ASPECT } from '../components/guide/skychart/dome/camera';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { FollowPhone } from '../components/live/FollowPhone';
@@ -28,6 +30,7 @@ import { useSkyBands } from '../components/live/useSkyBands';
 import { useWakeLock } from '../components/live/useWakeLock';
 import { useWallThrottle } from '../components/live/useWallThrottle';
 import { useLayoutMode } from '../hooks/useLayoutMode';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useNow } from '../hooks/useNow';
 import styles from './Live.module.css';
 
@@ -104,6 +107,9 @@ export function LivePage({ link, onLeave }: LivePageProps) {
    * (R52). Wide has the room and keeps them, as R32 laid the page out.
    */
   const compact = useLayoutMode() === 'compact';
+  // D-319: the page's rows follow the column count the frame is in (`LiveSky` reads the same query for the frame).
+  const twoColumns = useMediaQuery(LIVE_TWO_COLUMN_QUERY);
+  const columns = compact ? 'compact' : twoColumns ? 'two' : 'one';
 
   // FR-LIVE-1: Esc returns. R35 moves this into the app-wide listener.
   useEffect(() => {
@@ -123,7 +129,7 @@ export function LivePage({ link, onLeave }: LivePageProps) {
   const wakeLock = useWakeLock(inert === null);
 
   return (
-    <div className={styles.page} data-testid="live-page" data-state={inert === null ? 'live' : 'inert'} data-wake-lock={wakeLock} data-compact={compact}>
+    <div className={styles.page} data-testid="live-page" data-state={inert === null ? 'live' : 'inert'} data-wake-lock={wakeLock} data-compact={compact} data-columns={columns}>
       <div className={styles.topRow} data-testid="live-top-row">
         <button type="button" className={styles.back} onClick={onLeave}>
           {t.live.back}
@@ -188,6 +194,18 @@ function useHashFollows(observer: Observer, shown: EpochMs, realTime: boolean, p
 function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null }) {
   const t = useT();
   const compact = useLayoutMode() === 'compact';
+  /*
+   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315, D-319): on wide the box is cut to the dome's own aspect
+   * from what the frame leaves it (`boxAspect`), and the stripe block stands under the box rather than in the
+   * rail — the owner's stripe at the bottom of the dome, at every wide width (V12-12). From
+   * `LIVE_TWO_COLUMN_MIN_PX` the page is two columns, the rail beside the box; under it, one column — the
+   * frame stacks the drawing, the stripe and the legend, centred, and the page's own row of the strip and the
+   * actions is under the frame, as on compact (V12-14). Compact ignores all three.
+   */
+  const twoColumns = useMediaQuery(LIVE_TWO_COLUMN_QUERY);
+  const stripeUnder = !compact;
+  const oneColumn = !compact && !twoColumns;
+  const columns = compact ? 'compact' : oneColumn ? 'one' : 'two';
   const passesState = useAppStore((s) => s.passes);
   const weather = useAppStore((s) => s.weather);
   const liveHidden = useAppStore((s) => s.liveHidden);
@@ -253,9 +271,69 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   const chartPasses = useMemo(() => withArcStates(passes, arcs), [passes, arcs]);
   // FR-SHARE-1's live form: the place, and the instant only when this page is showing one (real time is the recipient's own).
   const url = shareUrl(window.location.href, liveLinkHash({ observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t: playback.realTime ? null : shown }));
+  /*
+   * R61 (FR-LIVE-7 as amended v1.2, D-312, F-59): where the side column goes.
+   * On compact it is the page's own row under the box, as it has been since
+   * R34. On wide it is handed to the chart, which puts it in the column beside
+   * the drawing under the legend (`aside`): the box then has every row of the
+   * page's height and a shape close to the drawing's own, instead of a box
+   * wider than the drawing can ever be with a third of its width left over.
+   * The same children in the same order either way — the block is built once
+   * and placed twice.
+   */
+  /*
+   * R61 (FR-LIVE-7 as amended v1.2.1, V12-13, D-318): the playback controls belong with the stripe they drive.
+   * On wide they share the clock readout's row above the stripe — the time row — and the rail keeps what is
+   * about the sky: the strip, then the actions (hidden objects, follow, share). On compact the rows are R48's,
+   * unchanged: the readout over the stripe, the playback row and the actions under it.
+   */
+  const playbackControls = !windowMode && <PlaybackControls playing={playback.playing} speed={playback.speed} realTime={playback.realTime} onPlay={playback.play} onPause={playback.pause} onSpeed={playback.setSpeed} onNow={playback.toNow} />;
+  const readout = <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />;
+  const stripeBlock = !windowMode && (
+    <div className={styles.stripeBlock} data-testid="stripe-block">
+      {stripeUnder ? (
+        <div className={styles.timeRow} data-testid="time-row">
+          {readout}
+          <div className={styles.playbackRow} data-testid="playback-row">
+            {playbackControls}
+          </div>
+        </div>
+      ) : (
+        readout
+      )}
+      <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} onScrub={playback.scrub} />
+      {touch && <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} />}
+    </div>
+  );
+  const side = (
+    <div className={styles.side} data-testid="live-side" data-window-mode={windowMode}>
+      <StatusStrip
+        t={shown}
+        timeZone={observer.timeZone}
+        sky={bodies.sky}
+        cloud={cloud}
+        count={count}
+        moon={bodies.moon}
+        speed={playback.playing ? playback.speed : null}
+        declinationDeg={windowMode ? declinationDeg : null}
+      />
+      {!stripeUnder && stripeBlock}
+      {!windowMode && !stripeUnder && (
+        <div className={styles.playbackRow} data-testid="playback-row">
+          {playbackControls}
+        </div>
+      )}
+      <div className={styles.actions} data-testid="live-actions">
+        <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />
+        {followable && <FollowPhone follow={follow} />}
+        <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : t.live.share} ariaLabel={t.live.share} />
+      </div>
+    </div>
+  );
+
   return (
     <>
-      <div className={styles.dome} data-testid="live-dome">
+      <div className={styles.dome} data-testid="live-dome" data-stripe-under={stripeUnder} data-columns={columns}>
         <SkyChart
           passes={chartPasses}
           observer={observer}
@@ -267,47 +345,12 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           colorBy="pass"
           fill
           initialFacingAzDeg={0}
+          {...(columns === 'two' ? { aside: side } : {})}
+          {...(compact ? {} : { boxAspect: DOME_BOX_ASPECT, stacked: oneColumn })}
+          {...(stripeUnder ? { stripe: stripeBlock } : {})}
         />
       </div>
-      {/*
-       * R34 (FR-LIVE-7, D-173): the side column — under the dome in portrait, beside it on a landscape phone.
-       * R48 (FR-LIVE-7 as amended, D-244): in the order the requirement lists — the strip, the stripe block
-       * (readout, stripe, stepping row) and the two control rows: playback, and the actions.
-       * R54 (FR-LIVE-7 as amended v1.1.1, D-268, F-52): on wide the same children fold into two rows by grid
-       * areas — the playback row, the stripe block and the actions on one, the strip on the next — and the
-       * hidden-objects toggle joins the playback row, where the requirement lists it. The DOM order stays
-       * the compact one, which is the reading order too.
-       */}
-      <div className={styles.side} data-testid="live-side" data-window-mode={windowMode}>
-        <StatusStrip
-          t={shown}
-          timeZone={observer.timeZone}
-          sky={bodies.sky}
-          cloud={cloud}
-          count={count}
-          moon={bodies.moon}
-          speed={playback.playing ? playback.speed : null}
-          declinationDeg={windowMode ? declinationDeg : null}
-        />
-        {!windowMode && (
-          <div className={styles.stripeBlock} data-testid="stripe-block">
-            <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />
-            <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} onScrub={playback.scrub} />
-            {touch && <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} />}
-          </div>
-        )}
-        {!windowMode && (
-          <div className={styles.playbackRow} data-testid="playback-row">
-            <PlaybackControls playing={playback.playing} speed={playback.speed} realTime={playback.realTime} onPlay={playback.play} onPause={playback.pause} onSpeed={playback.setSpeed} onNow={playback.toNow} />
-            {!compact && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
-          </div>
-        )}
-        <div className={styles.actions} data-testid="live-actions">
-          {(compact || windowMode) && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
-          {followable && <FollowPhone follow={follow} />}
-          <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : t.live.share} ariaLabel={t.live.share} />
-        </div>
-      </div>
+      {columns !== 'two' && side}
     </>
   );
 }

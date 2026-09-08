@@ -18,13 +18,14 @@ import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../tests/support/catalogFixtures';
 import { en } from '../../i18n/en';
+import { LIVE_TWO_COLUMN_MIN_PX, WIDE_MIN_PX } from '../../lib/layout';
 import { isoInstant } from '../../lib/shareLinks';
 import { skyBodiesAt } from '../../lib/skyBodies';
-import { STRIPE_ROW_MIN_CELLS } from '../../lib/timeStripe';
 import type { ChartView, Observer, Pass } from '../../model';
 import type { NowItem, NowState } from '../../model';
 import { appStore, setLiveNowClient, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
+import { stubMatchMedia, type MatchMediaStub } from '../../../tests/support/matchMedia';
 import { MOON_FIXTURE } from '../../../tests/support/moonFixtures';
 import { LIVE_WINDOW_MS, LivePage, livePasses, TICK_MS, visibleCount } from './Live';
 
@@ -109,7 +110,11 @@ describe('<LivePage>', () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout', 'Date'] });
     vi.setSystemTime(T);
   };
+  /** R61 (D-314): the wide tests stub `matchMedia` with a size, since the dome ladder asks the height as well as the width. */
+  let media: MatchMediaStub | null = null;
   afterEach(() => {
+    media?.restore();
+    media = null;
     vi.useRealTimers();
     vi.unstubAllGlobals();
     setLiveNowClient(null);
@@ -233,7 +238,7 @@ describe('<LivePage>', () => {
     // R48 (FR-LIVE-7 as amended): no "drag the dome" hint on this page, whichever view.
     expect(screen.queryByText(en.chart.domeHint)).toBeNull();
     unmount();
-    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener: () => undefined, removeEventListener: () => undefined }));
+    media = stubMatchMedia(1280, 800);
     render(<LivePage link={null} onLeave={() => undefined} />);
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
     expect(screen.getByRole('group', { name: 'Language' })).toBeInTheDocument();
@@ -241,35 +246,113 @@ describe('<LivePage>', () => {
     expect(screen.getByRole('button', { name: 'Share this sky' })).toHaveTextContent('Share this sky');
   });
 
-  /** R54 (D-270): the width from which the stripe joins the playback row, read from the stylesheet (jsdom lays nothing out). */
-  it('folds the stripe onto the playback row only from STRIPE_ROW_MIN_CELLS, with the page as the size container', () => {
-    const css = readFileSync('src/ui/screens/Live.module.css', 'utf8');
-    expect(css).toContain(`@container (min-width: ${String(STRIPE_ROW_MIN_CELLS)}ch)`);
-    expect(css).toMatch(/\.page\[data-compact='false'\] \{\n\s+container-type: inline-size;/);
-    // Under the threshold the stripe has a row of its own; over it the three share one.
-    expect(css).toMatch(/'playback actions'\n\s+'stripe stripe'\n\s+'strip strip'/);
-    expect(css).toMatch(/'playback stripe actions'\n\s+'strip strip strip'/);
+  /**
+   * R61 (FR-LIVE-7 as amended v1.2, D-312, F-59): on wide the side column is
+   * the chart's rail — the column beside the drawing, under the legend — and
+   * not a row under the box, so the box keeps the page's whole height. The
+   * placement is React's and asserted here; the width the rail takes is the
+   * stylesheet's, read from the file because jsdom lays nothing out.
+   */
+  it('gives the side column to the chart on the two-column page, and keeps it in the page on compact and on the one-column page', () => {
+    withSky();
+    const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'true');
+    expect(screen.getByTestId('live-page')).toHaveAttribute('data-columns', 'compact');
+    expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).toBeNull();
+    expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
+    unmount();
+    // D-319: under 1660 px the wide page is one column — the frame stacks, the page keeps its row.
+    media = stubMatchMedia(LIVE_TWO_COLUMN_MIN_PX - 1, 800);
+    const one = render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.getByTestId('live-page')).toHaveAttribute('data-columns', 'one');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'false');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
+    expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
+    expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\]\[data-columns='one'\] \{\n\s+grid-template-areas:\n\s+'top'\n\s+'dome'\n\s+'side';/);
+    // D-320 (V12-15): that row reads from the left — the strip at the page's content edge, the actions after it.
+    expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\]\[data-columns='one'\] \.side \{\n\s+flex-direction: row;\n\s+flex-wrap: wrap;\n\s+justify-content: flex-start;/);
+    one.unmount();
+    media.restore();
+    media = stubMatchMedia(LIVE_TWO_COLUMN_MIN_PX, 1080);
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.getByTestId('live-page')).toHaveAttribute('data-columns', 'two');
+    expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).not.toBeNull();
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'false');
+    // The fluid rail is 26 % of the frame between 44 and 60 cells, so its share falls as the page grows (D-313); the page's third row goes with the rows that moved.
+    expect(readFileSync('src/ui/components/guide/skychart/ChartFrame.module.css', 'utf8')).toMatch(
+      /\[data-aside='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\) clamp\(calc\(44 \* var\(--cell\)\), 26%, calc\(60 \* var\(--cell\)\)\);/,
+    );
+    expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\] \{\n\s+grid-template-areas:\n\s+'top'\n\s+'dome';/);
+    // R61 (D-314, D-315): the box is cut to the dome's aspect, and the stripe block is the frame's row under it.
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
   });
 
-  /** R54 (FR-LIVE-7 as amended v1.1.1, FR-TRAJ-5, D-268): the wide rows, and the stepping row only with touch. */
-  it('on wide puts the hidden-objects toggle on the playback row and draws the stepping row only where the page has touch', () => {
+  /**
+   * R61 (FR-LIVE-7 and FR-TRAJ-4 as amended v1.2.1, D-314, D-315, V12-12): on every wide page the stripe block
+   * is the frame's row under the box rather than a row of the rail — the same element, placed there — and the
+   * chart is handed the dome's aspect so the frame cuts the box to it. Compact keeps both in the page: a phone
+   * never has a cut box, and its stripe is a row of the page under the drawing as it has been since R48.
+   */
+  it('puts the stripe block under the box on wide at every width, hands the chart the dome\'s aspect there, and keeps both in the page on compact', () => {
+    withSky();
+    media = stubMatchMedia(1920, 1080);
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
+    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'live-actions']);
+    // The narrowest wide page: the same stripe row, in the one-column frame (D-319), the side row the page's own.
+    act(() => {
+      media?.setSize(WIDE_MIN_PX, 700);
+    });
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-columns', 'one');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
+    expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
+    // Compact: no cut box, no stripe row; the block is a row of the page's own side column.
+    act(() => {
+      media?.setSize(390, 3000);
+    });
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'false');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
+    expect(screen.getByTestId('stripe-block').closest('[data-testid="live-side"]')).not.toBeNull();
+  });
+
+  /**
+   * R54 (FR-LIVE-7 as amended v1.1.1, FR-TRAJ-5, D-268) and R61 (V12-13, D-318): the wide rows — the playback
+   * controls on the clock's row above the stripe, the hidden-objects toggle with the actions in the rail — and
+   * the stepping row only with touch.
+   */
+  it('on wide puts the playback controls on the time row above the stripe, the hidden-objects toggle with the actions, and draws the stepping row only where the page has touch', () => {
     withSky();
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
-    // Compact, no touch: the toggle is on the actions row, and the block is the readout and the stripe alone.
+    // Compact, no touch: the toggle is on the actions row, the playback row is the page's own, and the block is the readout and the stripe alone.
     expect(within(screen.getByTestId('live-actions')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
-    expect(within(screen.getByTestId('playback-row')).queryByTestId('live-hidden-toggle')).toBeNull();
+    expect(screen.getByTestId('playback-row').parentElement).toBe(screen.getByTestId('live-side'));
     expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'time-stripe']);
     unmount();
-    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener: () => undefined, removeEventListener: () => undefined }));
+    media = stubMatchMedia(1280, 800);
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 1 });
     render(<LivePage link={null} onLeave={() => undefined} />);
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
-    expect(within(screen.getByTestId('playback-row')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
-    expect(within(screen.getByTestId('live-actions')).queryByTestId('live-hidden-toggle')).toBeNull();
-    // The side column's children keep the compact order; the wide rows are grid areas in the stylesheet.
-    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'stripe-block', 'playback-row', 'live-actions']);
-    expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'time-stripe', 'step-controls']);
+    // The side row (the page's own at 1280, the rail from 1660) is the strip and the actions, the toggle among them.
+    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'live-actions']);
+    expect(within(screen.getByTestId('live-actions')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
+    // The stripe block is the frame's row under the box (D-315): the time row — the readout and the playback row — then the stripe, then the stepping row.
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
+    expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-row', 'time-stripe', 'step-controls']);
+    expect([...screen.getByTestId('time-row').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'playback-row']);
+    expect(within(screen.getByTestId('playback-row')).getByRole('button', { name: 'Play' })).toBeInTheDocument();
   });
 
   /** R48 (FR-TRAJ-1, FR-TRAJ-3, US-22 AC1..AC3, D-189): the arcs appear, grow and fade with the shown instant, and the legend says the same. */

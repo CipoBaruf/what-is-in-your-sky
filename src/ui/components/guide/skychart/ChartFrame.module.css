@@ -59,6 +59,20 @@
   min-width: 0;
 }
 
+/* R61 (D-315): the stripe row, present only where the page hands the frame one; placed by the wide live rule above. */
+.stripe {
+  grid-area: stripe;
+  min-width: 0;
+}
+
+/* R61 (D-314): the rail's minimum as a length the frame can read in px — out of the grid, out of the flow, no height. */
+.railProbe {
+  position: absolute;
+  visibility: hidden;
+  height: 0;
+  width: calc(44 * var(--cell));
+}
+
 /* FR-COMP-5 (R45, D-187): on compact the box is full-bleed — it breaks out
    of the page's side padding with negative margins — and square. The pages
    all pad two cells at the side (the global frame, the detail sheet, the live
@@ -110,6 +124,149 @@
     grid-template-areas:
       'controls status legend'
       'drawing drawing legend';
+  }
+
+  /* R61 (FR-LIVE-7 as amended v1.2, D-312, D-313, F-59): the wide live page's
+     rail. With an aside the column is the page's side column and not a
+     legend's width, and the rows that were under the box are in it, so the box
+     takes the page's whole height. The dome is sized from the shorter side of
+     that box (D-187), and a box at about the drawing's own 1.41 : 1 is one the
+     drawing fills in both directions: at 1920 x 1080 it went from 1631 x 833,
+     which the drawing covered to 66 % of its width, to 1373 x 960 at 92 %.
+
+     The width is `clamp(44 cells, 26 %, 60 cells)`, so the rail's *share* of
+     the page falls as the page grows — 34 % at 1280 px, 26 % at 1920, 23 % at
+     2560, 15 % at 3840 (D-313, the owner on the deployed build). Each end is a
+     measurement of the rail's own contents, not of the box: under 44 cells the
+     playback row and the strip wrap past what is readable, and past 60 the
+     rail gains nothing, since 60 is what FR-TRAJ-4's twelve hour labels want
+     and the rows above and below the stripe are shorter than that. Above
+     2222 px the cap binds and the box keeps the rest — the drawing does not
+     grow with it, because by then it is the box's *height* that sizes it, so
+     what the cap really buys is a rail in proportion to what is in it.
+
+     The legend scrolls inside what the rail leaves it rather than the column
+     scrolling as a whole: the playback controls and the share action are the
+     page's, and a list long enough to push them under the fold would take
+     them off the page. */
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'] {
+    grid-template-columns: auto minmax(0, 1fr) clamp(calc(44 * var(--cell)), 26%, calc(60 * var(--cell)));
+  }
+
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'] .legend {
+    display: flex;
+    flex-direction: column;
+    gap: var(--row);
+    overflow: visible;
+  }
+
+  /* `0 1 auto`, not `1 1 auto`: the legend is as tall as its rows and no
+     taller, so the rail's rows follow the last pass instead of the column's
+     bottom edge, and a list longer than the column scrolls. */
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'] .legendScroll {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'] .aside {
+    flex: 0 0 auto;
+  }
+
+  /* R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315, F-59): the aspect-locked
+     box. With `boxAspect` the frame measures what it leaves the drawing and
+     cuts the box to the largest rectangle of the dome's own shape that fits —
+     `--chart-box-w` / `--chart-box-h`, written inline by `ChartFrame` from
+     `lib/layout.ts`'s `fitBox`, since no px may be written here — rather than
+     whatever the rows leave. The two columns the drawing spans are `auto`, so
+     they are the drawing's width and no more, and the grid packs at the start
+     so the rail stands beside the box, takes what is left up to its cap
+     (D-313), and whatever a wide page has past that is blank at the right. The
+     rows are `auto` too and packed at the top: a `1fr` drawing track would put
+     the stripe row at the bottom of the page instead of under the box.
+
+     `stripe` (D-315) is the stripe block in a row of its own under the box,
+     the box's width, where the page hands it here rather than into the rail:
+     every wide live page (V12-12), the owner's stripe under the dome. Its
+     labels are every two hours there (FR-TRAJ-4: the stripe is the box's
+     width, past the 60 cells twelve labels want). */
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-box='true'] {
+    grid-template-columns: auto auto minmax(calc(44 * var(--cell)), calc(60 * var(--cell)));
+    grid-template-rows: auto auto;
+    justify-content: start;
+    align-content: start;
+  }
+
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-box='true'] .drawing {
+    width: var(--chart-box-w);
+    height: var(--chart-box-h);
+  }
+
+  /* The stripe row is the box's width by rule, not by content: the stripe measures its own width to pick a
+     label cadence (FR-TRAJ-4) and its raster keeps the width it last measured, so after a window shrinks an
+     `auto` track sized from it would hold the old width, and the box — centred in the two tracks it spans —
+     would drift off the page's left edge (seen in `dome-resize.spec.ts`: 761 px of stripe over a 686 px box). */
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-box='true'] .stripe {
+    width: max(var(--chart-box-w), calc(44 * var(--cell)));
+  }
+
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-stripe='true'] {
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      'controls status legend'
+      'drawing drawing legend'
+      'stripe stripe legend';
+  }
+
+  /* R61 (FR-LIVE-7 as amended v1.2.1, V12-14, D-319): the one-column wide
+     live page, under `LIVE_TWO_COLUMN_MIN_PX`. No rail: the row above the
+     drawing is the two-column one, and under it the drawing, the stripe and
+     the legend stack, each the box's width and centred — the box cut by
+     `fitBox` from the frame's whole width and the height the three rows leave
+     (`ChartFrame` measures the legend here as it measures the stripe). The
+     legend is the compact page's: at most four rows, scrolling inside. The
+     page's own rows — the status strip and the actions — are under the frame.
+     Rows `auto` and packed at the top, as the two-column rule's are. */
+  .fill[data-compact='false'][data-legend='true'][data-stacked='true'] {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas:
+      'controls status'
+      'drawing drawing'
+      'stripe stripe'
+      'legend legend';
+    column-gap: calc(3 * var(--cell));
+    align-content: start;
+  }
+
+  .fill[data-compact='false'][data-legend='true'][data-stacked='true'][data-box='true'] .drawing {
+    width: var(--chart-box-w);
+    height: var(--chart-box-h);
+    margin: 0 auto;
+  }
+
+  /* R61 (V12-15, D-320): in one column the stripe is the frame's whole width — the owner, on the first
+     one-column build: the time strip is full width always. It was the box's width like the legend, and a box
+     the height had cut small (1280 x 720, and every short window) left the stripe an island under a drawing
+     that is centred anyway. At 100 % it also clears the 60 cells twelve hour labels want at every wide width,
+     whatever the height does to the box, so the clamp that guarded that case goes with it.
+
+     The legend goes with it: its rows start at the same left edge as the stripe's first hour label and the
+     status strip under it, so everything below the drawing shares one margin. It keeps its four rows and its
+     own scroll (FR-LEG-2); the width only decides how many of its lines wrap, and a wide row wraps fewer,
+     which leaves the box a little more height. Neither is the box's width now, so the clamp that guarded a box
+     a short window had cut small — where the time row wrapped into a column and the taller row cut the box
+     smaller still, down to nothing at 1280 x 540 — is not needed by either. */
+  .fill[data-compact='false'][data-legend='true'][data-stacked='true'][data-box='true'] .stripe {
+    width: 100%;
+  }
+
+  .fill[data-compact='false'][data-legend='true'][data-stacked='true'] .legend {
+    width: 100%;
+    align-self: start;
+    max-height: calc(4 * var(--row));
+    min-height: 0;
+    overflow-y: auto;
   }
 
   /* R51 (D-259): the pass detail's numeric table takes the beside rule back. The guide column grows with the

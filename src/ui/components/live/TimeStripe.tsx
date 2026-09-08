@@ -1,9 +1,8 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { useLocale, useT } from '../../../i18n/useT';
 import { formatClock } from '../../../lib/timeFormat';
-import { cursorAt, hourTicks, isCurrent, keyStep, MAX_LANES, midnightDate, nightBands, passSegments, timeAt, type SkyBand, type Span } from '../../../lib/timeStripe';
+import { cursorAt, hourTicks, isCurrent, keepLabels, keyStep, MAX_LANES, midnightDate, nightBands, passSegments, timeAt, type SkyBand, type Span } from '../../../lib/timeStripe';
 import type { EpochMs, Pass } from '../../../model';
-import { useLayoutMode } from '../../hooks/useLayoutMode';
 import styles from './TimeStripe.module.css';
 
 /**
@@ -44,13 +43,10 @@ export const ROWS = 3;
 export const STRIPE_HEIGHT = ROWS * ROW_PX;
 /** Before the first measurement, and in a layout with no width (tests). */
 export const DEFAULT_WIDTH = 600;
-/** A cell at the 16 px base (`--cell`, 0.6 em): only the edge rule below reads it, to keep a label from spilling out of the stripe. */
-const CELL_PX = 9.6;
 
 export function TimeStripe({ span, passes, bands, t, timeZone, onScrub }: TimeStripeProps) {
   const m = useT();
   const locale = useLocale();
-  const mode = useLayoutMode();
   const ref = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ width: DEFAULT_WIDTH, height: STRIPE_HEIGHT });
   const [dragging, setDragging] = useState(false);
@@ -112,16 +108,16 @@ export function TimeStripe({ span, passes, bands, t, timeZone, onScrub }: TimeSt
    * a fresh `Intl.DateTimeFormat` for the zone. Only the cursor and the
    * `current` flag follow `t`, and both are arithmetic on what is memoised here.
    */
-  const ticks = useMemo(() => hourTicks(span, width, timeZone, mode), [span, width, timeZone, mode]);
+  const ticks = useMemo(() => hourTicks(span, width, timeZone), [span, width, timeZone]);
   const night = useMemo(() => nightBands(bands, span, width), [bands, span, width]);
   const segments = useMemo(() => passSegments(passes, span, width), [passes, span, width]);
-  // FR-TRAJ-4: the labels of row 1 — the hour, or the date at a midnight — dropped where they would spill past an edge.
+  // FR-TRAJ-4: the labels of row 1 — the hour, or the date at a midnight — dropped where they would spill past an edge or over each other (`keepLabels`).
   const labels = useMemo(
     () =>
-      ticks
-        .filter((tick) => tick.labelled)
-        .map((tick) => ({ tick, text: tick.midnight ? midnightDate(tick.t, timeZone, locale) : String(tick.hour).padStart(2, '0') }))
-        .filter(({ tick, text }) => text !== '' && tick.x >= (text.length * CELL_PX) / 2 && tick.x <= width - (text.length * CELL_PX) / 2),
+      keepLabels(
+        ticks.filter((tick) => tick.labelled).map((tick) => ({ tick, text: tick.midnight ? midnightDate(tick.t, timeZone, locale) : String(tick.hour).padStart(2, '0') })),
+        width,
+      ),
     [ticks, timeZone, locale, width],
   );
   const cursor = cursorAt(t, span, width);

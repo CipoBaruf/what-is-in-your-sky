@@ -5,6 +5,7 @@
  * [5°, 80°].
  */
 import { describe, expect, it } from 'vitest';
+import { GROUND_RADIUS } from './domeGeometry';
 import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
 import { en } from '../../../../../i18n/en';
 import { es } from '../../../../../i18n/es';
@@ -25,6 +26,11 @@ import {
   GRID_COLS,
   initialFor,
   INK_HEIGHT_UNITS,
+  ZOOM_HEIGHT_DIVISOR,
+  DOME_RADIUS,
+  DRAWING_HEIGHT_UNITS,
+  centerShiftUnits,
+  layerCenter,
   INK_MARGIN_CELLS,
   INK_WIDTH_UNITS,
   layoutFor,
@@ -45,6 +51,8 @@ import {
   turn,
   YAW_STEP_DEG,
   zoomFor,
+  LABEL_FONT_PX,
+  ZOOM_WIDTH_DIVISOR,
 } from './camera';
 
 const pass = goldenPassFixture();
@@ -237,7 +245,7 @@ describe('layoutFor (FR-DOME-1, D-91)', () => {
 describe('the fit rule (FR-DOME-1, D-187, D-268)', () => {
   it('takes the zoom from the shorter side through the two divisors', () => {
     expect(zoomFor(390, 390)).toBe(390 / 2.4);
-    expect(zoomFor(1240, 450)).toBe(450 / 1.7);
+    expect(zoomFor(1240, 450)).toBe(450 / ZOOM_HEIGHT_DIVISOR);
     expect(zoomFor(352, 600)).toBe(352 / 2.4);
   });
 
@@ -503,5 +511,51 @@ describe('sameLayout (F-35)', () => {
 
   it('still catches a cols/rows/cell/font change on its own', () => {
     expect(sameLayout(layoutFor(390, 390), layoutFor(1280, 1280))).toBe(false);
+  });
+});
+
+/**
+ * R61 (FR-DOME-1 as amended v1.2.1, D-317, F-61): the drawing is taller than the
+ * ring. A bowl seen from the default tilt has a silhouette a full radius above
+ * the observer, and the ground disc's near edge 0.78 below; the extent counts
+ * both, the height divisor is derived from them, and the scene is centred on
+ * that extent rather than on the observer.
+ */
+describe('the bowl’s silhouette is in the extent, and the scene is centred on it (FR-DOME-1 v1.2.1, D-317, F-61)', () => {
+  it('measures the drawing 1.78 units tall at the default tilt: the silhouette over the ground’s near edge', () => {
+    const { height } = drawingExtent(1000, DEFAULT_TILT_DEG, 0);
+    expect((height - LABEL_FONT_PX) / 1000).toBeCloseTo(DRAWING_HEIGHT_UNITS, 2);
+    expect(DRAWING_HEIGHT_UNITS).toBeCloseTo(DOME_RADIUS + GROUND_RADIUS * Math.SQRT1_2, 6);
+  });
+
+  it('would have cut the top of the bowl under the old height divisor on every height-bound box, which is F-61', () => {
+    for (const [width, height] of [[1631, 833], [1373, 960], [991, 325]] as const) {
+      const oldZoom = Math.min(width / ZOOM_WIDTH_DIVISOR, height / 1.7);
+      // The raster is the box: with the observer at its middle, the top half must hold a full radius of bowl.
+      expect(DOME_RADIUS * oldZoom, `${String(width)} × ${String(height)} under the old rule`).toBeGreaterThan(height / 2);
+      const layout = layoutFor(width, height);
+      const extent = drawingExtent(layout.zoom, DEFAULT_TILT_DEG, 0, { widthPx: layout.cellWidthPx, heightPx: layout.cellHeightPx });
+      expect(extent.height, `${String(width)} × ${String(height)} under the new rule`).toBeLessThanOrEqual(height);
+      expect(extent.height).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO * height);
+    }
+  });
+
+  it('derives the divisor from the extent with the width’s own 10 % margin', () => {
+    expect(ZOOM_HEIGHT_DIVISOR).toBeCloseTo(DRAWING_HEIGHT_UNITS / MIN_EXTENT_RATIO, 1);
+    expect(DRAWING_HEIGHT_UNITS / ZOOM_HEIGHT_DIVISOR).toBeLessThan(1);
+  });
+
+  it('shifts the origin down by half the asymmetry, more at a steeper tilt, through each layer’s own grid', () => {
+    expect(centerShiftUnits(DEFAULT_TILT_DEG)).toBeCloseTo((DOME_RADIUS - GROUND_RADIUS * Math.SQRT1_2) / 2, 6);
+    expect(centerShiftUnits(80)).toBeGreaterThan(centerShiftUnits(45));
+    expect(centerShiftUnits(5)).toBeLessThan(0);
+    const layout = layoutFor(1208, 1007);
+    const [x, y] = layerCenter(layout, DEFAULT_TILT_DEG);
+    expect(x).toBe(0.5);
+    expect(y - 0.5).toBeCloseTo((centerShiftUnits(DEFAULT_TILT_DEG) * layout.zoom) / (layout.rows * layout.cellHeightPx), 9);
+    // Both layers land the origin at the same screen offset: the base grid is half the columns and half the rows.
+    const base = baseLayoutFor(layout, 1208, 1007, 0.6);
+    expect((layerCenter(base, DEFAULT_TILT_DEG)[1] - 0.5) * base.rows * base.cellHeightPx).toBeCloseTo((y - 0.5) * layout.rows * layout.cellHeightPx, 6);
+    expect(layerCenter({ zoom: 100, rows: 0, cellHeightPx: 0 }, DEFAULT_TILT_DEG)).toEqual([0.5, 0.5]);
   });
 });

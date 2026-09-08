@@ -96,3 +96,57 @@ export type LayoutMode = 'compact' | 'wide';
 export function layoutMode(matchesWide: boolean): LayoutMode {
   return matchesWide ? 'wide' : 'compact';
 }
+
+/**
+ * R61 (FR-LIVE-7 as amended v1.2.1, D-314, F-59): the wide live page's dome box
+ * is the largest rectangle at the drawing's own aspect that the window leaves
+ * — not whatever the page leaves (a third of it blank, F-59) and not a step of
+ * a table (which wasted most of a real browser window, whose viewport is some
+ * 200 px shorter than the screen it is on: V12-10). The aspect is `zoomFor`'s
+ * two divisors, 2.4 : 2.0 (`dome/camera.ts` `DOME_BOX_ASPECT`), the one shape
+ * at which the drawing's fit binds across and down at once.
+ *
+ * `fitBox` is the rule, pure, so it is a unit test: the box is as tall as the
+ * height the frame leaves it — under its controls row and, where the stripe is
+ * under the box, over the stripe row, gaps counted — unless the width beside a
+ * rail of `RAIL_MIN_CELLS` binds first, in which case it is as wide as that.
+ * `ChartFrame` measures the four inputs and writes the answer inline as two
+ * custom properties (px may not be written in a wide stylesheet block,
+ * `tests/styles/breakpoint.test.ts`).
+ */
+export interface BoxFit {
+  /** The frame's own box, CSS px. */
+  frameWidthPx: number;
+  frameHeightPx: number;
+  /** The rows the frame keeps above the drawing (its controls row) and, under it, the stripe row; each with the gap it costs. */
+  aboveHeightPx: number;
+  belowHeightPx: number;
+  /** The rail's minimum, in px, plus the column gap before it. */
+  besideWidthPx: number;
+  /** Width over height. */
+  aspect: number;
+}
+
+/** The rail's minimum, `ChartFrame.module.css` (D-313): what the playback row and the strip need to be read. */
+export const RAIL_MIN_CELLS = 44;
+
+/** The largest `aspect` box the frame leaves, height-bound or width-bound; never negative. */
+export function fitBox({ frameWidthPx, frameHeightPx, aboveHeightPx, belowHeightPx, besideWidthPx, aspect }: BoxFit): { widthPx: number; heightPx: number } {
+  const heightPx = Math.max(0, frameHeightPx - aboveHeightPx - belowHeightPx);
+  const widthPx = Math.max(0, frameWidthPx - besideWidthPx);
+  if (heightPx * aspect <= widthPx) return { widthPx: Math.floor(heightPx * aspect), heightPx: Math.floor(heightPx) };
+  return { widthPx: Math.floor(widthPx), heightPx: Math.floor(widthPx / aspect) };
+}
+
+/**
+ * FR-LIVE-7 as amended (v1.2.1, V12-14, D-319): the viewport width from which
+ * the wide live page is two columns — the box with the rail beside it. Below
+ * it, and above `WIDE_MIN_PX`, the page is one column: the box, the stripe and
+ * the legend stacked and centred at the box's width, the status strip and the
+ * actions on one line under them. The owner's number, 2026-09-08: under it the
+ * rail is the 44-cell minimum beside a box the height has already cut down,
+ * and the page reads better as one centred column. A px literal, like the
+ * other thresholds, read by `useMediaQuery` and never written in a stylesheet.
+ */
+export const LIVE_TWO_COLUMN_MIN_PX = 1660;
+export const LIVE_TWO_COLUMN_QUERY = `(min-width: ${String(LIVE_TWO_COLUMN_MIN_PX)}px)`;

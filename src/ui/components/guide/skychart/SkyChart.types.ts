@@ -102,6 +102,41 @@ export interface SkyChartProps {
    */
   legendLead?: (row: LegendRow) => ReactNode;
   /**
+   * FR-LIVE-7 as amended (v1.2) / D-312 (R61): the rest of the rail. On the
+   * wide live page the status strip, the stripe block, the playback row and
+   * the actions sit in the column beside the drawing, under the legend,
+   * instead of in rows beneath it: the box then keeps the page's whole height
+   * and is about as wide as it is tall, which is the shape the drawing has
+   * (F-59). The chart neither builds this nor reads it — it places it, because
+   * the frame owns that column (D-187). Absent everywhere else, where the page
+   * lays its own rows out under the box.
+   */
+  aside?: ReactNode;
+  /**
+   * FR-LIVE-7 and FR-TRAJ-4 as amended (v1.2.1) / D-315 (R61): the stripe
+   * block under the drawing, the box's width, on every wide live page — the
+   * owner's stripe under the dome (V12-12). The page hands it here instead of
+   * into `aside`; the frame places it in a row of its own under the box.
+   * Absent, there is no such row.
+   */
+  stripe?: ReactNode;
+  /**
+   * FR-LIVE-7 as amended (v1.2.1) / D-314 (R61): the box's aspect, width over
+   * height — the dome's `DOME_BOX_ASPECT`. Given, the frame cuts the drawing
+   * box to the largest rectangle of that shape the frame leaves it
+   * (`lib/layout.ts` `fitBox`) and stands the side column beside it; absent,
+   * the box is fluid — every row the page leaves, whatever its shape.
+   */
+  boxAspect?: number;
+  /**
+   * FR-LIVE-7 as amended (v1.2.1) / D-319 (R61): the one-column wide live page,
+   * below `LIVE_TWO_COLUMN_MIN_PX`. The frame stacks the drawing, the stripe
+   * and the legend, each centred at the box's width, instead of standing a
+   * rail beside the drawing; the page lays its own rows out under the frame.
+   * Absent, the frame is the two-column one where it has an `aside`.
+   */
+  stacked?: boolean;
+  /**
    * FR-LIVE-7 as amended (v1.1.1) / D-268, D-269 (R54): on the live page the
    * chart's own controls — the view toggle and its note — reach the view
    * already rendered, for the view to put first in `ChartFrame`'s controls

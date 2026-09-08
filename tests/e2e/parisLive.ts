@@ -17,8 +17,17 @@ const TICK_MS = 10_000;
 export const LIVE_VIEWPORTS = {
   1920: { width: 1920, height: 1080 },
   1280: { width: 1280, height: 800 },
-  /** A short 1280: the legend column is shorter than its list, so F-53's scroll is exercised. */
-  short: { width: 1280, height: 720 },
+  /**
+   * A short two-column page: the legend column is shorter than its list, so F-53's scroll is exercised.
+   * 1280 × 720 until R61 took the stripe block out of the rail (V12-12), which gave the legend the stripe's
+   * rows, and then made 1280 a one-column page (V12-14), where the legend is the compact four-row one under
+   * the drawing; 1660 is the first two-column width, 540 a laptop window with the browser's chrome above it.
+   */
+  short: { width: 1660, height: 540 },
+  /** R61 (F-59): the width the owner reported the blank third of the box at. */
+  2560: { width: 2560, height: 1440 },
+  /** R61 (D-314): step 4 of the ladder, the largest reference viewport. */
+  3840: { width: 3840, height: 2160 },
 } as const;
 
 export async function openParisLive(page: Page, width: keyof typeof LIVE_VIEWPORTS, theme: CaptureTheme): Promise<void> {

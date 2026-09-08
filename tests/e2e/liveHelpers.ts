@@ -217,8 +217,18 @@ export async function listSettled(page: Page): Promise<void> {
   // The stored list is on screen with nothing busy *before* the recompute starts — the elements
   // load first, then the worker — so "nothing busy" alone can return in that gap and the spec
   // then reads a list the first batch is about to replace. Wait for the job to show, then to end.
-  await page.locator('[aria-busy="true"]').first().waitFor({ state: 'attached', timeout: 30_000 });
+  //
+  // R61: tolerant of the job having come and gone between two polls, which on a loaded box it does
+  // (CI run 34183, three workers locally: `TimeoutError` here, or a spec reading a one-object list),
+  // and then held to the *end state* rather than to the gap: the recompute reproduces the seeded run
+  // from the same fixtures at the same instant, so the list is settled when the count is the seed's.
+  await page
+    .locator('[aria-busy="true"]')
+    .first()
+    .waitFor({ state: 'attached', timeout: 10_000 })
+    .catch(() => undefined);
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
+  await expect(page.locator('article[data-pass-id]')).toHaveCount(STORED_RUN.passes.length, { timeout: 60_000 });
 }
 
 /**

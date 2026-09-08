@@ -24,18 +24,20 @@
  * (hidden by `visibility`), which is what lets the same anchor assertions
  * hold for a view that shows a sixth of the sky.
  */
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../tests/support/catalogFixtures';
 import { FIXTURES_DIR } from '../../../../../tests/support/fixtures';
+import { stubMatchMedia } from '../../../../../tests/support/matchMedia';
 import { MOON_FIXTURE } from '../../../../../tests/support/moonFixtures';
 import { formatClock } from '../../../../lib/timeFormat';
 import { PassNumbers } from '../PassNumbers';
 import type { Observer } from '../../../../model';
 import { appStore } from '../../../../state';
+import { ChartFrame } from './ChartFrame';
 import { SKY_CHART_VIEWS, SkyChart } from './SkyChart';
 import type { SkyChartProps } from './SkyChart.types';
 
@@ -231,6 +233,171 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
     expect(beside.slice(lead)).toContain('grid-template-columns: minmax(0, 1fr);');
     // Outside the query the legend is the fourth row, under the status line, for every shell.
     expect(css).toMatch(/\.frame \{[^}]*'status'\n\s+'legend';/);
+  });
+
+  /**
+   * R61 (FR-LIVE-7 as amended v1.2, D-312, F-59): with an `aside` the column
+   * is the page's rail and not a legend's width. The placement is the frame's
+   * — the page hands it a node and never learns where it went — so both halves
+   * are asserted: the DOM the frame builds, and the width the stylesheet gives
+   * the column it builds it in.
+   */
+  it('widens the column to the page rail where it is given an aside, and puts the aside under the legend inside it', () => {
+    render(
+      <ChartFrame fill legend={<p>legend</p>} aside={<p>rail</p>}>
+        <div />
+      </ChartFrame>,
+    );
+    const slot = screen.getByTestId('chart-legend-slot');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
+    expect([...slot.children].map((el) => el.getAttribute('data-testid'))).toEqual(['chart-legend-scroll', 'chart-aside']);
+    expect(within(screen.getByTestId('chart-aside')).getByText('rail')).toBeInTheDocument();
+    // The legend keeps a box of its own inside the column, because that box is what scrolls: the rail must not.
+    expect(slot.firstElementChild).toContainElement(screen.getByText('legend'));
+    const beside = /@container \(min-width: 62ch\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(beside).toContain("grid-template-columns: auto minmax(0, 1fr) clamp(calc(44 * var(--cell)), 26%, calc(60 * var(--cell)));");
+    expect(beside).toMatch(/\[data-aside='true'\] \.legendScroll \{\n\s+flex: 0 1 auto;\n\s+min-height: 0;\n\s+overflow-y: auto;/);
+  });
+
+  /**
+   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315): with `boxAspect` the frame cuts the drawing box to the
+   * largest rectangle of that shape it leaves, measured on a `ResizeObserver` and written as two custom
+   * properties — no px may be written in the wide block — and a `stripe` is a row of the frame's own under
+   * the drawing. jsdom lays nothing out, so the measurement is stubbed — the rects, the gaps and the
+   * observer — and the arithmetic is asserted both ways round, height-bound and width-bound.
+   */
+  it('cuts the drawing to the given aspect from what it measures, and gives a stripe its own row under the drawing', () => {
+    const heights = new Map<string, DOMRect>();
+    const rect = (width: number, height: number): DOMRect => ({ width, height, x: 0, y: 0, top: 0, left: 0, right: width, bottom: height, toJSON: () => ({}) });
+    const realGetRect = HTMLElement.prototype.getBoundingClientRect;
+    const realGetComputedStyle = window.getComputedStyle;
+    // Wide: the box is cut only on the wide fill frame with an aside (compact and the guide keep their own boxes).
+    const media = stubMatchMedia(1920);
+    const instances: { trigger: () => void }[] = [];
+    const resizeObservers = () => instances;
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(private readonly callback: () => void) {
+          instances.push(this);
+        }
+        observe() {
+          /* the test triggers by hand */
+        }
+        disconnect() {
+          /* nothing to detach */
+        }
+        trigger() {
+          this.callback();
+        }
+      },
+    );
+    HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+      return heights.get(this.dataset['testid'] ?? this.className) ?? realGetRect.call(this);
+    };
+    window.getComputedStyle = ((el: Element) => ({ ...realGetComputedStyle(el), rowGap: '12px', columnGap: '29px' })) as typeof window.getComputedStyle;
+    try {
+      const { unmount } = render(
+        <ChartFrame fill legend={<p>legend</p>} aside={<p>rail</p>} stripe={<p>stripe</p>} boxAspect={2.4 / 1.7}>
+          <div />
+        </ChartFrame>,
+      );
+      const frame = screen.getByTestId('chart-frame');
+      // Before any measurement the properties are what the effect wrote from jsdom's zero rects: a 0 × 0 box.
+      expect(frame).toHaveAttribute('data-box', 'true');
+      expect(frame).toHaveAttribute('data-stripe', 'true');
+      expect([...frame.children].map((el) => el.getAttribute('data-testid'))).toEqual([null, null, 'chart-box', null, 'chart-stripe', 'chart-legend-slot']);
+      expect(within(screen.getByTestId('chart-stripe')).getByText('stripe')).toBeInTheDocument();
+      // Now the sizes: the frame 1700 × 1000; controls 48 tall; stripe 108 tall; the rail probe 422 wide.
+      heights.set('chart-frame', rect(1700, 1000));
+      heights.set('chart-stripe', rect(1103, 108));
+      heights.set(frame.children[0]?.className ?? '', rect(422, 0));
+      heights.set(frame.children[1]?.className ?? '', rect(1103, 48));
+      // Height-bound: 1000 − (48 + 12) − (108 + 12) = 820 tall, 1157 wide at 2.4 : 1.7; the width beside the rail (1700 − 451 = 1249) allows it.
+      // The observer is triggered by hand: every instance shares the class above, so the last constructed one is the frame's.
+      act(() => {
+        for (const instance of resizeObservers()) instance.trigger();
+      });
+      expect(frame.style.getPropertyValue('--chart-box-h')).toBe('820px');
+      expect(frame.style.getPropertyValue('--chart-box-w')).toBe(`${String(Math.floor((820 * 2.4) / 1.7))}px`);
+      // Width-bound: a frame 900 wide leaves 449 beside the rail, so the box is 449 × 318.
+      heights.set('chart-frame', rect(900, 1000));
+      act(() => {
+        for (const instance of resizeObservers()) instance.trigger();
+      });
+      expect(frame.style.getPropertyValue('--chart-box-w')).toBe('449px');
+      expect(frame.style.getPropertyValue('--chart-box-h')).toBe(`${String(Math.floor(449 / (2.4 / 1.7)))}px`);
+      unmount();
+      expect(frame.style.getPropertyValue('--chart-box-w')).toBe('');
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = realGetRect;
+      window.getComputedStyle = realGetComputedStyle;
+      vi.unstubAllGlobals();
+      media.restore();
+    }
+    const beside = /@container \(min-width: 62ch\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    // The two columns the drawing spans are the drawing's own width, the rail takes what is left up to its cap, and nothing stretches.
+    expect(beside).toMatch(/\[data-box='true'\] \{\n\s+grid-template-columns: auto auto minmax\(calc\(44 \* var\(--cell\)\), calc\(60 \* var\(--cell\)\)\);\n\s+grid-template-rows: auto auto;\n\s+justify-content: start;\n\s+align-content: start;/);
+    expect(beside).toMatch(/\[data-box='true'\] \.drawing \{\n\s+width: var\(--chart-box-w\);\n\s+height: var\(--chart-box-h\);/);
+    // …and the stripe row is the box's width by rule, so a stripe that measured a wider window cannot hold the track open.
+    expect(beside).toMatch(/\[data-aside='true'\]\[data-box='true'\] \.stripe \{\n\s+width: max\(var\(--chart-box-w\), calc\(44 \* var\(--cell\)\)\);/);
+    expect(beside).toMatch(/\[data-stripe='true'\] \{\n\s+grid-template-rows: auto auto auto;\n\s+grid-template-areas:\n\s+'controls status legend'\n\s+'drawing drawing legend'\n\s+'stripe stripe legend';/);
+    expect(css).toMatch(/\.stripe \{\n\s+grid-area: stripe;/);
+  });
+
+  /**
+   * R61 (FR-LIVE-7 as amended v1.2.1, D-319, D-320): `stacked` is the one-column wide live page — no rail, the
+   * drawing, the stripe and the legend under one another, the drawing centred at the box's width and the stripe
+   * and the legend the frame's whole width (V12-15), and the legend's height counted in the box's as the
+   * stripe's is. An aside wins over it: the rail is what the rail is for.
+   */
+  it('stacks the drawing, the stripe and the legend where it is stacked — the drawing centred at the box width, the stripe and the legend full width — and lets an aside win', () => {
+    const media = stubMatchMedia(1280);
+    try {
+      const { unmount } = render(
+        <ChartFrame fill legend={<p>legend</p>} stripe={<p>stripe</p>} boxAspect={1.2} stacked>
+          <div />
+        </ChartFrame>,
+      );
+      const frame = screen.getByTestId('chart-frame');
+      expect(frame).toHaveAttribute('data-stacked', 'true');
+      expect(frame).toHaveAttribute('data-box', 'true');
+      expect(frame).toHaveAttribute('data-aside', 'false');
+      // No rail probe: the box is cut from the frame's whole width.
+      expect([...frame.children].map((el) => el.getAttribute('data-testid'))).toEqual([null, 'chart-box', null, 'chart-stripe', 'chart-legend-slot']);
+      unmount();
+      render(
+        <ChartFrame fill legend={<p>legend</p>} aside={<p>rail</p>} stripe={<p>stripe</p>} boxAspect={1.2} stacked>
+          <div />
+        </ChartFrame>,
+      );
+      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'false');
+      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
+    } finally {
+      media.restore();
+    }
+    const beside = /@container \(min-width: 62ch\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(beside).toMatch(/\[data-stacked='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\);\n\s+grid-template-rows: auto auto auto auto;\n\s+grid-template-areas:\n\s+'controls status'\n\s+'drawing drawing'\n\s+'stripe stripe'\n\s+'legend legend';/);
+    expect(beside).toMatch(/\[data-stacked='true'\]\[data-box='true'\] \.drawing \{\n\s+width: var\(--chart-box-w\);\n\s+height: var\(--chart-box-h\);\n\s+margin: 0 auto;/);
+    // D-320 (V12-15): the stripe and the legend both span the frame — the page's whole width — under a centred drawing.
+    expect(beside).toMatch(/\[data-stacked='true'\]\[data-box='true'\] \.stripe \{\n\s+width: 100%;\n\s+\}/);
+    expect(beside).toMatch(/\[data-stacked='true'\] \.legend \{\n\s+width: 100%;\n\s+align-self: start;\n\s+max-height: calc\(4 \* var\(--row\)\);/);
+  });
+
+  it('leaves the frame and its column alone with no aside', () => {
+    render(
+      <ChartFrame fill legend={<p>legend</p>}>
+        <div />
+      </ChartFrame>,
+    );
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'false');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'false');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
+    expect(screen.getByTestId('chart-frame').style.getPropertyValue('--chart-box-w')).toBe('');
+    expect(screen.getByTestId('chart-frame').children).toHaveLength(4);
+    expect(screen.queryByTestId('chart-aside')).toBeNull();
+    expect(screen.queryByTestId('chart-stripe')).toBeNull();
+    expect(screen.getByTestId('chart-legend-slot').firstElementChild).toBe(screen.getByText('legend'));
   });
 
   it('floors the live drawing at the frame width in portrait only, behind the page switch, and bounds the legend under a live drawing to four rows', () => {

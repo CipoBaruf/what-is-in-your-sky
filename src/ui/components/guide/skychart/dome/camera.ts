@@ -68,7 +68,53 @@ export const DRAG_PX_PER_DEG = 4;
  * drawing sized for more than the grid holds.
  */
 export const ZOOM_WIDTH_DIVISOR = 2.4;
-export const ZOOM_HEIGHT_DIVISOR = 1.7;
+/**
+ * R61 (FR-DOME-1 as amended v1.2.1, D-317, F-61): the height divisor is derived
+ * from what the scene draws, not from the ring alone. The drawing's tallest
+ * thing is not the horizon ring or the zenith: a bowl seen from the default
+ * 45° tilt has a *silhouette* — the point at 45° of altitude on the far side,
+ * where the meridians and the 30° and 60° rings turn over — and it projects a
+ * full `DOME_RADIUS` above the observer, against the far horizon's
+ * 1.08 cos 45° = 0.76. Below the observer the lowest thing is the ground disc's
+ * near edge at `GROUND_RADIUS` cos 45° = 0.78. So the drawing is 1.00 + 0.78 =
+ * 1.78 units tall, and it is not centred on the observer: its middle is 0.11
+ * units above. The old divisor, 1.7, was 1.53 / 0.9 — the ring's own height
+ * with the label margin — so on every height-bound box (every desktop live
+ * page since R45) the raster cut the top 0.24 units of the bowl off: the
+ * outline and the far tops of the rings, drawn as flat fragments against the
+ * box's top edge. 2.0 is 1.78 / 0.9, the same 10 % margin the width has, and
+ * `centerShiftUnits` moves the scene down by the 0.11 so the extent, not the
+ * observer, sits in the middle of the box.
+ */
+/** The wireframe's sphere: the horizon ring, the altitude rings, the meridians and the arcs are drawn at this radius (`domeGeometry`). */
+export const DOME_RADIUS = 1;
+export const EXTENT_TOP_UNITS = DOME_RADIUS;
+export const EXTENT_BOTTOM_UNITS = GROUND_RADIUS * Math.cos((DEFAULT_TILT_DEG * Math.PI) / 180);
+export const DRAWING_HEIGHT_UNITS = EXTENT_TOP_UNITS + EXTENT_BOTTOM_UNITS;
+export const ZOOM_HEIGHT_DIVISOR = 2.0;
+/** R61 (D-314): the box shape at which both divisors bind at once — the wide live page's box is cut to it. */
+export const DOME_BOX_ASPECT = ZOOM_WIDTH_DIVISOR / ZOOM_HEIGHT_DIVISOR;
+
+/**
+ * D-317: how far above the observer the drawing's middle is at a tilt, in world
+ * units: half of the silhouette's height over the ground disc's near edge. The
+ * silhouette is at the sphere's radius whatever the tilt; the near edge falls
+ * with the cosine, so a steeper tilt shifts more.
+ */
+export function centerShiftUnits(tiltDeg: number): number {
+  return (DOME_RADIUS - GROUND_RADIUS * Math.cos((tiltDeg * Math.PI) / 180)) / 2;
+}
+
+/**
+ * D-317: glyphcss's `center` for a layer — where the world origin lands, in
+ * normalized grid coordinates (`[0.5, 0.5]` is the middle). The origin goes
+ * *down* by the shift so the drawing's middle comes up to the grid's; both
+ * layers take the same screen offset, each through its own grid.
+ */
+export function layerCenter(layout: Pick<DomeLayout, 'zoom' | 'rows' | 'cellHeightPx'>, tiltDeg: number): [number, number] {
+  const rasterHeightPx = layout.rows * layout.cellHeightPx;
+  return [0.5, rasterHeightPx > 0 ? 0.5 + (centerShiftUnits(tiltDeg) * layout.zoom) / rasterHeightPx : 0.5];
+}
 export const REFERENCE_WIDTH_PX = 390;
 /** FR-DOME-1's number: the drawing's extent, labels included, against the shorter side of its box. */
 export const MIN_EXTENT_RATIO = 0.9;
@@ -93,7 +139,8 @@ export function zoomFor(widthPx: number, heightPx: number): number {
  * the tilt every other divisor here is derived at.
  */
 export const INK_WIDTH_UNITS = 2 * GROUND_RADIUS;
-export const INK_HEIGHT_UNITS = 2 * GROUND_RADIUS * Math.cos((DEFAULT_TILT_DEG * Math.PI) / 180);
+/** D-317: the bowl's silhouette over the ground's near edge, centred by `centerShiftUnits` — what the rows must hold. */
+export const INK_HEIGHT_UNITS = DRAWING_HEIGHT_UNITS;
 /**
  * The blank columns the clamp keeps either side of the ink — `dome-fit.spec.ts`'s
  * rule. One: on the base layer's coarse grid (half the line layer's columns, so
@@ -153,8 +200,12 @@ export const NO_CELL: CellSize = { widthPx: 0, heightPx: 0 };
 
 /**
  * The drawing's extent on screen in CSS px at a zoom and a tilt: the bounding
- * box of the compass ring (the outermost anchors, `COMPASS_LABEL_RADIUS`) and
- * the zenith, grown by half a two-letter compass name on each side. What
+ * box of the compass ring at the names' radius (`COMPASS_LABEL_RADIUS`), of the
+ * whole bowl at `DOME_RADIUS` (sampled every 5° in azimuth and altitude, so
+ * the silhouette is in it — D-317, F-61; before R61 only the horizon ring and
+ * the zenith were, which missed the bowl's outline above the far horizon) and
+ * of the ground disc at `GROUND_RADIUS`, grown by half a two-letter compass
+ * name on each side. What
  * FR-DOME-1's 90 % rule is measured against. R54 (F-51): grown by one cell
  * too when the raster's cell is given — a label lives in a one-cell hotspot
  * whose corner is the projected point, so on screen its centre is up to half
@@ -173,10 +224,14 @@ export function drawingExtent(zoom: number, tiltDeg: number, rotYDeg = 0, cell: 
     maxY = Math.max(maxY, p.y);
   };
   for (let az = 0; az < 360; az += 5) {
-    const v = toDome(az, 0);
-    take([v.x * COMPASS_LABEL_RADIUS, v.y * COMPASS_LABEL_RADIUS, v.z * COMPASS_LABEL_RADIUS]);
+    const h = toDome(az, 0);
+    take([h.x * COMPASS_LABEL_RADIUS, h.y * COMPASS_LABEL_RADIUS, h.z * COMPASS_LABEL_RADIUS]);
+    take([h.x * GROUND_RADIUS, h.y * GROUND_RADIUS, h.z * GROUND_RADIUS]);
+    for (let alt = 5; alt <= 90; alt += 5) {
+      const v = toDome(az, alt);
+      take([v.x * DOME_RADIUS, v.y * DOME_RADIUS, v.z * DOME_RADIUS]);
+    }
   }
-  take([0, 0, COMPASS_LABEL_RADIUS]);
   const label = LABEL_FONT_PX * LABEL_ADVANCE;
   return { width: (maxX - minX) * zoom + 2 * label + cell.widthPx, height: (maxY - minY) * zoom + LABEL_FONT_PX + cell.heightPx };
 }

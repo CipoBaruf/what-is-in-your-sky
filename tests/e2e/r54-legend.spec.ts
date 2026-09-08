@@ -3,7 +3,8 @@
  * inside the box, its last row is reached by pointer, and every row is a
  * keyboard stop — focus highlights a row without promoting it, so Tab walks
  * the list in order. On the four-pass Paris instant (`parisLive.ts`), at a
- * 1280 × 720 viewport where the column is shorter than its list.
+ * short two-column viewport (`LIVE_VIEWPORTS.short`) where the rail is shorter
+ * than its list.
  */
 import { expect, test } from '@playwright/test';
 import { openParisLive } from './parisLive';
@@ -11,17 +12,24 @@ import { openParisLive } from './parisLive';
 test('the legend beside the drawing scrolls inside the box; every row is a keyboard stop and the last is reached by pointer (F-53, D-271)', async ({ page }) => {
   await openParisLive(page, 'short', 'dark');
   const slot = page.getByTestId('chart-legend-slot');
+  /*
+   * R61 (D-312): the column beside the drawing is the page's rail now, and the legend has a box of its own
+   * inside it — that box is what scrolls, so that a list longer than the column cannot push the playback
+   * controls and the share action off the bottom of it. F-53's behaviour is unchanged and so is this test;
+   * only which element carries the scroll has moved, and the test asks the frame which one that is.
+   */
+  const scroller = (await page.getByTestId('chart-legend-scroll').count()) > 0 ? page.getByTestId('chart-legend-scroll') : slot;
   const rows = slot.locator('button[data-pass-id]');
   const ids = await rows.evaluateAll((buttons) => buttons.map((button) => button.getAttribute('data-pass-id')));
   expect(ids.length).toBeGreaterThan(1);
-  const metrics = await slot.evaluate((el) => ({ overflow: getComputedStyle(el).overflowY, client: el.clientHeight, scroll: el.scrollHeight }));
+  const metrics = await scroller.evaluate((el) => ({ overflow: getComputedStyle(el).overflowY, client: el.clientHeight, scroll: el.scrollHeight }));
   expect(metrics.overflow).toBe('auto');
   expect(metrics.scroll).toBeGreaterThan(metrics.client);
   // By pointer: the column scrolls to its end and the last row is inside the box, where a click pins it.
   const lastId = ids[ids.length - 1];
   const last = slot.locator(`button[data-pass-id="${String(lastId)}"]`);
-  await slot.evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
-  const slotBox = await slot.boundingBox();
+  await scroller.evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
+  const slotBox = await scroller.boundingBox();
   const lastBox = await last.boundingBox();
   if (!slotBox || !lastBox) throw new Error('no legend');
   expect(lastBox.y).toBeGreaterThanOrEqual(slotBox.y - 1);
