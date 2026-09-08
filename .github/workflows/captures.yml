@@ -10,6 +10,9 @@ name: Captures
 # and the legend, so the run is about half as long again — call it 13 min on a
 # two-core runner.
 #
+# R60: the set is 128 files since v1.2 topped it up with the window's ground
+# states, the live page following and R61's wide sizes — call it 18 min.
+#
 # This job commits nothing. It uploads the set as an artefact and fails when a
 # capture is missing — the committed files under `docs/screenshots/` are cleared
 # before the run, so the check is about what this run produced and not about
@@ -24,8 +27,8 @@ on:
 jobs:
   captures:
     runs-on: ubuntu-latest
-    # Twice the expected 13 min (R53): this job is off the PR path, so its ceiling is a stuck run, not a budget.
-    timeout-minutes: 30
+    # Twice the expected 18 min (R60): this job is off the PR path, so its ceiling is a stuck run, not a budget.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
