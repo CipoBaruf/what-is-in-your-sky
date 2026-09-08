@@ -152,20 +152,23 @@ export function SkyChart(props: SkyChartProps) {
   const windowLost = useAppStore((s) => s.windowLost);
   // D-350: the tap that chooses the window — the permission inside the gesture, then the reading that decides.
   const entry = useSkyScreen();
-  const screenOpen = useAppStore((s) => s.skyScreen);
   /*
-   * FR-FSC-2 (D-351): the screen's `×` gives focus back to the option that opened it. The control is on the
-   * page under the layer and this chart is what renders it, so the effect belongs here rather than in either
-   * page; a screen's own chart never runs it, having no control at all. The group is queried rather than
-   * ref-forwarded because the option is one of three the toggle builds from a list (`data-option`), and the
-   * figure is what holds it wherever the frame has put the control — the figure's own row, or the frame's slot.
+   * FR-FSC-2 (D-351): the screen's `×` gives focus back to the option that opened it. The page's chart is
+   * unmounted while the layer is up and is a new element when it returns, so what says "the screen just
+   * closed" is the store's one-shot flag and not a ref of this component's. The option is queried inside the
+   * figure — wherever the frame has put the control, its own row or the frame's slot — because it is one of
+   * three the toggle builds from a list (`data-option`); where the phone has just lost the window (FR-WIN-4)
+   * the first option takes it instead, so focus never falls to the body.
    */
+  const refocus = useAppStore((s) => s.refocusWindow);
+  const windowRefocused = useAppStore((s) => s.windowRefocused);
   const figureRef = useRef<HTMLElement>(null);
-  const wasOpen = useRef(screenOpen);
   useEffect(() => {
-    if (!props.screen && wasOpen.current && !screenOpen) figureRef.current?.querySelector<HTMLElement>('[data-option="window"]')?.focus();
-    wasOpen.current = screenOpen;
-  }, [screenOpen, props.screen]);
+    if (props.screen === true || !refocus) return;
+    const group = figureRef.current;
+    (group?.querySelector<HTMLElement>('[data-option="window"]') ?? group?.querySelector<HTMLElement>('[data-option]'))?.focus();
+    windowRefocused();
+  }, [refocus, props.screen, windowRefocused]);
   const lost = useMemo<ReadonlySet<ChartView>>(() => (windowLost ? new Set<ChartView>(['window']) : new Set<ChartView>()), [windowLost]);
   // FR-FSC-1 / D-322 (R62): asked for a screen the chart is the window and nothing else — `viewFor` is not consulted,
   // so the saved preference is neither read for the view nor written on the way (FR-WIN-5 as amended).

@@ -276,35 +276,6 @@
   transform: translateY(-50%);
 }
 
-/* FR-WIN-5: the one control in the window's place, over the placeholder picture, bracketed like every action. */
-.gate {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--bg) 60%, transparent);
-}
-
-.gateButton {
-  border: 0;
-  background: none;
-  padding: var(--row) var(--cell);
-  min-height: var(--tap);
-  color: var(--accent);
-  font: inherit;
-}
-
-.gateButton::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.gateButton::after {
-  content: ' ]';
-  color: var(--fg-dim);
-}
-
 .hint {
   margin: 0;
   color: var(--fg-dim);

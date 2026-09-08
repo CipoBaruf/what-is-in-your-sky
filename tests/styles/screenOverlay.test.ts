@@ -5,7 +5,7 @@
  *
  * The overlays are not a token pair, though: they are a *composite*. The
  * readout and the legend strip sit on `color-mix(in srgb, var(--bg-raised)
- * var(--follow-overlay-alpha), transparent)` over the drawing, so what their
+ * var(--screen-overlay-alpha), transparent)` over the drawing, so what their
  * text really lands on is that much raised surface over whatever the drawing
  * has there. The worst ground is the darkest of the chart's two base surfaces,
  * since a lighter one only lifts the composite away from the text; this test
@@ -37,8 +37,8 @@ const token = (theme: Theme, name: string): string => {
  * — which reads `#rrggbb` declarations — does not see it.
  */
 const FOLLOW_OVERLAY_ALPHA = (() => {
-  const match = /--follow-overlay-alpha:\s*(\d+(?:\.\d+)?)%\s*;/.exec(css);
-  if (!match?.[1]) throw new Error(`no --follow-overlay-alpha in ${TOKENS_PATH}`);
+  const match = /--screen-overlay-alpha:\s*(\d+(?:\.\d+)?)%\s*;/.exec(css);
+  if (!match?.[1]) throw new Error(`no --screen-overlay-alpha in ${TOKENS_PATH}`);
   return Number(match[1]) / 100;
 })();
 
@@ -85,9 +85,9 @@ describe.each(THEMES)('the follow overlay (%s)', (theme) => {
 describe('the follow overlay token', () => {
   it('is one alpha for both themes, mixed with the surface each theme already sets', () => {
     // Not a colour: it has no per-theme value, and the theme tests' pair table does not see it.
-    expect(byTheme.get('dark')?.has('follow-overlay-alpha')).toBe(false);
-    expect(css).toContain('--follow-overlay-alpha: 85%;');
+    expect(byTheme.get('dark')?.has('screen-overlay-alpha')).toBe(false);
+    expect(css).toContain('--screen-overlay-alpha: 85%;');
     const frame = readFileSync('src/ui/components/guide/skychart/ChartFrame.module.css', 'utf8');
-    expect(frame).toContain('--follow-overlay: color-mix(in srgb, var(--bg-raised) var(--follow-overlay-alpha), transparent);');
+    expect(frame).toContain('--screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);');
   });
 });

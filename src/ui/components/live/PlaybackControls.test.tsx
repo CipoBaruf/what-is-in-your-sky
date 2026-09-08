@@ -104,7 +104,8 @@ describe('<PlaybackControls>', () => {
       const speedRow = speeds.reduce((sum, label) => sum + [...label].length, 0) + 2 + (speeds.length - 1);
       const playback = cells([`[ ${m.playShort} ]`, `[ ${m.now} ]`]) + 1 + speedRow;
       const pausing = cells([`[ ${m.pauseShort} ]`, `[ ${m.now} ]`]) + 1 + speedRow;
-      const actions = cells([`[ ] ${m.hiddenShort}`, `[ ] ${m.followShort}`, `[ ${m.shareShort} ]`]);
+      // R66 (V13-6): the follow control is gone, so the actions row is the hidden-objects toggle and the share action.
+      const actions = cells([`[ ] ${m.hiddenShort}`, `[ ${m.shareShort} ]`]);
       expect(playback).toBeLessThanOrEqual(36);
       expect(pausing).toBeLessThanOrEqual(36);
       expect(actions).toBeLessThanOrEqual(36);

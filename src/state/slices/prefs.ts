@@ -91,6 +91,15 @@ export interface PrefsSlice {
   /** FR-WIN-4: a phone that gives a relative heading only is not offered the window again this session. */
   windowLost: boolean;
   /**
+   * FR-FSC-2 (D-351): the screen has just closed, so the view control's window
+   * option takes focus back. A one-shot flag rather than an effect inside the
+   * chart, because the page's chart is *unmounted* while the layer is up — it
+   * is a new element when it returns and has no memory of having opened
+   * anything — and `SkyChart` clears the flag when it has focused it.
+   */
+  refocusWindow: boolean;
+  windowRefocused: () => void;
+  /**
    * R66 (FR-WIN-4, FR-FOL-2, D-352; replaces R58's `dropChartView`): the
    * window, once mounted, says it cannot run here. It closes the screen, shows
    * the note beside the control on the page underneath, and — for a phone with
@@ -195,18 +204,22 @@ export const createPrefsSlice =
       },
       skyScreen: false,
       openSkyScreen: () => {
-        set({ skyScreen: true, windowNote: null });
+        set({ skyScreen: true, windowNote: null, refocusWindow: false });
       },
       closeSkyScreen: () => {
-        set({ skyScreen: false });
+        set({ skyScreen: false, refocusWindow: true });
       },
       windowNote: null,
       setWindowNote: (windowNote) => {
         set({ windowNote });
       },
       windowLost: false,
+      refocusWindow: false,
+      windowRefocused: () => {
+        set({ refocusWindow: false });
+      },
       dropWindowView: (reason) => {
-        set((state) => ({ skyScreen: false, windowNote: reason, windowLost: state.windowLost || reason === 'relative' }));
+        set((state) => ({ skyScreen: false, windowNote: reason, windowLost: state.windowLost || reason === 'relative', refocusWindow: state.skyScreen }));
       },
       chartOrientation: deps.prefs.read().chartOrientation ?? DEFAULT_CHART_ORIENTATION,
       setChartOrientation: (chartOrientation) => {

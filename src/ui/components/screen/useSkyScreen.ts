@@ -49,6 +49,7 @@ export function useSkyScreen(): SkyScreenEntry {
   const lost = useAppStore((s) => s.windowLost);
   const openSkyScreen = useAppStore((s) => s.openSkyScreen);
   const setWindowNote = useAppStore((s) => s.setWindowNote);
+  const dropWindowView = useAppStore((s) => s.dropWindowView);
   const [armed, setArmed] = useState(false);
 
   useEffect(() => {
@@ -56,7 +57,8 @@ export function useSkyScreen(): SkyScreenEntry {
     const onReading = (event: Event): void => {
       setArmed(false);
       if (deviceHeading(readingFrom(event as DeviceOrientationEvent)) === null) {
-        setWindowNote('relative');
+        // FR-WIN-4: no north on this phone, and none on the next tap either — the note, and the option goes for the session.
+        dropWindowView('relative');
         return;
       }
       openSkyScreen();
@@ -66,7 +68,7 @@ export function useSkyScreen(): SkyScreenEntry {
     return () => {
       window.removeEventListener(name, onReading);
     };
-  }, [armed, openSkyScreen, setWindowNote]);
+  }, [armed, openSkyScreen, dropWindowView]);
 
   const open = useCallback(() => {
     // The note belongs to the answer before this tap, not to the reading this one is waiting for.
@@ -78,9 +80,10 @@ export function useSkyScreen(): SkyScreenEntry {
     // iOS: inside the click, so the gesture carries. The answer arrives later; a refusal shows the note.
     void requestOrientationAccess().then((answer) => {
       if (answer === 'granted') setArmed(true);
-      else setWindowNote('denied');
+      // FR-FOL-2: refused, and the option stays — the next tap asks again.
+      else dropWindowView('denied');
     });
-  }, [setWindowNote]);
+  }, [setWindowNote, dropWindowView]);
 
   return { available: present && !lost, open, armed };
 }

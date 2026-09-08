@@ -100,48 +100,64 @@ describe('prefs slice', () => {
     expect(stored(storage)).toEqual({ observer: neuquen, sort: 'best', chartView: 'dome', chartOrientation: 'looking-up' });
   });
 
-  /** R58 (D-277, FR-FOL-1, FR-WIN-5 as amended): the follow control's view is an override, never a written preference. */
-  it('resolves chartView as the override over the saved view, never writes the override, and setChartView clears it', () => {
+  /**
+   * R66 (FR-WIN-5 as amended v1.3.1, V13-8, D-352): the window is a mode, not a
+   * saved view. R58's override is gone with the control that set it; what is
+   * left is one written preference that can only be the dome or the polar
+   * chart, and a session flag for the screen.
+   */
+  it('keeps one written view preference, and a window stored by an older build reads as the dome and is rewritten', () => {
     const storage = memoryStorage();
     storage.map.set(PREFS_KEY, JSON.stringify({ chartView: 'polar' }));
     const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
-    expect(store.getState()).toMatchObject({ chartView: 'polar', savedChartView: 'polar', viewOverride: null });
+    expect(store.getState().chartView).toBe('polar');
 
-    store.getState().setViewOverride('window');
-    expect(store.getState()).toMatchObject({ chartView: 'window', savedChartView: 'polar', viewOverride: 'window' });
-    expect(stored(storage)).toEqual({ chartView: 'polar' }); // the override never reaches storage
-
-    // A view picked by hand while following ends the override: setChartView writes through and chartView is what it wrote.
     store.getState().setChartView('dome');
-    expect(store.getState()).toMatchObject({ chartView: 'dome', savedChartView: 'dome', viewOverride: null });
+    expect(store.getState().chartView).toBe('dome');
     expect(stored(storage)).toEqual({ chartView: 'dome' });
 
-    store.getState().setViewOverride(null);
-    expect(store.getState()).toMatchObject({ chartView: 'dome', savedChartView: 'dome', viewOverride: null });
+    // The migration: every device that chose the window before v1.3.1 has it under the key.
+    const old = memoryStorage();
+    old.map.set(PREFS_KEY, JSON.stringify({ chartView: 'window', sort: 'best' }));
+    const migrated = createAppStore({ now: () => NOW, prefs: createLocalPrefs(old) });
+    expect(migrated.getState().chartView).toBe('dome');
+    expect(stored(old)).toEqual({ chartView: 'dome', sort: 'best' });
   });
 
   /**
-   * R58 review (D-277, FR-WIN-5 as amended): a view that reports itself
-   * unavailable — the orientation permission refused — stops being the view
-   * and writes nothing. Through `setChartView` it saved the fallback, so a
-   * refusal inside a followed window overwrote the view the reader had picked.
+   * R66 (FR-FSC-1, FR-FSC-2, FR-WIN-4, FR-FOL-2; D-350, D-352): the screen is a
+   * session flag beside the preference — opening and closing it write nothing —
+   * and a window that cannot run here closes it, leaves the note beside the
+   * view control and, for a phone with no compass heading, takes the option off
+   * the control for the session.
    */
-  it('drops a view that cannot run here without writing the preference, whether it was the override or the choice', () => {
+  it('opens and closes the sky screen without writing, and a failed window closes it with a note', () => {
     const storage = memoryStorage();
     storage.map.set(PREFS_KEY, JSON.stringify({ chartView: 'polar' }));
     const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(store.getState()).toMatchObject({ skyScreen: false, windowNote: null, windowLost: false });
 
-    // Followed into the window (R59) and the orientation refused: back to the polar chart the reader chose, nothing written.
-    store.getState().setViewOverride('window');
-    store.getState().dropChartView('window');
-    expect(store.getState()).toMatchObject({ chartView: 'polar', savedChartView: 'polar', viewOverride: null });
+    store.getState().openSkyScreen();
+    expect(store.getState()).toMatchObject({ skyScreen: true, chartView: 'polar' });
     expect(stored(storage)).toEqual({ chartView: 'polar' });
 
-    // The window is the saved view on this phone and it is refused: the dome is shown, and the preference is still the reader's.
-    store.getState().setChartView('window');
-    store.getState().dropChartView('window');
-    expect(store.getState()).toMatchObject({ chartView: 'dome', savedChartView: 'window', viewOverride: 'dome' });
-    expect(stored(storage)).toEqual({ chartView: 'window' });
+    store.getState().closeSkyScreen();
+    expect(store.getState()).toMatchObject({ skyScreen: false, chartView: 'polar' });
+    expect(stored(storage)).toEqual({ chartView: 'polar' });
+
+    // Refused: the screen closes, the note stands, the option stays for another try.
+    store.getState().openSkyScreen();
+    store.getState().dropWindowView('denied');
+    expect(store.getState()).toMatchObject({ skyScreen: false, windowNote: 'denied', windowLost: false, chartView: 'polar' });
+
+    // No north: the option is gone for the session, and the next choice clears the note.
+    store.getState().openSkyScreen();
+    expect(store.getState().windowNote).toBeNull();
+    store.getState().dropWindowView('relative');
+    expect(store.getState()).toMatchObject({ skyScreen: false, windowNote: 'relative', windowLost: true });
+    store.getState().setChartView('dome');
+    expect(store.getState()).toMatchObject({ windowNote: null, windowLost: true });
+    expect(stored(storage)).toEqual({ chartView: 'dome' });
   });
 
   it('resolves the language from the browser until one is saved, then keeps the saved one (R17, FR-I18N-1)', () => {
