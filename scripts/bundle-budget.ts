@@ -79,6 +79,28 @@ export interface Budget {
  * room every other row has, and the next six kilobytes are a `::warning::`
  * instead of silence.
  *
+ * R60 re-set them the same way on the 1.2.0 build (SPEC §9 Phase 2c, D-307).
+ * `SkyDome-*.js` is the one that moves, and it moves *down*: R57's fit rule
+ * (D-279) trims the raster back to a size the grid can hold rather than
+ * running it coarser, and R61's centring (D-317) samples the silhouette
+ * instead of the ring, so the chart chunk shed 2.9 KB it had carried since
+ * R53 (97.1 → 94.2) and its budget follows to 105:
+ *
+ * | chunk          | file                  | measured | budget | was | ceiling |
+ * |----------------|-----------------------|---------:|-------:|----:|--------:|
+ * | main           | `index-*.js`          |    136.3 |    150 | 150 |     170 |
+ * | chart          | `SkyDome-*.js`        |     94.2 |    105 | 110 |     110 |
+ * | worker         | `passes.worker-*`     |     36.1 |     40 |  40 |     130 |
+ * | astronomy      | `skyBodies-*.js`      |     22.1 |     25 |  25 |      30 |
+ * | live           | `Live-*.js`           |      8.0 |     10 |  10 |      40 |
+ * | declination    | `useDeclination-*.js` |      6.1 |     10 |  10 |       — |
+ * | window         | `SkyWindow-*.js`      |      5.9 |     10 |  10 |       — |
+ * | service worker | `workbox-*.js`        |      5.0 |     10 |  10 |      15 |
+ *
+ * `live` and `window` measure a little higher than the 1.1.0 build (R59's
+ * follow control and R56's ground state on one, nothing on the other's own
+ * code) but neither crosses a 5 KB line, so both budgets hold at the floor.
+ *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
  *
@@ -126,7 +148,7 @@ export interface Budget {
  */
 export const BUDGETS: readonly Budget[] = [
   { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 150 },
-  { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 110 },
+  { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 105 }, // R60: 94.2 measured, down from 97.1 (D-307)
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 40 },
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10 },
   { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 25 },
