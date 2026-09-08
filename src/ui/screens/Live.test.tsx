@@ -24,6 +24,7 @@ import type { ChartView, Observer, Pass } from '../../model';
 import type { NowItem, NowState } from '../../model';
 import { appStore, setLiveNowClient, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
+import { stubMatchMedia, type MatchMediaStub } from '../../../tests/support/matchMedia';
 import { MOON_FIXTURE } from '../../../tests/support/moonFixtures';
 import { LIVE_WINDOW_MS, LivePage, livePasses, TICK_MS, visibleCount } from './Live';
 
@@ -108,7 +109,11 @@ describe('<LivePage>', () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout', 'Date'] });
     vi.setSystemTime(T);
   };
+  /** R61 (D-314): the wide tests stub `matchMedia` with a size, since the dome ladder asks the height as well as the width. */
+  let media: MatchMediaStub | null = null;
   afterEach(() => {
+    media?.restore();
+    media = null;
     vi.useRealTimers();
     vi.unstubAllGlobals();
     setLiveNowClient(null);
@@ -232,7 +237,7 @@ describe('<LivePage>', () => {
     // R48 (FR-LIVE-7 as amended): no "drag the dome" hint on this page, whichever view.
     expect(screen.queryByText(en.chart.domeHint)).toBeNull();
     unmount();
-    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener: () => undefined, removeEventListener: () => undefined }));
+    media = stubMatchMedia(1280, 800);
     render(<LivePage link={null} onLeave={() => undefined} />);
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
     expect(screen.getByRole('group', { name: 'Language' })).toBeInTheDocument();
@@ -254,15 +259,58 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).toBeNull();
     expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
     unmount();
-    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener: () => undefined, removeEventListener: () => undefined }));
+    media = stubMatchMedia(1280, 800);
     render(<LivePage link={null} onLeave={() => undefined} />);
     expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).not.toBeNull();
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
-    // The rail is 26 % of the frame between 44 and 60 cells, so its share falls as the page grows (D-313); the page's third row goes with the rows that moved.
+    // The fluid rail is 26 % of the frame between 44 and 60 cells, so its share falls as the page grows (D-313); the page's third row goes with the rows that moved.
     expect(readFileSync('src/ui/components/guide/skychart/ChartFrame.module.css', 'utf8')).toMatch(
       /\[data-aside='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\) clamp\(calc\(44 \* var\(--cell\)\), 26%, calc\(60 \* var\(--cell\)\)\);/,
     );
     expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\] \{\n\s+grid-template-areas:\n\s+'top'\n\s+'dome';/);
+    // R61 (D-314): 1280 × 800 is step 1 of the ladder — the box is 768 × 544 and the stripe is still in the rail.
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-dome-step', '1');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
+    expect(screen.getByTestId('chart-frame').style.getPropertyValue('--chart-box-w')).toBe('768px');
+    expect(screen.getByTestId('chart-frame').style.getPropertyValue('--chart-box-h')).toBe('544px');
+    expect(screen.getByTestId('stripe-block').closest('[data-testid="chart-aside"]')).not.toBeNull();
+  });
+
+  /**
+   * R61 (FR-LIVE-7 and FR-TRAJ-4 as amended v1.2.1, D-314, D-315): from step 2 of the ladder — 1920 × 1080 is
+   * its reference — the stripe block leaves the rail for the frame's row under the box, and the box is the
+   * step's size. Compact ignores the ladder: a phone never has a fixed box. The step follows the viewport
+   * both ways, so a window as wide as step 2 but too short for it drops to step 1 rather than clip.
+   */
+  it('puts the stripe block under the box from step 2 of the ladder, with the box at the step\'s size, and drops a step when the window is too short', () => {
+    withSky();
+    media = stubMatchMedia(1920, 1080);
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-dome-step', '2');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
+    expect(screen.getByTestId('chart-frame').style.getPropertyValue('--chart-box-w')).toBe('1176px');
+    expect(screen.getByTestId('chart-frame').style.getPropertyValue('--chart-box-h')).toBe('833px');
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
+    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'playback-row', 'live-actions']);
+    // Too short for step 2: step 1, and the stripe is back in the rail, the same element.
+    act(() => {
+      media?.setSize(1920, 900);
+    });
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-dome-step', '1');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
+    expect(screen.getByTestId('stripe-block').closest('[data-testid="chart-aside"]')).not.toBeNull();
+    // Step 4 at the largest reference, and none at all on compact whatever the height.
+    act(() => {
+      media?.setSize(3840, 2160);
+    });
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-dome-step', '4');
+    expect(screen.getByTestId('chart-frame').style.getPropertyValue('--chart-box-w')).toBe('2688px');
+    act(() => {
+      media?.setSize(390, 3000);
+    });
+    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-dome-step', '0');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'false');
   });
 
   /** R54 (FR-LIVE-7 as amended v1.1.1, FR-TRAJ-5, D-268): the wide rows, and the stepping row only with touch. */
@@ -275,7 +323,7 @@ describe('<LivePage>', () => {
     expect(within(screen.getByTestId('playback-row')).queryByTestId('live-hidden-toggle')).toBeNull();
     expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'time-stripe']);
     unmount();
-    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener: () => undefined, removeEventListener: () => undefined }));
+    media = stubMatchMedia(1280, 800);
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 1 });
     render(<LivePage link={null} onLeave={() => undefined} />);
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');

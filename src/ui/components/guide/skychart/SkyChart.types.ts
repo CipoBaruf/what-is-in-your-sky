@@ -113,6 +113,21 @@ export interface SkyChartProps {
    */
   aside?: ReactNode;
   /**
+   * FR-LIVE-7 and FR-TRAJ-4 as amended (v1.2.1) / D-315 (R61): the stripe
+   * block under the drawing, the box's width, on a wide live page at step 2 of
+   * the size ladder and above — the owner's stripe at the bottom on a big
+   * screen. The page hands it here instead of into `aside` there; the frame
+   * places it in a row of its own under the box. Absent, there is no such row.
+   */
+  stripe?: ReactNode;
+  /**
+   * FR-LIVE-7 as amended (v1.2.1) / D-314 (R61): the box's fixed size, CSS px,
+   * where the page has picked a step of the dome's ladder (`lib/layout.ts`
+   * `DOME_STEPS`). The frame sizes the drawing to it and stands the side
+   * column beside it; absent, the box is fluid — every row the page leaves.
+   */
+  box?: { widthPx: number; heightPx: number };
+  /**
    * FR-LIVE-7 as amended (v1.1.1) / D-268, D-269 (R54): on the live page the
    * chart's own controls — the view toggle and its note — reach the view
    * already rendered, for the view to put first in `ChartFrame`'s controls

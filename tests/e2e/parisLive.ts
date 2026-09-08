@@ -21,6 +21,8 @@ export const LIVE_VIEWPORTS = {
   short: { width: 1280, height: 720 },
   /** R61 (F-59): the width the owner reported the blank third of the box at. */
   2560: { width: 2560, height: 1440 },
+  /** R61 (D-314): step 4 of the ladder, the largest reference viewport. */
+  3840: { width: 3840, height: 2160 },
 } as const;
 
 export async function openParisLive(page: Page, width: keyof typeof LIVE_VIEWPORTS, theme: CaptureTheme): Promise<void> {

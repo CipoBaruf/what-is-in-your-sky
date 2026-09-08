@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import styles from './ChartFrame.module.css';
 
@@ -36,13 +36,28 @@ export interface ChartFrameProps {
    * itself keeps its height.
    */
   aside?: ReactNode;
+  /**
+   * FR-LIVE-7 and FR-TRAJ-4 as amended (v1.2.1, D-315): the stripe block in a
+   * row of its own under the drawing, the drawing's width — the wide live page
+   * from step 2 of the ladder. Absent, the frame has no such row.
+   */
+  stripe?: ReactNode;
+  /**
+   * FR-LIVE-7 as amended (v1.2.1, D-314): the drawing box's fixed size from the
+   * dome's ladder, CSS px. It reaches the stylesheet as two custom properties
+   * on the frame — px literals may not be written in a wide-layout block
+   * (`tests/styles/breakpoint.test.ts`), and the numbers are `lib/layout.ts`'s.
+   * Absent, the box is fluid.
+   */
+  box?: { widthPx: number; heightPx: number };
   className?: string;
   /** FR-LIVE-1 (R32): the drawing takes the frame's whole height instead of a capped square; the frame takes its parent's. */
   fill?: boolean;
   children: ReactNode;
 }
 
-export function ChartFrame({ controls, status, legend, aside, className, fill = false, children }: ChartFrameProps) {
+export function ChartFrame({ controls, status, legend, aside, stripe, box, className, fill = false, children }: ChartFrameProps) {
+  const boxStyle = box ? ({ '--chart-box-w': `${String(box.widthPx)}px`, '--chart-box-h': `${String(box.heightPx)}px` } as CSSProperties) : undefined;
   const compact = useLayoutMode() === 'compact';
   const frameRef = useRef<HTMLDivElement>(null);
 
@@ -74,12 +89,20 @@ export function ChartFrame({ controls, status, legend, aside, className, fill = 
         data-compact={compact}
         data-legend={legend !== undefined && legend !== null}
         data-aside={aside !== undefined && aside !== null}
+        data-stripe={stripe !== undefined && stripe !== null}
+        data-box={box !== undefined}
+        style={boxStyle}
       >
         <div className={styles.controls}>{controls}</div>
         <div className={styles.drawing} data-testid="chart-box">
           {children}
         </div>
         <div className={styles.status}>{status}</div>
+        {stripe !== undefined && stripe !== null && (
+          <div className={styles.stripe} data-testid="chart-stripe">
+            {stripe}
+          </div>
+        )}
         {legend !== undefined && legend !== null && (
           <div className={styles.legend} data-testid="chart-legend-slot">
             {aside === undefined || aside === null ? (

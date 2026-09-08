@@ -26,8 +26,8 @@ import { openParisLive } from './parisLive';
 
 test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
 
-/** The rail is beside the box and the four rows are in it, top to bottom, with the box taking the page's height. */
-const shoot = async (page: import('@playwright/test').Page, width: 1280 | 1920 | 2560, theme: 'dark' | 'night'): Promise<void> => {
+/** The rail is beside the box with its rows top to bottom, and the box is its step's size (D-314): 1280 is step 1, 1920 step 2, 2560 step 3, 3840 step 4. */
+const shoot = async (page: import('@playwright/test').Page, width: 1280 | 1920 | 2560 | 3840, theme: 'dark' | 'night'): Promise<void> => {
   await openParisLive(page, width, theme);
   const box = await page.getByTestId('chart-box').boundingBox();
   const rail = await page.getByTestId('chart-aside').boundingBox();
@@ -36,11 +36,12 @@ const shoot = async (page: import('@playwright/test').Page, width: 1280 | 1920 |
   if (!box || !rail || !strip || !actions) throw new Error('the page is not laid out');
   expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
   expect(strip.y).toBeLessThan(actions.y);
-  expect(box.height).toBeGreaterThanOrEqual(0.85 * (page.viewportSize()?.height ?? 0));
+  const step = { 1280: 1, 1920: 2, 2560: 3, 3840: 4 }[width];
+  await expect(page.getByTestId('live-dome')).toHaveAttribute('data-dome-step', String(step));
   await page.screenshot({ path: `${CAPTURE_DIR}/r61-live-${String(width)}-${theme}-en.png` });
 };
 
-for (const width of [1280, 1920, 2560] as const) {
+for (const width of [1280, 1920, 2560, 3840] as const) {
   test(`the live page at ${String(width)} px, dark, en: the rail beside the box`, async ({ page }) => {
     await shoot(page, width, 'dark');
   });

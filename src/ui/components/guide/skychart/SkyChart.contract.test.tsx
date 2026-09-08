@@ -258,6 +258,32 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
     expect(beside).toMatch(/\[data-aside='true'\] \.legendScroll \{\n\s+flex: 0 1 auto;\n\s+min-height: 0;\n\s+overflow-y: auto;/);
   });
 
+  /**
+   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315): a `box` is the ladder's fixed size, reaching the
+   * stylesheet as two custom properties on the frame — no px may be written in the wide block — and a
+   * `stripe` is a row of the frame's own under the drawing. Both halves again: the DOM, and the rules.
+   */
+  it('sizes the drawing to a given box through custom properties, and gives a stripe its own row under the drawing', () => {
+    render(
+      <ChartFrame fill legend={<p>legend</p>} aside={<p>rail</p>} stripe={<p>stripe</p>} box={{ widthPx: 1176, heightPx: 833 }}>
+        <div />
+      </ChartFrame>,
+    );
+    const frame = screen.getByTestId('chart-frame');
+    expect(frame).toHaveAttribute('data-box', 'true');
+    expect(frame).toHaveAttribute('data-stripe', 'true');
+    expect(frame.style.getPropertyValue('--chart-box-w')).toBe('1176px');
+    expect(frame.style.getPropertyValue('--chart-box-h')).toBe('833px');
+    expect([...frame.children].map((el) => el.getAttribute('data-testid'))).toEqual([null, 'chart-box', null, 'chart-stripe', 'chart-legend-slot']);
+    expect(within(screen.getByTestId('chart-stripe')).getByText('stripe')).toBeInTheDocument();
+    const beside = /@container \(min-width: 62ch\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    // The two columns the drawing spans are the drawing's own width, the rail takes what is left up to its cap, and nothing stretches.
+    expect(beside).toMatch(/\[data-box='true'\] \{\n\s+grid-template-columns: auto auto minmax\(calc\(44 \* var\(--cell\)\), calc\(60 \* var\(--cell\)\)\);\n\s+grid-template-rows: auto auto;\n\s+justify-content: start;\n\s+align-content: start;/);
+    expect(beside).toMatch(/\[data-box='true'\] \.drawing \{\n\s+width: var\(--chart-box-w\);\n\s+height: var\(--chart-box-h\);/);
+    expect(beside).toMatch(/\[data-stripe='true'\] \{\n\s+grid-template-rows: auto auto auto;\n\s+grid-template-areas:\n\s+'controls status legend'\n\s+'drawing drawing legend'\n\s+'stripe stripe legend';/);
+    expect(css).toMatch(/\.stripe \{\n\s+grid-area: stripe;/);
+  });
+
   it('leaves the frame and its column alone with no aside', () => {
     render(
       <ChartFrame fill legend={<p>legend</p>}>
@@ -265,7 +291,11 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
       </ChartFrame>,
     );
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'false');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'false');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
+    expect(screen.getByTestId('chart-frame').style.getPropertyValue('--chart-box-w')).toBe('');
     expect(screen.queryByTestId('chart-aside')).toBeNull();
+    expect(screen.queryByTestId('chart-stripe')).toBeNull();
     expect(screen.getByTestId('chart-legend-slot').firstElementChild).toBe(screen.getByText('legend'));
   });
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
+import { STRIPE_UNDER_BOX_FROM_STEP } from '../../lib/layout';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import type { Span } from '../../lib/timeStripe';
@@ -27,6 +28,7 @@ import { usePlayback } from '../components/live/usePlayback';
 import { useSkyBands } from '../components/live/useSkyBands';
 import { useWakeLock } from '../components/live/useWakeLock';
 import { useWallThrottle } from '../components/live/useWallThrottle';
+import { useDomeStep } from '../hooks/useDomeStep';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import styles from './Live.module.css';
@@ -188,6 +190,14 @@ function useHashFollows(observer: Observer, shown: EpochMs, realTime: boolean, p
 function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null }) {
   const t = useT();
   const compact = useLayoutMode() === 'compact';
+  /*
+   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315): the step of the dome's size ladder the viewport fits, or
+   * none for the fluid box. On wide the box is the step's size, and from step 2 the stripe block stands under
+   * the box rather than in the rail — the owner's stripe at the bottom on a big screen. Compact ignores it.
+   */
+  const step = useDomeStep();
+  const domeStep = compact || step === null ? 0 : step.step;
+  const stripeUnder = domeStep >= STRIPE_UNDER_BOX_FROM_STEP;
   const passesState = useAppStore((s) => s.passes);
   const weather = useAppStore((s) => s.weather);
   const liveHidden = useAppStore((s) => s.liveHidden);
@@ -263,6 +273,13 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
    * The same children in the same order either way — the block is built once
    * and placed twice.
    */
+  const stripeBlock = !windowMode && (
+    <div className={styles.stripeBlock} data-testid="stripe-block">
+      <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />
+      <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} onScrub={playback.scrub} />
+      {touch && <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} />}
+    </div>
+  );
   const side = (
     <div className={styles.side} data-testid="live-side" data-window-mode={windowMode}>
       <StatusStrip
@@ -275,13 +292,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
         speed={playback.playing ? playback.speed : null}
         declinationDeg={windowMode ? declinationDeg : null}
       />
-      {!windowMode && (
-        <div className={styles.stripeBlock} data-testid="stripe-block">
-          <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />
-          <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} onScrub={playback.scrub} />
-          {touch && <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} />}
-        </div>
-      )}
+      {!stripeUnder && stripeBlock}
       {!windowMode && (
         <div className={styles.playbackRow} data-testid="playback-row">
           <PlaybackControls playing={playback.playing} speed={playback.speed} realTime={playback.realTime} onPlay={playback.play} onPause={playback.pause} onSpeed={playback.setSpeed} onNow={playback.toNow} />
@@ -298,7 +309,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
 
   return (
     <>
-      <div className={styles.dome} data-testid="live-dome">
+      <div className={styles.dome} data-testid="live-dome" data-dome-step={domeStep}>
         <SkyChart
           passes={chartPasses}
           observer={observer}
@@ -311,6 +322,8 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           fill
           initialFacingAzDeg={0}
           {...(compact ? {} : { aside: side })}
+          {...(domeStep > 0 && step ? { box: step.box } : {})}
+          {...(stripeUnder ? { stripe: stripeBlock } : {})}
         />
       </div>
       {compact && side}

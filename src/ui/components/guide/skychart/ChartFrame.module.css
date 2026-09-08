@@ -59,6 +59,12 @@
   min-width: 0;
 }
 
+/* R61 (D-315): the stripe row, present only where the page hands the frame one; placed by the wide live rule above. */
+.stripe {
+  grid-area: stripe;
+  min-width: 0;
+}
+
 /* FR-COMP-5 (R45, D-187): on compact the box is full-bleed — it breaks out
    of the page's side padding with negative margins — and square. The pages
    all pad two cells at the side (the global frame, the detail sheet, the live
@@ -157,6 +163,42 @@
 
   .fill[data-compact='false'][data-legend='true'][data-aside='true'] .aside {
     flex: 0 0 auto;
+  }
+
+  /* R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315, F-59): the fixed box. With
+     `box` the page has picked a step of the dome's ladder, and the drawing is
+     that size — `--chart-box-w` / `--chart-box-h`, set inline by `ChartFrame`
+     from `lib/layout.ts`, since no px may be written here — rather than
+     whatever the rows leave. The two columns the drawing spans are `auto`, so
+     they are the drawing's width and no more, and the grid packs at the start
+     so the rail stands beside the box, takes what is left up to its cap
+     (D-313), and the rest of the page is blank at the right. The rows are
+     `auto` too and packed at the top: a `1fr` drawing track would put the
+     stripe row at the bottom of the page instead of under the box.
+
+     `stripe` (D-315) is the stripe block in a row of its own under the box,
+     the box's width, where the page hands it here rather than into the rail:
+     step 2 of the ladder and above, the owner's stripe at the bottom on a big
+     screen. Its labels are every two hours there (FR-TRAJ-4: the stripe is
+     the box's width, 122 cells at step 2, past the 60 twelve labels want). */
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-box='true'] {
+    grid-template-columns: auto auto minmax(calc(44 * var(--cell)), calc(60 * var(--cell)));
+    grid-template-rows: auto auto;
+    justify-content: start;
+    align-content: start;
+  }
+
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-box='true'] .drawing {
+    width: var(--chart-box-w);
+    height: var(--chart-box-h);
+  }
+
+  .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-stripe='true'] {
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      'controls status legend'
+      'drawing drawing legend'
+      'stripe stripe legend';
   }
 
   /* R51 (D-259): the pass detail's numeric table takes the beside rule back. The guide column grows with the

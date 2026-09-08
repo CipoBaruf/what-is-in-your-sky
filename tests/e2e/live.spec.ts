@@ -268,16 +268,27 @@ test.describe('the wide live page (R61)', () => {
     expect(row.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
   };
 
-  /** The rail's rows, top to bottom, and every one of them beside the box rather than under it. */
-  const expectTheRail = async (page: Page, box: { x: number; y: number; width: number; height: number } | null): Promise<void> => {
+  /**
+   * The rail's rows, top to bottom, and every one of them beside the box rather than under it. The stripe
+   * block is one of them at step 1 of the ladder and a row under the box from step 2 (D-315).
+   */
+  const expectTheRail = async (page: Page, box: { x: number; y: number; width: number; height: number } | null, stripe: 'in the rail' | 'under the box'): Promise<void> => {
     const strip = await page.getByTestId('status-strip').boundingBox();
     const block = await page.getByTestId('stripe-block').boundingBox();
     const playback = await page.getByTestId('playback-row').boundingBox();
     const actions = await page.getByTestId('live-actions').boundingBox();
-    for (const row of [strip, block, playback, actions]) rightOf(row, box);
-    below(block, strip);
-    below(playback, block);
+    for (const row of [strip, playback, actions]) rightOf(row, box);
+    below(playback, strip);
     below(actions, playback);
+    if (stripe === 'in the rail') {
+      rightOf(block, box);
+      below(block, strip);
+      below(playback, block);
+    } else {
+      below(block, box);
+      expect(block?.x ?? 0).toBeCloseTo(box?.x ?? -1, 0);
+      expect(block?.width ?? 0).toBeCloseTo(box?.width ?? -1, 0);
+    }
   };
 
   /** FR-TRAJ-4: whatever cadence the stripe's width buys, no label is drawn over the one beside it. */
@@ -290,7 +301,7 @@ test.describe('the wide live page (R61)', () => {
     }
   };
 
-  test('at 1920 × 1080: one row above the box, the rest in the rail beside it, the box the height of the page, nothing scrolls, no stepping row', async ({ page }) => {
+  test('at 1920 × 1080: one row above the box, the strip and the controls in the rail beside it, the stripe under the box at step 2, nothing scrolls, no stepping row', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
@@ -302,14 +313,15 @@ test.describe('the wide live page (R61)', () => {
     // One row above: the readout shares the toggle's row, and the box starts right under it.
     band(readout, toggle);
     below(box, toggle);
-    await expectTheRail(page, box);
+    await expectTheRail(page, box, 'under the box');
     await expectLabelsClear(page);
     // The hidden-objects toggle is on the playback row, and there is no stepping row without touch.
     await expect(page.getByTestId('playback-row').getByTestId('live-hidden-toggle')).toBeVisible();
     await expect(page.getByTestId('step-controls')).toHaveCount(0);
-    // Nothing is under the box but the page's own padding, and the page does not scroll.
-    expect(1080 - ((box?.y ?? 0) + (box?.height ?? 0))).toBeLessThanOrEqual(32);
-    expect(box?.height ?? 0).toBeGreaterThanOrEqual(0.85 * 1080);
+    // The box is step 2's (D-314), and the page does not scroll.
+    await expect(page.getByTestId('live-dome')).toHaveAttribute('data-dome-step', '2');
+    expect(box?.width ?? 0).toBeCloseTo(1176, 0);
+    expect(box?.height ?? 0).toBeCloseTo(833, 0);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1080);
   });
 
@@ -326,11 +338,14 @@ test.describe('the wide live page (R61)', () => {
     const clock = await page.getByTestId('time-readout').boundingBox();
     band(readout, toggle);
     below(box, toggle);
-    await expectTheRail(page, box);
+    await expectTheRail(page, box, 'in the rail');
     // In a 44-cell rail the block stacks: the clock readout over the stripe, which takes the column's width.
     below(stripe, clock);
     await expectLabelsClear(page);
-    expect(800 - ((box?.y ?? 0) + (box?.height ?? 0))).toBeLessThanOrEqual(32);
+    // The box is step 1's (D-314), and the page does not scroll.
+    await expect(page.getByTestId('live-dome')).toHaveAttribute('data-dome-step', '1');
+    expect(box?.width ?? 0).toBeCloseTo(768, 0);
+    expect(box?.height ?? 0).toBeCloseTo(544, 0);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(800);
   });
 });
