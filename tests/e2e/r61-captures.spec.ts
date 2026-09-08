@@ -20,6 +20,7 @@
  * legend has rows above the rail. The theme is seeded in `wiys:prefs:v1`
  * (D-70), never clicked, and one capture is one test.
  */
+import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { expect, test } from '@playwright/test';
 import { CAPTURE_DIR } from './captureSet';
 import { openParisLive } from './parisLive';
@@ -36,7 +37,7 @@ const shoot = async (page: import('@playwright/test').Page, width: 1280 | 1920 |
   if (!box || !rail || !strip || !actions) throw new Error('the page is not laid out');
   expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
   expect(strip.y).toBeLessThan(actions.y);
-  expect(box.width / box.height).toBeCloseTo(2.4 / 1.7, 1);
+  expect(box.width / box.height).toBeCloseTo(DOME_BOX_ASPECT, 1);
   await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', String(width >= 1920));
   await page.screenshot({ path: `${CAPTURE_DIR}/r61-live-${String(width)}-${theme}-en.png` });
 };

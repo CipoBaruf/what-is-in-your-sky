@@ -14,6 +14,7 @@
  *   - the captures the PR carries, at both widths, in both themes, and in
  *     Spanish at the phone width.
  */
+import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { expect, test, type Page } from '@playwright/test';
 import { domeDrawn, golden, ha, heading, hhmmss, homeAt, LABEL, realTimeField, reenterLiveWithTheme, stripFilled, stubCompass, stubNetwork, T } from './liveHelpers';
 
@@ -320,7 +321,7 @@ test.describe('the wide live page (R61)', () => {
     await expect(page.getByTestId('step-controls')).toHaveCount(0);
     // The box is the dome's shape and reaches the page's bottom through the stripe (D-314), and the page does not scroll.
     await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
-    expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(2.4 / 1.7, 2);
+    expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(DOME_BOX_ASPECT, 2);
     const stripeBlock = await page.getByTestId('stripe-block').boundingBox();
     expect(1080 - ((stripeBlock?.y ?? 0) + (stripeBlock?.height ?? 0))).toBeLessThanOrEqual(24);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1080);
@@ -345,7 +346,7 @@ test.describe('the wide live page (R61)', () => {
     await expectLabelsClear(page);
     // The box is the dome's shape and, at 1280 px, width-bound: the rail beside it is hard against the page's right edge (D-314). The page does not scroll.
     await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
-    expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(2.4 / 1.7, 2);
+    expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(DOME_BOX_ASPECT, 2);
     const rail = await page.getByTestId('chart-aside').boundingBox();
     expect(1280 - ((rail?.x ?? 0) + (rail?.width ?? 0))).toBeLessThanOrEqual(24);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(800);

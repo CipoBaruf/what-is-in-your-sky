@@ -113,7 +113,7 @@ for (const [width, height] of [
       expect(await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight])).toEqual([width, height]);
     });
 
-    test('covers at least 90 % of the width of its box, not two thirds of it', async ({ page }) => {
+    test('covers at least 90 % of its box across and down, centred, not two thirds of it with the top cut off', async ({ page }) => {
       await openLive(page);
       const dome = page.getByTestId('live-dome');
       /*
@@ -131,6 +131,22 @@ for (const [width, height] of [
           return (extent.width / box.width) * (MIN_EXTENT_RATIO / fitFloor(layers, box.width));
         }, { message: 'the drawing over the width of its box, at FR-DOME-1’s own floor' })
         .toBeGreaterThanOrEqual(MIN_EXTENT_RATIO);
+      /*
+       * D-317 (F-61): and down — the bowl's silhouette is in the box, not cut at its top edge, and the
+       * drawing sits in the middle: the blank above it and the blank below it are within a cell of each
+       * other. On the old rule the extent ran to the box's top row (no blank above, a fifth of the box
+       * blank below) and the outline of the bowl was missing.
+       */
+      const box = await dome.getByTestId('chart-box').boundingBox();
+      const { extent, layers } = await painted(dome.locator('[data-drawing="dome"]'));
+      if (!box) throw new Error('no box');
+      const cell = Math.max(...layers.map((layer) => layer.cellWidthPx)) * 2;
+      expect(extent.height / box.height).toBeGreaterThanOrEqual(MIN_EXTENT_RATIO * (fitFloor(layers, box.width) / MIN_EXTENT_RATIO));
+      expect(extent.y).toBeGreaterThanOrEqual(box.y);
+      expect(extent.y + extent.height).toBeLessThanOrEqual(box.y + box.height + 1);
+      const above = extent.y - box.y;
+      const below = box.y + box.height - extent.y - extent.height;
+      expect(Math.abs(above - below), `blank above ${String(above)} px, below ${String(below)} px`).toBeLessThanOrEqual(cell);
     });
   });
 }

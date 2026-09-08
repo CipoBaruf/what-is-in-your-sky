@@ -13,6 +13,7 @@ import {
   DEFAULT_SUN,
   drag,
   fitLayers,
+  layerCenter,
   initialFor,
   KEY_INTENSITY,
   LABEL_ADVANCE,
@@ -415,7 +416,7 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
           <div className={styles.layers} aria-hidden="true" data-drawing="dome">
             {ready && layers.base.length > 0 && (
               <div className={styles.layer} data-layer="base" style={layerStyle(base)}>
-                <GlyphOrthographicCamera key={layerKey('base', base)} rotX={camera.tiltDeg} rotY={rotY} zoom={base.zoom}>
+                <GlyphOrthographicCamera key={layerKey('base', base)} rotX={camera.tiltDeg} rotY={rotY} zoom={base.zoom} center={layerCenter(base, camera.tiltDeg)}>
                   <GlyphScene
                     mode="solid"
                     charMode="ascii"
@@ -437,7 +438,7 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
             )}
             {ready && (
               <div className={styles.layer} data-layer="lines" style={layerStyle(lines)}>
-                <GlyphOrthographicCamera key={layerKey('lines', lines)} rotX={camera.tiltDeg} rotY={rotY} zoom={lines.zoom}>
+                <GlyphOrthographicCamera key={layerKey('lines', lines)} rotX={camera.tiltDeg} rotY={rotY} zoom={lines.zoom} center={layerCenter(lines, camera.tiltDeg)}>
                   <GlyphScene mode="wireframe" charMode="braille" glyphPalette="ascii" useColors={colored} cols={lines.cols} rows={lines.rows} cellAspect={CELL_ASPECT}>
                     <SceneInteracting active={dragging} />
                     {layers.lines.map((mesh) => (

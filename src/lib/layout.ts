@@ -103,7 +103,7 @@ export function layoutMode(matchesWide: boolean): LayoutMode {
  * — not whatever the page leaves (a third of it blank, F-59) and not a step of
  * a table (which wasted most of a real browser window, whose viewport is some
  * 200 px shorter than the screen it is on: V12-10). The aspect is `zoomFor`'s
- * two divisors, 2.4 : 1.7 (`dome/camera.ts` `DOME_BOX_ASPECT`), the one shape
+ * two divisors, 2.4 : 2.0 (`dome/camera.ts` `DOME_BOX_ASPECT`), the one shape
  * at which the drawing's fit binds across and down at once.
  *
  * `fitBox` is the rule, pure, so it is a unit test: the box is as tall as the
@@ -144,7 +144,7 @@ export function fitBox({ frameWidthPx, frameHeightPx, aboveHeightPx, belowHeight
  * — the owner's stripe at the bottom on a big screen. Below it the height is
  * the scarcer side, and the rail is where the stripe costs the box nothing.
  * 1666 px is where a box of the height a 1080 p browser window leaves (about
- * 840 px, so 1186 wide at 2.4 : 1.7) stands beside a full 44-cell rail with the
+ * 840 px, so 1186 wide at 2.4 : 2.0) stands beside a full 44-cell rail with the
  * page's padding and the column gap: the first width at which the stripe
  * under the box makes the box no narrower.
  */
