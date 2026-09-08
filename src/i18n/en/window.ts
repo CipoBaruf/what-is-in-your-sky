@@ -26,5 +26,7 @@ export const windowMessages = {
     ground: 'Pointing at the ground — raise the phone.',
     /** R56 (FR-FOL-5): the same, when no sky is left in the field and the box is the ground. */
     buried: 'You are pointing at the ground — raise the phone.',
+    /** R63 (FR-FSC-4, US-21 AC12, D-323): the whole box on the follow screen while the phone is held upright; turning it is what leaves. */
+    portrait: 'Turn the phone sideways to follow the sky.',
   },
 };
