@@ -150,3 +150,87 @@ export function fitBox({ frameWidthPx, frameHeightPx, aboveHeightPx, belowHeight
  */
 export const LIVE_TWO_COLUMN_MIN_PX = 1660;
 export const LIVE_TWO_COLUMN_QUERY = `(min-width: ${String(LIVE_TWO_COLUMN_MIN_PX)}px)`;
+
+/**
+ * R69 (FR-SHP-3, FR-SHP-4; F-65; D-381, D-389): the wide live page at every
+ * height. On a wide viewport the desktop layout is the layout whatever the
+ * height, and the box is what gives — down to `LIVE_BOX_MIN_PX`, eight rows,
+ * the smallest box in which the dome's drawing is still a bowl. Below that the
+ * rows under the box fold, in `LIVE_FOLD_ORDER` and no other, rather than the
+ * page scrolling (FR-LIVE-1). `foldRows` is the rule, pure: from the height the
+ * page has to which rows it drops, so `Live.tsx` reads the answer and writes it
+ * on the page as `data-fold`, and the stylesheet does the folding.
+ *
+ * The arithmetic is the wide page's own rows in px, from the tokens (`--row`
+ * is 1.5 rem at 16 px, `--tap` two rows), and `foldRows.test.ts` holds the
+ * numbers to `tokens.css`. The page's gap is a quarter row and its padding a
+ * quarter row above and below. What the page keeps whatever the fold, above
+ * and under the box: the top row (48: the return control and the switches are
+ * tap targets), the frame's controls row (48: the view control), the time row
+ * (48: the playback controls), the stripe's three rows (72), the status strip
+ * (one line over its rule: 24 + 12 + 1) and the actions row (48), with the
+ * five gaps between them, on the one-column page this branch draws under
+ * `LIVE_TWO_COLUMN_MIN_PX` (measured at 1200 × 450: the rows take 343 px and
+ * the box gets the 107 left, spec §4.20 F-65). R71 draws the rail at every
+ * wide width and re-derives this table with the strip and the actions beside
+ * the box rather than under it.
+ *
+ * What one fold gives back is more than the row it names. The actions join the
+ * status strip's line (FR-SHP-3's second row; the first, the overview row, is
+ * R70's, which puts it at the head of the order — D-389), and with them the
+ * page takes the compact page's own device for every control around the box
+ * (D-246: the hit box stays 48 px by padding and a matching negative margin,
+ * the row is one text row) and the compact page's spacing token for its gaps
+ * — the desktop layout with its air let out, which is what a short window
+ * asks for. Measured at 1200 × 450: 106 px back to the box.
+ */
+export const ROW_PX = 1.5 * BASE_FONT_PX;
+export const TAP_PX = 2 * ROW_PX;
+/** FR-SHP-3: eight rows, the smallest box in which the drawing is still a bowl. */
+export const LIVE_BOX_MIN_PX = 8 * ROW_PX;
+
+/** The rows under the box that fold, in the order they go (FR-SHP-3); R70 puts `'overview'` at the head. */
+export type LiveFold = 'actions';
+export const LIVE_FOLD_ORDER: readonly LiveFold[] = ['actions'];
+
+/** The page's padding above and below, and the gap between its rows: a quarter row each (`Live.module.css`). */
+export const LIVE_PAGE_PADDING_PX = ROW_PX / 2;
+export const LIVE_GAP_PX = ROW_PX / 4;
+/** The strip on one line over its rule: the line, the half row of air above it, and the hairline. */
+export const LIVE_STRIP_LINE_PX = ROW_PX + ROW_PX / 2 + 1;
+/** The rows above and under the box before anything folds, top to bottom: the top row, the controls row, the time row, the stripe, the strip's line, the actions row. */
+export const LIVE_KEPT_ROWS_PX: readonly number[] = [TAP_PX, TAP_PX, TAP_PX, 3 * ROW_PX, LIVE_STRIP_LINE_PX, TAP_PX];
+/**
+ * The gaps those rows cost: after the top row, the box, the stripe and the (empty) legend slot, and before
+ * the strip's line — five. The frame's controls row and the actions cost none: the box follows the controls
+ * row in the frame's own grid, and the actions wrap under the strip's fields in a row with no row gap.
+ */
+export const LIVE_KEPT_GAPS = 5;
+export const LIVE_KEPT_PX = LIVE_PAGE_PADDING_PX + LIVE_KEPT_ROWS_PX.reduce((sum, row) => sum + row, 0) + LIVE_KEPT_GAPS * LIVE_GAP_PX;
+/**
+ * What each fold gives the box back, in px. `actions`: its own row (48), the four tap-target rows at one text
+ * row (4 × 24), the five gaps at the compact token (5 × 2) and the strip's half row of air at the token (8),
+ * less the line the actions take when the strip's fields already fill the first (24) — 138, as measured at
+ * 1200 × 450 on the branch (a 107 px box unfolded, 245 folded).
+ */
+export const LIVE_FOLD_GIVES_PX: Readonly<Record<LiveFold, number>> = {
+  actions: TAP_PX + 4 * (TAP_PX - ROW_PX) + LIVE_KEPT_GAPS * (LIVE_GAP_PX - ROW_PX / 6) + (ROW_PX / 2 - ROW_PX / 6) - ROW_PX,
+};
+
+/** FR-SHP-3: which rows the wide page folds at `heightPx` of viewport — the head of the order, as far as the floor asks. */
+export function foldRows(heightPx: number): readonly LiveFold[] {
+  const folded: LiveFold[] = [];
+  let boxPx = heightPx - LIVE_KEPT_PX;
+  for (const row of LIVE_FOLD_ORDER) {
+    if (boxPx >= LIVE_BOX_MIN_PX) break;
+    folded.push(row);
+    boxPx += LIVE_FOLD_GIVES_PX[row];
+  }
+  return folded;
+}
+
+/** The viewport height under which `row` is folded: the smallest height `foldRows` keeps it at, less one. */
+export function foldBelowPx(row: LiveFold): number {
+  const gives = LIVE_FOLD_ORDER.slice(0, LIVE_FOLD_ORDER.indexOf(row)).reduce((sum, before) => sum + LIVE_FOLD_GIVES_PX[before], 0);
+  return LIVE_KEPT_PX + LIVE_BOX_MIN_PX - gives;
+}
