@@ -104,7 +104,7 @@ export function HiddenToggle({ hidden, onToggle }: { hidden: boolean; onToggle: 
 export function LegendToggle({ open, count, controls, onToggle }: { open: boolean; count: number; controls: string; onToggle: () => void }) {
   const t = useT();
   return (
-    <button type="button" className={styles.action} data-testid="live-legend-toggle" aria-expanded={open} aria-controls={controls} onClick={onToggle}>
+    <button type="button" className={styles.action} data-testid="live-legend-toggle" aria-expanded={open} {...(open ? { 'aria-controls': controls } : {})} onClick={onToggle}>
       {t.live.list({ count })}
     </button>
   );

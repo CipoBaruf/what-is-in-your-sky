@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { fitBox } from '../../../../lib/layout';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import styles from './ChartFrame.module.css';
@@ -246,6 +246,9 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
         className={[styles.frame, fill ? styles.fill : undefined, className].filter(Boolean).join(' ')}
         ref={frameRef}
         data-testid="chart-frame"
+        // FR-LEG-7 (R71 review): the open panel's height is `LEGEND_OPEN_ROWS` rows, stated once here
+        // and read by `ChartFrame.module.css` as `--legend-open-rows`, so the count cannot drift.
+        style={{ ['--legend-open-rows' as string]: String(LEGEND_OPEN_ROWS) } as CSSProperties}
         data-fill={fill}
         data-compact={compact}
         data-legend={hasLegend}

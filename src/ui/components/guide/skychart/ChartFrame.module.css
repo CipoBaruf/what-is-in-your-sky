@@ -392,7 +392,9 @@
    would fight a fixed height, so it goes with the layout it belonged to. */
 .fill[data-legend-open='true'] .legend {
   --legend-row: var(--tap);
-  height: calc(2 * var(--legend-row));
+  /* The row count is `LEGEND_OPEN_ROWS` in `ChartFrame.tsx`, set on the frame as
+     `--legend-open-rows` so the two cannot drift; the literal here is the fallback. */
+  height: calc(var(--legend-open-rows, 2) * var(--legend-row));
   max-height: none;
   overflow-y: auto;
   min-height: 0;

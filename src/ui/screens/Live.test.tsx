@@ -368,7 +368,9 @@ describe('<LivePage>', () => {
     // Closed on a first visit (`prefs.liveLegendOpen`), and the panel is not in the tree.
     expect(control).toHaveTextContent('list (1)');
     expect(control).toHaveAttribute('aria-expanded', 'false');
-    expect(control).toHaveAttribute('aria-controls', LEGEND_PANEL_ID);
+    // R71 review: closed, the panel is not in the tree, so the control names nothing — an `aria-controls`
+    // pointing at an id no element carries is a dangling reference. `aria-expanded` alone says the state.
+    expect(control).not.toHaveAttribute('aria-controls');
     expect(screen.queryByTestId('chart-legend')).toBeNull();
     expect(screen.queryByTestId('chart-legend-slot')).toBeNull();
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-legend', 'false');
@@ -376,6 +378,7 @@ describe('<LivePage>', () => {
     // Open: the slot is the panel the control names, and it lists exactly the passes the drawing draws.
     fireEvent.click(control);
     expect(control).toHaveAttribute('aria-expanded', 'true');
+    expect(control).toHaveAttribute('aria-controls', LEGEND_PANEL_ID);
     const panel = screen.getByTestId('chart-legend-slot');
     expect(panel).toHaveAttribute('id', LEGEND_PANEL_ID);
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-legend-open', 'true');
@@ -414,7 +417,7 @@ describe('<LivePage>', () => {
    */
   it('gives the open panel a fixed height that the sky cannot change (FR-LEG-7, V14-5)', () => {
     const css = readFileSync('src/ui/components/guide/skychart/ChartFrame.module.css', 'utf8');
-    expect(css).toMatch(/\.fill\[data-legend-open='true'\] \.legend \{\n\s+--legend-row: var\(--tap\);\n\s+height: calc\(2 \* var\(--legend-row\)\);\n\s+max-height: none;\n\s+overflow-y: auto;/);
+    expect(css).toMatch(/\.fill\[data-legend-open='true'\] \.legend \{[^}]*height: calc\(var\(--legend-open-rows, 2\) \* var\(--legend-row\)\);[^}]*max-height: none;[^}]*overflow-y: auto;/);
     expect(LEGEND_OPEN_ROWS).toBe(2);
     withSky();
     act(() => {
@@ -423,6 +426,9 @@ describe('<LivePage>', () => {
     render(<LivePage link={null} onLeave={() => undefined} />);
     // The preference is what the page opens on: no tap, and the panel is there (`prefs.liveLegendOpen`).
     expect(screen.getByTestId('live-legend-toggle')).toHaveAttribute('aria-expanded', 'true');
+    // R71 review: the row count lives in `LEGEND_OPEN_ROWS` and reaches the stylesheet as `--legend-open-rows`,
+    // so the constant and the declaration above cannot drift apart.
+    expect(screen.getByTestId('chart-frame').style.getPropertyValue('--legend-open-rows')).toBe(String(LEGEND_OPEN_ROWS));
     const box = screen.getByTestId('chart-box');
     const shape = (): string => `${box.className}|${box.getAttribute('style') ?? ''}`;
     const panelShape = (): string => {
