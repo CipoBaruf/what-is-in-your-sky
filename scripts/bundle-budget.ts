@@ -132,6 +132,46 @@ export interface Budget {
  * stays inside the 155 the phase before it crossed. `live` falls 0.6 KB with
  * the follow control deleted (D-350). Every other chunk measures what it did.
  *
+ * R72 re-sets them again on the 1.4.0 build (SPEC §9 Phase 2f), built the same
+ * way. This is the first release re-set where **no budget moves**: v1.4 spent
+ * its weight on the three chunks the phase touched, and none of the three
+ * crosses a 5 KB line.
+ *
+ * | chunk          | file                  | measured | budget | was | ceiling |
+ * |----------------|-----------------------|---------:|-------:|----:|--------:|
+ * | main           | `index-*.js`          |    138.4 |    155 | 155 |     170 |
+ * | chart          | `SkyDome-*.js`        |     94.2 |    105 | 105 |     110 |
+ * | worker         | `passes.worker-*`     |     36.1 |     40 |  40 |     130 |
+ * | astronomy      | `skyBodies-*.js`      |     22.1 |     25 |  25 |      30 |
+ * | window         | `SkyWindow-*.js`      |     12.1 |     15 |  15 |       — |
+ * | live           | `Live-*.js`           |      8.5 |     10 |  10 |      40 |
+ * | service worker | `workbox-*.js`        |      5.0 |     10 |  10 |      15 |
+ *
+ * The three the task names, and what each of them bought:
+ *
+ * - **live** is the phase's growth, and the only chunk that grew by more than a
+ *   rounding step: 8.5 KB against the 1.3.0 build's 7.4. Everything v1.4 added
+ *   to the page is in it — the stripe's chunk arithmetic, the 24 h overview row
+ *   and the re-cut stepping row (FR-SPAN-1..7), and the `[ list (n) ]` control
+ *   with its two-row panel (FR-LEG-7). ×1.1 is 9.35, so it holds the 10 KB
+ *   floor with 1.5 KB of room where it had 2.6, and it is the row to watch in
+ *   the next phase: another 1.1 growth like this one and the floor is where the
+ *   `::warning::` comes from.
+ * - **window** measures 12.1 against 12.0. v1.4 added nothing to it: R68's two
+ *   fixes (F-57, F-58) take work out of the render rather than code out of the
+ *   chunk, and a tenth of a kilobyte is what that costs. The World Magnetic
+ *   Model is still 6.1 of the 12.1 and still the thing that would move the row.
+ * - **chart** measures 94.2, unchanged for the third phase running. The
+ *   legend's move out from under the box (FR-LEG-6) and the shape rules
+ *   (FR-SHP-1..4) are CSS and live-page code; nothing crossed the
+ *   `React.lazy` in `SkyChart.tsx`. Its budget stays 5 KB under the ceiling
+ *   D-63 says the library fixes.
+ *
+ * `main` is up 0.5 KB (138.4 against 137.9) for the phase's strings — the list
+ * control, the empty-list line, the chunk arrows and the overview's labels, in
+ * both catalogs — and ×1.1 (152.2) stays inside 155. `worker`, `astronomy` and
+ * the service worker measure what they did in v1.2.
+ *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
  *
@@ -158,7 +198,8 @@ export interface Budget {
  *   re-measured 7.6 on the 1.1.0 build with v1.1's live page in it and put the
  *   budget back on the 10 KB floor, well under the §11 ceiling of 40. R66 took
  *   the live page's last call to it away (D-341), so the shared chunk is gone
- *   and the model is the window's alone; 7.4 KB on the 1.3.0 build.
+ *   and the model is the window's alone; 8.5 KB on the 1.4.0 build, v1.4's
+ *   stripe chunk and list control included.
  * - **window** — `window/SkyWindow.tsx`, its projection and its orientation
  *   hook, behind the second `React.lazy` in `SkyChart.tsx` (R47, D-188): SVG
  *   and arithmetic, no library, so 5.3 KB gzipped on the R47 build and the
@@ -167,7 +208,7 @@ export interface Budget {
  *   `lib/declination.ts` and the World Magnetic Model — R44 put them in the
  *   live chunk, R47 split them out into a chunk the live page and the window
  *   shared (FR-WIN-3), and R66 left the window as the only caller, so Vite
- *   folds them back in here. 12.0 KB on the 1.3.0 build against a budget of
+ *   folds them back in here. 12.1 KB on the 1.4.0 build against a budget of
  *   15, and what would move the model's 6.1 of that is a new coefficient set.
  * - **service worker** — Workbox's runtime and the precache manifest, emitted
  *   at the site root rather than under `assets/` because a worker's scope is
@@ -180,12 +221,12 @@ export interface Budget {
  */
 export const BUDGETS: readonly Budget[] = [
   { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 155 }, // R60: 136.6 measured (flag on), crossing the 150 line (D-307)
-  { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 105 }, // R60: 94.2 measured, down from 97.1 (D-307)
+  { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 105 }, // R60: 94.2 measured, down from 97.1 (D-307); 94.2 again on 1.4.0 (R72)
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 40 },
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10 },
   { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 25 },
-  { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 10 }, // R53: back to the floor — R47 moved the World Magnetic Model to its own chunk and 1.1.0 measures 7.6 (D-178)
-  { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 15 }, // R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345)
+  { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 10 }, // R53: back to the floor — R47 moved the World Magnetic Model to its own chunk and 1.1.0 measures 7.6 (D-178); R72: 8.5 on 1.4.0, the floor's last 1.5 KB
+  { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 15 }, // R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345); R72: 12.1 on 1.4.0
 ];
 
 export interface ChunkSize {
