@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { orientationApiPresent, orientationEventName, screenAngle } from '../../../live/compassHeading';
 import { orientationAnswer, orientationGestureNeeded, orientationRequestInFlight, requestOrientationAccess, type OrientationAnswer } from './orientationAccess';
 import { alphaFor, calibrationSample, converged, OffsetEstimate, rotationMatrix, settling, smoothRotation, WINDOW_SMOOTHING, windowReadingFrom, type Mat3 } from './projection';
+import { nearestQuarter, quarterTurnFor, type Quarter } from './screenTurn';
 
 /**
  * R47 (FR-WIN-3, FR-WIN-4, FR-WIN-5; D-188, D-240): the phone's orientation
@@ -48,6 +49,19 @@ export interface DeviceOrientationHandle {
   rotation: Mat3 | null;
   /** `screen.orientation.angle`, degrees, kept current. */
   screenAngleDeg: number;
+  /**
+   * R73 (FR-FSC-10; D-424, D-431): which way is up to the reader, as a quarter
+   * in `screen.orientation.angle`'s own convention — the fold of
+   * `quarterTurnFor` over the poses, since its hysteresis makes each answer
+   * depend on the one before it. It is folded here because this is where the
+   * rotation is folded: one step per reading, in the frame that already has
+   * one, and no ref read during a render (`react-hooks/refs`) or state set
+   * from an effect (`react-hooks/set-state-in-effect`) to keep a previous
+   * value the caller cannot see. Meaningless until `rotation` is not `null`:
+   * before the first reading the viewport's own angle is what the screen is
+   * laid out by, which is the caller's rule to apply (FR-FSC-10).
+   */
+  quarter: Quarter;
   /** The control's click: ask inside the gesture, then listen. */
   start: () => void;
 }
@@ -62,6 +76,9 @@ export function useDeviceOrientation(declinationDeg = 0): DeviceOrientationHandl
   const [armed, setArmed] = useState(() => available && orientationAnswer() !== 'denied' && orientationRequestInFlight() === null && !orientationGestureNeeded());
   const [rotation, setRotation] = useState<Mat3 | null>(null);
   const [screenAngleDeg, setScreenAngleDeg] = useState(() => (typeof window === 'undefined' ? 0 : screenAngle()));
+  // The fold starts where the viewport is: on a phone that is free to turn the two agree, and starting there
+  // is what keeps the hysteresis from having to travel out of a quarter nobody is in (FR-FSC-10).
+  const [quarter, setQuarter] = useState<Quarter>(() => (typeof window === 'undefined' ? 0 : nearestQuarter(screenAngle())));
 
   // The declination changes only with the observer; a ref keeps it out of the listener's dependencies.
   const declination = useRef(declinationDeg);
@@ -110,6 +127,9 @@ export function useDeviceOrientation(declinationDeg = 0): DeviceOrientationHandl
       const next = smoothRotation(smoothed, target, WINDOW_SMOOTHING);
       smoothed = next;
       setRotation(next);
+      // FR-FSC-10 (D-424): one fold step per frame, from the quarter it is on. React bails out on the same
+      // value, so a phone held still costs no render for this and a turn of the hand costs one.
+      setQuarter((current) => quarterTurnFor(next, current));
       setState('on');
       // The sensor may be slower than the display: keep easing toward the latest reading until it has arrived.
       if (!converged(next, target)) frame = requestAnimationFrame(draw);
@@ -156,5 +176,5 @@ export function useDeviceOrientation(declinationDeg = 0): DeviceOrientationHandl
     void requestOrientationAccess().then(answered);
   }, [available, answered]);
 
-  return { available, needsGesture, state, rotation, screenAngleDeg, start };
+  return { available, needsGesture, state, rotation, screenAngleDeg, quarter, start };
 }

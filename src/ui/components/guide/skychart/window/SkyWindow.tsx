@@ -14,7 +14,7 @@ import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible 
 import { ChartFrame } from '../ChartFrame';
 import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
 import { drawableDeg, groundState, lookDirection, project, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type View } from './projection';
-import { nearestQuarter, quarterTurnFor, type Quarter } from './screenTurn';
+import { nearestQuarter, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
 import { useDeviceOrientation } from './useDeviceOrientation';
 
@@ -387,15 +387,16 @@ export function SkyWindow(props: SkyChartProps) {
    * is what the browser's angle would have been — and the layer is turned by the difference. Before the first
    * reading there is no pose to read, so the browser's own angle stands and the layer turns by nothing
    * (FR-FSC-10, "it starts at none"). Off a screen the value is the browser's angle and nothing moves (D-425).
+   *
+   * D-431: the fold itself is `useDeviceOrientation`'s, beside the rotation it folds — the hysteresis makes
+   * each quarter depend on the one before it, and the frame that already eases the rotation is the one place
+   * that can keep a previous value without a ref read in a render or a state set from an effect.
    */
   const { report } = useScreenTurn();
-  const [held, setHeld] = useState<Quarter>(0);
-  const quarter: Quarter = orientation.rotation === null ? nearestQuarter(orientation.screenAngleDeg) : quarterTurnFor(orientation.rotation, held);
+  const quarter: Quarter = onScreen && orientation.rotation !== null ? orientation.quarter : nearestQuarter(orientation.screenAngleDeg);
   useEffect(() => {
-    if (!onScreen) return;
-    // Setting the state it already holds is a bail-out, so this is one render per turn of the hand, not per frame.
-    setHeld(quarter);
-    report(quarter);
+    // One report per turn of the hand, and none at all off a screen, where `report` is the context's no-op.
+    if (onScreen) report(quarter);
   }, [onScreen, quarter, report]);
 
   const view: View = useMemo(

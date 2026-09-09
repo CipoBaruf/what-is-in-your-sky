@@ -32,6 +32,7 @@ function Harness({ declinationDeg = 0 }: { declinationDeg?: number }) {
       <output data-testid="available">{String(o.available)}</output>
       <output data-testid="look">{look ? `${fmt(look.azDeg)}/${fmt(look.altDeg)}` : 'none'}</output>
       <output data-testid="angle">{String(o.screenAngleDeg)}</output>
+      <output data-testid="quarter">{String(o.quarter)}</output>
       <button type="button" onClick={o.start}>
         start
       </button>
@@ -287,5 +288,41 @@ describe('useDeviceOrientation', () => {
       listeners.get('change')?.();
     });
     expect(screen.getByTestId('angle')).toHaveTextContent('270');
+  });
+
+  /**
+   * R73 (FR-FSC-10; D-424, D-431): the quarter, folded here because the
+   * hysteresis makes each answer depend on the one before it. The pose table
+   * itself is `screenTurn.test.ts`'s; what this holds is the fold — that it
+   * starts where the viewport is, that a turn of the hand moves it, and that a
+   * phone tipped flat at the zenith keeps the quarter it had.
+   */
+  it('folds the quarter over the poses, starting from the viewport’s own angle (FR-FSC-10)', () => {
+    withPhone();
+    Object.defineProperty(window.screen, 'orientation', { configurable: true, value: { angle: 90, addEventListener: () => undefined, removeEventListener: () => undefined } });
+    const { frame } = scriptedFrames();
+    render(<Harness />);
+    // Before any reading: the viewport's own rotation, so a phone that reflowed is laid out as it is.
+    expect(screen.getByTestId('quarter')).toHaveTextContent('90');
+
+    // Upright, top up, tilted 20° above the horizon: quarter 0, however the viewport is turned.
+    reading({ alpha: 0, beta: 110, gamma: 0, absolute: true });
+    for (let i = 0; i < 40; i += 1) frame();
+    expect(screen.getByTestId('quarter')).toHaveTextContent('0');
+
+    // Turned on its side, top to the left, still 20° up.
+    reading({ alpha: 0, beta: 0, gamma: -110, absolute: true });
+    for (let i = 0; i < 40; i += 1) frame();
+    expect(screen.getByTestId('quarter')).toHaveTextContent('90');
+
+    // Raised from there toward a pass overhead — the same roll, the camera swung up — until the phone is flat
+    // and the room's up has no direction left in the screen's plane: the quarter it had is the quarter it keeps
+    // (FR-FSC-10, "it does not spin at the zenith"; US-21 AC15).
+    for (const gamma of [-160, -170, -180]) {
+      reading({ alpha: 0, beta: 0, gamma, absolute: true });
+      for (let i = 0; i < 40; i += 1) frame();
+      expect(screen.getByTestId('quarter'), `gamma ${String(gamma)}`).toHaveTextContent('90');
+    }
+    expect(screen.getByTestId('state')).toHaveTextContent('on');
   });
 });
