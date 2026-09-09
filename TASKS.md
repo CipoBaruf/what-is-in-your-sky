@@ -20,8 +20,8 @@
 | Scope (v1.3.2) | Spec Phase 2e "public readiness": **P1** in the `## Public-readiness task` block below, one task, one wave, on Opus. The repository is the deliverable; the app does not change. |
 | Inputs (v1.3.3) | `SPEC.md` v1.3.3, `PLAN.md` v0.6.3 (Decision Log V13-15 and Decisions D-376, D-377 with §16.13 treated as fixed) |
 | Scope (v1.3.3) | The two P1 findings that are not judgement calls: **P2** in the `## Public-readiness task` block below, one task on Opus after P1. |
-| Inputs (v1.4) | `SPEC.md` v1.4, `PLAN.md` v0.6.4 (Decision Log V14-1..V14-8 and Decisions D-379..D-390 with §16.14 treated as fixed) |
-| Scope (v1.4) | Spec Phase 2f "the shape, the chunk and the list": **R67–R72** in the `## v1.4 tasks` block below, five waves, four lanes, three models (PLAN §16.13). |
+| Inputs (v1.4) | `SPEC.md` v1.4.1, `PLAN.md` v0.6.5 (Decision Log V14-1..V14-11 and Decisions D-379..D-390 and D-424..D-430, with §16.14 and §16.15 treated as fixed) |
+| Scope (v1.4) | Spec Phase 2f "the shape, the chunk and the list": **R67–R73** in the `## v1.4 tasks` block below, six waves, five lanes, three models (PLAN §16.14, §16.15). v1.4.1 (V14-9..V14-11) adds R73 before the release task. |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |
 
 ## Conventions
@@ -1491,6 +1491,8 @@ graph TD
 
 Draft, cut 2026-09-08 from `SPEC.md` v1.4 and `PLAN.md` v0.6.4, for review. Spec Phase 2f, "the shape, the chunk and the list": three items from the owner's use of the 1.3.0 build — the live page drawing a layout neither of its rules describes on a short wide window (F-65), a time stripe whose smallest step is bigger than the pass it selects, and a legend that is in the wrong place on a small desktop and a moving hole on a phone — and the four findings no earlier phase carried (F-57, F-58, F-62, F-64).
 
+*(v1.4.1, 2026-09-09, V14-9..V14-11)* R73 is appended from `SPEC.md` v1.4.1 and `PLAN.md` v0.6.5 (§16.15): the sky screen stops waiting for the phone to be turned. It lands after R71 and before R72, which is re-run on the build that carries it — nothing else in the block changes.
+
 Delivery is PLAN §16 unchanged, cut by §16.14: six tasks, five waves, one task per lane in each. Wave 1 is the two findings tasks in different lanes, F-64 first because it is red on `origin/main` and every later task would inherit it. The three layout tasks are one per wave because all three are the `live` lane and each changes what `ChartFrame` measures; the order — the shape rules, then the rows under the box, then the box's own width — is so that no task is measured against CSS a later one deletes (D-390). Models follow §16.6 rather than a phase override (`sonnet` for the two mechanical findings, `fable` for the two visual tasks the session can measure itself, `opus` where three lanes and a stored preference meet). Decision blocks: **R67 D-391..D-393, R68 D-394..D-396, R69 D-397..D-403, R70 D-404..D-410, R71 D-411..D-418, R72 D-419..D-423.**
 
 - [x] **R67 — F-64: the Moon lore line the Now panel does not show** [P] — the catalogue and the fixture were already right; the cause was the local `e2e` npm script building with `VITE_MOON_LORE` off while CI already built it on, so `npm run e2e`'s build was fixed to match.
@@ -1601,12 +1603,37 @@ Delivery is PLAN §16 unchanged, cut by §16.14: six tasks, five waves, one task
     - F-62 marked closed in spec §4.20 with this PR's number.
     - The owner's gate: the list opened and closed on a phone, and the rail at 1024 and 1280.
 
+- [ ] **R73 — The screen does not wait: both orientations, the turn and the advice**
+  - **Lane:** window
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R71
+  - **Goal:** the sky screen gives a picture the moment it opens, whatever the phone's rotation setting: held sideways under a rotation lock it shows the same wide screen an unlocked phone shows, held upright it draws in the portrait box with one line of advice over it, and nothing on it waits for a turn that may never come.
+  - **Satisfies:** FR-FSC-4 as rewritten v1.4.1, FR-FSC-10, FR-FSC-11; FR-FSC-7 as amended (the two capture changes). **Advances:** US-21 AC12 as amended, AC15. **Holds:** FR-FSC-1, FR-FSC-3, FR-FSC-9, FR-WIN-1, FR-FOL-2, FR-FOL-5.
+  - **Scope (PLAN D-424..D-430):**
+    - `skychart/window/screenTurn.ts`: `quarterTurnFor(m, held)` — the room's vertical taken into the phone's frame through `projection.ts`'s existing frame helpers, the nearest quarter in `screen.orientation.angle`'s own convention, `SCREEN_TURN_HYSTERESIS_DEG` (20) past the diagonal before it moves, `held` returned while inside `SCREEN_TURN_FLAT_DEG` (25) of flat, `0` for a null rotation. Pure; no React in the file.
+    - `skychart/window/SkyWindow.tsx` + module: the `portrait` state, its `useMediaQuery('(orientation: landscape)')` and the `status={null}` / `legend={null}` it handed the frame are deleted; `ground` is `groundState(m, view)` in every orientation again; `View.screenAngleDeg` on a screen is the quarter, not the browser's angle; `data-orientation` is read from the measured box; the advice line renders when the box is taller than it is wide and `ground === 'sky'`, in the ground notes' place and losing to them.
+    - `components/screen/screenTurn.tsx` (new) and `components/screen/SkyScreen.tsx` + module: the context the window reports its quarter through — no provider means a no-op and quarter `0` — and the layer's turn by `quarter - screen.orientation.angle`, `width: 100dvh; height: 100dvw` centred with `transform: translate(-50%, -50%) rotate(var(--screen-turn))`, `data-turn` on the layer, and the `aria-labelledby` / `aria-label` branch collapsed to the readout.
+    - `i18n/{en,es}/window.ts`: `portrait` deleted, `turnAdvice` added — "Turn the phone sideways to see more sky." / "Gira el teléfono de lado para ver más cielo." — and `chart.screenLabel` deleted if nothing else names the dialog.
+    - Captures (FR-FSC-7): `sky-screen-390-portrait-*` re-shot with the picture in them, one `sky-screen-390-turned` added at one theme and one language, `tests/e2e/captureSet.ts`, `tests/docs/captures.test.ts` and `docs/screenshots/` following; `spike/window/screen-capture.ts`'s portrait guard becomes a check that the drawing is there.
+  - **Touches outside the lane:** `components/screen/` (the layer and the context, named by PLAN §16.15), `i18n/{en,es}/window.ts`, `i18n/{en,es}/chart.ts` (the dead label), `tests/e2e/liveHelpers.ts` (`pose`), `tests/e2e/sky-screen.spec.ts`, `tests/e2e/captureSet.ts`, `tests/docs/captures.test.ts`, `docs/screenshots/`, `spike/window/screen-capture.ts`.
+  - **Out of scope:** the orientation permission path and the way into the screen (FR-FSC-6 is untouched), the Fullscreen and Screen Orientation lock APIs — the app locks nothing (FR-FSC-4) — the dome and the polar chart, the pass detail's sheet, and any change to `WINDOW_FOV`, the smoothing or the projection's own maths beyond the angle it is handed.
+  - **Done when:**
+    - `screenTurn.test.ts` walks the pose table — the four quarters, each diagonal inside and outside the hysteresis, flat face-up and face-down returning `held`, and `null` — and `projection.test.ts` pins that a locked-portrait phone held sideways projects the horizon where an unlocked one does.
+    - A component test asserts the drawing, the readout, the legend and the advice line together in a portrait box on a screen, and the ground note alone when the phone points below the horizon; **it fails on `origin/main`**, where the portrait box is a note with no drawing in it, and the failure is pasted in the PR (FR-FIX-1's shape, applied to a rewritten requirement).
+    - `sky-screen.spec.ts` at 390 × 844: with a sideways pose the layer carries a non-zero `data-turn`, its drawing box is wider than it is tall and `document.documentElement.scrollHeight` equals the inner height (FR-FSC-9); upright, the drawing and the advice line are both there.
+    - No second `deviceorientation` listener exists: the test that counts the window's listeners after R68 still passes, and the layer adds none.
+    - Both languages carry `turnAdvice` and no key named `portrait` survives in `window.ts`; the i18n snapshot is updated in the same commit.
+    - The capture set matches `tests/docs/captures.test.ts`, and the PR shows the two portrait shots before and after beside the new turned one.
+    - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
+    - The owner's gate: the screen run on a phone with rotation locked and unlocked — sideways, upright and flat at the zenith — which is what FR-FSC-10 cannot be accepted without (V11-9).
+
 - [ ] **R72 — v1.4 release preparation**
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
-  - **Depends on:** R71
-  - **Goal:** the phase closes: the capture set covers the new screens, the budgets are re-set, every finding the phase carries is closed in the register, and the build is 1.4.0.
+  - **Depends on:** R73
+  - **Goal:** the phase closes: the capture set covers the new screens, the budgets are re-set, every finding the phase carries is closed in the register, and the build is 1.4.0. *(v1.4.1, V14-11: the dependency is R73, not R71 — the version bump, the budgets and the captures are the release's and are taken on the build that ships.)*
   - **Satisfies:** the Phase 2f definition of done (spec §9); FR-COMP-6 for the phase.
   - **Scope:** `package.json` at 1.4.0; the D-179 capture set topped up and re-shot where these screens changed — every live-page capture moves with the rail, the stripe's rows and the actions row — with `tests/docs/captures.test.ts` matching the new set; the bundle budgets re-measured by the D-178 rule (the measured build plus a tenth) with the `chart`, `live` and `window` chunks re-stated; `docs/RELEASE.md` gains the phase's section, whose owner run is the phone checks of R70 and R71 plus a window dragged short; F-57, F-58, F-62, F-64 and F-65 each carrying the PR that closed them in spec §4.20, and OQ-24, OQ-25 and OQ-26 either answered by a Decision Log row or left with the note that a night's use has not happened yet.
   - **Touches outside the lane:** `package.json`, `docs/**`, `SPEC.md` §4.20 and §7, `tests/docs/captures.test.ts`.
@@ -1641,6 +1668,9 @@ Delivery is PLAN §16 unchanged, cut by §16.14: six tasks, five waves, one task
 | F-57, F-58 | R68 |
 | F-65 | R69 |
 | F-62 | R71 |
+| FR-FSC-4 as rewritten v1.4.1, FR-FSC-10, FR-FSC-11 | R73 |
+| FR-FSC-7 as amended v1.4.1 | R73 (the two capture changes), R72 (the set) |
+| US-21 AC12 as amended, AC15 | R73 |
 | Phase 2f definition of done | R72 |
 
 ```mermaid
@@ -1649,7 +1679,8 @@ graph TD
   R67 --> R69
   R69 --> R70
   R70 --> R71
-  R71 --> R72
+  R71 --> R73
+  R73 --> R72
 ```
 
-**Waves** (the driver recomputes them from `main`; this is the sanity check): **wave 1** R67, R68 — **wave 2** R69 — **wave 3** R70 — **wave 4** R71 — **wave 5** R72. No two tasks in one wave name the same shared file: R67 touches `moon.spec.ts` and R68 the window's own directory, and both touch spec §4.20 in different rows, which is the additive kind of conflict §16.1 allows.
+**Waves** (the driver recomputes them from `main`; this is the sanity check): **wave 1** R67, R68 — **wave 2** R69 — **wave 3** R70 — **wave 4** R71 — **wave 5** R73 — **wave 6** R72. No two tasks in one wave name the same shared file: R67 touches `moon.spec.ts` and R68 the window's own directory, and both touch spec §4.20 in different rows, which is the additive kind of conflict §16.1 allows.
