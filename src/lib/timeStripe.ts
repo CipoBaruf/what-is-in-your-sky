@@ -219,18 +219,31 @@ export function labelEveryHours(widthCells: number): number {
   return widthCells >= STRIPE_LABEL_MIN_CELLS ? LABEL_EVERY_HOURS.roomy : LABEL_EVERY_HOURS.dense;
 }
 
+/** The room a two-character label wants to itself: its two cells, the cell of air `keepLabels` demands, and a cell of margin. */
+export const LABEL_MIN_GAP_CELLS = 4;
+export const HALF_HOUR_MS = 30 * MINUTE_MS;
+
 /**
  * R70 (FR-TRAJ-4 as amended v1.4, FR-SPAN-7): the same rule for the window
- * actually drawn. Over a chunk the pair is every 30 min where twelve labels
- * fit — `STRIPE_LABEL_MIN_CELLS`, the width that has always meant twelve
- * two-character labels — and every hour under that; over the whole span
- * (FR-SPAN-6's fallback, and the overview) it is `labelEveryHours`'s 2 h and
- * 3 h. Which pair applies follows the window's own length and not a flag, so a
- * stripe that changes span changes cadence with it.
+ * actually drawn. Over a chunk the pair is every 30 min and every hour; over
+ * the whole span (FR-SPAN-6's fallback) it is `labelEveryHours`'s 2 h and 3 h,
+ * untouched. Which pair applies follows the window's own length and not a
+ * flag, so a stripe that changes span changes cadence with it.
+ *
+ * What picks between the chunk's two is the room its own labels want, and not
+ * `STRIPE_LABEL_MIN_CELLS`: that 60 cells is twelve labels' worth, and a
+ * four-hour chunk carries nine at the half hour, never twelve. FR-SPAN-7
+ * writes the test as the same 60 cells and the task asks for the half hours at
+ * 360 px — 37.5 cells — which cannot both hold; the room the labels actually
+ * want is what is implemented, four cells each (`keepLabels`' no-touch rule
+ * with a cell to spare), so a full chunk wants 32 and the 36 cells FR-TRAJ-4
+ * guarantees the compact stripe are enough. A stripe narrower than that — the
+ * rail, folded — gets the hours.
  */
 export function labelEveryMs(spanMs: number, widthCells: number): number {
   if (spanMs > CHUNK_MS) return labelEveryHours(widthCells) * HOUR_MS;
-  return widthCells >= STRIPE_LABEL_MIN_CELLS ? 30 * MINUTE_MS : HOUR_MS;
+  const gaps = Math.max(1, Math.round(spanMs / HALF_HOUR_MS));
+  return widthCells >= gaps * LABEL_MIN_GAP_CELLS ? HALF_HOUR_MS : HOUR_MS;
 }
 
 /** One label of row 1: the tick it is centred on and the text drawn there (the hour, or the date at a midnight). */

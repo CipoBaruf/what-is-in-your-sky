@@ -62,8 +62,10 @@ export const live = {
     share: 'Share this sky',
     shareTitle: 'The sky right now',
     shareText: (place: string) => `The whole sky over ${place}, live.`,
-    /** R33 (FR-LIVE-4): the time stripe is a slider; its value text is the cursor's clock time. */
-    stripe: 'Time stripe: the coming 24 hours',
+    /** R33 (FR-LIVE-4): the time stripe is a slider; its value text is the cursor's clock time. R70 (FR-SPAN-1): what it draws is four hours of the coming 24. */
+    stripe: 'Time stripe: four hours of the coming 24',
+    /** R70 (FR-SPAN-2): the overview row above the stripe — the whole span, a slider of its own, whose value text is the clock time under the cursor. */
+    overview: 'Night overview',
     /** R33 (FR-LIVE-5): the playback controls. */
     playback: 'Playback',
     play: 'Play',
@@ -97,16 +99,22 @@ export const live = {
      * buttons the spike chose (`docs/window/FINDINGS.md`). The visible labels
      * are the spike's glyphs, 33 cells in a row with their gaps; the
      * accessible names say the same in words.
+     *
+     * R70 (FR-SPAN-3, FR-SPAN-4, D-384): re-cut. The ±10 min pair is withdrawn
+     * and the two chunk buttons take its place — the row is `|◀ pass  ◀ 4h
+     * −1m  +1m  4h ▶  pass ▶|`, 33 cells with its gaps, inside FR-COMP-4's 35
+     * — and the rise jumps are named for what they land on, a pass, since one
+     * tap on them is now the whole gesture.
      */
     stepping: 'Step the shown instant',
-    step: { prevRise: '|◀ rise', back10: '−10m', back1: '−1m', forward1: '+1m', forward10: '+10m', nextRise: 'rise ▶|' },
+    step: { prevRise: '|◀ pass', backChunk: '◀ 4h', back1: '−1m', forward1: '+1m', forwardChunk: '4h ▶', nextRise: 'pass ▶|' },
     stepName: {
-      prevRise: 'Previous rise',
-      back10: 'Back ten minutes',
+      prevRise: 'Previous pass',
+      backChunk: 'Back four hours',
       back1: 'Back one minute',
       forward1: 'Forward one minute',
-      forward10: 'Forward ten minutes',
-      nextRise: 'Next rise',
+      forwardChunk: 'Forward four hours',
+      nextRise: 'Next pass',
     },
     /**
      * R48 (FR-LIVE-7 as amended, FR-COMP-4): the compact page's two control

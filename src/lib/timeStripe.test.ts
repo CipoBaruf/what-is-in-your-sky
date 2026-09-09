@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { goldenPassFixture } from '../../tests/support/catalogFixtures';
 import type { Pass } from '../model';
 import {
+  CELL_PX,
   CHUNK_MIN_WALL_S,
   CHUNK_MS,
   chunkFor,
@@ -218,9 +219,14 @@ describe('keyStep and overviewKeyStep (FR-SPAN-2)', () => {
 
 /** R70 (FR-SPAN-7, FR-TRAJ-4 as amended v1.4): the cadence the chunk is labelled at. */
 describe('labelEveryMs and the chunk ticks (FR-SPAN-7)', () => {
-  it('labels a chunk every 30 min where twelve labels fit and every hour under that', () => {
-    expect(labelEveryMs(CHUNK_MS, STRIPE_LABEL_MIN_CELLS)).toBe(30 * 60_000);
-    expect(labelEveryMs(CHUNK_MS, STRIPE_LABEL_MIN_CELLS - 1)).toBe(HOUR_MS);
+  it('labels a chunk every 30 min where its own labels fit — four cells each — and every hour under that', () => {
+    // Eight half hours in a chunk: 32 cells, inside the 36 FR-TRAJ-4 guarantees the compact stripe (360 px is 37.5).
+    expect(labelEveryMs(CHUNK_MS, 32)).toBe(30 * 60_000);
+    expect(labelEveryMs(CHUNK_MS, 360 / CELL_PX)).toBe(30 * 60_000);
+    expect(labelEveryMs(CHUNK_MS, 31)).toBe(HOUR_MS);
+    // A chunk clipped by the span's start is shorter and wants less: three half hours, twelve cells.
+    expect(labelEveryMs(90 * 60_000, 12)).toBe(30 * 60_000);
+    expect(labelEveryMs(90 * 60_000, 11)).toBe(HOUR_MS);
     // …and the whole span keeps FR-TRAJ-4's own pair.
     expect(labelEveryMs(24 * HOUR_MS, STRIPE_LABEL_MIN_CELLS)).toBe(2 * HOUR_MS);
     expect(labelEveryMs(24 * HOUR_MS, STRIPE_LABEL_MIN_CELLS - 1)).toBe(3 * HOUR_MS);
@@ -231,7 +237,8 @@ describe('labelEveryMs and the chunk ticks (FR-SPAN-7)', () => {
     expect(roomy.map((tick) => `${String(tick.hour)}:${String(tick.minute).padStart(2, '0')}`)).toEqual(['12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00']);
     expect(roomy.every((tick) => tick.labelled)).toBe(true);
     expect(roomy.map(tickLabel)).toEqual(['12', '30', '13', '30', '14', '30', '15', '30', '16']);
-    const dense = hourTicks(chunk, 350, 'UTC');
+    // Under 32 cells — a rail narrower than the compact stripe — the chunk is labelled every hour.
+    const dense = hourTicks(chunk, 31 * CELL_PX, 'UTC');
     expect(dense.map((tick) => tick.hour)).toEqual([12, 13, 14, 15, 16]);
     expect(dense.map(tickLabel)).toEqual(['12', '13', '14', '15', '16']);
   });
@@ -247,7 +254,7 @@ describe('labelEveryMs and the chunk ticks (FR-SPAN-7)', () => {
  * is centred on its tick and `text.length` cells wide.
  */
 describe('keepLabels', () => {
-  const label = (x: number, text: string, midnight = false): StripeLabel => ({ tick: { t: START + x, x, hour: midnight ? 0 : 12, labelled: true, midnight }, text });
+  const label = (x: number, text: string, midnight = false): StripeLabel => ({ tick: { t: START + x, x, hour: midnight ? 0 : 12, minute: 0, labelled: true, midnight }, text });
 
   it('drops a label that would spill past either edge', () => {
     const kept = keepLabels([label(2, '06'), label(300, '12'), label(595, '18')], 600);

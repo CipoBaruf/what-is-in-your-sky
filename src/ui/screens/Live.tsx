@@ -18,9 +18,9 @@ import { arcKey, withArcStates } from '../components/live/liveArcs';
 import { HiddenToggle, PlaybackControls } from '../components/live/PlaybackControls';
 import { StatusStrip } from '../components/live/StatusStrip';
 import { StepControls } from '../components/live/StepControls';
+import { StripeOverview } from '../components/live/StripeOverview';
 import { TimeReadout } from '../components/live/TimeReadout';
 import { TimeStripe } from '../components/live/TimeStripe';
-import { pageHasTouch } from '../components/live/touch';
 import { useHiddenObjects } from '../components/live/useHiddenObjects';
 import { usePlayback } from '../components/live/usePlayback';
 import { useSkyBands } from '../components/live/useSkyBands';
@@ -311,8 +311,12 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
     setLiveHidden(!liveHidden);
   }, [liveHidden, setLiveHidden]);
   useHashFollows(observer, shown, playback.realTime, playback.playing);
-  // R54 (FR-TRAJ-5, FR-LIVE-7 as amended v1.1.1): the stepping row is for fingers; a pointer has the arrow keys.
-  const touch = pageHasTouch();
+  /*
+   * R54 (FR-TRAJ-5, FR-LIVE-7 as amended v1.1.1) put the stepping row behind `pageHasTouch()`: it was for
+   * fingers, and a pointer had the arrow keys. R70 (FR-TRAJ-5 as amended v1.4, V14-6) drops the guard — the row
+   * is rendered wherever the stripe is — because `pass ▶|` is not a substitute for a gesture but the one tap
+   * FR-SPAN-4 promises, and a mouse has no equivalent of it. `pageHasTouch` is left in the lane unused.
+   */
   /*
    * R66 (FR-FSC-8, FR-WIN-6 and FR-FOL-3 as amended v1.3.1; V13-7, D-353): the screen shows *this* instant.
    * R48's `if (following) toNow()` is gone — opening the window used to reset the page to real time, which is
@@ -344,6 +348,13 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
    */
   const playbackControls = <PlaybackControls playing={playback.playing} speed={playback.speed} realTime={playback.realTime} onPlay={playback.play} onPause={playback.pause} onSpeed={playback.setSpeed} onNow={playback.toNow} />;
   const readout = <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />;
+  /*
+   * R70 (FR-SPAN-2, FR-SPAN-3; D-383, D-384, D-389; V14-6): the block is four rows now. The overview carries the
+   * whole 24 h and stands directly above the stripe, under the clock readout; the stripe draws the four hours
+   * that hold the shown instant, which is `drawnSpan`'s and not this page's to decide — the same `span` goes to
+   * both, and only the speed comes down with it, for FR-SPAN-6's fallback. The stepping row is no longer behind
+   * `touch`: `pass ▶|` is a control a pointer wants as much as a thumb, and it is FR-SPAN-4's one tap.
+   */
   const stripeBlock = (
     <div className={styles.stripeBlock} data-testid="stripe-block">
       {stripeUnder ? (
@@ -356,8 +367,11 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
       ) : (
         readout
       )}
-      <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} onScrub={playback.scrub} />
-      {touch && <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} />}
+      <div className={styles.overviewRow} data-testid="overview-row">
+        <StripeOverview span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} onScrub={playback.scrub} />
+      </div>
+      <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} speed={playback.playing ? playback.speed : null} onScrub={playback.scrub} />
+      <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} />
     </div>
   );
   /*

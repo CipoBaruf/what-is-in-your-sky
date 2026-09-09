@@ -189,33 +189,52 @@ export const TAP_PX = 2 * ROW_PX;
 /** FR-SHP-3: eight rows, the smallest box in which the drawing is still a bowl. */
 export const LIVE_BOX_MIN_PX = 8 * ROW_PX;
 
-/** The rows under the box that fold, in the order they go (FR-SHP-3); R70 puts `'overview'` at the head. */
-export type LiveFold = 'actions';
-export const LIVE_FOLD_ORDER: readonly LiveFold[] = ['actions'];
+/**
+ * The rows under the box that fold, in the order they go (FR-SHP-3). R70
+ * (FR-SPAN-2, D-389) puts the overview at the head, in the task that creates
+ * it: the whole span in one row is what a short window can most afford to
+ * lose, since the stripe under it still draws the four hours around the shown
+ * instant and the stepping row still moves it a chunk at a time.
+ */
+export type LiveFold = 'overview' | 'actions';
+export const LIVE_FOLD_ORDER: readonly LiveFold[] = ['overview', 'actions'];
 
 /** The page's padding above and below, and the gap between its rows: a quarter row each (`Live.module.css`). */
 export const LIVE_PAGE_PADDING_PX = ROW_PX / 2;
 export const LIVE_GAP_PX = ROW_PX / 4;
 /** The strip on one line over its rule: the line, the half row of air above it, and the hairline. */
 export const LIVE_STRIP_LINE_PX = ROW_PX + ROW_PX / 2 + 1;
-/** The rows above and under the box before anything folds, top to bottom: the top row, the controls row, the time row, the stripe, the strip's line, the actions row. */
-export const LIVE_KEPT_ROWS_PX: readonly number[] = [TAP_PX, TAP_PX, TAP_PX, 3 * ROW_PX, LIVE_STRIP_LINE_PX, TAP_PX];
 /**
- * The gaps those rows cost: after the top row, the box, the stripe and the (empty) legend slot, and before
- * the strip's line — five. The frame's controls row and the actions cost none: the box follows the controls
- * row in the frame's own grid, and the actions wrap under the strip's fields in a row with no row gap.
+ * The rows above and under the box before anything folds, top to bottom: the top row, the controls row, the
+ * time row, the overview, the stripe, the stepping row, the strip's line, the actions row.
+ *
+ * R70 (FR-SPAN-2, FR-TRAJ-5 as amended v1.4) adds two of them — the overview's one text row and the stepping
+ * row, which is a row of tap targets on the wide page now that the `touch` guard is gone (V14-6) — with a gap
+ * each. Both are derived from the tokens rather than measured: R69's 343 px was read off a 1200 × 450 window
+ * on its own branch, and R71 re-derives the whole table when the rail moves the strip and the actions beside
+ * the box.
  */
-export const LIVE_KEPT_GAPS = 5;
+export const LIVE_KEPT_ROWS_PX: readonly number[] = [TAP_PX, TAP_PX, TAP_PX, ROW_PX, 3 * ROW_PX, TAP_PX, LIVE_STRIP_LINE_PX, TAP_PX];
+/**
+ * The gaps those rows cost: after the top row, the box, the overview, the stripe, the stepping row and the
+ * (empty) legend slot, and before the strip's line — seven. The frame's controls row and the actions cost
+ * none: the box follows the controls row in the frame's own grid, and the actions wrap under the strip's
+ * fields in a row with no row gap.
+ */
+export const LIVE_KEPT_GAPS = 7;
 export const LIVE_KEPT_PX = LIVE_PAGE_PADDING_PX + LIVE_KEPT_ROWS_PX.reduce((sum, row) => sum + row, 0) + LIVE_KEPT_GAPS * LIVE_GAP_PX;
 /**
- * What each fold gives the box back, in px, measured at 1200 × 450 on the branch (a 107 px box unfolded, 213
+ * What each fold gives the box back, in px, measured at 1200 × 450 on R69's branch (a 107 px box unfolded, 213
  * folded). `actions`: the top row and the controls row at one text row (24 each), the time row at its clock's
- * heading line (22), the five gaps at the compact token (2 each), the strip's air at the token (8), and the
+ * heading line (22), the gaps at the compact token (2 each), the strip's air at the token (8), and the
  * actions' own row (48) less the second line they take beside the strip's fields (24) and the half row under
- * the last line's hit box (6).
+ * the last line's hit box (6). R70 adds the stepping row to the rows that let their air out with it (24), and
+ * the two gaps its own rows add to the ones the token shrinks.
  */
 export const LIVE_FOLD_GIVES_PX: Readonly<Record<LiveFold, number>> = {
-  actions: 2 * (TAP_PX - ROW_PX) + 22 + LIVE_KEPT_GAPS * (LIVE_GAP_PX - ROW_PX / 6) + (ROW_PX / 2 - ROW_PX / 6) + (TAP_PX - ROW_PX) - ROW_PX / 4,
+  /* R70: the overview is one text row and its gap, and it gives back exactly that — the row is not there, and nothing else moves. */
+  overview: ROW_PX + LIVE_GAP_PX,
+  actions: 2 * (TAP_PX - ROW_PX) + 22 + LIVE_KEPT_GAPS * (LIVE_GAP_PX - ROW_PX / 6) + (ROW_PX / 2 - ROW_PX / 6) + (TAP_PX - ROW_PX) - ROW_PX / 4 + (TAP_PX - ROW_PX),
 };
 
 /** FR-SHP-3: which rows the wide page folds at `heightPx` of viewport — the head of the order, as far as the floor asks. */
