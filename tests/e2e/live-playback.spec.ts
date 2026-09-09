@@ -226,6 +226,10 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     const whole = await drawn(page);
     expect(whole.end - whole.start).toBe(24 * HOUR);
     expect(whole.start).toBe(Number(await page.getByTestId('time-stripe').getAttribute('aria-valuemin')));
+    // FR-SPAN-6: the overview's bracket covers all of it, because it brackets what the stripe draws and not the chunk.
+    const overview = page.getByTestId('stripe-overview');
+    await expect(overview).toHaveAttribute('data-chunk-start', String(whole.start));
+    await expect(overview).toHaveAttribute('data-chunk-end', String(whole.end));
     expect(Math.abs((await shownInstant(page)) - held)).toBeLessThan(2 * 60_000);
     // FR-LIVE-5's rate at 3600×: two seconds of wall time is two hours of shown time.
     const from = await shownInstant(page);

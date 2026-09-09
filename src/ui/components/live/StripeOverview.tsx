@@ -1,7 +1,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { useLocale, useT } from '../../../i18n/useT';
 import { formatClock } from '../../../lib/timeFormat';
-import { chunkFor, cursorAt, nightBands, overviewKeyStep, passSegments, timeAt, xAt, type SkyBand, type Span } from '../../../lib/timeStripe';
+import { cursorAt, drawnSpan, nightBands, overviewKeyStep, passSegments, timeAt, xAt, type SkyBand, type Span } from '../../../lib/timeStripe';
 import type { EpochMs, Pass } from '../../../model';
 import styles from './StripeOverview.module.css';
 
@@ -9,9 +9,11 @@ import styles from './StripeOverview.module.css';
  * R70 (FR-SPAN-2, US-24 AC2, D-383): the whole night in one row, above the
  * stripe and under the clock readout. It carries the span the stripe used to
  * draw — FR-LIVE-4's night shading and one mark per pass in its arc's colour —
- * with a cursor at the shown instant and a bracket around the four hours drawn
- * below it (`chunkFor`). Its resolution is the old one, about two minutes per
- * pixel on a phone: it says *where in the night*, and the stripe says *when*.
+ * with a cursor at the shown instant and a bracket around what the stripe below
+ * it draws (`drawnSpan`, which is the chunk at every speed but the two fast ones
+ * and the whole span at those, FR-SPAN-6). Its resolution is the old one, about
+ * two minutes per pixel on a phone: it says *where in the night*, and the stripe
+ * says *when*.
  *
  * A slider of its own, and not a mode of `TimeStripe` (D-383): the two draw
  * different pictures at different resolutions from the same pure module, and a
@@ -19,9 +21,10 @@ import styles from './StripeOverview.module.css';
  * or a drag sets the instant to what is under the pointer; the arrow keys step
  * a quarter hour and Page Up and Page Down a chunk (`overviewKeyStep`).
  *
- * The bracket is where `chunkFor` says and is drawn, not stored: nothing here
+ * The bracket is where `drawnSpan` says and is drawn, not stored: nothing here
  * chooses the chunk, and the mark and the bracket cannot disagree with the
- * stripe below because both are the same function of `t` (FR-SPAN-1).
+ * stripe below because both are the same function of `t` and the speed
+ * (FR-SPAN-1, FR-SPAN-6 — at 600× and 3600× the bracket covers the whole row).
  */
 export interface StripeOverviewProps {
   span: Span;
@@ -30,6 +33,8 @@ export interface StripeOverviewProps {
   /** The shown instant. */
   t: EpochMs;
   timeZone: string | null;
+  /** R70 (FR-SPAN-6): the speed playback is running at, or `null` while it is paused — the same value the stripe takes. */
+  speed?: number | null;
   onScrub: (t: EpochMs) => void;
 }
 
@@ -40,7 +45,7 @@ export const DEFAULT_WIDTH = 600;
 /** A pass mark is at least this wide, so a ten-minute pass in 24 h is still a mark and not a hairline. */
 export const MARK_MIN_PX = 2;
 
-export function StripeOverview({ span, passes, bands, t, timeZone, onScrub }: StripeOverviewProps) {
+export function StripeOverview({ span, passes, bands, t, timeZone, speed = null, onScrub }: StripeOverviewProps) {
   const m = useT();
   const locale = useLocale();
   const ref = useRef<SVGSVGElement>(null);
@@ -96,7 +101,7 @@ export function StripeOverview({ span, passes, bands, t, timeZone, onScrub }: St
   // F-38's rule, kept: the night and the marks are the span's and do not move with the instant; the cursor and the bracket do, and both are arithmetic.
   const night = useMemo(() => nightBands(bands, span, width), [bands, span, width]);
   const marks = useMemo(() => passSegments(passes, span, width), [passes, span, width]);
-  const chunk = chunkFor(t, span, timeZone);
+  const chunk = drawnSpan(t, span, timeZone, speed);
   const bracketX = xAt(chunk.start, span, width);
   const bracketWidth = Math.max(MARK_MIN_PX, xAt(chunk.end, span, width) - bracketX);
   const cursor = cursorAt(t, span, width);
@@ -145,7 +150,7 @@ export function StripeOverview({ span, passes, bands, t, timeZone, onScrub }: St
           />
         ))}
       </g>
-      {/* The four hours the stripe below is drawing (FR-SPAN-2): a bracket, open at the top and the bottom so the marks inside it still read. */}
+      {/* What the stripe below is drawing (FR-SPAN-2): a bracket, open at the top and the bottom so the marks inside it still read. */}
       <g data-testid="overview-bracket" data-x={fmt(bracketX)} data-width={fmt(bracketWidth)}>
         <rect className={styles.bracket} x={fmt(bracketX)} y="0.5" width={fmt(bracketWidth)} height={fmt(height - 1)} rx="1" />
       </g>

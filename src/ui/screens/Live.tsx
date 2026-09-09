@@ -351,8 +351,9 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   /*
    * R70 (FR-SPAN-2, FR-SPAN-3; D-383, D-384, D-389; V14-6): the block is four rows now. The overview carries the
    * whole 24 h and stands directly above the stripe, under the clock readout; the stripe draws the four hours
-   * that hold the shown instant, which is `drawnSpan`'s and not this page's to decide — the same `span` goes to
-   * both, and only the speed comes down with it, for FR-SPAN-6's fallback. The stepping row is no longer behind
+   * that hold the shown instant, which is `drawnSpan`'s and not this page's to decide — the same `span` and the
+   * same speed go to both, so the bracket is the window the stripe draws at every speed, the whole row at 600×
+   * and 3600× (FR-SPAN-6), and the two cannot disagree. The stepping row is no longer behind
    * `touch`: `pass ▶|` is a control a pointer wants as much as a thumb, and it is FR-SPAN-4's one tap.
    */
   const stripeBlock = (
@@ -368,7 +369,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
         readout
       )}
       <div className={styles.overviewRow} data-testid="overview-row">
-        <StripeOverview span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} onScrub={playback.scrub} />
+        <StripeOverview span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} speed={playback.playing ? playback.speed : null} onScrub={playback.scrub} />
       </div>
       <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} speed={playback.playing ? playback.speed : null} onScrub={playback.scrub} />
       <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} />

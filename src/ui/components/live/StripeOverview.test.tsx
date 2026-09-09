@@ -79,6 +79,24 @@ describe('<StripeOverview>', () => {
     expect(Number(screen.getByTestId('overview-bracket').getAttribute('data-x'))).toBe(0);
   });
 
+  it('covers the whole row where the stripe draws the whole span, and gives the bracket back on pausing (FR-SPAN-6)', () => {
+    const t = START + 6 * HOUR_MS;
+    const { overview, rerender } = mount(t);
+    const chunk = chunkFor(t, span, ZONE);
+    // 60× keeps the chunk: a chunk lasts four minutes of wall time there, well over `CHUNK_MIN_WALL_S`.
+    rerender(<StripeOverview span={span} passes={passes} bands={bands} t={t} timeZone={ZONE} speed={60} onScrub={vi.fn()} />);
+    expect(overview.getAttribute('data-chunk-start')).toBe(String(chunk.start));
+    // 3600×, where the stripe draws the whole 24 h: the bracket covers all of it rather than four hours of it.
+    rerender(<StripeOverview span={span} passes={passes} bands={bands} t={t} timeZone={ZONE} speed={3600} onScrub={vi.fn()} />);
+    expect([overview.getAttribute('data-chunk-start'), overview.getAttribute('data-chunk-end')]).toEqual([String(span.start), String(span.end)]);
+    const wide = screen.getByTestId('overview-bracket');
+    expect(Number(wide.getAttribute('data-x'))).toBe(0);
+    expect(Number(wide.getAttribute('data-width'))).toBeCloseTo(DEFAULT_WIDTH, 1);
+    // Pausing is `speed = null`, and the chunk comes back — nothing here was stored (D-385).
+    rerender(<StripeOverview span={span} passes={passes} bands={bands} t={t} timeZone={ZONE} speed={null} onScrub={vi.fn()} />);
+    expect(overview.getAttribute('data-chunk-start')).toBe(String(chunk.start));
+  });
+
   it('sets the instant to what is under the pointer on a click and follows a drag (US-24 AC2)', () => {
     const { overview, onScrub } = mount(START);
     fireEvent.pointerDown(overview, { button: 0, clientX: 150, pointerId: 1 });
