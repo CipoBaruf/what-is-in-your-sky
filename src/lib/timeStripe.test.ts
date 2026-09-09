@@ -6,16 +6,25 @@ import { describe, expect, it } from 'vitest';
 import { goldenPassFixture } from '../../tests/support/catalogFixtures';
 import type { Pass } from '../model';
 import {
+  CHUNK_MIN_WALL_S,
+  CHUNK_MS,
+  chunkFor,
   clampToSpan,
   cursorAt,
   daysFromCivil,
+  drawnSpan,
   HOUR_MS,
   hourTicks,
   isCurrent,
   keepLabels,
   keyStep,
   labelEveryHours,
+  labelEveryMs,
   midnightDate,
+  OVERVIEW_KEY_STEP_MS,
+  overviewKeyStep,
+  STRIPE_CHUNK_H,
+  tickLabel,
   nextRise,
   nightBands,
   passSegments,
@@ -122,6 +131,114 @@ describe('hourTicks', () => {
     expect(roomy.filter((tick) => tick.midnight).map((tick) => tick.t)).toEqual([Date.UTC(2026, 8, 12)]);
     // The cells can be given instead of measured, for a caller whose cell is not the base one.
     expect(hourTicks(span, WIDTH, 'UTC', 36).filter((tick) => tick.labelled).map((tick) => tick.hour)).toEqual([12, 15, 18, 21, 0, 3, 6, 9]);
+  });
+});
+
+/**
+ * R70 (FR-SPAN-1, D-382): the four hours the stripe draws. The boundaries are
+ * multiples of four hours from the observer's local midnight — whole clock
+ * hours that do not move as time runs — clipped to the span at both ends.
+ */
+describe('chunkFor (FR-SPAN-1)', () => {
+  const local = (t: number, zone: string): string => new Intl.DateTimeFormat('en-GB', { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(t);
+
+  it('cuts on the observer clock at UTC and at a half-hour zone alike', () => {
+    // 14:30 UTC: the chunk is 12:00–16:00 UTC, whole clock hours inside the span.
+    const utc = chunkFor(START + 5 * HOUR_MS, span, 'UTC');
+    expect([local(utc.start, 'UTC'), local(utc.end, 'UTC')]).toEqual(['12:00', '16:00']);
+    expect(utc.end - utc.start).toBe(CHUNK_MS);
+    // The same instant is 20:00 in Kolkata, half an hour off UTC: the chunk is 20:00–00:00 IST, which is 14:30–18:30 UTC.
+    const half = chunkFor(START + 5 * HOUR_MS, span, 'Asia/Kolkata');
+    expect([local(half.start, 'Asia/Kolkata'), local(half.end, 'Asia/Kolkata')]).toEqual(['20:00', '00:00']);
+    expect(new Date(half.end).toISOString()).toBe('2026-09-11T18:30:00.000Z');
+  });
+
+  it('returns the chunk holding the instant on either side of a boundary, and the boundary belongs to the chunk it opens', () => {
+    const boundary = Date.UTC(2026, 8, 11, 12, 0, 0);
+    expect(chunkFor(boundary - 1, span, 'UTC').end).toBe(boundary);
+    expect(chunkFor(boundary, span, 'UTC').start).toBe(boundary);
+    expect(chunkFor(boundary + 1, span, 'UTC')).toEqual({ start: boundary, end: boundary + CHUNK_MS });
+  });
+
+  it('clips at both ends of the span: the first chunk starts at now and the last ends at now + 24 h', () => {
+    expect(chunkFor(START, span, 'UTC')).toEqual({ start: START, end: Date.UTC(2026, 8, 11, 12, 0, 0) });
+    expect(chunkFor(span.end, span, 'UTC')).toEqual({ start: Date.UTC(2026, 8, 12, 8, 0, 0), end: span.end });
+    expect(chunkFor(span.end - 1, span, 'UTC').end).toBe(span.end);
+    // An instant outside the span names the chunk at the edge it is outside.
+    expect(chunkFor(span.end + HOUR_MS, span, 'UTC').end).toBe(span.end);
+    expect(chunkFor(START - HOUR_MS, span, 'UTC').start).toBe(START);
+  });
+
+  it('is four hours long, and an unknown zone cuts on UTC like every other clock on the page', () => {
+    expect(STRIPE_CHUNK_H).toBe(4);
+    expect(chunkFor(START + 5 * HOUR_MS, span, null)).toEqual(chunkFor(START + 5 * HOUR_MS, span, 'UTC'));
+  });
+});
+
+/** R70 (FR-SPAN-6, D-385): the speed at which a chunk stops being worth drawing. */
+describe('drawnSpan (FR-SPAN-6)', () => {
+  const t = START + 5 * HOUR_MS;
+  it('gives the chunk at 1× and 60×, and the whole span at 600× and 3600×', () => {
+    expect(drawnSpan(t, span, 'UTC', 1)).toEqual(chunkFor(t, span, 'UTC'));
+    expect(drawnSpan(t, span, 'UTC', 60)).toEqual(chunkFor(t, span, 'UTC'));
+    expect(drawnSpan(t, span, 'UTC', 600)).toBe(span);
+    expect(drawnSpan(t, span, 'UTC', 3600)).toBe(span);
+  });
+  it('is wall time and not a list of speeds: ten seconds to the hour is the line', () => {
+    expect(CHUNK_MIN_WALL_S).toBe(10);
+    const exactly = 3600 / CHUNK_MIN_WALL_S;
+    expect(exactly).toBe(360);
+    expect(drawnSpan(t, span, 'UTC', exactly)).toEqual(chunkFor(t, span, 'UTC'));
+    expect(drawnSpan(t, span, 'UTC', exactly + 1)).toBe(span);
+  });
+  it('gives the chunk back while paused, whatever speed is selected', () => {
+    expect(drawnSpan(t, span, 'UTC', null)).toEqual(chunkFor(t, span, 'UTC'));
+  });
+});
+
+/** R70 (FR-LIVE-4 as amended v1.4, FR-SPAN-2): the page keys, and the overview's own quarter hour. */
+describe('keyStep and overviewKeyStep (FR-SPAN-2)', () => {
+  const t = START + 6 * HOUR_MS;
+  it('moves the stripe one chunk on Page Up and Page Down, clamped', () => {
+    expect(keyStep(t, 'PageUp', false, span)).toBe(t + CHUNK_MS);
+    expect(keyStep(t, 'PageDown', false, span)).toBe(t - CHUNK_MS);
+    expect(keyStep(START + HOUR_MS, 'PageDown', false, span)).toBe(START);
+    expect(keyStep(span.end - HOUR_MS, 'PageUp', false, span)).toBe(span.end);
+  });
+  it('moves the overview a quarter hour on the arrows and a chunk on the page keys', () => {
+    expect(OVERVIEW_KEY_STEP_MS).toBe(15 * 60_000);
+    expect(overviewKeyStep(t, 'ArrowRight', span)).toBe(t + 15 * 60_000);
+    expect(overviewKeyStep(t, 'ArrowLeft', span)).toBe(t - 15 * 60_000);
+    expect(overviewKeyStep(t, 'PageUp', span)).toBe(t + CHUNK_MS);
+    expect(overviewKeyStep(t, 'PageDown', span)).toBe(t - CHUNK_MS);
+    expect(overviewKeyStep(START, 'ArrowLeft', span)).toBe(START);
+    expect(overviewKeyStep(t, 'Enter', span)).toBeNull();
+  });
+});
+
+/** R70 (FR-SPAN-7, FR-TRAJ-4 as amended v1.4): the cadence the chunk is labelled at. */
+describe('labelEveryMs and the chunk ticks (FR-SPAN-7)', () => {
+  it('labels a chunk every 30 min where twelve labels fit and every hour under that', () => {
+    expect(labelEveryMs(CHUNK_MS, STRIPE_LABEL_MIN_CELLS)).toBe(30 * 60_000);
+    expect(labelEveryMs(CHUNK_MS, STRIPE_LABEL_MIN_CELLS - 1)).toBe(HOUR_MS);
+    // …and the whole span keeps FR-TRAJ-4's own pair.
+    expect(labelEveryMs(24 * HOUR_MS, STRIPE_LABEL_MIN_CELLS)).toBe(2 * HOUR_MS);
+    expect(labelEveryMs(24 * HOUR_MS, STRIPE_LABEL_MIN_CELLS - 1)).toBe(3 * HOUR_MS);
+  });
+  it('puts a tick on every half hour of the chunk at the roomy cadence, and every hour at the dense one', () => {
+    const chunk = chunkFor(Date.UTC(2026, 8, 11, 13, 0, 0), span, 'UTC');
+    const roomy = hourTicks(chunk, 1200, 'UTC');
+    expect(roomy.map((tick) => `${String(tick.hour)}:${String(tick.minute).padStart(2, '0')}`)).toEqual(['12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00']);
+    expect(roomy.every((tick) => tick.labelled)).toBe(true);
+    expect(roomy.map(tickLabel)).toEqual(['12', '30', '13', '30', '14', '30', '15', '30', '16']);
+    const dense = hourTicks(chunk, 350, 'UTC');
+    expect(dense.map((tick) => tick.hour)).toEqual([12, 13, 14, 15, 16]);
+    expect(dense.map(tickLabel)).toEqual(['12', '13', '14', '15', '16']);
+  });
+  it('flags the midnight crossing inside a chunk, whose label is the date and not the hour', () => {
+    const chunk = chunkFor(Date.UTC(2026, 8, 11, 23, 0, 0), span, 'UTC');
+    const ticks = hourTicks(chunk, 350, 'UTC');
+    expect(ticks.filter((tick) => tick.midnight).map((tick) => tick.t)).toEqual([Date.UTC(2026, 8, 12)]);
   });
 });
 
