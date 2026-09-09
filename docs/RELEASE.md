@@ -407,6 +407,13 @@ cannot judge: whether four hours is the right chunk to page through, and whether
 dragged short is a page you would use. So the phase's owner run is a phone and a window,
 and it ends in decisions rather than only in ticks (§11.3).
 
+*(v1.4.1, V14-9..V14-11)* A fourth item joined the phase after R71 and before this task:
+the sky screen no longer waits for the phone to be turned (R73). It is the most
+hand-and-sensor change of the four — the turn is read from the pose, and a wrong sign
+looks right in every test and is upside down in the hand — so it has its own run at §11.3a,
+and it is the reason this release is taken on a build that carries it rather than on the
+one R71 left.
+
 ### 11.1 The stripe and the list on a real phone (FR-SPAN-1..7, FR-LEG-6..8, US-24, US-25)
 
 On the phone already used for §7.1 and §9.1, outdoors, on the live page.
@@ -457,6 +464,27 @@ of the landscape rules ran at a phone's width.
       neither (FR-SHP-1).
 - [ ] Resize slowly across a boundary in each direction: the dome is redrawn at the size
       it is at, not at the size it was (F-60, FR-DOME-1).
+
+### 11.3a The sky screen on a phone that will not turn (FR-FSC-4, FR-FSC-10, FR-FSC-11, US-21 AC12, AC15)
+
+On the same phone as §11.1, outdoors, with the sky screen open from the live page's view
+control. Do it twice: once with the phone's rotation **locked**, which is the case the
+change exists for, and once unlocked.
+
+- [ ] Rotation locked, phone held sideways: the picture is the wide one, and the readout,
+      the legend and the `×` are all the right way up to the eye — not a note, and not a
+      picture lying on its side (FR-FSC-10, US-21 AC15). The sign of the turn is the thing
+      to look at: a wrong one is upside down, not subtly off.
+- [ ] Rotation locked, phone upright: the picture is drawn in the tall box with one line of
+      advice over it, readable and clear of the legend strip, and nothing waits for a turn
+      (FR-FSC-4, FR-FSC-11, US-21 AC12).
+- [ ] Rotation unlocked, turned by hand from upright to sideways and back: the picture
+      follows, once per turn, with no second permission prompt and no flip back and forth
+      at the angle in between (FR-FSC-10's hysteresis, FR-FOL-2).
+- [ ] Raise the phone to a pass near the zenith, flat: the picture holds the turn it had
+      and does not spin, in either rotation setting (FR-FSC-10's flat hold).
+- [ ] Point it at the ground: the ground note is the line that shows, the advice waits, and
+      neither is behind the legend (FR-FOL-5, FR-FSC-11).
 
 ### 11.3 What the owner decides on this release
 
