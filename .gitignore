@@ -21,3 +21,4 @@ sdd-run/
 /scripts/debug-*
 /playwright.*.config.*
 /playwright-*.config.*
+/redesign
