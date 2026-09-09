@@ -1603,7 +1603,8 @@ Delivery is PLAN §16 unchanged, cut by §16.14: six tasks, five waves, one task
     - F-62 marked closed in spec §4.20 with this PR's number.
     - The owner's gate: the list opened and closed on a phone, and the rail at 1024 and 1280.
 
-- [ ] **R73 — The screen does not wait: both orientations, the turn and the advice**
+- [x] **R73 — The screen does not wait: both orientations, the turn and the advice**
+  - *Done as written, with two refinements recorded as PLAN D-431 (the quarter is folded in `useDeviceOrientation`, beside the rotation, because `react-hooks` forbids both the effect and the ref D-429's placement needed) and D-432 (a half turn covers the viewport as it is; only a quarter turn swaps the layer's two sides).*
   - **Lane:** window
   - **Model:** opus
   - **Gate:** owner
