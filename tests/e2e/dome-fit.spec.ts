@@ -46,7 +46,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { FIT_EPS_PX, fitFloor, painted, WHOLE_PIXEL_MIN_RATIO } from './domeInk';
+import { FIT_EPS_PX, fitFloor, MIN_EXTENT_RATIO, painted } from './domeInk';
 import { domeDrawn, seedStoredRun, stripFilled } from './liveHelpers';
 
 interface Reference {
@@ -80,13 +80,15 @@ async function expectFit(chartBox: Locator, drawing: Locator): Promise<void> {
    * follow: the raster can fall short of the box, and the blank column D-290 keeps either side of
    * the ink costs a larger share of it. Both shrink the drawing, and the owner chose the exact
    * column count over recovering that (D-293), so the shortfall is the accepted behaviour.
-   * `camera.test.ts` pins how far it may go — 0.818 of the box at ratio 1, and no further.
+   * `camera.test.ts` pins how far it may go — 0.818 of the box at ratio 1, and no further — and
+   * `fitFloor` (R69) derives the floor for this box from the cell the page measured: FR-DOME-1's 0.9
+   * at the zoom the rounded raster leaves, over the zoom the box asks for.
    *
    * The condition is tested directly rather than inferred from the raster: a raster can cover its
    * box and the drawing still be short, which is what the margin costs.
    */
-  const floor = fitFloor(layers, box.width);
-  const rounded = floor === WHOLE_PIXEL_MIN_RATIO;
+  const floor = fitFloor(layers, box);
+  const rounded = floor < MIN_EXTENT_RATIO;
   expect(
     Math.max(extent.width, extent.height) / shorter,
     rounded

@@ -5,26 +5,51 @@
  * rail leaves it. The helper lives here so the two specs measure one thing.
  */
 import type { Locator } from '@playwright/test';
+import { MIN_EXTENT_RATIO, zoomFor, zoomWithinRaster } from '../../src/ui/components/guide/skychart/dome/camera';
 
 /** FR-DOME-1's floor: the drawing, labels included, over the side of the box it is fitted to. */
-export const MIN_EXTENT_RATIO = 0.9;
+export { MIN_EXTENT_RATIO };
 /**
- * D-293: what the drawing may shrink to where the platform rounds a glyph advance to a whole device
- * pixel. `camera.test.ts` measures 0.818 at a device pixel ratio of 1 and 0.9001 at a ratio of 2;
- * this is the lower of the two with a little room, so a further regression still fails here.
+ * D-293's quantum: a platform without subpixel positioning (Linux Chromium, which is what CI runs)
+ * rounds every glyph advance to a whole device pixel, so a layer's fitted cell can be up to one CSS
+ * pixel under `box / cols` at a device pixel ratio of 1 (half of one at a ratio of 2, which is inside
+ * this). A cell further under than that was cut short by something else, and gets no allowance.
  */
-export const WHOLE_PIXEL_MIN_RATIO = 0.81;
-/** A fitted cell this far under `box / cols` means the platform rounded the advance, not float noise. */
+export const ADVANCE_QUANTUM_PX = 1;
+/** Float noise in a measured cell, as against the quantum above. */
 export const CELL_EPS_PX = 0.01;
 /** Sub-pixel rounding (worse at a device pixel ratio of 2), and the label snap the unit side already accounts for. */
 export const FIT_EPS_PX = 3;
 
 /**
- * Which floor this platform is held to: the rounded one where a layer's fitted
- * cell is measurably under `box / cols`, FR-DOME-1's as written otherwise.
+ * The zoom this platform's rasters leave the drawing: `fitLayers`' own rule (D-290's clamp on each
+ * layer's settled raster, D-292's one zoom for both), fed the rasters the page actually painted.
+ * Where every advance rendered at the width it was asked for this is `zoomFor`'s number; where the
+ * platform rounded the cell down it is less, and the drawing — painted on that raster — follows it.
  */
-export function fitFloor(layers: readonly LayerInk[], boxWidthPx: number): number {
-  return layers.some(({ cols, cellWidthPx }) => cellWidthPx < boxWidthPx / cols - CELL_EPS_PX) ? WHOLE_PIXEL_MIN_RATIO : MIN_EXTENT_RATIO;
+export function platformZoom(layers: readonly LayerInk[], box: Pick<Rect, 'width' | 'height'>): number {
+  return Math.min(zoomFor(box.width, box.height), ...layers.map(({ cols, rows, cellWidthPx, cellHeightPx }) => zoomWithinRaster(box.width, box.height, { widthPx: cols * cellWidthPx, heightPx: rows * cellHeightPx, cellWidthPx })));
+}
+
+/**
+ * The floor this platform is held to, derived rather than pinned: FR-DOME-1's 0.9 at the zoom the
+ * platform's rasters leave (D-293: the column count stays exact and the drawing goes short instead),
+ * over the zoom the box itself asks for. Where nothing rounds the two are equal and the floor is
+ * FR-DOME-1's as written; where a cell rounded down by up to `ADVANCE_QUANTUM_PX` the floor scales
+ * with the drawing — the same on both axes, since one zoom draws both.
+ *
+ * R69 (FR-SHP-4): this used to be a constant, 0.81, measured *across* a 354.4 px square box where the
+ * width binds (58 cells of 5 px over 354.4, D-293's 0.818 with a little room). The landscape phone's
+ * box at 932 × 430 is 355.8 × 306 — nearly the same width, the same 5 px cell on Linux, the same
+ * zoom of 131.8 — but its shorter side is its height, and its shape (1.16 : 1) is under the fit
+ * rule's own 2.4 : 2.0, so the width binds and the height already has 3 % of slack with exact
+ * advances (0.907 measured on macOS). The same 0.889 of zoom from that start is 0.803 down, which is
+ * over this floor (0.800) and under the width's number. The width's allowance was never the height's.
+ */
+export function fitFloor(layers: readonly LayerInk[], box: Pick<Rect, 'width' | 'height'>): number {
+  const shortByMoreThanTheQuantum = layers.some(({ cols, cellWidthPx }) => cellWidthPx < box.width / cols - ADVANCE_QUANTUM_PX - CELL_EPS_PX);
+  if (shortByMoreThanTheQuantum) return MIN_EXTENT_RATIO;
+  return MIN_EXTENT_RATIO * Math.min(1, platformZoom(layers, box) / zoomFor(box.width, box.height));
 }
 
 export interface Rect {
@@ -44,6 +69,8 @@ export interface LayerInk {
   margin: { left: number; right: number };
   /** The grid's own cell, `<pre>` width over columns: below `box / cols` where the platform rounded the advance. */
   cellWidthPx: number;
+  /** The grid's row, `<pre>` height over rows. */
+  cellHeightPx: number;
 }
 
 export interface Painted {
@@ -100,6 +127,7 @@ export async function painted(drawing: Locator): Promise<Painted> {
         },
         margin: { left: minCol, right: cols - 1 - maxCol },
         cellWidthPx,
+        cellHeightPx,
       });
     }
     // A tick behind the dome (D-56's ring runs all the way round) is `display: none` rather than

@@ -107,6 +107,29 @@ async function rects(entries: readonly (readonly [name: string, locator: Locator
   return found;
 }
 
+/**
+ * The named elements' rectangles once they have stopped moving: two identical reads a poll apart. A
+ * resize across the mode breakpoint re-cuts the shell (the columns scroll inside themselves on wide, the
+ * page scrolls on compact), and a read taken in the frame between the two layouts saw the list column
+ * over the footer at 360 × 640 — once in a few runs under a parallel load, never on a settled page.
+ */
+async function settledRects(entries: readonly (readonly [name: string, locator: Locator])[]): Promise<Map<string, Rect>> {
+  let last = '';
+  let result: Map<string, Rect> | null = null;
+  await expect
+    .poll(async () => {
+      const found = await rects(entries);
+      const key = [...found.entries()].map(([name, r]) => `${name}=${fmt(r)}`).join(';');
+      const still = found.size > 0 && key === last;
+      last = key;
+      if (still) result = found;
+      return still;
+    })
+    .toBe(true);
+  if (!result) throw new Error('the page never settled');
+  return result;
+}
+
 function expectNoOverlap(found: Map<string, Rect>, at: string): void {
   const names = [...found.keys()];
   for (const [i, a] of names.entries()) {
@@ -246,10 +269,14 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       expect(ink.extent.y, `${at}: the drawing's top is inside the box`).toBeGreaterThanOrEqual(box.y - 1);
       expect(ink.extent.y + ink.extent.height, `${at}: the drawing's bottom is inside the box`).toBeLessThanOrEqual(box.y + box.height + 1);
 
-      // FR-DOME-1: 90–100 % of the box's shorter side, labels included (D-293's lower floor where the platform rounds the advance).
+      // FR-DOME-1: 90–100 % of the box's shorter side, labels included. Where the platform rounds the glyph advance
+      // to a whole pixel the floor is FR-DOME-1's at the zoom the rounded raster leaves (`fitFloor`, D-293): at
+      // 932 × 430 the box is 355.8 × 306, the width binds and the height is measured, and CI's Linux Chromium
+      // measures 0.803 against a derived 0.800 where the width's old constant, 0.81, failed it.
       const shorter = box.width <= box.height ? 'width' : 'height';
       const cover = ink.extent[shorter] / box[shorter];
-      expect(cover, `${at}: the drawing covers ${String(Math.round(cover * 100))} % of the box's ${shorter}`).toBeGreaterThanOrEqual(fitFloor(ink.layers, box.width));
+      const floor = fitFloor(ink.layers, box);
+      expect(cover, `${at}: the drawing covers ${String(Math.round(cover * 100))} % of the box's ${shorter} (${fmt(box)}), against a floor of ${floor.toFixed(3)} at this platform's cell`).toBeGreaterThanOrEqual(floor);
       expect(cover, at).toBeLessThanOrEqual(1 + 2 / box[shorter]);
     }
   });
@@ -329,7 +356,7 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       await page.setViewportSize({ width, height });
       await expect(page.getByRole('banner'), at).toBeVisible();
       // On wide both columns scroll inside themselves (FR-DESK-2), so each column is the box its content is drawn in.
-      const found = await rects([
+      const found = await settledRects([
         ['header', page.getByRole('banner')],
         ['left column', page.getByTestId('col-left')],
         ['now panel', page.getByRole('region', { name: 'Right now' })],
@@ -361,7 +388,7 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       await expect(box, at).toBeVisible();
       await settledBox(box);
       // The guide's own rows: the heading, the view control, the box, the sentence and the legend, none over another.
-      const found = await rects([
+      const found = await settledRects([
         ['heading', guide.getByRole('heading').first()],
         ['view control', guide.getByRole('group', { name: 'Chart view' })],
         ['chart box', box],

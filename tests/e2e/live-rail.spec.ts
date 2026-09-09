@@ -163,12 +163,12 @@ for (const [width, height] of [
           if (!boxNow) return 0;
           const { extent, layers } = await painted(dome.locator('[data-drawing="dome"]'));
           if (layers.length === 0) return 0;
-          return (extent.width / boxNow.width) * (MIN_EXTENT_RATIO / fitFloor(layers, boxNow.width));
+          return (extent.width / boxNow.width) * (MIN_EXTENT_RATIO / fitFloor(layers, boxNow));
         }, { message: 'the drawing over the width of its box, at FR-DOME-1’s own floor' })
         .toBeGreaterThanOrEqual(MIN_EXTENT_RATIO);
       const { extent, layers } = await painted(dome.locator('[data-drawing="dome"]'));
       const cell = Math.max(...layers.map((layer) => layer.cellWidthPx)) * 2;
-      expect(extent.height / box.height).toBeGreaterThanOrEqual(fitFloor(layers, box.width));
+      expect(extent.height / box.height).toBeGreaterThanOrEqual(fitFloor(layers, box));
       expect(extent.y).toBeGreaterThanOrEqual(box.y);
       expect(extent.y + extent.height).toBeLessThanOrEqual(box.y + box.height + 1);
       const blankAbove = extent.y - box.y;
