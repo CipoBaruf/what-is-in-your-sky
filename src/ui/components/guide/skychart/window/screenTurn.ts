@@ -64,6 +64,11 @@ const RAD = Math.PI / 180;
 /** The shorter way round between two angles, degrees, 0..180. */
 const separation = (a: number, b: number): number => Math.abs(((a - b + 540) % 360) - 180);
 
+/** The quarter nearest an angle: the browser's own `screen.orientation.angle` on the way in, and the pose's on the way out. */
+export function nearestQuarter(angleDeg: number): Quarter {
+  return ((((Math.round(normalizeAzimuthDeg(angleDeg) / 90) * 90) % 360) + 360) % 360) as Quarter;
+}
+
 /** FR-FSC-10 (D-424): the quarter turn that puts the room's up at the top of the picture. */
 export function quarterTurnFor(m: Mat3 | null, held: Quarter): Quarter {
   if (m === null) return 0;
@@ -72,7 +77,7 @@ export function quarterTurnFor(m: Mat3 | null, held: Quarter): Quarter {
   // Flat: what is left of the room's vertical in the plane of the screen is too short to have a direction.
   if (Math.hypot(x, y) < Math.sin(SCREEN_TURN_FLAT_DEG * RAD)) return held;
   const upDeg = normalizeAzimuthDeg(Math.atan2(x, y) / RAD);
-  const nearest = ((Math.round(upDeg / 90) * 90) % 360) as Quarter;
+  const nearest = nearestQuarter(upDeg);
   if (nearest === held) return held;
   return separation(upDeg, held) > 45 + SCREEN_TURN_HYSTERESIS_DEG ? nearest : held;
 }

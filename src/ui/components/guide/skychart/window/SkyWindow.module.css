@@ -252,7 +252,7 @@
    text, never a dialog — nothing to dismiss, and no pointer to catch. */
 .groundNote,
 .buriedNote,
-.portraitNote {
+.turnNote {
   position: absolute;
   left: 0;
   right: 0;
@@ -263,15 +263,16 @@
   pointer-events: none;
 }
 
-.groundNote {
+/* R73 (FR-FSC-11, D-428): the advice stands where the ground note stands —
+   the notes' one place in the box — and never with it, since the ground note
+   takes precedence and the two are mutually exclusive by construction. */
+.groundNote,
+.turnNote {
   bottom: var(--row);
 }
 
-/* R63 (FR-FSC-4, D-323): the portrait note is drawn where `buried` is — the
-   middle of a box that has nothing else in it. Turning the phone is what
-   leaves it, so it catches no pointer either. */
-.buriedNote,
-.portraitNote {
+/* The buried note is the middle of a box that has nothing else in it. */
+.buriedNote {
   top: 50%;
   transform: translateY(-50%);
 }

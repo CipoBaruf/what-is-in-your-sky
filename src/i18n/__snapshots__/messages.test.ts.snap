@@ -30,7 +30,6 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".chart.orientationNote.map:string",
   ".chart.readout:function",
   ".chart.screenClose:string",
-  ".chart.screenLabel:string",
   ".chart.view.dome:string",
   ".chart.view.polar:string",
   ".chart.view.window:string",
@@ -328,10 +327,10 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".window.denied:string",
   ".window.ground:string",
   ".window.hint:string",
-  ".window.portrait:string",
   ".window.readout:function",
   ".window.relative:string",
   ".window.trueNorth:function",
+  ".window.turnAdvice:string",
   ".window.waiting:string",
 ]
 `;

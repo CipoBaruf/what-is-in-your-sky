@@ -46,14 +46,16 @@ export const chart = {
     /** FR-LIVE-1 (R32): the live page's chart has no pass to caption, so the figure is named instead; the status strip carries the facts. */
     liveLabel: 'The whole sky at the shown instant',
     /**
-     * R66 (FR-FSC-2, FR-FSC-4; V13-6, D-356): the sky screen the "window"
-     * option opens, from `live.followClose` and the control that no longer
-     * exists. The `×` is the whole control — the one icon in the app, the
-     * owner's ask — so the word is its accessible name and never its label;
-     * `screenLabel` names the dialog itself while the phone is upright, where
-     * FR-FSC-4 leaves no readout for it to be named by.
+     * R66 (FR-FSC-2; V13-6, D-356): the sky screen the "window" option opens,
+     * from `live.followClose` and the control that no longer exists. The `×`
+     * is the whole control — the one icon in the app, the owner's ask — so the
+     * word is its accessible name and never its label.
+     *
+     * R73 (FR-FSC-4 as rewritten, D-427) deleted `screenLabel` with the
+     * portrait state it existed for: there is a readout in every orientation
+     * now, so the dialog is named by the line the reader is looking at and
+     * nothing else names it.
      */
     screenClose: 'Close',
-    screenLabel: 'Sky window',
   },
 };
