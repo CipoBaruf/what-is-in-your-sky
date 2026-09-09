@@ -33,7 +33,7 @@ import { domeDrawn, homeAt, stripFilled, T } from './liveHelpers';
  * the box yield below its floor"). What R71 buys there is 82 px → 198, and that is what is held. The rest of
  * F-62 is open: see `sdd-run/R71.summary.md` and spec §4.20.
  */
-const FLOOR_TODAY: Readonly<Record<number, number>> = { 844: 374, 667: 190 };
+const FLOOR_TODAY: Readonly<Record<667 | 844, number>> = { 844: 374, 667: 190 };
 
 /** The rows under the box, in the order the page stacks them (FR-LIVE-7 as amended v1.2). */
 const ROWS = ['dome-readout', 'status-strip', 'time-readout', 'time-stripe', 'step-controls'] as const;
