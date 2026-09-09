@@ -35,7 +35,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
 import { CAPTURE_DIR, captureName, LOCALES, SCREENS, THEMES, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
-import { domeDrawn, heading, hhmmss, openSettings, stripFilled, stubCompass } from './liveHelpers';
+import { domeDrawn, heading, hhmmss, openLegend, openSettings, stripFilled, stubCompass } from './liveHelpers';
 // Both observers are at altitude 0, which is what typing a coordinate pair gives (FR-LOC-4) and what
 // the committed pass ids were computed at: a seeded altitude would move every pass start by a second
 // or two and the glare pass would no longer be found by its id. Only Paris is observed from; Neuquén
@@ -455,6 +455,11 @@ const REACH: Record<string, Reach> = {
     // two minutes on the same rows are `up`, one has run out to `gone`, and the FR-LIVE-6 rows
     // underneath say why they are not drawn. Deterministic, like every other instant here (F-48).
     await pinnedAt(page, LEGEND_SHOWN);
+    // R71 (FR-LEG-7, FR-LEG-9): at 390 the legend is behind `[ list (n) ]` and is not in the
+    // document until the reader opens it, so this screen opens it — the compact picture of the
+    // legend is now the open panel, two `--tap` rows scrolling inside itself. A no-op at 1280,
+    // where the legend stands in the rail at every wide width (FR-LEG-6).
+    await openLegend(page);
     const legend = page.getByTestId('chart-legend');
     const rows = legend.locator('button[data-pass-id]');
     await expect(rows.first()).toBeVisible();
