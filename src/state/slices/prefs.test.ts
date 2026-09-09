@@ -210,6 +210,28 @@ describe('prefs slice', () => {
     expect(stored(storage)).toEqual({ theme: 'night', liveHidden: false });
   });
 
+  /**
+   * R71 (FR-LEG-7, D-387): the compact live page's legend panel. Closed on a
+   * first visit — the box's floor (FR-COMP-5, FR-LEG-8) is measured with the
+   * list closed — remembered once the control is used, and closed again for a
+   * stored value that is not a boolean, which is no answer at all.
+   */
+  it('keeps the live legend closed until the control opens it, then remembers it, and falls back to closed on a corrupt value', () => {
+    const storage = memoryStorage();
+    const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(fresh.getState().liveLegendOpen).toBe(false);
+    expect(stored(storage)).toBeNull();
+    fresh.getState().setLiveLegendOpen(true);
+    expect(fresh.getState().liveLegendOpen).toBe(true);
+    expect(stored(storage)).toEqual({ liveLegendOpen: true });
+    // The reload: a new store over the same storage comes back open.
+    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().liveLegendOpen).toBe(true);
+    storage.map.set(PREFS_KEY, JSON.stringify({ liveLegendOpen: 'yes', locale: 'es' }));
+    const corrupt = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(corrupt.getState().liveLegendOpen).toBe(false);
+    expect(corrupt.getState().locale).toBe('es');
+  });
+
   it('ignores a theme it does not know without losing the other preferences', () => {
     const storage = memoryStorage();
     storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'sepia', locale: 'es' }));

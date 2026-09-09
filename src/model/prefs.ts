@@ -14,6 +14,15 @@ export const SAVED_CHART_VIEWS: readonly SavedChartView[] = ['dome', 'polar'];
 export function savedChartView(view: ChartView | undefined, fallback: SavedChartView): SavedChartView {
   return view === undefined || view === 'window' ? fallback : view;
 }
+/**
+ * FR-LEG-7 / D-387 (R71): whether the compact live page's legend panel is
+ * open. The legend is behind the `[ list (n) ]` control there, so this is the
+ * one thing about it the app remembers between visits; the wide page has no
+ * such state, since the legend is always in the rail (FR-LEG-6). Closed until
+ * the control is used: the box's floor (FR-COMP-5) is measured with the list
+ * closed, so that is what a first visit gets. Persisted in `wiys:prefs:v1`.
+ */
+export const DEFAULT_LIVE_LEGEND_OPEN = false;
 /** FR-GUIDE-4 (R13): the polar chart's convention, `looking-up` (east on the left, the default) or `map` (east on the right). Persisted in `wiys:prefs:v1`. */
 export type ChartOrientation = 'looking-up' | 'map';
 /** FR-I18N-1 (R17): the language the app renders in, chosen from the browser on the first visit and overridden by the header switch. Persisted in `wiys:prefs:v1`. */
