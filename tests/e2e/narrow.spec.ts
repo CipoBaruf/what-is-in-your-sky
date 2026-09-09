@@ -35,6 +35,17 @@ test.describe('a narrow phone does not scroll sideways', () => {
     for (const width of [360, 344]) {
       await page.setViewportSize({ width, height: 700 });
       await domeDrawn(page);
+      // The box re-fits after a resize and the raster is redrawn on a frame, so the first read after
+      // `domeDrawn` can be the old size under load: hold the measurement to two identical reads.
+      let last = -1;
+      await expect
+        .poll(async () => {
+          const seen = (await scroll(page)).scrollWidth;
+          const still = seen === last;
+          last = seen;
+          return still;
+        })
+        .toBe(true);
       const measured = await scroll(page);
       expect(measured.scrollWidth, `${String(width)} px: the live page scrolls sideways`).toBeLessThanOrEqual(measured.clientWidth);
     }
