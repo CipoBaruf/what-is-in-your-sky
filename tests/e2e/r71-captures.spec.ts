@@ -8,7 +8,7 @@
  *     Closed is where FR-COMP-5's floor is measured (FR-LEG-8) and open is the
  *     two-`--tap` panel, so the pair shows what the reader's tap costs the box;
  *     the Spanish pair is also the FR-COMP-4 row the actions became — `[ ]
- *     Ocultos [ lista (n) ] Compartir`, 35 of the 36 cells (D-390);
+ *     Ocultos [ lista (n) ] Compartir`, 35 of the 36 cells (D-411);
  *   - the empty line at 390 × 844: an instant with nothing drawn, where the
  *     panel is still two rows and carries "nothing up right now" (FR-LEG-7);
  *   - the wide page at 964 × 700, 1024 × 768 and 1280 × 800, where the rail now

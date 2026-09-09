@@ -30,7 +30,7 @@ export interface ShareButtonProps {
   /** R48 (FR-COMP-4): the accessible name when the visible label is a short form of it — the live page's compact row says "Share" for "Share this sky". */
   ariaLabel?: string;
   /**
-   * R71 (FR-COMP-4 as amended v1.4, D-390): the word without its brackets, for
+   * R71 (FR-COMP-4 as amended v1.4, D-411): the word without its brackets, for
    * a compact row that cannot afford four cells of decoration — the live
    * page's actions row once `[ list (n) ]` is on it (FR-LEG-7), which is 39
    * cells in Spanish with them and 35 without. Nowhere else: the brackets are

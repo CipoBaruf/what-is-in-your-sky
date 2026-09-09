@@ -20,7 +20,7 @@
   color: var(--fg-dim);
 }
 
-/* R71 (D-390): the same action without its brackets — the compact live page's
+/* R71 (D-411): the same action without its brackets — the compact live page's
    actions row, where `[ list (n) ]` (FR-LEG-7) needs the four cells they cost.
    A class of its own rather than an override of `.button`, so `cells.ts` reads
    this row's width off the stylesheet as it does every other control's. */

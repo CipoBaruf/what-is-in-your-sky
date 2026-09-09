@@ -130,7 +130,7 @@ const rows = (t: Messages): readonly Row[] => [
      * forms `Live.tsx` gives them. The three controls were each measured alone before this; the row they
      * share is the number the requirement names, and it is the tightest row on the page in Spanish:
      * `[ ] Ocultos [ lista (3) ] Compartir` is 35 of the 36, and with the share action's brackets it is 39,
-     * which is why D-390 takes them off on this row.
+     * which is why D-411 takes them off on this row.
      */
     name: 'the live actions row with the legend control (FR-LEG-7, FR-COMP-4 as amended v1.4)',
     element: createElement(

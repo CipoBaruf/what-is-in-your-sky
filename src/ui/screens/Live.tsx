@@ -402,7 +402,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
         <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />
         {/* FR-LEG-7 (D-387, D-388): compact only. On wide the legend is in the rail at every width (FR-LEG-6), so there is nothing to disclose. */}
         {compact && <LegendToggle open={legendOpen} count={legendCount} controls={LEGEND_PANEL_ID} onToggle={toggleLegend} />}
-        {/* D-390: the brackets are what the row cannot afford with `[ list (n) ]` on it — 39 cells in Spanish, 35 without them (FR-COMP-4). */}
+        {/* D-411: the brackets are what the row cannot afford with `[ list (n) ]` on it — 39 cells in Spanish, 35 without them (FR-COMP-4). */}
         <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : t.live.share} ariaLabel={t.live.share} plain={compact} />
       </div>
     </div>
