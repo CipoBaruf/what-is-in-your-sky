@@ -252,7 +252,7 @@
    text, never a dialog — nothing to dismiss, and no pointer to catch. */
 .groundNote,
 .buriedNote,
-.portraitNote {
+.turnNote {
   position: absolute;
   left: 0;
   right: 0;
@@ -263,15 +263,27 @@
   pointer-events: none;
 }
 
-.groundNote {
+/* R73 (FR-FSC-11, D-428): the advice stands where the ground note stands —
+   the notes' one place in the box — and never with it, since the ground note
+   takes precedence and the two are mutually exclusive by construction. */
+.groundNote,
+.turnNote {
   bottom: var(--row);
 }
 
-/* R63 (FR-FSC-4, D-323): the portrait note is drawn where `buried` is — the
-   middle of a box that has nothing else in it. Turning the phone is what
-   leaves it, so it catches no pointer either. */
-.buriedNote,
-.portraitNote {
+/* R73: on the sky screen the bottom of the box is not free — the legend is a
+   strip along it, at most two `--tap` rows high (FR-FSC-3) — so the notes stand
+   above the strip rather than behind it. Two rows are reserved whatever the
+   strip holds, so the line does not move as passes come and go. The reserve is
+   unconditional on a screen because the legend is drawn in every state that has
+   a note in it (`buried` has neither). */
+.window[data-screen='true'] .groundNote,
+.window[data-screen='true'] .turnNote {
+  bottom: calc(2 * var(--tap) + var(--row) / 2);
+}
+
+/* The buried note is the middle of a box that has nothing else in it. */
+.buriedNote {
   top: 50%;
   transform: translateY(-50%);
 }

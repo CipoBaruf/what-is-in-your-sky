@@ -1,10 +1,12 @@
-import { useCallback, useRef, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { useT } from '../../../i18n/useT';
-import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { SCREEN_STATUS_ID } from '../guide/skychart/ChartFrame';
 import { SkyChart } from '../guide/skychart/SkyChart';
 import type { SkyChartProps } from '../guide/skychart/SkyChart.types';
+import { nearestQuarter, type Quarter } from '../guide/skychart/window/screenTurn';
+import { screenAngle } from '../live/compassHeading';
 import styles from './SkyScreen.module.css';
+import { ScreenTurnProvider } from './screenTurn';
 
 /**
  * R64 (D-321, D-325) → R66 (FR-FSC-1, FR-FSC-2, FR-FSC-4, FR-FSC-5, FR-FSC-8,
@@ -35,19 +37,52 @@ import styles from './SkyScreen.module.css';
  * state; the page has already stopped asking the worker for them (D-325).
  *
  * **The keyboard.** `role="dialog"` with `aria-modal="true"`, named by the
- * readout's line where there is one (`SCREEN_STATUS_ID`) and by the screen's
- * own name in the portrait state, which has no readout (FR-FSC-4). Focus moves
- * to the `×` on open and `Tab` wraps inside the layer; the page's own `Esc`
+ * readout's line (`SCREEN_STATUS_ID`) — R73 deleted the portrait state that
+ * had no readout to be named by, so the branch went with it. Focus moves to
+ * the `×` on open and `Tab` wraps inside the layer; the page's own `Esc`
  * listener closes the screen before it can leave the page (D-321), and the
  * page gives focus back to the view control on the way out.
+ *
+ * **The turn** (R73, FR-FSC-10, D-426, D-429). The screen is upright to the
+ * reader, not to the viewport. The window reports the quarter it read from the
+ * pose through `screenTurn`'s context, and the layer turns itself by
+ * `quarter − screen.orientation.angle`: nothing at all on a phone whose
+ * rotation is not locked, where those two numbers are the same, and a quarter
+ * turn on one that is. A quarter turn takes the viewport's two sides swapped
+ * (`100dvh` by `100dvw`) so the layer still covers the screen exactly, which
+ * is also how the picture comes out landscape inside a portrait viewport: the
+ * window measures the layer's *layout* box — `ResizeObserver` reports the
+ * border box, before transforms — so `WINDOW_FOV` lands across the reader's
+ * wide side by construction and not by a media query. FR-FSC-9 is untouched: a
+ * fixed layer the size of the viewport still cannot scroll.
  */
 export interface SkyScreenProps extends Required<Pick<SkyChartProps, 'passes' | 'observer' | 'now'>>, Partial<Pick<SkyChartProps, 'sun' | 'moon' | 'highlightedPassId' | 'initialFacingAzDeg'>> {
   /** FR-FSC-2: the `×` and `Esc`; the page decides what closing restores. */
   onClose: () => void;
 }
 
-/** FR-FSC-4 (D-323): the screen draws only sideways; upright it is the note, and there is no readout to be named by. */
-const LANDSCAPE_QUERY = '(orientation: landscape)';
+/**
+ * FR-FSC-10 (D-426): what the layer turns by — the shorter way round from the
+ * viewport's own rotation to the reader's, so the four answers are `0`, `±90`
+ * and `180` and a phone that reflowed turns by nothing.
+ */
+export function turnFor(quarter: number, screenAngleDeg: number): number {
+  const difference = (((quarter - screenAngleDeg) % 360) + 360) % 360;
+  return difference > 180 ? difference - 360 : difference;
+}
+
+/**
+ * FR-FSC-10: where the quarter starts, before the window has read a pose.
+ *
+ * It starts where the browser already is, so the first frame turns by nothing.
+ * A literal `0` would be a quarter *against* the angle on a phone the browser
+ * has already turned — an unlocked phone held sideways, which is the commonest
+ * way into this screen — and the layer would draw itself the wrong way round
+ * for as long as the window's lazy chunk took to mount and report (PLAN §11).
+ */
+export function browserQuarter(): Quarter {
+  return typeof window === 'undefined' ? 0 : nearestQuarter(screenAngle());
+}
 
 /** What `Tab` may reach inside the layer: the `×` and the legend's rows (FR-LEG-4). */
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -62,7 +97,29 @@ const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select
 export function SkyScreen({ passes, observer, now, sun, moon, highlightedPassId = null, initialFacingAzDeg, onClose }: SkyScreenProps) {
   const t = useT();
   const layerRef = useRef<HTMLDivElement>(null);
-  const landscape = useMediaQuery(LANDSCAPE_QUERY);
+
+  /*
+   * FR-FSC-10 (D-429): the quarter the window read from the pose, and the browser's own angle to take it
+   * against. The angle is not the sensor — it is the viewport's own rotation, two cheap listeners and no
+   * permission — so this is not the duplicated `deviceorientation` work R68 removed: the layer adds no sensor
+   * listener at all and reads the pose only through what the window reports.
+   */
+  const [quarter, setQuarter] = useState<Quarter>(browserQuarter);
+  const [angle, setAngle] = useState(() => (typeof window === 'undefined' ? 0 : nearestQuarter(screenAngle())));
+  useEffect(() => {
+    const update = (): void => {
+      setAngle(nearestQuarter(screenAngle()));
+    };
+    const orientation = window.screen.orientation as ScreenOrientation | undefined;
+    orientation?.addEventListener('change', update);
+    window.addEventListener('orientationchange', update);
+    return () => {
+      orientation?.removeEventListener('change', update);
+      window.removeEventListener('orientationchange', update);
+    };
+  }, []);
+  const turnDeg = useMemo(() => turnFor(quarter, angle), [quarter, angle]);
+  const screenTurn = useMemo(() => ({ quarter, report: setQuarter }), [quarter]);
 
   /*
    * FR-FSC-2 / D-321: the keyboard's first stop on the screen is the way out of it. A callback ref and not a
@@ -106,32 +163,35 @@ export function SkyScreen({ passes, observer, now, sun, moon, highlightedPassId 
       ref={layerRef}
       role="dialog"
       aria-modal="true"
-      {...(landscape ? { 'aria-labelledby': SCREEN_STATUS_ID } : { 'aria-label': t.chart.screenLabel })}
+      aria-labelledby={SCREEN_STATUS_ID}
       data-testid="sky-screen"
-      data-orientation={landscape ? 'landscape' : 'portrait'}
+      data-turn={turnDeg}
+      style={{ '--screen-turn': `${String(turnDeg)}deg` } as CSSProperties}
       onKeyDown={onKeyDown}
     >
-      <SkyChart
-        passes={passes}
-        observer={observer}
-        highlightedPassId={highlightedPassId}
-        now={now}
-        {...(sun === undefined ? {} : { sun })}
-        {...(moon === undefined ? {} : { moon })}
-        colorBy="pass"
-        screen
-        /*
-         * The facing the window shows before its first reading. The live page passes 0 — its sky has no one
-         * pass to aim at — and the pass detail passes none, so R47's placeholder aims the box at the pass the
-         * guide is about and its key is in view from the first frame (D-188).
-         */
-        {...(initialFacingAzDeg === undefined ? {} : { initialFacingAzDeg })}
-        overlay={
-          <button type="button" ref={closeRef} className={styles.close} aria-label={t.chart.screenClose} onClick={onClose} data-testid="sky-screen-close">
-            ×
-          </button>
-        }
-      />
+      <ScreenTurnProvider value={screenTurn}>
+        <SkyChart
+          passes={passes}
+          observer={observer}
+          highlightedPassId={highlightedPassId}
+          now={now}
+          {...(sun === undefined ? {} : { sun })}
+          {...(moon === undefined ? {} : { moon })}
+          colorBy="pass"
+          screen
+          /*
+           * The facing the window shows before its first reading. The live page passes 0 — its sky has no one
+           * pass to aim at — and the pass detail passes none, so R47's placeholder aims the box at the pass the
+           * guide is about and its key is in view from the first frame (D-188).
+           */
+          {...(initialFacingAzDeg === undefined ? {} : { initialFacingAzDeg })}
+          overlay={
+            <button type="button" ref={closeRef} className={styles.close} aria-label={t.chart.screenClose} onClick={onClose} data-testid="sky-screen-close">
+              ×
+            </button>
+          }
+        />
+      </ScreenTurnProvider>
     </div>
   );
 }

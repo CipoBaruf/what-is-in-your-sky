@@ -7,13 +7,14 @@ import { SERIES_COUNT } from '../../../../../lib/legend';
 import type { SunState } from '../../../../../lib/skyBodies';
 import { interpolateTrack, resampleArc, splitArcAt } from '../../../../../lib/skyGeometry';
 import type { MoonState, PassPoint } from '../../../../../model';
-import { useMediaQuery } from '../../../../hooks/useMediaQuery';
+import { useScreenTurn } from '../../../screen/screenTurn';
 import { quantise } from '../../../live/compassHeading';
 import { useDeclination } from '../../../live/useDeclination';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
 import { ChartFrame } from '../ChartFrame';
 import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
 import { drawableDeg, groundState, lookDirection, project, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type View } from './projection';
+import { nearestQuarter, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
 import { useDeviceOrientation } from './useDeviceOrientation';
 
@@ -55,18 +56,29 @@ import { useDeviceOrientation } from './useDeviceOrientation';
  * no compass heading, is reported through `onUnavailable`, and `SkyChart`
  * shows the note and leaves the dome as the view (FR-WIN-4).
  *
- * R63 (FR-FSC-1, FR-FSC-4; US-21 AC11, AC12; D-323): on the follow screen —
- * `props.screen` — the window has no chrome of its own: the frame gets no
- * `controls`, so neither the view control the page handed down nor the hint is
- * drawn, and the readout stays the `status` slot the frame turns into an
- * overlay. The screen is for a phone held sideways, so `(orientation:
- * landscape)` decides a fourth veil beside the ground ones: held upright the
- * box is the `portrait` note and nothing else — no drawing, no readout, no
- * legend — and turning the phone brings the picture back with no tap, because
- * `useDeviceOrientation` never unmounts and so is never asked twice
- * (FR-FOL-2). The ground states are only computed in landscape, which is what
- * makes `portrait` win over them. Without `screen` none of this happens: the
- * pass detail's window is the square box R47 built, in either orientation.
+ * R63 (FR-FSC-1; US-21 AC11; D-323): on the sky screen — `props.screen` — the
+ * window has no chrome of its own: the frame gets no `controls`, so neither
+ * the view control the page handed down nor the hint is drawn, and the readout
+ * stays the `status` slot the frame turns into an overlay.
+ *
+ * R73 (FR-FSC-4 as rewritten, FR-FSC-10, FR-FSC-11; US-21 AC12, AC15; D-425,
+ * D-427, D-428, D-429): and it draws whatever the viewport is doing. R63's
+ * portrait veil — `(orientation: landscape)` gating the whole picture, with
+ * `status={null}` and `legend={null}` under it — is gone: a viewport whose
+ * rotation is locked never becomes landscape, so on those phones the veil was
+ * the whole screen with nothing behind it. The SVG, the readout and the legend
+ * are drawn in both orientations, `ground` is `groundState` in both again
+ * (D-323 had made it landscape-only so the veil could win), and upright the
+ * picture is the portrait box's with one line of advice over it
+ * (`turnAdvice`), which the ground notes outrank.
+ *
+ * Which way is up is the pose's, not the viewport's (FR-FSC-10): `screenTurn`
+ * reads the quarter from the rotation the hook already smooths, the projection
+ * is composed with that quarter instead of `screen.orientation.angle`, and the
+ * layer is turned by the difference — which is nothing at all on a phone whose
+ * rotation is not locked, where the two numbers are the same. `data-orientation`
+ * is read from the measured box, which is what the reader is looking at, and
+ * not from a media query, which under a rotation lock is not.
  */
 
 /** Resampling step along each arc (PLAN §8.3), the polar's. */
@@ -91,8 +103,6 @@ export function placeholderAltDeg(peakElDeg: number | undefined, view: View): nu
 const UNMEASURED = { width: 390, height: 390 };
 /** How far outside the box a positioned thing is still "in view", so a marker leaves the frame rather than winking out at the edge. */
 const EDGE_MARGIN = 14;
-/** FR-FSC-4 (D-323): the follow screen draws only while the viewport is wider than it is tall. */
-const LANDSCAPE_QUERY = '(orientation: landscape)';
 
 interface SkyPoint {
   azDeg: number;
@@ -371,7 +381,28 @@ export function SkyWindow(props: SkyChartProps) {
     };
   }, []);
 
-  const view: View = useMemo(() => ({ fovDeg: WINDOW_FOV, width: size.width, height: size.height, screenAngleDeg: orientation.screenAngleDeg }), [size, orientation.screenAngleDeg]);
+  /*
+   * FR-FSC-10 (D-424, D-425, D-429): which way is up to the reader. On a screen the projection is composed with
+   * the quarter read from the pose — on an unlocked phone that *is* the browser's angle, and on a locked one it
+   * is what the browser's angle would have been — and the layer is turned by the difference. Before the first
+   * reading there is no pose to read, so the browser's own angle stands and the layer turns by nothing
+   * (FR-FSC-10, "it starts at none"). Off a screen the value is the browser's angle and nothing moves (D-425).
+   *
+   * D-431: the fold itself is `useDeviceOrientation`'s, beside the rotation it folds — the hysteresis makes
+   * each quarter depend on the one before it, and the frame that already eases the rotation is the one place
+   * that can keep a previous value without a ref read in a render or a state set from an effect.
+   */
+  const { report } = useScreenTurn();
+  const quarter: Quarter = onScreen && orientation.rotation !== null ? orientation.quarter : nearestQuarter(orientation.screenAngleDeg);
+  useEffect(() => {
+    // One report per turn of the hand, and none at all off a screen, where `report` is the context's no-op.
+    if (onScreen) report(quarter);
+  }, [onScreen, quarter, report]);
+
+  const view: View = useMemo(
+    () => ({ fovDeg: WINDOW_FOV, width: size.width, height: size.height, screenAngleDeg: onScreen ? quarter : orientation.screenAngleDeg }),
+    [size, onScreen, quarter, orientation.screenAngleDeg],
+  );
   const limitDeg = drawableDeg(view);
 
   // Before the first reading: upright toward the explained pass's peak (or the caller's facing), 20° up or as high as the peak needs.
@@ -383,22 +414,28 @@ export function SkyWindow(props: SkyChartProps) {
   const at = useCallback((p: SkyPoint): Projected => project(m, p.azDeg, p.elDeg, view), [m, view]);
   const zenith = at({ azDeg: 0, elDeg: 90 });
 
-  // FR-FSC-4 (D-323): on the screen, held upright, the note is the whole box. The query is read whatever the
-  // mode, because a hook may not be called conditionally; only `screen` lets its answer decide anything.
-  const landscape = useMediaQuery(LANDSCAPE_QUERY);
-  const portrait = onScreen && !landscape;
+  // FR-FSC-4 as rewritten, FR-FSC-11 (D-427, D-428): the shape of the picture the reader is looking at, read
+  // from the box that was measured and not from `(orientation: landscape)`, which a rotation lock never answers
+  // true. Taller than it is wide is where the advice stands; the box, not the viewport, because FR-FSC-10 may
+  // have turned the layer under it.
+  const upright = size.height > size.width;
 
   // FR-FOL-5 (D-278): pointed at the ground, in two steps — the hatch over the part of the field below the
   // horizon, and, once no sky is left in it, the whole box. Neither is modal: raising the phone is what leaves.
-  // D-323: only in landscape, so the portrait note wins over both. F-58: `look` above is the one `lookDirection` per render.
-  const ground = portrait ? 'sky' : groundState(look.altDeg, view);
+  // D-427: in every orientation again — D-323's landscape-only guard existed to let the portrait veil win, and
+  // with no veil it is what would hide the ground note on an upright phone. F-58: `look` above is the one
+  // `lookDirection` per render.
+  const ground = groundState(look.altDeg, view);
   // F-57: the grid's horizon path and the ground clip share this — one projection of the 181 points, not two —
   // under the grid path's own condition, since the clip exists only in the `ground` state, which is inside it.
-  // Buried, and in portrait, the horizon is drawn by neither and projected not at all.
-  const drawsHorizon = ground !== 'buried' && !portrait;
+  // Buried, the horizon is drawn by neither and projected not at all.
+  const drawsHorizon = ground !== 'buried';
   const horizonProjected = useMemo(() => (drawsHorizon ? HORIZON.map(at) : []), [at, drawsHorizon]);
   const veilClip = ground === 'ground' ? groundClipPath(horizonProjected) : '';
   const veil = ground === 'buried' || veilClip !== '';
+  // FR-FSC-11 (D-428): the advice is the screen's — the pass detail's window is a box in a sheet and not the
+  // picture the reader is holding up — and it loses to the ground notes, which stand in the same place.
+  const advice = onScreen && upright && ground === 'sky';
   const uid = useId().replaceAll(':', '');
   const hatchId = `${uid}-hatch`;
   const clipId = `${uid}-ground`;
@@ -423,13 +460,13 @@ export function SkyWindow(props: SkyChartProps) {
       className={[styles.window, className].filter(Boolean).join(' ')}
       data-state={state}
       data-ground={ground}
-      {...(onScreen ? { 'data-orientation': portrait ? 'portrait' : 'landscape' } : {})}
+      {...(onScreen ? { 'data-screen': 'true', 'data-orientation': upright ? 'portrait' : 'landscape' } : {})}
       data-look-az={quantise(look.azDeg)}
       data-look-alt={Math.round(look.altDeg)}
     >
       <ChartFrame
         fill={fill}
-        legend={portrait ? null : legend}
+        legend={legend}
         aside={aside}
         stripe={stripe}
         {...(boxAspect === undefined ? {} : { boxAspect })}
@@ -450,7 +487,7 @@ export function SkyWindow(props: SkyChartProps) {
             </>
           )
         }
-        status={portrait ? null : status}
+        status={status}
       >
         <div className={styles.box} ref={boxRef}>
           <svg className={styles.svg} viewBox={`0 0 ${String(view.width)} ${String(view.height)}`} aria-hidden="true" data-drawing="window" focusable="false">
@@ -468,8 +505,8 @@ export function SkyWindow(props: SkyChartProps) {
                 )}
               </defs>
             )}
-            {/* FR-FOL-5: with no sky left in the field there is nothing to draw but the ground. FR-FSC-4: nor is there anything to draw with the phone upright. */}
-            {ground !== 'buried' && !portrait && (
+            {/* FR-FOL-5: with no sky left in the field there is nothing to draw but the ground. */}
+            {ground !== 'buried' && (
               <>
                 {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}
                 {sun && sunVisible(sun) && <SunGlow sun={sun} m={m} view={view} limitDeg={limitDeg} />}
@@ -539,10 +576,12 @@ export function SkyWindow(props: SkyChartProps) {
               {ground === 'buried' ? t.window.buried : t.window.ground}
             </p>
           )}
-          {/* FR-FSC-4: held upright, the note is the whole box — the screen carries it and the `×` and nothing else. */}
-          {portrait && (
-            <p className={styles.portraitNote} role="status" data-testid="window-portrait-note">
-              {t.window.portrait}
+          {/* FR-FSC-11 (D-428): over a picture taller than it is wide, one line about what a sideways phone buys.
+              It is not a condition — everything the screen does works without it being taken — and the ground
+              notes above outrank it, so at most one line ever stands over the drawing. */}
+          {advice && (
+            <p className={styles.turnNote} role="status" data-testid="window-turn-note">
+              {t.window.turnAdvice}
             </p>
           )}
           {/* R66 (FR-WIN-5 as amended v1.3.1, V13-8): no `[ point at the sky ]`. The window is only ever mounted

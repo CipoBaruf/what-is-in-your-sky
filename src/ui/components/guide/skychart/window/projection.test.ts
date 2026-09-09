@@ -24,9 +24,11 @@ import {
   WINDOW_SMOOTHING,
   windowReadingFrom,
   type Mat3,
+  type Projected,
   type View,
   type WindowReading,
 } from './projection';
+import { quarterTurnFor } from './screenTurn';
 
 const view: View = { fovDeg: WINDOW_FOV, width: 390, height: 390, screenAngleDeg: 0 };
 /** Upright, back to the north: beta 90 stands the phone up, alpha 0 keeps its back on north. */
@@ -277,5 +279,63 @@ describe('the ground state (FR-FOL-5)', () => {
     expect(groundState(looking(-45), portrait)).toBe('ground');
     expect(groundState(looking(-45), landscape)).toBe('buried');
     expect(groundState(looking(-90), portrait)).toBe('buried');
+  });
+});
+
+/**
+ * R73 (FR-FSC-10, FR-WIN-1; PLAN D-425, D-426, D-430): the composed angle.
+ * Nothing in `projection.ts` changed for the turn — the plane is still turned
+ * by the number `View.screenAngleDeg` carries — so what these pin is that the
+ * number the sky screen hands it, the quarter read from the pose, puts the
+ * horizon exactly where the browser's own angle puts it on a phone that
+ * reflowed. One pose per quarter, and the locked-portrait phone held sideways
+ * beside the unlocked one.
+ */
+describe('the quarter as the screen angle (FR-FSC-10)', () => {
+  /** A phone whose rotation is locked to portrait: the viewport stays 390 × 844 whatever the hand does. */
+  const tall: View = { fovDeg: WINDOW_FOV, width: 390, height: 844, screenAngleDeg: 0 };
+  /** What the window measures once the layer has turned a quarter: the same two sides, swapped (D-426). */
+  const wide: View = { ...tall, width: 844, height: 390 };
+  /** A half turn covers the viewport as it is; a quarter turn swaps its sides. */
+  const boxFor = (quarter: number): View => (quarter % 180 === 0 ? tall : wide);
+
+  it('projects a locked-portrait phone held sideways exactly where an unlocked one projects', () => {
+    const sideways = rollDevice(upright, 90);
+    const quarter = quarterTurnFor(sideways, 0);
+    expect(quarter).toBe(90);
+    // Unlocked: the browser reflowed to 844 × 390 and reports 90 itself.
+    const unlocked = (azDeg: number): Projected => project(sideways, azDeg, 0, { ...wide, screenAngleDeg: 90 });
+    // Locked: the browser reports 0 and never reflows, so the quarter is the angle and the turned layer is the box.
+    const locked = (azDeg: number): Projected => project(sideways, azDeg, 0, { ...wide, screenAngleDeg: quarter });
+    for (const azDeg of [-20, 0, 20]) expect(locked(azDeg)).toEqual(unlocked(azDeg));
+    // Level to the reader's eye, through the middle of the wide box, with east on the right.
+    expect(locked(0).x).toBeCloseTo(422, 4);
+    expect(locked(0).y).toBeCloseTo(195, 4);
+    expect(locked(20).y).toBeCloseTo(195, 4);
+    expect(locked(20).x).toBeGreaterThan(locked(0).x);
+  });
+
+  it('is what levels it: the same pose in the untouched portrait box lays the horizon down the side', () => {
+    const sideways = rollDevice(upright, 90);
+    // What the picture would be with the browser's 0 and the viewport's own box — the pose the rotation lock leaves.
+    const down = (azDeg: number): Projected => project(sideways, azDeg, 0, tall);
+    expect(down(0).x).toBeCloseTo(195, 4);
+    expect(down(20).x).toBeCloseTo(195, 4);
+    expect(down(20).y).not.toBeCloseTo(down(0).y, 1);
+  });
+
+  it('holds the horizon level and east on the right at every quarter', () => {
+    for (const quarter of [0, 90, 180, 270] as const) {
+      const posed = rollDevice(upright, quarter);
+      expect(quarterTurnFor(posed, 0)).toBe(quarter);
+      const box = { ...boxFor(quarter), screenAngleDeg: quarter };
+      const centre = project(posed, 0, 0, box);
+      const east = project(posed, 20, 0, box);
+      const up = project(posed, 0, 20, box);
+      expect(east.y).toBeCloseTo(centre.y, 4);
+      expect(east.x).toBeGreaterThan(centre.x);
+      expect(up.x).toBeCloseTo(centre.x, 4);
+      expect(up.y).toBeLessThan(centre.y);
+    }
   });
 });

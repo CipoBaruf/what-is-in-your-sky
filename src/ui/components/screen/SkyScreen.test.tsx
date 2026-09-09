@@ -18,6 +18,8 @@
  * missing worker answer would have left out anyway.
  */
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../../tests/support/catalogFixtures';
@@ -27,8 +29,12 @@ import { en } from '../../../i18n/en';
 import type { NowState, Observer, SavedChartView } from '../../../model';
 import { appStore, setLiveNowClient, type ElementsState } from '../../../state';
 import { IDLE_PASSES } from '../../../state/slices/passes';
+import { SCREEN_STATUS_ID } from '../guide/skychart/ChartFrame';
 import type { SkyChartProps } from '../guide/skychart/SkyChart.types';
 import { LivePage } from '../../screens/Live';
+import { nearestQuarter } from '../guide/skychart/window/screenTurn';
+import { screenAngle } from '../live/compassHeading';
+import { browserQuarter, turnFor } from './SkyScreen';
 
 /** The props every `SkyChart` on the page was rendered with, in order (D-326's FR-FSC-5 check). */
 const recorded = vi.hoisted(() => ({ props: [] as SkyChartProps[] }));
@@ -95,6 +101,13 @@ function scriptedFrames(): () => void {
 function reading(azDeg = 270, altDeg = 20): void {
   act(() => {
     window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: (360 - azDeg) % 360, beta: 90 + altDeg, gamma: 0, absolute: true }));
+  });
+}
+
+/** R73: the same event by its three angles, for the poses the quarter turn is read from (FR-FSC-10). */
+function pose(angles: { alpha: number; beta: number; gamma: number }): void {
+  act(() => {
+    window.dispatchEvent(Object.assign(new Event('deviceorientation'), { absolute: true, ...angles }));
   });
 }
 
@@ -270,38 +283,152 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
   });
 
   /**
-   * FR-FSC-4 / US-21 AC12 (R63, D-323): held upright the screen is the note and
-   * the `×` and nothing else, and turning the phone brings the picture back
-   * with no tap — the sensor hook is never unmounted, so the window is still
-   * `on` when the drawing returns.
+   * R73 (FR-FSC-4 as rewritten, FR-FSC-10; US-21 AC12 as amended, AC15; D-426,
+   * D-429): the picture is there in either orientation, and the layer turns
+   * itself by the quarter the window reports. R63's portrait state — the note,
+   * the `×` and nothing else — is what this replaces: it was the whole screen
+   * on a phone whose rotation is locked, which is the pose FR-FSC-10 exists
+   * for.
    */
-  it('is the note and the × while the phone is upright, and the drawing again when it is turned (US-21 AC12)', async () => {
+  it('draws in either orientation, with no note in the picture’s place (US-21 AC12 as amended)', async () => {
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
     const layer = await open();
-    const window_ = layer.querySelector('[data-look-az]');
-    expect(window_).toHaveAttribute('data-orientation', 'landscape');
-    expect(window_).toHaveAttribute('data-state', 'on');
+    expect(layer.querySelector('[data-look-az]')).toHaveAttribute('data-state', 'on');
+    expect(screen.getByTestId('window-readout')).toBeInTheDocument();
+    expect(layer.querySelectorAll('[data-pass-id]').length).toBeGreaterThan(0);
 
     act(() => {
       media?.setSize(...PORTRAIT);
     });
-    expect(screen.getByTestId('window-portrait-note')).toHaveTextContent(en.window.portrait);
+    settle();
+    // The viewport went upright and nothing was veiled: the drawing, the readout and the `×` are all still here.
     expect(screen.getByTestId('sky-screen-close')).toBeInTheDocument();
-    expect(layer.querySelector('[data-look-az]')).toHaveAttribute('data-orientation', 'portrait');
-    // The note is the whole box: no readout, no legend, and no drawn sky under it.
-    expect(screen.queryByTestId('window-readout')).toBeNull();
-    expect(screen.queryByTestId('chart-legend')).toBeNull();
-    expect(layer.querySelectorAll('[data-pass-id]')).toHaveLength(0);
-    // The sensor stayed on through the turn: no second reading, no second permission prompt.
+    expect(screen.getByTestId('window-readout')).toBeInTheDocument();
+    expect(layer.querySelectorAll('[data-pass-id]').length).toBeGreaterThan(0);
     expect(layer.querySelector('[data-look-az]')).toHaveAttribute('data-state', 'on');
+  });
 
+  it('is named by the readout, in either orientation (FR-FSC-2, D-427)', async () => {
+    withSky();
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    const layer = await open();
+    const named = (): void => {
+      expect(layer).toHaveAttribute('aria-labelledby', SCREEN_STATUS_ID);
+      expect(layer).not.toHaveAttribute('aria-label');
+      expect(document.getElementById(SCREEN_STATUS_ID)).toHaveTextContent('Looking');
+    };
+    named();
     act(() => {
-      media?.setSize(...LANDSCAPE);
+      media?.setSize(...PORTRAIT);
     });
     settle();
-    expect(screen.queryByTestId('window-portrait-note')).toBeNull();
-    expect(screen.getByTestId('window-readout')).toBeInTheDocument();
-    expect(layer.querySelector('[data-look-az]')).toHaveAttribute('data-state', 'on');
+    named();
+  });
+
+  it('turns the layer by the quarter the window reports, and by nothing on a phone that reflowed (FR-FSC-10)', async () => {
+    withSky();
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    const layer = await open();
+    // The opening reading is an upright phone, and jsdom's `screen.orientation.angle` is 0: nothing to turn.
+    expect(layer).toHaveAttribute('data-turn', '0');
+    expect(layer.style.getPropertyValue('--screen-turn')).toBe('0deg');
+
+    // The same phone with its rotation locked, turned on its side: its top to the reader's left, and the
+    // viewport still saying portrait. The quarter comes from the pose, so the layer turns by a quarter.
+    pose({ alpha: 0, beta: 0, gamma: -90 });
+    settle();
+    expect(layer).toHaveAttribute('data-turn', '90');
+    expect(layer.style.getPropertyValue('--screen-turn')).toBe('90deg');
+
+    // And upside down, where the two sides are not swapped because a half turn covers the viewport as it is.
+    pose({ alpha: 0, beta: -90, gamma: 0 });
+    settle();
+    expect(layer).toHaveAttribute('data-turn', '180');
+
+    pose({ alpha: 0, beta: 110, gamma: 0 });
+    settle();
+    expect(layer).toHaveAttribute('data-turn', '0');
+  });
+
+  it('adds no second sensor listener for the turn (FR-FSC-10, D-429; F-57, F-58’s lesson)', async () => {
+    const attached: string[] = [];
+    const detached: string[] = [];
+    const add = window.addEventListener.bind(window);
+    const remove = window.removeEventListener.bind(window);
+    vi.spyOn(window, 'addEventListener').mockImplementation((type: string, ...rest: unknown[]) => {
+      if (type.startsWith('deviceorientation')) attached.push(type);
+      add(...([type, ...rest] as unknown as Parameters<Window['addEventListener']>));
+    });
+    vi.spyOn(window, 'removeEventListener').mockImplementation((type: string, ...rest: unknown[]) => {
+      if (type.startsWith('deviceorientation')) detached.push(type);
+      remove(...([type, ...rest] as unknown as Parameters<Window['removeEventListener']>));
+    });
+
+    withSky();
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    await open();
+    pose({ alpha: 0, beta: 0, gamma: -90 });
+    settle();
+    // The tap's own listener (`useSkyScreen`) went as soon as the reading with a north arrived, and the
+    // window's is the one that is left: the layer reads the pose only through what the window reports.
+    expect(attached.length - detached.length).toBe(1);
+  });
+
+  /** R73 (D-426): the turned layer's two rules, which jsdom applies to nothing and CI has no phone for. */
+  it('swaps the layer’s two sides for a quarter turn and leaves them for a half one (FR-FSC-9, FR-FSC-10)', () => {
+    const css = readFileSync(join(process.cwd(), 'src/ui/components/screen/SkyScreen.module.css'), 'utf8');
+    // Turned: centred on the viewport and rotated by the difference, as one layer.
+    expect(css).toMatch(/\.screen\[data-turn\]:not\(\[data-turn='0'\]\) \{[^}]*transform: translate\(-50%, -50%\) rotate\(var\(--screen-turn\)\);/);
+    expect(css).toMatch(/\.screen\[data-turn\]:not\(\[data-turn='0'\]\) \{[^}]*transform-origin: center;/);
+    // A quarter turn takes the viewport's two sides swapped, so the layer still covers the screen exactly; a
+    // half turn is excluded, and the `:not` chain is what gives the rule the specificity to beat the one above.
+    expect(css).toMatch(/\.screen\[data-turn\]:not\(\[data-turn='0'\]\):not\(\[data-turn='180'\]\) \{\s*width: 100dvh;\s*height: 100dvw;/);
+    expect(css).toMatch(/\.screen\[data-turn\]:not\(\[data-turn='0'\]\) \{[^}]*width: 100dvw;\s*height: 100dvh;/);
+    // And it is still the fixed layer FR-FSC-9 rests on: nothing here can scroll.
+    expect(css).toMatch(/\.screen \{[^}]*position: fixed;/);
+    expect(css).toMatch(/\.screen \{[^}]*overscroll-behavior: contain;/);
+  });
+});
+
+/**
+ * R73 (FR-FSC-10; the review's finding): where the turn starts. The layer is up
+ * before the window's lazy chunk is (PLAN §11), so until the window has a pose
+ * to report the quarter is the browser's own angle and the layer turns by
+ * nothing. Seeded at a literal 0 the layer drew itself a quarter *against* the
+ * angle — `data-turn="-90"` on a phone the browser had already turned into
+ * landscape, which is the commonest way into this screen — for as long as the
+ * chunk took to arrive.
+ */
+describe('where the turn starts (FR-FSC-10)', () => {
+  const withBrowserAngle = (deg: number): (() => void) => {
+    const had = Object.getOwnPropertyDescriptor(window.screen, 'orientation');
+    Object.defineProperty(window.screen, 'orientation', { configurable: true, value: { angle: deg, addEventListener: () => undefined, removeEventListener: () => undefined } });
+    return () => {
+      if (had) Object.defineProperty(window.screen, 'orientation', had);
+      else Reflect.deleteProperty(window.screen, 'orientation');
+    };
+  };
+
+  it('is the browser’s own quarter, so the first frame turns by nothing', () => {
+    for (const angle of [0, 90, 180, 270]) {
+      const restore = withBrowserAngle(angle);
+      try {
+        expect(browserQuarter()).toBe(angle);
+        expect(turnFor(browserQuarter(), nearestQuarter(screenAngle()))).toBe(0);
+      } finally {
+        restore();
+      }
+    }
+  });
+
+  it('is 0 where the browser says nothing at all', () => {
+    const had = Object.getOwnPropertyDescriptor(window.screen, 'orientation');
+    Reflect.deleteProperty(window.screen, 'orientation');
+    try {
+      expect(browserQuarter()).toBe(0);
+    } finally {
+      if (had) Object.defineProperty(window.screen, 'orientation', had);
+    }
   });
 });

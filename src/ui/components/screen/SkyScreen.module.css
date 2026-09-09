@@ -30,6 +30,33 @@
   overscroll-behavior: contain;
 }
 
+/* R73 (FR-FSC-10, FR-FSC-9; D-426): the turn. `data-turn` is the difference
+   between the quarter the window read from the pose and the viewport's own
+   rotation, so it is 0 on every phone that reflowed and nothing below applies
+   there. Turned, the layer is centred and rotated as one thing — the drawing,
+   the readout, the legend and the `×` turn together because they are one
+   thing — and a quarter turn takes the viewport's two sides swapped, so it
+   still covers the screen exactly and the window measures a box that is wide
+   to the reader's eye. It is still `position: fixed` and still the size of the
+   viewport, so FR-FSC-9 holds: there is nothing here to scroll. */
+.screen[data-turn]:not([data-turn='0']) {
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  width: 100dvw;
+  height: 100dvh;
+  transform-origin: center;
+  transform: translate(-50%, -50%) rotate(var(--screen-turn));
+}
+
+/* A quarter turn — anything but the half turn, which covers the viewport as it
+   is. The `:not` chain is what gives this the specificity to beat the two
+   sides above; an `[data-turn='90']` on its own would lose to them. */
+.screen[data-turn]:not([data-turn='0']):not([data-turn='180']) {
+  width: 100dvh;
+  height: 100dvw;
+}
+
 .close {
   position: absolute;
   top: 0;

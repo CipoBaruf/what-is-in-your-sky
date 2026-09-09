@@ -141,23 +141,23 @@ test.describe('the live page', () => {
  *
  * What the option opens is the sky screen, a layer over the whole viewport,
  * and this viewport is a phone held *upright*: so what a reader gets here is
- * FR-FSC-4's note asking them to turn it, in their own language, with the `×`
- * beside it and nothing else. The screen drawn sideways is
- * `sky-screen.spec.ts`; what this holds is that the layer covers the page in
- * portrait too, that the note is translated (FR-I18N-2 admits no English on the
- * Spanish page), and that the `×` gives the page back with nothing saved on the
- * way through. The strip's true-north line is gone with the window's being a
- * view of this page: the declination is the screen's readout line now
- * (FR-FSC-4).
+ * the picture in the portrait box with FR-FSC-11's line of advice over it, in
+ * their own language, and the `×` (R73: it was FR-FSC-4's note and nothing
+ * else until v1.4.1). The screen drawn sideways is `sky-screen.spec.ts`; what
+ * this holds is that the layer covers the page in portrait too, that the
+ * advice is translated (FR-I18N-2 admits no English on the Spanish page), and
+ * that the `×` gives the page back with nothing saved on the way through. The
+ * strip's true-north line is gone with the window's being a view of this page:
+ * the declination is the screen's readout line now (FR-FSC-4).
  */
 test.describe('the live page with the sky screen open upright', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
   for (const [locale, note] of [
-    ['en', 'Turn the phone sideways to follow the sky.'],
-    ['es', 'Gira el teléfono de lado para seguir el cielo.'],
+    ['en', 'Turn the phone sideways to see more sky.'],
+    ['es', 'Gira el teléfono de lado para ver más cielo.'],
   ] as const) {
-    test(`the window option opens the sky screen, which is the note and the × while the phone is upright (${locale})`, async ({ page }) => {
+    test(`the window option opens the sky screen, which draws upright with the advice over it (${locale})`, async ({ page }) => {
       await stubCompass(page);
       await homeAt(page, T, locale);
       await page.getByTestId('live-link').click();
@@ -185,11 +185,14 @@ test.describe('the live page with the sky screen open upright', () => {
       await expect(page.getByTestId('stripe-block')).toHaveCount(0);
       await expect(page.getByTestId('playback-row')).toHaveCount(0);
       await expect(page.getByTestId('live-side')).toHaveCount(0);
-      // FR-FSC-4 / US-21 AC12: upright, the note is the whole box, in this page's language.
-      await expect(page.getByTestId('window-portrait-note')).toHaveText(note);
+      // FR-FSC-4 as rewritten / FR-FSC-11 / US-21 AC12: upright, the picture is drawn in the portrait box with
+      // one line of advice over it, in this page's language.
+      await expect(page.locator('[data-drawing="window"] [data-horizon]')).toHaveCount(1);
+      await expect(page.getByTestId('window-turn-note')).toHaveText(note);
       await expect(page.getByRole('button', { name: locale === 'en' ? 'Close' : 'Cerrar' })).toBeVisible();
-      // The capture the PR carries: the screen as an upright phone gets it, in each language.
-      await page.screenshot({ path: `docs/screenshots/r66-live-390-screen-portrait-dark-${locale}.png` });
+      // The capture the PR carries: the screen as an upright phone gets it, in each language. R73 renamed it
+      // off `r66-…`, whose two files are the evidence for the state this replaces and stay as they were.
+      await page.screenshot({ path: `docs/screenshots/r73-live-390-screen-portrait-dark-${locale}.png` });
 
       // FR-FSC-2: the `×` is the way out, and what is saved is still the view the page had.
       await page.getByTestId('sky-screen-close').click();

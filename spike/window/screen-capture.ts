@@ -5,6 +5,13 @@
  * test — the assertions only make sure the shot shows the state it is named
  * after.
  *
+ * R73 (FR-FSC-4 as rewritten, FR-FSC-11; D-427, D-428): the upright state is a
+ * picture now, so the guard that used to insist nothing was painted in the
+ * drawing is the opposite check — that the drawing is there, with the advice
+ * line over it. The shots themselves are R63's evidence and are not re-taken;
+ * the v1 set's `sky-screen-portrait` pair, shot through the real page, is what
+ * v1.4.1 re-shoots (FR-FSC-7).
+ *
  *   npx tsx spike/window/screen-capture.ts
  *
  * It runs from a harness page (`screen.tsx`) rather than from the app, because
@@ -24,7 +31,7 @@ const PORT = 5198;
 const THEMES = ['dark', 'night'] as const;
 const LOCALES = ['en', 'es'] as const;
 /** The copy of `i18n/{en,es}/window.ts`, repeated here so a shot named "portrait" cannot be of anything else. */
-const NOTE = { en: 'Turn the phone sideways to follow the sky.', es: 'Gira el teléfono de lado para seguir el cielo.' } as const;
+const NOTE = { en: 'Turn the phone sideways to see more sky.', es: 'Gira el teléfono de lado para ver más cielo.' } as const;
 
 const url = (theme: string, locale: string): string => `http://localhost:${String(PORT)}/spike/window/screen.html?theme=${theme}&locale=${locale}`;
 
@@ -33,13 +40,13 @@ async function shoot(page: Page, theme: (typeof THEMES)[number], locale: (typeof
   await page.goto(url(theme, locale));
   const w = page.locator('[data-look-az]');
   await w.waitFor({ state: 'attached' });
-  if ((await w.getAttribute('data-orientation')) !== 'portrait') throw new Error('the harness is not in the portrait state');
-  const note = page.getByTestId('window-portrait-note');
+  if ((await w.getAttribute('data-orientation')) !== 'portrait') throw new Error('the harness is not in the portrait box');
+  const note = page.getByTestId('window-turn-note');
   await note.waitFor();
-  if ((await note.textContent()) !== NOTE[locale]) throw new Error(`the note is not the ${locale} one`);
-  // FR-FSC-4: the note and nothing else — no readout, no legend, nothing painted in the drawing.
-  if ((await page.locator('[data-drawing="window"] *').count()) !== 0) throw new Error('something is painted in the drawing');
-  if ((await page.getByTestId('window-readout').count()) !== 0) throw new Error('the readout is on the screen');
+  if ((await note.textContent()) !== NOTE[locale]) throw new Error(`the advice is not the ${locale} one`);
+  // R73 (FR-FSC-4 as rewritten): the picture is drawn in the portrait box, and the advice stands over it.
+  await page.locator('[data-horizon]').waitFor();
+  if ((await page.locator('[data-drawing="window"] *').count()) === 0) throw new Error('nothing is painted in the drawing');
   const name = `r63-window-390-portrait-${theme}-${locale}.png`;
   await page.screenshot({ path: resolve(OUT, name) });
   return name;
@@ -51,8 +58,8 @@ async function shootLandscape(page: Page): Promise<string> {
   await page.goto(url('dark', 'en'));
   const w = page.locator('[data-look-az]');
   await w.waitFor({ state: 'attached' });
-  if ((await w.getAttribute('data-orientation')) !== 'landscape') throw new Error('the harness is not in the landscape state');
-  if ((await page.getByTestId('window-portrait-note').count()) !== 0) throw new Error('the note is still up with the phone sideways');
+  if ((await w.getAttribute('data-orientation')) !== 'landscape') throw new Error('the harness is not in the landscape box');
+  if ((await page.getByTestId('window-turn-note').count()) !== 0) throw new Error('the advice is still up with the box wider than it is tall');
   await page.locator('[data-horizon]').waitFor();
   const name = 'r63-window-844-landscape-dark-en.png';
   await page.screenshot({ path: resolve(OUT, name) });
