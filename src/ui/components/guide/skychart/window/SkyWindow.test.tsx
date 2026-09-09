@@ -8,6 +8,8 @@
  * refusal's note with the dome as the view and the compass-less phone losing
  * the option.
  */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
@@ -710,5 +712,22 @@ describe('<SkyWindow>', () => {
       expect(screen.getByTestId('window-readout')).toBeInTheDocument();
       expect(screen.getByTestId('window-legend')).toBeInTheDocument();
     });
+  });
+});
+
+/**
+ * R73: where the notes stand on a screen. The legend is a strip along the
+ * bottom of the box, at most two `--tap` rows high (FR-FSC-3), and the notes'
+ * own place — `bottom: var(--row)` — is inside it: the advice line was drawn
+ * behind the legend's two rows, text over text, in
+ * `v1-sky-screen-portrait-390-dark-en.png`. On a screen they clear the strip.
+ * jsdom applies none of this, so the rule is read rather than measured, as
+ * `SkyScreen.test.tsx` reads the layer's own two.
+ */
+describe('the notes clear the legend strip on a screen (FR-FSC-11, FR-FOL-5, FR-FSC-3)', () => {
+  it('stands the advice and the ground note above the strip, and only on a screen', () => {
+    const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/window/SkyWindow.module.css'), 'utf8');
+    expect(css).toMatch(/\.groundNote,\s*\.turnNote \{\s*bottom: var\(--row\);/);
+    expect(css).toMatch(/\.window\[data-screen='true'\] \.groundNote,\s*\.window\[data-screen='true'\] \.turnNote \{\s*bottom: calc\(2 \* var\(--tap\) \+ var\(--row\) \/ 2\);/);
   });
 });

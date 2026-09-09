@@ -271,6 +271,17 @@
   bottom: var(--row);
 }
 
+/* R73: on the sky screen the bottom of the box is not free — the legend is a
+   strip along it, at most two `--tap` rows high (FR-FSC-3) — so the notes stand
+   above the strip rather than behind it. Two rows are reserved whatever the
+   strip holds, so the line does not move as passes come and go. The reserve is
+   unconditional on a screen because the legend is drawn in every state that has
+   a note in it (`buried` has neither). */
+.window[data-screen='true'] .groundNote,
+.window[data-screen='true'] .turnNote {
+  bottom: calc(2 * var(--tap) + var(--row) / 2);
+}
+
 /* The buried note is the middle of a box that has nothing else in it. */
 .buriedNote {
   top: 50%;

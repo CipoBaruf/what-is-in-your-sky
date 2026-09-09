@@ -460,7 +460,7 @@ export function SkyWindow(props: SkyChartProps) {
       className={[styles.window, className].filter(Boolean).join(' ')}
       data-state={state}
       data-ground={ground}
-      {...(onScreen ? { 'data-orientation': upright ? 'portrait' : 'landscape' } : {})}
+      {...(onScreen ? { 'data-screen': 'true', 'data-orientation': upright ? 'portrait' : 'landscape' } : {})}
       data-look-az={quantise(look.azDeg)}
       data-look-alt={Math.round(look.altDeg)}
     >
