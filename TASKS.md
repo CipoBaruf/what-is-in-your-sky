@@ -1526,7 +1526,7 @@ Delivery is PLAN §16 unchanged, cut by §16.14: six tasks, five waves, one task
     - The window's drawn output is unchanged: the existing `SkyWindow` geometry and ground-state tests pass untouched, and the `window` captures in the set are byte-identical.
     - `npm test`, lint and typecheck green; F-57 and F-58 marked closed in spec §4.20 with this PR's number.
 
-- [ ] **R69 — Window shapes: the mode in every rule, F-65, and the matrix**
+- [x] **R69 — Window shapes: the mode in every rule, F-65, and the matrix** — *done as written, with two rows of the matrix held to a documented allowance (964 × 420 until R71's rail; 844 × 501, the compact stack) and the fold letting the rows' air out as well as joining the actions to the strip's line, since 48 px rows cannot reach the floor by the fold order alone; see `sdd-run/R69.summary.md`.*
   - **Lane:** live
   - **Model:** fable
   - **Gate:** owner

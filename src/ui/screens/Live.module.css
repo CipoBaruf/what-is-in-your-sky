@@ -42,9 +42,22 @@
    324 px under the top row in English — and the dome the rest: its zoom
    follows the shorter side of its box (D-161), so width past the height buys
    only label margin. The side column scrolls itself where the strip wraps
-   past the viewport (Spanish, a smaller phone; D-119), so the page never does. */
+   past the viewport (Spanish, a smaller phone; D-119), so the page never does.
+
+   R69 (FR-SHP-1, FR-SHP-2; F-65; D-379): the shape is the media query and
+   the mode is the selector, and this block has both. It used to match `.page`
+   alone, on the assumption the comment above states — a landscape phone is
+   compact — and a wide window dragged under 500 px is landscape too: it took
+   these two column tracks while `.page[data-compact='false']`'s one-column
+   areas won on specificity, and the whole page was drawn inside the `2fr`
+   column with a drawing of zero height and a scrollbar (F-65, 1200 × 450).
+   Every rule here is the compact page's now, said in the selector, so a short
+   wide window keeps the desktop layout with a smaller box (FR-SHP-3).
+   `tests/styles/liveShape.test.ts` holds it: no `@media` block in this file
+   has a selector without `[data-compact=`, and no block re-cuts one half of
+   the grid without the other. */
 @media (orientation: landscape) and (max-height: 500px) {
-  .page {
+  .page[data-compact='true'] {
     grid-template-areas:
       'top top'
       'dome side';
@@ -63,11 +76,11 @@
      stripe in the column beside it — 19 px off the left edge of the page and
      15 px into the strip at 844 x 390. The pane says there is nothing to break
      out of, and the box is the column's width. */
-  .dome {
+  .page[data-compact='true'] .dome {
     --page-pad-x: 0px;
   }
 
-  .side {
+  .page[data-compact='true'] .side {
     overflow-y: auto;
   }
 }
@@ -209,6 +222,74 @@
   justify-content: flex-start;
   align-items: baseline;
   gap: 0 calc(3 * var(--cell));
+}
+
+/* R69 (FR-SHP-3, FR-SHP-4; F-65; D-381, D-389): the wide page on a window too
+   short for the box's floor. `Live.tsx` writes `data-fold` from
+   `lib/layout.ts`'s `foldRows` — the rows under the box that fold at this
+   height, in FR-SHP-3's order — and these rules are the folding. Nothing here
+   is a media query: the mode is `data-compact` and the fold is the page's own
+   attribute, so the compact page (which keeps its own rules, FR-LIVE-7 as
+   amended v1.2) matches none of it.
+
+   Two things happen under the floor. The rows the page keeps let their air
+   out: the gaps take the compact page's spacing token, and every control
+   around the box — the return control and the switches on the top row, the
+   view control on the frame's row, the playback controls on the time row, the
+   actions — keeps its 48 px hit box by D-246's device (vertical padding and
+   the matching negative margin) while its row is one text row, so four rows
+   of 48 are four rows of 24. That is what the arithmetic needs: the actions
+   row alone is 48 px against a floor the box misses by 85 at 1200 × 450
+   (spec §4.20 F-65: a 107 px box under 343 px of rows). And the row the
+   order names folds: the actions join the status strip's line — the strip's
+   `dl` becomes `display: contents`, so its five fields and the two actions
+   flow as one wrapped line under the rule the side column now draws. */
+.page[data-compact='false'][data-fold] {
+  --live-row-gap: calc(var(--row) / 6);
+  gap: var(--live-row-gap);
+  /* The last line's hit boxes overhang their row by half a row (D-246's negative margin), and an overhang past
+     the page's bottom is a scrollbar: the padding under the page is that half row while the fold is on. */
+  padding-bottom: calc(var(--row) / 2);
+}
+
+.page[data-compact='false'][data-fold] .stripeBlock {
+  gap: var(--live-row-gap);
+}
+
+/* Only the frame's row gap: on two columns its column gap is the rail's, not a row's. */
+.page[data-compact='false'][data-fold] .dome [data-fill='true'] {
+  row-gap: var(--live-row-gap);
+}
+
+.page[data-compact='false'][data-fold] button {
+  padding-block: calc((var(--tap) - var(--row)) / 2);
+  margin-block: calc(-1 * (var(--tap) - var(--row)) / 2);
+}
+
+/* The share action is bracketed text here, as on compact (D-245): a boxed button's border has no row to sit in. */
+.page[data-compact='false'][data-fold] .actions button {
+  padding-inline: 0;
+  border: 0;
+  background: none;
+}
+
+.page[data-compact='false'][data-fold] .actions p {
+  gap: 0;
+}
+
+/* FR-SHP-3's row: the actions join the strip's line. After the one-column `.side` rule above, which it replaces at equal weight. */
+.page[data-compact='false'][data-fold~='actions'] .side {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: baseline;
+  gap: 0 calc(3 * var(--cell));
+  border-top: 1px solid var(--rule);
+  padding-top: var(--live-row-gap);
+}
+
+.page[data-compact='false'][data-fold~='actions'] .side > dl {
+  display: contents;
 }
 
 /* The hidden-objects toggle, the follow control and the share action on one row (R48: the second control row, 31 cells on a phone). */

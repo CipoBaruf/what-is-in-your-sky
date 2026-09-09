@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import { useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
-import { LIVE_TWO_COLUMN_QUERY } from '../../lib/layout';
+import { foldRows, LIVE_TWO_COLUMN_QUERY } from '../../lib/layout';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import type { Span } from '../../lib/timeStripe';
@@ -108,6 +108,14 @@ export function LivePage({ link, onLeave }: LivePageProps) {
   // D-319: the page's rows follow the column count the frame is in (`LiveSky` reads the same query for the frame).
   const twoColumns = useMediaQuery(LIVE_TWO_COLUMN_QUERY);
   const columns = compact ? 'compact' : twoColumns ? 'two' : 'one';
+  /*
+   * R69 (FR-SHP-3, F-65, D-381, D-389): on a wide window too short for the box's floor the rows under the box
+   * fold, in `lib/layout.ts`'s order, rather than the page scrolling. The answer is written on the page as
+   * `data-fold` — the rows folded, space-separated, or no attribute — and `Live.module.css` does the folding.
+   * The compact page keeps its own rules (FR-LIVE-7 as amended v1.2: its gaps give, then its box), so it
+   * carries no fold whatever its height.
+   */
+  const fold = useFold();
 
   /*
    * FR-LIVE-1: Esc returns. R35 moves this into the app-wide listener.
@@ -153,7 +161,15 @@ export function LivePage({ link, onLeave }: LivePageProps) {
   const wakeLock = useWakeLock(inert === null);
 
   return (
-    <div className={styles.page} data-testid="live-page" data-state={inert === null ? 'live' : 'inert'} data-wake-lock={wakeLock} data-compact={compact} data-columns={columns}>
+    <div
+      className={styles.page}
+      data-testid="live-page"
+      data-state={inert === null ? 'live' : 'inert'}
+      data-wake-lock={wakeLock}
+      data-compact={compact}
+      data-columns={columns}
+      {...(!compact && fold !== '' ? { 'data-fold': fold } : {})}
+    >
       {/* FR-FSC-1 (D-321): the sky screen covers this row for the eye; `inert` is the other half — nothing under
           the layer is reachable, by Tab or by a tap that lands past it — and `aria-hidden` is what takes it out of
           the accessible tree, since `inert` alone is a browser behaviour and not a name a test can read. */}
@@ -183,6 +199,27 @@ export function LivePage({ link, onLeave }: LivePageProps) {
     </div>
   );
 }
+
+/**
+ * R69 (FR-SHP-3): which rows the wide page folds at the viewport's height,
+ * as `foldRows` answers for `innerHeight` — read through `useSyncExternalStore`
+ * on `resize`, and stored as the joined answer rather than the height, so a
+ * drag that crosses no fold threshold re-renders nothing. Without a window
+ * (jsdom's tests mount the page with one; a server would not) nothing folds.
+ */
+function useFold(): string {
+  return useSyncExternalStore(subscribeResize, foldSnapshot, noFold);
+}
+
+function subscribeResize(onChange: () => void): () => void {
+  window.addEventListener('resize', onChange);
+  return () => {
+    window.removeEventListener('resize', onChange);
+  };
+}
+
+const foldSnapshot = (): string => foldRows(window.innerHeight).join(' ');
+const noFold = (): string => '';
 
 /**
  * D-171: the hash follows the shown instant so a reload or a share lands on

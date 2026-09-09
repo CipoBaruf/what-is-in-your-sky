@@ -51,6 +51,7 @@ import {
   turn,
   YAW_STEP_DEG,
   zoomFor,
+  zoomWithinRaster,
   LABEL_FONT_PX,
   ZOOM_WIDTH_DIVISOR,
 } from './camera';
@@ -471,6 +472,59 @@ describe('the floor holds on the fit path too (FR-DOME-1 v1.2, D-291, D-293)', (
     expect(fitted.cols).toBe(GRID_COLS);
     expect((fitted.cols * fitted.cellWidthPx) / box).toBeLessThan(MIN_EXTENT_RATIO);
     expect((INK_WIDTH_UNITS * fitted.zoom) / box).toBeGreaterThanOrEqual(WHOLE_PIXEL_MIN_RATIO);
+  });
+
+  /**
+   * R69 (FR-SHP-4; CI on `tests/e2e/shapes.spec.ts` at 932 × 430): the width's number is not the
+   * height's. The landscape phone's dome box at 932 × 430 is 355.78 × 306 — the square box above in
+   * width, near enough, and the same 5 px cell on Linux — but its shorter side is its height, and
+   * its shape (1.16 : 1) is under the fit rule's own 2.4 : 2.0, so the width binds and the height is
+   * what FR-DOME-1 measures. CI's Linux Chromium measured the drawing at 0.8032 of the box's height,
+   * three runs to ten decimals, against the 0.81 pinned above; macOS, with exact advances, at
+   * 0.9074. This is the mechanism, deterministic and without a browser, and the floor
+   * `tests/e2e/domeInk.ts` derives from it in place of the constant.
+   */
+  it('scales the floor with the zoom the rounded raster leaves, down as across: the landscape phone’s box at 932 × 430 (R69, FR-SHP-4)', () => {
+    const box = { width: 355.78, height: 306 };
+    // The height is the shorter side, but the width binds: 355.78 / 2.4 is 148.2 against 306 / 2.0 = 153.
+    expect(box.width).toBeGreaterThan(box.height);
+    expect(box.width / ZOOM_WIDTH_DIVISOR).toBeLessThan(box.height / ZOOM_HEIGHT_DIVISOR);
+    const exactZoom = zoomFor(box.width, box.height);
+    expect(exactZoom).toBeCloseTo(148.24, 2);
+    // With exact advances the ink down is 1.78 × 148.2 = 263.9 px, 0.862 of the height — the rule's own 0.89 less
+    // the 3 % the width's binding leaves — and the labels take the extent over 0.9 by a hair (0.9074 on the page).
+    const exactFont = { advance: DEFAULT_ADVANCE, measureRows: exact };
+    const exactFit = fitLayers(box.width, box.height, exactFont, exactFont);
+    expect(exactFit.lines.zoom).toBeCloseTo(exactZoom, 6);
+    expect((INK_HEIGHT_UNITS * exactFit.lines.zoom) / box.height).toBeCloseTo(0.862, 2);
+    // Whole CSS pixels: the 5.93 px cell rounds to 5 (the base layer's 11.86 to 11), the raster is 300 px of 355.78,
+    // and the zoom is the raster's — 58 cells of 5 px over 2.2 units, 131.8 — 0.889 of the box's own.
+    const roundedFont = { advance: DEFAULT_ADVANCE, measureRows: roundedTo(1) };
+    const { lines, base } = fitLayers(box.width, box.height, roundedFont, roundedFont);
+    expect(lines.cellWidthPx).toBe(5);
+    expect(base.cellWidthPx).toBe(11);
+    expect(lines.zoom).toBeCloseTo(((GRID_COLS - 2 * INK_MARGIN_CELLS) * 5) / INK_WIDTH_UNITS, 6);
+    const ratio = lines.zoom / exactZoom;
+    expect(ratio).toBeCloseTo(0.889, 3);
+    // Across, the ink is 0.815 of the width: the square box's 0.818, the number D-293 pinned. Down it is 0.767 —
+    // the same zoom from a lower start. The 0.81 above is the width's allowance and was never the height's.
+    expect((INK_WIDTH_UNITS * lines.zoom) / box.width).toBeGreaterThanOrEqual(WHOLE_PIXEL_MIN_RATIO);
+    expect((INK_HEIGHT_UNITS * lines.zoom) / box.height).toBeLessThan(WHOLE_PIXEL_MIN_RATIO);
+    // The floor derived from the quantum rather than pinned: FR-DOME-1's 0.9 at the zoom the rounded rasters leave
+    // over the zoom the box asks for — `zoomWithinRaster` on each settled raster, the lesser of the two (D-292),
+    // which is what `fitLayers` gave. `tests/e2e/domeInk.ts` `fitFloor` computes the same from the page's own cells.
+    const platformZoom = Math.min(exactZoom, ...[lines, base].map((layer) => zoomWithinRaster(box.width, box.height, { widthPx: layer.cols * layer.cellWidthPx, heightPx: layer.rows * layer.cellHeightPx, cellWidthPx: layer.cellWidthPx })));
+    expect(platformZoom).toBeCloseTo(lines.zoom, 6);
+    const floor = MIN_EXTENT_RATIO * (platformZoom / exactZoom);
+    expect(floor).toBeCloseTo(0.8003, 3);
+    // The extent the model gives at that zoom (an upper bound: its label allowance is a whole cell) clears the floor
+    // and stays inside the box, and so does what CI measured on the page on 2026-09-08 — under the old constant.
+    const extent = drawingExtent(lines.zoom, DEFAULT_TILT_DEG, 0, { widthPx: lines.cellWidthPx, heightPx: lines.cellHeightPx });
+    expect(extent.height / box.height).toBeGreaterThanOrEqual(floor);
+    expect(extent.height / box.height).toBeLessThanOrEqual(MAX_EXTENT_RATIO);
+    const measuredOnCi = 0.8032322303921569;
+    expect(measuredOnCi).toBeGreaterThanOrEqual(floor);
+    expect(measuredOnCi).toBeLessThan(WHOLE_PIXEL_MIN_RATIO);
   });
 });
 

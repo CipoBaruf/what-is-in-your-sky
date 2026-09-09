@@ -76,7 +76,7 @@ test('draws the same dome after a resize as a fresh load at that size gives', as
     expect(resized.extent.x + resized.extent.width, `${key}: the drawing ends inside the box`).toBeLessThanOrEqual(box.x + box.width + 1);
     expect(resized.extent.y, `${key}: the drawing's top is inside the box`).toBeGreaterThanOrEqual(box.y - 1);
     expect(resized.extent.y + resized.extent.height, `${key}: the drawing's bottom is inside the box`).toBeLessThanOrEqual(box.y + box.height + 1);
-    expect(resized.extent.width / box.width, `${key}: the drawing over the box's width`).toBeGreaterThanOrEqual(fitFloor(resized.layers, box.width));
+    expect(resized.extent.width / box.width, `${key}: the drawing over the box's width`).toBeGreaterThanOrEqual(fitFloor(resized.layers, box));
     if (size.width === REFERENCE.width && size.height === REFERENCE.height) {
       const cell = Math.max(...resized.layers.map((layer) => layer.cellWidthPx));
       for (const side of ['x', 'y', 'width', 'height'] as const) {
