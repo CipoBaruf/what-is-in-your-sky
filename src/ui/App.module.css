@@ -9,6 +9,12 @@
 
 .main {
   display: grid;
+  /* The track has a zero floor for the same reason `Live.module.css`'s does: an implicit `auto` track cannot
+     go under its content's minimum, so one long word — the Spanish install note and readiness line are the
+     ones that reach it — widens the track past the shell's content box and the page scrolls sideways.
+     Measured at 360 x 800 in WebKit, Spanish: the column 346 px where the content box is 320.
+     `tests/e2e/narrow.spec.ts` holds it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--row);
 }
 
@@ -16,6 +22,7 @@
    sit one under the other and the page looks exactly as it did (R23). */
 .column {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
   gap: var(--row);
 }

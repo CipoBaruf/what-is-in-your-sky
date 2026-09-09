@@ -19,7 +19,12 @@
  * any the matrix claims — the owner's call, not this task's.
  */
 import { expect, test } from '@playwright/test';
-import { domeDrawn, seedStoredRun, stripFilled } from './liveHelpers';
+import { domeDrawn, homeAt, seedStoredRun, stripFilled, T } from './liveHelpers';
+
+/** The page against its own viewport: what a phone scrolls sideways by. */
+async function scroll(page: import('@playwright/test').Page): Promise<{ scrollWidth: number; clientWidth: number }> {
+  return page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }));
+}
 
 test.describe('a narrow phone does not scroll sideways', () => {
   test('the live page holds the viewport at 344 and 360 (FR-COMP-5, FR-SHP-2)', async ({ page }) => {
@@ -30,8 +35,31 @@ test.describe('a narrow phone does not scroll sideways', () => {
     for (const width of [360, 344]) {
       await page.setViewportSize({ width, height: 700 });
       await domeDrawn(page);
-      const scroll = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }));
-      expect(scroll.scrollWidth, `${String(width)} px: the live page scrolls sideways`).toBeLessThanOrEqual(scroll.clientWidth);
+      const measured = await scroll(page);
+      expect(measured.scrollWidth, `${String(width)} px: the live page scrolls sideways`).toBeLessThanOrEqual(measured.clientWidth);
     }
+  });
+
+  /**
+   * The owner's second measurement, on the same phone: the home page, only once a place is set and the page
+   * has its content — the location summary, the readiness line and the install note are what the shell's
+   * track is measured against, and in Spanish they are longer than in English. `.main` and `.column` in
+   * `App.module.css` had the same implicit `auto` track the live page had. English was already inside the
+   * box at the same width, which is why the page had to be Spanish and populated for the defect to show.
+   */
+  test('the home page holds the viewport at 344 in Spanish, with its content (FR-COMP-5, FR-I18N-2)', async ({ page }) => {
+    // 344 and not the 360 the owner measured: Chromium's `ch` is 9.6 px against WebKit's 9.891, so the same
+    // defect reaches 360 on a phone and 344 here. The width is the one this engine can hold the fix to.
+    await page.setViewportSize({ width: 344, height: 800 });
+    await homeAt(page, T, 'es', true);
+    const plain = await scroll(page);
+    expect(plain.scrollWidth, '344 px, Spanish: the home page scrolls sideways').toBeLessThanOrEqual(plain.clientWidth);
+    // The install note is a row of the same column, and the longest line the page has (FR-OFF-6).
+    await page.evaluate(() => {
+      window.dispatchEvent(Object.assign(new Event('beforeinstallprompt', { cancelable: true }), { prompt: () => Promise.resolve() }));
+    });
+    await expect(page.getByTestId('install-hint')).toBeVisible();
+    const offered = await scroll(page);
+    expect(offered.scrollWidth, '344 px, Spanish, install note: the home page scrolls sideways').toBeLessThanOrEqual(offered.clientWidth);
   });
 });
