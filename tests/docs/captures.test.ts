@@ -22,21 +22,25 @@ describe('the v1 capture set', () => {
     // F-50 (R37): the variants are counted, not remembered. The hard-coded `* 4` was the two
     // themes times the two languages, so a third theme or a third language would have been a set
     // this test called complete while a quarter of it was missing.
-    const variants = THEMES.length * LOCALES.length;
-    expect(captureSet()).toHaveLength(SCREENS.reduce((total, screen) => total + screen.widths.length * variants, 0));
+    // R73 (FR-FSC-7 as amended): a screen may name fewer themes or languages than there are — `sky-screen-turned`
+    // is a geometry and the same picture in all four — so the count is per screen and the default is still all.
+    expect(captureSet()).toHaveLength(SCREENS.reduce((total, screen) => total + screen.widths.length * (screen.themes ?? THEMES).length * (screen.locales ?? LOCALES).length, 0));
+    expect(SCREENS.filter((screen) => screen.themes ?? screen.locales).map((screen) => screen.name)).toEqual(['sky-screen-turned']);
     /*
      * Every screen is on the phone and on the wide layout; nothing is desktop-only or phone-only.
      *
      * R64 (FR-FSC-7), widened by R66 (V13-6, V13-9), is the one exception, and it is an exception because
      * the app is: the sky screen is reached by the view control's "window", which is offered only where
-     * FR-WIN-4's presence test passes — never on a desktop — and it is drawn only with the phone held
-     * sideways (FR-FSC-4). So its widths are the landscape phone for the drawing and the portrait phone
-     * for the note, and a 1280 px file would be a picture of a screen no reader can be on. `window`, the
-     * same screen opened from a pass detail, is in the exception for the same reason.
+     * FR-WIN-4's presence test passes — never on a desktop. So its widths are the phone's two, the
+     * landscape one for the states the reader holds it sideways for and the portrait one for the two R73
+     * added (the picture upright, and the layer turned under a rotation lock), and a 1280 px file would be
+     * a picture of a screen no reader can be on. `window`, the same screen opened from a pass detail, is in
+     * the exception for the same reason.
      */
+    const UPRIGHT = new Set(['sky-screen-portrait', 'sky-screen-turned']);
     for (const screen of SCREENS) {
       if (screen.name.startsWith('sky-screen-') || screen.name === 'window') {
-        expect(screen.widths, screen.name).toEqual(screen.name === 'sky-screen-portrait' ? [390] : [844]);
+        expect(screen.widths, screen.name).toEqual(UPRIGHT.has(screen.name) ? [390] : [844]);
         continue;
       }
       expect(screen.widths, screen.name).toContain(390);

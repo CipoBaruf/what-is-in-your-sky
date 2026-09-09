@@ -107,7 +107,7 @@ const FULL_PAGE = new Set(['location', 'home', 'settings']);
  * touch panel. Playwright grants touch per context, so these tests need a
  * `test.use` of their own and the rest of the set must not have it.
  */
-const TOUCH = new Set(['window', 'sky-screen-sky', 'sky-screen-ground', 'sky-screen-buried', 'sky-screen-portrait']);
+const TOUCH = new Set(['window', 'sky-screen-sky', 'sky-screen-ground', 'sky-screen-buried', 'sky-screen-portrait', 'sky-screen-turned']);
 
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
@@ -284,10 +284,16 @@ async function settle(page: Page): Promise<void> {
  *
  * `sky` is turned to where the pass is, as `live-following` was: a picture with
  * an arc in it is worth more than an empty sky. The two ground states are swept
- * down the look's own azimuth. `portrait` is the phone held upright, where
- * FR-FSC-4 says there is nothing to aim.
+ * down the look's own azimuth.
+ *
+ * R73 (FR-FSC-4 as rewritten, FR-FSC-7 as amended, FR-FSC-10, FR-FSC-11):
+ * `portrait` is the phone held upright, which since v1.4.1 is a picture and not
+ * a note — the same aim as `sky`, in the portrait box, with the advice line
+ * over it — and `turned` is the phone held sideways while the viewport stays
+ * upright, which is what a rotation lock does: the pose says 90, the layer
+ * turns, and the picture is landscape inside a portrait viewport.
  */
-type FollowState = 'sky' | 'ground' | 'buried' | 'portrait';
+type FollowState = 'sky' | 'ground' | 'buried' | 'portrait' | 'turned';
 
 async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, state: FollowState): Promise<void> {
   await stubCompass(page);
@@ -307,20 +313,38 @@ async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme
   // FR-FSC-1: none of the live page is under the layer any more — the rows are not rendered at all.
   await expect(page.getByTestId('stripe-block')).toHaveCount(0);
   await expect(page.getByTestId('sky-screen-close')).toBeVisible();
-  if (state === 'portrait') {
-    await expect(page.getByTestId('window-portrait-note')).toBeVisible();
+  const drawing = page.locator('[data-look-az]');
+  await expect(drawing).toBeAttached();
+  if (state === 'turned') {
+    /*
+     * The pose of a phone held sideways on a viewport that never reflows — a rotation lock. `gamma: -90` puts
+     * the room's up along the device's +X, which is its top to the reader's left and the browser's angle 90 on
+     * a phone that is free to turn; the extra 20° raises the look that far above the horizon, as `point` does
+     * for the upright poses. `alpha` is swept for the same reason `sky` sweeps the azimuth: a picture with an
+     * arc in it is worth more than an empty sky.
+     */
+    for (const alpha of [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]) {
+      await page.evaluate((a) => {
+        window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: a, beta: 0, gamma: -110, absolute: true }));
+      }, alpha);
+      await settle(page);
+      if ((await page.locator('[data-drawing="window"] [data-pass-id]').count()) > 0) break;
+    }
+    await expect(page.getByTestId('sky-screen')).toHaveAttribute('data-turn', '90');
+    await expect(drawing).toHaveAttribute('data-orientation', 'landscape');
+    await expect(drawing).toHaveAttribute('data-ground', 'sky');
     await page.mouse.move(0, 0);
     return;
   }
-  const drawing = page.locator('[data-look-az]');
-  await expect(drawing).toBeAttached();
-  if (state === 'sky') {
+  if (state === 'sky' || state === 'portrait') {
     for (const azDeg of [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]) {
       await point(page, azDeg, 20);
       await settle(page);
       if ((await page.locator('[data-drawing="window"] [data-pass-id]').count()) > 0) break;
     }
     await expect(drawing).toHaveAttribute('data-ground', 'sky');
+    // FR-FSC-11: upright, the advice stands over that picture — which is what the portrait shot is of.
+    if (state === 'portrait') await expect(page.getByTestId('window-turn-note')).toBeVisible();
   } else {
     // Down the look's own azimuth, so the sky the `ground` state still holds is the sky the reader was in.
     const azDeg = Number(await drawing.getAttribute('data-look-az'));
@@ -522,6 +546,11 @@ const REACH: Record<string, Reach> = {
   async 'sky-screen-portrait'(page, width, theme, locale) {
     await followScreen(page, width, theme, locale, 'portrait');
   },
+
+  /** R73 (FR-FSC-7 as amended, FR-FSC-10): the rotation-locked phone held sideways, with the layer turned. */
+  async 'sky-screen-turned'(page, width, theme, locale) {
+    await followScreen(page, width, theme, locale, 'turned');
+  },
 };
 
 /** One test per capture: reach the screen, prove the seed took, shoot the file. */
@@ -529,8 +558,9 @@ function shoot(screen: (typeof SCREENS)[number]): void {
   const reach = REACH[screen.name];
   if (!reach) throw new Error(`no route to the ${screen.name} screen`);
   for (const width of screen.widths) {
-    for (const theme of THEMES) {
-      for (const locale of LOCALES) {
+    // R73 (FR-FSC-7 as amended): a screen may name fewer variants than there are; all of them is the default.
+    for (const theme of screen.themes ?? THEMES) {
+      for (const locale of screen.locales ?? LOCALES) {
         test(`${screen.name} at ${String(width)} px, ${theme}, ${locale}`, async ({ page }) => {
           await reach(page, width, theme, locale);
           await expect(page.locator('html')).toHaveAttribute('data-theme', theme);

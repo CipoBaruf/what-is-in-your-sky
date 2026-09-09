@@ -49,6 +49,15 @@
  * `[ list (n) ]` panel, open, since on the compact live page the legend is not
  * on the page until the reader taps for it. Neither screen leaves the set.
  *
+ * R73 (SPEC v1.4.1, FR-FSC-7 as amended; V14-9, V14-10): the portrait pair is
+ * not a picture of a note any more — at 390 × 844 the screen draws, and the
+ * shot is the picture with FR-FSC-11's line over it — and one shot is added
+ * for the turn, `sky-screen-turned`, where a rotation-locked phone held
+ * sideways has the layer turned under it (FR-FSC-10). That one is the first
+ * screen in the set with fewer variants than the matrix: what it shows is a
+ * geometry, and a geometry is the same picture in either theme and either
+ * language, so it is shot at one of each.
+ *
  * R60 (SPEC §9 Phase 2c): v1.2 added two states the window can be in (FR-FOL-5,
  * R56) and one the live page can be in (FR-FOL-1, R59), so `window-ground` and
  * `window-buried` join `window` and `live-following` joins `live` — a state
@@ -92,6 +101,16 @@ export interface CaptureScreen {
   readonly widths: readonly CaptureWidth[];
   /** What a reviewer should be looking at. Repeated in the PR body. */
   readonly what: string;
+  /**
+   * R73 (SPEC v1.4.1, FR-FSC-7 as amended; V14-10): fewer than all of them,
+   * for a screen whose subject is a geometry and not a piece of copy or a
+   * colour. `sky-screen-turned` is the one: what it shows is the layer turned
+   * a quarter under a rotation lock (FR-FSC-10), which is the same picture in
+   * either theme and either language, so it is shot once. Absent means the
+   * whole matrix, which is what every other screen is.
+   */
+  readonly themes?: readonly CaptureTheme[];
+  readonly locales?: readonly CaptureLocale[];
 }
 
 /**
@@ -122,7 +141,18 @@ export const SCREENS: readonly CaptureScreen[] = [
   },
   { name: 'sky-screen-ground', widths: [844], what: 'The same screen swept 10° below the horizon (FR-FOL-5): the hatch fills the ground and the sky above it keeps drawing, under the same three overlays.' },
   { name: 'sky-screen-buried', widths: [844], what: 'The same screen swept 60° below the horizon (FR-FOL-5): no sky is left in the field, and the box is the hatched panel with its note — the `×` is still the way out.' },
-  { name: 'sky-screen-portrait', widths: [390], what: 'The sky screen with the phone held upright (FR-FSC-4, US-21 AC12): the note asking for the phone to be turned, and the `×`, and nothing else — no drawing, no readout, no legend.' },
+  {
+    name: 'sky-screen-portrait',
+    widths: [390],
+    what: 'The sky screen with the phone held upright (FR-FSC-4 as rewritten, FR-FSC-11, US-21 AC12 as amended, R73): the picture drawn in the portrait box — the drawing, the `×`, the readout and the legend — with one line of advice over it about what a sideways phone buys. It was a note with nothing behind it until v1.4.1.',
+  },
+  {
+    name: 'sky-screen-turned',
+    widths: [390],
+    themes: ['dark'],
+    locales: ['en'],
+    what: 'The same 390 × 844 viewport with the pose of a phone held sideways under a rotation lock (FR-FSC-10, US-21 AC15, R73): the layer has turned a quarter, so the picture is landscape inside a portrait viewport and the readout, the legend and the `×` are the right way up to the reader\'s eye. One theme and one language: the turn is a geometry, not a piece of copy.',
+  },
 ];
 
 export const CAPTURE_DIR = 'docs/screenshots';
@@ -140,6 +170,8 @@ export interface Capture {
 /** The whole matrix, in a stable order. */
 export function captureSet(): Capture[] {
   return SCREENS.flatMap((screen) =>
-    screen.widths.flatMap((width) => THEMES.flatMap((theme) => LOCALES.map((locale) => ({ screen, width, theme, locale, file: captureName(screen.name, width, theme, locale) })))),
+    screen.widths.flatMap((width) =>
+      (screen.themes ?? THEMES).flatMap((theme) => (screen.locales ?? LOCALES).map((locale) => ({ screen, width, theme, locale, file: captureName(screen.name, width, theme, locale) }))),
+    ),
   );
 }
