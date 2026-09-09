@@ -26,6 +26,13 @@
     'top'
     'dome'
     'side';
+  /* The one column is `minmax(0, 1fr)` and not the implicit `auto`: an `auto` track cannot go under its
+     content's minimum, so a row wider than the phone — 36 cells is FR-COMP-4's budget, and a 360 px screen
+     has 32.4 of them once the page's two-cell padding is off — widens the track past the page's content box,
+     and the full-bleed drawing (`ChartFrame.module.css`, D-187) then breaks out from a pane that is already
+     too wide and the whole page scrolls sideways. Measured at 360 x 800 in WebKit: the track 326.4 where the
+     content box is 320.4, the drawing 366 in a 360 px viewport. `tests/e2e/narrow.spec.ts` holds it. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: calc(var(--row) / 4);
   background: var(--bg);

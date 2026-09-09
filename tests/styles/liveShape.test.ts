@@ -93,6 +93,25 @@ describe('the live stylesheet: the mode in every shape rule (FR-SHP-1, FR-SHP-2,
     }
   });
 
+  /**
+   * R71 (the owner's finding on a phone): every track the page lays must be able to go under its content's
+   * minimum. An `auto` or bare `1fr` track cannot — a row at FR-COMP-4's 36 cells is wider than a 344 px
+   * screen, so the track grew past the page's content box and the full-bleed drawing broke out of a pane
+   * already too wide, and the page scrolled sideways (`tests/e2e/narrow.spec.ts` measures it).
+   */
+  it('gives every column track a zero floor, so no row can widen the page (FR-COMP-5)', () => {
+    const tracks = all.filter((rule) => onPage(rule.selector) && declares(rule.body, 'grid-template-columns'));
+    expect(tracks.length).toBeGreaterThan(0);
+    for (const rule of tracks) {
+      const value = /grid-template-columns:([^;]*);/.exec(rule.body)?.[1]?.trim() ?? '';
+      const where = `${LIVE_CSS}: \`${rule.selector}\`${rule.media ? ` in \`${rule.media}\`` : ''}`;
+      for (const track of value.split(/\s+(?![^(]*\))/)) {
+        if (track === '') continue;
+        expect(track.startsWith('minmax(0,'), `${where}: the track \`${track}\` has no zero floor`).toBe(true);
+      }
+    }
+  });
+
   it('re-cuts both halves of the grid in the same block, or neither (FR-SHP-2)', () => {
     const pageRules = all.filter((rule) => onPage(rule.selector));
     expect(pageRules.length).toBeGreaterThan(0);
