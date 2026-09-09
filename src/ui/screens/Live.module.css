@@ -152,6 +152,20 @@
 /* R61 (FR-LIVE-7 as amended v1.2.1, V12-13, D-318): on wide the clock readout and the playback controls share
    one row above the stripe, under the dome — the controls beside the instant they set. The readout keeps its
    heading size; the controls sit on its baseline, two cells off, and wrap under it in a box too narrow for both. */
+/* R70 (FR-SPAN-2): the overview's row — one row of body-size cells above the
+   stripe, the width of the block. It is the first row of FR-SHP-3's fold
+   order (D-389): under the box's floor the whole span goes and the four hours
+   the stripe draws stay, which is the row a short window can most afford to
+   lose. */
+.overviewRow {
+  display: block;
+  height: var(--row);
+}
+
+.page[data-compact='false'][data-fold~='overview'] .overviewRow {
+  display: none;
+}
+
 .timeRow {
   display: flex;
   flex-wrap: wrap;

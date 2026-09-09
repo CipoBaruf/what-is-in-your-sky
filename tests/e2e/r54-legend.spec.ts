@@ -4,7 +4,10 @@
  * keyboard stop — focus highlights a row without promoting it, so Tab walks
  * the list in order. On the four-pass Paris instant (`parisLive.ts`), at a
  * short two-column viewport (`LIVE_VIEWPORTS.short`) where the rail is shorter
- * than its list.
+ * than its list. R70 moved that viewport from 1660 × 540 to 1660 × 380, for the
+ * reason written against it in `parisLive.ts`: the rows this phase adds under
+ * the box pull FR-SHP-3's fold in, and a folded page's rail holds the whole
+ * list. The behaviour under test is unchanged.
  */
 import { expect, test } from '@playwright/test';
 import { openParisLive } from './parisLive';
@@ -24,7 +27,7 @@ test('the legend beside the drawing scrolls inside the box; every row is a keybo
   expect(ids.length).toBeGreaterThan(1);
   const metrics = await scroller.evaluate((el) => ({ overflow: getComputedStyle(el).overflowY, client: el.clientHeight, scroll: el.scrollHeight }));
   expect(metrics.overflow).toBe('auto');
-  expect(metrics.scroll).toBeGreaterThan(metrics.client);
+  expect(metrics.scroll, `the rail must be shorter than its list for this to test anything: ${JSON.stringify(metrics)}`).toBeGreaterThan(metrics.client);
   // By pointer: the column scrolls to its end and the last row is inside the box, where a click pins it.
   const lastId = ids[ids.length - 1];
   const last = slot.locator(`button[data-pass-id="${String(lastId)}"]`);

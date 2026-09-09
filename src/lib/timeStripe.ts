@@ -44,11 +44,53 @@ export function timeAt(x: number, span: Span, width: number): EpochMs {
   return clampToSpan(Math.round(span.start + (x / width) * (span.end - span.start)), span);
 }
 
-/** The instant after one arrow-key step from `t`: ±1 min, ±10 min with Shift, clamped (FR-LIVE-4). `null` for a key that is not a step. */
+/**
+ * R70 (FR-SPAN-1, OQ-24): the stripe draws a **chunk** of the span — four
+ * hours — rather than all of it, so a drag moves seconds per pixel instead of
+ * minutes. The number is a constant and not a setting: FR-SPAN-1 makes the
+ * chunk a view of the shown instant, never a state.
+ */
+export const STRIPE_CHUNK_H = 4;
+export const CHUNK_MS = STRIPE_CHUNK_H * HOUR_MS;
+/**
+ * R70 (FR-SPAN-6): the wall time an hour of the chunk must last for the chunk
+ * to be worth drawing — ten seconds, so the chunk holds to 60× (an hour a
+ * minute) and goes at 600×, where the whole four hours pass in 24 s and the
+ * labels change faster than they can be read.
+ *
+ * FR-SPAN-6 states the outcome three times — the chunk at 1× and 60×, the
+ * whole span at 600× and 3600× (D-385, and the task's own test) — and states
+ * the arithmetic once, as the *chunk's* 24 s against this same 10 s, which
+ * would keep the chunk at 600× and contradict the other three. The outcome is
+ * what is implemented and the ten seconds is measured on the hour, the unit
+ * the stripe's ticks are in; the effective floor is 40 s of wall time for a
+ * chunk, between 600×'s 24 s and 60×'s 240 s.
+ */
+export const CHUNK_MIN_WALL_S = 10;
+
+export const DAY_MS = 24 * HOUR_MS;
+
+/** FR-LIVE-4 as amended v1.4: Page Up and Page Down move one chunk of shown time. */
+function stepDirection(key: string): number {
+  return key === 'ArrowRight' || key === 'ArrowUp' ? 1 : key === 'ArrowLeft' || key === 'ArrowDown' ? -1 : 0;
+}
+
+/** The instant after one arrow-key step from `t`: ±1 min, ±10 min with Shift, ±one chunk on Page Up and Page Down, clamped (FR-LIVE-4). `null` for a key that is not a step. */
 export function keyStep(t: EpochMs, key: string, shift: boolean, span: Span): EpochMs | null {
-  const direction = key === 'ArrowRight' || key === 'ArrowUp' ? 1 : key === 'ArrowLeft' || key === 'ArrowDown' ? -1 : 0;
+  if (key === 'PageUp' || key === 'PageDown') return clampToSpan(t + (key === 'PageUp' ? CHUNK_MS : -CHUNK_MS), span);
+  const direction = stepDirection(key);
   if (direction === 0) return null;
   return clampToSpan(t + direction * (shift ? SHIFT_KEY_STEP_MS : KEY_STEP_MS), span);
+}
+
+/** FR-SPAN-2: the overview's own keyboard — a quarter hour on the arrows, a chunk on the page keys, over the whole span. */
+export const OVERVIEW_KEY_STEP_MS = 15 * MINUTE_MS;
+
+export function overviewKeyStep(t: EpochMs, key: string, span: Span): EpochMs | null {
+  if (key === 'PageUp' || key === 'PageDown') return clampToSpan(t + (key === 'PageUp' ? CHUNK_MS : -CHUNK_MS), span);
+  const direction = stepDirection(key);
+  if (direction === 0) return null;
+  return clampToSpan(t + direction * OVERVIEW_KEY_STEP_MS, span);
 }
 
 /** Days from 1970-01-01 to a proleptic Gregorian date (Howard Hinnant's `days_from_civil`); no `Date` in `src/lib` (D-15). */
@@ -106,12 +148,48 @@ export function zoneOffsetMs(t: EpochMs, timeZone: string | null): number {
   }
 }
 
+/**
+ * R70 (FR-SPAN-1, D-382): the chunk that holds `t` — the four hours of the
+ * span the stripe draws. The boundaries are multiples of `STRIPE_CHUNK_H`
+ * hours from the observer's local midnight, so they are whole clock hours
+ * (00, 04, 08, …) that do not move as time runs, and they are found through
+ * the same `zoneOffsetMs` path `hourTicks` uses, memoised on the zone as that
+ * is. The chunk is then clipped to the span: the first starts at `now` and the
+ * last ends at `now + 24 h`.
+ *
+ * Pure, and derived from `t` alone: nothing stores which chunk is drawn, so
+ * there is no second thing that could disagree with the shown instant.
+ */
+export function chunkFor(t: EpochMs, span: Span, timeZone: string | null): Span {
+  const at = clampToSpan(t, span);
+  const offset = zoneOffsetMs(at, timeZone);
+  let start = Math.floor((at + offset) / CHUNK_MS) * CHUNK_MS - offset;
+  // `t` at the span's very end sits on a boundary whose chunk is wholly past it; the chunk that holds it is the one before.
+  if (start >= span.end) start -= CHUNK_MS;
+  return { start: Math.max(span.start, start), end: Math.min(span.end, start + CHUNK_MS) };
+}
+
+/**
+ * R70 (FR-SPAN-6, D-385): the window the stripe draws — the chunk, or the
+ * whole span at a speed that runs an hour of it past in less than
+ * `CHUNK_MIN_WALL_S` seconds of wall time (600× and 3600×; 1× and 60× keep the
+ * chunk). `speed` is `null` while playback is paused, which is a chunk
+ * whatever the speed selected. Arithmetic rather than a list of speeds, so
+ * nothing here has to be kept in step with `usePlayback`.
+ */
+export function drawnSpan(t: EpochMs, span: Span, timeZone: string | null, speed: number | null): Span {
+  if (speed !== null && speed > 0 && HOUR_MS / 1000 / speed < CHUNK_MIN_WALL_S) return span;
+  return chunkFor(t, span, timeZone);
+}
+
 export interface HourTick {
   t: EpochMs;
   x: number;
   /** The hour of the observer's clock, 0–23. */
   hour: number;
-  /** Whether this tick carries a label: every `labelEveryHours`-th hour, counted from midnight. */
+  /** R70 (FR-SPAN-7): the minute of that hour — 0 at every tick until the chunk's 30 min cadence. */
+  minute: number;
+  /** Whether this tick carries a label: every `labelEveryMs` from the observer's midnight. */
   labelled: boolean;
   /** R48 (FR-TRAJ-4): a midnight crossing, whose label is the date rather than `00`. */
   midnight: boolean;
@@ -140,6 +218,43 @@ export const STRIPE_LABEL_MIN_CELLS = 60;
 export function labelEveryHours(widthCells: number): number {
   return widthCells >= STRIPE_LABEL_MIN_CELLS ? LABEL_EVERY_HOURS.roomy : LABEL_EVERY_HOURS.dense;
 }
+
+/** The room a two-character label wants to itself: its two cells, the cell of air `keepLabels` demands, and a cell of margin. */
+export const LABEL_MIN_GAP_CELLS = 4;
+export const HALF_HOUR_MS = 30 * MINUTE_MS;
+
+/**
+ * R70 (FR-TRAJ-4 as amended v1.4, FR-SPAN-7): the same rule for the window
+ * actually drawn. Over a chunk the pair is every 30 min and every hour; over
+ * the whole span (FR-SPAN-6's fallback) it is `labelEveryHours`'s 2 h and 3 h,
+ * untouched. Which pair applies follows the window's own length and not a
+ * flag, so a stripe that changes span changes cadence with it.
+ *
+ * What picks between the chunk's two is the room its own labels want, and not
+ * `STRIPE_LABEL_MIN_CELLS`: that 60 cells is twelve labels' worth, and a
+ * four-hour chunk carries nine at the half hour, never twelve. FR-SPAN-7
+ * writes the test as the same 60 cells and the task asks for the half hours at
+ * 360 px — 37.5 cells — which cannot both hold; the room the labels actually
+ * want is what is implemented, four cells each (`keepLabels`' no-touch rule
+ * with a cell to spare), so a full chunk wants 32 and the 36 cells FR-TRAJ-4
+ * guarantees the compact stripe are enough. A stripe narrower than that — the
+ * rail, folded — gets the hours.
+ */
+export function labelEveryMs(spanMs: number, widthCells: number): number {
+  if (spanMs > CHUNK_MS) return labelEveryHours(widthCells) * HOUR_MS;
+  const fits = (every: number): boolean => Math.max(1, Math.round(spanMs / every)) * LABEL_MIN_GAP_CELLS <= widthCells;
+  if (spanMs >= HOUR_MS) return fits(HALF_HOUR_MS) ? HALF_HOUR_MS : HOUR_MS;
+  /*
+   * The one window shorter than an hour is the one the span's own edge clips: at real time the first chunk
+   * runs from `now` to the next boundary, which is nine minutes at 03:51 and can be one. FR-SPAN-7's pair
+   * would put a single label on it, at the edge, where `keepLabels` drops it — a stripe with no hour on it at
+   * all. Under an hour the cadence is the coarsest that puts two labels inside the window and still fits.
+   */
+  return SHORT_CADENCES.find((every) => spanMs / every >= 2 && fits(every)) ?? MINUTE_MS;
+}
+
+/** The cadences a window clipped shorter than an hour may fall back to, coarsest first. */
+export const SHORT_CADENCES: readonly number[] = [HALF_HOUR_MS, 15 * MINUTE_MS, 5 * MINUTE_MS, MINUTE_MS];
 
 /** One label of row 1: the tick it is centred on and the text drawn there (the hour, or the date at a midnight). */
 export interface StripeLabel {
@@ -180,14 +295,34 @@ export function keepLabels(labels: readonly StripeLabel[], width: number): Strip
  */
 export function hourTicks(span: Span, width: number, timeZone: string | null, widthCells: number = width / CELL_PX): HourTick[] {
   const offset = zoneOffsetMs(span.start, timeZone);
-  const every = labelEveryHours(widthCells);
-  const first = Math.ceil((span.start + offset) / HOUR_MS) * HOUR_MS - offset;
+  const every = labelEveryMs(span.end - span.start, widthCells);
+  // The ticks are every hour (FR-TRAJ-4's band), or every labelled instant where the cadence is finer than an hour.
+  const step = Math.min(HOUR_MS, every);
+  const first = Math.ceil((span.start + offset) / step) * step - offset;
   const ticks: HourTick[] = [];
-  for (let t = first; t <= span.end; t += HOUR_MS) {
-    const hour = Math.round(((t + offset) / HOUR_MS) % 24 + 24) % 24;
-    ticks.push({ t, x: xAt(t, span, width), hour, labelled: hour % every === 0, midnight: hour === 0 });
+  for (let t = first; t <= span.end; t += step) {
+    const local = t + offset;
+    const dayMs = ((local % DAY_MS) + DAY_MS) % DAY_MS;
+    ticks.push({
+      t,
+      x: xAt(t, span, width),
+      hour: Math.floor(dayMs / HOUR_MS),
+      minute: Math.floor((dayMs % HOUR_MS) / MINUTE_MS),
+      labelled: dayMs % every === 0,
+      midnight: dayMs === 0,
+    });
   }
   return ticks;
+}
+
+/**
+ * R48 (FR-TRAJ-4), R70 (FR-SPAN-7): a labelled tick's two characters — the
+ * hour on the hour, the minutes at the half hour the chunk's cadence adds. The
+ * date at a midnight crossing is `midnightDate`'s and is put in by the caller,
+ * which is the one that knows the language.
+ */
+export function tickLabel(tick: HourTick): string {
+  return String(tick.minute === 0 ? tick.hour : tick.minute).padStart(2, '0');
 }
 
 /**

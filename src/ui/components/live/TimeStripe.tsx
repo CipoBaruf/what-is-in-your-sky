@@ -1,7 +1,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { useLocale, useT } from '../../../i18n/useT';
 import { formatClock } from '../../../lib/timeFormat';
-import { cursorAt, hourTicks, isCurrent, keepLabels, keyStep, MAX_LANES, midnightDate, nightBands, passSegments, timeAt, type SkyBand, type Span } from '../../../lib/timeStripe';
+import { cursorAt, drawnSpan, hourTicks, isCurrent, keepLabels, keyStep, MAX_LANES, midnightDate, nightBands, passSegments, tickLabel, timeAt, type SkyBand, type Span } from '../../../lib/timeStripe';
 import type { EpochMs, Pass } from '../../../model';
 import styles from './TimeStripe.module.css';
 
@@ -21,6 +21,14 @@ import styles from './TimeStripe.module.css';
  * the stripe, in the heading size. The rows are the measured height in
  * thirds, so `--row` sets them and the text is never scaled.
  *
+ * R70 (FR-SPAN-1, FR-SPAN-5, FR-SPAN-7, D-382): the three rows draw a *chunk*
+ * of the span — the four hours that hold the shown instant, `drawnSpan` — so a
+ * drag moves 40 s a pixel on a phone instead of four minutes. The chunk is
+ * derived from `t` on every render and stored nowhere; the whole span is still
+ * the value's range, the overview row above shows it, and at 600× and 3600×
+ * the stripe draws all of it again (FR-SPAN-6). The label cadence follows the
+ * window drawn: every 30 min where twelve labels fit, every hour under that.
+ *
  * The geometry is `lib/timeStripe.ts`, in pixels of the measured width, so
  * the text is never scaled: the SVG's viewBox is its own box. The stripe is
  * one `slider` to assistive technology, whose value text is the cursor's
@@ -34,6 +42,8 @@ export interface TimeStripeProps {
   /** The shown instant. */
   t: EpochMs;
   timeZone: string | null;
+  /** R70 (FR-SPAN-6): the speed playback is running at, or `null` while it is paused — which is a chunk whatever speed is selected. */
+  speed?: number | null;
   onScrub: (t: EpochMs) => void;
 }
 
@@ -44,7 +54,7 @@ export const STRIPE_HEIGHT = ROWS * ROW_PX;
 /** Before the first measurement, and in a layout with no width (tests). */
 export const DEFAULT_WIDTH = 600;
 
-export function TimeStripe({ span, passes, bands, t, timeZone, onScrub }: TimeStripeProps) {
+export function TimeStripe({ span, passes, bands, t, timeZone, speed = null, onScrub }: TimeStripeProps) {
   const m = useT();
   const locale = useLocale();
   const ref = useRef<SVGSVGElement>(null);
@@ -52,6 +62,18 @@ export function TimeStripe({ span, passes, bands, t, timeZone, onScrub }: TimeSt
   const [dragging, setDragging] = useState(false);
   const { width, height } = size;
   const rowH = height / ROWS;
+  /*
+   * R70 (FR-SPAN-1, FR-SPAN-5, D-382): what the stripe draws is the four hours
+   * of the span that hold the shown instant — derived here from `t`, never
+   * stored and never a prop, so there is no second thing that could disagree
+   * with the instant. `drawnSpan` is two numbers; the window they name is
+   * memoised on *them*, so a frame that stays inside the chunk hands the
+   * geometry memos below the same object they had, and a frame that crosses a
+   * boundary hands them a new one — one recompute per crossing (FR-SPAN-5),
+   * none per frame.
+   */
+  const { start: drawnStart, end: drawnEnd } = drawnSpan(t, span, timeZone, speed);
+  const drawn = useMemo<Span>(() => ({ start: drawnStart, end: drawnEnd }), [drawnStart, drawnEnd]);
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -71,9 +93,10 @@ export function TimeStripe({ span, passes, bands, t, timeZone, onScrub }: TimeSt
   const scrubTo = useCallback(
     (clientX: number) => {
       const left = ref.current?.getBoundingClientRect().left ?? 0;
-      onScrub(timeAt(clientX - left, span, width));
+      // FR-SPAN-1: the pointer names an instant in the window drawn, which is where the seconds per pixel are.
+      onScrub(timeAt(clientX - left, drawn, width));
     },
-    [onScrub, span, width],
+    [onScrub, drawn, width],
   );
   const onPointerDown = (event: PointerEvent<SVGSVGElement>): void => {
     if (event.button !== 0) return;
@@ -108,19 +131,15 @@ export function TimeStripe({ span, passes, bands, t, timeZone, onScrub }: TimeSt
    * a fresh `Intl.DateTimeFormat` for the zone. Only the cursor and the
    * `current` flag follow `t`, and both are arithmetic on what is memoised here.
    */
-  const ticks = useMemo(() => hourTicks(span, width, timeZone), [span, width, timeZone]);
-  const night = useMemo(() => nightBands(bands, span, width), [bands, span, width]);
-  const segments = useMemo(() => passSegments(passes, span, width), [passes, span, width]);
-  // FR-TRAJ-4: the labels of row 1 — the hour, or the date at a midnight — dropped where they would spill past an edge or over each other (`keepLabels`).
+  const ticks = useMemo(() => hourTicks(drawn, width, timeZone), [drawn, width, timeZone]);
+  const night = useMemo(() => nightBands(bands, drawn, width), [bands, drawn, width]);
+  const segments = useMemo(() => passSegments(passes, drawn, width), [passes, drawn, width]);
+  // FR-TRAJ-4: the labels of row 1 — the hour (the minutes at the chunk's half hours), or the date at a midnight — dropped where they would spill past an edge or over each other (`keepLabels`).
   const labels = useMemo(
-    () =>
-      keepLabels(
-        ticks.filter((tick) => tick.labelled).map((tick) => ({ tick, text: tick.midnight ? midnightDate(tick.t, timeZone, locale) : String(tick.hour).padStart(2, '0') })),
-        width,
-      ),
+    () => keepLabels(ticks.filter((tick) => tick.labelled).map((tick) => ({ tick, text: tick.midnight ? midnightDate(tick.t, timeZone, locale) : tickLabel(tick) })), width),
     [ticks, timeZone, locale, width],
   );
-  const cursor = cursorAt(t, span, width);
+  const cursor = cursorAt(t, drawn, width);
   const laneH = rowH / MAX_LANES;
   const bandTop = rowH;
   const bandBottom = 2 * rowH;
@@ -142,6 +161,8 @@ export function TimeStripe({ span, passes, bands, t, timeZone, onScrub }: TimeSt
       data-testid="time-stripe"
       data-dragging={dragging}
       data-rows={ROWS}
+      data-drawn-start={drawn.start}
+      data-drawn-end={drawn.end}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}

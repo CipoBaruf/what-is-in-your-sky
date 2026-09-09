@@ -204,7 +204,7 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
   it('draws the instant the page was showing, not now (FR-FSC-8, US-21 AC5)', async () => {
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Next rise' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next pass' }));
     const scrubbed = Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'));
     expect(scrubbed).toBeGreaterThan(NOW);
     recorded.props.length = 0;

@@ -1,0 +1,79 @@
+/* R70 (FR-SPAN-2, FR-THEME-3): the overview row — the whole span in one row of
+   body-size cells, above the stripe. Every colour is a token the stripe
+   already reads, so it is the same picture at a coarser resolution: the day is
+   the raised background, the twilight the ground's colour, the dark the sky
+   bowl's, the marks the six series tokens their arcs take, the cursor the live
+   marker's colour. The bracket is the accent, an outline and not a fill, so
+   what is inside it is still read (FR-X-5: it is a shape, not a colour). */
+.overview {
+  display: block;
+  width: 100%;
+  height: var(--row);
+  touch-action: none;
+  user-select: none;
+  cursor: col-resize;
+  font-family: inherit;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+.overview:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.overview[data-dragging='true'] {
+  cursor: grabbing;
+}
+
+.day {
+  fill: var(--bg-raised);
+}
+
+.night[data-sky='bright-twilight'] {
+  fill: var(--chart-ground);
+}
+
+.night[data-sky='dark'] {
+  fill: var(--chart-sky);
+}
+
+.mark {
+  fill: var(--chart-pass-dim);
+}
+
+.mark[data-series='1'] {
+  fill: var(--chart-series-1);
+}
+
+.mark[data-series='2'] {
+  fill: var(--chart-series-2);
+}
+
+.mark[data-series='3'] {
+  fill: var(--chart-series-3);
+}
+
+.mark[data-series='4'] {
+  fill: var(--chart-series-4);
+}
+
+.mark[data-series='5'] {
+  fill: var(--chart-series-5);
+}
+
+.mark[data-series='6'] {
+  fill: var(--chart-series-6);
+}
+
+.bracket {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.cursor {
+  stroke: var(--chart-now);
+  stroke-width: 1.5;
+}

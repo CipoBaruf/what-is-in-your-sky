@@ -1549,7 +1549,7 @@ Delivery is PLAN §16 unchanged, cut by §16.14: six tasks, five waves, one task
     - The e2e stage stays inside FR-CI-1's ten minutes, with the shape spec's own duration reported in the PR.
     - The owner's gate: a browser window dragged short by hand, beside the matrix's numbers.
 
-- [ ] **R70 — The stripe's span: the chunk, the overview and the re-cut row**
+- [x] **R70 — The stripe's span: the chunk, the overview and the re-cut row**
   - **Lane:** live
   - **Model:** fable
   - **Gate:** owner
@@ -1573,6 +1573,10 @@ Delivery is PLAN §16 unchanged, cut by §16.14: six tasks, five waves, one task
     - `tests/e2e/live-playback.spec.ts`: from real time, one tap on `pass ▶|` puts the shown instant within a second of the golden pass's rise and the stripe redraws around it — **failing on the old code**, where the same tap needs the row to be present on a touch device and leaves the stripe at 24 h; playback at 3600× draws the whole span and at 60× the chunk, and FR-LIVE-5's rate holds at both.
     - Captures: the compact live page at 390 × 844 and the wide page at 1280 × 800, both themes and both languages, with the overview, the chunk and the new row; and FR-SPAN-6's whole-span state at 1280 × 800.
     - The owner's gate: on a phone, a drag that aims and one tap to a pass.
+  - **Done as written, with two notes:** the overview's bracket is `drawnSpan`'s and not `chunkFor`'s, so it covers
+    the whole row at 600× and 3600× as FR-SPAN-6 requires (D-383's "a bracket from `chunkFor`" reads as the drawn
+    window); and the two rows this task puts under the box pull FR-SHP-3's fold in at short wide windows, which
+    moved `LIVE_VIEWPORTS.short` and three rows of the shape matrix's floor allowance (see `R70.summary.md`).
 
 - [ ] **R71 — The legend's place: the rail at every width and the list control**
   - **Lane:** live

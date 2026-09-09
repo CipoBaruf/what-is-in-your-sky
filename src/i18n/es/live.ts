@@ -38,7 +38,8 @@ export const live: typeof EnLive = {
     share: 'Compartir este cielo',
     shareTitle: 'El cielo ahora mismo',
     shareText: (place) => `Todo el cielo sobre ${place}, en vivo.`,
-    stripe: 'Franja de tiempo: las próximas 24 horas',
+    stripe: 'Franja de tiempo: cuatro de las próximas 24 horas',
+    overview: 'Vista de la noche',
     playback: 'Reproducción',
     play: 'Reproducir',
     pause: 'Pausa',
@@ -51,16 +52,22 @@ export const live: typeof EnLive = {
     hiddenLabel: (p) => `${p.name} · ${p.reason}`,
     headingLabel: 'Rumbo',
     trueNorth: (p) => `norte verdadero, declinación ${p.declination}`,
-    /** R48 (FR-TRAJ-5): "sale" (the pass rises) and not "salida" — the six buttons must stay within 36 cells with their gaps (FR-COMP-4), and "salida" is two cells too many. */
+    /**
+     * R48 (FR-TRAJ-5): "sale" (the pass rises) and not "salida" — the six
+     * buttons must stay within their row with their gaps (FR-COMP-4), and
+     * "salida" is two cells too many; "pasada", the word the accessible names
+     * use, is four. R70 (FR-SPAN-3): the ±10 min pair gives way to the two
+     * chunk buttons, whose "4h" is the same two characters in both languages.
+     */
     stepping: 'Mover el instante mostrado',
-    step: { prevRise: '|◀ sale', back10: '−10m', back1: '−1m', forward1: '+1m', forward10: '+10m', nextRise: 'sale ▶|' },
+    step: { prevRise: '|◀ sale', backChunk: '◀ 4h', back1: '−1m', forward1: '+1m', forwardChunk: '4h ▶', nextRise: 'sale ▶|' },
     stepName: {
-      prevRise: 'Salida anterior',
-      back10: 'Diez minutos atrás',
+      prevRise: 'Pasada anterior',
+      backChunk: 'Cuatro horas atrás',
       back1: 'Un minuto atrás',
       forward1: 'Un minuto adelante',
-      forward10: 'Diez minutos adelante',
-      nextRise: 'Salida siguiente',
+      forwardChunk: 'Cuatro horas adelante',
+      nextRise: 'Pasada siguiente',
     },
     playShort: '▶',
     pauseShort: '‖',

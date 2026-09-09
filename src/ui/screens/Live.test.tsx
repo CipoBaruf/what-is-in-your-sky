@@ -161,8 +161,10 @@ describe('<LivePage>', () => {
     expect(drawn).toEqual([[pass.id, '1', 'live']]);
     expect(container.querySelectorAll('[data-testid="chart-legend"] [data-pass-id]')).toHaveLength(1);
     expect(container.querySelectorAll('[data-marker="now"]')).toHaveLength(1);
-    // The stripe still carries every pass of the coming 24 h as a segment (FR-LIVE-4).
-    expect([...container.querySelectorAll('[data-pass-segment]')].map((el) => el.getAttribute('data-pass-segment'))).toEqual([pass.id, 'later', 'tomorrow']);
+    // R70 (FR-SPAN-1, FR-SPAN-2): the overview carries every pass of the coming 24 h as a mark, and the stripe
+    // the ones inside the four hours it draws — here the pass under way, which is what `t` is inside.
+    expect([...container.querySelectorAll('[data-pass-mark]')].map((el) => el.getAttribute('data-pass-mark'))).toEqual([pass.id, 'later', 'tomorrow']);
+    expect([...container.querySelectorAll('[data-pass-segment]')].map((el) => el.getAttribute('data-pass-segment'))).toEqual([pass.id]);
     // R48 (D-246): jsdom is the compact shell, where the strip is the two-line form — the numbers, and no date.
     expect(screen.getByTestId('live-count')).toHaveTextContent(/^Visible 1$/);
     expect(screen.getByTestId('live-time')).toHaveTextContent(/^Time 09:48:24 UTC$/);
@@ -188,9 +190,10 @@ describe('<LivePage>', () => {
     expect(container.querySelectorAll('[data-marker="now"]')).toHaveLength(0);
     expect(screen.getByTestId('live-count')).toHaveTextContent(/^Visible 0$/);
     // The window moved with real time: the golden pass is over and no longer drawn. `later` is in the
-    // window — a segment on the stripe — and, three hours from its rise, not yet on the chart (FR-TRAJ-1).
+    // window — a mark on the overview — and, three hours from its rise, not yet on the chart (FR-TRAJ-1)
+    // nor inside the four hours the stripe draws (FR-SPAN-1).
     expect(container.querySelector(`[data-pass-id="${pass.id}"]`)).toBeNull();
-    expect(container.querySelector('[data-pass-segment="later"]')).not.toBeNull();
+    expect(container.querySelector('[data-pass-mark="later"]')).not.toBeNull();
     expect(container.querySelector('[data-drawing] [data-pass-id="later"]')).toBeNull();
   });
 
@@ -366,17 +369,18 @@ describe('<LivePage>', () => {
 
   /**
    * R54 (FR-LIVE-7 as amended v1.1.1, FR-TRAJ-5, D-268) and R61 (V12-13, D-318): the wide rows — the playback
-   * controls on the clock's row above the stripe, the hidden-objects toggle with the actions in the rail — and
-   * the stepping row only with touch.
+   * controls on the clock's row above the stripe, the hidden-objects toggle with the actions in the rail.
+   * R70 (FR-SPAN-2, FR-TRAJ-5 as amended v1.4; V14-6, D-389): the block gains the overview row above the
+   * stripe, and the stepping row is drawn wherever the stripe is — the `touch` guard is gone.
    */
-  it('on wide puts the playback controls on the time row above the stripe, the hidden-objects toggle with the actions, and draws the stepping row only where the page has touch', () => {
+  it('on wide puts the playback controls on the time row above the stripe, the hidden-objects toggle with the actions, and draws the stepping row with or without touch', () => {
     withSky();
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
-    // Compact, no touch: the toggle is on the actions row, the playback row is the page's own, and the block is the readout and the stripe alone.
+    // Compact, no touch: the toggle is on the actions row, the playback row is the page's own, and the block is four rows.
     expect(within(screen.getByTestId('live-actions')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
     expect(screen.getByTestId('playback-row').parentElement).toBe(screen.getByTestId('live-side'));
-    expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'time-stripe']);
+    expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'overview-row', 'time-stripe', 'step-controls']);
     unmount();
     media = stubMatchMedia(1280, 800);
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 1 });
@@ -385,9 +389,9 @@ describe('<LivePage>', () => {
     // The side row (the page's own at 1280, the rail from 1660) is the strip and the actions, the toggle among them.
     expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'live-actions']);
     expect(within(screen.getByTestId('live-actions')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
-    // The stripe block is the frame's row under the box (D-315): the time row — the readout and the playback row — then the stripe, then the stepping row.
+    // The stripe block is the frame's row under the box (D-315): the time row — the readout and the playback row — the overview, the stripe, the stepping row.
     expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
-    expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-row', 'time-stripe', 'step-controls']);
+    expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-row', 'overview-row', 'time-stripe', 'step-controls']);
     expect([...screen.getByTestId('time-row').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'playback-row']);
     expect(within(screen.getByTestId('playback-row')).getByRole('button', { name: 'Play' })).toBeInTheDocument();
   });
@@ -402,8 +406,8 @@ describe('<LivePage>', () => {
     // Three hours before its rise, `later` is not drawn and not listed.
     expect(arc()).toBeNull();
     expect(legendState()).toBeNull();
-    // `rise ▶|`: one tap lands on the rise (US-22 AC6) — the arc is live from its rise, with the marker.
-    fireEvent.click(screen.getByRole('button', { name: 'Next rise' }));
+    // `pass ▶|`: one tap lands on the rise (US-22 AC6 as amended, FR-SPAN-4) — the arc is live from its rise, with the marker.
+    fireEvent.click(screen.getByRole('button', { name: 'Next pass' }));
     expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(later.start.t);
     expect(arc()).toBe('live');
     expect(legendState()).toBe('live');
@@ -428,35 +432,44 @@ describe('<LivePage>', () => {
     expect(legendState()).toBeNull();
   });
 
-  /** R48 (FR-TRAJ-4, FR-TRAJ-5, US-22 AC5, AC6): the readout above the stripe and the stepping row under it. */
-  it('shows the readout above the stripe with the weekday past midnight, and the stepping row lands on rises and steps minutes', () => {
+  /**
+   * R48 (FR-TRAJ-4, FR-TRAJ-5, US-22 AC5, AC6), re-cut by R70 (FR-SPAN-3, FR-SPAN-4, US-24 AC3, AC4): the
+   * readout above the stripe, the overview between them, and the row of six under them — the pass jumps in
+   * one tap, the chunk arrows four hours, the minute steps a minute.
+   */
+  it('shows the readout above the stripe with the weekday past midnight, and the stepping row lands on passes, chunks and minutes', () => {
     withSky();
-    // R54 (FR-TRAJ-5): the stepping row is drawn where the page has touch.
-    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 1 });
+    // R70 (V14-6): no touch, and the row is still there.
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
     render(<LivePage link={null} onLeave={() => undefined} />);
     const stripe = screen.getByTestId('time-stripe');
     const block = screen.getByTestId('stripe-block');
     const readout = within(block).getByTestId('time-readout');
-    // The block's order: the readout, the stripe, the stepping row.
-    expect([...block.children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'time-stripe', 'step-controls']);
+    // The block's order (D-389): the readout, the overview, the stripe, the stepping row.
+    expect([...block.children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'overview-row', 'time-stripe', 'step-controls']);
     expect(readout).toHaveTextContent(/^09:48$/);
     expect(readout).toHaveAttribute('data-today', 'true');
-    // Forward ten minutes, twice; back one.
-    fireEvent.click(screen.getByRole('button', { name: 'Forward ten minutes' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Forward ten minutes' }));
+    // Four hours on, and back to the minute: the chunk arrows and the fine step.
+    fireEvent.click(screen.getByRole('button', { name: 'Forward four hours' }));
+    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T + 4 * 3_600_000);
+    expect(readout).toHaveTextContent(/^13:48$/);
+    fireEvent.click(screen.getByRole('button', { name: 'Back four hours' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Forward one minute' }));
     fireEvent.click(screen.getByRole('button', { name: 'Back one minute' }));
-    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T + 19 * 60_000);
-    expect(readout).toHaveTextContent(/^10:07$/);
-    // The next rise is `later`, then `tomorrow`; from there nothing ahead, and `later` is behind.
-    fireEvent.click(screen.getByRole('button', { name: 'Next rise' }));
+    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T);
+    // The next pass is `later`, then `tomorrow`; from there nothing ahead, and `later` is behind.
+    fireEvent.click(screen.getByRole('button', { name: 'Next pass' }));
     expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(later.start.t);
-    fireEvent.click(screen.getByRole('button', { name: 'Next rise' }));
+    // FR-SPAN-4: the tap that finds the pass is the tap that draws it — the stripe's window moved with the instant.
+    expect(Number(stripe.getAttribute('data-drawn-start'))).toBeLessThanOrEqual(later.start.t);
+    expect(Number(stripe.getAttribute('data-drawn-end'))).toBeGreaterThanOrEqual(later.start.t);
+    fireEvent.click(screen.getByRole('button', { name: 'Next pass' }));
     expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(tomorrow.start.t);
-    expect(screen.getByRole('button', { name: 'Next rise' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Next pass' })).toBeDisabled();
     // Past midnight UTC (the zone is unknown here): the weekday is in front of the clock.
     expect(readout).toHaveTextContent(/^Sat \d\d:\d\d$/);
     expect(readout).toHaveAttribute('data-today', 'false');
-    fireEvent.click(screen.getByRole('button', { name: 'Previous rise' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Previous pass' }));
     expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(later.start.t);
   });
 
@@ -470,7 +483,7 @@ describe('<LivePage>', () => {
   it('the sky screen replaces the page at the instant the page was showing, and closing brings the rows back there (FR-FSC-1, FR-FSC-8)', () => {
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Next rise' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next pass' }));
     expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
     expect(screen.getByRole('button', { name: 'Now' })).toBeEnabled();
     act(() => {
@@ -493,22 +506,31 @@ describe('<LivePage>', () => {
     expect(screen.getByRole('button', { name: 'Now' })).toBeEnabled();
   });
 
-  /** R33 (FR-LIVE-4, US-15 AC3): the stripe moves the instant and everything follows — the dome, the marker, the strip, the share link. */
-  it('scrubbing the stripe sets the shown instant: the marker, the count, the strip and the share link follow', () => {
+  /**
+   * R33 (FR-LIVE-4, US-15 AC3): scrubbing moves the instant and everything follows — the dome, the marker, the
+   * strip, the share link. R70 (FR-SPAN-2, US-24 AC2): the whole span is the overview's row now, so a drag
+   * across the night is a drag on it; the stripe below redraws around wherever it lands.
+   */
+  it('scrubbing the overview sets the shown instant: the stripe, the marker, the count, the strip and the share link follow', () => {
     withSky();
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
     const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
     const stripe = screen.getByTestId('time-stripe');
+    const overview = screen.getByTestId('stripe-overview');
     expect(stripe).toHaveAttribute('aria-valuemin', String(T));
     expect(stripe).toHaveAttribute('aria-valuemax', String(T + LIVE_WINDOW_MS));
-    // The stripe carries the drawn passes as segments in the same series order as the dome.
-    expect([...container.querySelectorAll('[data-pass-segment]')].map((el) => el.getAttribute('data-series'))).toEqual(['1', '2', '3']);
-    // At jsdom's default 600 px, 75 px is three hours in: inside the `later` pass (which starts at 3 h).
+    // The overview carries the drawn passes as marks in the same series order as the dome.
+    expect([...container.querySelectorAll('[data-pass-mark]')].map((el) => el.getAttribute('data-series'))).toEqual(['1', '2', '3']);
+    // At jsdom's default 600 px, 75 px of the overview is three hours in: inside the `later` pass (which starts at 3 h).
     const threeHours = T + 3 * HOUR + 30_000;
-    fireEvent.pointerDown(stripe, { button: 0, clientX: (600 * (threeHours - T)) / LIVE_WINDOW_MS, pointerId: 1 });
-    fireEvent.pointerUp(stripe, { pointerId: 1 });
+    fireEvent.pointerDown(overview, { button: 0, clientX: (600 * (threeHours - T)) / LIVE_WINDOW_MS, pointerId: 1 });
+    fireEvent.pointerUp(overview, { pointerId: 1 });
     expect(Number(stripe.getAttribute('aria-valuenow'))).toBeCloseTo(threeHours, -3);
+    // FR-SPAN-1: the stripe is drawing the four hours that hold it, and the overview brackets the same four.
+    expect(Number(stripe.getAttribute('data-drawn-start'))).toBeLessThanOrEqual(threeHours);
+    expect(Number(stripe.getAttribute('data-drawn-end'))).toBeGreaterThanOrEqual(threeHours);
+    expect(overview.getAttribute('data-chunk-start')).toBe(stripe.getAttribute('data-drawn-start'));
     const marker = screen.getByTestId('live-dome').querySelector('[data-marker="now"]');
     expect(marker?.closest('[data-pass-id]')).toHaveAttribute('data-pass-id', 'later');
     expect(screen.getByTestId('live-count')).toHaveTextContent(/^Visible 1$/);
@@ -645,7 +667,7 @@ describe('<LivePage>', () => {
     });
     render(<LivePage link={null} onLeave={() => undefined} />);
     // Somewhere other than now: FR-FSC-8's case, the pass the reader wants to watch through the phone before it happens.
-    fireEvent.click(screen.getByRole('button', { name: 'Next rise' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next pass' }));
     expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
 
     fireEvent.click(windowOption());

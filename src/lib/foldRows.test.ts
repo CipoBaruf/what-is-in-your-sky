@@ -33,17 +33,25 @@ describe('the box floor and the fold (FR-SHP-3)', () => {
     expect(LIVE_GAP_PX).toBe(ROW_PX / 4);
   });
 
-  it('keeps the rows measured at 1200 × 450 on the one-column page (spec §4.20 F-65: 343 px of rows, a 107 px box)', () => {
-    expect(LIVE_KEPT_PX).toBe(343);
-    expect(foldRows(450)).toEqual(['actions']);
+  /*
+   * R69 measured 343 px of rows at 1200 × 450 on its own branch. R70 (FR-SPAN-2, FR-TRAJ-5 as amended v1.4)
+   * adds two rows under the box — the overview's text row and the stepping row, which is a row of tap targets
+   * on the wide page now that the `touch` guard is gone — with a gap each: 24 + 48 + 12 on top of the 343.
+   */
+  it('keeps the rows the wide page draws, R69s six plus R70s two', () => {
+    expect(LIVE_KEPT_PX).toBe(343 + ROW_PX + TAP_PX + 2 * LIVE_GAP_PX);
+    expect(LIVE_KEPT_PX).toBe(427);
+    // At 1200 × 450 the box has 23 px: the whole order folds and it still misses the floor, which is R71's rail to answer.
+    expect(foldRows(450)).toEqual(LIVE_FOLD_ORDER);
   });
 
   it('folds nothing while the height leaves the box its floor, and the head of the order when it does not', () => {
     expect(foldRows(1080)).toEqual([]);
     expect(foldRows(768)).toEqual([]);
     expect(foldRows(LIVE_KEPT_PX + LIVE_BOX_MIN_PX)).toEqual([]);
-    expect(foldRows(LIVE_KEPT_PX + LIVE_BOX_MIN_PX - 1)).toEqual(['actions']);
-    expect(foldRows(420)).toEqual(['actions']);
+    expect(foldRows(LIVE_KEPT_PX + LIVE_BOX_MIN_PX - 1)).toEqual(['overview']);
+    expect(foldRows(600)).toEqual(['overview']);
+    expect(foldRows(550)).toEqual(['overview', 'actions']);
     expect(foldRows(0)).toEqual(LIVE_FOLD_ORDER);
   });
 
@@ -63,12 +71,17 @@ describe('the box floor and the fold (FR-SHP-3)', () => {
       expect(foldRows(below)).not.toContain(row);
       expect(foldRows(below - 1)).toContain(row);
     }
-    expect(foldBelowPx('actions')).toBe(LIVE_KEPT_PX + LIVE_BOX_MIN_PX);
+    // The overview is the head of the order (D-389), so it is the one that folds at the floor itself.
+    expect(foldBelowPx('overview')).toBe(LIVE_KEPT_PX + LIVE_BOX_MIN_PX);
+    expect(foldBelowPx('actions')).toBe(LIVE_KEPT_PX + LIVE_BOX_MIN_PX - LIVE_FOLD_GIVES_PX.overview);
   });
 
-  it('gives the box back more than the row it names: the four tap rows at one text row and the gaps at the compact token', () => {
+  it('gives the box back what each row costs: the overview its own row, the actions more than the row they name', () => {
+    // R70: the overview is one text row and the gap above it, and nothing else moves when it goes.
+    expect(LIVE_FOLD_GIVES_PX.overview).toBe(ROW_PX + LIVE_GAP_PX);
     expect(LIVE_FOLD_GIVES_PX.actions).toBeGreaterThan(TAP_PX);
-    // Measured at 1200 × 450: a 107 px box unfolded, 213 folded.
-    expect(LIVE_FOLD_GIVES_PX.actions).toBe(106);
+    // R69 measured 106 at 1200 × 450; R70's stepping row lets its air out with the rest (24) and its two gaps take the compact token (4).
+    expect(LIVE_FOLD_GIVES_PX.actions).toBe(106 + (TAP_PX - ROW_PX) + 2 * (LIVE_GAP_PX - ROW_PX / 6));
+    expect(LIVE_FOLD_GIVES_PX.actions).toBe(134);
   });
 });
