@@ -719,11 +719,13 @@ The app's identity has been a character rule and a monospace grid (FR-X-6) and a
   | Tier | Placement (FR-MARK-4) | Grid (cols × rows) | Sheds |
   |---|---|---|---|
   | `hero` | the cold open at 120 / 140 px | 32 × 16 | nothing |
-  | `icon192` | the manifest icons at 192 and 512 px | 24 × 12 | nothing — full; the bead is a full cell so it stays legible |
+  | `icon192` | the manifest icons at 192 and 512 px | 24 × 12 | nothing — full |
   | `lockup80` | the 80 px lockup (the social preview, FR-PUB-11's image) | 14 × 7 | the globe's meridian |
   | `header56` | 56 px (no placement in this phase; OQ-29) | 10 × 5 | the globe's limb |
   | `header32` | the compact and wide headers at 24 px | 6 × 3 | the orbit; the bead moves onto the bezel |
   | `favicon16` | the favicon at 16 px | 4 × 2 | everything but one ring and the bead |
+
+  At the 24 px placements (FR-MARK-4) the bead is a full cell rather than a dot within one, so it stays legible at three cells of width.
 
   Each tier is two layers, `body` and `mark` (the bead), as the dome has a base and a line layer (D-74). The rasters below are the golden set: the generator's output for each tier MUST equal them cell for cell, and the committed snapshots (FR-MARK-8) are seeded from them. Where the first implementation cannot reproduce a tier cell for cell, the PR shows the two side by side with the count of differing cells, and the owner accepts the re-baked snapshot or not (`Gate: owner`); a snapshot is never updated silently.
 
