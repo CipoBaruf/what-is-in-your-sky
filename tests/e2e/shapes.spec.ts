@@ -321,8 +321,9 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       const { box } = await settled(page);
       const livePage = page.getByTestId('live-page');
       await expect(livePage, at).toHaveAttribute('data-compact', 'false');
-      // The fold is on: the actions have joined the status strip's line.
-      await expect(livePage, at).toHaveAttribute('data-fold', 'actions');
+      // The fold is on, in the order (D-389): the overview row goes first, then the actions join the status strip's line.
+      await expect(livePage, at).toHaveAttribute('data-fold', 'overview actions');
+      await expect(page.getByTestId('stripe-overview'), `${at}: the overview row is folded away`).toBeHidden();
       const actions = await page.getByTestId('live-actions').boundingBox();
       const moon = await page.getByTestId('live-moon').boundingBox();
       const time = await page.getByTestId('live-time').boundingBox();
@@ -340,10 +341,11 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       expect(top?.width, `${at}: the top row is the page's width, not a 2fr column's`).toBeGreaterThan(width * 0.9);
       expect(box.height, at).toBeGreaterThanOrEqual(floorFor(size));
     }
-    // Back above the floor: the fold comes off with the height (foldRows is monotonic).
+    // Back above the floor: the fold comes off with the height (foldRows is monotonic), and the overview is back.
     await page.setViewportSize({ width: 1200, height: 700 });
     await settled(page);
     await expect(page.getByTestId('live-page')).not.toHaveAttribute('data-fold', /./);
+    await expect(page.getByTestId('stripe-overview')).toBeVisible();
     const actions = await page.getByTestId('live-actions').boundingBox();
     expect(actions?.height).toBeGreaterThan(ROW_PX + 1);
   });

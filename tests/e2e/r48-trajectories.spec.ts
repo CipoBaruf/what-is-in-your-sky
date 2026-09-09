@@ -26,9 +26,10 @@ const LANDSCAPE = { width: 844, height: 390 };
 const PREFS_KEY = 'wiys:prefs:v1';
 const MINUTE = 60_000;
 
+/** R70 (FR-SPAN-3): the row's six, re-cut — the ±10 min pair gave way to the chunk arrows. */
 const STEP = {
-  en: { next: 'Next rise', prev: 'Previous rise', back1: 'Back one minute', fwd1: 'Forward one minute', fwd10: 'Forward ten minutes' },
-  es: { next: 'Salida siguiente', prev: 'Salida anterior', back1: 'Un minuto atrás', fwd1: 'Un minuto adelante', fwd10: 'Diez minutos adelante' },
+  en: { next: 'Next pass', prev: 'Previous pass', back1: 'Back one minute', fwd1: 'Forward one minute', fwdChunk: 'Forward four hours' },
+  es: { next: 'Pasada siguiente', prev: 'Pasada anterior', back1: 'Un minuto atrás', fwd1: 'Un minuto adelante', fwdChunk: 'Cuatro horas adelante' },
 } as const;
 
 /** The theme is a saved preference (D-70): the compact live page carries no switch (D-244). */
@@ -71,7 +72,7 @@ test.describe('the live page on a portrait phone', () => {
     await expect(legend.locator('button[data-pass-id^="25544-"]')).toHaveAttribute('data-state', 'live');
     await expect(dome.locator('[data-drawing] [data-pass-id^="25544-"]')).toHaveCount(1);
 
-    // `rise ▶|`: one tap lands on the next rise, within a minute (US-22 AC6 allows three).
+    // `pass ▶|`: one tap lands on the next rise, within a minute (US-22 AC6 allows three; FR-SPAN-4 does it in one).
     await page.getByRole('button', { name: STEP.en.next }).tap();
     await page.clock.runFor(300);
     const liveRow = legend.locator('button[data-state="live"]');
@@ -104,10 +105,12 @@ test.describe('the live page on a portrait phone', () => {
     await expect(arc.locator('[data-marker="ahead"]')).toHaveCount(1);
     await expect(arc.locator('[data-marker="now"]')).toHaveCount(0);
 
-    // Ten minutes at a time past its end: the arc lingers, faint, without a marker…
+    // Ten minutes at a time past its end: the arc lingers, faint, without a marker… (R70: the ±10 min
+    // buttons are gone with FR-SPAN-3's re-cut, and Shift and an arrow key are the ten-minute step that stands.)
     const row = legend.locator(`button[data-pass-id="${passId}"]`);
-    for (let taps = 0; taps < 12 && (await row.getAttribute('data-state')) !== 'linger'; taps++) {
-      await page.getByRole('button', { name: STEP.en.fwd10 }).tap();
+    await page.getByTestId('time-stripe').focus();
+    for (let steps = 0; steps < 12 && (await row.getAttribute('data-state')) !== 'linger'; steps++) {
+      await page.keyboard.press('Shift+ArrowRight');
       await page.clock.runFor(300);
     }
     await expect(row).toHaveAttribute('data-state', 'linger');
@@ -116,12 +119,12 @@ test.describe('the live page on a portrait phone', () => {
     await expect(arc.locator('[data-marker="now"]')).toHaveCount(0);
 
     // …and ten minutes on it is gone from the drawing and the legend.
-    await page.getByRole('button', { name: STEP.en.fwd10 }).tap();
+    await page.keyboard.press('Shift+ArrowRight');
     await page.clock.runFor(300);
     await expect(arc).toHaveCount(0);
     await expect(row).toHaveCount(0);
 
-    // `|◀ rise` goes back to the latest rise before the instant — another pass may have risen since ours —
+    // `|◀ pass` goes back to the latest rise before the instant — another pass may have risen since ours —
     // and lands on it: that pass is live from its rise, one tap (US-22 AC6 the other way).
     await page.getByRole('button', { name: STEP.en.prev }).tap();
     await page.clock.runFor(300);
@@ -162,10 +165,14 @@ test.describe('the live page on a portrait phone', () => {
     // The dome's readout and its legend are under the box, not under it: nothing of the frame spills.
     expect(domeReadout.y).toBeGreaterThanOrEqual(chart.y + chart.height - 1);
     expect(legend.y).toBeGreaterThanOrEqual(domeReadout.y + domeReadout.height - 1);
-    // FR-LIVE-7 as amended: the strip in two lines, then the stripe block (readout, three rows, stepping) and two control rows.
+    // FR-LIVE-7 as amended: the strip in two lines, then the stripe block (readout, overview, three rows,
+    // stepping) and two control rows. R70 (FR-SPAN-2): the overview is one row between the readout and the stripe.
+    const overview = await box(page, 'stripe-overview');
     expect(strip.height).toBeLessThanOrEqual(2 * row + 8);
     expect(readout.y).toBeGreaterThanOrEqual(strip.y + strip.height - 1);
-    expect(stripe.y).toBeGreaterThanOrEqual(readout.y + readout.height - 1);
+    expect(overview.y).toBeGreaterThanOrEqual(readout.y + readout.height - 1);
+    expect(overview.height).toBeLessThanOrEqual(row + 1);
+    expect(stripe.y).toBeGreaterThanOrEqual(overview.y + overview.height - 1);
     expect(stripe.height).toBeGreaterThanOrEqual(3 * row - 1);
     expect(steps.y).toBeGreaterThanOrEqual(stripe.y + stripe.height - 1);
     expect(playback.y).toBeGreaterThanOrEqual(steps.y + steps.height - 1);
