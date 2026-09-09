@@ -17,6 +17,11 @@ name: Captures
 # detail's three window screens with the sky screen's four (FR-FSC-7, D-346) —
 # fewer files than v1.2 and three screens more.
 #
+# R72: 124 since v1.4 gave the live page two widths it had never been shot at —
+# 1024 × 768 (FR-SHP-5) and 1200 × 450, the window dragged short that F-65 was
+# about — so call it 17 min. No screen was added: the eight files are one
+# screen's two widths in both themes and both languages.
+#
 # This job commits nothing. It uploads the set as an artefact and fails when a
 # capture is missing — the committed files under `docs/screenshots/` are cleared
 # before the run, so the check is about what this run produced and not about

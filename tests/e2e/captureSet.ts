@@ -58,6 +58,28 @@
  * geometry, and a geometry is the same picture in either theme and either
  * language, so it is shot at one of each.
  *
+ * R72 (SPEC §9 Phase 2f): the release re-shoot, and the two widths v1.4 found
+ * the set had never covered — both of them the live page's, both of them named
+ * by a requirement of this phase. 1024 × 768 is the desktop width FR-SHP-5
+ * calls out: the set has shot the home and the guide there since R50 and the
+ * live page never, so the wide layout between the breakpoint and 1280 had no
+ * picture of the page the phase spent most of its work on. 1200 × 450 is the
+ * shape F-65 was: a wide window dragged short, where until R69 the page took a
+ * landscape phone's grid tracks and kept the desktop's areas and the drawing
+ * collapsed to zero height. That finding was invisible to the suite for four
+ * phases because every test of the landscape layout ran at a compact width, and
+ * a set with no short-and-wide picture in it is the same blind spot in the
+ * other record. It is the one viewport here that is not a device: heights
+ * elsewhere are the shape the width comes in, and 450 is the height the
+ * finding was measured at (FR-SHP-4's matrix).
+ *
+ * What is *not* topped up, and why: FR-LEG-9's 390 × 667 short phone. The set's
+ * files are named by width, so a second height at 390 would either collide with
+ * the phone already there or be labelled with a number that is not its width —
+ * and F-62's 667 half is open for the owner (§4.20), so the picture would be of
+ * a layout the spec has not settled. R71's `r71-*` captures hold that evidence
+ * until it is.
+ *
  * R60 (SPEC §9 Phase 2c): v1.2 added two states the window can be in (FR-FOL-5,
  * R56) and one the live page can be in (FR-FOL-1, R59), so `window-ground` and
  * `window-buried` join `window` and `live-following` joins `live` — a state
@@ -83,11 +105,17 @@ export type CaptureLocale = (typeof LOCALES)[number];
  * to itself and the list is one `[ list ]` control away (FR-DESK-3, F-6). The
  * home and the guide are the two screens that look different there, and 768 is
  * the height F-9 was about.
+ *
+ * R72 (FR-SHP-4, FR-SHP-5, F-65): 1200 × 450 is a wide window dragged short —
+ * the mode is the desktop's and the shape is a landscape phone's, which is the
+ * pair of facts F-65 was about. The only entry here whose height is not the one
+ * the width usually comes with, and deliberately so.
  */
 export const VIEWPORTS = {
   390: { width: 390, height: 844 },
   844: { width: 844, height: 390 },
   1024: { width: 1024, height: 768 },
+  1200: { width: 1200, height: 450 },
   1280: { width: 1280, height: 800 },
   1920: { width: 1920, height: 1080 },
   2560: { width: 2560, height: 1440 },
@@ -130,10 +158,14 @@ export const SCREENS: readonly CaptureScreen[] = [
     widths: [844],
     what: 'The sky screen opened from a pass detail (FR-FSC-1, FR-FSC-6, R66), aimed at that pass\'s peak by a stubbed orientation reading: the whole arc (FR-DOME-5) filling the viewport, the `×`, the facing readout and the legend. A phone held sideways, which since v1.3.1 is the only place the window is drawn.',
   },
-  { name: 'legend', widths: [390, 1280], what: 'The legend in its states (FR-LEG-3): the live page with the hidden objects shown, so the rows carry `up`, `soon`, `gone` and the FR-LIVE-6 reasons, and one row activated so its arc is highlighted and the others dim (FR-LEG-4). Under the drawing at 390, beside it at 1280 (FR-LEG-2).' },
+  { name: 'legend', widths: [390, 1280], what: 'The legend in its states (FR-LEG-3): the live page with the hidden objects shown, so the rows carry `up`, `soon`, `gone` and the FR-LIVE-6 reasons, and one row activated so its arc is highlighted and the others dim (FR-LEG-4). Behind `[ list (n) ]` and open at 390, in the rail beside the box at 1280 (FR-LEG-6, FR-LEG-7).' },
   { name: 'favourites', widths: [390, 1280], what: 'The saved places, with the one in use marked.' },
   { name: 'shortcuts', widths: [390, 1280], what: 'The keyboard shortcuts overlay over an inert page.' },
-  { name: 'live', widths: [390, 844, 1280, 1920, 2560, 3840], what: 'The live sky page: the dome, the status strip, the time stripe and the controls. 844 is the landscape phone; 1920, 2560 and 3840 are R61\'s wide rail (F-59).' },
+  {
+    name: 'live',
+    widths: [390, 844, 1024, 1200, 1280, 1920, 2560, 3840],
+    what: "The live sky page: the dome, the status strip, the stripe's chunk with its overview row, the stepping row and the actions. 844 is the landscape phone; 1024 is the desktop width the set had never shot the page at and 1200 × 450 the window dragged short (FR-SHP-5, F-65); 1280 and up are the rail beside the box, which since R71 is every wide width (FR-LEG-6) and not only R61's 1920, 2560 and 3840.",
+  },
   {
     name: 'sky-screen-sky',
     widths: [844],
