@@ -32,6 +32,9 @@ import { IDLE_PASSES } from '../../../state/slices/passes';
 import { SCREEN_STATUS_ID } from '../guide/skychart/ChartFrame';
 import type { SkyChartProps } from '../guide/skychart/SkyChart.types';
 import { LivePage } from '../../screens/Live';
+import { nearestQuarter } from '../guide/skychart/window/screenTurn';
+import { screenAngle } from '../live/compassHeading';
+import { browserQuarter, turnFor } from './SkyScreen';
 
 /** The props every `SkyChart` on the page was rendered with, in order (D-326's FR-FSC-5 check). */
 const recorded = vi.hoisted(() => ({ props: [] as SkyChartProps[] }));
@@ -385,5 +388,47 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     // And it is still the fixed layer FR-FSC-9 rests on: nothing here can scroll.
     expect(css).toMatch(/\.screen \{[^}]*position: fixed;/);
     expect(css).toMatch(/\.screen \{[^}]*overscroll-behavior: contain;/);
+  });
+});
+
+/**
+ * R73 (FR-FSC-10; the review's finding): where the turn starts. The layer is up
+ * before the window's lazy chunk is (PLAN §11), so until the window has a pose
+ * to report the quarter is the browser's own angle and the layer turns by
+ * nothing. Seeded at a literal 0 the layer drew itself a quarter *against* the
+ * angle — `data-turn="-90"` on a phone the browser had already turned into
+ * landscape, which is the commonest way into this screen — for as long as the
+ * chunk took to arrive.
+ */
+describe('where the turn starts (FR-FSC-10)', () => {
+  const withBrowserAngle = (deg: number): (() => void) => {
+    const had = Object.getOwnPropertyDescriptor(window.screen, 'orientation');
+    Object.defineProperty(window.screen, 'orientation', { configurable: true, value: { angle: deg, addEventListener: () => undefined, removeEventListener: () => undefined } });
+    return () => {
+      if (had) Object.defineProperty(window.screen, 'orientation', had);
+      else Reflect.deleteProperty(window.screen, 'orientation');
+    };
+  };
+
+  it('is the browser’s own quarter, so the first frame turns by nothing', () => {
+    for (const angle of [0, 90, 180, 270]) {
+      const restore = withBrowserAngle(angle);
+      try {
+        expect(browserQuarter()).toBe(angle);
+        expect(turnFor(browserQuarter(), nearestQuarter(screenAngle()))).toBe(0);
+      } finally {
+        restore();
+      }
+    }
+  });
+
+  it('is 0 where the browser says nothing at all', () => {
+    const had = Object.getOwnPropertyDescriptor(window.screen, 'orientation');
+    Reflect.deleteProperty(window.screen, 'orientation');
+    try {
+      expect(browserQuarter()).toBe(0);
+    } finally {
+      if (had) Object.defineProperty(window.screen, 'orientation', had);
+    }
   });
 });

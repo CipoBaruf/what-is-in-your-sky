@@ -71,6 +71,19 @@ export function turnFor(quarter: number, screenAngleDeg: number): number {
   return difference > 180 ? difference - 360 : difference;
 }
 
+/**
+ * FR-FSC-10: where the quarter starts, before the window has read a pose.
+ *
+ * It starts where the browser already is, so the first frame turns by nothing.
+ * A literal `0` would be a quarter *against* the angle on a phone the browser
+ * has already turned — an unlocked phone held sideways, which is the commonest
+ * way into this screen — and the layer would draw itself the wrong way round
+ * for as long as the window's lazy chunk took to mount and report (PLAN §11).
+ */
+export function browserQuarter(): Quarter {
+  return typeof window === 'undefined' ? 0 : nearestQuarter(screenAngle());
+}
+
 /** What `Tab` may reach inside the layer: the `×` and the legend's rows (FR-LEG-4). */
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -91,7 +104,7 @@ export function SkyScreen({ passes, observer, now, sun, moon, highlightedPassId 
    * permission — so this is not the duplicated `deviceorientation` work R68 removed: the layer adds no sensor
    * listener at all and reads the pose only through what the window reports.
    */
-  const [quarter, setQuarter] = useState<Quarter>(0);
+  const [quarter, setQuarter] = useState<Quarter>(browserQuarter);
   const [angle, setAngle] = useState(() => (typeof window === 'undefined' ? 0 : nearestQuarter(screenAngle())));
   useEffect(() => {
     const update = (): void => {
