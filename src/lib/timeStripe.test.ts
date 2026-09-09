@@ -227,6 +227,16 @@ describe('labelEveryMs and the chunk ticks (FR-SPAN-7)', () => {
     // A chunk clipped by the span's start is shorter and wants less: three half hours, twelve cells.
     expect(labelEveryMs(90 * 60_000, 12)).toBe(30 * 60_000);
     expect(labelEveryMs(90 * 60_000, 11)).toBe(HOUR_MS);
+    /*
+     * …and the first chunk at real time can be minutes long, where the pair would put one label on the
+     * window's own edge and `keepLabels` would drop it: under an hour the cadence is the coarsest that puts
+     * two labels inside the window and fits (a phone's 36 cells is the width that matters here).
+     */
+    expect(labelEveryMs(45 * 60_000, 36)).toBe(15 * 60_000);
+    expect(labelEveryMs(9 * 60_000, 36)).toBe(60_000);
+    expect(labelEveryMs(20 * 60_000, 36)).toBe(5 * 60_000);
+    // Nothing finer than a minute, whatever is left of the window.
+    expect(labelEveryMs(30_000, 36)).toBe(60_000);
     // …and the whole span keeps FR-TRAJ-4's own pair.
     expect(labelEveryMs(24 * HOUR_MS, STRIPE_LABEL_MIN_CELLS)).toBe(2 * HOUR_MS);
     expect(labelEveryMs(24 * HOUR_MS, STRIPE_LABEL_MIN_CELLS - 1)).toBe(3 * HOUR_MS);

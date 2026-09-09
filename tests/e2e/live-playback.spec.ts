@@ -178,11 +178,22 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     // The overview brackets exactly what the stripe draws, and the pass is a segment on the stripe now.
     await expect(page.getByTestId('stripe-overview')).toHaveAttribute('data-chunk-start', String(after.start));
     await expect(page.getByTestId('time-stripe').locator(`[data-pass-segment="${passId}"]`)).toHaveAttribute('data-current', 'true');
-    // US-24 AC3: the chunk arrows move the instant four hours, and the drawing goes with them.
+    /*
+     * US-24 AC3: the chunk arrows move the instant four hours and the drawing goes with them. The pass this
+     * fixture lands on is late in the span — under four hours from its end — so forward is FR-LIVE-4's clamp
+     * and back is the four hours; both are the one `stepTo` (D-190).
+     */
+    const landed = await shownInstant(page);
     await page.getByRole('button', { name: 'Forward four hours' }).click();
     await page.clock.runFor(300);
-    expect(await shownInstant(page)).toBe(rise + 4 * HOUR);
-    expect((await drawn(page)).start).toBe(after.start + 4 * HOUR);
+    expect(await shownInstant(page)).toBe(Math.min(landed + 4 * HOUR, span.end));
+    await page.getByRole('button', { name: 'Back four hours' }).click();
+    await page.clock.runFor(300);
+    const back = await shownInstant(page);
+    expect(back).toBe(Math.min(landed + 4 * HOUR, span.end) - 4 * HOUR);
+    const window_ = await drawn(page);
+    expect(window_.start).toBeLessThanOrEqual(back);
+    expect(window_.end).toBeGreaterThanOrEqual(back);
   });
 
   /**

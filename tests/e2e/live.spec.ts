@@ -323,9 +323,12 @@ test.describe('the wide live page (R61)', () => {
     below(box, toggle);
     await expectTheRail(page, box, 'under the box');
     await expectLabelsClear(page);
-    // The hidden-objects toggle is with the actions in the rail (V12-13), and there is no stepping row without touch.
+    // The hidden-objects toggle is with the actions in the rail (V12-13). R70 (FR-TRAJ-5 as amended v1.4,
+    // V14-6): the stepping row is under the stripe on a pointer too — `pass ▶|` is a control a mouse has no
+    // equivalent of — and the overview row is above it, in the block.
     await expect(page.getByTestId('live-actions').getByTestId('live-hidden-toggle')).toBeVisible();
-    await expect(page.getByTestId('step-controls')).toHaveCount(0);
+    await expect(page.getByTestId('step-controls')).toBeVisible();
+    await expect(page.getByRole('slider', { name: 'Night overview' })).toBeVisible();
     // The box is the dome's shape and reaches the page's bottom through the stripe (D-314), and the page does not scroll.
     await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
     expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(DOME_BOX_ASPECT, 2);

@@ -242,9 +242,19 @@ export const HALF_HOUR_MS = 30 * MINUTE_MS;
  */
 export function labelEveryMs(spanMs: number, widthCells: number): number {
   if (spanMs > CHUNK_MS) return labelEveryHours(widthCells) * HOUR_MS;
-  const gaps = Math.max(1, Math.round(spanMs / HALF_HOUR_MS));
-  return widthCells >= gaps * LABEL_MIN_GAP_CELLS ? HALF_HOUR_MS : HOUR_MS;
+  const fits = (every: number): boolean => Math.max(1, Math.round(spanMs / every)) * LABEL_MIN_GAP_CELLS <= widthCells;
+  if (spanMs >= HOUR_MS) return fits(HALF_HOUR_MS) ? HALF_HOUR_MS : HOUR_MS;
+  /*
+   * The one window shorter than an hour is the one the span's own edge clips: at real time the first chunk
+   * runs from `now` to the next boundary, which is nine minutes at 03:51 and can be one. FR-SPAN-7's pair
+   * would put a single label on it, at the edge, where `keepLabels` drops it — a stripe with no hour on it at
+   * all. Under an hour the cadence is the coarsest that puts two labels inside the window and still fits.
+   */
+  return SHORT_CADENCES.find((every) => spanMs / every >= 2 && fits(every)) ?? MINUTE_MS;
 }
+
+/** The cadences a window clipped shorter than an hour may fall back to, coarsest first. */
+export const SHORT_CADENCES: readonly number[] = [HALF_HOUR_MS, 15 * MINUTE_MS, 5 * MINUTE_MS, MINUTE_MS];
 
 /** One label of row 1: the tick it is centred on and the text drawn there (the hour, or the date at a midnight). */
 export interface StripeLabel {
