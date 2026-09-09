@@ -77,6 +77,14 @@
   content: '· ';
 }
 
+/* FR-LEG-7 (R71): the one line an empty legend carries, in the panel's own
+   left margin and the dim weight the body lines have — it is a statement about
+   the sky, not a row to tap. */
+.empty {
+  padding: calc(var(--row) / 4) 0 calc(var(--row) / 4) calc(var(--cell) * 2);
+  color: var(--fg-dim);
+}
+
 /* FR-DOME-6 as amended: the two bodies, one line each, not buttons. */
 .body {
   display: grid;

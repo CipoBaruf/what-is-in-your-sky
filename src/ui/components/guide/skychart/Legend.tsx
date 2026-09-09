@@ -73,6 +73,14 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
           {lead.node}
         </li>
       )}
+      {/* FR-LEG-7 (R71): a legend with no rows says so, once, and says it live — the panel is two rows tall
+          whether or not the sky has anything in it. Never on the sky screen, whose strip is the drawing's own
+          bottom edge and stays empty (FR-FSC-3, out of scope), and never where a lead is the first row. */}
+      {!screen && lead === undefined && listed.length === 0 && (
+        <li className={[styles.item, styles.empty].join(' ')} data-testid="legend-empty">
+          <span role="status">{words.empty}</span>
+        </li>
+      )}
       {listed.map((row) => (
         <li key={row.passId} className={styles.item}>
           <button

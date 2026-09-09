@@ -88,3 +88,24 @@ export function HiddenToggle({ hidden, onToggle }: { hidden: boolean; onToggle: 
     </button>
   );
 }
+
+/**
+ * FR-LEG-7 (R71, D-387, D-388): the compact live page's legend control,
+ * `[ list (n) ]`, on the actions row beside the hidden-objects toggle. It is
+ * a *disclosure*, not a state toggle: `aria-expanded` says whether the panel
+ * under the drawing is open, and `aria-controls` names it, so the two are one
+ * control and one region rather than a button and a surprise. It reads as an
+ * action (`[ … ]`, the bracket rule the row's other action uses) because that
+ * is what it is — the count is the reason to tap it.
+ *
+ * `count` is the drawn passes and not the panel's lines: the Sun and the Moon
+ * are in the panel, uncounted (OQ-26).
+ */
+export function LegendToggle({ open, count, controls, onToggle }: { open: boolean; count: number; controls: string; onToggle: () => void }) {
+  const t = useT();
+  return (
+    <button type="button" className={styles.action} data-testid="live-legend-toggle" aria-expanded={open} aria-controls={controls} onClick={onToggle}>
+      {t.live.list({ count })}
+    </button>
+  );
+}

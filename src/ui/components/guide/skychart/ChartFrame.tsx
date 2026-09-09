@@ -30,6 +30,16 @@ export interface ChartFrameProps {
   /** FR-LEG-2: the legend `SkyChart` rendered; the frame places it. */
   legend?: ReactNode;
   /**
+   * FR-LEG-7 as amended (v1.4, V14-5, D-387): the legend is behind a control
+   * — the compact live page's `[ list (n) ]`. Given `false` the slot is not
+   * rendered at all, so the box has the height it leaves; given `true` it is a
+   * panel of exactly `LEGEND_OPEN_ROWS` rows of `--tap` that scrolls inside
+   * itself, whatever it holds, so a pass rising or ending never moves the
+   * picture. Absent (every other page, and every wide one) the legend is
+   * rendered whenever there is one, as it always was.
+   */
+  legendOpen?: boolean;
+  /**
    * FR-LIVE-7 as amended (v1.2, D-312): what the page hangs under the legend
    * in that same column — the wide live page's rail. With one, the column is
    * the page's side column and not a legend's width: it is sized from the
@@ -92,7 +102,24 @@ export interface ChartFrameProps {
  */
 export const SCREEN_STATUS_ID = 'follow-screen-readout';
 
-export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect, stacked = false, screen = false, overlay, className, fill = false, children }: ChartFrameProps) {
+/**
+ * FR-LEG-7 (R71, D-387): the open legend panel's height, in rows of `--tap`.
+ * Two — the same two the sky screen's strip is capped at (FR-FSC-3), and for
+ * the same reason: two rows of a compact legend are two lines of text. It is a
+ * *height* here and a maximum there, because what V14-5 asks for is that the
+ * panel take the same room whatever it holds.
+ */
+export const LEGEND_OPEN_ROWS = 2;
+
+/**
+ * FR-LEG-7 (R71, D-387): the open panel's id, so `[ list (n) ]` can name what
+ * it opens (`aria-controls`). One frame on the page carries the panel — the
+ * compact live page's, the only caller that passes `legendOpen` — so a
+ * constant is unique, as `SCREEN_STATUS_ID` above is.
+ */
+export const LEGEND_PANEL_ID = 'live-legend-panel';
+
+export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe, boxAspect, stacked = false, screen = false, overlay, className, fill = false, children }: ChartFrameProps) {
   const compact = useLayoutMode() === 'compact';
   const frameRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
@@ -101,7 +128,8 @@ export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect,
   const legendRef = useRef<HTMLDivElement>(null);
   const hasAside = aside !== undefined && aside !== null;
   const hasStripe = stripe !== undefined && stripe !== null;
-  const hasLegend = legend !== undefined && legend !== null;
+  // FR-LEG-7 (D-387): closed, there is no slot at all — not an empty one — so the rows under the box are the box's.
+  const hasLegend = legend !== undefined && legend !== null && legendOpen !== false;
   // D-319: stacked only where there is no rail to stand beside; an aside wins, since the rail is what it is for.
   const isStacked = stacked && !hasAside;
   // D-322: a screen measures nothing. The box is the host's, so neither the aspect fit nor the compact floor runs.
@@ -220,7 +248,8 @@ export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect,
         data-testid="chart-frame"
         data-fill={fill}
         data-compact={compact}
-        data-legend={legend !== undefined && legend !== null}
+        data-legend={hasLegend}
+        {...(legendOpen === undefined ? {} : { 'data-legend-open': legendOpen })}
         data-aside={hasAside}
         data-stripe={hasStripe}
         data-box={boxed}
@@ -241,7 +270,7 @@ export function ChartFrame({ controls, status, legend, aside, stripe, boxAspect,
           </div>
         )}
         {hasLegend && (
-          <div className={styles.legend} data-testid="chart-legend-slot" ref={legendRef}>
+          <div className={styles.legend} data-testid="chart-legend-slot" ref={legendRef} {...(legendOpen === undefined ? {} : { id: LEGEND_PANEL_ID })}>
             {aside === undefined || aside === null ? (
               legend
             ) : (

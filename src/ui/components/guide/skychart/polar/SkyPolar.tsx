@@ -279,7 +279,7 @@ function Marker({ kind, p }: { kind: 'rise' | 'end' | 'shadow' | 'peak' | 'now';
   }
 }
 
-export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], colorBy = 'highlight', fill = false, legendKeys = {}, legend, aside, stripe, boxAspect, stacked, controls, className }: SkyChartProps) {
+export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, className }: SkyChartProps) {
   const t = useT();
   const orientation = useAppStore((s) => s.chartOrientation);
   const setChartOrientation = useAppStore((s) => s.setChartOrientation);
@@ -293,6 +293,7 @@ export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, mo
         stripe={stripe}
         {...(boxAspect === undefined ? {} : { boxAspect })}
         {...(stacked === undefined ? {} : { stacked })}
+        {...(legendOpen === undefined ? {} : { legendOpen })}
         controls={
           <>
             {controls}

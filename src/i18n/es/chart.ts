@@ -17,6 +17,8 @@ export const chart: typeof EnChart = {
     } satisfies Record<ChartOrientation, string>,
     legend: {
       label: 'Leyenda',
+      /** FR-LEG-7 (R71): la única línea de una leyenda sin filas — el panel del `[ lista (n) ]` en un cielo vacío. */
+      empty: 'nada visible ahora',
       state: { live: 'arriba', ahead: 'pronto', linger: 'pasó' },
       sun: (p) => `Sol · az ${p.azimuth} · alt ${p.altitude}`,
       moon: (p) => `${p.glyph} Luna · az ${p.azimuth} · alt ${p.altitude}`,

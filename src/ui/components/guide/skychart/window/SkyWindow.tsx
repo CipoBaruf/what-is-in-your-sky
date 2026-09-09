@@ -340,7 +340,7 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
 }
 
 export function SkyWindow(props: SkyChartProps) {
-  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, aside, stripe, boxAspect, stacked, controls, overlay, onUnavailable, className } = props;
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, overlay, onUnavailable, className } = props;
   // D-323: `screen` reaches `SkyChartProps` with R62 (D-322); read through a cast, so this compiles either side of it.
   const onScreen = (props as SkyChartProps & { screen?: boolean }).screen === true;
   const t = useT();
@@ -434,6 +434,7 @@ export function SkyWindow(props: SkyChartProps) {
         stripe={stripe}
         {...(boxAspect === undefined ? {} : { boxAspect })}
         {...(stacked === undefined ? {} : { stacked })}
+        {...(legendOpen === undefined ? {} : { legendOpen })}
         /* D-322: the frame's screen mode is the window's to pass on — it is the window that renders the frame. Cast, like `screen` itself, so this compiles either side of R62. */
         {...({ screen: onScreen } as { screen?: boolean })}
         /* FR-FSC-1, D-321 (R64): the page's own children over the drawing — the follow screen's `×`. R62 put the

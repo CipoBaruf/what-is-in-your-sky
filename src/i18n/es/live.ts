@@ -50,6 +50,8 @@ export const live: typeof EnLive = {
     hiddenToggle: 'Objetos ocultos',
     hiddenReason: { low: 'muy bajo', shadow: 'en sombra', daylight: 'de día', faint: 'muy tenue' },
     hiddenLabel: (p) => `${p.name} · ${p.reason}`,
+    /** R71 (FR-LEG-7): el control de la leyenda en la fila de acciones — `[ lista (3) ]`, la cuenta son las pasadas dibujadas (D-388). */
+    list: (p) => `lista (${String(p.count)})`,
     headingLabel: 'Rumbo',
     trueNorth: (p) => `norte verdadero, declinación ${p.declination}`,
     /**

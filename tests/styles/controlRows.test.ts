@@ -31,7 +31,7 @@ import { Header } from '../../src/ui/components/common/Header';
 import { LocationSummary } from '../../src/ui/components/common/LocationSummary';
 import { InstallAction } from '../../src/ui/components/common/InstallAction';
 import { ShareButton } from '../../src/ui/components/common/ShareButton';
-import { HiddenToggle, PlaybackControls } from '../../src/ui/components/live/PlaybackControls';
+import { HiddenToggle, LegendToggle, PlaybackControls } from '../../src/ui/components/live/PlaybackControls';
 import { StepControls } from '../../src/ui/components/live/StepControls';
 import { SortToggle } from '../../src/ui/components/passes/SortToggle';
 import { OptionToggle } from '../../src/ui/components/common/OptionToggle';
@@ -123,6 +123,25 @@ const rows = (t: Messages): readonly Row[] => [
     budget: 35,
   },
   { name: 'the share action (FR-SHARE-2)', element: createElement(ShareButton, { url: 'https://example.test/#live', title: 'x', text: 'y', label: t.live.shareShort, ariaLabel: t.live.share }), find: () => screen.getByRole('button', { name: t.live.share }) },
+  {
+    /*
+     * R71 (FR-COMP-4 as amended v1.4, FR-LEG-7): the live page's actions row, whole — the hidden-objects
+     * toggle, the `[ list (n) ]` control and the share action, in the order and with the compact labels and
+     * forms `Live.tsx` gives them. The three controls were each measured alone before this; the row they
+     * share is the number the requirement names, and it is the tightest row on the page in Spanish:
+     * `[ ] Ocultos [ lista (3) ] Compartir` is 35 of the 36, and with the share action's brackets it is 39,
+     * which is why D-390 takes them off on this row.
+     */
+    name: 'the live actions row with the legend control (FR-LEG-7, FR-COMP-4 as amended v1.4)',
+    element: createElement(
+      'div',
+      { 'data-testid': 'live-actions' },
+      createElement(HiddenToggle, { hidden: false, onToggle: noop }),
+      createElement(LegendToggle, { open: false, count: 3, controls: 'x', onToggle: noop }),
+      createElement(ShareButton, { url: 'https://example.test/#live', title: 'x', text: 'y', label: t.live.shareShort, ariaLabel: t.live.share, plain: true }),
+    ),
+    find: () => screen.getByTestId('live-actions'),
+  },
   { name: 'the settings install row (V11-16)', element: createElement(InstallAction, { env: { standalone: undefined } }), find: () => screen.getByTestId('install-action').parentElement as Element, setUp: offerAnInstall },
 ];
 

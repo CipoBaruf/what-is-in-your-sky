@@ -372,6 +372,26 @@
   min-height: 0;
 }
 
+/* R71 (FR-LEG-7, FR-LEG-8; V14-5, D-387): the open panel. On the compact live
+   page the legend is behind `[ list (n) ]`, and while it is open it is exactly
+   two rows of `--tap` — a *height*, not a maximum, so the panel takes the same
+   room with one row, with five (which scroll inside it) and with none, where it
+   carries the empty line. That is the invariant the finding asks for: the box's
+   height changes on the reader's tap and on nothing the sky does.
+
+   `--legend-row` is the sky screen's own name for a legend row (the tap target,
+   which is what a compact row measures), set here so both strips are two rows of
+   the same thing; this is a second use of that rule and not a new mechanism. The
+   `max-height` above — the four rows a legend under the drawing was allowed —
+   would fight a fixed height, so it goes with the layout it belonged to. */
+.fill[data-legend-open='true'] .legend {
+  --legend-row: var(--tap);
+  height: calc(2 * var(--legend-row));
+  max-height: none;
+  overflow-y: auto;
+  min-height: 0;
+}
+
 .fill .status {
   min-height: var(--row);
 }

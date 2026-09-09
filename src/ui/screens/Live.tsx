@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'r
 import { useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
 import { foldRows } from '../../lib/layout';
+import { legendRows } from '../../lib/legend';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import type { Span } from '../../lib/timeStripe';
@@ -10,12 +11,13 @@ import { useAppStore } from '../../state';
 import { LanguageToggle } from '../components/common/LanguageToggle';
 import { ShareButton } from '../components/common/ShareButton';
 import { ThemeToggle } from '../components/common/ThemeToggle';
+import { LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
 import { DOME_BOX_ASPECT } from '../components/guide/skychart/dome/camera';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
-import { HiddenToggle, PlaybackControls } from '../components/live/PlaybackControls';
+import { HiddenToggle, LegendToggle, PlaybackControls } from '../components/live/PlaybackControls';
 import { StatusStrip } from '../components/live/StatusStrip';
 import { StepControls } from '../components/live/StepControls';
 import { StripeOverview } from '../components/live/StripeOverview';
@@ -321,6 +323,20 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   // legend reads the same value. Memoised on the states, not the instant, so a frame that changes no state remakes nothing.
   const arcs = arcKey(passes, shown);
   const chartPasses = useMemo(() => withArcStates(passes, arcs), [passes, arcs]);
+  /*
+   * R71 (FR-LEG-7, D-387, D-388): the compact page's legend control and what it says. `n` is the rows
+   * `lib/legend.ts` derives from the props the chart is given — the drawn passes, and the FR-LIVE-6 markers
+   * where they are shown, which are rows of the panel too — and not the Sun and Moon lines, which the same
+   * module returns separately (OQ-26: `list (2)` on an empty sky is the one number this must not show). The
+   * chart derives the same rows from the same props (FR-LIVE-10's rule), so the control and the panel cannot
+   * disagree. The open state is the store's, so it survives a reload (`prefs.liveLegendOpen`).
+   */
+  const legendCount = useMemo(() => legendRows({ passes: chartPasses, highlightedPassId: null, now: shown, hidden, colorBy: 'pass' }).length, [chartPasses, shown, hidden]);
+  const legendOpen = useAppStore((s) => s.liveLegendOpen);
+  const setLegendOpen = useAppStore((s) => s.setLiveLegendOpen);
+  const toggleLegend = useCallback(() => {
+    setLegendOpen(!legendOpen);
+  }, [legendOpen, setLegendOpen]);
   // FR-SHARE-1's live form: the place, and the instant only when this page is showing one (real time is the recipient's own).
   const url = shareUrl(window.location.href, liveLinkHash({ observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t: playback.realTime ? null : shown }));
   /*
@@ -384,7 +400,10 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
       )}
       <div className={styles.actions} data-testid="live-actions">
         <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />
-        <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : t.live.share} ariaLabel={t.live.share} />
+        {/* FR-LEG-7 (D-387, D-388): compact only. On wide the legend is in the rail at every width (FR-LEG-6), so there is nothing to disclose. */}
+        {compact && <LegendToggle open={legendOpen} count={legendCount} controls={LEGEND_PANEL_ID} onToggle={toggleLegend} />}
+        {/* D-390: the brackets are what the row cannot afford with `[ list (n) ]` on it — 39 cells in Spanish, 35 without them (FR-COMP-4). */}
+        <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : t.live.share} ariaLabel={t.live.share} plain={compact} />
       </div>
     </div>
   );
@@ -411,7 +430,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           colorBy="pass"
           fill
           initialFacingAzDeg={0}
-          {...(compact ? {} : { aside: side, boxAspect: DOME_BOX_ASPECT })}
+          {...(compact ? { legendOpen } : { aside: side, boxAspect: DOME_BOX_ASPECT })}
           {...(stripeUnder ? { stripe: stripeBlock } : {})}
         />
       </div>

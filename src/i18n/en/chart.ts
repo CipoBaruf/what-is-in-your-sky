@@ -26,6 +26,15 @@ export const chart = {
      */
     legend: {
       label: 'Legend',
+      /**
+       * FR-LEG-7 (R71): the one line a legend with no rows carries — the
+       * compact live page's panel, which is two `--tap` rows whether or not
+       * there is anything to list, so an empty one says why rather than
+       * standing blank. A `role="status"`, so a reader who opened it on an
+       * empty sky is told; the Sun and the Moon lines, if the drawing carries
+       * them, are under it as they always are.
+       */
+      empty: 'nothing up right now',
       state: { live: 'up', ahead: 'soon', linger: 'gone' } satisfies Record<'live' | 'ahead' | 'linger', string>,
       sun: (p: { azimuth: string; altitude: string }) => `Sun · az ${p.azimuth} · alt ${p.altitude}`,
       moon: (p: { glyph: string; azimuth: string; altitude: string }) => `${p.glyph} Moon · az ${p.azimuth} · alt ${p.altitude}`,

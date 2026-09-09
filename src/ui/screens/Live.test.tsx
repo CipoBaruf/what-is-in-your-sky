@@ -39,6 +39,16 @@ const initial = appStore.getInitialState();
 const windowOption = (): HTMLElement => within(screen.getByRole('group', { name: en.chart.viewGroup })).getByRole('button', { name: en.chart.view.window });
 const HOUR = 3_600_000;
 
+/**
+ * R71 (FR-LEG-7): jsdom is the compact shell, where the legend is behind
+ * `[ list (n) ]` and is not in the tree until it is tapped. A test that reads a
+ * legend row opens the panel first; what the control itself does is its own
+ * test below.
+ */
+const openList = (): void => {
+  fireEvent.click(screen.getByTestId('live-legend-toggle'));
+};
+
 const shifted = (id: string, name: string, byMs: number): Pass => ({
   ...pass,
   id,
@@ -154,6 +164,7 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-state', 'live');
     const figure = screen.getByRole('figure', { name: en.chart.liveLabel });
     expect(figure.querySelector('figcaption')).toBeNull();
+    openList();
     // R45: the legend's rows carry the pass id too, so the drawing's are read inside the drawing.
     // R48 (FR-TRAJ-1): at the shown instant only the pass under way is drawn — `later` (3 h on) and
     // `tomorrow` are hidden until their rise is within ARC_LOOKAHEAD — and it keeps its series colour.
@@ -408,6 +419,7 @@ describe('<LivePage>', () => {
   it('scrubs a pass through ahead, live, linger and gone, with the drawn arc and the legend state following (FR-TRAJ-1)', () => {
     withSky();
     const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+    openList();
     const stripe = screen.getByTestId('time-stripe');
     const arc = (): string | null => container.querySelector('[data-drawing] [data-pass-id="later"]')?.getAttribute('data-arc') ?? null;
     const legendState = (): string | null => container.querySelector('[data-testid="chart-legend"] [data-pass-id="later"]')?.getAttribute('data-state') ?? null;
@@ -835,6 +847,7 @@ describe('<LivePage>', () => {
       await Promise.resolve();
     });
     // R45 (FR-LEG-1): the reason is a legend row; the drawing carries the dimmed position and the row's key.
+    openList();
     const legend = within(screen.getByTestId('live-dome')).getByTestId('chart-legend');
     expect(within(legend).getByText('Envisat · in shadow')).toBeInTheDocument();
     const tiangongKey = within(legend).getByText('Tiangong · too faint').closest('button')?.getAttribute('data-key');

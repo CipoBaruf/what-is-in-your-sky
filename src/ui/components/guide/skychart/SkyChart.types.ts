@@ -129,13 +129,26 @@ export interface SkyChartProps {
    */
   boxAspect?: number;
   /**
-   * FR-LIVE-7 as amended (v1.2.1) / D-319 (R61): the one-column wide live page,
-   * below `LIVE_TWO_COLUMN_MIN_PX`. The frame stacks the drawing, the stripe
-   * and the legend, each centred at the box's width, instead of standing a
-   * rail beside the drawing; the page lays its own rows out under the frame.
-   * Absent, the frame is the two-column one where it has an `aside`.
+   * FR-LIVE-7 as amended (v1.2.1) / D-319 (R61): the one-column wide live page.
+   * The frame stacks the drawing, the stripe and the legend, each centred at
+   * the box's width, instead of standing a rail beside the drawing; the page
+   * lays its own rows out under the frame. Absent, the frame is the
+   * two-column one where it has an `aside`.
+   *
+   * R71 (FR-LEG-6, D-386): no page passes this any more — the wide live page
+   * is the rail at every width and the layout this described is withdrawn with
+   * `LIVE_TWO_COLUMN_MIN_PX`. The frame's mode is left where it is, since
+   * D-386's deletion is the page's three files and not the chart's.
    */
   stacked?: boolean;
+  /**
+   * FR-LEG-7 as amended (v1.4) / D-387 (R71): the legend is behind a control —
+   * the compact live page's `[ list (n) ]`. `false` renders no legend slot at
+   * all, so the box has the height it leaves; `true` makes the slot a panel of
+   * exactly two `--tap` rows that scrolls inside itself, whatever it holds.
+   * Absent everywhere else, where the legend is rendered whenever there is one.
+   */
+  legendOpen?: boolean;
   /**
    * FR-LIVE-7 as amended (v1.1.1) / D-268, D-269 (R54): on the live page the
    * chart's own controls — the view toggle and its note — reach the view
