@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useT } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
 import { sameLocation } from '../../../state/slices/location';
@@ -43,6 +43,12 @@ export const PLACE_INPUT_ID = 'place';
 export interface LocationInputProps {
   observer: Observer | null;
   onObserver: (observer: Observer | null) => void;
+  /**
+   * Rendered at the end of the saved places block. The compact settings page passes its clear action here
+   * (the owner, 2026-09-09): the reader looking at the places they keep is the reader who wants to drop the
+   * one that is saved. The page owns the placement, this component only offers the seam (D-262).
+   */
+  savedPlacesFooter?: ReactNode;
   /** Forgets the saved location and drops the active observer (`clearSavedObserver`). */
   onClear: () => void;
   search: PlaceSearchFn;
@@ -58,7 +64,7 @@ export interface LocationInputProps {
   showClear?: boolean;
 }
 
-export function LocationInput({ observer, onObserver, onClear, search, geolocation, showClear = true }: LocationInputProps) {
+export function LocationInput({ observer, onObserver, onClear, search, geolocation, showClear = true, savedPlacesFooter }: LocationInputProps) {
   const t = useT();
   // The observer the inputs were seeded from; a new key remounts them. `focus`
   // is set only by the clear, the one reseed that moves the reader's focus.
@@ -132,7 +138,7 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
       )}
       <p className={styles.note}>{t.location.precisionNote}</p>
       {/* R28 (FR-OFF-7, US-17): the saved places, below the inputs and the notes about them. */}
-      <Favourites />
+      <Favourites {...(savedPlacesFooter === undefined ? {} : { footer: savedPlacesFooter })} />
     </section>
   );
 }

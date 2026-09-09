@@ -19,7 +19,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { LOCALES, THEMES, type CaptureLocale, type CaptureTheme } from './captureSet';
-import { domeDrawn, homeAt, stripFilled, T } from './liveHelpers';
+import { domeDrawn, homeAt, openLegend, stripFilled, T } from './liveHelpers';
 
 const PORTRAIT = { width: 390, height: 844 };
 const LANDSCAPE = { width: 844, height: 390 };
@@ -66,6 +66,8 @@ test.describe('the live page on a portrait phone', () => {
 
   test('stepping across one pass moves it through ahead, live, linger and gone, and the legend follows (FR-TRAJ-1, FR-TRAJ-3, US-22 AC1..AC3, AC6)', async ({ page }) => {
     await openLive(page);
+    // R71 (FR-LEG-7): the legend is behind `[ list (n) ]` on a phone, and this test is about what it says.
+    await openLegend(page);
     const dome = page.getByTestId('live-dome');
     const legend = dome.getByTestId('chart-legend');
     // At T the ISS is ten seconds into its pass: live, with the marker, and the only row.
@@ -136,6 +138,12 @@ test.describe('the live page on a portrait phone', () => {
 
   test('the portrait rows: one top row, the box at least its width, the strip in two lines, the stripe block, two control rows, nothing scrolls (FR-LIVE-7, FR-COMP-5, FR-TRAJ-4)', async ({ page }) => {
     await openLive(page);
+    /*
+     * R71 (FR-LEG-7): the legend is a row of this page only while `[ list (n) ]` holds it open, so the rows
+     * below are measured with it open — the state that has one of everything. Closed, the box has the panel's
+     * height instead, which is `live-compact.spec.ts`'s measurement (FR-LEG-8).
+     */
+    await openLegend(page);
     expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
     // `--row` is 1.5 rem at the 16 px base (D-65).
     const row = 24;

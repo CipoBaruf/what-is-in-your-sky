@@ -41,6 +41,14 @@
  * `sky-screen-buried`, which are shot from the live page, and a second picture
  * of each from a pass shows nothing the first does not.
  *
+ * R71 (SPEC v1.4, FR-LEG-6, FR-LEG-9; V14-4, V14-5): the two live screens keep
+ * their sizes and change what they show. `LIVE_TWO_COLUMN_MIN_PX` is withdrawn,
+ * so `live` at 1280 is the rail layout rather than the centred column R61 shot
+ * there — R71's own `r71-live-964x700`, `1024x768` and `1280x800` are the
+ * pictures the requirement names for that change — and `legend` at 390 is the
+ * `[ list (n) ]` panel, open, since on the compact live page the legend is not
+ * on the page until the reader taps for it. Neither screen leaves the set.
+ *
  * R60 (SPEC §9 Phase 2c): v1.2 added two states the window can be in (FR-FOL-5,
  * R56) and one the live page can be in (FR-FOL-1, R59), so `window-ground` and
  * `window-buried` join `window` and `live-following` joins `live` — a state

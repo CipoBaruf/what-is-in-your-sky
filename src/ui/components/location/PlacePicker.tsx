@@ -69,6 +69,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
   const noteId = useId();
   const online = useOnline();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const controller = useRef<AbortController | null>(null);
   const seq = useRef(0);
 
@@ -234,6 +235,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
     <div className={styles.field}>
       <label htmlFor={inputId}>{t.location.placeLabel}</label>
       <input
+        ref={inputRef}
         id={inputId}
         type="text"
         role="combobox"
@@ -267,6 +269,11 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
                 }}
                 onClick={() => {
                   choose(place);
+                  // The owner, on a phone (2026-09-09): a tap is the end of the asking, so the soft keyboard
+                  // must go — it covers the answer otherwise. The `onMouseDown` above keeps focus in the
+                  // field through the tap so the click lands; this gives it up once the place is chosen.
+                  // Only on this path: a reader choosing with Enter is navigating by keyboard and keeps it.
+                  inputRef.current?.blur();
                 }}
                 onMouseEnter={() => {
                   setActive(i);

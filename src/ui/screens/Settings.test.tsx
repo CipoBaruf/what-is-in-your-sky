@@ -61,6 +61,12 @@ describe('<SettingsPage> (FR-COMP-2)', () => {
      * saved places are titled by a paragraph rather than a heading (R28's own
      * choice) and the clear action has no title at all, so the six rows are
      * compared by where their text falls in the rendered order.
+     *
+     * The owner, on a phone (2026-09-09): the clear action is *inside* the saved
+     * places now, not last after the install offer — a reader dropping the saved
+     * place is already looking at the places they keep, and under the offer it
+     * was missed. FR-COMP-2's stated order says last; this is the departure, and
+     * the order below is what the page does.
      */
     const text = screen.getByRole('main').textContent ?? '';
     const at = (needle: string): number => {
@@ -68,7 +74,7 @@ describe('<SettingsPage> (FR-COMP-2)', () => {
       expect(index, `"${needle}" is on the page`).toBeGreaterThanOrEqual(0);
       return index;
     };
-    const order = [en.app.language, en.app.theme, en.location.heading, en.favourites.heading, en.install.action, en.location.clearSaved].map(at);
+    const order = [en.app.language, en.app.theme, en.location.heading, en.favourites.heading, en.location.clearSaved, en.install.action].map(at);
     expect(order).toEqual([...order].sort((a, b) => a - b));
     expect(screen.queryByRole('button', { name: /save settings/i })).toBeNull();
     expect(await axe(container)).toHaveNoViolations();
@@ -94,7 +100,7 @@ describe('<SettingsPage> (FR-COMP-2)', () => {
     expect(onLeave).toHaveBeenCalledOnce();
   });
 
-  it('clears the saved location from the control at the end of the page', async () => {
+  it('clears the saved location from the control inside the saved places', async () => {
     act(() => {
       appStore.setState({ observer });
     });

@@ -17,7 +17,7 @@
  * `runFor` is playback's wall time.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { domeDrawn, homeAt, realTimeField, setThemeOnHome, stripFilled, T } from './liveHelpers';
+import { domeDrawn, homeAt, openLegend, realTimeField, setThemeOnHome, stripFilled, T } from './liveHelpers';
 
 const HOUR = 3_600_000;
 
@@ -167,6 +167,7 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     await page.getByRole('button', { name: 'Next pass' }).click();
     await page.clock.runFor(300);
     // The pass it landed on is the live one in the legend, and its id carries its rise (D-56).
+    await openLegend(page);
     const passId = (await page.getByTestId('live-dome').getByTestId('chart-legend').locator('button[data-state="live"]').first().getAttribute('data-pass-id')) ?? '';
     const rise = Number(passId.split('-')[1]);
     expect(Math.abs((await shownInstant(page)) - rise)).toBeLessThanOrEqual(1000);
@@ -266,6 +267,7 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
       }, { timeout: 30_000 })
       .toBeGreaterThan(0);
     await expect(hidden.first()).toHaveText(/^[A-Z]$/);
+    await openLegend(page);
     const rows = dome.getByTestId('chart-legend').locator('button[data-state="hidden-object"]');
     await expect(rows.first()).toHaveText(/ · (too low|in shadow|daylight|too faint)$/);
     // The ISS is on its arc, so it is not among the dimmed (D-102).

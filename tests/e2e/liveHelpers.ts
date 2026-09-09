@@ -348,6 +348,21 @@ export async function reenterLiveWithTheme(page: Page, locale: 'en' | 'es', them
   await stripFilled(page);
 }
 
+/**
+ * R71 (FR-LEG-7, D-387): on the compact live page the legend is behind
+ * `[ list (n) ]` and is not in the document until it is opened, so a test that
+ * reads a legend row opens the panel first. A no-op on a wide page, where the
+ * legend stands in the rail at every width (FR-LEG-6), and on one whose panel
+ * is already open — the state is a preference and survives a reload.
+ */
+export async function openLegend(page: Page): Promise<void> {
+  const control = page.getByTestId('live-legend-toggle');
+  if ((await control.count()) === 0) return;
+  if ((await control.getAttribute('aria-expanded')) === 'true') return;
+  await control.click();
+  await expect(page.getByTestId('chart-legend-slot')).toHaveCount(1);
+}
+
 /** The five fields, each with a value that is not the pending ellipsis. */
 export async function stripFilled(page: Page): Promise<void> {
   for (const field of ['time', 'sky', 'cloud', 'count', 'moon']) {

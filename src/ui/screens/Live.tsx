@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import { useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
-import { foldRows, LIVE_TWO_COLUMN_QUERY } from '../../lib/layout';
+import { foldRows } from '../../lib/layout';
+import { legendRows } from '../../lib/legend';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import type { Span } from '../../lib/timeStripe';
@@ -10,12 +11,13 @@ import { useAppStore } from '../../state';
 import { LanguageToggle } from '../components/common/LanguageToggle';
 import { ShareButton } from '../components/common/ShareButton';
 import { ThemeToggle } from '../components/common/ThemeToggle';
+import { LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
 import { DOME_BOX_ASPECT } from '../components/guide/skychart/dome/camera';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
-import { HiddenToggle, PlaybackControls } from '../components/live/PlaybackControls';
+import { HiddenToggle, LegendToggle, PlaybackControls } from '../components/live/PlaybackControls';
 import { StatusStrip } from '../components/live/StatusStrip';
 import { StepControls } from '../components/live/StepControls';
 import { StripeOverview } from '../components/live/StripeOverview';
@@ -28,7 +30,6 @@ import { useWakeLock } from '../components/live/useWakeLock';
 import { useWallThrottle } from '../components/live/useWallThrottle';
 import { SkyScreen } from '../components/screen/SkyScreen';
 import { useLayoutMode } from '../hooks/useLayoutMode';
-import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useNow } from '../hooks/useNow';
 import styles from './Live.module.css';
 
@@ -105,9 +106,6 @@ export function LivePage({ link, onLeave }: LivePageProps) {
    * (R52). Wide has the room and keeps them, as R32 laid the page out.
    */
   const compact = useLayoutMode() === 'compact';
-  // D-319: the page's rows follow the column count the frame is in (`LiveSky` reads the same query for the frame).
-  const twoColumns = useMediaQuery(LIVE_TWO_COLUMN_QUERY);
-  const columns = compact ? 'compact' : twoColumns ? 'two' : 'one';
   /*
    * R69 (FR-SHP-3, F-65, D-381, D-389): on a wide window too short for the box's floor the rows under the box
    * fold, in `lib/layout.ts`'s order, rather than the page scrolling. The answer is written on the page as
@@ -167,7 +165,6 @@ export function LivePage({ link, onLeave }: LivePageProps) {
       data-state={inert === null ? 'live' : 'inert'}
       data-wake-lock={wakeLock}
       data-compact={compact}
-      data-columns={columns}
       {...(!compact && fold !== '' ? { 'data-fold': fold } : {})}
     >
       {/* FR-FSC-1 (D-321): the sky screen covers this row for the eye; `inert` is the other half — nothing under
@@ -259,17 +256,15 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   const t = useT();
   const compact = useLayoutMode() === 'compact';
   /*
-   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315, D-319): on wide the box is cut to the dome's own aspect
-   * from what the frame leaves it (`boxAspect`), and the stripe block stands under the box rather than in the
-   * rail — the owner's stripe at the bottom of the dome, at every wide width (V12-12). From
-   * `LIVE_TWO_COLUMN_MIN_PX` the page is two columns, the rail beside the box; under it, one column — the
-   * frame stacks the drawing, the stripe and the legend, centred, and the page's own row of the strip and the
-   * actions is under the frame, as on compact (V12-14). Compact ignores all three.
+   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315): on wide the box is cut to the dome's own aspect from what
+   * the frame leaves it (`boxAspect`), and the stripe block stands under the box rather than in the rail — the
+   * owner's stripe at the bottom of the dome, at every wide width (V12-12).
+   *
+   * R71 (FR-LEG-6, FR-LIVE-7 as amended v1.4; V14-4, D-386): and the rail is beside the box at every wide
+   * width. `LIVE_TWO_COLUMN_MIN_PX` and the one centred column it gated are withdrawn — there is one wide
+   * layout again, so the page has no column count to hold and nothing here to switch on but the mode.
    */
-  const twoColumns = useMediaQuery(LIVE_TWO_COLUMN_QUERY);
   const stripeUnder = !compact;
-  const oneColumn = !compact && !twoColumns;
-  const columns = compact ? 'compact' : oneColumn ? 'one' : 'two';
   const passesState = useAppStore((s) => s.passes);
   const weather = useAppStore((s) => s.weather);
   const liveHidden = useAppStore((s) => s.liveHidden);
@@ -328,6 +323,20 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   // legend reads the same value. Memoised on the states, not the instant, so a frame that changes no state remakes nothing.
   const arcs = arcKey(passes, shown);
   const chartPasses = useMemo(() => withArcStates(passes, arcs), [passes, arcs]);
+  /*
+   * R71 (FR-LEG-7, D-387, D-388): the compact page's legend control and what it says. `n` is the rows
+   * `lib/legend.ts` derives from the props the chart is given — the drawn passes, and the FR-LIVE-6 markers
+   * where they are shown, which are rows of the panel too — and not the Sun and Moon lines, which the same
+   * module returns separately (OQ-26: `list (2)` on an empty sky is the one number this must not show). The
+   * chart derives the same rows from the same props (FR-LIVE-10's rule), so the control and the panel cannot
+   * disagree. The open state is the store's, so it survives a reload (`prefs.liveLegendOpen`).
+   */
+  const legendCount = useMemo(() => legendRows({ passes: chartPasses, highlightedPassId: null, now: shown, hidden, colorBy: 'pass' }).length, [chartPasses, shown, hidden]);
+  const legendOpen = useAppStore((s) => s.liveLegendOpen);
+  const setLegendOpen = useAppStore((s) => s.setLiveLegendOpen);
+  const toggleLegend = useCallback(() => {
+    setLegendOpen(!legendOpen);
+  }, [legendOpen, setLegendOpen]);
   // FR-SHARE-1's live form: the place, and the instant only when this page is showing one (real time is the recipient's own).
   const url = shareUrl(window.location.href, liveLinkHash({ observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t: playback.realTime ? null : shown }));
   /*
@@ -391,7 +400,10 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
       )}
       <div className={styles.actions} data-testid="live-actions">
         <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />
-        <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : t.live.share} ariaLabel={t.live.share} />
+        {/* FR-LEG-7 (D-387, D-388): compact only. On wide the legend is in the rail at every width (FR-LEG-6), so there is nothing to disclose. */}
+        {compact && <LegendToggle open={legendOpen} count={legendCount} controls={LEGEND_PANEL_ID} onToggle={toggleLegend} />}
+        {/* D-411: the brackets are what the row cannot afford with `[ list (n) ]` on it — 39 cells in Spanish, 35 without them (FR-COMP-4). */}
+        <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : t.live.share} ariaLabel={t.live.share} plain={compact} />
       </div>
     </div>
   );
@@ -406,7 +418,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
 
   return (
     <>
-      <div className={styles.dome} data-testid="live-dome" data-stripe-under={stripeUnder} data-columns={columns}>
+      <div className={styles.dome} data-testid="live-dome" data-stripe-under={stripeUnder}>
         <SkyChart
           passes={chartPasses}
           observer={observer}
@@ -418,12 +430,11 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           colorBy="pass"
           fill
           initialFacingAzDeg={0}
-          {...(columns === 'two' ? { aside: side } : {})}
-          {...(compact ? {} : { boxAspect: DOME_BOX_ASPECT, stacked: oneColumn })}
+          {...(compact ? { legendOpen } : { aside: side, boxAspect: DOME_BOX_ASPECT })}
           {...(stripeUnder ? { stripe: stripeBlock } : {})}
         />
       </div>
-      {columns !== 'two' && side}
+      {compact && side}
     </>
   );
 }

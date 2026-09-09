@@ -200,6 +200,12 @@
   .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-box='true'] .drawing {
     width: var(--chart-box-w);
     height: var(--chart-box-h);
+    /* FR-LIVE-7: "the box stands at the left of the page". `.drawing`'s own `margin: 0 auto` centres it in
+       its grid area, which is the same thing while the box is the widest item in these two `auto` columns —
+       every width the rail had before R71. At the narrow ones it is not: at 1280 x 720 the stripe's 44-cell
+       floor and the row above the box make the area wider than the box, and a centred box stood 13 px to the
+       right of the stripe under it (D-386). Left, and the box, the stripe and the page's margin share an edge. */
+    margin: 0;
   }
 
   /* The stripe row is the box's width by rule, not by content: the stripe measures its own width to pick a
@@ -368,6 +374,28 @@
    under the floored drawing (R48, above), down to nothing. */
 .fill .legend {
   max-height: calc(4 * var(--row));
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* R71 (FR-LEG-7, FR-LEG-8; V14-5, D-387): the open panel. On the compact live
+   page the legend is behind `[ list (n) ]`, and while it is open it is exactly
+   two rows of `--tap` — a *height*, not a maximum, so the panel takes the same
+   room with one row, with five (which scroll inside it) and with none, where it
+   carries the empty line. That is the invariant the finding asks for: the box's
+   height changes on the reader's tap and on nothing the sky does.
+
+   `--legend-row` is the sky screen's own name for a legend row (the tap target,
+   which is what a compact row measures), set here so both strips are two rows of
+   the same thing; this is a second use of that rule and not a new mechanism. The
+   `max-height` above — the four rows a legend under the drawing was allowed —
+   would fight a fixed height, so it goes with the layout it belonged to. */
+.fill[data-legend-open='true'] .legend {
+  --legend-row: var(--tap);
+  /* The row count is `LEGEND_OPEN_ROWS` in `ChartFrame.tsx`, set on the frame as
+     `--legend-open-rows` so the two cannot drift; the literal here is the fallback. */
+  height: calc(var(--legend-open-rows, 2) * var(--legend-row));
+  max-height: none;
   overflow-y: auto;
   min-height: 0;
 }

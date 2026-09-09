@@ -80,6 +80,15 @@ export const live = {
     hiddenToggle: 'Hidden objects',
     hiddenReason: { low: 'too low', shadow: 'in shadow', daylight: 'daylight', faint: 'too faint' } satisfies Record<HiddenReason, string>,
     hiddenLabel: (p: { name: string; reason: string }) => `${p.name} · ${p.reason}`,
+    /**
+     * R71 (FR-LEG-7, D-387, D-388): the compact actions row's legend control,
+     * `[ list (3) ]`. The count is the drawn passes — the rows the panel would
+     * list — and not the Sun and Moon lines, which are in the panel and
+     * uncounted (OQ-26: "list (2)" on an empty sky is the one number this must
+     * not show). The word is the control's whole label, so it is also its
+     * accessible name; `aria-expanded` carries the state.
+     */
+    list: (p: { count: number }) => `list (${String(p.count)})`,
     /*
      * R66 (V13-6): `follow`, `followShort`, `followRelative`, `followDenied`
      * and `followClose` are gone with the `[ follow phone ]` control. The two

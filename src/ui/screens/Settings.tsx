@@ -89,9 +89,12 @@ export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
           <ThemeToggle />
         </section>
 
-        {/* The location form, the saved places inside it, and the clear action
-            lifted out to the end of the page (FR-COMP-2's order). */}
-        <LocationInput observer={observer} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} showClear={false} />
+        {/* The location form, the saved places inside it, and the clear action inside those (the owner, on a
+            phone, 2026-09-09): a reader who wants to drop the saved place is already looking at the places
+            they keep, and at the foot of the page it was under the install offer and easy to miss. It is
+            still the page that places it (D-262) — `LocationInput` and `Favourites` only pass the slot on.
+            This is a departure from FR-COMP-2's stated order, which puts it last; see the PR. */}
+        <LocationInput observer={observer} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} showClear={false} savedPlacesFooter={<ClearSavedLocation />} />
 
         {canInstall && (
           <section aria-labelledby={installId} className={styles.section} data-testid="settings-install">
@@ -101,8 +104,6 @@ export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
             </p>
           </section>
         )}
-
-        <ClearSavedLocation />
       </main>
     </>
   );

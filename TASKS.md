@@ -1578,7 +1578,7 @@ Delivery is PLAN §16 unchanged, cut by §16.14: six tasks, five waves, one task
     window); and the two rows this task puts under the box pull FR-SHP-3's fold in at short wide windows, which
     moved `LIVE_VIEWPORTS.short` and three rows of the shape matrix's floor allowance (see `R70.summary.md`).
 
-- [ ] **R71 — The legend's place: the rail at every width and the list control**
+- [x] **R71 — The legend's place: the rail at every width and the list control** *(done but for one line of FR-LEG-8: the box's floor holds at 390 × 844 and cannot be reached at 390 × 667, measured — spec §4.20 F-62 and PLAN D-415. The actions row needed the share action's brackets to stay inside FR-COMP-4 in Spanish, PLAN D-411.)*
   - **Lane:** live
   - **Model:** opus
   - **Gate:** owner

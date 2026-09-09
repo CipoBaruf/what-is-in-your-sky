@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useT } from '../../../i18n/useT';
 import { MAX_FAVOURITES } from '../../../model';
 import { favouriteCellKey, useAppStore } from '../../../state';
@@ -26,7 +27,12 @@ import styles from './Favourites.module.css';
  * US-17 AC2 asks for by name: the cost of a mistake is re-saving a place that
  * is one tap away.
  */
-export function Favourites() {
+/**
+ * `footer` is the compact settings page's slot (the owner, 2026-09-09): the clear action belongs *in* the
+ * saved places, where the reader is already looking at the places they keep, rather than at the foot of the
+ * page. The block does not know what it is given — the page decides, as D-262 has it.
+ */
+export function Favourites({ footer }: { footer?: ReactNode } = {}) {
   const t = useT();
   const observer = useAppStore((s) => s.observer);
   const favourites = useAppStore((s) => s.favourites);
@@ -90,6 +96,7 @@ export function Favourites() {
         </div>
       )}
       <p className={styles.limit}>{t.favourites.limit(MAX_FAVOURITES)}</p>
+      {footer}
     </div>
   );
 }

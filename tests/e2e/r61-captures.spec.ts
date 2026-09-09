@@ -27,24 +27,17 @@ import { openParisLive } from './parisLive';
 
 test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
 
-/** The box is the dome's shape (D-314) with the stripe under it (D-315); from 1660 px the rail is beside it (D-312), under that the page is one centred column (D-319). */
+/** The box is the dome's shape (D-314) with the stripe under it (D-315) and the rail beside it (D-312) — at every wide width since R71 (D-386). */
 const shoot = async (page: import('@playwright/test').Page, width: 1280 | 1920 | 2560 | 3840, theme: 'dark' | 'night'): Promise<void> => {
   await openParisLive(page, width, theme);
   const box = await page.getByTestId('chart-box').boundingBox();
   const strip = await page.getByTestId('status-strip').boundingBox();
   const actions = await page.getByTestId('live-actions').boundingBox();
   if (!box || !strip || !actions) throw new Error('the page is not laid out');
-  if (width >= 1660) {
-    const rail = await page.getByTestId('chart-aside').boundingBox();
-    if (!rail) throw new Error('no rail');
-    expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
-    expect(strip.y).toBeLessThan(actions.y);
-  } else {
-    // D-319: one column, centred, the strip and the actions on one line under the frame.
-    await expect(page.getByTestId('chart-aside')).toHaveCount(0);
-    expect(Math.abs(box.x + box.width / 2 - width / 2)).toBeLessThanOrEqual(2);
-    expect(strip.y).toBeGreaterThanOrEqual(box.y + box.height);
-  }
+  const rail = await page.getByTestId('chart-aside').boundingBox();
+  if (!rail) throw new Error('no rail');
+  expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
+  expect(strip.y).toBeLessThan(actions.y);
   expect(box.width / box.height).toBeCloseTo(DOME_BOX_ASPECT, 1);
   await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
   await page.screenshot({ path: `${CAPTURE_DIR}/r61-live-${String(width)}-${theme}-en.png` });

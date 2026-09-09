@@ -40,6 +40,8 @@ export interface Prefs {
   favourites?: Favourite[];
   /** R33 (FR-LIVE-6): whether the live page draws the hidden objects. Absent until the toggle is used; off by default. */
   liveHidden?: boolean;
+  /** R71 (FR-LEG-7, D-387): whether the compact live page's legend panel is open. Absent until `[ list (n) ]` is used; closed by default. */
+  liveLegendOpen?: boolean;
   /** FR-OFF-6: the install hint has been answered and is not offered again. Absent until then. */
   installHintDismissed?: boolean;
   /** FR-OFF-6 as amended (D-272): how many times "Not now" has been pressed. Absent until the first. */
@@ -64,6 +66,8 @@ const storedPrefsSchema = z.object({
   locale: z.enum(['en', 'es']).optional().catch(undefined),
   theme: z.enum(['dark', 'night']).optional().catch(undefined),
   liveHidden: z.boolean().optional().catch(undefined),
+  // FR-LEG-7 (D-387): a stored value that is not a boolean is not an answer — the panel falls back to closed.
+  liveLegendOpen: z.boolean().optional().catch(undefined),
   // `.catch(null)` per item, not on the array: a malformed favourite becomes a hole that is
   // filtered out, where a schema on the array alone would drop all eight for one bad entry.
   favourites: z
@@ -91,7 +95,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!raw) return {};
         const parsed = storedPrefsSchema.safeParse(JSON.parse(raw));
         if (!parsed.success) return {};
-        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, installHintDismissed, installHintDeclines, installHintSnoozedUntil } = parsed.data;
+        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, liveLegendOpen, installHintDismissed, installHintDeclines, installHintSnoozedUntil } = parsed.data;
         const prefs: Prefs = {};
         if (observer) prefs.observer = toObserver(observer);
         if (sort) prefs.sort = sort;
@@ -100,6 +104,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (locale) prefs.locale = locale;
         if (theme) prefs.theme = theme;
         if (liveHidden !== undefined) prefs.liveHidden = liveHidden;
+        if (liveLegendOpen !== undefined) prefs.liveLegendOpen = liveLegendOpen;
         // The limit is applied on read too, so a hand-edited or half-written list is still eight at most.
         if (favourites) {
           const kept = favourites.filter((favourite) => favourite !== null).map((favourite) => ({ ...favourite, observer: toObserver(favourite.observer) }));

@@ -133,7 +133,10 @@ describe('<PlacePicker>', () => {
     expect(onObserver).toHaveBeenCalledWith(CIPOLLETTI_OBSERVER);
     expect(screen.queryByRole('option')).toBeNull();
     expect(input).toHaveValue('Cipolletti, Rio Negro, Argentina');
-    expect(input).toHaveFocus();
+    // The owner, on a phone (2026-09-09): a tap is the end of the asking, and the field must give up focus
+    // with it or the soft keyboard stays over the answer. The `onMouseDown` still holds focus through the
+    // tap itself, so the click lands on the option rather than on whatever the closing list uncovers.
+    expect(input).not.toHaveFocus();
     // The app writes the observer to the store; the picker shows the confirmation for it (US-1 AC2/AC4, FR-LOC-6).
     rerender(picker(search, onObserver, CIPOLLETTI_OBSERVER));
     expect(screen.getByTestId('place-confirmation')).toHaveTextContent('Using the centre of Cipolletti, Rio Negro, Argentina (−38.93, −67.99).');
@@ -162,6 +165,9 @@ describe('<PlacePicker>', () => {
     await screen.findAllByRole('option');
     await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
     expect(onObserver).toHaveBeenCalledWith(expect.objectContaining({ label: 'Rosario, Calabarzon, Philippines', timeZone: 'Asia/Manila', source: 'geocode' }));
+    // Picked from the keyboard, the field keeps focus: the reader is navigating with it, and there is no
+    // soft keyboard in the way. Only the tap gives focus up.
+    expect(input).toHaveFocus();
   });
 
   it('Enter with the list open and nothing highlighted picks the first result', async () => {

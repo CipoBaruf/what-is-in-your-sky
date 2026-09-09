@@ -5,7 +5,7 @@ import { decline, type InstallAnswer } from '../../lib/installSnooze';
 import { DEFAULT_PASS_SORT } from '../../lib/passSort';
 import { browserLanguages, resolveLocale } from '../../i18n/locale';
 import { DEFAULT_CHART_ORIENTATION } from '../../lib/skyGeometry';
-import { DEFAULT_THEME, savedChartView as narrowChartView, type ChartOrientation, type EpochMs, type Favourite, type Locale, type Observer, type PassSort, type SavedChartView, type Theme } from '../../model';
+import { DEFAULT_LIVE_LEGEND_OPEN, DEFAULT_THEME, savedChartView as narrowChartView, type ChartOrientation, type EpochMs, type Favourite, type Locale, type Observer, type PassSort, type SavedChartView, type Theme } from '../../model';
 import type { AppState } from '../store';
 
 /**
@@ -79,6 +79,14 @@ export interface PrefsSlice {
   chartView: SavedChartView;
   /** Sets the view, through to storage. The window is not one of them: choosing it opens the screen and writes nothing. */
   setChartView: (view: SavedChartView) => void;
+  /**
+   * R71 (FR-LEG-7, D-387): whether the compact live page's legend panel is
+   * open. Closed unless saved otherwise, so a first visit gets the box at
+   * FR-COMP-5's floor; a corrupt stored value is not an answer and reads as
+   * closed (`localPrefs.ts`).
+   */
+  liveLegendOpen: boolean;
+  setLiveLegendOpen: (open: boolean) => void;
   /** R66 (FR-FSC-1, D-351): whether the sky screen is up. Session only — no page restores it and no hash carries it (FR-FSC-2). */
   skyScreen: boolean;
   /** Opens the screen. The caller has already asked for the permission inside its tap and had a reading with a heading (FR-WIN-4, D-350). */
@@ -201,6 +209,11 @@ export const createPrefsSlice =
       setChartView: (chartView) => {
         set({ chartView, windowNote: null });
         deps.prefs.write({ ...deps.prefs.read(), chartView });
+      },
+      liveLegendOpen: deps.prefs.read().liveLegendOpen ?? DEFAULT_LIVE_LEGEND_OPEN,
+      setLiveLegendOpen: (liveLegendOpen) => {
+        set({ liveLegendOpen });
+        deps.prefs.write({ ...deps.prefs.read(), liveLegendOpen });
       },
       skyScreen: false,
       openSkyScreen: () => {

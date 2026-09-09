@@ -65,7 +65,17 @@ function DomeView(props: SkyChartProps) {
   return (
     <Suspense
       fallback={
-        <ChartFrame controls={props.controls} status={<p className={styles.loading}>{t.chart.loadingDome}</p>} legend={props.legend} aside={props.aside} stripe={props.stripe} {...(props.boxAspect === undefined ? {} : { boxAspect: props.boxAspect })} {...(props.stacked === undefined ? {} : { stacked: props.stacked })} fill={props.fill ?? false}>
+        <ChartFrame
+          controls={props.controls}
+          status={<p className={styles.loading}>{t.chart.loadingDome}</p>}
+          legend={props.legend}
+          aside={props.aside}
+          stripe={props.stripe}
+          {...(props.boxAspect === undefined ? {} : { boxAspect: props.boxAspect })}
+          {...(props.stacked === undefined ? {} : { stacked: props.stacked })}
+          {...(props.legendOpen === undefined ? {} : { legendOpen: props.legendOpen })}
+          fill={props.fill ?? false}
+        >
           <div className={styles.loadingBox} data-testid="dome-loading" />
         </ChartFrame>
       }
@@ -91,6 +101,7 @@ function WindowView(props: SkyChartProps) {
           stripe={props.stripe}
           {...(props.boxAspect === undefined ? {} : { boxAspect: props.boxAspect })}
           {...(props.stacked === undefined ? {} : { stacked: props.stacked })}
+          {...(props.legendOpen === undefined ? {} : { legendOpen: props.legendOpen })}
           {...(props.screen === undefined ? {} : { screen: props.screen })}
           {...(props.overlay === undefined ? {} : { overlay: props.overlay })}
           fill={props.fill ?? false}

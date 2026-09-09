@@ -18,7 +18,7 @@ import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../tests/support/catalogFixtures';
 import { en } from '../../i18n/en';
-import { LIVE_TWO_COLUMN_MIN_PX, WIDE_MIN_PX } from '../../lib/layout';
+import { WIDE_MIN_PX } from '../../lib/layout';
 import { isoInstant } from '../../lib/shareLinks';
 import { skyBodiesAt } from '../../lib/skyBodies';
 import type { Observer, Pass } from '../../model';
@@ -27,6 +27,7 @@ import { appStore, setLiveNowClient, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { stubMatchMedia, type MatchMediaStub } from '../../../tests/support/matchMedia';
 import { MOON_FIXTURE } from '../../../tests/support/moonFixtures';
+import { LEGEND_OPEN_ROWS, LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
 import { LIVE_WINDOW_MS, LivePage, livePasses, TICK_MS, visibleCount } from './Live';
 
 const pass = goldenPassFixture();
@@ -38,6 +39,16 @@ const initial = appStore.getInitialState();
 /** R66 (V13-6, D-350): the way into the sky screen — the view control's "window" option, on this page as on the pass detail. */
 const windowOption = (): HTMLElement => within(screen.getByRole('group', { name: en.chart.viewGroup })).getByRole('button', { name: en.chart.view.window });
 const HOUR = 3_600_000;
+
+/**
+ * R71 (FR-LEG-7): jsdom is the compact shell, where the legend is behind
+ * `[ list (n) ]` and is not in the tree until it is tapped. A test that reads a
+ * legend row opens the panel first; what the control itself does is its own
+ * test below.
+ */
+const openList = (): void => {
+  fireEvent.click(screen.getByTestId('live-legend-toggle'));
+};
 
 const shifted = (id: string, name: string, byMs: number): Pass => ({
   ...pass,
@@ -154,6 +165,7 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-state', 'live');
     const figure = screen.getByRole('figure', { name: en.chart.liveLabel });
     expect(figure.querySelector('figcaption')).toBeNull();
+    openList();
     // R45: the legend's rows carry the pass id too, so the drawing's are read inside the drawing.
     // R48 (FR-TRAJ-1): at the shown instant only the pass under way is drawn — `later` (3 h on) and
     // `tomorrow` are hidden until their rise is within ARC_LOOKAHEAD — and it keeps its series colour.
@@ -292,34 +304,43 @@ describe('<LivePage>', () => {
    * not a row under the box, so the box keeps the page's whole height. The
    * placement is React's and asserted here; the width the rail takes is the
    * stylesheet's, read from the file because jsdom lays nothing out.
+   *
+   * R71 (FR-LEG-6, V14-4, D-386): at *every* wide width. The one-column page
+   * under `LIVE_TWO_COLUMN_MIN_PX` is withdrawn with the constant, so the
+   * narrowest wide viewport (964 px, FR-DESK-1's 100 cells) has the rail too,
+   * and the page carries no column count at all. This fails on the old rule at
+   * 964 and 1280, where the frame stacked and the page kept its own row.
    */
-  it('gives the side column to the chart on the two-column page, and keeps it in the page on compact and on the one-column page', () => {
+  it('gives the side column to the chart at every wide width, and keeps it in the page on compact', () => {
     withSky();
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'true');
-    expect(screen.getByTestId('live-page')).toHaveAttribute('data-columns', 'compact');
+    expect(screen.getByTestId('live-page')).not.toHaveAttribute('data-columns');
     expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).toBeNull();
     expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
     unmount();
-    // D-319: under 1660 px the wide page is one column — the frame stacks, the page keeps its row.
-    media = stubMatchMedia(LIVE_TWO_COLUMN_MIN_PX - 1, 800);
-    const one = render(<LivePage link={null} onLeave={() => undefined} />);
-    expect(screen.getByTestId('live-page')).toHaveAttribute('data-columns', 'one');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'false');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
-    expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
-    expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\]\[data-columns='one'\] \{\n\s+grid-template-areas:\n\s+'top'\n\s+'dome'\n\s+'side';/);
-    // D-320 (V12-15): that row reads from the left — the strip at the page's content edge, the actions after it.
-    expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\]\[data-columns='one'\] \.side \{\n\s+flex-direction: row;\n\s+flex-wrap: wrap;\n\s+justify-content: flex-start;/);
-    one.unmount();
-    media.restore();
-    media = stubMatchMedia(LIVE_TWO_COLUMN_MIN_PX, 1080);
+    // D-386: 964, 1280 and 1660 are one layout — the rail beside the cut box, the page two rows.
+    for (const [width, height] of [
+      [WIDE_MIN_PX, 700],
+      [1280, 800],
+      [1660, 1080],
+    ] as const) {
+      media?.restore();
+      media = stubMatchMedia(width, height);
+      const wide = render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(screen.getByTestId('live-page'), `${String(width)} px carries no column count`).not.toHaveAttribute('data-columns');
+      expect(screen.getByTestId('live-dome')).not.toHaveAttribute('data-columns');
+      expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]'), `the rail at ${String(width)} px`).not.toBeNull();
+      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
+      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'false');
+      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
+      wide.unmount();
+    }
+    // …and the one-column block is out of the stylesheet with the rule it drew (D-386).
+    expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).not.toMatch(/\.page\[data-compact='false'\]\[data-columns='one'\]/);
+    media?.restore();
+    media = stubMatchMedia(1660, 1080);
     render(<LivePage link={null} onLeave={() => undefined} />);
-    expect(screen.getByTestId('live-page')).toHaveAttribute('data-columns', 'two');
-    expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).not.toBeNull();
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'false');
     // The fluid rail is 26 % of the frame between 44 and 60 cells, so its share falls as the page grows (D-313); the page's third row goes with the rows that moved.
     expect(readFileSync('src/ui/components/guide/skychart/ChartFrame.module.css', 'utf8')).toMatch(
       /\[data-aside='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\) clamp\(calc\(44 \* var\(--cell\)\), 26%, calc\(60 \* var\(--cell\)\)\);/,
@@ -330,6 +351,97 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
     expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
+  });
+
+  /**
+   * R71 (FR-LEG-7, FR-LEG-8; V14-5; D-387, D-388): on compact the legend is behind `[ list (n) ]`.
+   *
+   * `n` is the rows `lib/legend.ts` derives — the drawn passes — and not the panel's lines: on an empty sky
+   * the control reads `list (0)` while the panel still carries a line, which is the number OQ-26 says it must
+   * not get wrong. Closed, no legend is in the tree at all, so the rows under the box are the box's
+   * (FR-COMP-5 as amended); open, the slot is the frame's panel.
+   */
+  it('counts the drawn passes, not the panel’s lines, and opens and closes the panel (FR-LEG-7, D-388)', () => {
+    withSky();
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    const control = screen.getByTestId('live-legend-toggle');
+    // Closed on a first visit (`prefs.liveLegendOpen`), and the panel is not in the tree.
+    expect(control).toHaveTextContent('list (1)');
+    expect(control).toHaveAttribute('aria-expanded', 'false');
+    // R71 review: closed, the panel is not in the tree, so the control names nothing — an `aria-controls`
+    // pointing at an id no element carries is a dangling reference. `aria-expanded` alone says the state.
+    expect(control).not.toHaveAttribute('aria-controls');
+    expect(screen.queryByTestId('chart-legend')).toBeNull();
+    expect(screen.queryByTestId('chart-legend-slot')).toBeNull();
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-legend', 'false');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-legend-open', 'false');
+    // Open: the slot is the panel the control names, and it lists exactly the passes the drawing draws.
+    fireEvent.click(control);
+    expect(control).toHaveAttribute('aria-expanded', 'true');
+    expect(control).toHaveAttribute('aria-controls', LEGEND_PANEL_ID);
+    const panel = screen.getByTestId('chart-legend-slot');
+    expect(panel).toHaveAttribute('id', LEGEND_PANEL_ID);
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-legend-open', 'true');
+    expect(within(panel).getAllByRole('button', { name: /ISS/ })).toHaveLength(1);
+    expect(panel.querySelectorAll('[data-pass-id]')).toHaveLength(1);
+    // Five passes up at once: the control counts them all.
+    act(() => {
+      appStore.setState({ passes: { ...IDLE_PASSES, jobId: 'job-2', status: 'done', observer, passes: [pass, ...[1, 2, 3, 4].map((n) => shifted(`twin-${String(n)}`, `Twin ${String(n)}`, n * 1000))], hasDarkness: true } });
+    });
+    expect(screen.getByTestId('live-legend-toggle')).toHaveTextContent('list (5)');
+    expect(screen.getByTestId('chart-legend-slot').querySelectorAll('[data-pass-id]')).toHaveLength(5);
+    // An empty sky: `list (0)`, and the panel says so in a line of its own rather than standing blank.
+    act(() => {
+      appStore.setState({ passes: { ...IDLE_PASSES, jobId: 'job-3', status: 'done', observer, passes: [], hasDarkness: true } });
+    });
+    expect(screen.getByTestId('live-legend-toggle')).toHaveTextContent('list (0)');
+    const empty = screen.getByTestId('legend-empty');
+    expect(empty).toHaveTextContent(en.chart.legend.empty);
+    expect(within(empty).getByRole('status')).toBeInTheDocument();
+    expect(screen.getByTestId('chart-legend-slot').querySelectorAll('[data-pass-id]')).toHaveLength(0);
+    // …and the panel is the same element with the same attributes in all three states — the height is the
+    // stylesheet's and does not follow the content (below).
+    expect(screen.getByTestId('chart-legend-slot').className).toBe(panel.className);
+    // Closing takes it out of the tree again.
+    fireEvent.click(screen.getByTestId('live-legend-toggle'));
+    expect(screen.queryByTestId('chart-legend-slot')).toBeNull();
+  });
+
+  /**
+   * R71 (FR-LEG-7, V14-5): the panel is exactly two `--tap` rows whatever it holds, and the box's height
+   * changes on the reader's tap and on nothing the sky does. jsdom lays nothing out, so the fixed height is
+   * read off the stylesheet — a `height`, not a `max-height`, with the four-row cap of the old layout undone —
+   * and what is asserted here is that neither the panel nor the box is given anything of its own that varies
+   * with the rows: the drawing's box keeps the same markup while the list goes from one row to five to none.
+   * `live-compact.spec.ts` is where the pixels are measured.
+   */
+  it('gives the open panel a fixed height that the sky cannot change (FR-LEG-7, V14-5)', () => {
+    const css = readFileSync('src/ui/components/guide/skychart/ChartFrame.module.css', 'utf8');
+    expect(css).toMatch(/\.fill\[data-legend-open='true'\] \.legend \{[^}]*height: calc\(var\(--legend-open-rows, 2\) \* var\(--legend-row\)\);[^}]*max-height: none;[^}]*overflow-y: auto;/);
+    expect(LEGEND_OPEN_ROWS).toBe(2);
+    withSky();
+    act(() => {
+      appStore.getState().setLiveLegendOpen(true);
+    });
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    // The preference is what the page opens on: no tap, and the panel is there (`prefs.liveLegendOpen`).
+    expect(screen.getByTestId('live-legend-toggle')).toHaveAttribute('aria-expanded', 'true');
+    // R71 review: the row count lives in `LEGEND_OPEN_ROWS` and reaches the stylesheet as `--legend-open-rows`,
+    // so the constant and the declaration above cannot drift apart.
+    expect(screen.getByTestId('chart-frame').style.getPropertyValue('--legend-open-rows')).toBe(String(LEGEND_OPEN_ROWS));
+    const box = screen.getByTestId('chart-box');
+    const shape = (): string => `${box.className}|${box.getAttribute('style') ?? ''}`;
+    const panelShape = (): string => {
+      const panel = screen.getByTestId('chart-legend-slot');
+      return `${panel.className}|${panel.getAttribute('style') ?? ''}`;
+    };
+    const before = [shape(), panelShape()];
+    for (const passes of [[pass, ...[1, 2, 3, 4].map((n) => shifted(`twin-${String(n)}`, `Twin ${String(n)}`, n * 1000))], []]) {
+      act(() => {
+        appStore.setState({ passes: { ...IDLE_PASSES, jobId: `job-${String(passes.length)}`, status: 'done', observer, passes, hasDarkness: true } });
+      });
+      expect([shape(), panelShape()], `${String(passes.length)} passes move neither the box nor the panel`).toEqual(before);
+    }
   });
 
   /**
@@ -347,15 +459,14 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
     expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
     expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'live-actions']);
-    // The narrowest wide page: the same stripe row, in the one-column frame (D-319), the side row the page's own.
+    // The narrowest wide page: the same stripe row, the same rail (R71, D-386).
     act(() => {
       media?.setSize(WIDE_MIN_PX, 700);
     });
     expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
-    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-columns', 'one');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'false');
     expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
-    expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
+    expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).not.toBeNull();
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
     // Compact: no cut box, no stripe row; the block is a row of the page's own side column.
     act(() => {
@@ -400,6 +511,7 @@ describe('<LivePage>', () => {
   it('scrubs a pass through ahead, live, linger and gone, with the drawn arc and the legend state following (FR-TRAJ-1)', () => {
     withSky();
     const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+    openList();
     const stripe = screen.getByTestId('time-stripe');
     const arc = (): string | null => container.querySelector('[data-drawing] [data-pass-id="later"]')?.getAttribute('data-arc') ?? null;
     const legendState = (): string | null => container.querySelector('[data-testid="chart-legend"] [data-pass-id="later"]')?.getAttribute('data-state') ?? null;
@@ -827,6 +939,7 @@ describe('<LivePage>', () => {
       await Promise.resolve();
     });
     // R45 (FR-LEG-1): the reason is a legend row; the drawing carries the dimmed position and the row's key.
+    openList();
     const legend = within(screen.getByTestId('live-dome')).getByTestId('chart-legend');
     expect(within(legend).getByText('Envisat · in shadow')).toBeInTheDocument();
     const tiangongKey = within(legend).getByText('Tiangong · too faint').closest('button')?.getAttribute('data-key');
