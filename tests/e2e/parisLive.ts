@@ -22,8 +22,14 @@ export const LIVE_VIEWPORTS = {
    * 1280 × 720 until R61 took the stripe block out of the rail (V12-12), which gave the legend the stripe's
    * rows, and then made 1280 a one-column page (V12-14), where the legend is the compact four-row one under
    * the drawing; 1660 is the first two-column width, 540 a laptop window with the browser's chrome above it.
+   *
+   * R70 (FR-SPAN-2, FR-SHP-3): 540 is no longer that page. The overview row and the stepping row put two more
+   * rows under the box, which is what makes 540 short enough for FR-SHP-3's fold to engage there — and a folded
+   * page gives the box, and with it the rail, more height than the unfolded 540 had, so the four-pass list fits
+   * the column and F-53's scroll goes untested. 380 is a folded page whose rail is shorter than its list again:
+   * 334 px of rail against the legend's 264 and the aside's 101, the shape 540 had before the two rows arrived.
    */
-  short: { width: 1660, height: 540 },
+  short: { width: 1660, height: 380 },
   /** R61 (F-59): the width the owner reported the blank third of the box at. */
   2560: { width: 2560, height: 1440 },
   /** R61 (D-314): step 4 of the ladder, the largest reference viewport. */

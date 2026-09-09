@@ -31,13 +31,23 @@ interface StoredPass {
 }
 const storedPasses = (JSON.parse(readFileSync('tests/fixtures/stored-run-neuquen.json', 'utf8')) as { passes: StoredPass[] }).passes;
 
-/** Presses the stripe `fraction` of the way along and lets go (`live-playback.spec.ts`'s helper). */
-async function pressStripe(page: Page, fraction: number): Promise<void> {
-  const box = await page.getByTestId('time-stripe').boundingBox();
-  if (!box) throw new Error('the stripe has no box');
+/** Presses a row `fraction` of the way along and lets go (`live-playback.spec.ts`'s helper). */
+async function press(page: Page, testId: string, fraction: number): Promise<void> {
+  const box = await page.getByTestId(testId).boundingBox();
+  if (!box) throw new Error(`${testId} has no box`);
   await page.mouse.move(box.x + box.width * fraction, box.y + box.height / 2);
   await page.mouse.down();
   await page.mouse.up();
+}
+
+/**
+ * R70 (FR-SPAN-1): the window the stripe actually draws — the four hours that hold the shown
+ * instant, clipped to the span — which is what its segments are drawn from and what a click on it
+ * is a fraction of. The whole span is the overview's row (`stripe-overview`) and `aria-valuemin`.
+ */
+async function drawnWindow(page: Page): Promise<{ start: number; end: number }> {
+  const stripe = page.getByTestId('time-stripe');
+  return { start: Number(await stripe.getAttribute('data-drawn-start')), end: Number(await stripe.getAttribute('data-drawn-end')) };
 }
 
 /** The stripe's own span start (`aria-valuemin`), whatever `now` actually settled on. */
@@ -59,8 +69,10 @@ async function settledSegmentCount(page: Page): Promise<number> {
   await expect
     .poll(async () => {
       await page.clock.runFor(200);
-      const min = await spanStart(page);
-      const expected = storedPasses.filter((pass) => pass.start.t <= min + DAY_MS && pass.end.t >= min).length;
+      // R70 (FR-SPAN-1): the stripe draws a chunk of the span, so what it has settled at is the set
+      // inside the drawn window and not the day's — the set itself is FR-LIVE-11's and unchanged.
+      const window_ = await drawnWindow(page);
+      const expected = storedPasses.filter((pass) => pass.start.t <= window_.end && pass.end.t >= window_.start).length;
       return (await segments.count()) === expected;
     }, { timeout: 30_000 })
     .toBe(true);
@@ -103,27 +115,38 @@ test('a click on the stripe, and a reload of the link it writes, keep the same p
   await stripFilled(page);
 
   const segmentsAtOpen = await settledSegmentCount(page);
-  expect(segmentsAtOpen, 'the seeded run should have at least one pass in the first 24 h for this to test anything').toBeGreaterThan(0);
+  // R70: the count at open is the first chunk's, which at real time is minutes long and can hold no
+  // pass at all; that the seeded run has one in the day is the span's own question, asked here.
+  const min = await spanStart(page);
+  expect(storedPasses.filter((pass) => pass.start.t <= min + DAY_MS && pass.end.t >= min).length, 'the seeded run should have at least one pass in the first 24 h for this to test anything').toBeGreaterThan(0);
 
   // The click-without-reload half of F-56, reproduced first: a click near the instant already
-  // shown must not drop the set the segments are drawn from.
-  await pressStripe(page, 0.001);
+  // shown must not drop the set the segments are drawn from. The press is at the drawn window's
+  // own left edge, which is inside the same chunk, so the stripe draws the same window after it.
+  await press(page, 'time-stripe', 0.001);
   await page.clock.runFor(200);
   expect(await page.getByTestId('time-stripe').locator('[data-pass-segment]').count()).toBe(segmentsAtOpen);
   await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'live');
 
   // Now the click that matters: onto a pass the seeded run actually has, mid-way through its live
-  // window, read off the stripe's own span rather than assumed.
-  const min = await spanStart(page);
+  // window, read off the stripe's own span rather than assumed. R70 (FR-SPAN-2): the whole day is
+  // the overview's row now, so the aim is a click there — the stripe below redraws around what it
+  // sets — and the count to compare is the drawn window's, which the aim has just changed.
   const target = firstFullPassAfter(min);
   const targetId = `${String(target.noradId)}-${String(target.start.t)}`;
   const midT = (target.start.t + target.end.t) / 2;
-  await pressStripe(page, (midT - min) / DAY_MS);
+  await press(page, 'stripe-overview', (midT - min) / DAY_MS);
+  await page.clock.runFor(200);
+  const window_ = await drawnWindow(page);
+  expect(window_.start, `the pass at ${String(midT)} should be inside the chunk the click drew`).toBeLessThanOrEqual(midT);
+  expect(window_.end).toBeGreaterThanOrEqual(midT);
+  // …and a click on the stripe itself lands the instant on the pass, at the chunk's own resolution.
+  await press(page, 'time-stripe', (midT - window_.start) / (window_.end - window_.start));
   await page.clock.runFor(200);
   const clicked = await counts(page, targetId);
   expect(clicked.arcId, `pass ${targetId} should be the live arc after the click`).toBe(targetId);
   expect(clicked.satellites).toBe(1);
-  expect(clicked.segmentCount).toBe(segmentsAtOpen);
+  expect(clicked.segmentCount).toBe(await settledSegmentCount(page));
 
   // FR-LIVE-9: the click wrote the shown instant into the hash, which is what turns an ordinary
   // session into a link on its next reload (D-280). The write is debounced to at most twice a
