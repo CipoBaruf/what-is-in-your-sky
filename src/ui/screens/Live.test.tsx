@@ -27,6 +27,7 @@ import { appStore, setLiveNowClient, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { stubMatchMedia, type MatchMediaStub } from '../../../tests/support/matchMedia';
 import { MOON_FIXTURE } from '../../../tests/support/moonFixtures';
+import { LEGEND_OPEN_ROWS, LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
 import { LIVE_WINDOW_MS, LivePage, livePasses, TICK_MS, visibleCount } from './Live';
 
 const pass = goldenPassFixture();
@@ -350,6 +351,91 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
     expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
+  });
+
+  /**
+   * R71 (FR-LEG-7, FR-LEG-8; V14-5; D-387, D-388): on compact the legend is behind `[ list (n) ]`.
+   *
+   * `n` is the rows `lib/legend.ts` derives — the drawn passes — and not the panel's lines: on an empty sky
+   * the control reads `list (0)` while the panel still carries a line, which is the number OQ-26 says it must
+   * not get wrong. Closed, no legend is in the tree at all, so the rows under the box are the box's
+   * (FR-COMP-5 as amended); open, the slot is the frame's panel.
+   */
+  it('counts the drawn passes, not the panel’s lines, and opens and closes the panel (FR-LEG-7, D-388)', () => {
+    withSky();
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    const control = screen.getByTestId('live-legend-toggle');
+    // Closed on a first visit (`prefs.liveLegendOpen`), and the panel is not in the tree.
+    expect(control).toHaveTextContent('list (1)');
+    expect(control).toHaveAttribute('aria-expanded', 'false');
+    expect(control).toHaveAttribute('aria-controls', LEGEND_PANEL_ID);
+    expect(screen.queryByTestId('chart-legend')).toBeNull();
+    expect(screen.queryByTestId('chart-legend-slot')).toBeNull();
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-legend', 'false');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-legend-open', 'false');
+    // Open: the slot is the panel the control names, and it lists exactly the passes the drawing draws.
+    fireEvent.click(control);
+    expect(control).toHaveAttribute('aria-expanded', 'true');
+    const panel = screen.getByTestId('chart-legend-slot');
+    expect(panel).toHaveAttribute('id', LEGEND_PANEL_ID);
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-legend-open', 'true');
+    expect(within(panel).getAllByRole('button', { name: /ISS/ })).toHaveLength(1);
+    expect(panel.querySelectorAll('[data-pass-id]')).toHaveLength(1);
+    // Five passes up at once: the control counts them all.
+    act(() => {
+      appStore.setState({ passes: { ...IDLE_PASSES, jobId: 'job-2', status: 'done', observer, passes: [pass, ...[1, 2, 3, 4].map((n) => shifted(`twin-${String(n)}`, `Twin ${String(n)}`, n * 1000))], hasDarkness: true } });
+    });
+    expect(screen.getByTestId('live-legend-toggle')).toHaveTextContent('list (5)');
+    expect(screen.getByTestId('chart-legend-slot').querySelectorAll('[data-pass-id]')).toHaveLength(5);
+    // An empty sky: `list (0)`, and the panel says so in a line of its own rather than standing blank.
+    act(() => {
+      appStore.setState({ passes: { ...IDLE_PASSES, jobId: 'job-3', status: 'done', observer, passes: [], hasDarkness: true } });
+    });
+    expect(screen.getByTestId('live-legend-toggle')).toHaveTextContent('list (0)');
+    const empty = screen.getByTestId('legend-empty');
+    expect(empty).toHaveTextContent(en.chart.legend.empty);
+    expect(within(empty).getByRole('status')).toBeInTheDocument();
+    expect(screen.getByTestId('chart-legend-slot').querySelectorAll('[data-pass-id]')).toHaveLength(0);
+    // …and the panel is the same element with the same attributes in all three states — the height is the
+    // stylesheet's and does not follow the content (below).
+    expect(screen.getByTestId('chart-legend-slot').className).toBe(panel.className);
+    // Closing takes it out of the tree again.
+    fireEvent.click(screen.getByTestId('live-legend-toggle'));
+    expect(screen.queryByTestId('chart-legend-slot')).toBeNull();
+  });
+
+  /**
+   * R71 (FR-LEG-7, V14-5): the panel is exactly two `--tap` rows whatever it holds, and the box's height
+   * changes on the reader's tap and on nothing the sky does. jsdom lays nothing out, so the fixed height is
+   * read off the stylesheet — a `height`, not a `max-height`, with the four-row cap of the old layout undone —
+   * and what is asserted here is that neither the panel nor the box is given anything of its own that varies
+   * with the rows: the drawing's box keeps the same markup while the list goes from one row to five to none.
+   * `live-compact.spec.ts` is where the pixels are measured.
+   */
+  it('gives the open panel a fixed height that the sky cannot change (FR-LEG-7, V14-5)', () => {
+    const css = readFileSync('src/ui/components/guide/skychart/ChartFrame.module.css', 'utf8');
+    expect(css).toMatch(/\.fill\[data-legend-open='true'\] \.legend \{\n\s+--legend-row: var\(--tap\);\n\s+height: calc\(2 \* var\(--legend-row\)\);\n\s+max-height: none;\n\s+overflow-y: auto;/);
+    expect(LEGEND_OPEN_ROWS).toBe(2);
+    withSky();
+    act(() => {
+      appStore.getState().setLiveLegendOpen(true);
+    });
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    // The preference is what the page opens on: no tap, and the panel is there (`prefs.liveLegendOpen`).
+    expect(screen.getByTestId('live-legend-toggle')).toHaveAttribute('aria-expanded', 'true');
+    const box = screen.getByTestId('chart-box');
+    const shape = (): string => `${box.className}|${box.getAttribute('style') ?? ''}`;
+    const panelShape = (): string => {
+      const panel = screen.getByTestId('chart-legend-slot');
+      return `${panel.className}|${panel.getAttribute('style') ?? ''}`;
+    };
+    const before = [shape(), panelShape()];
+    for (const passes of [[pass, ...[1, 2, 3, 4].map((n) => shifted(`twin-${String(n)}`, `Twin ${String(n)}`, n * 1000))], []]) {
+      act(() => {
+        appStore.setState({ passes: { ...IDLE_PASSES, jobId: `job-${String(passes.length)}`, status: 'done', observer, passes, hasDarkness: true } });
+      });
+      expect([shape(), panelShape()], `${String(passes.length)} passes move neither the box nor the panel`).toEqual(before);
+    }
   });
 
   /**

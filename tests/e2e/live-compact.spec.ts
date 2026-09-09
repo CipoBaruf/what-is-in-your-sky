@@ -16,7 +16,24 @@
  * off the bottom first.
  */
 import { expect, test } from '@playwright/test';
+import { TAP_PX } from '../../src/lib/layout';
 import { domeDrawn, homeAt, stripFilled, T } from './liveHelpers';
+
+/**
+ * R71 (FR-LEG-8, F-62): what the box is held to with the list closed, by phone height.
+ *
+ * At 844 it is FR-COMP-5's floor itself — the frame's own measured width (D-187's `--chart-floor`, 374 px at
+ * 390 px of viewport, which is the number F-62 quotes) — and the measurement on this branch is 375. The legend
+ * off the page's rows is what gives it back: F-62 measured 259 here, so this fails on the old layout.
+ *
+ * At 667 the floor is out of reach and this number is a measurement, not a rule. The rows the page must draw
+ * under the box — the strip's two lines, the clock, the overview row (FR-SPAN-2), the stripe's three rows, the
+ * stepping row and the actions — take more than the 293 px a 667 px phone has left over a 374 px box, so
+ * FR-COMP-5's own escape applies ("only where the gaps are at their minimum and the rows still do not fit does
+ * the box yield below its floor"). What R71 buys there is 82 px → 198, and that is what is held. The rest of
+ * F-62 is open: see `sdd-run/R71.summary.md` and spec §4.20.
+ */
+const FLOOR_TODAY: Readonly<Record<number, number>> = { 844: 374, 667: 190 };
 
 /** The rows under the box, in the order the page stacks them (FR-LIVE-7 as amended v1.2). */
 const ROWS = ['dome-readout', 'status-strip', 'time-readout', 'time-stripe', 'step-controls'] as const;
@@ -90,6 +107,61 @@ test.describe('the compact live page under the box (F-55)', () => {
         if (!box) continue;
         expect(box.y + box.height, `${id} is above the fold`).toBeLessThanOrEqual(height + 0.5);
       }
+    });
+
+    /**
+     * R71 (FR-LEG-7, FR-LEG-8, FR-COMP-5 as amended v1.4; V14-5): F-62, closed by measurement.
+     *
+     * With the legend off the page's rows the box has them back, so its floor — never shorter than it is
+     * wide — is measured here on the box itself, with the list closed, at both phone heights. On the old
+     * layout the legend's four rows were always there and the box came out 259 px at 390 × 844 and 82 px at
+     * 390 × 667 against a floor of 374, so both cases fail on it.
+     *
+     * Open, the panel is exactly two rows of `--tap` — 96 px, whatever it holds — the box gives that height
+     * and takes it back on the second tap, and the page still does not scroll (FR-LIVE-1) at either height,
+     * which is the half of FR-LEG-8 that the reader's own tap is allowed to cost the floor.
+     */
+    test(`the box has the legend's rows back with the list closed at 390 × ${String(height)} (${height === 844 ? "FR-COMP-5's floor" : '198 px of 374, FR-COMP-5 yielding'}), and the open panel is two tap rows`, async ({ page }) => {
+      await page.setViewportSize({ width: 390, height });
+      await homeAt(page, T);
+      await page.getByTestId('live-link').click();
+      await domeDrawn(page);
+      await stripFilled(page);
+
+      const control = page.getByTestId('live-legend-toggle');
+      await expect(control).toHaveAttribute('aria-expanded', 'false');
+      await expect(page.getByTestId('chart-legend-slot')).toHaveCount(0);
+      const closed = await page.getByTestId('chart-box').boundingBox();
+      const frame = await page.getByTestId('chart-frame').boundingBox();
+      if (!closed || !frame) throw new Error('the box is not laid out');
+      // FR-COMP-5's floor, on the box rather than argued from the rows (FR-LEG-8). The floor is the frame's
+      // own measured width (D-187, `--chart-floor`), which is F-62's 374 at this phone: the box is full-bleed
+      // and 390 wide, and the floor it is held to is the content width the page's padding leaves.
+      expect(closed.height, `at ${String(height)} the box is ${String(Math.round(closed.height))} px tall against a floor of ${String(Math.round(frame.width))}`).toBeGreaterThanOrEqual(FLOOR_TODAY[height]);
+
+      await control.click();
+      await expect(control).toHaveAttribute('aria-expanded', 'true');
+      const panel = await page.getByTestId('chart-legend-slot').boundingBox();
+      if (!panel) throw new Error('the panel is not laid out');
+      // Two rows of `--tap` (48 px at the default cell): the panel's height, not its maximum.
+      expect(panel.height, 'the open panel is two tap rows').toBeCloseTo(2 * TAP_PX, 0);
+      const open = await page.getByTestId('chart-box').boundingBox();
+      expect(open?.height ?? 0, 'the box gives the panel its height').toBeLessThanOrEqual(closed.height);
+      // …and nothing on the page has moved off it or onto anything else.
+      expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
+      const rows = await Promise.all(ROWS.map((id) => page.getByTestId(id).boundingBox()));
+      for (const [i, first] of rows.entries()) {
+        for (const second of [...rows.slice(i + 1), panel]) {
+          if (!first || !second) continue;
+          expect(intersects(first, second), `${String(ROWS[i])} ${JSON.stringify(first)} overlaps ${JSON.stringify(second)}`).toBe(false);
+        }
+      }
+
+      // The second tap gives the box its 96 px back: the height follows the reader and nothing else (V14-5).
+      await control.click();
+      await expect(page.getByTestId('chart-legend-slot')).toHaveCount(0);
+      const again = await page.getByTestId('chart-box').boundingBox();
+      expect(again?.height ?? 0).toBeCloseTo(closed.height, 0);
     });
   }
 });
