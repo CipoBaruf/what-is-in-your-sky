@@ -1629,7 +1629,7 @@ Delivery is PLAN §16 unchanged, cut by §16.14: six tasks, five waves, one task
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: the screen run on a phone with rotation locked and unlocked — sideways, upright and flat at the zenith — which is what FR-FSC-10 cannot be accepted without (V11-9).
 
-- [ ] **R72 — v1.4 release preparation**
+- [x] **R72 — v1.4 release preparation** — the capture set is topped up with the live page's two uncovered widths (1024 × 768 and F-65's 1200 × 450, D-420) and re-shot whole: 124 files, 41 of them changed. Every budget holds on the 1.4.0 build (D-419), so §11's table is re-stated and no number moves. OQ-26 is closed by V14-9; OQ-24 and OQ-25 are left open with the reason (D-422). F-66, one capture that answers differently on two runs, is written into the register rather than fixed here (D-421). What is left open by design: F-62 at 390 × 667 and FR-LEG-8's sentence, which are the owner's on the release run (`docs/RELEASE.md` §11.3).
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
