@@ -378,8 +378,10 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     // Turned: centred on the viewport and rotated by the difference, as one layer.
     expect(css).toMatch(/\.screen\[data-turn\]:not\(\[data-turn='0'\]\) \{[^}]*transform: translate\(-50%, -50%\) rotate\(var\(--screen-turn\)\);/);
     expect(css).toMatch(/\.screen\[data-turn\]:not\(\[data-turn='0'\]\) \{[^}]*transform-origin: center;/);
-    // A quarter turn takes the viewport's two sides swapped, so the layer still covers the screen exactly.
-    expect(css).toMatch(/\.screen\[data-turn='90'\],\s*\.screen\[data-turn='-90'\] \{\s*width: 100dvh;\s*height: 100dvw;/);
+    // A quarter turn takes the viewport's two sides swapped, so the layer still covers the screen exactly; a
+    // half turn is excluded, and the `:not` chain is what gives the rule the specificity to beat the one above.
+    expect(css).toMatch(/\.screen\[data-turn\]:not\(\[data-turn='0'\]\):not\(\[data-turn='180'\]\) \{\s*width: 100dvh;\s*height: 100dvw;/);
+    expect(css).toMatch(/\.screen\[data-turn\]:not\(\[data-turn='0'\]\) \{[^}]*width: 100dvw;\s*height: 100dvh;/);
     // And it is still the fixed layer FR-FSC-9 rests on: nothing here can scroll.
     expect(css).toMatch(/\.screen \{[^}]*position: fixed;/);
     expect(css).toMatch(/\.screen \{[^}]*overscroll-behavior: contain;/);

@@ -293,6 +293,22 @@ export async function heading(page: Page, alpha: number): Promise<void> {
   await page.clock.runFor(100);
 }
 
+/**
+ * R73 (FR-FSC-10, D-430): a reading with a *pose* in it — the same event
+ * `heading` sends, with the two angles that say how the phone is held rather
+ * than which way it faces. `beta: 0, gamma: -90` is the phone turned
+ * counter-clockwise onto its side, its top to the reader's left, which is
+ * `screen.orientation.angle` 90 on a phone that is free to rotate and nothing
+ * at all on one whose rotation is locked.
+ */
+export async function pose(page: Page, { alpha = 0, beta, gamma }: { alpha?: number; beta: number; gamma: number }): Promise<void> {
+  await page.evaluate((angles) => {
+    window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { ...angles, absolute: true }));
+  }, { alpha, beta, gamma });
+  // The rotation is smoothed toward the reading a frame at a time, and the installed clock holds the frames.
+  await page.clock.runFor(1000);
+}
+
 /** The view control's options, by locale (`i18n/{en,es}/chart.ts`). */
 export const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 export const VIEW_OPTION = { en: { dome: 'Dome', polar: 'Polar', window: 'Window' }, es: { dome: 'Domo', polar: 'Polar', window: 'Ventana' } } as const;

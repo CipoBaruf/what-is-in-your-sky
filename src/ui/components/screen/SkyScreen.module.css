@@ -49,8 +49,10 @@
   transform: translate(-50%, -50%) rotate(var(--screen-turn));
 }
 
-.screen[data-turn='90'],
-.screen[data-turn='-90'] {
+/* A quarter turn — anything but the half turn, which covers the viewport as it
+   is. The `:not` chain is what gives this the specificity to beat the two
+   sides above; an `[data-turn='90']` on its own would lose to them. */
+.screen[data-turn]:not([data-turn='0']):not([data-turn='180']) {
   width: 100dvh;
   height: 100dvw;
 }
