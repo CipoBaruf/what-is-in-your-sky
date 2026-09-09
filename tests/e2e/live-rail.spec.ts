@@ -1,6 +1,7 @@
 /**
- * FR-LIVE-7 as amended (v1.2.1, D-312..D-315, F-59): the wide live page is two
- * columns and the box is cut to the drawing's own shape. The status strip, the
+ * FR-LIVE-7 as amended (v1.2.1, D-312..D-315, F-59) and FR-LEG-6 (v1.4, V14-4,
+ * D-386): the wide live page is the box with a rail beside it at *every* wide
+ * width, and the box is cut to the drawing's own shape. The status strip, the
  * playback row and the share action are a rail beside the box, under the
  * legend; the stripe block is a row of its own under the box, the box's width,
  * at every wide width (V12-12), the playback controls on its clock's row
@@ -27,10 +28,15 @@
  * never its screen, two real viewports: 1920 x 940 and 2560 x 1235, what a
  * 1080 p and a 1440 p monitor leave under the menu bar and the tabs (V12-10).
  *
+ * R71 adds the four widths FR-LEG-6 names — 964 x 700 (the narrowest wide
+ * viewport, FR-DESK-1's 100 cells), 1024 x 768, 1280 x 800 and 1660 x 900 —
+ * where the page used to be one centred column with no rail at all. Every
+ * assertion below runs at all of them, so the first three fail on the old rule:
+ * there was no `chart-aside` to find.
+ *
  * Every test sets its own viewport, so this file runs in the default project.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { LIVE_TWO_COLUMN_MIN_PX } from '../../src/lib/layout';
 import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { fitFloor, MIN_EXTENT_RATIO, painted } from './domeInk';
 import { domeDrawn, seedStoredRun, stripFilled } from './liveHelpers';
@@ -58,23 +64,27 @@ async function openLive(page: Page): Promise<void> {
 }
 
 for (const [width, height] of [
+  [964, 700],
+  [1024, 768],
   [1280, 800],
   [1280, 720],
+  [1660, 900],
   [1920, 1080],
   [1920, 940],
   [2560, 1440],
   [2560, 1235],
   [3840, 2160],
 ] as const) {
-  const twoColumns = width >= LIVE_TWO_COLUMN_MIN_PX;
-
-  test.describe(`at ${String(width)} x ${String(height)} (${twoColumns ? 'two columns' : 'one column'})`, () => {
+  test.describe(`at ${String(width)} x ${String(height)}`, () => {
     test.use({ viewport: { width, height } });
 
     test("cuts the box to the dome's shape from what the window leaves, places the rows, and fills the box both ways", async ({ page }) => {
       await openLive(page);
       await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
-      await expect(page.getByTestId('live-dome')).toHaveAttribute('data-columns', twoColumns ? 'two' : 'one');
+      // R71 (FR-LEG-6, D-386): one wide layout. No page here is a column — the frame has a rail and does not stack.
+      await expect(page.getByTestId('live-dome')).not.toHaveAttribute('data-columns', /.*/);
+      await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
+      await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'false');
       const box = await page.getByTestId('live-dome').getByTestId('chart-box').boundingBox();
       const block = await page.getByTestId('stripe-block').boundingBox();
       if (!box || !block) throw new Error('the page is not laid out');
@@ -82,50 +92,28 @@ for (const [width, height] of [
       // The box is the dome's shape, to the pixel the grid rounds to.
       expect(box.width / box.height).toBeCloseTo(DOME_BOX_ASPECT, 2);
 
-      let rightEdge: number = width;
-      if (twoColumns) {
-        // D-312: the rail is a column beside the box, and its two rows are in it, top to bottom (V12-13: the playback row is the stripe's).
-        const rail = await page.getByTestId('chart-aside').boundingBox();
-        if (!rail) throw new Error('no rail');
-        expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
-        let above = 0;
-        for (const id of ['status-strip', 'live-actions']) {
-          const row = await page.getByTestId(id).boundingBox();
-          if (!row) throw new Error(`${id} is not laid out`);
-          expect(row.x, `${id} is in the rail`).toBeGreaterThanOrEqual(rail.x - 1);
-          expect(row.y, `${id} is under the row before it`).toBeGreaterThanOrEqual(above - 1);
-          above = row.y + row.height;
-        }
-        rightEdge = rail.x;
-        // …and the largest of that shape: either the lowest row reaches the page's bottom, or the rail is hard against the page's right edge.
-        const heightBound = height - (block.y + block.height) <= UNDER_PX;
-        const widthBound = width - (rail.x + rail.width) <= UNDER_PX;
-        expect(heightBound || widthBound, `the box is bound by the height (${String(height - block.y - block.height)} px under it) or by the width (${String(width - rail.x - rail.width)} px past the rail)`).toBe(true);
-      } else {
-        // D-319 (V12-14): one column — no rail; the box centred, the stripe and the legend the frame's whole
-        // width (D-320, V12-15), and the strip with the actions on one line under the frame; the lowest row
-        // reaches the page's bottom.
-        await expect(page.getByTestId('chart-aside')).toHaveCount(0);
-        await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
-        expect(Math.abs(box.x + box.width / 2 - width / 2), 'the box is centred').toBeLessThanOrEqual(2);
-        const frame = await page.getByTestId('chart-frame').boundingBox();
-        const legend = await page.getByTestId('chart-legend-slot').boundingBox();
-        const side = await page.getByTestId('live-side').boundingBox();
-        const strip = await page.getByTestId('status-strip').boundingBox();
-        const actions = await page.getByTestId('live-actions').boundingBox();
-        if (!frame || !legend || !side || !strip || !actions) throw new Error('the rows are not laid out');
-        expect(legend.y).toBeGreaterThanOrEqual(block.y + block.height - 1);
-        expect(Math.abs(legend.x - frame.x), 'the legend starts at the frame’s left edge').toBeLessThanOrEqual(1);
-        expect(side.y).toBeGreaterThanOrEqual(legend.y + legend.height - 1);
-        expect(Math.abs(strip.y - actions.y), 'the strip and the actions share a line').toBeLessThanOrEqual(strip.height);
-        expect(height - (side.y + side.height)).toBeLessThanOrEqual(UNDER_PX);
-        // D-320 (V12-15): the stripe and the legend span the frame, and the row under them starts at the same edge — the strip first, the actions after it.
-        expect(Math.abs(block.x - frame.x), 'the stripe starts at the frame’s left edge').toBeLessThanOrEqual(1);
-        expect(Math.abs(block.width - frame.width), 'the stripe is the frame’s whole width').toBeLessThanOrEqual(1);
-        expect(Math.abs(legend.width - frame.width), 'the legend is the frame’s whole width').toBeLessThanOrEqual(1);
-        expect(Math.abs(strip.x - side.x), 'the status strip is at the left of its row').toBeLessThanOrEqual(1);
-        expect(actions.x).toBeGreaterThanOrEqual(strip.x - 1);
+      // D-312: the rail is a column beside the box, and its two rows are in it, top to bottom (V12-13: the playback row is the stripe's).
+      const rail = await page.getByTestId('chart-aside').boundingBox();
+      if (!rail) throw new Error('no rail');
+      expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
+      // FR-LEG-6 / FR-LEG-2 as amended v1.4: the legend shares that column, above the rail.
+      const legend = await page.getByTestId('chart-legend-scroll').boundingBox();
+      if (!legend) throw new Error('no legend');
+      expect(legend.x, 'the legend is beside the box').toBeGreaterThanOrEqual(box.x + box.width - 1);
+      expect(rail.y, 'the rail is under the legend').toBeGreaterThanOrEqual(legend.y + legend.height - 1);
+      let above = 0;
+      for (const id of ['status-strip', 'live-actions']) {
+        const row = await page.getByTestId(id).boundingBox();
+        if (!row) throw new Error(`${id} is not laid out`);
+        expect(row.x, `${id} is in the rail`).toBeGreaterThanOrEqual(rail.x - 1);
+        expect(row.y, `${id} is under the row before it`).toBeGreaterThanOrEqual(above - 1);
+        above = row.y + row.height;
       }
+      const rightEdge: number = rail.x;
+      // …and the largest of that shape: either the lowest row reaches the page's bottom, or the rail is hard against the page's right edge.
+      const heightBound = height - (block.y + block.height) <= UNDER_PX;
+      const widthBound = width - (rail.x + rail.width) <= UNDER_PX;
+      expect(heightBound || widthBound, `the box is bound by the height (${String(height - block.y - block.height)} px under it) or by the width (${String(width - rail.x - rail.width)} px past the rail)`).toBe(true);
 
       // D-315 (V12-12): a row of the frame's own under the box at every wide width, the box's width. Its
       // cadence is the stripe's own (FR-TRAJ-4, `labelEveryHours` on the width it measures): every two hours

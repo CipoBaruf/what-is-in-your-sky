@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import { useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
-import { foldRows, LIVE_TWO_COLUMN_QUERY } from '../../lib/layout';
+import { foldRows } from '../../lib/layout';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import type { Span } from '../../lib/timeStripe';
@@ -28,7 +28,6 @@ import { useWakeLock } from '../components/live/useWakeLock';
 import { useWallThrottle } from '../components/live/useWallThrottle';
 import { SkyScreen } from '../components/screen/SkyScreen';
 import { useLayoutMode } from '../hooks/useLayoutMode';
-import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useNow } from '../hooks/useNow';
 import styles from './Live.module.css';
 
@@ -105,9 +104,6 @@ export function LivePage({ link, onLeave }: LivePageProps) {
    * (R52). Wide has the room and keeps them, as R32 laid the page out.
    */
   const compact = useLayoutMode() === 'compact';
-  // D-319: the page's rows follow the column count the frame is in (`LiveSky` reads the same query for the frame).
-  const twoColumns = useMediaQuery(LIVE_TWO_COLUMN_QUERY);
-  const columns = compact ? 'compact' : twoColumns ? 'two' : 'one';
   /*
    * R69 (FR-SHP-3, F-65, D-381, D-389): on a wide window too short for the box's floor the rows under the box
    * fold, in `lib/layout.ts`'s order, rather than the page scrolling. The answer is written on the page as
@@ -167,7 +163,6 @@ export function LivePage({ link, onLeave }: LivePageProps) {
       data-state={inert === null ? 'live' : 'inert'}
       data-wake-lock={wakeLock}
       data-compact={compact}
-      data-columns={columns}
       {...(!compact && fold !== '' ? { 'data-fold': fold } : {})}
     >
       {/* FR-FSC-1 (D-321): the sky screen covers this row for the eye; `inert` is the other half — nothing under
@@ -259,17 +254,15 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   const t = useT();
   const compact = useLayoutMode() === 'compact';
   /*
-   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315, D-319): on wide the box is cut to the dome's own aspect
-   * from what the frame leaves it (`boxAspect`), and the stripe block stands under the box rather than in the
-   * rail — the owner's stripe at the bottom of the dome, at every wide width (V12-12). From
-   * `LIVE_TWO_COLUMN_MIN_PX` the page is two columns, the rail beside the box; under it, one column — the
-   * frame stacks the drawing, the stripe and the legend, centred, and the page's own row of the strip and the
-   * actions is under the frame, as on compact (V12-14). Compact ignores all three.
+   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315): on wide the box is cut to the dome's own aspect from what
+   * the frame leaves it (`boxAspect`), and the stripe block stands under the box rather than in the rail — the
+   * owner's stripe at the bottom of the dome, at every wide width (V12-12).
+   *
+   * R71 (FR-LEG-6, FR-LIVE-7 as amended v1.4; V14-4, D-386): and the rail is beside the box at every wide
+   * width. `LIVE_TWO_COLUMN_MIN_PX` and the one centred column it gated are withdrawn — there is one wide
+   * layout again, so the page has no column count to hold and nothing here to switch on but the mode.
    */
-  const twoColumns = useMediaQuery(LIVE_TWO_COLUMN_QUERY);
   const stripeUnder = !compact;
-  const oneColumn = !compact && !twoColumns;
-  const columns = compact ? 'compact' : oneColumn ? 'one' : 'two';
   const passesState = useAppStore((s) => s.passes);
   const weather = useAppStore((s) => s.weather);
   const liveHidden = useAppStore((s) => s.liveHidden);
@@ -406,7 +399,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
 
   return (
     <>
-      <div className={styles.dome} data-testid="live-dome" data-stripe-under={stripeUnder} data-columns={columns}>
+      <div className={styles.dome} data-testid="live-dome" data-stripe-under={stripeUnder}>
         <SkyChart
           passes={chartPasses}
           observer={observer}
@@ -418,12 +411,11 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           colorBy="pass"
           fill
           initialFacingAzDeg={0}
-          {...(columns === 'two' ? { aside: side } : {})}
-          {...(compact ? {} : { boxAspect: DOME_BOX_ASPECT, stacked: oneColumn })}
+          {...(compact ? {} : { aside: side, boxAspect: DOME_BOX_ASPECT })}
           {...(stripeUnder ? { stripe: stripeBlock } : {})}
         />
       </div>
-      {columns !== 'two' && side}
+      {compact && side}
     </>
   );
 }

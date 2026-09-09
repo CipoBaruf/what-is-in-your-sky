@@ -211,32 +211,12 @@
   grid-template-rows: auto minmax(0, 1fr);
 }
 
-/* R61 (FR-LIVE-7 as amended v1.2.1, V12-14, D-319): the one-column wide page,
-   under `LIVE_TWO_COLUMN_MIN_PX`. The page has its third row back — the status
-   strip and the actions, on one line under the frame, which stacks the
-   drawing, the stripe (the page's whole width, V12-15) and the legend.
-
-   V12-15 (D-320): that line reads from the left, not from the centre. Centred,
-   the five facts of the strip moved sideways under a dome that does not as the
-   longest of them changed — the cloud words, the count, the Moon's phase — and
-   read as a caption rather than as a row of values. Against the left edge they
-   are where the stripe's first hour label is, and the actions follow the strip
-   on the same line. */
-.page[data-compact='false'][data-columns='one'] {
-  grid-template-areas:
-    'top'
-    'dome'
-    'side';
-  grid-template-rows: auto minmax(0, 1fr) auto;
-}
-
-.page[data-compact='false'][data-columns='one'] .side {
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  align-items: baseline;
-  gap: 0 calc(3 * var(--cell));
-}
+/* R71 (FR-LEG-6, V14-4, D-386): the one-column wide page — R61's
+   `[data-columns='one']` block, its third grid row and the row rules that laid
+   the status strip and the actions out on one line under the frame — is gone
+   with `LIVE_TWO_COLUMN_MIN_PX`. There is one wide layout: the rule above, the
+   box and the rail, at every wide width. The rail's own column stacks its rows,
+   which is what the `.side` rules at the top of this file already do. */
 
 /* R69 (FR-SHP-3, FR-SHP-4; F-65; D-381, D-389): the wide page on a window too
    short for the box's floor. `Live.tsx` writes `data-fold` from
@@ -291,7 +271,11 @@
   gap: 0;
 }
 
-/* FR-SHP-3's row: the actions join the strip's line. After the one-column `.side` rule above, which it replaces at equal weight. */
+/* FR-SHP-3's row: the actions join the strip's line — the rail's two rows read
+   as one wrapped line at the box's right while the window is too short for the
+   rows under it. R71 (D-386) took away the one-column `.side` rule this used to
+   replace at equal weight; it is the only rule that lays the column out sideways
+   now, and it still needs none of the weight that rule had. */
 .page[data-compact='false'][data-fold~='actions'] .side {
   flex-direction: row;
   flex-wrap: wrap;

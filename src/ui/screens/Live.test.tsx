@@ -18,7 +18,7 @@ import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../tests/support/catalogFixtures';
 import { en } from '../../i18n/en';
-import { LIVE_TWO_COLUMN_MIN_PX, WIDE_MIN_PX } from '../../lib/layout';
+import { WIDE_MIN_PX } from '../../lib/layout';
 import { isoInstant } from '../../lib/shareLinks';
 import { skyBodiesAt } from '../../lib/skyBodies';
 import type { Observer, Pass } from '../../model';
@@ -292,34 +292,43 @@ describe('<LivePage>', () => {
    * not a row under the box, so the box keeps the page's whole height. The
    * placement is React's and asserted here; the width the rail takes is the
    * stylesheet's, read from the file because jsdom lays nothing out.
+   *
+   * R71 (FR-LEG-6, V14-4, D-386): at *every* wide width. The one-column page
+   * under `LIVE_TWO_COLUMN_MIN_PX` is withdrawn with the constant, so the
+   * narrowest wide viewport (964 px, FR-DESK-1's 100 cells) has the rail too,
+   * and the page carries no column count at all. This fails on the old rule at
+   * 964 and 1280, where the frame stacked and the page kept its own row.
    */
-  it('gives the side column to the chart on the two-column page, and keeps it in the page on compact and on the one-column page', () => {
+  it('gives the side column to the chart at every wide width, and keeps it in the page on compact', () => {
     withSky();
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'true');
-    expect(screen.getByTestId('live-page')).toHaveAttribute('data-columns', 'compact');
+    expect(screen.getByTestId('live-page')).not.toHaveAttribute('data-columns');
     expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).toBeNull();
     expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
     unmount();
-    // D-319: under 1660 px the wide page is one column — the frame stacks, the page keeps its row.
-    media = stubMatchMedia(LIVE_TWO_COLUMN_MIN_PX - 1, 800);
-    const one = render(<LivePage link={null} onLeave={() => undefined} />);
-    expect(screen.getByTestId('live-page')).toHaveAttribute('data-columns', 'one');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'false');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
-    expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
-    expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\]\[data-columns='one'\] \{\n\s+grid-template-areas:\n\s+'top'\n\s+'dome'\n\s+'side';/);
-    // D-320 (V12-15): that row reads from the left — the strip at the page's content edge, the actions after it.
-    expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\]\[data-columns='one'\] \.side \{\n\s+flex-direction: row;\n\s+flex-wrap: wrap;\n\s+justify-content: flex-start;/);
-    one.unmount();
-    media.restore();
-    media = stubMatchMedia(LIVE_TWO_COLUMN_MIN_PX, 1080);
+    // D-386: 964, 1280 and 1660 are one layout — the rail beside the cut box, the page two rows.
+    for (const [width, height] of [
+      [WIDE_MIN_PX, 700],
+      [1280, 800],
+      [1660, 1080],
+    ] as const) {
+      media?.restore();
+      media = stubMatchMedia(width, height);
+      const wide = render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(screen.getByTestId('live-page'), `${String(width)} px carries no column count`).not.toHaveAttribute('data-columns');
+      expect(screen.getByTestId('live-dome')).not.toHaveAttribute('data-columns');
+      expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]'), `the rail at ${String(width)} px`).not.toBeNull();
+      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
+      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'false');
+      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
+      wide.unmount();
+    }
+    // …and the one-column block is out of the stylesheet with the rule it drew (D-386).
+    expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).not.toMatch(/\.page\[data-compact='false'\]\[data-columns='one'\]/);
+    media?.restore();
+    media = stubMatchMedia(1660, 1080);
     render(<LivePage link={null} onLeave={() => undefined} />);
-    expect(screen.getByTestId('live-page')).toHaveAttribute('data-columns', 'two');
-    expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).not.toBeNull();
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'false');
     // The fluid rail is 26 % of the frame between 44 and 60 cells, so its share falls as the page grows (D-313); the page's third row goes with the rows that moved.
     expect(readFileSync('src/ui/components/guide/skychart/ChartFrame.module.css', 'utf8')).toMatch(
       /\[data-aside='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\) clamp\(calc\(44 \* var\(--cell\)\), 26%, calc\(60 \* var\(--cell\)\)\);/,
@@ -347,15 +356,14 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
     expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
     expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'live-actions']);
-    // The narrowest wide page: the same stripe row, in the one-column frame (D-319), the side row the page's own.
+    // The narrowest wide page: the same stripe row, the same rail (R71, D-386).
     act(() => {
       media?.setSize(WIDE_MIN_PX, 700);
     });
     expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
-    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-columns', 'one');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'false');
     expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
-    expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
+    expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).not.toBeNull();
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
     // Compact: no cut box, no stripe row; the block is a row of the page's own side column.
     act(() => {

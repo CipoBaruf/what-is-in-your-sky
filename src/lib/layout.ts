@@ -138,18 +138,12 @@ export function fitBox({ frameWidthPx, frameHeightPx, aboveHeightPx, belowHeight
   return { widthPx: Math.floor(widthPx), heightPx: Math.floor(widthPx / aspect) };
 }
 
-/**
- * FR-LIVE-7 as amended (v1.2.1, V12-14, D-319): the viewport width from which
- * the wide live page is two columns — the box with the rail beside it. Below
- * it, and above `WIDE_MIN_PX`, the page is one column: the box, the stripe and
- * the legend stacked and centred at the box's width, the status strip and the
- * actions on one line under them. The owner's number, 2026-09-08: under it the
- * rail is the 44-cell minimum beside a box the height has already cut down,
- * and the page reads better as one centred column. A px literal, like the
- * other thresholds, read by `useMediaQuery` and never written in a stylesheet.
+/*
+ * R71 (FR-LEG-6, D-386): `LIVE_TWO_COLUMN_MIN_PX` (1660) and its query stood
+ * here. The wide live page is the rail at every wide width now — one wide
+ * layout — so there is no threshold left to read: `WIDE_MIN_PX` is the only
+ * width the live page asks about, and it asks `useLayoutMode` for it.
  */
-export const LIVE_TWO_COLUMN_MIN_PX = 1660;
-export const LIVE_TWO_COLUMN_QUERY = `(min-width: ${String(LIVE_TWO_COLUMN_MIN_PX)}px)`;
 
 /**
  * R69 (FR-SHP-3, FR-SHP-4; F-65; D-381, D-389): the wide live page at every
@@ -171,9 +165,15 @@ export const LIVE_TWO_COLUMN_QUERY = `(min-width: ${String(LIVE_TWO_COLUMN_MIN_P
  * (one line over its rule: 24 + 12 + 1) and the actions row (48), with the
  * five gaps between them, on the one-column page this branch draws under
  * `LIVE_TWO_COLUMN_MIN_PX` (measured at 1200 × 450: the rows take 343 px and
- * the box gets the 107 left, spec §4.20 F-65). R71 draws the rail at every
- * wide width and re-derives this table with the strip and the actions beside
- * the box rather than under it.
+ * the box gets the 107 left, spec §4.20 F-65).
+ *
+ * R71 (FR-LEG-6, D-386) moves the status strip and the actions into the rail
+ * at every wide width, so the two rows they cost are no longer under the box.
+ * The table is left as it stands: it over-counts by those two rows and their
+ * gaps (about 93 px), which makes the page fold a little *earlier* than the
+ * floor asks — never later — so no window loses the box's floor by it.
+ * Re-deriving the numbers is a measurement on the new layout and is left as a
+ * follow-up; D-386's scope is the layout, not the fold table.
  *
  * What one fold gives back is more than the row it names. The actions join the
  * status strip's line (FR-SHP-3's second row; the first, the overview row, is
@@ -211,8 +211,8 @@ export const LIVE_STRIP_LINE_PX = ROW_PX + ROW_PX / 2 + 1;
  * R70 (FR-SPAN-2, FR-TRAJ-5 as amended v1.4) adds two of them — the overview's one text row and the stepping
  * row, which is a row of tap targets on the wide page now that the `touch` guard is gone (V14-6) — with a gap
  * each. Both are derived from the tokens rather than measured: R69's 343 px was read off a 1200 × 450 window
- * on its own branch, and R71 re-derives the whole table when the rail moves the strip and the actions beside
- * the box.
+ * on its own branch. R71 leaves the list alone (see above): the strip's line and the actions row are the
+ * rail's now, so the two entries are what the table over-counts by.
  */
 export const LIVE_KEPT_ROWS_PX: readonly number[] = [TAP_PX, TAP_PX, TAP_PX, ROW_PX, 3 * ROW_PX, TAP_PX, LIVE_STRIP_LINE_PX, TAP_PX];
 /**
