@@ -68,6 +68,8 @@ interface Row {
   find: () => Element;
   /** Run before rendering: the store or the browser has to be in the state the row appears in. */
   setUp?: () => void;
+  /** Tighter than `BUDGET` where FR-COMP-4 names a number for the row itself (R70: the stepping row's 35). */
+  budget?: number;
 }
 
 const chartView = (): ReactElement =>
@@ -112,7 +114,14 @@ const rows = (t: Messages): readonly Row[] => [
     find: () => screen.getByTestId('playback-controls'),
   },
   { name: 'the hidden-objects toggle (FR-LIVE-6)', element: createElement(HiddenToggle, { hidden: false, onToggle: noop }), find: () => screen.getByTestId('live-hidden-toggle') },
-  { name: 'the stepping row (FR-TRAJ-5)', element: createElement(StepControls, { t: pass.start.t, span: { start: pass.start.t - 3_600_000, end: pass.start.t + 3_600_000 }, passes: [pass], onStep: noop }), find: () => screen.getByTestId('step-controls') },
+  {
+    // R70 (FR-SPAN-3, FR-COMP-4 as amended v1.4): the six controls the row is re-cut to are the tightest row in
+    // the app, and the requirement names their number — 35 of the 36 — which is why the ±10 min pair could not stay.
+    name: 'the stepping row (FR-TRAJ-5 as amended v1.4, FR-SPAN-3)',
+    element: createElement(StepControls, { t: pass.start.t, span: { start: pass.start.t - 3_600_000, end: pass.start.t + 3_600_000 }, passes: [pass], onStep: noop }),
+    find: () => screen.getByTestId('step-controls'),
+    budget: 35,
+  },
   { name: 'the share action (FR-SHARE-2)', element: createElement(ShareButton, { url: 'https://example.test/#live', title: 'x', text: 'y', label: t.live.shareShort, ariaLabel: t.live.share }), find: () => screen.getByRole('button', { name: t.live.share }) },
   { name: 'the settings install row (V11-16)', element: createElement(InstallAction, { env: { standalone: undefined } }), find: () => screen.getByTestId('install-action').parentElement as Element, setUp: offerAnInstall },
 ];
@@ -137,6 +146,6 @@ describe.each(LOCALES)('FR-COMP-4: every compact control row fits %s in 36 cells
     render(createElement(I18nProvider, { locale, children: row.element }));
     const element = row.find();
     const cells = rowCells(element, table);
-    expect(cells, `${row.name} in ${locale}: ${rowParts(element, table).join(' | ')}`).toBeLessThanOrEqual(BUDGET);
+    expect(cells, `${row.name} in ${locale}: ${rowParts(element, table).join(' | ')}`).toBeLessThanOrEqual(row.budget ?? BUDGET);
   });
 });
