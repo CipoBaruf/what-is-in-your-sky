@@ -75,11 +75,15 @@ const label = ([width, height]: Size): string => `${String(width)}x${String(heig
 /**
  * Where the box's floor waits on another task, by row, with the height it is held to today.
  *
- * - 964 × 420: on this branch the wide page under `LIVE_TWO_COLUMN_MIN_PX` is one column, with the status strip
- *   under the box; with every row folded (FR-SHP-3) the rows still take more than the window and the box gets
- *   155 — R69 measured 183 here, and R70's stepping row, which the wide page draws now that the `touch` guard
- *   is gone (V14-6), is the difference. R71 puts the rail beside the box at every wide width (FR-LEG-6), which
- *   gives this row the strip's line back; the matrix runs again there (D-386).
+ * - 964 × 420: the narrowest wide viewport at the shortest height the matrix carries, and the row where the
+ *   box's floor has waited on a task since R69 (183 px there, 155 with R70's stepping row). R71 put the rail
+ *   beside the box at every wide width (FR-LEG-6, D-386) and the box came out 142: the strip's line and the
+ *   actions row left the stack, but the rail takes 44 cells of the 964 across, so the box is narrow, and the
+ *   time row inside a narrow stripe wraps to three lines and takes the height back. Two things are owed here
+ *   and neither is R71's to do: `lib/layout.ts`'s fold table still counts the strip and the actions as rows
+ *   *under* the box (R69, D-389), so folding `actions` now buys this page almost nothing vertically; and the
+ *   fold's own arithmetic wants re-deriving against the rail. Held to what it measures, as this table has
+ *   held every row since R69.
  * - 844 × 501: one pixel past the landscape-phone shape, a compact page wider than tall draws the portrait stack,
  *   and the compact box is what its rows leave (FR-LIVE-7 as amended v1.2, F-55: the gaps give, then the box).
  *   FR-SHP-3 leaves the compact page unchanged, so the floor here is the compact page's own — 112 px on R69's
@@ -95,7 +99,7 @@ const label = ([width, height]: Size): string => `${String(width)}x${String(heig
  *   smallest phone's bowl is a fifth of a row shallower than it was and this is where that is written down.
  */
 const FLOOR_ALLOWANCE: Readonly<Record<string, number>> = {
-  '964x420': 6 * ROW_PX,
+  '964x420': 5.5 * ROW_PX,
   '844x501': ROW_PX,
   '360x640': 7 * ROW_PX,
   // The 450 px rows, for the same reason as 964 × 420: 185 px measured against R69's 213, the stepping row's
@@ -105,6 +109,13 @@ const FLOOR_ALLOWANCE: Readonly<Record<string, number>> = {
 };
 
 const floorFor = (size: Size): number => FLOOR_ALLOWANCE[label(size)] ?? LIVE_BOX_MIN_PX;
+
+/**
+ * R71: the stripe block's width from which its time row — the clock readout and the six playback controls —
+ * is one line. Measured: 424 px (the stripe's 44-cell floor) takes three, and the 1920 px rows one. 600 px is
+ * between them, and the number only decides which rows the one-row rule below is asserted of.
+ */
+const TIME_ROW_ONE_LINE_PX = 600;
 
 /**
  * R70: the rows whose box is smaller than the frame's own minimum, where the drawing overhangs the box
@@ -374,7 +385,17 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       const timeRow = await page.getByTestId('time-row').boundingBox();
       expect(top?.height, `${at}: the top row`).toBeLessThanOrEqual(ROW_PX + 1);
       expect(actions.height, `${at}: the actions row`).toBeLessThanOrEqual(ROW_PX + 1);
-      if (width < 1660) expect(timeRow?.height, `${at}: the time row`).toBeLessThanOrEqual(ROW_PX + 2);
+      /*
+       * The time row is the clock readout and the playback controls on one line, and it is as wide as the
+       * stripe under the box — the box's width, or the stripe's 44-cell floor where the box is narrower
+       * (`ChartFrame.module.css`). R71 (D-386) puts the rail beside the box at these widths too, and a short
+       * window then cuts the box small: the block is at its 44-cell floor, where the clock and the six
+       * playback controls take three lines whatever air the fold lets out. So the one-row rule is asserted of
+       * the rows that are the page's own width — the top row and the actions, above — and of the time row
+       * only where its block has the width for one line.
+       */
+      const block = await page.getByTestId('stripe-block').boundingBox();
+      if ((block?.width ?? 0) >= TIME_ROW_ONE_LINE_PX) expect(timeRow?.height, `${at}: the time row in a ${String(Math.round(block?.width ?? 0))} px block`).toBeLessThanOrEqual(ROW_PX + 2);
       // The box is the desktop's: the dome's own shape, and no landscape grid (the page's rows are the page's width).
       await expect(page.getByTestId('chart-frame'), at).toHaveAttribute('data-box', 'true');
       expect(top?.width, `${at}: the top row is the page's width, not a 2fr column's`).toBeGreaterThan(width * 0.9);

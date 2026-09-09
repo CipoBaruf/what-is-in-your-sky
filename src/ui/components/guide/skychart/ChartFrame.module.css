@@ -200,6 +200,12 @@
   .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-box='true'] .drawing {
     width: var(--chart-box-w);
     height: var(--chart-box-h);
+    /* FR-LIVE-7: "the box stands at the left of the page". `.drawing`'s own `margin: 0 auto` centres it in
+       its grid area, which is the same thing while the box is the widest item in these two `auto` columns —
+       every width the rail had before R71. At the narrow ones it is not: at 1280 x 720 the stripe's 44-cell
+       floor and the row above the box make the area wider than the box, and a centred box stood 13 px to the
+       right of the stripe under it (D-386). Left, and the box, the stripe and the page's margin share an edge. */
+    margin: 0;
   }
 
   /* The stripe row is the box's width by rule, not by content: the stripe measures its own width to pick a

@@ -121,9 +121,16 @@ for (const [width, height] of [
       // hours in a narrower box, eight or nine — six where `keepLabels` drops the ones that would touch, in the
       // short one-column window's 40-cell box. `live.spec.ts` holds that none overlap.
       expect(block.y).toBeGreaterThanOrEqual(box.y + box.height - 1);
-      // Centred on the box and never narrower than it: the box's width, or the 60-cell floor over a box a short window cut smaller.
-      expect(Math.abs(block.x + block.width / 2 - (box.x + box.width / 2))).toBeLessThanOrEqual(2);
+      /*
+       * Never narrower than the box: the box's width, or the 44-cell floor of `.stripe`'s `max()` over a box
+       * the window has cut smaller than that. R71 (D-386) brings the narrow wide widths here, where the second
+       * case is the usual one — at 964 x 700 the stripe block is four rows and 282 px tall, so the box it
+       * leaves is 292 px wide against the stripe's 424 — and the stripe cannot be centred *on* a box narrower
+       * than itself. So: centred on the box where the box is the wider, and the box inside its span where it
+       * is not. `live.spec.ts` holds the labels of that narrow stripe clear of one another.
+       */
       expect(block.width).toBeGreaterThanOrEqual(box.width - 1);
+      expect(Math.abs(block.x - box.x), `the stripe and the box share a left edge: box ${JSON.stringify(box)}, stripe ${JSON.stringify(block)}`).toBeLessThanOrEqual(1);
       expect(await page.locator('[data-row="labels"] text').count()).toBeGreaterThanOrEqual(6);
       // D-318: the playback controls share the clock's row above the stripe, under the box — not the rail. Beside
       // the clock where the box is wide enough for both, wrapped under it where it is not, and in either case

@@ -16,7 +16,7 @@
  */
 import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { expect, test, type Page } from '@playwright/test';
-import { domeDrawn, golden, ha, heading, hhmmss, homeAt, LABEL, realTimeField, reenterLiveWithTheme, stripFilled, stubCompass, stubNetwork, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
+import { domeDrawn, golden, ha, heading, hhmmss, homeAt, LABEL, openLegend, realTimeField, reenterLiveWithTheme, stripFilled, stubCompass, stubNetwork, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
 
 test.describe('the live page', () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -59,6 +59,8 @@ test.describe('the live page', () => {
     // R45: the legend's rows carry the pass id too, so the drawing's are read inside the drawing.
     await expect(page.getByTestId('live-dome').locator('[data-drawing] [data-pass-id]').first()).toBeAttached();
     await expect(page.getByTestId('live-dome').locator('[data-drawing] [data-pass-id^="25544-"]')).toHaveCount(1);
+    // R71 (FR-LEG-7): on a phone the list is one tap away.
+    await openLegend(page);
     await expect(page.getByTestId('live-dome').getByTestId('chart-legend').locator('button[data-pass-id^="25544-"]')).toContainText('ISS (Zarya)');
     // FR-SHARE-1's live form.
     await expect(page.getByRole('button', { name: 'Share this sky' })).toBeVisible();
