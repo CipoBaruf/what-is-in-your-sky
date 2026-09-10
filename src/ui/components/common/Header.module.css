@@ -27,6 +27,16 @@
   min-width: 0;
 }
 
+/* The mark stands where the `>` prompt was (`global.css`'s `h1::before`): two
+   marks of the same thing before one title is one too many, and the compact row
+   needs those two cells — with the prompt still on it, "Your sky" is ellipsised
+   at 390 px (FR-COMP-4). It also makes the tagline's indent the one D-441
+   writes down: the mark's width plus a cell puts it under the title's first
+   letter, which with a prompt in between it would not be. */
+.brand h1::before {
+  content: none;
+}
+
 .shortTitle {
   margin: 0;
   min-width: 0;
