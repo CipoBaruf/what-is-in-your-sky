@@ -27,7 +27,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer, type ViteDevServer } from 'vite';
-import { MARK_GRIDS, MARK_IMAGES, MARK_ORBIT_FRAMES, MARK_TIERS, type MarkTier } from '../src/ui/components/mark/tiers';
+import { denseFrame, MARK_GRIDS, MARK_IMAGES, MARK_ORBIT_FRAMES, MARK_TIERS, type MarkCell, type MarkRaster, type MarkRasters } from '../src/ui/components/mark/tiers';
 import { brailleFontFace, main as buildReadmePictures } from './readme-hero';
 
 /** A port of its own, so a running dev server does not collide with the generator. */
@@ -42,20 +42,6 @@ const BG = '#0b0f14';
 const DIM = '#7d8794';
 const ACCENT = '#9ad0ff';
 
-/** One cell of a bead frame: the row, the column and the glyph that is not blank there. */
-export type MarkCell = [row: number, col: number, glyph: string];
-
-export interface MarkRaster {
-  cols: number;
-  rows: number;
-  /** The body, as the text it is: `rows` lines of `cols` cells. */
-  body: string;
-  /** `MARK_ORBIT_FRAMES` frames, each the one or two cells the bead inks. */
-  frames: MarkCell[][];
-}
-
-export type MarkRasters = Record<MarkTier, MarkRaster>;
-
 /** A cell with no ink: the font draws the blank braille cell and the space identically. */
 const isBlank = (glyph: string): boolean => glyph === ' ' || glyph === '⠀';
 
@@ -68,16 +54,6 @@ export function sparse(text: string): MarkCell[] {
     });
   });
   return cells;
-}
-
-/** The dense form again: what `Mark.tsx` does at runtime, and what the tests read. */
-export function dense(cells: readonly MarkCell[], cols: number, rows: number): string {
-  const grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => ' '));
-  for (const [row, col, glyph] of cells) {
-    const line = grid[row];
-    if (line && col >= 0 && col < cols) line[col] = glyph;
-  }
-  return grid.map((line) => line.join('')).join('\n');
 }
 
 /** Every layer on the page, keyed by tier, layer and frame. */
@@ -191,7 +167,7 @@ export function readCommitted(): string {
 function iconPage(raster: MarkRaster, frame: MarkCell[], px: number): string {
   const cell = px / raster.cols;
   const body = raster.body;
-  const bead = dense(frame, raster.cols, raster.rows);
+  const bead = denseFrame(frame, raster.cols, raster.rows);
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><style>
   ${brailleFontFace()}
@@ -231,7 +207,7 @@ function print(rasters: MarkRasters): void {
   for (const tier of MARK_TIERS) {
     const raster = rasters[tier];
     console.log(`\n${tier} — ${String(raster.cols)} × ${String(raster.rows)}, body:\n${raster.body}`);
-    console.log(`${tier} — mark (frame 0):\n${dense(raster.frames[0] ?? [], raster.cols, raster.rows)}`);
+    console.log(`${tier} — mark (frame 0):\n${denseFrame(raster.frames[0] ?? [], raster.cols, raster.rows)}`);
   }
 }
 

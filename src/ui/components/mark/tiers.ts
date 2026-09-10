@@ -32,6 +32,35 @@ export const MARK_GRIDS: Record<MarkTier, MarkGrid> = {
   favicon16: { cols: 4, rows: 2 },
 };
 
+/** One cell of a bead frame: the row, the column and the glyph the bead inks there (D-439). */
+export type MarkCell = [row: number, col: number, glyph: string];
+
+/** One tier as `rasters.json` carries it: the body as text, the bead as `MARK_ORBIT_FRAMES` sparse frames. */
+export interface MarkRaster {
+  cols: number;
+  rows: number;
+  body: string;
+  frames: MarkCell[][];
+}
+
+export type MarkRasters = Record<MarkTier, MarkRaster>;
+
+/**
+ * A bead frame as the text of a whole grid — what the `<pre>` shows. The
+ * frames are stored sparse because a bead is one or two cells and a dense
+ * `hero` frame would be 500 spaces sixty times over (D-439); they are drawn
+ * dense because a `<pre>` overlaid on the body must have the body's shape or
+ * the two rasters do not line up.
+ */
+export function denseFrame(cells: readonly MarkCell[], cols: number, rows: number): string {
+  const grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => ' '));
+  for (const [row, col, glyph] of cells) {
+    const line = grid[row];
+    if (line && col >= 0 && col < cols) line[col] = glyph;
+  }
+  return grid.map((line) => line.join('')).join('\n');
+}
+
 /**
  * FR-MARK-5: one orbit a minute, one pre-rasterised bead frame a second. The
  * period is slow enough not to pull the eye off the sky and fast enough to
@@ -45,6 +74,23 @@ export const MARK_FRAME_MS = (MARK_ORBIT_PERIOD_S / MARK_ORBIT_FRAMES) * 1000;
 
 /** FR-MARK-4 (a) and (b): both headers draw the `header32` tier at one `--row`. */
 export const MARK_HEADER_PX = 24;
+
+/**
+ * The cell's advance at the 16 px base: `--cell` is `1ch` and the app's
+ * monospace advance is 0.6 em (D-441).
+ */
+export const BASE_CELL_PX = 9.6;
+
+/**
+ * How many cells of a control row a mark at this pixel size takes (D-441,
+ * FR-COMP-4). At the header's 24 px that is three — two cells are 19.2 px and
+ * would not hold the box — so the compact row is the mark, the short title,
+ * `[ live ]` and `[ settings ]`, 33 of the 36. `tests/styles/cells.ts` counts a
+ * mark by this number rather than by the braille it draws.
+ */
+export function markCells(sizePx: number): number {
+  return Math.ceil(sizePx / BASE_CELL_PX);
+}
 /** FR-PUB-11: the lockup beside the wordmark on the social preview. */
 export const MARK_LOCKUP_PX = 80;
 

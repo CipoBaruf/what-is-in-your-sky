@@ -31,7 +31,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { MARK_LOCKUP_PX } from '../src/ui/components/mark/tiers';
+import { denseFrame, MARK_LOCKUP_PX, type MarkRasters } from '../src/ui/components/mark/tiers';
 
 /** Where the captures are read from, and where the two pictures are written. */
 const SCREENSHOTS = resolve('docs/screenshots');
@@ -110,13 +110,6 @@ export function brailleFontFace(): string {
   return `@font-face { font-family: 'WIYS Braille'; src: url(data:font/otf;base64,${font}) format('opentype'); font-display: block; }`;
 }
 
-interface LockupRaster {
-  cols: number;
-  rows: number;
-  body: string;
-  frames: [number, number, string][][];
-}
-
 /**
  * FR-MARK-4, FR-PUB-11: the mark at `MARK_LOCKUP_PX` beside the preview's
  * title, drawn from the committed `lockup80` tier rather than from a second
@@ -124,16 +117,11 @@ interface LockupRaster {
  * The bead is frame 0: a still picture cannot show the orbit.
  */
 function lockup(px = MARK_LOCKUP_PX): string {
-  const all = JSON.parse(readFileSync(RASTERS, 'utf8')) as Record<string, LockupRaster>;
+  const all = JSON.parse(readFileSync(RASTERS, 'utf8')) as Partial<MarkRasters>;
   const raster = all['lockup80'];
   if (!raster) throw new Error(`no lockup80 tier in ${RASTERS}: run npm run build:icons`);
   const cell = px / raster.cols;
-  const grid = Array.from({ length: raster.rows }, () => Array.from({ length: raster.cols }, () => ' '));
-  for (const [row, col, glyph] of raster.frames[0] ?? []) {
-    const line = grid[row];
-    if (line) line[col] = glyph;
-  }
-  const bead = grid.map((line) => line.join('')).join('\n');
+  const bead = denseFrame(raster.frames[0] ?? [], raster.cols, raster.rows);
   const style = `width: ${String(px)}px; height: ${String(px)}px; font-size: ${String(cell / 0.6)}px; line-height: ${String(2 * cell)}px;`;
   return `<div class="mark" style="${style}"><pre class="mark-body">${raster.body}</pre><pre class="mark-bead">${bead}</pre></div>`;
 }
