@@ -1882,12 +1882,13 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
     - The D-179 set re-shot on `main`: `live` becomes `live-watching` and `live-scrubbing` at the widths it has today plus 1200 × 450; the `sky-screen-*` screens re-shot with the gutter; the cold open and the settings page added; `home` and `location` re-shot for the three readings; `tests/e2e/captureSet.ts` and `tests/docs/captures.test.ts` following.
     - The bundle budgets re-measured by the D-178 rule (the measured build plus a tenth), with main's re-stated and the mark's cost inside it named.
     - `docs/RELEASE.md` gains the phase's section, whose owner run is the first run from a clean browser on a phone, the live page one-handed in both states, the sky screen sideways and upright, the settings page in Spanish, the three panes at a desk and a window dragged short.
+    - F-66 is expected in the diff and is not a product change: `v1-polar-390-night-es.png` alternates between two states 142 px apart off one build (SPEC §4.20, D-421), so the re-shoot names it as the known flake rather than leaving the reviewer of the set to tell it apart from a screen that moved. It is **not** closed here — the cause is `chart`-lane code this task may not touch — and its row stays open with its measurement.
     - OQ-27..OQ-31 each answered by a Decision Log row or left open with the reason; every finding the phase carried closed in spec §4.20 with its PR number; FR-SET-4's note that the `docs/mockups/` settings board is superseded by the artboard and not re-drawn.
   - **Touches outside the lane:** `package.json`, `docs/**`, `SPEC.md` §4.20 and §7, `tests/docs/captures.test.ts`, `tests/e2e/captureSet.ts`.
   - **Out of scope:** any product change, and any test changed to pass.
   - **Done when:**
     - `npm run bundle:budget` passes with the re-stated numbers, and the PR carries the measured sizes beside the budgets.
-    - `tests/docs/captures.test.ts` passes with the new set, and the PR lists which captures changed, which were renamed and why.
+    - `tests/docs/captures.test.ts` passes with the new set, and the PR lists which captures changed, which were renamed and why — with F-66's file named as the known flake if it appears, and F-66 still open in §4.20.
     - `docs/RELEASE.md`'s new section names the owner's steps, including the tag pinned to the release commit's SHA rather than `main`'s head.
     - Every row of spec §4.20 and §7 that this phase carried names a closing PR or a reason for staying open; no row is closed silently.
     - `passes.golden.test.ts` passes unchanged — the phase touched no physics.
