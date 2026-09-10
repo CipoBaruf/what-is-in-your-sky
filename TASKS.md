@@ -1696,7 +1696,7 @@ Delivery is PLAN §16 unchanged, cut by §16.16: seven tasks over six waves, on 
 
 Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461..D-464, R76 D-465..D-472, R77 D-473..D-480, R78 D-481..D-486, R79 D-487..D-494, R80 D-495..D-499** — D-453 is the phase's one delivery decision, the brief budget PLAN §16.8 now sets at 48 000 characters. Numbers a task does not spend stay unspent. Every session reads SPEC §12 V20-1..V20-13 and PLAN §2.25, §8.16 and §16.16 first; each task's **Reads** line is the rest of D-284's list, and no session reads the three documents whole.
 
-- [ ] **R74 — Aperture: the generator, the ladder, both headers, the icons and the favicon**
+- [x] **R74 — Aperture: the generator, the ladder, both headers, the icons and the favicon** *(the rasters are re-baked from this generator, not reproduced cell for cell: FR-MARK-2's blocks were drawn by a generator whose constants were never written down, so the construction and the ladder are reproduced and 701 of the 1 950 cells differ — the counts per tier are in the PR, for the owner's acceptance under FR-MARK-2's own rule, D-455. The compact row is 34 cells, not 33: the mark takes the `>` prompt's place and the gap after it is a cell, D-457.)*
   - **Lane:** ui
   - **Crossings (§16.16):** `spike/mark/**` and `scripts/build-mark.ts` belong to no lane and are this task's alone; `public/**` is `data`'s and is crossed for the two icons and the favicon (D-438, D-440).
   - **Model:** fable

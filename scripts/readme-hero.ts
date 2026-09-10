@@ -27,10 +27,11 @@
  * from those two facts.
  */
 import { chromium } from '@playwright/test';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { denseFrame, MARK_LOCKUP_PX, type MarkRasters } from '../src/ui/components/mark/tiers';
 
 /** Where the captures are read from, and where the two pictures are written. */
 const SCREENSHOTS = resolve('docs/screenshots');
@@ -91,13 +92,44 @@ export const SOURCES = [
   },
 ] as const satisfies readonly Source[];
 
-/** The dark theme's `--bg`, `--fg` and `--fg-dim` (`src/ui/styles/tokens.css`). */
-const INK = { bg: '#0b0f14', fg: '#d5dbe3', dim: '#7d8794', edge: '#161c24' } as const;
+/** The dark theme's `--bg`, `--fg`, `--fg-dim` and `--accent` (`src/ui/styles/tokens.css`). */
+const INK = { bg: '#0b0f14', fg: '#d5dbe3', dim: '#7d8794', edge: '#161c24', accent: '#9ad0ff' } as const;
+
+/** The dome's braille font (D-65), and the mark's rasters (FR-MARK-6), read from where they live. */
+const BRAILLE_OTF = resolve('src/ui/components/guide/skychart/dome/wiys-braille.otf');
+const RASTERS = resolve('src/ui/components/mark/rasters.json');
+
+/**
+ * The `@font-face` rule for the braille font, with the file inlined. A page
+ * composed in a temporary directory cannot reach a font by relative URL, and
+ * `scripts/build-mark.ts` draws its icons from a page with no origin at all,
+ * so both take the rule from here rather than each carrying a copy of the path.
+ */
+export function brailleFontFace(): string {
+  const font = readFileSync(BRAILLE_OTF).toString('base64');
+  return `@font-face { font-family: 'WIYS Braille'; src: url(data:font/otf;base64,${font}) format('opentype'); font-display: block; }`;
+}
+
+/**
+ * FR-MARK-4, FR-PUB-11: the mark at `MARK_LOCKUP_PX` beside the preview's
+ * title, drawn from the committed `lockup80` tier rather than from a second
+ * picture of it — the lockup and the app's header are then the same drawing.
+ * The bead is frame 0: a still picture cannot show the orbit.
+ */
+function lockup(px = MARK_LOCKUP_PX): string {
+  const all = JSON.parse(readFileSync(RASTERS, 'utf8')) as Partial<MarkRasters>;
+  const raster = all['lockup80'];
+  if (!raster) throw new Error(`no lockup80 tier in ${RASTERS}: run npm run build:icons`);
+  const cell = px / raster.cols;
+  const bead = denseFrame(raster.frames[0] ?? [], raster.cols, raster.rows);
+  const style = `width: ${String(px)}px; height: ${String(px)}px; font-size: ${String(cell / 0.6)}px; line-height: ${String(2 * cell)}px;`;
+  return `<div class="mark" style="${style}"><pre class="mark-body">${raster.body}</pre><pre class="mark-bead">${bead}</pre></div>`;
+}
 
 /** A caption's own box: the gap over it plus one line at 13/17. */
 const CAPTION_H = 10 + 17;
-/** The preview's title block: the heading, its gap and the URL line. */
-const TITLE_H = 22 + 6 + 18;
+/** The preview's title block: the mark beside the heading, its gap and the URL line — the taller of the two. */
+const TITLE_H = Math.max(22 + 6 + 18, MARK_LOCKUP_PX);
 
 /** What the sheet is, before the tiles are measured into it. */
 export interface Layout {
@@ -179,9 +211,12 @@ function compose(layout: Layout, urls: ReadonlyMap<string, string>, sources: rea
       <img src="${urls.get(placed.source.file) ?? ''}" alt="" width="${String(placed.width)}" height="${String(placed.height)}">
       <figcaption>${placed.source.caption}</figcaption>
     </figure>`;
-  const title = layout.title ? `<header><h1>What is in your sky right now</h1><p>in-your-sky.ezequiel-baruf.workers.dev</p></header>` : '';
+  const title = layout.title
+    ? `<header>${lockup()}<div class="wordmark"><h1>What is in your sky right now</h1><p>in-your-sky.ezequiel-baruf.workers.dev</p></div></header>`
+    : '';
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><style>
+  ${brailleFontFace()}
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { background: ${INK.bg}; }
   /* The picture is this element, not the viewport: an element screenshot is
@@ -196,9 +231,15 @@ function compose(layout: Layout, urls: ReadonlyMap<string, string>, sources: rea
     color: ${INK.fg};
     display: flex; flex-direction: column; justify-content: center; gap: ${String(layout.gap)}px;
   }
-  header { text-align: center; }
+  header { display: flex; align-items: center; justify-content: center; gap: 16px; }
+  .wordmark { text-align: left; }
   header h1 { font-size: 22px; font-weight: 600; letter-spacing: 0.01em; line-height: 22px; }
   header p { font-size: 14px; line-height: 18px; color: ${INK.dim}; margin-top: 6px; }
+  /* FR-MARK-4: the 80 px lockup, the same two layers the app renders. */
+  .mark { position: relative; flex: none; }
+  .mark pre { position: absolute; inset: 0; margin: 0; font-family: 'WIYS Braille', monospace; font-size: inherit; line-height: inherit; white-space: pre; }
+  .mark-body { color: ${INK.dim}; }
+  .mark-bead { color: ${INK.accent}; }
   .row { display: flex; gap: ${String(layout.gap)}px; align-items: center; justify-content: center; }
   .col { display: flex; flex-direction: column; gap: ${String(layout.gap)}px; }
   .tile { display: flex; flex-direction: column; gap: 10px; }
@@ -208,7 +249,8 @@ function compose(layout: Layout, urls: ReadonlyMap<string, string>, sources: rea
 <body><div id="sheet">${title}<div class="row">${tile(main)}<div class="col">${stack.map(tile).join('')}</div></div></div></body></html>`;
 }
 
-async function main(): Promise<void> {
+/** The two pictures. Exported so `scripts/build-mark.ts` can re-compose them in the run that regenerates the mark. */
+export async function main(): Promise<void> {
   mkdirSync(OUT, { recursive: true });
   const scratch = mkdtempSync(join(tmpdir(), 'readme-hero-'));
   const urls = new Map(SOURCES.map((source) => [source.file, pathToFileURL(join(SCREENSHOTS, source.file)).href]));
