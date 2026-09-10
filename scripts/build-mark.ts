@@ -16,7 +16,7 @@
  *   docs/readme/*.png                     FR-PUB-11's hero and social preview,
  *                                         whose lockup is the `lockup80` tier
  *
- * The rasters are committed, and `src/ui/components/mark/rasters.test.ts`
+ * The rasters are committed, and `tests/build/mark-rasters.test.ts` (D-458)
  * re-runs `generateRasters()` in CI and asserts the committed file is
  * byte-identical — so the asset cannot drift from the scene that produced it.
  * That is also why nothing here reads the clock or a random number: the same
@@ -36,11 +36,16 @@ const PAGE = `http://localhost:${String(PORT)}/spike/mark/`;
 
 export const RASTERS_PATH = resolve('src/ui/components/mark/rasters.json');
 const PUBLIC = resolve('public');
-/** The dark theme's `--bg` (`src/ui/styles/tokens.css`): what the icons are drawn on. */
-const BG = '#0b0f14';
-/** The dark theme's `--fg-dim` and `--accent`: the body's tone and the bead's (FR-MARK-3). */
-const DIM = '#7d8794';
-const ACCENT = '#9ad0ff';
+/**
+ * The dark theme's `--bg`, `--fg-dim` and `--accent` (`src/ui/styles/tokens.css`):
+ * what the icons are drawn on, the body's tone and the bead's (FR-MARK-3). They
+ * are exported because `tests/build/mark-icons.test.ts` reads the shipped PNGs
+ * back and has to know which tone it is looking at (D-459).
+ */
+export const ICON_TONES = { bg: '#0b0f14', dim: '#7d8794', accent: '#9ad0ff' } as const;
+const BG = ICON_TONES.bg;
+const DIM = ICON_TONES.dim;
+const ACCENT = ICON_TONES.accent;
 
 /** A cell with no ink: the font draws the blank braille cell and the space identically. */
 const isBlank = (glyph: string): boolean => glyph === ' ' || glyph === '⠀';
