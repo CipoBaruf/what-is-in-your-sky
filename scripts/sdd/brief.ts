@@ -26,8 +26,14 @@ export interface BriefOptions {
   deniedTools: readonly string[];
 }
 
-/** §16.8: under 12 k tokens before the first edit. At ~4 characters a token this is the file's share of that budget. */
-export const BRIEF_BUDGET_CHARS = 36_000;
+/**
+ * §16.8 (D-453): the ceiling a brief may not pass, ~12 k tokens at four
+ * characters a token. Raised from 36 000 for v2.0, whose spec sections are the
+ * longest the documents carry (FR-WATCH-* is 30 KB of requirement text,
+ * FR-GUT-* 25 KB) — and which is what R61, R64 and R66 already cost at 42–45 k
+ * while the cap said 36 000, since the check only reads open tasks.
+ */
+export const BRIEF_BUDGET_CHARS = 48_000;
 
 /** The decisions every session gets whether or not the task cites them. */
 const ALWAYS_DECISIONS = ['D-89'];

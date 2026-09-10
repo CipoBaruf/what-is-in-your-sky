@@ -207,13 +207,23 @@ describe('<PassList>', () => {
       expect(await axe(container)).toHaveNoViolations();
     });
 
+    /**
+     * F-67: the reader's clock is pinned, because the labels are a function of
+     * it. `nightLabel` has three branches — tonight, tomorrow night, the date
+     * — and the run-time clock decides which one each night gets, so an
+     * assertion that reads `Date.now()` is asserting whatever day CI runs on.
+     * The old hedge had two branches for three, and was red for the whole
+     * calendar day before the golden window's date, where the first night is
+     * "tomorrow". With the clock at `NOW` the three labels are literals, and
+     * the test says what it is named for.
+     */
     it('names the nights from the reader’s own clock: tonight, tomorrow night, then the date', () => {
+      vi.spyOn(Date, 'now').mockReturnValue(NOW);
       threeNights();
       render(<PassList />);
       const day = (t: number): string => new Date(t).toISOString().slice(0, 10);
-      expect(groups()[0]).toHaveTextContent(day(NOW) === day(Date.now()) ? 'Tonight' : `Night of ${day(NOW)}`);
-      // Whatever today is, the second night is one calendar day after the first and the third two.
-      expect(groups()[1]).toHaveTextContent(/Tomorrow night|Night of \d{4}-\d{2}-\d{2}/);
+      expect(groups()[0]).toHaveTextContent('Tonight');
+      expect(groups()[1]).toHaveTextContent('Tomorrow night');
       expect(groups()[2]).toHaveTextContent(`Night of ${day(NOW + 2 * NIGHT)}`);
     });
 
