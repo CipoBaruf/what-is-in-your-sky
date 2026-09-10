@@ -7,13 +7,15 @@
  * config object. The e2e half (the link resolves, the icons are precached,
  * the audit passes at 390 px) is in `tests/e2e/pwa.spec.ts`.
  *
- * The two icons are checked by reading their PNG headers: `scripts/build-icons.ts`
- * draws them from the design tokens and a wrong `sizes` in the manifest is the
- * one mistake the browser reports as "no suitable icon" and nothing else catches.
+ * The two icons are checked by reading their PNG headers: R74 (D-440) renders
+ * them from the mark's `icon192` tier, and a wrong `sizes` in the manifest is
+ * the one mistake the browser reports as "no suitable icon" and nothing else
+ * catches. What the icons *draw* is pinned upstream of the files, by the
+ * golden rasters in `src/ui/components/mark/`: the PNGs are photographs of
+ * that text, so a drawing that changed shows there first.
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { png } from '../../scripts/build-icons';
 
 interface ManifestIcon {
   src: string;
@@ -86,11 +88,12 @@ describe('public/manifest.webmanifest', () => {
     }
   });
 
-  it('ships the icons `scripts/build-icons.ts` draws, and not something hand-edited', () => {
-    for (const icon of MANIFEST.icons) {
-      const size = Number(icon.sizes.split('x')[0]);
-      expect(readFileSync(`public${icon.src}`).equals(png(size)), `${icon.src} is stale; run npm run build:icons`).toBe(true);
-    }
+  /** R74 (FR-MARK-4 e): the app had no favicon at all until the mark gave it one. */
+  it('ships the 16 px favicon and links it from index.html', () => {
+    const favicon = pngSize('public/favicon.png');
+    expect(favicon.png, 'public/favicon.png is not a PNG').toBe(true);
+    expect([favicon.width, favicon.height]).toEqual([16, 16]);
+    expect(readFileSync('index.html', 'utf8')).toMatch(/<link rel="icon" type="image\/png" sizes="16x16" href="\/favicon\.png" \/>/);
   });
 
   it('is linked from index.html, with the icon Safari installs from', () => {

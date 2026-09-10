@@ -158,9 +158,22 @@ function check(tier: string, what: string, text: string, cols: number, rows: num
   }
 }
 
-/** The committed file's bytes: two-space JSON with a trailing newline, so a diff reads as lines. */
+/**
+ * The committed file's bytes. JSON, written by hand rather than by
+ * `JSON.stringify(_, null, 2)`: a bead frame is a handful of `[row, col,
+ * glyph]` triples and the indented form spells each one over five lines, which
+ * turns 17 KB of drawing into 79 KB of punctuation. One line per frame keeps
+ * the diff readable — a frame that moved is a line that changed — and the file
+ * a quarter of the size. The bundle carries neither: Vite inlines the parsed
+ * object, so only the repository sees this shape.
+ */
 export function serialise(rasters: MarkRasters): string {
-  return `${JSON.stringify(rasters, null, 2)}\n`;
+  const tiers = MARK_TIERS.map((tier) => {
+    const { cols, rows, body, frames } = rasters[tier];
+    const lines = frames.map((frame) => `      ${JSON.stringify(frame)}`).join(',\n');
+    return `  ${JSON.stringify(tier)}: {\n    "cols": ${String(cols)},\n    "rows": ${String(rows)},\n    "body": ${JSON.stringify(body)},\n    "frames": [\n${lines}\n    ]\n  }`;
+  });
+  return `{\n${tiers.join(',\n')}\n}\n`;
 }
 
 /** The committed file, as it is on disk. */

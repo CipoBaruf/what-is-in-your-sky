@@ -12,6 +12,10 @@
          is named here as well; the "Add to Home Screen" note that goes with it is R28's. -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
+    <!-- R74 (FR-MARK-4 e): the favicon, the mark's `favicon16` tier at 16 px. The app had none
+         until now; it and the two manifest icons are the same drawing, rendered by
+         `npm run build:icons` (D-440), which is why there is no `.ico`. -->
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png" />
   </head>
   <body>
     <div id="root"></div>
