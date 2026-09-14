@@ -18,8 +18,9 @@
  * resampled, which is the bug this test exists to keep out); every dot is one
  * square of pixels at the pitch; every bead pixel has only ground or bead
  * among its eight neighbours (the cleared dot, without which the bead is a
- * brighter stretch of ring); and the bezel has body ink in each of its four
- * quadrants (the ring survived the size).
+ * brighter stretch of ring); the bead is at least a 2 × 2 block of pixels
+ * (four contiguous, so it is a dot and not a speck); and the bezel has body
+ * ink in each of the eight octants around the centre (the ring is closed).
  */
 import { readFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
@@ -156,39 +157,56 @@ describe('public/*.png, as pixels (FR-MARK-8 f)', () => {
         expect(torn, 'pixels that differ from their dot\'s origin').toEqual([]);
       });
 
+      it('draws the bead as one block of at least 2 x 2 contiguous pixels', () => {
+        const beads: [number, number][] = [];
+        for (let y = 0; y < decoded.height; y++) for (let x = 0; x < decoded.width; x++) if (grid[y]?.[x] === 'accent') beads.push([y, x]);
+        expect(beads.length, 'the bead is drawn').toBeGreaterThanOrEqual(4);
+        // One connected block: every bead pixel is reachable from the first through bead pixels.
+        const seen = new Set<string>();
+        const stack = [beads[0] as [number, number]];
+        while (stack.length > 0) {
+          const [y, x] = stack.pop() as [number, number];
+          const id = `${String(y)},${String(x)}`;
+          if (seen.has(id)) continue;
+          seen.add(id);
+          for (const [dy, dx] of NEIGHBOURS) if (grid[y + dy]?.[x + dx] === 'accent') stack.push([y + dy, x + dx]);
+        }
+        expect(seen.size, 'the bead is one contiguous block').toBe(beads.length);
+        // And a 2 x 2 block somewhere inside it: a bead, not a line.
+        const isBead = (y: number, x: number): boolean => grid[y]?.[x] === 'accent';
+        expect(beads.some(([y, x]) => isBead(y, x + 1) && isBead(y + 1, x) && isBead(y + 1, x + 1)), 'the bead holds a 2 x 2 block').toBe(true);
+      });
+
       it('keeps ground around the bead: no body pixel touches a bead pixel', () => {
-        let beads = 0;
         for (let y = 0; y < decoded.height; y++) {
           for (let x = 0; x < decoded.width; x++) {
             if (grid[y]?.[x] !== 'accent') continue;
-            beads++;
             for (const [dy, dx] of NEIGHBOURS) {
               const near = grid[y + dy]?.[x + dx];
               if (near !== undefined) expect(near, `body ink beside the bead at ${String(x + dx)},${String(y + dy)}`).not.toBe('dim');
             }
           }
         }
-        expect(beads, 'the bead is drawn').toBeGreaterThan(0);
       });
 
-      it('keeps the bezel in every quadrant', () => {
-        // The bezel's band: the outer two dots of the radius, split by the axes through the centre.
+      it('keeps the bezel closed: body ink in each of the eight octants around the centre', () => {
+        // The bezel's band: the outer two dots of the radius, cut into eight by angle.
         const half = image.px / 2;
         const inner = half - 2 * pitch;
-        const found = [0, 0, 0, 0];
+        const found = [0, 0, 0, 0, 0, 0, 0, 0];
         for (let y = 0; y < decoded.height; y++) {
           for (let x = 0; x < decoded.width; x++) {
             if (grid[y]?.[x] !== 'dim') continue;
             const dx = x + 0.5 - half;
             const dy = y + 0.5 - half;
             if (Math.hypot(dx, dy) < inner) continue;
-            const quadrant = (dy < 0 ? 0 : 2) + (dx < 0 ? 0 : 1);
-            found[quadrant] = (found[quadrant] ?? 0) + 1;
+            const octant = Math.floor(((Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI)) * 8) % 8;
+            found[octant] = (found[octant] ?? 0) + 1;
           }
         }
-        // A quarter ring of `dots` diameter is about `dots` pixels long at the pitch; ask for a third of that.
-        const atLeast = Math.floor((image.dots * pitch * pitch) / 3);
-        expect(found.every((count) => count >= atLeast), `bezel ink per quadrant: ${found.join(', ')} (at least ${String(atLeast)})`).toBe(true);
+        // An eighth of the ring is about `dots × π / 8` dots long; the bead's clearance takes at most a few from one octant.
+        const atLeast = Math.max(1, Math.floor(((image.dots * Math.PI) / 8 - 4) * pitch * pitch));
+        expect(found.every((count) => count >= atLeast), `bezel ink per octant: ${found.join(', ')} (at least ${String(atLeast)} each)`).toBe(true);
       });
     });
   }
