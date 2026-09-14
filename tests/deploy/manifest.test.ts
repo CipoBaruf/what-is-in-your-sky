@@ -7,12 +7,12 @@
  * config object. The e2e half (the link resolves, the icons are precached,
  * the audit passes at 390 px) is in `tests/e2e/pwa.spec.ts`.
  *
- * The two icons are checked by reading their PNG headers: R74 (D-440) renders
- * them from the mark's `icon192` tier, and a wrong `sizes` in the manifest is
+ * The two icons are checked by reading their PNG headers: R74 (D-460) draws
+ * them from the mark's scene as dots, and a wrong `sizes` in the manifest is
  * the one mistake the browser reports as "no suitable icon" and nothing else
- * catches. What the icons *draw* is pinned upstream of the files, by the
- * golden rasters in `src/ui/components/mark/`: the PNGs are photographs of
- * that text, so a drawing that changed shows there first.
+ * catches. What the icons *draw* is pinned by `tests/build/mark-icons.test.ts`,
+ * byte for byte against the renderer; this file only asks that the site
+ * serves them, and the three favicons, at the sizes it declares.
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -88,12 +88,26 @@ describe('public/manifest.webmanifest', () => {
     }
   });
 
-  /** R74 (FR-MARK-4 e): the app had no favicon at all until the mark gave it one. */
-  it('ships the 16 px favicon and links it from index.html', () => {
-    const favicon = pngSize('public/favicon.png');
-    expect(favicon.png, 'public/favicon.png is not a PNG').toBe(true);
-    expect([favicon.width, favicon.height]).toEqual([16, 16]);
-    expect(readFileSync('index.html', 'utf8')).toMatch(/<link rel="icon" type="image\/png" sizes="16x16" href="\/favicon\.png" \/>/);
+  /** R74 (FR-MARK-4 e, D-460): the app had no favicon at all until the mark gave it three files. */
+  it('ships the 16 and 32 px favicons and the SVG, and links them from index.html with the SVG first', () => {
+    for (const [file, px] of [['favicon.png', 16], ['favicon-32.png', 32]] as const) {
+      const favicon = pngSize(`public/${file}`);
+      expect(favicon.png, `public/${file} is not a PNG`).toBe(true);
+      expect([favicon.width, favicon.height], file).toEqual([px, px]);
+    }
+    const svg = readFileSync('public/favicon.svg', 'utf8');
+    expect(svg).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 16 16"/);
+    expect(svg, 'the SVG carries the light-scheme swap in its own stylesheet').toContain('@media (prefers-color-scheme:light)');
+    const html = readFileSync('index.html', 'utf8');
+    const links = [
+      '<link rel="icon" type="image/svg+xml" href="/favicon.svg" />',
+      '<link rel="icon" type="image/png" sizes="16x16" href="/favicon.png" />',
+      '<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />',
+    ];
+    const at = links.map((link) => html.indexOf(link));
+    expect(at.every((index) => index >= 0), 'every favicon link is in index.html').toBe(true);
+    expect(at[0]).toBeLessThan(at[1] ?? 0);
+    expect(at[1]).toBeLessThan(at[2] ?? 0);
   });
 
   it('is linked from index.html, with the icon Safari installs from', () => {

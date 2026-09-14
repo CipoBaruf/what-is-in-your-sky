@@ -95,12 +95,25 @@ export function markCells(sizePx: number): number {
 export const MARK_LOCKUP_PX = 80;
 
 /**
- * FR-MARK-4 (d), (e): the PNGs the browser and the OS require, and the tier
- * each is drawn from. The two manifest icons are one tier at two pixel sizes —
- * one drawing, no resampling — and the favicon is the tier that survives 16 px.
+ * FR-MARK-4 (d), (e) as amended v2.0.1 (D-460): the files the browser and the
+ * OS require, and the dot grid each is drawn on. A file is the scene of a tier
+ * drawn as dots at a whole number of pixels a dot — `px / dots` is an integer
+ * in every row, so nothing is resampled anywhere. The construction follows
+ * the ladder by size (16 the favicon's, 32 the compact header's, 48 and 64 the
+ * icon's); the 64-dot grid is the 48-dot construction at a coarser step, not a
+ * finer tier. The SVG favicon is the 16-dot grid as rectangles.
  */
+export interface MarkImage {
+  file: string;
+  tier: MarkTier;
+  dots: number;
+  px: number;
+}
 export const MARK_IMAGES = [
-  { file: 'icon-192.png', tier: 'icon192', px: 192 },
-  { file: 'icon-512.png', tier: 'icon192', px: 512 },
-  { file: 'favicon.png', tier: 'favicon16', px: 16 },
-] as const satisfies readonly { file: string; tier: MarkTier; px: number }[];
+  { file: 'favicon.png', tier: 'favicon16', dots: 16, px: 16 },
+  { file: 'favicon-32.png', tier: 'header32', dots: 32, px: 32 },
+  { file: 'icon-192.png', tier: 'icon192', dots: 48, px: 192 },
+  { file: 'icon-512.png', tier: 'icon192', dots: 64, px: 512 },
+] as const satisfies readonly MarkImage[];
+/** The SVG favicon: the 16-dot grid, with the theme swap in its own stylesheet (FR-MARK-4 e). */
+export const MARK_SVG = { file: 'favicon.svg', tier: 'favicon16', dots: 16 } as const satisfies Omit<MarkImage, 'px'>;

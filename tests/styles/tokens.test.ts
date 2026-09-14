@@ -9,6 +9,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { ICON_TONES } from '../../scripts/build-mark';
 import { CHART_MARK_TOKENS, CHART_SURFACE_TOKENS, contrastRatio, GROUND_TOKENS, hue, isRedHue, MAX_RED_HUE, readTokens, TEXT_TOKENS, THEMES, TOKENS_PATH, type Theme } from '../../scripts/contrast';
 
 const css = readFileSync(TOKENS_PATH, 'utf8');
@@ -53,6 +54,17 @@ describe('tokens.css themes', () => {
 
   it('leaves no dark colour showing through in night mode', () => {
     for (const name of byTheme.get('dark')?.keys() ?? []) expect(token('night', name), `--${name}`).not.toBe(token('dark', name));
+  });
+});
+
+describe('tokens.css literals elsewhere', () => {
+  /**
+   * R74 (FR-MARK-3, D-460): an icon has no stylesheet, so the mark's files
+   * carry the dark theme's `--bg`, `--fg-dim` and `--accent` as literals in
+   * `scripts/build-mark.ts`. This is the check that keeps them the theme's.
+   */
+  it('keeps the icon tones equal to the dark theme (ICON_TONES)', () => {
+    expect(ICON_TONES).toEqual({ bg: token('dark', 'bg'), dim: token('dark', 'fg-dim'), accent: token('dark', 'accent') });
   });
 });
 

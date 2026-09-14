@@ -10,25 +10,33 @@
  *   src/ui/components/mark/rasters.json   every tier's body as text, and each
  *                                         of its 60 bead frames as a sparse
  *                                         `[row, col, glyph]` list (D-439)
- *   public/icon-192.png, icon-512.png,    the tier's own text, drawn in the
- *   public/favicon.png                    braille font at the pixel size on
- *                                         `--bg` and screenshotted (D-440)
+ *   public/icon-192.png, icon-512.png,    the same scene drawn as dots at a
+ *   public/favicon.png, favicon-32.png,   whole number of pixels a dot, with
+ *   public/favicon.svg                    no font in the path (D-460)
  *   docs/readme/*.png                     FR-PUB-11's hero and social preview,
  *                                         whose lockup is the `lockup80` tier
  *
  * The rasters are committed, and `tests/build/mark-rasters.test.ts` (D-458)
  * re-runs `generateRasters()` in CI and asserts the committed file is
  * byte-identical — so the asset cannot drift from the scene that produced it.
- * That is also why nothing here reads the clock or a random number: the same
- * scene must produce the same bytes on every machine.
+ * `tests/build/mark-icons.test.ts` does the same for the five files under
+ * `public/`, which `renderImages()` draws without a browser: the dot renderer
+ * (`spike/mark/dots.ts`) is a function of the scene's constants alone, and the
+ * PNG encoder is filter 0 and one `deflateSync`, so the bytes are the same on
+ * every machine. That is also why nothing here reads the clock or a random
+ * number.
+ *
+ *   npm run build:icons -- --icons        only the five files, no browser
  */
-import { chromium, type Browser, type Page } from '@playwright/test';
+import { chromium, type Page } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { deflateSync } from 'node:zlib';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer, type ViteDevServer } from 'vite';
-import { denseFrame, MARK_GRIDS, MARK_IMAGES, MARK_ORBIT_FRAMES, MARK_TIERS, type MarkCell, type MarkRaster, type MarkRasters } from '../src/ui/components/mark/tiers';
-import { brailleFontFace, main as buildReadmePictures } from './readme-hero';
+import { dotsToText, renderDots, type DotRaster } from '../spike/mark/dots';
+import { denseFrame, MARK_GRIDS, MARK_IMAGES, MARK_ORBIT_FRAMES, MARK_SVG, MARK_TIERS, type MarkCell, type MarkRasters } from '../src/ui/components/mark/tiers';
+import { main as buildReadmePictures } from './readme-hero';
 
 /** A port of its own, so a running dev server does not collide with the generator. */
 const PORT = 5198;
@@ -38,14 +46,13 @@ export const RASTERS_PATH = resolve('src/ui/components/mark/rasters.json');
 const PUBLIC = resolve('public');
 /**
  * The dark theme's `--bg`, `--fg-dim` and `--accent` (`src/ui/styles/tokens.css`):
- * what the icons are drawn on, the body's tone and the bead's (FR-MARK-3). They
- * are exported because `tests/build/mark-icons.test.ts` reads the shipped PNGs
- * back and has to know which tone it is looking at (D-459).
+ * what the icons are drawn on, the body's tone and the bead's (FR-MARK-3). An
+ * icon has no stylesheet, so these are literals; `tests/styles/tokens.test.ts`
+ * asserts they equal what `tokens.css` declares, and
+ * `tests/build/mark-icons.test.ts` asserts every pixel of every PNG is one of
+ * the three (D-460).
  */
 export const ICON_TONES = { bg: '#0b0f14', dim: '#7d8794', accent: '#9ad0ff' } as const;
-const BG = ICON_TONES.bg;
-const DIM = ICON_TONES.dim;
-const ACCENT = ICON_TONES.accent;
 
 /** A cell with no ink: the font draws the blank braille cell and the space identically. */
 const isBlank = (glyph: string): boolean => glyph === ' ' || glyph === '⠀';
@@ -162,48 +169,119 @@ export function readCommitted(): string {
   return readFileSync(RASTERS_PATH, 'utf8');
 }
 
-/**
- * The icons and the favicon (D-440): the tier's own text, drawn at the pixel
- * size on `--bg` and screenshotted. The cell is the pixel size divided by the
- * tier's columns, so the raster fills the square exactly and nothing is
- * resampled — 24 columns into 192 px is 8 px a cell, and into 512 px it is the
- * same drawing at a bigger cell.
- */
-function iconPage(raster: MarkRaster, frame: MarkCell[], px: number): string {
-  const cell = px / raster.cols;
-  const body = raster.body;
-  const bead = denseFrame(frame, raster.cols, raster.rows);
-  return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><style>
-  ${brailleFontFace()}
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { background: ${BG}; }
-  #icon { position: relative; width: ${String(px)}px; height: ${String(px)}px; background: ${BG}; }
-  #icon pre {
-    position: absolute; inset: 0; margin: 0;
-    font-family: 'WIYS Braille', monospace;
-    font-size: ${String(cell / 0.6)}px;
-    line-height: ${String(2 * cell)}px;
-    white-space: pre;
-  }
-  #icon .body { color: ${DIM}; }
-  #icon .bead { color: ${ACCENT}; }
-</style></head>
-<body><div id="icon"><pre class="body">${body}</pre><pre class="bead">${bead}</pre></div></body></html>`;
+type RGB = readonly [r: number, g: number, b: number];
+const rgb = (hex: string): RGB => [Number.parseInt(hex.slice(1, 3), 16), Number.parseInt(hex.slice(3, 5), 16), Number.parseInt(hex.slice(5, 7), 16)];
+
+/** A dot raster as raw RGB, `px` square, each dot a `px / dots` square of pixels. */
+function pixels(raster: DotRaster, px: number): Uint8Array {
+  const pitch = px / raster.dots;
+  if (!Number.isInteger(pitch)) throw new Error(`${String(px)} px is not a whole number of ${String(raster.dots)} dots`);
+  const data = new Uint8Array(px * px * 3);
+  const bg = rgb(ICON_TONES.bg);
+  for (let i = 0; i < data.length; i += 3) [data[i], data[i + 1], data[i + 2]] = bg;
+  const paint = (dots: readonly (readonly [number, number])[], tone: RGB): void => {
+    for (const [row, col] of dots) {
+      for (let y = row * pitch; y < (row + 1) * pitch; y++) {
+        for (let x = col * pitch; x < (col + 1) * pitch; x++) {
+          const i = (y * px + x) * 3;
+          [data[i], data[i + 1], data[i + 2]] = tone;
+        }
+      }
+    }
+  };
+  paint(raster.body, rgb(ICON_TONES.dim));
+  paint(raster.bead, rgb(ICON_TONES.accent));
+  return data;
 }
 
-async function renderImages(browser: Browser, rasters: MarkRasters): Promise<void> {
+const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+
+function crc32(bytes: Uint8Array): number {
+  let c = 0xffffffff;
+  for (const byte of bytes) c = (CRC_TABLE[(c ^ byte) & 0xff] ?? 0) ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function chunk(type: string, body: Uint8Array): Buffer {
+  const head = Buffer.alloc(8);
+  head.writeUInt32BE(body.length, 0);
+  head.write(type, 4, 'latin1');
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(Buffer.concat([head.subarray(4), body])), 0);
+  return Buffer.concat([head, body, crc]);
+}
+
+/**
+ * An 8-bit RGB PNG (colour type 2), filter 0 on every scanline and one
+ * `deflateSync` — the encoder `scripts/build-icons.ts` had (D-127), back
+ * inside the one generator (D-460). Four chunks and no dependency; the same
+ * bytes on every machine, which is what the byte pin needs.
+ */
+export function png(raster: DotRaster, px: number): Buffer {
+  const data = pixels(raster, px);
+  const stride = px * 3;
+  const raw = Buffer.alloc(px * (stride + 1));
+  for (let y = 0; y < px; y++) {
+    raw[y * (stride + 1)] = 0;
+    raw.set(data.subarray(y * stride, (y + 1) * stride), y * (stride + 1) + 1);
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(px, 0);
+  ihdr.writeUInt32BE(px, 4);
+  ihdr.set([8, 2, 0, 0, 0], 8);
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', ihdr),
+    chunk('IDAT', deflateSync(raw, { level: 9 })),
+    chunk('IEND', new Uint8Array()),
+  ]);
+}
+
+/**
+ * The SVG favicon (FR-MARK-4 e): the same dots as `<path>`s, one per tone,
+ * with the stylesheet an icon otherwise has no way to carry. The dark theme's
+ * literals are the default; under `prefers-color-scheme: light` the ground and
+ * the body swap, so the bezel keeps its containing job on a light tab strip
+ * and the mark is not a near-black square on it (D-460, the owner's option b).
+ */
+export function svg(raster: DotRaster): string {
+  const path = (dots: readonly (readonly [number, number])[]): string => dots.map(([row, col]) => `M${String(col)} ${String(row)}h1v1h-1z`).join('');
+  const n = String(raster.dots);
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges">`,
+    `<style>.g{fill:${ICON_TONES.bg}}.b{fill:${ICON_TONES.dim}}.m{fill:${ICON_TONES.accent}}@media (prefers-color-scheme:light){.g{fill:${ICON_TONES.dim}}.b{fill:${ICON_TONES.bg}}}</style>`,
+    `<rect class="g" width="${n}" height="${n}"/>`,
+    `<path class="b" d="${path(raster.body)}"/>`,
+    `<path class="m" d="${path(raster.bead)}"/>`,
+    `</svg>`,
+    '',
+  ].join('\n');
+}
+
+/** The five files under `public/`, drawn from the scene: what `--icons` writes and what the byte pin compares. */
+export function renderImages(): Record<string, Buffer> {
+  const out: Record<string, Buffer> = {};
+  for (const image of MARK_IMAGES) out[image.file] = png(renderDots(image.tier, image.dots), image.px);
+  out[MARK_SVG.file] = Buffer.from(svg(renderDots(MARK_SVG.tier, MARK_SVG.dots)), 'utf8');
+  return out;
+}
+
+function writeImages(): void {
+  for (const [file, bytes] of Object.entries(renderImages())) {
+    const path = resolve(PUBLIC, file);
+    writeFileSync(path, bytes);
+    console.log(`${path} ${String(bytes.length)} bytes`);
+  }
+}
+
+/** The dot grids printed one character a dot: what a change to the scene did to the files, before anything is written. */
+function printImages(): void {
   for (const image of MARK_IMAGES) {
-    const raster = rasters[image.tier];
-    const frame = raster.frames[0];
-    if (!frame) throw new Error(`${image.tier} has no frame 0`);
-    const page = await browser.newPage({ viewport: { width: 1024, height: 1024 }, deviceScaleFactor: 1 });
-    await page.setContent(iconPage(raster, frame, image.px));
-    await page.evaluate(() => document.fonts.ready);
-    const path = resolve(PUBLIC, image.file);
-    await page.locator('#icon').screenshot({ path });
-    console.log(`${path} ${String(image.px)} x ${String(image.px)} (${image.tier})`);
-    await page.close();
+    console.log(`\n${image.file} — ${String(image.dots)} dots at ${String(image.px / image.dots)} px (${image.tier}):\n${dotsToText(renderDots(image.tier, image.dots))}`);
   }
 }
 
@@ -217,22 +295,25 @@ function print(rasters: MarkRasters): void {
 }
 
 async function main(): Promise<void> {
+  // `--dry-run` prints the ladder and the dot grids and writes nothing: the
+  // scene's constants are chosen by looking at what they draw (FR-MARK-1), and
+  // a half-tuned mark has no business in the tree. `--icons` writes the five
+  // files under `public/` and nothing else: they need no browser.
+  const dryRun = process.argv.includes('--dry-run');
+  if (process.argv.includes('--icons')) {
+    if (dryRun) printImages();
+    else writeImages();
+    return;
+  }
   const rasters = await generateRasters();
-  // `--dry-run` prints the ladder and writes nothing: the scene's constants are
-  // chosen by looking at what they draw (FR-MARK-1), and a half-tuned mark has
-  // no business in the tree.
-  if (process.argv.includes('--dry-run')) {
+  if (dryRun) {
     print(rasters);
+    printImages();
     return;
   }
   writeFileSync(RASTERS_PATH, serialise(rasters), 'utf8');
   console.log(`${RASTERS_PATH} ${String(MARK_TIERS.length)} tiers, ${String(MARK_ORBIT_FRAMES)} frames each`);
-  const browser = await chromium.launch();
-  try {
-    await renderImages(browser, rasters);
-  } finally {
-    await browser.close();
-  }
+  writeImages();
   // FR-PUB-11: the lockup on the social preview is the `lockup80` tier, so the
   // two pictures are re-composed from the mark that was just generated.
   await buildReadmePictures();

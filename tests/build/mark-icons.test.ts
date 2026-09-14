@@ -1,46 +1,32 @@
 /**
- * R74 (FR-MARK-6 as amended, D-459): the shipped PNGs are the committed
- * rasters, drawn — not a second drawing, and not a stale file.
+ * R74 (FR-MARK-6, FR-MARK-8 f as amended v2.0.1, D-460): the five files under
+ * `public/` are the scene, drawn as dots — not a stale file, not a hand edit,
+ * and not a photograph.
  *
  * Until v2.0 the icons were pinned by bytes: `scripts/build-icons.ts` encoded
  * them with `node:zlib` and `tests/deploy/manifest.test.ts` asserted the file
- * on disk equalled what the encoder produced. D-440 replaced that encoder with
- * a Playwright screenshot of braille text, and a screenshot is not
- * reproducible across machines — the committed PNGs are rendered on whichever
- * machine ran `npm run build:icons`, and CI is `ubuntu-latest`, with a
- * different Chromium and a different text rasteriser. Byte identity would fail
- * for the one reason we do not care about.
+ * on disk equalled the encoder's output. D-440 replaced the encoder with a
+ * Playwright screenshot of braille text, which is not reproducible across
+ * machines, so D-459 pinned the icons cell by cell instead; and at 16 px the
+ * screenshot could not survive the font at all. D-460 draws the files as dots
+ * with nothing in the path that varies by machine, so the pin is bytes again:
+ * `renderImages()` here is the same call `npm run build:icons -- --icons`
+ * makes, and the committed file must equal it exactly.
  *
- * So the pin moved from the bytes to the drawing. Every tier is a grid of
- * braille cells laid over the square — 24 columns into 192 px is 8 px a cell,
- * and into 512 px it is the same drawing at 21.33, so cell edges there are
- * fractional and the walk below rounds them. This test walks that grid on the
- * decoded pixels and asks two questions of each cell:
- *
- *   - is there ink in it, and does that match the raster's body plus its
- *     frame-0 bead?
- *   - is that ink the bead's tone or the body's, and does *that* match?
- *
- * Both survive a change of font rasteriser, because they are questions about
- * which cells were drawn in, not about what the antialiasing did inside them.
- * The margins are wide: measured on the committed files, an inked cell has at
- * least 8 non-background pixels and a blank one has exactly 0, and the body's
- * blue-minus-red reaches 20 where the bead's is 87 or more.
- *
- * A stale icon — the scene's constants changed and `npm run build:icons` never
- * re-run — moves dozens of cells and fails here. `tests/build/mark-rasters.test.ts`
- * pins the rasters to the generator; this pins the pictures to the rasters.
+ * The structural checks are FR-MARK-8 (f): every pixel is one of the three
+ * declared tones and no fourth (a fourth colour means something was
+ * resampled, which is the bug this test exists to keep out); every dot is one
+ * square of pixels at the pitch; every bead pixel has only ground or bead
+ * among its eight neighbours (the cleared dot, without which the bead is a
+ * brighter stretch of ring); and the bezel has body ink in each of its four
+ * quadrants (the ring survived the size).
  */
 import { readFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import { ICON_TONES } from '../../scripts/build-mark';
-import { MARK_GRIDS, MARK_IMAGES, type MarkRasters } from '../../src/ui/components/mark/tiers';
-
-/** A cell counts as inked when a channel is this far off `--bg`; measured margin is 94. */
-const INK = 24;
-/** Blue minus red separates the two tones: the body reaches 20, the bead 87. */
-const BEAD = 50;
+import { ICON_TONES, renderImages } from '../../scripts/build-mark';
+import { dotsToText, renderDots } from '../../spike/mark/dots';
+import { MARK_IMAGES, MARK_SVG } from '../../src/ui/components/mark/tiers';
 
 interface Decoded {
   width: number;
@@ -51,10 +37,8 @@ interface Decoded {
 
 /**
  * Enough of a PNG reader for our own files: 8 bits a channel, truecolour with
- * or without alpha, no interlacing. Four chunk types and the five filters —
- * the same corner of the format `scripts/build-icons.ts` used to write, read
- * back. A file this test cannot decode is a file the generator did not write,
- * which is itself worth failing on.
+ * or without alpha, no interlacing. A file this cannot decode is a file the
+ * generator did not write, which is itself worth failing on.
  */
 function decode(path: string): Decoded {
   const buf = readFileSync(path);
@@ -111,70 +95,100 @@ function decode(path: string): Decoded {
   return { width, height, channels, pixels };
 }
 
-const rgb = (hex: string): [number, number, number] => [Number.parseInt(hex.slice(1, 3), 16), Number.parseInt(hex.slice(3, 5), 16), Number.parseInt(hex.slice(5, 7), 16)];
+type Tone = 'bg' | 'dim' | 'accent';
+const TONES = new Map<string, Tone>((Object.entries(ICON_TONES) as [Tone, string][]).map(([tone, hex]) => [hex.toLowerCase(), tone]));
 
-/** The cells of one image, each as `row,col`, split by what is drawn in them. */
-function readCells(image: Decoded, cols: number, rows: number): { ink: Set<string>; bead: Set<string> } {
-  const [bgR, bgG, bgB] = rgb(ICON_TONES.bg);
-  const cellW = image.width / cols;
-  const cellH = image.height / rows;
-  const ink = new Set<string>();
-  const bead = new Set<string>();
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      let inked = 0;
-      let brightest = -1;
-      for (let y = Math.floor(row * cellH); y < Math.round((row + 1) * cellH); y++) {
-        for (let x = Math.floor(col * cellW); x < Math.round((col + 1) * cellW); x++) {
-          const at = (y * image.width + x) * image.channels;
-          const r = image.pixels[at] ?? 0;
-          const g = image.pixels[at + 1] ?? 0;
-          const b = image.pixels[at + 2] ?? 0;
-          if (Math.max(Math.abs(r - bgR), Math.abs(g - bgG), Math.abs(b - bgB)) <= INK) continue;
-          inked++;
-          if (r + g + b > brightest) {
-            brightest = r + g + b;
-            if (b - r > BEAD) bead.add(`${String(row)},${String(col)}`);
-            else bead.delete(`${String(row)},${String(col)}`);
-          }
-        }
-      }
-      if (inked > 0) ink.add(`${String(row)},${String(col)}`);
+/** Every pixel named by its tone, or by its hex when it is none of the three. */
+function tones(image: Decoded): string[][] {
+  const rows: string[][] = [];
+  for (let y = 0; y < image.height; y++) {
+    const row: string[] = [];
+    for (let x = 0; x < image.width; x++) {
+      const at = (y * image.width + x) * image.channels;
+      const hex = `#${[0, 1, 2].map((c) => (image.pixels[at + c] ?? 0).toString(16).padStart(2, '0')).join('')}`;
+      const alpha = image.channels === 4 ? image.pixels[at + 3] : 255;
+      row.push((alpha === 255 && TONES.get(hex)) || hex);
     }
+    rows.push(row);
   }
-  return { ink, bead };
+  return rows;
 }
 
-const RASTERS = JSON.parse(readFileSync('src/ui/components/mark/rasters.json', 'utf8')) as MarkRasters;
-const sorted = (cells: Iterable<string>): string[] => [...cells].sort((a, b) => a.localeCompare(b));
+const NEIGHBOURS = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]] as const;
+const rendered = renderImages();
 
-describe('public/*.png are the committed rasters, drawn (FR-MARK-6, D-459)', () => {
+describe('public/* are the scene drawn as dots, byte for byte (FR-MARK-6, D-460)', () => {
+  for (const image of [...MARK_IMAGES, MARK_SVG]) {
+    it(`${image.file} is exactly what the renderer produces`, () => {
+      const committed = readFileSync(`public/${image.file}`);
+      const want = rendered[image.file];
+      expect(want, `the renderer knows nothing of ${image.file}`).toBeDefined();
+      if (want && !committed.equals(want)) console.log(`${image.file} as the renderer draws it now:\n${dotsToText(renderDots(image.tier, image.dots))}`);
+      expect(want !== undefined && committed.equals(want), `${image.file} is stale or hand-edited: run npm run build:icons -- --icons`).toBe(true);
+    });
+  }
+});
+
+describe('public/*.png, as pixels (FR-MARK-8 f)', () => {
   for (const image of MARK_IMAGES) {
     describe(image.file, () => {
-      const raster = RASTERS[image.tier];
-      const { cols, rows } = MARK_GRIDS[image.tier];
       const decoded = decode(`public/${image.file}`);
-      const drawn = readCells(decoded, cols, rows);
+      const grid = tones(decoded);
+      const pitch = image.px / image.dots;
 
-      /** The body's non-blank cells plus the bead's: the blank braille cell and the space draw the same nothing. */
-      const wantBead = new Set((raster.frames[0] ?? []).map(([row, col]) => `${String(row)},${String(col)}`));
-      const wantInk = new Set(wantBead);
-      raster.body.split('\n').forEach((line, row) => {
-        [...line].forEach((glyph, col) => {
-          if (glyph !== ' ' && glyph !== '⠀') wantInk.add(`${String(row)},${String(col)}`);
-        });
-      });
-
-      it(`is ${String(image.px)} x ${String(image.px)}`, () => {
+      it(`is ${String(image.px)} x ${String(image.px)}, ${String(image.dots)} dots at ${String(pitch)} px`, () => {
         expect([decoded.width, decoded.height]).toEqual([image.px, image.px]);
+        expect(Number.isInteger(pitch), 'the pitch is a whole number of pixels').toBe(true);
       });
 
-      it('inks exactly the cells the raster inks', () => {
-        expect(sorted(drawn.ink), `${image.file} is stale or hand-edited: run npm run build:icons`).toEqual(sorted(wantInk));
+      it('has every pixel in one of the three declared tones and no fourth', () => {
+        const others = new Set(grid.flat().filter((tone) => !TONES.has(tone) && tone !== 'bg' && tone !== 'dim' && tone !== 'accent'));
+        expect([...others], 'a fourth colour means something was resampled').toEqual([]);
       });
 
-      it("draws the bead in `--accent` and the body in `--fg-dim`", () => {
-        expect(sorted(drawn.bead), `${image.file}'s bead is not where frame 0 puts it: run npm run build:icons`).toEqual(sorted(wantBead));
+      it('draws each dot as one square of pixels at the pitch', () => {
+        const torn: string[] = [];
+        for (let y = 0; y < decoded.height; y++) {
+          for (let x = 0; x < decoded.width; x++) {
+            if (grid[y]?.[x] !== grid[y - (y % pitch)]?.[x - (x % pitch)]) torn.push(`${String(x)},${String(y)}`);
+          }
+        }
+        expect(torn, 'pixels that differ from their dot\'s origin').toEqual([]);
+      });
+
+      it('keeps ground around the bead: no body pixel touches a bead pixel', () => {
+        let beads = 0;
+        for (let y = 0; y < decoded.height; y++) {
+          for (let x = 0; x < decoded.width; x++) {
+            if (grid[y]?.[x] !== 'accent') continue;
+            beads++;
+            for (const [dy, dx] of NEIGHBOURS) {
+              const near = grid[y + dy]?.[x + dx];
+              if (near !== undefined) expect(near, `body ink beside the bead at ${String(x + dx)},${String(y + dy)}`).not.toBe('dim');
+            }
+          }
+        }
+        expect(beads, 'the bead is drawn').toBeGreaterThan(0);
+      });
+
+      it('keeps the bezel in every quadrant', () => {
+        // The bezel's band: the outer two dots of the radius, split by the axes through the centre.
+        const half = image.px / 2;
+        const inner = half - 2 * pitch;
+        const found = [0, 0, 0, 0];
+        for (let y = 0; y < decoded.height; y++) {
+          for (let x = 0; x < decoded.width; x++) {
+            if (grid[y]?.[x] !== 'dim') continue;
+            const dx = x + 0.5 - half;
+            const dy = y + 0.5 - half;
+            if (Math.hypot(dx, dy) < inner) continue;
+            const quadrant = (dy < 0 ? 0 : 2) + (dx < 0 ? 0 : 1);
+            found[quadrant] = (found[quadrant] ?? 0) + 1;
+          }
+        }
+        // A quarter ring of `dots` diameter is about `dots` pixels long at the pitch; ask for a third of that.
+        const atLeast = Math.floor((image.dots * pitch * pitch) / 3);
+        expect(found.every((count) => count >= atLeast), `bezel ink per quadrant: ${found.join(', ')} (at least ${String(atLeast)})`).toBe(true);
       });
     });
   }
