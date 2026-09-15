@@ -1,6 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
-<style>.g{fill:#0b0f14}.b{fill:#7d8794}.m{fill:#9ad0ff}@media (prefers-color-scheme:light){.g{fill:#7d8794}.b{fill:#0b0f14}}</style>
-<rect class="g" width="16" height="16"/>
-<path class="b" d="M6 0h1v1h-1zM7 0h1v1h-1zM8 0h1v1h-1zM9 0h1v1h-1zM10 0h1v1h-1zM4 1h1v1h-1zM5 1h1v1h-1zM3 2h1v1h-1zM2 3h1v1h-1zM1 4h1v1h-1zM0 5h1v1h-1zM14 5h1v1h-1zM0 6h1v1h-1zM15 6h1v1h-1zM0 7h1v1h-1zM15 7h1v1h-1zM0 8h1v1h-1zM15 8h1v1h-1zM0 9h1v1h-1zM15 9h1v1h-1zM1 10h1v1h-1zM15 10h1v1h-1zM1 11h1v1h-1zM14 11h1v1h-1zM2 12h1v1h-1zM13 12h1v1h-1zM3 13h1v1h-1zM12 13h1v1h-1zM4 14h1v1h-1zM10 14h1v1h-1zM11 14h1v1h-1zM5 15h1v1h-1zM6 15h1v1h-1zM7 15h1v1h-1zM8 15h1v1h-1zM9 15h1v1h-1z"/>
-<path class="m" d="M12 2h1v1h-1zM13 2h1v1h-1zM12 3h1v1h-1zM13 3h1v1h-1z"/>
+<path fill="#a7b1bf" d="M5 0h1v1h-1zM6 0h1v1h-1zM7 0h1v1h-1zM8 0h1v1h-1zM9 0h1v1h-1zM10 0h1v1h-1zM3 1h1v1h-1zM4 1h1v1h-1zM11 1h1v1h-1zM12 1h1v1h-1zM2 2h1v1h-1zM13 2h1v1h-1zM1 3h1v1h-1zM14 3h1v1h-1zM1 4h1v1h-1zM14 4h1v1h-1zM0 5h1v1h-1zM15 5h1v1h-1zM0 6h1v1h-1zM15 6h1v1h-1zM0 7h1v1h-1zM15 7h1v1h-1zM0 8h1v1h-1zM15 8h1v1h-1zM0 9h1v1h-1zM15 9h1v1h-1zM0 10h1v1h-1zM15 10h1v1h-1zM1 11h1v1h-1zM14 11h1v1h-1zM1 12h1v1h-1zM14 12h1v1h-1zM2 13h1v1h-1zM13 13h1v1h-1zM3 14h1v1h-1zM4 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM5 15h1v1h-1zM6 15h1v1h-1zM7 15h1v1h-1zM8 15h1v1h-1zM9 15h1v1h-1zM10 15h1v1h-1z"/>
+<path fill="#9ad0ff" d="M10 4h1v1h-1zM11 4h1v1h-1zM10 5h1v1h-1zM11 5h1v1h-1z"/>
 </svg>

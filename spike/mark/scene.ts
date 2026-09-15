@@ -56,6 +56,13 @@ export const BEAD_R = 0.07;
 export const BEAD_RINGS = 5;
 /** Where frame 0 puts the bead: 45° past the right of the drawing, so it reads as coming towards the reader. */
 export const BEAD_PHASE_DEG = 45;
+/**
+ * The circle the bead rides once the orbit is shed (`header32`, `favicon16`):
+ * inside the bezel, in the screen plane, at this fraction of its radius. On
+ * the rim itself a bead with a blank dot around it cannot fit at 16 dots — the
+ * clearance takes the whole upper-right arc (D-460, amended).
+ */
+export const BEAD_INNER_R = 0.6;
 /** The drawing's diameter as a fraction of the grid's width, so the bezel never touches the raster's edge. */
 export const FILL = 1;
 
@@ -140,8 +147,8 @@ export interface TierScene {
   orbit: boolean;
   limb: boolean;
   meridian: boolean;
-  /** Where the bead runs: on the orbit ring, or — once the orbit is shed — on the bezel itself. */
-  beadOn: 'orbit' | 'bezel';
+  /** Where the bead runs: on the orbit ring, or — once the orbit is shed — on a circle of `BEAD_INNER_R` inside the bezel. */
+  beadOn: 'orbit' | 'inner';
   /** The bead's half-size in bezel radii. */
   beadHalf: number;
   /** Whether the bead advances at all: the favicon is a still picture on a 4 × 2 grid. */
@@ -151,8 +158,8 @@ export interface TierScene {
 /**
  * FR-MARK-2's ladder, as what each tier draws. Reading down the table, one
  * reading leaves at every step: the globe's meridian, then its limb, then the
- * orbit (and the bead moves onto the bezel), then the ticks — until the
- * favicon is one ring and one bead.
+ * orbit (and the bead moves inside the bezel), then the ticks — until the
+ * favicon is one ring and one bead in it.
  *
  * The favicon does not animate. It is a file the browser draws, never a `<pre>`
  * the page steps, and on a 4 × 2 grid a bead half an orbit later would land on
@@ -164,8 +171,8 @@ export const TIER_SCENES: Record<MarkTier, TierScene> = {
   icon192: { bezel: true, ticks: true, orbit: true, limb: true, meridian: true, beadOn: 'orbit', beadHalf: BEAD_R, animated: true },
   lockup80: { bezel: true, ticks: true, orbit: true, limb: true, meridian: false, beadOn: 'orbit', beadHalf: BEAD_R, animated: true },
   header56: { bezel: true, ticks: true, orbit: true, limb: false, meridian: false, beadOn: 'orbit', beadHalf: BEAD_R, animated: true },
-  header32: { bezel: true, ticks: true, orbit: false, limb: false, meridian: false, beadOn: 'bezel', beadHalf: BEAD_R, animated: true },
-  favicon16: { bezel: true, ticks: false, orbit: false, limb: false, meridian: false, beadOn: 'bezel', beadHalf: BEAD_R, animated: false },
+  header32: { bezel: true, ticks: true, orbit: false, limb: false, meridian: false, beadOn: 'inner', beadHalf: BEAD_R, animated: true },
+  favicon16: { bezel: true, ticks: false, orbit: false, limb: false, meridian: false, beadOn: 'inner', beadHalf: BEAD_R, animated: false },
 };
 
 /**
@@ -196,9 +203,9 @@ export function bodyPolygons(scene: TierScene, tiltDeg = MARK_TILT_DEG): Poly[] 
 export function beadCentre(scene: TierScene, frame: number, frames: number, tiltDeg = MARK_TILT_DEG): Vertex {
   const step = scene.animated ? frame : 0;
   const angle = (BEAD_PHASE_DEG + (360 * step) / frames) * DEG;
-  if (scene.beadOn === 'bezel') {
+  if (scene.beadOn === 'inner') {
     const { right, up } = screenBasis(tiltDeg);
-    return at(right, up, BEZEL_R * Math.cos(angle), BEZEL_R * Math.sin(angle));
+    return at(right, up, BEAD_INNER_R * Math.cos(angle), BEAD_INNER_R * Math.sin(angle));
   }
   // The orbit is the world horizontal plane: x towards the reader, y across the screen.
   return [ORBIT_R * Math.cos(angle), ORBIT_R * Math.sin(angle), 0];

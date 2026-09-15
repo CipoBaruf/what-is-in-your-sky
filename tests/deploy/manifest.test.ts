@@ -97,7 +97,8 @@ describe('public/manifest.webmanifest', () => {
     }
     const svg = readFileSync('public/favicon.svg', 'utf8');
     expect(svg).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 16 16"/);
-    expect(svg, 'the SVG carries the light-scheme swap in its own stylesheet').toContain('@media (prefers-color-scheme:light)');
+    expect(svg, 'the SVG has no ground: the mark sits on the tab strip (FR-MARK-4 e)').not.toContain('<rect');
+    expect(svg).not.toContain('<style');
     const html = readFileSync('index.html', 'utf8');
     const links = [
       '<link rel="icon" type="image/svg+xml" href="/favicon.svg" />',

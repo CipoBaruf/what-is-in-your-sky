@@ -59,12 +59,13 @@ describe('tokens.css themes', () => {
 
 describe('tokens.css literals elsewhere', () => {
   /**
-   * R74 (FR-MARK-3, D-460): an icon has no stylesheet, so the mark's files
-   * carry the dark theme's `--bg`, `--fg-dim` and `--accent` as literals in
+   * R74 (FR-MARK-3, FR-MARK-4 e, D-460): an icon has no stylesheet, so the
+   * mark's files carry the dark theme's `--bg`, `--chart-horizon` (the bezel,
+   * one ramp step above the body), `--fg-dim` and `--accent` as literals in
    * `scripts/build-mark.ts`. This is the check that keeps them the theme's.
    */
   it('keeps the icon tones equal to the dark theme (ICON_TONES)', () => {
-    expect(ICON_TONES).toEqual({ bg: token('dark', 'bg'), dim: token('dark', 'fg-dim'), accent: token('dark', 'accent') });
+    expect(ICON_TONES).toEqual({ bg: token('dark', 'bg'), bezel: token('dark', 'chart-horizon'), dim: token('dark', 'fg-dim'), accent: token('dark', 'accent') });
   });
 });
 

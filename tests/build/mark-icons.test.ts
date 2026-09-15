@@ -13,9 +13,10 @@
  * `renderImages()` here is the same call `npm run build:icons -- --icons`
  * makes, and the committed file must equal it exactly.
  *
- * The structural checks are FR-MARK-8 (f): every pixel is one of the three
- * declared tones and no fourth (a fourth colour means something was
- * resampled, which is the bug this test exists to keep out); every dot is one
+ * The structural checks are FR-MARK-8 (f): every pixel is one of the
+ * declared tones or transparent, and nothing else (another colour means
+ * something was resampled, which is the bug this test exists to keep out);
+ * the rim is symmetric under both mirrors and a quarter turn; every dot is one
  * square of pixels at the pitch; every bead pixel has only ground or bead
  * among its eight neighbours (the cleared dot, without which the bead is a
  * brighter stretch of ring); the bead is at least a 2 × 2 block of pixels
@@ -96,10 +97,10 @@ function decode(path: string): Decoded {
   return { width, height, channels, pixels };
 }
 
-type Tone = 'bg' | 'dim' | 'accent';
+type Tone = keyof typeof ICON_TONES;
 const TONES = new Map<string, Tone>((Object.entries(ICON_TONES) as [Tone, string][]).map(([tone, hex]) => [hex.toLowerCase(), tone]));
 
-/** Every pixel named by its tone, or by its hex when it is none of the three. */
+/** Every pixel named by its tone, `clear` when fully transparent, or by its hex and alpha when it is none of those. */
 function tones(image: Decoded): string[][] {
   const rows: string[][] = [];
   for (let y = 0; y < image.height; y++) {
@@ -107,8 +108,8 @@ function tones(image: Decoded): string[][] {
     for (let x = 0; x < image.width; x++) {
       const at = (y * image.width + x) * image.channels;
       const hex = `#${[0, 1, 2].map((c) => (image.pixels[at + c] ?? 0).toString(16).padStart(2, '0')).join('')}`;
-      const alpha = image.channels === 4 ? image.pixels[at + 3] : 255;
-      row.push((alpha === 255 && TONES.get(hex)) || hex);
+      const alpha = image.channels === 4 ? (image.pixels[at + 3] ?? 0) : 255;
+      row.push(alpha === 0 ? 'clear' : (alpha === 255 && TONES.get(hex)) || `${hex}@${String(alpha)}`);
     }
     rows.push(row);
   }
@@ -142,9 +143,42 @@ describe('public/*.png, as pixels (FR-MARK-8 f)', () => {
         expect(Number.isInteger(pitch), 'the pitch is a whole number of pixels').toBe(true);
       });
 
-      it('has every pixel in one of the three declared tones and no fourth', () => {
-        const others = new Set(grid.flat().filter((tone) => !TONES.has(tone) && tone !== 'bg' && tone !== 'dim' && tone !== 'accent'));
-        expect([...others], 'a fourth colour means something was resampled').toEqual([]);
+      it(image.ground === 'tile' ? 'has every pixel in one of the four declared tones and no other' : 'has every pixel transparent or in one of the three drawn tones, and no ground', () => {
+        const allowed = new Set<string>(image.ground === 'tile' ? ['bg', 'bezel', 'dim', 'accent'] : ['clear', 'bezel', 'dim', 'accent']);
+        const others = new Set(grid.flat().filter((tone) => !allowed.has(tone)));
+        expect([...others], 'another colour means something was resampled, or a ground that should not be there').toEqual([]);
+      });
+
+      /**
+       * The rim — the bezel and its ticks — is symmetric under both mirrors
+       * and a quarter turn at every size, and at 16 and 32 so is the whole
+       * drawing minus the bead: the orbit and the meridian at 48 and 64 are
+       * not symmetric by design, so there only the rim is asked.
+       */
+      it('keeps the rim symmetric under both mirrors and a quarter turn', () => {
+        const wholeDrawing = image.tier === 'favicon16' || image.tier === 'header32';
+        const set = new Set<string>();
+        for (let y = 0; y < decoded.height; y++) {
+          for (let x = 0; x < decoded.width; x++) {
+            const tone = grid[y]?.[x];
+            if (tone === 'bezel' || (wholeDrawing && tone === 'dim')) set.add(`${String(y)},${String(x)}`);
+          }
+        }
+        expect(set.size).toBeGreaterThan(0);
+        const n = decoded.width - 1;
+        const maps: [string, (y: number, x: number) => [number, number]][] = [
+          ['mirrored left-right', (y, x) => [y, n - x]],
+          ['mirrored top-bottom', (y, x) => [n - y, x]],
+          ['turned a quarter', (y, x) => [x, n - y]],
+        ];
+        for (const [name, map] of maps) {
+          const missing = [...set].filter((id) => {
+            const [y, x] = id.split(',').map(Number) as [number, number];
+            const [my, mx] = map(y, x);
+            return !set.has(`${String(my)},${String(mx)}`);
+          });
+          expect(missing, `${image.file} ${name}: pixels with no partner`).toEqual([]);
+        }
       });
 
       it('draws each dot as one square of pixels at the pitch', () => {
@@ -183,7 +217,7 @@ describe('public/*.png, as pixels (FR-MARK-8 f)', () => {
             if (grid[y]?.[x] !== 'accent') continue;
             for (const [dy, dx] of NEIGHBOURS) {
               const near = grid[y + dy]?.[x + dx];
-              if (near !== undefined) expect(near, `body ink beside the bead at ${String(x + dx)},${String(y + dy)}`).not.toBe('dim');
+              if (near !== undefined) expect(['clear', 'bg', 'accent'], `ink beside the bead at ${String(x + dx)},${String(y + dy)}`).toContain(near);
             }
           }
         }
@@ -196,7 +230,7 @@ describe('public/*.png, as pixels (FR-MARK-8 f)', () => {
         const found = [0, 0, 0, 0, 0, 0, 0, 0];
         for (let y = 0; y < decoded.height; y++) {
           for (let x = 0; x < decoded.width; x++) {
-            if (grid[y]?.[x] !== 'dim') continue;
+            if (grid[y]?.[x] !== 'bezel') continue;
             const dx = x + 0.5 - half;
             const dy = y + 0.5 - half;
             if (Math.hypot(dx, dy) < inner) continue;
@@ -204,8 +238,8 @@ describe('public/*.png, as pixels (FR-MARK-8 f)', () => {
             found[octant] = (found[octant] ?? 0) + 1;
           }
         }
-        // An eighth of the ring is about `dots × π / 8` dots long; the bead's clearance takes at most a few from one octant.
-        const atLeast = Math.max(1, Math.floor(((image.dots * Math.PI) / 8 - 4) * pitch * pitch));
+        // An eighth of the ring is about `dots × π / 8` dots long, and nothing is cleared from it any more.
+        const atLeast = Math.max(1, Math.floor(0.8 * ((image.dots * Math.PI) / 8) * pitch * pitch));
         expect(found.every((count) => count >= atLeast), `bezel ink per octant: ${found.join(', ')} (at least ${String(atLeast)} each)`).toBe(true);
       });
     });

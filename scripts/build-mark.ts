@@ -45,14 +45,16 @@ const PAGE = `http://localhost:${String(PORT)}/spike/mark/`;
 export const RASTERS_PATH = resolve('src/ui/components/mark/rasters.json');
 const PUBLIC = resolve('public');
 /**
- * The dark theme's `--bg`, `--fg-dim` and `--accent` (`src/ui/styles/tokens.css`):
- * what the icons are drawn on, the body's tone and the bead's (FR-MARK-3). An
- * icon has no stylesheet, so these are literals; `tests/styles/tokens.test.ts`
- * asserts they equal what `tokens.css` declares, and
- * `tests/build/mark-icons.test.ts` asserts every pixel of every PNG is one of
- * the three (D-460).
+ * The dark theme's `--bg`, `--chart-horizon`, `--fg-dim` and `--accent`
+ * (`src/ui/styles/tokens.css`): the manifest icons' tile, the bezel's tone in
+ * the files (one ramp step above the body's, so the ring holds on a light tab
+ * strip with no ground under it), the body's and the bead's (FR-MARK-3,
+ * FR-MARK-4 e). An icon has no stylesheet, so these are literals;
+ * `tests/styles/tokens.test.ts` asserts they equal what `tokens.css` declares,
+ * and `tests/build/mark-icons.test.ts` asserts every pixel of every PNG is one
+ * of them or transparent (D-460).
  */
-export const ICON_TONES = { bg: '#0b0f14', dim: '#7d8794', accent: '#9ad0ff' } as const;
+export const ICON_TONES = { bg: '#0b0f14', bezel: '#a7b1bf', dim: '#7d8794', accent: '#9ad0ff' } as const;
 
 /** A cell with no ink: the font draws the blank braille cell and the space identically. */
 const isBlank = (glyph: string): boolean => glyph === ' ' || glyph === '⠀';
@@ -172,23 +174,30 @@ export function readCommitted(): string {
 type RGB = readonly [r: number, g: number, b: number];
 const rgb = (hex: string): RGB => [Number.parseInt(hex.slice(1, 3), 16), Number.parseInt(hex.slice(3, 5), 16), Number.parseInt(hex.slice(5, 7), 16)];
 
-/** A dot raster as raw RGB, `px` square, each dot a `px / dots` square of pixels. */
-function pixels(raster: DotRaster, px: number): Uint8Array {
+/**
+ * A dot raster as raw RGBA, `px` square, each dot a `px / dots` square of
+ * pixels. The ground is the `--bg` tile or nothing at all (alpha 0), by the
+ * file's job (FR-MARK-4 d/e).
+ */
+function pixels(raster: DotRaster, px: number, ground: 'tile' | 'none'): Uint8Array {
   const pitch = px / raster.dots;
   if (!Number.isInteger(pitch)) throw new Error(`${String(px)} px is not a whole number of ${String(raster.dots)} dots`);
-  const data = new Uint8Array(px * px * 3);
-  const bg = rgb(ICON_TONES.bg);
-  for (let i = 0; i < data.length; i += 3) [data[i], data[i + 1], data[i + 2]] = bg;
+  const data = new Uint8Array(px * px * 4);
+  if (ground === 'tile') {
+    const bg = rgb(ICON_TONES.bg);
+    for (let i = 0; i < data.length; i += 4) [data[i], data[i + 1], data[i + 2], data[i + 3]] = [...bg, 255];
+  }
   const paint = (dots: readonly (readonly [number, number])[], tone: RGB): void => {
     for (const [row, col] of dots) {
       for (let y = row * pitch; y < (row + 1) * pitch; y++) {
         for (let x = col * pitch; x < (col + 1) * pitch; x++) {
-          const i = (y * px + x) * 3;
-          [data[i], data[i + 1], data[i + 2]] = tone;
+          const i = (y * px + x) * 4;
+          [data[i], data[i + 1], data[i + 2], data[i + 3]] = [...tone, 255];
         }
       }
     }
   };
+  paint(raster.bezel, rgb(ICON_TONES.bezel));
   paint(raster.body, rgb(ICON_TONES.dim));
   paint(raster.bead, rgb(ICON_TONES.accent));
   return data;
@@ -216,14 +225,15 @@ function chunk(type: string, body: Uint8Array): Buffer {
 }
 
 /**
- * An 8-bit RGB PNG (colour type 2), filter 0 on every scanline and one
+ * An 8-bit RGBA PNG (colour type 6), filter 0 on every scanline and one
  * `deflateSync` — the encoder `scripts/build-icons.ts` had (D-127), back
- * inside the one generator (D-460). Four chunks and no dependency; the same
- * bytes on every machine, which is what the byte pin needs.
+ * inside the one generator (D-460) with an alpha channel for the favicons.
+ * Four chunks and no dependency; the same bytes on every machine, which is
+ * what the byte pin needs.
  */
-export function png(raster: DotRaster, px: number): Buffer {
-  const data = pixels(raster, px);
-  const stride = px * 3;
+export function png(raster: DotRaster, px: number, ground: 'tile' | 'none'): Buffer {
+  const data = pixels(raster, px, ground);
+  const stride = px * 4;
   const raw = Buffer.alloc(px * (stride + 1));
   for (let y = 0; y < px; y++) {
     raw[y * (stride + 1)] = 0;
@@ -232,7 +242,7 @@ export function png(raster: DotRaster, px: number): Buffer {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(px, 0);
   ihdr.writeUInt32BE(px, 4);
-  ihdr.set([8, 2, 0, 0, 0], 8);
+  ihdr.set([8, 6, 0, 0, 0], 8);
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk('IHDR', ihdr),
@@ -242,30 +252,29 @@ export function png(raster: DotRaster, px: number): Buffer {
 }
 
 /**
- * The SVG favicon (FR-MARK-4 e): the same dots as `<path>`s, one per tone,
- * with the stylesheet an icon otherwise has no way to carry. The dark theme's
- * literals are the default; under `prefers-color-scheme: light` the ground and
- * the body swap, so the bezel keeps its containing job on a light tab strip
- * and the mark is not a near-black square on it (D-460, the owner's option b).
+ * The SVG favicon (FR-MARK-4 e): the same dots as `<path>`s, one per tone, and
+ * no ground — the mark sits on the tab strip and the bezel, one ramp step
+ * brighter than the body, does the containing on a dark strip and a light one
+ * alike (D-460, the owner's option a).
  */
 export function svg(raster: DotRaster): string {
-  const path = (dots: readonly (readonly [number, number])[]): string => dots.map(([row, col]) => `M${String(col)} ${String(row)}h1v1h-1z`).join('');
+  const path = (dots: readonly (readonly [number, number])[], fill: string): string =>
+    dots.length === 0 ? '' : `<path fill="${fill}" d="${dots.map(([row, col]) => `M${String(col)} ${String(row)}h1v1h-1z`).join('')}"/>`;
   const n = String(raster.dots);
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges">`,
-    `<style>.g{fill:${ICON_TONES.bg}}.b{fill:${ICON_TONES.dim}}.m{fill:${ICON_TONES.accent}}@media (prefers-color-scheme:light){.g{fill:${ICON_TONES.dim}}.b{fill:${ICON_TONES.bg}}}</style>`,
-    `<rect class="g" width="${n}" height="${n}"/>`,
-    `<path class="b" d="${path(raster.body)}"/>`,
-    `<path class="m" d="${path(raster.bead)}"/>`,
+    path(raster.bezel, ICON_TONES.bezel),
+    path(raster.body, ICON_TONES.dim),
+    path(raster.bead, ICON_TONES.accent),
     `</svg>`,
     '',
-  ].join('\n');
+  ].filter((line) => line !== '').join('\n');
 }
 
 /** The five files under `public/`, drawn from the scene: what `--icons` writes and what the byte pin compares. */
 export function renderImages(): Record<string, Buffer> {
   const out: Record<string, Buffer> = {};
-  for (const image of MARK_IMAGES) out[image.file] = png(renderDots(image.tier, image.dots), image.px);
+  for (const image of MARK_IMAGES) out[image.file] = png(renderDots(image.tier, image.dots), image.px, image.ground);
   out[MARK_SVG.file] = Buffer.from(svg(renderDots(MARK_SVG.tier, MARK_SVG.dots)), 'utf8');
   return out;
 }
@@ -281,7 +290,7 @@ function writeImages(): void {
 /** The dot grids printed one character a dot: what a change to the scene did to the files, before anything is written. */
 function printImages(): void {
   for (const image of MARK_IMAGES) {
-    console.log(`\n${image.file} — ${String(image.dots)} dots at ${String(image.px / image.dots)} px (${image.tier}):\n${dotsToText(renderDots(image.tier, image.dots))}`);
+    console.log(`\n${image.file} — ${String(image.dots)} dots at ${String(image.px / image.dots)} px (${image.tier}, ground ${image.ground}):\n${dotsToText(renderDots(image.tier, image.dots))}`);
   }
 }
 

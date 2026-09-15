@@ -101,19 +101,22 @@ export const MARK_LOCKUP_PX = 80;
  * in every row, so nothing is resampled anywhere. The construction follows
  * the ladder by size (16 the favicon's, 32 the compact header's, 48 and 64 the
  * icon's); the 64-dot grid is the 48-dot construction at a coarser step, not a
- * finer tier. The SVG favicon is the 16-dot grid as rectangles.
+ * finer tier. The SVG favicon is the 16-dot grid as rectangles. The favicons
+ * have no ground — they sit on the tab strip and the bezel does the
+ * containing — where the manifest icons keep the full-bleed `--bg` tile.
  */
 export interface MarkImage {
   file: string;
   tier: MarkTier;
   dots: number;
   px: number;
+  ground: 'tile' | 'none';
 }
 export const MARK_IMAGES = [
-  { file: 'favicon.png', tier: 'favicon16', dots: 16, px: 16 },
-  { file: 'favicon-32.png', tier: 'header32', dots: 32, px: 32 },
-  { file: 'icon-192.png', tier: 'icon192', dots: 48, px: 192 },
-  { file: 'icon-512.png', tier: 'icon192', dots: 64, px: 512 },
+  { file: 'favicon.png', tier: 'favicon16', dots: 16, px: 16, ground: 'none' },
+  { file: 'favicon-32.png', tier: 'header32', dots: 32, px: 32, ground: 'none' },
+  { file: 'icon-192.png', tier: 'icon192', dots: 48, px: 192, ground: 'tile' },
+  { file: 'icon-512.png', tier: 'icon192', dots: 64, px: 512, ground: 'tile' },
 ] as const satisfies readonly MarkImage[];
-/** The SVG favicon: the 16-dot grid, with the theme swap in its own stylesheet (FR-MARK-4 e). */
-export const MARK_SVG = { file: 'favicon.svg', tier: 'favicon16', dots: 16 } as const satisfies Omit<MarkImage, 'px'>;
+/** The SVG favicon: the 16-dot grid as rectangles, no ground (FR-MARK-4 e). */
+export const MARK_SVG = { file: 'favicon.svg', tier: 'favicon16', dots: 16, ground: 'none' } as const satisfies Omit<MarkImage, 'px'>;
