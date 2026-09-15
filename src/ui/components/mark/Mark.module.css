@@ -1,0 +1,54 @@
+/* R74 (FR-MARK-3, D-439): the mark, as two rasters in one box.
+
+   The `@font-face` is the dome's font (D-65), declared here rather than
+   `@import`ed from `SkyDome.module.css`: importing that stylesheet would copy
+   the dome's own rules — glyphcss's base styles included — into the main
+   chunk's CSS, and the mark is on every page while the dome is behind
+   `React.lazy` (PLAN §11). One declaration, one file, two stylesheets that
+   name it: the browser fetches the `.otf` once, and Vite emits one asset
+   because both rules point at the same source. */
+@font-face {
+  font-family: 'WIYS Braille';
+  src: url('../guide/skychart/dome/wiys-braille.otf') format('opentype');
+  font-display: block;
+}
+
+/* The box is square: the raster is `cols = 2 × rows` cells, and a cell is
+   twice as tall as it is wide. Its size, font size and line height are the
+   placement's, set inline from the pixel size the caller asks for. */
+.mark {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+}
+
+/* The two layers stack. The body is written at mount and never again; only the
+   bead's text changes, so a step costs one text update and no layout. */
+.layer {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  font-family: 'WIYS Braille', var(--font-mono);
+  font-size: inherit;
+  line-height: inherit;
+  white-space: pre;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* FR-MARK-3: two tones, both already in the tokens — the body dim, the bead
+   the one bright thing in the mark, so the eye lands on the moving part. */
+.body {
+  color: var(--fg-dim);
+}
+
+.accent {
+  color: var(--accent);
+}
+
+/* FR-MARK-5 (c): an instant is being held, so the bead stands still in `--warn`. */
+.warn {
+  color: var(--warn);
+}

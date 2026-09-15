@@ -19,7 +19,7 @@
     "spike:window": "vite --config spike/window/https.config.ts --host",
     "spike:window:capture": "tsx spike/window/capture.ts",
     "build:braille-font": "tsx scripts/build-braille-font.ts",
-    "build:icons": "tsx scripts/build-icons.ts",
+    "build:icons": "tsx scripts/build-mark.ts",
     "build:stored-run": "tsx scripts/build-stored-run.ts",
     "validate:iss": "tsx scripts/validate-iss.ts",
     "check:catalog": "tsx scripts/check-catalog.ts",

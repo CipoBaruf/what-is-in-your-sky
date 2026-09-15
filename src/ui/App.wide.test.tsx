@@ -9,7 +9,7 @@
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../tests/support/catalogFixtures';
 import { COMPACT_PX, stubMatchMedia, WIDE_PX, type MatchMediaStub } from '../../tests/support/matchMedia';
 import { en } from '../i18n/en';
@@ -36,10 +36,18 @@ const withPasses = (): void => {
 };
 
 describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
+  /**
+   * F-68: the hero card's choice (`nextFeaturedPass`) reads the wall clock, and
+   * the golden passes are dated; from the calendar day their window ends the
+   * card never renders and every assertion on `iss-hero` is red, on any branch.
+   * So the clock is pinned at `NOW`, the same fix F-67 gave the night labels.
+   */
   beforeEach(() => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
     media = stubMatchMedia(WIDE_PX);
   });
   afterEach(() => {
+    vi.restoreAllMocks();
     media.restore();
     appStore.setState(initial, true);
     forgetInstallOffer();

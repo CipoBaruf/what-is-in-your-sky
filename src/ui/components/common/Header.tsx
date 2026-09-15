@@ -1,6 +1,9 @@
 import { useT } from '../../../i18n/useT';
 import { SETTINGS_HASH } from '../../../lib/shareLinks';
+import { useAppStore, type AppState } from '../../../state';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { Mark } from '../mark/Mark';
+import { MARK_HEADER_PX } from '../mark/tiers';
 import styles from './Header.module.css';
 import { LanguageToggle } from './LanguageToggle';
 import { ThemeToggle } from './ThemeToggle';
@@ -30,6 +33,11 @@ import { ThemeToggle } from './ThemeToggle';
  * the dim colour the mockup gives it. Removing it would move the other control
  * sideways between the two screens, and a header whose contents shift is a
  * header the reader has to re-read.
+ *
+ * R74 (FR-MARK-4 a, b; D-441): both shapes carry the mark before the title, at
+ * `MARK_HEADER_PX` — one `--row`, so neither header grows a line, and three
+ * cells of the compact row's 36. On the home page its bead runs while the app
+ * is still working out what to show (FR-MARK-5 a).
  */
 export interface HeaderProps {
   /** R6/R35: made inert with the rest of the shell while the compact sheet or the shortcuts overlay is up. */
@@ -41,11 +49,16 @@ export interface HeaderProps {
 export function Header({ inert = false, current = 'home' }: HeaderProps) {
   const t = useT();
   const mode = useLayoutMode();
+  const loading = useAppStore(isLoading) && current === 'home';
+  const mark = <Mark tier="header32" sizePx={MARK_HEADER_PX} running={loading} />;
 
   if (mode === 'compact') {
     return (
       <header inert={inert} className={`${styles.header} ${styles.compact}`} data-testid="header">
-        <h1 className={styles.shortTitle}>{t.app.shortTitle}</h1>
+        <div className={styles.brand}>
+          {mark}
+          <h1 className={styles.shortTitle}>{t.app.shortTitle}</h1>
+        </div>
         <nav className={styles.links} aria-label={t.app.title}>
           <a href="#live" className={styles.link} data-testid="live-link">
             {t.live.openShort}
@@ -68,7 +81,10 @@ export function Header({ inert = false, current = 'home' }: HeaderProps) {
     <header inert={inert} className={`${styles.header} ${styles.wide}`} data-testid="header">
       <div className={styles.titles}>
         <div className={styles.titleRow}>
-          <h1>{t.app.title}</h1>
+          <div className={styles.brand}>
+            {mark}
+            <h1>{t.app.title}</h1>
+          </div>
           <a href="#live" className={styles.link} data-testid="live-link">
             {t.live.open}
           </a>
@@ -82,3 +98,10 @@ export function Header({ inert = false, current = 'home' }: HeaderProps) {
     </header>
   );
 }
+
+/**
+ * FR-MARK-5 (a): the bead runs while the home page is still assembling what it
+ * will show — the elements are being fetched, or the worker is computing the
+ * run — and stands still once the list is there.
+ */
+const isLoading = (state: AppState): boolean => state.elements.status === 'loading' || state.passes.status === 'computing';

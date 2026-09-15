@@ -82,6 +82,7 @@ describe('<PassList>', () => {
   });
 
   it('renders cards as passes stream in, chronologically, with progress in the status line; the featured pass moves to the hero card (R12)', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW); // F-68: the hero choice reads the wall clock
     set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'computing', observer, total: 31 } });
     render(<PassList />);
     expect(screen.getByRole('status')).toHaveTextContent('Computing passes… 0 of 31, 0 visible so far');
@@ -119,7 +120,8 @@ describe('<PassList>', () => {
   });
 
   it('shows the hero card only for a featured pass that has not ended, and never repeats it in the list (spec §8 rank 1)', () => {
-    // The hero choice reads the wall clock, so this copy ends two hours before it (the golden fixture itself is in its future).
+    // The hero choice reads the wall clock, pinned at NOW (F-68); this copy ends two hours before it and the golden fixture itself is in its future.
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
     const wall = Date.now() - 2 * HOUR;
     const ended = { ...goldenPass, id: 'ended', start: { ...goldenPass.start, t: wall }, peak: { ...goldenPass.peak, t: wall + 60_000 }, end: { ...goldenPass.end, t: wall + 120_000 } };
     set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [average, later] } });

@@ -12,6 +12,13 @@
          is named here as well; the "Add to Home Screen" note that goes with it is R28's. -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
+    <!-- R74 (FR-MARK-4 e, D-460): the favicon, the mark's scene drawn as dots. The SVG goes first
+         and carries the light/dark swap in its own stylesheet; the two PNGs are the fallback for
+         browsers without SVG favicons. All three and the manifest icons come from
+         `npm run build:icons`, which is why there is no `.ico`. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
   </head>
   <body>
     <div id="root"></div>

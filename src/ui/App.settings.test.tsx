@@ -5,7 +5,7 @@
  * The page's own contents are `Settings.test.tsx`; what is here is the routing.
  */
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { COMPACT_PX, stubMatchMedia, WIDE_PX, type MatchMediaStub } from '../../tests/support/matchMedia';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../tests/support/catalogFixtures';
 import { en } from '../i18n/en';
@@ -37,11 +37,19 @@ const goTo = (hash: string): void => {
   });
 };
 
+/**
+ * F-68: the hero card's choice (`nextFeaturedPass`) reads the wall clock, and
+ * the golden passes are dated; from the calendar day their window ends the
+ * card never renders and every assertion on `iss-hero` is red, on any branch.
+ * So the clock is pinned at `NOW`, the same fix F-67 gave the night labels.
+ */
 beforeEach(() => {
+  vi.spyOn(Date, 'now').mockReturnValue(NOW);
   media = stubMatchMedia(COMPACT_PX);
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   media.restore();
   act(() => {
     appStore.setState(initial, true);
