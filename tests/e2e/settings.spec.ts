@@ -245,6 +245,32 @@ test.describe('the settings page rows and the coordinates disclosure (FR-SET-1)'
   });
 });
 
+test.describe('the focus ring on the phone (FR-X-5, D-500)', () => {
+  test('the way back is ringed round its own line, clear of the header and the first heading', async ({ page }) => {
+    await seedStoredRun(page);
+    // Opened without a pointer, so the page's own focus on the way back is drawn with a
+    // ring: `:focus-visible` is the state this rule is about.
+    await page.evaluate(() => {
+      window.location.hash = 'settings';
+    });
+    const back = page.getByTestId('settings-back');
+    await expect(back).toBeFocused();
+    const ring = await back.evaluate((element: HTMLElement) => {
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      // The ring reaches its offset plus its own width past the box it is drawn on.
+      const reach = parseFloat(style.outlineOffset) + parseFloat(style.outlineWidth);
+      return { top: rect.top - reach, bottom: rect.bottom + reach, height: rect.height };
+    });
+    // The ring is drawn round the text line, not round the 48 px tap box.
+    expect(ring.height).toBeLessThanOrEqual(26);
+    const box = (locator: Locator): Promise<DOMRect> => locator.evaluate((el: HTMLElement) => el.getBoundingClientRect().toJSON() as DOMRect);
+    const [above, below] = await Promise.all([box(page.getByTestId('header')), box(page.getByRole('heading', { level: 2, name: 'Location' }))]);
+    expect(above.bottom).toBeLessThanOrEqual(ring.top);
+    expect(below.top).toBeGreaterThanOrEqual(ring.bottom);
+  });
+});
+
 test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', () => {
   test.use({ viewport: WIDE });
 
@@ -264,6 +290,21 @@ test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', ()
     // The wide home keeps the whole form: the summary is the compact layout's line (US-20 AC5).
     await expect(page.getByRole('region', { name: 'Location' })).toBeVisible();
     await expect(page.getByTestId('location-summary')).toHaveCount(0);
+  });
+
+  test('the focus ring on [ Live sky ] clears the tagline under it (FR-X-5, D-500)', async ({ page }) => {
+    await seedStoredRun(page);
+    const live = page.getByTestId('live-link');
+    await live.focus();
+    const ring = await live.evaluate((element: HTMLElement) => {
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      const reach = parseFloat(style.outlineOffset) + parseFloat(style.outlineWidth);
+      return { bottom: rect.bottom + reach, height: rect.height };
+    });
+    expect(ring.height).toBeLessThanOrEqual(26);
+    const tagline = await page.getByText('Naked-eye satellite passes', { exact: false }).evaluate((el: HTMLElement) => el.getBoundingClientRect().toJSON() as DOMRect);
+    expect(ring.bottom).toBeLessThanOrEqual(tagline.top);
   });
 
   test('renders #settings when navigated to, at a width that links to it from nowhere (FR-COMP-2)', async ({ page }) => {

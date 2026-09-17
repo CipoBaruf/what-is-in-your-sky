@@ -88,9 +88,13 @@
 
 /* R74 (FR-DESK-2 as amended, D-441): the tagline starts under the wordmark's
    first letter, so its indent is the mark's width — one `--row`, which is what
-   `MARK_HEADER_PX` is — plus the cell of gap `.brand` puts after it. */
+   `MARK_HEADER_PX` is — plus the cell of gap `.brand` puts after it.
+   R75 (FR-X-5): a quarter row above it, because the title row's links carry a
+   focus ring and the two rows were flush — the ring's offset and its own line
+   landed on the tagline's first words. The compact header has no tagline, so
+   this is the wide header only, where the row is there to be spent. */
 .tagline {
-  margin: 0;
+  margin: calc(var(--row) / 4) 0 0;
   padding-left: calc(var(--row) + var(--cell));
   color: var(--fg-dim);
 }
