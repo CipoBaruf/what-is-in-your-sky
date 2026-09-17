@@ -35,10 +35,14 @@ import styles from './Favourites.module.css';
  * sits on the save row, `[ Save this place ] [ Clear saved ]`.
  *
  * `titled` is the settings page's too (R75, FR-SET-1): there the saved places are a block of their own,
- * under a section heading like Location's, rather than the tail of the location section, and without the
- * sentence stating the limit: FR-SET-1 draws the list and one row, and the page has to fit 390 × 844.
+ * under a section heading like Location's, rather than the tail of the location section.
+ *
+ * `limit` is the third (R75, FR-SET-2): the settings page has to fit 390 × 844 with two places saved, and
+ * FR-SET-1 draws the block as the list and one row. So there the sentence stating the limit is said where it
+ * is news — with nothing saved yet, beside the empty line, and once the list is full, when the next save
+ * forgets a place — and not under every list in between.
  */
-export function Favourites({ footer, titled = false, showLimit = true }: { footer?: ReactNode; titled?: boolean; showLimit?: boolean } = {}) {
+export function Favourites({ footer, titled = false, limit = 'always' }: { footer?: ReactNode; titled?: boolean; limit?: 'always' | 'empty-or-full' } = {}) {
   const t = useT();
   const headingId = useId();
   const observer = useAppStore((s) => s.observer);
@@ -104,7 +108,7 @@ export function Favourites({ footer, titled = false, showLimit = true }: { foote
           {footer}
         </div>
       )}
-      {showLimit && <p className={styles.limit}>{t.favourites.limit(MAX_FAVOURITES)}</p>}
+      {(limit === 'always' || favourites.length === 0 || favourites.length >= MAX_FAVOURITES) && <p className={styles.limit}>{t.favourites.limit(MAX_FAVOURITES)}</p>}
     </Block>
   );
 }

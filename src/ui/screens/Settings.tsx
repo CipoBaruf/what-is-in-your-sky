@@ -111,7 +111,6 @@ export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
             showClear={false}
             showSavedHere={false}
             showFavourites={false}
-            showActiveCoords={false}
             arrangeInputs={({ coords, device }) => (
               <>
                 <div className={styles.controlRow} data-testid="location-actions">
@@ -137,7 +136,7 @@ export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
           />
         </div>
 
-        <Favourites titled showLimit={false} footer={<ClearSavedLocation short />} />
+        <Favourites titled limit="empty-or-full"footer={<ClearSavedLocation short />} />
 
         <section aria-labelledby={browserId} className={styles.browser} data-testid="settings-browser">
           <SectionHeading id={browserId}>{t.settings.browser}</SectionHeading>

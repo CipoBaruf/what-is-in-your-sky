@@ -203,6 +203,47 @@ test.describe('the settings page fits one 390 × 844 viewport (FR-SET-2, US-29 A
   }
 });
 
+test.describe('the settings page rows and the coordinates disclosure (FR-SET-1)', () => {
+  test('the device row and the save row are each one line, and the clear is beside the save', async ({ page }) => {
+    await seedStoredRun(page);
+    await page.getByTestId('settings-link').click();
+    const device = page.getByTestId('location-actions');
+    await expect(device.getByRole('button', { name: 'Use my location' })).toBeVisible();
+    expect(await isOneLine(device)).toBe(true);
+    expect(await fitsTheViewport(device)).toBe(true);
+    const save = page.getByTestId('save-favourite').locator('..');
+    await expect(save.getByRole('button', { name: 'Clear saved location' })).toHaveText('Clear saved');
+    expect(await isOneLine(save)).toBe(true);
+    expect(await fitsTheViewport(save)).toBe(true);
+  });
+
+  test('"enter coordinates instead" opens the closed fields and focuses them, and stays on the page', async ({ page }) => {
+    await openSettingsWith(page, { locale: 'en' });
+    await page.route('https://geocoding-api.open-meteo.com/**', (route) => route.fulfill({ json: { generationtime_ms: 0.5 }, headers: { 'access-control-allow-origin': '*' } }));
+    const disclosure = page.getByTestId('coords-disclosure');
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByLabel('Coordinates (lat, lon)')).toBeHidden();
+    await page.getByRole('combobox', { name: 'Place name' }).fill('Zzzzqqqq');
+    await page.getByText(/No place matches “Zzzzqqqq”/).getByRole('link', { name: 'enter coordinates instead' }).click();
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByLabel('Coordinates (lat, lon)')).toBeFocused();
+    await expect(page).toHaveURL(/#settings$/);
+  });
+
+  test('the disclosure opens and closes the fields, and a typed pair sets the observer', async ({ page }) => {
+    await openSettingsWith(page, { locale: 'en' });
+    const disclosure = page.getByTestId('coords-disclosure');
+    await disclosure.click();
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+    const fields = page.getByTestId('coords-disclosure').locator('xpath=../following-sibling::div[1]');
+    expect(await isOneLine(fields.locator(':scope > div'))).toBe(true);
+    await page.getByLabel('Coordinates (lat, lon)').fill('-38.93, -67.99');
+    await expect(page.getByTestId('save-favourite')).toBeVisible();
+    await disclosure.click();
+    await expect(page.getByLabel('Coordinates (lat, lon)')).toBeHidden();
+  });
+});
+
 test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', () => {
   test.use({ viewport: WIDE });
 

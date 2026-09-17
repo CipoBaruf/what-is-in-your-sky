@@ -84,14 +84,9 @@
   width: calc(22 * var(--cell));
 }
 
-/* The Location heading keeps half a row above the place field's label; the
-   other two headings sit on rows of tap-tall controls, which space themselves. */
+/* Each heading is a rule with the block directly under it: the rule is the separation. */
 .page section > h2 {
   margin-bottom: 0;
-}
-
-.page .location section > h2 {
-  margin-bottom: calc(0.5 * var(--row));
 }
 
 /* The place field's own bottom margin is the wide panel's; here the control row under it is tap-tall. */
@@ -132,7 +127,7 @@
 .privacy {
   color: var(--fg-dim);
   padding-top: 0;
-  padding-bottom: calc(0.5 * var(--row));
+  padding-bottom: 0;
 }
 
 .privacy > p {
