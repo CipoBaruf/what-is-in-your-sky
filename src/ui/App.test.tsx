@@ -6,7 +6,7 @@
  */
 import { act, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../tests/support/catalogFixtures';
 import type { Observer } from '../model';
 import { appStore, type ElementsState } from '../state';
@@ -23,7 +23,17 @@ const initial = appStore.getInitialState();
 const other = { ...pass, id: 'other', noradId: 2, name: 'Other object', start: { ...pass.start, t: pass.start.t + 3_600_000 } };
 
 describe('<App> frame (R12)', () => {
+  /**
+   * F-68: the hero card's choice (`nextFeaturedPass`) reads the wall clock, and
+   * the golden passes are dated; from the calendar day their window ends the
+   * card never renders and every assertion on `iss-hero` is red, on any branch.
+   * So the clock is pinned at `NOW`, the same fix F-67 gave the night labels.
+   */
+  beforeEach(() => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW);
+  });
   afterEach(() => {
+    vi.restoreAllMocks();
     appStore.setState(initial, true);
     window.history.replaceState(null, '', window.location.pathname);
     // R49 (F-31): the held `beforeinstallprompt` lives outside the store.

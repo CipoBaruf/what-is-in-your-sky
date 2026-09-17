@@ -1,0 +1,73 @@
+/* R74's generator page (D-438). Dev only: `vite build` bundles the root
+   `index.html` alone, so none of this reaches `dist/`. The braille font is
+   read from where the dome already keeps it (FR-MARK-1) — no second copy.
+   This is a plain stylesheet, not a CSS module, so the class names glyphcss
+   writes are addressed directly. */
+@font-face {
+  font-family: 'WIYS Braille';
+  src: url('../../src/ui/components/guide/skychart/dome/wiys-braille.otf') format('opentype');
+  font-display: block;
+}
+
+:root {
+  --bg: #0b0f14;
+  --fg: #d5dbe3;
+  --fg-dim: #7d8794;
+  --cell-w: 8px;
+  color-scheme: dark;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
+}
+
+.ladder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+}
+
+.tier {
+  display: grid;
+  gap: 4px;
+}
+
+.tier h2 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--fg-dim);
+}
+
+/* One scene, at the cell the whole generator works in: 8 px wide, twice as
+   tall, which is what makes a `cols = 2 × rows` grid square. */
+.scene .glyph-scene,
+.scene .glyph-scene .glyph-output {
+  font-family: 'WIYS Braille', ui-monospace, monospace;
+  font-size: calc(var(--cell-w) / 0.6);
+  line-height: calc(2 * var(--cell-w));
+  word-spacing: 0;
+  color: var(--fg);
+}
+
+.scene .glyph-host {
+  width: auto;
+  height: auto;
+}
+
+/* The 60 bead frames of a tier are mounted at once, so one page load
+   rasterises the whole ladder. They are moved out of sight rather than hidden:
+   glyphcss measures its cell from a probe element, and a display:none probe
+   measures zero. */
+.frames {
+  position: absolute;
+  left: -20000px;
+  top: 0;
+}

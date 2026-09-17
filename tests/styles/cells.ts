@@ -99,6 +99,14 @@ export function rowParts(row: Element, rules: readonly Rule[]): string[] {
   const parts: string[] = [];
   const walk = (element: Element): void => {
     if (!isVisible(element)) return;
+    // R74 (D-441): the mark is a drawing, not a word. It declares how many
+    // cells of the row it occupies (`markCells`, from its pixel size), and the
+    // braille inside it is never counted as text.
+    const mark = element.getAttribute('data-mark-cells');
+    if (mark !== null) {
+      parts.push('#'.repeat(Number(mark)));
+      return;
+    }
     if (element.children.length === 0) {
       const text = element.textContent?.trim() ?? '';
       if (text === '') return;

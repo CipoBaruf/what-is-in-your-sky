@@ -15,6 +15,28 @@
   white-space: nowrap;
 }
 
+/* R74 (FR-MARK-4, D-441): the mark and the title are one group, so the row's
+   own `space-between` still puts the title at the left and the controls at the
+   right, and the tagline below can be aligned to the title's first letter with
+   one number. One cell between them, which is what the tagline's padding then
+   restates: the mark's width plus that cell. */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0 var(--cell);
+  min-width: 0;
+}
+
+/* The mark stands where the `>` prompt was (`global.css`'s `h1::before`): two
+   marks of the same thing before one title is one too many, and the compact row
+   needs those two cells — with the prompt still on it, "Your sky" is ellipsised
+   at 390 px (FR-COMP-4). It also makes the tagline's indent the one D-441
+   writes down: the mark's width plus a cell puts it under the title's first
+   letter, which with a prompt in between it would not be. */
+.brand h1::before {
+  content: none;
+}
+
 .shortTitle {
   margin: 0;
   min-width: 0;
@@ -64,9 +86,12 @@
   flex-wrap: wrap;
 }
 
+/* R74 (FR-DESK-2 as amended, D-441): the tagline starts under the wordmark's
+   first letter, so its indent is the mark's width — one `--row`, which is what
+   `MARK_HEADER_PX` is — plus the cell of gap `.brand` puts after it. */
 .tagline {
   margin: 0;
-  padding-left: calc(2 * var(--cell));
+  padding-left: calc(var(--row) + var(--cell));
   color: var(--fg-dim);
 }
 

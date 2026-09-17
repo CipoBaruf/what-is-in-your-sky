@@ -168,3 +168,25 @@ describe.each(LOCALES)('FR-COMP-4: every compact control row fits %s in 36 cells
     expect(cells, `${row.name} in ${locale}: ${rowParts(element, table).join(' | ')}`).toBeLessThanOrEqual(row.budget ?? BUDGET);
   });
 });
+
+/**
+ * R74 (FR-COMP-1 as amended, D-441): the row's arithmetic, not merely the
+ * budget it fits inside. The mark is three cells — a 24 px box needs three of
+ * the 9.6 px cells and would spill out of two — and the row is
+ * `mark + 'Your sky' + [ live ] + [ settings ]` with a cell of gap between each
+ * pair: 3 + 8 + 8 + 12 and three gaps, **34** of the 36.
+ *
+ * FR-COMP-1 and D-441 both say 33. The difference is the gap after the mark:
+ * the row without it was 8 + 8 + 12 and two gaps = 30, and adding a three-cell
+ * mark makes 33 only if the mark touches the title. It does not — `.brand` puts
+ * a cell between them, which is the same cell the wide tagline's indent is
+ * built from — so the row measures 34, still three inside FR-COMP-4's 36. The
+ * number is pinned here so a mark that quietly grew a cell fails at the
+ * arithmetic rather than at the far edge of the budget.
+ */
+it('counts the compact header with the mark at 34 cells (FR-COMP-1, D-441)', () => {
+  render(createElement(I18nProvider, { locale: 'en', children: createElement(Header) }));
+  const header = screen.getByTestId('header');
+  expect(screen.getByTestId('mark').getAttribute('data-mark-cells')).toBe('3');
+  expect(rowCells(header, table), rowParts(header, table).join(' | ')).toBe(34);
+});
