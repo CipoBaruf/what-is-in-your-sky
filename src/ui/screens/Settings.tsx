@@ -136,7 +136,7 @@ export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
           />
         </div>
 
-        <Favourites titled limit="empty-or-full"footer={<ClearSavedLocation short />} />
+        <Favourites titled limit="empty-or-full" footer={<ClearSavedLocation short />} />
 
         <section aria-labelledby={browserId} className={styles.browser} data-testid="settings-browser">
           <SectionHeading id={browserId}>{t.settings.browser}</SectionHeading>
