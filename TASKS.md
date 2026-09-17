@@ -1727,7 +1727,7 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: the new mark in every header, the two icons and the favicon opened at 1 : 1 in the PR.
 
-- [ ] **R75 — The settings page: the order inverted, one viewport in Spanish**
+- [x] **R75 — The settings page: the order inverted, one viewport in Spanish** — done; the components gained placement props rather than staying untouched, and the page drops the compact footer for its privacy line (D-461..D-464).
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
