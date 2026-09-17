@@ -4,6 +4,16 @@
   margin-top: var(--row);
 }
 
+/* R75 (FR-SET-1): the settings page's block of its own, titled like the location section. */
+.section {
+  display: grid;
+  gap: 0;
+}
+
+.section > h2 {
+  margin-bottom: var(--row);
+}
+
 .heading,
 .empty,
 .limit {

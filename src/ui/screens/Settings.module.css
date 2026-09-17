@@ -1,5 +1,5 @@
 /* R52 (FR-COMP-2): one column at every width. The page is a form, and a form
-   read top to bottom in the order FR-COMP-2 states is the whole of its layout —
+   read top to bottom in the order FR-SET-1 states is the whole of its layout —
    the wide shell's two columns are for a screen that has a list beside its
    controls, and this one has none. */
 .page {
@@ -12,8 +12,8 @@
   margin: 0;
 }
 
-/* A bracketed text control, like the location section's clear action. */
-.back {
+/* A bracketed text control: the way back and the coordinates disclosure. */
+.link {
   color: var(--accent);
   background: none;
   border: 0;
@@ -21,23 +21,74 @@
   min-height: 0;
 }
 
-.back::before {
+.link::before {
   content: '[ ';
   color: var(--fg-dim);
 }
 
-.back::after {
+.link::after {
   content: ' ]';
   color: var(--fg-dim);
 }
 
-.section {
+/* R75 (FR-SET-1): `[ Use my location ] [ coordinates ]`, one row of FR-COMP-4's
+   36 cells. The device button's own block keeps its bottom margin and its error
+   line; the disclosure sits beside the button, on its line. */
+.controlRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cell);
+}
+
+.controlRow > .link {
+  min-height: var(--tap);
+}
+
+/* The fields the disclosure opens, under the row. `hidden` takes them out. */
+.coords {
   display: grid;
-  align-content: start;
-  gap: calc(0.5 * var(--row));
+}
+
+/* R75 (FR-SET-1, D-445): one heading over three label-and-control rows. The
+   labels are one column as wide as the longest of them in this language, so
+   the three controls start on one edge. */
+.browser {
+  display: grid;
+  gap: 0;
+}
+
+.browser > h2 {
+  margin-bottom: calc(0.5 * var(--row));
+}
+
+.rows {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--cell);
+}
+
+.rows > * {
+  min-height: var(--tap);
+  display: flex;
+  align-items: center;
+}
+
+.label {
+  color: var(--fg-dim);
 }
 
 .install {
+  margin: 0;
+}
+
+/* R75 (FR-SET-1): the foot of the page, in place of the compact footer. */
+.privacy {
+  color: var(--fg-dim);
+  padding-bottom: var(--row);
+}
+
+.privacy > p {
   margin: 0;
 }
 
@@ -45,7 +96,8 @@
    is narrow prose either way, so on a wide screen it stops rather than
    stretching a 36-cell row of toggles across 100 cells of empty line. */
 @media (min-width: 964px) {
-  .page {
+  .page,
+  .privacy {
     max-width: calc(60 * var(--cell));
   }
 }

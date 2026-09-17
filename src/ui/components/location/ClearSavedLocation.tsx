@@ -20,15 +20,17 @@ import styles from './LocationInput.module.css';
  * it. The inputs above reseed themselves when the observer goes (F-29), and the
  * focus this control loses when it disappears goes to the place field with them.
  */
-export function ClearSavedLocation() {
+export function ClearSavedLocation({ short = false }: { short?: boolean } = {}) {
   const t = useT();
   const observer = useAppStore((s) => s.observer);
   const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
   if (observer === null) return null;
+  // R75 (FR-SET-1): on the save row the visible label is the short one that fits FR-COMP-4's 36 cells; the
+  // full sentence stays the accessible name, and the short label is its start (WCAG 2.5.3, label in name).
   return (
     <p className={styles.standaloneClear}>
-      <button type="button" onClick={clearSavedObserver} className={`inline-control ${styles.clear}`} data-testid="clear-saved-location">
-        {t.location.clearSaved}
+      <button type="button" onClick={clearSavedObserver} className={`inline-control ${styles.clear}`} data-testid="clear-saved-location" {...(short ? { 'aria-label': t.location.clearSaved } : {})}>
+        {short ? t.settings.clearSaved : t.location.clearSaved}
       </button>
     </p>
   );

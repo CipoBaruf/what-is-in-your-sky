@@ -101,6 +101,12 @@ export const ui: typeof EnUi = {
     open: 'ajustes',
     back: '\u2190 Volver',
     heading: 'Ajustes',
+    browser: 'Este navegador',
+    /* R75: "[ Usar mi ubicación ] [ coordenadas ]" is 37 cells, one past FR-COMP-4's 36; the field's own label already says "(lat, lon)". */
+    coordinates: 'lat, lon',
+    /* R75: "[ Guardar este lugar ] [ Borrar ]" is 33; the full "Borrar la ubicación guardada" stays the accessible name. */
+    clearSaved: 'Borrar',
+    privacy: 'Sin rastreo. La ubicación se guarda solo en este navegador.',
   },
 
   compass,

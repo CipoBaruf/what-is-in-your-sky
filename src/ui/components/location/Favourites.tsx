@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { useT } from '../../../i18n/useT';
 import { MAX_FAVOURITES } from '../../../model';
 import { favouriteCellKey, useAppStore } from '../../../state';
+import { SectionHeading } from '../common/SectionHeading';
 import styles from './Favourites.module.css';
 
 /**
@@ -30,10 +31,15 @@ import styles from './Favourites.module.css';
 /**
  * `footer` is the compact settings page's slot (the owner, 2026-09-09): the clear action belongs *in* the
  * saved places, where the reader is already looking at the places they keep, rather than at the foot of the
- * page. The block does not know what it is given — the page decides, as D-262 has it.
+ * page. The block does not know what it is given — the page decides, as D-262 has it. R75 (FR-SET-1): it
+ * sits on the save row, `[ Save this place ] [ Clear saved ]`.
+ *
+ * `titled` is the settings page's too (R75, FR-SET-1): there the saved places are a block of their own,
+ * under a section heading like Location's, rather than the tail of the location section.
  */
-export function Favourites({ footer }: { footer?: ReactNode } = {}) {
+export function Favourites({ footer, titled = false }: { footer?: ReactNode; titled?: boolean } = {}) {
   const t = useT();
+  const headingId = useId();
   const observer = useAppStore((s) => s.observer);
   const favourites = useAppStore((s) => s.favourites);
   const add = useAppStore((s) => s.addFavourite);
@@ -42,10 +48,11 @@ export function Favourites({ footer }: { footer?: ReactNode } = {}) {
 
   if (observer === null && favourites.length === 0) return null;
   const activeCell = observer === null ? null : favouriteCellKey(observer);
+  const Block = titled ? 'section' : 'div';
 
   return (
-    <div className={styles.block} data-testid="favourites">
-      <p className={styles.heading}>{t.favourites.heading}</p>
+    <Block className={titled ? styles.section : styles.block} data-testid="favourites" {...(titled ? { 'aria-labelledby': headingId } : {})}>
+      {titled ? <SectionHeading id={headingId}>{t.favourites.heading}</SectionHeading> : <p className={styles.heading}>{t.favourites.heading}</p>}
       {favourites.length === 0 ? (
         <p className={styles.empty}>{t.favourites.empty}</p>
       ) : (
@@ -93,10 +100,10 @@ export function Favourites({ footer }: { footer?: ReactNode } = {}) {
           >
             {t.favourites.save}
           </button>
+          {footer}
         </div>
       )}
       <p className={styles.limit}>{t.favourites.limit(MAX_FAVOURITES)}</p>
-      {footer}
-    </div>
+    </Block>
   );
 }

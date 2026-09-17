@@ -300,18 +300,13 @@ export function App() {
   }
   /*
    * R52 (FR-COMP-2): the settings page is a screen, like the live one — the
-   * whole of it, at every width, with its own header and the shell's footer
-   * under it. Rendered after `#live` so a hash that is somehow both is the live
-   * page, which is the one with a share link behind it.
+   * whole of it, at every width, with its own header. Rendered after `#live`
+   * so a hash that is somehow both is the live page, which is the one with a
+   * share link behind it. R75 (FR-SET-1, FR-SET-2): its foot is its own privacy
+   * line rather than the shell's footer, whose credits alone are a third of a
+   * 844 px phone.
    */
-  if (settings.active) {
-    return (
-      <>
-        <SettingsPage onLeave={settings.leave} />
-        <Footer />
-      </>
-    );
-  }
+  if (settings.active) return <SettingsPage onLeave={settings.leave} />;
   return (
     <>
       <Header inert={inert} />

@@ -31,9 +31,14 @@ export interface InstallActionProps {
   env?: InstallEnv;
   /** Rendered beside the action: the hint's "Not now", and nothing on the settings page (V11-16). */
   trailing?: ReactNode;
+  /**
+   * R75 (FR-SET-1): the action alone, without the sentence offering it — the settings page's `Install` row is a
+   * label and its control on one line. The iOS note stays, since there it is the whole of the offer.
+   */
+  bare?: boolean;
 }
 
-export function InstallAction({ env, trailing }: InstallActionProps) {
+export function InstallAction({ env, trailing, bare = false }: InstallActionProps) {
   const t = useT();
   const dismiss = useAppStore((s) => s.dismissInstallHint);
   const { event: offer, available } = useInstallOffer(env);
@@ -56,7 +61,7 @@ export function InstallAction({ env, trailing }: InstallActionProps) {
 
   return (
     <>
-      {offer === null ? t.install.ios : t.install.offer}
+      {offer === null ? t.install.ios : !bare && t.install.offer}
       {/* The answers sit on a row of their own, each a tap target tall: side by
           side on one wrapped line their 48 px boxes would overlap, and
           "install" and "not now" are not a pair to be vague about. On the

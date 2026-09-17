@@ -123,6 +123,23 @@ export const ui = {
     back: '\u2190 Back',
     /** Names the region for assistive technology; the page shows no title of its own (the mockup). */
     heading: 'Settings',
+    /**
+     * R75 (FR-SET-1): the one group for the facts about the device — language, theme, install — under one
+     * heading, last on the page.
+     */
+    browser: 'This browser',
+    /**
+     * R75 (FR-SET-1): the disclosure beside `[ Use my location ]` that opens the coordinate and altitude fields.
+     * Lower case, like the other bracketed text controls; the row is 35 of FR-COMP-4's 36 cells.
+     */
+    coordinates: 'coordinates',
+    /**
+     * R75 (FR-SET-1): the clear action on the saved places' row, beside `[ Save this place ]`. The full
+     * `location.clearSaved` stays its accessible name; this is only what fits the row.
+     */
+    clearSaved: 'Clear saved',
+    /** R75 (FR-SET-1): the page's foot, which takes the place of the saved-here sentence and of the footer. */
+    privacy: 'No tracking. Your location is saved in this browser only.',
   },
 
   compass,
