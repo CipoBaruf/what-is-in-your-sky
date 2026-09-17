@@ -187,18 +187,19 @@ test.describe('the settings page fits one 390 × 844 viewport (FR-SET-2, US-29 A
   for (const locale of ['en', 'es'] as const) {
     test(`with no observer, the coordinates closed and the offer shown, in ${locale}`, async ({ page }) => {
       await openSettingsWith(page, { locale });
+      // The fit first: on a page that predates the disclosure the failure then says how tall the page is.
+      await fitsOneViewport(page);
       await expect(page.getByTestId('coords-disclosure')).toHaveAttribute('aria-expanded', 'false');
       await expect(page.getByTestId('favourites')).toHaveCount(0);
-      await fitsOneViewport(page);
     });
 
     test(`with an observer and ${String(SETTINGS_FIT_PLACES)} saved places, in ${locale}`, async ({ page }) => {
       const favourites = SAVED.slice(0, SETTINGS_FIT_PLACES).map((place, i) => ({ ...place, addedAt: NINE_DAYS_ON - (i + 2) * 86_400_000, lastUsedAt: NINE_DAYS_ON - (i + 1) * 60_000 }));
       await openSettingsWith(page, { locale, observer: NEUQUEN_OBSERVER, favourites });
       await expect(page.getByTestId('favourite')).toHaveCount(SETTINGS_FIT_PLACES);
+      await fitsOneViewport(page);
       // The observer came from coordinates, so the disclosure starts open: the larger of its two states.
       await expect(page.getByTestId('coords-disclosure')).toHaveAttribute('aria-expanded', 'true');
-      await fitsOneViewport(page);
     });
   }
 });
