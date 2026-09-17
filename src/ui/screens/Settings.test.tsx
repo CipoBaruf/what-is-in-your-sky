@@ -1,18 +1,21 @@
 /**
- * R52 (FR-COMP-2, US-20 AC2/AC4, V11-16, D-184, D-260): the settings page.
+ * R52 (FR-COMP-2, US-20 AC2/AC4, V11-16, D-184, D-260), R75 (FR-SET-1, US-29
+ * AC1): the settings page.
  *
  * The controls are the home screen's own, so what is tested here is what the
- * screen adds: that it renders them in FR-COMP-2's order, that each one still
+ * screen adds: that it renders them in FR-SET-1's order, that the coordinates
+ * disclosure starts open only for a coordinates observer, that each one still
  * writes the store field it wrote on the home screen with no save action in
  * between, that the install row is the offer and not the answer, and that the
  * three ways out lead back to the home screen. The route and the header are
  * covered from `App` (`App.settings.test.tsx`), which is where they meet.
  */
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { en } from '../../i18n/en';
+import { es } from '../../i18n/es';
 import { I18nProvider } from '../../i18n/useT';
 import { INSTALL_SNOOZE_DAYS } from '../../lib/installSnooze';
 import type { Observer } from '../../model';
@@ -48,38 +51,119 @@ afterEach(() => {
   forgetInstallOffer();
 });
 
-describe('<SettingsPage> (FR-COMP-2)', () => {
-  it('renders the sections in FR-COMP-2 order, with no save action and no axe violations', async () => {
+describe('<SettingsPage> (FR-COMP-2 as amended, FR-SET-1)', () => {
+  it('renders the three blocks in FR-SET-1 order, with no save action and no axe violations', async () => {
     act(() => {
       appStore.setState({ observer });
     });
     offerAnInstall();
     const { container } = show(vi.fn(), CHROMIUM);
-    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([en.app.language, en.app.theme, en.location.heading, en.install.action]);
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([en.location.heading, en.favourites.heading, en.settings.browser]);
     /*
-     * FR-COMP-2's order, read off the page rather than off the headings: the
-     * saved places are titled by a paragraph rather than a heading (R28's own
-     * choice) and the clear action has no title at all, so the six rows are
-     * compared by where their text falls in the rendered order.
-     *
-     * The owner, on a phone (2026-09-09): the clear action is *inside* the saved
-     * places now, not last after the install offer — a reader dropping the saved
-     * place is already looking at the places they keep, and under the offer it
-     * was missed. FR-COMP-2's stated order says last; this is the departure, and
-     * the order below is what the page does.
+     * The order in the document, not only in the headings: each block and each
+     * row FR-SET-1 names is found and compared by its position, so a row that
+     * moved into the wrong block fails here even when the headings stand.
      */
-    const text = screen.getByRole('main').textContent ?? '';
-    const at = (needle: string): number => {
-      const index = text.indexOf(needle);
-      expect(index, `"${needle}" is on the page`).toBeGreaterThanOrEqual(0);
-      return index;
-    };
-    const order = [en.app.language, en.app.theme, en.location.heading, en.favourites.heading, en.location.clearSaved, en.install.action].map(at);
-    expect(order).toEqual([...order].sort((a, b) => a - b));
+    const main = screen.getByRole('main');
+    const rows = [
+      screen.getByRole('region', { name: en.location.heading }),
+      screen.getByRole('combobox', { name: en.location.placeLabel }),
+      screen.getByTestId('location-actions'),
+      screen.getByText(en.location.precisionNote),
+      screen.getByRole('region', { name: en.favourites.heading }),
+      screen.getByTestId('save-favourite'),
+      screen.getByTestId('clear-saved-location'),
+      screen.getByRole('region', { name: en.settings.browser }),
+      screen.getByRole('group', { name: en.app.language }),
+      screen.getByRole('group', { name: en.app.theme }),
+      screen.getByTestId('install-action'),
+      screen.getByText(en.settings.privacy),
+    ];
+    for (const [before, after] of rows.slice(0, -1).map((row, i) => [row, rows[i + 1]] as const)) {
+      if (after === undefined) continue;
+      expect(before.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING, `${before.textContent ?? ''} comes before ${after.textContent ?? ''}`).toBeTruthy();
+    }
+    // The disclosure on the device row (jsdom has no geolocation, so the device button itself is the e2e spec's),
+    // and the clear beside the save (FR-SET-1).
+    expect(screen.getByTestId('location-actions')).toContainElement(screen.getByTestId('coords-disclosure'));
+    expect(screen.getByTestId('clear-saved-location').closest('div')).toBe(screen.getByTestId('save-favourite').parentElement);
+    // The privacy line is the foot: after the whole of the page's main region, not inside it.
+    expect(main).not.toContainElement(screen.getByText(en.settings.privacy));
+    // Its sentence took the place of the saved-here line, which is not said twice.
+    expect(screen.queryByText(en.location.savedHere)).toBeNull();
     expect(screen.queryByRole('button', { name: /save settings/i })).toBeNull();
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it('draws the Spanish page with the same blocks and no English (FR-I18N-1)', () => {
+    act(() => {
+      appStore.setState({ observer });
+    });
+    show(vi.fn(), NOTHING_TO_OFFER, 'es');
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([es.location.heading, es.favourites.heading, es.settings.browser]);
+    expect(screen.getByTestId('coords-disclosure')).toHaveTextContent(es.settings.coordinates);
+    expect(screen.getByTestId('clear-saved-location')).toHaveTextContent(es.settings.clearSaved);
+    expect(screen.getByText(es.settings.privacy)).toBeInTheDocument();
+  });
+
+  it('with no observer, has no saved places block and the coordinates closed', () => {
+    show();
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([en.location.heading, en.settings.browser]);
+    expect(screen.queryByTestId('favourites')).toBeNull();
+    expect(screen.getByTestId('coords-disclosure')).toHaveAttribute('aria-expanded', 'false');
+  });
+});
+
+describe('<SettingsPage> coordinates disclosure (FR-SET-1)', () => {
+  const sources: readonly [Observer['source'], boolean, Observer][] = [
+    ['coords', true, observer],
+    ['geocode', false, { ...observer, label: 'Neuquén', source: 'geocode' }],
+    ['device', false, { ...observer, source: 'device', accuracyM: 30 }],
+  ];
+
+  it.each(sources)('with a %s observer, is open by default: %s', (_source, open, given) => {
+    act(() => {
+      appStore.setState({ observer: given });
+    });
+    show();
+    const disclosure = screen.getByTestId('coords-disclosure');
+    expect(disclosure).toHaveAttribute('aria-expanded', String(open));
+    const region = document.getElementById(disclosure.getAttribute('aria-controls') ?? '');
+    expect(region).not.toBeNull();
+    expect(region?.hidden).toBe(!open);
+    if (open) expect(screen.getByLabelText(en.location.coordsLabel)).toBeVisible();
+    else expect(screen.getByLabelText(en.location.coordsLabel)).not.toBeVisible();
+  });
+
+  it('opens and closes the fields, and keeps what was typed while closed', async () => {
+    show();
+    const disclosure = screen.getByTestId('coords-disclosure');
+    await userEvent.click(disclosure);
+    expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+    const field = screen.getByLabelText(en.location.coordsLabel);
+    expect(field).toBeVisible();
+    await userEvent.type(field, '-38.93, -67.99');
+    expect(appStore.getState().observer).toMatchObject({ lat: -38.93, lon: -67.99, source: 'coords' });
+    await userEvent.click(disclosure);
+    expect(disclosure).toHaveAttribute('aria-expanded', 'false');
+    expect(field).not.toBeVisible();
+    await userEvent.click(disclosure);
+    expect(screen.getByLabelText(en.location.coordsLabel)).toHaveValue('-38.93, -67.99');
+  });
+
+  it('is opened by a click on the place picker’s "enter coordinates instead" link, so the link has a field to focus', () => {
+    show();
+    const link = document.createElement('a');
+    link.href = '#coords';
+    // The picker's own link only appears after a failed search; the page's capture listener is what is under test.
+    screen.getByRole('region', { name: en.location.heading }).append(link);
+    fireEvent.click(link);
+    expect(screen.getByTestId('coords-disclosure')).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByLabelText(en.location.coordsLabel)).toBeVisible();
+  });
+});
+
+describe('<SettingsPage> (FR-COMP-2: the controls and the way back, unchanged)', () => {
   it('writes the same store fields the home screen wrote, at once (US-20 AC2)', async () => {
     show();
     await userEvent.click(screen.getByRole('button', { name: 'Español' }));
