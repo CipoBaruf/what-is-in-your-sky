@@ -75,9 +75,15 @@ export interface LocationInputProps {
   showSavedHere?: boolean;
   /** R75 (FR-SET-1): whether the saved places close this section. The settings page makes them a block of their own. */
   showFavourites?: boolean;
+  /**
+   * R75 (FR-SET-1): whether an observer typed as coordinates is restated in a
+   * line under the fields. The settings page says no — the fields hold the same
+   * numbers — and keeps the line for a device fix, whose accuracy it carries.
+   */
+  showActiveCoords?: boolean;
 }
 
-export function LocationInput({ observer, onObserver, onClear, search, geolocation, showClear = true, savedPlacesFooter, arrangeInputs, showSavedHere = true, showFavourites = true }: LocationInputProps) {
+export function LocationInput({ observer, onObserver, onClear, search, geolocation, showClear = true, savedPlacesFooter, arrangeInputs, showSavedHere = true, showFavourites = true, showActiveCoords = true }: LocationInputProps) {
   const t = useT();
   // The observer the inputs were seeded from; a new key remounts them. `focus`
   // is set only by the clear, the one reseed that moves the reader's focus.
@@ -134,7 +140,7 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
           {device}
         </>
       )}
-      {observer && observer.source !== 'geocode' && (
+      {observer && observer.source !== 'geocode' && (showActiveCoords || observer.source !== 'coords') && (
         <p className={styles.active} data-testid="active-location">
           {t.location.active({
             coords: coordsLabel(observer.lat, observer.lon),

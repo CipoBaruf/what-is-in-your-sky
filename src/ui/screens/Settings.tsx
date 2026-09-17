@@ -102,7 +102,7 @@ export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
           </button>
         </p>
 
-        <div onClickCapture={openCoordsForLink}>
+        <div className={styles.location} onClickCapture={openCoordsForLink}>
           <LocationInput
             observer={observer}
             onObserver={setObserver}
@@ -111,6 +111,7 @@ export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
             showClear={false}
             showSavedHere={false}
             showFavourites={false}
+            showActiveCoords={false}
             arrangeInputs={({ coords, device }) => (
               <>
                 <div className={styles.controlRow} data-testid="location-actions">
@@ -136,7 +137,7 @@ export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
           />
         </div>
 
-        <Favourites titled footer={<ClearSavedLocation short />} />
+        <Favourites titled showLimit={false} footer={<ClearSavedLocation short />} />
 
         <section aria-labelledby={browserId} className={styles.browser} data-testid="settings-browser">
           <SectionHeading id={browserId}>{t.settings.browser}</SectionHeading>

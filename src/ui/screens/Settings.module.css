@@ -2,10 +2,24 @@
    read top to bottom in the order FR-SET-1 states is the whole of its layout —
    the wide shell's two columns are for a screen that has a list beside its
    controls, and this one has none. */
+/* R75 (FR-SET-2): the page's whole budget is 844 px, so it is spaced by its
+   own structure rather than by gaps. Each block opens on a character-rule
+   heading, which is the separation; every control row is a 48 px tap box
+   around a 24 px line, so it already carries a quarter-row above and below its
+   text; and the labels sit directly on their fields. Measured in Spanish with
+   the coordinate fields open and two saved places, that is what takes the page
+   from 895 px to inside the viewport. */
 .page {
   display: grid;
   align-content: start;
-  gap: var(--row);
+  gap: 0;
+  padding-top: calc(0.5 * var(--row));
+  padding-bottom: 0;
+}
+
+.location section > div:first-of-type,
+.coords > div > div {
+  gap: 0;
 }
 
 .backRow {
@@ -40,13 +54,49 @@
   gap: var(--cell);
 }
 
+.controlRow > * {
+  margin-bottom: 0;
+}
+
 .controlRow > .link {
   min-height: var(--tap);
 }
 
-/* The fields the disclosure opens, under the row. `hidden` takes them out. */
-.coords {
-  display: grid;
+/* On this row the device button is drawn as the bracketed text control beside
+   it rather than as a bordered box: the box's two cells of padding a side are
+   what push `[ coordinates ]` onto a second line at 390 px. */
+.controlRow button {
+  color: var(--accent);
+  background: none;
+  border: 0;
+  padding-inline: 0;
+}
+
+/* The fields the disclosure opens, under the row; `hidden` takes them out, so
+   this block sets no `display` of its own. The two fields share one line:
+   22 + 2 + the altitude label's 12 is 36 cells, where the panel's 24-cell
+   coordinate field would wrap the altitude under it. */
+.coords > div {
+  margin-bottom: 0;
+}
+
+.coords input:not([inputmode='decimal']) {
+  width: calc(22 * var(--cell));
+}
+
+/* The Location heading keeps half a row above the place field's label; the
+   other two headings sit on rows of tap-tall controls, which space themselves. */
+.page section > h2 {
+  margin-bottom: 0;
+}
+
+.page .location section > h2 {
+  margin-bottom: calc(0.5 * var(--row));
+}
+
+/* The place field's own bottom margin is the wide panel's; here the control row under it is tap-tall. */
+.location section > div:first-of-type {
+  margin-bottom: 0;
 }
 
 /* R75 (FR-SET-1, D-445): one heading over three label-and-control rows. The
@@ -55,10 +105,6 @@
 .browser {
   display: grid;
   gap: 0;
-}
-
-.browser > h2 {
-  margin-bottom: calc(0.5 * var(--row));
 }
 
 .rows {
@@ -85,7 +131,8 @@
 /* R75 (FR-SET-1): the foot of the page, in place of the compact footer. */
 .privacy {
   color: var(--fg-dim);
-  padding-bottom: var(--row);
+  padding-top: 0;
+  padding-bottom: calc(0.5 * var(--row));
 }
 
 .privacy > p {

@@ -7,8 +7,11 @@
  * languages; this measures the boxes the browser actually laid out, on the one
  * viewport FR-COMP-4 names.
  */
-import { expect, test, type Locator } from '@playwright/test';
-import { seedStoredRun } from './liveHelpers';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import { SETTINGS_FIT_PLACES } from '../../src/lib/layout';
+import type { Observer } from '../../src/model';
+import { NINE_DAYS_ON, seedStoredRun, stubNetwork } from './liveHelpers';
+import { NEUQUEN as NEUQUEN_OBSERVER } from './observers';
 
 const COMPACT = { width: 390, height: 844 };
 const WIDE = { width: 1280, height: 900 };
@@ -57,8 +60,8 @@ test.describe('the settings page at 390 px (FR-COMP-1..4, US-20)', () => {
     await page.getByTestId('settings-link').click();
     await expect(page).toHaveURL(/#settings$/);
     await expect(page.getByTestId('settings-back')).toBeVisible();
-    // FR-COMP-2's order, on the page the reader is now looking at.
-    await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Language', 'Theme', 'Location']);
+    // FR-COMP-2's order as FR-SET-1 inverts it, on the page the reader is now looking at.
+    await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Location', 'Saved places', 'This browser']);
     await expect(page.getByRole('button', { name: 'Clear saved location' })).toBeVisible();
   });
 
@@ -134,6 +137,70 @@ test.describe('the settings page at 390 px (FR-COMP-1..4, US-20)', () => {
     await page.getByTestId('settings-link').click();
     await expect(page.getByTestId('settings-install')).toHaveCount(0);
   });
+});
+
+/**
+ * R75 (FR-SET-2, US-29 AC2): the whole page in one 390 × 844 viewport, in both
+ * languages — Spanish is the longer and the real test — and in the two states
+ * the requirement names: a first visit with nothing set, and a reader with a
+ * place and `SETTINGS_FIT_PLACES` saved. The install offer is shown in both,
+ * since it is a row the page has to hold whenever the browser offers one.
+ */
+const DARK_SITE: Observer = { lat: -39.26, lon: -68.78, altM: 380, label: 'Villa El Chocón', source: 'geocode', timeZone: 'America/Argentina/Salta' };
+const SAVED: readonly { cellKey: string; observer: Observer }[] = [
+  { cellKey: '-38.93,-67.99', observer: NEUQUEN_OBSERVER },
+  { cellKey: '-39.26,-68.78', observer: DARK_SITE },
+];
+
+async function openSettingsWith(page: Page, prefs: Record<string, unknown>): Promise<void> {
+  await page.clock.setFixedTime(NINE_DAYS_ON);
+  await stubNetwork(page);
+  await page.addInitScript(
+    ([key, value]: [string, string]) => {
+      localStorage.setItem(key, value);
+    },
+    ['wiys:prefs:v1', JSON.stringify(prefs)] as [string, string],
+  );
+  await page.goto('/#settings');
+  await expect(page.getByTestId('settings-back')).toBeVisible();
+  await page.evaluate(() => {
+    window.dispatchEvent(Object.assign(new Event('beforeinstallprompt', { cancelable: true }), { prompt: () => Promise.resolve() }));
+  });
+  await expect(page.getByTestId('install-action')).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+}
+
+async function fitsOneViewport(page: Page): Promise<void> {
+  const { scrollHeight, innerHeight } = await page.evaluate(() => ({ scrollHeight: document.documentElement.scrollHeight, innerHeight: window.innerHeight }));
+  expect(scrollHeight, `the page is ${String(scrollHeight)} px in a ${String(innerHeight)} px viewport`).toBeLessThanOrEqual(innerHeight);
+  const privacy = page.getByTestId('settings-privacy');
+  await expect(privacy).toBeVisible();
+  const box = await privacy.evaluate((el: HTMLElement) => el.getBoundingClientRect().toJSON() as DOMRect);
+  expect(box.top).toBeGreaterThanOrEqual(0);
+  expect(box.bottom).toBeLessThanOrEqual(innerHeight);
+  // The privacy line is the foot: nothing on the page is drawn below it.
+  const lowest = await page.evaluate(() => Math.max(...Array.from(document.querySelectorAll('main *')).map((el) => el.getBoundingClientRect().bottom)));
+  expect(lowest).toBeLessThanOrEqual(box.top);
+}
+
+test.describe('the settings page fits one 390 × 844 viewport (FR-SET-2, US-29 AC2)', () => {
+  for (const locale of ['en', 'es'] as const) {
+    test(`with no observer, the coordinates closed and the offer shown, in ${locale}`, async ({ page }) => {
+      await openSettingsWith(page, { locale });
+      await expect(page.getByTestId('coords-disclosure')).toHaveAttribute('aria-expanded', 'false');
+      await expect(page.getByTestId('favourites')).toHaveCount(0);
+      await fitsOneViewport(page);
+    });
+
+    test(`with an observer and ${String(SETTINGS_FIT_PLACES)} saved places, in ${locale}`, async ({ page }) => {
+      const favourites = SAVED.slice(0, SETTINGS_FIT_PLACES).map((place, i) => ({ ...place, addedAt: NINE_DAYS_ON - (i + 2) * 86_400_000, lastUsedAt: NINE_DAYS_ON - (i + 1) * 60_000 }));
+      await openSettingsWith(page, { locale, observer: NEUQUEN_OBSERVER, favourites });
+      await expect(page.getByTestId('favourite')).toHaveCount(SETTINGS_FIT_PLACES);
+      // The observer came from coordinates, so the disclosure starts open: the larger of its two states.
+      await expect(page.getByTestId('coords-disclosure')).toHaveAttribute('aria-expanded', 'true');
+      await fitsOneViewport(page);
+    });
+  }
 });
 
 test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', () => {

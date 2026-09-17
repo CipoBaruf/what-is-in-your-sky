@@ -35,9 +35,10 @@ import styles from './Favourites.module.css';
  * sits on the save row, `[ Save this place ] [ Clear saved ]`.
  *
  * `titled` is the settings page's too (R75, FR-SET-1): there the saved places are a block of their own,
- * under a section heading like Location's, rather than the tail of the location section.
+ * under a section heading like Location's, rather than the tail of the location section, and without the
+ * sentence stating the limit: FR-SET-1 draws the list and one row, and the page has to fit 390 × 844.
  */
-export function Favourites({ footer, titled = false }: { footer?: ReactNode; titled?: boolean } = {}) {
+export function Favourites({ footer, titled = false, showLimit = true }: { footer?: ReactNode; titled?: boolean; showLimit?: boolean } = {}) {
   const t = useT();
   const headingId = useId();
   const observer = useAppStore((s) => s.observer);
@@ -103,7 +104,7 @@ export function Favourites({ footer, titled = false }: { footer?: ReactNode; tit
           {footer}
         </div>
       )}
-      <p className={styles.limit}>{t.favourites.limit(MAX_FAVOURITES)}</p>
+      {showLimit && <p className={styles.limit}>{t.favourites.limit(MAX_FAVOURITES)}</p>}
     </Block>
   );
 }
