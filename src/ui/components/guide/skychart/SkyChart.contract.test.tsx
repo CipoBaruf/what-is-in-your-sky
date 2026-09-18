@@ -32,6 +32,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { goldenPassFixture } from '../../../../../tests/support/catalogFixtures';
 import { FIXTURES_DIR } from '../../../../../tests/support/fixtures';
 import { stubMatchMedia } from '../../../../../tests/support/matchMedia';
+import { stubResizeObserver } from '../../../../../tests/support/resizeObserver';
 import { MOON_FIXTURE } from '../../../../../tests/support/moonFixtures';
 import { formatClock } from '../../../../lib/timeFormat';
 import { PassNumbers } from '../PassNumbers';
@@ -85,9 +86,13 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
    */
   const asScreen = view.id === 'window';
   /*
-   * FR-FSC-4 (D-323): a screen upright is the note and nothing else, and jsdom's
-   * viewport is portrait by default, so the window's cases stub a landscape
-   * phone — 844 x 390, the size the captures use — for as long as they run.
+   * R79 (FR-LEG-2 as amended v2.0, FR-GUT-1, FR-GUT-7; D-451): sideways the
+   * screen's bottom edge is the compass gutter and the legend is not rendered
+   * there; upright it is two rows under the band. So the window's cases are a
+   * phone held upright — the screen's measured box 390 x 844, the size the
+   * captures use — which is the one place the screen still carries the legend
+   * this contract is about. (Before R79 they stubbed a landscape viewport, for
+   * the strip that stood along the bottom sideways.)
    */
   let media: { restore: () => void } | null = null;
   beforeAll(async () => {
@@ -103,7 +108,8 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
   beforeEach(() => {
     if (asScreen) {
       withPhone();
-      media = stubMatchMedia(844, 390);
+      stubResizeObserver(390, 844);
+      media = stubMatchMedia(390, 844);
     } else if (view.id !== 'window') appStore.getState().setChartView(view.id);
   });
   afterEach(() => {

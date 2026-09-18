@@ -18,7 +18,7 @@
 import { act, fireEvent, render, screen as rtl, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../tests/support/catalogFixtures';
-import { stubMatchMedia } from '../../../../../tests/support/matchMedia';
+import { stubResizeObserver } from '../../../../../tests/support/resizeObserver';
 import { formatClock } from '../../../../lib/timeFormat';
 import type { Observer } from '../../../../model';
 import { appStore } from '../../../../state';
@@ -161,15 +161,15 @@ describe('the chart as a screen (FR-FSC-1, FR-FSC-3, D-322)', () => {
    * form, so a row is one line and the two rows the strip is allowed are two
    * lines of text. The peak is what goes — on a screen the picture is the peak.
    */
-  it('gives the legend the short rows a two-row strip can hold', async () => {
-    // R63 (FR-FSC-4, D-323): on a screen the window hands the frame no legend while the phone is upright,
-    // so the strip is asked for on a landscape phone — jsdom's default query answers portrait.
-    const media = stubMatchMedia(844, 390);
+  it('gives the legend the short rows its two rows can hold', async () => {
+    // R79 (FR-GUT-7, FR-LEG-2 as amended v2.0): sideways the screen's bottom edge is the gutter and there is no
+    // legend; upright it is two rows under the band. So the screen's measured box is a phone held upright.
+    stubResizeObserver(390, 844);
     const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} screen />);
     await waitFor(() => {
       expect(container.querySelector('[data-drawing="window"]')).not.toBeNull();
     });
-    media.restore();
+    vi.unstubAllGlobals();
     const clock = (ms: number): string => formatClock(ms, observer.timeZone, 'en');
     const list = rtl.getByTestId('chart-legend');
     expect(list).toHaveAttribute('data-screen', 'true');
