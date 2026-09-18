@@ -185,10 +185,10 @@ test.describe('the live page with the sky screen open upright', () => {
       await expect(page.getByTestId('stripe-block')).toHaveCount(0);
       await expect(page.getByTestId('playback-row')).toHaveCount(0);
       await expect(page.getByTestId('live-side')).toHaveCount(0);
-      // FR-FSC-4 as rewritten / FR-FSC-11 / US-21 AC12: upright, the picture is drawn in the portrait box with
-      // one line of advice over it, in this page's language.
+      // FR-FSC-4 as rewritten / FR-GUT-7 / US-21 AC12 as amended v2.0: upright, the picture is drawn in the band
+      // with the advice as a line under the countdown, in this page's language.
       await expect(page.locator('[data-drawing="window"] [data-horizon]')).toHaveCount(1);
-      await expect(page.getByTestId('window-turn-note')).toHaveText(note);
+      await expect(page.getByTestId('window-turn-advice')).toHaveText(note);
       await expect(page.getByRole('button', { name: locale === 'en' ? 'Close' : 'Cerrar' })).toBeVisible();
       // The capture the PR carries: the screen as an upright phone gets it, in each language. R73 renamed it
       // off `r66-…`, whose two files are the evidence for the state this replaces and stay as they were.

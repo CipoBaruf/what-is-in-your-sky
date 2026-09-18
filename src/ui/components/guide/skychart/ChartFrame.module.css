@@ -552,6 +552,9 @@
    page puts in it is. */
 .screen .overlay {
   position: absolute;
+  /* R79: over the readout and the gutter, which are lifted over the drawing (and upright the readout's row runs
+     under the `×`, whose button must stay the thing a tap there reaches). */
+  z-index: 2;
   inset: 0;
   pointer-events: none;
 }
