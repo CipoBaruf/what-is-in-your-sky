@@ -26,3 +26,98 @@
   margin: 0;
   color: var(--danger);
 }
+
+/* R76 (FR-FIRST-2, board 1B): the home group's pair. One label over the two
+   fields, the coordinates taking what the altitude leaves, and the two on one
+   line — the fields' own wrappers step aside (`display: contents`) so their
+   label, field and message are placed on the pair's grid directly. The
+   altitude's label is read, not shown: its unit is inside its box instead,
+   "0 m", as the board draws it. The board's numbers: a 14 px label, 8 px down
+   to the fields, a cell between them; on a phone a ruled box 12 px by a cell
+   inside, and the altitude 96 px; in the wide pane no box, and the altitude
+   80 px. */
+.home {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--alt-width);
+  column-gap: var(--cell);
+  row-gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0;
+  align-content: start;
+  /* Holds the altitude's read-only label, which is absolutely placed (`sr-only`). */
+  position: relative;
+}
+
+.boxed {
+  --alt-width: calc(10 * var(--cell));
+  padding: 0.75rem var(--cell);
+  border: 1px solid var(--rule);
+}
+
+.plain {
+  --alt-width: 5rem;
+}
+
+.home > .field {
+  display: contents;
+}
+
+.home .coordsField > label {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+}
+
+.home .input {
+  grid-column: 1;
+  grid-row: 2;
+  width: 100%;
+}
+
+.altBox {
+  grid-column: 2;
+  grid-row: 2;
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  border: 1px solid var(--edge);
+  box-sizing: border-box;
+}
+
+/* The ring is the box's, since the field inside it has no border of its own (FR-X-5: replaced, not removed). */
+.altBox:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.altBox .altitude {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  padding-right: calc(2 * var(--cell));
+  /* The box is the tap target and carries the border, so the field inside is the box's height less it. */
+  min-height: calc(var(--tap) - 2px);
+  border: 0;
+  background: transparent;
+}
+
+.altBox .altitude:focus-visible {
+  outline: none;
+}
+
+/* After the field's cell of padding, the value's characters and one space; clicks pass through to the field. */
+.unit {
+  position: absolute;
+  top: 50%;
+  left: calc((var(--value-cells, 1) + 2) * var(--cell));
+  transform: translateY(-50%);
+  color: var(--fg-dim);
+  pointer-events: none;
+}
+
+.home .error {
+  grid-column: 1 / -1;
+}

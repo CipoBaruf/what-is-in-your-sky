@@ -62,6 +62,12 @@
      inside the table's range. */
   --cell: 1ch;
   --row: 1.5rem;
+  /* R76 (board 1B, D-504): the redesign's second size of text — labels, notes,
+     the step line and every sentence under a heading — at 14 px on a 20 px
+     line. The body stays 16 on 24; `--cell` is still the body's advance, so a
+     width written in cells is the same width whatever sits in it. */
+  --small: 0.875rem;
+  --small-row: 1.25rem;
   /* G6: minimum tap target, two text rows (48 px at the 16 px base, above the 44 px floor). */
   --tap: calc(2 * var(--row));
 

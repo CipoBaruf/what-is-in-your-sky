@@ -43,3 +43,48 @@
 .standaloneClear {
   margin: 0;
 }
+
+/* R76 (FR-FIRST-2, board 1B): the home page's input group — the primary
+   action, then its two alternatives, one column at every width, as the board
+   draws it in the phone and in the wide pane alike; 19 px between the three
+   (the board's 1.2 rem), and the foot's note at 14 px. On a phone the foot is
+   ruled off and stands at the bottom of the screen (`margin-top: auto`, in a
+   cold open that is one screen tall, App.module.css); in the wide pane it
+   follows the fields at the same 19 px. The alternatives' wrapper steps aside
+   so the three are one list's items. */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+/* The saved places carry a row's margin for the settings panel, where they follow a sentence; in the group the grid's gap is already that row, and the two together left two. */
+.group > [data-testid='favourites'] {
+  margin-top: 0;
+}
+
+.inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.alternatives {
+  display: contents;
+}
+
+.foot {
+  display: grid;
+  gap: 0;
+}
+
+.group .note {
+  font-size: var(--small);
+  line-height: var(--small-row);
+}
+
+.group[data-look='boxed'] > .foot {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--rule);
+}

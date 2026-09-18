@@ -92,7 +92,12 @@ export async function openSettings(page: Page): Promise<boolean> {
   // so probing the DOM reads the layout the page is leaving rather than the one
   // it is in.
   const compact = !(await page.evaluate((query: string) => window.matchMedia(query).matches, WIDE_QUERY));
-  if (!compact) return false;
+  if (!compact) {
+    // R76 (FR-FIRST-4, FR-SET-3): on the wide home the form is the cold open's with no place, and one
+    // `[ change ]` away, in place, with one.
+    await openLocationGroup(page);
+    return false;
+  }
   const link = page.getByTestId('settings-link');
   await link.click();
   await expect(page.getByTestId('settings-back')).toBeVisible();
@@ -115,6 +120,17 @@ export async function openCoordinates(page: Page): Promise<void> {
     await page.mouse.move(0, 0);
   }
   await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+}
+
+/**
+ * R76 (FR-FIRST-4): the home page's input group — open already in the cold
+ * open, and under the location line's `[ change ]` once a place is set.
+ */
+export async function openLocationGroup(page: Page): Promise<void> {
+  const change = page.getByTestId('location-summary-change');
+  if ((await change.count()) === 0) return;
+  if ((await change.getAttribute('aria-expanded')) === 'false') await change.click();
+  await expect(page.getByTestId('location-group')).toBeVisible();
 }
 
 /** Back to the home screen, through the page's own control. */

@@ -94,6 +94,7 @@ export function markCells(sizePx: number): number {
 /** FR-PUB-11: the lockup beside the wordmark on the social preview. */
 export const MARK_LOCKUP_PX = 80;
 
+
 /**
  * FR-MARK-4 (d), (e) as amended v2.0.1 (D-460): the files the browser and the
  * OS require, and the dot grid each is drawn on. A file is the scene of a tier

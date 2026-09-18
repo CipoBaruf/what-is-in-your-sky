@@ -64,11 +64,15 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
   await expect(page.locator('html')).toHaveAttribute('lang', 'es');
   await expect(page).toHaveTitle(ES_TITLE);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(ES_HEADING);
-  await expect(page.getByRole('region', { name: 'Próximos pases' })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Ahora mismo' })).toBeVisible();
+  // R76 (FR-FIRST-1): the empty screen is the cold open, in Spanish from its step line to its foot notes.
+  await expect(page.getByRole('heading', { level: 2, name: '¿Desde dónde se va a mirar?' })).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Pasos' }).getByRole('listitem')).toHaveText(['[01] dónde', '02 cuándo', '03 qué']);
+  await expect(page.getByRole('button', { name: 'Usar mi ubicación' })).toBeVisible();
+  await expect(page.getByText('Guardada solo en este navegador.')).toBeVisible();
   await expect(page.getByRole('contentinfo')).toContainText('Sin analítica ni rastreo');
   // No English left anywhere on the empty screen.
   await expect(page.locator('body')).not.toContainText('Enter a place name');
+  await expect(page.locator('body')).not.toContainText('Where will you be looking from');
   await page.screenshot({ path: 'test-results/r17-home-390-es.png', fullPage: true });
 
   // FR-CI-3 (R37): the language is not the pass search. The page reopens on a stored 72 h run —

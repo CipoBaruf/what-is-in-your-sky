@@ -1,0 +1,44 @@
+/* R76 (FR-FIRST-3): the next event, the first block after the location
+   reading. The label is the hero card's kicker device, the headline the
+   countdown's own size, and the peak line dim under it. */
+.block {
+  display: grid;
+  gap: 0;
+}
+
+.eventLabel {
+  margin: 0;
+  color: var(--fg-dim);
+}
+
+.eventLabel::before {
+  content: '[';
+}
+
+.eventLabel::after {
+  content: ']';
+}
+
+.headline {
+  margin: 0;
+  font-size: 1.25rem;
+  /* One row a line (at the owner's gate): a long name wraps the headline, and at a row and a half its
+     two lines stood apart like two headlines — the name on one, the verb and the countdown on the next. */
+  line-height: var(--row);
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+.peak,
+.none {
+  margin: 0;
+  color: var(--fg-dim);
+}
+
+.separator {
+  color: var(--fg-dim);
+}
+
+.cloud {
+  color: var(--fg);
+}

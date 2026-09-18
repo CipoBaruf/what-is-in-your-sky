@@ -119,11 +119,16 @@ describe('<App> and the #settings route (FR-COMP-2)', () => {
     media.restore();
     media = stubMatchMedia(WIDE_PX);
     withSky();
-    render(<App />);
+    const { container } = render(<App />);
     expect(screen.queryByTestId('settings-link')).toBeNull();
-    // The wide home keeps the whole form where US-14 puts it.
+    // R76 (FR-FIRST-4, FR-SET-3): the wide home's location is the Where reading's line, and its
+    // `[ change ]` opens the whole form in place; nothing on the page links to #settings.
+    expect(container.querySelector('a[href="#settings"]')).toBeNull();
+    act(() => {
+      screen.getByTestId('location-summary-change').click();
+    });
     expect(screen.getByRole('region', { name: en.location.heading })).toBeInTheDocument();
-    expect(screen.queryByTestId('location-summary')).toBeNull();
+    expect(container.querySelector('a[href="#settings"]')).toBeNull();
     goTo('#settings');
     expect(screen.getByTestId('settings-back')).toBeInTheDocument();
   });

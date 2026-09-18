@@ -1,0 +1,5 @@
+/* R76 (FR-FIRST-4): one line under the next-event block. */
+.line {
+  margin: 0;
+  color: var(--fg-dim);
+}

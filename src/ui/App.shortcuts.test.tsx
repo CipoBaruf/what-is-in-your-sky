@@ -156,6 +156,8 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
   it('fires nothing while the location field has focus: the letters are typed (FR-DESK-4)', async () => {
     withPasses();
     render(<App />);
+    // R76 (FR-FIRST-4): with a place set the field is under the location line's `[ change ]`.
+    await userEvent.click(screen.getByTestId('location-summary-change'));
     const field = screen.getByLabelText(en.location.placeLabel);
     await userEvent.click(field);
     await userEvent.keyboard('jknvl');

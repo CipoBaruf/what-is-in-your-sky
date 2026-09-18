@@ -24,3 +24,18 @@
   flex: none;
   color: var(--fg);
 }
+
+/* R76 (board 1B): the home's pane headings. */
+.active,
+.active .title {
+  color: var(--accent);
+}
+
+.muted .title {
+  color: var(--fg-dim);
+}
+
+.active::after,
+.muted::after {
+  color: var(--rule);
+}

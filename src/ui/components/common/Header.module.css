@@ -127,13 +127,32 @@
 /* R23 (FR-DESK-2): the header spans both columns of the wide shell and puts
    its preference controls at the right of the title. The query's own literal
    is D-71's, checked against `--cell` by `tests/styles/breakpoint.test.ts`. */
+/* R76 (at the owner's gate): the first row is the title, `[ Live sky ]` and the
+   preferences on one baseline, and the tagline is a row of its own across the
+   whole header. Aligned to the top, the preferences' 48 px tap boxes put their
+   text twelve pixels under the title's; and inside the title's column the
+   tagline had only what the preferences left, so it wrapped at 1280 px and at
+   1024 px, where one line of it is 86 cells. */
 @media (min-width: 964px) {
   .wide {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
+    align-items: baseline;
     gap: 0 calc(2 * var(--cell));
     padding-bottom: var(--row);
     border-bottom: 1px solid var(--rule);
+  }
+
+  .wide > .tagline {
+    grid-column: 1 / -1;
+  }
+
+  /* The preferences keep their 48 px tap boxes, but the row reserves one line
+     for them, as the title's line is one: the boxes stand half a tap row into
+     the space above and below, as `inline-control` does (global.css). Without
+     this the title row was 48 px and every pane under the header 22 px lower
+     than board 1B draws it. */
+  .wide > .controls {
+    margin-block: calc((var(--row) - var(--tap)) / 2);
   }
 }

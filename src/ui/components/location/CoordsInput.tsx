@@ -98,9 +98,19 @@ export interface CoordsInputProps {
   id?: string;
   /** Pre-fills both fields (a restored `coords` observer, US-8); nothing is emitted for it. */
   initial?: { lat: number; lon: number; altM: number };
+  /**
+   * R76 (FR-FIRST-2, board 1B): how the pair is drawn. `panel`, the default, is
+   * the settings page's two labelled fields. The home group's two looks share
+   * one layout — one visible label over the pair, the altitude beside the
+   * coordinates with its unit inside its box ("0 m"), and the altitude's own
+   * label read by assistive technology only — and differ in the frame: `boxed`
+   * (a phone) sits in a ruled box, `plain` (the wide Where pane) does not.
+   */
+  look?: 'panel' | 'boxed' | 'plain';
 }
 
-export function CoordsInput({ onObserver, id, initial }: CoordsInputProps) {
+export function CoordsInput({ onObserver, id, initial, look = 'panel' }: CoordsInputProps) {
+  const home = look !== 'panel';
   const t = useT();
   const [text, setText] = useState(initial ? `${String(initial.lat)}, ${String(initial.lon)}` : '');
   const [altText, setAltText] = useState(initial ? String(initial.altM) : '0');
@@ -139,9 +149,23 @@ export function CoordsInput({ onObserver, id, initial }: CoordsInputProps) {
     emit(text, value);
   };
 
+  const altitude = (
+    <input
+      id={altId}
+      type="text"
+      inputMode="decimal"
+      autoComplete="off"
+      spellCheck={false}
+      value={altText}
+      onChange={handleAltChange}
+      aria-invalid={altError !== null}
+      aria-describedby={altError ? altErrorId : undefined}
+      className={styles.altitude}
+    />
+  );
   return (
-    <div className={styles.row}>
-      <div className={styles.field}>
+    <div className={home ? `${styles.row} ${styles.home} ${look === 'boxed' ? styles.boxed : styles.plain}` : styles.row}>
+      <div className={`${styles.field} ${styles.coordsField}`}>
         <label htmlFor={inputId}>{t.location.coordsLabel}</label>
         <input
           id={inputId}
@@ -162,20 +186,21 @@ export function CoordsInput({ onObserver, id, initial }: CoordsInputProps) {
           </p>
         )}
       </div>
-      <div className={styles.field}>
-        <label htmlFor={altId}>{t.location.altitudeLabel}</label>
-        <input
-          id={altId}
-          type="text"
-          inputMode="decimal"
-          autoComplete="off"
-          spellCheck={false}
-          value={altText}
-          onChange={handleAltChange}
-          aria-invalid={altError !== null}
-          aria-describedby={altError ? altErrorId : undefined}
-          className={styles.altitude}
-        />
+      <div className={`${styles.field} ${styles.altField}`}>
+        <label htmlFor={altId} className={home ? 'sr-only' : undefined}>
+          {t.location.altitudeLabel}
+        </label>
+        {home ? (
+          // The unit follows the value, "0 m", as the board writes it: placed a cell after the value's last character.
+          <span className={styles.altBox} style={{ ['--value-cells' as string]: String(altText.length) }}>
+            {altitude}
+            <span className={styles.unit} aria-hidden="true">
+              m
+            </span>
+          </span>
+        ) : (
+          altitude
+        )}
         {altError && (
           <p id={altErrorId} role="alert" className={styles.error}>
             {altitudeErrorText(t, altError)}

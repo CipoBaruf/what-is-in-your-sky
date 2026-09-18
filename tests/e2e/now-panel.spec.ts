@@ -47,7 +47,9 @@ test('at the R3 clock the panel says plainly that nothing is above 10°, with th
   await page.clock.setFixedTime(t);
   await page.goto('/');
   const panel = page.getByRole('region', { name: 'Right now' });
-  await expect(panel).toContainText('Enter a place name or coordinates to see what is overhead right now.');
+  // R76 (FR-FIRST-1): with no place the page is the cold open, and the panel waits for one.
+  await expect(page.getByTestId('cold-open')).toBeVisible();
+  await expect(panel).toHaveCount(0);
 
   await withSettings(page, async () => {
 

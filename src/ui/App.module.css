@@ -27,6 +27,154 @@
   gap: var(--row);
 }
 
+/* R76 (FR-FIRST-4): a reading is a column's own stack — its heading, then the
+   components the page already had, a row apart. */
+.reading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  /* Rows are their content's height and never less. A pane is a height-bounded
+     grid that scrolls itself (D-119), and when its content overflows, auto rows
+     are shrunk towards their items' automatic minimum — which is zero for the
+     character-rule heading, whose clip is `overflow: hidden`. The heading
+     vanished at 1280 px until the rows were told not to give. */
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: var(--row);
+  /* The headings read and not drawn inside it (below) are absolutely placed, and are held here: placed
+     against the page instead, a heading low in a column that scrolls itself stood below the viewport and
+     made the page scroll under it — 345 px at 1024 x 768 with a pass open (F-9's test). */
+  position: relative;
+}
+
+/* R76 (FR-FIRST-1, board 1B): the cold open on a phone — the step line, the
+   question and its sentence, and the group — one screen tall, so the group's
+   foot stands at the bottom of it (LocationInput.module.css). The board's
+   spacing: 1.2 rem (19 px) between blocks, half a rem (8 px) from the question
+   to its sentence; the header, the main's gap and the shell's bottom padding
+   are the four rows the screen's height is short of. */
+.cold {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  /* The board puts the step line 1.2 rem under the header, where the main's own gap is a row. */
+  margin-top: calc(1.2rem - var(--row));
+  /* The screen less the header's two rows, the step line's 1.2 rem above it and the shell's bottom row. */
+  min-height: calc(100svh - 3 * var(--row) - 1.2rem);
+}
+
+/* The group grows to the bottom of that screen, so its foot can be put there. */
+.cold > .locationGroup {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.cold > .locationGroup > * {
+  flex: 1 1 auto;
+}
+
+.coldHeading {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: normal;
+  line-height: 1.75rem;
+  color: var(--fg);
+}
+
+.coldSentence {
+  margin: calc(0.5rem - 1.2rem) 0 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+}
+
+/* `[01] where ── 02 when ── 03 what`: the current step bracketed and in the
+   accent, the others dim, the rules between them in `--rule` — they are the
+   list's punctuation, so the steps are read as three items and not as a
+   sentence (board 1B). */
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+}
+
+.stepItem + .stepItem::before {
+  content: ' ── ';
+  white-space: pre;
+  color: var(--rule);
+}
+
+.stepItem[aria-current='step'] {
+  color: var(--accent);
+}
+
+/* R76 (FR-FIRST-1, board 1B): the wide cold open's dimmed When and What — a
+   heading at the question's size, then what the pane will hold, in
+   `--fg-dim`, the stripe's placeholder in `--rule`. */
+.ghost {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  color: var(--fg-dim);
+}
+
+.ghostHeading {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.625rem;
+}
+
+.ghostStripe {
+  margin: 0;
+  font: inherit;
+  font-size: var(--small);
+  line-height: 1.125rem;
+  color: var(--rule);
+  white-space: pre;
+  overflow: hidden;
+}
+
+.ghostNote,
+.ghostCard {
+  margin: 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+}
+
+.ghostCard {
+  padding: 0.75rem;
+  border: 1px solid var(--rule);
+}
+
+/* The same margin in the Where pane on wide, under the location line: a row of gap and a row of margin was a two-row hole between the line and the saved places. */
+.where > [data-testid='favourites'] {
+  margin-top: 0;
+}
+
+/* R76 (D-471, at the owner's gate): inside a reading the Now panel, the Moon
+   line and the pass list keep their headed regions, so every name a reader or
+   a test finds them by is still theirs — but the headings are read, not drawn.
+   Drawn, they were a second and a third character rule under the reading's own
+   (`02 When`, then `Right now`, then `Moon tonight`), three rules for one
+   pane. */
+.when > section > h2:first-child,
+.listColumn > section > h2:first-child {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* R23 (FR-DESK-2). Wide: the header spans both columns and puts its controls
    at the right of the title; the left column is fixed at 40 cells — location,
    the elements banners, the Now panel, and the Moon line's slot when R30 adds
@@ -52,6 +200,20 @@
 
   .main > .column {
     min-height: 0;
+  }
+
+  /* R76 (FR-FIRST-1, board 1B): on a desk the cold open is the Where pane, in
+     the same grid as the populated page — two columns here, three panes from
+     `HOME_THREE_PANE_MIN_CELLS` — with the dimmed When and What beside it. Its
+     question is the board's 20 px, and it is not a screen tall. */
+  .cold {
+    margin-top: 0;
+    min-height: 0;
+  }
+
+  .coldHeading {
+    font-size: 1.25rem;
+    line-height: 1.625rem;
   }
 
   /* The location, the banners and the Now panel can outgrow the shell on a
@@ -93,6 +255,55 @@
   }
 }
 
+/* R76 (FR-FIRST-5, D-443, D-444): from `HOME_THREE_PANE_MIN_CELLS` — three
+   panes of 36 cells, the two gutters and one shell padding — the readings are
+   three equal panes, Where, When and What. The two columns' wrappers step out
+   of the way (`display: contents`) so the three readings and the guide panel
+   are this grid's own items, and each pane scrolls itself inside the
+   one-viewport shell (D-119). An open pass (`data-guide='pane'`) takes the
+   Where and When panes together — at least 72 cells, so the panel's 40-cell
+   floor holds with room — and What keeps the list with the card highlighted.
+   `lib/layout.ts` owns the literal; `tests/styles/breakpoint.test.ts` holds it. */
+@media (min-width: 1118px) {
+  .main:is([data-home='readings'], [data-home='cold']) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .main:is([data-home='readings'], [data-home='cold']) > .column {
+    display: contents;
+  }
+
+  .where,
+  .when,
+  .main:is([data-home='readings'], [data-home='cold']) .listColumn {
+    grid-row: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .where {
+    grid-column: 1;
+  }
+
+  .when {
+    grid-column: 2;
+  }
+
+  .main:is([data-home='readings'], [data-home='cold']) .listColumn {
+    grid-column: 3;
+  }
+
+  .main[data-guide='pane'] .where,
+  .main[data-guide='pane'] .when {
+    display: none;
+  }
+
+  .main[data-guide='pane'] [data-guide-panel] {
+    grid-column: 1 / span 2;
+    grid-row: 1;
+  }
+}
+
 /* R50 (FR-DESK-3 as amended, D-253): the split returns at
    `WIDE_SPLIT_MIN_CELLS` — 40 cells of left column, 44 of list and 40 of
    guide, plus the two gutters between them and the shell's own padding. The
@@ -123,3 +334,4 @@
     gap: calc(3 * var(--cell));
   }
 }
+

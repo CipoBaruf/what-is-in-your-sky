@@ -48,7 +48,9 @@ test('typing the Neuquén coordinates shows the pass list with the golden ISS pa
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
 
   await page.goto('/');
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/Enter a place name or coordinates/);
+  // R76 (FR-FIRST-1): with no place the page is the cold open, and the list waits for one.
+  await expect(page.getByTestId('cold-open')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Upcoming passes' })).toHaveCount(0);
 
   await withSettings(page, async () => {
 

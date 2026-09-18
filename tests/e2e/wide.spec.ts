@@ -6,13 +6,19 @@
  * test here reads its own viewport and asserts the layout that width is meant
  * to have, so the pair is one file and not two.
  *
+ * R76 (FR-FIRST-5, D-444): from `HOME_THREE_PANE_MIN_PX` (1118) the wide home
+ * is three panes, and an open pass takes the first two with the list kept in
+ * the third — so at 1280 px, and at the split literal itself, what used to be
+ * D-253's split is the pane layout, and those branches ask for that instead.
+ * The 1024 px project runs every branch it ran before, unchanged.
+ *
  * What only a browser can answer is why these are here at all: what `1ch`
  * really measures (F-10), how tall a list is against a real viewport (F-9),
  * and what `inert` does to focus and to a key press (F-43, F-44) — jsdom
  * implements none of the three.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, CELL_ADVANCE_EM_MIN, BASE_FONT_PX, GUTTER_CELLS, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
+import { CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, CELL_ADVANCE_EM_MIN, BASE_FONT_PX, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HOME_THREE_PANE_MIN_CELLS, SHELL_PADDING_CELLS, HOME_THREE_PANE_MIN_PX, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
 import { seedStoredRun } from './liveHelpers';
 
 /** FR-DESK-2/3: the left column, the list's floor and the guide's, in cells. */
@@ -32,11 +38,32 @@ async function cellPx(page: Page): Promise<number> {
   });
 }
 
-/** The width this project runs at, and whether the split is meant to be on at it. */
-function viewport(page: Page): { width: number; height: number; split: boolean } {
+/** The width this project runs at, and whether the three panes (D-444) are meant to be on at it — which, since they start under D-253's split, is what the split's widths are now too. */
+function viewport(page: Page): { width: number; height: number; panes: boolean } {
   const size = page.viewportSize();
   if (!size) throw new Error('this project has no viewport');
-  return { ...size, split: size.width >= WIDE_SPLIT_MIN_PX };
+  return { ...size, panes: size.width >= HOME_THREE_PANE_MIN_PX };
+}
+
+/**
+ * R76 (FR-FIRST-5, D-444): with a pass open at three-pane widths, the guide is
+ * the first two panes' width — at least 72 cells — beside the list in the
+ * third, the list still on the page and `[ list ]` with nothing to do.
+ */
+async function expectThePanes(page: Page, cell: number): Promise<void> {
+  const list = page.getByTestId('list-column');
+  await expect(list).toBeVisible();
+  await expect(page.getByTestId('guide-to-list')).toBeHidden();
+  await expect(page.getByTestId('reading-where')).toBeHidden();
+  const [listBox, guide, main] = await Promise.all([list.boundingBox(), page.getByTestId('guide-panel').boundingBox(), page.getByRole('main').boundingBox()]);
+  if (!listBox || !guide || !main) throw new Error('the panes are not laid out');
+  expect(guide.width).toBeGreaterThanOrEqual(GUIDE_PANE_MIN_CELLS * cell - 1);
+  // The first pane starts where the shell's content does, inside its side padding.
+  expect(Math.abs(guide.x - (main.x + SHELL_PADDING_CELLS * cell))).toBeLessThanOrEqual(1);
+  expect(listBox.x).toBeGreaterThan(guide.x + guide.width - 1);
+  // Two panes and the gutter between them: twice the list's pane and a gutter, to the pixel.
+  expect(Math.abs(guide.width - (2 * listBox.width + GUTTER_CELLS * cell))).toBeLessThanOrEqual(2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 'the page scrolls sideways with the panes').toBeLessThanOrEqual(1);
 }
 
 async function openTheGuide(page: Page): Promise<void> {
@@ -66,14 +93,21 @@ test('the cell is measured, not assumed: the breakpoint is at least its cells at
   const advanceEm = cell / BASE_FONT_PX;
   expect(Object.values(CELL_ADVANCE_EM).some((known) => Math.abs(known - advanceEm) < 0.005), `${String(advanceEm)} em is a font the advance table does not know`).toBe(true);
 
-  // The two literals, in this browser's own cells.
+  // The three literals, in this browser's own cells.
   expect(WIDE_MIN_PX / cell).toBeGreaterThanOrEqual(WIDE_CELLS);
+  expect(HOME_THREE_PANE_MIN_PX / cell).toBeGreaterThanOrEqual(HOME_THREE_PANE_MIN_CELLS + 2 * GUTTER_CELLS);
   expect(WIDE_SPLIT_MIN_PX / cell).toBeGreaterThanOrEqual(LEFT_COLUMN_CELLS + LIST_MIN_CELLS + GUIDE_MIN_CELLS + 2 * GUTTER_CELLS);
-  // And the page really is in the wide shell at this project's width.
-  expect(viewport(page).width).toBeGreaterThanOrEqual(WIDE_MIN_PX);
-  const [left, right] = await Promise.all([page.getByTestId('col-left').boundingBox(), page.getByTestId('col-right').boundingBox()]);
-  if (!left || !right) throw new Error('the columns are not laid out');
-  expect(right.x).toBeGreaterThan(left.x + left.width - 1);
+  // And the page really is in the wide shell at this project's width: two columns, or from the
+  // three-pane literal three panes (R76), each to the right of the one before.
+  const { width, panes } = viewport(page);
+  expect(width).toBeGreaterThanOrEqual(WIDE_MIN_PX);
+  const ids = panes ? ['reading-where', 'reading-when', 'list-column'] : ['col-left', 'col-right'];
+  const boxes = await Promise.all(ids.map((id) => page.getByTestId(id).boundingBox()));
+  for (const [i, box] of boxes.entries()) {
+    if (!box) throw new Error(`${ids[i] ?? ''} is not laid out`);
+    const before = boxes[i - 1];
+    if (before) expect(box.x).toBeGreaterThan(before.x + before.width - 1);
+  }
 });
 
 /**
@@ -83,7 +117,7 @@ test('the cell is measured, not assumed: the breakpoint is at least its cells at
  * instead, and the list is one `[ list ]` away.
  */
 test('an open guide either splits the column with the list or takes it whole, by the width (F-6)', async ({ page }) => {
-  const { split } = viewport(page);
+  const { panes } = viewport(page);
   const cell = await cellPx(page);
   const list = page.getByTestId('list-column');
   const panel = page.getByTestId('guide-panel');
@@ -92,6 +126,12 @@ test('an open guide either splits the column with the list or takes it whole, by
   await expect(list).toBeVisible();
   await openTheGuide(page);
   await expect(panel).toBeVisible();
+
+  // R76 (D-444): from the three-pane width the guide is the first two panes, not a track of the right column.
+  if (panes) {
+    await expectThePanes(page, cell);
+    return;
+  }
 
   const right = await page.getByTestId('col-right').boundingBox();
   const guide = await panel.boundingBox();
@@ -103,16 +143,6 @@ test('an open guide either splits the column with the list or takes it whole, by
   // margin. The one thing that lean may never do is make the page scroll
   // sideways, and this is the width where it would first show.
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 'the page scrolls sideways with the guide open').toBeLessThanOrEqual(1);
-
-  if (split) {
-    await expect(list).toBeVisible();
-    await expect(toList).toBeHidden();
-    const listBox = await list.boundingBox();
-    if (!listBox) throw new Error('the list is not laid out');
-    expect(listBox.width).toBeGreaterThanOrEqual(LIST_MIN_CELLS * cell - 1);
-    expect(guide.x).toBeGreaterThan(listBox.x + listBox.width - 1);
-    return;
-  }
 
   // Below the split: one thing at a time, and the guide has the whole column.
   await expect(list).toBeHidden();
@@ -133,27 +163,24 @@ test('an open guide either splits the column with the list or takes it whole, by
 });
 
 /**
- * D-253 at the one width that can disprove it. The split literal is the three
- * columns, the two gutters and one of the shell's two paddings, so at the
- * literal itself the pair of tracks is a padding wider than the column that
- * holds them and leans into the right margin. Either width the projects run at
- * is a few pixels clear of that; this sets the viewport to the literal, where
- * the margin is exactly used up, and asks for both halves of the claim.
+ * R76 (D-444): the split literal is a three-pane width now, where the guide is
+ * the first two panes and the list the third; the claim that survives from
+ * D-253 is the one about the margin — nothing runs off the screen and the page
+ * does not scroll sideways. The three-pane literal itself is the width that can
+ * disprove the new one: at it the panes have exactly the cells they count.
  */
-test('at the split literal itself the two tracks fit the margin and the page does not scroll sideways (D-253)', async ({ page }) => {
-  await page.setViewportSize({ width: WIDE_SPLIT_MIN_PX, height: 800 });
-  const cell = await cellPx(page);
-  await openTheGuide(page);
-  await expect(page.getByTestId('guide-panel')).toBeVisible();
-  await expect(page.getByTestId('list-column')).toBeVisible();
-
-  const [listBox, guide] = await Promise.all([page.getByTestId('list-column').boundingBox(), page.getByTestId('guide-panel').boundingBox()]);
-  if (!listBox || !guide) throw new Error('the two tracks are not laid out');
-  expect(listBox.width).toBeGreaterThanOrEqual(LIST_MIN_CELLS * cell - 1);
-  expect(guide.width).toBeGreaterThanOrEqual(GUIDE_MIN_CELLS * cell - 1);
-  expect(guide.x + guide.width, 'the guide runs off the screen').toBeLessThanOrEqual(WIDE_SPLIT_MIN_PX + 1);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 'the page scrolls sideways at the split literal').toBeLessThanOrEqual(1);
-});
+for (const literal of [HOME_THREE_PANE_MIN_PX, WIDE_SPLIT_MIN_PX]) {
+  test(`at ${String(literal)} px an open pass is the first two panes and the page does not scroll sideways (D-444)`, async ({ page }) => {
+    await page.setViewportSize({ width: literal, height: 800 });
+    const cell = await cellPx(page);
+    await openTheGuide(page);
+    await expect(page.getByTestId('guide-panel')).toBeVisible();
+    await expectThePanes(page, cell);
+    const guide = await page.getByTestId('guide-panel').boundingBox();
+    if (!guide) throw new Error('the guide is not laid out');
+    expect(guide.x + guide.width, 'the guide runs off the screen').toBeLessThanOrEqual(literal + 1);
+  });
+}
 
 /**
  * F-9. The list's height was a fixed 34 rows — 816 px, taller than the 720 px
@@ -162,7 +189,7 @@ test('at the split literal itself the two tracks fit the margin and the page doe
  * viewport and exists nowhere in the DOM.
  */
 test('the list is as tall as the shell and no taller, with a pass open and without (F-9)', async ({ page }) => {
-  const { height, split } = viewport(page);
+  const { height, panes } = viewport(page);
   const list = page.getByTestId('list-column');
 
   const listFitsTheScreen = async (state: string): Promise<void> => {
@@ -176,9 +203,9 @@ test('the list is as tall as the shell and no taller, with a pass open and witho
 
   await listFitsTheScreen('with no pass open');
   await openTheGuide(page);
-  // Below the split the list is off the page while the guide is up; `[ list ]`
+  // Below the three panes the list is off the page while the guide is up; `[ list ]`
   // is how the reader has both a pass open and the list in front of them.
-  if (!split) await page.getByTestId('guide-to-list').click();
+  if (!panes) await page.getByTestId('guide-to-list').click();
   await listFitsTheScreen('with a pass open');
 });
 

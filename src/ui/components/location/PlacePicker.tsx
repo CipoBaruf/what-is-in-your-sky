@@ -40,6 +40,8 @@ export interface PlacePickerProps {
   initialText?: string;
   /** The field's id, so the container can move focus to it; generated when absent. */
   inputId?: string;
+  /** R76 (FR-FIRST-2, board 1B): `panel` is the settings page's field; on the home page the label is small and dim over a full-width field, in a ruled box on a phone (`boxed`) and without one in the wide pane (`plain`). */
+  look?: 'panel' | 'boxed' | 'plain';
 }
 
 type ListState = { kind: 'idle' } | { kind: 'searching'; query: string } | { kind: 'results'; query: string; places: Place[] } | { kind: 'error'; query: string; message: string };
@@ -47,7 +49,7 @@ type ListState = { kind: 'idle' } | { kind: 'searching'; query: string } | { kin
 /** The provider needs two characters; one letter or blanks would only clear the list. */
 const MIN_CHARS = 2;
 
-export function PlacePicker({ search, onObserver, observer, coordsInputId, initialText, inputId: givenId }: PlacePickerProps) {
+export function PlacePicker({ search, onObserver, observer, coordsInputId, initialText, inputId: givenId, look = 'panel' }: PlacePickerProps) {
   const t = useT();
   const [text, setText] = useState(initialText ?? '');
   /**
@@ -232,7 +234,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
   const confirming = observer?.source === 'geocode' ? observer : null;
 
   return (
-    <div className={styles.field}>
+    <div className={look === 'panel' ? styles.field : `${styles.field} ${styles.home} ${look === 'boxed' ? styles.boxed : ''}`}>
       <label htmlFor={inputId}>{t.location.placeLabel}</label>
       <input
         ref={inputRef}

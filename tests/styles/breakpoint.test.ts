@@ -22,11 +22,12 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { BASE_FONT_PX, CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, GUTTER_CELLS, SHELL_PADDING_CELLS, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_CELLS, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
+import { BASE_FONT_PX, CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HOME_THREE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, SHELL_PADDING_CELLS, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_CELLS, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
 
 const UI_DIR = 'src/ui';
 const TOKENS_PATH = 'src/ui/styles/tokens.css';
 const GLOBAL_PATH = 'src/ui/styles/global.css';
+const APP_PATH = 'src/ui/App.module.css';
 
 function cssFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -95,6 +96,8 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
     // The two gutters, and one of the shell's two paddings, are width the
     // screen has to find as well as the three columns (D-253).
     ['the split breakpoint', WIDE_SPLIT_MIN_CELLS + 2 * GUTTER_CELLS + SHELL_PADDING_CELLS, WIDE_SPLIT_MIN_PX],
+    // R76 (D-443): the three panes count the same way — 108 cells of content, two gutters, one padding.
+    ['the three-pane breakpoint', HOME_THREE_PANE_MIN_CELLS + 2 * GUTTER_CELLS + SHELL_PADDING_CELLS, HOME_THREE_PANE_MIN_PX],
   ])('%s is at least its cells on every font in the stack, and no more than one cell over on the widest', (_name, cells, px) => {
     for (const [family, advanceEm] of Object.entries(CELL_ADVANCE_EM)) {
       expect(px, `${family} reaches ${String(cells)} cells before the literal does`).toBeGreaterThanOrEqual(pxFor(cells, advanceEm));
@@ -120,13 +123,40 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
     expect(cells - SHELL_PADDING_CELLS - LEFT_COLUMN_CELLS - 2 * GUTTER_CELLS - LIST_MIN_CELLS).toBeGreaterThanOrEqual(GUIDE_MIN_CELLS);
   });
 
-  it('is written once: every min-width in src/ui is one of the two thresholds', () => {
+  it('is written once: every min-width in src/ui is one of the three thresholds', () => {
     const found = files.flatMap(([path, css]) => [...css.matchAll(/min-width:\s*(\d+(?:\.\d+)?)px/g)].map((m) => [path, Number(m[1])] as const));
     expect(found.length, 'no min-width media query in src/ui — the wide layout is not there').toBeGreaterThan(0);
-    for (const [path, px] of found) expect([WIDE_MIN_PX, WIDE_SPLIT_MIN_PX], `${path} uses a different breakpoint`).toContain(px);
+    for (const [path, px] of found) expect([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX, WIDE_SPLIT_MIN_PX], `${path} uses a different breakpoint`).toContain(px);
     const literals = found.map(([, px]) => px);
     expect(literals, 'nothing keys off the wide breakpoint').toContain(WIDE_MIN_PX);
     expect(literals, 'nothing keys off the split breakpoint (F-6)').toContain(WIDE_SPLIT_MIN_PX);
+    expect(literals, 'nothing keys off the three-pane breakpoint (FR-FIRST-5)').toContain(HOME_THREE_PANE_MIN_PX);
+  });
+
+  /*
+   * R76 (FR-FIRST-5, D-443): three literals now, and they are in order — the
+   * wide breakpoint, the three panes, the split — each a real rule in the
+   * page's own stylesheet (a query with a declaration in it), so a fourth
+   * cannot be added by accident and none of the three is left as a comment.
+   */
+  it('keeps the three literals ascending, each a real rule in App.module.css (D-443)', () => {
+    expect(HOME_THREE_PANE_MIN_PX).toBe(1118);
+    expect([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX, WIDE_SPLIT_MIN_PX]).toEqual([964, 1118, 1272]);
+    expect(WIDE_MIN_PX).toBeLessThan(HOME_THREE_PANE_MIN_PX);
+    expect(HOME_THREE_PANE_MIN_PX).toBeLessThan(WIDE_SPLIT_MIN_PX);
+    const app = readFileSync(APP_PATH, 'utf8');
+    const queries = [...app.matchAll(/@media\s*\(min-width:\s*(\d+)px\)\s*\{/g)].map((m) => Number(m[1]));
+    expect(queries, `${APP_PATH} should have exactly the three wide queries, in order`).toEqual([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX, WIDE_SPLIT_MIN_PX]);
+    for (const block of wideBlocks(app)) expect(block, 'an empty wide block is not a rule').toMatch(/[a-z-]+\s*:\s*[^;]+;/);
+  });
+
+  it('gives the three panes the compact card width each, and an open pass the first two (FR-FIRST-5, D-444)', () => {
+    const PANE_CELLS = 36;
+    expect(HOME_THREE_PANE_MIN_CELLS).toBe(3 * PANE_CELLS);
+    // At the literal on the widest cell, both paddings off: two panes and the gutter between them are still the guide's 72.
+    const cells = HOME_THREE_PANE_MIN_PX / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX) - 2 * SHELL_PADDING_CELLS;
+    const pane = (cells - 2 * GUTTER_CELLS) / 3;
+    expect(2 * pane + GUTTER_CELLS).toBeGreaterThanOrEqual(GUIDE_PANE_MIN_CELLS);
   });
 
   it('starts at the stylesheet frame: wide drops the 80-cell compact frame', () => {

@@ -142,12 +142,51 @@ export const ui: typeof EnUi = {
       `Ubicación: ${p.coords}${p.fromDevice ? ' según el dispositivo' : ''}${p.altitude === null ? '' : ` a ${p.altitude} m`}${p.accuracy === null ? '' : ` (con una precisión de ${p.accuracy})`}.`,
     savedHere: 'Guardada solo en este navegador.',
     clearSaved: 'Borrar la ubicación guardada',
-    precisionNote: 'La precisión es a nivel de ciudad: un pase se ve igual desde cualquier punto a unos pocos kilómetros, así que no se resuelve ninguna dirección postal.',
+    precisionNote: 'La precisión es a nivel de ciudad: un pase se ve igual desde cualquier punto a unos pocos kilómetros.',
     summary: (label: string) => `Se usa ${label}`,
     summaryChange: 'cambiar',
     summaryAccuracy: (accuracy: string) => `desde tu dispositivo, con precisión de ${accuracy}`,
-    summaryNone: 'Sin lugar aún.',
-    summarySet: 'elegir lugar',
+    useMyLocationNote: 'Lo más rápido. El navegador pregunta antes; no se envía nada a ningún lado.',
+  },
+
+  home: {
+    steps: { where: 'dónde', when: 'cuándo', what: 'qué' },
+    stepsLabel: 'Pasos',
+    panes: { where: 'Dónde', when: 'Cuándo', what: 'Qué' },
+    coldHeading: '¿Desde dónde se va a mirar?',
+    coldSentence: 'Un pase se ve igual desde cualquier punto a unos pocos kilómetros, así que basta con la ciudad. Cualquiera de los tres sirve.',
+    savedFoot: 'Guardada solo en este navegador. Sin cuenta, sin rastreo.',
+    ghost: {
+      whenHeading: '¿Cuándo está lo bastante oscuro?',
+      whenSentence: 'La banda oscura del lugar, con las nubes y la Luna de esta noche.',
+      whatHeading: 'Qué cruza, y hacia dónde mirar',
+      whatCard: 'Cada pase como una tarjeta: hora, dirección, cuánto sube y cuánto brilla.',
+    },
+    darkWindow: (p) => `Oscuro ${p.from} → ${p.to}`,
+    darkUntil: (to) => `Oscuro hasta las ${to}`,
+    noDarkWindow: 'Esta noche no llega a estar oscuro del todo.',
+  },
+
+  nextEvent: {
+    label: 'A continuación',
+    headline: (p) => {
+      switch (p.kind) {
+        case 'rise':
+          return `${p.name} ${{ horizon: 'aparece', shadow: 'sale de la sombra', twilight: 'se hace visible' }[p.reason]} al ${p.point} en ${p.countdown}`;
+        case 'peak':
+          return `${p.name} culmina a ${p.altitude} al ${p.point} en ${p.countdown}`;
+        case 'end':
+          return `${p.name} ${{ horizon: 'se pone', shadow: 'entra en la sombra', twilight: 'se desvanece' }[p.reason]} al ${p.point} en ${p.countdown}`;
+      }
+    },
+    peakLine: (p) => `Culmina al ${p.point} a ${p.altitude}, ${brightness[p.band]} (${p.magnitude})`,
+    pending: 'Buscando el próximo pase…',
+    none: (p) =>
+      ({
+        'no-passes': `Ningún pase visible en las próximas ${String(p.hours)} h.`,
+        'no-darkness': `En las próximas ${String(p.hours)} h no oscurece lo suficiente en esta latitud, así que no hay nada que ver.`,
+        'no-elements': 'No hay elementos orbitales con los que calcular pases.',
+      })[p.reason],
   },
 
   favourites: {

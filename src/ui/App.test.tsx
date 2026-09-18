@@ -42,26 +42,35 @@ describe('<App> frame (R12)', () => {
 
   /*
    * R52 (FR-COMP-1, FR-COMP-3): jsdom without a `matchMedia` stub is the
-   * compact layout, and this is now the compact frame — the one-row header with
-   * the short title, the location summary where the form used to be, and the
-   * two titled regions that are left. The wide frame, with the full title, the
-   * tagline and the location section, is `App.wide.test.tsx`.
+   * compact layout, and this is the compact frame — the one-row header with
+   * the short title. R76 (FR-FIRST-1): with no observer the main is the cold
+   * open, whose own inventory is `screens/Home.test.tsx`'s; once there is one,
+   * the three readings with the titled regions they hold. The wide frame, with
+   * the full title and the tagline, is `App.wide.test.tsx`.
    */
-  it('has the compact header, the location summary, the titled regions and the footer, with no axe violations while empty', async () => {
+  it('has the compact header, the cold open, the titled regions once there is a place, and the footer, with no axe violations while empty', async () => {
     const { container } = render(<App />);
     const banner = screen.getByRole('banner');
     expect(within(banner).getByRole('heading', { level: 1, name: en.app.shortTitle })).toBeInTheDocument();
     expect(banner).not.toHaveTextContent(en.app.tagline);
     expect(screen.getByTestId('live-link')).toHaveTextContent(en.live.openShort);
     expect(screen.getByTestId('settings-link')).toHaveAttribute('href', '#settings');
-    // The form is one tap away; the summary with no observer is the prompt to set one (FR-COMP-3).
-    expect(screen.queryByRole('region', { name: 'Location' })).toBeNull();
-    expect(screen.getByTestId('location-summary')).toHaveTextContent(en.location.summaryNone);
+    // FR-FIRST-1: the place is asked for on the home screen itself, and nothing else is there yet.
+    expect(within(screen.getByRole('main')).getByTestId('cold-open')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: en.home.coldHeading })).toBeInTheDocument();
+    expect(screen.queryByTestId('location-summary')).toBeNull();
+    expect(screen.getByRole('contentinfo')).toHaveTextContent('Orbital elements by CelesTrak.');
+    expect(await axe(container)).toHaveNoViolations();
+
+    act(() => {
+      appStore.setState({ observer });
+    });
+    expect(screen.queryByTestId('cold-open')).toBeNull();
+    expect(screen.getByTestId('location-summary')).toHaveTextContent(en.location.summary(observer.label));
     for (const name of ['Right now', 'Upcoming passes']) {
       const region = screen.getByRole('region', { name });
       expect(within(region).getByRole('heading', { level: 2, name })).toBeInTheDocument();
     }
-    expect(screen.getByRole('contentinfo')).toHaveTextContent('Orbital elements by CelesTrak.');
     expect(await axe(container)).toHaveNoViolations();
   });
 

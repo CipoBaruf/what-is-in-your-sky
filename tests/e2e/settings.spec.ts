@@ -309,9 +309,12 @@ test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', ()
     expect(live.top).toBeLessThan(title.bottom);
     expect(title.top).toBeLessThan(live.bottom);
     expect(live.right).toBeLessThan(language.left);
-    // The wide home keeps the whole form: the summary is the compact layout's line (US-20 AC5).
+    // R76 (FR-FIRST-4, FR-SET-3): the wide home's location is the Where reading's line, its `[ change ]`
+    // opens the whole form in place, and nothing on the page links to #settings (US-20 AC5).
+    await expect(page.getByTestId('location-summary')).toBeVisible();
+    await page.getByTestId('location-summary-change').click();
     await expect(page.getByRole('region', { name: 'Location' })).toBeVisible();
-    await expect(page.getByTestId('location-summary')).toHaveCount(0);
+    await expect(page.locator('a[href="#settings"]')).toHaveCount(0);
   });
 
   test('[ Live sky ] is drawn on the title’s own line (FR-DESK-2, D-501)', async ({ page }) => {

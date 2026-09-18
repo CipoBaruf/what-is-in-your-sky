@@ -11,10 +11,18 @@
  * open the page does not scroll at all and each pane scrolls itself, which is
  * a fact about three boxes and a viewport and exists nowhere in the DOM. The compact sheet at 390 px is
  * `pass-detail.spec.ts`, unchanged.
+ *
+ * R76 (FR-FIRST-5, D-443, D-444): 1280 px is a three-pane width now — Where,
+ * When and What — and an open pass takes the first two panes beside the list
+ * in the third. FR-DESK-2's two columns hold between the wide breakpoint and
+ * the three panes, so the two-column measurements are taken at 1024 px, the
+ * mid width FR-DESK-5 already captures. The list's pane is FR-FIRST-5's 36
+ * cells at least, the compact card's width, where the split column's list had
+ * D-253's 44.
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
+import { GUIDE_PANE_MIN_CELLS, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
 import { seedStoredRun } from './liveHelpers';
 
 interface HaFixture {
@@ -34,7 +42,9 @@ const COMPACT = { width: 390, height: 844 };
 /** A desktop screen with room to spare, where D-119's slack is visible at all. */
 const TALL_HEIGHT = 1200;
 const LEFT_COLUMN_CELLS = 40;
-const LIST_MIN_CELLS = 44;
+/** FR-FIRST-5: a pane is at least the compact card's 36 cells. */
+const PANE_MIN_CELLS = 36;
+const MID = { width: 1024, height: 900 };
 
 test.use({ viewport: WIDE });
 
@@ -85,7 +95,8 @@ test('wide: with nothing entered the page still fills the screen and the footer 
   // scrolls, so there would be no slack to put anywhere.
   await page.setViewportSize({ width: WIDE.width, height: TALL_HEIGHT });
   await page.goto('/');
-  await expect(page.getByRole('region', { name: 'Upcoming passes' })).toBeVisible();
+  // R76 (FR-FIRST-1): nothing entered is the cold open.
+  await expect(page.getByTestId('cold-open')).toBeVisible();
 
   const footer = page.getByRole('contentinfo');
   const box = await footer.boundingBox();
@@ -94,9 +105,10 @@ test('wide: with nothing entered the page still fills the screen and the footer 
   expect(
     await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight),
   ).toBeLessThanOrEqual(1);
-  // And it is the footer that moved, not the content: the columns stay at the top.
-  const left = await page.getByTestId('col-left').boundingBox();
-  expect(left?.y).toBeLessThan(TALL_HEIGHT / 2);
+  // And it is the footer that moved, not the content: the panes stay at the top. R76 (board 1B): the cold open is
+  // the Where pane of the three-pane grid, whose column wrappers are `display: contents`, so the pane is measured.
+  const where = await page.getByTestId('cold-open').boundingBox();
+  expect(where?.y).toBeLessThan(TALL_HEIGHT / 2);
 });
 
 /**
@@ -120,11 +132,11 @@ test('wide: with a list and no pass open, only the list scrolls (D-119)', async 
   expect(await list.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 
-  // Scrolling the list moved nothing else: the header, the left column and the
+  // Scrolling the list moved nothing else: the header, the Where pane and the
   // footer are where they were, and the footer is on the bottom of the screen.
   const [header, left, footer] = await Promise.all([
     page.getByRole('banner').boundingBox(),
-    page.getByTestId('col-left').boundingBox(),
+    page.getByTestId('reading-where').boundingBox(),
     page.getByRole('contentinfo').boundingBox(),
   ]);
   if (!header || !left || !footer) throw new Error('the shell is not laid out');
@@ -133,11 +145,14 @@ test('wide: with a list and no pass open, only the list scrolls (D-119)', async 
   expect(Math.abs(footer.y + footer.height - WIDE.height)).toBeLessThanOrEqual(1);
 });
 
-test('wide: two columns, the guide beside a live list, Escape and the hash (FR-DESK-1/2/3)', async ({ page }) => {
+test('wide: two columns at the mid width, the guide beside a live list in three panes, Escape and the hash (FR-DESK-1/2/3, FR-FIRST-5)', async ({ page }) => {
   const golden = reference.firstGoldenPass;
   if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
   const passId = `25544-${String(golden.start.t)}`;
-  await loadWithPasses(page);
+  await page.setViewportSize(MID);
+  // Settled: this test resizes the page between its halves, long enough for the recompute behind the stored run
+  // to land mid-test and re-render the list between reading a card's id and clicking it.
+  await seedStoredRun(page, { settled: true });
 
   // FR-DESK-1: the breakpoint the stylesheet uses really is 100 cells wide
   // here. R50 (F-10): "at least", not "exactly" — one literal is a different
@@ -147,7 +162,8 @@ test('wide: two columns, the guide beside a live list, Escape and the hash (FR-D
   expect(WIDE_MIN_PX / cell).toBeGreaterThanOrEqual(WIDE_CELLS);
   expect(WIDE_MIN_PX / cell).toBeLessThan(WIDE_CELLS + 1);
 
-  // FR-DESK-2: two columns side by side, the left one 40 cells, the header spanning both.
+  // FR-DESK-2: two columns side by side, the left one 40 cells, the header spanning both —
+  // with Where above When in the left one and What at the right (FR-FIRST-5).
   const left = page.getByTestId('col-left');
   const right = page.getByTestId('col-right');
   const [leftBox, rightBox, headerBox] = await Promise.all([left.boundingBox(), right.boundingBox(), page.getByRole('banner').boundingBox()]);
@@ -157,9 +173,27 @@ test('wide: two columns, the guide beside a live list, Escape and the hash (FR-D
   expect(Math.abs(leftBox.y - rightBox.y)).toBeLessThanOrEqual(1);
   expect(headerBox.y + headerBox.height).toBeLessThanOrEqual(leftBox.y);
   expect(headerBox.width).toBeGreaterThan(leftBox.width + rightBox.width);
-  await expect(left.getByRole('region', { name: 'Location' })).toBeVisible();
+  const [where, when] = [left.getByTestId('reading-where'), left.getByTestId('reading-when')];
+  const [whereBox, whenBox] = await Promise.all([where.boundingBox(), when.boundingBox()]);
+  if (!whereBox || !whenBox) throw new Error('the readings are not laid out');
+  expect(whenBox.y).toBeGreaterThanOrEqual(whereBox.y + whereBox.height);
+  await where.getByTestId('location-summary-change').click();
+  await expect(where.getByRole('region', { name: 'Location' })).toBeVisible();
   await expect(left.getByRole('region', { name: 'Right now' })).toBeVisible();
   await expect(right.getByRole('region', { name: 'Upcoming passes' })).toBeVisible();
+
+  // FR-FIRST-5: at 1280 px the three readings are three equal panes, side by side on one band.
+  await page.setViewportSize(WIDE);
+  const panes = await Promise.all(['reading-where', 'reading-when', 'list-column'].map((id) => page.getByTestId(id).boundingBox()));
+  const [p1, p2, p3] = panes;
+  if (!p1 || !p2 || !p3) throw new Error('the panes are not laid out');
+  expect(p2.x).toBeGreaterThan(p1.x + p1.width - 1);
+  expect(p3.x).toBeGreaterThan(p2.x + p2.width - 1);
+  for (const pane of [p2, p3]) {
+    expect(Math.abs(pane.width - p1.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(pane.y - p1.y)).toBeLessThanOrEqual(1);
+  }
+  expect(p1.width).toBeGreaterThanOrEqual(PANE_MIN_CELLS * cell - 1);
 
   // FR-DESK-3: the guide opens beside the list, not over it.
   const card = page.locator(`article[data-pass-id="${passId}"]`);
@@ -173,8 +207,11 @@ test('wide: two columns, the guide beside a live list, Escape and the hash (FR-D
   const list = page.getByTestId('list-column');
   const [listBox, panelBox] = await Promise.all([list.boundingBox(), panel.boundingBox()]);
   if (!listBox || !panelBox) throw new Error('the guide is not laid out beside the list');
-  expect(panelBox.x).toBeGreaterThan(listBox.x + listBox.width - 1);
-  expect(listBox.width).toBeGreaterThanOrEqual(LIST_MIN_CELLS * cell - 1);
+  // D-444: the guide is the first two panes, the list the third.
+  expect(listBox.x).toBeGreaterThan(panelBox.x + panelBox.width - 1);
+  expect(listBox.width).toBeGreaterThanOrEqual(PANE_MIN_CELLS * cell - 1);
+  expect(panelBox.width).toBeGreaterThanOrEqual(GUIDE_PANE_MIN_CELLS * cell - 1);
+  expect(Math.abs(panelBox.x - p1.x)).toBeLessThanOrEqual(1);
   // They share the same band of the page: the guide is beside the list, not under it.
   expect(Math.abs(listBox.y - panelBox.y)).toBeLessThanOrEqual(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -206,11 +243,11 @@ test('wide: two columns, the guide beside a live list, Escape and the hash (FR-D
     await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight),
   ).toBeLessThanOrEqual(1);
 
-  // The shell is exactly the viewport, and the left column reaches the footer
-  // rather than stopping at the Now panel (the dead space D-119 removes).
+  // The shell is exactly the viewport, and the guide reaches the footer as the
+  // list does rather than stopping at its content (the dead space D-119 removes).
   const [leftNow, rightNow] = await Promise.all([
-    page.getByTestId('col-left').boundingBox(),
-    page.getByTestId('col-right').boundingBox(),
+    page.getByTestId('guide-panel').boundingBox(),
+    page.getByTestId('list-column').boundingBox(),
   ]);
   if (!leftNow || !rightNow) throw new Error('the columns are not laid out');
   expect(Math.abs(leftNow.height - rightNow.height)).toBeLessThanOrEqual(1);
@@ -224,7 +261,7 @@ test('wide: two columns, the guide beside a live list, Escape and the hash (FR-D
   expect(await footer.locator('p').count()).toBe(1);
   // The line itself, not the footer's border box: both carry the same two
   // cells of side padding, and it is the text that has to line up.
-  const [footerLine, leftBox2] = await Promise.all([footer.locator('p').boundingBox(), page.getByTestId('col-left').boundingBox()]);
+  const [footerLine, leftBox2] = await Promise.all([footer.locator('p').boundingBox(), page.getByTestId('guide-panel').boundingBox()]);
   if (!footerLine || !leftBox2) throw new Error('the footer is not laid out');
   expect(Math.abs(footerLine.x - leftBox2.x)).toBeLessThanOrEqual(1);
   for (const name of ['CelesTrak', 'Open-Meteo.com', 'GeoNames']) {
@@ -256,14 +293,16 @@ test('wide: two columns, the guide beside a live list, Escape and the hash (FR-D
   // Scrolling the guide has not moved the list, and the page still has not scrolled.
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 
-  // Escape closes it and clears the hash; the right column is one column again.
+  // Escape closes it and clears the hash; the Where and When panes come back (D-444).
   await page.keyboard.press('Escape');
   await expect(panel).toHaveCount(0);
   await expect(page).not.toHaveURL(/#pass=/);
+  await expect(page.getByTestId('reading-where')).toBeVisible();
+  await expect(page.getByTestId('reading-when')).toBeVisible();
   const closedBox = await page.getByTestId('list-column').boundingBox();
-  expect(closedBox?.width).toBeGreaterThan(listBox.width);
+  expect(Math.abs((closedBox?.width ?? 0) - listBox.width)).toBeLessThanOrEqual(1);
   // The shell is the wide layout, not a mode a pass puts it into: closing the
-  // guide gives the list the width back and changes nothing about the scroll.
+  // guide gives the two panes back and changes nothing about the scroll.
   expect(
     await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight),
   ).toBeLessThanOrEqual(1);

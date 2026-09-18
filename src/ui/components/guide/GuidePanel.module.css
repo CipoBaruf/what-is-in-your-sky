@@ -86,10 +86,12 @@
   color: var(--fg-dim);
 }
 
-/* R50 (F-6): from `WIDE_SPLIT_MIN_PX` up, the list is beside the panel and
-   there is nothing for this control to bring back. `lib/layout.ts` owns the
-   literal; `tests/styles/breakpoint.test.ts` holds it to that. */
-@media (min-width: 1272px) {
+/* R50 (F-6): from the width at which the list is beside the panel there is
+   nothing for this control to bring back. R76 (D-444): that is
+   `HOME_THREE_PANE_MIN_PX` now — the panel takes the Where and When panes and
+   the list stays in What — which is under D-253's `WIDE_SPLIT_MIN_PX`.
+   `lib/layout.ts` owns the literal; `tests/styles/breakpoint.test.ts` holds it. */
+@media (min-width: 1118px) {
   .toList {
     display: none;
   }

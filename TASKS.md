@@ -1752,7 +1752,7 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: the Spanish page on a phone with no scrolling, beside the captures.
 
-- [ ] **R76 — The first run: the cold open, the countdown, three readings, three panes**
+- [x] **R76 — The first run: the cold open, the countdown, three readings, three panes** — done; the three-pane literal is 1118 px by F-10's rule (D-465), the input group is one instance across the cold open and the line so typing a place keeps its field (D-467), and the 1280 px assertions of `desktop.spec.ts` and `wide.spec.ts` follow the panes, with FR-DESK-2's two columns measured at 1024 px (D-469) (D-465..D-471). *(At the owner's gate: the countdown read "in 225:07" for a pass under four hours out while the hero card on the same page read a clock, so the block takes `formatClockDuration` and D-442 is amended, D-502. The review's three findings are closed with it: the dark window line has its own tests, its lookback is a day with a polar winter's open darkness worded as an end rather than a false dusk, and the row test gives `LocationSummary` its props. Then, against the redesign's board 1B, the screens aligned: one primary button, boxed alternatives in one row on a desk, the wide cold open fitting its window with its foot notes, one rule per pane, and the wide header on one baseline, D-503.)*
   - **Lane:** ui
   - **Crossings (§16.16):** none — `src/lib/nextEvent.ts` is `ui`'s own by §16.16, and `src/lib/layout.ts` is `ui`'s.
   - **Model:** opus

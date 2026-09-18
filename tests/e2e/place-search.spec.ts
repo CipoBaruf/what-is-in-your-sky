@@ -75,7 +75,9 @@ test('search → pick list → confirmation line → pass list for Cipolletti, a
 
   await page.goto('/');
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(/Enter a place name or coordinates/);
+  // R76 (FR-FIRST-1): with no place the page is the cold open, and the list waits for one.
+  await expect(page.getByTestId('cold-open')).toBeVisible();
+  await expect(status).toHaveCount(0);
 
   // R52 (FR-COMP-2): the place field is on `#settings` at this width; the list it fills is back on the home screen.
   const compact = await openSettings(page);

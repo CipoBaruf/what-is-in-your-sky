@@ -148,7 +148,8 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   // links. The ones that moved are one tap away, and reached below.
   expect(expected.length).toBeGreaterThanOrEqual(15);
   // R32/R52: the header's two links open the order, and no preference control is on this screen.
-  expect(expected.slice(0, 3)).toEqual(['a:live', 'a:settings', 'a:change']);
+  // R76 (FR-FIRST-4): `[ change ]` is a button now — it opens the form in place rather than linking to #settings.
+  expect(expected.slice(0, 3)).toEqual(['a:live', 'a:settings', 'button:change']);
   expect(expected).not.toContain('input:place');
   expect(expected).not.toContain('button:English');
   expect(expected).toContain('button:Soonest');

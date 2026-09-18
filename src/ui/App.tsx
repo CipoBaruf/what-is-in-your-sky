@@ -4,24 +4,18 @@ import { MOON_LORE } from '../lib/flags';
 import { observerFromLink, resolvePassLink, sameHashPlace } from '../lib/shareLinks';
 import type { ShortcutActions } from '../lib/shortcuts';
 import { formatClock, formatDate } from '../lib/timeFormat';
-import { catalogName, searchPlaces, useAppStore } from '../state';
+import { HOME_THREE_PANE_QUERY } from '../lib/layout';
+import { catalogName, useAppStore } from '../state';
 import styles from './App.module.css';
 import { applyTheme } from './styles/theme';
-import { Banner } from './components/common/Banner';
 import { Footer } from './components/common/Footer';
 import { Header } from './components/common/Header';
-import { InstallHint } from './components/common/InstallHint';
-import { LocationSummary } from './components/common/LocationSummary';
-import { ReadinessLine } from './components/common/ReadinessLine';
 import { ShortcutsOverlay } from './components/common/ShortcutsOverlay';
-import { UpdateBanner } from './components/common/UpdateBanner';
-import { ElementsBanners } from './components/elements/ElementsBanners';
 import { useLayoutMode } from './hooks/useLayoutMode';
+import { useMediaQuery } from './hooks/useMediaQuery';
 import { useShortcuts } from './hooks/useShortcuts';
-import { LocationInput } from './components/location/LocationInput';
-import { NowPanel } from './components/now/NowPanel';
-import { PassList } from './components/passes/PassList';
 import { moveCursor, passIdAtCursor, PASS_CARD } from './components/passes/passCursor';
+import { Home } from './screens/Home';
 import { useLiveRoute } from './screens/LiveRoute';
 import { PassDetail } from './screens/PassDetail';
 import { findSelectedPass, usePassSelection, useSettingsRoute } from './screens/passSelection';
@@ -80,18 +74,16 @@ const MoonLore = MOON_LORE ? lazy(() => import('./components/moon/MoonLore').the
  * (FR-DESK-4, D-73): this is also where the app's one `keydown` listener is
  * mounted, because this is the component that has the selection, the guide,
  * the route and the preferences in scope at once — every handler in the
- * shortcut table is a line of it.
+ * shortcut table is a line of it. R76 (FR-FIRST-1..6, D-443): what the main
+ * holds is `screens/Home.tsx`'s — the cold open with no observer, and the three
+ * readings, Where, When and What, once there is one; the columns above are the
+ * readings' wrappers now, and from `HOME_THREE_PANE_MIN_PX` they are three panes.
  */
 export function App() {
   const t = useT();
   const setObserver = useAppStore((s) => s.setObserver);
-  const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
   const observer = useAppStore((s) => s.observer);
   const passes = useAppStore((s) => s.passes.passes);
-  const now = useAppStore((s) => s.now);
-  // R30: the tradition line needs a Moon, which arrives with the Now state for
-  // this observer; there is nothing to say about the sky before that.
-  const moon = now.observer === observer ? (now.state?.moon ?? null) : null;
   const locale = useLocale();
   const passesStatus = useAppStore((s) => s.passes.status);
   const { selectedId, link, open, close } = usePassSelection();
@@ -165,6 +157,14 @@ export function App() {
   // pass, and a different pass is a different question.
   const [listFor, setListFor] = useState<string | null>(null);
   const guideView: 'guide' | 'list' = selected !== null && listFor === selected.id ? 'list' : 'guide';
+  /*
+   * R76 (FR-FIRST-5, D-444): at three-pane widths an open pass is a grid change
+   * — the wide panel across the Where and When panes, the list kept in What —
+   * so the `[ list ]` swap has nothing to do there and the page says `pane`.
+   * Under that width D-253's two values stand exactly as they were.
+   */
+  const threePane = useMediaQuery(HOME_THREE_PANE_QUERY);
+  const guide = selected === null ? 'closed' : threePane ? 'pane' : guideView === 'list' ? 'list' : 'open';
   const openPass = (passId: string): void => {
     setListFor(null);
     open(passId);
@@ -310,53 +310,33 @@ export function App() {
   return (
     <>
       <Header inert={inert} />
-      <main inert={inert} className={styles.main}>
-        <div className={`${styles.column} ${styles.leftColumn}`} data-testid="col-left">
-          {/* R28 (D-154): both offers sit above everything, inside the region the
-              open sheet makes inert and outside the live route, so neither can
-              be acted on while a pass or the live sky is up. R49 (F-30): on wide
-              nothing around them is made inert, so they are told directly. */}
-          <UpdateBanner inert={offersInert} />
-          <InstallHint inert={offersInert} />
-          {/* R52 (FR-COMP-3, US-20 AC3): on compact the form is one tap away and
-              its place is taken by the line that names the observer; wide keeps
-              the whole of it, where US-14 and FR-DESK-2 put it (US-20 AC5). */}
-          {mode === 'wide' ? <LocationInput observer={observer} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} /> : <LocationSummary />}
-          <ReadinessLine />
-          <ElementsBanners />
-          <NowPanel />
-          {MoonLore && moon && observer && (
-            <Suspense fallback={null}>
-              <MoonLore moon={moon} timeZone={observer.timeZone} />
-            </Suspense>
-          )}
-        </div>
-        <div className={styles.column} data-testid="col-right" data-guide={selected === null ? 'closed' : guideView === 'list' ? 'list' : 'open'}>
-          <div className={styles.listColumn} data-testid="list-column">
-            {shareNotice && (
-              <Banner variant="info" testId="share-fallback">
-                {shareNotice}
-              </Banner>
-            )}
-            {/* The resolved pass, not the hash: the id in the hash can be a second out (D-33) and would highlight nothing. */}
-            <PassList onOpenPass={openPass} selectedPassId={selected ? selected.id : null} />
-          </div>
-          {/* R50 (F-8): keyed by the pass, so opening a second one from the list beside the panel
-              is a new guide — its heading takes focus, and closing it returns to the card that
-              opened it rather than to the first one's. */}
-          {selected && observer && (
-            <PassDetail
-              key={selected.id}
-              pass={selected}
-              observer={observer}
-              onClose={close}
-              onShowList={() => {
-                setListFor(selected.id);
-              }}
-              inert={helpOpen}
-            />
-          )}
-        </div>
+      <main inert={inert} className={styles.main} data-home={observer === null ? 'cold' : 'readings'} data-guide={guide}>
+        <Home
+            offersInert={offersInert}
+            guide={guide}
+            shareNotice={shareNotice}
+            selectedPassId={selected ? selected.id : null}
+            onOpenPass={openPass}
+            MoonLore={MoonLore}
+            passDetail={
+              /* R50 (F-8): keyed by the pass, so opening a second one from the list beside the panel
+                 is a new guide — its heading takes focus, and closing it returns to the card that
+                 opened it rather than to the first one's. */
+              selected &&
+              observer && (
+                <PassDetail
+                  key={selected.id}
+                  pass={selected}
+                  observer={observer}
+                  onClose={close}
+                  onShowList={() => {
+                    setListFor(selected.id);
+                  }}
+                  inert={helpOpen}
+                />
+              )
+            }
+          />
       </main>
       <Footer inert={inert} />
       {helpOpen && (
