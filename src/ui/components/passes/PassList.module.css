@@ -1,12 +1,30 @@
+/* R81 (FR-FIRST-10, board 1B): the count and sort line, the cards 0.75 rem
+   apart, and the nights' toggles on one row under them. */
 .section {
   display: grid;
-  gap: var(--row);
+  gap: 0.75rem;
+}
+
+/* `7 visible passes in 72 h · Sort: [ Soonest ] Best` at `--small`: one line
+   where the pane holds it, and two on a phone, broken at the separator. */
+.countLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--cell);
+  font-size: var(--small);
+  line-height: var(--small-row);
 }
 
 .status {
   margin: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  color: var(--fg-dim);
+}
+
+.status:not(:last-child)::after {
+  content: ' ·';
 }
 
 .list {
@@ -14,41 +32,49 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--row);
+  gap: 0.75rem;
 }
 
-/* US-16 AC5: one disclosure per night. The heading is a `summary`, so the
-   keyboard and assistive technology get the open/closed state for free and no
-   ARIA is written by hand; the marker is the terminal identity's own bracketed
-   text rather than the UA triangle. */
+/* US-16 AC5: one night's cards; closed nights are `hidden`. */
 .night {
   display: grid;
-  gap: var(--row);
 }
 
-.nightHeading {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--cell);
-  align-items: baseline;
-  min-height: var(--tap);
-  align-content: center;
-  cursor: pointer;
-  list-style: none;
-  border-bottom: 1px solid var(--rule);
-}
-
-/* Safari still draws the disclosure triangle through this pseudo-element. */
-.nightHeading::-webkit-details-marker {
+.night[hidden] {
   display: none;
 }
 
-.nightHeading::before {
+.nightEmpty {
+  margin: 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+}
+
+/* `[−] Tonight 5 passes   [+] Tomorrow night 2 passes`: the terminal's own
+   bracketed markers rather than the UA triangle, three cells between toggles. */
+.toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 calc(3 * var(--cell));
+  font-size: var(--small);
+  line-height: var(--small-row);
+}
+
+.toggle {
+  border: 0;
+  background: none;
+  padding-inline: 0;
+  color: var(--fg);
+  text-align: left;
+}
+
+.toggle::before {
   content: '[+] ';
   color: var(--fg-dim);
 }
 
-.night[open] > .nightHeading::before {
+.toggle[aria-expanded='true']::before {
   content: '[−] ';
 }
 
@@ -57,10 +83,5 @@
 }
 
 .nightCount {
-  color: var(--fg-dim);
-}
-
-.nightEmpty {
-  margin: 0;
   color: var(--fg-dim);
 }

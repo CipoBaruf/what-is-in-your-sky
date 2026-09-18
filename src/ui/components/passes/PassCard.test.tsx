@@ -1,7 +1,9 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { axe } from 'jest-axe';
 import { describe, expect, it, vi } from 'vitest';
 import { MOON_FIXTURE, NO_MOON_AT_PEAK } from '../../../../tests/support/moonFixtures';
+import { I18nProvider } from '../../../i18n/useT';
 import type { Pass, WeatherSnapshot } from '../../../model';
 import { PassCard } from './PassCard';
 
@@ -38,24 +40,39 @@ const forecast: WeatherSnapshot = {
   ],
 };
 
-describe('<PassCard>', () => {
-  it('shows name, start, max elevation, peak compass + degrees, duration and magnitude with its phrase (US-5 AC1, FR-GUIDE-3)', () => {
-    render(<PassCard pass={samplePass} timeZone={null} />);
+describe('<PassCard> (FR-FIRST-10)', () => {
+  it('is two lines: the start time and the name, then the duration, the peak and the magnitude (US-5 AC1)', () => {
+    render(<PassCard pass={{ ...samplePass, durationS: 372, peakMagnitude: -3.44, peak: { ...samplePass.peak, elDeg: 67.6, azDeg: 2 } }} timeZone={null} />);
     const card = screen.getByRole('article', { name: 'ISS (Zarya)' });
-    const field = (label: string): string => {
-      const dt = within(card).getByText(label, { selector: 'dt' });
-      return dt.nextElementSibling?.textContent ?? '';
-    };
-    expect(field('Start')).toBe('2026-09-11 09:48:14 UTC');
-    expect(field('Max elevation')).toBe('10°');
-    expect(field('Peak direction')).toBe('NE (53°)');
-    expect(field('Duration')).toBe('48 s');
-    expect(field('Magnitude')).toBe('+0.5, like a bright star');
+    expect(within(card).getByTestId('card-first-line')).toHaveTextContent(/^09:48 UTC\s*ISS \(Zarya\)$/);
+    expect(within(card).getByTestId('card-detail')).toHaveTextContent('6 min · peak 68° N · mag −3.4');
   });
 
-  it('formats the start in the observer zone when one is known', () => {
+  it('reads the start in the observer zone when one is known', () => {
     render(<PassCard pass={samplePass} timeZone="America/Argentina/Buenos_Aires" />);
-    expect(screen.getByRole('article')).toHaveTextContent('2026-09-11 06:48:14 GMT-3');
+    expect(screen.getByTestId('card-first-line')).toHaveTextContent(/^06:48\s*ISS/);
+  });
+
+  it('on the phone’s third step, the brightness phrase in place of the magnitude (FR-GUIDE-3)', () => {
+    render(<PassCard pass={samplePass} timeZone={null} detail="phrase" />);
+    expect(screen.getByTestId('card-detail')).toHaveTextContent('1 min · peak 10° NE · like a bright star');
+  });
+
+  it('is Spanish under a Spanish provider', () => {
+    render(
+      <I18nProvider locale="es">
+        <PassCard pass={samplePass} timeZone={null} tag="Próxima ISS" />
+      </I18nProvider>,
+    );
+    expect(screen.getByTestId('card-detail')).toHaveTextContent('1 min · máx. 10° NE · mag +0,5');
+    expect(screen.getByTestId('next-tag')).toHaveTextContent('Próxima ISS');
+  });
+
+  it('carries a tag on its first line only when given one (§8 rank 1 as amended)', () => {
+    const { rerender } = render(<PassCard pass={samplePass} timeZone={null} />);
+    expect(screen.queryByTestId('next-tag')).toBeNull();
+    rerender(<PassCard pass={samplePass} timeZone={null} tag="Next ISS" />);
+    expect(within(screen.getByTestId('card-first-line')).getByTestId('next-tag')).toHaveTextContent('Next ISS');
   });
 
   it('carries the "sky still bright" label only when the pass is a twilight one (FR-VIS-7)', () => {
@@ -94,24 +111,27 @@ describe('<PassCard>', () => {
     expect(within(card).queryByTestId('moon-at-peak')).toBeNull();
   });
 
-  it('wears the cloud verdict at the peak when given a forecast, "weather unknown" for null, and no row when omitted (FR-WX-3)', () => {
+  it('wears the cloud word at the peak when given a forecast, "weather unknown" for null, and none when omitted (FR-WX-3, US-7 AC2)', () => {
     const { rerender } = render(<PassCard pass={samplePass} timeZone="America/Argentina/Salta" weather={forecast} />);
     const card = screen.getByRole('article');
-    // 0.6·10 + 0.3·10 + 0.1·40 = 13 %
-    expect(within(card).getByText('Clear, 13 % cloud')).toHaveAttribute('data-state', 'clear');
+    // 0.6·10 + 0.3·10 + 0.1·40 = 13 %: clear, the figure in the tooltip.
+    expect(within(card).getByText('Clear')).toHaveAttribute('data-state', 'clear');
+    expect(within(card).getByRole('tooltip')).toHaveTextContent('13 % effective cloud at the pass peak.');
     expect(within(card).getByRole('tooltip')).toHaveTextContent('fetched 2026-09-11 04:48:14 GMT-3');
     rerender(<PassCard pass={samplePass} timeZone={null} weather={null} />);
     expect(within(card).getByText('Weather unknown')).toHaveAttribute('data-state', 'unknown');
     rerender(<PassCard pass={samplePass} timeZone={null} />);
-    expect(within(card).queryByText('Clouds', { selector: 'dt' })).toBeNull();
+    expect(within(card).queryByText('Weather unknown')).toBeNull();
   });
 
-  it('offers an "Open guide" control named after the pass only when it can open', async () => {
+  it('is one control, named after the pass, only when it can open; the open card is marked', async () => {
     const onOpen = vi.fn();
-    const { rerender } = render(<PassCard pass={samplePass} timeZone={null} />);
+    const { rerender, container } = render(<PassCard pass={samplePass} timeZone={null} />);
     expect(screen.queryByRole('button')).toBeNull();
-    rerender(<PassCard pass={samplePass} timeZone={null} onOpen={onOpen} />);
+    rerender(<PassCard pass={samplePass} timeZone={null} onOpen={onOpen} selected />);
     await userEvent.click(screen.getByRole('button', { name: 'Open guide → ISS (Zarya)' }));
     expect(onOpen).toHaveBeenCalledWith(samplePass.id);
+    expect(screen.getByRole('article')).toHaveAttribute('aria-current', 'true');
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

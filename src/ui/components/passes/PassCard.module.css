@@ -1,13 +1,12 @@
+/* R81 (FR-FIRST-10, board 1B): a box ruled in `--rule`, 12 px inside. */
 .card {
   position: relative;
   border: 1px solid var(--rule);
-  padding: calc(var(--row) / 2) var(--cell);
+  padding: 12px;
 }
 
-/* R23 (FR-DESK-3): the pass the guide is open on. Wide keeps the list beside
-   the guide, so the card says which one it is showing — the accent frame and
-   the raised ground of the mockup, on top of `aria-current` for anyone who is
-   not looking at it. */
+/* R23 (FR-DESK-3): the pass the guide is open on, ruled in the accent on the
+   raised ground, on top of `aria-current` for anyone who is not looking at it. */
 .card[data-selected] {
   border-color: var(--accent);
   background: var(--bg-raised);
@@ -19,16 +18,70 @@
   outline-offset: 2px;
 }
 
-.name {
-  font-size: 1rem;
-  font-weight: normal;
-  margin: 0 0 calc(var(--row) / 2);
+/* `21:14   ISS`: the time and the name in the accent, three cells apart; the
+   name is the part that gives when the line runs out, and the tag keeps its
+   place at the end of it. */
+.first {
+  display: flex;
+  align-items: baseline;
+  gap: 0 calc(3 * var(--cell));
+  min-width: 0;
   color: var(--accent);
 }
 
-.twilight {
-  margin: calc(-1 * var(--row) / 2) 0 calc(var(--row) / 2);
+.time {
+  flex: none;
+}
+
+.name {
+  min-width: 0;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: normal;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tag {
+  flex: none;
+  margin-left: auto;
+  font-size: var(--small);
+  color: var(--accent);
+}
+
+.tag::before {
+  content: '[';
   color: var(--fg-dim);
+}
+
+.tag::after {
+  content: ']';
+  color: var(--fg-dim);
+}
+
+.detail {
+  margin: 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+}
+
+/* The cloud word and the labels about the sky, at `--small` on one wrapping
+   line; the Moon's own components keep their paragraphs, set flat here. */
+.flags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--cell);
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+}
+
+.flags > p {
+  margin: 0;
 }
 
 .twilight::before {
@@ -39,41 +92,18 @@
   content: ']';
 }
 
-.fields {
-  display: grid;
-  grid-template-columns: calc(15 * var(--cell)) 1fr;
-  gap: 0 var(--cell);
-  margin: 0;
-}
-
-.fields dt {
-  color: var(--fg-dim);
-}
-
-.fields dt::after {
-  content: ':';
-}
-
-.fields dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-/* The button is the accessible control; its ::after stretches the hit area over the whole card. */
+/* The button is the accessible control and the whole card is its box: it
+   draws nothing of its own, and lies over the card under the tooltips'
+   triggers (the cloud word, the glare label), which stand above it. */
 .open {
-  color: var(--accent);
-  background: none;
-  border: 0;
-  padding: 0;
-  margin-top: calc(var(--row) / 2);
-  min-height: var(--tap);
-  text-align: left;
-}
-
-.open::after {
-  content: '';
   position: absolute;
   inset: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
 }
 
 .open:focus-visible {

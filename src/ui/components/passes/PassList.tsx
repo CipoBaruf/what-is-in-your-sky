@@ -7,7 +7,6 @@ import type { EpochMs, Locale, Observer } from '../../../model';
 import { SEARCH_WINDOW_HOURS, isFeatured, useAppStore, type ElementsState, type PassesState } from '../../../state';
 import { SectionHeading } from '../common/SectionHeading';
 import { useNow } from '../../hooks/useNow';
-import { IssHeroCard } from './IssHeroCard';
 import { groupByNight, type NightGroup } from './nightGroups';
 import { PassCard } from './PassCard';
 import styles from './PassList.module.css';
@@ -28,6 +27,15 @@ import { SortToggle } from './SortToggle';
  * tonight open and the others closed; the sort still orders each night's own
  * cards, because "best first" over three nights would put a Thursday pass above
  * a Tuesday one and lose the thing the grouping is for.
+ *
+ * R81 (FR-FIRST-10, D-510): board 1B's list. The count and the sort share one
+ * line at `--small` (`7 visible passes in 72 h · Sort: [ Soonest ] Best`),
+ * which wraps at its separator where a phone's 36 cells cannot hold both.
+ * The hero card is gone: the next featured pass stays in the list, in its
+ * place, and its card carries the `Next ISS` tag. The nights' toggles stand
+ * on one row under the cards (`[−] Tonight 5 passes   [+] Tomorrow night 2
+ * passes`), each a button that opens or closes its night's cards above it,
+ * which keep their document order under their night (US-16 AC5).
  */
 export function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState, t: Messages): string {
   const hours = SEARCH_WINDOW_HOURS;
@@ -46,11 +54,11 @@ export function statusText(observer: Observer | null, elements: ElementsState, p
     case 'done':
       if (passes.passes.length === 0 && passes.hasDarkness === false) return t.passes.noDarkness({ hours, place });
       if (passes.passes.length === 0) return t.passes.none({ hours, place });
-      return t.passes.found({ count: passes.passes.length, hours, place });
+      return t.passes.countLine({ count: passes.passes.length, hours });
   }
 }
 
-/** How often the list re-checks which featured pass is next (the hero card itself ticks every second). */
+/** How often the list re-checks which featured pass is next, for its tag. */
 export const HERO_CHECK_MS = 30_000;
 
 /**
@@ -106,6 +114,7 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
   const sort = useAppStore((s) => s.sort);
   const setSort = useAppStore((s) => s.setSort);
   const headingId = useId();
+  const nightsId = useId();
   const now = useNow(HERO_CHECK_MS);
   /**
    * Which nights the reader has opened or closed. Only the ones actually
@@ -140,26 +149,32 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
   const groups = showList ? groupByNight(passes.passes, passes.window) : [];
   const openDefault = defaultOpenNight(groups, now);
   const zone = observer?.timeZone ?? null;
+  const tag = hero ? t.passes.nextTag({ name: hero.name, iss: hero.name.startsWith('ISS') }) : undefined;
   const cards = (items: readonly (typeof passes.passes)[number][]) =>
     items.length === 0 || !observer ? null : (
       <ol className={styles.list}>
         {items.map((pass) => (
           <li key={pass.id}>
-            <PassCard pass={pass} timeZone={observer.timeZone} weather={snapshot} selected={pass.id === selectedPassId} {...open} />
+            <PassCard pass={pass} timeZone={observer.timeZone} weather={snapshot} selected={pass.id === selectedPassId} {...(pass.id === hero?.id && tag !== undefined ? { tag } : {})} {...open} />
           </li>
         ))}
       </ol>
     );
-  /** The night's own list: everything it claimed except the pass the hero card is already showing. */
-  const listOf = (group: NightGroup) => sortPasses(hero ? group.passes.filter((pass) => pass.id !== hero.id) : group.passes, sort);
+  const listOf = (group: NightGroup) => sortPasses(group.passes, sort);
+  const isOpen = (group: NightGroup): boolean => overrides[group.index] ?? group.index === openDefault;
+  const toggle = (group: NightGroup): void => {
+    const next = !isOpen(group);
+    setNights((current) => ({ place: placeKey, overrides: { ...(current.place === placeKey ? current.overrides : {}), [group.index]: next } }));
+  };
   return (
     <section aria-labelledby={headingId} className={styles.section}>
       <SectionHeading id={headingId}>{t.passes.heading}</SectionHeading>
-      <p role="status" aria-live="polite" aria-busy={busy} className={styles.status}>
-        {statusText(observer, elements, passes, t)}
-      </p>
-      {showList && hero && observer && <IssHeroCard pass={hero} timeZone={observer.timeZone} weather={snapshot} selected={hero.id === selectedPassId} {...open} />}
-      {showList && <SortToggle value={sort} onChange={setSort} />}
+      <div className={styles.countLine}>
+        <p role="status" aria-live="polite" aria-busy={busy} className={styles.status}>
+          {statusText(observer, elements, passes, t)}
+        </p>
+        {showList && <SortToggle value={sort} onChange={setSort} short />}
+      </div>
       {/* One night is no grouping at all: an MVP-width window, and every list before R24, is a
           single disclosure with nothing to disclose it from (D-146). */}
       {showList && groups.length === 1 && cards(listOf(groups[0] as NightGroup))}
@@ -168,28 +183,41 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
         groups.map((group) => {
           const items = listOf(group);
           return (
-            <details
+            <div
               key={group.index}
+              id={`${nightsId}-${String(group.index)}`}
+              role="group"
+              aria-label={nightLabel(group, now, zone, locale, t)}
               className={styles.night}
               data-testid="night-group"
               data-night={group.index}
-              open={overrides[group.index] ?? group.index === openDefault}
-              onToggle={(event) => {
-                const isOpen = event.currentTarget.open;
-                setNights((current) => ({ place: placeKey, overrides: { ...(current.place === placeKey ? current.overrides : {}), [group.index]: isOpen } }));
-              }}
+              data-open={isOpen(group)}
+              hidden={!isOpen(group)}
             >
-              <summary className={styles.nightHeading}>
-                <span className={styles.nightName}>{nightLabel(group, now, zone, locale, t)}</span>
-                {/* What the heading counts is what the disclosure opens onto (F-25): the hero's pass is
-                    shown above and not repeated here, so counting it left "3 passes" over a list of two. */}
-                <span className={styles.nightCount}>{t.passes.nights.count(items.length)}</span>
-              </summary>
-              {items.length > 0 && cards(items)}
-              {items.length === 0 && <p className={styles.nightEmpty}>{group.passes.length === 0 ? t.passes.nights.empty : t.passes.nights.heroOnly}</p>}
-            </details>
+              {items.length > 0 ? cards(items) : <p className={styles.nightEmpty}>{t.passes.nights.empty}</p>}
+            </div>
           );
         })}
+      {showList && groups.length > 1 && (
+        <div role="group" aria-label={t.passes.nights.toggles} className={styles.toggles} data-testid="night-toggles">
+          {groups.map((group) => (
+            <button
+              key={group.index}
+              type="button"
+              className={`inline-control ${styles.toggle}`}
+              aria-expanded={isOpen(group)}
+              aria-controls={`${nightsId}-${String(group.index)}`}
+              data-testid="night-toggle"
+              data-night={group.index}
+              onClick={() => {
+                toggle(group);
+              }}
+            >
+              <span className={styles.nightName}>{nightLabel(group, now, zone, locale, t)}</span> <span className={styles.nightCount}>{t.passes.nights.count(listOf(group).length)}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

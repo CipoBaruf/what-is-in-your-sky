@@ -9,16 +9,12 @@
   color: var(--fg-dim);
 }
 
-/* Text toggles: the pressed one reads `[x]`, the other `[ ]` (FR-X-5: not colour alone). */
+/* R81 (FR-FIRST-10): the pressed order bracketed, `[ Soonest ] Best` — the
+   bracket and the accent both say which (FR-X-5: not colour alone). */
 .option {
   border: 0;
   background: none;
-  padding: 0 var(--cell) 0 0;
-  color: var(--fg-dim);
-}
-
-.option::before {
-  content: '[ ] ';
+  padding: 0;
   color: var(--fg-dim);
 }
 
@@ -27,6 +23,11 @@
 }
 
 .option[aria-pressed='true']::before {
-  content: '[x] ';
-  color: var(--accent);
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.option[aria-pressed='true']::after {
+  content: ' ]';
+  color: var(--fg-dim);
 }
