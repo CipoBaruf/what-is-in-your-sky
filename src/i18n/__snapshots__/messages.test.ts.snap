@@ -71,6 +71,7 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".favourites.empty:string",
   ".favourites.heading:string",
   ".favourites.limit:function",
+  ".favourites.lineHeading:string",
   ".favourites.remove:function",
   ".favourites.save:string",
   ".favourites.use:function",
