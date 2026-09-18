@@ -39,6 +39,20 @@ async function fitsTheViewport(row: Locator): Promise<boolean> {
   return width <= COMPACT.width;
 }
 
+/**
+ * Where a control's own text is drawn, rather than where its box is: a bracketed
+ * control carries a 48 px tap box around a 24 px line, so the boxes of two things
+ * that read as one line never agree (D-500, D-501).
+ */
+async function textLine(locator: Locator): Promise<{ top: number; bottom: number }> {
+  return locator.evaluate((element: HTMLElement) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const { top, bottom } = range.getBoundingClientRect();
+    return { top: Math.round(top), bottom: Math.round(bottom) };
+  });
+}
+
 test.describe('the settings page at 390 px (FR-COMP-1..4, US-20)', () => {
   test('the header, the summary and the sort row are each one line, and [ settings ] opens the page', async ({ page }) => {
     await seedStoredRun(page);
@@ -63,6 +77,14 @@ test.describe('the settings page at 390 px (FR-COMP-1..4, US-20)', () => {
     // FR-COMP-2's order as FR-SET-1 inverts it, on the page the reader is now looking at.
     await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Location', 'Saved places', 'This browser']);
     await expect(page.getByRole('button', { name: 'Clear saved location' })).toBeVisible();
+  });
+
+  test('the title and the two controls are drawn on one line (FR-COMP-1, D-501)', async ({ page }) => {
+    await seedStoredRun(page);
+    const header = page.getByTestId('header');
+    const [title, live, settings] = await Promise.all([textLine(header.getByRole('heading', { level: 1 })), textLine(page.getByTestId('live-link')), textLine(page.getByTestId('settings-link'))]);
+    expect(live).toEqual(title);
+    expect(settings).toEqual(title);
   });
 
   test('the settings page still has a one-line header, and its own [ settings ] is the current page', async ({ page }) => {
@@ -290,6 +312,13 @@ test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', ()
     // The wide home keeps the whole form: the summary is the compact layout's line (US-20 AC5).
     await expect(page.getByRole('region', { name: 'Location' })).toBeVisible();
     await expect(page.getByTestId('location-summary')).toHaveCount(0);
+  });
+
+  test('[ Live sky ] is drawn on the title’s own line (FR-DESK-2, D-501)', async ({ page }) => {
+    await seedStoredRun(page);
+    const header = page.getByTestId('header');
+    const [title, live] = await Promise.all([textLine(header.getByRole('heading', { level: 1 })), textLine(page.getByTestId('live-link'))]);
+    expect(live).toEqual(title);
   });
 
   test('the focus ring on [ Live sky ] clears the tagline under it (FR-X-5, D-500)', async ({ page }) => {

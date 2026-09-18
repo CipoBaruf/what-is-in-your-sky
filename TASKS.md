@@ -1727,7 +1727,7 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: the new mark in every header, the two icons and the favicon opened at 1 : 1 in the PR.
 
-- [x] **R75 — The settings page: the order inverted, one viewport in Spanish** *(at the owner's gate: the focus ring was drawn round the 48 px tap box and crossed the lines above and below it — on this page the way back, in the wide header the `[ Live sky ]` link over the tagline. Fixed for every inline control in `global.css`, with a quarter row above the wide header's tagline, D-500.)* — done; the components gained placement props rather than staying untouched, and the page drops the compact footer for its privacy line (D-461..D-464).
+- [x] **R75 — The settings page: the order inverted, one viewport in Spanish** *(at the owner's gate: the focus ring was drawn round the 48 px tap box and crossed the lines above and below it — on this page the way back, in the wide header the `[ Live sky ]` link over the tagline. Fixed for every inline control in `global.css`, with a quarter row above the wide header's tagline, D-500. Then the same gate: both headers aligned their controls on the mark's baseline rather than the title's, seven pixels low, D-501.)* — done; the components gained placement props rather than staying untouched, and the page drops the compact footer for its privacy line (D-461..D-464).
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner

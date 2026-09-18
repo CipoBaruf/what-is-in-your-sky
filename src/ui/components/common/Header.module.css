@@ -20,11 +20,22 @@
    right, and the tagline below can be aligned to the title's first letter with
    one number. One cell between them, which is what the tagline's padding then
    restates: the mark's width plus that cell. */
+/* R75 (D-501): the group hands the row the title's baseline, not the mark's.
+   The mark's two layers are absolutely positioned, so its box holds no line of
+   its own and its baseline is its bottom edge — a group aligned on that put
+   `[ live ] [ settings ]`, and `[ Live sky ]` in the wide header, seven pixels
+   below the title they read beside. Baseline alignment here makes the title
+   the one item that carries a baseline, and the mark centres across the line
+   as it did before (FR-MARK-4, D-441). */
 .brand {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 0 var(--cell);
   min-width: 0;
+}
+
+.brand > :first-child {
+  align-self: center;
 }
 
 /* The mark stands where the `>` prompt was (`global.css`'s `h1::before`): two
