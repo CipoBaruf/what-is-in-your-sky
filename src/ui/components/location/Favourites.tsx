@@ -93,7 +93,7 @@ export function Favourites({ footer, titled = false, limit = 'always', form = 'b
     return (
       <div className={styles.line} data-testid="favourites">
         <div className={styles.lineHead}>
-          <span className={styles.lineTitle}>{t.favourites.heading}</span>
+          <span className={styles.lineTitle}>{t.favourites.lineHeading}</span>
           {observer !== null && (
             <>
               <span aria-hidden="true">·</span>

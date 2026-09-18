@@ -211,6 +211,8 @@ export const ui: typeof EnUi = {
 
   favourites: {
     heading: 'Lugares guardados',
+    /* R81: «Lugares guardados · [ Guardar este lugar ]» is 42 of the line's 41 small characters. */
+    lineHeading: 'Guardados',
     save: 'Guardar este lugar',
     empty: 'Todavía no hay lugares guardados.',
     use: (label) => `Usar ${label}`,

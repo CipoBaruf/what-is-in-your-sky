@@ -289,6 +289,8 @@ export const ui = {
    */
   favourites: {
     heading: 'Saved places',
+    /** R81 (FR-FIRST-11): the Where reading's line, `Saved places · [ Save this place ]`, which has 41 small characters on a phone. */
+    lineHeading: 'Saved places',
     save: 'Save this place',
     empty: 'No places saved yet.',
     use: (label: string) => `Use ${label}`,

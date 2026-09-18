@@ -44,7 +44,7 @@ export function SortToggle({ value, onChange, short = false }: SortToggleProps) 
           key={sort}
           type="button"
           aria-pressed={value === sort}
-          className={styles.option}
+          className={styles.sortOption}
           onClick={() => {
             if (sort !== value) onChange(sort);
           }}
