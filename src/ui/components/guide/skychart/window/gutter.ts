@@ -113,6 +113,8 @@ export interface GutterMark {
   x: number | null;
   /** FR-GUT-5: the whole degrees to turn, the shorter way (the readout's rounding); off the band only. */
   angleDeg: number | null;
+  /** The turn to the pass from the facing on every branch — the side and the whole degrees — for the gutter's words. */
+  turn: { side: 'left' | 'right'; angleDeg: number };
 }
 
 /**
@@ -127,7 +129,7 @@ export function gutterMarks(passes: readonly GutterPass[], facingDeg: number, vi
   const { halfDeg } = bracketFor(view);
   return passes.map((pass) => {
     const d = wrapDeg(pass.bearingDeg - facingDeg);
-    const base = { id: pass.id, name: pass.name, key: pass.key, color: pass.color };
+    const base = { id: pass.id, name: pass.name, key: pass.key, color: pass.color, turn: turnTo(pass.bearingDeg, facingDeg) };
     if (Math.abs(d) <= halfDeg) return { ...base, branch: 'in-bracket', x: gutterX(pass.bearingDeg, facingDeg, view.width), angleDeg: null };
     if (Math.abs(d) <= GUTTER_HALF_SPAN_DEG) return { ...base, branch: 'on-band', x: gutterX(pass.bearingDeg, facingDeg, view.width), angleDeg: null };
     return { ...base, branch: d < 0 ? 'off-left' : 'off-right', x: null, angleDeg: Math.round(Math.abs(d)) };

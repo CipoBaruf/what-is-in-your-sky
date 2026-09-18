@@ -1,0 +1,146 @@
+/* R79 (FR-GUT-1..5, D-450): the compass gutter. `--gutter` tall — a 24 px
+   text row for the names under 4 px of tick — the screen's whole width, on the
+   overlay surface the readout sits on (`--screen-overlay`, FR-FSC-3's). Every
+   position is a percentage `CompassGutter.tsx` wrote from `gutter.ts`, so the
+   band never stretches a glyph and nothing here is measured. No transitions:
+   the band moves with the facing, frame by frame, as the drawing does. */
+.gutter {
+  position: relative;
+  height: var(--gutter);
+  overflow: hidden;
+  background: var(--screen-overlay, var(--bg-raised));
+  font-size: var(--small);
+  line-height: var(--gutter);
+}
+
+.band {
+  position: absolute;
+  inset: 0;
+}
+
+/* FR-GUT-3: the field the drawing shows, ruled in the accent. */
+.bracket {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  box-sizing: border-box;
+  border: 1px solid var(--accent);
+  pointer-events: none;
+}
+
+/* FR-GUT-2: a compass name on the text row, with its tick in the 4 px above. */
+.name {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  height: var(--row);
+  line-height: var(--row);
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+
+.name::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--row) - var(--gutter));
+  left: 50%;
+  width: 1px;
+  height: calc(var(--gutter) - var(--row));
+  background: var(--fg-dim);
+}
+
+/* FR-GUT-4: a pass's tick, at least 2 × 8 px so it reads without colour (FR-X-5), its key under it. */
+.mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+}
+
+.mark .tick {
+  display: block;
+  width: 3px;
+  height: 8px;
+  border-radius: 0;
+}
+
+.mark .key {
+  line-height: calc(var(--gutter) - 8px);
+  font-weight: 700;
+}
+
+/* FR-GUT-5: the edge markers, stacked outward-in from each end, over the band's names. */
+.edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  gap: var(--cell);
+  align-items: center;
+  padding: 0 var(--cell);
+  background: var(--bg-raised);
+  color: var(--fg);
+  white-space: nowrap;
+}
+
+.edgeLeft {
+  left: 0;
+}
+
+.edgeRight {
+  right: 0;
+  flex-direction: row-reverse;
+}
+
+.edge .key {
+  font-weight: 700;
+}
+
+/* FR-LEG-5: the key in its arc's colour — the same `--chart-*` token the swatch and the arc are drawn in. */
+.key[data-color='pass'] {
+  color: var(--chart-pass);
+}
+
+.key[data-color='pass-dim'] {
+  color: var(--chart-pass-dim);
+}
+
+.key[data-color='series-1'] {
+  color: var(--chart-series-1);
+}
+
+.key[data-color='series-2'] {
+  color: var(--chart-series-2);
+}
+
+.key[data-color='series-3'] {
+  color: var(--chart-series-3);
+}
+
+.key[data-color='series-4'] {
+  color: var(--chart-series-4);
+}
+
+.key[data-color='series-5'] {
+  color: var(--chart-series-5);
+}
+
+.key[data-color='series-6'] {
+  color: var(--chart-series-6);
+}
+
+/* The marks as sentences, for what reads the page and not the picture. */
+.words {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  list-style: none;
+}
