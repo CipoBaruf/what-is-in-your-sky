@@ -86,6 +86,23 @@ export interface ChartFrameProps {
    * screen's `×`. Only placed on a `screen`; the frame does not read it.
    */
   overlay?: ReactNode;
+  /**
+   * FR-GUT-1 (R79, D-450): the sky screen's compass gutter. On a `screen` it
+   * fills the bottom overlay slot the legend strip had — the strip is not
+   * rendered there sideways — and upright it is the last row. Ignored off a
+   * screen.
+   */
+  gutter?: ReactNode;
+  /**
+   * FR-GUT-7 (R79, D-451): the screen is held upright — the measured box
+   * taller than wide, which the window reads and the frame does not. The
+   * overlays become five rows: the readout (the `×` over its right end), the
+   * `headline`, the drawing as a band at most as tall as it is wide, the
+   * legend's two rows and the gutter. Ignored off a screen.
+   */
+  upright?: boolean;
+  /** FR-GUT-7 (R79): what stands between the readout and the band upright — the next-event block. Ignored sideways and off a screen. */
+  headline?: ReactNode;
   className?: string;
   /** FR-LIVE-1 (R32): the drawing takes the frame's whole height instead of a capped square; the frame takes its parent's. */
   fill?: boolean;
@@ -119,7 +136,7 @@ export const LEGEND_OPEN_ROWS = 2;
  */
 export const LEGEND_PANEL_ID = 'live-legend-panel';
 
-export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe, boxAspect, stacked = false, screen = false, overlay, className, fill = false, children }: ChartFrameProps) {
+export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe, boxAspect, stacked = false, screen = false, overlay, gutter, upright = false, headline, className, fill = false, children }: ChartFrameProps) {
   const compact = useLayoutMode() === 'compact';
   const frameRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
@@ -208,24 +225,49 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
    * puts over both. `aside` and `stripe` have nowhere to go here and are not
    * rendered; neither is the controls row, since a screen has no controls
    * (FR-FSC-1). A slot with nothing in it is left out rather than drawn empty:
-   * the two overlays carry a surface, and R63's portrait state hands the frame
-   * `status={null}` and `legend={null}` precisely so the note is all there is.
+   * the two overlays carry a surface.
+   *
+   * R79 (FR-GUT-1, FR-GUT-7; D-450, D-451): sideways the bottom slot is the
+   * compass gutter and the legend strip is not rendered; which component fills
+   * the slot changed, how the overlay works did not. Upright — the window says
+   * so, from the box it measured — the same slots are five rows in this order:
+   * the readout, the headline, the drawing as a band, the legend's two rows and
+   * the gutter, with the `×` still over everything at the top right.
    */
   if (screen) {
+    const screenLegend = upright && hasLegend;
     return (
       <div className={[styles.shell, styles.shellFill].join(' ')}>
-        <div className={[styles.screen, className].filter(Boolean).join(' ')} ref={frameRef} data-testid="chart-frame" data-screen="true" data-fill={fill} data-legend={hasLegend}>
-          <div className={styles.drawing} data-testid="chart-box">
-            {children}
-          </div>
+        <div
+          className={[styles.screen, className].filter(Boolean).join(' ')}
+          ref={frameRef}
+          data-testid="chart-frame"
+          data-screen="true"
+          data-fill={fill}
+          data-legend={screenLegend}
+          data-orientation={upright ? 'portrait' : 'landscape'}
+        >
           {status !== undefined && status !== null && (
-            <div className={styles.status} id={SCREEN_STATUS_ID} data-testid="chart-status">
+            <div className={styles.status} id={SCREEN_STATUS_ID} data-testid="chart-status" data-row="readout">
               {status}
             </div>
           )}
-          {hasLegend && (
-            <div className={styles.legend} data-testid="chart-legend-slot">
+          {upright && headline !== undefined && headline !== null && (
+            <div className={styles.headline} data-testid="chart-headline" data-row="headline">
+              {headline}
+            </div>
+          )}
+          <div className={styles.drawing} data-testid="chart-box" data-row="band">
+            {children}
+          </div>
+          {screenLegend && (
+            <div className={styles.legend} data-testid="chart-legend-slot" data-row="legend">
               {legend}
+            </div>
+          )}
+          {gutter !== undefined && gutter !== null && (
+            <div className={styles.gutter} data-testid="chart-gutter-slot" data-row="gutter">
+              {gutter}
             </div>
           )}
           {overlay !== undefined && overlay !== null && (
