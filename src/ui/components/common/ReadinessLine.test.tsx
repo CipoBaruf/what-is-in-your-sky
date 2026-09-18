@@ -6,7 +6,7 @@ import { NO_MOON_AT_PEAK } from '../../../../tests/support/moonFixtures';
 import type { Observer, Pass, WeatherSnapshot } from '../../../model';
 import { appStore, type AppState, type ElementsState } from '../../../state';
 import { I18nProvider } from '../../../i18n/useT';
-import { ReadinessLine } from './ReadinessLine';
+import { ReadinessLine, StoredLine } from './ReadinessLine';
 
 /**
  * TASKS R27 (FR-OFF-4, US-16 AC2): the line states a date and a time when the
@@ -129,6 +129,20 @@ describe('ReadinessLine (R27: FR-OFF-4)', () => {
     expect(screen.getByTestId('readiness')).toHaveTextContent('Ready offline until');
     // T0 is 21:00 UTC, 18:00 in GMT-3; twenty hours before that is 22:00 the previous evening.
     expect(screen.getByTestId('readiness-stored')).toHaveTextContent('Stored 2026-09-10 22:00');
+  });
+
+  it('R81 (FR-OFF-4 as amended): the line form is the one line, and the storage time is StoredLine’s alone', () => {
+    set(ready([pass('a', 4)], T0 - 20 * HOUR));
+    const { unmount } = render(<ReadinessLine form="line" />);
+    expect(screen.getByTestId('readiness')).toHaveTextContent('Ready offline until');
+    expect(screen.queryByTestId('readiness-stored')).toBeNull();
+    unmount();
+    render(<StoredLine />);
+    expect(screen.queryByTestId('readiness')).toBeNull();
+    expect(screen.getByTestId('readiness-stored')).toHaveTextContent('Stored 2026-09-10 22:00');
+    // This session's own run has no age worth stating (D-145), in the details as on the line.
+    set(ready([pass('a', 4)], null));
+    expect(screen.queryByTestId('readiness-stored')).toBeNull();
   });
 
   it('F-23: a stored run whose passes have all ended names the gap instead of a date in the past', () => {

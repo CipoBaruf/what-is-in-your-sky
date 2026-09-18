@@ -107,3 +107,48 @@ describe('Favourites (R28: FR-OFF-7, US-17)', () => {
     expect(screen.getByText(/Hasta 8 lugares/)).toBeInTheDocument();
   });
 });
+
+describe('Favourites, the Where reading’s line form (R81: FR-FIRST-11, D-511)', () => {
+  const line = () =>
+    render(
+      <main>
+        <Favourites form="line" />
+      </main>,
+    );
+
+  it('is "Saved places · [ Save this place ]" on one line, with no empty-list sentence and no limit until it is news', async () => {
+    const addFavourite = vi.fn();
+    set({ observer: cipolletti, addFavourite });
+    const { container } = line();
+    const head = screen.getByText('Saved places').parentElement as HTMLElement;
+    expect(head).toContainElement(screen.getByTestId('save-favourite'));
+    expect(head).toHaveTextContent(/^Saved places·Save this place$/);
+    expect(screen.queryByText('No places saved yet.')).toBeNull();
+    expect(screen.queryByText(/^Up to /)).toBeNull();
+    expect(await axe(container)).toHaveNoViolations();
+    await userEvent.setup().click(screen.getByTestId('save-favourite'));
+    expect(addFavourite).toHaveBeenCalledWith(cipolletti);
+  });
+
+  it('puts each saved place on a line under it, the one in use marked, and picks and removes them (US-17)', async () => {
+    const selectFavourite = vi.fn();
+    const removeFavourite = vi.fn();
+    set({ observer: cipolletti, favourites: [saved(cipolletti), saved(paris)], selectFavourite, removeFavourite });
+    line();
+    const items = screen.getAllByTestId('favourite');
+    expect(items.map((item) => item.getAttribute('data-current'))).toEqual(['yes', 'no']);
+    expect(within(items[0] as HTMLElement).getByText('(in use)')).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Use Paris' }));
+    expect(selectFavourite).toHaveBeenCalledWith(favouriteCellKey(paris));
+    await user.click(screen.getByRole('button', { name: 'Remove Paris' }));
+    expect(removeFavourite).toHaveBeenCalledWith(favouriteCellKey(paris));
+  });
+
+  it('states the limit once the list is full, when the next save forgets a place', () => {
+    const many = Array.from({ length: MAX_FAVOURITES }, (_, i) => saved({ ...paris, lat: 10 + i, label: `Place ${String(i)}` }));
+    set({ observer: cipolletti, favourites: many });
+    line();
+    expect(screen.getByText(`Up to ${String(MAX_FAVOURITES)} places. Saving another forgets the one you have not used for longest.`)).toBeInTheDocument();
+  });
+});
