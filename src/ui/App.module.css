@@ -27,6 +27,69 @@
   gap: var(--row);
 }
 
+/* R76 (FR-FIRST-4): a reading is a column's own stack — its heading, then the
+   components the page already had, a row apart. */
+.reading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--row);
+}
+
+/* R76 (FR-FIRST-1): the cold open — the mark centred, the tagline on compact,
+   the step line, the question and its sentence, and the input group. */
+.cold {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--row);
+}
+
+.heroMark {
+  justify-self: center;
+  line-height: 0;
+}
+
+.tagline,
+.coldSentence {
+  margin: 0;
+  color: var(--fg-dim);
+}
+
+.tagline {
+  text-align: center;
+}
+
+.coldHeading {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: normal;
+  line-height: calc(1.5 * var(--row));
+  color: var(--fg);
+}
+
+/* `[01] where — 02 when — 03 what`: the current step bracketed and in `--fg`,
+   the others dim; the dashes between them are the list's own punctuation, so
+   the steps are read as three items and not as a sentence. */
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--fg-dim);
+}
+
+.step + .step::before {
+  content: ' — ';
+  white-space: pre;
+  color: var(--fg-dim);
+}
+
+.step[aria-current='step'] {
+  color: var(--fg);
+}
+
 /* R23 (FR-DESK-2). Wide: the header spans both columns and puts its controls
    at the right of the title; the left column is fixed at 40 cells — location,
    the elements banners, the Now panel, and the Moon line's slot when R30 adds
@@ -52,6 +115,14 @@
 
   .main > .column {
     min-height: 0;
+  }
+
+  /* R76 (FR-FIRST-1): the cold open is one centred column, the compact frame's
+     80 cells, and scrolls itself inside the one-viewport shell (D-119). */
+  .main[data-home='cold'] {
+    grid-template-columns: minmax(0, calc(80 * var(--cell)));
+    justify-content: center;
+    overflow-y: auto;
   }
 
   /* The location, the banners and the Now panel can outgrow the shell on a
@@ -90,6 +161,55 @@
   .listColumn {
     min-height: 0;
     overflow-y: auto;
+  }
+}
+
+/* R76 (FR-FIRST-5, D-443, D-444): from `HOME_THREE_PANE_MIN_CELLS` — three
+   panes of 36 cells, the two gutters and one shell padding — the readings are
+   three equal panes, Where, When and What. The two columns' wrappers step out
+   of the way (`display: contents`) so the three readings and the guide panel
+   are this grid's own items, and each pane scrolls itself inside the
+   one-viewport shell (D-119). An open pass (`data-guide='pane'`) takes the
+   Where and When panes together — at least 72 cells, so the panel's 40-cell
+   floor holds with room — and What keeps the list with the card highlighted.
+   `lib/layout.ts` owns the literal; `tests/styles/breakpoint.test.ts` holds it. */
+@media (min-width: 1118px) {
+  .main[data-home='readings'] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .main[data-home='readings'] > .column {
+    display: contents;
+  }
+
+  .where,
+  .when,
+  .main[data-home='readings'] .listColumn {
+    grid-row: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .where {
+    grid-column: 1;
+  }
+
+  .when {
+    grid-column: 2;
+  }
+
+  .main[data-home='readings'] .listColumn {
+    grid-column: 3;
+  }
+
+  .main[data-guide='pane'] .where,
+  .main[data-guide='pane'] .when {
+    display: none;
+  }
+
+  .main[data-guide='pane'] [data-guide-panel] {
+    grid-column: 1 / span 2;
+    grid-row: 1;
   }
 }
 

@@ -90,6 +90,33 @@ export const SHELL_PADDING_CELLS = 2;
 export const WIDE_SPLIT_MIN_CELLS = 124;
 export const WIDE_SPLIT_MIN_PX = thresholdPx(WIDE_SPLIT_MIN_CELLS + 2 * GUTTER_CELLS + SHELL_PADDING_CELLS);
 
+/**
+ * R76 (FR-FIRST-5, D-443): the width from which the wide home is three equal
+ * panes — Where, When, What — rather than FR-DESK-2's two columns. 108 cells
+ * of content is three panes of 36, the compact card's width and the least a
+ * pane can hold a pass card in. Its pixel twin counts the rest by D-253's
+ * rule: the two 3-cell gutters and one 2-cell shell padding, 116 cells.
+ *
+ * The spec gives the twin as "about 1114 px" — 116 cells at the 0.6 em advance
+ * — and this is 1118: the literal is derived by `thresholdPx` on the widest
+ * advance in the font stack (F-10), as the other two are, so three panes never
+ * engage before 108 cells of content exist on any font. 1024 × 768 is under it
+ * and 1280 × 800 over it either way, which is what the requirement asks of it.
+ *
+ * It sits between the other two: under it the two columns stand, as the
+ * layout the wide breakpoint starts; and since the Where and When panes are
+ * what an open pass takes at this width (D-444), `WIDE_SPLIT_MIN_PX`'s split of
+ * the right column only ever applies below it — which is to say, on the home
+ * page, never. The rule stays, and the breakpoint test keeps the three literals
+ * in order.
+ */
+export const HOME_THREE_PANE_MIN_CELLS = 108;
+export const HOME_THREE_PANE_MIN_PX = thresholdPx(HOME_THREE_PANE_MIN_CELLS + 2 * GUTTER_CELLS + SHELL_PADDING_CELLS);
+export const HOME_THREE_PANE_QUERY = `(min-width: ${String(HOME_THREE_PANE_MIN_PX)}px)`;
+
+/** FR-FIRST-5 (D-444): an open pass at three-pane widths takes the first two panes, at least this wide. */
+export const GUIDE_PANE_MIN_CELLS = 72;
+
 export type LayoutMode = 'compact' | 'wide';
 
 /** Which shell a `matchMedia(WIDE_QUERY)` result means (D-72). */
