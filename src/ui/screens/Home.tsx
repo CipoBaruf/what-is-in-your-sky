@@ -1,39 +1,50 @@
 import { Suspense, useId, useRef, useState, type LazyExoticComponent, type ReactNode } from 'react';
 import { useT } from '../../i18n/useT';
+import type { Observer, Pass } from '../../model';
 import { searchPlaces, SEARCH_WINDOW_HOURS, useAppStore } from '../../state';
 import styles from '../App.module.css';
 import { Banner } from '../components/common/Banner';
 import { InstallHint } from '../components/common/InstallHint';
-import { LocationSummary } from '../components/common/LocationSummary';
 import { ReadinessLine } from '../components/common/ReadinessLine';
 import { SectionHeading } from '../components/common/SectionHeading';
 import { UpdateBanner } from '../components/common/UpdateBanner';
-import { ElementsBanners } from '../components/elements/ElementsBanners';
+import { ElementsLine } from '../components/elements/ElementsLine';
 import { Favourites } from '../components/location/Favourites';
 import { LocationInput } from '../components/location/LocationInput';
 import type { GeolocationEnv } from '../components/location/UseMyLocation';
+import { WhereDome } from '../components/location/WhereDome';
+import { WherePlace } from '../components/location/WherePlace';
 import type { MoonLore as MoonLoreComponent } from '../components/moon/MoonLore';
-import { DarkWindow } from '../components/now/DarkWindow';
-import { NowPanel } from '../components/now/NowPanel';
+import { ConditionsTable } from '../components/now/ConditionsTable';
+import { TonightStripe } from '../components/now/TonightStripe';
+import { useTonight } from '../components/now/useTonight';
 import { NextEventBlock } from '../components/passes/NextEventBlock';
 import { PassList } from '../components/passes/PassList';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 
 /**
  * R76 (FR-FIRST-1..FR-FIRST-6, D-443, D-444): the home page as three readings —
- * **where**, **when**, **what** — composed from the components the page already
- * had. Nothing here changes how any of them writes the store; this is where they
- * sit, and the stylesheet (`App.module.css`) decides whether the three stack
- * (compact), take FR-DESK-2's two columns with Where above When (wide), or are
- * three equal panes (from `HOME_THREE_PANE_MIN_PX`).
+ * **where**, **when**, **what**. Nothing here changes how any component
+ * writes the store; this is where they sit, and the stylesheet
+ * (`App.module.css`) decides whether the three stack (compact), take
+ * FR-DESK-2's two columns with Where above When (wide), or are three equal
+ * panes (from `HOME_THREE_PANE_MIN_PX`).
  *
  * With no observer there is nothing to read yet, and the page is the cold open
  * (FR-FIRST-1 as amended v2.0.2, board 1B): on a phone the step line, the
  * question and its sentence, and the input group with its foot at the bottom
  * of the screen; on a desk the three panes, Where holding the question and
- * the group and When and What drawn dimmed as what they will hold. No Now
- * panel, no readiness line, no list, and no banner about elements — those are
- * about a place, and there is none.
+ * the group and When and What drawn dimmed as what they will hold. No
+ * conditions, no readiness line, no list, and no line about elements — those
+ * are about a place, and there is none.
+ *
+ * R81 (FR-FIRST-3..11 as amended v2.0.2, D-505..D-512): populated, the panes
+ * hold what board 1B draws, under plain headings (`── Where ──`) with 0.75 rem
+ * between blocks — Where the place and its sentence, the dome on wide, the
+ * readiness and elements lines and the saved places; When tonight's stripe,
+ * the conditions table, the Moon's tradition line and the next event; What the
+ * count and sort line and the one-line cards. The phone's stacked page is the
+ * same components in the same order, without the dome.
  *
  * The two columns' wrappers (`col-left`, `col-right`) are kept, because between
  * the wide breakpoint and the three-pane width the page *is* those two columns
@@ -46,7 +57,7 @@ import { useLayoutMode } from '../hooks/useLayoutMode';
 export type Step = 'where' | 'when' | 'what';
 export const STEPS: readonly Step[] = ['where', 'when', 'what'];
 
-/** "[01] where" for the current step, "02 when" for the others (FR-FIRST-1's step line, FR-FIRST-5's pane headings). */
+/** "[01] where" for the current step, "02 when" for the others (FR-FIRST-1's step line, the cold open's pane headings). */
 export function stepLabel(step: Step, current: boolean, word: string): string {
   const number = String(STEPS.indexOf(step) + 1).padStart(2, '0');
   return current ? `[${number}] ${word}` : `${number} ${word}`;
@@ -67,19 +78,28 @@ export function StepLine({ current }: { current: Step }) {
 }
 
 /**
- * FR-FIRST-5: a reading's character-rule heading, numbered like the step line —
- * `[01] Where`, `02 When`, `03 What`, the first bracketed as the spec writes
- * them.
+ * FR-FIRST-5 as amended v2.0.2: a populated reading's character-rule heading is
+ * the plain word — `── When ──`, the title in `--fg` and the rules in
+ * `--fg-dim` — the numbers being the cold open's and the steps'.
  */
 function Region({ step, className, testId, children }: { step: Step; className: string; testId: string; children: ReactNode }) {
   const t = useT();
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} className={className} data-testid={testId} data-reading={step}>
-      <SectionHeading id={headingId}>{stepLabel(step, step === 'where', t.home.panes[step])}</SectionHeading>
+      <SectionHeading id={headingId}>{t.home.panes[step]}</SectionHeading>
       {children}
     </section>
   );
+}
+
+const NO_PASSES: readonly Pass[] = [];
+
+/** The stored run's passes as the list shows them: a stored run shows whatever the elements are doing (D-108). */
+function useShownPasses(): readonly Pass[] {
+  const elements = useAppStore((s) => s.elements);
+  const passes = useAppStore((s) => s.passes);
+  return passes.passes.length > 0 && (elements.status === 'ready' || passes.storedAt !== null) ? passes.passes : NO_PASSES;
 }
 
 /**
@@ -163,19 +183,19 @@ export interface WhereReadingProps {
 }
 
 /**
- * FR-FIRST-1, FR-FIRST-2, FR-FIRST-4: the Where reading — the cold open with no
- * observer, and with one the location line, the saved places on wide, the
- * readiness line and the elements banners.
+ * FR-FIRST-1, FR-FIRST-2, FR-FIRST-11: the Where reading — the cold open with
+ * no observer, and with one the place and its sentence (`WherePlace`), the
+ * dome on wide, the readiness line, the elements line and the saved places,
+ * each one line (R81, D-511).
  *
  * The input group is one mounted instance across the two states, in the same
- * place in the tree, and only shown or hidden. A coordinate pair becomes an
- * observer at its first valid keystroke and an invalid one drops it, so a group
- * that belonged to either state alone would be torn down under the reader's
- * fingers the moment their typing parsed — the field gone, and the focus with
- * it. For the same reason, when the place arrives while the reader is typing in
- * the group, it stays open under the line; when it arrives any other way — the
- * device button, a saved place — the group folds away and the countdown is
- * what follows the line (FR-FIRST-3).
+ * place in the tree, and only shown or hidden (D-467). A coordinate pair
+ * becomes an observer at its first valid keystroke and an invalid one drops it,
+ * so a group that belonged to either state alone would be torn down under the
+ * reader's fingers the moment their typing parsed — the field gone, and the
+ * focus with it. For the same reason, when the place arrives while the reader
+ * is typing in the group, it stays open under the place; when it arrives any
+ * other way — the device button, a saved place — the group folds away.
  */
 export function WhereReading({ offersInert, geolocation }: WhereReadingProps) {
   const t = useT();
@@ -183,6 +203,7 @@ export function WhereReading({ offersInert, geolocation }: WhereReadingProps) {
   const observer = useAppStore((s) => s.observer);
   const setObserver = useAppStore((s) => s.setObserver);
   const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
+  const passes = useShownPasses();
   const cold = observer === null;
   const [open, setOpen] = useState(false);
   const [wasCold, setWasCold] = useState(cold);
@@ -205,10 +226,10 @@ export function WhereReading({ offersInert, geolocation }: WhereReadingProps) {
           removes nothing the page had. */}
       <UpdateBanner inert={offersInert} />
       <InstallHint inert={offersInert} />
-      {cold ? <ColdHead headingId={coldHeadingId} /> : <SectionHeading id={headingId}>{stepLabel('where', true, t.home.panes.where)}</SectionHeading>}
-      {/* FR-FIRST-4: one line, whose `[ change ]` opens the group in place (FR-SET-3). */}
+      {cold ? <ColdHead headingId={coldHeadingId} /> : <SectionHeading id={headingId}>{t.home.panes.where}</SectionHeading>}
+      {/* FR-FIRST-11: the place, its sentence, and `[ change ]` opening the group in place (FR-SET-3). */}
       {!cold && (
-        <LocationSummary
+        <WherePlace
           open={open}
           controls={groupId}
           onToggle={() => {
@@ -217,7 +238,7 @@ export function WhereReading({ offersInert, geolocation }: WhereReadingProps) {
         />
       )}
       <div id={groupId} ref={group} hidden={!cold && !open} className={styles.locationGroup}>
-        {/* On wide the saved places are the Where pane's own (FR-FIRST-5); on compact they are inside the group. */}
+        {/* The saved places are the cold open's inside the group; with a place they are the reading's own line (FR-FIRST-11). */}
         <LocationInput
           variant="group"
           look={mode === 'compact' ? 'boxed' : 'plain'}
@@ -226,29 +247,51 @@ export function WhereReading({ offersInert, geolocation }: WhereReadingProps) {
           onObserver={setObserver}
           onClear={clearSavedObserver}
           search={searchPlaces}
-          showFavourites={cold || mode === 'compact'}
+          showFavourites={cold}
           {...(geolocation ? { geolocation } : {})}
         />
       </div>
-      {!cold && mode === 'wide' && <Favourites />}
-      {!cold && <ReadinessLine />}
-      {!cold && <ElementsBanners />}
+      {observer && <WhereDome observer={observer} passes={passes} />}
+      {!cold && <ReadinessLine form="line" />}
+      {!cold && <ElementsLine />}
+      {!cold && <Favourites form="line" />}
     </section>
   );
 }
 
 /** FR-FIRST-3's host on the home page: the stored run's passes, and why there may be none. */
-function NextEventHost() {
-  const observer = useAppStore((s) => s.observer);
+function NextEventHost({ observer, passes: shown }: { observer: Observer; passes: readonly Pass[] }) {
   const elements = useAppStore((s) => s.elements);
   const passes = useAppStore((s) => s.passes);
-  const weather = useAppStore((s) => s.weather);
-  const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
-  // The same test the list uses for whether its passes are on the screen (a stored run shows whatever the elements are doing, D-108).
-  const shown = passes.passes.length > 0 && (elements.status === 'ready' || passes.storedAt !== null) ? passes.passes : [];
   const elementCount = elements.status === 'ready' ? elements.records.length : elements.status === 'error' ? 0 : null;
   const pending = elements.status === 'idle' || elements.status === 'loading' || (elementCount !== 0 && passes.status !== 'done' && passes.status !== 'error');
-  return <NextEventBlock passes={shown} context={{ hasDarkness: passes.hasDarkness, elementCount }} pending={pending} weather={snapshot} hours={SEARCH_WINDOW_HOURS} />;
+  return <NextEventBlock passes={shown} timeZone={observer.timeZone} context={{ hasDarkness: passes.hasDarkness, elementCount }} pending={pending} hours={SEARCH_WINDOW_HOURS} />;
+}
+
+/**
+ * FR-FIRST-8, FR-FIRST-9, FR-FIRST-3 (R81): the When reading — tonight's
+ * stripe, the conditions table with the Moon's tradition line under it
+ * (FR-MOON-4), and the next event. The stripe and the table read one set of
+ * bands (`useTonight`), so they cannot disagree.
+ */
+function WhenReading({ observer, MoonLore }: { observer: Observer; MoonLore: HomeProps['MoonLore'] }) {
+  const now = useAppStore((s) => s.now);
+  const passes = useShownPasses();
+  const tonight = useTonight(observer);
+  // R30: the tradition line needs a Moon, which arrives with the Now state for this observer.
+  const moon = now.observer === observer ? (now.state?.moon ?? null) : null;
+  return (
+    <Region step="when" className={`${styles.reading} ${styles.when}`} testId="reading-when">
+      <TonightStripe bands={tonight.bands} passes={passes} observer={observer} now={tonight.now} />
+      <ConditionsTable observer={observer} bands={tonight.bands} sampledFrom={tonight.sampledFrom} now={tonight.now} />
+      {MoonLore && moon && (
+        <Suspense fallback={null}>
+          <MoonLore moon={moon} timeZone={observer.timeZone} />
+        </Suspense>
+      )}
+      <NextEventHost observer={observer} passes={passes} />
+    </Region>
+  );
 }
 
 export interface HomeProps {
@@ -274,26 +317,12 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
   const observer = useAppStore((s) => s.observer);
   const mode = useLayoutMode();
   const ghosts = observer === null && mode === 'wide';
-  const now = useAppStore((s) => s.now);
-  // R30: the tradition line needs a Moon, which arrives with the Now state for this observer.
-  const moon = now.observer === observer ? (now.state?.moon ?? null) : null;
   return (
     <>
       <div className={`${styles.column} ${styles.leftColumn}`} data-testid="col-left">
         <WhereReading offersInert={offersInert} {...(geolocation ? { geolocation } : {})} />
         {ghosts && <GhostWhen />}
-        {observer && (
-          <Region step="when" className={`${styles.reading} ${styles.when}`} testId="reading-when">
-            <NextEventHost />
-            <DarkWindow observer={observer} />
-            <NowPanel />
-            {MoonLore && moon && (
-              <Suspense fallback={null}>
-                <MoonLore moon={moon} timeZone={observer.timeZone} />
-              </Suspense>
-            )}
-          </Region>
-        )}
+        {observer && <WhenReading observer={observer} MoonLore={MoonLore} />}
       </div>
       {ghosts && (
         <div className={styles.column} data-testid="col-right">
