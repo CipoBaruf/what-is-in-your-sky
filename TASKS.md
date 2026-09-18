@@ -1820,8 +1820,8 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
   - **Lane:** live
   - **Model:** opus
   - **Gate:** owner
-  - **Depends on:** R76, R81 *(v0.7.2, D-505: the watching headline is the block R81 re-cuts)*
-  - **[P]** with R82 — wave 5, two screens that share no file (`Live.tsx`, `liveRows.ts` and `i18n/*/live.ts` against `Home.tsx`, `screens/home/**` and `i18n/*/ui.ts`).
+  - **Depends on:** R76, R81
+  - **[P]** with R82 — wave 5, two screens that share no file; R81 comes first because the watching headline is the block it re-cuts (v0.7.2, D-505) (`Live.tsx`, `liveRows.ts` and `i18n/*/live.ts` against `Home.tsx`, `screens/home/**` and `i18n/*/ui.ts`).
   - **Reads:** SPEC §4.30 (FR-WATCH-1..9), §4.10 (FR-LIVE-1..7 as amended), §4.26 (FR-SPAN-2, FR-SPAN-3 as amended), §4.27 (FR-LEG-6, FR-LEG-7 as amended), §4.12 (FR-MOON-3 as amended), §3.2 US-27; PLAN §8.8, §8.14, D-190, D-386, D-387, D-446, D-447.
   - **Goal:** the live page is watching or scrubbing, told apart by whether the shown instant is real time; watching is the drawing, the next event and one line of conditions, and the stripe, the steps and the speeds come out on a tap and go away on a tap.
   - **Satisfies:** FR-WATCH-1, FR-WATCH-2, FR-WATCH-3, FR-WATCH-4, FR-WATCH-7 (the compact and tall-wide half) and FR-WATCH-8; FR-WATCH-5's compact-portrait and tall-wide rows; FR-LIVE-3, FR-LIVE-5 and FR-LIVE-7 as amended v2.0; FR-MOON-3 and FR-SPAN-3 as amended v2.0; FR-MARK-5's live and held uses. **Advances:** US-27 AC1, AC2, AC3, AC4, AC6; FR-WATCH-9 (a, d, e, f, and b at two of its four shapes).
