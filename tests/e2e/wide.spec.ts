@@ -18,7 +18,7 @@
  * implements none of the three.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, CELL_ADVANCE_EM_MIN, BASE_FONT_PX, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HOME_THREE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
+import { CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, CELL_ADVANCE_EM_MIN, BASE_FONT_PX, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HOME_THREE_PANE_MIN_CELLS, SHELL_PADDING_CELLS, HOME_THREE_PANE_MIN_PX, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
 import { seedStoredRun } from './liveHelpers';
 
 /** FR-DESK-2/3: the left column, the list's floor and the guide's, in cells. */
@@ -58,7 +58,8 @@ async function expectThePanes(page: Page, cell: number): Promise<void> {
   const [listBox, guide, main] = await Promise.all([list.boundingBox(), page.getByTestId('guide-panel').boundingBox(), page.getByRole('main').boundingBox()]);
   if (!listBox || !guide || !main) throw new Error('the panes are not laid out');
   expect(guide.width).toBeGreaterThanOrEqual(GUIDE_PANE_MIN_CELLS * cell - 1);
-  expect(Math.abs(guide.x - main.x)).toBeLessThanOrEqual(1);
+  // The first pane starts where the shell's content does, inside its side padding.
+  expect(Math.abs(guide.x - (main.x + SHELL_PADDING_CELLS * cell))).toBeLessThanOrEqual(1);
   expect(listBox.x).toBeGreaterThan(guide.x + guide.width - 1);
   // Two panes and the gutter between them: twice the list's pane and a gutter, to the pixel.
   expect(Math.abs(guide.width - (2 * listBox.width + GUTTER_CELLS * cell))).toBeLessThanOrEqual(2);

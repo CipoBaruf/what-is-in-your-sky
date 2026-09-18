@@ -66,7 +66,7 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(ES_HEADING);
   // R76 (FR-FIRST-1): the empty screen is the cold open, in Spanish from its step line to its foot notes.
   await expect(page.getByRole('heading', { level: 2, name: '¿Desde dónde se va a mirar?' })).toBeVisible();
-  await expect(page.getByRole('list', { name: 'Pasos' })).toHaveText('[01] dónde — 02 cuándo — 03 qué');
+  await expect(page.getByRole('list', { name: 'Pasos' }).getByRole('listitem')).toHaveText(['[01] dónde', '02 cuándo', '03 qué']);
   await expect(page.getByRole('button', { name: 'Usar mi ubicación' })).toBeVisible();
   await expect(page.getByText('Guardada solo en este navegador.')).toBeVisible();
   await expect(page.getByRole('contentinfo')).toContainText('Sin analítica ni rastreo');

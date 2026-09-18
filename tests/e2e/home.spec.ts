@@ -38,7 +38,8 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3)', () => {
 
     const cold = page.getByTestId('cold-open');
     await expect(cold).toBeVisible();
-    await expect(page.getByRole('list', { name: 'Steps' })).toHaveText('[01] where — 02 when — 03 what');
+    // The dashes between the steps are the stylesheet's; the three items are the text.
+    await expect(page.getByRole('list', { name: 'Steps' }).getByRole('listitem')).toHaveText(['[01] where', '02 when', '03 what']);
     const primary = cold.getByRole('button', { name: 'Use my location' });
     await expect(primary).toBeVisible();
     // The one primary action is the first control of the group: the place field and the coordinates come after it.
