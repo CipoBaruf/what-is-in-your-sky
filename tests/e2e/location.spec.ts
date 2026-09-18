@@ -46,7 +46,10 @@ test('coordinates with altitude → pass list; reload restores it without re-typ
   if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
   await page.goto('/');
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(/Enter a place name or coordinates/);
+  // R76 (FR-FIRST-1): with no place the page is the cold open, and the list waits for one.
+  const cold = page.getByTestId('cold-open');
+  await expect(cold).toBeVisible();
+  await expect(status).toHaveCount(0);
   expect(await page.evaluate((k) => localStorage.getItem(k), PREFS_KEY)).toBeNull();
 
   // R52 (FR-COMP-2): at 390 px the form is on `#settings`, one tap from here.
@@ -89,9 +92,11 @@ test('coordinates with altitude → pass list; reload restores it without re-typ
   expect(await page.evaluate((k) => localStorage.getItem(k), PREFS_KEY)).toBeNull();
   await expect(page.getByRole('button', { name: 'Clear saved location' })).toHaveCount(0);
   if (compact) await leaveSettings(page);
-  await expect(status).toHaveText(/Enter a place name or coordinates/);
+  await expect(cold).toBeVisible();
+  await expect(status).toHaveCount(0);
   await page.reload();
-  await expect(status).toHaveText(/Enter a place name or coordinates/);
+  await expect(cold).toBeVisible();
+  await expect(status).toHaveCount(0);
   await openSettings(page);
   await expect(coords).toHaveValue('');
 });

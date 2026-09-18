@@ -155,12 +155,14 @@ export function WhereReading({ offersInert, geolocation }: WhereReadingProps) {
   }
   return (
     <section {...(cold ? {} : { 'aria-labelledby': headingId })} className={cold ? styles.cold : `${styles.reading} ${styles.where}`} data-testid={cold ? 'cold-open' : 'reading-where'} data-reading="where">
-      {cold ? <ColdHead headingId={coldHeadingId} /> : <SectionHeading id={headingId}>{stepLabel('where', true, t.home.panes.where)}</SectionHeading>}
       {/* R28 (D-154): both offers sit at the head of the page, inside the region the open sheet makes inert
           and outside the live route. R49 (F-30): on wide nothing around them is made inert, so they are told
-          directly. Not in the cold open, which is FR-FIRST-1's inventory and nothing else. */}
-      {!cold && <UpdateBanner inert={offersInert} />}
-      {!cold && <InstallHint inert={offersInert} />}
+          directly. They head the cold open too: they are the page's statements about the app itself, shown
+          only while a new version waits or the browser offers the install (FR-OFF-1, FR-OFF-6), and FR-FIRST-6
+          removes nothing the page had. */}
+      <UpdateBanner inert={offersInert} />
+      <InstallHint inert={offersInert} />
+      {cold ? <ColdHead headingId={coldHeadingId} /> : <SectionHeading id={headingId}>{stepLabel('where', true, t.home.panes.where)}</SectionHeading>}
       {/* FR-FIRST-4: one line, whose `[ change ]` opens the group in place (FR-SET-3). */}
       {!cold && (
         <LocationSummary
