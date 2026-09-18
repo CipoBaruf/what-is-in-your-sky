@@ -266,22 +266,6 @@
     display: none;
   }
 
-  /* At the owner's gate: a pane that scrolls itself was cut at the footer's
-     rule mid-sentence, with nothing to say there was more. Where the browser
-     has scroll-driven animations the last two rows of a pane with more below
-     fade out, and fade back in as the reader reaches its end; where it has
-     not, the pane is as it was. The fade is a mask, so it is the text that
-     fades and not a colour laid over it, and it holds in both themes. */
-  @supports (animation-timeline: scroll()) {
-    .where,
-    .when,
-    .main[data-home='readings'] .listColumn {
-      mask-image: linear-gradient(to bottom, #000 calc(100% - var(--pane-fade)), transparent);
-      animation: pane-end linear both;
-      animation-timeline: scroll(self);
-    }
-  }
-
   .main[data-guide='pane'] [data-guide-panel] {
     grid-column: 1 / span 2;
     grid-row: 1;
@@ -319,25 +303,3 @@
   }
 }
 
-/* The fade's depth, animated from two rows to none across a pane's scroll. A
-   pane with nothing to scroll has an inactive timeline, so the animation does
-   not apply and the depth is its initial value: no fade. */
-@property --pane-fade {
-  syntax: '<length>';
-  inherits: false;
-  initial-value: 0px;
-}
-
-@keyframes pane-end {
-  from {
-    --pane-fade: calc(2 * var(--row));
-  }
-
-  95% {
-    --pane-fade: calc(2 * var(--row));
-  }
-
-  to {
-    --pane-fade: 0px;
-  }
-}
