@@ -90,6 +90,17 @@ test.describe('the three readings by width (FR-FIRST-5, D-443)', () => {
       const boxes = await Promise.all(['reading-where', 'reading-when', 'list-column'].map((id) => page.getByTestId(id).boundingBox()));
       const [where, when, what] = boxes;
       if (!where || !when || !what) throw new Error('the readings are not laid out');
+      // Each reading is headed like the step line, and the heading is drawn: a pane is a bounded grid that
+      // scrolls itself, and an overflowing one once shrank its clipped heading row to nothing.
+      for (const [id, name] of [
+        ['reading-where', '[01] Where'],
+        ['reading-when', '02 When'],
+        ['list-column', '03 What'],
+      ] as const) {
+        const heading = page.getByTestId(id).getByRole('heading', { level: 2, name });
+        await expect(heading).toBeVisible();
+        expect((await heading.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(20);
+      }
       if (panes) {
         // Three equal panes, side by side, on one band.
         expect(when.x).toBeGreaterThan(where.x + where.width - 1);
