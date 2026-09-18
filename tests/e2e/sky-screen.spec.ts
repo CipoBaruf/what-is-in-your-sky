@@ -20,7 +20,7 @@ import { domeDrawn, homeAt, openSkyScreen, pose, stripFilled, stubCompass, T, VI
 const LANDSCAPE = { width: 844, height: 390 };
 const PORTRAIT = { width: 390, height: 844 };
 const CLOSE = 'Close';
-/** FR-FSC-11's line (`i18n/en/window.ts`). */
+/** FR-GUT-7's secondary copy under the countdown's peak line (`i18n/en/window.ts`, R73's words). */
 const TURN_ADVICE = 'Turn the phone sideways to see more sky.';
 
 declare global {
@@ -116,17 +116,19 @@ test.describe('the sky screen on a phone held sideways', () => {
     // None of the page's rows is rendered at all.
     for (const testid of ['live-side', 'stripe-block', 'playback-row', 'live-actions']) await expect(page.getByTestId(testid)).toHaveCount(0);
 
-    // FR-FSC-4 as rewritten / US-21 AC12: the viewport goes upright and the picture stays — the drawing, the
-    // readout and the `×` are all still there, with FR-FSC-11's line of advice over them.
+    // FR-FSC-4 as rewritten / US-21 AC12 as amended v2.0: the viewport goes upright and the picture stays — the
+    // drawing, the readout and the `×` are all still there, with the advice as a line under the countdown (FR-GUT-7)
+    // and not a status note over the picture.
     await page.setViewportSize(PORTRAIT);
     await expect(drawn(page)).toHaveCount(1);
-    await expect(page.getByTestId('window-turn-note')).toHaveText(TURN_ADVICE);
+    await expect(page.getByTestId('window-turn-advice')).toHaveText(TURN_ADVICE);
+    await expect(page.getByTestId('chart-box').getByRole('status')).toHaveCount(0);
     await expect(page.getByTestId('window-readout')).toBeVisible();
     await expect(page.getByTestId('sky-screen-close')).toBeVisible();
     await expect(page.getByTestId('window-portrait-note')).toHaveCount(0);
     await page.setViewportSize(LANDSCAPE);
     await expect(drawn(page)).toHaveCount(1);
-    await expect(page.getByTestId('window-turn-note')).toHaveCount(0);
+    await expect(page.getByTestId('window-turn-advice')).toHaveCount(0);
     // No second prompt for the turn (FR-FOL-2: the request is the tap on the control and nothing else).
     expect(await asks(page)).toBe(1);
 
@@ -208,12 +210,14 @@ test.describe('the sky screen on a phone that does not rotate', () => {
     const layer = page.getByTestId('sky-screen');
     const box = page.getByTestId('chart-box');
 
-    // Upright: the picture is in the portrait box, with one line of advice over it and nothing waiting on it.
+    // Upright: the picture is in the portrait layout, with the advice under the countdown and nothing waiting on it.
     await expect(layer).toHaveAttribute('data-turn', '0');
     await expect(drawn(page)).toHaveCount(1);
-    await expect(page.getByTestId('window-turn-note')).toHaveText(TURN_ADVICE);
+    await expect(page.getByTestId('window-turn-advice')).toHaveText(TURN_ADVICE);
     await expect(page.getByTestId('window-readout')).toBeVisible();
-    expect(await box.evaluate((element) => element.clientHeight > element.clientWidth)).toBe(true);
+    // D-451: upright is read from the screen's measured box — the band itself is capped at as tall as it is wide.
+    await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-orientation', 'portrait');
+    expect(await page.getByTestId('chart-frame').evaluate((element) => element.clientHeight > element.clientWidth)).toBe(true);
 
     // Held sideways, its top to the reader's left. The viewport never reflows, so the layer turns instead.
     await pose(page, { beta: 0, gamma: -90 });
@@ -225,8 +229,8 @@ test.describe('the sky screen on a phone that does not rotate', () => {
     const [, , width, height] = (viewBox ?? '0 0 0 0').split(' ').map(Number);
     expect(width).toBeGreaterThan(height ?? 0);
     await expect(drawn(page)).toHaveCount(1);
-    // FR-FSC-11: the picture the reader is looking at is wide now, so the advice has gone.
-    await expect(page.getByTestId('window-turn-note')).toHaveCount(0);
+    // FR-GUT-7: the picture the reader is looking at is wide now, so the countdown and the advice have gone.
+    await expect(page.getByTestId('window-turn-advice')).toHaveCount(0);
     // FR-FSC-9: still nothing scrolls — the turned layer covers the viewport exactly and no more.
     const scroll = await page.evaluate(() => ({ height: document.documentElement.scrollHeight, inner: window.innerHeight, width: document.documentElement.scrollWidth, innerWidth: window.innerWidth }));
     expect(scroll.height).toBe(scroll.inner);
@@ -238,7 +242,145 @@ test.describe('the sky screen on a phone that does not rotate', () => {
     // Back upright, with no tap and no second permission prompt (FR-FOL-2).
     await pose(page, { beta: 110, gamma: 0 });
     await expect(layer).toHaveAttribute('data-turn', '0');
-    await expect(page.getByTestId('window-turn-note')).toHaveText(TURN_ADVICE);
+    await expect(page.getByTestId('window-turn-advice')).toHaveText(TURN_ADVICE);
     expect(await asks(page)).toBe(1);
+  });
+});
+
+/**
+ * R79 (FR-GUT-1..8; US-28 AC1..AC6; D-450, D-451): the compass gutter and
+ * portrait's band, in a browser. The geometry is `gutter.test.ts`'s and the
+ * contents `CompassGutter.test.tsx`'s and `SkyWindow.test.tsx`'s; what only a
+ * browser can answer is here — the pixels the gutter gives back, the chip with
+ * the phone turned away from every pass, and the five rows upright in order.
+ *
+ * Measured on `origin/main` (e9120c0) with this spec's fixture and the old
+ * strip, before R79 changed anything: at 844 × 390 the SVG's box was 844 × 390
+ * and the legend strip over its bottom edge 84 px tall (two rows; its cap is
+ * two `--tap` rows, 96 px); at 390 × 844 the SVG's box was 390 × 844 and the
+ * strip 84 px again.
+ */
+const MAIN = { landscape: { svgHeight: 390, stripHeight: 84 }, portrait: { svgHeight: 844, stripHeight: 84 } } as const;
+
+/** `--tap` in px, as the browser resolves it (two `--row`s). */
+const tapPx = (page: Page): Promise<number> =>
+  page.evaluate(() => {
+    const probe = document.createElement('div');
+    probe.style.height = 'var(--tap)';
+    document.body.append(probe);
+    const height = probe.getBoundingClientRect().height;
+    probe.remove();
+    return height;
+  });
+
+/** Face `azDeg`, 20° up, and let the smoothing settle. */
+const face = (page: Page, azDeg: number): Promise<void> => pose(page, { alpha: (360 - azDeg) % 360, beta: 110, gamma: 0 });
+
+test.describe('the compass gutter on a phone held sideways (FR-GUT-1..6)', () => {
+  test.use({ viewport: LANDSCAPE, hasTouch: true });
+
+  test('stands 28 px over the drawing’s bottom edge, and the clear drawing is 68 px taller than under the strip (FR-GUT-1, US-28 AC6)', async ({ page }) => {
+    await stubCompass(page);
+    await livePage(page);
+    await openScreen(page);
+
+    const svg = await page.locator('[data-drawing="window"]').boundingBox();
+    const gutter = await page.getByTestId('chart-gutter-slot').boundingBox();
+    if (!svg || !gutter) throw new Error('no drawing or no gutter');
+    // The drawing is still the whole screen; the gutter is over it, the screen's whole width, `GUTTER_PX` tall.
+    expect(svg.height).toBeCloseTo(LANDSCAPE.height, 0);
+    expect(gutter.height).toBeCloseTo(28, 0);
+    expect(gutter.width).toBeCloseTo(LANDSCAPE.width, 0);
+    expect(gutter.y + gutter.height).toBeCloseTo(svg.y + svg.height, 0);
+    await expect(page.getByTestId('chart-legend-slot')).toHaveCount(0);
+
+    // What the reader sees of the sky is the drawing above the bottom overlay: 362 px here, against the strip's
+    // 294 at its two-row cap — the 68 px FR-GUT-1 counts — and 306 with main's two 42 px rows in this fixture.
+    const clear = gutter.y - svg.y;
+    expect(clear).toBeCloseTo(LANDSCAPE.height - 28, 0);
+    expect(clear - (MAIN.landscape.svgHeight - 2 * (await tapPx(page)))).toBeCloseTo(68, 0);
+    expect(clear).toBeGreaterThan(MAIN.landscape.svgHeight - MAIN.landscape.stripHeight);
+
+    // The band: the eight names where they fall, the bracket, and one mark per drawn pass somewhere on the gutter.
+    const band = page.getByTestId('compass-gutter');
+    await expect(band.locator('[data-compass]')).not.toHaveCount(0);
+    await expect(band.getByTestId('gutter-bracket')).toHaveCount(1);
+    const words = await band.getByRole('listitem').count();
+    expect(await band.locator('[data-gutter-mark]').count()).toBe(words);
+  });
+
+  test('says which way to turn with the phone turned away from every pass, and goes when a pass is in the field (FR-GUT-6, US-28 AC4)', async ({ page }) => {
+    await stubCompass(page);
+    await livePage(page);
+    await openScreen(page);
+
+    // Sweep the horizon: somewhere the field is empty and the chip names the turn, somewhere a pass is in the bracket.
+    let empty: number | null = null;
+    let full: number | null = null;
+    for (let az = 0; az < 360 && (empty === null || full === null); az += 30) {
+      await face(page, az);
+      const inBracket = await page.locator('[data-branch="in-bracket"]').count();
+      const chips = await page.getByTestId('window-chip').count();
+      // The chip and a pass in the bracket never stand together.
+      if (inBracket > 0) expect(chips, `facing ${String(az)}`).toBe(0);
+      if (chips > 0 && empty === null) empty = az;
+      if (inBracket > 0 && full === null) full = az;
+    }
+    expect(empty, 'a facing with nothing in the field').not.toBeNull();
+    const away = empty ?? 0;
+    await face(page, away);
+    const chip = page.getByTestId('window-chip');
+    await expect(chip).toHaveAttribute('role', 'status');
+    await expect(chip).toHaveText(/^Nothing in this part of the sky(\. .+ is \d+° (left|right), (up|peaks|sets) in \d+:\d{2}(:\d{2})?\.|, and no pass to turn to\.)$/);
+    // Over the gutter, not behind it.
+    const chipBox = await chip.boundingBox();
+    const gutterBox = await page.getByTestId('chart-gutter-slot').boundingBox();
+    expect((chipBox?.y ?? 0) + (chipBox?.height ?? 0)).toBeLessThanOrEqual(gutterBox?.y ?? 0);
+
+    if (full !== null) {
+      await face(page, full);
+      await expect(page.getByTestId('window-chip')).toHaveCount(0);
+    }
+    // Pointed at the ground, the ground note is the only line (FR-FOL-5 outranks the chip).
+    await pose(page, { alpha: (360 - away) % 360, beta: 70, gamma: 0 });
+    await expect(page.getByTestId('window-ground-note')).toHaveCount(1);
+    await expect(page.getByTestId('window-chip')).toHaveCount(0);
+  });
+});
+
+test.describe('the sky screen held upright (FR-GUT-7)', () => {
+  test.use({ viewport: PORTRAIT, hasTouch: true });
+
+  test('is five rows in order — the readout, the next event, the band, two legend rows, the gutter — with the band no taller than wide', async ({ page }) => {
+    await stubCompass(page);
+    await livePage(page);
+    await openScreen(page);
+
+    await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-orientation', 'portrait');
+    const rows = ['chart-status', 'chart-headline', 'chart-box', 'chart-legend-slot', 'chart-gutter-slot'] as const;
+    const boxes = await Promise.all(rows.map(async (testid) => page.getByTestId(testid).boundingBox()));
+    const [readout, headline, band, legend, gutter] = boxes;
+    if (!readout || !headline || !band || !legend || !gutter) throw new Error(`a row is missing: ${JSON.stringify(boxes)}`);
+    // Top to bottom, none over another.
+    expect(readout.y + readout.height).toBeLessThanOrEqual(headline.y + 0.5);
+    expect(headline.y + headline.height).toBeLessThanOrEqual(band.y + 0.5);
+    expect(band.y + band.height).toBeLessThanOrEqual(legend.y + 0.5);
+    expect(legend.y + legend.height).toBeLessThanOrEqual(gutter.y + 0.5);
+    expect(gutter.y + gutter.height).toBeCloseTo(PORTRAIT.height, 0);
+    // The band: the screen's width, at most as tall as it is wide (OQ-28's cap); the SVG is the band.
+    expect(band.width).toBeCloseTo(PORTRAIT.width, 0);
+    expect(band.height).toBeLessThanOrEqual(band.width + 0.5);
+    const svg = await page.locator('[data-drawing="window"]').boundingBox();
+    expect(svg?.height).toBeCloseTo(band.height, 0);
+    // Two `--tap` rows of legend, and the gutter's 28 px.
+    expect(legend.height).toBeCloseTo(2 * (await tapPx(page)), 0);
+    expect(gutter.height).toBeCloseTo(28, 0);
+    // The advice is secondary copy in the next-event row, not a note over the band.
+    await expect(page.getByTestId('chart-headline').getByTestId('window-turn-advice')).toHaveText(TURN_ADVICE);
+    await expect(page.getByTestId('chart-box').getByRole('status')).toHaveCount(0);
+    // FR-FSC-9: still nothing scrolls.
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(PORTRAIT.height);
+    // FR-GUT-1's upright number against main's, for the PR: upright the band's cap is FR-GUT-7's.
+    test.info().annotations.push({ type: 'band', description: `band ${String(band.height)} px upright; main's clear drawing was ${String(MAIN.portrait.svgHeight - MAIN.portrait.stripHeight)} px` });
   });
 });
