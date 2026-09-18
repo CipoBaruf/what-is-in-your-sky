@@ -1,0 +1,31 @@
+/* R81 (FR-FIRST-8, board 1B): three lines at `--small` on an 18 px line — the
+   labels in `--fg`, the band in the three sky colours the live stripe shades
+   with, the ticks in the accent. */
+.stripe {
+  margin: 0;
+  font: inherit;
+  font-size: var(--small);
+  line-height: 1.125rem;
+  white-space: pre;
+  overflow: hidden;
+}
+
+.labels {
+  color: var(--fg);
+}
+
+.band[data-sky='day'] {
+  color: var(--warn);
+}
+
+.band[data-sky='bright-twilight'] {
+  color: var(--chart-pass-flown);
+}
+
+.band[data-sky='dark'] {
+  color: var(--chart-sky);
+}
+
+.ticks {
+  color: var(--accent);
+}

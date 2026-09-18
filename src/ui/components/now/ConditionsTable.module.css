@@ -1,0 +1,27 @@
+/* R81 (FR-FIRST-9, board 1B): a label in `--fg-dim` at the left and a value
+   in `--fg` at the right, right-aligned, one body line each and 0.75 rem apart. */
+.table {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0 var(--cell);
+}
+
+.row dt {
+  flex: none;
+  color: var(--fg-dim);
+}
+
+.row dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--fg);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
