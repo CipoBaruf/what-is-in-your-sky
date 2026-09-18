@@ -1,4 +1,4 @@
-import { Suspense, useId, type LazyExoticComponent, type ReactNode } from 'react';
+import { Suspense, useId, useRef, useState, type LazyExoticComponent, type ReactNode } from 'react';
 import { useT } from '../../i18n/useT';
 import { searchPlaces, SEARCH_WINDOW_HOURS, useAppStore } from '../../state';
 import styles from '../App.module.css';
@@ -82,20 +82,12 @@ function Region({ step, className, testId, children }: { step: Step; className: 
   );
 }
 
-export interface ColdOpenProps {
-  /** The browser's geolocation, for tests; the app reads the real one. */
-  geolocation?: GeolocationEnv;
-}
-
-/** FR-FIRST-1, FR-FIRST-2: the first visit's page, and every visit's with no place set. */
-export function ColdOpen({ geolocation }: ColdOpenProps) {
+/** FR-FIRST-1: the cold open's head — the mark, the tagline on compact, the step line, the question and its sentence. */
+function ColdHead({ headingId }: { headingId: string }) {
   const t = useT();
   const mode = useLayoutMode();
-  const setObserver = useAppStore((s) => s.setObserver);
-  const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
-  const headingId = useId();
   return (
-    <div className={styles.cold} data-testid="cold-open">
+    <>
       <div className={styles.heroMark}>
         <Mark tier="hero" sizePx={mode === 'wide' ? MARK_HERO_WIDE_PX : MARK_HERO_COMPACT_PX} />
       </div>
@@ -110,8 +102,92 @@ export function ColdOpen({ geolocation }: ColdOpenProps) {
         {t.home.coldHeading}
       </h2>
       <p className={styles.coldSentence}>{t.home.coldSentence}</p>
-      <LocationInput variant="group" labelledBy={headingId} observer={null} onObserver={setObserver} onClear={clearSavedObserver} search={searchPlaces} {...(geolocation ? { geolocation } : {})} />
-    </div>
+    </>
+  );
+}
+
+/** Whether the reader is typing in `container` right now: a field of it has the focus. */
+function typingIn(container: HTMLElement | null): boolean {
+  const active = typeof document === 'undefined' ? null : document.activeElement;
+  return container !== null && active instanceof HTMLInputElement && container.contains(active);
+}
+
+export interface WhereReadingProps {
+  /** R28, R49 (D-154, F-30): whether the update offer and the install hint are out of reach. */
+  offersInert: boolean;
+  /** The browser's geolocation, for tests; the app reads the real one. */
+  geolocation?: GeolocationEnv;
+}
+
+/**
+ * FR-FIRST-1, FR-FIRST-2, FR-FIRST-4: the Where reading — the cold open with no
+ * observer, and with one the location line, the saved places on wide, the
+ * readiness line and the elements banners.
+ *
+ * The input group is one mounted instance across the two states, in the same
+ * place in the tree, and only shown or hidden. A coordinate pair becomes an
+ * observer at its first valid keystroke and an invalid one drops it, so a group
+ * that belonged to either state alone would be torn down under the reader's
+ * fingers the moment their typing parsed — the field gone, and the focus with
+ * it. For the same reason, when the place arrives while the reader is typing in
+ * the group, it stays open under the line; when it arrives any other way — the
+ * device button, a saved place — the group folds away and the countdown is
+ * what follows the line (FR-FIRST-3).
+ */
+export function WhereReading({ offersInert, geolocation }: WhereReadingProps) {
+  const t = useT();
+  const mode = useLayoutMode();
+  const observer = useAppStore((s) => s.observer);
+  const setObserver = useAppStore((s) => s.setObserver);
+  const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
+  const cold = observer === null;
+  const [open, setOpen] = useState(false);
+  const [wasCold, setWasCold] = useState(cold);
+  const group = useRef<HTMLDivElement>(null);
+  const headingId = useId();
+  const coldHeadingId = useId();
+  const groupId = useId();
+  if (wasCold !== cold) {
+    setWasCold(cold);
+    // Read during the render that changes the state, before the group is hidden: after it the focus is gone.
+    // eslint-disable-next-line react-hooks/refs -- the one DOM read that has to precede the commit
+    if (!cold) setOpen(typingIn(group.current));
+  }
+  return (
+    <section {...(cold ? {} : { 'aria-labelledby': headingId })} className={cold ? styles.cold : `${styles.reading} ${styles.where}`} data-testid={cold ? 'cold-open' : 'reading-where'} data-reading="where">
+      {cold ? <ColdHead headingId={coldHeadingId} /> : <SectionHeading id={headingId}>{stepLabel('where', true, t.home.panes.where)}</SectionHeading>}
+      {/* R28 (D-154): both offers sit at the head of the page, inside the region the open sheet makes inert
+          and outside the live route. R49 (F-30): on wide nothing around them is made inert, so they are told
+          directly. Not in the cold open, which is FR-FIRST-1's inventory and nothing else. */}
+      {!cold && <UpdateBanner inert={offersInert} />}
+      {!cold && <InstallHint inert={offersInert} />}
+      {/* FR-FIRST-4: one line, whose `[ change ]` opens the group in place (FR-SET-3). */}
+      {!cold && (
+        <LocationSummary
+          open={open}
+          controls={groupId}
+          onToggle={() => {
+            setOpen((o) => !o);
+          }}
+        />
+      )}
+      <div id={groupId} ref={group} hidden={!cold && !open} className={styles.locationGroup}>
+        {/* On wide the saved places are the Where pane's own (FR-FIRST-5); on compact they are inside the group. */}
+        <LocationInput
+          variant="group"
+          {...(cold ? { labelledBy: coldHeadingId } : {})}
+          observer={observer}
+          onObserver={setObserver}
+          onClear={clearSavedObserver}
+          search={searchPlaces}
+          showFavourites={cold || mode === 'compact'}
+          {...(geolocation ? { geolocation } : {})}
+        />
+      </div>
+      {!cold && mode === 'wide' && <Favourites />}
+      {!cold && <ReadinessLine />}
+      {!cold && <ElementsBanners />}
+    </section>
   );
 }
 
@@ -140,53 +216,49 @@ export interface HomeProps {
   /** The guide, in its wide or compact shell (D-72). */
   passDetail: ReactNode;
   MoonLore: LazyExoticComponent<typeof MoonLoreComponent> | undefined;
+  /** The browser's geolocation, for tests; the app reads the real one. */
+  geolocation?: GeolocationEnv;
 }
 
-/** FR-FIRST-4, FR-FIRST-5: the three readings, once there is a place. */
-export function Readings({ offersInert, guide, shareNotice, selectedPassId, onOpenPass, passDetail, MoonLore }: HomeProps) {
+/**
+ * FR-FIRST-1, FR-FIRST-4, FR-FIRST-5: the home page's main. The Where reading
+ * always; When and What once there is a place.
+ */
+export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPass, passDetail, MoonLore, geolocation }: HomeProps) {
   const observer = useAppStore((s) => s.observer);
   const now = useAppStore((s) => s.now);
-  const mode = useLayoutMode();
   // R30: the tradition line needs a Moon, which arrives with the Now state for this observer.
   const moon = now.observer === observer ? (now.state?.moon ?? null) : null;
   return (
     <>
       <div className={`${styles.column} ${styles.leftColumn}`} data-testid="col-left">
-        <Region step="where" className={`${styles.reading} ${styles.where}`} testId="reading-where">
-          {/* R28 (D-154): both offers sit at the head of the page, inside the region the open sheet makes
-              inert and outside the live route. R49 (F-30): on wide nothing around them is made inert, so
-              they are told directly. */}
-          <UpdateBanner inert={offersInert} />
-          <InstallHint inert={offersInert} />
-          {/* FR-FIRST-4: one line, whose `[ change ]` opens the input group in place (FR-SET-3). On wide the
-              saved places are the Where pane's own (FR-FIRST-5); on compact they are inside the group. */}
-          <LocationSummary favouritesOutside={mode === 'wide'} />
-          {mode === 'wide' && <Favourites />}
-          <ReadinessLine />
-          <ElementsBanners />
-        </Region>
-        <Region step="when" className={`${styles.reading} ${styles.when}`} testId="reading-when">
-          <NextEventHost />
-          {observer && <DarkWindow observer={observer} />}
-          <NowPanel />
-          {MoonLore && moon && observer && (
-            <Suspense fallback={null}>
-              <MoonLore moon={moon} timeZone={observer.timeZone} />
-            </Suspense>
-          )}
-        </Region>
+        <WhereReading offersInert={offersInert} {...(geolocation ? { geolocation } : {})} />
+        {observer && (
+          <Region step="when" className={`${styles.reading} ${styles.when}`} testId="reading-when">
+            <NextEventHost />
+            <DarkWindow observer={observer} />
+            <NowPanel />
+            {MoonLore && moon && (
+              <Suspense fallback={null}>
+                <MoonLore moon={moon} timeZone={observer.timeZone} />
+              </Suspense>
+            )}
+          </Region>
+        )}
       </div>
-      <div className={styles.column} data-testid="col-right" data-guide={guide}>
-        <Region step="what" className={`${styles.reading} ${styles.listColumn}`} testId="list-column">
-          {shareNotice && (
-            <Banner variant="info" testId="share-fallback">
-              {shareNotice}
-            </Banner>
-          )}
-          <PassList onOpenPass={onOpenPass} selectedPassId={selectedPassId} />
-        </Region>
-        {passDetail}
-      </div>
+      {observer && (
+        <div className={styles.column} data-testid="col-right" data-guide={guide}>
+          <Region step="what" className={`${styles.reading} ${styles.listColumn}`} testId="list-column">
+            {shareNotice && (
+              <Banner variant="info" testId="share-fallback">
+                {shareNotice}
+              </Banner>
+            )}
+            <PassList onOpenPass={onOpenPass} selectedPassId={selectedPassId} />
+          </Region>
+          {passDetail}
+        </div>
+      )}
     </>
   );
 }

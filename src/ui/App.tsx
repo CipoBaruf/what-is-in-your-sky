@@ -15,7 +15,7 @@ import { useLayoutMode } from './hooks/useLayoutMode';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useShortcuts } from './hooks/useShortcuts';
 import { moveCursor, passIdAtCursor, PASS_CARD } from './components/passes/passCursor';
-import { ColdOpen, Readings } from './screens/Home';
+import { Home } from './screens/Home';
 import { useLiveRoute } from './screens/LiveRoute';
 import { PassDetail } from './screens/PassDetail';
 import { findSelectedPass, usePassSelection, useSettingsRoute } from './screens/passSelection';
@@ -311,10 +311,7 @@ export function App() {
     <>
       <Header inert={inert} />
       <main inert={inert} className={styles.main} data-home={observer === null ? 'cold' : 'readings'} data-guide={guide}>
-        {observer === null ? (
-          <ColdOpen />
-        ) : (
-          <Readings
+        <Home
             offersInert={offersInert}
             guide={guide}
             shareNotice={shareNotice}
@@ -325,7 +322,8 @@ export function App() {
               /* R50 (F-8): keyed by the pass, so opening a second one from the list beside the panel
                  is a new guide — its heading takes focus, and closing it returns to the card that
                  opened it rather than to the first one's. */
-              selected && (
+              selected &&
+              observer && (
                 <PassDetail
                   key={selected.id}
                   pass={selected}
@@ -339,7 +337,6 @@ export function App() {
               )
             }
           />
-        )}
       </main>
       <Footer inert={inert} />
       {helpOpen && (

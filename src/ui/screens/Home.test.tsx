@@ -5,7 +5,7 @@
  * foot notes after the last field, in both layouts and both languages; and,
  * once there is a place, the next-event block ahead of the list.
  */
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { createElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,7 +19,7 @@ import { appStore, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { App } from '../App';
 import { MARK_HERO_COMPACT_PX, MARK_HERO_WIDE_PX } from '../components/mark/tiers';
-import { ColdOpen } from './Home';
+import { WhereReading } from './Home';
 
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
@@ -58,9 +58,10 @@ describe.each([
     });
     const { container } = render(<App />);
     const main = screen.getByRole('main');
+    // One column, holding the cold open alone: no When, no What.
     expect(main.children).toHaveLength(1);
     const cold = within(main).getByTestId('cold-open');
-    expect(main.firstElementChild).toBe(cold);
+    expect([...(main.firstElementChild?.children ?? [])]).toEqual([cold]);
 
     const mark = within(cold).getByTestId('mark');
     expect(mark).toHaveAttribute('data-mark-tier', 'hero');
@@ -78,7 +79,8 @@ describe.each([
     expect(group).toHaveAccessibleName(en.home.coldHeading);
 
     // In this order: mark, (tagline), step line, heading, sentence, group — and the cold open holds nothing else.
-    const order = [mark.parentElement as Element, ...(mode === 'compact' ? [within(cold).getByTestId('cold-tagline')] : []), steps, heading, sentence, group];
+    const order = [mark.parentElement as Element, ...(mode === 'compact' ? [within(cold).getByTestId('cold-tagline')] : []), steps, heading, sentence, group.parentElement as Element];
+    expect(group.parentElement?.children).toHaveLength(1);
     expect([...cold.children]).toEqual(order);
 
     // Nothing that is about a place: no Now panel, no readiness line, no hero card, no sort row, no list, no elements banner.
@@ -99,7 +101,7 @@ describe.each([
 
   it.each(['en', 'es'] as const)('offers the primary action first, then the place and the coordinates, then the two foot notes (%s)', (locale: Locale) => {
     const t = CATALOG[locale];
-    render(createElement(I18nProvider, { locale, children: <ColdOpen geolocation={device} /> }));
+    render(createElement(I18nProvider, { locale, children: <WhereReading offersInert={false} geolocation={device} /> }));
     const group = screen.getByTestId('location-group');
     const primary = within(group).getByRole('button', { name: t.location.useMyLocation });
     expect(primary).toHaveAccessibleDescription(t.location.useMyLocationNote);
@@ -120,11 +122,52 @@ describe.each([
   });
 
   it('puts the place field first, and says nothing about a missing button, where US-3 AC1 withholds it', () => {
-    render(<ColdOpen geolocation={{ geolocation: undefined, secure: true }} />);
+    render(<WhereReading offersInert={false} geolocation={{ geolocation: undefined, secure: true }} />);
     const group = screen.getByTestId('location-group');
     expect(within(group).queryByRole('button', { name: en.location.useMyLocation })).toBeNull();
     expect(group.querySelector('input, button')).toBe(within(group).getByLabelText(en.location.placeLabel));
     expect(group).not.toHaveTextContent(en.location.useMyLocationNote);
+  });
+});
+
+/**
+ * A coordinate pair becomes an observer at its first valid keystroke, and the
+ * page turns from the cold open to the readings under the reader's hands. The
+ * field they are typing in has to be the same field afterwards, still focused,
+ * with the group left open under the location line; a place that arrives any
+ * other way folds the group away.
+ */
+describe('the group across the cold open and the readings', () => {
+  beforeEach(() => {
+    media = stubMatchMedia(COMPACT_PX);
+  });
+
+  it('keeps the field being typed in, focused and open, when the typing sets the place — and when it clears it', () => {
+    render(<App />);
+    const field = screen.getByLabelText(en.location.coordsLabel);
+    field.focus();
+    fireEvent.change(field, { target: { value: '-38.93, -67.99' } });
+    expect(appStore.getState().observer).not.toBeNull();
+    expect(screen.queryByTestId('cold-open')).toBeNull();
+    expect(screen.getByLabelText(en.location.coordsLabel)).toBe(field);
+    expect(field).toHaveFocus();
+    expect(field).toBeVisible();
+    expect(screen.getByTestId('location-summary-change')).toHaveAttribute('aria-expanded', 'true');
+
+    // An invalid pair drops the place again; the same field is still the one under the reader's hands.
+    fireEvent.change(field, { target: { value: '-38.93, -6x' } });
+    expect(appStore.getState().observer).toBeNull();
+    expect(screen.getByTestId('cold-open')).toContainElement(field);
+    expect(field).toHaveFocus();
+  });
+
+  it('folds the group away when the place arrives from elsewhere', () => {
+    render(<App />);
+    act(() => {
+      appStore.setState({ observer });
+    });
+    expect(screen.getByTestId('location-summary-change')).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByTestId('location-group')).not.toBeVisible();
   });
 });
 
