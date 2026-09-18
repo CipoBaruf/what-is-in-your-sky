@@ -1,104 +1,129 @@
-import { useId } from 'react';
 import type { Messages } from '../../../i18n/messages';
 import { useLocale, useT } from '../../../i18n/useT';
-import { cloudVerdict } from '../../../lib/cloudVerdict';
-import { compassPoint } from '../../../lib/compass';
-import { degrees, formatClockDuration, formatMagnitude } from '../../../lib/format';
+import { formatClockDuration, formatMagnitude } from '../../../lib/format';
 import { isNoEvent, nextEvent, type NextEvent, type NextEventContext } from '../../../lib/nextEvent';
+import { passPath } from '../../../lib/passPath';
 import { brightnessBand } from '../../../lib/phrases';
-import type { EpochMs, Pass, WeatherSnapshot } from '../../../model';
+import { formatShortClock } from '../../../lib/timeFormat';
+import type { EpochMs, Pass } from '../../../model';
 import { useNow } from '../../hooks/useNow';
 import styles from './NextEventBlock.module.css';
 
 /**
- * R76 (FR-FIRST-3, D-442): the next event as a countdown — "Next up", then
- * "ISS appears NW in 4:12", then the peak's direction, altitude and brightness
- * with the cloud verdict where a forecast covers the pass. One component with
- * two hosts: the home page's When reading here, the live page's watching
- * headline in R77 (FR-WATCH-2), each passing the passes it already holds.
+ * R76 (FR-FIRST-3, D-442), re-cut by R81 (FR-FIRST-3 as amended v2.0.2,
+ * D-508): the next event as board 1B draws it. The label line with its
+ * countdown (`Next up · in 3:45:07`, `Up now · peaks in 1:10`, `Up now · sets
+ * in 2:05`), the event's clock time in the accent, the path line
+ * (`ISS · NW low → 68° N → SE`, `lib/passPath`), and `[ Open the live sky ]`
+ * under the block (FR-LIVE-1). One component with two hosts: the home page's
+ * When reading here, the live page's watching headline in R77 (FR-WATCH-2),
+ * each passing the passes it already holds.
  *
- * It ticks once a second from the wall clock (`NEXT_EVENT_TICK_MS`, US-5 AC4's
- * countdown at the rate a person reads seconds) against those passes; nothing
- * is asked of the worker and nothing is written to the store. `lib/nextEvent`
- * picks the event and `formatClockDuration` writes the time to it, as the hero
- * card writes its own: "m:ss" under an hour and "h:mm:ss" above, so the two
- * readings on one page agree (D-442 as amended).
+ * `form: 'card'` is the phone's third step's first card (FR-FIRST-4, R82):
+ * `First up · in 12:34`, the time and the name, the path with the duration and
+ * the brightness phrase with the magnitude, in a box ruled in the accent.
+ *
+ * It ticks once a second from the wall clock (`NEXT_EVENT_TICK_MS`, US-5 AC4)
+ * against those passes; nothing is asked of the worker and nothing is written
+ * to the store, and the tick stays here so a host never re-renders every
+ * second. `formatClockDuration` writes the countdown, "m:ss" under an hour and
+ * "h:mm:ss" above (D-502).
  */
 export const NEXT_EVENT_TICK_MS = 1000;
 
-/** The headline, "ISS appears NW in 4:12" — the verb by the boundary reason of the end it counts to. */
-export function nextEventHeadline(event: NextEvent, now: EpochMs, t: Messages): string {
+/** The label line, `Next up · in 3:45:07` — the verb by the boundary reason of the end it counts to. */
+export function nextEventLabel(event: NextEvent, now: EpochMs, t: Messages, first = false): string {
   const { pass, kind } = event;
-  return t.nextEvent.headline({
-    name: pass.name,
-    kind,
-    reason: kind === 'end' ? pass.endReason : pass.startReason,
-    point: compassPoint(event.azimuth),
-    altitude: degrees(pass.peak.elDeg),
-    countdown: formatClockDuration((event.at - now) / 1000),
-  });
+  return t.nextEvent.label({ kind, reason: kind === 'end' ? pass.endReason : pass.startReason, countdown: formatClockDuration((event.at - now) / 1000), first });
+}
+
+/** The path, `NW low → 68° N → SE` (D-507). */
+export function nextEventPath(pass: Pass, t: Messages): string {
+  return t.nextEvent.path(passPath(pass));
+}
+
+/** Whole minutes, at least one: a card's duration. */
+export const passMinutes = (pass: Pass): number => Math.max(1, Math.round(pass.durationS / 60));
+
+/** FR-LIVE-1, FR-FIRST-6: the Now panel's way to the live page, which the block carries now — with or without a pass to count to. */
+function LiveLink() {
+  const t = useT();
+  return (
+    <p className={styles.live}>
+      <a href="#live" className={styles.liveLink} data-testid="now-live-link">
+        {t.nextEvent.openLive}
+      </a>
+    </p>
+  );
 }
 
 export interface NextEventBlockProps {
   passes: readonly Pass[];
+  /** The observer's zone, for the event's clock time; null reads UTC and says so. */
+  timeZone: string | null;
   /** Why there may be none (`nextEvent`'s context). */
   context?: NextEventContext;
   /** True while the passes are still arriving, so an empty list is not yet "no pass". */
   pending?: boolean;
-  /** The forecast the peak's cloud verdict is read from; null or omitted says nothing about clouds. */
-  weather?: WeatherSnapshot | null;
   /** The clock, for tests; the block ticks itself otherwise. */
   now?: EpochMs;
   /** The window's length in hours, for the "no pass" line. */
   hours: number;
+  /** `block` on the home page and the live page; `card` for the phone's first card (FR-FIRST-4). */
+  form?: 'block' | 'card';
 }
 
-export function NextEventBlock({ passes, context, pending = false, weather = null, now: nowProp, hours }: NextEventBlockProps) {
+export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block' }: NextEventBlockProps) {
   const t = useT();
   const locale = useLocale();
-  const labelId = useId();
   const clock = useNow(NEXT_EVENT_TICK_MS);
   const now = nowProp ?? clock;
   const result = nextEvent(passes, now, context);
+  const card = form === 'card';
 
-  let body;
   if (isNoEvent(result)) {
-    body = (
-      <p className={styles.none} data-testid="next-event-none" data-reason={pending ? 'pending' : result.reason}>
-        {pending ? t.nextEvent.pending : t.nextEvent.none({ reason: result.reason, hours })}
-      </p>
-    );
-  } else {
-    const { pass } = result;
-    const verdict = cloudVerdict(weather, pass.peak.t);
-    body = (
-      <>
-        <p role="timer" aria-live="off" className={styles.headline} data-kind={result.kind} data-testid="next-event-headline">
-          {nextEventHeadline(result, now, t)}
+    return (
+      <section aria-label={t.nextEvent.region} className={card ? styles.card : styles.block} data-testid="next-event" data-form={form}>
+        <p className={styles.none} data-testid="next-event-none" data-reason={pending ? 'pending' : result.reason}>
+          {pending ? t.nextEvent.pending : t.nextEvent.none({ reason: result.reason, hours })}
         </p>
-        <p className={styles.peak} data-testid="next-event-peak">
-          {t.nextEvent.peakLine({ point: compassPoint(pass.peak.azDeg), altitude: degrees(pass.peak.elDeg), band: brightnessBand(pass.peakMagnitude), magnitude: formatMagnitude(pass.peakMagnitude, locale) })}
-          {verdict.state !== 'unknown' && (
-            <>
-              <span className={styles.separator} aria-hidden="true">
-                {' · '}
-              </span>
-              <span className={styles.cloud} data-cloud={verdict.state}>
-                {t.weather.state[verdict.state]}
-              </span>
-            </>
-          )}
-        </p>
-      </>
+        {!card && <LiveLink />}
+      </section>
     );
   }
 
+  const { pass } = result;
+  // The time stands alone at 32 px; with no zone for the observer yet the digits are UTC, and say so (F-27).
+  const time = formatShortClock(result.at, timeZone, locale, timeZone === null);
+  const path = nextEventPath(pass, t);
   return (
-    <section aria-labelledby={labelId} className={styles.block} data-testid="next-event">
-      <p id={labelId} className={styles.eventLabel}>
-        {t.nextEvent.label}
+    <section aria-label={t.nextEvent.region} className={card ? styles.card : styles.block} data-testid="next-event" data-form={form}>
+      <p role="timer" aria-live="off" className={styles.label} data-kind={result.kind} data-testid="next-event-label">
+        {nextEventLabel(result, now, t, card)}
       </p>
-      {body}
+      {card ? (
+        <>
+          <p className={styles.cardTime} data-testid="next-event-time">
+            {`${time}   ${pass.name}`}
+          </p>
+          <p className={styles.path} data-testid="next-event-path">
+            {t.nextEvent.withDuration({ path, minutes: passMinutes(pass) })}
+          </p>
+          <p className={styles.brightness} data-testid="next-event-brightness">
+            {t.nextEvent.brightness({ band: brightnessBand(pass.peakMagnitude), magnitude: formatMagnitude(pass.peakMagnitude, locale) })}
+          </p>
+        </>
+      ) : (
+        <>
+          <p className={styles.time} data-testid="next-event-time">
+            {time}
+          </p>
+          <p className={styles.path} data-testid="next-event-path">
+            {t.nextEvent.named({ name: pass.name, path })}
+          </p>
+          <LiveLink />
+        </>
+      )}
     </section>
   );
 }

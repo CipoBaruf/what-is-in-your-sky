@@ -1,10 +1,11 @@
 /**
- * R76 (FR-FIRST-3, D-442): the next event over a stored run — the Neuquén run
- * the offline tests use — at instants before a pass, between its start and its
- * peak, between its peak and its end, and after the last pass; and each of the
- * three reasons there can be nothing to count down to. The verb and the
- * countdown are pinned through the catalog and `formatClockDuration`, which is how
- * `NextEventBlock` words them, so this is the sentence a reader sees.
+ * R76 (FR-FIRST-3, D-442), R81 (FR-FIRST-3 as amended v2.0.2, D-508): the next
+ * event over a stored run — the Neuquén run the offline tests use — at instants
+ * before a pass, between its start and its peak, between its peak and its end,
+ * and after the last pass; and each of the three reasons there can be nothing
+ * to count down to. The label line and the path are pinned through the catalog,
+ * `formatClockDuration` and `passPath`, which is how `NextEventBlock` words
+ * them, so these are the lines a reader sees.
  */
 import { describe, expect, it } from 'vitest';
 import run from '../../tests/fixtures/stored-run-neuquen.json';
@@ -15,6 +16,7 @@ import type { Pass } from '../model';
 import { compassPoint } from './compass';
 import { isNoEvent, nextEvent, type NextEvent } from './nextEvent';
 import { formatClockDuration } from './format';
+import { passPath } from './passPath';
 
 const passes = run.passes as unknown as Pass[];
 const byId = (id: string): Pass => {
@@ -35,16 +37,14 @@ function event(t: number): NextEvent {
   return result;
 }
 
-/** The headline the block shows, in either language. */
-function headline(e: NextEvent, t: number, messages: Messages): string {
-  return messages.nextEvent.headline({
-    name: e.pass.name,
-    kind: e.kind,
-    reason: e.kind === 'end' ? e.pass.endReason : e.pass.startReason,
-    point: compassPoint(e.azimuth),
-    altitude: `${String(Math.round(e.pass.peak.elDeg))}°`,
-    countdown: formatClockDuration((e.at - t) / 1000),
-  });
+/** The label line the block shows, in either language. */
+function label(e: NextEvent, t: number, messages: Messages): string {
+  return messages.nextEvent.label({ kind: e.kind, reason: e.kind === 'end' ? e.pass.endReason : e.pass.startReason, countdown: formatClockDuration((e.at - t) / 1000) });
+}
+
+/** The path line under the clock time. */
+function path(e: NextEvent, messages: Messages): string {
+  return messages.nextEvent.named({ name: e.pass.name, path: messages.nextEvent.path(passPath(e.pass)) });
 }
 
 describe('nextEvent (FR-FIRST-3, D-442)', () => {
@@ -55,15 +55,18 @@ describe('nextEvent (FR-FIRST-3, D-442)', () => {
     expect(e.kind).toBe('rise');
     expect(e.at).toBe(FIRST.start.t);
     expect(compassPoint(e.azimuth)).toBe('S');
-    expect(headline(e, t, en)).toBe('SL-16 R/B (Cosmos 2369) appears S in 12:34');
-    expect(headline(e, t, es)).toBe('SL-16 R/B (Cosmos 2369) aparece al S en 12:34');
+    expect(label(e, t, en)).toBe('Next up · in 12:34');
+    expect(label(e, t, es)).toBe('A continuación · en 12:34');
+    // It rises at the threshold (low), climbs to 32° in the ESE and sets at the threshold in the ENE.
+    expect(path(e, en)).toBe('SL-16 R/B (Cosmos 2369) · S low → 32° ESE → ENE');
+    expect(path(e, es)).toBe('SL-16 R/B (Cosmos 2369) · S bajo → 32° ESE → ENE');
   });
 
-  it('hours before a pass: the countdown is a clock, as the hero card writes one', () => {
+  it('hours before a pass: the countdown is h:mm:ss (D-502)', () => {
     const t = FIRST.start.t - ((3 * 60 + 45) * 60 + 7) * 1000;
     const e = event(t);
     expect(e.pass.id).toBe(FIRST.id);
-    expect(headline(e, t, en)).toBe('SL-16 R/B (Cosmos 2369) appears S in 3:45:07');
+    expect(label(e, t, en)).toBe('Next up · in 3:45:07');
   });
 
   it('between start and peak: the peak, its altitude and direction', () => {
@@ -73,8 +76,10 @@ describe('nextEvent (FR-FIRST-3, D-442)', () => {
     expect(e.kind).toBe('peak');
     expect(e.at).toBe(FIRST.peak.t);
     expect(compassPoint(e.azimuth)).toBe('ESE');
-    expect(headline(e, t, en)).toBe('SL-16 R/B (Cosmos 2369) peaks 32° ESE in 1:10');
-    expect(headline(e, t, es)).toBe('SL-16 R/B (Cosmos 2369) culmina a 32° al ESE en 1:10');
+    expect(label(e, t, en)).toBe('Up now · peaks in 1:10');
+    expect(label(e, t, es)).toBe('Visible ahora · culmina en 1:10');
+    // The path is the whole pass's, whichever of its events is next.
+    expect(path(e, en)).toBe('SL-16 R/B (Cosmos 2369) · S low → 32° ESE → ENE');
   });
 
   it('between peak and end: the end, where it sets, and the time to it', () => {
@@ -84,14 +89,18 @@ describe('nextEvent (FR-FIRST-3, D-442)', () => {
     expect(e.kind).toBe('end');
     expect(e.at).toBe(FIRST.end.t);
     expect(compassPoint(e.azimuth)).toBe('ENE');
-    expect(headline(e, t, en)).toBe('SL-16 R/B (Cosmos 2369) sets ENE in 2:05');
+    expect(label(e, t, en)).toBe('Up now · sets in 2:05');
+    expect(label(e, t, es)).toBe('Visible ahora · se pone en 2:05');
+    expect(path(e, en)).toBe('SL-16 R/B (Cosmos 2369) · S low → 32° ESE → ENE');
   });
 
   it('words the rise and the end by the boundary reason: emerges from shadow, enters shadow', () => {
     const t = SECOND.start.t - 60_000;
     const rise = event(t);
     expect(rise.pass.id).toBe(SECOND.id);
-    expect(headline(rise, t, en)).toBe('SL-16 R/B (Cosmos 2406) emerges from shadow S in 1:00');
+    expect(label(rise, t, en)).toBe('Next up · in 1:00');
+    // Out of Earth's shadow at 45°: the start carries its altitude, and the peak is the same instant.
+    expect(path(rise, en)).toMatch(/^SL-16 R\/B \(Cosmos 2406\) · S 45° → 45° S → [A-Z]+$/);
     // start = peak: once risen there is no peak ahead, so the next event is the end.
     const after = event(SECOND.start.t + 1000);
     expect(after.pass.id).toBe(SECOND.id);
@@ -99,7 +108,10 @@ describe('nextEvent (FR-FIRST-3, D-442)', () => {
     const shadowEnd: Pass = { ...FIRST, endReason: 'shadow' };
     const t2 = shadowEnd.end.t - 5000;
     const end = nextEvent([shadowEnd], t2);
-    expect(isNoEvent(end) ? null : headline(end, t2, en)).toBe('SL-16 R/B (Cosmos 2369) enters shadow ENE in 0:05');
+    expect(isNoEvent(end) ? null : label(end, t2, en)).toBe('Up now · enters shadow in 0:05');
+    expect(isNoEvent(end) ? null : label(end, t2, es)).toBe('Visible ahora · entra en la sombra en 0:05');
+    // Entering shadow above the threshold, the end carries its altitude.
+    expect(isNoEvent(end) ? null : path(end, en)).toBe('SL-16 R/B (Cosmos 2369) · S low → 32° ESE → ENE 10°');
   });
 
   it('takes the pass whose next event is soonest, not the first in the list', () => {
