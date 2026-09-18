@@ -66,22 +66,23 @@ describe('<App> frame (R12)', () => {
       appStore.setState({ observer });
     });
     expect(screen.queryByTestId('cold-open')).toBeNull();
-    expect(screen.getByTestId('location-summary')).toHaveTextContent(en.location.summary(observer.label));
-    for (const name of ['Right now', 'Upcoming passes']) {
-      const region = screen.getByRole('region', { name });
-      expect(within(region).getByRole('heading', { level: 2, name })).toBeInTheDocument();
-    }
+    expect(screen.getByTestId('location-summary')).toHaveTextContent(observer.label);
+    // R81 (FR-FIRST-5 as amended): the list keeps its named region; the Now panel is the When reading's table now.
+    const list = screen.getByRole('region', { name: 'Upcoming passes' });
+    expect(within(list).getByRole('heading', { level: 2, name: 'Upcoming passes' })).toBeInTheDocument();
+    expect(within(screen.getByTestId('reading-when')).getByTestId('conditions')).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it('with passes: the hero card, the sort toggle and the list, no axe violations; header and footer inert with the sheet open', async () => {
+  it('with passes: the tagged card, the sort toggle and the list, no axe violations; header and footer inert with the sheet open', async () => {
     act(() => {
       appStore.setState({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [pass, other], hasDarkness: true } });
     });
     const { container } = render(<App />);
-    expect(screen.getByTestId('iss-hero')).toHaveAttribute('data-pass-id', pass.id);
+    // R81 (§8 rank 1 as amended): the next ISS pass stays in the list, tagged.
+    expect(screen.getByTestId('next-tag').closest('article')).toHaveAttribute('data-pass-id', pass.id);
     expect(screen.getByRole('group', { name: 'Sort passes' })).toBeInTheDocument();
-    expect(within(screen.getByRole('list')).getAllByRole('listitem')).toHaveLength(1);
+    expect(within(screen.getByRole('list')).getAllByRole('listitem')).toHaveLength(2);
     expect(await axe(container)).toHaveNoViolations();
 
     act(() => {

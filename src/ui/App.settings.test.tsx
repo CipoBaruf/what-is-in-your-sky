@@ -101,7 +101,7 @@ describe('<App> and the #settings route (FR-COMP-2)', () => {
     });
     expect(screen.queryByTestId('settings-back')).toBeNull();
     expect(appStore.getState().observer).toBe(observer);
-    expect(screen.getByTestId('iss-hero')).toBeInTheDocument();
+    expect(screen.getByTestId('next-tag')).toBeInTheDocument();
   });
 
   it('leaves an Esc pressed inside one of the page’s own fields to that field (D-73)', () => {

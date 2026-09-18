@@ -33,7 +33,10 @@ const other = { ...pass, id: 'other', noradId: 2, name: 'Other object', start: {
 const panelName = en.guide.panelLabel({ name: pass.name });
 /** FR-DESK-5's mid width: wide, two columns, under both the three panes and the split. */
 const MID_PX = 1024;
-const pane = (step: 'where' | 'when' | 'what', current = step === 'where'): string => `${current ? '[' : ''}0${String(['where', 'when', 'what'].indexOf(step) + 1)}${current ? ']' : ''} ${en.home.panes[step]}`;
+/** R81 (FR-FIRST-5 as amended v2.0.2): a populated pane's heading is its plain word, `── Where ──`. */
+/** The next ISS pass's card, which carries the tag the hero card was (R81, §8 rank 1 as amended). */
+const tagged = (): HTMLElement => screen.getByTestId('next-tag').closest('article') as HTMLElement;
+const pane = (step: 'where' | 'when' | 'what'): string => en.home.panes[step];
 
 let media: MatchMediaStub;
 
@@ -63,7 +66,7 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     window.history.replaceState(null, '', window.location.pathname);
   });
 
-  it('lays the page out in two columns: location, banners and the Now panel on the left, the passes on the right (FR-DESK-2)', async () => {
+  it('lays the page out in two columns: the Where and When readings on the left, the passes on the right (FR-DESK-2)', async () => {
     media.setWidth(MID_PX);
     withPasses();
     render(<App />);
@@ -77,7 +80,8 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     // The location is the Where reading's line, and its form is one `[ change ]` away, in place.
     await userEvent.click(within(where).getByRole('button', { name: en.location.summaryChange }));
     expect(within(where).getByRole('region', { name: 'Location' })).toBeInTheDocument();
-    expect(within(left).getByRole('region', { name: 'Right now' })).toBeInTheDocument();
+    // R81 (FR-FIRST-9): the Now panel's facts are the When reading's table.
+    expect(within(within(left).getByRole('region', { name: pane('when') })).getByTestId('conditions')).toBeInTheDocument();
     expect(within(right).getByRole('region', { name: 'Upcoming passes' })).toBeInTheDocument();
     // The header spans both and keeps the title, the tagline and the controls.
     const header = screen.getByRole('banner');
@@ -99,7 +103,7 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     for (const role of ['banner', 'main', 'contentinfo']) expect(screen.getByRole(role)).not.toHaveAttribute('inert');
     expect(document.documentElement.style.overflow).not.toBe('hidden');
     // The list is still there, still open-able, with the open pass marked.
-    expect(screen.getByTestId('iss-hero')).toHaveAttribute('aria-current', 'true');
+    expect(tagged()).toHaveAttribute('aria-current', 'true');
     expect(screen.getByRole('article', { name: other.name })).not.toHaveAttribute('aria-current');
     expect(within(panel).getByTestId('guide-sentence')).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
@@ -174,8 +178,8 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     // one, and the hash still carries it (D-13).
     expect(screen.getByRole('region', { name: panelName })).toBeInTheDocument();
     expect(window.location.hash).toBe(`#pass=${pass.id}`);
-    expect(screen.getByTestId('iss-hero')).toHaveAttribute('aria-current', 'true');
-    expect(screen.getByTestId('iss-hero')).toHaveFocus();
+    expect(tagged()).toHaveAttribute('aria-current', 'true');
+    expect(tagged()).toHaveFocus();
 
     // Opening a pass is what asks for the guide again.
     await userEvent.click(screen.getAllByRole('button', { name: /Open guide/ })[1] as HTMLElement);
@@ -222,15 +226,16 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     render(<App />);
     const nights = screen.getAllByTestId('night-group');
     expect(nights).toHaveLength(2);
-    const secondNight = nights[1] as HTMLDetailsElement;
-    expect(secondNight.open).toBe(false);
+    const secondNight = nights[1] as HTMLElement;
+    expect(secondNight.hidden).toBe(true);
 
     act(() => {
       window.location.hash = `#pass=${later.id}`;
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
     await userEvent.click(within(screen.getByRole('region', { name: en.guide.panelLabel({ name: later.name }) })).getByRole('button', { name: en.guide.toList }));
-    expect(secondNight.open).toBe(true);
+    expect(secondNight.hidden).toBe(false);
+    expect(screen.getAllByTestId('night-toggle')[1]).toHaveAttribute('aria-expanded', 'true');
     expect(within(secondNight).getByRole('article', { current: true })).toHaveFocus();
   });
 
@@ -277,7 +282,7 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     expect(screen.getByTestId('col-right')).toHaveAttribute('data-guide', 'pane');
     const panel = screen.getByRole('region', { name: panelName });
     expect(panel).toHaveAttribute('data-guide-panel');
-    expect(within(screen.getByRole('region', { name: pane('what') })).getByTestId('iss-hero')).toHaveAttribute('aria-current', 'true');
+    expect(within(screen.getByRole('region', { name: pane('what') })).getByTestId('next-tag').closest('article')).toHaveAttribute('aria-current', 'true');
     expect(window.location.hash).toBe(`#pass=${pass.id}`);
 
     act(() => {

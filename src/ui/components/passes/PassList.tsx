@@ -190,6 +190,7 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
               aria-label={nightLabel(group, now, zone, locale, t)}
               className={styles.night}
               data-testid="night-group"
+              data-night-group=""
               data-night={group.index}
               data-open={isOpen(group)}
               hidden={!isOpen(group)}
