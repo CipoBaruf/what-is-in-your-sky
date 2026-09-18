@@ -80,11 +80,11 @@ describe('<WherePlace> (FR-FIRST-11)', () => {
         <Host />
       </I18nProvider>,
     );
-    expect(screen.getByTestId('where-sentence')).toHaveTextContent('Se usa el centro de Cipolletti. Guardada solo en este navegador. cambiar');
+    expect(screen.getByTestId('where-sentence')).toHaveTextContent('Con el centro de Cipolletti. Guardada solo en este navegador. cambiar');
     set(coords);
-    expect(screen.getByTestId('where-sentence')).toHaveTextContent(/^Se usan estas coordenadas\./);
+    expect(screen.getByTestId('where-sentence')).toHaveTextContent(/^Con estas coordenadas\./);
     set({ ...coords, source: 'device', accuracyM: 40 });
-    expect(screen.getByTestId('where-sentence')).toHaveTextContent(/^Se usa la ubicación del dispositivo \(±40 m\)\./);
+    expect(screen.getByTestId('where-sentence')).toHaveTextContent(/^Con la ubicación del dispositivo \(±40 m\)\./);
   });
 
   it('[ change ] opens the input group in place and closes it again, never #settings (FR-FIRST-2, FR-SET-3)', async () => {

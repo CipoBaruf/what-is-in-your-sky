@@ -162,9 +162,9 @@ export const ui: typeof EnUi = {
       whatCard: 'Cada pase como una tarjeta: hora, dirección, cuánto sube y cuánto brilla.',
     },
     where: {
-      centre: (place) => `Se usa el centro de ${place}.`,
-      coords: 'Se usan estas coordenadas.',
-      device: (accuracy) => (accuracy === null ? 'Se usa la ubicación del dispositivo.' : `Se usa la ubicación del dispositivo (±${accuracy} m).`),
+      centre: (place) => `Con el centro de ${place}.`,
+      coords: 'Con estas coordenadas.',
+      device: (accuracy) => (accuracy === null ? 'Con la ubicación del dispositivo.' : `Con la ubicación del dispositivo (±${accuracy} m).`),
     },
     conditions: {
       label: 'Las condiciones de esta noche',
