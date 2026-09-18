@@ -84,6 +84,12 @@ const SHOWN = GLARE_PASS_START + 180_000;
 /** R53: the legend screen's instant, two minutes further on — see the `legend` route. */
 const LEGEND_SHOWN = SHOWN + 120_000;
 const TICK_MS = 10_000;
+/**
+ * R79 (FR-GUT-6): the chip's instant. At `SHOWN` the Paris sky has a pass in every direction, so no facing is an
+ * empty field; three minutes before the overhead pass rises — inside `ARC_LOOKAHEAD_MS`, so it is drawn `ahead` — one
+ * can be found, and the chip names the turn to where it will rise.
+ */
+const CHIP_SHOWN = GLARE_PASS_START - 8 * 60_000;
 
 const OPEN_GUIDE = { en: /Open guide/, es: /Abrir la guía/ } as const;
 
@@ -107,7 +113,7 @@ const FULL_PAGE = new Set(['location', 'home', 'settings']);
  * touch panel. Playwright grants touch per context, so these tests need a
  * `test.use` of their own and the rest of the set must not have it.
  */
-const TOUCH = new Set(['window', 'sky-screen-sky', 'sky-screen-ground', 'sky-screen-buried', 'sky-screen-portrait', 'sky-screen-turned']);
+const TOUCH = new Set(['window', 'sky-screen-sky', 'sky-screen-chip', 'sky-screen-ground', 'sky-screen-buried', 'sky-screen-portrait', 'sky-screen-turned']);
 
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
@@ -230,8 +236,8 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
  * and the count is the count. The clock is at the shown instant from the start,
  * so the page opens on real time and needs no scrubbing.
  */
-async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale): Promise<void> {
-  await open(page, width, { locale, theme, observer: PARIS }, SHOWN);
+async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, shown: number = SHOWN): Promise<void> {
+  await open(page, width, { locale, theme, observer: PARIS }, shown);
   await page.goto('/');
   await listSettled(page);
   // The router listens for `hashchange`, so setting the hash in the page navigates without
@@ -247,11 +253,11 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
   // `liveHelpers.ts` owns that check, and this file had been carrying a copy without the visibility half).
   await stripFilled(page);
   // F-48: `domeDrawn` left the clock wherever its last tick fell, so the shown instant is put back
-  // on `SHOWN` before the picture — and the strip is read to prove the page went there with it.
-  await pinnedAt(page, SHOWN);
+  // on `shown` before the picture — and the strip is read to prove the page went there with it.
+  await pinnedAt(page, shown);
   // …to the ten-second tick the strip reads the clock at (FR-VIS-5), and in neither language's words:
   // the zone is unknown over Paris, so both of them print the UTC time of `SHOWN`.
-  await expect(page.getByTestId('live-time')).toContainText(hhmmss(SHOWN).slice(0, 7));
+  await expect(page.getByTestId('live-time')).toContainText(hhmmss(shown).slice(0, 7));
   await page.mouse.move(0, 0);
 }
 
@@ -293,11 +299,11 @@ async function settle(page: Page): Promise<void> {
  * upright, which is what a rotation lock does: the pose says 90, the layer
  * turns, and the picture is landscape inside a portrait viewport.
  */
-type FollowState = 'sky' | 'ground' | 'buried' | 'portrait' | 'turned';
+type FollowState = 'sky' | 'ground' | 'buried' | 'portrait' | 'turned' | 'chip';
 
 async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, state: FollowState): Promise<void> {
   await stubCompass(page);
-  await liveAt(page, width, theme, locale);
+  await liveAt(page, width, theme, locale, state === 'chip' ? CHIP_SHOWN : SHOWN);
   await page.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: VIEW_OPTION_WINDOW[locale] }).click();
   await expect
     .poll(
@@ -337,14 +343,30 @@ async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme
     return;
   }
   if (state === 'sky' || state === 'portrait') {
+    // R79: turned until a pass is in the gutter's bracket, so the picture has an arc in it and the gutter a tick.
     for (const azDeg of [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]) {
       await point(page, azDeg, 20);
       await settle(page);
-      if ((await page.locator('[data-drawing="window"] [data-pass-id]').count()) > 0) break;
+      if ((await page.locator('[data-branch="in-bracket"]').count()) > 0) break;
     }
     await expect(drawing).toHaveAttribute('data-ground', 'sky');
-    // FR-FSC-11: upright, the advice stands over that picture — which is what the portrait shot is of.
-    if (state === 'portrait') await expect(page.getByTestId('window-turn-note')).toBeVisible();
+    // FR-GUT-7: upright, the advice is secondary copy under the countdown — which is what the portrait shot is of.
+    if (state === 'portrait') await expect(page.getByTestId('window-turn-advice')).toBeVisible();
+  } else if (state === 'chip') {
+    // R79 (FR-GUT-6): turned away from every pass, so the field is empty and the chip says which way to turn. The
+    // Paris sky has passes most of the way round, so the sweep is finer than the others' and looks low and high.
+    search: for (const altDeg of [15, 45]) {
+      for (let azDeg = 0; azDeg < 360; azDeg += 10) {
+        await point(page, azDeg, altDeg);
+        await settle(page);
+        if ((await page.getByTestId('window-chip').count()) > 0) break search;
+      }
+    }
+    // A pass already up when the page computed its set starts at that instant, a fraction of a second after the
+    // shown one; a tick on (FR-VIS-5) it is under way, so the chip counts to its peak or its end, not "up in 0:00".
+    await page.clock.runFor(TICK_MS);
+    await expect(page.getByTestId('window-chip')).toBeVisible();
+    await expect(page.getByTestId('window-chip')).not.toContainText('0:00.');
   } else {
     // Down the look's own azimuth, so the sky the `ground` state still holds is the sky the reader was in.
     const azDeg = Number(await drawing.getAttribute('data-look-az'));
@@ -533,6 +555,11 @@ const REACH: Record<string, Reach> = {
   /** R64 (FR-FSC-1, FR-FSC-4, FR-FSC-7): the four states of the screen `[ follow phone ]` opens. */
   async 'sky-screen-sky'(page, width, theme, locale) {
     await followScreen(page, width, theme, locale, 'sky');
+  },
+
+  /** R79 (FR-GUT-6, FR-GUT-8): the same screen turned away from every pass, with the chip over the gutter. */
+  async 'sky-screen-chip'(page, width, theme, locale) {
+    await followScreen(page, width, theme, locale, 'chip');
   },
 
   async 'sky-screen-ground'(page, width, theme, locale) {
