@@ -3,7 +3,7 @@
  * the offline tests use — at instants before a pass, between its start and its
  * peak, between its peak and its end, and after the last pass; and each of the
  * three reasons there can be nothing to count down to. The verb and the
- * countdown are pinned through the catalog and `formatCountdown`, which is how
+ * countdown are pinned through the catalog and `formatClockDuration`, which is how
  * `NextEventBlock` words them, so this is the sentence a reader sees.
  */
 import { describe, expect, it } from 'vitest';
@@ -14,7 +14,7 @@ import type { Messages } from '../i18n/messages';
 import type { Pass } from '../model';
 import { compassPoint } from './compass';
 import { isNoEvent, nextEvent, type NextEvent } from './nextEvent';
-import { formatCountdown } from './timeFormat';
+import { formatClockDuration } from './format';
 
 const passes = run.passes as unknown as Pass[];
 const byId = (id: string): Pass => {
@@ -43,7 +43,7 @@ function headline(e: NextEvent, t: number, messages: Messages): string {
     reason: e.kind === 'end' ? e.pass.endReason : e.pass.startReason,
     point: compassPoint(e.azimuth),
     altitude: `${String(Math.round(e.pass.peak.elDeg))}°`,
-    countdown: formatCountdown(e.at - t),
+    countdown: formatClockDuration((e.at - t) / 1000),
   });
 }
 
@@ -57,6 +57,13 @@ describe('nextEvent (FR-FIRST-3, D-442)', () => {
     expect(compassPoint(e.azimuth)).toBe('S');
     expect(headline(e, t, en)).toBe('SL-16 R/B (Cosmos 2369) appears S in 12:34');
     expect(headline(e, t, es)).toBe('SL-16 R/B (Cosmos 2369) aparece al S en 12:34');
+  });
+
+  it('hours before a pass: the countdown is a clock, as the hero card writes one', () => {
+    const t = FIRST.start.t - ((3 * 60 + 45) * 60 + 7) * 1000;
+    const e = event(t);
+    expect(e.pass.id).toBe(FIRST.id);
+    expect(headline(e, t, en)).toBe('SL-16 R/B (Cosmos 2369) appears S in 3:45:07');
   });
 
   it('between start and peak: the peak, its altitude and direction', () => {

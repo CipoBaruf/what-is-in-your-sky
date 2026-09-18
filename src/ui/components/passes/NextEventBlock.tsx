@@ -3,10 +3,9 @@ import type { Messages } from '../../../i18n/messages';
 import { useLocale, useT } from '../../../i18n/useT';
 import { cloudVerdict } from '../../../lib/cloudVerdict';
 import { compassPoint } from '../../../lib/compass';
-import { degrees, formatMagnitude } from '../../../lib/format';
+import { degrees, formatClockDuration, formatMagnitude } from '../../../lib/format';
 import { isNoEvent, nextEvent, type NextEvent, type NextEventContext } from '../../../lib/nextEvent';
 import { brightnessBand } from '../../../lib/phrases';
-import { formatCountdown } from '../../../lib/timeFormat';
 import type { EpochMs, Pass, WeatherSnapshot } from '../../../model';
 import { useNow } from '../../hooks/useNow';
 import styles from './NextEventBlock.module.css';
@@ -21,7 +20,9 @@ import styles from './NextEventBlock.module.css';
  * It ticks once a second from the wall clock (`NEXT_EVENT_TICK_MS`, US-5 AC4's
  * countdown at the rate a person reads seconds) against those passes; nothing
  * is asked of the worker and nothing is written to the store. `lib/nextEvent`
- * picks the event and `formatCountdown` writes the time to it.
+ * picks the event and `formatClockDuration` writes the time to it, as the hero
+ * card writes its own: "m:ss" under an hour and "h:mm:ss" above, so the two
+ * readings on one page agree (D-442 as amended).
  */
 export const NEXT_EVENT_TICK_MS = 1000;
 
@@ -34,7 +35,7 @@ export function nextEventHeadline(event: NextEvent, now: EpochMs, t: Messages): 
     reason: kind === 'end' ? pass.endReason : pass.startReason,
     point: compassPoint(event.azimuth),
     altitude: degrees(pass.peak.elDeg),
-    countdown: formatCountdown(event.at - now),
+    countdown: formatClockDuration((event.at - now) / 1000),
   });
 }
 

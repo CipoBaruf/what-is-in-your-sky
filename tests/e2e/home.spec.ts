@@ -55,7 +55,7 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3)', () => {
     await primary.click();
 
     const block = page.getByTestId('next-event');
-    await expect(block.getByTestId('next-event-headline')).toHaveText(/^.+ (appears|emerges from shadow|becomes visible|peaks \d+°|sets|enters shadow|fades) [NESW]{1,3} in \d+:\d\d$/, { timeout: 60_000 });
+    await expect(block.getByTestId('next-event-headline')).toHaveText(/^.+ (appears|emerges from shadow|becomes visible|peaks \d+°|sets|enters shadow|fades) [NESW]{1,3} in (\d+:)?\d\d?:\d\d$/, { timeout: 60_000 });
     await expect(cold).toHaveCount(0);
     await expect(page.getByTestId('location-summary')).toHaveText(/^Using −38\.93, −67\.99/);
     // The group folded away under the line: the device answered, so there is nothing left to type.
