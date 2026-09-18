@@ -2,6 +2,7 @@ import type { AgeParts } from '../../lib/elementsAge';
 import type { CompassPoint } from '../../lib/compass';
 import type { MoonFacts, MoonGlareFacts, MoonLoreParams, MoonPeakFacts } from '../../lib/moonPhrases';
 import type { BrightnessBand, ElevationBand, GuideParams } from '../../lib/phrases';
+import type { NextEventKind, NoEventReason } from '../../lib/nextEvent';
 import type { ShortcutId } from '../../lib/shortcuts';
 import type { CloudState, MoonPhaseName, PassBoundaryReason, PassSort, ReadinessGap, Theme } from '../../model';
 import type { CountdownPhase, LinkedText } from '../messages';
@@ -191,8 +192,52 @@ export const ui = {
     summary: (label: string) => `Using ${label}`,
     summaryChange: 'change',
     summaryAccuracy: (accuracy: string) => `from your device, accurate to ${accuracy}`,
-    summaryNone: 'No place set.',
-    summarySet: 'set a place',
+    /** FR-FIRST-2 (R76): the one line under the primary action's label. */
+    useMyLocationNote: 'Fastest. Your browser asks first; nothing is sent anywhere.',
+  },
+
+  /**
+   * FR-FIRST-1, FR-FIRST-4, FR-FIRST-5 (R76): the home page's three readings.
+   * The step words are lower case in the step line and capitalised as pane
+   * headings, which is how the two are written in the spec.
+   */
+  home: {
+    steps: { where: 'where', when: 'when', what: 'what' },
+    stepsLabel: 'Steps',
+    panes: { where: 'Where', when: 'When', what: 'What' },
+    coldHeading: 'Where will you be looking from?',
+    coldSentence: 'A pass looks the same from anywhere within a few kilometres, so city-level is enough. Pick any one.',
+    /** FR-FIRST-4: tonight's dark window, the first `dark` band of the night. */
+    darkWindow: (p: { from: string; to: string }) => `Dark ${p.from} → ${p.to}`,
+    noDarkWindow: 'No full darkness tonight.',
+  },
+
+  /**
+   * FR-FIRST-3, FR-WATCH-2 (R76, D-442): the next event, "ISS appears NW in
+   * 4:12". One block with two hosts — the home page and the live page's
+   * watching headline — so the wording is here once, for both.
+   */
+  nextEvent: {
+    label: 'Next up',
+    headline: (p: { name: string; kind: NextEventKind; reason: PassBoundaryReason; point: CompassPoint; altitude: string; countdown: string }) => {
+      switch (p.kind) {
+        case 'rise':
+          return `${p.name} ${{ horizon: 'appears', shadow: 'emerges from shadow', twilight: 'becomes visible' }[p.reason]} ${p.point} in ${p.countdown}`;
+        case 'peak':
+          return `${p.name} peaks ${p.altitude} ${p.point} in ${p.countdown}`;
+        case 'end':
+          return `${p.name} ${{ horizon: 'sets', shadow: 'enters shadow', twilight: 'fades' }[p.reason]} ${p.point} in ${p.countdown}`;
+      }
+    },
+    /** The line under the headline: the peak's direction and altitude, and how bright (FR-GUIDE-3). */
+    peakLine: (p: { point: CompassPoint; altitude: string; band: BrightnessBand; magnitude: string }) => `Peak ${p.point} at ${p.altitude}, ${brightness[p.band]} (${p.magnitude})`,
+    pending: 'Looking for the next pass…',
+    none: (p: { reason: NoEventReason; hours: number }) =>
+      ({
+        'no-passes': `No visible pass in the next ${String(p.hours)} h.`,
+        'no-darkness': `No darkness in the next ${String(p.hours)} h at this latitude, so nothing to see.`,
+        'no-elements': 'No orbital elements to compute passes from.',
+      })[p.reason],
   },
 
   /**
