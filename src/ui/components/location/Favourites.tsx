@@ -47,7 +47,14 @@ import styles from './Favourites.module.css';
  * control is what says there is nothing yet — and the limit said only once the list is full, when the
  * next save would forget a place.
  */
-export function Favourites({ footer, titled = false, limit = 'always', form = 'block' }: { footer?: ReactNode; titled?: boolean; limit?: 'always' | 'empty-or-full'; form?: 'block' | 'line' } = {}) {
+export interface FavouritesProps {
+  footer?: ReactNode;
+  titled?: boolean;
+  limit?: 'always' | 'empty-or-full';
+  form?: 'block' | 'line';
+}
+
+export function Favourites({ footer, titled = false, limit = 'always', form = 'block' }: FavouritesProps) {
   const t = useT();
   const headingId = useId();
   const observer = useAppStore((s) => s.observer);
