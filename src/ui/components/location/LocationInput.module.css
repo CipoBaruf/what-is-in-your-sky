@@ -43,3 +43,29 @@
 .standaloneClear {
   margin: 0;
 }
+
+/* R76 (FR-FIRST-2): the home page's input group. The primary action and its
+   two alternatives are two columns where the group has the room for both at
+   the compact card's width — the cold open on a desk — and one under the other
+   where it does not: a phone, and the 36- to 40-cell Where pane. The widths
+   are in cells, so the fold happens at the same character count everywhere. */
+.group {
+  gap: var(--row);
+}
+
+.inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(36 * var(--cell))), 1fr));
+  gap: var(--row) calc(3 * var(--cell));
+  align-items: start;
+}
+
+.alternatives {
+  display: grid;
+  gap: 0;
+}
+
+.foot {
+  display: grid;
+  gap: 0;
+}

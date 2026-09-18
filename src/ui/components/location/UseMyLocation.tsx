@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { Messages } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
@@ -53,10 +53,18 @@ const OPTIONS: PositionOptions = { enableHighAccuracy: false, timeout: 20_000, m
 export interface UseMyLocationProps {
   onObserver: (observer: Observer) => void;
   env?: GeolocationEnv;
+  /**
+   * R76 (FR-FIRST-2): the home page's input group makes this the one primary
+   * action — a boxed control with a line under its label saying why it is the
+   * quickest. The line describes the button rather than naming it, so its
+   * accessible name stays "Use my location".
+   */
+  primary?: boolean;
 }
 
-export function UseMyLocation({ onObserver, env }: UseMyLocationProps) {
+export function UseMyLocation({ onObserver, env, primary = false }: UseMyLocationProps) {
   const t = useT();
+  const noteId = useId();
   const { geolocation, secure } = env ?? browserGeolocationEnv();
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,10 +97,15 @@ export function UseMyLocation({ onObserver, env }: UseMyLocationProps) {
   };
 
   return (
-    <div className={styles.field}>
-      <button type="button" onClick={locate} disabled={locating} aria-busy={locating} className={styles.button}>
+    <div className={primary ? `${styles.field} ${styles.primary}` : styles.field} data-testid={primary ? 'use-my-location-primary' : undefined}>
+      <button type="button" onClick={locate} disabled={locating} aria-busy={locating} className={styles.button} {...(primary ? { 'aria-describedby': noteId } : {})}>
         {locating ? t.location.locating : t.location.useMyLocation}
       </button>
+      {primary && (
+        <p id={noteId} className={styles.note}>
+          {t.location.useMyLocationNote}
+        </p>
+      )}
       {error && (
         <p role="alert" className={styles.error}>
           {error}

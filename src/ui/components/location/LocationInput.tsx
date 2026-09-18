@@ -75,9 +75,23 @@ export interface LocationInputProps {
   showSavedHere?: boolean;
   /** R75 (FR-SET-1): whether the saved places close this section. The settings page makes them a block of their own. */
   showFavourites?: boolean;
+  /**
+   * R76 (FR-FIRST-2): `group` is the home page's input group — the cold open's
+   * and the one `[ change ]` opens in place. `[ Use my location ]` comes first
+   * as the one primary action, then the place field and the coordinate fields
+   * as its equal alternatives (under it on a narrow group, beside it on a wide
+   * one), and at the foot of the group the precision note and "Saved in this
+   * browser only." — with the clear action beside that sentence when there is
+   * a place to clear. The group has no heading of its own: the page's heading
+   * names it (`labelledBy`), or, under the location line, the word "Location".
+   * `panel`, the default, is the section the settings page arranges.
+   */
+  variant?: 'panel' | 'group';
+  /** The id of the heading that names the group (`variant: 'group'`). */
+  labelledBy?: string;
 }
 
-export function LocationInput({ observer, onObserver, onClear, search, geolocation, showClear = true, savedPlacesFooter, arrangeInputs, showSavedHere = true, showFavourites = true }: LocationInputProps) {
+export function LocationInput({ observer, onObserver, onClear, search, geolocation, showClear = true, savedPlacesFooter, arrangeInputs, showSavedHere = true, showFavourites = true, variant = 'panel', labelledBy }: LocationInputProps) {
   const t = useT();
   // The observer the inputs were seeded from; a new key remounts them. `focus`
   // is set only by the clear, the one reseed that moves the reader's focus.
@@ -120,12 +134,44 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
 
   const accuracy = observer?.source === 'device' ? accuracyText(observer.accuracyM, t) : null;
   const coords = <CoordsInput key={`coords-${String(seed.key)}`} id={COORDS_INPUT_ID} onObserver={emit} {...(seed.observer?.source === 'coords' ? { initial: { lat: seed.observer.lat, lon: seed.observer.lon, altM: seed.observer.altM } } : {})} />;
-  const device = <UseMyLocation onObserver={emit} {...(geolocation ? { env: geolocation } : {})} />;
+  const device = <UseMyLocation onObserver={emit} primary={variant === 'group'} {...(geolocation ? { env: geolocation } : {})} />;
+  const place = <PlacePicker key={`place-${String(seed.key)}`} search={search} onObserver={emit} observer={observer} coordsInputId={COORDS_INPUT_ID} inputId={PLACE_INPUT_ID} {...(seed.observer?.source === 'geocode' ? { initialText: seed.observer.label } : {})} />;
+  const favourites = showFavourites && <Favourites {...(savedPlacesFooter === undefined ? {} : { footer: savedPlacesFooter })} />;
+
+  if (variant === 'group') {
+    return (
+      <section {...(labelledBy ? { 'aria-labelledby': labelledBy } : { 'aria-label': t.location.heading })} className={`${styles.section} ${styles.group}`} data-testid="location-group">
+        {/* Where US-3 AC1 withholds the device button, the alternatives are the group's only child and take its whole width. */}
+        <div className={styles.inputs}>
+          {device}
+          <div className={styles.alternatives} data-testid="location-alternatives">
+            {place}
+            {coords}
+          </div>
+        </div>
+        <div className={styles.foot} data-testid="location-foot">
+          <p className={styles.note}>{t.location.precisionNote}</p>
+          <p className={styles.saved}>
+            {t.location.savedHere}
+            {observer && showClear && (
+              <>
+                {' '}
+                <button type="button" onClick={clear} className={`inline-control ${styles.clear}`} data-testid="clear-saved-location">
+                  {t.location.clearSaved}
+                </button>
+              </>
+            )}
+          </p>
+        </div>
+        {favourites}
+      </section>
+    );
+  }
 
   return (
     <section aria-labelledby={headingId} className={styles.section}>
       <SectionHeading id={headingId}>{t.location.heading}</SectionHeading>
-      <PlacePicker key={`place-${String(seed.key)}`} search={search} onObserver={emit} observer={observer} coordsInputId={COORDS_INPUT_ID} inputId={PLACE_INPUT_ID} {...(seed.observer?.source === 'geocode' ? { initialText: seed.observer.label } : {})} />
+      {place}
       {arrangeInputs ? (
         arrangeInputs({ coords, device })
       ) : (
@@ -159,7 +205,7 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
       )}
       <p className={styles.note}>{t.location.precisionNote}</p>
       {/* R28 (FR-OFF-7, US-17): the saved places, below the inputs and the notes about them. */}
-      {showFavourites && <Favourites {...(savedPlacesFooter === undefined ? {} : { footer: savedPlacesFooter })} />}
+      {favourites}
     </section>
   );
 }

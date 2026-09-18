@@ -20,7 +20,14 @@
   color: var(--fg-dim);
 }
 
+/* R76 (FR-FIRST-4): a button now — it opens the group in place — drawn as the
+   link it replaced; `inline-control` (global.css) gives it the 48 px box. */
 .change {
+  color: var(--accent);
+  background: none;
+  border: 0;
+  padding-inline: 0;
+  min-height: 0;
   text-decoration: none;
   white-space: nowrap;
   flex: none;
@@ -40,4 +47,13 @@
 .accuracy {
   margin: 0;
   color: var(--fg-dim);
+}
+
+/* The input group `[ change ]` opens, under the line. */
+.group {
+  margin-top: var(--row);
+}
+
+.group[hidden] {
+  display: none;
 }

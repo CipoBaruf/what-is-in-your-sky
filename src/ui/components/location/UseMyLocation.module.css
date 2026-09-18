@@ -25,3 +25,22 @@
   margin: 0;
   color: var(--danger);
 }
+
+/* R76 (FR-FIRST-2): the primary action, boxed in the control colour with its
+   one-line note inside the box, under the label. */
+.primary {
+  border: 1px solid var(--edge);
+  padding: calc(var(--row) / 2) var(--cell);
+  gap: 0;
+  margin-bottom: 0;
+  align-content: start;
+}
+
+.primary .button {
+  color: var(--accent);
+}
+
+.note {
+  margin: 0;
+  color: var(--fg-dim);
+}
