@@ -12,8 +12,6 @@ import { ElementsBanners } from '../components/elements/ElementsBanners';
 import { Favourites } from '../components/location/Favourites';
 import { LocationInput } from '../components/location/LocationInput';
 import type { GeolocationEnv } from '../components/location/UseMyLocation';
-import { Mark } from '../components/mark/Mark';
-import { MARK_HERO_COMPACT_PX, MARK_HERO_WIDE_PX } from '../components/mark/tiers';
 import type { MoonLore as MoonLoreComponent } from '../components/moon/MoonLore';
 import { DarkWindow } from '../components/now/DarkWindow';
 import { NowPanel } from '../components/now/NowPanel';
@@ -30,10 +28,12 @@ import { useLayoutMode } from '../hooks/useLayoutMode';
  * three equal panes (from `HOME_THREE_PANE_MIN_PX`).
  *
  * With no observer there is nothing to read yet, and the page is the cold open
- * alone (FR-FIRST-1): the mark, the tagline on compact, the step line, the
- * question and its sentence, and the input group with its two foot notes. No
- * Now panel, no readiness line, no list, and no banner about elements — those
- * are about a place, and there is none.
+ * (FR-FIRST-1 as amended v2.0.2, board 1B): on a phone the step line, the
+ * question and its sentence, and the input group with its foot at the bottom
+ * of the screen; on a desk the three panes, Where holding the question and
+ * the group and When and What drawn dimmed as what they will hold. No Now
+ * panel, no readiness line, no list, and no banner about elements — those are
+ * about a place, and there is none.
  *
  * The two columns' wrappers (`col-left`, `col-right`) are kept, because between
  * the wide breakpoint and the three-pane width the page *is* those two columns
@@ -82,27 +82,70 @@ function Region({ step, className, testId, children }: { step: Step; className: 
   );
 }
 
-/** FR-FIRST-1: the cold open's head — the mark, the tagline on compact, the step line, the question and its sentence. */
+/**
+ * FR-FIRST-1 (board 1B): the cold open's head. On a phone the step line, the
+ * question and its sentence; in the wide Where pane the pane's own heading —
+ * the step line's first item, in the accent — and the question alone, the
+ * precision note at the group's foot saying what the sentence says.
+ */
 function ColdHead({ headingId }: { headingId: string }) {
   const t = useT();
   const mode = useLayoutMode();
+  const paneHeadingId = useId();
+  if (mode === 'wide') {
+    return (
+      <>
+        <SectionHeading id={paneHeadingId} tone="active">
+          {stepLabel('where', true, t.home.panes.where)}
+        </SectionHeading>
+        <h2 id={headingId} className={styles.coldHeading}>
+          {t.home.coldHeading}
+        </h2>
+      </>
+    );
+  }
   return (
     <>
-      <div className={styles.heroMark}>
-        <Mark tier="hero" sizePx={mode === 'wide' ? MARK_HERO_WIDE_PX : MARK_HERO_COMPACT_PX} />
-      </div>
-      {/* The wide header already carries the tagline (FR-DESK-2) and it is not said twice. */}
-      {mode === 'compact' && (
-        <p className={styles.tagline} data-testid="cold-tagline">
-          {t.app.tagline}
-        </p>
-      )}
       <StepLine current="where" />
       <h2 id={headingId} className={styles.coldHeading}>
         {t.home.coldHeading}
       </h2>
       <p className={styles.coldSentence}>{t.home.coldSentence}</p>
     </>
+  );
+}
+
+/**
+ * FR-FIRST-1 (board 1B): the wide cold open's two dimmed panes — what When and
+ * What will hold, drawn so the layout is on the screen before the place is.
+ * They are pictures: `aria-hidden`, and nothing in them is a control.
+ */
+function GhostWhen() {
+  const t = useT();
+  const headingId = useId();
+  return (
+    <section aria-hidden="true" className={`${styles.ghost} ${styles.when}`} data-testid="ghost-when">
+      <SectionHeading id={headingId} tone="muted">
+        {stepLabel('when', false, t.home.panes.when)}
+      </SectionHeading>
+      <p className={styles.ghostHeading}>{t.home.ghost.whenHeading}</p>
+      <pre className={styles.ghostStripe}>{'18   20   22   00   02   04   06\n▓▓▓▒████████████████████▒▓▓▓▓▓'}</pre>
+      <p className={styles.ghostNote}>{t.home.ghost.whenSentence}</p>
+    </section>
+  );
+}
+
+function GhostWhat() {
+  const t = useT();
+  const headingId = useId();
+  return (
+    <section aria-hidden="true" className={`${styles.ghost} ${styles.listColumn}`} data-testid="ghost-what">
+      <SectionHeading id={headingId} tone="muted">
+        {stepLabel('what', false, t.home.panes.what)}
+      </SectionHeading>
+      <p className={styles.ghostHeading}>{t.home.ghost.whatHeading}</p>
+      <p className={styles.ghostCard}>{t.home.ghost.whatCard}</p>
+    </section>
   );
 }
 
@@ -154,7 +197,7 @@ export function WhereReading({ offersInert, geolocation }: WhereReadingProps) {
     if (!cold) setOpen(typingIn(group.current));
   }
   return (
-    <section {...(cold ? {} : { 'aria-labelledby': headingId })} className={cold ? styles.cold : `${styles.reading} ${styles.where}`} data-testid={cold ? 'cold-open' : 'reading-where'} data-reading="where">
+    <section {...(cold ? {} : { 'aria-labelledby': headingId })} className={cold ? `${styles.cold} ${styles.where}` : `${styles.reading} ${styles.where}`} data-testid={cold ? 'cold-open' : 'reading-where'} data-reading="where">
       {/* R28 (D-154): both offers sit at the head of the page, inside the region the open sheet makes inert
           and outside the live route. R49 (F-30): on wide nothing around them is made inert, so they are told
           directly. They head the cold open too: they are the page's statements about the app itself, shown
@@ -177,6 +220,7 @@ export function WhereReading({ offersInert, geolocation }: WhereReadingProps) {
         {/* On wide the saved places are the Where pane's own (FR-FIRST-5); on compact they are inside the group. */}
         <LocationInput
           variant="group"
+          look={mode === 'compact' ? 'boxed' : 'plain'}
           {...(cold ? { labelledBy: coldHeadingId } : {})}
           observer={observer}
           onObserver={setObserver}
@@ -228,6 +272,8 @@ export interface HomeProps {
  */
 export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPass, passDetail, MoonLore, geolocation }: HomeProps) {
   const observer = useAppStore((s) => s.observer);
+  const mode = useLayoutMode();
+  const ghosts = observer === null && mode === 'wide';
   const now = useAppStore((s) => s.now);
   // R30: the tradition line needs a Moon, which arrives with the Now state for this observer.
   const moon = now.observer === observer ? (now.state?.moon ?? null) : null;
@@ -235,6 +281,7 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
     <>
       <div className={`${styles.column} ${styles.leftColumn}`} data-testid="col-left">
         <WhereReading offersInert={offersInert} {...(geolocation ? { geolocation } : {})} />
+        {ghosts && <GhostWhen />}
         {observer && (
           <Region step="when" className={`${styles.reading} ${styles.when}`} testId="reading-when">
             <NextEventHost />
@@ -248,6 +295,11 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
           </Region>
         )}
       </div>
+      {ghosts && (
+        <div className={styles.column} data-testid="col-right">
+          <GhostWhat />
+        </div>
+      )}
       {observer && (
         <div className={styles.column} data-testid="col-right" data-guide={guide}>
           <Region step="what" className={`${styles.reading} ${styles.listColumn}`} testId="list-column">

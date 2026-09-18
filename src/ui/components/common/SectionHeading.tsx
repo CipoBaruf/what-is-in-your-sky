@@ -11,11 +11,18 @@ import styles from './SectionHeading.module.css';
 export interface SectionHeadingProps {
   id: string;
   children: ReactNode;
+  /**
+   * R76 (board 1B): the home's pane headings. `active` draws the leading rule
+   * and the title in the accent (the reading the reader is on), `muted` both in
+   * `--fg-dim` (a pane that is not there yet); either way the trailing rule is
+   * `--rule`, a line and not a word. Left out, the heading is as it always was.
+   */
+  tone?: 'active' | 'muted';
 }
 
-export function SectionHeading({ id, children }: SectionHeadingProps) {
+export function SectionHeading({ id, children, tone }: SectionHeadingProps) {
   return (
-    <h2 id={id} className={styles.heading}>
+    <h2 id={id} className={tone ? `${styles.heading} ${styles[tone]}` : styles.heading}>
       <span className={styles.title}>{children}</span>
     </h2>
   );

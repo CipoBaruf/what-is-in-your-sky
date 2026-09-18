@@ -70,22 +70,28 @@
   color: var(--danger);
 }
 
-/* R76 (FR-FIRST-2, at the owner's gate): one of the home group's two
-   alternatives — a ruled box, the label dim inside it, the field and its pick
-   list the box's full width. */
-.boxed {
+/* R76 (FR-FIRST-2, board 1B): the home group's place field — a 14 px dim
+   label, 8 px down to the field, the field and its pick list the full width;
+   on a phone in a ruled box 12 px by a cell inside. */
+.home {
+  gap: 0.5rem;
   margin-bottom: 0;
-  padding: calc(var(--row) / 2) var(--cell);
-  border: 1px solid var(--rule);
   align-content: start;
 }
 
-.boxed > label {
+.home > label {
+  font-size: var(--small);
+  line-height: var(--small-row);
   color: var(--fg-dim);
 }
 
-.boxed .input,
-.boxed .list {
+.home .input,
+.home .list {
   width: 100%;
   max-width: 100%;
+}
+
+.boxed {
+  padding: 0.75rem var(--cell);
+  border: 1px solid var(--rule);
 }

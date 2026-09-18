@@ -81,7 +81,7 @@ interface Row {
   find: () => Element;
   /** Run before rendering: the store or the browser has to be in the state the row appears in. */
   setUp?: () => void;
-  /** Tighter than `BUDGET` where FR-COMP-4 names a number for the row itself (R70: the stepping row's 35). */
+  /** Tighter than `BUDGET` where FR-COMP-4 names a number for the row itself (R70: the stepping row's 35); for a row set at `--small`, the same 390 px counted in its own characters. */
   budget?: number;
 }
 
@@ -118,8 +118,15 @@ const rows = (t: Messages): readonly Row[] => [
       appStore.setState({ observer });
     },
   },
-  // R76 (FR-FIRST-1): `[01] where — 02 when — 03 what`, the dashes the stylesheet's.
-  { name: 'the step line (FR-FIRST-1)', element: createElement(StepLine, { current: 'where' }), find: () => screen.getByTestId('step-line') },
+  // R76 (FR-FIRST-1, board 1B): `[01] where ── 02 when ── 03 what`, the rules the stylesheet's. The line is set at
+  // `--small` (14 px), so a character is 14/16 of a cell and 36 cells hold 41 of them: the budget is written in
+  // the row's own characters, and the 390 px width it stands for is unchanged.
+  {
+    name: 'the step line (FR-FIRST-1)',
+    element: createElement(StepLine, { current: 'where' }),
+    find: () => screen.getByTestId('step-line'),
+    budget: Math.floor((BUDGET * 16) / 14),
+  },
   // R76 (FR-FIRST-2): the primary action's label line; the button is the whole box now, and the note in it is a sentence and wraps.
   {
     name: 'the primary action (FR-FIRST-2)',

@@ -46,66 +46,109 @@
   position: relative;
 }
 
-/* R76 (FR-FIRST-1): the cold open — the mark centred, the tagline on compact,
-   the step line, the question and its sentence, and the input group. */
+/* R76 (FR-FIRST-1, board 1B): the cold open on a phone — the step line, the
+   question and its sentence, and the group — one screen tall, so the group's
+   foot stands at the bottom of it (LocationInput.module.css). The board's
+   spacing: 1.2 rem (19 px) between blocks, half a rem (8 px) from the question
+   to its sentence; the header, the main's gap and the shell's bottom padding
+   are the four rows the screen's height is short of. */
 .cold {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-content: start;
-  gap: var(--row);
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  /* The board puts the step line 1.2 rem under the header, where the main's own gap is a row. */
+  margin-top: calc(1.2rem - var(--row));
+  /* The screen less the header's two rows, the step line's 1.2 rem above it and the shell's bottom row. */
+  min-height: calc(100svh - 3 * var(--row) - 1.2rem);
 }
 
-.heroMark {
-  justify-self: center;
-  line-height: 0;
+/* The group grows to the bottom of that screen, so its foot can be put there. */
+.cold > .locationGroup {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
 }
 
-.tagline,
-.coldSentence {
-  margin: 0;
-  color: var(--fg-dim);
-}
-
-.tagline {
-  text-align: center;
+.cold > .locationGroup > * {
+  flex: 1 1 auto;
 }
 
 .coldHeading {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   font-weight: normal;
-  /* One row a line, so a heading that wraps reads as one block: at 1.5 rows
-     "Where will you be looking / from?" was two lines a row and a half apart,
-     at a phone's width the widest gap on the page (at the owner's gate). */
-  line-height: var(--row);
+  line-height: 1.75rem;
   color: var(--fg);
 }
 
-/* The sentence belongs to the question, so it sits half a row under it rather than a whole one. */
-.coldHeading + .coldSentence {
-  margin-top: calc(-1 * var(--row) / 2);
+.coldSentence {
+  margin: calc(0.5rem - 1.2rem) 0 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
 }
 
-/* `[01] where — 02 when — 03 what`: the current step bracketed and in `--fg`,
-   the others dim; the dashes between them are the list's own punctuation, so
-   the steps are read as three items and not as a sentence. */
+/* `[01] where ── 02 when ── 03 what`: the current step bracketed and in the
+   accent, the others dim, the rules between them in `--rule` — they are the
+   list's punctuation, so the steps are read as three items and not as a
+   sentence (board 1B). */
 .steps {
   display: flex;
   flex-wrap: wrap;
   margin: 0;
   padding: 0;
   list-style: none;
+  font-size: var(--small);
+  line-height: var(--small-row);
   color: var(--fg-dim);
 }
 
 .stepItem + .stepItem::before {
-  content: ' — ';
+  content: ' ── ';
   white-space: pre;
-  color: var(--fg-dim);
+  color: var(--rule);
 }
 
 .stepItem[aria-current='step'] {
-  color: var(--fg);
+  color: var(--accent);
+}
+
+/* R76 (FR-FIRST-1, board 1B): the wide cold open's dimmed When and What — a
+   heading at the question's size, then what the pane will hold, in
+   `--fg-dim`, the stripe's placeholder in `--rule`. */
+.ghost {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  color: var(--fg-dim);
+}
+
+.ghostHeading {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.625rem;
+}
+
+.ghostStripe {
+  margin: 0;
+  font: inherit;
+  font-size: var(--small);
+  line-height: 1.125rem;
+  color: var(--rule);
+  white-space: pre;
+  overflow: hidden;
+}
+
+.ghostNote,
+.ghostCard {
+  margin: 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+}
+
+.ghostCard {
+  padding: 0.75rem;
+  border: 1px solid var(--rule);
 }
 
 /* The same margin in the Where pane on wide, under the location line: a row of gap and a row of margin was a two-row hole between the line and the saved places. */
@@ -159,29 +202,18 @@
     min-height: 0;
   }
 
-  /* R76 (FR-FIRST-1): the cold open is one centred column and scrolls itself
-     inside the one-viewport shell (D-119) if it must. At the owner's gate it
-     is the three panes' width, 108 cells, rather than 80: the primary action
-     and its two alternatives stand in one row there (FR-FIRST-2's "beside it
-     on wide"), where at 80 cells the pair stacked beside the button and the
-     column was 104 px taller than a 1280 x 800 window leaves it, so the foot
-     notes were under the footer. The head and the foot are centred on the
-     mark, which FR-FIRST-1 centres, so nothing in the column is aligned to an
-     edge that is not there. */
-  .main[data-home='cold'] {
-    grid-template-columns: minmax(0, calc(108 * var(--cell)));
-    justify-content: center;
-    overflow-y: auto;
+  /* R76 (FR-FIRST-1, board 1B): on a desk the cold open is the Where pane, in
+     the same grid as the populated page — two columns here, three panes from
+     `HOME_THREE_PANE_MIN_CELLS` — with the dimmed When and What beside it. Its
+     question is the board's 20 px, and it is not a screen tall. */
+  .cold {
+    margin-top: 0;
+    min-height: 0;
   }
 
-  .cold .steps {
-    justify-content: center;
-  }
-
-  .cold .coldHeading,
-  .cold .coldSentence,
-  .cold [data-testid='location-foot'] {
-    text-align: center;
+  .coldHeading {
+    font-size: 1.25rem;
+    line-height: 1.625rem;
   }
 
   /* The location, the banners and the Now panel can outgrow the shell on a
@@ -233,17 +265,17 @@
    floor holds with room — and What keeps the list with the card highlighted.
    `lib/layout.ts` owns the literal; `tests/styles/breakpoint.test.ts` holds it. */
 @media (min-width: 1118px) {
-  .main[data-home='readings'] {
+  .main:is([data-home='readings'], [data-home='cold']) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .main[data-home='readings'] > .column {
+  .main:is([data-home='readings'], [data-home='cold']) > .column {
     display: contents;
   }
 
   .where,
   .when,
-  .main[data-home='readings'] .listColumn {
+  .main:is([data-home='readings'], [data-home='cold']) .listColumn {
     grid-row: 1;
     min-height: 0;
     overflow-y: auto;
@@ -257,7 +289,7 @@
     grid-column: 2;
   }
 
-  .main[data-home='readings'] .listColumn {
+  .main:is([data-home='readings'], [data-home='cold']) .listColumn {
     grid-column: 3;
   }
 

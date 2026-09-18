@@ -105,9 +105,10 @@ test('wide: with nothing entered the page still fills the screen and the footer 
   expect(
     await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight),
   ).toBeLessThanOrEqual(1);
-  // And it is the footer that moved, not the content: the columns stay at the top.
-  const left = await page.getByTestId('col-left').boundingBox();
-  expect(left?.y).toBeLessThan(TALL_HEIGHT / 2);
+  // And it is the footer that moved, not the content: the panes stay at the top. R76 (board 1B): the cold open is
+  // the Where pane of the three-pane grid, whose column wrappers are `display: contents`, so the pane is measured.
+  const where = await page.getByTestId('cold-open').boundingBox();
+  expect(where?.y).toBeLessThan(TALL_HEIGHT / 2);
 });
 
 /**

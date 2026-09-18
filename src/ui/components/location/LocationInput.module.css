@@ -44,19 +44,18 @@
   margin: 0;
 }
 
-/* R76 (FR-FIRST-2): the home page's input group — the primary action, then
-   its two alternatives, each a box of its own. The three are one grid, the
-   alternatives' wrapper stepping aside (`display: contents`), so where the
-   group has the room for three 30-cell columns — the cold open on a desk —
-   they stand in one row with their tops and bottoms aligned, and where it does
-   not — a phone, and the 36- to 40-cell Where pane — they stack at the same
-   width with nothing ragged at the right. The widths are in cells, so the fold
-   happens at the same character count everywhere. At the owner's gate: before
-   this the fields kept the widths the settings panel gives them (24, 32 and 10
-   cells) and the pair beside the button ended 38 px lower and 38 px further
-   right than the button's box. */
+/* R76 (FR-FIRST-2, board 1B): the home page's input group — the primary
+   action, then its two alternatives, one column at every width, as the board
+   draws it in the phone and in the wide pane alike; 19 px between the three
+   (the board's 1.2 rem), and the foot's note at 14 px. On a phone the foot is
+   ruled off and stands at the bottom of the screen (`margin-top: auto`, in a
+   cold open that is one screen tall, App.module.css); in the wide pane it
+   follows the fields at the same 19 px. The alternatives' wrapper steps aside
+   so the three are one list's items. */
 .group {
-  gap: var(--row);
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
 }
 
 /* The saved places carry a row's margin for the settings panel, where they follow a sentence; in the group the grid's gap is already that row, and the two together left two. */
@@ -65,10 +64,9 @@
 }
 
 .inputs {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(30 * var(--cell))), 1fr));
-  gap: calc(var(--row) / 2) calc(2 * var(--cell));
-  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
 }
 
 .alternatives {
@@ -78,4 +76,15 @@
 .foot {
   display: grid;
   gap: 0;
+}
+
+.group .note {
+  font-size: var(--small);
+  line-height: var(--small-row);
+}
+
+.group[data-look='boxed'] > .foot {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--rule);
 }

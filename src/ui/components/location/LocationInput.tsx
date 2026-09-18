@@ -87,11 +87,20 @@ export interface LocationInputProps {
    * `panel`, the default, is the section the settings page arranges.
    */
   variant?: 'panel' | 'group';
+  /**
+   * R76 (FR-FIRST-1, FR-FIRST-2, board 1B): the group's two looks. `boxed`, a
+   * phone: each alternative in a ruled box, and the group's foot the line
+   * "Saved in this browser only. No account, no tracking." at the foot of the
+   * screen. `plain`, the wide Where pane: no boxes, and the foot the precision
+   * note. The board gives each look one of the two notes, and the question's
+   * own sentence on a phone already says what the precision note says.
+   */
+  look?: 'boxed' | 'plain';
   /** The id of the heading that names the group (`variant: 'group'`). */
   labelledBy?: string;
 }
 
-export function LocationInput({ observer, onObserver, onClear, search, geolocation, showClear = true, savedPlacesFooter, arrangeInputs, showSavedHere = true, showFavourites = true, variant = 'panel', labelledBy }: LocationInputProps) {
+export function LocationInput({ observer, onObserver, onClear, search, geolocation, showClear = true, savedPlacesFooter, arrangeInputs, showSavedHere = true, showFavourites = true, variant = 'panel', labelledBy, look = 'boxed' }: LocationInputProps) {
   const t = useT();
   // The observer the inputs were seeded from; a new key remounts them. `focus`
   // is set only by the clear, the one reseed that moves the reader's focus.
@@ -133,15 +142,15 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
   }, [seed]);
 
   const accuracy = observer?.source === 'device' ? accuracyText(observer.accuracyM, t) : null;
-  const boxed = variant === 'group';
-  const coords = <CoordsInput key={`coords-${String(seed.key)}`} id={COORDS_INPUT_ID} onObserver={emit} boxed={boxed} {...(seed.observer?.source === 'coords' ? { initial: { lat: seed.observer.lat, lon: seed.observer.lon, altM: seed.observer.altM } } : {})} />;
+  const fieldLook = variant === 'group' ? look : 'panel';
+  const coords = <CoordsInput key={`coords-${String(seed.key)}`} id={COORDS_INPUT_ID} onObserver={emit} look={fieldLook} {...(seed.observer?.source === 'coords' ? { initial: { lat: seed.observer.lat, lon: seed.observer.lon, altM: seed.observer.altM } } : {})} />;
   const device = <UseMyLocation onObserver={emit} primary={variant === 'group'} {...(geolocation ? { env: geolocation } : {})} />;
-  const place = <PlacePicker key={`place-${String(seed.key)}`} search={search} onObserver={emit} observer={observer} coordsInputId={COORDS_INPUT_ID} inputId={PLACE_INPUT_ID} boxed={boxed} {...(seed.observer?.source === 'geocode' ? { initialText: seed.observer.label } : {})} />;
+  const place = <PlacePicker key={`place-${String(seed.key)}`} search={search} onObserver={emit} observer={observer} coordsInputId={COORDS_INPUT_ID} inputId={PLACE_INPUT_ID} look={fieldLook} {...(seed.observer?.source === 'geocode' ? { initialText: seed.observer.label } : {})} />;
   const favourites = showFavourites && <Favourites {...(savedPlacesFooter === undefined ? {} : { footer: savedPlacesFooter })} />;
 
   if (variant === 'group') {
     return (
-      <section {...(labelledBy ? { 'aria-labelledby': labelledBy } : { 'aria-label': t.location.heading })} className={`${styles.section} ${styles.group}`} data-testid="location-group">
+      <section {...(labelledBy ? { 'aria-labelledby': labelledBy } : { 'aria-label': t.location.heading })} className={`${styles.section} ${styles.group}`} data-testid="location-group" data-look={look}>
         {/* Where US-3 AC1 withholds the device button, the alternatives are the group's only child and take its whole width. */}
         <div className={styles.inputs}>
           {device}
@@ -151,9 +160,8 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
           </div>
         </div>
         <div className={styles.foot} data-testid="location-foot">
-          <p className={styles.note}>{t.location.precisionNote}</p>
-          <p className={styles.saved}>
-            {t.location.savedHere}
+          <p className={styles.note}>
+            {look === 'boxed' ? t.home.savedFoot : t.location.precisionNote}
             {observer && showClear && (
               <>
                 {' '}

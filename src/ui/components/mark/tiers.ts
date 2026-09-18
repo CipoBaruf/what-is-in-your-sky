@@ -94,13 +94,6 @@ export function markCells(sizePx: number): number {
 /** FR-PUB-11: the lockup beside the wordmark on the social preview. */
 export const MARK_LOCKUP_PX = 80;
 
-/**
- * FR-FIRST-1 (R76): the cold open's `hero` tier. At 120 px the 32-column grid is
- * 3.75 px a column, the smallest at which the hero's meridian still reads on a
- * phone; 140 px is the same drawing with the room a desk has.
- */
-export const MARK_HERO_COMPACT_PX = 120;
-export const MARK_HERO_WIDE_PX = 140;
 
 /**
  * FR-MARK-4 (d), (e) as amended v2.0.1 (D-460): the files the browser and the

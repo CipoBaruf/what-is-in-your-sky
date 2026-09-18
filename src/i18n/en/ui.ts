@@ -181,7 +181,7 @@ export const ui = {
       `Using ${p.coords}${p.fromDevice ? ' from your device' : ''}${p.altitude === null ? '' : ` at ${p.altitude} m`}${p.accuracy === null ? '' : ` (accurate to ${p.accuracy})`}.`,
     savedHere: 'Saved in this browser only.',
     clearSaved: 'Clear saved location',
-    precisionNote: 'Precision is city-level: a pass looks the same from anywhere within a few kilometres, so no street address is resolved.',
+    precisionNote: 'Precision is city-level: a pass looks the same from anywhere within a few kilometres.',
     /**
      * FR-COMP-3 (R52): the one line the compact home shows where the wide
      * layout shows the whole form. It names the place and opens `#settings`;
@@ -207,6 +207,15 @@ export const ui = {
     panes: { where: 'Where', when: 'When', what: 'What' },
     coldHeading: 'Where will you be looking from?',
     coldSentence: 'A pass looks the same from anywhere within a few kilometres, so city-level is enough. Pick any one.',
+    /** FR-FIRST-1 (board 1B): the phone's cold open ends on this line, at the foot of the screen. */
+    savedFoot: 'Saved in this browser only. No account, no tracking.',
+    /** FR-FIRST-1 (board 1B): the wide cold open's two dimmed panes — what When and What will hold. */
+    ghost: {
+      whenHeading: 'When is it dark enough?',
+      whenSentence: "The dark band for your place, with tonight's cloud and moon in it.",
+      whatHeading: 'What crosses, and where to look',
+      whatCard: 'Each pass as a card: time, direction, how high it climbs, how bright it gets.',
+    },
     /** FR-FIRST-4: tonight's dark window, the first `dark` band of the night. */
     darkWindow: (p: { from: string; to: string }) => `Dark ${p.from} → ${p.to}`,
     /** FR-FIRST-4: darkness that began before the day the bands cover — a polar winter — has no dusk to name. */

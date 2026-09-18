@@ -146,4 +146,13 @@
   .wide > .tagline {
     grid-column: 1 / -1;
   }
+
+  /* The preferences keep their 48 px tap boxes, but the row reserves one line
+     for them, as the title's line is one: the boxes stand half a tap row into
+     the space above and below, as `inline-control` does (global.css). Without
+     this the title row was 48 px and every pane under the header 22 px lower
+     than board 1B draws it. */
+  .wide > .controls {
+    margin-block: calc((var(--row) - var(--tap)) / 2);
+  }
 }
