@@ -22,8 +22,8 @@
 | Scope (v1.3.3) | The two P1 findings that are not judgement calls: **P2** in the `## Public-readiness task` block below, one task on Opus after P1. |
 | Inputs (v1.4) | `SPEC.md` v1.4.1, `PLAN.md` v0.6.5 (Decision Log V14-1..V14-11 and Decisions D-379..D-390 and D-424..D-430, with §16.14 and §16.15 treated as fixed) |
 | Scope (v1.4) | Spec Phase 2f "the shape, the chunk and the list": **R67–R73** in the `## v1.4 tasks` block below, six waves, five lanes, three models (PLAN §16.14, §16.15). v1.4.1 (V14-9..V14-11) adds R73 before the release task. |
-| Inputs (v2.0) | `SPEC.md` v2.0, `PLAN.md` v0.7 (Decision Log V20-1..V20-13 and Decisions D-438..D-452 with §16.16 treated as fixed) |
-| Scope (v2.0) | Spec Phase 2g "the redesign": **R74–R80** in the `## v2.0 tasks` block below, seven tasks, six waves, four lanes, two models (PLAN §16.16). |
+| Inputs (v2.0) | `SPEC.md` v2.0.2, `PLAN.md` v0.7.2 (Decision Log V20-1..V20-23 and Decisions D-438..D-452 and D-505..D-514 with §16.16 treated as fixed) |
+| Scope (v2.0) | Spec Phase 2g "the redesign": **R74–R82** in the `## v2.0 tasks` block below, nine tasks, seven waves, four lanes, two models (PLAN §16.16); R81 and R82 were added 2026-09-18 for SPEC v2.0.2. |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |
 
 ## Conventions
@@ -1694,7 +1694,9 @@ Draft, cut 2026-09-09 from `SPEC.md` v2.0 and `PLAN.md` v0.7, for review. Spec P
 
 Delivery is PLAN §16 unchanged, cut by §16.16: seven tasks over six waves, on `main` after the `v1.4.0` tag. The order is the phase's risk (V20-3, V20-4, D-452): the mark first, because it is the only new build step and every later task places it; the settings inversion second, because the compact first run may not withdraw the home screen's `#settings` link until the page it links to is right; then the home screen; then the live states and the gutter together, the phase's one full wave; then the two short shapes; then the release. Four of the seven are the `ui` lane and run one per wave — two sessions in `Header.tsx`, `Settings.tsx` and `src/i18n/en/ui.ts` at once is what §16.1 exists to prevent. R78 depends on R79 for nothing it needs: both cross into `chart`'s `ChartFrame.tsx` (D-449, D-450) and the dependency is the cheapest way to keep them out of one wave. Models follow §16.6: `fable` for R74 and R78, whose acceptance the session can measure itself (a committed raster table; a matrix of heights that must come out equal), `opus` for the four tasks that are copy in two languages and semantics a test cannot fully reach, and `opus` for the release. Every task is `Gate: owner`: each ships captures, Spanish copy, or both.
 
-Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461..D-464, R76 D-465..D-472, R77 D-473..D-480, R78 D-481..D-486, R79 D-487..D-494, R80 D-495..D-499** — D-453 is the phase's one delivery decision, the brief budget PLAN §16.8 now sets at 48 000 characters. Numbers a task does not spend stay unspent. Every session reads SPEC §12 V20-1..V20-13 and PLAN §2.25, §8.16 and §16.16 first; each task's **Reads** line is the rest of D-284's list, and no session reads the three documents whole.
+Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461..D-464, R76 D-465..D-472, R77 D-473..D-480, R78 D-481..D-486, R79 D-487..D-494, R80 D-495..D-499** — D-453 is the phase's one delivery decision, the brief budget PLAN §16.8 now sets at 48 000 characters. Numbers a task does not spend stay unspent. Every session reads SPEC §12 V20-1..V20-23 and PLAN §2.25, §2.29, §8.16 and §16.16 first; each task's **Reads** line is the rest of D-284's list, and no session reads the three documents whole.
+
+*Added 2026-09-18, cut from `SPEC.md` v2.0.2 and `PLAN.md` v0.7.2:* at R76's gate the owner asked for board 1B as drawn (V20-15..V20-23). R76 shipped the cold open and the inputs to the board (D-502..D-504); the populated home is **R81** (the panes' contents, both layouts) and **R82** (the phone's first visit as steps), D-505. R77 now waits for R81, whose next-event block its headline is. Blocks: **R81 D-515..D-522, R82 D-523..D-528.**
 
 - [x] **R74 — Aperture: the generator, the ladder, both headers, the icons and the favicon** *(the rasters are re-baked from this generator, not reproduced cell for cell: FR-MARK-2's blocks were drawn by a generator whose constants were never written down, so the construction and the ladder are reproduced and 701 of the 1 950 cells differ — the counts per tier are in the PR, for the owner's acceptance under FR-MARK-2's own rule, D-455. The compact row is 34 cells, not 33: the mark takes the `>` prompt's place and the gap after it is a cell, D-457. Revisited 2026-09-14 at the owner's gate: the icons and the favicons are drawn from the scene as dots at an integer pitch, the ring cleared around the bead, an SVG favicon first, and the pin back to bytes — SPEC v2.0.1, V20-14, D-460.)*
   - **Lane:** ui
@@ -1782,19 +1784,51 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: the first run from a clean browser on a phone to a countdown, and the three panes with a pass open at a desk.
 
+- [ ] **R81 — The home's panes as drawn: the stripe, the table, the next event, the cards and the Where reading**
+  - **Lane:** ui
+  - **Crossings (§16.16):** none — `src/lib/tonightStripe.ts` and `src/lib/passPath.ts` are `ui`'s own (D-505); `useSkyBands` (`live`'s) is imported, not changed, as D-470 already does; the dome's chart chunk is loaded, not changed.
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R76
+  - **[P]** with R79 — wave 4, two screens that share no file.
+  - **Reads:** SPEC §4.28 (FR-FIRST-3, FR-FIRST-5, FR-FIRST-6, FR-FIRST-8..11 as amended v2.0.2), §3.2 (US-4 AC1 and AC3, US-5 AC1 as amended), §4.2 (FR-SAT-4), §4.5 (FR-WX-3), §4.11 (FR-OFF-4), §4.12 (FR-MOON-3), §4.30 (FR-WATCH-2 as amended), §8 rank 1, §12 V20-15..V20-23, OQ-32, OQ-33; PLAN §2.29 (D-505..D-512, D-514), D-442 as amended, D-461, D-467, D-470, D-504. Board 1B is untracked (V20-11) and not in a session's worktree; its sizes, spacing, colours and strings are in FR-FIRST-1..11 (V20-23), and the owner holds the board at the gate.
+  - **Goal:** with a place set, the wide home's three panes and the phone's stacked page hold what board 1B draws — tonight's stripe, a table of Dark, Clouds now, Moon and Up now, the next event as `Next up · in 3:45:07` over the clock time and the path, one-line cards with the next ISS pass tagged, and a Where reading of the place, one sentence, a dome on wide and one line each of readiness and elements.
+  - **Satisfies:** FR-FIRST-3, FR-FIRST-5, FR-FIRST-6, FR-FIRST-8, FR-FIRST-9, FR-FIRST-10, FR-FIRST-11 as amended v2.0.2; FR-SAT-4, FR-OFF-4, FR-WX-3 and FR-MOON-3 as amended v2.0.2; FR-WATCH-2's shared block (the live page's host is R77's). **Advances:** US-26 AC2, AC4, AC6; US-4 and US-5 as amended.
+  - **Scope (PLAN D-505..D-512):**
+    - `src/lib/tonightStripe.ts` (new): the span, the label line, the 30 cells and the ticks (D-506); `ui/components/now/TonightStripe.tsx` draws them, `aria-hidden`.
+    - `src/lib/passPath.ts` (new): start, peak and end by the boundary reasons (D-507).
+    - `NextEventBlock`: the label line, the clock time at 32 px, the path line and `[ Open the live sky ]`; a `form: 'card'` for R82; `nextEvent.headline` and `nextEvent.peakLine` deleted with their keys (D-508).
+    - `ui/components/now/ConditionsTable.tsx` (new): the `dl` of FR-FIRST-9; `NowPanel` and `DarkWindow` deleted with their tests' facts moved to it (D-509).
+    - `PassCard` re-cut to FR-FIRST-10 with `detail: 'magnitude' | 'phrase'`; `IssHeroCard` deleted and the `Next ISS` tag drawn from `nextFeaturedPass` (F-68 holds); the count and sort on one line; the night groups' toggles under the cards (D-510).
+    - `ui/components/location/WherePlace.tsx` (new) in place of `LocationSummary`; `ElementsLine.tsx` (new) with `[ details ]` over what `ElementsBanners` renders; `ReadinessLine` and `Favourites` gain their `form: 'line'` (D-511).
+    - `ui/components/location/WhereDome.tsx` (new): the dome at real time, lazily, wide only, one link to `#live` (D-512, OQ-32).
+    - `Home.tsx` and `App.module.css`: the populated panes' plain headings (`── Where ──`), 0.75 rem between blocks, and the stacked phone page in the same order.
+    - `i18n/{en,es}/ui.ts`: every string FR-FIRST-3 and FR-FIRST-8..11 give, in both languages.
+  - **Touches outside the lane:** `tests/e2e/home.spec.ts`, `wide.spec.ts`, `desktop.spec.ts`, `now-panel.spec.ts`, `moon.spec.ts`, `location.spec.ts`, `pass-detail.spec.ts` (its high-pass lookup reads the new card), `tests/e2e/r76-captures.spec.ts`, `docs/screenshots/`.
+  - **Out of scope:** the phone's first-visit steps (R82 — until then a first visit on a phone goes from the cold open straight to the stacked page, as today), the live page's host of the block (R77), and any change to the guide, the worker or the store's shape.
+  - **Done when:**
+    - `tonightStripe.test.ts` pins the span, the labels, the cells and the ticks over the stored Neuquén run, and the span with no dark band; `passPath.test.ts` pins `low` and altitudes by boundary reason; `nextEvent.test.ts` pins the label line and the path before, during and after a pass.
+    - Component tests: `ConditionsTable` (the rows in order, `Up now` present with a visible item and absent without, no darkness); `PassCard` (its lines, the tag on the next ISS pass alone); `WherePlace` (the sentence per source, `[ change ]` with `aria-expanded`); `ElementsLine` (the disclosure holds every banner's text).
+    - The home e2e at 1280 × 800: the three panes in board 1B's order, the dome in Where and none on a 390 px page; an open pass still takes the first two panes (D-444).
+    - FR-FIRST-6: every assertion the deleted components' tests made is made again where its fact now is — **none dropped**.
+    - `controlRows.test.ts`: the card's first line, the count and sort line and the Where lines at ≤ 36 cells in both languages.
+    - Captures (FR-FIRST-7): the populated panes at 1280 × 800 and 1024 × 768, the stacked phone page at 390 × 844, both themes and both languages, and the panes with a pass open, one theme; each element's size, spacing, type and colour measured in the browser against the numbers FR-FIRST-1..11 give (D-504's method).
+    - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes (D-514: at most three new page loads).
+    - The owner's gate: the panes beside board 1B at a desk, and the stacked page on a phone.
+
 - [ ] **R77 — Watching and scrubbing: the split, the inventory, the headline and the conditions line** [P]
   - **Lane:** live
   - **Model:** opus
   - **Gate:** owner
-  - **Depends on:** R76
-  - **[P]** with R79 — the phase's one full wave, two screens that share no file.
+  - **Depends on:** R76, R81 *(v0.7.2, D-505: the watching headline is the block R81 re-cuts)*
+  - **[P]** with R82 — wave 5, two screens that share no file (`Live.tsx`, `liveRows.ts` and `i18n/*/live.ts` against `Home.tsx`, `screens/home/**` and `i18n/*/ui.ts`).
   - **Reads:** SPEC §4.30 (FR-WATCH-1..9), §4.10 (FR-LIVE-1..7 as amended), §4.26 (FR-SPAN-2, FR-SPAN-3 as amended), §4.27 (FR-LEG-6, FR-LEG-7 as amended), §4.12 (FR-MOON-3 as amended), §3.2 US-27; PLAN §8.8, §8.14, D-190, D-386, D-387, D-446, D-447.
   - **Goal:** the live page is watching or scrubbing, told apart by whether the shown instant is real time; watching is the drawing, the next event and one line of conditions, and the stripe, the steps and the speeds come out on a tap and go away on a tap.
   - **Satisfies:** FR-WATCH-1, FR-WATCH-2, FR-WATCH-3, FR-WATCH-4, FR-WATCH-7 (the compact and tall-wide half) and FR-WATCH-8; FR-WATCH-5's compact-portrait and tall-wide rows; FR-LIVE-3, FR-LIVE-5 and FR-LIVE-7 as amended v2.0; FR-MOON-3 and FR-SPAN-3 as amended v2.0; FR-MARK-5's live and held uses. **Advances:** US-27 AC1, AC2, AC3, AC4, AC6; FR-WATCH-9 (a, d, e, f, and b at two of its four shapes).
   - **Scope (PLAN D-446, D-447):**
     - `src/ui/screens/liveRows.ts` (new, `live`'s): pure `rowsFor(state, mode, shape)` → the ordered row ids the page renders, which is FR-WATCH-4's inventory in one place. `Live.tsx` renders from it and the component test asserts against it.
     - `Live.tsx`: `scrubbing` is the predicate over the live slice's instant and nothing else — no new store field, nothing new in the hash (D-446). `[ scrub ]` / `[ scrub the night ]` is the pause path at now; `[ back to live ]` is the existing `now` action renamed in the catalogs; `[ Now ]` is not rendered separately.
-    - The headline: `NextEventBlock` (R76's component) while watching; the held instant with its offset from now (`21:47 · +33 min`, FR-TRAJ-4's readout rule) while scrubbing. Beside it the state indicator — `Mark` at the `header32` tier, 24 px, plus the word `live` or `held` (never colour alone) — on the compact top row beside the place name, at the head of the rail on wide.
+    - The headline: `NextEventBlock` (R76's component, re-cut by R81 to FR-FIRST-3 as amended v2.0.2 — `Next up · in 4:12`, the clock time, the path; FR-WATCH-2 as amended) while watching; the held instant with its offset from now (`21:47 · +33 min`, FR-TRAJ-4's readout rule) while scrubbing. Beside it the state indicator — `Mark` at the `header32` tier, 24 px, plus the word `live` or `held` (never colour alone) — on the compact top row beside the place name, at the head of the rail on wide.
     - The conditions line (FR-WATCH-3): one line per mode, replacing the five-field strip; the Moon's phase and illumination leave the compact line for the list panel (FR-LEG-7, FR-MOON-3 as amended).
     - The rows themselves: watching renders the 24 h overview as its only timeline and no stripe, step row or playback row; scrubbing adds the time row, the stripe, the step row and the playback row where FR-WATCH-4 puts them on compact and on the tall wide page. Absent, not hidden.
     - The actions rows of FR-WATCH-4, including the hidden-objects toggle joining the compact scrubbing row (V20-8), and the wide share action's two names.
@@ -1818,7 +1852,7 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
   - **Model:** opus
   - **Gate:** owner
   - **Depends on:** R76
-  - **[P]** with R77.
+  - **[P]** with R81 — wave 4 *(v0.7.2; was with R77, which now waits for R81)*.
   - **Reads:** SPEC §4.31 (FR-GUT-1..8), §4.23 (FR-FSC-1..11 as amended), §4.18 (FR-WIN-1..3), §4.17 (FR-LEG-1..5), §3.2 US-21, US-28; PLAN §8.10, §8.13, §8.15, D-188, D-278, D-322, D-427, D-450, D-451.
   - **Goal:** the sky screen's bottom edge is a compass — where I face, what I can see of it, where each pass is and which way to turn when the field is empty — and the drawing gets 68 px back; held upright the screen draws a band of sky instead of instructing.
   - **Satisfies:** FR-GUT-1..FR-GUT-8; FR-FSC-3, FR-FSC-7 and FR-FSC-11 as amended v2.0; FR-LEG-2 as amended v2.0. **Advances:** US-28 AC1..AC6; US-21 as amended. **Holds:** FR-FSC-1, FR-FSC-2, FR-FSC-5, FR-FSC-9, FR-FSC-10, FR-FOL-5, FR-WIN-1..3.
@@ -1840,6 +1874,35 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
     - Captures (FR-GUT-8): the screen sideways at 844 × 390 with a pass in the field and with the chip, and upright at 390 × 844, both themes and both languages.
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: a phone held up, sideways and upright, with a pass in the field and with none — a bearing's sign looks right in a unit test and is backwards in the hand (R73's argument).
+
+- [ ] **R82 — The phone's first visit: three steps, then stacked**
+  - **Lane:** ui
+  - **Crossings (§16.16):** none — `src/lib/moonNote.ts` is `ui`'s own (D-513).
+  - **Model:** opus
+  - **Gate:** owner
+  - **Depends on:** R81
+  - **[P]** with R77 — wave 5, two screens that share no file.
+  - **Reads:** SPEC §4.28 (FR-FIRST-1, FR-FIRST-4, FR-FIRST-7 as amended v2.0.2), §3.2 US-26 AC3, §12 V20-16, V20-23; PLAN D-467, D-504, D-513, D-514. Board 1B's phone states are untracked (V20-11); their numbers and strings are in FR-FIRST-4 (V20-23), and the owner holds the board at the gate.
+  - **Goal:** a first visit on a phone walks where → when → what, one screen each, with a ✓ on a finished step, and every later visit opens on the stacked page R81 built.
+  - **Satisfies:** FR-FIRST-4 as amended v2.0.2 (the steps); FR-FIRST-7's step captures. **Advances:** US-26 AC3.
+  - **Scope (PLAN D-513):**
+    - `Home.tsx`: `step: 'where' | 'when' | 'what' | null`, set once at mount (`'where'` with no observer, `null` with one), never stored and never in the hash; the device button, a picked place and a saved place move `where` to `when`; typed coordinates move it on blur or `Enter`, never on a keystroke (D-467); the step line's finished items are controls back.
+    - `ui/screens/home/WhenStep.tsx` (new): the heading and sentence, the ruled box with the stripe and the night's three rows, the ruled box with `Clouds tonight`, `Moon` and the Moon sentence, and `[ See what crosses ]` at the foot of the screen.
+    - `ui/screens/home/WhatStep.tsx` (new): the count in words, the sentence, R81's block in its card form, tonight's cards with the brightness phrase, `[<n> more tonight]` and `[<n> more nights]`, and the ruled foot line with `[ edit ]`.
+    - `src/lib/moonNote.ts` (new): `MOON_BRIGHT_PCT` (50) and the sentence rule.
+    - `i18n/{en,es}/ui.ts`: the steps' headings, sentences, rows, the Moon sentences, `home.count(n)` to twelve and the foot line.
+  - **Touches outside the lane:** `tests/e2e/home.spec.ts`, `location.spec.ts`, `tests/e2e/r76-captures.spec.ts`, `tests/styles/controlRows.test.ts`, `docs/screenshots/`.
+  - **Out of scope:** the wide page (a desk has no steps: the cold open's three panes become the populated panes, as R76 and R81 left them), any stored first-run flag, and the panes' components (R81's).
+  - **Done when:**
+    - A component test walks a first visit — the device button moves to `when`, `[ See what crosses ]` to `what`, `[ edit ]` back to `where` with the group open — and asserts each step's inventory in order; a second test types a coordinate pair and asserts the step does not move until the field is left, with the field still focused while typing (D-467).
+    - A render with an observer at mount is the stacked page and never a step.
+    - `moonNote.test.ts` pins both sentences at the threshold's two sides and with the Moon down.
+    - `home.count` in both languages from one to twelve and past it.
+    - One e2e at 390 × 844 with a stubbed `geolocation` walks the three steps with no navigation and reloads onto the stacked page (D-514: one page load and one reload).
+    - `controlRows.test.ts` covers the step line with ✓, the rows and the foot line at ≤ 36 cells (the `--small` rows counted in their own characters) in both languages.
+    - Captures (FR-FIRST-7): the when and what steps at 390 × 844, both themes and both languages, measured in the browser against the numbers FR-FIRST-4 gives (D-504's method).
+    - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
+    - The owner's gate: a first visit on a phone from a clean browser, through the three steps, and a reload.
 
 - [ ] **R78 — The two short shapes: the landscape phone's rail and the short wide window's overlay**
   - **Lane:** live
@@ -1873,7 +1936,7 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
-  - **Depends on:** R78
+  - **Depends on:** R78, R82
   - **Reads:** SPEC §9 Phase 2g, §4.16 (FR-COMP-6 as amended), §7 (OQ-27..OQ-31), §4.20; `docs/RELEASE.md` and PLAN §11.
   - **Goal:** the phase closes: the capture set covers the new and renamed screens, the budgets are re-set with the mark inside main's, every open question the phase raised is answered or left with its reason, and the build is 2.0.0.
   - **Satisfies:** the Phase 2g definition of done (spec §9); FR-COMP-6 for the phase; FR-MARK-6's budget measurement on the shipped build.
@@ -1934,4 +1997,4 @@ graph TD
   R78 --> R80
 ```
 
-**Waves** (the driver recomputes them from `main`; this is the sanity check): **wave 1** R74 — **wave 2** R75 — **wave 3** R76 — **wave 4** R77, R79 — **wave 5** R78 — **wave 6** R80. The one full wave is 4, and its two tasks share no file: R77 is `Live.tsx`, `liveRows.ts` and `i18n/*/live.ts`, R79 is the window's own directory, `ChartFrame.tsx` and `i18n/*/window.ts`. `ChartFrame.tsx` is crossed twice in the phase (R79 and R78) and never in the same wave.
+**Waves** (the driver recomputes them from `main`; this is the sanity check): **wave 1** R74 — **wave 2** R75 — **wave 3** R76 — **wave 4** R81, R79 — **wave 5** R77, R82 — **wave 6** R78 — **wave 7** R80. Waves 4 and 5 are full, and neither pair shares a file: R81 is `Home.tsx`, the home's components and `i18n/*/ui.ts`, R79 the window's own directory, `ChartFrame.tsx` and `i18n/*/window.ts`; R77 is `Live.tsx`, `liveRows.ts` and `i18n/*/live.ts`, R82 `Home.tsx`, `screens/home/**` and `i18n/*/ui.ts`. `ChartFrame.tsx` is crossed twice in the phase (R79 and R78) and never in the same wave. *(v0.7.2: R81 and R82 added by SPEC v2.0.2, D-505; the earlier line was waves 4 R77, R79 — 5 R78 — 6 R80.)*
