@@ -6,7 +6,10 @@
  * The rows are FR-COMP-4's own list — the header, the sort row, the chart view
  * control, the live page's playback rows, the share and follow actions — plus
  * the two this task adds: the home screen's location summary (FR-COMP-3) and
- * the settings page's install row (V11-16). Each is rendered on its own with
+ * the settings page's install row (V11-16). R76 (FR-FIRST-1..4) adds the home
+ * page's own: the step line, the primary action, and the next-event block's
+ * label; the location summary loses its no-place form, which the cold open
+ * replaces (FR-SET-3). Each is rendered on its own with
  * `matchMedia` stubbed to a phone, and measured by `cells.ts`: the text it
  * draws, the brackets its stylesheet adds, and one cell of gap between each
  * pair of controls.
@@ -37,6 +40,9 @@ import { SortToggle } from '../../src/ui/components/passes/SortToggle';
 import { OptionToggle } from '../../src/ui/components/common/OptionToggle';
 import { BEFORE_INSTALL_PROMPT, forgetInstallOffer, type BeforeInstallPromptEvent } from '../../src/ui/components/common/installOffer';
 import { SettingsPage } from '../../src/ui/screens/Settings';
+import { StepLine } from '../../src/ui/screens/Home';
+import { UseMyLocation } from '../../src/ui/components/location/UseMyLocation';
+import { NextEventBlock } from '../../src/ui/components/passes/NextEventBlock';
 import { decorations, rowCells, rowParts } from './cells';
 
 /** FR-COMP-4: a 390 px viewport at the default cell. */
@@ -55,6 +61,8 @@ const CSS = [
   'src/ui/components/location/UseMyLocation.module.css',
   'src/ui/components/location/Favourites.module.css',
   'src/ui/components/location/LocationInput.module.css',
+  'src/ui/App.module.css',
+  'src/ui/components/passes/NextEventBlock.module.css',
 ].map((file) => resolve(process.cwd(), file));
 
 const table = decorations(CSS);
@@ -110,7 +118,16 @@ const rows = (t: Messages): readonly Row[] => [
       appStore.setState({ observer });
     },
   },
-  { name: 'the location summary with no place set (FR-COMP-3)', element: createElement(LocationSummary), find: () => screen.getByTestId('location-summary') },
+  // R76 (FR-FIRST-1): `[01] where — 02 when — 03 what`, the dashes the stylesheet's.
+  { name: 'the step line (FR-FIRST-1)', element: createElement(StepLine, { current: 'where' }), find: () => screen.getByTestId('step-line') },
+  // R76 (FR-FIRST-2): the primary action's own row; the note under it is a sentence and wraps.
+  {
+    name: 'the primary action (FR-FIRST-2)',
+    element: createElement(UseMyLocation, { onObserver: noop, primary: true, env: { geolocation: {} as Geolocation, secure: true } }),
+    find: () => screen.getByRole('button', { name: t.location.useMyLocation }),
+  },
+  // R76 (FR-FIRST-3): the block's label; the headline under it is a sentence and wraps.
+  { name: 'the next-event label (FR-FIRST-3)', element: createElement(NextEventBlock, { passes: [pass], now: pass.start.t - 60_000, hours: 72 }), find: () => screen.getByText(t.nextEvent.label) },
   { name: 'the sort row (US-5 AC2 as amended)', element: createElement(SortToggle, { value: 'chronological', onChange: noop }), find: () => screen.getByRole('group', { name: t.passes.sortGroup }) },
   { name: 'the chart view control (FR-CHART-1)', element: chartView(), find: () => screen.getByRole('group', { name: 'View' }) },
   {

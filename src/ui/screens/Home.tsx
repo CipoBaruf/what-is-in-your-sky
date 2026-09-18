@@ -58,7 +58,7 @@ export function StepLine({ current }: { current: Step }) {
   return (
     <ol className={styles.steps} aria-label={t.home.stepsLabel} data-testid="step-line">
       {STEPS.map((step) => (
-        <li key={step} className={styles.step} {...(step === current ? { 'aria-current': 'step' as const } : {})}>
+        <li key={step} className={styles.stepItem} {...(step === current ? { 'aria-current': 'step' as const } : {})}>
           {stepLabel(step, step === current, t.home.steps[step])}
         </li>
       ))}

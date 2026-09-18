@@ -5,6 +5,11 @@
  * close control closing it, the hash following the selection — and the same
  * pass still open after the width crosses the breakpoint in either
  * direction, in the other shell.
+ *
+ * R76 (FR-FIRST-5, D-444): `WIDE_PX` (1280) is a three-pane width now, where an
+ * open pass takes the Where and When panes and the list stays in What, so
+ * `[ list ]` has nothing to do there. The tests of D-253's swap run at 1024 px,
+ * FR-DESK-5's mid width, where the two columns and the swap stand unchanged.
  */
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -26,6 +31,9 @@ const ready: ElementsState = { status: 'ready', records: fixtureRecords(), unava
 const initial = appStore.getInitialState();
 const other = { ...pass, id: 'other', noradId: 2, name: 'Other object', start: { ...pass.start, t: pass.start.t + 3_600_000 } };
 const panelName = en.guide.panelLabel({ name: pass.name });
+/** FR-DESK-5's mid width: wide, two columns, under both the three panes and the split. */
+const MID_PX = 1024;
+const pane = (step: 'where' | 'when' | 'what', current = step === 'where'): string => `${current ? '[' : ''}0${String(['where', 'when', 'what'].indexOf(step) + 1)}${current ? ']' : ''} ${en.home.panes[step]}`;
 
 let media: MatchMediaStub;
 
@@ -55,13 +63,20 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     window.history.replaceState(null, '', window.location.pathname);
   });
 
-  it('lays the page out in two columns: location, banners and the Now panel on the left, the passes on the right (FR-DESK-2)', () => {
+  it('lays the page out in two columns: location, banners and the Now panel on the left, the passes on the right (FR-DESK-2)', async () => {
+    media.setWidth(MID_PX);
     withPasses();
     render(<App />);
     const columns = screen.getByRole('main').children;
     expect(columns).toHaveLength(2);
     const [left, right] = [columns[0] as HTMLElement, columns[1] as HTMLElement];
-    expect(within(left).getByRole('region', { name: 'Location' })).toBeInTheDocument();
+    // R76 (FR-FIRST-5): Where above When in the left column, What at the right.
+    const where = within(left).getByRole('region', { name: pane('where') });
+    expect(within(left).getByRole('region', { name: pane('when') })).toBeInTheDocument();
+    expect(within(right).getByRole('region', { name: pane('what') })).toBeInTheDocument();
+    // The location is the Where reading's line, and its form is one `[ change ]` away, in place.
+    await userEvent.click(within(where).getByRole('button', { name: en.location.summaryChange }));
+    expect(within(where).getByRole('region', { name: 'Location' })).toBeInTheDocument();
     expect(within(left).getByRole('region', { name: 'Right now' })).toBeInTheDocument();
     expect(within(right).getByRole('region', { name: 'Upcoming passes' })).toBeInTheDocument();
     // The header spans both and keeps the title, the tagline and the controls.
@@ -128,7 +143,7 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     for (const offer of offers()) expect(offer).toHaveAttribute('inert');
     // Only the offers: the list, the guide and the controls around them are still live.
     for (const role of ['banner', 'main', 'contentinfo']) expect(screen.getByRole(role)).not.toHaveAttribute('inert');
-    expect(screen.getByRole('region', { name: 'Location' })).not.toHaveAttribute('inert');
+    expect(screen.getByRole('region', { name: pane('where') })).not.toHaveAttribute('inert');
 
     // Closing the guide gives them back, with no timer in it (D-154).
     await userEvent.keyboard('{Escape}');
@@ -144,6 +159,7 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
    * reader comes back to the card they were reading about.
    */
   it('marks the right column open, list or closed, and swaps between them on [ list ] (F-6)', async () => {
+    media.setWidth(MID_PX);
     withPasses();
     render(<App />);
     const right = screen.getByTestId('col-right');
@@ -176,6 +192,7 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
    * pass the list was asked for.
    */
   it('a pass arriving by the hash while the list is shown is a new guide, not the list again', async () => {
+    media.setWidth(MID_PX);
     withPasses();
     render(<App />);
     const right = screen.getByTestId('col-right');
@@ -197,6 +214,7 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
    * pass left focus on the body. The night unfolds first.
    */
   it('[ list ] at a pass inside a folded night unfolds the night and focuses the card', async () => {
+    media.setWidth(MID_PX);
     const later = { ...pass, id: 'later', noradId: 3, name: 'Later object', start: { ...pass.start, t: pass.start.t + 26 * 3_600_000 } };
     act(() => {
       appStore.setState({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window: { startMs: NOW, endMs: NOW + 2 * NIGHT_MS }, passes: [pass, other, later], hasDarkness: true } });
@@ -238,6 +256,42 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
 
     await userEvent.keyboard('{Escape}');
     expect(second).toHaveFocus();
+  });
+
+  /**
+   * R76 (FR-FIRST-5, D-444): at three-pane widths the page grid says `pane` —
+   * the stylesheet puts the panel across the Where and When columns — and the
+   * list stays in What with the open card marked. `Esc` brings the two panes
+   * back. Under the three-pane width the same pass is D-253's `open` again.
+   */
+  it('at three-pane widths an open pass is the pane state: the list stays, and Esc brings the panes back (D-444)', async () => {
+    withPasses();
+    render(<App />);
+    const main = screen.getByRole('main');
+    expect(main).toHaveAttribute('data-home', 'readings');
+    expect(main).toHaveAttribute('data-guide', 'closed');
+    for (const step of ['where', 'when', 'what'] as const) expect(screen.getByRole('region', { name: pane(step) })).toBeInTheDocument();
+
+    await userEvent.click(screen.getAllByRole('button', { name: /Open guide/ })[0] as HTMLElement);
+    expect(main).toHaveAttribute('data-guide', 'pane');
+    expect(screen.getByTestId('col-right')).toHaveAttribute('data-guide', 'pane');
+    const panel = screen.getByRole('region', { name: panelName });
+    expect(panel).toHaveAttribute('data-guide-panel');
+    expect(within(screen.getByRole('region', { name: pane('what') })).getByTestId('iss-hero')).toHaveAttribute('aria-current', 'true');
+    expect(window.location.hash).toBe(`#pass=${pass.id}`);
+
+    act(() => {
+      media.setWidth(MID_PX);
+    });
+    expect(main).toHaveAttribute('data-guide', 'open');
+    act(() => {
+      media.setWidth(WIDE_PX);
+    });
+    expect(main).toHaveAttribute('data-guide', 'pane');
+
+    await userEvent.keyboard('{Escape}');
+    expect(main).toHaveAttribute('data-guide', 'closed');
+    expect(screen.queryByRole('region', { name: panelName })).toBeNull();
   });
 
   it('keeps the same pass open across the breakpoint, in the other shell (D-72)', async () => {

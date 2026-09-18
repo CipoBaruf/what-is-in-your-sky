@@ -94,7 +94,7 @@ export function NextEventBlock({ passes, context, pending = false, weather = nul
 
   return (
     <section aria-labelledby={labelId} className={styles.block} data-testid="next-event">
-      <p id={labelId} className={styles.label}>
+      <p id={labelId} className={styles.eventLabel}>
         {t.nextEvent.label}
       </p>
       {body}

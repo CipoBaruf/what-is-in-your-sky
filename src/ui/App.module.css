@@ -80,13 +80,13 @@
   color: var(--fg-dim);
 }
 
-.step + .step::before {
+.stepItem + .stepItem::before {
   content: ' — ';
   white-space: pre;
   color: var(--fg-dim);
 }
 
-.step[aria-current='step'] {
+.stepItem[aria-current='step'] {
   color: var(--fg);
 }
 

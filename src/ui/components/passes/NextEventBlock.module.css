@@ -6,16 +6,16 @@
   gap: 0;
 }
 
-.label {
+.eventLabel {
   margin: 0;
   color: var(--fg-dim);
 }
 
-.label::before {
+.eventLabel::before {
   content: '[';
 }
 
-.label::after {
+.eventLabel::after {
   content: ']';
 }
 
