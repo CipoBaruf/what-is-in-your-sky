@@ -44,25 +44,35 @@
   margin: 0;
 }
 
-/* R76 (FR-FIRST-2): the home page's input group. The primary action and its
-   two alternatives are two columns where the group has the room for both at
-   the compact card's width — the cold open on a desk — and one under the other
-   where it does not: a phone, and the 36- to 40-cell Where pane. The widths
-   are in cells, so the fold happens at the same character count everywhere. */
+/* R76 (FR-FIRST-2): the home page's input group — the primary action, then
+   its two alternatives, each a box of its own. The three are one grid, the
+   alternatives' wrapper stepping aside (`display: contents`), so where the
+   group has the room for three 30-cell columns — the cold open on a desk —
+   they stand in one row with their tops and bottoms aligned, and where it does
+   not — a phone, and the 36- to 40-cell Where pane — they stack at the same
+   width with nothing ragged at the right. The widths are in cells, so the fold
+   happens at the same character count everywhere. At the owner's gate: before
+   this the fields kept the widths the settings panel gives them (24, 32 and 10
+   cells) and the pair beside the button ended 38 px lower and 38 px further
+   right than the button's box. */
 .group {
   gap: var(--row);
 }
 
+/* The saved places carry a row's margin for the settings panel, where they follow a sentence; in the group the grid's gap is already that row, and the two together left two. */
+.group > [data-testid='favourites'] {
+  margin-top: 0;
+}
+
 .inputs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(36 * var(--cell))), 1fr));
-  gap: var(--row) calc(3 * var(--cell));
-  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(30 * var(--cell))), 1fr));
+  gap: calc(var(--row) / 2) calc(2 * var(--cell));
+  align-items: stretch;
 }
 
 .alternatives {
-  display: grid;
-  gap: 0;
+  display: contents;
 }
 
 .foot {

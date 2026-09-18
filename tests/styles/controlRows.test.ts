@@ -20,7 +20,7 @@
  * label growing past the row it has to live on.
  */
 import { resolve } from 'node:path';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { createElement, type ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../support/matchMedia';
@@ -120,11 +120,11 @@ const rows = (t: Messages): readonly Row[] => [
   },
   // R76 (FR-FIRST-1): `[01] where — 02 when — 03 what`, the dashes the stylesheet's.
   { name: 'the step line (FR-FIRST-1)', element: createElement(StepLine, { current: 'where' }), find: () => screen.getByTestId('step-line') },
-  // R76 (FR-FIRST-2): the primary action's own row; the note under it is a sentence and wraps.
+  // R76 (FR-FIRST-2): the primary action's label line; the button is the whole box now, and the note in it is a sentence and wraps.
   {
     name: 'the primary action (FR-FIRST-2)',
     element: createElement(UseMyLocation, { onObserver: noop, primary: true, env: { geolocation: {} as Geolocation, secure: true } }),
-    find: () => screen.getByRole('button', { name: t.location.useMyLocation }),
+    find: () => within(screen.getByRole('button', { name: t.location.useMyLocation })).getByText(t.location.useMyLocation),
   },
   // R76 (FR-FIRST-3): the block's label; the headline under it is a sentence and wraps.
   { name: 'the next-event label (FR-FIRST-3)', element: createElement(NextEventBlock, { passes: [pass], now: pass.start.t - 60_000, hours: 72 }), find: () => screen.getByText(t.nextEvent.label) },

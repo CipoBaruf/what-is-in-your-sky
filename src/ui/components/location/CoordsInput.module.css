@@ -26,3 +26,55 @@
   margin: 0;
   color: var(--danger);
 }
+
+/* R76 (FR-FIRST-2, at the owner's gate): the home group's boxed alternative.
+   One label over the pair, the coordinates taking what the altitude and its
+   unit leave, and the two fields on one line — the fields' own wrappers step
+   aside (`display: contents`) so their label, field and message are placed on
+   the box's grid directly. The altitude's label is read, not shown: the unit
+   after its field says the same thing in the one cell there is room for. */
+.boxed {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) calc(8 * var(--cell)) auto;
+  column-gap: var(--cell);
+  row-gap: calc(var(--row) / 2);
+  align-items: center;
+  margin-bottom: 0;
+  padding: calc(var(--row) / 2) var(--cell);
+  border: 1px solid var(--rule);
+  align-content: start;
+  /* Holds the altitude's read-only label, which is absolutely placed (`sr-only`). */
+  position: relative;
+}
+
+.boxed > .field {
+  display: contents;
+}
+
+.boxed .coordsField > label {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  color: var(--fg-dim);
+}
+
+.boxed .input {
+  grid-column: 1;
+  grid-row: 2;
+  width: 100%;
+}
+
+.boxed .altitude {
+  grid-column: 2;
+  grid-row: 2;
+  width: 100%;
+}
+
+.boxed .unit {
+  grid-column: 3;
+  grid-row: 2;
+  color: var(--fg-dim);
+}
+
+.boxed .error {
+  grid-column: 1 / -1;
+}

@@ -96,15 +96,23 @@ export function UseMyLocation({ onObserver, env, primary = false }: UseMyLocatio
     );
   };
 
+  const label = locating ? t.location.locating : t.location.useMyLocation;
   return (
     <div className={primary ? `${styles.field} ${styles.primary}` : styles.field} data-testid={primary ? 'use-my-location-primary' : undefined}>
-      <button type="button" onClick={locate} disabled={locating} aria-busy={locating} className={styles.button} {...(primary ? { 'aria-describedby': noteId } : {})}>
-        {locating ? t.location.locating : t.location.useMyLocation}
-      </button>
-      {primary && (
-        <p id={noteId} className={styles.note}>
-          {t.location.useMyLocationNote}
-        </p>
+      {primary ? (
+        // R76 (FR-FIRST-2, at the owner's gate): the primary action is the whole box — the label and its note
+        // are one control, so the note is as much a place to tap as the words. The name stays the label alone
+        // and the note is its description, as they were when the note sat under the button.
+        <button type="button" onClick={locate} disabled={locating} aria-busy={locating} aria-label={label} aria-describedby={noteId} className={styles.primaryButton}>
+          <span className={styles.primaryLabel}>{label}</span>
+          <span id={noteId} className={styles.note}>
+            {t.location.useMyLocationNote}
+          </span>
+        </button>
+      ) : (
+        <button type="button" onClick={locate} disabled={locating} aria-busy={locating} className={styles.button}>
+          {label}
+        </button>
       )}
       {error && (
         <p role="alert" className={styles.error}>

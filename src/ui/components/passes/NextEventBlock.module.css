@@ -22,7 +22,9 @@
 .headline {
   margin: 0;
   font-size: 1.25rem;
-  line-height: calc(1.5 * var(--row));
+  /* One row a line (at the owner's gate): a long name wraps the headline, and at a row and a half its
+     two lines stood apart like two headlines — the name on one, the verb and the countdown on the next. */
+  line-height: var(--row);
   color: var(--accent);
   overflow-wrap: anywhere;
 }

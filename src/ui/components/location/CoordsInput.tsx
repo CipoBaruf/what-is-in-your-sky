@@ -98,9 +98,16 @@ export interface CoordsInputProps {
   id?: string;
   /** Pre-fills both fields (a restored `coords` observer, US-8); nothing is emitted for it. */
   initial?: { lat: number; lon: number; altM: number };
+  /**
+   * R76 (FR-FIRST-2, at the owner's gate): drawn as one of the home group's
+   * boxed alternatives — one visible label over the pair, the altitude beside
+   * the coordinates with its unit after it, and the altitude's own label read
+   * by assistive technology only.
+   */
+  boxed?: boolean;
 }
 
-export function CoordsInput({ onObserver, id, initial }: CoordsInputProps) {
+export function CoordsInput({ onObserver, id, initial, boxed = false }: CoordsInputProps) {
   const t = useT();
   const [text, setText] = useState(initial ? `${String(initial.lat)}, ${String(initial.lon)}` : '');
   const [altText, setAltText] = useState(initial ? String(initial.altM) : '0');
@@ -140,8 +147,8 @@ export function CoordsInput({ onObserver, id, initial }: CoordsInputProps) {
   };
 
   return (
-    <div className={styles.row}>
-      <div className={styles.field}>
+    <div className={boxed ? `${styles.row} ${styles.boxed}` : styles.row}>
+      <div className={`${styles.field} ${styles.coordsField}`}>
         <label htmlFor={inputId}>{t.location.coordsLabel}</label>
         <input
           id={inputId}
@@ -162,8 +169,10 @@ export function CoordsInput({ onObserver, id, initial }: CoordsInputProps) {
           </p>
         )}
       </div>
-      <div className={styles.field}>
-        <label htmlFor={altId}>{t.location.altitudeLabel}</label>
+      <div className={`${styles.field} ${styles.altField}`}>
+        <label htmlFor={altId} className={boxed ? 'sr-only' : undefined}>
+          {t.location.altitudeLabel}
+        </label>
         <input
           id={altId}
           type="text"
@@ -176,6 +185,11 @@ export function CoordsInput({ onObserver, id, initial }: CoordsInputProps) {
           aria-describedby={altError ? altErrorId : undefined}
           className={styles.altitude}
         />
+        {boxed && (
+          <span className={styles.unit} aria-hidden="true">
+            m
+          </span>
+        )}
         {altError && (
           <p id={altErrorId} role="alert" className={styles.error}>
             {altitudeErrorText(t, altError)}

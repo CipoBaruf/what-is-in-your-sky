@@ -40,6 +40,10 @@
   grid-auto-rows: max-content;
   align-content: start;
   gap: var(--row);
+  /* The headings read and not drawn inside it (below) are absolutely placed, and are held here: placed
+     against the page instead, a heading low in a column that scrolls itself stood below the viewport and
+     made the page scroll under it — 345 px at 1024 x 768 with a pass open (F-9's test). */
+  position: relative;
 }
 
 /* R76 (FR-FIRST-1): the cold open — the mark centred, the tagline on compact,
@@ -70,8 +74,16 @@
   margin: 0;
   font-size: 1.25rem;
   font-weight: normal;
-  line-height: calc(1.5 * var(--row));
+  /* One row a line, so a heading that wraps reads as one block: at 1.5 rows
+     "Where will you be looking / from?" was two lines a row and a half apart,
+     at a phone's width the widest gap on the page (at the owner's gate). */
+  line-height: var(--row);
   color: var(--fg);
+}
+
+/* The sentence belongs to the question, so it sits half a row under it rather than a whole one. */
+.coldHeading + .coldSentence {
+  margin-top: calc(-1 * var(--row) / 2);
 }
 
 /* `[01] where — 02 when — 03 what`: the current step bracketed and in `--fg`,
@@ -94,6 +106,30 @@
 
 .stepItem[aria-current='step'] {
   color: var(--fg);
+}
+
+/* The same margin in the Where pane on wide, under the location line: a row of gap and a row of margin was a two-row hole between the line and the saved places. */
+.where > [data-testid='favourites'] {
+  margin-top: 0;
+}
+
+/* R76 (D-471, at the owner's gate): inside a reading the Now panel, the Moon
+   line and the pass list keep their headed regions, so every name a reader or
+   a test finds them by is still theirs — but the headings are read, not drawn.
+   Drawn, they were a second and a third character rule under the reading's own
+   (`02 When`, then `Right now`, then `Moon tonight`), three rules for one
+   pane. */
+.when > section > h2:first-child,
+.listColumn > section > h2:first-child {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* R23 (FR-DESK-2). Wide: the header spans both columns and puts its controls
@@ -123,12 +159,29 @@
     min-height: 0;
   }
 
-  /* R76 (FR-FIRST-1): the cold open is one centred column, the compact frame's
-     80 cells, and scrolls itself inside the one-viewport shell (D-119). */
+  /* R76 (FR-FIRST-1): the cold open is one centred column and scrolls itself
+     inside the one-viewport shell (D-119) if it must. At the owner's gate it
+     is the three panes' width, 108 cells, rather than 80: the primary action
+     and its two alternatives stand in one row there (FR-FIRST-2's "beside it
+     on wide"), where at 80 cells the pair stacked beside the button and the
+     column was 104 px taller than a 1280 x 800 window leaves it, so the foot
+     notes were under the footer. The head and the foot are centred on the
+     mark, which FR-FIRST-1 centres, so nothing in the column is aligned to an
+     edge that is not there. */
   .main[data-home='cold'] {
-    grid-template-columns: minmax(0, calc(80 * var(--cell)));
+    grid-template-columns: minmax(0, calc(108 * var(--cell)));
     justify-content: center;
     overflow-y: auto;
+  }
+
+  .cold .steps {
+    justify-content: center;
+  }
+
+  .cold .coldHeading,
+  .cold .coldSentence,
+  .cold [data-testid='location-foot'] {
+    text-align: center;
   }
 
   /* The location, the banners and the Now panel can outgrow the shell on a
@@ -213,6 +266,22 @@
     display: none;
   }
 
+  /* At the owner's gate: a pane that scrolls itself was cut at the footer's
+     rule mid-sentence, with nothing to say there was more. Where the browser
+     has scroll-driven animations the last two rows of a pane with more below
+     fade out, and fade back in as the reader reaches its end; where it has
+     not, the pane is as it was. The fade is a mask, so it is the text that
+     fades and not a colour laid over it, and it holds in both themes. */
+  @supports (animation-timeline: scroll()) {
+    .where,
+    .when,
+    .main[data-home='readings'] .listColumn {
+      mask-image: linear-gradient(to bottom, #000 calc(100% - var(--pane-fade)), transparent);
+      animation: pane-end linear both;
+      animation-timeline: scroll(self);
+    }
+  }
+
   .main[data-guide='pane'] [data-guide-panel] {
     grid-column: 1 / span 2;
     grid-row: 1;
@@ -247,5 +316,28 @@
   .column[data-guide='list'] {
     grid-template-columns: minmax(calc(44 * var(--cell)), 1fr) minmax(calc(40 * var(--cell)), 1.05fr);
     gap: calc(3 * var(--cell));
+  }
+}
+
+/* The fade's depth, animated from two rows to none across a pane's scroll. A
+   pane with nothing to scroll has an inactive timeline, so the animation does
+   not apply and the depth is its initial value: no fade. */
+@property --pane-fade {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes pane-end {
+  from {
+    --pane-fade: calc(2 * var(--row));
+  }
+
+  95% {
+    --pane-fade: calc(2 * var(--row));
+  }
+
+  to {
+    --pane-fade: 0px;
   }
 }

@@ -69,3 +69,23 @@
 .error {
   color: var(--danger);
 }
+
+/* R76 (FR-FIRST-2, at the owner's gate): one of the home group's two
+   alternatives — a ruled box, the label dim inside it, the field and its pick
+   list the box's full width. */
+.boxed {
+  margin-bottom: 0;
+  padding: calc(var(--row) / 2) var(--cell);
+  border: 1px solid var(--rule);
+  align-content: start;
+}
+
+.boxed > label {
+  color: var(--fg-dim);
+}
+
+.boxed .input,
+.boxed .list {
+  width: 100%;
+  max-width: 100%;
+}

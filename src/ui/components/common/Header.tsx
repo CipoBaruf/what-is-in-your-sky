@@ -89,12 +89,12 @@ export function Header({ inert = false, current = 'home' }: HeaderProps) {
             {t.live.open}
           </a>
         </div>
-        <p className={styles.tagline}>{t.app.tagline}</p>
       </div>
       <div className={styles.controls}>
         <LanguageToggle className={styles.prefsToggle} />
         <ThemeToggle />
       </div>
+      <p className={styles.tagline}>{t.app.tagline}</p>
     </header>
   );
 }

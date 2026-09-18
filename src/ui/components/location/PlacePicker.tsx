@@ -40,6 +40,8 @@ export interface PlacePickerProps {
   initialText?: string;
   /** The field's id, so the container can move focus to it; generated when absent. */
   inputId?: string;
+  /** R76 (FR-FIRST-2, at the owner's gate): drawn as one of the home group's boxed alternatives — a ruled box, the label dim inside it, the field its full width. */
+  boxed?: boolean;
 }
 
 type ListState = { kind: 'idle' } | { kind: 'searching'; query: string } | { kind: 'results'; query: string; places: Place[] } | { kind: 'error'; query: string; message: string };
@@ -47,7 +49,7 @@ type ListState = { kind: 'idle' } | { kind: 'searching'; query: string } | { kin
 /** The provider needs two characters; one letter or blanks would only clear the list. */
 const MIN_CHARS = 2;
 
-export function PlacePicker({ search, onObserver, observer, coordsInputId, initialText, inputId: givenId }: PlacePickerProps) {
+export function PlacePicker({ search, onObserver, observer, coordsInputId, initialText, inputId: givenId, boxed = false }: PlacePickerProps) {
   const t = useT();
   const [text, setText] = useState(initialText ?? '');
   /**
@@ -232,7 +234,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
   const confirming = observer?.source === 'geocode' ? observer : null;
 
   return (
-    <div className={styles.field}>
+    <div className={boxed ? `${styles.field} ${styles.boxed}` : styles.field}>
       <label htmlFor={inputId}>{t.location.placeLabel}</label>
       <input
         ref={inputRef}

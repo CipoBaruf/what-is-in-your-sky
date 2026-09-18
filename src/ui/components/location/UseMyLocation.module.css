@@ -26,18 +26,41 @@
   color: var(--danger);
 }
 
-/* R76 (FR-FIRST-2): the primary action, boxed in the control colour with its
-   one-line note inside the box, under the label. */
+/* R76 (FR-FIRST-2): the primary action. At the owner's gate the box is the
+   button itself — full width, the accent's border, the bracketed label at the
+   left and its one-line note under it — where it had been a box drawn round a
+   smaller bracketed button, two borders for one control. */
 .primary {
-  border: 1px solid var(--edge);
-  padding: calc(var(--row) / 2) var(--cell);
-  gap: 0;
+  gap: calc(var(--row) / 2);
   margin-bottom: 0;
-  align-content: start;
+  align-content: stretch;
 }
 
-.primary .button {
+.primaryButton {
+  display: grid;
+  align-content: start;
+  gap: 0;
+  width: 100%;
+  height: 100%;
+  padding: calc(var(--row) / 2) var(--cell);
+  text-align: left;
+  border-color: var(--accent);
+}
+
+.primaryLabel {
   color: var(--accent);
+}
+
+.primaryLabel::before {
+  content: '[ ';
+}
+
+.primaryLabel::after {
+  content: ' ]';
+}
+
+.primaryButton:disabled .primaryLabel {
+  color: var(--fg-dim);
 }
 
 .note {
