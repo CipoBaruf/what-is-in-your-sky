@@ -20,11 +20,22 @@
    right, and the tagline below can be aligned to the title's first letter with
    one number. One cell between them, which is what the tagline's padding then
    restates: the mark's width plus that cell. */
+/* R75 (D-501): the group hands the row the title's baseline, not the mark's.
+   The mark's two layers are absolutely positioned, so its box holds no line of
+   its own and its baseline is its bottom edge — a group aligned on that put
+   `[ live ] [ settings ]`, and `[ Live sky ]` in the wide header, seven pixels
+   below the title they read beside. Baseline alignment here makes the title
+   the one item that carries a baseline, and the mark centres across the line
+   as it did before (FR-MARK-4, D-441). */
 .brand {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 0 var(--cell);
   min-width: 0;
+}
+
+.brand > :first-child {
+  align-self: center;
 }
 
 /* The mark stands where the `>` prompt was (`global.css`'s `h1::before`): two
@@ -88,9 +99,13 @@
 
 /* R74 (FR-DESK-2 as amended, D-441): the tagline starts under the wordmark's
    first letter, so its indent is the mark's width — one `--row`, which is what
-   `MARK_HEADER_PX` is — plus the cell of gap `.brand` puts after it. */
+   `MARK_HEADER_PX` is — plus the cell of gap `.brand` puts after it.
+   R75 (FR-X-5): a quarter row above it, because the title row's links carry a
+   focus ring and the two rows were flush — the ring's offset and its own line
+   landed on the tagline's first words. The compact header has no tagline, so
+   this is the wide header only, where the row is there to be spent. */
 .tagline {
-  margin: 0;
+  margin: calc(var(--row) / 4) 0 0;
   padding-left: calc(var(--row) + var(--cell));
   color: var(--fg-dim);
 }

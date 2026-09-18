@@ -96,7 +96,25 @@ export async function openSettings(page: Page): Promise<boolean> {
   const link = page.getByTestId('settings-link');
   await link.click();
   await expect(page.getByTestId('settings-back')).toBeVisible();
+  await openCoordinates(page);
   return true;
+}
+
+/**
+ * R75 (FR-SET-1): on the settings page the coordinate fields are behind a
+ * `[ coordinates ]` disclosure, closed unless the observer came from
+ * coordinates. A spec that types a pair opens it first, as a reader does; on
+ * the wide home there is no disclosure and the fields are always there.
+ */
+export async function openCoordinates(page: Page): Promise<void> {
+  const disclosure = page.getByTestId('coords-disclosure');
+  if ((await disclosure.count()) === 0) return;
+  if ((await disclosure.getAttribute('aria-expanded')) === 'false') {
+    await disclosure.click();
+    // The pointer would otherwise rest where the place list opens later, and hovering a row selects it.
+    await page.mouse.move(0, 0);
+  }
+  await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
 }
 
 /** Back to the home screen, through the page's own control. */

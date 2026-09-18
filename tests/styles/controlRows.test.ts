@@ -36,6 +36,7 @@ import { StepControls } from '../../src/ui/components/live/StepControls';
 import { SortToggle } from '../../src/ui/components/passes/SortToggle';
 import { OptionToggle } from '../../src/ui/components/common/OptionToggle';
 import { BEFORE_INSTALL_PROMPT, forgetInstallOffer, type BeforeInstallPromptEvent } from '../../src/ui/components/common/installOffer';
+import { SettingsPage } from '../../src/ui/screens/Settings';
 import { decorations, rowCells, rowParts } from './cells';
 
 /** FR-COMP-4: a 390 px viewport at the default cell. */
@@ -50,6 +51,10 @@ const CSS = [
   'src/ui/components/live/PlaybackControls.module.css',
   'src/ui/components/live/StepControls.module.css',
   'src/ui/components/passes/SortToggle.module.css',
+  'src/ui/screens/Settings.module.css',
+  'src/ui/components/location/UseMyLocation.module.css',
+  'src/ui/components/location/Favourites.module.css',
+  'src/ui/components/location/LocationInput.module.css',
 ].map((file) => resolve(process.cwd(), file));
 
 const table = decorations(CSS);
@@ -166,6 +171,68 @@ describe.each(LOCALES)('FR-COMP-4: every compact control row fits %s in 36 cells
     const element = row.find();
     const cells = rowCells(element, table);
     expect(cells, `${row.name} in ${locale}: ${rowParts(element, table).join(' | ')}`).toBeLessThanOrEqual(row.budget ?? BUDGET);
+  });
+});
+
+/**
+ * R75 (FR-SET-1, FR-COMP-4): the settings page's own rows, measured on the page
+ * itself rather than on a component alone, because two of them are the page's
+ * composition — `[ Use my location ] [ coordinates ]` and
+ * `[ Save this place ] [ Clear saved ]` — and the three in This browser are a
+ * label column and a control column. A label-and-control row is as wide as the
+ * *longest* label in that language, one cell of gap, and its control: the
+ * labels are one grid column, so a short label still reserves the long one's
+ * width.
+ */
+describe.each(LOCALES)('FR-SET-1: every settings row fits %s in 36 cells', (locale: Locale) => {
+  const t = CATALOGS[locale];
+  let restoreGeolocation: () => void = noop;
+
+  beforeEach(() => {
+    // `UseMyLocation` draws nothing without a secure context and a geolocation API, and jsdom has neither.
+    const secure = Object.getOwnPropertyDescriptor(globalThis, 'isSecureContext');
+    Object.defineProperty(navigator, 'geolocation', { value: { getCurrentPosition: noop }, configurable: true });
+    Object.defineProperty(globalThis, 'isSecureContext', { value: true, configurable: true });
+    restoreGeolocation = () => {
+      Reflect.deleteProperty(navigator, 'geolocation');
+      if (secure) Object.defineProperty(globalThis, 'isSecureContext', secure);
+      else Reflect.deleteProperty(globalThis, 'isSecureContext');
+    };
+    appStore.setState({ observer, favourites: [{ cellKey: '-38.93,-67.99', observer, addedAt: 0, lastUsedAt: 0 }] });
+    offerAnInstall();
+    render(createElement(I18nProvider, { locale, children: createElement(SettingsPage, { onLeave: noop, installEnv: { standalone: undefined } }) }));
+  });
+
+  afterEach(() => {
+    restoreGeolocation();
+  });
+
+  it('the device row: [ Use my location ] [ coordinates ]', () => {
+    const row = screen.getByTestId('location-actions');
+    expect(row.contains(screen.getByRole('button', { name: t.location.useMyLocation }))).toBe(true);
+    expect(rowCells(row, table), rowParts(row, table).join(' | ')).toBeLessThanOrEqual(BUDGET);
+  });
+
+  it('the save row: [ Save this place ] [ Clear saved ]', () => {
+    const row = screen.getByTestId('save-favourite').parentElement as Element;
+    expect(row.contains(screen.getByTestId('clear-saved-location'))).toBe(true);
+    expect(rowCells(row, table), rowParts(row, table).join(' | ')).toBeLessThanOrEqual(BUDGET);
+  });
+
+  it('the saved place row: [ <label> ] (in use) [ × ]', () => {
+    const row = screen.getByTestId('favourite');
+    expect(rowCells(row, table), rowParts(row, table).join(' | ')).toBeLessThanOrEqual(BUDGET);
+  });
+
+  it.each([
+    ['Language', () => screen.getByRole('group', { name: t.app.language })],
+    ['Theme', () => screen.getByRole('group', { name: t.app.theme })],
+    ['Install', () => screen.getByTestId('settings-install')],
+  ] as const)('the %s row: its label and its control', (_name, control) => {
+    const labels = [t.app.language, t.app.theme, t.install.action];
+    const column = Math.max(...labels.map((label) => label.length));
+    const cells = column + 1 + rowCells(control(), table);
+    expect(cells, `${String(column)} + 1 + ${rowParts(control(), table).join(' | ')}`).toBeLessThanOrEqual(BUDGET);
   });
 });
 

@@ -254,3 +254,10 @@ export function foldBelowPx(row: LiveFold): number {
   const gives = LIVE_FOLD_ORDER.slice(0, LIVE_FOLD_ORDER.indexOf(row)).reduce((sum, before) => sum + LIVE_FOLD_GIVES_PX[before], 0);
   return LIVE_KEPT_PX + LIVE_BOX_MIN_PX - gives;
 }
+
+/**
+ * R75 (FR-SET-2): the number of saved places the settings page must fit 390 × 844 with, beside an observer
+ * and the install offer. Two is the artboard's state, and the number a reader who keeps a home and one dark
+ * site has; past it the page may scroll, since what grows it is the reader's own list.
+ */
+export const SETTINGS_FIT_PLACES = 2;

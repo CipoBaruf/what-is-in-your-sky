@@ -1,19 +1,38 @@
 /* R52 (FR-COMP-2): one column at every width. The page is a form, and a form
-   read top to bottom in the order FR-COMP-2 states is the whole of its layout —
+   read top to bottom in the order FR-SET-1 states is the whole of its layout —
    the wide shell's two columns are for a screen that has a list beside its
    controls, and this one has none. */
+/* R75 (FR-SET-2): the page's whole budget is 844 px, so it is spaced by its
+   own structure rather than by gaps. Each block opens on a character-rule
+   heading, which is the separation; every control row is a 48 px tap box
+   around a 24 px line, so it already carries a quarter-row above and below its
+   text; and the labels sit directly on their fields. Measured in Spanish with
+   the coordinate fields open and two saved places, that is what takes the page
+   from 895 px to inside the viewport. */
 .page {
   display: grid;
   align-content: start;
-  gap: var(--row);
+  gap: 0;
+  padding-top: calc(0.5 * var(--row));
+  padding-bottom: 0;
 }
 
+.location section > div:first-of-type,
+.coords > div > div {
+  gap: 0;
+}
+
+/* R75 (FR-X-5, D-500): a quarter row under the way back, which is the room its
+   focus ring needs — its 2 px offset and its own 2 px line — over the Location
+   heading that follows. The page's own fit (FR-SET-2) still has the room: the
+   tightest state, Spanish with the coordinate fields open and two saved places,
+   is measured by `settings.spec.ts` in the same run. */
 .backRow {
-  margin: 0;
+  margin: 0 0 calc(var(--row) / 4);
 }
 
-/* A bracketed text control, like the location section's clear action. */
-.back {
+/* A bracketed text control: the way back and the coordinates disclosure. */
+.link {
   color: var(--accent);
   background: none;
   border: 0;
@@ -21,23 +40,102 @@
   min-height: 0;
 }
 
-.back::before {
+.link::before {
   content: '[ ';
   color: var(--fg-dim);
 }
 
-.back::after {
+.link::after {
   content: ' ]';
   color: var(--fg-dim);
 }
 
-.section {
+/* R75 (FR-SET-1): `[ Use my location ] [ coordinates ]`, one row of FR-COMP-4's
+   36 cells. The device button's own block keeps its bottom margin and its error
+   line; the disclosure sits beside the button, on its line. */
+.controlRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cell);
+}
+
+.controlRow > * {
+  margin-bottom: 0;
+}
+
+.controlRow > .link {
+  min-height: var(--tap);
+}
+
+/* On this row the device button is drawn as the bracketed text control beside
+   it rather than as a bordered box: the box's two cells of padding a side are
+   what push `[ coordinates ]` onto a second line at 390 px. */
+.controlRow button {
+  color: var(--accent);
+  background: none;
+  border: 0;
+  padding-inline: 0;
+}
+
+/* The fields the disclosure opens, under the row; `hidden` takes them out, so
+   this block sets no `display` of its own. The two fields share one line:
+   22 + 2 + the altitude label's 12 is 36 cells, where the panel's 24-cell
+   coordinate field would wrap the altitude under it. */
+.coords > div {
+  margin-bottom: 0;
+}
+
+.coords input:not([inputmode='decimal']) {
+  width: calc(22 * var(--cell));
+}
+
+/* Each heading is a rule with the block directly under it: the rule is the separation. */
+.page section > h2 {
+  margin-bottom: 0;
+}
+
+/* The place field's own bottom margin is the wide panel's; here the control row under it is tap-tall. */
+.location section > div:first-of-type {
+  margin-bottom: 0;
+}
+
+/* R75 (FR-SET-1, D-445): one heading over three label-and-control rows. The
+   labels are one column as wide as the longest of them in this language, so
+   the three controls start on one edge. */
+.browser {
   display: grid;
-  align-content: start;
-  gap: calc(0.5 * var(--row));
+  gap: 0;
+}
+
+.rows {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--cell);
+}
+
+.rows > * {
+  min-height: var(--tap);
+  display: flex;
+  align-items: center;
+}
+
+.label {
+  color: var(--fg-dim);
 }
 
 .install {
+  margin: 0;
+}
+
+/* R75 (FR-SET-1): the foot of the page, in place of the compact footer. */
+.privacy {
+  color: var(--fg-dim);
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.privacy > p {
   margin: 0;
 }
 
@@ -45,7 +143,8 @@
    is narrow prose either way, so on a wide screen it stops rather than
    stretching a 36-cell row of toggles across 100 cells of empty line. */
 @media (min-width: 964px) {
-  .page {
+  .page,
+  .privacy {
     max-width: calc(60 * var(--cell));
   }
 }

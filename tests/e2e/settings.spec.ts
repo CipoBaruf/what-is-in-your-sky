@@ -7,8 +7,11 @@
  * languages; this measures the boxes the browser actually laid out, on the one
  * viewport FR-COMP-4 names.
  */
-import { expect, test, type Locator } from '@playwright/test';
-import { seedStoredRun } from './liveHelpers';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import { SETTINGS_FIT_PLACES } from '../../src/lib/layout';
+import type { Observer } from '../../src/model';
+import { NINE_DAYS_ON, seedStoredRun, stubNetwork } from './liveHelpers';
+import { NEUQUEN as NEUQUEN_OBSERVER } from './observers';
 
 const COMPACT = { width: 390, height: 844 };
 const WIDE = { width: 1280, height: 900 };
@@ -36,6 +39,20 @@ async function fitsTheViewport(row: Locator): Promise<boolean> {
   return width <= COMPACT.width;
 }
 
+/**
+ * Where a control's own text is drawn, rather than where its box is: a bracketed
+ * control carries a 48 px tap box around a 24 px line, so the boxes of two things
+ * that read as one line never agree (D-500, D-501).
+ */
+async function textLine(locator: Locator): Promise<{ top: number; bottom: number }> {
+  return locator.evaluate((element: HTMLElement) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const { top, bottom } = range.getBoundingClientRect();
+    return { top: Math.round(top), bottom: Math.round(bottom) };
+  });
+}
+
 test.describe('the settings page at 390 px (FR-COMP-1..4, US-20)', () => {
   test('the header, the summary and the sort row are each one line, and [ settings ] opens the page', async ({ page }) => {
     await seedStoredRun(page);
@@ -57,9 +74,17 @@ test.describe('the settings page at 390 px (FR-COMP-1..4, US-20)', () => {
     await page.getByTestId('settings-link').click();
     await expect(page).toHaveURL(/#settings$/);
     await expect(page.getByTestId('settings-back')).toBeVisible();
-    // FR-COMP-2's order, on the page the reader is now looking at.
-    await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Language', 'Theme', 'Location']);
+    // FR-COMP-2's order as FR-SET-1 inverts it, on the page the reader is now looking at.
+    await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Location', 'Saved places', 'This browser']);
     await expect(page.getByRole('button', { name: 'Clear saved location' })).toBeVisible();
+  });
+
+  test('the title and the two controls are drawn on one line (FR-COMP-1, D-501)', async ({ page }) => {
+    await seedStoredRun(page);
+    const header = page.getByTestId('header');
+    const [title, live, settings] = await Promise.all([textLine(header.getByRole('heading', { level: 1 })), textLine(page.getByTestId('live-link')), textLine(page.getByTestId('settings-link'))]);
+    expect(live).toEqual(title);
+    expect(settings).toEqual(title);
   });
 
   test('the settings page still has a one-line header, and its own [ settings ] is the current page', async ({ page }) => {
@@ -136,6 +161,138 @@ test.describe('the settings page at 390 px (FR-COMP-1..4, US-20)', () => {
   });
 });
 
+/**
+ * R75 (FR-SET-2, US-29 AC2): the whole page in one 390 × 844 viewport, in both
+ * languages — Spanish is the longer and the real test — and in the two states
+ * the requirement names: a first visit with nothing set, and a reader with a
+ * place and `SETTINGS_FIT_PLACES` saved. The install offer is shown in both,
+ * since it is a row the page has to hold whenever the browser offers one.
+ */
+const DARK_SITE: Observer = { lat: -39.26, lon: -68.78, altM: 380, label: 'Villa El Chocón', source: 'geocode', timeZone: 'America/Argentina/Salta' };
+const SAVED: readonly { cellKey: string; observer: Observer }[] = [
+  { cellKey: '-38.93,-67.99', observer: NEUQUEN_OBSERVER },
+  { cellKey: '-39.26,-68.78', observer: DARK_SITE },
+];
+
+async function openSettingsWith(page: Page, prefs: Record<string, unknown>): Promise<void> {
+  await page.clock.setFixedTime(NINE_DAYS_ON);
+  await stubNetwork(page);
+  await page.addInitScript(
+    ([key, value]: [string, string]) => {
+      localStorage.setItem(key, value);
+    },
+    ['wiys:prefs:v1', JSON.stringify(prefs)] as [string, string],
+  );
+  await page.goto('/#settings');
+  await expect(page.getByTestId('settings-back')).toBeVisible();
+  await page.evaluate(() => {
+    window.dispatchEvent(Object.assign(new Event('beforeinstallprompt', { cancelable: true }), { prompt: () => Promise.resolve() }));
+  });
+  await expect(page.getByTestId('install-action')).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+}
+
+async function fitsOneViewport(page: Page): Promise<void> {
+  const { scrollHeight, innerHeight } = await page.evaluate(() => ({ scrollHeight: document.documentElement.scrollHeight, innerHeight: window.innerHeight }));
+  expect(scrollHeight, `the page is ${String(scrollHeight)} px in a ${String(innerHeight)} px viewport`).toBeLessThanOrEqual(innerHeight);
+  const privacy = page.getByTestId('settings-privacy');
+  await expect(privacy).toBeVisible();
+  const box = await privacy.evaluate((el: HTMLElement) => el.getBoundingClientRect().toJSON() as DOMRect);
+  expect(box.top).toBeGreaterThanOrEqual(0);
+  expect(box.bottom).toBeLessThanOrEqual(innerHeight);
+  // The privacy line is the foot: nothing on the page is drawn below it.
+  const lowest = await page.evaluate(() => Math.max(...Array.from(document.querySelectorAll('main *')).map((el) => el.getBoundingClientRect().bottom)));
+  expect(lowest).toBeLessThanOrEqual(box.top);
+}
+
+test.describe('the settings page fits one 390 × 844 viewport (FR-SET-2, US-29 AC2)', () => {
+  for (const locale of ['en', 'es'] as const) {
+    test(`with no observer, the coordinates closed and the offer shown, in ${locale}`, async ({ page }) => {
+      await openSettingsWith(page, { locale });
+      // The fit first: on a page that predates the disclosure the failure then says how tall the page is.
+      await fitsOneViewport(page);
+      await expect(page.getByTestId('coords-disclosure')).toHaveAttribute('aria-expanded', 'false');
+      await expect(page.getByTestId('favourites')).toHaveCount(0);
+    });
+
+    test(`with an observer and ${String(SETTINGS_FIT_PLACES)} saved places, in ${locale}`, async ({ page }) => {
+      const favourites = SAVED.slice(0, SETTINGS_FIT_PLACES).map((place, i) => ({ ...place, addedAt: NINE_DAYS_ON - (i + 2) * 86_400_000, lastUsedAt: NINE_DAYS_ON - (i + 1) * 60_000 }));
+      await openSettingsWith(page, { locale, observer: NEUQUEN_OBSERVER, favourites });
+      await expect(page.getByTestId('favourite')).toHaveCount(SETTINGS_FIT_PLACES);
+      await fitsOneViewport(page);
+      // The observer came from coordinates, so the disclosure starts open: the larger of its two states.
+      await expect(page.getByTestId('coords-disclosure')).toHaveAttribute('aria-expanded', 'true');
+    });
+  }
+});
+
+test.describe('the settings page rows and the coordinates disclosure (FR-SET-1)', () => {
+  test('the device row and the save row are each one line, and the clear is beside the save', async ({ page }) => {
+    await seedStoredRun(page);
+    await page.getByTestId('settings-link').click();
+    const device = page.getByTestId('location-actions');
+    await expect(device.getByRole('button', { name: 'Use my location' })).toBeVisible();
+    expect(await isOneLine(device)).toBe(true);
+    expect(await fitsTheViewport(device)).toBe(true);
+    const save = page.getByTestId('save-favourite').locator('..');
+    await expect(save.getByRole('button', { name: 'Clear saved location' })).toHaveText('Clear saved');
+    expect(await isOneLine(save)).toBe(true);
+    expect(await fitsTheViewport(save)).toBe(true);
+  });
+
+  test('"enter coordinates instead" opens the closed fields and focuses them, and stays on the page', async ({ page }) => {
+    await openSettingsWith(page, { locale: 'en' });
+    await page.route('https://geocoding-api.open-meteo.com/**', (route) => route.fulfill({ json: { generationtime_ms: 0.5 }, headers: { 'access-control-allow-origin': '*' } }));
+    const disclosure = page.getByTestId('coords-disclosure');
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByLabel('Coordinates (lat, lon)')).toBeHidden();
+    await page.getByRole('combobox', { name: 'Place name' }).fill('Zzzzqqqq');
+    await page.getByText(/No place matches “Zzzzqqqq”/).getByRole('link', { name: 'enter coordinates instead' }).click();
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByLabel('Coordinates (lat, lon)')).toBeFocused();
+    await expect(page).toHaveURL(/#settings$/);
+  });
+
+  test('the disclosure opens and closes the fields, and a typed pair sets the observer', async ({ page }) => {
+    await openSettingsWith(page, { locale: 'en' });
+    const disclosure = page.getByTestId('coords-disclosure');
+    await disclosure.click();
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
+    const fields = page.getByTestId('coords-disclosure').locator('xpath=../following-sibling::div[1]');
+    expect(await isOneLine(fields.locator(':scope > div'))).toBe(true);
+    await page.getByLabel('Coordinates (lat, lon)').fill('-38.93, -67.99');
+    await expect(page.getByTestId('save-favourite')).toBeVisible();
+    await disclosure.click();
+    await expect(page.getByLabel('Coordinates (lat, lon)')).toBeHidden();
+  });
+});
+
+test.describe('the focus ring on the phone (FR-X-5, D-500)', () => {
+  test('the way back is ringed round its own line, clear of the header and the first heading', async ({ page }) => {
+    await seedStoredRun(page);
+    // Opened without a pointer, so the page's own focus on the way back is drawn with a
+    // ring: `:focus-visible` is the state this rule is about.
+    await page.evaluate(() => {
+      window.location.hash = 'settings';
+    });
+    const back = page.getByTestId('settings-back');
+    await expect(back).toBeFocused();
+    const ring = await back.evaluate((element: HTMLElement) => {
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      // The ring reaches its offset plus its own width past the box it is drawn on.
+      const reach = parseFloat(style.outlineOffset) + parseFloat(style.outlineWidth);
+      return { top: rect.top - reach, bottom: rect.bottom + reach, height: rect.height };
+    });
+    // The ring is drawn round the text line, not round the 48 px tap box.
+    expect(ring.height).toBeLessThanOrEqual(26);
+    const box = (locator: Locator): Promise<DOMRect> => locator.evaluate((el: HTMLElement) => el.getBoundingClientRect().toJSON() as DOMRect);
+    const [above, below] = await Promise.all([box(page.getByTestId('header')), box(page.getByRole('heading', { level: 2, name: 'Location' }))]);
+    expect(above.bottom).toBeLessThanOrEqual(ring.top);
+    expect(below.top).toBeGreaterThanOrEqual(ring.bottom);
+  });
+});
+
 test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', () => {
   test.use({ viewport: WIDE });
 
@@ -155,6 +312,28 @@ test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', ()
     // The wide home keeps the whole form: the summary is the compact layout's line (US-20 AC5).
     await expect(page.getByRole('region', { name: 'Location' })).toBeVisible();
     await expect(page.getByTestId('location-summary')).toHaveCount(0);
+  });
+
+  test('[ Live sky ] is drawn on the title’s own line (FR-DESK-2, D-501)', async ({ page }) => {
+    await seedStoredRun(page);
+    const header = page.getByTestId('header');
+    const [title, live] = await Promise.all([textLine(header.getByRole('heading', { level: 1 })), textLine(page.getByTestId('live-link'))]);
+    expect(live).toEqual(title);
+  });
+
+  test('the focus ring on [ Live sky ] clears the tagline under it (FR-X-5, D-500)', async ({ page }) => {
+    await seedStoredRun(page);
+    const live = page.getByTestId('live-link');
+    await live.focus();
+    const ring = await live.evaluate((element: HTMLElement) => {
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      const reach = parseFloat(style.outlineOffset) + parseFloat(style.outlineWidth);
+      return { bottom: rect.bottom + reach, height: rect.height };
+    });
+    expect(ring.height).toBeLessThanOrEqual(26);
+    const tagline = await page.getByText('Naked-eye satellite passes', { exact: false }).evaluate((el: HTMLElement) => el.getBoundingClientRect().toJSON() as DOMRect);
+    expect(ring.bottom).toBeLessThanOrEqual(tagline.top);
   });
 
   test('renders #settings when navigated to, at a width that links to it from nowhere (FR-COMP-2)', async ({ page }) => {

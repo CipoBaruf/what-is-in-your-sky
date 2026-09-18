@@ -158,6 +158,21 @@ a,
   vertical-align: baseline;
 }
 
+/* R75 (FR-X-5): the ring is drawn round the text line, not round the tap box.
+   That box is padding plus a matching negative margin, so it stands a quarter
+   row into the line above and the line below while the layout only reserves
+   the text line; an outline on it crossed its neighbours' words. Dropping both
+   while the ring is shown leaves the line box exactly where it was — they
+   cancelled each other — so nothing moves and nothing reflows. Nothing else
+   is painted on that box: every inline control draws its own text and its
+   brackets, and the raised grounds in the app belong to tooltips, not to the
+   controls that open them. */
+a:focus-visible,
+.inline-control:focus-visible {
+  padding-block: 0;
+  margin-block: 0;
+}
+
 /* Visually hidden, read by assistive technology. */
 .sr-only {
   position: absolute;
