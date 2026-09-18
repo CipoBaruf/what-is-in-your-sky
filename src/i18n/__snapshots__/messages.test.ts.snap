@@ -119,6 +119,7 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".guide.toList:string",
   ".home.coldHeading:string",
   ".home.coldSentence:string",
+  ".home.darkUntil:function",
   ".home.darkWindow:function",
   ".home.noDarkWindow:string",
   ".home.panes.what:string",

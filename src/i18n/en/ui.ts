@@ -209,6 +209,8 @@ export const ui = {
     coldSentence: 'A pass looks the same from anywhere within a few kilometres, so city-level is enough. Pick any one.',
     /** FR-FIRST-4: tonight's dark window, the first `dark` band of the night. */
     darkWindow: (p: { from: string; to: string }) => `Dark ${p.from} → ${p.to}`,
+    /** FR-FIRST-4: darkness that began before the day the bands cover — a polar winter — has no dusk to name. */
+    darkUntil: (to: string) => `Dark until ${to}`,
     noDarkWindow: 'No full darkness tonight.',
   },
 

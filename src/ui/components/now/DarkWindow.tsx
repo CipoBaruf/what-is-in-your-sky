@@ -12,13 +12,16 @@ import styles from './DarkWindow.module.css';
  * R76 (FR-FIRST-4): tonight's dark window, "Dark 20:14 → 05:31" — the first
  * `dark` band of the night from the same bands the live page's stripe shades
  * (FR-LIVE-4, `useSkyBands`), so the two can never disagree about when it is
- * dark. The bands are sampled from half a day back, so a window that is already
- * open is named by the dusk it opened at rather than by the first sample.
+ * dark. The bands are sampled from a day back, so a window that is already open
+ * is named by the dusk it opened at rather than by the first sample — at any
+ * latitude whose night has a dusk within the day. Where darkness has held
+ * longer than that, a polar winter, there is no dusk to name and the line says
+ * when it ends instead.
  * Nothing until the astronomy chunk has landed: the line is complete without
  * it, as the stripe is without its shading.
  */
 export const DARK_WINDOW_CHECK_MS = 60_000;
-const BACK_MS = 12 * HOUR_MS;
+const BACK_MS = 24 * HOUR_MS;
 const AHEAD_MS = 24 * HOUR_MS;
 
 /** The first dark band still open at `now`, or the next one to open; null when the day ahead has none. */
@@ -26,9 +29,16 @@ export function tonightsDark(bands: readonly SkyBand[], now: EpochMs): SkyBand |
   return bands.find((band) => band.sky === 'dark' && band.to > now) ?? null;
 }
 
-export function darkWindowText(band: SkyBand | null, timeZone: string | null, locale: Locale, t: Messages): string {
+/**
+ * The line for that band. `sampledFrom` is the first instant the bands cover:
+ * a band reaching it began before anything sampled, so its `from` is the edge
+ * of the sample and not a dusk, and the line names only the end.
+ */
+export function darkWindowText(band: SkyBand | null, sampledFrom: EpochMs, timeZone: string | null, locale: Locale, t: Messages): string {
   if (!band) return t.home.noDarkWindow;
-  return t.home.darkWindow({ from: formatShortClock(band.from, timeZone, locale, true), to: formatShortClock(band.to, timeZone, locale) });
+  const to = formatShortClock(band.to, timeZone, locale);
+  if (band.from <= sampledFrom) return t.home.darkUntil(to);
+  return t.home.darkWindow({ from: formatShortClock(band.from, timeZone, locale, true), to });
 }
 
 export function DarkWindow({ observer }: { observer: Observer }) {
@@ -42,7 +52,7 @@ export function DarkWindow({ observer }: { observer: Observer }) {
   if (bands.length === 0) return null;
   return (
     <p className={styles.line} data-testid="dark-window">
-      {darkWindowText(tonightsDark(bands, now), observer.timeZone, locale, t)}
+      {darkWindowText(tonightsDark(bands, now), span.start, observer.timeZone, locale, t)}
     </p>
   );
 }

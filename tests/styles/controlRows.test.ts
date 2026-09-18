@@ -112,7 +112,7 @@ const rows = (t: Messages): readonly Row[] => [
   { name: 'the compact header (FR-COMP-1)', element: createElement(Header), find: () => screen.getByTestId('header') },
   {
     name: 'the location summary (FR-COMP-3)',
-    element: createElement(LocationSummary),
+    element: createElement(LocationSummary, { open: false, onToggle: () => undefined, controls: 'where-group' }),
     find: () => screen.getByTestId('location-summary'),
     setUp: () => {
       appStore.setState({ observer });

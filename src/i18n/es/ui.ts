@@ -156,6 +156,7 @@ export const ui: typeof EnUi = {
     coldHeading: '¿Desde dónde se va a mirar?',
     coldSentence: 'Un pase se ve igual desde cualquier punto a unos pocos kilómetros, así que basta con la ciudad. Cualquiera de los tres sirve.',
     darkWindow: (p) => `Oscuro ${p.from} → ${p.to}`,
+    darkUntil: (to) => `Oscuro hasta las ${to}`,
     noDarkWindow: 'Esta noche no llega a estar oscuro del todo.',
   },
 
