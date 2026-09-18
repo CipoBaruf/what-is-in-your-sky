@@ -494,7 +494,23 @@
 .screen[data-orientation='portrait'] {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  /* The slots carry the framed chart's `grid-area` names; a screen names its own five, or the named areas would
+     place them in implicit columns. */
+  grid-template-areas:
+    'status'
+    'headline'
+    'drawing'
+    'legend'
+    'gutter';
   container-type: size;
+}
+
+.screen[data-orientation='portrait'] .headline {
+  grid-area: headline;
+}
+
+.screen[data-orientation='portrait'] .gutter {
+  grid-area: gutter;
 }
 
 .screen[data-orientation='portrait'] .status {
@@ -506,6 +522,10 @@
 
 .screen[data-orientation='portrait'] .headline {
   padding: 0 var(--cell) calc(var(--row) / 2);
+}
+
+.screen[data-orientation='portrait'] .overlay {
+  grid-area: 1 / 1 / -1 / -1;
 }
 
 .screen[data-orientation='portrait'] .drawing {

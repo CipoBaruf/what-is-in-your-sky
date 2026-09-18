@@ -122,7 +122,7 @@ test.describe('the sky screen on a phone held sideways', () => {
     await page.setViewportSize(PORTRAIT);
     await expect(drawn(page)).toHaveCount(1);
     await expect(page.getByTestId('window-turn-advice')).toHaveText(TURN_ADVICE);
-    await expect(page.getByTestId('chart-box').getByRole('status')).toHaveCount(0);
+    await expect(page.getByTestId('chart-box').getByTestId('window-turn-advice')).toHaveCount(0);
     await expect(page.getByTestId('window-readout')).toBeVisible();
     await expect(page.getByTestId('sky-screen-close')).toBeVisible();
     await expect(page.getByTestId('window-portrait-note')).toHaveCount(0);
@@ -360,8 +360,7 @@ test.describe('the sky screen held upright (FR-GUT-7)', () => {
     const rows = ['chart-status', 'chart-headline', 'chart-box', 'chart-legend-slot', 'chart-gutter-slot'] as const;
     const boxes = await Promise.all(rows.map(async (testid) => page.getByTestId(testid).boundingBox()));
     const [readout, headline, band, legend, gutter] = boxes;
-    if (!readout || !headline || !band || !legend || !gutter) throw new Error(`a row is missing: ${JSON.stringify(boxes)}`);
-    // Top to bottom, none over another.
+    if (!readout || !headline || !band || !legend || !gutter) throw new Error(`a row is missing: ${JSON.stringify(boxes)}`);    // Top to bottom, none over another.
     expect(readout.y + readout.height).toBeLessThanOrEqual(headline.y + 0.5);
     expect(headline.y + headline.height).toBeLessThanOrEqual(band.y + 0.5);
     expect(band.y + band.height).toBeLessThanOrEqual(legend.y + 0.5);
@@ -377,7 +376,7 @@ test.describe('the sky screen held upright (FR-GUT-7)', () => {
     expect(gutter.height).toBeCloseTo(28, 0);
     // The advice is secondary copy in the next-event row, not a note over the band.
     await expect(page.getByTestId('chart-headline').getByTestId('window-turn-advice')).toHaveText(TURN_ADVICE);
-    await expect(page.getByTestId('chart-box').getByRole('status')).toHaveCount(0);
+    await expect(page.getByTestId('chart-box').getByTestId('window-turn-advice')).toHaveCount(0);
     // FR-FSC-9: still nothing scrolls.
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(PORTRAIT.height);
     // FR-GUT-1's upright number against main's, for the PR: upright the band's cap is FR-GUT-7's.

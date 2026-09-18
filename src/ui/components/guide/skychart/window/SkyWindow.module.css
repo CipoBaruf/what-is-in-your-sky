@@ -269,6 +269,8 @@
 .chip {
   position: absolute;
   left: 50%;
+  /* Shrink-to-fit would stop at the half of the box right of `left: 50%`; the words' own width, capped at the box's. */
+  width: max-content;
   max-width: calc(100% - 2 * var(--cell));
   box-sizing: border-box;
   margin: 0;
