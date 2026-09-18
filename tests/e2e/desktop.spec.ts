@@ -149,7 +149,9 @@ test('wide: two columns at the mid width, the guide beside a live list in three 
   if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
   const passId = `25544-${String(golden.start.t)}`;
   await page.setViewportSize(MID);
-  await loadWithPasses(page);
+  // Settled: this test resizes the page between its halves, long enough for the recompute behind the stored run
+  // to land mid-test and re-render the list between reading a card's id and clicking it.
+  await seedStoredRun(page, { settled: true });
 
   // FR-DESK-1: the breakpoint the stylesheet uses really is 100 cells wide
   // here. R50 (F-10): "at least", not "exactly" — one literal is a different
