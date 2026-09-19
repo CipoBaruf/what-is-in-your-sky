@@ -1877,7 +1877,7 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: a phone held up, sideways and upright, with a pass in the field and with none — a bearing's sign looks right in a unit test and is backwards in the hand (R73's argument).
 
-- [ ] **R82 — The phone's first visit: three steps, then stacked**
+- [x] **R82 — The phone's first visit: three steps, then stacked**
   - **Lane:** ui
   - **Crossings (§16.16):** none — `src/lib/moonNote.ts` is `ui`'s own (D-513).
   - **Model:** opus
@@ -1905,6 +1905,7 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
     - Captures (FR-FIRST-7): the when and what steps at 390 × 844, both themes and both languages, measured in the browser against the numbers FR-FIRST-4 gives (D-504's method).
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: a first visit on a phone from a clean browser, through the three steps, and a reload.
+  - **Note (R82):** done as written, with D-521..D-525 for what the entry left open; one line outside the lane — `SkyWindow.tsx` passes the observer's zone to `NextEventBlock`, which `main`'s typecheck needed after R79 and R81 merged.
 
 - [ ] **R78 — The two short shapes: the landscape phone's rail and the short wide window's overlay**
   - **Lane:** live

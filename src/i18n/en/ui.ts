@@ -1,5 +1,6 @@
 import type { AgeParts } from '../../lib/elementsAge';
 import type { CompassPoint } from '../../lib/compass';
+import type { MoonNote } from '../../lib/moonNote';
 import type { MoonFacts, MoonGlareFacts, MoonLoreParams, MoonPeakFacts } from '../../lib/moonPhrases';
 import type { BrightnessBand, ElevationBand, GuideParams } from '../../lib/phrases';
 import type { NextEventKind, NoEventReason } from '../../lib/nextEvent';
@@ -95,6 +96,9 @@ const moonPhase = {
   lastQuarter: 'last quarter',
   waningCrescent: 'waning crescent',
 } satisfies Record<MoonPhaseName, string>;
+
+/** R82 (D-513): the what step's count in words, one to twelve; figures after. */
+const numberWords = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
 
 
 export const ui = {
@@ -235,6 +239,50 @@ export const ui = {
     moonRow: (p: { phase: MoonPhaseName; illumination: string; point: CompassPoint | null }) => `${moonPhase[p.phase]}, ${p.illumination} %${p.point === null ? '' : `, ${p.point}`}`,
     /** FR-FIRST-9 (US-4 AC3 as amended v2.0.2): the first satellite up, its time left, and how many more. */
     upNow: (p: { name: string; left: string | null; more: number }) => `${p.name}${p.left === null ? '' : ` · ${p.left} left`}${p.more > 0 ? ` +${String(p.more)}` : ''}`,
+    /**
+     * R82 (FR-FIRST-4 as amended v2.0.2, D-513): the phone's **what** step's heading — the count in words to
+     * twelve, figures after it (`Five things cross tonight`, `13 things cross tonight`).
+     */
+    count: (n: number) => {
+      if (n === 0) return 'Nothing crosses tonight';
+      if (n === 1) return 'One thing crosses tonight';
+      return `${n <= 12 ? capitalise(numberWords[n] ?? String(n)) : String(n)} things cross tonight`;
+    },
+    /** R82 (FR-FIRST-4 as amended v2.0.2): the phone's **when** step. */
+    whenStep: {
+      heading: 'When is it dark enough?',
+      sentence: (place: string) => `${place}, tonight. Satellites are only lit in the dark band between dusk and dawn.`,
+      nightLabel: 'Tonight’s dark band',
+      skyLabel: 'Tonight’s sky',
+      darkFrom: 'Dark from',
+      until: 'Until',
+      passesIn: 'Passes in it',
+      passesValue: (p: { tonight: number; total: number; hours: number }) => `${String(p.tonight)} tonight, ${String(p.total)} in ${String(p.hours)} h`,
+      clouds: 'Clouds tonight',
+      /** The cloud word's tooltip: the instant it is judged at. */
+      cloudsMoment: 'in the middle of the dark band',
+      moon: 'Moon',
+      moonValue: (p: { phase: MoonPhaseName; illumination: string }) => `${moonPhase[p.phase]}, ${p.illumination} % lit`,
+      /** D-513: by whether the Moon is up and at least `MOON_BRIGHT_PCT` lit inside the dark window (`lib/moonNote`). */
+      moonNote: (note: MoonNote) => `A bright moon washes out the faint ones. ${note === 'bright' ? 'Tonight it will.' : 'Tonight it will not.'}`,
+      next: 'See what crosses',
+    },
+    /** R82 (FR-FIRST-4 as amended v2.0.2): the phone's **what** step. */
+    whatStep: {
+      sentence: 'Each one is a steady point of light, moving about as fast as a high aircraft, with no blinking.',
+      moreTonight: (n: number) => `${String(n)} more tonight`,
+      moreNights: (n: number) => (n === 1 ? '1 more night' : `${String(n)} more nights`),
+      /**
+       * The foot line's pieces, `Cipolletti · dark 20:14–05:31 · clear`; it breaks between them on a narrow screen.
+       * `dark` is `'none'` on a night with no dark band, and null before the bands are known (the piece is left out).
+       */
+      foot: (p: { place: string; dark: { from: string; to: string } | 'none' | null; cloud: CloudState }): string[] => [
+        p.place,
+        ...(p.dark === null ? [] : [p.dark === 'none' ? 'no full darkness' : `dark ${p.dark.from}–${p.dark.to}`]),
+        cloudState[p.cloud].toLowerCase(),
+      ],
+      edit: 'edit',
+    },
   },
 
   /**

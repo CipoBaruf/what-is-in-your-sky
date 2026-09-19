@@ -20,7 +20,7 @@ import type { Locale, Observer } from '../../model';
 import { appStore, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { App } from '../App';
-import { WhereReading } from './Home';
+import { Home, WhereReading, type HomeProps } from './Home';
 
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
@@ -177,10 +177,14 @@ describe.each([
  * field they are typing in has to be the same field afterwards, still focused,
  * with the group left open under the location line; a place that arrives any
  * other way folds the group away.
+ *
+ * R82 (D-513): on a phone the first visit's where step holds the page until
+ * the field is left (below); this is the desk's page, which has no steps, and
+ * a phone's stacked page reached from `[ change ]` is the same component.
  */
 describe('the group across the cold open and the readings', () => {
   beforeEach(() => {
-    media = stubMatchMedia(COMPACT_PX);
+    media = stubMatchMedia(WIDE_PX);
   });
 
   it('keeps the field being typed in, focused and open, when the typing sets the place — and when it clears it', () => {
@@ -256,5 +260,195 @@ describe('once there is a place (FR-FIRST-3, FR-FIRST-4)', () => {
     });
     render(<App />);
     expect(screen.getByTestId('next-event-none')).toHaveTextContent(en.nextEvent.none({ reason: 'no-darkness', hours: 72 }));
+  });
+});
+
+/**
+ * R82 (FR-FIRST-4 as amended v2.0.2, US-26 AC3, D-513): a phone's first visit
+ * is three steps — where, when, what — one screen each, under the step line
+ * with a ✓ on a finished step; every later visit is the stacked page.
+ */
+describe('the phone’s first visit (FR-FIRST-4, D-513)', () => {
+  const found = { coords: { latitude: -38.93, longitude: -67.99, altitude: null, accuracy: 30 }, timestamp: 0 };
+  const deviceFinds: typeof device = {
+    geolocation: {
+      getCurrentPosition: (ok: PositionCallback) => {
+        ok(found as unknown as GeolocationPosition);
+      },
+    } as unknown as Geolocation,
+    secure: true,
+  };
+  const onOpenPass = vi.fn();
+  const home = (props: Partial<HomeProps> = {}) => <Home offersInert={false} guide="closed" shareNotice={null} selectedPassId={null} onOpenPass={onOpenPass} passDetail={null} MoonLore={undefined} geolocation={deviceFinds} {...props} />;
+  const items = () => within(screen.getByTestId('step-line')).getAllByRole('listitem');
+  const withTheRun = () => {
+    act(() => {
+      const current = appStore.getState().observer;
+      appStore.setState({ elements: { ...ready, stale: false }, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: current, passes: [pass], hasDarkness: true } });
+    });
+  };
+
+  beforeEach(() => {
+    vi.spyOn(Date, 'now').mockReturnValue(pass.start.t - 12 * 60_000);
+    media = stubMatchMedia(COMPACT_PX);
+  });
+
+  it('walks where → when → what with no navigation, and [ edit ] returns to where with the group open', () => {
+    const hash = window.location.hash;
+    render(home());
+    // where: the cold open, under the step line with nothing finished.
+    const where = screen.getByTestId('cold-open');
+    expect(where).toHaveAttribute('data-step', 'where');
+    expect(items().map((item) => item.textContent)).toEqual(['[01] where', '02 when', '03 what']);
+    expect(within(screen.getByTestId('step-line')).queryByRole('button')).toBeNull();
+
+    // The device button moves where to when.
+    fireEvent.click(within(where).getByRole('button', { name: en.location.useMyLocation }));
+    expect(appStore.getState().observer).not.toBeNull();
+    withTheRun();
+    const when = screen.getByTestId('step-when');
+    expect(screen.queryByTestId('cold-open')).toBeNull();
+    expect(items().map((item) => item.textContent)).toEqual(['01 where ✓', '[02] when', '03 what']);
+    expect(items()[1]).toHaveAttribute('aria-current', 'step');
+    // Its inventory, in order: the step line, the heading and its sentence, the night's box, the sky's box, the control.
+    const heading = within(when).getByRole('heading', { level: 2, name: en.home.whenStep.heading });
+    expect(heading).toHaveFocus();
+    const sentence = within(when).getByText(en.home.whenStep.sentence('−38.93, −67.99'));
+    const night = within(when).getByTestId('when-night');
+    const sky = within(when).getByTestId('when-sky');
+    const next = within(when).getByRole('button', { name: en.home.whenStep.next });
+    expect([...when.children]).toEqual([screen.getByTestId('step-line'), heading, sentence, night, sky, next]);
+    expect(within(night).getByText(en.home.whenStep.passesIn)).toBeInTheDocument();
+    expect(within(night).getByTestId('when-passes')).toHaveTextContent('1 tonight, 1 in 72 h');
+    expect(within(sky).getByText(en.home.whenStep.clouds)).toBeInTheDocument();
+
+    // [ See what crosses ] moves on to what.
+    fireEvent.click(next);
+    const what = screen.getByTestId('step-what');
+    expect(items().map((item) => item.textContent)).toEqual(['01 where ✓', '02 when ✓', '[03] what']);
+    const count = within(what).getByRole('heading', { level: 2, name: en.home.count(1) });
+    expect(count).toHaveTextContent('One thing crosses tonight');
+    expect(count).toHaveFocus();
+    const whatSentence = within(what).getByText(en.home.whatStep.sentence);
+    const cards = within(what).getByTestId('what-cards');
+    const foot = within(what).getByTestId('what-foot');
+    expect([...what.children]).toEqual([screen.getByTestId('step-line'), count, whatSentence, cards, foot]);
+    // The first card is FR-FIRST-3's first-card form; the foot is ruled off with `[ edit ]` at its end.
+    expect(within(cards).getByTestId('next-event')).toHaveAttribute('data-form', 'card');
+    expect(within(cards).getByTestId('next-event-label')).toHaveTextContent(/^First up · in 12:00$/);
+    expect(foot).toHaveTextContent(/^−38\.93, −67\.99 · .+edit$/);
+    expect(foot.lastElementChild).toBe(within(foot).getByRole('button', { name: en.home.whatStep.edit }));
+
+    // [ edit ] returns to where, with the group open and the place kept; the finished steps are the way back.
+    fireEvent.click(within(foot).getByRole('button', { name: en.home.whatStep.edit }));
+    const again = screen.getByTestId('cold-open');
+    expect(again).toHaveAttribute('data-step', 'where');
+    expect(within(again).getByTestId('location-group')).toBeVisible();
+    expect(within(again).getByRole('heading', { level: 2, name: en.home.coldHeading })).toHaveFocus();
+    expect(items().map((item) => item.textContent)).toEqual(['[01] where', '02 when ✓', '03 what ✓']);
+    expect(appStore.getState().observer).not.toBeNull();
+    fireEvent.click(screen.getByTestId('step-back-when'));
+    expect(screen.getByTestId('step-when')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('step-back-where'));
+    expect(screen.getByTestId('cold-open')).toBeInTheDocument();
+
+    // The step is the page's own state: not in the hash.
+    expect(window.location.hash).toBe(hash);
+  });
+
+  it('holds the where step while a coordinate pair is typed, and moves on only when the field is left (D-467)', () => {
+    render(home());
+    const field = screen.getByLabelText(en.location.coordsLabel);
+    field.focus();
+    fireEvent.change(field, { target: { value: '-38.93, -67' } });
+    fireEvent.change(field, { target: { value: '-38.93, -67.99' } });
+    // The pair is the observer at its first valid keystroke, and the page has not moved from under the reader.
+    expect(appStore.getState().observer).toMatchObject({ lat: -38.93, lon: -67.99, source: 'coords' });
+    expect(screen.getByTestId('cold-open')).toHaveAttribute('data-step', 'where');
+    expect(screen.getByLabelText(en.location.coordsLabel)).toBe(field);
+    expect(field).toHaveFocus();
+    fireEvent.change(field, { target: { value: '-38.93, -67.9' } });
+    expect(field).toHaveFocus();
+    expect(screen.queryByTestId('step-when')).toBeNull();
+
+    // Leaving the field is what moves it.
+    act(() => {
+      field.blur();
+    });
+    expect(screen.getByTestId('step-when')).toBeInTheDocument();
+  });
+
+  it('moves on from a typed pair on Enter', () => {
+    render(home());
+    const field = screen.getByLabelText(en.location.coordsLabel);
+    field.focus();
+    fireEvent.change(field, { target: { value: '-38.93, -67.99' } });
+    expect(screen.queryByTestId('step-when')).toBeNull();
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(screen.getByTestId('step-when')).toBeInTheDocument();
+  });
+
+  it('opens on the stacked page, and never a step, with a place at mount', () => {
+    act(() => {
+      appStore.setState({ observer });
+    });
+    withTheRun();
+    render(home());
+    expect(screen.getByTestId('reading-where')).toBeInTheDocument();
+    expect(screen.getByTestId('reading-when')).toBeInTheDocument();
+    expect(screen.getByTestId('list-column')).toBeInTheDocument();
+    for (const id of ['step-line', 'step-when', 'step-what', 'cold-open']) expect(screen.queryByTestId(id)).toBeNull();
+    // A new place from the group under `[ change ]` does not start the steps either.
+    act(() => {
+      appStore.setState({ observer: { ...observer, lat: -38.9, label: '−38.90, −67.99' } });
+    });
+    expect(screen.queryByTestId('step-when')).toBeNull();
+  });
+
+  it('shows the what step’s more controls, each opening its cards in place', () => {
+    const at = (minutes: number, id: string) => ({ ...pass, id, start: { ...pass.start, t: pass.start.t + minutes * 60_000 }, peak: { ...pass.peak, t: pass.peak.t + minutes * 60_000 }, end: { ...pass.end, t: pass.end.t + minutes * 60_000 } });
+    const tonight = [pass, at(30, 'b'), at(60, 'c'), at(90, 'd'), at(120, 'e')];
+    const window = { startMs: pass.start.t - 3_600_000, endMs: pass.start.t - 3_600_000 + 72 * 3_600_000 };
+    const later = [at(24 * 60, 'f'), at(48 * 60, 'g')];
+    render(home());
+    fireEvent.click(screen.getByRole('button', { name: en.location.useMyLocation }));
+    act(() => {
+      appStore.setState({ elements: { ...ready, stale: false }, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: appStore.getState().observer, passes: [...tonight, ...later], hasDarkness: true, window } });
+    });
+    expect(screen.getByTestId('when-passes')).toHaveTextContent('5 tonight, 7 in 72 h');
+    fireEvent.click(screen.getByTestId('see-what'));
+    const what = screen.getByTestId('step-what');
+    expect(within(what).getByRole('heading', { level: 2, name: 'Five things cross tonight' })).toHaveFocus();
+    // The first card and two more, then `[ 2 more tonight ]   [ 2 more nights ]` (board 1B).
+    const cards = within(what).getByTestId('what-cards');
+    expect(within(cards).getAllByRole('article').map((card) => card.getAttribute('data-pass-id'))).toEqual(['b', 'c']);
+    expect(within(cards).getAllByRole('article')[0]).toHaveTextContent(/like|brighter|faint/i);
+    const more = within(what).getByTestId('what-more');
+    expect(within(more).getAllByRole('button').map((button) => button.textContent)).toEqual(['2 more tonight', '2 more nights']);
+    fireEvent.click(within(more).getByTestId('more-tonight'));
+    expect(within(cards).getAllByRole('article').map((card) => card.getAttribute('data-pass-id'))).toEqual(['b', 'c', 'd', 'e']);
+    fireEvent.click(within(what).getByTestId('more-nights'));
+    expect(within(cards).getAllByRole('article').map((card) => card.getAttribute('data-pass-id'))).toEqual(['b', 'c', 'd', 'e', 'f', 'g']);
+    expect(within(what).getAllByTestId('what-night')).toHaveLength(2);
+    expect(within(what).queryByTestId('what-more')).toBeNull();
+    // A card is the control that opens its pass.
+    fireEvent.click(within(within(cards).getAllByRole('article')[0] as HTMLElement).getByRole('button'));
+    expect(onOpenPass).toHaveBeenCalledWith('b');
+  });
+});
+
+describe('home.count (D-513)', () => {
+  it.each([
+    ['en', ['One thing crosses tonight', 'Two things cross tonight', 'Three things cross tonight', 'Four things cross tonight', 'Five things cross tonight', 'Six things cross tonight', 'Seven things cross tonight', 'Eight things cross tonight', 'Nine things cross tonight', 'Ten things cross tonight', 'Eleven things cross tonight', 'Twelve things cross tonight'], '13 things cross tonight'],
+    [
+      'es',
+      ['Esta noche hay un pase', 'Esta noche hay dos pases', 'Esta noche hay tres pases', 'Esta noche hay cuatro pases', 'Esta noche hay cinco pases', 'Esta noche hay seis pases', 'Esta noche hay siete pases', 'Esta noche hay ocho pases', 'Esta noche hay nueve pases', 'Esta noche hay diez pases', 'Esta noche hay once pases', 'Esta noche hay doce pases'],
+      'Esta noche hay 13 pases',
+    ],
+  ] as const)('writes the count in words from one to twelve and in figures past it (%s)', (locale, words, past) => {
+    const t = CATALOG[locale];
+    expect(Array.from({ length: 12 }, (_, index) => t.home.count(index + 1))).toEqual(words);
+    expect(t.home.count(13)).toBe(past);
+    expect(t.home.count(40)).toBe(past.replace('13', '40'));
   });
 });
