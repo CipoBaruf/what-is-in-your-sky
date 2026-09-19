@@ -44,6 +44,8 @@ export const live = {
     skyLabel: 'Sky',
     cloudLabel: 'Clouds',
     countLabel: 'Up',
+    /** The compact count's spoken label: its value already says `3 up`. */
+    countSpoken: 'Satellites',
     moonLabel: 'Moon',
     /** The sky state in words (FR-LIVE-3, `SkyState`). */
     sky: { day: 'day', 'bright-twilight': 'bright twilight', dark: 'dark' } satisfies Record<SkyState, string>,

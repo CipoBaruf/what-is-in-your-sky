@@ -178,7 +178,7 @@ function render(t: Messages): string[] {
     t.chart.legend.label,
     ...Object.values(t.chart.legend.state),
     t.chart.legend.sun({ azimuth: '285°', altitude: '−8.0°' }),
-    t.chart.legend.moon({ glyph: '◕', azimuth: '120°', altitude: '+31.2°' }),
+    t.chart.legend.moon({ glyph: '◕', phase: t.moon.phase.waxingGibbous, illumination: '72', azimuth: '120°', altitude: '+31.2°' }),
     t.chart.domeGroup,
     t.chart.domeHint,
     t.chart.readout({ point: 'SSW', azimuth: '203°', tilt: '25°' }),
