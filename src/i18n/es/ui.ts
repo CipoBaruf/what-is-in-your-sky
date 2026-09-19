@@ -209,7 +209,7 @@ export const ui: typeof EnUi = {
       sentence: 'Cada uno es un punto de luz fijo, que se mueve más o menos tan rápido como un avión alto, sin parpadear.',
       moreTonight: (n) => `${String(n)} más esta noche`,
       moreNights: (n) => (n === 1 ? '1 en otra noche' : `${String(n)} en otras noches`),
-      foot: (p) => [p.place, p.dark === null ? 'sin oscuridad total' : `oscuro ${p.dark.from}–${p.dark.to}`, cloudState[p.cloud].toLowerCase()],
+      foot: (p) => [p.place, ...(p.dark === null ? [] : [p.dark === 'none' ? 'sin oscuridad total' : `oscuro ${p.dark.from}–${p.dark.to}`]), cloudState[p.cloud].toLowerCase()],
       edit: 'editar',
     },
   },

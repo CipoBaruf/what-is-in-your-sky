@@ -272,8 +272,15 @@ export const ui = {
       sentence: 'Each one is a steady point of light, moving about as fast as a high aircraft, with no blinking.',
       moreTonight: (n: number) => `${String(n)} more tonight`,
       moreNights: (n: number) => (n === 1 ? '1 more night' : `${String(n)} more nights`),
-      /** The foot line's pieces, `Cipolletti · dark 20:14–05:31 · clear`; it breaks between them on a narrow screen. */
-      foot: (p: { place: string; dark: { from: string; to: string } | null; cloud: CloudState }) => [p.place, p.dark === null ? 'no full darkness' : `dark ${p.dark.from}–${p.dark.to}`, cloudState[p.cloud].toLowerCase()],
+      /**
+       * The foot line's pieces, `Cipolletti · dark 20:14–05:31 · clear`; it breaks between them on a narrow screen.
+       * `dark` is `'none'` on a night with no dark band, and null before the bands are known (the piece is left out).
+       */
+      foot: (p: { place: string; dark: { from: string; to: string } | 'none' | null; cloud: CloudState }): string[] => [
+        p.place,
+        ...(p.dark === null ? [] : [p.dark === 'none' ? 'no full darkness' : `dark ${p.dark.from}–${p.dark.to}`]),
+        cloudState[p.cloud].toLowerCase(),
+      ],
       edit: 'edit',
     },
   },

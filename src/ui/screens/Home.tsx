@@ -1,4 +1,4 @@
-import { Suspense, useId, useRef, useState, type LazyExoticComponent, type ReactNode } from 'react';
+import { Suspense, useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent, type LazyExoticComponent, type ReactNode } from 'react';
 import { useT } from '../../i18n/useT';
 import type { Observer, Pass } from '../../model';
 import { searchPlaces, SEARCH_WINDOW_HOURS, useAppStore } from '../../state';
@@ -21,6 +21,10 @@ import { useTonight } from '../components/now/useTonight';
 import { NextEventBlock } from '../components/passes/NextEventBlock';
 import { PassList } from '../components/passes/PassList';
 import { useLayoutMode } from '../hooks/useLayoutMode';
+import { StepLine, stepLabel, STEPS, type Step } from './home/StepLine';
+import { usePassContext, useShownPasses } from './home/shownPasses';
+import { WhatStep } from './home/WhatStep';
+import { WhenStep } from './home/WhenStep';
 
 /**
  * R76 (FR-FIRST-1..FR-FIRST-6, D-443, D-444): the home page as three readings —
@@ -54,28 +58,7 @@ import { useLayoutMode } from '../hooks/useLayoutMode';
  * (`data-guide="pane"`) is the panel placed across the Where and When columns
  * with the list left in What (D-444).
  */
-export type Step = 'where' | 'when' | 'what';
-export const STEPS: readonly Step[] = ['where', 'when', 'what'];
-
-/** "[01] where" for the current step, "02 when" for the others (FR-FIRST-1's step line, the cold open's pane headings). */
-export function stepLabel(step: Step, current: boolean, word: string): string {
-  const number = String(STEPS.indexOf(step) + 1).padStart(2, '0');
-  return current ? `[${number}] ${word}` : `${number} ${word}`;
-}
-
-/** FR-FIRST-1: `[01] where — 02 when — 03 what`, the current step bracketed and in `--fg`, the others dim. */
-export function StepLine({ current }: { current: Step }) {
-  const t = useT();
-  return (
-    <ol className={styles.steps} aria-label={t.home.stepsLabel} data-testid="step-line">
-      {STEPS.map((step) => (
-        <li key={step} className={styles.stepItem} {...(step === current ? { 'aria-current': 'step' as const } : {})}>
-          {stepLabel(step, step === current, t.home.steps[step])}
-        </li>
-      ))}
-    </ol>
-  );
-}
+export { STEPS, StepLine, stepLabel, type Step } from './home/StepLine';
 
 /**
  * FR-FIRST-5 as amended v2.0.2: a populated reading's character-rule heading is
@@ -93,13 +76,15 @@ function Region({ step, className, testId, children }: { step: Step; className: 
   );
 }
 
-const NO_PASSES: readonly Pass[] = [];
-
-/** The stored run's passes as the list shows them: a stored run shows whatever the elements are doing (D-108). */
-function useShownPasses(): readonly Pass[] {
-  const elements = useAppStore((s) => s.elements);
-  const passes = useAppStore((s) => s.passes);
-  return passes.passes.length > 0 && (elements.status === 'ready' || passes.storedAt !== null) ? passes.passes : NO_PASSES;
+/** R82 (FR-FIRST-4 as amended v2.0.2, D-513): the phone's where step, as the Where reading draws it on a first visit. */
+interface WhereStep {
+  /** The furthest step this visit has reached, for the step line's finished items. */
+  reached: Step;
+  onGo: (step: Step) => void;
+  /** Take the focus on arrival: the reader came back here with `[ edit ]` or the step line. */
+  focus: boolean;
+  /** A typed coordinate pair is waiting to be left (blur or `Enter`) before the page moves on (D-467). */
+  onSettle?: () => void;
 }
 
 /**
@@ -108,10 +93,15 @@ function useShownPasses(): readonly Pass[] {
  * the step line's first item, in the accent — and the question alone, the
  * precision note at the group's foot saying what the sentence says.
  */
-function ColdHead({ headingId }: { headingId: string }) {
+function ColdHead({ headingId, step }: { headingId: string; step: WhereStep | undefined }) {
   const t = useT();
   const mode = useLayoutMode();
   const paneHeadingId = useId();
+  const heading = useRef<HTMLHeadingElement>(null);
+  const focus = step?.focus === true && mode !== 'wide';
+  useEffect(() => {
+    if (focus) heading.current?.focus();
+  }, [focus]);
   if (mode === 'wide') {
     return (
       <>
@@ -126,8 +116,8 @@ function ColdHead({ headingId }: { headingId: string }) {
   }
   return (
     <>
-      <StepLine current="where" />
-      <h2 id={headingId} className={styles.coldHeading}>
+      <StepLine current="where" {...(step ? { reached: step.reached, onGo: step.onGo } : {})} />
+      <h2 id={headingId} ref={heading} className={styles.coldHeading} {...(step ? { tabIndex: -1 } : {})}>
         {t.home.coldHeading}
       </h2>
       <p className={styles.coldSentence}>{t.home.coldSentence}</p>
@@ -180,6 +170,8 @@ export interface WhereReadingProps {
   offersInert: boolean;
   /** The browser's geolocation, for tests; the app reads the real one. */
   geolocation?: GeolocationEnv;
+  /** R82 (D-513): the phone's first visit — the cold open's look whether or not a place is set yet. */
+  step?: WhereStep;
 }
 
 /**
@@ -196,15 +188,21 @@ export interface WhereReadingProps {
  * focus with it. For the same reason, when the place arrives while the reader
  * is typing in the group, it stays open under the place; when it arrives any
  * other way — the device button, a saved place — the group folds away.
+ *
+ * R82 (D-513): on the phone's first visit this is the **where** step, and it
+ * keeps the cold open's look until the page moves on — also while a typed pair
+ * is already the observer, and when `[ edit ]` brings the reader back with a
+ * place set. A pair that is waiting moves the page on when the focus leaves
+ * the step or on `Enter` (`step.onSettle`), never on the keystroke.
  */
-export function WhereReading({ offersInert, geolocation }: WhereReadingProps) {
+export function WhereReading({ offersInert, geolocation, step }: WhereReadingProps) {
   const t = useT();
   const mode = useLayoutMode();
   const observer = useAppStore((s) => s.observer);
   const setObserver = useAppStore((s) => s.setObserver);
   const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
   const passes = useShownPasses();
-  const cold = observer === null;
+  const cold = observer === null || step !== undefined;
   const [open, setOpen] = useState(false);
   const [wasCold, setWasCold] = useState(cold);
   const group = useRef<HTMLDivElement>(null);
@@ -217,8 +215,26 @@ export function WhereReading({ offersInert, geolocation }: WhereReadingProps) {
     // eslint-disable-next-line react-hooks/refs -- the one DOM read that has to precede the commit
     if (!cold) setOpen(typingIn(group.current));
   }
+  const settle = step?.onSettle;
+  const settling = settle
+    ? {
+        onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+          if (event.key === 'Enter' && event.target instanceof HTMLInputElement) settle();
+        },
+        onBlur: (event: FocusEvent<HTMLElement>) => {
+          if (!(event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget))) settle();
+        },
+      }
+    : {};
   return (
-    <section {...(cold ? {} : { 'aria-labelledby': headingId })} className={cold ? `${styles.cold} ${styles.where}` : `${styles.reading} ${styles.where}`} data-testid={cold ? 'cold-open' : 'reading-where'} data-reading="where">
+    <section
+      {...(cold ? {} : { 'aria-labelledby': headingId })}
+      className={cold ? `${styles.cold} ${styles.where}` : `${styles.reading} ${styles.where}`}
+      data-testid={cold ? 'cold-open' : 'reading-where'}
+      data-reading="where"
+      {...(step ? { 'data-step': 'where' } : {})}
+      {...settling}
+    >
       {/* R28 (D-154): both offers sit at the head of the page, inside the region the open sheet makes inert
           and outside the live route. R49 (F-30): on wide nothing around them is made inert, so they are told
           directly. They head the cold open too: they are the page's statements about the app itself, shown
@@ -226,7 +242,7 @@ export function WhereReading({ offersInert, geolocation }: WhereReadingProps) {
           removes nothing the page had. */}
       <UpdateBanner inert={offersInert} />
       <InstallHint inert={offersInert} />
-      {cold ? <ColdHead headingId={coldHeadingId} /> : <SectionHeading id={headingId}>{t.home.panes.where}</SectionHeading>}
+      {cold ? <ColdHead headingId={coldHeadingId} step={step} /> : <SectionHeading id={headingId}>{t.home.panes.where}</SectionHeading>}
       {/* FR-FIRST-11: the place, its sentence, and `[ change ]` opening the group in place (FR-SET-3). */}
       {!cold && (
         <WherePlace
@@ -251,7 +267,7 @@ export function WhereReading({ offersInert, geolocation }: WhereReadingProps) {
           {...(geolocation ? { geolocation } : {})}
         />
       </div>
-      {observer && <WhereDome observer={observer} passes={passes} />}
+      {observer && !cold && <WhereDome observer={observer} passes={passes} />}
       {!cold && <ReadinessLine form="line" />}
       {!cold && <ElementsLine />}
       {!cold && <Favourites form="line" />}
@@ -260,12 +276,9 @@ export function WhereReading({ offersInert, geolocation }: WhereReadingProps) {
 }
 
 /** FR-FIRST-3's host on the home page: the stored run's passes, and why there may be none. */
-function NextEventHost({ observer, passes: shown }: { observer: Observer; passes: readonly Pass[] }) {
-  const elements = useAppStore((s) => s.elements);
-  const passes = useAppStore((s) => s.passes);
-  const elementCount = elements.status === 'ready' ? elements.records.length : elements.status === 'error' ? 0 : null;
-  const pending = elements.status === 'idle' || elements.status === 'loading' || (elementCount !== 0 && passes.status !== 'done' && passes.status !== 'error');
-  return <NextEventBlock passes={shown} timeZone={observer.timeZone} context={{ hasDarkness: passes.hasDarkness, elementCount }} pending={pending} hours={SEARCH_WINDOW_HOURS} />;
+function NextEventHost({ observer, passes }: { observer: Observer; passes: readonly Pass[] }) {
+  const { elementCount, hasDarkness, pending } = usePassContext();
+  return <NextEventBlock passes={passes} timeZone={observer.timeZone} context={{ hasDarkness, elementCount }} pending={pending} hours={SEARCH_WINDOW_HOURS} />;
 }
 
 /**
@@ -309,13 +322,122 @@ export interface HomeProps {
   geolocation?: GeolocationEnv;
 }
 
+/** What moves the where step on: a different place, not a new object for the same one (the forecast's zone replaces it). */
+const placeKey = (observer: Observer | null): string | null => (observer === null ? null : `${String(observer.lat)},${String(observer.lon)},${String(observer.altM)},${observer.label}`);
+
+/** Whether a text field has the focus: a coordinate pair that parsed under the reader's fingers (D-467). */
+function typingInAField(): boolean {
+  return typeof document !== 'undefined' && document.activeElement instanceof HTMLInputElement;
+}
+
+/**
+ * R82 (FR-FIRST-4 as amended v2.0.2, D-513): the phone's first visit as three
+ * steps. `step` is set once, at mount — `'where'` with no observer, `null`
+ * (the stacked page) with one — and is the page's own state: not stored, not
+ * in the hash, so every later visit, and a reload, opens on the stacked page.
+ *
+ * A place from the device button, a picked name or a saved place moves
+ * `where` to `when`. A typed pair is the observer at its first valid
+ * keystroke, and moving the page then would take the field from under the
+ * reader (D-467), so it is held until the field is left or `Enter` is pressed.
+ * On a desk there are no steps: the wide page is the cold open's three panes
+ * and then the populated ones, whatever the step says.
+ */
+function useSteps(observer: Observer | null) {
+  const [step, setStep] = useState<Step | null>(() => (observer === null ? 'where' : null));
+  const [reached, setReached] = useState<Step>('where');
+  const [moved, setMoved] = useState(false);
+  const [held, setHeld] = useState(false);
+  const key = placeKey(observer);
+  const [seen, setSeen] = useState(key);
+  const go = (next: Step): void => {
+    setStep(next);
+    setMoved(true);
+    setHeld(false);
+    setReached((current) => (STEPS.indexOf(next) > STEPS.indexOf(current) ? next : current));
+  };
+  if (key !== seen) {
+    setSeen(key);
+    if (observer === null) setHeld(false);
+    else if (step === 'where') {
+      if (observer.source === 'coords' && typingInAField()) setHeld(true);
+      else go('when');
+    }
+  }
+  return { step, reached, moved, held, go };
+}
+
 /**
  * FR-FIRST-1, FR-FIRST-4, FR-FIRST-5: the home page's main. The Where reading
- * always; When and What once there is a place.
+ * always; When and What once there is a place — or, on a phone's first visit,
+ * one step at a time (R82).
  */
 export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPass, passDetail, MoonLore, geolocation }: HomeProps) {
   const observer = useAppStore((s) => s.observer);
   const mode = useLayoutMode();
+  const steps = useSteps(observer);
+  const current: Step | null = mode === 'compact' && steps.step !== null ? (observer === null ? 'where' : steps.step) : null;
+  if (current !== null) {
+    const { reached, moved, go } = steps;
+    const head = (step: Step) => (
+      <>
+        <UpdateBanner inert={offersInert} />
+        <InstallHint inert={offersInert} />
+        <StepLine current={step} reached={reached} onGo={go} />
+      </>
+    );
+    return (
+      <>
+        <div className={`${styles.column} ${styles.leftColumn}`} data-testid="col-left">
+          {current === 'where' && (
+            <WhereReading
+              offersInert={offersInert}
+              {...(geolocation ? { geolocation } : {})}
+              step={{
+                reached,
+                onGo: go,
+                focus: moved,
+                ...(steps.held
+                  ? {
+                      onSettle: () => {
+                        go('when');
+                      },
+                    }
+                  : {}),
+              }}
+            />
+          )}
+          {current === 'when' && observer && (
+            <WhenStep
+              observer={observer}
+              head={head('when')}
+              focus={moved}
+              onNext={() => {
+                go('what');
+              }}
+            />
+          )}
+          {current === 'what' && observer && (
+            <WhatStep
+              observer={observer}
+              head={head('what')}
+              focus={moved}
+              onEdit={() => {
+                go('where');
+              }}
+              onOpenPass={onOpenPass}
+              selectedPassId={selectedPassId}
+            />
+          )}
+        </div>
+        {current === 'what' && passDetail && (
+          <div className={styles.column} data-testid="col-right" data-guide={guide}>
+            {passDetail}
+          </div>
+        )}
+      </>
+    );
+  }
   const ghosts = observer === null && mode === 'wide';
   return (
     <>
