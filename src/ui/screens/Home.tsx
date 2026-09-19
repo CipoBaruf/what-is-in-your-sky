@@ -430,7 +430,8 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
             />
           )}
         </div>
-        {current === 'what' && passDetail && (
+        {/* The guide is a sheet over the page on a phone: a pass opened from a link stands over whichever step is showing. */}
+        {passDetail && (
           <div className={styles.column} data-testid="col-right" data-guide={guide}>
             {passDetail}
           </div>
