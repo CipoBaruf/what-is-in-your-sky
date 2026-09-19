@@ -590,7 +590,7 @@ export function SkyWindow(props: SkyChartProps) {
               upright,
               headline: upright ? (
                 <div className={styles.headline} data-testid="window-headline">
-                  <NextEventBlock passes={drawnPasses.map(({ pass }) => pass)} {...(now === undefined ? {} : { now })} hours={SEARCH_WINDOW_HOURS} />
+                  <NextEventBlock passes={drawnPasses.map(({ pass }) => pass)} timeZone={observer.timeZone} {...(now === undefined ? {} : { now })} hours={SEARCH_WINDOW_HOURS} />
                   {/* FR-GUT-7 (D-451): the advice is secondary copy under the peak line, not a note over the picture. */}
                   <p className={styles.advice} data-testid="window-turn-advice">
                     {t.window.turnAdvice}

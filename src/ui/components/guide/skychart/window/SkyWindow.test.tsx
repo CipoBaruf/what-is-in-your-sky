@@ -537,12 +537,14 @@ describe('<SkyWindow>', () => {
       expect(screen.getByTestId('chart-legend-slot')).toBeInTheDocument();
       expect(screen.queryByTestId('window-gate')).toBeNull();
 
-      // FR-GUT-7 (D-451): the advice is secondary copy right under the countdown's peak line — not a note over the
-      // picture, and not spoken as a status. FR-FSC-11's `role="status"` line is gone.
+      // FR-GUT-7 (D-451): the advice is secondary copy under the countdown's block — not a note over the picture,
+      // and not spoken as a status. FR-FSC-11's `role="status"` line is gone. R81 (D-508) re-cut the block to the
+      // countdown label, the time and the path line, which names the pass.
       expect(screen.queryByTestId('window-turn-note')).toBeNull();
       const headline = screen.getByTestId('window-headline');
-      expect(within(headline).getByTestId('next-event-headline')).toHaveTextContent('ISS (Zarya)');
-      const peakLine = within(headline).getByTestId('next-event-peak');
+      expect(within(headline).getByTestId('next-event-label')).toBeInTheDocument();
+      const peakLine = within(headline).getByTestId('next-event-path');
+      expect(peakLine).toHaveTextContent('ISS (Zarya)');
       const advice = within(headline).getByTestId('window-turn-advice');
       expect(advice).toHaveTextContent(en.window.turnAdvice);
       expect(advice).not.toHaveAttribute('role');
