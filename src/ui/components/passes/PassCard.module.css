@@ -92,9 +92,21 @@
   content: ']';
 }
 
-/* The button is the accessible control and the whole card is its box: it
-   draws nothing of its own, and lies over the card under the tooltips'
-   triggers (the cloud word, the glare label), which stand above it. */
+/* The hit area: the first two lines and the card's padding around them, to
+   the bottom edge where there is no flags line under them. */
+.hit {
+  position: relative;
+  margin: -12px -12px 0;
+  padding: 12px 12px 0;
+}
+
+.hit:last-child {
+  margin-bottom: -12px;
+  padding-bottom: 12px;
+}
+
+/* The button is the accessible control and the hit area is its box: it draws
+   nothing of its own. */
 .open {
   position: absolute;
   inset: 0;

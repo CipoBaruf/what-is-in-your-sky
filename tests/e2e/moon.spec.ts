@@ -75,11 +75,12 @@ test('a pass that fails a condition shows neither the label nor the sentence', a
   await expect(dialog).not.toContainText('The Moon is bright'); // …and says nothing about the Moon
 });
 
-test('the Now panel carries the Moon’s facts and the tradition line is a separate, labelled section', async ({ page }) => {
+test('the conditions table carries the Moon’s facts and the tradition line is a separate, labelled section under it', async ({ page }) => {
   await listed(page);
 
-  const now = page.getByRole('region', { name: 'Right now' });
-  await expect(now.getByTestId('moon-line')).toHaveText('Moon: waning gibbous, 74 % lit, SSE 164°, 60° up.');
+  // R81 (FR-MOON-3 as amended v2.0.2): the When table's Moon row — the phase, the lit part and, up, its point.
+  const now = page.getByTestId('conditions');
+  await expect(now.getByTestId('moon-row')).toHaveText('waning gibbous, 74 %, SSE');
 
   // FR-MOON-5: the lore is outside the facts, in a region whose own name says it is tradition.
   // (The section heading is drawn as a character rule, so the accessible name carries those
@@ -89,6 +90,9 @@ test('the Now panel carries the Moon’s facts and the tradition line is a separ
   await expect(lore).toContainText('The Moon is in Taurus');
   await expect(lore).toHaveAccessibleName(/Moon tonight.*\[lore\]/);
   await expect(now).not.toContainText('The Moon is in Taurus');
+  // FR-MOON-3 as amended: the tradition line stands under the table.
+  const [tableBox, loreBox] = await Promise.all([now.boundingBox(), lore.boundingBox()]);
+  expect(loreBox?.y ?? 0).toBeGreaterThan((tableBox?.y ?? Infinity) + (tableBox?.height ?? 0) - 1);
   await expect(page.getByRole('region', { name: 'Upcoming passes' })).not.toContainText('The Moon is in Taurus');
 
   // Both languages carry the tradition label (FR-MOON-5, FR-I18N-2).
@@ -98,5 +102,5 @@ test('the Now panel carries the Moon’s facts and the tradition line is a separ
   const tradicion = page.getByRole('region', { name: 'La Luna esta noche' });
   await expect(tradicion).toContainText('tradición');
   await expect(tradicion).toContainText('La Luna está en Tauro');
-  await expect(page.getByTestId('moon-line')).toContainText('Luna: gibosa menguante, 74 % iluminada');
+  await expect(page.getByTestId('moon-row')).toHaveText('gibosa menguante, 74 %, SSE');
 });

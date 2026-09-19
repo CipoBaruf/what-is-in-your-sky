@@ -28,9 +28,11 @@ import styles from './PassCard.module.css';
  *   (FR-VIS-7), `[moon glare]` (FR-MOON-2) and the Moon at the peak while it is
  *   up (US-18 AC1).
  *
- * The whole card is the control that opens the pass (FR-DESK-3; the sheet on
- * compact): the button's `::after` stretches its hit area over the card, and
- * its name is "Open guide → <name>". The open pass's card is ruled in the
+ * The card is the control that opens the pass (FR-DESK-3; the sheet on
+ * compact): the button lies over the card's first two lines and the padding
+ * around them, and its name is "Open guide → <name>". The flags line stays
+ * outside it, because its words are tooltip triggers of their own, and a
+ * button whose box held them had one under its middle, where a pointer aims. The open pass's card is ruled in the
  * accent. Times are in `timeZone`, which the forecast fills in for coordinate
  * input (FR-LOC-3); with none yet, the clock says UTC (F-27).
  */
@@ -76,25 +78,28 @@ export function PassCard({ pass, timeZone, onOpen, weather, selected = false, de
   const flags = weather !== undefined || pass.twilight || pass.moonGlare.glare || moonUp;
   return (
     <article className={styles.card} aria-labelledby={headingId} data-pass-id={pass.id} data-pass-card="" tabIndex={-1} {...(selected ? { 'data-selected': 'true', 'aria-current': true as const } : {})}>
-      <div className={styles.first} data-testid="card-first-line">
-        <span className={styles.time}>{formatShortClock(pass.start.t, timeZone, locale, timeZone === null)}</span>
-        <h2 id={headingId} className={styles.name}>
-          {pass.name}
-        </h2>
-        {tag !== undefined && (
-          <span className={styles.tag} data-testid="next-tag">
-            {tag}
-          </span>
-        )}
+      <div className={styles.hit}>
+        <div className={styles.first} data-testid="card-first-line">
+          <span className={styles.time}>{formatShortClock(pass.start.t, timeZone, locale, timeZone === null)}</span>
+          <h2 id={headingId} className={styles.name}>
+            {pass.name}
+          </h2>
+          {tag !== undefined && (
+            <span className={styles.tag} data-testid="next-tag">
+              {tag}
+            </span>
+          )}
+        </div>
+        <p className={styles.detail} data-testid="card-detail">
+          {t.passes.cardDetail({
+            minutes: passMinutes(pass),
+            altitude: degrees(pass.peak.elDeg),
+            point: compassPoint(pass.peak.azDeg),
+            brightness: detail === 'phrase' ? { band: brightnessBand(pass.peakMagnitude) } : { magnitude: formatMagnitude(pass.peakMagnitude, locale) },
+          })}
+        </p>
+        {onOpen && <OpenGuide pass={pass} headingId={headingId} onOpen={onOpen} />}
       </div>
-      <p className={styles.detail} data-testid="card-detail">
-        {t.passes.cardDetail({
-          minutes: passMinutes(pass),
-          altitude: degrees(pass.peak.elDeg),
-          point: compassPoint(pass.peak.azDeg),
-          brightness: detail === 'phrase' ? { band: brightnessBand(pass.peakMagnitude) } : { magnitude: formatMagnitude(pass.peakMagnitude, locale) },
-        })}
-      </p>
       {flags && (
         <div className={styles.flags}>
           {weather !== undefined && (
@@ -111,7 +116,6 @@ export function PassCard({ pass, timeZone, onOpen, weather, selected = false, de
           <MoonAtPeak moon={pass.moonAtPeak} />
         </div>
       )}
-      {onOpen && <OpenGuide pass={pass} headingId={headingId} onOpen={onOpen} />}
     </article>
   );
 }

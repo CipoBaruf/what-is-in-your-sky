@@ -1,4 +1,8 @@
 /**
+ * R81 (FR-FIRST-9, D-509): the Now panel is the When reading's conditions
+ * table now, and this spec follows its facts there — the nothing-visible case
+ * is the `Up now` row's absence, the visible one its value.
+ *
  * R7 (US-4, FR-VIS-5): the "Now" panel at two fixed clocks for Neuquén, with
  * CelesTrak routed to the R1 OMM fixtures. At the R3 clock (nine days after
  * the R1 capture, 03:51 UTC) the sky is dark and no catalog object is above
@@ -26,7 +30,6 @@ const ha = JSON.parse(readFileSync(`tests/fixtures/heavens-above/${FIXTURE_DATE}
 const reference = JSON.parse(readFileSync('tests/fixtures/reference-values.json', 'utf8')) as Reference;
 const DAY_MS = 86_400_000;
 const NEUQUEN = `${String(ha.observer.lat)}, ${String(ha.observer.lon)}`;
-const hhmmss = (t: number): string => new Date(t).toISOString().slice(11, 19);
 const mmss = (ms: number): string => `${String(Math.floor(ms / 60_000))}:${String(Math.round(ms / 1000) % 60).padStart(2, '0')}`;
 
 test.beforeEach(async ({ page }) => {
@@ -42,26 +45,27 @@ test.beforeEach(async ({ page }) => {
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
 });
 
-test('at the R3 clock the panel says plainly that nothing is above 10°, with the time it was checked', async ({ page }) => {
+test('at the R3 clock nothing is above 10°, so the table has no Up now row', async ({ page }) => {
   const t = Date.parse(ha.capturedAt) + 9 * DAY_MS;
   await page.clock.setFixedTime(t);
   await page.goto('/');
-  const panel = page.getByRole('region', { name: 'Right now' });
-  // R76 (FR-FIRST-1): with no place the page is the cold open, and the panel waits for one.
+  const table = page.getByTestId('conditions');
+  // R76 (FR-FIRST-1): with no place the page is the cold open, and the table waits for one.
   await expect(page.getByTestId('cold-open')).toBeVisible();
-  await expect(panel).toHaveCount(0);
+  await expect(table).toHaveCount(0);
 
   await withSettings(page, async () => {
-
     await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
-
   });
-  await expect(panel).toContainText('Nothing visible right now: no catalog satellite is above 10°.', { timeout: 30_000 });
-  await expect(panel).toContainText(`as of ${hhmmss(t)} UTC`);
-  await expect(panel.getByRole('list')).toHaveCount(0);
+  // R81 (D-509, US-4 AC1 as amended v2.0.2): the sky check has answered — the Moon row is its — and with
+  // nothing up there is no Up now row rather than a sentence about why; the Dark row says when to look.
+  await expect(table.getByTestId('moon-row')).toBeVisible({ timeout: 30_000 });
+  await expect(table.getByTestId('dark-window')).toHaveText(/^\d\d:\d\d → \d\d:\d\d UTC$|^until \d\d:\d\d UTC$/);
+  await expect(table.getByTestId('up-now')).toHaveCount(0);
+  await expect(table.getByRole('term')).toHaveText(['Dark', 'Clouds now', 'Moon']);
 });
 
-test('ten seconds into the golden ISS pass the panel lists the ISS with direction, elevation and countdown, and the countdown moves 10 s later', async ({ page }) => {
+test('ten seconds into the golden ISS pass the Up now row names the ISS with its time left, and the time moves 10 s later', async ({ page }) => {
   const golden = reference.firstGoldenPass;
   if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
   const t = golden.start.t + 10_000;
@@ -72,18 +76,13 @@ test('ten seconds into the golden ISS pass the panel lists the ISS with directio
     await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
   });
 
-  const panel = page.getByRole('region', { name: 'Right now' });
-  await expect(panel).toContainText('1 satellite visible right now', { timeout: 30_000 });
-  const item = panel.getByRole('listitem');
-  await expect(item).toHaveCount(1);
-  await expect(item).toContainText('ISS (Zarya)');
-  await expect(item).toContainText('NE 49°');
-  await expect(item).toContainText('10° up');
-  await expect(item).toContainText(`sets in ${mmss(golden.end.t - t)}`);
-  await expect(panel).toContainText(`as of ${hhmmss(t)} UTC`);
+  // US-4 AC3 as amended v2.0.2: the first one up, its time left, and no `+<n>` — it is the only one.
+  const table = page.getByTestId('conditions');
+  const upNow = table.getByTestId('up-now');
+  await expect(upNow).toHaveText(`ISS (Zarya) · ${mmss(golden.end.t - t)} left`, { timeout: 30_000 });
+  await expect(table.getByRole('term')).toHaveText(['Dark', 'Clouds now', 'Moon', 'Up now']);
 
-  // US-4 AC2: the 10 s tick re-asks the worker at the new time; no reload, same region.
+  // US-4 AC2: the 10 s tick re-asks the worker at the new time; no reload, same row.
   await page.clock.runFor(10_000);
-  await expect(item).toContainText(`sets in ${mmss(golden.end.t - t - 10_000)}`, { timeout: 30_000 });
-  await expect(panel).toContainText(`as of ${hhmmss(t + 10_000)} UTC`);
+  await expect(upNow).toHaveText(`ISS (Zarya) · ${mmss(golden.end.t - t - 10_000)} left`, { timeout: 30_000 });
 });
