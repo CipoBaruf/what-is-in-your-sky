@@ -19,7 +19,7 @@
  * `live.spec.ts`, beside the layout facts it already holds.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { domeDrawn, homeAt, reenterLiveWithTheme, stripFilled, T } from './liveHelpers';
+import { domeDrawn, enterScrubbing, homeAt, reenterLiveWithTheme, stripFilled, T } from './liveHelpers';
 
 const LANDSCAPE = { width: 844, height: 390 };
 
@@ -79,6 +79,8 @@ test.describe('the live page on a landscape phone', () => {
   test('two panes — the dome left with the whole height, the rest right — nothing scrolls, and the wake lock follows visibility (FR-LIVE-7)', async ({ page }) => {
     await stubWakeLock(page);
     await liveLandscape(page);
+    // R77 (FR-WATCH-9 e): the stripe is the scrubbing state's; R78 re-cuts this shape's rail for both states.
+    await enterScrubbing(page);
 
     // The page is the viewport, and nothing scrolls.
     const pageBox = await page.getByTestId('live-page').boundingBox();
@@ -108,7 +110,8 @@ test.describe('the live page on a landscape phone', () => {
     expect(strip.x).toBeGreaterThanOrEqual(dome.x + dome.width - 1);
     expect(stripe.y).toBeGreaterThan(strip.y + strip.height - 1);
     expect(strip.y + strip.height).toBeLessThanOrEqual(LANDSCAPE.height);
-    for (const field of ['time', 'sky', 'cloud', 'count', 'moon']) await expect(page.getByTestId(`live-${field}`)).toBeInViewport({ ratio: 1 });
+    // R77 (FR-WATCH-3): the compact line's fields; the Moon is the list panel's (FR-MOON-3 as amended).
+    for (const field of ['time', 'sky', 'cloud', 'count']) await expect(page.getByTestId(`live-${field}`)).toBeInViewport({ ratio: 1 });
     // The side column may scroll itself where its content wraps past the viewport; the page never does.
     expect(side.y + side.height).toBeLessThanOrEqual(LANDSCAPE.height + 1);
 

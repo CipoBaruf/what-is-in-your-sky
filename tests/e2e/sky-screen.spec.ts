@@ -88,7 +88,7 @@ test.describe('the sky screen on a phone held sideways', () => {
     await stubCompass(page);
     await countPermissionAsks(page);
     await livePage(page);
-    await expect(page.getByTestId('stripe-block')).toBeVisible();
+    await expect(page.getByTestId('overview-row')).toBeVisible();
     expect(await asks(page)).toBe(0);
 
     await openScreen(page);
@@ -136,7 +136,7 @@ test.describe('the sky screen on a phone held sideways', () => {
     await page.getByRole('button', { name: CLOSE }).click();
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
-    await expect(page.getByTestId('stripe-block')).toBeVisible();
+    await expect(page.getByTestId('overview-row')).toBeVisible();
     await expect(page.getByTestId('live-top-row')).not.toHaveAttribute('aria-hidden', 'true');
     // FR-FSC-2 (D-351): focus is back on the option that opened it.
     await expect(page.getByRole('group', { name: VIEW_GROUP.en }).getByRole('button', { name: VIEW_OPTION.en.window })).toBeFocused();

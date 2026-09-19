@@ -19,7 +19,7 @@ import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { HASH_EVERY_MS } from '../../src/lib/playback';
 import { isoInstant } from '../../src/lib/shareLinks';
-import { domeDrawn, seedStoredRun, stripFilled } from './liveHelpers';
+import { domeDrawn, enterScrubbing, seedStoredRun, stripFilled } from './liveHelpers';
 
 const GEOCODED = { lat: -38.93, lon: -67.99, altM: 0, label: 'Neuquén, Argentina', source: 'geocode' as const, timeZone: 'America/Argentina/Buenos_Aires' };
 const DAY_MS = 86_400_000;
@@ -113,6 +113,8 @@ test('a click on the stripe, and a reload of the link it writes, keep the same p
   await page.getByTestId('live-link').click();
   await domeDrawn(page);
   await stripFilled(page);
+  // R77 (FR-WATCH-9 e): the stripe is the scrubbing state's; `[ scrub ]` holds the instant the page opened on.
+  await enterScrubbing(page);
 
   const segmentsAtOpen = await settledSegmentCount(page);
   // R70: the count at open is the first chunk's, which at real time is minutes long and can hold no
