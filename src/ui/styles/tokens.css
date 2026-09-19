@@ -82,6 +82,13 @@
      mixed with is `--bg-raised`, which each theme already sets. */
   --screen-overlay-alpha: 85%;
 
+  /* FR-GUT-1 (R79, D-450): the sky screen's compass gutter — one text row of
+     24 px for the compass names and 4 px of tick above them, the least that
+     holds a name with a mark over it. `GUTTER_PX` in `window/gutter.ts` is the
+     same number; `tests/styles/gutter.test.ts` holds the two together, and the
+     68 px it gives the drawing back is the strip's two `--tap` rows less this. */
+  --gutter: 28px;
+
   /* FR-FSC-1 (R64, D-321): the sky screen's stacking order. The layer is
      over everything the live page has — its one-row header included, which is
      covered rather than unmounted — so the number is above the two the app

@@ -33,9 +33,22 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function screenFrame() {
+function screenFrame(upright = false) {
   return render(
-    <ChartFrame screen fill status={<p>Looking N (1°) · up 20°</p>} legend={<p>legend</p>} overlay={<button type="button">×</button>} aside={<p>rail</p>} stripe={<p>stripe</p>} boxAspect={2.4 / 2} stacked>
+    <ChartFrame
+      screen
+      fill
+      upright={upright}
+      status={<p>Looking N (1°) · up 20°</p>}
+      headline={<p>Next up</p>}
+      legend={<p>legend</p>}
+      gutter={<p>gutter</p>}
+      overlay={<button type="button">×</button>}
+      aside={<p>rail</p>}
+      stripe={<p>stripe</p>}
+      boxAspect={2.4 / 2}
+      stacked
+    >
       <div data-drawing="window" />
     </ChartFrame>,
   );
@@ -102,11 +115,17 @@ describe('<ChartFrame> as a screen (FR-FSC-1, D-322)', () => {
     expect(drawing).toContain('margin: 0;');
   });
 
-  /** FR-FSC-1: the box, then the readout, then the strip, then the page's own — and no rails at all. */
-  it('holds the drawing, the status, the legend and the overlay in that order, and no aside or stripe', () => {
+  /**
+   * FR-FSC-1, R79 (FR-GUT-1, FR-LEG-2 as amended v2.0, D-450): sideways the readout, the box, the gutter in the
+   * bottom slot the strip had, then the page's own — no legend, no headline, and no rails at all.
+   */
+  it('holds the status, the drawing, the gutter and the overlay in that order sideways, and no legend, aside or stripe', () => {
     screenFrame();
     const frame = rtl.getByTestId('chart-frame');
-    expect([...frame.children].map((el) => el.getAttribute('data-testid'))).toEqual(['chart-box', 'chart-status', 'chart-legend-slot', 'chart-overlay']);
+    expect(frame).toHaveAttribute('data-orientation', 'landscape');
+    expect([...frame.children].map((el) => el.getAttribute('data-testid'))).toEqual(['chart-status', 'chart-box', 'chart-gutter-slot', 'chart-overlay']);
+    expect(rtl.queryByText('legend')).toBeNull();
+    expect(rtl.queryByText('Next up')).toBeNull();
     expect(within(rtl.getByTestId('chart-overlay')).getByRole('button', { name: '×' })).toBeInTheDocument();
     expect(rtl.queryByTestId('chart-aside')).toBeNull();
     expect(rtl.queryByTestId('chart-stripe')).toBeNull();
@@ -114,6 +133,19 @@ describe('<ChartFrame> as a screen (FR-FSC-1, D-322)', () => {
     expect(rtl.queryByText('stripe')).toBeNull();
     // FR-FSC-1: a screen has no controls row. The slot is not rendered, so it cannot take a pixel from the drawing.
     expect(frame.querySelector('[class*="controls"]')).toBeNull();
+  });
+
+  /** R79 (FR-GUT-7, D-451): upright, five rows top to bottom — the readout, the headline, the band, the legend, the gutter — and the `×` over them. */
+  it('lays the five rows out in order upright', () => {
+    screenFrame(true);
+    const frame = rtl.getByTestId('chart-frame');
+    expect(frame).toHaveAttribute('data-orientation', 'portrait');
+    expect([...frame.children].map((el) => el.getAttribute('data-row') ?? el.getAttribute('data-testid'))).toEqual(['readout', 'headline', 'band', 'legend', 'gutter', 'chart-overlay']);
+    const upright = /\.screen\[data-orientation='portrait'\] \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(upright).toContain('grid-template-rows: auto auto minmax(0, 1fr) auto auto;');
+    // FR-GUT-7: the band at most as tall as it is wide, and the legend exactly two tap rows.
+    expect(/\.screen\[data-orientation='portrait'\] \.drawing \{([\s\S]*?)\n\}/.exec(css)?.[1]).toContain('height: min(100%, 100cqw);');
+    expect(/\.screen\[data-orientation='portrait'\] \.legend \{([\s\S]*?)\n\}/.exec(css)?.[1]).toContain('height: calc(2 * var(--legend-row));');
   });
 
   /**
@@ -132,7 +164,7 @@ describe('<ChartFrame> as a screen (FR-FSC-1, D-322)', () => {
   });
 
   /** FR-FSC-3, FR-LEG-2 as amended: the readout in the top-left corner, the legend two rows along the bottom edge, both on the overlay surface. */
-  it('places the two overlays on the follow surface, the strip capped at two legend rows and scrolling inside', () => {
+  it('places the readout on the overlay surface and the gutter along the bottom edge', () => {
     const frame = /\.screen \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
     expect(frame).toContain('--screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);');
     expect(frame).toContain('--legend-row: var(--tap);');
@@ -141,12 +173,13 @@ describe('<ChartFrame> as a screen (FR-FSC-1, D-322)', () => {
     expect(status).toContain('top: 0;');
     expect(status).toContain('left: 0;');
     expect(status).toContain('background: var(--screen-overlay);');
-    const legend = /\.screen \.legend \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
-    expect(legend).toContain('bottom: 0;');
-    expect(legend).toContain('max-height: calc(2 * var(--legend-row));');
-    expect(legend).toContain('overflow-y: auto;');
-    expect(legend).toContain('background: var(--screen-overlay);');
-    // The layer over both is not itself a target, or the strip under it would stop taking taps (FR-LEG-4).
+    // R79 (FR-GUT-1): the gutter along the bottom edge, over the drawing; its surface is the gutter's own.
+    const gutter = /\.screen \.gutter \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(gutter).toContain('position: absolute;');
+    expect(gutter).toContain('bottom: 0;');
+    expect(gutter).toContain('left: 0;');
+    expect(gutter).toContain('right: 0;');
+    // The layer over both is not itself a target, or the legend under it would stop taking taps (FR-LEG-4).
     expect(/\.screen \.overlay \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '').toContain('pointer-events: none;');
     expect(css).toContain('.screen .overlay > * {\n  pointer-events: auto;\n}');
   });

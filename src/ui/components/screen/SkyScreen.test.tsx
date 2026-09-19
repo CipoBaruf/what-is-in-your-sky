@@ -156,17 +156,19 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     return screen.getByTestId('sky-screen');
   };
 
-  it('is the drawing, the ×, the readout and the legend, and nothing of the page (FR-FSC-1, US-21 AC11)', async () => {
+  it('is the drawing, the ×, the readout and the gutter, and nothing of the page (FR-FSC-1, US-21 AC11, FR-GUT-1)', async () => {
     withSky();
     const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
     const layer = await open();
 
-    // The four things on it (FR-FSC-1).
+    // The four things on it (FR-FSC-1 as amended v2.0): sideways — jsdom measures nothing, so the box is not
+    // upright — the bottom edge is the compass gutter and not the legend strip (FR-GUT-1).
     expect(within(layer).getByTestId('sky-chart')).toHaveAttribute('data-screen', 'true');
     expect(layer.querySelector('[data-drawing="window"]')).not.toBeNull();
     expect(within(layer).getByTestId('sky-screen-close')).toHaveTextContent('×');
     expect(within(layer).getByTestId('window-readout')).toBeInTheDocument();
-    expect(within(layer).getByTestId('chart-legend')).toBeInTheDocument();
+    expect(within(layer).getByTestId('compass-gutter')).toBeInTheDocument();
+    expect(within(layer).queryByTestId('chart-legend')).toBeNull();
 
     // And nothing else of the page: not its rows, not its controls, not its one-row header.
     for (const testid of ['live-side', 'stripe-block', 'time-row', 'playback-row', 'playback-controls', 'live-actions', 'live-hidden-toggle', 'follow-phone', 'chart-view-note']) {

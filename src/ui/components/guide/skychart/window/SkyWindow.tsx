@@ -2,17 +2,22 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useLocale, useT } from '../../../../../i18n/useT';
 import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
 import { compassPoint } from '../../../../../lib/compass';
-import { degrees, formatSignedDegrees } from '../../../../../lib/format';
-import { SERIES_COUNT } from '../../../../../lib/legend';
+import { degrees, formatClockDuration, formatSignedDegrees } from '../../../../../lib/format';
+import { SERIES_COUNT, seriesToken } from '../../../../../lib/legend';
+import { isNoEvent, nextEvent } from '../../../../../lib/nextEvent';
 import type { SunState } from '../../../../../lib/skyBodies';
 import { interpolateTrack, resampleArc, splitArcAt } from '../../../../../lib/skyGeometry';
 import type { MoonState, PassPoint } from '../../../../../model';
+import { SEARCH_WINDOW_HOURS } from '../../../../../state/passWindow';
 import { useScreenTurn } from '../../../screen/screenTurn';
 import { quantise } from '../../../live/compassHeading';
 import { useDeclination } from '../../../live/useDeclination';
+import { NextEventBlock } from '../../../passes/NextEventBlock';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
 import { ChartFrame } from '../ChartFrame';
 import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
+import { CompassGutter } from './CompassGutter';
+import { gutterMarks, passBearing, turnTo, type GutterMark, type GutterPass } from './gutter';
 import { drawableDeg, groundState, lookDirection, project, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type View } from './projection';
 import { nearestQuarter, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
@@ -79,6 +84,21 @@ import { useDeviceOrientation } from './useDeviceOrientation';
  * rotation is not locked, where the two numbers are the same. `data-orientation`
  * is read from the measured box, which is what the reader is looking at, and
  * not from a media query, which under a rotation lock is not.
+ *
+ * R79 (FR-GUT-1..8, US-28; D-450, D-451): the screen's bottom edge is the
+ * compass gutter (`CompassGutter`, from `gutter.ts`), which takes the legend
+ * strip's slot sideways. Its facing is `look.azDeg`, the smoothed heading the
+ * readout shows, and its marks are one per drawn pass at the bearing the arc
+ * is drawn from. When no drawn pass crosses the field — no arc in the box and
+ * no tick inside the bracket — one `role="status"` chip over the drawing names
+ * the pass whose next event is soonest, the turn to it and the countdown
+ * (FR-GUT-6); FR-FOL-5's ground notes outrank it. Upright (FR-GUT-7) the frame
+ * lays the screen out as five rows — the readout, the next-event block with
+ * the advice under its peak line, the band, the legend's two rows and the
+ * gutter — and FR-FSC-11's `role="status"` advice line is gone. Upright is
+ * read from the *screen's* measured box (a probe in the overlay slot), not
+ * from the drawing's, since the band is capped square and would otherwise
+ * decide its own orientation.
  */
 
 /** Resampling step along each arc (PLAN §8.3), the polar's. */
@@ -174,6 +194,20 @@ function groundClipPath(points: readonly Projected[]): string {
 }
 
 const inFrame = (p: Projected, view: View): boolean => p.front && p.x >= -EDGE_MARGIN && p.x <= view.width + EDGE_MARGIN && p.y >= -EDGE_MARGIN && p.y <= view.height + EDGE_MARGIN;
+const inBox = (p: Projected, view: View): boolean => p.front && p.x >= 0 && p.x <= view.width && p.y >= 0 && p.y <= view.height;
+
+/**
+ * FR-GUT-6: whether any part of the arc the window draws for this pass is in
+ * the box — the flown part up to `now` while the pass is `live`, the whole arc
+ * otherwise, at the track's own samples.
+ */
+function arcInBox(pass: ChartPass, m: Mat3, view: View, now: number | undefined): boolean {
+  const state = arcOf(pass);
+  if (state === 'hidden') return false;
+  const t = now ?? pass.end.t;
+  const drawn = state === 'live' ? cutTrack(pass, t) : pass.track;
+  return drawn.some((p) => inBox(project(m, p.azDeg, p.elDeg, view), view));
+}
 
 /** The attributes every positioned element carries: where it is, and whether it is in the box. */
 function placed(p: Projected, view: View): { transform: string; 'data-in-view': boolean; visibility?: 'hidden' } {
@@ -382,6 +416,27 @@ export function SkyWindow(props: SkyChartProps) {
   }, []);
 
   /*
+   * R79 (FR-GUT-7, D-451): the screen's own box, for which way up the layout is. Upright the band is capped at as
+   * tall as it is wide, so the drawing's box cannot answer the question it would then be shaped by; a probe that
+   * fills the frame's overlay slot — the whole screen, in its layout box, before FR-FSC-10's turn — can. Null
+   * until measured, and off a screen, where the drawing's box is the answer as it was.
+   */
+  const probeRef = useRef<HTMLSpanElement>(null);
+  const [screenBox, setScreenBox] = useState<{ width: number; height: number } | null>(null);
+  useEffect(() => {
+    const probe = probeRef.current;
+    if (!onScreen || !probe || typeof ResizeObserver === 'undefined') return;
+    const observerOfScreen = new ResizeObserver((entries) => {
+      const rect = entries[0]?.contentRect;
+      if (rect && rect.width > 0 && rect.height > 0) setScreenBox({ width: Math.round(rect.width), height: Math.round(rect.height) });
+    });
+    observerOfScreen.observe(probe);
+    return () => {
+      observerOfScreen.disconnect();
+    };
+  }, [onScreen]);
+
+  /*
    * FR-FSC-10 (D-424, D-425, D-429): which way is up to the reader. On a screen the projection is composed with
    * the quarter read from the pose — on an unlocked phone that *is* the browser's angle, and on a locked one it
    * is what the browser's angle would have been — and the layer is turned by the difference. Before the first
@@ -414,11 +469,12 @@ export function SkyWindow(props: SkyChartProps) {
   const at = useCallback((p: SkyPoint): Projected => project(m, p.azDeg, p.elDeg, view), [m, view]);
   const zenith = at({ azDeg: 0, elDeg: 90 });
 
-  // FR-FSC-4 as rewritten, FR-FSC-11 (D-427, D-428): the shape of the picture the reader is looking at, read
-  // from the box that was measured and not from `(orientation: landscape)`, which a rotation lock never answers
-  // true. Taller than it is wide is where the advice stands; the box, not the viewport, because FR-FSC-10 may
-  // have turned the layer under it.
-  const upright = size.height > size.width;
+  // FR-FSC-4 as rewritten, FR-GUT-7 (D-427, D-451): the shape of the screen the reader is looking at, read from
+  // the box that was measured and not from `(orientation: landscape)`, which a rotation lock never answers true;
+  // the box, not the viewport, because FR-FSC-10 may have turned the layer under it. On a screen it is the
+  // screen's box (the probe), since upright the drawing is a band cut to the width.
+  const shape = onScreen && screenBox !== null ? screenBox : size;
+  const upright = shape.height > shape.width;
 
   // FR-FOL-5 (D-278): pointed at the ground, in two steps — the hatch over the part of the field below the
   // horizon, and, once no sky is left in it, the whole box. Neither is modal: raising the phone is what leaves.
@@ -433,10 +489,48 @@ export function SkyWindow(props: SkyChartProps) {
   const horizonProjected = useMemo(() => (drawsHorizon ? HORIZON.map(at) : []), [at, drawsHorizon]);
   const veilClip = ground === 'ground' ? groundClipPath(horizonProjected) : '';
   const veil = ground === 'buried' || veilClip !== '';
-  // FR-FSC-11 (D-428): the advice is the screen's — the pass detail's window is a box in a sheet and not the
-  // picture the reader is holding up — and it loses to the ground notes, which stand in the same place.
-  const advice = onScreen && upright && ground === 'sky';
   const uid = useId().replaceAll(':', '');
+
+  /*
+   * FR-GUT-2..5 (D-450): the gutter's marks, one per drawn pass in legend order, at the bearing the arc is drawn
+   * from — where the satellite is while it is up, where it rises otherwise — in the arc's own colour token.
+   */
+  const facingDeg = look.azDeg;
+  const drawnPasses = useMemo(() => passes.map((pass, index) => ({ pass, index })).filter(({ pass }) => arcOf(pass) !== 'hidden'), [passes]);
+  // Not memoised: the facing is the sensor's and changes every frame the drawing does, and so does everything below.
+  const marks: GutterMark[] = onScreen
+    ? gutterMarks(
+        drawnPasses.map(({ pass, index }): GutterPass => ({
+          id: pass.id,
+          name: pass.name,
+          key: legendKeys[pass.id] ?? '',
+          color: colorBy === 'pass' ? seriesToken(index) : highlightedPassId !== null && highlightedPassId !== pass.id ? 'pass-dim' : 'pass',
+          bearingDeg: passBearing(pass, now),
+        })),
+        facingDeg,
+        view,
+      )
+    : [];
+
+  /*
+   * FR-GUT-6: the empty-field chip. The field is empty when no drawn pass crosses it — no tick inside the bracket
+   * and no part of any arc in the box. Then the one line names the pass whose next event is soonest (FR-FIRST-3's
+   * rule, `nextEvent`), the shorter turn to where it is or will rise, and the countdown from the shown instant
+   * (FR-FSC-8: the screen always has one); with nothing in the span it names no direction. The ground notes outrank
+   * it, so over the ground it is not drawn at all.
+   */
+  let chip: string | null = null;
+  if (onScreen && now !== undefined && ground === 'sky' && !marks.some((mark) => mark.branch === 'in-bracket') && !drawnPasses.some(({ pass }) => arcInBox(pass, m, view, now))) {
+    const event = nextEvent(
+      drawnPasses.map(({ pass }) => pass),
+      now,
+    );
+    if (isNoEvent(event)) chip = t.window.emptySky;
+    else {
+      const turn = turnTo(passBearing(event.pass, now), facingDeg);
+      chip = t.window.emptyField({ name: event.pass.name, angle: degrees(turn.angleDeg), side: turn.side, kind: event.kind, countdown: formatClockDuration((event.at - now) / 1000) });
+    }
+  }
   const hatchId = `${uid}-hatch`;
   const clipId = `${uid}-ground`;
 
@@ -477,7 +571,34 @@ export function SkyWindow(props: SkyChartProps) {
         /* FR-FSC-1, D-321 (R64): the page's own children over the drawing — the follow screen's `×`. R62 put the
            slot on `ChartFrameProps` and on `SkyChartProps`; this is the last link, and the window is what renders
            the frame. Off a screen there is no overlay slot in the frame, so nothing changes for the pass detail. */
-        {...(overlay === undefined ? {} : { overlay })}
+        {...(overlay === undefined && !onScreen
+          ? {}
+          : {
+              overlay: (
+                <>
+                  {overlay}
+                  {/* R79 (D-451): the screen's own box, measured for which way up the layout is. */}
+                  {onScreen && <span className={styles.probe} ref={probeRef} aria-hidden="true" />}
+                </>
+              ),
+            })}
+        /* R79 (FR-GUT-1, FR-GUT-7; D-450, D-451): on a screen the bottom slot is the gutter, and upright the frame
+           lays out the rows around a band with the next-event block above it. */
+        {...(onScreen
+          ? {
+              gutter: <CompassGutter facingDeg={facingDeg} view={view} marks={marks} />,
+              upright,
+              headline: upright ? (
+                <div className={styles.headline} data-testid="window-headline">
+                  <NextEventBlock passes={drawnPasses.map(({ pass }) => pass)} {...(now === undefined ? {} : { now })} hours={SEARCH_WINDOW_HOURS} />
+                  {/* FR-GUT-7 (D-451): the advice is secondary copy under the peak line, not a note over the picture. */}
+                  <p className={styles.advice} data-testid="window-turn-advice">
+                    {t.window.turnAdvice}
+                  </p>
+                </div>
+              ) : null,
+            }
+          : {})}
         /* FR-FSC-1, D-323: the screen has no control row — neither the page's view control nor the hint. */
         controls={
           onScreen ? undefined : (
@@ -576,12 +697,11 @@ export function SkyWindow(props: SkyChartProps) {
               {ground === 'buried' ? t.window.buried : t.window.ground}
             </p>
           )}
-          {/* FR-FSC-11 (D-428): over a picture taller than it is wide, one line about what a sideways phone buys.
-              It is not a condition — everything the screen does works without it being taken — and the ground
-              notes above outrank it, so at most one line ever stands over the drawing. */}
-          {advice && (
-            <p className={styles.turnNote} role="status" data-testid="window-turn-note">
-              {t.window.turnAdvice}
+          {/* FR-GUT-6: over an empty field, one line naming the next pass and the turn to it. The ground notes
+              above outrank it, so at most one line ever stands over the drawing. */}
+          {chip !== null && (
+            <p className={styles.chip} role="status" data-testid="window-chip">
+              {chip}
             </p>
           )}
           {/* R66 (FR-WIN-5 as amended v1.3.1, V13-8): no `[ point at the sky ]`. The window is only ever mounted

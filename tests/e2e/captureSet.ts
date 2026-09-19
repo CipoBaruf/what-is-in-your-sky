@@ -156,7 +156,7 @@ export const SCREENS: readonly CaptureScreen[] = [
   {
     name: 'window',
     widths: [844],
-    what: 'The sky screen opened from a pass detail (FR-FSC-1, FR-FSC-6, R66), aimed at that pass\'s peak by a stubbed orientation reading: the whole arc (FR-DOME-5) filling the viewport, the `×`, the facing readout and the legend. A phone held sideways, which since v1.3.1 is the only place the window is drawn.',
+    what: 'The sky screen opened from a pass detail (FR-FSC-1, FR-FSC-6, R66), aimed at that pass\'s peak by a stubbed orientation reading: the whole arc (FR-DOME-5) filling the viewport, the `×`, the facing readout and, since R79, the compass gutter where the legend strip was (FR-GUT-1). A phone held sideways, which since v1.3.1 is the only place the window is drawn.',
   },
   { name: 'legend', widths: [390, 1280], what: 'The legend in its states (FR-LEG-3): the live page with the hidden objects shown, so the rows carry `up`, `soon`, `gone` and the FR-LIVE-6 reasons, and one row activated so its arc is highlighted and the others dim (FR-LEG-4). Behind `[ list (n) ]` and open at 390, in the rail beside the box at 1280 (FR-LEG-6, FR-LEG-7).' },
   { name: 'favourites', widths: [390, 1280], what: 'The saved places, with the one in use marked.' },
@@ -169,21 +169,26 @@ export const SCREENS: readonly CaptureScreen[] = [
   {
     name: 'sky-screen-sky',
     widths: [844],
-    what: 'The sky screen (FR-FSC-1, R64, R66) on a phone held sideways, aimed at a pass: the drawing filling the viewport, the `×` in the top-right corner, the facing readout in the top-left and the legend along the bottom — and nothing of the live page under it.',
+    what: 'The sky screen (FR-FSC-1, R64, R66) on a phone held sideways, aimed at a pass: the drawing filling the viewport, the `×` in the top-right corner, the facing readout in the top-left and, since R79, the 28 px compass gutter along the bottom (FR-GUT-1..5) — the band of azimuth, the bracket of the field, a tick per pass — and nothing of the live page under it.',
+  },
+  {
+    name: 'sky-screen-chip',
+    widths: [844],
+    what: 'The same screen turned away from every pass (FR-GUT-6, R79): the field is empty, so one chip over the gutter names the next pass, how far to turn and when it rises, and the gutter shows the pass as a marker at the end to turn to.',
   },
   { name: 'sky-screen-ground', widths: [844], what: 'The same screen swept 10° below the horizon (FR-FOL-5): the hatch fills the ground and the sky above it keeps drawing, under the same three overlays.' },
   { name: 'sky-screen-buried', widths: [844], what: 'The same screen swept 60° below the horizon (FR-FOL-5): no sky is left in the field, and the box is the hatched panel with its note — the `×` is still the way out.' },
   {
     name: 'sky-screen-portrait',
     widths: [390],
-    what: 'The sky screen with the phone held upright (FR-FSC-4 as rewritten, FR-FSC-11, US-21 AC12 as amended, R73): the picture drawn in the portrait box — the drawing, the `×`, the readout and the legend — with one line of advice over it about what a sideways phone buys. It was a note with nothing behind it until v1.4.1.',
+    what: 'The sky screen with the phone held upright (FR-GUT-7, R79): five rows — the readout and the `×`, the next-event block with the advice to turn as secondary copy under its peak line, the band of sky at most as tall as it is wide, two legend rows and the compass gutter with its narrow bracket. It was a note with nothing behind it until v1.4.1, and the picture with a line of advice over it until v2.0.',
   },
   {
     name: 'sky-screen-turned',
     widths: [390],
     themes: ['dark'],
     locales: ['en'],
-    what: 'The same 390 × 844 viewport with the pose of a phone held sideways under a rotation lock (FR-FSC-10, US-21 AC15, R73): the layer has turned a quarter, so the picture is landscape inside a portrait viewport and the readout, the legend and the `×` are the right way up to the reader\'s eye. One theme and one language: the turn is a geometry, not a piece of copy.',
+    what: 'The same 390 × 844 viewport with the pose of a phone held sideways under a rotation lock (FR-FSC-10, US-21 AC15, R73): the layer has turned a quarter, so the picture is landscape inside a portrait viewport and the readout, the gutter and the `×` are the right way up to the reader\'s eye. One theme and one language: the turn is a geometry, not a piece of copy.',
   },
 ];
 

@@ -12,5 +12,10 @@ export const windowMessages: typeof EnWindow = {
     ground: 'Apuntando al suelo — levantá el teléfono.',
     buried: 'Estás apuntando al suelo — levantá el teléfono.',
     turnAdvice: 'Gira el teléfono de lado para ver más cielo.',
+    emptyField: (p) =>
+      `Nada en esta parte del cielo. ${p.name} está ${p.angle} a la ${{ left: 'izquierda', right: 'derecha' }[p.side]}, ${{ rise: 'sale', peak: 'culmina', end: 'se pone' }[p.kind]} en ${p.countdown}.`,
+    emptySky: 'Nada en esta parte del cielo, y ningún pase hacia el que girar.',
+    gutterLabel: 'Hacia dónde girar',
+    gutterMark: (p) => (p.place === 'in' ? `${p.key} ${p.name}: a la vista` : `${p.key} ${p.name}: ${p.angle} a la ${{ left: 'izquierda', right: 'derecha' }[p.place]}`),
   },
 };

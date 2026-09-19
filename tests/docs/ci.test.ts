@@ -101,7 +101,9 @@ describe('the R36 capture findings (FR-FIX-2)', () => {
     // `domeDrawn` ticks the paused clock until the chart is up, and where it stops is a property of
     // the run. Both chart routes end on `pinnedAt`, so two runs of the same file shoot the same frame.
     expect(captureSpec).toContain('async function pinnedAt(page: Page, t: number)');
-    expect([...captureSpec.matchAll(/await pinnedAt\(page, SHOWN\)/g)]).toHaveLength(2);
+    // R79: `liveAt` pins to its `shown` parameter, `SHOWN` unless the chip capture asks for its own instant.
+    expect([...captureSpec.matchAll(/await pinnedAt\(page, (SHOWN|shown)\)/g)]).toHaveLength(2);
+    expect(captureSpec).toContain('shown: number = SHOWN');
     expect(captureSpec).not.toContain('await page.clock.setSystemTime(SHOWN - TICK_MS)');
   });
 
