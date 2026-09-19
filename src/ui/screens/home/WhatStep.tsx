@@ -144,7 +144,8 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
           {foot.map((piece, index) => (
             <Fragment key={index}>
               {index > 0 && ' · '}
-              <span className={styles.piece}>{piece}</span>
+              {/* The place is a name of any length and wraps where it must; the facts after it never break inside. */}
+              <span className={index > 0 ? styles.piece : undefined}>{piece}</span>
             </Fragment>
           ))}
         </p>
