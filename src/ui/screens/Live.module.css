@@ -441,6 +441,11 @@
   align-items: center;
 }
 
+.page[data-compact='true'] .back {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 /* R77 (FR-WATCH-4, FR-WATCH-5): the wide rail. Its head — the indicator with the clock or `[ back to live ]`,
    the next-event block, the conditions line — stands above the legend, and its foot — the overview while
    watching, the actions — at the rail's bottom. The legend is the frame's (FR-LEG-6), so the order is made
