@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
-import { useT } from '../../i18n/useT';
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from 'react';
+import { useLocale, useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
 import { foldRows } from '../../lib/layout';
 import { legendRows } from '../../lib/legend';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
+import { formatClock } from '../../lib/timeFormat';
 import type { Span } from '../../lib/timeStripe';
 import type { EpochMs, Observer, Pass } from '../../model';
 import { useAppStore } from '../../state';
@@ -17,7 +18,8 @@ import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
-import { HiddenToggle, LegendToggle, PlaybackControls } from '../components/live/PlaybackControls';
+import { BackToLive, HiddenToggle, LegendToggle, PlaybackControls, ScrubButton } from '../components/live/PlaybackControls';
+import { StateIndicator } from '../components/live/StateIndicator';
 import { StatusStrip } from '../components/live/StatusStrip';
 import { StepControls } from '../components/live/StepControls';
 import { StripeOverview } from '../components/live/StripeOverview';
@@ -28,10 +30,12 @@ import { usePlayback } from '../components/live/usePlayback';
 import { useSkyBands } from '../components/live/useSkyBands';
 import { useWakeLock } from '../components/live/useWakeLock';
 import { useWallThrottle } from '../components/live/useWallThrottle';
+import { NextEventBlock } from '../components/passes/NextEventBlock';
 import { SkyScreen } from '../components/screen/SkyScreen';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import styles from './Live.module.css';
+import { rowsFor, type LiveRow } from './liveRows';
 
 /**
  * R32 (FR-LIVE-1, FR-LIVE-2, FR-LIVE-3, FR-LIVE-9, FR-LIVE-10; US-15 AC1, AC2,
@@ -71,6 +75,14 @@ import styles from './Live.module.css';
  * the tracks appear, grow and fade as time moves; the stripe block is the
  * readout, the three-row stripe and the stepping row (D-190); the window view
  * shows real time and hides the block and the playback row (FR-WIN-6).
+ *
+ * **Two states (R77: FR-WATCH-1..4, FR-WATCH-8; D-446, D-447).** The page is
+ * watching while the shown instant is real time — the next event as its
+ * headline, the drawing, one conditions line and the 24 h overview — and
+ * scrubbing while an instant is held, when the held instant is the headline and
+ * the stripe, the step row and the playback row come out. `[ scrub ]` enters it
+ * and `[ back to live ]` leaves it; what each state renders is `liveRows.ts`'s
+ * table, and a row it does not list is not in the DOM.
  */
 export interface LivePageProps {
   /** The `#live?…` link, or `null` for the bare route. */
@@ -167,31 +179,48 @@ export function LivePage({ link, onLeave }: LivePageProps) {
       data-compact={compact}
       {...(!compact && fold !== '' ? { 'data-fold': fold } : {})}
     >
-      {/* FR-FSC-1 (D-321): the sky screen covers this row for the eye; `inert` is the other half — nothing under
-          the layer is reachable, by Tab or by a tap that lands past it — and `aria-hidden` is what takes it out of
-          the accessible tree, since `inert` alone is a browser behaviour and not a name a test can read. */}
-      <div className={styles.topRow} data-testid="live-top-row" {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
-        <button type="button" className={styles.back} onClick={onLeave}>
-          {t.live.back}
-        </button>
-        {observer && (
-          <span className={styles.place} data-testid="live-place">
-            {observer.label}
-          </span>
-        )}
-        {!compact && (
-          <div className={styles.controls}>
-            <LanguageToggle />
-            <ThemeToggle />
-          </div>
-        )}
-      </div>
       {inert !== null || observer === null ? (
-        <p className={styles.inert} data-testid="live-inert">
-          {inert}
-        </p>
+        <>
+          <TopRow place={observer?.label ?? null} indicator={null} screenOpen={screenOpen} onLeave={onLeave} />
+          <p className={styles.inert} data-testid="live-inert">
+            {inert}
+          </p>
+        </>
       ) : (
-        <LiveSky observer={observer} link={link} />
+        <LiveSky observer={observer} link={link} onLeave={onLeave} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * The return control, the place, and on wide the switches the header would have carried (D-244). R77
+ * (FR-WATCH-2, V20-8): on compact the state indicator stands here, between the two — `[ ← Back ]` at the left,
+ * the mark, the word and the place at the right — so the actions row keeps its cells. The live page renders it
+ * from `LiveSky`, which owns the state; the inert page renders it without one.
+ */
+function TopRow({ place, indicator, screenOpen, onLeave }: { place: string | null; indicator: ReactNode; screenOpen: boolean; onLeave: () => void }) {
+  const t = useT();
+  const compact = useLayoutMode() === 'compact';
+  return (
+    /* FR-FSC-1 (D-321): the sky screen covers this row for the eye; `inert` is the other half — nothing under
+       the layer is reachable, by Tab or by a tap that lands past it — and `aria-hidden` is what takes it out of
+       the accessible tree, since `inert` alone is a browser behaviour and not a name a test can read. */
+    <div className={styles.topRow} data-testid="live-top-row" {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
+      <button type="button" className={styles.back} onClick={onLeave}>
+        {t.live.back}
+      </button>
+      {indicator}
+      {place !== null && (
+        <span className={styles.place} data-testid="live-place">
+          {place}
+        </span>
+      )}
+      {!compact && (
+        <div className={styles.controls}>
+          <LanguageToggle />
+          <ThemeToggle />
+        </div>
       )}
     </div>
   );
@@ -251,21 +280,14 @@ function useHashFollows(observer: Observer, shown: EpochMs, realTime: boolean, p
   }, [observer, shown, realTime, playing]);
 }
 
-/** The page with something to draw: the chart, the strip, the stripe block, the controls and the share action, for one observer. */
-function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null }) {
+/** The page with something to draw: the chart, the headline, the conditions, the timelines, the controls and the share action, for one observer. */
+function LiveSky({ observer, link, onLeave }: { observer: Observer; link: LiveLink | null; onLeave: () => void }) {
   const t = useT();
-  const compact = useLayoutMode() === 'compact';
-  /*
-   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315): on wide the box is cut to the dome's own aspect from what
-   * the frame leaves it (`boxAspect`), and the stripe block stands under the box rather than in the rail — the
-   * owner's stripe at the bottom of the dome, at every wide width (V12-12).
-   *
-   * R71 (FR-LEG-6, FR-LIVE-7 as amended v1.4; V14-4, D-386): and the rail is beside the box at every wide
-   * width. `LIVE_TWO_COLUMN_MIN_PX` and the one centred column it gated are withdrawn — there is one wide
-   * layout again, so the page has no column count to hold and nothing here to switch on but the mode.
-   */
-  const stripeUnder = !compact;
+  const mode = useLayoutMode();
+  const compact = mode === 'compact';
+  const locale = useLocale();
   const passesState = useAppStore((s) => s.passes);
+  const elements = useAppStore((s) => s.elements);
   const weather = useAppStore((s) => s.weather);
   const liveHidden = useAppStore((s) => s.liveHidden);
   const setLiveHidden = useAppStore((s) => s.setLiveHidden);
@@ -274,6 +296,16 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   // FR-LIVE-4, FR-LIVE-5, FR-LIVE-9: the link's instant, real time, or wherever the stripe and playback have taken it.
   const playback = usePlayback({ span, realNow: now, initial: link?.t ?? null });
   const shown = playback.t;
+  /*
+   * R77 (FR-WATCH-1, D-446): the page is watching while the shown instant is real time and scrubbing while it is
+   * held — paused, or playing at a speed. The state is that predicate over the instant `usePlayback` already
+   * holds, and nothing else: no flag in the store, nothing new in the hash. So a `#live?t=` link opens scrubbing
+   * (its `t` is held from the first render), a bare `#live` opens watching, and no code here knows about states
+   * beyond this line. `rowsFor` (D-447) is what the page renders in each.
+   */
+  const scrubbing = !playback.realTime;
+  const rows = useMemo(() => new Set(rowsFor(scrubbing ? 'scrubbing' : 'watching', mode, 'tall')), [scrubbing, mode]);
+  const has = (row: LiveRow): boolean => rows.has(row);
   // The passes belong to this observer only once the slice says so; before that the dome is empty rather than someone else's.
   const passes = useMemo(() => (passesState.observer === observer ? livePasses(passesState.passes, now) : []), [passesState.observer, passesState.passes, observer, now]);
   // FR-LIVE-5: the two bodies at most once per second of wall time, whatever the speed.
@@ -283,9 +315,6 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   const cloud = cloudVerdict(snapshot, shown);
   const count = visibleCount(passes, shown);
-  // R59 (FR-FOL-1, FR-LIVE-8 as amended v1.2, D-276): the control opens the sky window; R64 (FR-FSC-1, D-321) makes
-  // what it opens a screen of its own rather than a view of this page. The dome's facing is the drag's alone
-  // (FR-GUIDE-4), so the page passes none: the screen's window reads the sensor itself.
   /*
    * R66 (FR-FSC-1, FR-FSC-6; V13-6, D-350, D-351): the screen is opened from the chart's own view control and
    * held in the store, so what this page needs is the one flag that says whether it is drawn at all. The page
@@ -297,6 +326,7 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   // FR-LIVE-6: the dimmed set at the shown instant, minus what is already on an arc (D-102), worded here (FR-I18N-2).
   // FR-FSC-5 (D-325): held off the sky screen at the hook — while it is up the worker is not asked at all, so
   // no `computeAt` message leaves the page and there is nothing dimmed for the screen to draw even by accident.
+  // R77 (FR-WATCH-4, V20-8): the toggle's saved state applies in both states wherever the control stands.
   const hiddenState = useHiddenObjects(observer, shown, liveHidden && !screenOpen);
   const hidden = useMemo(
     () => hiddenMarkers(hiddenState, drawnAt(passes, shown), (name, reason) => t.live.hiddenLabel({ name, reason: t.live.hiddenReason[reason] })),
@@ -307,17 +337,10 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   }, [liveHidden, setLiveHidden]);
   useHashFollows(observer, shown, playback.realTime, playback.playing);
   /*
-   * R54 (FR-TRAJ-5, FR-LIVE-7 as amended v1.1.1) put the stepping row behind `pageHasTouch()`: it was for
-   * fingers, and a pointer had the arrow keys. R70 (FR-TRAJ-5 as amended v1.4, V14-6) drops the guard — the row
-   * is rendered wherever the stripe is — because `pass ▶|` is not a substitute for a gesture but the one tap
-   * FR-SPAN-4 promises, and a mouse has no equivalent of it. `pageHasTouch` is left in the lane unused.
-   */
-  /*
    * R66 (FR-FSC-8, FR-WIN-6 and FR-FOL-3 as amended v1.3.1; V13-7, D-353): the screen shows *this* instant.
-   * R48's `if (following) toNow()` is gone — opening the window used to reset the page to real time, which is
-   * exactly what stopped a reader watching a pass that has not happened yet. The layer replaces the page's grid
-   * with every hook still mounted, so `usePlayback` keeps its interval and the screen advances at the page's own
-   * speed; closing gives the page back at the instant playback has reached, which is `shown` and needs no restore.
+   * The layer replaces the page's grid with every hook still mounted, so `usePlayback` keeps its interval and
+   * the screen advances at the page's own speed; closing gives the page back at the instant playback has
+   * reached, which is `shown` and needs no restore.
    */
   // R48 (FR-TRAJ-1, FR-TRAJ-3, D-189): each pass carries the state its arc is drawn in at the shown instant; the
   // legend reads the same value. Memoised on the states, not the instant, so a frame that changes no state remakes nothing.
@@ -326,84 +349,76 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
   /*
    * R71 (FR-LEG-7, D-387, D-388): the compact page's legend control and what it says. `n` is the rows
    * `lib/legend.ts` derives from the props the chart is given — the drawn passes, and the FR-LIVE-6 markers
-   * where they are shown, which are rows of the panel too — and not the Sun and Moon lines, which the same
-   * module returns separately (OQ-26: `list (2)` on an empty sky is the one number this must not show). The
-   * chart derives the same rows from the same props (FR-LIVE-10's rule), so the control and the panel cannot
-   * disagree. The open state is the store's, so it survives a reload (`prefs.liveLegendOpen`).
+   * where they are shown — and not the Sun and Moon lines (OQ-26). The open state is the store's, so it
+   * survives a reload (`prefs.liveLegendOpen`).
+   *
+   * R77 (FR-WATCH-4, V20-8): the control is on the watching row only — the scrubbing row gives its cells to
+   * `[ back to live ]` and the hidden-objects toggle — so the panel is drawn only while its control is there
+   * to close it. The preference is kept, and the panel is back as it was on `[ back to live ]`.
    */
   const legendCount = useMemo(() => legendRows({ passes: chartPasses, highlightedPassId: null, now: shown, hidden, colorBy: 'pass' }).length, [chartPasses, shown, hidden]);
-  const legendOpen = useAppStore((s) => s.liveLegendOpen);
+  const legendPref = useAppStore((s) => s.liveLegendOpen);
+  const legendOpen = legendPref && has('list');
   const setLegendOpen = useAppStore((s) => s.setLiveLegendOpen);
   const toggleLegend = useCallback(() => {
-    setLegendOpen(!legendOpen);
-  }, [legendOpen, setLegendOpen]);
+    setLegendOpen(!legendPref);
+  }, [legendPref, setLegendOpen]);
   // FR-SHARE-1's live form: the place, and the instant only when this page is showing one (real time is the recipient's own).
   const url = shareUrl(window.location.href, liveLinkHash({ observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t: playback.realTime ? null : shown }));
+  // R77 (FR-WATCH-8): the same action and the same link; the name says what the link carries.
+  const shareName = scrubbing ? t.live.shareMoment : t.live.share;
+  // R77 (FR-WATCH-1 a, D-446): `[ scrub ]` is the pause at now — the instant of the tap, which is the one on screen.
+  const scrubHere = useCallback(() => {
+    playback.pause();
+    playback.scrub(shown);
+  }, [playback, shown]);
   /*
-   * R61 (FR-LIVE-7 as amended v1.2, D-312, F-59): where the side column goes.
-   * On compact it is the page's own row under the box, as it has been since
-   * R34. On wide it is handed to the chart, which puts it in the column beside
-   * the drawing under the legend (`aside`): the box then has every row of the
-   * page's height and a shape close to the drawing's own, instead of a box
-   * wider than the drawing can ever be with a third of its width left over.
-   * The same children in the same order either way — the block is built once
-   * and placed twice.
+   * R76 (FR-FIRST-3) and R77 (FR-WATCH-2, V20-18): the watching headline is the home page's next-event block,
+   * from the same stored run the drawing uses, at real time — the passes of the coming 24 h, so "no pass" says 24.
    */
-  /*
-   * R61 (FR-LIVE-7 as amended v1.2.1, V12-13, D-318): the playback controls belong with the stripe they drive.
-   * On wide they share the clock readout's row above the stripe — the time row — and the rail keeps what is
-   * about the sky: the strip, then the actions (hidden objects, share — the follow control went with R66). On compact the rows are R48's,
-   * unchanged: the readout over the stripe, the playback row and the actions under it.
-   */
-  const playbackControls = <PlaybackControls playing={playback.playing} speed={playback.speed} realTime={playback.realTime} onPlay={playback.play} onPause={playback.pause} onSpeed={playback.setSpeed} onNow={playback.toNow} />;
-  const readout = <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />;
-  /*
-   * R70 (FR-SPAN-2, FR-SPAN-3; D-383, D-384, D-389; V14-6): the block is four rows now. The overview carries the
-   * whole 24 h and stands directly above the stripe, under the clock readout; the stripe draws the four hours
-   * that hold the shown instant, which is `drawnSpan`'s and not this page's to decide — the same `span` and the
-   * same speed go to both, so the bracket is the window the stripe draws at every speed, the whole row at 600×
-   * and 3600× (FR-SPAN-6), and the two cannot disagree. The stepping row is no longer behind
-   * `touch`: `pass ▶|` is a control a pointer wants as much as a thumb, and it is FR-SPAN-4's one tap.
-   */
-  const stripeBlock = (
-    <div className={styles.stripeBlock} data-testid="stripe-block">
-      {stripeUnder ? (
-        <div className={styles.timeRow} data-testid="time-row">
-          {readout}
-          <div className={styles.playbackRow} data-testid="playback-row">
-            {playbackControls}
-          </div>
-        </div>
-      ) : (
-        readout
-      )}
-      <div className={styles.overviewRow} data-testid="overview-row">
-        <StripeOverview span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} speed={playback.playing ? playback.speed : null} onScrub={playback.scrub} />
-      </div>
-      <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} speed={playback.playing ? playback.speed : null} onScrub={playback.scrub} />
-      <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} />
+  const elementCount = elements.status === 'ready' ? elements.records.length : elements.status === 'error' ? 0 : null;
+  const passesPending = passesState.observer !== observer || (passesState.status !== 'done' && passesState.status !== 'error');
+
+  const indicator = has('indicator') ? <StateIndicator held={scrubbing} /> : null;
+  const nextEvent = has('next-event') ? (
+    <div className={styles.headline}>
+      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={{ hasDarkness: passesState.hasDarkness, elementCount }} pending={passesPending} hours={LIVE_WINDOW_MS / 3_600_000} liveLink={false} />
     </div>
-  );
+  ) : null;
+  const readout = <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />;
+  const playbackRow = has('playback') ? (
+    <div className={styles.playbackRow} data-testid="playback-row">
+      <PlaybackControls playing={playback.playing} speed={playback.speed} onPlay={playback.play} onPause={playback.pause} onSpeed={playback.setSpeed} />
+    </div>
+  ) : null;
   /*
-   * R64 (FR-WIN-6 as amended v1.3, D-185's loose end): the strip's true-north line went with the window's
-   * being a view of this page. The declination is the sky screen's readout line now (FR-FSC-4), and the
-   * strip — which the screen does not carry — has no state left in which it would say it.
+   * R70 (FR-SPAN-2): the overview carries the whole 24 h; a click, a drag or a key on it sets the shown instant,
+   * which is also how it enters scrubbing from watching (FR-WATCH-1 b) — the same `scrub`, and so the same
+   * predicate. While watching on compact it has one text row of end labels under it (FR-WATCH-4).
    */
-  const side = (
-    <div className={styles.side} data-testid="live-side">
-      <StatusStrip t={shown} timeZone={observer.timeZone} sky={bodies.sky} cloud={cloud} count={count} moon={bodies.moon} speed={playback.playing ? playback.speed : null} />
-      {!stripeUnder && stripeBlock}
-      {!stripeUnder && (
-        <div className={styles.playbackRow} data-testid="playback-row">
-          {playbackControls}
-        </div>
-      )}
-      <div className={styles.actions} data-testid="live-actions">
-        <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />
-        {/* FR-LEG-7 (D-387, D-388): compact only. On wide the legend is in the rail at every width (FR-LEG-6), so there is nothing to disclose. */}
-        {compact && <LegendToggle open={legendOpen} count={legendCount} controls={LEGEND_PANEL_ID} onToggle={toggleLegend} />}
-        {/* D-411: the brackets are what the row cannot afford with `[ list (n) ]` on it — 39 cells in Spanish, 35 without them (FR-COMP-4). */}
-        <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : t.live.share} ariaLabel={t.live.share} plain={compact} />
+  const overview = has('overview') ? (
+    <div className={styles.overviewRow} data-testid="overview-row">
+      <StripeOverview span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} speed={playback.playing ? playback.speed : null} onScrub={playback.scrub} />
+    </div>
+  ) : null;
+  const overviewLabels = has('overview-labels') ? (
+    <p className={styles.overviewLabels} data-testid="overview-labels" aria-hidden="true">
+      <span>{t.live.overviewStart}</span>
+      <span>{t.live.overviewEnd}</span>
+    </p>
+  ) : null;
+  const stripe = has('stripe') ? <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} speed={playback.playing ? playback.speed : null} onScrub={playback.scrub} /> : null;
+  const steps = has('steps') ? <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} /> : null;
+  const conditions = <StatusStrip t={shown} timeZone={observer.timeZone} sky={bodies.sky} cloud={cloud} count={count} moon={bodies.moon} />;
+  const actions = (
+    <div className={styles.actions} data-testid="live-actions">
+      {has('scrub') && <ScrubButton onScrub={scrubHere} />}
+      {has('back-to-live') && compact && <BackToLive onNow={playback.toNow} />}
+      {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
+      {has('list') && <LegendToggle open={legendOpen} count={legendCount} controls={LEGEND_PANEL_ID} onToggle={toggleLegend} />}
+      {/* D-411: plain on compact — the brackets are what the row cannot afford (FR-COMP-4). */}
+      <div className={styles.share} data-testid="live-share">
+        <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : shareName} ariaLabel={shareName} plain={compact} />
       </div>
     </div>
   );
@@ -412,13 +427,102 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
    * FR-FSC-1 (D-321): while the control holds, the layer is what this page draws. The page's own hooks are
    * all above this line and stay mounted — the passes and the stored set, playback and the `now` effect, the
    * wake lock, the hash — so closing gives back the page that has been running underneath all along; only its
-   * grid is not built. `LivePage`'s one-row header is left mounted and covered, `inert` (FR-FSC-1).
+   * grid is not built. The one-row header is left mounted and covered, `inert` (FR-FSC-1).
    */
-  if (screenOpen) return <SkyScreen passes={chartPasses} observer={observer} now={shown} sun={bodies.sun} moon={bodies.moon} initialFacingAzDeg={0} onClose={closeScreen} />;
+  const top = <TopRow place={observer.label} indicator={compact ? indicator : null} screenOpen={screenOpen} onLeave={onLeave} />;
+  if (screenOpen) {
+    return (
+      <>
+        {top}
+        <SkyScreen passes={chartPasses} observer={observer} now={shown} sun={bodies.sun} moon={bodies.moon} initialFacingAzDeg={0} onClose={closeScreen} />
+      </>
+    );
+  }
 
+  if (compact) {
+    /*
+     * R77 (FR-WATCH-4, FR-WATCH-5): compact portrait, top to bottom — the top row with the indicator, the
+     * headline (the next event while watching, the held instant while scrubbing), the frame (the view control,
+     * the box, the facing readout, the list panel while open), then the rows under it: the conditions line,
+     * the overview, and while scrubbing the stripe, the step row and the playback row, then the actions. The box
+     * is what the rows leave, so it is taller while watching; the reader's tap is what changes it (FR-WATCH-7).
+     */
+    return (
+      <>
+        {top}
+        <div className={styles.head} data-testid="live-head">
+          {nextEvent}
+          {has('time-row') && (
+            <div className={styles.timeRow} data-testid="time-row">
+              {readout}
+            </div>
+          )}
+        </div>
+        <div className={styles.dome} data-testid="live-dome">
+          <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} />
+        </div>
+        <div className={styles.side} data-testid="live-side">
+          {conditions}
+          {overview}
+          {overviewLabels}
+          {stripe}
+          {steps}
+          {playbackRow}
+          {actions}
+        </div>
+      </>
+    );
+  }
+
+  /*
+   * R77 (FR-WATCH-4, FR-WATCH-5): wide. The rail is the sky's — its head is the indicator with the clock (or
+   * `[ back to live ]` while scrubbing), the next-event block and the conditions line; the legend is the frame's,
+   * under them; its foot is the overview while watching and the actions. While scrubbing the scrub block stands
+   * under the box at the box's width — the time row with the playback controls beside the held instant (V12-13),
+   * the overview, the stripe and the step row — and the frame re-fits the box to what the block leaves (D-314).
+   * While watching there is no block, so the box takes the height down to the page's foot.
+   */
+  const railHead = (
+    <div className={styles.railHead} data-testid="live-rail-head">
+      <div className={styles.indicatorLine}>
+        {indicator}
+        {has('clock') && (
+          <time className={styles.clock} data-testid="live-clock" dateTime={new Date(now).toISOString()}>
+            {formatClock(now, observer.timeZone, locale)}
+          </time>
+        )}
+        {has('back-to-live') && <BackToLive onNow={playback.toNow} />}
+      </div>
+      {nextEvent}
+      {conditions}
+    </div>
+  );
+  const side = (
+    <div className={styles.side} data-testid="live-side">
+      {railHead}
+      <div className={styles.railFoot} data-testid="live-rail-foot">
+        {!scrubbing && overview}
+        {actions}
+      </div>
+    </div>
+  );
+  const scrubBlock = scrubbing ? (
+    <div className={styles.stripeBlock} data-testid="stripe-block">
+      {has('time-row') && (
+        <div className={styles.timeRow} data-testid="time-row">
+          {readout}
+          {playbackRow}
+        </div>
+      )}
+      {overview}
+      {stripe}
+      {steps}
+    </div>
+  ) : null;
   return (
     <>
-      <div className={styles.dome} data-testid="live-dome" data-stripe-under={stripeUnder}>
+      {top}
+      <div className={styles.dome} data-testid="live-dome" data-stripe-under>
         <SkyChart
           passes={chartPasses}
           observer={observer}
@@ -430,11 +534,11 @@ function LiveSky({ observer, link }: { observer: Observer; link: LiveLink | null
           colorBy="pass"
           fill
           initialFacingAzDeg={0}
-          {...(compact ? { legendOpen } : { aside: side, boxAspect: DOME_BOX_ASPECT })}
-          {...(stripeUnder ? { stripe: stripeBlock } : {})}
+          aside={side}
+          boxAspect={DOME_BOX_ASPECT}
+          {...(scrubBlock === null ? {} : { stripe: scrubBlock })}
         />
       </div>
-      {compact && side}
     </>
   );
 }
