@@ -85,6 +85,9 @@ const moonPhase = {
   waningCrescent: 'menguante',
 } satisfies Record<MoonPhaseName, string>;
 
+/** R82 (D-513): la cuenta del paso **qué** en palabras, de uno a doce; cifras después. "Un" y no "uno": va antes de "pase". */
+const numberWords = ['', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez', 'once', 'doce'];
+
 
 export const ui: typeof EnUi = {
   app: {
@@ -178,6 +181,37 @@ export const ui: typeof EnUi = {
     noDarkWindow: 'Esta noche no llega a estar oscuro del todo.',
     moonRow: (p) => `${moonPhase[p.phase]}, ${p.illumination} %${p.point === null ? '' : `, ${p.point}`}`,
     upNow: (p) => `${p.name}${p.left === null ? '' : ` · quedan ${p.left}`}${p.more > 0 ? ` +${String(p.more)}` : ''}`,
+    count: (n) => {
+      if (n === 0) return 'Esta noche no hay pases';
+      if (n === 1) return 'Esta noche hay un pase';
+      return `Esta noche hay ${n <= 12 ? (numberWords[n] ?? String(n)) : String(n)} pases`;
+    },
+    whenStep: {
+      heading: '¿Cuándo está lo bastante oscuro?',
+      sentence: (place) => `${place}, esta noche. Los satélites solo se ven iluminados en la banda oscura entre el anochecer y el amanecer.`,
+      nightLabel: 'La banda oscura de esta noche',
+      skyLabel: 'El cielo de esta noche',
+      darkFrom: 'Oscuro desde',
+      until: 'Hasta',
+      /* "Pases en ella" and "5 esta noche, 7 en 72 h" are 37 cells, one past FR-COMP-4's 36. */
+      passesIn: 'Pasan',
+      passesValue: (p) => `${String(p.tonight)} esta noche, ${String(p.total)} en ${String(p.hours)} h`,
+      /* "Nubes esta noche" and "Probablemente cubierto" are 39 cells. */
+      clouds: 'Nubes',
+      cloudsMoment: 'a mitad de la banda oscura',
+      moon: 'Luna',
+      /* "gibosa menguante, 99 % iluminada" and its label are 38 cells. */
+      moonValue: (p) => `${moonPhase[p.phase]}, ${p.illumination} % de luz`,
+      moonNote: (note) => `Una luna brillante apaga los más tenues. ${note === 'bright' ? 'Esta noche lo hará.' : 'Esta noche no lo hará.'}`,
+      next: 'Ver qué cruza',
+    },
+    whatStep: {
+      sentence: 'Cada uno es un punto de luz fijo, que se mueve más o menos tan rápido como un avión alto, sin parpadear.',
+      moreTonight: (n) => `${String(n)} más esta noche`,
+      moreNights: (n) => (n === 1 ? '1 en otra noche' : `${String(n)} en otras noches`),
+      foot: (p) => [p.place, p.dark === null ? 'sin oscuridad total' : `oscuro ${p.dark.from}–${p.dark.to}`, cloudState[p.cloud].toLowerCase()],
+      edit: 'editar',
+    },
   },
 
   nextEvent: {
