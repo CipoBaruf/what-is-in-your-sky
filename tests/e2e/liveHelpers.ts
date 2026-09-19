@@ -2,7 +2,7 @@
  * The live page's e2e fixtures and steps, shared by `live.spec.ts` (R32) and
  * `live-playback.spec.ts` (R33): the R1 fixtures at Neuquén, the clock
  * installed ten seconds into the golden ISS pass — the instant `now-panel.spec`
- * pins the Now panel at — the network stubs, the home page with the place
+ * pins the conditions table at — the network stubs, the home page with the place
  * typed in, and the live page with its dome drawn.
  */
 import { readFileSync } from 'node:fs';
@@ -38,8 +38,8 @@ export const golden = (): { start: number; peak: number; end: number } => {
 export const T = golden().start + 10_000;
 
 export const LABEL = {
-  en: { coords: 'Coordinates (lat, lon)', now: 'Right now', visible: /(\d+) satellites? visible right now/, live: 'Live sky', fromNow: 'Watch the sky live', back: '← Back', theme: 'Theme', night: 'Night', dark: 'Dark', passes: 'Upcoming passes' },
-  es: { coords: 'Coordenadas (lat, lon)', now: 'Ahora mismo', visible: /(\d+) satélites? visibles? ahora mismo/, live: 'Cielo en vivo', fromNow: 'Ver el cielo en vivo', back: '← Volver', theme: 'Tema', night: 'Nocturno', dark: 'Oscuro', passes: 'Próximos pases' },
+  en: { coords: 'Coordinates (lat, lon)', live: 'Live sky', fromNow: 'Watch the sky live', back: '← Back', theme: 'Theme', night: 'Night', dark: 'Dark', passes: 'Upcoming passes' },
+  es: { coords: 'Coordenadas (lat, lon)', live: 'Cielo en vivo', fromNow: 'Ver el cielo en vivo', back: '← Volver', theme: 'Tema', night: 'Nocturno', dark: 'Oscuro', passes: 'Próximos pases' },
 } as const;
 
 /** The pass list's status line once the window has been searched, in either language. */
@@ -140,7 +140,7 @@ export async function leaveSettings(page: Page): Promise<void> {
 }
 
 /**
- * The app at `t` with the fixtures, Neuquén typed in, and the Now panel's verdict for that instant.
+ * The app at `t` with the fixtures, Neuquén typed in, and the `Up now` row's count for that instant (FR-FIRST-9).
  * `wholeList` waits for the 72 h search to finish first, so a capture shows every arc of the coming night
  * rather than the first few to stream in.
  */
@@ -153,14 +153,24 @@ export async function homeAt(page: Page, t: number, locale: 'en' | 'es' = 'en', 
     if (locale === 'es') await page.getByRole('button', { name: 'Español' }).click();
     await page.getByLabel(LABEL[locale].coords).fill(NEUQUEN);
   });
-  const panel = page.getByRole('region', { name: LABEL[locale].now });
-  await expect(panel.getByRole('status')).toHaveText(LABEL[locale].visible, { timeout: 60_000 });
+  // R81 (FR-FIRST-9): the Now panel's count is the conditions table's `Up now` row — the first one up, and `+<n>` for the rest.
+  const upNow = page.getByTestId('conditions').getByTestId('up-now');
+  await expect(upNow).toHaveText(UP_NOW, { timeout: 60_000 });
   if (wholeList) {
     const passes = page.getByRole('region', { name: LABEL[locale].passes });
     await expect(passes.getByRole('status')).toHaveText(PASS_COUNT, { timeout: 60_000 });
   }
-  const match = LABEL[locale].visible.exec((await panel.getByRole('status').textContent()) ?? '');
-  return Number(match?.[1] ?? '0');
+  return upNowCount((await upNow.textContent()) ?? '');
+}
+
+/** The `Up now` row's value, in either language: `ISS (Zarya) · 3:12 left +2`. */
+export const UP_NOW = /^.+ · (\d+:\d\d left|quedan \d+:\d\d)( \+\d+)?$/;
+
+/** How many satellites the `Up now` row counts: its first, and the `+<n>` after it. */
+export function upNowCount(text: string): number {
+  if (text === '') return 0;
+  const more = /\+(\d+)$/.exec(text);
+  return 1 + Number(more?.[1] ?? '0');
 }
 
 /**

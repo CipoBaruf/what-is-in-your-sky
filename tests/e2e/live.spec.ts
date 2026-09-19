@@ -16,12 +16,13 @@
  */
 import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { expect, test, type Page } from '@playwright/test';
+import { formatClockDuration } from '../../src/lib/format';
 import { domeDrawn, golden, ha, heading, hhmmss, homeAt, LABEL, openLegend, realTimeField, reenterLiveWithTheme, stripFilled, stubCompass, stubNetwork, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
 
 test.describe('the live page', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test('fills the viewport with the dome, shows the five fields, and counts what the Now panel counts', async ({ page }) => {
+  test('fills the viewport with the dome, shows the five fields, and counts what the Up now row counts', async ({ page }) => {
     const panelCount = await homeAt(page, T);
     expect(panelCount).toBe(1);
 
@@ -71,11 +72,11 @@ test.describe('the live page', () => {
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByTestId('live-page')).toHaveCount(0);
 
-    // …and the Now panel's link opens it again; the return control closes it.
+    // …and the next-event block's `[ Open the live sky ]` (the Now panel's link, FR-FIRST-6) opens it again; the return control closes it.
     await page.getByTestId('now-live-link').click();
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'live');
     await page.getByRole('button', { name: LABEL.en.back }).click();
-    await expect(page.getByRole('region', { name: LABEL.en.now })).toBeVisible();
+    await expect(page.getByTestId('conditions')).toBeVisible();
   });
 
   test('a #live?… URL sets the observer and the shown instant, and a bad t falls back to real time (FR-LIVE-9)', async ({ page }) => {
@@ -95,7 +96,8 @@ test.describe('the live page', () => {
     await stripFilled(page);
     // Real time was not touched by the link.
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('region', { name: LABEL.en.now })).toContainText(`as of ${hhmmss(T)} UTC`, { timeout: 60_000 });
+    // R81: the Now panel's `as of` is gone with it; the next-event block counts from real time, ten seconds into the pass.
+    await expect(page.getByTestId('next-event-label')).toHaveText(`Up now · peaks in ${formatClockDuration((golden().peak - T) / 1000)}`, { timeout: 60_000 });
     // R52 (FR-COMP-3): the home screen names the observer in its summary line; the form that holds it is on `#settings`.
     await expect(page.getByTestId('location-summary')).toContainText('−38.93, −67.99');
 
