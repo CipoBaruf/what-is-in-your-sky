@@ -1846,7 +1846,8 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: the page in both states one-handed at night.
 
-- [ ] **R79 — The compass gutter, and portrait's band** [P]
+- [x] **R79 — The compass gutter, and portrait's band** [P]
+  - *Done:* upright at 390 × 844 the band is capped at 390 × 390 (FR-GUT-7), so the 68 px is asserted at 844 × 390 and on the turned layer at 390 × 844 (D-492); the pass detail's `window` captures are re-shot with the gutter as well.
   - **Lane:** window
   - **Crossings (§16.16):** `skychart/ChartFrame.tsx` is `chart`'s (D-450); R78 makes the phase's other crossing into it, in a later wave.
   - **Model:** opus
