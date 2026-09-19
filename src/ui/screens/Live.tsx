@@ -352,17 +352,17 @@ function LiveSky({ observer, link, onLeave }: { observer: Observer; link: LiveLi
    * where they are shown — and not the Sun and Moon lines (OQ-26). The open state is the store's, so it
    * survives a reload (`prefs.liveLegendOpen`).
    *
-   * R77 (FR-WATCH-4, V20-8): the control is on the watching row only — the scrubbing row gives its cells to
-   * `[ back to live ]` and the hidden-objects toggle — so the panel is drawn only while its control is there
-   * to close it. The preference is kept, and the panel is back as it was on `[ back to live ]`.
+   * R77 (FR-WATCH-4, V20-8): on compact the control is on the watching row only — the scrubbing row gives its
+   * cells to `[ back to live ]` and the hidden-objects toggle — but the panel is the legend, which scrubbing
+   * renders as watching does ("everything watching renders except the next-event block"): a list opened while
+   * watching stays open through the scrub, with the arcs' states in it, and closes from the watching row.
    */
   const legendCount = useMemo(() => legendRows({ passes: chartPasses, highlightedPassId: null, now: shown, hidden, colorBy: 'pass' }).length, [chartPasses, shown, hidden]);
-  const legendPref = useAppStore((s) => s.liveLegendOpen);
-  const legendOpen = legendPref && has('list');
+  const legendOpen = useAppStore((s) => s.liveLegendOpen);
   const setLegendOpen = useAppStore((s) => s.setLiveLegendOpen);
   const toggleLegend = useCallback(() => {
-    setLegendOpen(!legendPref);
-  }, [legendPref, setLegendOpen]);
+    setLegendOpen(!legendOpen);
+  }, [legendOpen, setLegendOpen]);
   // FR-SHARE-1's live form: the place, and the instant only when this page is showing one (real time is the recipient's own).
   const url = shareUrl(window.location.href, liveLinkHash({ observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t: playback.realTime ? null : shown }));
   // R77 (FR-WATCH-8): the same action and the same link; the name says what the link carries.
@@ -458,7 +458,7 @@ function LiveSky({ observer, link, onLeave }: { observer: Observer; link: LiveLi
             </div>
           )}
         </div>
-        <div className={styles.dome} data-testid="live-dome">
+        <div className={styles.dome} data-testid="live-dome" data-stripe-under={false}>
           <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} />
         </div>
         <div className={styles.side} data-testid="live-side">
