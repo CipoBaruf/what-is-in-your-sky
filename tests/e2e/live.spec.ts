@@ -17,7 +17,7 @@
 import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { expect, test, type Page } from '@playwright/test';
 import { formatClockDuration } from '../../src/lib/format';
-import { domeDrawn, golden, ha, heading, hhmmss, homeAt, LABEL, openLegend, realTimeField, reenterLiveWithTheme, stripFilled, stubCompass, stubNetwork, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
+import { domeDrawn, enterScrubbing, golden, ha, heading, hhmmss, homeAt, LABEL, openLegend, realTimeField, reenterLiveWithTheme, stripFilled, stubCompass, stubNetwork, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
 
 test.describe('the live page', () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -50,11 +50,13 @@ test.describe('the live page', () => {
     // FR-LIVE-3: the five fields.
     await stripFilled(page);
     await expect(page.getByTestId('live-time')).toHaveText(realTimeField(T));
-    await expect(page.getByTestId('live-sky')).toHaveText(/Sky (dark|bright twilight|day)/);
-    // R48 (D-246): the compact strip is two lines — the numbers, `n/a` for the clouds without a forecast.
-    await expect(page.getByTestId('live-cloud')).toHaveText('Clouds n/a');
+    // R77 (FR-WATCH-3): the compact conditions line — the clock, one word each for the sky and the clouds
+    // (`unknown` without a forecast), the count — with the labels spoken.
+    await expect(page.getByTestId('live-sky')).toHaveText(/Sky (dark|twilight|day)/);
+    await expect(page.getByTestId('live-cloud')).toHaveText('Clouds unknown');
     await expect(page.getByTestId('live-count').locator('[data-count]')).toHaveAttribute('data-count', String(panelCount));
-    await expect(page.getByTestId('live-moon')).toHaveText(/^Moon \d+ %$/);
+    // FR-MOON-3 as amended: the Moon's phase and illumination are the list panel's Moon line, one tap away.
+    await expect(page.getByTestId('live-moon')).toHaveCount(0);
     // FR-LIVE-2 / FR-LIVE-10: the ISS is drawn on the chart, by the chart, named at its rise. (The search
     // window starts at now, so the pass under way is listed from this instant and its id is not the golden one.)
     // R45: the legend's rows carry the pass id too, so the drawing's are read inside the drawing.
@@ -63,6 +65,8 @@ test.describe('the live page', () => {
     // R71 (FR-LEG-7): on a phone the list is one tap away.
     await openLegend(page);
     await expect(page.getByTestId('live-dome').getByTestId('chart-legend').locator('button[data-pass-id^="25544-"]')).toContainText('ISS (Zarya)');
+    const moonLine = page.getByTestId('live-dome').getByTestId('chart-legend').locator('[data-body="moon"]');
+    if ((await moonLine.count()) > 0) await expect(moonLine).toHaveText(/Moon .+, \d+ % · az /);
     // FR-SHARE-1's live form.
     await expect(page.getByRole('button', { name: 'Share this sky' })).toBeVisible();
 
@@ -166,12 +170,12 @@ test.describe('the live page with the sky screen open upright', () => {
       await domeDrawn(page);
       await stripFilled(page);
 
-      // Not following: the dome is the view, with the stripe block and the playback row under it,
-      // and no layer over any of it. The strip has its five fields and no sixth.
+      // Not following: the dome is the view, with the rows of the watching state under it (R77: the overview,
+      // and no stripe block), and no layer over any of it. The line has no heading field.
       const chart = page.getByTestId('sky-chart');
       await expect(chart).toHaveAttribute('data-view', 'dome');
       await expect(page.getByTestId('live-heading')).toHaveCount(0);
-      await expect(page.getByTestId('stripe-block')).toBeVisible();
+      await expect(page.getByTestId('overview-row')).toBeVisible();
       await expect(page.getByTestId('sky-screen')).toHaveCount(0);
 
       // The tap arms the sensor and the first reading with a north in it opens the screen (D-350).
@@ -200,7 +204,7 @@ test.describe('the live page with the sky screen open upright', () => {
       await page.getByTestId('sky-screen-close').click();
       await expect(layer).toHaveCount(0);
       await expect(chart).toHaveAttribute('data-view', 'dome');
-      await expect(page.getByTestId('stripe-block')).toBeVisible();
+      await expect(page.getByTestId('overview-row')).toBeVisible();
       // FR-WIN-5 as amended v1.3.1: nothing was saved on the way through — the window is a mode, and the
       // reader picked no view, so the device still carries none.
       const prefs = await page.evaluate(() => JSON.parse(localStorage.getItem('wiys:prefs:v1') ?? '{}') as { chartView?: string });
@@ -226,7 +230,8 @@ for (const width of [390, 1280] as const) {
      * is under the box on the phone and beside it at every wide width, which `live-rail.spec.ts` measures.
      */
     const box = await page.getByTestId('chart-box').boundingBox();
-    const side = await page.getByTestId('live-side').boundingBox();
+    // R77: on wide the side column is the rail's head and foot, laid out inside the frame's column (`live-rail-head`).
+    const side = await page.getByTestId(width === 390 ? 'live-side' : 'live-rail-head').boundingBox();
     if (width === 390) expect(side?.y).toBeGreaterThanOrEqual((box?.y ?? 0) + (box?.height ?? 0) - 1);
     else expect(side?.x).toBeGreaterThanOrEqual((box?.x ?? 0) + (box?.width ?? 0) - 1);
     await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome']);
@@ -246,8 +251,8 @@ test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async 
   await domeDrawn(page);
   await stripFilled(page);
   await expect(page.getByRole('button', { name: LABEL.es.back })).toBeVisible();
-  await expect(page.getByTestId('status-strip')).toHaveAttribute('aria-label', 'Estado del cielo');
-  await expect(page.getByTestId('live-sky')).toHaveText(/Cielo (oscuro|crepúsculo claro|de día)/);
+  await expect(page.getByTestId('status-strip')).toHaveAttribute('aria-label', 'Condiciones del cielo');
+  await expect(page.getByTestId('live-sky')).toHaveText(/Cielo (oscuro|crepúsculo|día)/);
   await expect(page.getByTestId('live-cloud')).toHaveText('Nubes s/d');
   await expect(page.getByRole('button', { name: 'Compartir este cielo' })).toBeVisible();
   await page.screenshot({ path: 'docs/screenshots/r32-live-390-dark-es.png' });
@@ -322,6 +327,8 @@ test.describe('the wide live page (R61)', () => {
     await page.getByTestId('live-link').click();
     await domeDrawn(page);
     await stripFilled(page);
+    // R77 (FR-WATCH-4): the stripe block under the box is the scrubbing state's.
+    await enterScrubbing(page);
     const toggle = await page.getByRole('group', { name: 'Chart view' }).boundingBox();
     const readout = await page.getByTestId('dome-readout').boundingBox();
     const box = await page.getByTestId('chart-box').boundingBox();
@@ -356,6 +363,7 @@ test.describe('the wide live page (R61)', () => {
     await page.getByTestId('live-link').click();
     await domeDrawn(page);
     await stripFilled(page);
+    await enterScrubbing(page);
     const toggle = await page.getByRole('group', { name: 'Chart view' }).boundingBox();
     const readout = await page.getByTestId('dome-readout').boundingBox();
     const box = await page.getByTestId('chart-box').boundingBox();
@@ -364,8 +372,8 @@ test.describe('the wide live page (R61)', () => {
     band(readout, toggle);
     below(box, toggle);
     await expectTheRail(page, box, 'under the box');
-    // The legend is in that column too, over the rail (FR-LEG-2 as amended v1.4).
-    const rail = await page.getByTestId('chart-aside').boundingBox();
+    // The legend is in that column too, over the rail's foot (FR-LEG-2 as amended v1.4; R77: the head above it).
+    const rail = await page.getByTestId('live-rail-foot').boundingBox();
     const legend = await page.getByTestId('chart-legend-scroll').boundingBox();
     rightOf(legend, box);
     below(rail, legend);
