@@ -205,7 +205,7 @@ function arcInBox(pass: ChartPass, m: Mat3, view: View, now: number | undefined)
   const state = arcOf(pass);
   if (state === 'hidden') return false;
   const t = now ?? pass.end.t;
-  const drawn = state === 'live' ? [...pass.track.filter((p) => p.t <= t), interpolateTrack(pass.track, t)] : pass.track;
+  const drawn = state === 'live' ? cutTrack(pass, t) : pass.track;
   return drawn.some((p) => inBox(project(m, p.azDeg, p.elDeg, view), view));
 }
 

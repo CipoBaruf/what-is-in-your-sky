@@ -80,6 +80,17 @@ describe('bracketFor', () => {
     expect(upright.x0).toBeCloseTo(130, 9);
     expect(upright.x1).toBeCloseTo(260, 9);
   });
+
+  it('stops at the band’s half span on a box whose field is wider than the band, so no mark in the bracket is off the band', () => {
+    const wide: View = { ...SIDEWAYS, width: 4000, height: 300 };
+    expect(horizontalHalfFieldDeg(wide)).toBeGreaterThan(GUTTER_HALF_SPAN_DEG);
+    const { halfDeg, x0, x1 } = bracketFor(wide);
+    expect(halfDeg).toBe(GUTTER_HALF_SPAN_DEG);
+    expect(x0).toBe(0);
+    expect(x1).toBe(wide.width);
+    const [mark] = gutterMarks([pass(100)], 0, wide);
+    expect(mark?.branch).not.toBe('in-bracket');
+  });
 });
 
 describe('gutterMarks', () => {

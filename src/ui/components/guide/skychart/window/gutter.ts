@@ -61,12 +61,14 @@ export function horizontalHalfFieldDeg(view: View): number {
 /**
  * FR-GUT-3: the bracket's half width in degrees, and its two ends across the
  * band. The bracket is centred on the facing and the band is too, so its ends
- * are the same pixels whatever the facing is; only the box moves them.
+ * are the same pixels whatever the facing is; only the box moves them. A box
+ * whose field is wider than the band gets the whole band: the half width stops
+ * at the band's half span, so nothing in the bracket has an `x` off the band.
  */
 export function bracketFor(view: View): { halfDeg: number; x0: number; x1: number } {
-  const halfDeg = horizontalHalfFieldDeg(view);
+  const halfDeg = Math.min(horizontalHalfFieldDeg(view), GUTTER_HALF_SPAN_DEG);
   const at = (d: number): number => (view.width * (d + GUTTER_HALF_SPAN_DEG)) / (2 * GUTTER_HALF_SPAN_DEG);
-  return { halfDeg, x0: Math.max(0, at(-halfDeg)), x1: Math.min(view.width, at(halfDeg)) };
+  return { halfDeg, x0: at(-halfDeg), x1: at(halfDeg) };
 }
 
 /** FR-GUT-2: the eight 45° names that fall on the band, with their `x`. */
