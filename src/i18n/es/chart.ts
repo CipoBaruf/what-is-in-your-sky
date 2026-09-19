@@ -21,7 +21,7 @@ export const chart: typeof EnChart = {
       empty: 'nada visible ahora',
       state: { live: 'arriba', ahead: 'pronto', linger: 'pasó' },
       sun: (p) => `Sol · az ${p.azimuth} · alt ${p.altitude}`,
-      moon: (p) => `${p.glyph} Luna · az ${p.azimuth} · alt ${p.altitude}`,
+      moon: (p) => `${p.glyph} Luna ${p.phase}, ${p.illumination} % · az ${p.azimuth} · alt ${p.altitude}`,
     },
     domeGroup: 'Domo celeste',
     domeHint: 'Arrastrar el domo, o usar las flechas del teclado, para mirar alrededor.',

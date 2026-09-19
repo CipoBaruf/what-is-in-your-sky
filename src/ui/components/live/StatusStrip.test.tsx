@@ -1,17 +1,19 @@
 /**
- * R32 (FR-LIVE-3): the five fields of the status strip, worded from the
- * values the page hands in — the instant in the observer's zone with its
- * abbreviation, the sky state in words, the cloud cover or "unknown", the
- * count, and the Moon's phase and illumination — in both languages, with the
- * pending reading while the astronomy has not arrived.
+ * R32 (FR-LIVE-3), re-cut by R77 (FR-WATCH-3, FR-LIVE-3 as amended v2.0): the
+ * conditions line, worded from the values the page hands in, in both
+ * languages, with the pending reading while the astronomy has not arrived.
+ * Wide: the sky, the clouds with their percentage, the count and the Moon, in
+ * the rail. Compact: the clock, the sky word, the cloud word and `n up` on one
+ * line of at most 36 cells, the labels and the zone spoken.
  */
 import { render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MOON_FIXTURE } from '../../../../tests/support/moonFixtures';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
 import { I18nProvider } from '../../../i18n/useT';
+import { moonFacts } from '../../../lib/moonPhrases';
 import type { CloudVerdict } from '../../../model';
 import { StatusStrip } from './StatusStrip';
 
@@ -20,144 +22,119 @@ const unknown: CloudVerdict = { state: 'unknown', effectivePct: null, at: T };
 const clear: CloudVerdict = { state: 'clear', effectivePct: 12.4, at: T };
 
 const field = (id: string): HTMLElement => screen.getByTestId(`live-${id}`);
+const fieldIds = (): (string | null)[] => [...screen.getByTestId('status-strip').children].map((el) => el.getAttribute('data-testid'));
 
 /** The wide shell: a `matchMedia` that says the viewport is past the breakpoint. jsdom has none, which is compact. */
 const stubWide = (): void => {
   vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener: () => undefined, removeEventListener: () => undefined }));
 };
 
-/** FR-COMP-4: the cells of one line — every field's text, and two cells between the fields. */
-const cells = (fields: readonly string[]): number => fields.reduce((sum, text) => sum + [...text].length, 0) + 2 * (fields.length - 1);
-
 describe('<StatusStrip>', () => {
-  // The wide form is the one R32 worded; the compact two-line form (R48) is the last test's.
-  beforeEach(stubWide);
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  /** R48 (FR-LIVE-7 as amended, FR-COMP-4, D-246): two lines on compact, the numbers in place of the words, each line within 36 cells at its longest. */
-  it('on compact is two lines: the clock and the sky with their labels spoken, then the clouds, the count and the Moon as numbers', async () => {
-    vi.unstubAllGlobals();
-    const { container, rerender } = render(<StatusStrip t={T} timeZone="America/Argentina/Salta" sky="bright-twilight" cloud={clear} count={3} moon={MOON_FIXTURE} />);
-    const strip = screen.getByTestId('status-strip');
-    expect(strip).toHaveAttribute('data-compact', 'true');
-    // Every term is still there for assistive technology; the first line's are not shown.
-    expect(within(strip).getAllByRole('term').map((term) => term.textContent)).toEqual(['Time', 'Sky', 'Clouds', 'Visible', 'Moon']);
-    expect(field('time').querySelector('dt')).toHaveClass('sr-only');
-    expect(field('sky').querySelector('dt')).toHaveClass('sr-only');
-    expect(field('cloud').querySelector('dt')).not.toHaveClass('sr-only');
-    // The clock keeps its zone and its `datetime`; the date is the stripe's and the readout's.
-    expect(field('time')).toHaveTextContent(/^Time 06:48:24 GMT-3$/);
-    expect(field('time').querySelector('time')).toHaveAttribute('datetime', '2026-09-11T09:48:24.063Z');
-    expect(field('sky')).toHaveTextContent(/^Sky bright twilight$/);
-    expect(field('cloud')).toHaveTextContent(/^Clouds 12 %$/);
-    expect(field('cloud').querySelector('[data-state]')).toHaveAttribute('data-state', 'clear');
-    expect(field('count')).toHaveTextContent(/^Visible 3$/);
-    expect(field('count').querySelector('[data-count]')).toHaveAttribute('data-count', '3');
-    expect(field('moon')).toHaveTextContent(/^Moon 72 %$/);
-    expect(await axe(container)).toHaveNoViolations();
-    // No forecast: the clouds are `n/a`, still in the unknown state; the speed and the heading take a line each.
-    rerender(<StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} speed={3600} declinationDeg={1.1187} />);
-    expect(field('cloud')).toHaveTextContent(/^Clouds n\/a$/);
-    expect(field('cloud').querySelector('[data-state]')).toHaveAttribute('data-state', 'unknown');
-    expect(field('speed')).toHaveTextContent(/^Speed 3600×$/);
-    expect(field('heading')).toHaveTextContent(/^Heading true north, declination \+1\.1°$/);
-    expect(field('heading').querySelector('dt')).toHaveClass('sr-only');
-
-    // The `dl` stays flat; the sky, the Moon, the speed and the heading each end a line (the stylesheet breaks after them).
-    expect([...strip.children].filter((el) => el.getAttribute('data-line-end') === 'true').map((el) => el.getAttribute('data-testid'))).toEqual(['live-sky', 'live-moon', 'live-speed', 'live-heading']);
-    // FR-COMP-4: both lines at their longest — the widest zone abbreviation Intl writes, the longest sky, three-digit percentages, a two-digit count — in both languages.
-    for (const m of [en.live, es.live]) {
-      expect(cells(['06:48:24 GMT+12:45', m.sky['bright-twilight']])).toBeLessThanOrEqual(36);
-      expect(cells([`${m.cloudLabel} ${m.cloudPercent('100')}`, `${m.countLabel} 12`, `${m.moonLabel} ${m.moonPercent('100')}`])).toBeLessThanOrEqual(36);
-      expect(cells([`${m.cloudLabel} ${m.cloudPercent(null)}`])).toBeLessThanOrEqual(12);
-    }
-  });
-
-  it('shows the five fields: the instant in the zone with its abbreviation, the sky, the clouds, the count and the Moon', async () => {
+  it('on wide is one line in the rail: the sky, the clouds with their percentage, the count and the Moon — and no clock, which is the indicator’s', async () => {
+    stubWide();
     const { container } = render(<StatusStrip t={T} timeZone="America/Argentina/Salta" sky="dark" cloud={clear} count={3} moon={MOON_FIXTURE} />);
     const strip = screen.getByTestId('status-strip');
     expect(strip.tagName).toBe('DL');
-    expect(strip).toHaveAttribute('aria-label', 'Sky status');
-    expect(within(strip).getAllByRole('term').map((term) => term.textContent)).toEqual(['Time', 'Sky', 'Clouds', 'Visible', 'Moon']);
-    expect(field('time')).toHaveTextContent('2026-09-11 06:48:24 GMT-3');
-    expect(field('time').querySelector('time')).toHaveAttribute('datetime', '2026-09-11T09:48:24.063Z');
-    expect(field('sky')).toHaveTextContent('dark');
-    expect(field('cloud')).toHaveTextContent('Clear, 12 % cloud');
+    expect(strip).toHaveAccessibleName('Sky conditions');
+    expect(strip).toHaveAttribute('data-compact', 'false');
+    expect(fieldIds()).toEqual(['live-sky', 'live-cloud', 'live-count', 'live-moon']);
+    expect(field('sky')).toHaveTextContent(/^Sky dark$/);
+    expect(field('cloud')).toHaveTextContent(/^Clouds Clear, 12 % cloud$/);
     expect(field('cloud').querySelector('[data-state]')).toHaveAttribute('data-state', 'clear');
-    expect(field('count')).toHaveTextContent('3 satellites');
+    expect(field('count')).toHaveTextContent(/^Up 3$/);
     expect(field('count').querySelector('[data-count]')).toHaveAttribute('data-count', '3');
-    expect(field('moon')).toHaveTextContent('waning gibbous, 72 % lit');
+    // FR-MOON-3 as amended: the wide page keeps the phase and the illumination.
+    expect(field('moon')).toHaveTextContent(`Moon ${en.live.moon(moonFacts(MOON_FIXTURE))}`);
+    expect(screen.queryByTestId('live-time')).toBeNull();
+    // FR-WATCH-3: the speed is the playback row's pressed control, never a field here.
+    expect(screen.queryByTestId('live-speed')).toBeNull();
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it('says UTC without a zone, "unknown" without a forecast, one satellite in the singular, and the other two sky states', () => {
+  it('on compact is the clock, the sky word, the cloud word and `n up`, the labels and the zone spoken, the Moon left to the list panel', async () => {
+    const { container, rerender } = render(<StatusStrip t={T} timeZone="America/Argentina/Salta" sky="dark" cloud={clear} count={3} moon={MOON_FIXTURE} />);
+    const strip = screen.getByTestId('status-strip');
+    expect(strip).toHaveAttribute('data-compact', 'true');
+    expect(fieldIds()).toEqual(['live-time', 'live-sky', 'live-cloud', 'live-count']);
+    // The line as the eye reads it: the text outside the spoken labels and the spoken zone.
+    const shown = (dd: Element): string => {
+      const copy = dd.cloneNode(true) as Element;
+      for (const spoken of copy.querySelectorAll('.sr-only')) spoken.remove();
+      return copy.textContent ?? '';
+    };
+    const visible = [...strip.querySelectorAll('dd')].map(shown).join(' ');
+    expect(visible).toBe('06:48:24 dark clear 3 up');
+    // What a screen reader hears carries the labels and the zone.
+    expect(field('time')).toHaveTextContent(/^Time 06:48:24 GMT-3$/);
+    expect(field('time').querySelector('time')).toHaveAttribute('dateTime', new Date(T).toISOString());
+    expect(within(field('time')).getByText('Time')).toHaveClass('sr-only');
+    expect(field('count')).toHaveTextContent(/^Satellites 3 up$/);
+    expect(screen.queryByTestId('live-moon')).toBeNull();
+    expect(await axe(container)).toHaveNoViolations();
+    // No forecast, no zone: `unknown`, and UTC.
+    rerender(<StatusStrip t={T} timeZone={null} sky="bright-twilight" cloud={unknown} count={0} moon={MOON_FIXTURE} />);
+    expect(field('cloud')).toHaveTextContent(/^Clouds unknown$/);
+    expect(field('cloud').querySelector('[data-state]')).toHaveAttribute('data-state', 'unknown');
+    expect(field('time')).toHaveTextContent(/^Time 09:48:24 UTC$/);
+    expect(field('sky')).toHaveTextContent(/^Sky twilight$/);
+  });
+
+  it('says UTC without a zone and "unknown" without a forecast on wide, and the other two sky states', () => {
+    stubWide();
     const { rerender } = render(<StatusStrip t={T} timeZone={null} sky="bright-twilight" cloud={unknown} count={1} moon={MOON_FIXTURE} />);
-    expect(field('time')).toHaveTextContent('2026-09-11 09:48:24 UTC');
-    expect(field('sky')).toHaveTextContent('bright twilight');
-    expect(field('cloud')).toHaveTextContent('Weather unknown');
-    expect(field('count')).toHaveTextContent('1 satellite');
+    expect(field('cloud')).toHaveTextContent(/^Clouds Weather unknown$/);
+    expect(field('sky')).toHaveTextContent(/^Sky bright twilight$/);
+    expect(field('count')).toHaveTextContent(/^Up 1$/);
     rerender(<StatusStrip t={T} timeZone={null} sky="day" cloud={unknown} count={0} moon={MOON_FIXTURE} />);
-    expect(field('sky')).toHaveTextContent('day');
-    expect(field('count')).toHaveTextContent('0 satellites');
+    expect(field('sky')).toHaveTextContent(/^Sky day$/);
   });
 
   it('marks the sky and the Moon as pending until the astronomy chunk has evaluated them', () => {
+    stubWide();
+    const { unmount } = render(<StatusStrip t={T} timeZone={null} sky={null} cloud={unknown} count={0} moon={null} />);
+    expect(field('sky')).toHaveTextContent(/^Sky …$/);
+    expect(field('moon')).toHaveTextContent(/^Moon …$/);
+    unmount();
+    vi.unstubAllGlobals();
     render(<StatusStrip t={T} timeZone={null} sky={null} cloud={unknown} count={0} moon={null} />);
-    expect(field('sky')).toHaveTextContent('…');
-    expect(field('sky').querySelector('[data-sky]')).toHaveAttribute('data-sky', 'pending');
-    expect(field('moon')).toHaveTextContent('…');
-  });
-
-  it('adds the speed as a sixth field while playing, and not otherwise (R33, FR-LIVE-3)', () => {
-    const { rerender } = render(<StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} speed={600} />);
-    expect(within(screen.getByTestId('status-strip')).getAllByRole('term').map((term) => term.textContent)).toEqual(['Time', 'Sky', 'Clouds', 'Visible', 'Moon', 'Speed']);
-    expect(field('speed')).toHaveTextContent('600×');
-    expect(field('speed').querySelector('[data-speed]')).toHaveAttribute('data-speed', '600');
-    rerender(<StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} speed={null} />);
-    expect(screen.queryByTestId('live-speed')).toBeNull();
-  });
-
-  /** R44 (FR-WIN-3, US-21 AC6, F-41): the seventh field, shown only while the dome is following the phone. */
-  it('names the true-north correction while following, in both languages, and drops the field otherwise', () => {
-    const { rerender } = render(<StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} declinationDeg={1.1187} />);
-    expect(within(screen.getByTestId('status-strip')).getAllByRole('term').map((term) => term.textContent)).toEqual(['Time', 'Sky', 'Clouds', 'Visible', 'Moon', 'Heading']);
-    expect(field('heading')).toHaveTextContent('true north, declination +1.1°');
-    expect(field('heading').querySelector('[data-declination]')).toHaveAttribute('data-declination', '1.1');
-
-    // West of true north is a signed value, with the typographic minus `formatSignedDegrees` writes.
-    rerender(<StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} declinationDeg={-12.4943} />);
-    expect(field('heading')).toHaveTextContent('true north, declination −12.5°');
-
-    // Zero is still a correction worth naming: it says the compass and the sky agree here.
-    rerender(<StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} declinationDeg={0} />);
-    expect(field('heading')).toHaveTextContent('true north, declination +0.0°');
-
-    // Not following: no heading is being corrected, so there is nothing to say.
-    rerender(<StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} declinationDeg={null} />);
-    expect(screen.queryByTestId('live-heading')).toBeNull();
-
-    render(
-      <I18nProvider locale="es">
-        <StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={MOON_FIXTURE} declinationDeg={1.1187} />
-      </I18nProvider>,
-    );
-    // Spanish takes the comma as the decimal mark (FR-I18N-4, `formatSignedDegrees`).
-    expect(screen.getAllByTestId('live-heading')[0]).toHaveTextContent('Rumbo norte verdadero, declinación +1,1°');
+    expect(field('sky')).toHaveTextContent(/^Sky …$/);
   });
 
   it('speaks Spanish (FR-I18N-2), with the zone abbreviation Intl gives that language', () => {
-    render(
+    stubWide();
+    const { unmount } = render(
       <I18nProvider locale="es">
-        <StatusStrip t={T} timeZone="America/Argentina/Salta" sky="dark" cloud={clear} count={2} moon={MOON_FIXTURE} />
+        <StatusStrip t={T} timeZone="America/Argentina/Salta" sky="dark" cloud={clear} count={3} moon={MOON_FIXTURE} />
       </I18nProvider>,
     );
-    expect(screen.getByTestId('status-strip')).toHaveAttribute('aria-label', 'Estado del cielo');
-    expect(field('time')).toHaveTextContent('2026-09-11 06:48:24 GMT-3');
-    expect(field('sky')).toHaveTextContent('oscuro');
-    expect(field('cloud')).toHaveTextContent('Despejado, 12 % de nubes');
-    expect(field('count')).toHaveTextContent('2 satélites');
-    expect(field('moon')).toHaveTextContent('gibosa menguante, 72 % iluminada');
+    expect(screen.getByTestId('status-strip')).toHaveAccessibleName('Condiciones del cielo');
+    expect(field('sky')).toHaveTextContent(/^Cielo oscuro$/);
+    expect(field('cloud')).toHaveTextContent(/^Nubes Despejado, 12 % de nubes$/);
+    expect(field('count')).toHaveTextContent(/^Arriba 3$/);
+    expect(field('moon')).toHaveTextContent(`Luna ${es.live.moon(moonFacts(MOON_FIXTURE))}`);
+    unmount();
+    vi.unstubAllGlobals();
+    render(
+      <I18nProvider locale="es">
+        <StatusStrip t={T} timeZone="America/Argentina/Salta" sky="bright-twilight" cloud={clear} count={3} moon={MOON_FIXTURE} />
+      </I18nProvider>,
+    );
+    expect(field('time')).toHaveTextContent(/^Hora 06:48:24 GMT-3$/);
+    expect(field('sky')).toHaveTextContent(/^Cielo crepúsculo$/);
+    expect(field('cloud')).toHaveTextContent(/^Nubes limpio$/);
+    expect(field('count')).toHaveTextContent(/^Satélites 3 arriba$/);
+  });
+
+  /** FR-WATCH-3, FR-COMP-4: the compact line at its longest in both languages — `tests/styles/controlRows.test.ts` counts it on the page. */
+  it('keeps the compact line within 36 cells with its longest words, in both languages', () => {
+    for (const m of [en.live, es.live]) {
+      const longest = (words: Record<string, string>): string => Object.values(words).reduce((a, b) => ([...b].length > [...a].length ? b : a));
+      const line = ['21:14:32', longest(m.skyShort), longest(m.cloudWord), m.upCount(12)].join(' ');
+      expect([...line].length, line).toBeLessThanOrEqual(36);
+    }
   });
 });

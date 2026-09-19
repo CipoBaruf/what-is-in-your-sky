@@ -10,10 +10,14 @@
  * list. The behaviour under test is unchanged.
  */
 import { expect, test } from '@playwright/test';
+import { enterScrubbing } from './liveHelpers';
 import { openParisLive } from './parisLive';
 
 test('the legend beside the drawing scrolls inside the box; every row is a keyboard stop and the last is reached by pointer (F-53, D-271)', async ({ page }) => {
   await openParisLive(page, 'short', 'dark');
+  // R77 (FR-WATCH-9 e): in scrubbing, the rail this test was written against — the indicator, the conditions and the
+  // actions beside the legend. The watching rail also carries the next-event block, and at 380 px R78 re-cuts it (FR-WATCH-6).
+  await enterScrubbing(page);
   const slot = page.getByTestId('chart-legend-slot');
   /*
    * R61 (D-312): the column beside the drawing is the page's rail now, and the legend has a box of its own
