@@ -81,7 +81,7 @@ export function ReadinessLine({ form = 'full' }: { form?: 'full' | 'line' } = {}
   if (read === null) return null;
   const { state, timeZone } = read;
   return (
-    <div className={styles.block}>
+    <div className={form === 'line' ? `${styles.block} ${styles.small}` : styles.block}>
       <p className={styles.line} data-testid="readiness">
         {state.missing.length === 0 && state.offlineUntil !== null
           ? t.readiness.ready(readinessStamp(state.offlineUntil, timeZone, locale))

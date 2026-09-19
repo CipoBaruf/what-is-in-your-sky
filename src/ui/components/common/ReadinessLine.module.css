@@ -12,3 +12,9 @@
   margin: 0;
   color: var(--fg-dim);
 }
+
+/* R81 (FR-FIRST-11): the home's one line is at `--small`, as the Where reading's other lines are. */
+.small {
+  font-size: var(--small);
+  line-height: var(--small-row);
+}
