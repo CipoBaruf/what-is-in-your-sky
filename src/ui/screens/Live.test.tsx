@@ -29,6 +29,7 @@ import { stubMatchMedia, type MatchMediaStub } from '../../../tests/support/matc
 import { MOON_FIXTURE } from '../../../tests/support/moonFixtures';
 import { LEGEND_OPEN_ROWS, LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
 import { LIVE_WINDOW_MS, LivePage, livePasses, TICK_MS, visibleCount } from './Live';
+import { LIVE_ROW_TEST_ID, LIVE_ROWS, rowsFor } from './liveRows';
 
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
@@ -48,6 +49,15 @@ const HOUR = 3_600_000;
  */
 const openList = (): void => {
   fireEvent.click(screen.getByTestId('live-legend-toggle'));
+};
+
+/**
+ * R77 (FR-WATCH-1, FR-WATCH-4): the stripe, the step row and the playback row are the scrubbing state's, and
+ * the page opens watching. A test that drives them enters scrubbing first, with `[ scrub ]` — which holds the
+ * instant the page was showing, so nothing a test asserts about the instant moves.
+ */
+const scrub = (): void => {
+  fireEvent.click(screen.getByTestId('live-scrub'));
 };
 
 const shifted = (id: string, name: string, byMs: number): Pass => ({
@@ -176,18 +186,26 @@ describe('<LivePage>', () => {
     // R70 (FR-SPAN-1, FR-SPAN-2): the overview carries every pass of the coming 24 h as a mark, and the stripe
     // the ones inside the four hours it draws — here the pass under way, which is what `t` is inside.
     expect([...container.querySelectorAll('[data-pass-mark]')].map((el) => el.getAttribute('data-pass-mark'))).toEqual([pass.id, 'later', 'tomorrow']);
-    expect([...container.querySelectorAll('[data-pass-segment]')].map((el) => el.getAttribute('data-pass-segment'))).toEqual([pass.id]);
-    // R48 (D-246): jsdom is the compact shell, where the strip is the two-line form — the numbers, and no date.
-    expect(screen.getByTestId('live-count')).toHaveTextContent(/^Visible 1$/);
+    // R48 (D-246), R77 (FR-WATCH-3): jsdom is the compact shell, where the conditions are one line — the clock,
+    // the sky word, the cloud word and `n up`, the labels spoken and the zone with them.
+    expect(screen.getByTestId('live-count')).toHaveTextContent(/^Satellites 1 up$/);
     expect(screen.getByTestId('live-time')).toHaveTextContent(/^Time 09:48:24 UTC$/);
-    expect(screen.getByTestId('live-cloud')).toHaveTextContent(/^Clouds n\/a$/);
-    // The Sun and the Moon arrive with the astronomy chunk; until then the two fields are pending.
+    expect(screen.getByTestId('live-cloud')).toHaveTextContent(/^Clouds unknown$/);
+    // The Sun and the Moon arrive with the astronomy chunk; until then the sky field is pending.
     const expected = skyBodiesAt(T, observer);
-    await within(screen.getByTestId('live-sky')).findByText(en.live.sky[expected.sky]);
-    expect(screen.getByTestId('live-moon')).toHaveTextContent(`Moon ${String(Math.round(expected.moon.illuminatedFraction * 100))} %`);
+    await within(screen.getByTestId('live-sky')).findByText(en.live.skyShort[expected.sky]);
+    // FR-MOON-3 as amended: the Moon's phase and illumination are the list panel's Moon line, not the line's.
+    expect(screen.queryByTestId('live-moon')).toBeNull();
+    const moonLine = figure.querySelector('[data-testid="chart-legend"] [data-body="moon"]');
+    if (moonLine !== null) expect(moonLine).toHaveTextContent(`${String(Math.round(expected.moon.illuminatedFraction * 100))} %`);
     // R45 (FR-DOME-6 as amended): the Sun is a glow in the raster and a legend line, not a caption in the drawing.
     expect(figure.querySelector('[data-testid="chart-legend"] [data-body="sun"]') !== null).toBe(expected.sun.altDeg > -18 && expected.sun.altDeg < 0);
     expect(figure.querySelector('[data-anchor="sun"]')).toBeNull();
+    expect(await axe(container)).toHaveNoViolations();
+    // R77 (FR-WATCH-4): the stripe is the scrubbing state's; held at the same instant, it draws the pass under way.
+    expect(container.querySelectorAll('[data-pass-segment]')).toHaveLength(0);
+    scrub();
+    expect([...container.querySelectorAll('[data-pass-segment]')].map((el) => el.getAttribute('data-pass-segment'))).toEqual([pass.id]);
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -200,7 +218,7 @@ describe('<LivePage>', () => {
       vi.advanceTimersByTime(TICK_MS);
     });
     expect(container.querySelectorAll('[data-marker="now"]')).toHaveLength(0);
-    expect(screen.getByTestId('live-count')).toHaveTextContent(/^Visible 0$/);
+    expect(screen.getByTestId('live-count')).toHaveTextContent(/^Satellites 0 up$/);
     // The window moved with real time: the golden pass is over and no longer drawn. `later` is in the
     // window — a mark on the overview — and, three hours from its rise, not yet on the chart (FR-TRAJ-1)
     // nor inside the four hours the stripe draws (FR-SPAN-1).
@@ -217,8 +235,12 @@ describe('<LivePage>', () => {
     // The marker is on the pass that contains the link's instant, not the one under way in real time.
     const marker = screen.getByTestId('live-dome').querySelector('[data-marker="now"]');
     expect(marker?.closest('[data-pass-id]')).toHaveAttribute('data-pass-id', 'later');
-    expect(screen.getByTestId('live-count')).toHaveTextContent(/^Visible 1$/);
-    expect(screen.getByRole('button', { name: 'Share this sky' })).toBeInTheDocument();
+    expect(screen.getByTestId('live-count')).toHaveTextContent(/^Satellites 1 up$/);
+    // R77 (FR-WATCH-1 c, D-446): a link with `t` opens scrubbing — the instant is held, so the page says so — and
+    // the share action names the moment it carries.
+    expect(screen.getByTestId('live-state-word')).toHaveTextContent('held');
+    expect(screen.getByTestId('time-row')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Share this moment' })).toBeInTheDocument();
   });
 
   it('shares real time as a link without t, and the link the page was opened with as it was', () => {
@@ -230,7 +252,7 @@ describe('<LivePage>', () => {
     expect(writeText).toHaveBeenLastCalledWith(`${window.location.href.split('#')[0] ?? ''}#live?lat=-38.93&lon=-67.99&alt=0`);
     unmount();
     render(<LivePage link={{ kind: 'live', observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t: Date.UTC(2026, 8, 11, 12, 0, 0) }} onLeave={() => undefined} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Share this sky' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Share this moment' }));
     expect(writeText).toHaveBeenLastCalledWith(`${window.location.href.split('#')[0] ?? ''}#live?lat=-38.93&lon=-67.99&alt=0&t=2026-09-11T12:00:00Z`);
   });
 
@@ -267,10 +289,12 @@ describe('<LivePage>', () => {
           .getAllByRole('button')
           .map((button) => button.textContent),
       ).toEqual(['Polar', 'Dome', 'Window']);
-      // The option is a mode: until it is tapped the page is the dome, with every row it has.
+      // The option is a mode: until it is tapped the page is the dome, with every row its state has.
       expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
       expect(screen.queryByTestId('sky-screen')).toBeNull();
-      expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
+      expect(screen.getByTestId('overview-row')).toBeInTheDocument();
+      scrub();
+      expect(screen.getByTestId('time-stripe')).toBeInTheDocument();
       expect(screen.getByTestId('playback-controls')).toBeInTheDocument();
     } finally {
       vi.unstubAllGlobals();
@@ -346,9 +370,13 @@ describe('<LivePage>', () => {
       /\[data-aside='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\) clamp\(calc\(44 \* var\(--cell\)\), 26%, calc\(60 \* var\(--cell\)\)\);/,
     );
     expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\] \{\n\s+grid-template-areas:\n\s+'top'\n\s+'dome';/);
-    // R61 (D-314, D-315): the box is cut to the dome's aspect, and the stripe block is the frame's row under it.
+    // R61 (D-314, D-315): the box is cut to the dome's aspect, and the stripe block is the frame's row under it —
+    // R77 (FR-WATCH-4): while scrubbing; watching there is no block, and no stripe row for the frame to cut.
     expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
+    expect(screen.queryByTestId('stripe-block')).toBeNull();
+    scrub();
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
     expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
   });
@@ -454,11 +482,15 @@ describe('<LivePage>', () => {
     withSky();
     media = stubMatchMedia(1920, 1080);
     render(<LivePage link={null} onLeave={() => undefined} />);
+    scrub();
     expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
     expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
-    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'live-actions']);
+    // R77 (FR-WATCH-4): the rail's head and foot — the conditions in the head, the actions at the foot.
+    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-rail-head', 'live-rail-foot']);
+    expect(within(screen.getByTestId('live-rail-head')).getByTestId('status-strip')).toBeInTheDocument();
+    expect([...screen.getByTestId('live-rail-foot').children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-actions']);
     // The narrowest wide page: the same stripe row, the same rail (R71, D-386).
     act(() => {
       media?.setSize(WIDE_MIN_PX, 700);
@@ -475,7 +507,7 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'false');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
-    expect(screen.getByTestId('stripe-block').closest('[data-testid="live-side"]')).not.toBeNull();
+    expect(screen.getByTestId('time-stripe').closest('[data-testid="live-side"]')).not.toBeNull();
   });
 
   /**
@@ -488,17 +520,23 @@ describe('<LivePage>', () => {
     withSky();
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
-    // Compact, no touch: the toggle is on the actions row, the playback row is the page's own, and the block is four rows.
+    scrub();
+    // Compact, no touch: the toggle is on the actions row, the playback row is the page's own, and — R77
+    // (FR-WATCH-4) — the rows under the box are the conditions, the overview, the stripe, the stepping row, the
+    // playback row and the actions, with the held instant in the headline's place above the box.
     expect(within(screen.getByTestId('live-actions')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
     expect(screen.getByTestId('playback-row').parentElement).toBe(screen.getByTestId('live-side'));
-    expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'overview-row', 'time-stripe', 'step-controls']);
+    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'overview-row', 'time-stripe', 'step-controls', 'playback-row', 'live-actions']);
+    expect(within(screen.getByTestId('live-head')).getByTestId('time-readout')).toBeInTheDocument();
     unmount();
     media = stubMatchMedia(1280, 800);
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 1 });
     render(<LivePage link={null} onLeave={() => undefined} />);
+    scrub();
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
-    // The side row (the page's own at 1280, the rail from 1660) is the strip and the actions, the toggle among them.
-    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'live-actions']);
+    // The rail is the sky's: the conditions at its head, the actions at its foot, the toggle among them.
+    expect(within(screen.getByTestId('live-rail-head')).getByTestId('status-strip')).toBeInTheDocument();
+    expect(within(screen.getByTestId('live-rail-foot')).getByTestId('live-actions')).toBeInTheDocument();
     expect(within(screen.getByTestId('live-actions')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
     // The stripe block is the frame's row under the box (D-315): the time row — the readout and the playback row — the overview, the stripe, the stepping row.
     expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
@@ -512,6 +550,7 @@ describe('<LivePage>', () => {
     withSky();
     const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
     openList();
+    scrub();
     const stripe = screen.getByTestId('time-stripe');
     const arc = (): string | null => container.querySelector('[data-drawing] [data-pass-id="later"]')?.getAttribute('data-arc') ?? null;
     const legendState = (): string | null => container.querySelector('[data-testid="chart-legend"] [data-pass-id="later"]')?.getAttribute('data-state') ?? null;
@@ -554,17 +593,19 @@ describe('<LivePage>', () => {
     // R70 (V14-6): no touch, and the row is still there.
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
     render(<LivePage link={null} onLeave={() => undefined} />);
+    scrub();
     const stripe = screen.getByTestId('time-stripe');
-    const block = screen.getByTestId('stripe-block');
-    const readout = within(block).getByTestId('time-readout');
-    // The block's order (D-389): the readout, the overview, the stripe, the stepping row.
-    expect([...block.children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'overview-row', 'time-stripe', 'step-controls']);
-    expect(readout).toHaveTextContent(/^09:48$/);
+    // R77 (FR-WATCH-2): the readout is the scrubbing headline, above the box; the rows under it keep D-389's
+    // order — the overview, the stripe, the stepping row.
+    const readout = within(screen.getByTestId('live-head')).getByTestId('time-readout');
+    const under = [...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'));
+    expect(under.slice(under.indexOf('overview-row'), under.indexOf('overview-row') + 3)).toEqual(['overview-row', 'time-stripe', 'step-controls']);
+    expect(readout).toHaveTextContent(/^09:48 · \+0 min$/);
     expect(readout).toHaveAttribute('data-today', 'true');
     // Four hours on, and back to the minute: the chunk arrows and the fine step.
     fireEvent.click(screen.getByRole('button', { name: 'Forward four hours' }));
     expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T + 4 * 3_600_000);
-    expect(readout).toHaveTextContent(/^13:48$/);
+    expect(readout).toHaveTextContent(/^13:48 · \+4 h 00 min$/);
     fireEvent.click(screen.getByRole('button', { name: 'Back four hours' }));
     fireEvent.click(screen.getByRole('button', { name: 'Forward one minute' }));
     fireEvent.click(screen.getByRole('button', { name: 'Back one minute' }));
@@ -579,7 +620,7 @@ describe('<LivePage>', () => {
     expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(tomorrow.start.t);
     expect(screen.getByRole('button', { name: 'Next pass' })).toBeDisabled();
     // Past midnight UTC (the zone is unknown here): the weekday is in front of the clock.
-    expect(readout).toHaveTextContent(/^Sat \d\d:\d\d$/);
+    expect(readout).toHaveTextContent(/^Sat \d\d:\d\d · \+\d+ h \d\d min$/);
     expect(readout).toHaveAttribute('data-today', 'false');
     fireEvent.click(screen.getByRole('button', { name: 'Previous pass' }));
     expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(later.start.t);
@@ -595,9 +636,10 @@ describe('<LivePage>', () => {
   it('the sky screen replaces the page at the instant the page was showing, and closing brings the rows back there (FR-FSC-1, FR-FSC-8)', () => {
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
+    scrub();
     fireEvent.click(screen.getByRole('button', { name: 'Next pass' }));
     expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
-    expect(screen.getByRole('button', { name: 'Now' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'back to live' })).toBeEnabled();
     act(() => {
       appStore.getState().openSkyScreen();
     });
@@ -612,10 +654,10 @@ describe('<LivePage>', () => {
     });
     expect(screen.queryByTestId('sky-screen')).toBeNull();
     expect(screen.getByTestId('live-top-row')).not.toHaveAttribute('aria-hidden');
-    expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
+    expect(screen.getByTestId('time-stripe')).toBeInTheDocument();
     expect(screen.getByTestId('playback-controls')).toBeInTheDocument();
     expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
-    expect(screen.getByRole('button', { name: 'Now' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'back to live' })).toBeEnabled();
   });
 
   /**
@@ -628,16 +670,21 @@ describe('<LivePage>', () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
     const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
-    const stripe = screen.getByTestId('time-stripe');
     const overview = screen.getByTestId('stripe-overview');
-    expect(stripe).toHaveAttribute('aria-valuemin', String(T));
-    expect(stripe).toHaveAttribute('aria-valuemax', String(T + LIVE_WINDOW_MS));
     // The overview carries the drawn passes as marks in the same series order as the dome.
     expect([...container.querySelectorAll('[data-pass-mark]')].map((el) => el.getAttribute('data-series'))).toEqual(['1', '2', '3']);
+    // R77 (FR-WATCH-1 b): watching, the overview is the page's only timeline, and a drag on it is what enters
+    // scrubbing — the same element, which stays where it was, so the pointer it holds keeps working.
+    expect(screen.queryByTestId('time-stripe')).toBeNull();
     // At jsdom's default 600 px, 75 px of the overview is three hours in: inside the `later` pass (which starts at 3 h).
     const threeHours = T + 3 * HOUR + 30_000;
     fireEvent.pointerDown(overview, { button: 0, clientX: (600 * (threeHours - T)) / LIVE_WINDOW_MS, pointerId: 1 });
     fireEvent.pointerUp(overview, { pointerId: 1 });
+    expect(screen.getByTestId('stripe-overview')).toBe(overview);
+    expect(screen.getByTestId('live-state-word')).toHaveTextContent('held');
+    const stripe = screen.getByTestId('time-stripe');
+    expect(stripe).toHaveAttribute('aria-valuemin', String(T));
+    expect(stripe).toHaveAttribute('aria-valuemax', String(T + LIVE_WINDOW_MS));
     expect(Number(stripe.getAttribute('aria-valuenow'))).toBeCloseTo(threeHours, -3);
     // FR-SPAN-1: the stripe is drawing the four hours that hold it, and the overview brackets the same four.
     expect(Number(stripe.getAttribute('data-drawn-start'))).toBeLessThanOrEqual(threeHours);
@@ -645,7 +692,7 @@ describe('<LivePage>', () => {
     expect(overview.getAttribute('data-chunk-start')).toBe(stripe.getAttribute('data-drawn-start'));
     const marker = screen.getByTestId('live-dome').querySelector('[data-marker="now"]');
     expect(marker?.closest('[data-pass-id]')).toHaveAttribute('data-pass-id', 'later');
-    expect(screen.getByTestId('live-count')).toHaveTextContent(/^Visible 1$/);
+    expect(screen.getByTestId('live-count')).toHaveTextContent(/^Satellites 1 up$/);
     expect(screen.getByTestId('live-time')).toHaveTextContent(/^Time 12:48:\d\d UTC$/);
     expect(container.querySelector('[data-pass-segment="later"]')).toHaveAttribute('data-current', 'true');
     // The arrow keys step from there (FR-LIVE-4), and the share link now carries the instant (FR-LIVE-9).
@@ -653,45 +700,152 @@ describe('<LivePage>', () => {
     fireEvent.keyDown(stripe, { key: 'ArrowRight' });
     const shown = Number(stripe.getAttribute('aria-valuenow'));
     expect(shown).toBeCloseTo(threeHours - 9 * 60_000, -3);
-    fireEvent.click(screen.getByRole('button', { name: 'Share this sky' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Share this moment' }));
     expect(writeText).toHaveBeenLastCalledWith(expect.stringContaining(`#live?lat=-38.93&lon=-67.99&alt=0&t=${isoInstant(shown)}`));
   });
 
   /** R33 (FR-LIVE-5, US-15 AC4, D-81): play advances the instant by wall time × speed and `now` comes back to the tick. */
-  it('plays at the chosen speed, shows the speed in the strip, stops at the end of the span, and `now` returns to real time', () => {
+  it('plays at the chosen speed, shows the speed as the pressed control, stops at the end of the span, and `back to live` returns to real time', () => {
     const frame = scriptedFrames();
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
+    // R77 (FR-WATCH-4, FR-LIVE-5 as amended): playback is reachable only while scrubbing — watching renders no
+    // play, no speeds and no `back to live`.
+    for (const testid of ['live-play', 'playback-controls', 'live-now']) expect(screen.queryByTestId(testid)).toBeNull();
+    scrub();
     const stripe = screen.getByTestId('time-stripe');
-    expect(screen.getByRole('button', { name: 'Now' })).toBeDisabled();
     expect(screen.queryByTestId('live-speed')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '600×' }));
     fireEvent.click(screen.getByRole('button', { name: 'Play' }));
-    expect(screen.getByTestId('live-speed')).toHaveTextContent('600×');
+    // FR-WATCH-3: the speed is the pressed control on the playback row, and never a field of the conditions line.
+    expect(screen.getByRole('button', { name: '600×' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByTestId('live-speed')).toBeNull();
     frame(1000);
     frame(1500);
     // Half a second at 600× is five minutes.
     expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T + 300_000);
     frame(1700); // a dropped frame: the gap is still simulated time
     expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T + 420_000);
+    // Playing is still scrubbing: the instant is held, at a speed (FR-WATCH-1).
+    expect(screen.getByTestId('live-state-word')).toHaveTextContent('held');
     fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
-    expect(screen.queryByTestId('live-speed')).toBeNull();
     expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T + 420_000);
-    // The `now` action: back to the tick, which keeps moving.
-    fireEvent.click(screen.getByRole('button', { name: 'Now' }));
-    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T);
+    // `[ back to live ]`: back to the tick, which keeps moving — and the scrub block goes with the state.
+    fireEvent.click(screen.getByRole('button', { name: 'back to live' }));
+    expect(screen.queryByTestId('time-stripe')).toBeNull();
+    expect(screen.getByTestId('live-state-word')).toHaveTextContent('live');
+    expect(screen.getByTestId('live-time')).toHaveTextContent(/^Time 09:48:24 UTC$/);
     act(() => {
       vi.advanceTimersByTime(TICK_MS); // the fake Date moves with the timers
     });
-    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T + TICK_MS);
-    // At 3600× the whole span runs in 24 s and stops at its end.
+    expect(screen.getByTestId('live-time')).toHaveTextContent(/^Time 09:48:34 UTC$/);
+    // At 3600× the whole span runs in 24 s and stops at its end — held from the instant real time had reached.
+    scrub();
     fireEvent.click(screen.getByRole('button', { name: '3600×' }));
     fireEvent.click(screen.getByRole('button', { name: 'Play' }));
     frame(2000);
     frame(30_000);
-    expect(Number(stripe.getAttribute('aria-valuenow'))).toBe(T + TICK_MS + LIVE_WINDOW_MS);
+    expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(T + TICK_MS + LIVE_WINDOW_MS);
     expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
     expect(screen.queryByTestId('live-speed')).toBeNull();
+  });
+
+  /**
+   * R77 (FR-WATCH-1, FR-WATCH-2, FR-WATCH-4, D-446, D-447; US-27 AC1..AC4): the two states, each rendering
+   * exactly `rowsFor`'s inventory — every listed row present, every other row absent — with the headline and
+   * the indicator's word, on both shells. `[ scrub ]` holds the instant of the tap; `[ back to live ]` returns
+   * it to real time, which then advances again.
+   */
+  it.each([
+    ['compact', null],
+    ['wide', [1280, 800]],
+  ] as const)('renders %s watching and scrubbing as rowsFor lists them, and moves between them on the reader’s tap (FR-WATCH-1..4)', (mode, size) => {
+    withSky();
+    if (size !== null) media = stubMatchMedia(size[0], size[1]);
+    const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+    const inventory = (state: 'watching' | 'scrubbing'): void => {
+      const listed = new Set(rowsFor(state, mode, 'tall'));
+      for (const row of LIVE_ROWS) {
+        const found = container.querySelector(`[data-testid="${LIVE_ROW_TEST_ID[row]}"]`);
+        if (listed.has(row)) expect(found, `${mode} ${state}: ${row} is rendered`).not.toBeNull();
+        else expect(found, `${mode} ${state}: ${row} is not in the DOM`).toBeNull();
+      }
+    };
+
+    // Watching: the next event is the headline, the mark runs, and the word says `live`.
+    inventory('watching');
+    expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', String(mode === 'compact'));
+    expect(screen.getByTestId('live-state-word')).toHaveTextContent('live');
+    expect(within(screen.getByTestId('live-indicator')).getByTestId('mark')).toHaveAttribute('data-mark-running', 'true');
+    expect(screen.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
+    // Ten seconds into the golden pass: the ISS is up, and the block counts to its peak (FR-FIRST-3).
+    expect(screen.getByTestId('next-event-label')).toHaveTextContent(/^Up now · peaks in \d+:\d\d$/);
+    expect(screen.getByTestId('next-event-path').textContent?.startsWith(`${pass.name} · `)).toBe(true);
+    // The live page is where the block's link goes, so the block here carries none.
+    expect(screen.queryByTestId('now-live-link')).toBeNull();
+    // On compact the indicator is the top row's; on wide it heads the rail with the clock.
+    if (mode === 'compact') expect(screen.getByTestId('live-indicator').parentElement).toBe(screen.getByTestId('live-top-row'));
+    else {
+      expect(within(screen.getByTestId('live-rail-head')).getByTestId('live-indicator')).toBeInTheDocument();
+      expect(screen.getByTestId('live-clock')).toHaveTextContent(/^09:48:24 UTC$/);
+    }
+    expect(screen.getByTestId('live-scrub')).toHaveTextContent(mode === 'compact' ? en.live.scrub : en.live.scrubWide);
+    expect(screen.getByRole('button', { name: en.live.share })).toBeInTheDocument();
+
+    // `[ scrub ]` holds the instant of the tap: the real-time clock moves on, the shown instant does not.
+    act(() => {
+      vi.setSystemTime(T + 4_000);
+    });
+    scrub();
+    inventory('scrubbing');
+    expect(screen.getByTestId('live-state-word')).toHaveTextContent('held');
+    expect(within(screen.getByTestId('live-indicator')).getByTestId('mark')).toHaveAttribute('data-mark-running', 'false');
+    const stripe = (): number => Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'));
+    expect(stripe()).toBe(T);
+    expect(screen.getByTestId('time-readout')).toHaveTextContent(/^09:48 · \+0 min$/);
+    // The headline is the held instant and its offset from now (FR-WATCH-2): half an hour on is `+30 min`…
+    fireEvent.keyDown(screen.getByTestId('time-stripe'), { key: 'ArrowRight', shiftKey: true });
+    fireEvent.keyDown(screen.getByTestId('time-stripe'), { key: 'ArrowRight', shiftKey: true });
+    fireEvent.keyDown(screen.getByTestId('time-stripe'), { key: 'ArrowRight', shiftKey: true });
+    expect(stripe()).toBe(T + 30 * 60_000);
+    expect(screen.getByTestId('time-readout')).toHaveTextContent(/^10:18 · \+30 min$/);
+    // …and the tick moves real time under it, not the held instant: the offset counts down, the instant stays.
+    act(() => {
+      vi.setSystemTime(T + 6 * TICK_MS);
+      vi.advanceTimersByTime(TICK_MS);
+    });
+    expect(stripe()).toBe(T + 30 * 60_000);
+    expect(screen.getByTestId('time-readout')).toHaveTextContent(/^10:18 · \+29 min$/);
+    expect(screen.getByRole('button', { name: en.live.shareMoment })).toBeInTheDocument();
+
+    // `[ back to live ]`: real time again, advancing on the tick, and the scrub block gone with the state.
+    fireEvent.click(screen.getByRole('button', { name: en.live.backToLive }));
+    inventory('watching');
+    expect(screen.getByTestId('live-state-word')).toHaveTextContent('live');
+    const clock = (): HTMLElement => screen.getByTestId(mode === 'compact' ? 'live-time' : 'live-clock');
+    expect(clock()).toHaveTextContent(/09:49:34 UTC$/);
+    act(() => {
+      vi.setSystemTime(T + 7 * TICK_MS);
+      vi.advanceTimersByTime(TICK_MS);
+    });
+    expect(clock()).toHaveTextContent(/09:49:44 UTC$/);
+  });
+
+  it('keeps the word beside a still mark under reduced motion (FR-MARK-5, FR-X-5)', () => {
+    withSky();
+    media = stubMatchMedia(390, 844);
+    media.setReducedMotion(true);
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    const indicator = screen.getByTestId('live-indicator');
+    const frameNow = (): string | null => indicator.querySelector('[data-mark-layer="bead"]')?.getAttribute('data-mark-frame') ?? null;
+    const before = frameNow();
+    act(() => {
+      vi.advanceTimersByTime(5_000);
+    });
+    expect(frameNow()).toBe(before);
+    expect(screen.getByTestId('live-state-word')).toHaveTextContent('live');
+    scrub();
+    expect(screen.getByTestId('live-state-word')).toHaveTextContent('held');
   });
 
   /** D-171: the hash is written at most twice a second while scrubbing and never while playing. */
@@ -704,6 +858,15 @@ describe('<LivePage>', () => {
     render(<LivePage link={null} onLeave={() => undefined} />);
     // Real time under the bare route: nothing to write.
     expect(replaceState).not.toHaveBeenCalled();
+    // R77 (FR-WATCH-1, FR-LIVE-9): `[ scrub ]` holds the instant, and the URL carries it at once; half a second on
+    // the throttle is clear again, and what follows is the scrub this test has always made.
+    scrub();
+    expect(replaceState).toHaveBeenCalledTimes(1);
+    expect(window.location.hash).toBe(`#live?lat=-38.93&lon=-67.99&alt=0&t=${new Date(T).toISOString().replace('.000Z', 'Z')}`);
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    replaceState.mockClear();
     const stripe = screen.getByTestId('time-stripe');
     // The first scrub writes at once; twenty more steps inside the next 400 ms write nothing; the 500 ms mark writes the last instant.
     fireEvent.keyDown(stripe, { key: 'ArrowRight' });
@@ -735,8 +898,8 @@ describe('<LivePage>', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
     expect(replaceState).toHaveBeenCalledTimes(1);
     expect(window.location.hash).toBe(`#live?lat=-38.93&lon=-67.99&alt=0&t=${new Date(T + 21 * 60_000 + 3000 * 60).toISOString().replace('.000Z', 'Z')}`);
-    // `Now`: back to the bare route.
-    fireEvent.click(screen.getByRole('button', { name: 'Now' }));
+    // `[ back to live ]`: back to the bare route.
+    fireEvent.click(screen.getByRole('button', { name: 'back to live' }));
     act(() => {
       vi.advanceTimersByTime(600);
     });
@@ -779,6 +942,7 @@ describe('<LivePage>', () => {
     });
     render(<LivePage link={null} onLeave={() => undefined} />);
     // Somewhere other than now: FR-FSC-8's case, the pass the reader wants to watch through the phone before it happens.
+    scrub();
     fireEvent.click(screen.getByRole('button', { name: 'Next pass' }));
     expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
 
@@ -804,7 +968,7 @@ describe('<LivePage>', () => {
     expect(screen.queryByTestId('sky-screen')).toBeNull();
     expect(appStore.getState()).toMatchObject({ chartView: from, skyScreen: false });
     expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', from);
-    expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
+    expect(screen.getByTestId('time-stripe')).toBeInTheDocument();
     expect(screen.getByTestId('playback-controls')).toBeInTheDocument();
     expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
     // R64 (FR-WIN-6 as amended v1.3): the declination is the screen's readout line; the strip does not carry it any more.
@@ -855,6 +1019,7 @@ describe('<LivePage>', () => {
     const computeNow = vi.fn((_observer: unknown, t: number) => Promise.resolve<NowState>({ t, sunAltDeg: -30, sky: 'dark', items: [], hidden: [], moon: MOON_FIXTURE }));
     setLiveNowClient({ computeNow });
     render(<LivePage link={null} onLeave={() => undefined} />);
+    scrub();
     fireEvent.click(screen.getByRole('button', { name: 'Hidden objects' }));
     expect(computeNow).toHaveBeenCalledTimes(1);
     await act(async () => {
@@ -887,7 +1052,7 @@ describe('<LivePage>', () => {
     expect(appStore.getState()).toMatchObject({ chartView: 'polar', skyScreen: false });
     // FR-FOL-2: nothing opened, so the page is untouched — the layer is not there and the rows still are.
     expect(screen.queryByTestId('sky-screen')).toBeNull();
-    expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
+    expect(screen.getByTestId('overview-row')).toBeInTheDocument();
 
     // FR-WIN-4: and this phone is not offered the window again for the rest of the session.
     expect(
@@ -909,7 +1074,7 @@ describe('<LivePage>', () => {
     });
     expect(screen.getByTestId('chart-view-note')).toHaveTextContent(en.window.denied);
     expect(screen.queryByTestId('sky-screen')).toBeNull();
-    expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
+    expect(screen.getByTestId('overview-row')).toBeInTheDocument();
     expect(appStore.getState().skyScreen).toBe(false);
     // FR-FOL-2: a refusal keeps the option — the next tap asks again.
     expect(windowOption()).toBeInTheDocument();
@@ -928,6 +1093,9 @@ describe('<LivePage>', () => {
     const computeNow = vi.fn((_observer: unknown, t: number) => Promise.resolve<NowState>({ t, sunAltDeg: -30, sky: 'dark', items: [], hidden, moon: MOON_FIXTURE }));
     setLiveNowClient({ computeNow });
     const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+    // R77 (FR-WATCH-4, V20-8): on compact the toggle is on the scrubbing row; the list opened while watching stays.
+    openList();
+    scrub();
     expect(container.querySelectorAll('[data-marker="hidden"]')).toHaveLength(0);
     expect(computeNow).not.toHaveBeenCalled();
     const toggle = screen.getByRole('button', { name: 'Hidden objects' });
@@ -939,7 +1107,6 @@ describe('<LivePage>', () => {
       await Promise.resolve();
     });
     // R45 (FR-LEG-1): the reason is a legend row; the drawing carries the dimmed position and the row's key.
-    openList();
     const legend = within(screen.getByTestId('live-dome')).getByTestId('chart-legend');
     expect(within(legend).getByText('Envisat · in shadow')).toBeInTheDocument();
     const tiangongKey = within(legend).getByText('Tiangong · too faint').closest('button')?.getAttribute('data-key');
