@@ -16,6 +16,10 @@
   background: none;
   padding: 0;
   color: var(--fg-dim);
+  /* `Best` at `--small` is four characters, 34 px: the tap box keeps the 44 px
+     every control has (identity.spec), and the word keeps its place at the box's start. */
+  min-width: 44px;
+  text-align: start;
 }
 
 .sortOption[aria-pressed='true'] {

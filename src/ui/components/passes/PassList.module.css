@@ -52,11 +52,14 @@
 }
 
 /* `[−] Tonight 5 passes   [+] Tomorrow night 2 passes`: the terminal's own
-   bracketed markers rather than the UA triangle, three cells between toggles. */
+   bracketed markers rather than the UA triangle, three cells between toggles.
+   Where the row wraps, the rows stand a tap box apart: each toggle's box
+   reaches half a tap past its line (`inline-control`), and a wrapped toggle's
+   box laid over the middle of the one above it took its taps. */
 .toggles {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 calc(3 * var(--cell));
+  gap: calc(var(--tap) - var(--row)) calc(3 * var(--cell));
   font-size: var(--small);
   line-height: var(--small-row);
 }

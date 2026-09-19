@@ -105,7 +105,7 @@ test('reload with every route aborted: the cached passes are still shown, no Cel
     await expect(badges.nth(i)).toHaveAttribute('data-state', 'unknown');
     await expect(badges.nth(i)).toHaveText('Weather unknown');
   }
-  await expect(page.getByRole('region', { name: 'Right now' })).toContainText('Weather unknown');
+  await expect(page.getByTestId('conditions').locator('[data-row="clouds"] [data-state]')).toHaveText('Weather unknown');
   await expect(page.getByTestId('stale-banner')).toHaveCount(0);
   await expect(page.getByTestId('epoch-banner')).toHaveCount(0);
   await expect(page.getByTestId('not-cached-banner')).toHaveCount(0);
@@ -269,17 +269,21 @@ test('offline: the readiness line, the three nights, and the soft failures (R27,
   // US-16 AC5: three nights, tonight open, named from the reader's own clock.
   const nights = page.getByTestId('night-group');
   await expect(nights).toHaveCount(3);
-  expect(await nights.evaluateAll((els) => els.map((el) => (el as HTMLDetailsElement).open))).toEqual([true, false, false]);
-  await expect(nights.nth(0).locator('summary')).toContainText('Tonight');
-  await expect(nights.nth(1).locator('summary')).toContainText('Tomorrow night');
-  await expect(nights.nth(2).locator('summary')).toContainText(/Night of \d{4}-\d{2}-\d{2}/);
+  // R81 (FR-FIRST-10): the nights' toggles stand on one row under the cards, one a night, in order.
+  const toggles = page.getByTestId('night-toggle');
+  expect(await nights.evaluateAll((els) => els.map((el) => !(el as HTMLElement).hidden))).toEqual([true, false, false]);
+  await expect(toggles).toHaveCount(3);
+  await expect(toggles.nth(0)).toHaveAttribute('aria-expanded', 'true');
+  await expect(toggles.nth(0)).toContainText('Tonight');
+  await expect(toggles.nth(1)).toContainText('Tomorrow night');
+  await expect(toggles.nth(2)).toContainText(/Night of \d{4}-\d{2}-\d{2}/);
 
   // A closed night keeps its cards out of the way until it is opened, which is what the grouping is for.
   const cardCounts = await nights.evaluateAll((els) => els.map((el) => el.querySelectorAll('article[data-pass-id]').length));
   const closed = cardCounts.findIndex((count, index) => index > 0 && count > 0);
   expect(closed, `a closed night with cards in ${JSON.stringify(cardCounts)}`).toBeGreaterThan(0);
   await expect(nights.nth(closed).locator('article[data-pass-id]').first()).toBeHidden();
-  await nights.nth(closed).locator('summary').click();
+  await toggles.nth(closed).click();
   await expect(nights.nth(closed).locator('article[data-pass-id]').first()).toBeVisible();
 
   // The line fits one row on a phone, in both languages.

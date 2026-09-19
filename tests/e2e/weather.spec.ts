@@ -51,7 +51,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('badges from the recorded forecast on every card and the Now panel, times in America/Argentina/Salta', async ({ page }) => {
+test('cloud words from the recorded forecast on every card and the conditions table, times in America/Argentina/Salta', async ({ page }) => {
   const t = Date.parse(meta.fetchedAt);
   await page.clock.setFixedTime(t);
   const forecastRequests: URL[] = [];
@@ -95,10 +95,13 @@ test('badges from the recorded forecast on every card and the Now panel, times i
       // The badge reads the peak, which is minutes after the start; well inside the response it must have a verdict.
       covered += 1;
       expect(STATES).toContain(await badge.getAttribute('data-state'));
-      await expect(badge).toHaveText(/^(Clear|Partly cloudy|Likely obscured), \d+ % cloud$/);
+      // R81 (FR-FIRST-10): the card's cloud word, its percentage in the tooltip behind it (US-7 AC3).
+      await expect(badge).toHaveText(/^(Clear|Partly cloudy|Likely obscured)$/);
+      await expect(card.locator('[role="tooltip"]')).toContainText(/^\d+ % effective cloud at the pass peak\./);
     }
-    await expect(card).toContainText(`Start${localStamp(startMs, ZONE)}`);
-    await expect(card).toContainText('GMT-3');
+    // The start on the card's first line is the Salta clock time (`21:14`); the zone's name is the forecast stamp's.
+    await expect(card.getByTestId('card-first-line')).toContainText(localStamp(startMs, ZONE).slice(11, 16));
+    await expect(card.locator('[role="tooltip"]')).toContainText('GMT-3');
     await expect(card).not.toContainText('UTC');
   }
   expect(covered).toBeGreaterThan(0);
@@ -111,10 +114,13 @@ test('badges from the recorded forecast on every card and the Now panel, times i
   await expect(tip).toContainText('Clear below 30 %, partly cloudy 30–70 %, likely obscured above 70 %');
   await expect(tip).toContainText(`Forecast by Open-Meteo, fetched ${localStamp(t, ZONE)}`);
 
-  // FR-WX-3: the Now panel shows the current cloud cover, and its "as of" time is local too.
-  const panel = page.getByRole('region', { name: 'Right now' });
-  await expect(panel).toContainText(/Clouds now: ?\[?(Clear|Partly cloudy|Likely obscured), \d+ % cloud/);
-  await expect(panel).toContainText(`as of ${localStamp(t, ZONE).slice(11)}`);
+  // FR-WX-3 as amended v2.0.2: the current cloud cover is the When table's Clouds now row — the word, and
+  // behind it the percentage and the forecast's local fetch time (the Now panel's "as of" was local too).
+  const clouds = page.getByTestId('conditions').locator('[data-row="clouds"]');
+  await expect(clouds.getByRole('term')).toHaveText('Clouds now');
+  await expect(clouds.locator('[data-state]')).toHaveText(/^(Clear|Partly cloudy|Likely obscured)$/);
+  await expect(clouds.locator('[role="tooltip"]')).toContainText(/\d+ % effective cloud right now\./);
+  await expect(clouds.locator('[role="tooltip"]')).toContainText(`Forecast by Open-Meteo, fetched ${localStamp(t, ZONE)}`);
 });
 
 test('with Open-Meteo unreachable the list still renders, every badge reads unknown and times stay in UTC (FR-X-4, US-7 AC4)', async ({ page }) => {
@@ -139,7 +145,8 @@ test('with Open-Meteo unreachable the list still renders, every badge reads unkn
     await expect(badges.nth(i)).toHaveText('Weather unknown');
     await expect(cards.nth(i)).toContainText(' UTC');
   }
-  const panel = page.getByRole('region', { name: 'Right now' });
-  await expect(panel).toContainText('Weather unknown');
-  await expect(panel).toContainText(`as of ${new Date(t).toISOString().slice(11, 19)} UTC`);
+  // The Clouds now row reads unknown too, and the Dark row's times stay in UTC (the Now panel's "as of" did).
+  const table = page.getByTestId('conditions');
+  await expect(table.locator('[data-row="clouds"] [data-state]')).toHaveText('Weather unknown');
+  await expect(table.getByTestId('dark-window')).toContainText(' UTC');
 });
