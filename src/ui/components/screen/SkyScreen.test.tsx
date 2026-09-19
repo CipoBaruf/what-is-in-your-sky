@@ -219,6 +219,8 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
   it('draws the instant the page was showing, not now (FR-FSC-8, US-21 AC5)', async () => {
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
+    // R77 (FR-WATCH-4): the step row is the scrubbing state's.
+    fireEvent.click(screen.getByTestId('live-scrub'));
     fireEvent.click(screen.getByRole('button', { name: 'Next pass' }));
     const scrubbed = Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'));
     expect(scrubbed).toBeGreaterThan(NOW);
@@ -230,7 +232,8 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
   });
 
   /** FR-FSC-2 / FR-FOL-1: three ways out, and each gives back the view the press came from with the rows at real time. */
-  it.each(['dome', 'polar'] as const)('closes back to the %s with the stripe block and the playback row at real time', async (from) => {
+  /* R77 (FR-WATCH-1, FR-WATCH-4): at real time the page is watching — the overview and `[ scrub ]`, and no `back to live` to press. */
+  it.each(['dome', 'polar'] as const)('closes back to the %s with the watching rows at real time', async (from) => {
     withSky(from);
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
 
@@ -239,9 +242,9 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     fireEvent.click(screen.getByTestId('sky-screen-close'));
     expect(screen.queryByTestId('sky-screen')).toBeNull();
     expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', from);
-    expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
-    expect(screen.getByTestId('playback-controls')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Now' })).toBeDisabled();
+    expect(screen.getByTestId('overview-row')).toBeInTheDocument();
+    expect(screen.getByTestId('live-scrub')).toBeInTheDocument();
+    expect(screen.queryByTestId('live-now')).toBeNull();
     expect(appStore.getState()).toMatchObject({ chartView: from, skyScreen: false });
 
     // `Esc`, which closes the screen before it can leave the page (D-321).
@@ -249,7 +252,7 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByTestId('sky-screen')).toBeNull();
     expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', from);
-    expect(screen.getByTestId('stripe-block')).toBeInTheDocument();
+    expect(screen.getByTestId('overview-row')).toBeInTheDocument();
     expect(appStore.getState()).toMatchObject({ chartView: from, skyScreen: false });
 
     // And leaving the live page altogether (FR-FOL-1's "leaving the live page").
