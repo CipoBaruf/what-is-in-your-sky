@@ -376,10 +376,10 @@ const REACH: Record<string, Reach> = {
     // screen at once (the location block, the saved places, the elements line, the Now panel,
     // the Moon, the hero card, the sort toggle, the three nights with their counts, the
     // footer), and the cards themselves are what `guide` and `polar` are for.
-    await page.getByTestId('night-group').evaluateAll((nights) => {
-      for (const night of nights) (night as HTMLDetailsElement).open = false;
-    });
-    await expect(page.locator('[data-testid="night-group"][open]')).toHaveCount(0);
+    // R81 (FR-FIRST-10): a night closes through its toggle under the cards.
+    const open = page.locator('[data-testid="night-toggle"][aria-expanded="true"]');
+    while ((await open.count()) > 0) await open.first().click();
+    await expect(page.locator('[data-testid="night-group"]:not([hidden])')).toHaveCount(0);
   },
 
   async guide(page, width, theme, locale) {

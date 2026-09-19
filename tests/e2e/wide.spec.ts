@@ -19,7 +19,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, CELL_ADVANCE_EM_MIN, BASE_FONT_PX, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HOME_THREE_PANE_MIN_CELLS, SHELL_PADDING_CELLS, HOME_THREE_PANE_MIN_PX, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
-import { seedStoredRun } from './liveHelpers';
+import { listSettled, seedStoredRun } from './liveHelpers';
 
 /** FR-DESK-2/3: the left column, the list's floor and the guide's, in cells. */
 const LEFT_COLUMN_CELLS = 40;
@@ -201,6 +201,12 @@ test('the list is as tall as the shell and no taller, with a pass open and witho
     expect(await list.evaluate((el) => el.scrollHeight > el.clientHeight), `the list is not the one scrolling ${state}`).toBe(true);
   };
 
+  // FR-FIRST-11 (D-512): on wide the Where reading holds the dome of the sky now, one link to #live.
+  await expect(page.getByTestId('reading-where').getByTestId('where-dome')).toHaveAttribute('href', '#live');
+  // The one-line cards (FR-FIRST-10) leave tonight alone shorter than a laptop's list: every night open, as a
+  // reader planning the three would have them, is the list this is about.
+  const closed = page.locator('[data-testid="night-toggle"][aria-expanded="false"]');
+  while ((await closed.count()) > 0) await closed.first().click();
   await listFitsTheScreen('with no pass open');
   await openTheGuide(page);
   // Below the three panes the list is off the page while the guide is up; `[ list ]`
@@ -218,6 +224,8 @@ test('the list is as tall as the shell and no taller, with a pass open and witho
  * not the app's.
  */
 test('the shortcuts overlay gives focus back to the card, and leaves j to the browser while it is up (F-43, F-44)', async ({ page }) => {
+  // The recompute replaces the stored list as it streams in; a card the cursor is on must outlive the overlay.
+  await listSettled(page);
   await page.keyboard.press('j');
   const cursor = await page.evaluate(() => document.activeElement?.getAttribute('data-pass-id'));
   expect(cursor).not.toBeNull();

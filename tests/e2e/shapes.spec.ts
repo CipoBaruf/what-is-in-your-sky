@@ -421,12 +421,12 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       const found = await settledRects([
         ['header', page.getByRole('banner')],
         ['left column', page.getByTestId('col-left')],
-        ['now panel', page.getByRole('region', { name: 'Right now' })],
+        ['conditions', page.getByTestId('conditions')],
         ['list column', page.getByTestId('list-column')],
         ['passes', page.getByRole('region', { name: 'Upcoming passes' })],
         ['footer', page.getByRole('contentinfo')],
       ]);
-      dropParts(found, 'left column', ['now panel']);
+      dropParts(found, 'left column', ['conditions']);
       dropParts(found, 'list column', ['passes']);
       expect(found.size, at).toBeGreaterThanOrEqual(3);
       expectNoOverlap(found, at);

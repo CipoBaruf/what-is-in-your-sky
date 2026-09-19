@@ -179,7 +179,8 @@ test('wide: two columns at the mid width, the guide beside a live list in three 
   expect(whenBox.y).toBeGreaterThanOrEqual(whereBox.y + whereBox.height);
   await where.getByTestId('location-summary-change').click();
   await expect(where.getByRole('region', { name: 'Location' })).toBeVisible();
-  await expect(left.getByRole('region', { name: 'Right now' })).toBeVisible();
+  // R81 (FR-FIRST-9): the Now panel's facts are the When reading's conditions table.
+  await expect(left.getByTestId('reading-when').getByTestId('conditions')).toBeVisible();
   await expect(right.getByRole('region', { name: 'Upcoming passes' })).toBeVisible();
 
   // FR-FIRST-5: at 1280 px the three readings are three equal panes, side by side on one band.
@@ -224,8 +225,9 @@ test('wide: two columns at the mid width, the guide beside a live list in three 
     el.scrollTop = 200;
   });
   expect(await list.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
-  // Nothing behind it is inert, and the page itself still scrolls (the sheet's lock is compact-only).
-  expect(await page.evaluate(() => document.querySelectorAll('[inert]').length)).toBe(0);
+  // Nothing behind it is inert, and the page itself still scrolls (the sheet's lock is compact-only). The Where
+  // dome's drawing is inert inside its own link (D-512), which is the dome's business and not the guide's.
+  expect(await page.evaluate(() => [...document.querySelectorAll('[inert]')].filter((el) => !el.closest('[data-testid="where-dome"]')).length)).toBe(0);
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).not.toBe('hidden');
 
   // A second pass replaces the guide in place, and the highlight moves with it.
