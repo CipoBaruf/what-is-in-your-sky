@@ -30,7 +30,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { LIVE_BOX_MIN_PX, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
 import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { fitFloor, painted, type Painted, type Rect } from './domeInk';
-import { domeDrawn, seedStoredRun, stripFilled } from './liveHelpers';
+import { domeDrawn, enterScrubbing, seedStoredRun, stripFilled } from './liveHelpers';
 
 type Size = readonly [width: number, height: number];
 
@@ -345,7 +345,8 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       const at = label(size);
       await expect(page.getByTestId('live-page'), at).toHaveAttribute('data-compact', String(compact));
       const dome = await page.getByTestId('live-dome').boundingBox();
-      const side = await page.getByTestId('live-side').boundingBox();
+      // R77: on wide the side column is laid out inside the frame's rail (`display: contents`), so it has no box of its own.
+      const side = compact ? await page.getByTestId('live-side').boundingBox() : { x: 0, y: 0, width: 0, height: 0 };
       if (!dome || !side) throw new Error(`${at}: the live page is not laid out`);
       if (landscape) {
         // The landscape phone: the side column beside the dome, on the right.
@@ -364,6 +365,9 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
 
   test('the short wide window: the desktop layout with a smaller box, the rows folded, no scroll (FR-SHP-3, F-65, US-25 AC3)', async ({ page }) => {
     await openLive(page);
+    // R77 (FR-WATCH-9 e): the rows this folds are the scrub block's, so the page is scrubbing; R78 turns the block
+    // into FR-WATCH-6's overlay at these heights and walks the matrix in both states.
+    await enterScrubbing(page);
     for (const size of MATRIX.shortWide) {
       const [width, height] = size;
       const at = label(size);
@@ -376,8 +380,8 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       await expect(page.getByTestId('stripe-overview'), `${at}: the overview row is folded away`).toBeHidden();
       const actions = await page.getByTestId('live-actions').boundingBox();
       const moon = await page.getByTestId('live-moon').boundingBox();
-      const time = await page.getByTestId('live-time').boundingBox();
-      if (!actions || !moon || !time) throw new Error(`${at}: the strip's line is not laid out`);
+      const sky = await page.getByTestId('live-sky').boundingBox();
+      if (!actions || !moon || !sky) throw new Error(`${at}: the strip's line is not laid out`);
       // On the one-column page the actions follow the strip's last field on its line or the next; in the rail they are under the fields' lines.
       expect(actions.y, `${at}: the actions are on the strip's line, not a row of their own`).toBeLessThanOrEqual(moon.y + moon.height + ROW_PX / 4);
       // Every row around the box is one text row: the top row, the time row (its clock keeps the heading's line), the actions.
