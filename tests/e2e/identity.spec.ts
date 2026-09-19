@@ -10,7 +10,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { withSettings } from './liveHelpers';
+import { listSettled, withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -225,6 +225,8 @@ test('the Next ISS tag marks the next ISS pass; "best first" reorders the list a
 
   await page.reload();
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
+  // The stored run is on screen first and the recompute replaces it as it streams; the order is read once it has.
+  await listSettled(page);
   await expect(page.getByRole('button', { name: 'Best' })).toHaveAttribute('aria-pressed', 'true');
   expect([...(await scores())].sort((a, b) => b - a)).toEqual(await scores());
 });
