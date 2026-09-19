@@ -24,7 +24,7 @@
  * label growing past the row it has to live on.
  */
 import { resolve } from 'node:path';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { createElement, type ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../support/matchMedia';
@@ -44,7 +44,7 @@ import { IDLE_PASSES } from '../../src/state/slices/passes';
 import { fixtureRecords } from '../support/catalogFixtures';
 import { InstallAction } from '../../src/ui/components/common/InstallAction';
 import { ShareButton } from '../../src/ui/components/common/ShareButton';
-import { HiddenToggle, LegendToggle, PlaybackControls } from '../../src/ui/components/live/PlaybackControls';
+import { HiddenToggle, PlaybackControls } from '../../src/ui/components/live/PlaybackControls';
 import { StepControls } from '../../src/ui/components/live/StepControls';
 import { SortToggle } from '../../src/ui/components/passes/SortToggle';
 import { OptionToggle } from '../../src/ui/components/common/OptionToggle';
@@ -53,6 +53,8 @@ import { SettingsPage } from '../../src/ui/screens/Settings';
 import { StepLine } from '../../src/ui/screens/Home';
 import { UseMyLocation } from '../../src/ui/components/location/UseMyLocation';
 import { NextEventBlock } from '../../src/ui/components/passes/NextEventBlock';
+import { StatusStrip } from '../../src/ui/components/live/StatusStrip';
+import { LivePage } from '../../src/ui/screens/Live';
 import { decorations, rowCells, rowParts } from './cells';
 
 /** FR-COMP-4: a 390 px viewport at the default cell. */
@@ -78,6 +80,9 @@ const CSS = [
   'src/ui/components/location/LocationInput.module.css',
   'src/ui/App.module.css',
   'src/ui/components/passes/NextEventBlock.module.css',
+  'src/ui/screens/Live.module.css',
+  'src/ui/components/live/StatusStrip.module.css',
+  'src/ui/components/live/StateIndicator.module.css',
 ].map((file) => resolve(process.cwd(), file));
 
 const table = decorations(CSS);
@@ -90,6 +95,12 @@ const ready = { status: 'ready' as const, records, unavailable: [], rejected: []
 const initial = appStore.getInitialState();
 const noop = (): void => undefined;
 
+/** R77: the live page with a sky to draw — the store as `Live.test.tsx` sets it, the place a ten-letter name. */
+const withLiveSky = (): void => {
+  const place: Observer = { ...observer, label: 'Cipolletti' };
+  appStore.setState({ observer: place, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: place, passes: [pass], hasDarkness: true } });
+};
+
 let media: MatchMediaStub;
 
 /** The rows FR-COMP-4 names, each as what to render and how to find the row in it. */
@@ -99,6 +110,8 @@ interface Row {
   find: () => Element;
   /** Run before rendering: the store or the browser has to be in the state the row appears in. */
   setUp?: () => void;
+  /** Run after rendering: a row the page shows only after a tap (R77: the scrubbing state's). */
+  after?: () => void;
   /** Tighter than `BUDGET` where FR-COMP-4 names a number for the row itself (R70: the stepping row's 35); for a row set at `--small`, the same 390 px counted in its own characters. */
   budget?: number;
 }
@@ -200,7 +213,7 @@ const rows = (t: Messages): readonly Row[] => [
   { name: 'the chart view control (FR-CHART-1)', element: chartView(), find: () => screen.getByRole('group', { name: 'View' }) },
   {
     name: 'the playback row (FR-LIVE-4)',
-    element: createElement(PlaybackControls, { playing: false, speed: 60, realTime: true, onPlay: noop, onPause: noop, onSpeed: noop, onNow: noop }),
+    element: createElement(PlaybackControls, { playing: false, speed: 60, onPlay: noop, onPause: noop, onSpeed: noop }),
     find: () => screen.getByTestId('playback-controls'),
   },
   { name: 'the hidden-objects toggle (FR-LIVE-6)', element: createElement(HiddenToggle, { hidden: false, onToggle: noop }), find: () => screen.getByTestId('live-hidden-toggle') },
@@ -213,24 +226,40 @@ const rows = (t: Messages): readonly Row[] => [
     budget: 35,
   },
   { name: 'the share action (FR-SHARE-2)', element: createElement(ShareButton, { url: 'https://example.test/#live', title: 'x', text: 'y', label: t.live.shareShort, ariaLabel: t.live.share }), find: () => screen.getByRole('button', { name: t.live.share }) },
+  /*
+   * R77 (FR-WATCH-8, FR-COMP-4 as amended v2.0, V20-8): the live page's new compact rows, rendered from the page
+   * itself so the order, the labels and the forms are the ones `Live.tsx` gives them — the top row with the
+   * indicator (`[ ← Back ]`, the mark, the word, the place, which ellipsises past its cells: a ten-letter place
+   * here), the two actions rows, and the conditions line at its longest.
+   */
   {
-    /*
-     * R71 (FR-COMP-4 as amended v1.4, FR-LEG-7): the live page's actions row, whole — the hidden-objects
-     * toggle, the `[ list (n) ]` control and the share action, in the order and with the compact labels and
-     * forms `Live.tsx` gives them. The three controls were each measured alone before this; the row they
-     * share is the number the requirement names, and it is the tightest row on the page in Spanish:
-     * `[ ] Ocultos [ lista (3) ] Compartir` is 35 of the 36, and with the share action's brackets it is 39,
-     * which is why D-411 takes them off on this row.
-     */
-    name: 'the live actions row with the legend control (FR-LEG-7, FR-COMP-4 as amended v1.4)',
-    element: createElement(
-      'div',
-      { 'data-testid': 'live-actions' },
-      createElement(HiddenToggle, { hidden: false, onToggle: noop }),
-      createElement(LegendToggle, { open: false, count: 3, controls: 'x', onToggle: noop }),
-      createElement(ShareButton, { url: 'https://example.test/#live', title: 'x', text: 'y', label: t.live.shareShort, ariaLabel: t.live.share, plain: true }),
-    ),
+    name: 'the live top row with the state indicator (FR-WATCH-2, V20-8)',
+    element: createElement(LivePage, { link: null, onLeave: noop }),
+    find: () => screen.getByTestId('live-top-row'),
+    setUp: withLiveSky,
+  },
+  {
+    // `[ scrub ] [ list (n) ] Share`, 28 cells in English; R71's reason for the plain share (D-411) still holds.
+    name: 'the live watching actions row (FR-WATCH-4, V20-8)',
+    element: createElement(LivePage, { link: null, onLeave: noop }),
     find: () => screen.getByTestId('live-actions'),
+    setUp: withLiveSky,
+  },
+  {
+    // `[ back to live ] [ ] Hidden Share`, 33 cells: the hidden-objects toggle joins this row and the list leaves it.
+    name: 'the live scrubbing actions row (FR-WATCH-4, V20-8)',
+    element: createElement(LivePage, { link: null, onLeave: noop }),
+    find: () => screen.getByTestId('live-actions'),
+    setUp: withLiveSky,
+    after: () => {
+      fireEvent.click(screen.getByTestId('live-scrub'));
+    },
+  },
+  {
+    // FR-WATCH-3: the clock, the longest sky word, the longest cloud word and a two-digit count — `21:14:32 crepúsculo limpio 12 arriba`.
+    name: 'the live conditions line at its longest (FR-WATCH-3)',
+    element: createElement(StatusStrip, { t: pass.start.t, timeZone: 'America/Argentina/Salta', sky: 'bright-twilight', cloud: { state: 'partly', effectivePct: 50, at: pass.start.t }, count: 12, moon: null }),
+    find: () => screen.getByTestId('status-strip'),
   },
   { name: 'the settings install row (V11-16)', element: createElement(InstallAction, { env: { standalone: undefined } }), find: () => screen.getByTestId('install-action').parentElement as Element, setUp: offerAnInstall },
 ];
@@ -253,6 +282,7 @@ describe.each(LOCALES)('FR-COMP-4: every compact control row fits %s in 36 cells
   it.each(rows(CATALOGS[locale]).map((row) => [row.name, row] as const))('%s', (_name, row) => {
     row.setUp?.();
     render(createElement(I18nProvider, { locale, children: row.element }));
+    row.after?.();
     const element = row.find();
     const cells = rowCells(element, table);
     expect(cells, `${row.name} in ${locale}: ${rowParts(element, table).join(' | ')}`).toBeLessThanOrEqual(row.budget ?? BUDGET);
