@@ -227,7 +227,7 @@ test('wide: two columns at the mid width, the guide beside a live list in three 
   expect(await list.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
   // Nothing behind it is inert, and the page itself still scrolls (the sheet's lock is compact-only). The Where
   // dome's drawing is inert inside its own link (D-512), which is the dome's business and not the guide's.
-  expect(await page.evaluate(() => [...document.querySelectorAll('[inert]')].filter((el) => !el.closest('[data-testid="where-dome"]')).length)).toBe(0);
+  expect(await page.evaluate(() => Array.from(document.querySelectorAll('[inert]')).filter((el) => !el.closest('[data-testid="where-dome"]')).length)).toBe(0);
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).not.toBe('hidden');
 
   // A second pass replaces the guide in place, and the highlight moves with it.

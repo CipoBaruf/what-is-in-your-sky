@@ -143,7 +143,7 @@ test('the populated panes at 1280 measured against FR-FIRST-3..11', async ({ pag
   /** The gaps between a container's drawn blocks, top to bottom, its heading left out. */
   const gaps = (testId: string) =>
     page.getByTestId(testId).evaluate((el) => {
-      const blocks = [...el.children].filter((child) => child.tagName !== 'H2' && child.getBoundingClientRect().height > 0).map((child) => child.getBoundingClientRect());
+      const blocks = Array.from(el.children).filter((child) => child.tagName !== 'H2' && child.getBoundingClientRect().height > 0).map((child) => child.getBoundingClientRect());
       return blocks.slice(1).map((box, i) => Math.round(box.top - (blocks[i]?.bottom ?? 0)));
     });
 

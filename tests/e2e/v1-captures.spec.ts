@@ -377,8 +377,8 @@ const REACH: Record<string, Reach> = {
     // the Moon, the hero card, the sort toggle, the three nights with their counts, the
     // footer), and the cards themselves are what `guide` and `polar` are for.
     // R81 (FR-FIRST-10): a night closes through its toggle under the cards.
-    const open = page.locator('[data-testid="night-toggle"][aria-expanded="true"]');
-    while ((await open.count()) > 0) await open.first().click();
+    const openNights = page.locator('[data-testid="night-toggle"][aria-expanded="true"]');
+    while ((await openNights.count()) > 0) await openNights.first().click();
     await expect(page.locator('[data-testid="night-group"]:not([hidden])')).toHaveCount(0);
   },
 
