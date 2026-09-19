@@ -17,7 +17,7 @@
  */
 import { expect, test } from '@playwright/test';
 import { TAP_PX } from '../../src/lib/layout';
-import { domeDrawn, homeAt, stripFilled, T } from './liveHelpers';
+import { domeDrawn, enterScrubbing, homeAt, stripFilled, T } from './liveHelpers';
 
 /**
  * R71 (FR-LEG-8, F-62): what the box is held to with the list closed, by phone height.
@@ -35,8 +35,30 @@ import { domeDrawn, homeAt, stripFilled, T } from './liveHelpers';
  */
 const FLOOR_TODAY: Readonly<Record<667 | 844, number>> = { 844: 374, 667: 198 };
 
-/** The rows under the box, in the order the page stacks them (FR-LIVE-7 as amended v1.2). */
+/**
+ * The rows under the box, in the order the page stacks them (FR-LIVE-7 as amended v1.2) — R77 (FR-WATCH-4):
+ * per state. Scrubbing has every row the page had, the clock readout now standing above the box as the held
+ * headline; watching has the next-event block above the box and, under it, the facing readout, the conditions
+ * line, the overview with its end labels and the actions.
+ */
 const ROWS = ['dome-readout', 'status-strip', 'time-readout', 'time-stripe', 'step-controls'] as const;
+const STATE_ROWS: Readonly<Record<'watching' | 'scrubbing', readonly string[]>> = {
+  watching: ['next-event', 'dome-readout', 'status-strip', 'overview-row', 'overview-labels', 'live-actions'],
+  scrubbing: [...ROWS, 'overview-row', 'playback-row', 'live-actions'],
+};
+
+/**
+ * R77 (FR-WATCH-5, V20-13, OQ-27): the box at 390 × 667 in watching with the list closed and the view control's
+ * row where FR-LIVE-7 has it. What is held is the measurement: 330 px, against FR-COMP-5's floor of 374.
+ *
+ * The rows under the box are the 168 px FR-WATCH-5 counts (measured 169: the facing readout, the conditions line,
+ * the overview and its labels, the actions). What OQ-27's arithmetic (367 with the view row) does not count is
+ * the headline above the box: the next-event block in board 1B's layout (V20-18) is three lines, 68 px — the
+ * label, the clock time, the path — over the top row's 24 and the view control's 48. Without the view row the
+ * box would be 378. OQ-27 leaves the row where it is and asks for the measurement; the floor at this height is
+ * the owner's call on that row (and now on the headline's height), recorded in `sdd-run/R77.summary.md`.
+ */
+const WATCHING_667 = 329;
 
 interface Box {
   x: number;
@@ -56,12 +78,15 @@ test.describe('the compact live page under the box (F-55)', () => {
   test.use({ hasTouch: true });
 
   for (const height of [667, 844] as const) {
-    test(`no two rows overlap at 390 × ${String(height)} and the page does not scroll`, async ({ page }) => {
+    for (const state of ['watching', 'scrubbing'] as const) {
+    test(`no two rows overlap at 390 × ${String(height)} while ${state} and the page does not scroll`, async ({ page }) => {
       await page.setViewportSize({ width: 390, height });
       await homeAt(page, T);
       await page.getByTestId('live-link').click();
       await domeDrawn(page);
       await stripFilled(page);
+      if (state === 'scrubbing') await enterScrubbing(page);
+      const ROWS = STATE_ROWS[state];
 
       const boxes: Record<string, Box> = {};
       for (const id of ROWS) {
@@ -108,6 +133,7 @@ test.describe('the compact live page under the box (F-55)', () => {
         expect(box.y + box.height, `${id} is above the fold`).toBeLessThanOrEqual(height + 0.5);
       }
     });
+    }
 
     /**
      * R71 (FR-LEG-7, FR-LEG-8, FR-COMP-5 as amended v1.4; V14-5): F-62, closed by measurement.
@@ -127,6 +153,14 @@ test.describe('the compact live page under the box (F-55)', () => {
       await page.getByTestId('live-link').click();
       await domeDrawn(page);
       await stripFilled(page);
+
+      // R77 (FR-WATCH-5): with every row present — the scrubbing state — the box is held to what R71 measured.
+      await enterScrubbing(page);
+      const scrubbing = await page.getByTestId('chart-box').boundingBox();
+      expect(scrubbing?.height ?? 0, 'scrubbing, every row present').toBeGreaterThanOrEqual(FLOOR_TODAY[height]);
+      // …and the list is opened from the watching row, where `[ list (n) ]` stands (V20-8).
+      await page.getByTestId('live-now').click();
+      await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
 
       const control = page.getByTestId('live-legend-toggle');
       await expect(control).toHaveAttribute('aria-expanded', 'false');
@@ -149,11 +183,11 @@ test.describe('the compact live page under the box (F-55)', () => {
       expect(open?.height ?? 0, 'the box gives the panel its height').toBeLessThanOrEqual(closed.height);
       // …and nothing on the page has moved off it or onto anything else.
       expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
-      const rows = await Promise.all(ROWS.map((id) => page.getByTestId(id).boundingBox()));
+      const rows = await Promise.all(STATE_ROWS.watching.map((id) => page.getByTestId(id).boundingBox()));
       for (const [i, first] of rows.entries()) {
         for (const second of [...rows.slice(i + 1), panel]) {
           if (!first || !second) continue;
-          expect(intersects(first, second), `${String(ROWS[i])} ${JSON.stringify(first)} overlaps ${JSON.stringify(second)}`).toBe(false);
+          expect(intersects(first, second), `${String(STATE_ROWS.watching[i])} ${JSON.stringify(first)} overlaps ${JSON.stringify(second)}`).toBe(false);
         }
       }
 
@@ -164,4 +198,31 @@ test.describe('the compact live page under the box (F-55)', () => {
       expect(again?.height ?? 0).toBeCloseTo(closed.height, 0);
     });
   }
+
+  /**
+   * R77 (FR-WATCH-5, FR-WATCH-9 d; V20-13, OQ-27): watching gives the box the rows scrubbing takes — the stripe
+   * block and two control rows are not in the document — so at 390 × 667 with the list closed the box is
+   * measured here, with the view control's row where FR-LIVE-7 has it. The number is the measurement.
+   */
+  test('the box at 390 × 667 while watching, the list closed and the view control where it was (FR-WATCH-5)', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 667 });
+    await homeAt(page, T);
+    await page.getByTestId('live-link').click();
+    await domeDrawn(page);
+    await stripFilled(page);
+    await expect(page.getByTestId('live-legend-toggle')).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByRole('group', { name: 'Chart view' })).toBeVisible();
+    const box = await page.getByTestId('chart-box').boundingBox();
+    if (!box) throw new Error('the box is not laid out');
+    expect(box.height, `the watching box at 390 × 667 is ${String(Math.round(box.height))} px`).toBeGreaterThanOrEqual(WATCHING_667);
+    // The reader's tap is what changes it (FR-WATCH-7): scrubbing takes rows, back to live gives them back.
+    await enterScrubbing(page);
+    const scrubbing = await page.getByTestId('chart-box').boundingBox();
+    expect(scrubbing?.height ?? 0).toBeLessThan(box.height);
+    await page.getByTestId('live-now').click();
+    await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
+    const again = await page.getByTestId('chart-box').boundingBox();
+    expect(again?.height ?? 0).toBeCloseTo(box.height, 0);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
+  });
 });
