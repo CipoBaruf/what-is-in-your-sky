@@ -28,6 +28,7 @@ export const live: typeof EnLive = {
     skyLabel: 'Cielo',
     cloudLabel: 'Nubes',
     countLabel: 'Arriba',
+    countSpoken: 'Satélites',
     moonLabel: 'Luna',
     sky: { day: 'de día', 'bright-twilight': 'crepúsculo claro', dark: 'oscuro' },
     /**

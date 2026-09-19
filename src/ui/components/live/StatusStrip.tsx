@@ -76,7 +76,7 @@ export function StatusStrip({ t, timeZone, sky, cloud, count, moon }: StatusStri
         <Field id="cloud" label={m.live.cloudLabel} spoken>
           <span data-state={cloud.state}>{m.live.cloudWord[cloud.state]}</span>
         </Field>
-        <Field id="count" label={m.live.countLabel} spoken>
+        <Field id="count" label={m.live.countSpoken} spoken>
           <span data-count={count}>{m.live.upCount(count)}</span>
         </Field>
       </dl>

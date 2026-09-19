@@ -3,6 +3,8 @@ import { useLocale, useT } from '../../../../i18n/useT';
 import { degrees, formatSignedDegrees } from '../../../../lib/format';
 import type { BodyLine, LegendRow } from '../../../../lib/legend';
 import { formatClock } from '../../../../lib/timeFormat';
+import { moonFacts } from '../../../../lib/moonPhrases';
+import type { Messages } from '../../../../i18n/messages';
 import { moonGlyph } from './bodies';
 import { LegendSwatch } from './LegendSwatch';
 import styles from './Legend.module.css';
@@ -57,6 +59,16 @@ export interface LegendProps {
    * is what goes: on a screen the picture is the peak.
    */
   screen?: boolean;
+}
+
+/**
+ * R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): the Moon line's phase and illumination — `☽ Moon waxing
+ * crescent, 18 % · az …` — which the compact live page's conditions line gives to the list panel.
+ */
+function moonLit(line: BodyLine, t: Messages): { phase: string; illumination: string } {
+  if (!line.moon) return { phase: '', illumination: '' };
+  const facts = moonFacts(line.moon);
+  return { phase: t.moon.phase[facts.phase], illumination: facts.illumination };
 }
 
 export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow, lead, screen = false }: LegendProps) {
@@ -118,7 +130,7 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
           <span className={styles.name}>
             {line.body === 'sun'
               ? words.sun({ azimuth: degrees(line.azDeg), altitude: formatSignedDegrees(line.altDeg, locale) })
-              : words.moon({ glyph: line.moon ? moonGlyph(line.moon) : '', azimuth: degrees(line.azDeg), altitude: formatSignedDegrees(line.altDeg, locale) })}
+              : words.moon({ glyph: line.moon ? moonGlyph(line.moon) : '', ...moonLit(line, t), azimuth: degrees(line.azDeg), altitude: formatSignedDegrees(line.altDeg, locale) })}
           </span>
         </li>
       ))}
