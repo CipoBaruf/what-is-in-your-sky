@@ -178,7 +178,8 @@ test.describe('the live page on a landscape phone', () => {
   test('captures in landscape in Spanish: the control and its row carry no English (FR-I18N-2)', async ({ page }) => {
     await liveLandscape(page, 'es', true);
     await expect(page.getByRole('button', { name: 'Compartir este cielo' })).toBeVisible();
-    await expect(page.getByTestId('live-sky')).toHaveText(/Cielo (oscuro|crepúsculo claro|de día)/);
+    // R77 (FR-WATCH-3): the compact line's one-word sky states.
+    await expect(page.getByTestId('live-sky')).toHaveText(/Cielo (oscuro|crepúsculo|día)/);
     await page.screenshot({ path: 'docs/screenshots/r34-live-844-landscape-dark-es.png' });
   });
 });
@@ -201,10 +202,16 @@ test.describe('the live page on a portrait phone with a compass', () => {
     const dome = await page.getByTestId('live-dome').boundingBox();
     const drawing = await page.getByTestId('chart-box').boundingBox();
     expect((drawing?.y ?? 0) + (drawing?.height ?? 0)).toBeLessThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) + 0.5);
-    // FR-COMP-4: the actions row is `Hidden · Share` and stays one line.
-    const share = await page.getByRole('button', { name: 'Share this sky' }).boundingBox();
+    // FR-COMP-4: the actions row stays one line in both states — R77 (V20-8): `[ scrub ] [ list (n) ] Share`
+    // while watching, and the hidden-objects toggle on the scrubbing row, `[ back to live ] [ hidden ] Share`.
+    const scrub = await page.getByTestId('live-scrub').boundingBox();
+    const shareWatching = await page.getByRole('button', { name: 'Share this sky' }).boundingBox();
+    expect(Math.abs((shareWatching?.y ?? 0) - (scrub?.y ?? 0))).toBeLessThanOrEqual(1);
+    await enterScrubbing(page);
+    const share = await page.getByRole('button', { name: 'Share this moment' }).boundingBox();
     const hidden = await page.getByRole('button', { name: 'Hidden objects' }).boundingBox();
     expect(Math.abs((share?.y ?? 0) - (hidden?.y ?? 0))).toBeLessThanOrEqual(1);
+    await page.getByTestId('live-now').click();
     // The view control is one row too, with three options (V13-4's two-option row is withdrawn).
     const options = await toggle.getByRole('button').all();
     const tops = await Promise.all(options.map(async (option) => (await option.boundingBox())?.y ?? 0));
