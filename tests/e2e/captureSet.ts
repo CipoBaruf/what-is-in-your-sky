@@ -156,7 +156,7 @@ export const SCREENS: readonly CaptureScreen[] = [
   {
     name: 'window',
     widths: [844],
-    what: 'The sky screen opened from a pass detail (FR-FSC-1, FR-FSC-6, R66), aimed at that pass\'s peak by a stubbed orientation reading: the whole arc (FR-DOME-5) filling the viewport, the `×`, the facing readout and the legend. A phone held sideways, which since v1.3.1 is the only place the window is drawn.',
+    what: 'The sky screen opened from a pass detail (FR-FSC-1, FR-FSC-6, R66), aimed at that pass\'s peak by a stubbed orientation reading: the whole arc (FR-DOME-5) filling the viewport, the `×`, the facing readout and, since R79, the compass gutter where the legend strip was (FR-GUT-1). A phone held sideways, which since v1.3.1 is the only place the window is drawn.',
   },
   { name: 'legend', widths: [390, 1280], what: 'The legend in its states (FR-LEG-3): the live page with the hidden objects shown, so the rows carry `up`, `soon`, `gone` and the FR-LIVE-6 reasons, and one row activated so its arc is highlighted and the others dim (FR-LEG-4). Behind `[ list (n) ]` and open at 390, in the rail beside the box at 1280 (FR-LEG-6, FR-LEG-7).' },
   { name: 'favourites', widths: [390, 1280], what: 'The saved places, with the one in use marked.' },
