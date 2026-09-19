@@ -80,7 +80,8 @@ async function cellPx(page: Page): Promise<number> {
  * here is a full page, reached without waiting for one to be computed.
  */
 async function loadWithPasses(page: Page): Promise<void> {
-  await seedStoredRun(page);
+  // Settled: mid-recompute the list is one satellite's passes, and the one-line cards (R81) make that short enough not to scroll.
+  await seedStoredRun(page, { settled: true });
 }
 
 /**
