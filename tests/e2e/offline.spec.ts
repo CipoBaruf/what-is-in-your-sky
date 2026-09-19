@@ -69,7 +69,7 @@ async function firstVisit(page: Page): Promise<string> {
     await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
   });
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  await expect(status).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
   return (await status.textContent()) ?? '';
 }
 
@@ -126,7 +126,7 @@ test('reload three hours later with CelesTrak unreachable: the cached passes are
   await page.clock.setFixedTime(T0 + 3 * HOUR);
   await page.reload();
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  await expect(status).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
   expect(failed).toHaveLength(2); // past the 2 h rule: one attempt per group, both failed
   const banner = page.getByTestId('stale-banner');
   await expect(banner).toHaveCount(1);
@@ -144,7 +144,7 @@ test('five days after the newest epoch the epoch-age warning shows, and the age 
     await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
   });
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(/visible passes in the next 72 h|No visible passes/, { timeout: 30_000 });
+  await expect(status).toHaveText(/visible passes in 72 h|No visible passes/, { timeout: 30_000 });
   const banner = page.getByTestId('epoch-banner');
   await expect(banner).toHaveCount(1);
   await expect(banner).toContainText('[Warning] The orbital elements are 5 d');
@@ -308,7 +308,7 @@ test('offline: the readiness line, the three nights, and the soft failures (R27,
   await page.getByRole('button', { name: 'Use my location' }).click();
   await expect(page.getByTestId('active-location')).toContainText('from your device');
   await leaveSettings(page);
-  await expect(status).toHaveText(/visible passes in the next 72 h|No visible passes|No darkness/, { timeout: 60_000 });
+  await expect(status).toHaveText(/visible passes in 72 h|No visible passes|No darkness/, { timeout: 60_000 });
   // Recomputed from the cached elements, with no forecast for the new cell: FR-X-4's "weather then shows unknown".
   await expect(page.getByTestId('readiness')).toHaveText(/^Not ready offline: no cloud forecast/);
 });

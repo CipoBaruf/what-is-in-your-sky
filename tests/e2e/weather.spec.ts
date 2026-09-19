@@ -65,7 +65,7 @@ test('badges from the recorded forecast on every card and the Now panel, times i
     await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
   });
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  await expect(status).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
 
   // FR-WX-1 / PLAN §7.3: one request, for the 0.1° cell, with exactly the four hourly variables over four days (FR-OFF-3).
   expect(forecastRequests).toHaveLength(1);
@@ -127,7 +127,7 @@ test('with Open-Meteo unreachable the list still renders, every badge reads unkn
     await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
   });
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  await expect(status).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
 
   const cards = page.locator('article[data-pass-id]');
   const count = await cards.count();

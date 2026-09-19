@@ -54,7 +54,7 @@ async function openSheet(page: Page, which: Which): Promise<void> {
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   });
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
 
   const list = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('list');
   if (which === 'golden') {

@@ -64,7 +64,7 @@ async function offlineHome(page: Page, width: 390 | 1280, locale: 'en' | 'es'): 
     await page.getByLabel(LABEL[locale].coords).fill(NEUQUEN);
   });
   const status = page.getByRole('region', { name: LABEL[locale].passes }).getByRole('status');
-  await expect(status).toHaveText(/\d+ (visible passes in the next 72 h|pases visibles en las próximas 72 h)/, { timeout: 60_000 });
+  await expect(status).toHaveText(/\d+ (visible passes in 72 h|pases visibles en 72 h)/, { timeout: 60_000 });
 
   await page.unrouteAll({ behavior: 'ignoreErrors' });
   for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));

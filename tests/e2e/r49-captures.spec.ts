@@ -48,7 +48,7 @@ async function open(page: Page, width: 390 | 1280, locale: 'en' | 'es'): Promise
     await page.getByLabel(locale === 'es' ? 'Coordenadas (lat, lon)' : 'Coordinates (lat, lon)').fill(PARIS);
   });
   const passes = page.getByRole('region', { name: locale === 'es' ? 'Próximos pases' : 'Upcoming passes' });
-  await expect(passes.getByRole('status')).toHaveText(/\d+ (visible passes in the next 72 h|pases visibles en las próximas 72 h)/, { timeout: 60_000 });
+  await expect(passes.getByRole('status')).toHaveText(/\d+ (visible passes in 72 h|pases visibles en 72 h)/, { timeout: 60_000 });
 }
 
 test('the Moon at the peak on a card and in the guide, at 390 px in both languages', async ({ page }) => {

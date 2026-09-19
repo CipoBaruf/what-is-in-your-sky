@@ -76,7 +76,7 @@ async function homeWithPasses(page: Page): Promise<void> {
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   });
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
   await expect(page.getByRole('region', { name: 'Right now' }).getByText(/as of /)).toBeVisible();
 }
 
@@ -92,7 +92,7 @@ test('Home: dark monospace frame, no sideways scroll, every control ≥ 44 px, e
   await homeWithPasses(page);
   await expectIdentity(page, 'r12-home-passes-390.png');
 
-  await page.getByTestId('iss-hero').getByRole('button', { name: /Open guide/ }).click();
+  await page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') }).getByRole('button', { name: /Open guide/ }).click();
   await expect(page.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeVisible();
   await expectIdentity(page, 'r12-detail-390.png', { fullPage: false }); // the sheet is fixed to the viewport; a full-page capture would show the list behind it
 });
@@ -186,7 +186,7 @@ test('the hero card pins the next ISS pass; "best first" reorders the list and t
   const golden = reference.firstGoldenPass;
   if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
   await homeWithPasses(page);
-  const hero = page.getByTestId('iss-hero');
+  const hero = page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') });
   await expect(hero).toContainText('Next ISS pass');
   await expect(hero.getByRole('timer')).toHaveText(/Appears in \d+:\d\d/);
   const heroId = (await hero.getAttribute('data-pass-id')) ?? '';
@@ -218,7 +218,7 @@ test('the hero card pins the next ISS pass; "best first" reorders the list and t
   expect(JSON.parse((await page.evaluate(() => localStorage.getItem('wiys:prefs:v1'))) ?? '{}')).toMatchObject({ sort: 'best' });
 
   await page.reload();
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
   await expect(page.getByRole('button', { name: 'Best' })).toHaveAttribute('aria-pressed', 'true');
   expect([...(await scores())].sort((a, b) => b - a)).toEqual(await scores());
 });

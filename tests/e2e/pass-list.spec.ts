@@ -58,19 +58,18 @@ test('typing the Neuquén coordinates shows the pass list with the golden ISS pa
 
   });
 
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
   const cards = page.getByRole('list', { name: '' }).getByRole('listitem');
   expect(await cards.count()).toBeGreaterThan(1);
 
-  // The hero card is the next ISS pass, which is the golden one; the 72 h window holds later ISS passes too (R24).
-  const iss = page.getByTestId('iss-hero');
+  // The tagged card is the next ISS pass, which is the golden one; the 72 h window holds later ISS passes too (R24, R81).
+  const iss = page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') });
   await expect(iss).toHaveCount(1);
-  await expect(iss).toContainText(`${hhmmss(golden.start.t)} UTC`);
-  // The `<dt>` labels get their colon from CSS (`::after`), which is not part of the text content.
-  await expect(iss).toContainText(`Max elevation${String(Math.round(golden.peak.elDeg))}°`);
-  await expect(iss).toContainText(`Peak direction${compass(golden.peak.azDeg)} (${String(Math.round(golden.peak.azDeg))}°)`);
-  await expect(iss).toContainText(/Duration\d+ s/);
-  await expect(iss).toContainText(/Magnitude[+−]\d\.\d/);
+  // FR-FIRST-10: the start and the name, then the duration, the peak altitude and point, and the magnitude (US-5 AC1).
+  await expect(iss.getByTestId('card-first-line')).toContainText(`${hhmmss(golden.start.t).slice(0, 5)} UTC`);
+  await expect(iss.getByTestId('next-tag')).toHaveText('Next ISS');
+  await expect(iss.getByTestId('card-detail')).toContainText(`peak ${String(Math.round(golden.peak.elDeg))}° ${compass(golden.peak.azDeg)}`);
+  await expect(iss.getByTestId('card-detail')).toHaveText(/^\d+ min · peak \d+° [NESW]{1,3} · mag [+−]\d\.\d$/);
 
   // FR-SAT-2: one request per group, never per object.
   expect(requests.map((u) => new URL(u).searchParams.get('GROUP')).sort()).toEqual(['stations', 'visual']);

@@ -52,7 +52,7 @@ export async function openParisLive(page: Page, width: keyof typeof LIVE_VIEWPOR
   await page.clock.install({ time: SHOWN });
   await page.clock.pauseAt(SHOWN);
   await page.goto('/');
-  await expect(page.getByTestId('iss-hero')).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') })).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
   await page.evaluate(() => {
     location.hash = '#live';

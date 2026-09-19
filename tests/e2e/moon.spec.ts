@@ -45,7 +45,7 @@ async function listed(page: Page): Promise<void> {
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates (lat, lon)').fill(PARIS);
   });
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 60_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 60_000 });
 }
 
 test('the pass whose Moon is up, bright and close wears the label and the guide adds the sentence', async ({ page }) => {

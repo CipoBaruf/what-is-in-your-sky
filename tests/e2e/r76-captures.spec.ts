@@ -88,7 +88,7 @@ for (const locale of LOCALES) {
   test(`the three panes with a pass open at 1280, dark, ${locale}`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await seedStoredRun(page, { locale, settled: true });
-    await page.getByTestId('iss-hero').getByRole('button').first().click();
+    await page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') }).getByRole('button').first().click();
     const panel = page.getByTestId('guide-panel');
     await expect(panel).toBeVisible();
     // The capture is only evidence once the lazy chart chunk has drawn.

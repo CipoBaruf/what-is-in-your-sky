@@ -43,7 +43,7 @@ export const LABEL = {
 } as const;
 
 /** The pass list's status line once the window has been searched, in either language. */
-export const PASS_COUNT = /\d+ (visible passes in the next 72 h|pases visibles en las próximas 72 h)/;
+export const PASS_COUNT = /\d+ (visible passes in 72 h|pases visibles en 72 h)/;
 
 export async function stubNetwork(page: Page, elements: 'fixtures' | 'down' = 'fixtures'): Promise<void> {
   await page.route('https://celestrak.org/**', async (route) => {

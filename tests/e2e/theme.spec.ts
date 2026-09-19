@@ -137,7 +137,7 @@ test('night mode reaches the pass list and the guide sheet, in both languages', 
 
   });
   const passes = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(passes).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  await expect(passes).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
   await page.screenshot({ path: 'test-results/r20-passes-390-night-en.png', fullPage: true });
 
   // The sheet makes the header inert, so it carries its own switches (D-94 and R20).

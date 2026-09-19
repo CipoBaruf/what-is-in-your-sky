@@ -67,10 +67,10 @@ test('coordinates with altitude → pass list; reload restores it without re-typ
   expect(saved?.observer).toMatchObject({ lat: ha.observer.lat, lon: ha.observer.lon, altM: 270, source: 'coords' });
   if (compact) await leaveSettings(page);
 
-  await expect(status).toHaveText(/\d+ visible passes in the next 72 h from −38.93, −67.99/, { timeout: 30_000 });
+  await expect(status).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
   const listText = await status.textContent();
   // The hero card, not "the ISS article": the 72 h window holds several ISS passes (R24).
-  const iss = page.getByTestId('iss-hero');
+  const iss = page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') });
   await expect(iss).toHaveCount(1);
   const passId = await iss.getAttribute('data-pass-id');
   expect(Math.abs(Number(passId?.split('-')[1]) - golden.start.t)).toBeLessThanOrEqual(5_000);
@@ -79,7 +79,7 @@ test('coordinates with altitude → pass list; reload restores it without re-typ
   // US-8: reload restores the same list from the saved observer, and the fields are pre-filled.
   await page.reload();
   await expect(status).toHaveText(listText ?? '', { timeout: 30_000 });
-  await expect(page.getByTestId('iss-hero')).toHaveAttribute('data-pass-id', passId ?? '');
+  await expect(page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') })).toHaveAttribute('data-pass-id', passId ?? '');
   await openSettings(page);
   await expect(coords).toHaveValue(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   await expect(altitude).toHaveValue('270');
@@ -112,10 +112,10 @@ test('the device button uses the browser position: coordinates, accuracy above 1
   expect(saved?.observer).toMatchObject({ source: 'device', accuracyM: 2000 });
   if (compact) await leaveSettings(page);
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  await expect(status).toHaveText(/\d+ visible passes in the next 72 h from −38.93, −67.99/, { timeout: 30_000 });
-  await expect(page.getByTestId('iss-hero')).toHaveCount(1);
-  // US-3 AC3: the accuracy is on the home screen too, under the summary line.
-  if (compact) await expect(page.getByTestId('location-summary-accuracy')).toHaveText('from your device, accurate to about 2 km');
+  await expect(status).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
+  await expect(page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') })).toHaveCount(1);
+  // US-3 AC3: the accuracy is on the home screen too, in the Where reading's sentence (R81, FR-FIRST-11).
+  await expect(page.getByTestId('where-sentence')).toContainText("Using your device's location (±2000 m).");
   await page.screenshot({ path: 'test-results/r10-device-390.png' });
 
   // A precise fix hides the accuracy (US-3 AC3).

@@ -90,9 +90,9 @@ test('the R3 flow completes under the strict CSP with zero violations and only s
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   });
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
   // The hero card, not "the ISS article": the 72 h window holds several ISS passes (R24).
-  const iss = page.getByTestId('iss-hero');
+  const iss = page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') });
   await expect(iss).toHaveCount(1);
   // R8: the forecast arrived and filled the zone (FR-LOC-3), still with no CSP violation.
   await expect(iss).toContainText('GMT-3');
