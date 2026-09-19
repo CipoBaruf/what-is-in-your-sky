@@ -4,6 +4,7 @@ import { moonFacts } from '../../../lib/moonPhrases';
 import { formatShortClock } from '../../../lib/timeFormat';
 import type { Observer } from '../../../model';
 import { SEARCH_WINDOW_HOURS, useAppStore } from '../../../state';
+import { coordsLabel } from '../../../lib/place';
 import { placeName } from '../../components/location/WherePlace';
 import { TonightStripe } from '../../components/now/TonightStripe';
 import { CloudBadge } from '../../components/weather/CloudBadge';
@@ -52,7 +53,7 @@ export function WhenStep({ observer, head, onNext, focus }: WhenStepProps) {
   const split = splitTonight(passes, window, night.now);
   const state = nowSlice.observer === observer ? nowSlice.state : null;
   const moon = state ? moonFacts(state.moon) : null;
-  const place = placeName(observer) ?? observer.label;
+  const place = placeName(observer) ?? coordsLabel(observer.lat, observer.lon);
   const { dark } = night;
   return (
     <section aria-labelledby={headingId} className={styles.step} data-testid="step-when" data-step="when">

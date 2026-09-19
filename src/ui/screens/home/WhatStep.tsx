@@ -4,6 +4,7 @@ import { isNoEvent, nextEvent } from '../../../lib/nextEvent';
 import { formatShortClock } from '../../../lib/timeFormat';
 import type { Observer, Pass } from '../../../model';
 import { SEARCH_WINDOW_HOURS, useAppStore } from '../../../state';
+import { coordsLabel } from '../../../lib/place';
 import { placeName } from '../../components/location/WherePlace';
 import { NextEventBlock } from '../../components/passes/NextEventBlock';
 import { PassCard } from '../../components/passes/PassCard';
@@ -84,7 +85,7 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
 
   const { dark } = night;
   const foot = t.home.whatStep.foot({
-    place: placeName(observer) ?? observer.label,
+    place: placeName(observer) ?? coordsLabel(observer.lat, observer.lon),
     dark: night.bands.length === 0 ? null : dark ? { from: formatShortClock(dark.from, zone, locale), to: formatShortClock(dark.to, zone, locale, zone === null) } : 'none',
     cloud: night.clouds.state,
   });
