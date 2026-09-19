@@ -1,4 +1,5 @@
-import { useLocale } from '../../../i18n/useT';
+import { useLocale, useT } from '../../../i18n/useT';
+import { heldOffset } from '../../../lib/playback';
 import { formatDate, formatShortClock } from '../../../lib/timeFormat';
 import { shortWeekday } from '../../../lib/timeStripe';
 import type { EpochMs } from '../../../model';
@@ -13,24 +14,32 @@ import styles from './TimeReadout.module.css';
  * carry the seconds and the zone; this is the one meant to be read at arm's
  * length, and it says no more than the eye needs.
  *
+ * R77 (FR-WATCH-2, US-27 AC3): it is the scrubbing state's headline now, and
+ * says how far the held instant is from real time — `21:47 · +33 min`, in
+ * whole minutes with the hours split off past sixty (`heldOffset`).
+ *
  * Not a live region: it moves sixty times a second at 3600×.
  */
 export interface TimeReadoutProps {
   /** The shown instant. */
   t: EpochMs;
-  /** Real time, which decides whether `t` is today. */
+  /** Real time, which decides whether `t` is today and what the offset counts from. */
   now: EpochMs;
   timeZone: string | null;
 }
 
 export function TimeReadout({ t, now, timeZone }: TimeReadoutProps) {
   const locale = useLocale();
+  const m = useT();
   const today = formatDate(t, timeZone, locale) === formatDate(now, timeZone, locale);
   const weekday = today ? null : shortWeekday(t, timeZone, locale);
   return (
     <p className={styles.readout} data-testid="time-readout" data-today={today}>
       {weekday !== null && weekday !== '' && <span className={styles.weekday}>{weekday} </span>}
       <span className={styles.clock}>{formatShortClock(t, timeZone, locale)}</span>
+      <span className={styles.offset} data-testid="held-offset">
+        {` · ${m.live.heldOffset(heldOffset(t, now))}`}
+      </span>
     </p>
   );
 }

@@ -1,35 +1,36 @@
 import type { ReactNode } from 'react';
 import { useLocale, useT } from '../../../i18n/useT';
-import { formatSignedDegrees } from '../../../lib/format';
 import { moonFacts } from '../../../lib/moonPhrases';
-import type { Speed } from '../../../lib/playback';
-import { formatClock, formatDate } from '../../../lib/timeFormat';
+import { formatClock } from '../../../lib/timeFormat';
 import type { CloudVerdict, EpochMs, MoonState, SkyState } from '../../../model';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { badgeText } from '../weather/CloudBadge';
 import styles from './StatusStrip.module.css';
 
 /**
- * R32 (FR-LIVE-3, US-15 AC2): the live page's five facts about the shown
- * instant, as a labelled list under the dome. The instant in the observer's
- * zone with its abbreviation (`formatClock`, which is where every clock on the
- * page gets its zone from); the sky in words; the cloud cover interpolated to
- * that instant, or "unknown" with no forecast (FR-WX-2, `cloudVerdict`); the
- * count of satellites with a marker on the dome; and the Moon's phase and
- * illumination. It is the drawing's text alternative (FR-GUIDE-7), which is
- * why the chart above it carries a name and no caption.
+ * R32 (FR-LIVE-3, US-15 AC2): the live page's facts about the shown instant,
+ * as a labelled list beside the drawing — its text alternative (FR-GUIDE-7),
+ * which is why the chart carries a name and no caption. Pure display: the
+ * page computes every value and this component words it (FR-I18N-2).
  *
- * Pure display: the page computes every value and this component words it
- * through the catalogs (FR-I18N-2). R33 adds the playback speed as a sixth
- * field while playing (FR-LIVE-3's "while playing, the speed").
+ * R77 (FR-WATCH-3, FR-LIVE-3 as amended v2.0): the five-field strip is one
+ * line per shell, the same in both states.
  *
- * R48 (FR-LIVE-7 as amended, FR-COMP-4, D-246): on compact the strip is two
- * lines of at most 36 cells. Line 1 is the clock with its zone and the sky
- * in words, their labels spoken and not shown; line 2 is `Clouds 12 %`,
- * `Visible 3` and `Moon 72 %` — the percentages and the number, since the
- * words ("Clear, 12 % cloud", "waning gibbous, 72 % lit") are 50 cells. The
- * date is the stripe's and the readout's on compact (FR-TRAJ-4). The speed
- * and the heading, when present, take a line each under the two.
+ * - **Compact:** the clock, the sky state, the cloud verdict and the count as
+ *   `n up` — `21:14:32 dark clear 3 up` — one short word each so the line
+ *   keeps FR-COMP-4's 36 cells in both languages, the labels spoken and not
+ *   shown. The zone is spoken too: the artboard draws the line without it,
+ *   and the zone abbreviation (`GMT+12:45` at its widest) is the one field
+ *   that would take the line past its budget. The Moon's phase and
+ *   illumination are the list panel's Moon line, one tap away (FR-MOON-3 as
+ *   amended).
+ * - **Wide:** in the rail, `Sky dark · Clouds Clear, 12 % cloud · Up 3 · Moon
+ *   waxing crescent, 18 % lit`, wrapping inside the rail. The clock is on the
+ *   indicator's line (FR-WATCH-2), so it is not here.
+ *
+ * The speed is the pressed control on the playback row and not a field
+ * (FR-WATCH-3); the heading field went with the window's being a view of this
+ * page (R64).
  */
 export interface StatusStripProps {
   /** The shown instant `t` (FR-LIVE-2), not necessarily now. */
@@ -42,64 +43,59 @@ export interface StatusStripProps {
   count: number;
   /** `null` until evaluated, like `sky`. */
   moon: MoonState | null;
-  /** R33 (FR-LIVE-3): the playback speed while playing, as a sixth field; `null` or absent otherwise. */
-  speed?: Speed | null;
-  /**
-   * R44 (FR-WIN-3, US-21 AC6): the observer's magnetic declination while the
-   * dome is following the phone, as a seventh field; `null` or absent when it
-   * is not, because there is no heading being corrected then.
-   */
-  declinationDeg?: number | null;
 }
 
-/**
- * One field. `last` marks the field that ends a compact line (the stylesheet
- * breaks the line after it): the `dl` stays flat — a group of `div`s, which
- * is all its content model and the definition-list a11y rule allow — and the
- * lines are the inline formatting context's, not wrappers.
- */
-function Field({ id, label, spoken = false, last = false, children }: { id: string; label: string; /** The label is for assistive technology only (compact's first line). */ spoken?: boolean; last?: boolean; children: ReactNode }) {
+/** One field: its label, spoken only on compact, and its value. The `dl` stays flat — a group of `div`s. */
+function Field({ id, label, spoken, children }: { id: string; label: string; spoken: boolean; children: ReactNode }) {
   return (
-    <div className={styles.field} data-testid={`live-${id}`} data-line-end={last}>
+    <div className={styles.field} data-testid={`live-${id}`}>
       <dt className={[styles.label, spoken ? 'sr-only' : undefined].filter(Boolean).join(' ')}>{label}</dt>{' '}
       <dd className={styles.value}>{children}</dd>
     </div>
   );
 }
 
-export function StatusStrip({ t, timeZone, sky, cloud, count, moon, speed = null, declinationDeg = null }: StatusStripProps) {
+export function StatusStrip({ t, timeZone, sky, cloud, count, moon }: StatusStripProps) {
   const m = useT();
   const locale = useLocale();
   const compact = useLayoutMode() === 'compact';
-  const clock = formatClock(t, timeZone, locale);
-  const cloudPercent = cloud.effectivePct === null ? null : String(Math.round(cloud.effectivePct));
+  if (compact) {
+    const clock = formatClock(t, timeZone, locale);
+    const split = clock.indexOf(' ');
+    return (
+      <dl className={styles.strip} aria-label={m.live.strip} data-testid="status-strip" data-compact>
+        <Field id="time" label={m.live.timeLabel} spoken>
+          <time dateTime={new Date(t).toISOString()}>
+            {clock.slice(0, split)}
+            <span className="sr-only">{clock.slice(split)}</span>
+          </time>
+        </Field>
+        <Field id="sky" label={m.live.skyLabel} spoken>
+          <span data-sky={sky ?? 'pending'}>{sky ? m.live.skyShort[sky] : m.live.pending}</span>
+        </Field>
+        <Field id="cloud" label={m.live.cloudLabel} spoken>
+          <span data-state={cloud.state}>{m.live.cloudWord[cloud.state]}</span>
+        </Field>
+        <Field id="count" label={m.live.countLabel} spoken>
+          <span data-count={count}>{m.live.upCount(count)}</span>
+        </Field>
+      </dl>
+    );
+  }
   return (
-    <dl className={styles.strip} aria-label={m.live.strip} data-testid="status-strip" data-compact={compact}>
-      <Field id="time" label={m.live.timeLabel} spoken={compact}>
-        <time dateTime={new Date(t).toISOString()}>{compact ? clock : `${formatDate(t, timeZone, locale)} ${clock}`}</time>
-      </Field>
-      <Field id="sky" label={m.live.skyLabel} spoken={compact} last>
+    <dl className={styles.strip} aria-label={m.live.strip} data-testid="status-strip" data-compact={false}>
+      <Field id="sky" label={m.live.skyLabel} spoken={false}>
         <span data-sky={sky ?? 'pending'}>{sky ? m.live.sky[sky] : m.live.pending}</span>
       </Field>
-      <Field id="cloud" label={m.live.cloudLabel}>
-        <span data-state={cloud.state}>{compact ? m.live.cloudPercent(cloudPercent) : badgeText(cloud, m)}</span>
+      <Field id="cloud" label={m.live.cloudLabel} spoken={false}>
+        <span data-state={cloud.state}>{badgeText(cloud, m)}</span>
       </Field>
-      <Field id="count" label={m.live.countLabel}>
-        <span data-count={count}>{compact ? String(count) : m.live.visible(count)}</span>
+      <Field id="count" label={m.live.countLabel} spoken={false}>
+        <span data-count={count}>{String(count)}</span>
       </Field>
-      <Field id="moon" label={m.live.moonLabel} last>
-        {moon ? (compact ? m.live.moonPercent(moonFacts(moon).illumination) : m.live.moon(moonFacts(moon))) : m.live.pending}
+      <Field id="moon" label={m.live.moonLabel} spoken={false}>
+        {moon ? m.live.moon(moonFacts(moon)) : m.live.pending}
       </Field>
-      {speed !== null && (
-        <Field id="speed" label={m.live.speedLabel} last>
-          <span data-speed={speed}>{m.live.speed(speed)}</span>
-        </Field>
-      )}
-      {declinationDeg !== null && (
-        <Field id="heading" label={m.live.headingLabel} spoken={compact} last>
-          <span data-declination={declinationDeg.toFixed(1)}>{m.live.trueNorth({ declination: formatSignedDegrees(declinationDeg, locale) })}</span>
-        </Field>
-      )}
     </dl>
   );
 }
