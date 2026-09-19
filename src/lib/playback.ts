@@ -49,3 +49,22 @@ export const BODIES_EVERY_MS = 1_000;
 export const HIDDEN_EVERY_MS = 250;
 /** PLAN §8.8: the hash is written at most twice a second while scrubbing. */
 export const HASH_EVERY_MS = 500;
+
+/** R77 (FR-WATCH-2): a held instant's offset from real time, in whole minutes, as the headline reads it. */
+export interface HeldOffset {
+  sign: '+' | '−';
+  hours: number;
+  minutes: number;
+}
+
+/**
+ * R77 (FR-WATCH-2): `21:47 · +33 min` — how far the held instant is from real
+ * time, rounded to the minute, the hours split off past sixty minutes. Zero is
+ * `+0 min`, never `−0`: the instant a `[ scrub ]` holds is the one real time was
+ * showing.
+ */
+export function heldOffset(t: EpochMs, now: EpochMs): HeldOffset {
+  const total = Math.round((t - now) / 60_000);
+  const magnitude = Math.abs(total);
+  return { sign: total < 0 ? '−' : '+', hours: Math.floor(magnitude / 60), minutes: magnitude % 60 };
+}

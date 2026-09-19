@@ -71,9 +71,14 @@ export interface NextEventBlockProps {
   hours: number;
   /** `block` on the home page and the live page; `card` for the phone's first card (FR-FIRST-4). */
   form?: 'block' | 'card';
+  /**
+   * R77 (FR-WATCH-2): whether the block carries `[ Open the live sky ]` under it. The live page's watching
+   * headline is the same block (V20-18) on the page the link opens, so it passes `false`.
+   */
+  liveLink?: boolean;
 }
 
-export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block' }: NextEventBlockProps) {
+export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block', liveLink = true }: NextEventBlockProps) {
   const t = useT();
   const locale = useLocale();
   const clock = useNow(NEXT_EVENT_TICK_MS);
@@ -87,7 +92,7 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
         <p className={styles.none} data-testid="next-event-none" data-reason={pending ? 'pending' : result.reason}>
           {pending ? t.nextEvent.pending : t.nextEvent.none({ reason: result.reason, hours })}
         </p>
-        {!card && <LiveLink />}
+        {!card && liveLink && <LiveLink />}
       </section>
     );
   }
@@ -121,7 +126,7 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
           <p className={styles.path} data-testid="next-event-path">
             {t.nextEvent.named({ name: pass.name, path })}
           </p>
-          <LiveLink />
+          {liveLink && <LiveLink />}
         </>
       )}
     </section>

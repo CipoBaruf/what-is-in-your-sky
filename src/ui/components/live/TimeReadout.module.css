@@ -12,3 +12,14 @@
 .weekday {
   color: var(--fg-dim);
 }
+
+/* R77 (FR-WATCH-2): the held instant in the bead's held tone, as the indicator's word is; the offset after it
+   in the dim ink at the body size, so the row is still one text row. */
+.clock {
+  color: var(--warn);
+}
+
+.offset {
+  font-size: 1rem;
+  color: var(--fg-dim);
+}
