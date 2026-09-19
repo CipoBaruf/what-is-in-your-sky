@@ -17,7 +17,7 @@
  * `runFor` is playback's wall time.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { domeDrawn, homeAt, openLegend, realTimeField, setThemeOnHome, stripFilled, T } from './liveHelpers';
+import { backToLive, domeDrawn, enterScrubbing, homeAt, openLegend, realTimeField, setThemeOnHome, stripFilled, T } from './liveHelpers';
 
 const HOUR = 3_600_000;
 
@@ -57,6 +57,10 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     await page.getByTestId('live-link').click();
     await domeDrawn(page);
     await stripFilled(page);
+    // R77 (FR-WATCH-1): at real time there is nothing for the `now` action to do — watching does not render it —
+    // and the stripe is the scrubbing state's, which `[ scrub ]` enters at the instant on screen.
+    await expect(page.getByTestId('live-now')).toHaveCount(0);
+    await enterScrubbing(page);
     const stripe = page.getByTestId('time-stripe');
     await expect(stripe).toHaveAttribute('role', 'slider');
     // The span starts at real time as the page read it, within the tick `domeDrawn` let run.
@@ -67,7 +71,6 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     // The ISS pass under way is a segment on the stripe, the current one.
     await expect(stripe.locator('[data-pass-segment^="25544-"]')).toHaveAttribute('data-current', 'true');
     await expect(stripe.locator('[data-tick]').first()).toBeAttached();
-    await expect(page.getByRole('button', { name: 'Now' })).toBeDisabled();
 
     // R70 (FR-SPAN-2): halfway along the *overview* is twelve hours on — the stripe below draws four — and
     // the strip's time, the count and the hash follow.
@@ -77,7 +80,7 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     expect(Math.abs(half - (T + 12 * HOUR))).toBeLessThan(15 * 60_000);
     await expect(page.getByTestId('live-count').locator('[data-count]')).toHaveAttribute('data-count', '0');
     await expect(page).toHaveURL(/#live\?lat=-38\.93&lon=-67\.99&alt=0&t=2026-09-1\dT\d\d:\d\d/);
-    await expect(page.getByRole('button', { name: 'Now' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'back to live' })).toBeEnabled();
 
     // The arrow keys: one minute, ten with Shift.
     await stripe.focus();
@@ -102,30 +105,37 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     await page.clock.runFor(600);
     expect(await page.evaluate(() => (window as unknown as { __hashWrites: number }).__hashWrites)).toBeLessThanOrEqual(3);
 
-    // `now` returns to real time and the bare route.
-    await page.getByRole('button', { name: 'Now' }).click();
+    // `[ back to live ]` returns to real time and the bare route.
+    await backToLive(page);
     await page.clock.runFor(600);
     await expect(page.getByTestId('live-time')).toHaveText(realTimeField(T));
     await expect(page).toHaveURL(/#live$/);
   });
 
-  test('play advances the instant by wall time × speed, the strip names the speed, pause holds, now returns (FR-LIVE-5)', async ({ page }) => {
+  test('play advances the instant by wall time × speed, the pressed control names the speed, pause holds, back to live returns (FR-LIVE-5)', async ({ page }) => {
     await homeAt(page, T);
     await page.getByTestId('live-link').click();
     await domeDrawn(page);
     await stripFilled(page);
+    // R77 (FR-WATCH-4): playback is the scrubbing state's; `[ scrub ]` holds the instant on screen and writes it.
+    await expect(speedButton(page, 60)).toHaveCount(0);
+    await enterScrubbing(page);
+    await page.clock.runFor(600);
+    const heldUrl = page.url();
     await expect(page.getByTestId('live-speed')).toHaveCount(0);
     await expect(speedButton(page, 60)).toHaveCount(1);
     await speedButton(page, 3600).click();
     await page.getByRole('button', { name: 'Play' }).click();
-    await expect(page.getByTestId('live-speed')).toHaveText('Speed 3600×');
+    // FR-WATCH-3: the speed is the pressed control, not a field of the conditions line.
+    await expect(speedButton(page, 3600)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('live-speed')).toHaveCount(0);
     // Two seconds of wall time at 3600× is two hours — within a frame's worth either way.
     await page.clock.runFor(2000);
     const afterPlay = await shownInstant(page);
     expect(afterPlay - T).toBeGreaterThan(1.8 * HOUR);
     expect(afterPlay - T).toBeLessThan(2.2 * HOUR);
     // Nothing was written to the hash while playing.
-    await expect(page).toHaveURL(/#live$/);
+    expect(page.url()).toBe(heldUrl);
     await page.getByRole('button', { name: 'Pause' }).click();
     await expect(page.getByTestId('live-speed')).toHaveCount(0);
     const paused = await shownInstant(page);
@@ -141,8 +151,8 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     const later = await shownInstant(page);
     expect(later - paused).toBeGreaterThan(50_000);
     expect(later - paused).toBeLessThan(70_000);
-    await page.getByRole('button', { name: 'Now' }).click();
-    await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+    await backToLive(page);
+    await expect(page.getByRole('button', { name: 'Play' })).toHaveCount(0);
     await expect(page.getByTestId('live-time')).toHaveText(realTimeField(T + 4000));
   });
 
@@ -157,6 +167,9 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     await page.getByTestId('live-link').click();
     await domeDrawn(page);
     await stripFilled(page);
+    // R77: the list is opened from the watching row; the panel stays through the scrub (FR-WATCH-4).
+    await openLegend(page);
+    await enterScrubbing(page);
     // FR-SPAN-1: the stripe draws four hours of the span, not the span.
     const first = await drawn(page);
     const span = { start: Number(await page.getByTestId('time-stripe').getAttribute('aria-valuemin')), end: Number(await page.getByTestId('time-stripe').getAttribute('aria-valuemax')) };
@@ -208,11 +221,12 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     await page.getByTestId('live-link').click();
     await domeDrawn(page);
     await stripFilled(page);
+    await enterScrubbing(page);
     const before = await drawn(page);
     // 60×: an hour a minute. Four seconds of wall time is four minutes of shown time, so the boundary is
     // crossed by running to it — the first chunk is clipped to real time, so it is minutes away, not hours.
     await page.getByRole('button', { name: 'Play' }).click();
-    await expect(page.getByTestId('live-speed')).toHaveText('Speed 60×');
+    await expect(speedButton(page, 60)).toHaveAttribute('aria-pressed', 'true');
     await page.clock.runFor(4000);
     expect(await shownInstant(page)).toBeGreaterThan(T + 3 * 60_000);
     // Still a chunk, and still clipped to the span at its start: 60× is under the line (FR-SPAN-6).
@@ -251,6 +265,9 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
     await domeDrawn(page);
+    // R77 (FR-WATCH-4, V20-8): on a phone the toggle is on the scrubbing row; the list is opened from the watching one.
+    await openLegend(page);
+    await enterScrubbing(page);
     const toggle = page.getByRole('button', { name: 'Hidden objects' });
     await expect(toggle).toHaveAttribute('aria-pressed', 'false');
     const dome = page.getByTestId('live-dome');
@@ -267,7 +284,6 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
       }, { timeout: 30_000 })
       .toBeGreaterThan(0);
     await expect(hidden.first()).toHaveText(/^[A-Z]$/);
-    await openLegend(page);
     const rows = dome.getByTestId('chart-legend').locator('button[data-state="hidden-object"]');
     await expect(rows.first()).toHaveText(/ · (too low|in shadow|daylight|too faint)$/);
     // The ISS is on its arc, so it is not among the dimmed (D-102).
@@ -320,7 +336,7 @@ test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async 
   await scrubbedWithHidden(page, 'es');
   await expect(page.getByRole('group', { name: 'Reproducción', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reproducir' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Ahora' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'ir al vivo' })).toBeVisible();
   await expect(page.getByTestId('time-stripe')).toHaveAttribute('aria-label', 'Franja de tiempo: cuatro de las próximas 24 horas');
   await expect(page.getByTestId('stripe-overview')).toHaveAttribute('aria-label', 'Vista de la noche');
   await page.screenshot({ path: 'docs/screenshots/r33-live-390-dark-es.png' });
@@ -364,6 +380,7 @@ test('R70 capture: FR-SPAN-6s whole span at 1280 × 800', async ({ page }) => {
   await page.getByTestId('live-link').click();
   await domeDrawn(page);
   await stripFilled(page);
+  await enterScrubbing(page);
   await speedButton(page, 3600).click();
   await page.getByRole('button', { name: 'Play' }).click();
   await page.clock.runFor(2000);
