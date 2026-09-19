@@ -10,7 +10,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { withSettings } from './liveHelpers';
+import { listSettled, withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -76,8 +76,9 @@ async function homeWithPasses(page: Page): Promise<void> {
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   });
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
-  await expect(page.getByRole('region', { name: 'Right now' }).getByText(/as of /)).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
+  // The sky check has answered: the conditions table's Moon row is its (R81, FR-FIRST-9).
+  await expect(page.getByTestId('conditions').getByTestId('moon-row')).toBeVisible();
 }
 
 test('Home: dark monospace frame, no sideways scroll, every control ≥ 44 px, empty and with passes; the detail sheet likewise', async ({ page }) => {
@@ -92,7 +93,7 @@ test('Home: dark monospace frame, no sideways scroll, every control ≥ 44 px, e
   await homeWithPasses(page);
   await expectIdentity(page, 'r12-home-passes-390.png');
 
-  await page.getByTestId('iss-hero').getByRole('button', { name: /Open guide/ }).click();
+  await page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') }).getByRole('button', { name: /Open guide/ }).click();
   await expect(page.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeVisible();
   await expectIdentity(page, 'r12-detail-390.png', { fullPage: false }); // the sheet is fixed to the viewport; a full-page capture would show the list behind it
 });
@@ -102,7 +103,8 @@ test.describe('cloud badge tooltip (R12 review)', () => {
 
   test('is a box under the badge that moves nothing, opens on hover, focus and tap, and stays inside the screen', async ({ page }) => {
     await homeWithPasses(page);
-    const panel = page.getByRole('region', { name: 'Right now' });
+    // R81: the Now panel's cloud badge is the conditions table's Clouds now word (FR-WX-3 as amended v2.0.2).
+    const panel = page.getByTestId('conditions');
     const badge = panel.getByText('Weather unknown');
     const tip = panel.getByRole('tooltip');
     await expect(tip).toBeHidden();
@@ -182,32 +184,36 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('live');
 });
 
-test('the hero card pins the next ISS pass; "best first" reorders the list and the choice survives a reload (US-5 AC2)', async ({ page }) => {
+test('the Next ISS tag marks the next ISS pass; "best first" reorders the list and the choice survives a reload (US-5 AC2)', async ({ page }) => {
   const golden = reference.firstGoldenPass;
   if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
   await homeWithPasses(page);
-  const hero = page.getByTestId('iss-hero');
-  await expect(hero).toContainText('Next ISS pass');
-  await expect(hero.getByRole('timer')).toHaveText(/Appears in \d+:\d\d/);
+  const hero = page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') });
+  // R81 (FR-FIRST-6, D-510): the hero card is the tag on its card, and its countdown is the next-event block's.
+  await expect(hero.getByTestId('next-tag')).toHaveText('Next ISS');
+  await expect(page.getByTestId('next-event-label')).toHaveText(/^Next up · in (\d+:)?\d\d?:\d\d$/);
   const heroId = (await hero.getAttribute('data-pass-id')) ?? '';
   expect(Math.abs(Number(heroId.split('-')[1]) - golden.start.t)).toBeLessThanOrEqual(5_000);
 
   const list = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('list');
-  // The hero's pass is pulled out of the list, not repeated in it — the other ISS passes of the 72 h window stay (R24).
-  await expect(list.locator(`article[data-pass-id="${heroId}"]`)).toHaveCount(0);
+  // The tagged pass stays in the list, in its place, once — and the tag is on it alone (FR-FIRST-10).
+  await expect(list.locator(`article[data-pass-id="${heroId}"]`)).toHaveCount(1);
+  await expect(page.getByTestId('next-tag')).toHaveCount(1);
   const scores = async (): Promise<number[]> =>
     list.locator('article').evaluateAll((cards) =>
       cards.map((card) => {
-        const value = (label: string): string => Array.from(card.querySelectorAll('dt')).find((dt) => dt.textContent === label)?.nextElementSibling?.textContent ?? '';
-        const mag = Number(value('Magnitude').split(',')[0]?.replace('−', '-').replace('+', ''));
-        const el = Number(value('Max elevation').replace('°', ''));
+        // The card's second line: `6 min · peak 68° N · mag −3.4` (FR-FIRST-10).
+        const detail = /peak (\d+)° \S+ · mag ([−+-]?[\d.]+)/.exec(card.querySelector('[data-testid="card-detail"]')?.textContent ?? '');
+        const mag = Number(detail?.[2]?.replace('−', '-').replace('+', ''));
+        const el = Number(detail?.[1]);
         return 10 ** (-0.4 * mag) * el;
       }),
     );
-  const starts = async (): Promise<string[]> => list.locator('article').evaluateAll((cards) => cards.map((card) => Array.from(card.querySelectorAll('dt')).find((dt) => dt.textContent === 'Start')?.nextElementSibling?.textContent ?? ''));
+  // A card's start is its id's instant (`25544-<ms>`): the first line shows the clock time alone, which a night crosses midnight on.
+  const starts = async (): Promise<number[]> => list.locator('article').evaluateAll((cards) => cards.map((card) => Number(card.getAttribute('data-pass-id')?.split('-').at(-1))));
   const chronological = await starts();
   expect(chronological.length).toBeGreaterThan(2);
-  expect([...chronological].sort()).toEqual(chronological);
+  expect([...chronological].sort((a, b) => a - b)).toEqual(chronological);
 
   // R52 (US-5 AC2 as amended): the short labels, at this width.
   await page.getByRole('button', { name: 'Best' }).click();
@@ -218,7 +224,9 @@ test('the hero card pins the next ISS pass; "best first" reorders the list and t
   expect(JSON.parse((await page.evaluate(() => localStorage.getItem('wiys:prefs:v1'))) ?? '{}')).toMatchObject({ sort: 'best' });
 
   await page.reload();
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
+  // The stored run is on screen first and the recompute replaces it as it streams; the order is read once it has.
+  await listSettled(page);
   await expect(page.getByRole('button', { name: 'Best' })).toHaveAttribute('aria-pressed', 'true');
   expect([...(await scores())].sort((a, b) => b - a)).toEqual(await scores());
 });

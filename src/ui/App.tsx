@@ -181,10 +181,14 @@ export function App() {
     if (!card) return;
     // A card inside a folded night is in the DOM but not on the page, and
     // `focus()` on it does nothing (`passCursor`): the reader asked for the
-    // list at this pass, so its night unfolds first — through the element,
-    // so the disclosure's own toggle event keeps the list's memory of it.
-    const night = card.closest<HTMLDetailsElement>('details:not([open])');
-    if (night) night.open = true;
+    // list at this pass, so its night unfolds first — through its toggle, so
+    // the list keeps its memory of it (R81: the toggles are buttons under the
+    // cards), and on the element at once, so the focus lands this frame.
+    const night = card.closest<HTMLElement>('[data-night-group][hidden]');
+    if (night) {
+      document.querySelector<HTMLButtonElement>(`[aria-controls="${night.id}"]`)?.click();
+      night.hidden = false;
+    }
     card.focus();
   }, [guideView]);
   /*

@@ -1,44 +1,82 @@
-/* R76 (FR-FIRST-3): the next event, the first block after the location
-   reading. The label is the hero card's kicker device, the headline the
-   countdown's own size, and the peak line dim under it. */
+/* R81 (FR-FIRST-3 as amended v2.0.2, board 1B): the next event, the When
+   reading's last block — ruled off above in `--rule` with 0.75 rem inside, the
+   label line small and dim, the clock time in the accent at 32 px on 38, the
+   path in `--fg`, and the live link 0.75 rem under the block. */
 .block {
   display: grid;
   gap: 0;
+  border-top: 1px solid var(--rule);
+  padding-top: 0.75rem;
 }
 
-.eventLabel {
+.label,
+.none {
   margin: 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
   color: var(--fg-dim);
 }
 
-.eventLabel::before {
-  content: '[';
-}
-
-.eventLabel::after {
-  content: ']';
-}
-
-.headline {
+.time {
   margin: 0;
-  font-size: 1.25rem;
-  /* One row a line (at the owner's gate): a long name wraps the headline, and at a row and a half its
-     two lines stood apart like two headlines — the name on one, the verb and the countdown on the next. */
-  line-height: var(--row);
+  font-size: 2rem;
+  line-height: 2.375rem;
   color: var(--accent);
+}
+
+.path {
+  margin: 0;
+  color: var(--fg);
   overflow-wrap: anywhere;
 }
 
-.peak,
-.none {
+/* FR-LIVE-1: a bracketed control like the header's. */
+.live {
+  margin: 0.75rem 0 0;
+}
+
+.liveLink {
+  text-decoration: none;
+}
+
+.liveLink::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.liveLink::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+/* FR-FIRST-4 (R82's first card): a box ruled in the accent, the time and the
+   name in the accent at 20 px on 26, the path with its duration, and the
+   brightness in `--warn`. */
+.card {
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--accent);
+  padding: 12px;
+}
+
+.cardTime {
   margin: 0;
-  color: var(--fg-dim);
+  font-size: 1.25rem;
+  line-height: 1.625rem;
+  color: var(--accent);
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.separator {
-  color: var(--fg-dim);
+.card .path {
+  font-size: var(--small);
+  line-height: var(--small-row);
 }
 
-.cloud {
-  color: var(--fg);
+.brightness {
+  margin: 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--warn);
 }

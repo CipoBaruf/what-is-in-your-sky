@@ -117,19 +117,22 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).not.toBe('hidden');
 
   // The golden pass grazes the horizon; for the PR's visual check, also capture the highest pass of the window.
-  // R27: the list is one disclosure per night and only the open night is in the accessibility tree, so the
+  // R27: the list is one group per night and only the open night is in the accessibility tree, so the
   // search reads every card in the region by selector and then opens the night the winner turned out to be in.
   const region = page.getByRole('region', { name: 'Upcoming passes' });
   const highest = await region.locator('article[data-pass-id]').evaluateAll((cards) => {
-    const elevation = (card: Element): number => Number(Array.from(card.querySelectorAll('dt')).find((dt) => dt.textContent === 'Max elevation')?.nextElementSibling?.textContent?.replace('°', '') ?? 0);
+    // R81 (FR-FIRST-10): the card's second line, `6 min · peak 68° N · mag −3.4`.
+    const elevation = (card: Element): number => Number(/peak (\d+)°/.exec(card.querySelector('[data-testid="card-detail"]')?.textContent ?? '')?.[1] ?? 0);
     return cards.map((card) => ({ id: card.getAttribute('data-pass-id') ?? '', el: elevation(card) })).sort((a, b) => b.el - a.el)[0];
   });
   if (!highest || highest.el < 30) throw new Error(`no high pass among the fixtures (best ${String(highest?.el)}°)`);
   const highCard = region.locator(`article[data-pass-id="${highest.id}"]`);
-  await highCard.evaluate((el) => {
-    const night = el.closest('details');
-    if (night && !night.open) night.querySelector('summary')?.click();
+  // A closed night opens through its toggle under the cards (FR-FIRST-10).
+  const night = await highCard.evaluate((el) => {
+    const group = el.closest<HTMLElement>('[data-night-group]');
+    return group?.hidden === true ? (group.dataset['night'] ?? null) : null;
   });
+  if (night !== null) await region.locator(`[data-testid="night-toggle"][data-night="${night}"]`).click();
   await highCard.getByRole('button', { name: /Open guide/ }).click();
   const highFigure = page.getByRole('dialog').getByRole('figure');
   await expect(highFigure.locator(`[data-pass-id="${highest.id}"] [data-anchor="key"]`)).toHaveText('A');

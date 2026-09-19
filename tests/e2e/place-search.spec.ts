@@ -102,15 +102,15 @@ test('search → pick list → confirmation line → pass list for Cipolletti, a
   if (compact) await leaveSettings(page);
 
   // The pass list for the picked place: the golden observer, so the golden ISS pass is among the cards, with times in the geocoded zone.
-  await expect(status).toHaveText(/\d+ visible passes in the next 72 h from Cipolletti, Rio Negro, Argentina/, { timeout: 30_000 });
+  await expect(status).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
   // The observer stands 267 m up and 0.004° from the golden one, which moves this horizon-grazing pass by about a second.
-  const iss = page.getByTestId('iss-hero'); // the next ISS pass; the 72 h window holds later ones too (R24)
+  const iss = page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') }); // the next ISS pass; the 72 h window holds later ones too (R24)
   await expect(iss).toHaveCount(1);
   const startMs = Number((await iss.getAttribute('data-pass-id'))?.split('-')[1]);
   expect(Math.abs(startMs - golden.start.t)).toBeLessThanOrEqual(5_000);
-  await expect(iss).toContainText(`Start${localStamp(startMs, ZONE)}`);
-  await expect(iss).toContainText('GMT-3');
-  await expect(iss).not.toContainText('UTC');
+  // R81 (FR-FIRST-10): the card's start is the clock time in the geocoded zone, not UTC.
+  await expect(iss.getByTestId('card-first-line')).toContainText(localStamp(startMs, ZONE).slice(11, 16));
+  await expect(iss.getByTestId('card-first-line')).not.toContainText('UTC');
   await page.screenshot({ path: 'test-results/r9-place-picker-390.png' });
   expect(requests).toHaveLength(1);
 });

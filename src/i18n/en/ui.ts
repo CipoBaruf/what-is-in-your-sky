@@ -3,6 +3,7 @@ import type { CompassPoint } from '../../lib/compass';
 import type { MoonFacts, MoonGlareFacts, MoonLoreParams, MoonPeakFacts } from '../../lib/moonPhrases';
 import type { BrightnessBand, ElevationBand, GuideParams } from '../../lib/phrases';
 import type { NextEventKind, NoEventReason } from '../../lib/nextEvent';
+import type { PassPath, PathEnd } from '../../lib/passPath';
 import type { ShortcutId } from '../../lib/shortcuts';
 import type { CloudState, MoonPhaseName, PassBoundaryReason, PassSort, ReadinessGap, Theme } from '../../model';
 import type { CountdownPhase, LinkedText } from '../messages';
@@ -182,16 +183,8 @@ export const ui = {
     savedHere: 'Saved in this browser only.',
     clearSaved: 'Clear saved location',
     precisionNote: 'Precision is city-level: a pass looks the same from anywhere within a few kilometres.',
-    /**
-     * FR-COMP-3 (R52): the one line the compact home shows where the wide
-     * layout shows the whole form. It names the place and opens `#settings`;
-     * the device's accuracy (US-3 AC3) goes on a second line rather than into
-     * the row, which has 36 cells to spend and a place name of unknown length
-     * already in it.
-     */
-    summary: (label: string) => `Using ${label}`,
+    /** FR-FIRST-11 (R81): the Where reading's `[ change ]`, which opens the input group in place. */
     summaryChange: 'change',
-    summaryAccuracy: (accuracy: string) => `from your device, accurate to ${accuracy}`,
     /** FR-FIRST-2 (R76): the one line under the primary action's label. */
     useMyLocationNote: 'Fastest. Your browser asks first; nothing is sent anywhere.',
   },
@@ -216,11 +209,32 @@ export const ui = {
       whatHeading: 'What crosses, and where to look',
       whatCard: 'Each pass as a card: time, direction, how high it climbs, how bright it gets.',
     },
-    /** FR-FIRST-4: tonight's dark window, the first `dark` band of the night. */
-    darkWindow: (p: { from: string; to: string }) => `Dark ${p.from} → ${p.to}`,
-    /** FR-FIRST-4: darkness that began before the day the bands cover — a polar winter — has no dusk to name. */
-    darkUntil: (to: string) => `Dark until ${to}`,
+    /**
+     * FR-FIRST-11 (R81): the Where reading's sentence under the place, by where
+     * the place came from (US-3 AC3's accuracy in the device's).
+     */
+    where: {
+      centre: (place: string) => `Using the centre of ${place}.`,
+      coords: 'Using these coordinates.',
+      device: (accuracy: string | null) => (accuracy === null ? "Using your device's location." : `Using your device's location (±${accuracy} m).`),
+    },
+    /** FR-FIRST-9 (R81): the conditions table — a label and a value a row. */
+    conditions: {
+      label: 'Tonight’s conditions',
+      dark: 'Dark',
+      cloudsNow: 'Clouds now',
+      moon: 'Moon',
+      upNow: 'Up now',
+    },
+    /** FR-FIRST-9: tonight's dark window, the first `dark` band still open or to come. */
+    darkWindow: (p: { from: string; to: string }) => `${p.from} → ${p.to}`,
+    /** FR-FIRST-9: darkness that began before the day the bands cover — a polar winter — has no dusk to name. */
+    darkUntil: (to: string) => `until ${to}`,
     noDarkWindow: 'No full darkness tonight.',
+    /** FR-FIRST-9 (FR-MOON-3 as amended v2.0.2): the phase, the lit part and, while it is up, where. */
+    moonRow: (p: { phase: MoonPhaseName; illumination: string; point: CompassPoint | null }) => `${moonPhase[p.phase]}, ${p.illumination} %${p.point === null ? '' : `, ${p.point}`}`,
+    /** FR-FIRST-9 (US-4 AC3 as amended v2.0.2): the first satellite up, its time left, and how many more. */
+    upNow: (p: { name: string; left: string | null; more: number }) => `${p.name}${p.left === null ? '' : ` · ${p.left} left`}${p.more > 0 ? ` +${String(p.more)}` : ''}`,
   },
 
   /**
@@ -229,19 +243,36 @@ export const ui = {
    * watching headline — so the wording is here once, for both.
    */
   nextEvent: {
-    label: 'Next up',
-    headline: (p: { name: string; kind: NextEventKind; reason: PassBoundaryReason; point: CompassPoint; altitude: string; countdown: string }) => {
+    /** Names the block for assistive technology; its label line changes every second. */
+    region: 'Next event',
+    /**
+     * R81 (FR-FIRST-3 as amended v2.0.2, D-508): the label line — `Next up · in 3:45:07` before the rise,
+     * `Up now · peaks in 1:10` on the way up, `Up now · sets in 2:05` after the peak, the verb by the end's
+     * boundary reason. `first` is the phone's first card, `First up · in 12:34`.
+     */
+    label: (p: { kind: NextEventKind; reason: PassBoundaryReason; countdown: string; first?: boolean }) => {
       switch (p.kind) {
         case 'rise':
-          return `${p.name} ${{ horizon: 'appears', shadow: 'emerges from shadow', twilight: 'becomes visible' }[p.reason]} ${p.point} in ${p.countdown}`;
+          return `${p.first === true ? 'First up' : 'Next up'} · in ${p.countdown}`;
         case 'peak':
-          return `${p.name} peaks ${p.altitude} ${p.point} in ${p.countdown}`;
+          return `Up now · peaks in ${p.countdown}`;
         case 'end':
-          return `${p.name} ${{ horizon: 'sets', shadow: 'enters shadow', twilight: 'fades' }[p.reason]} ${p.point} in ${p.countdown}`;
+          return `Up now · ${{ horizon: 'sets', shadow: 'enters shadow', twilight: 'fades' }[p.reason]} in ${p.countdown}`;
       }
     },
-    /** The line under the headline: the peak's direction and altitude, and how bright (FR-GUIDE-3). */
-    peakLine: (p: { point: CompassPoint; altitude: string; band: BrightnessBand; magnitude: string }) => `Peak ${p.point} at ${p.altitude}, ${brightness[p.band]} (${p.magnitude})`,
+    /** D-507: `NW low → 68° N → SE` — the start, the peak (altitude then point) and the end. */
+    path: (p: PassPath) => {
+      const end = (e: PathEnd): string => (e.altitude === null ? e.point : `${e.point} ${e.altitude === 'low' ? 'low' : `${String(e.altitude)}°`}`);
+      return `${end(p.start)} → ${String(p.peak.altitude)}° ${p.peak.point} → ${end(p.end)}`;
+    },
+    /** The block's path line: `ISS · NW low → 68° N → SE`. */
+    named: (p: { name: string; path: string }) => `${p.name} · ${p.path}`,
+    /** The first card's path line: `NW low → 68° N → SE · 6 min`. */
+    withDuration: (p: { path: string; minutes: number }) => `${p.path} · ${String(p.minutes)} min`,
+    /** The first card's brightness, FR-GUIDE-3's phrase with the magnitude: `Brighter than Venus (−3.4)`. */
+    brightness: (p: { band: BrightnessBand; magnitude: string }) => `${capitalise(brightness[p.band])} (${p.magnitude})`,
+    /** FR-LIVE-1: the block's way to the live page, which the Now panel's link was. */
+    openLive: 'Open the live sky',
     pending: 'Looking for the next pass…',
     none: (p: { reason: NoEventReason; hours: number }) =>
       ({
@@ -258,6 +289,8 @@ export const ui = {
    */
   favourites: {
     heading: 'Saved places',
+    /** R81 (FR-FIRST-11): the Where reading's line, `Saved places · [ Save this place ]`, which has 41 small characters on a phone. */
+    lineHeading: 'Saved places',
     save: 'Save this place',
     empty: 'No places saved yet.',
     use: (label: string) => `Use ${label}`,
@@ -265,25 +298,6 @@ export const ui = {
     current: 'in use',
     remove: (label: string) => `Remove ${label}`,
     limit: (max: number) => `Up to ${String(max)} places. Saving another forgets the one you have not used for longest.`,
-  },
-
-  now: {
-    heading: 'Right now',
-    noObserver: 'Enter a place name or coordinates to see what is overhead right now.',
-    checking: 'Checking the sky…',
-    error: (message: string) => `Could not check the sky: ${message}`,
-    visible: (count: number) => (count === 1 ? '1 satellite visible right now' : `${String(count)} satellites visible right now`),
-    noDarkness: 'No darkness tonight at this latitude: the sun never gets low enough for satellites to be seen.',
-    daylight: (p: { sunDegrees: string; above: boolean }) => `Daylight: the sun is ${p.sunDegrees} ${p.above ? 'above' : 'below'} the horizon. Satellites are not visible until the sky is dark.`,
-    nothingUp: (minElevation: string) => `Nothing visible right now: no catalog satellite is above ${minElevation}.`,
-    allInShadow: (count: number) =>
-      count === 1 ? "Nothing visible right now: 1 satellite is up but in Earth's shadow." : `Nothing visible right now: ${String(count)} satellites are up but all in Earth's shadow.`,
-    elevation: (degrees: string) => `${degrees} up`,
-    remaining: (p: { reason: PassBoundaryReason; countdown: string }) =>
-      `${{ horizon: 'sets in', shadow: "enters Earth's shadow in", twilight: 'fades into the brightening sky in' }[p.reason]} ${p.countdown}`,
-    remainingUnknown: 'visible for a while yet',
-    clouds: 'Clouds now:',
-    asOf: (time: string) => `as of ${time}`,
   },
 
   moon: {
@@ -333,13 +347,21 @@ export const ui = {
     unknownError: 'unknown error',
     noDarkness: (p: { hours: number; place: string }) => `No darkness tonight at this latitude: the sun never gets low enough in the next ${String(p.hours)} h from ${p.place}.`,
     none: (p: { hours: number; place: string }) => `No visible passes in the next ${String(p.hours)} h from ${p.place}.`,
-    found: (p: { count: number; hours: number; place: string }) => `${String(p.count)} visible passes in the next ${String(p.hours)} h from ${p.place}`,
+    /** FR-FIRST-10 (R81, D-510): the count, which shares its line with the sort. */
+    countLine: (p: { count: number; hours: number }) => `${String(p.count)} visible passes in ${String(p.hours)} h`,
     sortGroup: 'Sort passes',
     sortPrefix: 'Sort:',
     sort: { chronological: 'Soonest first', best: 'Best first' } satisfies Record<PassSort, string>,
     /** US-5 AC2 as amended (v1.1), FR-COMP-4: the same two orders named short enough for a 36-cell row. */
     sortShort: { chronological: 'Soonest', best: 'Best' } satisfies Record<PassSort, string>,
-    heroKicker: (p: { name: string; iss: boolean }) => (p.iss ? 'Next ISS pass' : `Next ${p.name} pass`),
+    /** FR-FIRST-10 (§8 rank 1 as amended v2.0.2): the tag on the next featured pass's card, which the hero card was. */
+    nextTag: (p: { name: string; iss: boolean }) => (p.iss ? 'Next ISS' : `Next ${p.name}`),
+    /**
+     * FR-FIRST-10 (US-5 AC1): the card's second line — `6 min · peak 68° N · mag −3.4`, or the brightness
+     * phrase in place of the magnitude on the phone's third step (`like a bright star`).
+     */
+    cardDetail: (p: { minutes: number; altitude: string; point: CompassPoint; brightness: { magnitude: string } | { band: BrightnessBand } }) =>
+      `${String(p.minutes)} min · peak ${p.altitude} ${p.point} · ${'magnitude' in p.brightness ? `mag ${p.brightness.magnitude}` : brightness[p.brightness.band]}`,
     twilightLabel: 'sky still bright',
     openGuide: 'Open guide →',
     fields: {
@@ -367,8 +389,8 @@ export const ui = {
       dated: (date: string) => `Night of ${date}`,
       count: (count: number) => (count === 1 ? '1 pass' : `${String(count)} passes`),
       empty: 'No visible passes.',
-      /** The night's only pass is the hero card above the list, so the group is not empty even though its list is. */
-      heroOnly: 'Its only pass is the one above.',
+      /** FR-FIRST-10: the row of the nights' toggles under the cards, as a group. */
+      toggles: 'Nights',
     },
   },
 
@@ -478,6 +500,10 @@ export const ui = {
       if (p.hours > 0) return p.minutes > 0 ? `${String(p.hours)} h ${String(p.minutes)} min` : `${String(p.hours)} h`;
       return p.minutes > 0 ? `${String(p.minutes)} min` : 'under a minute';
     },
+    /** FR-SAT-4 as amended v2.0.2 (R81): the Where reading's one line, whose `[ details ]` opens the rest. */
+    line: (age: string) => `Elements ${age} old`,
+    lineNone: 'No orbital elements',
+    details: 'details',
     none: (checked: string) => `No orbital elements in use. Last checked with CelesTrak ${checked}.`,
     newest: (p: { age: string; epoch: string; checked: string }) => `Orbital elements: newest epoch ${p.age} old (${p.epoch}), confirmed with CelesTrak ${p.checked}.`,
     stale: (fetched: string) =>

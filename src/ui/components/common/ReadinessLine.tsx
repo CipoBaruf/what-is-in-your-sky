@@ -45,9 +45,8 @@ export function readinessStamp(at: EpochMs, timeZone: string | null, locale: Loc
 /** How often the line re-checks whether its own date has gone past (F-23). A minute is finer than the date it states. */
 export const READINESS_CHECK_MS = 60_000;
 
-export function ReadinessLine() {
-  const t = useT();
-  const locale = useLocale();
+/** What the line reads, once every input it reads has an answer for this observer; null before. */
+function useReadiness() {
   const observer = useAppStore((s) => s.observer);
   const passes = useAppStore((s) => s.passes);
   const elements = useAppStore((s) => s.elements);
@@ -68,18 +67,44 @@ export function ReadinessLine() {
     hasElements: elements.status === 'ready' && elements.records.length > 0,
     now,
   });
+  return { state, timeZone };
+}
+
+/**
+ * R81 (FR-OFF-4 as amended v2.0.2, D-511): `form: 'line'` is the home page's — the one line, the
+ * storage time moved behind the elements line's `[ details ]` (`StoredLine`). `full` keeps both rows.
+ */
+export function ReadinessLine({ form = 'full' }: { form?: 'full' | 'line' } = {}) {
+  const t = useT();
+  const locale = useLocale();
+  const read = useReadiness();
+  if (read === null) return null;
+  const { state, timeZone } = read;
   return (
-    <div className={styles.block}>
+    <div className={form === 'line' ? `${styles.block} ${styles.small}` : styles.block}>
       <p className={styles.line} data-testid="readiness">
         {state.missing.length === 0 && state.offlineUntil !== null
           ? t.readiness.ready(readinessStamp(state.offlineUntil, timeZone, locale))
           : t.readiness.notReady(formatList(state.missing.map((gap) => t.readiness.gaps[gap]), locale))}
       </p>
-      {state.storedAt !== null && (
+      {form === 'full' && state.storedAt !== null && (
         <p className={styles.line} data-testid="readiness-stored">
           {t.readiness.stored(readinessStamp(state.storedAt, timeZone, locale))}
         </p>
       )}
     </div>
+  );
+}
+
+/** The storage time alone, for a run that came out of the store (D-145): the elements line's details carry it on the home page. */
+export function StoredLine() {
+  const t = useT();
+  const locale = useLocale();
+  const read = useReadiness();
+  if (read === null || read.state.storedAt === null) return null;
+  return (
+    <p className={styles.line} data-testid="readiness-stored">
+      {t.readiness.stored(readinessStamp(read.state.storedAt, read.timeZone, locale))}
+    </p>
   );
 }

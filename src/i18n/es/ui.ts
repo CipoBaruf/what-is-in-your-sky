@@ -2,6 +2,7 @@ import type { AgeParts } from '../../lib/elementsAge';
 import type { CompassPoint } from '../../lib/compass';
 import type { BrightnessBand, ElevationBand, GuideParams } from '../../lib/phrases';
 import type { CloudState, MoonPhaseName, PassBoundaryReason, PassSort } from '../../model';
+import type { PathEnd } from '../../lib/passPath';
 import type { ui as EnUi } from '../en/ui';
 
 /**
@@ -143,9 +144,7 @@ export const ui: typeof EnUi = {
     savedHere: 'Guardada solo en este navegador.',
     clearSaved: 'Borrar la ubicación guardada',
     precisionNote: 'La precisión es a nivel de ciudad: un pase se ve igual desde cualquier punto a unos pocos kilómetros.',
-    summary: (label: string) => `Se usa ${label}`,
     summaryChange: 'cambiar',
-    summaryAccuracy: (accuracy: string) => `desde tu dispositivo, con precisión de ${accuracy}`,
     useMyLocationNote: 'Lo más rápido. El navegador pregunta antes; no se envía nada a ningún lado.',
   },
 
@@ -162,24 +161,45 @@ export const ui: typeof EnUi = {
       whatHeading: 'Qué cruza, y hacia dónde mirar',
       whatCard: 'Cada pase como una tarjeta: hora, dirección, cuánto sube y cuánto brilla.',
     },
-    darkWindow: (p) => `Oscuro ${p.from} → ${p.to}`,
-    darkUntil: (to) => `Oscuro hasta las ${to}`,
+    where: {
+      centre: (place) => `Con el centro de ${place}.`,
+      coords: 'Con estas coordenadas.',
+      device: (accuracy) => (accuracy === null ? 'Con la ubicación del dispositivo.' : `Con la ubicación del dispositivo (±${accuracy} m).`),
+    },
+    conditions: {
+      label: 'Las condiciones de esta noche',
+      dark: 'Oscuro',
+      cloudsNow: 'Nubes ahora',
+      moon: 'Luna',
+      upNow: 'Arriba ahora',
+    },
+    darkWindow: (p) => `${p.from} → ${p.to}`,
+    darkUntil: (to) => `hasta las ${to}`,
     noDarkWindow: 'Esta noche no llega a estar oscuro del todo.',
+    moonRow: (p) => `${moonPhase[p.phase]}, ${p.illumination} %${p.point === null ? '' : `, ${p.point}`}`,
+    upNow: (p) => `${p.name}${p.left === null ? '' : ` · quedan ${p.left}`}${p.more > 0 ? ` +${String(p.more)}` : ''}`,
   },
 
   nextEvent: {
-    label: 'A continuación',
-    headline: (p) => {
+    region: 'Próximo evento',
+    label: (p) => {
       switch (p.kind) {
         case 'rise':
-          return `${p.name} ${{ horizon: 'aparece', shadow: 'sale de la sombra', twilight: 'se hace visible' }[p.reason]} al ${p.point} en ${p.countdown}`;
+          return `${p.first === true ? 'El primero' : 'A continuación'} · en ${p.countdown}`;
         case 'peak':
-          return `${p.name} culmina a ${p.altitude} al ${p.point} en ${p.countdown}`;
+          return `Visible ahora · culmina en ${p.countdown}`;
         case 'end':
-          return `${p.name} ${{ horizon: 'se pone', shadow: 'entra en la sombra', twilight: 'se desvanece' }[p.reason]} al ${p.point} en ${p.countdown}`;
+          return `Visible ahora · ${{ horizon: 'se pone', shadow: 'entra en la sombra', twilight: 'se desvanece' }[p.reason]} en ${p.countdown}`;
       }
     },
-    peakLine: (p) => `Culmina al ${p.point} a ${p.altitude}, ${brightness[p.band]} (${p.magnitude})`,
+    path: (p) => {
+      const end = (e: PathEnd): string => (e.altitude === null ? e.point : `${e.point} ${e.altitude === 'low' ? 'bajo' : `${String(e.altitude)}°`}`);
+      return `${end(p.start)} → ${String(p.peak.altitude)}° ${p.peak.point} → ${end(p.end)}`;
+    },
+    named: (p) => `${p.name} · ${p.path}`,
+    withDuration: (p) => `${p.path} · ${String(p.minutes)} min`,
+    brightness: (p) => `${capitalise(brightness[p.band])} (${p.magnitude})`,
+    openLive: 'Abrir el cielo en vivo',
     pending: 'Buscando el próximo pase…',
     none: (p) =>
       ({
@@ -191,32 +211,14 @@ export const ui: typeof EnUi = {
 
   favourites: {
     heading: 'Lugares guardados',
+    /* R81: «Lugares guardados · [ Guardar este lugar ]» is 42 of the line's 41 small characters. */
+    lineHeading: 'Guardados',
     save: 'Guardar este lugar',
     empty: 'Todavía no hay lugares guardados.',
     use: (label) => `Usar ${label}`,
     current: 'en uso',
     remove: (label) => `Quitar ${label}`,
     limit: (max) => `Hasta ${String(max)} lugares. Al guardar otro se olvida el que hace más tiempo que no se usa.`,
-  },
-
-  now: {
-    heading: 'Ahora mismo',
-    noObserver: 'Con un nombre de lugar o coordenadas aparece lo que cruza el cielo en este momento.',
-    checking: 'Revisando el cielo…',
-    error: (message) => `No se pudo revisar el cielo: ${message}`,
-    visible: (count) => (count === 1 ? '1 satélite visible ahora mismo' : `${String(count)} satélites visibles ahora mismo`),
-    noDarkness: 'Esta noche no hay oscuridad en esta latitud: el sol nunca baja lo suficiente para ver satélites.',
-    daylight: (p) => `Hay luz de día: el sol está ${p.sunDegrees} ${p.above ? 'sobre' : 'bajo'} el horizonte. Los satélites no se ven hasta que el cielo esté oscuro.`,
-    nothingUp: (minElevation) => `Nada visible ahora mismo: ningún satélite del catálogo está por encima de ${minElevation}.`,
-    allInShadow: (count) =>
-      count === 1
-        ? 'Nada visible ahora mismo: hay 1 satélite arriba, pero en la sombra de la Tierra.'
-        : `Nada visible ahora mismo: hay ${String(count)} satélites arriba, pero todos en la sombra de la Tierra.`,
-    elevation: (degrees) => `${degrees} de altura`,
-    remaining: (p) => `${{ horizon: 'se pone en', shadow: 'entra en la sombra de la Tierra en', twilight: 'se desvanece en el cielo que aclara en' }[p.reason]} ${p.countdown}`,
-    remainingUnknown: 'visible por un rato más',
-    clouds: 'Nubes ahora:',
-    asOf: (time) => `a las ${time}`,
   },
 
   moon: {
@@ -248,12 +250,13 @@ export const ui: typeof EnUi = {
     unknownError: 'error desconocido',
     noDarkness: (p) => `Esta noche no hay oscuridad en esta latitud: el sol nunca baja lo suficiente en las próximas ${String(p.hours)} h desde ${p.place}.`,
     none: (p) => `Ningún pase visible en las próximas ${String(p.hours)} h desde ${p.place}.`,
-    found: (p) => `${String(p.count)} pases visibles en las próximas ${String(p.hours)} h desde ${p.place}`,
+    countLine: (p) => `${String(p.count)} pases visibles en ${String(p.hours)} h`,
     sortGroup: 'Ordenar los pases',
     sortPrefix: 'Orden:',
     sort: { chronological: 'Los más próximos', best: 'Los mejores' } satisfies Record<PassSort, string>,
     sortShort: { chronological: 'Próximos', best: 'Mejores' } satisfies Record<PassSort, string>,
-    heroKicker: (p) => (p.iss ? 'Próximo pase de la ISS' : `Próximo pase de ${p.name}`),
+    nextTag: (p) => (p.iss ? 'Próxima ISS' : `Próximo ${p.name}`),
+    cardDetail: (p) => `${String(p.minutes)} min · máx. ${p.altitude} ${p.point} · ${'magnitude' in p.brightness ? `mag ${p.brightness.magnitude}` : brightness[p.brightness.band]}`,
     twilightLabel: 'cielo todavía claro',
     openGuide: 'Abrir la guía →',
     fields: {
@@ -273,7 +276,7 @@ export const ui: typeof EnUi = {
       dated: (date) => `Noche del ${date}`,
       count: (count) => (count === 1 ? '1 pase' : `${String(count)} pases`),
       empty: 'No hay pases visibles.',
-      heroOnly: 'Su único pase es el de arriba.',
+      toggles: 'Noches',
     },
   },
 
@@ -362,6 +365,9 @@ export const ui: typeof EnUi = {
       if (p.hours > 0) return p.minutes > 0 ? `${String(p.hours)} h ${String(p.minutes)} min` : `${String(p.hours)} h`;
       return p.minutes > 0 ? `${String(p.minutes)} min` : 'menos de un minuto';
     },
+    line: (age) => `Elementos de hace ${age}`,
+    lineNone: 'Sin elementos orbitales',
+    details: 'detalles',
     none: (checked) => `Ningún elemento orbital en uso. Última consulta a CelesTrak ${checked}.`,
     newest: (p) => `Elementos orbitales: época más reciente de hace ${p.age} (${p.epoch}), confirmados con CelesTrak ${p.checked}.`,
     stale: (fetched) =>

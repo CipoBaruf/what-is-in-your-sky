@@ -26,6 +26,9 @@ async function cellPx(page: Page): Promise<number> {
   });
 }
 
+/** FR-FIRST-3 as amended v2.0.2: `Next up · in 3:45:07`, `Up now · peaks in 1:10`, `Up now · sets in 2:05`. */
+const NEXT_LABEL = /^(Next up · in|Up now · (peaks|sets|enters shadow|fades) in) (\d+:)?\d\d?:\d\d$/;
+
 test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3)', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
@@ -55,24 +58,30 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3)', () => {
     await primary.click();
 
     const block = page.getByTestId('next-event');
-    await expect(block.getByTestId('next-event-headline')).toHaveText(/^.+ (appears|emerges from shadow|becomes visible|peaks \d+°|sets|enters shadow|fades) [NESW]{1,3} in (\d+:)?\d\d?:\d\d$/, { timeout: 60_000 });
+    // FR-FIRST-3 as amended v2.0.2: the label line, the clock time and the path.
+    await expect(block.getByTestId('next-event-label')).toHaveText(NEXT_LABEL, { timeout: 60_000 });
+    await expect(block.getByTestId('next-event-time')).toHaveText(/^\d\d:\d\d( \S+)?$/);
+    await expect(block.getByTestId('next-event-path')).toHaveText(/^.+ · [NESW]{1,3}( low| \d+°)? → \d+° [NESW]{1,3} → [NESW]{1,3}( \d+°)?$/);
     await expect(cold).toHaveCount(0);
-    await expect(page.getByTestId('location-summary')).toHaveText(/^Using −38\.93, −67\.99/);
+    // FR-FIRST-11: the coordinates alone, and the sentence by the source with the accuracy the device gave.
+    await expect(page.getByTestId('location-summary')).toHaveText('−38.93, −67.99');
+    await expect(page.getByTestId('where-sentence')).toHaveText(/^Using your device's location \(±300 m\)\. Saved in this browser only\. /);
     // The group folded away under the line: the device answered, so there is nothing left to type.
     await expect(page.getByTestId('location-summary-change')).toHaveAttribute('aria-expanded', 'false');
     expect(page.url()).toBe(url);
     expect(await page.evaluate(() => (window as unknown as { __coldOpen?: boolean }).__coldOpen)).toBe(true);
     await expect(page.getByTestId('settings-back')).toHaveCount(0);
 
-    // FR-FIRST-3: the countdown is the first block after the location reading, and the list follows.
+    // FR-FIRST-4: the stacked page — Where, then When ending on the next event, then What; no dome on a phone (D-512).
     const [summaryBox, blockBox, listBox] = await Promise.all([page.getByTestId('location-summary').boundingBox(), block.boundingBox(), page.getByTestId('list-column').boundingBox()]);
     if (!summaryBox || !blockBox || !listBox) throw new Error('the readings are not laid out');
     expect(blockBox.y).toBeGreaterThan(summaryBox.y);
     expect(listBox.y).toBeGreaterThan(blockBox.y);
+    await expect(page.getByTestId('where-dome')).toHaveCount(0);
     // It ticks once a second from the wall clock.
-    const before = await block.getByTestId('next-event-headline').textContent();
+    const before = await block.getByTestId('next-event-label').textContent();
     await page.clock.setFixedTime(NINE_DAYS_ON + 5_000);
-    await expect(block.getByTestId('next-event-headline')).not.toHaveText(before ?? '');
+    await expect(block.getByTestId('next-event-label')).not.toHaveText(before ?? '');
   });
 });
 
@@ -90,18 +99,29 @@ test.describe('the three readings by width (FR-FIRST-5, D-443)', () => {
       const boxes = await Promise.all(['reading-where', 'reading-when', 'list-column'].map((id) => page.getByTestId(id).boundingBox()));
       const [where, when, what] = boxes;
       if (!where || !when || !what) throw new Error('the readings are not laid out');
-      // Each reading is headed like the step line, and the heading is drawn: a pane is a bounded grid that
-      // scrolls itself, and an overflowing one once shrank its clipped heading row to nothing.
+      // Populated, each reading is headed by its plain word (FR-FIRST-5 as amended v2.0.2), and the heading is
+      // drawn: a pane is a bounded grid that scrolls itself, and an overflowing one once shrank its clipped
+      // heading row to nothing.
       for (const [id, name] of [
-        ['reading-where', '[01] Where'],
-        ['reading-when', '02 When'],
-        ['list-column', '03 What'],
+        ['reading-where', 'Where'],
+        ['reading-when', 'When'],
+        ['list-column', 'What'],
       ] as const) {
-        const heading = page.getByTestId(id).getByRole('heading', { level: 2, name });
+        const heading = page.getByTestId(id).getByRole('heading', { level: 2, name: new RegExp(`^── ${name} ─`) });
         await expect(heading).toBeVisible();
         expect((await heading.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(20);
       }
+      // Board 1B's When: the stripe, the table, then the next event (FR-FIRST-8, FR-FIRST-9, FR-FIRST-3).
+      const whenPane = page.getByTestId('reading-when');
+      const order = await Promise.all(['tonight-stripe', 'conditions', 'next-event'].map(async (id) => (await whenPane.getByTestId(id).boundingBox())?.y ?? NaN));
+      expect(order).toEqual([...order].sort((a, b) => a - b));
       if (panes) {
+        // FR-FIRST-11 (D-512): the dome of the sky now, in Where, the pane's width square, one link to #live.
+        const dome = page.getByTestId('reading-where').getByTestId('where-dome');
+        await expect(dome).toHaveAttribute('href', '#live');
+        await expect(dome.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+        const domeBox = await dome.boundingBox();
+        expect(domeBox?.width ?? 0).toBeGreaterThan(where.width * 0.9);
         // Three equal panes, side by side, on one band.
         expect(when.x).toBeGreaterThan(where.x + where.width - 1);
         expect(what.x).toBeGreaterThan(when.x + when.width - 1);

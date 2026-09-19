@@ -15,17 +15,25 @@ import styles from './SortToggle.module.css';
  * "Sort: [x] Soonest first [ ] Best first" is 39. A label may differ between
  * the widths; the meaning may not, and it does not: the same two orders, the
  * same group name for anyone who hears it rather than reads it.
+ *
+ * R81 (FR-FIRST-10): on the home page's count and sort line the short names
+ * at every width (`short`), and the pressed order bracketed —
+ * `Sort: [ Soonest ] Best` — which is the board's way of marking it and not
+ * colour alone (FR-X-5).
  */
 const ORDER: readonly PassSort[] = ['chronological', 'best'];
 
 export interface SortToggleProps {
   value: PassSort;
   onChange: (sort: PassSort) => void;
+  /** The short names whatever the layout (the home page's count and sort line). */
+  short?: boolean;
 }
 
-export function SortToggle({ value, onChange }: SortToggleProps) {
+export function SortToggle({ value, onChange, short = false }: SortToggleProps) {
   const t = useT();
-  const labels = useLayoutMode() === 'compact' ? t.passes.sortShort : t.passes.sort;
+  const mode = useLayoutMode();
+  const labels = short || mode === 'compact' ? t.passes.sortShort : t.passes.sort;
   return (
     <div role="group" aria-label={t.passes.sortGroup} className={styles.group}>
       <span className={styles.label} aria-hidden="true">
@@ -36,7 +44,7 @@ export function SortToggle({ value, onChange }: SortToggleProps) {
           key={sort}
           type="button"
           aria-pressed={value === sort}
-          className={styles.option}
+          className={styles.sortOption}
           onClick={() => {
             if (sort !== value) onChange(sort);
           }}

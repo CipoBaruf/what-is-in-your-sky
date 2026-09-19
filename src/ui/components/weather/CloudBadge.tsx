@@ -21,6 +21,11 @@ export interface CloudBadgeProps {
   timeZone: string | null;
   /** The instant the verdict is for, as it reads in the tooltip: "at the pass peak", "right now". */
   moment: string;
+  /**
+   * R81 (FR-FIRST-9, FR-FIRST-10): `word` is the home's form — the verdict's word alone in its colour
+   * (`Clear`), unbracketed, with the percentage and the source still in the tooltip (US-7 AC3).
+   */
+  form?: 'badge' | 'word';
 }
 
 /** FR-I18N-6: a provider's name is its own in every language; only the display casing is ours. */
@@ -45,14 +50,14 @@ export function tooltipText(verdict: CloudVerdict, forecast: CloudBadgeProps['fo
   return `${head} ${thresholds} ${source}`;
 }
 
-export function CloudBadge({ verdict, forecast, timeZone, moment }: CloudBadgeProps) {
+export function CloudBadge({ verdict, forecast, timeZone, moment, form = 'badge' }: CloudBadgeProps) {
   const t = useT();
   const locale = useLocale();
   const tipId = useId();
   return (
     <span className={styles.wrap}>
-      <span className={`inline-control ${styles.badge}`} data-state={verdict.state} tabIndex={0} aria-describedby={tipId}>
-        {badgeText(verdict, t)}
+      <span className={`inline-control ${styles.badge}${form === 'word' ? ` ${styles.word}` : ''}`} data-state={verdict.state} tabIndex={0} aria-describedby={tipId}>
+        {form === 'word' ? t.weather.state[verdict.state] : badgeText(verdict, t)}
       </span>
       <span role="tooltip" id={tipId} className={styles.tip}>
         {tooltipText(verdict, forecast, timeZone, moment, t, locale)}

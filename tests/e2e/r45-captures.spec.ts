@@ -115,7 +115,7 @@ async function openDetail(page: Page, width: Width, theme: CaptureTheme, locale:
 test('the live page at 1280 px, dark, en: the legend beside the dome', async ({ page }) => {
   await open(page, 1280, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' }, SHOWN);
   await page.goto('/');
-  await expect(page.getByTestId('iss-hero')).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') })).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
   await page.evaluate(() => {
     location.hash = '#live';

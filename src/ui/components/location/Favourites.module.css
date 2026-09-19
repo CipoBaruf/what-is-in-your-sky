@@ -4,6 +4,27 @@
   margin-top: var(--row);
 }
 
+/* R81 (FR-FIRST-11): the Where reading's `Saved places · [ Save this place ]` at `--small`, the places a line each under it. */
+.line {
+  display: grid;
+  gap: 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+}
+
+.lineHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--cell);
+  min-height: var(--tap);
+  color: var(--fg-dim);
+}
+
+.lineTitle {
+  color: var(--fg-dim);
+}
+
 /* R75 (FR-SET-1): the settings page's block of its own, titled like the location section. */
 .section {
   display: grid;

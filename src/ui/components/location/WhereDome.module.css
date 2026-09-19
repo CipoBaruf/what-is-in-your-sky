@@ -1,0 +1,19 @@
+/* R81 (FR-FIRST-11, board 1B): the pane's width, square. The link draws no
+   brackets and no box of its own: the drawing is the control. */
+.link {
+  display: block;
+  padding: 0;
+  margin: 0;
+  text-decoration: none;
+}
+
+.box {
+  width: 100%;
+  aspect-ratio: 1;
+  pointer-events: none;
+}
+
+/* The dome's facing readout is the live page's instrument; here the drawing is a picture of now. */
+.box [data-testid='dome-readout'] {
+  display: none;
+}

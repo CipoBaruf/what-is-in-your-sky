@@ -62,7 +62,7 @@ async function openGoldenPass(page: Page, violations: string[]): Promise<{ passI
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   });
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
   await page.locator(`article[data-pass-id="${passId}"]`).getByRole('button', { name: /Open guide/ }).click();
   const dialog = page.getByRole('dialog', { name: 'ISS (Zarya)' });
   await expect(dialog).toBeVisible();
@@ -242,7 +242,8 @@ test('the dome is the default view, shares the polar frame, faces the rise point
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const list = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('list');
   const highest = await list.locator('article').evaluateAll((cards) => {
-    const elevation = (card: Element): number => Number(Array.from(card.querySelectorAll('dt')).find((dt) => dt.textContent === 'Max elevation')?.nextElementSibling?.textContent?.replace('°', '') ?? 0);
+    // R81 (FR-FIRST-10): the card's second line, `6 min · peak 68° N · mag −3.4`.
+    const elevation = (card: Element): number => Number(/peak (\d+)°/.exec(card.querySelector('[data-testid="card-detail"]')?.textContent ?? '')?.[1] ?? 0);
     return cards.map((card) => ({ id: card.getAttribute('data-pass-id') ?? '', el: elevation(card) })).sort((a, b) => b.el - a.el)[0];
   });
   if (!highest || highest.el < 30) throw new Error(`no high pass among the fixtures (best ${String(highest?.el)}°)`);

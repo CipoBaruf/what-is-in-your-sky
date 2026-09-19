@@ -27,8 +27,8 @@
   gap: var(--row);
 }
 
-/* R76 (FR-FIRST-4): a reading is a column's own stack — its heading, then the
-   components the page already had, a row apart. */
+/* R76 (FR-FIRST-4), R81 (FR-FIRST-5 as amended v2.0.2): a reading is a
+   column's own stack — its heading, then its blocks, 0.75 rem apart (board 1B). */
 .reading {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -39,7 +39,7 @@
      vanished at 1280 px until the rows were told not to give. */
   grid-auto-rows: max-content;
   align-content: start;
-  gap: var(--row);
+  gap: 0.75rem;
   /* The headings read and not drawn inside it (below) are absolutely placed, and are held here: placed
      against the page instead, a heading low in a column that scrolls itself stood below the viewport and
      made the page scroll under it — 345 px at 1024 x 768 with a pass open (F-9's test). */

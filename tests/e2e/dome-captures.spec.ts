@@ -54,16 +54,17 @@ async function openSheet(page: Page, which: Which): Promise<void> {
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   });
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
 
   const list = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('list');
   if (which === 'golden') {
-    // The next ISS pass is pinned as the hero card, above the list rather than inside it (US-5).
+    // The next ISS pass, the card with the Next ISS tag (FR-FIRST-10).
     await page.locator(`article[data-pass-id="25544-${String(pass.start.t)}"]`).getByRole('button', { name: /Open guide/ }).click();
   } else {
     const highest = await list.locator('article').evaluateAll((cards) => {
       const elevation = (card: Element): number =>
-        Number(Array.from(card.querySelectorAll('dt')).find((dt) => dt.textContent === 'Max elevation')?.nextElementSibling?.textContent?.replace('°', '') ?? 0);
+        // R81 (FR-FIRST-10): the card's second line, `6 min · peak 68° N · mag −3.4`.
+        Number(/peak (\d+)°/.exec(card.querySelector('[data-testid="card-detail"]')?.textContent ?? '')?.[1] ?? 0);
       return cards.map((card) => ({ id: card.getAttribute('data-pass-id') ?? '', el: elevation(card) })).sort((a, b) => b.el - a.el)[0];
     });
     if (!highest) throw new Error('no passes to choose from');

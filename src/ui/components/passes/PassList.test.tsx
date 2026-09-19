@@ -4,6 +4,8 @@ import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenWindowStart, loadReferenceValues } from '../../../../tests/support/catalogFixtures';
 import { NO_MOON_AT_PEAK } from '../../../../tests/support/moonFixtures';
+import { en } from '../../../i18n/en';
+import { es } from '../../../i18n/es';
 import { compassPoint } from '../../../lib/compass';
 import type { Observer, Pass, WeatherSnapshot } from '../../../model';
 import { appStore, type AppState, type ElementsState } from '../../../state';
@@ -81,8 +83,8 @@ describe('<PassList>', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Could not load orbital elements: HTTP 503');
   });
 
-  it('renders cards as passes stream in, chronologically, with progress in the status line; the featured pass moves to the hero card (R12)', () => {
-    vi.spyOn(Date, 'now').mockReturnValue(NOW); // F-68: the hero choice reads the wall clock
+  it('renders cards as passes stream in, chronologically, with progress in the status line; the next featured pass is tagged in its place (R12, FR-FIRST-10)', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(NOW); // F-68: the tag's choice reads the wall clock
     set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'computing', observer, total: 31 } });
     render(<PassList />);
     expect(screen.getByRole('status')).toHaveTextContent('Computing passes… 0 of 31, 0 visible so far');
@@ -96,47 +98,61 @@ describe('<PassList>', () => {
     expect(within(screen.getByRole('list')).getAllByRole('listitem')).toHaveLength(1);
     expect(screen.getByRole('status')).toHaveTextContent('1 of 31, 1 visible so far');
 
-    expect(screen.queryByTestId('iss-hero')).toBeNull(); // a non-featured object gets no hero card
+    expect(screen.queryByTestId('next-tag')).toBeNull(); // a non-featured object gets no tag
 
     act(() => {
       appStore.getState().addPasses('job-1', [goldenPass, average]);
       appStore.getState().setProgress('job-1', 2, 31);
     });
-    // The ISS pass is the hero, not repeated in the list; the list keeps chronological order.
-    expect(cardNames()).toEqual(['Later object', 'Average']);
+    // The ISS pass stays in the list, in its chronological place, and carries the tag the hero card was.
+    expect(cardNames()).toEqual(['ISS (Zarya)', 'Later object', 'Average']);
     const iss = screen.getByRole('article', { name: 'ISS (Zarya)' });
-    expect(iss).toHaveAttribute('data-testid', 'iss-hero');
     expect(iss).toHaveAttribute('data-pass-id', goldenPass.id);
-    expect(within(iss).getByText('Next ISS pass')).toBeInTheDocument();
-    expect(iss).toHaveTextContent(`${hhmmss(golden.start.t)} UTC`);
-    expect(iss).toHaveTextContent(`${String(Math.round(golden.peak.elDeg))}°`);
-    expect(iss).toHaveTextContent(`${compassPoint(golden.peak.azDeg)} (${String(Math.round(golden.peak.azDeg))}°)`);
+    expect(within(iss).getByTestId('next-tag')).toHaveTextContent('Next ISS');
+    expect(screen.getAllByTestId('next-tag')).toHaveLength(1);
+    expect(within(iss).getByTestId('card-first-line')).toHaveTextContent(`${hhmmss(golden.start.t).slice(0, 5)} UTC`);
+    expect(within(iss).getByTestId('card-detail')).toHaveTextContent(`peak ${String(Math.round(golden.peak.elDeg))}° ${compassPoint(golden.peak.azDeg)}`);
 
     act(() => {
       appStore.getState().finishJob('job-1', { cancelled: false, elapsedMs: 300, hasDarkness: true });
     });
-    expect(screen.getByRole('status')).toHaveTextContent('3 visible passes in the next 72 h from −38.93, −67.99');
+    expect(screen.getByRole('status')).toHaveTextContent('3 visible passes in 72 h');
     expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'false');
   });
 
-  it('shows the hero card only for a featured pass that has not ended, and never repeats it in the list (spec §8 rank 1)', () => {
-    // The hero choice reads the wall clock, pinned at NOW (F-68); this copy ends two hours before it and the golden fixture itself is in its future.
+  it('the count and the sort share one line (FR-FIRST-10)', () => {
+    set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [average, later], hasDarkness: true } });
+    render(<PassList />);
+    const line = screen.getByRole('status').parentElement as HTMLElement;
+    expect(line).toContainElement(screen.getByRole('group', { name: 'Sort passes' }));
+    expect(line).toHaveTextContent(/^2 visible passes in 72 hSort:SoonestBest$/);
+  });
+
+  it('tags only the featured pass that has not ended, and only one (spec §8 rank 1 as amended)', () => {
+    // The choice reads the wall clock, pinned at NOW (F-68); this copy ends two hours before it and the golden fixture itself is in its future.
     vi.spyOn(Date, 'now').mockReturnValue(NOW);
     const wall = Date.now() - 2 * HOUR;
     const ended = { ...goldenPass, id: 'ended', start: { ...goldenPass.start, t: wall }, peak: { ...goldenPass.peak, t: wall + 60_000 }, end: { ...goldenPass.end, t: wall + 120_000 } };
     set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [average, later] } });
     render(<PassList />);
-    expect(screen.queryByTestId('iss-hero')).toBeNull();
+    expect(screen.queryByTestId('next-tag')).toBeNull();
     expect(cardNames()).toEqual(['Later object', 'Average']);
 
     set({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [ended, average, later] } });
-    expect(screen.queryByTestId('iss-hero')).toBeNull(); // ended: no hero, the pass stays in the list
+    expect(screen.queryByTestId('next-tag')).toBeNull(); // ended: no tag, the pass stays in the list
     expect(cardNames()).toEqual(['ISS (Zarya)', 'Later object', 'Average']);
 
     set({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [ended, goldenPass, average, later] } });
-    expect(screen.getByTestId('iss-hero')).toHaveAttribute('data-pass-id', goldenPass.id);
-    expect(cardNames()).toEqual(['ISS (Zarya)', 'Later object', 'Average']);
-    expect(screen.getAllByRole('article', { name: 'ISS (Zarya)' })).toHaveLength(2); // the ended one in the list, the next one as hero
+    expect(cardNames()).toEqual(['ISS (Zarya)', 'ISS (Zarya)', 'Later object', 'Average']);
+    expect(screen.getAllByTestId('next-tag')).toHaveLength(1);
+    expect(screen.getByTestId('next-tag').closest('article')).toHaveAttribute('data-pass-id', goldenPass.id);
+  });
+
+  it('words the tag "Next ISS" for the station and "Next <name>" otherwise, the name untranslated (FR-I18N-6)', () => {
+    expect(en.passes.nextTag({ name: 'ISS (Zarya)', iss: true })).toBe('Next ISS');
+    expect(en.passes.nextTag({ name: 'Tiangong (Tianhe)', iss: false })).toBe('Next Tiangong (Tianhe)');
+    expect(es.passes.nextTag({ name: 'ISS (Zarya)', iss: true })).toBe('Próxima ISS');
+    expect(es.passes.nextTag({ name: 'Tiangong (Tianhe)', iss: false })).toBe('Próximo Tiangong (Tianhe)');
   });
 
   // R52: jsdom without a `matchMedia` stub is the compact layout, where the two orders carry their short names (US-5 AC2 as amended, FR-COMP-4). The order they produce is the same.
@@ -192,19 +208,25 @@ describe('<PassList>', () => {
       set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window, passes: [first, second, third], hasDarkness: true } });
     };
     const groups = () => screen.getAllByTestId('night-group');
+    const toggles = () => screen.getAllByTestId('night-toggle');
+    const opened = () => groups().map((group) => !group.hidden);
 
-    it('groups the list under one heading per night, with the first open and the rest closed', async () => {
+    it('groups the list by night, the first open and the rest closed, with the toggles on one row under the cards', async () => {
       threeNights();
       const { container } = render(<PassList />);
       expect(groups()).toHaveLength(3);
-      expect(groups().map((group) => group.hasAttribute('open'))).toEqual([true, false, false]);
-      // Each night holds its own pass, and the heading counts it.
+      expect(opened()).toEqual([true, false, false]);
+      expect(toggles().map((toggle) => toggle.getAttribute('aria-expanded'))).toEqual(['true', 'false', 'false']);
+      // The row follows every night's cards in the document (FR-FIRST-10).
+      const row = screen.getByRole('group', { name: 'Nights' });
+      for (const group of groups()) expect(group.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      // Each night holds its own pass, and its toggle counts it and controls it.
       for (const [i, name] of ['First night', 'Second night', 'Third night'].entries()) {
-        const group = groups()[i];
-        expect(group).not.toBeUndefined();
+        const group = groups()[i] as HTMLElement;
         // `hidden: true`: a closed night's cards are still in the document, which is what the collapse is.
-        expect(within(group as HTMLElement).getByRole('article', { hidden: true })).toHaveAccessibleName(name);
-        expect(within(group as HTMLElement).getByText('1 pass')).toBeInTheDocument();
+        expect(within(group).getByRole('article', { hidden: true })).toHaveAccessibleName(name);
+        expect(toggles()[i]).toHaveTextContent('1 pass');
+        expect(toggles()[i]).toHaveAttribute('aria-controls', group.id);
       }
       expect(await axe(container)).toHaveNoViolations();
     });
@@ -224,32 +246,21 @@ describe('<PassList>', () => {
       threeNights();
       render(<PassList />);
       const day = (t: number): string => new Date(t).toISOString().slice(0, 10);
-      expect(groups()[0]).toHaveTextContent('Tonight');
-      expect(groups()[1]).toHaveTextContent('Tomorrow night');
-      expect(groups()[2]).toHaveTextContent(`Night of ${day(NOW + 2 * NIGHT)}`);
+      expect(toggles()[0]).toHaveTextContent('Tonight');
+      expect(toggles()[1]).toHaveTextContent('Tomorrow night');
+      expect(toggles()[2]).toHaveTextContent(`Night of ${day(NOW + 2 * NIGHT)}`);
+      // Each night's cards are named by their night for whoever hears them rather than sees the row.
+      expect(groups()[0]).toHaveAccessibleName('Tonight');
     });
 
-    it('a night with nothing in it keeps its heading and says so', () => {
+    it('a night with nothing in it keeps its toggle and says so', () => {
       set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window, passes: [first, third], hasDarkness: true } });
       render(<PassList />);
-      expect(groups()[1]).toHaveTextContent('0 passes');
+      expect(toggles()[1]).toHaveTextContent('0 passes');
       expect(groups()[1]).toHaveTextContent('No visible passes.');
     });
 
-    it('a night whose only pass is the hero says where it went, rather than reading as empty', () => {
-      // The golden ISS pass is night 1's and is pulled out into the hero card.
-      const iss = { ...goldenPass, start: { ...goldenPass.start, t: Date.now() + HOUR }, peak: { ...goldenPass.peak, t: Date.now() + HOUR + 60_000 }, end: { ...goldenPass.end, t: Date.now() + HOUR + 120_000 } };
-      const heroWindow = { startMs: Date.now(), endMs: Date.now() + 3 * NIGHT };
-      set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window: heroWindow, passes: [iss], hasDarkness: true } });
-      render(<PassList />);
-      expect(screen.getByTestId('iss-hero')).toBeInTheDocument();
-      // R46 (F-25): the count is of the list the heading opens onto, and the hero's pass is not in it.
-      expect(groups()[0]).toHaveTextContent('0 passes');
-      expect(groups()[0]).toHaveTextContent('Its only pass is the one above.');
-    });
-
-    it('F-25: the heading counts the cards under it, not the one promoted to the hero card', () => {
-      // Three passes in the first night, the ISS among them: the hero takes it and the heading says two.
+    it('F-25: the toggle counts the cards under it, the tagged pass among them now that it stays in the list', () => {
       vi.spyOn(Date, 'now').mockReturnValue(NOW);
       const iss = shifted(goldenPass, 'iss', 25544, 'ISS (Zarya)', 3, 40, 1.0);
       set({
@@ -259,17 +270,16 @@ describe('<PassList>', () => {
         passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window, passes: [first, iss, shifted(goldenPass, 'other', 5, 'Other', 5, 40, 1.0)], hasDarkness: true },
       });
       render(<PassList />);
-      expect(screen.getByTestId('iss-hero')).toBeInTheDocument();
-      expect(within(groups()[0] as HTMLElement).getAllByRole('article', { hidden: true })).toHaveLength(2);
-      expect(groups()[0]).toHaveTextContent('2 passes');
+      expect(within(groups()[0] as HTMLElement).getByTestId('next-tag')).toBeInTheDocument();
+      expect(within(groups()[0] as HTMLElement).getAllByRole('article', { hidden: true })).toHaveLength(3);
+      expect(toggles()[0]).toHaveTextContent('3 passes');
     });
 
     it('F-24: a location change forgets which nights the reader closed, so the new list opens on one', async () => {
       threeNights();
       const { rerender } = render(<PassList />);
-      const summary = (index: number): HTMLElement => (groups()[index] as HTMLElement).querySelector('summary') as HTMLElement;
-      await userEvent.click(summary(0));
-      expect(groups().map((group) => group.hasAttribute('open'))).toEqual([false, false, false]);
+      await userEvent.click(toggles()[0] as HTMLElement);
+      expect(opened()).toEqual([false, false, false]);
       // Somewhere else: the same three night indexes, but nights the reader has never seen.
       const elsewhere: Observer = { ...observer, lat: 40.42, lon: -3.7, label: 'Madrid' };
       set({
@@ -277,7 +287,7 @@ describe('<PassList>', () => {
         passes: { ...IDLE_PASSES, jobId: 'job-2', status: 'done', observer: elsewhere, window, passes: [first, second, third], hasDarkness: true },
       });
       rerender(<PassList />);
-      expect(groups().map((group) => group.hasAttribute('open'))).toEqual([true, false, false]);
+      expect(opened()).toEqual([true, false, false]);
     });
 
     it('F-26: tomorrow night is the next date on the observer’s calendar, not now + 24 h', () => {
@@ -296,30 +306,31 @@ describe('<PassList>', () => {
       });
       vi.spyOn(Date, 'now').mockReturnValue(start);
       render(<PassList />);
-      expect(groups()[0]).toHaveTextContent('Tonight');
-      expect(groups()[1]).toHaveTextContent('Night of 2026-09-07');
+      expect(toggles()[0]).toHaveTextContent('Tonight');
+      expect(toggles()[1]).toHaveTextContent('Night of 2026-09-07');
       expect(screen.queryByText('Tomorrow night')).toBeNull();
     });
 
     it('the reader can open and close nights, and the choice sticks', async () => {
       threeNights();
       render(<PassList />);
-      const summary = (index: number): HTMLElement => (groups()[index] as HTMLElement).querySelector('summary') as HTMLElement;
-      await userEvent.click(summary(1));
-      expect(groups().map((group) => group.hasAttribute('open'))).toEqual([true, true, false]);
-      await userEvent.click(summary(0));
-      expect(groups().map((group) => group.hasAttribute('open'))).toEqual([false, true, false]);
+      await userEvent.click(toggles()[1] as HTMLElement);
+      expect(opened()).toEqual([true, true, false]);
+      expect(toggles()[1]).toHaveAttribute('aria-expanded', 'true');
+      await userEvent.click(toggles()[0] as HTMLElement);
+      expect(opened()).toEqual([false, true, false]);
     });
 
     it('one night is no grouping at all: a 24 h window renders the plain list', () => {
       set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window: { startMs: NOW, endMs: NOW + NIGHT }, passes: [first], hasDarkness: true } });
       render(<PassList />);
       expect(screen.queryAllByTestId('night-group')).toHaveLength(0);
+      expect(screen.queryByTestId('night-toggles')).toBeNull();
       expect(within(screen.getByRole('list')).getAllByRole('listitem')).toHaveLength(1);
     });
   });
 
-  it('badges every card with the verdict from this observer’s forecast, and "weather unknown" until it arrives (FR-WX-3)', () => {
+  it('words every card with the verdict from this observer’s forecast, and "weather unknown" until it arrives (FR-WX-3)', () => {
     const HOUR = 3_600_000;
     const hour = Math.floor(golden.peak.t / HOUR) * HOUR;
     const forecast: WeatherSnapshot = {
@@ -338,7 +349,7 @@ describe('<PassList>', () => {
     render(<PassList />);
     expect(screen.getAllByText('Weather unknown')).toHaveLength(2);
     set({ weather: { observer, status: 'ready', snapshot: forecast, error: null } });
-    const badges = screen.getAllByText('Likely obscured, 90 % cloud');
+    const badges = screen.getAllByText('Likely obscured');
     expect(badges).toHaveLength(2);
     for (const badge of badges) expect(badge).toHaveAttribute('data-state', 'obscured');
     // Another observer's forecast is not used.

@@ -9,7 +9,11 @@
  * the settings page's install row (V11-16). R76 (FR-FIRST-1..4) adds the home
  * page's own: the step line, the primary action, and the next-event block's
  * label; the location summary loses its no-place form, which the cold open
- * replaces (FR-SET-3). Each is rendered on its own with
+ * replaces (FR-SET-3). R81 (FR-FIRST-3, FR-FIRST-10, FR-FIRST-11) re-cuts them to
+ * board 1B's: the location summary becomes the Where reading's lines — the place,
+ * the readiness line, the elements line and the saved places line — and the
+ * card's first line, the count and the sort, and the new label line join them.
+ * Each is rendered on its own with
  * `matchMedia` stubbed to a phone, and measured by `cells.ts`: the text it
  * draws, the brackets its stylesheet adds, and one cell of gap between each
  * pair of controls.
@@ -31,7 +35,13 @@ import type { Messages } from '../../src/i18n/messages';
 import type { Locale, Observer } from '../../src/model';
 import { appStore } from '../../src/state';
 import { Header } from '../../src/ui/components/common/Header';
-import { LocationSummary } from '../../src/ui/components/common/LocationSummary';
+import { ElementsLine } from '../../src/ui/components/elements/ElementsLine';
+import { Favourites } from '../../src/ui/components/location/Favourites';
+import { WherePlace } from '../../src/ui/components/location/WherePlace';
+import { PassCard } from '../../src/ui/components/passes/PassCard';
+import { PassList } from '../../src/ui/components/passes/PassList';
+import { IDLE_PASSES } from '../../src/state/slices/passes';
+import { fixtureRecords } from '../support/catalogFixtures';
 import { InstallAction } from '../../src/ui/components/common/InstallAction';
 import { ShareButton } from '../../src/ui/components/common/ShareButton';
 import { HiddenToggle, LegendToggle, PlaybackControls } from '../../src/ui/components/live/PlaybackControls';
@@ -47,10 +57,15 @@ import { decorations, rowCells, rowParts } from './cells';
 
 /** FR-COMP-4: a 390 px viewport at the default cell. */
 const BUDGET = 36;
+/** A row set at `--small` (14 px): 36 cells of the 16 px body hold 41 of its characters (D-504). */
+const SMALL_BUDGET = Math.floor((BUDGET * 16) / 14);
 
 const CSS = [
   'src/ui/components/common/Header.module.css',
-  'src/ui/components/common/LocationSummary.module.css',
+  'src/ui/components/location/WherePlace.module.css',
+  'src/ui/components/elements/ElementsLine.module.css',
+  'src/ui/components/passes/PassCard.module.css',
+  'src/ui/components/passes/PassList.module.css',
   'src/ui/components/common/InstallAction.module.css',
   'src/ui/components/common/OptionToggle.module.css',
   'src/ui/components/common/ShareButton.module.css',
@@ -69,6 +84,9 @@ const table = decorations(CSS);
 
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
 const pass = goldenPassFixture();
+const records = fixtureRecords();
+const NEWEST = Math.max(...records.map((record) => record.epochMs));
+const ready = { status: 'ready' as const, records, unavailable: [], rejected: [], fetchedAt: NEWEST, stale: false, persistent: true };
 const initial = appStore.getInitialState();
 const noop = (): void => undefined;
 
@@ -110,14 +128,50 @@ const offerAnInstall = (): void => {
  */
 const rows = (t: Messages): readonly Row[] => [
   { name: 'the compact header (FR-COMP-1)', element: createElement(Header), find: () => screen.getByTestId('header') },
+  // R81 (FR-FIRST-11): the Where reading's lines. The place is clipped, not wrapped, so the row is the place's own coordinates here;
+  // the sentence under it is prose and wraps.
   {
-    name: 'the location summary (FR-COMP-3)',
-    element: createElement(LocationSummary, { open: false, onToggle: () => undefined, controls: 'where-group' }),
+    name: 'the Where place line (FR-FIRST-11)',
+    element: createElement(WherePlace, { open: false, onToggle: () => undefined, controls: 'where-group' }),
     find: () => screen.getByTestId('location-summary'),
+    setUp: () => {
+      appStore.setState({ observer: { ...observer, source: 'geocode', label: 'Cipolletti, Río Negro, Argentina' } });
+    },
+  },
+  // The readiness line's ready form is pinned at one 390 px row by `messages.test.ts` (R27, D-145); its not-ready form is a sentence and wraps.
+  {
+    name: 'the elements line (FR-SAT-4 as amended)',
+    element: createElement(ElementsLine, { now: NEWEST + 9 * 86_400_000 + 4 * 3_600_000 }),
+    find: () => screen.getByTestId('elements-line'),
+    setUp: () => {
+      appStore.setState({ elements: ready });
+    },
+    budget: SMALL_BUDGET,
+  },
+  {
+    name: 'the saved places line (FR-FIRST-11)',
+    element: createElement(Favourites, { form: 'line' }),
+    find: () => screen.getByTestId('save-favourite').parentElement as Element,
     setUp: () => {
       appStore.setState({ observer });
     },
+    budget: SMALL_BUDGET,
   },
+  // R81 (FR-FIRST-10): the card's first line — the time, the name and the tag — on the golden pass, the ISS.
+  { name: 'the card’s first line (FR-FIRST-10)', element: createElement(PassCard, { pass, timeZone: null, tag: t.passes.nextTag({ name: pass.name, iss: true }) }), find: () => screen.getByTestId('card-first-line') },
+  // R81 (FR-FIRST-10): the count and the sort share a line where the pane holds them and break at the separator on a phone,
+  // so each half is a row of its own here, at `--small`.
+  ...(['count', 'sort'] as const).map(
+    (half): Row => ({
+      name: `the count and sort line: the ${half} (FR-FIRST-10)`,
+      element: createElement(PassList),
+      find: () => (half === 'count' ? screen.getByRole('status') : screen.getByRole('group', { name: t.passes.sortGroup })),
+      setUp: () => {
+        appStore.setState({ observer, elements: ready, passes: { ...IDLE_PASSES, status: 'done', observer, passes: [pass], hasDarkness: true } });
+      },
+      budget: SMALL_BUDGET,
+    }),
+  ),
   // R76 (FR-FIRST-1, board 1B): `[01] where ── 02 when ── 03 what`, the rules the stylesheet's. The line is set at
   // `--small` (14 px), so a character is 14/16 of a cell and 36 cells hold 41 of them: the budget is written in
   // the row's own characters, and the 390 px width it stands for is unchanged.
@@ -133,8 +187,15 @@ const rows = (t: Messages): readonly Row[] => [
     element: createElement(UseMyLocation, { onObserver: noop, primary: true, env: { geolocation: {} as Geolocation, secure: true } }),
     find: () => within(screen.getByRole('button', { name: t.location.useMyLocation })).getByText(t.location.useMyLocation),
   },
-  // R76 (FR-FIRST-3): the block's label; the headline under it is a sentence and wraps.
-  { name: 'the next-event label (FR-FIRST-3)', element: createElement(NextEventBlock, { passes: [pass], now: pass.start.t - 60_000, hours: 72 }), find: () => screen.getByText(t.nextEvent.label) },
+  // R81 (FR-FIRST-3 as amended): the label line at `--small`, at its longest — an hour and more to go — and the path line under the clock time.
+  {
+    name: 'the next-event label (FR-FIRST-3)',
+    element: createElement(NextEventBlock, { passes: [pass], timeZone: null, now: pass.start.t - (3 * 3600 + 45 * 60 + 7) * 1000, hours: 72 }),
+    find: () => screen.getByTestId('next-event-label'),
+    budget: SMALL_BUDGET,
+  },
+  { name: 'the next-event path (FR-FIRST-3)', element: createElement(NextEventBlock, { passes: [pass], timeZone: null, now: pass.start.t - 60_000, hours: 72 }), find: () => screen.getByTestId('next-event-path') },
+  { name: 'the next-event live link (FR-LIVE-1)', element: createElement(NextEventBlock, { passes: [pass], timeZone: null, now: pass.start.t - 60_000, hours: 72 }), find: () => screen.getByTestId('now-live-link') },
   { name: 'the sort row (US-5 AC2 as amended)', element: createElement(SortToggle, { value: 'chronological', onChange: noop }), find: () => screen.getByRole('group', { name: t.passes.sortGroup }) },
   { name: 'the chart view control (FR-CHART-1)', element: chartView(), find: () => screen.getByRole('group', { name: 'View' }) },
   {

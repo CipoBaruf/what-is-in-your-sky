@@ -1784,7 +1784,7 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: the first run from a clean browser on a phone to a countdown, and the three panes with a pass open at a desk.
 
-- [ ] **R81 — The home's panes as drawn: the stripe, the table, the next event, the cards and the Where reading**
+- [x] **R81 — The home's panes as drawn: the stripe, the table, the next event, the cards and the Where reading**
   - **Lane:** ui
   - **Crossings (§16.16):** none — `src/lib/tonightStripe.ts` and `src/lib/passPath.ts` are `ui`'s own (D-505); `useSkyBands` (`live`'s) is imported, not changed, as D-470 already does; the dome's chart chunk is loaded, not changed.
   - **Model:** opus
@@ -1815,6 +1815,7 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
     - Captures (FR-FIRST-7): the populated panes at 1280 × 800 and 1024 × 768, the stacked phone page at 390 × 844, both themes and both languages, and the panes with a pass open, one theme; each element's size, spacing, type and colour measured in the browser against the numbers FR-FIRST-3..11 give (D-504's method).
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes (D-514: at most three new page loads).
     - The owner's gate: the panes beside board 1B at a desk, and the stacked page on a phone.
+  - **Done (R81):** as written, plus D-515..D-520 — the card opens from its first two lines, the small controls keep their 44 px tap box, the count and sort wrap at the separator at 1280 px too (for the gate), and the facts the amended spec took off the home are asserted where they now are. The captures are `docs/screenshots/r81-*`.
 
 - [ ] **R77 — Watching and scrubbing: the split, the inventory, the headline and the conditions line** [P]
   - **Lane:** live

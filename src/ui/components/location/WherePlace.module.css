@@ -1,0 +1,51 @@
+/* R81 (FR-FIRST-11, board 1B): the place on one line, clipped rather than
+   wrapped (FR-COMP-4: a place name has no length the app can promise), and
+   the sentence under it at `--small`, which is prose and wraps. */
+.where {
+  display: grid;
+  gap: 0;
+}
+
+.place {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.name {
+  color: var(--fg);
+}
+
+.coords {
+  color: var(--fg-dim);
+}
+
+.sentence {
+  margin: 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+}
+
+/* A button — it opens the group in place — drawn as a bracketed text control;
+   `inline-control` (global.css) gives it the 48 px box. */
+.change {
+  color: var(--accent);
+  background: none;
+  border: 0;
+  padding-inline: 0;
+  min-height: 0;
+  font-size: inherit;
+  white-space: nowrap;
+}
+
+.change::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.change::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}

@@ -26,7 +26,7 @@ describe('the pass cursor (FR-DESK-4)', () => {
   });
 
   it('skips a night that is folded up and takes one that is open (US-16 AC5)', () => {
-    const root = page(`${card('hero')}<details open><summary>Tonight</summary>${card('a')}</details><details><summary>Tomorrow</summary>${card('b')}</details>`);
+    const root = page(`${card('hero')}<div data-night-group>${card('a')}</div><div data-night-group hidden>${card('b')}</div>`);
     expect(ids(cursorCards(root))).toEqual(['hero', 'a']);
   });
 

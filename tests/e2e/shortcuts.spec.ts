@@ -45,7 +45,7 @@ async function cursor(page: Page): Promise<string | null> {
 async function cardIds(page: Page): Promise<string[]> {
   return page.evaluate(() =>
     Array.from(document.querySelectorAll<HTMLElement>('[data-pass-card]'))
-      .filter((card) => card.closest('details:not([open])') === null)
+      .filter((card) => card.closest('[data-night-group][hidden]') === null)
       .map((card) => card.dataset['passId'] ?? ''),
   );
 }

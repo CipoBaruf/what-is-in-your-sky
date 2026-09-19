@@ -19,12 +19,12 @@ export const PASS_CARD = '[data-pass-card]';
 
 /**
  * The cards the reader can actually move to, in the order the page shows them.
- * A card inside a closed `<details>` is in the DOM but not on the page, so
+ * A card inside a closed night (`hidden`, R81) is in the DOM but not on the page, so
  * `j` skips the nights that are folded up rather than walking into them
  * invisibly.
  */
 export function cursorCards(root: ParentNode): HTMLElement[] {
-  return [...root.querySelectorAll<HTMLElement>(PASS_CARD)].filter((card) => card.closest('details:not([open])') === null);
+  return [...root.querySelectorAll<HTMLElement>(PASS_CARD)].filter((card) => card.closest('[data-night-group][hidden]') === null);
 }
 
 /** The card the cursor is on: whatever holds focus, or — when focus has moved into the guide — the open pass's card. */

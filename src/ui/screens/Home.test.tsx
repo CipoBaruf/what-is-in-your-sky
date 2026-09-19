@@ -218,28 +218,36 @@ describe('once there is a place (FR-FIRST-3, FR-FIRST-4)', () => {
     media = stubMatchMedia(COMPACT_PX);
   });
 
-  it('shows the next event as a countdown, first after the location reading and before the list', () => {
+  it('stacks the readings in board 1B’s order: Where, then When — the stripe, the table, the next event — then What (FR-FIRST-4, FR-FIRST-5)', () => {
     act(() => {
       appStore.setState({ observer, elements: { ...ready, stale: false }, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [pass], hasDarkness: true } });
     });
     render(<App />);
     const block = screen.getByTestId('next-event');
-    expect(within(block).getByText(en.nextEvent.label)).toBeInTheDocument();
-    expect(within(block).getByTestId('next-event-headline')).toHaveTextContent(/^ISS \(Zarya\) appears [NESW]{1,3} in 4:12$/);
-    expect(within(block).getByTestId('next-event-peak')).toHaveTextContent(/^Peak [NESW]{1,3} at \d+°, /);
+    expect(within(block).getByTestId('next-event-label')).toHaveTextContent(/^Next up · in 4:12$/);
+    expect(within(block).getByTestId('next-event-path')).toHaveTextContent(/^ISS \(Zarya\) · [NESW]{1,3} low → \d+° [NESW]{1,3} → [NESW]{1,3}$/);
+    expect(within(block).getByRole('link', { name: 'Open the live sky' })).toHaveAttribute('href', '#live');
 
     const where = screen.getByTestId('reading-where');
     const when = screen.getByTestId('reading-when');
     const list = screen.getByRole('region', { name: 'Upcoming passes' });
     expect(precedes(screen.getByTestId('location-summary'), block)).toBe(true);
     expect(precedes(block, list)).toBe(true);
-    expect(precedes(block, screen.getByRole('region', { name: 'Right now' }))).toBe(true);
-    // The three readings in order, each headed like the step line.
+    // The three readings in order, each under its plain heading (FR-FIRST-5 as amended).
     expect(precedes(where, when)).toBe(true);
     expect(precedes(when, screen.getByTestId('list-column'))).toBe(true);
-    expect(within(when).getByRole('heading', { level: 2, name: '02 When' })).toBeInTheDocument();
-    // The first block after the heading of When is the next event.
-    expect(when.children[1]).toBe(block);
+    for (const [reading, name] of [[where, 'Where'], [when, 'When'], [screen.getByTestId('list-column'), 'What']] as const) expect(within(reading).getByRole('heading', { level: 2, name })).toBeInTheDocument();
+    // When: the table (the stripe once the astronomy chunk lands), then the next event last; no Now panel.
+    expect(precedes(within(when).getByTestId('conditions'), block)).toBe(true);
+    expect(when.lastElementChild).toBe(block);
+    expect(screen.queryByRole('region', { name: 'Right now' })).toBeNull();
+    // Where: the place, the readiness, the elements and the saved places as lines; no dome on a phone.
+    expect(within(where).getByTestId('favourites')).toBeInTheDocument();
+    expect(within(where).getByTestId('elements-line')).toBeInTheDocument();
+    expect(within(where).queryByTestId('where-dome')).toBeNull();
+    // What: the tag in place of the hero card.
+    expect(screen.queryByTestId('iss-hero')).toBeNull();
+    expect(within(list).getByTestId('next-tag')).toHaveTextContent('Next ISS');
   });
 
   it('says in one line why there is nothing to count down to', () => {

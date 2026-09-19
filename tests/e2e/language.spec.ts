@@ -137,7 +137,7 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
   await withSettings(page, async () => {
     await expect(page.getByLabel('Coordinates (lat, lon)')).toHaveValue(NEUQUEN);
   });
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/);
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/);
   await page.screenshot({ path: 'test-results/r17-passes-390-en.png', fullPage: true });
 });
 

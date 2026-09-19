@@ -9,24 +9,29 @@
   color: var(--fg-dim);
 }
 
-/* Text toggles: the pressed one reads `[x]`, the other `[ ]` (FR-X-5: not colour alone). */
-.option {
+/* R81 (FR-FIRST-10): the pressed order bracketed, `[ Soonest ] Best` — the
+   bracket and the accent both say which (FR-X-5: not colour alone). */
+.sortOption {
   border: 0;
   background: none;
-  padding: 0 var(--cell) 0 0;
+  padding: 0;
   color: var(--fg-dim);
+  /* `Best` at `--small` is four characters, 34 px: the tap box keeps the 44 px
+     every control has (identity.spec), and the word keeps its place at the box's start. */
+  min-inline-size: 44px;
+  text-align: start;
 }
 
-.option::before {
-  content: '[ ] ';
-  color: var(--fg-dim);
-}
-
-.option[aria-pressed='true'] {
+.sortOption[aria-pressed='true'] {
   color: var(--accent);
 }
 
-.option[aria-pressed='true']::before {
-  content: '[x] ';
-  color: var(--accent);
+.sortOption[aria-pressed='true']::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.sortOption[aria-pressed='true']::after {
+  content: ' ]';
+  color: var(--fg-dim);
 }

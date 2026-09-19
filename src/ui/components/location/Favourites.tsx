@@ -41,8 +41,20 @@ import styles from './Favourites.module.css';
  * FR-SET-1 draws the block as the list and one row. So there the sentence stating the limit is said where it
  * is news — with nothing saved yet, beside the empty line, and once the list is full, when the next save
  * forgets a place — and not under every list in between.
+ *
+ * `form: 'line'` is the home page's Where reading (R81, FR-FIRST-11, D-511): `Saved places · [ Save this
+ * place ]` on one line and each saved place a line under it, with no empty-list sentence — the save
+ * control is what says there is nothing yet — and the limit said only once the list is full, when the
+ * next save would forget a place.
  */
-export function Favourites({ footer, titled = false, limit = 'always' }: { footer?: ReactNode; titled?: boolean; limit?: 'always' | 'empty-or-full' } = {}) {
+export interface FavouritesProps {
+  footer?: ReactNode;
+  titled?: boolean;
+  limit?: 'always' | 'empty-or-full';
+  form?: 'block' | 'line';
+}
+
+export function Favourites({ footer, titled = false, limit = 'always', form = 'block' }: FavouritesProps) {
   const t = useT();
   const headingId = useId();
   const observer = useAppStore((s) => s.observer);
@@ -54,6 +66,62 @@ export function Favourites({ footer, titled = false, limit = 'always' }: { foote
   if (observer === null && favourites.length === 0) return null;
   const activeCell = observer === null ? null : favouriteCellKey(observer);
   const Block = titled ? 'section' : 'div';
+  const items = favourites.map((favourite) => {
+    const current = favourite.cellKey === activeCell;
+    return (
+      <li key={favourite.cellKey} className={styles.item} data-testid="favourite" data-current={current ? 'yes' : 'no'}>
+        <button
+          type="button"
+          className={styles.use}
+          aria-label={t.favourites.use(favourite.observer.label)}
+          {...(current ? { 'aria-current': true as const } : {})}
+          onClick={() => {
+            select(favourite.cellKey);
+          }}
+        >
+          {favourite.observer.label}
+        </button>
+        {current && <span className={styles.current}>({t.favourites.current})</span>}
+        <button
+          type="button"
+          className={styles.remove}
+          aria-label={t.favourites.remove(favourite.observer.label)}
+          onClick={() => {
+            remove(favourite.cellKey);
+          }}
+        >
+          ×
+        </button>
+      </li>
+    );
+  });
+
+  if (form === 'line') {
+    return (
+      <div className={styles.line} data-testid="favourites">
+        <div className={styles.lineHead}>
+          <span className={styles.lineTitle}>{t.favourites.lineHeading}</span>
+          {observer !== null && (
+            <>
+              <span aria-hidden="true">·</span>
+              <button
+                type="button"
+                className={styles.save}
+                data-testid="save-favourite"
+                onClick={() => {
+                  add(observer);
+                }}
+              >
+                {t.favourites.save}
+              </button>
+            </>
+          )}
+        </div>
+        {favourites.length > 0 && <ul className={styles.list}>{items}</ul>}
+        {favourites.length >= MAX_FAVOURITES && <p className={styles.limit}>{t.favourites.limit(MAX_FAVOURITES)}</p>}
+      </div>
+    );
+  }
 
   return (
     <Block className={titled ? styles.section : styles.block} data-testid="favourites" {...(titled ? { 'aria-labelledby': headingId } : {})}>
@@ -61,37 +129,7 @@ export function Favourites({ footer, titled = false, limit = 'always' }: { foote
       {favourites.length === 0 ? (
         <p className={styles.empty}>{t.favourites.empty}</p>
       ) : (
-        <ul className={styles.list}>
-          {favourites.map((favourite) => {
-            const current = favourite.cellKey === activeCell;
-            return (
-              <li key={favourite.cellKey} className={styles.item} data-testid="favourite" data-current={current ? 'yes' : 'no'}>
-                <button
-                  type="button"
-                  className={styles.use}
-                  aria-label={t.favourites.use(favourite.observer.label)}
-                  {...(current ? { 'aria-current': true as const } : {})}
-                  onClick={() => {
-                    select(favourite.cellKey);
-                  }}
-                >
-                  {favourite.observer.label}
-                </button>
-                {current && <span className={styles.current}>({t.favourites.current})</span>}
-                <button
-                  type="button"
-                  className={styles.remove}
-                  aria-label={t.favourites.remove(favourite.observer.label)}
-                  onClick={() => {
-                    remove(favourite.cellKey);
-                  }}
-                >
-                  ×
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <ul className={styles.list}>{items}</ul>
       )}
       {observer !== null && (
         <div className={styles.saveRow}>

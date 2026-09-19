@@ -101,7 +101,7 @@ async function openDome(page: Page): Promise<void> {
   await withSettings(page, async () => {
     await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   });
-  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in the next 72 h/, { timeout: 30_000 });
+  await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
   await page.locator(`article[data-pass-id="25544-${String(pass.start.t)}"]`).getByRole('button', { name: /Open guide/ }).click();
   // FR-DOME-7: the guide opens on the dome, so there is nothing to toggle.
   await expect(guide(page).locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });

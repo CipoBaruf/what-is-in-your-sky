@@ -1,0 +1,45 @@
+/* R81 (FR-SAT-4 as amended v2.0.2, board 1B): one line at `--small`, dim, in
+   `--warn` past the five days; `[ details ]` opens the full status under it. */
+.block {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.line {
+  margin: 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+}
+
+.line[data-warn='true'] .age {
+  color: var(--warn);
+}
+
+.details {
+  color: var(--accent);
+  background: none;
+  border: 0;
+  padding-inline: 0;
+  min-height: 0;
+  font-size: inherit;
+}
+
+.details::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.details::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+.panel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.panel[hidden] {
+  display: none;
+}

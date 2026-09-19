@@ -10,7 +10,7 @@
  * that the recompute happened for the new place and not the old one.
  */
 import { readFileSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { leaveSettings, openSettings } from './liveHelpers';
 
 interface HaFixture {
@@ -42,6 +42,15 @@ test.beforeEach(async ({ page }) => {
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
   await page.route('https://geocoding-api.open-meteo.com/**', (route) => route.abort('failed'));
 });
+
+/**
+ * R81 (FR-FIRST-10): the count line no longer names the place; the Where reading does, and the count line
+ * says the search for it has finished.
+ */
+async function expectListFor(page: Page, status: Locator, timeout: number): Promise<void> {
+  await expect(page.getByTestId('location-summary')).toHaveText(NEUQUEN_LABEL);
+  await expect(status).toHaveText(/^\d+ visible passes in 72 h$/, { timeout });
+}
 
 test('save two places, switch between them, remove one, and the other survives a reload', async ({ page }) => {
   // Four recomputes over 72 h of the catalog, one per observer change.
@@ -86,10 +95,10 @@ test('save two places, switch between them, remove one, and the other survives a
     // The place the panel chose is the one the home screen is computing for.
     await leaveSettings(page);
     // The recompute for this place starts when the panel picks it, so the wait is the whole 72 h search.
-    await expect(status).toHaveText(new RegExp(`from ${NEUQUEN_LABEL}`), { timeout: 60_000 });
+    await expectListFor(page, status, 60_000);
     await openSettings(page);
   } else {
-    await expect(status).toHaveText(new RegExp(`from ${NEUQUEN_LABEL}`), { timeout: 30_000 });
+    await expectListFor(page, status, 30_000);
   }
 
   // Removing is one click with nothing in front of it, and it does not change the observer.
@@ -104,5 +113,5 @@ test('save two places, switch between them, remove one, and the other survives a
   await expect(page.getByRole('button', { name: `Use ${PARIS_LABEL}` })).toHaveCount(0);
   // The reload came back on `#settings`, where it left off (D-13); the list is a screen away.
   if (compact) await leaveSettings(page);
-  await expect(status).toHaveText(new RegExp(`from ${NEUQUEN_LABEL}`), { timeout: 30_000 });
+  await expectListFor(page, status, 30_000);
 });
