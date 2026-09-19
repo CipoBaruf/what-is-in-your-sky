@@ -229,6 +229,13 @@ test.describe('the sky screen on a phone that does not rotate', () => {
     const [, , width, height] = (viewBox ?? '0 0 0 0').split(' ').map(Number);
     expect(width).toBeGreaterThan(height ?? 0);
     await expect(drawn(page)).toHaveCount(1);
+    // FR-GUT-1 at 390 × 844: the turned layer is the sideways layout, so the gutter stands where the strip did and
+    // gives back its 68 px here too — main's strip at its two-row cap left 390 − 96 of this drawing clear.
+    await expect(page.getByTestId('chart-legend-slot')).toHaveCount(0);
+    const gutterPx = await page.getByTestId('chart-gutter-slot').evaluate((element) => (element as HTMLElement).offsetHeight);
+    expect(gutterPx).toBe(28);
+    expect(height).toBeCloseTo(PORTRAIT.width, 0);
+    expect((height ?? 0) - gutterPx - (MAIN.landscape.svgHeight - 2 * (await tapPx(page)))).toBeCloseTo(68, 0);
     // FR-GUT-7: the picture the reader is looking at is wide now, so the countdown and the advice have gone.
     await expect(page.getByTestId('window-turn-advice')).toHaveCount(0);
     // FR-FSC-9: still nothing scrolls — the turned layer covers the viewport exactly and no more.
