@@ -831,6 +831,25 @@ describe('<LivePage>', () => {
     expect(clock()).toHaveTextContent(/09:49:44 UTC$/);
   });
 
+  it('enters scrubbing on a key on the overview, and on wide keeps the focus on it as it moves under the box (FR-WATCH-1 b)', () => {
+    withSky();
+    media = stubMatchMedia(1280, 800);
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    const before = screen.getByTestId('stripe-overview');
+    expect(before.closest('[data-testid="live-rail-foot"]')).not.toBeNull();
+    act(() => {
+      before.focus();
+    });
+    fireEvent.keyDown(before, { key: 'ArrowRight' });
+    expect(screen.getByTestId('live-state-word')).toHaveTextContent('held');
+    const after = screen.getByTestId('stripe-overview');
+    expect(after.closest('[data-testid="stripe-block"]')).not.toBeNull();
+    expect(document.activeElement).toBe(after);
+    // The next key lands on it: 15 min more (FR-SPAN-2).
+    fireEvent.keyDown(document.activeElement as Element, { key: 'ArrowRight' });
+    expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(T + 30 * 60_000);
+  });
+
   it('keeps the word beside a still mark under reduced motion (FR-MARK-5, FR-X-5)', () => {
     withSky();
     media = stubMatchMedia(390, 844);

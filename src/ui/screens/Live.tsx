@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from 'react';
 import { useLocale, useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
 import { foldRows } from '../../lib/layout';
@@ -396,8 +396,27 @@ function LiveSky({ observer, link, onLeave }: { observer: Observer; link: LiveLi
    * which is also how it enters scrubbing from watching (FR-WATCH-1 b) — the same `scrub`, and so the same
    * predicate. While watching on compact it has one text row of end labels under it (FR-WATCH-4).
    */
+  /*
+   * On wide the overview moves from the rail to the head of the scrub block as the state changes, so it is a new
+   * element: a reader stepping it with the arrow keys — which is how a key enters scrubbing — would lose focus
+   * at the first key. The row remembers that it held focus, and the new one takes it back.
+   */
+  const overviewFocus = useRef(false);
+  useLayoutEffect(() => {
+    if (!overviewFocus.current || (document.activeElement !== null && document.activeElement !== document.body)) return;
+    document.querySelector<SVGElement>('[data-testid="stripe-overview"]')?.focus();
+  }, [scrubbing]);
   const overview = has('overview') ? (
-    <div className={styles.overviewRow} data-testid="overview-row">
+    <div
+      className={styles.overviewRow}
+      data-testid="overview-row"
+      onFocus={() => {
+        overviewFocus.current = true;
+      }}
+      onBlur={() => {
+        overviewFocus.current = false;
+      }}
+    >
       <StripeOverview span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} speed={playback.playing ? playback.speed : null} onScrub={playback.scrub} />
     </div>
   ) : null;
