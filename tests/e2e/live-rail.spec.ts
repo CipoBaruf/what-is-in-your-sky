@@ -39,7 +39,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { fitFloor, MIN_EXTENT_RATIO, painted } from './domeInk';
-import { domeDrawn, seedStoredRun, stripFilled } from './liveHelpers';
+import { domeDrawn, enterScrubbing, seedStoredRun, stripFilled } from './liveHelpers';
 
 /** The page's bottom padding plus the frame's gap: what may be left under the lowest row when the height binds. */
 const UNDER_PX = 24;
@@ -49,6 +49,10 @@ async function openLive(page: Page): Promise<void> {
   await page.getByTestId('live-link').click();
   await domeDrawn(page);
   await stripFilled(page);
+  await boxSettled(page);
+}
+
+async function boxSettled(page: Page): Promise<void> {
   // The box is cut on a `ResizeObserver` and the raster re-fits it on another, so on a loaded machine the
   // rows can still be moving when the dome is first drawn. Two identical reads of the box is the page holding still.
   let last = '';
@@ -80,6 +84,17 @@ for (const [width, height] of [
 
     test("cuts the box to the dome's shape from what the window leaves, places the rows, and fills the box both ways", async ({ page }) => {
       await openLive(page);
+      /*
+       * R77 (FR-WATCH-5): watching, there is no scrub block under the box, so the box takes the height down to
+       * the page's foot — cut to the same shape, and never smaller than the one the block leaves. The rest of
+       * this test is the scrubbing page, where the block is under the box as FR-LIVE-7 has it.
+       */
+      const watching = await page.getByTestId('live-dome').getByTestId('chart-box').boundingBox();
+      if (!watching) throw new Error('the page is not laid out');
+      expect(watching.width / watching.height).toBeCloseTo(DOME_BOX_ASPECT, 2);
+      await expect(page.getByTestId('stripe-block')).toHaveCount(0);
+      await enterScrubbing(page);
+      await boxSettled(page);
       await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
       // R71 (FR-LEG-6, D-386): one wide layout. No page here is a column — the frame has a rail and does not stack.
       await expect(page.getByTestId('live-dome')).not.toHaveAttribute('data-columns', /.*/);
@@ -91,18 +106,19 @@ for (const [width, height] of [
 
       // The box is the dome's shape, to the pixel the grid rounds to.
       expect(box.width / box.height).toBeCloseTo(DOME_BOX_ASPECT, 2);
+      expect(watching.height, 'the watching box is the scrubbing one or taller').toBeGreaterThanOrEqual(box.height - 1);
 
-      // D-312: the rail is a column beside the box, and its two rows are in it, top to bottom (V12-13: the playback row is the stripe's).
-      const rail = await page.getByTestId('chart-aside').boundingBox();
+      // D-312: the rail is a column beside the box, and its rows are in it, top to bottom (V12-13: the playback row is the stripe's).
+      // R77 (FR-WATCH-5): the column is the frame's legend slot; the rail's head stands above the legend in it and its foot under.
+      const rail = await page.getByTestId('chart-legend-slot').boundingBox();
       if (!rail) throw new Error('no rail');
       expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
-      // FR-LEG-6 / FR-LEG-2 as amended v1.4: the legend shares that column, above the rail.
+      // FR-LEG-6 / FR-LEG-2 as amended v1.4: the legend shares that column.
       const legend = await page.getByTestId('chart-legend-scroll').boundingBox();
       if (!legend) throw new Error('no legend');
       expect(legend.x, 'the legend is beside the box').toBeGreaterThanOrEqual(box.x + box.width - 1);
-      expect(rail.y, 'the rail is under the legend').toBeGreaterThanOrEqual(legend.y + legend.height - 1);
       let above = 0;
-      for (const id of ['status-strip', 'live-actions']) {
+      for (const id of ['live-indicator', 'status-strip', 'chart-legend-scroll', 'live-actions']) {
         const row = await page.getByTestId(id).boundingBox();
         if (!row) throw new Error(`${id} is not laid out`);
         expect(row.x, `${id} is in the rail`).toBeGreaterThanOrEqual(rail.x - 1);
