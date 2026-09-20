@@ -132,6 +132,8 @@ interface SeedPrefs {
   observer?: Observer;
   chartView?: 'dome' | 'polar';
   favourites?: { cellKey: string; observer: Observer; addedAt: number; lastUsedAt: number }[];
+  /** FR-LIVE-6: the hidden-objects toggle's saved state, which the legend screen wants on. */
+  liveHidden?: boolean;
 }
 
 /** The elements from the fixtures, and nothing else: no forecast over Paris, and no geocoder, since every observer here is a coordinate pair. */
@@ -236,8 +238,8 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
  * and the count is the count. The clock is at the shown instant from the start,
  * so the page opens on real time and needs no scrubbing.
  */
-async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, shown: number = SHOWN): Promise<void> {
-  await open(page, width, { locale, theme, observer: PARIS }, shown);
+async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, shown: number = SHOWN, prefs: Partial<SeedPrefs> = {}): Promise<void> {
+  await open(page, width, { locale, theme, observer: PARIS, ...prefs }, shown);
   await page.goto('/');
   await listSettled(page);
   // The router listens for `hashchange`, so setting the hash in the page navigates without
@@ -257,7 +259,10 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
   await pinnedAt(page, shown);
   // …to the ten-second tick the strip reads the clock at (FR-VIS-5), and in neither language's words:
   // the zone is unknown over Paris, so both of them print the UTC time of `SHOWN`.
-  await expect(page.getByTestId('live-time')).toContainText(hhmmss(shown).slice(0, 7));
+  // R77 (FR-WATCH-3, FR-WATCH-5, D-474, D-476): the clock is a field of the conditions line on compact and
+  // the rail's own `live-clock` on wide, where the line gave it up. Either way it is the page's shown instant.
+  const shownClock = (await page.getByTestId('live-time').count()) > 0 ? page.getByTestId('live-time') : page.getByTestId('live-clock');
+  await expect(shownClock).toContainText(hhmmss(shown).slice(0, 7));
   await page.mouse.move(0, 0);
 }
 
@@ -492,8 +497,10 @@ const REACH: Record<string, Reach> = {
    * screen is shot at both widths and not only where the column is.
    */
   async legend(page, width, theme, locale) {
-    await liveAt(page, width, theme, locale);
-    await page.getByTestId('live-hidden-toggle').click();
+    // R77 (FR-WATCH-4, D-478): on compact the hidden-objects toggle is the scrubbing row's, so a watching
+    // page has none to click. Its state is a saved preference (FR-LIVE-6) and applies in both states, so the
+    // screen seeds it on and stays where it was — the legend with the hidden rows under the drawn ones.
+    await liveAt(page, width, theme, locale, SHOWN, { liveHidden: true });
     // The hidden objects are a `computeAt` request, throttled to one per 250 ms of wall time (FR-LIVE-6).
     await page.clock.runFor(1000);
     // Two minutes past the instant the search ran, which is what makes this screen the legend's:
