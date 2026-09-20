@@ -226,12 +226,21 @@ export const LIVE_FOLDED_PADDING_PX = ROW_PX / 4 + ROW_PX / 2;
 /**
  * The wide page's rows above and under the box, per state, top to bottom, before anything folds (D-448).
  * Watching: the top row and the frame's controls row — nothing is under the box, which takes the height down
- * to the page's foot (FR-WATCH-5). Scrubbing adds the scrub block: the time row (a row of tap targets: the
- * playback controls), the overview's text row, the stripe's three rows and the step row.
+ * to the page's foot (FR-WATCH-5). Scrubbing adds the scrub block: the time row, the overview's text row, the
+ * stripe's three rows and the step row.
+ *
+ * The time row is counted as it stands where the count matters. The block is as wide as the box, or 44 cells
+ * where the box is narrower (`ChartFrame.module.css`), and a box near its floor is some 230 px wide — so at the
+ * height this table decides anything, the block is always at its 44-cell floor, where the held instant and the
+ * six playback controls do not share a line: measured at 1200 × 560, the readout's line (26 px) over two lines
+ * of controls in English (74 px) and over four in Spanish (122 px). The table takes the taller, as D-414's did
+ * by accident and this does on purpose: a window folds a little earlier than English asks and never later than
+ * Spanish does, and the floor holds in both. `shapes.spec.ts` drags a window through the number.
  */
+export const LIVE_TIME_ROW_FLOOR_PX = ROW_PX + 2 + 4 * ROW_PX;
 export const LIVE_KEPT_ROWS_PX: Readonly<Record<LiveState, readonly number[]>> = {
   watching: [TAP_PX, TAP_PX],
-  scrubbing: [TAP_PX, TAP_PX, TAP_PX, ROW_PX, 3 * ROW_PX, TAP_PX],
+  scrubbing: [TAP_PX, TAP_PX, LIVE_TIME_ROW_FLOOR_PX, ROW_PX, 3 * ROW_PX, TAP_PX],
 };
 /** The gaps those rows cost: after the top row and after the controls row; scrubbing, after the box and between the block's four rows too. */
 export const LIVE_KEPT_GAPS: Readonly<Record<LiveState, number>> = { watching: 2, scrubbing: 6 };

@@ -94,6 +94,14 @@
   .page[data-compact='true'] .side {
     overflow-y: auto;
   }
+
+  /* R78 (FR-WATCH-5): the rail scrolls, it does not squeeze. Its rows are flex items, and one that clips its own
+     overflow (the conditions line) has no minimum to stop at: where scrubbing's rows came to a few pixels more
+     than the rail, the line gave them up and its clock lost its descenders (measured at 844 x 390 with touch:
+     a 24 px line holding a field 26 px tall). Every row keeps its height and the rail's own scroll takes the rest. */
+  .page[data-compact='true'] .side > * {
+    flex-shrink: 0;
+  }
 }
 
 /* The strip, the stripe block and the control rows, stacked with the page's gap. */
@@ -289,6 +297,14 @@
   gap: 0;
 }
 
+/* R78: …and where the actions wrap — Spanish, in a 44-cell rail — their lines stand a row apart. A folded
+   control is one text row with a 48 px hit box (D-246), so on two lines a row apart the lower one's hit box
+   lay over the upper one's text and took its taps (seen at 1200 x 450: `[ Compartir este cielo ]` over
+   `[ recorrer la noche ]`). One line, as in English, costs nothing. */
+.page[data-compact='false'][data-fold] .actions {
+  row-gap: var(--row);
+}
+
 /* FR-SHP-3's row: the actions join the strip's line — the rail's two rows read
    as one wrapped line at the box's right while the window is too short for the
    rows under it. R71 (D-386) took away the one-column `.side` rule this used to
@@ -309,10 +325,12 @@
   display: contents;
 }
 
-/* R78 (FR-WATCH-6): …and the overview, which does not fold, is a line of its own in that flow — the rail's
-   whole width, in both states, between the conditions' fields and the actions. */
+/* R78 (FR-WATCH-6): …and the overview, which does not fold, is a line of its own under that flow — the rail's
+   whole width, in both states. Ordered last, so the actions still ride on the conditions' line and not under
+   the overview on a row of their own. */
 .page[data-compact='false'][data-fold~='actions'] .side .overviewRow {
   flex: 0 0 100%;
+  order: 1;
 }
 
 /* R78 (FR-WATCH-5): the landscape phone's rail head — the indicator's line and the headline — takes the compact

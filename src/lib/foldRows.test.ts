@@ -23,6 +23,7 @@ import {
   LIVE_KEPT_ROWS_PX,
   LIVE_PAGE_PADDING_PX,
   LIVE_SCRUB_BLOCK_PX,
+  LIVE_TIME_ROW_FLOOR_PX,
   liveKeptPx,
   ROW_PX,
   TAP_PX,
@@ -68,14 +69,16 @@ describe('the box floor and the fold (FR-SHP-3)', () => {
    */
   it('keeps the rows each state draws around the box: two watching, the scrub block under it scrubbing', () => {
     expect(LIVE_KEPT_ROWS_PX.watching).toEqual([TAP_PX, TAP_PX]);
-    expect(LIVE_KEPT_ROWS_PX.scrubbing).toEqual([TAP_PX, TAP_PX, TAP_PX, ROW_PX, 3 * ROW_PX, TAP_PX]);
+    // The time row at the block's 44-cell floor, where the table's answer matters: the readout's line over four of controls (Spanish).
+    expect(LIVE_TIME_ROW_FLOOR_PX).toBe(122);
+    expect(LIVE_KEPT_ROWS_PX.scrubbing).toEqual([TAP_PX, TAP_PX, LIVE_TIME_ROW_FLOOR_PX, ROW_PX, 3 * ROW_PX, TAP_PX]);
     expect(LIVE_KEPT_GAPS).toEqual({ watching: 2, scrubbing: 6 });
     expect(liveKeptPx('watching')).toBe(120);
-    expect(liveKeptPx('scrubbing')).toBe(336);
-    // The block: 48 + 24 + 72 + 48 of rows, the three gaps between them and the one over them.
-    expect(LIVE_SCRUB_BLOCK_PX).toBe(216);
-    // The old table said 427 for every state: over by the strip's line (37), the actions row (48) and a gap (6).
-    expect(427 - liveKeptPx('scrubbing')).toBe(ROW_PX + ROW_PX / 2 + 1 + TAP_PX + LIVE_GAP_PX);
+    expect(liveKeptPx('scrubbing')).toBe(410);
+    // The block: 122 + 24 + 72 + 48 of rows, the three gaps between them and the one over them.
+    expect(LIVE_SCRUB_BLOCK_PX).toBe(290);
+    // Neither state counts the strip's line or the actions row, which D-414's table did: they are the rail's.
+    for (const state of ['watching', 'scrubbing'] as const) expect(LIVE_KEPT_ROWS_PX[state]).not.toContain(ROW_PX + ROW_PX / 2 + 1);
   });
 
   it('folds nothing while the box keeps its floor with the block under it, and the head of the order when it does not', () => {
@@ -86,7 +89,7 @@ describe('the box floor and the fold (FR-SHP-3)', () => {
     expect(foldRows(FLOOR - LIVE_FOLD_ACTIONS_UNDER_PX, WIDE_ROWS)).toEqual(['controls']);
     expect(foldRows(FLOOR - LIVE_FOLD_ACTIONS_UNDER_PX - 1, WIDE_ROWS)).toEqual(['controls', 'actions']);
     expect(foldRows(0, WIDE_ROWS)).toEqual(LIVE_FOLD_ORDER);
-    // 1200 × 450 unfolded: the page's 450 less the watching rows is a 330 px box, 114 with the block under it.
+    // 1200 × 450 unfolded: the page's 450 less the watching rows is a 330 px box, 40 with the block under it.
     expect(foldRows(450 - liveKeptPx('watching'), WIDE_ROWS)).toEqual(LIVE_FOLD_ORDER);
   });
 
