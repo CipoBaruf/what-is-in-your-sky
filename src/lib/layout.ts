@@ -176,110 +176,153 @@ export function fitBox({ frameWidthPx, frameHeightPx, aboveHeightPx, belowHeight
  * R69 (FR-SHP-3, FR-SHP-4; F-65; D-381, D-389): the wide live page at every
  * height. On a wide viewport the desktop layout is the layout whatever the
  * height, and the box is what gives — down to `LIVE_BOX_MIN_PX`, eight rows,
- * the smallest box in which the dome's drawing is still a bowl. Below that the
- * rows under the box fold, in `LIVE_FOLD_ORDER` and no other, rather than the
- * page scrolling (FR-LIVE-1). `foldRows` is the rule, pure: from the height the
- * page has to which rows it drops, so `Live.tsx` reads the answer and writes it
- * on the page as `data-fold`, and the stylesheet does the folding.
+ * the smallest box in which the dome's drawing is still a bowl.
  *
- * The arithmetic is the wide page's own rows in px, from the tokens (`--row`
- * is 1.5 rem at 16 px, `--tap` two rows), and `foldRows.test.ts` holds the
- * numbers to `tokens.css`. The page's gap is a quarter row and its padding a
- * quarter row above and below. What the page keeps whatever the fold, above
- * and under the box: the top row (48: the return control and the switches are
- * tap targets), the frame's controls row (48: the view control), the time row
- * (48: the playback controls), the stripe's three rows (72), the status strip
- * (one line over its rule: 24 + 12 + 1) and the actions row (48), with the
- * five gaps between them, on the one-column page this branch draws under
- * `LIVE_TWO_COLUMN_MIN_PX` (measured at 1200 × 450: the rows take 343 px and
- * the box gets the 107 left, spec §4.20 F-65).
+ * R78 (FR-WATCH-5, FR-WATCH-6, FR-SHP-3 as amended v2.0; D-448): what happens
+ * under that floor is a state's, not the page's. The rows under the box are
+ * the scrub block — the time row, the overview, the stripe and the step row —
+ * and only scrubbing renders them (R77), so the table below is per state, and
+ * R71's over-count (D-414: the strip's line and the actions row, which are the
+ * rail's) is gone from it. Where the block under the box would take the box
+ * under its floor the block is not laid out under it at all: `scrubPlacement`
+ * answers `overlay`, and the page puts it over the bottom of the drawing, so
+ * the box is the same height in both states. The rows *around* the box still
+ * fold there, in `LIVE_FOLD_ORDER`: the control rows let their air out, then
+ * the actions ride on the conditions line. The overview does not fold: on a
+ * short window it is in the rail in both states.
  *
- * R71 (FR-LEG-6, D-386) moves the status strip and the actions into the rail
- * at every wide width, so the two rows they cost are no longer under the box.
- * The table is left as it stands: it over-counts by those two rows and their
- * gaps (about 93 px), which makes the page fold a little *earlier* than the
- * floor asks — never later — so no window loses the box's floor by it.
- * Re-deriving the numbers is a measurement on the new layout and is left as a
- * follow-up; D-386's scope is the layout, not the fold table.
- *
- * What one fold gives back is more than the row it names. The actions join the
- * status strip's line (FR-SHP-3's second row; the first, the overview row, is
- * R70's, which puts it at the head of the order — D-389), and with them the
- * page takes the compact page's own device for every control around the box
- * (D-246: the hit box stays 48 px by padding and a matching negative margin,
- * the row is one text row) and the compact page's spacing token for its gaps
- * — the desktop layout with its air let out, which is what a short window
- * asks for. Measured at 1200 × 450: 106 px back to the box.
+ * Both rules read one number, and it is measured: the height `ChartFrame`
+ * has for the box with nothing under it — its own height less its controls
+ * row (`fitBox`'s height input) — and not the viewport's, since a browser
+ * window is never its screen (D-314). The rows' px are from the tokens
+ * (`--row` is 1.5 rem at 16 px, `--tap` two rows), and `foldRows.test.ts`
+ * holds them to `tokens.css`.
  */
 export const ROW_PX = 1.5 * BASE_FONT_PX;
 export const TAP_PX = 2 * ROW_PX;
 /** FR-SHP-3: eight rows, the smallest box in which the drawing is still a bowl. */
 export const LIVE_BOX_MIN_PX = 8 * ROW_PX;
 
-/**
- * The rows under the box that fold, in the order they go (FR-SHP-3). R70
- * (FR-SPAN-2, D-389) puts the overview at the head, in the task that creates
- * it: the whole span in one row is what a short window can most afford to
- * lose, since the stripe under it still draws the four hours around the shown
- * instant and the stepping row still moves it a chunk at a time.
- */
-export type LiveFold = 'overview' | 'actions';
-export const LIVE_FOLD_ORDER: readonly LiveFold[] = ['overview', 'actions'];
+/** FR-WATCH-1: the live page's two states. `ui/screens/liveRows.ts` is the inventory of each. */
+export type LiveState = 'watching' | 'scrubbing';
+
+/** FR-SHP-1's second decision: portrait, or the landscape phone — wider than tall and at most 500 px high (D-173). */
+export type PageShape = 'portrait' | 'landscape-phone';
+export const LANDSCAPE_PHONE_MAX_HEIGHT_PX = 500;
+export const LANDSCAPE_PHONE_QUERY = `(orientation: landscape) and (max-height: ${String(LANDSCAPE_PHONE_MAX_HEIGHT_PX)}px)`;
+
+/** Which shape a `matchMedia(LANDSCAPE_PHONE_QUERY)` result means. The mode is asked separately (FR-SHP-1). */
+export function pageShape(matchesLandscapePhone: boolean): PageShape {
+  return matchesLandscapePhone ? 'landscape-phone' : 'portrait';
+}
 
 /** The page's padding above and below, and the gap between its rows: a quarter row each (`Live.module.css`). */
 export const LIVE_PAGE_PADDING_PX = ROW_PX / 2;
 export const LIVE_GAP_PX = ROW_PX / 4;
-/** The strip on one line over its rule: the line, the half row of air above it, and the hairline. */
-export const LIVE_STRIP_LINE_PX = ROW_PX + ROW_PX / 2 + 1;
+/** The same two while the page is folded: the compact page's spacing token between the rows, and half a row under the page for the last line's hit boxes. */
+export const LIVE_FOLDED_GAP_PX = ROW_PX / 6;
+export const LIVE_FOLDED_PADDING_PX = ROW_PX / 4 + ROW_PX / 2;
+
 /**
- * The rows above and under the box before anything folds, top to bottom: the top row, the controls row, the
- * time row, the overview, the stripe, the stepping row, the strip's line, the actions row.
+ * The wide page's rows above and under the box, per state, top to bottom, before anything folds (D-448).
+ * Watching: the top row and the frame's controls row — nothing is under the box, which takes the height down
+ * to the page's foot (FR-WATCH-5). Scrubbing adds the scrub block: the time row (a row of tap targets: the
+ * playback controls), the overview's text row, the stripe's three rows and the step row.
+ */
+export const LIVE_KEPT_ROWS_PX: Readonly<Record<LiveState, readonly number[]>> = {
+  watching: [TAP_PX, TAP_PX],
+  scrubbing: [TAP_PX, TAP_PX, TAP_PX, ROW_PX, 3 * ROW_PX, TAP_PX],
+};
+/** The gaps those rows cost: after the top row and after the controls row; scrubbing, after the box and between the block's four rows too. */
+export const LIVE_KEPT_GAPS: Readonly<Record<LiveState, number>> = { watching: 2, scrubbing: 6 };
+
+/** What the wide page keeps for its rows in `state`, px: the page's height less this is the box's. */
+export function liveKeptPx(state: LiveState): number {
+  return LIVE_PAGE_PADDING_PX + LIVE_KEPT_ROWS_PX[state].reduce((sum, row) => sum + row, 0) + LIVE_KEPT_GAPS[state] * LIVE_GAP_PX;
+}
+
+/** What the scrub block costs the box where it is laid out under it: its four rows, the gaps between them and the gap over them. */
+export const LIVE_SCRUB_BLOCK_PX = liveKeptPx('scrubbing') - liveKeptPx('watching');
+
+/**
+ * R78 (FR-WATCH-5, FR-WATCH-6; D-448): where the scrub block goes. The rail on the landscape phone, the one
+ * place with rows to spare; on a wide page the overlay where the block under the box would take the box under
+ * `LIVE_BOX_MIN_PX`; under the box otherwise — the tall wide page, and compact portrait, whose box yields on the
+ * reader's own tap (FR-WATCH-5). The mode is asked first: a short wide window is landscape and under 500 px
+ * too, and it is not a phone (FR-SHP-1).
  *
- * R70 (FR-SPAN-2, FR-TRAJ-5 as amended v1.4) adds two of them — the overview's one text row and the stepping
- * row, which is a row of tap targets on the wide page now that the `touch` guard is gone (V14-6) — with a gap
- * each. Both are derived from the tokens rather than measured: R69's 343 px was read off a 1200 × 450 window
- * on its own branch. R71 leaves the list alone (see above): the strip's line and the actions row are the
- * rail's now, so the two entries are what the table over-counts by.
+ * `boxHeightPx` is the height the frame has measured for the box with nothing under it and nothing folded
+ * (`unfoldedBoxHeightPx`), so the answer is the same in both states and the box never moves on it. Before the
+ * frame has measured — the first render, jsdom — it is `null` and the block is under the box, as it always was.
  */
-export const LIVE_KEPT_ROWS_PX: readonly number[] = [TAP_PX, TAP_PX, TAP_PX, ROW_PX, 3 * ROW_PX, TAP_PX, LIVE_STRIP_LINE_PX, TAP_PX];
+export type ScrubPlacement = 'under' | 'rail' | 'overlay';
+
+export function scrubPlacement({ mode, shape, boxHeightPx }: { mode: LayoutMode; shape: PageShape; boxHeightPx: number | null }): ScrubPlacement {
+  if (mode === 'compact') return shape === 'landscape-phone' ? 'rail' : 'under';
+  if (boxHeightPx === null) return 'under';
+  return boxHeightPx - LIVE_SCRUB_BLOCK_PX < LIVE_BOX_MIN_PX ? 'overlay' : 'under';
+}
+
 /**
- * The gaps those rows cost: after the top row, the box, the overview, the stripe, the stepping row and the
- * (empty) legend slot, and before the strip's line — seven. The frame's controls row and the actions cost
- * none: the box follows the controls row in the frame's own grid, and the actions wrap under the strip's
- * fields in a row with no row gap.
+ * The rows around the box that fold on a short wide window, in the order they go (FR-SHP-3 as amended v2.0):
+ * first the control rows — the top row and the frame's controls row, and with them every control around the
+ * box — go to one text row, their 48 px hit boxes kept by D-246's padding and negative margin, and the gaps take
+ * the compact page's token; then the actions ride on the conditions line rather than taking a row of the rail.
+ * R70's `overview` stood at the head of this order while the overview was a row under the box (D-389); it is
+ * the rail's on a short window now and does not fold (FR-WATCH-6).
  */
-export const LIVE_KEPT_GAPS = 7;
-export const LIVE_KEPT_PX = LIVE_PAGE_PADDING_PX + LIVE_KEPT_ROWS_PX.reduce((sum, row) => sum + row, 0) + LIVE_KEPT_GAPS * LIVE_GAP_PX;
-/**
- * What each fold gives the box back, in px, measured at 1200 × 450 on R69's branch (a 107 px box unfolded, 213
- * folded). `actions`: the top row and the controls row at one text row (24 each), the time row at its clock's
- * heading line (22), the gaps at the compact token (2 each), the strip's air at the token (8), and the
- * actions' own row (48) less the second line they take beside the strip's fields (24) and the half row under
- * the last line's hit box (6). R70 adds the stepping row to the rows that let their air out with it (24), and
- * the two gaps its own rows add to the ones the token shrinks.
- */
-export const LIVE_FOLD_GIVES_PX: Readonly<Record<LiveFold, number>> = {
-  /* R70: the overview is one text row and its gap, and it gives back exactly that — the row is not there, and nothing else moves. */
-  overview: ROW_PX + LIVE_GAP_PX,
-  actions: 2 * (TAP_PX - ROW_PX) + 22 + LIVE_KEPT_GAPS * (LIVE_GAP_PX - ROW_PX / 6) + (ROW_PX / 2 - ROW_PX / 6) + (TAP_PX - ROW_PX) - ROW_PX / 4 + (TAP_PX - ROW_PX),
+export type LiveFold = 'controls' | 'actions';
+export const LIVE_FOLD_ORDER: readonly LiveFold[] = ['controls', 'actions'];
+
+/** The rows of `liveRows.ts`'s table each fold re-cuts: a fold is only named where the state renders all of them (D-447). */
+export const LIVE_FOLD_NEEDS: Readonly<Record<LiveFold, readonly string[]>> = {
+  controls: ['top-row', 'box'],
+  actions: ['conditions', 'actions'],
 };
 
-/** FR-SHP-3: which rows the wide page folds at `heightPx` of viewport — the head of the order, as far as the floor asks. */
-export function foldRows(heightPx: number): readonly LiveFold[] {
+/**
+ * What each fold gives the box, px. `controls`: the top row and the controls row at one text row, the two
+ * gaps at the folded token, less the half row the page's foot takes for the last line's hit boxes. `actions`:
+ * nothing — the actions are the rail's (D-414), so what their fold gives is the rail's legend a row, not the box.
+ */
+export const LIVE_FOLD_GIVES_PX: Readonly<Record<LiveFold, number>> = {
+  controls: 2 * (TAP_PX - ROW_PX) + LIVE_KEPT_GAPS.watching * (LIVE_GAP_PX - LIVE_FOLDED_GAP_PX) - (LIVE_FOLDED_PADDING_PX - LIVE_PAGE_PADDING_PX),
+  actions: 0,
+};
+/** The rail gives its actions' row up a row of tap targets under the height at which the controls fold. */
+export const LIVE_FOLD_ACTIONS_UNDER_PX = TAP_PX;
+
+/**
+ * The frame's measurement with the fold taken back out: what the box would have with nothing under it on the
+ * unfolded page. The fold changes the rows the frame is measured under, so the decision is made on this, which
+ * the fold does not move — otherwise folding would give the box the height that unfolds it again.
+ */
+export function unfoldedBoxHeightPx(measuredPx: number, folded: readonly LiveFold[]): number {
+  return measuredPx - folded.reduce((sum, row) => sum + LIVE_FOLD_GIVES_PX[row], 0);
+}
+
+/**
+ * FR-SHP-3: which rows the wide page folds with `boxHeightPx` for the box (as `scrubPlacement` reads it) — the
+ * head of the order, as far as the height asks. `controls` folds exactly where the scrub block is an overlay,
+ * in both states, so the box is one height in the two (FR-WATCH-6); `actions` a row of tap targets under that.
+ * `rows` is the state's inventory (`liveRows.ts` `rowsFor`): a fold whose rows the state does not render is
+ * not named, and nor is any after it (D-447).
+ */
+export function foldRows(boxHeightPx: number | null, rows: readonly string[]): readonly LiveFold[] {
+  if (boxHeightPx === null) return [];
   const folded: LiveFold[] = [];
-  let boxPx = heightPx - LIVE_KEPT_PX;
+  let underPx = LIVE_BOX_MIN_PX + LIVE_SCRUB_BLOCK_PX;
   for (const row of LIVE_FOLD_ORDER) {
-    if (boxPx >= LIVE_BOX_MIN_PX) break;
+    if (boxHeightPx >= underPx || !LIVE_FOLD_NEEDS[row].every((needed) => rows.includes(needed))) break;
     folded.push(row);
-    boxPx += LIVE_FOLD_GIVES_PX[row];
+    underPx -= LIVE_FOLD_ACTIONS_UNDER_PX;
   }
   return folded;
 }
 
-/** The viewport height under which `row` is folded: the smallest height `foldRows` keeps it at, less one. */
+/** The box height (as `foldRows` reads it) under which `row` is folded. */
 export function foldBelowPx(row: LiveFold): number {
-  const gives = LIVE_FOLD_ORDER.slice(0, LIVE_FOLD_ORDER.indexOf(row)).reduce((sum, before) => sum + LIVE_FOLD_GIVES_PX[before], 0);
-  return LIVE_KEPT_PX + LIVE_BOX_MIN_PX - gives;
+  return LIVE_BOX_MIN_PX + LIVE_SCRUB_BLOCK_PX - LIVE_FOLD_ORDER.indexOf(row) * LIVE_FOLD_ACTIONS_UNDER_PX;
 }
 
 /**
