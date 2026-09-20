@@ -19,7 +19,7 @@
  * `live.spec.ts`, beside the layout facts it already holds.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { domeDrawn, homeAt, reenterLiveWithTheme, stripFilled, T } from './liveHelpers';
+import { domeDrawn, enterScrubbing, homeAt, reenterLiveWithTheme, stripFilled, T } from './liveHelpers';
 
 const LANDSCAPE = { width: 844, height: 390 };
 
@@ -79,6 +79,8 @@ test.describe('the live page on a landscape phone', () => {
   test('two panes — the dome left with the whole height, the rest right — nothing scrolls, and the wake lock follows visibility (FR-LIVE-7)', async ({ page }) => {
     await stubWakeLock(page);
     await liveLandscape(page);
+    // R77 (FR-WATCH-9 e): the stripe is the scrubbing state's; R78 re-cuts this shape's rail for both states.
+    await enterScrubbing(page);
 
     // The page is the viewport, and nothing scrolls.
     const pageBox = await page.getByTestId('live-page').boundingBox();
@@ -108,7 +110,8 @@ test.describe('the live page on a landscape phone', () => {
     expect(strip.x).toBeGreaterThanOrEqual(dome.x + dome.width - 1);
     expect(stripe.y).toBeGreaterThan(strip.y + strip.height - 1);
     expect(strip.y + strip.height).toBeLessThanOrEqual(LANDSCAPE.height);
-    for (const field of ['time', 'sky', 'cloud', 'count', 'moon']) await expect(page.getByTestId(`live-${field}`)).toBeInViewport({ ratio: 1 });
+    // R77 (FR-WATCH-3): the compact line's fields; the Moon is the list panel's (FR-MOON-3 as amended).
+    for (const field of ['time', 'sky', 'cloud', 'count']) await expect(page.getByTestId(`live-${field}`)).toBeInViewport({ ratio: 1 });
     // The side column may scroll itself where its content wraps past the viewport; the page never does.
     expect(side.y + side.height).toBeLessThanOrEqual(LANDSCAPE.height + 1);
 
@@ -175,7 +178,8 @@ test.describe('the live page on a landscape phone', () => {
   test('captures in landscape in Spanish: the control and its row carry no English (FR-I18N-2)', async ({ page }) => {
     await liveLandscape(page, 'es', true);
     await expect(page.getByRole('button', { name: 'Compartir este cielo' })).toBeVisible();
-    await expect(page.getByTestId('live-sky')).toHaveText(/Cielo (oscuro|crepúsculo claro|de día)/);
+    // R77 (FR-WATCH-3): the compact line's one-word sky states.
+    await expect(page.getByTestId('live-sky')).toHaveText(/Cielo (oscuro|crepúsculo|día)/);
     await page.screenshot({ path: 'docs/screenshots/r34-live-844-landscape-dark-es.png' });
   });
 });
@@ -198,10 +202,16 @@ test.describe('the live page on a portrait phone with a compass', () => {
     const dome = await page.getByTestId('live-dome').boundingBox();
     const drawing = await page.getByTestId('chart-box').boundingBox();
     expect((drawing?.y ?? 0) + (drawing?.height ?? 0)).toBeLessThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) + 0.5);
-    // FR-COMP-4: the actions row is `Hidden · Share` and stays one line.
-    const share = await page.getByRole('button', { name: 'Share this sky' }).boundingBox();
+    // FR-COMP-4: the actions row stays one line in both states — R77 (V20-8): `[ scrub ] [ list (n) ] Share`
+    // while watching, and the hidden-objects toggle on the scrubbing row, `[ back to live ] [ hidden ] Share`.
+    const scrub = await page.getByTestId('live-scrub').boundingBox();
+    const shareWatching = await page.getByRole('button', { name: 'Share this sky' }).boundingBox();
+    expect(Math.abs((shareWatching?.y ?? 0) - (scrub?.y ?? 0))).toBeLessThanOrEqual(1);
+    await enterScrubbing(page);
+    const share = await page.getByRole('button', { name: 'Share this moment' }).boundingBox();
     const hidden = await page.getByRole('button', { name: 'Hidden objects' }).boundingBox();
     expect(Math.abs((share?.y ?? 0) - (hidden?.y ?? 0))).toBeLessThanOrEqual(1);
+    await page.getByTestId('live-now').click();
     // The view control is one row too, with three options (V13-4's two-option row is withdrawn).
     const options = await toggle.getByRole('button').all();
     const tops = await Promise.all(options.map(async (option) => (await option.boundingBox())?.y ?? 0));

@@ -186,6 +186,7 @@ export function SkyChart(props: SkyChartProps) {
   // FR-FSC-1 / D-322 (R62): asked for a screen the chart is the window and nothing else — `viewFor` is not consulted,
   // so the saved preference is neither read for the view nor written on the way (FR-WIN-5 as amended).
   const screen = props.screen ?? false;
+  const moonPhase = props.moonPhase ?? false;
   const offered = useMemo(() => offeredViews(lost), [lost]);
   const view = screen ? WINDOW_VIEW : viewFor(chartView, offered);
   const choose = useCallback(
@@ -260,7 +261,7 @@ export function SkyChart(props: SkyChartProps) {
   // top of the list, but the table is what the guide is about and stays at its head.
   const leadRow = props.legendLead === undefined ? undefined : rows.find((row) => row.passId === props.highlightedPassId);
   const lead = props.legendLead !== undefined && leadRow !== undefined ? { passId: leadRow.passId, node: props.legendLead(leadRow) } : undefined;
-  const legend = <Legend rows={rows} bodies={lines} timeZone={observer.timeZone} highlightedPassId={highlightedPassId} onActivate={select} onFocusRow={focusRow} lead={lead} screen={screen} />;
+  const legend = <Legend rows={rows} bodies={lines} timeZone={observer.timeZone} highlightedPassId={highlightedPassId} onActivate={select} onFocusRow={focusRow} lead={lead} screen={screen} moonPhase={moonPhase} />;
   // R54 (FR-LIVE-7 as amended v1.1.1, D-269): the view toggle and its note. On the guide they head the figure; on the live
   // page (`fill`) they go to the view for the frame's controls slot, so the row above the drawing is one row.
   // D-322: a screen has no controls at all — not in the figure, not in the frame's row — so there is nothing to build.

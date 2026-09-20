@@ -4,7 +4,7 @@
  * budgets are one rule.
  */
 import { describe, expect, it } from 'vitest';
-import { advance, BODIES_EVERY_MS, DEFAULT_SPEED, due, HIDDEN_EVERY_MS, isSpeed, SPEEDS } from './playback';
+import { advance, BODIES_EVERY_MS, DEFAULT_SPEED, due, heldOffset, HIDDEN_EVERY_MS, isSpeed, SPEEDS } from './playback';
 
 const T = Date.UTC(2026, 8, 11, 9, 30, 0);
 const END = T + 24 * 3_600_000;
@@ -47,5 +47,21 @@ describe('SPEEDS', () => {
     expect(DEFAULT_SPEED).toBe(60);
     expect(isSpeed(600)).toBe(true);
     expect(isSpeed(2)).toBe(false);
+  });
+});
+
+describe('heldOffset (R77, FR-WATCH-2)', () => {
+  const MIN = 60_000;
+  it('is whole minutes from real time, signed, with the hours split off past sixty', () => {
+    expect(heldOffset(T + 33 * MIN, T)).toEqual({ sign: '+', hours: 0, minutes: 33 });
+    expect(heldOffset(T - 12 * MIN, T)).toEqual({ sign: '−', hours: 0, minutes: 12 });
+    expect(heldOffset(T + 65 * MIN, T)).toEqual({ sign: '+', hours: 1, minutes: 5 });
+    expect(heldOffset(T + 23 * 60 * MIN + 59 * MIN, T)).toEqual({ sign: '+', hours: 23, minutes: 59 });
+  });
+
+  it('rounds to the minute and never reads −0', () => {
+    expect(heldOffset(T, T)).toEqual({ sign: '+', hours: 0, minutes: 0 });
+    expect(heldOffset(T - 20_000, T)).toEqual({ sign: '+', hours: 0, minutes: 0 });
+    expect(heldOffset(T + 31_000, T)).toEqual({ sign: '+', hours: 0, minutes: 1 });
   });
 });

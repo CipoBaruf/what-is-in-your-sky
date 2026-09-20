@@ -1,5 +1,5 @@
 import type { MoonFacts } from '../../lib/moonPhrases';
-import type { MoonPhaseName, SkyState } from '../../model';
+import type { CloudState, MoonPhaseName, SkyState } from '../../model';
 import type { HiddenReason } from '../messages';
 
 /** FR-I18N-2 (D-69): the eight phases as `live.moon` reads them out; the same spelling as `en/ui.ts`'s (D-103), duplicated because the `live` lane owns this file alone. */
@@ -34,32 +34,52 @@ export const live = {
     /** FR-LIVE-1's two inert states: one line each, beside the return control. */
     noObserver: 'The live sky needs somewhere to look from: a place name or coordinates on the home page.',
     noElements: 'No orbital elements yet, so there is nothing to draw.',
-    /** The status strip's accessible name; the five fields below are its labels (FR-LIVE-3). */
-    strip: 'Sky status',
+    /**
+     * The conditions line's accessible name; the fields below are its labels (FR-LIVE-3). R77 (FR-WATCH-3):
+     * one line per state — on wide `Sky dark · Clouds Clear, 12 % cloud · Up 3 · Moon waxing crescent, 18 % lit`,
+     * on compact the clock and three short words with the labels spoken, `21:14:32 dark clear 3 up`.
+     */
+    strip: 'Sky conditions',
     timeLabel: 'Time',
     skyLabel: 'Sky',
     cloudLabel: 'Clouds',
-    countLabel: 'Visible',
+    countLabel: 'Up',
+    /** The compact count's spoken label: its value already says `3 up`. */
+    countSpoken: 'Satellites',
     moonLabel: 'Moon',
     /** The sky state in words (FR-LIVE-3, `SkyState`). */
     sky: { day: 'day', 'bright-twilight': 'bright twilight', dark: 'dark' } satisfies Record<SkyState, string>,
+    /** R77 (FR-WATCH-3, FR-COMP-4): the compact line's sky word, one word each so the line keeps its 36 cells. */
+    skyShort: { day: 'day', 'bright-twilight': 'twilight', dark: 'dark' } satisfies Record<SkyState, string>,
+    /** R77 (FR-WATCH-3): the compact line's cloud verdict, one word each; `unknown` without a forecast (FR-WX-5). */
+    cloudWord: { clear: 'clear', partly: 'partly', obscured: 'cloudy', unknown: 'unknown' } satisfies Record<CloudState, string>,
+    /** R77 (FR-WATCH-3): the compact line's count, `3 up`. */
+    upCount: (count: number) => `${String(count)} up`,
     /** A field whose value is not known yet — the astronomy is still loading. */
     pending: '…',
-    /** How many satellites have a marker on the dome at the shown instant. */
-    visible: (count: number) => (count === 1 ? '1 satellite' : `${String(count)} satellites`),
     /** The Moon's phase and illumination, and nothing about where it is: the dome shows that. */
     moon: (p: Pick<MoonFacts, 'phase' | 'illumination'>) => `${moonPhase[p.phase]}, ${p.illumination} % lit`,
     /**
-     * R48 (FR-LIVE-7 as amended, FR-COMP-4, D-246): the compact strip is two
-     * lines of at most 36 cells — `06:48:24 GMT-3 bright twilight` over
-     * `Clouds 12 % Visible 3 Moon 72 %`. The clouds and the Moon are their
-     * percentages and the count its number; the first line's labels are
-     * spoken, not shown. Without a forecast the clouds read `n/a`.
+     * R77 (FR-WATCH-1, FR-WATCH-2, FR-MARK-5): the state indicator's word beside the mark — never the colour
+     * alone (FR-X-5) — and the two ways between the states. `[ scrub ]` holds the instant at the tap
+     * (`[ scrub the night ]` on wide); `[ back to live ]` is FR-LIVE-5's `now` action, named for where it goes.
      */
-    cloudPercent: (percent: string | null) => (percent === null ? 'n/a' : `${percent} %`),
-    moonPercent: (illumination: string) => `${illumination} %`,
-    /** FR-SHARE-1's live form: the same button as the pass's, with the page's own words. */
+    state: { live: 'live', held: 'held' },
+    scrub: 'scrub',
+    scrubWide: 'scrub the night',
+    backToLive: 'back to live',
+    /** R77 (FR-WATCH-2, FR-TRAJ-4): the held instant's offset from real time — `+33 min`, `−1 h 05 min`. */
+    heldOffset: (p: { sign: '+' | '−'; hours: number; minutes: number }) =>
+      p.hours === 0 ? `${p.sign}${String(p.minutes)} min` : `${p.sign}${String(p.hours)} h ${String(p.minutes).padStart(2, '0')} min`,
+    /** R77 (FR-WATCH-4, FR-SPAN-2): the watching overview's end labels, one text row under it on compact. */
+    overviewStart: 'now',
+    overviewEnd: '+24 h',
+    /**
+     * FR-SHARE-1's live form: the same button as the pass's, with the page's own words. R77 (FR-WATCH-8): on
+     * wide the name says what the link carries — the sky while watching, the moment while scrubbing.
+     */
     share: 'Share this sky',
+    shareMoment: 'Share this moment',
     shareTitle: 'The sky right now',
     shareText: (place: string) => `The whole sky over ${place}, live.`,
     /** R33 (FR-LIVE-4): the time stripe is a slider; its value text is the cursor's clock time. R70 (FR-SPAN-1): what it draws is four hours of the coming 24. */
@@ -70,12 +90,8 @@ export const live = {
     playback: 'Playback',
     play: 'Play',
     pause: 'Pause',
-    /** The action that returns the shown instant to real time. */
-    now: 'Now',
     speedGroup: 'Playback speed',
     speed: (factor: number) => `${String(factor)}×`,
-    /** The strip's sixth field, shown while playing (FR-LIVE-3). */
-    speedLabel: 'Speed',
     /** R33 (FR-LIVE-6): the toggle, and the reasons an object up there is not worth looking for. */
     hiddenToggle: 'Hidden objects',
     hiddenReason: { low: 'too low', shadow: 'in shadow', daylight: 'daylight', faint: 'too faint' } satisfies Record<HiddenReason, string>,
@@ -95,14 +111,6 @@ export const live = {
      * notes are the window's own (`window.denied`, `window.relative`), beside
      * the view control that now asks; the `×`'s name is `chart.screenClose`.
      */
-    /**
-     * R44 (FR-WIN-3, US-21 AC6): the strip's heading field, shown only while
-     * the dome is following the phone. It says what the correction is as much
-     * as that there is one: a compass reads magnetic north, the sky is drawn
-     * in true azimuths, and this is the angle between them here.
-     */
-    headingLabel: 'Heading',
-    trueNorth: (p: { declination: string }) => `true north, declination ${p.declination}`,
     /**
      * R48 (FR-TRAJ-5, FR-COMP-4): the stepping row under the stripe, the six
      * buttons the spike chose (`docs/window/FINDINGS.md`). The visible labels

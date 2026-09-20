@@ -1,0 +1,17 @@
+/* R77 (FR-WATCH-2): the mark and its word on one text row, a cell apart; the
+   word in the bead's tone, `--accent` while live and `--warn` while held. */
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cell);
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.word {
+  color: var(--accent);
+}
+
+.indicator[data-state='held'] .word {
+  color: var(--warn);
+}

@@ -24,6 +24,7 @@
   display: grid;
   grid-template-areas:
     'top'
+    'head'
     'dome'
     'side';
   /* The one column is `minmax(0, 1fr)` and not the implicit `auto`: an `auto` track cannot go under its
@@ -33,7 +34,7 @@
      too wide and the whole page scrolls sideways. Measured at 360 x 800 in WebKit: the track 326.4 where the
      content box is 320.4, the drawing 366 in a 360 px viewport. `tests/e2e/narrow.spec.ts` holds it. */
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   gap: calc(var(--row) / 4);
   background: var(--bg);
   color: var(--fg);
@@ -65,11 +66,13 @@
    the grid without the other. */
 @media (orientation: landscape) and (max-height: 500px) {
   .page[data-compact='true'] {
+    /* R77 (FR-WATCH-2): the headline stands at the head of the side column; R78 re-cuts the rail (FR-WATCH-5). */
     grid-template-areas:
       'top top'
+      'dome head'
       'dome side';
     grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     column-gap: calc(2 * var(--cell));
   }
 
@@ -169,7 +172,8 @@
   height: var(--row);
 }
 
-.page[data-compact='false'][data-fold~='overview'] .overviewRow {
+/* R77 (FR-WATCH-6): the row that folds is the scrub block's; the watching overview is in the rail and does not. */
+.page[data-compact='false'][data-fold~='overview'] .stripeBlock .overviewRow {
   display: none;
 }
 
@@ -293,7 +297,8 @@
   padding-top: var(--live-row-gap);
 }
 
-.page[data-compact='false'][data-fold~='actions'] .side > dl {
+/* R77: the rail's head and foot wrappers join the line too, so the fields and the actions still flow as one. */
+.page[data-compact='false'][data-fold~='actions'] .side :is(.railHead, .railFoot, .indicatorLine, dl) {
   display: contents;
 }
 
@@ -394,4 +399,94 @@
   grid-area: dome;
   margin: 0;
   align-self: start;
+}
+
+/* R77 (FR-WATCH-2): the headline's row — the next-event block while watching, the held instant while
+   scrubbing — above the frame on compact. Empty on wide, where the headline is the rail's. */
+.head {
+  grid-area: head;
+  min-width: 0;
+}
+
+.head:empty {
+  display: none;
+}
+
+/* On compact the block is the page's headline and not a pane's last block: no rule above it, and its clock
+   time at the readout's heading size on one text row, so the headline costs the box three rows and not four. */
+.page[data-compact='true'] .headline > section {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.page[data-compact='true'] .headline [data-testid='next-event-time'] {
+  font-size: 1.25rem;
+  line-height: var(--row);
+}
+
+/* R77 (FR-WATCH-4, FR-SPAN-2): the watching overview's end labels on compact, `now` at the left and `+24 h`
+   at the right, one text row in the dim ink. */
+.overviewLabels {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--small);
+  line-height: var(--row);
+  color: var(--fg-dim);
+}
+
+/* R77 (FR-WATCH-2): on compact the indicator stands on the top row between the return control and the place;
+   the place is what gives (it ellipsises), never the word. */
+.page[data-compact='true'] .topRow {
+  align-items: center;
+}
+
+.page[data-compact='true'] .back {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* R77 (FR-WATCH-4, FR-WATCH-5): the wide rail. Its head — the indicator with the clock or `[ back to live ]`,
+   the next-event block, the conditions line — stands above the legend, and its foot — the overview while
+   watching, the actions — at the rail's bottom. The legend is the frame's (FR-LEG-6), so the order is made
+   here: the frame's aside wrapper and this column step out of the box tree (`display: contents`), and the head
+   and the foot become items of the legend slot's own column, the head ordered first. On a short window the
+   rail keeps R69's folded line (below) until R78 re-cuts it (FR-WATCH-6). */
+.page[data-compact='false']:not([data-fold]) .dome [data-testid='chart-aside'],
+.page[data-compact='false']:not([data-fold]) .side {
+  display: contents;
+}
+
+.railHead,
+.railFoot {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--row) / 2);
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.page[data-compact='false']:not([data-fold]) .railHead {
+  order: -1;
+}
+
+.page[data-compact='false']:not([data-fold]) .railFoot {
+  margin-top: auto;
+}
+
+.indicatorLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 calc(2 * var(--cell));
+}
+
+.clock {
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.share {
+  display: contents;
 }

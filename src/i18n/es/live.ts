@@ -23,19 +23,38 @@ export const live: typeof EnLive = {
     loading: 'Cargando el cielo en vivo…',
     noObserver: 'El cielo en vivo necesita desde dónde mirar: un nombre de lugar o unas coordenadas en la página de inicio.',
     noElements: 'Todavía no hay elementos orbitales, así que no hay nada que dibujar.',
-    strip: 'Estado del cielo',
+    strip: 'Condiciones del cielo',
     timeLabel: 'Hora',
     skyLabel: 'Cielo',
     cloudLabel: 'Nubes',
-    countLabel: 'Visibles',
+    countLabel: 'Arriba',
+    countSpoken: 'Satélites',
     moonLabel: 'Luna',
     sky: { day: 'de día', 'bright-twilight': 'crepúsculo claro', dark: 'oscuro' },
+    /**
+     * R77 (FR-WATCH-3, FR-COMP-4): la línea compacta en 36 celdas con sus palabras más largas —
+     * `21:14:32 crepúsculo limpio 12 arriba` son 36. "Limpio" y "tapado" y no "despejado" y "cubierto":
+     * con "crepúsculo" al lado, esas dos se pasaban por tres celdas. Sin pronóstico, `s/d` (FR-WX-5).
+     */
+    skyShort: { day: 'día', 'bright-twilight': 'crepúsculo', dark: 'oscuro' },
+    cloudWord: { clear: 'limpio', partly: 'nuboso', obscured: 'tapado', unknown: 's/d' },
+    upCount: (count) => `${String(count)} arriba`,
     pending: '…',
-    visible: (count) => (count === 1 ? '1 satélite' : `${String(count)} satélites`),
     moon: (p) => `${moonPhase[p.phase]}, ${p.illumination} % iluminada`,
-    cloudPercent: (percent) => (percent === null ? 's/d' : `${percent} %`),
-    moonPercent: (illumination) => `${illumination} %`,
+    /**
+     * R77 (FR-WATCH-1, FR-WATCH-2): "fijado" y "fijar" son la misma palabra, el estado y la acción que lo
+     * pone; `[ ir al vivo ]` cabe en la fila compacta de 36 celdas junto a `[ ] Ocultos Compartir` (V20-8),
+     * donde "volver al vivo" se pasaba por cuatro.
+     */
+    state: { live: 'en vivo', held: 'fijado' },
+    scrub: 'fijar',
+    scrubWide: 'recorrer la noche',
+    backToLive: 'ir al vivo',
+    heldOffset: (p) => (p.hours === 0 ? `${p.sign}${String(p.minutes)} min` : `${p.sign}${String(p.hours)} h ${String(p.minutes).padStart(2, '0')} min`),
+    overviewStart: 'ahora',
+    overviewEnd: '+24 h',
     share: 'Compartir este cielo',
+    shareMoment: 'Compartir este momento',
     shareTitle: 'El cielo ahora mismo',
     shareText: (place) => `Todo el cielo sobre ${place}, en vivo.`,
     stripe: 'Franja de tiempo: cuatro de las próximas 24 horas',
@@ -43,17 +62,13 @@ export const live: typeof EnLive = {
     playback: 'Reproducción',
     play: 'Reproducir',
     pause: 'Pausa',
-    now: 'Ahora',
     speedGroup: 'Velocidad de reproducción',
     speed: (factor) => `${String(factor)}×`,
-    speedLabel: 'Velocidad',
     hiddenToggle: 'Objetos ocultos',
     hiddenReason: { low: 'muy bajo', shadow: 'en sombra', daylight: 'de día', faint: 'muy tenue' },
     hiddenLabel: (p) => `${p.name} · ${p.reason}`,
     /** R71 (FR-LEG-7): el control de la leyenda en la fila de acciones — `[ lista (3) ]`, la cuenta son las pasadas dibujadas (D-388). */
     list: (p) => `lista (${String(p.count)})`,
-    headingLabel: 'Rumbo',
-    trueNorth: (p) => `norte verdadero, declinación ${p.declination}`,
     /**
      * R48 (FR-TRAJ-5): "sale" (the pass rises) and not "salida" — the six
      * buttons must stay within their row with their gaps (FR-COMP-4), and

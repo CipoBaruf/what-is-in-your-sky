@@ -423,10 +423,34 @@ export async function openLegend(page: Page): Promise<void> {
   await expect(page.getByTestId('chart-legend-slot')).toHaveCount(1);
 }
 
-/** The five fields, each with a value that is not the pending ellipsis. */
+/**
+ * The conditions line's fields, each with a value that is not the pending ellipsis. R77 (FR-WATCH-3): the line
+ * is the clock, the sky, the clouds and the count on compact, and the sky, the clouds, the count and the Moon on
+ * wide — so the clock and the Moon are waited for where the line has them.
+ */
 export async function stripFilled(page: Page): Promise<void> {
-  for (const field of ['time', 'sky', 'cloud', 'count', 'moon']) {
+  const fields = ['sky', 'cloud', 'count'];
+  for (const field of ['time', 'moon']) if ((await page.getByTestId(`live-${field}`).count()) > 0) fields.push(field);
+  for (const field of fields) {
     await expect(page.getByTestId(`live-${field}`)).toBeVisible();
     await expect(page.getByTestId(`live-${field}`)).not.toContainText('…', { timeout: 30_000 });
   }
+}
+
+/**
+ * R77 (FR-WATCH-1 a, FR-WATCH-4): the live page opens watching, where the stripe, the step row and the playback
+ * row are not rendered. A spec that drives them enters scrubbing first, as a reader does — `[ scrub ]`, which
+ * holds the instant on screen — and `[ back to live ]` (the old `Now`, `live-now`) leaves it.
+ */
+export async function enterScrubbing(page: Page): Promise<void> {
+  await page.getByTestId('live-scrub').click();
+  await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'held');
+  await expect(page.getByTestId('time-stripe')).toBeVisible();
+}
+
+/** R77 (FR-WATCH-1): the way back — real time, and the scrub block gone with the state. */
+export async function backToLive(page: Page): Promise<void> {
+  await page.getByTestId('live-now').click();
+  await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
+  await expect(page.getByTestId('time-stripe')).toHaveCount(0);
 }

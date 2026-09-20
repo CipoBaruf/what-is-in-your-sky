@@ -1817,7 +1817,8 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
     - The owner's gate: the panes beside board 1B at a desk, and the stacked page on a phone.
   - **Done (R81):** as written, plus D-515..D-520 — the card opens from its first two lines, the small controls keep their 44 px tap box, the count and sort wrap at the separator at 1280 px too (for the gate), and the facts the amended spec took off the home are asserted where they now are. The captures are `docs/screenshots/r81-*`.
 
-- [ ] **R77 — Watching and scrubbing: the split, the inventory, the headline and the conditions line** [P]
+- [x] **R77 — Watching and scrubbing: the split, the inventory, the headline and the conditions line** [P]
+  - **Done (2026-09-19):** as written, except the 390 × 667 watching box, which is held at the measured 330 px and not over 374 (D-480, OQ-27). Crossings: `NextEventBlock` gains `liveLink` (D-479), and the legend Moon line carries the phase (D-477).
   - **Lane:** live
   - **Model:** opus
   - **Gate:** owner

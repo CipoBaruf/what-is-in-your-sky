@@ -19,7 +19,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { LOCALES, THEMES, type CaptureLocale, type CaptureTheme } from './captureSet';
-import { domeDrawn, homeAt, openLegend, stripFilled, T } from './liveHelpers';
+import { domeDrawn, enterScrubbing, homeAt, openLegend, stripFilled, T } from './liveHelpers';
 
 const PORTRAIT = { width: 390, height: 844 };
 const LANDSCAPE = { width: 844, height: 390 };
@@ -68,6 +68,8 @@ test.describe('the live page on a portrait phone', () => {
     await openLive(page);
     // R71 (FR-LEG-7): the legend is behind `[ list (n) ]` on a phone, and this test is about what it says.
     await openLegend(page);
+    // R77 (FR-WATCH-9 e): the step row is the scrubbing state's; the list opened while watching stays open.
+    await enterScrubbing(page);
     const dome = page.getByTestId('live-dome');
     const legend = dome.getByTestId('chart-legend');
     // At T the ISS is ten seconds into its pass: live, with the marker, and the only row.
@@ -142,8 +144,11 @@ test.describe('the live page on a portrait phone', () => {
      * R71 (FR-LEG-7): the legend is a row of this page only while `[ list (n) ]` holds it open, so the rows
      * below are measured with it open — the state that has one of everything. Closed, the box has the panel's
      * height instead, which is `live-compact.spec.ts`'s measurement (FR-LEG-8).
+     *
+     * R77 (FR-WATCH-4): and scrubbing, the state with every row; the list is opened from the watching row first.
      */
     await openLegend(page);
+    await enterScrubbing(page);
     expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
     // `--row` is 1.5 rem at the 16 px base (D-65).
     const row = 24;
@@ -173,12 +178,14 @@ test.describe('the live page on a portrait phone', () => {
     // The dome's readout and its legend are under the box, not under it: nothing of the frame spills.
     expect(domeReadout.y).toBeGreaterThanOrEqual(chart.y + chart.height - 1);
     expect(legend.y).toBeGreaterThanOrEqual(domeReadout.y + domeReadout.height - 1);
-    // FR-LIVE-7 as amended: the strip in two lines, then the stripe block (readout, overview, three rows,
-    // stepping) and two control rows. R70 (FR-SPAN-2): the overview is one row between the readout and the stripe.
+    // FR-LIVE-7 as amended: the strip, then the stripe block (overview, three rows, stepping) and two control
+    // rows. R70 (FR-SPAN-2): the overview is one row above the stripe. R77 (FR-WATCH-2, FR-WATCH-3): the strip is
+    // one line now, and the clock readout is the scrubbing headline, above the box.
     const overview = await box(page, 'stripe-overview');
-    expect(strip.height).toBeLessThanOrEqual(2 * row + 8);
-    expect(readout.y).toBeGreaterThanOrEqual(strip.y + strip.height - 1);
-    expect(overview.y).toBeGreaterThanOrEqual(readout.y + readout.height - 1);
+    expect(strip.height).toBeLessThanOrEqual(row + 8);
+    expect(readout.y + readout.height).toBeLessThanOrEqual(chart.y + 1);
+    expect(readout.y).toBeGreaterThanOrEqual(top.y + top.height - 1);
+    expect(overview.y).toBeGreaterThanOrEqual(strip.y + strip.height - 1);
     expect(overview.height).toBeLessThanOrEqual(row + 1);
     expect(stripe.y).toBeGreaterThanOrEqual(overview.y + overview.height - 1);
     expect(stripe.height).toBeGreaterThanOrEqual(3 * row - 1);
@@ -196,6 +203,7 @@ test.describe('the live page on a portrait phone', () => {
     for (const locale of LOCALES) {
       test(`captures 390 px portrait, ${theme}, ${locale}`, async ({ page }) => {
         await openLive(page, locale, theme);
+        await enterScrubbing(page);
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         await expect(page.locator('html')).toHaveAttribute('lang', locale);
         await expect(page.getByRole('button', { name: STEP[locale].next })).toBeVisible();
@@ -212,6 +220,7 @@ test.describe('the live page on a landscape phone', () => {
     for (const locale of LOCALES) {
       test(`captures 844 × 390 landscape, ${theme}, ${locale}`, async ({ page }) => {
         await openLive(page, locale, theme);
+        await enterScrubbing(page);
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         await expect(page.locator('html')).toHaveAttribute('lang', locale);
         // The stripe block is in the side column, under the strip, and the page does not scroll.

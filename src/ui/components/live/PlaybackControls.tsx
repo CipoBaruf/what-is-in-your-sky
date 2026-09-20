@@ -18,19 +18,21 @@ import styles from './PlaybackControls.module.css';
  * form was 33. Wide keeps the words and the `[x]` toggle. The hidden-objects
  * toggle moved to the actions row (`HiddenToggle`, below), which is the other
  * control row.
+ *
+ * R77 (FR-WATCH-1, FR-LIVE-5 as amended v2.0): the row is the scrubbing
+ * state's alone, and `Now` has left it — `[ back to live ]` is that action
+ * under a name that says where it goes, and it stands where FR-WATCH-4 puts it
+ * (`BackToLive`, below) rather than beside play.
  */
 export interface PlaybackControlsProps {
   playing: boolean;
   speed: Speed;
-  /** True while the shown instant is real time: `Now` has nothing to do. */
-  realTime: boolean;
   onPlay: () => void;
   onPause: () => void;
   onSpeed: (speed: Speed) => void;
-  onNow: () => void;
 }
 
-export function PlaybackControls({ playing, speed, realTime, onPlay, onPause, onSpeed, onNow }: PlaybackControlsProps) {
+export function PlaybackControls({ playing, speed, onPlay, onPause, onSpeed }: PlaybackControlsProps) {
   const t = useT();
   const compact = useLayoutMode() === 'compact';
   const playWord = playing ? t.live.pause : t.live.play;
@@ -38,9 +40,6 @@ export function PlaybackControls({ playing, speed, realTime, onPlay, onPause, on
     <div className={styles.controls} role="group" aria-label={t.live.playback} data-testid="playback-controls" data-compact={compact}>
       <button type="button" className={styles.action} data-testid="live-play" data-playing={playing} aria-label={playWord} onClick={playing ? onPause : onPlay}>
         {compact ? (playing ? t.live.pauseShort : t.live.playShort) : playWord}
-      </button>
-      <button type="button" className={styles.action} data-testid="live-now" onClick={onNow} disabled={realTime}>
-        {t.live.now}
       </button>
       {compact ? (
         <div role="group" aria-label={t.live.speedGroup} className={styles.speedsCompact}>
@@ -71,6 +70,37 @@ export function PlaybackControls({ playing, speed, realTime, onPlay, onPause, on
         />
       )}
     </div>
+  );
+}
+
+/**
+ * R77 (FR-WATCH-1 a, D-446): `[ scrub ]` — `[ scrub the night ]` on wide — the
+ * way into the scrubbing state from watching. It is FR-LIVE-5's pause at now:
+ * the page holds the instant of the tap, so the first frame held is the last
+ * one watched.
+ */
+export function ScrubButton({ onScrub }: { onScrub: () => void }) {
+  const t = useT();
+  const compact = useLayoutMode() === 'compact';
+  return (
+    <button type="button" className={styles.action} data-testid="live-scrub" onClick={onScrub}>
+      {compact ? t.live.scrub : t.live.scrubWide}
+    </button>
+  );
+}
+
+/**
+ * R77 (FR-WATCH-1, D-446): `[ back to live ]` — FR-LIVE-5's `now` action,
+ * renamed for where it goes: the shown instant returns to real time and
+ * advances on the tick again, and the scrub block goes away with the state.
+ * It keeps the old control's test id, since it is the same action.
+ */
+export function BackToLive({ onNow }: { onNow: () => void }) {
+  const t = useT();
+  return (
+    <button type="button" className={styles.action} data-testid="live-now" onClick={onNow}>
+      {t.live.backToLive}
+    </button>
   );
 }
 
