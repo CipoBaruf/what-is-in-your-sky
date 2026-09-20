@@ -831,6 +831,89 @@ describe('<LivePage>', () => {
     expect(clock()).toHaveTextContent(/09:49:44 UTC$/);
   });
 
+  /**
+   * R78 (FR-WATCH-5, FR-WATCH-6, FR-WATCH-9 a; D-448, D-449): the two short shapes, each rendering `rowsFor`'s
+   * short inventory. The landscape phone is a media query away. The short wide window is a measurement away:
+   * jsdom lays nothing out, so the frame's own rect is stubbed to the 384 px a 1200 × 450 page leaves it, and
+   * the frame's report of it — not the viewport — is what turns the block into the bar.
+   */
+  it.each([
+    ['compact', [844, 390], 'rail'],
+    ['wide', [1200, 450], 'overlay'],
+  ] as const)('renders the short %s page as rowsFor lists it in both states, the scrub block placed by scrubPlacement (FR-WATCH-5, FR-WATCH-6)', (mode, size, placement) => {
+    withSky();
+    media = stubMatchMedia(size[0], size[1]);
+    const realGetRect = HTMLElement.prototype.getBoundingClientRect;
+    if (placement === 'overlay') {
+      vi.stubGlobal(
+        'ResizeObserver',
+        class {
+          observe(): void {
+            /* the frame measures once on mount, which is all this needs */
+          }
+          disconnect(): void {
+            /* nothing to detach */
+          }
+        },
+      );
+      HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+        const rect = realGetRect.call(this);
+        return this.dataset['testid'] === 'chart-frame' ? { ...rect, width: 1161, height: 384, right: 1161, bottom: 384, toJSON: () => ({}) } : rect;
+      };
+    }
+    try {
+      const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+      const inventory = (state: 'watching' | 'scrubbing'): void => {
+        const listed = new Set(rowsFor(state, mode, 'short'));
+        for (const row of LIVE_ROWS) {
+          const found = container.querySelector(`[data-testid="${LIVE_ROW_TEST_ID[row]}"]`);
+          if (listed.has(row)) expect(found, `short ${mode} ${state}: ${row} is rendered`).not.toBeNull();
+          else expect(found, `short ${mode} ${state}: ${row} is not in the DOM`).toBeNull();
+        }
+      };
+      const page = screen.getByTestId('live-page');
+      // The placement does not read the state: it is decided while watching already, so the box cannot move on the tap.
+      expect(page).toHaveAttribute('data-scrub-placement', placement);
+      inventory('watching');
+      const head = within(screen.getByTestId('live-rail-head'));
+      expect(head.getByTestId('live-indicator')).toBeInTheDocument();
+      expect(head.getByTestId('live-clock')).toBeInTheDocument();
+      expect(screen.queryByTestId('chart-bottom-overlay')).toBeNull();
+      if (placement === 'overlay') expect(page).toHaveAttribute('data-fold', 'controls actions');
+      else expect(page).not.toHaveAttribute('data-fold');
+      const fold = page.getAttribute('data-fold');
+
+      scrub();
+      inventory('scrubbing');
+      expect(page).toHaveAttribute('data-scrub-placement', placement);
+      expect(page.getAttribute('data-fold')).toBe(fold);
+      // `[ back to live ]` is at the rail's head at both shapes, and the overview is the rail's, not the block's.
+      expect(head.getByTestId('live-now')).toBeInTheDocument();
+      if (placement === 'overlay') {
+        const bar = within(within(screen.getByTestId('chart-box')).getByTestId('chart-bottom-overlay'));
+        for (const id of ['time-row', 'playback-row', 'time-stripe', 'step-controls']) expect(bar.getByTestId(id)).toBeInTheDocument();
+        expect(bar.queryByTestId('overview-row')).toBeNull();
+        expect(within(screen.getByTestId('live-rail-foot')).getByTestId('overview-row')).toBeInTheDocument();
+        expect(screen.queryByTestId('chart-stripe')).toBeNull();
+        expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
+      } else {
+        const rail = within(screen.getByTestId('live-side'));
+        for (const id of ['time-row', 'status-strip', 'overview-row', 'time-stripe', 'step-controls', 'playback-row', 'live-actions']) expect(rail.getByTestId(id)).toBeInTheDocument();
+        // Nothing but the frame is in the dome's column, in either state: no headline row above it.
+        expect(screen.queryByTestId('live-head')).toBeNull();
+        expect(within(screen.getByTestId('live-top-row')).queryByTestId('live-indicator')).toBeNull();
+      }
+
+      // `[ back to live ]` dismisses the bar with the state.
+      fireEvent.click(screen.getByRole('button', { name: en.live.backToLive }));
+      inventory('watching');
+      expect(screen.queryByTestId('chart-bottom-overlay')).toBeNull();
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = realGetRect;
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('enters scrubbing on a key on the overview, and on wide keeps the focus on it as it moves under the box (FR-WATCH-1 b)', () => {
     withSky();
     media = stubMatchMedia(1280, 800);
