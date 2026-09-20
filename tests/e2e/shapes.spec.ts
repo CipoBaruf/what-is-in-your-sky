@@ -485,19 +485,22 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
   /*
    * R78 (D-448): the decision is made from what the frame measures, and folding changes what it measures — the
    * control rows give the box 46 px. If the rule read the folded number it would unfold itself and fold again,
-   * a frame apart, for ever. It reads the number with the fold taken back out, and this drags a window one pixel
-   * at a time through the threshold, in both states, to hold that: at every height the page settles, the answer
-   * changes once and only once on the way down, and the fold and the overlay arrive at the same pixel.
+   * a frame apart, for ever. It reads the number with the fold taken back out, and this drags a window through
+   * the threshold, in both states, to hold that: at every height the page settles, the answer changes once and
+   * only once on the way down — at the table's own pixel — and the fold and the overlay arrive together.
+   *
+   * One pixel at a time for four either side of the turn, then every eight down through the 46 px the fold
+   * gives, which is the band a rule that fed itself would flicker in (FR-CI-1: 19 heights, not 60).
    */
-  /** The viewport height at which the block under the box leaves the box exactly its floor (602 px), and a start 18 px over it. */
+  /** The viewport height at which the block under the box leaves the box exactly its floor: 602 px. */
   const TURN_PX = liveKeptPx('watching') + foldBelowPx('controls');
-  const SWEEP_FROM_PX = TURN_PX + 18;
+  const SWEEP_PX: readonly number[] = [TURN_PX + 16, TURN_PX + 8, ...Array.from({ length: 9 }, (_, index) => TURN_PX + 4 - index), ...Array.from({ length: 8 }, (_, index) => TURN_PX - 12 - 8 * index)];
 
   // Both languages: the table counts the time row as Spanish wraps it (`LIVE_TIME_ROW_FLOOR_PX`), and the floor holds in each.
   for (const locale of ['en', 'es'] as const) sweep(locale);
 
   function sweep(locale: 'en' | 'es'): void {
-    test(`dragged short a pixel at a time: the placement turns once, with the fold, and the page settles at every height, ${locale} (D-448)`, async ({ page }) => {
+    test(`dragged short through the threshold: the placement turns once, with the fold, and the page settles at every height, ${locale} (D-448)`, async ({ page }) => {
       await openLive(page, locale);
       await sweepBody(page);
     });
@@ -508,7 +511,7 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
     for (const state of ['watching', 'scrubbing'] as const) {
       if (state === 'scrubbing') await enterScrubbing(page);
       const answers: string[] = [];
-      for (let height = SWEEP_FROM_PX; height >= SWEEP_FROM_PX - 35; height -= 1) {
+      for (const height of SWEEP_PX) {
         await page.setViewportSize({ width: 1200, height });
         const { box } = await settled(page);
         const livePage = page.getByTestId('live-page');
@@ -521,8 +524,9 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       expect(answers[0], state).toBe('under');
       expect(answers.at(-1), state).toBe('overlay');
       expect(answers.filter((answer, index) => index > 0 && answer !== answers[index - 1]), `${state}: one turn on the way down`).toHaveLength(1);
-      // …and at the unfolded page's own arithmetic: the watching rows over the floor with the block under it.
-      expect(answers.indexOf('overlay'), state).toBe(SWEEP_FROM_PX - TURN_PX + 1);
+      // …and at the unfolded page's own arithmetic: under the box at the turn, over the drawing one pixel shorter.
+      expect(answers[SWEEP_PX.indexOf(TURN_PX)], state).toBe('under');
+      expect(answers[SWEEP_PX.indexOf(TURN_PX - 1)], state).toBe('overlay');
     }
     }
   }

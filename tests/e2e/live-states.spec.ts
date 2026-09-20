@@ -12,7 +12,7 @@
  * phone it is the rail's and the dome's column is identical in both.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { backToLive, domeDrawn, enterScrubbing, homeAt, reenterLiveWithTheme, stripFilled, T } from './liveHelpers';
+import { backToLive, domeDrawn, enterScrubbing, homeAt, stripFilled, T } from './liveHelpers';
 
 /** A speed button named exactly — the name is a substring match otherwise, and `60×` would name three (F-37). */
 const speedButton = (page: Page, factor: number) => page.getByRole('button', { name: new RegExp(`^(\\[[ x]\\] )?\\[?${String(factor)}×\\]?$`) });
@@ -22,12 +22,6 @@ const shown = async (page: Page): Promise<number> => Number(await page.getByTest
 
 /** The rows only scrubbing renders (FR-WATCH-4): absent while watching, not merely hidden. */
 const SCRUB_ROWS = ['time-row', 'time-stripe', 'step-controls', 'playback-row'] as const;
-
-/** FR-WATCH-5's two short shapes, at the sizes FR-WATCH-9 b names: the landscape phone and the short wide window. */
-const SHORT_SHAPES = [
-  [844, 390],
-  [1200, 450],
-] as const;
 
 /** FR-WATCH-9 b's four shapes, with where `scrubPlacement` (D-448) puts the scrub block at each. */
 const SHAPES = [
@@ -169,36 +163,7 @@ for (const [width, height, placement] of SHAPES) {
   });
 }
 
-/**
- * R78 (FR-WATCH-9 f, FR-COMP-6's rule): both states at the two short shapes, both themes and both languages.
- * The theme is set on the home page and the page re-entered, which is the one route both modes share (D-244:
- * the compact live page carries no theme switch). Scrubbing is captured a pass ahead, so the stripe has an arc
- * under the cursor and the headline an offset to show.
- */
-for (const [width, height] of SHORT_SHAPES) {
-  for (const locale of ['en', 'es'] as const) {
-    test(`captures: watching and scrubbing at ${String(width)} × ${String(height)}, both themes, ${locale} (FR-WATCH-9 f)`, async ({ page }) => {
-      await page.setViewportSize({ width, height });
-      await homeAt(page, T, locale, true);
-      await page.getByTestId('live-link').click();
-      await domeDrawn(page);
-      await stripFilled(page);
-      for (const theme of ['dark', 'night'] as const) {
-        if (theme === 'night') await reenterLiveWithTheme(page, locale, theme);
-        const name = (state: string): string => `docs/screenshots/r78-live-${state}-${String(width)}x${String(height)}-${theme}-${locale}.png`;
-        await page.clock.runFor(500);
-        await page.screenshot({ path: name('watching') });
-        await enterScrubbing(page);
-        await page.locator('[data-step="next-rise"]').click();
-        await page.clock.runFor(500);
-        await page.screenshot({ path: name('scrubbing') });
-        await backToLive(page);
-      }
-      // The theme is remembered (US-19): put it back for whatever runs next in this context.
-      await reenterLiveWithTheme(page, locale, 'dark');
-    });
-  }
-}
+// R78 (FR-WATCH-9 f): the captures of both states at the two short shapes are `r78-captures.spec.ts`, run with CAPTURES=1.
 
 /** FR-WATCH-1 c (D-446): the URL is the state — a link with `t` opens scrubbing, a bare one watching, and a reload keeps it. */
 test('a #live link with an instant opens scrubbing, and a reload after back to live opens watching (FR-WATCH-1, FR-LIVE-9)', async ({ page }) => {
