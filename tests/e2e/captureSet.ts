@@ -80,6 +80,25 @@
  * a layout the spec has not settled. R71's `r71-*` captures hold that evidence
  * until it is.
  *
+ * R80 (SPEC §9 Phase 2g; FR-WATCH-9 f, FR-GUT-8, FR-FIRST-7, FR-SET-4): v2.0
+ * splits one screen and renames nothing else. The live page is two states now
+ * (FR-WATCH-1), told apart by whether the shown instant is real time, and each
+ * renders its own inventory — watching has no stripe, no step row and no
+ * playback row at all, and on a short wide window scrubbing is a bar over the
+ * bottom of the box. Two states a reader can be in with nothing else on the
+ * screen is two screens by the rule this file already uses for `window` and
+ * `legend`, so `live` becomes `live-watching` and `live-scrubbing` at the eight
+ * widths `live` had (1200 × 450 among them since R72, which is where the two
+ * states differ most and where FR-WATCH-7 says the box must not move).
+ *
+ * The rest of the phase changed screens without changing the set: the cold open
+ * and the populated home are board 1B's three readings (`location` and `home`,
+ * FR-FIRST-7), the settings page is inverted (`settings`, FR-SET-4) and every
+ * `sky-screen-*` shot has the 28 px compass gutter where the legend strip was
+ * (FR-GUT-8). Those four requirements each say "re-shot on `main` by the
+ * release task" and name no new screen, so the re-shoot is the whole of it —
+ * the `what` lines below are what moved, and the files keep their names.
+ *
  * R60 (SPEC §9 Phase 2c): v1.2 added two states the window can be in (FR-FOL-5,
  * R56) and one the live page can be in (FR-FOL-1, R59), so `window-ground` and
  * `window-buried` join `window` and `live-following` joins `live` — a state
@@ -148,9 +167,13 @@ export interface CaptureScreen {
  * their captures are R27's and R28's.
  */
 export const SCREENS: readonly CaptureScreen[] = [
-  { name: 'location', widths: [390, 1280], what: 'Home before a location is known: the place field, the coordinates, the device button, the footer.' },
-  { name: 'home', widths: [390, 1024, 1280], what: 'Home with passes: the Now panel, the ISS hero, the Moon, the readiness line and the three nights. 1024 is the mid-width laptop.' },
-  { name: 'settings', widths: [390, 1280], what: 'The settings page (FR-COMP-2): language, theme, location, saved places, the install offer, the clear action, in that order. Reached by the header link on compact and by the hash on wide, where nothing links to it.' },
+  {
+    name: 'location',
+    widths: [390, 1280],
+    what: 'The cold open (FR-FIRST-1, FR-FIRST-2 as amended v2.0.2): home before a place is known, carrying no hero mark and no tagline. At 390 it is the where step of the phone\'s first visit — the step line, the place field, the coordinates and the device button; at 1280 it is the three panes with Where active and When and What dimmed, so the layout is on the screen before a place is.',
+  },
+  { name: 'home', widths: [390, 1024, 1280], what: 'Home with passes, as board 1B draws it (FR-FIRST-8..11): tonight\'s stripe with a tick per pass, the conditions table (Dark, Clouds now, Moon, and Up now while something is up), the next-event block counting down on a clock, the one-line cards with the `Next ISS` tag, and the Where reading with its readiness and elements lines. 1024 is the mid-width laptop, two columns; 1280 is the three panes.' },
+  { name: 'settings', widths: [390, 1280], what: 'The settings page inverted (FR-SET-1..4): Location first, then Saved places, then This browser — language, theme, the install offer and the clear action — and at 390 × 844 it fits the viewport in Spanish without scrolling, which is what FR-SET-2 is about. Reached by the header link on compact and by the hash on wide, where nothing links to it.' },
   { name: 'guide', widths: [390, 1024, 1280], what: 'A pass open on the dome view, mid-pass, with the Sun and the Moon on the chart. At 1024 it has the right column to itself (F-6).' },
   { name: 'polar', widths: [390, 1280], what: 'The same pass on the polar view: the live marker and the flown arc as elements.' },
   {
@@ -158,13 +181,18 @@ export const SCREENS: readonly CaptureScreen[] = [
     widths: [844],
     what: 'The sky screen opened from a pass detail (FR-FSC-1, FR-FSC-6, R66), aimed at that pass\'s peak by a stubbed orientation reading: the whole arc (FR-DOME-5) filling the viewport, the `×`, the facing readout and, since R79, the compass gutter where the legend strip was (FR-GUT-1). A phone held sideways, which since v1.3.1 is the only place the window is drawn.',
   },
-  { name: 'legend', widths: [390, 1280], what: 'The legend in its states (FR-LEG-3): the live page with the hidden objects shown, so the rows carry `up`, `soon`, `gone` and the FR-LIVE-6 reasons, and one row activated so its arc is highlighted and the others dim (FR-LEG-4). Behind `[ list (n) ]` and open at 390, in the rail beside the box at 1280 (FR-LEG-6, FR-LEG-7).' },
+  { name: 'legend', widths: [390, 1280], what: 'The legend in its states (FR-LEG-3): the live page with the hidden objects shown, so the rows carry `up`, `soon`, `gone` and the FR-LIVE-6 reasons, and one row activated so its arc is highlighted and the others dim (FR-LEG-4). Behind `[ list (n) ]` and open at 390, in the rail beside the box at 1280 (FR-LEG-6, FR-LEG-7). Shot watching: since R77 the hidden-objects toggle is the scrubbing row\'s on compact (D-478), so the screen seeds the preference on rather than clicking a control the state it photographs does not have.' },
   { name: 'favourites', widths: [390, 1280], what: 'The saved places, with the one in use marked.' },
   { name: 'shortcuts', widths: [390, 1280], what: 'The keyboard shortcuts overlay over an inert page.' },
   {
-    name: 'live',
+    name: 'live-watching',
     widths: [390, 844, 1024, 1200, 1280, 1920, 2560, 3840],
-    what: "The live sky page: the dome, the status strip, the stripe's chunk with its overview row, the stepping row and the actions. 844 is the landscape phone; 1024 is the desktop width the set had never shot the page at and 1200 × 450 the window dragged short (FR-SHP-5, F-65); 1280 and up are the rail beside the box, which since R71 is every wide width (FR-LEG-6) and not only R61's 1920, 2560 and 3840.",
+    what: "The live sky page in the state it opens in (FR-WATCH-1 a, FR-WATCH-4): the mark's bead running beside `live`, the headline, the conditions line, the dome and the actions — and no stripe, no step row and no playback row anywhere in the document. 844 is the landscape phone; 1024 is the desktop width the set had never shot the page at until R72 and 1200 × 450 the window dragged short (FR-SHP-5, F-65); 1280 and up are the rail beside the box, which since R71 is every wide width (FR-LEG-6) and not only R61's 1920, 2560 and 3840.",
+  },
+  {
+    name: 'live-scrubbing',
+    widths: [390, 844, 1024, 1200, 1280, 1920, 2560, 3840],
+    what: "The same page one `[ scrub ]` on (FR-WATCH-1 b, FR-WATCH-4): the bead held and warm beside `held`, the time row, the stripe's chunk with its 24 h overview, the stepping row and the playback row, and `[ back to live ]` at the head of the block. The pair with `live-watching` is what a reviewer reads the state split off: at 1200 × 450 the block is a bar inside the box (FR-WATCH-6) and the box's height is the same in both pictures (FR-WATCH-7), and at 844 × 390 it is in the rail with the dome column unmoved.",
   },
   {
     name: 'sky-screen-sky',
