@@ -471,7 +471,7 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       // The box is the desktop's: the dome's own shape, and no landscape grid (the page's rows are the page's width).
       await expect(page.getByTestId('chart-frame'), at).toHaveAttribute('data-box', 'true');
       expect(top?.width, `${at}: the top row is the page's width, not a 2fr column's`).toBeGreaterThan(width * 0.9);
-      expect(box.height, at).toBeGreaterThanOrEqual(floorFor(size));
+      expect(box.height, at).toBeGreaterThanOrEqual(floorFor(size, 'scrubbing'));
     }
     // Back above the floor: the fold comes off with the height (foldRows is monotonic), and the overview is back.
     await page.setViewportSize({ width: 1200, height: 700 });

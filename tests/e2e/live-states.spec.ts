@@ -37,7 +37,12 @@ const SHAPES = [
   [1200, 450, 'overlay'],
 ] as const;
 
-type Box = { x: number; y: number; width: number; height: number };
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 /** A box once it has stopped moving: the frame re-fits on a `ResizeObserver`, a frame or two after the state changes. */
 async function settledBox(page: Page, testId: string): Promise<Box> {
