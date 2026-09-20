@@ -35,13 +35,16 @@ interface Registered {
 function evaluate(query: string, widthPx: number, heightPx: number, reducedMotion: boolean): boolean {
   const min = /min-width:\s*(\d+(?:\.\d+)?)px/.exec(query);
   const minHeight = /min-height:\s*(\d+(?:\.\d+)?)px/.exec(query);
+  // R78: `(orientation: landscape) and (max-height: 500px)`, the landscape phone (`lib/layout.ts`, D-173).
+  const maxHeight = /max-height:\s*(\d+(?:\.\d+)?)px/.exec(query);
   const orientation = /orientation:\s*(landscape|portrait)/.exec(query);
   const motion = /prefers-reduced-motion:\s*(reduce|no-preference)/.exec(query);
-  if (!min && !minHeight && !orientation && !motion) throw new Error(`the matchMedia stub only understands min-width, min-height, orientation and prefers-reduced-motion queries, not "${query}"`);
+  if (!min && !minHeight && !maxHeight && !orientation && !motion) throw new Error(`the matchMedia stub only understands min-width, min-height, orientation and prefers-reduced-motion queries, not "${query}"`);
   const landscape = widthPx >= heightPx;
   return (
     (!min || widthPx >= Number(min[1])) &&
     (!minHeight || heightPx >= Number(minHeight[1])) &&
+    (!maxHeight || heightPx <= Number(maxHeight[1])) &&
     (!orientation || (orientation[1] === 'landscape') === landscape) &&
     (!motion || (motion[1] === 'reduce') === reducedMotion)
   );
