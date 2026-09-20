@@ -1,4 +1,4 @@
-import type { LayoutMode } from '../../lib/layout';
+import type { LayoutMode, LiveState, ScrubPlacement } from '../../lib/layout';
 
 /**
  * R77 (FR-WATCH-4, D-447): what the live page renders, per state, in one
@@ -19,13 +19,17 @@ import type { LayoutMode } from '../../lib/layout';
  *
  * `shape` is FR-WATCH-5's height half of the matrix: `tall` is the compact
  * portrait page and the wide page above the fold threshold, `short` the
- * landscape phone and the short wide window. R77 cuts the tall shapes; the
- * short ones render their mode's tall inventory until R78 re-cuts them (the
- * landscape phone's rail order, the short wide window's overlay, D-448), so
- * the table already takes the argument the placement rule will read.
+ * landscape phone and the short wide window — in `lib/layout.ts`'s words, the
+ * shapes where `scrubPlacement` (D-448) answers `rail` or `overlay` rather than
+ * `under`. R77 cut the tall shapes and R78 the short ones (`shortRowsFor`).
  */
-export type LiveState = 'watching' | 'scrubbing';
+export type { LiveState };
 export type LiveShape = 'tall' | 'short';
+
+/** D-448: the shape the placement rule's answer means — the block under the box is the tall page's, anywhere else the short one's. */
+export function liveShape(placement: ScrubPlacement): LiveShape {
+  return placement === 'under' ? 'tall' : 'short';
+}
 
 export type LiveRow =
   | 'top-row'
@@ -90,8 +94,7 @@ export const LIVE_ROWS = Object.keys(LIVE_ROW_TEST_ID) as readonly LiveRow[];
  *   `[ Hidden ] [ Share this moment ]`.
  */
 export function rowsFor(state: LiveState, mode: LayoutMode, shape: LiveShape): readonly LiveRow[] {
-  // R78 re-cuts the short shapes (FR-WATCH-5, FR-WATCH-6); until then they are their mode's tall page.
-  void shape;
+  if (shape === 'short') return shortRowsFor(state, mode);
   if (mode === 'compact') {
     return state === 'watching'
       ? ['top-row', 'indicator', 'next-event', 'box', 'conditions', 'overview', 'overview-labels', 'actions', 'scrub', 'list', 'share']
@@ -100,4 +103,33 @@ export function rowsFor(state: LiveState, mode: LayoutMode, shape: LiveShape): r
   return state === 'watching'
     ? ['top-row', 'box', 'indicator', 'clock', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'hidden', 'share']
     : ['top-row', 'box', 'time-row', 'playback', 'overview', 'stripe', 'steps', 'indicator', 'back-to-live', 'conditions', 'actions', 'hidden', 'share'];
+}
+
+/**
+ * R78 (FR-WATCH-5, FR-WATCH-6; D-448): the two short shapes, where the box is
+ * the same height in both states and the scrub block goes beside or over it.
+ *
+ * - **The landscape phone** (compact, `scrubPlacement` answers `rail`): the
+ *   dome has the `2fr` column to itself and everything else is the `3fr` rail's.
+ *   Watching: the indicator with the clock, the next event, the conditions line,
+ *   the overview and `[ scrub ] [ list (n) ] Share`. Scrubbing adds the time
+ *   row, the stripe, the step row and the playback row, with `[ back to live ]`
+ *   beside the indicator at the rail's head — the rail scrolls inside itself,
+ *   and the way out of the state is the one control that must not scroll away.
+ *   The indicator is the rail's here and not the top row's: the top row's cells
+ *   were V20-8's worry on a portrait phone, and this rail has them to spare.
+ * - **The short wide window** (`overlay`): watching is the tall wide page's
+ *   inventory. Scrubbing, the bar over the bottom of the drawing is the time row
+ *   with the playback controls, the stripe and the step row; the overview stays
+ *   in the rail, under the conditions line, in both states.
+ */
+function shortRowsFor(state: LiveState, mode: LayoutMode): readonly LiveRow[] {
+  if (mode === 'compact') {
+    return state === 'watching'
+      ? ['top-row', 'box', 'indicator', 'clock', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'list', 'share']
+      : ['top-row', 'box', 'indicator', 'back-to-live', 'time-row', 'conditions', 'overview', 'stripe', 'steps', 'playback', 'actions', 'hidden', 'share'];
+  }
+  return state === 'watching'
+    ? ['top-row', 'box', 'indicator', 'clock', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'hidden', 'share']
+    : ['top-row', 'box', 'time-row', 'playback', 'stripe', 'steps', 'indicator', 'back-to-live', 'conditions', 'overview', 'actions', 'hidden', 'share'];
 }

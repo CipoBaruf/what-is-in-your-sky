@@ -66,13 +66,14 @@
    the grid without the other. */
 @media (orientation: landscape) and (max-height: 500px) {
   .page[data-compact='true'] {
-    /* R77 (FR-WATCH-2): the headline stands at the head of the side column; R78 re-cuts the rail (FR-WATCH-5). */
+    /* R78 (FR-WATCH-5): two areas under the top row — the dome's column and the rail. The headline is the
+       rail's own second row (`Live.tsx` renders it inside the rail at this shape), so the dome's column is one
+       track in both states and the drawing cannot move between them. */
     grid-template-areas:
       'top top'
-      'dome head'
       'dome side';
     grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
     column-gap: calc(2 * var(--cell));
   }
 
@@ -172,10 +173,8 @@
   height: var(--row);
 }
 
-/* R77 (FR-WATCH-6): the row that folds is the scrub block's; the watching overview is in the rail and does not. */
-.page[data-compact='false'][data-fold~='overview'] .stripeBlock .overviewRow {
-  display: none;
-}
+/* R78 (FR-WATCH-6, FR-SHP-3 as amended v2.0): the overview does not fold. Where the scrub block would take the
+   box under its floor the block is a bar over the drawing and the overview is the rail's, in both states. */
 
 .timeRow {
   display: flex;
@@ -249,6 +248,14 @@
    order names folds: the actions join the status strip's line — the strip's
    `dl` becomes `display: contents`, so its five fields and the two actions
    flow as one wrapped line under the rule the side column now draws. */
+/* R78 (FR-WATCH-6, FR-SHP-3 as amended v2.0; D-448): the fold is decided from
+   what the chart's frame has measured for the box, not from the viewport, and
+   its order is `controls` — everything in the paragraph above about air — then
+   `actions`, the rail's two rows as one wrapped line. `[data-fold]` is any fold,
+   so it is the first step; the overview is not in the order any more. The
+   scrub block at these heights is the frame's bar over the drawing
+   (`ChartFrame.module.css` `.bottomOverlay`): its rows are laid out by the rules
+   below like any other, one text row each, and nothing here sizes the box. */
 .page[data-compact='false'][data-fold] {
   --live-row-gap: calc(var(--row) / 6);
   gap: var(--live-row-gap);
@@ -300,6 +307,18 @@
 /* R77: the rail's head and foot wrappers join the line too, so the fields and the actions still flow as one. */
 .page[data-compact='false'][data-fold~='actions'] .side :is(.railHead, .railFoot, .indicatorLine, dl) {
   display: contents;
+}
+
+/* R78 (FR-WATCH-6): …and the overview, which does not fold, is a line of its own in that flow — the rail's
+   whole width, in both states, between the conditions' fields and the actions. */
+.page[data-compact='false'][data-fold~='actions'] .side .overviewRow {
+  flex: 0 0 100%;
+}
+
+/* R78 (FR-WATCH-5): the landscape phone's rail head — the indicator's line and the headline — takes the compact
+   page's spacing token like the rows under it. */
+.page[data-compact='true'] .railHead {
+  gap: var(--live-row-gap);
 }
 
 /* The hidden-objects toggle, the follow control and the share action on one row (R48: the second control row, 31 cells on a phone). */
@@ -452,8 +471,8 @@
    here: the frame's aside wrapper and this column step out of the box tree (`display: contents`), and the head
    and the foot become items of the legend slot's own column, the head ordered first. On a short window the
    rail keeps R69's folded line (below) until R78 re-cuts it (FR-WATCH-6). */
-.page[data-compact='false']:not([data-fold]) .dome [data-testid='chart-aside'],
-.page[data-compact='false']:not([data-fold]) .side {
+.page[data-compact='false']:not([data-fold~='actions']) .dome [data-testid='chart-aside'],
+.page[data-compact='false']:not([data-fold~='actions']) .side {
   display: contents;
 }
 
@@ -466,11 +485,11 @@
   min-width: 0;
 }
 
-.page[data-compact='false']:not([data-fold]) .railHead {
+.page[data-compact='false']:not([data-fold~='actions']) .railHead {
   order: -1;
 }
 
-.page[data-compact='false']:not([data-fold]) .railFoot {
+.page[data-compact='false']:not([data-fold~='actions']) .railFoot {
   margin-top: auto;
 }
 
