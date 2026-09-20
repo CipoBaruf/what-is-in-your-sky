@@ -172,6 +172,58 @@ export interface Budget {
  * both catalogs — and ×1.1 (152.2) stays inside 155. `worker`, `astronomy` and
  * the service worker measure what they did in v1.2.
  *
+ * R80 re-measures them on the 2.0.0 build (SPEC §9 Phase 2g), built the same
+ * way. **No budget moves, and one of them is over.**
+ *
+ * | chunk          | file                  | measured | budget | was | ceiling |
+ * |----------------|-----------------------|---------:|-------:|----:|--------:|
+ * | main           | `index-*.js`          |  **158.0** |  155 | 155 |     170 |
+ * | chart          | `SkyDome-*.js`        |     94.2 |    105 | 105 |     110 |
+ * | worker         | `passes.worker-*`     |     36.1 |     40 |  40 |     130 |
+ * | astronomy      | `skyBodies-*.js`      |     22.1 |     25 |  25 |      30 |
+ * | window         | `SkyWindow-*.js`      |     12.8 |     15 |  15 |       — |
+ * | live           | `Live-*.js`           |      8.3 |     10 |  10 |      40 |
+ * | service worker | `workbox-*.js`        |      5.0 |     10 |  10 |      15 |
+ *
+ * Six of the seven rows are the D-178 rule agreeing with the number that is
+ * already there: 94.2 × 1.1 is 103.6 under 105, 36.1 × 1.1 is 39.7 under 40,
+ * 22.1 × 1.1 is 24.3 under 25, 12.8 × 1.1 is 14.1 under 15, and `live` and the
+ * service worker are both under the 10 KB floor. `window` is up 0.7 KB for the
+ * compass gutter (FR-GUT-1..8), which replaced the legend strip inside the same
+ * chunk; `live` is down 0.2 for the two states being the same components
+ * rendered conditionally (FR-WATCH-4); `chart` is 94.2 for the fourth phase
+ * running, because nothing of the redesign crossed the `React.lazy` in
+ * `SkyChart.tsx`.
+ *
+ * `main` is the exception and it is a finding, not a budget. 158.0 KB against
+ * a budget of 155, so every build of `main` now prints the `::warning::` this
+ * script exists to print. The D-178 rule would make it 175 and the §11 ceiling
+ * would cap that at 170 — and PLAN §11 forbids exactly that move: *"a mark that
+ * does not fit inside main's 155 KB is a finding for the owner, not a budget
+ * raised by the task that spent it"* (FR-MARK-6, which asks the release task to
+ * measure it). So the number stays at 155, the overrun stays visible, and
+ * SPEC §4.20 F-69 carries the measurement.
+ *
+ * What the mark costs, measured rather than estimated (FR-MARK-6): the same
+ * build with `Mark.tsx` replaced by a stub that renders an empty box and
+ * imports neither `rasters.json` nor `useBead` nor `denseFrame` measures
+ * **152.8 KB** in `main` (488.6 raw) against 158.0 (506.6 raw). So the
+ * component, the six body rasters and the 60 sparse bead frames per tier are
+ * **5.2 KB gzipped, 18.0 KB raw** — about what D-438 predicted ("a few
+ * kilobytes"), and 3.0 KB more than the budget had left for them. Without the
+ * mark the chunk would be inside 155 with 2.2 KB to spare; with it, the phase
+ * is 3.0 KB over. Neither half of that sentence is the whole cause: `main` is
+ * 17.9 KB above the 1.4.0 build's 140.1, and the mark is 5.2 of the 17.9. The
+ * rest is the redesign's own weight in the shell — board 1B's home screen (the
+ * stripe module, the conditions table, the next-event block, the one-line
+ * cards, the Where reading and the phone's three steps), the inverted settings
+ * page, and the phase's copy in both catalogs, whose **source** grew 21.9 KB
+ * raw and 8.0 KB gzipped between the 1.4.0 release commit and this one. That
+ * last figure is source, not bundle — the comments in it do not survive the
+ * build — but it is the same order as the mark and larger than anything else
+ * the phase added, which is the part worth knowing before anyone decides the
+ * mark is the row to cut.
+ *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
  *
@@ -220,13 +272,13 @@ export interface Budget {
  * the app never fetches.
  */
 export const BUDGETS: readonly Budget[] = [
-  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 155 }, // R60: 136.6 measured (flag on), crossing the 150 line (D-307)
+  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 155 }, // R60: 136.6 measured (flag on), crossing the 150 line (D-307); R80: 158.0 on 2.0.0 — over, and deliberately not raised (D-495, F-69)
   { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 105 }, // R60: 94.2 measured, down from 97.1 (D-307); 94.2 again on 1.4.0 (R72)
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 40 },
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10 },
   { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 25 },
   { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 10 }, // R53: back to the floor — R47 moved the World Magnetic Model to its own chunk and 1.1.0 measures 7.6 (D-178); R72: 8.5 on 1.4.0, the floor's last 1.5 KB
-  { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 15 }, // R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345); R72: 12.1 on 1.4.0
+  { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 15 }, // R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345); R72: 12.1 on 1.4.0; R80: 12.8 with the compass gutter in it
 ];
 
 export interface ChunkSize {
