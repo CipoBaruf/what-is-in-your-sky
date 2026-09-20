@@ -1908,7 +1908,7 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
     - The owner's gate: a first visit on a phone from a clean browser, through the three steps, and a reload.
   - **Note (R82):** done as written, with D-521..D-525 for what the entry left open; one line outside the lane — `SkyWindow.tsx` passes the observer's zone to `NextEventBlock`, which `main`'s typecheck needed after R79 and R81 merged.
 
-- [ ] **R78 — The two short shapes: the landscape phone's rail and the short wide window's overlay**
+- [x] **R78 — The two short shapes: the landscape phone's rail and the short wide window's overlay** — done as written, with three differences recorded in PLAN D-481..D-486: the table counts the time row at the block's 44-cell floor in Spanish, so the overlay starts at a 602 px viewport (D-482); the bar and the measurement reach `ChartFrame` by a context exported from that file rather than through the five view files (D-484); and at 1200 × 450 the parent's failure is the box moving (376 px watching, 218 scrubbing), not the box under its floor, which on the parent happens at 964 × 420.
   - **Lane:** live
   - **Crossings (§16.16):** `skychart/ChartFrame.tsx` is `chart`'s (D-449) and `src/lib/layout.ts` is `ui`'s (D-448); both are named as this task's shared files.
   - **Model:** fable
