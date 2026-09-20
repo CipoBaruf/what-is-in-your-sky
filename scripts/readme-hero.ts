@@ -70,7 +70,10 @@ export interface Source {
  */
 export const SOURCES = [
   {
-    file: 'v1-live-390-dark-en.png',
+    // R80: the set's `live` screen is `live-watching` since v2.0 split the live page into
+    // its two states (FR-WATCH-9 f). Watching is the right half of that split for a first
+    // picture: it is the page as it opens, with no scrub block over the sky.
+    file: 'v1-live-watching-390-dark-en.png',
     caption: 'The sky over you, drawn as text',
     w: 390,
     h: 844,

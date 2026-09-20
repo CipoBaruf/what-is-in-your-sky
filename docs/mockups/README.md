@@ -102,6 +102,17 @@ language, theme, location (the inputs, the device-location button and the
 precision note), saved places, and clear. No save action: every change applies
 at once, as it does today.
 
+> *(v2.0, FR-SET-4; R80)* **This board is superseded and is not re-drawn.**
+> v2.0 inverts the page — Location first, then Saved places, then This browser,
+> which is where language, theme, the install offer and the clear action went —
+> and its reference is the design phase's artboard, with FR-SET-1..4 carrying
+> the artboard's numbers into the text. The board and its two PNGs stay because
+> they are what R52 was reviewed against, the way every other superseded
+> capture in this repository stays; `v1-settings-390-*.png` in
+> `docs/screenshots/` is the picture of the page the app has. The home and the
+> pass-detail boards above are unaffected by that sentence and are superseded
+> by board 1B on their own account (FR-FIRST-7).
+
 **The pass detail (FR-COMP-5, FR-LEG-1..5).** The chart box is full-bleed — it
 spans the 390 px and ignores `main`'s two cells of side padding — and is a
 square. The numeric table has moved directly under it and is now the legend:

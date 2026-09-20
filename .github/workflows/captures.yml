@@ -22,6 +22,12 @@ name: Captures
 # about — so call it 17 min. No screen was added: the eight files are one
 # screen's two widths in both themes and both languages.
 #
+# R80: 161 since v2.0 split the live page into its two states (FR-WATCH-9 f) —
+# `live-watching` and `live-scrubbing` at the eight widths `live` had, so the
+# set grows by one screen's worth of files and no screen is added or dropped.
+# Call it 22 min. The redesign changed the cold open, the home, the settings
+# page and the sky screen without changing what the set names them.
+#
 # This job commits nothing. It uploads the set as an artefact and fails when a
 # capture is missing — the committed files under `docs/screenshots/` are cleared
 # before the run, so the check is about what this run produced and not about

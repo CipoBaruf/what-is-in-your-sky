@@ -1936,7 +1936,7 @@ Decision blocks (§16.2), reserved before wave 1: **R74 D-454..D-460, R75 D-461.
     - `npm test`, lint and typecheck green.
     - The owner's gate: a browser window dragged short in both states, beside the matrix's numbers.
 
-- [ ] **R80 — v2.0 release preparation**
+- [x] **R80 — v2.0 release preparation** — done as written, with four things the entry did not predict, recorded in PLAN D-495..D-499. `main` measures **158.0 KB against its 155 budget**, so PLAN §11's standing instruction applies and the budget is *not* raised: F-69 in §4.20 carries it, with the mark's share measured by ablation at 5.2 KB (152.8 with `Mark.tsx` stubbed) and the other 12.7 KB of the phase's growth named beside it. "The cold open and the settings page added" is read as a re-shoot and not as new screen names (D-496): `location` *is* the cold open and `settings` has been in the set since R53, and FR-FIRST-7, FR-SET-4 and FR-GUT-8 each ask only for a re-shoot — so the only screen the set gains is the live page's second state. **F-66 did not reproduce** on the 2.0.0 build and stays open (D-497), and the probe that looked for it found a second nondeterministic capture, `sky-screen-chip` at 844, filed as F-70. OQ-33 is the one question left open, with its reason: no fixture in the repository has a night with no dark band, so the revisit it asks for has nothing to look at.
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner

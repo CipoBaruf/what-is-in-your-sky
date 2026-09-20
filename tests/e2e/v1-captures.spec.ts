@@ -24,6 +24,13 @@
  * the panel is another spec's job, and a capture run that waited for three
  * recomputes to photograph a list would be paying a minute for a picture.
  *
+ * R80 (SPEC §9 Phase 2g): the set is re-shot for v2.0 and gains one route —
+ * `live-scrubbing`, the live page after a `[ scrub ]`. Every other screen the
+ * redesign changed is reached the way it already was, because what moved is the
+ * page and not the way in: the cold open and the home are board 1B's three
+ * readings, the settings page is inverted, and the sky screen's legend strip is
+ * a compass gutter.
+ *
  * **Two places, because the screens want different skies.** The chart screens
  * are `live-captures.spec.ts`'s Paris moment — the one instant in the committed
  * fixtures where a pass is under way, the Moon is 60° up and the Sun is inside
@@ -35,7 +42,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
 import { CAPTURE_DIR, captureName, LOCALES, SCREENS, THEMES, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
-import { domeDrawn, heading, hhmmss, openLegend, openSettings, stripFilled, stubCompass } from './liveHelpers';
+import { domeDrawn, enterScrubbing, heading, hhmmss, openLegend, openSettings, stripFilled, stubCompass } from './liveHelpers';
 // Both observers are at altitude 0, which is what typing a coordinate pair gives (FR-LOC-4) and what
 // the committed pass ids were computed at: a seeded altitude would move every pass start by a second
 // or two and the glare pass would no longer be found by its id. Only Paris is observed from; Neuquén
@@ -555,8 +562,32 @@ const REACH: Record<string, Reach> = {
     await expect(page.getByRole('main')).toHaveAttribute('inert', '');
   },
 
-  async live(page, width, theme, locale) {
+  /**
+   * R80 (FR-WATCH-1, FR-WATCH-4, FR-WATCH-9 f): the live page's two states, one
+   * screen each. `live-watching` is the page as it opens — `liveAt` already
+   * leaves it there, since the clock is at the shown instant from the start and
+   * nothing has scrubbed.
+   */
+  async 'live-watching'(page, width, theme, locale) {
     await liveAt(page, width, theme, locale);
+  },
+
+  /**
+   * `live-scrubbing` is the same page one `[ scrub ]` on. The instant is held at
+   * `SHOWN`, which is where the page already was, so the pair of pictures
+   * differs by the state and by nothing else — which is what makes them
+   * readable side by side (FR-WATCH-7).
+   */
+  async 'live-scrubbing'(page, width, theme, locale) {
+    await liveAt(page, width, theme, locale);
+    await enterScrubbing(page);
+    // The stripe's chunk, its 24 h overview and the playback row all draw on timers the paused clock is holding.
+    await page.clock.runFor(1000);
+    // FR-WATCH-4's scrubbing inventory, so a picture cannot be of a half-revealed block.
+    for (const row of ['time-row', 'time-stripe', 'step-controls', 'playback-row']) await expect(page.getByTestId(row)).toBeVisible();
+    // `[ scrub ]` holds the instant the page was showing, so the pair differs by the state and nothing else.
+    expect(Math.abs(Number(await page.getByTestId('time-stripe').getAttribute('aria-valuenow')) - SHOWN)).toBeLessThanOrEqual(TICK_MS);
+    await page.mouse.move(0, 0);
   },
 
   /** R64 (FR-FSC-1, FR-FSC-4, FR-FSC-7): the four states of the screen `[ follow phone ]` opens. */
