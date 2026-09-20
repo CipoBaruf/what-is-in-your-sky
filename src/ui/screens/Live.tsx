@@ -478,7 +478,9 @@ function LiveSky({ observer, link, onLeave }: { observer: Observer; link: LiveLi
           )}
         </div>
         <div className={styles.dome} data-testid="live-dome" data-stripe-under={false}>
-          <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} />
+          {/* R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): `moonPhase` is the compact page's alone — the phase and
+              the illumination its conditions line gave up. The wide page below leaves the legend's plain Moon line. */}
+          <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} moonPhase />
         </div>
         <div className={styles.side} data-testid="live-side">
           {conditions}

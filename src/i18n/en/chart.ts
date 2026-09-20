@@ -37,8 +37,9 @@ export const chart = {
       empty: 'nothing up right now',
       state: { live: 'up', ahead: 'soon', linger: 'gone' } satisfies Record<'live' | 'ahead' | 'linger', string>,
       sun: (p: { azimuth: string; altitude: string }) => `Sun · az ${p.azimuth} · alt ${p.altitude}`,
-      /** R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): the phase and illumination, which leave the compact live conditions line for this one. */
-      moon: (p: { glyph: string; phase: string; illumination: string; azimuth: string; altitude: string }) => `${p.glyph} Moon ${p.phase}, ${p.illumination} % · az ${p.azimuth} · alt ${p.altitude}`,
+      moon: (p: { glyph: string; azimuth: string; altitude: string }) => `${p.glyph} Moon · az ${p.azimuth} · alt ${p.altitude}`,
+      /** R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): the phase and illumination, which leave the *compact* live conditions line for this one. FR-MOON-3 leaves the wide live page and every other legend the plain line above. */
+      moonLit: (p: { glyph: string; phase: string; illumination: string; azimuth: string; altitude: string }) => `${p.glyph} Moon ${p.phase}, ${p.illumination} % · az ${p.azimuth} · alt ${p.altitude}`,
     },
     domeGroup: 'Sky dome',
     domeHint: 'Drag the dome, or use the arrow keys, to look around.',

@@ -169,6 +169,12 @@ export interface SkyChartProps {
    */
   screen?: boolean;
   /**
+   * R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): the legend's Moon line carries the phase and the
+   * illumination. The compact live page alone passes it — that is the line its conditions line hands
+   * them to — and FR-MOON-3 leaves the Now panel, the wide live page and every other legend unchanged.
+   */
+  moonPhase?: boolean;
+  /**
    * FR-FSC-1 / D-322 (R62): the page's own children over everything on a
    * `screen` — the follow screen's `×`. The chart neither builds this nor reads
    * it: the frame places it in its overlay slot, above the drawing, the readout

@@ -16,6 +16,7 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".chart.legend.empty:string",
   ".chart.legend.label:string",
   ".chart.legend.moon:function",
+  ".chart.legend.moonLit:function",
   ".chart.legend.state.ahead:string",
   ".chart.legend.state.linger:string",
   ".chart.legend.state.live:string",

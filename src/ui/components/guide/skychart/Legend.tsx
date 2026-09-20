@@ -59,19 +59,26 @@ export interface LegendProps {
    * is what goes: on a screen the picture is the peak.
    */
   screen?: boolean;
+  /**
+   * R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): the Moon line carries the phase and the illumination.
+   * The compact live page alone sets it, because that is the line its conditions line gives them to;
+   * FR-MOON-3 leaves the Now panel and the wide live page unchanged, so everywhere else reads the
+   * plain line. R79's sky screen draws the legend too, and is not this page.
+   */
+  moonPhase?: boolean;
 }
 
 /**
  * R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): the Moon line's phase and illumination — `☽ Moon waxing
  * crescent, 18 % · az …` — which the compact live page's conditions line gives to the list panel.
  */
-function moonLit(line: BodyLine, t: Messages): { phase: string; illumination: string } {
+function moonLitFacts(line: BodyLine, t: Messages): { phase: string; illumination: string } {
   if (!line.moon) return { phase: '', illumination: '' };
   const facts = moonFacts(line.moon);
   return { phase: t.moon.phase[facts.phase], illumination: facts.illumination };
 }
 
-export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow, lead, screen = false }: LegendProps) {
+export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow, lead, screen = false, moonPhase = false }: LegendProps) {
   const t = useT();
   const locale = useLocale();
   const words = t.chart.legend;
@@ -130,7 +137,9 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
           <span className={styles.name}>
             {line.body === 'sun'
               ? words.sun({ azimuth: degrees(line.azDeg), altitude: formatSignedDegrees(line.altDeg, locale) })
-              : words.moon({ glyph: line.moon ? moonGlyph(line.moon) : '', ...moonLit(line, t), azimuth: degrees(line.azDeg), altitude: formatSignedDegrees(line.altDeg, locale) })}
+              : moonPhase
+                ? words.moonLit({ glyph: line.moon ? moonGlyph(line.moon) : '', ...moonLitFacts(line, t), azimuth: degrees(line.azDeg), altitude: formatSignedDegrees(line.altDeg, locale) })
+                : words.moon({ glyph: line.moon ? moonGlyph(line.moon) : '', azimuth: degrees(line.azDeg), altitude: formatSignedDegrees(line.altDeg, locale) })}
           </span>
         </li>
       ))}

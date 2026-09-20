@@ -22,6 +22,8 @@ import { stubResizeObserver } from '../../../../../tests/support/resizeObserver'
 import { formatClock } from '../../../../lib/timeFormat';
 import type { Observer } from '../../../../model';
 import { appStore } from '../../../../state';
+import { en } from '../../../../i18n/en';
+import { MOON_FIXTURE } from '../../../../../tests/support/moonFixtures';
 import { resetOrientationAccess } from './window/orientationAccess';
 import { offeredViews, SKY_CHART_VIEWS, SkyChart } from './SkyChart';
 
@@ -183,6 +185,24 @@ describe('the chart as a screen (FR-FSC-1, FR-FSC-3, D-322)', () => {
     const plainList = within(plain.container).getByTestId('chart-legend');
     expect(plainList).toHaveAttribute('data-screen', 'false');
     expect(within(plainList).getByRole('button', { name: /./ }).textContent).toContain(clock(pass.peak.t));
+  });
+
+  /**
+   * R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): the phase and the illumination are the *compact* live page's,
+   * which is the only caller of `moonPhase`. FR-MOON-3 leaves the Now panel and the wide live page unchanged,
+   * and the sky screen's own legend with them, so the plain line is what every other legend draws.
+   */
+  it('carries the Moon phase only where the page asks for it', () => {
+    const sun = { t: MOON_FIXTURE.t, azDeg: 285, altDeg: -8 };
+    const lit = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} moon={MOON_FIXTURE} moonPhase />);
+    const litLine = within(lit.container).getByTestId('chart-legend').querySelector('[data-body="moon"]');
+    expect(litLine).toHaveTextContent(`Moon ${en.moon.phase.waningGibbous}, 72 %`);
+
+    const plain = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} moon={MOON_FIXTURE} />);
+    const plainLine = within(plain.container).getByTestId('chart-legend').querySelector('[data-body="moon"]');
+    expect(plainLine).not.toHaveTextContent('72 %');
+    expect(plainLine).not.toHaveTextContent(en.moon.phase.waningGibbous);
+    expect(plainLine?.textContent).toMatch(/Moon · az /);
   });
 
   /** The rails belong to the live page's box, and a screen has no box to hang them off (D-322). */
