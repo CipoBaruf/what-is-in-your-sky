@@ -101,6 +101,8 @@ interface Row {
   setUp?: () => void;
   /** Tighter than `BUDGET` where FR-COMP-4 names a number for the row itself (R70: the stepping row's 35); for a row set at `--small`, the same 390 px counted in its own characters. */
   budget?: number;
+  /** R82: the row's width where `rowCells` cannot see it all (a rule on an item that holds a control). */
+  measure?: (element: Element) => number;
 }
 
 const chartView = (): ReactElement =>
@@ -181,6 +183,19 @@ const rows = (t: Messages): readonly Row[] => [
     find: () => screen.getByTestId('step-line'),
     budget: Math.floor((BUDGET * 16) / 14),
   },
+  // R82 (FR-FIRST-4 as amended v2.0.2): on the what step two steps are finished, `01 where ✓ ── 02 when ✓ ── [03] what`,
+  // each a control back to its step — the line at its longest. A finished item holds its control, and `cells.ts`
+  // counts a rule only on a leaf, so the line is its items' text and the stylesheet's ` ── ` between each pair.
+  {
+    name: 'the step line with two steps finished (FR-FIRST-4)',
+    element: createElement(StepLine, { current: 'what', reached: 'what', onGo: noop }),
+    find: () => screen.getByTestId('step-line'),
+    measure: (line) => {
+      const items = [...line.children].map((item) => item.textContent);
+      return items.join(' ── ').length;
+    },
+    budget: SMALL_BUDGET,
+  },
   // R76 (FR-FIRST-2): the primary action's label line; the button is the whole box now, and the note in it is a sentence and wraps.
   {
     name: 'the primary action (FR-FIRST-2)',
@@ -254,8 +269,52 @@ describe.each(LOCALES)('FR-COMP-4: every compact control row fits %s in 36 cells
     row.setUp?.();
     render(createElement(I18nProvider, { locale, children: row.element }));
     const element = row.find();
-    const cells = rowCells(element, table);
+    const cells = row.measure ? row.measure(element) : rowCells(element, table);
     expect(cells, `${row.name} in ${locale}: ${rowParts(element, table).join(' | ')}`).toBeLessThanOrEqual(row.budget ?? BUDGET);
+  });
+});
+
+/**
+ * R82 (FR-FIRST-4 as amended v2.0.2, FR-COMP-4): the phone's when and what
+ * steps. Their rows are a label at the left and a value at the right with at
+ * least a cell between (`Steps.module.css` `.row`), so a row is the two and a
+ * cell; they are counted here at their longest — the longest phase at 100 %,
+ * the longest cloud word, two-digit counts, a clock that has to say UTC —
+ * rather than at whatever the fixture's night happens to hold. The bracketed
+ * controls draw `[ ` and ` ]` round their text. The more controls and the foot
+ * line break between their pieces where a phone cannot hold them all (as the
+ * count and sort line does), so each piece is a row, and `[ edit ]` stands on
+ * the foot's last line with the cloud word; the foot is set at `--small`.
+ */
+describe.each(LOCALES)('FR-FIRST-4: every row of the phone’s steps fits %s in 36 cells', (locale: Locale) => {
+  const t = CATALOGS[locale];
+  const row = (label: string, value: string): number => label.length + 1 + value.length;
+  const control = (text: string): number => `[ ${text} ]`.length;
+  const clock = '05:31 UTC';
+  const phases = ['new', 'waxingCrescent', 'firstQuarter', 'waxingGibbous', 'full', 'waningGibbous', 'lastQuarter', 'waningCrescent'] as const;
+  const clouds = ['clear', 'partly', 'obscured', 'unknown'] as const;
+
+  it.each([
+    ['Dark from', () => row(t.home.whenStep.darkFrom, clock)],
+    ['Until', () => row(t.home.whenStep.until, clock)],
+    ['Passes in it', () => row(t.home.whenStep.passesIn, t.home.whenStep.passesValue({ tonight: 99, total: 99, hours: 72 }))],
+    ['Clouds tonight', () => Math.max(...clouds.map((cloud) => row(t.home.whenStep.clouds, t.weather.state[cloud])))],
+    ['Moon', () => Math.max(...phases.map((phase) => row(t.home.whenStep.moon, t.home.whenStep.moonValue({ phase, illumination: '100' }))))],
+    ['[ See what crosses ]', () => control(t.home.whenStep.next)],
+    ['[ n more tonight ]', () => control(t.home.whatStep.moreTonight(99))],
+    ['[ n more nights ]', () => control(t.home.whatStep.moreNights(99))],
+  ] as const)('the %s row', (_name, cells) => {
+    expect(cells()).toBeLessThanOrEqual(BUDGET);
+  });
+
+  it('the foot line, piece by piece at --small, with [ edit ] on its last line', () => {
+    for (const cloud of clouds) {
+      const pieces = t.home.whatStep.foot({ place: '−38.93, −67.99', dark: { from: '20:14', to: clock }, cloud });
+      const last = pieces[pieces.length - 1] ?? '';
+      for (const piece of pieces.slice(0, -1)) expect(`${piece} ·`.length, piece).toBeLessThanOrEqual(SMALL_BUDGET);
+      expect(last.length + 1 + control(t.home.whatStep.edit), last).toBeLessThanOrEqual(SMALL_BUDGET);
+    }
+    expect(t.home.whatStep.foot({ place: 'x', dark: 'none', cloud: 'unknown' })[1]?.length).toBeLessThanOrEqual(SMALL_BUDGET);
   });
 });
 

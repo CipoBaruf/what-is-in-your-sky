@@ -3,8 +3,9 @@
  * as three readings, where only a browser can answer.
  *
  * The first run on a phone: the cold open's one primary action, answered by a
- * stubbed `geolocation`, turns the page into the countdown without a
- * navigation — the same document, the same URL, no `#settings`. Then the three
+ * stubbed `geolocation`, moves the page through R82's three steps without a
+ * navigation — the same document, the same URL, no `#settings` — and a reload
+ * is the stacked page with the countdown. Then the three
  * readings at the three widths that decide their layout: 964 and 1024 px are
  * FR-DESK-2's two columns with Where above When, 1280 px is three equal panes.
  * And at 1280 × 800 an open pass takes the first two panes' width, with the list
@@ -29,20 +30,27 @@ async function cellPx(page: Page): Promise<number> {
 /** FR-FIRST-3 as amended v2.0.2: `Next up · in 3:45:07`, `Up now · peaks in 1:10`, `Up now · sets in 2:05`. */
 const NEXT_LABEL = /^(Next up · in|Up now · (peaks|sets|enters shadow|fades) in) (\d+:)?\d\d?:\d\d$/;
 
-test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3)', () => {
+/**
+ * R82 (FR-FIRST-4 as amended v2.0.2, D-513, D-514): the first visit on a phone
+ * is three steps, and a reload is the stacked page — one page load and one
+ * reload. The steps are the page's own state: the same document and the same
+ * URL throughout, never `#settings`.
+ */
+test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test('[ Use my location ] turns the cold open into the countdown, with no navigation', async ({ page, context }) => {
+  test('walks where → when → what with no navigation, and a reload opens on the stacked page', async ({ page, context }) => {
     await context.grantPermissions(['geolocation']);
     await context.setGeolocation({ latitude: ha.observer.lat, longitude: ha.observer.lon, accuracy: 300 });
     await page.clock.setFixedTime(NINE_DAYS_ON);
     await stubNetwork(page);
     await page.goto('/');
 
+    const steps = page.getByRole('list', { name: 'Steps' }).getByRole('listitem');
     const cold = page.getByTestId('cold-open');
     await expect(cold).toBeVisible();
     // The dashes between the steps are the stylesheet's; the three items are the text.
-    await expect(page.getByRole('list', { name: 'Steps' }).getByRole('listitem')).toHaveText(['[01] where', '02 when', '03 what']);
+    await expect(steps).toHaveText(['[01] where', '02 when', '03 what']);
     const primary = cold.getByRole('button', { name: 'Use my location' });
     await expect(primary).toBeVisible();
     // The one primary action is the first control of the group: the place field and the coordinates come after it.
@@ -57,20 +65,61 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3)', () => {
     });
     await primary.click();
 
+    // when: the step line with where finished, the question, the night's box and the sky's, and the control at the foot.
+    const when = page.getByTestId('step-when');
+    await expect(when).toBeVisible();
+    await expect(cold).toHaveCount(0);
+    await expect(steps).toHaveText(['01 where ✓', '[02] when', '03 what']);
+    await expect(when.getByRole('heading', { level: 2, name: 'When is it dark enough?' })).toBeFocused();
+    await expect(when.getByText('−38.93, −67.99, tonight. Satellites are only lit in the dark band between dusk and dawn.')).toBeVisible();
+    await expect(when.getByTestId('when-passes')).toHaveText(/^\d+ tonight, \d+ in 72 h$/, { timeout: 60_000 });
+    await expect(when.getByTestId('tonight-stripe')).toBeVisible();
+    await expect(when.locator('[data-row="until"] dt')).toHaveText('Until');
+    await expect(when.getByTestId('moon-note')).toHaveText(/^A bright moon washes out the faint ones\. Tonight it will( not)?\.$/);
+    // One screen tall: the control stands at the foot of the 844 px screen.
+    const next = when.getByRole('button', { name: 'See what crosses' });
+    const nextBox = await next.boundingBox();
+    expect((nextBox?.y ?? 0) + (nextBox?.height ?? 0)).toBeGreaterThan(844 - 60);
+    expect((nextBox?.y ?? Infinity) + (nextBox?.height ?? 0)).toBeLessThanOrEqual(844);
+    await next.click();
+
+    // what: the count in words, the first card, the foot line with `[ edit ]`.
+    const what = page.getByTestId('step-what');
+    await expect(what).toBeVisible();
+    await expect(steps).toHaveText(['01 where ✓', '02 when ✓', '[03] what']);
+    await expect(what.getByRole('heading', { level: 2 }).first()).toHaveText(/^(One thing crosses|(Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve|\d+) things cross|Nothing crosses) tonight$/);
+    const first = what.getByTestId('next-event');
+    await expect(first).toHaveAttribute('data-form', 'card');
+    await expect(first.getByTestId('next-event-label')).toHaveText(/^(First up · in|Up now · (peaks|sets|enters shadow|fades) in) (\d+:)?\d\d?:\d\d$/);
+    const foot = what.getByTestId('what-foot');
+    await expect(foot).toContainText(/^−38\.93, −67\.99 · dark \d\d:\d\d–\d\d:\d\d( UTC)? · /);
+
+    // [ edit ] returns to where with the group open; the finished steps are the way back to when.
+    await foot.getByRole('button', { name: 'edit' }).click();
+    await expect(cold).toBeVisible();
+    await expect(page.getByTestId('location-group')).toBeVisible();
+    await expect(steps).toHaveText(['[01] where', '02 when ✓', '03 what ✓']);
+    await page.getByTestId('step-back-when').click();
+    await expect(when).toBeVisible();
+
+    expect(page.url()).toBe(url);
+    expect(await page.evaluate(() => (window as unknown as { __coldOpen?: boolean }).__coldOpen)).toBe(true);
+    await expect(page.getByTestId('settings-back')).toHaveCount(0);
+
+    // A later visit — the reload — is the stacked page, and never a step.
+    await page.reload();
     const block = page.getByTestId('next-event');
     // FR-FIRST-3 as amended v2.0.2: the label line, the clock time and the path.
     await expect(block.getByTestId('next-event-label')).toHaveText(NEXT_LABEL, { timeout: 60_000 });
     await expect(block.getByTestId('next-event-time')).toHaveText(/^\d\d:\d\d( \S+)?$/);
     await expect(block.getByTestId('next-event-path')).toHaveText(/^.+ · [NESW]{1,3}( low| \d+°)? → \d+° [NESW]{1,3} → [NESW]{1,3}( \d+°)?$/);
-    await expect(cold).toHaveCount(0);
+    await expect(page.getByTestId('step-line')).toHaveCount(0);
+    await expect(page.getByTestId('step-when')).toHaveCount(0);
     // FR-FIRST-11: the coordinates alone, and the sentence by the source with the accuracy the device gave.
     await expect(page.getByTestId('location-summary')).toHaveText('−38.93, −67.99');
     await expect(page.getByTestId('where-sentence')).toHaveText(/^Using your device's location \(±300 m\)\. Saved in this browser only\. /);
-    // The group folded away under the line: the device answered, so there is nothing left to type.
+    // The group folded away under the line.
     await expect(page.getByTestId('location-summary-change')).toHaveAttribute('aria-expanded', 'false');
-    expect(page.url()).toBe(url);
-    expect(await page.evaluate(() => (window as unknown as { __coldOpen?: boolean }).__coldOpen)).toBe(true);
-    await expect(page.getByTestId('settings-back')).toHaveCount(0);
 
     // FR-FIRST-4: the stacked page — Where, then When ending on the next event, then What; no dome on a phone (D-512).
     const [summaryBox, blockBox, listBox] = await Promise.all([page.getByTestId('location-summary').boundingBox(), block.boundingBox(), page.getByTestId('list-column').boundingBox()]);

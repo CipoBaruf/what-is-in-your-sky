@@ -49,7 +49,7 @@ describe('<App> frame (R12)', () => {
    * the full title and the tagline, is `App.wide.test.tsx`.
    */
   it('has the compact header, the cold open, the titled regions once there is a place, and the footer, with no axe violations while empty', async () => {
-    const { container } = render(<App />);
+    const first = render(<App />);
     const banner = screen.getByRole('banner');
     expect(within(banner).getByRole('heading', { level: 1, name: en.app.shortTitle })).toBeInTheDocument();
     expect(banner).not.toHaveTextContent(en.app.tagline);
@@ -60,12 +60,20 @@ describe('<App> frame (R12)', () => {
     expect(screen.getByRole('heading', { level: 2, name: en.home.coldHeading })).toBeInTheDocument();
     expect(screen.queryByTestId('location-summary')).toBeNull();
     expect(screen.getByRole('contentinfo')).toHaveTextContent('Orbital elements by CelesTrak.');
-    expect(await axe(container)).toHaveNoViolations();
+    expect(await axe(first.container)).toHaveNoViolations();
 
+    // R82 (FR-FIRST-4 as amended v2.0.2): on a phone's first visit the place moves the page on to the when step…
     act(() => {
       appStore.setState({ observer });
     });
     expect(screen.queryByTestId('cold-open')).toBeNull();
+    expect(screen.getByTestId('step-when')).toBeInTheDocument();
+    expect(await axe(first.container)).toHaveNoViolations();
+
+    // …and the next visit, with the place saved, opens on the three readings stacked.
+    first.unmount();
+    const { container } = render(<App />);
+    expect(screen.queryByTestId('step-when')).toBeNull();
     expect(screen.getByTestId('location-summary')).toHaveTextContent(observer.label);
     // R81 (FR-FIRST-5 as amended): the list keeps its named region; the Now panel is the When reading's table now.
     const list = screen.getByRole('region', { name: 'Upcoming passes' });

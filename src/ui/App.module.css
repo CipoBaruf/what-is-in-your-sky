@@ -113,6 +113,19 @@
   color: var(--accent);
 }
 
+/* R82 (FR-FIRST-4 as amended v2.0.2): a finished step, `01 where ✓`, is a
+   control back to it, drawn as the line's own dim text; `inline-control`
+   (global.css) gives it the 48 px box. */
+.stepBack {
+  padding-inline: 0;
+  min-height: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
 /* R76 (FR-FIRST-1, board 1B): the wide cold open's dimmed When and What — a
    heading at the question's size, then what the pane will hold, in
    `--fg-dim`, the stripe's placeholder in `--rule`. */
