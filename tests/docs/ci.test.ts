@@ -31,6 +31,22 @@ describe('the pull-request budget (FR-CI-1)', () => {
     expect(ci).toContain('FR-CI-1');
   });
 
+  /** D-526 (FR-CI-1 as amended v2.0.3, V20-24): the wait is the slowest shard, and the count is a constant like the budget. */
+  it('splits the e2e stage across the shards the constant names, each under the budget', () => {
+    const shards = Number(/CI_E2E_SHARDS: (\d+)/.exec(ci)?.[1]);
+    expect(shards).toBeGreaterThan(1);
+    // The matrix is that number written out, and the e2e stage is the only sharded one.
+    const matrix = /matrix:\n\s+shard: \[([^\]]+)\]/.exec(ci)?.[1];
+    expect(matrix?.split(',').map((n) => n.trim())).toEqual(Array.from({ length: shards }, (_, i) => String(i + 1)));
+    expect(ci).toContain('--shard=${{ matrix.shard }}/${{ strategy.job-total }}');
+    // One shard over the budget still fails the run: the timeout is the job's, and the matrix multiplies the job.
+    expect(ci).toMatch(/^\s*timeout-minutes: 10$/m);
+    // A red shard must not cancel its sibling and hide half the failures.
+    expect(ci).toMatch(/fail-fast: false/);
+    // Two shards would otherwise upload one artefact name twice, and the second would be refused.
+    expect(ci).toContain('name: playwright-report-shard-${{ matrix.shard }}');
+  });
+
   it('times every stage and writes the table to the job summary', () => {
     // Each stage goes through `stage.sh`, which records name, seconds and exit status…
     const stages = [...ci.matchAll(/stage\.sh (\w+) /g)].map((match) => match[1]);

@@ -1370,7 +1370,7 @@ After the `v1.4.0` tag. Still no backend and the same two providers. Six areas f
 - The first run: the cold open, one primary action, the countdown first, three readings on compact and three panes on wide (§4.28). *(v2.0.2)* As board 1B draws it: no hero mark, the wide cold open's three panes with two dimmed, the phone's first visit as three steps, and light panes — the stripe, the conditions table, the one-line cards.
 - The live page's two states at all four shapes, with scrubbing as an overlay on a short wide window (§4.30).
 - The compass gutter on the sky screen, and portrait no longer instructing (§4.31).
-- *(v2.0.3)* The e2e stage sharded across two jobs, so the phase's own tests stop spending the last seconds of FR-CI-1's budget (V20-24). Before the release, and no `src/` file changes.
+- *(v2.0.3)* The e2e stage sharded across two jobs, so the phase's own tests stop spending the last seconds of FR-CI-1's budget (V20-24). Shipped with the amendment itself: no `src/` file changes, and no task, because the runs it unblocks included the one that would have carried it.
 - The release: `package.json` 2.0.0, the D-179 set re-shot with the new and renamed screens, the budgets by the D-178 rule.
 
 Definition of done:

@@ -10,14 +10,29 @@ env:
   # minutes. This is the constant; `timeout-minutes` below is the same number
   # written out, because a job-level `timeout-minutes` cannot read `env`.
   CI_PR_BUDGET_MIN: 10
+  # D-526 (FR-CI-1 as amended v2.0.3, V20-24): the e2e stage runs in this many
+  # parallel shards, so the budget above is the reader's wait and not the run's
+  # machine time. It is the number a pull request has to raise in the open to
+  # make CI slower; `strategy.matrix.shard` below is the same number written
+  # out, because a matrix cannot read `env` either.
+  CI_E2E_SHARDS: 2
   STAGE_TIMES: stage-times.tsv
 
 jobs:
   ci:
     # PLAN §11: typecheck → lint → unit + golden + component + worker integration → build → Playwright.
     runs-on: ubuntu-latest
-    # FR-CI-1: CI_PR_BUDGET_MIN. The job fails when it runs over, rather than the budget being raised.
+    # FR-CI-1 as amended v2.0.3 (D-526): CI_PR_BUDGET_MIN, per shard. One shard
+    # over the budget still fails the run, so a suite that has outgrown two of
+    # them is a defect to fix rather than a budget to raise.
     timeout-minutes: 10
+    strategy:
+      # D-526: `fail-fast` off, so a red shard does not cancel the other one and
+      # hide half the failures from the reader it is meant to inform.
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    name: ci (shard ${{ matrix.shard }})
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -43,13 +58,16 @@ jobs:
       # FR-CI-2: the v1 capture set is not here. It runs on `main` (captures.yml) behind CAPTURES=1.
       # FR-CI-3: one worker per core (playwright.config.ts), and page specs load a stored run
       # instead of waiting on the 72 h search. A spec over 60 s on the list reporter is a defect.
-      - run: bash .github/workflows/stage.sh e2e npx playwright test
+      # D-526: Playwright sorts the spec files and cuts them into `job-total`
+      # shards, so the halves are the same on every run and no spec is dropped
+      # or shot twice. `workers: '100%'` (D-195, FR-CI-3) applies inside one.
+      - run: bash .github/workflows/stage.sh e2e npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }}
       # FR-CI-1: the stage table, in the job summary, on a pass and on a failure alike.
       - name: stage times
         if: always()
         run: |
           {
-            echo "## CI stages"
+            echo "## CI stages — shard ${{ matrix.shard }} of ${{ strategy.job-total }}"
             echo
             echo "| stage | wall time | |"
             echo "|---|---:|---|"
@@ -61,7 +79,7 @@ jobs:
       - uses: actions/upload-artifact@v5
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-shard-${{ matrix.shard }}
           path: playwright-report/
           retention-days: 7
           # A failure before Playwright runs leaves no report; that is not itself a problem.
