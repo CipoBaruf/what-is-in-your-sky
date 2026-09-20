@@ -400,6 +400,35 @@
   min-height: 0;
 }
 
+/* R78 (FR-WATCH-6, D-449): the bar over the bottom edge of the drawing — the
+   short wide live page's scrub block. It is inside the drawing's own box and
+   out of its flow, so the box is the same size with it and without, which is
+   the whole point of it: the picture does not jump when the bar comes up. The
+   surface is the sky screen's (`--screen-overlay`, below: the raised surface at
+   `--screen-overlay-alpha`), stated here in the same words since this frame is
+   not a `.screen`; this is its third use, after the screen's overlays and the
+   mechanism the list panel took (D-387). At most half the box, scrolling
+   inside past that, so the horizon and the bowl's top stay in view under it. */
+.frame[data-bottom-overlay='true'] .drawing {
+  position: relative;
+}
+
+.bottomOverlay {
+  --screen-overlay: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  box-sizing: border-box;
+  max-height: 50%;
+  overflow-y: auto;
+  /* Half a row above and below: the bar's control rows are one text row with a 48 px hit box (D-246), and the
+     half row each hit box overhangs by stays inside the bar instead of being cut by it or scrolling it. */
+  padding: calc(var(--row) / 2) var(--cell);
+  background: var(--screen-overlay);
+}
+
 .fill .status {
   min-height: var(--row);
 }

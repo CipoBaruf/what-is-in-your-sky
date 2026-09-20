@@ -6,8 +6,10 @@
  * and `[ back to live ]` puts the block away, returns the page to real time and takes the instant out of the
  * URL, so a link shared after it claims no held moment.
  *
- * At 390 × 844 and 1280 × 800 here; R78 extends the same spec to the landscape phone (844 × 390) and the short
- * wide window (1200 × 450), where the drawing's box must not move between the states.
+ * R78 (FR-WATCH-5, FR-WATCH-6, FR-WATCH-7; US-27 AC5): at all four shapes — 390 × 844, 844 × 390, 1280 × 800 and
+ * 1200 × 450. At the two short ones the drawing's box must not move between the states: on the short wide
+ * window the scrub block is a bar inside `chart-box`, whose height is identical in both, and on the landscape
+ * phone it is the rail's and the dome's column is identical in both.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { backToLive, domeDrawn, enterScrubbing, homeAt, stripFilled, T } from './liveHelpers';
@@ -21,16 +23,46 @@ const shown = async (page: Page): Promise<number> => Number(await page.getByTest
 /** The rows only scrubbing renders (FR-WATCH-4): absent while watching, not merely hidden. */
 const SCRUB_ROWS = ['time-row', 'time-stripe', 'step-controls', 'playback-row'] as const;
 
-for (const [width, height] of [
-  [390, 844],
-  [1280, 800],
-] as const) {
+/** FR-WATCH-9 b's four shapes, with where `scrubPlacement` (D-448) puts the scrub block at each. */
+const SHAPES = [
+  [390, 844, 'under'],
+  [844, 390, 'rail'],
+  [1280, 800, 'under'],
+  [1200, 450, 'overlay'],
+] as const;
+
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A box once it has stopped moving: the frame re-fits on a `ResizeObserver`, a frame or two after the state changes. */
+async function settledBox(page: Page, testId: string): Promise<Box> {
+  let last = '';
+  let box: Box | null = null;
+  await expect
+    .poll(async () => {
+      box = await page.getByTestId(testId).boundingBox();
+      const now = JSON.stringify(box);
+      const same = box !== null && now === last;
+      last = now;
+      return same;
+    })
+    .toBe(true);
+  if (box === null) throw new Error(`${testId} is not laid out`);
+  return box;
+}
+
+for (const [width, height, placement] of SHAPES) {
   test(`watching, then scrubbing: steps a pass, plays at 60× and returns to live at ${String(width)} × ${String(height)} (FR-WATCH-1, FR-WATCH-9 b)`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await homeAt(page, T);
     await page.getByTestId('live-link').click();
     await domeDrawn(page);
     await stripFilled(page);
+    const watching = { dome: await settledBox(page, 'live-dome'), box: await settledBox(page, 'chart-box') };
 
     // Watching (US-27 AC1): the next event is the headline, the mark runs beside `live`, the overview is the
     // one timeline, and the scrub block is not in the document at all.
@@ -53,6 +85,41 @@ for (const [width, height] of [
     await expect(page.getByTestId('next-event')).toHaveCount(0);
     for (const id of SCRUB_ROWS) await expect(page.getByTestId(id), `${id} is rendered while scrubbing`).toBeVisible();
     await expect(page.getByTestId('time-readout')).toHaveText(/^\d\d:\d\d · \+0 min$/);
+
+    /*
+     * R78 (FR-WATCH-5, FR-WATCH-6, FR-WATCH-7; US-27 AC5): what the state change does to the drawing's box. At
+     * the two short shapes, nothing: on the short wide window the block is a bar inside the box, over its bottom
+     * edge and at most half of it, and `chart-box` is the height it was; on the landscape phone the block is the
+     * rail's and the dome's column is where it was. On the two tall shapes the box yields to the block under it —
+     * on the reader's own tap, which is the one thing that may resize it.
+     */
+    const scrubbing = { dome: await settledBox(page, 'live-dome'), box: await settledBox(page, 'chart-box') };
+    if (placement === 'overlay') {
+      expect(scrubbing.box.height, 'chart-box is the same height watching and scrubbing').toBe(watching.box.height);
+      expect(scrubbing.box).toEqual(watching.box);
+      expect(scrubbing.box.height).toBeGreaterThanOrEqual(192);
+      const bar = await settledBox(page, 'chart-bottom-overlay');
+      expect(bar.y, 'the bar is inside the box').toBeGreaterThanOrEqual(scrubbing.box.y);
+      expect(bar.x).toBeGreaterThanOrEqual(scrubbing.box.x - 0.5);
+      expect(bar.x + bar.width).toBeLessThanOrEqual(scrubbing.box.x + scrubbing.box.width + 0.5);
+      expect(Math.abs(bar.y + bar.height - (scrubbing.box.y + scrubbing.box.height)), 'the bar is on the bottom edge').toBeLessThanOrEqual(0.5);
+      expect(bar.height, 'the bar covers at most half the box').toBeLessThanOrEqual(scrubbing.box.height / 2);
+      await expect(page.getByTestId('chart-bottom-overlay').getByTestId('stripe-block')).toBeVisible();
+      await expect(page.getByTestId('chart-stripe'), 'no row under the box').toHaveCount(0);
+      // The overview stays in the rail, and `[ back to live ]` at its head (FR-WATCH-6).
+      await expect(page.getByTestId('live-rail-foot').getByTestId('overview-row')).toBeVisible();
+      await expect(page.getByTestId('live-rail-head').getByTestId('live-now')).toBeVisible();
+    } else if (placement === 'rail') {
+      expect(scrubbing.dome, 'the dome column is the same watching and scrubbing').toEqual(watching.dome);
+      expect(scrubbing.box).toEqual(watching.box);
+      for (const id of SCRUB_ROWS) await expect(page.getByTestId('live-side').getByTestId(id), `${id} is in the rail`).toBeVisible();
+      await expect(page.getByTestId('live-rail-head').getByTestId('live-now')).toBeVisible();
+    } else {
+      expect(scrubbing.box.height, 'the box yields to the block under it on the tap').toBeLessThan(watching.box.height);
+      expect(scrubbing.box.height).toBeGreaterThanOrEqual(192);
+    }
+    await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', placement);
+
     const held = await shown(page);
     expect(held - T).toBeGreaterThanOrEqual(0);
     expect(held - T).toBeLessThan(10_000);
@@ -77,6 +144,8 @@ for (const [width, height] of [
     expect(played - rise).toBeGreaterThan(50_000);
     expect(played - rise).toBeLessThan(70_000);
     await expect(indicator).toHaveAttribute('data-state', 'held');
+    // FR-WATCH-7: a step onto a pass, a speed change and a minute of playback moved the box nowhere, at any shape.
+    expect(await settledBox(page, 'chart-box'), 'nothing the sky does resizes the box').toEqual(scrubbing.box);
     await page.getByRole('button', { name: 'Pause' }).click();
 
     // `[ back to live ]` (US-27 AC2): the block goes, the instant is real time again and advances on the tick,
@@ -87,8 +156,14 @@ for (const [width, height] of [
     await expect(page.getByTestId('next-event')).toBeVisible();
     await page.clock.runFor(600);
     await expect(page).toHaveURL(/#live$/);
+    // …and the watching box is the one the page opened with: the bar, the rail's rows or the block left no trace.
+    await expect(page.getByTestId('chart-bottom-overlay')).toHaveCount(0);
+    expect(await settledBox(page, 'chart-box')).toEqual(watching.box);
+    expect(await settledBox(page, 'live-dome')).toEqual(watching.dome);
   });
 }
+
+// R78 (FR-WATCH-9 f): the captures of both states at the two short shapes are `r78-captures.spec.ts`, run with CAPTURES=1.
 
 /** FR-WATCH-1 c (D-446): the URL is the state — a link with `t` opens scrubbing, a bare one watching, and a reload keeps it. */
 test('a #live link with an instant opens scrubbing, and a reload after back to live opens watching (FR-WATCH-1, FR-LIVE-9)', async ({ page }) => {

@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocale, useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
-import { foldRows } from '../../lib/layout';
+import { foldRows, scrubPlacement, unfoldedBoxHeightPx, type LiveFold, type ScrubPlacement } from '../../lib/layout';
 import { legendRows } from '../../lib/legend';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
@@ -12,7 +12,7 @@ import { useAppStore } from '../../state';
 import { LanguageToggle } from '../components/common/LanguageToggle';
 import { ShareButton } from '../components/common/ShareButton';
 import { ThemeToggle } from '../components/common/ThemeToggle';
-import { LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
+import { ChartFrameSlots, LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
 import { DOME_BOX_ASPECT } from '../components/guide/skychart/dome/camera';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
@@ -26,16 +26,17 @@ import { StripeOverview } from '../components/live/StripeOverview';
 import { TimeReadout } from '../components/live/TimeReadout';
 import { TimeStripe } from '../components/live/TimeStripe';
 import { useHiddenObjects } from '../components/live/useHiddenObjects';
+import { usePageShape } from '../components/live/usePageShape';
 import { usePlayback } from '../components/live/usePlayback';
 import { useSkyBands } from '../components/live/useSkyBands';
-import { useWakeLock } from '../components/live/useWakeLock';
+import { useWakeLock, type WakeLockState } from '../components/live/useWakeLock';
 import { useWallThrottle } from '../components/live/useWallThrottle';
 import { NextEventBlock } from '../components/passes/NextEventBlock';
 import { SkyScreen } from '../components/screen/SkyScreen';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import styles from './Live.module.css';
-import { rowsFor, type LiveRow } from './liveRows';
+import { liveShape, rowsFor, type LiveRow } from './liveRows';
 
 /**
  * R32 (FR-LIVE-1, FR-LIVE-2, FR-LIVE-3, FR-LIVE-9, FR-LIVE-10; US-15 AC1, AC2,
@@ -117,16 +118,6 @@ export function LivePage({ link, onLeave }: LivePageProps) {
    * tap targets, and FR-COMP-2 puts both on the settings page on a phone
    * (R52). Wide has the room and keeps them, as R32 laid the page out.
    */
-  const compact = useLayoutMode() === 'compact';
-  /*
-   * R69 (FR-SHP-3, F-65, D-381, D-389): on a wide window too short for the box's floor the rows under the box
-   * fold, in `lib/layout.ts`'s order, rather than the page scrolling. The answer is written on the page as
-   * `data-fold` — the rows folded, space-separated, or no attribute — and `Live.module.css` does the folding.
-   * The compact page keeps its own rules (FR-LIVE-7 as amended v1.2: its gaps give, then its box), so it
-   * carries no fold whatever its height.
-   */
-  const fold = useFold();
-
   /*
    * FR-LIVE-1: Esc returns. R35 moves this into the app-wide listener.
    *
@@ -170,25 +161,43 @@ export function LivePage({ link, onLeave }: LivePageProps) {
   // R34 (FR-LIVE-7): the screen stays awake while there is a sky to watch; an inert page asks for nothing.
   const wakeLock = useWakeLock(inert === null);
 
+  if (inert !== null || observer === null) {
+    return (
+      <Page state="inert" wakeLock={wakeLock} fold={NO_FOLD} placement={null}>
+        <TopRow place={observer?.label ?? null} indicator={null} screenOpen={screenOpen} onLeave={onLeave} />
+        <p className={styles.inert} data-testid="live-inert">
+          {inert}
+        </p>
+      </Page>
+    );
+  }
+  return <LiveSky observer={observer} link={link} wakeLock={wakeLock} onLeave={onLeave} />;
+}
+
+const NO_FOLD: readonly LiveFold[] = [];
+
+/**
+ * The page's own element. R69 (FR-SHP-3, D-381) writes the fold on it as `data-fold` — the rows folded,
+ * space-separated, or no attribute — and `Live.module.css` does the folding; the compact page keeps its own
+ * rules (FR-LIVE-7 as amended v1.2: its gaps give, then its box), so it carries no fold whatever its height.
+ *
+ * R78 (D-448): the fold is `LiveSky`'s to say, since it is decided from what the chart's frame has measured and
+ * from the state's rows, so the element is rendered by whichever of the two pages there is; the inert page has
+ * no box and folds nothing. `data-scrub-placement` is `scrubPlacement`'s answer, for the stylesheet and the tests.
+ */
+function Page({ state, wakeLock, fold, placement, children }: { state: 'live' | 'inert'; wakeLock: WakeLockState; fold: readonly LiveFold[]; placement: ScrubPlacement | null; children: ReactNode }) {
+  const compact = useLayoutMode() === 'compact';
   return (
     <div
       className={styles.page}
       data-testid="live-page"
-      data-state={inert === null ? 'live' : 'inert'}
+      data-state={state}
       data-wake-lock={wakeLock}
       data-compact={compact}
-      {...(!compact && fold !== '' ? { 'data-fold': fold } : {})}
+      {...(placement === null ? {} : { 'data-scrub-placement': placement })}
+      {...(!compact && fold.length > 0 ? { 'data-fold': fold.join(' ') } : {})}
     >
-      {inert !== null || observer === null ? (
-        <>
-          <TopRow place={observer?.label ?? null} indicator={null} screenOpen={screenOpen} onLeave={onLeave} />
-          <p className={styles.inert} data-testid="live-inert">
-            {inert}
-          </p>
-        </>
-      ) : (
-        <LiveSky observer={observer} link={link} onLeave={onLeave} />
-      )}
+      {children}
     </div>
   );
 }
@@ -227,27 +236,6 @@ function TopRow({ place, indicator, screenOpen, onLeave }: { place: string | nul
 }
 
 /**
- * R69 (FR-SHP-3): which rows the wide page folds at the viewport's height,
- * as `foldRows` answers for `innerHeight` — read through `useSyncExternalStore`
- * on `resize`, and stored as the joined answer rather than the height, so a
- * drag that crosses no fold threshold re-renders nothing. Without a window
- * (jsdom's tests mount the page with one; a server would not) nothing folds.
- */
-function useFold(): string {
-  return useSyncExternalStore(subscribeResize, foldSnapshot, noFold);
-}
-
-function subscribeResize(onChange: () => void): () => void {
-  window.addEventListener('resize', onChange);
-  return () => {
-    window.removeEventListener('resize', onChange);
-  };
-}
-
-const foldSnapshot = (): string => foldRows(window.innerHeight).join(' ');
-const noFold = (): string => '';
-
-/**
  * D-171: the hash follows the shown instant so a reload or a share lands on
  * it — written with `replaceState` (no history entry, no `hashchange`), at
  * most twice a second while scrubbing and never while playing, where it would
@@ -281,10 +269,26 @@ function useHashFollows(observer: Observer, shown: EpochMs, realTime: boolean, p
 }
 
 /** The page with something to draw: the chart, the headline, the conditions, the timelines, the controls and the share action, for one observer. */
-function LiveSky({ observer, link, onLeave }: { observer: Observer; link: LiveLink | null; onLeave: () => void }) {
+function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; link: LiveLink | null; wakeLock: WakeLockState; onLeave: () => void }) {
   const t = useT();
   const mode = useLayoutMode();
   const compact = mode === 'compact';
+  const shape = usePageShape();
+  /*
+   * R78 (FR-WATCH-5, FR-WATCH-6; D-448): where the scrub block goes, and what folds, from one measured number —
+   * the height the chart's frame has for the box with nothing under it (`ChartFrame`'s `onBoxSpace`), not the
+   * viewport's. The fold changes the rows that number is measured under, so it is stored with the fold in force
+   * taken back out (`unfoldedBoxHeightPx`): otherwise folding would hand the box the height that unfolds it
+   * again. `foldRef` is the fold the measured layout was drawn with — committed in a layout effect, which runs
+   * before the frame's observer reports on that layout. Neither answer reads the state, so at the short shapes
+   * the box is one height in the two (FR-WATCH-7).
+   */
+  const [boxHeightPx, setBoxHeightPx] = useState<number | null>(null);
+  const foldRef = useRef<readonly LiveFold[]>(NO_FOLD);
+  const onBoxSpace = useCallback((measuredPx: number) => {
+    setBoxHeightPx(unfoldedBoxHeightPx(measuredPx, foldRef.current));
+  }, []);
+  const placement = scrubPlacement({ mode, shape, boxHeightPx });
   const locale = useLocale();
   const passesState = useAppStore((s) => s.passes);
   const elements = useAppStore((s) => s.elements);
@@ -304,8 +308,15 @@ function LiveSky({ observer, link, onLeave }: { observer: Observer; link: LiveLi
    * beyond this line. `rowsFor` (D-447) is what the page renders in each.
    */
   const scrubbing = !playback.realTime;
-  const rows = useMemo(() => new Set(rowsFor(scrubbing ? 'scrubbing' : 'watching', mode, 'tall')), [scrubbing, mode]);
+  const inventory = useMemo(() => rowsFor(scrubbing ? 'scrubbing' : 'watching', mode, liveShape(placement)), [scrubbing, mode, placement]);
+  const rows = useMemo(() => new Set(inventory), [inventory]);
   const has = (row: LiveRow): boolean => rows.has(row);
+  // FR-SHP-3 as amended v2.0: the wide page's fold, from the same number and the state's own rows (D-447).
+  const foldKey = (compact ? NO_FOLD : foldRows(boxHeightPx, inventory)).join(' ');
+  const fold = useMemo<readonly LiveFold[]>(() => (foldKey === '' ? NO_FOLD : (foldKey.split(' ') as LiveFold[])), [foldKey]);
+  useLayoutEffect(() => {
+    foldRef.current = fold;
+  }, [fold]);
   // The passes belong to this observer only once the slice says so; before that the dome is empty rather than someone else's.
   const passes = useMemo(() => (passesState.observer === observer ? livePasses(passesState.passes, now) : []), [passesState.observer, passesState.passes, observer, now]);
   // FR-LIVE-5: the two bodies at most once per second of wall time, whatever the speed.
@@ -405,7 +416,10 @@ function LiveSky({ observer, link, onLeave }: { observer: Observer; link: LiveLi
   useLayoutEffect(() => {
     if (!overviewFocus.current || (document.activeElement !== null && document.activeElement !== document.body)) return;
     document.querySelector<SVGElement>('[data-testid="stripe-overview"]')?.focus();
-  }, [scrubbing]);
+    // R78 review: the placement moves it too. On a short wide window `scrubPlacement` flips between `under` and
+    // `overlay` as the box is resized, and the overlay's block is a different parent, so the row the reader was
+    // stepping is replaced without the state changing. Same loss of focus, same restore.
+  }, [scrubbing, placement]);
   const overview = has('overview') ? (
     <div
       className={styles.overviewRow}
@@ -429,10 +443,27 @@ function LiveSky({ observer, link, onLeave }: { observer: Observer; link: LiveLi
   const stripe = has('stripe') ? <TimeStripe span={span} passes={passes} bands={bands} t={shown} timeZone={observer.timeZone} speed={playback.playing ? playback.speed : null} onScrub={playback.scrub} /> : null;
   const steps = has('steps') ? <StepControls t={shown} span={span} passes={passes} onStep={playback.stepTo} /> : null;
   const conditions = <StatusStrip t={shown} timeZone={observer.timeZone} sky={bodies.sky} cloud={cloud} count={count} moon={bodies.moon} />;
+  /*
+   * R78 (FR-WATCH-5, FR-WATCH-6): wherever the page has a rail — wide, and the landscape phone — its head is the
+   * indicator with the clock, or with `[ back to live ]` while scrubbing, so the way out of the state stands in
+   * one place and never scrolls away with the rows under it. On compact portrait the control is on the actions row.
+   */
+  const backAtHead = !compact || placement === 'rail';
+  const indicatorLine = (
+    <div className={styles.indicatorLine}>
+      {indicator}
+      {has('clock') && (
+        <time className={styles.clock} data-testid="live-clock" dateTime={new Date(now).toISOString()}>
+          {formatClock(now, observer.timeZone, locale)}
+        </time>
+      )}
+      {has('back-to-live') && backAtHead && <BackToLive onNow={playback.toNow} />}
+    </div>
+  );
   const actions = (
     <div className={styles.actions} data-testid="live-actions">
       {has('scrub') && <ScrubButton onScrub={scrubHere} />}
-      {has('back-to-live') && compact && <BackToLive onNow={playback.toNow} />}
+      {has('back-to-live') && !backAtHead && <BackToLive onNow={playback.toNow} />}
       {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
       {has('list') && <LegendToggle open={legendOpen} count={legendCount} controls={LEGEND_PANEL_ID} onToggle={toggleLegend} />}
       {/* D-411: plain on compact — the brackets are what the row cannot afford (FR-COMP-4). */}
@@ -448,13 +479,54 @@ function LiveSky({ observer, link, onLeave }: { observer: Observer; link: LiveLi
    * wake lock, the hash — so closing gives back the page that has been running underneath all along; only its
    * grid is not built. The one-row header is left mounted and covered, `inert` (FR-FSC-1).
    */
-  const top = <TopRow place={observer.label} indicator={compact ? indicator : null} screenOpen={screenOpen} onLeave={onLeave} />;
+  const top = <TopRow place={observer.label} indicator={compact && placement !== 'rail' ? indicator : null} screenOpen={screenOpen} onLeave={onLeave} />;
+  const page = (children: ReactNode): ReactNode => (
+    <Page state="live" wakeLock={wakeLock} fold={fold} placement={placement}>
+      {children}
+    </Page>
+  );
   if (screenOpen) {
-    return (
+    return page(
       <>
         {top}
         <SkyScreen passes={chartPasses} observer={observer} now={shown} sun={bodies.sun} moon={bodies.moon} initialFacingAzDeg={0} onClose={closeScreen} />
-      </>
+      </>,
+    );
+  }
+
+  if (compact && placement === 'rail') {
+    /*
+     * R78 (FR-WATCH-5; D-173, D-448): the landscape phone. The dome has the `2fr` column and every row under the
+     * top one, in both states — nothing here is in its column but the frame — and the `3fr` rail holds the rest,
+     * in `liveRows.ts`'s order: the indicator with the clock, the headline, the conditions line, the overview and
+     * the actions while watching; scrubbing, `[ back to live ]` beside the indicator, the held instant in the
+     * headline's place, and the stripe, the step row and the playback row after the overview. The rail scrolls
+     * inside itself where a language or a height overflows it (D-119); the drawing does not move between the states.
+     */
+    return page(
+      <>
+        {top}
+        <div className={styles.dome} data-testid="live-dome" data-stripe-under={false}>
+          <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} moonPhase />
+        </div>
+        <div className={styles.side} data-testid="live-side">
+          <div className={styles.railHead} data-testid="live-rail-head">
+            {indicatorLine}
+            {nextEvent}
+            {has('time-row') && (
+              <div className={styles.timeRow} data-testid="time-row">
+                {readout}
+              </div>
+            )}
+          </div>
+          {conditions}
+          {overview}
+          {stripe}
+          {steps}
+          {playbackRow}
+          {actions}
+        </div>
+      </>,
     );
   }
 
@@ -466,7 +538,7 @@ function LiveSky({ observer, link, onLeave }: { observer: Observer; link: LiveLi
      * the overview, and while scrubbing the stripe, the step row and the playback row, then the actions. The box
      * is what the rows leave, so it is taller while watching; the reader's tap is what changes it (FR-WATCH-7).
      */
-    return (
+    return page(
       <>
         {top}
         <div className={styles.head} data-testid="live-head">
@@ -491,7 +563,7 @@ function LiveSky({ observer, link, onLeave }: { observer: Observer; link: LiveLi
           {playbackRow}
           {actions}
         </div>
-      </>
+      </>,
     );
   }
 
@@ -502,18 +574,19 @@ function LiveSky({ observer, link, onLeave }: { observer: Observer; link: LiveLi
    * under the box at the box's width — the time row with the playback controls beside the held instant (V12-13),
    * the overview, the stripe and the step row — and the frame re-fits the box to what the block leaves (D-314).
    * While watching there is no block, so the box takes the height down to the page's foot.
+   *
+   * R78 (FR-WATCH-6; D-448, D-449): on a short wide window — `scrubPlacement` answers `overlay` — the block is not
+   * a row of the frame at all. It goes to the frame's `bottomOverlay` slot, a bar over the bottom edge of the
+   * drawing, so the box is the same height in both states; the overview is not in the bar but in the rail's
+   * foot, where watching has it, so it is one element across the state change and keeps its focus. `[ back to
+   * live ]` is at the rail's head as ever, and dismisses the bar with the state. The frame's two page-side
+   * inputs — the bar, and the measurement this page decides all of it from — reach it past the view by
+   * `ChartFrameSlots` (D-449).
    */
+  const overlaid = placement === 'overlay';
   const railHead = (
     <div className={styles.railHead} data-testid="live-rail-head">
-      <div className={styles.indicatorLine}>
-        {indicator}
-        {has('clock') && (
-          <time className={styles.clock} data-testid="live-clock" dateTime={new Date(now).toISOString()}>
-            {formatClock(now, observer.timeZone, locale)}
-          </time>
-        )}
-        {has('back-to-live') && <BackToLive onNow={playback.toNow} />}
-      </div>
+      {indicatorLine}
       {nextEvent}
       {conditions}
     </div>
@@ -522,44 +595,46 @@ function LiveSky({ observer, link, onLeave }: { observer: Observer; link: LiveLi
     <div className={styles.side} data-testid="live-side">
       {railHead}
       <div className={styles.railFoot} data-testid="live-rail-foot">
-        {!scrubbing && overview}
+        {(!scrubbing || overlaid) && overview}
         {actions}
       </div>
     </div>
   );
   const scrubBlock = scrubbing ? (
-    <div className={styles.stripeBlock} data-testid="stripe-block">
+    <div className={styles.stripeBlock} data-testid="stripe-block" data-placement={placement}>
       {has('time-row') && (
         <div className={styles.timeRow} data-testid="time-row">
           {readout}
           {playbackRow}
         </div>
       )}
-      {overview}
+      {!overlaid && overview}
       {stripe}
       {steps}
     </div>
   ) : null;
-  return (
+  return page(
     <>
       {top}
-      <div className={styles.dome} data-testid="live-dome" data-stripe-under>
-        <SkyChart
-          passes={chartPasses}
-          observer={observer}
-          highlightedPassId={null}
-          now={shown}
-          sun={bodies.sun}
-          moon={bodies.moon}
-          hidden={hidden}
-          colorBy="pass"
-          fill
-          initialFacingAzDeg={0}
-          aside={side}
-          boxAspect={DOME_BOX_ASPECT}
-          {...(scrubBlock === null ? {} : { stripe: scrubBlock })}
-        />
+      <div className={styles.dome} data-testid="live-dome" data-stripe-under={!overlaid}>
+        <ChartFrameSlots.Provider value={{ onBoxSpace, ...(overlaid && scrubBlock !== null ? { bottomOverlay: scrubBlock } : {}) }}>
+          <SkyChart
+            passes={chartPasses}
+            observer={observer}
+            highlightedPassId={null}
+            now={shown}
+            sun={bodies.sun}
+            moon={bodies.moon}
+            hidden={hidden}
+            colorBy="pass"
+            fill
+            initialFacingAzDeg={0}
+            aside={side}
+            boxAspect={DOME_BOX_ASPECT}
+            {...(scrubBlock === null || overlaid ? {} : { stripe: scrubBlock })}
+          />
+        </ChartFrameSlots.Provider>
       </div>
-    </>
+    </>,
   );
 }

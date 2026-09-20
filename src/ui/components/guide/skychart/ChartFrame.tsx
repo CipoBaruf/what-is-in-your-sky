@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { fitBox } from '../../../../lib/layout';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import styles from './ChartFrame.module.css';
@@ -103,6 +103,23 @@ export interface ChartFrameProps {
   upright?: boolean;
   /** FR-GUT-7 (R79): what stands between the readout and the band upright — the next-event block. Ignored sideways and off a screen. */
   headline?: ReactNode;
+  /**
+   * FR-WATCH-6 (R78, D-449): a bar over the bottom edge of the drawing, inside
+   * the box's own box, on `--screen-overlay` — the third use of the surface the
+   * sky screen's overlays and the list panel's mechanism already use. It is
+   * not a row of the frame, so the drawing does not resize when it appears:
+   * the short wide live page's scrub block. Not placed on a `screen`, whose
+   * bottom edge is the gutter's. A page that reaches the frame through a view
+   * hands it in by `ChartFrameSlots` instead; the prop wins.
+   */
+  bottomOverlay?: ReactNode;
+  /**
+   * D-448 (R78): what the aspect-locked frame has measured for the box with
+   * nothing under it — its height less its controls row and the gap, `fitBox`'s
+   * height input before the stripe row — reported when it changes. The live
+   * page decides where its scrub block goes from this, not from the viewport.
+   */
+  onBoxSpace?: (heightPx: number) => void;
   className?: string;
   /** FR-LIVE-1 (R32): the drawing takes the frame's whole height instead of a capped square; the frame takes its parent's. */
   fill?: boolean;
@@ -136,8 +153,27 @@ export const LEGEND_OPEN_ROWS = 2;
  */
 export const LEGEND_PANEL_ID = 'live-legend-panel';
 
-export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe, boxAspect, stacked = false, screen = false, overlay, gutter, upright = false, headline, className, fill = false, children }: ChartFrameProps) {
+/**
+ * R78 (D-449): the two things a page hands the frame past the view that
+ * renders it. The views pass the frame what they place themselves — the
+ * legend, the rail, the stripe row — and know nothing of a bar over the box or
+ * of who reads the measurement, so these come by context, from the page that
+ * owns them (`Live.tsx`), and the frame's own props win where both are given.
+ */
+export const ChartFrameSlots = createContext<Pick<ChartFrameProps, 'bottomOverlay' | 'onBoxSpace'>>({});
+
+export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe, boxAspect, stacked = false, screen = false, overlay, gutter, upright = false, headline, bottomOverlay, onBoxSpace, className, fill = false, children }: ChartFrameProps) {
   const compact = useLayoutMode() === 'compact';
+  const slots = useContext(ChartFrameSlots);
+  const bar = bottomOverlay ?? slots.bottomOverlay;
+  const hasBar = bar !== undefined && bar !== null;
+  // The callback is read through a ref: a page's new closure is not a reason to measure again.
+  const reportSpace = onBoxSpace ?? slots.onBoxSpace;
+  const reportSpaceRef = useRef(reportSpace);
+  useEffect(() => {
+    reportSpaceRef.current = reportSpace;
+  }, [reportSpace]);
+  const lastSpace = useRef<number | null>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
   const stripeRef = useRef<HTMLDivElement>(null);
@@ -174,6 +210,12 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
       const below = (stripeHeight > 0 ? stripeHeight + gap : 0) + (legendHeight > 0 ? legendHeight + gap : 0);
       const rail = railProbeRef.current?.getBoundingClientRect().width ?? 0;
       const { width, height } = frame.getBoundingClientRect();
+      // D-448: the height the box has with nothing under it, said once per change, so a page that re-renders on it cannot feed the observer.
+      const space = Math.max(0, Math.floor(height - above - gap));
+      if (space !== lastSpace.current) {
+        lastSpace.current = space;
+        reportSpaceRef.current?.(space);
+      }
       const box = fitBox({
         frameWidthPx: width,
         frameHeightPx: height,
@@ -195,6 +237,7 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
     measure();
     return () => {
       observer.disconnect();
+      lastSpace.current = null;
       frame.style.removeProperty('--chart-box-w');
       frame.style.removeProperty('--chart-box-h');
     };
@@ -297,6 +340,7 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
         {...(legendOpen === undefined ? {} : { 'data-legend-open': legendOpen })}
         data-aside={hasAside}
         data-stripe={hasStripe}
+        data-bottom-overlay={hasBar}
         data-box={boxed}
         data-stacked={isStacked}
       >
@@ -307,6 +351,12 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
         </div>
         <div className={styles.drawing} data-testid="chart-box">
           {children}
+          {/* FR-WATCH-6 (D-449): inside the box's own box, so the box is the same size with it and without. */}
+          {hasBar && (
+            <div className={styles.bottomOverlay} data-testid="chart-bottom-overlay">
+              {bar}
+            </div>
+          )}
         </div>
         <div className={styles.status}>{status}</div>
         {hasStripe && (

@@ -28,6 +28,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { LANDSCAPE_PHONE_QUERY } from '../../src/lib/layout';
 
 const LIVE_CSS = 'src/ui/screens/Live.module.css';
 const css = readFileSync(LIVE_CSS, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -83,6 +84,11 @@ describe('the live stylesheet: the mode in every shape rule (FR-SHP-1, FR-SHP-2,
   it('has a shape rule to check', () => {
     expect(inMedia.length, `${LIVE_CSS} has no @media block — the landscape phone rule is not there`).toBeGreaterThan(0);
     expect(inMedia.map((rule) => rule.media)).toContain('@media (orientation: landscape) and (max-height: 500px)');
+  });
+
+  // R78 (D-448): `usePageShape` asks the same query, so what the page renders and what the stylesheet lays out are one shape.
+  it('is the query the page asks in script: every media query here is LANDSCAPE_PHONE_QUERY', () => {
+    for (const rule of inMedia) expect(rule.media).toBe(`@media ${LANDSCAPE_PHONE_QUERY}`);
   });
 
   it('names the mode in the selector of every rule inside a media query (FR-SHP-1)', () => {

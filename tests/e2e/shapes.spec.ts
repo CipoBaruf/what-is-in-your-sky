@@ -27,10 +27,10 @@
  * they measure today so a regression still fails.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { LIVE_BOX_MIN_PX, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
+import { foldBelowPx, LIVE_BOX_MIN_PX, liveKeptPx, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
 import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { fitFloor, painted, type Painted, type Rect } from './domeInk';
-import { domeDrawn, enterScrubbing, seedStoredRun, stripFilled } from './liveHelpers';
+import { backToLive, domeDrawn, enterScrubbing, seedStoredRun, stripFilled } from './liveHelpers';
 
 type Size = readonly [width: number, height: number];
 
@@ -98,17 +98,25 @@ const label = ([width, height]: Size): string => `${String(width)}x${String(heig
  *   page's own ("the compact page keeps its own rules"), so nothing here contradicts the requirement, but the
  *   smallest phone's bowl is a fifth of a row shallower than it was and this is where that is written down.
  */
-const FLOOR_ALLOWANCE: Readonly<Record<string, number>> = {
-  '964x420': 5.5 * ROW_PX,
-  '844x501': ROW_PX,
-  '360x640': 7 * ROW_PX,
-  // The 450 px rows, for the same reason as 964 × 420: 185 px measured against R69's 213, the stepping row's
-  // 24 folded pixels and its gap. R71's rail is where the wide page's rows are re-derived (D-386).
-  '1024x450': 7 * ROW_PX,
-  '1200x450': 7 * ROW_PX,
+/*
+ * R78 (FR-WATCH-6, D-448): the three short-and-wide rows that stood here — 964 × 420 at 5.5 rows, 1024 × 450 and
+ * 1200 × 450 at 7 — are gone. They were what the first bullet above says was owed: the scrub block under a box a
+ * short window had already cut small. The block is a bar over the drawing at those heights now, the fold table is
+ * re-derived, and every wide row of the matrix holds `LIVE_BOX_MIN_PX` itself, in both states. The two compact
+ * rows are the compact page's own rules and are held as they were — while scrubbing, which is the page they
+ * were measured on. Watching has no stripe block: 360 × 640 clears the floor there, and 844 × 501 — the portrait
+ * stack on a page wider than tall, the row FR-SHP-3 leaves to the compact page's own rules — measures 164 px,
+ * held at six and a half rows where the one number this table had held it at one.
+ */
+const FLOOR_ALLOWANCE: Readonly<Record<string, Partial<Record<'watching' | 'scrubbing', number>>>> = {
+  '844x501': { watching: 6.5 * ROW_PX, scrubbing: ROW_PX },
+  '360x640': { scrubbing: 7 * ROW_PX },
 };
 
-const floorFor = (size: Size): number => FLOOR_ALLOWANCE[label(size)] ?? LIVE_BOX_MIN_PX;
+/** The viewport height under which the actions fold too: the unfolded watching page's rows over the box height `foldRows` names (D-448). */
+const FOLD_ACTIONS_UNDER_VIEWPORT_PX = liveKeptPx('watching') + foldBelowPx('actions');
+
+const floorFor = (size: Size, state: 'watching' | 'scrubbing'): number => FLOOR_ALLOWANCE[label(size)]?.[state] ?? LIVE_BOX_MIN_PX;
 
 /**
  * R71: the stripe block's width from which its time row — the clock readout and the six playback controls —
@@ -263,8 +271,8 @@ function dropParts(found: Map<string, Rect>, container: string, parts: readonly 
 }
 const STRIP_FIELDS = ['strip time', 'strip sky', 'strip cloud', 'strip count', 'strip moon'] as const;
 
-async function openLive(page: Page): Promise<void> {
-  await seedStoredRun(page, { settled: true });
+async function openLive(page: Page, locale: 'en' | 'es' = 'en'): Promise<void> {
+  await seedStoredRun(page, { locale, settled: true });
   await page.getByTestId('live-link').click();
   await domeDrawn(page);
   await stripFilled(page);
@@ -273,13 +281,46 @@ async function openLive(page: Page): Promise<void> {
 test.describe('the shape matrix (FR-SHP-4)', () => {
   test.use({ viewport: { width: 1920, height: 1080 }, hasTouch: false });
 
-  test('the live page holds every invariant at every row, on one page resized (FR-LIVE-1, FR-LIVE-7, FR-DOME-1, FR-SHP-3)', async ({ page }) => {
+  /*
+   * R78 (FR-SHP-4 as amended v2.0, FR-WATCH-9 c): every row in both states of FR-WATCH-1 — watching as the page
+   * opens at the size, then `[ scrub ]`, then back — with every invariant held in each. At the short-and-wide
+   * rows the box is the same height in the two (FR-WATCH-6) and at the landscape-phone rows the dome's column is
+   * the same (FR-WATCH-5); everywhere else the box may yield to the block, on the reader's tap.
+   */
+  test('the live page holds every invariant at every row in both states, on one page resized (FR-LIVE-1, FR-LIVE-7, FR-DOME-1, FR-SHP-3, FR-SHP-4)', async ({ page }) => {
+    test.setTimeout(240_000);
     await openLive(page);
+    const shortWide = new Set(MATRIX.shortWide.map(label));
+    // 844 × 500 is the boundary row that is still the shape (D-173: at most 500 px high).
+    const landscapePhone = new Set([...MATRIX.landscapePhone.map(label), '844x500']);
     const rows: Size[] = [...MATRIX.compactPortrait, ...MATRIX.landscapePhone, ...MATRIX.shortWide, ...MATRIX.desktop, ...MATRIX.boundaries];
     for (const size of rows) {
       const [width, height] = size;
-      const at = label(size);
       await page.setViewportSize({ width, height });
+      const watching = await invariants(page, size, 'watching');
+      const watchingDome = await settledBox(page.getByTestId('live-dome'));
+      await enterScrubbing(page);
+      const scrubbing = await invariants(page, size, 'scrubbing');
+      const at = label(size);
+      if (shortWide.has(at)) {
+        await expect(page.getByTestId('live-page'), at).toHaveAttribute('data-scrub-placement', 'overlay');
+        expect(scrubbing.height, `${at}: the box is the same height watching and scrubbing (FR-WATCH-6)`).toBe(watching.height);
+      } else if (landscapePhone.has(at)) {
+        await expect(page.getByTestId('live-page'), at).toHaveAttribute('data-scrub-placement', 'rail');
+        expect(await settledBox(page.getByTestId('live-dome')), `${at}: the dome's column is the same watching and scrubbing (FR-WATCH-5)`).toEqual(watchingDome);
+        expect(scrubbing.height, `${at}: the box is the same height watching and scrubbing (FR-WATCH-7)`).toBe(watching.height);
+      } else {
+        await expect(page.getByTestId('live-page'), at).toHaveAttribute('data-scrub-placement', 'under');
+      }
+      await backToLive(page);
+    }
+  });
+
+  /** FR-SHP-4's invariants at one row in one state; the box it measured is returned for the state-to-state comparison. */
+  async function invariants(page: Page, size: Size, state: 'watching' | 'scrubbing'): Promise<Rect> {
+    {
+      const [width] = size;
+      const at = `${label(size)} ${state}`;
       const { box, ink } = await settled(page);
 
       // The mode is the width and nothing else (FR-SHP-1): compact under WIDE_MIN_PX, wide from it.
@@ -289,6 +330,25 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       const found = await rects(liveRows(page));
       dropParts(found, 'time row', ['time readout']);
       dropParts(found, 'strip', STRIP_FIELDS);
+      /*
+       * R78 (FR-WATCH-6): the one thing that lies over another by design — the scrub bar, inside the box and over
+       * its bottom edge. Its rows are taken out of the page's set and held to their own rules: clear of one
+       * another, inside the box, on its bottom edge and over at most half of it.
+       */
+      const bar = page.getByTestId('chart-bottom-overlay');
+      if ((await bar.count()) > 0) {
+        const parts = new Map<string, Rect>();
+        for (const name of ['time row', 'time stripe', 'stepping row']) {
+          const rect = found.get(name);
+          if (rect) parts.set(name, rect);
+          found.delete(name);
+        }
+        expectNoOverlap(parts, `${at}, inside the bar`);
+        const barBox = await settledBox(bar);
+        expect(barBox.y, `${at}: the bar is inside the box`).toBeGreaterThanOrEqual(box.y);
+        expect(Math.abs(barBox.y + barBox.height - (box.y + box.height)), `${at}: the bar is on the box's bottom edge`).toBeLessThanOrEqual(0.5);
+        expect(barBox.height, `${at}: the bar covers at most half the box`).toBeLessThanOrEqual(box.height / 2);
+      }
       expectNoOverlap(found, at);
 
       // Nothing scrolls: not sideways, and on the live page not at all (FR-LIVE-1 as amended v1.4).
@@ -297,16 +357,16 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       expect(scrolled.scrollHeight, `${at}: the live page scrolls`).toBeLessThanOrEqual(scrolled.innerHeight);
 
       // The box is at least the floor and has a drawing in it (US-25 AC2, FR-SHP-3).
-      expect(box.height, `${at}: the chart box is ${String(Math.round(box.height))} px tall`).toBeGreaterThanOrEqual(floorFor(size));
+      expect(box.height, `${at}: the chart box is ${String(Math.round(box.height))} px tall`).toBeGreaterThanOrEqual(floorFor(size, state));
       expect(box.width, at).toBeGreaterThan(0);
       expect(ink.layers.length, `${at}: no drawing in the box`).toBeGreaterThan(0);
       expect(ink.extent.x, `${at}: the drawing starts inside the box`).toBeGreaterThanOrEqual(box.x - 1);
       expect(ink.extent.x + ink.extent.width, `${at}: the drawing ends inside the box`).toBeLessThanOrEqual(box.x + box.width + 1);
-      if (OVERHANGS.has(at)) {
+      if (state === 'scrubbing' && OVERHANGS.has(label(size))) {
         // The one row whose box is under what the frame can paint into (see FLOOR_ALLOWANCE): the drawing
         // overhangs it by 9 px measured, held here so a worse overhang still fails.
         expect(ink.extent.y + ink.extent.height, `${at}: the drawing overhangs its box by more than R70 measured`).toBeLessThanOrEqual(box.y + box.height + ROW_PX / 2);
-        continue;
+        return box;
       }
       expect(ink.extent.y, `${at}: the drawing's top is inside the box`).toBeGreaterThanOrEqual(box.y - 1);
       expect(ink.extent.y + ink.extent.height, `${at}: the drawing's bottom is inside the box`).toBeLessThanOrEqual(box.y + box.height + 1);
@@ -328,8 +388,9 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       const floor = fitFloor(ink.layers, box) * shape;
       expect(cover, `${at}: the drawing covers ${String(Math.round(cover * 100))} % of the box's ${shorter} (${fmt(box)}), against a floor of ${floor.toFixed(3)} at this platform's cell`).toBeGreaterThanOrEqual(floor);
       expect(cover, at).toBeLessThanOrEqual(1 + 2 / box[shorter]);
+      return box;
     }
-  });
+  }
 
   test('the boundaries: the mode at 963 and 964 px, the shape at 500 and 501 px (FR-SHP-1, D-173)', async ({ page }) => {
     await openLive(page);
@@ -365,8 +426,8 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
 
   test('the short wide window: the desktop layout with a smaller box, the rows folded, no scroll (FR-SHP-3, F-65, US-25 AC3)', async ({ page }) => {
     await openLive(page);
-    // R77 (FR-WATCH-9 e): the rows this folds are the scrub block's, so the page is scrubbing; R78 turns the block
-    // into FR-WATCH-6's overlay at these heights and walks the matrix in both states.
+    // R77 (FR-WATCH-9 e): the time row is the scrub block's, so the page is scrubbing. R78 (FR-WATCH-6): at these
+    // heights the block is the bar over the drawing, and the matrix test above walks both states.
     await enterScrubbing(page);
     for (const size of MATRIX.shortWide) {
       const [width, height] = size;
@@ -375,9 +436,16 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       const { box } = await settled(page);
       const livePage = page.getByTestId('live-page');
       await expect(livePage, at).toHaveAttribute('data-compact', 'false');
-      // The fold is on, in the order (D-389): the overview row goes first, then the actions join the status strip's line.
-      await expect(livePage, at).toHaveAttribute('data-fold', 'overview actions');
-      await expect(page.getByTestId('stripe-overview'), `${at}: the overview row is folded away`).toBeHidden();
+      // The fold is on, in the order (FR-SHP-3 as amended v2.0): the control rows go to one text row, then the actions
+      // join the conditions' line — both at 480 px and under, the first alone at 1920 × 500 (`foldRows`, D-448).
+      await expect(livePage, at).toHaveAttribute('data-fold', height < FOLD_ACTIONS_UNDER_VIEWPORT_PX ? 'controls actions' : 'controls');
+      // The overview does not fold: it is the rail's, in both states (FR-WATCH-6).
+      await expect(page.getByTestId('live-rail-foot').getByTestId('stripe-overview'), `${at}: the overview stays in the rail`).toBeVisible();
+      await expect(page.getByTestId('chart-bottom-overlay').getByTestId('stripe-block'), `${at}: the scrub block is the bar`).toBeVisible();
+      if (height >= FOLD_ACTIONS_UNDER_VIEWPORT_PX) {
+        expect(box.height, at).toBeGreaterThanOrEqual(LIVE_BOX_MIN_PX);
+        continue;
+      }
       const actions = await page.getByTestId('live-actions').boundingBox();
       const moon = await page.getByTestId('live-moon').boundingBox();
       const sky = await page.getByTestId('live-sky').boundingBox();
@@ -403,7 +471,7 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       // The box is the desktop's: the dome's own shape, and no landscape grid (the page's rows are the page's width).
       await expect(page.getByTestId('chart-frame'), at).toHaveAttribute('data-box', 'true');
       expect(top?.width, `${at}: the top row is the page's width, not a 2fr column's`).toBeGreaterThan(width * 0.9);
-      expect(box.height, at).toBeGreaterThanOrEqual(floorFor(size));
+      expect(box.height, at).toBeGreaterThanOrEqual(floorFor(size, 'scrubbing'));
     }
     // Back above the floor: the fold comes off with the height (foldRows is monotonic), and the overview is back.
     await page.setViewportSize({ width: 1200, height: 700 });
@@ -413,6 +481,55 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
     const actions = await page.getByTestId('live-actions').boundingBox();
     expect(actions?.height).toBeGreaterThan(ROW_PX + 1);
   });
+
+  /*
+   * R78 (D-448): the decision is made from what the frame measures, and folding changes what it measures — the
+   * control rows give the box 46 px. If the rule read the folded number it would unfold itself and fold again,
+   * a frame apart, for ever. It reads the number with the fold taken back out, and this drags a window through
+   * the threshold, in both states, to hold that: at every height the page settles, the answer changes once and
+   * only once on the way down — at the table's own pixel — and the fold and the overlay arrive together.
+   *
+   * One pixel at a time for four either side of the turn, then every eight down through the 46 px the fold
+   * gives, which is the band a rule that fed itself would flicker in (FR-CI-1: 19 heights, not 60).
+   */
+  /** The viewport height at which the block under the box leaves the box exactly its floor: 602 px. */
+  const TURN_PX = liveKeptPx('watching') + foldBelowPx('controls');
+  const SWEEP_PX: readonly number[] = [TURN_PX + 16, TURN_PX + 8, ...Array.from({ length: 9 }, (_, index) => TURN_PX + 4 - index), ...Array.from({ length: 8 }, (_, index) => TURN_PX - 12 - 8 * index)];
+
+  // Both languages: the table counts the time row as Spanish wraps it (`LIVE_TIME_ROW_FLOOR_PX`), and the floor holds in each.
+  for (const locale of ['en', 'es'] as const) sweep(locale);
+
+  function sweep(locale: 'en' | 'es'): void {
+    test(`dragged short through the threshold: the placement turns once, with the fold, and the page settles at every height, ${locale} (D-448)`, async ({ page }) => {
+      await openLive(page, locale);
+      await sweepBody(page);
+    });
+  }
+
+  async function sweepBody(page: Page): Promise<void> {
+    {
+    for (const state of ['watching', 'scrubbing'] as const) {
+      if (state === 'scrubbing') await enterScrubbing(page);
+      const answers: string[] = [];
+      for (const height of SWEEP_PX) {
+        await page.setViewportSize({ width: 1200, height });
+        const { box } = await settled(page);
+        const livePage = page.getByTestId('live-page');
+        const placement = (await livePage.getAttribute('data-scrub-placement')) ?? '';
+        const fold = (await livePage.getAttribute('data-fold')) ?? '';
+        expect(fold === '' ? 'under' : 'overlay', `${state} at ${String(height)} px: the fold and the overlay are one decision`).toBe(placement);
+        expect(box.height, `${state} at ${String(height)} px`).toBeGreaterThanOrEqual(LIVE_BOX_MIN_PX);
+        answers.push(placement);
+      }
+      expect(answers[0], state).toBe('under');
+      expect(answers.at(-1), state).toBe('overlay');
+      expect(answers.filter((answer, index) => index > 0 && answer !== answers[index - 1]), `${state}: one turn on the way down`).toHaveLength(1);
+      // …and at the unfolded page's own arithmetic: under the box at the turn, over the drawing one pixel shorter.
+      expect(answers[SWEEP_PX.indexOf(TURN_PX)], state).toBe('under');
+      expect(answers[SWEEP_PX.indexOf(TURN_PX - 1)], state).toBe('overlay');
+    }
+    }
+  }
 
   test('the home page: no element over another and no sideways scroll at the compact-portrait and desktop rows', async ({ page }) => {
     await seedStoredRun(page, { settled: true });
