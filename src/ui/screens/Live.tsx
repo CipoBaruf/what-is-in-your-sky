@@ -416,7 +416,10 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   useLayoutEffect(() => {
     if (!overviewFocus.current || (document.activeElement !== null && document.activeElement !== document.body)) return;
     document.querySelector<SVGElement>('[data-testid="stripe-overview"]')?.focus();
-  }, [scrubbing]);
+    // R78 review: the placement moves it too. On a short wide window `scrubPlacement` flips between `under` and
+    // `overlay` as the box is resized, and the overlay's block is a different parent, so the row the reader was
+    // stepping is replaced without the state changing. Same loss of focus, same restore.
+  }, [scrubbing, placement]);
   const overview = has('overview') ? (
     <div
       className={styles.overviewRow}
