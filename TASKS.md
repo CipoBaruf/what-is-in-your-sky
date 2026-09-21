@@ -2077,7 +2077,8 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: the Spanish copy and the captures.
 
-- [ ] **R85 — The compact live rows in Spanish, and the short wide inventory's clip**
+- [x] **R85 — The compact live rows in Spanish, and the short wide inventory's clip**
+  - *Done differently:* the English scrubbing row needed a short `[ live ]` too (D-562); the inventory's header row and labelled times are in `Legend.tsx` and the chart catalogs (D-564, D-565).
   - **Lane:** live
   - **Model:** opus
   - **Gate:** owner
