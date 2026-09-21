@@ -388,6 +388,34 @@ describe('the phone’s first visit (FR-FIRST-4, D-513)', () => {
     expect(screen.getByTestId('step-when')).toBeInTheDocument();
   });
 
+  // R84 (FR-FIRST-2 as amended v2.1, US-26 AC7, F-86): the way forward is on the screen.
+  it('offers [ continue ] exactly while a typed pair is held, and it moves the step on', () => {
+    render(home());
+    const continueButton = () => screen.queryByRole('button', { name: en.location.continue });
+    expect(continueButton()).toBeNull();
+    const field = screen.getByLabelText(en.location.coordsLabel);
+    field.focus();
+    fireEvent.change(field, { target: { value: '-38.93, -' } });
+    expect(continueButton()).toBeNull();
+    fireEvent.change(field, { target: { value: '-38.93, -67.99' } });
+    expect(continueButton()).toBeInTheDocument();
+    // Under the coordinate fields, inside the group.
+    expect(within(screen.getByTestId('location-alternatives')).getByTestId('step-continue')).toBe(continueButton());
+    // An invalid pair drops the observer, and the control with it.
+    fireEvent.change(field, { target: { value: '-38.93, -6x' } });
+    expect(continueButton()).toBeNull();
+    fireEvent.change(field, { target: { value: '-38.93, -67.99' } });
+    const button = continueButton();
+    expect(button).not.toBeNull();
+    // Moving the focus onto it does not move the page on; pressing it does.
+    act(() => {
+      button?.focus();
+    });
+    expect(screen.queryByTestId('step-when')).toBeNull();
+    fireEvent.click(button as HTMLElement);
+    expect(screen.getByTestId('step-when')).toBeInTheDocument();
+  });
+
   it('opens on the stacked page, and never a step, with a place at mount', () => {
     act(() => {
       appStore.setState({ observer });
