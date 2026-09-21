@@ -22,12 +22,12 @@ export interface MoonGlareProps {
 }
 
 /** The trigger and its tooltip; the caller supplies the visible text and the class it wears. */
-function Tip({ moon, glare, children, className }: MoonGlareProps & { children: string; className: string | undefined }) {
+function Tip({ moon, glare, children, className, asText = false }: MoonGlareProps & { children: string; className: string | undefined; asText?: boolean }) {
   const t = useT();
   const tipId = useId();
   return (
     <span className={styles.wrap}>
-      <span className={`inline-control ${className}`} tabIndex={0} aria-describedby={tipId}>
+      <span className={asText ? `${className} ${styles.text}` : `inline-control ${className}`} {...(asText ? {} : { tabIndex: 0 })} aria-describedby={tipId}>
         {children}
       </span>
       <span role="tooltip" id={tipId} className={styles.tip}>
@@ -37,13 +37,16 @@ function Tip({ moon, glare, children, className }: MoonGlareProps & { children: 
   );
 }
 
-/** The label on a pass card, drawn `[moon glare]` the way the twilight and cloud labels are. */
-export function MoonGlareLabel({ moon, glare }: MoonGlareProps) {
+/**
+ * The label on a pass card, drawn `[moon glare]` the way the twilight and cloud labels are. R84 (D-548):
+ * `asText` inside a card whose whole box opens the pass — no tab stop and no pointer target of its own.
+ */
+export function MoonGlareLabel({ moon, glare, asText = false }: MoonGlareProps & { asText?: boolean }) {
   const t = useT();
   if (!glare.glare) return null;
   return (
-    <p className={styles.label} data-testid="moon-glare-label">
-      <Tip moon={moon} glare={glare} className={styles.badge}>
+    <p className={asText ? `${styles.label} ${styles.text}` : styles.label} data-testid="moon-glare-label">
+      <Tip moon={moon} glare={glare} className={styles.badge} asText={asText}>
         {t.moon.glare.label}
       </Tip>
     </p>

@@ -29,6 +29,14 @@
   color: var(--warn);
 }
 
+/* R84 (D-548): text inside a card's control — under the card's overlay, and the card's pointer. */
+.label.text,
+.badge.text {
+  position: static;
+  z-index: auto;
+  cursor: inherit;
+}
+
 .badge::before {
   content: '[';
 }
