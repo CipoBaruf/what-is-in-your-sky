@@ -89,7 +89,7 @@ describe('buildBrief', () => {
   });
 
   it('reports an id the documents do not carry instead of failing', () => {
-    const { markdown, missing } = buildBrief({ ...task('R41'), id: 'R99', findings: ['F-999'] }, sources, tools);
+    const { markdown, missing } = buildBrief({ ...task('R41'), id: 'R999', findings: ['F-999'] }, sources, tools);
     expect(missing).toContain('F-999');
     expect(markdown).toContain('entry not found in TASKS.md');
   });
