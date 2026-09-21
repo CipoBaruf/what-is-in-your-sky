@@ -182,7 +182,7 @@ test('the short wide inventory ends on a whole row with a +n line, and names its
   await expect(page.getByTestId('legend-times-header')).toHaveText(/^rise\s*peak\s*end$/);
   const geometry = await list.evaluate((ol) => {
     const box = ol.getBoundingClientRect();
-    const items = [...ol.children].map((li) => li.getBoundingClientRect());
+    const items = Array.from(ol.children, (li) => li.getBoundingClientRect());
     const shown = items.filter((item) => item.top < box.bottom - 0.5);
     return {
       top: box.top,
