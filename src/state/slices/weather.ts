@@ -2,6 +2,7 @@ import type { StateCreator } from 'zustand/vanilla';
 import { favouriteCellKey } from '../../data/favourites';
 import type { Observer, WeatherSnapshot } from '../../model';
 import type { AppState } from '../store';
+import { activeObserver } from './location';
 
 /**
  * The cloud forecast for the current observer (FR-WX-1/3/5) and the observer
@@ -49,14 +50,17 @@ export const createWeatherSlice: StateCreator<AppState, [], [], WeatherSlice> = 
   resetWeather: () => {
     set({ weather: IDLE_WEATHER });
   },
+  // R83 (D-538): the zone goes to the active observer. A visited place gets it in memory only —
+  // neither the saved observer nor a favourite is touched, so nothing reaches `wiys:prefs:v1`.
   fillTimeZone: (timeZone) => {
-    const previous = get().observer;
+    const visiting = get().visiting !== null;
+    const previous = activeObserver(get());
     if (!previous || previous.timeZone !== null) return;
     set((state) => {
       const observer: Observer = { ...previous, timeZone };
       const repoint = <T extends { observer: Observer | null }>(slice: T): T => (slice.observer === previous ? { ...slice, observer } : slice);
-      return { observer, passes: repoint(state.passes), now: repoint(state.now), weather: repoint(state.weather) };
+      return { ...(visiting ? { visiting: observer } : { observer }), passes: repoint(state.passes), now: repoint(state.now), weather: repoint(state.weather) };
     });
-    get().refreshFavouriteTimeZone(favouriteCellKey(previous), timeZone);
+    if (!visiting) get().refreshFavouriteTimeZone(favouriteCellKey(previous), timeZone);
   },
 });
