@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
 import { flushSync } from 'react-dom';
 import { useT } from '../../i18n/useT';
-import { searchPlaces, useAppStore } from '../../state';
+import { searchPlaces, useActiveObserver, useAppStore } from '../../state';
 import { Header } from '../components/common/Header';
 import { InstallAction } from '../components/common/InstallAction';
 import { useInstallOffer, type InstallEnv } from '../components/common/installEnv';
@@ -64,7 +64,7 @@ export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
   const t = useT();
   const setObserver = useAppStore((s) => s.setObserver);
   const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
-  const observer = useAppStore((s) => s.observer);
+  const observer = useActiveObserver();
   const browserId = useId();
   const coordsRegionId = useId();
   const [coordsOpen, setCoordsOpen] = useState(() => observer?.source === 'coords');

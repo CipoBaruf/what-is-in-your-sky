@@ -1,11 +1,11 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { I18nProvider, useLocale, useT } from '../i18n/useT';
 import { MOON_LORE } from '../lib/flags';
-import { observerFromLink, resolvePassLink, sameHashPlace } from '../lib/shareLinks';
+import { observerFromLink, resolvePassLink } from '../lib/shareLinks';
 import type { ShortcutActions } from '../lib/shortcuts';
 import { formatClock, formatDate } from '../lib/timeFormat';
 import { HOME_THREE_PANE_QUERY } from '../lib/layout';
-import { catalogName, useAppStore } from '../state';
+import { catalogName, followHash, useActiveObserver, useAppStore } from '../state';
 import styles from './App.module.css';
 import { applyTheme } from './styles/theme';
 import { Footer } from './components/common/Footer';
@@ -81,8 +81,7 @@ const MoonLore = MOON_LORE ? lazy(() => import('./components/moon/MoonLore').the
  */
 export function App() {
   const t = useT();
-  const setObserver = useAppStore((s) => s.setObserver);
-  const observer = useAppStore((s) => s.observer);
+  const observer = useActiveObserver();
   const passes = useAppStore((s) => s.passes.passes);
   const locale = useLocale();
   const passesStatus = useAppStore((s) => s.passes.status);
@@ -209,11 +208,22 @@ export function App() {
    * link exactly, and a fresh `source: 'coords'` observer here drops that
    * reader's label, zone and stored run — F-56 again, a render after
    * `startApp` refused it.
+   *
+   * R83 (F-93, D-539): the running tab reads every changed hash through
+   * `state`'s `followHash`, the `openLink` the boot uses, instead of applying a
+   * live link here and dropping a pass link: a link over a saved place is a
+   * visit and is not stored, a pass link's place is visited and its pass
+   * selected, and D-280's guard covers both.
    */
   useEffect(() => {
-    if (live.link === null || sameHashPlace(observer, live.link.observer)) return;
-    setObserver(observerFromLink(live.link));
-  }, [live.link, observer, setObserver]);
+    const onHashChange = (): void => {
+      followHash(window.location.hash);
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => {
+      window.removeEventListener('hashchange', onHashChange);
+    };
+  }, []);
   /*
    * R35 (FR-DESK-4, D-73): the shortcut table's handlers, the one place the
    * keys reach the app's state. Each says whether it did something, which is

@@ -3,7 +3,7 @@ import { ageParts, EPOCH_WARN_MS, epochIsOld, newestEpoch } from '../../../lib/e
 import { formatList } from '../../../lib/format';
 import { formatClock, formatDate } from '../../../lib/timeFormat';
 import type { EpochMs, Locale } from '../../../model';
-import { catalogName, useAppStore } from '../../../state';
+import { catalogName, useActiveObserver, useAppStore } from '../../../state';
 import { useNow } from '../../hooks/useNow';
 import { Banner } from '../common/Banner';
 import styles from './ElementsBanners.module.css';
@@ -31,7 +31,7 @@ export function ElementsBanners({ now: nowProp }: ElementsBannersProps) {
   const t = useT();
   const locale = useLocale();
   const elements = useAppStore((s) => s.elements);
-  const timeZone = useAppStore((s) => s.observer?.timeZone ?? null);
+  const timeZone = useActiveObserver()?.timeZone ?? null;
   const clock = useNow(AGE_TICK_MS);
   const now = nowProp ?? clock;
   /** Date and time: the elements can be days old, so the clock alone would mislead. */

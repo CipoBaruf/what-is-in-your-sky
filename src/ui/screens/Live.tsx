@@ -8,7 +8,7 @@ import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import { formatClock } from '../../lib/timeFormat';
 import type { Span } from '../../lib/timeStripe';
 import type { EpochMs, Observer, Pass } from '../../model';
-import { useAppStore } from '../../state';
+import { useActiveObserver, useAppStore } from '../../state';
 import { LanguageToggle } from '../components/common/LanguageToggle';
 import { ShareButton } from '../components/common/ShareButton';
 import { ThemeToggle } from '../components/common/ThemeToggle';
@@ -109,7 +109,7 @@ export function visibleCount(passes: readonly Pass[], t: EpochMs): number {
 
 export function LivePage({ link, onLeave }: LivePageProps) {
   const t = useT();
-  const observer = useAppStore((s) => s.observer);
+  const observer = useActiveObserver();
   const elements = useAppStore((s) => s.elements);
   /*
    * R48 (FR-LIVE-7 as amended, FR-COMP-1, D-244): on compact the top row is one

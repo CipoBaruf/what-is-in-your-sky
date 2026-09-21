@@ -18,6 +18,8 @@ import { ALWAYS_VISIBLE, ELEMENTS_RECHECK_MS, NOW_TICK_MS, startEffects, type Ef
 import { SEARCH_WINDOW_MS } from './passWindow';
 import { createLocalPrefs } from '../data/localPrefs';
 import { startApp } from './index';
+import { followHash } from './openLink';
+import { passLinkHash } from '../lib/shareLinks';
 import { createAppStore, type AppStore } from './store';
 import { createWorkerClient, type WorkerClient } from './workerClient';
 import type { WorkerRequest } from '../worker/protocol';
@@ -847,10 +849,11 @@ describe('the #live link guard (R58, FR-LIVE-11, F-56, D-280)', () => {
     expect(store.getState().passes.passes).toEqual([storedPass]);
   });
 
-  it('a hash for another place is a new observer and starts a search, with nothing stored to render offline', async () => {
+  // R83 (FR-VISIT-1, D-538): over a saved place, another place is a visit — the observer on screen, not the saved one.
+  it('a hash for another place is visited and starts a search, with nothing stored to render offline', async () => {
     await bootAt('#live?lat=48.86&lon=2.35');
-    expect(store.getState().observer).toMatchObject({ lat: 48.86, lon: 2.35, source: 'coords' });
-    expect(store.getState().observer).not.toEqual(geocoded);
+    expect(store.getState().visiting).toMatchObject({ lat: 48.86, lon: 2.35, source: 'coords' });
+    expect(store.getState().observer).toEqual(geocoded);
     expect(store.getState().passes).toMatchObject({ storedAt: null });
     await vi.waitFor(() => expect(sent('loadElements')).toHaveLength(1));
   });
@@ -863,8 +866,159 @@ describe('the #live link guard (R58, FR-LIVE-11, F-56, D-280)', () => {
    */
   it('a hash half a kilometre away is a different place, even where two decimals would agree', async () => {
     await bootAt('#live?lat=-38.929&lon=-67.99032&alt=270');
-    expect(store.getState().observer).toMatchObject({ lat: -38.929, source: 'coords' });
+    expect(store.getState().visiting).toMatchObject({ lat: -38.929, source: 'coords' });
     expect(store.getState().passes).toMatchObject({ storedAt: null });
+  });
+
+  it('a pass link for the saved place, at the rounding the hash carries, is not a visit either (D-538 widens D-280)', async () => {
+    await bootAt(passLinkHash({ observer: geocoded, noradId: 25544, startT: NOW + 3_600_000 }));
+    expect(store.getState().visiting).toBeNull();
+    expect(store.getState().observer).toEqual(geocoded);
+    expect(store.getState().linkResult).toMatchObject({ kind: 'own' });
+    await vi.waitFor(() => expect(store.getState().passes.storedAt).toBe(STORED_AT));
+  });
+});
+
+/**
+ * TASKS R83 (FR-VISIT-1, US-32, F-89, D-538): a link over a saved, named place
+ * is a visit. Through the real `startApp` and the real effects, a pass link for
+ * another place leaves `wiys:prefs:v1` byte for byte as it was, and neither the
+ * finished run nor the forecast is written to the device; `keepVisit` stores
+ * the visited place and `endVisit` brings the saved one back, label and zone.
+ */
+describe('a link is a visit (R83)', () => {
+  const saved: Observer = { lat: -38.95, lon: -68.06, altM: 270, label: 'Neuquén, Argentina', source: 'geocode', timeZone: 'America/Argentina/Salta' };
+  const SAVED_PREFS = JSON.stringify({ observer: saved, locale: 'es', theme: 'night' });
+  const visitedLink = passLinkHash({ observer: { lat: 48.86, lon: 2.35, altM: 35 }, noradId: 25544, startT: NOW + 3_600_000 });
+
+  let store: AppStore;
+  let worker: ReturnType<typeof fakeWorker>;
+  let stop: () => void;
+  let map: Map<string, string>;
+  let runStore: PassRunStore;
+  let weatherCalls: { lat: number; persist: boolean | undefined }[];
+  let clearHash: ReturnType<typeof vi.fn>;
+
+  const sent = <T extends WorkerRequest['type']>(type: T) => worker.sent.filter((m): m is WorkerRequest & { type: T } => m.type === type);
+
+  const boot = (hash: string, prefsValue: string | null = SAVED_PREFS): void => {
+    map = new Map<string, string>();
+    if (prefsValue !== null) map.set('wiys:prefs:v1', prefsValue);
+    const prefs = createLocalPrefs({ getItem: (key) => map.get(key) ?? null, setItem: (key, value) => void map.set(key, value), removeItem: (key) => void map.delete(key) });
+    runStore = memoryPassRunStore();
+    clearHash = vi.fn();
+    store = createAppStore({ now: () => NOW, prefs, clearHash });
+    worker = fakeWorker();
+    weatherCalls = [];
+    stop = startApp({
+      store,
+      prefs,
+      cache: createPassesCache({ store: runStore, now: () => NOW }),
+      createWorker: () => worker,
+      loadElements: freshLoader(),
+      loadWeather: (lat, lon, options) => {
+        weatherCalls.push({ lat, persist: options?.persist });
+        return Promise.resolve({ ...snapshotFor(lat, lon), timeZone: 'Europe/Paris' });
+      },
+      now: () => NOW,
+      visibility: ALWAYS_VISIBLE,
+      hash,
+    });
+  };
+
+  /** Accepts the elements and finishes the latest job, uncancelled, with one pass. */
+  const finishJob = async (jobs: number): Promise<void> => {
+    if (jobs === 1) {
+      await vi.waitFor(() => expect(sent('loadElements')).toHaveLength(1));
+      worker.emit({ type: 'elementsLoaded', requestId: sent('loadElements')[0]?.requestId ?? '', loaded: [], rejected: [] });
+    }
+    await vi.waitFor(() => expect(sent('computePasses')).toHaveLength(jobs));
+    const jobId = sent('computePasses').at(-1)?.jobId ?? '';
+    worker.emit({ type: 'passes', jobId, noradId: 25544, nightIndex: 0, passes: [samplePass(25544, NOW + 3_600_000)] });
+    worker.emit({ type: 'jobDone', jobId, cancelled: false, elapsedMs: 9, hasDarkness: true });
+    await vi.waitFor(() => expect(store.getState().passes.status).toBe('done'));
+  };
+
+  afterEach(() => {
+    stop();
+  });
+
+  it('leaves wiys:prefs:v1 byte-identical and writes neither the run nor the forecast — failing on the old code', async () => {
+    boot(visitedLink);
+    expect(store.getState().observer).toEqual(saved);
+    expect(store.getState().visiting).toMatchObject({ lat: 48.86, lon: 2.35, altM: 35, source: 'coords' });
+    expect(store.getState().linkResult).toMatchObject({ kind: 'visit' });
+    await finishJob(1);
+    expect(sent('computePasses')[0]?.observer).toMatchObject({ lat: 48.86, lon: 2.35 });
+    await vi.waitFor(() => expect(store.getState().visiting?.timeZone).toBe('Europe/Paris')); // the zone, in memory
+    await new Promise((resolve) => setTimeout(resolve, 0)); // let a save, if there were one, land
+    expect(map.get('wiys:prefs:v1')).toBe(SAVED_PREFS);
+    expect([...map.keys()]).toEqual(['wiys:prefs:v1']);
+    expect(await runStore.all()).toEqual([]);
+    expect(weatherCalls).toEqual([{ lat: 48.86, persist: false }]);
+  });
+
+  it('keepVisit stores the visited place, and nothing is recomputed for it', async () => {
+    boot(visitedLink);
+    await finishJob(1);
+    await vi.waitFor(() => expect(store.getState().visiting?.timeZone).toBe('Europe/Paris'));
+    const visited = store.getState().visiting;
+    store.getState().keepVisit();
+    expect(store.getState().visiting).toBeNull();
+    expect(store.getState().observer).toBe(visited);
+    expect(JSON.parse(map.get('wiys:prefs:v1') ?? '{}')).toEqual({ observer: visited, locale: 'es', theme: 'night' });
+    expect(sent('computePasses')).toHaveLength(1);
+    expect(clearHash).not.toHaveBeenCalled();
+  });
+
+  it("endVisit brings back the saved place's label and zone, clears the hash and recomputes for it", async () => {
+    boot(visitedLink);
+    await finishJob(1);
+    store.getState().endVisit();
+    expect(store.getState().visiting).toBeNull();
+    expect(store.getState().observer).toEqual(saved);
+    expect(store.getState().observer?.label).toBe('Neuquén, Argentina');
+    expect(store.getState().observer?.timeZone).toBe('America/Argentina/Salta');
+    expect(clearHash).toHaveBeenCalledOnce();
+    await finishJob(2);
+    expect(sent('computePasses')[1]?.observer).toEqual(saved);
+    expect(map.get('wiys:prefs:v1')).toBe(SAVED_PREFS);
+    // The saved place's run is stored again, the forecast may be written again.
+    await vi.waitFor(async () => expect((await runStore.all()).map((run) => run.observer)).toEqual([saved]));
+    expect(weatherCalls.at(-1)).toEqual({ lat: saved.lat, persist: true });
+  });
+
+  it('with no saved place, the link is adopted and stored as before (US-32 AC2)', async () => {
+    boot(visitedLink, null);
+    expect(store.getState().visiting).toBeNull();
+    expect(store.getState().observer).toMatchObject({ lat: 48.86, lon: 2.35, source: 'coords' });
+    expect(store.getState().linkResult).toMatchObject({ kind: 'adopt' });
+    expect(JSON.parse(map.get('wiys:prefs:v1') ?? '{}')).toMatchObject({ observer: { lat: 48.86, lon: 2.35 } });
+  });
+
+  it('an unreadable link opens the saved place and changes nothing (FR-VISIT-4)', () => {
+    boot('#live?lat=999');
+    expect(store.getState().observer).toEqual(saved);
+    expect(store.getState().visiting).toBeNull();
+    expect(store.getState().linkResult).toEqual({ kind: 'unreadable' });
+    expect(map.get('wiys:prefs:v1')).toBe(SAVED_PREFS);
+  });
+
+  it('a pass link pasted into the running tab visits its place and keeps the hash (F-93)', async () => {
+    boot('');
+    expect(store.getState().visiting).toBeNull();
+    followHash(store, visitedLink, NOW);
+    expect(store.getState().visiting).toMatchObject({ lat: 48.86, lon: 2.35 });
+    expect(clearHash).not.toHaveBeenCalled();
+    // The same link again — or the hash the live page writes for the place on screen — is not a new visit.
+    const visiting = store.getState().visiting;
+    followHash(store, visitedLink, NOW);
+    expect(store.getState().visiting).toBe(visiting);
+    // A link for the saved place, pasted over the visit, brings the saved place back.
+    followHash(store, passLinkHash({ observer: saved, noradId: 25544, startT: NOW }), NOW);
+    expect(store.getState().visiting).toBeNull();
+    expect(store.getState().observer).toEqual(saved);
+    expect(map.get('wiys:prefs:v1')).toBe(SAVED_PREFS);
   });
 });
 

@@ -41,7 +41,11 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
   }));
   store.subscribe((state, previous) => {
     if (state.observer === previous.observer) return;
-    const { observer: _dropped, ...rest } = deps.prefs.read();
+    const stored = deps.prefs.read();
+    // R83: the observer the device already holds — the one restored at boot, the saved one back after a
+    // visit — is not rewritten, so the key's bytes (its field order included) are left as they were.
+    if (JSON.stringify(stored.observer ?? null) === JSON.stringify(state.observer)) return;
+    const { observer: _dropped, ...rest } = stored;
     deps.prefs.write(state.observer ? { ...rest, observer: state.observer } : rest);
   });
   return store;

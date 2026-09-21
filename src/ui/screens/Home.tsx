@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent, type LazyExoticComponent, type ReactNode } from 'react';
 import { useT } from '../../i18n/useT';
 import type { Observer, Pass } from '../../model';
-import { searchPlaces, SEARCH_WINDOW_HOURS, useAppStore } from '../../state';
+import { searchPlaces, SEARCH_WINDOW_HOURS, useActiveObserver, useAppStore } from '../../state';
 import styles from '../App.module.css';
 import { Banner } from '../components/common/Banner';
 import { InstallHint } from '../components/common/InstallHint';
@@ -198,7 +198,7 @@ export interface WhereReadingProps {
 export function WhereReading({ offersInert, geolocation, step }: WhereReadingProps) {
   const t = useT();
   const mode = useLayoutMode();
-  const observer = useAppStore((s) => s.observer);
+  const observer = useActiveObserver();
   const setObserver = useAppStore((s) => s.setObserver);
   const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
   const passes = useShownPasses();
@@ -373,7 +373,7 @@ function useSteps(observer: Observer | null) {
  * one step at a time (R82).
  */
 export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPass, passDetail, MoonLore, geolocation }: HomeProps) {
-  const observer = useAppStore((s) => s.observer);
+  const observer = useActiveObserver();
   const mode = useLayoutMode();
   const steps = useSteps(observer);
   const current: Step | null = mode === 'compact' && steps.step !== null ? (observer === null ? 'where' : steps.step) : null;
