@@ -123,6 +123,39 @@ export function rowsFor(state: LiveState, mode: LayoutMode, shape: LiveShape): r
  *   with the playback controls, the stripe and the step row; the overview stays
  *   in the rail, under the conditions line, in both states.
  */
+/**
+ * R85 (F-81, FR-CAP-5, D-549): the short wide window's inventory — the legend in the rail, between the rail's
+ * head and its foot — ends on a whole entry, with a `+n` line under it for the entries the clip leaves out.
+ *
+ * Every entry is a whole number of text rows there (`Legend.module.css`, `.clipped`): a pass or a hidden
+ * object is its tap target, two rows (the name over the three times), and a Sun or Moon line one. So the list's
+ * `max-height` is `rows` text rows, which is a row boundary *and* an entry boundary, and nothing is cut
+ * mid-glyph. `budgetRows` is what the rail leaves the list, in whole rows; when the entries do not all fit, one
+ * of those rows is the `+n` line's.
+ */
+export interface InventoryClip {
+  /** The list's height, in text rows. */
+  rows: number;
+  /** The entries it shows whole, from the top. */
+  shown: number;
+  /** The entries under the clip: the `+n`, and 0 when there is no line. */
+  more: number;
+}
+
+export function inventoryClip(entryRows: readonly number[], budgetRows: number): InventoryClip {
+  const total = entryRows.reduce((sum, rows) => sum + rows, 0);
+  if (total <= budgetRows) return { rows: total, shown: entryRows.length, more: 0 };
+  const room = budgetRows - 1;
+  let rows = 0;
+  let shown = 0;
+  for (const entry of entryRows) {
+    if (rows + entry > room) break;
+    rows += entry;
+    shown += 1;
+  }
+  return { rows, shown, more: entryRows.length - shown };
+}
+
 function shortRowsFor(state: LiveState, mode: LayoutMode): readonly LiveRow[] {
   if (mode === 'compact') {
     return state === 'watching'
