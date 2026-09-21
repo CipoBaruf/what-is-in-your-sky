@@ -350,7 +350,8 @@
 /* R48 (FR-COMP-4, D-245): on compact the share action is bracketed text like
    the two toggles beside it, not the boxed button: the box's cell of padding
    each side put the Spanish row (`[ ] Ocultos [ ] Seguir [ Compartir ]`, 36
-   cells) at 38 and wrapped it, and the wrap cost the dome a row. */
+   cells) at 38 and wrapped it, and the wrap cost the dome a row. R85 (D-549):
+   bracketed again, `[ Compartir ]`, after D-411 had taken the brackets too. */
 .page[data-compact='true'] .actions button {
   padding: 0;
   border: 0;
@@ -374,9 +375,12 @@
   gap: 0 calc(2 * var(--cell));
 }
 
-/* R48 (FR-COMP-1, D-244): on compact the top row is one row: nothing wraps, and the place ellipsises. */
+/* R48 (FR-COMP-1, D-244): on compact the top row is one row: nothing wraps, and the place ellipsises.
+   R85 (FR-COMP-7, D-549): one cell between its items, not two — with `[ ← ]` for `[ ← Volver ]` that is what
+   lets a 360 px phone show a whole coordinate pair (`−38.93, −67.99`, 14 cells) beside `en vivo`. */
 .page[data-compact='true'] .topRow {
   flex-wrap: nowrap;
+  gap: 0 var(--cell);
 }
 
 /* R48 (FR-COMP-5, D-246): …and one text row tall. The return control keeps

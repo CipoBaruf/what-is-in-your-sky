@@ -18,6 +18,7 @@ import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../tests/support/catalogFixtures';
 import { en } from '../../i18n/en';
+import { I18nProvider } from '../../i18n/useT';
 import { WIDE_MIN_PX } from '../../lib/layout';
 import { isoInstant } from '../../lib/shareLinks';
 import { skyBodiesAt } from '../../lib/skyBodies';
@@ -155,7 +156,7 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('live-inert')).toHaveTextContent(en.live.noObserver);
     expect(screen.queryByTestId('sky-chart')).toBeNull();
     expect(screen.queryByTestId('status-strip')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '← Back' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(onLeave).toHaveBeenCalledTimes(1);
     expect(await axe(container)).toHaveNoViolations();
   });
@@ -262,8 +263,40 @@ describe('<LivePage>', () => {
     render(<LivePage link={null} onLeave={onLeave} />);
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onLeave).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: '← Back' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(onLeave).toHaveBeenCalledTimes(2);
+  });
+
+  /**
+   * R85 (FR-COMP-7, D-549; F-82): on compact the return control draws `[ ← ]` and is named by the word, in
+   * both languages; wide keeps `← Back`. The actions rows give Share its brackets back and draw the short
+   * `[ live ]`, whose accessible name is still the whole phrase.
+   */
+  it.each([
+    ['en', 'Back', 'back to live', 'live'],
+    ['es', 'Volver', 'ir al vivo', 'vivo'],
+  ] as const)('draws [ ← ] named %s on compact, and the short way back to live (FR-COMP-7)', (locale, name, backToLive, short) => {
+    withSky();
+    const { unmount } = render(
+      <I18nProvider locale={locale}>
+        <LivePage link={null} onLeave={() => undefined} />
+      </I18nProvider>,
+    );
+    const back = screen.getByRole('button', { name });
+    expect(back).toHaveTextContent(/^←$/);
+    expect(within(screen.getByTestId('live-top-row')).getByRole('button')).toBe(back);
+    scrub();
+    const now = screen.getByRole('button', { name: backToLive });
+    expect(now).toHaveTextContent(new RegExp(`^${short}$`));
+    expect(screen.getByTestId('live-actions')).toContainElement(now);
+    unmount();
+    media = stubMatchMedia(1280, 800);
+    render(
+      <I18nProvider locale={locale}>
+        <LivePage link={null} onLeave={() => undefined} />
+      </I18nProvider>,
+    );
+    expect(screen.getByRole('button', { name: `← ${name}` })).toHaveTextContent(`← ${name}`);
   });
 
   /**

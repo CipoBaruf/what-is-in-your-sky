@@ -83,6 +83,21 @@ describe('<StatusStrip>', () => {
     expect(field('sky')).toHaveTextContent(/^Sky twilight$/);
   });
 
+  it('draws `s/d` in Spanish without a forecast and says "sin datos" (FR-COMP-7)', async () => {
+    const { container } = render(
+      <I18nProvider locale="es">
+        <StatusStrip t={T} timeZone={null} sky="dark" cloud={unknown} count={0} moon={null} />
+      </I18nProvider>,
+    );
+    const value = field('cloud').querySelector('[data-state]') as HTMLElement;
+    const drawn = within(value).getByText('s/d');
+    expect(drawn).toHaveAttribute('aria-hidden', 'true');
+    expect(within(value).getByText(es.live.cloudSpoken.unknown)).toHaveClass('sr-only');
+    expect(es.live.cloudSpoken.unknown).toBe('sin datos');
+    expect(field('cloud')).toHaveTextContent(/^Nubes s\/dsin datos$/);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
   it('says UTC without a zone and "unknown" without a forecast on wide, and the other two sky states', () => {
     stubWide();
     const { rerender } = render(<StatusStrip t={T} timeZone={null} sky="bright-twilight" cloud={unknown} count={1} moon={MOON_FIXTURE} />);

@@ -216,8 +216,9 @@ function TopRow({ place, indicator, screenOpen, onLeave }: { place: string | nul
        the layer is reachable, by Tab or by a tap that lands past it — and `aria-hidden` is what takes it out of
        the accessible tree, since `inert` alone is a browser behaviour and not a name a test can read. */
     <div className={styles.topRow} data-testid="live-top-row" {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
-      <button type="button" className={styles.back} onClick={onLeave}>
-        {t.live.back}
+      {/* R85 (FR-COMP-7, D-549): `[ ← ]` on compact, named by the word it no longer draws; the hit box is the same rule's. */}
+      <button type="button" className={styles.back} onClick={onLeave} {...(compact ? { 'aria-label': t.live.backName } : {})}>
+        {compact ? t.live.backShort : t.live.back}
       </button>
       {indicator}
       {place !== null && (
@@ -463,12 +464,12 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const actions = (
     <div className={styles.actions} data-testid="live-actions">
       {has('scrub') && <ScrubButton onScrub={scrubHere} />}
-      {has('back-to-live') && !backAtHead && <BackToLive onNow={playback.toNow} />}
+      {has('back-to-live') && !backAtHead && <BackToLive onNow={playback.toNow} short />}
       {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
       {has('list') && <LegendToggle open={legendOpen} count={legendCount} controls={LEGEND_PANEL_ID} onToggle={toggleLegend} />}
-      {/* D-411: plain on compact — the brackets are what the row cannot afford (FR-COMP-4). */}
+      {/* R85 (FR-COMP-7, D-549): bracketed again on compact, as every other action; the Spanish labels beside it were shortened instead (D-411 withdrawn). */}
       <div className={styles.share} data-testid="live-share">
-        <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : shareName} ariaLabel={shareName} plain={compact} />
+        <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : shareName} ariaLabel={shareName} />
       </div>
     </div>
   );

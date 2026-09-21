@@ -94,12 +94,15 @@ export function ScrubButton({ onScrub }: { onScrub: () => void }) {
  * renamed for where it goes: the shown instant returns to real time and
  * advances on the tick again, and the scrub block goes away with the state.
  * It keeps the old control's test id, since it is the same action.
+ *
+ * R85 (FR-COMP-7, D-549): `short` on the compact actions row, where Share has
+ * its brackets back — `[ live ]`, named by the whole phrase, which contains it.
  */
-export function BackToLive({ onNow }: { onNow: () => void }) {
+export function BackToLive({ onNow, short = false }: { onNow: () => void; short?: boolean }) {
   const t = useT();
   return (
-    <button type="button" className={styles.action} data-testid="live-now" onClick={onNow}>
-      {t.live.backToLive}
+    <button type="button" className={styles.action} data-testid="live-now" onClick={onNow} {...(short ? { 'aria-label': t.live.backToLive } : {})}>
+      {short ? t.live.backToLiveShort : t.live.backToLive}
     </button>
   );
 }

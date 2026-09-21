@@ -74,7 +74,15 @@ export function StatusStrip({ t, timeZone, sky, cloud, count, moon }: StatusStri
           <span data-sky={sky ?? 'pending'}>{sky ? m.live.skyShort[sky] : m.live.pending}</span>
         </Field>
         <Field id="cloud" label={m.live.cloudLabel} spoken>
-          <span data-state={cloud.state}>{m.live.cloudWord[cloud.state]}</span>
+          {/* R85 (FR-COMP-7): an abbreviated word (`s/d`) is drawn and its whole form (`sin datos`) is what is said. */}
+          {m.live.cloudSpoken[cloud.state] === m.live.cloudWord[cloud.state] ? (
+            <span data-state={cloud.state}>{m.live.cloudWord[cloud.state]}</span>
+          ) : (
+            <span data-state={cloud.state}>
+              <span aria-hidden="true">{m.live.cloudWord[cloud.state]}</span>
+              <span className="sr-only">{m.live.cloudSpoken[cloud.state]}</span>
+            </span>
+          )}
         </Field>
         <Field id="count" label={m.live.countSpoken} spoken>
           <span data-count={count}>{m.live.upCount(count)}</span>
