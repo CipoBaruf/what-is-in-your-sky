@@ -2050,7 +2050,8 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
     - A pass link pasted into a running tab selects the pass and is not dropped (F-93's first clause; the rest of F-93 is R87's).
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
 
-- [ ] **R84 — The first run's controls: placeholders, `[ continue ]`, the first card, the whole card, the Moon sentence off the card, the count line**
+- [x] **R84 — The first run's controls: placeholders, `[ continue ]`, the first card, the whole card, the Moon sentence off the card, the count line**
+  - *Done differently:* the control's own box is stretched rather than a zero-size button's `::after` (D-556); the first card's pass stays out of the list under it, as FR-FIRST-3 as amended says; `[ continue ]` is a phone-only control, so the 1280 × 800 e2e types a pair and taps a card without it.
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
