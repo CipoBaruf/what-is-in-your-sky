@@ -36,6 +36,11 @@ export const chart = {
        */
       empty: 'nothing up right now',
       state: { live: 'up', ahead: 'soon', linger: 'gone' } satisfies Record<'live' | 'ahead' | 'linger', string>,
+      /**
+       * R85 (F-81, FR-CAP-5): what the three clock times on a row are. Spoken before each time in the row's
+       * accessible name everywhere; drawn as a header row over the times on the short wide window's inventory.
+       */
+      times: { rise: 'rise', peak: 'peak', end: 'end' },
       sun: (p: { azimuth: string; altitude: string }) => `Sun · az ${p.azimuth} · alt ${p.altitude}`,
       moon: (p: { glyph: string; azimuth: string; altitude: string }) => `${p.glyph} Moon · az ${p.azimuth} · alt ${p.altitude}`,
       /** R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): the phase and illumination, which leave the *compact* live conditions line for this one. FR-MOON-3 leaves the wide live page and every other legend the plain line above. */

@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useLocale, useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
-import { foldRows, scrubPlacement, unfoldedBoxHeightPx, type LiveFold, type ScrubPlacement } from '../../lib/layout';
+import { foldRows, ROW_PX, scrubPlacement, unfoldedBoxHeightPx, type LiveFold, type ScrubPlacement } from '../../lib/layout';
 import { legendRows } from '../../lib/legend';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
@@ -14,6 +14,7 @@ import { ShareButton } from '../components/common/ShareButton';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { ChartFrameSlots, LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
 import { DOME_BOX_ASPECT } from '../components/guide/skychart/dome/camera';
+import { LegendInventoryContext, type LegendInventory } from '../components/guide/skychart/Legend';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
@@ -36,7 +37,7 @@ import { SkyScreen } from '../components/screen/SkyScreen';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import styles from './Live.module.css';
-import { liveShape, rowsFor, type LiveRow } from './liveRows';
+import { inventoryClip, liveShape, rowsFor, type LiveRow } from './liveRows';
 
 /**
  * R32 (FR-LIVE-1, FR-LIVE-2, FR-LIVE-3, FR-LIVE-9, FR-LIVE-10; US-15 AC1, AC2,
@@ -269,12 +270,54 @@ function useHashFollows(observer: Observer, shown: EpochMs, realTime: boolean, p
   }, [observer, shown, realTime, playing]);
 }
 
+/**
+ * R85 (F-81, FR-CAP-5, D-549): the whole text rows the short wide rail leaves its inventory — from the legend
+ * slot's top to the frame's bottom, less the rail's head and foot, the column's two gaps and the header row
+ * that names the three times — or `null` where there is no inventory to clip. Measured on a `ResizeObserver`
+ * of the dome row and the two ends, none of which the list's own height moves, so the answer cannot feed itself.
+ */
+function useInventoryRows(active: boolean, domeRef: RefObject<HTMLDivElement | null>, headRef: RefObject<HTMLDivElement | null>, footRef: RefObject<HTMLDivElement | null>): number | null {
+  const [rows, setRows] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const dome = domeRef.current;
+    const head = headRef.current;
+    const foot = footRef.current;
+    if (!active || !dome || !head || !foot || typeof ResizeObserver === 'undefined') {
+      setRows(null);
+      return;
+    }
+    const measure = (): void => {
+      const frame = dome.querySelector('[data-testid="chart-frame"]');
+      const slot = dome.querySelector('[data-testid="chart-legend-slot"]');
+      if (!frame || !slot) return;
+      const rowPx = parseFloat(getComputedStyle(head).lineHeight) || ROW_PX;
+      const gap = parseFloat(getComputedStyle(slot).rowGap) || 0;
+      const px = frame.getBoundingClientRect().bottom - slot.getBoundingClientRect().top - head.getBoundingClientRect().height - foot.getBoundingClientRect().height - 2 * gap;
+      const next = Math.max(0, Math.floor(px / rowPx) - 1);
+      setRows((last) => (last === next ? last : next));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(dome);
+    observer.observe(head);
+    observer.observe(foot);
+    measure();
+    return () => {
+      observer.disconnect();
+    };
+  }, [active, domeRef, headRef, footRef]);
+  return rows;
+}
+
 /** The page with something to draw: the chart, the headline, the conditions, the timelines, the controls and the share action, for one observer. */
 function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; link: LiveLink | null; wakeLock: WakeLockState; onLeave: () => void }) {
   const t = useT();
   const mode = useLayoutMode();
   const compact = mode === 'compact';
   const shape = usePageShape();
+  // R85 (F-81): what the short wide inventory is measured from — the page's dome row and the rail's two ends.
+  const domeRef = useRef<HTMLDivElement>(null);
+  const railHeadRef = useRef<HTMLDivElement>(null);
+  const railFootRef = useRef<HTMLDivElement>(null);
   /*
    * R78 (FR-WATCH-5, FR-WATCH-6; D-448): where the scrub block goes, and what folds, from one measured number —
    * the height the chart's frame has for the box with nothing under it (`ChartFrame`'s `onBoxSpace`), not the
@@ -480,6 +523,16 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
    * wake lock, the hash — so closing gives back the page that has been running underneath all along; only its
    * grid is not built. The one-row header is left mounted and covered, `inert` (FR-FSC-1).
    */
+  /*
+   * R85 (F-81, FR-CAP-5, D-549): on the short wide window the legend between the rail's head and foot is an
+   * inventory that ends on a whole entry, with a `+n` line — `liveRows.ts`'s `inventoryClip` over what the rail
+   * leaves it, measured here in whole text rows.
+   */
+  const inventoryRows = useInventoryRows(!compact && placement === 'overlay' && !screenOpen, domeRef, railHeadRef, railFootRef);
+  const legendInventory = useMemo<LegendInventory | null>(
+    () => (inventoryRows === null ? null : { clip: (entryRows) => inventoryClip(entryRows, inventoryRows), moreLabel: t.live.more }),
+    [inventoryRows, t],
+  );
   const top = <TopRow place={observer.label} indicator={compact && placement !== 'rail' ? indicator : null} screenOpen={screenOpen} onLeave={onLeave} />;
   const page = (children: ReactNode): ReactNode => (
     <Page state="live" wakeLock={wakeLock} fold={fold} placement={placement}>
@@ -586,7 +639,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
    */
   const overlaid = placement === 'overlay';
   const railHead = (
-    <div className={styles.railHead} data-testid="live-rail-head">
+    <div className={styles.railHead} data-testid="live-rail-head" ref={railHeadRef}>
       {indicatorLine}
       {nextEvent}
       {conditions}
@@ -595,7 +648,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const side = (
     <div className={styles.side} data-testid="live-side">
       {railHead}
-      <div className={styles.railFoot} data-testid="live-rail-foot">
+      <div className={styles.railFoot} data-testid="live-rail-foot" ref={railFootRef}>
         {(!scrubbing || overlaid) && overview}
         {actions}
       </div>
@@ -617,8 +670,9 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   return page(
     <>
       {top}
-      <div className={styles.dome} data-testid="live-dome" data-stripe-under={!overlaid}>
+      <div className={styles.dome} data-testid="live-dome" data-stripe-under={!overlaid} ref={domeRef}>
         <ChartFrameSlots.Provider value={{ onBoxSpace, ...(overlaid && scrubBlock !== null ? { bottomOverlay: scrubBlock } : {}) }}>
+          <LegendInventoryContext.Provider value={legendInventory}>
           <SkyChart
             passes={chartPasses}
             observer={observer}
@@ -634,6 +688,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
             boxAspect={DOME_BOX_ASPECT}
             {...(scrubBlock === null || overlaid ? {} : { stripe: scrubBlock })}
           />
+          </LegendInventoryContext.Provider>
         </ChartFrameSlots.Provider>
       </div>
     </>,
