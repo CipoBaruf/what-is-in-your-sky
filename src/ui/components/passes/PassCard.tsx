@@ -31,7 +31,7 @@ import styles from './PassCard.module.css';
  *
  * The card is the control that opens the pass (FR-DESK-3; the sheet on
  * compact), and its name is "Open guide → <name>". R84 (FR-FIRST-10 as
- * amended v2.1, D-548, F-85): the button's `::after` covers the whole of the
+ * amended v2.1, D-548, F-85): the button (`OpenGuide`) covers the whole of the
  * positioned card, tags and cloud line included, so the whole box is one
  * pointer target and one tab stop; the tags are text inside it (`asText`), not
  * tooltip triggers of their own. The open pass's card is ruled in the

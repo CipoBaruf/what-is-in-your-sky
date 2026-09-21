@@ -4,8 +4,8 @@ import styles from './OpenGuide.module.css';
 
 /**
  * FR-DESK-3, FR-FIRST-10 as amended v2.1 (R84, D-548): the accessible control
- * that opens a pass, "Open guide → <name>". It draws nothing of its own; its
- * `::after` stretches over the nearest positioned ancestor — a `PassCard`, and
+ * that opens a pass, "Open guide → <name>". It draws nothing of its own; its box
+ * is stretched over the nearest positioned ancestor — a `PassCard`, and
  * the phone's first card (`NextEventBlock`'s card form, FR-FIRST-3) — so the
  * whole box is one pointer target and one tab stop. The host puts it last, so
  * the stretched box lies over everything before it, and wears the focus ring
