@@ -89,6 +89,18 @@
   width: calc(22 * var(--cell));
 }
 
+/* R84 (FR-FIRST-2 as amended v2.1, D-558): the coordinate label carries its
+   example, "Coordinates · e.g. -38.93, -67.99", which is wider than the field;
+   it wraps inside the field's 22 cells rather than widening it, and the two
+   fields line up at their boxes. */
+.coords > div {
+  align-items: flex-end;
+}
+
+.coords > div > div:first-child {
+  width: calc(22 * var(--cell));
+}
+
 /* Each heading is a rule with the block directly under it: the rule is the separation. */
 .page section > h2 {
   margin-bottom: 0;

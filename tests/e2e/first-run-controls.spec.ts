@@ -57,6 +57,32 @@ async function coldWithRun(page: Page): Promise<void> {
   await expect(page.getByTestId('cold-open')).toBeVisible();
 }
 
+/**
+ * The recompute that follows a new place has finished: it replaces the stored
+ * list as its first batch arrives (R24), so a spec that reads a card waits for
+ * nothing to be busy and then for `steady` to stop changing.
+ */
+async function recomputed(page: Page, steady: Locator): Promise<void> {
+  await page
+    .locator('[aria-busy="true"]')
+    .first()
+    .waitFor({ state: 'attached', timeout: 10_000 })
+    .catch(() => undefined);
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
+  let last = '';
+  await expect
+    .poll(
+      async () => {
+        const text = (await steady.textContent()) ?? '';
+        const same = text === last && text !== '';
+        last = text;
+        return same;
+      },
+      { timeout: 90_000, intervals: [2_000] },
+    )
+    .toBe(true);
+}
+
 /** Taps a card a few pixels above its bottom edge — its last row, the cloud line where there is one. */
 async function tapBottomRow(card: Locator): Promise<void> {
   const box = await card.boundingBox();
@@ -96,6 +122,8 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3 as amended v2.1)
     const when = page.getByTestId('step-when');
     await expect(when).toBeVisible();
     await expect(when.getByTestId('when-passes')).toHaveText(/^\d+ tonight, \d+ in 72 h$/, { timeout: 60_000 });
+    // The recompute after the place replaces the stored list as it streams in; the first card is read once it has finished.
+    await recomputed(page, when.getByTestId('when-passes'));
     await when.getByTestId('see-what').click();
 
     const what = page.getByTestId('step-what');
@@ -126,6 +154,7 @@ test.describe('the cards at 1280 × 800 (FR-FIRST-10 as amended v2.1)', () => {
     await expect(page.getByRole('button', { name: 'continue' })).toHaveCount(0);
     const card = page.locator('article[data-pass-card]').first();
     await expect(card).toBeVisible({ timeout: 60_000 });
+    await recomputed(page, page.getByTestId('count-line').getByRole('status'));
 
     // The control's box is the card's, within 2 px, with the pointer over all of it.
     const [cardBox, controlBox] = await Promise.all([card.boundingBox(), card.getByRole('button').boundingBox()]);
