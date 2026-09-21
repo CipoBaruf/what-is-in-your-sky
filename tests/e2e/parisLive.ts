@@ -30,6 +30,8 @@ export const LIVE_VIEWPORTS = {
    * 334 px of rail against the legend's 264 and the aside's 101, the shape 540 had before the two rows arrived.
    */
   short: { width: 1660, height: 380 },
+  /** R85 (F-81, FR-CAP-5): the short wide window, where the four passes and the two bodies are more than the rail's inventory holds. */
+  shortWide: { width: 1200, height: 450 },
   /** R61 (F-59): the width the owner reported the blank third of the box at. */
   2560: { width: 2560, height: 1440 },
   /** R61 (D-314): step 4 of the ladder, the largest reference viewport. */

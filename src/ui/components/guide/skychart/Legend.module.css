@@ -139,6 +139,7 @@
 }
 
 .timesHeader {
+  flex: 0 0 auto;
   display: flex;
   gap: 0 var(--cell);
   margin: 0;
@@ -153,13 +154,26 @@
   flex: 0 0 auto;
 }
 
+/* Block, not the list's grid: a grid squeezed by its flex parent gave its rows a text row each and the
+   two-row entries overlapped; blocks stack at their own heights whatever the box does. */
 .clipped {
+  display: block;
+  flex: 0 0 auto;
   max-height: calc(var(--inventory-rows) * var(--row));
   overflow-y: auto;
 }
 
-.clipped .row {
+/* The folded wide live page makes every button an inline control — a half row of padding and the matching
+   negative margin (`Live.module.css`) — which here would shrink each entry to one row and stack the next over
+   its times. An entry is already its own 48 px hit box, so the rule is undone for it, specifically enough to
+   win (`.legend.clipped .item > .row` over `.page[…][…] button`), and the entry is its own formatting context. */
+.clipped .item {
+  display: flow-root;
+}
+
+.legend.clipped .item > .row {
   height: var(--tap);
+  margin-block: 0;
   padding-block: 0;
   overflow: hidden;
 }
@@ -186,6 +200,7 @@
 }
 
 .more {
+  flex: 0 0 auto;
   margin: 0;
   padding-left: calc(2 * var(--cell));
   line-height: var(--row);

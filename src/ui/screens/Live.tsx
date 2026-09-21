@@ -271,40 +271,40 @@ function useHashFollows(observer: Observer, shown: EpochMs, realTime: boolean, p
 }
 
 /**
- * R85 (F-81, FR-CAP-5, D-549): the whole text rows the short wide rail leaves its inventory — from the legend
- * slot's top to the frame's bottom, less the rail's head and foot, the column's two gaps and the header row
- * that names the three times — or `null` where there is no inventory to clip. Measured on a `ResizeObserver`
- * of the dome row and the two ends, none of which the list's own height moves, so the answer cannot feed itself.
+ * R85 (F-81, FR-CAP-5, D-549): the whole text rows the short wide rail leaves its inventory, less the header
+ * row that names the three times — or `null` where there is no inventory to clip. On that shape the frame's
+ * legend scroll box is `flex: 1 1 0` (`Live.module.css`): it is what the rail's head and foot leave, whatever
+ * the list holds, so its height is the budget and the list's own height never moves it — the answer cannot
+ * feed itself. Observed with the dome row, since the box is the frame's and can be replaced under it.
  */
-function useInventoryRows(active: boolean, domeRef: RefObject<HTMLDivElement | null>, headRef: RefObject<HTMLDivElement | null>, footRef: RefObject<HTMLDivElement | null>): number | null {
+function useInventoryRows(active: boolean, domeRef: RefObject<HTMLDivElement | null>): number | null {
   const [rows, setRows] = useState<number | null>(null);
   useLayoutEffect(() => {
     const dome = domeRef.current;
-    const head = headRef.current;
-    const foot = footRef.current;
-    if (!active || !dome || !head || !foot || typeof ResizeObserver === 'undefined') {
+    if (!active || !dome || typeof ResizeObserver === 'undefined') {
       setRows(null);
       return;
     }
+    let observed: Element | null = null;
     const measure = (): void => {
-      const frame = dome.querySelector('[data-testid="chart-frame"]');
-      const slot = dome.querySelector('[data-testid="chart-legend-slot"]');
-      if (!frame || !slot) return;
-      const rowPx = parseFloat(getComputedStyle(head).lineHeight) || ROW_PX;
-      const gap = parseFloat(getComputedStyle(slot).rowGap) || 0;
-      const px = frame.getBoundingClientRect().bottom - slot.getBoundingClientRect().top - head.getBoundingClientRect().height - foot.getBoundingClientRect().height - 2 * gap;
-      const next = Math.max(0, Math.floor(px / rowPx) - 1);
+      const box = dome.querySelector('[data-testid="chart-legend-scroll"]');
+      if (!box) return;
+      if (box !== observed) {
+        if (observed) observer.unobserve(observed);
+        observer.observe(box);
+        observed = box;
+      }
+      const rowPx = parseFloat(getComputedStyle(box).lineHeight) || ROW_PX;
+      const next = Math.max(0, Math.floor(box.clientHeight / rowPx) - 1);
       setRows((last) => (last === next ? last : next));
     };
     const observer = new ResizeObserver(measure);
     observer.observe(dome);
-    observer.observe(head);
-    observer.observe(foot);
     measure();
     return () => {
       observer.disconnect();
     };
-  }, [active, domeRef, headRef, footRef]);
+  }, [active, domeRef]);
   return rows;
 }
 
@@ -314,10 +314,8 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const mode = useLayoutMode();
   const compact = mode === 'compact';
   const shape = usePageShape();
-  // R85 (F-81): what the short wide inventory is measured from — the page's dome row and the rail's two ends.
+  // R85 (F-81): the dome row, inside which the short wide inventory's scroll box is measured.
   const domeRef = useRef<HTMLDivElement>(null);
-  const railHeadRef = useRef<HTMLDivElement>(null);
-  const railFootRef = useRef<HTMLDivElement>(null);
   /*
    * R78 (FR-WATCH-5, FR-WATCH-6; D-448): where the scrub block goes, and what folds, from one measured number —
    * the height the chart's frame has for the box with nothing under it (`ChartFrame`'s `onBoxSpace`), not the
@@ -528,7 +526,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
    * inventory that ends on a whole entry, with a `+n` line — `liveRows.ts`'s `inventoryClip` over what the rail
    * leaves it, measured here in whole text rows.
    */
-  const inventoryRows = useInventoryRows(!compact && placement === 'overlay' && !screenOpen, domeRef, railHeadRef, railFootRef);
+  const inventoryRows = useInventoryRows(!compact && placement === 'overlay' && !screenOpen, domeRef);
   const legendInventory = useMemo<LegendInventory | null>(
     () => (inventoryRows === null ? null : { clip: (entryRows) => inventoryClip(entryRows, inventoryRows), moreLabel: t.live.more }),
     [inventoryRows, t],
@@ -639,7 +637,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
    */
   const overlaid = placement === 'overlay';
   const railHead = (
-    <div className={styles.railHead} data-testid="live-rail-head" ref={railHeadRef}>
+    <div className={styles.railHead} data-testid="live-rail-head">
       {indicatorLine}
       {nextEvent}
       {conditions}
@@ -648,7 +646,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const side = (
     <div className={styles.side} data-testid="live-side">
       {railHead}
-      <div className={styles.railFoot} data-testid="live-rail-foot" ref={railFootRef}>
+      <div className={styles.railFoot} data-testid="live-rail-foot">
         {(!scrubbing || overlaid) && overview}
         {actions}
       </div>

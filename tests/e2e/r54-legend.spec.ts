@@ -25,7 +25,12 @@ test('the legend beside the drawing scrolls inside the box; every row is a keybo
    * controls and the share action off the bottom of it. F-53's behaviour is unchanged and so is this test;
    * only which element carries the scroll has moved, and the test asks the frame which one that is.
    */
-  const scroller = (await page.getByTestId('chart-legend-scroll').count()) > 0 ? page.getByTestId('chart-legend-scroll') : slot;
+  /*
+   * R85 (F-81, D-549): at this short wide window the list is the rail's inventory, clipped to whole entries with
+   * a `+n` line under it, and the list itself is what scrolls to the entries under the clip.
+   */
+  const clipped = page.locator('[data-testid="chart-legend"][data-clip-rows]');
+  const scroller = (await clipped.count()) > 0 ? clipped : (await page.getByTestId('chart-legend-scroll').count()) > 0 ? page.getByTestId('chart-legend-scroll') : slot;
   const rows = slot.locator('button[data-pass-id]');
   const ids = await rows.evaluateAll((buttons) => buttons.map((button) => button.getAttribute('data-pass-id')));
   expect(ids.length).toBeGreaterThan(1);

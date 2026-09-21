@@ -515,6 +515,14 @@
   margin-top: auto;
 }
 
+/* R85 (F-81, FR-CAP-5, D-549): on the short wide window the frame's legend scroll box takes what the rail's
+   head and foot leave — `flex: 1 1 0`, so its height does not follow what is in it — and that height is the
+   inventory's budget (`useInventoryRows` in `Live.tsx`): the list inside is clipped to whole entries with its
+   `+n` line, and the space under it stays blank rather than holding half a row. */
+.page[data-state='live'][data-compact='false'][data-scrub-placement='overlay'] .dome [data-testid='chart-legend-scroll'] {
+  flex: 1 1 0;
+}
+
 .indicatorLine {
   display: flex;
   flex-wrap: wrap;
