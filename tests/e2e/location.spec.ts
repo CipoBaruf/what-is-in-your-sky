@@ -55,7 +55,7 @@ test('coordinates with altitude → pass list; reload restores it without re-typ
   // R52 (FR-COMP-2): at 390 px the form is on `#settings`, one tap from here.
   // The list it fills is on the home screen, so this walks between the two the
   // way the reader does rather than making the trip for every assertion.
-  const coords = page.getByLabel('Coordinates (lat, lon)');
+  const coords = page.getByLabel('Coordinates · e.g. -38.93, -67.99');
   const altitude = page.getByLabel('Altitude (m)');
   const compact = await openSettings(page);
   await coords.fill(`${String(ha.observer.lat)} ${String(ha.observer.lon)}`); // the space-separated form (US-2 AC1)
@@ -132,9 +132,9 @@ test('a denied permission shows the message and leaves the inputs usable (US-3 A
   await page.getByRole('button', { name: 'Use my location' }).click();
   // Scoped to the location section: the elements banners (R11) can add a page-level alert when the fixture elements are old.
   await expect(page.getByRole('region', { name: 'Location' }).getByRole('alert')).toContainText('Location permission was denied');
-  await expect(page.getByLabel('Coordinates (lat, lon)')).toBeEnabled();
+  await expect(page.getByLabel('Coordinates · e.g. -38.93, -67.99')).toBeEnabled();
   await expect(page.getByRole('combobox', { name: 'Place name' })).toBeEnabled();
   await expect(page.getByTestId('active-location')).toHaveCount(0);
-  await page.getByLabel('Coordinates (lat, lon)').fill('38.93 S, 67.99 W');
+  await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill('38.93 S, 67.99 W');
   await expect(page.getByTestId('active-location')).toHaveText('Using −38.93, −67.99.');
 });

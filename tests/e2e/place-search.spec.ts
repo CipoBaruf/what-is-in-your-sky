@@ -170,5 +170,5 @@ test('no match points at the coordinates input; a failed search leaves the field
   await expect(empty).toBeVisible();
   await expect(alert).toHaveCount(0);
   await empty.getByRole('link', { name: 'enter coordinates instead' }).click();
-  await expect(page.getByLabel('Coordinates (lat, lon)')).toBeFocused();
+  await expect(page.getByLabel('Coordinates · e.g. -38.93, -67.99')).toBeFocused();
 });

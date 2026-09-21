@@ -62,7 +62,7 @@ test('cloud words from the recorded forecast on every card and the conditions ta
 
   await page.goto('/');
   await withSettings(page, async () => {
-    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+    await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(NEUQUEN);
   });
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(status).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
@@ -130,7 +130,7 @@ test('with Open-Meteo unreachable the list still renders, every badge reads unkn
 
   await page.goto('/');
   await withSettings(page, async () => {
-    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+    await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(NEUQUEN);
   });
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(status).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });

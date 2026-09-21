@@ -52,7 +52,7 @@ async function openSheet(page: Page, which: Which): Promise<void> {
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
   await page.goto('/');
   await withSettings(page, async () => {
-    await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
+    await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   });
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
 

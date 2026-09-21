@@ -133,7 +133,7 @@ test('night mode reaches the pass list and the guide sheet, in both languages', 
 
   await withSettings(page, async () => {
 
-    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+    await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(NEUQUEN);
 
   });
   const passes = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');

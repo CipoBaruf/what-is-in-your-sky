@@ -8,7 +8,7 @@ import styles from './CoordsInput.module.css';
 /**
  * FR-LOC-1 (b), US-2: latitude and longitude as decimal degrees, comma- or
  * space-separated, with an optional sign or an N/S/E/W suffix (either order
- * when suffixed), plus an altitude in metres that defaults to 0. Range
+ * when suffixed), plus an altitude in metres that is 0 when left empty. Range
  * errors are inline and leave the observer untouched (the parent gets null).
  * `initial` pre-fills both fields from a restored observer (US-8) without
  * emitting anything: the store already has it.
@@ -91,6 +91,9 @@ export function parseAltitude(text: string): ParsedAltitude {
    "the coordinate form's rules" keep one name across the UI. */
 export { coordsLabel, observerFromCoords, ALTITUDE_RANGE, LATITUDE_RANGE, LONGITUDE_RANGE };
 
+/** The altitude's placeholder: the default an empty box stands for, a number in every language. */
+const ALTITUDE_PLACEHOLDER = '0';
+
 export interface CoordsInputProps {
   /** Called with an observer on every valid value, null when the field is empty or either field is invalid. */
   onObserver: (observer: Observer | null) => void;
@@ -113,7 +116,9 @@ export function CoordsInput({ onObserver, id, initial, look = 'panel' }: CoordsI
   const home = look !== 'panel';
   const t = useT();
   const [text, setText] = useState(initial ? `${String(initial.lat)}, ${String(initial.lon)}` : '');
-  const [altText, setAltText] = useState(initial ? String(initial.altM) : '0');
+  // R84 (FR-FIRST-2 as amended v2.1, F-73): the altitude starts empty under its placeholder `0`, and empty is 0 m;
+  // only a stored altitude other than 0 is shown as a value, so no field looks filled before the reader fills it.
+  const [altText, setAltText] = useState(initial && initial.altM !== 0 ? String(initial.altM) : '');
   const [error, setError] = useState<CoordsError | null>(null);
   const [altError, setAltError] = useState<AltitudeError | null>(null);
   const generatedId = useId();
@@ -156,6 +161,7 @@ export function CoordsInput({ onObserver, id, initial, look = 'panel' }: CoordsI
       inputMode="decimal"
       autoComplete="off"
       spellCheck={false}
+      placeholder={ALTITUDE_PLACEHOLDER}
       value={altText}
       onChange={handleAltChange}
       aria-invalid={altError !== null}
@@ -191,8 +197,8 @@ export function CoordsInput({ onObserver, id, initial, look = 'panel' }: CoordsI
           {t.location.altitudeLabel}
         </label>
         {home ? (
-          // The unit follows the value, "0 m", as the board writes it: placed a cell after the value's last character.
-          <span className={styles.altBox} style={{ ['--value-cells' as string]: String(altText.length) }}>
+          // The unit follows the value, "0 m", as the board writes it: placed a cell after the value's last character, or the placeholder's.
+          <span className={styles.altBox} style={{ ['--value-cells' as string]: String(Math.max(altText.length, ALTITUDE_PLACEHOLDER.length)) }}>
             {altitude}
             <span className={styles.unit} aria-hidden="true">
               m

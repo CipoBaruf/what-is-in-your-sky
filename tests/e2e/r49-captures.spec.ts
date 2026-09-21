@@ -45,7 +45,7 @@ async function open(page: Page, width: 390 | 1280, locale: 'en' | 'es'): Promise
   await page.goto('/');
   if (locale === 'es') await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
   await withSettings(page, async () => {
-    await page.getByLabel(locale === 'es' ? 'Coordenadas (lat, lon)' : 'Coordinates (lat, lon)').fill(PARIS);
+    await page.getByLabel(locale === 'es' ? 'Coordenadas · p. ej. -38.93, -67.99' : 'Coordinates · e.g. -38.93, -67.99').fill(PARIS);
   });
   const passes = page.getByRole('region', { name: locale === 'es' ? 'Próximos pases' : 'Upcoming passes' });
   await expect(passes.getByRole('status')).toHaveText(/\d+ (visible passes in 72 h|pases visibles en 72 h)/, { timeout: 60_000 });

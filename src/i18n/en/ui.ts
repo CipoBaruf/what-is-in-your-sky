@@ -165,8 +165,11 @@ export const ui = {
      */
     searchOffline: { before: 'No connection, so places cannot be searched. The device location button still works, or ', link: coordsInstead, after: '.' } satisfies LinkedText,
     placeCentre: (p: { place: string; coords: string }) => `Using the centre of ${p.place} (${p.coords}).`,
-    coordsLabel: 'Coordinates (lat, lon)',
-    coordsPlaceholder: '-38.93, -67.99',
+    /** FR-FIRST-2 as amended v2.1 (F-73): the placeholder is the format and the label carries the example, so the empty field does not look filled. */
+    coordsLabel: 'Coordinates · e.g. -38.93, -67.99',
+    coordsPlaceholder: 'lat, lon',
+    /** FR-FIRST-2 as amended v2.1 (F-86): the where step's way forward from a typed pair. */
+    continue: 'continue',
     altitudeLabel: 'Altitude (m)',
     coordsHint: 'Enter latitude, longitude in decimal degrees, e.g. -38.93, -67.99 or 38.93 S, 67.99 W',
     suffixOnBoth: 'Use N/S/E/W on both values, or on neither',

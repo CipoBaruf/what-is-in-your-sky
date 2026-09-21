@@ -74,14 +74,14 @@ describe('<UseMyLocation>', () => {
     const env: GeolocationEnv = { geolocation: fakeGeolocation((_s, failure) => failure({ code: 1, message: 'User denied Geolocation' })), secure: true };
     render(
       <>
-        <input aria-label="Coordinates (lat, lon)" />
+        <input aria-label="Coordinates · e.g. -38.93, -67.99" />
         <UseMyLocation onObserver={onObserver} env={env} />
       </>,
     );
     await user.click(screen.getByRole('button', { name: 'Use my location' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Location permission was denied. You can still enter a place name or coordinates.');
     expect(onObserver).not.toHaveBeenCalled();
-    expect(screen.getByLabelText('Coordinates (lat, lon)')).toBeEnabled();
+    expect(screen.getByLabelText('Coordinates · e.g. -38.93, -67.99')).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Use my location' })).toBeEnabled();
   });
 

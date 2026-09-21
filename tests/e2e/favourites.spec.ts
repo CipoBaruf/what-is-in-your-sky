@@ -61,7 +61,7 @@ test('save two places, switch between them, remove one, and the other survives a
   // width. The whole of this test is that panel, so it stays on the page and
   // steps back to the home screen once, at the end, for the list.
   const compact = await openSettings(page);
-  const coords = page.getByLabel('Coordinates (lat, lon)');
+  const coords = page.getByLabel('Coordinates · e.g. -38.93, -67.99');
   const save = page.getByTestId('save-favourite');
 
   // Nothing is saved yet, and the panel says so rather than showing an empty list.

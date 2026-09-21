@@ -69,7 +69,7 @@ async function openLive(page: Page): Promise<void> {
   await stubNetwork(page);
   await page.goto('/');
   await withSettings(page, async () => {
-    await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
+    await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
   });
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 60_000 });
   await page.getByTestId('live-link').click();

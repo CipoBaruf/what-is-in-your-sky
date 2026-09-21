@@ -43,7 +43,7 @@ test.beforeEach(async ({ page }) => {
 async function listed(page: Page): Promise<void> {
   await page.goto('/');
   await withSettings(page, async () => {
-    await page.getByLabel('Coordinates (lat, lon)').fill(PARIS);
+    await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(PARIS);
   });
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 60_000 });
 }

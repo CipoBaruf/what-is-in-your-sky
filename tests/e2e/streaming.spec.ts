@@ -63,7 +63,7 @@ test('cards appear one at a time with the ISS first; a location change mid-strea
 
   await page.goto('/');
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
-  const input = page.getByLabel('Coordinates (lat, lon)');
+  const input = page.getByLabel('Coordinates · e.g. -38.93, -67.99');
   await input.fill(NEUQUEN);
 
   // Main thread free while the worker is still loading: status says computing, no cards yet, input still editable.

@@ -106,7 +106,7 @@ export const ui: typeof EnUi = {
     back: '\u2190 Volver',
     heading: 'Ajustes',
     browser: 'Este navegador',
-    /* R75: "[ Usar mi ubicación ] [ coordenadas ]" is 37 cells, one past FR-COMP-4's 36; the field's own label already says "(lat, lon)". */
+    /* R75: "[ Usar mi ubicación ] [ coordenadas ]" is 37 cells, one past FR-COMP-4's 36; the field's own placeholder says "lat, lon" (R84) and its label gives the example. */
     coordinates: 'lat, lon',
     /* R75: "[ Guardar este lugar ] [ Borrar ]" is 33; the full "Borrar la ubicación guardada" stays the accessible name. */
     clearSaved: 'Borrar',
@@ -125,8 +125,9 @@ export const ui: typeof EnUi = {
     searchFailed: (message) => ({ before: `No se pudo buscar lugares (${message}). Se puede reintentar, o `, link: coordsInstead, after: '.' }),
     searchOffline: { before: 'Sin conexión, así que no se pueden buscar lugares. El botón de ubicación del dispositivo sigue funcionando, o ', link: coordsInstead, after: '.' },
     placeCentre: (p) => `Centro de ${p.place} (${p.coords}).`,
-    coordsLabel: 'Coordenadas (lat, lon)',
-    coordsPlaceholder: '-38.93, -67.99',
+    coordsLabel: 'Coordenadas · p. ej. -38.93, -67.99',
+    coordsPlaceholder: 'lat, lon',
+    continue: 'continuar',
     altitudeLabel: 'Altitud (m)',
     coordsHint: 'Latitud y longitud en grados decimales, p. ej. -38.93, -67.99 o 38.93 S, 67.99 W',
     suffixOnBoth: 'N/S/E/W en ambos valores, o en ninguno',

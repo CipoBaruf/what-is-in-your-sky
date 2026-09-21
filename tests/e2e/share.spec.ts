@@ -30,8 +30,8 @@ const CLOCK = Date.parse(ha.capturedAt) + 9 * DAY_MS;
 const COORDS = `${String(ha.observer.lat)}, ${String(ha.observer.lon)}`;
 
 const LABEL = {
-  en: { coords: 'Coordinates (lat, lon)', passes: 'Upcoming passes', count: /\d+ visible passes in 72 h/, open: /Open guide/, share: 'Share this pass', copied: 'Link copied' },
-  es: { coords: 'Coordenadas (lat, lon)', passes: 'Próximos pases', count: /\d+ pases visibles en 72 h/, open: /Abrir la guía/, share: 'Compartir este paso', copied: 'Enlace copiado' },
+  en: { coords: 'Coordinates · e.g. -38.93, -67.99', passes: 'Upcoming passes', count: /\d+ visible passes in 72 h/, open: /Open guide/, share: 'Share this pass', copied: 'Link copied' },
+  es: { coords: 'Coordenadas · p. ej. -38.93, -67.99', passes: 'Próximos pases', count: /\d+ pases visibles en 72 h/, open: /Abrir la guía/, share: 'Compartir este paso', copied: 'Enlace copiado' },
 } as const;
 
 /** Every network call this app can make, answered from a fixture or refused; nothing reaches the internet (PLAN §9.1). */
