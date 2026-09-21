@@ -71,6 +71,25 @@ describe('<NextEventBlock> (FR-FIRST-3)', () => {
     expect(lines()).toEqual(['First up · in 12:34', '04:36   SL-16 R/B (Cosmos 2369)', 'S low → 32° ESE → ENE · 10 min', 'Faint, needs dark sky (+3.6)']);
     // The card is the phone's third step's: no link, the step's own control follows it.
     expect(screen.queryByRole('link')).toBeNull();
+    // Without `onOpen` it is not a control.
+    expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  // R84 (FR-FIRST-3 as amended v2.1, US-26 AC7, F-84): the first card opens its pass like any other card.
+  it('the first-card form with onOpen is one control, named like a pass card’s, that opens its pass', async () => {
+    const onOpen = vi.fn();
+    const { container } = render(<NextEventBlock form="card" passes={passes} timeZone={ZONE} now={FIRST.start.t - 754_000} hours={72} onOpen={onOpen} />);
+    const card = screen.getByTestId('next-event');
+    const button = screen.getByRole('button', { name: 'Open guide → SL-16 R/B (Cosmos 2369)' });
+    expect(card.lastElementChild).toBe(button);
+    expect(card.querySelectorAll('button, a[href], [tabindex]:not([tabindex="-1"])')).toHaveLength(1);
+    // The lines are unchanged by it.
+    expect(lines()).toEqual(['First up · in 12:34', '04:36   SL-16 R/B (Cosmos 2369)', 'S low → 32° ESE → ENE · 10 min', 'Faint, needs dark sky (+3.6)']);
+    act(() => {
+      button.click();
+    });
+    expect(onOpen).toHaveBeenCalledWith(FIRST.id);
+    expect(await axe(container)).toHaveNoViolations();
   });
 
   it('with no pass: one line, with the reason, and the live link still', () => {

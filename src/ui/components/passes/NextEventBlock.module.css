@@ -53,10 +53,17 @@
    name in the accent at 20 px on 26, the path with its duration, and the
    brightness in `--warn`. */
 .card {
+  position: relative;
   display: grid;
   gap: 0;
   border: 1px solid var(--accent);
   padding: 12px;
+}
+
+/* R84 (FR-FIRST-3 as amended v2.1): the whole card is the control, so the card wears its focus ring. */
+.card:has(> button:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .cardTime {

@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { Messages } from '../../../i18n/messages';
 import { useLocale, useT } from '../../../i18n/useT';
 import { formatClockDuration, formatMagnitude } from '../../../lib/format';
@@ -8,6 +9,7 @@ import { formatShortClock } from '../../../lib/timeFormat';
 import type { EpochMs, Pass } from '../../../model';
 import { useNow } from '../../hooks/useNow';
 import styles from './NextEventBlock.module.css';
+import { OpenGuide } from './OpenGuide';
 
 /**
  * R76 (FR-FIRST-3, D-442), re-cut by R81 (FR-FIRST-3 as amended v2.0.2,
@@ -22,6 +24,8 @@ import styles from './NextEventBlock.module.css';
  * `form: 'card'` is the phone's third step's first card (FR-FIRST-4, R82):
  * `First up · in 12:34`, the time and the name, the path with the duration and
  * the brightness phrase with the magnitude, in a box ruled in the accent.
+ * R84 (FR-FIRST-3 as amended v2.1, F-84): given `onOpen`, the whole card opens
+ * its pass with the same stretched control a `PassCard` has (`OpenGuide`).
  *
  * It ticks once a second from the wall clock (`NEXT_EVENT_TICK_MS`, US-5 AC4)
  * against those passes; nothing is asked of the worker and nothing is written
@@ -76,11 +80,17 @@ export interface NextEventBlockProps {
    * headline is the same block (V20-18) on the page the link opens, so it passes `false`.
    */
   liveLink?: boolean;
+  /**
+   * R84 (FR-FIRST-3 as amended v2.1, D-548, F-84): the card form opens its pass the way a `PassCard` does — the
+   * whole box, the same "Open guide → <name>" control, the same sheet — since the list under it leaves that pass out.
+   */
+  onOpen?: (passId: string) => void;
 }
 
-export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block', liveLink = true }: NextEventBlockProps) {
+export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block', liveLink = true, onOpen }: NextEventBlockProps) {
   const t = useT();
   const locale = useLocale();
+  const nameId = useId();
   const clock = useNow(NEXT_EVENT_TICK_MS);
   const now = nowProp ?? clock;
   const result = nextEvent(passes, now, context);
@@ -109,7 +119,8 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
       {card ? (
         <>
           <p className={styles.cardTime} data-testid="next-event-time">
-            {`${time}   ${pass.name}`}
+            {`${time}   `}
+            <span id={nameId}>{pass.name}</span>
           </p>
           <p className={styles.path} data-testid="next-event-path">
             {t.nextEvent.withDuration({ path, minutes: passMinutes(pass) })}
@@ -117,6 +128,7 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
           <p className={styles.brightness} data-testid="next-event-brightness">
             {t.nextEvent.brightness({ band: brightnessBand(pass.peakMagnitude), magnitude: formatMagnitude(pass.peakMagnitude, locale) })}
           </p>
+          {onOpen && <OpenGuide passId={pass.id} nameId={nameId} onOpen={onOpen} />}
         </>
       ) : (
         <>

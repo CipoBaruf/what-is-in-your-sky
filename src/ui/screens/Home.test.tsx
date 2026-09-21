@@ -462,6 +462,10 @@ describe('the phone’s first visit (FR-FIRST-4, D-513)', () => {
     // A card is the control that opens its pass.
     fireEvent.click(within(within(cards).getAllByRole('article')[0] as HTMLElement).getByRole('button'));
     expect(onOpenPass).toHaveBeenCalledWith('b');
+    // R84 (FR-FIRST-3 as amended v2.1, US-26 AC7, F-84): and so is the first card, whose pass the list leaves out.
+    const first = within(cards).getByTestId('next-event');
+    fireEvent.click(within(first).getByRole('button', { name: `Open guide → ${pass.name}` }));
+    expect(onOpenPass).toHaveBeenLastCalledWith(pass.id);
   });
 });
 

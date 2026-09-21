@@ -9,6 +9,7 @@ import type { Pass, WeatherSnapshot } from '../../../model';
 import { MoonGlareLabel } from '../moon/MoonGlare';
 import { CloudBadge } from '../weather/CloudBadge';
 import { passMinutes } from './NextEventBlock';
+import { OpenGuide } from './OpenGuide';
 import styles from './PassCard.module.css';
 
 /**
@@ -50,25 +51,6 @@ export interface PassCardProps {
   detail?: 'magnitude' | 'phrase';
   /** The `Next ISS` tag, on the one card `nextFeaturedPass` chooses. */
   tag?: string;
-}
-
-/** The accessible control ("Open guide → <name>"); its `::after` stretches the hit area over the positioned card. */
-export function OpenGuide({ pass, headingId, onOpen }: { pass: Pass; headingId: string; onOpen: (passId: string) => void }) {
-  const t = useT();
-  const openId = useId();
-  return (
-    <button
-      type="button"
-      id={openId}
-      className={styles.open}
-      aria-labelledby={`${openId} ${headingId}`}
-      onClick={() => {
-        onOpen(pass.id);
-      }}
-    >
-      <span className="sr-only">{t.passes.openGuide}</span>
-    </button>
-  );
 }
 
 export function PassCard({ pass, timeZone, onOpen, weather, selected = false, detail = 'magnitude', tag }: PassCardProps) {
@@ -114,7 +96,7 @@ export function PassCard({ pass, timeZone, onOpen, weather, selected = false, de
         </div>
       )}
       {/* Last in the card, so its stretched box lies over everything before it. */}
-      {onOpen && <OpenGuide pass={pass} headingId={headingId} onOpen={onOpen} />}
+      {onOpen && <OpenGuide passId={pass.id} nameId={headingId} onOpen={onOpen} />}
     </article>
   );
 }

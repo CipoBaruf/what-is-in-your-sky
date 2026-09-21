@@ -99,7 +99,7 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
       <p className={styles.sentence}>{t.home.whatStep.sentence}</p>
       {passes.length > 0 && (
         <div className={styles.cards} data-testid="what-cards">
-          <NextEventBlock passes={passes} timeZone={zone} context={nextContext} pending={context.pending} hours={SEARCH_WINDOW_HOURS} form="card" />
+          <NextEventBlock passes={passes} timeZone={zone} context={nextContext} pending={context.pending} hours={SEARCH_WINDOW_HOURS} form="card" onOpen={onOpenPass} />
           {shown.length > 0 && <ol className={styles.list}>{shown.map(card)}</ol>}
           {moreNights &&
             laterNights.map((group) => (
