@@ -6,25 +6,47 @@
 }
 
 /* `7 visible passes in 72 h · Sort: [ Soonest ] Best` at `--small`: one line
-   where the pane holds it, and two on a phone, broken at the separator. */
+   where the pane holds it, and two on a phone, broken at the separator.
+
+   R84 (FR-FIRST-10 as amended v2.1, D-548, F-78): the ` · ` is drawn only
+   while both are on one line. It is a node three characters wide at the head
+   of the sort's side, and the row starts as far left of the line, which clips
+   everything left of its own edge: on one line the separator follows the
+   count; when the sort wraps it stands at the head of the second line, in the
+   clipped margin, and the count line ends at its last word. The clip is the
+   left edge only — the controls' tap boxes above and below stay whole. */
 .countLine {
+  font-size: var(--small);
+  line-height: var(--small-row);
+  clip-path: inset(-100vh -100vw -100vh 0);
+}
+
+.countRow {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0 var(--cell);
-  font-size: var(--small);
-  line-height: var(--small-row);
+  margin-left: -3ch;
 }
 
 .status {
-  margin: 0;
+  margin: 0 0 0 3ch;
+  min-width: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   color: var(--fg-dim);
 }
 
-.status:not(:last-child)::after {
-  content: ' ·';
+.sortSide {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.separator {
+  flex: none;
+  width: 3ch;
+  white-space: pre;
+  color: var(--fg-dim);
 }
 
 .list {

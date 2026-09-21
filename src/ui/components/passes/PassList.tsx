@@ -169,11 +169,22 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
   return (
     <section aria-labelledby={headingId} className={styles.section}>
       <SectionHeading id={headingId}>{t.passes.heading}</SectionHeading>
-      <div className={styles.countLine}>
-        <p role="status" aria-live="polite" aria-busy={busy} className={styles.status}>
-          {statusText(observer, elements, passes, t)}
-        </p>
-        {showList && <SortToggle value={sort} onChange={setSort} short />}
+      {/* R84 (FR-FIRST-10 as amended v2.1, D-548, F-78): the ` · ` is a node on the sort's side, so a wrap
+          carries it to the start of the next line, where the row's clipped left margin hides it. */}
+      <div className={styles.countLine} data-testid="count-line">
+        <div className={styles.countRow}>
+          <p role="status" aria-live="polite" aria-busy={busy} className={styles.status}>
+            {statusText(observer, elements, passes, t)}
+          </p>
+          {showList && (
+            <div className={styles.sortSide}>
+              <span className={styles.separator} aria-hidden="true" data-testid="count-separator">
+                {' · '}
+              </span>
+              <SortToggle value={sort} onChange={setSort} short />
+            </div>
+          )}
+        </div>
       </div>
       {/* One night is no grouping at all: an MVP-width window, and every list before R24, is a
           single disclosure with nothing to disclose it from (D-146). */}
