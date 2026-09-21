@@ -2027,7 +2027,8 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
 
 ### Wave 1
 
-- [ ] **R83 — A link is a visit, in the store: `visiting`, `openLink()`, nothing written through**
+- [x] **R83 — A link is a visit, in the store: `visiting`, `openLink()`, nothing written through**
+  - *Done:* as written; the running tab's `hashchange` path is a listener in `App.tsx` calling `state`'s `followHash` (D-552), and unreadable/unknown hashes are recorded but not yet cleared (D-554).
   - **Lane:** data
   - **Model:** opus
   - **Gate:** auto
