@@ -8,6 +8,7 @@ import { act, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../tests/support/catalogFixtures';
+import { passLinkHash } from '../lib/shareLinks';
 import type { Observer } from '../model';
 import { appStore, type ElementsState } from '../state';
 import { IDLE_PASSES } from '../state/slices/passes';
@@ -99,6 +100,29 @@ describe('<App> frame (R12)', () => {
     });
     expect(screen.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeInTheDocument();
     for (const role of ['banner', 'main', 'contentinfo']) expect(screen.getByRole(role, { hidden: true })).toHaveAttribute('inert');
+  });
+
+  /**
+   * R83 (FR-SHARE-3 as amended, F-93's first clause, D-539): a pass link for
+   * another place pasted into a running tab was dropped — F-17's consumption
+   * saw an observer that was not the link's and cleared the hash. It now goes
+   * through `followHash` like a boot: the place is visited, the saved one kept,
+   * and the pass is selected with the link still in the address bar.
+   */
+  it('a pass link pasted into a running tab visits its place and selects the pass, not dropped (F-93)', () => {
+    act(() => {
+      appStore.setState({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [pass, other], hasDarkness: true } });
+    });
+    render(<App />);
+    const hash = passLinkHash({ observer: { lat: 51.48, lon: -0.01, altM: 0 }, noradId: pass.noradId, startT: pass.start.t });
+    act(() => {
+      window.location.hash = hash;
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    expect(appStore.getState().visiting).toMatchObject({ lat: 51.48, lon: -0.01, source: 'coords' });
+    expect(appStore.getState().observer).toBe(observer);
+    expect(window.location.hash).toBe(hash);
+    expect(screen.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeInTheDocument();
   });
 
   /**

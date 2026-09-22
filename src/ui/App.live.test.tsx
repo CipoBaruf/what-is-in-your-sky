@@ -90,13 +90,14 @@ describe('<App> and the live route', () => {
     const own = appStore.getState().observer;
     go('#live?lat=51.48&lon=-0.01&alt=0');
     expect(await screen.findByTestId('live-place')).toHaveTextContent('51.48, −0.01');
-    const shared = appStore.getState().observer;
+    // R83 (FR-VISIT-1, D-538): over a saved place the link's is a visit — shown, and the saved one kept.
+    const shared = appStore.getState().visiting;
     expect(shared).toMatchObject({ lat: 51.48, lon: -0.01, altM: 0, source: 'coords', label: '51.48, −0.01' });
-    expect(shared).not.toBe(own);
+    expect(appStore.getState().observer).toBe(own);
     // The same place again is not a new observer: a fresh one would restart the whole compute chain for the sky already shown.
     go('#live');
     go('#live?lat=51.48&lon=-0.01&alt=0');
-    expect(appStore.getState().observer).toBe(shared);
+    expect(appStore.getState().visiting).toBe(shared);
   });
 
   /**

@@ -4,13 +4,26 @@ import { localPrefs, type LocalPrefs } from '../data/localPrefs';
 import { appPassesCache, type PassesCache } from '../data/passesCache';
 import { loadCloudForecast } from '../data/weatherCache';
 import { searchPlaces } from '../data/openMeteo/geocode';
-import { observerFromLink, parseHash, sameHashPlace } from '../lib/shareLinks';
 import { documentVisibility, startEffects, type EffectDeps } from './effects';
+import { applyLink, followHash as followHashIn, openLink } from './openLink';
 import { setLiveNowClient } from './liveNow';
 import { appStore, type AppStore } from './store';
 import { createAppWorker, createWorkerClient, type WorkerLike } from './workerClient';
 
-export { appStore, useAppStore, type AppState } from './store';
+export { appStore, useActiveObserver, useAppStore, type AppState } from './store';
+export { activeObserver } from './slices/location';
+export type { LinkKind, LinkNote, OpenLinkResult } from './openLink';
+
+/**
+ * R83 (F-93, D-539): the running tab's `hashchange` path. A link pasted into
+ * the address bar, or followed inside the page, is read by `openLink` exactly
+ * as one the tab booted on — a pass link is visited and its pass selected, not
+ * dropped. `App` calls it on every `hashchange`; a hash that carries no place
+ * (`#live`, `#settings`, a local `#pass=<id>`, none) changes nothing.
+ */
+export function followHash(hash: string, now: number = Date.now()): void {
+  followHashIn(appStore, hash, now);
+}
 export type { ElementsState } from './slices/elements';
 export type { PassesState, PassesStatus } from './slices/passes';
 export type { NowSliceState } from './slices/now';
@@ -99,10 +112,17 @@ export function startApp(overrides: StartAppOverrides = {}): () => void {
   // so that one restores the saved observer instead, stored run and all.
   // `sameHashPlace` (D-295) compares at the precision the hash carries, which
   // is `shareLinks.ts`'s own rounding and not a second copy of it.
-  const link = parseHash(overrides.hash ?? window.location.hash);
-  if (link !== null && link.kind === 'live' && sameHashPlace(prefs.read().observer ?? null, link.observer)) store.getState().restoreSavedObserver();
-  else if (link !== null && link.kind !== 'passId') store.getState().setObserver(observerFromLink(link));
-  else store.getState().restoreSavedObserver();
+  //
+  // R83 (FR-VISIT-1, D-538, D-539; supersedes D-135's store-on-load): the
+  // saved place is restored first, always, and the link is then read by
+  // `openLink` against it. Over a saved place a link for another one is a
+  // visit — this tab looks from there, `wiys:prefs:v1` is not written — and
+  // D-280's "my own place" guard now covers pass links too. With nothing
+  // saved the link's place is adopted and stored as before. The running tab's
+  // `hashchange` goes through the same function (`followHash`).
+  const now = overrides.now ?? (() => Date.now());
+  store.getState().restoreSavedObserver();
+  applyLink(store, openLink(overrides.hash ?? window.location.hash, prefs.read().observer ?? null, now()));
   const stop = startEffects({
     store,
     client,
@@ -111,7 +131,7 @@ export function startApp(overrides: StartAppOverrides = {}): () => void {
     loadWeather: overrides.loadWeather ?? loadCloudForecast,
     loadStoredRun: (observer) => cache.loadForObserver(observer),
     saveRun: (run) => cache.save(run),
-    now: overrides.now ?? (() => Date.now()),
+    now,
     visibility: overrides.visibility ?? documentVisibility(document),
   });
   return () => {

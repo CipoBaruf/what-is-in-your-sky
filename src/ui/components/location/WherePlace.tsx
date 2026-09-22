@@ -2,7 +2,7 @@ import { useT } from '../../../i18n/useT';
 import type { Messages } from '../../../i18n/messages';
 import { coordsLabel } from '../../../lib/place';
 import type { Observer } from '../../../model';
-import { useAppStore } from '../../../state';
+import { useActiveObserver } from '../../../state';
 import styles from './WherePlace.module.css';
 
 /**
@@ -49,7 +49,7 @@ export function whereSentence(observer: Observer, t: Messages): string {
 
 export function WherePlace({ open, onToggle, controls }: WherePlaceProps) {
   const t = useT();
-  const observer = useAppStore((s) => s.observer);
+  const observer = useActiveObserver();
   if (observer === null) return null;
   const place = placeName(observer);
   const coords = coordsLabel(observer.lat, observer.lon);

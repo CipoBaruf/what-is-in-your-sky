@@ -4,7 +4,7 @@ import { useLocale, useT } from '../../../i18n/useT';
 import { nextFeaturedPass, sortPasses } from '../../../lib/passSort';
 import { formatDate, nextCalendarDate } from '../../../lib/timeFormat';
 import type { EpochMs, Locale, Observer } from '../../../model';
-import { SEARCH_WINDOW_HOURS, isFeatured, useAppStore, type ElementsState, type PassesState } from '../../../state';
+import { SEARCH_WINDOW_HOURS, isFeatured, useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../../state';
 import { SectionHeading } from '../common/SectionHeading';
 import { useNow } from '../../hooks/useNow';
 import { groupByNight, type NightGroup } from './nightGroups';
@@ -107,7 +107,7 @@ export interface PassListProps {
 export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
   const t = useT();
   const locale = useLocale();
-  const observer = useAppStore((s) => s.observer);
+  const observer = useActiveObserver();
   const elements = useAppStore((s) => s.elements);
   const passes = useAppStore((s) => s.passes);
   const weather = useAppStore((s) => s.weather);

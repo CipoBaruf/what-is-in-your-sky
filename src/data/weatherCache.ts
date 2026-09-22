@@ -47,7 +47,8 @@ export interface WeatherCacheDeps {
 }
 
 export interface WeatherCache {
-  load: (lat: number, lon: number, options?: { signal?: AbortSignal }) => Promise<WeatherSnapshot>;
+  /** `persist: false` (a visited place, R83 D-538) keeps the answer in memory and writes nothing to storage. */
+  load: (lat: number, lon: number, options?: { signal?: AbortSignal; persist?: boolean }) => Promise<WeatherSnapshot>;
   /** Drops everything, memory and storage. */
   clear: () => void;
 }
@@ -111,7 +112,8 @@ export function createWeatherCache({ storage, now, fetchForecast }: WeatherCache
       const centre = cellCentre(lat, lon);
       const promise = fetchForecast(centre.lat, centre.lon, key, { ...options, now })
         .then((snapshot) => {
-          remember(key, snapshot);
+          if (options.persist === false) memory.set(key, snapshot);
+          else remember(key, snapshot);
           return snapshot;
         })
         .catch((error: unknown) => {
@@ -149,7 +151,7 @@ function fromStored(stored: StoredSnapshot): WeatherSnapshot {
 let appCache: WeatherCache | null = null;
 
 /** The app's cache, created on first use with `localStorage` and the wall clock. */
-export function loadCloudForecast(lat: number, lon: number, options: { signal?: AbortSignal } = {}): Promise<WeatherSnapshot> {
+export function loadCloudForecast(lat: number, lon: number, options: { signal?: AbortSignal; persist?: boolean } = {}): Promise<WeatherSnapshot> {
   appCache ??= createWeatherCache({ storage: browserStorage(), now: () => Date.now(), fetchForecast: fetchCloudForecast });
   return appCache.load(lat, lon, options);
 }

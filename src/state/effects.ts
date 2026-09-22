@@ -2,7 +2,7 @@ import type { CatalogEntry, EpochMs, Observer, Pass, PassRun, SatelliteRecord, T
 import type { FinishedRun } from '../data/passesCache';
 import { DEFAULT_THRESHOLDS } from '../physics/constants';
 import { searchWindow } from './passWindow';
-import { sameLocation } from './slices/location';
+import { activeObserver, sameLocation } from './slices/location';
 import type { AppStore } from './store';
 import type { RejectedElement } from '../worker/protocol';
 import type { WorkerClient } from './workerClient';
@@ -64,7 +64,7 @@ export interface EffectDeps {
   catalog: readonly CatalogEntry[];
   loadElements: (catalog: readonly CatalogEntry[], options: { signal: AbortSignal }) => Promise<LoadedElements>;
   /** The cached cloud forecast for a location (PLAN §7.3, `data/weatherCache.ts`). */
-  loadWeather: (lat: number, lon: number) => Promise<WeatherSnapshot>;
+  loadWeather: (lat: number, lon: number, options?: { persist: boolean }) => Promise<WeatherSnapshot>;
   /** The stored run for this observer's cell, expired or not (R24, `data/passesCache.ts`). */
   loadStoredRun: (observer: Observer) => Promise<PassRun | null>;
   /** Stores a finished job and prunes the older runs (FR-OFF-5). */
@@ -105,6 +105,10 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
   let current: LoadedElements | null = null;
   let elementsPromise: Promise<SatelliteRecord[] | null> | null = null;
   let workerLoaded: Promise<void> | null = null;
+  /** R83 (D-538): the chain runs for the place on screen, a visited one included. */
+  const lookingFrom = (): Observer | null => activeObserver(store.getState());
+  /** A visited place's forecast and passes are not written to the device (FR-VISIT-1, D-538). */
+  const visiting = (): boolean => store.getState().visiting !== null;
 
   const publish = (loaded: LoadedElements, rejected: RejectedElement[]): void => {
     store.getState().setElements({
@@ -150,7 +154,7 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
   let nowSeq = 0;
 
   const requestNow = (): void => {
-    const { observer } = store.getState();
+    const observer = lookingFrom();
     if (!observer || controller.signal.aborted || visibility.hidden()) return;
     const mine = ++nowSeq;
     const gen = generation;
@@ -158,11 +162,11 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
     // Written against the store's observer at reply time: still this location while `fresh()`, possibly with the zone filled in since.
     client.computeNow(observer, now(), DEFAULT_THRESHOLDS).then(
       (state) => {
-        const current = store.getState().observer;
+        const current = lookingFrom();
         if (fresh() && current) store.getState().setNow(current, state);
       },
       (error: unknown) => {
-        const current = store.getState().observer;
+        const current = lookingFrom();
         if (fresh() && current) store.getState().setNowError(current, message(error));
       },
     );
@@ -184,15 +188,15 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
   // --- Weather ------------------------------------------------------------------
   const requestWeather = (observer: Observer, stale: () => boolean): void => {
     store.getState().startWeather(observer);
-    loadWeather(observer.lat, observer.lon).then(
+    loadWeather(observer.lat, observer.lon, { persist: !visiting() }).then(
       (snapshot) => {
-        const current = store.getState().observer;
+        const current = lookingFrom();
         if (stale() || !current) return;
         store.getState().setWeather(current, snapshot);
         if (current.timeZone === null) store.getState().fillTimeZone(snapshot.timeZone);
       },
       (error: unknown) => {
-        const current = store.getState().observer;
+        const current = lookingFrom();
         if (stale() || !current) return;
         store.getState().setWeatherError(current, message(error));
       },
@@ -222,6 +226,7 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
   const storeRun = (jobId: string, observer: Observer, window: TimeWindow): void => {
     const { passes } = store.getState();
     if (passes.jobId !== jobId) return; // a newer job already owns the slice; its own `jobDone` will store it
+    if (visiting()) return; // the stored run stays the saved place's (D-538)
     // An empty run is a real answer — a window with no darkness, or nothing bright enough — and is
     // worth storing. An empty run with objects skipped is not: propagation failed, and writing it
     // back would destroy the good run that is the only thing the app can show offline (D-108).
@@ -277,7 +282,8 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
   // --- Observer change --------------------------------------------------------
   const onObserverChange = async (): Promise<void> => {
     const stale = nextGeneration();
-    const { observer, nowMs } = store.getState();
+    const observer = lookingFrom();
+    const { nowMs } = store.getState();
     if (!observer) {
       const active = client.activeJobId();
       if (active !== null) client.cancel(active);
@@ -304,7 +310,7 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
     lastCheckAt = now();
     if (!current) {
       // The first load failed (no cache, no network): retry it, computing for the observer if there is one.
-      if (store.getState().observer) void onObserverChange();
+      if (lookingFrom()) void onObserverChange();
       else void ensureElements();
       return;
     }
@@ -322,7 +328,7 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
       if (!newer) return;
       // New elements: the worker gets them again, and the current observer's passes are recomputed over a window from now.
       workerLoaded = null;
-      const { observer } = store.getState();
+      const observer = lookingFrom();
       if (observer) await computeFor(observer, now(), nextGeneration());
     } catch (error: unknown) {
       if (!controller.signal.aborted) console.warn(`Elements re-check failed, keeping the loaded set: ${message(error)}`);
@@ -355,12 +361,12 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
   });
 
   const unsubscribe = store.subscribe((state, previous) => {
-    if (state.nowMs !== previous.nowMs || !sameLocation(state.observer, previous.observer)) void onObserverChange();
+    if (state.nowMs !== previous.nowMs || !sameLocation(activeObserver(state), activeObserver(previous))) void onObserverChange();
   });
   lastCheckAt = now();
   // R24: with a location already restored from the prefs, the start-up chain runs for it — stored run first, then
   // the network. With no location there is nothing stored to show, so the elements are prefetched while the user types (R3).
-  if (store.getState().observer) void onObserverChange();
+  if (lookingFrom()) void onObserverChange();
   else void ensureElements();
   startRecheck();
 
