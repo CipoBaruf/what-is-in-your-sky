@@ -125,12 +125,21 @@ describe('<App> and the live route', () => {
     expect(appStore.getState().passes).toBe(passesBefore);
   });
 
-  it('is the inert live page under #live with no observer, and a #live?… link that does not parse', async () => {
+  it('is the inert live page under #live with no observer', async () => {
     render(<App />);
     go('#live');
     expect(await screen.findByTestId('live-inert')).toBeInTheDocument();
-    go('#live?lat=-99&lon=0');
-    expect(await screen.findByTestId('live-inert')).toBeInTheDocument();
     expect(screen.queryByRole('banner')).toBeNull();
+  });
+
+  // R87 (FR-VISIT-4, F-93): a `#live?…` link that does not parse is no longer the inert live page but the
+  // reader's own home, with one line saying so and the hash out of the URL.
+  it('opens home with "That link could not be read." for a #live?… link that does not parse, and clears the hash', async () => {
+    render(<App />);
+    go('#live?lat=-99&lon=0');
+    expect(await screen.findByTestId('link-note')).toHaveTextContent('That link could not be read.');
+    expect(screen.queryByTestId('live-inert')).toBeNull();
+    expect(screen.getByRole('banner')).toBeInTheDocument();
+    expect(window.location.hash).toBe('');
   });
 });
