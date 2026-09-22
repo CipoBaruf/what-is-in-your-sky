@@ -1144,3 +1144,278 @@ describe('favourites (R26)', () => {
     expect(store.getState().favourites).toHaveLength(3); // the place is still saved; only its offline data went
   });
 });
+
+describe('R86: failures, retries, the forecast refresh and the stale recompute (FR-FAIL-1..4, FR-NIGHT-3, FR-NIGHT-4)', () => {
+  const MIN = 60_000;
+  const HOUR = 60 * MIN;
+  interface Deferred {
+    resolve: (snapshot: WeatherSnapshot) => void;
+    reject: (error: unknown) => void;
+  }
+  let store: AppStore;
+  let spawned: ReturnType<typeof fakeWorker>[];
+  let client: WorkerClient;
+  let visibility: ReturnType<typeof fakeVisibility>;
+  let clock: number;
+  let stop: () => void;
+  let weatherRequests: Deferred[];
+  const records = fixtureRecords();
+
+  const worker = (): ReturnType<typeof fakeWorker> => {
+    const last = spawned.at(-1);
+    if (!last) throw new Error('no worker spawned');
+    return last;
+  };
+  const sent = <T extends WorkerRequest['type']>(type: T, from = worker()) => from.sent.filter((m): m is WorkerRequest & { type: T } => m.type === type);
+  const allSent = <T extends WorkerRequest['type']>(type: T) => spawned.flatMap((w) => sent(type, w));
+
+  const start = (options: { loader?: EffectDeps['loadElements']; stored?: PassRun | null; observer?: Observer } = {}): void => {
+    const saved = options.observer;
+    store = createAppStore({ now: () => clock, prefs: { read: () => (saved ? { observer: saved } : {}), write: () => undefined } });
+    spawned = [];
+    client = createWorkerClient(() => {
+      const created = fakeWorker();
+      spawned.push(created);
+      return created;
+    });
+    visibility = fakeVisibility();
+    store.getState().restoreSavedObserver();
+    stop = startEffects({
+      store,
+      client,
+      catalog: CATALOG,
+      loadElements: options.loader ?? (() => Promise.resolve(loaded(records))),
+      loadWeather: () =>
+        new Promise<WeatherSnapshot>((resolve, reject) => {
+          weatherRequests.push({ resolve, reject });
+        }),
+      loadStoredRun: () => Promise.resolve(options.stored ?? null),
+      saveRun: () => Promise.resolve(null),
+      now: () => clock,
+      visibility,
+    });
+  };
+
+  /** Elements into the current worker → the job out; returns its id. */
+  const jobOut = async (): Promise<string> => {
+    await vi.waitFor(() => expect(sent('loadElements').length).toBeGreaterThanOrEqual(1));
+    worker().emit({ type: 'elementsLoaded', requestId: sent('loadElements').at(-1)?.requestId ?? '', loaded: [], rejected: [] });
+    await vi.waitFor(() => expect(sent('computePasses').length).toBeGreaterThanOrEqual(1));
+    return sent('computePasses').at(-1)?.jobId ?? '';
+  };
+  /** The job reports one pass and ends: a finished list for the place on screen. */
+  const finish = (jobId: string, pass = samplePass(25544, clock + 30 * MIN)): void => {
+    worker().emit({ type: 'passes', jobId, noradId: pass.noradId, nightIndex: 0, passes: [pass] });
+    worker().emit({ type: 'jobDone', jobId, cancelled: false, elapsedMs: 1, hasDarkness: true });
+  };
+  /** Hides the page, moves the clock (not the timers: a sleeping device runs none), shows it again. */
+  const wakeAfter = async (ms: number): Promise<void> => {
+    visibility.set(true);
+    clock += ms;
+    visibility.set(false);
+    await vi.advanceTimersByTimeAsync(0);
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    clock = NOW;
+    weatherRequests = [];
+  });
+  afterEach(() => {
+    stop();
+    vi.useRealTimers();
+  });
+
+  describe('the forecast is kept fresh (FR-FAIL-3, D-542)', () => {
+    it('is requested again when the page comes back with a snapshot older than WEATHER_MAX_AGE_MIN, not before', async () => {
+      start({ observer: neuquen });
+      finish(await jobOut());
+      await vi.waitFor(() => expect(weatherRequests).toHaveLength(1));
+      weatherRequests[0]?.resolve(snapshotFor(neuquen.lat, neuquen.lon));
+      await vi.waitFor(() => expect(store.getState().weather.status).toBe('ready'));
+      const shown = store.getState().weather.snapshot;
+
+      await wakeAfter(59 * MIN);
+      expect(weatherRequests).toHaveLength(1);
+      await wakeAfter(2 * MIN); // 61 min since the snapshot was fetched
+      expect(weatherRequests).toHaveLength(2);
+      // Until it answers the last snapshot stays on screen (its age is the cloud row's to show).
+      expect(store.getState().weather).toMatchObject({ status: 'ready', snapshot: shown });
+      weatherRequests[1]?.resolve({ ...snapshotFor(neuquen.lat, neuquen.lon), fetchedAt: clock });
+      await vi.waitFor(() => expect(store.getState().weather.snapshot?.fetchedAt).toBe(clock));
+    });
+
+    it('a failed refresh keeps the snapshot on screen and records the failure beside it', async () => {
+      start({ observer: neuquen });
+      finish(await jobOut());
+      await vi.waitFor(() => expect(weatherRequests).toHaveLength(1));
+      weatherRequests[0]?.resolve(snapshotFor(neuquen.lat, neuquen.lon));
+      await vi.waitFor(() => expect(store.getState().weather.status).toBe('ready'));
+      await wakeAfter(61 * MIN);
+      weatherRequests[1]?.reject(new Error('Open-Meteo forecast: HTTP 200, response is not JSON'));
+      await vi.waitFor(() => expect(store.getState().weather.error).not.toBeNull());
+      expect(store.getState().weather).toMatchObject({ status: 'ready', snapshot: { fetchedAt: NOW } });
+    });
+
+    it('the re-check after a failed forecast requests it again, and the retry fills the unknown zone', async () => {
+      start({ observer: neuquen });
+      finish(await jobOut());
+      await vi.waitFor(() => expect(weatherRequests).toHaveLength(1));
+      weatherRequests[0]?.reject(Object.assign(new Error('Open-Meteo forecast: HTTP 503'), { status: 503 }));
+      await vi.waitFor(() => expect(store.getState().weather.status).toBe('error'));
+      expect(store.getState().weather.error).toEqual({ kind: 'server', detail: 'Open-Meteo forecast: HTTP 503' });
+      expect(store.getState().observer?.timeZone).toBeNull();
+
+      clock += ELEMENTS_RECHECK_MS;
+      await vi.advanceTimersByTimeAsync(ELEMENTS_RECHECK_MS);
+      await vi.waitFor(() => expect(weatherRequests).toHaveLength(2));
+      weatherRequests[1]?.resolve(snapshotFor(neuquen.lat, neuquen.lon));
+      await vi.waitFor(() => expect(store.getState().weather.status).toBe('ready'));
+      expect(store.getState().observer?.timeZone).toBe('America/Argentina/Salta');
+    });
+
+    it('the re-check leaves a forecast that answered alone', async () => {
+      start({ observer: neuquen });
+      finish(await jobOut());
+      await vi.waitFor(() => expect(weatherRequests).toHaveLength(1));
+      weatherRequests[0]?.resolve(snapshotFor(neuquen.lat, neuquen.lon));
+      await vi.waitFor(() => expect(store.getState().weather.status).toBe('ready'));
+      clock += ELEMENTS_RECHECK_MS;
+      await vi.advanceTimersByTimeAsync(ELEMENTS_RECHECK_MS);
+      expect(weatherRequests).toHaveLength(1);
+    });
+  });
+
+  describe('a stale run recomputes on wake (FR-NIGHT-4, FR-VIS-5 amended, D-537)', () => {
+    it('a window start 2 h 1 min behind recomputes over a window from now, the old list still selectable', async () => {
+      start({ observer: neuquen });
+      const pass = samplePass(25544, NOW + 3 * HOUR);
+      finish(await jobOut(), pass);
+      expect(store.getState().passes.status).toBe('done');
+
+      await wakeAfter(2 * HOUR + MIN);
+      await vi.waitFor(() => expect(sent('computePasses')).toHaveLength(2));
+      expect(sent('computePasses')[1]).toMatchObject({ observer: neuquen, window: { startMs: NOW + 2 * HOUR + MIN } });
+      const { passes } = store.getState();
+      expect(passes).toMatchObject({ status: 'computing', jobId: sent('computePasses')[1]?.jobId, standIn: true });
+      expect(passes.passes).toEqual([pass]);
+    });
+
+    it('a window start 1 h 59 min behind does not', async () => {
+      start({ observer: neuquen });
+      finish(await jobOut());
+      await wakeAfter(2 * HOUR - MIN);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(sent('computePasses')).toHaveLength(1);
+      expect(store.getState().passes.status).toBe('done');
+    });
+
+    it('the 15-minute re-check recomputes a stale run too', async () => {
+      start({ observer: neuquen });
+      finish(await jobOut());
+      // Eight ticks bring the clock to 2 h: not yet stale. The ninth, at 2 h 15 min, is.
+      for (let i = 0; i < 8; i++) {
+        clock += ELEMENTS_RECHECK_MS;
+        await vi.advanceTimersByTimeAsync(ELEMENTS_RECHECK_MS);
+      }
+      expect(sent('computePasses')).toHaveLength(1);
+      clock += ELEMENTS_RECHECK_MS;
+      await vi.advanceTimersByTimeAsync(ELEMENTS_RECHECK_MS);
+      await vi.waitFor(() => expect(sent('computePasses')).toHaveLength(2));
+      expect(sent('computePasses')[1]?.window.startMs).toBe(NOW + 9 * ELEMENTS_RECHECK_MS);
+    });
+  });
+
+  describe('a stored run is as old as it is (FR-NIGHT-3, D-536)', () => {
+    const storedRunAged = (ageMs: number): PassRun => {
+      const startMs = NOW - ageMs;
+      return {
+        cellKey: '-38.93,-67.99',
+        observer: neuquen,
+        window: { startMs, endMs: startMs + SEARCH_WINDOW_MS },
+        computedAt: startMs,
+        newestElementsEpochMs: ref.t,
+        hasDarkness: true,
+        passes: [samplePass(25544, NOW + 5 * HOUR)],
+      };
+    };
+    /** The elements never answer, so what is on screen is the stored run alone. */
+    const offline: EffectDeps['loadElements'] = () => new Promise(() => undefined);
+
+    it('1 h old: shown, its count over the 71 h that are left', async () => {
+      start({ observer: neuquen, stored: storedRunAged(HOUR), loader: offline });
+      await vi.waitFor(() => expect(store.getState().passes.passes).toHaveLength(1));
+      expect(store.getState().passes).toMatchObject({ status: 'done', spanHours: 71 });
+    });
+
+    it('50 h old: the list stays readable while the recompute runs, which reads `computing`', async () => {
+      start({ observer: neuquen, stored: storedRunAged(50 * HOUR) });
+      await vi.waitFor(() => expect(store.getState().passes.passes).toHaveLength(1));
+      expect(store.getState().passes).toMatchObject({ status: 'done', spanHours: 22 });
+      await jobOut();
+      expect(store.getState().passes).toMatchObject({ status: 'computing', standIn: true });
+      expect(store.getState().passes.passes).toHaveLength(1);
+    });
+
+    it('14 days old: never shown; the page reads `computing` as on a first load', async () => {
+      start({ observer: neuquen, stored: storedRunAged(14 * 24 * HOUR) });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(store.getState().passes).toMatchObject({ status: 'idle', passes: [], storedAt: null });
+      await jobOut();
+      expect(store.getState().passes).toMatchObject({ status: 'computing', passes: [], storedAt: null });
+    });
+  });
+
+  describe('retry actions (FR-FAIL-1, D-541) and the worker that stops (FR-FAIL-4, D-543)', () => {
+    it('a job silent for JOB_STALL_S fails as a timeout; retryPasses starts a new worker, gives it the elements and runs the job again', async () => {
+      start({ observer: neuquen });
+      await jobOut();
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(store.getState().passes).toMatchObject({ status: 'error', error: { kind: 'timeout' } });
+      expect(spawned[0]?.terminated).toBe(true);
+
+      clock += MIN;
+      store.getState().retryPasses();
+      await vi.waitFor(() => expect(spawned).toHaveLength(2));
+      await jobOut();
+      expect(sent('computePasses')[0]?.window.startMs).toBe(clock);
+      expect(store.getState().passes.status).toBe('computing');
+    });
+
+    it('a worker error event fails the job with its kind', async () => {
+      start({ observer: neuquen });
+      await jobOut();
+      spawned[0]?.fail('error', 'boom');
+      expect(store.getState().passes).toMatchObject({ status: 'error', error: { kind: 'unknown', detail: 'Worker error: boom' } });
+    });
+
+    it('retryElements re-runs the failed load, then the job', async () => {
+      const loader = vi.fn<EffectDeps['loadElements']>().mockRejectedValueOnce(Object.assign(new Error('CelesTrak stations: HTTP 429'), { status: 429 })).mockResolvedValue(loaded(records));
+      start({ observer: neuquen, loader });
+      await vi.waitFor(() => expect(store.getState().elements).toEqual({ status: 'error', failure: { kind: 'rate-limited', detail: 'CelesTrak stations: HTTP 429' } }));
+      store.getState().retryElements();
+      await vi.waitFor(() => expect(store.getState().elements.status).toBe('ready'));
+      await jobOut();
+      expect(loader).toHaveBeenCalledTimes(2);
+    });
+
+    it('retryWeather asks for the forecast again', async () => {
+      start({ observer: neuquen });
+      await vi.waitFor(() => expect(weatherRequests).toHaveLength(1));
+      weatherRequests[0]?.reject(new Error('nope'));
+      await vi.waitFor(() => expect(store.getState().weather.status).toBe('error'));
+      store.getState().retryWeather();
+      expect(weatherRequests).toHaveLength(2);
+      expect(store.getState().weather.status).toBe('loading');
+    });
+
+    it('stop() puts the no-op actions back', async () => {
+      start({ observer: neuquen });
+      await vi.waitFor(() => expect(weatherRequests).toHaveLength(1));
+      stop();
+      store.getState().retryWeather();
+      expect(weatherRequests).toHaveLength(1);
+      stop = () => undefined;
+    });
+  });
+});
