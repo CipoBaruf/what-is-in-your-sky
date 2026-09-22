@@ -60,7 +60,10 @@ describe('<App> frame (R12)', () => {
     expect(within(screen.getByRole('main')).getByTestId('cold-open')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: en.home.coldHeading })).toBeInTheDocument();
     expect(screen.queryByTestId('location-summary')).toBeNull();
-    expect(screen.getByRole('contentinfo')).toHaveTextContent('Orbital elements by CelesTrak.');
+    // R87 (FR-FIRST-1 as amended v2.1, D-548): the first-run steps' footer is the one-line form, without its privacy word.
+    expect(screen.getByRole('contentinfo')).toHaveAttribute('data-form', 'line');
+    expect(screen.getByRole('contentinfo')).toHaveTextContent('Data: CelesTrak, Open-Meteo.com, GeoNames (CC BY 4.0)');
+    expect(screen.getByRole('contentinfo')).not.toHaveTextContent(en.footer.short.privacy);
     expect(await axe(first.container)).toHaveNoViolations();
 
     // R82 (FR-FIRST-4 as amended v2.0.2): on a phone's first visit the place moves the page on to the when step…
@@ -76,6 +79,8 @@ describe('<App> frame (R12)', () => {
     const { container } = render(<App />);
     expect(screen.queryByTestId('step-when')).toBeNull();
     expect(screen.getByTestId('location-summary')).toHaveTextContent(observer.label);
+    // Every later visit keeps the full compact footer.
+    expect(screen.getByRole('contentinfo')).toHaveTextContent('Orbital elements by CelesTrak.');
     // R81 (FR-FIRST-5 as amended): the list keeps its named region; the Now panel is the When reading's table now.
     const list = screen.getByRole('region', { name: 'Upcoming passes' });
     expect(within(list).getByRole('heading', { level: 2, name: 'Upcoming passes' })).toBeInTheDocument();

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { I18nProvider, useLocale, useT } from '../i18n/useT';
 import { MOON_LORE } from '../lib/flags';
 import { observerFromLink, resolvePassLink } from '../lib/shareLinks';
@@ -10,13 +10,14 @@ import styles from './App.module.css';
 import { applyTheme } from './styles/theme';
 import { Footer } from './components/common/Footer';
 import { Header } from './components/common/Header';
+import { PageNotices } from './components/common/VisitNotice';
 import { ShortcutsOverlay } from './components/common/ShortcutsOverlay';
 import { useLayoutMode } from './hooks/useLayoutMode';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useShortcuts } from './hooks/useShortcuts';
 import { moveCursor, passIdAtCursor, PASS_CARD } from './components/passes/passCursor';
-import { Home } from './screens/Home';
-import { useLiveRoute } from './screens/LiveRoute';
+import { Home, useSteps } from './screens/Home';
+import { leaveLive, useLiveRoute } from './screens/LiveRoute';
 import { PassDetail } from './screens/PassDetail';
 import { findSelectedPass, usePassSelection, useSettingsRoute } from './screens/passSelection';
 import { SettingsPage } from './screens/Settings';
@@ -35,6 +36,9 @@ const LivePage = lazy(() => import('./screens/Live').then((module) => ({ default
  * of the build, not merely one the app declines to fetch.
  */
 const MoonLore = MOON_LORE ? lazy(() => import('./components/moon/MoonLore').then((module) => ({ default: module.MoonLore }))) : undefined;
+
+/** R87 (FR-VISIT-4): the one link note home can be showing; the moment's two are the live page's (R89). */
+const HOME_NOTES = ['unreadable'] as const;
 
 /**
  * R5: the screen only writes the observer to the store; the effects started
@@ -139,6 +143,26 @@ export function App() {
   }, [link, observer, close]);
   const mode = useLayoutMode();
   const live = useLiveRoute();
+  /*
+   * R87 (FR-FIRST-1, FR-FIRST-4 as amended v2.1, D-548): the phone's first-run
+   * steps are held here rather than in `Home`, because the footer is this
+   * component's and takes its `line` form while they are up (F-74).
+   */
+  const steps = useSteps(observer);
+  const stepping = mode === 'compact' && steps.step !== null;
+  /*
+   * R87 (FR-VISIT-4, F-93): a hash that starts as one of the app's routes and
+   * does not parse opens the reader's own home with a note, and one that is no
+   * route at all is simply dropped; either way it leaves the URL before the
+   * paint, in place, so Back is not spent on it. `#live?lat=999` is the one
+   * that would otherwise draw a page: it is the live route with no link, which
+   * is what a bare `#live` is, so it is told apart here and not shown.
+   */
+  const linkResult = useAppStore((s) => s.linkResult);
+  useLayoutEffect(() => {
+    if (linkResult?.kind === 'unreadable' || linkResult?.kind === 'unknown') leaveLive();
+  }, [linkResult]);
+  const liveUnreadable = live.active && live.link === null && window.location.hash !== '#live';
   // R52 (FR-COMP-2, D-184): the third route, read from the hash beside the other two.
   const settings = useSettingsRoute();
   /*
@@ -305,7 +329,7 @@ export function App() {
    * the width — and the help sheet, as for everything else.
    */
   const offersInert = helpOpen || selected !== null;
-  if (live.active) {
+  if (live.active && !liveUnreadable) {
     return (
       <Suspense fallback={<p className={styles.liveLoading}>{t.live.loading}</p>}>
         <LivePage link={live.link} onLeave={live.leave} />
@@ -324,7 +348,8 @@ export function App() {
   return (
     <>
       <Header inert={inert} />
-      <main inert={inert} className={styles.main} data-home={observer === null ? 'cold' : 'readings'} data-guide={guide}>
+      <PageNotices kinds={HOME_NOTES} inert={inert} />
+      <main inert={inert} className={styles.main} data-home={observer === null ? 'cold' : 'readings'} data-guide={guide} {...(stepping ? { 'data-step': '' } : {})}>
         <Home
             offersInert={offersInert}
             guide={guide}
@@ -332,6 +357,7 @@ export function App() {
             selectedPassId={selected ? selected.id : null}
             onOpenPass={openPass}
             MoonLore={MoonLore}
+            steps={steps}
             passDetail={
               /* R50 (F-8): keyed by the pass, so opening a second one from the list beside the panel
                  is a new guide — its heading takes focus, and closing it returns to the card that
@@ -352,7 +378,7 @@ export function App() {
             }
           />
       </main>
-      <Footer inert={inert} />
+      <Footer inert={inert} form={stepping ? 'line' : 'full'} />
       {helpOpen && (
         <ShortcutsOverlay
           onClose={() => {

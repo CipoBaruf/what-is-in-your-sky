@@ -1,0 +1,89 @@
+/* R87 (FR-VISIT-2..4): the strip under the header, in the frame the header,
+   main and footer share (global.css) — 80 cells centred on a phone, the
+   viewport on a desk. Empty, it is not on the page at all, and the wide
+   shell's grid gives it no row (global.css `#root:has(...)`). */
+.notices {
+  max-width: calc(80 * var(--cell));
+  margin: 0 auto;
+  padding: var(--row) calc(2 * var(--cell)) 0;
+  box-sizing: border-box;
+  display: grid;
+  gap: calc(var(--row) / 2);
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+}
+
+.notices:empty {
+  display: none;
+}
+
+@media (min-width: 964px) {
+  .notices {
+    max-width: none;
+    margin-inline: 0;
+  }
+}
+
+/* FR-VISIT-2: one line where it fits; on a phone the sentence is one row and
+   the two controls the second. */
+.notice,
+.note {
+  margin: 0;
+}
+
+.notice[data-form='line'] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.notice[data-form='rows'] {
+  display: grid;
+}
+
+.sentence {
+  color: var(--fg);
+}
+
+.dot {
+  padding: 0 var(--cell);
+}
+
+.actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0 var(--cell);
+}
+
+.action,
+.dismiss {
+  padding-inline: 0;
+  min-height: 0;
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.action::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.action::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+.dismiss::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.dismiss::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}

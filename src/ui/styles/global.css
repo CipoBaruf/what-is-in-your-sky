@@ -45,6 +45,20 @@ main {
   padding-bottom: var(--row);
 }
 
+/* R87 (FR-FIRST-1 as amended v2.1, D-548): the phone's first-run steps are
+   one screen with their footer — a column the viewport's height, the main
+   taking what is left (App.module.css `.main[data-step]`). A flex item with
+   auto side margins would shrink to its content, so each is told its width. */
+#root:has(> main[data-step]) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+
+#root:has(> main[data-step]) > * {
+  width: 100%;
+}
+
 /* R23 (FR-DESK-1, D-71), R50 (F-10, D-252): wide at 100 cells. `--cell` is
    `1ch`, one character advance of whatever family of `--font-mono` the device
    has, and the widest of them is 0.602 em, so 100 cells never need more than
@@ -81,6 +95,12 @@ main {
     height: 100dvh;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  /* R87 (FR-VISIT-2..4): the visit notice and the link notes stand between
+     the header and the main, and have a row only while they say something. */
+  #root:has(> [data-page-notices]:not(:empty)) {
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
   }
 }
 

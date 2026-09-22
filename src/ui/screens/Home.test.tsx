@@ -17,10 +17,10 @@ import { en } from '../../i18n/en';
 import { es } from '../../i18n/es';
 import { I18nProvider } from '../../i18n/useT';
 import type { Locale, Observer } from '../../model';
-import { appStore, type ElementsState } from '../../state';
+import { appStore, useActiveObserver, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { App } from '../App';
-import { Home, WhereReading, type HomeProps } from './Home';
+import { Home, useSteps, WhereReading, type HomeProps } from './Home';
 
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
@@ -279,7 +279,12 @@ describe('the phone’s first visit (FR-FIRST-4, D-513)', () => {
     secure: true,
   };
   const onOpenPass = vi.fn();
-  const home = (props: Partial<HomeProps> = {}) => <Home offersInert={false} guide="closed" shareNotice={null} selectedPassId={null} onOpenPass={onOpenPass} passDetail={null} MoonLore={undefined} geolocation={deviceFinds} {...props} />;
+  // R87: `App` holds the steps (D-548); here a host holds them the same way.
+  function Stepped(props: Partial<HomeProps>) {
+    const steps = useSteps(useActiveObserver());
+    return <Home offersInert={false} guide="closed" shareNotice={null} selectedPassId={null} onOpenPass={onOpenPass} passDetail={null} MoonLore={undefined} geolocation={deviceFinds} steps={steps} {...props} />;
+  }
+  const home = (props: Partial<HomeProps> = {}) => <Stepped {...props} />;
   const items = () => within(screen.getByTestId('step-line')).getAllByRole('listitem');
   const withTheRun = () => {
     act(() => {

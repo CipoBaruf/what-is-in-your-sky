@@ -34,6 +34,14 @@ export const ATTRIBUTION_URLS = {
 export interface FooterProps {
   /** True while the detail sheet is up (D-13): the footer leaves the tab order like the rest of the page. */
   inert?: boolean;
+  /**
+   * R87 (FR-FIRST-1 as amended v2.1, D-548, F-74): `full` is the layout's own
+   * footer — the four sentences on a phone, D-120's one row on a desk. `line`
+   * is that row without its privacy word, at every width: the phone's
+   * first-run steps pass it, so the step and its footer are one screen and the
+   * promise is not said twice (`home.savedFoot` says it four lines higher).
+   */
+  form?: 'full' | 'line';
 }
 
 function Linked({ text, href }: { text: LinkedText; href: string }) {
@@ -54,13 +62,14 @@ function Attribution({ text, href }: { text: LinkedText; href: string }) {
   );
 }
 
-export function Footer({ inert = false }: FooterProps) {
+export function Footer({ inert = false, form = 'full' }: FooterProps) {
   const t = useT();
   const wide = useLayoutMode() === 'wide';
+  const line = form === 'line';
 
-  if (wide) {
+  if (wide || line) {
     return (
-      <footer inert={inert} className={styles.footer} data-form="short">
+      <footer inert={inert} className={styles.footer} data-form={line ? 'line' : 'short'}>
         <p className={styles.line}>
           {t.footer.short.sources}{' '}
           <a href={ATTRIBUTION_URLS.celestrak}>CelesTrak</a>
@@ -68,8 +77,12 @@ export function Footer({ inert = false }: FooterProps) {
           <a href={ATTRIBUTION_URLS.openMeteo}>Open-Meteo.com</a>
           {', '}
           <a href={ATTRIBUTION_URLS.geonames}>GeoNames</a> {t.footer.short.licence}
-          <span className={styles.dot}>·</span>
-          {t.footer.short.privacy}
+          {!line && (
+            <>
+              <span className={styles.dot}>·</span>
+              {t.footer.short.privacy}
+            </>
+          )}
           <span className={styles.dot}>·</span>
           <Linked text={t.footer.credit} href={ATTRIBUTION_URLS.author} />
         </p>

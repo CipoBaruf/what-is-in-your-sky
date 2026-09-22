@@ -21,6 +21,7 @@ import { useTonight } from '../components/now/useTonight';
 import { NextEventBlock } from '../components/passes/NextEventBlock';
 import { PassList } from '../components/passes/PassList';
 import { useLayoutMode } from '../hooks/useLayoutMode';
+import { clearPlaceRequest, placeRequested } from './home/placeRequest';
 import { StepLine, stepLabel, STEPS, type Step } from './home/StepLine';
 import { usePassContext, useShownPasses } from './home/shownPasses';
 import { WhatStep } from './home/WhatStep';
@@ -173,6 +174,8 @@ export interface WhereReadingProps {
   geolocation?: GeolocationEnv;
   /** R82 (D-513): the phone's first visit — the cold open's look whether or not a place is set yet. */
   step?: WhereStep;
+  /** R87: the reader asked to set a place (`[ set a place ]`), so the focus goes into the group on arrival. */
+  focusGroup?: boolean;
 }
 
 /**
@@ -200,7 +203,7 @@ export interface WhereReadingProps {
  * exactly while `step.onSettle` is given, `[ continue ]` stands under the
  * coordinate fields and does the same, so the way forward is on the screen.
  */
-export function WhereReading({ offersInert, geolocation, step }: WhereReadingProps) {
+export function WhereReading({ offersInert, geolocation, step, focusGroup = false }: WhereReadingProps) {
   const t = useT();
   const mode = useLayoutMode();
   const observer = useActiveObserver();
@@ -220,6 +223,10 @@ export function WhereReading({ offersInert, geolocation, step }: WhereReadingPro
     // eslint-disable-next-line react-hooks/refs -- the one DOM read that has to precede the commit
     if (!cold) setOpen(typingIn(group.current));
   }
+  // After the step's own focus on its heading (`ColdHead`, a child, whose effect runs first): the group's first field.
+  useEffect(() => {
+    if (focusGroup) group.current?.querySelector<HTMLElement>('input, button')?.focus();
+  }, [focusGroup]);
   const settle = step?.onSettle;
   const settling = settle
     ? {
@@ -334,6 +341,8 @@ export interface HomeProps {
   MoonLore: LazyExoticComponent<typeof MoonLoreComponent> | undefined;
   /** The browser's geolocation, for tests; the app reads the real one. */
   geolocation?: GeolocationEnv;
+  /** R87 (D-548): the phone's steps, held by `App` so the footer can take its `line` form while they are up. */
+  steps: HomeSteps;
 }
 
 /** What moves the where step on: a different place, not a new object for the same one (the forecast's zone replaces it). */
@@ -357,7 +366,7 @@ function typingInAField(): boolean {
  * On a desk there are no steps: the wide page is the cold open's three panes
  * and then the populated ones, whatever the step says.
  */
-function useSteps(observer: Observer | null) {
+export function useSteps(observer: Observer | null) {
   const [step, setStep] = useState<Step | null>(() => (observer === null ? 'where' : null));
   const [reached, setReached] = useState<Step>('where');
   const [moved, setMoved] = useState(false);
@@ -381,15 +390,21 @@ function useSteps(observer: Observer | null) {
   return { step, reached, moved, held, go };
 }
 
+export type HomeSteps = ReturnType<typeof useSteps>;
+
 /**
  * FR-FIRST-1, FR-FIRST-4, FR-FIRST-5: the home page's main. The Where reading
  * always; When and What once there is a place — or, on a phone's first visit,
  * one step at a time (R82).
  */
-export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPass, passDetail, MoonLore, geolocation }: HomeProps) {
+export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPass, passDetail, MoonLore, geolocation, steps }: HomeProps) {
   const observer = useActiveObserver();
   const mode = useLayoutMode();
-  const steps = useSteps(observer);
+  // R87 (FR-FIRST-1 as amended v2.1): `[ set a place ]` on the live page lands here with the focus in the group.
+  const [placeRequest] = useState(placeRequested);
+  useEffect(() => {
+    clearPlaceRequest();
+  }, []);
   const current: Step | null = mode === 'compact' && steps.step !== null ? (observer === null ? 'where' : steps.step) : null;
   if (current !== null) {
     const { reached, moved, go } = steps;
@@ -407,6 +422,7 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
             <WhereReading
               offersInert={offersInert}
               {...(geolocation ? { geolocation } : {})}
+              focusGroup={placeRequest}
               step={{
                 reached,
                 onGo: go,
@@ -457,7 +473,7 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
   return (
     <>
       <div className={`${styles.column} ${styles.leftColumn}`} data-testid="col-left">
-        <WhereReading offersInert={offersInert} {...(geolocation ? { geolocation } : {})} />
+        <WhereReading offersInert={offersInert} {...(geolocation ? { geolocation } : {})} focusGroup={placeRequest} />
         {ghosts && <GhostWhen />}
         {observer && <WhenReading observer={observer} MoonLore={MoonLore} />}
       </div>

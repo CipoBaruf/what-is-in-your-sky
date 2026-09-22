@@ -59,7 +59,28 @@
   /* The board puts the step line 1.2 rem under the header, where the main's own gap is a row. */
   margin-top: calc(1.2rem - var(--row));
   /* The screen less the header's two rows, the step line's 1.2 rem above it and the shell's bottom row. */
-  min-height: calc(100svh - 3 * var(--row) - 1.2rem);
+  min-height: var(--screen-min, calc(100svh - 3 * var(--row) - 1.2rem));
+}
+
+/* R87 (FR-FIRST-1, FR-FIRST-4 as amended v2.1, F-74): "one screen tall" counts
+   the footer. While the phone's steps are up the shell is a column one screen
+   high (global.css) whose main takes what the header, the notices and the
+   footer's line form leave, so a step's screen is the main's and not the
+   viewport's: `--screen-min` drops the viewport floor above and
+   `Steps.module.css`'s. The when and what steps stretch to it, which keeps
+   their last control at the foot of the screen; the where step does not, so
+   its foot note follows its last field with no empty block between them. */
+.main[data-step] {
+  --screen-min: 0px;
+  flex: 1 0 auto;
+}
+
+.main[data-step] > .leftColumn {
+  align-content: stretch;
+}
+
+.main[data-step] .cold {
+  align-self: start;
 }
 
 /* The group grows to the bottom of that screen, so its foot can be put there. */
