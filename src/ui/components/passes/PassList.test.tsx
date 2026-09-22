@@ -123,9 +123,15 @@ describe('<PassList>', () => {
   it('the count and the sort share one line (FR-FIRST-10)', () => {
     set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [average, later], hasDarkness: true } });
     render(<PassList />);
-    const line = screen.getByRole('status').parentElement as HTMLElement;
+    const line = screen.getByTestId('count-line');
+    expect(line).toContainElement(screen.getByRole('status'));
     expect(line).toContainElement(screen.getByRole('group', { name: 'Sort passes' }));
-    expect(line).toHaveTextContent(/^2 visible passes in 72 hSort:SoonestBest$/);
+    // R84 (F-78): the separator is a rendered node on the sort's side, not the count's `::after`, and is not read.
+    expect(line).toHaveTextContent(/^2 visible passes in 72 h · Sort:SoonestBest$/);
+    const separator = within(line).getByTestId('count-separator');
+    expect(separator).toHaveAttribute('aria-hidden', 'true');
+    expect(separator.nextElementSibling).toBe(screen.getByRole('group', { name: 'Sort passes' }));
+    expect(screen.getByRole('status')).toHaveTextContent(/^2 visible passes in 72 h$/);
   });
 
   it('tags only the featured pass that has not ended, and only one (spec §8 rank 1 as amended)', () => {

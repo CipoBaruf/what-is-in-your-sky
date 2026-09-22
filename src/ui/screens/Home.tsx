@@ -25,6 +25,7 @@ import { StepLine, stepLabel, STEPS, type Step } from './home/StepLine';
 import { usePassContext, useShownPasses } from './home/shownPasses';
 import { WhatStep } from './home/WhatStep';
 import { WhenStep } from './home/WhenStep';
+import stepStyles from './home/Steps.module.css';
 
 /**
  * R76 (FR-FIRST-1..FR-FIRST-6, D-443, D-444): the home page as three readings —
@@ -194,6 +195,10 @@ export interface WhereReadingProps {
  * is already the observer, and when `[ edit ]` brings the reader back with a
  * place set. A pair that is waiting moves the page on when the focus leaves
  * the step or on `Enter` (`step.onSettle`), never on the keystroke.
+ *
+ * R84 (FR-FIRST-2 as amended v2.1, D-548, F-86): while a pair waits, which is
+ * exactly while `step.onSettle` is given, `[ continue ]` stands under the
+ * coordinate fields and does the same, so the way forward is on the screen.
  */
 export function WhereReading({ offersInert, geolocation, step }: WhereReadingProps) {
   const t = useT();
@@ -265,6 +270,15 @@ export function WhereReading({ offersInert, geolocation, step }: WhereReadingPro
           search={searchPlaces}
           showFavourites={cold}
           {...(geolocation ? { geolocation } : {})}
+          {...(settle
+            ? {
+                afterCoords: (
+                  <button type="button" className={stepStyles.continue} data-testid="step-continue" onClick={settle}>
+                    {t.location.continue}
+                  </button>
+                ),
+              }
+            : {})}
         />
       </div>
       {observer && !cold && <WhereDome observer={observer} passes={passes} />}

@@ -62,7 +62,7 @@ test('cloud words from the recorded forecast on every card and the conditions ta
 
   await page.goto('/');
   await withSettings(page, async () => {
-    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+    await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(NEUQUEN);
   });
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(status).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
@@ -106,13 +106,13 @@ test('cloud words from the recorded forecast on every card and the conditions ta
   }
   expect(covered).toBeGreaterThan(0);
 
-  // US-7 AC2/AC3: the tooltip opens from the keyboard and states the thresholds, the provider and the fetch time.
+  // US-7 AC2/AC3: the thresholds, the provider and the fetch time. R84 (D-557): on a card the cloud word is text
+  // inside the card's one control, not a tab stop of its own, so they are its description rather than a
+  // tooltip opened from the keyboard; the When table's word below is still the focusable trigger.
   const firstBadge = cards.first().locator('[data-state]');
-  await firstBadge.focus();
-  const tip = cards.first().getByRole('tooltip');
-  await expect(tip).toBeVisible();
-  await expect(tip).toContainText('Clear below 30 %, partly cloudy 30–70 %, likely obscured above 70 %');
-  await expect(tip).toContainText(`Forecast by Open-Meteo, fetched ${localStamp(t, ZONE)}`);
+  await expect(firstBadge).not.toHaveAttribute('tabindex');
+  await expect(firstBadge).toHaveAccessibleDescription(/Clear below 30 %, partly cloudy 30–70 %, likely obscured above 70 %/);
+  await expect(firstBadge).toHaveAccessibleDescription(new RegExp(`Forecast by Open-Meteo, fetched ${localStamp(t, ZONE).replace(/[+]/g, '\\+')}`));
 
   // FR-WX-3 as amended v2.0.2: the current cloud cover is the When table's Clouds now row — the word, and
   // behind it the percentage and the forecast's local fetch time (the Now panel's "as of" was local too).
@@ -121,6 +121,9 @@ test('cloud words from the recorded forecast on every card and the conditions ta
   await expect(clouds.locator('[data-state]')).toHaveText(/^(Clear|Partly cloudy|Likely obscured)$/);
   await expect(clouds.locator('[role="tooltip"]')).toContainText(/\d+ % effective cloud right now\./);
   await expect(clouds.locator('[role="tooltip"]')).toContainText(`Forecast by Open-Meteo, fetched ${localStamp(t, ZONE)}`);
+  // …and there the tooltip opens from the keyboard (US-7 AC3).
+  await clouds.locator('[data-state]').focus();
+  await expect(clouds.getByRole('tooltip')).toBeVisible();
 });
 
 test('with Open-Meteo unreachable the list still renders, every badge reads unknown and times stay in UTC (FR-X-4, US-7 AC4)', async ({ page }) => {
@@ -130,7 +133,7 @@ test('with Open-Meteo unreachable the list still renders, every badge reads unkn
 
   await page.goto('/');
   await withSettings(page, async () => {
-    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+    await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(NEUQUEN);
   });
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(status).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });

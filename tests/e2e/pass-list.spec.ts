@@ -54,7 +54,7 @@ test('typing the Neuquén coordinates shows the pass list with the golden ISS pa
 
   await withSettings(page, async () => {
 
-    await page.getByLabel('Coordinates (lat, lon)').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
+    await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(`${String(ha.observer.lat)}, ${String(ha.observer.lon)}`);
 
   });
 

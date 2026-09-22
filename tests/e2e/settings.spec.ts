@@ -245,11 +245,11 @@ test.describe('the settings page rows and the coordinates disclosure (FR-SET-1)'
     await page.route('https://geocoding-api.open-meteo.com/**', (route) => route.fulfill({ json: { generationtime_ms: 0.5 }, headers: { 'access-control-allow-origin': '*' } }));
     const disclosure = page.getByTestId('coords-disclosure');
     await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
-    await expect(page.getByLabel('Coordinates (lat, lon)')).toBeHidden();
+    await expect(page.getByLabel('Coordinates · e.g. -38.93, -67.99')).toBeHidden();
     await page.getByRole('combobox', { name: 'Place name' }).fill('Zzzzqqqq');
     await page.getByText(/No place matches “Zzzzqqqq”/).getByRole('link', { name: 'enter coordinates instead' }).click();
     await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.getByLabel('Coordinates (lat, lon)')).toBeFocused();
+    await expect(page.getByLabel('Coordinates · e.g. -38.93, -67.99')).toBeFocused();
     await expect(page).toHaveURL(/#settings$/);
   });
 
@@ -260,10 +260,10 @@ test.describe('the settings page rows and the coordinates disclosure (FR-SET-1)'
     await expect(disclosure).toHaveAttribute('aria-expanded', 'true');
     const fields = page.getByTestId('coords-disclosure').locator('xpath=../following-sibling::div[1]');
     expect(await isOneLine(fields.locator(':scope > div'))).toBe(true);
-    await page.getByLabel('Coordinates (lat, lon)').fill('-38.93, -67.99');
+    await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill('-38.93, -67.99');
     await expect(page.getByTestId('save-favourite')).toBeVisible();
     await disclosure.click();
-    await expect(page.getByLabel('Coordinates (lat, lon)')).toBeHidden();
+    await expect(page.getByLabel('Coordinates · e.g. -38.93, -67.99')).toBeHidden();
   });
 });
 

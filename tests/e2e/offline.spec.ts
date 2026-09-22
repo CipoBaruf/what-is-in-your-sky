@@ -66,7 +66,7 @@ async function abortEverything(page: Page): Promise<void> {
 async function firstVisit(page: Page): Promise<string> {
   await page.goto('/');
   await withSettings(page, async () => {
-    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+    await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(NEUQUEN);
   });
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(status).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
@@ -141,7 +141,7 @@ test('five days after the newest epoch the epoch-age warning shows, and the age 
   await page.clock.setFixedTime(T0 + 5 * DAY + 60_000);
   await page.goto('/');
   await withSettings(page, async () => {
-    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+    await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(NEUQUEN);
   });
   const status = page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status');
   await expect(status).toHaveText(/visible passes in 72 h|No visible passes/, { timeout: 30_000 });

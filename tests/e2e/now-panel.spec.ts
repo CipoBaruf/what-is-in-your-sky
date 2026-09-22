@@ -55,7 +55,7 @@ test('at the R3 clock nothing is above 10°, so the table has no Up now row', as
   await expect(table).toHaveCount(0);
 
   await withSettings(page, async () => {
-    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+    await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(NEUQUEN);
   });
   // R81 (D-509, US-4 AC1 as amended v2.0.2): the sky check has answered — the Moon row is its — and with
   // nothing up there is no Up now row rather than a sentence about why; the Dark row says when to look.
@@ -73,7 +73,7 @@ test('ten seconds into the golden ISS pass the Up now row names the ISS with its
   await page.clock.pauseAt(t);
   await page.goto('/');
   await withSettings(page, async () => {
-    await page.getByLabel('Coordinates (lat, lon)').fill(NEUQUEN);
+    await page.getByLabel('Coordinates · e.g. -38.93, -67.99').fill(NEUQUEN);
   });
 
   // US-4 AC3 as amended v2.0.2: the first one up, its time left, and no `+<n>` — it is the only one.

@@ -29,7 +29,7 @@ function picker(search: PlaceSearchFn, onObserver: (o: Observer) => void, observ
   return (
     <>
       <PlacePicker search={search} onObserver={onObserver} observer={observer} coordsInputId="coords" />
-      <input id="coords" aria-label="Coordinates (lat, lon)" />
+      <input id="coords" aria-label="Coordinates · e.g. -38.93, -67.99" />
     </>
   );
 }
@@ -200,7 +200,7 @@ describe('<PlacePicker>', () => {
     const link = within(status).getByRole('link', { name: 'enter coordinates instead' });
     expect(link).toHaveAttribute('href', '#coords');
     await user.click(link);
-    expect(screen.getByLabelText('Coordinates (lat, lon)')).toHaveFocus();
+    expect(screen.getByLabelText('Coordinates · e.g. -38.93, -67.99')).toHaveFocus();
     expect(onObserver).not.toHaveBeenCalled();
     expect(screen.queryByRole('option')).toBeNull();
     expect(input).toHaveAttribute('aria-expanded', 'false');
@@ -273,7 +273,7 @@ describe('<PlacePicker>', () => {
       render(
         <>
           <PlacePicker search={search} onObserver={onObserver} observer={CIPOLLETTI_OBSERVER} coordsInputId="coords" initialText={CIPOLLETTI_OBSERVER.label} />
-          <input id="coords" aria-label="Coordinates (lat, lon)" />
+          <input id="coords" aria-label="Coordinates · e.g. -38.93, -67.99" />
         </>,
       );
       const input = screen.getByRole('combobox', { name: 'Place name' });

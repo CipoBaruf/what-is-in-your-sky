@@ -135,7 +135,7 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
   // R52: the field that holds the observer is on `#settings` now; the home screen names it in the summary line.
   await expect(page.getByTestId('location-summary')).toBeVisible();
   await withSettings(page, async () => {
-    await expect(page.getByLabel('Coordinates (lat, lon)')).toHaveValue(NEUQUEN);
+    await expect(page.getByLabel('Coordinates · e.g. -38.93, -67.99')).toHaveValue(NEUQUEN);
   });
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/);
   await page.screenshot({ path: 'test-results/r17-passes-390-en.png', fullPage: true });

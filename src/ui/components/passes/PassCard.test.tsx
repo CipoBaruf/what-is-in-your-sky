@@ -91,24 +91,37 @@ describe('<PassCard> (FR-FIRST-10)', () => {
   });
 
   /**
-   * R49 (F-14), US-18 AC1: the phase and the illumination are on the card for
-   * any Moon that is up at the peak — the glare label is the extra, not the
-   * condition. `samplePass` carries a Moon below the horizon, which is the one
-   * case with nothing to say.
+   * R84 (US-18 AC1 as amended v2.1, FR-FIRST-10, F-77): three lines and no
+   * Moon sentence. The Moon at the peak is the guide's; the card keeps only the
+   * `[moon glare]` tag, on the cloud line.
    */
-  it('names the Moon at the peak whenever it is up, glare or not', () => {
-    const upNoGlare = { ...samplePass, moonAtPeak: MOON_FIXTURE, moonGlare: { glare: false, separationDeg: 120 } };
-    const { rerender } = render(<PassCard pass={upNoGlare} timeZone={null} />);
+  it('has no Moon line, with the Moon up or not; the glare tag is on the cloud line', () => {
+    const upNoGlare = { ...samplePass, twilight: false, moonAtPeak: MOON_FIXTURE, moonGlare: { glare: false, separationDeg: 120 } };
+    const { rerender } = render(<PassCard pass={upNoGlare} timeZone={null} weather={forecast} />);
     const card = screen.getByRole('article');
-    expect(within(card).getByTestId('moon-at-peak')).toHaveTextContent('Moon at the peak: waning gibbous, 72 % lit');
-    expect(card).not.toHaveTextContent('moon glare');
-
-    rerender(<PassCard pass={{ ...upNoGlare, moonGlare: { glare: true, separationDeg: 8.2 } }} timeZone={null} />);
-    expect(within(card).getByTestId('moon-at-peak')).toBeInTheDocument();
-    expect(within(card).getByText('moon glare')).toBeInTheDocument();
-
-    rerender(<PassCard pass={samplePass} timeZone={null} />);
     expect(within(card).queryByTestId('moon-at-peak')).toBeNull();
+    expect(card).not.toHaveTextContent(/Moon at the peak|waning gibbous/);
+
+    rerender(<PassCard pass={{ ...upNoGlare, twilight: true, moonGlare: { glare: true, separationDeg: 8.2 } }} timeZone={null} weather={forecast} />);
+    expect(within(card).queryByTestId('moon-at-peak')).toBeNull();
+    const flags = within(card).getByTestId('card-flags');
+    expect(flags).toHaveTextContent(/^Clear.*sky still bright.*moon glare/);
+    // The first line, the detail and the flags: three lines, nothing after them but the control.
+    expect([...card.children].map((child) => child.getAttribute('data-testid') ?? child.tagName)).toEqual(['card-first-line', 'card-detail', 'card-flags']);
+  });
+
+  // R84 (FR-FIRST-10 as amended v2.1, D-548, F-85): the whole box is the one control.
+  it('is one tab stop when it opens; the tags are text inside it, not controls of their own', () => {
+    const withAll = { ...samplePass, moonAtPeak: MOON_FIXTURE, moonGlare: { glare: true, separationDeg: 8.2 } };
+    const { container } = render(<PassCard pass={withAll} timeZone="America/Argentina/Salta" weather={forecast} onOpen={vi.fn()} />);
+    const card = screen.getByRole('article');
+    const tabStops = card.querySelectorAll('button, a[href], input, [tabindex]:not([tabindex="-1"])');
+    expect([...tabStops]).toEqual([screen.getByRole('button', { name: 'Open guide → ISS (Zarya)' })]);
+    // The stretched control comes last, so its box lies over the tags and the cloud line.
+    expect(card.lastElementChild).toBe(screen.getByRole('button'));
+    expect(within(card).getByText('Clear')).not.toHaveAttribute('tabindex');
+    expect(within(card).getByText('moon glare')).not.toHaveAttribute('tabindex');
+    expect(container.querySelector('[tabindex="0"]')).toBeNull();
   });
 
   it('wears the cloud word at the peak when given a forecast, "weather unknown" for null, and none when omitted (FR-WX-3, US-7 AC2)', () => {

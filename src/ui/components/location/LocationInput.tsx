@@ -98,9 +98,11 @@ export interface LocationInputProps {
   look?: 'boxed' | 'plain';
   /** The id of the heading that names the group (`variant: 'group'`). */
   labelledBy?: string;
+  /** R84 (FR-FIRST-2 as amended v2.1, D-548): drawn under the coordinate fields (`variant: 'group'`) — the where step's `[ continue ]`. */
+  afterCoords?: ReactNode;
 }
 
-export function LocationInput({ observer, onObserver, onClear, search, geolocation, showClear = true, savedPlacesFooter, arrangeInputs, showSavedHere = true, showFavourites = true, variant = 'panel', labelledBy, look = 'boxed' }: LocationInputProps) {
+export function LocationInput({ observer, onObserver, onClear, search, geolocation, showClear = true, savedPlacesFooter, arrangeInputs, showSavedHere = true, showFavourites = true, variant = 'panel', labelledBy, look = 'boxed', afterCoords }: LocationInputProps) {
   const t = useT();
   // The observer the inputs were seeded from; a new key remounts them. `focus`
   // is set only by the clear, the one reseed that moves the reader's focus.
@@ -157,6 +159,7 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
           <div className={styles.alternatives} data-testid="location-alternatives">
             {place}
             {coords}
+            {afterCoords}
           </div>
         </div>
         <div className={styles.foot} data-testid="location-foot">

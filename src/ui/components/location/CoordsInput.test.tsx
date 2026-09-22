@@ -89,8 +89,8 @@ describe('<CoordsInput>', () => {
     const onObserver = vi.fn();
     const user = userEvent.setup();
     render(<CoordsInput onObserver={onObserver} />);
-    const input = screen.getByLabelText('Coordinates (lat, lon)');
-    expect(screen.getByLabelText('Altitude (m)')).toHaveValue('0');
+    const input = screen.getByLabelText('Coordinates · e.g. -38.93, -67.99');
+    expect(screen.getByLabelText('Altitude (m)')).toHaveValue('');
     await user.type(input, '-38.93, -67.99');
     expect(onObserver).toHaveBeenLastCalledWith(NEUQUEN);
     expect(screen.queryByRole('alert')).toBeNull();
@@ -102,7 +102,7 @@ describe('<CoordsInput>', () => {
     const onObserver = vi.fn();
     const user = userEvent.setup();
     render(<CoordsInput onObserver={onObserver} />);
-    const input = screen.getByLabelText('Coordinates (lat, lon)');
+    const input = screen.getByLabelText('Coordinates · e.g. -38.93, -67.99');
     for (const form of ['-38.93 -67.99', '38.93 S, 67.99 W', '67.99W 38.93S']) {
       await user.clear(input);
       await user.type(input, form);
@@ -115,7 +115,7 @@ describe('<CoordsInput>', () => {
     const onObserver = vi.fn();
     const user = userEvent.setup();
     render(<CoordsInput onObserver={onObserver} />);
-    const input = screen.getByLabelText('Coordinates (lat, lon)');
+    const input = screen.getByLabelText('Coordinates · e.g. -38.93, -67.99');
     await user.type(input, '91, 10');
     expect(screen.getByRole('alert')).toHaveTextContent('Latitude must be between -90 and 90');
     expect(input).toHaveAttribute('aria-invalid', 'true');
@@ -135,7 +135,7 @@ describe('<CoordsInput>', () => {
     const onObserver = vi.fn();
     const user = userEvent.setup();
     render(<CoordsInput onObserver={onObserver} />);
-    await user.type(screen.getByLabelText('Coordinates (lat, lon)'), '-38.93, -67.99');
+    await user.type(screen.getByLabelText('Coordinates · e.g. -38.93, -67.99'), '-38.93, -67.99');
     const alt = screen.getByLabelText('Altitude (m)');
     await user.clear(alt);
     expect(onObserver).toHaveBeenLastCalledWith(NEUQUEN);
@@ -154,8 +154,31 @@ describe('<CoordsInput>', () => {
   it('initial pre-fills both fields without emitting (US-8)', () => {
     const onObserver = vi.fn();
     render(<CoordsInput onObserver={onObserver} initial={{ lat: -38.93, lon: -67.99, altM: 270 }} />);
-    expect(screen.getByLabelText('Coordinates (lat, lon)')).toHaveValue('-38.93, -67.99');
+    expect(screen.getByLabelText('Coordinates · e.g. -38.93, -67.99')).toHaveValue('-38.93, -67.99');
     expect(screen.getByLabelText('Altitude (m)')).toHaveValue('270');
     expect(onObserver).not.toHaveBeenCalled();
+  });
+
+  // R84 (FR-FIRST-2 as amended v2.1, F-73): no field looks filled before the reader fills it.
+  it('the placeholders are the format and 0, the label carries the example, and an empty altitude submits 0', async () => {
+    const onObserver = vi.fn();
+    const user = userEvent.setup();
+    render(<CoordsInput onObserver={onObserver} look="boxed" />);
+    const input = screen.getByLabelText('Coordinates · e.g. -38.93, -67.99');
+    const alt = screen.getByLabelText('Altitude (m)');
+    expect(input).toHaveValue('');
+    expect(input).toHaveAttribute('placeholder', 'lat, lon');
+    expect(alt).toHaveValue('');
+    expect(alt).toHaveAttribute('placeholder', '0');
+    await user.type(input, '-38.93, -67.99');
+    expect(onObserver).toHaveBeenLastCalledWith(NEUQUEN);
+  });
+
+  it('a stored altitude of 0 is shown empty, and any other is shown as a value', () => {
+    const { unmount } = render(<CoordsInput onObserver={vi.fn()} initial={{ lat: -38.93, lon: -67.99, altM: 0 }} />);
+    expect(screen.getByLabelText('Altitude (m)')).toHaveValue('');
+    unmount();
+    render(<CoordsInput onObserver={vi.fn()} initial={{ lat: -38.93, lon: -67.99, altM: -20 }} />);
+    expect(screen.getByLabelText('Altitude (m)')).toHaveValue('-20');
   });
 });

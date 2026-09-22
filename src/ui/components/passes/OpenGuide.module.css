@@ -1,0 +1,21 @@
+/* R84 (FR-FIRST-10 as amended v2.1, D-548, F-85): the button is the
+   accessible control and draws nothing of its own. It is the hit area,
+   stretched over the whole positioned host — the tags and the cloud line
+   included — above everything in it, with the pointer over all of it. The
+   button's own box is stretched rather than a zero-size button's `::after`, so
+   the control a pointer, a screen reader and a test find is the card's size. */
+.open {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.open:focus-visible {
+  outline: none;
+}

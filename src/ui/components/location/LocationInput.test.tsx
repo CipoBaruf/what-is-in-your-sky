@@ -31,8 +31,8 @@ describe('<LocationInput>', () => {
     setup(null);
     expect(screen.getByRole('region', { name: 'Location' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Place name' })).toHaveValue('');
-    expect(screen.getByLabelText('Coordinates (lat, lon)')).toHaveValue('');
-    expect(screen.getByLabelText('Altitude (m)')).toHaveValue('0');
+    expect(screen.getByLabelText('Coordinates · e.g. -38.93, -67.99')).toHaveValue('');
+    expect(screen.getByLabelText('Altitude (m)')).toHaveValue('');
     expect(screen.getByRole('button', { name: 'Use my location' })).toBeInTheDocument();
     expect(screen.getByText(/Precision is city-level/)).toBeInTheDocument();
     expect(screen.queryByTestId('active-location')).toBeNull();
@@ -63,7 +63,7 @@ describe('<LocationInput>', () => {
 
   it('pre-fills the coordinate fields from a restored coords observer without emitting (US-8)', () => {
     const { onObserver } = setup(coords);
-    expect(screen.getByLabelText('Coordinates (lat, lon)')).toHaveValue('-38.93, -67.99');
+    expect(screen.getByLabelText('Coordinates · e.g. -38.93, -67.99')).toHaveValue('-38.93, -67.99');
     expect(screen.getByLabelText('Altitude (m)')).toHaveValue('270');
     expect(screen.getByRole('combobox', { name: 'Place name' })).toHaveValue('');
     expect(onObserver).not.toHaveBeenCalled();
@@ -79,10 +79,10 @@ describe('<LocationInput>', () => {
     const user = userEvent.setup();
     const onObserver = vi.fn();
     const { rerender } = render(<LocationInput observer={null} onObserver={onObserver} onClear={vi.fn()} search={search} geolocation={geo} />);
-    expect(screen.getByLabelText('Coordinates (lat, lon)')).toHaveValue('');
+    expect(screen.getByLabelText('Coordinates · e.g. -38.93, -67.99')).toHaveValue('');
 
     rerender(<LocationInput observer={coords} onObserver={onObserver} onClear={vi.fn()} search={search} geolocation={geo} />);
-    expect(screen.getByLabelText('Coordinates (lat, lon)')).toHaveValue('-38.93, -67.99');
+    expect(screen.getByLabelText('Coordinates · e.g. -38.93, -67.99')).toHaveValue('-38.93, -67.99');
     expect(screen.getByLabelText('Altitude (m)')).toHaveValue('270');
     // Nothing is emitted for it: the store already has this observer.
     expect(onObserver).not.toHaveBeenCalled();
@@ -99,13 +99,13 @@ describe('<LocationInput>', () => {
     const user = userEvent.setup();
     const onObserver = vi.fn();
     const { rerender } = render(<LocationInput observer={null} onObserver={onObserver} onClear={vi.fn()} search={search} geolocation={geo} />);
-    const field = screen.getByLabelText('Coordinates (lat, lon)');
+    const field = screen.getByLabelText('Coordinates · e.g. -38.93, -67.99');
     await user.type(field, '-38.93, -67.99');
     expect(onObserver).toHaveBeenLastCalledWith(expect.objectContaining({ lat: -38.93, lon: -67.99 }));
 
     rerender(<LocationInput observer={{ ...coords, altM: 0, timeZone: 'America/Argentina/Salta' }} onObserver={onObserver} onClear={vi.fn()} search={search} geolocation={geo} />);
     // The text the reader typed, not the label the store made of it.
-    expect(screen.getByLabelText('Coordinates (lat, lon)')).toHaveValue('-38.93, -67.99');
+    expect(screen.getByLabelText('Coordinates · e.g. -38.93, -67.99')).toHaveValue('-38.93, -67.99');
   });
 
   it('the clear action calls onClear, empties the fields and moves focus to the place field (US-8 AC2)', async () => {
@@ -114,8 +114,8 @@ describe('<LocationInput>', () => {
     await user.click(screen.getByRole('button', { name: 'Clear saved location' }));
     expect(onClear).toHaveBeenCalledTimes(1);
     rerender(<LocationInput observer={null} onObserver={vi.fn()} onClear={onClear} search={search} geolocation={geo} />);
-    expect(screen.getByLabelText('Coordinates (lat, lon)')).toHaveValue('');
-    expect(screen.getByLabelText('Altitude (m)')).toHaveValue('0');
+    expect(screen.getByLabelText('Coordinates · e.g. -38.93, -67.99')).toHaveValue('');
+    expect(screen.getByLabelText('Altitude (m)')).toHaveValue('');
     expect(screen.getByRole('combobox', { name: 'Place name' })).toHaveFocus();
     expect(screen.queryByRole('button', { name: 'Clear saved location' })).toBeNull();
   });
@@ -126,7 +126,7 @@ describe('<LocationInput>', () => {
     await user.tab();
     expect(screen.getByRole('combobox', { name: 'Place name' })).toHaveFocus();
     await user.tab();
-    expect(screen.getByLabelText('Coordinates (lat, lon)')).toHaveFocus();
+    expect(screen.getByLabelText('Coordinates · e.g. -38.93, -67.99')).toHaveFocus();
     await user.tab();
     expect(screen.getByLabelText('Altitude (m)')).toHaveFocus();
     await user.tab();

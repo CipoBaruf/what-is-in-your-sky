@@ -97,6 +97,28 @@
   content: ' ]';
 }
 
+/* R84 (FR-FIRST-2 as amended v2.1, F-86): the where step's `[ continue ]`,
+   under the coordinate fields once a typed pair parses — the accent, 48 px
+   tall, the width of the fields above it. */
+.continue {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--accent);
+  cursor: pointer;
+}
+
+.continue::before {
+  content: '[ ';
+}
+
+.continue::after {
+  content: ' ]';
+}
+
 /* The first card and tonight's others, 12 px apart (FR-FIRST-10). */
 .cards,
 .list {

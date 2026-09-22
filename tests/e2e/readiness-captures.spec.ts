@@ -41,8 +41,8 @@ const T0 = Date.parse(ommMeta.fetchedAt);
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
 
 const LABEL = {
-  en: { coords: 'Coordinates (lat, lon)', passes: 'Upcoming passes', place: 'Place name', language: 'Language' },
-  es: { coords: 'Coordenadas (lat, lon)', passes: 'Próximos pases', place: 'Nombre del lugar', language: 'Idioma' },
+  en: { coords: 'Coordinates · e.g. -38.93, -67.99', passes: 'Upcoming passes', place: 'Place name', language: 'Language' },
+  es: { coords: 'Coordenadas · p. ej. -38.93, -67.99', passes: 'Próximos pases', place: 'Nombre del lugar', language: 'Idioma' },
 } as const;
 
 /** One online visit, then the network gone and the page reloaded from the device. */
