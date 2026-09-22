@@ -50,7 +50,7 @@ const isOffline = (): boolean => typeof navigator !== 'undefined' && navigator.o
  * the data is `bad-data`.
  */
 export function toFailure(error: unknown): Failure {
-  if (isFailure(error)) return error;
+  if (isFailure(error)) return { kind: error.kind, detail: error.detail };
   const detail = detailOf(error);
   const name = nameOf(error);
   if (name === 'AbortError' || name === 'TimeoutError') return { kind: 'timeout', detail };

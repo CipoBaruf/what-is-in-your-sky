@@ -92,7 +92,7 @@ describe('<ElementsLine> (FR-SAT-4 as amended)', () => {
     set({
       observer,
       elements: ready(),
-      weather: { observer, status: 'error', snapshot: null, error: 'HTTP 503' },
+      weather: { observer, status: 'error', snapshot: null, error: { kind: 'server', detail: 'HTTP 503' } },
       passes: { ...initial.passes, status: 'done', observer, passes: [], hasDarkness: true, storedAt: Date.UTC(2026, 8, 10, 22, 0) },
     });
     render(<ElementsLine now={FETCHED_AT} />);

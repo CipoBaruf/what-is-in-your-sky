@@ -79,7 +79,7 @@ describe('<PassList>', () => {
     set({ observer, nowMs: NOW, elements: { status: 'loading' } });
     render(<PassList />);
     expect(screen.getByRole('status')).toHaveTextContent('Loading orbital elements');
-    set({ elements: { status: 'error', message: 'HTTP 503' } });
+    set({ elements: { status: 'error', failure: { kind: 'server', detail: 'HTTP 503' } } });
     expect(screen.getByRole('status')).toHaveTextContent('Could not load orbital elements: HTTP 503');
   });
 
@@ -195,7 +195,7 @@ describe('<PassList>', () => {
     set({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, hasDarkness: false } });
     expect(screen.getByRole('status')).toHaveTextContent('No darkness tonight at this latitude');
 
-    set({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'error', observer, error: 'INTERNAL: boom' } });
+    set({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'error', observer, error: { kind: 'unknown', detail: 'INTERNAL: boom' } } });
     expect(screen.getByRole('status')).toHaveTextContent('Could not compute passes: INTERNAL: boom');
   });
   /**

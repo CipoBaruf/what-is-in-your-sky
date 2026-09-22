@@ -182,14 +182,14 @@ describe('startEffects', () => {
     await waitForSent('computePasses');
     const job = sentOfType('computePasses')[0]?.jobId ?? '';
     worker.emit({ type: 'error', ref: { jobId: job }, code: 'INTERNAL', message: 'boom' });
-    expect(store.getState().passes).toMatchObject({ status: 'error', error: 'INTERNAL: boom' });
+    expect(store.getState().passes).toMatchObject({ status: 'error', error: { kind: 'unknown', detail: 'INTERNAL: boom' } });
   });
 
   it('a failed loadElements reply surfaces as an elements error', async () => {
     store.getState().setObserver(neuquen);
     await waitForSent('loadElements');
     worker.emit({ type: 'error', ref: { requestId: sentOfType('loadElements')[0]?.requestId ?? '' }, code: 'INTERNAL', message: 'worker down' });
-    await vi.waitFor(() => expect(store.getState().elements).toEqual({ status: 'error', message: 'INTERNAL: worker down' }));
+    await vi.waitFor(() => expect(store.getState().elements).toEqual({ status: 'error', failure: { kind: 'unknown', detail: 'INTERNAL: worker down' } }));
     expect(sentOfType('computePasses')).toEqual([]);
   });
 
@@ -200,7 +200,7 @@ describe('startEffects', () => {
     worker = fakeWorker();
     client = createWorkerClient(() => worker);
     stop = startEffects({ ...noStorage, store, client, catalog: CATALOG, loadElements: failing, loadWeather: neverWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
-    await vi.waitFor(() => expect(store.getState().elements).toEqual({ status: 'error', message: 'HTTP 503' }));
+    await vi.waitFor(() => expect(store.getState().elements).toEqual({ status: 'error', failure: { kind: 'unknown', detail: 'HTTP 503' } }));
     store.getState().setObserver(neuquen);
     await vi.waitFor(() => expect(store.getState().elements.status).toBe('ready'));
     await waitForSent('loadElements');
@@ -267,6 +267,9 @@ describe('the "Now" tick (FR-VIS-5, US-4 AC2)', () => {
     const load = worker.sent.find((m) => m.type === 'loadElements');
     worker.emit({ type: 'elementsLoaded', requestId: load?.requestId ?? '', loaded: [], rejected: [] });
     await vi.waitFor(() => expect(sentNow().length).toBeGreaterThanOrEqual(1));
+    // The job ends, so these minutes of fake time are not a stalled job (R86, JOB_STALL_S).
+    const job = worker.sent.find((m) => m.type === 'computePasses');
+    worker.emit({ type: 'jobDone', jobId: job?.jobId ?? '', cancelled: false, elapsedMs: 1, hasDarkness: true });
   };
 
   it('asks once as soon as the worker has the elements, then every 10 s, with the injected clock', async () => {
@@ -426,7 +429,7 @@ describe('weather (FR-WX-1, FR-WX-5, FR-LOC-3)', () => {
     worker.emit({ type: 'passes', jobId: job.jobId, noradId: 25544, nightIndex: 0, passes: [samplePass(25544, NOW + 1000)] });
     requests[0]?.reject(new Error('Open-Meteo forecast: HTTP 503'));
     await vi.waitFor(() => expect(store.getState().weather.status).toBe('error'));
-    expect(store.getState().weather).toMatchObject({ observer: neuquen, error: 'Open-Meteo forecast: HTTP 503', snapshot: null });
+    expect(store.getState().weather).toMatchObject({ observer: neuquen, error: { kind: 'unknown', detail: 'Open-Meteo forecast: HTTP 503' }, snapshot: null });
     expect(store.getState().observer).toBe(neuquen);
     expect(store.getState().observer?.timeZone).toBeNull();
     expect(store.getState().passes.passes).toHaveLength(1);
@@ -480,13 +483,14 @@ describe('the elements re-check (R11, PLAN §7.1, FR-SAT-6)', () => {
     visibility = fakeVisibility();
     stop = startEffects({ ...noStorage, store, client, catalog: CATALOG, loadElements: loader, loadWeather: neverWeather, now: () => clock, visibility });
   };
-  /** Observer set → elements in the worker → job started. */
+  /** Observer set → elements in the worker → job started and finished (a job left silent over these minutes would be a stall, R86). */
   const started = async (observer: Observer): Promise<void> => {
     store.getState().setObserver(observer);
     await vi.waitFor(() => expect(sent('loadElements').length).toBeGreaterThanOrEqual(1));
     const load = sent('loadElements').at(-1);
     worker.emit({ type: 'elementsLoaded', requestId: load?.requestId ?? '', loaded: [], rejected: [] });
     await vi.waitFor(() => expect(sent('computePasses').length).toBeGreaterThanOrEqual(1));
+    worker.emit({ type: 'jobDone', jobId: sent('computePasses').at(-1)?.jobId ?? '', cancelled: false, elapsedMs: 1, hasDarkness: true });
   };
   /** Moves the injected clock and the fake timers together. */
   const elapse = async (ms: number): Promise<void> => {
@@ -534,7 +538,7 @@ describe('the elements re-check (R11, PLAN §7.1, FR-SAT-6)', () => {
     worker.emit({ type: 'elementsLoaded', requestId: sent('loadElements')[1]?.requestId ?? '', loaded: [], rejected: [] });
     await vi.waitFor(() => expect(sent('computePasses')).toHaveLength(2));
     expect(sent('computePasses')[1]).toMatchObject({ observer: neuquen, window: { startMs: NOW + 8 * ELEMENTS_RECHECK_MS } });
-    expect(sent('cancel')).toEqual([{ type: 'cancel', jobId: sent('computePasses')[0]?.jobId }]);
+    expect(sent('cancel')).toEqual([]); // the first job had finished
   });
 
   it('a re-check that only flips `stale` updates the slice without recomputing', async () => {
@@ -571,7 +575,7 @@ describe('the elements re-check (R11, PLAN §7.1, FR-SAT-6)', () => {
     await vi.waitFor(() => expect(loader).toHaveBeenCalledTimes(2));
     await vi.advanceTimersByTimeAsync(0);
     expect(store.getState().elements).toMatchObject({ status: 'ready', stale: false });
-    expect(store.getState().passes.status).toBe('computing');
+    expect(store.getState().passes.status).toBe('done');
     expect(warn).toHaveBeenCalledWith(expect.stringMatching(/re-check failed.*HTTP 503/));
     warn.mockRestore();
   });
@@ -579,7 +583,7 @@ describe('the elements re-check (R11, PLAN §7.1, FR-SAT-6)', () => {
   it('a re-check after a failed first load retries it', async () => {
     const loader = vi.fn<EffectDeps['loadElements']>().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(loaded(records));
     start(loader);
-    await vi.waitFor(() => expect(store.getState().elements).toEqual({ status: 'error', message: 'offline' }));
+    await vi.waitFor(() => expect(store.getState().elements).toEqual({ status: 'error', failure: { kind: 'unknown', detail: 'offline' } }));
     await elapse(ELEMENTS_RECHECK_MS);
     await vi.waitFor(() => expect(store.getState().elements.status).toBe('ready'));
     expect(loader).toHaveBeenCalledTimes(2);

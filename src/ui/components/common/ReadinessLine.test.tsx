@@ -166,7 +166,7 @@ describe('ReadinessLine (R27: FR-OFF-4)', () => {
   });
 
   it('no forecast: the gap is named instead of a date', () => {
-    set({ ...ready([pass('a', 4)], T0), weather: { observer, status: 'error', snapshot: null, error: 'offline' } });
+    set({ ...ready([pass('a', 4)], T0), weather: { observer, status: 'error', snapshot: null, error: { kind: 'offline', detail: 'offline' } } });
     show();
     expect(screen.getByTestId('readiness')).toHaveTextContent('Not ready offline: no cloud forecast stored yet.');
   });
@@ -179,7 +179,7 @@ describe('ReadinessLine (R27: FR-OFF-4)', () => {
 
   it('a cold start with no signal names all three, and shows even though no job ever finished', () => {
     // No elements means no job, so the passes never answer on their own; the forecast's failure is the third answer.
-    set({ observer, elements: { status: 'error', message: 'network error' }, weather: { observer, status: 'error', snapshot: null, error: 'offline' } });
+    set({ observer, elements: { status: 'error', failure: { kind: 'unknown', detail: 'network error' } }, weather: { observer, status: 'error', snapshot: null, error: { kind: 'offline', detail: 'offline' } } });
     show();
     expect(screen.getByTestId('readiness')).toHaveTextContent('Not ready offline: no orbital elements, cloud forecast and passes stored yet.');
   });
@@ -197,7 +197,7 @@ describe('ReadinessLine (R27: FR-OFF-4)', () => {
   });
 
   it('F-28: neither Spanish state opens with the bare words for "no connection"', () => {
-    set({ observer, elements: { status: 'error', message: 'network error' }, weather: { observer, status: 'error', snapshot: null, error: 'offline' } });
+    set({ observer, elements: { status: 'error', failure: { kind: 'unknown', detail: 'network error' } }, weather: { observer, status: 'error', snapshot: null, error: { kind: 'offline', detail: 'offline' } } });
     const es = () =>
       render(
         <I18nProvider locale="es">

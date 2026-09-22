@@ -80,6 +80,6 @@ describe('toFailure', () => {
   it('passes a Failure through unchanged', () => {
     const failure = { kind: 'timeout', detail: 'no progress for 60 s' } as const;
     expect(isFailure(failure)).toBe(true);
-    expect(toFailure(failure)).toBe(failure);
+    expect(toFailure(failure)).toEqual(failure);
   });
 });
