@@ -21,6 +21,7 @@ import { appStore, useActiveObserver, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { App } from '../App';
 import { Home, useSteps, WhereReading, type HomeProps } from './Home';
+import { requestPlace } from './home/placeRequest';
 
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
@@ -419,6 +420,27 @@ describe('the phone’s first visit (FR-FIRST-4, D-513)', () => {
     expect(screen.queryByTestId('step-when')).toBeNull();
     fireEvent.click(button as HTMLElement);
     expect(screen.getByTestId('step-when')).toBeInTheDocument();
+  });
+
+  /*
+   * R87 (FR-FIRST-1 as amended v2.1): the receiving side of the live page's `[ set a place ]` (R89 draws it).
+   * The request opens the where step with the focus in the input group — not on the heading, where an arrival
+   * by the step line puts it — and is spent once read, so the next visit home is an ordinary one.
+   */
+  it('lands [ set a place ] on the where step with the focus in the group, once', () => {
+    window.location.hash = '#live';
+    act(() => {
+      requestPlace();
+    });
+    expect(window.location.hash).toBe('');
+    const first = render(home());
+    const group = screen.getByTestId('cold-open');
+    expect(group).toHaveAttribute('data-step', 'where');
+    expect(document.activeElement).toBe(within(group).getByRole('button', { name: en.location.useMyLocation }));
+    first.unmount();
+
+    render(home());
+    expect(document.activeElement).toBe(document.body);
   });
 
   it('opens on the stacked page, and never a step, with a place at mount', () => {
