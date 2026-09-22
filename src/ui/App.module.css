@@ -73,6 +73,8 @@
 .main[data-step] {
   --screen-min: 0px;
   flex: 1 0 auto;
+  /* The footer's own rule and row stand between the step and the credits. */
+  padding-bottom: 0;
 }
 
 .main[data-step] > .leftColumn {
@@ -81,6 +83,22 @@
 
 .main[data-step] .cold {
   align-self: start;
+}
+
+/* R87 (FR-FIRST-1 as amended v2.1, D-574): on a phone shorter than the board's
+   844 px the where step's blocks are 0.75 rem apart — the populated panes'
+   spacing, the board's other one — so at 360 × 640 nothing but the footer is
+   below the fold, in Spanish too. 700 px sits between the two sizes the
+   requirement names; the board's 1.2 rem holds on every taller screen. */
+@media (max-height: 700px) {
+  .main[data-step] .cold {
+    gap: 0.75rem;
+    margin-top: calc(0.75rem - var(--row));
+  }
+
+  .main[data-step] .coldSentence {
+    margin-top: calc(0.5rem - 0.75rem);
+  }
 }
 
 /* The group grows to the bottom of that screen, so its foot can be put there. */

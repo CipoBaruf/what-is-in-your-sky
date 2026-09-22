@@ -88,3 +88,18 @@
   padding-top: 0.75rem;
   border-top: 1px solid var(--rule);
 }
+
+/* R87 (D-574): the phone's where step on a screen shorter than 700 px puts its
+   blocks 0.75 rem apart, as App.module.css does for the step around it, and
+   its two boxed fields half a rem inside (`--box-pad`, read by
+   PlacePicker.module.css and CoordsInput.module.css). */
+@media (max-height: 700px) {
+  .group[data-look='boxed'],
+  .group[data-look='boxed'] .inputs {
+    gap: 0.75rem;
+  }
+
+  .group[data-look='boxed'] {
+    --box-pad: 0.5rem;
+  }
+}
