@@ -33,11 +33,11 @@ const bodies: BodyLine[] = [
 
 const noop = (): void => undefined;
 
-const legend = (inventory: LegendInventory | null, locale: 'en' | 'es' = 'en') =>
+const legend = (inventory: LegendInventory | null, locale: 'en' | 'es' = 'en', listed: LegendRow[] = rows) =>
   render(
     <I18nProvider locale={locale}>
       <LegendInventoryContext.Provider value={inventory}>
-        <Legend rows={rows} bodies={bodies} timeZone={null} highlightedPassId={null} onActivate={noop} onFocusRow={noop} />
+        <Legend rows={listed} bodies={bodies} timeZone={null} highlightedPassId={null} onActivate={noop} onFocusRow={noop} />
       </LegendInventoryContext.Provider>
     </I18nProvider>,
   );
@@ -55,10 +55,10 @@ describe('<Legend> as the short wide inventory (F-81)', () => {
   });
 
   it('clips the list to whole entries and counts the rest in the +n line', () => {
-    const budget = 7;
-    legend({ clip: (entryRows) => inventoryClip(entryRows, budget), moreLabel: (n) => `+${String(n)} more` });
+    const budget = 8;
+    legend({ clip: (entryRows, headerRows) => inventoryClip(entryRows, budget - headerRows), moreLabel: (n) => `+${String(n)} more` });
     const list = screen.getByTestId('chart-legend');
-    // Seven rows: one for the line, six for the list — three passes whole. Two passes and both bodies are under it.
+    // Eight rows: one for the header, one for the line, six for the list — three passes whole. Two passes and both bodies are under it.
     expect(list).toHaveAttribute('data-clip-rows', '6');
     expect(list.style.getPropertyValue('--inventory-rows')).toBe('6');
     expect(screen.getByTestId('legend-more')).toHaveTextContent(/^\+4 more$/);
@@ -72,8 +72,20 @@ describe('<Legend> as the short wide inventory (F-81)', () => {
   });
 
   it('draws no +n line when everything fits', () => {
-    legend({ clip: (entryRows) => inventoryClip(entryRows, 20), moreLabel: (n) => `+${String(n)} more` });
+    legend({ clip: (entryRows, headerRows) => inventoryClip(entryRows, 21 - headerRows), moreLabel: (n) => `+${String(n)} more` });
     expect(screen.getByTestId('chart-legend')).toHaveAttribute('data-clip-rows', '12');
     expect(screen.queryByTestId('legend-more')).toBeNull();
+  });
+
+  it('keeps the header’s row for the list when no listed row has times', () => {
+    // Hidden objects (`lib/legend.ts`) are listed after the passes with no times, and alone they draw no header.
+    const hidden = [0, 1, 2, 3, 4].map((i) => ({ ...row(i), riseMs: null, peakMs: null, endMs: null }));
+    const budget = 9;
+    legend({ clip: (entryRows, headerRows) => inventoryClip(entryRows, budget - headerRows), moreLabel: (n) => `+${String(n)} more` }, 'en', hidden);
+    expect(screen.queryByTestId('legend-times-header')).toBeNull();
+    // All nine rows are the list's: four markers whole, one for the `+n` line. Reserving the header's row too
+    // would have ended the list a marker earlier, at six rows and `+4 more`.
+    expect(screen.getByTestId('chart-legend')).toHaveAttribute('data-clip-rows', '8');
+    expect(screen.getByTestId('legend-more')).toHaveTextContent(/^\+3 more$/);
   });
 });

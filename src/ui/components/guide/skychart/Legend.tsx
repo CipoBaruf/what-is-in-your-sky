@@ -86,8 +86,11 @@ function moonLitFacts(line: BodyLine, t: Messages): { phase: string; illuminatio
  * fit, and a `+n` line under it for the rest. The arithmetic is the page's (`liveRows.ts`, `inventoryClip`).
  */
 export interface LegendInventory {
-  /** The entries' heights in text rows, in list order → the rows the list shows and the entries it leaves out. */
-  clip: (entryRows: readonly number[]) => { rows: number; more: number };
+  /**
+   * The entries' heights in text rows, in list order, and the rows the times header takes above them — one
+   * where it is drawn, none where no listed row has times → the rows the list shows and the entries it leaves out.
+   */
+  clip: (entryRows: readonly number[], headerRows: number) => { rows: number; more: number };
   /** The line under a clipped list: `+2 more`. */
   moreLabel: (n: number) => string;
 }
@@ -109,7 +112,10 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
   const inventory = useContext(LegendInventoryContext);
   const clipped = inventory !== null && !screen && lead === undefined;
   const entryRows = [...(listed.length === 0 ? [ENTRY_ROWS.line] : listed.map(() => ENTRY_ROWS.row)), ...bodies.map(() => ENTRY_ROWS.line)];
-  const clip = clipped ? inventory.clip(entryRows) : null;
+  // The header row lines its words up over the first timed row's three clock strings, so with no timed row
+  // there is no header and the budget keeps that row for the list.
+  const timed = listed.find((row) => row.riseMs !== null);
+  const clip = clipped ? inventory.clip(entryRows, timed === undefined ? 0 : 1) : null;
   // R85 (F-81): each time says what it is to a screen reader — `rise 09:48:24 UTC` — wherever the legend is drawn.
   const time = (key: (typeof TIME_KEYS)[number], ms: number | null): ReactNode => (
     <span className={styles.time}>
@@ -185,8 +191,7 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
     </ol>
   );
   if (clip === null) return list;
-  // The header row lines its words up over the first timed row's three clock strings, each as wide as its time.
-  const timed = listed.find((row) => row.riseMs !== null);
+  // Each of the header's words is as wide as the clock string it stands over.
   return (
     <div className={styles.inventory} data-testid="legend-inventory">
       {timed !== undefined && (

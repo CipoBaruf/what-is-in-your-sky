@@ -271,8 +271,9 @@ function useHashFollows(observer: Observer, shown: EpochMs, realTime: boolean, p
 }
 
 /**
- * R85 (F-81, FR-CAP-5, D-549): the whole text rows the short wide rail leaves its inventory, less the header
- * row that names the three times — or `null` where there is no inventory to clip. On that shape the frame's
+ * R85 (F-81, FR-CAP-5, D-549): the whole text rows the short wide rail leaves its inventory — or `null` where
+ * there is no inventory to clip. The header row that names the three times comes off this budget where it is
+ * drawn, which only the legend knows: it draws no header when no listed row has times. On that shape the frame's
  * legend scroll box is `flex: 1 1 0` (`Live.module.css`): it is what the rail's head and foot leave, whatever
  * the list holds, so its height is the budget and the list's own height never moves it — the answer cannot
  * feed itself. Observed with the dome row, since the box is the frame's and can be replaced under it.
@@ -295,7 +296,7 @@ function useInventoryRows(active: boolean, domeRef: RefObject<HTMLDivElement | n
         observed = box;
       }
       const rowPx = parseFloat(getComputedStyle(box).lineHeight) || ROW_PX;
-      const next = Math.max(0, Math.floor(box.clientHeight / rowPx) - 1);
+      const next = Math.max(0, Math.floor(box.clientHeight / rowPx));
       setRows((last) => (last === next ? last : next));
     };
     const observer = new ResizeObserver(measure);
@@ -524,11 +525,15 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   /*
    * R85 (F-81, FR-CAP-5, D-549): on the short wide window the legend between the rail's head and foot is an
    * inventory that ends on a whole entry, with a `+n` line — `liveRows.ts`'s `inventoryClip` over what the rail
-   * leaves it, measured here in whole text rows.
+   * leaves it, measured here in whole text rows. `headerRows` is the legend's answer to whether it draws the
+   * times header, which takes one of those rows; it draws none when no listed row has times.
    */
   const inventoryRows = useInventoryRows(!compact && placement === 'overlay' && !screenOpen, domeRef);
   const legendInventory = useMemo<LegendInventory | null>(
-    () => (inventoryRows === null ? null : { clip: (entryRows) => inventoryClip(entryRows, inventoryRows), moreLabel: t.live.more }),
+    () =>
+      inventoryRows === null
+        ? null
+        : { clip: (entryRows, headerRows) => inventoryClip(entryRows, Math.max(0, inventoryRows - headerRows)), moreLabel: t.live.more },
     [inventoryRows, t],
   );
   const top = <TopRow place={observer.label} indicator={compact && placement !== 'rail' ? indicator : null} screenOpen={screenOpen} onLeave={onLeave} />;
