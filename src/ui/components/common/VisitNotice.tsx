@@ -1,6 +1,6 @@
 import { useLocale, useT } from '../../../i18n/useT';
 import { coordsLabel } from '../../../lib/place';
-import { formatClock, formatDate } from '../../../lib/timeFormat';
+import { formatDate, formatShortClock } from '../../../lib/timeFormat';
 import { useActiveObserver, useAppStore, type OpenLinkResult } from '../../../state';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import styles from './VisitNotice.module.css';
@@ -77,7 +77,7 @@ export function LinkNote({ kinds, inert = false }: { kinds: readonly LinkNoteKin
   let text: string = t.visit.unreadable;
   if (kind !== 'unreadable' && 'link' in result && result.link.kind === 'live' && result.link.t !== null) {
     const at = result.link.t;
-    const time = `${formatDate(at, timeZone, locale)} ${formatClock(at, timeZone, locale)}`;
+    const time = `${formatDate(at, timeZone, locale)} ${formatShortClock(at, timeZone, locale, true)}`;
     text = kind === 'past' ? t.visit.past({ time }) : t.visit.far({ time });
   }
   return (
