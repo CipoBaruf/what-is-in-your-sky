@@ -4,8 +4,8 @@ import type { windowMessages as EnWindow } from '../en/window';
 export const windowMessages: typeof EnWindow = {
   window: {
     waiting: 'Esperando los sensores del teléfono…',
-    denied: 'Se rechazó el acceso al movimiento, así que la cúpula sigue siendo la vista.',
-    relative: 'Este teléfono no da un rumbo de brújula, así que la ventana no puede encontrar el norte.',
+    denied: 'Se rechazó el acceso al movimiento, así que la cúpula sigue siendo la vista. Para que te lo vuelva a preguntar, recargá la página: Safari pregunta una vez por carga.',
+    relative: 'Este dispositivo no informa hacia dónde apunta.',
     hint: 'Levantá el teléfono: la ventana muestra el cielo al que apunta.',
     readout: (p) => `Mirando al ${p.point} (${p.azimuth}) · ${p.altitude} de altura`,
     trueNorth: (p) => `norte verdadero, declinación ${p.declination}`,

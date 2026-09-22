@@ -26,8 +26,12 @@ import { deviceHeading, orientationApiPresent, orientationEventName, permissionR
  * it is the first reading that decides — a heading opens the screen and the
  * listener goes (the window takes the sensor from there); no heading is the
  * `relative` note with the page untouched, and the option is not offered again
- * this session (`windowLost`, FR-WIN-4). A device that sends nothing at all
- * leaves the page exactly as it was, which is what it did before.
+ * this session (`windowLost`, FR-WIN-4).
+ *
+ * **A device that sends nothing** (R90, FR-FAIL-7, D-550; F-94). Arming starts
+ * a `SENSOR_WAIT_S` timer; if it fires before any reading, the device is taken
+ * as one that does not report which way it faces — the same `relative` note and
+ * the same lost option — instead of an armed tap that waits forever.
  *
  * **The state is the store's** (D-350, D-352). `skyScreen`, `windowNote` and
  * `windowLost` live in the prefs slice because the window that fails is the one
@@ -35,6 +39,9 @@ import { deviceHeading, orientationApiPresent, orientationEventName, permissionR
  * underneath; the only state here is the listener between the tap and the
  * reading, which belongs to the tap.
  */
+/** FR-FAIL-7: how long an armed tap waits for the first orientation reading, in seconds. */
+export const SENSOR_WAIT_S = 3;
+
 export interface SkyScreenEntry {
   /** FR-WIN-4's presence test, less a phone this session has already found has no north. */
   available: boolean;
@@ -65,7 +72,13 @@ export function useSkyScreen(): SkyScreenEntry {
     };
     const name = orientationEventName();
     window.addEventListener(name, onReading);
+    // FR-FAIL-7: nothing at all within the wait is a device that does not report its heading.
+    const wait = window.setTimeout(() => {
+      setArmed(false);
+      dropWindowView('relative');
+    }, SENSOR_WAIT_S * 1000);
     return () => {
+      window.clearTimeout(wait);
       window.removeEventListener(name, onReading);
     };
   }, [armed, openSkyScreen, dropWindowView]);

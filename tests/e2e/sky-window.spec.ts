@@ -217,7 +217,7 @@ test.describe('the sky window on a phone', () => {
     await tapWindow(page, figure, 'en');
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(figure).toHaveAttribute('data-view', 'dome');
-    await expect(figure.getByTestId('chart-view-note')).toHaveText('Motion access was refused, so the dome stays the view.');
+    await expect(figure.getByTestId('chart-view-note')).toHaveText('Motion access was refused, so the dome stays the view. To be asked again, reload the page: Safari asks once per load.');
     await page.screenshot({ path: `${CAPTURE_DIR}/r66-window-390-denied-dark-en.png` });
     // Any other choice clears the note.
     await toggle.getByRole('button', { name: 'Polar' }).click();
@@ -238,7 +238,7 @@ test.describe('the sky window on a phone', () => {
     await page.clock.runFor(FRAME_MS);
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(figure).toHaveAttribute('data-view', 'dome');
-    await expect(figure.getByTestId('chart-view-note')).toHaveText('This phone gives no compass heading, so the window cannot find north.');
+    await expect(figure.getByTestId('chart-view-note')).toHaveText('This device is not reporting which way it faces.');
     await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome']);
   });
 

@@ -118,7 +118,7 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350)', () 
     fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
     reading({ alpha: 30, absolute: false });
     expect(appStore.getState().skyScreen).toBe(false);
-    expect(rtl.getByTestId('chart-view-note')).toHaveTextContent('This phone gives no compass heading');
+    expect(rtl.getByTestId('chart-view-note')).toHaveTextContent('This device is not reporting which way it faces.');
     expect(options()).toEqual(['Polar', 'Dome']);
     expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'dome');
   });
