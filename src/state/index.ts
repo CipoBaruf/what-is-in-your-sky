@@ -96,7 +96,7 @@ export interface StartAppOverrides {
 export function startApp(overrides: StartAppOverrides = {}): () => void {
   const store = overrides.store ?? appStore;
   const prefs = overrides.prefs ?? localPrefs;
-  const client = createWorkerClient((overrides.createWorker ?? createAppWorker)());
+  const client = createWorkerClient(overrides.createWorker ?? createAppWorker);
   setLiveNowClient(client);
   const cache = overrides.cache ?? appPassesCache();
   // R31 (FR-SHARE-1, FR-LIVE-9): a link carries its own observer, and it wins

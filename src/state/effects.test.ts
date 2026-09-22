@@ -94,7 +94,7 @@ describe('startEffects', () => {
     server.events.on('request:start', onRequest);
     store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(null) });
     worker = fakeWorker();
-    client = createWorkerClient(worker);
+    client = createWorkerClient(() => worker);
     stop = startEffects({ ...noStorage, store, client, catalog: CATALOG, loadElements: freshLoader(), loadWeather: neverWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
   });
   afterEach(() => {
@@ -198,7 +198,7 @@ describe('startEffects', () => {
     const failing = vi.fn().mockRejectedValueOnce(new Error('HTTP 503')).mockImplementation(freshLoader());
     store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(null) });
     worker = fakeWorker();
-    client = createWorkerClient(worker);
+    client = createWorkerClient(() => worker);
     stop = startEffects({ ...noStorage, store, client, catalog: CATALOG, loadElements: failing, loadWeather: neverWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
     await vi.waitFor(() => expect(store.getState().elements).toEqual({ status: 'error', message: 'HTTP 503' }));
     store.getState().setObserver(neuquen);
@@ -242,7 +242,7 @@ describe('the "Now" tick (FR-VIS-5, US-4 AC2)', () => {
     clock = NOW;
     store = createAppStore({ now: () => clock, prefs: createLocalPrefs(null) });
     worker = fakeWorker();
-    client = createWorkerClient(worker);
+    client = createWorkerClient(() => worker);
     visibility = fakeVisibility();
     stop = startEffects({
       ...noStorage,
@@ -369,7 +369,7 @@ describe('weather (FR-WX-1, FR-WX-5, FR-LOC-3)', () => {
     requests = [];
     store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(null) });
     worker = fakeWorker();
-    client = createWorkerClient(worker);
+    client = createWorkerClient(() => worker);
     stop = startEffects({ ...noStorage, store, client, catalog: CATALOG, loadElements: () => Promise.resolve(loaded(records)), loadWeather, now: () => NOW, visibility: ALWAYS_VISIBLE });
   });
   afterEach(() => {
@@ -476,7 +476,7 @@ describe('the elements re-check (R11, PLAN §7.1, FR-SAT-6)', () => {
   const start = (loader: EffectDeps['loadElements']): void => {
     store = createAppStore({ now: () => clock, prefs: createLocalPrefs(null) });
     worker = fakeWorker();
-    client = createWorkerClient(worker);
+    client = createWorkerClient(() => worker);
     visibility = fakeVisibility();
     stop = startEffects({ ...noStorage, store, client, catalog: CATALOG, loadElements: loader, loadWeather: neverWeather, now: () => clock, visibility });
   };
@@ -636,7 +636,7 @@ describe('stored passes (R24, FR-OFF-2, FR-OFF-5)', () => {
       if (state.passes.storedAt !== null && requestedWhenStoredRendered === null) requestedWhenStoredRendered = requested.length;
     });
     worker = fakeWorker();
-    client = createWorkerClient(worker);
+    client = createWorkerClient(() => worker);
     store.getState().restoreSavedObserver();
     stop = startEffects({
       store,
@@ -1057,7 +1057,7 @@ describe('favourites (R26)', () => {
     store = createAppStore({ now: () => clock, prefs });
     for (const observer of places) store.getState().addFavourite(observer);
     worker = fakeWorker();
-    client = createWorkerClient(worker);
+    client = createWorkerClient(() => worker);
     stop = startEffects({
       store,
       client,

@@ -41,7 +41,7 @@ describe('sequentialIds', () => {
 describe('createWorkerClient', () => {
   it('loadElements resolves with the worker reply for its request id', async () => {
     const worker = fakeWorker();
-    const client = createWorkerClient(worker);
+    const client = createWorkerClient(() => worker);
     const pending = client.loadElements([]);
     expect(worker.sent[0]).toMatchObject({ type: 'loadElements', requestId: 'req-1', records: [] });
     worker.emit({ type: 'elementsLoaded', requestId: 'req-other', loaded: [1], rejected: [] });
@@ -51,7 +51,7 @@ describe('createWorkerClient', () => {
 
   it('loadElements rejects on an error carrying its request id', async () => {
     const worker = fakeWorker();
-    const client = createWorkerClient(worker);
+    const client = createWorkerClient(() => worker);
     const pending = client.loadElements([]);
     worker.emit({ type: 'error', ref: { requestId: 'req-1' }, code: 'INTERNAL', message: 'nope' });
     await expect(pending).rejects.toThrow('INTERNAL: nope');
@@ -59,7 +59,7 @@ describe('createWorkerClient', () => {
 
   it('computePasses cancels the previous job first, and drops that job’s late messages', () => {
     const worker = fakeWorker();
-    const client = createWorkerClient(worker);
+    const client = createWorkerClient(() => worker);
     const first = handlers();
     const second = handlers();
     const job1 = client.computePasses(observer, window, DEFAULT_THRESHOLDS, first);
@@ -87,7 +87,7 @@ describe('createWorkerClient', () => {
 
   it('computeNow resolves with the state for its request id and rejects on an error', async () => {
     const worker = fakeWorker();
-    const client = createWorkerClient(worker);
+    const client = createWorkerClient(() => worker);
     const state = { t: 5, sunAltDeg: -20, sky: 'dark' as const, items: [], moon: MOON_FIXTURE };
     const first = client.computeNow(observer, 5, DEFAULT_THRESHOLDS);
     const second = client.computeNow(observer, 6, DEFAULT_THRESHOLDS);
@@ -108,7 +108,7 @@ describe('createWorkerClient', () => {
 
   it('computeNow carries includeHidden only when asked for it (R33, FR-LIVE-6, D-76)', () => {
     const worker = fakeWorker();
-    const client = createWorkerClient(worker);
+    const client = createWorkerClient(() => worker);
     void client.computeNow(observer, 5, DEFAULT_THRESHOLDS, { includeHidden: true });
     void client.computeNow(observer, 6, DEFAULT_THRESHOLDS, { includeHidden: false });
     void client.computeNow(observer, 7, DEFAULT_THRESHOLDS, {});
@@ -121,7 +121,7 @@ describe('createWorkerClient', () => {
 
   it('a reply of the wrong type rejects the request', async () => {
     const worker = fakeWorker();
-    const client = createWorkerClient(worker);
+    const client = createWorkerClient(() => worker);
     const pending = client.computeNow(observer, 5, DEFAULT_THRESHOLDS);
     worker.emit({ type: 'elementsLoaded', requestId: 'req-1', loaded: [], rejected: [] });
     await expect(pending).rejects.toThrow('Unexpected elementsLoaded reply to req-1');
@@ -129,14 +129,14 @@ describe('createWorkerClient', () => {
 
   it('cancel of an untracked job posts nothing', () => {
     const worker = fakeWorker();
-    const client = createWorkerClient(worker);
+    const client = createWorkerClient(() => worker);
     client.cancel('job-99');
     expect(worker.sent).toEqual([]);
   });
 
   it('PROPAGATION_FAILED is reported and the job stays active; NO_ELEMENTS and INTERNAL end it', () => {
     const worker = fakeWorker();
-    const client = createWorkerClient(worker);
+    const client = createWorkerClient(() => worker);
     const h = handlers();
     const job = client.computePasses(observer, window, DEFAULT_THRESHOLDS, h);
     worker.emit({ type: 'error', ref: { jobId: job }, code: 'PROPAGATION_FAILED', message: 'x' });
@@ -157,7 +157,7 @@ describe('createWorkerClient', () => {
 
   it('terminate forgets every job and stops the worker', () => {
     const worker = fakeWorker();
-    const client = createWorkerClient(worker);
+    const client = createWorkerClient(() => worker);
     const h = handlers();
     const job = client.computePasses(observer, window, DEFAULT_THRESHOLDS, h);
     client.terminate();

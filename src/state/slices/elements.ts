@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand/vanilla';
 import type { EpochMs, NoradId, SatelliteRecord } from '../../model';
 import type { RejectedElement } from '../../worker/protocol';
+import type { Failure } from '../failure';
 
 /**
  * Orbital elements as the main thread knows them: loaded through the cache
@@ -10,11 +11,12 @@ import type { RejectedElement } from '../../worker/protocol';
  * confirmed with CelesTrak, `stale` means that confirmation failed and a copy
  * past the 2 h rule is in use (FR-SAT-6), `persistent` is false when the copy
  * lives only in memory for this session (PLAN §7.1); the banners read these.
+ * R86 (D-540): a failed load is stored as a `Failure`, never a sentence.
  */
 export type ElementsState =
   | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'error'; message: string }
+  | { status: 'error'; failure: Failure }
   | {
       status: 'ready';
       records: SatelliteRecord[];
