@@ -242,6 +242,22 @@ test.describe('the sky window on a phone', () => {
     await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome']);
   });
 
+  /** R90 (FR-FAIL-7, D-550): a device whose orientation API never sends a reading gets the note after SENSOR_WAIT_S (3 s). */
+  test('a device that sends no reading gets the note three seconds after the tap', async ({ page }) => {
+    await stubCompass(page);
+    await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
+    const figure = await openDetail(page, 'en');
+    const toggle = figure.getByRole('group', { name: VIEW_GROUP.en });
+    await toggle.getByRole('button', { name: WINDOW_OPTION.en }).click();
+    await page.clock.runFor(2900);
+    await expect(figure.getByTestId('chart-view-note')).toHaveCount(0);
+    await page.clock.runFor(100);
+    await expect(figure.getByTestId('chart-view-note')).toHaveText('This device is not reporting which way it faces.');
+    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
+    await expect(figure).toHaveAttribute('data-view', 'dome');
+    await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome']);
+  });
+
   for (const theme of THEMES) {
     for (const locale of LOCALES) {
       test(`capture: the sky screen from a pass detail at 844 x 390, ${theme}, ${locale}, aimed at the peak`, async ({ page }) => {
