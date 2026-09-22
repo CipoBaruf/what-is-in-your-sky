@@ -231,7 +231,7 @@ describe('createWorkerClient: a dead or stalled worker (R86, FR-FAIL-4, D-543)',
     expect(h.onFailure).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1_000);
     expect(h.onFailure).toHaveBeenCalledWith({ kind: 'timeout', detail: `The pass job reported no progress for ${String(JOB_STALL_S)} s` });
-    expect(toFailure(h.onFailure.mock.calls[0]?.[0]).kind).toBe('timeout');
+    expect(toFailure(vi.mocked(h.onFailure).mock.calls[0]?.[0]).kind).toBe('timeout');
     expect(spawned[0]?.terminated).toBe(true);
     expect(client.activeJobId()).toBeNull();
   });

@@ -3,6 +3,7 @@ import type { LinkedText } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
 import { observerFromPlace, placeRegion } from '../../../lib/place';
 import type { Observer, Place } from '../../../model';
+import { toFailure, type Failure } from '../../../state';
 import { useOnline } from '../../hooks/useOnline';
 import { coordsLabel } from './CoordsInput';
 import styles from './PlacePicker.module.css';
@@ -44,7 +45,7 @@ export interface PlacePickerProps {
   look?: 'panel' | 'boxed' | 'plain';
 }
 
-type ListState = { kind: 'idle' } | { kind: 'searching'; query: string } | { kind: 'results'; query: string; places: Place[] } | { kind: 'error'; query: string; message: string };
+type ListState = { kind: 'idle' } | { kind: 'searching'; query: string } | { kind: 'results'; query: string; places: Place[] } | { kind: 'error'; query: string; failure: Failure };
 
 /** The provider needs two characters; one letter or blanks would only clear the list. */
 const MIN_CHARS = 2;
@@ -118,7 +119,8 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
       },
       (error: unknown) => {
         if (mine !== seq.current || ac.signal.aborted) return;
-        setList({ kind: 'error', query: trimmed, message: error instanceof Error ? error.message : String(error) });
+        // R86 (D-540, D-541): stored as a kind, with the query kept for a retry.
+        setList({ kind: 'error', query: trimmed, failure: toFailure(error) });
       },
     );
   };
@@ -294,7 +296,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
       </p>
       {!offline && list.kind === 'error' && (
         <p role="alert" className={styles.error}>
-          {linked(t.location.searchFailed(list.message))}
+          {linked(t.location.searchFailed(list.failure.detail))}
         </p>
       )}
       {confirming && (

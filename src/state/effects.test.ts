@@ -1167,7 +1167,6 @@ describe('R86: failures, retries, the forecast refresh and the stale recompute (
     return last;
   };
   const sent = <T extends WorkerRequest['type']>(type: T, from = worker()) => from.sent.filter((m): m is WorkerRequest & { type: T } => m.type === type);
-  const allSent = <T extends WorkerRequest['type']>(type: T) => spawned.flatMap((w) => sent(type, w));
 
   const start = (options: { loader?: EffectDeps['loadElements']; stored?: PassRun | null; observer?: Observer } = {}): void => {
     const saved = options.observer;
