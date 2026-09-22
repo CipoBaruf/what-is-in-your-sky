@@ -61,6 +61,8 @@ import { decorations, rowCells, rowParts } from './cells';
 const BUDGET = 36;
 /** A row set at `--small` (14 px): 36 cells of the 16 px body hold 41 of its characters (D-504). */
 const SMALL_BUDGET = Math.floor((BUDGET * 16) / 14);
+/** FR-COMP-7 (R85, D-549): the compact live page's top row and actions rows keep two cells of the 36 spare. */
+const LIVE_ROW_BUDGET = BUDGET - 2;
 
 const CSS = [
   'src/ui/components/common/Header.module.css',
@@ -244,31 +246,38 @@ const rows = (t: Messages): readonly Row[] => [
   /*
    * R77 (FR-WATCH-8, FR-COMP-4 as amended v2.0, V20-8): the live page's new compact rows, rendered from the page
    * itself so the order, the labels and the forms are the ones `Live.tsx` gives them — the top row with the
-   * indicator (`[ ← Back ]`, the mark, the word, the place, which ellipsises past its cells: a ten-letter place
+   * indicator (`[ ← ]`, the mark, the word, the place, which ellipsises past its cells: a ten-letter place
    * here), the two actions rows, and the conditions line at its longest.
+   *
+   * R85 (FR-COMP-7, D-549): the top row and the actions rows are pinned at `LIVE_ROW_BUDGET`, two cells inside
+   * FR-COMP-4's 36, in both languages — the room to spare F-82 found Spanish did not have.
    */
   {
-    name: 'the live top row with the state indicator (FR-WATCH-2, V20-8)',
+    // `[ ← ]`, the mark, `en vivo` and `Cipolletti`: 28 cells in Spanish.
+    name: 'the live top row with the state indicator (FR-WATCH-2, V20-8, FR-COMP-7)',
     element: createElement(LivePage, { link: null, onLeave: noop }),
     find: () => screen.getByTestId('live-top-row'),
     setUp: withLiveSky,
+    budget: LIVE_ROW_BUDGET,
   },
   {
-    // `[ scrub ] [ list (n) ] Share`, 28 cells in English; R71's reason for the plain share (D-411) still holds.
-    name: 'the live watching actions row (FR-WATCH-4, V20-8)',
+    // `[ scrub ] [ list (1) ] [ Share ]`, 32 cells in English; `[ fijar ] [ ver 1 ] [ Compartir ]`, 33 in Spanish.
+    name: 'the live watching actions row (FR-WATCH-4, V20-8, FR-COMP-7)',
     element: createElement(LivePage, { link: null, onLeave: noop }),
     find: () => screen.getByTestId('live-actions'),
     setUp: withLiveSky,
+    budget: LIVE_ROW_BUDGET,
   },
   {
-    // `[ back to live ] [ ] Hidden Share`, 33 cells: the hidden-objects toggle joins this row and the list leaves it.
-    name: 'the live scrubbing actions row (FR-WATCH-4, V20-8)',
+    // `[ live ] [ ] Hidden [ Share ]`, 29 cells; `[ vivo ] [ ] Ocultos [ Compartir ]`, 34.
+    name: 'the live scrubbing actions row (FR-WATCH-4, V20-8, FR-COMP-7)',
     element: createElement(LivePage, { link: null, onLeave: noop }),
     find: () => screen.getByTestId('live-actions'),
     setUp: withLiveSky,
     after: () => {
       fireEvent.click(screen.getByTestId('live-scrub'));
     },
+    budget: LIVE_ROW_BUDGET,
   },
   {
     // FR-WATCH-3: the clock, the longest sky word, the longest cloud word and a two-digit count — `21:14:32 crepúsculo limpio 12 arriba`.

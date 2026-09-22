@@ -69,7 +69,8 @@ describe('<App> and the live route', () => {
     expect(screen.queryByRole('contentinfo')).toBeNull();
     expect(await screen.findByTestId('status-strip')).toBeInTheDocument();
     act(() => {
-      screen.getByRole('button', { name: '← Back' }).click();
+      // R85 (FR-COMP-7): the compact return control is `[ ← ]`, named "Back".
+      screen.getByRole('button', { name: 'Back' }).click();
     });
     expect(window.location.hash).toBe('');
     expect(screen.queryByTestId('live-page')).toBeNull();

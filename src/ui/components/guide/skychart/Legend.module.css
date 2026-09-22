@@ -124,6 +124,89 @@
   overflow-wrap: normal;
 }
 
+/* R85 (F-81, FR-CAP-5, D-549): the short wide live window's inventory. Every
+   entry is a whole number of text rows — a row button is the tap target, two
+   rows, the name over the times, neither wrapping; a body line and the empty
+   line one row — so a `max-height` of `--inventory-rows` rows (what the page's
+   `inventoryClip` says fits whole) ends on an entry's bottom edge and cuts no
+   glyph. The list still scrolls to what is under the clip; the `+n` line says
+   how much that is. The header row names the three times over the columns
+   they stand in: past the key, the swatch and their gaps, five cells in. */
+.inventory {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.timesHeader {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 0 var(--cell);
+  margin: 0;
+  padding-left: calc(5 * var(--cell));
+  line-height: var(--row);
+  white-space: nowrap;
+  overflow: hidden;
+  color: var(--fg-dim);
+}
+
+.timeLabel {
+  flex: 0 0 auto;
+}
+
+/* Block, not the list's grid: a grid squeezed by its flex parent gave its rows a text row each and the
+   two-row entries overlapped; blocks stack at their own heights whatever the box does. */
+.clipped {
+  display: block;
+  flex: 0 0 auto;
+  max-height: calc(var(--inventory-rows) * var(--row));
+  overflow-y: auto;
+}
+
+/* The folded wide live page makes every button an inline control — a half row of padding and the matching
+   negative margin (`Live.module.css`) — which here would shrink each entry to one row and stack the next over
+   its times. An entry is already its own 48 px hit box, so the rule is undone for it, specifically enough to
+   win (`.legend.clipped .item > .row` over `.page[…][…] button`), and the entry is its own formatting context. */
+.clipped .item {
+  display: flow-root;
+}
+
+.legend.clipped .item > .row {
+  height: var(--tap);
+  margin-block: 0;
+  padding-block: 0;
+  overflow: hidden;
+}
+
+.clipped .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.clipped .times {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.clipped .body,
+.clipped .empty {
+  height: var(--row);
+  padding-block: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.more {
+  flex: 0 0 auto;
+  margin: 0;
+  padding-left: calc(2 * var(--cell));
+  line-height: var(--row);
+  color: var(--fg-dim);
+}
+
 /* R51 (FR-LEG-3): the lead block stands where the explained pass's row would
    be — the whole numeric table, no button around it. Its own caption carries
    the key and the swatch at the same left edge as the rows below it. */

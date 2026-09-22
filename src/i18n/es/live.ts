@@ -20,6 +20,8 @@ export const live: typeof EnLive = {
     openShort: 'vivo',
     openFromNow: 'Ver el cielo en vivo',
     back: '← Volver',
+    backShort: '←',
+    backName: 'Volver',
     loading: 'Cargando el cielo en vivo…',
     noObserver: 'El cielo en vivo necesita desde dónde mirar: un nombre de lugar o unas coordenadas en la página de inicio.',
     noElements: 'Todavía no hay elementos orbitales, así que no hay nada que dibujar.',
@@ -38,6 +40,8 @@ export const live: typeof EnLive = {
      */
     skyShort: { day: 'día', 'bright-twilight': 'crepúsculo', dark: 'oscuro' },
     cloudWord: { clear: 'limpio', partly: 'nuboso', obscured: 'tapado', unknown: 's/d' },
+    /** R85 (FR-COMP-7): `s/d` se lee "sin datos". */
+    cloudSpoken: { clear: 'limpio', partly: 'nuboso', obscured: 'tapado', unknown: 'sin datos' },
     upCount: (count) => `${String(count)} arriba`,
     pending: '…',
     moon: (p) => `${moonPhase[p.phase]}, ${p.illumination} % iluminada`,
@@ -50,6 +54,12 @@ export const live: typeof EnLive = {
     scrub: 'fijar',
     scrubWide: 'recorrer la noche',
     backToLive: 'ir al vivo',
+    /**
+     * R85 (FR-COMP-7, D-549): con `[ Compartir ]` otra vez entre corchetes, la fila compacta del estado fijado es
+     * `[ vivo ] [ ] Ocultos [ Compartir ]`, 34 celdas; `[ ir al vivo ]` la llevaba a 41. El nombre accesible sigue
+     * siendo "ir al vivo", que contiene la palabra.
+     */
+    backToLiveShort: 'vivo',
     heldOffset: (p) => (p.hours === 0 ? `${p.sign}${String(p.minutes)} min` : `${p.sign}${String(p.hours)} h ${String(p.minutes).padStart(2, '0')} min`),
     overviewStart: 'ahora',
     overviewEnd: '+24 h',
@@ -67,8 +77,14 @@ export const live: typeof EnLive = {
     hiddenToggle: 'Objetos ocultos',
     hiddenReason: { low: 'muy bajo', shadow: 'en sombra', daylight: 'de día', faint: 'muy tenue' },
     hiddenLabel: (p) => `${p.name} · ${p.reason}`,
-    /** R71 (FR-LEG-7): el control de la leyenda en la fila de acciones — `[ lista (3) ]`, la cuenta son las pasadas dibujadas (D-388). */
-    list: (p) => `lista (${String(p.count)})`,
+    /**
+     * R71 (FR-LEG-7): el control de la leyenda en la fila de acciones; la cuenta son las pasadas dibujadas (D-388).
+     * R85 (FR-COMP-7, D-549): `[ ver 3 ]` y no `[ lista (3) ]` — con `[ Compartir ]` entre corchetes la fila en
+     * vivo es `[ fijar ] [ ver 3 ] [ Compartir ]`, 33 celdas (34 con una cuenta de dos cifras); con "lista (3)"
+     * eran 37, y "lista 3" todavía 35.
+     */
+    list: (p) => `ver ${String(p.count)}`,
+    more: (n) => `+${String(n)} más`,
     /**
      * R48 (FR-TRAJ-5): "sale" (the pass rises) and not "salida" — the six
      * buttons must stay within their row with their gaps (FR-COMP-4), and

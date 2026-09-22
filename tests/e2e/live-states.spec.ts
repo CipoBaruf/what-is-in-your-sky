@@ -13,6 +13,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { backToLive, domeDrawn, enterScrubbing, homeAt, stripFilled, T } from './liveHelpers';
+import { openParisLive } from './parisLive';
 
 /** A speed button named exactly — the name is a substring match otherwise, and `60×` would name three (F-37). */
 const speedButton = (page: Page, factor: number) => page.getByRole('button', { name: new RegExp(`^(\\[[ x]\\] )?\\[?${String(factor)}×\\]?$`) });
@@ -162,6 +163,71 @@ for (const [width, height, placement] of SHAPES) {
     expect(await settledBox(page, 'live-dome')).toEqual(watching.dome);
   });
 }
+
+/**
+ * R85 (F-81, FR-CAP-5, D-549): at 1200 × 450 the watching inventory — the legend between the rail's head and
+ * foot — ends on a whole row: the list's bottom edge is the bottom edge of the last entry it shows, and a
+ * whole number of text rows from its top. The entries under it are counted in the `+n` line, and the header
+ * row names the three times. Paris on R45's instant (`parisLive.ts`): four passes up and the Sun, more entries
+ * than the rail has rows.
+ */
+test('the short wide inventory ends on a whole row with a +n line, and names its times (F-81, FR-CAP-5)', async ({ page }) => {
+  await openParisLive(page, 'shortWide', 'dark');
+  await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', 'overlay');
+  await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
+  const list = page.getByTestId('chart-legend');
+  await expect(list).toHaveAttribute('data-clip-rows', /^\d+$/);
+  const more = page.getByTestId('legend-more');
+  await expect(more).toBeVisible();
+  await expect(page.getByTestId('legend-times-header')).toHaveText(/^rise\s*peak\s*end$/);
+  const geometry = await list.evaluate((ol) => {
+    const box = ol.getBoundingClientRect();
+    const items = Array.from(ol.children, (li) => li.getBoundingClientRect());
+    const shown = items.filter((item) => item.top < box.bottom - 0.5);
+    return {
+      top: box.top,
+      bottom: box.bottom,
+      rowPx: parseFloat(getComputedStyle(ol).lineHeight),
+      entries: items.length,
+      shown: shown.length,
+      lastBottom: shown[shown.length - 1]?.bottom ?? box.top,
+    };
+  });
+  expect(geometry.shown, 'the list shows at least one entry').toBeGreaterThan(0);
+  expect(geometry.shown, 'and not all of them').toBeLessThan(geometry.entries);
+  expect(Math.abs(geometry.lastBottom - geometry.bottom), 'the last entry shown ends on the list’s bottom edge').toBeLessThanOrEqual(0.5);
+  const rows = (geometry.bottom - geometry.top) / geometry.rowPx;
+  expect(Math.abs(rows - Math.round(rows)), 'the list is a whole number of rows').toBeLessThanOrEqual(0.02);
+  await expect(more).toHaveText(`+${String(geometry.entries - geometry.shown)} more`);
+  // The line stays inside the box the rail gives the list: the inventory is what the rail leaves, not more.
+  const moreBox = await more.boundingBox();
+  const scrollBox = await page.getByTestId('chart-legend-scroll').boundingBox();
+  if (!moreBox || !scrollBox) throw new Error('the inventory is not laid out');
+  expect(moreBox.y + moreBox.height).toBeLessThanOrEqual(scrollBox.y + scrollBox.height + 0.5);
+  // Each row's times are named for a screen reader: rise, peak, end.
+  await expect(list.getByRole('button').first()).toHaveAccessibleName(/rise \d\d:\d\d:\d\d \S+ peak \d\d:\d\d:\d\d \S+ end \d\d:\d\d:\d\d/);
+});
+
+/**
+ * R85 (FR-COMP-7, F-82): at 360 × 640 in Spanish the top row is `[ ← ]`, the indicator and the place, and the
+ * place — Neuquén's coordinates, the label the home page gives a typed pair — is drawn whole, not ellipsised.
+ */
+test('at 360 px in Spanish the compact top row shows a whole coordinate pair (FR-COMP-7, F-82)', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await homeAt(page, T, 'es');
+  await page.getByTestId('live-link').click();
+  await domeDrawn(page);
+  const back = page.getByTestId('live-top-row').getByRole('button', { name: 'Volver', exact: true });
+  await expect(back).toHaveText('←');
+  const tap = await back.boundingBox();
+  expect(tap?.height, 'the 48 px hit box is unchanged').toBeGreaterThanOrEqual(48);
+  const place = page.getByTestId('live-place');
+  await expect(place).toHaveText(/^−?\d+\.\d\d, −?\d+\.\d\d$/);
+  const fit = await place.evaluate((span) => ({ scroll: span.scrollWidth, client: span.clientWidth }));
+  expect(fit.scroll, `the place is drawn whole (${String(fit.scroll)} of ${String(fit.client)} px)`).toBeLessThanOrEqual(fit.client);
+  const row = await page.getByTestId('live-top-row').boundingBox();
+  expect(row?.height, 'one text row').toBeLessThanOrEqual(24.5);
+});
 
 // R78 (FR-WATCH-9 f): the captures of both states at the two short shapes are `r78-captures.spec.ts`, run with CAPTURES=1.
 

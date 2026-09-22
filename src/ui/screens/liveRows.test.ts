@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { foldRows, LIVE_FOLD_NEEDS, LIVE_FOLD_ORDER } from '../../lib/layout';
-import { LIVE_ROW_TEST_ID, LIVE_ROWS, liveShape, rowsFor, type LiveRow } from './liveRows';
+import { inventoryClip, LIVE_ROW_TEST_ID, LIVE_ROWS, liveShape, rowsFor, type LiveRow } from './liveRows';
 
 const TIMELINE: readonly LiveRow[] = ['time-row', 'stripe', 'steps', 'playback'];
 
@@ -100,5 +100,36 @@ describe('rowsFor (FR-WATCH-4)', () => {
       }
     }
     expect(new Set(Object.values(LIVE_ROW_TEST_ID)).size).toBe(LIVE_ROWS.length);
+  });
+});
+
+/** R85 (F-81, FR-CAP-5, D-549): the short wide inventory ends on a whole entry, with `+n` for the rest. */
+describe('inventoryClip (F-81)', () => {
+  // Three passes (two rows each), then the Sun and the Moon (one each): eight rows in all.
+  const entries = [2, 2, 2, 1, 1];
+
+  it('shows everything, with no line, when the entries fit', () => {
+    expect(inventoryClip(entries, 8)).toEqual({ rows: 8, shown: 5, more: 0 });
+    expect(inventoryClip(entries, 12)).toEqual({ rows: 8, shown: 5, more: 0 });
+  });
+
+  it('keeps a row for the +n line and stops at the last entry that fits whole', () => {
+    // Seven rows: six for the list and one for the line. Three passes are six rows; the Sun and the Moon are left out.
+    expect(inventoryClip(entries, 7)).toEqual({ rows: 6, shown: 3, more: 2 });
+    // Six: five for the list — two passes whole, since the third would end past the fifth row.
+    expect(inventoryClip(entries, 6)).toEqual({ rows: 4, shown: 2, more: 3 });
+  });
+
+  it('never cuts an entry: the rows shown are always a sum of whole entries', () => {
+    for (let budget = 0; budget <= 10; budget += 1) {
+      const clip = inventoryClip(entries, budget);
+      expect(clip.rows).toBe(entries.slice(0, clip.shown).reduce((sum, rows) => sum + rows, 0));
+      expect(clip.shown + clip.more).toBe(entries.length);
+      expect(clip.rows + (clip.more > 0 ? 1 : 0)).toBeLessThanOrEqual(Math.max(budget, 1));
+    }
+  });
+
+  it('an empty sky is its one line', () => {
+    expect(inventoryClip([1], 3)).toEqual({ rows: 1, shown: 1, more: 0 });
   });
 });

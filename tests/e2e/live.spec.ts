@@ -79,7 +79,7 @@ test.describe('the live page', () => {
     // …and the next-event block's `[ Open the live sky ]` (the Now panel's link, FR-FIRST-6) opens it again; the return control closes it.
     await page.getByTestId('now-live-link').click();
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'live');
-    await page.getByRole('button', { name: LABEL.en.back }).click();
+    await page.getByRole('button', { name: LABEL.en.backCompact, exact: true }).click();
     await expect(page.getByTestId('conditions')).toBeVisible();
   });
 
@@ -123,7 +123,7 @@ test.describe('the live page', () => {
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'inert');
     await expect(page.getByTestId('sky-chart')).toHaveCount(0);
     await expect(page.getByTestId('status-strip')).toHaveCount(0);
-    await page.getByRole('button', { name: LABEL.en.back }).click();
+    await page.getByRole('button', { name: LABEL.en.backCompact, exact: true }).click();
     await expect(page.getByRole('banner')).toBeVisible();
 
     // An observer from a link, and CelesTrak down with nothing cached: no elements, so nothing to draw.
@@ -250,10 +250,11 @@ test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async 
   await expect(page.getByTestId('live-link')).toHaveCount(0);
   await domeDrawn(page);
   await stripFilled(page);
-  await expect(page.getByRole('button', { name: LABEL.es.back })).toBeVisible();
+  await expect(page.getByRole('button', { name: LABEL.es.backCompact, exact: true })).toBeVisible();
   await expect(page.getByTestId('status-strip')).toHaveAttribute('aria-label', 'Condiciones del cielo');
   await expect(page.getByTestId('live-sky')).toHaveText(/Cielo (oscuro|crepúsculo|día)/);
-  await expect(page.getByTestId('live-cloud')).toHaveText('Nubes s/d');
+  // R85 (FR-COMP-7): `s/d` is drawn and "sin datos" is what is said.
+  await expect(page.getByTestId('live-cloud')).toHaveText(/^Nubes s\/d\s*sin datos$/);
   await expect(page.getByRole('button', { name: 'Compartir este cielo' })).toBeVisible();
   await page.screenshot({ path: 'docs/screenshots/r32-live-390-dark-es.png' });
 });

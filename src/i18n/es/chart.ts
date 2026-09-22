@@ -20,6 +20,8 @@ export const chart: typeof EnChart = {
       /** FR-LEG-7 (R71): la única línea de una leyenda sin filas — el panel del `[ lista (n) ]` en un cielo vacío. */
       empty: 'nada visible ahora',
       state: { live: 'arriba', ahead: 'pronto', linger: 'pasó' },
+      /** R85 (F-81): "sale" como en la fila de pasos; "termina" y no "se pone", porque una pasada también acaba en la sombra. */
+      times: { rise: 'sale', peak: 'culmina', end: 'termina' },
       sun: (p) => `Sol · az ${p.azimuth} · alt ${p.altitude}`,
       moon: (p) => `${p.glyph} Luna · az ${p.azimuth} · alt ${p.altitude}`,
       moonLit: (p) => `${p.glyph} Luna ${p.phase}, ${p.illumination} % · az ${p.azimuth} · alt ${p.altitude}`,

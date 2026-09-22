@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
 import { useLocale, useT } from '../../../../i18n/useT';
 import { degrees, formatSignedDegrees } from '../../../../lib/format';
 import type { BodyLine, LegendRow } from '../../../../lib/legend';
@@ -78,6 +78,30 @@ function moonLitFacts(line: BodyLine, t: Messages): { phase: string; illuminatio
   return { phase: t.moon.phase[facts.phase], illumination: facts.illumination };
 }
 
+/**
+ * R85 (F-81, FR-CAP-5, D-549): a page that has only so many rows for the list — the short wide live window's
+ * rail — says so here, past the view that renders the legend, as `ChartFrameSlots` does for the frame. Given
+ * one, the list is an inventory: every entry a whole number of text rows (a pass two, the tap target; a body
+ * line one), a header row naming the three times, the list's `max-height` whatever whole entries `clip` says
+ * fit, and a `+n` line under it for the rest. The arithmetic is the page's (`liveRows.ts`, `inventoryClip`).
+ */
+export interface LegendInventory {
+  /**
+   * The entries' heights in text rows, in list order, and the rows the times header takes above them — one
+   * where it is drawn, none where no listed row has times → the rows the list shows and the entries it leaves out.
+   */
+  clip: (entryRows: readonly number[], headerRows: number) => { rows: number; more: number };
+  /** The line under a clipped list: `+2 more`. */
+  moreLabel: (n: number) => string;
+}
+
+export const LegendInventoryContext = createContext<LegendInventory | null>(null);
+
+/** An entry's height in text rows on the inventory: a row button is the tap target, two rows; a line is one. */
+const ENTRY_ROWS = { row: 2, line: 1 } as const;
+
+const TIME_KEYS = ['rise', 'peak', 'end'] as const;
+
 export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow, lead, screen = false, moonPhase = false }: LegendProps) {
   const t = useT();
   const locale = useLocale();
@@ -85,8 +109,29 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
   const clock = (ms: number | null): string => (ms === null ? '' : formatClock(ms, timeZone, locale));
   // The lead's row is the table itself, so it is not repeated as a button below it (FR-LEG-3).
   const listed = lead === undefined ? rows : rows.filter((row) => row.passId !== lead.passId);
-  return (
-    <ol className={[styles.legend, screen ? styles.screen : undefined].filter(Boolean).join(' ')} aria-label={words.label} data-testid="chart-legend" data-lead={lead !== undefined} data-screen={screen}>
+  const inventory = useContext(LegendInventoryContext);
+  const clipped = inventory !== null && !screen && lead === undefined;
+  const entryRows = [...(listed.length === 0 ? [ENTRY_ROWS.line] : listed.map(() => ENTRY_ROWS.row)), ...bodies.map(() => ENTRY_ROWS.line)];
+  // The header row lines its words up over the first timed row's three clock strings, so with no timed row
+  // there is no header and the budget keeps that row for the list.
+  const timed = listed.find((row) => row.riseMs !== null);
+  const clip = clipped ? inventory.clip(entryRows, timed === undefined ? 0 : 1) : null;
+  // R85 (F-81): each time says what it is to a screen reader — `rise 09:48:24 UTC` — wherever the legend is drawn.
+  const time = (key: (typeof TIME_KEYS)[number], ms: number | null): ReactNode => (
+    <span className={styles.time}>
+      <span className="sr-only">{`${words.times[key]} `}</span>
+      {clock(ms)}
+    </span>
+  );
+  const list = (
+    <ol
+      className={[styles.legend, screen ? styles.screen : undefined, clip !== null ? styles.clipped : undefined].filter(Boolean).join(' ')}
+      aria-label={words.label}
+      data-testid="chart-legend"
+      data-lead={lead !== undefined}
+      data-screen={screen}
+      {...(clip === null ? {} : { 'data-clip-rows': clip.rows, style: { ['--inventory-rows' as string]: String(clip.rows) } as CSSProperties })}
+    >
       {lead !== undefined && (
         <li className={[styles.item, styles.lead].join(' ')} data-testid="legend-lead" data-pass-id={lead.passId}>
           {lead.node}
@@ -122,9 +167,9 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
             <span className={styles.name}>{row.name}</span>
             {row.riseMs !== null && (
               <span className={styles.times}>
-                <span className={styles.time}>{clock(row.riseMs)}</span>
-                {lead === undefined && !screen && <span className={styles.time}>{clock(row.peakMs)}</span>}
-                <span className={styles.time}>{clock(row.endMs)}</span>
+                {time('rise', row.riseMs)}
+                {lead === undefined && !screen && time('peak', row.peakMs)}
+                {time('end', row.endMs)}
                 {(row.state === 'live' || row.state === 'ahead' || row.state === 'linger') && <span className={styles.state}>{words.state[row.state]}</span>}
               </span>
             )}
@@ -144,5 +189,26 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
         </li>
       ))}
     </ol>
+  );
+  if (clip === null) return list;
+  // Each of the header's words is as wide as the clock string it stands over.
+  return (
+    <div className={styles.inventory} data-testid="legend-inventory">
+      {timed !== undefined && (
+        <p className={styles.timesHeader} aria-hidden="true" data-testid="legend-times-header">
+          {TIME_KEYS.map((key) => (
+            <span key={key} className={styles.timeLabel} style={{ minWidth: `${String(clock(key === 'rise' ? timed.riseMs : key === 'peak' ? timed.peakMs : timed.endMs).length)}ch` }}>
+              {words.times[key]}
+            </span>
+          ))}
+        </p>
+      )}
+      {list}
+      {clip.more > 0 && (
+        <p className={styles.more} data-testid="legend-more">
+          {inventory?.moreLabel(clip.more)}
+        </p>
+      )}
+    </div>
   );
 }

@@ -30,6 +30,12 @@ export const live = {
     /** The Now panel's link to the same page. */
     openFromNow: 'Watch the sky live',
     back: '← Back',
+    /**
+     * R85 (FR-COMP-7, D-549): on compact the return control draws the arrow alone, `[ ← ]`, and says the word —
+     * the place has the width the word took. `backName` is its accessible name there.
+     */
+    backShort: '←',
+    backName: 'Back',
     loading: 'Loading the live sky…',
     /** FR-LIVE-1's two inert states: one line each, beside the return control. */
     noObserver: 'The live sky needs somewhere to look from: a place name or coordinates on the home page.',
@@ -53,6 +59,8 @@ export const live = {
     skyShort: { day: 'day', 'bright-twilight': 'twilight', dark: 'dark' } satisfies Record<SkyState, string>,
     /** R77 (FR-WATCH-3): the compact line's cloud verdict, one word each; `unknown` without a forecast (FR-WX-5). */
     cloudWord: { clear: 'clear', partly: 'partly', obscured: 'cloudy', unknown: 'unknown' } satisfies Record<CloudState, string>,
+    /** R85 (FR-COMP-7): what a screen reader says for the cloud word, where the word is an abbreviation (Spanish `s/d`); the same word here. */
+    cloudSpoken: { clear: 'clear', partly: 'partly', obscured: 'cloudy', unknown: 'unknown' } satisfies Record<CloudState, string>,
     /** R77 (FR-WATCH-3): the compact line's count, `3 up`. */
     upCount: (count: number) => `${String(count)} up`,
     /** A field whose value is not known yet — the astronomy is still loading. */
@@ -68,6 +76,11 @@ export const live = {
     scrub: 'scrub',
     scrubWide: 'scrub the night',
     backToLive: 'back to live',
+    /**
+     * R85 (FR-COMP-7, D-549): the same action on the compact actions row, whose Share has its brackets back —
+     * `[ live ] [ ] Hidden [ Share ]`, 29 cells. `backToLive` stays its accessible name, which contains the word.
+     */
+    backToLiveShort: 'live',
     /** R77 (FR-WATCH-2, FR-TRAJ-4): the held instant's offset from real time — `+33 min`, `−1 h 05 min`. */
     heldOffset: (p: { sign: '+' | '−'; hours: number; minutes: number }) =>
       p.hours === 0 ? `${p.sign}${String(p.minutes)} min` : `${p.sign}${String(p.hours)} h ${String(p.minutes).padStart(2, '0')} min`,
@@ -105,6 +118,11 @@ export const live = {
      * accessible name; `aria-expanded` carries the state.
      */
     list: (p: { count: number }) => `list (${String(p.count)})`,
+    /**
+     * R85 (F-81, FR-CAP-5, D-549): the short wide window's inventory ends on a whole row, and this line under it
+     * says how many entries the clip leaves out; the list still scrolls to them.
+     */
+    more: (n: number) => `+${String(n)} more`,
     /*
      * R66 (V13-6): `follow`, `followShort`, `followRelative`, `followDenied`
      * and `followClose` are gone with the `[ follow phone ]` control. The two
