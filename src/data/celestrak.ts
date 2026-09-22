@@ -29,11 +29,17 @@ export const ommRecordSchema = z.object({
 });
 
 export class CelestrakError extends Error {
+  /** R86 (D-540): what `toFailure` reads to tell a rate limit, a server error and a body that was not the data apart. */
+  readonly status: number | undefined;
+  readonly badData: boolean;
   constructor(
     message: string,
     readonly group: ElementGroup,
+    { status, badData = false }: { status?: number; badData?: boolean } = {},
   ) {
     super(message);
+    this.status = status;
+    this.badData = badData;
     this.name = 'CelestrakError';
   }
 }
@@ -55,7 +61,7 @@ export interface FetchGroupOptions {
 
 /** Validate a parsed body: keep the records that match the schema, report the rest. */
 export function parseGroupBody(body: unknown, group: ElementGroup, warn: (message: string) => void): OmmRecord[] {
-  if (!Array.isArray(body)) throw new CelestrakError(`CelesTrak ${group}: response is not a JSON array`, group);
+  if (!Array.isArray(body)) throw new CelestrakError(`CelesTrak ${group}: response is not a JSON array`, group, { badData: true });
   const records: OmmRecord[] = [];
   let dropped = 0;
   body.forEach((item: unknown, index) => {
@@ -76,12 +82,12 @@ export async function fetchGroup(group: ElementGroup, options: FetchGroupOptions
   const warn = options.warn ?? ((m: string) => console.warn(m));
   const init: RequestInit = options.signal ? { signal: options.signal } : {};
   const response = await doFetch(groupUrl(group), init);
-  if (!response.ok) throw new CelestrakError(`CelesTrak ${group}: HTTP ${String(response.status)}`, group);
+  if (!response.ok) throw new CelestrakError(`CelesTrak ${group}: HTTP ${String(response.status)}`, group, { status: response.status });
   let body: unknown;
   try {
     body = await response.json();
   } catch {
-    throw new CelestrakError(`CelesTrak ${group}: response is not JSON`, group);
+    throw new CelestrakError(`CelesTrak ${group}: response is not JSON`, group, { status: response.status, badData: true });
   }
   return parseGroupBody(body, group, warn);
 }

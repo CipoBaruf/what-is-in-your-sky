@@ -16,8 +16,13 @@ export const HOURLY_VARIABLES = ['cloud_cover', 'cloud_cover_low', 'cloud_cover_
 export const FORECAST_DAYS = 4;
 
 export class OpenMeteoError extends Error {
-  constructor(message: string) {
+  /** R86 (D-540): what `toFailure` reads to tell a rate limit, a server error and a body that was not the data apart. */
+  readonly status: number | undefined;
+  readonly badData: boolean;
+  constructor(message: string, { status, badData = false }: { status?: number; badData?: boolean } = {}) {
     super(message);
+    this.status = status;
+    this.badData = badData;
     this.name = 'OpenMeteoError';
   }
 }
@@ -46,7 +51,7 @@ export interface FetchForecastOptions {
 export function parseForecastBody(body: unknown, lat: number, lon: number, cellKey: string, fetchedAt: EpochMs): WeatherSnapshot {
   const result = forecastResponseSchema.safeParse(body);
   if (!result.success) {
-    throw new OpenMeteoError(`Open-Meteo forecast: unexpected response: ${result.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}`);
+    throw new OpenMeteoError(`Open-Meteo forecast: unexpected response: ${result.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}`, { badData: true });
   }
   const { hourly, timezone } = result.data;
   const samples: HourlyCloud[] = [];
@@ -78,11 +83,11 @@ export async function fetchCloudForecast(lat: number, lon: number, cellKey: stri
     body = await response.json();
   } catch {
     // Seen live on 2026-09-02: HTTP 200 with a plain-text body ("Unexpected error while streaming data: allEndpointsUnavailable").
-    throw new OpenMeteoError(`Open-Meteo forecast: HTTP ${String(response.status)}, response is not JSON`);
+    throw new OpenMeteoError(`Open-Meteo forecast: HTTP ${String(response.status)}, response is not JSON`, { status: response.status, badData: true });
   }
   // The provider's own error body, whatever the status ("The service is overloaded" was seen live with the outage above).
   const error = openMeteoErrorSchema.safeParse(body);
-  if (error.success) throw new OpenMeteoError(`Open-Meteo forecast: HTTP ${String(response.status)}: ${error.data.reason}`);
-  if (!response.ok) throw new OpenMeteoError(`Open-Meteo forecast: HTTP ${String(response.status)}`);
+  if (error.success) throw new OpenMeteoError(`Open-Meteo forecast: HTTP ${String(response.status)}: ${error.data.reason}`, { status: response.status, badData: true });
+  if (!response.ok) throw new OpenMeteoError(`Open-Meteo forecast: HTTP ${String(response.status)}`, { status: response.status });
   return parseForecastBody(body, lat, lon, cellKey, now());
 }
