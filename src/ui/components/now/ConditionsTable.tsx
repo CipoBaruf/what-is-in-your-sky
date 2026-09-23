@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Messages } from '../../../i18n/messages';
 import { useLocale, useT } from '../../../i18n/useT';
 import { cloudVerdict } from '../../../lib/cloudVerdict';
@@ -7,7 +8,8 @@ import type { SkyBand } from '../../../lib/timeStripe';
 import { formatShortClock } from '../../../lib/timeFormat';
 import { tonightsDark } from '../../../lib/tonightStripe';
 import type { EpochMs, Locale, NowItem, Observer } from '../../../model';
-import { useAppStore } from '../../../state';
+import { useAppStore, type WeatherSliceState } from '../../../state';
+import { FailureLine } from '../common/FailureLine';
 import { CloudBadge } from '../weather/CloudBadge';
 import styles from './ConditionsTable.module.css';
 
@@ -72,7 +74,12 @@ export function ConditionsTable({ observer, bands, sampledFrom, now }: Condition
   const nowSlice = useAppStore((s) => s.now);
   const weather = useAppStore((s) => s.weather);
   const state = nowSlice.observer === observer ? nowSlice.state : null;
+  const retryWeather = useAppStore((s) => s.retryWeather);
+  // R91: the slice a retry was pressed on. A refresh over a kept snapshot leaves `error` set until the answer
+  // (FR-FAIL-3), so the line hides itself for as long as the slice is that same object — any change ends it.
+  const [retried, setRetried] = useState<WeatherSliceState | null>(null);
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
+  const failure = weather.observer === observer && weather.status !== 'loading' && retried !== weather ? weather.error : null;
   const visible = state ? visibleNow(state.items) : [];
   const moon = state ? moonFacts(state.moon) : null;
   return (
@@ -95,6 +102,21 @@ export function ConditionsTable({ observer, bands, sampledFrom, now }: Condition
             moment={t.weather.momentNow}
           />
         </dd>
+        {/* R91 (FR-FAIL-1, US-33 AC1): a failed forecast is the failure line, under the row it would have filled. */}
+        {failure && (
+          <dd className={styles.failure} data-testid="clouds-failure">
+            <FailureLine
+              failure={failure}
+              what={t.failure.what.forecast}
+              instead={snapshot ? t.failure.instead.lastForecast : t.failure.instead.noForecast}
+              site="forecast"
+              onRetry={() => {
+                setRetried(weather);
+                retryWeather();
+              }}
+            />
+          </dd>
+        )}
       </div>
       {moon && (
         <div className={styles.row} data-row="moon">

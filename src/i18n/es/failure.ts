@@ -18,6 +18,19 @@ export const failure: typeof EnFailure = {
     detailLabel: 'Qué falló, tal como se informó',
     what: {
       elements: 'cargar los elementos orbitales',
+      forecast: 'cargar el pronóstico de nubes',
+      search: 'buscar lugares',
+      passes: 'calcular los pases',
     },
+    instead: {
+      storedList: 'La lista de abajo es la última que se calculó.',
+      lastForecast: 'Las nubes que se muestran son del último pronóstico.',
+      noForecast: 'La nubosidad figura como desconocida.',
+    },
+  },
+  boundary: {
+    sentence: 'Algo se rompió en esta página.',
+    reload: 'recargar',
+    details: 'detalles',
   },
 };

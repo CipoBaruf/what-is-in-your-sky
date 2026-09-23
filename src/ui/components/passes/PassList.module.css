@@ -36,6 +36,14 @@
   color: var(--fg-dim);
 }
 
+/* R91 (FR-FAIL-1): the failure line in the status line's place takes the whole row, the sort wrapping under
+   it when a stored list stands below; the row's clipped left margin is kept like the status's. */
+.failure {
+  flex: 1 1 100%;
+  margin: 0 0 0 3ch;
+  min-width: 0;
+}
+
 .sortSide {
   display: flex;
   align-items: baseline;

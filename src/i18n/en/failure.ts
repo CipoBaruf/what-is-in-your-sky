@@ -23,6 +23,30 @@ export const failure = {
     detailLabel: 'What went wrong, as reported',
     what: {
       elements: 'load the orbital elements',
+      /** R91: the forecast's cloud row. */
+      forecast: 'load the cloud forecast',
+      /** R91: the place search. */
+      search: 'search for places',
+      /** R91: the pass computation, where "Computing…" was (FR-FAIL-4). */
+      passes: 'compute the passes',
+    },
+    /** R91: what the page is using instead, the line's second sentence, where it is using anything. */
+    instead: {
+      /** A stored or earlier run is still the list on screen. */
+      storedList: 'The list below is the last one computed.',
+      /** A refresh failed and the snapshot on screen stays (FR-FAIL-3). */
+      lastForecast: 'The clouds shown are from the last forecast.',
+      /** No snapshot at all: every verdict reads unknown (US-7 AC4). */
+      noForecast: 'Cloud cover reads as unknown.',
     },
   } satisfies Record<FailureKind, (what: string) => string> & Record<string, unknown>,
+  /**
+   * R91 (FR-FAIL-5, D-544): the root boundary's words beside the header's title (`app.title`). `RootBoundary`
+   * imports both catalogs directly, since a render error may have taken the provider with it.
+   */
+  boundary: {
+    sentence: 'Something broke on this page.',
+    reload: 'reload',
+    details: 'details',
+  },
 };

@@ -25,3 +25,14 @@
   text-align: right;
   overflow-wrap: anywhere;
 }
+
+/* R91 (FR-FAIL-1): a failed forecast's line takes a row of its own under the label and the value, read from
+   the left like every other failure line. */
+.row:has(.failure) {
+  flex-wrap: wrap;
+}
+
+.row dd.failure {
+  flex: 1 1 100%;
+  text-align: left;
+}

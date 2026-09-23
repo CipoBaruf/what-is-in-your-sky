@@ -144,6 +144,8 @@ export const ui = {
      * `location.clearSaved` stays its accessible name; this is only what fits the row.
      */
     clearSaved: 'Clear saved',
+    /** R91 (FR-SET-1 as amended v2.1, F-83): the Install row's label, so the row reads `App [ Install ]` rather than the action twice. */
+    installLabel: 'App',
     /** R75 (FR-SET-1): the page's foot, which takes the place of the saved-here sentence and of the footer. */
     privacy: 'No tracking. Your location is saved in this browser only.',
   },
@@ -157,7 +159,8 @@ export const ui = {
     placeList: 'Matching places',
     searching: (query: string) => `Searching for “${query}”…`,
     noMatch: (query: string): LinkedText => ({ before: `No place matches “${query}”. Try another spelling, or `, link: coordsInstead, after: '.' }),
-    searchFailed: (message: string): LinkedText => ({ before: `Could not search for places (${message}). Try again, or `, link: coordsInstead, after: '.' }),
+    /** R91 (FR-FAIL-1): what the search's failure line offers instead; the sentence before it is `failure.*`, and the raw message is its detail. */
+    searchFailed: { before: 'Meanwhile you can ', link: coordsInstead, after: '.' } satisfies LinkedText,
     /**
      * FR-OFF-8: place search is the one input that cannot fail soft, because it
      * needs a provider. With no connection it is not attempted at all, and the
@@ -390,12 +393,9 @@ export const ui = {
     heading: 'Upcoming passes',
     noObserver: 'Enter a place name or coordinates to see the visible passes.',
     loadingElements: 'Loading orbital elements from CelesTrak…',
-    elementsError: (message: string) => `Could not load orbital elements: ${message}`,
     noElements: 'No catalog objects have orbital elements right now.',
     computing: 'Computing passes…',
     computingProgress: (p: { done: number; total: number; found: number }) => `Computing passes… ${String(p.done)} of ${String(p.total)}, ${String(p.found)} visible so far`, // the count is (night, object) pairs from R18 on, so it names no unit
-    passesError: (message: string) => `Could not compute passes: ${message}`,
-    unknownError: 'unknown error',
     noDarkness: (p: { hours: number; place: string }) => `No darkness tonight at this latitude: the sun never gets low enough in the next ${String(p.hours)} h from ${p.place}.`,
     none: (p: { hours: number; place: string }) => `No visible passes in the next ${String(p.hours)} h from ${p.place}.`,
     /** FR-FIRST-10 (R81, D-510): the count, which shares its line with the sort. */
