@@ -1273,6 +1273,40 @@ describe('R86: failures, retries, the forecast refresh and the stale recompute (
       expect(store.getState().observer?.timeZone).toBe('America/Argentina/Salta');
     });
 
+    it('a wake that also recomputes the run still writes the forecast it asked for — failing on the first cut of R86', async () => {
+      start({ observer: neuquen });
+      finish(await jobOut());
+      await vi.waitFor(() => expect(weatherRequests).toHaveLength(1));
+      weatherRequests[0]?.resolve(snapshotFor(neuquen.lat, neuquen.lon));
+      await vi.waitFor(() => expect(store.getState().weather.status).toBe('ready'));
+
+      // A night away: the snapshot is over an hour old and the window start over 2 h behind, so the wake both
+      // refreshes the forecast and starts a new chain. The forecast belongs to the place, not to the chain.
+      await wakeAfter(3 * HOUR);
+      expect(weatherRequests).toHaveLength(2);
+      await vi.waitFor(() => expect(sent('computePasses')).toHaveLength(2));
+      weatherRequests[1]?.resolve({ ...snapshotFor(neuquen.lat, neuquen.lon), fetchedAt: clock });
+      await vi.waitFor(() => expect(store.getState().weather.snapshot?.fetchedAt).toBe(clock));
+      expect(store.getState().weather.status).toBe('ready');
+    });
+
+    it('a refresh that fails beside a recompute is asked for again on the next re-check, not left loading — failing on the first cut of R86', async () => {
+      start({ observer: neuquen });
+      finish(await jobOut());
+      await vi.waitFor(() => expect(weatherRequests).toHaveLength(1));
+      weatherRequests[0]?.resolve(snapshotFor(neuquen.lat, neuquen.lon));
+      await vi.waitFor(() => expect(store.getState().weather.status).toBe('ready'));
+
+      await wakeAfter(3 * HOUR);
+      expect(weatherRequests).toHaveLength(2);
+      weatherRequests[1]?.reject(Object.assign(new Error('Open-Meteo forecast: HTTP 503'), { status: 503 }));
+      await vi.waitFor(() => expect(store.getState().weather.error).toEqual({ kind: 'server', detail: 'Open-Meteo forecast: HTTP 503' }));
+
+      clock += ELEMENTS_RECHECK_MS;
+      await vi.advanceTimersByTimeAsync(ELEMENTS_RECHECK_MS);
+      await vi.waitFor(() => expect(weatherRequests).toHaveLength(3));
+    });
+
     it('the re-check leaves a forecast that answered alone', async () => {
       start({ observer: neuquen });
       finish(await jobOut());
@@ -1406,6 +1440,36 @@ describe('R86: failures, retries, the forecast refresh and the stale recompute (
       store.getState().retryWeather();
       expect(weatherRequests).toHaveLength(2);
       expect(store.getState().weather.status).toBe('loading');
+    });
+
+    it('a worker that dies while it is being sent the elements reads as an elements failure, and the next worker clears it — failing on the first cut of R86', async () => {
+      start({ observer: neuquen });
+      await vi.waitFor(() => expect(sent('loadElements')).toHaveLength(1));
+      spawned[0]?.fail('error', 'boom'); // it never answers the elements it was sent
+      await vi.waitFor(() => expect(store.getState().elements).toMatchObject({ status: 'error', failure: { kind: 'unknown' } }));
+
+      store.getState().retryPasses();
+      await vi.waitFor(() => expect(spawned).toHaveLength(2));
+      await jobOut();
+      expect(store.getState().elements.status).toBe('ready');
+      expect(store.getState().passes.status).toBe('computing');
+    });
+
+    it('a worker that dies between jobs is given the elements again by the Now tick — failing on the first cut of R86', async () => {
+      start({ observer: neuquen });
+      finish(await jobOut()); // nothing running, so a death fails no job
+      await vi.waitFor(() => expect(sent('computeNow')).toHaveLength(1));
+      spawned[0]?.fail('error', 'boom');
+      expect(store.getState().passes.status).toBe('done'); // no job to fail
+
+      // The next tick asks a worker that was never given the elements; its answer is what tells us to send them.
+      clock += NOW_TICK_MS;
+      await vi.advanceTimersByTimeAsync(NOW_TICK_MS);
+      await vi.waitFor(() => expect(spawned).toHaveLength(2));
+      worker().emit({ type: 'error', ref: { requestId: sent('computeNow').at(-1)?.requestId ?? '' }, code: 'NO_ELEMENTS', message: 'no elements loaded' });
+      await vi.waitFor(() => expect(sent('loadElements')).toHaveLength(1));
+      await jobOut();
+      expect(store.getState().passes.status).toBe('computing');
     });
 
     it('stop() puts the no-op actions back', async () => {

@@ -168,6 +168,9 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
       loadedGeneration = client.generation();
       const loading: Promise<void> = client.loadElements(records).then(
         ({ rejected }) => {
+          // A worker that died while it was being sent the elements left the slice reading as failed (D-543).
+          // The set itself is in hand, so the new worker's answer puts it back before the rejected list is written.
+          if (current && store.getState().elements.status === 'error') publish(current, []);
           store.getState().setRejected(rejected);
         },
         (error: unknown) => {
@@ -200,7 +203,11 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
       },
       (error: unknown) => {
         const current = lookingFrom();
-        if (fresh() && current) store.getState().setNowError(current, message(error));
+        if (!fresh() || !current) return;
+        store.getState().setNowError(current, message(error));
+        // D-543: the worker died between jobs, so no job's `onFailure` ran and the tick is still going. The
+        // replacement holds no elements, so send them again; otherwise every tick from here answers NO_ELEMENTS.
+        if (loadedGeneration !== client.generation()) void computeFor(current, now(), nextGeneration());
       },
     );
   };
@@ -218,21 +225,20 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
     tickTimer = setInterval(requestNow, NOW_TICK_MS);
   };
 
-  /** The guard for work started outside an observer change (a retry, a refresh): still the same chain, effects still running. */
-  const sameChain = (): (() => boolean) => {
-    const mine = generation;
-    return () => mine !== generation || controller.signal.aborted;
-  };
-
   // --- Weather ------------------------------------------------------------------
   let weatherSeq = 0;
   /**
    * Asks for the forecast of `observer`; only the latest request's answer is written. A refresh of the place on screen
    * keeps its snapshot until this answers (FR-FAIL-3), and a zone still unknown is filled from whichever attempt succeeds.
+   *
+   * A forecast is superseded by a newer forecast request or by a move to another place, never by the pass chain's
+   * generation: the wake refresh is followed by `recomputeIfStale()` and the re-check's retry by `refreshElements()`,
+   * either of which starts a new chain. Guarding on the chain dropped those answers and left the slice loading for
+   * good, which `retryFailedWeather` then skips (FR-FAIL-3).
    */
-  const requestWeather = (observer: Observer, stale: () => boolean): void => {
+  const requestWeather = (observer: Observer): void => {
     const mine = ++weatherSeq;
-    const superseded = (): boolean => mine !== weatherSeq || stale();
+    const superseded = (): boolean => mine !== weatherSeq || controller.signal.aborted || !sameLocation(lookingFrom(), observer);
     store.getState().startWeather(observer);
     loadWeather(observer.lat, observer.lon, { persist: !visiting() }).then(
       (snapshot) => {
@@ -254,14 +260,14 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
     const observer = lookingFrom();
     const { weather } = store.getState();
     if (!observer || weather.snapshot === null || !sameLocation(weather.observer, observer)) return;
-    if (now() - weather.snapshot.fetchedAt > WEATHER_MAX_AGE_MS) requestWeather(observer, sameChain());
+    if (now() - weather.snapshot.fetchedAt > WEATHER_MAX_AGE_MS) requestWeather(observer);
   };
 
   /** D-542: the re-check runs and the last forecast attempt failed. */
   const retryFailedWeather = (): void => {
     const observer = lookingFrom();
     const { weather } = store.getState();
-    if (observer && weather.error !== null && weather.status !== 'loading') requestWeather(observer, sameChain());
+    if (observer && weather.error !== null && weather.status !== 'loading') requestWeather(observer);
   };
 
   // --- Stored passes (R24) --------------------------------------------------------
@@ -364,7 +370,7 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
     // is stored for this location is on screen, so a cold start with no network shows the last three nights.
     await showStoredRun(observer, stale);
     if (stale()) return;
-    requestWeather(observer, stale);
+    requestWeather(observer);
     await computeFor(observer, nowMs, stale);
   };
 
@@ -465,7 +471,7 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
     },
     retryWeather: () => {
       const observer = lookingFrom();
-      if (observer && !controller.signal.aborted) requestWeather(observer, sameChain());
+      if (observer && !controller.signal.aborted) requestWeather(observer);
     },
     // D-543: a worker that died or stalled has been dropped by the client; this job's first message spawns the new one.
     retryPasses: () => {
