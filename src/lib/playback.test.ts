@@ -4,7 +4,7 @@
  * budgets are one rule.
  */
 import { describe, expect, it } from 'vitest';
-import { advance, BODIES_EVERY_MS, DEFAULT_SPEED, due, heldOffset, HIDDEN_EVERY_MS, isSpeed, SPEEDS } from './playback';
+import { advance, BODIES_EVERY_MS, DEFAULT_SPEED, due, heldOffset, HIDDEN_EVERY_MS, isSpeed, linkInstant, SPEEDS } from './playback';
 
 const T = Date.UTC(2026, 8, 11, 9, 30, 0);
 const END = T + 24 * 3_600_000;
@@ -63,5 +63,21 @@ describe('heldOffset (R77, FR-WATCH-2)', () => {
     expect(heldOffset(T, T)).toEqual({ sign: '+', hours: 0, minutes: 0 });
     expect(heldOffset(T - 20_000, T)).toEqual({ sign: '+', hours: 0, minutes: 0 });
     expect(heldOffset(T + 31_000, T)).toEqual({ sign: '+', hours: 0, minutes: 1 });
+  });
+});
+
+describe('linkInstant (R89, FR-VISIT-3)', () => {
+  const NOW = Date.UTC(2026, 8, 20, 21, 0);
+  const SPAN = 24 * 3_600_000;
+
+  it('opens a bare route and a passed moment at real time', () => {
+    expect(linkInstant(null, NOW, SPAN)).toBeNull();
+    expect(linkInstant(NOW - 60_000, NOW, SPAN)).toBeNull();
+  });
+
+  it('holds a moment inside the span as the link says, and one beyond it at the end of the span', () => {
+    expect(linkInstant(NOW, NOW, SPAN)).toBe(NOW);
+    expect(linkInstant(NOW + 3_600_000, NOW, SPAN)).toBe(NOW + 3_600_000);
+    expect(linkInstant(NOW + 30 * 3_600_000, NOW, SPAN)).toBe(NOW + SPAN);
   });
 });

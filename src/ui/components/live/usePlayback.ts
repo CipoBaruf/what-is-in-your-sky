@@ -68,6 +68,26 @@ export function usePlayback({ span, realNow, initial, raf = windowRaf }: Playbac
   }, []);
   const spanEnd = span.end;
 
+  /*
+   * R89 (FR-VISIT-3): a held instant that real time overtakes releases to watching. "Overtakes" is read as
+   * passing an instant that was *ahead* of real time when it was set — a link's moment, a scrub into the coming
+   * hours — so `[ scrub ]`, which holds the instant real time is showing (FR-WATCH-1 a), is not released by the
+   * next tick. Not while playing: playback moves the instant itself and stops at the span's end.
+   */
+  const realNowRef = useRef(realNow);
+  useEffect(() => {
+    realNowRef.current = realNow;
+  }, [realNow]);
+  const aheadRef = useRef(initial !== null && initial > realNow);
+  useEffect(() => {
+    aheadRef.current = held !== null && held > realNowRef.current;
+  }, [held]);
+  useEffect(() => {
+    if (playing || held === null || !aheadRef.current || realNow < held) return;
+    setPlaying(false);
+    setHeld(null);
+  }, [realNow, held, playing, setHeld]);
+
   useEffect(() => {
     if (!playing) return;
     let last: number | null = null;

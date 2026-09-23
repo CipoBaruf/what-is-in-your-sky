@@ -68,3 +68,15 @@ export function heldOffset(t: EpochMs, now: EpochMs): HeldOffset {
   const magnitude = Math.abs(total);
   return { sign: total < 0 ? '−' : '+', hours: Math.floor(magnitude / 60), minutes: magnitude % 60 };
 }
+
+/**
+ * R89 (FR-VISIT-3): the instant a live link opens on. A `t` behind the clock
+ * is a moment that has passed, so the page opens at real time — watching, not
+ * held — and says so (`null`); a `t` beyond the stripe's span is held at the
+ * span's end, the latest the page can show; anything between is held as the
+ * link says. The note is `openLink()`'s; this is only where the page stands.
+ */
+export function linkInstant(t: EpochMs | null, now: EpochMs, spanMs: number): EpochMs | null {
+  if (t === null || t < now) return null;
+  return Math.min(t, now + spanMs);
+}
