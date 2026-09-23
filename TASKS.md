@@ -2224,7 +2224,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: aeroplane mode on a phone with the live page open, then `[ retry ]`.
 
-- [ ] **R98 — `showFaint` in the prefs schema and store**
+- [x] **R98 — `showFaint` in the prefs schema and store** *(done as written; only `true` is read back from storage, D-632; `localPrefs.test.ts` covers the schema beside `prefs.test.ts`)*
   - **Lane:** data
   - **Model:** fable
   - **Gate:** auto
