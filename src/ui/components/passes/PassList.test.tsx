@@ -1,11 +1,12 @@
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenWindowStart, loadReferenceValues } from '../../../../tests/support/catalogFixtures';
 import { MOON_FIXTURE, NO_MOON_AT_PEAK } from '../../../../tests/support/moonFixtures';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
+import { I18nProvider } from '../../../i18n/useT';
 import { compassPoint } from '../../../lib/compass';
 import type { NowState, Observer, Pass, WeatherSnapshot } from '../../../model';
 import { appStore, type AppState, type ElementsState } from '../../../state';
@@ -94,7 +95,8 @@ describe('<PassList>', () => {
     render(<PassList />);
     expect(screen.getByRole('status')).toHaveTextContent('Loading orbital elements');
     set({ elements: { status: 'error', failure: { kind: 'server', detail: 'HTTP 503' } } });
-    expect(screen.getByRole('status')).toHaveTextContent('Could not load orbital elements: HTTP 503');
+    expect(screen.getByTestId('failure-sentence')).toHaveTextContent('Could not load the orbital elements: the service is having trouble.');
+    expect(screen.getByTestId('failure-detail')).toHaveTextContent('HTTP 503');
   });
 
   it('renders cards as passes stream in, chronologically, with progress in the status line; the next featured pass is tagged in its place (R12, FR-FIRST-10)', () => {
@@ -209,7 +211,104 @@ describe('<PassList>', () => {
     expect(screen.getByRole('status')).toHaveTextContent('No darkness tonight at this latitude');
 
     set({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'error', observer, error: { kind: 'unknown', detail: 'INTERNAL: boom' } } });
-    expect(screen.getByRole('status')).toHaveTextContent('Could not compute passes: INTERNAL: boom');
+    expect(screen.getByTestId('failure-sentence')).toHaveTextContent(/^Could not compute the passes\.$/);
+    expect(screen.getByTestId('failure-detail')).toHaveTextContent('INTERNAL: boom');
+  });
+
+  /**
+   * R91 (FR-FAIL-1, FR-FAIL-2, FR-FAIL-4, US-33 AC1 and AC3): the list's two failure sites — the elements load
+   * and the pass job, a stalled or dead worker included — are the failure line in the status line's place. Each
+   * kind's sentence, in both languages, carries no status code or exception name; `[ retry ]` calls the slice's
+   * own action, and the progress line takes the failure's place once the slice is loading again.
+   */
+  describe('the failure line (R91)', () => {
+    const KINDS = ['offline', 'rate-limited', 'server', 'bad-data', 'timeout', 'unknown'] as const;
+    const INTERNALS = /HTTP|\d{3}|Error:/;
+
+    for (const locale of ['en', 'es'] as const) {
+      for (const kind of KINDS) {
+        it(`elements and passes, ${kind}, ${locale}: no internals in the sentence, the detail behind [ details ]`, async () => {
+          const user = userEvent.setup();
+          set({ observer, nowMs: NOW, elements: { status: 'error', failure: { kind, detail: 'TypeError: HTTP 503 Service Unavailable' } } });
+          const { unmount } = render(
+            <I18nProvider locale={locale}>
+              <PassList />
+            </I18nProvider>,
+          );
+          const t = locale === 'en' ? en : es;
+          expect(screen.getByTestId('failure-line')).toHaveAttribute('data-site', 'elements');
+          expect(screen.getByTestId('failure-sentence').textContent).toBe(t.failure[kind](t.failure.what.elements));
+          expect(screen.getByTestId('failure-sentence').textContent).not.toMatch(INTERNALS);
+          expect(screen.getByTestId('failure-detail')).not.toBeVisible();
+          await user.click(screen.getByTestId('failure-details'));
+          expect(screen.getByTestId('failure-detail')).toBeVisible();
+          expect(screen.getByTestId('failure-detail')).toHaveTextContent('TypeError: HTTP 503 Service Unavailable');
+
+          set({ elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'error', observer, error: { kind, detail: 'INTERNAL: worker 500' } } });
+          expect(screen.getByTestId('failure-line')).toHaveAttribute('data-site', 'passes');
+          expect(screen.getByTestId('failure-sentence').textContent).toBe(t.failure[kind](t.failure.what.passes));
+          expect(screen.getByTestId('failure-sentence').textContent).not.toMatch(INTERNALS);
+          unmount();
+        });
+      }
+    }
+
+    it('a language switch re-renders the sentence from the stored kind (F-96)', () => {
+      set({ observer, nowMs: NOW, elements: { status: 'error', failure: { kind: 'offline', detail: 'TypeError: Failed to fetch' } } });
+      const { rerender } = render(
+        <I18nProvider locale="en">
+          <PassList />
+        </I18nProvider>,
+      );
+      expect(screen.getByTestId('failure-sentence')).toHaveTextContent(en.failure.offline(en.failure.what.elements));
+      rerender(
+        <I18nProvider locale="es">
+          <PassList />
+        </I18nProvider>,
+      );
+      expect(screen.getByTestId('failure-sentence')).toHaveTextContent(es.failure.offline(es.failure.what.elements));
+    });
+
+    it('[ retry ] on the elements calls retryElements and shows the loading line', async () => {
+      const user = userEvent.setup();
+      const retryElements = vi.fn(() => {
+        appStore.setState({ elements: { status: 'loading' } });
+      });
+      set({ observer, nowMs: NOW, elements: { status: 'error', failure: { kind: 'server', detail: 'HTTP 503' } }, retryElements });
+      render(<PassList />);
+      await user.click(screen.getByTestId('failure-retry'));
+      expect(retryElements).toHaveBeenCalledTimes(1);
+      expect(screen.queryByTestId('failure-line')).toBeNull();
+      expect(screen.getByRole('status')).toHaveTextContent('Loading orbital elements');
+    });
+
+    it('a stalled job is the line in place of "Computing…"; [ retry ] calls retryPasses and shows the progress line (FR-FAIL-4)', async () => {
+      const user = userEvent.setup();
+      const retryPasses = vi.fn(() => {
+        appStore.setState({ passes: { ...IDLE_PASSES, jobId: 'job-2', status: 'computing', observer, total: 31 } });
+      });
+      set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'computing', observer, total: 31 }, retryPasses });
+      render(<PassList />);
+      expect(screen.getByRole('status')).toHaveTextContent('Computing passes…');
+      // The worker client ends a job silent for JOB_STALL_S with a `timeout` (R86, D-543).
+      act(() => {
+        appStore.getState().failJob('job-1', { kind: 'timeout', detail: 'no progress for 60 s' });
+      });
+      expect(screen.queryByText(/Computing passes/)).toBeNull();
+      expect(screen.getByTestId('failure-sentence')).toHaveTextContent('Could not compute the passes: the service took too long to answer.');
+      await user.click(screen.getByTestId('failure-retry'));
+      expect(retryPasses).toHaveBeenCalledTimes(1);
+      expect(screen.queryByTestId('failure-line')).toBeNull();
+      expect(screen.getByRole('status')).toHaveTextContent('Computing passes… 0 of 31');
+    });
+
+    it('with a stored list on screen, the line says that list is what the page is using', () => {
+      set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'error', observer, passes: [goldenPass], error: { kind: 'unknown', detail: 'x' } } });
+      clockAt(NOW);
+      render(<PassList />);
+      expect(screen.getByTestId('failure-sentence')).toHaveTextContent(en.failure.instead.storedList);
+      expect(screen.getByRole('list')).toBeInTheDocument();
+    });
   });
   /**
    * R27 (US-16 AC5, FR-OFF-2), recut by R88 (FR-NIGHT-1): a night is local noon

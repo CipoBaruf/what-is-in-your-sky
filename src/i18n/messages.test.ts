@@ -345,6 +345,7 @@ describe('the Spanish catalog (FR-I18N-3)', () => {
     // The strings that are the same in both languages by design: names, symbols and coordinates (FR-I18N-4, FR-I18N-6).
     const shared = new Set([
       en.location.coordsPlaceholder,
+      en.settings.installLabel, // "App" in both (FR-SET-1 as amended v2.1)
       en.chart.view.polar,
       en.live.pending, // an ellipsis is an ellipsis (R32)
       en.footer.celestrak.link,
