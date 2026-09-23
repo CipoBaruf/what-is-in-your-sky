@@ -119,6 +119,24 @@ describe('createLocalPrefs', () => {
     expect(prefs.read()).toEqual({ theme: 'night' });
   });
 
+  it('reads the faint-passes flag only when it is true, and as absent when it is false, missing or malformed (R98, FR-FAINT-3, D-623)', () => {
+    const storage = memoryStorage();
+    const prefs = createLocalPrefs(storage);
+    prefs.write({ theme: 'night', showFaint: true });
+    expect(prefs.read()).toEqual({ theme: 'night', showFaint: true });
+    // `false` is what an absent key means, so a record written that way reads one field shorter and stays empty when it was.
+    prefs.write({ showFaint: false });
+    expect(prefs.read()).toEqual({});
+    // A record from before v2.1 has no field at all.
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night' }));
+    expect(prefs.read()).toEqual({ theme: 'night' });
+    // `.catch(false)`: a value that is not a boolean is no choice and costs nothing else.
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night', showFaint: 'yes' }));
+    expect(prefs.read()).toEqual({ theme: 'night' });
+    storage.map.set(PREFS_KEY, JSON.stringify({ locale: 'es', showFaint: 1 }));
+    expect(prefs.read()).toEqual({ locale: 'es' });
+  });
+
   it('reads at most eight places, newest use first, whatever the stored list says (R26, D-85)', () => {
     const storage = memoryStorage();
     const prefs = createLocalPrefs(storage);
