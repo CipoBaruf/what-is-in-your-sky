@@ -2,7 +2,7 @@ import type { SkyBand, Span } from '../../../lib/timeStripe';
 import { tonightSpan, tonightsDark } from '../../../lib/tonightStripe';
 import type { EpochMs, Observer, Pass } from '../../../model';
 import type { NightKey } from '../../../lib/nights';
-import { defaultOpenNight, tonightKey } from '../../components/passes/PassList';
+import { tonightKey } from '../../components/passes/PassList';
 import { groupByNight, type NightGroup } from '../../components/passes/nightGroups';
 
 /**
@@ -29,10 +29,14 @@ const byStart = (a: Pass, b: Pass): number => a.start.t - b.start.t;
 
 export function splitTonight(passes: readonly Pass[], zone: string | null, now: EpochMs): TonightSplit {
   const groups = groupByNight(passes, zone);
-  const open = defaultOpenNight(groups, now, zone) ?? '';
-  const tonight = (groups.find((group) => group.key === open)?.passes ?? []).filter((pass) => pass.end.t > now).sort(byStart);
-  const laterNights = groups.filter((group) => group.key > open && group.passes.length > 0).map((group) => ({ ...group, passes: [...group.passes].sort(byStart) }));
-  return { tonight, laterNights, later: laterNights.flatMap((group) => group.passes), tonightKey: tonightKey(groups, now, zone) };
+  // FR-NIGHT-1's tonight, and not the night the list opens on: `defaultOpenNight` falls back to the first night
+  // that holds a pass, which is the right night to open and the wrong one to call tonight. An evening with
+  // nothing left would have counted tomorrow's passes as tonight's — "three things cross tonight" over a list
+  // whose only heading reads "Tomorrow night", since the headings are named against this same key.
+  const key = tonightKey(groups, now, zone);
+  const tonight = (groups.find((group) => group.key === key)?.passes ?? []).filter((pass) => pass.end.t > now).sort(byStart);
+  const laterNights = groups.filter((group) => group.key > key && group.passes.length > 0).map((group) => ({ ...group, passes: [...group.passes].sort(byStart) }));
+  return { tonight, laterNights, later: laterNights.flatMap((group) => group.passes), tonightKey: key };
 }
 
 /**
