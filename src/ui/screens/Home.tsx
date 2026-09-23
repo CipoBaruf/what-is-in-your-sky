@@ -224,8 +224,11 @@ export function WhereReading({ offersInert, geolocation, step, focusGroup = fals
     if (!cold) setOpen(typingIn(group.current));
   }
   // After the step's own focus on its heading (`ColdHead`, a child, whose effect runs first): the group's first field.
+  // R87: the request is spent here, by the group that takes it, so a later mount of the group is an ordinary one.
   useEffect(() => {
-    if (focusGroup) group.current?.querySelector<HTMLElement>('input, button')?.focus();
+    if (!focusGroup) return;
+    clearPlaceRequest();
+    group.current?.querySelector<HTMLElement>('input, button')?.focus();
   }, [focusGroup]);
   const settle = step?.onSettle;
   const settling = settle
@@ -365,21 +368,35 @@ function typingInAField(): boolean {
  * reader (D-467), so it is held until the field is left or `Enter` is pressed.
  * On a desk there are no steps: the wide page is the cold open's three panes
  * and then the populated ones, whatever the step says.
+ *
+ * R87: the state moved to `App`, which never unmounts, so `offHome` stands in
+ * for the unmounting the live and settings routes used to do — crossing it in
+ * either direction is a fresh mount, `'where'` with no observer and the stacked
+ * page with one. A place set on the settings page therefore comes back to the
+ * stacked page, as it did when `Home` was thrown away.
  */
-export function useSteps(observer: Observer | null) {
+export function useSteps(observer: Observer | null, offHome = false) {
   const [step, setStep] = useState<Step | null>(() => (observer === null ? 'where' : null));
   const [reached, setReached] = useState<Step>('where');
   const [moved, setMoved] = useState(false);
   const [held, setHeld] = useState(false);
   const key = placeKey(observer);
   const [seen, setSeen] = useState(key);
+  const [away, setAway] = useState(offHome);
   const go = (next: Step): void => {
     setStep(next);
     setMoved(true);
     setHeld(false);
     setReached((current) => (STEPS.indexOf(next) > STEPS.indexOf(current) ? next : current));
   };
-  if (key !== seen) {
+  if (offHome !== away) {
+    setAway(offHome);
+    setStep(observer === null ? 'where' : null);
+    setReached('where');
+    setMoved(false);
+    setHeld(false);
+    setSeen(key);
+  } else if (key !== seen) {
     setSeen(key);
     if (observer === null) setHeld(false);
     else if (step === 'where') {
@@ -400,11 +417,13 @@ export type HomeSteps = ReturnType<typeof useSteps>;
 export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPass, passDetail, MoonLore, geolocation, steps }: HomeProps) {
   const observer = useActiveObserver();
   const mode = useLayoutMode();
-  // R87 (FR-FIRST-1 as amended v2.1): `[ set a place ]` on the live page lands here with the focus in the group.
-  const [placeRequest] = useState(placeRequested);
-  useEffect(() => {
-    clearPlaceRequest();
-  }, []);
+  /*
+   * R87 (FR-FIRST-1 as amended v2.1): `[ set a place ]` on the live page lands here with the focus in the group.
+   * The request is read on every render and spent by the group that takes the focus, not held for the page's
+   * life: held, it would take the focus again on every later mount of the group — stepping back to `where`, or
+   * a change of layout — from the step heading `ColdHead` focuses.
+   */
+  const placeRequest = placeRequested();
   const current: Step | null = mode === 'compact' && steps.step !== null ? (observer === null ? 'where' : steps.step) : null;
   if (current !== null) {
     const { reached, moved, go } = steps;

@@ -286,6 +286,12 @@ describe('the phone’s first visit (FR-FIRST-4, D-513)', () => {
     return <Home offersInert={false} guide="closed" shareNotice={null} selectedPassId={null} onOpenPass={onOpenPass} passDetail={null} MoonLore={undefined} geolocation={deviceFinds} steps={steps} {...props} />;
   }
   const home = (props: Partial<HomeProps> = {}) => <Stepped {...props} />;
+  /** R87: the same host with a route of its own, as `App` has — the live and settings routes draw instead of `Home`. */
+  function Routed({ offHome = false, ...props }: { offHome?: boolean } & Partial<HomeProps>) {
+    const steps = useSteps(useActiveObserver(), offHome);
+    if (offHome) return <p>another route</p>;
+    return <Home offersInert={false} guide="closed" shareNotice={null} selectedPassId={null} onOpenPass={onOpenPass} passDetail={null} MoonLore={undefined} geolocation={deviceFinds} steps={steps} {...props} />;
+  }
   const items = () => within(screen.getByTestId('step-line')).getAllByRole('listitem');
   const withTheRun = () => {
     act(() => {
@@ -297,6 +303,24 @@ describe('the phone’s first visit (FR-FIRST-4, D-513)', () => {
   beforeEach(() => {
     vi.spyOn(Date, 'now').mockReturnValue(pass.start.t - 12 * 60_000);
     media = stubMatchMedia(COMPACT_PX);
+  });
+
+  it('a place set on another route comes back to the stacked page, not to a step — failing on the first cut of R87', () => {
+    const { rerender } = render(<Routed />);
+    expect(screen.getByTestId('cold-open')).toHaveAttribute('data-step', 'where');
+
+    // The settings page draws instead of the home, and the place is set there.
+    rerender(<Routed offHome />);
+    act(() => {
+      appStore.setState({ observer });
+    });
+    withTheRun();
+
+    // Back on the home route: the steps are what a fresh mount makes of a place that is already set.
+    rerender(<Routed />);
+    expect(screen.queryByTestId('step-line')).toBeNull();
+    expect(screen.queryByTestId('cold-open')).toBeNull();
+    expect(screen.getByTestId('location-summary')).toBeInTheDocument();
   });
 
   it('walks where → when → what with no navigation, and [ edit ] returns to where with the group open', () => {

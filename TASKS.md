@@ -2151,9 +2151,9 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
     - An e2e over a saved, named place: a pass link shows the notice; `[ back to my place ]` restores the label and zone and clears the hash; `[ keep this place ]` stores the visited place and removes the notice. `#live?lat=999` lands on home with "That link could not be read." and the hash cleared; `#nonsense` is cleared silently.
     - An e2e at 390 × 844 and 360 × 640: the first step's `scrollHeight <= innerHeight` and its footer is the line form.
     - Captures: the notice at 390 and 1280 px, the first step at 360 and 390, both themes, both languages.
-  - **Done differently:** at 360 × 640 the e2e asserts the spec's "at most the footer is below the fold" (D-574), not `scrollHeight <= innerHeight`; `LinkNote` draws all three notes, but home mounts only the unreadable one and the live page mounts the moment's two in R89 (D-575); the phone's notice uses a short sentence (D-573).
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: the Spanish notice and notes, and the captures.
+  - **Done differently:** at 360 × 640 the e2e asserts the spec's "at most the footer is below the fold" (D-574), not `scrollHeight <= innerHeight`; `LinkNote` draws all three notes, but home mounts only the unreadable one and the live page mounts the moment's two in R89 (D-575); the phone's notice uses a short sentence (D-573).
 
 - [x] **R90 — The sky screen's wait and the denial note**
   - **Lane:** window

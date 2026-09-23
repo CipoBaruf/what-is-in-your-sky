@@ -144,13 +144,6 @@ export function App() {
   const mode = useLayoutMode();
   const live = useLiveRoute();
   /*
-   * R87 (FR-FIRST-1, FR-FIRST-4 as amended v2.1, D-548): the phone's first-run
-   * steps are held here rather than in `Home`, because the footer is this
-   * component's and takes its `line` form while they are up (F-74).
-   */
-  const steps = useSteps(observer);
-  const stepping = mode === 'compact' && steps.step !== null;
-  /*
    * R87 (FR-VISIT-4, F-93): a hash that starts as one of the app's routes and
    * does not parse opens the reader's own home with a note, and one that is no
    * route at all is simply dropped; either way it leaves the URL before the
@@ -165,6 +158,18 @@ export function App() {
   const liveUnreadable = live.active && live.link === null && window.location.hash !== '#live';
   // R52 (FR-COMP-2, D-184): the third route, read from the hash beside the other two.
   const settings = useSettingsRoute();
+  /*
+   * R87 (FR-FIRST-1, FR-FIRST-4 as amended v2.1, D-548): the phone's first-run
+   * steps are held here rather than in `Home`, because the footer is this
+   * component's and takes its `line` form while they are up (F-74).
+   *
+   * `Home` was unmounted by the live and settings routes, which put the steps
+   * back to what a fresh mount makes of the observer; nothing unmounts here, so
+   * the route is passed in and `useSteps` does it. Without that, a place set on
+   * the settings page came back to a step rather than to the stacked page.
+   */
+  const steps = useSteps(observer, (live.active && !liveUnreadable) || settings.active);
+  const stepping = mode === 'compact' && steps.step !== null;
   /*
    * R50 (FR-DESK-3 as amended, F-6, D-253): which of the right column's two
    * tracks the reader asked for. Below `WIDE_SPLIT_MIN_CELLS` only one of them
