@@ -24,6 +24,12 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: 'on-first-retry',
+    // An action has no timeout of its own by default, so a click on an element that never becomes
+    // actionable burns the whole 90 s test timeout, three times over with CI's retries — which reads
+    // as a slow box rather than as the one broken test it is (R88's CI failure). 30 s names the action
+    // that hung and still leaves room under `timeout`: the suite's slowest specs take about 13 s each
+    // whole when the workers contend, so no honest single action comes near this.
+    actionTimeout: 30_000,
   },
   projects: [
     // Desktop Chrome is 1280 × 720: the width the approved mockup fixes (FR-DESK-5).
