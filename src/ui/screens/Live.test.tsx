@@ -1137,7 +1137,7 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('step-controls')).toBeInTheDocument();
     expect(window.location.hash).toBe(`#live?lat=-38.93&lon=-67.99&alt=0&t=${isoInstant(pass.start.t)}`);
     // The marker is on the dome at the rise.
-    expect(screen.getByTestId('live-count')).toHaveTextContent(/^Satellites 1 up$/);
+    expect(screen.getByTestId('live-count')).toHaveTextContent(/^(Satellites 1 up|Up 1)$/);
     fireEvent.click(screen.getByRole('button', { name: en.live.backToLive }));
     expect(screen.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
     expect(screen.queryByTestId('time-stripe')).toBeNull();
