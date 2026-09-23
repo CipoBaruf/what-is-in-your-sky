@@ -85,12 +85,16 @@ test('Home: dark monospace frame, no sideways scroll, every control ≥ 44 px, e
   await page.goto('/');
   // R52 (FR-COMP-1): at 390 px the header's heading is the short title; the document title keeps the full one.
   await expect(page.getByRole('banner').getByRole('heading', { level: 1 })).toHaveText('Your sky');
-  await expect(page.getByRole('contentinfo')).toContainText('Orbital elements by CelesTrak.');
-  await expect(page.getByRole('contentinfo')).toContainText('Weather data by Open-Meteo.com (CC BY 4.0).');
-  await expect(page.getByRole('contentinfo')).toContainText('Place search by Open-Meteo geocoding, with data from GeoNames (CC BY 4.0).');
+  // R87 (FR-FIRST-4 as amended v2.1, D-548): the first step shares its screen with the footer, so the footer
+  // there is the one-row `line` form. The attribution sentences are the stacked page's, asserted below.
+  await expect(page.getByRole('contentinfo')).toHaveAttribute('data-form', 'line');
+  await expect(page.getByRole('contentinfo')).toContainText('Data: CelesTrak, Open-Meteo.com, GeoNames (CC BY 4.0)');
   await expectIdentity(page, 'r12-home-390.png');
 
   await homeWithPasses(page);
+  await expect(page.getByRole('contentinfo')).toContainText('Orbital elements by CelesTrak.');
+  await expect(page.getByRole('contentinfo')).toContainText('Weather data by Open-Meteo.com (CC BY 4.0).');
+  await expect(page.getByRole('contentinfo')).toContainText('Place search by Open-Meteo geocoding, with data from GeoNames (CC BY 4.0).');
   await expectIdentity(page, 'r12-home-passes-390.png');
 
   await page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') }).getByRole('button', { name: /Open guide/ }).click();

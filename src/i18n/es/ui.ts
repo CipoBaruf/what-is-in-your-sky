@@ -381,6 +381,17 @@ export const ui: typeof EnUi = {
     missing: (p) => `El paso de ${p.name} para el que se hizo este enlace (${p.time}) ya no está en la ventana, y no hay ningún otro paso de ${p.name} en ella.`,
   },
 
+  visit: {
+    showing: (p) => `Mostrando el cielo desde ${p.place}, desde un enlace`,
+    showingShort: (p) => `Cielo de un enlace: ${p.place}`,
+    back: 'volver a mi lugar',
+    keep: 'guardar este',
+    past: (p) => `Este enlace era para ${p.time}, que ya pasó. Mostrando ahora.`,
+    far: (p) => `Este enlace era para ${p.time}, más de 24 h adelante. Mostrando lo más lejos que llega la página.`,
+    unreadable: 'No se pudo leer ese enlace.',
+    dismiss: 'Cerrar',
+  },
+
   weather: {
     state: cloudState,
     badge: (p) => (p.percent === null ? cloudState[p.state] : `${cloudState[p.state]}, ${p.percent} % de nubes`),

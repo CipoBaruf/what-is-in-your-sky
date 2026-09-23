@@ -69,7 +69,9 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
   await expect(page.getByRole('list', { name: 'Pasos' }).getByRole('listitem')).toHaveText(['[01] dónde', '02 cuándo', '03 qué']);
   await expect(page.getByRole('button', { name: 'Usar mi ubicación' })).toBeVisible();
   await expect(page.getByText('Guardada solo en este navegador.')).toBeVisible();
-  await expect(page.getByRole('contentinfo')).toContainText('Sin analítica ni rastreo');
+  // R87 (D-548): the first step's footer is the one-row `line` form, in Spanish too; the privacy sentence on
+  // this screen is the group's own, asserted on the line above.
+  await expect(page.getByRole('contentinfo')).toContainText('Datos: CelesTrak, Open-Meteo.com, GeoNames (CC BY 4.0)');
   // No English left anywhere on the empty screen.
   await expect(page.locator('body')).not.toContainText('Enter a place name');
   await expect(page.locator('body')).not.toContainText('Where will you be looking from');

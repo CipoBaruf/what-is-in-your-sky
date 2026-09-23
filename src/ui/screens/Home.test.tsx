@@ -17,10 +17,11 @@ import { en } from '../../i18n/en';
 import { es } from '../../i18n/es';
 import { I18nProvider } from '../../i18n/useT';
 import type { Locale, Observer } from '../../model';
-import { appStore, type ElementsState } from '../../state';
+import { appStore, useActiveObserver, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { App } from '../App';
-import { Home, WhereReading, type HomeProps } from './Home';
+import { Home, useSteps, WhereReading, type HomeProps } from './Home';
+import { requestPlace } from './home/placeRequest';
 
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
@@ -279,7 +280,18 @@ describe('the phone’s first visit (FR-FIRST-4, D-513)', () => {
     secure: true,
   };
   const onOpenPass = vi.fn();
-  const home = (props: Partial<HomeProps> = {}) => <Home offersInert={false} guide="closed" shareNotice={null} selectedPassId={null} onOpenPass={onOpenPass} passDetail={null} MoonLore={undefined} geolocation={deviceFinds} {...props} />;
+  // R87: `App` holds the steps (D-548); here a host holds them the same way.
+  function Stepped(props: Partial<HomeProps>) {
+    const steps = useSteps(useActiveObserver());
+    return <Home offersInert={false} guide="closed" shareNotice={null} selectedPassId={null} onOpenPass={onOpenPass} passDetail={null} MoonLore={undefined} geolocation={deviceFinds} steps={steps} {...props} />;
+  }
+  const home = (props: Partial<HomeProps> = {}) => <Stepped {...props} />;
+  /** R87: the same host with a route of its own, as `App` has — the live and settings routes draw instead of `Home`. */
+  function Routed({ offHome = false, ...props }: { offHome?: boolean } & Partial<HomeProps>) {
+    const steps = useSteps(useActiveObserver(), offHome);
+    if (offHome) return <p>another route</p>;
+    return <Home offersInert={false} guide="closed" shareNotice={null} selectedPassId={null} onOpenPass={onOpenPass} passDetail={null} MoonLore={undefined} geolocation={deviceFinds} steps={steps} {...props} />;
+  }
   const items = () => within(screen.getByTestId('step-line')).getAllByRole('listitem');
   const withTheRun = () => {
     act(() => {
@@ -291,6 +303,24 @@ describe('the phone’s first visit (FR-FIRST-4, D-513)', () => {
   beforeEach(() => {
     vi.spyOn(Date, 'now').mockReturnValue(pass.start.t - 12 * 60_000);
     media = stubMatchMedia(COMPACT_PX);
+  });
+
+  it('a place set on another route comes back to the stacked page, not to a step — failing on the first cut of R87', () => {
+    const { rerender } = render(<Routed />);
+    expect(screen.getByTestId('cold-open')).toHaveAttribute('data-step', 'where');
+
+    // The settings page draws instead of the home, and the place is set there.
+    rerender(<Routed offHome />);
+    act(() => {
+      appStore.setState({ observer });
+    });
+    withTheRun();
+
+    // Back on the home route: the steps are what a fresh mount makes of a place that is already set.
+    rerender(<Routed />);
+    expect(screen.queryByTestId('step-line')).toBeNull();
+    expect(screen.queryByTestId('cold-open')).toBeNull();
+    expect(screen.getByTestId('location-summary')).toBeInTheDocument();
   });
 
   it('walks where → when → what with no navigation, and [ edit ] returns to where with the group open', () => {
@@ -414,6 +444,27 @@ describe('the phone’s first visit (FR-FIRST-4, D-513)', () => {
     expect(screen.queryByTestId('step-when')).toBeNull();
     fireEvent.click(button as HTMLElement);
     expect(screen.getByTestId('step-when')).toBeInTheDocument();
+  });
+
+  /*
+   * R87 (FR-FIRST-1 as amended v2.1): the receiving side of the live page's `[ set a place ]` (R89 draws it).
+   * The request opens the where step with the focus in the input group — not on the heading, where an arrival
+   * by the step line puts it — and is spent once read, so the next visit home is an ordinary one.
+   */
+  it('lands [ set a place ] on the where step with the focus in the group, once', () => {
+    window.location.hash = '#live';
+    act(() => {
+      requestPlace();
+    });
+    expect(window.location.hash).toBe('');
+    const first = render(home());
+    const group = screen.getByTestId('cold-open');
+    expect(group).toHaveAttribute('data-step', 'where');
+    expect(document.activeElement).toBe(within(group).getByRole('button', { name: en.location.useMyLocation }));
+    first.unmount();
+
+    render(home());
+    expect(document.activeElement).toBe(document.body);
   });
 
   it('opens on the stacked page, and never a step, with a place at mount', () => {

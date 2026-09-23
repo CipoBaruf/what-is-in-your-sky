@@ -7,7 +7,8 @@
   flex-direction: column;
   gap: 1.2rem;
   margin-top: calc(1.2rem - var(--row));
-  min-height: calc(100svh - 3 * var(--row) - 1.2rem);
+  /* R87: the main's height while the steps are up (App.module.css `.main[data-step]`). */
+  min-height: var(--screen-min, calc(100svh - 3 * var(--row) - 1.2rem));
 }
 
 .heading {

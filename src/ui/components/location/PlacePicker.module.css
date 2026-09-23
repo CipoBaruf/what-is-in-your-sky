@@ -92,6 +92,7 @@
 }
 
 .boxed {
-  padding: 0.75rem var(--cell);
+  /* R87 (D-574): 0.5 rem on a phone shorter than 700 px (LocationInput.module.css). */
+  padding: var(--box-pad, 0.75rem) var(--cell);
   border: 1px solid var(--rule);
 }

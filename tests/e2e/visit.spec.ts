@@ -12,7 +12,7 @@
  * would never produce one.
  */
 import { readFileSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 interface HaFixture {
   capturedAt: string;
@@ -65,4 +65,74 @@ test("a pass link over a saved, named place is a visit: storage is untouched and
   const stored = JSON.parse((await page.evaluate((key) => localStorage.getItem(key), PREFS_KEY)) ?? 'null') as { observer?: typeof SAVED } | null;
   expect(stored?.observer).toEqual(SAVED);
   expect(stored?.observer?.timeZone).toBe('America/Argentina/Salta');
+});
+
+/**
+ * R87 (FR-VISIT-2, US-32 AC1): the notice. Over the same saved, named place a
+ * pass link heads the page with the link's place and two controls;
+ * `[ back to my place ]` puts the reader's own place back, by its name, and
+ * takes the link out of the URL, and `[ keep this place ]` stores the link's.
+ */
+const arriveOnTheLink = async (page: Page): Promise<void> => {
+  await page.goto('/');
+  await page.evaluate(([key, value]) => {
+    localStorage.setItem(key, value);
+  }, [PREFS_KEY, SAVED_PREFS] as const);
+  await page.goto('about:blank');
+  await page.goto(PASS_LINK);
+  await expect(page.getByTestId('location-summary')).toContainText('48.86, 2.35');
+};
+
+const storedPrefs = (page: Page): Promise<string | null> => page.evaluate((key) => localStorage.getItem(key), PREFS_KEY);
+
+test('a pass link shows the visit notice, and [ back to my place ] restores the label and clears the hash (FR-VISIT-2)', async ({ page }) => {
+  await arriveOnTheLink(page);
+  const notice = page.getByTestId('visit-notice');
+  await expect(notice).toHaveAttribute('role', 'status');
+  await expect(notice).toContainText('48.86, 2.35');
+  expect(await storedPrefs(page)).toBe(SAVED_PREFS);
+
+  await notice.getByRole('button', { name: 'back to my place' }).click();
+  await expect(page.getByTestId('visit-notice')).toHaveCount(0);
+  await expect(page.getByTestId('location-summary')).toHaveText('Neuquén (−38.95, −68.06)');
+  expect(new URL(page.url()).hash).toBe('');
+  expect(await storedPrefs(page)).toBe(SAVED_PREFS);
+});
+
+test('[ keep this place ] stores the visited place and removes the notice (FR-VISIT-2, FR-LOC-5)', async ({ page }) => {
+  await arriveOnTheLink(page);
+  await page.getByTestId('visit-notice').getByRole('button', { name: 'keep this place' }).click();
+  await expect(page.getByTestId('visit-notice')).toHaveCount(0);
+  await expect(page.getByTestId('location-summary')).toContainText('48.86, 2.35');
+  const stored = JSON.parse((await storedPrefs(page)) ?? 'null') as { observer?: { lat: number; lon: number } } | null;
+  expect(stored?.observer).toMatchObject({ lat: 48.86, lon: 2.35 });
+});
+
+/**
+ * R87 (FR-VISIT-4, US-32 AC3, F-93): a hash that starts as a route and does
+ * not parse lands on the reader's own home with one line saying so, and leaves
+ * the URL; one that is no route at all leaves it with nothing said. Neither
+ * touches the saved place.
+ */
+test('#live?lat=999 lands on home with "That link could not be read." and the hash cleared; #nonsense is cleared silently (FR-VISIT-4)', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(([key, value]) => {
+    localStorage.setItem(key, value);
+  }, [PREFS_KEY, SAVED_PREFS] as const);
+
+  await page.goto('about:blank');
+  await page.goto('/#live?lat=999');
+  await expect(page.getByTestId('link-note')).toContainText('That link could not be read.');
+  await expect(page.getByTestId('location-summary')).toHaveText('Neuquén (−38.95, −68.06)');
+  expect(new URL(page.url()).hash).toBe('');
+  await expect(page.getByTestId('visit-notice')).toHaveCount(0);
+  await page.getByTestId('link-note-dismiss').click();
+  await expect(page.getByTestId('link-note')).toHaveCount(0);
+
+  await page.goto('about:blank');
+  await page.goto('/#nonsense');
+  await expect(page.getByTestId('location-summary')).toHaveText('Neuquén (−38.95, −68.06)');
+  await expect.poll(() => new URL(page.url()).hash).toBe('');
+  await expect(page.getByTestId('link-note')).toHaveCount(0);
+  expect(await storedPrefs(page)).toBe(SAVED_PREFS);
 });

@@ -55,6 +55,7 @@ import { UseMyLocation } from '../../src/ui/components/location/UseMyLocation';
 import { NextEventBlock } from '../../src/ui/components/passes/NextEventBlock';
 import { StatusStrip } from '../../src/ui/components/live/StatusStrip';
 import { LivePage } from '../../src/ui/screens/Live';
+import { VisitNotice } from '../../src/ui/components/common/VisitNotice';
 import { decorations, rowCells, rowParts } from './cells';
 
 /** FR-COMP-4: a 390 px viewport at the default cell. */
@@ -85,6 +86,7 @@ const CSS = [
   'src/ui/screens/Live.module.css',
   'src/ui/components/live/StatusStrip.module.css',
   'src/ui/components/live/StateIndicator.module.css',
+  'src/ui/components/common/VisitNotice.module.css',
 ].map((file) => resolve(process.cwd(), file));
 
 const table = decorations(CSS);
@@ -285,6 +287,22 @@ const rows = (t: Messages): readonly Row[] => [
     element: createElement(StatusStrip, { t: pass.start.t, timeZone: 'America/Argentina/Salta', sky: 'bright-twilight', cloud: { state: 'partly', effectivePct: 50, at: pass.start.t }, count: 12, moon: null }),
     find: () => screen.getByTestId('status-strip'),
   },
+  /*
+   * R87 (FR-VISIT-2): the visit notice on a phone is at most two rows — the sentence's short form, then the two
+   * controls — each at `--small`, so each is counted in its own characters. The place is the longest a link can
+   * name at the hash's two decimals shown: three digits of longitude and both signs.
+   */
+  ...(['sentence', 'actions'] as const).map(
+    (part): Row => ({
+      name: `the visit notice: the ${part} (FR-VISIT-2)`,
+      element: createElement(VisitNotice),
+      find: () => screen.getByTestId(`visit-${part}`),
+      setUp: () => {
+        appStore.setState({ observer, visiting: { ...observer, lat: -38.93, lon: -167.99, label: '−38.93, −167.99' } });
+      },
+      budget: SMALL_BUDGET,
+    }),
+  ),
   { name: 'the settings install row (V11-16)', element: createElement(InstallAction, { env: { standalone: undefined } }), find: () => screen.getByTestId('install-action').parentElement as Element, setUp: offerAnInstall },
 ];
 

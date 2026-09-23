@@ -531,6 +531,23 @@ export const ui = {
     missing: (p: { name: string; time: string }) => `The ${p.name} pass this link was made for (${p.time}) is no longer in the window, and no other ${p.name} pass is in it either.`,
   },
 
+  /**
+   * R87 (FR-VISIT-2..4, D-539): the visit notice and the link notes. `showing`
+   * is FR-VISIT-2's sentence, on one line with the controls where the page is
+   * wide; `showingShort` is the phone's, one row of `--small` (41 characters)
+   * over the two controls' row, so the notice stays inside two rows of 36 cells.
+   */
+  visit: {
+    showing: (p: { place: string }) => `Showing the sky from ${p.place}, from a link`,
+    showingShort: (p: { place: string }) => `Showing a link’s sky: ${p.place}`,
+    back: 'back to my place',
+    keep: 'keep this place',
+    past: (p: { time: string }) => `This link was for ${p.time}, which has passed. Showing now.`,
+    far: (p: { time: string }) => `This link was for ${p.time}, which is more than 24 h ahead. Showing the latest the page can.`,
+    unreadable: 'That link could not be read.',
+    dismiss: 'Dismiss',
+  },
+
   weather: {
     state: cloudState,
     badge: (p: { state: CloudState; percent: string | null }) => (p.percent === null ? cloudState[p.state] : `${cloudState[p.state]}, ${p.percent} % cloud`),

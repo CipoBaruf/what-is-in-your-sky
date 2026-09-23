@@ -21,7 +21,8 @@
    the Spanish sentence is the longer of the two and 960 px is the narrowest
    wide viewport. The separators are their own elements so that the spaces
    around them survive the wrap. */
-.footer[data-form='short'] {
+/* R87 (D-548): the phone's first-run steps take the same row, less its privacy word. */
+.footer:is([data-form='short'], [data-form='line']) {
   padding-bottom: var(--row);
   /* The character rule above is a fixed 92-character string, which was the
      80-cell frame's width and stops short of a viewport that no longer has
@@ -32,7 +33,7 @@
   border-top: 1px solid var(--rule);
 }
 
-.footer[data-form='short']::before {
+.footer:is([data-form='short'], [data-form='line'])::before {
   content: none;
 }
 
