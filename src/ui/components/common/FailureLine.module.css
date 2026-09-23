@@ -1,0 +1,62 @@
+/* R89 (FR-FAIL-1): the sentence, then `[ retry ]` and `[ details ]` on the
+   row under it, then the detail when it is open. The retry is a full button,
+   `--tap` tall like every other control (global.css), so it is 48 px on
+   compact; `[ details ]` is an inline control beside it. */
+.line {
+  display: grid;
+  gap: calc(var(--row) / 4);
+  min-width: 0;
+}
+
+.sentence {
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 calc(2 * var(--cell));
+}
+
+.retry,
+.details {
+  color: var(--accent);
+  background: none;
+  border: 0;
+  padding-inline: 0;
+  font-size: inherit;
+}
+
+.details {
+  min-height: 0;
+}
+
+.retry::before,
+.details::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.retry::after,
+.details::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+/* FR-FAIL-2: the raw detail, copyable, in monospace; it wraps rather than
+   widening the page. */
+.detail {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.detail[hidden] {
+  display: none;
+}
