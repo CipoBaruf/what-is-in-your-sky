@@ -20,7 +20,7 @@ import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../t
 import { en } from '../../i18n/en';
 import { I18nProvider } from '../../i18n/useT';
 import { WIDE_MIN_PX } from '../../lib/layout';
-import { isoInstant } from '../../lib/shareLinks';
+import { isoInstant, type LiveLink } from '../../lib/shareLinks';
 import { skyBodiesAt } from '../../lib/skyBodies';
 import type { Observer, Pass } from '../../model';
 import type { NowItem, NowState } from '../../model';
@@ -31,6 +31,7 @@ import { MOON_FIXTURE } from '../../../tests/support/moonFixtures';
 import { LEGEND_OPEN_ROWS, LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
 import { LIVE_WINDOW_MS, LivePage, livePasses, TICK_MS, visibleCount } from './Live';
 import { LIVE_ROW_TEST_ID, LIVE_ROWS, rowsFor } from './liveRows';
+import { clearPlaceRequest, placeRequested } from './home/placeRequest';
 
 const pass = goldenPassFixture();
 const NOW = goldenWindowStart();
@@ -148,26 +149,150 @@ describe('<LivePage>', () => {
     window.history.replaceState(null, '', window.location.pathname);
   });
 
-  it('is inert with one line and the return control when there is no observer (FR-LIVE-1)', async () => {
-    const onLeave = vi.fn();
-    const { container } = render(<LivePage link={null} onLeave={onLeave} />);
-    const page = screen.getByTestId('live-page');
-    expect(page).toHaveAttribute('data-state', 'inert');
-    expect(screen.getByTestId('live-inert')).toHaveTextContent(en.live.noObserver);
-    expect(screen.queryByTestId('sky-chart')).toBeNull();
-    expect(screen.queryByTestId('status-strip')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(onLeave).toHaveBeenCalledTimes(1);
-    expect(await axe(container)).toHaveNoViolations();
+  /*
+   * R89 (FR-LIVE-1 as amended v2.1, FR-FAIL-6, FR-OFF-8; F-92, F-75): the three states before the page can
+   * draw are told apart, each with its own text and control, and a stored run is a sky to draw.
+   */
+  describe('before it can draw (R89)', () => {
+    const failure = { kind: 'offline', detail: 'TypeError: Failed to fetch' } as const;
+
+    it('says no place with [ set a place ], which goes home to set one (FR-FIRST-1, F-75)', async () => {
+      const onLeave = vi.fn();
+      const hashes: string[] = [];
+      const onHash = (): void => {
+        hashes.push(window.location.hash);
+      };
+      window.addEventListener('hashchange', onHash);
+      window.history.replaceState(null, '', '#live');
+      const { container } = render(<LivePage link={null} onLeave={onLeave} />);
+      const page = screen.getByTestId('live-page');
+      expect(page).toHaveAttribute('data-state', 'inert');
+      const inert = screen.getByTestId('live-inert');
+      expect(inert).toHaveAttribute('data-inert', 'no-place');
+      expect(inert).toHaveTextContent(en.live.noPlace);
+      expect(screen.queryByTestId('live-loading')).toBeNull();
+      expect(screen.queryByTestId('failure-line')).toBeNull();
+      expect(screen.queryByTestId('sky-chart')).toBeNull();
+      expect(screen.queryByTestId('status-strip')).toBeNull();
+      expect(await axe(container)).toHaveNoViolations();
+      fireEvent.click(screen.getByRole('button', { name: en.live.setPlace }));
+      window.removeEventListener('hashchange', onHash);
+      expect(placeRequested()).toBe(true);
+      clearPlaceRequest();
+      expect(hashes).toEqual(['']);
+      // The return control is still there, and still returns.
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+      expect(onLeave).toHaveBeenCalledTimes(1);
+    });
+
+    it('says loading, with the bead moving, while the elements load — and on a cold open, before the effects start', () => {
+      for (const elements of [{ status: 'idle' }, { status: 'loading' }] as const) {
+        withSky([], elements);
+        const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
+        const inert = screen.getByTestId('live-inert');
+        expect(inert).toHaveAttribute('data-inert', 'loading');
+        expect(screen.getByTestId('live-loading')).toHaveTextContent(en.live.loadingElements);
+        expect(within(inert).getByTestId('mark')).toHaveAttribute('data-mark-running', 'true');
+        // F-92: a cold `#live` does not flash the failed text.
+        expect(screen.queryByTestId('failure-line')).toBeNull();
+        expect(inert).not.toHaveTextContent(en.failure.offline(en.failure.what.elements));
+        expect(screen.queryByRole('button', { name: en.failure.retry })).toBeNull();
+        expect(screen.getByTestId('live-place')).toHaveTextContent('−38.93, −67.99');
+        expect(screen.queryByTestId('sky-chart')).toBeNull();
+        unmount();
+      }
+    });
+
+    it('says failed with the failure line, and [ retry ] is retryElements (FR-FAIL-1, FR-FAIL-6)', async () => {
+      withSky([], { status: 'error', failure });
+      const retryElements = vi.fn(() => {
+        appStore.setState({ elements: { status: 'loading' } });
+      });
+      act(() => {
+        appStore.setState({ retryElements });
+      });
+      const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+      const inert = screen.getByTestId('live-inert');
+      expect(inert).toHaveAttribute('data-inert', 'failed');
+      expect(screen.getByTestId('failure-sentence')).toHaveTextContent(`${en.failure.offline(en.failure.what.elements)} ${en.live.failedInstead}`);
+      expect(screen.getByTestId('failure-sentence').textContent).not.toMatch(/HTTP|\d{3}|Error:/);
+      expect(screen.getByTestId('failure-detail')).toHaveTextContent(failure.detail);
+      expect(screen.getByTestId('failure-detail')).not.toBeVisible();
+      expect(screen.queryByTestId('live-loading')).toBeNull();
+      expect(await axe(container)).toHaveNoViolations();
+      fireEvent.click(screen.getByRole('button', { name: en.failure.retry }));
+      expect(retryElements).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('live-inert')).toHaveAttribute('data-inert', 'loading');
+      act(() => {
+        appStore.setState({ elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-2', status: 'done', observer, passes: all, hasDarkness: true } });
+      });
+      expect(screen.getByTestId('live-page')).toHaveAttribute('data-state', 'live');
+    });
+
+    it('opens on the stored passes with no usable elements (FR-OFF-8), by place and not by object', () => {
+      const stored: Observer = { ...observer };
+      act(() => {
+        appStore.getState().setChartView('polar');
+        appStore.setState({ observer, elements: { status: 'error', failure }, passes: { ...IDLE_PASSES, status: 'done', observer: stored, passes: all, hasDarkness: true, storedAt: NOW, standIn: true } });
+      });
+      const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(screen.getByTestId('live-page')).toHaveAttribute('data-state', 'live');
+      expect(screen.queryByTestId('live-inert')).toBeNull();
+      expect(container.querySelector(`[data-drawing] [data-pass-id="${pass.id}"]`)).not.toBeNull();
+    });
+
+    it('stays failed for another place’s stored passes', () => {
+      act(() => {
+        appStore.setState({ observer, elements: { status: 'error', failure }, passes: { ...IDLE_PASSES, status: 'done', observer: { ...observer, lat: 10 }, passes: all, storedAt: NOW, standIn: true } });
+      });
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(screen.getByTestId('live-inert')).toHaveAttribute('data-inert', 'failed');
+    });
   });
 
-  it('is inert with one line when the elements are not there yet, and names the place it would draw for', () => {
-    withSky([], { status: 'loading' });
-    render(<LivePage link={null} onLeave={() => undefined} />);
-    expect(screen.getByTestId('live-page')).toHaveAttribute('data-state', 'inert');
-    expect(screen.getByTestId('live-inert')).toHaveTextContent(en.live.noElements);
-    expect(screen.getByTestId('live-place')).toHaveTextContent('−38.93, −67.99');
-    expect(screen.queryByTestId('sky-chart')).toBeNull();
+  /* R89 (FR-VISIT-2, FR-VISIT-3): the visit notice and the link's moment notes head the live page too. */
+  describe('links and visits (R89)', () => {
+    const at = (t: number): LiveLink => ({ kind: 'live', observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t });
+
+    it('opens a passed moment watching, with the note', () => {
+      withSky();
+      const link = at(T - 2 * HOUR);
+      act(() => {
+        appStore.setState({ linkResult: { kind: 'own', link, note: 'past' } });
+      });
+      render(<LivePage link={link} onLeave={() => undefined} />);
+      expect(screen.getByTestId('live-state-word')).toHaveTextContent('live');
+      expect(screen.getByTestId('link-note')).toHaveAttribute('data-note', 'past');
+      expect(screen.getByTestId('link-note')).toHaveTextContent(/which has passed\. Showing now\./);
+    });
+
+    it('holds a moment 30 h ahead at the end of the span, with the note, and releases it when real time gets there', () => {
+      withSky();
+      const link = at(T + 30 * HOUR);
+      act(() => {
+        appStore.setState({ linkResult: { kind: 'own', link, note: 'far' } });
+      });
+      render(<LivePage link={link} onLeave={() => undefined} />);
+      expect(screen.getByTestId('live-state-word')).toHaveTextContent('held');
+      expect(screen.getByTestId('time-row')).toHaveTextContent('+24 h');
+      expect(screen.getByTestId('link-note')).toHaveAttribute('data-note', 'far');
+      act(() => {
+        vi.advanceTimersByTime(LIVE_WINDOW_MS + TICK_MS);
+      });
+      expect(screen.getByTestId('live-state-word')).toHaveTextContent('live');
+    });
+
+    it('carries the visit notice under the top row while visiting', () => {
+      withSky();
+      act(() => {
+        appStore.setState({ visiting: { ...observer, lat: 48.86, lon: 2.35, label: '48.86, 2.35' } });
+      });
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      const area = screen.getByTestId('live-top-area');
+      expect(within(area).getByTestId('visit-notice')).toHaveAttribute('role', 'status');
+      expect(within(area).getByRole('button', { name: en.visit.back })).toBeInTheDocument();
+      expect(within(area).getByRole('button', { name: en.visit.keep })).toBeInTheDocument();
+    });
   });
 
   it('draws the passes of the coming 24 h in series colours, marks the one under way, and counts it in the strip (FR-LIVE-2, FR-LIVE-3, FR-LIVE-10)', async () => {

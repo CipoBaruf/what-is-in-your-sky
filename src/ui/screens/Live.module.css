@@ -365,9 +365,25 @@
   gap: 0;
 }
 
+/* R89 (FR-VISIT-2, FR-VISIT-3): the top row and, under it, R87's notice strip, one grid item. The strip is
+   `display: none` while empty, so the area is the row alone and nothing under it moves; when it holds the notice
+   or a note it sits in the page's own padding, not the home frame's. */
+.topArea {
+  grid-area: top;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--row) / 4);
+}
+
+.topArea > [data-page-notices] {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
 /* The return control, the place, and (on wide) the switches the header would have carried. */
 .topRow {
-  grid-area: top;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -435,11 +451,41 @@
   min-height: 0;
 }
 
-/* FR-LIVE-1's inert states: one line where the dome would be. */
+/* FR-LIVE-1's states before the page can draw, where the dome would be. R89 (as amended v2.1): no place is the
+   sentence and `[ set a place ]`; loading the mark's bead beside its line; failed the failure line. */
 .inert {
   grid-area: dome;
   margin: 0;
   align-self: start;
+  display: grid;
+  gap: calc(var(--row) / 4);
+  justify-items: start;
+  min-width: 0;
+}
+
+.inertLine {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--cell);
+}
+
+.inertAction {
+  color: var(--accent);
+  background: none;
+  border: 0;
+  padding-inline: 0;
+  font-size: inherit;
+}
+
+.inertAction::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.inertAction::after {
+  content: ' ]';
+  color: var(--fg-dim);
 }
 
 /* R77 (FR-WATCH-2): the headline's row — the next-event block while watching, the held instant while

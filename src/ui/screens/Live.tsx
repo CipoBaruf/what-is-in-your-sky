@@ -3,15 +3,18 @@ import { useLocale, useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
 import { foldRows, ROW_PX, scrubPlacement, unfoldedBoxHeightPx, type LiveFold, type ScrubPlacement } from '../../lib/layout';
 import { legendRows } from '../../lib/legend';
-import { BODIES_EVERY_MS, due, HASH_EVERY_MS } from '../../lib/playback';
+import { BODIES_EVERY_MS, due, HASH_EVERY_MS, linkInstant } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import { formatClock } from '../../lib/timeFormat';
 import type { Span } from '../../lib/timeStripe';
 import type { EpochMs, Observer, Pass } from '../../model';
-import { useActiveObserver, useAppStore } from '../../state';
+import { useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../state';
+import { sameLocation } from '../../state/slices/location';
+import { FailureLine } from '../components/common/FailureLine';
 import { LanguageToggle } from '../components/common/LanguageToggle';
 import { ShareButton } from '../components/common/ShareButton';
 import { ThemeToggle } from '../components/common/ThemeToggle';
+import { PageNotices, type LinkNoteKind } from '../components/common/VisitNotice';
 import { ChartFrameSlots, LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
 import { DOME_BOX_ASPECT } from '../components/guide/skychart/dome/camera';
 import { LegendInventoryContext, type LegendInventory } from '../components/guide/skychart/Legend';
@@ -20,7 +23,7 @@ import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
 import { BackToLive, HiddenToggle, LegendToggle, PlaybackControls, ScrubButton } from '../components/live/PlaybackControls';
-import { StateIndicator } from '../components/live/StateIndicator';
+import { INDICATOR_MARK_PX, StateIndicator } from '../components/live/StateIndicator';
 import { StatusStrip } from '../components/live/StatusStrip';
 import { StepControls } from '../components/live/StepControls';
 import { StripeOverview } from '../components/live/StripeOverview';
@@ -32,10 +35,12 @@ import { usePlayback } from '../components/live/usePlayback';
 import { useSkyBands } from '../components/live/useSkyBands';
 import { useWakeLock, type WakeLockState } from '../components/live/useWakeLock';
 import { useWallThrottle } from '../components/live/useWallThrottle';
+import { Mark } from '../components/mark/Mark';
 import { NextEventBlock } from '../components/passes/NextEventBlock';
 import { SkyScreen } from '../components/screen/SkyScreen';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
+import { requestPlace } from './home/placeRequest';
 import styles from './Live.module.css';
 import { inventoryClip, liveShape, rowsFor, type LiveRow } from './liveRows';
 
@@ -158,21 +163,54 @@ export function LivePage({ link, onLeave }: LivePageProps) {
     [closeSkyScreen],
   );
 
-  const inert = observer === null ? t.live.noObserver : elements.status !== 'ready' ? t.live.noElements : null;
+  const passes = useAppStore((s) => s.passes);
+  const retryElements = useAppStore((s) => s.retryElements);
+  const state = liveState(observer, elements, passes);
   // R34 (FR-LIVE-7): the screen stays awake while there is a sky to watch; an inert page asks for nothing.
-  const wakeLock = useWakeLock(inert === null);
+  const wakeLock = useWakeLock(state === 'sky');
 
-  if (inert !== null || observer === null) {
+  if (state !== 'sky' || observer === null) {
     return (
       <Page state="inert" wakeLock={wakeLock} fold={NO_FOLD} placement={null}>
         <TopRow place={observer?.label ?? null} indicator={null} screenOpen={screenOpen} onLeave={onLeave} />
-        <p className={styles.inert} data-testid="live-inert">
-          {inert}
-        </p>
+        <div className={styles.inert} data-testid="live-inert" data-inert={state}>
+          {state === 'no-place' && (
+            <>
+              <p className={styles.inertLine}>{t.live.noPlace}</p>
+              <button type="button" className={styles.inertAction} data-testid="live-set-place" onClick={requestPlace}>
+                {t.live.setPlace}
+              </button>
+            </>
+          )}
+          {state === 'loading' && (
+            <p className={styles.inertLine} role="status" data-testid="live-loading">
+              <Mark tier="header32" sizePx={INDICATOR_MARK_PX} running />
+              <span>{t.live.loadingElements}</span>
+            </p>
+          )}
+          {state === 'failed' && elements.status === 'error' && <FailureLine failure={elements.failure} what={t.failure.what.elements} instead={t.live.failedInstead} onRetry={retryElements} />}
+        </div>
       </Page>
     );
   }
   return <LiveSky observer={observer} link={link} wakeLock={wakeLock} onLeave={onLeave} />;
+}
+
+/**
+ * R89 (FR-LIVE-1 as amended v2.1, FR-OFF-8, FR-FAIL-6; F-92): what the page can be before it draws, told apart.
+ * No observer is **no place**. With one, the page draws once the elements are ready — or, with no usable
+ * elements, once the passes for this place are on screen from the stored run (FR-OFF-8: the stored passes'
+ * tracks, rather than standing inert for want of a network). Otherwise a failed load is **failed** and anything
+ * else — idle before the effects start, a load or a retry under way — is **loading**, so a cold `#live` opens on
+ * loading and never flashes the failed text.
+ */
+export type LiveState = 'no-place' | 'loading' | 'failed' | 'sky';
+
+export function liveState(observer: Observer | null, elements: ElementsState, passes: PassesState): LiveState {
+  if (observer === null) return 'no-place';
+  if (elements.status === 'ready') return 'sky';
+  if (sameLocation(passes.observer, observer) && passes.passes.length > 0) return 'sky';
+  return elements.status === 'error' ? 'failed' : 'loading';
 }
 
 const NO_FOLD: readonly LiveFold[] = [];
@@ -213,29 +251,37 @@ function TopRow({ place, indicator, screenOpen, onLeave }: { place: string | nul
   const t = useT();
   const compact = useLayoutMode() === 'compact';
   return (
-    /* FR-FSC-1 (D-321): the sky screen covers this row for the eye; `inert` is the other half — nothing under
-       the layer is reachable, by Tab or by a tap that lands past it — and `aria-hidden` is what takes it out of
-       the accessible tree, since `inert` alone is a browser behaviour and not a name a test can read. */
-    <div className={styles.topRow} data-testid="live-top-row" {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
-      {/* R85 (FR-COMP-7, D-549): `[ ← ]` on compact, named by the word it no longer draws; the hit box is the same rule's. */}
-      <button type="button" className={styles.back} onClick={onLeave} {...(compact ? { 'aria-label': t.live.backName } : {})}>
-        {compact ? t.live.backShort : t.live.back}
-      </button>
-      {indicator}
-      {place !== null && (
-        <span className={styles.place} data-testid="live-place">
-          {place}
-        </span>
-      )}
-      {!compact && (
-        <div className={styles.controls}>
-          <LanguageToggle />
-          <ThemeToggle />
-        </div>
-      )}
+    /* R89 (FR-VISIT-2, FR-VISIT-3): the visit notice and the link's moment note head the page under this row,
+       R87's components as home mounts them; empty, the strip is not drawn and the area is the row alone. */
+    <div className={styles.topArea} data-testid="live-top-area">
+      {/* FR-FSC-1 (D-321): the sky screen covers this row for the eye; `inert` is the other half — nothing under
+          the layer is reachable, by Tab or by a tap that lands past it — and `aria-hidden` is what takes it out of
+          the accessible tree, since `inert` alone is a browser behaviour and not a name a test can read. */}
+      <div className={styles.topRow} data-testid="live-top-row" {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
+        {/* R85 (FR-COMP-7, D-549): `[ ← ]` on compact, named by the word it no longer draws; the hit box is the same rule's. */}
+        <button type="button" className={styles.back} onClick={onLeave} {...(compact ? { 'aria-label': t.live.backName } : {})}>
+          {compact ? t.live.backShort : t.live.back}
+        </button>
+        {indicator}
+        {place !== null && (
+          <span className={styles.place} data-testid="live-place">
+            {place}
+          </span>
+        )}
+        {!compact && (
+          <div className={styles.controls}>
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
+        )}
+      </div>
+      {!screenOpen && <PageNotices kinds={LIVE_NOTES} />}
     </div>
   );
 }
+
+/** FR-VISIT-3: the notes a live link can leave — its moment has passed, or is beyond the stripe's span. */
+const LIVE_NOTES: readonly LinkNoteKind[] = ['past', 'far'];
 
 /**
  * D-171: the hash follows the shown instant so a reload or a share lands on
@@ -341,7 +387,9 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const now = useNow(TICK_MS);
   const span = useMemo<Span>(() => ({ start: now, end: now + LIVE_WINDOW_MS }), [now]);
   // FR-LIVE-4, FR-LIVE-5, FR-LIVE-9: the link's instant, real time, or wherever the stripe and playback have taken it.
-  const playback = usePlayback({ span, realNow: now, initial: link?.t ?? null });
+  // R89 (FR-VISIT-3): a link's moment that has passed opens watching, and one beyond the span holds at its end.
+  const [initial] = useState(() => linkInstant(link?.t ?? null, now, LIVE_WINDOW_MS));
+  const playback = usePlayback({ span, realNow: now, initial });
   const shown = playback.t;
   /*
    * R77 (FR-WATCH-1, D-446): the page is watching while the shown instant is real time and scrubbing while it is
@@ -361,7 +409,9 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
     foldRef.current = fold;
   }, [fold]);
   // The passes belong to this observer only once the slice says so; before that the dome is empty rather than someone else's.
-  const passes = useMemo(() => (passesState.observer === observer ? livePasses(passesState.passes, now) : []), [passesState.observer, passesState.passes, observer, now]);
+  // R89 (FR-OFF-8): by place and not by object, since a stored run's observer is the one it was stored with.
+  const ownPasses = sameLocation(passesState.observer, observer);
+  const passes = useMemo(() => (ownPasses ? livePasses(passesState.passes, now) : []), [ownPasses, passesState.passes, now]);
   // FR-LIVE-5: the two bodies at most once per second of wall time, whatever the speed.
   const bodiesAt = useWallThrottle(shown, BODIES_EVERY_MS);
   const bodies = useSkyBodies({ observer, now: bodiesAt });
@@ -430,8 +480,9 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
    * R76 (FR-FIRST-3) and R77 (FR-WATCH-2, V20-18): the watching headline is the home page's next-event block,
    * from the same stored run the drawing uses, at real time — the passes of the coming 24 h, so "no pass" says 24.
    */
-  const elementCount = elements.status === 'ready' ? elements.records.length : elements.status === 'error' ? 0 : null;
-  const passesPending = passesState.observer !== observer || (passesState.status !== 'done' && passesState.status !== 'error');
+  // R89 (FR-OFF-8): with no usable elements the page runs on the stored run, whose count is not known here.
+  const elementCount = elements.status === 'ready' ? elements.records.length : null;
+  const passesPending = !ownPasses || (passesState.status !== 'done' && passesState.status !== 'error');
 
   const indicator = has('indicator') ? <StateIndicator held={scrubbing} /> : null;
   const nextEvent = has('next-event') ? (
