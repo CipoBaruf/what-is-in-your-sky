@@ -372,7 +372,8 @@ function useJumpFitsOnPath(active: boolean, headlineRef: RefObject<HTMLDivElemen
     if (!active || !root || typeof ResizeObserver === 'undefined') return;
     const measure = (): void => {
       const control = document.querySelector('[data-testid="next-event-see"]');
-      if (control) controlPx.current = control.getBoundingClientRect().width;
+      const width = control?.getBoundingClientRect().width ?? 0;
+      if (width > 0) controlPx.current = width;
       const line = root.querySelector('[data-testid="next-event-path"]');
       const words = line?.querySelector('[data-path-text]');
       if (!line || !words || controlPx.current === null) return;

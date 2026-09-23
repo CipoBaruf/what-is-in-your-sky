@@ -271,6 +271,46 @@ function dropParts(found: Map<string, Rect>, container: string, parts: readonly 
 }
 const STRIP_FIELDS = ['strip time', 'strip sky', 'strip cloud', 'strip count', 'strip moon'] as const;
 
+/**
+ * R101 (FR-JUMP-1, D-624): the rows where `[ see this pass ]` costs a text line, by row and language, with the
+ * px it costs — measured on the seed's pass, whose path is 47 cells (`SL-16 R/B (Cosmos 2369) · S low → 32° ESE
+ * → ENE`). The chart box is in none of them.
+ *
+ * - The landscape phone at 844 and 932 px: the rail is 49–55 cells, the path is one line in it, and the control
+ *   takes a text line under it inside the rail (24 px), which has the room and scrolls inside itself; the
+ *   compact actions row beside `[ scrub ]` would have cost a tap row (48) at 844. At 740 the path already wraps
+ *   and the control rides on its last line.
+ * - The short wide window from 1200 px, English: the rail's rows are one flowing line under the fold (FR-SHP-3),
+ *   the path fills the rail's line, and beside `[ scrub the night ]` the control takes a line of that flow with
+ *   its gap (48). The box is the overlay's and does not move; Spanish, whose path wraps, costs nothing.
+ */
+const JUMP_ALLOWANCE: Readonly<Record<string, Readonly<Record<string, number>>>> = {
+  '844x390 en': { 'next event': ROW_PX },
+  '932x430 en': { 'next event': ROW_PX },
+  '844x500 en': { 'next event': ROW_PX },
+  '844x390 es': { 'next event': ROW_PX },
+  '932x430 es': { 'next event': ROW_PX },
+  '844x500 es': { 'next event': ROW_PX },
+  '1200x450 en': { actions: 2 * ROW_PX },
+  '1400x480 en': { actions: 2 * ROW_PX },
+  '1920x500 en': { actions: 2 * ROW_PX },
+};
+
+/** Every row's height, once two reads a poll apart agree. The headline is a row here too: the control rides on it. */
+async function rowHeights(page: Page): Promise<Map<string, number>> {
+  const entries = [...liveRows(page), ['next event', page.getByTestId('next-event')] as const];
+  const found = await settledRects(entries);
+  return new Map([...found].map(([name, rect]) => [name, Math.round(rect.height)]));
+}
+
+/** The control in or out of the layout, by its own style: the page's CSP refuses an injected stylesheet. */
+async function setJumpDisplay(page: Page, display: 'none' | null): Promise<void> {
+  await page.getByTestId('next-event-see').evaluate((element, value) => {
+    if (value === null) (element as HTMLElement).style.removeProperty('display');
+    else (element as HTMLElement).style.setProperty('display', value, 'important');
+  }, display);
+}
+
 async function openLive(page: Page, locale: 'en' | 'es' = 'en'): Promise<void> {
   await seedStoredRun(page, { locale, settled: true });
   await page.getByTestId('live-link').click();
@@ -315,6 +355,38 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       await backToLive(page);
     }
   });
+
+  /*
+   * R101 (FR-JUMP-1, D-624): `[ see this pass ]` adds no row. At every row, watching with the control shown — the
+   * seed's headline names a rise 3:45:07 ahead — each row of the page is measured, then measured again with the
+   * control taken out of the layout (`display: none`, which is what the page before R101 rendered), and no row's
+   * height may differ. `liveRows.ts`'s `jumpPlacement` is what makes that so, and the rows where the pass's words
+   * leave it no room are written down in `JUMP_ALLOWANCE` rather than hidden in a looser assertion. The chart box
+   * has no allowance anywhere.
+   */
+  for (const locale of ['en', 'es'] as const) {
+    test(`[ see this pass ] adds no row at any row of the matrix, watching, ${locale} (FR-JUMP-1, FR-SHP-4)`, async ({ page }) => {
+      test.setTimeout(240_000);
+      await openLive(page, locale);
+      const rows: Size[] = [...MATRIX.compactPortrait, ...MATRIX.landscapePhone, ...MATRIX.shortWide, ...MATRIX.desktop, ...MATRIX.boundaries];
+      for (const size of rows) {
+        const [width, height] = size;
+        const at = `${label(size)} ${locale}`;
+        await page.setViewportSize({ width, height });
+        await settled(page);
+        await expect(page.getByTestId('next-event-see'), at).toBeVisible();
+        const shown = await rowHeights(page);
+        await setJumpDisplay(page, 'none');
+        const without = await rowHeights(page);
+        await setJumpDisplay(page, null);
+        const allowed = JUMP_ALLOWANCE[`${label(size)} ${locale}`] ?? {};
+        for (const [row, px] of without) {
+          expect(shown.get(row), `${at}: ${row} is ${String(shown.get(row))} px with the control, ${String(px)} px without`).toBe(px + (allowed[row] ?? 0));
+        }
+        expect(shown.get('chart box'), at).toBe(without.get('chart box'));
+      }
+    });
+  }
 
   /** FR-SHP-4's invariants at one row in one state; the box it measured is returned for the state-to-state comparison. */
   async function invariants(page: Page, size: Size, state: 'watching' | 'scrubbing'): Promise<Rect> {
