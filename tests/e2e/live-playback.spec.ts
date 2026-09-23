@@ -291,6 +291,9 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
 
     await page.reload();
     await domeDrawn(page);
+    // R89 (FR-VISIT-3): the hash held the instant `[ scrub ]` took, which the clock has passed by now, so the
+    // reload opens watching; the toggle is back on the scrubbing row.
+    await enterScrubbing(page);
     await expect(page.getByRole('button', { name: 'Hidden objects' })).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: 'Hidden objects' }).click();
     await expect(page.getByRole('button', { name: 'Hidden objects' })).toHaveAttribute('aria-pressed', 'false');

@@ -2198,7 +2198,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
     - `passes.golden.test.ts` unchanged and green.
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
 
-- [ ] **R89 — The live page's three states, the visit notice on it, offline from a stored run**
+- [x] **R89 — The live page's three states, the visit notice on it, offline from a stored run**
   - **Lane:** live
   - **Model:** opus
   - **Gate:** owner
@@ -2223,6 +2223,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
     - Captures: the three states at 390 and 1280 px, both themes, both languages.
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: aeroplane mode on a phone with the live page open, then `[ retry ]`.
+  - *Done:* the `Disclosure` is `FailureLine`'s own `[ details ]` toggle over a `<pre>`, as `ElementsLine` does it, since no shared component exists (D-583); a stored run counts for the page by place, not by object, and opens it while the elements are still loading too (D-584); "a held instant real time overtakes" is one that was ahead of real time when set, so `[ scrub ]` at now is not released (D-585); the notice strip shares the top row's grid area (D-586).
 
 - [x] **R98 — `showFaint` in the prefs schema and store** *(done as written; only `true` is read back from storage, D-632; `localPrefs.test.ts` covers the schema beside `prefs.test.ts`)*
   - **Lane:** data
