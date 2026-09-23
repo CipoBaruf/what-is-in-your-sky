@@ -35,4 +35,7 @@
 .row dd.failure {
   flex: 1 1 100%;
   text-align: left;
+  /* The pass list's status line's size, so the two lines on the page read alike. */
+  font-size: var(--small);
+  line-height: var(--small-row);
 }
