@@ -107,16 +107,36 @@ export function rowsFor(state: LiveState, mode: LayoutMode, shape: LiveShape): r
 
 /**
  * R101 (FR-JUMP-1, D-624): where `[ see this pass ]` stands while watching — after the headline's path line
- * (`path`), or beside `[ scrub the night ]` on the actions row (`actions`) — so that it adds no row at any of
- * FR-SHP-4's four shapes. It is never a row of its own, which is why it is not a `LiveRow`: it rides on the
- * `next-event` row or on the `actions` row, and is in the DOM exactly when its row is and the headline names a
- * rise far enough ahead (`jumpInstant`).
+ * (`path`), or beside `[ scrub the night ]` on the actions row (`actions`) — so that it adds no row. It is never
+ * a row of its own, which is why it is not a `LiveRow`: it rides on the `next-event` row or on the `actions` row,
+ * and is in the DOM exactly when its row is and the headline names a rise far enough ahead (`jumpInstant`).
+ *
+ * The rule, from R101's walk of FR-SHP-4's matrix in both languages (the control shown against the control
+ * taken out, every row's height compared; the table is `shapes.spec.ts`'s `JUMP_ALLOWANCE`):
+ *
+ * - **Compact, both shapes: the path line, always.** The path is the pass's own words, so whether 17 more cells
+ *   fit after its last line depends on the pass; where they do not, the control takes a text line under the path
+ *   (24 px). The compact actions row is full — `[ scrub ] [ list (n) ] [ Share ]` is 34 of 36 cells — so beside
+ *   `[ scrub ]` it would take a tap row (48 px), which on the portrait page is taken from the box. Measured on the
+ *   fixture's pass (a 47-cell path): no row changes at any portrait row; on the landscape phone at 844 px the
+ *   headline gains its text line inside the rail, whose own scroll has the room (the dome's column is untouched).
+ * - **Wide, both shapes: the path line where the control fits after the path's last line, otherwise beside
+ *   `[ scrub the night ]`.** The rail is what the box leaves, from 44 cells up, so the fit is measured, not
+ *   tabled (`jumpFitsOnPath`, fed by `Live.tsx`). Measured: no row changes at any tall wide row in either
+ *   language — the path line under 1660 px, where the 44-cell rail wraps the path and leaves its last line room,
+ *   and the actions row from 1660 px, where they share the line `[ Hidden ]` stands on. On the short wide window
+ *   the rail's rows are one flowing line under the fold (FR-SHP-3), and the English actions take a line of it
+ *   from 1200 px; the box is the overlay's and does not move.
  */
 export type JumpPlacement = 'path' | 'actions';
 
-export function jumpPlacement(mode: LayoutMode, shape: LiveShape): JumpPlacement {
-  void shape;
-  return mode === 'compact' ? 'path' : 'actions';
+export function jumpPlacement(mode: LayoutMode, fitsOnPath: boolean): JumpPlacement {
+  return mode === 'compact' || fitsOnPath ? 'path' : 'actions';
+}
+
+/** The control fits after the path's last line: that line's end, one cell of space and the control, inside the row (half a pixel for rounding). */
+export function jumpFitsOnPath({ lastLineEndPx, spacePx, controlPx, rowPx }: { lastLineEndPx: number; spacePx: number; controlPx: number; rowPx: number }): boolean {
+  return lastLineEndPx + spacePx + controlPx <= rowPx + 0.5;
 }
 
 /**

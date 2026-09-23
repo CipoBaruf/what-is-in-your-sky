@@ -42,7 +42,7 @@ import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import { requestPlace } from './home/placeRequest';
 import styles from './Live.module.css';
-import { inventoryClip, jumpPlacement, liveShape, rowsFor, type LiveRow } from './liveRows';
+import { inventoryClip, jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type LiveRow } from './liveRows';
 
 /**
  * R32 (FR-LIVE-1, FR-LIVE-2, FR-LIVE-3, FR-LIVE-9, FR-LIVE-10; US-15 AC1, AC2,
@@ -357,6 +357,45 @@ function useInventoryRows(active: boolean, domeRef: RefObject<HTMLDivElement | n
   return rows;
 }
 
+/**
+ * R101 (FR-JUMP-1, D-624): whether `[ see this pass ]` fits after the headline's path line on the wide page, for
+ * `liveRows.ts`'s `jumpPlacement`. Measured, since the path is the pass's words and the rail is what the box
+ * leaves: where the path's last line ends (a range over its words, which lay out the same wherever the control
+ * goes, so the answer cannot feed itself), and the control's own width wherever it last stood. Until the control
+ * has been seen the answer is "fits", so it is drawn on the path first and measured there.
+ */
+function useJumpFitsOnPath(active: boolean, headlineRef: RefObject<HTMLDivElement | null>, cells: number, passes: readonly Pass[], placement: ScrubPlacement): boolean {
+  const [fits, setFits] = useState(true);
+  const controlPx = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const root = headlineRef.current;
+    if (!active || !root || typeof ResizeObserver === 'undefined') return;
+    const measure = (): void => {
+      const control = document.querySelector('[data-testid="next-event-see"]');
+      if (control) controlPx.current = control.getBoundingClientRect().width;
+      const line = root.querySelector('[data-testid="next-event-path"]');
+      const words = line?.querySelector('[data-path-text]');
+      if (!line || !words || controlPx.current === null) return;
+      const range = document.createRange();
+      range.selectNodeContents(words);
+      if (typeof range.getClientRects !== 'function') return;
+      const rects = range.getClientRects();
+      const last = rects[rects.length - 1];
+      if (!last) return;
+      const row = line.getBoundingClientRect();
+      const next = jumpFitsOnPath({ lastLineEndPx: last.right - row.left, spacePx: controlPx.current / cells, controlPx: controlPx.current, rowPx: row.width });
+      setFits((was) => (was === next ? was : next));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    measure();
+    return () => {
+      observer.disconnect();
+    };
+  }, [active, headlineRef, cells, passes, placement]);
+  return fits;
+}
+
 /** The page with something to draw: the chart, the headline, the conditions, the timelines, the controls and the share action, for one observer. */
 function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; link: LiveLink | null; wakeLock: WakeLockState; onLeave: () => void }) {
   const t = useT();
@@ -496,9 +535,12 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const seePass = playback.stepTo;
   const nextEventContext = useMemo(() => ({ hasDarkness: passesState.hasDarkness, elementCount }), [passesState.hasDarkness, elementCount]);
   const liveHours = LIVE_WINDOW_MS / 3_600_000;
-  const jumpAt = scrubbing ? null : jumpPlacement(mode, liveShape(placement));
+  const headlineRef = useRef<HTMLDivElement>(null);
+  // The control's cells with its brackets, so one of them is the space before it; re-measured as the passes change.
+  const fitsOnPath = useJumpFitsOnPath(!compact && has('next-event'), headlineRef, t.live.seeThisPass.length + 4, passes, placement);
+  const jumpAt = scrubbing ? null : jumpPlacement(mode, fitsOnPath);
   const nextEvent = has('next-event') ? (
-    <div className={styles.headline}>
+    <div className={styles.headline} ref={headlineRef}>
       <NextEventBlock passes={passes} timeZone={observer.timeZone} context={nextEventContext} pending={passesPending} hours={liveHours} liveLink={false} {...(jumpAt === 'path' ? { onSee: seePass } : {})} />
     </div>
   ) : null;

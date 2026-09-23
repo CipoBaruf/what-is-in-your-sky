@@ -180,7 +180,8 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
             {time}
           </p>
           <p className={styles.path} data-testid="next-event-path">
-            {t.nextEvent.named({ name: pass.name, path })}
+            {/* The words alone in a span, so a host can find where their last line ends (R101, `Live.tsx`). */}
+            <span data-path-text="">{t.nextEvent.named({ name: pass.name, path })}</span>
             {/* FR-JUMP-1: inline after the path, so it takes the path's last line where that has the cells and
                 the headline has no row of its own for it. */}
             {rise !== null && onSee && (
