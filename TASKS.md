@@ -2154,7 +2154,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: the Spanish notice and notes, and the captures.
 
-- [ ] **R90 — The sky screen's wait and the denial note**
+- [x] **R90 — The sky screen's wait and the denial note**
   - **Lane:** window
   - **Model:** opus
   - **Gate:** owner

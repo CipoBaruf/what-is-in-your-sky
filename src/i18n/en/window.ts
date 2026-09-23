@@ -12,10 +12,13 @@ export const windowMessages = {
     /** FR-WIN-5: the one control in the window's place while the browser still needs a tap before it gives orientation. */
     /** Between the tap and the first reading. */
     waiting: 'Waiting for the phone’s sensors…',
-    /** FR-WIN-4: the permission was refused; the dome is the view again. */
-    denied: 'Motion access was refused, so the dome stays the view.',
-    /** FR-WIN-4: the readings carry no north (FR-LIVE-8's case); the window is not offered. */
-    relative: 'This phone gives no compass heading, so the window cannot find north.',
+    /** FR-WIN-4: the permission was refused; the dome is the view again. R90 (FR-FAIL-7): and how to be asked again, since the app cannot. */
+    denied: 'Motion access was refused, so the dome stays the view. To be asked again, reload the page: Safari asks once per load.',
+    /**
+     * FR-WIN-4: the readings carry no north (FR-LIVE-8's case); the window is not offered. R90 (FR-FAIL-7): also the
+     * note when no reading arrives within `SENSOR_WAIT_S`, in the spec's words for both cases.
+     */
+    relative: 'This device is not reporting which way it faces.',
     hint: 'Hold the phone up: the window shows the sky it points at.',
     /** FR-GUIDE-4's readout for the window: where the back of the phone points, e.g. "Looking NE (53°) · up 10°". */
     readout: (p: { point: CompassPoint; azimuth: string; altitude: string }) => `Looking ${p.point} (${p.azimuth}) · up ${p.altitude}`,

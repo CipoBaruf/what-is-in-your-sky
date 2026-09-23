@@ -217,7 +217,7 @@ test.describe('the sky window on a phone', () => {
     await tapWindow(page, figure, 'en');
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(figure).toHaveAttribute('data-view', 'dome');
-    await expect(figure.getByTestId('chart-view-note')).toHaveText('Motion access was refused, so the dome stays the view.');
+    await expect(figure.getByTestId('chart-view-note')).toHaveText('Motion access was refused, so the dome stays the view. To be asked again, reload the page: Safari asks once per load.');
     await page.screenshot({ path: `${CAPTURE_DIR}/r66-window-390-denied-dark-en.png` });
     // Any other choice clears the note.
     await toggle.getByRole('button', { name: 'Polar' }).click();
@@ -238,7 +238,40 @@ test.describe('the sky window on a phone', () => {
     await page.clock.runFor(FRAME_MS);
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(figure).toHaveAttribute('data-view', 'dome');
-    await expect(figure.getByTestId('chart-view-note')).toHaveText('This phone gives no compass heading, so the window cannot find north.');
+    await expect(figure.getByTestId('chart-view-note')).toHaveText('This device is not reporting which way it faces.');
+    await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome']);
+  });
+
+  /** R90 (FR-FAIL-7): the two notes it changed, captured in both languages. */
+  for (const locale of ['en', 'es'] as const) {
+    for (const note of ['silent', 'denied'] as const) {
+      test(`capture: the ${note} note at 390, dark, ${locale}`, async ({ page }) => {
+        await stubCompass(page);
+        if (note === 'denied') await withPermissionPrompt(page, 'denied');
+        await open(page, { width: 390, height: 844 }, { locale, theme: 'dark', observer: PARIS, chartView: 'dome' });
+        const figure = await openDetail(page, locale);
+        await figure.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
+        await page.clock.runFor(3000);
+        await expect(figure.getByTestId('chart-view-note')).toBeVisible();
+        await figure.getByTestId('chart-view-note').scrollIntoViewIfNeeded();
+        await page.screenshot({ path: `${CAPTURE_DIR}/r90-window-390-${note}-dark-${locale}.png` });
+      });
+    }
+  }
+
+  /** R90 (FR-FAIL-7, D-550): a device whose orientation API never sends a reading gets the note after SENSOR_WAIT_S (3 s). */
+  test('a device that sends no reading gets the note three seconds after the tap', async ({ page }) => {
+    await stubCompass(page);
+    await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
+    const figure = await openDetail(page, 'en');
+    const toggle = figure.getByRole('group', { name: VIEW_GROUP.en });
+    await toggle.getByRole('button', { name: WINDOW_OPTION.en }).click();
+    await page.clock.runFor(2900);
+    await expect(figure.getByTestId('chart-view-note')).toHaveCount(0);
+    await page.clock.runFor(100);
+    await expect(figure.getByTestId('chart-view-note')).toHaveText('This device is not reporting which way it faces.');
+    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
+    await expect(figure).toHaveAttribute('data-view', 'dome');
     await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome']);
   });
 
