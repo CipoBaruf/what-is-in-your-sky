@@ -183,9 +183,11 @@ export function LivePage({ link, onLeave }: LivePageProps) {
             </>
           )}
           {state === 'loading' && (
-            <p className={styles.inertLine} role="status" data-testid="live-loading">
+            <p className={styles.inertLine}>
               <Mark tier="header32" sizePx={INDICATOR_MARK_PX} running />
-              <span>{t.live.loadingElements}</span>
+              <span role="status" data-testid="live-loading">
+                {t.live.loadingElements}
+              </span>
             </p>
           )}
           {state === 'failed' && elements.status === 'error' && <FailureLine failure={elements.failure} what={t.failure.what.elements} instead={t.live.failedInstead} onRetry={retryElements} />}
