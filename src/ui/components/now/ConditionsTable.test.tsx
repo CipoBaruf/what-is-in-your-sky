@@ -145,7 +145,7 @@ describe('<ConditionsTable> (FR-FIRST-9)', () => {
   });
 
   it('says "weather unknown" when the forecast failed, is still loading, or belongs to another observer (US-7 AC4)', () => {
-    set({ observer, now: { observer, state: state(), error: null }, weather: { observer, status: 'error', snapshot: null, error: 'HTTP 503' } });
+    set({ observer, now: { observer, state: state(), error: null }, weather: { observer, status: 'error', snapshot: null, error: { kind: 'server', detail: 'HTTP 503' } } });
     const { rerender } = render(table());
     expect(within(value('Clouds now')).getByText('Weather unknown')).toHaveAttribute('data-state', 'unknown');
     set({ weather: { observer, status: 'loading', snapshot: null, error: null } });

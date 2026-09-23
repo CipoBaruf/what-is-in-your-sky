@@ -14,8 +14,13 @@ export const GEOCODE_COUNT = 8;
 export const MIN_QUERY_LENGTH = 2;
 
 export class OpenMeteoGeocodeError extends Error {
-  constructor(message: string) {
+  /** R86 (D-540): what `toFailure` reads to tell a rate limit, a server error and a body that was not the data apart. */
+  readonly status: number | undefined;
+  readonly badData: boolean;
+  constructor(message: string, { status, badData = false }: { status?: number; badData?: boolean } = {}) {
     super(message);
+    this.status = status;
+    this.badData = badData;
     this.name = 'OpenMeteoGeocodeError';
   }
 }
@@ -38,7 +43,7 @@ export function geocodeUrl(normalisedQuery: string): string {
 export function parseGeocodeBody(body: unknown): Place[] {
   const result = geocodeResponseSchema.safeParse(body);
   if (!result.success) {
-    throw new OpenMeteoGeocodeError(`Open-Meteo geocoding: unexpected response: ${result.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}`);
+    throw new OpenMeteoGeocodeError(`Open-Meteo geocoding: unexpected response: ${result.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ')}`, { badData: true });
   }
   return (result.data.results ?? []).map((r) => ({
     name: r.name,
@@ -66,11 +71,11 @@ export async function fetchPlaces(normalisedQuery: string, options: FetchPlacesO
   try {
     body = await response.json();
   } catch {
-    throw new OpenMeteoGeocodeError(`Open-Meteo geocoding: HTTP ${String(response.status)}, response is not JSON`);
+    throw new OpenMeteoGeocodeError(`Open-Meteo geocoding: HTTP ${String(response.status)}, response is not JSON`, { status: response.status, badData: true });
   }
   const error = openMeteoErrorSchema.safeParse(body);
-  if (error.success) throw new OpenMeteoGeocodeError(`Open-Meteo geocoding: HTTP ${String(response.status)}: ${error.data.reason}`);
-  if (!response.ok) throw new OpenMeteoGeocodeError(`Open-Meteo geocoding: HTTP ${String(response.status)}`);
+  if (error.success) throw new OpenMeteoGeocodeError(`Open-Meteo geocoding: HTTP ${String(response.status)}: ${error.data.reason}`, { status: response.status, badData: true });
+  if (!response.ok) throw new OpenMeteoGeocodeError(`Open-Meteo geocoding: HTTP ${String(response.status)}`, { status: response.status });
   return parseGeocodeBody(body);
 }
 

@@ -2103,7 +2103,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
 
 ### Wave 2
 
-- [ ] **R86 — Failures in the store: kinds, retry actions, the forecast's refresh, the worker's listeners and stall, the stale recompute, the stored run's age**
+- [x] **R86 — Failures in the store: kinds, retry actions, the forecast's refresh, the worker's listeners and stall, the stale recompute, the stored run's age**
   - **Lane:** data
   - **Model:** opus
   - **Gate:** auto
@@ -2128,6 +2128,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
     - A store test with stored runs aged 1 h, 50 h and 14 days (FR-NIGHT-3): 1 h shows with the span that is left, and 50 h and 14 days show `computing`.
     - `passes.golden.test.ts` unchanged and green.
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
+  - **Note:** the place search's `Failure` lives in `PlacePicker`, which owns that state; the location slice holds none (D-567). The 50 h run reads `computing` through FR-NIGHT-4's recompute over its 22 h that are left (D-571).
 
 - [ ] **R87 — The visit notice and the link notes; one screen with its footer; `[ set a place ]`'s landing**
   - **Lane:** ui

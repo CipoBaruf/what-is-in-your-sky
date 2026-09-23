@@ -37,7 +37,7 @@ describe('ElementsBanners (R11: FR-SAT-4, FR-SAT-6, FR-X-4)', () => {
     set({ elements: { status: 'loading' } });
     render(<ElementsBanners now={FETCHED_AT} />);
     expect(screen.queryByTestId('elements-banners')).toBeNull();
-    set({ elements: { status: 'error', message: 'HTTP 503' } });
+    set({ elements: { status: 'error', failure: { kind: 'server', detail: 'HTTP 503' } } });
     expect(screen.queryByTestId('elements-banners')).toBeNull();
   });
 

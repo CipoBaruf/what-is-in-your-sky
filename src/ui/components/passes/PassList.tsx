@@ -4,7 +4,7 @@ import { useLocale, useT } from '../../../i18n/useT';
 import { nextFeaturedPass, sortPasses } from '../../../lib/passSort';
 import { formatDate, nextCalendarDate } from '../../../lib/timeFormat';
 import type { EpochMs, Locale, Observer } from '../../../model';
-import { SEARCH_WINDOW_HOURS, isFeatured, useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../../state';
+import { isFeatured, useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../../state';
 import { SectionHeading } from '../common/SectionHeading';
 import { useNow } from '../../hooks/useNow';
 import { groupByNight, type NightGroup } from './nightGroups';
@@ -38,10 +38,11 @@ import { SortToggle } from './SortToggle';
  * which keep their document order under their night (US-16 AC5).
  */
 export function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState, t: Messages): string {
-  const hours = SEARCH_WINDOW_HOURS;
+  // D-536: a stored run partly elapsed counts over what is left of its window, not its original span.
+  const hours = passes.spanHours;
   if (!observer) return t.passes.noObserver;
   if (elements.status === 'idle' || elements.status === 'loading') return t.passes.loadingElements;
-  if (elements.status === 'error') return t.passes.elementsError(elements.message);
+  if (elements.status === 'error') return t.passes.elementsError(elements.failure.detail);
   if (elements.records.length === 0) return t.passes.noElements;
   const place = observer.label;
   switch (passes.status) {
@@ -50,7 +51,7 @@ export function statusText(observer: Observer | null, elements: ElementsState, p
     case 'computing':
       return t.passes.computingProgress({ done: passes.done, total: passes.total, found: passes.passes.length });
     case 'error':
-      return t.passes.passesError(passes.error ?? t.passes.unknownError);
+      return t.passes.passesError(passes.error?.detail ?? t.passes.unknownError);
     case 'done':
       if (passes.passes.length === 0 && passes.hasDarkness === false) return t.passes.noDarkness({ hours, place });
       if (passes.passes.length === 0) return t.passes.none({ hours, place });

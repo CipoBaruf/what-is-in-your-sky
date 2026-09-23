@@ -7,6 +7,7 @@ import { createLocationSlice, type LocationDeps, type LocationSlice } from './sl
 import { createNowSlice, type NowSlice } from './slices/now';
 import { createPassesSlice, type PassesSlice } from './slices/passes';
 import { createPrefsSlice, type PrefsDeps, type PrefsSlice } from './slices/prefs';
+import { createRetrySlice, type RetrySlice } from './slices/retry';
 import { createUiSlice, type UiSlice } from './slices/ui';
 import { createWeatherSlice, type WeatherSlice } from './slices/weather';
 import { clearLocationHash } from './hash';
@@ -23,7 +24,7 @@ import { activeObserver } from './slices/location';
  * R83 (D-538): `observer` only. A visited place (`visiting`) is never written,
  * so a link opened over a saved place leaves `wiys:prefs:v1` as it was.
  */
-export type AppState = LocationSlice & ElementsSlice & PassesSlice & NowSlice & WeatherSlice & PrefsSlice & AppUpdateSlice & UiSlice;
+export type AppState = LocationSlice & ElementsSlice & PassesSlice & NowSlice & WeatherSlice & PrefsSlice & AppUpdateSlice & UiSlice & RetrySlice;
 export type AppStore = StoreApi<AppState>;
 
 export type AppStoreDeps = LocationDeps & PrefsDeps;
@@ -38,6 +39,7 @@ export function createAppStore(deps: AppStoreDeps): AppStore {
     ...createPrefsSlice(deps)(...a),
     ...createAppUpdateSlice(...a),
     ...createUiSlice(...a),
+    ...createRetrySlice(...a),
   }));
   store.subscribe((state, previous) => {
     if (state.observer === previous.observer) return;
