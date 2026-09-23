@@ -51,13 +51,15 @@ export interface PassCardProps {
   detail?: 'magnitude' | 'phrase';
   /** The `Next ISS` tag, on the one card `nextFeaturedPass` chooses. */
   tag?: string;
+  /** FR-NIGHT-2: the pass is over on the shown clock; the card reads `ended` in place of the cloud word while it lingers. */
+  ended?: boolean;
 }
 
-export function PassCard({ pass, timeZone, onOpen, weather, selected = false, detail = 'magnitude', tag }: PassCardProps) {
+export function PassCard({ pass, timeZone, onOpen, weather, selected = false, detail = 'magnitude', tag, ended = false }: PassCardProps) {
   const t = useT();
   const locale = useLocale();
   const headingId = useId();
-  const flags = weather !== undefined || pass.twilight || pass.moonGlare.glare;
+  const flags = ended || weather !== undefined || pass.twilight || pass.moonGlare.glare;
   return (
     <article className={styles.card} aria-labelledby={headingId} data-pass-id={pass.id} data-pass-card="" tabIndex={-1} {...(selected ? { 'data-selected': 'true', 'aria-current': true as const } : {})}>
       <div className={styles.first} data-testid="card-first-line">
@@ -81,7 +83,12 @@ export function PassCard({ pass, timeZone, onOpen, weather, selected = false, de
       </p>
       {flags && (
         <div className={styles.flags} data-testid="card-flags">
-          {weather !== undefined && (
+          {ended && (
+            <span className={styles.ended} data-testid="card-ended">
+              {t.passes.ended}
+            </span>
+          )}
+          {!ended && weather !== undefined && (
             <CloudBadge
               form="word"
               asText

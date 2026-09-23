@@ -320,6 +320,7 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".passes.countLine:function",
   ".passes.direction:function",
   ".passes.elementsError:function",
+  ".passes.ended:string",
   ".passes.fields.clouds:string",
   ".passes.fields.duration:string",
   ".passes.fields.magnitude:string",

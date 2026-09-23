@@ -8,7 +8,7 @@ import { coordsLabel } from '../../../lib/place';
 import { placeName } from '../../components/location/WherePlace';
 import { TonightStripe } from '../../components/now/TonightStripe';
 import { CloudBadge } from '../../components/weather/CloudBadge';
-import { usePassContext, useShownPasses } from './shownPasses';
+import { usePassContext, useShownClock, useShownPasses } from './shownPasses';
 import styles from './Steps.module.css';
 import { splitTonight } from './tonight';
 import { useMoonNote, useNight } from './useNight';
@@ -40,8 +40,9 @@ export function WhenStep({ observer, head, onNext, focus }: WhenStepProps) {
   const headingId = useId();
   const heading = useRef<HTMLHeadingElement>(null);
   const passes = useShownPasses();
-  const window = useAppStore((s) => s.passes.window);
   const nowSlice = useAppStore((s) => s.now);
+  // R88 (FR-NIGHT-2, D-535): the split counts on the clock the passes were pruned by, not the bands' hourly one.
+  const clock = useShownClock();
   const context = usePassContext();
   const night = useNight(observer);
   const note = useMoonNote(observer, night.window);
@@ -50,7 +51,7 @@ export function WhenStep({ observer, head, onNext, focus }: WhenStepProps) {
   }, [focus]);
 
   const zone = observer.timeZone;
-  const split = splitTonight(passes, window, night.now);
+  const split = splitTonight(passes, zone, clock);
   const state = nowSlice.observer === observer ? nowSlice.state : null;
   const moon = state ? moonFacts(state.moon) : null;
   const place = placeName(observer) ?? coordsLabel(observer.lat, observer.lon);

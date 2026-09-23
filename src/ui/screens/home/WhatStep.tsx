@@ -8,9 +8,8 @@ import { coordsLabel } from '../../../lib/place';
 import { placeName } from '../../components/location/WherePlace';
 import { NextEventBlock } from '../../components/passes/NextEventBlock';
 import { PassCard } from '../../components/passes/PassCard';
-import { HERO_CHECK_MS, nightLabel } from '../../components/passes/PassList';
-import { useNow } from '../../hooks/useNow';
-import { usePassContext, useShownPasses } from './shownPasses';
+import { nightLabel } from '../../components/passes/PassList';
+import { hasEnded, usePassContext, useShownClock, useShownPasses } from './shownPasses';
 import styles from './Steps.module.css';
 import { splitTonight } from './tonight';
 import { useNight } from './useNight';
@@ -47,12 +46,12 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
   const locale = useLocale();
   const headingId = useId();
   const heading = useRef<HTMLHeadingElement>(null);
-  const passes = useShownPasses();
-  const window = useAppStore((s) => s.passes.window);
+  const passes = useShownPasses(selectedPassId);
   const weather = useAppStore((s) => s.weather);
   const context = usePassContext();
   const night = useNight(observer);
-  const now = useNow(HERO_CHECK_MS);
+  // R88 (FR-NIGHT-2, D-535): the store's clock, the one the passes above were pruned by.
+  const now = useShownClock();
   const [moreTonight, setMoreTonight] = useState(false);
   const [moreNights, setMoreNights] = useState(false);
   useEffect(() => {
@@ -64,7 +63,7 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
   const nextContext = { hasDarkness: context.hasDarkness, elementCount: context.elementCount };
   const next = nextEvent(passes, now, nextContext);
   const firstId = isNoEvent(next) ? null : next.pass.id;
-  const split = splitTonight(passes, window, now);
+  const split = splitTonight(passes, zone, now);
   const others = split.tonight.filter((pass) => pass.id !== firstId);
   const shown = moreTonight ? others : others.slice(0, WHAT_STEP_CARDS - 1);
   const laterNights = split.laterNights.map((group) => ({ ...group, passes: group.passes.filter((pass) => pass.id !== firstId) })).filter((group) => group.passes.length > 0);
@@ -79,7 +78,7 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
 
   const card = (pass: Pass) => (
     <li key={pass.id}>
-      <PassCard pass={pass} timeZone={zone} weather={snapshot} detail="phrase" selected={pass.id === selectedPassId} onOpen={onOpenPass} />
+      <PassCard pass={pass} timeZone={zone} weather={snapshot} detail="phrase" selected={pass.id === selectedPassId} ended={hasEnded(pass, now)} onOpen={onOpenPass} />
     </li>
   );
 
@@ -105,7 +104,7 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
             laterNights.map((group) => (
               <Fragment key={group.index}>
                 <p className={styles.nightLabel} data-testid="what-night">
-                  {nightLabel(group, now, zone, locale, t)}
+                  {nightLabel(group, split.tonightKey, t)}
                 </p>
                 <ol className={styles.list}>{group.passes.map(card)}</ol>
               </Fragment>

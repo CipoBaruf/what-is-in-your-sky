@@ -14,7 +14,7 @@
  * those fixtures at that clock. If a change to the search moves a start time,
  * these fail loudly here rather than quietly showing the wrong card.
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { withSettings } from './liveHelpers';
 
 const FIXTURE_DATE = '2026-09-02';
@@ -39,6 +39,20 @@ test.beforeEach(async ({ page }) => {
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
 });
 
+/**
+ * R88 (FR-NIGHT-1, D-534): a night is local noon to local noon, so these two fixture passes — 03:52 and 19:33
+ * UTC on the 2nd — fall in two nights now, and only the open night's cards can be clicked (the closed group is
+ * `hidden`). The card's own group says which night holds it, so this needs neither a date nor a fixed device
+ * zone; it is `pass-detail.spec.ts`'s pattern.
+ */
+async function openNightOf(page: Page, card: Locator): Promise<void> {
+  const night = await card.evaluate((el) => {
+    const group = el.closest<HTMLElement>('[data-night-group]');
+    return group?.hidden === true ? (group.dataset['night'] ?? null) : null;
+  });
+  if (night !== null) await page.locator(`[data-testid="night-toggle"][data-night="${night}"]`).click();
+}
+
 /** Enter the observer and wait for the finished list (D-105: the 72 h search takes three nights). */
 async function listed(page: Page): Promise<void> {
   await page.goto('/');
@@ -57,6 +71,7 @@ test('the pass whose Moon is up, bright and close wears the label and the guide 
   // FR-MOON-2: the thresholds are in the tooltip, so the label can be judged.
   await expect(card.getByText('moon glare').first()).toHaveAccessibleDescription(/74 % lit and 8° from the pass peak.*at least 50 % lit and closer than 30°/);
 
+  await openNightOf(page, card);
   await card.getByRole('button', { name: /Open guide/ }).click();
   const dialog = page.getByRole('dialog', { name: 'ISS (Zarya)' });
   await expect(dialog).toContainText('The Moon is bright and close to the track.');
@@ -69,6 +84,7 @@ test('a pass that fails a condition shows neither the label nor the sentence', a
   await expect(card).toHaveCount(1);
   await expect(card).not.toContainText('moon glare');
 
+  await openNightOf(page, card);
   await card.getByRole('button', { name: /Open guide/ }).click();
   const dialog = page.getByRole('dialog', { name: 'Tiangong (Tianhe)' });
   await expect(dialog.getByTestId('guide-sentence')).toBeVisible(); // the guide is up…

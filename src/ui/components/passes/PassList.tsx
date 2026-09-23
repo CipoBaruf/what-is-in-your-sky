@@ -1,12 +1,12 @@
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import type { Messages } from '../../../i18n/messages';
-import { useLocale, useT } from '../../../i18n/useT';
+import { useT } from '../../../i18n/useT';
+import { nextNight, nightAt, type NightKey } from '../../../lib/nights';
 import { nextFeaturedPass, sortPasses } from '../../../lib/passSort';
-import { formatDate, nextCalendarDate } from '../../../lib/timeFormat';
-import type { EpochMs, Locale, Observer } from '../../../model';
+import type { EpochMs, Observer, Pass } from '../../../model';
 import { isFeatured, useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../../state';
+import { hasEnded, useShownClock, useShownPasses } from '../../screens/home/shownPasses';
 import { SectionHeading } from '../common/SectionHeading';
-import { useNow } from '../../hooks/useNow';
 import { groupByNight, type NightGroup } from './nightGroups';
 import { PassCard } from './PassCard';
 import styles from './PassList.module.css';
@@ -36,8 +36,16 @@ import { SortToggle } from './SortToggle';
  * on one row under the cards (`[−] Tonight 5 passes   [+] Tomorrow night 2
  * passes`), each a button that opens or closes its night's cards above it,
  * which keep their document order under their night (US-16 AC5).
+ *
+ * R88 (FR-NIGHT-1, FR-NIGHT-2, US-31): the list is about the nights ahead. The
+ * nights are cut on local noon (`nightGroups`), so a pass before dawn sits
+ * under the evening before it; the passes are the shown ones
+ * (`useShownPasses`), so an ended pass leaves within a minute and the count
+ * line, the nights' counts and the cards agree; and the clock is the store's
+ * (`useShownClock`), so the headings turn over at local noon on the tick that
+ * already exists and no test here reads the wall clock (F-67, F-68).
  */
-export function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState, t: Messages): string {
+export function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState, shown: number, t: Messages): string {
   // D-536: a stored run partly elapsed counts over what is left of its window, not its original span.
   const hours = passes.spanHours;
   if (!observer) return t.passes.noObserver;
@@ -49,28 +57,40 @@ export function statusText(observer: Observer | null, elements: ElementsState, p
     case 'idle':
       return t.passes.computing;
     case 'computing':
-      return t.passes.computingProgress({ done: passes.done, total: passes.total, found: passes.passes.length });
+      return t.passes.computingProgress({ done: passes.done, total: passes.total, found: shown });
     case 'error':
       return t.passes.passesError(passes.error?.detail ?? t.passes.unknownError);
     case 'done':
-      if (passes.passes.length === 0 && passes.hasDarkness === false) return t.passes.noDarkness({ hours, place });
-      if (passes.passes.length === 0) return t.passes.none({ hours, place });
-      return t.passes.countLine({ count: passes.passes.length, hours });
+      if (shown === 0 && passes.hasDarkness === false) return t.passes.noDarkness({ hours, place });
+      if (shown === 0) return t.passes.none({ hours, place });
+      return t.passes.countLine({ count: shown, hours });
   }
 }
 
-/** How often the list re-checks which featured pass is next, for its tag. */
-export const HERO_CHECK_MS = 30_000;
+/**
+ * Which night is "tonight" (FR-NIGHT-1): the night holding the shown clock's
+ * instant — before local noon, the one that began yesterday evening, but only
+ * while a pass of it is still to come or under way, and otherwise the coming
+ * one. A reader at 01:00 with a pass before dawn is still in last night; a
+ * reader at 01:00 with nothing left before dawn is reading about the coming
+ * evening, and the headings say so. From noon on, the coming night is the
+ * one under way.
+ */
+export function tonightKey(groups: readonly NightGroup[], now: EpochMs, timeZone: string | null): NightKey {
+  const { key, beforeNoon } = nightAt(now, timeZone);
+  if (!beforeNoon) return key;
+  const live = groups.find((group) => group.key === key)?.passes.some((pass) => pass.end.t > now) ?? false;
+  return live ? key : nextNight(key);
+}
 
 /**
- * What a night is called (US-16 AC5). The relative words are used only while
- * they are true of the reader's own clock: a night is "tonight" when it begins
- * on today's date in the observer's zone and "tomorrow night" when it begins on
- * the next one. A stored run computed yesterday therefore names its first night
- * by its date rather than calling a night that has already passed tonight
- * (D-146). The date is the night's *start*, which is the calendar day the
- * evening in it belongs to for every start time but the last hour before
- * midnight.
+ * What a night is called (US-16 AC5 as amended v2.1). The relative words are
+ * used only while they are true of the shown clock: "tonight" is
+ * `tonightKey`'s night and "tomorrow night" the one after it; every other
+ * night is named by its date, the local date of the noon it began at, which
+ * is the calendar day of the evening in it (D-146). The headings are
+ * recomputed on the tick, so they turn over as the clock crosses local noon,
+ * with no recompute of the passes.
  *
  * R46 (F-26): tomorrow is the next date on the observer's calendar and not
  * now + 24 h. The two agree on every ordinary day and part on the two that are
@@ -79,23 +99,20 @@ export const HERO_CHECK_MS = 30_000;
  * an autumn day is 25 h long, so now + 24 h stays on today and tomorrow's
  * heading reads "tonight" twice.
  */
-export function nightLabel(group: NightGroup, now: EpochMs, timeZone: string | null, locale: Locale, t: Messages): string {
-  const date = formatDate(group.startMs, timeZone, locale);
-  const today = formatDate(now, timeZone, locale);
-  if (date === today) return t.passes.nights.tonight;
-  if (date === nextCalendarDate(today)) return t.passes.nights.tomorrow;
-  return t.passes.nights.dated(date);
+export function nightLabel(group: NightGroup, tonight: NightKey, t: Messages): string {
+  if (group.key === tonight) return t.passes.nights.tonight;
+  if (group.key === nextNight(tonight)) return t.passes.nights.tomorrow;
+  return t.passes.nights.dated(group.key);
 }
 
 /**
- * The night open when the list first renders: the first one still holding a
- * pass that has not ended — tonight, for a run computed now, and the first
- * night still worth reading for a stored run that is a day old. Falls back to
- * the first night with anything in it, and then to the first night.
+ * The night open when the list first renders: tonight, where it holds a
+ * pass, and otherwise the first night that does — the first night still worth
+ * reading for a stored run that is a day old. Null with no night at all.
  */
-export function defaultOpenNight(groups: NightGroup[], now: EpochMs): number {
-  const live = groups.find((group) => group.passes.some((pass) => pass.end.t > now));
-  return (live ?? groups.find((group) => group.passes.length > 0) ?? groups[0])?.index ?? 0;
+export function defaultOpenNight(groups: readonly NightGroup[], now: EpochMs, timeZone: string | null): NightKey | null {
+  const tonight = tonightKey(groups, now, timeZone);
+  return groups.some((group) => group.key === tonight) ? tonight : (groups[0]?.key ?? null);
 }
 
 export interface PassListProps {
@@ -107,7 +124,6 @@ export interface PassListProps {
 
 export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
   const t = useT();
-  const locale = useLocale();
   const observer = useActiveObserver();
   const elements = useAppStore((s) => s.elements);
   const passes = useAppStore((s) => s.passes);
@@ -116,7 +132,8 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
   const setSort = useAppStore((s) => s.setSort);
   const headingId = useId();
   const nightsId = useId();
-  const now = useNow(HERO_CHECK_MS);
+  const now = useShownClock();
+  const shown = useShownPasses(selectedPassId);
   /**
    * Which nights the reader has opened or closed. Only the ones actually
    * touched are here: every other night follows `defaultOpenNight`, so the
@@ -133,39 +150,53 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
    * same three nights, and slamming the reader's disclosures shut for it would
    * be its own bug. The zone arriving from the forecast replaces the observer
    * object without moving it, which is why this is not a reference check.
+   *
+   * R88: keyed by the night's key and not its place in the list, since the
+   * first night leaves the list when its last pass does (FR-NIGHT-2) and the
+   * choice about the next one must not slide onto it.
    */
   const placeKey = observer ? `${String(observer.lat)},${String(observer.lon)}` : '';
-  const [nights, setNights] = useState<{ place: string; overrides: Record<number, boolean> }>({ place: placeKey, overrides: {} });
+  const [nights, setNights] = useState<{ place: string; overrides: Record<NightKey, boolean> }>({ place: placeKey, overrides: {} });
   const overrides = nights.place === placeKey ? nights.overrides : {};
   if (nights.place !== placeKey) setNights({ place: placeKey, overrides: {} });
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   // A stored run is shown whatever the elements are doing: it was computed from elements that had
   // already loaded once, and gating it on this load would hide it for the whole fetch and for good
   // when the fetch fails — which is the cold start with no signal that FR-OFF-2 is about (D-108).
-  const showList = observer !== null && passes.passes.length > 0 && (elements.status === 'ready' || passes.storedAt !== null);
+  // The selector holds that rule, and takes the passes that have left out (FR-NIGHT-2).
+  const showList = observer !== null && shown.length > 0;
   // Busy from the moment there is something to compute until the job ends (the worker may still be booting).
   const busy = observer !== null && elements.status === 'ready' && elements.records.length > 0 && (passes.status === 'idle' || passes.status === 'computing');
-  const hero = showList ? nextFeaturedPass(passes.passes, isFeatured, now) : null;
+  const hero = showList ? nextFeaturedPass(shown, isFeatured, now) : null;
   const open = onOpenPass ? { onOpen: onOpenPass } : {};
-  const groups = showList ? groupByNight(passes.passes, passes.window) : [];
-  const openDefault = defaultOpenNight(groups, now);
   const zone = observer?.timeZone ?? null;
+  const groups = useMemo(() => (showList ? groupByNight(shown, zone) : []), [showList, shown, zone]);
+  const tonight = tonightKey(groups, now, zone);
+  const openDefault = defaultOpenNight(groups, now, zone);
   const tag = hero ? t.passes.nextTag({ name: hero.name, iss: hero.name.startsWith('ISS') }) : undefined;
-  const cards = (items: readonly (typeof passes.passes)[number][]) =>
+  const cards = (items: readonly Pass[]) =>
     items.length === 0 || !observer ? null : (
       <ol className={styles.list}>
         {items.map((pass) => (
           <li key={pass.id}>
-            <PassCard pass={pass} timeZone={observer.timeZone} weather={snapshot} selected={pass.id === selectedPassId} {...(pass.id === hero?.id && tag !== undefined ? { tag } : {})} {...open} />
+            <PassCard
+              pass={pass}
+              timeZone={observer.timeZone}
+              weather={snapshot}
+              selected={pass.id === selectedPassId}
+              ended={hasEnded(pass, now)}
+              {...(pass.id === hero?.id && tag !== undefined ? { tag } : {})}
+              {...open}
+            />
           </li>
         ))}
       </ol>
     );
   const listOf = (group: NightGroup) => sortPasses(group.passes, sort);
-  const isOpen = (group: NightGroup): boolean => overrides[group.index] ?? group.index === openDefault;
+  const isOpen = (group: NightGroup): boolean => overrides[group.key] ?? group.key === openDefault;
   const toggle = (group: NightGroup): void => {
     const next = !isOpen(group);
-    setNights((current) => ({ place: placeKey, overrides: { ...(current.place === placeKey ? current.overrides : {}), [group.index]: next } }));
+    setNights((current) => ({ place: placeKey, overrides: { ...(current.place === placeKey ? current.overrides : {}), [group.key]: next } }));
   };
   return (
     <section aria-labelledby={headingId} className={styles.section}>
@@ -175,7 +206,7 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
       <div className={styles.countLine} data-testid="count-line">
         <div className={styles.countRow}>
           <p role="status" aria-live="polite" aria-busy={busy} className={styles.status}>
-            {statusText(observer, elements, passes, t)}
+            {statusText(observer, elements, passes, shown.length, t)}
           </p>
           {showList && (
             <div className={styles.sortSide}>
@@ -196,18 +227,18 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
           const items = listOf(group);
           return (
             <div
-              key={group.index}
-              id={`${nightsId}-${String(group.index)}`}
+              key={group.key}
+              id={`${nightsId}-${group.key}`}
               role="group"
-              aria-label={nightLabel(group, now, zone, locale, t)}
+              aria-label={nightLabel(group, tonight, t)}
               className={styles.night}
               data-testid="night-group"
               data-night-group=""
-              data-night={group.index}
+              data-night={group.key}
               data-open={isOpen(group)}
               hidden={!isOpen(group)}
             >
-              {items.length > 0 ? cards(items) : <p className={styles.nightEmpty}>{t.passes.nights.empty}</p>}
+              {cards(items)}
             </div>
           );
         })}
@@ -215,18 +246,18 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
         <div role="group" aria-label={t.passes.nights.toggles} className={styles.toggles} data-testid="night-toggles">
           {groups.map((group) => (
             <button
-              key={group.index}
+              key={group.key}
               type="button"
               className={`inline-control ${styles.toggle}`}
               aria-expanded={isOpen(group)}
-              aria-controls={`${nightsId}-${String(group.index)}`}
+              aria-controls={`${nightsId}-${group.key}`}
               data-testid="night-toggle"
-              data-night={group.index}
+              data-night={group.key}
               onClick={() => {
                 toggle(group);
               }}
             >
-              <span className={styles.nightName}>{nightLabel(group, now, zone, locale, t)}</span> <span className={styles.nightCount}>{t.passes.nights.count(listOf(group).length)}</span>
+              <span className={styles.nightName}>{nightLabel(group, tonight, t)}</span> <span className={styles.nightCount}>{t.passes.nights.count(listOf(group).length)}</span>
             </button>
           ))}
         </div>
