@@ -2175,7 +2175,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
 
 ### Wave 3
 
-- [ ] **R88 — Nights on local noon, and the list pruned by the clock**
+- [x] **R88 — Nights on local noon, and the list pruned by the clock** *(done 2026-09-23; `ENDED_LINGER_S` lives in `lib/nights.ts`, not `physics/constants.ts`, which is outside the lane; a night with no pass at all is not drawn either, so `offline.spec` expects two to four nights; the list's clock is the store's, which closes F-68's open clause — D-578, D-579)*
   - **Lane:** ui
   - **Model:** fable
   - **Gate:** auto
