@@ -37,9 +37,16 @@ export const live = {
     backShort: '←',
     backName: 'Back',
     loading: 'Loading the live sky…',
-    /** FR-LIVE-1's two inert states: one line each, beside the return control. */
-    noObserver: 'The live sky needs somewhere to look from: a place name or coordinates on the home page.',
-    noElements: 'No orbital elements yet, so there is nothing to draw.',
+    /**
+     * R89 (FR-LIVE-1 as amended v2.1, FR-FIRST-1, F-75, F-92): the three states before the page can draw, told
+     * apart. No place: FR-FIRST-1's sentence and `[ set a place ]`, which opens the home page's where step.
+     * Loading: the mark's bead moving beside `loadingElements`. Failed: the failure line (`failure.*`), and
+     * `failedInstead` for what the page has in the meantime, which is nothing to draw.
+     */
+    noPlace: 'The live sky needs a place.',
+    setPlace: 'set a place',
+    loadingElements: 'Loading orbital elements…',
+    failedInstead: 'There is no stored sky to draw meanwhile.',
     /**
      * The conditions line's accessible name; the fields below are its labels (FR-LIVE-3). R77 (FR-WATCH-3):
      * one line per state — on wide `Sky dark · Clouds Clear, 12 % cloud · Up 3 · Moon waxing crescent, 18 % lit`,

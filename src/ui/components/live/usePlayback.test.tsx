@@ -176,4 +176,42 @@ describe('usePlayback', () => {
     expect(result.current.playing).toBe(true);
     expect(result.current.t).toBe(NOW + 3 * HOUR_MS + 60 * 1000);
   });
+
+  // R89 (FR-VISIT-3): a held instant that real time overtakes releases to watching.
+  it('releases a held instant to real time once real time overtakes it', () => {
+    let realNow = NOW;
+    const spanAt = (now: number): Span => ({ start: now, end: now + 24 * HOUR_MS });
+    const { result, rerender } = renderHook(() => usePlayback({ span: spanAt(realNow), realNow, initial: NOW + 20_000 }));
+    expect(result.current.realTime).toBe(false);
+    realNow = NOW + 10_000;
+    rerender();
+    expect(result.current).toMatchObject({ t: NOW + 20_000, realTime: false });
+    realNow = NOW + 20_000;
+    rerender();
+    expect(result.current).toMatchObject({ t: NOW + 20_000, realTime: true });
+  });
+
+  it('keeps the instant [ scrub ] holds at real time, however far the tick moves past it', () => {
+    let realNow = NOW;
+    const spanAt = (now: number): Span => ({ start: now, end: now + 24 * HOUR_MS });
+    const { result, rerender } = renderHook(() => usePlayback({ span: spanAt(realNow), realNow, initial: null }));
+    act(() => {
+      result.current.scrub(NOW);
+    });
+    realNow = NOW + 60_000;
+    rerender();
+    expect(result.current.realTime).toBe(false);
+  });
+
+  it('releases a scrub into the coming hours when real time reaches it', () => {
+    let realNow = NOW;
+    const spanAt = (now: number): Span => ({ start: now, end: now + 24 * HOUR_MS });
+    const { result, rerender } = renderHook(() => usePlayback({ span: spanAt(realNow), realNow, initial: null }));
+    act(() => {
+      result.current.scrub(NOW + 30_000);
+    });
+    realNow = NOW + 40_000;
+    rerender();
+    expect(result.current.realTime).toBe(true);
+  });
 });

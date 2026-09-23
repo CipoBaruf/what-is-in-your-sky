@@ -114,12 +114,13 @@ test.describe('the live page', () => {
     await expect(page.getByTestId('live-time')).toHaveText(realTimeField(T));
   });
 
-  test('is inert with one line and the return control without an observer, and without elements (FR-LIVE-1)', async ({ page }) => {
+  // R89 (FR-LIVE-1 as amended v2.1): the states are told apart — `live-failures.spec.ts` follows each one's control.
+  test('is inert with its state and the return control without an observer, and without elements (FR-LIVE-1)', async ({ page }) => {
     await page.clock.setFixedTime(T);
     await stubNetwork(page, 'down');
     await page.goto('/#live');
     const inert = page.getByTestId('live-inert');
-    await expect(inert).toHaveText('The live sky needs somewhere to look from: a place name or coordinates on the home page.');
+    await expect(inert).toHaveText('The live sky needs a place.set a place');
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'inert');
     await expect(page.getByTestId('sky-chart')).toHaveCount(0);
     await expect(page.getByTestId('status-strip')).toHaveCount(0);
@@ -131,7 +132,8 @@ test.describe('the live page', () => {
     await page.goto(`/#live?lat=${String(ha.observer.lat)}&lon=${String(ha.observer.lon)}`);
     await page.reload();
     await expect(page.getByTestId('live-place')).toHaveText('−38.93, −67.99');
-    await expect(inert).toHaveText('No orbital elements yet, so there is nothing to draw.', { timeout: 30_000 });
+    await expect(inert).toHaveAttribute('data-inert', 'failed', { timeout: 30_000 });
+    await expect(page.getByTestId('failure-sentence')).toContainText('Could not load the orbital elements');
     await expect(page.getByTestId('sky-chart')).toHaveCount(0);
     await page.keyboard.press('Escape');
     await expect(page.getByRole('banner')).toBeVisible();
