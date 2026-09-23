@@ -232,6 +232,34 @@ describe('prefs slice', () => {
     expect(corrupt.getState().locale).toBe('es');
   });
 
+  /**
+   * R98 (FR-FAINT-3, D-623): the faint passes stay out of the list until the
+   * count line's control shows them (US-34 AC3). A record without the field —
+   * every one written before v2.1 — loads as off; the choice survives a
+   * reload; and a stored value that is not a boolean is no choice, so it
+   * loads as off too, without costing the other preferences.
+   */
+  it('keeps the faint passes hidden until asked, remembers the choice across a reload, and reads a malformed value as hidden', () => {
+    const storage = memoryStorage();
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night' }));
+    const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(fresh.getState().showFaint).toBe(false);
+    expect(fresh.getState().theme).toBe('night');
+    fresh.getState().setShowFaint(true);
+    expect(fresh.getState().showFaint).toBe(true);
+    expect(stored(storage)).toEqual({ theme: 'night', showFaint: true });
+    // The reload: a new store over the same storage comes back with the faint passes shown.
+    const reloaded = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(reloaded.getState().showFaint).toBe(true);
+    reloaded.getState().setShowFaint(false);
+    expect(reloaded.getState().showFaint).toBe(false);
+    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().showFaint).toBe(false);
+    storage.map.set(PREFS_KEY, JSON.stringify({ showFaint: 'yes', locale: 'es' }));
+    const corrupt = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(corrupt.getState().showFaint).toBe(false);
+    expect(corrupt.getState().locale).toBe('es');
+  });
+
   it('ignores a theme it does not know without losing the other preferences', () => {
     const storage = memoryStorage();
     storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'sepia', locale: 'es' }));

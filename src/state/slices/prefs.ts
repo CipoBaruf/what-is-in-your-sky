@@ -5,7 +5,7 @@ import { decline, type InstallAnswer } from '../../lib/installSnooze';
 import { DEFAULT_PASS_SORT } from '../../lib/passSort';
 import { browserLanguages, resolveLocale } from '../../i18n/locale';
 import { DEFAULT_CHART_ORIENTATION } from '../../lib/skyGeometry';
-import { DEFAULT_LIVE_LEGEND_OPEN, DEFAULT_THEME, savedChartView as narrowChartView, type ChartOrientation, type EpochMs, type Favourite, type Locale, type Observer, type PassSort, type SavedChartView, type Theme } from '../../model';
+import { DEFAULT_LIVE_LEGEND_OPEN, DEFAULT_SHOW_FAINT, DEFAULT_THEME, savedChartView as narrowChartView, type ChartOrientation, type EpochMs, type Favourite, type Locale, type Observer, type PassSort, type SavedChartView, type Theme } from '../../model';
 import type { AppState } from '../store';
 
 /**
@@ -87,6 +87,13 @@ export interface PrefsSlice {
    */
   liveLegendOpen: boolean;
   setLiveLegendOpen: (open: boolean) => void;
+  /**
+   * R98 (FR-FAINT-3, D-623): whether the pass list shows the faint passes.
+   * Off unless saved otherwise; a stored value that is not a boolean reads as
+   * off (`localPrefs.ts`). No reader until R97 draws the count line's control.
+   */
+  showFaint: boolean;
+  setShowFaint: (showFaint: boolean) => void;
   /** R66 (FR-FSC-1, D-351): whether the sky screen is up. Session only — no page restores it and no hash carries it (FR-FSC-2). */
   skyScreen: boolean;
   /** Opens the screen. The caller has already asked for the permission inside its tap and had a reading with a heading (FR-WIN-4, D-350). */
@@ -214,6 +221,11 @@ export const createPrefsSlice =
       setLiveLegendOpen: (liveLegendOpen) => {
         set({ liveLegendOpen });
         deps.prefs.write({ ...deps.prefs.read(), liveLegendOpen });
+      },
+      showFaint: deps.prefs.read().showFaint ?? DEFAULT_SHOW_FAINT,
+      setShowFaint: (showFaint) => {
+        set({ showFaint });
+        deps.prefs.write({ ...deps.prefs.read(), showFaint });
       },
       skyScreen: false,
       openSkyScreen: () => {

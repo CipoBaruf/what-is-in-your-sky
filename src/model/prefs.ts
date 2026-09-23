@@ -23,6 +23,14 @@ export function savedChartView(view: ChartView | undefined, fallback: SavedChart
  * closed, so that is what a first visit gets. Persisted in `wiys:prefs:v1`.
  */
 export const DEFAULT_LIVE_LEGEND_OPEN = false;
+/**
+ * FR-FAINT-3 / D-623 (R98): whether the pass list shows the passes fainter
+ * than `FAINT_MAG` (FR-FAINT-1). Off until the count line's `[ show n faint ]`
+ * is used — the default list is the one a reader could find with their eyes
+ * (US-34) — and off again for a stored value that is not a boolean, which is
+ * no choice at all. Persisted in `wiys:prefs:v1`; read by R97's control.
+ */
+export const DEFAULT_SHOW_FAINT = false;
 /** FR-GUIDE-4 (R13): the polar chart's convention, `looking-up` (east on the left, the default) or `map` (east on the right). Persisted in `wiys:prefs:v1`. */
 export type ChartOrientation = 'looking-up' | 'map';
 /** FR-I18N-1 (R17): the language the app renders in, chosen from the browser on the first visit and overridden by the header switch. Persisted in `wiys:prefs:v1`. */
