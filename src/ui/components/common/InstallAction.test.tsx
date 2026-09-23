@@ -1,13 +1,15 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { en } from '../../../i18n/en';
+import { es } from '../../../i18n/es';
 import { I18nProvider } from '../../../i18n/useT';
 import { INSTALL_SNOOZE_DAYS } from '../../../lib/installSnooze';
 import { appStore } from '../../../state';
+import { SettingsPage } from '../../screens/Settings';
 import { InstallAction } from './InstallAction';
 import type { InstallEnv } from './installEnv';
-import { APP_INSTALLED, BEFORE_INSTALL_PROMPT, forgetInstallOffer, type BeforeInstallPromptEvent } from './installOffer';
+import { APP_INSTALLED, BEFORE_INSTALL_PROMPT, forgetInstallOffer, installOfferState, type BeforeInstallPromptEvent } from './installOffer';
 
 /**
  * R52 (FR-OFF-6 as amended v1.1.2 / V11-16, D-260): the offer without the
@@ -106,6 +108,79 @@ describe('<InstallAction> (V11-16, D-260)', () => {
     show(CHROMIUM);
     expect(screen.getByTestId('install-action')).toBeInTheDocument();
   });
+
+  /*
+   * R91 (FR-FAIL-8, D-550, F-95): one press used to spend the settings row — the latch written whatever the
+   * answer and the used event held for good, so after a cancelled dialog the button stayed and did nothing.
+   */
+  describe('a cancelled dialog (R91)', () => {
+    const dismissedPrompt = () => vi.fn(() => Promise.resolve({ outcome: 'dismissed' }));
+    const offer = (prompt: ReturnType<typeof vi.fn>): BeforeInstallPromptEvent => Object.assign(new Event(BEFORE_INSTALL_PROMPT, { cancelable: true }), { prompt }) as BeforeInstallPromptEvent;
+    const showBare = () =>
+      render(
+        <I18nProvider locale="en">
+          <InstallAction env={CHROMIUM} bare />
+        </I18nProvider>,
+      );
+
+    it('leaves the settings button working: no latch, the spent event let go, the next offer prompted', async () => {
+      const first = dismissedPrompt();
+      fire(offer(first));
+      showBare();
+      await userEvent.click(screen.getByTestId('install-action'));
+      expect(first).toHaveBeenCalledOnce();
+      expect(appStore.getState().installAnswer.dismissed).not.toBe(true);
+      // Chromium offers again after a cancelled dialog; that event is held like the first and the button uses it.
+      const second = dismissedPrompt();
+      fire(offer(second));
+      await userEvent.click(screen.getByTestId('install-action'));
+      expect(second).toHaveBeenCalledOnce();
+      expect(first).toHaveBeenCalledOnce(); // the spent event is never prompted twice
+      expect(appStore.getState().installAnswer.dismissed).not.toBe(true);
+      // With no offer held there is no dialog to open, so no button stands that would do nothing (F-95).
+      expect(screen.queryByTestId('install-action')).toBeNull();
+      fire(offer(dismissedPrompt()));
+      expect(screen.getByTestId('install-action')).toBeEnabled();
+    });
+
+    it('lets the used event go once the prompt answers, and keeps one offered while the dialog was open', async () => {
+      let answer: (value: unknown) => void = () => undefined;
+      const used = offer(vi.fn(() => new Promise((resolve) => (answer = resolve))));
+      fire(used);
+      showBare();
+      await userEvent.click(screen.getByTestId('install-action'));
+      const fresh = offer(dismissedPrompt());
+      fire(fresh);
+      await act(async () => {
+        answer({ outcome: 'dismissed' });
+        await Promise.resolve();
+      });
+      expect(installOfferState().event).toBe(fresh);
+    });
+
+    it('lets the used event go when the dialog is cancelled', async () => {
+      fire(offer(dismissedPrompt()));
+      showBare();
+      await userEvent.click(screen.getByTestId('install-action'));
+      expect(installOfferState().event).toBeNull();
+    });
+  });
+
+  // R91 (FR-SET-1 as amended v2.1, F-83): the settings row's label is `App`, so the action is not said twice.
+  for (const locale of ['en', 'es'] as const) {
+    it(`reads App [ ${(locale === 'en' ? en : es).install.action} ] on the settings page in ${locale}`, () => {
+      fire(installable().event);
+      render(
+        <I18nProvider locale={locale}>
+          <SettingsPage onLeave={vi.fn()} installEnv={CHROMIUM} />
+        </I18nProvider>,
+      );
+      const row = screen.getByTestId('settings-install');
+      expect(row.previousElementSibling).toHaveTextContent(/^App$/);
+      expect(within(row).getByTestId('install-action')).toHaveTextContent(new RegExp(`^${(locale === 'en' ? en : es).install.action}$`));
+      expect(`${row.previousElementSibling?.textContent ?? ''} [ ${row.textContent ?? ''} ]`).toBe(`App [ ${(locale === 'en' ? en : es).install.action} ]`);
+    });
+  }
 
   it('goes away once the browser reports the app installed, by any route', () => {
     const { event } = installable();
