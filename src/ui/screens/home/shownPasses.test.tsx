@@ -19,7 +19,7 @@ import { useShownClock, useShownPasses } from './shownPasses';
 
 const T0 = Date.UTC(2026, 8, 11, 0, 0);
 const MINUTE = 60_000;
-const observer: Observer = { lat: -38.93, lon: -67.99, label: 'Neuquén', source: 'coords', timeZone: 'America/Argentina/Salta' };
+const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: 'Neuquén', source: 'coords', timeZone: 'America/Argentina/Salta' };
 const initial = appStore.getInitialState();
 
 function pass(id: string, startMs: number, durationMs = 5 * MINUTE): Pass {
@@ -85,7 +85,7 @@ describe('useShownPasses', () => {
   it('the open pass is exempt while it is open', () => {
     appStore.setState({ observer, nowMs: T0, elements: ready, passes: { ...IDLE_PASSES, status: 'done', observer, passes: [early, mid, late], hasDarkness: true } });
     clockAt(mid.end.t + ENDED_LINGER_MS + 1000);
-    const { result, rerender } = renderHook(({ open }: { open: string | null }) => useShownPasses(open), { initialProps: { open: 'early' } });
+    const { result, rerender } = renderHook(({ open }: { open: string | null }) => useShownPasses(open), { initialProps: { open: 'early' as string | null } });
     expect(ids(result.current)).toEqual(['early', 'late']);
     rerender({ open: null });
     expect(ids(result.current)).toEqual(['late']);
