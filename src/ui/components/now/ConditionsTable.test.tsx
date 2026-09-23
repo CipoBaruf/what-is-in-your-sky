@@ -13,9 +13,9 @@
  * are the row's absence now (US-4 AC1 as amended v2.0.2); the live page keeps
  * the full statement.
  */
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MOON_DOWN, MOON_FIXTURE } from '../../../../tests/support/moonFixtures';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
@@ -184,6 +184,56 @@ describe('<ConditionsTable> (FR-FIRST-9)', () => {
     render(<I18nProvider locale="es">{table()}</I18nProvider>);
     expect(rows()).toEqual(['Oscuro', 'Nubes ahora', 'Luna']);
     expect(value('Luna')).toHaveTextContent('gibosa menguante, 72 %, N');
+  });
+
+  /**
+   * R91 (FR-FAIL-1, FR-FAIL-2, US-33 AC1): a failed forecast is the failure line under the cloud row — each
+   * kind's sentence in both languages with no internals in it, what the row shows instead, `[ retry ]` calling
+   * `retryWeather`, and the provider's message only behind `[ details ]`.
+   */
+  describe('the forecast failure line (R91)', () => {
+    for (const locale of ['en', 'es'] as const) {
+      for (const kind of ['offline', 'rate-limited', 'server', 'bad-data', 'timeout', 'unknown'] as const) {
+        it(`${kind}, ${locale}: the sentence carries no internals`, () => {
+          const t = locale === 'en' ? en : es;
+          set({ observer, weather: { observer, status: 'error', snapshot: null, error: { kind, detail: 'Open-Meteo: HTTP 503 Error: overloaded' } } });
+          render(<I18nProvider locale={locale}>{table()}</I18nProvider>);
+          const sentence = within(screen.getByTestId('clouds-failure')).getByTestId('failure-sentence');
+          expect(sentence).toHaveTextContent(`${t.failure[kind](t.failure.what.forecast)} ${t.failure.instead.noForecast}`);
+          expect(sentence.textContent).not.toMatch(/HTTP|\d{3}|Error:/);
+          expect(screen.getByTestId('failure-detail')).toHaveTextContent('Open-Meteo: HTTP 503 Error: overloaded');
+        });
+      }
+    }
+
+    it('[ retry ] calls retryWeather and gives the row back to the loading forecast', () => {
+      const retryWeather = vi.fn(() => {
+        appStore.setState({ weather: { observer, status: 'loading', snapshot: null, error: null } });
+      });
+      set({ observer, retryWeather, weather: { observer, status: 'error', snapshot: null, error: { kind: 'server', detail: 'HTTP 503' } } });
+      render(table());
+      fireEvent.click(screen.getByTestId('failure-retry'));
+      expect(retryWeather).toHaveBeenCalledTimes(1);
+      expect(screen.queryByTestId('clouds-failure')).toBeNull();
+    });
+
+    it('a failed refresh keeps the snapshot and says so; [ retry ] hides the line until the answer', () => {
+      const retryWeather = vi.fn(); // the slice stays ready with its error until the forecast answers (FR-FAIL-3)
+      set({ observer, retryWeather, now: { observer, state: state(), error: null }, weather: { observer, status: 'ready', snapshot: forecast, error: { kind: 'timeout', detail: 'AbortError' } } });
+      render(table());
+      expect(screen.getByTestId('failure-sentence')).toHaveTextContent(en.failure.instead.lastForecast);
+      fireEvent.click(screen.getByTestId('failure-retry'));
+      expect(retryWeather).toHaveBeenCalledTimes(1);
+      expect(screen.queryByTestId('clouds-failure')).toBeNull();
+      set({ weather: { observer, status: 'ready', snapshot: forecast, error: { kind: 'offline', detail: 'TypeError' } } });
+      expect(screen.getByTestId('clouds-failure')).toBeInTheDocument();
+    });
+
+    it("says nothing for another place's failure", () => {
+      set({ observer, weather: { observer: other, status: 'error', snapshot: null, error: { kind: 'server', detail: 'HTTP 503' } } });
+      render(table());
+      expect(screen.queryByTestId('clouds-failure')).toBeNull();
+    });
   });
 });
 
