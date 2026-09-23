@@ -62,6 +62,9 @@ export const live: typeof EnLive = {
      * siendo "ir al vivo", que contiene la palabra.
      */
     backToLiveShort: 'vivo',
+    /** R101 (FR-JUMP-1): `[ ver este pase ]`, que fija la página en la salida del pase que nombra el titular. */
+    seeThisPass: 'ver este pase',
+    seeThisPassName: (name) => `Ver este pase: ${name}, fijado en su salida`,
     heldOffset: (p) => (p.hours === 0 ? `${p.sign}${String(p.minutes)} min` : `${p.sign}${String(p.hours)} h ${String(p.minutes).padStart(2, '0')} min`),
     overviewStart: 'ahora',
     overviewEnd: '+24 h',

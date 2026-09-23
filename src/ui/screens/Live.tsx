@@ -36,13 +36,13 @@ import { useSkyBands } from '../components/live/useSkyBands';
 import { useWakeLock, type WakeLockState } from '../components/live/useWakeLock';
 import { useWallThrottle } from '../components/live/useWallThrottle';
 import { Mark } from '../components/mark/Mark';
-import { NextEventBlock } from '../components/passes/NextEventBlock';
+import { JumpControl, NextEventBlock } from '../components/passes/NextEventBlock';
 import { SkyScreen } from '../components/screen/SkyScreen';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import { requestPlace } from './home/placeRequest';
 import styles from './Live.module.css';
-import { inventoryClip, liveShape, rowsFor, type LiveRow } from './liveRows';
+import { inventoryClip, jumpPlacement, liveShape, rowsFor, type LiveRow } from './liveRows';
 
 /**
  * R32 (FR-LIVE-1, FR-LIVE-2, FR-LIVE-3, FR-LIVE-9, FR-LIVE-10; US-15 AC1, AC2,
@@ -487,9 +487,19 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const passesPending = !ownPasses || (passesState.status !== 'done' && passesState.status !== 'error');
 
   const indicator = has('indicator') ? <StateIndicator held={scrubbing} /> : null;
+  /*
+   * R101 (FR-JUMP-1, FR-JUMP-2; D-624): `[ see this pass ]` dispatches the hold that exists — `stepTo`, the landing
+   * `pass ▶|` makes (FR-SPAN-4) — at the rise the headline names. Holding is scrubbing (FR-WATCH-1), so the stripe
+   * comes out with its chunk around the instant, the hash takes `t` (D-171) and `[ back to live ]` undoes it.
+   * `liveRows.ts` says which row it rides on; it is only ever in the watching inventory, since its rows are.
+   */
+  const seePass = playback.stepTo;
+  const nextEventContext = useMemo(() => ({ hasDarkness: passesState.hasDarkness, elementCount }), [passesState.hasDarkness, elementCount]);
+  const liveHours = LIVE_WINDOW_MS / 3_600_000;
+  const jumpAt = scrubbing ? null : jumpPlacement(mode, liveShape(placement));
   const nextEvent = has('next-event') ? (
     <div className={styles.headline}>
-      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={{ hasDarkness: passesState.hasDarkness, elementCount }} pending={passesPending} hours={LIVE_WINDOW_MS / 3_600_000} liveLink={false} />
+      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={nextEventContext} pending={passesPending} hours={liveHours} liveLink={false} {...(jumpAt === 'path' ? { onSee: seePass } : {})} />
     </div>
   ) : null;
   const readout = <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />;
@@ -559,6 +569,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const actions = (
     <div className={styles.actions} data-testid="live-actions">
       {has('scrub') && <ScrubButton onScrub={scrubHere} />}
+      {has('next-event') && jumpAt === 'actions' && <JumpControl passes={passes} context={nextEventContext} hours={liveHours} onSee={seePass} />}
       {has('back-to-live') && !backAtHead && <BackToLive onNow={playback.toNow} short />}
       {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
       {has('list') && <LegendToggle open={legendOpen} count={legendCount} controls={LEGEND_PANEL_ID} onToggle={toggleLegend} />}

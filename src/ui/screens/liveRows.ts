@@ -106,6 +106,20 @@ export function rowsFor(state: LiveState, mode: LayoutMode, shape: LiveShape): r
 }
 
 /**
+ * R101 (FR-JUMP-1, D-624): where `[ see this pass ]` stands while watching — after the headline's path line
+ * (`path`), or beside `[ scrub the night ]` on the actions row (`actions`) — so that it adds no row at any of
+ * FR-SHP-4's four shapes. It is never a row of its own, which is why it is not a `LiveRow`: it rides on the
+ * `next-event` row or on the `actions` row, and is in the DOM exactly when its row is and the headline names a
+ * rise far enough ahead (`jumpInstant`).
+ */
+export type JumpPlacement = 'path' | 'actions';
+
+export function jumpPlacement(mode: LayoutMode, shape: LiveShape): JumpPlacement {
+  void shape;
+  return mode === 'compact' ? 'path' : 'actions';
+}
+
+/**
  * R78 (FR-WATCH-5, FR-WATCH-6; D-448): the two short shapes, where the box is
  * the same height in both states and the scrub block goes beside or over it.
  *
