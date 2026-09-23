@@ -3,6 +3,7 @@ import { useT } from '../../../i18n/useT';
 import { useAppStore } from '../../../state';
 import styles from './InstallAction.module.css';
 import { useInstallOffer, type InstallEnv } from './installEnv';
+import { forgetInstallOffer } from './installOffer';
 
 /**
  * R52 (FR-OFF-6 as amended v1.1.2 / V11-16, D-260): the install offer itself —
@@ -18,10 +19,10 @@ import { useInstallOffer, type InstallEnv } from './installEnv';
  * which is exactly what makes it survive the third decline.
  *
  * It renders nothing when the browser has nothing to offer, which is also what
- * "already installed" looks like from here. Taking it writes the same latch the
- * hint's own action writes (`dismissInstallHint`), for the same reason:
- * `beforeinstallprompt` cannot be replayed, so a banner offered afterwards
- * would carry a button that no longer works.
+ * "already installed" looks like from here. Taken from the hint, it writes the
+ * hint's latch (`dismissInstallHint`); taken from the settings row it writes
+ * nothing (R91, D-550), and the used event is let go either way, so no button
+ * is ever left holding an event that cannot be replayed.
  *
  * Phrasing content only — no block elements — because the hint renders it
  * inside `Banner`'s `<p>`.
@@ -46,17 +47,33 @@ export function InstallAction({ env, trailing, bare = false }: InstallActionProp
   if (!available) return null;
 
   const install = (): void => {
+    if (offer === null) return;
     /*
-     * Whatever the reader then answers the browser, the offer has been taken:
-     * the page is never told, and the event is spent.
+     * R91 (FR-FAIL-8, D-550, F-95): the event is spent by one `prompt()`, so
+     * it is let go once the prompt has answered, whatever the answer — held,
+     * it left a button that did nothing. A cancelled dialog is not the end of
+     * the offer: Chromium fires `beforeinstallprompt` again, which is held
+     * like the first, and the button stays for it. An accepted one is ended by
+     * `appinstalled`. Only the home page's hint latches (its snooze rule,
+     * FR-OFF-6, is unchanged); the settings row writes nothing.
      *
      * R49 (F-32): Chromium rejects `prompt()` when it decides the call is not
      * eligible after all, and an uncaught rejection is a console error — and,
      * behind a reporter, a logged incident — for a reader simply not installing
      * the app. There is nothing to say and nothing to undo.
      */
-    void offer?.prompt?.()?.catch(() => undefined);
-    dismiss();
+    const answered = offer.prompt?.();
+    if (answered === undefined) forgetInstallOffer(offer);
+    else
+      void answered.then(
+        () => {
+          forgetInstallOffer(offer);
+        },
+        () => {
+          forgetInstallOffer(offer);
+        },
+      );
+    if (!bare) dismiss();
   };
 
   return (

@@ -8,6 +8,7 @@ import { coordsLabel } from '../../../lib/place';
 import { placeName } from '../../components/location/WherePlace';
 import { NextEventBlock } from '../../components/passes/NextEventBlock';
 import { PassCard } from '../../components/passes/PassCard';
+import { ListFailure, listFailure } from '../../components/passes/ListFailure';
 import { nightLabel } from '../../components/passes/PassList';
 import { hasEnded, usePassContext, useShownClock, useShownPasses } from './shownPasses';
 import styles from './Steps.module.css';
@@ -48,6 +49,10 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
   const heading = useRef<HTMLHeadingElement>(null);
   const passes = useShownPasses(selectedPassId);
   const weather = useAppStore((s) => s.weather);
+  const failed = listFailure(
+    useAppStore((s) => s.elements),
+    useAppStore((s) => s.passes),
+  );
   const context = usePassContext();
   const night = useNight(observer);
   // R88 (FR-NIGHT-2, D-535): the store's clock, the one the passes above were pruned by.
@@ -96,6 +101,8 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
         {title}
       </h2>
       <p className={styles.sentence}>{t.home.whatStep.sentence}</p>
+      {/* R91 (FR-FAIL-1, FR-FAIL-4): a failed load or job says so here too, rather than a count of nothing. */}
+      {failed && <ListFailure failed={failed} showingList={passes.length > 0} />}
       {passes.length > 0 && (
         <div className={styles.cards} data-testid="what-cards">
           <NextEventBlock passes={passes} timeZone={zone} context={nextContext} pending={context.pending} hours={SEARCH_WINDOW_HOURS} form="card" onOpen={onOpenPass} />
