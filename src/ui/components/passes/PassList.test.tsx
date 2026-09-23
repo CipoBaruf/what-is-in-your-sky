@@ -1,21 +1,32 @@
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { fixtureRecords, goldenWindowStart, loadReferenceValues } from '../../../../tests/support/catalogFixtures';
-import { NO_MOON_AT_PEAK } from '../../../../tests/support/moonFixtures';
+import { MOON_FIXTURE, NO_MOON_AT_PEAK } from '../../../../tests/support/moonFixtures';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
 import { compassPoint } from '../../../lib/compass';
-import type { Observer, Pass, WeatherSnapshot } from '../../../model';
+import type { NowState, Observer, Pass, WeatherSnapshot } from '../../../model';
 import { appStore, type AppState, type ElementsState } from '../../../state';
 import { IDLE_PASSES } from '../../../state/slices/passes';
 import { PassList } from './PassList';
 
+/**
+ * R88 (F-67, F-68, FR-NIGHT-1, FR-NIGHT-2): nothing here reads the wall
+ * clock. The list's clock is the store's — `nowMs`, and the `now` slice's
+ * instant once the worker has answered — so every test sets it and the
+ * labels are literals. The observer has a zone, because the nights are cut
+ * on *its* noon: `NOW` is 00:51 on 2026-09-11 in Salta, so the golden pass
+ * before dawn is the 10th's night.
+ */
 const ref = loadReferenceValues();
 const NOW = goldenWindowStart(ref);
-const observer: Observer = { ...ref.observer, label: '−38.93, −67.99', source: 'coords', timeZone: null };
+const HOUR = 3_600_000;
+const ZONE = 'America/Argentina/Salta'; // UTC−3, no DST
+const observer: Observer = { ...ref.observer, label: '−38.93, −67.99', source: 'coords', timeZone: ZONE };
 const hhmmss = (t: number): string => new Date(t).toISOString().slice(11, 19);
+const localClock = (t: number): string => hhmmss(t - 3 * HOUR).slice(0, 5);
 const initial = appStore.getInitialState();
 const golden = ref.firstGoldenPass;
 if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
@@ -39,7 +50,6 @@ const goldenPass: Pass = {
 };
 const later: Pass = { ...goldenPass, id: 'later', noradId: 2, name: 'Later object', start: { ...goldenPass.start, t: golden.start.t + 3_600_000 } };
 // R12: three non-featured passes for the sort toggle. Chronological: faint-high, bright-low, average. Best first: bright-low, average, faint-high.
-const HOUR = 3_600_000;
 const shifted = (base: Pass, id: string, noradId: number, name: string, hours: number, elDeg: number, peakMagnitude: number): Pass => ({
   ...base,
   id,
@@ -59,12 +69,16 @@ const set = (patch: Partial<AppState>): void => {
     appStore.setState(patch);
   });
 };
+/** The worker's answer at `t`: the `now` slice's instant is the list's clock once it exists (D-535). */
+const answered = (t: number): NowState => ({ t, sunAltDeg: -30, sky: 'dark', items: [], moon: MOON_FIXTURE });
+const clockAt = (t: number): void => {
+  set({ now: { observer, state: answered(t), error: null } });
+};
 
 const cardNames = (): string[] => within(screen.getByRole('list')).getAllByRole('article').map((a) => within(a).getByRole('heading').textContent ?? '');
 
 describe('<PassList>', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
     appStore.setState(initial, true);
     window.localStorage.clear();
   });
@@ -84,7 +98,6 @@ describe('<PassList>', () => {
   });
 
   it('renders cards as passes stream in, chronologically, with progress in the status line; the next featured pass is tagged in its place (R12, FR-FIRST-10)', () => {
-    vi.spyOn(Date, 'now').mockReturnValue(NOW); // F-68: the tag's choice reads the wall clock
     set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'computing', observer, total: 31 } });
     render(<PassList />);
     expect(screen.getByRole('status')).toHaveTextContent('Computing passes… 0 of 31, 0 visible so far');
@@ -110,7 +123,7 @@ describe('<PassList>', () => {
     expect(iss).toHaveAttribute('data-pass-id', goldenPass.id);
     expect(within(iss).getByTestId('next-tag')).toHaveTextContent('Next ISS');
     expect(screen.getAllByTestId('next-tag')).toHaveLength(1);
-    expect(within(iss).getByTestId('card-first-line')).toHaveTextContent(`${hhmmss(golden.start.t).slice(0, 5)} UTC`);
+    expect(within(iss).getByTestId('card-first-line')).toHaveTextContent(localClock(golden.start.t));
     expect(within(iss).getByTestId('card-detail')).toHaveTextContent(`peak ${String(Math.round(golden.peak.elDeg))}° ${compassPoint(golden.peak.azDeg)}`);
 
     act(() => {
@@ -134,10 +147,9 @@ describe('<PassList>', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/^2 visible passes in 72 h$/);
   });
 
-  it('tags only the featured pass that has not ended, and only one (spec §8 rank 1 as amended)', () => {
-    // The choice reads the wall clock, pinned at NOW (F-68); this copy ends two hours before it and the golden fixture itself is in its future.
-    vi.spyOn(Date, 'now').mockReturnValue(NOW);
-    const wall = Date.now() - 2 * HOUR;
+  it('tags only the featured pass that has not ended, and only one; a pass that ended is no longer a card (spec §8 rank 1 as amended, FR-NIGHT-2)', () => {
+    // This copy ended two hours before the clock and the golden fixture itself is in its future.
+    const wall = NOW - 2 * HOUR;
     const ended = { ...goldenPass, id: 'ended', start: { ...goldenPass.start, t: wall }, peak: { ...goldenPass.peak, t: wall + 60_000 }, end: { ...goldenPass.end, t: wall + 120_000 } };
     set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [average, later] } });
     render(<PassList />);
@@ -145,11 +157,12 @@ describe('<PassList>', () => {
     expect(cardNames()).toEqual(['Later object', 'Average']);
 
     set({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [ended, average, later] } });
-    expect(screen.queryByTestId('next-tag')).toBeNull(); // ended: no tag, the pass stays in the list
-    expect(cardNames()).toEqual(['ISS (Zarya)', 'Later object', 'Average']);
+    expect(screen.queryByTestId('next-tag')).toBeNull(); // ended: no tag, and no card either (FR-NIGHT-2)
+    expect(cardNames()).toEqual(['Later object', 'Average']);
+    expect(screen.getByRole('status')).toHaveTextContent('2 visible passes in 72 h');
 
     set({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [ended, goldenPass, average, later] } });
-    expect(cardNames()).toEqual(['ISS (Zarya)', 'ISS (Zarya)', 'Later object', 'Average']);
+    expect(cardNames()).toEqual(['ISS (Zarya)', 'Later object', 'Average']);
     expect(screen.getAllByTestId('next-tag')).toHaveLength(1);
     expect(screen.getByTestId('next-tag').closest('article')).toHaveAttribute('data-pass-id', goldenPass.id);
   });
@@ -199,23 +212,25 @@ describe('<PassList>', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Could not compute passes: INTERNAL: boom');
   });
   /**
-   * R27 (US-16 AC5, FR-OFF-2). The window is the run's, so the nights are the
-   * ones the worker searched; the observer here has no zone, so every date is
-   * UTC and "tonight" is decided on the UTC calendar.
+   * R27 (US-16 AC5, FR-OFF-2), recut by R88 (FR-NIGHT-1): a night is local noon
+   * to local noon in the observer's zone. The golden pass is 06:48 in Salta on
+   * the 11th, so `first` (an hour after it) is the 10th's night, `second` a day
+   * later the 11th's and `third` the 12th's; the clock, 00:51 on the 11th, is
+   * in the 10th's night while `first` is still to come.
    */
   describe('the three nights', () => {
     const NIGHT = 24 * HOUR;
-    const window = { startMs: NOW, endMs: NOW + 3 * NIGHT };
     // Three plain passes, one per night, none of them featured, all in the future of the golden window.
     const first = shifted(goldenPass, 'first', 2, 'First night', 1, 40, 1.0);
     const second = shifted(goldenPass, 'second', 3, 'Second night', 25, 40, 1.0);
     const third = shifted(goldenPass, 'third', 4, 'Third night', 49, 40, 1.0);
     const threeNights = (): void => {
-      set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window, passes: [first, second, third], hasDarkness: true } });
+      set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [first, second, third], hasDarkness: true } });
     };
     const groups = () => screen.getAllByTestId('night-group');
     const toggles = () => screen.getAllByTestId('night-toggle');
     const opened = () => groups().map((group) => !group.hidden);
+    const names = () => toggles().map((toggle) => toggle.querySelector('span')?.textContent ?? '');
 
     it('groups the list by night, the first open and the rest closed, with the toggles on one row under the cards', async () => {
       threeNights();
@@ -238,44 +253,37 @@ describe('<PassList>', () => {
     });
 
     /**
-     * F-67: the reader's clock is pinned, because the labels are a function of
-     * it. `nightLabel` has three branches — tonight, tomorrow night, the date
-     * — and the run-time clock decides which one each night gets, so an
-     * assertion that reads `Date.now()` is asserting whatever day CI runs on.
-     * The old hedge had two branches for three, and was red for the whole
-     * calendar day before the golden window's date, where the first night is
-     * "tomorrow". With the clock at `NOW` the three labels are literals, and
-     * the test says what it is named for.
+     * F-67: the labels are a function of the clock, and the clock is the
+     * store's, set here — so the three labels are literals and the test says
+     * what it is named for, on whatever day CI runs.
      */
-    it('names the nights from the reader’s own clock: tonight, tomorrow night, then the date', () => {
-      vi.spyOn(Date, 'now').mockReturnValue(NOW);
+    it('names the nights from the shown clock: tonight, tomorrow night, then the date of the noon it began at', () => {
       threeNights();
       render(<PassList />);
-      const day = (t: number): string => new Date(t).toISOString().slice(0, 10);
-      expect(toggles()[0]).toHaveTextContent('Tonight');
-      expect(toggles()[1]).toHaveTextContent('Tomorrow night');
-      expect(toggles()[2]).toHaveTextContent(`Night of ${day(NOW + 2 * NIGHT)}`);
+      expect(names()).toEqual(['Tonight', 'Tomorrow night', 'Night of 2026-09-12']);
       // Each night's cards are named by their night for whoever hears them rather than sees the row.
       expect(groups()[0]).toHaveAccessibleName('Tonight');
+      expect(groups()[0]).toHaveAttribute('data-night', '2026-09-10');
     });
 
-    it('a night with nothing in it keeps its toggle and says so', () => {
-      set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window, passes: [first, third], hasDarkness: true } });
+    it('a night with no pass in it is not drawn (FR-NIGHT-2)', () => {
+      set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [first, third], hasDarkness: true } });
       render(<PassList />);
-      expect(toggles()[1]).toHaveTextContent('0 passes');
-      expect(groups()[1]).toHaveTextContent('No visible passes.');
+      expect(groups()).toHaveLength(2);
+      expect(names()).toEqual(['Tonight', 'Night of 2026-09-12']);
+      expect(screen.queryByText('No visible passes.')).toBeNull();
     });
 
     it('F-25: the toggle counts the cards under it, the tagged pass among them now that it stays in the list', () => {
-      vi.spyOn(Date, 'now').mockReturnValue(NOW);
       const iss = shifted(goldenPass, 'iss', 25544, 'ISS (Zarya)', 3, 40, 1.0);
       set({
         observer,
         nowMs: NOW,
         elements: ready,
-        passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window, passes: [first, iss, shifted(goldenPass, 'other', 5, 'Other', 5, 40, 1.0)], hasDarkness: true },
+        passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [first, iss, shifted(goldenPass, 'other', 5, 'Other', 5, 40, 1.0), third], hasDarkness: true },
       });
       render(<PassList />);
+      expect(groups()).toHaveLength(2);
       expect(within(groups()[0] as HTMLElement).getByTestId('next-tag')).toBeInTheDocument();
       expect(within(groups()[0] as HTMLElement).getAllByRole('article', { hidden: true })).toHaveLength(3);
       expect(toggles()[0]).toHaveTextContent('3 passes');
@@ -286,11 +294,11 @@ describe('<PassList>', () => {
       const { rerender } = render(<PassList />);
       await userEvent.click(toggles()[0] as HTMLElement);
       expect(opened()).toEqual([false, false, false]);
-      // Somewhere else: the same three night indexes, but nights the reader has never seen.
+      // Somewhere else: the same three nights, but nights the reader has never seen.
       const elsewhere: Observer = { ...observer, lat: 40.42, lon: -3.7, label: 'Madrid' };
       set({
         observer: elsewhere,
-        passes: { ...IDLE_PASSES, jobId: 'job-2', status: 'done', observer: elsewhere, window, passes: [first, second, third], hasDarkness: true },
+        passes: { ...IDLE_PASSES, jobId: 'job-2', status: 'done', observer: elsewhere, passes: [first, second, third], hasDarkness: true },
       });
       rerender(<PassList />);
       expect(opened()).toEqual([true, false, false]);
@@ -298,23 +306,20 @@ describe('<PassList>', () => {
 
     it('F-26: tomorrow night is the next date on the observer’s calendar, not now + 24 h', () => {
       // Santiago moves its clocks forward at midnight into 2026-09-06, so that day is 23 h long.
-      // The run starts at 23:30 on the 5th; 24 h of clock later is 00:30 on the *7th*, and the
-      // second night — which is the 7th's — used to be labelled "tomorrow night" from that sum.
+      // The clock is 23:30 on the 5th; 23:30 on the 6th is 23 h of clock later, and is tomorrow night;
+      // 24 h later would be 00:30 on the 7th, which is still the 6th's night by the noon rule.
       const zoned: Observer = { ...observer, timeZone: 'America/Santiago' };
       const start = Date.UTC(2026, 8, 6, 3, 30, 0);
-      const dstWindow = { startMs: start, endMs: start + 2 * NIGHT };
       const at = (t: number, id: string) => ({ ...first, id, start: { ...first.start, t }, peak: { ...first.peak, t }, end: { ...first.end, t: t + 60_000 } });
       set({
         observer: zoned,
         nowMs: start,
         elements: ready,
-        passes: { ...IDLE_PASSES, jobId: 'job-3', status: 'done', observer: zoned, window: dstWindow, passes: [at(start + HOUR, 'n0'), at(start + NIGHT + HOUR, 'n1')], hasDarkness: true },
+        passes: { ...IDLE_PASSES, jobId: 'job-3', status: 'done', observer: zoned, passes: [at(start + HOUR, 'n0'), at(start + 23 * HOUR, 'n1'), at(start + 47 * HOUR, 'n2')], hasDarkness: true },
       });
-      vi.spyOn(Date, 'now').mockReturnValue(start);
       render(<PassList />);
-      expect(toggles()[0]).toHaveTextContent('Tonight');
-      expect(toggles()[1]).toHaveTextContent('Night of 2026-09-07');
-      expect(screen.queryByText('Tomorrow night')).toBeNull();
+      expect(names()).toEqual(['Tonight', 'Tomorrow night', 'Night of 2026-09-07']);
+      expect(toggles().map((toggle) => toggle.getAttribute('data-night'))).toEqual(['2026-09-05', '2026-09-06', '2026-09-07']);
     });
 
     it('the reader can open and close nights, and the choice sticks', async () => {
@@ -327,17 +332,79 @@ describe('<PassList>', () => {
       expect(opened()).toEqual([false, true, false]);
     });
 
-    it('one night is no grouping at all: a 24 h window renders the plain list', () => {
-      set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, window: { startMs: NOW, endMs: NOW + NIGHT }, passes: [first], hasDarkness: true } });
+    it('one night is no grouping at all: passes on a single night render the plain list', () => {
+      set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [first], hasDarkness: true } });
       render(<PassList />);
       expect(screen.queryAllByTestId('night-group')).toHaveLength(0);
       expect(screen.queryByTestId('night-toggles')).toBeNull();
       expect(within(screen.getByRole('list')).getAllByRole('listitem')).toHaveLength(1);
     });
+
+    /**
+     * FR-NIGHT-2 (D-535): the list is pruned on the store's clock, the `now`
+     * slice's instant, which the effect advances every 10 s. The test sets it,
+     * which is the fake clock; the wall clock is never read.
+     */
+    describe('under the shown clock (FR-NIGHT-2)', () => {
+      const loading = { observer, status: 'loading' as const, snapshot: null, error: null };
+      const cardsIn = (group: HTMLElement) => within(group).getAllByRole('article', { hidden: true });
+
+      it('a pass 59 s past its end reads ended in place of the cloud word; at 61 s it is gone from the cards, the count line and its night', () => {
+        set({ observer, nowMs: NOW, elements: ready, weather: loading, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [first, second, third], hasDarkness: true } });
+        render(<PassList />);
+        expect(screen.getAllByText('Weather unknown')).toHaveLength(3);
+
+        clockAt(first.end.t + 59_000);
+        expect(groups()).toHaveLength(3);
+        const card = cardsIn(groups()[0] as HTMLElement)[0] as HTMLElement;
+        expect(within(card).getByTestId('card-ended')).toHaveTextContent('ended');
+        expect(within(card).queryByText('Weather unknown')).toBeNull();
+        expect(screen.getAllByText('Weather unknown')).toHaveLength(2);
+        expect(screen.getByRole('status')).toHaveTextContent('3 visible passes in 72 h');
+        expect(toggles()[0]).toHaveTextContent('1 pass');
+
+        clockAt(first.end.t + 61_000);
+        // Its night held nothing else, so the night is gone with it and the next one is tonight.
+        expect(groups()).toHaveLength(2);
+        expect(names()).toEqual(['Tonight', 'Tomorrow night']);
+        expect(screen.queryByRole('article', { name: 'First night', hidden: true })).toBeNull();
+        expect(screen.getByRole('status')).toHaveTextContent('2 visible passes in 72 h');
+        expect(toggles().map((toggle) => toggle.textContent)).toEqual(['Tonight 1 pass', 'Tomorrow night 1 pass']);
+        // The passes themselves were not recomputed: the store still holds all three.
+        expect(appStore.getState().passes.passes).toHaveLength(3);
+      });
+
+      it('the open pass is exempt while it is open', () => {
+        set({ observer, nowMs: NOW, elements: ready, weather: loading, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [first, second, third], hasDarkness: true } });
+        clockAt(first.end.t + 5 * 60_000);
+        render(<PassList selectedPassId={first.id} />);
+        expect(groups()).toHaveLength(3);
+        const card = screen.getByRole('article', { name: 'First night', hidden: true });
+        expect(card).toHaveAttribute('aria-current', 'true');
+        expect(within(card).getByTestId('card-ended')).toHaveTextContent('ended');
+        expect(screen.getByRole('status')).toHaveTextContent('3 visible passes in 72 h');
+      });
+
+      it('crossing local noon renames "Tomorrow night" to "Tonight", with no change to the passes', () => {
+        // A pass under way across noon on the 11th in Salta (14:58–15:01 UTC): the 10th's night, by its start.
+        const noon = Date.UTC(2026, 8, 11, 15);
+        const straddler = { ...first, id: 'straddler', name: 'Straddler', start: { ...first.start, t: noon - 2 * 60_000 }, peak: { ...first.peak, t: noon }, end: { ...first.end, t: noon + 60_000 } };
+        set({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [straddler, second, third], hasDarkness: true } });
+        render(<PassList />);
+        clockAt(noon - 60_000);
+        expect(names()).toEqual(['Tonight', 'Tomorrow night', 'Night of 2026-09-12']);
+        const before = appStore.getState().passes;
+        clockAt(noon + 30_000);
+        expect(names()).toEqual(['Night of 2026-09-10', 'Tonight', 'Tomorrow night']);
+        expect(appStore.getState().passes).toBe(before);
+        // And a minute after it ends, the night it was in leaves too.
+        clockAt(straddler.end.t + 61_000);
+        expect(names()).toEqual(['Tonight', 'Tomorrow night']);
+      });
+    });
   });
 
   it('words every card with the verdict from this observer’s forecast, and "weather unknown" until it arrives (FR-WX-3)', () => {
-    const HOUR = 3_600_000;
     const hour = Math.floor(golden.peak.t / HOUR) * HOUR;
     const forecast: WeatherSnapshot = {
       provider: 'open-meteo',
