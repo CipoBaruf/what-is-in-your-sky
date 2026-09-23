@@ -84,6 +84,11 @@
   margin: 0;
 }
 
+/* FR-NIGHT-2: the word an ended pass carries for its last minute, where the cloud word was. */
+.ended {
+  color: var(--fg-dim);
+}
+
 .twilight::before {
   content: '[';
 }

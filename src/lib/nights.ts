@@ -67,8 +67,18 @@ export function nightAt(instant: EpochMs, zone: string | null): NightAt {
   const hour = get('hour') % 24;
   const date = iso(year, month, day);
   if (hour >= 12) return { key: date, date, beforeNoon: false };
-  const yesterday = new Date(Date.UTC(year, month - 1, day - 1));
-  return { key: iso(yesterday.getUTCFullYear(), yesterday.getUTCMonth() + 1, yesterday.getUTCDate()), date, beforeNoon: true };
+  return { key: previousDate(year, month, day), date, beforeNoon: true };
+}
+
+const MONTH_LENGTHS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+/** The calendar date before `year-month-day`, no `Date` (D-15). */
+function previousDate(year: number, month: number, day: number): string {
+  if (day > 1) return iso(year, month, day - 1);
+  if (month === 1) return iso(year - 1, 12, 31);
+  const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  const previous = month - 1;
+  return iso(year, previous, previous === 2 && leap ? 29 : (MONTH_LENGTHS[previous - 1] as number));
 }
 
 /** The key of the night holding `instant`: the local date of the last local noon at or before it. */

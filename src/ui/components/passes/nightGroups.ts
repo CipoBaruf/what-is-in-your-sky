@@ -1,46 +1,40 @@
-import type { EpochMs, Pass, TimeWindow } from '../../../model';
-import { NIGHT_MS } from '../../../state';
+import { nightOf, type NightKey } from '../../../lib/nights';
+import type { Pass } from '../../../model';
 
 /**
- * US-16 AC5 / FR-OFF-2: the 72 h list cut into the nights it was searched as.
+ * US-16 AC5 as amended v2.1 (FR-NIGHT-1, D-534, F-90): the list cut into
+ * nights, a night being local noon to the next local noon in the observer's
+ * zone — or the device's until one is known (`lib/nights`). A pass belongs to
+ * the night holding its *start*, so one that straddles a noon is listed once,
+ * and a pass before dawn sits under the evening before it rather than beside
+ * that evening's passes of the same date.
  *
- * The rule is the worker's own (D-95), restated here because `src/ui` may not
- * import `src/worker` (PLAN §3): a night is a 24 h slice of the run's window,
- * and it owns the passes whose *start* falls in `[startMs, endMs)`, the last
- * night keeping everything from its start on. So a pass that straddles a
- * boundary is listed once, under the night it began in, and the groups the list
- * shows are exactly the groups the worker computed.
+ * Until v2.1 a night was 24 h from the instant of the computation (the
+ * worker's nights, D-95), which filed a 01:00 run's 05:00 and 21:00 passes
+ * together. The worker still searches in its own 24 h slices; only the
+ * grouping the reader sees is cut here.
  *
- * Every night of the window is returned, empty ones included: three headings
- * with one of them saying "no visible passes" is a truthful answer about that
- * night, and a group that disappears when nothing is found would leave the
- * reader counting. A run with no window at all — the MVP shape, and what the
- * slice holds before a job starts — is one group, and the list renders it
- * without any heading (PassList).
+ * Only nights holding a pass are returned, in order (FR-NIGHT-2: a night with
+ * no pass left is not drawn). `index` is the group's place in that order, for
+ * the disclosure ids; `key` is its identity across ticks, which the reader's
+ * open-and-closed choices hang on, since the first night leaves the list when
+ * its last pass does.
  */
 export interface NightGroup {
-  /** 0, 1, 2 — the `nightIndex` the worker emitted these under. */
+  /** 0, 1, 2 … — the group's place in the list. */
   index: number;
-  startMs: EpochMs;
-  endMs: EpochMs;
+  /** The local date of the noon the night began at (`lib/nights`). */
+  key: NightKey;
   passes: Pass[];
 }
 
-export function groupByNight(passes: readonly Pass[], window: TimeWindow | null): NightGroup[] {
-  if (window === null) return [{ index: 0, startMs: 0, endMs: 0, passes: [...passes] }];
-  const count = Math.max(1, Math.ceil((window.endMs - window.startMs) / NIGHT_MS));
-  const groups: NightGroup[] = Array.from({ length: count }, (_, index) => ({
-    index,
-    startMs: window.startMs + index * NIGHT_MS,
-    endMs: Math.min(window.startMs + (index + 1) * NIGHT_MS, window.endMs),
-    passes: [],
-  }));
+export function groupByNight(passes: readonly Pass[], zone: string | null): NightGroup[] {
+  const byKey = new Map<NightKey, Pass[]>();
   for (const pass of passes) {
-    // Clamped, not dropped: a stored run read back after its window has moved on is still the whole
-    // answer offline (D-105), and a pass outside it belongs at the near end rather than nowhere.
-    const raw = Math.floor((pass.start.t - window.startMs) / NIGHT_MS);
-    const index = Math.min(count - 1, Math.max(0, raw));
-    groups[index]?.passes.push(pass);
+    const key = nightOf(pass.start.t, zone);
+    const group = byKey.get(key);
+    if (group) group.push(pass);
+    else byKey.set(key, [pass]);
   }
-  return groups;
+  return [...byKey.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([key, group], index) => ({ index, key, passes: group }));
 }

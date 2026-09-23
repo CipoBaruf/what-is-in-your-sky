@@ -414,6 +414,8 @@ export const ui = {
     cardDetail: (p: { minutes: number; altitude: string; point: CompassPoint; brightness: { magnitude: string } | { band: BrightnessBand } }) =>
       `${String(p.minutes)} min · peak ${p.altitude} ${p.point} · ${'magnitude' in p.brightness ? `mag ${p.brightness.magnitude}` : brightness[p.brightness.band]}`,
     twilightLabel: 'sky still bright',
+    /** FR-NIGHT-2: in place of the cloud word for the minute an ended pass stays a card. */
+    ended: 'ended',
     openGuide: 'Open guide →',
     fields: {
       start: 'Start',

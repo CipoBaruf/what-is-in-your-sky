@@ -60,6 +60,9 @@ describe('nightOf', () => {
     expect(nightOf(Date.UTC(2026, 11, 31, 15, 30), 'Asia/Tokyo')).toBe('2026-12-31');
     // 13:00 on 1 January local: the new year’s first night.
     expect(nightOf(Date.UTC(2027, 0, 1, 4), 'Asia/Tokyo')).toBe('2027-01-01');
+    // 00:30 on 1 March local in a leap year is the 29th's night; in a common year the 28th's.
+    expect(nightOf(Date.UTC(2028, 1, 29, 15, 30), 'Asia/Tokyo')).toBe('2028-02-29');
+    expect(nightOf(Date.UTC(2027, 1, 28, 15, 30), 'Asia/Tokyo')).toBe('2027-02-28');
   });
 });
 

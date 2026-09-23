@@ -293,6 +293,7 @@ export const ui: typeof EnUi = {
     nextTag: (p) => (p.iss ? 'Próxima ISS' : `Próximo ${p.name}`),
     cardDetail: (p) => `${String(p.minutes)} min · máx. ${p.altitude} ${p.point} · ${'magnitude' in p.brightness ? `mag ${p.brightness.magnitude}` : brightness[p.brightness.band]}`,
     twilightLabel: 'cielo todavía claro',
+    ended: 'terminado',
     openGuide: 'Abrir la guía →',
     fields: {
       start: 'Inicio',
