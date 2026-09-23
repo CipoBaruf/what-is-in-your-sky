@@ -266,17 +266,21 @@ test('offline: the readiness line, the three nights, and the soft failures (R27,
   const readiness = page.getByTestId('readiness');
   await expect(readiness).toHaveText(/^Ready offline until \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
 
-  // US-16 AC5: three nights, tonight open, named from the reader's own clock.
+  // US-16 AC5 as amended v2.1 (R88, FR-NIGHT-1, FR-NIGHT-2): the nights are local noon to local noon and
+  // only the ones holding a pass are drawn, so a 72 h run is two to four of them; tonight open, named from
+  // the shown clock.
   const nights = page.getByTestId('night-group');
-  await expect(nights).toHaveCount(3);
+  await expect(nights.first()).toBeVisible();
+  const nightCount = await nights.count();
+  expect(nightCount, 'nights drawn').toBeGreaterThanOrEqual(2);
   // R81 (FR-FIRST-10): the nights' toggles stand on one row under the cards, one a night, in order.
   const toggles = page.getByTestId('night-toggle');
-  expect(await nights.evaluateAll((els) => els.map((el) => !(el as HTMLElement).hidden))).toEqual([true, false, false]);
-  await expect(toggles).toHaveCount(3);
+  expect(await nights.evaluateAll((els) => els.map((el) => !(el as HTMLElement).hidden))).toEqual([true, ...Array.from({ length: nightCount - 1 }, () => false)]);
+  await expect(toggles).toHaveCount(nightCount);
   await expect(toggles.nth(0)).toHaveAttribute('aria-expanded', 'true');
   await expect(toggles.nth(0)).toContainText('Tonight');
   await expect(toggles.nth(1)).toContainText('Tomorrow night');
-  await expect(toggles.nth(2)).toContainText(/Night of \d{4}-\d{2}-\d{2}/);
+  if (nightCount > 2) await expect(toggles.nth(2)).toContainText(/Night of \d{4}-\d{2}-\d{2}/);
 
   // A closed night keeps its cards out of the way until it is opened, which is what the grouping is for.
   const cardCounts = await nights.evaluateAll((els) => els.map((el) => el.querySelectorAll('article[data-pass-id]').length));

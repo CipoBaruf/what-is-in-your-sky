@@ -219,7 +219,6 @@ describe('<PassList>', () => {
    * in the 10th's night while `first` is still to come.
    */
   describe('the three nights', () => {
-    const NIGHT = 24 * HOUR;
     // Three plain passes, one per night, none of them featured, all in the future of the golden window.
     const first = shifted(goldenPass, 'first', 2, 'First night', 1, 40, 1.0);
     const second = shifted(goldenPass, 'second', 3, 'Second night', 25, 40, 1.0);
