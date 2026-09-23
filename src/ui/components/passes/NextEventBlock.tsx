@@ -76,10 +76,10 @@ export function jumpInstant(result: NextEvent | NoEvent, now: EpochMs, hours: nu
 }
 
 /** The control itself, wherever it stands: bracketed text in the accent with a 48 px hit box on a text row (D-246). */
-function SeeThisPass({ rise, name, onSee }: { rise: EpochMs; name: string; onSee: (rise: EpochMs) => void }) {
+function SeeThisPass({ rise, pass, onSee }: { rise: EpochMs; pass: Pass; onSee: (rise: EpochMs) => void }) {
   const t = useT();
   return (
-    <button type="button" className={styles.see} data-testid="next-event-see" data-rise={rise} aria-label={t.live.seeThisPassName(name)} onClick={() => onSee(rise)}>
+    <button type="button" className={styles.see} data-testid="next-event-see" data-rise={rise} data-pass={pass.id} aria-label={t.live.seeThisPassName(pass.name)} onClick={() => onSee(rise)}>
       {t.live.seeThisPass}
     </button>
   );
@@ -95,7 +95,7 @@ export function JumpControl({ passes, context, hours, now: nowProp, onSee }: Pic
   const now = nowProp ?? clock;
   const result = nextEvent(passes, now, context);
   const rise = jumpInstant(result, now, hours);
-  return rise === null || isNoEvent(result) ? null : <SeeThisPass rise={rise} name={result.pass.name} onSee={onSee} />;
+  return rise === null || isNoEvent(result) ? null : <SeeThisPass rise={rise} pass={result.pass} onSee={onSee} />;
 }
 
 export interface NextEventBlockProps {
@@ -187,7 +187,7 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
             {rise !== null && onSee && (
               <>
                 {' '}
-                <SeeThisPass rise={rise} name={pass.name} onSee={onSee} />
+                <SeeThisPass rise={rise} pass={pass} onSee={onSee} />
               </>
             )}
           </p>
