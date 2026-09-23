@@ -73,6 +73,11 @@ export function usePlayback({ span, realNow, initial, raf = windowRaf }: Playbac
    * passing an instant that was *ahead* of real time when it was set — a link's moment, a scrub into the coming
    * hours — so `[ scrub ]`, which holds the instant real time is showing (FR-WATCH-1 a), is not released by the
    * next tick. Not while playing: playback moves the instant itself and stops at the span's end.
+   *
+   * "Was it ahead when it was set" is answered once per held instant, so the test below runs on `held` alone;
+   * real time reaches it through a ref rather than the effect's deps, because a tick is not a new answer — with
+   * `realNow` in the deps the flag would be recomputed ten times a minute and go false the moment real time
+   * caught up, which is exactly the state the release is reading.
    */
   const realNowRef = useRef(realNow);
   useEffect(() => {
