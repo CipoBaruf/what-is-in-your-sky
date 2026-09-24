@@ -92,7 +92,8 @@ for (const viewport of [PHONE, DESK]) {
     });
 
     test(`the populated home with 40 passes skips no level and has at most ${String(A11Y_MAX_H2)} h2 (FR-A11Y-2)`, async ({ page }) => {
-      await seedStoredRun(page, { run: FORTY, elements: 'down' });
+      // R97 (FR-FAINT-2): faint passes shown, so all 40 are cards and every name is in the outline.
+      await seedStoredRun(page, { run: FORTY, elements: 'down', prefs: { showFaint: true } });
       // Every night open, so every card's heading is in the outline.
       for (const toggle of await page.getByTestId('night-toggle').all()) {
         if ((await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click();
