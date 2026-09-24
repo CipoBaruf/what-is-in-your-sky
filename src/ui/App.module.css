@@ -235,6 +235,25 @@
    cells; the query's own literal is D-71's, checked against `--cell` by
    `tests/styles/breakpoint.test.ts`. */
 @media (min-width: 964px) {
+  /* R93 (FR-HOME-4, D-546, D-604): the page stops growing at `HOME_MAX_CELLS`
+     (`lib/layout.ts`, pinned by `tests/styles/breakpoint.test.ts`). The cap is
+     on each of the shell's rows — the header, the notices, the main and the
+     footer are `#root`'s direct children on home and settings — so the rules
+     under the header and above the footer end where the panes do. `width:
+     100%` because inside D-119's grid an auto margin turns off the stretch a
+     grid item gets, and a row left to size itself shrinks to its text
+     (global.css). The live page draws its landmarks inside its own grid, not as
+     children of `#root`, so it is not capped: its drawing is the point of a big
+     screen (FR-DOME-1). */
+  .main,
+  :global(#root) > :global(header),
+  :global(#root) > :global(footer),
+  :global(#root) > :global([data-page-notices]) {
+    width: 100%;
+    max-width: calc(160 * var(--cell));
+    margin-inline: auto;
+  }
+
   /* R23 (D-119): both columns take the whole of the shell's middle row rather
      than stopping at their content, so the left one reaches the footer instead
      of leaving dead space under it and the right one has a height its panes

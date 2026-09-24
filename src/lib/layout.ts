@@ -117,6 +117,17 @@ export const HOME_THREE_PANE_QUERY = `(min-width: ${String(HOME_THREE_PANE_MIN_P
 /** FR-FIRST-5 (D-444): an open pass at three-pane widths takes the first two panes, at least this wide. */
 export const GUIDE_PANE_MIN_CELLS = 72;
 
+/**
+ * R93 (FR-HOME-4, D-546): the width the home page stops growing at. From 160
+ * cells — about 1540 px on the widest advance — the header, the three panes
+ * and the footer hold that width and are centred, the panes staying equal, so
+ * a 2560 px screen is not three panes of 80 cells with 20-cell-wide cards. It
+ * is a `max-width` in cells on the shell's content (`App.module.css`), not a
+ * media query, so there is no pixel twin to derive: the cap is exactly 160 of
+ * whatever cell the device has. The live page is not capped (FR-DOME-1).
+ */
+export const HOME_MAX_CELLS = 160;
+
 export type LayoutMode = 'compact' | 'wide';
 
 /** Which shell a `matchMedia(WIDE_QUERY)` result means (D-72). */
