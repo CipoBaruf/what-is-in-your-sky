@@ -63,6 +63,20 @@ function takeRouteLink(event: MouseEvent): void {
   open(href, anchor);
 }
 
+/**
+ * D-532: the `h1` the focus falls back to is not a control, so it is focusable (`tabIndex=-1`) only while it holds
+ * the focus — a click on the title would otherwise take the focus too, off whatever the reader had.
+ */
+function focusOn(target: HTMLElement): void {
+  if (target.tabIndex < 0 && !target.hasAttribute('tabindex')) {
+    target.setAttribute('tabindex', '-1');
+    target.addEventListener('blur', () => {
+      target.removeAttribute('tabindex');
+    }, { once: true });
+  }
+  target.focus();
+}
+
 export function Shell({ chrome, routeKey, title, banner, footer, mainProps, beforeMain, after, children }: ShellProps) {
   const t = useT();
   const main = useRef<HTMLElement>(null);
@@ -103,7 +117,8 @@ export function Shell({ chrome, routeKey, title, banner, footer, mainProps, befo
     if (shownKey.current === routeKey) return;
     shownKey.current = routeKey;
     setAnnounced(title);
-    takeFocusTarget()?.focus();
+    const target = takeFocusTarget();
+    if (target) focusOn(target);
   }, [routeKey, title]);
 
   const skip =

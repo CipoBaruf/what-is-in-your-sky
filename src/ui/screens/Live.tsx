@@ -256,7 +256,7 @@ function Page({ state, wakeLock, fold, placement, top, children }: { state: 'liv
     >
       <header className="landmark-contents">{top}</header>
       <main className="landmark-contents">
-        <h1 className="sr-only" tabIndex={-1}>
+        <h1 className="sr-only">
           {t.live.open}
         </h1>
         {children}

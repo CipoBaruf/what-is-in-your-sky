@@ -57,9 +57,7 @@ export function Header({ inert = false, current = 'home' }: HeaderProps) {
       <header inert={inert} className={`${styles.header} ${styles.compact}`} data-testid="header">
         <div className={styles.brand}>
           {mark}
-          <h1 className={styles.shortTitle} tabIndex={-1}>
-            {t.app.shortTitle}
-          </h1>
+          <h1 className={styles.shortTitle}>{t.app.shortTitle}</h1>
         </div>
         <nav className={styles.links} aria-label={t.app.title}>
           <a href="#live" className={styles.link} data-testid="live-link">
@@ -85,7 +83,7 @@ export function Header({ inert = false, current = 'home' }: HeaderProps) {
         <div className={styles.titleRow}>
           <div className={styles.brand}>
             {mark}
-            <h1 tabIndex={-1}>{t.app.title}</h1>
+            <h1>{t.app.title}</h1>
           </div>
           {/* R92 (FR-A11Y-1, D-529): the wide header's one link is its navigation too, in a box of its own that draws none. */}
           <nav className="landmark-contents" aria-label={t.app.title}>

@@ -34,7 +34,10 @@ test.describe('the live page', () => {
     const box = await page.getByTestId('live-page').boundingBox();
     expect(box?.height).toBe(844);
     expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
-    await expect(page.getByRole('banner')).toHaveCount(0);
+    // R92 (FR-A11Y-1): nothing of the home page's header; the banner is the page's own top row.
+    await expect(page.getByTestId('header')).toHaveCount(0);
+    await expect(page.getByRole('banner')).toHaveCount(1);
+    await expect(page.getByRole('banner').getByTestId('live-top-row')).toBeVisible();
     // The dome is the whole width inside the two cells of side padding, and most of the height.
     const dome = await page.getByTestId('live-dome').boundingBox();
     expect(dome?.width).toBeGreaterThan(390 - 4 * 9.6 - 1);
