@@ -88,6 +88,12 @@ export const live = {
      * `[ live ] [ ] Hidden [ Share ]`, 29 cells. `backToLive` stays its accessible name, which contains the word.
      */
     backToLiveShort: 'live',
+    /**
+     * R101 (FR-JUMP-1): the watching headline's one control after its path line — `[ see this pass ]`, which holds
+     * the page at the named pass's rise. `seeThisPassName` is its accessible name, with the satellite it names.
+     */
+    seeThisPass: 'see this pass',
+    seeThisPassName: (name: string) => `See this pass: ${name}, held at its rise`,
     /** R77 (FR-WATCH-2, FR-TRAJ-4): the held instant's offset from real time — `+33 min`, `−1 h 05 min`. */
     heldOffset: (p: { sign: '+' | '−'; hours: number; minutes: number }) =>
       p.hours === 0 ? `${p.sign}${String(p.minutes)} min` : `${p.sign}${String(p.hours)} h ${String(p.minutes).padStart(2, '0')} min`,

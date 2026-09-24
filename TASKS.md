@@ -2268,7 +2268,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: the Spanish failure sentences.
 
-- [ ] **R101 — `[ see this pass ]` on the watching headline**
+- [x] **R101 — `[ see this pass ]` on the watching headline**
   - **Lane:** live
   - **Model:** opus
   - **Gate:** owner
@@ -2286,6 +2286,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
     - Captures: watching with the control at 390 × 844 and 1280 × 800, both themes, both languages.
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: one-handed on a phone, and the four shapes.
+  - *Done (D-643..D-645):* the placement is measured on wide and the path line on compact; two shapes keep a recorded cost in the rail (the landscape phone at 844–932 px, the short wide window from 1200 px in English), the chart box none — `shapes.spec.ts`'s `JUMP_ALLOWANCE`.
 
 ### Wave 5
 

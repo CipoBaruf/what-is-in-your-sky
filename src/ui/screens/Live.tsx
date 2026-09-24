@@ -36,13 +36,13 @@ import { useSkyBands } from '../components/live/useSkyBands';
 import { useWakeLock, type WakeLockState } from '../components/live/useWakeLock';
 import { useWallThrottle } from '../components/live/useWallThrottle';
 import { Mark } from '../components/mark/Mark';
-import { NextEventBlock } from '../components/passes/NextEventBlock';
+import { JumpControl, NextEventBlock } from '../components/passes/NextEventBlock';
 import { SkyScreen } from '../components/screen/SkyScreen';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import { requestPlace } from './home/placeRequest';
 import styles from './Live.module.css';
-import { inventoryClip, liveShape, rowsFor, type LiveRow } from './liveRows';
+import { inventoryClip, jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type LiveRow } from './liveRows';
 
 /**
  * R32 (FR-LIVE-1, FR-LIVE-2, FR-LIVE-3, FR-LIVE-9, FR-LIVE-10; US-15 AC1, AC2,
@@ -357,6 +357,46 @@ function useInventoryRows(active: boolean, domeRef: RefObject<HTMLDivElement | n
   return rows;
 }
 
+/**
+ * R101 (FR-JUMP-1, D-624): whether `[ see this pass ]` fits after the headline's path line on the wide page, for
+ * `liveRows.ts`'s `jumpPlacement`. Measured, since the path is the pass's words and the rail is what the box
+ * leaves: where the path's last line ends (a range over its words, which lay out the same wherever the control
+ * goes, so the answer cannot feed itself), and the control's own width wherever it last stood. Until the control
+ * has been seen the answer is "fits", so it is drawn on the path first and measured there.
+ */
+function useJumpFitsOnPath(active: boolean, headlineRef: RefObject<HTMLDivElement | null>, cells: number, passes: readonly Pass[], placement: ScrubPlacement): boolean {
+  const [fits, setFits] = useState(true);
+  const controlPx = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const root = headlineRef.current;
+    if (!active || !root || typeof ResizeObserver === 'undefined') return;
+    const measure = (): void => {
+      const control = document.querySelector('[data-testid="next-event-see"]');
+      const width = control?.getBoundingClientRect().width ?? 0;
+      if (width > 0) controlPx.current = width;
+      const line = root.querySelector('[data-testid="next-event-path"]');
+      const words = line?.querySelector('[data-path-text]');
+      if (!line || !words || controlPx.current === null) return;
+      const range = document.createRange();
+      range.selectNodeContents(words);
+      if (typeof range.getClientRects !== 'function') return;
+      const rects = range.getClientRects();
+      const last = rects[rects.length - 1];
+      if (!last) return;
+      const row = line.getBoundingClientRect();
+      const next = jumpFitsOnPath({ lastLineEndPx: last.right - row.left, spacePx: controlPx.current / cells, controlPx: controlPx.current, rowPx: row.width });
+      setFits((was) => (was === next ? was : next));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    measure();
+    return () => {
+      observer.disconnect();
+    };
+  }, [active, headlineRef, cells, passes, placement]);
+  return fits;
+}
+
 /** The page with something to draw: the chart, the headline, the conditions, the timelines, the controls and the share action, for one observer. */
 function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; link: LiveLink | null; wakeLock: WakeLockState; onLeave: () => void }) {
   const t = useT();
@@ -487,9 +527,22 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const passesPending = !ownPasses || (passesState.status !== 'done' && passesState.status !== 'error');
 
   const indicator = has('indicator') ? <StateIndicator held={scrubbing} /> : null;
+  /*
+   * R101 (FR-JUMP-1, FR-JUMP-2; D-624): `[ see this pass ]` dispatches the hold that exists — `stepTo`, the landing
+   * `pass ▶|` makes (FR-SPAN-4) — at the rise the headline names. Holding is scrubbing (FR-WATCH-1), so the stripe
+   * comes out with its chunk around the instant, the hash takes `t` (D-171) and `[ back to live ]` undoes it.
+   * `liveRows.ts` says which row it rides on; it is only ever in the watching inventory, since its rows are.
+   */
+  const seePass = playback.stepTo;
+  const nextEventContext = useMemo(() => ({ hasDarkness: passesState.hasDarkness, elementCount }), [passesState.hasDarkness, elementCount]);
+  const liveHours = LIVE_WINDOW_MS / 3_600_000;
+  const headlineRef = useRef<HTMLDivElement>(null);
+  // The control's cells with its brackets, so one of them is the space before it; re-measured as the passes change.
+  const fitsOnPath = useJumpFitsOnPath(!compact && has('next-event'), headlineRef, t.live.seeThisPass.length + 4, passes, placement);
+  const jumpAt = scrubbing ? null : jumpPlacement(mode, fitsOnPath);
   const nextEvent = has('next-event') ? (
-    <div className={styles.headline}>
-      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={{ hasDarkness: passesState.hasDarkness, elementCount }} pending={passesPending} hours={LIVE_WINDOW_MS / 3_600_000} liveLink={false} />
+    <div className={styles.headline} ref={headlineRef}>
+      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={nextEventContext} pending={passesPending} hours={liveHours} liveLink={false} {...(jumpAt === 'path' ? { onSee: seePass } : {})} />
     </div>
   ) : null;
   const readout = <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />;
@@ -559,6 +612,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const actions = (
     <div className={styles.actions} data-testid="live-actions">
       {has('scrub') && <ScrubButton onScrub={scrubHere} />}
+      {has('next-event') && jumpAt === 'actions' && <JumpControl passes={passes} context={nextEventContext} hours={liveHours} onSee={seePass} />}
       {has('back-to-live') && !backAtHead && <BackToLive onNow={playback.toNow} short />}
       {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
       {has('list') && <LegendToggle open={legendOpen} count={legendCount} controls={LEGEND_PANEL_ID} onToggle={toggleLegend} />}

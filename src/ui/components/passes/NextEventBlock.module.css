@@ -30,6 +30,28 @@
   overflow-wrap: anywhere;
 }
 
+/* R101 (FR-JUMP-1, D-246): `[ see this pass ]`, bracketed text in the accent like the live page's actions, one
+   text row tall with a 48 px hit box — the vertical padding and the matching negative margin — so the line it
+   stands on is no taller for it. It never breaks inside itself: it takes the rest of a line or none of it. */
+.see {
+  border: 0;
+  background: none;
+  padding: calc((var(--tap) - var(--row)) / 2) 0;
+  margin: calc(-1 * (var(--tap) - var(--row)) / 2) 0;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.see::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.see::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
 /* FR-LIVE-1: a bracketed control like the header's. */
 .live {
   margin: 0.75rem 0 0;

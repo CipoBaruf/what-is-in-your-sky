@@ -1108,6 +1108,46 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('live-state-word')).toHaveTextContent('held');
   });
 
+  /**
+   * R101 (FR-JUMP-1, FR-JUMP-2; US-27 AC7; D-624): half an hour before the golden pass, the watching headline carries
+   * `[ see this pass ]`; the tap holds the page at the rise — `pass ▶|`'s landing — which is scrubbing with the
+   * stripe at that instant and the URL carrying it, and `[ back to live ]` returns. jsdom lays nothing out, so
+   * the wide page's measured fit is its first answer, the path line, on both shells here; `shapes.spec.ts` walks
+   * the placements in a browser.
+   */
+  it.each([
+    ['compact', null],
+    ['wide', [1280, 800]],
+  ] as const)('%s: [ see this pass ] holds the page at the rise, and [ back to live ] returns (FR-JUMP-1, FR-JUMP-2)', (_mode, size) => {
+    withTimeouts();
+    const before = pass.start.t - HOUR / 2;
+    vi.setSystemTime(before);
+    withSky();
+    if (size !== null) media = stubMatchMedia(size[0], size[1]);
+    window.location.hash = '#live';
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.getByTestId('next-event-label')).toHaveTextContent('Next up · in 30:00');
+    const control = screen.getByRole('button', { name: `See this pass: ${pass.name}, held at its rise` });
+    expect(control.closest('[data-testid="next-event-path"]')).not.toBeNull();
+    fireEvent.click(control);
+    // Scrubbing, at the rise to the second — the instant `pass ▶|` lands on from real time — with the control gone.
+    expect(screen.getByTestId('live-indicator')).toHaveAttribute('data-state', 'held');
+    expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(pass.start.t);
+    expect(screen.queryByTestId('next-event-see')).toBeNull();
+    expect(screen.getByTestId('step-controls')).toBeInTheDocument();
+    expect(window.location.hash).toBe(`#live?lat=-38.93&lon=-67.99&alt=0&t=${isoInstant(pass.start.t)}`);
+    // The marker is on the dome at the rise.
+    expect(screen.getByTestId('live-count')).toHaveTextContent(/^(Satellites 1 up|Up 1)$/);
+    fireEvent.click(screen.getByRole('button', { name: en.live.backToLive }));
+    expect(screen.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
+    expect(screen.queryByTestId('time-stripe')).toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    expect(window.location.hash).toBe('#live');
+    expect(screen.getByTestId('next-event-see')).toBeInTheDocument();
+  });
+
   /** D-171: the hash is written at most twice a second while scrubbing and never while playing. */
   it('writes the hash at most twice a second while scrubbing, never while playing, and once on pause', () => {
     withTimeouts();

@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { foldRows, LIVE_FOLD_NEEDS, LIVE_FOLD_ORDER } from '../../lib/layout';
-import { inventoryClip, LIVE_ROW_TEST_ID, LIVE_ROWS, liveShape, rowsFor, type LiveRow } from './liveRows';
+import { inventoryClip, jumpFitsOnPath, jumpPlacement, LIVE_ROW_TEST_ID, LIVE_ROWS, liveShape, rowsFor, type LiveRow } from './liveRows';
 
 const TIMELINE: readonly LiveRow[] = ['time-row', 'stripe', 'steps', 'playback'];
 
@@ -131,5 +131,29 @@ describe('inventoryClip (F-81)', () => {
 
   it('an empty sky is its one line', () => {
     expect(inventoryClip([1], 3)).toEqual({ rows: 1, shown: 1, more: 0 });
+  });
+});
+
+/** R101 (FR-JUMP-1, D-624): where `[ see this pass ]` rides — never a row of its own. */
+describe('jumpPlacement (FR-JUMP-1)', () => {
+  it('is the path line on compact whatever the fit, and on wide where the control fits after it', () => {
+    expect(jumpPlacement('compact', true)).toBe('path');
+    expect(jumpPlacement('compact', false)).toBe('path');
+    expect(jumpPlacement('wide', true)).toBe('path');
+    expect(jumpPlacement('wide', false)).toBe('actions');
+  });
+
+  it('fits when the last line, a cell of space and the control are inside the row, to half a pixel', () => {
+    // A 44-cell rail at 9.63 px a cell, the control's 17 cells: a 26-cell last line fits, a 27-cell one does not.
+    const cell = 9.63;
+    const fit = (lastCells: number): boolean => jumpFitsOnPath({ lastLineEndPx: lastCells * cell, spacePx: cell, controlPx: 17 * cell, rowPx: 44 * cell });
+    expect(fit(26)).toBe(true);
+    expect(fit(27)).toBe(false);
+    expect(jumpFitsOnPath({ lastLineEndPx: 100.4, spacePx: 0, controlPx: 0, rowPx: 100 })).toBe(true);
+    expect(jumpFitsOnPath({ lastLineEndPx: 100.6, spacePx: 0, controlPx: 0, rowPx: 100 })).toBe(false);
+  });
+
+  it('is never a row of the inventory', () => {
+    expect(LIVE_ROWS as readonly string[]).not.toContain('jump');
   });
 });

@@ -2,7 +2,7 @@ import { useId } from 'react';
 import type { Messages } from '../../../i18n/messages';
 import { useLocale, useT } from '../../../i18n/useT';
 import { formatClockDuration, formatMagnitude } from '../../../lib/format';
-import { isNoEvent, nextEvent, type NextEvent, type NextEventContext } from '../../../lib/nextEvent';
+import { isNoEvent, nextEvent, type NextEvent, type NextEventContext, type NoEvent } from '../../../lib/nextEvent';
 import { passPath } from '../../../lib/passPath';
 import { brightnessBand } from '../../../lib/phrases';
 import { formatShortClock } from '../../../lib/timeFormat';
@@ -61,6 +61,56 @@ function LiveLink() {
   );
 }
 
+/**
+ * R101 (FR-JUMP-1, D-624): `[ see this pass ]` is on the watching headline only while its next event is a rise
+ * more than this far ahead — closer than two minutes the reader is better served by watching it come — and inside
+ * the stripe's span (`hours`). Seconds, as the spec names it.
+ */
+export const JUMP_MIN_AHEAD_S = 120;
+
+/**
+ * The far edge is held back by one of `Live`'s ticks. This block reads the clock every second, but the span the
+ * jump lands in is `{ start: now, end: now + LIVE_WINDOW_MS }` built from `Live`'s own 10 s clock, and the two
+ * `useNow` calls are separate intervals that drift apart. For a rise in the sliver between the stale span's end
+ * and this block's fresher one, the control would show and then `clampToSpan` would stop the jump short of the
+ * rise — silently landing somewhere that is not the rise, against FR-JUMP-2 (D-624, "to the second"). The
+ * control simply does not appear for that sliver instead.
+ *
+ * Kept equal to `Live`'s `TICK_MS`; importing it here would make `Live` and `NextEventBlock` a cycle, so the
+ * two are asserted equal in the test.
+ */
+export const JUMP_SPAN_MARGIN_MS = 10_000;
+
+/** FR-JUMP-1: the instant `[ see this pass ]` holds the page at — the named pass's rise — or null where the control is absent. */
+export function jumpInstant(result: NextEvent | NoEvent, now: EpochMs, hours: number): EpochMs | null {
+  if (isNoEvent(result) || result.kind !== 'rise') return null;
+  const ahead = result.at - now;
+  return ahead > JUMP_MIN_AHEAD_S * 1000 && ahead <= hours * 3_600_000 - JUMP_SPAN_MARGIN_MS ? result.at : null;
+}
+
+/** The control itself, wherever it stands: bracketed text in the accent with a 48 px hit box on a text row (D-246). */
+function SeeThisPass({ rise, pass, onSee }: { rise: EpochMs; pass: Pass; onSee: (rise: EpochMs) => void }) {
+  const t = useT();
+  return (
+    <button type="button" className={styles.see} data-testid="next-event-see" data-rise={rise} data-pass={pass.id} aria-label={t.live.seeThisPassName(pass.name)} onClick={() => onSee(rise)}>
+      {t.live.seeThisPass}
+    </button>
+  );
+}
+
+/**
+ * R101 (FR-JUMP-1, D-624): the same control where `liveRows.ts` puts it beside `[ scrub the night ]` rather than on
+ * the path line. It reads the same passes the headline does and ticks itself on the headline's second, so the
+ * control and the countdown above it agree to the second at the 120 s boundary and the page never re-renders for it.
+ */
+export function JumpControl({ passes, context, hours, now: nowProp, onSee }: Pick<NextEventBlockProps, 'passes' | 'context' | 'hours' | 'now'> & { onSee: (rise: EpochMs) => void }) {
+  const clock = useNow(NEXT_EVENT_TICK_MS);
+  const now = nowProp ?? clock;
+  const result = nextEvent(passes, now, context);
+  const rise = jumpInstant(result, now, hours);
+  return rise === null || isNoEvent(result) ? null : <SeeThisPass rise={rise} pass={result.pass} onSee={onSee} />;
+}
+
 export interface NextEventBlockProps {
   passes: readonly Pass[];
   /** The observer's zone, for the event's clock time; null reads UTC and says so. */
@@ -85,9 +135,15 @@ export interface NextEventBlockProps {
    * whole box, the same "Open guide → <name>" control, the same sheet — since the list under it leaves that pass out.
    */
   onOpen?: (passId: string) => void;
+  /**
+   * R101 (FR-JUMP-1, D-624): the live page's watching headline, where `liveRows.ts` puts the jump on the path
+   * line — `[ see this pass ]` after the path, calling this with the pass's rise while `jumpInstant` names one.
+   * The home page passes nothing (FR-JUMP-3).
+   */
+  onSee?: (rise: EpochMs) => void;
 }
 
-export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block', liveLink = true, onOpen }: NextEventBlockProps) {
+export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block', liveLink = true, onOpen, onSee }: NextEventBlockProps) {
   const t = useT();
   const locale = useLocale();
   const nameId = useId();
@@ -111,6 +167,7 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
   // The time stands alone at 32 px; with no zone for the observer yet the digits are UTC, and say so (F-27).
   const time = formatShortClock(result.at, timeZone, locale, timeZone === null);
   const path = nextEventPath(pass, t);
+  const rise = onSee && !card ? jumpInstant(result, now, hours) : null;
   return (
     <section aria-label={t.nextEvent.region} className={card ? styles.card : styles.block} data-testid="next-event" data-form={form}>
       <p role="timer" aria-live="off" className={styles.label} data-kind={result.kind} data-testid="next-event-label">
@@ -136,7 +193,16 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
             {time}
           </p>
           <p className={styles.path} data-testid="next-event-path">
-            {t.nextEvent.named({ name: pass.name, path })}
+            {/* The words alone in a span, so a host can find where their last line ends (R101, `Live.tsx`). */}
+            <span data-path-text="">{t.nextEvent.named({ name: pass.name, path })}</span>
+            {/* FR-JUMP-1: inline after the path, so it takes the path's last line where that has the cells and
+                the headline has no row of its own for it. */}
+            {rise !== null && onSee && (
+              <>
+                {' '}
+                <SeeThisPass rise={rise} pass={pass} onSee={onSee} />
+              </>
+            )}
           </p>
           {liveLink && <LiveLink />}
         </>

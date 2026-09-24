@@ -232,6 +232,8 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".live.playback:string",
   ".live.scrub:string",
   ".live.scrubWide:string",
+  ".live.seeThisPass:string",
+  ".live.seeThisPassName:function",
   ".live.setPlace:string",
   ".live.share:string",
   ".live.shareMoment:string",
