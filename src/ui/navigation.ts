@@ -68,11 +68,14 @@ function path(): string {
 function emit(event: Event): void {
   // A traversal back past entries this session pushed: the reader left those routes, and the focus goes
   // to what opened the shallowest of them.
+  //
+  // The openers are not truncated here. Forward re-enters a pushed entry without going through `open()`, so
+  // trimming on the way back would leave `openers` permanently shorter than `depth()` and every later Back
+  // from that entry would restore no focus at all (FR-A11Y-4). `openers[i]` belongs to depth `i + 1` whether
+  // the reader arrived by opening or by going forward, and `open()` already drops the stale tail when it
+  // pushes a new entry over a forward one.
   const d = depth();
-  if (openers.length > d) {
-    pending = openers[d];
-    openers.length = d;
-  }
+  if (openers.length > d) pending = openers[d];
   for (const listener of listeners) listener(event);
 }
 

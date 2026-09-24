@@ -129,4 +129,25 @@ describe('the focus after a route is left (D-532)', () => {
     await settle();
     expect(takeFocusTarget()).toBe(button);
   });
+
+  // Forward re-enters the entry without going through `open()`, so the openers must survive the way back:
+  // trimming them on the way out left every later Back from that entry restoring no focus at all.
+  it('still restores the opener after Back, Forward and Back again', async () => {
+    const at = (hash: string): Promise<void> =>
+      vi.waitFor(() => {
+        expect(window.location.hash).toBe(hash);
+      });
+    const button = document.body.appendChild(document.createElement('button'));
+    open('#settings', button);
+    window.history.back();
+    await at('');
+    expect(takeFocusTarget()).toBe(button);
+    window.history.forward();
+    await at('#settings');
+    // Going forward into the route restores nothing: the reader is entering it, not leaving it.
+    expect(takeFocusTarget()).toBeNull();
+    window.history.back();
+    await at('');
+    expect(takeFocusTarget()).toBe(button);
+  });
 });

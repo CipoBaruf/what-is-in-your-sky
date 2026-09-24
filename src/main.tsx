@@ -13,10 +13,12 @@ import './ui/styles/global.css';
  * one, and the app is client-rendered anyway. `startApp` creates the store,
  * whose prefs slice has already resolved the locale from `wiys:prefs:v1` and
  * `navigator.languages` (FR-I18N-1) and read the saved theme (FR-THEME-1);
- * `applyLocale` sets `documentElement.lang` and the document title
- * (FR-I18N-5) and `applyTheme` sets `data-theme`, and only then does anything
- * paint, so no frame is composited in the wrong palette. `AppRoot` keeps both
- * on the current choice for every later switch.
+ * `applyLocale` sets `documentElement.lang` (FR-I18N-5) and `applyTheme` sets
+ * `data-theme`, and only then does anything paint, so no frame is composited
+ * in the wrong palette. `AppRoot` keeps both on the current choice for every
+ * later switch. R92 moved the document title out of here: it names the route
+ * as well as the language (FR-A11Y-3, D-531), so the shell writes it from an
+ * effect once the route is known, not before the first render.
  */
 startApp();
 applyLocale(appStore.getState().locale);
