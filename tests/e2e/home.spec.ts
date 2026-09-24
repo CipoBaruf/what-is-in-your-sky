@@ -165,8 +165,10 @@ test.describe('the three readings by width (FR-FIRST-5, D-443)', () => {
         expect((await heading.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(20);
       }
       // Board 1B's When: the stripe, the table, then the next event (FR-FIRST-8, FR-FIRST-9, FR-FIRST-3).
+      // R93 (FR-HOME-2, D-606): on the two columns the next event stands directly under the stripe, the table after it.
       const whenPane = page.getByTestId('reading-when');
-      const order = await Promise.all(['tonight-stripe', 'conditions', 'next-event'].map(async (id) => (await whenPane.getByTestId(id).boundingBox())?.y ?? NaN));
+      const blocks = panes ? ['tonight-stripe', 'conditions', 'next-event'] : ['tonight-stripe', 'next-event', 'conditions'];
+      const order = await Promise.all(blocks.map(async (id) => (await whenPane.getByTestId(id).boundingBox())?.y ?? NaN));
       expect(order).toEqual([...order].sort((a, b) => a - b));
       if (panes) {
         // FR-FIRST-11 (D-512): the dome of the sky now, in Where, the pane's width square, one link to #live.
