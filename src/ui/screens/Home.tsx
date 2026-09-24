@@ -141,7 +141,10 @@ function GhostWhen() {
         {stepLabel('when', false, t.home.panes.when)}
       </SectionHeading>
       <p className={styles.ghostHeading}>{t.home.ghost.whenHeading}</p>
-      <pre className={styles.ghostStripe}>{'18   20   22   00   02   04   06\n▓▓▓▒████████████████████▒▓▓▓▓▓'}</pre>
+      <pre className={styles.ghostStripe}>
+        {'18   20   22   00   02   04   06\n'}
+        <span className={styles.ghostBar}>{'▓▓▓▒████████████████████▒▓▓▓▓▓'}</span>
+      </pre>
       <p className={styles.ghostNote}>{t.home.ghost.whenSentence}</p>
     </section>
   );

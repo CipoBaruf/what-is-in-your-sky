@@ -186,9 +186,14 @@
   font: inherit;
   font-size: var(--small);
   line-height: 1.125rem;
-  color: var(--rule);
   white-space: pre;
   overflow: hidden;
+}
+
+/* R96 (FR-A11Y-7): the hours are text and take the pane's --fg-dim, which passes AA in both themes; only
+   the bar, which axe does not read as text, is drawn in the rule's colour. */
+.ghostBar {
+  color: var(--rule);
 }
 
 .ghostNote,

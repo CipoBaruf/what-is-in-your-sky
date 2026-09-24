@@ -22,10 +22,32 @@ import { enterScrubbing, seedStoredRun, stubNetwork } from './liveHelpers';
 export const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 /**
- * Rules this run does not apply, each with why and the finding (SPEC §4.20) that tracks it. Empty: every
- * screen passes every rule.
+ * Rules this run does not apply, each with why and the finding (SPEC §4.20) that tracks it. An entry with
+ * `nodes` disables its rule only on the elements that selector matches, so the rule keeps measuring the rest
+ * of the page; one without is off everywhere.
  */
-export const AXE_DISABLED_RULES: readonly { rule: string; reason: string; finding: string }[] = [];
+export const AXE_DISABLED_RULES: readonly { rule: string; nodes?: string; reason: string; finding: string }[] = [
+  {
+    rule: 'color-contrast',
+    nodes: '[data-hotspot-id^="tick-"] > *, [data-hotspot-id^="ring-"] > *',
+    reason:
+      "The dome's degree labels are drawn in --chart-rings, a 3:1 non-text token, at 0.8 opacity: 2.7:1 in dark, 2.53:1 in night. The fix is in the chart lane's SkyDome, which R96 does not touch.",
+    finding: 'F-98',
+  },
+];
+
+const OFF_EVERYWHERE = AXE_DISABLED_RULES.filter(({ nodes }) => nodes === undefined).map(({ rule }) => rule);
+const OFF_ON_NODES = AXE_DISABLED_RULES.filter((entry): entry is (typeof AXE_DISABLED_RULES)[number] & { nodes: string } => entry.nodes !== undefined);
+
+/** Whether the element axe names by `target` is one an entry excuses from `rule`. */
+function excused(page: Page, rule: string, target: string): Promise<boolean> {
+  const selectors = OFF_ON_NODES.filter((entry) => entry.rule === rule).map(({ nodes }) => nodes);
+  if (selectors.length === 0) return Promise.resolve(false);
+  return page.evaluate(([target, selectors]) => {
+    const element = document.querySelector(target);
+    return element !== null && selectors.some((selector) => element.matches(selector));
+  }, [target, selectors] as [string, string[]]);
+}
 
 const WIDTHS = [
   { width: 390, height: 844 },
@@ -106,16 +128,16 @@ for (const viewport of WIDTHS) {
         test(`${screen.name} has no WCAG A/AA violation (FR-A11Y-7)`, async ({ page }) => {
           await screen.open(page, theme);
           await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-          const results = await new AxeBuilder({ page })
-            .withTags(AXE_TAGS)
-            .disableRules(AXE_DISABLED_RULES.map(({ rule }) => rule))
-            .analyze();
-          const violations = results.violations.map(({ id, impact, help, nodes }) => ({
-            id,
-            impact,
-            help,
-            nodes: nodes.map(({ target, failureSummary }) => ({ target: target.join(' '), failureSummary })),
-          }));
+          const results = await new AxeBuilder({ page }).withTags(AXE_TAGS).disableRules(OFF_EVERYWHERE).analyze();
+          const violations = [];
+          for (const { id, impact, help, nodes } of results.violations) {
+            const left = [];
+            for (const { target, failureSummary } of nodes) {
+              const selector = target.join(' ');
+              if (!(await excused(page, id, selector))) left.push({ target: selector, failureSummary });
+            }
+            if (left.length > 0) violations.push({ id, impact, help, nodes: left });
+          }
           expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
         });
       }
