@@ -1,12 +1,13 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { I18nProvider, useLocale, useT } from '../i18n/useT';
+import { isFaint } from '../lib/faint';
 import { MOON_LORE } from '../lib/flags';
 import { routeTitle, type RouteName } from '../lib/routeTitle';
 import { observerFromLink, resolvePassLink } from '../lib/shareLinks';
 import type { ShortcutActions } from '../lib/shortcuts';
 import { formatClock, formatDate, formatShortClock } from '../lib/timeFormat';
 import { HOME_THREE_PANE_QUERY } from '../lib/layout';
-import { catalogName, useActiveObserver, useAppStore } from '../state';
+import { catalogName, isFeatured, useActiveObserver, useAppStore } from '../state';
 import styles from './App.module.css';
 import { RootBoundary } from './RootBoundary';
 import { applyTheme } from './styles/theme';
@@ -98,7 +99,15 @@ export function App() {
   // R31 (FR-SHARE-3): a shared pass is resolved against this device's own
   // recompute — the same pass, the nearest pass of that object, or none — and
   // a local selection is still just an id (D-33).
-  const resolution = useMemo(() => (link === null ? null : resolvePassLink(passes, link)), [passes, link]);
+  // R97 (FR-FAINT-3): the link's own pass opens whether or not it is faint; the nearest pass standing in for
+  // one that has gone is found among the passes the list shows, so it is faint only while faint passes are.
+  const showFaint = useAppStore((s) => s.showFaint);
+  const resolution = useMemo(() => {
+    if (link === null) return null;
+    const found = resolvePassLink(passes, link);
+    if (found.kind !== 'nearest' || showFaint) return found;
+    return resolvePassLink(passes.filter((pass) => !isFaint(pass, { isIss: isFeatured, nextEventId: null, openId: null })), link);
+  }, [passes, link, showFaint]);
   /*
    * R51 (F-18): the substitute pass waits for the recompute to finish. The
    * cards stream in (D-5), so until `passes.status === 'done'` the "nearest

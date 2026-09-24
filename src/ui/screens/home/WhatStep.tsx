@@ -8,9 +8,10 @@ import { coordsLabel } from '../../../lib/place';
 import { placeName } from '../../components/location/WherePlace';
 import { NextEventBlock } from '../../components/passes/NextEventBlock';
 import { PassCard } from '../../components/passes/PassCard';
+import { FaintToggle } from '../../components/passes/FaintToggle';
 import { ListFailure, listFailure } from '../../components/passes/ListFailure';
 import { nightLabel } from '../../components/passes/PassList';
-import { hasEnded, usePassContext, useShownClock, useShownPasses } from './shownPasses';
+import { hasEnded, usePassContext, useListedPasses, useShownClock } from './shownPasses';
 import styles from './Steps.module.css';
 import { splitTonight } from './tonight';
 import { useNight } from './useNight';
@@ -28,6 +29,10 @@ import { useNight } from './useNight';
  * Board 1B draws the first card and two more before the two controls
  * (`WHAT_STEP_CARDS`); each control shows the cards it counts in place, the
  * later nights under their night's name, since a card gives only a time.
+ *
+ * R97 (FR-FAINT-2): the step counts and draws what is shown, and the faint
+ * control follows `[<n> more tonight]` — the same control, and the same
+ * count, as the list's count line.
  */
 export const WHAT_STEP_CARDS = 3;
 
@@ -47,7 +52,10 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
   const locale = useLocale();
   const headingId = useId();
   const heading = useRef<HTMLHeadingElement>(null);
-  const passes = useShownPasses(selectedPassId);
+  const listed = useListedPasses(selectedPassId);
+  const passes = listed.shown;
+  const faintCount = listed.faint.length;
+  const isFaint = (pass: Pass): boolean => listed.faint.includes(pass);
   const weather = useAppStore((s) => s.weather);
   const failed = listFailure(
     useAppStore((s) => s.elements),
@@ -83,7 +91,7 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
 
   const card = (pass: Pass) => (
     <li key={pass.id}>
-      <PassCard pass={pass} timeZone={zone} weather={snapshot} detail="phrase" selected={pass.id === selectedPassId} ended={hasEnded(pass, now)} onOpen={onOpenPass} headingLevel={3} />
+      <PassCard pass={pass} timeZone={zone} weather={snapshot} detail="phrase" selected={pass.id === selectedPassId} ended={hasEnded(pass, now)} faint={isFaint(pass)} onOpen={onOpenPass} headingLevel={3} />
     </li>
   );
 
@@ -116,7 +124,7 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
                 <ol className={styles.list}>{group.passes.map(card)}</ol>
               </Fragment>
             ))}
-          {(hiddenTonight > 0 || (laterCount > 0 && !moreNights)) && (
+          {(hiddenTonight > 0 || (laterCount > 0 && !moreNights) || faintCount > 0) && (
             <div className={styles.more} data-testid="what-more">
               {hiddenTonight > 0 && (
                 <button
@@ -142,6 +150,7 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
                   {t.home.whatStep.moreNights(laterCount)}
                 </button>
               )}
+              {faintCount > 0 && <FaintToggle count={faintCount} />}
             </div>
           )}
         </div>
