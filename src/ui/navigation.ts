@@ -105,9 +105,23 @@ export function useHash(): string {
   return useSyncExternalStore(subscribe, hashNow, noHash);
 }
 
-/** Opens a route as a history entry of this session's own, remembering what opened it. */
+/**
+ * Opens a route as a history entry of this session's own, remembering what opened it.
+ *
+ * A pass opened while another is open — a card in the list beside the wide guide, `j` and `Enter` — takes the
+ * open pass's entry rather than stacking on it: closing the guide is leaving the pass route, and it would
+ * otherwise go back to the pass before, and the one before that, before it reached the list.
+ */
 export function open(hash: string, opener: HTMLElement | null = focusedElement()): void {
   if (window.location.hash === hash) return;
+  if (isPassHash(window.location.hash) && isPassHash(hash)) {
+    // The entry is the new pass's now, and so is what the focus goes back to (F-8).
+    const d = depth();
+    if (d > 0 && openers.length >= d) openers[d - 1] = { element: opener, key: opener ? keyOf(opener) : null };
+    window.history.replaceState(window.history.state, '', hash);
+    announce();
+    return;
+  }
   const next = depth() + 1;
   openers.length = next - 1;
   openers[next - 1] = { element: opener, key: opener ? keyOf(opener) : null };
@@ -150,8 +164,11 @@ export function takeFocusTarget(): HTMLElement | null {
 /** A same-document link to one of the app's routes, which `open` takes instead of the browser (so its entry is marked). */
 export function isRouteHref(href: string): boolean {
   if (!href.startsWith('#') || href === '#') return false;
-  if (isLiveRoute(href) || isSettingsRoute(href)) return true;
-  const parsed = parseHash(href);
+  return isLiveRoute(href) || isSettingsRoute(href) || isPassHash(href);
+}
+
+function isPassHash(hash: string): boolean {
+  const parsed = parseHash(hash);
   return parsed !== null && (parsed.kind === 'pass' || parsed.kind === 'passId');
 }
 

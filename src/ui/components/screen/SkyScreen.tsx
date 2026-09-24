@@ -128,9 +128,16 @@ export function SkyScreen({ passes, observer, now, sun, moon, highlightedPassId 
    * replaces the button rather than moving it. Focus is only taken when nothing else holds it: on the mount the
    * control that opened the screen has just been removed and focus has fallen to the body, and after the swap it
    * has fallen there again — but a legend row the reader has tabbed to keeps it.
+   *
+   * R92 (FR-A11Y-4): "nothing else holds it" is anything outside the layer, not only the body. The live page's
+   * Back control takes the focus on entry now, and a click that does not focus what it lands on (WebKit's) left
+   * it there — on a control the layer has just made inert.
    */
   const closeRef = useCallback((node: HTMLButtonElement | null) => {
-    if (node && (document.activeElement === null || document.activeElement === document.body)) node.focus();
+    if (!node) return;
+    const active = document.activeElement;
+    const layer = node.closest('[data-testid="sky-screen"]');
+    if (active === null || active === document.body || (layer !== null && !layer.contains(active))) node.focus();
   }, []);
 
   /*

@@ -168,11 +168,20 @@ export function LivePage({ link, onLeave }: LivePageProps) {
   const state = liveState(observer, elements, passes);
   // R34 (FR-LIVE-7): the screen stays awake while there is a sky to watch; an inert page asks for nothing.
   const wakeLock = useWakeLock(state === 'sky');
+  /*
+   * R92 (FR-A11Y-4): entering the page puts the focus on its Back control, as the settings page does — the
+   * control the reader pressed is gone with the home page. The inert page and the sky are two trees, so the
+   * control is a new element when the sky arrives; a focus the swap dropped to the body is put back on it.
+   */
+  const sky = state === 'sky';
+  useEffect(() => {
+    const active = document.activeElement;
+    if (active === null || active === document.body) document.querySelector<HTMLElement>('[data-testid="live-back"]')?.focus();
+  }, [sky]);
 
   if (state !== 'sky' || observer === null) {
     return (
-      <Page state="inert" wakeLock={wakeLock} fold={NO_FOLD} placement={null}>
-        <TopRow place={observer?.label ?? null} indicator={null} screenOpen={screenOpen} onLeave={onLeave} />
+      <Page state="inert" wakeLock={wakeLock} fold={NO_FOLD} placement={null} top={<TopRow place={observer?.label ?? null} indicator={null} screenOpen={screenOpen} onLeave={onLeave} />}>
         <div className={styles.inert} data-testid="live-inert" data-inert={state}>
           {state === 'no-place' && (
             <>
@@ -226,8 +235,15 @@ const NO_FOLD: readonly LiveFold[] = [];
  * from the state's rows, so the element is rendered by whichever of the two pages there is; the inert page has
  * no box and folds nothing. `data-scrub-placement` is `scrubPlacement`'s answer, for the stylesheet and the tests.
  */
-function Page({ state, wakeLock, fold, placement, children }: { state: 'live' | 'inert'; wakeLock: WakeLockState; fold: readonly LiveFold[]; placement: ScrubPlacement | null; children: ReactNode }) {
+function Page({ state, wakeLock, fold, placement, top, children }: { state: 'live' | 'inert'; wakeLock: WakeLockState; fold: readonly LiveFold[]; placement: ScrubPlacement | null; top: ReactNode; children: ReactNode }) {
+  const t = useT();
   const compact = useLayoutMode() === 'compact';
+  /*
+   * R92 (FR-A11Y-1, D-529; F-71): the page's landmarks. The top row is the `banner` and everything under it the
+   * `main`, both `display: contents`, so their children are still the cells of this grid and no area is re-cut
+   * (FR-SHP-2). The `h1` is the page's name, for the outline and not the eye — the page already says where it is
+   * with the `live` word beside the bead — and being absolutely positioned it takes no cell of the grid.
+   */
   return (
     <div
       className={styles.page}
@@ -238,7 +254,13 @@ function Page({ state, wakeLock, fold, placement, children }: { state: 'live' | 
       {...(placement === null ? {} : { 'data-scrub-placement': placement })}
       {...(!compact && fold.length > 0 ? { 'data-fold': fold.join(' ') } : {})}
     >
-      {children}
+      <header className="landmark-contents">{top}</header>
+      <main className="landmark-contents">
+        <h1 className="sr-only" tabIndex={-1}>
+          {t.live.open}
+        </h1>
+        {children}
+      </main>
     </div>
   );
 }
@@ -261,7 +283,7 @@ function TopRow({ place, indicator, screenOpen, onLeave }: { place: string | nul
           the accessible tree, since `inert` alone is a browser behaviour and not a name a test can read. */}
       <div className={styles.topRow} data-testid="live-top-row" {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
         {/* R85 (FR-COMP-7, D-549): `[ ← ]` on compact, named by the word it no longer draws; the hit box is the same rule's. */}
-        <button type="button" className={styles.back} onClick={onLeave} {...(compact ? { 'aria-label': t.live.backName } : {})}>
+        <button type="button" className={styles.back} onClick={onLeave} data-testid="live-back" {...(compact ? { 'aria-label': t.live.backName } : {})}>
           {compact ? t.live.backShort : t.live.back}
         </button>
         {indicator}
@@ -645,17 +667,12 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   );
   const top = <TopRow place={observer.label} indicator={compact && placement !== 'rail' ? indicator : null} screenOpen={screenOpen} onLeave={onLeave} />;
   const page = (children: ReactNode): ReactNode => (
-    <Page state="live" wakeLock={wakeLock} fold={fold} placement={placement}>
+    <Page state="live" wakeLock={wakeLock} fold={fold} placement={placement} top={top}>
       {children}
     </Page>
   );
   if (screenOpen) {
-    return page(
-      <>
-        {top}
-        <SkyScreen passes={chartPasses} observer={observer} now={shown} sun={bodies.sun} moon={bodies.moon} initialFacingAzDeg={0} onClose={closeScreen} />
-      </>,
-    );
+    return page(<SkyScreen passes={chartPasses} observer={observer} now={shown} sun={bodies.sun} moon={bodies.moon} initialFacingAzDeg={0} onClose={closeScreen} />);
   }
 
   if (compact && placement === 'rail') {
@@ -669,7 +686,6 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
      */
     return page(
       <>
-        {top}
         <div className={styles.dome} data-testid="live-dome" data-stripe-under={false}>
           <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} moonPhase />
         </div>
@@ -704,7 +720,6 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
      */
     return page(
       <>
-        {top}
         <div className={styles.head} data-testid="live-head">
           {nextEvent}
           {has('time-row') && (
@@ -779,7 +794,6 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   ) : null;
   return page(
     <>
-      {top}
       <div className={styles.dome} data-testid="live-dome" data-stripe-under={!overlaid} ref={domeRef}>
         <ChartFrameSlots.Provider value={{ onBoxSpace, ...(overlaid && scrubBlock !== null ? { bottomOverlay: scrubBlock } : {}) }}>
           <LegendInventoryContext.Provider value={legendInventory}>
