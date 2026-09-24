@@ -12,7 +12,7 @@
  * still in the document beside it.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { GUIDE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, WIDE_MIN_PX } from '../../src/lib/layout';
+import { GUIDE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, LIVE_BOX_MIN_PX, WIDE_MIN_PX } from '../../src/lib/layout';
 import { ha, NINE_DAYS_ON, seedStoredRun, stubNetwork } from './liveHelpers';
 
 /** One character advance, as this browser resolves the app's own monospace stack. */
@@ -165,16 +165,21 @@ test.describe('the three readings by width (FR-FIRST-5, D-443)', () => {
         expect((await heading.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(20);
       }
       // Board 1B's When: the stripe, the table, then the next event (FR-FIRST-8, FR-FIRST-9, FR-FIRST-3).
+      // R93 (FR-HOME-2, D-606): on the two columns the next event stands directly under the stripe, the table after it.
       const whenPane = page.getByTestId('reading-when');
-      const order = await Promise.all(['tonight-stripe', 'conditions', 'next-event'].map(async (id) => (await whenPane.getByTestId(id).boundingBox())?.y ?? NaN));
+      const blocks = panes ? ['tonight-stripe', 'conditions', 'next-event'] : ['tonight-stripe', 'next-event', 'conditions'];
+      const order = await Promise.all(blocks.map(async (id) => (await whenPane.getByTestId(id).boundingBox())?.y ?? NaN));
       expect(order).toEqual([...order].sort((a, b) => a - b));
       if (panes) {
         // FR-FIRST-11 (D-512): the dome of the sky now, in Where, the pane's width square, one link to #live.
         const dome = page.getByTestId('reading-where').getByTestId('where-dome');
         await expect(dome).toHaveAttribute('href', '#live');
         await expect(dome.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+        // R93 (FR-HOME-3, D-607): square, never wider than the pane, and the pane does not scroll by it.
         const domeBox = await dome.boundingBox();
-        expect(domeBox?.width ?? 0).toBeGreaterThan(where.width * 0.9);
+        expect(domeBox?.width ?? 0).toBeGreaterThanOrEqual(LIVE_BOX_MIN_PX);
+        expect(domeBox?.width ?? 0).toBeLessThanOrEqual(where.width + 1);
+        expect(Math.abs((domeBox?.height ?? 0) - (domeBox?.width ?? 0))).toBeLessThanOrEqual(2);
         // Three equal panes, side by side, on one band.
         expect(when.x).toBeGreaterThan(where.x + where.width - 1);
         expect(what.x).toBeGreaterThan(when.x + when.width - 1);

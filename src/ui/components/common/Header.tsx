@@ -2,6 +2,7 @@ import { useT } from '../../../i18n/useT';
 import { SETTINGS_HASH } from '../../../lib/shareLinks';
 import { useAppStore, type AppState } from '../../../state';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { loadSettingsChunk } from '../../screens/settingsChunk';
 import { Mark } from '../mark/Mark';
 import { MARK_HEADER_PX } from '../mark/tiers';
 import styles from './Header.module.css';
@@ -38,19 +39,36 @@ import { ThemeToggle } from './ThemeToggle';
  * `MARK_HEADER_PX` — one `--row`, so neither header grows a line, and three
  * cells of the compact row's 36. On the home page its bead runs while the app
  * is still working out what to show (FR-MARK-5 a).
+ *
+ * R93 (FR-HOME-1, D-546, D-605; F-76): the wide header holds at every wide
+ * width in both languages — one title line and at most one tagline line. The
+ * title row does not wrap; where the row would need more cells than the
+ * viewport has, the title takes its short form, and where the tagline would
+ * wrap it is not shown. Neither is measured at run time: the row's width in
+ * cells is known from the catalog per language, so `Header.module.css` carries
+ * one pixel literal per language for each fold, under `:root[lang]`, and
+ * `tests/styles/controlRows.test.ts` recomputes them from the catalogs and the
+ * stylesheet's own gaps. The short form is the `data-short` attribute drawn by
+ * the stylesheet, so the `h1`'s text is the full title at every width and its
+ * accessible name is whichever form is drawn.
  */
 export interface HeaderProps {
   /** R6/R35: made inert with the rest of the shell while the compact sheet or the shortcuts overlay is up. */
   inert?: boolean;
   /** Which screen this header sits on; the matching control is marked current rather than linked. */
   current?: 'home' | 'settings';
+  /** R93 (D-545): the page under this header is still on its way (the settings chunk), so the bead runs. */
+  busy?: boolean;
 }
 
-export function Header({ inert = false, current = 'home' }: HeaderProps) {
+export function Header({ inert = false, current = 'home', busy = false }: HeaderProps) {
   const t = useT();
   const mode = useLayoutMode();
-  const loading = useAppStore(isLoading) && current === 'home';
+  const loading = (useAppStore(isLoading) && current === 'home') || busy;
   const mark = <Mark tier="header32" sizePx={MARK_HEADER_PX} running={loading} />;
+  // R93 (D-545): the settings chunk is fetched as the pointer or the focus reaches its link, ahead of the tap.
+  // Best effort: a prefetch that fails is dropped by `loadSettingsChunk`, and the tap will ask again.
+  const prefetch = (): void => void loadSettingsChunk().catch(() => undefined);
 
   if (mode === 'compact') {
     return (
@@ -68,7 +86,7 @@ export function Header({ inert = false, current = 'home' }: HeaderProps) {
               {t.settings.open}
             </span>
           ) : (
-            <a href={SETTINGS_HASH} className={styles.link} data-testid="settings-link">
+            <a href={SETTINGS_HASH} className={styles.link} data-testid="settings-link" onPointerEnter={prefetch} onFocus={prefetch}>
               {t.settings.open}
             </a>
           )}
@@ -83,7 +101,11 @@ export function Header({ inert = false, current = 'home' }: HeaderProps) {
         <div className={styles.titleRow}>
           <div className={styles.brand}>
             {mark}
-            <h1>{t.app.title}</h1>
+            {/* R93 (FR-HOME-1, D-546, D-605): the full title as text, and the short one (FR-COMP-1's) as an
+                attribute the stylesheet draws in its place under the language's own fold width. */}
+            <h1 className={styles.title} data-short={t.app.shortTitle}>
+              <span className={styles.fullTitle}>{t.app.title}</span>
+            </h1>
           </div>
           {/* R92 (FR-A11Y-1, D-529): the wide header's one link is its navigation too, in a box of its own that draws none. */}
           <nav className="landmark-contents" aria-label={t.app.title}>

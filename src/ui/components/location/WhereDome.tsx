@@ -1,6 +1,7 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useT } from '../../../i18n/useT';
 import { arcState } from '../../../lib/arcReveal';
+import { whereDomeSize } from '../../../lib/layout';
 import type { EpochMs, Observer, Pass } from '../../../model';
 import type { ChartPass } from '../guide/skychart/SkyChart.types';
 import { useSkyBodies } from '../guide/skychart/useSkyBodies';
@@ -22,6 +23,16 @@ import styles from './WhereDome.module.css';
  * the main chunk does not grow. The drawing is `inert` inside the link — the
  * dome's own keyboard and drag would be a control inside a control — and the
  * link's name says where it goes.
+ *
+ * R93 (FR-HOME-3, D-546, D-607; F-79): the dome takes the height its pane has
+ * left rather than the pane's width — at 1280 × 800 a pane-wide square put the
+ * saved-places line 40 px under the pane's fold and made Where scroll, which
+ * only What may. The pane is the nearest box that scrolls itself (the reading
+ * at three-pane widths, the left column with When under it on the two
+ * columns), and the room is what `whereDomeSize` makes of its measured heights;
+ * under `LIVE_BOX_MIN_PX` the dome is not drawn, and the lines stand where it
+ * would have been. Measured on a `ResizeObserver` of the pane, its rows and
+ * the reading's other blocks, as `ChartFrame` measures its box.
  */
 const SkyDome = lazy(() => import('../guide/skychart/dome/SkyDome').then((module) => ({ default: module.SkyDome })));
 
@@ -32,6 +43,17 @@ export const WHERE_DOME_TICK_MS = 10_000;
 
 export function domePasses(passes: readonly Pass[], now: EpochMs): ChartPass[] {
   return passes.filter((pass) => pass.start.t <= now + WINDOW_MS && pass.end.t >= now).map((pass) => ({ ...pass, arc: arcState(pass, now) }));
+}
+
+/** The nearest ancestor that scrolls itself — the pane (D-119) — or the `main` when none does. */
+function scrollPane(element: HTMLElement): HTMLElement {
+  let pane: HTMLElement | null = element.parentElement;
+  while (pane && pane.tagName !== 'MAIN') {
+    const overflow = getComputedStyle(pane).overflowY;
+    if (overflow === 'auto' || overflow === 'scroll') return pane;
+    pane = pane.parentElement;
+  }
+  return pane ?? element;
 }
 
 export interface WhereDomeProps {
@@ -51,17 +73,49 @@ export function WhereDome(props: WhereDomeProps) {
       window.cancelAnimationFrame(id);
     };
   }, []);
-  if (mode !== 'wide' || !painted) return null;
-  return <Dome {...props} />;
+  const slot = useRef<HTMLDivElement>(null);
+  const [sizePx, setSizePx] = useState<number | null>(null);
+  const wide = mode === 'wide' && painted;
+  // The pane, its rows and the reading's other blocks: any of them changing size is a remeasure. The observer
+  // reports once on `observe`, so nothing is measured here; and it is re-attached on every render, since the
+  // reading's blocks come and go with the store (the readiness line, the saved places).
+  useEffect(() => {
+    const element = slot.current;
+    if (!wide || !element || typeof ResizeObserver === 'undefined') return;
+    const reading = element.parentElement;
+    if (!reading) return;
+    const pane = scrollPane(element);
+    const observer = new ResizeObserver(() => {
+      const gapPx = parseFloat(getComputedStyle(reading).rowGap) || 0;
+      // The content's extent, first block to last: `scrollHeight` is floored at the pane's own height and says nothing of the room.
+      const first = pane.firstElementChild?.getBoundingClientRect().top ?? 0;
+      const last = pane.lastElementChild?.getBoundingClientRect().bottom ?? first;
+      setSizePx(whereDomeSize({ paneClientHeightPx: pane.clientHeight, contentHeightPx: last - first, slotHeightPx: element.offsetHeight, gapPx, widthPx: reading.clientWidth }));
+    });
+    const watched = new Set<Element>([pane, ...pane.children, ...reading.children]);
+    watched.delete(element);
+    for (const target of watched) observer.observe(target);
+    return () => {
+      observer.disconnect();
+    };
+  });
+  if (!wide) return null;
+  return (
+    <div ref={slot} className={styles.slot} data-testid="where-dome-slot">
+      {sizePx !== null && <Dome {...props} sizePx={sizePx} />}
+    </div>
+  );
 }
 
-function Dome({ observer, passes }: WhereDomeProps) {
+function Dome({ observer, passes, sizePx }: WhereDomeProps & { sizePx: number }) {
   const t = useT();
   const now = useNow(WHERE_DOME_TICK_MS);
   const drawn = useMemo(() => domePasses(passes, now), [passes, now]);
   const bodies = useSkyBodies({ observer, now });
+  // The side in px, inline: a wide stylesheet block may not carry px (`tests/styles/breakpoint.test.ts`).
+  const side = { '--dome-px': `${String(sizePx)}px` } as CSSProperties;
   return (
-    <a href="#live" className={styles.link} aria-label={t.nextEvent.openLive} data-testid="where-dome">
+    <a href="#live" className={styles.link} style={side} aria-label={t.nextEvent.openLive} data-testid="where-dome" data-size-px={sizePx}>
       <div className={styles.box} inert>
         <Suspense fallback={null}>
           <SkyDome passes={drawn} observer={observer} highlightedPassId={null} now={now} sun={bodies.sun} moon={bodies.moon} colorBy="pass" fill initialFacingAzDeg={0} />

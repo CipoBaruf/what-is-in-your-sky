@@ -204,7 +204,8 @@ test('the populated panes at 1280 measured against FR-FIRST-3..11', async ({ pag
   for (const line of ['readiness', 'elements-line']) expect((await style(line, '')).size, line).toBe('14px');
   const [dome, where] = await Promise.all([page.getByTestId('where-dome').boundingBox(), page.getByTestId('reading-where').boundingBox()]);
   if (!dome || !where) throw new Error('the Where pane is not laid out');
-  expect(dome.width).toBeGreaterThan(where.width - 2);
+  // R93 (FR-HOME-3, D-607): the square is the height the pane has left, never wider than the pane.
+  expect(dome.width).toBeLessThanOrEqual(where.width + 1);
   expect(Math.abs(dome.height - dome.width)).toBeLessThanOrEqual(2);
 });
 

@@ -302,7 +302,8 @@ export function WhereReading({ offersInert, geolocation, step, focusGroup = fals
 /** FR-FIRST-3's host on the home page: the stored run's passes, and why there may be none. */
 function NextEventHost({ observer, passes }: { observer: Observer; passes: readonly Pass[] }) {
   const { elementCount, hasDarkness, pending } = usePassContext();
-  return <NextEventBlock passes={passes} timeZone={observer.timeZone} context={{ hasDarkness, elementCount }} pending={pending} hours={SEARCH_WINDOW_HOURS} />;
+  // R93 (FR-HOME-2, D-606): the class is where the two-column layout's grid puts the block — under the stripe.
+  return <NextEventBlock passes={passes} timeZone={observer.timeZone} context={{ hasDarkness, elementCount }} pending={pending} hours={SEARCH_WINDOW_HOURS} className={styles.nextEvent} />;
 }
 
 /**
@@ -310,6 +311,14 @@ function NextEventHost({ observer, passes }: { observer: Observer; passes: reado
  * stripe, the conditions table with the Moon's tradition line under it
  * (FR-MOON-4), and the next event. The stripe and the table read one set of
  * bands (`useTonight`), so they cannot disagree.
+ *
+ * R93 (FR-HOME-2, D-606; F-76): the order here is the DOM's — the next event
+ * last, as board 1B draws it and as the phone stacks it. On the two-column
+ * layout (964 to 1117 px) Where stands above When in one scrolling column, and
+ * the block at the foot of When was below the fold at 1024 × 768; there the
+ * stylesheet places the block directly under the stripe through its one class
+ * (`App.module.css` `.nextEvent`), and the table and the Moon line follow it.
+ * The three panes put the order back.
  */
 function WhenReading({ observer, MoonLore }: { observer: Observer; MoonLore: HomeProps['MoonLore'] }) {
   const now = useAppStore((s) => s.now);

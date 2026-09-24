@@ -117,6 +117,17 @@ export const HOME_THREE_PANE_QUERY = `(min-width: ${String(HOME_THREE_PANE_MIN_P
 /** FR-FIRST-5 (D-444): an open pass at three-pane widths takes the first two panes, at least this wide. */
 export const GUIDE_PANE_MIN_CELLS = 72;
 
+/**
+ * R93 (FR-HOME-4, D-546): the width the home page stops growing at. From 160
+ * cells — about 1540 px on the widest advance — the header, the three panes
+ * and the footer hold that width and are centred, the panes staying equal, so
+ * a 2560 px screen is not three panes of 80 cells with 20-cell-wide cards. It
+ * is a `max-width` in cells on the shell's content (`App.module.css`), not a
+ * media query, so there is no pixel twin to derive: the cap is exactly 160 of
+ * whatever cell the device has. The live page is not capped (FR-DOME-1).
+ */
+export const HOME_MAX_CELLS = 160;
+
 export type LayoutMode = 'compact' | 'wide';
 
 /** Which shell a `matchMedia(WIDE_QUERY)` result means (D-72). */
@@ -202,6 +213,39 @@ export const ROW_PX = 1.5 * BASE_FONT_PX;
 export const TAP_PX = 2 * ROW_PX;
 /** FR-SHP-3: eight rows, the smallest box in which the drawing is still a bowl. */
 export const LIVE_BOX_MIN_PX = 8 * ROW_PX;
+
+/**
+ * R93 (FR-HOME-3, D-546, D-607; F-79): the Where pane's dome takes the height
+ * the pane has left, and is not drawn where that is under `LIVE_BOX_MIN_PX`.
+ * The pane is a bounded box that scrolls itself (D-119) — the Where reading at
+ * three-pane widths, the left column with When under it on the two columns —
+ * and what it has left is its visible height less everything in it that is not
+ * the dome: its content's extent — the top of its first block to the bottom of
+ * its last, not `scrollHeight`, which is never under the pane's own height —
+ * with the dome's own row and the gap before it taken back out. The dome is
+ * square and never wider than the pane, so its side is the smaller of the
+ * width and that room; one pixel is kept for the rounding of the measured
+ * heights, so a pane the dome fits exactly does not scroll by it. Measured by
+ * `WhereDome` on a `ResizeObserver`, the rule itself pure so it is a unit test.
+ */
+export interface DomeRoom {
+  /** The scroll pane's visible height, and its content's extent as it stands, CSS px. */
+  paneClientHeightPx: number;
+  contentHeightPx: number;
+  /** The dome's own row as it stands now, 0 while it is not drawn. */
+  slotHeightPx: number;
+  /** The reading's row gap: what the dome's row costs besides itself. */
+  gapPx: number;
+  /** The pane's content width: the widest the dome may be. */
+  widthPx: number;
+}
+
+export function whereDomeSize({ paneClientHeightPx, contentHeightPx, slotHeightPx, gapPx, widthPx }: DomeRoom): number | null {
+  const others = contentHeightPx - (slotHeightPx > 0 ? slotHeightPx + gapPx : 0);
+  const room = paneClientHeightPx - others - gapPx - 1;
+  const size = Math.floor(Math.min(widthPx, room));
+  return size >= LIVE_BOX_MIN_PX ? size : null;
+}
 
 /** FR-WATCH-1: the live page's two states. `ui/screens/liveRows.ts` is the inventory of each. */
 export type LiveState = 'watching' | 'scrubbing';

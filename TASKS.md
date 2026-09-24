@@ -2321,7 +2321,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
 
 ### Wave 6
 
-- [ ] **R93 — The home at desk widths, and the settings page as a lazy chunk**
+- [x] **R93 — The home at desk widths, and the settings page as a lazy chunk** — done, with one thing not reached: the settings chunk is made and prefetched (D-545) but measures 1.0 KB, and main is 166.0 KB on this branch (166.2 before), so it does not return under 155 by it and the budget is left where it is (D-609). The reorder is `WhenReading`'s (Home.tsx), not `WhenStep`'s, which is the phone's step (D-606); a short window halves the main's padding (D-608); the Moon lore's flag-on line is discounted in the FR-HOME-2/3 e2e (D-608).
   - **Lane:** ui
   - **Model:** fable
   - **Gate:** owner

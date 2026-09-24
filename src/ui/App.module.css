@@ -208,6 +208,11 @@
   margin-top: 0;
 }
 
+/* R93 (FR-HOME-2, D-606): the next event's own class, for the two-column rule in the wide block below. */
+.nextEvent {
+  min-width: 0;
+}
+
 /* R76 (D-471, at the owner's gate): inside a reading the Now panel, the Moon
    line and the pass list keep their headed regions, so every name a reader or
    a test finds them by is still theirs — but the headings are read, not drawn.
@@ -235,6 +240,25 @@
    cells; the query's own literal is D-71's, checked against `--cell` by
    `tests/styles/breakpoint.test.ts`. */
 @media (min-width: 964px) {
+  /* R93 (FR-HOME-4, D-546, D-604): the page stops growing at `HOME_MAX_CELLS`
+     (`lib/layout.ts`, pinned by `tests/styles/breakpoint.test.ts`). The cap is
+     on each of the shell's rows — the header, the notices, the main and the
+     footer are `#root`'s direct children on home and settings — so the rules
+     under the header and above the footer end where the panes do. `width:
+     100%` because inside D-119's grid an auto margin turns off the stretch a
+     grid item gets, and a row left to size itself shrinks to its text
+     (global.css). The live page draws its landmarks inside its own grid, not as
+     children of `#root`, so it is not capped: its drawing is the point of a big
+     screen (FR-DOME-1). */
+  .main,
+  :global(#root) > :global(header),
+  :global(#root) > :global(footer),
+  :global(#root) > :global([data-page-notices]) {
+    width: 100%;
+    max-width: calc(160 * var(--cell));
+    margin-inline: auto;
+  }
+
   /* R23 (D-119): both columns take the whole of the shell's middle row rather
      than stopping at their content, so the left one reaches the footer instead
      of leaving dead space under it and the right one has a height its panes
@@ -274,6 +298,16 @@
     overflow-y: auto;
   }
 
+  /* R93 (FR-HOME-2, D-606; F-76): on the two columns Where stands above When
+     in this one scrolling column, and the next event at the foot of When was
+     under the fold at 1024 × 768 — the one block the page is for. Here it is
+     the reading's third row, directly under the heading and the stripe; the
+     table and the Moon line auto-place after it, and the DOM keeps board 1B's
+     order for the phone and the screen reader. The three panes put it back. */
+  .when > .nextEvent {
+    grid-row: 3;
+  }
+
   /* R50 (FR-DESK-3 as amended, F-6, D-253): between the wide breakpoint and
      the width where both floors fit, an open guide takes the whole right
      column and the list is one `[ list ]` control away — the way the compact
@@ -304,6 +338,21 @@
   .listColumn {
     min-height: 0;
     overflow-y: auto;
+  }
+}
+
+/* R93 (FR-HOME-3, D-608): the short window. On a wide page under 720 px tall
+   the main's row of padding above and below the panes is half a row each —
+   what the live page's folds do with their air (FR-SHP-3) — so When holds its
+   stripe, table and next event at 1118 × 700 in Spanish, where the pane at the
+   three-pane literal is 35 cells (D-443's lean) and one table row wraps. The
+   query is a height, so it is not one of the three width literals
+   `tests/styles/breakpoint.test.ts` holds; `tests/e2e/home-desk.spec.ts` is
+   what pins it. */
+@media (min-width: 964px) and (max-height: 720px) {
+  .main {
+    padding-top: calc(var(--row) / 2);
+    padding-bottom: calc(var(--row) / 2);
   }
 }
 
@@ -339,6 +388,10 @@
 
   .when {
     grid-column: 2;
+  }
+
+  .when > .nextEvent {
+    grid-row: auto;
   }
 
   .main:is([data-home='readings'], [data-home='cold']) .listColumn {

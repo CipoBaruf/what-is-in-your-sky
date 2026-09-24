@@ -60,29 +60,31 @@ afterEach(() => {
 });
 
 describe('<App> and the #settings route (FR-COMP-2)', () => {
-  it('opens the settings page from the compact header, and the hash follows (US-20 AC1)', () => {
+  // R93 (D-545): the page is a chunk of its own, so every entry to `#settings` waits for its Back control.
+  it('opens the settings page from the compact header, and the hash follows (US-20 AC1)', async () => {
     withSky();
     render(<App />);
     expect(screen.getByTestId('settings-link')).toHaveAttribute('href', '#settings');
     goTo('#settings');
-    expect(screen.getByTestId('settings-back')).toBeInTheDocument();
+    expect(await screen.findByTestId('settings-back')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: en.location.heading })).toBeInTheDocument();
     // Nothing of the home screen is left underneath it.
     expect(screen.queryByTestId('location-summary')).toBeNull();
     expect(screen.queryByRole('region', { name: en.passes.heading })).toBeNull();
   });
 
-  it('renders the settings page on a reload straight onto #settings: the hash is the only route state (D-13)', () => {
+  it('renders the settings page on a reload straight onto #settings: the hash is the only route state (D-13)', async () => {
     window.location.hash = 'settings';
     withSky();
     render(<App />);
-    expect(screen.getByTestId('settings-back')).toBeInTheDocument();
+    expect(await screen.findByTestId('settings-back')).toBeInTheDocument();
   });
 
   it('returns to the home screen through the back control, and clears the hash in place (US-20 AC4)', async () => {
     withSky();
     render(<App />);
     goTo('#settings');
+    await screen.findByTestId('settings-back');
     await act(async () => {
       screen.getByTestId('settings-back').click();
       await Promise.resolve();
@@ -92,10 +94,11 @@ describe('<App> and the #settings route (FR-COMP-2)', () => {
     expect(screen.queryByTestId('settings-back')).toBeNull();
   });
 
-  it('returns to the home screen on Esc, with the observer and the list intact (US-20 AC4)', () => {
+  it('returns to the home screen on Esc, with the observer and the list intact (US-20 AC4)', async () => {
     withSky();
     render(<App />);
     goTo('#settings');
+    await screen.findByTestId('settings-back');
     act(() => {
       fireEvent.keyDown(document, { key: 'Escape' });
     });
@@ -104,10 +107,11 @@ describe('<App> and the #settings route (FR-COMP-2)', () => {
     expect(screen.getByTestId('next-tag')).toBeInTheDocument();
   });
 
-  it('leaves an Esc pressed inside one of the page’s own fields to that field (D-73)', () => {
+  it('leaves an Esc pressed inside one of the page’s own fields to that field (D-73)', async () => {
     withSky();
     render(<App />);
     goTo('#settings');
+    await screen.findByTestId('settings-back');
     const place = screen.getByLabelText(en.location.placeLabel);
     act(() => {
       fireEvent.keyDown(place, { key: 'Escape' });
@@ -115,7 +119,7 @@ describe('<App> and the #settings route (FR-COMP-2)', () => {
     expect(screen.getByTestId('settings-back')).toBeInTheDocument();
   });
 
-  it('shows no link to #settings on wide, but still renders the page when navigated to (US-20 AC5, FR-COMP-2)', () => {
+  it('shows no link to #settings on wide, but still renders the page when navigated to (US-20 AC5, FR-COMP-2)', async () => {
     media.restore();
     media = stubMatchMedia(WIDE_PX);
     withSky();
@@ -130,6 +134,6 @@ describe('<App> and the #settings route (FR-COMP-2)', () => {
     expect(screen.getByRole('region', { name: en.location.heading })).toBeInTheDocument();
     expect(container.querySelector('a[href="#settings"]')).toBeNull();
     goTo('#settings');
-    expect(screen.getByTestId('settings-back')).toBeInTheDocument();
+    expect(await screen.findByTestId('settings-back')).toBeInTheDocument();
   });
 });

@@ -22,7 +22,8 @@ import { Home, useSteps } from './screens/Home';
 import { useLiveRoute } from './screens/LiveRoute';
 import { PassDetail } from './screens/PassDetail';
 import { findSelectedPass, usePassSelection, useSettingsRoute } from './screens/passSelection';
-import { settingsShell } from './screens/Settings';
+import { settingsShell } from './screens/SettingsRoute';
+import { prefetchSettingsWhenIdle } from './screens/settingsChunk';
 import { clearRoute, open as openRoute } from './navigation';
 import { Shell } from './Shell';
 
@@ -272,6 +273,7 @@ export function App() {
    * cards there are and in what order.
    */
   const [helpOpen, setHelpOpen] = useState(false);
+  const [settingsArriving, setSettingsArriving] = useState(false);
   const theme = useAppStore((s) => s.theme);
   const setTheme = useAppStore((s) => s.setTheme);
   const chartView = useAppStore((s) => s.chartView);
@@ -377,7 +379,8 @@ export function App() {
    * line rather than the shell's footer, whose credits alone are a third of a
    * 844 px phone.
    */
-  if (settings.active) return <Shell routeKey={routeKey} title={title} {...settingsShell(t, { onLeave: settings.leave })} />;
+  // R93 (D-545): the page is a chunk; while it is on its way the header's bead runs (FR-MARK-5), through this flag.
+  if (settings.active) return <Shell routeKey={routeKey} title={title} {...settingsShell(t, { onLeave: settings.leave }, { arriving: settingsArriving, onArriving: setSettingsArriving })} />;
   return (
     <Shell
       chrome="home"
@@ -441,6 +444,8 @@ export function AppRoot() {
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
+  // R93 (D-545): the settings chunk is fetched once the browser is idle after first paint, so the link's tap does not wait on it.
+  useEffect(prefetchSettingsWhenIdle, []);
   // R91 (FR-FAIL-5, D-544): the boundary outside the provider, so a render error anywhere below is a page.
   return (
     <RootBoundary>

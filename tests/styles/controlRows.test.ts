@@ -23,6 +23,7 @@
  * see, and what no capture would catch in both languages on every task, is a
  * label growing past the row it has to live on.
  */
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { createElement, type ReactElement } from 'react';
@@ -30,7 +31,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../support/matchMedia';
 import { goldenPassFixture } from '../support/catalogFixtures';
 import { CATALOGS, I18nProvider } from '../../src/i18n/useT';
-import { LOCALES } from '../../src/i18n/locale';
+import { LOCALE_NAMES, LOCALES } from '../../src/i18n/locale';
+import { HOME_THREE_PANE_MIN_PX, SHELL_PADDING_CELLS, thresholdPx, WIDE_MIN_PX } from '../../src/lib/layout';
 import type { Messages } from '../../src/i18n/messages';
 import type { Locale, Observer } from '../../src/model';
 import { appStore } from '../../src/state';
@@ -457,4 +459,103 @@ it('counts the compact header with the mark at 34 cells (FR-COMP-1, D-441)', () 
   const header = screen.getByTestId('header');
   expect(screen.getByTestId('mark').getAttribute('data-mark-cells')).toBe('3');
   expect(rowCells(header, table), rowParts(header, table).join(' | ')).toBe(34);
+});
+
+/**
+ * R93 (FR-HOME-1, D-546, D-605; F-76): the wide header's fold. The title row
+ * and the tagline are each one line at every wide width in both languages, and
+ * what makes that true is not measured at run time: each line's width in cells
+ * is known from the catalog, so `Header.module.css` carries one pixel literal
+ * per language per line, derived as the breakpoints are (`thresholdPx`, F-10),
+ * under which the title takes its short form or the tagline is not drawn.
+ * This is where those literals are recomputed — from the catalogs, the mark's
+ * declared cells, and the gaps the stylesheets declare, which are read rather
+ * than remembered — so a longer word in either catalog moves the number here
+ * before it wraps the header on a screen.
+ */
+const HEADER_CSS = readFileSync(resolve(process.cwd(), 'src/ui/components/common/Header.module.css'), 'utf8');
+const OPTION_CSS = readFileSync(resolve(process.cwd(), 'src/ui/components/common/OptionToggle.module.css'), 'utf8');
+
+/** The `@media (width < N px)` blocks of a stylesheet: the literal and the rules under it. */
+function foldBlocks(css: string): { px: number; body: string }[] {
+  const blocks: { px: number; body: string }[] = [];
+  for (const match of css.matchAll(/@media\s*\(width\s*<\s*(\d+)px\)\s*\{/g)) {
+    let depth = 1;
+    let i = match.index + match[0].length;
+    const from = i;
+    while (i < css.length && depth > 0) {
+      if (css[i] === '{') depth += 1;
+      else if (css[i] === '}') depth -= 1;
+      i += 1;
+    }
+    blocks.push({ px: Number(match[1]), body: css.slice(from, i - 1) });
+  }
+  return blocks;
+}
+
+/** The one literal under which `locale`'s block does `what`. */
+function foldLiteral(locale: Locale, what: 'title' | 'tagline'): number {
+  const mark = what === 'title' ? 'content: attr(data-short)' : '.tagline';
+  const found = foldBlocks(HEADER_CSS).filter(({ body }) => body.includes(`:root[lang='${locale}']`) && body.includes(mark));
+  expect(found, `Header.module.css should fold the ${what} once for ${locale}`).toHaveLength(1);
+  return found[0]?.px ?? NaN;
+}
+
+/** A gap or padding declared in cells, read from the rule itself. */
+function cellsOf(css: string, selector: string, property: 'gap' | 'padding'): number {
+  const block = new RegExp(`${selector.replace(/[.\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(css);
+  expect(block, `${selector} should be a rule`).not.toBeNull();
+  const value = new RegExp(`${property}:\\s*([^;]+);`).exec(block?.[1] ?? '')?.[1] ?? '';
+  const calc = /calc\((\d+)\s*\*\s*var\(--cell\)\)/.exec(value);
+  if (calc) return Number(calc[1]);
+  expect(value, `${selector}'s ${property} should be in cells`).toMatch(/var\(--cell\)/);
+  return 1;
+}
+
+describe.each(LOCALES)('FR-HOME-1: the wide header folds where its lines would wrap in %s (D-546)', (locale: Locale) => {
+  const t = CATALOGS[locale];
+  const control = (text: string): number => `[ ${text} ]`.length;
+  // An option is `[x] ` and its label, a cell of padding after it, and the group's gap before the next.
+  const optionPadding = cellsOf(OPTION_CSS, '.option', 'padding');
+  const groupGap = cellsOf(OPTION_CSS, '.group', 'gap');
+  const group = (labels: readonly string[]): number => labels.reduce((sum, label) => sum + `[x] ${label}`.length + optionPadding, 0) + (labels.length - 1) * groupGap;
+  const titleGap = cellsOf(HEADER_CSS, '.titleRow', 'gap');
+  const headerGap = cellsOf(HEADER_CSS, '.wide', 'gap');
+  const controlsGap = cellsOf(HEADER_CSS, '.controls', 'gap');
+  let markCells = 0;
+
+  beforeEach(() => {
+    media.restore();
+    media = stubMatchMedia(1280);
+    render(createElement(I18nProvider, { locale, children: createElement(Header) }));
+    markCells = Number(screen.getByTestId('mark').getAttribute('data-mark-cells'));
+    expect(markCells).toBeGreaterThan(0);
+  });
+
+  it('never wraps the title row, and draws the short title only under the fold', () => {
+    expect(HEADER_CSS).toMatch(/\.titleRow\s*\{[^}]*flex-wrap:\s*nowrap;/);
+    expect(HEADER_CSS).toMatch(/\.title\s*\{[^}]*white-space:\s*nowrap;/);
+    expect(screen.getByRole('heading', { level: 1 }).getAttribute('data-short')).toBe(t.app.shortTitle);
+    expect(screen.getByRole('heading', { level: 1, name: t.app.title })).toBeTruthy();
+  });
+
+  it('shortens the title under the width the title row needs: the mark, the title, the live link and the preferences', () => {
+    const titleRow = markCells + 1 + t.app.title.length + titleGap + control(t.live.open);
+    const preferences = group(LOCALES.map((l) => LOCALE_NAMES[l])) + controlsGap + group(Object.values(t.app.themes));
+    const cells = 2 * SHELL_PADDING_CELLS + titleRow + headerGap + preferences;
+    expect(cells).toBe(locale === 'es' ? 113 : 101);
+    expect(foldLiteral(locale, 'title')).toBe(thresholdPx(cells));
+    // F-76: Spanish at 1024 px is under its fold and English is not; neither is under it at three-pane widths.
+    expect(foldLiteral('es', 'title')).toBeGreaterThan(1024);
+    expect(foldLiteral('en', 'title')).toBeLessThan(1024);
+    expect(foldLiteral(locale, 'title')).toBeLessThan(HOME_THREE_PANE_MIN_PX);
+    // The short form frees enough that the folded row fits the wide breakpoint itself on every font.
+    expect(thresholdPx(cells - t.app.title.length + t.app.shortTitle.length)).toBeLessThanOrEqual(WIDE_MIN_PX);
+  });
+
+  it('hides the tagline under the width its one line needs: the indent and its words', () => {
+    const cells = 2 * SHELL_PADDING_CELLS + markCells + 1 + t.app.tagline.length;
+    expect(cells).toBe(locale === 'es' ? 109 : 88);
+    expect(foldLiteral(locale, 'tagline')).toBe(thresholdPx(cells));
+  });
 });

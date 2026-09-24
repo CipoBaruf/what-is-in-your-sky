@@ -22,7 +22,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { BASE_FONT_PX, CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HOME_THREE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, SHELL_PADDING_CELLS, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_CELLS, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
+import { BASE_FONT_PX, CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HOME_MAX_CELLS, HOME_THREE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, SHELL_PADDING_CELLS, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_CELLS, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
 
 const UI_DIR = 'src/ui';
 const TOKENS_PATH = 'src/ui/styles/tokens.css';
@@ -157,6 +157,29 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
     const cells = HOME_THREE_PANE_MIN_PX / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX) - 2 * SHELL_PADDING_CELLS;
     const pane = (cells - 2 * GUTTER_CELLS) / 3;
     expect(2 * pane + GUTTER_CELLS).toBeGreaterThanOrEqual(GUIDE_PANE_MIN_CELLS);
+  });
+
+  /*
+   * R93 (FR-HOME-4, D-546): the fourth literal is a cap, not a threshold — 160
+   * cells as a `max-width` on the shell's rows, so it has no pixel twin and is
+   * written in cells in the stylesheet itself. It stands beside the wide and
+   * three-pane breakpoints: wider than the three panes need, so the cap never
+   * engages before the panes exist, and pinned here so a change to it is a
+   * change to this file too. The live page is not under it (FR-DOME-1): the rule
+   * names `#root`'s own rows, and the live page's landmarks are not those.
+   */
+  it('caps the home page at 160 cells beside 964 and 1118, in cells, and not the live page (FR-HOME-4)', () => {
+    expect(HOME_MAX_CELLS).toBe(160);
+    expect([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX]).toEqual([964, 1118]);
+    expect(pxFor(HOME_MAX_CELLS, CELL_ADVANCE_EM_MAX)).toBeGreaterThan(HOME_THREE_PANE_MIN_PX);
+    const app = readFileSync(APP_PATH, 'utf8');
+    const cap = wideBlocks(app).find((block) => block.includes(`max-width: calc(${String(HOME_MAX_CELLS)} * var(--cell))`));
+    expect(cap, `${APP_PATH} should cap the shell's rows at HOME_MAX_CELLS inside a wide block`).toBeDefined();
+    const rule = /([^{}]+)\{[^{}]*max-width: calc\(160 \* var\(--cell\)\)/.exec((cap ?? '').replace(/\/\*[\s\S]*?\*\//g, ''));
+    const selectors = rule?.[1] ?? '';
+    for (const row of ['.main', '#root) > :global(header)', '#root) > :global(footer)']) expect(selectors).toContain(row);
+    expect(selectors).not.toMatch(/live/i);
+    expect(cap).toContain('margin-inline: auto');
   });
 
   it('starts at the stylesheet frame: wide drops the 80-cell compact frame', () => {

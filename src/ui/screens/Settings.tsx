@@ -1,9 +1,7 @@
 import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
 import { flushSync } from 'react-dom';
-import type { Messages } from '../../i18n/messages';
 import { useT } from '../../i18n/useT';
 import { searchPlaces, useActiveObserver, useAppStore } from '../../state';
-import { Header } from '../components/common/Header';
 import { InstallAction } from '../components/common/InstallAction';
 import { useInstallOffer, type InstallEnv } from '../components/common/installEnv';
 import { LanguageToggle } from '../components/common/LanguageToggle';
@@ -12,7 +10,6 @@ import { ThemeToggle } from '../components/common/ThemeToggle';
 import { ClearSavedLocation } from '../components/location/ClearSavedLocation';
 import { Favourites } from '../components/location/Favourites';
 import { COORDS_INPUT_ID, LocationInput } from '../components/location/LocationInput';
-import type { ShellProps } from '../Shell';
 import styles from './Settings.module.css';
 
 /**
@@ -166,27 +163,7 @@ export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
   );
 }
 
-/** The page's foot, its `contentinfo`: the privacy line, in place of the home's credits (FR-SET-2). */
-function SettingsPrivacy() {
-  const t = useT();
-  return (
-    <footer className={styles.privacy} data-testid="settings-privacy">
-      <p>{t.settings.privacy}</p>
-    </footer>
-  );
-}
-
-/**
- * R92 (D-529): the settings route as the shell's slots — the header as its `banner`, the page as its `main`, the
- * privacy line as its `contentinfo`. `App` spreads it into the one `Shell` every route shares, so the route's
- * change is announced and the focus follows it; the page's own `main` is the shell's, with this page's class.
+/*
+ * R92 (D-529) composed the route here as the shell's slots (`settingsShell`); R93 (D-545) moves that to
+ * `SettingsRoute.tsx`, in the main chunk, so this file — the page — is the chunk `settingsChunk.ts` fetches.
  */
-export function settingsShell(t: Messages, props: SettingsPageProps): Pick<ShellProps, 'chrome' | 'banner' | 'footer' | 'mainProps' | 'children'> {
-  return {
-    chrome: 'settings',
-    banner: <Header current="settings" />,
-    mainProps: { className: styles.page, 'aria-label': t.settings.heading },
-    footer: <SettingsPrivacy />,
-    children: <SettingsPage {...props} />,
-  };
-}
