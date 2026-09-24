@@ -10,14 +10,14 @@ import styles from './FaintToggle.module.css';
  * the stored preference (`showFaint`, R98), so it holds across a reload. Not
  * drawn with nothing faint: the caller does not render it.
  */
-export function FaintToggle({ count, className }: { count: number; className?: string }) {
+export function FaintToggle({ count }: { count: number }) {
   const t = useT();
   const shown = useAppStore((s) => s.showFaint);
   const setShowFaint = useAppStore((s) => s.setShowFaint);
   return (
     <button
       type="button"
-      className={`inline-control ${styles.toggle}${className ? ` ${className}` : ''}`}
+      className={`inline-control ${styles.faintToggle}`}
       data-testid="faint-toggle"
       onClick={() => {
         setShowFaint(!shown);
