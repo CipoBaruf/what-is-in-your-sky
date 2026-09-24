@@ -38,6 +38,18 @@ import { ThemeToggle } from './ThemeToggle';
  * `MARK_HEADER_PX` — one `--row`, so neither header grows a line, and three
  * cells of the compact row's 36. On the home page its bead runs while the app
  * is still working out what to show (FR-MARK-5 a).
+ *
+ * R93 (FR-HOME-1, D-546, D-605; F-76): the wide header holds at every wide
+ * width in both languages — one title line and at most one tagline line. The
+ * title row does not wrap; where the row would need more cells than the
+ * viewport has, the title takes its short form, and where the tagline would
+ * wrap it is not shown. Neither is measured at run time: the row's width in
+ * cells is known from the catalog per language, so `Header.module.css` carries
+ * one pixel literal per language for each fold, under `:root[lang]`, and
+ * `tests/styles/controlRows.test.ts` recomputes them from the catalogs and the
+ * stylesheet's own gaps. The short form is the `data-short` attribute drawn by
+ * the stylesheet, so the `h1`'s text is the full title at every width and its
+ * accessible name is whichever form is drawn.
  */
 export interface HeaderProps {
   /** R6/R35: made inert with the rest of the shell while the compact sheet or the shortcuts overlay is up. */
@@ -83,7 +95,11 @@ export function Header({ inert = false, current = 'home' }: HeaderProps) {
         <div className={styles.titleRow}>
           <div className={styles.brand}>
             {mark}
-            <h1>{t.app.title}</h1>
+            {/* R93 (FR-HOME-1, D-546, D-605): the full title as text, and the short one (FR-COMP-1's) as an
+                attribute the stylesheet draws in its place under the language's own fold width. */}
+            <h1 className={styles.title} data-short={t.app.shortTitle}>
+              <span className={styles.fullTitle}>{t.app.title}</span>
+            </h1>
           </div>
           {/* R92 (FR-A11Y-1, D-529): the wide header's one link is its navigation too, in a box of its own that draws none. */}
           <nav className="landmark-contents" aria-label={t.app.title}>

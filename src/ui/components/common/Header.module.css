@@ -90,11 +90,24 @@
 
 /* FR-DESK-2 as amended (V11-8): `[ Live sky ]` on the title's own line, as
    navigation, rather than in the group of preferences at the right. */
+/* R93 (FR-HOME-1, D-546, D-605; F-76): the row never wraps — `[ Live sky ]`
+   dropping to a line of its own outside the tagline's indent is what F-76 saw
+   in Spanish at 1024 px. What gives instead is the title, below (the fold). */
 .titleRow {
   display: flex;
   align-items: baseline;
   gap: 0 calc(2 * var(--cell));
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+
+.title {
+  white-space: nowrap;
+}
+
+/* The short title is drawn from the attribute only under the fold, so the
+   heading's text is the full title at every width. */
+.title::after {
+  content: none;
 }
 
 /* R74 (FR-DESK-2 as amended, D-441): the tagline starts under the wordmark's
@@ -154,5 +167,59 @@
      than board 1B draws it. */
   .wide > .controls {
     margin-block: calc((var(--row) - var(--tap)) / 2);
+  }
+}
+
+/* R93 (FR-HOME-1, D-546, D-605): the header's fold, one literal per language
+   and per line, derived as the breakpoints are (F-10, `thresholdPx`): the
+   line's cells on the widest advance in the font stack, rounded up, so the
+   line never wraps on any font and folds a few pixels early on a narrower one.
+   `tests/styles/controlRows.test.ts` recomputes each from the catalog and the
+   gaps above.
+
+   The title row is the shell's two paddings, the mark and its cell, the title,
+   two cells, `[ Live sky ]`, the header's two-cell gap, and the preferences —
+   `[x] English [ ] Español` and `[x] Dark [ ] Night`, each option a cell of
+   padding and a cell of gap from the next, three cells between the groups:
+   101 cells in English, 113 in Spanish. Under that width the title is its
+   short form (FR-COMP-1's), which frees 21 and 23 cells.
+
+   The tagline is the two paddings, its indent (the mark and a cell) and its
+   own words: 88 cells in English — under the wide breakpoint, so it never
+   folds — and 109 in Spanish. Under that width it is not shown: one tagline
+   line or none, never two.
+
+   These are the only queries in this file besides the wide one, and they are
+   `max` folds, so the compact header — which draws neither the full title nor
+   the tagline — is not under them. */
+@media (width < 973px) {
+  :global(:root[lang='en']) .title > .fullTitle {
+    display: none;
+  }
+
+  :global(:root[lang='en']) .title::after {
+    content: attr(data-short);
+  }
+}
+
+@media (width < 848px) {
+  :global(:root[lang='en']) .wide > .tagline {
+    display: none;
+  }
+}
+
+@media (width < 1089px) {
+  :global(:root[lang='es']) .title > .fullTitle {
+    display: none;
+  }
+
+  :global(:root[lang='es']) .title::after {
+    content: attr(data-short);
+  }
+}
+
+@media (width < 1050px) {
+  :global(:root[lang='es']) .wide > .tagline {
+    display: none;
   }
 }
