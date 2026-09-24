@@ -68,11 +68,24 @@ function LiveLink() {
  */
 export const JUMP_MIN_AHEAD_S = 120;
 
+/**
+ * The far edge is held back by one of `Live`'s ticks. This block reads the clock every second, but the span the
+ * jump lands in is `{ start: now, end: now + LIVE_WINDOW_MS }` built from `Live`'s own 10 s clock, and the two
+ * `useNow` calls are separate intervals that drift apart. For a rise in the sliver between the stale span's end
+ * and this block's fresher one, the control would show and then `clampToSpan` would stop the jump short of the
+ * rise — silently landing somewhere that is not the rise, against FR-JUMP-2 (D-624, "to the second"). The
+ * control simply does not appear for that sliver instead.
+ *
+ * Kept equal to `Live`'s `TICK_MS`; importing it here would make `Live` and `NextEventBlock` a cycle, so the
+ * two are asserted equal in the test.
+ */
+export const JUMP_SPAN_MARGIN_MS = 10_000;
+
 /** FR-JUMP-1: the instant `[ see this pass ]` holds the page at — the named pass's rise — or null where the control is absent. */
 export function jumpInstant(result: NextEvent | NoEvent, now: EpochMs, hours: number): EpochMs | null {
   if (isNoEvent(result) || result.kind !== 'rise') return null;
   const ahead = result.at - now;
-  return ahead > JUMP_MIN_AHEAD_S * 1000 && ahead <= hours * 3_600_000 ? result.at : null;
+  return ahead > JUMP_MIN_AHEAD_S * 1000 && ahead <= hours * 3_600_000 - JUMP_SPAN_MARGIN_MS ? result.at : null;
 }
 
 /** The control itself, wherever it stands: bracketed text in the accent with a 48 px hit box on a text row (D-246). */

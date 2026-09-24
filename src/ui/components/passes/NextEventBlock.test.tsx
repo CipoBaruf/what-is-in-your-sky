@@ -11,7 +11,8 @@ import run from '../../../../tests/fixtures/stored-run-neuquen.json';
 import { I18nProvider } from '../../../i18n/useT';
 import type { Pass } from '../../../model';
 import { nextEvent } from '../../../lib/nextEvent';
-import { JUMP_MIN_AHEAD_S, JumpControl, jumpInstant, NEXT_EVENT_TICK_MS, NextEventBlock } from './NextEventBlock';
+import { TICK_MS } from '../../screens/Live';
+import { JUMP_MIN_AHEAD_S, JUMP_SPAN_MARGIN_MS, JumpControl, jumpInstant, NEXT_EVENT_TICK_MS, NextEventBlock } from './NextEventBlock';
 
 const passes = run.passes as unknown as Pass[];
 /** SL-16 R/B (Cosmos 2369): rises at the threshold in the S at 07:36:07 UTC, peaks 32° ESE, sets ENE at 07:46:12; 10 min long. */
@@ -150,11 +151,15 @@ describe('<NextEventBlock onSee> (FR-JUMP-1)', () => {
     expect(see()).toBeNull();
   });
 
-  it('is absent beyond the stripe’s 24 h, and present at its edge', () => {
+  it('is absent beyond the stripe’s 24 h, and present at its edge less one of `Live`s ticks', () => {
     const { rerender } = render(block(FIRST.start.t - HOURS * 3_600_000 - 1000));
     expect(screen.getByTestId('next-event-label')).toHaveAttribute('data-kind', 'rise');
     expect(see()).toBeNull();
+    // The last tick before the edge belongs to the drift sliver: the span the jump lands in is built from
+    // `Live`'s slower clock, so the control waits for the rise to come inside it rather than clamping short.
     rerender(block(FIRST.start.t - HOURS * 3_600_000));
+    expect(see()).toBeNull();
+    rerender(block(FIRST.start.t - HOURS * 3_600_000 + JUMP_SPAN_MARGIN_MS));
     expect(see()).not.toBeNull();
   });
 
@@ -177,6 +182,17 @@ describe('<NextEventBlock onSee> (FR-JUMP-1)', () => {
     expect(jumpInstant(nextEvent([FIRST], now), now, HOURS)).toBe(FIRST.start.t);
     expect(jumpInstant(nextEvent([FIRST], FIRST.start.t + 1000), FIRST.start.t + 1000, HOURS)).toBeNull();
     expect(jumpInstant(nextEvent([], now), now, HOURS)).toBeNull();
+  });
+
+  it('`jumpInstant` holds the far edge back by one of `Live`s ticks, so the jump never clamps short of the rise', () => {
+    // The span the jump lands in is built from `Live`'s 10 s clock; this block reads its own, a second apart.
+    // A rise inside that sliver would show the control and then land somewhere short of the rise (FR-JUMP-2).
+    expect(JUMP_SPAN_MARGIN_MS).toBe(TICK_MS);
+    const window = HOURS * 3_600_000;
+    const inside = FIRST.start.t - window + JUMP_SPAN_MARGIN_MS;
+    expect(jumpInstant(nextEvent([FIRST], inside), inside, HOURS)).toBe(FIRST.start.t);
+    const sliver = inside - 1;
+    expect(jumpInstant(nextEvent([FIRST], sliver), sliver, HOURS)).toBeNull();
   });
 
   it('`JumpControl`, the same control beside `[ scrub the night ]`, ticks itself across the boundary', () => {
