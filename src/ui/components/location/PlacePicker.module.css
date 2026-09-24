@@ -66,9 +66,7 @@
   color: var(--fg-dim);
 }
 
-.error {
-  color: var(--danger);
-}
+/* R91 (FR-FAIL-1): the failure line looks the same wherever it stands, so the search's is not coloured apart. */
 
 /* R76 (FR-FIRST-2, board 1B): the home group's place field — a 14 px dim
    label, 8 px down to the field, the field and its pick list the full width;

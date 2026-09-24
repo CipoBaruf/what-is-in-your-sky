@@ -226,10 +226,11 @@ describe('<SettingsPage> install row (V11-16, D-260)', () => {
     expect(within(row).queryByTestId('install-action')).toBeNull();
   });
 
-  it('installs and ends the hint when it is taken', async () => {
+  // R91 (FR-FAIL-8, D-550, F-95): the row opens the dialog and latches nothing; the hint's snooze is its own.
+  it('opens the dialog and writes no latch when it is taken', async () => {
     offerAnInstall();
     show(vi.fn(), CHROMIUM);
     await userEvent.click(screen.getByTestId('install-action'));
-    expect(appStore.getState().installAnswer.dismissed).toBe(true);
+    expect(appStore.getState().installAnswer.dismissed).not.toBe(true);
   });
 });

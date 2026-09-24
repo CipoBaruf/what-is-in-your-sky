@@ -153,7 +153,7 @@ export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
             {canInstall && (
               <>
                 <span className={styles.label} aria-hidden="true">
-                  {t.install.action}
+                  {t.settings.installLabel}
                 </span>
                 <span className={styles.install} data-testid="settings-install">
                   <InstallAction bare {...(installEnv ? { env: installEnv } : {})} />

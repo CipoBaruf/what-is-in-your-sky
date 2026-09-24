@@ -7,6 +7,7 @@ import { formatClock, formatDate } from '../lib/timeFormat';
 import { HOME_THREE_PANE_QUERY } from '../lib/layout';
 import { catalogName, followHash, useActiveObserver, useAppStore } from '../state';
 import styles from './App.module.css';
+import { RootBoundary } from './RootBoundary';
 import { applyTheme } from './styles/theme';
 import { Footer } from './components/common/Footer';
 import { Header } from './components/common/Header';
@@ -408,9 +409,12 @@ export function AppRoot() {
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
+  // R91 (FR-FAIL-5, D-544): the boundary outside the provider, so a render error anywhere below is a page.
   return (
-    <I18nProvider locale={locale}>
-      <App />
-    </I18nProvider>
+    <RootBoundary>
+      <I18nProvider locale={locale}>
+        <App />
+      </I18nProvider>
+    </RootBoundary>
   );
 }

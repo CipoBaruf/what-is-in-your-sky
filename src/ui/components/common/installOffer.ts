@@ -82,9 +82,19 @@ export function subscribeToInstallOffer(onChange: () => void): () => void {
   };
 }
 
-/** Back to a page that has heard nothing. For tests, which share one module across a file. */
-export function forgetInstallOffer(): void {
-  update(NOTHING);
+/**
+ * With no argument, back to a page that has heard nothing — for tests, which share one module across a file.
+ *
+ * R91 (FR-FAIL-8, D-550): with the event `InstallAction` just prompted with, that event is let go once its
+ * prompt has answered, and nothing else: an `appinstalled` already heard stays heard, and an event the browser
+ * offered afresh while the dialog was open is not the spent one and is kept.
+ */
+export function forgetInstallOffer(used?: Event): void {
+  if (used === undefined) {
+    update(NOTHING);
+    return;
+  }
+  if (current.event === used) update({ ...current, event: null });
 }
 
 // The one registration, at import: `src/ui/App.tsx` imports the hint on every

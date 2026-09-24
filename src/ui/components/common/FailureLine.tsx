@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { useT } from '../../../i18n/useT';
 import type { Failure } from '../../../state/failure';
 import styles from './FailureLine.module.css';
@@ -22,20 +22,22 @@ export interface FailureLineProps {
   failure: Failure;
   /** What could not be done, as the catalog's verb phrase (`t.failure.what.*`). */
   what: string;
-  /** What the page is using instead, when it is using anything; one sentence. */
-  instead?: string;
+  /** What the page is using instead, when it is using anything; one sentence, which may carry a link (the place search's). */
+  instead?: ReactNode;
+  /** R91: which place failed (`elements`, `passes`, `forecast`, `search`, `live`), for tests and captures where two lines share a page. */
+  site?: string;
   onRetry: () => void;
 }
 
-export function FailureLine({ failure, what, instead, onRetry }: FailureLineProps) {
+export function FailureLine({ failure, what, instead, site, onRetry }: FailureLineProps) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const detailId = useId();
   return (
-    <div className={styles.line} data-testid="failure-line" data-kind={failure.kind}>
+    <div className={styles.line} data-testid="failure-line" data-kind={failure.kind} data-site={site}>
       <p className={styles.sentence} data-testid="failure-sentence">
         {t.failure[failure.kind](what)}
-        {instead === undefined ? null : ` ${instead}`}
+        {instead === undefined ? null : <> {instead}</>}
       </p>
       <span className={styles.actions}>
         <button type="button" className={styles.retry} data-testid="failure-retry" onClick={onRetry}>

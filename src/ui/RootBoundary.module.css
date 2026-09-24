@@ -1,0 +1,73 @@
+/* R91 (FR-FAIL-5): the boundary's page — the header's title, the sentence, `[ reload ]` and `[ details ]`,
+   in the page's own column and tokens and nothing else. */
+.page {
+  max-width: var(--measure, 72ch);
+  margin: 0 auto;
+  padding: var(--row) var(--cell);
+}
+
+.header {
+  padding-top: var(--row);
+}
+
+.title {
+  margin: 0;
+  color: var(--fg);
+}
+
+.main {
+  display: grid;
+  gap: var(--row);
+  padding-top: calc(2 * var(--row));
+}
+
+.sentence {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.actions {
+  margin: 0;
+}
+
+.reload {
+  color: var(--accent);
+  background: none;
+  border: 0;
+  padding-inline: 0;
+  font-size: inherit;
+}
+
+.reload::before,
+.details summary::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.reload::after,
+.details summary::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+.details summary {
+  color: var(--accent);
+  cursor: pointer;
+  list-style: none;
+}
+
+.details summary::-webkit-details-marker {
+  display: none;
+}
+
+.detail {
+  margin: calc(var(--row) / 2) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}

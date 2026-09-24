@@ -15,6 +15,9 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { en } from '../../../i18n/en';
+import { es } from '../../../i18n/es';
+import { I18nProvider } from '../../../i18n/useT';
 import type { Observer, Place } from '../../../model';
 import { DEBOUNCE_MS, PlacePicker, type PlaceSearchFn } from './PlacePicker';
 
@@ -212,7 +215,11 @@ describe('<PlacePicker>', () => {
     const { input, onObserver } = setup(search);
     await user.type(input, 'Cipolletti{Enter}');
     const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('Could not search for places (Open-Meteo geocoding: HTTP 503). Try again, or enter coordinates instead.');
+    // R91 (FR-FAIL-1, FR-FAIL-2): the failure line — the sentence, what the page offers instead, and the raw
+    // message only behind `[ details ]`.
+    expect(within(alert).getByTestId('failure-sentence')).toHaveTextContent('Could not search for places. Meanwhile you can enter coordinates instead.');
+    expect(within(alert).getByTestId('failure-sentence').textContent).not.toMatch(/HTTP|\d{3}|Error:/);
+    expect(within(alert).getByTestId('failure-detail')).toHaveTextContent('Open-Meteo geocoding: HTTP 503');
     expect(within(alert).getByRole('link')).toHaveAttribute('href', '#coords');
     expect(input).not.toBeDisabled();
     expect(input).toHaveValue('Cipolletti');
@@ -223,6 +230,53 @@ describe('<PlacePicker>', () => {
     await user.keyboard('{Enter}');
     expect(onObserver).toHaveBeenCalledWith(CIPOLLETTI_OBSERVER);
   });
+
+  /**
+   * R91 (FR-FAIL-1, D-541, US-33 AC1): `[ retry ]` runs the last query again and shows the search's loading
+   * line; the sentence is each kind's, in both languages, with no internals in it.
+   */
+  it('[ retry ] searches the last query again and shows "Searching…"', async () => {
+    const user = userEvent.setup();
+    let answer: (places: Place[]) => void = () => undefined;
+    const search = vi
+      .fn<PlaceSearchFn>()
+      .mockRejectedValueOnce(Object.assign(new Error('Open-Meteo geocoding: HTTP 429'), { status: 429 }))
+      .mockReturnValueOnce(
+        new Promise<Place[]>((resolve) => {
+          answer = resolve;
+        }),
+      );
+    const { input } = setup(search);
+    await user.type(input, 'Cipolletti{Enter}');
+    const alert = await screen.findByRole('alert');
+    expect(within(alert).getByTestId('failure-line')).toHaveAttribute('data-kind', 'rate-limited');
+    await user.click(within(alert).getByTestId('failure-retry'));
+    expect(search).toHaveBeenCalledTimes(2);
+    expect(search.mock.calls[1]?.[0]).toBe('Cipolletti');
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByTestId('place-search-status')).toHaveTextContent('Searching for “Cipolletti”…');
+    await act(async () => {
+      answer([CIPOLLETTI]);
+      await Promise.resolve();
+    });
+    expect(await screen.findAllByRole('option')).toHaveLength(1);
+  });
+
+  for (const locale of ['en', 'es'] as const) {
+    for (const kind of ['offline', 'rate-limited', 'server', 'bad-data', 'timeout', 'unknown'] as const) {
+      it(`the search's failure sentence, ${kind}, ${locale}, carries no internals`, async () => {
+        const user = userEvent.setup();
+        const t = locale === 'en' ? en : es;
+        const search = vi.fn<PlaceSearchFn>().mockRejectedValueOnce({ kind, detail: 'TypeError: HTTP 503 from geocoding-api' });
+        render(<I18nProvider locale={locale}>{picker(search, vi.fn(), null)}</I18nProvider>);
+        await user.type(screen.getByRole('combobox', { name: t.location.placeLabel }), 'Cipolletti{Enter}');
+        const sentence = within(await screen.findByRole('alert')).getByTestId('failure-sentence');
+        expect(sentence.textContent).toContain(t.failure[kind](t.failure.what.search));
+        expect(sentence.textContent).not.toMatch(/HTTP|\d{3}|Error:/);
+        expect(screen.getByTestId('failure-detail')).toHaveTextContent('TypeError: HTTP 503 from geocoding-api');
+      });
+    }
+  }
 
   /**
    * R27 (FR-OFF-8). `navigator.onLine` is read through `useOnline`, so the

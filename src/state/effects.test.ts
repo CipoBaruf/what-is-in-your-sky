@@ -1422,6 +1422,24 @@ describe('R86: failures, retries, the forecast refresh and the stale recompute (
       expect(store.getState().passes).toMatchObject({ status: 'error', error: { kind: 'unknown', detail: 'Worker error: boom' } });
     });
 
+    it('a job whose worker died stays failed until retryPasses: the Now request that died with it restarts nothing — R91', async () => {
+      start({ observer: neuquen });
+      await jobOut();
+      await vi.waitFor(() => expect(sent('computeNow')).toHaveLength(1)); // the tick's request, still unanswered
+      spawned[0]?.fail('error', 'boom');
+      for (let i = 0; i < 3; i += 1) {
+        clock += NOW_TICK_MS;
+        await vi.advanceTimersByTimeAsync(NOW_TICK_MS);
+      }
+      expect(spawned).toHaveLength(1);
+      expect(store.getState().passes).toMatchObject({ status: 'error', error: { kind: 'unknown' } });
+
+      store.getState().retryPasses();
+      await vi.waitFor(() => expect(spawned).toHaveLength(2));
+      await jobOut();
+      expect(store.getState().passes.status).toBe('computing');
+    });
+
     it('retryElements re-runs the failed load, then the job', async () => {
       const loader = vi.fn<EffectDeps['loadElements']>().mockRejectedValueOnce(Object.assign(new Error('CelesTrak stations: HTTP 429'), { status: 429 })).mockResolvedValue(loaded(records));
       start({ observer: neuquen, loader });

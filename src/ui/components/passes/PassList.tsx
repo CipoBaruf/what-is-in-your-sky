@@ -7,6 +7,7 @@ import type { EpochMs, Observer, Pass } from '../../../model';
 import { isFeatured, useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../../state';
 import { hasEnded, useShownClock, useShownPasses } from '../../screens/home/shownPasses';
 import { SectionHeading } from '../common/SectionHeading';
+import { ListFailure, listFailure } from './ListFailure';
 import { groupByNight, type NightGroup } from './nightGroups';
 import { PassCard } from './PassCard';
 import styles from './PassList.module.css';
@@ -50,7 +51,8 @@ export function statusText(observer: Observer | null, elements: ElementsState, p
   const hours = passes.spanHours;
   if (!observer) return t.passes.noObserver;
   if (elements.status === 'idle' || elements.status === 'loading') return t.passes.loadingElements;
-  if (elements.status === 'error') return t.passes.elementsError(elements.failure.detail);
+  // R91 (FR-FAIL-2): a failure is its sentence alone; the component draws `ListFailure` with the detail behind `[ details ]`.
+  if (elements.status === 'error') return t.failure[elements.failure.kind](t.failure.what.elements);
   if (elements.records.length === 0) return t.passes.noElements;
   const place = observer.label;
   switch (passes.status) {
@@ -59,7 +61,7 @@ export function statusText(observer: Observer | null, elements: ElementsState, p
     case 'computing':
       return t.passes.computingProgress({ done: passes.done, total: passes.total, found: shown });
     case 'error':
-      return t.passes.passesError(passes.error?.detail ?? t.passes.unknownError);
+      return t.failure[passes.error?.kind ?? 'unknown'](t.failure.what.passes);
     case 'done':
       if (shown === 0 && passes.hasDarkness === false) return t.passes.noDarkness({ hours, place });
       if (shown === 0) return t.passes.none({ hours, place });
@@ -167,6 +169,7 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
   const showList = observer !== null && shown.length > 0;
   // Busy from the moment there is something to compute until the job ends (the worker may still be booting).
   const busy = observer !== null && elements.status === 'ready' && elements.records.length > 0 && (passes.status === 'idle' || passes.status === 'computing');
+  const failed = observer === null ? null : listFailure(elements, passes);
   const hero = showList ? nextFeaturedPass(shown, isFeatured, now) : null;
   const open = onOpenPass ? { onOpen: onOpenPass } : {};
   const zone = observer?.timeZone ?? null;
@@ -205,9 +208,16 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
           carries it to the start of the next line, where the row's clipped left margin hides it. */}
       <div className={styles.countLine} data-testid="count-line">
         <div className={styles.countRow}>
-          <p role="status" aria-live="polite" aria-busy={busy} className={styles.status}>
-            {statusText(observer, elements, passes, shown.length, t)}
-          </p>
+          {/* R91 (FR-FAIL-1, FR-FAIL-4): a failed load or job is the failure line, in the status line's place. */}
+          {failed !== null ? (
+            <div className={styles.failure} data-testid="list-failure">
+              <ListFailure failed={failed} showingList={showList} />
+            </div>
+          ) : (
+            <p role="status" aria-live="polite" aria-busy={busy} className={styles.status}>
+              {statusText(observer, elements, passes, shown.length, t)}
+            </p>
+          )}
           {showList && (
             <div className={styles.sortSide}>
               <span className={styles.separator} aria-hidden="true" data-testid="count-separator">

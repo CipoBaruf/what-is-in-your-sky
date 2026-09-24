@@ -207,7 +207,10 @@ export function startEffects({ store, client, catalog, loadElements, loadWeather
         store.getState().setNowError(current, message(error));
         // D-543: the worker died between jobs, so no job's `onFailure` ran and the tick is still going. The
         // replacement holds no elements, so send them again; otherwise every tick from here answers NO_ELEMENTS.
-        if (loadedGeneration !== client.generation()) void computeFor(current, now(), nextGeneration());
+        // R91 (FR-FAIL-4): not when it died under a job — that job's `onFailure` has already stopped the tick
+        // (`tickReady`), and this rejection is the tick's own request going down with the worker. Recomputing here
+        // restarted the job at once, so a worker that fails every job looped for ever and `[ retry ]` never stood.
+        if (tickReady && loadedGeneration !== client.generation()) void computeFor(current, now(), nextGeneration());
       },
     );
   };

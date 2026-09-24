@@ -2243,7 +2243,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
 
 ### Wave 4
 
-- [ ] **R91 — The failure line everywhere, the root boundary, the install button and its row**
+- [x] **R91 — The failure line everywhere, the root boundary, the install button and its row** *(done 2026-09-23; the elements failure is the pass list status line's line and not a second one in the Where reading; the install button stands only while the browser holds an offer; one condition in `state/effects.ts` so a dead worker's job stays failed until `[ retry ]` — D-591..D-595)*
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner

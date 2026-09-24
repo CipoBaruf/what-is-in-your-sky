@@ -42,7 +42,7 @@ const MOON_LORE: MoonLoreParams = { sign: 'Taurus', fullMoonName: null, line: 'T
 
 /** Every message of a catalog, rendered: plain strings as they are, functions over the fixture parameters. */
 function render(t: Messages): string[] {
-  const linked = [t.footer.celestrak, t.footer.openMeteo, t.footer.geonames, t.location.noMatch('Cipolletti'), t.location.searchFailed('offline'), t.location.searchOffline];
+  const linked = [t.footer.celestrak, t.footer.openMeteo, t.footer.geonames, t.location.noMatch('Cipolletti'), t.location.searchFailed, t.location.searchOffline];
   return [
     t.app.title,
     t.app.tagline,
@@ -121,12 +121,9 @@ function render(t: Messages): string[] {
     t.passes.heading,
     t.passes.noObserver,
     t.passes.loadingElements,
-    t.passes.elementsError('HTTP 503'),
     t.passes.noElements,
     t.passes.computing,
     t.passes.computingProgress({ done: 4, total: 31, found: 2 }),
-    t.passes.passesError('worker gone'),
-    t.passes.unknownError,
     t.passes.noDarkness({ hours: 24, place: 'Cipolletti' }),
     t.passes.none({ hours: 24, place: 'Cipolletti' }),
     t.passes.countLine({ count: 7, hours: 72 }),
@@ -196,6 +193,10 @@ function render(t: Messages): string[] {
     t.failure.retry,
     t.failure.details,
     t.failure.detailLabel,
+    ...Object.values(t.failure.what).flatMap((what) => [t.failure.server(what), t.failure.offline(what)]),
+    ...Object.values(t.failure.instead),
+    ...Object.values(t.boundary),
+    t.settings.installLabel,
     t.live.strip,
     t.live.timeLabel,
     t.live.skyLabel,
@@ -344,6 +345,7 @@ describe('the Spanish catalog (FR-I18N-3)', () => {
     // The strings that are the same in both languages by design: names, symbols and coordinates (FR-I18N-4, FR-I18N-6).
     const shared = new Set([
       en.location.coordsPlaceholder,
+      en.settings.installLabel, // "App" in both (FR-SET-1 as amended v2.1)
       en.chart.view.polar,
       en.live.pending, // an ellipsis is an ellipsis (R32)
       en.footer.celestrak.link,

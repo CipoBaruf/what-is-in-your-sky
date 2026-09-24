@@ -5,6 +5,7 @@ import { observerFromPlace, placeRegion } from '../../../lib/place';
 import type { Observer, Place } from '../../../model';
 import { toFailure, type Failure } from '../../../state';
 import { useOnline } from '../../hooks/useOnline';
+import { FailureLine } from '../common/FailureLine';
 import { coordsLabel } from './CoordsInput';
 import styles from './PlacePicker.module.css';
 
@@ -294,10 +295,20 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
         {!offline && list.kind === 'searching' && t.location.searching(list.query)}
         {!offline && list.kind === 'results' && list.places.length === 0 && linked(t.location.noMatch(list.query))}
       </p>
+      {/* R91 (FR-FAIL-1, D-541): the failure line, where the matches would have been; `[ retry ]` runs the last
+          query again, which puts the status back on "Searching for …". */}
       {!offline && list.kind === 'error' && (
-        <p role="alert" className={styles.error}>
-          {linked(t.location.searchFailed(list.failure.detail))}
-        </p>
+        <div role="alert" className={styles.error}>
+          <FailureLine
+            failure={list.failure}
+            what={t.failure.what.search}
+            instead={linked(t.location.searchFailed)}
+            site="search"
+            onRetry={() => {
+              runSearch(list.query);
+            }}
+          />
+        </div>
       )}
       {confirming && (
         <p id={noteId} className={styles.note} data-testid="place-confirmation">
