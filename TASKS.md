@@ -2411,7 +2411,8 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
 
 ### Wave 9
 
-- [ ] **R99 — The compact column capped and centred**
+- [x] **R99 — The compact column capped and centred**
+  - **Done (2026-09-24, D-634, D-635):** one rule in `global.css` on the shell's rows, the visit notices and the compact live page's grid, and the sheet's frame; the landscape-phone lift is the live page's alone (the home and the sheet carry no shape rule, FR-SHP-4). At the tablet rows the box pays `[ see this pass ]`'s text line (D-624's case on a portrait stack), tabled in `shapes.spec.ts` for the owner. Captures `r99-*` at 768 × 1024; the set's 768 column stays R94's.
   - **Lane:** ui
   - **Model:** fable
   - **Gate:** owner
