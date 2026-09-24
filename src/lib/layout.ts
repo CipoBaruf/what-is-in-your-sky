@@ -214,6 +214,38 @@ export const TAP_PX = 2 * ROW_PX;
 /** FR-SHP-3: eight rows, the smallest box in which the drawing is still a bowl. */
 export const LIVE_BOX_MIN_PX = 8 * ROW_PX;
 
+/**
+ * R93 (FR-HOME-3, D-546, D-607; F-79): the Where pane's dome takes the height
+ * the pane has left, and is not drawn where that is under `LIVE_BOX_MIN_PX`.
+ * The pane is a bounded box that scrolls itself (D-119) — the Where reading at
+ * three-pane widths, the left column with When under it on the two columns —
+ * and what it has left is its visible height less everything in it that is not
+ * the dome: `scrollHeight` with the dome's own row and the gap before it taken
+ * back out. The dome is square and never wider than the pane, so its side is
+ * the smaller of the width and that room; one pixel is kept for the rounding
+ * of the two measured heights, so a pane the dome fits exactly does not scroll
+ * by it. Measured by `WhereDome` on a `ResizeObserver`, the rule itself pure so
+ * it is a unit test.
+ */
+export interface DomeRoom {
+  /** The scroll pane's visible height and its content's, CSS px. */
+  paneClientHeightPx: number;
+  paneScrollHeightPx: number;
+  /** The dome's own row as it stands now, 0 while it is not drawn. */
+  slotHeightPx: number;
+  /** The reading's row gap: what the dome's row costs besides itself. */
+  gapPx: number;
+  /** The pane's content width: the widest the dome may be. */
+  widthPx: number;
+}
+
+export function whereDomeSize({ paneClientHeightPx, paneScrollHeightPx, slotHeightPx, gapPx, widthPx }: DomeRoom): number | null {
+  const others = paneScrollHeightPx - (slotHeightPx > 0 ? slotHeightPx + gapPx : 0);
+  const room = paneClientHeightPx - others - gapPx - 1;
+  const size = Math.floor(Math.min(widthPx, room));
+  return size >= LIVE_BOX_MIN_PX ? size : null;
+}
+
 /** FR-WATCH-1: the live page's two states. `ui/screens/liveRows.ts` is the inventory of each. */
 export type LiveState = 'watching' | 'scrubbing';
 

@@ -142,7 +142,7 @@ export interface NextEventBlockProps {
    */
   onSee?: (rise: EpochMs) => void;
   /** R93 (FR-HOME-2): the host's own class on the section, for where the reading's grid puts the block. */
-  className?: string;
+  className?: string | undefined;
 }
 
 export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block', liveLink = true, onOpen, onSee, className }: NextEventBlockProps) {

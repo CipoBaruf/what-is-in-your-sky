@@ -1,7 +1,17 @@
-/* R81 (FR-FIRST-11, board 1B): the pane's width, square. The link draws no
-   brackets and no box of its own: the drawing is the control. */
+/* R81 (FR-FIRST-11, board 1B): square. The link draws no brackets and no box
+   of its own: the drawing is the control.
+   R93 (FR-HOME-3, D-607): the square's side is what the pane has left
+   (`WhereDome` measures it, `lib/layout.ts` `whereDomeSize`), written inline
+   as `--dome-px`; the slot is the reading's row for it and takes no row while
+   the dome is not drawn. */
+.slot:empty {
+  display: none;
+}
+
 .link {
   display: block;
+  width: var(--dome-px, 100%);
+  max-width: 100%;
   padding: 0;
   margin: 0;
   text-decoration: none;

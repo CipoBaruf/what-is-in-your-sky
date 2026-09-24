@@ -12,7 +12,7 @@
  * still in the document beside it.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { GUIDE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, WIDE_MIN_PX } from '../../src/lib/layout';
+import { GUIDE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, LIVE_BOX_MIN_PX, WIDE_MIN_PX } from '../../src/lib/layout';
 import { ha, NINE_DAYS_ON, seedStoredRun, stubNetwork } from './liveHelpers';
 
 /** One character advance, as this browser resolves the app's own monospace stack. */
@@ -173,8 +173,11 @@ test.describe('the three readings by width (FR-FIRST-5, D-443)', () => {
         const dome = page.getByTestId('reading-where').getByTestId('where-dome');
         await expect(dome).toHaveAttribute('href', '#live');
         await expect(dome.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+        // R93 (FR-HOME-3, D-607): square, never wider than the pane, and the pane does not scroll by it.
         const domeBox = await dome.boundingBox();
-        expect(domeBox?.width ?? 0).toBeGreaterThan(where.width * 0.9);
+        expect(domeBox?.width ?? 0).toBeGreaterThanOrEqual(LIVE_BOX_MIN_PX);
+        expect(domeBox?.width ?? 0).toBeLessThanOrEqual(where.width + 1);
+        expect(Math.abs((domeBox?.height ?? 0) - (domeBox?.width ?? 0))).toBeLessThanOrEqual(2);
         // Three equal panes, side by side, on one band.
         expect(when.x).toBeGreaterThan(where.x + where.width - 1);
         expect(what.x).toBeGreaterThan(when.x + when.width - 1);
