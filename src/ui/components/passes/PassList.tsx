@@ -177,7 +177,9 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
   const tonight = tonightKey(groups, now, zone);
   const openDefault = defaultOpenNight(groups, now, zone);
   const tag = hero ? t.passes.nextTag({ name: hero.name, iss: hero.name.startsWith('ISS') }) : undefined;
-  const cards = (items: readonly Pass[]) =>
+  // R92 (FR-A11Y-2, D-530): a card's name is one rank under what holds it — a night's `h3`, or the list's `h2` when
+  // there is one night and so no night heading.
+  const cards = (items: readonly Pass[], headingLevel: 3 | 4) =>
     items.length === 0 || !observer ? null : (
       <ol className={styles.list}>
         {items.map((pass) => (
@@ -188,6 +190,7 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
               weather={snapshot}
               selected={pass.id === selectedPassId}
               ended={hasEnded(pass, now)}
+              headingLevel={headingLevel}
               {...(pass.id === hero?.id && tag !== undefined ? { tag } : {})}
               {...open}
             />
@@ -230,7 +233,7 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
       </div>
       {/* One night is no grouping at all: an MVP-width window, and every list before R24, is a
           single disclosure with nothing to disclose it from (D-146). */}
-      {showList && groups.length === 1 && cards(listOf(groups[0] as NightGroup))}
+      {showList && groups.length === 1 && cards(listOf(groups[0] as NightGroup), 3)}
       {showList &&
         groups.length > 1 &&
         groups.map((group) => {
@@ -240,7 +243,7 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
               key={group.key}
               id={`${nightsId}-${group.key}`}
               role="group"
-              aria-label={nightLabel(group, tonight, t)}
+              aria-labelledby={`${nightsId}-${group.key}-heading`}
               className={styles.night}
               data-testid="night-group"
               data-night-group=""
@@ -248,7 +251,13 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
               data-open={isOpen(group)}
               hidden={!isOpen(group)}
             >
-              {cards(items)}
+              {/* R92 (FR-A11Y-2, D-530): the night's heading, in the outline between the list's `h2` and the cards' `h4`,
+                  and the group's name. The eye has it already, on the night's toggle under the cards; this one draws
+                  nothing, so the page is not restyled and the heading still comes before what it heads. */}
+              <h3 id={`${nightsId}-${group.key}-heading`} className="sr-only" data-testid="night-heading">
+                {nightLabel(group, tonight, t)}
+              </h3>
+              {cards(items, 4)}
             </div>
           );
         })}

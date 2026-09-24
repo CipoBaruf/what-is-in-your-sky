@@ -5,7 +5,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearRoute, close, depth, isRouteHref, open, resetNavigation, subscribe, takeFocusTarget } from './navigation';
 
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 20));
+// Every traversal here lands on home; waiting for it rather than for a fixed time keeps a loaded run honest.
+const settle = (): Promise<void> =>
+  vi.waitFor(() => {
+    expect(window.location.hash).toBe('');
+  });
 
 let unsubscribe: () => void = () => undefined;
 

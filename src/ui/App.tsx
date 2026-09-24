@@ -4,7 +4,7 @@ import { MOON_LORE } from '../lib/flags';
 import { routeTitle, type RouteName } from '../lib/routeTitle';
 import { observerFromLink, resolvePassLink } from '../lib/shareLinks';
 import type { ShortcutActions } from '../lib/shortcuts';
-import { formatClock, formatDate } from '../lib/timeFormat';
+import { formatClock, formatDate, formatShortClock } from '../lib/timeFormat';
 import { HOME_THREE_PANE_QUERY } from '../lib/layout';
 import { catalogName, useActiveObserver, useAppStore } from '../state';
 import styles from './App.module.css';
@@ -352,7 +352,7 @@ export function App() {
   const liveShown = live.active && !liveUnreadable;
   const route: RouteName = liveShown ? 'live' : settings.active ? 'settings' : selected !== null ? 'pass' : 'home';
   const routeKey = route === 'pass' && selected !== null ? `pass:${selected.id}` : route;
-  const title = routeTitle(route, t, selected && { name: selected.name, time: `${formatDate(selected.start.t, timeZone, locale)} ${formatClock(selected.start.t, timeZone, locale)}` });
+  const title = routeTitle(route, t, selected && { name: selected.name, time: `${formatDate(selected.start.t, timeZone, locale)} ${formatShortClock(selected.start.t, timeZone, locale, timeZone === null)}` });
   if (liveShown) {
     // The live page renders its own `banner` and `main` inside its grid (D-529); the fallback is a `main` of its own.
     return (

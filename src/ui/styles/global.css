@@ -121,6 +121,11 @@ h1::before {
   color: var(--fg-dim);
 }
 
+/* R92: a heading for the outline only (the live page's name) has no prompt, which would be part of its name. */
+h1.sr-only::before {
+  content: none;
+}
+
 p {
   overflow-wrap: anywhere;
 }

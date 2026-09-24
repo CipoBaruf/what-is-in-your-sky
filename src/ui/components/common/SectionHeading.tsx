@@ -18,12 +18,18 @@ export interface SectionHeadingProps {
    * `--rule`, a line and not a word. Left out, the heading is as it always was.
    */
   tone?: 'active' | 'muted';
+  /**
+   * R92 (FR-A11Y-2, D-530): the heading's rank in the page's outline. The class draws it the same at every rank;
+   * the element is what a screen reader walks by.
+   */
+  level?: 2 | 3;
 }
 
-export function SectionHeading({ id, children, tone }: SectionHeadingProps) {
+export function SectionHeading({ id, children, tone, level = 2 }: SectionHeadingProps) {
+  const Heading = level === 3 ? 'h3' : 'h2';
   return (
-    <h2 id={id} className={tone ? `${styles.heading} ${styles[tone]}` : styles.heading}>
+    <Heading id={id} className={tone ? `${styles.heading} ${styles[tone]}` : styles.heading}>
       <span className={styles.title}>{children}</span>
-    </h2>
+    </Heading>
   );
 }

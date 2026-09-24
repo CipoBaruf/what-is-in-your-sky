@@ -53,9 +53,15 @@ export interface PassCardProps {
   tag?: string;
   /** FR-NIGHT-2: the pass is over on the shown clock; the card reads `ended` in place of the cloud word while it lingers. */
   ended?: boolean;
+  /**
+   * R92 (FR-A11Y-2, D-530): the name's rank, one under what holds the card — 4 under a night's heading, 3 where the
+   * cards sit straight under a pane's or a step's `h2`. The class draws it; the element only ranks it.
+   */
+  headingLevel?: 3 | 4;
 }
 
-export function PassCard({ pass, timeZone, onOpen, weather, selected = false, detail = 'magnitude', tag, ended = false }: PassCardProps) {
+export function PassCard({ pass, timeZone, onOpen, weather, selected = false, detail = 'magnitude', tag, ended = false, headingLevel = 3 }: PassCardProps) {
+  const Name = headingLevel === 4 ? 'h4' : 'h3';
   const t = useT();
   const locale = useLocale();
   const headingId = useId();
@@ -64,9 +70,9 @@ export function PassCard({ pass, timeZone, onOpen, weather, selected = false, de
     <article className={styles.card} aria-labelledby={headingId} data-pass-id={pass.id} data-pass-card="" tabIndex={-1} {...(selected ? { 'data-selected': 'true', 'aria-current': true as const } : {})}>
       <div className={styles.first} data-testid="card-first-line">
         <span className={styles.time}>{formatShortClock(pass.start.t, timeZone, locale, timeZone === null)}</span>
-        <h2 id={headingId} className={styles.name}>
+        <Name id={headingId} className={styles.name}>
           {pass.name}
-        </h2>
+        </Name>
         {tag !== undefined && (
           <span className={styles.tag} data-testid="next-tag">
             {tag}
