@@ -31,6 +31,17 @@
  * readings, the settings page is inverted, and the sky screen's legend strip is
  * a compass gutter.
  *
+ * R94 (SPEC §4.39, FR-CAP-1, FR-CAP-5; F-80, F-66, F-70; D-547): a capture is
+ * the screen as the reader opens it, and the set comes out the same twice. The
+ * home's full-page file keeps its closed nights and says so in `captureSet.ts`;
+ * its `-view` twin leaves tonight open, runs the paused clock through the
+ * animation frame `WhereDome` waits for and the fonts gate the dome mounts
+ * behind — the R32 lesson, applied one more time — and is shot cropped to the
+ * viewport with the dome's `<pre>` proven non-empty first. And every shot waits
+ * for a settled frame: two ticks of the clock with identical document text,
+ * so a drawing still being rasterised (the glyph or two F-66 and F-70 measured)
+ * is not what the file shows.
+ *
  * **Two places, because the screens want different skies.** The chart screens
  * are `live-captures.spec.ts`'s Paris moment — the one instant in the committed
  * fixtures where a pass is under way, the Moon is 60° up and the Sun is inside
@@ -41,7 +52,7 @@
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
-import { CAPTURE_DIR, captureName, LOCALES, SCREENS, THEMES, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
+import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 import { domeDrawn, enterScrubbing, heading, hhmmss, openLegend, openSettings, stripFilled, stubCompass } from './liveHelpers';
 // Both observers are at altitude 0, which is what typing a coordinate pair gives (FR-LOC-4) and what
 // the committed pass ids were computed at: a seeded altitude would move every pass start by a second
@@ -109,9 +120,32 @@ const SAVED_PLACES = [
 /**
  * The screens whose point is everything on them, so the capture is the whole
  * document and not the first 844 px of it. R53 adds the settings page, which is
- * seven sections and a footer on a phone.
+ * seven sections and a footer on a phone. R94: a `-view` twin is never full
+ * page — the viewport is what it is a picture of (FR-CAP-1).
  */
 const FULL_PAGE = new Set(['location', 'home', 'settings']);
+
+/**
+ * R94 (FR-CAP-5, F-66, F-70; D-547): the frame has settled when two ticks of
+ * the paused clock leave the document's text as it was. The two findings are a
+ * glyph or two inside a drawing, and glyphcss draws in text, so a `<pre>` still
+ * being rasterised when the file is written is the shape of defect this catches;
+ * a drawing that never settles fails the capture instead of producing a file
+ * that is right half the time. The ticks are frames, so a pinned instant stays
+ * inside its ten-second tick (F-48).
+ */
+const SETTLE_TICKS = 12;
+async function settled(page: Page): Promise<void> {
+  const text = () => page.evaluate(() => document.documentElement.textContent ?? '');
+  let last = await text();
+  for (let tick = 0; tick < SETTLE_TICKS; tick += 1) {
+    await page.clock.runFor(FRAME_MS);
+    const next = await text();
+    if (next === last) return;
+    last = next;
+  }
+  throw new Error(`the frame did not settle in ${String(SETTLE_TICKS)} ticks`);
+}
 
 /**
  * R53 (FR-WIN-4): the window is offered where the presence test passes — a
@@ -389,7 +423,40 @@ async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme
   await page.mouse.move(0, 0);
 }
 
-type Reach = (page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale) => Promise<void>;
+/**
+ * R94 (FR-CAP-1, F-80): the Where pane's dome, drawn. `WhereDome` mounts after
+ * an animation frame the paused clock holds, measures its room on a
+ * `ResizeObserver`, loads the chart chunk and then waits for the raster font
+ * and glyphcss's first rasterisation — every one of them a timer or a frame
+ * the clock is holding, so the poll ticks it. The dome is only on the wide
+ * layout (`WhereDome` returns nothing on compact), and the pane draws it only
+ * where its room reaches `LIVE_BOX_MIN_PX` (D-607), so the slot is what is
+ * waited for and the drawing is asserted where the slot has one.
+ */
+async function whereDomeDrawn(page: Page): Promise<void> {
+  const slot = page.getByTestId('where-dome-slot');
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      return slot.count();
+    }, { timeout: 30_000 })
+    .toBe(1);
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      return page.getByTestId('where-dome').count();
+    }, { timeout: 30_000 })
+    .toBe(1);
+  const glyphs = page.getByTestId('where-dome').locator('[data-layer="lines"] pre.glyph-output');
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      return (await glyphs.count()) > 0 ? ((await glyphs.first().textContent()) ?? '').trim().length : 0;
+    }, { timeout: 30_000 })
+    .toBeGreaterThan(0);
+}
+
+type Reach = (page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view: boolean) => Promise<void>;
 
 /** Every screen's route to itself, by the name it carries in `captureSet.ts`. */
 const REACH: Record<string, Reach> = {
@@ -400,10 +467,24 @@ const REACH: Record<string, Reach> = {
     await expect(page.getByRole('contentinfo')).toBeVisible();
   },
 
-  async home(page, width, theme, locale) {
+  async home(page, width, theme, locale, view) {
     await open(page, width, { locale, theme, observer: PARIS });
     await page.goto('/');
     await listSettled(page);
+    if (view) {
+      /*
+       * R94 (FR-CAP-1, F-80): the `-view` twin is the home as it opens — tonight open (FR-NIGHT-1's default)
+       * and, from 1024 up, the Where pane's dome drawn — cropped to the viewport. The dome waits on frames
+       * and timers the paused clock holds, so the clock is run through them and then put back on `CLOCK`
+       * (F-48: the countdown and the dome's own instant must not depend on how many ticks that took).
+       */
+      await expect(page.locator('[data-testid="night-group"][data-open="true"]')).toHaveCount(1);
+      await expect(page.locator('[data-testid="night-toggle"][aria-expanded="true"]')).toHaveCount(1);
+      if (VIEWPORTS[width].width >= 1024) await whereDomeDrawn(page);
+      await pinnedAt(page, CLOCK);
+      await page.mouse.move(0, 0);
+      return;
+    }
     // The nights are closed so the whole screen fits in one picture. Paris in September has
     // tens of visible passes a night, and the open default made the phone capture 20 000 px
     // tall — a file nobody can review. Closed, the capture carries every part of the home
@@ -618,22 +699,20 @@ const REACH: Record<string, Reach> = {
   },
 };
 
-/** One test per capture: reach the screen, prove the seed took, shoot the file. */
+/** One test per capture: reach the screen, prove the seed took, wait for a settled frame, shoot the file. */
 function shoot(screen: (typeof SCREENS)[number]): void {
   const reach = REACH[screen.name];
   if (!reach) throw new Error(`no route to the ${screen.name} screen`);
-  for (const width of screen.widths) {
-    // R73 (FR-FSC-7 as amended): a screen may name fewer variants than there are; all of them is the default.
-    for (const theme of screen.themes ?? THEMES) {
-      for (const locale of screen.locales ?? LOCALES) {
-        test(`${screen.name} at ${String(width)} px, ${theme}, ${locale}`, async ({ page }) => {
-          await reach(page, width, theme, locale);
-          await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-          await expect(page.locator('html')).toHaveAttribute('lang', locale);
-          await page.screenshot({ path: `${CAPTURE_DIR}/${captureName(screen.name, width, theme, locale)}`, fullPage: FULL_PAGE.has(screen.name) });
-        });
-      }
-    }
+  // R73 (FR-FSC-7 as amended): a screen may name fewer variants than there are; `captureSet` applies the
+  // default. R94 (FR-CAP-1): a screen with `view` has each file twice, and the twin is the viewport.
+  for (const { width, theme, locale, view, file } of captureSet().filter((capture) => capture.screen === screen)) {
+    test(`${screen.name} at ${String(width)} px${view ? ' (view)' : ''}, ${theme}, ${locale}`, async ({ page }) => {
+      await reach(page, width, theme, locale, view);
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      await expect(page.locator('html')).toHaveAttribute('lang', locale);
+      await settled(page);
+      await page.screenshot({ path: `${CAPTURE_DIR}/${file}`, fullPage: FULL_PAGE.has(screen.name) && !view });
+    });
   }
 }
 
