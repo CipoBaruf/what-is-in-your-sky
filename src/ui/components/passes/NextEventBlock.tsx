@@ -172,7 +172,7 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
   const path = nextEventPath(pass, t);
   const rise = onSee && !card ? jumpInstant(result, now, hours) : null;
   return (
-    <section aria-label={t.nextEvent.region} className={card ? styles.card : styles.block} data-testid="next-event" data-form={form}>
+    <section aria-label={t.nextEvent.region} className={sectionClass} data-testid="next-event" data-form={form}>
       <p role="timer" aria-live="off" className={styles.label} data-kind={result.kind} data-testid="next-event-label">
         {nextEventLabel(result, now, t, card)}
       </p>

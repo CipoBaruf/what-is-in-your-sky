@@ -87,7 +87,10 @@ export function WhereDome(props: WhereDomeProps) {
     const pane = scrollPane(element);
     const observer = new ResizeObserver(() => {
       const gapPx = parseFloat(getComputedStyle(reading).rowGap) || 0;
-      setSizePx(whereDomeSize({ paneClientHeightPx: pane.clientHeight, paneScrollHeightPx: pane.scrollHeight, slotHeightPx: element.offsetHeight, gapPx, widthPx: reading.clientWidth }));
+      // The content's extent, first block to last: `scrollHeight` is floored at the pane's own height and says nothing of the room.
+      const first = pane.firstElementChild?.getBoundingClientRect().top ?? 0;
+      const last = pane.lastElementChild?.getBoundingClientRect().bottom ?? first;
+      setSizePx(whereDomeSize({ paneClientHeightPx: pane.clientHeight, contentHeightPx: last - first, slotHeightPx: element.offsetHeight, gapPx, widthPx: reading.clientWidth }));
     });
     const watched = new Set<Element>([pane, ...pane.children, ...reading.children]);
     watched.delete(element);

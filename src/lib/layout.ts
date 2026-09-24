@@ -220,17 +220,18 @@ export const LIVE_BOX_MIN_PX = 8 * ROW_PX;
  * The pane is a bounded box that scrolls itself (D-119) — the Where reading at
  * three-pane widths, the left column with When under it on the two columns —
  * and what it has left is its visible height less everything in it that is not
- * the dome: `scrollHeight` with the dome's own row and the gap before it taken
- * back out. The dome is square and never wider than the pane, so its side is
- * the smaller of the width and that room; one pixel is kept for the rounding
- * of the two measured heights, so a pane the dome fits exactly does not scroll
- * by it. Measured by `WhereDome` on a `ResizeObserver`, the rule itself pure so
- * it is a unit test.
+ * the dome: its content's extent — the top of its first block to the bottom of
+ * its last, not `scrollHeight`, which is never under the pane's own height —
+ * with the dome's own row and the gap before it taken back out. The dome is
+ * square and never wider than the pane, so its side is the smaller of the
+ * width and that room; one pixel is kept for the rounding of the measured
+ * heights, so a pane the dome fits exactly does not scroll by it. Measured by
+ * `WhereDome` on a `ResizeObserver`, the rule itself pure so it is a unit test.
  */
 export interface DomeRoom {
-  /** The scroll pane's visible height and its content's, CSS px. */
+  /** The scroll pane's visible height, and its content's extent as it stands, CSS px. */
   paneClientHeightPx: number;
-  paneScrollHeightPx: number;
+  contentHeightPx: number;
   /** The dome's own row as it stands now, 0 while it is not drawn. */
   slotHeightPx: number;
   /** The reading's row gap: what the dome's row costs besides itself. */
@@ -239,8 +240,8 @@ export interface DomeRoom {
   widthPx: number;
 }
 
-export function whereDomeSize({ paneClientHeightPx, paneScrollHeightPx, slotHeightPx, gapPx, widthPx }: DomeRoom): number | null {
-  const others = paneScrollHeightPx - (slotHeightPx > 0 ? slotHeightPx + gapPx : 0);
+export function whereDomeSize({ paneClientHeightPx, contentHeightPx, slotHeightPx, gapPx, widthPx }: DomeRoom): number | null {
+  const others = contentHeightPx - (slotHeightPx > 0 ? slotHeightPx + gapPx : 0);
   const room = paneClientHeightPx - others - gapPx - 1;
   const size = Math.floor(Math.min(widthPx, room));
   return size >= LIVE_BOX_MIN_PX ? size : null;

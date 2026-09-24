@@ -341,6 +341,21 @@
   }
 }
 
+/* R93 (FR-HOME-3, D-608): the short window. On a wide page under 720 px tall
+   the main's row of padding above and below the panes is half a row each —
+   what the live page's folds do with their air (FR-SHP-3) — so When holds its
+   stripe, table and next event at 1118 × 700 in Spanish, where the pane at the
+   three-pane literal is 35 cells (D-443's lean) and one table row wraps. The
+   query is a height, so it is not one of the three width literals
+   `tests/styles/breakpoint.test.ts` holds; `tests/e2e/home-desk.spec.ts` is
+   what pins it. */
+@media (min-width: 964px) and (max-height: 720px) {
+  .main {
+    padding-top: calc(var(--row) / 2);
+    padding-bottom: calc(var(--row) / 2);
+  }
+}
+
 /* R76 (FR-FIRST-5, D-443, D-444): from `HOME_THREE_PANE_MIN_CELLS` — three
    panes of 36 cells, the two gutters and one shell padding — the readings are
    three equal panes, Where, When and What. The two columns' wrappers step out
