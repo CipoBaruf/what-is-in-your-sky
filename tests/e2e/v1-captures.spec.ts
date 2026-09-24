@@ -126,7 +126,7 @@ const SAVED_PLACES = [
 const FULL_PAGE = new Set(['location', 'home', 'settings']);
 
 /**
- * R94 (FR-CAP-5, F-66, F-70; D-547, D-648): the frame has settled when two
+ * R94 (FR-CAP-5, F-66, F-70; D-547, D-611): the frame has settled when two
  * ticks of the paused clock leave the document's text as it was. The two
  * findings are a glyph or two inside a drawing, and glyphcss draws in text, so
  * a `<pre>` still being rasterised when the file is written is the shape of
@@ -374,7 +374,7 @@ async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme
   const drawing = page.locator('[data-look-az]');
   await expect(drawing).toBeAttached();
   /*
-   * R94 (FR-CAP-5, F-70; D-648): the poll that opened the layer ticked the clock 100 ms an iteration for as
+   * R94 (FR-CAP-5, F-70; D-611): the poll that opened the layer ticked the clock 100 ms an iteration for as
    * many iterations as the reading took to land, and the sweeps below run a fixed count of frames from
    * wherever that left it — so the drawing's instant was a property of the run, and the arcs anti-aliased a
    * pixel or two differently between two shots of the same file. The instant is pinned again after the
@@ -500,7 +500,7 @@ const REACH: Record<string, Reach> = {
      * countdown and the dome's own instant must not depend on how many ticks that took). The full-page file
      * used to show the pane without it only because nothing ticked the clock; now that every shot ticks two
      * frames (`settled`), a file shot with the dome half-loaded would differ between two runs, so the wait is
-     * the same for both and the only thing the full-page file differs in is the nights (D-647).
+     * the same for both and the only thing the full-page file differs in is the nights (D-610).
      */
     if (VIEWPORTS[width].width >= 1024) await whereDomeDrawn(page, VIEWPORTS[width].width >= 1280);
     await pinnedAt(page, CLOCK);

@@ -254,7 +254,7 @@ export const SCREENS: readonly CaptureScreen[] = [
     widths: [360, 390],
     themes: ['dark'],
     locales: ['en'],
-    what: 'The same 390 × 844 viewport with the pose of a phone held sideways under a rotation lock (FR-FSC-10, US-21 AC15, R73): the layer has turned a quarter, so the picture is landscape inside a portrait viewport and the readout, the gutter and the `×` are the right way up to the reader\'s eye. One theme and one language: the turn is a geometry, not a piece of copy.',
+    what: 'The same portrait phone viewport (360 or 390 px wide) with the pose of a phone held sideways under a rotation lock (FR-FSC-10, US-21 AC15, R73): the layer has turned a quarter, so the picture is landscape inside a portrait viewport and the readout, the gutter and the `×` are the right way up to the reader\'s eye. One theme and one language: the turn is a geometry, not a piece of copy.',
   },
 ];
 

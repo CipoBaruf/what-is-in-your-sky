@@ -29,7 +29,7 @@ name: Captures
 # page and the sky screen without changing what the set names them.
 #
 # R94: 254 since v2.1 asked what a capture shows (SPEC §4.39, FR-CAP-1..5,
-# FR-TAB-3; D-647) — a `-view` twin of the home at every width (the true state,
+# FR-TAB-3; D-610) — a `-view` twin of the home at every width (the true state,
 # tonight open and the dome drawn, cropped to the viewport), a 360 px column
 # beside every 390 one, a 768 px column for the home, the guide, both live
 # states and settings, and the home at 1920. Re-measured off one build on a
