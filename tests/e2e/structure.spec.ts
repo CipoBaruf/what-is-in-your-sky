@@ -184,12 +184,17 @@ test.describe('focus and the announcer (FR-A11Y-4, US-30 AC4)', () => {
     await page.keyboard.press('Enter');
     await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).toBe('MAIN');
     expect(await hash(page)).toBe('');
+    // Settings puts the focus on its Back control on the way in (FR-A11Y-4), so the Tab walk starts past the
+    // link; the link is still the first focusable element in the page's order.
     await page.getByTestId('settings-link').click();
-    await page.evaluate(() => {
-      (document.activeElement as HTMLElement | null)?.blur();
-    });
-    await page.keyboard.press('Tab');
-    await expect(page.getByTestId('skip-link')).toBeFocused();
+    await expect(page.getByTestId('settings-back')).toBeFocused();
+    const first = await page.evaluate(() => document.querySelector('a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])')?.getAttribute('data-testid'));
+    expect(first).toBe('skip-link');
+    await page.getByTestId('skip-link').focus();
+    await expect(page.getByTestId('skip-link')).toBeInViewport();
+    await page.keyboard.press('Enter');
+    await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).toBe('MAIN');
+    await expect(page.getByTestId('settings-back')).toBeVisible();
   });
 });
 
