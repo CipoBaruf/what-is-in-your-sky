@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocale, useT } from '../../../i18n/useT';
 import { isNoEvent, nextEvent } from '../../../lib/nextEvent';
 import { formatShortClock } from '../../../lib/timeFormat';
@@ -11,7 +11,7 @@ import { PassCard } from '../../components/passes/PassCard';
 import { FaintToggle } from '../../components/passes/FaintToggle';
 import { ListFailure, listFailure } from '../../components/passes/ListFailure';
 import { nightLabel } from '../../components/passes/PassList';
-import { hasEnded, usePassContext, useListedPasses, useShownClock } from './shownPasses';
+import { faintIds, hasEnded, usePassContext, useListedPasses, useShownClock } from './shownPasses';
 import styles from './Steps.module.css';
 import { splitTonight } from './tonight';
 import { useNight } from './useNight';
@@ -55,7 +55,7 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
   const listed = useListedPasses(selectedPassId);
   const passes = listed.shown;
   const faintCount = listed.faint.length;
-  const isFaint = (pass: Pass): boolean => listed.faint.includes(pass);
+  const faint = useMemo(() => faintIds(listed), [listed]);
   const weather = useAppStore((s) => s.weather);
   const failed = listFailure(
     useAppStore((s) => s.elements),
@@ -85,13 +85,15 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
 
   const title = (() => {
     if (passes.length > 0) return t.home.count(split.tonight.length);
+    // FR-FAINT-2: a night left with only faint passes still counts them, so the control below has a line to stand on.
+    if (faintCount > 0) return t.passes.nights.onlyFaint(faintCount);
     if (context.pending) return t.nextEvent.pending;
     return isNoEvent(next) ? t.nextEvent.none({ reason: next.reason, hours: SEARCH_WINDOW_HOURS }) : t.home.count(0);
   })();
 
   const card = (pass: Pass) => (
     <li key={pass.id}>
-      <PassCard pass={pass} timeZone={zone} weather={snapshot} detail="phrase" selected={pass.id === selectedPassId} ended={hasEnded(pass, now)} faint={isFaint(pass)} onOpen={onOpenPass} headingLevel={3} />
+      <PassCard pass={pass} timeZone={zone} weather={snapshot} detail="phrase" selected={pass.id === selectedPassId} ended={hasEnded(pass, now)} faint={faint.has(pass.id)} onOpen={onOpenPass} headingLevel={3} />
     </li>
   );
 
@@ -111,9 +113,9 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
       <p className={styles.sentence}>{t.home.whatStep.sentence}</p>
       {/* R91 (FR-FAIL-1, FR-FAIL-4): a failed load or job says so here too, rather than a count of nothing. */}
       {failed && <ListFailure failed={failed} showingList={passes.length > 0} />}
-      {passes.length > 0 && (
+      {(passes.length > 0 || faintCount > 0) && (
         <div className={styles.cards} data-testid="what-cards">
-          <NextEventBlock passes={passes} timeZone={zone} context={nextContext} pending={context.pending} hours={SEARCH_WINDOW_HOURS} form="card" onOpen={onOpenPass} />
+          {passes.length > 0 && <NextEventBlock passes={passes} timeZone={zone} context={nextContext} pending={context.pending} hours={SEARCH_WINDOW_HOURS} form="card" onOpen={onOpenPass} />}
           {shown.length > 0 && <ol className={styles.list}>{shown.map(card)}</ol>}
           {moreNights &&
             laterNights.map((group) => (
