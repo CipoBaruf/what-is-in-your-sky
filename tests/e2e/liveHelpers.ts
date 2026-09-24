@@ -99,6 +99,25 @@ export async function openSettings(page: Page): Promise<boolean> {
     return false;
   }
   const link = page.getByTestId('settings-link');
+  /*
+   * R93 (D-545): the settings page is a lazy chunk now, and React reveals a chunk from behind its Suspense
+   * fallback on a timer. A spec that installed the clock and paused it holds that timer still, so a click
+   * straight into the route never arrives — not in ten seconds of real time, because no virtual time passes.
+   *
+   * Ticking the clock to get past it is not the answer: `openSettings` runs *before* the coordinates are
+   * typed, so time moved here is time the passes are computed from, and the search comes back with roots
+   * tens of milliseconds away — enough that every `data-pass-id` a spec pins misses (live-marker). Nor can
+   * the instant be put back: `pauseAt` will not go to the past, and re-installing the clock drops the
+   * timers the page is already waiting on (place-search).
+   *
+   * So the chunk is in hand before the click, and there is no fallback to reveal and no timer to wait on.
+   * Hovering the link prefetches it (`Header.tsx`'s `onPointerEnter`), which is a real request the test can
+   * wait for. Where the module is already registered no request is made, the wait falls through on its
+   * timeout, and the click is immediate anyway.
+   */
+  const chunk = page.waitForResponse((response) => /\/Settings-[^/]*\.js$/.test(response.url()), { timeout: 5_000 }).catch(() => undefined);
+  await link.hover();
+  await chunk;
   await link.click();
   await expect(page.getByTestId('settings-back')).toBeVisible();
   await openCoordinates(page);

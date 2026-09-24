@@ -9,9 +9,22 @@ type SettingsModule = typeof import('./Settings');
 
 let chunk: Promise<SettingsModule> | undefined;
 
-/** Fetch the settings chunk once; later calls return the same promise. */
+/**
+ * Fetch the settings chunk once; later calls return the same promise — but a
+ * failure is not kept. Caching the rejection would make one dropped request
+ * permanent: the idle prefetch runs seconds after the first paint, when a
+ * phone may still be finding the network, and `lazy` would then throw that
+ * same old rejection at the first tap on `[ settings ]` without ever asking
+ * for the file again. The only boundary above it is the root's, so the whole
+ * app would go to the failure page over a prefetch nobody asked for. A plain
+ * `lazy(() => import(…))` retries on its own; sharing one promise is what
+ * takes that away, so the promise is dropped when it rejects.
+ */
 export function loadSettingsChunk(): Promise<SettingsModule> {
-  chunk ??= import('./Settings');
+  chunk ??= import('./Settings').catch((reason: unknown) => {
+    chunk = undefined;
+    throw reason;
+  });
   return chunk;
 }
 
@@ -25,12 +38,12 @@ export function prefetchSettingsWhenIdle(): () => void {
   if (typeof window === 'undefined') return () => undefined;
   const idle = (window as Window & { requestIdleCallback?: (fn: () => void, options?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void }).requestIdleCallback;
   if (idle) {
-    const id = idle(() => void loadSettingsChunk(), { timeout: 5_000 });
+    const id = idle(() => void loadSettingsChunk().catch(() => undefined), { timeout: 5_000 });
     return () => {
       (window as Window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(id);
     };
   }
-  const id = window.setTimeout(() => void loadSettingsChunk(), 2_000);
+  const id = window.setTimeout(() => void loadSettingsChunk().catch(() => undefined), 2_000);
   return () => {
     window.clearTimeout(id);
   };

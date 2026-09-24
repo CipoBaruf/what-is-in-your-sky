@@ -67,7 +67,8 @@ export function Header({ inert = false, current = 'home', busy = false }: Header
   const loading = (useAppStore(isLoading) && current === 'home') || busy;
   const mark = <Mark tier="header32" sizePx={MARK_HEADER_PX} running={loading} />;
   // R93 (D-545): the settings chunk is fetched as the pointer or the focus reaches its link, ahead of the tap.
-  const prefetch = (): void => void loadSettingsChunk();
+  // Best effort: a prefetch that fails is dropped by `loadSettingsChunk`, and the tap will ask again.
+  const prefetch = (): void => void loadSettingsChunk().catch(() => undefined);
 
   if (mode === 'compact') {
     return (
