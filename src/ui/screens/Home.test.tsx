@@ -518,6 +518,65 @@ describe('the phone’s first visit (FR-FIRST-4, D-513)', () => {
     fireEvent.click(within(first).getByRole('button', { name: `Open guide → ${pass.name}` }));
     expect(onOpenPass).toHaveBeenLastCalledWith(pass.id);
   });
+
+  it('counts what is shown on the what step, and puts the faint control after [<n> more tonight] (R97, FR-FAINT-2)', () => {
+    const at = (minutes: number, id: string, faint = false) => ({
+      ...pass,
+      id,
+      ...(faint ? { noradId: 2, name: `Faint ${id}`, peakMagnitude: 4 } : {}),
+      start: { ...pass.start, t: pass.start.t + minutes * 60_000 },
+      peak: { ...pass.peak, t: pass.peak.t + minutes * 60_000 },
+      end: { ...pass.end, t: pass.end.t + minutes * 60_000 },
+    });
+    const tonight = [pass, at(30, 'b'), at(60, 'c'), at(75, 'x', true), at(90, 'd'), at(105, 'y', true)];
+    const window = { startMs: pass.start.t - 3_600_000, endMs: pass.start.t - 3_600_000 + 72 * 3_600_000 };
+    render(home());
+    fireEvent.click(screen.getByRole('button', { name: en.location.useMyLocation }));
+    act(() => {
+      appStore.setState({ elements: { ...ready, stale: false }, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: appStore.getState().observer, passes: [...tonight, at(24 * 60, 'f')], hasDarkness: true, window } });
+    });
+    expect(screen.getByTestId('when-passes')).toHaveTextContent('4 tonight, 5 in 72 h');
+    fireEvent.click(screen.getByTestId('see-what'));
+    const what = screen.getByTestId('step-what');
+    expect(within(what).getByRole('heading', { level: 2, name: 'Four things cross tonight' })).toBeInTheDocument();
+    const more = within(what).getByTestId('what-more');
+    expect(within(more).getAllByRole('button').map((button) => button.textContent)).toEqual(['1 more tonight', 'show 2 faint', '1 more night']);
+    fireEvent.click(within(more).getByTestId('faint-toggle'));
+    expect(within(what).getByRole('heading', { level: 2, name: 'Six things cross tonight' })).toBeInTheDocument();
+    expect(within(more).getAllByRole('button').map((button) => button.textContent)).toEqual(['3 more tonight', 'hide 2 faint', '1 more night']);
+    fireEvent.click(within(more).getByTestId('more-tonight'));
+    const cards = within(what).getByTestId('what-cards');
+    expect(within(cards).getAllByRole('article').map((card) => card.getAttribute('data-pass-id'))).toEqual(['b', 'c', 'x', 'd', 'y']);
+    expect(within(cards).getAllByTestId('card-faint')).toHaveLength(2);
+  });
+
+  it('keeps the faint control on a night left with only faint passes, under `0 passes · n faint` (R97, FR-FAINT-2)', () => {
+    // Every pass has ended but still lingers, so none is the next event's and neither is exempt.
+    const dim = (minutes: number, id: string) => ({
+      ...pass,
+      id,
+      noradId: 2,
+      name: `Faint ${id}`,
+      peakMagnitude: 4,
+      start: { ...pass.start, t: pass.start.t + minutes * 60_000 },
+      peak: { ...pass.peak, t: pass.peak.t + minutes * 60_000 },
+      end: { ...pass.end, t: pass.end.t + minutes * 60_000 },
+    });
+    const last = dim(0.5, 'y');
+    const faint = [dim(0, 'x'), last];
+    const window = { startMs: pass.start.t - 3_600_000, endMs: pass.start.t - 3_600_000 + 72 * 3_600_000 };
+    render(home());
+    fireEvent.click(screen.getByRole('button', { name: en.location.useMyLocation }));
+    act(() => {
+      appStore.setState({ nowMs: last.end.t + 1000, elements: { ...ready, stale: false }, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: appStore.getState().observer, passes: faint, hasDarkness: true, window } });
+    });
+    fireEvent.click(screen.getByTestId('see-what'));
+    const what = screen.getByTestId('step-what');
+    expect(within(what).getByRole('heading', { level: 2, name: '0 passes · 2 faint' })).toBeInTheDocument();
+    const more = within(what).getByTestId('what-more');
+    fireEvent.click(within(more).getByTestId('faint-toggle'));
+    expect(within(more).getByTestId('faint-toggle')).toHaveTextContent('hide 2 faint');
+  });
 });
 
 describe('home.count (D-513)', () => {

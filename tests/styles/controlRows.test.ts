@@ -58,6 +58,7 @@ import { NextEventBlock } from '../../src/ui/components/passes/NextEventBlock';
 import { StatusStrip } from '../../src/ui/components/live/StatusStrip';
 import { LivePage } from '../../src/ui/screens/Live';
 import { VisitNotice } from '../../src/ui/components/common/VisitNotice';
+import { FaintToggle } from '../../src/ui/components/passes/FaintToggle';
 import { decorations, rowCells, rowParts } from './cells';
 
 /** FR-COMP-4: a 390 px viewport at the default cell. */
@@ -79,6 +80,7 @@ const CSS = [
   'src/ui/components/live/PlaybackControls.module.css',
   'src/ui/components/live/StepControls.module.css',
   'src/ui/components/passes/SortToggle.module.css',
+  'src/ui/components/passes/FaintToggle.module.css',
   'src/ui/screens/Settings.module.css',
   'src/ui/components/location/UseMyLocation.module.css',
   'src/ui/components/location/Favourites.module.css',
@@ -189,6 +191,19 @@ const rows = (t: Messages): readonly Row[] => [
       find: () => (half === 'count' ? screen.getByRole('status') : screen.getByRole('group', { name: t.passes.sortGroup })),
       setUp: () => {
         appStore.setState({ observer, elements: ready, passes: { ...IDLE_PASSES, status: 'done', observer, passes: [pass], hasDarkness: true } });
+      },
+      budget: SMALL_BUDGET,
+    }),
+  ),
+  // R97 (FR-FAINT-2): the count line's third piece, `[ show 12 faint ]` / `[ ocultar 12 tenues ]`, wraps at its own
+  // separator like the sort, so it is a row of its own at `--small`, counted in both states with a two-digit count.
+  ...([false, true] as const).map(
+    (shown): Row => ({
+      name: `the count line's faint control, ${shown ? 'hide' : 'show'} (FR-FAINT-2)`,
+      element: createElement(FaintToggle, { count: 12 }),
+      find: () => screen.getByTestId('faint-toggle'),
+      setUp: () => {
+        appStore.setState({ showFaint: shown });
       },
       budget: SMALL_BUDGET,
     }),
@@ -362,6 +377,8 @@ describe.each(LOCALES)('FR-FIRST-4: every row of the phone’s steps fits %s in 
     ['[ See what crosses ]', () => control(t.home.whenStep.next)],
     ['[ n more tonight ]', () => control(t.home.whatStep.moreTonight(99))],
     ['[ n more nights ]', () => control(t.home.whatStep.moreNights(99))],
+    // R97 (FR-FAINT-2): the faint control after `[<n> more tonight]`, in its longer state.
+    ['[ hide n faint ]', () => Math.max(control(t.passes.faintToggle({ shown: false, count: 99 })), control(t.passes.faintToggle({ shown: true, count: 99 })))],
   ] as const)('the %s row', (_name, cells) => {
     expect(cells()).toBeLessThanOrEqual(BUDGET);
   });

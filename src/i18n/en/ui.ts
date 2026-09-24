@@ -409,6 +409,13 @@ export const ui = {
     none: (p: { hours: number; place: string }) => `No visible passes in the next ${String(p.hours)} h from ${p.place}.`,
     /** FR-FIRST-10 (R81, D-510): the count, which shares its line with the sort. */
     countLine: (p: { count: number; hours: number }) => `${String(p.count)} visible passes in ${String(p.hours)} h`,
+    /**
+     * FR-FAINT-2 (R97): the control after the count, `[ show 12 faint ]` / `[ hide 12 faint ]` (the brackets
+     * are the control's own), and the same control after `[<n> more tonight]` on the phone's third step.
+     */
+    faintToggle: (p: { shown: boolean; count: number }) => `${p.shown ? 'hide' : 'show'} ${String(p.count)} faint`,
+    /** FR-FAINT-2: the tag on a shown faint pass's third line. */
+    faintTag: 'faint',
     sortGroup: 'Sort passes',
     sortPrefix: 'Sort:',
     sort: { chronological: 'Soonest first', best: 'Best first' } satisfies Record<PassSort, string>,
@@ -450,6 +457,8 @@ export const ui = {
       tomorrow: 'Tomorrow night',
       dated: (date: string) => `Night of ${date}`,
       count: (count: number) => (count === 1 ? '1 pass' : `${String(count)} passes`),
+      /** FR-FAINT-2: a night left with only faint passes while they are hidden — `0 passes · 3 faint`. */
+      onlyFaint: (faint: number) => `0 passes · ${String(faint)} faint`,
       empty: 'No visible passes.',
       /** FR-FIRST-10: the row of the nights' toggles under the cards, as a group. */
       toggles: 'Nights',

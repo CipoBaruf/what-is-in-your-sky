@@ -15,7 +15,7 @@ import { tonightStripe } from '../../../lib/tonightStripe';
 import type { NowState, Observer, Pass } from '../../../model';
 import { appStore, type ElementsState } from '../../../state';
 import { IDLE_PASSES } from '../../../state/slices/passes';
-import { useShownClock, useShownPasses } from './shownPasses';
+import { useListedPasses, useShownClock, useShownPasses } from './shownPasses';
 
 const T0 = Date.UTC(2026, 8, 11, 0, 0);
 const MINUTE = 60_000;
@@ -105,5 +105,42 @@ describe('useShownPasses', () => {
     expect(tonightStripe(bands, result.current, span, observer.timeZone).ticks).toHaveLength(3);
     clockAt(early.end.t + ENDED_LINGER_MS + 1000);
     expect(tonightStripe(bands, result.current, span, observer.timeZone).ticks).toHaveLength(2);
+  });
+
+  /**
+   * R97 (D-623): `notEnded → notFaint(showFaint)`. A faint pass is not a tick on the stripe and not in the shown
+   * array while faint passes are hidden; the next-event block's pass and the open one stay; `faint` counts every
+   * faint pass left in the window in both states, which is what the count line reads.
+   */
+  it('filters faint passes after the ended ones, and counts them in both states', () => {
+    const dim = (p: Pass): Pass => ({ ...p, noradId: 2, peakMagnitude: 4 });
+    const faintMid = dim(mid);
+    const faintLate = dim(late);
+    const faintEarly = dim(early);
+    appStore.setState({ observer, nowMs: T0, elements: ready, passes: { ...IDLE_PASSES, status: 'done', observer, passes: [faintEarly, faintMid, faintLate], hasDarkness: true } });
+    const span = { start: T0 - 4 * 3_600_000, end: T0 + 8 * 3_600_000 };
+    const bands: SkyBand[] = [{ from: span.start, to: span.end, sky: 'dark' }];
+    const { result, rerender } = renderHook(({ open }: { open: string | null }) => useListedPasses(open), { initialProps: { open: null as string | null } });
+    // `early` is the next event's pass, so it stays; the other two are faint.
+    expect(ids(result.current.shown)).toEqual(['early']);
+    expect(ids(result.current.faint)).toEqual(['mid', 'late']);
+    expect(tonightStripe(bands, result.current.shown, span, observer.timeZone).ticks).toHaveLength(1);
+    rerender({ open: 'late' });
+    expect(ids(result.current.shown)).toEqual(['early', 'late']);
+    expect(ids(result.current.faint)).toEqual(['mid']);
+    act(() => {
+      appStore.getState().setShowFaint(true);
+    });
+    expect(ids(result.current.shown)).toEqual(['early', 'mid', 'late']);
+    expect(ids(result.current.faint)).toEqual(['mid']);
+    // Once `early` has left, `mid` is the next event's pass and is kept; the ended filter runs first.
+    act(() => {
+      appStore.getState().setShowFaint(false);
+    });
+    rerender({ open: null });
+    clockAt(early.end.t + ENDED_LINGER_MS + 1000);
+    expect(ids(result.current.listed)).toEqual(['mid', 'late']);
+    expect(ids(result.current.shown)).toEqual(['mid']);
+    expect(ids(result.current.faint)).toEqual(['late']);
   });
 });

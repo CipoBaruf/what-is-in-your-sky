@@ -25,7 +25,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { leaveSettings, openSettings, withSettings } from './liveHelpers';
+import { leaveSettings, openSettings, shownAndHidden, withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -212,7 +212,10 @@ test('the finished run is stored, and a reload with the network blocked shows it
   const stored = await storedRuns(page);
   expect(stored).toHaveLength(1);
   expect(stored[0]).toMatchObject({ cellKey: '-38.93,-67.99', computedAt: T0, window: { startMs: T0, endMs: T0 + 3 * DAY } });
-  expect(stored[0]?.passes.map((pass) => pass.id).sort()).toEqual([...onlineIds].sort());
+  // R97 (FR-FAINT-2): the run is stored whole; the list leaves its faint passes out and its control counts them.
+  const storedIds = stored[0]?.passes.map((pass) => pass.id) ?? [];
+  expect(onlineIds.filter((id) => !storedIds.includes(id ?? ''))).toEqual([]);
+  expect(storedIds).toHaveLength(await shownAndHidden(page));
 
   // The network is gone, and every attempt at it is recorded.
   await page.unrouteAll({ behavior: 'ignoreErrors' });

@@ -179,6 +179,8 @@ export interface WhereReadingProps {
   step?: WhereStep;
   /** R87: the reader asked to set a place (`[ set a place ]`), so the focus goes into the group on arrival. */
   focusGroup?: boolean;
+  /** R97 (FR-FAINT-1): the open pass, which the shown passes keep whether or not it is faint, as the list does. */
+  selectedPassId?: string | null;
 }
 
 /**
@@ -206,13 +208,13 @@ export interface WhereReadingProps {
  * exactly while `step.onSettle` is given, `[ continue ]` stands under the
  * coordinate fields and does the same, so the way forward is on the screen.
  */
-export function WhereReading({ offersInert, geolocation, step, focusGroup = false }: WhereReadingProps) {
+export function WhereReading({ offersInert, geolocation, step, focusGroup = false, selectedPassId = null }: WhereReadingProps) {
   const t = useT();
   const mode = useLayoutMode();
   const observer = useActiveObserver();
   const setObserver = useAppStore((s) => s.setObserver);
   const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
-  const passes = useShownPasses();
+  const passes = useShownPasses(selectedPassId);
   const cold = observer === null || step !== undefined;
   const [open, setOpen] = useState(false);
   const [wasCold, setWasCold] = useState(cold);
@@ -323,9 +325,10 @@ function NextEventHost({ observer, passes }: { observer: Observer; passes: reado
  * (`App.module.css` `.nextEvent`), and the table and the Moon line follow it.
  * The three panes put the order back.
  */
-function WhenReading({ observer, MoonLore }: { observer: Observer; MoonLore: HomeProps['MoonLore'] }) {
+function WhenReading({ observer, MoonLore, selectedPassId }: { observer: Observer; MoonLore: HomeProps['MoonLore']; selectedPassId: string | null }) {
   const now = useAppStore((s) => s.now);
-  const passes = useShownPasses();
+  // R97: the open pass is kept here as the list keeps it, so the stripe's ticks and the list's count agree.
+  const passes = useShownPasses(selectedPassId);
   const tonight = useTonight(observer);
   // R30: the tradition line needs a Moon, which arrives with the Now state for this observer.
   const moon = now.observer === observer ? (now.state?.moon ?? null) : null;
@@ -504,9 +507,9 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
   return (
     <>
       <div className={`${styles.column} ${styles.leftColumn}`} data-testid="col-left">
-        <WhereReading offersInert={offersInert} {...(geolocation ? { geolocation } : {})} focusGroup={placeRequest} />
+        <WhereReading offersInert={offersInert} {...(geolocation ? { geolocation } : {})} focusGroup={placeRequest} selectedPassId={selectedPassId} />
         {ghosts && <GhostWhen />}
-        {observer && <WhenReading observer={observer} MoonLore={MoonLore} />}
+        {observer && <WhenReading observer={observer} MoonLore={MoonLore} selectedPassId={selectedPassId} />}
       </div>
       {ghosts && (
         <div className={styles.column} data-testid="col-right">

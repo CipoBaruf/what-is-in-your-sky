@@ -37,6 +37,9 @@ import styles from './PassCard.module.css';
  * tooltip triggers of their own. The open pass's card is ruled in the
  * accent. Times are in `timeZone`, which the forecast fills in for coordinate
  * input (FR-LOC-3); with none yet, the clock says UTC (F-27).
+ *
+ * R97 (FR-FAINT-2): a faint pass the reader asked to see is an ordinary card,
+ * with its name in `--fg-dim` and `[faint]` on the third line.
  */
 export interface PassCardProps {
   pass: Pass;
@@ -58,16 +61,18 @@ export interface PassCardProps {
    * cards sit straight under a pane's or a step's `h2`. The class draws it; the element only ranks it.
    */
   headingLevel?: 3 | 4;
+  /** FR-FAINT-2: the pass is faint and shown; the name is dimmed and the third line carries `[faint]`. */
+  faint?: boolean;
 }
 
-export function PassCard({ pass, timeZone, onOpen, weather, selected = false, detail = 'magnitude', tag, ended = false, headingLevel = 3 }: PassCardProps) {
+export function PassCard({ pass, timeZone, onOpen, weather, selected = false, detail = 'magnitude', tag, ended = false, headingLevel = 3, faint = false }: PassCardProps) {
   const Name = headingLevel === 4 ? 'h4' : 'h3';
   const t = useT();
   const locale = useLocale();
   const headingId = useId();
-  const flags = ended || weather !== undefined || pass.twilight || pass.moonGlare.glare;
+  const flags = ended || weather !== undefined || pass.twilight || pass.moonGlare.glare || faint;
   return (
-    <article className={styles.card} aria-labelledby={headingId} data-pass-id={pass.id} data-pass-card="" tabIndex={-1} {...(selected ? { 'data-selected': 'true', 'aria-current': true as const } : {})}>
+    <article className={faint ? `${styles.card} ${styles.faint}` : styles.card} aria-labelledby={headingId} data-pass-id={pass.id} data-pass-card="" tabIndex={-1} {...(selected ? { 'data-selected': 'true', 'aria-current': true as const } : {})}>
       <div className={styles.first} data-testid="card-first-line">
         <span className={styles.time}>{formatShortClock(pass.start.t, timeZone, locale, timeZone === null)}</span>
         <Name id={headingId} className={styles.name}>
@@ -106,6 +111,11 @@ export function PassCard({ pass, timeZone, onOpen, weather, selected = false, de
           )}
           {pass.twilight && <span className={styles.twilight}>{t.passes.twilightLabel}</span>}
           <MoonGlareLabel moon={pass.moonAtPeak} glare={pass.moonGlare} asText />
+          {faint && (
+            <span className={styles.faintTag} data-testid="card-faint">
+              {t.passes.faintTag}
+            </span>
+          )}
         </div>
       )}
       {/* Last in the card, so its stretched box lies over everything before it. */}

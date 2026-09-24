@@ -317,7 +317,17 @@ export async function listSettled(page: Page): Promise<void> {
     .waitFor({ state: 'attached', timeout: 10_000 })
     .catch(() => undefined);
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
-  await expect(page.locator('article[data-pass-id]')).toHaveCount(STORED_RUN.passes.length, { timeout: 60_000 });
+  // R97 (FR-FAINT-2): the faint passes the list hides are counted by its control, `[ show 4 faint ]`.
+  await expect.poll(() => shownAndHidden(page), { timeout: 60_000 }).toBe(STORED_RUN.passes.length);
+}
+
+/** The cards on the page, and the faint passes the list's control says it hides (none while they are shown). */
+export async function shownAndHidden(page: Page): Promise<number> {
+  const cards = await page.locator('article[data-pass-id]').count();
+  const toggle = page.getByTestId('faint-toggle').first();
+  const text = (await toggle.count()) > 0 ? ((await toggle.textContent()) ?? '') : '';
+  const hidden = /^(?:show|ver) (\d+)/.exec(text);
+  return cards + (hidden ? Number(hidden[1]) : 0);
 }
 
 /**

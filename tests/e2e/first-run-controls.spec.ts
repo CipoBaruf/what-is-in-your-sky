@@ -224,9 +224,10 @@ for (const width of [375, 1280] as const) {
       const status = row.getByRole('status');
       const sort = row.getByRole('group');
 
-      // With room for both, one line with the separator drawn between them.
+      // With room for all of it, one line with the separators drawn between the pieces. R97: the stored run's
+      // faint control is a third piece (`· [ ver 4 tenues ]`), which takes the Spanish line past 72ch.
       await row.evaluate((el) => {
-        el.style.width = '72ch';
+        el.style.width = '96ch';
       });
       let lines = await countRowLines(page);
       expect(lines).toHaveLength(1);
