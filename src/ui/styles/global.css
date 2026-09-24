@@ -30,14 +30,46 @@ body {
   color: var(--fg);
 }
 
-/* One frame for header, main and footer: 80 characters wide, two cells of side padding. */
+/* One frame for header, main and footer: two cells of side padding, and the
+   column capped and centred (below). */
 header,
 main,
 footer {
-  max-width: calc(80 * var(--cell));
   padding: 0 calc(2 * var(--cell));
-  margin: 0 auto;
   box-sizing: border-box;
+}
+
+/* R99 (FR-TAB-1, FR-TAB-2; D-625, D-634): the compact column is at most
+   `COMPACT_MAX_CELLS` wide — 60 cells, `lib/layout.ts`, pinned by
+   `tests/styles/breakpoint.test.ts` — and centred, the page's ground filling
+   the rest. It was 80 until v2.1, which on a tablet was a phone's column
+   stretched across the screen (US-35). The rows are the shell's three
+   landmarks, the visit notices between the header and the main
+   (`VisitNotice.module.css`), and the compact live page: its landmarks are
+   `display: contents` cells of its own grid (`Live.tsx`, D-529), so the rule
+   names the grid itself — the one child of `#root` that carries the mode it is
+   laid out in — and the chart box, full-bleed to its pane (FR-COMP-5), follows
+   the pane with no rule of its own. The wide live page never matches, so the
+   wide block below has nothing to undo for it. */
+header,
+main,
+footer,
+[data-page-notices],
+#root > [data-compact='true'] {
+  max-width: calc(60 * var(--cell));
+  margin-inline: auto;
+}
+
+/* FR-TAB-2 (R99, D-634): the landscape phone's live page is not capped — its
+   two panes already divide the width (FR-LIVE-7), and a 60-cell column at
+   844 × 390 would cut the dome's `2fr` track to some 230 px. The query is
+   D-173's, the one `Live.module.css` lays the two panes out under. The home,
+   the settings page and the sheet carry no shape rule (FR-SHP-4) and keep the
+   frame at every compact size. */
+@media (orientation: landscape) and (max-height: 500px) {
+  #root > [data-compact='true'] {
+    max-width: none;
+  }
 }
 
 main {
@@ -65,7 +97,7 @@ main {
    964 px — the literal here, recomputed from `lib/layout.ts`'s advance table
    and the base above by `tests/styles/breakpoint.test.ts`, which also holds
    every other `min-width` in `src/ui` to one of the two layout thresholds.
-   The 80-cell frame is what compact is: one column, centred. Wide drops it
+   The 60-cell frame is what compact is: one column, centred. Wide drops it
    and takes the viewport, keeping the two cells of side padding, so that the
    two columns of FR-DESK-2 have the width to be two columns. */
 @media (min-width: 964px) {
@@ -73,9 +105,9 @@ main {
   main,
   footer {
     max-width: none;
-    /* The `margin: 0 auto` above centres the 80-cell frame in compact. Here
-       there is no frame to centre, and inside D-119's grid an auto margin is
-       not a no-op: it turns off the stretch a grid item gets by default, so
+    /* The `margin-inline: auto` above centres the 60-cell frame in compact.
+       Here there is no frame to centre, and inside D-119's grid an auto margin
+       is not a no-op: it turns off the stretch a grid item gets by default, so
        the footer shrank to its own text and sat in the middle of the page.
        Wide is left-aligned like the columns above it. */
     margin-inline: 0;

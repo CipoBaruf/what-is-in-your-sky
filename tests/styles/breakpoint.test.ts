@@ -22,12 +22,13 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { BASE_FONT_PX, CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HOME_MAX_CELLS, HOME_THREE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, SHELL_PADDING_CELLS, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_CELLS, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
+import { BASE_FONT_PX, CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, COMPACT_MAX_CELLS, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HOME_MAX_CELLS, HOME_THREE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, LANDSCAPE_PHONE_QUERY, SHELL_PADDING_CELLS, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_CELLS, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
 
 const UI_DIR = 'src/ui';
 const TOKENS_PATH = 'src/ui/styles/tokens.css';
 const GLOBAL_PATH = 'src/ui/styles/global.css';
 const APP_PATH = 'src/ui/App.module.css';
+const SHEET_PATH = 'src/ui/screens/PassDetail.module.css';
 
 function cssFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -60,10 +61,11 @@ const tokens = readFileSync(TOKENS_PATH, 'utf8');
 const global = readFileSync(GLOBAL_PATH, 'utf8');
 const files = cssFiles(UI_DIR).map((path) => [path, readFileSync(path, 'utf8')] as const);
 
-/** Every `@media (min-width: …)` block's body, braces matched. */
-function wideBlocks(css: string): string[] {
-  const blocks: string[] = [];
-  for (const match of css.matchAll(/@media[^{]*min-width[^{]*\{/g)) {
+/** Every `@media` block whose query matches `query`, as its query and its body, braces matched. */
+function mediaBlocks(css: string, query: RegExp): { query: string; body: string; from: number; to: number }[] {
+  const blocks: { query: string; body: string; from: number; to: number }[] = [];
+  for (const match of css.matchAll(/@media([^{]*)\{/g)) {
+    if (!query.test(match[1] ?? '')) continue;
     let depth = 1;
     let i = match.index + match[0].length;
     const from = i;
@@ -72,9 +74,31 @@ function wideBlocks(css: string): string[] {
       else if (css[i] === '}') depth -= 1;
       i += 1;
     }
-    blocks.push(css.slice(from, i - 1));
+    blocks.push({ query: (match[1] ?? '').trim(), body: css.slice(from, i - 1), from: match.index, to: i });
   }
   return blocks;
+}
+
+/** Every `@media (min-width: …)` block's body, braces matched. */
+function wideBlocks(css: string): string[] {
+  return mediaBlocks(css, /min-width/).map((block) => block.body);
+}
+
+/** The stylesheet with every `@media` block cut out: the rules that hold at every size. */
+function outsideMedia(css: string): string {
+  let out = '';
+  let at = 0;
+  for (const block of mediaBlocks(css, /./)) {
+    out += css.slice(at, block.from);
+    at = block.to;
+  }
+  return out + css.slice(at);
+}
+
+/** The selectors of the first rule in `css` carrying `declaration`, comments stripped. */
+function selectorsOf(css: string, declaration: string): string {
+  const rule = new RegExp(`([^{}]+)\\{[^{}]*${declaration.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).exec(css.replace(/\/\*[\s\S]*?\*\//g, ''));
+  return rule?.[1]?.trim() ?? '';
 }
 
 /** What `cells` of that font are in px at the app's base size. */
@@ -182,8 +206,54 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
     expect(cap).toContain('margin-inline: auto');
   });
 
-  it('starts at the stylesheet frame: wide drops the 80-cell compact frame', () => {
+  it('starts at the stylesheet frame: wide drops the 60-cell compact frame', () => {
     expect(wideBlocks(global).join('\n')).toMatch(/max-width:\s*none/);
+  });
+
+  /*
+   * R99 (FR-TAB-1..3, US-35; D-625, D-634): the fifth literal is the compact
+   * column's cap — `COMPACT_MAX_CELLS`, 60 cells as a `max-width` on the
+   * shell's rows and the guide's sheet, centred, written in cells like
+   * `HOME_MAX_CELLS` and with no pixel twin. It stands beside the other four:
+   * under the wide breakpoint on every font, so it binds on compact only and
+   * the wide block's `max-width: none` is what lifts it; over the 36-cell card
+   * (FR-COMP-4), which is a row's budget and not the column's. The compact
+   * live page is under it by the shell's own rule (its landmarks are
+   * `display: contents`, D-529), and the one exception is the landscape
+   * phone's live page, whose two panes already divide the width (FR-TAB-2):
+   * D-173's query lifts the cap from that page and from nothing else. The
+   * literal is written once per column — the shell's and the sheet's — and the
+   * 80-cell frame it replaces is gone from `src/ui`.
+   */
+  it('caps the compact column at 60 cells beside 964, 1118 and 160: the shell, the notices, the live page and the sheet, lifted from the landscape phone alone (FR-TAB-1, FR-TAB-2, D-625)', () => {
+    const CARD_CELLS = 36;
+    expect(COMPACT_MAX_CELLS).toBe(60);
+    expect([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX, HOME_MAX_CELLS, COMPACT_MAX_CELLS]).toEqual([964, 1118, 160, 60]);
+    expect(pxFor(COMPACT_MAX_CELLS, CELL_ADVANCE_EM_MAX)).toBeLessThan(WIDE_MIN_PX);
+    expect(COMPACT_MAX_CELLS).toBeGreaterThan(CARD_CELLS + 2 * SHELL_PADDING_CELLS);
+    expect(COMPACT_MAX_CELLS).toBeLessThan(HOME_MAX_CELLS);
+
+    const cap = `max-width: calc(${String(COMPACT_MAX_CELLS)} * var(--cell))`;
+    // The shell's rule holds at every size the wide block does not undo it at: outside any media block.
+    const shell = outsideMedia(global);
+    const selectors = selectorsOf(shell, cap);
+    expect(selectors, `${GLOBAL_PATH} should cap the compact column at COMPACT_MAX_CELLS outside any media block`).not.toBe('');
+    for (const row of ['header', 'main', 'footer', '[data-page-notices]', "#root > [data-compact='true']"]) expect(selectors.split(',').map((s) => s.trim())).toContain(row);
+    expect(shell.slice(shell.indexOf(cap)).split('}')[0]).toContain('margin-inline: auto');
+
+    // The sheet's frame carries the same literal, outside any media block.
+    const sheet = readFileSync(SHEET_PATH, 'utf8');
+    expect(selectorsOf(outsideMedia(sheet), cap), `${SHEET_PATH} should cap the sheet's frame at COMPACT_MAX_CELLS`).toBe('.frame');
+
+    // The landscape phone lifts it from the live page and from nothing else: D-173's query, the live page's selector alone.
+    const lifted = mediaBlocks(global, /orientation: landscape/);
+    expect(lifted.map((block) => block.query)).toEqual([LANDSCAPE_PHONE_QUERY]);
+    expect(selectorsOf(lifted[0]?.body ?? '', 'max-width: none')).toBe("#root > [data-compact='true']");
+    expect(selectorsOf(lifted[0]?.body ?? '', 'max-width: none')).not.toMatch(/header|main|footer|notices/);
+
+    // Nothing in src/ui still draws the 80-cell frame. (The shortcuts overlay's 72-cell panel is a layer over the
+    // page, like the sky screen, and not a column of it.)
+    for (const [path, css] of files) expect(css, `${path} still carries the 80-cell frame`).not.toContain('80 * var(--cell)');
   });
 
   it('writes every width inside a wide block in cells or rows, never in px (FR-DESK-1)', () => {

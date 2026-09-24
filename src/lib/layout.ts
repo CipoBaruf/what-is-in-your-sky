@@ -128,6 +128,24 @@ export const GUIDE_PANE_MIN_CELLS = 72;
  */
 export const HOME_MAX_CELLS = 160;
 
+/**
+ * R99 (FR-TAB-1..3, D-625, D-634): the width the compact column stops growing
+ * at. From 60 cells — about 580 px — the header, the main and the footer of
+ * the home, the settings page, the guide's sheet and the compact live page
+ * hold that width and are centred, so a tablet or a narrow window is a
+ * phone's column in the middle of the screen and not one stretched across it
+ * (US-35). Like `HOME_MAX_CELLS` it is a `max-width` in cells on the column
+ * itself (`styles/global.css`, `PassDetail.module.css`), not a media query, so
+ * there is no pixel twin: the cap is exactly 60 of whatever cell the device
+ * has, and `tests/styles/breakpoint.test.ts` pins the literal. It is under
+ * `WIDE_CELLS`, so it binds on compact only. The landscape phone's live page,
+ * whose two panes already divide the width, is the one compact page it is
+ * lifted from (FR-TAB-2); the sky screen is a layer over the whole viewport
+ * and not a column at all. Rows written as "at most 36 cells" stay so: the
+ * cap is on the column, not a new budget for the rows.
+ */
+export const COMPACT_MAX_CELLS = 60;
+
 export type LayoutMode = 'compact' | 'wide';
 
 /** Which shell a `matchMedia(WIDE_QUERY)` result means (D-72). */

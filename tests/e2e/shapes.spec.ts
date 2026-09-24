@@ -25,14 +25,29 @@
  * Two rows carry a floor the branch cannot reach, each written down here rather
  * than hidden in a looser assertion (`FLOOR_ALLOWANCE`); both are held to what
  * they measure today so a regression still fails.
+ *
+ * R99 (FR-TAB-1..3, US-35; D-625): the compact-portrait rows gain the two
+ * tablets (`TABLET`), and one more test walks them on every page: the column
+ * is `COMPACT_MAX_CELLS` wide and centred, the chart box is never wider than
+ * it, and the live page does not scroll.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { foldBelowPx, LIVE_BOX_MIN_PX, liveKeptPx, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
+import { COMPACT_MAX_CELLS, foldBelowPx, LIVE_BOX_MIN_PX, liveKeptPx, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
 import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { fitFloor, painted, type Painted, type Rect } from './domeInk';
-import { backToLive, domeDrawn, enterScrubbing, seedStoredRun, stripFilled } from './liveHelpers';
+import { backToLive, domeDrawn, enterScrubbing, leaveSettings, openSettings, seedStoredRun, stripFilled } from './liveHelpers';
 
 type Size = readonly [width: number, height: number];
+
+/**
+ * R99 (FR-TAB-3, D-625): the tablet rows, compact portrait wider than `COMPACT_MAX_CELLS` — an iPad at 768 × 1024
+ * and an iPad Air at 820 × 1180, which are also a browser window narrowed to half a desk. They walk every test the
+ * compact-portrait rows walk, and `the tablet rows` below holds the column itself.
+ */
+export const TABLET: readonly Size[] = [
+  [768, 1024],
+  [820, 1180],
+];
 
 /** FR-SHP-4's rows. */
 export const MATRIX = {
@@ -41,6 +56,7 @@ export const MATRIX = {
     [390, 667],
     [390, 844],
     [430, 932],
+    ...TABLET,
   ],
   landscapePhone: [
     [740, 360],
@@ -108,8 +124,14 @@ const label = ([width, height]: Size): string => `${String(width)}x${String(heig
  * stack on a page wider than tall, the row FR-SHP-3 leaves to the compact page's own rules — measures 164 px,
  * held at six and a half rows where the one number this table had held it at one.
  */
+/*
+ * R99 (FR-TAB-1): 844 × 501 is a compact page wider than `COMPACT_MAX_CELLS`, so its portrait stack is the 60-cell
+ * column now, and the rows under the box — the strip's fields, the headline — wrap once more in it than they did
+ * across 844 px: the box measures 140 px watching where it measured 164, and is held at five and a half rows.
+ * The row is the boundary FR-SHP-3 leaves to the compact page's own rules, as the note above says.
+ */
 const FLOOR_ALLOWANCE: Readonly<Record<string, Partial<Record<'watching' | 'scrubbing', number>>>> = {
-  '844x501': { watching: 6.5 * ROW_PX, scrubbing: ROW_PX },
+  '844x501': { watching: 5.5 * ROW_PX, scrubbing: ROW_PX },
   '360x640': { scrubbing: 7 * ROW_PX },
 };
 
@@ -283,6 +305,12 @@ const STRIP_FIELDS = ['strip time', 'strip sky', 'strip cloud', 'strip count', '
  * - The short wide window from 1200 px, English: the rail's rows are one flowing line under the fold (FR-SHP-3),
  *   the path fills the rail's line, and beside `[ scrub the night ]` the control takes a line of that flow with
  *   its gap (48). The box is the overlay's and does not move; Spanish, whose path wraps, costs nothing.
+ * - R99 (FR-TAB-1, D-635): the tablet rows, both languages. The column is `COMPACT_MAX_CELLS` — 56 cells of
+ *   content — so the 47-cell path is one line with nine cells to spare, and the control's 17 take a text line
+ *   under it (24), which is D-624's "depends on the pass" case landing on a portrait stack: that line is the
+ *   box's, the one place the box pays for the control. The box is 663 px there, above its width and every floor;
+ *   whether the control should move to the actions row on a column this wide (where `[ scrub ] [ list (n) ]
+ *   [ Share ]` has the room it lacks at 36 cells) is R101's rule and is left to the owner (R99's summary).
  */
 const JUMP_ALLOWANCE: Readonly<Record<string, Readonly<Record<string, number>>>> = {
   '844x390 en': { 'next event': ROW_PX },
@@ -294,6 +322,16 @@ const JUMP_ALLOWANCE: Readonly<Record<string, Readonly<Record<string, number>>>>
   '1200x450 en': { actions: 2 * ROW_PX },
   '1400x480 en': { actions: 2 * ROW_PX },
   '1920x500 en': { actions: 2 * ROW_PX },
+  '768x1024 en': { 'next event': ROW_PX, 'chart box': -ROW_PX },
+  '820x1180 en': { 'next event': ROW_PX, 'chart box': -ROW_PX },
+  '768x1024 es': { 'next event': ROW_PX, 'chart box': -ROW_PX },
+  '820x1180 es': { 'next event': ROW_PX, 'chart box': -ROW_PX },
+  // …and the two boundary rows that are the same column: the compact side of the mode boundary, and the
+  // portrait stack one pixel past the landscape phone.
+  '963x700 en': { 'next event': ROW_PX, 'chart box': -ROW_PX },
+  '963x700 es': { 'next event': ROW_PX, 'chart box': -ROW_PX },
+  '844x501 en': { 'next event': ROW_PX, 'chart box': -ROW_PX },
+  '844x501 es': { 'next event': ROW_PX, 'chart box': -ROW_PX },
 };
 
 /** Every row's height, once two reads a poll apart agree. The headline is a row here too: the control rides on it. */
@@ -362,7 +400,8 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
    * control taken out of the layout (`display: none`, which is what the page before R101 rendered), and no row's
    * height may differ. `liveRows.ts`'s `jumpPlacement` is what makes that so, and the rows where the pass's words
    * leave it no room are written down in `JUMP_ALLOWANCE` rather than hidden in a looser assertion. The chart box
-   * has no allowance anywhere.
+   * has no allowance anywhere but the tablet rows (R99), where the text line the headline takes is the portrait
+   * stack's box's, and the table says so by name.
    */
   for (const locale of ['en', 'es'] as const) {
     test(`[ see this pass ] adds no row at any row of the matrix, watching, ${locale} (FR-JUMP-1, FR-SHP-4)`, async ({ page }) => {
@@ -383,7 +422,7 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
         for (const [row, px] of without) {
           expect(shown.get(row), `${at}: ${row} is ${String(shown.get(row))} px with the control, ${String(px)} px without`).toBe(px + (allowed[row] ?? 0));
         }
-        expect(shown.get('chart box'), at).toBe(without.get('chart box'));
+        expect(shown.get('chart box'), at).toBe((without.get('chart box') ?? 0) + (allowed['chart box'] ?? 0));
       }
     });
   }
@@ -434,9 +473,10 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       expect(ink.layers.length, `${at}: no drawing in the box`).toBeGreaterThan(0);
       expect(ink.extent.x, `${at}: the drawing starts inside the box`).toBeGreaterThanOrEqual(box.x - 1);
       expect(ink.extent.x + ink.extent.width, `${at}: the drawing ends inside the box`).toBeLessThanOrEqual(box.x + box.width + 1);
-      if (state === 'scrubbing' && OVERHANGS.has(label(size))) {
+      if (OVERHANGS.has(label(size))) {
         // The one row whose box is under what the frame can paint into (see FLOOR_ALLOWANCE): the drawing
-        // overhangs it by 9 px measured, held here so a worse overhang still fails.
+        // overhangs it by 9 px measured, held here so a worse overhang still fails. R99: in both states, since
+        // the 60-cell column leaves the watching box 140 px there too.
         expect(ink.extent.y + ink.extent.height, `${at}: the drawing overhangs its box by more than R70 measured`).toBeLessThanOrEqual(box.y + box.height + ROW_PX / 2);
         return box;
       }
@@ -658,6 +698,96 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       expect(scrolled.scrollWidth, `${at}: the pass detail scrolls sideways`).toBeLessThanOrEqual(scrolled.clientWidth);
     }
   });
+
+  /*
+   * R99 (FR-TAB-1, FR-TAB-2; US-35 AC1, AC2; D-625): on a compact viewport wider than `COMPACT_MAX_CELLS` the
+   * page is a phone's column in the middle of the screen. At each tablet row: the header, the main and the
+   * footer of the home and of the settings page, the sheet's frame and the live page's grid are the column's
+   * width and centred; the chart box — full-bleed to its pane (FR-COMP-5) — is never wider than the column and
+   * stays inside it; and the live page does not scroll, in both of FR-WATCH-1's states. The column is measured
+   * in this browser's own cell (`1ch` of the font it has, F-10) rather than derived from a px assumption. The
+   * live page is reached by one fresh load per row, since leaving it is a route of its own.
+   */
+  test('the tablet rows: the column is 60 cells and centred on home, the sheet, settings and the live page, the box no wider, and the live page does not scroll (FR-TAB-1, FR-TAB-2, US-35)', async ({ page }) => {
+    test.setTimeout(180_000);
+    for (const size of TABLET) {
+      const [width, height] = size;
+      const at = label(size);
+      await seedStoredRun(page, { settled: true });
+      await page.setViewportSize({ width, height });
+      const column = await columnPx(page);
+      expect(column, `${at}: the cap binds — the column is narrower than the viewport`).toBeLessThan(width);
+      await expect(page.getByRole('banner'), at).toBeVisible();
+
+      // The home: its three landmarks.
+      for (const [name, locator] of landmarks(page)) expectColumn(await settledBox(locator), column, width, `${at} home ${name}`);
+
+      // The sheet: its frame, and the box inside it.
+      await page.locator('article[data-pass-id]').first().getByRole('button', { name: /Open guide/ }).click();
+      const sheet = page.getByRole('dialog');
+      await expect(sheet, at).toBeVisible();
+      expectColumn(await settledBox(sheet.locator(':scope > *').first()), column, width, `${at} sheet`);
+      const sheetBox = await settledBox(sheet.getByTestId('chart-box'));
+      expect(sheetBox.width, `${at}: the sheet's box is ${String(Math.round(sheetBox.width))} px wide in a ${String(Math.round(column))} px column`).toBeLessThanOrEqual(column + 1);
+      await page.keyboard.press('Escape');
+      await expect(sheet, at).toBeHidden();
+
+      // The settings page: its three landmarks.
+      expect(await openSettings(page), `${at}: the settings page is a route of its own on compact`).toBe(true);
+      for (const [name, locator] of landmarks(page)) expectColumn(await settledBox(locator), column, width, `${at} settings ${name}`);
+      await leaveSettings(page);
+
+      // The live page: its grid, and the box, watching and then scrubbing; no scroll in either.
+      await page.getByTestId('live-link').click();
+      await domeDrawn(page);
+      await stripFilled(page);
+      const livePage = await settledBox(page.getByTestId('live-page'));
+      expectColumn(livePage, column, width, `${at} live`);
+      for (const state of ['watching', 'scrubbing'] as const) {
+        if (state === 'scrubbing') await enterScrubbing(page);
+        const { box } = await settled(page);
+        const where = `${at} live ${state}`;
+        expect(box.width, `${where}: the box is ${String(Math.round(box.width))} px wide in a ${String(Math.round(column))} px column`).toBeLessThanOrEqual(column + 1);
+        expect(box.x, `${where}: the box starts inside the column`).toBeGreaterThanOrEqual(livePage.x - 1);
+        expect(box.x + box.width, `${where}: the box ends inside the column`).toBeLessThanOrEqual(livePage.x + livePage.width + 1);
+        const scrolled = await scroll(page);
+        expect(scrolled.scrollHeight, `${where}: the live page scrolls`).toBeLessThanOrEqual(scrolled.innerHeight);
+        expect(scrolled.scrollWidth, `${where}: the live page scrolls sideways`).toBeLessThanOrEqual(scrolled.clientWidth);
+        // Watching, the rows leave the column's box its own width at these heights (FR-TAB-2's floor, unchanged from FR-COMP-5).
+        if (state === 'watching') expect(box.height, `${where}: the box is ${String(Math.round(box.height))} px tall and ${String(Math.round(box.width))} wide`).toBeGreaterThanOrEqual(box.width - 1);
+      }
+      await backToLive(page);
+    }
+  });
+
+  /** The shell's three landmarks: what FR-TAB-1 says holds the column on the home and the settings page. */
+  function landmarks(page: Page): readonly (readonly [string, Locator])[] {
+    return [
+      ['header', page.getByRole('banner')],
+      ['main', page.getByRole('main')],
+      ['footer', page.getByRole('contentinfo')],
+    ];
+  }
+
+  /** `COMPACT_MAX_CELLS` in this browser's px: `--cell` is `1ch` of whichever font the device has (F-10), so it is measured. */
+  async function columnPx(page: Page): Promise<number> {
+    return page.evaluate((cells: number) => {
+      const probe = document.createElement('div');
+      probe.style.setProperty('position', 'absolute');
+      probe.style.setProperty('visibility', 'hidden');
+      probe.style.setProperty('width', `calc(${String(cells)} * var(--cell))`);
+      document.body.append(probe);
+      const width = probe.getBoundingClientRect().width;
+      probe.remove();
+      return width;
+    }, COMPACT_MAX_CELLS);
+  }
+
+  /** A rectangle is the column: its width, to the pixel the cell's rounding leaves, and centred in the viewport. */
+  function expectColumn(rect: Rect, columnPx: number, viewportPx: number, at: string): void {
+    expect(Math.abs(rect.width - columnPx), `${at}: ${String(Math.round(rect.width))} px wide against a ${String(Math.round(columnPx))} px column`).toBeLessThanOrEqual(1);
+    expect(Math.abs(rect.x - (viewportPx - rect.width) / 2), `${at}: at x = ${String(Math.round(rect.x))} in ${String(viewportPx)} px, not centred`).toBeLessThanOrEqual(1);
+  }
 });
 
 /**
