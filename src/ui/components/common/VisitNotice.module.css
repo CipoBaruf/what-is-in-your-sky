@@ -1,10 +1,10 @@
 /* R87 (FR-VISIT-2..4): the strip under the header, in the frame the header,
-   main and footer share (global.css) — 80 cells centred on a phone, the
-   viewport on a desk. Empty, it is not on the page at all, and the wide
-   shell's grid gives it no row (global.css `#root:has(...)`). */
+   main and footer share — R99 (FR-TAB-1): `COMPACT_MAX_CELLS` centred on a
+   phone, by `global.css`'s own rule on `[data-page-notices]`; the viewport on
+   a desk, capped at `HOME_MAX_CELLS` by `App.module.css`. Empty, it is not on
+   the page at all, and the wide shell's grid gives it no row (global.css
+   `#root:has(...)`). */
 .notices {
-  max-width: calc(80 * var(--cell));
-  margin: 0 auto;
   padding: var(--row) calc(2 * var(--cell)) 0;
   box-sizing: border-box;
   display: grid;

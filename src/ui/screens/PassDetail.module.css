@@ -7,8 +7,12 @@
   z-index: 10;
 }
 
+/* R99 (FR-TAB-1, D-634): the sheet's column is the shell's — `COMPACT_MAX_CELLS`, 60 cells
+   (`lib/layout.ts`, `global.css`), centred — so on a tablet the guide is a phone's column in
+   the middle of the screen, and its full-bleed box (FR-COMP-5) is that column's width. The
+   sheet is compact only (the wide guide is a panel beside the list), so no wide block undoes it. */
 .frame {
-  max-width: calc(80 * var(--cell));
+  max-width: calc(60 * var(--cell));
   margin: 0 auto;
   padding: var(--row) calc(2 * var(--cell)) calc(2 * var(--row));
   display: grid;
