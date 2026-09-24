@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useLocale, useT } from '../../../i18n/useT';
 import { compassPoint } from '../../../lib/compass';
 import { degrees, formatDuration, formatMagnitude, formatRange, formatSignedDegrees } from '../../../lib/format';
@@ -40,14 +41,17 @@ export function PassNumbers({ pass, timeZone, legendKey, colorToken }: PassNumbe
   const t = useT();
   const locale = useLocale();
   const numbers = t.guide.numbers;
+  const captionId = useId();
   // The shadow boundary, where there is one: the row is the drawing's shadow marker, so it is named for it (D-257).
   const shadow = (key: (typeof POINTS)[number]): boolean => (key === 'start' && pass.startReason === 'shadow') || (key === 'end' && pass.endReason === 'shadow');
   const pointLabel = (key: (typeof POINTS)[number]): string => (shadow(key) ? (key === 'start' ? numbers.leavesShadow : numbers.entersShadow) : numbers[key]);
   return (
     <div className={styles.numbers}>
-      <div className={styles.scroll}>
+      {/* R96 (FR-A11Y-7, axe `scrollable-region-focusable`): the table scrolls sideways on a narrow screen, so its box
+          is a named stop in the Tab order and a keyboard can scroll it. */}
+      <div className={styles.scroll} role="region" aria-labelledby={captionId} tabIndex={0}>
         <table className={styles.table}>
-          <caption className={styles.caption}>
+          <caption id={captionId} className={styles.caption}>
             {legendKey !== undefined && <span className={styles.key}>{legendKey}</span>}
             {colorToken !== undefined && <LegendSwatch color={colorToken} className={styles.swatch} />}
             {numbers.caption}

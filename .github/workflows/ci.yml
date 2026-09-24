@@ -15,7 +15,9 @@ env:
   # machine time. It is the number a pull request has to raise in the open to
   # make CI slower; `strategy.matrix.shard` below is the same number written
   # out, because a matrix cannot read `env` either.
-  CI_E2E_SHARDS: 2
+  # D-619 (R96): three since the axe run, the step PLAN §16.17 named for the
+  # slower shard passing nine minutes.
+  CI_E2E_SHARDS: 3
   STAGE_TIMES: stage-times.tsv
 
 jobs:
@@ -23,15 +25,15 @@ jobs:
     # PLAN §11: typecheck → lint → unit + golden + component + worker integration → build → Playwright.
     runs-on: ubuntu-latest
     # FR-CI-1 as amended v2.0.3 (D-526): CI_PR_BUDGET_MIN, per shard. One shard
-    # over the budget still fails the run, so a suite that has outgrown two of
-    # them is a defect to fix rather than a budget to raise.
+    # over the budget still fails the run, so a suite that has outgrown its
+    # shards is a defect to fix rather than a budget to raise.
     timeout-minutes: 10
     strategy:
       # D-526: `fail-fast` off, so a red shard does not cancel the other one and
       # hide half the failures from the reader it is meant to inform.
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
     name: ci (shard ${{ matrix.shard }})
     steps:
       - uses: actions/checkout@v5
