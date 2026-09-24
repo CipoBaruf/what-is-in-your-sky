@@ -208,6 +208,11 @@
   margin-top: 0;
 }
 
+/* R93 (FR-HOME-2, D-606): the next event's own class, for the two-column rule in the wide block below. */
+.nextEvent {
+  min-width: 0;
+}
+
 /* R76 (D-471, at the owner's gate): inside a reading the Now panel, the Moon
    line and the pass list keep their headed regions, so every name a reader or
    a test finds them by is still theirs — but the headings are read, not drawn.
@@ -293,6 +298,16 @@
     overflow-y: auto;
   }
 
+  /* R93 (FR-HOME-2, D-606; F-76): on the two columns Where stands above When
+     in this one scrolling column, and the next event at the foot of When was
+     under the fold at 1024 × 768 — the one block the page is for. Here it is
+     the reading's third row, directly under the heading and the stripe; the
+     table and the Moon line auto-place after it, and the DOM keeps board 1B's
+     order for the phone and the screen reader. The three panes put it back. */
+  .when > .nextEvent {
+    grid-row: 3;
+  }
+
   /* R50 (FR-DESK-3 as amended, F-6, D-253): between the wide breakpoint and
      the width where both floors fit, an open guide takes the whole right
      column and the list is one `[ list ]` control away — the way the compact
@@ -358,6 +373,10 @@
 
   .when {
     grid-column: 2;
+  }
+
+  .when > .nextEvent {
+    grid-row: auto;
   }
 
   .main:is([data-home='readings'], [data-home='cold']) .listColumn {

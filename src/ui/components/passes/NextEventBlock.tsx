@@ -141,9 +141,11 @@ export interface NextEventBlockProps {
    * The home page passes nothing (FR-JUMP-3).
    */
   onSee?: (rise: EpochMs) => void;
+  /** R93 (FR-HOME-2): the host's own class on the section, for where the reading's grid puts the block. */
+  className?: string;
 }
 
-export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block', liveLink = true, onOpen, onSee }: NextEventBlockProps) {
+export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block', liveLink = true, onOpen, onSee, className }: NextEventBlockProps) {
   const t = useT();
   const locale = useLocale();
   const nameId = useId();
@@ -151,10 +153,11 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
   const now = nowProp ?? clock;
   const result = nextEvent(passes, now, context);
   const card = form === 'card';
+  const sectionClass = `${card ? styles.card : styles.block}${className ? ` ${className}` : ''}`;
 
   if (isNoEvent(result)) {
     return (
-      <section aria-label={t.nextEvent.region} className={card ? styles.card : styles.block} data-testid="next-event" data-form={form}>
+      <section aria-label={t.nextEvent.region} className={sectionClass} data-testid="next-event" data-form={form}>
         <p className={styles.none} data-testid="next-event-none" data-reason={pending ? 'pending' : result.reason}>
           {pending ? t.nextEvent.pending : t.nextEvent.none({ reason: result.reason, hours })}
         </p>
