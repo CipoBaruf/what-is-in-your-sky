@@ -89,10 +89,17 @@
   color: var(--fg-dim);
 }
 
-.twilight::before {
+.twilight::before,
+.faintTag::before {
   content: '[';
 }
 
-.twilight::after {
+.twilight::after,
+.faintTag::after {
   content: ']';
+}
+
+/* R97 (FR-FAINT-2): a faint pass shown is an ordinary card, its name dimmed and `[faint]` on its third line. */
+.faint .name {
+  color: var(--fg-dim);
 }

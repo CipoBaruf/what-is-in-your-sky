@@ -1,0 +1,21 @@
+/* R97 (FR-FAINT-2): `[ show 12 faint ]`, a text control in the accent with its brackets dimmed, like `[<n> more tonight]`. */
+.toggle {
+  padding-inline: 0;
+  min-height: 0;
+  font: inherit;
+  color: var(--accent);
+  white-space: nowrap;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.toggle::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.toggle::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}

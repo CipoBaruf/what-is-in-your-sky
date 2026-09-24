@@ -5,8 +5,9 @@ import { nextNight, nightAt, type NightKey } from '../../../lib/nights';
 import { nextFeaturedPass, sortPasses } from '../../../lib/passSort';
 import type { EpochMs, Observer, Pass } from '../../../model';
 import { isFeatured, useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../../state';
-import { hasEnded, useShownClock, useShownPasses } from '../../screens/home/shownPasses';
+import { faintIds, hasEnded, useListedPasses, useShownClock } from '../../screens/home/shownPasses';
 import { SectionHeading } from '../common/SectionHeading';
+import { FaintToggle } from './FaintToggle';
 import { ListFailure, listFailure } from './ListFailure';
 import { groupByNight, type NightGroup } from './nightGroups';
 import { PassCard } from './PassCard';
@@ -45,8 +46,16 @@ import { SortToggle } from './SortToggle';
  * line, the nights' counts and the cards agree; and the clock is the store's
  * (`useShownClock`), so the headings turn over at local noon on the tick that
  * already exists and no test here reads the wall clock (F-67, F-68).
+ *
+ * R97 (FR-FAINT-2, D-623): the faint passes are a filter after that one. The
+ * count line reads both numbers from `useListedPasses` — `28 visible passes
+ * in 72 h · [ show 12 faint ]` — and the control is a third piece of the
+ * line, wrapping at its own separator like the sort. The nights are cut from
+ * the window before the faint filter, so a night left with only faint passes
+ * keeps its toggle, reading `0 passes · 3 faint`; a shown faint card is
+ * dimmed and tagged `[faint]`, in its place in the order.
  */
-export function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState, shown: number, t: Messages): string {
+export function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState, shown: number, t: Messages, faint = 0): string {
   // D-536: a stored run partly elapsed counts over what is left of its window, not its original span.
   const hours = passes.spanHours;
   if (!observer) return t.passes.noObserver;
@@ -63,8 +72,9 @@ export function statusText(observer: Observer | null, elements: ElementsState, p
     case 'error':
       return t.failure[passes.error?.kind ?? 'unknown'](t.failure.what.passes);
     case 'done':
-      if (shown === 0 && passes.hasDarkness === false) return t.passes.noDarkness({ hours, place });
-      if (shown === 0) return t.passes.none({ hours, place });
+      // With only faint passes left, the count line still counts, so the control after it has a line to stand on.
+      if (shown === 0 && faint === 0 && passes.hasDarkness === false) return t.passes.noDarkness({ hours, place });
+      if (shown === 0 && faint === 0) return t.passes.none({ hours, place });
       return t.passes.countLine({ count: shown, hours });
   }
 }
@@ -135,7 +145,10 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
   const headingId = useId();
   const nightsId = useId();
   const now = useShownClock();
-  const shown = useShownPasses(selectedPassId);
+  const listed = useListedPasses(selectedPassId);
+  const shown = listed.shown;
+  const faint = useMemo(() => faintIds(listed), [listed]);
+  const hidden = listed.showFaint ? null : faint;
   /**
    * Which nights the reader has opened or closed. Only the ones actually
    * touched are here: every other night follows `defaultOpenNight`, so the
@@ -166,14 +179,14 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
   // already loaded once, and gating it on this load would hide it for the whole fetch and for good
   // when the fetch fails — which is the cold start with no signal that FR-OFF-2 is about (D-108).
   // The selector holds that rule, and takes the passes that have left out (FR-NIGHT-2).
-  const showList = observer !== null && shown.length > 0;
+  const showList = observer !== null && listed.listed.length > 0;
   // Busy from the moment there is something to compute until the job ends (the worker may still be booting).
   const busy = observer !== null && elements.status === 'ready' && elements.records.length > 0 && (passes.status === 'idle' || passes.status === 'computing');
   const failed = observer === null ? null : listFailure(elements, passes);
   const hero = showList ? nextFeaturedPass(shown, isFeatured, now) : null;
   const open = onOpenPass ? { onOpen: onOpenPass } : {};
   const zone = observer?.timeZone ?? null;
-  const groups = useMemo(() => (showList ? groupByNight(shown, zone) : []), [showList, shown, zone]);
+  const groups = useMemo(() => (showList ? groupByNight(listed.listed, zone) : []), [showList, listed.listed, zone]);
   const tonight = tonightKey(groups, now, zone);
   const openDefault = defaultOpenNight(groups, now, zone);
   const tag = hero ? t.passes.nextTag({ name: hero.name, iss: hero.name.startsWith('ISS') }) : undefined;
@@ -191,6 +204,7 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
               selected={pass.id === selectedPassId}
               ended={hasEnded(pass, now)}
               headingLevel={headingLevel}
+              faint={faint.has(pass.id)}
               {...(pass.id === hero?.id && tag !== undefined ? { tag } : {})}
               {...open}
             />
@@ -198,7 +212,11 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
         ))}
       </ol>
     );
-  const listOf = (group: NightGroup) => sortPasses(group.passes, sort);
+  const listOf = (group: NightGroup) => sortPasses(hidden === null ? group.passes : group.passes.filter((pass) => !hidden.has(pass.id)), sort);
+  const nightCount = (group: NightGroup): string => {
+    const count = listOf(group).length;
+    return count === 0 ? t.passes.nights.onlyFaint(group.passes.length) : t.passes.nights.count(count);
+  };
   const isOpen = (group: NightGroup): boolean => overrides[group.key] ?? group.key === openDefault;
   const toggle = (group: NightGroup): void => {
     const next = !isOpen(group);
@@ -218,8 +236,16 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
             </div>
           ) : (
             <p role="status" aria-live="polite" aria-busy={busy} className={styles.status}>
-              {statusText(observer, elements, passes, shown.length, t)}
+              {statusText(observer, elements, passes, shown.length, t, faint.size)}
             </p>
+          )}
+          {showList && faint.size > 0 && (
+            <div className={styles.sortSide} data-testid="faint-side">
+              <span className={styles.separator} aria-hidden="true">
+                {' · '}
+              </span>
+              <FaintToggle count={faint.size} />
+            </div>
           )}
           {showList && (
             <div className={styles.sortSide}>
@@ -276,7 +302,7 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
                 toggle(group);
               }}
             >
-              <span className={styles.nightName}>{nightLabel(group, tonight, t)}</span> <span className={styles.nightCount}>{t.passes.nights.count(listOf(group).length)}</span>
+              <span className={styles.nightName}>{nightLabel(group, tonight, t)}</span> <span className={styles.nightCount}>{nightCount(group)}</span>
             </button>
           ))}
         </div>
