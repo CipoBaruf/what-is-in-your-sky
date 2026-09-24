@@ -27,11 +27,20 @@ for (const width of [390, 1280] as const) {
         const list = page.getByRole('region', { name: LABEL[locale].passes });
         const second = list.getByTestId('night-toggle').nth(1);
         if ((await second.getAttribute('aria-expanded')) === 'false') await second.click();
-        await list.scrollIntoViewIfNeeded();
-        await list.screenshot({ path: `${CAPTURE_DIR}/r97-list-${String(width)}-${theme}-${locale}-hidden.png` });
+        // On a phone the list is the page, drawn whole; on a desk it is a pane that scrolls on its own, so the capture
+        // is the window with the count line, then the first faint card, in view.
+        const shoot = async (state: string): Promise<void> => {
+          const path = `${CAPTURE_DIR}/r97-list-${String(width)}-${theme}-${locale}-${state}.png`;
+          if (width === 390) await list.screenshot({ path });
+          else await page.screenshot({ path });
+        };
+        await list.getByTestId('count-line').scrollIntoViewIfNeeded();
+        await shoot('hidden');
         await list.getByTestId('faint-toggle').click();
-        await expect(list.getByTestId('card-faint').first()).toBeVisible();
-        await list.screenshot({ path: `${CAPTURE_DIR}/r97-list-${String(width)}-${theme}-${locale}-shown.png` });
+        const faint = list.getByTestId('card-faint').first();
+        await expect(faint).toBeVisible();
+        if (width !== 390) await faint.scrollIntoViewIfNeeded();
+        await shoot('shown');
       });
     }
   }
