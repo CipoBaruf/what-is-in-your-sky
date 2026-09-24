@@ -1,11 +1,12 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { I18nProvider, useLocale, useT } from '../i18n/useT';
 import { MOON_LORE } from '../lib/flags';
+import { routeTitle, type RouteName } from '../lib/routeTitle';
 import { observerFromLink, resolvePassLink } from '../lib/shareLinks';
 import type { ShortcutActions } from '../lib/shortcuts';
 import { formatClock, formatDate } from '../lib/timeFormat';
 import { HOME_THREE_PANE_QUERY } from '../lib/layout';
-import { catalogName, followHash, useActiveObserver, useAppStore } from '../state';
+import { catalogName, useActiveObserver, useAppStore } from '../state';
 import styles from './App.module.css';
 import { RootBoundary } from './RootBoundary';
 import { applyTheme } from './styles/theme';
@@ -18,10 +19,12 @@ import { useMediaQuery } from './hooks/useMediaQuery';
 import { useShortcuts } from './hooks/useShortcuts';
 import { moveCursor, passIdAtCursor, PASS_CARD } from './components/passes/passCursor';
 import { Home, useSteps } from './screens/Home';
-import { leaveLive, useLiveRoute } from './screens/LiveRoute';
+import { useLiveRoute } from './screens/LiveRoute';
 import { PassDetail } from './screens/PassDetail';
 import { findSelectedPass, usePassSelection, useSettingsRoute } from './screens/passSelection';
-import { SettingsPage } from './screens/Settings';
+import { settingsShell } from './screens/Settings';
+import { clearRoute, open as openRoute } from './navigation';
+import { Shell } from './Shell';
 
 /**
  * R32 (FR-LIVE-1, PLAN §11): the live page is its own lazy chunk, fetched the
@@ -118,11 +121,23 @@ export function App() {
    * before that, "no pass" would only mean "not yet".
    */
   const shareNotice = useMemo(() => {
-    if (link === null || resolution === null || resolution.kind === 'same' || passesStatus !== 'done') return null;
+    if (passesStatus !== 'done') return null;
+    if (link === null) {
+      /*
+       * R92 (FR-ROUTE-3): a reload keeps `#pass=<id>`, and a pass that has left the run since — its night over,
+       * a recompute that no longer finds it — is FR-SHARE-3's message rather than a home page that says nothing
+       * about the address it was given. The id is `<norad>-<start>`, which is all the message needs.
+       */
+      const m = selectedId === null || selected !== null ? null : /^(\d+)-(\d+)$/.exec(selectedId);
+      if (!m) return null;
+      const startT = Number(m[2]);
+      return t.share.missing({ name: catalogName(Number(m[1])), time: `${formatDate(startT, timeZone, locale)} ${formatClock(startT, timeZone, locale)}` });
+    }
+    if (resolution === null || resolution.kind === 'same') return null;
     const name = resolution.pass?.name ?? catalogName(link.noradId);
     const time = `${formatDate(link.startT, timeZone, locale)} ${formatClock(link.startT, timeZone, locale)}`;
     return resolution.kind === 'nearest' ? t.share.nearest({ name, time }) : t.share.missing({ name, time });
-  }, [link, resolution, passesStatus, timeZone, locale, t]);
+  }, [link, resolution, selectedId, selected, passesStatus, timeZone, locale, t]);
   /*
    * R51 (F-17): a share link is consumed once. It arrives authoritative — its
    * observer wins over the saved one (D-135) and its pass is what the screen
@@ -154,7 +169,7 @@ export function App() {
    */
   const linkResult = useAppStore((s) => s.linkResult);
   useLayoutEffect(() => {
-    if (linkResult?.kind === 'unreadable' || linkResult?.kind === 'unknown') leaveLive();
+    if (linkResult?.kind === 'unreadable' || linkResult?.kind === 'unknown') clearRoute();
   }, [linkResult]);
   const liveUnreadable = live.active && live.link === null && window.location.hash !== '#live';
   // R52 (FR-COMP-2, D-184): the third route, read from the hash beside the other two.
@@ -244,16 +259,9 @@ export function App() {
    * live link here and dropping a pass link: a link over a saved place is a
    * visit and is not stored, a pass link's place is visited and its pass
    * selected, and D-280's guard covers both.
+   *
+   * R92 (D-533): that listener is `Shell`'s now, the app's one route listener.
    */
-  useEffect(() => {
-    const onHashChange = (): void => {
-      followHash(window.location.hash);
-    };
-    window.addEventListener('hashchange', onHashChange);
-    return () => {
-      window.removeEventListener('hashchange', onHashChange);
-    };
-  }, []);
   /*
    * R35 (FR-DESK-4, D-73): the shortcut table's handlers, the one place the
    * keys reach the app's state. Each says whether it did something, which is
@@ -297,7 +305,7 @@ export function App() {
     },
     live: () => {
       setHelpOpen(false);
-      window.location.hash = 'live';
+      openRoute('#live');
       return true;
     },
     view: () => {
@@ -335,11 +343,30 @@ export function App() {
    * the width — and the help sheet, as for everything else.
    */
   const offersInert = helpOpen || selected !== null;
-  if (live.active && !liveUnreadable) {
+  /*
+   * R92 (FR-A11Y-1, FR-A11Y-3; D-529, D-531): every route is one `Shell`, the same element in every branch
+   * below, so the announcer and the focus that follows the route live across the change rather than being
+   * remounted with it. Which route is on screen, and what the tab calls it: a pass is a route once it has
+   * resolved to a pass of the run.
+   */
+  const liveShown = live.active && !liveUnreadable;
+  const route: RouteName = liveShown ? 'live' : settings.active ? 'settings' : selected !== null ? 'pass' : 'home';
+  const routeKey = route === 'pass' && selected !== null ? `pass:${selected.id}` : route;
+  const title = routeTitle(route, t, selected && { name: selected.name, time: `${formatDate(selected.start.t, timeZone, locale)} ${formatClock(selected.start.t, timeZone, locale)}` });
+  if (liveShown) {
+    // The live page renders its own `banner` and `main` inside its grid (D-529); the fallback is a `main` of its own.
     return (
-      <Suspense fallback={<p className={styles.liveLoading}>{t.live.loading}</p>}>
-        <LivePage link={live.link} onLeave={live.leave} />
-      </Suspense>
+      <Shell chrome="live" routeKey={routeKey} title={title}>
+        <Suspense
+          fallback={
+            <main className={styles.liveLoading}>
+              <p>{t.live.loading}</p>
+            </main>
+          }
+        >
+          <LivePage link={live.link} onLeave={live.leave} />
+        </Suspense>
+      </Shell>
     );
   }
   /*
@@ -350,12 +377,26 @@ export function App() {
    * line rather than the shell's footer, whose credits alone are a third of a
    * 844 px phone.
    */
-  if (settings.active) return <SettingsPage onLeave={settings.leave} />;
+  if (settings.active) return <Shell routeKey={routeKey} title={title} {...settingsShell(t, { onLeave: settings.leave })} />;
   return (
-    <>
-      <Header inert={inert} />
-      <PageNotices kinds={HOME_NOTES} inert={inert} />
-      <main inert={inert} className={styles.main} data-home={observer === null ? 'cold' : 'readings'} data-guide={guide} {...(stepping ? { 'data-step': '' } : {})}>
+    <Shell
+      chrome="home"
+      routeKey={routeKey}
+      title={title}
+      banner={<Header inert={inert} />}
+      beforeMain={<PageNotices kinds={HOME_NOTES} inert={inert} />}
+      mainProps={{ inert, className: styles.main, 'data-home': observer === null ? 'cold' : 'readings', 'data-guide': guide, ...(stepping ? { 'data-step': '' } : {}) }}
+      footer={<Footer inert={inert} form={stepping ? 'line' : 'full'} />}
+      after={
+        helpOpen && (
+          <ShortcutsOverlay
+            onClose={() => {
+              setHelpOpen(false);
+            }}
+          />
+        )
+      }
+    >
         <Home
             offersInert={offersInert}
             guide={guide}
@@ -383,16 +424,7 @@ export function App() {
               )
             }
           />
-      </main>
-      <Footer inert={inert} form={stepping ? 'line' : 'full'} />
-      {helpOpen && (
-        <ShortcutsOverlay
-          onClose={() => {
-            setHelpOpen(false);
-          }}
-        />
-      )}
-    </>
+    </Shell>
   );
 }
 

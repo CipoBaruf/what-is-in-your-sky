@@ -22,7 +22,8 @@ import type { Observer } from '../../model';
 import { appStore } from '../../state';
 import type { InstallEnv } from '../components/common/installEnv';
 import { BEFORE_INSTALL_PROMPT, forgetInstallOffer, type BeforeInstallPromptEvent } from '../components/common/installOffer';
-import { SettingsPage } from './Settings';
+import { Shell } from '../Shell';
+import { settingsShell } from './Settings';
 
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
 const initial = appStore.getInitialState();
@@ -39,7 +40,7 @@ const offerAnInstall = (): void => {
 const show = (onLeave = vi.fn(), env: InstallEnv = NOTHING_TO_OFFER, locale: 'en' | 'es' = 'en') =>
   render(
     <I18nProvider locale={locale}>
-      <SettingsPage onLeave={onLeave} installEnv={env} />
+      <Shell routeKey="settings" title="" {...settingsShell(locale === 'es' ? es : en, { onLeave, installEnv: env })} />
     </I18nProvider>,
   );
 

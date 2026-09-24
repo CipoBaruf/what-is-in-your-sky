@@ -101,6 +101,12 @@ export const ui: typeof EnUi = {
 
   banner: { info: 'Nota', warning: 'Aviso' },
 
+  a11y: {
+    skip: 'Saltar al contenido',
+    title: (p) => `${p.route} · ${p.app}`,
+    pass: (p) => `${p.name} ${p.time}`,
+  },
+
   settings: {
     open: 'ajustes',
     back: '\u2190 Volver',

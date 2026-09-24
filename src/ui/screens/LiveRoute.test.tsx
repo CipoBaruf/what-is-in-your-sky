@@ -6,7 +6,8 @@
  */
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { leaveLive, useLiveRoute } from './LiveRoute';
+import { clearRoute } from '../navigation';
+import { useLiveRoute } from './LiveRoute';
 
 const go = (hash: string): void => {
   act(() => {
@@ -48,7 +49,7 @@ describe('useLiveRoute', () => {
     expect(result.current.active).toBe(true);
   });
 
-  it('leave clears the hash without a history entry and dispatches hashchange for every other subscriber', () => {
+  it('leave, on an entry the app did not push (the load, a typed URL), clears the hash without a history entry and dispatches hashchange for every other subscriber', () => {
     const { result } = renderHook(() => useLiveRoute());
     go('#live');
     const heard = vi.fn();
@@ -64,10 +65,10 @@ describe('useLiveRoute', () => {
     expect(window.history.length).toBe(entries);
   });
 
-  it('leaveLive on the home page still tells the subscribers, and changes nothing else', () => {
+  it('clearRoute (what an unreadable link leaves by) on the home page still tells the subscribers, and changes nothing else', () => {
     const heard = vi.fn();
     window.addEventListener('hashchange', heard);
-    leaveLive();
+    clearRoute();
     window.removeEventListener('hashchange', heard);
     expect(heard).toHaveBeenCalledTimes(1);
     expect(window.location.hash).toBe('');

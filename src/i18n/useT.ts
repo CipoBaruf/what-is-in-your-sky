@@ -9,7 +9,8 @@ import type { Messages } from './messages';
  * a switch re-renders the whole tree without a reload and without touching
  * the URL (FR-I18N-6). `main.tsx` mounts the provider around `App` with the
  * locale the store resolved (D-70), and the provider keeps
- * `documentElement.lang` and the document title on the active language.
+ * `documentElement.lang` on the active language. R92 (D-531): the document
+ * title is the shell's, since it names the route as well as the language.
  *
  * The default value is the English catalog: the app always mounts the
  * provider (`AppRoot`), and the default is what lets a unit test render one
@@ -41,11 +42,10 @@ export function I18nProvider({ locale, children }: I18nProviderProps) {
   return createElement(I18nContext.Provider, { value }, children);
 }
 
-/** FR-I18N-5: the document follows the language. Called by the provider and, before the first render, by `main.tsx` (D-70). */
+/** FR-I18N-5: the document's language follows the app's. Called by the provider and, before the first render, by `main.tsx` (D-70). */
 export function applyLocale(locale: Locale): void {
   if (typeof document === 'undefined') return;
   document.documentElement.lang = locale;
-  document.title = CATALOGS[locale].app.title;
 }
 
 /** The active catalog. Every user-visible string in `src/ui` comes from here (FR-I18N-2). */

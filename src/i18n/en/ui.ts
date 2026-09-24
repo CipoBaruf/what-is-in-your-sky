@@ -121,6 +121,15 @@ export const ui = {
 
   banner: { info: 'Note', warning: 'Warning' },
 
+  /** R92 (FR-A11Y-3, FR-A11Y-5): the shell's words — the skip link and the document title of a route that is not home. */
+  a11y: {
+    skip: 'Skip to content',
+    /** `document.title` on a route other than home: the route's name, then the app's. */
+    title: (p: { route: string; app: string }) => `${p.route} · ${p.app}`,
+    /** An open pass's route name: the satellite and its start time. */
+    pass: (p: { name: string; time: string }) => `${p.name} ${p.time}`,
+  },
+
   /** FR-COMP-2, US-20 (R52): the settings page and the compact header's way in. */
   settings: {
     /** The compact header's control. Lower case, like `[ live ]` beside it: they are one row of the same kind. */
