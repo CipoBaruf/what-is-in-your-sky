@@ -196,12 +196,33 @@ export function upNowCount(text: string): number {
  * store — and the reload then boots the app the way a returning reader's
  * browser does.
  */
-const STORED_RUN = JSON.parse(readFileSync(STORED_RUN_FILE, 'utf8')) as { cellKey: string; computedAt: number; passes: unknown[] };
+export interface StoredRun {
+  cellKey: string;
+  computedAt: number;
+  passes: unknown[];
+}
+export const STORED_RUN = JSON.parse(readFileSync(STORED_RUN_FILE, 'utf8')) as StoredRun;
 const PREFS_KEY = 'wiys:prefs:v1';
 
-export async function seedStoredRun(page: Page, { locale = 'en', prefs = {}, settled = false }: { locale?: 'en' | 'es'; prefs?: Record<string, unknown>; settled?: boolean } = {}): Promise<void> {
+export async function seedStoredRun(
+  page: Page,
+  {
+    locale = 'en',
+    prefs = {},
+    settled = false,
+    run = STORED_RUN,
+    elements = 'fixtures',
+  }: {
+    locale?: 'en' | 'es';
+    prefs?: Record<string, unknown>;
+    settled?: boolean;
+    /** R92: a run of the spec's own making (the 40-pass list); with `elements: 'down'` no recompute replaces it. */
+    run?: StoredRun;
+    elements?: 'fixtures' | 'down';
+  } = {},
+): Promise<void> {
   await page.clock.setFixedTime(NINE_DAYS_ON);
-  await stubNetwork(page);
+  await stubNetwork(page, elements);
   await page.goto('/');
   await page.evaluate(async (run: unknown) => {
     await new Promise<void>((resolve, reject) => {
@@ -229,7 +250,7 @@ export async function seedStoredRun(page: Page, { locale = 'en', prefs = {}, set
         };
       };
     });
-  }, STORED_RUN);
+  }, run);
   // Only when nothing is saved yet: an init script runs on every navigation, and a seed that
   // overwrote the key each time would undo the preferences a test then sets and reloads to check.
   await page.addInitScript(
@@ -241,6 +262,11 @@ export async function seedStoredRun(page: Page, { locale = 'en', prefs = {}, set
   await page.reload();
   // The stored list, on screen without a search: the count is what a spec that follows builds on,
   // and a seed that silently failed fails here rather than three assertions later.
+  if (elements === 'down') {
+    // No elements, so no status line (R91 puts the failure line in its place): the cards are the proof.
+    await expect(page.locator('article[data-pass-id]').first()).toBeAttached({ timeout: 30_000 });
+    return;
+  }
   await expect(page.getByRole('region', { name: LABEL[locale].passes }).getByRole('status')).toHaveText(PASS_COUNT, { timeout: 30_000 });
   if (settled) await listSettled(page);
 }
