@@ -2367,7 +2367,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
 
 ### Wave 7
 
-- [ ] **R96 — The axe run over every route, width and theme**
+- [x] **R96 — The axe run over every route, width and theme** — zero violations across the 24; one `color-contrast` entry, scoped to the dome's degree labels (F-98, `chart`), D-617.
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** auto
