@@ -9,7 +9,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { fixtureRecords } from '../../../../tests/support/catalogFixtures';
 import { MOON_FIXTURE, NO_MOON_AT_PEAK } from '../../../../tests/support/moonFixtures';
 import { I18nProvider } from '../../../i18n/useT';
-import type { Locale } from '../../../i18n/locale';
+import type { Locale } from '../../../model';
 import { PREFS_KEY } from '../../../data/localPrefs';
 import type { Observer, Pass } from '../../../model';
 import { appStore, type AppState, type ElementsState } from '../../../state';
