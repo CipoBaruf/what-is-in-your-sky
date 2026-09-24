@@ -126,25 +126,30 @@ const SAVED_PLACES = [
 const FULL_PAGE = new Set(['location', 'home', 'settings']);
 
 /**
- * R94 (FR-CAP-5, F-66, F-70; D-547): the frame has settled when two ticks of
- * the paused clock leave the document's text as it was. The two findings are a
- * glyph or two inside a drawing, and glyphcss draws in text, so a `<pre>` still
- * being rasterised when the file is written is the shape of defect this catches;
- * a drawing that never settles fails the capture instead of producing a file
- * that is right half the time. The ticks are frames, so a pinned instant stays
- * inside its ten-second tick (F-48).
+ * R94 (FR-CAP-5, F-66, F-70; D-547, D-648): the frame has settled when two
+ * ticks of the paused clock leave the document's text as it was. The two
+ * findings are a glyph or two inside a drawing, and glyphcss draws in text, so
+ * a `<pre>` still being rasterised when the file is written is the shape of
+ * defect this catches; a frame that has not settled fails the capture instead
+ * of producing a file that is right half the time.
+ *
+ * Exactly two ticks, never "until it settles": the first cut of this loop
+ * returned as soon as two readings agreed, so how many frames it ran was a
+ * property of the run, the shown instant drifted by a frame between two runs,
+ * and everything that moves with the instant — a marker, an arc's end, the
+ * stripe's cursor — landed a fraction of a pixel elsewhere and anti-aliased
+ * differently. A fixed count is the F-48 rule again: the clock arrives where
+ * the picture wants it by the same number of ticks every time. Two frames keep
+ * a pinned instant well inside its one-second countdown tick and its
+ * ten-second strip tick.
  */
-const SETTLE_TICKS = 12;
 async function settled(page: Page): Promise<void> {
   const text = () => page.evaluate(() => document.documentElement.textContent ?? '');
-  let last = await text();
-  for (let tick = 0; tick < SETTLE_TICKS; tick += 1) {
-    await page.clock.runFor(FRAME_MS);
-    const next = await text();
-    if (next === last) return;
-    last = next;
-  }
-  throw new Error(`the frame did not settle in ${String(SETTLE_TICKS)} ticks`);
+  await page.clock.runFor(FRAME_MS);
+  const first = await text();
+  await page.clock.runFor(FRAME_MS);
+  const second = await text();
+  if (first !== second) throw new Error('the frame did not settle: the document text changed between two ticks');
 }
 
 /**
@@ -349,7 +354,8 @@ type FollowState = 'sky' | 'ground' | 'buried' | 'portrait' | 'turned' | 'chip';
 
 async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, state: FollowState): Promise<void> {
   await stubCompass(page);
-  await liveAt(page, width, theme, locale, state === 'chip' ? CHIP_SHOWN : SHOWN);
+  const shown = state === 'chip' ? CHIP_SHOWN : SHOWN;
+  await liveAt(page, width, theme, locale, shown);
   await page.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: VIEW_OPTION_WINDOW[locale] }).click();
   await expect
     .poll(
@@ -367,6 +373,15 @@ async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme
   await expect(page.getByTestId('sky-screen-close')).toBeVisible();
   const drawing = page.locator('[data-look-az]');
   await expect(drawing).toBeAttached();
+  /*
+   * R94 (FR-CAP-5, F-70; D-648): the poll that opened the layer ticked the clock 100 ms an iteration for as
+   * many iterations as the reading took to land, and the sweeps below run a fixed count of frames from
+   * wherever that left it — so the drawing's instant was a property of the run, and the arcs anti-aliased a
+   * pixel or two differently between two shots of the same file. The instant is pinned again after the
+   * sweep (F-48's rule), a tick on for the chip so its countdown is under way, and the state the sweep found
+   * is asserted after the pin, so the picture is of what was proved.
+   */
+  const pinned = (): Promise<void> => pinnedAt(page, state === 'chip' ? shown + TICK_MS : shown);
   if (state === 'turned') {
     /*
      * The pose of a phone held sideways on a viewport that never reflows — a rotation lock. `gamma: -90` puts
@@ -382,6 +397,8 @@ async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme
       await settle(page);
       if ((await page.locator('[data-drawing="window"] [data-pass-id]').count()) > 0) break;
     }
+    await pinned();
+    await expect(page.locator('[data-drawing="window"] [data-pass-id]').first()).toBeAttached();
     await expect(page.getByTestId('sky-screen')).toHaveAttribute('data-turn', '90');
     await expect(drawing).toHaveAttribute('data-orientation', 'landscape');
     await expect(drawing).toHaveAttribute('data-ground', 'sky');
@@ -395,6 +412,8 @@ async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme
       await settle(page);
       if ((await page.locator('[data-branch="in-bracket"]').count()) > 0) break;
     }
+    await pinned();
+    await expect(page.locator('[data-branch="in-bracket"]').first()).toBeAttached();
     await expect(drawing).toHaveAttribute('data-ground', 'sky');
     // FR-GUT-7: upright, the advice is secondary copy under the countdown — which is what the portrait shot is of.
     if (state === 'portrait') await expect(page.getByTestId('window-turn-advice')).toBeVisible();
@@ -410,7 +429,7 @@ async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme
     }
     // A pass already up when the page computed its set starts at that instant, a fraction of a second after the
     // shown one; a tick on (FR-VIS-5) it is under way, so the chip counts to its peak or its end, not "up in 0:00".
-    await page.clock.runFor(TICK_MS);
+    await pinned();
     await expect(page.getByTestId('window-chip')).toBeVisible();
     await expect(page.getByTestId('window-chip')).not.toContainText('0:00.');
   } else {
@@ -418,6 +437,7 @@ async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme
     const azDeg = Number(await drawing.getAttribute('data-look-az'));
     await point(page, azDeg, GROUND_STATE[state === 'ground' ? 'window-ground' : 'window-buried'].altDeg);
     await settle(page);
+    await pinned();
     await expect(drawing).toHaveAttribute('data-ground', state);
   }
   await page.mouse.move(0, 0);
@@ -474,17 +494,20 @@ const REACH: Record<string, Reach> = {
     await open(page, width, { locale, theme, observer: PARIS });
     await page.goto('/');
     await listSettled(page);
+    /*
+     * R94 (FR-CAP-1, F-80): the Where pane's dome, from 1280 up, in both files. The dome waits on frames and
+     * timers the paused clock holds, so the clock is run through them and then put back on `CLOCK` (F-48: the
+     * countdown and the dome's own instant must not depend on how many ticks that took). The full-page file
+     * used to show the pane without it only because nothing ticked the clock; now that every shot ticks two
+     * frames (`settled`), a file shot with the dome half-loaded would differ between two runs, so the wait is
+     * the same for both and the only thing the full-page file differs in is the nights (D-647).
+     */
+    if (VIEWPORTS[width].width >= 1024) await whereDomeDrawn(page, VIEWPORTS[width].width >= 1280);
+    await pinnedAt(page, CLOCK);
     if (view) {
-      /*
-       * R94 (FR-CAP-1, F-80): the `-view` twin is the home as it opens — tonight open (FR-NIGHT-1's default)
-       * and, from 1280 up, the Where pane's dome drawn — cropped to the viewport. The dome waits on frames
-       * and timers the paused clock holds, so the clock is run through them and then put back on `CLOCK`
-       * (F-48: the countdown and the dome's own instant must not depend on how many ticks that took).
-       */
+      // The `-view` twin is the home as it opens — tonight open (FR-NIGHT-1's default) — cropped to the viewport.
       await expect(page.locator('[data-testid="night-group"][data-open="true"]')).toHaveCount(1);
       await expect(page.locator('[data-testid="night-toggle"][aria-expanded="true"]')).toHaveCount(1);
-      if (VIEWPORTS[width].width >= 1024) await whereDomeDrawn(page, VIEWPORTS[width].width >= 1280);
-      await pinnedAt(page, CLOCK);
       await page.mouse.move(0, 0);
       return;
     }
