@@ -65,11 +65,25 @@ async function overflowPx(pane: Locator): Promise<number> {
   return pane.evaluate((element, discount) => element.scrollHeight - discount - element.clientHeight, allowance);
 }
 
+/** `global.css`'s inline control: the 48 px tap box stands a quarter row above and below the 24 px line it keeps. */
+const TAP_PAD = 12;
+
 async function openHome(page: Page, width: number, height: number, locale: Locale): Promise<void> {
   await page.setViewportSize({ width, height });
   await seedStoredRun(page, { locale });
   await expect(page.getByTestId('reading-when')).toBeVisible();
   await expect(page.getByTestId('next-event-label')).toBeVisible();
+  // The When pane's late blocks — the flag's tradition line rides on a lazy chunk and the Moon's state — are
+  // in before anything is measured: the pane's content is read until it has stood still for a moment.
+  await page.waitForLoadState('networkidle');
+  const when = page.getByTestId('reading-when');
+  let last = -1;
+  for (let i = 0; i < 20; i += 1) {
+    const now = await when.evaluate((el) => el.scrollHeight);
+    if (now === last) break;
+    last = now;
+    await page.waitForTimeout(250);
+  }
 }
 
 test.describe('FR-HOME-1: the header holds', () => {
@@ -121,7 +135,12 @@ test.describe('FR-HOME-2: the next event is on screen', () => {
         const allowance = await loreAllowancePx(when);
         if (allowance === 0) {
           await expect(block).toBeInViewport({ ratio: 1 });
-          for (const part of ['next-event-label', 'next-event-time', 'next-event-path', 'now-live-link']) await expect(block.getByTestId(part)).toBeInViewport({ ratio: 1 });
+          for (const part of ['next-event-label', 'next-event-time', 'next-event-path']) await expect(block.getByTestId(part)).toBeInViewport({ ratio: 1 });
+          // `[ Open the live sky ]` is the block's last line; its tap box stands a quarter row under that line, past
+          // the block's own edge, so the line is what is asked to be inside.
+          const [rect, link] = await Promise.all([box(block), box(block.getByTestId('now-live-link'))]);
+          expect(link.y + TAP_PAD).toBeGreaterThanOrEqual(rect.y - 1);
+          expect(link.y + link.height - TAP_PAD).toBeLessThanOrEqual(rect.y + rect.height + 1);
         } else {
           // The flag's line stands above the block on the three panes; without it the block is inside the pane's box and the viewport.
           const [rect, pane] = await Promise.all([box(block), box(when)]);
