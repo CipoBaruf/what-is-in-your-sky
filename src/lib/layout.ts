@@ -231,6 +231,16 @@ export const ROW_PX = 1.5 * BASE_FONT_PX;
 export const TAP_PX = 2 * ROW_PX;
 /** FR-SHP-3: eight rows, the smallest box in which the drawing is still a bowl. */
 export const LIVE_BOX_MIN_PX = 8 * ROW_PX;
+/**
+ * R95 (FR-COMP-5 as amended v2.1, F-62): the compact box's floor on the short
+ * phone. On a compact portrait page at least 844 px tall the box is never
+ * shorter than it is wide (374 px at 390 × 844); at 390 × 667 every gap is
+ * already at its minimum and the rows are the page's inventory, so the floor
+ * there is this number — the shipped build measures 329 — and `shapes.spec.ts`
+ * asserts both. Nothing in the layout reads it: it is the assertion's constant,
+ * kept beside `LIVE_BOX_MIN_PX` so the two floors are found together.
+ */
+export const COMPACT_BOX_MIN_SHORT_PX = 320;
 
 /**
  * R93 (FR-HOME-3, D-546, D-607; F-79): the Where pane's dome takes the height

@@ -10,6 +10,8 @@
  *   - the document does not scroll sideways, and the live page does not scroll
  *     at all (FR-LIVE-1);
  *   - the chart box is at least `LIVE_BOX_MIN_PX` tall and has a drawing in it;
+ *   - on compact, FR-COMP-5's floor by height (R95, F-62): never shorter than
+ *     wide from 844 px tall, and `COMPACT_BOX_MIN_SHORT_PX` at 390 × 667;
  *   - the drawing covers 90–100 % of the box's shorter side (FR-DOME-1).
  *
  * The home page and the pass detail take the compact-portrait and desktop rows
@@ -32,7 +34,7 @@
  * it, and the live page does not scroll.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { COMPACT_MAX_CELLS, foldBelowPx, LIVE_BOX_MIN_PX, liveKeptPx, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
+import { COMPACT_BOX_MIN_SHORT_PX, COMPACT_MAX_CELLS, foldBelowPx, LIVE_BOX_MIN_PX, liveKeptPx, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
 import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { fitFloor, painted, type Painted, type Rect } from './domeInk';
 import { backToLive, domeDrawn, enterScrubbing, leaveSettings, openSettings, seedStoredRun, stripFilled } from './liveHelpers';
@@ -139,6 +141,17 @@ const FLOOR_ALLOWANCE: Readonly<Record<string, Partial<Record<'watching' | 'scru
 const FOLD_ACTIONS_UNDER_VIEWPORT_PX = liveKeptPx('watching') + foldBelowPx('actions');
 
 const floorFor = (size: Size, state: 'watching' | 'scrubbing'): number => FLOOR_ALLOWANCE[label(size)]?.[state] ?? LIVE_BOX_MIN_PX;
+
+/**
+ * R95 (FR-COMP-5 as amended v2.1, F-62): the compact box's floor, restated by height. On a compact portrait page at
+ * least this tall the box is never shorter than it is wide — 374 px at 390 × 844, where F-62 measured 259 before
+ * R71 and 375 after it; at 390 × 667 it is at least `COMPACT_BOX_MIN_SHORT_PX`, since every gap is already at its
+ * minimum there and the rows are the page's inventory. Both are asserted in both states, with the list closed
+ * (FR-LEG-8) and R101's `[ see this pass ]` on the headline, which is how `openLive` leaves the page. The compact
+ * rows outside these two rules keep `FLOOR_ALLOWANCE`'s: 360 × 640 and 844 × 501 are the compact page's own.
+ */
+const COMPACT_BOX_SQUARE_FROM_PX = 844;
+const COMPACT_SHORT_PHONE = '390x667';
 
 /**
  * R71: the stripe block's width from which its time row — the clock readout and the six playback controls —
@@ -430,7 +443,7 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
   /** FR-SHP-4's invariants at one row in one state; the box it measured is returned for the state-to-state comparison. */
   async function invariants(page: Page, size: Size, state: 'watching' | 'scrubbing'): Promise<Rect> {
     {
-      const [width] = size;
+      const [width, height] = size;
       const at = `${label(size)} ${state}`;
       const { box, ink } = await settled(page);
 
@@ -470,6 +483,13 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       // The box is at least the floor and has a drawing in it (US-25 AC2, FR-SHP-3).
       expect(box.height, `${at}: the chart box is ${String(Math.round(box.height))} px tall`).toBeGreaterThanOrEqual(floorFor(size, state));
       expect(box.width, at).toBeGreaterThan(0);
+      // FR-COMP-5 as amended v2.1 (R95, F-62): the compact box's floor by height, in both states.
+      if (width < WIDE_MIN_PX && height >= COMPACT_BOX_SQUARE_FROM_PX) {
+        expect(box.height, `${at}: the compact box is ${fmt(box)}, shorter than it is wide (FR-COMP-5)`).toBeGreaterThanOrEqual(box.width);
+      }
+      if (label(size) === COMPACT_SHORT_PHONE) {
+        expect(box.height, `${at}: the short phone's box is ${fmt(box)}, under COMPACT_BOX_MIN_SHORT_PX (FR-COMP-5)`).toBeGreaterThanOrEqual(COMPACT_BOX_MIN_SHORT_PX);
+      }
       expect(ink.layers.length, `${at}: no drawing in the box`).toBeGreaterThan(0);
       expect(ink.extent.x, `${at}: the drawing starts inside the box`).toBeGreaterThanOrEqual(box.x - 1);
       expect(ink.extent.x + ink.extent.width, `${at}: the drawing ends inside the box`).toBeLessThanOrEqual(box.x + box.width + 1);
