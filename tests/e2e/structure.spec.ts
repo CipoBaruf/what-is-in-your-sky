@@ -50,6 +50,8 @@ const home = async (page: Page): Promise<void> => {
 const openGuide = (page: Page, nth = 0) => page.getByRole('button', { name: /Open guide|Abrir la guía/ }).nth(nth);
 /** The guide's way out: the sheet's `← Back to the list` on a phone, the panel's `×` on a desk. */
 const closeGuide = (page: Page) => page.locator('[role="dialog"][data-pass-id] button').first().or(page.getByTestId('guide-panel').getByRole('button', { name: 'Close the guide' }));
+/** The live page's Back control, found the way the parent commit's page can be (the `live-back` test id is R92's). */
+const liveBack = (page: Page) => page.getByTestId('live-top-row').getByRole('button').first();
 const focused = (page: Page): Promise<string> =>
   page.evaluate(() => {
     const active = document.activeElement;
@@ -212,7 +214,7 @@ test.describe('history (FR-ROUTE-1..3, F-91)', () => {
     });
     cycles.push(async () => {
       await page.getByTestId('live-link').click();
-      await page.getByTestId('live-back').click();
+      await liveBack(page).click();
     });
     cycles.push(async () => {
       await page.getByTestId('settings-link').click();
@@ -251,7 +253,7 @@ test.describe('history (FR-ROUTE-1..3, F-91)', () => {
     await expect(page.getByTestId('live-page')).toBeVisible();
 
     // The live page was opened from settings: its Back returns there, and settings' to home.
-    await page.getByTestId('live-back').click();
+    await liveBack(page).click();
     await expect(page.getByTestId('settings-back')).toBeVisible();
     await page.getByTestId('settings-back').click();
     await home(page);
