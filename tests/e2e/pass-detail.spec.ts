@@ -120,12 +120,25 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   // R27: the list is one group per night and only the open night is in the accessibility tree, so the
   // search reads every card in the region by selector and then opens the night the winner turned out to be in.
   const region = page.getByRole('region', { name: 'Upcoming passes' });
-  const highest = await region.locator('article[data-pass-id]').evaluateAll((cards) => {
-    // R81 (FR-FIRST-10): the card's second line, `6 min · peak 68° N · mag −3.4`.
-    const elevation = (card: Element): number => Number(/peak (\d+)°/.exec(card.querySelector('[data-testid="card-detail"]')?.textContent ?? '')?.[1] ?? 0);
-    return cards.map((card) => ({ id: card.getAttribute('data-pass-id') ?? '', el: elevation(card) })).sort((a, b) => b.el - a.el)[0];
-  });
-  if (!highest || highest.el < 30) throw new Error(`no high pass among the fixtures (best ${String(highest?.el)}°)`);
+  // `evaluateAll` is the one locator call with no auto-wait: it reads whatever cards are in the DOM at that
+  // instant. Under a paused `page.clock` the list's reveal is held, so a single read can land on a partial set
+  // whose best pass is a low one — this threw `no high pass among the fixtures (best 10°)` on CI once and
+  // passed on the retry, which hid the cause and cost the shard its whole budget. Poll until the list settles.
+  let highest: { id: string; el: number } | undefined;
+  await expect
+    .poll(
+      async () => {
+        highest = await region.locator('article[data-pass-id]').evaluateAll((cards) => {
+          // R81 (FR-FIRST-10): the card's second line, `6 min · peak 68° N · mag −3.4`.
+          const elevation = (card: Element): number => Number(/peak (\d+)°/.exec(card.querySelector('[data-testid="card-detail"]')?.textContent ?? '')?.[1] ?? 0);
+          return cards.map((card) => ({ id: card.getAttribute('data-pass-id') ?? '', el: elevation(card) })).sort((a, b) => b.el - a.el)[0];
+        });
+        return highest?.el ?? 0;
+      },
+      { message: 'no high pass among the fixtures: the list never showed a pass peaking at 30° or more' },
+    )
+    .toBeGreaterThanOrEqual(30);
+  if (!highest) throw new Error('no cards in the upcoming-passes region');
   const highCard = region.locator(`article[data-pass-id="${highest.id}"]`);
   // A closed night opens through its toggle under the cards (FR-FIRST-10).
   const night = await highCard.evaluate((el) => {
