@@ -101,10 +101,12 @@ describe('the outline of each screen (FR-A11Y-2, US-30 AC2)', () => {
     expect(skippedLevels(outline())).toEqual([]);
   });
 
-  it('settings: its three blocks under the header', () => {
+  it('settings: its three blocks under the header', async () => {
     withPasses();
     render(<App />);
     go('#settings');
+    // R93 (D-545): the page is a chunk of its own; its Back control is the sign it has landed.
+    await screen.findByTestId('settings-back');
     expect(outline()).toEqual([
       [1, en.app.shortTitle],
       [2, en.location.heading],
@@ -133,6 +135,7 @@ describe('the landmarks of each route (FR-A11Y-1, US-30 AC1)', () => {
       const { unmount } = render(<App />);
       expect(landmarks()).toEqual({ main: 1, h1: 1, banner: 1, navigation: 1, contentinfo: 1 });
       go('#settings');
+      await screen.findByTestId('settings-back');
       expect(landmarks()).toEqual({ main: 1, h1: 1, banner: 1, navigation: 1, contentinfo: 1 });
       go('#live');
       await screen.findByTestId('live-page');
@@ -201,7 +204,9 @@ describe('focus and the announcer follow the route (FR-A11Y-4, US-30 AC4)', () =
     const settingsLink = screen.getByTestId('settings-link');
     settingsLink.focus();
     fireEvent.click(settingsLink);
-    expect(document.activeElement).toBe(screen.getByTestId('settings-back'));
+    await waitFor(() => {
+      expect(document.activeElement).toBe(screen.getByTestId('settings-back'));
+    });
     expect(announcer).toHaveTextContent(`${en.settings.heading} · ${APP}`);
     fireEvent.click(screen.getByTestId('settings-back'));
     // The page was opened by the app, so leaving it is `history.back()`, which lands a task later.
@@ -224,12 +229,12 @@ describe('focus and the announcer follow the route (FR-A11Y-4, US-30 AC4)', () =
     });
   });
 
-  it('leaves a route that was the load entry to the h1, in place', () => {
+  it('leaves a route that was the load entry to the h1, in place', async () => {
     window.history.replaceState(null, '', '#settings');
     withPasses();
     render(<App />);
     const entries = window.history.length;
-    fireEvent.click(screen.getByTestId('settings-back'));
+    fireEvent.click(await screen.findByTestId('settings-back'));
     expect(window.location.hash).toBe('');
     expect(window.history.length).toBe(entries);
     expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1 }));
@@ -274,7 +279,7 @@ describe('history (FR-ROUTE-1..3, F-91)', () => {
     go('#settings');
     // A typed hash is the browser's entry, not the app's (it takes the forward entry the Backs left): closing
     // it replaces it in place.
-    fireEvent.click(screen.getByTestId('settings-back'));
+    fireEvent.click(await screen.findByTestId('settings-back'));
     expect(window.location.hash).toBe('');
     expect(window.history.length).toBe(after);
   });

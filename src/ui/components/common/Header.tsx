@@ -2,6 +2,7 @@ import { useT } from '../../../i18n/useT';
 import { SETTINGS_HASH } from '../../../lib/shareLinks';
 import { useAppStore, type AppState } from '../../../state';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { loadSettingsChunk } from '../../screens/settingsChunk';
 import { Mark } from '../mark/Mark';
 import { MARK_HEADER_PX } from '../mark/tiers';
 import styles from './Header.module.css';
@@ -56,13 +57,17 @@ export interface HeaderProps {
   inert?: boolean;
   /** Which screen this header sits on; the matching control is marked current rather than linked. */
   current?: 'home' | 'settings';
+  /** R93 (D-545): the page under this header is still on its way (the settings chunk), so the bead runs. */
+  busy?: boolean;
 }
 
-export function Header({ inert = false, current = 'home' }: HeaderProps) {
+export function Header({ inert = false, current = 'home', busy = false }: HeaderProps) {
   const t = useT();
   const mode = useLayoutMode();
-  const loading = useAppStore(isLoading) && current === 'home';
+  const loading = (useAppStore(isLoading) && current === 'home') || busy;
   const mark = <Mark tier="header32" sizePx={MARK_HEADER_PX} running={loading} />;
+  // R93 (D-545): the settings chunk is fetched as the pointer or the focus reaches its link, ahead of the tap.
+  const prefetch = (): void => void loadSettingsChunk();
 
   if (mode === 'compact') {
     return (
@@ -80,7 +85,7 @@ export function Header({ inert = false, current = 'home' }: HeaderProps) {
               {t.settings.open}
             </span>
           ) : (
-            <a href={SETTINGS_HASH} className={styles.link} data-testid="settings-link">
+            <a href={SETTINGS_HASH} className={styles.link} data-testid="settings-link" onPointerEnter={prefetch} onFocus={prefetch}>
               {t.settings.open}
             </a>
           )}
