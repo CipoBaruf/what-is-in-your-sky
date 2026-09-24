@@ -138,6 +138,7 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
                   {t.home.whatStep.moreTonight(hiddenTonight)}
                 </button>
               )}
+              {faintCount > 0 && <FaintToggle count={faintCount} />}
               {laterCount > 0 && !moreNights && (
                 <button
                   type="button"
@@ -150,7 +151,6 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
                   {t.home.whatStep.moreNights(laterCount)}
                 </button>
               )}
-              {faintCount > 0 && <FaintToggle count={faintCount} />}
             </div>
           )}
         </div>
