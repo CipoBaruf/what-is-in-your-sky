@@ -28,6 +28,16 @@ name: Captures
 # Call it 22 min. The redesign changed the cold open, the home, the settings
 # page and the sky screen without changing what the set names them.
 #
+# R94: 254 since v2.1 asked what a capture shows (SPEC §4.39, FR-CAP-1..5,
+# FR-TAB-3; D-647) — a `-view` twin of the home at every width (the true state,
+# tonight open and the dome drawn, cropped to the viewport), a 360 px column
+# beside every 390 one, a 768 px column for the home, the guide, both live
+# states and settings, and the home at 1920. Re-measured off one build on a
+# ten-core machine: 2.5 s a capture, about 3 min whole. R80's 22 min for 161
+# files on this two-core runner scales to about 35 min, so the ceiling is 60.
+# FR-CAP-5 is stated over this workflow: two runs on one commit must produce
+# byte-identical files, and every capture waits for a settled frame first.
+#
 # This job commits nothing. It uploads the set as an artefact and fails when a
 # capture is missing — the committed files under `docs/screenshots/` are cleared
 # before the run, so the check is about what this run produced and not about
@@ -42,8 +52,9 @@ on:
 jobs:
   captures:
     runs-on: ubuntu-latest
-    # Twice the expected 18 min (R60): this job is off the PR path, so its ceiling is a stuck run, not a budget.
-    timeout-minutes: 40
+    # About 1.7 × the expected 35 min (R94, from R80's measured 22 min for 161 files): this job is off the
+    # PR path, so its ceiling is a stuck run, not a budget (FR-CI-1 is `ci.yml`'s).
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
