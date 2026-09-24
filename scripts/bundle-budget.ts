@@ -224,6 +224,32 @@ export interface Budget {
  * the phase added, which is the part worth knowing before anyone decides the
  * mark is the row to cut.
  *
+ * R93 (D-545, F-69) splits the settings page out of main behind a `React.lazy`
+ * (`screens/SettingsRoute.tsx`, `screens/settingsChunk.ts`), which is the
+ * choice F-69 offered the owner, and measures it on the same flag-on build:
+ *
+ * | chunk          | file                  | before | after  | budget | ceiling |
+ * |----------------|-----------------------|-------:|-------:|-------:|--------:|
+ * | main           | `index-*.js`          |  166.2 |  166.0 |    155 |     170 |
+ * | settings       | `Settings-*.js`       |      — |    1.0 |     10 |       — |
+ *
+ * Two things the measurement says. The settings chunk is **1.0 KB gzipped**
+ * (2.3 raw): the page is a composition of the home page's own controls — the
+ * place field, the device button, the saved places, the language and theme
+ * switches, the install action — and every one of them stays in main because
+ * the home page renders it too. What the chunk holds is the page's order and
+ * its privacy line, and `main` gives up 0.2 KB for it. And `main` is not the
+ * 158.0 F-69 measured on 2.0.0: it is **166.2** on this branch before the
+ * split, up 8.2 KB across v2.1's shell work (R83–R92, R101: the failure lines,
+ * the root boundary, the route shell and its announcer, the visit notices, the
+ * jump control, and both catalogs' copy for them). So the split is made as
+ * D-545 asks and its budget is the 10 KB floor, but main does not return under
+ * 155 by it and the `::warning::` stays — an 11 KB overrun that no one route
+ * behind a link can pay. What could is the owner's call again (F-69's other
+ * two rows, or a boundary around the guide or the cold open), so the number
+ * stays where PLAN §11 puts it and the summary of R93 carries the
+ * measurement; the settings row is kept so a page that grows shows up here.
+ *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
  *
@@ -279,6 +305,7 @@ export const BUDGETS: readonly Budget[] = [
   { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 25 },
   { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 10 }, // R53: back to the floor — R47 moved the World Magnetic Model to its own chunk and 1.1.0 measures 7.6 (D-178); R72: 8.5 on 1.4.0, the floor's last 1.5 KB
   { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 15 }, // R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345); R72: 12.1 on 1.4.0; R80: 12.8 with the compass gutter in it
+  { name: 'settings', match: (file) => /^Settings-.*\.js$/.test(file), limitKb: 10 }, // R93 (D-545): 1.0 measured — the page's own composition; its controls are the home page's and stay in main
 ];
 
 export interface ChunkSize {
