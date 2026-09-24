@@ -2386,7 +2386,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
 
 ### Wave 8
 
-- [ ] **R97 — Faint passes behind `[ show faint (n) ]`**
+- [x] **R97 — Faint passes behind `[ show faint (n) ]`** *(done 2026-09-24; the two thresholds sit in `lib/faint.ts`, not `physics/constants.ts`, which is outside the lane — D-627; the open pass is exempt so it carries no `[faint]` tag — D-629; D-627..D-631)*
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
