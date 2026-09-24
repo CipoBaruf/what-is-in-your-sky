@@ -430,10 +430,12 @@ async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme
  * and glyphcss's first rasterisation — every one of them a timer or a frame
  * the clock is holding, so the poll ticks it. The dome is only on the wide
  * layout (`WhereDome` returns nothing on compact), and the pane draws it only
- * where its room reaches `LIVE_BOX_MIN_PX` (D-607), so the slot is what is
- * waited for and the drawing is asserted where the slot has one.
+ * where its room reaches `LIVE_BOX_MIN_PX` (D-607): at 1024 × 768 the left
+ * column holds Where and When and has none, so there the slot is what the
+ * frame proves and `drawn` is false; from 1280 up the drawing is asserted —
+ * OQ-32's evidence is the 1280 and 1920 files.
  */
-async function whereDomeDrawn(page: Page): Promise<void> {
+async function whereDomeDrawn(page: Page, drawn: boolean): Promise<void> {
   const slot = page.getByTestId('where-dome-slot');
   await expect
     .poll(async () => {
@@ -441,6 +443,7 @@ async function whereDomeDrawn(page: Page): Promise<void> {
       return slot.count();
     }, { timeout: 30_000 })
     .toBe(1);
+  if (!drawn) return;
   await expect
     .poll(async () => {
       await page.clock.runFor(200);
@@ -474,13 +477,13 @@ const REACH: Record<string, Reach> = {
     if (view) {
       /*
        * R94 (FR-CAP-1, F-80): the `-view` twin is the home as it opens — tonight open (FR-NIGHT-1's default)
-       * and, from 1024 up, the Where pane's dome drawn — cropped to the viewport. The dome waits on frames
+       * and, from 1280 up, the Where pane's dome drawn — cropped to the viewport. The dome waits on frames
        * and timers the paused clock holds, so the clock is run through them and then put back on `CLOCK`
        * (F-48: the countdown and the dome's own instant must not depend on how many ticks that took).
        */
       await expect(page.locator('[data-testid="night-group"][data-open="true"]')).toHaveCount(1);
       await expect(page.locator('[data-testid="night-toggle"][aria-expanded="true"]')).toHaveCount(1);
-      if (VIEWPORTS[width].width >= 1024) await whereDomeDrawn(page);
+      if (VIEWPORTS[width].width >= 1024) await whereDomeDrawn(page, VIEWPORTS[width].width >= 1280);
       await pinnedAt(page, CLOCK);
       await page.mouse.move(0, 0);
       return;
@@ -521,6 +524,8 @@ const REACH: Record<string, Reach> = {
     await page.evaluate(() => {
       location.hash = '#settings';
     });
+    // R93 made the settings page a lazy chunk, and the paused clock holds its Suspense reveal (R32).
+    await page.clock.runFor(1000);
     await expect(page.getByTestId('settings-back')).toBeVisible();
     await page.evaluate(() => {
       window.dispatchEvent(Object.assign(new Event('beforeinstallprompt', { cancelable: true }), { prompt: () => Promise.resolve() }));
