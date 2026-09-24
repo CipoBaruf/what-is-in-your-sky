@@ -121,6 +121,11 @@ h1::before {
   color: var(--fg-dim);
 }
 
+/* R92: a heading for the outline only (the live page's name) has no prompt, which would be part of its name. */
+h1.sr-only::before {
+  content: none;
+}
+
 p {
   overflow-wrap: anywhere;
 }
@@ -191,6 +196,34 @@ a:focus-visible,
 .inline-control:focus-visible {
   padding-block: 0;
   margin-block: 0;
+}
+
+/* R92 (FR-A11Y-5): "Skip to content", the first focusable element of home and settings. Off-screen until
+   focused, then drawn at the top-left corner in the accent on the ground, over whatever is there. */
+.skip-link {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  z-index: 100;
+}
+
+.skip-link:focus {
+  left: calc(2 * var(--cell));
+  color: var(--accent);
+  background: var(--bg);
+}
+
+/* R92 (D-532): the landmarks and the `h1` take the focus from the skip link and on a route change, and are
+   not controls; the ring is for what the reader can operate. */
+main:focus,
+h1:focus {
+  outline: none;
+}
+
+/* R92 (D-529): a landmark that must not be a box of its own — the live page's banner and main, whose children
+   are cells of the page's grid. */
+.landmark-contents {
+  display: contents;
 }
 
 /* Visually hidden, read by assistive technology. */

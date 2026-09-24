@@ -11,7 +11,7 @@
  * `[ list ]` has nothing to do there. The tests of D-253's swap run at 1024 px,
  * FR-DESK-5's mid width, where the two columns and the swap stand unchanged.
  */
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -185,8 +185,11 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     await userEvent.click(screen.getAllByRole('button', { name: /Open guide/ })[1] as HTMLElement);
     expect(right).toHaveAttribute('data-guide', 'open');
 
+    // R92 (FR-ROUTE-1): the pass was opened by the app, so Esc closes it with `history.back()`, which lands a task later.
     await userEvent.keyboard('{Escape}');
-    expect(right).toHaveAttribute('data-guide', 'closed');
+    await waitFor(() => {
+      expect(right).toHaveAttribute('data-guide', 'closed');
+    });
   });
 
   /**
@@ -260,7 +263,9 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     expect(within(panel).getByRole('heading', { level: 2 })).toHaveFocus();
 
     await userEvent.keyboard('{Escape}');
-    expect(second).toHaveFocus();
+    await waitFor(() => {
+      expect(second).toHaveFocus();
+    });
   });
 
   /**

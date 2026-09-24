@@ -2,6 +2,9 @@
 
 exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the single-file catalog had (the per-lane split, D-199) 1`] = `
 [
+  ".a11y.pass:function",
+  ".a11y.skip:string",
+  ".a11y.title:function",
   ".app.language:string",
   ".app.shortTitle:string",
   ".app.tagline:string",

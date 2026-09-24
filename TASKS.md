@@ -2290,7 +2290,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
 
 ### Wave 5
 
-- [ ] **R92 — The shell: landmarks, the outline, titles, focus, the skip link, and Back goes back**
+- [x] **R92 — The shell: landmarks, the outline, titles, focus, the skip link, and Back goes back** — done; the night heading is a hidden `h3` at the head of each night rather than the toggle wrapped in one (D-597), and the live page draws its own landmarks inside its grid (D-596).
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner

@@ -64,8 +64,12 @@ describe('<App> and the live route', () => {
     go('#live');
     const page = await screen.findByTestId('live-page');
     expect(page).toHaveAttribute('data-state', 'live');
-    expect(screen.queryByRole('banner')).toBeNull();
-    expect(screen.queryByRole('main')).toBeNull();
+    // R92 (FR-A11Y-1, F-71): nothing of the home page, and the live page's own landmarks — its top row the
+    // banner, the rest the main, no footer.
+    expect(screen.queryByTestId('header')).toBeNull();
+    expect(screen.getByRole('banner')).toContainElement(screen.getByTestId('live-top-row'));
+    expect(screen.getByRole('main')).toContainElement(screen.getByTestId('live-dome'));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Live sky');
     expect(screen.queryByRole('contentinfo')).toBeNull();
     expect(await screen.findByTestId('status-strip')).toBeInTheDocument();
     act(() => {
@@ -129,7 +133,9 @@ describe('<App> and the live route', () => {
     render(<App />);
     go('#live');
     expect(await screen.findByTestId('live-inert')).toBeInTheDocument();
-    expect(screen.queryByRole('banner')).toBeNull();
+    expect(screen.queryByTestId('header')).toBeNull();
+    expect(screen.getByRole('banner')).toContainElement(screen.getByTestId('live-top-row'));
+    expect(screen.getByRole('main')).toContainElement(screen.getByTestId('live-inert'));
   });
 
   // R87 (FR-VISIT-4, F-93): a `#live?…` link that does not parse is no longer the inert live page but the

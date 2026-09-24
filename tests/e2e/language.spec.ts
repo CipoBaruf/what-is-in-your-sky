@@ -120,7 +120,8 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
   await dialog.getByRole('group', { name: 'Idioma' }).getByRole('button', { name: 'English' }).click();
   await expect(dialog.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
   expect(await page.evaluate(() => (window as unknown as { __wiys?: boolean }).__wiys)).toBe(true);
-  await expect(page).toHaveTitle(EN_TITLE);
+  // R92 (FR-A11Y-3): with a pass open the title names it first, then the app, in the language just chosen.
+  await expect(page).toHaveTitle(new RegExp(`^.+ · ${EN_TITLE}$`));
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(page).toHaveURL(new RegExp(`#pass=${passId}$`)); // D-13: the selection is untouched
   await expect(dialog.getByRole('heading', { name: 'ISS (Zarya)' })).toBeVisible();

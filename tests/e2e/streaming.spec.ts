@@ -90,7 +90,7 @@ test('cards appear one at a time with the ISS first; a location change mid-strea
   // Names and ids agree over the whole list. Read from the DOM rather than by role: from R27 the
   // list is one disclosure per night and a closed night's cards are out of the accessibility tree,
   // which is what the collapse is — the ids above come from the same DOM, so both sides see all three.
-  const namedIss = await page.locator('article[data-pass-id]').evaluateAll((els) => els.filter((el) => el.querySelector('h2')?.textContent?.trim() === 'ISS (Zarya)').length);
+  const namedIss = await page.locator('article[data-pass-id]').evaluateAll((els) => els.filter((el) => el.querySelector('h3, h4')?.textContent?.trim() === 'ISS (Zarya)').length);
   expect(namedIss).toBe(finalIds.filter((id) => id?.startsWith('25544-')).length);
 
   // Progressive rendering: the DOM went through several distinct card sets on the way to the final one.

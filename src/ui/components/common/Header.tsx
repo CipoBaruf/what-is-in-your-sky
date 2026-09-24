@@ -85,9 +85,12 @@ export function Header({ inert = false, current = 'home' }: HeaderProps) {
             {mark}
             <h1>{t.app.title}</h1>
           </div>
-          <a href="#live" className={styles.link} data-testid="live-link">
-            {t.live.open}
-          </a>
+          {/* R92 (FR-A11Y-1, D-529): the wide header's one link is its navigation too, in a box of its own that draws none. */}
+          <nav className="landmark-contents" aria-label={t.app.title}>
+            <a href="#live" className={styles.link} data-testid="live-link">
+              {t.live.open}
+            </a>
+          </nav>
         </div>
       </div>
       <div className={styles.controls}>

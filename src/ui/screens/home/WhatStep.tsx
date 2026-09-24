@@ -83,7 +83,7 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
 
   const card = (pass: Pass) => (
     <li key={pass.id}>
-      <PassCard pass={pass} timeZone={zone} weather={snapshot} detail="phrase" selected={pass.id === selectedPassId} ended={hasEnded(pass, now)} onOpen={onOpenPass} />
+      <PassCard pass={pass} timeZone={zone} weather={snapshot} detail="phrase" selected={pass.id === selectedPassId} ended={hasEnded(pass, now)} onOpen={onOpenPass} headingLevel={3} />
     </li>
   );
 

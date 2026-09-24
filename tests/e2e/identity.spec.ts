@@ -155,7 +155,8 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   expect(expected.length).toBeGreaterThanOrEqual(15);
   // R32/R52: the header's two links open the order, and no preference control is on this screen.
   // R76 (FR-FIRST-4): `[ change ]` is a button now — it opens the form in place rather than linking to #settings.
-  expect(expected.slice(0, 3)).toEqual(['a:live', 'a:settings', 'button:change']);
+  // R92 (FR-A11Y-5): the skip link is the first stop, before the header.
+  expect(expected.slice(0, 4)).toEqual(['a:Skip to content', 'a:live', 'a:settings', 'button:change']);
   expect(expected).not.toContain('input:place');
   expect(expected).not.toContain('button:English');
   expect(expected).toContain('button:Soonest');
@@ -164,9 +165,11 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   expect(expected.filter((c) => c.startsWith('button:Open guide')).length).toBeGreaterThanOrEqual(2);
 
   // Start from the top: a click on the title moves Chromium's sequential-focus starting point there (a blur alone leaves it at the coordinates field the fill focused).
+  // R92 (FR-A11Y-5): the skip link is before the title, so this walk begins after it and meets it on the wrap.
+  const walk = expected.slice(1);
   await page.getByRole('banner').getByRole('heading', { level: 1 }).click();
   const reached: { control: string; ring: boolean }[] = [];
-  for (const _step of expected) {
+  for (const _step of walk) {
     await page.keyboard.press('Tab');
     reached.push(
       await page.evaluate(() => {
@@ -179,11 +182,13 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
       }),
     );
   }
-  expect(reached.map((r) => r.control)).toEqual(expected);
+  expect(reached.map((r) => r.control)).toEqual(walk);
   expect(reached.filter((r) => !r.ring).map((r) => r.control)).toEqual([]);
   // Past the last link focus leaves the document (body), and the next Tab wraps to the first control.
   await page.keyboard.press('Tab');
   expect(await page.evaluate(() => document.activeElement === document.body)).toBe(true);
+  await page.keyboard.press('Tab');
+  expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('Skip to content');
   await page.keyboard.press('Tab');
   expect(await page.evaluate(() => document.activeElement?.textContent?.trim())).toBe('live');
 });

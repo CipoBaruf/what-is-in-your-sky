@@ -499,7 +499,9 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'true');
     expect(screen.getByTestId('live-page')).not.toHaveAttribute('data-columns');
     expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).toBeNull();
-    expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByTestId('live-page'));
+    // R92 (D-529): a cell of the page's grid, through the `display: contents` main.
+    expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByRole('main'));
+    expect(screen.getByRole('main').parentElement).toBe(screen.getByTestId('live-page'));
     unmount();
     // D-386: 964, 1280 and 1660 are one layout — the rail beside the cut box, the page two rows.
     for (const [width, height] of [
