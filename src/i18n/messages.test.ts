@@ -5,7 +5,7 @@ import type { GuideParams } from '../lib/phrases';
 import type { Locale } from '../model';
 import { en } from './en';
 import { es } from './es';
-import type { CountdownPhase, Messages } from './messages';
+import type { CountdownPhase, LinkedText, Messages } from './messages';
 import { LOCALES } from './locale';
 import { CATALOGS } from './useT';
 
@@ -42,7 +42,7 @@ const MOON_LORE: MoonLoreParams = { sign: 'Taurus', fullMoonName: null, line: 'T
 
 /** Every message of a catalog, rendered: plain strings as they are, functions over the fixture parameters. */
 function render(t: Messages): string[] {
-  const linked = [t.footer.celestrak, t.footer.openMeteo, t.footer.geonames, t.footer.chart, t.location.noMatch('Cipolletti'), t.location.searchFailed, t.location.searchOffline];
+  const linked: LinkedText[] = [t.footer.celestrak, t.footer.openMeteo, t.footer.geonames, t.footer.chart, t.location.noMatch('Cipolletti'), t.location.searchFailed, t.location.searchOffline];
   return [
     t.app.title,
     t.app.tagline,

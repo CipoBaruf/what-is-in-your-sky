@@ -61,7 +61,7 @@ export interface FooterProps {
  * `middle` and `link2` render between the first link and `after` when the
  * text carries them, and `href2` is where the second link goes.
  */
-function Linked({ text, href, href2 }: { text: LinkedText; href: string; href2?: string }) {
+function Linked({ text, href, href2 }: { text: LinkedText; href: string; href2?: string | undefined }) {
   return (
     <>
       {text.before}
@@ -77,7 +77,7 @@ function Linked({ text, href, href2 }: { text: LinkedText; href: string; href2?:
   );
 }
 
-function Attribution({ text, href, href2 }: { text: LinkedText; href: string; href2?: string }) {
+function Attribution({ text, href, href2 }: { text: LinkedText; href: string; href2?: string | undefined }) {
   return (
     <p className={styles.line}>
       <Linked text={text} href={href} href2={href2} />
