@@ -48,8 +48,8 @@ Notes on the 2026-09-02 capture:
   spike is validated on one pass, and that pass is horizon-bounded at both ends, so the shadow model (D-8)
   was **not** exercised against Heavens-Above. See PLAN §2.1 for what was checked instead.
 - Brightness (informational): ours +1.2 with `stdMag = −1.8`, Heavens-Above −0.3 at the same point
-  (−0.1 at maximum altitude). A 1.3–1.5 mag offset at a 1 505 km range and a back-lit geometry is
-  worth revisiting in R3 when the `stdMag` provenance is settled; the acceptance criterion does not include brightness.
+  (−0.1 at maximum altitude). A 1.3–1.5 mag offset at a 1 505 km range and a back-lit geometry
+  was left for R3, which settled the `stdMag` provenance (the catalog seeds the ISS at −2.5 from McCants' `qs.mag`, with its source and date in `stdMagSource`); the acceptance criterion does not include brightness, and the golden script still runs on the −1.8 seed below so the recorded comparison stays reproducible.
 
 ### 2026-09-02 Paris (H)
 
@@ -160,9 +160,11 @@ Start / End column shows the *Exits shadow* / *Enters shadow* row instead of the
 ## Extras (step 13)
 
 Passes we list that Heavens-Above omits, one bullet each, with the reason.
-Machine-readable copy in `<date>-neuquen-iss.extras.json` as
-`[{ "peak": "<ISO UTC>", "reason": "<text>" }]`; the golden test fails on any
-extra that is not listed there.
+The machine-readable copy is an optional file beside the fixture,
+`<fixture>.extras.json` as `[{ "peak": "<ISO UTC>", "reason": "<text>" }]`
+(`tests/support/fixtures.ts` reads it when it exists and an empty list when it
+does not); the golden test fails on any extra that is not listed there. None
+of the three fixtures has one, because none of them has an extra.
 
 - 2026-09-02 Neuquén capture: none.
 - 2026-09-02 Paris capture: none.
@@ -237,7 +239,7 @@ extra that is not listed there.
 9. **Map the three comparison points.** Our `start` pairs with the Heavens-Above event that begins the visible pass: *Reaches altitude 10°*, or *Exits shadow* / *Rises* when the summary table's Start column matches that row instead. Our `peak` pairs with *Maximum altitude*. Our `end` pairs with *Drops below altitude 10°* or *Enters shadow*, whichever the summary's End column matches. The row used for `end` is Heavens-Above's implied end reason (`horizon` vs `shadow`) and is compared with our `endReason`.
 10. **Pair passes** by peak time, nearest within ±15 min. Print unpaired passes on both sides.
 11. **Compare** each pair: |Δt| at start / peak / end, |Δaz| (wrapped to ≤ 180°) and |Δel| at each. A pass **passes** when every |Δt| ≤ 60 s and every |Δaz|, |Δel| ≤ 5°. Print one table row and PASS/FAIL per pass, then `OVERALL: PASS` or `OVERALL: FAIL`.
-12. **Brightness (informational).** Print our `peakMagnitude` beside Heavens-Above's listed magnitude per pass, to sanity-check D-1 and the ISS `stdMag` seed value (use −1.8 as the seed pending R3's provenance work; record the value actually used). The script uses **−1.8** (`ISS_STD_MAG_SEED` in `tests/support/heavensAbove.ts`).
+12. **Brightness (informational).** Print our `peakMagnitude` beside Heavens-Above's listed magnitude per pass, to sanity-check D-1 and the ISS `stdMag` seed value. The script uses **−1.8** (`ISS_STD_MAG_SEED` in `tests/support/heavensAbove.ts`), the value the spike was recorded with; the app's catalog has seeded the ISS at −2.5 from McCants' `qs.mag` since R3, and the script keeps its own seed so the numbers in this README stay the ones a rerun prints.
 13. **Explain every extra.** Any pass we list that Heavens-Above omits is documented per pass in this README (e.g. `twilight = true` and Heavens-Above applies a stricter sun rule; or peak magnitude fainter than their cut). Unexplained extras fail the spike.
 14. **If it fails,** follow PLAN §10.3 in order: time base (single propagated ECI position against satellite.js's own test vector; ms↔JD; `EPOCH` parsed as UTC) → frames (GMST, east-positive longitude in radians) → sun-vector frame (declination check for the date) → shadow-entry offsets (revisit D-8 only with evidence) → element-epoch mismatch (re-capture together).
 

@@ -15,6 +15,8 @@ A web app that tells a person standing outside, with no equipment, **which satel
 
 The user supplies a location (city or place name, coordinates, or browser geolocation). The app predicts visible passes for the coming hours, ranks them by how good they will be, and for each pass gives plain-language viewing instructions (rise/peak/set direction, maximum elevation, times, duration, expected brightness) plus a cloud-cover warning drawn from a weather forecast.
 
+*As built (2026-09-25, V22-7):* beyond that list, the app also has a live page that draws the whole sky at the shown instant, a sky screen a phone is held up to the sky with, works offline once it has loaded, and speaks English and Spanish — §4.7 (language), §4.10 (the live page), §4.11 (offline) and §4.23 (the sky screen) are where those were specified.
+
 ---
 
 ## 2. Goals & Non-Goals
@@ -1167,12 +1169,14 @@ The app has been served from `https://in-your-sky.ezequiel-baruf.workers.dev` si
 ## 5. Technical Architecture
 
 > **Status: proposal.** The stack, data flow, and algorithm below reflect the v0.2 decisions (no backend in MVP, curated ~30-object catalog, −6° twilight rule) but are to be validated in the plan phase. The assumption that CelesTrak serves usable CORS headers to browsers has been verified (§12, OQ-11).
+>
+> *As built (2026-09-25, V22-7):* the proposal was validated in the plan and this section keeps its wording as history. The stack that shipped is React 19 + TypeScript + Vite with CSS modules and design tokens, Zustand, `satellite.js`, `astronomy-engine`, `idb`, `zod`, the sky chart in `@glyphcss/react`, the time zone from Open-Meteo's own field, hosted as Cloudflare Workers static assets with no backend in any phase so far. PLAN §11.1 is the list with versions, licences and boundaries; the §5.1 row that decided otherwise carries a note.
 
 ### 5.1 Stack Recommendation
 
 | Layer | Choice | Rationale |
 |---|---|---|
-| Frontend | React 19 + TypeScript, Vite, Tailwind (or CSS modules) | Requested. Vite for fast dev/build, easy Web Worker bundling. |
+| Frontend | React 19 + TypeScript, Vite, Tailwind (or CSS modules) — *as built (2026-09-25, V22-7): CSS modules and the tokens in `src/ui/styles/`, no utility framework; PLAN §11.1* | Requested. Vite for fast dev/build, easy Web Worker bundling. |
 | State | Small: Zustand or React context + `useReducer` | App state is a handful of slices (location, elements, passes, weather, prefs). No need for heavier tooling. |
 | Orbit math | `satellite.js` (v7.x, TypeScript, supports TLE and OMM) | De-facto SGP4/SDP4 in JS; includes ECI→ECF, look angles, GMST. |
 | Sun position / twilight | `astronomy-engine` (accurate, TS types) — or `suncalc` for lighter weight | Sun altitude at observer and sun vector for shadow test. |

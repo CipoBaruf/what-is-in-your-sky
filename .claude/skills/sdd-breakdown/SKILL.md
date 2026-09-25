@@ -16,12 +16,12 @@ Read SPEC.md and PLAN.md first. Do not implement anything.
 
 ## Task format
 
-- [ ] **T<n> — <goal in one line>**
+- [ ] **R<n> — <goal in one line>** (`R` for a task that changes the product; `P` for one about the repository itself, PLAN §16.12; the MVP's one physics-hardening task is `H`)
   - Satisfies: FR-\* IDs
-  - Depends on: T<ids> (or none)
+  - Depends on: R<ids> (or none)
   - [P] if parallelizable with neighbours
-  - Lane: ui | chart | data | physics (v1 onward; the modules a lane owns are listed at the top of the phase block, and a task stays inside its lane's modules plus at most one shared file named in the task)
-  - Model: opus | fable (v1 onward; SPEC V1-11: opus by default, fable for tasks that depend on undocumented library behaviour or a performance budget)
+  - Lane: ui | live | chart | window | data | physics | docs (v1 onward; PLAN §16.1 is the table of what each lane owns, and a task stays inside its lane's directories plus at most one shared file named in the task)
+  - Model: fable | opus | sonnet | interactive (v1 onward; PLAN §16.6 — `interactive` is a task the owner drives in a session of their own and the driver never runs, such as a spike on a phone; a phase may fix one model for every task, as v2.2 did)
   - Gate: auto | owner (v1 onward; `owner` when acceptance includes captures, Spanish copy, or a Decision Log change; `auto` merges on CI green plus a clean review)
   - Done when: verifiable check (test name, command output, or exact visual state)
 

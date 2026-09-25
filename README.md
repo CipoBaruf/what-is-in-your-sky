@@ -9,11 +9,12 @@ gets. It runs in the browser, with no backend and no account.
 ![Three screens: a phone showing the sky over you drawn as braille text with the passes and the time stripe under it, a phone turned sideways held up at the sky, and a laptop showing when the next pass starts, how high it climbs and how bright it gets](docs/readme/hero.png)
 
 It was built spec-driven, and mostly not by hand. Every line traces to a numbered
-requirement in `SPEC.md`; each slice in `TASKS.md` was delivered by one Claude Code
-session working alone in its own git worktree, started by `scripts/sdd-run.ts`. The
-driver pushed the branch, opened a pull request and waited for CI, then ran a second
-session whose only job was to review the diff and post what it found, and only then was
-the branch merged.
+requirement in `SPEC.md`, and each slice in `TASKS.md` was one Claude Code session. The
+MVP (R1–R15 and H) was written by hand in those sessions, one branch after another, before
+the driver existed. From R16 on, every task but one phone spike (R38) was run by
+`scripts/sdd-run.ts`: a headless session alone in its own git worktree; then the driver
+pushed the branch, opened a pull request, waited for CI, ran a second session whose only
+job was to review the diff and post what it found, and only then merged.
 
 [How this was built](docs/HOW-THIS-WAS-BUILT.md) -
 [Contributing](CONTRIBUTING.md) -
@@ -44,7 +45,7 @@ npm run dev          # http://localhost:5173 (no CSP: Fast Refresh needs inline 
 npm run preview      # http://localhost:4173, the production build with the Cloudflare headers
 npm run e2e          # production build + Playwright, under the strict CSP
 npm run check:catalog  # live: every catalog object present in CelesTrak visual|stations
-npx tsx scripts/readme-hero.ts          # the two pictures above, from committed captures
+npx tsx scripts/readme-hero.ts          # the picture above and docs/readme/social-preview.png, from committed captures
 npx tsx scripts/third-party-notices.ts  # public/third-party-notices.txt, from the installed tree
 ```
 
@@ -77,10 +78,10 @@ checklist.
 
 - **Orbital elements:** [CelesTrak](https://celestrak.org/) — GP element sets (OMM JSON) for the
   `visual` and `stations` groups, fetched by the browser and filtered to the curated catalog.
-  CelesTrak data is **free for any use with attribution**; the app fetches at most one set per group
-  per session (a 2 h cache follows in R11).
+  CelesTrak data is **free for any use with attribution**; the app fetches a group at most once
+  every 2 h and keeps the set in IndexedDB between visits (`src/data/elementsCache.ts`).
 - **Weather and geocoding:** [Open-Meteo](https://open-meteo.com/) — cloud-cover forecast and
-  place-name search (from R8 and R9), used under the
+  place-name search, used under the
   [**CC BY 4.0**](https://creativecommons.org/licenses/by/4.0/) terms of its free non-commercial API.
   Open-Meteo's geocoding data derives from [GeoNames](https://www.geonames.org/) (**CC BY 4.0**).
   Both credits are in the app footer, with CelesTrak's (spec FR-X-2, `src/ui/components/common/Footer.tsx`). A recorded
@@ -96,8 +97,8 @@ checklist.
   pass tables, **transcribed by hand into dated fixtures for development use only**, under
   `tests/fixtures/heavens-above/`, for the physics golden tests. Never fetched by the app or the
   tests, and no Heavens-Above content is redistributed beyond those transcribed numbers.
-- **The sky chart:** [glyphcss](https://glyphcss.com) by Juan Cruz Fortunatti — **MIT**,
-  © 2025 Layoutit. It was chosen because it draws 3D into the same monospace character grid the
+- **The sky chart:** [glyphcss](https://glyphcss.com) — **MIT**, © 2025 Layoutit. It was
+  chosen because it draws 3D into the same monospace character grid the
   rest of the page is set in, so the dome is text and the app needs no canvas: one type of pixel,
   one set of colour tokens, and a chart that inherits the theme instead of reimplementing it.
 
