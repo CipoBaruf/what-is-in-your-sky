@@ -2629,10 +2629,11 @@ Decision blocks (§16.2), reserved in PLAN §16.18: **P6 D-660..D-662, R102 D-66
     - `tests/e2e/identity.spec.ts`: the home's control count ("3 footer links" in its comment) moves up by two, in the comment and the floor.
     - The captures: `CAPTURES=1 npx playwright test v1-captures -g home`, and the same for any other `captureSet.ts` entry whose screen renders `<Footer>` (the settings page has its own foot, FR-SET-1, and is not one); those files committed and listed in the Done note; no file added or removed, so `captures.test.ts` is unchanged.
     - No document: the README's glyphcss paragraph is P3's (FR-SHOW-8).
+    - *(extended 2026-09-25, V22-14, D-681 — the task resumes on its branch)* The two-line footer's row is the shell's: `FOOTER_ONE_LINE_MIN_PX = { en: 1330, es: 1349 }` in `src/lib/layout.ts`, pinned in `tests/styles/breakpoint.test.ts`; in `App.module.css` under each `:root[lang]` from `WIDE_MIN_PX` to the literal, the main's padding above and below the panes halves and the footer's `padding-top` halves, composing with D-608's under-720 rule. `home-desk.spec.ts` is not changed: FR-HOME-2 at 1024 × 768 and FR-HOME-3 at 1118 × 700 go green under it in both languages. D-666 records what the session did with it.
   - **Touches outside the lane:** `docs/screenshots/v1-*` (the footer's files only).
   - **Out of scope:** any other footer change; the notices file (FR-PUB-5 already carries glyphcss's MIT text); any document.
   - **Done when:**
-    - `npx vitest run src/ui/components/common` passes with the new assertions, and `npx playwright test identity` passes.
+    - `npx vitest run src/ui/components/common tests/styles/breakpoint.test.ts` passes with the new assertions, and `npx playwright test identity home-desk` passes — `home-desk.spec.ts` unchanged, at 1024 × 768 and 1118 × 700 in both languages (V22-14).
     - `git diff --stat origin/main -- docs/screenshots` lists exactly the files the Done note names, all of them screens whose footer is visible; `git diff --stat origin/main -- README.md docs/*.md` empty.
     - `npm test`, lint, typecheck and the PR's e2e path green inside FR-CI-1's ten minutes; `npm run bundle:budget`'s `main` row inside 170.
     - The owner's gate: the Spanish line read; the re-shot captures compared with their previous versions — the only difference the fourth credit.
