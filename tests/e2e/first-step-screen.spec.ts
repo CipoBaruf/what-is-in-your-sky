@@ -37,8 +37,8 @@ for (const language of LANGUAGES) {
 
         const footer = page.getByRole('contentinfo');
         await expect(footer).toHaveAttribute('data-form', 'line');
-        // R102 (FR-SHOW-8): the three sources, the maker, glyphcss and its author.
-        await expect(footer.getByRole('link')).toHaveCount(6);
+        // R102 (FR-SHOW-8): the three sources, the maker and glyphcss.
+        await expect(footer.getByRole('link')).toHaveCount(5);
         await expect(footer).toContainText('CelesTrak');
         await expect(footer).toContainText('(CC BY 4.0)');
         for (const privacy of language.privacy) await expect(footer).not.toContainText(privacy);

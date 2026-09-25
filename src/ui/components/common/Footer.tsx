@@ -23,14 +23,14 @@ import styles from './Footer.module.css';
  * is still named and still linked, and the CC BY 4.0 licence is still called
  * by name — that is the condition the data is used under, not decoration.
  *
- * R102 (FR-SHOW-8, FR-X-2 as amended v2.2, D-657): a fourth credit, the
- * library the sky is drawn with and its author — "Sky chart: glyphcss by Juan
- * Cruz Fortunatti." — in every form the footer has. In the full form it is a
- * fourth `Attribution`, one sentence with two links; in the one-row forms the
- * two names stand as links after `Chart:`, the way the sources stand after
- * `Data:`. It is the last item in each form: the sources and the page's own
- * lines keep their order, and the one-row forms stay one row with the
- * privacy word as their only difference (D-548).
+ * R102 (FR-SHOW-8, FR-X-2 as amended v2.2, D-657; V22-15): a fourth credit,
+ * the library the sky is drawn with — "Sky chart: glyphcss." — in every form
+ * the footer has. The library alone: its author is not named in the app. In
+ * the full form it is a fourth `Attribution`, one sentence with one link; in
+ * the one-row forms the library's name stands as a link after `Chart:`, the
+ * way the sources stand after `Data:`. It is the last item in each form: the
+ * sources and the page's own lines keep their order, and the one-row forms
+ * stay one row with the privacy word as their only difference (D-548).
  */
 export const ATTRIBUTION_URLS = {
   celestrak: 'https://celestrak.org/',
@@ -38,9 +38,8 @@ export const ATTRIBUTION_URLS = {
   geonames: 'https://www.geonames.org/',
   /** Not an attribution: whose page this is (FR-X-2, amended). */
   author: 'https://github.com/CipoBaruf',
-  /** R102 (FR-SHOW-8): the library the sky is drawn with, and its author. */
+  /** R102 (FR-SHOW-8): the library the sky is drawn with. */
   glyphcss: 'https://glyphcss.com',
-  fortunatti: 'https://www.linkedin.com/in/juancfortunatti/',
 } as const;
 
 export interface FooterProps {
@@ -56,31 +55,20 @@ export interface FooterProps {
   form?: 'full' | 'line';
 }
 
-/**
- * A sentence with a link in it, and (R102, D-657) an optional second one:
- * `middle` and `link2` render between the first link and `after` when the
- * text carries them, and `href2` is where the second link goes.
- */
-function Linked({ text, href, href2 }: { text: LinkedText; href: string; href2?: string | undefined }) {
+function Linked({ text, href }: { text: LinkedText; href: string }) {
   return (
     <>
       {text.before}
       <a href={href}>{text.link}</a>
-      {text.link2 !== undefined && href2 !== undefined && (
-        <>
-          {text.middle}
-          <a href={href2}>{text.link2}</a>
-        </>
-      )}
       {text.after}
     </>
   );
 }
 
-function Attribution({ text, href, href2 }: { text: LinkedText; href: string; href2?: string | undefined }) {
+function Attribution({ text, href }: { text: LinkedText; href: string }) {
   return (
     <p className={styles.line}>
-      <Linked text={text} href={href} href2={href2} />
+      <Linked text={text} href={href} />
     </p>
   );
 }
@@ -111,8 +99,6 @@ export function Footer({ inert = false, form = 'full' }: FooterProps) {
           <span className={styles.dot}>·</span>
           {t.footer.short.chart}{' '}
           <a href={ATTRIBUTION_URLS.glyphcss}>{t.footer.chart.link}</a>
-          {', '}
-          <a href={ATTRIBUTION_URLS.fortunatti}>{t.footer.chart.link2}</a>
         </p>
       </footer>
     );
@@ -125,7 +111,7 @@ export function Footer({ inert = false, form = 'full' }: FooterProps) {
       <Attribution text={t.footer.geonames} href={ATTRIBUTION_URLS.geonames} />
       <p className={styles.line}>{t.footer.privacy}</p>
       <Attribution text={t.footer.credit} href={ATTRIBUTION_URLS.author} />
-      <Attribution text={t.footer.chart} href={ATTRIBUTION_URLS.glyphcss} href2={ATTRIBUTION_URLS.fortunatti} />
+      <Attribution text={t.footer.chart} href={ATTRIBUTION_URLS.glyphcss} />
     </footer>
   );
 }

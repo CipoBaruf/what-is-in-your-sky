@@ -253,8 +253,7 @@ function render(t: Messages): string[] {
     ...Object.values(t.readiness.gaps),
     t.footer.privacy,
     ...Object.values(t.footer.short),
-    // R102 (D-657): a sentence may carry a second link; its `middle` and `link2` are words too.
-    ...linked.flatMap((text) => [text.before, text.link, ...(text.middle !== undefined ? [text.middle] : []), ...(text.link2 !== undefined ? [text.link2] : []), text.after]),
+    ...linked.flatMap((text) => [text.before, text.link, text.after]),
   ];
 }
 
@@ -353,8 +352,7 @@ describe('the Spanish catalog (FR-I18N-3)', () => {
       en.footer.celestrak.link,
       en.footer.openMeteo.link,
       en.footer.geonames.link,
-      en.footer.chart.link, // R102 (FR-SHOW-8): the library and its author are names (FR-I18N-6)
-      en.footer.chart.link2,
+      en.footer.chart.link, // R102 (FR-SHOW-8): the library's name is a name (FR-I18N-6)
       en.footer.short.licence,
       en.passes.stamp({ date: '2026-09-11', time: '21:14:32 GMT-3' }),
       en.passes.direction({ point: 'NE', degrees: '46°' }),

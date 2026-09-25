@@ -1,4 +1,4 @@
-/** TASKS R12 (FR-X-2): the footer carries the three attribution sentences, each source linked, and the privacy note. R17: in whichever language is active, with the provider names untranslated (FR-I18N-6). R23 (D-120): and the author's credit, in both of the two forms the layout picks between. R102 (FR-SHOW-8, D-657): and the chart's credit — glyphcss and Juan Cruz Fortunatti, two links — in all three forms and both languages. */
+/** TASKS R12 (FR-X-2): the footer carries the three attribution sentences, each source linked, and the privacy note. R17: in whichever language is active, with the provider names untranslated (FR-I18N-6). R23 (D-120): and the author's credit, in both of the two forms the layout picks between. R102 (FR-SHOW-8, D-657; V22-15): and the chart's credit — glyphcss, one link, the library alone — in all three forms and both languages. */
 import { act, render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -15,16 +15,15 @@ afterEach(() => {
   media = null;
 });
 
-const sentence = (text: LinkedText): string => `${text.before}${text.link}${text.middle ?? ''}${text.link2 ?? ''}${text.after}`;
+const sentence = (text: LinkedText): string => `${text.before}${text.link}${text.after}`;
 
-/** FR-X-2 as amended v2.2: the four credits, each name linked to where it says (R102, FR-SHOW-8). */
+/** FR-X-2 as amended v2.2: the four credits and the maker, each name linked to where it says (R102, FR-SHOW-8; V22-15: the library, not its author). */
 const CREDITS: Record<string, string> = {
   CelesTrak: 'https://celestrak.org/',
   'Open-Meteo.com': 'https://open-meteo.com/',
   GeoNames: 'https://www.geonames.org/',
   'Ezequiel Baruf': 'https://github.com/CipoBaruf',
   glyphcss: 'https://glyphcss.com',
-  'Juan Cruz Fortunatti': 'https://www.linkedin.com/in/juancfortunatti/',
 };
 
 function expectCredits(): void {
@@ -48,19 +47,19 @@ describe('<Footer>', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  // R102 (FR-SHOW-8, FR-X-2 as amended v2.2, D-657): the fourth credit, one sentence with two links.
-  it('credits the chart library and its author in the full form, as its last sentence', () => {
+  // R102 (FR-SHOW-8, FR-X-2 as amended v2.2, D-657; V22-15): the fourth credit, one sentence with one link, the library alone.
+  it('credits the chart library in the full form, as its last sentence', () => {
     render(<Footer />);
     const footer = screen.getByRole('contentinfo');
     expect(footer).toHaveAttribute('data-form', 'full');
-    expect(footer).toHaveTextContent('Sky chart: glyphcss by Juan Cruz Fortunatti.');
+    expect(footer).toHaveTextContent('Sky chart: glyphcss.');
     expectCredits();
     const lines = Array.from(footer.querySelectorAll('p')).map((p) => p.textContent);
     expect(lines).toHaveLength(6);
-    expect(lines[5]).toBe('Sky chart: glyphcss by Juan Cruz Fortunatti.');
-    // The two links are in the one sentence, in this order.
+    expect(lines[5]).toBe('Sky chart: glyphcss.');
+    // One link in the sentence: the library's name, and no author's.
     const chart = footer.querySelectorAll('p')[5];
-    expect(Array.from(chart?.querySelectorAll('a') ?? []).map((a) => a.textContent)).toEqual(['glyphcss', 'Juan Cruz Fortunatti']);
+    expect(Array.from(chart?.querySelectorAll('a') ?? []).map((a) => a.textContent)).toEqual(['glyphcss']);
   });
 
   it('says the same in Spanish, with the same links (FR-I18N-2, FR-I18N-6)', () => {
@@ -73,7 +72,7 @@ describe('<Footer>', () => {
     for (const text of [es.footer.celestrak, es.footer.openMeteo, es.footer.geonames, es.footer.chart]) expect(footer).toHaveTextContent(sentence(text));
     expect(footer).toHaveTextContent(es.footer.privacy);
     expect(footer).not.toHaveTextContent(en.footer.privacy);
-    expect(footer).toHaveTextContent('Carta del cielo: glyphcss, de Juan Cruz Fortunatti.');
+    expect(footer).toHaveTextContent('Carta del cielo: glyphcss.');
     expect(footer).not.toHaveTextContent('Sky chart');
     expectCredits();
   });
@@ -89,8 +88,8 @@ describe('<Footer>', () => {
     // The licence the geocoding data is used under is still named.
     expect(footer).toHaveTextContent('CC BY 4.0');
     expect(footer).toHaveTextContent(en.footer.short.privacy);
-    // R102 (D-657): the chart's two names stand as links after `Chart:`, the last item of the row.
-    expect(footer).toHaveTextContent(/Built by Ezequiel Baruf\.\s*·\s*Chart: glyphcss, Juan Cruz Fortunatti$/);
+    // R102 (D-657): the library's name stands as a link after `Chart:`, the last item of the row.
+    expect(footer).toHaveTextContent(/Built by Ezequiel Baruf\.\s*·\s*Chart: glyphcss$/);
     // The four long sentences are gone, not merely hidden.
     expect(footer).not.toHaveTextContent(en.footer.privacy);
     expect(footer).not.toHaveTextContent('Sky chart');
@@ -108,7 +107,7 @@ describe('<Footer>', () => {
     expect(footer).toHaveAttribute('data-form', 'short');
     expect(footer.querySelectorAll('p')).toHaveLength(1);
     expectCredits();
-    expect(footer).toHaveTextContent(/Datos: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Sin rastreo\s*·\s*Hecho por Ezequiel Baruf\.\s*·\s*Carta: glyphcss, Juan Cruz Fortunatti$/);
+    expect(footer).toHaveTextContent(/Datos: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Sin rastreo\s*·\s*Hecho por Ezequiel Baruf\.\s*·\s*Carta: glyphcss$/);
     expect(footer).not.toHaveTextContent('Chart:');
   });
 
@@ -121,7 +120,7 @@ describe('<Footer>', () => {
     expect(footer.querySelectorAll('p')).toHaveLength(1);
     expectCredits();
     expect(footer).not.toHaveTextContent(en.footer.short.privacy);
-    expect(footer).toHaveTextContent(/^Data: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Built by Ezequiel Baruf\.\s*·\s*Chart: glyphcss, Juan Cruz Fortunatti$/);
+    expect(footer).toHaveTextContent(/^Data: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Built by Ezequiel Baruf\.\s*·\s*Chart: glyphcss$/);
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -135,7 +134,7 @@ describe('<Footer>', () => {
     const footer = screen.getByRole('contentinfo');
     expect(footer).toHaveAttribute('data-form', 'line');
     expectCredits();
-    expect(footer).toHaveTextContent(/^Datos: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Hecho por Ezequiel Baruf\.\s*·\s*Carta: glyphcss, Juan Cruz Fortunatti$/);
+    expect(footer).toHaveTextContent(/^Datos: CelesTrak, Open-Meteo\.com, GeoNames \(CC BY 4\.0\)\s*·\s*Hecho por Ezequiel Baruf\.\s*·\s*Carta: glyphcss$/);
     expect(footer).not.toHaveTextContent('Sin rastreo');
   });
 
