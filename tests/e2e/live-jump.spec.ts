@@ -8,7 +8,7 @@
  * 1920 px desktop, where the path fills the rail's line and it stands beside `[ scrub the night ]`.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { domeDrawn, NINE_DAYS_ON, seedStoredRun, stripFilled } from './liveHelpers';
+import { domeDrawn, NINE_DAYS_ON, recomputeEnded, seedStoredRun, stripFilled } from './liveHelpers';
 
 /** Twelve hours after the seed's instant: 15:51 UTC, 12:51 at Neuquén — by day, with tonight's passes ahead. */
 const MIDDAY = NINE_DAYS_ON + 12 * 3_600_000;
@@ -17,8 +17,15 @@ const iso = (t: number): string => new Date(t).toISOString().replace('.000Z', 'Z
 async function openLiveByDay(page: Page): Promise<void> {
   await seedStoredRun(page, { settled: true });
   await page.clock.setFixedTime(MIDDAY);
-  await page.goto('/#live');
+  // The reload at midday starts a recompute whose first batch replaces the list for a moment, and
+  // with it the headline's pass: a control read then and clicked after lands on another rise. Let
+  // it end on the home, where the list says it is busy, then move to the live page by the hash
+  // alone, which starts no job.
   await page.reload();
+  await recomputeEnded(page);
+  await page.evaluate(() => {
+    window.location.hash = '#live';
+  });
   await domeDrawn(page);
   await stripFilled(page);
 }

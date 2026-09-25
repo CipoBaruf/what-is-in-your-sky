@@ -6,7 +6,7 @@
  * faint passes hidden.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { seedStoredRun, STORED_RUN } from './liveHelpers';
+import { listSettled, seedStoredRun, STORED_RUN } from './liveHelpers';
 
 const DESK = { width: 1280, height: 720 };
 // Five of the run are fainter than +3.5; the first, SL-16 R/B at +3.55, is the next event at the seed's instant and is kept.
@@ -34,13 +34,17 @@ test('the control shows the faint passes in place and hides them, and the choice
   await expect(faintCards(page)).toHaveCount(FAINT_COUNT);
   expect(await page.evaluate(() => (JSON.parse(localStorage.getItem('wiys:prefs:v1') ?? '{}') as { showFaint?: boolean }).showFaint)).toBe(true);
 
+  // Every reload starts a recompute whose first batch replaces the list for a moment (`listSettled`),
+  // so the control reads `show 1 faint` mid-job: wait the job out before reading or clicking.
   await page.reload();
+  await listSettled(page);
   await expect(page.getByTestId('faint-toggle')).toHaveText(`hide ${String(FAINT_COUNT)} faint`, { timeout: 30_000 });
   await expect(faintCards(page)).toHaveCount(FAINT_COUNT);
 
   await page.getByTestId('faint-toggle').click();
   await expect(page.getByTestId('faint-toggle')).toHaveText(`show ${String(FAINT_COUNT)} faint`);
   await page.reload();
+  await listSettled(page);
   await expect(page.getByTestId('faint-toggle')).toHaveText(`show ${String(FAINT_COUNT)} faint`, { timeout: 30_000 });
   await expect(faintCards(page)).toHaveCount(0);
 });

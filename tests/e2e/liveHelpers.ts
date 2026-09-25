@@ -303,22 +303,29 @@ export async function seedStoredRun(
  * fixtures at the same instant.
  */
 export async function listSettled(page: Page): Promise<void> {
-  // The stored list is on screen with nothing busy *before* the recompute starts — the elements
-  // load first, then the worker — so "nothing busy" alone can return in that gap and the spec
-  // then reads a list the first batch is about to replace. Wait for the job to show, then to end.
-  //
-  // R61: tolerant of the job having come and gone between two polls, which on a loaded box it does
-  // (CI run 34183, three workers locally: `TimeoutError` here, or a spec reading a one-object list),
-  // and then held to the *end state* rather than to the gap: the recompute reproduces the seeded run
+  // R61: held to the *end state* rather than to the gap: the recompute reproduces the seeded run
   // from the same fixtures at the same instant, so the list is settled when the count is the seed's.
+  await recomputeEnded(page);
+  // R97 (FR-FAINT-2): the faint passes the list hides are counted by its control, `[ show 4 faint ]`.
+  await expect.poll(() => shownAndHidden(page), { timeout: 60_000 }).toBe(STORED_RUN.passes.length);
+}
+
+/**
+ * The recompute a load starts has shown and ended, on a page that draws the pass list (the home).
+ * The stored list is on screen with nothing busy *before* the recompute starts — the elements
+ * load first, then the worker — so "nothing busy" alone can return in that gap and the spec
+ * then reads a list the first batch is about to replace. Wait for the job to show, then to end.
+ * Tolerant of the job having come and gone between two polls, which on a loaded box it does
+ * (CI run 34183, three workers locally). Unlike `listSettled` it does not hold the count to the
+ * seed's, so it serves a spec that has moved the clock on and pruned some passes.
+ */
+export async function recomputeEnded(page: Page): Promise<void> {
   await page
     .locator('[aria-busy="true"]')
     .first()
     .waitFor({ state: 'attached', timeout: 10_000 })
     .catch(() => undefined);
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
-  // R97 (FR-FAINT-2): the faint passes the list hides are counted by its control, `[ show 4 faint ]`.
-  await expect.poll(() => shownAndHidden(page), { timeout: 60_000 }).toBe(STORED_RUN.passes.length);
 }
 
 /** The cards on the page, and the faint passes the list's control says it hides (none while they are shown). */
