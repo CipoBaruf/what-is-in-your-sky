@@ -973,193 +973,79 @@ v1 additions to the rules: `src/i18n` is imported by `src/ui` only — `lib/` re
 ## 4. Project Structure
 
 ```
-what-is-in-your-sky-right-now/
-├── SPEC.md
-├── PLAN.md
-├── package.json
-├── vite.config.ts
-├── tsconfig.json  tsconfig.app.json  tsconfig.node.json
-├── eslint.config.js
-├── public/
-│   ├── _headers                    # Cloudflare static assets: CSP and cache headers (§11)
-│   ├── manifest.webmanifest        # PWA install, not localised (FR-OFF-6)
-│   ├── icon-192.png  icon-512.png  # v2.0.1: the mark's scene as dots, 48 at 4 px and 64 at 8 px, by scripts/build-mark.ts (D-460)
-├── wrangler.jsonc                  # Cloudflare Workers static-assets config (D-12 amended, §2.5)
-│   ├── favicon.png  favicon-32.png # v2.0.1: 16 and 32 dots at 1 px, the ring cleared around the bead (FR-MARK-4 e, D-460)
-│   └── favicon.svg                 # v2.0.1: the 16-dot grid with a prefers-color-scheme swap, linked first
+what-is-in-your-sky-right-now/          # redrawn from `git ls-files` at 2b6ff66 (2026-09-25, P3, FR-SHOW-1); a number in brackets is that directory's tracked files, tests included
+├── SPEC.md  PLAN.md  TASKS.md          # the three documents (§16); beside them README.md, CONTRIBUTING.md, CLAUDE.md, LICENSE
+├── package.json  package-lock.json  .node-version   # Node 24, the version CI and the Cloudflare build use
+├── vite.config.ts  vitest.config.ts  playwright.config.ts  eslint.config.js
+├── tsconfig.json  tsconfig.base.json  tsconfig.app.json  tsconfig.node.json
+├── index.html  wrangler.jsonc  .gitignore   # wrangler.jsonc: Cloudflare Workers static assets, the `routes` entry that binds inyoursky.app (D-12 amended, D-658)
+├── .claude/                            # public on purpose (FR-SHOW-3, D-651)
+│   ├── settings.json                   # one allow rule, `gh pr merge`, for the driver's merge step
+│   └── skills/                         # sdd-spec, sdd-breakdown, sdd-implement, visual-review — one SKILL.md each
+├── .github/workflows/  (4)             # ci.yml (four e2e shards, the trailers job), captures.yml (the v1-* set), live-contract.yml (scheduled, non-blocking), stage.sh
+├── public/  (8)                        # _headers (CSP and cache headers, §11), manifest.webmanifest, favicon.svg / favicon.png / favicon-32.png, icon-192.png / icon-512.png, third-party-notices.txt (FR-PUB-5)
 ├── src/
-│   ├── main.tsx
-│   ├── model/                      # shared types only, zero imports
-│   │   ├── catalog.ts  elements.ts  observer.ts  pass.ts  weather.ts  thresholds.ts  prefs.ts (PassSort, ChartView, ChartOrientation, Locale, Theme)
-│   │   ├── moon.ts  offline.ts   # MoonState/MoonGlare (FR-MOON-1/2); PassRun, Favourite, Readiness (FR-OFF-2/4/7)
-│   │   └── index.ts
-│   ├── physics/                    # pure functions; the thing Task Zero validates
-│   │   ├── constants.ts            # MIN_ELEVATION, SUN_ALT_MAX, TWILIGHT_LABEL, MAG_LIMIT, EARTH_RADIUS_KM, steps
-│   │   ├── time.ts                 # epoch ms <-> Date/JD helpers used by satellite.js and astronomy-engine
-│   │   ├── sgp4.ts                 # wraps satellite.js: omm -> satrec, propagate -> ECI
-│   │   ├── frames.ts               # ECI(TEME) -> ECF, observer geodetic -> look angles
-│   │   ├── sun.ts                  # wraps astronomy-engine: sunAltitudeDeg(obs, t), sunVectorEqd(t)
-│   │   ├── shadow.ts               # inUmbra(posEci, sunVec)
-│   │   ├── magnitude.ts            # phaseAngle, apparentMagnitude (D-1)
-│   │   ├── moon.ts                 # wraps astronomy-engine: moonAt(t, obs), moonGlare(...) (D-80)
-│   │   ├── visibility.ts           # isVisibleAt(...) predicate and reasons
-│   │   ├── passes.ts               # findPasses(satrec, observer, window, thresholds) -> Pass[]
-│   │   ├── darkness.ts             # hasDarkness(observer, window, thresholds) for jobDone (spec §5.6)
-│   │   ├── now.ts                  # nowState(satrecs, observer, t, thresholds)
-│   │   └── index.ts
-│   ├── worker/
-│   │   ├── protocol.ts             # WorkerRequest / WorkerResponse unions (§6)
-│   │   ├── handlers.ts             # pure: (state, request, emit) -> void; testable in Node
-│   │   ├── nights.ts               # v1: the window cut into 24 h nights, and which one claims a pass (D-77, D-95)
-│   │   └── passes.worker.ts        # thin: onmessage -> handlers, yields between objects
-│   ├── i18n/                       # FR-I18N-1..6 (D-69); imported by src/ui only
-│   │   ├── en.ts                   # the source of truth; `type Messages = typeof en`
-│   │   ├── es.ts                   # `const es: Messages` — a missing key is a tsc error
-│   │   ├── messages.ts             # the Messages type and the parameter types
-│   │   ├── locale.ts               # resolveLocale(navigator.languages, saved) (FR-I18N-1)
-│   │   └── useT.ts                 # context + hook; also sets documentElement.lang (FR-I18N-5)
-│   ├── data/
-│   │   ├── catalog/
-│   │   │   ├── catalog.json        # the ~30 objects (FR-SAT-1/5)
-│   │   │   └── schema.ts           # zod schema; also used by scripts/check-catalog.ts
-│   │   ├── zod.ts                  # configures zod (jitless, D-26) and re-exports `z`; the only importer of 'zod'
-│   │   ├── schemas.ts              # shapes shared by more than one store, starting with the observer (D-105)
-│   │   ├── db.ts                   # the one `wiys` database: version, store names, the shared connection (D-105)
-│   │   ├── celestrak.ts            # fetchGroup('visual'|'stations') -> OmmRecord[] (zod-validated)
-│   │   ├── elementsCache.ts        # idb store, fetchedAt per group, Web Locks single-flight (D-9, D-10)
-│   │   ├── elementsLoader.ts       # orchestrates cache -> network -> filter to catalog -> SatelliteRecord[]
-│   │   ├── openMeteo/
-│   │   │   ├── geocode.ts          # search(q) -> Place[]
-│   │   │   ├── forecast.ts         # cloudForecast(lat, lon) -> WeatherSnapshot
-│   │   │   └── schemas.ts
-│   │   ├── moon/
-│   │   │   ├── lore.json           # zodiac lines, full-moon names, per-phase one-liners, both languages (FR-MOON-4)
-│   │   │   ├── schema.ts           # zod schema, validated in CI like the catalog (D-97)
-│   │   │   └── index.ts            # MOON_LORE, signAtLongitude, fullMoonName, phaseLore — lookups, no computation
-│   │   ├── passesCache.ts          # idb `passRuns` store, keyed by 0.01° observer cell (D-78, FR-OFF-2)
-│   │   ├── weatherCache.ts         # 30 min per 0.1° cell, in-memory + localStorage; survives its TTL offline (FR-OFF-3)
-│   │   ├── storage.ts              # StorageLike + browserStorage, shared by weatherCache and localPrefs (R10)
-│   │   ├── favourites.ts           # the saved list as pure operations: add, touch, remove, LRU at 8 (D-85, D-138)
-│   │   └── localPrefs.ts           # last observer, chart orientation, favourites, etc.
-│   ├── state/
-│   │   ├── store.ts                # Zustand store composed of slices
-│   │   ├── slices/ location.ts  elements.ts  passes.ts  weather.ts  now.ts  prefs.ts  live.ts (t, speed, hidden objects)  appUpdate.ts (a waiting version, D-126)
-│   │   ├── serviceWorker.ts        # registers the generated `/sw.js`, reports a waiting version (FR-OFF-1, D-126)
-│   │   ├── passWindow.ts           # the search window: 72 h in three nights (D-20 amended, D-77)
-│   │   ├── workerClient.ts         # owns the Worker instance; request/response correlation; cancel
-│   │   └── effects.ts              # wiring: on observer change -> recompute; 10 s now tick; refresh timers
-│   ├── lib/                        # presentation helpers, pure
-│   │   ├── compass.ts              # azimuth -> 16-point name
-│   │   ├── phrases.ts              # elevation words, brightness phrases, guide sentence (FR-GUIDE-1/3)
-│   │   ├── timeFormat.ts           # Intl-based formatting in observer zone (D-3)
-│   │   ├── passSort.ts             # chronological / best-first order, hero pass choice (D-52, D-53)
-│   │   ├── format.ts               # degrees, duration, magnitude, range, clock durations (R6)
-│   │   ├── cloudVerdict.ts         # FR-WX-2/4 weighting and interpolation
-│   │   ├── skyGeometry.ts          # az/el -> unit vector on the dome; az/el -> polar x,y (equidistant azimuthal); arc resampling. Shared by both chart views
-│   │   ├── skyBodies.ts            # Sun and Moon at an instant, for both charts and the live page (the one lib file that imports physics at runtime, D-80; its own chunk, D-148)
-│   │   ├── shareLinks.ts           # builds and parses #pass?… and #live?… (D-83, FR-SHARE-1, FR-LIVE-9)
-│   │   ├── layout.ts               # the wide breakpoint in cells and in px, and what a match means (D-71); the hook itself is ui/hooks/useLayoutMode.ts (D-116)
-│   │   ├── shortcuts.ts            # the shortcut table, the one keydown listener and the guard (D-73, D-163, D-164); the hook itself is ui/hooks/useShortcuts.ts (D-116)
-│   │   ├── moonPhrases.ts          # phase name, illumination, glare and lore -> message keys (FR-MOON-3/4/5)
-│   │   └── readiness.ts            # stored passes + forecast -> Readiness (FR-OFF-4)
-│   │   ├── flags.ts                # v1.1: MOON_LORE from VITE_MOON_LORE, the only env reader (D-183)
-│   │   ├── legend.ts               # v1.1: SkyChartProps -> LegendRow[] with keys and states (D-186)
-│   │   ├── timeStripe.ts            # v1.4: chunkFor / drawnSpan / STRIPE_CHUNK_H / CHUNK_MIN_WALL_S — the drawn window derived from the instant (FR-SPAN-1, FR-SPAN-6, D-382, D-385)
-│   │   ├── arcReveal.ts            # v1.1: arcState(pass, t) and cutTrack (D-189, FR-TRAJ-1)
-│   │   ├── installSnooze.ts        # v1.1.2: INSTALL_SNOOZE_DAYS and the offer's visibility at an instant (D-272, FR-OFF-6)
-│   │   ├── declination.ts          # v1.1: WMM declination per observer, the only importer of geomagnetism (D-185)
-│   │   ├── nextEvent.ts            # v2.0: nextEvent(passes, t) -> the pass, the kind, the instant and the azimuth, or a reason (FR-FIRST-3, D-442)
-│   │   ├── tonightStripe.ts        # v2.0.2: the 12 h span, the labels, the 30 cells and the ticks (FR-FIRST-8, D-506)
-│   │   ├── passPath.ts             # v2.0.2: start / peak / end, `low` or an altitude by the boundary reasons (D-507)
-│   │   └── moonNote.ts             # v2.0.2: MOON_BRIGHT_PCT and which Moon sentence the phone's when step says (D-513)
-│   ├── ui/
-│   │   ├── App.tsx
-│   │   ├── screens/ Home.tsx  PassDetail.tsx  Live.tsx (FR-LIVE-1)  Settings.tsx (v1.1, #settings, D-184; v2.0 re-ordered, D-445)  passSelection.ts (hash ↔ selected pass, D-13/D-33)
-│   │   │     v2.0: liveRows.ts (rowsFor(state, mode, shape) -> the row ids the page renders; FR-WATCH-4, D-447)
-│   │   ├── components/
-│   │   │   ├── location/ LocationInput.tsx  PlacePicker.tsx  CoordsInput.tsx  UseMyLocation.tsx
-│   │   │   ├── now/ NowPanel.tsx
-│   │   │   ├── passes/ PassList.tsx  PassCard.tsx  IssHeroCard.tsx  SortToggle.tsx  nightGroups.ts (the run's window -> one group per night, D-146)  passCursor.ts (where j/k move: focus over the cards on offer, D-165)
-│   │   │   ├── guide/ GuideText.tsx  PassNumbers.tsx  GuidePanel.tsx (the wide shell, D-72)
-│   │   │   ├── live/ StatusStrip.tsx  TimeStripe.tsx (SVG, D-82)  PlaybackControls.tsx  compassHeading.ts (FR-LIVE-8, D-175; FollowPhone.tsx and useFollowPhone.ts deleted in v1.3.1, D-350)  useWakeLock.ts (FR-LIVE-7, D-174)
-│   │   │   │     v1.1: TimeReadout.tsx (FR-TRAJ-4)  the stepping control the spike names (FR-TRAJ-5)  the strip's declination line (D-185)
-│   │   │   │     v1.3: FollowScreen.tsx + FollowScreen.module.css (the fixed layer, the `×`, focus; FR-FSC-1..3, D-321) — moved to components/screen/ in v1.3.1 (D-351)
-│   │   │   │     v1.4: StripeOverview.tsx (the whole span in one row, its own slider; FR-SPAN-2, D-383)  StepControls.tsx re-cut to the chunk arrows and the pass jumps, no longer touch-only (FR-SPAN-3, D-384)
-│   │   │   ├── mark/ Mark.tsx + Mark.module.css (two <pre> layers over rasters.json; FR-MARK-3, D-439)  useBead.ts (the one-second timer, reduced motion; FR-MARK-5)  tiers.ts (the ladder, the constants, markCells; FR-MARK-2, D-441)  rasters.json (the six tiers, generated; FR-MARK-2, D-438)   # v2.0
-│   │   │   ├── screen/ SkyScreen.tsx + SkyScreen.module.css (the layer both pages render; FR-FSC-1..4, FR-FSC-9, D-351)  useSkyScreen.ts (the store flag, the tap that asks, the one-reading test; FR-FSC-6, FR-FOL-2, D-350, D-352)   # v1.3.1
-│   │   │   │     v1.4.1: screenTurn.tsx (the context the window reports its quarter through, and the layer's transform; FR-FSC-10, D-426, D-429)
-│   │   │   ├── moon/ MoonLine.tsx  MoonGlare.tsx (label + guide sentence, FR-MOON-2)  MoonLore.tsx (labelled as tradition, FR-MOON-5)
-│   │   │   ├── guide/skychart/          # §8 — the isolation boundary
-│   │   │   │   ├── SkyChart.types.ts     # SkyChartProps (the contract both views implement)
-│   │   │   │   ├── bodies.ts             # pure: when the Sun and Moon are drawn, the glow's ramp, the phase glyph (FR-DOME-6, D-151)
-│   │   │   │   ├── useSkyBodies.ts       # loads lib/skyBodies.ts on demand and evaluates at `now` (D-148, D-149)
-│   │   │   │   ├── SkyChart.tsx          # chooses dome or polar view from the registered SKY_CHART_VIEWS (D-55); the only import the rest of the app uses
-│   │   │   │   ├── dome/                 # the ONLY directory allowed to import @glyphcss/react; lazy in SkyChart.tsx (D-66)
-│   │   │   │   │   ├── SkyDome.tsx       # implements SkyChartProps with GlyphScene/GlyphMesh/GlyphHotspot; drag, keys, readout (D-64)
-│   │   │   │   │   ├── SkyDome.module.css  # glyphcss 0.1.6 base rules (D-61) and the 6.5 × 13 px cell
-│   │   │   │   │   ├── domeGeometry.ts   # pure: passes -> Polygon[] strips, ring/meridian polygons, hotspot anchors
-│   │   │   │   │   ├── camera.ts         # pure: facing/tilt state, rise azimuth -> initial camera, clamp, drag and key steps, grid from width (D-65)
-│   │   │   │   │   ├── domeLayers.ts     # pure: which meshes belong to the base scene and which to the line scene (D-74, FR-DOME-8)
-│   │   │   │   │   ├── palette.ts        # FR-DOME-2 colours read from the tokens through a probe element, re-read on theme change (D-75)
-│   │   │   │   │   └── __snapshots__/SkyDome.golden.txt  # the golden pass raster, reviewed in PRs (§9.1)
-│   │   │   │   ├── polar/
-│   │   │   │       └── SkyPolar.tsx      # implements SkyChartProps as an SVG all-sky chart (FR-GUIDE-2b/4); exports POLAR_VIEW
-│   │   │   │   ├── window/               # v1.1 — the sky window (D-188, FR-WIN-1..6); lane `window`
-│   │   │   │   │   ├── projection.ts     # pure: device rotation + az/alt -> view x/y under the spike's projection, WINDOW_FOV clip
-│   │   │   │   │   ├── useDeviceOrientation.ts  # heading, pitch, roll; D-175's permission path; WINDOW_SMOOTHING; one update per frame
-│   │   │   │   │   ├── screenTurn.ts    # v1.4.1: quarterTurnFor(m, held) — the pose's quarter, hysteresis, the flat hold (FR-FSC-10, D-424)
-│   │   │   │   │   ├── gutter.ts        # v2.0: bearing -> x, the bracket from the projection, the per-pass branch (FR-GUT-1..6, D-450)
-│   │   │   │   │   ├── CompassGutter.tsx # v2.0: the gutter in the screen's bottom slot, in place of the legend strip (FR-GUT-1)
-│   │   │   │   │   └── SkyWindow.tsx     # SVG; registers WINDOW_VIEW with available() = the D-175 presence test; v1.3: `screen` rendering; v1.4.1: draws in both orientations, the advice line, reports its quarter (D-427, D-428)
-│   │   │   │   ├── Legend.tsx            # v1.1: the FR-LEG rows as buttons, swatch from the chart palette (D-186)
-│   │   │   │   └── ChartFrame.tsx        # v1.1: owns the box (full-bleed, square / live height) and the legend's slot (D-187); v1.2.1: that slot is the live page's rail where the page hands it one (D-312)
-│   │   │   ├── weather/ CloudBadge.tsx
-│   │   │   └── common/ Countdown.tsx  Banner.tsx  SectionHeading.tsx (character-rule titles, D-49)  Footer.tsx (attributions)
-│   │   │       LanguageToggle.tsx  ThemeToggle.tsx  ShortcutsOverlay.tsx (D-73)  ShareButton.tsx
-│   │   │       ReadinessLine.tsx (FR-OFF-4)  UpdateBanner.tsx (FR-OFF-1)  InstallHint.tsx (FR-OFF-6)
-│   │   │       v1.1: Header.tsx (wide row / compact row, D-184)  LocationSummary.tsx (FR-COMP-3)  InstallAction.tsx + installEnv.ts (the offer without the banner, D-260)
-│   │   ├── hooks/ useNow.ts (the wall clock, shared from R11)  useLayoutMode.ts (compact | wide over matchMedia, D-72/D-116)  useOnline.ts (navigator.onLine, FR-OFF-8, D-147)  useShortcuts.ts (mounts the one keydown listener, D-163/D-167)
-│   │   └── styles/ tokens.css  global.css  theme.ts (the one writer of `data-theme`, D-99)
-│   └── vite-env.d.ts
-├── scripts/
-│   ├── validate-iss.ts             # Task Zero (§10) — runs the physics module in Node
-│   ├── build-mark.ts               # v2.0: drives spike/mark/ with Playwright -> rasters.json, the two icons and the favicon (D-438, D-440; replaces build-icons.ts)
-│   ├── check-catalog.ts            # live: every catalog NORAD id present in visual|stations groups
-│   ├── bundle-budget.ts            # gzipped chunk sizes against the §11 budgets, after `vite build` (D-67)
-│   ├── contrast.ts                 # WCAG ratios of the tokens.css text pairs, both themes (D-50, D-84)
-│   ├── sdd-run.ts                  # the v1 task driver's CLI: --status, --dry-run, --wave, --task (§16, D-86)
-│   └── sdd/
-│       ├── tasks.ts             # parses TASKS.md: id, checkbox, Lane, Model, Gate, Depends on (§16.3)
-│       ├── waves.ts             # merged / in-review / failed / blocked / ready; the wave's caps (§16.2)
-│       ├── session.ts           # one `claude -p` session: model, allowlist, turn cap, wall clock (§16.4)
-│       ├── git.ts               # every git and `gh` call the driver makes; sessions make none
-│       └── report.ts            # the per-task log and the run summary (§16.4)
-├── spike/
-│   ├── horizon-panorama/           # R14 candidate second view, kept
-│   ├── mark/                       # v2.0: the mark's scene at each tier's grid — the only place glyphcss is used for it (D-438)
-│   └── dome-composition/           # FR-DOME-8: every knob as a URL parameter (the first v1 task)
-│   └── window/                     # v1.1, FR-WIN-7: projection, field of view, sensor path and stripe stepping as URL parameters (the first v1.1 task)
-├── logs/sdd/                       # driver logs, one per task session (§16); git-ignored
-├── docs/
-│   ├── RELEASE.md                  # release checklist: headers, phone performance (FR-GUIDE-6), deploy-day Heavens-Above comparison
-│   ├── screenshots/                # per-task captures at 390 px and 1280 px, both languages, both themes
-│   ├── mockups/                    # the owner-approved desktop reference (FR-DESK-5)
-│   │                               # v1.1: compact-390.html and its PNGs, the FR-COMP-6 reference (D-191)
-│   ├── window/                     # v1.1: the FR-WIN-7 spike's captures, rates and findings
-│   ├── dome-composition/           # the FR-DOME-8 spike's captures, drag rates and findings
-│   └── spike-glyphcss/             # R14 findings, rasters and screenshots
+│   ├── main.tsx  vite-env.d.ts
+│   ├── model/  (12)                    # shared types only, zero imports: catalog, elements, observer, pass, place, weather, thresholds, prefs, moon, offline
+│   ├── physics/  (27)                  # pure functions, the thing Task Zero validates (§10), a test beside each: constants, time, sgp4, frames, sun, shadow, magnitude, moon, visibility, passes, darkness, now
+│   ├── worker/  (8)                    # protocol.ts (§6), handlers.ts (pure, testable in Node), nights.ts (D-77, D-95), passes.worker.ts
+│   ├── i18n/  (18)                     # en.ts / es.ts and their en/, es/ parts (chart, failure, live, ui, window); messages.ts, locale.ts, useT.ts (FR-I18N-1..6, D-69); a missing Spanish key is a tsc error
+│   ├── data/  (32)                     # catalog/ (catalog.json, schema.ts), moon/ (lore.json, schema.ts), openMeteo/ (geocode, forecast, schemas); zod.ts (the only importer of zod, D-26), schemas.ts, db.ts (D-105), celestrak.ts, elementsCache.ts, elementsLoader.ts, passesCache.ts, weatherCache.ts, storage.ts, favourites.ts, localPrefs.ts
+│   ├── state/  (27)                    # store.ts and slices/ (appUpdate, elements, location, now, passes, prefs, retry, ui, weather); effects.ts, failure.ts, hash.ts, liveNow.ts, moonLore.ts, openLink.ts, passWindow.ts, serviceWorker.ts, workerClient.ts
+│   ├── lib/  (60)                      # presentation helpers, pure, one module per question with its test beside it: compass, phrases, format, passSort, cloudVerdict, skyGeometry, skyBodies (its own chunk, D-148), shareLinks, layout, shortcuts, moonPhrases, readiness, flags, legend, timeStripe, arcReveal, installSnooze, declination, nextEvent, tonightStripe, passPath, moonNote, faint, nights, playback, routeTitle, …
+│   └── ui/
+│       ├── App.tsx  Shell.tsx  RootBoundary.tsx  navigation.ts   # and their .module.css
+│       ├── screens/  (30)              # Home.tsx and home/ (the three steps of the first run, FR-FIRST-1..11), PassDetail.tsx, Live.tsx + LiveRoute.ts + liveRows.ts, Settings.tsx + SettingsRoute.tsx + settingsChunk.ts, passSelection.ts (hash ↔ selected pass, D-13/D-33)
+│       ├── components/
+│       │   ├── common/  (45)           # Header, Footer (the four attributions, FR-X-2), Banner, Countdown, FailureLine (FR-FAIL), InstallAction + InstallHint + installEnv + installOffer, LanguageToggle, ThemeToggle, OptionToggle, ReadinessLine, SectionHeading, ShareButton, ShortcutsOverlay, UpdateBanner, VisitNotice
+│       │   ├── elements/  (6)          # ElementsBanners, ElementsLine
+│       │   ├── location/  (21)         # LocationInput, PlacePicker, CoordsInput, UseMyLocation, Favourites, ClearSavedLocation, WherePlace, WhereDome
+│       │   ├── now/  (7)               # ConditionsTable, TonightStripe, useTonight (FR-FIRST-8, FR-FIRST-9)
+│       │   ├── passes/  (22)           # PassList, PassCard, NextEventBlock, OpenGuide, SortToggle, FaintToggle, ListFailure, nightGroups.ts (D-146), passCursor.ts (D-165)
+│       │   ├── guide/  (8)             # GuideText, PassNumbers, GuidePanel (the wide shell, D-72)
+│       │   ├── guide/skychart/  (18)   # §8 — the isolation boundary: SkyChart.tsx (chooses a view from SKY_CHART_VIEWS, D-55), SkyChart.types.ts, bodies.ts, useSkyBodies.ts, ChartFrame (the box, D-187), Legend, LegendSwatch
+│       │   │   ├── dome/  (17)         # the ONLY directory that imports @glyphcss/react, lazy in SkyChart.tsx (D-66): SkyDome, camera, domeGeometry, domeLayers, palette, wiys-braille.otf, __snapshots__/SkyDome.golden.txt (§9.1)
+│       │   │   ├── polar/  (4)         # SkyPolar.tsx, the SVG all-sky chart (FR-GUIDE-2b/4)
+│       │   │   └── window/  (15)       # lane `window`: SkyWindow, projection, useDeviceOrientation, orientationAccess, screenTurn (FR-FSC-10), gutter + CompassGutter (FR-GUT)
+│       │   ├── live/  (39)             # StatusStrip, StateIndicator, TimeStripe, StripeOverview, StepControls, PlaybackControls, TimeReadout; the hooks usePlayback, usePageShape, useSkyBands, useWakeLock, useDeclination, useHiddenObjects, useWallThrottle; compassHeading, liveArcs, hiddenObjects, touch
+│       │   ├── screen/  (6)            # SkyScreen (the layer both pages render, FR-FSC-1..11, D-351), useSkyScreen, screenTurn.tsx (D-426)
+│       │   ├── mark/  (19)             # Mark.tsx, tiers.ts, useBead.ts, rasters.json and the tier snapshots (FR-MARK-1..8, D-438..D-441)
+│       │   ├── moon/  (9)              # MoonAtPeak, MoonGlare, MoonLore (FR-MOON)
+│       │   └── weather/  (3)           # CloudBadge
+│       ├── hooks/  (9)                 # useNow, useLayoutMode (D-72/D-116), useMediaQuery, useOnline (D-147), useShortcuts (D-163/D-167), useOpenerFocus
+│       └── styles/  (3)                # tokens.css, global.css, theme.ts (the one writer of `data-theme`, D-99)
+├── scripts/  (13)
+│   ├── sdd-run.ts  sdd/  (7)           # the driver's CLI and its parts: cli, tasks, waves, brief, session, git, report (§16.4)
+│   ├── validate-iss.ts                 # Task Zero (§10) — the physics module against the Heavens-Above fixtures, in Node
+│   ├── bundle-budget.ts                # gzipped chunk sizes against the §11 budgets, after `vite build` (D-67, D-178)
+│   ├── check-catalog.ts  contrast.ts  build-stored-run.ts
+│   ├── build-mark.ts  build-braille-font.ts   # the mark's rasters and icons (D-438); the braille font the dome renders with
+│   ├── mockup-capture.ts               # docs/mockups/*.png
+│   ├── readme-hero.ts                  # docs/readme/hero.png and social-preview.png, composed from committed captures (FR-PUB-2, FR-PUB-11, FR-ADDR-4)
+│   ├── third-party-notices.ts          # public/third-party-notices.txt from the installed tree (FR-PUB-5)
+│   ├── check-trailers.ts               # FR-PUB-12, run by ci.yml's trailers job on a full-history checkout
+│   └── prune-merged-branches.ts        # FR-PUB-13
+├── spike/  (42)                        # dev-only Vite pages, kept as the record of what was tried: the R14 glyphcss spike at the root, bundle/, dome-composition/ (FR-DOME-8, the first v1 task), mark/ (D-438), window/ (FR-WIN-7, the first v1.1 task)
 ├── tests/
-│   ├── fixtures/
-│   │   ├── omm/                    # recorded CelesTrak JSON, dated
-│   │   ├── heavens-above/          # hand-transcribed pass tables, dated, with capture metadata
-│   │   └── open-meteo/             # recorded geocode + forecast responses
-│   ├── e2e/                        # Playwright; v2.2: promo-record.spec.ts, the `promo` project's flows into promo/ (D-652, D-653)
-│   ├── docs/                       # claims about the repository as tests: hygiene, ci, captures, public, trailers; v2.2: accuracy, promo (D-368, D-650)
-│   ├── deploy/                     # `_headers` pinned to §11; CSP covers every referenced host (D-25)
-│   ├── styles/                     # tokens.css contrast table recomputed and pinned (D-50)
-│   └── setup/                      # fake-indexeddb, MSW handlers
-└── .github/workflows/ ci.yml  live-contract.yml (scheduled, non-blocking)
+│   ├── fixtures/  (19)                 # omm/ (recorded CelesTrak JSON, dated), heavens-above/ (hand-transcribed pass tables, dated, with its README), open-meteo/ (recorded geocode and forecast responses), reference-values.json, stored-run-neuquen.json, guide-sentences.json
+│   ├── e2e/  (89)                      # Playwright: 83 specs and 6 helpers; captureSet.ts names the v1-* release set, v1-captures.spec.ts shoots it (D-179)
+│   ├── docs/  (5)                      # claims about the repository as tests: ci, hygiene, captures, public, trailers; P3 adds accuracy (D-368, D-650)
+│   ├── deploy/  (3)                    # `_headers` pinned to §11 (D-25), the manifest, wrangler.jsonc
+│   ├── build/  (3)                     # the built output: the flag, the mark's icons and rasters
+│   ├── styles/  (7)                    # the tokens.css contrast table (D-50), the breakpoint, control rows counted in cells
+│   ├── live/  (3)                      # the scheduled contract run against CelesTrak and Open-Meteo (live-contract.yml), never part of `npm test`
+│   ├── sdd/  (7)                       # the driver's own tests, with a sample TASKS.md under fixtures/
+│   ├── setup/  (3)  support/  (9)      # fake-indexeddb, MSW, the two Vitest setups; shared fixtures and helpers
+│   └── spike/  (1)
+└── docs/  (972)
+    ├── HOW-THIS-WAS-BUILT.md  RELEASE.md  DEPLOY.md   # the reading order (FR-PUB-3), the release checklist, the owner's deploy runbook (V13-16)
+    ├── readme/  (2)                    # hero.png, social-preview.png
+    ├── screenshots/  (756)             # the v1-* release set (254) and the per-task captures (FR-COMP-6, D-179)
+    ├── mockups/  (11)                  # the two owner-approved references (FR-DESK-5, FR-COMP-6)
+    └── dome-composition/  (107)  spike-glyphcss/  (80)  window/  (13)   # the three spikes' findings, rasters, measurements and captures
 ```
+
+Ignored and never tracked (D-651): `node_modules/`, `dist/`, `coverage/`, `test-results/`, `playwright-report/`, `logs/`, `.sdd-cache/`, `sdd-run/`, `redesign/`, `promo/`.
 
 Unit tests are co-located (`*.test.ts` beside the source). `tests/` holds fixtures, e2e, and shared setup.
 
