@@ -146,6 +146,23 @@ export const HOME_MAX_CELLS = 160;
  */
 export const COMPACT_MAX_CELLS = 60;
 
+/**
+ * R102 (FR-HOME-3 as amended v2.2, FR-SHOW-8; D-664, D-681): the viewport
+ * width from which the wide one-row footer (D-120) holds one line with its
+ * fourth credit, per language — the Spanish row is the longer. Measured on the
+ * built app, not derived: the row's cells are the catalog's, but a link's
+ * underline and the separators' padding are what decide the wrap, so the
+ * literal is what the browser showed. Below it the row is two lines, from
+ * `WIDE_MIN_PX` up, the 1280 px capture width among them; where it is, the
+ * shell pays the row from its air — the main's padding above and below the
+ * panes halves and the footer's top padding halves (`App.module.css`) — so
+ * FR-HOME-2's block stays on screen at 1024 × 768 and When holds its pane at
+ * 1118 × 700. The stylesheet carries the two literals under `:root[lang]` the
+ * way the header's folds are (D-546); `tests/styles/breakpoint.test.ts` holds
+ * them to these.
+ */
+export const FOOTER_ONE_LINE_MIN_PX = { en: 1330, es: 1349 } as const;
+
 export type LayoutMode = 'compact' | 'wide';
 
 /** Which shell a `matchMedia(WIDE_QUERY)` result means (D-72). */
