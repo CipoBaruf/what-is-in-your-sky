@@ -183,7 +183,7 @@ because a test that did would make this page wrong the moment the next task merg
 | The driver | 396 lines, plus 7 files in `scripts/sdd/` | `wc -l scripts/sdd-run.ts; ls scripts/sdd \| wc -l` | `2b6ff66` |
 | First commit of the driver | `6b79db1`, 2026-09-03 | `git log --diff-filter=A --format='%h %as' -- scripts/sdd-run.ts` | `2b6ff66` |
 | Test files | 194 Vitest files, 83 Playwright specs | `git ls-files '*.test.ts' '*.test.tsx' \| wc -l; git ls-files 'tests/e2e/*.spec.ts' \| wc -l` | `2b6ff66` |
-| Tests | 1791 in 194 files, the last two lines of its output | `npm test` | `2b6ff66` |
+| Tests | 2165 in 194 files, 5 of them skipped — the last two lines of its output | `npm test` | `2b6ff66` |
 | Tracked files | 1703 | `git ls-files \| wc -l` | `2b6ff66` |
 | Captures | 756 PNGs under `docs/screenshots/`, 254 of them the `v1-*` release set | `git ls-files 'docs/screenshots/*.png' \| wc -l; git ls-files 'docs/screenshots/v1-*.png' \| wc -l` | `2b6ff66` |
 | Size of `docs/` | 101 MB, of which `docs/screenshots/` is 83 MB | `du -sm docs docs/screenshots` | `2b6ff66` |
