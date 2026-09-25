@@ -277,6 +277,15 @@
     align-content: stretch;
     align-items: stretch;
     min-height: 0;
+    /* R93 (D-608), R102 (D-681): the row of air above and below the panes is
+       what the shell gives back when it is short of height — half of it to the
+       short window, half to the two-line footer, both rules below — so the two
+       compose by subtraction and, both true, leave none. Each is the share of
+       the row it takes, a number, so the wide blocks keep to cells and rows. */
+    --short-window: 0;
+    --two-line-footer: 0;
+    padding-top: calc(var(--row) * (1 - var(--short-window) - var(--two-line-footer)));
+    padding-bottom: calc(var(--row) * (1 - var(--short-window) - var(--two-line-footer)));
   }
 
   .main > .column {
@@ -356,8 +365,41 @@
    what pins it. */
 @media (min-width: 964px) and (max-height: 720px) {
   .main {
+    --short-window: 0.5;
+  }
+}
+
+/* R102 (FR-HOME-3 as amended v2.2, FR-SHOW-8; D-664, D-681): the two-line
+   footer. With its fourth credit the wide one-row footer (D-120) holds one line
+   only from `FOOTER_ONE_LINE_MIN_PX` — 1118 px in English, 1137 in Spanish,
+   measured on the built app with the library alone in the row (V22-15;
+   `lib/layout.ts`, pinned by `tests/styles/breakpoint.test.ts`) — and below
+   that it is two lines, one row taller than the desk requirements under
+   those widths were measured against. The row is paid
+   from the shell's air, never from the panes: the main's padding above and
+   below them halves, as it does under 720 px tall, and where both rules hold
+   it is none; the footer's own top padding halves with it. The width decides,
+   as it decides the wrap: nothing measures the footer. One literal per
+   language under `:root[lang]`, the way the header's folds are written
+   (`Header.module.css`, D-546). `tests/e2e/home-desk.spec.ts` at 1024 × 768
+   and 1118 × 700 is the proof. */
+@media (min-width: 964px) and (width < 1118px) {
+  :global(:root[lang='en']) .main {
+    --two-line-footer: 0.5;
+  }
+
+  :global(:root[lang='en'] #root) > :global(footer[data-form='short']) {
     padding-top: calc(var(--row) / 2);
-    padding-bottom: calc(var(--row) / 2);
+  }
+}
+
+@media (min-width: 964px) and (width < 1137px) {
+  :global(:root[lang='es']) .main {
+    --two-line-footer: 0.5;
+  }
+
+  :global(:root[lang='es'] #root) > :global(footer[data-form='short']) {
+    padding-top: calc(var(--row) / 2);
   }
 }
 

@@ -22,6 +22,15 @@ import styles from './Footer.module.css';
  * What the short form may not drop is the attribution itself: every provider
  * is still named and still linked, and the CC BY 4.0 licence is still called
  * by name — that is the condition the data is used under, not decoration.
+ *
+ * R102 (FR-SHOW-8, FR-X-2 as amended v2.2, D-657; V22-15): a fourth credit,
+ * the library the sky is drawn with — "Sky chart: glyphcss." — in every form
+ * the footer has. The library alone: its author is not named in the app. In
+ * the full form it is a fourth `Attribution`, one sentence with one link; in
+ * the one-row forms the library's name stands as a link after `Chart:`, the
+ * way the sources stand after `Data:`. It is the last item in each form: the
+ * sources and the page's own lines keep their order, and the one-row forms
+ * stay one row with the privacy word as their only difference (D-548).
  */
 export const ATTRIBUTION_URLS = {
   celestrak: 'https://celestrak.org/',
@@ -29,6 +38,8 @@ export const ATTRIBUTION_URLS = {
   geonames: 'https://www.geonames.org/',
   /** Not an attribution: whose page this is (FR-X-2, amended). */
   author: 'https://github.com/CipoBaruf',
+  /** R102 (FR-SHOW-8): the library the sky is drawn with. */
+  glyphcss: 'https://glyphcss.com',
 } as const;
 
 export interface FooterProps {
@@ -85,6 +96,9 @@ export function Footer({ inert = false, form = 'full' }: FooterProps) {
           )}
           <span className={styles.dot}>·</span>
           <Linked text={t.footer.credit} href={ATTRIBUTION_URLS.author} />
+          <span className={styles.dot}>·</span>
+          {t.footer.short.chart}{' '}
+          <a href={ATTRIBUTION_URLS.glyphcss}>{t.footer.chart.link}</a>
         </p>
       </footer>
     );
@@ -97,6 +111,7 @@ export function Footer({ inert = false, form = 'full' }: FooterProps) {
       <Attribution text={t.footer.geonames} href={ATTRIBUTION_URLS.geonames} />
       <p className={styles.line}>{t.footer.privacy}</p>
       <Attribution text={t.footer.credit} href={ATTRIBUTION_URLS.author} />
+      <Attribution text={t.footer.chart} href={ATTRIBUTION_URLS.glyphcss} />
     </footer>
   );
 }

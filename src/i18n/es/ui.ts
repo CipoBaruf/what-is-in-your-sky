@@ -490,10 +490,12 @@ export const ui: typeof EnUi = {
     geonames: { before: 'Búsqueda de lugares por la geocodificación de Open-Meteo, con datos de ', link: 'GeoNames', after: ' (CC BY 4.0).' },
     privacy: 'Sin analítica ni rastreo: la ubicación se guarda solo en este navegador.',
     credit: { before: 'Hecho por ', link: 'Ezequiel Baruf', after: '.' },
+    chart: { before: 'Carta del cielo: ', link: 'glyphcss', after: '.' },
     short: {
       sources: 'Datos:',
       licence: '(CC BY 4.0)',
       privacy: 'Sin rastreo',
+      chart: 'Carta:',
     },
   },
 };

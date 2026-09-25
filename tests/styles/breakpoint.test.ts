@@ -22,7 +22,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { BASE_FONT_PX, CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, COMPACT_MAX_CELLS, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HOME_MAX_CELLS, HOME_THREE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, LANDSCAPE_PHONE_QUERY, SHELL_PADDING_CELLS, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_CELLS, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
+import { BASE_FONT_PX, CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, COMPACT_MAX_CELLS, FOOTER_ONE_LINE_MIN_PX, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HOME_MAX_CELLS, HOME_THREE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, LANDSCAPE_PHONE_QUERY, SHELL_PADDING_CELLS, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_CELLS, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
 
 const UI_DIR = 'src/ui';
 const TOKENS_PATH = 'src/ui/styles/tokens.css';
@@ -254,6 +254,52 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
     // Nothing in src/ui still draws the 80-cell frame. (The shortcuts overlay's 72-cell panel is a layer over the
     // page, like the sky screen, and not a column of it.)
     for (const [path, css] of files) expect(css, `${path} still carries the 80-cell frame`).not.toContain('80 * var(--cell)');
+  });
+
+  /*
+   * R102 (FR-HOME-3 as amended v2.2, FR-SHOW-8; D-664, D-681): the sixth
+   * literal is a pair, one per language — the width from which the wide
+   * one-row footer holds one line with its fourth credit, measured on the
+   * built app and not derived, so this test cannot check it against a cell
+   * count. What it holds: the two numbers are the measured ones (V22-15: the
+   * library alone in the row, 1118/1137, down from 1330/1349 with the
+   * author's name); the Spanish row is the longer; both stand inside the wide
+   * range, under the split literal and between the two desk capture widths,
+   * so the 1024 px captures show the wrap and the 1280 px ones do not; and
+   * `App.module.css` carries each under its own `:root[lang]`, as a `width <`
+   * fold from the wide breakpoint, the block halving the main's row of air
+   * (its share of it, so the block stays in rows) and the short footer's top
+   * padding, and touching nothing else.
+   */
+  it('pins the two-line footer\'s fold per language, and the shell pays for it from its air (FR-HOME-3, D-681)', () => {
+    expect(FOOTER_ONE_LINE_MIN_PX).toEqual({ en: 1118, es: 1137 });
+    expect(FOOTER_ONE_LINE_MIN_PX.en).toBeLessThan(FOOTER_ONE_LINE_MIN_PX.es);
+    const CAPTURE_MID_PX = 1024;
+    const CAPTURE_DESK_PX = 1280;
+    for (const px of Object.values(FOOTER_ONE_LINE_MIN_PX)) {
+      expect(px).toBeGreaterThan(WIDE_MIN_PX);
+      expect(px).toBeGreaterThan(CAPTURE_MID_PX);
+      expect(px).toBeLessThan(WIDE_SPLIT_MIN_PX);
+      expect(px).toBeLessThan(CAPTURE_DESK_PX);
+      expect(px).toBeLessThan(pxFor(HOME_MAX_CELLS, CELL_ADVANCE_EM_MAX));
+    }
+    const app = readFileSync(APP_PATH, 'utf8');
+    for (const [lang, px] of Object.entries(FOOTER_ONE_LINE_MIN_PX)) {
+      const blocks = mediaBlocks(app, new RegExp(`^\\s*\\(min-width:\\s*${String(WIDE_MIN_PX)}px\\)\\s*and\\s*\\(width\\s*<\\s*${String(px)}px\\)\\s*$`));
+      expect(blocks, `${APP_PATH} should fold the ${lang} footer at ${String(px)} px from the wide breakpoint, once`).toHaveLength(1);
+      const body = (blocks[0]?.body ?? '').replace(/\/\*[\s\S]*?\*\//g, '');
+      const rules = [...body.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => [m[1]?.trim() ?? '', m[2]?.trim() ?? ''] as const);
+      expect(rules.map(([selector]) => selector)).toEqual([`:global(:root[lang='${lang}']) .main`, `:global(:root[lang='${lang}'] #root) > :global(footer[data-form='short'])`]);
+      expect(rules[0]?.[1]).toBe('--two-line-footer: 0.5;');
+      expect(rules[1]?.[1]).toBe('padding-top: calc(var(--row) / 2);');
+    }
+    // The main's air is one calculation, the two shares subtracted, so both rules true leave none (D-608 composes).
+    const wide = wideBlocks(app).join('\n');
+    expect(wide).toContain('padding-top: calc(var(--row) * (1 - var(--short-window) - var(--two-line-footer)));');
+    expect(wide).toContain('padding-bottom: calc(var(--row) * (1 - var(--short-window) - var(--two-line-footer)));');
+    const short = mediaBlocks(app, /max-height:\s*720px/);
+    expect(short).toHaveLength(1);
+    expect(short[0]?.body.replace(/\/\*[\s\S]*?\*\//g, '').trim()).toBe('.main {\n    --short-window: 0.5;\n  }');
   });
 
   it('writes every width inside a wide block in cells or rows, never in px (FR-DESK-1)', () => {
