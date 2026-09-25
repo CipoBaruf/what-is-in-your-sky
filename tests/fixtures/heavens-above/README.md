@@ -48,7 +48,7 @@ Notes on the 2026-09-02 capture:
   spike is validated on one pass, and that pass is horizon-bounded at both ends, so the shadow model (D-8)
   was **not** exercised against Heavens-Above. See PLAN §2.1 for what was checked instead.
 - Brightness (informational): ours +1.2 with `stdMag = −1.8`, Heavens-Above −0.3 at the same point
-  (−0.1 at maximum altitude). A 1.3–1.5 mag offset at a 1 505 km range and a back-lit geometry is
+  (−0.1 at maximum altitude). A 1.3–1.5 mag offset at a 1 505 km range and a back-lit geometry
   was left for R3, which settled the `stdMag` provenance (the catalog seeds the ISS at −2.5 from McCants' `qs.mag`, with its source and date in `stdMagSource`); the acceptance criterion does not include brightness, and the golden script still runs on the −1.8 seed below so the recorded comparison stays reproducible.
 
 ### 2026-09-02 Paris (H)

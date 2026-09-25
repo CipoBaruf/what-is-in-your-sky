@@ -9,9 +9,9 @@ strict CSP): this list is what CI cannot see.
 
 Sections 1–5 are every release. **Section 6 is the v1 list** (spec §9 Phase 2): the
 checks the v1 surface added, plus the tag and the deploy, which are the owner's. Each
-phase since has added a section of its own, and each is kept as it was run: §6 to §13 are
+phase since has added a section of its own, and each is kept as it was run: §6 to §9 and §11 to §13 are
 the released versions' lists and are **history** — read them for what was checked, not as
-work to do — while **§14 is v2.2's** (spec §9 Phase 2i), the phase in progress, and §13 is
+work to do — §10, the repository's metadata, is current like §1–§5, while **§14 is v2.2's** (spec §9 Phase 2i), the phase in progress, and §13 is
 the last release, `2.1.0`. §12.1 has to be run from a clean browser before anything else in
 §12, and its runs are still the reference for the screens the later phases did not touch.
 

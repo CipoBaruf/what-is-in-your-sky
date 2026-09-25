@@ -137,11 +137,12 @@ scans every tracked text file, `.claude/**` included, for both shapes and fails 
 
 What is not tracked, and why: `sdd-run/` (the briefs and summaries the driver writes for
 each run, regenerated every time), `logs/` (the session logs), `.sdd-cache/` (the driver's
-scratch), `handoff/` and `redesign/` (the design phase's artboards and guides, the owner's
-working material, V20-11) and `promo/` (the recordings a post is cut from, FR-SHOW-6).
-[`.gitignore`](../.gitignore) names them, and
-[`tests/docs/hygiene.test.ts`](../tests/docs/hygiene.test.ts) asserts that nothing under
-any of them is tracked.
+scratch), `redesign/` (the design phase's artboards, the owner's working material, V20-11) and
+`promo/` (the recordings a post is cut from, FR-SHOW-6). [`.gitignore`](../.gitignore)
+names those five, and [`tests/docs/hygiene.test.ts`](../tests/docs/hygiene.test.ts)
+asserts that nothing under any of them is tracked. The design handoff's guides in
+`handoff/` are kept out on the owner's machine alone, by `.git/info/exclude`, so a clone
+has no such folder and the ignore file does not name it.
 
 ## Why `docs/` is as big as it is
 
@@ -177,8 +178,8 @@ because a test that did would make this page wrong the moment the next task merg
 | Commits on `main` | 232 | `git rev-list --count origin/main` | `2b6ff66` |
 | Requirement ids named in the spec | 260 | `grep -oE '\bFR-[A-Z0-9]+-[0-9]+\b' SPEC.md \| sort -u \| wc -l` | `2b6ff66` |
 | Highest decision id | `D-681` | `grep -oE '\bD-[0-9]+' PLAN.md \| sort -t- -k2 -n \| tail -1` | `2b6ff66` |
-| Findings recorded (SPEC §4.20) | 100 (`F-1` … `F-100`) | `grep -cE '^\| \*?\*?F-[0-9]+' SPEC.md` | `2b6ff66` |
-| Decision Log rows (SPEC §12) | 139 | `grep -cE '^\| [0-9]{4}-[0-9]{2}-[0-9]{2} \| V' SPEC.md` | `2b6ff66` |
+| Findings recorded (SPEC §4.20) | 100 (`F-1` … `F-100`) | `grep -c '^\| \**F-[0-9]' SPEC.md` | `2b6ff66` |
+| Decision Log rows (SPEC §12) | 139 | `grep -c '^\| [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} \| V' SPEC.md` | `2b6ff66` |
 | Lines in the three documents | 1850, 2435, 2748 | `wc -l SPEC.md PLAN.md TASKS.md` | `2b6ff66` |
 | The driver | 396 lines, plus 7 files in `scripts/sdd/` | `wc -l scripts/sdd-run.ts; ls scripts/sdd \| wc -l` | `2b6ff66` |
 | First commit of the driver | `6b79db1`, 2026-09-03 | `git log --diff-filter=A --format='%h %as' -- scripts/sdd-run.ts` | `2b6ff66` |
