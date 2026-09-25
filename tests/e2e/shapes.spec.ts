@@ -11,7 +11,7 @@
  *     at all (FR-LIVE-1);
  *   - the chart box is at least `LIVE_BOX_MIN_PX` tall and has a drawing in it;
  *   - on compact, FR-COMP-5's floor by height (R95, F-62): never shorter than
- *     wide from 844 px tall, and `COMPACT_BOX_MIN_SHORT_PX` at 390 × 667;
+ *     wide from 844 px tall, and `COMPACT_BOX_MIN_SHORT_PX` at 390 × 667 while watching;
  *   - the drawing covers 90–100 % of the box's shorter side (FR-DOME-1).
  *
  * The home page and the pass detail take the compact-portrait and desktop rows
@@ -143,10 +143,13 @@ const FOLD_ACTIONS_UNDER_VIEWPORT_PX = liveKeptPx('watching') + foldBelowPx('act
 const floorFor = (size: Size, state: 'watching' | 'scrubbing'): number => FLOOR_ALLOWANCE[label(size)]?.[state] ?? LIVE_BOX_MIN_PX;
 
 /**
- * R95 (FR-COMP-5 as amended v2.1, F-62): the compact box's floor, restated by height. On a compact portrait page at
+ * R95 (FR-COMP-5 as amended v2.1, V21-23, F-62): the compact box's floor, restated by height. On a compact portrait page at
  * least this tall the box is never shorter than it is wide — 374 px at 390 × 844, where F-62 measured 259 before
  * R71 and 375 after it; at 390 × 667 it is at least `COMPACT_BOX_MIN_SHORT_PX`, since every gap is already at its
- * minimum there and the rows are the page's inventory. Both are asserted in both states, with the list closed
+ * minimum there and the box is what the rows leave: 329 with a one-line path on the headline, 306 with this seed's
+ * two-line path (V21-23, D-615). The square rule is asserted in both states on the phones and while watching on the
+ * tablets, where R99's column caps the box; the short phone's floor while watching
+ * only (scrubbing's stripe block leaves it about 220), with the list closed
  * (FR-LEG-8) and R101's `[ see this pass ]` on the headline, which is how `openLive` leaves the page. The compact
  * rows outside these two rules keep `FLOOR_ALLOWANCE`'s: 360 × 640 and 844 × 501 are the compact page's own.
  */
@@ -483,11 +486,14 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       // The box is at least the floor and has a drawing in it (US-25 AC2, FR-SHP-3).
       expect(box.height, `${at}: the chart box is ${String(Math.round(box.height))} px tall`).toBeGreaterThanOrEqual(floorFor(size, state));
       expect(box.width, at).toBeGreaterThan(0);
-      // FR-COMP-5 as amended v2.1 (R95, F-62): the compact box's floor by height, in both states.
-      if (width < WIDE_MIN_PX && height >= COMPACT_BOX_SQUARE_FROM_PX) {
+      // FR-COMP-5 as amended v2.1 (R95, V21-23, F-62; D-615): the compact box's floor by height — the square rule in
+      // both states where the box spans the viewport (the phones), while watching where R99's column caps it (the
+      // tablets: 578 × 577 scrubbing at 768 × 1024), and the short phone's floor while watching.
+      const capped = box.width < width;
+      if (width < WIDE_MIN_PX && height >= COMPACT_BOX_SQUARE_FROM_PX && (state === 'watching' || !capped)) {
         expect(box.height, `${at}: the compact box is ${fmt(box)}, shorter than it is wide (FR-COMP-5)`).toBeGreaterThanOrEqual(box.width);
       }
-      if (label(size) === COMPACT_SHORT_PHONE) {
+      if (label(size) === COMPACT_SHORT_PHONE && state === 'watching') {
         expect(box.height, `${at}: the short phone's box is ${fmt(box)}, under COMPACT_BOX_MIN_SHORT_PX (FR-COMP-5)`).toBeGreaterThanOrEqual(COMPACT_BOX_MIN_SHORT_PX);
       }
       expect(ink.layers.length, `${at}: no drawing in the box`).toBeGreaterThan(0);
