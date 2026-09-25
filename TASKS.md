@@ -2347,7 +2347,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
     - `npm test`, lint, typecheck and the e2e path green inside FR-CI-1's ten minutes.
     - The owner's gate: 1024 in Spanish, 1920, and the captures.
 
-- [ ] **R95 — FR-COMP-5's restated floor asserted, and §4.20's register**
+- [x] **R95 — FR-COMP-5's restated floor asserted, and §4.20's register** *(done with the floor restated by the owner, V21-23 / D-615: `COMPACT_BOX_MIN_SHORT_PX` is 304 and asserted while watching, because a two-line path gives 306 and scrubbing gives 220; the 844 rule is asserted in both states on the phones and while watching on R99's tablets, which measure 578 × 577 while scrubbing. The register also covers R93 and R94.)*
   - **Lane:** live
   - **Model:** fable
   - **Gate:** auto
