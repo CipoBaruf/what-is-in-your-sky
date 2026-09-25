@@ -769,9 +769,9 @@ version in the release PR: that is what FR-A11Y-6 asks for.
       once, not twice (FR-ROUTE-1, F-91).
 - [ ] **Live** (`#live`). Entering it moves the focus to the page, its landmarks are
       there (F-71), and the watching headline's times are read with `rise`, `peak`
-      and `end` (F-81). **F-100:** with the screen reader off, tap into `#live` and look
-      at the back control — the captures draw a focus ring round it that crosses the
-      line below. No ring on the phone: close F-100. A ring that covers text: keep it.
+      and `end` (F-81). **F-100** (fixed in the release, D-642): with the screen reader off, tap
+      into `#live` and look at the back control. If a ring is drawn, it hugs `[ ← ]`
+      and stays off the line below. A ring that covers text reopens F-100.
 - [ ] **Settings** (`#settings`). Every row is read once — the install row is not
       "Instalar, Instalar" (F-83) — and the install button, if the browser offers one,
       still works after a cancelled dialog (FR-FAIL-8, F-95).
@@ -782,19 +782,17 @@ version in the release PR: that is what FR-A11Y-6 asks for.
 
 ### 13.5 What the owner decides on this release
 
-- [ ] **F-69, main still over its budget.** The 2.1.0 build measures **166.6 KB** in
-      main against 155 (V21-13 kept the number; PLAN D-638). The settings split is made
-      and gives 0.2 KB; the rest of the phase put 8.8 KB in. PLAN D-609 has what main
-      carries — React 59, zod 24, the store and data layer 20, `lib` 16, the screens
-      16, the guide 10, the catalogs 16. The choices are the ones F-69 already offered,
-      plus two D-609 adds: take zod out of the shell's path, or put the guide behind a
-      `React.lazy`. Each is a Decision Log row; doing nothing costs the warning.
+- [x] **F-69, main over its budget.** Decided at the gate (V21-24, D-641): main's
+      budget is 170, the §11 ceiling, against the 166.6 KB it measures. 3.4 KB is left;
+      PLAN D-609's remedies (zod out of the shell's path, the guide behind
+      `React.lazy`) are for the phase that needs more.
 - [ ] **F-66, F-70 and F-99.** Read the two `captures.yml` runs on the release commit
       (§13.6) and diff them. The two local runs differed in 38 of 254 files (PLAN
       D-639): about half are sub-pixel edges (F-66, F-70), and the rest are the live
-      page's shown instant a second apart (F-99), which is a real FR-CAP-5 miss with a
-      likely cause and no task. Byte-identical on CI: close F-66 and F-70. Different:
-      keep them with the file names, and decide whether F-99 gets a task.
+      page's shown instant a second apart (F-99). F-99 is fixed in the release (D-642):
+      two local runs now differ in 7 files, none on a clock. Byte-identical on CI:
+      close F-66 and F-70. Different: keep them with the file names. A clock that
+      differs reopens F-99.
 - [ ] **OQ-33**, the stripe with no dark band, is still open for want of a night to
       look at (SPEC §7). Close it or carry it.
 
@@ -815,6 +813,6 @@ Owner steps, in this order, and none of them belong to a task session:
       against production.
 - [ ] Run §13.1 to §13.4 on the phone, and write the results into the register: F-97
       confirmed or closed, OQ-35's remaining half closed or turned into findings.
-- [ ] Record in the release PR: the bundle table with F-69's overrun named, the
+- [ ] Record in the release PR: the bundle table with main against its new 170, the
       screen reader and its version, the §4 Heavens-Above comparison with the observer
       and both element epochs, and the date.
