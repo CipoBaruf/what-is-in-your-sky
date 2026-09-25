@@ -40,6 +40,12 @@ export interface Task {
   precondition: string | null;
   /** §16.3 (v1.1): the `F-<n>` findings the task closes (D-194). */
   findings: readonly string[];
+  /** §16.3 (v2.2, D-659): the model the review session runs on, or `null` for §16.6's rule by gate. */
+  review: SessionModel | null;
+  /** §16.3 (v2.2, D-659): the implementation session's turn cap, or `null` for the driver's default; the wall clock scales with it. */
+  turns: number | null;
+  /** §16.3 (v2.2, D-659): whether a limit-stopped session may be retried on the next model down, or `null` for the `--fallback` flag. */
+  fallback: boolean | null;
   /** Position in the file; the driver runs a wave in this order. */
   order: number;
 }
@@ -51,7 +57,10 @@ export interface ParsedTasks {
 }
 
 const HEADING = /^- \[([ xX])\] \*\*([A-Z][A-Z0-9]*)(\s+\[P\])?\s+—\s+([\s\S]+?)\*\*/;
-const FIELD = /^\s+- \*\*(Lane|Model|Gate|Depends on|Precondition|Findings):\*\*\s*(.*?)\s*$/;
+const FIELD = /^\s+- \*\*(Lane|Model|Gate|Depends on|Precondition|Findings|Review|Turns|Fallback):\*\*\s*(.*?)\s*$/;
+/** §16.3 (v2.2): what `Review:` may name — every model a session can run on. */
+const SESSION_MODELS = MODELS.filter((model): model is SessionModel => model !== 'interactive');
+const SWITCH = ['on', 'off'] as const;
 const NONE = /^(—|-|–|none)$/i;
 
 /** Strips markdown emphasis and code ticks from a field value. */
@@ -110,6 +119,9 @@ export function parseTasks(markdown: string): ParsedTasks {
         deps: [],
         precondition: null,
         findings: [],
+        review: null,
+        turns: null,
+        fallback: null,
         order: tasks.length,
       };
       if (tasks.some((task) => task.id === id)) problems.push(`${id}: appears twice in TASKS.md.`);
@@ -132,6 +144,17 @@ export function parseTasks(markdown: string): ParsedTasks {
     } else if (name === 'Gate') {
       current.gate = parseEnum(value, GATES);
       if (!current.gate) problems.push(`${current.id}: \`Gate: ${plain(value)}\` is not one of ${GATES.join(', ')}.`);
+    } else if (name === 'Review') {
+      current.review = parseEnum(value, SESSION_MODELS);
+      if (!current.review) problems.push(`${current.id}: \`Review: ${plain(value)}\` is not one of ${SESSION_MODELS.join(', ')}.`);
+    } else if (name === 'Turns') {
+      const turns = Number(plain(value));
+      current.turns = Number.isInteger(turns) && turns > 0 ? turns : null;
+      if (current.turns === null) problems.push(`${current.id}: \`Turns: ${plain(value)}\` is not a positive whole number.`);
+    } else if (name === 'Fallback') {
+      const setting = parseEnum(value, SWITCH);
+      current.fallback = setting === null ? null : setting === 'on';
+      if (setting === null) problems.push(`${current.id}: \`Fallback: ${plain(value)}\` is not one of ${SWITCH.join(', ')}.`);
     }
   }
 
@@ -169,8 +192,30 @@ export function runBlockers(task: Task): string[] {
 /** §16.6: the model a task's session runs on; Opus is the default. An owner-driven task has no session, so it reads as Opus here only for reporting. */
 export const modelFor = (task: Task): SessionModel => (task.model === null || task.model === 'interactive' ? 'opus' : task.model);
 
-/** §16.6 (D-197): the review runs on Opus where it is the gate (`Gate: auto`) and on Sonnet where the owner reads the PR anyway. */
-export const reviewModelFor = (task: Task): SessionModel => (task.gate === 'owner' ? 'sonnet' : 'opus');
+/**
+ * §16.6 (D-197): the review runs on Opus where it is the gate (`Gate: auto`)
+ * and on Sonnet where the owner reads the PR anyway — unless the task says
+ * otherwise with `Review:` (v2.2, D-659).
+ */
+export const reviewModelFor = (task: Task): SessionModel => task.review ?? (task.gate === 'owner' ? 'sonnet' : 'opus');
+
+/** §16.3 (v2.2, D-659): `Fallback:` on the task wins over the `--fallback` flag; with neither written, the flag's default. */
+export const fallbackFor = (task: Task, flag: boolean): boolean => task.fallback ?? flag;
+
+/**
+ * §16.3 (v2.2, D-659): the session caps a task runs under. `Turns:` sets the
+ * implementation cap, and everything else — its wall clock, the review's cap
+ * and clock — scales by the same factor, so a task given twice the turns is
+ * given twice the time to spend them and a review sized to the diff.
+ */
+export function limitsFor(
+  task: Task,
+  base: { implement: { maxTurns: number; timeoutMs: number }; review: { maxTurns: number; timeoutMs: number } },
+): { implement: { maxTurns: number; timeoutMs: number }; review: { maxTurns: number; timeoutMs: number } } {
+  const factor = (task.turns ?? base.implement.maxTurns) / base.implement.maxTurns;
+  const scale = (limit: { maxTurns: number; timeoutMs: number }) => ({ maxTurns: Math.round(limit.maxTurns * factor), timeoutMs: Math.round(limit.timeoutMs * factor) });
+  return { implement: scale(base.implement), review: scale(base.review) };
+}
 
 /**
  * §16.4 step 10 (D-197): the model a limit-stopped session is retried on,

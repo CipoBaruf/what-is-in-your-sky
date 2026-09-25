@@ -6,7 +6,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { branchName, byId, modelFor, nextModel, ownerDriven, parseTasks, reviewModelFor, runBlockers, type Task } from '../../scripts/sdd/tasks';
+import { branchName, byId, fallbackFor, limitsFor, modelFor, nextModel, ownerDriven, parseTasks, reviewModelFor, runBlockers, type Task } from '../../scripts/sdd/tasks';
 
 const real = parseTasks(readFileSync('TASKS.md', 'utf8'));
 const sample = parseTasks(readFileSync('tests/sdd/fixtures/tasks-v1-sample.md', 'utf8'));
@@ -129,5 +129,38 @@ describe('the model chain and the review model (§16.6, D-197)', () => {
     expect(sampleTask('R17').gate).toBe('owner');
     expect(reviewModelFor(sampleTask('R19'))).toBe('opus');
     expect(sampleTask('R19').gate).toBe('auto');
+  });
+});
+
+describe('the v2.2 fields: `Review:`, `Turns:` and `Fallback:` (§16.3, D-659)', () => {
+  const base = { implement: { maxTurns: 250, timeoutMs: 45 * 60_000 }, review: { maxTurns: 40, timeoutMs: 15 * 60_000 } };
+  const full = parseTasks(
+    ['- [ ] **P6 — The address**', '  - **Lane:** docs', '  - **Model:** fable', '  - **Gate:** owner', '  - **Review:** opus', '  - **Turns:** 500', '  - **Fallback:** off'].join('\n'),
+  ).tasks[0] as Task;
+
+  it('reads all three and lets them win over the gate rule, the driver defaults and the flag', () => {
+    expect(full).toMatchObject({ review: 'opus', turns: 500, fallback: false });
+    expect(reviewModelFor(full)).toBe('opus');
+    expect(fallbackFor(full, true)).toBe(false);
+    expect(limitsFor(full, base)).toEqual({ implement: { maxTurns: 500, timeoutMs: 90 * 60_000 }, review: { maxTurns: 80, timeoutMs: 30 * 60_000 } });
+  });
+
+  it('leaves a task without them on the old rules: the gate picks the review, the flag decides the fallback, the defaults cap the turns', () => {
+    const plain = sampleTask('R17');
+    expect(plain).toMatchObject({ review: null, turns: null, fallback: null });
+    expect(reviewModelFor(plain)).toBe('sonnet');
+    expect(fallbackFor(plain, true)).toBe(true);
+    expect(fallbackFor(plain, false)).toBe(false);
+    expect(limitsFor(plain, base)).toEqual(base);
+  });
+
+  it('names a bad value against its task and leaves the field null', () => {
+    const bad = parseTasks(['- [ ] **P7 — A task**', '  - **Review:** interactive', '  - **Turns:** many', '  - **Fallback:** maybe'].join('\n'));
+    expect(bad.tasks[0]).toMatchObject({ review: null, turns: null, fallback: null });
+    expect(bad.problems).toEqual([
+      'P7: `Review: interactive` is not one of opus, fable, sonnet, haiku.',
+      'P7: `Turns: many` is not a positive whole number.',
+      'P7: `Fallback: maybe` is not one of on, off.',
+    ]);
   });
 });

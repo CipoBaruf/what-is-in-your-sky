@@ -20,7 +20,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { buildBrief } from './sdd/brief';
 import { helpText, parseArgs, type Options } from './sdd/cli';
-import { modelFor, nextModel, parseTasks, reviewModelFor, type SessionModel, type Task } from './sdd/tasks';
+import { fallbackFor, limitsFor, modelFor, nextModel, parseTasks, reviewModelFor, type SessionModel, type Task } from './sdd/tasks';
 import { addWorktree, branchAt, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, fetchOrigin, fileExistsAtRef, installDeps, labelPullRequest, mergePullRequest, openPullRequests, push, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
 import { consoleLogger, openTaskLog, writeRunReport, type Logger, type RunReport, type TaskReport } from './sdd/report';
 import { DENIED_TOOLS, IMPLEMENT_TOOLS, resetTime, REVIEW_TOOLS, runSession, type SessionOptions, type SessionResult } from './sdd/session';
@@ -106,7 +106,7 @@ function printPlanned(wave: readonly TaskStatus[], skipped: readonly { task: Tas
   if (wave.length === 0) logger.line('\nNothing to run: no task is ready.');
   else {
     logger.line('\nWould run:');
-    for (const { task } of wave) logger.line(`  ${task.id.padEnd(4)} lane ${String(task.lane).padEnd(8)} model ${modelFor(task).padEnd(6)} review ${reviewModelFor(task).padEnd(6)} gate ${String(task.gate).padEnd(6)} branch ${task.branch}`);
+    for (const { task } of wave) logger.line(`  ${task.id.padEnd(4)} lane ${String(task.lane).padEnd(8)} model ${modelFor(task).padEnd(6)} review ${reviewModelFor(task).padEnd(6)} turns ${String(limitsFor(task, { implement: IMPLEMENT, review: REVIEW }).implement.maxTurns).padEnd(4)} gate ${String(task.gate).padEnd(6)} branch ${task.branch}`);
   }
   if (skipped.length > 0) {
     logger.line('\nHeld back:');
@@ -244,20 +244,23 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
     return finish('failed', `brief: ${error instanceof Error ? error.message : String(error)}`);
   }
 
-  logger.line('  running the implementation session…');
+  // §16.3 (v2.2, D-659): `Turns:` and `Fallback:` on the task, else the driver's defaults and the flag.
+  const limits = limitsFor(task, { implement: IMPLEMENT, review: REVIEW });
+  const retryOnLimit = fallbackFor(task, fallback);
+  logger.line(`  running the implementation session… (${String(limits.implement.maxTurns)} turns, ${String(Math.round(limits.implement.timeoutMs / 60_000))} min, fallback ${retryOnLimit ? 'on' : 'off'})`);
   const { session, model } = await runWithFallback(
     'implement',
     modelFor(task),
     {
       cwd: dir,
       prompt: `Use the sdd-implement skill on ${task.id}. Read ${brief} first: it replaces SPEC.md, PLAN.md and TASKS.md for this session. This is a headless session: decide and record rather than ask, and commit each coherent step as you finish it — an uncommitted worktree is what the turn cap and the wall clock throw away.${resumed ? ` An earlier session on this branch was cut short: read \`git log ${BASE}..HEAD\` and \`git status\` first, commit what it left in the working tree if it is coherent, and continue from there rather than starting over.` : ''}`,
-      maxTurns: IMPLEMENT.maxTurns,
-      timeoutMs: IMPLEMENT.timeoutMs,
+      maxTurns: limits.implement.maxTurns,
+      timeoutMs: limits.implement.timeoutMs,
       allowedTools: IMPLEMENT_TOOLS,
       logger,
       env,
     },
-    fallback,
+    retryOnLimit,
     report.attempts,
   );
   report.model = model;
@@ -294,13 +297,13 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
     {
       cwd: dir,
       prompt: `Read ${brief} first: it replaces SPEC.md, PLAN.md and TASKS.md for this session. Then use the code-review skill on this branch's diff against ${BASE}, and write {"findings":[{"file":"","line":0,"summary":""}]} listing what you found to sdd-run/${task.id}.review.json. Change nothing else.`,
-      maxTurns: REVIEW.maxTurns,
-      timeoutMs: REVIEW.timeoutMs,
+      maxTurns: limits.review.maxTurns,
+      timeoutMs: limits.review.timeoutMs,
       allowedTools: REVIEW_TOOLS,
       logger,
       env,
     },
-    fallback,
+    retryOnLimit,
     report.attempts,
   );
   report.durations.reviewMs = report.attempts.filter((attempt) => attempt.stage === 'review').reduce((sum, attempt) => sum + attempt.durationMs, 0);

@@ -27,7 +27,7 @@
 | Inputs (v2.1) | `SPEC.md` v2.1, `PLAN.md` v0.8 (Decision Log V21-1..V21-22 and Decisions D-529..D-550 and D-622..D-626, with §16.17 treated as fixed) |
 | Scope (v2.1) | Spec Phase 2h "the audit and the flow": **R83–R101** in the `## v2.1 tasks` block below, nineteen tasks, eleven waves, five lanes, two models (PLAN §16.17, re-cut in three places to keep sessions out of one file). |
 | Inputs (v2.2) | `SPEC.md` v2.2, `PLAN.md` v0.9 (Decision Log V22-1..V22-11 and Decisions D-647..D-658, with §16.18 treated as fixed) |
-| Scope (v2.2) | Spec Phase 2i "the showcase": **P6, R102, P3, P4, P5** in the `## v2.2 tasks` block below, five tasks, three waves, two lanes (`docs`, `ui`), one model; the address first, the dead code alone and last (PLAN §16.18). |
+| Scope (v2.2) | Spec Phase 2i "the showcase": **P6, R102, P3, P4, P5** in the `## v2.2 tasks` block below, five tasks, three waves, two lanes (`docs`, `ui`), every task on `fable` with an `opus` review, 500 turns and no fallback (V22-13, D-659); the address first, the dead code alone and last (PLAN §16.18). |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |
 
 ## Conventions
@@ -2572,7 +2572,9 @@ Draft, cut 2026-09-25 from `SPEC.md` v2.2 and `PLAN.md` v0.9, for review. Spec P
 
 Delivery is PLAN §16 unchanged, cut by §16.18: five tasks over three waves, on `main` after the `v2.1.0` tag. Four are `P` tasks (§16.12's numbering: the repository's own readiness) and one is `R102`, the phase's one product change. The entries below are in **wave order**. The breakdown takes §16.18 as proposed. No two tasks of a wave name one file: the README's glyphcss paragraph (FR-SHOW-8) is P3's, not R102's, so wave 1 shares nothing, and `.gitignore`'s `/promo` line is P6's, so wave 2 shares nothing.
 
-Decision blocks (§16.2), reserved in PLAN §16.18: **P6 D-659..D-661, R102 D-662..D-665, P3 D-666..D-669, P4 D-670..D-673, P5 D-674..D-679**. D-647..D-658 are the plan's.
+**Sessions for this phase** (V22-13, D-659): every task runs on `fable`, is reviewed on `opus`, has 500 implementation turns (twice the driver's default, the wall clock and the review's cap scaled with it) and is never retried on a lesser model — `Fallback: off`, so a session that ends on a limit fails the task for a rerun on the same model instead of finishing on a cheaper one. The owner chose no economy for the phase the world reads: the three fields are on every entry and the driver reads them (`Review:`, `Turns:`, `Fallback:`, §16.3).
+
+Decision blocks (§16.2), reserved in PLAN §16.18: **P6 D-660..D-662, R102 D-663..D-666, P3 D-667..D-670, P4 D-671..D-674, P5 D-675..D-680**. D-647..D-659 are the plan's.
 
 **Lane ownership for this phase** (§16.1 as amended, §16.18): the `docs` lane owns `docs/**`, the root documents (`README.md`, `CONTRIBUTING.md`, `CLAUDE.md`), `.claude/**`, `tests/docs/**`, `tests/deploy/**`, `wrangler.jsonc`, `scripts/readme-hero.ts`, `.gitignore` and PLAN §4 for this phase; the `ui` lane owns what it always has plus `playwright.config.ts`, `tests/e2e/promo-record.spec.ts`, `tests/docs/promo.test.ts` and `package.json`'s `scripts` block. P5 touches every lane and runs alone.
 
@@ -2582,7 +2584,10 @@ Decision blocks (§16.2), reserved in PLAN §16.18: **P6 D-659..D-661, R102 D-66
 
 - [ ] **P6 — The address: `inyoursky.app` bound by the deploy, named everywhere, the hero regenerated**
   - **Lane:** docs
-  - **Model:** opus
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
   - **Gate:** owner
   - **Depends on:** R100
   - **Precondition:** `wrangler.jsonc`
@@ -2609,7 +2614,10 @@ Decision blocks (§16.2), reserved in PLAN §16.18: **P6 D-659..D-661, R102 D-66
 
 - [ ] **R102 — The footer credits glyphcss and Juan Cruz Fortunatti**
   - **Lane:** ui
-  - **Model:** opus
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
   - **Gate:** owner
   - **Depends on:** R100
   - **Reads:** SPEC FR-X-2 as amended, FR-SHOW-8, FR-PUB-4, FR-COMP-4, FR-HOME-1, §12 V22-10; PLAN D-120, D-548, D-657, §16.18; `tests/e2e/captureSet.ts`.
@@ -2633,7 +2641,10 @@ Decision blocks (§16.2), reserved in PLAN §16.18: **P6 D-659..D-661, R102 D-66
 
 - [ ] **P3 — The documents made true, the public half named, the reading order carried to v2.1**
   - **Lane:** docs
-  - **Model:** opus
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
   - **Gate:** owner
   - **Depends on:** P6, R102
   - **Reads:** SPEC §4.43 (FR-SHOW-1..3), §4.24 (FR-PUB-1..13), §12 V22-1..V22-3, V22-6, V22-7; PLAN §2.36 (D-650, D-651), D-368, §4 whole, §16.2..§16.6 (the process the document describes), §16.18; `docs/HOW-THIS-WAS-BUILT.md` whole; the audit table in SPEC FR-SHOW-1.
@@ -2655,7 +2666,10 @@ Decision blocks (§16.2), reserved in PLAN §16.18: **P6 D-659..D-661, R102 D-66
 
 - [ ] **P4 — The recording run: phone and desktop flows into `promo/`**
   - **Lane:** ui
-  - **Model:** opus
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
   - **Gate:** owner
   - **Depends on:** R102
   - **Reads:** SPEC §4.43 (FR-SHOW-6, FR-SHOW-7), §12 V22-3, V22-5; PLAN D-652..D-654, §16.18; `tests/e2e/v1-captures.spec.ts` and `tests/e2e/captureSet.ts` whole; `playwright.config.ts`; `tests/docs/hygiene.test.ts`.
@@ -2680,7 +2694,10 @@ Decision blocks (§16.2), reserved in PLAN §16.18: **P6 D-659..D-661, R102 D-66
 
 - [ ] **P5 — The dead code removed, knip in CI**
   - **Lane:** ui
-  - **Model:** opus
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
   - **Gate:** owner
   - **Depends on:** P3, P4
   - **Precondition:** `knip.json`
