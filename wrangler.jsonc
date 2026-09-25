@@ -11,6 +11,12 @@
     // Hash routing (D-13): unknown paths are real 404s, not index.html.
     "not_found_handling": "404-page"
   },
+  // D-658 (FR-ADDR-2): the public address is a custom domain bound by `wrangler
+  // deploy`, which creates the DNS record and the certificate in the zone the
+  // account holds; nothing is set in the dashboard. `workers_dev` stays so the
+  // old address serves the same build (FR-ADDR-3), `preview_urls` stays because a
+  // custom domain has no preview form: branch previews keep their per-branch URL.
+  "routes": [{ "pattern": "inyoursky.app", "custom_domain": true }],
   "workers_dev": true,
   "preview_urls": true,
   // FR-X-3: no analytics; an assets-only Worker has nothing to log anyway.

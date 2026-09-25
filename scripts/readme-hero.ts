@@ -215,7 +215,7 @@ function compose(layout: Layout, urls: ReadonlyMap<string, string>, sources: rea
       <figcaption>${placed.source.caption}</figcaption>
     </figure>`;
   const title = layout.title
-    ? `<header>${lockup()}<div class="wordmark"><h1>What is in your sky right now</h1><p>in-your-sky.ezequiel-baruf.workers.dev</p></div></header>`
+    ? `<header>${lockup()}<div class="wordmark"><h1>What is in your sky right now</h1><p>inyoursky.app</p></div></header>`
     : '';
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><style>

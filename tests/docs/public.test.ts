@@ -29,7 +29,7 @@ const release = readFileSync('docs/RELEASE.md', 'utf8');
 const pkg = JSON.parse(readFileSync('package.json', 'utf8')) as { license?: string; private?: boolean };
 
 /** The live site, which is the one URL the first screen has to carry. */
-const LIVE = 'https://in-your-sky.ezequiel-baruf.workers.dev';
+const LIVE = 'https://inyoursky.app';
 
 /** `![alt](url)`, the only image syntax either document uses. */
 const IMAGE = /!\[([^\]]*)\]\(([^)\s]+)\)/g;

@@ -22,3 +22,5 @@ sdd-run/
 /playwright.*.config.*
 /playwright-*.config.*
 /redesign
+# FR-SHOW-3: the recording run (P4) writes into promo/; it is local-only and never tracked.
+/promo
