@@ -106,6 +106,26 @@
  * reasoning `window` and `legend` already carry. And R61's rail (F-59) widens
  * `live` itself: 1920, 2560 and 3840 join 1280 as the sizes a wide live page is
  * shot at, since the rail only appears from `LIVE_TWO_COLUMN_MIN_PX` up.
+ *
+ * R94 (SPEC §4.39, FR-CAP-1..5, FR-TAB-3; F-80, D-547, D-626): what a capture
+ * shows, and three more widths. A capture is the screen in the state a reader
+ * opens it in; where one has to differ to stay reviewable — the home's
+ * full-page file closes every night, or the phone picture is 20 000 px tall —
+ * its `what` says so and the screen carries `view: true`, which adds a twin of
+ * the true state cropped to the viewport, named `-view` after the width
+ * (`v1-home-1280-view-dark-es.png`). The home is the one such screen: its
+ * `-view` twin has tonight open and, from 1024 up, the Where pane's dome drawn,
+ * which F-80 found the full-page files never showed. The twin follows the home
+ * at every width it has, because the rule is about the screen and not about a
+ * width — D-626 counted it at three widths; at six it is 24 files.
+ *
+ * The widths: 360 × 800 for every compact screen that has a 390 px picture
+ * (FR-CAP-2, the width `narrow.spec.ts` asserts and nothing pictured), 768 ×
+ * 1024 for the home, the guide, the live page's two states and the settings
+ * page (FR-TAB-3's compact portrait, wider than `COMPACT_MAX_CELLS` and capped
+ * by R99), and the home at 1920 × 1080 (FR-CAP-3, FR-HOME-4's evidence). "The
+ * live page" at 768 is both of its states, since R80 made them two screens and
+ * the pair is how the state split is read. The set is 254 files.
  */
 
 export const THEMES = ['dark', 'night'] as const;
@@ -129,9 +149,15 @@ export type CaptureLocale = (typeof LOCALES)[number];
  * the mode is the desktop's and the shape is a landscape phone's, which is the
  * pair of facts F-65 was about. The only entry here whose height is not the one
  * the width usually comes with, and deliberately so.
+ *
+ * R94 (FR-CAP-2, FR-TAB-3): 360 × 800 is the narrow phone `narrow.spec.ts`
+ * asserts and the owner measured the narrow-phone overflow on; 768 × 1024 is the tablet held
+ * upright, compact portrait wider than the column's cap (R99, D-625).
  */
 export const VIEWPORTS = {
+  360: { width: 360, height: 800 },
   390: { width: 390, height: 844 },
+  768: { width: 768, height: 1024 },
   844: { width: 844, height: 390 },
   1024: { width: 1024, height: 768 },
   1200: { width: 1200, height: 450 },
@@ -158,6 +184,13 @@ export interface CaptureScreen {
    */
   readonly themes?: readonly CaptureTheme[];
   readonly locales?: readonly CaptureLocale[];
+  /**
+   * R94 (FR-CAP-1, D-547): the screen's capture differs from the state a reader
+   * opens it in, `what` says how, and the set carries a second file of the true
+   * state cropped to the viewport, named `-view` after the width. One flag for
+   * the whole screen: every width and every variant gets its twin.
+   */
+  readonly view?: true;
 }
 
 /**
@@ -169,29 +202,34 @@ export interface CaptureScreen {
 export const SCREENS: readonly CaptureScreen[] = [
   {
     name: 'location',
-    widths: [390, 1280],
+    widths: [360, 390, 1280],
     what: 'The cold open (FR-FIRST-1, FR-FIRST-2 as amended v2.0.2): home before a place is known, carrying no hero mark and no tagline. At 390 it is the where step of the phone\'s first visit — the step line, the place field, the coordinates and the device button; at 1280 it is the three panes with Where active and When and What dimmed, so the layout is on the screen before a place is.',
   },
-  { name: 'home', widths: [390, 1024, 1280], what: 'Home with passes, as board 1B draws it (FR-FIRST-8..11): tonight\'s stripe with a tick per pass, the conditions table (Dark, Clouds now, Moon, and Up now while something is up), the next-event block counting down on a clock, the one-line cards with the `Next ISS` tag, and the Where reading with its readiness and elements lines. 1024 is the mid-width laptop, two columns; 1280 is the three panes.' },
-  { name: 'settings', widths: [390, 1280], what: 'The settings page inverted (FR-SET-1..4): Location first, then Saved places, then This browser — language, theme, the install offer and the clear action — and at 390 × 844 it fits the viewport in Spanish without scrolling, which is what FR-SET-2 is about. Reached by the header link on compact and by the hash on wide, where nothing links to it.' },
-  { name: 'guide', widths: [390, 1024, 1280], what: 'A pass open on the dome view, mid-pass, with the Sun and the Moon on the chart. At 1024 it has the right column to itself (F-6).' },
-  { name: 'polar', widths: [390, 1280], what: 'The same pass on the polar view: the live marker and the flown arc as elements.' },
+  {
+    name: 'home',
+    widths: [360, 390, 768, 1024, 1280, 1920],
+    view: true,
+    what: "Home with passes, as board 1B draws it (FR-FIRST-8..11): tonight's stripe with a tick per pass, the conditions table (Dark, Clouds now, Moon, and Up now while something is up), the next-event block counting down on a clock, the one-line cards with the `Next ISS` tag, and the Where reading with its readiness and elements lines. 360 and 390 are the phone, 768 the tablet's capped column (FR-TAB-1), 1024 the mid-width laptop with two columns, 1280 the three panes and 1920 × 1080 the desk (FR-CAP-3). The full-page file is not the home as it opens (FR-CAP-1): every night is closed, so the whole document fits one reviewable picture — Paris in September has fifty visible passes a night, and the open default made the phone capture 20 000 px tall (D-179). The `-view` twin is the true state cropped to the viewport: tonight open, and from 1024 up the Where pane's dome drawn (F-80, OQ-32's evidence).",
+  },
+  { name: 'settings', widths: [360, 390, 768, 1280], what: 'The settings page inverted (FR-SET-1..4): Location first, then Saved places, then This browser — language, theme, the install offer and the clear action — and at 390 × 844 it fits the viewport in Spanish without scrolling, which is what FR-SET-2 is about. Reached by the header link on compact and by the hash on wide, where nothing links to it. 768 is the tablet, where the column is capped and centred (FR-TAB-3).' },
+  { name: 'guide', widths: [360, 390, 768, 1024, 1280], what: 'A pass open on the dome view, mid-pass, with the Sun and the Moon on the chart. At 768 it is the sheet inside the tablet\'s capped column (FR-TAB-3); at 1024 it has the right column to itself (F-6).' },
+  { name: 'polar', widths: [360, 390, 1280], what: 'The same pass on the polar view: the live marker and the flown arc as elements.' },
   {
     name: 'window',
     widths: [844],
     what: 'The sky screen opened from a pass detail (FR-FSC-1, FR-FSC-6, R66), aimed at that pass\'s peak by a stubbed orientation reading: the whole arc (FR-DOME-5) filling the viewport, the `×`, the facing readout and, since R79, the compass gutter where the legend strip was (FR-GUT-1). A phone held sideways, which since v1.3.1 is the only place the window is drawn.',
   },
-  { name: 'legend', widths: [390, 1280], what: 'The legend in its states (FR-LEG-3): the live page with the hidden objects shown, so the rows carry `up`, `soon`, `gone` and the FR-LIVE-6 reasons, and one row activated so its arc is highlighted and the others dim (FR-LEG-4). Behind `[ list (n) ]` and open at 390, in the rail beside the box at 1280 (FR-LEG-6, FR-LEG-7). Shot watching: since R77 the hidden-objects toggle is the scrubbing row\'s on compact (D-478), so the screen seeds the preference on rather than clicking a control the state it photographs does not have.' },
-  { name: 'favourites', widths: [390, 1280], what: 'The saved places, with the one in use marked.' },
-  { name: 'shortcuts', widths: [390, 1280], what: 'The keyboard shortcuts overlay over an inert page.' },
+  { name: 'legend', widths: [360, 390, 1280], what: 'The legend in its states (FR-LEG-3): the live page with the hidden objects shown, so the rows carry `up`, `soon`, `gone` and the FR-LIVE-6 reasons, and one row activated so its arc is highlighted and the others dim (FR-LEG-4). Behind `[ list (n) ]` and open at 390, in the rail beside the box at 1280 (FR-LEG-6, FR-LEG-7). Shot watching: since R77 the hidden-objects toggle is the scrubbing row\'s on compact (D-478), so the screen seeds the preference on rather than clicking a control the state it photographs does not have.' },
+  { name: 'favourites', widths: [360, 390, 1280], what: 'The saved places, with the one in use marked.' },
+  { name: 'shortcuts', widths: [360, 390, 1280], what: 'The keyboard shortcuts overlay over an inert page.' },
   {
     name: 'live-watching',
-    widths: [390, 844, 1024, 1200, 1280, 1920, 2560, 3840],
-    what: "The live sky page in the state it opens in (FR-WATCH-1 a, FR-WATCH-4): the mark's bead running beside `live`, the headline, the conditions line, the dome and the actions — and no stripe, no step row and no playback row anywhere in the document. 844 is the landscape phone; 1024 is the desktop width the set had never shot the page at until R72 and 1200 × 450 the window dragged short (FR-SHP-5, F-65); 1280 and up are the rail beside the box, which since R71 is every wide width (FR-LEG-6) and not only R61's 1920, 2560 and 3840.",
+    widths: [360, 390, 768, 844, 1024, 1200, 1280, 1920, 2560, 3840],
+    what: "The live sky page in the state it opens in (FR-WATCH-1 a, FR-WATCH-4): the mark's bead running beside `live`, the headline, the conditions line, the dome and the actions — and no stripe, no step row and no playback row anywhere in the document. 360 is the narrow phone (FR-CAP-2) and 768 the tablet upright (FR-TAB-3); 844 is the landscape phone; 1024 is the desktop width the set had never shot the page at until R72 and 1200 × 450 the window dragged short (FR-SHP-5, F-65); 1280 and up are the rail beside the box, which since R71 is every wide width (FR-LEG-6) and not only R61's 1920, 2560 and 3840.",
   },
   {
     name: 'live-scrubbing',
-    widths: [390, 844, 1024, 1200, 1280, 1920, 2560, 3840],
+    widths: [360, 390, 768, 844, 1024, 1200, 1280, 1920, 2560, 3840],
     what: "The same page one `[ scrub ]` on (FR-WATCH-1 b, FR-WATCH-4): the bead held and warm beside `held`, the time row, the stripe's chunk with its 24 h overview, the stepping row and the playback row, and `[ back to live ]` at the head of the block. The pair with `live-watching` is what a reviewer reads the state split off: at 1200 × 450 the block is a bar inside the box (FR-WATCH-6) and the box's height is the same in both pictures (FR-WATCH-7), and at 844 × 390 it is in the rail with the dome column unmoved.",
   },
   {
@@ -208,35 +246,45 @@ export const SCREENS: readonly CaptureScreen[] = [
   { name: 'sky-screen-buried', widths: [844], what: 'The same screen swept 60° below the horizon (FR-FOL-5): no sky is left in the field, and the box is the hatched panel with its note — the `×` is still the way out.' },
   {
     name: 'sky-screen-portrait',
-    widths: [390],
+    widths: [360, 390],
     what: 'The sky screen with the phone held upright (FR-GUT-7, R79): five rows — the readout and the `×`, the next-event block with the advice to turn as secondary copy under its peak line, the band of sky at most as tall as it is wide, two legend rows and the compass gutter with its narrow bracket. It was a note with nothing behind it until v1.4.1, and the picture with a line of advice over it until v2.0.',
   },
   {
     name: 'sky-screen-turned',
-    widths: [390],
+    widths: [360, 390],
     themes: ['dark'],
     locales: ['en'],
-    what: 'The same 390 × 844 viewport with the pose of a phone held sideways under a rotation lock (FR-FSC-10, US-21 AC15, R73): the layer has turned a quarter, so the picture is landscape inside a portrait viewport and the readout, the gutter and the `×` are the right way up to the reader\'s eye. One theme and one language: the turn is a geometry, not a piece of copy.',
+    what: 'The same portrait phone viewport (360 or 390 px wide) with the pose of a phone held sideways under a rotation lock (FR-FSC-10, US-21 AC15, R73): the layer has turned a quarter, so the picture is landscape inside a portrait viewport and the readout, the gutter and the `×` are the right way up to the reader\'s eye. One theme and one language: the turn is a geometry, not a piece of copy.',
   },
 ];
 
 export const CAPTURE_DIR = 'docs/screenshots';
-/** `v1-<screen>-<width>-<theme>-<locale>.png`, the visual-review naming with the task prefix spent on the phase. */
-export const captureName = (screen: string, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale): string => `v1-${screen}-${String(width)}-${theme}-${locale}.png`;
+/**
+ * `v1-<screen>-<width>-<theme>-<locale>.png`, the visual-review naming with the task prefix spent on the phase.
+ * R94 (FR-CAP-1): the `-view` twin carries its suffix after the width, `v1-<screen>-<width>-view-<theme>-<locale>.png`.
+ */
+export const captureName = (screen: string, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view = false): string => `v1-${screen}-${String(width)}${view ? '-view' : ''}-${theme}-${locale}.png`;
+
+/** What a file of the set is called: the screen, the width, an optional `-view`, the theme and the language. `captures.test.ts` holds every file to it. */
+export const CAPTURE_FILE = /^v1-[a-z][a-z-]*-\d+(-view)?-(dark|night)-(en|es)\.png$/;
 
 export interface Capture {
   readonly screen: CaptureScreen;
   readonly width: CaptureWidth;
   readonly theme: CaptureTheme;
   readonly locale: CaptureLocale;
+  /** R94 (FR-CAP-1): the `-view` twin — the true state, cropped to the viewport. */
+  readonly view: boolean;
   readonly file: string;
 }
 
-/** The whole matrix, in a stable order. */
+/** The whole matrix, in a stable order: a screen's captures, then its `-view` twins in the same order. */
 export function captureSet(): Capture[] {
   return SCREENS.flatMap((screen) =>
-    screen.widths.flatMap((width) =>
-      (screen.themes ?? THEMES).flatMap((theme) => (screen.locales ?? LOCALES).map((locale) => ({ screen, width, theme, locale, file: captureName(screen.name, width, theme, locale) }))),
+    (screen.view ? [false, true] : [false]).flatMap((view) =>
+      screen.widths.flatMap((width) =>
+        (screen.themes ?? THEMES).flatMap((theme) => (screen.locales ?? LOCALES).map((locale) => ({ screen, width, theme, locale, view, file: captureName(screen.name, width, theme, locale, view) }))),
+      ),
     ),
   );
 }

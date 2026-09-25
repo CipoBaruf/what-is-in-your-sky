@@ -2432,7 +2432,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
 
 ### Wave 10
 
-- [ ] **R94 — What a capture shows: `-view`, 360, 768, the home at 1920, the deterministic set**
+- [x] **R94 — What a capture shows: `-view`, 360, 768, the home at 1920, the deterministic set** *(done: 254 files, not 241 — the `-view` twin follows the home at all six widths and the 768 column takes both live states; D-610)*
   - **Lane:** ui
   - **Model:** fable
   - **Gate:** auto
