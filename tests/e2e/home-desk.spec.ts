@@ -14,9 +14,7 @@
  * - FR-HOME-4: at 1920 and 2560 px the content is `HOME_MAX_CELLS` wide and
  *   centred, the panes equal.
  *
- * R102 (FR-HOME-3 as amended v2.2, D-681): the fourth credit makes the wide footer two lines under
- * `FOOTER_ONE_LINE_MIN_PX`, and the shell pays that row from its padding; FR-HOME-2 and FR-HOME-3 keep
- * their sizes above, unchanged, and this file is what proves it in both languages.
+ * R102 (FR-HOME-3 as amended v2.2, D-681): under `FOOTER_ONE_LINE_MIN_PX` the footer is two lines and the shell pays that row from its padding; this file, unchanged, is the proof.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { HOME_MAX_CELLS, HOME_THREE_PANE_MIN_PX, LIVE_BOX_MIN_PX, WIDE_MIN_PX } from '../../src/lib/layout';
