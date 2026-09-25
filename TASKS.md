@@ -2457,7 +2457,7 @@ Decision blocks (§16.2), reserved in PLAN §16.17 and unchanged: **R83 D-551..D
 
 ### Wave 11
 
-- [ ] **R100 — v2.1 release preparation**
+- [x] **R100 — v2.1 release preparation** *(done with main not under 155 KB: 166.6 measured, budget left at 155 by V21-13, F-69 open for the owner; the set re-shot with 120 files changed; two local runs differ in 38 files, and the one-second instant drift among them is F-99; F-100 is the live page's focus ring in the captures — D-638..D-640)*
   - **Lane:** ui
   - **Model:** opus
   - **Gate:** owner
