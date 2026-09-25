@@ -42,7 +42,7 @@ const MOON_LORE: MoonLoreParams = { sign: 'Taurus', fullMoonName: null, line: 'T
 
 /** Every message of a catalog, rendered: plain strings as they are, functions over the fixture parameters. */
 function render(t: Messages): string[] {
-  const linked = [t.footer.celestrak, t.footer.openMeteo, t.footer.geonames, t.location.noMatch('Cipolletti'), t.location.searchFailed, t.location.searchOffline];
+  const linked = [t.footer.celestrak, t.footer.openMeteo, t.footer.geonames, t.footer.chart, t.location.noMatch('Cipolletti'), t.location.searchFailed, t.location.searchOffline];
   return [
     t.app.title,
     t.app.tagline,
@@ -252,7 +252,9 @@ function render(t: Messages): string[] {
     t.readiness.notReady(t.readiness.gaps.forecast),
     ...Object.values(t.readiness.gaps),
     t.footer.privacy,
-    ...linked.flatMap((text) => [text.before, text.link, text.after]),
+    ...Object.values(t.footer.short),
+    // R102 (D-657): a sentence may carry a second link; its `middle` and `link2` are words too.
+    ...linked.flatMap((text) => [text.before, text.link, ...(text.middle !== undefined ? [text.middle] : []), ...(text.link2 !== undefined ? [text.link2] : []), text.after]),
   ];
 }
 
@@ -351,6 +353,9 @@ describe('the Spanish catalog (FR-I18N-3)', () => {
       en.footer.celestrak.link,
       en.footer.openMeteo.link,
       en.footer.geonames.link,
+      en.footer.chart.link, // R102 (FR-SHOW-8): the library and its author are names (FR-I18N-6)
+      en.footer.chart.link2,
+      en.footer.short.licence,
       en.passes.stamp({ date: '2026-09-11', time: '21:14:32 GMT-3' }),
       en.passes.direction({ point: 'NE', degrees: '46°' }),
       en.guide.azimuth({ point: 'ENE', degrees: '67°' }),

@@ -670,13 +670,19 @@ export const ui = {
     geonames: { before: 'Place search by Open-Meteo geocoding, with data from ', link: 'GeoNames', after: ' (CC BY 4.0).' } satisfies LinkedText,
     privacy: 'No analytics, no tracking: your location is saved in this browser only.',
     credit: { before: 'Built by ', link: 'Ezequiel Baruf', after: '.' } satisfies LinkedText,
+    /* R102 (FR-SHOW-8, FR-X-2 as amended v2.2, D-657): the library the sky is
+       drawn with and its author, two links in one sentence. Neither name is
+       translated (FR-I18N-6). */
+    chart: { before: 'Sky chart: ', link: 'glyphcss', middle: ' by ', link2: 'Juan Cruz Fortunatti', after: '.' } satisfies LinkedText,
     /* R23 (D-120): the wide footer says the same in one row. The provider
        names carry the credit on their own, the licence is still named, and
-       the privacy note keeps its subject. */
+       the privacy note keeps its subject. R102: the chart's two names stand
+       as links after `chart`, the way the sources stand after `sources`. */
     short: {
       sources: 'Data:',
       licence: '(CC BY 4.0)',
       privacy: 'No tracking',
+      chart: 'Chart:',
     },
   },
 };

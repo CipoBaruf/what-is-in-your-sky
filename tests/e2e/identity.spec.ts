@@ -150,9 +150,10 @@ test('Tab reaches every control on the Home screen in DOM order, then wraps to t
   // R52 (FR-COMP-1, FR-COMP-3): the compact home no longer holds the form. Its
   // controls are the header's two links, the summary's `[ change ]`, the
   // Now-panel badge and live link, the hero (open guide, cloud badge), two sort
-  // buttons, three night headings, ≥ 1 card × (open guide, badge) and 3 footer
-  // links. The ones that moved are one tap away, and reached below.
-  expect(expected.length).toBeGreaterThanOrEqual(15);
+  // buttons, three night headings, ≥ 1 card × (open guide, badge) and 5 footer
+  // links (R102, FR-SHOW-8: glyphcss and its author joined the three sources and
+  // the maker). The ones that moved are one tap away, and reached below.
+  expect(expected.length).toBeGreaterThanOrEqual(17);
   // R32/R52: the header's two links open the order, and no preference control is on this screen.
   // R76 (FR-FIRST-4): `[ change ]` is a button now — it opens the form in place rather than linking to #settings.
   // R92 (FR-A11Y-5): the skip link is the first stop, before the header.

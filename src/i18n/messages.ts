@@ -18,10 +18,17 @@ export type Messages = typeof en;
  * which is the whole point: "Weather data by <CelesTrak>." and "Datos del
  * clima de <CelesTrak>." put it in different places, and a placeholder in a
  * template string could not move the words around it.
+ *
+ * R102 (FR-SHOW-8, D-657): a sentence may carry a second link — "Sky chart:
+ * <glyphcss> by <Juan Cruz Fortunatti>." — as `middle` and `link2`, both
+ * optional and read together, so the one-link sentences keep their shape.
  */
 export interface LinkedText {
   before: string;
   link: string;
+  /** The words between the two links, when there are two. */
+  middle?: string;
+  link2?: string;
   after: string;
 }
 
