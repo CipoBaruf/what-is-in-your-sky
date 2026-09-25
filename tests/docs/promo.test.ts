@@ -10,9 +10,11 @@
  * read of `promo/` any test makes (FR-SHOW-7), and only when the directory
  * exists, because the run is the owner's and nothing under `promo/` is tracked.
  */
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import config, { PROMO_PROJECT, PROMO_SPEC, promoSelected } from '../../playwright.config';
+import { EPOCH_WARN_MS } from '../../src/lib/elementsAge';
+import { PARIS, PARIS_NIGHT, STORED_RUN_PARIS_FILE } from '../e2e/observers';
 import { DEVICES, MEDIA_DIR, PROMO_FLOWS, promoStill, promoVideo } from '../e2e/promoFlows';
 
 const SPEC_FILE = 'tests/e2e/promo-record.spec.ts';
@@ -87,6 +89,30 @@ describe('the recording run (FR-SHOW-6)', () => {
     const { scripts } = (await import('../../package.json')) as { scripts: Record<string, string> };
     expect(scripts['promo:record']).toBe('VITE_MOON_LORE=on vite build && playwright test --project=promo');
     expect(scripts['e2e']).toContain('VITE_MOON_LORE=on vite build');
+  });
+
+  it('seeds every flow on the capture set’s night, where the elements are under FR-SAT-4’s warning threshold (D-673)', () => {
+    // The stored run the list flows seed is over Paris at `CLOCK`, computed by `scripts/build-stored-run.ts`
+    // from the same fixtures the page loads, and its elements are hours old, not days: nine days on at
+    // Neuquén, where the rest of the suite runs, the amber staleness line would sit on the home of every
+    // list flow, and promo material must not show a warning a fresh install never does (D-179).
+    const run = JSON.parse(readFileSync(STORED_RUN_PARIS_FILE, 'utf8')) as { observer: unknown; computedAt: number; newestElementsEpochMs: number; passes: unknown[] };
+    expect(run.observer).toEqual(PARIS);
+    expect(run.computedAt).toBe(PARIS_NIGHT);
+    expect(run.passes.length).toBeGreaterThan(10);
+    expect(run.computedAt - run.newestElementsEpochMs).toBeLessThan(EPOCH_WARN_MS);
+    // And the spec seeds from that run and that night, never from the suite's nine-days-on clock.
+    const spec = readFileSync(SPEC_FILE, 'utf8');
+    expect(spec).toContain('STORED_RUN_PARIS_FILE');
+    expect(spec).not.toMatch(/NINE_DAYS_ON|NEUQUEN|STORED_RUN\b/);
+    expect(spec).toMatch(/import \{[^}]*\bCLOCK\b[^}]*\} from '\.\/captureSeeds'/);
+  });
+
+  it('converts each video on its own, so one ffmpeg failure costs one .mp4 and nothing else', () => {
+    const spec = readFileSync(SPEC_FILE, 'utf8');
+    const convert = /function convert\(webm: string, mp4: string\): boolean \{\s*try \{[\s\S]*?execFileSync\('ffmpeg'[\s\S]*?return true;\s*\} catch/;
+    expect(spec).toMatch(convert);
+    expect(spec).toMatch(/if \(convert\(target, mp4\)\) console\.log/);
   });
 });
 

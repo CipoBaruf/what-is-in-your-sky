@@ -13,17 +13,23 @@
  * here asserts what a frame looks like: every expectation is there so a file
  * cannot be of a page that had not finished loading.
  *
- * **Seeded like a capture, moved by the clock (D-653).** The seeds are the
- * capture set's, from `captureSeeds.ts` and `observers.ts`: the Neuquén
- * fixture nine days on for the lists, with the finished run
- * `tests/fixtures/stored-run-neuquen.json` already in IndexedDB so the list is
- * on screen the moment the place is typed (FR-OFF-2, the R82 method), and the
- * Paris night for the charts. Nothing in a recording is live data: the
- * elements are the fixtures, the forecast and the geocoder are refused.
- * `page.clock` is installed at the fixture instant and paused; between actions
- * `watch` runs it forward in small steps at wall-clock pace, so the countdown
- * ticks and the mark's bead moves in the file while the instant every screen
- * shows is the fixture's whatever the box's speed.
+ * **Seeded like a capture, moved by the clock (D-653, D-673).** The seeds are
+ * the capture set's, from `captureSeeds.ts` and `observers.ts`: one place and
+ * one night, Paris at `CLOCK` (2026-09-02 03:00 UTC), where the elements are
+ * seven hours old and the ISS rises fifty minutes ahead, so the countdown runs
+ * on camera and no screen carries FR-SAT-4's staleness warning — nine days on
+ * at Neuquén, where the rest of the suite runs, it would sit on the home of
+ * every list flow, and promo material must not show a warning a fresh install
+ * never does (D-179 made the same choice for the captures). The finished run
+ * `tests/fixtures/stored-run-paris.json` is in IndexedDB before the place is
+ * typed, so the list is on screen the moment it is (FR-OFF-2, the R82 method).
+ * Nothing in a recording is live data: the elements are the fixtures, the
+ * forecast and the geocoder are refused (so a cloud badge reads "weather
+ * unknown", the capture set's cost). `page.clock` is installed at the fixture
+ * instant and paused; between actions `watch` runs it forward in small steps
+ * at wall-clock pace, so the countdown ticks and the mark's bead moves in the
+ * file while the instant every screen shows is the fixture's whatever the
+ * box's speed.
  *
  * **The frame (D-652).** A phone flow is 390 × 844 at a device pixel ratio of
  * 3 and asks for a 1170 × 2532 recording, a reel's shape; a desktop flow is
@@ -36,12 +42,12 @@
  * `video` option is the same phone frame, for any page the fixture would open.
  */
 import { execFileSync } from 'node:child_process';
-import { accessSync, constants, copyFileSync, existsSync, mkdirSync, renameSync, statSync, unlinkSync } from 'node:fs';
+import { accessSync, constants, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, unlinkSync } from 'node:fs';
 import { delimiter, join } from 'node:path';
 import { expect, test, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import { CLOCK, guide, listSettled, OPEN_GUIDE, seedPage, SHOWN, type SeedPrefs } from './captureSeeds';
-import { domeDrawn, enterScrubbing, LABEL, STORED_RUN, stripFilled } from './liveHelpers';
-import { NEUQUEN, NINE_DAYS_ON, PARIS } from './observers';
+import { domeDrawn, enterScrubbing, LABEL, stripFilled, type StoredRun } from './liveHelpers';
+import { PARIS, STORED_RUN_PARIS_FILE } from './observers';
 import { DEVICES, MEDIA_DIR, PROMO_FLOWS, promoStill, promoVideo, type PromoFlow } from './promoFlows';
 
 /** The list is `promoFlows.ts`'s, so `tests/docs/promo.test.ts` can read it without loading this file; it is the spec's export all the same. */
@@ -53,7 +59,10 @@ const flow = (name: string): PromoFlow => {
   return found;
 };
 
-const TYPED = `${String(NEUQUEN.lat)}, ${String(NEUQUEN.lon)}`;
+/** The finished 72 h run over Paris at `CLOCK`, computed by `scripts/build-stored-run.ts` from the same fixtures the page loads. */
+const PARIS_RUN = JSON.parse(readFileSync(STORED_RUN_PARIS_FILE, 'utf8')) as StoredRun;
+/** What the typed-place flows type: the capture set's Paris, as a reader types a coordinate pair. */
+const TYPED = `${String(PARIS.lat)}, ${String(PARIS.lon)}`;
 /**
  * The phone's live flow wants `[ see this pass ]`, which the headline offers
  * only while nothing is up and the next rise is between two minutes and a day
@@ -146,8 +155,8 @@ test.afterEach(async () => {
 });
 
 /**
- * The finished 72 h run for Neuquén at `NINE_DAYS_ON`, written into IndexedDB
- * from inside the page (`liveHelpers.seedStoredRun` and R84's
+ * The finished 72 h run for Paris at `CLOCK`, written into IndexedDB from
+ * inside the page (`liveHelpers.seedStoredRun` and R84's
  * `first-run-controls.spec.ts` do the same), so a flow that types the place or
  * opens with it saved shows the list at once rather than the worker's progress.
  */
@@ -176,25 +185,25 @@ async function storeRun(page: Page): Promise<void> {
         };
       };
     });
-  }, STORED_RUN);
+  }, PARIS_RUN);
 }
 
-/** A first visit at Neuquén nine days on: no place, the run for the place the flow will type already stored. */
-async function coldAtNeuquen(page: Page, prefs: SeedPrefs): Promise<void> {
-  await seedPage(page, prefs, NINE_DAYS_ON);
+/** A first visit on the capture set's night: no place, the run for the place the flow will type already stored. */
+async function coldAtParis(page: Page, prefs: SeedPrefs): Promise<void> {
+  await seedPage(page, prefs, CLOCK);
   await page.goto('/');
   await storeRun(page);
   await expect(page.getByTestId('cold-open')).toBeVisible();
 }
 
 /**
- * A returning reader at Neuquén nine days on: the place saved and the finished
- * run stored, so the reload boots the app the way their browser does — the
- * stored list on screen before the first request goes out (FR-OFF-2), and the
- * recompute that follows finding the same passes.
+ * A returning reader in Paris on the capture set's night: the place saved and
+ * the finished run stored, so the reload boots the app the way their browser
+ * does — the stored list on screen before the first request goes out
+ * (FR-OFF-2), and the recompute that follows finding the same passes.
  */
-async function homeAtNeuquen(page: Page, prefs: SeedPrefs): Promise<void> {
-  await seedPage(page, { ...prefs, observer: NEUQUEN }, NINE_DAYS_ON);
+async function homeAtParis(page: Page, prefs: SeedPrefs): Promise<void> {
+  await seedPage(page, { ...prefs, observer: PARIS }, CLOCK);
   await page.goto('/');
   await storeRun(page);
   await page.reload();
@@ -242,7 +251,7 @@ async function openLive(page: Page): Promise<void> {
  */
 async function firstRun(browser: Browser, of: PromoFlow): Promise<void> {
   const page = await record(browser, of);
-  await coldAtNeuquen(page, { locale: of.locale, theme: of.theme });
+  await coldAtParis(page, { locale: of.locale, theme: of.theme });
   await watch(page, 1_500);
   await still(page, of, 'where');
   await typePlace(page, of.locale);
@@ -283,7 +292,7 @@ test.describe('phone', () => {
   test('list-and-card: the list with tonight open, and a card opened to its guide', async ({ browser }) => {
     const of = flow('list-and-card');
     const page = await record(browser, of);
-    await homeAtNeuquen(page, { locale: of.locale, theme: of.theme });
+    await homeAtParis(page, { locale: of.locale, theme: of.theme });
     await recomputed(page);
     await expect(page.locator('[data-testid="night-group"][data-open="true"]')).toHaveCount(1);
     await watch(page, 3_000);
@@ -333,7 +342,7 @@ test.describe('phone', () => {
   test('settings-language: the settings page, and the switch to Spanish', async ({ browser }) => {
     const of = flow('settings-language');
     const page = await record(browser, of);
-    await homeAtNeuquen(page, { locale: of.locale, theme: of.theme });
+    await homeAtParis(page, { locale: of.locale, theme: of.theme });
     await recomputed(page);
     await watch(page, 2_000);
     // R93 (D-545): the settings page is a lazy chunk and the paused clock holds its reveal, so the chunk is
@@ -362,7 +371,7 @@ test.describe('desktop', () => {
   test('cold-open-to-pass: the three panes, a place set and the countdown, a pass opened in the first two', async ({ browser }) => {
     const of = flow('cold-open-to-pass');
     const page = await record(browser, of);
-    await coldAtNeuquen(page, { locale: of.locale, theme: of.theme });
+    await coldAtParis(page, { locale: of.locale, theme: of.theme });
     await watch(page, 2_000);
     await still(page, of, 'cold-open');
     await typePlace(page, of.locale);
@@ -443,11 +452,32 @@ test.beforeAll(() => {
 });
 
 /**
+ * One `.webm` to `.mp4`, or the reason it did not happen. `ffmpeg` is run with
+ * its own errors on stderr; a conversion that fails is reported by name and
+ * does not throw, so the `.webm` it was given stays where it is and the flows
+ * after it are still converted — `afterAll` runs once for the whole file, and
+ * one throw in it would leave every later video in `test-results/`, which the
+ * next run wipes.
+ */
+function convert(webm: string, mp4: string): boolean {
+  try {
+    // libx264 with yuv420p wants even dimensions; the scale keeps them so whatever frame the screencast produced.
+    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', webm, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-movflags', '+faststart', mp4], { stdio: 'inherit' });
+    return true;
+  } catch (error) {
+    console.log(`promo: ffmpeg failed on ${webm} (${error instanceof Error ? error.message : String(error)}); the .webm is the record, no ${mp4}`);
+    return false;
+  }
+}
+
+/**
  * Where the files go (D-652). Playwright writes a video where it keeps a test's
  * output and finishes it when the context closes, so the move waits for the
  * whole file; each goes to `promo/media/<flow>-<device>.webm`, then `ffmpeg`
  * makes the `.mp4` LinkedIn and Instagram take when it is on `PATH`, and one
- * line per file says what was written. A `.webm` alone is still the record.
+ * line per file says what was written. A `.webm` alone is still the record,
+ * and each conversion is on its own: one that fails costs its `.mp4` and
+ * nothing of the other flows.
  */
 test.afterAll(() => {
   const ffmpeg = ffmpegOnPath();
@@ -463,9 +493,7 @@ test.afterAll(() => {
       console.log(`promo: ffmpeg is not on PATH, so no ${mp4}`);
       continue;
     }
-    // libx264 with yuv420p wants even dimensions; the scale keeps them so whatever frame the screencast produced.
-    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', target, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-movflags', '+faststart', mp4], { stdio: 'inherit' });
-    console.log(`promo: wrote ${mp4} (${kb(mp4)})`);
+    if (convert(target, mp4)) console.log(`promo: wrote ${mp4} (${kb(mp4)})`);
   }
   for (const of of PROMO_FLOWS) {
     for (const name of shot.get(of.name) ?? []) console.log(`promo: wrote ${promoStill(of, name)} (${kb(promoStill(of, name))})`);

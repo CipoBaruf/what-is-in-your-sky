@@ -31,7 +31,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { CATALOG } from '../src/data/catalog';
 import { filterToCatalog, mergeGroups } from '../src/data/elementsLoader';
-import type { Observer, OmmRecord, Pass, PassRun } from '../src/model';
+import type { Observer, OmmRecord, Pass, PassRun, SatelliteRecord } from '../src/model';
 import { DEFAULT_THRESHOLDS } from '../src/physics/constants';
 import { searchWindow } from '../src/state/passWindow';
 import { createHandler, createHandlerState } from '../src/worker/handlers';
@@ -43,7 +43,7 @@ import { FIXTURE_DATE, NEUQUEN, NINE_DAYS_ON, PARIS, PARIS_NIGHT, STORED_RUN_FIL
 const read = <T,>(path: string): T => JSON.parse(readFileSync(path, 'utf8')) as T;
 
 /** One run: the 72 h search from `at` over `observer`, written to `file` as the app would have stored it. */
-async function build(records: OmmRecord[], observer: Observer, at: number, file: string): Promise<void> {
+async function build(records: SatelliteRecord[], observer: Observer, at: number, file: string): Promise<void> {
   const state = createHandlerState();
   const handle = createHandler(state);
   const window = searchWindow(at);
