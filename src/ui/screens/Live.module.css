@@ -408,6 +408,20 @@
   margin-block: calc(-1 * (var(--tap) - var(--row)) / 2);
 }
 
+/* F-100 (V21-24, D-642): entering `#live` focuses Back (FR-A11Y-4), and with no pointer or key yet pressed the
+   browser draws that as `:focus-visible`. R75's rule for inline controls, applied here: the ring goes round the
+   text line, not the tap box, so the padding, the buttons' `min-height` and the matching negative margin are all
+   dropped while it shows. The margin box is the text line either way, so nothing moves: a row that grew here moved
+   `[ scrub ]` between a pointer's down and up, and the click was lost. The offset is 0 rather than the global 2 px, which keeps the ring inside the
+   header row's leading and off the line under it. Both layouts give Back the tap box (compact here, a short wide window
+   through `[data-fold] button`), so the rule is not scoped to either, and it is written to outrank both. */
+.page[data-compact] .back:focus-visible {
+  outline-offset: 0;
+  min-height: 0;
+  padding-block: 0;
+  margin-block: 0;
+}
+
 .page[data-compact='true'] .place {
   flex: 1 1 auto;
   min-width: 0;

@@ -7,7 +7,8 @@
  */
 import { expect, type Page } from '@playwright/test';
 import { test } from '@playwright/test';
-import { seedStoredRun, STORED_RUN, type StoredRun } from './liveHelpers';
+import { ROW_PX } from '../../src/lib/layout';
+import { domeDrawn, seedStoredRun, STORED_RUN, type StoredRun } from './liveHelpers';
 import { A11Y_MAX_H2, landmarkCounts, pageOutline, skippedLevels } from './structure';
 
 const PHONE = { width: 390, height: 844 };
@@ -289,3 +290,37 @@ test.describe('history (FR-ROUTE-1..3, F-91)', () => {
     await expect(page.getByTestId('share-fallback')).toContainText('ISS');
   });
 });
+
+/**
+ * F-100 (V21-24, D-642; FR-A11Y-4, FR-X-5): entering `#live` focuses Back, and with no pointer or key yet pressed
+ * the browser draws that as `:focus-visible`. The ring goes round the text line, not the 48 px tap box, so it stays
+ * off the line under it, and taking the tap box away while it shows moves nothing on the page. A row that grew here
+ * once moved `[ scrub ]` between a pointer's down and up, and the click was lost.
+ */
+for (const size of [PHONE, { width: 844, height: 390 }, { width: 1200, height: 450 }]) {
+  test(`Back's focus ring hugs its line and moves nothing, ${String(size.width)} × ${String(size.height)} (F-100)`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await seedStoredRun(page, { settled: true });
+    await page.evaluate(() => {
+      location.hash = '#live';
+    });
+    await domeDrawn(page);
+    const back = page.getByTestId('live-back');
+    await expect(back).toBeFocused();
+    expect(await back.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
+    const boxes = (): Promise<number[][]> =>
+      page.evaluate(() =>
+        Array.from(document.querySelectorAll('[data-testid="live-page"] button')).filter((b) => b.getAttribute('data-testid') !== 'live-back').map((b) => {
+          const r = b.getBoundingClientRect();
+          return [r.x, r.y, r.width, r.height];
+        }),
+      );
+    const focusedBoxes = await boxes();
+    const ring = await back.boundingBox();
+    expect(ring?.height, 'the ring is drawn round the text line, not the tap box').toBeLessThanOrEqual(ROW_PX);
+    await back.evaluate((element) => {
+      (element as HTMLElement).blur();
+    });
+    expect(await boxes(), 'nothing on the page moved when the ring went').toEqual(focusedBoxes);
+  });
+}
