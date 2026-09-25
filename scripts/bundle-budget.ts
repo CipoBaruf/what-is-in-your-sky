@@ -255,7 +255,7 @@ export interface Budget {
  *
  * | chunk          | file                  | measured | budget | was | ceiling |
  * |----------------|-----------------------|---------:|-------:|----:|--------:|
- * | main           | `index-*.js`          |  **166.6** |  155 | 155 |     170 |
+ * | main           | `index-*.js`          |    166.6 | **170** | 155 |     170 |
  * | chart          | `SkyDome-*.js`        |     94.2 |    105 | 105 |     110 |
  * | worker         | `passes.worker-*`     |     36.1 |     40 |  40 |     130 |
  * | astronomy      | `skyBodies-*.js`      |     22.1 |     25 |  25 |      30 |
@@ -275,6 +275,13 @@ export interface Budget {
  * its strings, R97) — so F-69 stays open and the number stays where PLAN §11
  * and V21-13 put it: the rule would make it 185 and the ceiling 170, and
  * neither is a release task's to take.
+ *
+ * **The owner raised it (V21-24, D-641, 2026-09-25).** Asked at the release
+ * gate, the owner moved `main` to 170: D-178's rule (166.6 × 1.1, the next
+ * 5 KB line, 185) capped at the §11 ceiling. That leaves 3.4 KB, so the next
+ * phase that adds to `main` meets the ceiling, not the budget, and F-69's
+ * remedy (zod or the guide out of `main`, D-609) is still the way down. The
+ * ceiling itself is not moved.
  *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
@@ -324,7 +331,7 @@ export interface Budget {
  * the app never fetches.
  */
 export const BUDGETS: readonly Budget[] = [
-  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 155 }, // R60: 136.6 measured (flag on), crossing the 150 line (D-307); R80: 158.0 on 2.0.0 — over, and deliberately not raised (D-495, F-69); R100: 166.6 on 2.1.0, still not raised (V21-13, D-638)
+  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 170 }, // R60: 136.6 measured (flag on), crossing the 150 line (D-307); R80: 158.0 on 2.0.0 — over, and deliberately not raised (D-495, F-69); R100: 166.6 on 2.1.0, still not raised (V21-13, D-638); raised to 170 by the owner at the release gate (V21-24, D-641)
   { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 105 }, // R60: 94.2 measured, down from 97.1 (D-307); 94.2 again on 1.4.0 (R72)
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 40 },
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10 },
