@@ -23,6 +23,14 @@ export const PROMO_SPEC = /promo-record\.spec\.ts/;
  * is on the command line, which is what `npm run promo:record` passes.
  */
 export const promoSelected = (argv: readonly string[]): boolean => argv.some((arg, i) => arg === '--project=promo' || (arg === '--project' && argv[i + 1] === 'promo'));
+/**
+ * Every worker loads this file again with its own argv, which has no
+ * `--project` on it, and a project the runner found must be in the worker's
+ * list too ("Project not found in the worker process"). The runner's answer is
+ * relayed through the environment the workers inherit.
+ */
+if (promoSelected(process.argv)) process.env['PLAYWRIGHT_PROMO'] = '1';
+const PROMO_RUN = process.env['PLAYWRIGHT_PROMO'] === '1';
 /*
  * P4 (FR-SHOW-6, FR-SHOW-7; D-652): the recording run. `npm run promo:record` is the only thing that
  * selects it (`--project=promo`), and it is not a test: every assertion in the file is there so a
@@ -86,7 +94,7 @@ export default defineConfig({
      */
     { name: 'desktop-2560', testMatch: /dome-fit\.spec\.ts/, testIgnore: PROMO_SPEC, use: { ...devices['Desktop Chrome'], viewport: { width: 2560, height: 1440 } } },
     // P4 (D-652): the recording run, only when this invocation asked for it — see `promoSelected`.
-    ...(promoSelected(process.argv) ? [PROMO_PROJECT] : []),
+    ...(PROMO_RUN ? [PROMO_PROJECT] : []),
   ],
   webServer: {
     command: `npx vite preview --port ${PORT} --strictPort`,

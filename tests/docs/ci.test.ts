@@ -116,7 +116,9 @@ describe('the R36 capture findings (FR-FIX-2)', () => {
   it('F-48: the live capture is pinned to the shown instant after the drawing waits', () => {
     // `domeDrawn` ticks the paused clock until the chart is up, and where it stops is a property of
     // the run. Both chart routes end on `pinnedAt`, so two runs of the same file shoot the same frame.
-    expect(captureSpec).toContain('async function pinnedAt(page: Page, t: number)');
+    // P4 (D-653): the helper lives in `captureSeeds.ts`, shared with the recording run, and the spec imports it.
+    expect(read('tests/e2e/captureSeeds.ts')).toContain('export async function pinnedAt(page: Page, t: number)');
+    expect(captureSpec).toMatch(/import \{[^}]*pinnedAt[^}]*\} from '\.\/captureSeeds'/);
     // R79: `liveAt` pins to its `shown` parameter, `SHOWN` unless the chip capture asks for its own instant.
     expect([...captureSpec.matchAll(/await pinnedAt\(page, (SHOWN|shown)\)/g)]).toHaveLength(2);
     expect(captureSpec).toContain('shown: number = SHOWN');

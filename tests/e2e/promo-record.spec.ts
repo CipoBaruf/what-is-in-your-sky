@@ -223,6 +223,8 @@ async function guideDrawn(page: Page): Promise<Locator> {
   const figure = guide(page).getByRole('figure');
   await expect(figure).toBeVisible({ timeout: 30_000 });
   await tickUntil(page, () => figure.locator('[data-layer="lines"] pre.glyph-output').isVisible(), 30_000);
+  // The sheet opens on its heading; the drawing is what the frame is for.
+  await figure.locator('[data-drawing]').scrollIntoViewIfNeeded();
   return figure;
 }
 
@@ -241,7 +243,7 @@ async function openLive(page: Page): Promise<void> {
 async function firstRun(browser: Browser, of: PromoFlow): Promise<void> {
   const page = await record(browser, of);
   await coldAtNeuquen(page, { locale: of.locale, theme: of.theme });
-  await watch(page, 2_000);
+  await watch(page, 1_500);
   await still(page, of, 'where');
   await typePlace(page, of.locale);
   const next = page.getByTestId('step-continue');
@@ -253,7 +255,7 @@ async function firstRun(browser: Browser, of: PromoFlow): Promise<void> {
   await expect(when).toBeVisible();
   await expect(when.getByTestId('when-passes')).toHaveText(/\d+/, { timeout: 60_000 });
   await recomputed(page);
-  await watch(page, 5_000);
+  await watch(page, 4_000);
   await still(page, of, 'when');
   await when.getByTestId('see-what').click();
 
@@ -261,11 +263,11 @@ async function firstRun(browser: Browser, of: PromoFlow): Promise<void> {
   await expect(what).toBeVisible();
   const first = what.getByTestId('next-event');
   await expect(first).toHaveAttribute('data-form', 'card');
-  await watch(page, 4_000);
+  await watch(page, 3_000);
   await still(page, of, 'what');
   await first.getByRole('button', { name: OPEN_GUIDE[of.locale] }).click();
   await guideDrawn(page);
-  await watch(page, 5_000);
+  await watch(page, 4_000);
   await still(page, of, 'guide');
   await done(page, of);
 }
@@ -285,13 +287,11 @@ test.describe('phone', () => {
     await recomputed(page);
     await expect(page.locator('[data-testid="night-group"][data-open="true"]')).toHaveCount(1);
     await watch(page, 3_000);
-    await still(page, of, 'list');
-    // Down the list, as a reader thumbs it, and back to the first card.
-    await page.mouse.wheel(0, 600);
-    await watch(page, 2_000);
-    await page.mouse.wheel(0, -600);
-    await watch(page, 1_000);
+    // Down to the cards, as a reader thumbs the page, and the still is of them.
     const card = page.locator('article[data-pass-card]').first();
+    await card.scrollIntoViewIfNeeded();
+    await watch(page, 3_000);
+    await still(page, of, 'list');
     await card.getByRole('button', { name: OPEN_GUIDE[of.locale] }).click();
     await guideDrawn(page);
     await watch(page, 6_000);

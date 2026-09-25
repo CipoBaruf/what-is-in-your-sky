@@ -49,9 +49,9 @@ export const DEVICES = {
  * every other flow is shot once, dark and in English.
  */
 export const PROMO_FLOWS: readonly PromoFlow[] = [
-  { name: 'first-run-en-dark', device: 'phone', locale: 'en', theme: 'dark', seconds: 20, stills: ['where', 'when', 'what', 'guide'] },
-  { name: 'first-run-en-night', device: 'phone', locale: 'en', theme: 'night', seconds: 20, stills: ['where', 'when', 'what', 'guide'] },
-  { name: 'first-run-es-dark', device: 'phone', locale: 'es', theme: 'dark', seconds: 20, stills: ['where', 'when', 'what', 'guide'] },
+  { name: 'first-run-en-dark', device: 'phone', locale: 'en', theme: 'dark', seconds: 14, stills: ['where', 'when', 'what', 'guide'] },
+  { name: 'first-run-en-night', device: 'phone', locale: 'en', theme: 'night', seconds: 14, stills: ['where', 'when', 'what', 'guide'] },
+  { name: 'first-run-es-dark', device: 'phone', locale: 'es', theme: 'dark', seconds: 14, stills: ['where', 'when', 'what', 'guide'] },
   { name: 'list-and-card', device: 'phone', locale: 'en', theme: 'dark', seconds: 14, stills: ['list', 'guide'] },
   { name: 'live-see-this-pass', device: 'phone', locale: 'en', theme: 'dark', seconds: 18, stills: ['watching', 'held', 'back-to-live'] },
   { name: 'settings-language', device: 'phone', locale: 'en', theme: 'dark', seconds: 12, stills: ['settings', 'spanish'] },
