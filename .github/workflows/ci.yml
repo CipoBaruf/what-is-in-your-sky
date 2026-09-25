@@ -17,7 +17,11 @@ env:
   # out, because a matrix cannot read `env` either.
   # D-619 (R96): three since the axe run, the step PLAN §16.17 named for the
   # slower shard passing nine minutes.
-  CI_E2E_SHARDS: 3
+  # D-641 (V21-24): four since v2.1's release. Shard 1 ran 9m58s of the ten
+  # with nothing retried (185 tests, 6.6 min of e2e behind about 3 min of
+  # install, unit and build that every shard repeats), so the next spec
+  # would have cancelled it.
+  CI_E2E_SHARDS: 4
   STAGE_TIMES: stage-times.tsv
 
 jobs:
@@ -33,7 +37,7 @@ jobs:
       # hide half the failures from the reader it is meant to inform.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     name: ci (shard ${{ matrix.shard }})
     steps:
       - uses: actions/checkout@v5

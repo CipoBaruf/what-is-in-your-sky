@@ -250,6 +250,39 @@ export interface Budget {
  * stays where PLAN §11 puts it and the summary of R93 carries the
  * measurement; the settings row is kept so a page that grows shows up here.
  *
+ * R100 re-measures them on the 2.1.0 build (SPEC §9 Phase 2h, D-638), built
+ * the same way. **One budget moves, and main is still over.**
+ *
+ * | chunk          | file                  | measured | budget | was | ceiling |
+ * |----------------|-----------------------|---------:|-------:|----:|--------:|
+ * | main           | `index-*.js`          |    166.6 | **170** | 155 |     170 |
+ * | chart          | `SkyDome-*.js`        |     94.2 |    105 | 105 |     110 |
+ * | worker         | `passes.worker-*`     |     36.1 |     40 |  40 |     130 |
+ * | astronomy      | `skyBodies-*.js`      |     22.1 |     25 |  25 |      30 |
+ * | window         | `SkyWindow-*.js`      |     12.8 |     15 |  15 |       — |
+ * | live           | `Live-*.js`           |      9.7 | **15** |  10 |      40 |
+ * | service worker | `workbox-*.js`        |      5.0 |     10 |  10 |      15 |
+ * | settings       | `Settings-*.js`       |      1.0 |     10 |  10 |       — |
+ *
+ * `live` is the row v1.4 said to watch, and it has crossed: 9.7 × 1.1 is 10.7,
+ * so the rule puts it on the next 5 KB line. What v2.1 added inside it is the
+ * live page's three states and their notices (FR-LIVE-1, FR-FAIL-6), the page's
+ * own landmarks (D-596), the Spanish rows (FR-COMP-7), the watching inventory's
+ * clip (F-81) and `[ see this pass ]` (FR-JUMP-1): 1.4 KB over 2.0.0's 8.3.
+ * Every other row is the rule agreeing with the number already there, and
+ * `chart` is 94.2 for the fifth phase running. `main` is 166.6 against 155 —
+ * 8.6 KB above 2.0.0's 158.0, 0.6 above R93's 166.0 (the faint control and
+ * its strings, R97) — so F-69 stays open and the number stays where PLAN §11
+ * and V21-13 put it: the rule would make it 185 and the ceiling 170, and
+ * neither is a release task's to take.
+ *
+ * **The owner raised it (V21-24, D-641, 2026-09-25).** Asked at the release
+ * gate, the owner moved `main` to 170: D-178's rule (166.6 × 1.1, the next
+ * 5 KB line, 185) capped at the §11 ceiling. That leaves 3.4 KB, so the next
+ * phase that adds to `main` meets the ceiling, not the budget, and F-69's
+ * remedy (zod or the guide out of `main`, D-609) is still the way down. The
+ * ceiling itself is not moved.
+ *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
  *
@@ -298,12 +331,12 @@ export interface Budget {
  * the app never fetches.
  */
 export const BUDGETS: readonly Budget[] = [
-  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 155 }, // R60: 136.6 measured (flag on), crossing the 150 line (D-307); R80: 158.0 on 2.0.0 — over, and deliberately not raised (D-495, F-69)
+  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 170 }, // R60: 136.6 measured (flag on), crossing the 150 line (D-307); R80: 158.0 on 2.0.0 — over, and deliberately not raised (D-495, F-69); R100: 166.6 on 2.1.0, still not raised (V21-13, D-638); raised to 170 by the owner at the release gate (V21-24, D-641)
   { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 105 }, // R60: 94.2 measured, down from 97.1 (D-307); 94.2 again on 1.4.0 (R72)
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 40 },
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10 },
   { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 25 },
-  { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 10 }, // R53: back to the floor — R47 moved the World Magnetic Model to its own chunk and 1.1.0 measures 7.6 (D-178); R72: 8.5 on 1.4.0, the floor's last 1.5 KB
+  { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 15 }, // R53: back to the floor — R47 moved the World Magnetic Model to its own chunk and 1.1.0 measures 7.6 (D-178); R72: 8.5 on 1.4.0, the floor's last 1.5 KB; R100: 9.7 on 2.1.0, × 1.1 crosses 10 (D-638)
   { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 15 }, // R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345); R72: 12.1 on 1.4.0; R80: 12.8 with the compass gutter in it
   { name: 'settings', match: (file) => /^Settings-.*\.js$/.test(file), limitKb: 10 }, // R93 (D-545): 1.0 measured — the page's own composition; its controls are the home page's and stay in main
 ];
