@@ -30,7 +30,7 @@ its §12.1 has to be run from a clean browser before anything else in it.
       prints `OVERALL: PASS` for Neuquén, Paris and Singapore.
 - [ ] The dome raster snapshot (`src/ui/components/guide/skychart/dome/__snapshots__/SkyDome.golden.txt`)
       was regenerated on purpose if it changed, and the change is explained in the PR.
-- [ ] The branch preview (`https://<branch>-in-your-sky.ezequiel-baruf.workers.dev`) opens,
+- [ ] The branch preview (the per-branch URL `docs/DEPLOY.md` gives under *Domain*) opens,
       computes passes for a typed location, and DevTools shows no console error and no
       Content-Security-Policy violation while opening a pass, dragging the dome and
       toggling to the polar view.
@@ -42,7 +42,7 @@ Replace the host with the preview URL to check a branch.
 - [ ] Headers, as in `README.md`:
 
   ```
-  SITE=https://in-your-sky.ezequiel-baruf.workers.dev
+  SITE=https://inyoursky.app
   curl -sI $SITE/ | grep -iE 'content-security-policy|referrer-policy|permissions-policy'
   curl -sI $SITE/assets/$(curl -s $SITE/ | grep -oE 'assets/[^"]+\.js' | head -1 | cut -d/ -f2) | grep -i cache-control
   ```
@@ -176,7 +176,7 @@ Owner steps, in this order, and none of them belong to a task session:
 
 - [ ] `package.json` is `1.0.0` on `main` and `docs/RELEASE.md` is this file.
 - [ ] Tag it: `git tag -a v1.0.0 -m "v1: outdoor-ready" && git push origin v1.0.0`.
-- [ ] Deploy `main` to `https://in-your-sky.ezequiel-baruf.workers.dev` and run §2 and §5
+- [ ] Deploy `main` to `https://inyoursky.app` and run §2 and §5
       against production.
 - [ ] Record in the release PR: the bundle table, the §3 and §6.1 device numbers, the §4
       Heavens-Above comparison with the observer and both element epochs, and the date.
@@ -268,7 +268,7 @@ Owner steps, in this order, and none of them belong to a task session:
       `TASKS.md`.
 - [ ] The `captures.yml` run on the merge commit is green: 92 files, no missing capture.
 - [ ] Tag it: `git tag -a v1.1.0 -m "v1.1: the phone pass" && git push origin v1.1.0`.
-- [ ] Deploy `main` to `https://in-your-sky.ezequiel-baruf.workers.dev` and run §2 and §5
+- [ ] Deploy `main` to `https://inyoursky.app` and run §2 and §5
       against production.
 - [ ] Record in the release PR: the bundle table, the §3, §6.1, §7.1 and §7.2 device numbers
       with the two phones named, the §4 Heavens-Above comparison with the observer and both
@@ -316,7 +316,7 @@ Owner steps, in this order, and none of them belong to a task session:
       `TASKS.md`.
 - [ ] The `captures.yml` run on the merge commit is green: 128 files, no missing capture.
 - [ ] Tag it: `git tag -a v1.2.0 -m "v1.2: follow and the fixes" && git push origin v1.2.0`.
-- [ ] Deploy `main` to `https://in-your-sky.ezequiel-baruf.workers.dev` and run §2 and §5
+- [ ] Deploy `main` to `https://inyoursky.app` and run §2 and §5
       against production.
 - [ ] Record in the release PR: the bundle table, the §3, §6.1 and §8.1 device numbers, the
       §4 Heavens-Above comparison with the observer and both element epochs, and the date.
@@ -365,7 +365,7 @@ Owner steps, in this order, and none of them belong to a task session:
 - [ ] The `captures.yml` run on the merge commit is green: 116 files, no missing capture.
 - [ ] Tag it: `git tag -a v1.3.0 -m "v1.3: the sky screen" && git push origin v1.3.0` — on the
       release commit's SHA, not on whatever `main` has reached by then.
-- [ ] Deploy `main` to `https://in-your-sky.ezequiel-baruf.workers.dev` and run §2 and §5
+- [ ] Deploy `main` to `https://inyoursky.app` and run §2 and §5
       against production.
 - [ ] Record in the release PR: the bundle table, the §3, §6.1 and §9.1 device numbers, the
       §4 Heavens-Above comparison with the observer and both element epochs, and the date.
@@ -388,7 +388,7 @@ URL or the phase changes.
 
 - [ ] **Homepage URL** (same dialog, *Website*):
 
-      https://in-your-sky.ezequiel-baruf.workers.dev
+      https://inyoursky.app
 
 - [ ] **Social preview** (*Settings → General → Social preview → Upload an image*),
       1280 × 640, regenerated with `npx tsx scripts/readme-hero.ts`:
@@ -513,7 +513,7 @@ Owner steps, in this order, and none of them belong to a task session:
 - [ ] The `captures.yml` run on the merge commit is green: 124 files, no missing capture.
 - [ ] Tag it: `git tag -a v1.4.0 -m "v1.4: the shape, the chunk and the list" && git push origin v1.4.0`
       — on the release commit's SHA, not on whatever `main` has reached by then.
-- [ ] Deploy `main` to `https://in-your-sky.ezequiel-baruf.workers.dev` and run §2 and §5
+- [ ] Deploy `main` to `https://inyoursky.app` and run §2 and §5
       against production.
 - [ ] Record in the release PR: the bundle table, the §3, §6.1 and §11.1 device numbers,
       the §4 Heavens-Above comparison with the observer and both element epochs, and the
@@ -681,7 +681,7 @@ Owner steps, in this order, and none of them belong to a task session:
       — **on the release commit's SHA, not on whatever `main` has reached by then**. A
       squash merge rewrites the commit, and `main`'s head an hour later is not the build
       any of this was run against.
-- [ ] Deploy `main` to `https://in-your-sky.ezequiel-baruf.workers.dev` and run §2 and §5
+- [ ] Deploy `main` to `https://inyoursky.app` and run §2 and §5
       against production. §2's manifest and icon checks matter more than usual: the
       favicons and the two PNG icons are new in this phase and are generated files.
 - [ ] Record in the release PR: the bundle table with F-69's overrun named, the §3,
@@ -809,10 +809,64 @@ Owner steps, in this order, and none of them belong to a task session:
 - [ ] Tag it: `git tag -a v2.1.0 <sha> -m "v2.1: the audit and the flow" && git push
       origin v2.1.0` — **with the release commit's SHA written in**, not whatever
       `main` has reached by then (a squash merge rewrites the commit).
-- [ ] Deploy `main` to `https://in-your-sky.ezequiel-baruf.workers.dev` and run §2 and §5
+- [ ] Deploy `main` to `https://inyoursky.app` and run §2 and §5
       against production.
 - [ ] Run §13.1 to §13.4 on the phone, and write the results into the register: F-97
       confirmed or closed, OQ-35's remaining half closed or turned into findings.
 - [ ] Record in the release PR: the bundle table with main against its new 170, the
       screen reader and its version, the §4 Heavens-Above comparison with the observer
       and both element epochs, and the date.
+
+## 14. v2.2 (spec §9 Phase 2i)
+
+Everything above still applies, §1 to §5 included, and §12's runs stay the reference for
+the screens v2.2 did not change. v2.2 is the showcase: the repository in front of a second
+audience, one product change (the footer's glyphcss credit, FR-SHOW-8), and the address.
+`https://inyoursky.app` is now the origin every document names; the `workers.dev` address
+serves on unchanged with its own browser state (FR-ADDR-3), and §2 and §5 run against
+the new one. Its §13 phone run is v2.1's and stays owed.
+
+### 14.1 The two origins (FR-ADDR-2)
+
+The first deploy from `main` after P6 merges is what binds the domain: `wrangler deploy`
+creates the DNS record and the certificate for the `routes` entry in `wrangler.jsonc`.
+Nothing is set in the dashboard.
+
+- [ ] Both origins print the three PLAN §11 headers (the two `curl -sI` lines under
+      *Domain* in `docs/DEPLOY.md`), and the immutable `Cache-Control` on an asset at the
+      new one (§2's third line with `SITE=https://inyoursky.app`).
+- [ ] The app opens at `https://inyoursky.app`: a typed place computes passes, the dome
+      opens, DevTools shows no console error and no Content-Security-Policy violation.
+      The CSP's `connect-src 'self'` needed no host added.
+- [ ] The old address opens the same build, and a browser that had a place saved there
+      still has it there and starts fresh at the new one (FR-ADDR-3; no migration, no
+      banner).
+- [ ] The GitHub *Website* field reads `https://inyoursky.app` (§10), checked with
+      `gh repo view --json homepageUrl`.
+
+### 14.2 The hero and the captures (FR-ADDR-4, FR-SHOW-5, FR-SHOW-8)
+
+- [ ] `docs/readme/hero.png` and `docs/readme/social-preview.png` print `inyoursky.app`
+      under the title, regenerated by `npx tsx scripts/readme-hero.ts` from the unchanged
+      captures; the README's image is legible at the width GitHub renders it.
+- [ ] `docs/screenshots/` changed only in the footer captures R102 re-shot for the
+      glyphcss credit, in both languages; every other file is byte-identical to the
+      `v2.1.0` set (FR-SHOW-5).
+- [ ] The footer names glyphcss and Juan Cruz Fortunatti with links, in both languages,
+      on the phone and on the desktop (US-36 AC6).
+
+### 14.3 The release itself
+
+Owner steps, in this order, and none of them belong to a task session:
+
+- [ ] `package.json` is `2.2.0` on `main` and every task of the phase is checked off in
+      `TASKS.md` (P6, R102, P3, P4, P5).
+- [ ] `npx knip` on the release commit reports nothing, and the bundle table shows no
+      chunk larger than the `v2.1.0` build's (FR-SHOW-4, FR-SHOW-5).
+- [ ] Tag it: `git tag -a v2.2.0 <sha> -m "v2.2: the showcase" && git push origin
+      v2.2.0` — **with the release commit's SHA written in**, not whatever `main` has
+      reached by then (V22-12; a squash merge rewrites the commit).
+- [ ] Deploy `main` to `https://inyoursky.app` and run §2, §5 and §14.1 against
+      production, on both origins.
+- [ ] Record in the release PR: the two header blocks, the bundle table, the knip
+      output, and the date.

@@ -4,7 +4,7 @@ Type a location and see which of about thirty bright satellites cross the sky ov
 tonight: when each one appears, where to look for it, how long it stays and how bright it
 gets. It runs in the browser, with no backend and no account.
 
-**Live:** <https://in-your-sky.ezequiel-baruf.workers.dev>
+**Live:** <https://inyoursky.app>
 
 ![Three screens: a phone showing the sky over you drawn as braille text with the passes and the time stripe under it, a phone turned sideways held up at the sky, and a laptop showing when the next pass starts, how high it climbs and how bright it gets](docs/readme/hero.png)
 

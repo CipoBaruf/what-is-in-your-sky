@@ -16,8 +16,9 @@ Hosting is Cloudflare Workers static assets wired to this repository through Wor
 Builds (PLAN D-12 as amended in §2.5): a push to `main` builds and deploys production;
 a push to any other branch, once *non-production branch builds* are enabled, uploads a
 preview version with its own URL. `wrangler.jsonc` at the root holds the whole
-configuration (assets-only Worker, `dist/` as the assets directory, no Worker script), so
-the build never has to guess.
+configuration (assets-only Worker, `dist/` as the assets directory, no Worker script, and
+the `routes` entry that binds the public address — see *Domain* below), so the build
+never has to guess.
 
 ## How the project was created, once, in the dashboard
 
@@ -28,6 +29,36 @@ the build never has to guess.
 3. *Settings → Builds → Branch control*: enable non-production branch builds so every
    branch gets a preview version, aliased by branch name:
    `https://<branch>-in-your-sky.ezequiel-baruf.workers.dev`.
+
+## Domain
+
+The public address is `https://inyoursky.app` (SPEC §4.44, FR-ADDR-1..4; PLAN D-658).
+It is a custom domain on the Worker, bound by the deploy and not by the dashboard:
+`wrangler.jsonc` carries `"routes": [{ "pattern": "inyoursky.app", "custom_domain": true }]`,
+and the `npx wrangler deploy` that Workers Builds runs from `main` creates the DNS record
+and provisions the certificate in the zone. The only precondition is the zone itself,
+active in the Cloudflare account; nothing is clicked for the binding. No `www` record:
+the apex is the one name bound, and a `www` is a later decision if a reader ever types
+one.
+
+- **Registrar:** Cloudflare Registrar, bought 2026-09-25, auto-renew on. The renewal
+  falls on 2026-09-25 each year; the card on the account is what pays it.
+- **GitHub *Website* field:** set to `https://inyoursky.app` (§10 of `docs/RELEASE.md`,
+  FR-PUB-11), by hand, in the repository's *About* dialog.
+- **Branch previews:** unchanged, `https://<branch>-in-your-sky.ezequiel-baruf.workers.dev`
+  — a custom domain has no preview form, so `preview_urls` stays on in `wrangler.jsonc`.
+- **The old address:** `https://in-your-sky.ezequiel-baruf.workers.dev` still serves the
+  same build with its own browser state — IndexedDB, the prefs record, the saved places
+  and an installed app all belong to an origin, so a reader who used it finds a first run
+  at the new address and keeps everything at the old one; no redirect (that would need a
+  Worker script) and no migration (FR-ADDR-3).
+
+After a deploy, check both origins; each prints the PLAN §11 header block:
+
+```
+curl -sI https://inyoursky.app | grep -iE 'content-security-policy|referrer-policy|permissions-policy'
+curl -sI https://in-your-sky.ezequiel-baruf.workers.dev | grep -iE 'content-security-policy|referrer-policy|permissions-policy'
+```
 
 ## Renaming the worker
 
@@ -50,7 +81,7 @@ runs the app under it, so a CSP violation fails CI before it reaches the site. T
 deployment by hand (replace the host with a preview URL to check a branch):
 
 ```
-SITE=https://in-your-sky.ezequiel-baruf.workers.dev
+SITE=https://inyoursky.app
 curl -sI $SITE/ | grep -iE 'content-security-policy|referrer-policy|permissions-policy'
 curl -sI $SITE/assets/$(curl -s $SITE/ | grep -oE 'assets/[^"]+\.js' | head -1 | cut -d/ -f2) | grep -i cache-control
 ```
