@@ -2582,7 +2582,7 @@ Decision blocks (§16.2), reserved in PLAN §16.18: **P6 D-660..D-662, R102 D-66
 
 ### Wave 1
 
-- [ ] **P6 — The address: `inyoursky.app` bound by the deploy, named everywhere, the hero regenerated**
+- [x] **P6 — The address: `inyoursky.app` bound by the deploy, named everywhere, the hero regenerated** *(done 2026-09-25; the `workers.dev` scan is `git grep -F`, since `workers_dev` in `wrangler.jsonc` matches the unescaped dot — D-660; only the social preview prints the wordmark, D-661)*
   - **Lane:** docs
   - **Model:** fable
   - **Review:** opus

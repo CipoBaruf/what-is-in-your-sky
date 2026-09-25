@@ -27,8 +27,8 @@ never has to guess.
    `npm run build`, deploy command `npx wrangler deploy` (the defaults). No environment
    variables; the Node version comes from `.node-version` (24, the same as CI).
 3. *Settings → Builds → Branch control*: enable non-production branch builds so every
-   branch gets a preview version, aliased by branch name:
-   `https://<branch>-in-your-sky.ezequiel-baruf.workers.dev`.
+   branch gets a preview version, aliased by branch name (the URL is under *Domain*
+   below).
 
 ## Domain
 

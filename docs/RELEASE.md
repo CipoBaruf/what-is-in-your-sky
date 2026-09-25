@@ -822,9 +822,9 @@ Owner steps, in this order, and none of them belong to a task session:
 Everything above still applies, §1 to §5 included, and §12's runs stay the reference for
 the screens v2.2 did not change. v2.2 is the showcase: the repository in front of a second
 audience, one product change (the footer's glyphcss credit, FR-SHOW-8), and the address.
-`https://inyoursky.app` is now the origin every document names; the `workers.dev` address
-serves on unchanged with its own browser state (FR-ADDR-3), and §2 and §5 run against
-the new one. Its §13 phone run is v2.1's and stays owed.
+`https://inyoursky.app` is now the origin every document names; the old address (the one
+`docs/DEPLOY.md`'s *Domain* section keeps) serves on unchanged with its own browser state
+(FR-ADDR-3), and §2 and §5 run against the new one. Its §13 phone run is v2.1's and stays owed.
 
 ### 14.1 The two origins (FR-ADDR-2)
 
