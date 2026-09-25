@@ -50,18 +50,16 @@
  * the list has three nights in it. One place would have cost one of the two,
  * and a flat picture of a rich screen is worth less than a tidy postcode.
  */
-import { expect, test, type Locator, type Page } from '@playwright/test';
-import type { Observer } from '../../src/model';
+import { expect, test, type Page } from '@playwright/test';
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
+// P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
+import { CLOCK, DAY_MS, GLARE_PASS, GLARE_PASS_START, guide, listSettled, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
 import { domeDrawn, enterScrubbing, heading, hhmmss, openLegend, openSettings, stripFilled, stubCompass } from './liveHelpers';
 // Both observers are at altitude 0, which is what typing a coordinate pair gives (FR-LOC-4) and what
 // the committed pass ids were computed at: a seeded altitude would move every pass start by a second
 // or two and the glare pass would no longer be found by its id. Only Paris is observed from; Neuquén
 // is here to be the second row of the saved places.
-import { FIXTURE_DATE, NEUQUEN, PARIS } from './observers';
-
-const DAY_MS = 86_400_000;
-const PREFS_KEY = 'wiys:prefs:v1';
+import { NEUQUEN, PARIS } from './observers';
 
 /**
  * FR-CI-2 (R37, F-46): sixty captures off one build take about 8.5 min, which
@@ -75,41 +73,18 @@ const PREFS_KEY = 'wiys:prefs:v1';
 test.skip(process.env['CAPTURES'] !== '1', 'the release capture set: run with CAPTURES=1 (FR-CI-2)');
 
 /**
- * The pass the Moon stands 8° from (`live-captures.spec.ts`, R22), and the
- * night the whole set is shot on: 2026-09-02 over Paris, the elements seven
- * hours old.
- *
- * The rest of the suite runs at Neuquén nine days on from the fixture capture,
- * because that is where the golden ISS pass is. A release capture cannot: nine
- * days puts the newest epoch past FR-SAT-4's five-day mark and the staleness
- * warning across the top of every home screen, and no earlier clock over
- * Neuquén has an ISS pass to put in the hero card — the visible season there
- * starts on the 11th. Over Paris the same fixtures have an ISS pass fifty
- * minutes ahead at `CLOCK`, so one place and one night carry every screen: the
- * list with its hero, the pass open on both charts, and the live page at the
- * moment it is overhead.
- *
- * What it costs is the weather. The only forecast in the fixtures is over
- * Neuquén, so every cloud badge here reads "weather unknown" — which is the
- * FR-WX-1 fallback doing its job, and cheaper than a staleness banner on the
- * front page. `r27-*.png` is the capture set with a forecast in it.
+ * The night the whole set is shot on — the glare pass, `CLOCK` and `SHOWN` —
+ * is `captureSeeds.ts`'s, with the reasons (D-179: Paris, not Neuquén nine
+ * days on, and what it costs in weather).
  */
-const GLARE_PASS_START = Date.parse('2026-09-02T03:52:46.469Z');
-const GLARE_PASS = `25544-${String(GLARE_PASS_START)}`;
-const CLOCK = Date.parse('2026-09-02T03:00:00Z');
-/** Three minutes into a six-minute pass: the marker near the peak, half the arc behind it (FR-DOME-5's two colours). */
-const SHOWN = GLARE_PASS_START + 180_000;
 /** R53: the legend screen's instant, two minutes further on — see the `legend` route. */
 const LEGEND_SHOWN = SHOWN + 120_000;
-const TICK_MS = 10_000;
 /**
  * R79 (FR-GUT-6): the chip's instant. At `SHOWN` the Paris sky has a pass in every direction, so no facing is an
  * empty field; three minutes before the overhead pass rises — inside `ARC_LOOKAHEAD_MS`, so it is drawn `ahead` — one
  * can be found, and the chip names the turn to where it will rise.
  */
 const CHIP_SHOWN = GLARE_PASS_START - 8 * 60_000;
-
-const OPEN_GUIDE = { en: /Open guide/, es: /Abrir la guía/ } as const;
 
 /** Neuquén saved but not in use, Paris in use: the "in use" mark is on one row and not the other. Two screens seed them (R53: the settings page lists them too, FR-COMP-2). */
 const SAVED_PLACES = [
@@ -172,82 +147,10 @@ const GROUND_STATE: Record<'window-ground' | 'window-buried', { altDeg: number; 
   'window-buried': { altDeg: -60, state: 'buried' },
 };
 
-interface SeedPrefs {
-  locale: CaptureLocale;
-  theme: CaptureTheme;
-  observer?: Observer;
-  chartView?: 'dome' | 'polar';
-  favourites?: { cellKey: string; observer: Observer; addedAt: number; lastUsedAt: number }[];
-  /** FR-LIVE-6: the hidden-objects toggle's saved state, which the legend screen wants on. */
-  liveHidden?: boolean;
-}
-
-/** The elements from the fixtures, and nothing else: no forecast over Paris, and no geocoder, since every observer here is a coordinate pair. */
-async function stubNetwork(page: Page): Promise<void> {
-  await page.route('https://celestrak.org/**', async (route) => {
-    const url = new URL(route.request().url());
-    await route.fulfill({ path: `tests/fixtures/omm/${FIXTURE_DATE}-${url.searchParams.get('GROUP') ?? 'unknown'}.json`, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } });
-  });
-  for (const pattern of ['https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**']) await page.route(pattern, (route) => route.abort('failed'));
-}
-
-/** A page at `width` on the paused clock, with the preferences already in storage and the network stubbed. Called once per test. */
+/** A page at `width` on the paused clock, with the preferences already in storage and the network stubbed (`seedPage`). Called once per test. */
 async function open(page: Page, width: CaptureWidth, prefs: SeedPrefs, time = CLOCK): Promise<void> {
   await page.setViewportSize(VIEWPORTS[width]);
-  await page.addInitScript(
-    ([key, value]: [string, string]) => {
-      localStorage.setItem(key, value);
-    },
-    [PREFS_KEY, JSON.stringify(prefs)] as [string, string],
-  );
-  await stubNetwork(page);
-  await page.clock.install({ time });
-  await page.clock.pauseAt(time);
-}
-
-/** R23 (D-72): the guide is a modal sheet on a phone and a column beside the list on a wide screen. */
-const guide = (page: Page): Locator => page.locator('[role="dialog"], [data-testid="guide-panel"]').first();
-
-/**
- * The list, settled, asked in neither language: the ISS hero card is up, the
- * 72 h search has stopped (nothing is left `aria-busy`) and the passes are
- * grouped by night. Every wait here is on a `data-testid` or an ARIA state, so
- * the English and the Spanish run take the same path.
- */
-async function listSettled(page: Page): Promise<void> {
-  await expect(page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') })).toBeVisible({ timeout: 60_000 });
-  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
-  expect(await page.getByTestId('night-group').count()).toBeGreaterThan(0);
-  // The readiness line appears once the finished run has been stored (FR-OFF-4), which is a
-  // beat after the search itself ends: without this wait two runs of the same capture
-  // disagree about whether the location block has a line under it.
-  await expect(page.getByTestId('readiness')).toBeVisible({ timeout: 60_000 });
-  // The pointer is wherever the last action left it, and a cloud badge under it opens its tooltip over the capture.
-  await page.mouse.move(0, 0);
-}
-
-/**
- * F-48 (R37): every capture is shot at `SHOWN`, on the dot.
- *
- * Waiting for a drawn chart means ticking the paused clock (`domeDrawn`), and
- * how many ticks that takes is a property of the run, not of the picture: R36's
- * live captures were shot wherever the last tick left the clock, so the time
- * field and the marker moved between two runs of the same file. So the waiting
- * is done first and the clock is only then put where the capture wants it —
- * one tick short of the instant, then a tick, which is how the page arrives at
- * a new `now` in the app as well (`NOW_TICK_MS`).
- *
- * F-99 (V21-24, D-642): the tick is a `fastForward`, not a `runFor`. `runFor`
- * fires every interval on its own phase, and a 1 s interval's phase (the
- * next-event countdown, the instant `[ scrub ]` holds) was set by how many
- * ticks the waiting took. It last fired anywhere in the second before `t`, so
- * two runs showed the instant a second apart. `fastForward` fires each due
- * timer once, at `t`, so every clock on the page reads `t` whatever the wait
- * left behind.
- */
-async function pinnedAt(page: Page, t: number): Promise<void> {
-  await page.clock.setSystemTime(t - TICK_MS);
-  await page.clock.fastForward(TICK_MS);
+  await seedPage(page, prefs, time);
 }
 
 /** The chart screens: the glare pass open on `view`, three minutes in. */
