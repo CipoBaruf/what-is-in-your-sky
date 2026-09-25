@@ -260,9 +260,13 @@ describe('the reading order (FR-PUB-3)', () => {
     expect(relative.filter((target) => target.startsWith('docs/screenshots/')).length).toBeGreaterThan(0);
   });
 
-  it('says why docs/ is as big as it is', () => {
-    expect(built).toMatch(/53 MB/);
+  it('says why docs/ is as big as it is, and leaves the number to the table (FR-SHOW-1, D-650)', () => {
+    // P1 pinned "53 MB" here and the directory doubled two phases later; the
+    // figure now lives in *By the numbers* beside `du`, which is the
+    // accuracy test's to check, and this section explains the size in words.
+    expect(built).toMatch(/^## Why `docs\/` is as big as it is$/m);
     expect(built).toContain('docs/screenshots/');
+    expect(built).toContain('By the numbers');
   });
 
   it('is linked from the first screen and reachable as a file', () => {
@@ -405,6 +409,20 @@ describe('hygiene (FR-PUB-7, D-372)', () => {
   it('holds no absolute path into the machine it was built on', () => {
     const found = text.filter((path) => ABSOLUTE.test(readFileSync(path, 'utf8')));
     expect(found).toEqual([]);
+  });
+
+  it('and reads the process paperwork by name: .claude/** and scripts/sdd/ are public on purpose (FR-SHOW-3, D-651)', () => {
+    // `git ls-files` already includes them; this is the reader being seen to
+    // include them, since they are the files a session wrote closest to the
+    // owner's machine and the ones a visitor from a post opens first.
+    const paperwork = tracked.filter((path) => path.startsWith('.claude/') || path.startsWith('scripts/sdd/'));
+    expect(paperwork.length).toBeGreaterThanOrEqual(6);
+    expect(paperwork.filter((path) => !text.includes(path))).toEqual([]);
+    for (const path of paperwork) {
+      const body = readFileSync(path, 'utf8');
+      expect(EMAIL.test(body), `${path} carries an address`).toBe(false);
+      expect(ABSOLUTE.test(body), `${path} carries a machine path`).toBe(false);
+    }
   });
 
   it('and the shapes are the shapes: the R14 attribute would fail, the documents that discuss it do not', () => {

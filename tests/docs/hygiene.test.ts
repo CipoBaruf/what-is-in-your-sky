@@ -73,3 +73,27 @@ describe('.gitignore names both shapes (F-16, F-20)', () => {
     expect(PLAYWRIGHT_CONFIG.test('playwright.local.config.ts')).toBe(true);
   });
 });
+
+describe('the local half of the tree is never tracked (FR-SHOW-3, D-651)', () => {
+  /**
+   * What `docs/HOW-THIS-WAS-BUILT.md` names under *What is deliberately public*
+   * as not tracked, and why: the driver's briefs, summaries, logs and cache
+   * are regenerated on every run; `handoff/` and `redesign/` are the design
+   * phase's working material (V20-11); `promo/` is where the recording run
+   * writes (FR-SHOW-6). None of them is anyone's to read from the repository.
+   */
+  const LOCAL = ['sdd-run/', 'logs/', '.sdd-cache/', 'handoff/', 'redesign/', 'promo/'];
+
+  it('ignores promo/, the recording run’s folder, beside redesign/ (P6 wrote the line)', () => {
+    expect(lines).toContain('/promo');
+    expect(lines).toContain('/redesign');
+  });
+
+  it('ignores the driver’s own folders', () => {
+    for (const folder of ['sdd-run/', 'logs/', '.sdd-cache/']) expect(lines).toContain(folder);
+  });
+
+  it('tracks nothing under any of the six', () => {
+    expect(tracked.filter((path) => LOCAL.some((folder) => path.startsWith(folder)))).toEqual([]);
+  });
+});

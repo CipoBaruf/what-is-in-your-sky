@@ -23,9 +23,9 @@ Both themes when the task touches colour (FR-THEME-*): capture dark and night. B
 2. Write or extend a Playwright script under `tests/e2e/` that reaches the state (typed coordinates, fixture elements through MSW or the recorded fixtures, a chosen pass) and calls `page.screenshot({ path: 'test-results/<task>-<screen>-<width>.png', fullPage })`. Reuse `tests/e2e/identity.spec.ts`'s helpers where they fit.
 3. Run it: `npx playwright test <spec> --project=chromium`.
 4. Look at every capture (Read the PNG). Check against the acceptance criteria and the mockup: alignment to the cell grid, no clipped labels, no horizontal scroll, contrast, both languages complete (no English leaking into Spanish).
-5. Copy the captures the PR should carry to `docs/screenshots/` with the task prefix (`r16-home-1280.png`). Keep the set small: one per screen, width, and variant that matters.
+5. Copy the captures the PR should carry to `docs/screenshots/` with the task prefix (`r17-home-390-en.png`). Keep the set small: one per screen, width, and variant that matters.
 6. List the files in the PR body with one line each saying what to look at.
 
 ## Names
 
-`<task>-<screen>-<width>[-<variant>].png`, for example `r17-live-844-landscape.png`, `r16-detail-1280-es.png`.
+`<task>-<screen>-<width>[-<variant>].png`, for example `r34-live-844-landscape-dark-es.png`, `r17-detail-390-es.png` — real files under `docs/screenshots/`.
