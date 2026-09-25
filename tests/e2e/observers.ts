@@ -36,3 +36,14 @@ export const NEUQUEN: Observer = observerFromCoords(ha.observer.lat, ha.observer
 export const NINE_DAYS_ON = Date.parse(ha.capturedAt) + 9 * 86_400_000;
 /** The finished 72 h run `seedStoredRun` puts in IndexedDB; written by `scripts/build-stored-run.ts`. */
 export const STORED_RUN_FILE = 'tests/fixtures/stored-run-neuquen.json';
+
+/**
+ * The capture set's instant (D-179; `captureSeeds.ts` exports it as `CLOCK`):
+ * the same night over Paris, seven hours after the fixtures were captured,
+ * with the ISS pass fifty minutes ahead. It is here as well as there because
+ * `scripts/build-stored-run.ts` computes the recording run's list for exactly
+ * this instant (P4, D-673) and this file is the one with no Playwright import.
+ */
+export const PARIS_NIGHT = Date.parse('2026-09-02T03:00:00Z');
+/** The finished 72 h run over Paris at `PARIS_NIGHT`, which the recording run seeds; written by the same script. */
+export const STORED_RUN_PARIS_FILE = 'tests/fixtures/stored-run-paris.json';
