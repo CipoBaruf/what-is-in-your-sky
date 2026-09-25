@@ -5,13 +5,13 @@ description: Capture a task's screens at phone and desktop widths with Playwrigh
 
 # Visual review captures
 
-Every UI task ends with captures that a reviewer can compare against the spec and the approved mockups. The captures are evidence in the PR, not tests.
+Every UI task ends with captures that a reviewer can compare against the spec and the approved mockups. A task's own captures (`r<n>-*.png`) are evidence in the PR, not tests. The release set (`v1-*.png`, named in `tests/e2e/captureSet.ts`) is both: `tests/docs/captures.test.ts` fails when a file the set names is missing or a file it does not name appears under `docs/screenshots/` (FR-COMP-6, D-179), so a task that re-shoots one of those commits exactly the files the set names.
 
 ## Widths
 
 | Name | Viewport | Why |
 |---|---|---|
-| phone | 390 × 844 | The MVP reference (Pixel 5 profile). |
+| phone | 390 × 844 | The reference phone: an iPhone 15 Pro's viewport (FR-COMP-6). |
 | phone-landscape | 844 × 390 | Only for the live page (FR-LIVE-7). |
 | desktop | 1280 × 800 | Wide layout (FR-DESK-1, ≥ 100 cells). |
 

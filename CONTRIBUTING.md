@@ -26,8 +26,9 @@ tests are pinned to.
    another way. If it only changes how the product is built, it is a PLAN change.
 3. **Then it is a task** — an entry in `TASKS.md` with a goal, the requirement ids it
    satisfies, its lane, its dependencies and a *done when* list that can be checked.
-   `TASKS.md` is generated from the two documents, so it is not edited by hand except to
-   check a task off.
+   `TASKS.md` is generated from the two documents by a session, so nobody edits it by
+   hand except to check a task off; the **Done** note under each entry is written by the
+   session that implemented it, at the end of its own run.
 4. **Then it is a branch**, one task per branch, with the task checked off on it.
 
 Steps 2 and 3 are usually a separate pull request from step 4: the documents land first,
@@ -46,7 +47,7 @@ the code lands against them.
 
 Refactors with no requirement behind them, dependency bumps that are not fixing
 something, and new features that have not been through the spec. The app is deliberately
-small: one page, no backend, no accounts, no analytics.
+small: a few screens in one static bundle, no backend, no accounts, no analytics.
 
 By contributing you agree that your contribution is licensed under the
 [MIT licence](LICENSE) that covers the rest of the repository.

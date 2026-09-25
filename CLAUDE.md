@@ -10,7 +10,7 @@ Naked-eye satellite spotting web app. Spec-driven development.
 
 ## Workflow
 
-- Read all three documents before touching code.
+- Interactive: read all three documents before touching code. Headless (`SDD_HEADLESS=1`, a session started by `scripts/sdd-run.ts`): read `sdd-run/<task>.brief.md` instead — the driver wrote it (PLAN D-198) and it carries everything the task names; look ids up in the documents only where the brief points.
 - Use the `sdd-implement` skill for any implementation work.
 - Use the `sdd-breakdown` skill to regenerate TASKS.md; never edit it by hand except to check tasks off.
 - If code needs something the docs don't cover, stop and propose the doc change first.
@@ -18,7 +18,7 @@ Naked-eye satellite spotting web app. Spec-driven development.
 
 ## Stack
 
-React 19 + TypeScript + Vite, static deploy, no backend in MVP. Physics in a Web Worker with satellite.js. Sky chart with @glyphcss/react. See PLAN.md for the rest.
+React 19 + TypeScript + Vite, a static deploy on Cloudflare Workers static assets, no backend. Physics in a Web Worker with satellite.js. Sky chart with @glyphcss/react. See PLAN.md for the rest.
 
 ## Conventions
 
