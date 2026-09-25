@@ -236,10 +236,18 @@ async function listSettled(page: Page): Promise<void> {
  * is done first and the clock is only then put where the capture wants it —
  * one tick short of the instant, then a tick, which is how the page arrives at
  * a new `now` in the app as well (`NOW_TICK_MS`).
+ *
+ * F-99 (V21-24, D-642): the tick is a `fastForward`, not a `runFor`. `runFor`
+ * fires every interval on its own phase, and a 1 s interval's phase (the
+ * next-event countdown, the instant `[ scrub ]` holds) was set by how many
+ * ticks the waiting took. It last fired anywhere in the second before `t`, so
+ * two runs showed the instant a second apart. `fastForward` fires each due
+ * timer once, at `t`, so every clock on the page reads `t` whatever the wait
+ * left behind.
  */
 async function pinnedAt(page: Page, t: number): Promise<void> {
   await page.clock.setSystemTime(t - TICK_MS);
-  await page.clock.runFor(TICK_MS);
+  await page.clock.fastForward(TICK_MS);
 }
 
 /** The chart screens: the glare pass open on `view`, three minutes in. */
@@ -308,7 +316,8 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
   // R77 (FR-WATCH-3, FR-WATCH-5, D-474, D-476): the clock is a field of the conditions line on compact and
   // the rail's own `live-clock` on wide, where the line gave it up. Either way it is the page's shown instant.
   const shownClock = (await page.getByTestId('live-time').count()) > 0 ? page.getByTestId('live-time') : page.getByTestId('live-clock');
-  await expect(shownClock).toContainText(hhmmss(shown).slice(0, 7));
+  // F-99: to the second, so a clock left on its own interval's phase fails here rather than in a diff of two runs.
+  await expect(shownClock).toContainText(hhmmss(shown));
   await page.mouse.move(0, 0);
 }
 
