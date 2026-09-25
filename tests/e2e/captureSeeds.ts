@@ -18,7 +18,7 @@
  */
 import { expect, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
-import { FIXTURE_DATE } from './observers';
+import { FIXTURE_DATE, PARIS_NIGHT } from './observers';
 
 export const DAY_MS = 86_400_000;
 export const PREFS_KEY = 'wiys:prefs:v1';
@@ -26,7 +26,8 @@ export const PREFS_KEY = 'wiys:prefs:v1';
 /** The pass the Moon stands 8° from (`live-captures.spec.ts`, R22), and the night the whole set is shot on. */
 export const GLARE_PASS_START = Date.parse('2026-09-02T03:52:46.469Z');
 export const GLARE_PASS = `25544-${String(GLARE_PASS_START)}`;
-export const CLOCK = Date.parse('2026-09-02T03:00:00Z');
+/** 2026-09-02 03:00 UTC; the number lives in `observers.ts` so the stored-run script can compute the recording run's list at it (P4). */
+export const CLOCK = PARIS_NIGHT;
 /** Three minutes into a six-minute pass: the marker near the peak, half the arc behind it (FR-DOME-5's two colours). */
 export const SHOWN = GLARE_PASS_START + 180_000;
 /** The ten-second tick the strip reads the clock at (FR-VIS-5). */
