@@ -852,8 +852,9 @@ Nothing is set in the dashboard.
 - [ ] `docs/screenshots/` changed only in the footer captures R102 re-shot for the
       glyphcss credit, in both languages; every other file is byte-identical to the
       `v2.1.0` set (FR-SHOW-5).
-- [ ] The footer names glyphcss and Juan Cruz Fortunatti with links, in both languages,
-      on the phone and on the desktop (US-36 AC6).
+- [ ] The footer names glyphcss with its link, in both languages, on the phone and on the
+      desktop, and neither the footer nor the README names the library's author (US-36
+      AC6, V22-15).
 
 ### 14.3 The release itself
 

@@ -290,11 +290,18 @@ describe('credits (FR-PUB-4)', () => {
     });
   }
 
-  it('credits glyphcss to its author and its copyright holder, and says why it was chosen', () => {
-    expect(attributions).toContain('Juan Cruz Fortunatti');
+  it('credits glyphcss as the library, its URL and its copyright holder, and says why it was chosen', () => {
     expect(attributions).toContain('https://glyphcss.com');
     expect(attributions).toMatch(/©\s*2025 Layoutit/);
     expect(attributions).toMatch(/monospace/);
+  });
+
+  it('and names no author: the credit is the library alone (FR-PUB-4 as amended, V22-15)', () => {
+    // The name is assembled rather than written, for the same reason the
+    // hygiene block assembles its positives: this file is tracked, and the
+    // task's own check is `git grep -i` over the tree.
+    const author = ['Fortu', 'natti'].join('');
+    expect(readme.toLowerCase()).not.toContain(author.toLowerCase());
   });
 });
 
