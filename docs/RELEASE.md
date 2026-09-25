@@ -769,7 +769,9 @@ version in the release PR: that is what FR-A11Y-6 asks for.
       once, not twice (FR-ROUTE-1, F-91).
 - [ ] **Live** (`#live`). Entering it moves the focus to the page, its landmarks are
       there (F-71), and the watching headline's times are read with `rise`, `peak`
-      and `end` (F-81).
+      and `end` (F-81). **F-100:** with the screen reader off, tap into `#live` and look
+      at the back control — the captures draw a focus ring round it that crosses the
+      line below. No ring on the phone: close F-100. A ring that covers text: keep it.
 - [ ] **Settings** (`#settings`). Every row is read once — the install row is not
       "Instalar, Instalar" (F-83) — and the install button, if the browser offers one,
       still works after a cancelled dialog (FR-FAIL-8, F-95).
@@ -787,9 +789,12 @@ version in the release PR: that is what FR-A11Y-6 asks for.
       16, the guide 10, the catalogs 16. The choices are the ones F-69 already offered,
       plus two D-609 adds: take zod out of the shell's path, or put the guide behind a
       `React.lazy`. Each is a Decision Log row; doing nothing costs the warning.
-- [ ] **F-66 and F-70.** Read the two `captures.yml` runs on the release commit (§13.6)
-      and diff them. Byte-identical: close both rows. Different: keep both with the
-      file names, as R94 did (PLAN D-611, D-639).
+- [ ] **F-66, F-70 and F-99.** Read the two `captures.yml` runs on the release commit
+      (§13.6) and diff them. The two local runs differed in 38 of 254 files (PLAN
+      D-639): about half are sub-pixel edges (F-66, F-70), and the rest are the live
+      page's shown instant a second apart (F-99), which is a real FR-CAP-5 miss with a
+      likely cause and no task. Byte-identical on CI: close F-66 and F-70. Different:
+      keep them with the file names, and decide whether F-99 gets a task.
 - [ ] **OQ-33**, the stripe with no dark band, is still open for want of a night to
       look at (SPEC §7). Close it or carry it.
 
