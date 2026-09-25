@@ -261,21 +261,26 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
    * literal is a pair, one per language — the width from which the wide
    * one-row footer holds one line with its fourth credit, measured on the
    * built app and not derived, so this test cannot check it against a cell
-   * count. What it holds: the two numbers are the measured ones; the Spanish
-   * row is the longer; both stand above the split literal and the 1280 px
-   * capture width, so the wrap is a fact of every desk size the requirements
-   * name; and `App.module.css` carries each under its own `:root[lang]`, as a
-   * `width <` fold from the wide breakpoint, the block halving the main's row
-   * of air (its share of it, so the block stays in rows) and the short
-   * footer's top padding, and touching nothing else.
+   * count. What it holds: the two numbers are the measured ones (V22-15: the
+   * library alone in the row, 1118/1137, down from 1330/1349 with the
+   * author's name); the Spanish row is the longer; both stand inside the wide
+   * range, under the split literal and between the two desk capture widths,
+   * so the 1024 px captures show the wrap and the 1280 px ones do not; and
+   * `App.module.css` carries each under its own `:root[lang]`, as a `width <`
+   * fold from the wide breakpoint, the block halving the main's row of air
+   * (its share of it, so the block stays in rows) and the short footer's top
+   * padding, and touching nothing else.
    */
   it('pins the two-line footer\'s fold per language, and the shell pays for it from its air (FR-HOME-3, D-681)', () => {
-    expect(FOOTER_ONE_LINE_MIN_PX).toEqual({ en: 1330, es: 1349 });
+    expect(FOOTER_ONE_LINE_MIN_PX).toEqual({ en: 1118, es: 1137 });
     expect(FOOTER_ONE_LINE_MIN_PX.en).toBeLessThan(FOOTER_ONE_LINE_MIN_PX.es);
+    const CAPTURE_MID_PX = 1024;
     const CAPTURE_DESK_PX = 1280;
     for (const px of Object.values(FOOTER_ONE_LINE_MIN_PX)) {
-      expect(px).toBeGreaterThan(WIDE_SPLIT_MIN_PX);
-      expect(px).toBeGreaterThan(CAPTURE_DESK_PX);
+      expect(px).toBeGreaterThan(WIDE_MIN_PX);
+      expect(px).toBeGreaterThan(CAPTURE_MID_PX);
+      expect(px).toBeLessThan(WIDE_SPLIT_MIN_PX);
+      expect(px).toBeLessThan(CAPTURE_DESK_PX);
       expect(px).toBeLessThan(pxFor(HOME_MAX_CELLS, CELL_ADVANCE_EM_MAX));
     }
     const app = readFileSync(APP_PATH, 'utf8');
