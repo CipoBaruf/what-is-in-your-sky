@@ -54,6 +54,8 @@ interface LsNode {
   version?: string;
   license?: string | { type?: string };
   path?: string;
+  /** Installed but required by nothing in the tree: knip's wasm resolver binding pulls these in on a platform that skips the binding. */
+  extraneous?: boolean;
   dependencies?: Record<string, LsNode>;
 }
 
@@ -66,6 +68,8 @@ export function productionPackages(): Map<string, { name: string; version: strin
   const found = new Map<string, { name: string; version: string; license: string; path: string }>();
   const walk = (node: LsNode): void => {
     for (const [name, child] of Object.entries(node.dependencies ?? {})) {
+      // Nothing imports an extraneous package, so it cannot reach the bundle.
+      if (child.extraneous === true) continue;
       if (child.version !== undefined && child.path !== undefined) {
         const license = typeof child.license === 'string' ? child.license : (child.license?.type ?? 'UNKNOWN');
         found.set(`${name}@${child.version}`, { name, version: child.version, license, path: child.path });
