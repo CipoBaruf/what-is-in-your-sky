@@ -9,17 +9,23 @@ strict CSP): this list is what CI cannot see.
 
 Sections 1–5 are every release. **Section 6 is the v1 list** (spec §9 Phase 2): the
 checks the v1 surface added, plus the tag and the deploy, which are the owner's. Each
-phase since has added a section of its own; **§12 is v2.0's** (spec §9 Phase 2g), and
-its §12.1 has to be run from a clean browser before anything else in it.
+phase since has added a section of its own, and each is kept as it was run: §6 to §13 are
+the released versions' lists and are **history** — read them for what was checked, not as
+work to do — while **§14 is v2.2's** (spec §9 Phase 2i), the phase in progress, and §13 is
+the last release, `2.1.0`. §12.1 has to be run from a clean browser before anything else in
+§12, and its runs are still the reference for the screens the later phases did not touch.
 
 ## 1. Before merging
 
 - [ ] CI is green on the branch, and the build log's bundle table (`npm run bundle:budget`)
-      shows every budgeted chunk within its budget: main ≤ 155 KB, chart ≤ 105 KB,
-      worker ≤ 40 KB, astronomy ≤ 25 KB, window ≤ 15 KB, live ≤ 10 KB and the service
-      worker ≤ 10 KB gzipped (D-178 — the measured build plus a tenth, all of them inside
-      the PLAN §11 ceilings). An overrun is a `::warning::` annotation; if one is accepted, the PR says
-      so, and the fix is to re-measure and re-set the budgets rather than widen one.
+      shows every budgeted chunk within its budget: main ≤ 170 KB, chart ≤ 105 KB,
+      worker ≤ 40 KB, astronomy ≤ 25 KB, window ≤ 15 KB, live ≤ 15 KB, the service
+      worker ≤ 10 KB and settings ≤ 10 KB gzipped (D-178 — the measured build plus a tenth
+      on the next 5 KB line, all of them inside the PLAN §11 ceilings; `main` is the one
+      row at its ceiling, raised there at the v2.1 gate, D-641). The table that says where
+      each number came from is the comment at the top of `scripts/bundle-budget.ts`. An
+      overrun is a `::warning::` annotation; if one is accepted, the PR says so, and the
+      fix is to re-measure and re-set the budgets rather than widen one.
 - [ ] The capture set matches the app: `npm run build && npx playwright test v1-captures --project=chromium`
       re-shoots `docs/screenshots/v1-*.png` and `npm test` (`tests/docs/captures.test.ts`)
       says the set is complete. Look at the files that changed. The build is part of the
@@ -116,6 +122,8 @@ Once, on the day a phase goes live, for the place the owner will actually observ
 
 ## 6. v1 (spec §9 Phase 2)
 
+> *History (marked 2026-09-25, FR-SHOW-1): the v1 release's list as it was run. What is current is §1–§5, §10 and the last section.*
+
 Everything above still applies. These are the checks the v1 surface added, and they are
 on the same phone as §3 — a mid-range 2022 Android, Chrome, on the deployed site — unless
 an item says otherwise. §3 and §4 are part of the v1 list too: the dome's drag rate and the
@@ -182,6 +190,8 @@ Owner steps, in this order, and none of them belong to a task session:
       Heavens-Above comparison with the observer and both element epochs, and the date.
 
 ## 7. v1.1 (spec §9 Phase 2b)
+
+> *History (marked 2026-09-25, FR-SHOW-1): the v1.1 release's list as it was run. What is current is §1–§5, §10 and the last section.*
 
 Everything above still applies, §3 and §4 included: the dome's drag rate and the
 Heavens-Above comparison are re-run on the release build, not inherited from v1. These are
@@ -276,6 +286,8 @@ Owner steps, in this order, and none of them belong to a task session:
 
 ## 8. v1.2 (spec §9 Phase 2c)
 
+> *History (marked 2026-09-25, FR-SHOW-1): the v1.2 release's list as it was run. What is current is §1–§5, §10 and the last section.*
+
 Everything above still applies, §3 and §4 included. v1.2 closed six findings rather than
 adding a screen, so most of what changed is behind existing checks (the bundle table above,
 the capture set, the golden fixtures); the one thing that cannot be checked headlessly is the
@@ -322,6 +334,8 @@ Owner steps, in this order, and none of them belong to a task session:
       §4 Heavens-Above comparison with the observer and both element epochs, and the date.
 
 ## 9. v1.3 (spec §9 Phase 2d)
+
+> *History (marked 2026-09-25, FR-SHOW-1): the v1.3 release's list as it was run. What is current is §1–§5, §10 and the last section.*
 
 Everything above still applies, §3 and §4 included. v1.3 is one item — the sky screen — and
 v1.3.1 changed the way into it after the owner's phone run, so the checks that matter here are
@@ -402,6 +416,8 @@ URL or the phase changes.
       ```
 
 ## 11. v1.4 (spec §9 Phase 2f)
+
+> *History (marked 2026-09-25, FR-SHOW-1): the v1.4 release's list as it was run. What is current is §1–§5, §10 and the last section.*
 
 Everything above still applies, §1 to §5 included. v1.4 is three items — the shape rules,
 the stripe's span and the legend's place — and two of the three are things a headless run
@@ -520,6 +536,8 @@ Owner steps, in this order, and none of them belong to a task session:
       date.
 
 ## 12. v2.0 (spec §9 Phase 2g)
+
+> *History (marked 2026-09-25, FR-SHOW-1): the v2.0 release's list as it was run. What is current is §1–§5, §10 and the last section.*
 
 Everything above still applies, §1 to §5 included. v2.0 is the redesign: the six areas
 of the design phase's approved artboards, turned into five requirement families and
@@ -689,6 +707,8 @@ Owner steps, in this order, and none of them belong to a task session:
       observer and both element epochs, and the date.
 
 ## 13. v2.1 (spec §9 Phase 2h)
+
+> *History (marked 2026-09-25, FR-SHOW-1): the v2.1 release's list as it was run. What is current is §1–§5, §10 and the last section.*
 
 Everything above still applies, §1 to §5 included, and §12's runs stay the reference for
 the screens v2.1 did not change. v2.1 is the audit and the flow: no new screen, three

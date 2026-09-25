@@ -1,7 +1,7 @@
 # Deploy
 
 The runbook for the one person who can run it. `README.md` says what the deployment *is*
-in three lines, which is what a reader of the repository needs; this file is the rest —
+in one paragraph (its *Deploy* section), which is what a reader of the repository needs; this file is the rest —
 the dashboard steps, the rename procedure and the checks — and it lives here because none
 of it can be followed without the Cloudflare account it belongs to (FR-PUB-1 as amended
 v1.3.3, SPEC V13-16).

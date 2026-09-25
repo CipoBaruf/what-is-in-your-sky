@@ -16,7 +16,7 @@ Both go through `scripts/mockup-capture.ts`, which takes the mockup's name
 per theme, because its two frames are two states of the same layout and are
 read side by side. The compact page is three screens, and a phone screen is
 read on its own, so each frame is shot as an element at a 390 px viewport —
-the app's own 960 px breakpoint has to *not* match while these are taken.
+the app's own 964 px breakpoint (`src/lib/layout.ts`, F-10) has to *not* match while these are taken.
 
 A change to a layout that its mockup does not show is a change to the
 reference: update the page, regenerate the captures and get them approved,
@@ -69,10 +69,11 @@ in the hash.
 
 ## Status
 
-**Waiting for the owner's approval** on R43's PR. It is the `Precondition:`
+**Approved by the owner, 2026-09-05** (PR #69, R43's). It was the `Precondition:`
 of R52 (the settings page, the two headers, the location summary and the rows
-that fit) and the reference R51 builds the pass detail's legend block
-against, the way R23 was gated on the desktop one.
+that fit) and the reference R51 built the pass detail's legend block
+against, the way R23 was gated on the desktop one; both have since merged, and
+the settings board below has been superseded in its turn (see the note under it).
 
 The live page's compact layout is deliberately **not** here: FR-COMP-6 leaves
 it to the spike of FR-WIN-7 (R38).
