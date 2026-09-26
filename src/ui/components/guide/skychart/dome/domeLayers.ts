@@ -63,7 +63,7 @@ export interface Mesh {
   polygons: Poly[];
 }
 
-export type DomeLabelKind = LabelKind | 'ring' | 'tick';
+type DomeLabelKind = LabelKind | 'ring' | 'tick';
 
 export interface DomeLabel {
   id: string;

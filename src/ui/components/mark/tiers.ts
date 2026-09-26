@@ -36,7 +36,7 @@ export const MARK_GRIDS: Record<MarkTier, MarkGrid> = {
 export type MarkCell = [row: number, col: number, glyph: string];
 
 /** One tier as `rasters.json` carries it: the body as text, the bead as `MARK_ORBIT_FRAMES` sparse frames. */
-export interface MarkRaster {
+interface MarkRaster {
   cols: number;
   rows: number;
   body: string;
@@ -67,7 +67,7 @@ export function denseFrame(cells: readonly MarkCell[], cols: number, rows: numbe
  * read as motion in a glance; the frame count follows from stepping it once a
  * second, which is also what a bead crossing a cell looks like at these grids.
  */
-export const MARK_ORBIT_PERIOD_S = 60;
+const MARK_ORBIT_PERIOD_S = 60;
 export const MARK_ORBIT_FRAMES = 60;
 /** The timer's step, in milliseconds (`MARK_ORBIT_PERIOD_S / MARK_ORBIT_FRAMES`). */
 export const MARK_FRAME_MS = (MARK_ORBIT_PERIOD_S / MARK_ORBIT_FRAMES) * 1000;
@@ -79,7 +79,7 @@ export const MARK_HEADER_PX = 24;
  * The cell's advance at the 16 px base: `--cell` is `1ch` and the app's
  * monospace advance is 0.6 em (D-441).
  */
-export const BASE_CELL_PX = 9.6;
+const BASE_CELL_PX = 9.6;
 
 /**
  * How many cells of a control row a mark at this pixel size takes (D-441,

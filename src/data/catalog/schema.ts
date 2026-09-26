@@ -8,7 +8,7 @@ import type { CatalogEntry } from '../../model';
  */
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-export const stdMagSourceSchema = z.object({
+const stdMagSourceSchema = z.object({
   source: z.string().trim().min(1),
   date: z.string().regex(ISO_DATE, 'YYYY-MM-DD'),
   note: z.string().trim().min(1).optional(),

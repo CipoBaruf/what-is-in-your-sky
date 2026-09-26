@@ -9,8 +9,4 @@ import { parseCatalog } from './schema';
  */
 export const CATALOG: readonly CatalogEntry[] = Object.freeze(parseCatalog(catalogJson));
 
-export function catalogEntry(noradId: number): CatalogEntry | undefined {
-  return CATALOG.find((e) => e.noradId === noradId);
-}
-
-export { parseCatalog, catalogSchema, catalogEntrySchema } from './schema';
+export { catalogSchema, catalogEntrySchema } from './schema';

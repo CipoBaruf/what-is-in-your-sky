@@ -18,7 +18,7 @@ import { useNow } from '../../hooks/useNow';
  * are recomputed once an hour and not on every tick. Empty until the astronomy
  * chunk lands (D-148): the reading says nothing about darkness until it has.
  */
-export const TONIGHT_CHECK_MS = 60_000;
+const TONIGHT_CHECK_MS = 60_000;
 const BACK_MS = 24 * HOUR_MS;
 const AHEAD_MS = 36 * HOUR_MS;
 

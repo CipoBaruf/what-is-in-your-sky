@@ -16,7 +16,7 @@ import type { ChartPass } from '../guide/skychart/SkyChart.types';
  * which is what the eye sees change. (A key rather than a comparison with
  * the previous array: React forbids a ref written during render.)
  */
-export const ARC_KEY_SEPARATOR = ' ';
+const ARC_KEY_SEPARATOR = ' ';
 
 export function arcKey(passes: readonly Pass[], t: EpochMs): string {
   return passes.map((pass) => arcState(pass, t)).join(ARC_KEY_SEPARATOR);

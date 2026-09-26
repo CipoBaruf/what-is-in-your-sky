@@ -55,7 +55,7 @@ import { SortToggle } from './SortToggle';
  * keeps its toggle, reading `0 passes · 3 faint`; a shown faint card is
  * dimmed and tagged `[faint]`, in its place in the order.
  */
-export function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState, shown: number, t: Messages, faint = 0): string {
+function statusText(observer: Observer | null, elements: ElementsState, passes: PassesState, shown: number, t: Messages, faint = 0): string {
   // D-536: a stored run partly elapsed counts over what is left of its window, not its original span.
   const hours = passes.spanHours;
   if (!observer) return t.passes.noObserver;
@@ -122,7 +122,7 @@ export function nightLabel(group: NightGroup, tonight: NightKey, t: Messages): s
  * pass, and otherwise the first night that does — the first night still worth
  * reading for a stored run that is a day old. Null with no night at all.
  */
-export function defaultOpenNight(groups: readonly NightGroup[], now: EpochMs, timeZone: string | null): NightKey | null {
+function defaultOpenNight(groups: readonly NightGroup[], now: EpochMs, timeZone: string | null): NightKey | null {
   const tonight = tonightKey(groups, now, timeZone);
   return groups.some((group) => group.key === tonight) ? tonight : (groups[0]?.key ?? null);
 }

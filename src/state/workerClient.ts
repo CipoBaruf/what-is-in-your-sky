@@ -34,7 +34,7 @@ export interface WorkerLike {
 export const JOB_STALL_S = 60;
 
 /** A request rejected because the worker died or stalled: an `Error` that is also a `Failure`, so `toFailure` keeps its kind. */
-export class WorkerFailure extends Error implements Failure {
+class WorkerFailure extends Error implements Failure {
   constructor(
     readonly kind: FailureKind,
     readonly detail: string,
@@ -44,7 +44,7 @@ export class WorkerFailure extends Error implements Failure {
   }
 }
 
-export interface ElementsLoaded {
+interface ElementsLoaded {
   loaded: NoradId[];
   rejected: RejectedElement[];
 }
@@ -77,11 +77,11 @@ export interface WorkerClient {
   terminate: () => void;
 }
 
-export interface NowRequestOptions {
+interface NowRequestOptions {
   includeHidden?: boolean;
 }
 
-export const TERMINAL_JOB_ERRORS: readonly WorkerErrorCode[] = ['NO_ELEMENTS', 'INTERNAL'];
+const TERMINAL_JOB_ERRORS: readonly WorkerErrorCode[] = ['NO_ELEMENTS', 'INTERNAL'];
 
 /** Deterministic ids: `job-1`, `req-1`, … (no clock, no randomness). */
 export function sequentialIds(): (prefix: string) => string {

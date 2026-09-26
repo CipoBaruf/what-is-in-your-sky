@@ -26,8 +26,8 @@ export const HOUR_MS = 3_600_000;
 export const MINUTE_MS = 60_000;
 
 /** FR-LIVE-4: an arrow key moves one minute; with Shift, ten. */
-export const KEY_STEP_MS = MINUTE_MS;
-export const SHIFT_KEY_STEP_MS = 10 * MINUTE_MS;
+const KEY_STEP_MS = MINUTE_MS;
+const SHIFT_KEY_STEP_MS = 10 * MINUTE_MS;
 
 export function clampToSpan(t: EpochMs, span: Span): EpochMs {
   return Math.min(span.end, Math.max(span.start, t));
@@ -211,7 +211,7 @@ export const CELL_PX = 9.6;
  * and the numbers overlap. The two answers are the ones the shell rule gave;
  * only what picks between them has changed.
  */
-export const LABEL_EVERY_HOURS = { dense: 3, roomy: 2 } as const;
+const LABEL_EVERY_HOURS = { dense: 3, roomy: 2 } as const;
 /** The width in cells from which twelve two-character labels fit (FR-TRAJ-4). */
 export const STRIPE_LABEL_MIN_CELLS = 60;
 
@@ -220,8 +220,8 @@ export function labelEveryHours(widthCells: number): number {
 }
 
 /** The room a two-character label wants to itself: its two cells, the cell of air `keepLabels` demands, and a cell of margin. */
-export const LABEL_MIN_GAP_CELLS = 4;
-export const HALF_HOUR_MS = 30 * MINUTE_MS;
+const LABEL_MIN_GAP_CELLS = 4;
+const HALF_HOUR_MS = 30 * MINUTE_MS;
 
 /**
  * R70 (FR-TRAJ-4 as amended v1.4, FR-SPAN-7): the same rule for the window
@@ -254,7 +254,7 @@ export function labelEveryMs(spanMs: number, widthCells: number): number {
 }
 
 /** The cadences a window clipped shorter than an hour may fall back to, coarsest first. */
-export const SHORT_CADENCES: readonly number[] = [HALF_HOUR_MS, 15 * MINUTE_MS, 5 * MINUTE_MS, MINUTE_MS];
+const SHORT_CADENCES: readonly number[] = [HALF_HOUR_MS, 15 * MINUTE_MS, 5 * MINUTE_MS, MINUTE_MS];
 
 /** One label of row 1: the tick it is centred on and the text drawn there (the hour, or the date at a midnight). */
 export interface StripeLabel {
@@ -441,9 +441,9 @@ export function isCurrent(segment: PassSegment, t: EpochMs): boolean {
 }
 
 /** The six series tokens of the chart, cycled in pass order (`SkyPolar.SERIES_COUNT`). */
-export const SERIES_COUNT = 6;
+const SERIES_COUNT = 6;
 /** Segments narrower than this are widened to it, so a two-minute pass is still a mark and not a hairline. */
-export const MIN_SEGMENT_PX = 2;
+const MIN_SEGMENT_PX = 2;
 /** How many rows overlapping passes may stack into before they share the last one. */
 export const MAX_LANES = 3;
 
@@ -492,7 +492,7 @@ export interface Cursor {
 }
 
 /** The label is about this many pixels wide ("21:14" in the stripe's small type); near an edge it hangs inward. */
-export const CURSOR_LABEL_HALF_PX = 22;
+const CURSOR_LABEL_HALF_PX = 22;
 
 /** The cursor marking the shown instant, clamped to the span like the instant itself. */
 export function cursorAt(t: EpochMs, span: Span, width: number): Cursor {

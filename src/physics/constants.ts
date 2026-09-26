@@ -6,16 +6,16 @@ import type { MoonGlareThresholds, VisibilityThresholds } from '../model';
  */
 
 /** Minimum elevation for a pass to count. 0° is unusable in practice (buildings, haze, extinction). */
-export const MIN_ELEVATION_DEG = 10;
+const MIN_ELEVATION_DEG = 10;
 
 /** Observer counts as "in darkness" when the sun is at or below this altitude (end of civil twilight). */
-export const SUN_ALT_MAX_DEG = -6;
+const SUN_ALT_MAX_DEG = -6;
 
 /** Passes whose peak has the sun between this and SUN_ALT_MAX_DEG carry the "sky still bright" label (FR-VIS-7). */
-export const TWILIGHT_LABEL_SUN_ALT_DEG = -12;
+const TWILIGHT_LABEL_SUN_ALT_DEG = -12;
 
 /** Faintest peak magnitude shown by default: roughly what an average suburban sky allows. */
-export const MAG_LIMIT = 4.5;
+const MAG_LIMIT = 4.5;
 
 /** Mean Earth radius used by the cylindrical umbra test (D-8). No atmosphere fudge, no penumbra. */
 export const EARTH_RADIUS_KM = 6371.0;
@@ -55,14 +55,14 @@ export const DEFAULT_THRESHOLDS: Readonly<VisibilityThresholds> = Object.freeze(
 export const MOON_PHASE_BAND_HALF_WIDTH_DEG = 7.5;
 
 /** FR-MOON-2: the Moon must be above the true horizon at the peak. Geometric, like every other altitude here (D-2). */
-export const MOON_GLARE_MIN_ALT_DEG = 0;
+const MOON_GLARE_MIN_ALT_DEG = 0;
 
 /**
  * FR-MOON-2: …and at least half lit. Below half, the Moon is faint enough and
  * (near new) close enough to the sun that it is rarely the thing spoiling a
  * pass. OQ-12 holds both this and the separation open until field use.
  */
-export const MOON_GLARE_MIN_ILLUMINATION = 0.5;
+const MOON_GLARE_MIN_ILLUMINATION = 0.5;
 
 /**
  * FR-MOON-2: …and within 30° of the pass peak. A bright Moon washes out a
@@ -70,7 +70,7 @@ export const MOON_GLARE_MIN_ILLUMINATION = 0.5;
  * which the sky glow costs a naked-eye magnitude, and it is a third of the way
  * from the peak to the horizon, so the warning stays specific to the track.
  */
-export const MOON_GLARE_MAX_SEPARATION_DEG = 30;
+const MOON_GLARE_MAX_SEPARATION_DEG = 30;
 
 /**
  * FR-TRAJ-2 (v1.1, R45): how far ahead of the shown instant a pass is drawn

@@ -73,7 +73,7 @@ export function openTaskLog(id: string, dir = LOG_DIR, at = new Date(), options:
 }
 
 /** `limit` (v1.1): the account limit ended a session; the worktree is kept and `--wave` or `--task` resumes it once the window resets. */
-export type TaskOutcome = 'merged' | 'awaiting-owner' | 'findings' | 'blocked' | 'failed' | 'refused' | 'limit';
+type TaskOutcome = 'merged' | 'awaiting-owner' | 'findings' | 'blocked' | 'failed' | 'refused' | 'limit';
 
 export interface TaskReport {
   id: string;

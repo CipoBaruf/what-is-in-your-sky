@@ -9,7 +9,6 @@ export type ChartView = 'dome' | 'polar' | 'window';
  * writes it and a value stored by an older build reads as the dome.
  */
 export type SavedChartView = Exclude<ChartView, 'window'>;
-export const SAVED_CHART_VIEWS: readonly SavedChartView[] = ['dome', 'polar'];
 /** A stored `chartView`, narrowed: anything that is not a saved view (a `window` from a build before v1.3.1) is the dome. */
 export function savedChartView(view: ChartView | undefined, fallback: SavedChartView): SavedChartView {
   return view === undefined || view === 'window' ? fallback : view;

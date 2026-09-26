@@ -93,9 +93,9 @@ export const NOW_TICK_MS = 10_000;
 /** PLAN §7.1: the elements are re-checked every 15 min while the tab is visible; the loader enforces the 2 h rule. */
 export const ELEMENTS_RECHECK_MS = 15 * 60_000;
 /** FR-FAIL-3: a forecast older than this is re-requested when the page becomes visible. */
-export const WEATHER_MAX_AGE_MIN = 60;
+const WEATHER_MAX_AGE_MIN = 60;
 /** FR-NIGHT-4: a run whose window start is further behind the clock than this is recomputed on wake and on the re-check. */
-export const RECOMPUTE_STALE_H = 2;
+const RECOMPUTE_STALE_H = 2;
 const WEATHER_MAX_AGE_MS = WEATHER_MAX_AGE_MIN * 60_000;
 const RECOMPUTE_STALE_MS = RECOMPUTE_STALE_H * 3_600_000;
 

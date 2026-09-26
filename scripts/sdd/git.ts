@@ -16,7 +16,7 @@ export interface ExecResult {
   stderr: string;
 }
 
-export interface ExecOptions {
+interface ExecOptions {
   cwd?: string;
   env?: Record<string, string>;
   logger?: Logger;
@@ -25,7 +25,7 @@ export interface ExecOptions {
 }
 
 /** Runs one command to completion and returns its exit code and output. */
-export function exec(file: string, args: readonly string[], options: ExecOptions = {}): Promise<ExecResult> {
+function exec(file: string, args: readonly string[], options: ExecOptions = {}): Promise<ExecResult> {
   const { cwd, env, logger = consoleLogger, stream = false } = options;
   logger.command(file, args, cwd);
   return new Promise((resolve) => {
@@ -50,8 +50,8 @@ export function exec(file: string, args: readonly string[], options: ExecOptions
   });
 }
 
-export const git = (args: readonly string[], options?: ExecOptions): Promise<ExecResult> => exec('git', args, options);
-export const gh = (args: readonly string[], options?: ExecOptions): Promise<ExecResult> => exec('gh', args, options);
+const git = (args: readonly string[], options?: ExecOptions): Promise<ExecResult> => exec('git', args, options);
+const gh = (args: readonly string[], options?: ExecOptions): Promise<ExecResult> => exec('gh', args, options);
 
 const ok = (result: ExecResult): boolean => result.code === 0;
 

@@ -42,5 +42,5 @@ function entryOrThrow<T>(entry: T | undefined, what: string): T {
   return entry;
 }
 
-export { MOON_PHASES, SIGN_WIDTH_DEG, ZODIAC_SIGNS, loreSchema, parseLore } from './schema';
+export { MOON_PHASES, ZODIAC_SIGNS, loreSchema } from './schema';
 export type { FullMoonName, LocalizedText, MoonLore, MoonPhaseKey, MoonPhaseLore, Provenance, ZodiacSign, ZodiacSignEntry } from './schema';

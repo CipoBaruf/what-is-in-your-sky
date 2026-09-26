@@ -22,7 +22,7 @@ import { nextCalendarDate } from './timeFormat';
 export type NightKey = string;
 
 /** FR-NIGHT-2 (D-535): how long an ended pass stays a card, reading `ended`, before it leaves the list. */
-export const ENDED_LINGER_S = 60;
+const ENDED_LINGER_S = 60;
 export const ENDED_LINGER_MS = ENDED_LINGER_S * 1000;
 
 export interface NightAt {

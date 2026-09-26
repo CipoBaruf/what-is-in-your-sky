@@ -33,7 +33,7 @@ export interface ServiceWorkerHost {
   reload: () => void;
 }
 
-export function browserHost(): ServiceWorkerHost {
+function browserHost(): ServiceWorkerHost {
   return {
     container: typeof navigator === 'undefined' ? undefined : navigator.serviceWorker,
     reload: () => {

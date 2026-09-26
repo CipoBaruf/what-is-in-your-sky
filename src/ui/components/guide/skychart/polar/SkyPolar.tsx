@@ -39,7 +39,7 @@ export const HORIZON_R = 100;
 const LABEL_R = 114;
 const VIEWBOX = '-125 -125 250 250';
 /** Resampling step along each arc (PLAN §8.3). */
-export const ARC_STEP_DEG = 2;
+const ARC_STEP_DEG = 2;
 const CARDINALS: readonly { label: string; azDeg: number }[] = [
   { label: 'N', azDeg: 0 },
   { label: 'E', azDeg: 90 },
@@ -100,7 +100,7 @@ function labelBeside(p: Xy, travel: Xy, side: 'inward' | 'outward', text: string
 }
 
 /** FR-LIVE-2: the six series tokens, cycled in pass order; `SkyPolar.module.css` maps `data-series` to `--chart-series-N`. */
-export const SERIES_COUNT = 6;
+const SERIES_COUNT = 6;
 
 interface ArcProps {
   pass: ChartPass;

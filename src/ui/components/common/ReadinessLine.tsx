@@ -38,12 +38,12 @@ import styles from './ReadinessLine.module.css';
  * promise off by hours, so that one case says "UTC" and spends the row it
  * needs; the ordinary line is unchanged and still fits.
  */
-export function readinessStamp(at: EpochMs, timeZone: string | null, locale: Locale): string {
+function readinessStamp(at: EpochMs, timeZone: string | null, locale: Locale): string {
   return `${formatDate(at, timeZone, locale)} ${formatShortClock(at, timeZone, locale, timeZone === null)}`;
 }
 
 /** How often the line re-checks whether its own date has gone past (F-23). A minute is finer than the date it states. */
-export const READINESS_CHECK_MS = 60_000;
+const READINESS_CHECK_MS = 60_000;
 
 /** What the line reads, once every input it reads has an answer for this observer; null before. */
 function useReadiness() {

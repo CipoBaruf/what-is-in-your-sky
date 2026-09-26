@@ -25,7 +25,6 @@ import {
   FIT_STEP_PX,
   GRID_COLS,
   initialFor,
-  INK_HEIGHT_UNITS,
   ZOOM_HEIGHT_DIVISOR,
   DOME_RADIUS,
   DRAWING_HEIGHT_UNITS,
@@ -211,7 +210,7 @@ describe('layoutFor (FR-DOME-1, D-91)', () => {
     // row being what the box's own 1.7 divisor leaves room for.
     const wide = layoutFor(1240, 450);
     expect(wide.zoom).toBeCloseTo(zoomFor(1240, 450), 9);
-    expect(INK_HEIGHT_UNITS * wide.zoom).toBeLessThanOrEqual(wide.rows * wide.cellHeightPx);
+    expect(DRAWING_HEIGHT_UNITS * wide.zoom).toBeLessThanOrEqual(wide.rows * wide.cellHeightPx);
     expect(layoutFor(352, 600).zoom).toBeCloseTo(zoomFor(352, 600), 9);
     expect(layoutFor(390, null).zoom).toBe(zoomFor(390, 390));
     const line = layoutFor(1280, 1280);
@@ -349,7 +348,7 @@ describe('the fit rule holds above the R54 pins too (FR-DOME-1 v1.2, D-279, F-54
     // The old rule left `zoom` from the pre-fit `layoutFor` call, sized for the cell the font
     // stepped down from — the fixed zoom must fit the raster fitLayout actually painted.
     expect(INK_WIDTH_UNITS * fitted.zoom).toBeLessThanOrEqual(rasterWidth - 2 * INK_MARGIN_CELLS * fitted.cellWidthPx);
-    expect(INK_HEIGHT_UNITS * fitted.zoom).toBeLessThanOrEqual(rasterHeight);
+    expect(DRAWING_HEIGHT_UNITS * fitted.zoom).toBeLessThanOrEqual(rasterHeight);
     const extent = drawingExtent(fitted.zoom, DEFAULT_TILT_DEG, 0, { widthPx: fitted.cellWidthPx, heightPx: fitted.cellHeightPx });
     expect(extent.width).toBeLessThanOrEqual(MAX_EXTENT_RATIO * rasterWidth);
     expect(extent.height).toBeLessThanOrEqual(MAX_EXTENT_RATIO * rasterHeight);
@@ -425,7 +424,7 @@ describe('the floor holds on the fit path too (FR-DOME-1 v1.2, D-291, D-293)', (
       const rasterWidth = layer.cols * layer.cellWidthPx;
       expect(rasterWidth).toBeLessThanOrEqual(box + FIT_STEP_PX);
       expect(INK_WIDTH_UNITS * layer.zoom).toBeLessThanOrEqual(rasterWidth - 2 * INK_MARGIN_CELLS * layer.cellWidthPx);
-      expect(INK_HEIGHT_UNITS * layer.zoom).toBeLessThanOrEqual(layer.rows * layer.cellHeightPx);
+      expect(DRAWING_HEIGHT_UNITS * layer.zoom).toBeLessThanOrEqual(layer.rows * layer.cellHeightPx);
     }
   });
 
@@ -496,7 +495,7 @@ describe('the floor holds on the fit path too (FR-DOME-1 v1.2, D-291, D-293)', (
     const exactFont = { advance: DEFAULT_ADVANCE, measureRows: exact };
     const exactFit = fitLayers(box.width, box.height, exactFont, exactFont);
     expect(exactFit.lines.zoom).toBeCloseTo(exactZoom, 6);
-    expect((INK_HEIGHT_UNITS * exactFit.lines.zoom) / box.height).toBeCloseTo(0.862, 2);
+    expect((DRAWING_HEIGHT_UNITS * exactFit.lines.zoom) / box.height).toBeCloseTo(0.862, 2);
     // Whole CSS pixels: the 5.93 px cell rounds to 5 (the base layer's 11.86 to 11), the raster is 300 px of 355.78,
     // and the zoom is the raster's — 58 cells of 5 px over 2.2 units, 131.8 — 0.889 of the box's own.
     const roundedFont = { advance: DEFAULT_ADVANCE, measureRows: roundedTo(1) };
@@ -509,7 +508,7 @@ describe('the floor holds on the fit path too (FR-DOME-1 v1.2, D-291, D-293)', (
     // Across, the ink is 0.815 of the width: the square box's 0.818, the number D-293 pinned. Down it is 0.767 —
     // the same zoom from a lower start. The 0.81 above is the width's allowance and was never the height's.
     expect((INK_WIDTH_UNITS * lines.zoom) / box.width).toBeGreaterThanOrEqual(WHOLE_PIXEL_MIN_RATIO);
-    expect((INK_HEIGHT_UNITS * lines.zoom) / box.height).toBeLessThan(WHOLE_PIXEL_MIN_RATIO);
+    expect((DRAWING_HEIGHT_UNITS * lines.zoom) / box.height).toBeLessThan(WHOLE_PIXEL_MIN_RATIO);
     // The floor derived from the quantum rather than pinned: FR-DOME-1's 0.9 at the zoom the rounded rasters leave
     // over the zoom the box asks for — `zoomWithinRaster` on each settled raster, the lesser of the two (D-292),
     // which is what `fitLayers` gave. `tests/e2e/domeInk.ts` `fitFloor` computes the same from the page's own cells.

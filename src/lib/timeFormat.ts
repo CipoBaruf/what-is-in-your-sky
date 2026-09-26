@@ -91,7 +91,7 @@ export function calendarMonth(t: EpochMs, timeZone: string | null): number {
 }
 
 /** The zone abbreviation Intl gives, or the literal "UTC" when no zone is known yet. */
-export function zoneLabel(p: Map<string, string>, timeZone: string | null): string {
+function zoneLabel(p: Map<string, string>, timeZone: string | null): string {
   if (!timeZone) return 'UTC';
   return p.get('timeZoneName') ?? timeZone;
 }

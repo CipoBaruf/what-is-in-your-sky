@@ -36,7 +36,7 @@ export function placeName(observer: Observer): string | null {
 }
 
 /** The sentence under the place, by its source. */
-export function whereSentence(observer: Observer, t: Messages): string {
+function whereSentence(observer: Observer, t: Messages): string {
   switch (observer.source) {
     case 'geocode':
       return t.home.where.centre(placeName(observer) ?? observer.label);

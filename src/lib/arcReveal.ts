@@ -21,8 +21,6 @@ import { interpolateTrack } from './skyGeometry';
  */
 export type ArcState = 'hidden' | 'ahead' | 'live' | 'linger' | 'full';
 
-export const ARC_STATES: readonly ArcState[] = ['hidden', 'ahead', 'live', 'linger', 'full'];
-
 export function arcState(pass: Pick<Pass, 'start' | 'end'>, t: number | undefined): ArcState {
   if (t === undefined || !Number.isFinite(t)) return 'full';
   if (t >= pass.start.t && t <= pass.end.t) return 'live';

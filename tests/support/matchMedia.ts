@@ -116,4 +116,4 @@ export function stubMatchMedia(widthPx: number, heightPx = DEFAULT_HEIGHT_PX): M
 export const WIDE_PX = 1280;
 export const COMPACT_PX = 390;
 /** The height a width-only stub stands at: the 1280 × 800 desktop capture's, which is step 1 of the dome ladder. */
-export const DEFAULT_HEIGHT_PX = 800;
+const DEFAULT_HEIGHT_PX = 800;

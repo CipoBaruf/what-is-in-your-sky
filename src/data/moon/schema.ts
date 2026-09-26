@@ -52,7 +52,7 @@ export const zodiacSignSchema = z.object({
   source: provenanceSchema,
 });
 
-export const fullMoonNameSchema = z.object({
+const fullMoonNameSchema = z.object({
   month: z.number().int().min(1).max(12),
   name: localizedSchema,
   source: provenanceSchema,

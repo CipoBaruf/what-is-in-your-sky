@@ -11,7 +11,7 @@ import type { CachedGroup, ElementGroup, PassRun } from '../model';
  * parameter so a test can isolate itself (`uniqueDbName()`).
  */
 export const DB_NAME = 'wiys';
-export const DB_VERSION = 2;
+const DB_VERSION = 2;
 export const ELEMENTS_STORE_NAME = 'elementGroups';
 export const PASS_RUNS_STORE_NAME = 'passRuns';
 

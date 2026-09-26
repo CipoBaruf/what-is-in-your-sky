@@ -34,7 +34,7 @@ import { useNight } from './useNight';
  * control follows `[<n> more tonight]` — the same control, and the same
  * count, as the list's count line.
  */
-export const WHAT_STEP_CARDS = 3;
+const WHAT_STEP_CARDS = 3;
 
 export interface WhatStepProps {
   observer: Observer;

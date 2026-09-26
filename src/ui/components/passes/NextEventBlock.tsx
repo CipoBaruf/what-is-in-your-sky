@@ -36,13 +36,13 @@ import { OpenGuide } from './OpenGuide';
 export const NEXT_EVENT_TICK_MS = 1000;
 
 /** The label line, `Next up · in 3:45:07` — the verb by the boundary reason of the end it counts to. */
-export function nextEventLabel(event: NextEvent, now: EpochMs, t: Messages, first = false): string {
+function nextEventLabel(event: NextEvent, now: EpochMs, t: Messages, first = false): string {
   const { pass, kind } = event;
   return t.nextEvent.label({ kind, reason: kind === 'end' ? pass.endReason : pass.startReason, countdown: formatClockDuration((event.at - now) / 1000), first });
 }
 
 /** The path, `NW low → 68° N → SE` (D-507). */
-export function nextEventPath(pass: Pass, t: Messages): string {
+function nextEventPath(pass: Pass, t: Messages): string {
   return t.nextEvent.path(passPath(pass));
 }
 

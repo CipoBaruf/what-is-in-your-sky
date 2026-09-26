@@ -10,7 +10,7 @@ import styles from './Banner.module.css';
  * meaning does not rest on colour (FR-X-5), and the terminal identity (FR-X-6)
  * is a bracketed tag on a dim rule, no icon.
  */
-export type BannerVariant = 'info' | 'warning';
+type BannerVariant = 'info' | 'warning';
 
 export interface BannerProps {
   variant: BannerVariant;

@@ -15,8 +15,7 @@ import { z } from './zod';
  * When IndexedDB itself throws (Safari private mode, quota) the cache falls
  * back to memory for the session and reports `persistent: false`.
  */
-export const ELEMENTS_DB_NAME = DB_NAME;
-export { ELEMENTS_STORE_NAME };
+const ELEMENTS_DB_NAME = DB_NAME;
 export const ELEMENTS_LOCK_NAME = 'wiys:elements';
 export const ELEMENTS_TTL_MS = 2 * 60 * 60_000;
 export const ELEMENT_GROUPS: readonly ElementGroup[] = ['stations', 'visual'];
@@ -75,7 +74,7 @@ export interface ElementsCacheDeps {
   fetchGroup: (group: ElementGroup, options: FetchGroupOptions) => Promise<OmmRecord[]>;
 }
 
-export interface CachedElements {
+interface CachedElements {
   groups: Record<ElementGroup, CachedGroup>;
   /** True when at least one group is past the 2 h rule and its refresh failed (FR-SAT-6 "on network failure use the cached set"). */
   stale: boolean;

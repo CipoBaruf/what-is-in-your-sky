@@ -30,10 +30,10 @@ import { isRouteHref, open, subscribe, takeFocusTarget } from './navigation';
  * with no marker, and closing it would leave it behind (F-91). A click with a
  * modifier is the browser's: it opens a tab.
  */
-export type Chrome = 'home' | 'settings' | 'live';
+type Chrome = 'home' | 'settings' | 'live';
 
 /** The `main` landmark's id: the skip link's target. */
-export const MAIN_ID = 'main';
+const MAIN_ID = 'main';
 
 export interface ShellProps {
   chrome: Chrome;

@@ -20,7 +20,7 @@ import { z } from './zod';
  * failures never surface: a browser that cannot write (private mode, quota)
  * simply has nothing stored, exactly as it did before v1.
  */
-export const PASS_CELL_DEG = 0.01;
+const PASS_CELL_DEG = 0.01;
 export const MAX_STORED_RUNS = 2;
 
 /** The observer's cell: latitude and longitude to two decimals, e.g. `"-38.93,-67.99"` (D-78). */

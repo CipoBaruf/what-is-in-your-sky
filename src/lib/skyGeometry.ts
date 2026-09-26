@@ -20,13 +20,8 @@ export interface Vec2 {
 
 const DEG = Math.PI / 180;
 
-export const CHART_ORIENTATIONS: readonly ChartOrientation[] = ['looking-up', 'map'];
 /** FR-GUIDE-4: the polar chart defaults to the looking-up convention. */
 export const DEFAULT_CHART_ORIENTATION: ChartOrientation = 'looking-up';
-
-export function isChartOrientation(value: unknown): value is ChartOrientation {
-  return typeof value === 'string' && (CHART_ORIENTATIONS as readonly string[]).includes(value);
-}
 
 /**
  * PLAN §8.2 as fixed by the R14 spike (D-58): the dome frame is glyphcss's.

@@ -39,11 +39,11 @@ export interface StripeOverviewProps {
 }
 
 /** One text row in CSS pixels at the 16 px base (`--row`, 1.5 rem): the overview is one row tall (FR-SPAN-2). */
-export const OVERVIEW_HEIGHT = 24;
+const OVERVIEW_HEIGHT = 24;
 /** Before the first measurement, and in a layout with no width (tests). */
 export const DEFAULT_WIDTH = 600;
 /** A pass mark is at least this wide, so a ten-minute pass in 24 h is still a mark and not a hairline. */
-export const MARK_MIN_PX = 2;
+const MARK_MIN_PX = 2;
 
 export function StripeOverview({ span, passes, bands, t, timeZone, speed = null, onScrub }: StripeOverviewProps) {
   const m = useT();

@@ -32,7 +32,7 @@ import styles from './Footer.module.css';
  * sources and the page's own lines keep their order, and the one-row forms
  * stay one row with the privacy word as their only difference (D-548).
  */
-export const ATTRIBUTION_URLS = {
+const ATTRIBUTION_URLS = {
   celestrak: 'https://celestrak.org/',
   openMeteo: 'https://open-meteo.com/',
   geonames: 'https://www.geonames.org/',

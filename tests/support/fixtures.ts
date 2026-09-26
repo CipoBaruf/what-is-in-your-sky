@@ -5,8 +5,8 @@ import type { OmmRecord } from '../../src/model';
 import type { ExplainedExtra, HaFixture } from './heavensAbove';
 
 export const FIXTURES_DIR = join(process.cwd(), 'tests', 'fixtures');
-export const HA_DIR = join(FIXTURES_DIR, 'heavens-above');
-export const OMM_DIR = join(FIXTURES_DIR, 'omm');
+const HA_DIR = join(FIXTURES_DIR, 'heavens-above');
+const OMM_DIR = join(FIXTURES_DIR, 'omm');
 export const REFERENCE_VALUES_PATH = join(FIXTURES_DIR, 'reference-values.json');
 
 /** `<YYYY-MM-DD>-<place>-iss.json`; the R1 fixture is `2026-09-02-neuquen-iss.json`. */
@@ -22,11 +22,6 @@ export function haFixtureNames(): string[] {
     .sort();
 }
 
-/** Dates of every committed fixture, oldest first, without duplicates. */
-export function haFixtureDates(): string[] {
-  return [...new Set(haFixtureNames().map((n) => n.slice(0, 10)))].sort();
-}
-
 export function latestHaFixtureName(): string | null {
   const names = haFixtureNames();
   return names[names.length - 1] ?? null;
@@ -37,7 +32,7 @@ export function latestHaFixtureName(): string | null {
  * fixture only, by its date (`2026-09-02`), which is how `reference-values.json`
  * and the R1 script arguments referred to it.
  */
-export function resolveFixtureName(nameOrDate: string): string {
+function resolveFixtureName(nameOrDate: string): string {
   if (/^\d{4}-\d{2}-\d{2}$/.test(nameOrDate)) return `${nameOrDate}-${R1_PLACE}-iss`;
   return nameOrDate.replace(/\.json$/, '');
 }

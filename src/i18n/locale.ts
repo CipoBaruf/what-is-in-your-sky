@@ -10,7 +10,7 @@ import type { Locale } from '../model';
  */
 export const LOCALES = ['en', 'es'] as const;
 
-export const DEFAULT_LOCALE: Locale = 'en';
+const DEFAULT_LOCALE: Locale = 'en';
 
 /**
  * FR-I18N-4: the BCP 47 tag each language formats dates, times and numbers

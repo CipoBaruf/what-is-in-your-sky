@@ -62,7 +62,7 @@ const noteInstalled = (): void => {
 };
 
 /** Listen on a window, and stop. The app calls this once, on import; a test can call it on its own window. */
-export function listenForInstallOffer(target: Window): () => void {
+function listenForInstallOffer(target: Window): () => void {
   target.addEventListener(BEFORE_INSTALL_PROMPT, holdOffer);
   target.addEventListener(APP_INSTALLED, noteInstalled);
   return () => {

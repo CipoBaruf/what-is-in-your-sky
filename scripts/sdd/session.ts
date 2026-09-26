@@ -87,7 +87,7 @@ export const DENIED_TOOLS = [
 ] as const;
 
 /** `limit` (v1.1, D-197): the session ended on the account's usage limit and `--fallback` may retry it on the next model. */
-export type SessionOutcome = 'ok' | 'error' | 'timeout' | 'max-turns' | 'limit';
+type SessionOutcome = 'ok' | 'error' | 'timeout' | 'max-turns' | 'limit';
 
 /**
  * §16.4 step 10: the account-limit signature, as captured on 2026-09-05 when
@@ -100,7 +100,7 @@ export type SessionOutcome = 'ok' | 'error' | 'timeout' | 'max-turns' | 'limit';
  * meets the same wall. The text is matched too, for a CLI that changes the
  * event before it changes the sentence.
  */
-export const LIMIT_SIGNATURE = /hit your (session |weekly |usage )?limit|usage limit|limit reached|out of extra usage|rate_limit_error/i;
+const LIMIT_SIGNATURE = /hit your (session |weekly |usage )?limit|usage limit|limit reached|out of extra usage|rate_limit_error/i;
 
 export const isLimitStop = (text: string | null | undefined): boolean => text !== null && text !== undefined && LIMIT_SIGNATURE.test(text);
 

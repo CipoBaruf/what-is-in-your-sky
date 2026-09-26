@@ -30,7 +30,7 @@ import { z } from './zod';
  */
 export const PREFS_KEY = 'wiys:prefs:v1';
 
-export interface Prefs {
+interface Prefs {
   observer?: Observer;
   sort?: PassSort;
   chartView?: ChartView;

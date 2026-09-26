@@ -25,7 +25,7 @@ export interface InstallEnv {
   standalone: boolean | undefined;
 }
 
-export function browserInstallEnv(): InstallEnv {
+function browserInstallEnv(): InstallEnv {
   // Safari's own property, which no DOM library declares, so it is named here.
   const nav = typeof navigator === 'undefined' ? undefined : (navigator as Navigator & { standalone?: boolean });
   return { standalone: nav?.standalone };

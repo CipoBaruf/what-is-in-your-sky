@@ -1,7 +1,7 @@
-export type { NoradId, SatCategory, CatalogEntry } from './catalog';
+export type { NoradId, CatalogEntry } from './catalog';
 export type { EpochMs, VisibilityThresholds, TimeWindow } from './thresholds';
 export type { OmmRecord, ElementGroup, CachedGroup, SatelliteRecord } from './elements';
-export type { Observer, ObserverSource } from './observer';
+export type { Observer } from './observer';
 export type { Place } from './place';
 export type { PassPoint, PassBoundaryReason, Pass, NowItem, SkyState, NowState } from './pass';
 export type { MoonPhaseName, MoonState, MoonGlare, MoonGlareThresholds } from './moon';
@@ -9,5 +9,5 @@ export type { HourlyCloud, WeatherSnapshot, CloudState, CloudVerdict } from './w
 export type { PassRun, Favourite, Readiness, ReadinessGap } from './offline';
 export { MAX_FAVOURITES } from './offline';
 export type { PassSort, ChartView, SavedChartView, ChartOrientation, Locale, Theme } from './prefs';
-export { SAVED_CHART_VIEWS, savedChartView } from './prefs';
+export { savedChartView } from './prefs';
 export { THEMES, DEFAULT_THEME, DEFAULT_LIVE_LEGEND_OPEN, DEFAULT_SHOW_FAINT } from './prefs';
