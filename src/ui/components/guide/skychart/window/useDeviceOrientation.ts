@@ -37,7 +37,7 @@ import { nearestQuarter, quarterTurnFor, type Quarter } from './screenTurn';
  * already got the grant — the hook arms itself on mount; a request still in
  * flight from that tap is awaited.
  */
-export type OrientationState = 'idle' | 'waiting' | 'on' | 'relative' | 'denied';
+type OrientationState = 'idle' | 'waiting' | 'on' | 'relative' | 'denied';
 
 export interface DeviceOrientationHandle {
   /** D-175's presence test: a touch screen with the constructor. */

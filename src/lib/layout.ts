@@ -391,7 +391,7 @@ export const LIVE_FOLD_GIVES_PX: Readonly<Record<LiveFold, number>> = {
   actions: 0,
 };
 /** The rail gives its actions' row up a row of tap targets under the height at which the controls fold. */
-export const LIVE_FOLD_ACTIONS_UNDER_PX = TAP_PX;
+const LIVE_FOLD_ACTIONS_UNDER_PX = TAP_PX;
 
 /**
  * The frame's measurement with the fold taken back out: what the box would have with nothing under it on the

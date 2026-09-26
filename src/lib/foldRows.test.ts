@@ -13,7 +13,6 @@ import {
   foldBelowPx,
   foldRows,
   LIVE_BOX_MIN_PX,
-  LIVE_FOLD_ACTIONS_UNDER_PX,
   LIVE_FOLD_GIVES_PX,
   LIVE_FOLD_ORDER,
   LIVE_FOLDED_GAP_PX,
@@ -86,8 +85,8 @@ describe('the box floor and the fold (FR-SHP-3)', () => {
     expect(foldRows(960, WIDE_ROWS)).toEqual([]);
     expect(foldRows(FLOOR, WIDE_ROWS)).toEqual([]);
     expect(foldRows(FLOOR - 1, WIDE_ROWS)).toEqual(['controls']);
-    expect(foldRows(FLOOR - LIVE_FOLD_ACTIONS_UNDER_PX, WIDE_ROWS)).toEqual(['controls']);
-    expect(foldRows(FLOOR - LIVE_FOLD_ACTIONS_UNDER_PX - 1, WIDE_ROWS)).toEqual(['controls', 'actions']);
+    expect(foldRows(FLOOR - TAP_PX, WIDE_ROWS)).toEqual(['controls']);
+    expect(foldRows(FLOOR - TAP_PX - 1, WIDE_ROWS)).toEqual(['controls', 'actions']);
     expect(foldRows(0, WIDE_ROWS)).toEqual(LIVE_FOLD_ORDER);
     // 1200 × 450 unfolded: the page's 450 less the watching rows is a 330 px box, 40 with the block under it.
     expect(foldRows(450 - liveKeptPx('watching'), WIDE_ROWS)).toEqual(LIVE_FOLD_ORDER);

@@ -1,6 +1,6 @@
 // Types only (PLAN §5). The catalog JSON itself and its schema arrive in R3.
 export type NoradId = number;
-export type SatCategory = 'station' | 'payload' | 'rocket-body';
+type SatCategory = 'station' | 'payload' | 'rocket-body';
 export interface CatalogEntry {
   noradId: NoradId;
   name: string; // display name, e.g. "ISS (Zarya)"

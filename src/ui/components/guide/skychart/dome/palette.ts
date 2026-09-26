@@ -45,7 +45,7 @@ export type DomePalette = Record<DomeMeaning, string>;
 export const MEANINGS = Object.keys(CHART_TOKENS) as readonly DomeMeaning[];
 
 /** The FR-LIVE-2 series, in the order passes take them. */
-export const SERIES_MEANINGS = ['series1', 'series2', 'series3', 'series4', 'series5', 'series6'] as const satisfies readonly DomeMeaning[];
+const SERIES_MEANINGS = ['series1', 'series2', 'series3', 'series4', 'series5', 'series6'] as const satisfies readonly DomeMeaning[];
 
 /** The series colour of the pass at `index`, cycling through the six (FR-LIVE-2: "assigned in pass order"). */
 export function seriesColor(palette: DomePalette, index: number): string {

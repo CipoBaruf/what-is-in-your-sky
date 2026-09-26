@@ -15,9 +15,9 @@ export { MIN_EXTENT_RATIO };
  * pixel under `box / cols` at a device pixel ratio of 1 (half of one at a ratio of 2, which is inside
  * this). A cell further under than that was cut short by something else, and gets no allowance.
  */
-export const ADVANCE_QUANTUM_PX = 1;
+const ADVANCE_QUANTUM_PX = 1;
 /** Float noise in a measured cell, as against the quantum above. */
-export const CELL_EPS_PX = 0.01;
+const CELL_EPS_PX = 0.01;
 /** Sub-pixel rounding (worse at a device pixel ratio of 2), and the label snap the unit side already accounts for. */
 export const FIT_EPS_PX = 3;
 
@@ -27,7 +27,7 @@ export const FIT_EPS_PX = 3;
  * Where every advance rendered at the width it was asked for this is `zoomFor`'s number; where the
  * platform rounded the cell down it is less, and the drawing — painted on that raster — follows it.
  */
-export function platformZoom(layers: readonly LayerInk[], box: Pick<Rect, 'width' | 'height'>): number {
+function platformZoom(layers: readonly LayerInk[], box: Pick<Rect, 'width' | 'height'>): number {
   return Math.min(zoomFor(box.width, box.height), ...layers.map(({ cols, rows, cellWidthPx, cellHeightPx }) => zoomWithinRaster(box.width, box.height, { widthPx: cols * cellWidthPx, heightPx: rows * cellHeightPx, cellWidthPx })));
 }
 

@@ -48,8 +48,8 @@ export interface TimeStripeProps {
 }
 
 /** One text row in CSS pixels at the 16 px base (`--row`, 1.5 rem); the stripe is three of them. Before the first measurement, and in a layout with no height (tests). */
-export const ROW_PX = 24;
-export const ROWS = 3;
+const ROW_PX = 24;
+const ROWS = 3;
 export const STRIPE_HEIGHT = ROWS * ROW_PX;
 /** Before the first measurement, and in a layout with no width (tests). */
 export const DEFAULT_WIDTH = 600;

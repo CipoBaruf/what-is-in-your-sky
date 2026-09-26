@@ -3,7 +3,7 @@ import { fetchCloudForecast, FORECAST_DAYS } from './openMeteo/forecast';
 import { storedCacheSchema, type StoredSnapshot } from './openMeteo/schemas';
 import { browserStorage, type StorageLike } from './storage';
 
-export { browserStorage, type StorageLike };
+export { type StorageLike };
 
 /**
  * FR-WX-5: weather is cached for 30 min per 0.1° cell, in memory and in
@@ -25,7 +25,7 @@ export const WEATHER_CACHE_KEY = 'wiys:wx:v1';
 export const WEATHER_TTL_MS = 30 * 60_000;
 /** How long a snapshot is worth keeping for the offline fallback: the span the response itself covers (FR-OFF-3). */
 export const WEATHER_RETENTION_MS = FORECAST_DAYS * 24 * 3_600_000;
-export const CELL_DEG = 0.1;
+const CELL_DEG = 0.1;
 
 /** The cell's coordinates: rounded to the nearest 0.1°. */
 export function cellCentre(lat: number, lon: number): { lat: number; lon: number } {

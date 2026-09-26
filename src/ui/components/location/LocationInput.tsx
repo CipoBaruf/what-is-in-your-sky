@@ -38,7 +38,7 @@ import { accuracyText, UseMyLocation, type GeolocationEnv } from './UseMyLocatio
  * hands of whoever is typing in it.
  */
 export const COORDS_INPUT_ID = 'coords';
-export const PLACE_INPUT_ID = 'place';
+const PLACE_INPUT_ID = 'place';
 
 export interface LocationInputProps {
   observer: Observer | null;

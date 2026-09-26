@@ -47,7 +47,7 @@ export interface LiveLink {
 }
 
 /** The MVP selection hash: a pass id and nothing else (D-13). */
-export interface PassIdHash {
+interface PassIdHash {
   kind: 'passId';
   passId: string;
 }
@@ -144,7 +144,7 @@ export function parseIsoInstant(text: string): EpochMs | null {
 const COORD_SCALE = 1e5;
 
 /** A coordinate at the precision the hash carries. The one place that rounding is decided (D-295). */
-export const hashCoord = (n: number): number => Math.round(n * COORD_SCALE) / COORD_SCALE;
+const hashCoord = (n: number): number => Math.round(n * COORD_SCALE) / COORD_SCALE;
 
 const coord = (n: number): string => String(hashCoord(n));
 

@@ -41,7 +41,7 @@ export interface ShareButtonProps {
 }
 
 /** How long the inline confirmation stays. Long enough to read, short enough not to outlive the action. */
-export const CONFIRMATION_MS = 4000;
+const CONFIRMATION_MS = 4000;
 
 type Confirmation = 'idle' | 'copied' | 'failed';
 

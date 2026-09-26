@@ -9,12 +9,12 @@ import { existsSync, readFileSync } from 'node:fs';
 import type { Observer } from '../../src/model';
 import { REFERENCE_VALUES_PATH } from './fixtures';
 
-export interface RefVec {
+interface RefVec {
   x: number;
   y: number;
   z: number;
 }
-export interface RefPoint {
+interface RefPoint {
   t: number;
   azDeg: number;
   elDeg: number;

@@ -6,7 +6,7 @@ import type { ElementGroup, OmmRecord } from '../model';
  * Records failing the schema are dropped with a warning; a body that is not an
  * array, or a non-2xx status, is an error. No cache here (R11).
  */
-export const CELESTRAK_GP_URL = 'https://celestrak.org/NORAD/elements/gp.php';
+const CELESTRAK_GP_URL = 'https://celestrak.org/NORAD/elements/gp.php';
 
 export const ommRecordSchema = z.object({
   OBJECT_NAME: z.string().min(1),

@@ -8,7 +8,7 @@ import { geocodeResponseSchema, openMeteoErrorSchema } from './schemas';
  * the network twice; the 500 ms debounce lives in the input component.
  * Failures are reported as `OpenMeteoGeocodeError` and never cached.
  */
-export const OPEN_METEO_GEOCODE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+const OPEN_METEO_GEOCODE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
 export const GEOCODE_COUNT = 8;
 /** Open-Meteo answers nothing for a one-character name; the client does not ask. */
 export const MIN_QUERY_LENGTH = 2;

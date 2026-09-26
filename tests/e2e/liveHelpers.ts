@@ -21,7 +21,7 @@ interface Reference {
 export { FIXTURE_DATE, NINE_DAYS_ON };
 export const ha = JSON.parse(readFileSync(`tests/fixtures/heavens-above/${FIXTURE_DATE}-neuquen-iss.json`, 'utf8')) as HaFixture;
 const reference = JSON.parse(readFileSync('tests/fixtures/reference-values.json', 'utf8')) as Reference;
-export const NEUQUEN = `${String(ha.observer.lat)}, ${String(ha.observer.lon)}`;
+const NEUQUEN = `${String(ha.observer.lat)}, ${String(ha.observer.lon)}`;
 export const hhmmss = (t: number): string => new Date(t).toISOString().slice(11, 19);
 /**
  * The strip's time field for real time at `t`, to the ten-second tick the page reads the clock at
@@ -130,7 +130,7 @@ export async function openSettings(page: Page): Promise<boolean> {
  * coordinates. A spec that types a pair opens it first, as a reader does; on
  * the wide home there is no disclosure and the fields are always there.
  */
-export async function openCoordinates(page: Page): Promise<void> {
+async function openCoordinates(page: Page): Promise<void> {
   const disclosure = page.getByTestId('coords-disclosure');
   if ((await disclosure.count()) === 0) return;
   if ((await disclosure.getAttribute('aria-expanded')) === 'false') {
@@ -183,10 +183,10 @@ export async function homeAt(page: Page, t: number, locale: 'en' | 'es' = 'en', 
 }
 
 /** The `Up now` row's value, in either language: `ISS (Zarya) · 3:12 left +2`. */
-export const UP_NOW = /^.+ · (\d+:\d\d left|quedan \d+:\d\d)( \+\d+)?$/;
+const UP_NOW = /^.+ · (\d+:\d\d left|quedan \d+:\d\d)( \+\d+)?$/;
 
 /** How many satellites the `Up now` row counts: its first, and the `+<n>` after it. */
-export function upNowCount(text: string): number {
+function upNowCount(text: string): number {
   if (text === '') return 0;
   const more = /\+(\d+)$/.exec(text);
   return 1 + Number(more?.[1] ?? '0');
@@ -418,7 +418,6 @@ export async function pose(page: Page, { alpha = 0, beta, gamma }: { alpha?: num
 /** The view control's options, by locale (`i18n/{en,es}/chart.ts`). */
 export const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 export const VIEW_OPTION = { en: { dome: 'Dome', polar: 'Polar', window: 'Window' }, es: { dome: 'Domo', polar: 'Polar', window: 'Ventana' } } as const;
-export const SCREEN_CLOSE = { en: 'Close', es: 'Cerrar' } as const;
 
 /**
  * R66 (FR-FSC-1, FR-FSC-6; V13-6, D-350): the way into the sky screen, on the

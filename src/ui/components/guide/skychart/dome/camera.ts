@@ -88,8 +88,8 @@ export const ZOOM_WIDTH_DIVISOR = 2.4;
  */
 /** The wireframe's sphere: the horizon ring, the altitude rings, the meridians and the arcs are drawn at this radius (`domeGeometry`). */
 export const DOME_RADIUS = 1;
-export const EXTENT_TOP_UNITS = DOME_RADIUS;
-export const EXTENT_BOTTOM_UNITS = GROUND_RADIUS * Math.cos((DEFAULT_TILT_DEG * Math.PI) / 180);
+const EXTENT_TOP_UNITS = DOME_RADIUS;
+const EXTENT_BOTTOM_UNITS = GROUND_RADIUS * Math.cos((DEFAULT_TILT_DEG * Math.PI) / 180);
 export const DRAWING_HEIGHT_UNITS = EXTENT_TOP_UNITS + EXTENT_BOTTOM_UNITS;
 export const ZOOM_HEIGHT_DIVISOR = 2.0;
 /** R61 (D-314): the box shape at which both divisors bind at once — the wide live page's box is cut to it. */
@@ -115,7 +115,7 @@ export function layerCenter(layout: Pick<DomeLayout, 'zoom' | 'rows' | 'cellHeig
   const rasterHeightPx = layout.rows * layout.cellHeightPx;
   return [0.5, rasterHeightPx > 0 ? 0.5 + (centerShiftUnits(tiltDeg) * layout.zoom) / rasterHeightPx : 0.5];
 }
-export const REFERENCE_WIDTH_PX = 390;
+const REFERENCE_WIDTH_PX = 390;
 /** FR-DOME-1's number: the drawing's extent, labels included, against the shorter side of its box. */
 export const MIN_EXTENT_RATIO = 0.9;
 /** FR-DOME-1 as amended (v1.1.1, F-51): …and never more than the whole of it. */
@@ -140,7 +140,7 @@ export function zoomFor(widthPx: number, heightPx: number): number {
  */
 export const INK_WIDTH_UNITS = 2 * GROUND_RADIUS;
 /** D-317: the bowl's silhouette over the ground's near edge, centred by `centerShiftUnits` — what the rows must hold. */
-export const INK_HEIGHT_UNITS = DRAWING_HEIGHT_UNITS;
+const INK_HEIGHT_UNITS = DRAWING_HEIGHT_UNITS;
 /**
  * The blank columns the clamp keeps either side of the ink — `dome-fit.spec.ts`'s
  * rule. One: on the base layer's coarse grid (half the line layer's columns, so
@@ -196,7 +196,7 @@ export interface CellSize {
   widthPx: number;
   heightPx: number;
 }
-export const NO_CELL: CellSize = { widthPx: 0, heightPx: 0 };
+const NO_CELL: CellSize = { widthPx: 0, heightPx: 0 };
 
 /**
  * The drawing's extent on screen in CSS px at a zoom and a tilt: the bounding
@@ -298,7 +298,7 @@ export const CELL_ASPECT = 2;
 export const DEFAULT_CELL_WIDTH_PX = 6.5;
 export const MIN_CELL_WIDTH_PX = 4;
 /** D-92: the base layer is a wash under the lines, at half their columns. */
-export const BASE_COLS_RATIO = 0.5;
+const BASE_COLS_RATIO = 0.5;
 export const MIN_BASE_COLS = 8;
 
 /**

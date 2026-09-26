@@ -11,7 +11,7 @@ import type { EpochMs, NoradId, Pass, PassSort } from '../model';
  * are stable and never mutate their input.
  */
 export const DEFAULT_PASS_SORT: PassSort = 'chronological';
-export const PASS_SORTS: readonly PassSort[] = ['chronological', 'best'];
+const PASS_SORTS: readonly PassSort[] = ['chronological', 'best'];
 
 export function isPassSort(value: unknown): value is PassSort {
   return typeof value === 'string' && (PASS_SORTS as readonly string[]).includes(value);

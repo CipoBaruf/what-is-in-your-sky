@@ -85,7 +85,7 @@ function DomeView(props: SkyChartProps) {
   );
 }
 
-export const DOME_VIEW: SkyChartView = { Component: DomeView, id: 'dome' };
+const DOME_VIEW: SkyChartView = { Component: DomeView, id: 'dome' };
 
 function WindowView(props: SkyChartProps) {
   return (
@@ -115,7 +115,7 @@ function WindowView(props: SkyChartProps) {
   );
 }
 
-export const WINDOW_VIEW: SkyChartView = {
+const WINDOW_VIEW: SkyChartView = {
   Component: WindowView,
   id: 'window',
   available: () => typeof window !== 'undefined' && orientationApiPresent(),
@@ -135,7 +135,7 @@ export function offeredViews(lost: ReadonlySet<ChartView> = new Set()): SkyChart
 }
 
 /** The view for a preference: itself where offered, else the dome (the default), else the first one offered. */
-export function viewFor(id: SkyChartView['id'], offered: readonly SkyChartView[] = offeredViews()): SkyChartView {
+function viewFor(id: SkyChartView['id'], offered: readonly SkyChartView[] = offeredViews()): SkyChartView {
   const view = offered.find((candidate) => candidate.id === id) ?? offered.find((candidate) => candidate.id === DEFAULT_CHART_VIEW) ?? offered[0];
   if (!view) throw new Error('SkyChart: no views registered');
   return view;

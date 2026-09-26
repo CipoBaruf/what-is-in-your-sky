@@ -13,17 +13,6 @@ export interface Failure {
   detail: string;
 }
 
-/**
- * What a fetcher knows about a failed response beyond its message
- * (`CelestrakError`, `OpenMeteoError`, `OpenMeteoGeocodeError`): the HTTP
- * status, and whether the body was not the data asked for — not JSON, not the
- * schema, or the provider's own error object.
- */
-export interface ResponseFailureInfo {
-  status?: number;
-  badData?: boolean;
-}
-
 const FAILURE_KINDS: readonly FailureKind[] = ['offline', 'rate-limited', 'server', 'bad-data', 'timeout', 'unknown'];
 
 export function isFailure(value: unknown): value is Failure {

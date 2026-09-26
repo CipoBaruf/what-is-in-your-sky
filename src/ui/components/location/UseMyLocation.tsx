@@ -18,13 +18,13 @@ export interface GeolocationEnv {
   secure: boolean;
 }
 
-export function browserGeolocationEnv(): GeolocationEnv {
+function browserGeolocationEnv(): GeolocationEnv {
   const nav: { geolocation?: Geolocation } | undefined = typeof navigator === 'undefined' ? undefined : navigator;
   return { geolocation: nav?.geolocation, secure: globalThis.isSecureContext === true };
 }
 
 /** US-3 AC3: shown only when worse than about 1 km, as "about 2 km" / "about 1.5 km"; null below that, and the caller says nothing. */
-export const ACCURACY_SHOW_M = 1000;
+const ACCURACY_SHOW_M = 1000;
 export function accuracyText(accuracyM: number | undefined, t: Messages): string | null {
   if (accuracyM === undefined || !(accuracyM > ACCURACY_SHOW_M)) return null;
   const km = accuracyM / 1000;
@@ -36,7 +36,7 @@ export function observerFromPosition(coords: Pick<GeolocationCoordinates, 'latit
   return { lat, lon, altM: Math.round(coords.altitude ?? 0), label: coordsLabel(lat, lon), source: 'device', timeZone: null, accuracyM: Math.round(coords.accuracy) };
 }
 
-export function positionErrorText(error: Pick<GeolocationPositionError, 'code'>, t: Messages): string {
+function positionErrorText(error: Pick<GeolocationPositionError, 'code'>, t: Messages): string {
   switch (error.code) {
     case 1:
       return t.location.permissionDenied;

@@ -7,13 +7,13 @@ import type { NowState, Observer } from '../../model';
  * panel never shows one location's sky under another's label. The effect
  * refreshes it every 10 s while the tab is visible (PLAN §4 `effects.ts`).
  */
-export interface NowSliceState {
+interface NowSliceState {
   observer: Observer | null;
   state: NowState | null;
   error: string | null;
 }
 
-export const IDLE_NOW: NowSliceState = { observer: null, state: null, error: null };
+const IDLE_NOW: NowSliceState = { observer: null, state: null, error: null };
 
 export interface NowSlice {
   now: NowSliceState;

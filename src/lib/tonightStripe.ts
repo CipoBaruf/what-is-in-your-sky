@@ -14,15 +14,15 @@ import { DAY_MS, HOUR_MS, MINUTE_MS, zoneOffsetMs, type SkyBand, type Span } fro
  * `now` is a parameter, and the zone's offset is read through
  * `timeStripe.zoneOffsetMs`, the path every other stripe label takes.
  */
-export const TONIGHT_STRIPE_HOURS = 12;
-export const TONIGHT_STRIPE_LABEL_STEP_H = 2;
+const TONIGHT_STRIPE_HOURS = 12;
+const TONIGHT_STRIPE_LABEL_STEP_H = 2;
 /** One character to 24 min: 12 h is 30 characters, and a 2 h label step is five of them. */
-export const TONIGHT_STRIPE_CELL_MS = 24 * MINUTE_MS;
+const TONIGHT_STRIPE_CELL_MS = 24 * MINUTE_MS;
 export const TONIGHT_STRIPE_CELLS = (TONIGHT_STRIPE_HOURS * HOUR_MS) / TONIGHT_STRIPE_CELL_MS;
 
 /** The character each sky is drawn with (FR-FIRST-8). */
-export const STRIPE_CHARS: Readonly<Record<SkyState, string>> = { day: '▓', 'bright-twilight': '▒', dark: '█' };
-export const STRIPE_TICK = '▲';
+const STRIPE_CHARS: Readonly<Record<SkyState, string>> = { day: '▓', 'bright-twilight': '▒', dark: '█' };
+const STRIPE_TICK = '▲';
 
 /** The first dark band still open at `now`, or the next one to open; null when the bands hold none (D-470). */
 export function tonightsDark(bands: readonly SkyBand[], now: EpochMs): SkyBand | null {

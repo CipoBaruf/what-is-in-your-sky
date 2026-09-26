@@ -1,4 +1,4 @@
-export type ObserverSource = 'geocode' | 'coords' | 'device';
+type ObserverSource = 'geocode' | 'coords' | 'device';
 
 export interface Observer {
   lat: number;

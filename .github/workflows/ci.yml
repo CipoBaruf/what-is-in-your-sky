@@ -111,3 +111,21 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx tsx scripts/check-trailers.ts
+
+  # FR-SHOW-4 (D-647): no export nothing imports. `knip` reads `package.json`,
+  # the Vite, Vitest and Playwright configs and every import, and `knip.json`
+  # at the root names the rest (`scripts/*.ts` as entries; `spike/**` and
+  # `docs/**` out of the report). Its own job beside `trailers`, so it spends
+  # none of FR-CI-1's ten minutes, and a pull request that adds an unused
+  # export, type or dependency is red on this job alone.
+  dead-code:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check:dead

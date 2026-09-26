@@ -90,7 +90,7 @@ export type MoonPeakFacts = Pick<MoonFacts, 'phase' | 'illumination'>;
  * (D-121); `moonPhrases.test.ts` passes the real entries through it, so a
  * change to the file's shape fails there.
  */
-export type LocalizedLine = Record<Locale, string>;
+type LocalizedLine = Record<Locale, string>;
 
 /** The entries the "Moon tonight" line is built from; `fullMoon` is null unless `showsFullMoonName` says it is that night (FR-MOON-4). */
 export interface MoonLoreEntries {

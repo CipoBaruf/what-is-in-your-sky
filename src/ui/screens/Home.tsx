@@ -60,7 +60,7 @@ import stepStyles from './home/Steps.module.css';
  * (`data-guide="pane"`) is the panel placed across the Where and When columns
  * with the list left in What (D-444).
  */
-export { STEPS, StepLine, stepLabel, type Step } from './home/StepLine';
+export { StepLine, type Step } from './home/StepLine';
 
 /**
  * FR-FIRST-5 as amended v2.0.2: a populated reading's character-rule heading is
@@ -422,7 +422,7 @@ export function useSteps(observer: Observer | null, offHome = false) {
   return { step, reached, moved, held, go };
 }
 
-export type HomeSteps = ReturnType<typeof useSteps>;
+type HomeSteps = ReturnType<typeof useSteps>;
 
 /**
  * FR-FIRST-1, FR-FIRST-4, FR-FIRST-5: the home page's main. The Where reading

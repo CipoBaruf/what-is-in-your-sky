@@ -6,14 +6,14 @@
 import type { Observer, OmmRecord, Pass, PassBoundaryReason, TimeWindow, VisibilityThresholds } from '../../src/model';
 import { azimuthDeltaDeg, findPasses, isoUtc, ommToSatrec, parseOmmEpoch } from '../../src/physics';
 
-export interface HaEvent {
+interface HaEvent {
   t: string; // full ISO 8601 UTC, e.g. "2026-09-11T09:48:14Z"
   altDeg: number;
   azDeg: number;
   compass: string;
 }
-export type HaEventKey = 'rises' | 'reaches10' | 'max' | 'drops10' | 'sets' | 'entersShadow' | 'exitsShadow';
-export interface HaPass {
+type HaEventKey = 'rises' | 'reaches10' | 'max' | 'drops10' | 'sets' | 'entersShadow' | 'exitsShadow';
+interface HaPass {
   date: string; // YYYY-MM-DD, as printed by Heavens-Above (UTC)
   magnitude: number;
   /**
@@ -55,10 +55,10 @@ export const SPIKE_THRESHOLDS: VisibilityThresholds = {
 export const ISS_NORAD_ID = 25544;
 /** Seed value pending R3's provenance work (step 12). */
 export const ISS_STD_MAG_SEED = -1.8;
-export const PAIRING_WINDOW_MS = 15 * 60_000;
+const PAIRING_WINDOW_MS = 15 * 60_000;
 export const TIME_TOLERANCE_S = 60;
 export const ANGLE_TOLERANCE_DEG = 5;
-export const WINDOW_DAYS = 10;
+const WINDOW_DAYS = 10;
 
 const ms = (iso: string): number => {
   const t = Date.parse(iso);
@@ -67,7 +67,7 @@ const ms = (iso: string): number => {
 };
 
 /** Step 9: which Heavens-Above rows begin, top and end the visible pass, and the implied boundary reasons. */
-export function haComparisonPoints(pass: HaPass): {
+function haComparisonPoints(pass: HaPass): {
   start: HaEvent;
   peak: HaEvent;
   end: HaEvent;
@@ -114,17 +114,17 @@ export function haComparisonPoints(pass: HaPass): {
 }
 
 /** Heavens-Above's visible duration for a pass, seconds, from its own start and end rows. */
-export function haVisibleDurationS(pass: HaPass): number {
+function haVisibleDurationS(pass: HaPass): number {
   const p = haComparisonPoints(pass);
   return (ms(p.end.t) - ms(p.start.t)) / 1000;
 }
 
-export interface PointDelta {
+interface PointDelta {
   dtS: number;
   dAzDeg: number;
   dElDeg: number;
 }
-export interface PairReport {
+interface PairReport {
   ha: HaPass;
   ours: Pass;
   start: PointDelta;
@@ -164,7 +164,7 @@ const within = (d: PointDelta): boolean =>
  * clipped to Heavens-Above's own search period when the fixture records it
  * (a pass only one side searched for cannot be compared).
  */
-export function comparisonWindow(fixture: HaFixture): TimeWindow {
+function comparisonWindow(fixture: HaFixture): TimeWindow {
   const startMs = ms(fixture.capturedAt);
   const window = { startMs, endMs: startMs + WINDOW_DAYS * 86_400_000 };
   if (fixture.searchPeriod) {

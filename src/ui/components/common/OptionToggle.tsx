@@ -7,7 +7,7 @@ import styles from './OptionToggle.module.css';
  * reports nothing. Used by the sky chart's view and orientation toggles
  * (`SortToggle` predates it and keeps its own copy).
  */
-export interface OptionToggleOption<T extends string> {
+interface OptionToggleOption<T extends string> {
   value: T;
   label: string;
 }

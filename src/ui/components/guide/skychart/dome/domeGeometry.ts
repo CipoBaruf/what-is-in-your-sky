@@ -42,32 +42,32 @@ const DEG = Math.PI / 180;
 /** Sky sample step along an arc (PLAN §8.3). */
 export const ARC_STEP_DEG = 2;
 /** Half-widths in degrees of sky (D-59). */
-export const GRID_HALF_WIDTH_DEG = 0.05;
-export const PASS_HALF_WIDTH_DEG = 0.75;
-export const DIM_PASS_HALF_WIDTH_DEG = 0.05;
+const GRID_HALF_WIDTH_DEG = 0.05;
+const PASS_HALF_WIDTH_DEG = 0.75;
+const DIM_PASS_HALF_WIDTH_DEG = 0.05;
 /** Marker diamonds sit just outside the dome (PLAN §8.3). */
 export const MARKER_RADIUS = 1.02;
 export const NOW_MARKER_RADIUS = 1.03;
-export const MARKER_SIZE_DEG = 1.5;
-export const NOW_MARKER_SIZE_DEG = 2;
-export const ARROWHEAD_SIZE_DEG = 1.8;
+const MARKER_SIZE_DEG = 1.5;
+const NOW_MARKER_SIZE_DEG = 2;
+const ARROWHEAD_SIZE_DEG = 1.8;
 /** Label anchors: compass names just outside the horizon, pass labels further out so they clear the compass. */
 export const COMPASS_LABEL_RADIUS = 1.08;
 export const PASS_LABEL_RADIUS = 1.06;
-export const RISE_LABEL_RADIUS = 1.18;
+const RISE_LABEL_RADIUS = 1.18;
 /** FR-DOME-4: the degree numbers sit inside the compass names, the ring numbers just off their ring at the north-west. */
 export const TICK_LABEL_RADIUS = 1.03;
-export const RING_LABEL_RADIUS = 1.02;
-export const RING_LABEL_AZ_DEG = 315;
+const RING_LABEL_RADIUS = 1.02;
+const RING_LABEL_AZ_DEG = 315;
 /** Base layer (FR-DOME-8a, D-92): the ground reaches 1.1 radii, the sky bowl sits just inside the lines, the glow just inside the horizon ring. */
 export const GROUND_RADIUS = 1.1;
-export const GROUND_DEPTH = 0.002;
+const GROUND_DEPTH = 0.002;
 export const BOWL_RADIUS = 0.985;
-export const GLOW_RADIUS = 0.995;
+const GLOW_RADIUS = 0.995;
 /** The base layer's surfaces are coarse on purpose: it is a wash, not a drawing (D-92). */
-export const BASE_STEP_DEG = 10;
+const BASE_STEP_DEG = 10;
 /** The last fifth of a pass strip has every other quad left out, so the direction of travel reads. */
-export const DIRECTION_GAP_FRACTION = 0.8;
+const DIRECTION_GAP_FRACTION = 0.8;
 
 const tuple = (p: Vec3, r = 1): Tuple3 => [p.x * r, p.y * r, p.z * r];
 const sub = (a: Tuple3, b: Tuple3): Tuple3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
@@ -156,18 +156,18 @@ export function meridian(azDeg: number, color?: string): Poly[] {
   return stripAlong(pts, { halfWidthDeg: GRID_HALF_WIDTH_DEG, ...(cardinal ? {} : { omit: dashed }), ...(color ? { color } : {}) });
 }
 
-export const MERIDIAN_AZIMUTHS: readonly number[] = [0, 45, 90, 135, 180, 225, 270, 315];
+const MERIDIAN_AZIMUTHS: readonly number[] = [0, 45, 90, 135, 180, 225, 270, 315];
 
 /** FR-DOME-4: the labelled altitude rings, and the elevations the ticks number. */
 export const RING_ELEVATIONS: readonly number[] = [30, 60];
-export const TICK_STEP_DEG = 10;
+const TICK_STEP_DEG = 10;
 export const TICK_LABEL_STEP_DEG = 30;
 /** How far a tick rises off the horizon, in degrees of sky: taller where it is numbered. */
 export const TICK_HEIGHT_DEG = 2;
 export const LABELLED_TICK_HEIGHT_DEG = 3.5;
 /** The observer's mark: a small cross on the ground at the centre of the dome, in dome radii. */
 export const OBSERVER_MARK_RADIUS = 0.07;
-export const OBSERVER_MARK_HEIGHT = 0.004;
+const OBSERVER_MARK_HEIGHT = 0.004;
 
 /** FR-DOME-4: radial ticks every 10° of azimuth on the horizon, taller every 30°. */
 export function horizonTicks(color?: string): Poly[] {
@@ -370,7 +370,6 @@ export const HIDDEN_LABEL_OFFSET_DEG = 4;
 
 /** FR-DOME-6: the Moon's disc, and how far above it its label sits. */
 export const MOON_MARKER_SIZE_DEG = 2.5;
-export const MOON_LABEL_OFFSET_DEG = 5;
 const MOON_RING_STEP_DEG = 30;
 
 /**
@@ -484,10 +483,10 @@ export function projectToScreen(at: Tuple3, camera: { rotYDeg: number; tiltDeg: 
  * order is the compass names, then the keys — the passes' first, in the
  * order the caller places them, the hidden objects' last.
  */
-export const LABEL_ORDER = ['compass', 'key'] as const;
+const LABEL_ORDER = ['compass', 'key'] as const;
 export type LabelKind = (typeof LABEL_ORDER)[number];
 /** How far along its ring a label may move, and in what steps (degrees of azimuth). */
-export const LABEL_SHIFT_STEP_DEG = 5;
+const LABEL_SHIFT_STEP_DEG = 5;
 export const LABEL_SHIFT_MAX_DEG = 45;
 
 export interface LabelBox {

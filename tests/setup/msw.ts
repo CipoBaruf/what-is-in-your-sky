@@ -16,19 +16,19 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import type { ElementGroup, OmmRecord } from '../../src/model';
 
-export const OMM_FIXTURE_DATE = '2026-09-02';
+const OMM_FIXTURE_DATE = '2026-09-02';
 export const CELESTRAK_GP = 'https://celestrak.org/NORAD/elements/gp.php';
 export const OPEN_METEO_FORECAST = 'https://api.open-meteo.com/v1/forecast';
-export const FORECAST_FIXTURE = '2026-09-02-neuquen-forecast';
+const FORECAST_FIXTURE = '2026-09-02-neuquen-forecast';
 export const OPEN_METEO_GEOCODE = 'https://geocoding-api.open-meteo.com/v1/search';
 /** The ambiguous pick list: eight results across five countries. */
-export const GEOCODE_FIXTURE = '2026-09-02-rosario-geocode';
+const GEOCODE_FIXTURE = '2026-09-02-rosario-geocode';
 export const GEOCODE_FIXTURE_QUERY = 'rosario';
 /** The single-result example place, the R1 golden observer: "Cipolletti, Rio Negro, Argentina". */
 export const CIPOLLETTI_FIXTURE = '2026-09-02-cipolletti-geocode';
 export const CIPOLLETTI_QUERY = 'cipolletti';
 
-export function ommFixturePath(group: ElementGroup, date: string = OMM_FIXTURE_DATE): string {
+function ommFixturePath(group: ElementGroup, date: string = OMM_FIXTURE_DATE): string {
   return join(process.cwd(), 'tests', 'fixtures', 'omm', `${date}-${group}.json`);
 }
 
@@ -36,7 +36,7 @@ export function loadOmmFixture(group: ElementGroup, date?: string): OmmRecord[] 
   return JSON.parse(readFileSync(ommFixturePath(group, date), 'utf8')) as OmmRecord[];
 }
 
-export function forecastFixturePath(name: string = FORECAST_FIXTURE): string {
+function forecastFixturePath(name: string = FORECAST_FIXTURE): string {
   return join(process.cwd(), 'tests', 'fixtures', 'open-meteo', `${name}.json`);
 }
 
@@ -70,7 +70,7 @@ export function loadGeocodeFixtureMeta(name: string = GEOCODE_FIXTURE): GeocodeF
   return JSON.parse(readFileSync(join(process.cwd(), 'tests', 'fixtures', 'open-meteo', `${name}.meta.json`), 'utf8')) as GeocodeFixtureMeta;
 }
 
-export const celestrakHandlers = [
+const celestrakHandlers = [
   http.get(CELESTRAK_GP, ({ request }) => {
     const url = new URL(request.url);
     if (url.searchParams.has('CATNR')) return HttpResponse.text('per-object requests are forbidden (FR-SAT-2)', { status: 400 });
@@ -81,7 +81,7 @@ export const celestrakHandlers = [
   }),
 ];
 
-export const openMeteoHandlers = [
+const openMeteoHandlers = [
   http.get(OPEN_METEO_FORECAST, ({ request }) => {
     const url = new URL(request.url);
     const expected: Record<string, string> = {

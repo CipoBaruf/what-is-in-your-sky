@@ -16,7 +16,7 @@ export interface LegendPass extends Pass {
   arc?: ArcState | undefined;
 }
 
-export interface LegendHidden {
+interface LegendHidden {
   id: string;
   azDeg: number;
   elDeg: number;
@@ -42,7 +42,7 @@ export interface LegendInput {
 export type LegendColor = 'pass' | 'pass-dim' | 'series-1' | 'series-2' | 'series-3' | 'series-4' | 'series-5' | 'series-6';
 
 /** FR-LEG-3: what the row says about the moment — an arc state, or `hidden` for a FR-LIVE-6 object whose reason is in its label. */
-export type LegendState = ArcState | 'hidden-object';
+type LegendState = ArcState | 'hidden-object';
 
 export interface LegendRow {
   /** `A`, `B`, `C`… in row order (FR-LEG-1). */

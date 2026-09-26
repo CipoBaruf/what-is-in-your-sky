@@ -11,16 +11,16 @@
  * Pure: the caller supplies the file's text, so the tests need no git.
  */
 
-export const LANES = ['ui', 'chart', 'data', 'physics', 'live', 'window', 'docs'] as const; // `live` split from `ui` (D-132); `window` and `docs` for v1.1 (D-196)
+const LANES = ['ui', 'chart', 'data', 'physics', 'live', 'window', 'docs'] as const; // `live` split from `ui` (D-132); `window` and `docs` for v1.1 (D-196)
 /** §16.6 (D-197): `interactive` marks a task the owner drives by hand; the driver lists it and never runs it. */
 export const MODELS = ['opus', 'fable', 'sonnet', 'haiku', 'interactive'] as const;
-export const GATES = ['auto', 'owner'] as const;
+const GATES = ['auto', 'owner'] as const;
 
 export type Lane = (typeof LANES)[number];
-export type Model = (typeof MODELS)[number];
+type Model = (typeof MODELS)[number];
 /** A model `claude -p` can be given: every `Model:` but `interactive`. */
 export type SessionModel = Exclude<Model, 'interactive'>;
-export type Gate = (typeof GATES)[number];
+type Gate = (typeof GATES)[number];
 
 export interface Task {
   /** `R16`, `H`. */

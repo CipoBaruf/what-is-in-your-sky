@@ -11,8 +11,7 @@ import { appStore, type AppStore } from './store';
 import { createAppWorker, createWorkerClient, type WorkerLike } from './workerClient';
 
 export { appStore, useActiveObserver, useAppStore, type AppState } from './store';
-export { activeObserver } from './slices/location';
-export type { LinkKind, LinkNote, OpenLinkResult } from './openLink';
+export type { OpenLinkResult } from './openLink';
 
 /**
  * R83 (F-93, D-539): the running tab's `hashchange` path. A link pasted into
@@ -26,21 +25,14 @@ export function followHash(hash: string, now: number = Date.now()): void {
 }
 export type { ElementsState } from './slices/elements';
 /** R86 (D-540): failures are stored as kinds; the UI renders the sentence from `kind` and shows `detail` only behind `[ details ]`. */
-export { toFailure, type Failure, type FailureKind } from './failure';
-export type { RetrySlice } from './slices/retry';
-export type { PassesState, PassesStatus } from './slices/passes';
-export type { NowSliceState } from './slices/now';
-export type { WeatherSliceState, WeatherStatus } from './slices/weather';
-export { NIGHT_MS, SEARCH_WINDOW_HOURS, SEARCH_WINDOW_NIGHTS } from './passWindow';
+export { toFailure, type Failure } from './failure';
+export type { PassesState } from './slices/passes';
+export type { WeatherSliceState } from './slices/weather';
+export { NIGHT_MS, SEARCH_WINDOW_HOURS } from './passWindow';
 /** R25 (FR-OFF-1): the app shell's service worker; `main.tsx` registers it, the store carries the waiting version (D-79, D-126). */
-export { registerServiceWorker, SERVICE_WORKER_URL, SKIP_WAITING } from './serviceWorker';
-export type { AppUpdateSlice } from './slices/appUpdate';
-export { NOW_TICK_MS, ELEMENTS_RECHECK_MS, RECOMPUTE_STALE_H, WEATHER_MAX_AGE_MIN } from './effects';
-export { JOB_STALL_S } from './workerClient';
+export { registerServiceWorker } from './serviceWorker';
 /** R33 (FR-LIVE-6): the live page's request for the dimmed set at the shown instant (D-169). */
 export { computeNowAt, setLiveNowClient } from './liveNow';
-/** The thresholds the state sends to the worker (D-27); the UI quotes them (e.g. "above 10°") from here, never from `src/physics`. */
-export { DEFAULT_THRESHOLDS } from '../physics/constants';
 /** R30 (FR-MOON-2): the glare thresholds the `[moon glare]` tooltip quotes, beside the visibility ones and for the same reason (D-27). */
 export { DEFAULT_MOON_GLARE_THRESHOLDS } from '../physics/constants';
 // R30's Moon tradition lookups moved to `state/moonLore.ts` (FR-FLAG-1, D-183):
@@ -55,7 +47,6 @@ export { DEFAULT_MOON_GLARE_THRESHOLDS } from '../physics/constants';
 export { favouriteCellKey } from '../data/favourites';
 /** R9: place-name search (PLAN §7.2, session-cached in `src/data`), handed to the UI through `src/state` so `src/ui` never imports `src/data` (PLAN §3). */
 export { searchPlaces };
-export type PlaceSearch = typeof searchPlaces;
 /** R11: the display name of a catalog object by NORAD id, for the banner that lists objects without elements (the store carries ids only). */
 export function catalogName(noradId: number): string {
   return CATALOG.find((entry) => entry.noradId === noradId)?.name ?? `NORAD ${String(noradId)}`;

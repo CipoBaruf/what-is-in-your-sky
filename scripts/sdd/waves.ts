@@ -14,7 +14,7 @@
 import { ownerDriven, runBlockers, type Lane, type Task } from './tasks';
 
 /** `owner-driven` (v1.1, D-197): a `Model: interactive` task that is not merged; the owner runs it, the driver only lists it. */
-export type TaskState = 'merged' | 'in-review' | 'failed' | 'blocked' | 'ready' | 'owner-driven';
+type TaskState = 'merged' | 'in-review' | 'failed' | 'blocked' | 'ready' | 'owner-driven';
 
 export interface RemoteFacts {
   tasks: readonly Task[];
@@ -45,7 +45,7 @@ export interface WaveLimits {
   maxTasks: number;
 }
 
-export const DEFAULT_LIMITS: WaveLimits = { maxPerLane: 1, maxTasks: 3 };
+const DEFAULT_LIMITS: WaveLimits = { maxPerLane: 1, maxTasks: 3 };
 
 export interface WaveSelection {
   wave: readonly TaskStatus[];

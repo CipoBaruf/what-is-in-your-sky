@@ -11,7 +11,7 @@
 
 export const MEDIA_DIR = 'promo/media';
 
-export type PromoDevice = 'phone' | 'desktop';
+type PromoDevice = 'phone' | 'desktop';
 
 export interface PromoFlow {
   /** The `<flow>` part of the file names: `promo/media/<flow>-<device>.webm`. */
@@ -60,7 +60,7 @@ export const PROMO_FLOWS: readonly PromoFlow[] = [
 ];
 
 /** `promo/media/<flow>-<device>` — the stem every file of a flow shares. */
-export const promoStem = (flow: PromoFlow): string => `${MEDIA_DIR}/${flow.name}-${flow.device}`;
+const promoStem = (flow: PromoFlow): string => `${MEDIA_DIR}/${flow.name}-${flow.device}`;
 /** The flow's video, and the still it names. */
 export const promoVideo = (flow: PromoFlow): string => `${promoStem(flow)}.webm`;
 export const promoStill = (flow: PromoFlow, still: string): string => `${promoStem(flow)}-${still}.png`;

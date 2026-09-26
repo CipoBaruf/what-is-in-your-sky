@@ -11,4 +11,3 @@
  * the barrel is imported eagerly by nearly everything.
  */
 export { MOON_LORE, fullMoonName, phaseLore, signAtLongitude } from '../data/moon';
-export type { FullMoonName, MoonPhaseLore, ZodiacSign, ZodiacSignEntry } from '../data/moon';

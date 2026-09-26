@@ -23,10 +23,9 @@ import type { AppStore } from './store';
  * `note` is FR-VISIT-3's, for a live link's `t`: `past` when the clock is
  * already beyond it, `far` when it is further ahead than the stripe's span.
  */
-export type LinkKind = 'own' | 'visit' | 'adopt' | 'unreadable' | 'unknown';
-export type LinkNote = 'past' | 'far';
+type LinkNote = 'past' | 'far';
 
-export interface ReadLink {
+interface ReadLink {
   kind: 'own' | 'visit' | 'adopt';
   link: PassLink | LiveLink;
   note?: LinkNote;

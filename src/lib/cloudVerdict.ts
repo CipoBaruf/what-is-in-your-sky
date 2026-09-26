@@ -9,7 +9,7 @@ import type { CloudState, CloudVerdict, EpochMs, HourlyCloud, WeatherSnapshot } 
  */
 export const CLEAR_BELOW_PCT = 30;
 export const OBSCURED_ABOVE_PCT = 70;
-export const LAYER_WEIGHTS = { low: 0.6, mid: 0.3, high: 0.1 } as const;
+const LAYER_WEIGHTS = { low: 0.6, mid: 0.3, high: 0.1 } as const;
 
 export function cloudState(effectivePct: number): CloudState {
   if (effectivePct < CLEAR_BELOW_PCT) return 'clear';
@@ -18,7 +18,7 @@ export function cloudState(effectivePct: number): CloudState {
 }
 
 /** A sample has layers when all three are present (FR-WX-4 "where the provider supplies" them). */
-export function hasLayers(sample: HourlyCloud): sample is HourlyCloud & { lowPct: number; midPct: number; highPct: number } {
+function hasLayers(sample: HourlyCloud): sample is HourlyCloud & { lowPct: number; midPct: number; highPct: number } {
   return sample.lowPct !== undefined && sample.midPct !== undefined && sample.highPct !== undefined;
 }
 

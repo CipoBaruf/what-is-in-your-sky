@@ -10,7 +10,7 @@ import { openMeteoErrorSchema, forecastResponseSchema } from './schemas';
  * `weatherCache.ts` owns the 30 min / 0.1° cell rule (FR-WX-5) and the offline
  * fallback past it (FR-OFF-3).
  */
-export const OPEN_METEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
+const OPEN_METEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 export const HOURLY_VARIABLES = ['cloud_cover', 'cloud_cover_low', 'cloud_cover_mid', 'cloud_cover_high'] as const;
 /** Four, not three: the window is 72 h from now, and a day counts from local midnight (FR-OFF-3). */
 export const FORECAST_DAYS = 4;

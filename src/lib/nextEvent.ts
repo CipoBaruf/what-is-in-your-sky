@@ -51,7 +51,7 @@ export interface NextEventContext {
 }
 
 /** The event still ahead of `t` for one pass, or null once the pass has ended. */
-export function eventOf(pass: Pass, t: EpochMs): NextEvent | null {
+function eventOf(pass: Pass, t: EpochMs): NextEvent | null {
   if (t < pass.start.t) return { pass, kind: 'rise', at: pass.start.t, azimuth: pass.start.azDeg };
   if (t < pass.peak.t) return { pass, kind: 'peak', at: pass.peak.t, azimuth: pass.peak.azDeg };
   if (t < pass.end.t) return { pass, kind: 'end', at: pass.end.t, azimuth: pass.end.azDeg };

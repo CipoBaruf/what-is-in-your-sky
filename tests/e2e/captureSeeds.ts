@@ -21,7 +21,7 @@ import type { Observer } from '../../src/model';
 import { FIXTURE_DATE, PARIS_NIGHT } from './observers';
 
 export const DAY_MS = 86_400_000;
-export const PREFS_KEY = 'wiys:prefs:v1';
+const PREFS_KEY = 'wiys:prefs:v1';
 
 /** The pass the Moon stands 8° from (`live-captures.spec.ts`, R22), and the night the whole set is shot on. */
 export const GLARE_PASS_START = Date.parse('2026-09-02T03:52:46.469Z');
@@ -51,7 +51,7 @@ export interface SeedPrefs {
  * `main.tsx` writes `lang` and `data-theme` from them, so no run ever clicks a
  * toggle whose label is in the language under test.
  */
-export async function seedPrefs(page: Page, prefs: SeedPrefs): Promise<void> {
+async function seedPrefs(page: Page, prefs: SeedPrefs): Promise<void> {
   await page.addInitScript(
     ([key, value]: [string, string]) => {
       localStorage.setItem(key, value);
@@ -61,7 +61,7 @@ export async function seedPrefs(page: Page, prefs: SeedPrefs): Promise<void> {
 }
 
 /** The elements from the fixtures, and nothing else: no forecast over Paris, and no geocoder, since every observer here is a coordinate pair. */
-export async function stubNetwork(page: Page): Promise<void> {
+async function stubNetwork(page: Page): Promise<void> {
   await page.route('https://celestrak.org/**', async (route) => {
     const url = new URL(route.request().url());
     await route.fulfill({ path: `tests/fixtures/omm/${FIXTURE_DATE}-${url.searchParams.get('GROUP') ?? 'unknown'}.json`, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } });

@@ -28,7 +28,7 @@ import { useBead } from './useBead';
 const RASTERS = rastersJson as MarkRasters;
 
 /** FR-MARK-3: the bead's two tones. The body is always `--fg-dim`. */
-export type MarkTone = 'accent' | 'warn';
+type MarkTone = 'accent' | 'warn';
 
 export interface MarkProps {
   /** Which grid of the ladder to draw (FR-MARK-2). */

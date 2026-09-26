@@ -23,7 +23,7 @@ import { activeObserver, sameLocation } from './location';
  * forecast stays on screen with its age until one answers. `error` being set
  * is what the recheck reads as "the last attempt failed".
  */
-export type WeatherStatus = 'idle' | 'loading' | 'ready' | 'error';
+type WeatherStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 export interface WeatherSliceState {
   observer: Observer | null;
@@ -32,7 +32,7 @@ export interface WeatherSliceState {
   error: Failure | null;
 }
 
-export const IDLE_WEATHER: WeatherSliceState = { observer: null, status: 'idle', snapshot: null, error: null };
+const IDLE_WEATHER: WeatherSliceState = { observer: null, status: 'idle', snapshot: null, error: null };
 
 export interface WeatherSlice {
   weather: WeatherSliceState;

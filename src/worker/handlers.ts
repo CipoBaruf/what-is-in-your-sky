@@ -40,7 +40,7 @@ export function createHandlerState(): HandlerState {
   return { objects: new Map(), cancelled: new Set() };
 }
 
-export type Emit = (response: WorkerResponse) => void;
+type Emit = (response: WorkerResponse) => void;
 export type Handler = (request: WorkerRequest, emit: Emit) => Promise<void>;
 
 export interface HandlerOptions {

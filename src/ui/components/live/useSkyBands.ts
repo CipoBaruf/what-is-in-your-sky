@@ -23,7 +23,7 @@ function loadSkyState(): Promise<SkyStateAt> {
 }
 
 /** Five minutes between samples: twilight lasts twenty to forty, so a band's edge is within a sixth of its length. */
-export const BAND_STEP_MS = 5 * 60_000;
+const BAND_STEP_MS = 5 * 60_000;
 
 export function useSkyBands(observer: Observer, span: Span): SkyBand[] {
   const [evaluate, setEvaluate] = useState<SkyStateAt | null>(null);

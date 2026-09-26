@@ -13,8 +13,6 @@ import styles from './Countdown.module.css';
  * (FR-I18N-2), so "Appears in 12:34" and "Aparece en 12:34" are each their
  * language's sentence.
  */
-export type { CountdownPhase };
-
 export interface CountdownState {
   phase: CountdownPhase;
   /** Which boundary the phase is counting to; `end`'s reason once the peak is past, `start`'s before it, and the end's again when it is over. */

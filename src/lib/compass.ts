@@ -9,7 +9,7 @@ export const COMPASS_POINTS = [
 
 export type CompassPoint = (typeof COMPASS_POINTS)[number];
 
-export const SECTOR_DEG = 360 / COMPASS_POINTS.length; // 22.5
+const SECTOR_DEG = 360 / COMPASS_POINTS.length; // 22.5
 
 /** Normalise any bearing into [0, 360). */
 export function normalizeAzimuthDeg(azDeg: number): number {

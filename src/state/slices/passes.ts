@@ -26,7 +26,7 @@ import { sameLocation } from './location';
  * included (D-537), keeps the finished list on screen as a stand-in under the
  * progress line, as the stored run always was.
  */
-export type PassesStatus = 'idle' | 'computing' | 'done' | 'error';
+type PassesStatus = 'idle' | 'computing' | 'done' | 'error';
 
 export interface PassesState {
   jobId: string | null;
@@ -87,7 +87,7 @@ const byStart = (a: Pass, b: Pass): number => a.start.t - b.start.t;
 const HOUR_MS = 3_600_000;
 
 /** D-536: what is left of a window at `nowMs`, in whole hours. */
-export function spanHoursLeft(window: TimeWindow, nowMs: EpochMs): number {
+function spanHoursLeft(window: TimeWindow, nowMs: EpochMs): number {
   return Math.max(0, Math.floor((window.endMs - Math.max(nowMs, window.startMs)) / HOUR_MS));
 }
 

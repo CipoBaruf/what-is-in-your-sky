@@ -39,9 +39,9 @@ const SkyDome = lazy(() => import('../guide/skychart/dome/SkyDome').then((module
 /** The live page's window (FR-LIVE-11): what starts within a day and has not ended. */
 const WINDOW_MS = 24 * 3_600_000;
 /** The dome is the sky now: re-read every ten seconds, the live page's own tick. */
-export const WHERE_DOME_TICK_MS = 10_000;
+const WHERE_DOME_TICK_MS = 10_000;
 
-export function domePasses(passes: readonly Pass[], now: EpochMs): ChartPass[] {
+function domePasses(passes: readonly Pass[], now: EpochMs): ChartPass[] {
   return passes.filter((pass) => pass.start.t <= now + WINDOW_MS && pass.end.t >= now).map((pass) => ({ ...pass, arc: arcState(pass, now) }));
 }
 

@@ -263,7 +263,7 @@ export const CAPTURE_DIR = 'docs/screenshots';
  * `v1-<screen>-<width>-<theme>-<locale>.png`, the visual-review naming with the task prefix spent on the phase.
  * R94 (FR-CAP-1): the `-view` twin carries its suffix after the width, `v1-<screen>-<width>-view-<theme>-<locale>.png`.
  */
-export const captureName = (screen: string, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view = false): string => `v1-${screen}-${String(width)}${view ? '-view' : ''}-${theme}-${locale}.png`;
+const captureName = (screen: string, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view = false): string => `v1-${screen}-${String(width)}${view ? '-view' : ''}-${theme}-${locale}.png`;
 
 /** What a file of the set is called: the screen, the width, an optional `-view`, the theme and the language. `captures.test.ts` holds every file to it. */
 export const CAPTURE_FILE = /^v1-[a-z][a-z-]*-\d+(-view)?-(dark|night)-(en|es)\.png$/;

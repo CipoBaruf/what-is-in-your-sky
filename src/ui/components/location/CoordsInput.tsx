@@ -24,7 +24,7 @@ const PART = String.raw`${NUM}\s*°?\s*([NSEWnsew])?`;
 const PAIR = new RegExp(`^\\s*${PART}(?:\\s*,\\s*|\\s+)${PART}\\s*$`);
 
 
-export function coordsErrorText(t: Messages, error: CoordsError): string {
+function coordsErrorText(t: Messages, error: CoordsError): string {
   switch (error) {
     case 'format':
       return t.location.coordsHint;
@@ -41,7 +41,7 @@ export function coordsErrorText(t: Messages, error: CoordsError): string {
   }
 }
 
-export function altitudeErrorText(t: Messages, error: AltitudeError): string {
+function altitudeErrorText(t: Messages, error: AltitudeError): string {
   return error === 'not-a-number' ? t.location.altitudeNumber : t.location.altitudeRange(ALTITUDE_RANGE);
 }
 
@@ -89,7 +89,7 @@ export function parseAltitude(text: string): ParsedAltitude {
    coordinate ranges down beside them, so the form and the link parser cannot
    disagree about what a valid observer is. All are re-exported here so that
    "the coordinate form's rules" keep one name across the UI. */
-export { coordsLabel, observerFromCoords, ALTITUDE_RANGE, LATITUDE_RANGE, LONGITUDE_RANGE };
+export { coordsLabel, ALTITUDE_RANGE, LATITUDE_RANGE, LONGITUDE_RANGE };
 
 /** The altitude's placeholder: the default an empty box stands for, a number in every language. */
 const ALTITUDE_PLACEHOLDER = '0';
