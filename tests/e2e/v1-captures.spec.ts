@@ -75,7 +75,7 @@ const localHhmmss = (t: number): string =>
 test.skip(process.env['CAPTURES'] !== '1', 'the release capture set: run with CAPTURES=1 (FR-CI-2)');
 
 /**
- * The night the whole set is shot on — the glare pass, `CLOCK` and `SHOWN` —
+ * The night the whole set is shot on — `CLOCK`, `SHOWN` and the night's brightest pass —
  * is `captureSeeds.ts`'s, with the reasons (D-684: the showcase night, and
  * what it does not hold).
  */
@@ -161,7 +161,7 @@ async function open(page: Page, width: CaptureWidth, prefs: SeedPrefs, time = CL
   await stubNetwork(page, 'fixtures', 'showcase');
 }
 
-/** The chart screens: the glare pass open on `view`, three minutes in. */
+/** The chart screens: the night's brightest pass open on `view`, three minutes in (D-684; the night has no glare pass). */
 async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view: 'dome' | 'polar'): Promise<void> {
   await open(page, width, { locale, theme, observer: BARILOCHE, chartView: view });
   await page.goto('/');
@@ -431,8 +431,8 @@ const REACH: Record<string, Reach> = {
       await page.mouse.move(0, 0);
       return;
     }
-    // The nights are closed so the whole screen fits in one picture. Paris in September has
-    // tens of visible passes a night, and the open default made the phone capture 20 000 px
+    // The nights are closed so the whole screen fits in one picture. Paris in September, where
+    // the set was shot until P8, had tens of visible passes a night, and the open default made the phone capture 20 000 px
     // tall — a file nobody can review. P8 (D-684): Bariloche's night has five, so the rule is
     // no longer forced by the count; the route is kept so the set's shape and its `-view`
     // pairing are unchanged (FR-SHOW-10). Closed, the capture carries every part of the home
