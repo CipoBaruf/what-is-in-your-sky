@@ -62,8 +62,12 @@ export const BARILOCHE_FORECAST_FILE = 'tests/fixtures/open-meteo/2026-09-06-bar
 const firstPlace = parseGeocodeBody(JSON.parse(readFileSync(BARILOCHE_GEOCODE_FILE, 'utf8')) as unknown)[0];
 if (!firstPlace) throw new Error(`${BARILOCHE_GEOCODE_FILE} has no result`);
 export const BARILOCHE: Observer = observerFromPlace(firstPlace);
-/** 2026-09-06 04:00 local (`GMT-3`): 43 minutes before the night's first pass and 1 h 48 min before its first bright one. */
-export const SHOWCASE_NIGHT = Date.parse('2026-09-06T07:00:00Z');
+/**
+ * 2026-09-06 05:00 local (`GMT-3`): 48 minutes before the night's first bright
+ * pass, Tiangong at 05:48, so the list's first card is a pass a reader can see
+ * rather than the faint 04:43 one (D-690, the owner at P7's gate; D-682 had 04:00).
+ */
+export const SHOWCASE_NIGHT = Date.parse('2026-09-06T08:00:00Z');
 /**
  * The instant FR-SAT-4's warning would appear, 20:20 local on the 6th: the
  * fixtures' newest epoch (2026-09-01 23:20:48 UTC, `lib/elementsAge.ts`'s

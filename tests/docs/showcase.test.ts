@@ -20,7 +20,8 @@ import { EPOCH_WARN_MS, epochIsOld, newestEpoch } from '../../src/lib/elementsAg
 import { observerFromPlace } from '../../src/lib/place';
 import type { OmmRecord } from '../../src/model';
 import { BARILOCHE, BARILOCHE_FORECAST_FILE, BARILOCHE_GEOCODE_FILE, BARILOCHE_QUERY, FIXTURE_DATE, SHOWCASE_NIGHT, SHOWCASE_UNTIL, STORED_RUN_BARILOCHE_FILE } from '../e2e/observers';
-import { BRIGHTEST_PASS, PROMO_FLOWS, SHOWCASE_BY_DAY, SHOWCASE_SHOWN } from '../e2e/promoFlows';
+import { FAINT_MAG } from '../../src/lib/faint';
+import { BRIGHTEST_PASS, PROMO_FLOWS, SHOWCASE_SHOWN } from '../e2e/promoFlows';
 
 const read = <T,>(path: string): T => JSON.parse(readFileSync(path, 'utf8')) as T;
 
@@ -48,7 +49,6 @@ const run = read<{ observer: unknown; computedAt: number; newestElementsEpochMs:
 /** Every instant the recordings name: the night, each flow's start and where its clock stops, and the desk live flow's pass. */
 const INSTANTS: { what: string; t: number }[] = [
   { what: 'SHOWCASE_NIGHT', t: SHOWCASE_NIGHT },
-  { what: 'SHOWCASE_BY_DAY', t: SHOWCASE_BY_DAY },
   { what: 'SHOWCASE_SHOWN', t: SHOWCASE_SHOWN },
   { what: 'the brightest pass', t: BRIGHTEST_PASS.start },
   ...PROMO_FLOWS.flatMap((flow) => [
@@ -68,7 +68,7 @@ describe('the showcase night (FR-SHOW-9)', () => {
   });
 
   it('holds every instant the recordings name to 5–6 September in Bariloche’s zone and short of SHOWCASE_UNTIL', () => {
-    expect(new Date(SHOWCASE_NIGHT).toISOString()).toBe('2026-09-06T07:00:00.000Z');
+    expect(new Date(SHOWCASE_NIGHT).toISOString()).toBe('2026-09-06T08:00:00.000Z');
     for (const { what, t } of INSTANTS) {
       expect(['2026-09-05', '2026-09-06'], `${what} is on ${localDay(t)}`).toContain(localDay(t));
       expect(t, `${what} is not before SHOWCASE_UNTIL`).toBeLessThan(SHOWCASE_UNTIL);
@@ -116,9 +116,28 @@ describe('the showcase night (FR-SHOW-9)', () => {
   it('seeds the recordings with the Bariloche run at SHOWCASE_NIGHT, whose first pass is under an hour away (D-683)', () => {
     expect(run.observer).toEqual(BARILOCHE);
     expect(run.computedAt).toBe(SHOWCASE_NIGHT);
-    // The countdown runs on camera: 43 minutes to the night's first pass.
+    // The countdown runs on camera: 48 minutes to the night's first pass after the clock.
     const next = Math.min(...run.passes.map((pass) => pass.start.t).filter((t) => t > SHOWCASE_NIGHT));
     expect(next - SHOWCASE_NIGHT).toBeLessThan(3_600_000);
+  });
+
+  it('leads the list with a bright pass: the first after SHOWCASE_NIGHT is Tiangong at 05:48, brighter than FAINT_MAG (D-690)', () => {
+    const [first] = run.passes.filter((pass) => pass.start.t > SHOWCASE_NIGHT).sort((a, b) => a.start.t - b.start.t);
+    if (!first) throw new Error('no pass after SHOWCASE_NIGHT');
+    expect(first.name).toMatch(/^Tiangong/);
+    expect(first.peakMagnitude).toBeLessThan(FAINT_MAG);
+    expect(new Intl.DateTimeFormat('en-GB', { timeZone: ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(first.start.t)).toBe('05:48');
+  });
+
+  it('never holds a pass past SHOWCASE_UNTIL: `[ see this pass ]` holds a morning rise, and no flow jumps to the next rise (D-690)', () => {
+    // The phone's live flow holds the rise after its start, so that rise must be the morning's.
+    const held = PROMO_FLOWS.find((flow) => flow.name === 'live-see-this-pass');
+    if (!held) throw new Error('no live-see-this-pass flow');
+    const next = Math.min(...run.passes.map((pass) => pass.start.t).filter((t) => t > held.at));
+    expect(next).toBeLessThan(SHOWCASE_UNTIL);
+    expect(new Intl.DateTimeFormat('en-GB', { timeZone: ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(next)).toBe('05:48');
+    // The other flows step by minutes: after the desk's 07:23 the next rise is the evening's, past the limit.
+    expect(readFileSync('tests/e2e/promo-record.spec.ts', 'utf8')).not.toContain('data-step="next-rise"');
   });
 
   it('watches the night’s brightest pass on the desk: Tiangong rising at 07:20 local, three minutes in (D-683)', () => {

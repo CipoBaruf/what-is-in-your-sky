@@ -13,29 +13,21 @@
  * `tests/docs/showcase.test.ts` and `tests/docs/promo.test.ts` can hold every
  * instant a recording shows to the night and to `SHOWCASE_UNTIL`.
  */
-import { readFileSync } from 'node:fs';
-import { SHOWCASE_NIGHT, STORED_RUN_BARILOCHE_FILE } from './observers';
+import { SHOWCASE_NIGHT } from './observers';
 
 export const MEDIA_DIR = 'promo/media';
 
-/** Tiangong's NORAD number: the object the desk's live flow watches. */
-const TIANGONG = 48_274;
-/** The minute the night's brightest pass rises in, 07:20 local (`GMT-3`) on the 6th: Tiangong, peak −2.1 at 48°, in twilight (D-683). */
-const BRIGHTEST_RISE_MINUTE = Date.parse('2026-09-06T10:20:00Z');
-const run = JSON.parse(readFileSync(STORED_RUN_BARILOCHE_FILE, 'utf8')) as { passes: { id: string; noradId: number; start: { t: number } }[] };
-const brightest = run.passes.find((pass) => pass.noradId === TIANGONG && pass.start.t >= BRIGHTEST_RISE_MINUTE && pass.start.t < BRIGHTEST_RISE_MINUTE + 60_000);
-if (!brightest) throw new Error(`${STORED_RUN_BARILOCHE_FILE} has no Tiangong pass rising at 07:20 local on 2026-09-06`);
-/** The night's brightest pass, read from the stored run by its object and its start rather than written as a number. */
-export const BRIGHTEST_PASS = { id: brightest.id, start: brightest.start.t };
+/**
+ * The night's brightest pass: Tiangong (NORAD 48274) rising at 07:20:47 local
+ * (`GMT-3`) on the 6th, peak −2.1 at 48°, in twilight (D-683). A literal, not
+ * a lookup: `playwright.config.ts` imports this module, so a read of the
+ * stored run here would make every Playwright run fail at load when a
+ * regenerated run moved the pass (the P7 review, D-690).
+ * `tests/docs/showcase.test.ts` holds the literal to the stored run instead.
+ */
+export const BRIGHTEST_PASS = { id: '48274-1788690047813', start: 1_788_690_047_813 } as const;
 /** Three minutes into it: the marker near the peak, half the arc behind it — the desk's live flow (D-683, as the capture set's `SHOWN`). */
 export const SHOWCASE_SHOWN = BRIGHTEST_PASS.start + 180_000;
-/**
- * The phone's live flow wants `[ see this pass ]`, offered only while nothing
- * is up and the next rise is between two minutes and a day ahead (FR-JUMP-1),
- * so it opens the same night by day: twelve hours on, 16:00 local on the 6th,
- * under `SHOWCASE_UNTIL` (D-673's reason, D-683's instant).
- */
-export const SHOWCASE_BY_DAY = SHOWCASE_NIGHT + 12 * 3_600_000;
 
 type PromoDevice = 'phone' | 'desktop';
 
@@ -81,7 +73,8 @@ export const PROMO_FLOWS: readonly PromoFlow[] = [
   { name: 'first-run-en-night', device: 'phone', locale: 'en', theme: 'night', seconds: 14, at: SHOWCASE_NIGHT, stills: ['where', 'when', 'what', 'guide'] },
   { name: 'first-run-es-dark', device: 'phone', locale: 'es', theme: 'dark', seconds: 14, at: SHOWCASE_NIGHT, stills: ['where', 'when', 'what', 'guide'] },
   { name: 'list-and-card', device: 'phone', locale: 'en', theme: 'dark', seconds: 14, at: SHOWCASE_NIGHT, stills: ['list', 'guide'] },
-  { name: 'live-see-this-pass', device: 'phone', locale: 'en', theme: 'dark', seconds: 18, at: SHOWCASE_BY_DAY, stills: ['watching', 'held', 'back-to-live'] },
+  // At 05:00 nothing is up and the next rise is Tiangong's 05:48, so `[ see this pass ]` (FR-JUMP-1) holds a morning pass, not the evening's past `SHOWCASE_UNTIL` (D-690).
+  { name: 'live-see-this-pass', device: 'phone', locale: 'en', theme: 'dark', seconds: 18, at: SHOWCASE_NIGHT, stills: ['watching', 'held', 'back-to-live'] },
   { name: 'settings-language', device: 'phone', locale: 'en', theme: 'dark', seconds: 12, at: SHOWCASE_NIGHT, stills: ['settings', 'spanish'] },
   { name: 'cold-open-to-pass', device: 'desktop', locale: 'en', theme: 'dark', seconds: 16, at: SHOWCASE_NIGHT, stills: ['cold-open', 'after-place', 'pass-open'] },
   { name: 'live-scrubbing', device: 'desktop', locale: 'en', theme: 'dark', seconds: 18, at: SHOWCASE_SHOWN, stills: ['watching', 'scrubbing'] },

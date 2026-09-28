@@ -16,8 +16,8 @@
  * **The showcase night, moved by the clock (D-653, D-683; FR-SHOW-9).** Every
  * flow is seeded on one place and one night, from `observers.ts`: Bariloche,
  * picked as a reader picks it — `bariloche` typed into the place search and
- * the first result taken — at `SHOWCASE_NIGHT` (2026-09-06 04:00 local), 43
- * minutes before the night's first pass, so the countdown runs on camera. The
+ * the first result taken — at `SHOWCASE_NIGHT` (2026-09-06 05:00 local, D-690), 48
+ * minutes before the night's first bright pass, so the countdown runs on camera. The
  * elements are a little over four days old, under FR-SAT-4's five, and no
  * flow's clock runs past `SHOWCASE_UNTIL`, where the staleness warning would
  * appear; the observer has its zone, so every clock reads local time. The
@@ -360,7 +360,7 @@ test.describe('phone', () => {
     await done(page, of);
   });
 
-  test('live-see-this-pass: the live page watching, [ see this pass ], the held instant stepped, and [ back to live ]', async ({ browser }) => {
+  test('live-see-this-pass: the live page watching, [ see this pass ], the held pass, and [ back to live ]', async ({ browser }) => {
     const of = flow('live-see-this-pass');
     const page = await record(browser, of);
     await seedShowcase(page, of, { locale: of.locale, theme: of.theme, observer: BARILOCHE });
@@ -377,12 +377,8 @@ test.describe('phone', () => {
     // The paused clock holds the stripe chunk's reveal, and the arc is drawn once the held instant's set is computed.
     const arc = page.getByTestId('live-dome').locator(`[data-drawing] [data-pass-id="${passId}"]`);
     await tickUntil(page, async () => (await arc.count()) > 0, 30_000);
-    await watch(page, 3_000);
-    // Along the pass a minute at a time, so the marker moves up its arc.
-    for (let step = 0; step < 4; step += 1) {
-      await page.getByTestId('step-controls').locator('[data-step="+1m"]').click();
-      await watch(page, 1_500);
-    }
+    // No minute steps: Tiangong's 05:48 pass lasts 40 s, so a step would leave it behind and the still would read `0 up` (D-690).
+    await watch(page, 6_000);
     await still(page, of, 'held');
     await page.getByTestId('live-now').click();
     await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
@@ -456,14 +452,13 @@ test.describe('desktop', () => {
     await page.clock.runFor(1000);
     for (const row of ['time-row', 'time-stripe', 'step-controls', 'playback-row']) await expect(page.getByTestId(row)).toBeVisible();
     await watch(page, 2_000);
-    // Along the pass a minute at a time, then to the next rise.
+    // Along the pass a minute at a time, and no jump to the next rise: that is the evening's, past SHOWCASE_UNTIL (D-690).
     const steps = page.getByTestId('step-controls');
-    for (let step = 0; step < 3; step += 1) {
+    for (let step = 0; step < 4; step += 1) {
       await steps.locator('[data-step="+1m"]').click();
       await watch(page, 1_500);
     }
-    await steps.locator('[data-step="next-rise"]').click();
-    await watch(page, 3_000);
+    await watch(page, 1_500);
     await still(page, of, 'scrubbing');
     await page.getByTestId('live-now').click();
     await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
