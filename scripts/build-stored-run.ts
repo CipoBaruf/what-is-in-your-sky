@@ -1,8 +1,8 @@
 /**
  * R37 (FR-CI-3): writes `tests/fixtures/stored-run-neuquen.json`, the finished
  * 72 h run the e2e suite seeds into IndexedDB (`liveHelpers.seedStoredRun`),
- * and — P4 (FR-SHOW-6, D-673) — `tests/fixtures/stored-run-paris.json`, the
- * same over Paris at the capture set's instant, which the recording run seeds.
+ * and — P7 (FR-SHOW-6, FR-SHOW-9, D-683) — `tests/fixtures/stored-run-bariloche.json`,
+ * the same over Bariloche on the showcase night, which the recording run seeds.
  *
  * A spec whose subject is a rendered page — the palette, the language, the
  * desktop layout, the shortcut overlay — used to type a coordinate pair and
@@ -20,11 +20,12 @@
  * change under it, and a physics change that moves a pass makes these files
  * regenerate rather than quietly disagree with the app.
  *
- * The Paris run exists because the recordings are material a reader compares
- * with a fresh install: nine days on from the fixtures the elements are past
- * FR-SAT-4's warning threshold and the home carries the amber staleness line,
- * where at `PARIS_NIGHT` they are seven hours old (D-179's reason for the
- * capture set's night).
+ * The Bariloche run exists because the recordings are material a reader
+ * compares with a fresh install: nine days on from the fixtures the elements
+ * are past FR-SAT-4's warning threshold and the home carries the amber
+ * staleness line, where at `SHOWCASE_NIGHT` they are a little over four days
+ * old, and the place is one a reader picks by name, so the clocks are local
+ * (FR-SHOW-9). It replaced P4's Paris run (D-673), which only the recordings read.
  *
  *   npm run build:stored-run
  */
@@ -38,7 +39,7 @@ import { createHandler, createHandlerState } from '../src/worker/handlers';
 import type { WorkerResponse } from '../src/worker/protocol';
 import { passCellKey } from '../src/data/passesCache';
 // The instants, the places and the file names all belong to the suites that seed the runs, not to this script.
-import { FIXTURE_DATE, NEUQUEN, NINE_DAYS_ON, PARIS, PARIS_NIGHT, STORED_RUN_FILE, STORED_RUN_PARIS_FILE } from '../tests/e2e/observers';
+import { BARILOCHE, FIXTURE_DATE, NEUQUEN, NINE_DAYS_ON, SHOWCASE_NIGHT, STORED_RUN_BARILOCHE_FILE, STORED_RUN_FILE } from '../tests/e2e/observers';
 
 const read = <T,>(path: string): T => JSON.parse(readFileSync(path, 'utf8')) as T;
 
@@ -84,7 +85,7 @@ async function main(): Promise<void> {
   if (records.length === 0) throw new Error('no elements: the OMM fixtures and the catalog do not meet');
 
   await build(records, NEUQUEN, NINE_DAYS_ON, STORED_RUN_FILE);
-  await build(records, PARIS, PARIS_NIGHT, STORED_RUN_PARIS_FILE);
+  await build(records, BARILOCHE, SHOWCASE_NIGHT, STORED_RUN_BARILOCHE_FILE);
 }
 
 await main();

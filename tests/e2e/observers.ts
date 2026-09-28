@@ -1,6 +1,7 @@
 /**
  * The observers the e2e suite seeds into `wiys:prefs:v1`, built by the app's
- * own `observerFromCoords` (R37, F-49).
+ * own `observerFromCoords` (R37, F-49) and, for the showcase night's place,
+ * its `observerFromPlace` over the recorded geocoder answer (P7, D-682).
  *
  * A seeded observer is a saved state the app is supposed to have written, so
  * the way to be sure it is one the app can write is not to write it by hand.
@@ -11,11 +12,12 @@
  * `lib/place.ts` closes that off: the label, the altitude and the null zone are
  * whatever the coordinates box would have produced.
  *
- * No Playwright import: `tests/docs/ci.test.ts` and `scripts/build-stored-run.ts` read this file too.
+ * No Playwright import: `tests/docs/ci.test.ts`, `tests/docs/showcase.test.ts` and `scripts/build-stored-run.ts` read this file too.
  */
 import { readFileSync } from 'node:fs';
 import type { Observer } from '../../src/model';
-import { observerFromCoords } from '../../src/lib/place';
+import { parseGeocodeBody } from '../../src/data/openMeteo/geocode';
+import { observerFromCoords, observerFromPlace } from '../../src/lib/place';
 
 /** The R1 capture the whole suite runs on; `liveHelpers.ts` reads the same file for its clock. */
 export const FIXTURE_DATE = '2026-09-02';
@@ -40,10 +42,35 @@ export const STORED_RUN_FILE = 'tests/fixtures/stored-run-neuquen.json';
 /**
  * The capture set's instant (D-179; `captureSeeds.ts` exports it as `CLOCK`):
  * the same night over Paris, seven hours after the fixtures were captured,
- * with the ISS pass fifty minutes ahead. It is here as well as there because
- * `scripts/build-stored-run.ts` computes the recording run's list for exactly
- * this instant (P4, D-673) and this file is the one with no Playwright import.
+ * with the ISS pass fifty minutes ahead. The capture set reads it until P8
+ * re-shoots the set on the showcase night; the recordings moved off it in P7.
  */
 export const PARIS_NIGHT = Date.parse('2026-09-02T03:00:00Z');
-/** The finished 72 h run over Paris at `PARIS_NIGHT`, which the recording run seeds; written by the same script. */
-export const STORED_RUN_PARIS_FILE = 'tests/fixtures/stored-run-paris.json';
+
+/**
+ * P7 (FR-SHOW-9, D-682): the showcase night, the one place and night the
+ * recordings (and, from P8, the capture set) are seeded on — Bariloche, 5 to 6
+ * September 2026, with the forecast recorded for its cell. The place is what a
+ * reader who types `bariloche` and picks the first result gets: the first
+ * `Place` the geocode fixture parses to, made an observer by `lib/place.ts` as
+ * `PlacePicker.tsx` does, so its name, region, altitude and zone are the app's
+ * and not typed here (F-49's rule).
+ */
+export const BARILOCHE_QUERY = 'bariloche';
+export const BARILOCHE_GEOCODE_FILE = 'tests/fixtures/open-meteo/2026-09-06-bariloche-geocode.json';
+export const BARILOCHE_FORECAST_FILE = 'tests/fixtures/open-meteo/2026-09-06-bariloche-forecast.json';
+const firstPlace = parseGeocodeBody(JSON.parse(readFileSync(BARILOCHE_GEOCODE_FILE, 'utf8')) as unknown)[0];
+if (!firstPlace) throw new Error(`${BARILOCHE_GEOCODE_FILE} has no result`);
+export const BARILOCHE: Observer = observerFromPlace(firstPlace);
+/** 2026-09-06 04:00 local (`GMT-3`): 43 minutes before the night's first pass and 1 h 48 min before its first bright one. */
+export const SHOWCASE_NIGHT = Date.parse('2026-09-06T07:00:00Z');
+/**
+ * The instant FR-SAT-4's warning would appear, 20:20 local on the 6th: the
+ * fixtures' newest epoch (2026-09-01 23:20:48 UTC, `lib/elementsAge.ts`'s
+ * `newestEpoch`) plus `EPOCH_WARN_MS`, to the second. A literal, which
+ * `tests/docs/showcase.test.ts` holds to the computation; no recording's
+ * clock runs past it.
+ */
+export const SHOWCASE_UNTIL = Date.parse('2026-09-06T23:20:48Z');
+/** The finished 72 h run over `BARILOCHE` at `SHOWCASE_NIGHT`, which the recording run seeds; written by `scripts/build-stored-run.ts`. */
+export const STORED_RUN_BARILOCHE_FILE = 'tests/fixtures/stored-run-bariloche.json';

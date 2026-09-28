@@ -8,7 +8,7 @@
 import { readFileSync } from 'node:fs';
 import { WIDE_QUERY } from '../../src/lib/layout';
 import { expect, type Locator, type Page } from '@playwright/test';
-import { FIXTURE_DATE, NEUQUEN as NEUQUEN_OBSERVER, NINE_DAYS_ON, STORED_RUN_FILE } from './observers';
+import { BARILOCHE_FORECAST_FILE, BARILOCHE_GEOCODE_FILE, BARILOCHE_QUERY, FIXTURE_DATE, NEUQUEN as NEUQUEN_OBSERVER, NINE_DAYS_ON, STORED_RUN_FILE } from './observers';
 
 interface HaFixture {
   capturedAt: string;
@@ -45,7 +45,19 @@ export const LABEL = {
 /** The pass list's status line once the window has been searched, in either language. */
 export const PASS_COUNT = /\d+ (visible passes in 72 h|pases visibles en 72 h)/;
 
-export async function stubNetwork(page: Page, elements: 'fixtures' | 'down' = 'fixtures'): Promise<void> {
+/** The 0.1° cell the recorded Bariloche forecast is for, as its `.meta.json` names it (D-686). */
+const SHOWCASE_CELL = (JSON.parse(readFileSync(BARILOCHE_FORECAST_FILE.replace(/\.json$/, '.meta.json'), 'utf8')) as { cell: { lat: number; lon: number } }).cell;
+
+/**
+ * The network every spec's page sees: the elements from the fixtures (or refused, `'down'`), and the two
+ * Open-Meteo services refused unless the spec asks for the showcase night's weather.
+ *
+ * P7 (FR-SHOW-9, D-682): `weather: 'showcase'` fulfils the forecast with the one recorded for Bariloche's
+ * 0.1° cell, and only when the request asks for that cell, and the geocoder with the recorded answer for
+ * `bariloche`, and only for that name; anything else is refused as `'refused'` refuses it. So a recording
+ * that drifts to another place fails loudly rather than showing Bariloche's weather over it.
+ */
+export async function stubNetwork(page: Page, elements: 'fixtures' | 'down' = 'fixtures', weather: 'refused' | 'showcase' = 'refused'): Promise<void> {
   await page.route('https://celestrak.org/**', async (route) => {
     if (elements === 'down') {
       await route.abort('failed');
@@ -58,6 +70,26 @@ export async function stubNetwork(page: Page, elements: 'fixtures' | 'down' = 'f
       headers: { 'access-control-allow-origin': '*' },
     });
   });
+  if (weather === 'showcase') {
+    await page.route('https://api.open-meteo.com/**', async (route) => {
+      const url = new URL(route.request().url());
+      const cell = url.pathname === '/v1/forecast' && url.searchParams.get('latitude') === SHOWCASE_CELL.lat.toFixed(1) && url.searchParams.get('longitude') === SHOWCASE_CELL.lon.toFixed(1);
+      if (!cell) {
+        await route.abort('failed');
+        return;
+      }
+      await route.fulfill({ path: BARILOCHE_FORECAST_FILE, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } });
+    });
+    await page.route('https://geocoding-api.open-meteo.com/**', async (route) => {
+      const url = new URL(route.request().url());
+      if (url.pathname !== '/v1/search' || url.searchParams.get('name') !== BARILOCHE_QUERY) {
+        await route.abort('failed');
+        return;
+      }
+      await route.fulfill({ path: BARILOCHE_GEOCODE_FILE, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } });
+    });
+    return;
+  }
   // No forecast: the zone stays unknown, the clocks read UTC and the clouds are unknown (weather.spec.ts covers the forecast).
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
   // No geocoder either: a spec that types a place name must not reach the real one (place-search.spec.ts fulfils its own).
