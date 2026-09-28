@@ -2796,7 +2796,7 @@ Decision blocks (§16.2), reserved in PLAN §16.19: **P7 D-687..D-690, P8 D-691.
 
 ### Wave 2
 
-- [ ] **P8 — The release set re-shot on the Bariloche night, the hero and the social preview regenerated**
+- [x] **P8 — The release set re-shot on the Bariloche night, the hero and the social preview regenerated** — done; the night has no glare pass and no ISS pass, so the chart screens are of the brightest pass and the `Next ISS` tag, the glare state and the legend's `soon`/`gone`/hidden rows are said absent in `captureSet.ts`; the chip's instant is three minutes before the pass; the home keeps its closed nights (five passes a night, route kept); every capture asserts US-36 AC8 before its shot (PLAN D-691). `git diff --stat origin/main -- docs/screenshots`: 230 files, all `v1-*` (the 24 unchanged are `location` and `shortcuts`); `-- docs/readme`: `hero.png` and `social-preview.png` only; `-- src/ public/`: empty. F-101 recorded and left.
   - **Lane:** ui
   - **Model:** fable
   - **Review:** opus
