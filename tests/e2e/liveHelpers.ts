@@ -8,7 +8,7 @@
 import { readFileSync } from 'node:fs';
 import { WIDE_QUERY } from '../../src/lib/layout';
 import { expect, type Locator, type Page } from '@playwright/test';
-import { BARILOCHE_FORECAST_FILE, BARILOCHE_GEOCODE_FILE, BARILOCHE_QUERY, FIXTURE_DATE, NEUQUEN as NEUQUEN_OBSERVER, NINE_DAYS_ON, STORED_RUN_FILE } from './observers';
+import { BARILOCHE_FORECAST_FILE, BARILOCHE_GEOCODE_FILE, BARILOCHE_QUERY, FIXTURE_DATE, LONDON_FORECAST_FILE, LONDON_GEOCODE_FILE, LONDON_QUERY, NEUQUEN as NEUQUEN_OBSERVER, NINE_DAYS_ON, STORED_RUN_FILE } from './observers';
 
 interface HaFixture {
   capturedAt: string;
@@ -45,8 +45,14 @@ export const LABEL = {
 /** The pass list's status line once the window has been searched, in either language. */
 export const PASS_COUNT = /\d+ (visible passes in 72 h|pases visibles en 72 h)/;
 
-/** The 0.1° cell the recorded Bariloche forecast is for, as its `.meta.json` names it (D-686). */
-const SHOWCASE_CELL = (JSON.parse(readFileSync(BARILOCHE_FORECAST_FILE.replace(/\.json$/, '.meta.json'), 'utf8')) as { cell: { lat: number; lon: number } }).cell;
+/**
+ * The showcase's places (D-686, D-696): each recorded forecast with the 0.1° cell its `.meta.json` names,
+ * and each recorded geocoder answer with the query it answers.
+ */
+const SHOWCASE_PLACES = [
+  { forecast: BARILOCHE_FORECAST_FILE, query: BARILOCHE_QUERY, geocode: BARILOCHE_GEOCODE_FILE },
+  { forecast: LONDON_FORECAST_FILE, query: LONDON_QUERY, geocode: LONDON_GEOCODE_FILE },
+].map((place) => ({ ...place, cell: (JSON.parse(readFileSync(place.forecast.replace(/\.json$/, '.meta.json'), 'utf8')) as { cell: { lat: number; lon: number } }).cell }));
 
 /**
  * The network every spec's page sees: the elements from the fixtures (or refused, `'down'`), and the two
@@ -73,20 +79,24 @@ export async function stubNetwork(page: Page, elements: 'fixtures' | 'down' = 'f
   if (weather === 'showcase') {
     await page.route('https://api.open-meteo.com/**', async (route) => {
       const url = new URL(route.request().url());
-      const cell = url.pathname === '/v1/forecast' && url.searchParams.get('latitude') === SHOWCASE_CELL.lat.toFixed(1) && url.searchParams.get('longitude') === SHOWCASE_CELL.lon.toFixed(1);
-      if (!cell) {
+      const place =
+        url.pathname === '/v1/forecast'
+          ? SHOWCASE_PLACES.find(({ cell }) => url.searchParams.get('latitude') === cell.lat.toFixed(1) && url.searchParams.get('longitude') === cell.lon.toFixed(1))
+          : undefined;
+      if (!place) {
         await route.abort('failed');
         return;
       }
-      await route.fulfill({ path: BARILOCHE_FORECAST_FILE, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } });
+      await route.fulfill({ path: place.forecast, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } });
     });
     await page.route('https://geocoding-api.open-meteo.com/**', async (route) => {
       const url = new URL(route.request().url());
-      if (url.pathname !== '/v1/search' || url.searchParams.get('name') !== BARILOCHE_QUERY) {
+      const place = url.pathname === '/v1/search' ? SHOWCASE_PLACES.find(({ query }) => url.searchParams.get('name') === query) : undefined;
+      if (!place) {
         await route.abort('failed');
         return;
       }
-      await route.fulfill({ path: BARILOCHE_GEOCODE_FILE, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } });
+      await route.fulfill({ path: place.geocode, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } });
     });
     return;
   }

@@ -2839,3 +2839,13 @@ graph LR
 ```
 
 **Waves** (the driver recomputes them from `main`; this is the sanity check): **wave 1** P7 — **wave 2** P8. One task per wave, both `ui`, so no file is shared within a wave.
+
+### Added 2026-09-28: the dome over London (V22-20, PLAN D-696)
+
+- [x] **P9 — The dome flows over London, played at 60×** — done 2026-09-28 in the owner's session: two `dome-playback` flows (phone, desk) over London from 21:18 local on 2026-09-06, the live page scrubbed and played at 60× for about half an hour of sky; London's geocode and historical-forecast fixtures; a third stored run; `stubNetwork`'s showcase places as a table; the seeds' test extended. `npm run promo:record`: 10 flows passed; the `crowded` phone still at 21:22 shows five labelled passes, three up, `clear`.
+  - **Lane:** ui
+  - **Model:** interactive
+  - **Review:** opus
+  - **Gate:** owner
+  - **Depends on:** P7
+  - **Satisfies:** FR-SHOW-6 and FR-SHOW-9 as amended (V22-20).

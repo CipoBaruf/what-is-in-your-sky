@@ -50,7 +50,7 @@ import { delimiter, join } from 'node:path';
 import { expect, test, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import { guide, OPEN_GUIDE, type SeedPrefs } from './captureSeeds';
 import { domeDrawn, enterScrubbing, stripFilled, stubNetwork, type StoredRun } from './liveHelpers';
-import { BARILOCHE, BARILOCHE_QUERY, STORED_RUN_BARILOCHE_FILE } from './observers';
+import { BARILOCHE, BARILOCHE_QUERY, LONDON, STORED_RUN_BARILOCHE_FILE, STORED_RUN_LONDON_FILE } from './observers';
 import { DEVICES, MEDIA_DIR, PROMO_FLOWS, promoStill, promoVideo, type PromoFlow } from './promoFlows';
 
 /** The list is `promoFlows.ts`'s, so `tests/docs/promo.test.ts` can read it without loading this file; it is the spec's export all the same. */
@@ -64,6 +64,8 @@ const flow = (name: string): PromoFlow => {
 
 /** The finished 72 h run over Bariloche at `SHOWCASE_NIGHT`, computed by `scripts/build-stored-run.ts` from the same fixtures the page loads. */
 const SHOWCASE_RUN = JSON.parse(readFileSync(STORED_RUN_BARILOCHE_FILE, 'utf8')) as StoredRun;
+/** The dome flows' run over London at `DOME_NIGHT` (D-696). */
+const LONDON_RUN = JSON.parse(readFileSync(STORED_RUN_LONDON_FILE, 'utf8')) as StoredRun;
 
 /** The place search and its result list, named in the flow's language (FR-LOC-2). */
 const PLACE = {
@@ -101,14 +103,15 @@ async function tickUntil(page: Page, ready: () => Promise<boolean>, timeout = 60
     .toBe(true);
 }
 
-/** The stills a test shot, checked against the flow's list at its end so the two cannot drift. */
+/** The stills a test shot, checked against the flow's list at its end so the two cannot drift; keyed by flow and device, since the dome flows share a name (D-696). */
 const shot = new Map<string, string[]>();
+const shotKey = (of: PromoFlow): string => `${of.name}-${of.device}`;
 
 /** One still, by the name the flow gives it (D-654): a frame of the flow, into `promo/media/`. */
 async function still(page: Page, of: PromoFlow, name: string): Promise<void> {
   if (!of.stills.includes(name)) throw new Error(`${of.name} names no still "${name}"`);
   await page.screenshot({ path: promoStill(of, name) });
-  shot.set(of.name, [...(shot.get(of.name) ?? []), name]);
+  shot.set(shotKey(of), [...(shot.get(shotKey(of)) ?? []), name]);
 }
 
 /** The videos the file produced, moved by `afterAll`: where Playwright wrote each, and where it goes. */
@@ -139,7 +142,7 @@ async function record(browser: Browser, of: PromoFlow): Promise<Page> {
 
 /** The end of a flow: every still it names was shot, the context is closed — which finishes the video — and the file is on the list to move. */
 async function done(page: Page, of: PromoFlow): Promise<void> {
-  expect(shot.get(of.name) ?? []).toEqual([...of.stills]);
+  expect(shot.get(shotKey(of)) ?? []).toEqual([...of.stills]);
   const video = page.video();
   if (!video) throw new Error(`${of.name}: no video was recorded`);
   const context = page.context();
@@ -159,7 +162,7 @@ test.afterEach(async () => {
  * `first-run-controls.spec.ts` do the same), so a flow that types the place or
  * opens with it saved shows the list at once rather than the worker's progress.
  */
-async function storeRun(page: Page): Promise<void> {
+async function storeRun(page: Page, stored: StoredRun = SHOWCASE_RUN): Promise<void> {
   await page.evaluate(async (run: unknown) => {
     await new Promise<void>((resolve, reject) => {
       const request = indexedDB.open('wiys', 2);
@@ -184,7 +187,7 @@ async function storeRun(page: Page): Promise<void> {
         };
       };
     });
-  }, SHOWCASE_RUN);
+  }, stored);
 }
 
 /**
@@ -467,6 +470,45 @@ test.describe('desktop', () => {
   });
 });
 
+/**
+ * P9 (FR-SHOW-6 as amended, V22-20, D-696): the dome over London on the evening of the 6th, the sky played
+ * forward at 60× so a second of video is a minute of sky. From 21:18 local eleven passes cross in half an
+ * hour and up to five are up at once, where Bariloche's dome holds one at a time. The run is stored and
+ * the page reloaded, as `homeAtBariloche` does, so the live page opens on the finished list.
+ */
+for (const device of ['phone', 'desktop'] as const) {
+  // One group per device, named as the others are, so `-g phone` and `-g desktop` each take their own (the P9 review).
+  test.describe(device, () => {
+  for (const of of PROMO_FLOWS.filter((candidate) => candidate.name === 'dome-playback' && candidate.device === device)) {
+  test(`dome-playback: the live dome over London playing at 60×, ${of.device}`, async ({ browser }) => {
+    const page = await record(browser, of);
+    await seedShowcase(page, of, { locale: of.locale, theme: of.theme, observer: LONDON });
+    await page.goto('/');
+    await storeRun(page, LONDON_RUN);
+    await page.reload();
+    await homeSettled(page);
+    await openLive(page);
+    await watch(page, 1_500);
+    await enterScrubbing(page);
+    // The playback row draws on a timer the paused clock is holding.
+    await page.clock.runFor(1000);
+    const play = page.getByTestId('live-play');
+    await expect(play).toBeVisible();
+    await play.click();
+    await expect(play).toHaveAttribute('data-playing', 'true');
+    await watch(page, 5_000);
+    await still(page, of, 'crowded');
+    await watch(page, 24_000);
+    await still(page, of, 'overhead');
+    await play.click();
+    await expect(play).toHaveAttribute('data-playing', 'false');
+    await watch(page, 1_500);
+    await done(page, of);
+  });
+}
+  });
+}
+
 /** `ffmpeg` on `PATH`, the way a shell would find it — an optional external binary, like `openssl` for the window spike (D-652). */
 function ffmpegOnPath(): boolean {
   const names = process.platform === 'win32' ? ['ffmpeg.exe', 'ffmpeg'] : ['ffmpeg'];
@@ -553,6 +595,6 @@ test.afterAll(() => {
     if (convert(target, mp4, DEVICES[device])) console.log(`promo: wrote ${mp4} (${kb(mp4)})`);
   }
   for (const of of PROMO_FLOWS) {
-    for (const name of shot.get(of.name) ?? []) console.log(`promo: wrote ${promoStill(of, name)} (${kb(promoStill(of, name))})`);
+    for (const name of shot.get(shotKey(of)) ?? []) console.log(`promo: wrote ${promoStill(of, name)} (${kb(promoStill(of, name))})`);
   }
 });
