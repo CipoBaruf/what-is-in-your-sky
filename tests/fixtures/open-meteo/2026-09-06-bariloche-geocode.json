@@ -1,0 +1,72 @@
+{
+  "results": [
+    {
+      "id": 7647007,
+      "name": "Bariloche",
+      "latitude": -41.14557,
+      "longitude": -71.30822,
+      "elevation": 839.0,
+      "feature_code": "PPLA3",
+      "country_code": "AR",
+      "admin1_id": 3838830,
+      "admin2_id": 3864759,
+      "admin3_id": 3837856,
+      "timezone": "America/Argentina/Salta",
+      "population": 95394,
+      "country_id": 3865483,
+      "country": "Argentina",
+      "admin1": "Rio Negro",
+      "admin2": "Departamento de Bariloche",
+      "admin3": "San Carlos de Bariloche"
+    },
+    {
+      "id": 3853797,
+      "name": "Ingeniero Beaugey",
+      "latitude": -35.50307,
+      "longitude": -62.2347,
+      "elevation": 80.0,
+      "feature_code": "PPL",
+      "country_code": "AR",
+      "admin1_id": 3435907,
+      "admin2_id": 3862599,
+      "timezone": "America/Argentina/Buenos_Aires",
+      "country_id": 3865483,
+      "country": "Argentina",
+      "admin1": "Buenos Aires",
+      "admin2": "Partido de Carlos Tejedor"
+    },
+    {
+      "id": 12406637,
+      "name": "Bariloche",
+      "latitude": 10.01501,
+      "longitude": -84.14723,
+      "elevation": 1069.0,
+      "feature_code": "PPLX",
+      "country_code": "CR",
+      "admin1_id": 3623484,
+      "timezone": "America/Costa_Rica",
+      "country_id": 3624060,
+      "country": "Costa Rica",
+      "admin1": "Heredia Province"
+    },
+    {
+      "id": 6300590,
+      "name": "San Carlos de Bariloche Airport",
+      "latitude": -41.15117,
+      "longitude": -71.15754,
+      "elevation": 846.0,
+      "feature_code": "AIRP",
+      "country_code": "AR",
+      "admin1_id": 3838830,
+      "admin2_id": 3864759,
+      "admin3_id": 3837856,
+      "timezone": "America/Argentina/Salta",
+      "country_id": 3865483,
+      "country": "Argentina",
+      "admin1": "Rio Negro",
+      "admin2": "Departamento de Bariloche",
+      "admin3": "San Carlos de Bariloche"
+    }
+  ],
+  "generationtime_ms": 0.6779432
+}

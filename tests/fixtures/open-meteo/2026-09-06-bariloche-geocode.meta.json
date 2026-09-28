@@ -1,0 +1,7 @@
+{
+  "fetchedAt": "2026-09-28T15:10:06Z",
+  "source": "https://geocoding-api.open-meteo.com/v1/search?name=bariloche&count=8&language=en&format=json",
+  "query": "bariloche",
+  "coverage": "4 results; the first is Bariloche, Rio Negro, Argentina at -41.14557, -71.30822, elevation 839 m, zone America/Argentina/Salta — the showcase observer of SPEC FR-SHOW-9",
+  "note": "Verbatim body (re-indented), captured with curl and an Origin header; the response carried access-control-allow-origin: *. Named for the night it serves (2026-09-06), not the day it was fetched. The English name of the province comes back without the accent (\"Rio Negro\")."
+}
