@@ -468,41 +468,46 @@ test.describe('desktop', () => {
     await watch(page, 2_500);
     await done(page, of);
   });
-
-  /**
-   * P9 (FR-SHOW-6 as amended, V22-20, D-696): the dome over London on the evening of the 6th, the sky played
-   * forward at 60× so a second of video is a minute of sky. From 21:18 local eleven passes cross in half an
-   * hour and up to five are up at once, where Bariloche's dome holds one at a time. The run is stored and
-   * the page reloaded, as `homeAtBariloche` does, so the live page opens on the finished list.
-   */
-  for (const of of PROMO_FLOWS.filter((candidate) => candidate.name === 'dome-playback')) {
-    test(`dome-playback: the live dome over London playing at 60×, ${of.device}`, async ({ browser }) => {
-      const page = await record(browser, of);
-      await seedShowcase(page, of, { locale: of.locale, theme: of.theme, observer: LONDON });
-      await page.goto('/');
-      await storeRun(page, LONDON_RUN);
-      await page.reload();
-      await homeSettled(page);
-      await openLive(page);
-      await watch(page, 1_500);
-      await enterScrubbing(page);
-      // The playback row draws on a timer the paused clock is holding.
-      await page.clock.runFor(1000);
-      const play = page.getByTestId('live-play');
-      await expect(play).toBeVisible();
-      await play.click();
-      await expect(play).toHaveAttribute('data-playing', 'true');
-      await watch(page, 5_000);
-      await still(page, of, 'crowded');
-      await watch(page, 24_000);
-      await still(page, of, 'overhead');
-      await play.click();
-      await expect(play).toHaveAttribute('data-playing', 'false');
-      await watch(page, 1_500);
-      await done(page, of);
-    });
-  }
 });
+
+/**
+ * P9 (FR-SHOW-6 as amended, V22-20, D-696): the dome over London on the evening of the 6th, the sky played
+ * forward at 60× so a second of video is a minute of sky. From 21:18 local eleven passes cross in half an
+ * hour and up to five are up at once, where Bariloche's dome holds one at a time. The run is stored and
+ * the page reloaded, as `homeAtBariloche` does, so the live page opens on the finished list.
+ */
+for (const device of ['phone', 'desktop'] as const) {
+  // One group per device, named as the others are, so `-g phone` and `-g desktop` each take their own (the P9 review).
+  test.describe(device, () => {
+  for (const of of PROMO_FLOWS.filter((candidate) => candidate.name === 'dome-playback' && candidate.device === device)) {
+  test(`dome-playback: the live dome over London playing at 60×, ${of.device}`, async ({ browser }) => {
+    const page = await record(browser, of);
+    await seedShowcase(page, of, { locale: of.locale, theme: of.theme, observer: LONDON });
+    await page.goto('/');
+    await storeRun(page, LONDON_RUN);
+    await page.reload();
+    await homeSettled(page);
+    await openLive(page);
+    await watch(page, 1_500);
+    await enterScrubbing(page);
+    // The playback row draws on a timer the paused clock is holding.
+    await page.clock.runFor(1000);
+    const play = page.getByTestId('live-play');
+    await expect(play).toBeVisible();
+    await play.click();
+    await expect(play).toHaveAttribute('data-playing', 'true');
+    await watch(page, 5_000);
+    await still(page, of, 'crowded');
+    await watch(page, 24_000);
+    await still(page, of, 'overhead');
+    await play.click();
+    await expect(play).toHaveAttribute('data-playing', 'false');
+    await watch(page, 1_500);
+    await done(page, of);
+  });
+}
+  });
+}
 
 /** `ffmpeg` on `PATH`, the way a shell would find it — an optional external binary, like `openssl` for the window spike (D-652). */
 function ffmpegOnPath(): boolean {
