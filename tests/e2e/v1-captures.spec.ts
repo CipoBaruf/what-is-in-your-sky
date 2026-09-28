@@ -42,24 +42,26 @@
  * so a drawing still being rasterised (the glyph or two F-66 and F-70 measured)
  * is not what the file shows.
  *
- * **Two places, because the screens want different skies.** The chart screens
- * are `live-captures.spec.ts`'s Paris moment — the one instant in the committed
- * fixtures where a pass is under way, the Moon is 60° up and the Sun is inside
- * FR-DOME-6's twilight band at once — and everything else is the Neuquén
- * fixture the rest of the suite runs on, nine days on from its capture, where
- * the list has three nights in it. One place would have cost one of the two,
- * and a flat picture of a rich screen is worth less than a tidy postcode.
+ * P8 (SPEC FR-SHOW-9, FR-SHOW-10; PLAN D-684): **one place and one night,
+ * the showcase's.** Every screen is Bariloche on 5 to 6 September 2026 over
+ * the committed elements, with the recorded forecast for its cell served by
+ * `stubNetwork(page, 'fixtures', 'showcase')` and the observer's own zone, so
+ * the set reads cloud badges and `GMT-3` clocks where D-179's Paris night read
+ * "weather unknown" and UTC. The routes are unchanged; only the seeds moved.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 // P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
-import { CLOCK, DAY_MS, GLARE_PASS, GLARE_PASS_START, guide, listSettled, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
-import { domeDrawn, enterScrubbing, heading, hhmmss, openLegend, openSettings, stripFilled, stubCompass } from './liveHelpers';
-// Both observers are at altitude 0, which is what typing a coordinate pair gives (FR-LOC-4) and what
-// the committed pass ids were computed at: a seeded altitude would move every pass start by a second
-// or two and the glare pass would no longer be found by its id. Only Paris is observed from; Neuquén
-// is here to be the second row of the saved places.
-import { NEUQUEN, PARIS } from './observers';
+import { CLOCK, DAY_MS, SHOWN_PASS, SHOWN_PASS_START, guide, listSettled, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
+import { domeDrawn, enterScrubbing, heading, openLegend, openSettings, stripFilled, stubCompass, stubNetwork } from './liveHelpers';
+// Bariloche is the place picker's observer for the geocoder's first answer, at its 839 m (FR-SHOW-9), which is
+// what the stored Bariloche run and `SHOWN_PASS`'s id were computed at. Neuquén is only the second row of the
+// saved places.
+import { BARILOCHE, NEUQUEN } from './observers';
+
+/** `hh:mm:ss` in the observer's zone: the page's clocks read local time now that the observer has one (D-36). */
+const localHhmmss = (t: number): string =>
+  new Intl.DateTimeFormat('en-GB', { timeZone: BARILOCHE.timeZone ?? 'UTC', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(t);
 
 /**
  * FR-CI-2 (R37, F-46): sixty captures off one build take about 8.5 min, which
@@ -74,22 +76,23 @@ test.skip(process.env['CAPTURES'] !== '1', 'the release capture set: run with CA
 
 /**
  * The night the whole set is shot on — the glare pass, `CLOCK` and `SHOWN` —
- * is `captureSeeds.ts`'s, with the reasons (D-179: Paris, not Neuquén nine
- * days on, and what it costs in weather).
+ * is `captureSeeds.ts`'s, with the reasons (D-684: the showcase night, and
+ * what it does not hold).
  */
 /** R53: the legend screen's instant, two minutes further on — see the `legend` route. */
 const LEGEND_SHOWN = SHOWN + 120_000;
 /**
- * R79 (FR-GUT-6): the chip's instant. At `SHOWN` the Paris sky has a pass in every direction, so no facing is an
- * empty field; three minutes before the overhead pass rises — inside `ARC_LOOKAHEAD_MS`, so it is drawn `ahead` — one
- * can be found, and the chip names the turn to where it will rise.
+ * R79 (FR-GUT-6): the chip's instant, where no facing has a pass in it and one is about to rise. P8: three minutes
+ * before `SHOWN_PASS` rises — inside `ARC_LOOKAHEAD_MS`, so it is drawn `ahead` — and after the 07:04 pass has set,
+ * so the field is empty in every direction but the one the chip names the turn to. (Over Paris it was eight minutes
+ * before the ISS, where the sky had a pass in every direction at `SHOWN`.)
  */
-const CHIP_SHOWN = GLARE_PASS_START - 8 * 60_000;
+const CHIP_SHOWN = SHOWN_PASS_START - 3 * 60_000;
 
-/** Neuquén saved but not in use, Paris in use: the "in use" mark is on one row and not the other. Two screens seed them (R53: the settings page lists them too, FR-COMP-2). */
+/** Neuquén saved but not in use, Bariloche in use: the "in use" mark is on one row and not the other. Two screens seed them (R53: the settings page lists them too, FR-COMP-2). */
 const SAVED_PLACES = [
   { cellKey: '-38.93,-67.99', observer: NEUQUEN, addedAt: CLOCK - 2 * DAY_MS, lastUsedAt: CLOCK - 2 * DAY_MS },
-  { cellKey: '48.86,2.35', observer: PARIS, addedAt: CLOCK - DAY_MS, lastUsedAt: CLOCK - 60_000 },
+  { cellKey: '-41.15,-71.31', observer: BARILOCHE, addedAt: CLOCK - DAY_MS, lastUsedAt: CLOCK - 60_000 },
 ];
 
 /**
@@ -147,18 +150,23 @@ const GROUND_STATE: Record<'window-ground' | 'window-buried', { altDeg: number; 
   'window-buried': { altDeg: -60, state: 'buried' },
 };
 
-/** A page at `width` on the paused clock, with the preferences already in storage and the network stubbed (`seedPage`). Called once per test. */
+/**
+ * A page at `width` on the paused clock, with the preferences already in storage (`seedPage`) and the showcase
+ * network: the elements from the fixtures, Bariloche's recorded forecast and geocoder answer, anything else
+ * refused (P8, D-684). Called once per test.
+ */
 async function open(page: Page, width: CaptureWidth, prefs: SeedPrefs, time = CLOCK): Promise<void> {
   await page.setViewportSize(VIEWPORTS[width]);
   await seedPage(page, prefs, time);
+  await stubNetwork(page, 'fixtures', 'showcase');
 }
 
 /** The chart screens: the glare pass open on `view`, three minutes in. */
 async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view: 'dome' | 'polar'): Promise<void> {
-  await open(page, width, { locale, theme, observer: PARIS, chartView: view });
+  await open(page, width, { locale, theme, observer: BARILOCHE, chartView: view });
   await page.goto('/');
 
-  const card = page.locator(`article[data-pass-id="${GLARE_PASS}"]`);
+  const card = page.locator(`article[data-pass-id="${SHOWN_PASS}"]`);
   await expect(card).toBeVisible({ timeout: 60_000 });
   // The wide layout keeps the list beside the guide, so the capture would otherwise carry
   // "Computing passes… 17 of 93" next to a finished chart. The search is let finish first.
@@ -196,7 +204,7 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
  * so the page opens on real time and needs no scrubbing.
  */
 async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, shown: number = SHOWN, prefs: Partial<SeedPrefs> = {}): Promise<void> {
-  await open(page, width, { locale, theme, observer: PARIS, ...prefs }, shown);
+  await open(page, width, { locale, theme, observer: BARILOCHE, ...prefs }, shown);
   await page.goto('/');
   await listSettled(page);
   // The router listens for `hashchange`, so setting the hash in the page navigates without
@@ -207,7 +215,7 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
   // The place is asserted after the dome, not before: the route is lazy, and its Suspense
   // reveal is one of the timers the paused clock is holding until `domeDrawn` ticks it.
   await domeDrawn(page);
-  await expect(page.getByTestId('live-place')).toHaveText(PARIS.label);
+  await expect(page.getByTestId('live-place')).toHaveText(BARILOCHE.label);
   // The strip settled: five fields, each visible and none still on its pending ellipsis (F-47:
   // `liveHelpers.ts` owns that check, and this file had been carrying a copy without the visibility half).
   await stripFilled(page);
@@ -215,12 +223,12 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
   // on `shown` before the picture — and the strip is read to prove the page went there with it.
   await pinnedAt(page, shown);
   // …to the ten-second tick the strip reads the clock at (FR-VIS-5), and in neither language's words:
-  // the zone is unknown over Paris, so both of them print the UTC time of `SHOWN`.
+  // both of them print the local time of `SHOWN` in Bariloche's zone (P8; over Paris it was UTC).
   // R77 (FR-WATCH-3, FR-WATCH-5, D-474, D-476): the clock is a field of the conditions line on compact and
   // the rail's own `live-clock` on wide, where the line gave it up. Either way it is the page's shown instant.
   const shownClock = (await page.getByTestId('live-time').count()) > 0 ? page.getByTestId('live-time') : page.getByTestId('live-clock');
   // F-99: to the second, so a clock left on its own interval's phase fails here rather than in a diff of two runs.
-  await expect(shownClock).toContainText(hhmmss(shown));
+  await expect(shownClock).toContainText(localHhmmss(shown));
   await page.mouse.move(0, 0);
 }
 
@@ -331,7 +339,7 @@ async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme
     if (state === 'portrait') await expect(page.getByTestId('window-turn-advice')).toBeVisible();
   } else if (state === 'chip') {
     // R79 (FR-GUT-6): turned away from every pass, so the field is empty and the chip says which way to turn. The
-    // Paris sky has passes most of the way round, so the sweep is finer than the others' and looks low and high.
+    // sweep is finer than the others' and looks low and high, as it had to over Paris's crowded sky.
     search: for (const altDeg of [15, 45]) {
       for (let azDeg = 0; azDeg < 360; azDeg += 10) {
         await point(page, azDeg, altDeg);
@@ -403,7 +411,7 @@ const REACH: Record<string, Reach> = {
   },
 
   async home(page, width, theme, locale, view) {
-    await open(page, width, { locale, theme, observer: PARIS });
+    await open(page, width, { locale, theme, observer: BARILOCHE });
     await page.goto('/');
     await listSettled(page);
     /*
@@ -425,7 +433,9 @@ const REACH: Record<string, Reach> = {
     }
     // The nights are closed so the whole screen fits in one picture. Paris in September has
     // tens of visible passes a night, and the open default made the phone capture 20 000 px
-    // tall — a file nobody can review. Closed, the capture carries every part of the home
+    // tall — a file nobody can review. P8 (D-684): Bariloche's night has five, so the rule is
+    // no longer forced by the count; the route is kept so the set's shape and its `-view`
+    // pairing are unchanged (FR-SHOW-10). Closed, the capture carries every part of the home
     // screen at once (the location block, the saved places, the elements line, the Now panel,
     // the Moon, the hero card, the sort toggle, the three nights with their counts, the
     // footer), and the cards themselves are what `guide` and `polar` are for.
@@ -452,7 +462,7 @@ const REACH: Record<string, Reach> = {
    * section is rightly absent.
    */
   async settings(page, width, theme, locale) {
-    await open(page, width, { locale, theme, observer: PARIS, favourites: SAVED_PLACES });
+    await open(page, width, { locale, theme, observer: BARILOCHE, favourites: SAVED_PLACES });
     await page.goto('/');
     // The form's fields are the observer's, and the readiness line above them is the settled run's.
     await listSettled(page);
@@ -504,7 +514,7 @@ const REACH: Record<string, Reach> = {
     const declination = Number(await layer.getByTestId('window-heading').getAttribute('data-declination'));
     await point(page, aim.az - declination, aim.alt);
     await settle(page);
-    await expect(layer.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
+    await expect(layer.locator(`[data-pass-id="${SHOWN_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
     await page.mouse.move(0, 0);
   },
 
@@ -552,7 +562,7 @@ const REACH: Record<string, Reach> = {
   },
 
   async favourites(page, width, theme, locale) {
-    await open(page, width, { locale, theme, observer: PARIS, favourites: SAVED_PLACES });
+    await open(page, width, { locale, theme, observer: BARILOCHE, favourites: SAVED_PLACES });
     await page.goto('/');
     // The list is beside the places on the wide layout, and the readiness line is right above
     // them on both, so this screen waits for the same settled state the others do.
@@ -572,7 +582,7 @@ const REACH: Record<string, Reach> = {
   },
 
   async shortcuts(page, width, theme, locale) {
-    await open(page, width, { locale, theme, observer: PARIS });
+    await open(page, width, { locale, theme, observer: BARILOCHE });
     await page.goto('/');
     await listSettled(page);
     // FR-DESK-4: the keys are the page's only while nothing has the caret. Nothing here typed, so the body still has focus.
