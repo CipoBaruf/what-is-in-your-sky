@@ -2765,7 +2765,7 @@ Decision blocks (§16.2), reserved in PLAN §16.19: **P7 D-687..D-690, P8 D-691.
 
 ### Wave 1
 
-- [ ] **P7 — The recording run on the Bariloche night**
+- [x] **P7 — The recording run on the Bariloche night** — done; each flow names its instant (`at`), the first run needs no `[ continue ]` after a pick, and both live flows hold at 20:44 local, past `SHOWCASE_UNTIL` with no warning on screen (PLAN D-687..D-689).
   - **Lane:** ui
   - **Model:** fable
   - **Review:** opus
