@@ -8,7 +8,8 @@
  * recorded forecast is for the place's cell and covers every such instant.
  *
  * No Playwright: `observers.ts` and `promoFlows.ts` are plain modules, and the
- * rest is the fixtures themselves.
+ * rest is the fixtures themselves. P8 extends it to the capture set: its
+ * seeds are read as text, since `captureSeeds.ts` imports Playwright.
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -41,10 +42,38 @@ interface StoredPass {
   peak: { elDeg: number };
   peakMagnitude: number;
   twilight: boolean;
+  moonGlare: { glare: boolean };
 }
 const forecast = read<Forecast>(BARILOCHE_FORECAST_FILE);
 const forecastMeta = read<{ kind?: string; cell: { lat: number; lon: number }; timezone: string }>(BARILOCHE_FORECAST_FILE.replace(/\.json$/, '.meta.json'));
 const run = read<{ observer: unknown; computedAt: number; newestElementsEpochMs: number; passes: StoredPass[] }>(STORED_RUN_BARILOCHE_FILE);
+
+/**
+ * P8 (D-684, D-685): the capture set's instants, read off `captureSeeds.ts`'s source rather than imported — the
+ * module imports Playwright, which a unit test cannot load. Each is held to what the recordings' constants say, so
+ * a seed that drifts off the night fails here.
+ */
+const captureSeeds = readFileSync('tests/e2e/captureSeeds.ts', 'utf8');
+const captureSpec = readFileSync('tests/e2e/v1-captures.spec.ts', 'utf8');
+/** A spec constant of the shape `const NAME = BASE ± n [* 60_000]`, evaluated against `bases`. */
+function specInstant(name: string, bases: Record<string, number>): number {
+  const match = new RegExp(`const ${name} = (\\w+) ([+-]) ([\\d_]+)( \\* 60_000)?;`).exec(captureSpec);
+  if (!match) throw new Error(`no ${name} in v1-captures.spec.ts`);
+  const [, base = '', sign, amount = '', minutes] = match;
+  const baseT = bases[base];
+  if (baseT === undefined) throw new Error(`${name} is off ${base}, which this test does not know`);
+  const offset = Number(amount.replaceAll('_', '')) * (minutes ? 60_000 : 1);
+  return sign === '+' ? baseT + offset : baseT - offset;
+}
+const TICK_MS = 10_000;
+const CAPTURE_INSTANTS: { what: string; t: number }[] = [
+  { what: 'the capture CLOCK', t: SHOWCASE_NIGHT },
+  { what: 'the capture SHOWN', t: SHOWCASE_SHOWN },
+  { what: 'LEGEND_SHOWN', t: specInstant('LEGEND_SHOWN', { SHOWN: SHOWCASE_SHOWN }) },
+  { what: 'CHIP_SHOWN', t: specInstant('CHIP_SHOWN', { SHOWN_PASS_START: BRIGHTEST_PASS.start }) },
+  // The chip is pinned a strip tick after its instant (`followScreen`).
+  { what: 'CHIP_SHOWN + TICK_MS', t: specInstant('CHIP_SHOWN', { SHOWN_PASS_START: BRIGHTEST_PASS.start }) + TICK_MS },
+];
 
 /** Every instant the recordings name: the night, each flow's start and where its clock stops, and the desk live flow's pass. */
 const INSTANTS: { what: string; t: number }[] = [
@@ -76,6 +105,32 @@ describe('the showcase night (FR-SHOW-9)', () => {
     }
   });
 
+  it('seeds the capture set on the same night: CLOCK, SHOWN and the pass are the showcase’s, and nothing is Paris’s (P8, D-684, D-685)', () => {
+    expect(captureSeeds).toContain('export const CLOCK = SHOWCASE_NIGHT;');
+    expect(captureSeeds).toContain('export const SHOWN = SHOWCASE_SHOWN;');
+    expect(captureSeeds).toContain('export const SHOWN_PASS = BRIGHTEST_PASS.id;');
+    expect(captureSeeds).toContain('export const SHOWN_PASS_START = BRIGHTEST_PASS.start;');
+    // No Paris import, by name or by `import *`, and the constant the set was shot at is gone from the seeds.
+    for (const source of [captureSeeds, captureSpec]) {
+      expect(source).not.toMatch(/import [^;]*\b(PARIS|PARIS_NIGHT)\b[^;]*from '\.\/observers'/);
+      expect(source).not.toMatch(/import \* as \w+ from '\.\/observers'/);
+    }
+    expect(readFileSync('tests/e2e/observers.ts', 'utf8')).not.toContain('PARIS_NIGHT');
+    // The page observes from Bariloche on the recorded weather, and never from a coordinate pair.
+    expect(captureSpec).toContain("stubNetwork(page, 'fixtures', 'showcase')");
+    expect(captureSpec).not.toMatch(/observer: (?!BARILOCHE\b|NEUQUEN\b)\w+/);
+    for (const { what, t } of CAPTURE_INSTANTS) {
+      expect(['2026-09-05', '2026-09-06'], `${what} is on ${localDay(t)}`).toContain(localDay(t));
+      expect(t, `${what} is not before SHOWCASE_UNTIL`).toBeLessThan(SHOWCASE_UNTIL);
+      expect(t, `${what} is before the showcase night`).toBeGreaterThanOrEqual(SHOWCASE_NIGHT);
+    }
+    // D-684: the glare state is absent because the night has no glare pass; the day it has one, the seeds move to it.
+    const night = run.passes.filter((pass) => pass.start.t < SHOWCASE_UNTIL);
+    expect(night.filter((pass) => pass.moonGlare.glare)).toEqual([]);
+    // …and the `Next ISS` tag for the same reason: no ISS pass in the run at all.
+    expect(run.passes.filter((pass) => pass.noradId === 25544)).toEqual([]);
+  });
+
   it('puts SHOWCASE_UNTIL where FR-SAT-4’s warning would appear: the newest fixture epoch plus EPOCH_WARN_MS, to the second', () => {
     const groups = {
       stations: read<OmmRecord[]>(`tests/fixtures/omm/${FIXTURE_DATE}-stations.json`),
@@ -103,7 +158,7 @@ describe('the showcase night (FR-SHOW-9)', () => {
     expect(time).toHaveLength(72);
     const first = (time[0] ?? Infinity) * 1000;
     const last = (time[time.length - 1] ?? -Infinity) * 1000;
-    for (const { what, t } of INSTANTS) {
+    for (const { what, t } of [...INSTANTS, ...CAPTURE_INSTANTS]) {
       expect(t, `${what} is before the forecast`).toBeGreaterThanOrEqual(first);
       expect(t, `${what} is past the forecast`).toBeLessThan(last + 3_600_000);
     }

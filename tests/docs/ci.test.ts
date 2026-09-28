@@ -125,7 +125,9 @@ describe('the R36 capture findings (FR-FIX-2)', () => {
     expect(captureSpec).not.toContain('await page.clock.setSystemTime(SHOWN - TICK_MS)');
   });
 
-  it('F-49: the seeded observers are ones the app produces — coordinates, no zone', () => {
+  it('F-49: the coordinate observers the suite seeds are ones the app produces — no zone, no altitude', () => {
+    // The capture set's observer is Bariloche since P8, a geocoder pick with its zone, which
+    // `tests/docs/showcase.test.ts` holds to `observerFromPlace`; this is the coordinate half.
     for (const observer of [PARIS, NEUQUEN]) {
       expect(observer).toEqual(observerFromCoords(observer.lat, observer.lon));
       expect(observer.source).toBe('coords');

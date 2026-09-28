@@ -40,16 +40,8 @@ export const NINE_DAYS_ON = Date.parse(ha.capturedAt) + 9 * 86_400_000;
 export const STORED_RUN_FILE = 'tests/fixtures/stored-run-neuquen.json';
 
 /**
- * The capture set's instant (D-179; `captureSeeds.ts` exports it as `CLOCK`):
- * the same night over Paris, seven hours after the fixtures were captured,
- * with the ISS pass fifty minutes ahead. The capture set reads it until P8
- * re-shoots the set on the showcase night; the recordings moved off it in P7.
- */
-export const PARIS_NIGHT = Date.parse('2026-09-02T03:00:00Z');
-
-/**
  * P7 (FR-SHOW-9, D-682): the showcase night, the one place and night the
- * recordings (and, from P8, the capture set) are seeded on — Bariloche, 5 to 6
+ * recordings and, from P8, the capture set are seeded on — Bariloche, 5 to 6
  * September 2026, with the forecast recorded for its cell. The place is what a
  * reader who types `bariloche` and picks the first result gets: the first
  * `Place` the geocode fixture parses to, made an observer by `lib/place.ts` as
