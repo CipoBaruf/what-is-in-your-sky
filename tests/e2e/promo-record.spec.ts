@@ -48,7 +48,7 @@ import { execFileSync } from 'node:child_process';
 import { accessSync, constants, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, unlinkSync } from 'node:fs';
 import { delimiter, join } from 'node:path';
 import { expect, test, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test';
-import { guide, listSettled, OPEN_GUIDE, type SeedPrefs } from './captureSeeds';
+import { guide, OPEN_GUIDE, type SeedPrefs } from './captureSeeds';
 import { domeDrawn, enterScrubbing, stripFilled, stubNetwork, type StoredRun } from './liveHelpers';
 import { BARILOCHE, BARILOCHE_QUERY, STORED_RUN_BARILOCHE_FILE } from './observers';
 import { DEVICES, MEDIA_DIR, PROMO_FLOWS, promoStill, promoVideo, type PromoFlow } from './promoFlows';
@@ -254,6 +254,31 @@ async function searchPlace(page: Page, locale: 'en' | 'es'): Promise<Locator> {
   return first;
 }
 
+/**
+ * The first result picked, and the pointer taken off the page: the tap lands
+ * where the next screen puts a cloud badge, and a badge under the pointer opens
+ * its tooltip over the frame and over the control the flow taps next.
+ */
+async function pick(page: Page, result: Locator): Promise<void> {
+  await result.click();
+  await page.mouse.move(0, 0);
+}
+
+/**
+ * The home with its place saved, settled: a card up, the 72 h search stopped
+ * (nothing `aria-busy`), the passes grouped by night and the readiness line
+ * written once the run is stored (FR-OFF-4). `captureSeeds.listSettled` also
+ * waits for the ISS's `Next` tag, which the showcase night does not hold
+ * (FR-SHOW-9), so the recordings wait on the rest of it here.
+ */
+async function homeSettled(page: Page): Promise<void> {
+  await expect(page.locator('article[data-pass-card]').first()).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
+  expect(await page.getByTestId('night-group').count()).toBeGreaterThan(0);
+  await expect(page.getByTestId('readiness')).toBeVisible({ timeout: 60_000 });
+  await page.mouse.move(0, 0);
+}
+
 /** The pass's guide open with its dome drawn: the sheet on a phone, the panel on a desk, and the chart chunk revealed by the clock. */
 async function guideDrawn(page: Page): Promise<Locator> {
   const figure = guide(page).getByRole('figure');
@@ -285,7 +310,7 @@ async function firstRun(browser: Browser, of: PromoFlow): Promise<void> {
   const result = await searchPlace(page, of.locale);
   await watch(page, 1_500);
   await still(page, of, 'where');
-  await result.click();
+  await pick(page, result);
 
   const when = page.getByTestId('step-when');
   await expect(when).toBeVisible();
@@ -340,7 +365,7 @@ test.describe('phone', () => {
     const page = await record(browser, of);
     await seedShowcase(page, of, { locale: of.locale, theme: of.theme, observer: BARILOCHE });
     await page.goto('/');
-    await listSettled(page);
+    await homeSettled(page);
     await openLive(page);
     const see = page.getByTestId('next-event-see');
     await expect(see).toBeVisible();
@@ -403,7 +428,7 @@ test.describe('desktop', () => {
     await still(page, of, 'cold-open');
     const result = await searchPlace(page, of.locale);
     await watch(page, 1_500);
-    await result.click();
+    await pick(page, result);
     // No steps on a desk (D-513): the picked place fills the panes, the stored list first and the recompute after it.
     const card = page.locator('article[data-pass-card]').first();
     await expect(card).toBeVisible({ timeout: 60_000 });
@@ -422,7 +447,7 @@ test.describe('desktop', () => {
     const page = await record(browser, of);
     await seedShowcase(page, of, { locale: of.locale, theme: of.theme, observer: BARILOCHE });
     await page.goto('/');
-    await listSettled(page);
+    await homeSettled(page);
     await openLive(page);
     await watch(page, 6_000);
     await still(page, of, 'watching');
