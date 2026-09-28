@@ -649,6 +649,13 @@ const REACH: Record<string, Reach> = {
   },
 };
 
+/**
+ * P8 (US-36 AC8, FR-SHOW-9 b and c, FR-SAT-4): what no file of the set may read, in either language — a `UTC`
+ * clock, a cloud badge with no forecast behind it, the readiness line or the failure line about the forecast, and
+ * the staleness warning. Read off the document's text before the shot, so a seed that drifted fails the capture.
+ */
+const NOT_ON_THE_NIGHT = /\bUTC\b|Weather unknown|Clima desconocido|cloud forecast|pronóstico de nubes|lose accuracy|pierden precisión/;
+
 /** One test per capture: reach the screen, prove the seed took, wait for a settled frame, shoot the file. */
 function shoot(screen: (typeof SCREENS)[number]): void {
   const reach = REACH[screen.name];
@@ -661,6 +668,7 @@ function shoot(screen: (typeof SCREENS)[number]): void {
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       await expect(page.locator('html')).toHaveAttribute('lang', locale);
       await settled(page);
+      expect(await page.evaluate(() => document.body.innerText)).not.toMatch(NOT_ON_THE_NIGHT);
       await page.screenshot({ path: `${CAPTURE_DIR}/${file}`, fullPage: FULL_PAGE.has(screen.name) && !view });
     });
   }
