@@ -1,0 +1,13 @@
+{
+  "fetchedAt": "2026-09-28T15:10:31Z",
+  "source": "https://historical-forecast-api.open-meteo.com/v1/forecast?latitude=-41.1&longitude=-71.3&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high&start_date=2026-09-06&end_date=2026-09-08&timezone=auto&timeformat=unixtime",
+  "kind": "historical-forecast reconstruction",
+  "cell": {
+    "lat": -41.1,
+    "lon": -71.3
+  },
+  "observer": "Bariloche, Rio Negro, Argentina (-41.14557, -71.30822), the showcase observer of SPEC FR-SHOW-9, rounded to its 0.1° cell (PLAN D-37)",
+  "timezone": "America/Argentina/Salta",
+  "coverage": "72 hourly samples, 2026-09-06T03:00Z to 2026-09-09T02:00Z (local midnight to 23:00 over 2026-09-06..08), all four cloud series present with no nulls",
+  "note": "Verbatim body (re-indented), captured with curl and an Origin header; the response carried access-control-allow-origin: *. Not a forecast fetched at the time it describes: Open-Meteo's historical-forecast endpoint assembles the body after the fact from archived model runs, in the forecast API's own shape, because the forecast API cannot answer for a past date (SPEC V22-17, PLAN D-686). The request's parameters are the app's (data/openMeteo/forecast.ts) with forecast_days replaced by the date range. The response's own latitude/longitude are the model grid point, not the requested cell."
+}
