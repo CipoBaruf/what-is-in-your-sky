@@ -13,23 +13,26 @@
  * here asserts what a frame looks like: every expectation is there so a file
  * cannot be of a page that had not finished loading.
  *
- * **Seeded like a capture, moved by the clock (D-653, D-673).** The seeds are
- * the capture set's, from `captureSeeds.ts` and `observers.ts`: one place and
- * one night, Paris at `CLOCK` (2026-09-02 03:00 UTC), where the elements are
- * seven hours old and the ISS rises fifty minutes ahead, so the countdown runs
- * on camera and no screen carries FR-SAT-4's staleness warning — nine days on
- * at Neuquén, where the rest of the suite runs, it would sit on the home of
- * every list flow, and promo material must not show a warning a fresh install
- * never does (D-179 made the same choice for the captures). The finished run
- * `tests/fixtures/stored-run-paris.json` is in IndexedDB before the place is
- * typed, so the list is on screen the moment it is (FR-OFF-2, the R82 method).
- * Nothing in a recording is live data: the elements are the fixtures, the
- * forecast and the geocoder are refused (so a cloud badge reads "weather
- * unknown", the capture set's cost). `page.clock` is installed at the fixture
- * instant and paused; between actions `watch` runs it forward in small steps
- * at wall-clock pace, so the countdown ticks and the mark's bead moves in the
- * file while the instant every screen shows is the fixture's whatever the
- * box's speed.
+ * **The showcase night, moved by the clock (D-653, D-683; FR-SHOW-9).** Every
+ * flow is seeded on one place and one night, from `observers.ts`: Bariloche,
+ * picked as a reader picks it — `bariloche` typed into the place search and
+ * the first result taken — at `SHOWCASE_NIGHT` (2026-09-06 05:00 local, D-690), 48
+ * minutes before the night's first bright pass, so the countdown runs on camera. The
+ * elements are a little over four days old, under FR-SAT-4's five, and no
+ * flow's clock runs past `SHOWCASE_UNTIL`, where the staleness warning would
+ * appear; the observer has its zone, so every clock reads local time. The
+ * finished run `tests/fixtures/stored-run-bariloche.json` is in IndexedDB
+ * before the place is set, so the list is on screen the moment it is
+ * (FR-OFF-2, the R82 method). Nothing in a recording is live data: the
+ * elements are the fixtures, and `stubNetwork(page, 'fixtures', 'showcase')`
+ * answers the forecast for Bariloche's cell and the geocoder for `bariloche`
+ * with the recorded bodies and refuses anything else, so the cloud badges read
+ * the night's forecast. `page.clock` is installed at the flow's instant
+ * (`promoFlows.ts`'s `at`) and paused; between actions `watch` runs it forward
+ * in small steps at wall-clock pace, so the countdown ticks and the mark's bead
+ * moves in the file while the instant every screen shows is the fixture's
+ * whatever the box's speed. (P4 ran every flow over Paris with the forecast
+ * refused, D-673; the capture set stays there until P8.)
  *
  * **The frame (D-652).** A phone flow is 390 × 844 at a device pixel ratio of
  * 3 and asks for a 1170 × 2532 recording, a reel's shape; a desktop flow is
@@ -45,9 +48,9 @@ import { execFileSync } from 'node:child_process';
 import { accessSync, constants, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, unlinkSync } from 'node:fs';
 import { delimiter, join } from 'node:path';
 import { expect, test, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test';
-import { CLOCK, guide, listSettled, OPEN_GUIDE, seedPage, SHOWN, type SeedPrefs } from './captureSeeds';
-import { domeDrawn, enterScrubbing, LABEL, stripFilled, type StoredRun } from './liveHelpers';
-import { PARIS, STORED_RUN_PARIS_FILE } from './observers';
+import { guide, OPEN_GUIDE, type SeedPrefs } from './captureSeeds';
+import { domeDrawn, enterScrubbing, stripFilled, stubNetwork, type StoredRun } from './liveHelpers';
+import { BARILOCHE, BARILOCHE_QUERY, STORED_RUN_BARILOCHE_FILE } from './observers';
 import { DEVICES, MEDIA_DIR, PROMO_FLOWS, promoStill, promoVideo, type PromoFlow } from './promoFlows';
 
 /** The list is `promoFlows.ts`'s, so `tests/docs/promo.test.ts` can read it without loading this file; it is the spec's export all the same. */
@@ -59,20 +62,16 @@ const flow = (name: string): PromoFlow => {
   return found;
 };
 
-/** The finished 72 h run over Paris at `CLOCK`, computed by `scripts/build-stored-run.ts` from the same fixtures the page loads. */
-const PARIS_RUN = JSON.parse(readFileSync(STORED_RUN_PARIS_FILE, 'utf8')) as StoredRun;
-/** What the typed-place flows type: the capture set's Paris, as a reader types a coordinate pair. */
-const TYPED = `${String(PARIS.lat)}, ${String(PARIS.lon)}`;
-/**
- * The phone's live flow wants `[ see this pass ]`, which the headline offers
- * only while nothing is up and the next rise is between two minutes and a day
- * ahead (FR-JUMP-1). Three minutes into the overhead pass it is not there, so
- * the flow opens the same Paris night by day — twelve hours on from `CLOCK`,
- * 15:00 UTC, with the evening's first pass hours ahead — and the one tap holds
- * the page at that rise with the arc drawn. The desktop's live flow is at
- * `SHOWN`, the ISS overhead.
- */
-const PARIS_BY_DAY = CLOCK + 12 * 3_600_000;
+/** The finished 72 h run over Bariloche at `SHOWCASE_NIGHT`, computed by `scripts/build-stored-run.ts` from the same fixtures the page loads. */
+const SHOWCASE_RUN = JSON.parse(readFileSync(STORED_RUN_BARILOCHE_FILE, 'utf8')) as StoredRun;
+
+/** The place search and its result list, named in the flow's language (FR-LOC-2). */
+const PLACE = {
+  en: { field: 'Place name', results: 'Matching places' },
+  es: { field: 'Nombre del lugar', results: 'Lugares coincidentes' },
+} as const;
+
+const PREFS_KEY = 'wiys:prefs:v1';
 
 /** How far the clock runs per step of `watch`: twenty steps a second, so a bead on an animation frame moves rather than jumps. */
 const STEP_MS = 50;
@@ -113,7 +112,7 @@ async function still(page: Page, of: PromoFlow, name: string): Promise<void> {
 }
 
 /** The videos the file produced, moved by `afterAll`: where Playwright wrote each, and where it goes. */
-const recorded: { source: string; target: string }[] = [];
+const recorded: { source: string; target: string; device: PromoFlow['device'] }[] = [];
 
 /** The contexts still open, closed by `afterEach` if a flow failed before `done` (a failed take is still finished, in Playwright's output). */
 const open = new Set<BrowserContext>();
@@ -146,7 +145,7 @@ async function done(page: Page, of: PromoFlow): Promise<void> {
   const context = page.context();
   await context.close();
   open.delete(context);
-  recorded.push({ source: await video.path(), target: promoVideo(of) });
+  recorded.push({ source: await video.path(), target: promoVideo(of), device: of.device });
 }
 
 test.afterEach(async () => {
@@ -155,7 +154,7 @@ test.afterEach(async () => {
 });
 
 /**
- * The finished 72 h run for Paris at `CLOCK`, written into IndexedDB from
+ * The finished 72 h run for Bariloche at `SHOWCASE_NIGHT`, written into IndexedDB from
  * inside the page (`liveHelpers.seedStoredRun` and R84's
  * `first-run-controls.spec.ts` do the same), so a flow that types the place or
  * opens with it saved shows the list at once rather than the worker's progress.
@@ -185,25 +184,44 @@ async function storeRun(page: Page): Promise<void> {
         };
       };
     });
-  }, PARIS_RUN);
+  }, SHOWCASE_RUN);
 }
 
-/** A first visit on the capture set's night: no place, the run for the place the flow will type already stored. */
-async function coldAtParis(page: Page, prefs: SeedPrefs): Promise<void> {
-  await seedPage(page, prefs, CLOCK);
+/**
+ * A page on the flow's paused clock with the preferences already in storage
+ * (D-70, as `captureSeeds.seedPage` seeds them) and the showcase network: the
+ * elements from the fixtures, the forecast for Bariloche's cell and the
+ * geocoder for `bariloche` from the recorded bodies, anything else refused
+ * (D-682). Called once per flow, before the first `goto`.
+ */
+async function seedShowcase(page: Page, of: PromoFlow, prefs: SeedPrefs): Promise<void> {
+  await page.addInitScript(
+    ([key, value]: [string, string]) => {
+      localStorage.setItem(key, value);
+    },
+    [PREFS_KEY, JSON.stringify(prefs)] as [string, string],
+  );
+  await stubNetwork(page, 'fixtures', 'showcase');
+  await page.clock.install({ time: of.at });
+  await page.clock.pauseAt(of.at);
+}
+
+/** A first visit on the showcase night: no place, the run for the place the flow will pick already stored. */
+async function coldAtBariloche(page: Page, of: PromoFlow): Promise<void> {
+  await seedShowcase(page, of, { locale: of.locale, theme: of.theme });
   await page.goto('/');
   await storeRun(page);
   await expect(page.getByTestId('cold-open')).toBeVisible();
 }
 
 /**
- * A returning reader in Paris on the capture set's night: the place saved and
+ * A returning reader in Bariloche on the showcase night: the place saved and
  * the finished run stored, so the reload boots the app the way their browser
  * does — the stored list on screen before the first request goes out
  * (FR-OFF-2), and the recompute that follows finding the same passes.
  */
-async function homeAtParis(page: Page, prefs: SeedPrefs): Promise<void> {
-  await seedPage(page, { ...prefs, observer: PARIS }, CLOCK);
+async function homeAtBariloche(page: Page, of: PromoFlow): Promise<void> {
+  await seedShowcase(page, of, { locale: of.locale, theme: of.theme, observer: BARILOCHE });
   await page.goto('/');
   await storeRun(page);
   await page.reload();
@@ -220,11 +238,45 @@ async function recomputed(page: Page): Promise<void> {
   await tickUntil(page, async () => (await page.locator('[aria-busy="true"]').count()) === 0);
 }
 
-/** The place, typed as a reader types it — a character at a time — into the where step's coordinate field. */
-async function typePlace(page: Page, locale: 'en' | 'es'): Promise<void> {
-  const coords = page.getByTestId('cold-open').getByLabel(LABEL[locale].coords);
-  await coords.click();
-  await coords.pressSequentially(TYPED, { delay: 70 });
+/**
+ * The place, typed as a reader types it — `bariloche`, a character at a time —
+ * into the cold open's place search, and the result list on screen: the paused
+ * clock holds the picker's 500 ms debounce, so it is run on until the recorded
+ * answer is listed (D-683). Returns the first result, for the flow to pick.
+ */
+async function searchPlace(page: Page, locale: 'en' | 'es'): Promise<Locator> {
+  const field = page.getByTestId('cold-open').getByRole('combobox', { name: PLACE[locale].field });
+  await field.click();
+  await field.pressSequentially(BARILOCHE_QUERY, { delay: 70 });
+  const first = page.getByRole('listbox', { name: PLACE[locale].results }).getByRole('option').first();
+  await tickUntil(page, () => first.isVisible(), 30_000);
+  await expect(first).toContainText(BARILOCHE.label.split(',')[0] ?? BARILOCHE.label);
+  return first;
+}
+
+/**
+ * The first result picked, and the pointer taken off the page: the tap lands
+ * where the next screen puts a cloud badge, and a badge under the pointer opens
+ * its tooltip over the frame and over the control the flow taps next.
+ */
+async function pick(page: Page, result: Locator): Promise<void> {
+  await result.click();
+  await page.mouse.move(0, 0);
+}
+
+/**
+ * The home with its place saved, settled: a card up, the 72 h search stopped
+ * (nothing `aria-busy`), the passes grouped by night and the readiness line
+ * written once the run is stored (FR-OFF-4). `captureSeeds.listSettled` also
+ * waits for the ISS's `Next` tag, which the showcase night does not hold
+ * (FR-SHOW-9), so the recordings wait on the rest of it here.
+ */
+async function homeSettled(page: Page): Promise<void> {
+  await expect(page.locator('article[data-pass-card]').first()).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
+  expect(await page.getByTestId('night-group').count()).toBeGreaterThan(0);
+  await expect(page.getByTestId('readiness')).toBeVisible({ timeout: 60_000 });
+  await page.mouse.move(0, 0);
 }
 
 /** The pass's guide open with its dome drawn: the sheet on a phone, the panel on a desk, and the chart chunk revealed by the clock. */
@@ -245,20 +297,20 @@ async function openLive(page: Page): Promise<void> {
 }
 
 /**
- * The phone's first run (FR-FIRST-1..3): the cold open, the place typed,
- * `[ continue ]` to the when step with its count, `[ see what ]` to the cards,
- * and the first card's pass opened to its guide.
+ * The phone's first run (FR-FIRST-1..3): the cold open, `bariloche` typed and
+ * the recorded answer listed, the first result picked — which moves the page
+ * on to the when step with its count, a place from the list being settled —
+ * `[ see what ]` to the cards, and the first card's pass opened to its guide.
+ * The `where` still is of the result list, the search on screen.
  */
 async function firstRun(browser: Browser, of: PromoFlow): Promise<void> {
   const page = await record(browser, of);
-  await coldAtParis(page, { locale: of.locale, theme: of.theme });
+  await coldAtBariloche(page, of);
+  await watch(page, 1_500);
+  const result = await searchPlace(page, of.locale);
   await watch(page, 1_500);
   await still(page, of, 'where');
-  await typePlace(page, of.locale);
-  const next = page.getByTestId('step-continue');
-  await expect(next).toBeVisible();
-  await watch(page, 1_500);
-  await next.click();
+  await pick(page, result);
 
   const when = page.getByTestId('step-when');
   await expect(when).toBeVisible();
@@ -292,7 +344,7 @@ test.describe('phone', () => {
   test('list-and-card: the list with tonight open, and a card opened to its guide', async ({ browser }) => {
     const of = flow('list-and-card');
     const page = await record(browser, of);
-    await homeAtParis(page, { locale: of.locale, theme: of.theme });
+    await homeAtBariloche(page, of);
     await recomputed(page);
     await expect(page.locator('[data-testid="night-group"][data-open="true"]')).toHaveCount(1);
     await watch(page, 3_000);
@@ -308,12 +360,12 @@ test.describe('phone', () => {
     await done(page, of);
   });
 
-  test('live-see-this-pass: the live page watching, [ see this pass ], the held instant stepped, and [ back to live ]', async ({ browser }) => {
+  test('live-see-this-pass: the live page watching, [ see this pass ], the held pass, and [ back to live ]', async ({ browser }) => {
     const of = flow('live-see-this-pass');
     const page = await record(browser, of);
-    await seedPage(page, { locale: of.locale, theme: of.theme, observer: PARIS }, PARIS_BY_DAY);
+    await seedShowcase(page, of, { locale: of.locale, theme: of.theme, observer: BARILOCHE });
     await page.goto('/');
-    await listSettled(page);
+    await homeSettled(page);
     await openLive(page);
     const see = page.getByTestId('next-event-see');
     await expect(see).toBeVisible();
@@ -325,12 +377,8 @@ test.describe('phone', () => {
     // The paused clock holds the stripe chunk's reveal, and the arc is drawn once the held instant's set is computed.
     const arc = page.getByTestId('live-dome').locator(`[data-drawing] [data-pass-id="${passId}"]`);
     await tickUntil(page, async () => (await arc.count()) > 0, 30_000);
-    await watch(page, 3_000);
-    // Along the pass a minute at a time, so the marker moves up its arc.
-    for (let step = 0; step < 4; step += 1) {
-      await page.getByTestId('step-controls').locator('[data-step="+1m"]').click();
-      await watch(page, 1_500);
-    }
+    // No minute steps: Tiangong's 05:48 pass lasts 40 s, so a step would leave it behind and the still would read `0 up` (D-690).
+    await watch(page, 6_000);
     await still(page, of, 'held');
     await page.getByTestId('live-now').click();
     await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
@@ -342,7 +390,7 @@ test.describe('phone', () => {
   test('settings-language: the settings page, and the switch to Spanish', async ({ browser }) => {
     const of = flow('settings-language');
     const page = await record(browser, of);
-    await homeAtParis(page, { locale: of.locale, theme: of.theme });
+    await homeAtBariloche(page, of);
     await recomputed(page);
     await watch(page, 2_000);
     // R93 (D-545): the settings page is a lazy chunk and the paused clock holds its reveal, so the chunk is
@@ -371,11 +419,13 @@ test.describe('desktop', () => {
   test('cold-open-to-pass: the three panes, a place set and the countdown, a pass opened in the first two', async ({ browser }) => {
     const of = flow('cold-open-to-pass');
     const page = await record(browser, of);
-    await coldAtParis(page, { locale: of.locale, theme: of.theme });
+    await coldAtBariloche(page, of);
     await watch(page, 2_000);
     await still(page, of, 'cold-open');
-    await typePlace(page, of.locale);
-    // No steps on a desk (D-513): the pair fills the panes, the stored list first and the recompute after it.
+    const result = await searchPlace(page, of.locale);
+    await watch(page, 1_500);
+    await pick(page, result);
+    // No steps on a desk (D-513): the picked place fills the panes, the stored list first and the recompute after it.
     const card = page.locator('article[data-pass-card]').first();
     await expect(card).toBeVisible({ timeout: 60_000 });
     await recomputed(page);
@@ -388,12 +438,12 @@ test.describe('desktop', () => {
     await done(page, of);
   });
 
-  test('live-scrubbing: the live page watching the ISS overhead, then scrubbing with the rail', async ({ browser }) => {
+  test('live-scrubbing: the live page watching the night’s brightest pass, Tiangong at 07:20, then scrubbing with the rail', async ({ browser }) => {
     const of = flow('live-scrubbing');
     const page = await record(browser, of);
-    await seedPage(page, { locale: of.locale, theme: of.theme, observer: PARIS }, SHOWN);
+    await seedShowcase(page, of, { locale: of.locale, theme: of.theme, observer: BARILOCHE });
     await page.goto('/');
-    await listSettled(page);
+    await homeSettled(page);
     await openLive(page);
     await watch(page, 6_000);
     await still(page, of, 'watching');
@@ -402,14 +452,13 @@ test.describe('desktop', () => {
     await page.clock.runFor(1000);
     for (const row of ['time-row', 'time-stripe', 'step-controls', 'playback-row']) await expect(page.getByTestId(row)).toBeVisible();
     await watch(page, 2_000);
-    // Along the pass a minute at a time, then to the next rise.
+    // Along the pass a minute at a time, and no jump to the next rise: that is the evening's, past SHOWCASE_UNTIL (D-690).
     const steps = page.getByTestId('step-controls');
-    for (let step = 0; step < 3; step += 1) {
+    for (let step = 0; step < 4; step += 1) {
       await steps.locator('[data-step="+1m"]').click();
       await watch(page, 1_500);
     }
-    await steps.locator('[data-step="next-rise"]').click();
-    await watch(page, 3_000);
+    await watch(page, 1_500);
     await still(page, of, 'scrubbing');
     await page.getByTestId('live-now').click();
     await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
@@ -459,10 +508,18 @@ test.beforeAll(() => {
  * one throw in it would leave every later video in `test-results/`, which the
  * next run wipes.
  */
-function convert(webm: string, mp4: string): boolean {
+function convert(webm: string, mp4: string, device: (typeof DEVICES)[keyof typeof DEVICES]): boolean {
+  const { viewport, frame } = device;
+  // Chromium's screencast captures the page at its CSS size and ignores the device pixel ratio, so a
+  // phone's 1170 × 2532 file carries the page in its top-left 390 × 844 and grey padding in the rest
+  // (D-690). Where the frame is larger than the viewport, the page is cropped out and scaled up to the
+  // frame; otherwise libx264 with yuv420p only needs even dimensions.
+  const filter =
+    frame.width === viewport.width && frame.height === viewport.height
+      ? 'scale=trunc(iw/2)*2:trunc(ih/2)*2'
+      : `crop=${String(viewport.width)}:${String(viewport.height)}:0:0,scale=${String(frame.width)}:${String(frame.height)}:flags=lanczos`;
   try {
-    // libx264 with yuv420p wants even dimensions; the scale keeps them so whatever frame the screencast produced.
-    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', webm, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-movflags', '+faststart', mp4], { stdio: 'inherit' });
+    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', webm, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', filter, '-movflags', '+faststart', mp4], { stdio: 'inherit' });
     return true;
   } catch (error) {
     console.log(`promo: ffmpeg failed on ${webm} (${error instanceof Error ? error.message : String(error)}); the .webm is the record, no ${mp4}`);
@@ -481,7 +538,7 @@ function convert(webm: string, mp4: string): boolean {
  */
 test.afterAll(() => {
   const ffmpeg = ffmpegOnPath();
-  for (const { source, target } of recorded) {
+  for (const { source, target, device } of recorded) {
     if (!existsSync(source)) {
       console.log(`promo: no video at ${source}, nothing written for ${target}`);
       continue;
@@ -493,7 +550,7 @@ test.afterAll(() => {
       console.log(`promo: ffmpeg is not on PATH, so no ${mp4}`);
       continue;
     }
-    if (convert(target, mp4)) console.log(`promo: wrote ${mp4} (${kb(mp4)})`);
+    if (convert(target, mp4, DEVICES[device])) console.log(`promo: wrote ${mp4} (${kb(mp4)})`);
   }
   for (const of of PROMO_FLOWS) {
     for (const name of shot.get(of.name) ?? []) console.log(`promo: wrote ${promoStill(of, name)} (${kb(promoStill(of, name))})`);

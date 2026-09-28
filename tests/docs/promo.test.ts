@@ -14,7 +14,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import config, { PROMO_PROJECT, PROMO_SPEC, promoSelected } from '../../playwright.config';
 import { EPOCH_WARN_MS } from '../../src/lib/elementsAge';
-import { PARIS, PARIS_NIGHT, STORED_RUN_PARIS_FILE } from '../e2e/observers';
+import { BARILOCHE, SHOWCASE_NIGHT, SHOWCASE_UNTIL, STORED_RUN_BARILOCHE_FILE } from '../e2e/observers';
 import { DEVICES, MEDIA_DIR, PROMO_FLOWS, promoStill, promoVideo } from '../e2e/promoFlows';
 
 const SPEC_FILE = 'tests/e2e/promo-record.spec.ts';
@@ -91,28 +91,43 @@ describe('the recording run (FR-SHOW-6)', () => {
     expect(scripts['e2e']).toContain('VITE_MOON_LORE=on vite build');
   });
 
-  it('seeds every flow on the capture set’s night, where the elements are under FR-SAT-4’s warning threshold (D-673)', () => {
-    // The stored run the list flows seed is over Paris at `CLOCK`, computed by `scripts/build-stored-run.ts`
-    // from the same fixtures the page loads, and its elements are hours old, not days: nine days on at
-    // Neuquén, where the rest of the suite runs, the amber staleness line would sit on the home of every
-    // list flow, and promo material must not show a warning a fresh install never does (D-179).
-    const run = JSON.parse(readFileSync(STORED_RUN_PARIS_FILE, 'utf8')) as { observer: unknown; computedAt: number; newestElementsEpochMs: number; passes: unknown[] };
-    expect(run.observer).toEqual(PARIS);
-    expect(run.computedAt).toBe(PARIS_NIGHT);
+  it('seeds every flow on the showcase night, where the elements are under FR-SAT-4’s warning threshold (D-683)', () => {
+    // The stored run the list flows seed is over Bariloche at `SHOWCASE_NIGHT`, computed by
+    // `scripts/build-stored-run.ts` from the same fixtures the page loads, and its elements are a little
+    // over four days old: nine days on at Neuquén, where the rest of the suite runs, the amber staleness
+    // line would sit on the home of every list flow, and promo material must not show a warning a fresh
+    // install never does (FR-SHOW-9 (a)).
+    const run = JSON.parse(readFileSync(STORED_RUN_BARILOCHE_FILE, 'utf8')) as { observer: unknown; computedAt: number; newestElementsEpochMs: number; passes: unknown[] };
+    expect(run.observer).toEqual(BARILOCHE);
+    expect(run.computedAt).toBe(SHOWCASE_NIGHT);
     expect(run.passes.length).toBeGreaterThan(10);
     expect(run.computedAt - run.newestElementsEpochMs).toBeLessThan(EPOCH_WARN_MS);
-    // And the spec seeds from that run and that night, never from the suite's nine-days-on clock.
+    // Every flow starts on that night and its clock stops short of the instant the warning would appear.
+    for (const flow of PROMO_FLOWS) {
+      expect(flow.at, `${flow.name} starts before the showcase night`).toBeGreaterThanOrEqual(SHOWCASE_NIGHT);
+      expect(flow.at + flow.seconds * 1000, `${flow.name} runs past SHOWCASE_UNTIL`).toBeLessThan(SHOWCASE_UNTIL);
+      expect(SHOWCASE_UNTIL - run.newestElementsEpochMs, flow.name).toBeLessThanOrEqual(EPOCH_WARN_MS);
+    }
+    // And the spec seeds from that run, that night and the showcase network, never from the suite's
+    // nine-days-on clock or the capture set's Paris night.
     const spec = readFileSync(SPEC_FILE, 'utf8');
-    expect(spec).toContain('STORED_RUN_PARIS_FILE');
-    expect(spec).not.toMatch(/NINE_DAYS_ON|NEUQUEN|STORED_RUN\b/);
-    expect(spec).toMatch(/import \{[^}]*\bCLOCK\b[^}]*\} from '\.\/captureSeeds'/);
+    expect(spec).toContain('STORED_RUN_BARILOCHE_FILE');
+    expect(spec).toContain("stubNetwork(page, 'fixtures', 'showcase')");
+    expect(spec).toMatch(/pressSequentially\(BARILOCHE_QUERY/);
+    expect(spec).not.toMatch(/NINE_DAYS_ON|NEUQUEN|STORED_RUN\b|PARIS|\bCLOCK\b|\bSHOWN\b|seedPage\(/);
+    expect(spec).toMatch(/page\.clock\.install\(\{ time: of\.at \}\)/);
   });
 
   it('converts each video on its own, so one ffmpeg failure costs one .mp4 and nothing else', () => {
     const spec = readFileSync(SPEC_FILE, 'utf8');
-    const convert = /function convert\(webm: string, mp4: string\): boolean \{\s*try \{[\s\S]*?execFileSync\('ffmpeg'[\s\S]*?return true;\s*\} catch/;
+    const convert = /function convert\(webm: string, mp4: string, device: [^{]*?\): boolean \{[\s\S]*?try \{[\s\S]*?execFileSync\('ffmpeg'[\s\S]*?return true;\s*\} catch/;
     expect(spec).toMatch(convert);
-    expect(spec).toMatch(/if \(convert\(target, mp4\)\) console\.log/);
+    expect(spec).toMatch(/if \(convert\(target, mp4, DEVICES\[device\]\)\) console\.log/);
+  });
+
+  it('crops a phone video to its page and scales it to the frame, since the screencast ignores the pixel ratio (D-690)', () => {
+    const spec = readFileSync(SPEC_FILE, 'utf8');
+    expect(spec).toMatch(/crop=\$\{String\(viewport\.width\)\}:\$\{String\(viewport\.height\)\}:0:0,scale=\$\{String\(frame\.width\)\}:\$\{String\(frame\.height\)\}:flags=lanczos/);
   });
 });
 

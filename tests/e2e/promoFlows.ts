@@ -7,9 +7,27 @@
  * module rather than an export of the spec because a Playwright spec cannot be
  * imported by a unit test — `test()` at module load is an error outside a
  * Playwright run — and `playwright.config.ts` wants the phone's frame too.
+ *
+ * P7 (FR-SHOW-9, D-683): every flow is on the showcase night over Bariloche,
+ * and each names the instant its paused clock is installed at, so
+ * `tests/docs/showcase.test.ts` and `tests/docs/promo.test.ts` can hold every
+ * instant a recording shows to the night and to `SHOWCASE_UNTIL`.
  */
+import { SHOWCASE_NIGHT } from './observers';
 
 export const MEDIA_DIR = 'promo/media';
+
+/**
+ * The night's brightest pass: Tiangong (NORAD 48274) rising at 07:20:47 local
+ * (`GMT-3`) on the 6th, peak −2.1 at 48°, in twilight (D-683). A literal, not
+ * a lookup: `playwright.config.ts` imports this module, so a read of the
+ * stored run here would make every Playwright run fail at load when a
+ * regenerated run moved the pass (the P7 review, D-690).
+ * `tests/docs/showcase.test.ts` holds the literal to the stored run instead.
+ */
+export const BRIGHTEST_PASS = { id: '48274-1788690047813', start: 1_788_690_047_813 } as const;
+/** Three minutes into it: the marker near the peak, half the arc behind it — the desk's live flow (D-683, as the capture set's `SHOWN`). */
+export const SHOWCASE_SHOWN = BRIGHTEST_PASS.start + 180_000;
 
 type PromoDevice = 'phone' | 'desktop';
 
@@ -25,6 +43,8 @@ export interface PromoFlow {
    * 40 s, so the list keeps well inside it.
    */
   readonly seconds: number;
+  /** The instant the flow's paused clock is installed at (D-683); the clock runs on from it for about `seconds`, never past `SHOWCASE_UNTIL`. */
+  readonly at: number;
   /** The stills the flow shoots, in order, as `promo/media/<flow>-<device>-<still>.png` (D-654). */
   readonly stills: readonly string[];
 }
@@ -49,14 +69,15 @@ export const DEVICES = {
  * every other flow is shot once, dark and in English.
  */
 export const PROMO_FLOWS: readonly PromoFlow[] = [
-  { name: 'first-run-en-dark', device: 'phone', locale: 'en', theme: 'dark', seconds: 14, stills: ['where', 'when', 'what', 'guide'] },
-  { name: 'first-run-en-night', device: 'phone', locale: 'en', theme: 'night', seconds: 14, stills: ['where', 'when', 'what', 'guide'] },
-  { name: 'first-run-es-dark', device: 'phone', locale: 'es', theme: 'dark', seconds: 14, stills: ['where', 'when', 'what', 'guide'] },
-  { name: 'list-and-card', device: 'phone', locale: 'en', theme: 'dark', seconds: 14, stills: ['list', 'guide'] },
-  { name: 'live-see-this-pass', device: 'phone', locale: 'en', theme: 'dark', seconds: 18, stills: ['watching', 'held', 'back-to-live'] },
-  { name: 'settings-language', device: 'phone', locale: 'en', theme: 'dark', seconds: 12, stills: ['settings', 'spanish'] },
-  { name: 'cold-open-to-pass', device: 'desktop', locale: 'en', theme: 'dark', seconds: 16, stills: ['cold-open', 'after-place', 'pass-open'] },
-  { name: 'live-scrubbing', device: 'desktop', locale: 'en', theme: 'dark', seconds: 18, stills: ['watching', 'scrubbing'] },
+  { name: 'first-run-en-dark', device: 'phone', locale: 'en', theme: 'dark', seconds: 14, at: SHOWCASE_NIGHT, stills: ['where', 'when', 'what', 'guide'] },
+  { name: 'first-run-en-night', device: 'phone', locale: 'en', theme: 'night', seconds: 14, at: SHOWCASE_NIGHT, stills: ['where', 'when', 'what', 'guide'] },
+  { name: 'first-run-es-dark', device: 'phone', locale: 'es', theme: 'dark', seconds: 14, at: SHOWCASE_NIGHT, stills: ['where', 'when', 'what', 'guide'] },
+  { name: 'list-and-card', device: 'phone', locale: 'en', theme: 'dark', seconds: 14, at: SHOWCASE_NIGHT, stills: ['list', 'guide'] },
+  // At 05:00 nothing is up and the next rise is Tiangong's 05:48, so `[ see this pass ]` (FR-JUMP-1) holds a morning pass, not the evening's past `SHOWCASE_UNTIL` (D-690).
+  { name: 'live-see-this-pass', device: 'phone', locale: 'en', theme: 'dark', seconds: 18, at: SHOWCASE_NIGHT, stills: ['watching', 'held', 'back-to-live'] },
+  { name: 'settings-language', device: 'phone', locale: 'en', theme: 'dark', seconds: 12, at: SHOWCASE_NIGHT, stills: ['settings', 'spanish'] },
+  { name: 'cold-open-to-pass', device: 'desktop', locale: 'en', theme: 'dark', seconds: 16, at: SHOWCASE_NIGHT, stills: ['cold-open', 'after-place', 'pass-open'] },
+  { name: 'live-scrubbing', device: 'desktop', locale: 'en', theme: 'dark', seconds: 18, at: SHOWCASE_SHOWN, stills: ['watching', 'scrubbing'] },
 ];
 
 /** `promo/media/<flow>-<device>` — the stem every file of a flow shares. */
