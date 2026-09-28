@@ -1,0 +1,13 @@
+{
+  "fetchedAt": "2026-09-28T17:48:18Z",
+  "source": "https://historical-forecast-api.open-meteo.com/v1/forecast?latitude=51.5&longitude=-0.1&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high&start_date=2026-09-06&end_date=2026-09-08&timezone=auto&timeformat=unixtime",
+  "kind": "historical-forecast reconstruction",
+  "cell": {
+    "lat": 51.5,
+    "lon": -0.1
+  },
+  "observer": "London, England, United Kingdom (51.50853, -0.12574), the dome flows' observer of SPEC FR-SHOW-9 as amended by V22-20, rounded to its 0.1° cell (PLAN D-37)",
+  "timezone": "Europe/London",
+  "coverage": "72 hourly samples, 2026-09-05T23:00Z to 2026-09-08T22:00Z (local midnight to 23:00 over 2026-09-06..08), all four cloud series present with no nulls",
+  "note": "Verbatim body (re-indented), captured with curl and an Origin header; the response carried access-control-allow-origin: *. Not a forecast fetched at the time it describes: Open-Meteo's historical-forecast endpoint assembles the body after the fact from archived model runs, in the forecast API's own shape (SPEC V22-17, V22-20; PLAN D-686, D-696). Open-Meteo answered HTTP 200 with empty bodies for about an hour before this capture. The response's own latitude/longitude are the model grid point, not the requested cell."
+}

@@ -13,7 +13,7 @@
  * `tests/docs/showcase.test.ts` and `tests/docs/promo.test.ts` can hold every
  * instant a recording shows to the night and to `SHOWCASE_UNTIL`.
  */
-import { SHOWCASE_NIGHT } from './observers';
+import { DOME_NIGHT, SHOWCASE_NIGHT } from './observers';
 
 export const MEDIA_DIR = 'promo/media';
 
@@ -78,6 +78,10 @@ export const PROMO_FLOWS: readonly PromoFlow[] = [
   { name: 'settings-language', device: 'phone', locale: 'en', theme: 'dark', seconds: 12, at: SHOWCASE_NIGHT, stills: ['settings', 'spanish'] },
   { name: 'cold-open-to-pass', device: 'desktop', locale: 'en', theme: 'dark', seconds: 16, at: SHOWCASE_NIGHT, stills: ['cold-open', 'after-place', 'pass-open'] },
   { name: 'live-scrubbing', device: 'desktop', locale: 'en', theme: 'dark', seconds: 18, at: SHOWCASE_SHOWN, stills: ['watching', 'scrubbing'] },
+  // P9 (FR-SHOW-6 as amended, V22-20, D-696): the dome over London playing at 60×, eleven passes and up to five at once,
+  // on each device. `crowded` is about five minutes of sky in, `overhead` Okean-O near its 88° peak at 21:47.
+  { name: 'dome-playback', device: 'phone', locale: 'en', theme: 'dark', seconds: 32, at: DOME_NIGHT, stills: ['crowded', 'overhead'] },
+  { name: 'dome-playback', device: 'desktop', locale: 'en', theme: 'dark', seconds: 32, at: DOME_NIGHT, stills: ['crowded', 'overhead'] },
 ];
 
 /** `promo/media/<flow>-<device>` — the stem every file of a flow shares. */

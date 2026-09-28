@@ -20,7 +20,7 @@ import { cellCentre } from '../../src/data/weatherCache';
 import { EPOCH_WARN_MS, epochIsOld, newestEpoch } from '../../src/lib/elementsAge';
 import { observerFromPlace } from '../../src/lib/place';
 import type { OmmRecord } from '../../src/model';
-import { BARILOCHE, BARILOCHE_FORECAST_FILE, BARILOCHE_GEOCODE_FILE, BARILOCHE_QUERY, FIXTURE_DATE, SHOWCASE_NIGHT, SHOWCASE_UNTIL, STORED_RUN_BARILOCHE_FILE } from '../e2e/observers';
+import { BARILOCHE, BARILOCHE_FORECAST_FILE, BARILOCHE_GEOCODE_FILE, BARILOCHE_QUERY, DOME_NIGHT, FIXTURE_DATE, LONDON, LONDON_FORECAST_FILE, LONDON_GEOCODE_FILE, LONDON_QUERY, SHOWCASE_NIGHT, SHOWCASE_UNTIL, STORED_RUN_BARILOCHE_FILE, STORED_RUN_LONDON_FILE } from '../e2e/observers';
 import { FAINT_MAG } from '../../src/lib/faint';
 import { BRIGHTEST_PASS, PROMO_FLOWS, SHOWCASE_SHOWN } from '../e2e/promoFlows';
 
@@ -206,5 +206,51 @@ describe('the showcase night (FR-SHOW-9)', () => {
     const night = run.passes.filter((candidate) => candidate.start.t < SHOWCASE_UNTIL);
     expect(Math.min(...night.map((candidate) => candidate.peakMagnitude))).toBe(pass.peakMagnitude);
     expect(pass.peakMagnitude).toBeCloseTo(-2.1, 1);
+  });
+});
+
+describe('the dome flows over London (FR-SHOW-9 as amended, V22-20, D-696)', () => {
+  const LONDON_ZONE = 'Europe/London';
+  const london = read<Forecast>(LONDON_FORECAST_FILE);
+  const londonMeta = read<{ kind?: string; cell: { lat: number; lon: number } }>(LONDON_FORECAST_FILE.replace(/\.json$/, '.meta.json'));
+  const londonRun = read<{ observer: unknown; computedAt: number; passes: (StoredPass & { end: { t: number } })[] }>(STORED_RUN_LONDON_FILE);
+  const dome = PROMO_FLOWS.filter((flow) => flow.name === 'dome-playback');
+
+  it('seeds the observer the place picker writes for the first result of `london`', () => {
+    expect(LONDON_QUERY).toBe('london');
+    const [first] = parseGeocodeBody(read<unknown>(LONDON_GEOCODE_FILE));
+    if (!first) throw new Error('the London geocode fixture has no result');
+    expect(LONDON).toEqual(observerFromPlace(first));
+    expect(LONDON).toMatchObject({ lat: 51.50853, lon: -0.12574, label: 'London, England, United Kingdom', source: 'geocode', timeZone: LONDON_ZONE });
+  });
+
+  it('records a phone and a desk flow, each from DOME_NIGHT and ending before SHOWCASE_UNTIL on the 6th', () => {
+    expect(dome.map((flow) => flow.device).sort()).toEqual(['desktop', 'phone']);
+    expect(new Date(DOME_NIGHT).toISOString()).toBe('2026-09-06T20:18:00.000Z');
+    for (const flow of dome) {
+      expect(flow.at).toBe(DOME_NIGHT);
+      // At 60× a flow's seconds are minutes of sky; the sky shown must stay short of the warning too.
+      expect(flow.at + flow.seconds * 60_000).toBeLessThan(SHOWCASE_UNTIL);
+    }
+  });
+
+  it('has the recorded forecast of London’s cell, clear over the half hour the flows play', () => {
+    expect(londonMeta.cell).toEqual(cellCentre(LONDON.lat, LONDON.lon));
+    expect(londonMeta.kind).toBe('historical-forecast reconstruction');
+    const { time, cloud_cover } = london.hourly;
+    expect(time).toHaveLength(72);
+    const hour = time.findIndex((t) => t * 1000 === Date.parse('2026-09-06T20:00:00Z'));
+    expect(cloud_cover[hour]).toBeLessThan(20);
+  });
+
+  it('crosses the dome with at least ten passes in the half hour from DOME_NIGHT, four or more up at once', () => {
+    expect(londonRun.observer).toEqual(LONDON);
+    expect(londonRun.computedAt).toBe(DOME_NIGHT);
+    const end = DOME_NIGHT + 32 * 60_000;
+    const inWindow = londonRun.passes.filter((pass) => pass.start.t < end && pass.end.t > DOME_NIGHT);
+    expect(inWindow.length).toBeGreaterThanOrEqual(10);
+    let most = 0;
+    for (let t = DOME_NIGHT; t < end; t += 30_000) most = Math.max(most, inWindow.filter((pass) => pass.start.t <= t && pass.end.t >= t).length);
+    expect(most).toBeGreaterThanOrEqual(4);
   });
 });

@@ -39,7 +39,7 @@ import { createHandler, createHandlerState } from '../src/worker/handlers';
 import type { WorkerResponse } from '../src/worker/protocol';
 import { passCellKey } from '../src/data/passesCache';
 // The instants, the places and the file names all belong to the suites that seed the runs, not to this script.
-import { BARILOCHE, FIXTURE_DATE, NEUQUEN, NINE_DAYS_ON, SHOWCASE_NIGHT, STORED_RUN_BARILOCHE_FILE, STORED_RUN_FILE } from '../tests/e2e/observers';
+import { BARILOCHE, DOME_NIGHT, FIXTURE_DATE, LONDON, NEUQUEN, NINE_DAYS_ON, SHOWCASE_NIGHT, STORED_RUN_BARILOCHE_FILE, STORED_RUN_FILE, STORED_RUN_LONDON_FILE } from '../tests/e2e/observers';
 
 const read = <T,>(path: string): T => JSON.parse(readFileSync(path, 'utf8')) as T;
 
@@ -86,6 +86,8 @@ async function main(): Promise<void> {
 
   await build(records, NEUQUEN, NINE_DAYS_ON, STORED_RUN_FILE);
   await build(records, BARILOCHE, SHOWCASE_NIGHT, STORED_RUN_BARILOCHE_FILE);
+  // P9 (D-696): the dome flows' run, over London on the evening of the 6th.
+  await build(records, LONDON, DOME_NIGHT, STORED_RUN_LONDON_FILE);
 }
 
 await main();

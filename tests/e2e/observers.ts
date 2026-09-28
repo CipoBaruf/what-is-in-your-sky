@@ -70,3 +70,21 @@ export const SHOWCASE_NIGHT = Date.parse('2026-09-06T08:00:00Z');
 export const SHOWCASE_UNTIL = Date.parse('2026-09-06T23:20:48Z');
 /** The finished 72 h run over `BARILOCHE` at `SHOWCASE_NIGHT`, which the recording run seeds; written by `scripts/build-stored-run.ts`. */
 export const STORED_RUN_BARILOCHE_FILE = 'tests/fixtures/stored-run-bariloche.json';
+
+/**
+ * P9 (FR-SHOW-9 as amended, V22-20, D-696): the dome flows' place. Over
+ * Bariloche in early September the dome holds one satellite at a time; over
+ * London on the evening of the 6th, eleven passes cross in 26 minutes and up
+ * to five are up at once, under a sky the recorded forecast has clear. Built
+ * the way `BARILOCHE` is: the first result the geocoder returns for `london`.
+ */
+export const LONDON_QUERY = 'london';
+export const LONDON_GEOCODE_FILE = 'tests/fixtures/open-meteo/2026-09-06-london-geocode.json';
+export const LONDON_FORECAST_FILE = 'tests/fixtures/open-meteo/2026-09-06-london-forecast.json';
+const firstLondon = parseGeocodeBody(JSON.parse(readFileSync(LONDON_GEOCODE_FILE, 'utf8')) as unknown)[0];
+if (!firstLondon) throw new Error(`${LONDON_GEOCODE_FILE} has no result`);
+export const LONDON: Observer = observerFromPlace(firstLondon);
+/** 2026-09-06 21:18 local (BST): a minute before the 26 minutes the dome flows play through at 60×, and three hours before `SHOWCASE_UNTIL`. */
+export const DOME_NIGHT = Date.parse('2026-09-06T20:18:00Z');
+/** The finished 72 h run over `LONDON` at `DOME_NIGHT`, which the dome flows seed; written by `scripts/build-stored-run.ts`. */
+export const STORED_RUN_LONDON_FILE = 'tests/fixtures/stored-run-london.json';
