@@ -120,9 +120,14 @@ describe('the recording run (FR-SHOW-6)', () => {
 
   it('converts each video on its own, so one ffmpeg failure costs one .mp4 and nothing else', () => {
     const spec = readFileSync(SPEC_FILE, 'utf8');
-    const convert = /function convert\(webm: string, mp4: string\): boolean \{\s*try \{[\s\S]*?execFileSync\('ffmpeg'[\s\S]*?return true;\s*\} catch/;
+    const convert = /function convert\(webm: string, mp4: string, device: [^{]*?\): boolean \{[\s\S]*?try \{[\s\S]*?execFileSync\('ffmpeg'[\s\S]*?return true;\s*\} catch/;
     expect(spec).toMatch(convert);
-    expect(spec).toMatch(/if \(convert\(target, mp4\)\) console\.log/);
+    expect(spec).toMatch(/if \(convert\(target, mp4, DEVICES\[device\]\)\) console\.log/);
+  });
+
+  it('crops a phone video to its page and scales it to the frame, since the screencast ignores the pixel ratio (D-690)', () => {
+    const spec = readFileSync(SPEC_FILE, 'utf8');
+    expect(spec).toMatch(/crop=\$\{String\(viewport\.width\)\}:\$\{String\(viewport\.height\)\}:0:0,scale=\$\{String\(frame\.width\)\}:\$\{String\(frame\.height\)\}:flags=lanczos/);
   });
 });
 
