@@ -112,7 +112,7 @@ async function still(page: Page, of: PromoFlow, name: string): Promise<void> {
 }
 
 /** The videos the file produced, moved by `afterAll`: where Playwright wrote each, and where it goes. */
-const recorded: { source: string; target: string }[] = [];
+const recorded: { source: string; target: string; device: PromoFlow['device'] }[] = [];
 
 /** The contexts still open, closed by `afterEach` if a flow failed before `done` (a failed take is still finished, in Playwright's output). */
 const open = new Set<BrowserContext>();
@@ -145,7 +145,7 @@ async function done(page: Page, of: PromoFlow): Promise<void> {
   const context = page.context();
   await context.close();
   open.delete(context);
-  recorded.push({ source: await video.path(), target: promoVideo(of) });
+  recorded.push({ source: await video.path(), target: promoVideo(of), device: of.device });
 }
 
 test.afterEach(async () => {
@@ -508,10 +508,18 @@ test.beforeAll(() => {
  * one throw in it would leave every later video in `test-results/`, which the
  * next run wipes.
  */
-function convert(webm: string, mp4: string): boolean {
+function convert(webm: string, mp4: string, device: (typeof DEVICES)[keyof typeof DEVICES]): boolean {
+  const { viewport, frame } = device;
+  // Chromium's screencast captures the page at its CSS size and ignores the device pixel ratio, so a
+  // phone's 1170 × 2532 file carries the page in its top-left 390 × 844 and grey padding in the rest
+  // (D-690). Where the frame is larger than the viewport, the page is cropped out and scaled up to the
+  // frame; otherwise libx264 with yuv420p only needs even dimensions.
+  const filter =
+    frame.width === viewport.width && frame.height === viewport.height
+      ? 'scale=trunc(iw/2)*2:trunc(ih/2)*2'
+      : `crop=${String(viewport.width)}:${String(viewport.height)}:0:0,scale=${String(frame.width)}:${String(frame.height)}:flags=lanczos`;
   try {
-    // libx264 with yuv420p wants even dimensions; the scale keeps them so whatever frame the screencast produced.
-    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', webm, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-movflags', '+faststart', mp4], { stdio: 'inherit' });
+    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', webm, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-vf', filter, '-movflags', '+faststart', mp4], { stdio: 'inherit' });
     return true;
   } catch (error) {
     console.log(`promo: ffmpeg failed on ${webm} (${error instanceof Error ? error.message : String(error)}); the .webm is the record, no ${mp4}`);
@@ -530,7 +538,7 @@ function convert(webm: string, mp4: string): boolean {
  */
 test.afterAll(() => {
   const ffmpeg = ffmpegOnPath();
-  for (const { source, target } of recorded) {
+  for (const { source, target, device } of recorded) {
     if (!existsSync(source)) {
       console.log(`promo: no video at ${source}, nothing written for ${target}`);
       continue;
@@ -542,7 +550,7 @@ test.afterAll(() => {
       console.log(`promo: ffmpeg is not on PATH, so no ${mp4}`);
       continue;
     }
-    if (convert(target, mp4)) console.log(`promo: wrote ${mp4} (${kb(mp4)})`);
+    if (convert(target, mp4, DEVICES[device])) console.log(`promo: wrote ${mp4} (${kb(mp4)})`);
   }
   for (const of of PROMO_FLOWS) {
     for (const name of shot.get(of.name) ?? []) console.log(`promo: wrote ${promoStill(of, name)} (${kb(promoStill(of, name))})`);
