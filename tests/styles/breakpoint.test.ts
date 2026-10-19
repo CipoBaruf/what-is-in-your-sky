@@ -374,11 +374,28 @@ describe('every media and container condition (FR-DS-3, D-702)', () => {
   it('holds the header’s four folds to HEADER_FOLD_PX, as `width <` and nothing else, under the wide breakpoint’s neighbours', () => {
     const folds = conditions.filter((c) => c.path === HEADER_PATH && c.comparator === '<').map((c) => Number.parseInt(c.value, 10));
     expect(folds.sort((a, b) => a - b)).toEqual(Object.values(HEADER_FOLD_PX).flatMap((fold) => Object.values(fold)).sort((a, b) => a - b));
+    // Each fold is held to its language and its line, not only to the set: the block under `width < HEADER_FOLD_PX[lang][line]` is the one that hides that language's title or tagline.
+    const header = readFileSync(HEADER_PATH, 'utf8');
+    for (const [lang, fold] of Object.entries(HEADER_FOLD_PX)) {
+      for (const [line, px] of Object.entries(fold)) {
+        const block = new RegExp(`@media \\(width < ${String(px)}px\\) \\{([^}]*\\{[^}]*\\})`).exec(header)?.[1] ?? '';
+        expect(block, `${lang} ${line} at ${String(px)}px`).toContain(`[lang='${lang}']`);
+        expect(block, `${lang} ${line} at ${String(px)}px`).toContain(line === 'title' ? '.fullTitle' : '.tagline');
+      }
+    }
     for (const [lang, fold] of Object.entries(HEADER_FOLD_PX)) {
       expect(fold.tagline, `${lang}: the tagline folds before the title`).toBeLessThan(fold.title);
       expect(fold.title).toBeLessThan(HOME_THREE_PANE_MIN_PX);
     }
-    expect(conditions.filter((c) => c.comparator === '<' && c.path !== HEADER_PATH).map((c) => Number.parseInt(c.value, 10)).sort()).toEqual([HOME_THREE_PANE_MIN_PX, FOOTER_ONE_LINE_MIN_PX.es].sort());
+    // The only other `width <` folds are the footer's two-line rule, one per language, each under its language's selector (R93, D-546).
+    const app = readFileSync(APP_PATH, 'utf8');
+    const footerFolds = conditions.filter((c) => c.comparator === '<' && c.path !== HEADER_PATH);
+    expect(footerFolds.map((c) => c.path)).toEqual([APP_PATH, APP_PATH]);
+    expect(footerFolds.map((c) => Number.parseInt(c.value, 10)).sort((a, b) => a - b)).toEqual([FOOTER_ONE_LINE_MIN_PX.en, FOOTER_ONE_LINE_MIN_PX.es].sort((a, b) => a - b));
+    for (const [lang, px] of Object.entries(FOOTER_ONE_LINE_MIN_PX)) {
+      const block = new RegExp(`@media \\(width >= \\d+px\\) and \\(width < ${String(px)}px\\) \\{([^}]*\\{[^}]*\\})`).exec(app)?.[1] ?? '';
+      expect(block, `footer ${lang} at ${String(px)}px`).toContain(`[lang='${lang}']`);
+    }
   });
 
   it('holds the chart frame’s container query to FRAME_LEGEND_MIN_CELLS, the one container query in the tree', () => {

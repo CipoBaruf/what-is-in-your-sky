@@ -6,8 +6,7 @@
  * made after it are identical when the rewrite changed no size, which is what
  * `breakpoint.test.ts` holds `breakpoints.json` to.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 export const UI_DIR = 'src/ui';
 export const BREAKPOINTS_PATH = 'tests/styles/breakpoints.json';
@@ -18,6 +17,8 @@ export interface Condition {
   value: string;
 }
 
+import { posix, walk, withoutComments } from './literals';
+
 export interface Query {
   /** `media` or `container`. */
   at: string;
@@ -26,20 +27,9 @@ export interface Query {
   conditions: Condition[];
 }
 
-/** Every `.css` file under `dir`, in directory order. */
+/** Every `.css` file under `dir`, posix paths relative to the root (the same walk and the same keys as `literals.ts`). */
 export function cssFiles(dir: string): string[] {
-  return readdirSync(dir)
-    .sort()
-    .flatMap((entry) => {
-      const path = join(dir, entry);
-      if (statSync(path).isDirectory()) return cssFiles(path);
-      return path.endsWith('.css') ? [path] : [];
-    });
-}
-
-/** The stylesheet with its comments cut out. */
-function stripComments(css: string): string {
-  return css.replace(/\/\*[\s\S]*?\*\//g, '');
+  return walk(dir, (path) => path.endsWith('.css')).map(posix);
 }
 
 /**
@@ -61,7 +51,7 @@ function parseCondition(text: string): Condition {
 
 /** Every `@media` / `@container` prelude in `css`, comments stripped, in source order. */
 export function queriesOf(css: string): Query[] {
-  return [...stripComments(css).matchAll(/@(media|container)([^{]*)\{/g)].map((match) => {
+  return [...withoutComments(css).matchAll(/@(media|container)([^{]*)\{/g)].map((match) => {
     const prelude = (match[2] ?? '').trim();
     const conditions = [...prelude.matchAll(/\([^()]*\)/g)].map((m) => parseCondition(m[0]));
     if (conditions.length === 0) throw new Error(`@${match[1] ?? ''} ${prelude}: no condition`);
@@ -74,14 +64,25 @@ export function conditionText({ feature, comparator, value }: Condition): string
   return `${feature} ${comparator} ${value}`;
 }
 
-/** The listing `breakpoints.json` holds: per file, each query as `@media` or `@container` and its conditions, in source order. */
+/**
+ * One query as the listing prints it: the prelude as written, each condition
+ * normalised to `(feature comparator value)` and the words between them —
+ * `and`, `or`, `not`, a comma — kept, so a rewrite that changes which sizes
+ * match is a changed line even when every number is the same.
+ */
+export function queryText({ at, prelude }: Query): string {
+  const normalised = prelude.replace(/\([^()]*\)/g, (m) => `(${conditionText(parseCondition(m))})`).replace(/\s+/g, ' ').trim();
+  return `@${at} ${normalised}`;
+}
+
+/** The listing `breakpoints.json` holds: per file, each query in source order, as `queryText` prints it. */
 export type Listing = Record<string, string[]>;
 
 export function listing(dir: string = UI_DIR): Listing {
   const out: Listing = {};
   for (const path of cssFiles(dir)) {
     const queries = queriesOf(readFileSync(path, 'utf8'));
-    if (queries.length > 0) out[path] = queries.map(({ at, conditions }) => `@${at} ${conditions.map(conditionText).join(' and ')}`);
+    if (queries.length > 0) out[path] = queries.map(queryText);
   }
   return out;
 }

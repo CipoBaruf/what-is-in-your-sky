@@ -1,6 +1,6 @@
 {
   "src/ui/App.module.css": {
-    "count": 22,
+    "count": 23,
     "reason": "Seeded by R103 at ed8748a's count — 22 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
   },
   "src/ui/RootBoundary.module.css": {
@@ -84,7 +84,7 @@
     "reason": "Seeded by R103 at ed8748a's count — 3 px/rem/em lengths, 1 font-family; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
   },
   "src/ui/components/guide/skychart/window/CompassGutter.module.css": {
-    "count": 9,
+    "count": 10,
     "reason": "Seeded by R103 at ed8748a's count — 9 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
   },
   "src/ui/components/guide/skychart/window/SkyWindow.module.css": {
@@ -200,7 +200,7 @@
     "reason": "Seeded by R103 at ed8748a's count — 19 px/rem/em lengths, 1 outline rule, 6 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
   },
   "src/ui/styles/global.css": {
-    "count": 12,
+    "count": 14,
     "reason": "Seeded by R103 at ed8748a's count — 8 px/rem/em lengths, 1 z-index number, 3 outline rules; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
   }
 }

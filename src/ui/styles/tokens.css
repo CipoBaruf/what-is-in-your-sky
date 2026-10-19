@@ -100,8 +100,11 @@
      24 px for the compass names and 4 px of tick above them, the least that
      holds a name with a mark over it. `GUTTER_PX` in `window/gutter.ts` is the
      same number; `tests/styles/gutter.test.ts` holds the two together, and the
-     68 px it gives the drawing back is the strip's two `--tap` rows less this. */
-  --gutter: calc(7 * var(--row) / 6); /* 28 px */
+     68 px it gives the drawing back is the strip's two `--tap` rows less this.
+     A px on purpose, like the chart text tokens (OQ-38): the chip and the
+     notes are placed from `GUTTER_PX` in script, so a value that scaled with
+     the base font would leave the drawing and its gutter apart. */
+  --gutter: 28px;
 
   /* == type == */
   /* FR-DS-1, D-700: every size-and-line-height pair in use at `ed8748a`, one

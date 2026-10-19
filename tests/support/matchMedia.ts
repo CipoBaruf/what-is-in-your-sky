@@ -27,7 +27,7 @@ interface Registered {
 /**
  * `(min-width: 960px)` (`useLayoutMode`), since R61 `(min-width: …px) and (min-height: …px)` — the dome
  * ladder's queries (`useDomeStep`, D-314) — since R63 `(orientation: landscape)`, the follow screen's
- * (D-323), which is the stubbed size read the way CSS reads it: landscape unless it is taller than it is wide,
+ * (D-323), which is the stubbed size read the way CSS reads it: landscape only when it is wider than it is tall (a square is portrait),
  * and since R74 `(prefers-reduced-motion: reduce)`, which the mark asks (FR-MARK-5) and which is a
  * preference rather than a size, so it is answered from the stub's own switch. Nothing else: a query with
  * none of the four is a mistake, not a match.
@@ -45,7 +45,7 @@ function evaluate(query: string, widthPx: number, heightPx: number, reducedMotio
   const orientation = /orientation:\s*(landscape|portrait)/.exec(query);
   const motion = /prefers-reduced-motion:\s*(reduce|no-preference)/.exec(query);
   if (sizes.length === 0 && !orientation && !motion) throw new Error(`the matchMedia stub only understands width, height, orientation and prefers-reduced-motion queries, not "${query}"`);
-  const landscape = widthPx >= heightPx;
+  const landscape = widthPx > heightPx;
   return sizes.every(Boolean) && (!orientation || (orientation[1] === 'landscape') === landscape) && (!motion || (motion[1] === 'reduce') === reducedMotion);
 }
 

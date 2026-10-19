@@ -29,7 +29,7 @@ interface Allowance {
 
 export type AllowList = Record<string, Allowance>;
 
-function walk(dir: string, keep: (path: string) => boolean): string[] {
+export function walk(dir: string, keep: (path: string) => boolean): string[] {
   return readdirSync(dir)
     .sort()
     .flatMap((entry) => {
@@ -40,7 +40,7 @@ function walk(dir: string, keep: (path: string) => boolean): string[] {
 }
 
 /** Posix-style paths, so the allow-list keys are the same on every platform. */
-const posix = (path: string): string => relative('.', path).split(sep).join('/');
+export const posix = (path: string): string => relative('.', path).split(sep).join('/');
 
 export function stylesheets(): string[] {
   return walk(SRC_DIR, (path) => path.endsWith('.css'))
@@ -61,8 +61,10 @@ const HEX = /#[0-9a-f]{3,8}(?![\w-])/gi;
 const FUNCTION_COLOUR = /\b(rgba?|hsla?)\(/g;
 const COLOR_MIX = /color-mix\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g;
 const WORD = /(?<![\w-])([a-z]+)(?![\w-])/gi;
-/** A `px`, `rem` or `em` number: not part of a longer word or a token name, and not `0`. */
-const LENGTH = /(?<![\w.-])(\d*\.?\d+)(px|rem|em)(?![\w-])/g;
+/** A `px`, `rem` or `em` number, negative or not: not part of a longer word or a token name, and not `0`. */
+const LENGTH = /(?<![\w.-])(-?\d*\.?\d+)(px|rem|em)(?![\w-])/g;
+/** The inline-style keys React takes unitless, where a bare number is not a length (`zIndex` is counted apart, as a stacking level). */
+const UNITLESS = new Set(['opacity', 'flex', 'flexGrow', 'flexShrink', 'lineHeight', 'fontWeight', 'order', 'zoom', 'tabSize', 'columnCount', 'gridRow', 'gridColumn', 'gridRowStart', 'gridRowEnd', 'gridColumnStart', 'gridColumnEnd', 'animationIterationCount', 'aspectRatio']);
 
 /** The colour literals in one declaration value. */
 function colourLiterals(value: string): string[] {
@@ -78,9 +80,14 @@ function lengthLiterals(value: string): string[] {
   return [...value.matchAll(LENGTH)].filter((m) => Number(m[1]) !== 0).map((m) => m[0]);
 }
 
-/** Comments blanked (not cut, so line numbers hold) and every `@media`/`@container` prelude cut to its keyword (D-702: those are `breakpoint.test.ts`'s). */
+/** The stylesheet with its comments blanked, not cut, so line numbers hold. */
+export function withoutComments(css: string): string {
+  return css.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, ' '));
+}
+
+/** Comments blanked and every `@media`/`@container` prelude cut to its keyword (D-702: those are `breakpoint.test.ts`'s). */
 function prepared(css: string): string {
-  return css.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, ' ')).replace(/@(media|container|supports)[^{]*\{/g, (prelude, kind: string) => `@${kind}${' '.repeat(prelude.length - kind.length - 2)}{`);
+  return withoutComments(css).replace(/@(media|container|supports)[^{]*\{/g, (prelude, kind: string) => `@${kind}${' '.repeat(prelude.length - kind.length - 2)}{`);
 }
 
 const lineOf = (text: string, index: number): number => text.slice(0, index).split('\n').length;
@@ -90,7 +97,8 @@ export function scanStylesheet(path: string, css: string = readFileSync(path, 'u
   const text = prepared(css);
   const inPrimitives = path.startsWith(`${PRIMITIVES_DIR}/`);
   const found: Literal[] = [];
-  for (const m of text.matchAll(/([a-z-]+)\s*:\s*([^;{}]*?)\s*;/g)) {
+  // A declaration ends at `;` or at the block's `}` (the last one in a block may have no `;`).
+  for (const m of text.matchAll(/([a-z-]+)\s*:\s*([^;{}]*?)\s*(?:;|(?=\}))/g)) {
     const property = m[1] ?? '';
     const value = m[2] ?? '';
     const line = lineOf(text, m.index);
@@ -100,7 +108,7 @@ export function scanStylesheet(path: string, css: string = readFileSync(path, 'u
     if (property.startsWith('--') || property === '') continue;
     for (const colour of colourLiterals(value)) at('colour', colour);
     for (const length of lengthLiterals(value)) at('length', length);
-    if (property === 'z-index' && /^\d/.test(value)) at('z-index', value);
+    if (property === 'z-index' && /^-?\d/.test(value)) at('z-index', value);
     if (property.startsWith('outline') && `${property}: ${value}` !== 'outline-offset: var(--focus-offset-tight)') at('outline', value);
     if (property === 'font-family' && value !== 'var(--font-mono)') at('font-family', value);
     if (property === 'content' && !inPrimitives && /^(['"])(\[ | \])\1$/.test(value)) at('bracket', value);
@@ -166,7 +174,11 @@ export function scanComponent(path: string, source: string = readFileSync(path, 
       const literal = /^(['"])(.*)\1$/.exec(value)?.[2] ?? (/^`([^$]*)`$/.exec(value)?.[1] ?? null);
       if (literal !== null) {
         if (colourLiterals(literal).length > 0 || lengthLiterals(literal).length > 0) found.push({ kind: 'inline-style', line, text: `${key}: ${value}` });
-      } else if (/^\d*\.?\d+$/.test(value) && Number(value) !== 0) found.push({ kind: 'inline-style', line, text: `${key}: ${value}` });
+      } else if (/^-?\d*\.?\d+$/.test(value) && Number(value) !== 0) {
+        // A bare number is a px length to React, except on the unitless keys; a bare `zIndex` is a stacking level.
+        if (key === 'zIndex') found.push({ kind: 'z-index', line, text: `${key}: ${value}` });
+        else if (!UNITLESS.has(key)) found.push({ kind: 'inline-style', line, text: `${key}: ${value}` });
+      }
     }
   }
   return found;

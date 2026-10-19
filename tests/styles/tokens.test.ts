@@ -58,6 +58,7 @@ describe('tokens.css sections (FR-DS-1, D-700)', () => {
     for (const name of ['space', 'edges', 'layers'] as const) {
       for (const [key, value] of section(name)) {
         if (key === 'space-block') continue; // V23-5: 1.2 rem, kept at its value beside the scale (OQ-37)
+        if (key === 'gutter') continue; // FR-GUT-1: 28 px on purpose, pinned to `GUTTER_PX` in script (gutter.test.ts holds the two equal)
         expect(value, `--${key}: ${value}`).not.toMatch(BARE_LENGTH);
         expect(value, `--${key}: ${value}`).toMatch(GRID_WRITTEN);
       }

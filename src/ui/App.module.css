@@ -360,9 +360,9 @@
    what the live page's folds do with their air (FR-SHP-3) — so When holds its
    stripe, table and next event at 1118 × 700 in Spanish, where the pane at the
    three-pane literal is 35 cells (D-443's lean) and one table row wraps. The
-   query is a height, so it is not one of the three width literals
-   `tests/styles/breakpoint.test.ts` holds; `tests/e2e/home-desk.spec.ts` is
-   what pins it. */
+   query is a height, `WIDE_SHORT_MAX_HEIGHT_PX` in `lib/layout.ts`, held like
+   the widths by `tests/styles/breakpoint.test.ts` (R103, D-702);
+   `tests/e2e/home-desk.spec.ts` is what shows it folding. */
 @media (width >= 964px) and (height <= 720px) {
   .main {
     --short-window: 0.5;
