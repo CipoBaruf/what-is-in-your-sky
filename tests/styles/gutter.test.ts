@@ -14,15 +14,15 @@ import { GUTTER_PX } from '../../src/ui/components/guide/skychart/window/gutter'
 const tokens = readFileSync('src/ui/styles/tokens.css', 'utf8');
 const gutterCss = readFileSync('src/ui/components/guide/skychart/window/CompassGutter.module.css', 'utf8');
 
-/** A root token's px value at the 16 px base: `Npx`, `Nrem`, or `calc(K * var(--row))`. */
+/** A root token's px value at the 16 px base: `Npx`, `Nrem`, `calc(K * var(--row))` or, since R103 (FR-DS-1), `calc(K * var(--row) / M)`. */
 function px(name: string): number {
   const match = new RegExp(`--${name}:\\s*([^;]+);`).exec(tokens);
   const value = match?.[1]?.trim();
   if (!value) throw new Error(`no --${name} in tokens.css`);
   const literal = /^(\d+(?:\.\d+)?)(px|rem)$/.exec(value);
   if (literal) return Number(literal[1]) * (literal[2] === 'rem' ? 16 : 1);
-  const times = /^calc\((\d+(?:\.\d+)?) \* var\(--([a-z-]+)\)\)$/.exec(value);
-  if (times?.[2]) return Number(times[1]) * px(times[2]);
+  const times = /^calc\((\d+(?:\.\d+)?) \* var\(--([a-z-]+)\)(?: \/ (\d+))?\)$/.exec(value);
+  if (times?.[2]) return (Number(times[1]) * px(times[2])) / Number(times[3] ?? 1);
   throw new Error(`--${name}: cannot read ${value}`);
 }
 

@@ -8,7 +8,7 @@ import { act, render } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { useRef } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { CHART_MARK_TOKENS, CHART_SURFACE_TOKENS, readTokens, TOKENS_PATH } from '../../../../../../scripts/contrast';
+import { CHART_MARK_TOKENS, CHART_RESERVED_TOKENS, CHART_SURFACE_TOKENS, readTokens, TOKENS_PATH } from '../../../../../../scripts/contrast';
 import { CHART_TOKENS, MEANINGS, readPalette, useDomePalette, type DomeMeaning } from './palette';
 
 const source = readFileSync('src/ui/components/guide/skychart/dome/palette.ts', 'utf8');
@@ -36,8 +36,10 @@ afterEach(() => {
 });
 
 describe('dome palette', () => {
-  it('names every FR-DOME-2 token tokens.css defines, and no others', () => {
-    const declared = [...CHART_MARK_TOKENS, ...CHART_SURFACE_TOKENS].map((name) => `--${name}`).sort();
+  // R103 (FR-DS-8): the four star tokens are reserved — in the sheet, measured, and drawn by nothing until v2.4.
+  it('names every FR-DOME-2 token tokens.css defines but the reserved four, and no others', () => {
+    const reserved = new Set<string>(CHART_RESERVED_TOKENS);
+    const declared = [...CHART_MARK_TOKENS.filter((name) => !reserved.has(name)), ...CHART_SURFACE_TOKENS].map((name) => `--${name}`).sort();
     expect([...MEANINGS].map((meaning) => CHART_TOKENS[meaning]).sort()).toEqual(declared);
   });
 

@@ -2,6 +2,15 @@
    everywhere; `--cell` is one character advance and `--row` one text row, so
    layout aligns to the grid the sky dome is drawn on.
 
+   R103 (FR-DS-1, D-700): the sheet is sections the tests parse. `:root` is cut
+   under six markers — `grid`, `space`, `type`, `edges`, `layers`, `colour` —
+   and the night block is the seventh; `scripts/contrast.ts`'s `readSections`
+   reads them in order and `tests/styles/tokens.test.ts` holds the night block
+   to the colour section and the length sections to the grid. Every length a
+   module may use is a name here (`tests/styles/literals.test.ts`, FR-DS-2):
+   vertical space from `--row`, horizontal space in cells, the type ladder as
+   role-named size-and-row pairs, every edge, radius, ring and stacking level.
+
    Two themes (FR-THEME-1, R20). `:root` is the dark theme and holds the
    layout tokens as well; the night selector matches the same element and
    restates every *colour*, so the theme is a selector swap and no component
@@ -51,6 +60,9 @@
    carries a word or a bracketed marker, which is FR-X-5's rule that colour is
    never the only channel. */
 :root {
+  /* == grid == */
+  /* The source every other length is written from: one character advance, one
+     text row, the tap floor, and the one device pixel a rule is drawn with. */
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
   /* One character advance — of the family above that the device actually has,
      which R50 (F-10) is the correction that they do not all advance the same:
@@ -62,15 +74,88 @@
      inside the table's range. */
   --cell: 1ch;
   --row: 1.5rem;
+  /* G6: minimum tap target, two text rows (48 px at the 16 px base, above the 44 px floor). */
+  --tap: calc(2 * var(--row));
+  /* A hairline: one CSS pixel, the width of every rule, border and tight ring
+     offset. It is not a share of the row — a border is one device pixel
+     whatever the base size — so it is the one length here not written from
+     `--row`, and the edges below name it rather than write `1px` again. */
+  --hairline: 1px;
+
+  /* == space == */
+  /* FR-DS-1: the vertical scale, each step a share of the row, so what sits
+     between two blocks is always a whole number of quarter rows. Horizontal
+     space is in cells (`calc(2 * var(--cell))`) and stays so. */
+  --space-1: calc(var(--row) / 4); /* 6 px */
+  --space-2: calc(var(--row) / 2); /* 12 px — the one name for 0.75rem, calc(var(--row) / 2) and 12px */
+  --space-3: var(--row); /* 24 px */
+  --space-4: calc(1.5 * var(--row)); /* 36 px */
+  --space-5: calc(2 * var(--row)); /* 48 px, = --tap */
+  /* FR-FIRST-1, FR-FIRST-2 (V20-23, V23-5): board 1B's block gap — the cold
+     open and the phone's steps put 1.2 rem (19 px) between blocks. It is the
+     home's contract and not a rounding error, so it keeps its value beside the
+     scale rather than joining it; whether it should is OQ-37's. */
+  --space-block: 1.2rem;
+  /* FR-GUT-1 (R79, D-450): the sky screen's compass gutter — one text row of
+     24 px for the compass names and 4 px of tick above them, the least that
+     holds a name with a mark over it. `GUTTER_PX` in `window/gutter.ts` is the
+     same number; `tests/styles/gutter.test.ts` holds the two together, and the
+     68 px it gives the drawing back is the strip's two `--tap` rows less this. */
+  --gutter: calc(7 * var(--row) / 6); /* 28 px */
+
+  /* == type == */
+  /* FR-DS-1, D-700: every size-and-line-height pair in use at `ed8748a`, one
+     name per pair, named for the role of the element that sets it and never
+     for the size, so a later collapse of the ladder (OQ-37) is a value change
+     and not a rename. The body is 16 px on the 24 px row (`--text-body`); the
+     table of which element uses which pair is PLAN D-710. No value changes in
+     this phase (FR-DS-5). */
+  --text-title: 2rem; /* 32 on 38: the next event's time on the home (NextEventBlock) */
+  --text-title-row: 2.375rem;
+  --text-countdown: 1.5rem; /* 24 on 48: the pass detail's live countdown headline (Countdown) */
+  --text-countdown-row: calc(2 * var(--row));
+  --text-question: 1.375rem; /* 22 on 28: the compact first-run question (FR-FIRST-1; App .coldHeading, Steps .heading) */
+  --text-question-row: 1.75rem;
+  --text-pane: 1.25rem; /* 20 on 26: the wide board's question and pane headings, the next-event card's time */
+  --text-pane-row: 1.625rem;
+  --text-heading: 1.25rem; /* 20 on the row: the sheet's and the guide panel's h2, the live readout and headline time */
+  --text-heading-row: var(--row);
+  --text-lead: 1.125rem; /* 18 on 30: the guide's prose (GuideText) */
+  --text-lead-row: calc(1.25 * var(--row));
+  --text-body: 1rem; /* 16 on 24: h1–h3, the card's name, the stripe's hour, the readout's offset */
+  --text-body-row: var(--row);
   /* R76 (board 1B, D-504): the redesign's second size of text — labels, notes,
      the step line and every sentence under a heading — at 14 px on a 20 px
      line. The body stays 16 on 24; `--cell` is still the body's advance, so a
      width written in cells is the same width whatever sits in it. */
   --small: 0.875rem;
   --small-row: 1.25rem;
-  /* G6: minimum tap target, two text rows (48 px at the 16 px base, above the 44 px floor). */
-  --tap: calc(2 * var(--row));
+  --text-stripe: var(--small); /* 14 on 18: the tonight stripe's and the ghost stripe's labels */
+  --text-stripe-row: 1.125rem;
+  /* The charts' text, in px on purpose (OQ-38): the drawings do not scale with
+     the base, so these are named for the size. 9 the degree labels, 11 the
+     dome's labels and the polar key, 12 the compass and the dome key, 14 the
+     window's key, 15 the window's major compass points. */
+  --chart-text-9: 9px;
+  --chart-text-11: 11px;
+  --chart-text-12: 12px;
+  --chart-text-14: 14px;
+  --chart-text-15: 15px;
 
+  /* == edges == */
+  /* FR-DS-1: the plain-character borders, the three radii in use, the one
+     focus ring (`global.css`'s `:focus-visible`, D-704) and the bold weight. */
+  --border: var(--hairline) solid var(--rule); /* dividers and card frames */
+  --border-control: var(--hairline) solid var(--edge); /* an input's or a button's boundary (WCAG 1.4.11) */
+  --radius-0: 0;
+  --radius-1: var(--hairline);
+  --radius-2: calc(var(--row) / 12); /* 2 px */
+  --focus-ring: calc(var(--row) / 12); /* 2 px, the ring's width */
+  --focus-offset: calc(var(--row) / 12); /* 2 px, the ring's offset */
+  --focus-offset-tight: var(--hairline); /* the two stripes' ring sits closer (TimeStripe, StripeOverview) */
+  --weight-bold: 700;
+  /* FR-FOL-5 (R56, D-278): how much of the ground token the sky window's hatch tile shows through. */
+  --window-fill-opacity: 0.88;
   /* FR-FSC-3 (R62, D-322): how much of the theme's surface colour the sky
      screen's two overlays — the facing readout and the legend strip — put
      between their text and the drawing under them. One number for both, in one
@@ -82,13 +167,12 @@
      mixed with is `--bg-raised`, which each theme already sets. */
   --screen-overlay-alpha: 85%;
 
-  /* FR-GUT-1 (R79, D-450): the sky screen's compass gutter — one text row of
-     24 px for the compass names and 4 px of tick above them, the least that
-     holds a name with a mark over it. `GUTTER_PX` in `window/gutter.ts` is the
-     same number; `tests/styles/gutter.test.ts` holds the two together, and the
-     68 px it gives the drawing back is the strip's two `--tap` rows less this. */
-  --gutter: 28px;
-
+  /* == layers == */
+  /* FR-DS-1: every `z-index` in the tree, named for what stands at it. */
+  --z-raised: 1; /* a badge or a card's control lifted over its neighbours; the chart's bottom overlay */
+  --z-raised-2: 2; /* over the raised: the moon glare's and the cloud badge's popover, the sky screen's veil */
+  --z-sheet: 10; /* the pass detail's full-screen sheet */
+  --z-overlay: 20; /* the shortcuts overlay */
   /* FR-FSC-1 (R64, D-321): the sky screen's stacking order. The layer is
      over everything the live page has — its one-row header included, which is
      covered rather than unmounted — so the number is above the two the app
@@ -96,7 +180,9 @@
      overlay at 20). It is a token and not a third literal because it is the
      only one whose meaning is "above the whole page". */
   --z-screen: 30;
+  --z-banner: 100; /* the skip link, drawn over whatever is at the top-left when focused */
 
+  /* == colour == */
   --bg: #0b0f14;
   --bg-raised: #161c24;
   --fg: #d5dbe3;
@@ -123,6 +209,16 @@
   --chart-ground: #161c24; /* 1.12 : 1 — base layer, the ground disc */
   --chart-sky: #1d2733; /* 1.27 : 1 — base layer, the sky bowl */
 
+  /* FR-DS-8 (R103): four marks reserved for the stars, so v2.4 draws from the
+     sheet and does not open it. The star is in `--fg`'s class (≥ 10 : 1), the
+     dim star in `--fg-dim`'s (≥ 4.5 : 1), the figure — a constellation line,
+     never text — in `--chart-rings`' (≥ 3 : 1), and the planet apart from a
+     star in lightness and, here, in hue (≥ 7 : 1). Nothing draws with them yet. */
+  --chart-star: #e3e8ee; /* 15.60 : 1 — a star */
+  --chart-star-dim: #8a94a1; /* 6.25 : 1 — a faint star */
+  --chart-figure: #5a7088; /* 3.76 : 1 — a constellation line */
+  --chart-planet: #f2c27a; /* 11.69 : 1 — a planet, gold against the stars' white */
+
   /* FR-LIVE-2 (R32, D-158): the live page draws every pass of the coming 24 h
      at once, one colour per satellite in pass order, from these six. Six
      hues a normal eye tells apart on the dark ground, each clearing the 3 : 1
@@ -146,7 +242,8 @@
    the page around it are one set of reds rather than two. It runs out of
    headroom at the dim end, not the bright end, which is why `--fg-dim` is the
    shadow red and `--edge` the ring red: below those there is nothing left
-   that clears 4.5 : 1 and 3 : 1. */
+   that clears 4.5 : 1 and 3 : 1. The block restates every token of the colour
+   section and nothing else (FR-THEME-1 as amended v2.3, V23-3). */
 [data-theme="night"] {
   --bg: #0a0202;
   --bg-raised: #1a0806;
@@ -172,6 +269,12 @@
   --chart-moon: #ffb3a0; /* 11.94 : 1 */
   --chart-ground: #160505; /* 1.03 : 1 */
   --chart-sky: #1e0908; /* 1.07 : 1 */
+
+  /* FR-DS-8: the planet is apart from the star by lightness alone here — the night theme has one hue. */
+  --chart-star: #ffc0b0; /* 13.12 : 1 */
+  --chart-star-dim: #cc5848; /* 4.95 : 1 */
+  --chart-figure: #9b4238; /* 3.16 : 1 */
+  --chart-planet: #ff9a70; /* 9.89 : 1 */
 
   --chart-series-1: #ff5c4a; /* 6.73 : 1 */
   --chart-series-2: #ffa07a; /* 10.33 : 1 */
