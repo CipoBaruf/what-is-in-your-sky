@@ -2868,7 +2868,8 @@ Decision blocks (§16.2), reserved in PLAN §16.20: **R103 D-710..D-713, R104 D-
 
 ### Wave 1
 
-- [ ] **R103 — The sheet and the literals test: `tokens.css` in sections, the scales named from the grid, the four chart tokens, the literals test seeded, every breakpoint named and in range syntax**
+- [x] **R103 — The sheet and the literals test: `tokens.css` in sections, the scales named from the grid, the four chart tokens, the literals test seeded, every breakpoint named and in range syntax**
+  - **Done (2026-10-19, D-710..D-713):** as written, with four things decided. The type table is D-710 (eight role pairs — `title`, `countdown`, `question`, `pane`, `heading`, `lead`, `body`, `stripe` — and the five `--chart-text-*`); the grid carries `--hairline: 1px` and the edges name it (D-711); the four star tokens are marks the tokens test measures and the dome palette test excludes (D-712); the header's four folds are `HEADER_FOLD_PX`, the script's three queries are range syntax too, `LANDSCAPE_PHONE_MAX_HEIGHT_PX` is `SIDEWAYS_MAX_HEIGHT_PX`, and `width <` stays `<` (D-713). The allow-list seeds 240 literals in 51 files (no colour, no inline style); the listing has 21 conditions in 9 files and did not change across the rewrite. `git diff --stat origin/main -- src/` names `tokens.css`, `layout.ts`, the eight query modules, and two test companions (`scrubPlacement.test.ts` for the rename, `dome/palette.test.tsx` for the reserved four); `contrast.ts` is under `scripts/`.
   - **Lane:** ui
   - **Model:** fable
   - **Review:** opus
