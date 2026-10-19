@@ -30,6 +30,8 @@
 | Scope (v2.2) | Spec Phase 2i "the showcase": **P6, R102, P3, P4, P5** in the `## v2.2 tasks` block below, five tasks, three waves, two lanes (`docs`, `ui`), every task on `fable` with an `opus` review, 500 turns and no fallback (V22-13, D-659); the address first, the dead code alone and last (PLAN §16.18). |
 | Inputs (v2.2.1) | `SPEC.md` v2.2.1, `PLAN.md` v0.9.1 (Decision Log V22-16..V22-19 and Decisions D-682..D-686, with §16.19 treated as fixed) |
 | Scope (v2.2.1) | Spec Phase 2j "the Bariloche night": **P7, P8** in the `## v2.2.1 tasks` block below, two tasks, two waves, one lane (`ui`), both on `fable` with an `opus` review, 500 turns and no fallback (V22-19); the recordings first, behind the owner's fixtures commit (PLAN §16.19). |
+| Inputs (v2.3) | `SPEC.md` v2.3, `PLAN.md` v0.10 (Decision Log V23-1..V23-10 and Decisions D-700..D-709, with §16.20 treated as fixed) |
+| Scope (v2.3) | Spec Phase 2k "the design system": **R103–R110** in the `## v2.3 tasks` block below, eight tasks, eight waves of one, every task alone across every lane's directories (PLAN D-709, D-655's rule), on `fable` with an `opus` review, 500 turns and no fallback (D-659); the sheet first, the re-shoot and the release last (PLAN §16.20). |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |
 
 ## Conventions
@@ -2849,3 +2851,227 @@ graph LR
   - **Gate:** owner
   - **Depends on:** P7
   - **Satisfies:** FR-SHOW-6 and FR-SHOW-9 as amended (V22-20).
+
+## v2.3 tasks
+
+Draft, cut 2026-10-19 from `SPEC.md` v2.3 and `PLAN.md` v0.10, for review. Spec Phase 2k, "the design system": the look the app has had since R12 written down once — every value a token in `tokens.css` written from the grid, eight primitives under `ui/components/primitives/` as the only place a control, a card, a rule, a line or a field is styled, a literals test that fails CI on a hex, a length or a stacking level outside the sheet, and `docs/DESIGN.md` generated from the sheet and the primitives with a dev-only page beside it (FR-DS-1..9). One visible change, F-98's dome degree labels at AA (V23-5); everything else is a rename the re-shot capture set proves byte-identical (V23-2).
+
+Delivery is PLAN §16 unchanged, cut by §16.20: eight tasks over eight waves of one. Every task but the last is `ui` with every lane's directories in scope and runs alone (D-709, D-655's rule), because each primitive deletes CSS in `ui`, `live`, `chart` and `window` modules and lowers the one allow-list. The chain is strict: R104..R107 each lower `literals.allow.json`; R104 and R105 both touch `PassCard.module.css`; R104 and R106 both touch the location modules; R108 reads the manifest the four primitive tasks fill; R109's diff is only meaningful once every module is settled.
+
+**Sessions for this phase** (D-659): every task runs on `fable`, is reviewed on `opus`, has 500 implementation turns and `Fallback: off`.
+
+Decision blocks (§16.2), reserved in PLAN §16.20: **R103 D-710..D-713, R104 D-714..D-717, R105 D-718..D-721, R106 D-722..D-724, R107 D-725..D-727, R108 D-728..D-731, R109 D-732..D-735, R110 D-736..D-738**. D-700..D-709 are the plan's.
+
+**Precondition:** none. The phase needs nothing the owner must commit first; the stylesheets, the tests and the scripts are all in the tree.
+
+**The rule every task keeps** (FR-DS-5, D-708): what is drawn does not change. A task's own proof is the committed `v1-*` captures its modules draw, re-shot locally and byte-identical; the phase's proof is `captures.yml` on R109's branch. A task that finds a pixel moving stops and records which file and why in its Done note rather than re-baselining.
+
+### Wave 1
+
+- [ ] **R103 — The sheet and the literals test: `tokens.css` in sections, the scales named from the grid, the four chart tokens, the literals test seeded, every breakpoint named and in range syntax**
+  - **Lane:** ui
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** none
+  - **Reads:** SPEC §4.45 whole (FR-DS-1..9), FR-X-6 and FR-THEME-1 as amended, US-37, §9 Phase 2k, §12 V23-1..V23-10; PLAN §2.38 (D-700..D-709), §9.6, §16.20; `src/ui/styles/tokens.css` whole; `tests/styles/literals.allow.json`; `scripts/contrast.ts`, `tests/styles/tokens.test.ts` and `tests/styles/breakpoint.test.ts` whole; `src/lib/layout.ts`'s exports; PLAN D-50, D-100, D-259; SPEC F-10.
+  - **Goal:** every value a module may use is a named token in one sheet the tests parse, nothing on screen moves, and from this commit on a new literal in a module fails `npm test`.
+  - **Satisfies:** FR-DS-1, FR-DS-2, FR-DS-3, FR-DS-8; FR-THEME-1 as amended; US-37 AC3.
+  - **Scope (SPEC FR-DS-1..3, FR-DS-8; PLAN D-700..D-702):**
+    - `src/ui/styles/tokens.css` re-cut under the seven markers (`grid`, `space`, `type`, `edges`, `layers`, `colour`, the night block), every length a `calc()` from `--row` or `--cell`: `--space-1..5` and `--space-block` (1.2 rem, FR-FIRST-1/2); `--text-<role>` / `--text-<role>-row` for the six rem sizes and five line heights in use, named for the role of the element that uses them and tabled in the task's first decision; `--chart-text-9/11/12/14/15`; `--border`, `--border-control`, `--radius-0/1/2`, `--focus-ring`, `--focus-offset`, `--focus-offset-tight`, `--weight-bold`, `--window-fill-opacity`; `--z-raised`, `--z-raised-2`, `--z-sheet`, `--z-overlay`, `--z-screen` (30, kept), `--z-banner`; `--chart-star`, `--chart-star-dim`, `--chart-figure`, `--chart-planet` with a dark and a night value each at FR-DS-8's ratios. No existing token's value changes.
+    - `scripts/contrast.ts`: `readSections(css)`; `CHART_MARK_TOKENS` gains the four. `tests/styles/tokens.test.ts`: the night set equals the colour section's; the length sections carry no bare length; the four chart tokens measured; the existing contrast table kept.
+    - `tests/styles/literals.test.ts` and `tests/styles/literals.allow.json` per D-701: every stylesheet under `src/` but `tokens.css`, plus inline `style` objects in `src/ui/**/*.tsx`; the allow-list keyed by file, seeded at the day's counts with a one-line reason each, a count that no longer matches failing in either direction. The test is in `npm test`'s `node` project.
+    - `src/lib/layout.ts`: `SIDEWAYS_MAX_HEIGHT_PX` (500), `SHORT_MAX_HEIGHT_PX` (700), `WIDE_SHORT_MAX_HEIGHT_PX` (720), `FRAME_LEGEND_MIN_CELLS` (62), each with a comment saying which rows it folds. `tests/styles/breakpoints.json`, the listing of every `@media` and `@container` condition as `(feature, comparator, value)`, committed **before** the rewrite; then every condition in `src/ui/**` rewritten to range syntax (`(width >= 964px)`, `(height <= 700px)`); `tests/styles/breakpoint.test.ts` holds each condition to a `layout.ts` export, to the syntax, and to the listing, which does not change.
+    - Modules are touched for the query rewrite only; no other rule in any module changes in this task.
+  - **Touches outside the lane:** every `*.module.css` under `src/ui/components/live/`, `guide/skychart/` and `guide/skychart/window/` (the query rewrite), `src/lib/layout.ts`.
+  - **Out of scope:** any primitive; any module's bracket, border, padding or outline rule; `docs/DESIGN.md`; the dev page; F-98.
+  - **Done when:**
+    - `npx vitest run tests/styles` passes: `tokens.test.ts` with the night-set and the four chart rows, `literals.test.ts` against the seeded allow-list, `breakpoint.test.ts` with the listing identical to the committed one.
+    - The Done note carries the type table (the task's first decision), the allow-list's seeded total, and `git diff --stat origin/main -- src/` naming `tokens.css`, `layout.ts`, `contrast.ts` and the modules whose queries were rewritten and nothing else.
+    - `npm test`, lint, typecheck and `npm run e2e` green; `npx vitest run tests/styles` green with no new allow-list entry.
+    - `git diff --stat origin/main -- docs/screenshots public/` empty, and a local `npx playwright test v1-captures` leaves every committed `v1-*` file it re-shoots byte-identical (F-99's sub-pixel files excepted, named in the Done note).
+
+### Wave 2
+
+- [ ] **R104 — The controls: `TextButton`, `BracketLink` and `ToggleGroup`; `OptionToggle` moved; the 21 bracket modules and the three private toggles onto them**
+  - **Lane:** ui
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** owner
+  - **Depends on:** R103
+  - **Reads:** SPEC §4.45 whole (FR-DS-1..9), FR-X-6 and FR-THEME-1 as amended, US-37, §9 Phase 2k, §12 V23-1..V23-10; PLAN §2.38 (D-700..D-709), §9.6, §16.20; `src/ui/styles/tokens.css` whole; `tests/styles/literals.allow.json`; `src/ui/components/common/OptionToggle.tsx` + module + test, `src/ui/components/passes/SortToggle.tsx`, `src/ui/components/live/PlaybackControls.tsx`, `tests/styles/controlRows.test.ts`; PLAN D-441, D-549, D-703..D-705; SPEC FR-COMP-4, FR-X-5.
+  - **Goal:** every `[ label ]` control and every `[x] option` row in the app is one of three primitives, the brackets are written in two files, and no row's text, role or pixels move.
+  - **Satisfies:** FR-DS-4 (items 1–3); US-37 AC2.
+  - **Scope (SPEC FR-DS-4; PLAN D-703, D-704, D-705):**
+    - `src/ui/components/primitives/`: `TextButton` (`label`, `onClick`, `disabled`, `tone`, `pressed`), `BracketLink` (`href`, `label`, `current`), `OptionToggle` moved from `common/` with its test, `ToggleGroup` (`role`, a group label, arrow keys); one `.module.css` each, brackets as `::before`/`::after` in `TextButton` and `BracketLink` only, the reset once; `manifest.ts` with the four rows and `manifest.test.ts` (D-703); a component test per primitive in both themes.
+    - `eslint.config.js`: the primitives zone (D-703) — no import of `src/state`, `src/lib`, `src/i18n`, `src/data` or another `src/ui/**` directory.
+    - The 21 modules that draw brackets today lose the `::before`/`::after`, the reset and the accent; their components render `TextButton` or `BracketLink`. `SortToggle` and `PlaybackControls` keep their files and copy and render `ToggleGroup`; the chart view control is a group too. The allow-list's entries for those files fall.
+  - **Touches outside the lane:** `src/ui/components/live/PlaybackControls.tsx` + module, `src/ui/components/guide/**` modules that draw a bracket, `eslint.config.js`, the allow-list.
+  - **Out of scope:** `Card`, `Rule`, `Line`, `Field`, the layout helpers (R105–R107); any string in the catalogs; any new control.
+  - **Done when:**
+    - `npx vitest run src/ui/components/primitives tests/styles` passes; `controlRows.test.ts` unchanged and green; `rg -l 'content: *"\[ "' src --glob '*.css'` lists the two primitive modules and nothing else.
+    - The Done note carries the allow-list total before and after and the list of modules converted.
+    - `npm test`, lint, typecheck and `npm run e2e` green; `npx vitest run tests/styles` green with no new allow-list entry.
+    - `git diff --stat origin/main -- docs/screenshots public/` empty, and a local `npx playwright test v1-captures` leaves every committed `v1-*` file it re-shoots byte-identical (F-99's sub-pixel files excepted, named in the Done note).
+    - The owner's gate: the home, the live page and the settings page opened in both themes; every control looks as it did.
+
+### Wave 3
+
+- [ ] **R105 — The surfaces: `Card`, `Rule` and `Line`; `SectionHeading` moved; `PassCard`, `NextEventBlock`, the five status lines and the bare rules onto them**
+  - **Lane:** ui
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R104
+  - **Reads:** SPEC §4.45 whole (FR-DS-1..9), FR-X-6 and FR-THEME-1 as amended, US-37, §9 Phase 2k, §12 V23-1..V23-10; PLAN §2.38 (D-700..D-709), §9.6, §16.20; `src/ui/styles/tokens.css` whole; `tests/styles/literals.allow.json`; `src/ui/components/passes/PassCard.tsx` + module, `passes/NextEventBlock.tsx` + module, `common/FailureLine.tsx`, `common/ReadinessLine.tsx`, `common/VisitNotice.tsx`, `common/Banner.tsx`, `elements/ElementsLine.tsx` and their modules, `common/SectionHeading.tsx` + module; PLAN D-703, D-704; SPEC FR-FAIL-1, FR-A11Y-2, FR-X-5.
+  - **Goal:** a card, a divider and a status line are each one component; the five lines and the two cards keep their names, their copy and their pixels.
+  - **Satisfies:** FR-DS-4 (items 4–6).
+  - **Scope (SPEC FR-DS-4; PLAN D-703, D-704):**
+    - `primitives/`: `Card` (`as`, `selected`, children; `--border`, `--space-2` padding, the focus rule inherited), `Rule`, `SectionHeading` moved with its test, `Line` (`tone`, `children`, `actions`; the marker as the second channel); manifest rows, tests in both themes.
+    - `PassCard` and `NextEventBlock` built on `Card`; `FailureLine`, `ReadinessLine`, `VisitNotice`, `Banner` and `ElementsLine` rendered through `Line`; every bare `border-top`/`border-bottom` divider a `Rule`. The allow-list falls for each.
+  - **Touches outside the lane:** modules under `live/` or `guide/` that draw a bare rule, the allow-list.
+  - **Out of scope:** `Field` and the inputs (R106); the ring and the clip rule (R107); the legend's own table rules unless they are bare dividers.
+  - **Done when:**
+    - `npx vitest run src/ui/components/primitives src/ui/components/passes src/ui/components/common tests/styles` passes.
+    - The Done note carries the allow-list total before and after and the list of modules converted.
+    - `npm test`, lint, typecheck and `npm run e2e` green; `npx vitest run tests/styles` green with no new allow-list entry.
+    - `git diff --stat origin/main -- docs/screenshots public/` empty, and a local `npx playwright test v1-captures` leaves every committed `v1-*` file it re-shoots byte-identical (F-99's sub-pixel files excepted, named in the Done note).
+
+### Wave 4
+
+- [ ] **R106 — `Field`; `CoordsInput`, `LocationInput` and `PlacePicker` composed from it**
+  - **Lane:** ui
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R105
+  - **Reads:** SPEC §4.45 whole (FR-DS-1..9), FR-X-6 and FR-THEME-1 as amended, US-37, §9 Phase 2k, §12 V23-1..V23-10; PLAN §2.38 (D-700..D-709), §9.6, §16.20; `src/ui/styles/tokens.css` whole; `tests/styles/literals.allow.json`; `src/ui/components/location/CoordsInput.tsx`, `LocationInput.tsx`, `PlacePicker.tsx` and their modules and tests; PLAN D-703; SPEC FR-LOC-1, FR-LOC-2, FR-FIRST-2, FR-COMP-4.
+  - **Goal:** a label, an input, a trailing action and a hint row are one component with widths in cells, and the three inputs keep their behaviour, their validation copy and their pixels.
+  - **Satisfies:** FR-DS-4 (item 7).
+  - **Scope (SPEC FR-DS-4; PLAN D-703):** `primitives/Field` with its manifest row and test; the three inputs composed from it, their modules losing every rule `Field` now owns; the allow-list falls for each. Validation, focus order and the denial path unchanged, proved by the existing component tests.
+  - **Touches outside the lane:** the allow-list.
+  - **Out of scope:** `UseMyLocation`, `Favourites`, `ClearSavedLocation` beyond the controls R104 already converted; any catalog string.
+  - **Done when:**
+    - `npx vitest run src/ui/components/location src/ui/components/primitives tests/styles` passes; `tests/e2e/location*.spec.ts` green.
+    - The Done note carries the allow-list total before and after.
+    - `npm test`, lint, typecheck and `npm run e2e` green; `npx vitest run tests/styles` green with no new allow-list entry.
+    - `git diff --stat origin/main -- docs/screenshots public/` empty, and a local `npx playwright test v1-captures` leaves every committed `v1-*` file it re-shoots byte-identical (F-99's sub-pixel files excepted, named in the Done note).
+
+### Wave 5
+
+- [ ] **R107 — `Stack`, `Cluster` and `VisuallyHidden`; the focus ring in `global.css` alone, the clip rule in one file, the ten outline restatements removed**
+  - **Lane:** ui
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R106
+  - **Reads:** SPEC §4.45 whole (FR-DS-1..9), FR-X-6 and FR-THEME-1 as amended, US-37, §9 Phase 2k, §12 V23-1..V23-10; PLAN §2.38 (D-700..D-709), §9.6, §16.20; `src/ui/styles/tokens.css` whole; `tests/styles/literals.allow.json`; `src/ui/styles/global.css`, `src/ui/App.module.css`, `src/ui/components/live/TimeStripe.module.css`, `live/StripeOverview.module.css`, every module `rg -l outline src --glob '*.css'` lists; PLAN D-703, D-704; SPEC FR-A11Y-1..3.
+  - **Goal:** vertical rhythm, wrapping rows of controls and the hidden-text block are three components, the focus ring is one rule, and keyboard focus looks exactly as it did on every page.
+  - **Satisfies:** FR-DS-4 (item 8), FR-DS-1 (edges).
+  - **Scope (SPEC FR-DS-4; PLAN D-704):** `primitives/Stack` (`gap` from the space scale), `Cluster`, `VisuallyHidden` with manifest rows and tests; `global.css`'s one `:focus-visible` rule from `--focus-ring` and `--focus-offset`; the restated outlines removed from their modules, `TimeStripe` and `StripeOverview` keeping `outline-offset: var(--focus-offset-tight)` only; the clip rule out of `global.css` and `App.module.css` into `VisuallyHidden.module.css`; the modules whose column gaps are the space scale adopt `Stack`/`Cluster` where a component already wraps the row (no new wrappers where a grid area does the job). The allow-list falls for each.
+  - **Touches outside the lane:** `live/TimeStripe.module.css`, `live/StripeOverview.module.css`, `screen/SkyScreen.module.css`, the allow-list.
+  - **Out of scope:** any layout change; the dev page and the manifest's prose (R108).
+  - **Done when:**
+    - `npx vitest run src/ui/components/primitives tests/styles` passes; `rg -n 'outline' src --glob '*.css'` lists `global.css` and the two stripes' `outline-offset` lines only.
+    - `npx playwright test axe` green; the Done note carries the allow-list total before and after.
+    - `npm test`, lint, typecheck and `npm run e2e` green; `npx vitest run tests/styles` green with no new allow-list entry.
+    - `git diff --stat origin/main -- docs/screenshots public/` empty, and a local `npx playwright test v1-captures` leaves every committed `v1-*` file it re-shoots byte-identical (F-99's sub-pixel files excepted, named in the Done note).
+
+### Wave 6
+
+- [ ] **R108 — The guide and the dev page: the manifest complete, `dev/primitives.html`, its capture config and `npm run design:captures`, `scripts/design-guide.ts`, `docs/DESIGN.md` held by a test, the reading order**
+  - **Lane:** ui
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** owner
+  - **Depends on:** R107
+  - **Reads:** SPEC §4.45 whole (FR-DS-1..9), FR-X-6 and FR-THEME-1 as amended, US-37, §9 Phase 2k, §12 V23-1..V23-10; PLAN §2.38 (D-700..D-709), §9.6, §16.20; `src/ui/styles/tokens.css` whole; `tests/styles/literals.allow.json`; `src/ui/components/primitives/manifest.ts`; `tests/docs/accuracy.test.ts` (the regeneration pattern), `tests/e2e/captureSet.ts`, `playwright.config.ts`, `.github/workflows/captures.yml`, `docs/HOW-THIS-WAS-BUILT.md`; PLAN D-650, D-706, D-707; SPEC FR-DS-6, FR-DS-9, FR-PUB-2, FR-CAP-1.
+  - **Goal:** a developer or a session opens `docs/DESIGN.md`, sees every token with both values and every primitive with its props, and can look at every primitive in both themes on a page `npm run dev` serves; a change to the sheet that the guide does not carry fails CI.
+  - **Satisfies:** FR-DS-6, FR-DS-9; US-37 AC1, AC4.
+  - **Scope (SPEC FR-DS-6, FR-DS-9; PLAN D-706, D-707):**
+    - `dev/primitives.html` and `dev/primitives.tsx`: every primitive in every state and tone, both themes side by side, at 390 and wide; served by `vite`, not an input of `vite build`; excluded from every Vitest project.
+    - `playwright.design.config.ts` (web server `npx vite --port`, `testMatch` `tests/e2e/design-captures.spec.ts`), `npm run design:captures` → `docs/screenshots/design/design-primitives-{390,1280}-{dark,night}.png`; `captureSet.ts`'s `design` group read by `tests/docs/captures.test.ts`; `captures.yml`'s step after the set.
+    - `scripts/design-guide.ts` → `docs/DESIGN.md` from `readSections`, the manifest and the static rules block (FR-DS-2, FR-DS-3 with the floor, FR-DS-4, FR-DS-9); `npm run design:guide`; `tests/docs/design.test.ts` regenerates in memory and compares byte for byte. `docs/HOW-THIS-WAS-BUILT.md`'s reading order and `README.md` name the guide once; `.claude/skills/sdd-spec/SKILL.md` gains the one line "read `docs/DESIGN.md` before a screen".
+  - **Touches outside the lane:** `dev/`, `scripts/design-guide.ts`, `docs/DESIGN.md`, `docs/screenshots/design/`, `docs/HOW-THIS-WAS-BUILT.md`, `README.md`, `.claude/skills/sdd-spec/SKILL.md`, `tests/docs/design.test.ts`, `tests/e2e/captureSet.ts`, `.github/workflows/captures.yml`, `package.json` scripts (the `docs` crossing, PLAN §16.20).
+  - **Out of scope:** any token value; any primitive's CSS; F-98.
+  - **Done when:**
+    - `npm run design:guide` then `npx vitest run tests/docs/design.test.ts tests/docs/captures.test.ts tests/docs/accuracy.test.ts` passes; `npm run design:captures` writes the four files and a second run leaves them byte-identical.
+    - `npm run build` emits nothing from `dev/` and `npm run bundle:budget` moves no row.
+    - `npm test`, lint, typecheck and `npm run e2e` green; `npx vitest run tests/styles` green with no new allow-list entry.
+    - `git diff --stat origin/main -- docs/screenshots public/` empty, and a local `npx playwright test v1-captures` leaves every committed `v1-*` file it re-shoots byte-identical (F-99's sub-pixel files excepted, named in the Done note).
+    - The owner's gate: the dev page opened in both themes and `docs/DESIGN.md` read.
+
+### Wave 7
+
+- [ ] **R109 — F-98 and the re-shoot: the dome's degree labels on `--chart-compass` at full opacity, the axe exception removed, the set re-shot by `captures.yml` and diffed against `ed8748a`, the budget table**
+  - **Lane:** ui
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** owner
+  - **Depends on:** R108
+  - **Reads:** SPEC §4.45 whole (FR-DS-1..9), FR-X-6 and FR-THEME-1 as amended, US-37, §9 Phase 2k, §12 V23-1..V23-10; PLAN §2.38 (D-700..D-709), §9.6, §16.20; `src/ui/styles/tokens.css` whole; `tests/styles/literals.allow.json`; SPEC §4.20 F-98 and F-99, FR-CAP-1..5, FR-DS-5, FR-DS-7; `src/ui/components/guide/skychart/dome/SkyDome.module.css`, `tests/e2e/axe.spec.ts`, `scripts/bundle-budget.ts`; PLAN D-617, D-622, D-708.
+  - **Goal:** the dome's degree labels clear 4.5 : 1 in both themes with no axe exception, and the re-shot release set differs from `ed8748a`'s in those files alone.
+  - **Satisfies:** FR-DS-5, FR-DS-7; US-37 AC5, AC6; F-98 closed.
+  - **Scope (SPEC FR-DS-5, FR-DS-7; PLAN D-708):** `.degree` reads `color: var(--chart-compass)` and loses `opacity: 0.8`; `axe.spec.ts` loses the `color-contrast` exclusion for those nodes; `captures.yml` run twice on the branch's head, the files that differ from `ed8748a`'s set committed and listed by name in the Done note and the PR; `npm run bundle:budget`'s table in the PR, main and the stylesheet within 1.5 KB gzipped of `ed8748a`'s measure, no row raised; SPEC §4.20 moves F-98 to **closed**.
+  - **Touches outside the lane:** `src/ui/components/guide/skychart/dome/SkyDome.module.css` (the one chart file), `docs/screenshots/v1-*.png` for the files that differ, `SPEC.md` §4.20 (one status cell).
+  - **Out of scope:** any other token; any other capture; the tag (R110).
+  - **Done when:**
+    - `npx playwright test axe` green with the exclusion gone; `npx vitest run tests/docs/captures.test.ts` passes.
+    - Two `captures.yml` runs on the head agree (FR-CAP-5); `git diff --stat origin/main -- docs/screenshots` names only files that show the dome's degree labels, listed in the Done note; `npm run bundle:budget` within FR-DS-7, the table in the Done note.
+    - `npm test`, lint, typecheck and `npm run e2e` green; `npx vitest run tests/styles` green with no new allow-list entry.
+    - The owner's gate: the diff list read against the dome captures in both themes.
+
+### Wave 8
+
+- [ ] **R110 — Release preparation: `v2.3.0`, `docs/RELEASE.md` §14 with the diff list and the budget table, the allow-list down to the named remainder, the guide in the reading order**
+  - **Lane:** docs
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** owner
+  - **Depends on:** R109
+  - **Reads:** SPEC §4.45 whole (FR-DS-1..9), FR-X-6 and FR-THEME-1 as amended, US-37, §9 Phase 2k, §12 V23-1..V23-10; PLAN §2.38 (D-700..D-709), §9.6, §16.20; `src/ui/styles/tokens.css` whole; `tests/styles/literals.allow.json`; `docs/RELEASE.md` §13, `README.md`, `tests/docs/**`; PLAN D-178, D-708, D-709; SPEC FR-PUB-2, FR-DS-7, §9 Phase 2k's definition of done.
+  - **Goal:** the phase's definition of done is written down and checked, and the owner can tag `v2.3.0` and deploy.
+  - **Satisfies:** §9 Phase 2k's release item; US-37 AC1–AC6 accepted.
+  - **Scope (SPEC §9 Phase 2k; PLAN D-178, D-709):** `docs/RELEASE.md` §14 with the F-98 diff list, the two runs' links, the budget table and the allow-list's final entries with their reasons; `package.json` version `2.3.0`; `tests/styles/literals.allow.json` holding only the entries the section names; `README.md` and the reading order checked against `tests/docs/accuracy.test.ts`; the owner's checklist (the tag on the release SHA, the deploy, the dev page and the guide opened).
+  - **Touches outside the lane:** `package.json` (the version), `tests/styles/literals.allow.json`.
+  - **Out of scope:** any change under `src/`; the tag and the deploy, which are the owner's.
+  - **Done when:**
+    - `npx vitest run tests/docs tests/styles` passes; `npm test`, lint, typecheck and `npm run e2e` green.
+    - `git diff --stat origin/main -- src/` names `tests/styles/literals.allow.json`'s companion changes and nothing under `src/`; the Done note carries the release SHA for the tag.
+    - The owner's gate: `docs/RELEASE.md` §14 walked, `v2.3.0` tagged on the release SHA, deployed, the dev page and `docs/DESIGN.md` opened once more.
+
+### Requirement coverage (v2.3)
+
+| Requirement | Task |
+|---|---|
+| FR-DS-1, FR-DS-8, FR-THEME-1 as amended | R103 |
+| FR-DS-2, FR-X-6 as amended | R103 (the test), R104–R107 (the counts fall), R110 (the remainder) |
+| FR-DS-3 | R103 |
+| FR-DS-4 | R104 (items 1–3), R105 (4–6), R106 (7), R107 (8) |
+| FR-DS-5, F-98 | R109 |
+| FR-DS-6, FR-DS-9 | R108 |
+| FR-DS-7 | R109 (the table), R110 (the section) |
+| US-37 AC1–AC6 | AC1, AC4 R108; AC2 R104; AC3 R103; AC5, AC6 R109; all accepted at R110 |
+
+```mermaid
+graph LR
+  R103 --> R104 --> R105 --> R106 --> R107 --> R108 --> R109 --> R110
+```
+
+**Waves** (the driver recomputes them from `main`; this is the sanity check): **wave 1** R103 — **wave 2** R104 — **wave 3** R105 — **wave 4** R106 — **wave 5** R107 — **wave 6** R108 — **wave 7** R109 — **wave 8** R110. One task per wave, so no file is shared within a wave; every `ui` task has every lane's directories in scope (PLAN D-709).
