@@ -36,6 +36,10 @@ the last release, `2.1.0`. §12.1 has to be run from a clean browser before anyt
       prints `OVERALL: PASS` for Neuquén, Paris and Singapore.
 - [ ] The dome raster snapshot (`src/ui/components/guide/skychart/dome/__snapshots__/SkyDome.golden.txt`)
       was regenerated on purpose if it changed, and the change is explained in the PR.
+- [ ] Nothing is deployed by merging: production is the `release` branch, which only a
+      release moves (`docs/DEPLOY.md`, *How it is wired*; D-739). The deploy step of each
+      phase's list is `git push origin <release-sha>:release` after the tag, with the
+      same SHA — never `main`'s head.
 - [ ] The branch preview (the per-branch URL `docs/DEPLOY.md` gives under *Domain*) opens,
       computes passes for a typed location, and DevTools shows no console error and no
       Content-Security-Policy violation while opening a pass, dragging the dome and

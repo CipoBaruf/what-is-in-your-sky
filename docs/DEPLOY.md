@@ -13,9 +13,16 @@ comparison against Heavens-Above.
 ## How it is wired
 
 Hosting is Cloudflare Workers static assets wired to this repository through Workers
-Builds (PLAN D-12 as amended in §2.5): a push to `main` builds and deploys production;
-a push to any other branch, once *non-production branch builds* are enabled, uploads a
-preview version with its own URL. `wrangler.jsonc` at the root holds the whole
+Builds (PLAN D-12 as amended in §2.5): a push to **`release`** builds and deploys production;
+a push to any other branch, `main` included, uploads a preview version with its own URL
+(*non-production branch builds* are enabled). `release` is never committed to: it is
+`main` fast-forwarded to a release commit when its tag is pushed (D-739, 2026-10-19 —
+before that, production was `main` and every merge shipped), so `main`'s preview is
+always the next release and the site is always the last one:
+
+```
+git fetch origin && git push origin <release-sha>:release   # the SHA the tag points at
+``` `wrangler.jsonc` at the root holds the whole
 configuration (assets-only Worker, `dist/` as the assets directory, no Worker script, and
 the `routes` entry that binds the public address — see *Domain* below), so the build
 never has to guess.
@@ -23,7 +30,8 @@ never has to guess.
 ## How the project was created, once, in the dashboard
 
 1. *Workers & Pages → Create → Import a repository*, pick `CipoBaruf/what-is-in-your-sky`.
-2. Worker name `in-your-sky`, production branch `main`, build command
+2. Worker name `in-your-sky`, production branch `release` (was `main` until 2026-10-19,
+   D-739; changed under *Settings → Builds → Branch control*), build command
    `npm run build`, deploy command `npx wrangler deploy` (the defaults). No environment
    variables; the Node version comes from `.node-version` (24, the same as CI).
 3. *Settings → Builds → Branch control*: enable non-production branch builds so every
@@ -35,7 +43,7 @@ never has to guess.
 The public address is `https://inyoursky.app` (SPEC §4.44, FR-ADDR-1..4; PLAN D-658).
 It is a custom domain on the Worker, bound by the deploy and not by the dashboard:
 `wrangler.jsonc` carries `"routes": [{ "pattern": "inyoursky.app", "custom_domain": true }]`,
-and the `npx wrangler deploy` that Workers Builds runs from `main` creates the DNS record
+and the `npx wrangler deploy` that Workers Builds runs from `release` creates the DNS record
 and provisions the certificate in the zone. The only precondition is the zone itself,
 active in the Cloudflare account; nothing is clicked for the binding. No `www` record:
 the apex is the one name bound, and a `www` is a later decision if a reader ever types
@@ -47,6 +55,8 @@ one.
   FR-PUB-11), by hand, in the repository's *About* dialog.
 - **Branch previews:** unchanged, `https://<branch>-in-your-sky.ezequiel-baruf.workers.dev`
   — a custom domain has no preview form, so `preview_urls` stays on in `wrangler.jsonc`.
+  `main`'s own preview, `https://main-in-your-sky.ezequiel-baruf.workers.dev`, is the
+  build the next release will ship.
 - **The old address:** `https://in-your-sky.ezequiel-baruf.workers.dev` still serves the
   same build with its own browser state — IndexedDB, the prefs record, the saved places
   and an installed app all belong to an origin, so a reader who used it finds a first run
