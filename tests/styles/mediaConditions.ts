@@ -70,7 +70,7 @@ export function conditionText({ feature, comparator, value }: Condition): string
  * `and`, `or`, `not`, a comma — kept, so a rewrite that changes which sizes
  * match is a changed line even when every number is the same.
  */
-export function queryText({ at, prelude }: Query): string {
+function queryText({ at, prelude }: Query): string {
   const normalised = prelude.replace(/\([^()]*\)/g, (m) => `(${conditionText(parseCondition(m))})`).replace(/\s+/g, ' ').trim();
   return `@${at} ${normalised}`;
 }
