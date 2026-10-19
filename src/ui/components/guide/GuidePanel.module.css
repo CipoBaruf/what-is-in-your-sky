@@ -91,7 +91,7 @@
    `HOME_THREE_PANE_MIN_PX` now — the panel takes the Where and When panes and
    the list stays in What — which is under D-253's `WIDE_SPLIT_MIN_PX`.
    `lib/layout.ts` owns the literal; `tests/styles/breakpoint.test.ts` holds it. */
-@media (min-width: 1118px) {
+@media (width >= 1118px) {
   .toList {
     display: none;
   }

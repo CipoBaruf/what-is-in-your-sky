@@ -64,7 +64,7 @@
    `tests/styles/liveShape.test.ts` holds it: no `@media` block in this file
    has a selector without `[data-compact=`, and no block re-cuts one half of
    the grid without the other. */
-@media (orientation: landscape) and (max-height: 500px) {
+@media (orientation: landscape) and (height <= 500px) {
   .page[data-compact='true'] {
     /* R78 (FR-WATCH-5): two areas under the top row — the dome's column and the rail. The headline is the
        rail's own second row (`Live.tsx` renders it inside the rail at this shape), so the dome's column is one

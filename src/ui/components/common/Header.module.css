@@ -146,7 +146,7 @@
    text twelve pixels under the title's; and inside the title's column the
    tagline had only what the preferences left, so it wrapped at 1280 px and at
    1024 px, where one line of it is 86 cells. */
-@media (min-width: 964px) {
+@media (width >= 964px) {
   .wide {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;

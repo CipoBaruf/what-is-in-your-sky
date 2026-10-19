@@ -66,7 +66,7 @@ footer,
    D-173's, the one `Live.module.css` lays the two panes out under. The home,
    the settings page and the sheet carry no shape rule (FR-SHP-4) and keep the
    frame at every compact size. */
-@media (orientation: landscape) and (max-height: 500px) {
+@media (orientation: landscape) and (height <= 500px) {
   #root > [data-compact='true'] {
     max-width: none;
   }
@@ -100,7 +100,7 @@ main {
    The 60-cell frame is what compact is: one column, centred. Wide drops it
    and takes the viewport, keeping the two cells of side padding, so that the
    two columns of FR-DESK-2 have the width to be two columns. */
-@media (min-width: 964px) {
+@media (width >= 964px) {
   header,
   main,
   footer {

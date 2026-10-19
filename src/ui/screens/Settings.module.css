@@ -154,7 +154,7 @@
 /* FR-COMP-2 holds at every width; only the compact header links here. The page
    is narrow prose either way, so on a wide screen it stops rather than
    stretching a 36-cell row of toggles across 100 cells of empty line. */
-@media (min-width: 964px) {
+@media (width >= 964px) {
   .page,
   .privacy {
     max-width: calc(60 * var(--cell));

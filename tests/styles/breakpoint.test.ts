@@ -17,26 +17,28 @@
  * there without its advance would make all of this a guess again.
  *
  * FR-DESK-1's other half — "column and panel widths are in cells" — is the
- * last test here: no length inside a wide-layout block may be written in px.
+ * last test of the first block: no length inside a wide-layout block may be
+ * written in px.
+ *
+ * R103 (FR-DS-3, D-702) widens the join to every condition in the tree: the
+ * second block lists every `@media` and `@container` condition as
+ * `(feature, comparator, value)`, holds the listing to the committed
+ * `breakpoints.json` (so a rewrite that changes no size changes no line of
+ * it), holds every condition to range syntax, and holds every length in one
+ * to an export of `lib/layout.ts` — the widths, the three heights, the
+ * header's four folds and the frame's cell count.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { BASE_FONT_PX, CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, COMPACT_MAX_CELLS, FOOTER_ONE_LINE_MIN_PX, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HOME_MAX_CELLS, HOME_THREE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, LANDSCAPE_PHONE_QUERY, SHELL_PADDING_CELLS, WIDE_CELLS, WIDE_MIN_PX, WIDE_SPLIT_MIN_CELLS, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
+import { BASE_FONT_PX, CELL_ADVANCE_EM, CELL_ADVANCE_EM_MAX, COMPACT_MAX_CELLS, FOOTER_ONE_LINE_MIN_PX, FRAME_LEGEND_MIN_CELLS, GUIDE_PANE_MIN_CELLS, GUTTER_CELLS, HEADER_FOLD_PX, HOME_MAX_CELLS, HOME_THREE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, HOME_THREE_PANE_QUERY, LANDSCAPE_PHONE_QUERY, SHELL_PADDING_CELLS, SHORT_MAX_HEIGHT_PX, SIDEWAYS_MAX_HEIGHT_PX, WIDE_CELLS, WIDE_MIN_PX, WIDE_QUERY, WIDE_SHORT_MAX_HEIGHT_PX, WIDE_SPLIT_MIN_CELLS, WIDE_SPLIT_MIN_PX } from '../../src/lib/layout';
+import { BREAKPOINTS_PATH, conditionText, cssFiles, listing, queriesOf, UI_DIR, type Listing } from './mediaConditions';
 
-const UI_DIR = 'src/ui';
 const TOKENS_PATH = 'src/ui/styles/tokens.css';
 const GLOBAL_PATH = 'src/ui/styles/global.css';
 const APP_PATH = 'src/ui/App.module.css';
 const SHEET_PATH = 'src/ui/screens/PassDetail.module.css';
-
-function cssFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry);
-    if (statSync(path).isDirectory()) return cssFiles(path);
-    return path.endsWith('.css') ? [path] : [];
-  });
-}
+const FRAME_PATH = 'src/ui/components/guide/skychart/ChartFrame.module.css';
+const HEADER_PATH = 'src/ui/components/common/Header.module.css';
 
 /** `html { … font-size: 16px … }` — the base every `em` and `ch` is measured against. */
 function baseFontPx(css: string): number {
@@ -79,9 +81,9 @@ function mediaBlocks(css: string, query: RegExp): { query: string; body: string;
   return blocks;
 }
 
-/** Every `@media (min-width: …)` block's body, braces matched. */
+/** Every `@media (width >= …)` block's body, braces matched. */
 function wideBlocks(css: string): string[] {
-  return mediaBlocks(css, /min-width/).map((block) => block.body);
+  return mediaBlocks(css, /width\s*>=/).map((block) => block.body);
 }
 
 /** The stylesheet with every `@media` block cut out: the rules that hold at every size. */
@@ -147,9 +149,9 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
     expect(cells - SHELL_PADDING_CELLS - LEFT_COLUMN_CELLS - 2 * GUTTER_CELLS - LIST_MIN_CELLS).toBeGreaterThanOrEqual(GUIDE_MIN_CELLS);
   });
 
-  it('is written once: every min-width in src/ui is one of the three thresholds', () => {
-    const found = files.flatMap(([path, css]) => [...css.matchAll(/min-width:\s*(\d+(?:\.\d+)?)px/g)].map((m) => [path, Number(m[1])] as const));
-    expect(found.length, 'no min-width media query in src/ui — the wide layout is not there').toBeGreaterThan(0);
+  it('is written once: every `width >=` in src/ui is one of the three thresholds', () => {
+    const found = files.flatMap(([path, css]) => [...css.matchAll(/width\s*>=\s*(\d+(?:\.\d+)?)px/g)].map((m) => [path, Number(m[1])] as const));
+    expect(found.length, 'no `width >=` media query in src/ui — the wide layout is not there').toBeGreaterThan(0);
     for (const [path, px] of found) expect([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX, WIDE_SPLIT_MIN_PX], `${path} uses a different breakpoint`).toContain(px);
     const literals = found.map(([, px]) => px);
     expect(literals, 'nothing keys off the wide breakpoint').toContain(WIDE_MIN_PX);
@@ -169,7 +171,7 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
     expect(WIDE_MIN_PX).toBeLessThan(HOME_THREE_PANE_MIN_PX);
     expect(HOME_THREE_PANE_MIN_PX).toBeLessThan(WIDE_SPLIT_MIN_PX);
     const app = readFileSync(APP_PATH, 'utf8');
-    const queries = [...app.matchAll(/@media\s*\(min-width:\s*(\d+)px\)\s*\{/g)].map((m) => Number(m[1]));
+    const queries = [...app.matchAll(/@media\s*\(width >= (\d+)px\)\s*\{/g)].map((m) => Number(m[1]));
     expect(queries, `${APP_PATH} should have exactly the three wide queries, in order`).toEqual([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX, WIDE_SPLIT_MIN_PX]);
     for (const block of wideBlocks(app)) expect(block, 'an empty wide block is not a rule').toMatch(/[a-z-]+\s*:\s*[^;]+;/);
   });
@@ -285,7 +287,7 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
     }
     const app = readFileSync(APP_PATH, 'utf8');
     for (const [lang, px] of Object.entries(FOOTER_ONE_LINE_MIN_PX)) {
-      const blocks = mediaBlocks(app, new RegExp(`^\\s*\\(min-width:\\s*${String(WIDE_MIN_PX)}px\\)\\s*and\\s*\\(width\\s*<\\s*${String(px)}px\\)\\s*$`));
+      const blocks = mediaBlocks(app, new RegExp(`^\\s*\\(width >= ${String(WIDE_MIN_PX)}px\\)\\s*and\\s*\\(width < ${String(px)}px\\)\\s*$`));
       expect(blocks, `${APP_PATH} should fold the ${lang} footer at ${String(px)} px from the wide breakpoint, once`).toHaveLength(1);
       const body = (blocks[0]?.body ?? '').replace(/\/\*[\s\S]*?\*\//g, '');
       const rules = [...body.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => [m[1]?.trim() ?? '', m[2]?.trim() ?? ''] as const);
@@ -297,7 +299,7 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
     const wide = wideBlocks(app).join('\n');
     expect(wide).toContain('padding-top: calc(var(--row) * (1 - var(--short-window) - var(--two-line-footer)));');
     expect(wide).toContain('padding-bottom: calc(var(--row) * (1 - var(--short-window) - var(--two-line-footer)));');
-    const short = mediaBlocks(app, /max-height:\s*720px/);
+    const short = mediaBlocks(app, new RegExp(`height <= ${String(WIDE_SHORT_MAX_HEIGHT_PX)}px`));
     expect(short).toHaveLength(1);
     expect(short[0]?.body.replace(/\/\*[\s\S]*?\*\//g, '').trim()).toBe('.main {\n    --short-window: 0.5;\n  }');
   });
@@ -309,5 +311,87 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
         expect(pxLengths, `${path} sizes something in px inside a wide block`).toEqual([]);
       }
     }
+  });
+});
+
+/*
+ * R103 (FR-DS-3, D-702): every condition in the tree. The listing is read
+ * syntax-blind — `(min-width: 964px)` and `(width >= 964px)` are both
+ * `width >= 964px` — so the committed `breakpoints.json`, written before the
+ * range-syntax rewrite, is what proves the rewrite moved no size: the listing
+ * is identical before and after, and a task that adds, removes or moves a
+ * condition changes a line of it on purpose. Range syntax is the browser
+ * floor from here on — Safari 16.4, Chrome 104, Firefox 63 (V23-10).
+ */
+describe('every media and container condition (FR-DS-3, D-702)', () => {
+  const queries = cssFiles(UI_DIR).flatMap((path) => queriesOf(readFileSync(path, 'utf8')).map((query) => ({ path, ...query })));
+  const conditions = queries.flatMap((query) => query.conditions.map((condition) => ({ path: query.path, at: query.at, prelude: query.prelude, ...condition })));
+  const committed = JSON.parse(readFileSync(BREAKPOINTS_PATH, 'utf8')) as Listing;
+
+  it('is the committed listing, line for line', () => {
+    expect(listing()).toEqual(committed);
+    expect(Object.values(committed).flat().length, 'the listing is not empty').toBeGreaterThan(0);
+  });
+
+  it('is written in range syntax: `width >=`, `width <`, `height <=`, or an orientation; a container query in cells', () => {
+    for (const query of queries) {
+      for (const match of query.prelude.matchAll(/\([^()]*\)/g)) {
+        const where = `${query.path}: @${query.at} ${query.prelude}`;
+        if (query.at === 'container') expect(match[0], where).toMatch(/^\(min-width: \d+ch\)$/);
+        else expect(match[0], where).toMatch(/^\((width >= \d+px|width < \d+px|height <= \d+px|orientation: (landscape|portrait))\)$/);
+      }
+    }
+  });
+
+  it('holds every length in a condition to an export of lib/layout.ts', () => {
+    const widths = new Set([WIDE_MIN_PX, HOME_THREE_PANE_MIN_PX, WIDE_SPLIT_MIN_PX, ...Object.values(FOOTER_ONE_LINE_MIN_PX), ...Object.values(HEADER_FOLD_PX).flatMap((fold) => Object.values(fold))]);
+    const heights = new Set([SIDEWAYS_MAX_HEIGHT_PX, SHORT_MAX_HEIGHT_PX, WIDE_SHORT_MAX_HEIGHT_PX]);
+    for (const condition of conditions) {
+      const where = `${condition.path}: ${conditionText(condition)}`;
+      if (condition.feature === 'orientation') continue;
+      const value = /^(\d+)(px|ch)$/.exec(condition.value);
+      expect(value, `${where} is not a whole number of px or ch`).not.toBeNull();
+      const n = Number(value?.[1]);
+      if (condition.at === 'container') expect(n, where).toBe(FRAME_LEGEND_MIN_CELLS);
+      else if (condition.feature === 'width') expect(widths, where).toContain(n);
+      else expect(heights, where).toContain(n);
+    }
+  });
+
+  it('keys something off each of the three heights, each where lib/layout.ts says it folds', () => {
+    const at = (feature: string, px: number): string[] => conditions.filter((c) => c.feature === feature && c.value === `${String(px)}px`).map((c) => c.path);
+    expect(SIDEWAYS_MAX_HEIGHT_PX).toBe(500);
+    expect(SHORT_MAX_HEIGHT_PX).toBe(700);
+    expect(WIDE_SHORT_MAX_HEIGHT_PX).toBe(720);
+    expect(SHORT_MAX_HEIGHT_PX).toBeLessThan(WIDE_SHORT_MAX_HEIGHT_PX);
+    expect(at('height', SIDEWAYS_MAX_HEIGHT_PX).sort()).toEqual([GLOBAL_PATH, 'src/ui/screens/Live.module.css'].sort());
+    expect(at('height', SHORT_MAX_HEIGHT_PX).sort()).toEqual([APP_PATH, 'src/ui/components/location/LocationInput.module.css'].sort());
+    expect(at('height', WIDE_SHORT_MAX_HEIGHT_PX)).toEqual([APP_PATH]);
+    // The landscape phone's height stands with its orientation and nothing else, in both files, and is the query the page asks in script.
+    for (const query of queries.filter((q) => q.conditions.some((c) => c.feature === 'height' && c.value === `${String(SIDEWAYS_MAX_HEIGHT_PX)}px`))) expect(query.prelude).toBe(LANDSCAPE_PHONE_QUERY);
+  });
+
+  it('holds the header’s four folds to HEADER_FOLD_PX, as `width <` and nothing else, under the wide breakpoint’s neighbours', () => {
+    const folds = conditions.filter((c) => c.path === HEADER_PATH && c.comparator === '<').map((c) => Number.parseInt(c.value, 10));
+    expect(folds.sort((a, b) => a - b)).toEqual(Object.values(HEADER_FOLD_PX).flatMap((fold) => Object.values(fold)).sort((a, b) => a - b));
+    for (const [lang, fold] of Object.entries(HEADER_FOLD_PX)) {
+      expect(fold.tagline, `${lang}: the tagline folds before the title`).toBeLessThan(fold.title);
+      expect(fold.title).toBeLessThan(HOME_THREE_PANE_MIN_PX);
+    }
+    expect(conditions.filter((c) => c.comparator === '<' && c.path !== HEADER_PATH).map((c) => Number.parseInt(c.value, 10)).sort()).toEqual([HOME_THREE_PANE_MIN_PX, FOOTER_ONE_LINE_MIN_PX.es].sort());
+  });
+
+  it('holds the chart frame’s container query to FRAME_LEGEND_MIN_CELLS, the one container query in the tree', () => {
+    expect(FRAME_LEGEND_MIN_CELLS).toBe(62);
+    const containers = queries.filter((q) => q.at === 'container');
+    expect(containers.map((q) => q.path)).toEqual([FRAME_PATH]);
+    expect(containers[0]?.prelude).toBe(`(min-width: ${String(FRAME_LEGEND_MIN_CELLS)}ch)`);
+  });
+
+  it('asks the same queries in script: the wide and three-pane queries are the stylesheets’ conditions', () => {
+    expect(WIDE_QUERY).toBe(`(width >= ${String(WIDE_MIN_PX)}px)`);
+    expect(HOME_THREE_PANE_QUERY).toBe(`(width >= ${String(HOME_THREE_PANE_MIN_PX)}px)`);
+    expect(queries.map((q) => q.prelude)).toContain(WIDE_QUERY);
+    expect(queries.map((q) => q.prelude)).toContain(HOME_THREE_PANE_QUERY);
   });
 });
