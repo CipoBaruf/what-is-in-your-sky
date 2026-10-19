@@ -1,0 +1,206 @@
+{
+  "src/ui/App.module.css": {
+    "count": 22,
+    "reason": "Seeded by R103 at ed8748a's count — 22 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/RootBoundary.module.css": {
+    "count": 2,
+    "reason": "Seeded by R103 at ed8748a's count — 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/common/Banner.module.css": {
+    "count": 1,
+    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/common/Countdown.module.css": {
+    "count": 1,
+    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/common/FailureLine.module.css": {
+    "count": 2,
+    "reason": "Seeded by R103 at ed8748a's count — 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/common/Footer.module.css": {
+    "count": 1,
+    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/common/Header.module.css": {
+    "count": 3,
+    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length, 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/common/InstallAction.module.css": {
+    "count": 2,
+    "reason": "Seeded by R103 at ed8748a's count — 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/common/ShareButton.module.css": {
+    "count": 2,
+    "reason": "Seeded by R103 at ed8748a's count — 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/common/ShortcutsOverlay.module.css": {
+    "count": 3,
+    "reason": "Seeded by R103 at ed8748a's count — 2 px/rem/em lengths, 1 z-index number; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/common/UpdateBanner.module.css": {
+    "count": 2,
+    "reason": "Seeded by R103 at ed8748a's count — 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/common/VisitNotice.module.css": {
+    "count": 4,
+    "reason": "Seeded by R103 at ed8748a's count — 4 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/elements/ElementsLine.module.css": {
+    "count": 4,
+    "reason": "Seeded by R103 at ed8748a's count — 2 px/rem/em lengths, 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/guide/GuidePanel.module.css": {
+    "count": 4,
+    "reason": "Seeded by R103 at ed8748a's count — 2 px/rem/em lengths, 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/guide/GuideText.module.css": {
+    "count": 1,
+    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/guide/PassNumbers.module.css": {
+    "count": 1,
+    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/guide/skychart/ChartFrame.module.css": {
+    "count": 4,
+    "reason": "Seeded by R103 at ed8748a's count — 4 z-index numbers; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/guide/skychart/LegendSwatch.module.css": {
+    "count": 2,
+    "reason": "Seeded by R103 at ed8748a's count — 2 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/guide/skychart/SkyChart.module.css": {
+    "count": 1,
+    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/guide/skychart/dome/SkyDome.module.css": {
+    "count": 8,
+    "reason": "Seeded by R103 at ed8748a's count — 5 px/rem/em lengths, 3 font-families; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/guide/skychart/polar/SkyPolar.module.css": {
+    "count": 4,
+    "reason": "Seeded by R103 at ed8748a's count — 3 px/rem/em lengths, 1 font-family; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/guide/skychart/window/CompassGutter.module.css": {
+    "count": 9,
+    "reason": "Seeded by R103 at ed8748a's count — 9 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/guide/skychart/window/SkyWindow.module.css": {
+    "count": 4,
+    "reason": "Seeded by R103 at ed8748a's count — 3 px/rem/em lengths, 1 font-family; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/live/PlaybackControls.module.css": {
+    "count": 2,
+    "reason": "Seeded by R103 at ed8748a's count — 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/live/StatusStrip.module.css": {
+    "count": 1,
+    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/live/StripeOverview.module.css": {
+    "count": 7,
+    "reason": "Seeded by R103 at ed8748a's count — 4 px/rem/em lengths, 2 outline rules, 1 font-family; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/live/TimeReadout.module.css": {
+    "count": 2,
+    "reason": "Seeded by R103 at ed8748a's count — 2 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/live/TimeStripe.module.css": {
+    "count": 8,
+    "reason": "Seeded by R103 at ed8748a's count — 5 px/rem/em lengths, 2 outline rules, 1 font-family; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/location/CoordsInput.module.css": {
+    "count": 10,
+    "reason": "Seeded by R103 at ed8748a's count — 7 px/rem/em lengths, 3 outline rules; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/location/Favourites.module.css": {
+    "count": 2,
+    "reason": "Seeded by R103 at ed8748a's count — 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/location/LocationInput.module.css": {
+    "count": 7,
+    "reason": "Seeded by R103 at ed8748a's count — 5 px/rem/em lengths, 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/location/PlacePicker.module.css": {
+    "count": 5,
+    "reason": "Seeded by R103 at ed8748a's count — 5 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/location/UseMyLocation.module.css": {
+    "count": 10,
+    "reason": "Seeded by R103 at ed8748a's count — 6 px/rem/em lengths, 4 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/location/WherePlace.module.css": {
+    "count": 2,
+    "reason": "Seeded by R103 at ed8748a's count — 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/mark/Mark.module.css": {
+    "count": 2,
+    "reason": "Seeded by R103 at ed8748a's count — 2 font-families; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/moon/MoonGlare.module.css": {
+    "count": 3,
+    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length, 2 z-index numbers; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/now/ConditionsTable.module.css": {
+    "count": 1,
+    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/now/TonightStripe.module.css": {
+    "count": 1,
+    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/passes/FaintToggle.module.css": {
+    "count": 2,
+    "reason": "Seeded by R103 at ed8748a's count — 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/passes/NextEventBlock.module.css": {
+    "count": 17,
+    "reason": "Seeded by R103 at ed8748a's count — 11 px/rem/em lengths, 2 outline rules, 4 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/passes/OpenGuide.module.css": {
+    "count": 2,
+    "reason": "Seeded by R103 at ed8748a's count — 1 z-index number, 1 outline rule; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/passes/PassCard.module.css": {
+    "count": 7,
+    "reason": "Seeded by R103 at ed8748a's count — 5 px/rem/em lengths, 2 outline rules; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/passes/PassList.module.css": {
+    "count": 2,
+    "reason": "Seeded by R103 at ed8748a's count — 2 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/passes/SortToggle.module.css": {
+    "count": 3,
+    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length, 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/screen/SkyScreen.module.css": {
+    "count": 3,
+    "reason": "Seeded by R103 at ed8748a's count — 2 outline rules, 1 font-family; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/components/weather/CloudBadge.module.css": {
+    "count": 3,
+    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length, 2 z-index numbers; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/screens/Live.module.css": {
+    "count": 7,
+    "reason": "Seeded by R103 at ed8748a's count — 2 px/rem/em lengths, 1 outline rule, 4 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/screens/PassDetail.module.css": {
+    "count": 4,
+    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length, 1 z-index number, 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/screens/Settings.module.css": {
+    "count": 2,
+    "reason": "Seeded by R103 at ed8748a's count — 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/screens/home/Steps.module.css": {
+    "count": 26,
+    "reason": "Seeded by R103 at ed8748a's count — 19 px/rem/em lengths, 1 outline rule, 6 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  },
+  "src/ui/styles/global.css": {
+    "count": 12,
+    "reason": "Seeded by R103 at ed8748a's count — 8 px/rem/em lengths, 1 z-index number, 3 outline rules; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+  }
+}
