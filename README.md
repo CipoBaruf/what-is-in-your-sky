@@ -62,8 +62,8 @@ npm run sdd -- --task R17   # one task, dependencies checked
 ## Deploy
 
 Hosting is Cloudflare Workers static assets, wired to this repository through Workers
-Builds: a push to `main` builds and deploys production, and every other branch gets its
-own preview URL. `wrangler.jsonc` at the root holds the whole configuration, and
+Builds: a push to `release` — `main` fast-forwarded at each tag — builds and deploys
+production, and every other branch, `main` included, gets its own preview URL. `wrangler.jsonc` at the root holds the whole configuration, and
 `public/_headers` carries the strict Content-Security-Policy, `Referrer-Policy` and
 `Permissions-Policy` from PLAN §11 — `npm run preview` serves the same file the same way
 and the Playwright suite runs the app under it, so a CSP violation fails CI before it
