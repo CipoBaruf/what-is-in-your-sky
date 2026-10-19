@@ -1,0 +1,41 @@
+{
+  "src/ui/App.module.css": [
+    "@media height <= 700px",
+    "@media width >= 964px",
+    "@media width >= 964px and height <= 720px",
+    "@media width >= 964px and width < 1118px",
+    "@media width >= 964px and width < 1137px",
+    "@media width >= 1118px",
+    "@media width >= 1272px"
+  ],
+  "src/ui/components/common/Header.module.css": [
+    "@media width >= 964px",
+    "@media width < 973px",
+    "@media width < 848px",
+    "@media width < 1089px",
+    "@media width < 1050px"
+  ],
+  "src/ui/components/common/VisitNotice.module.css": [
+    "@media width >= 964px"
+  ],
+  "src/ui/components/guide/GuidePanel.module.css": [
+    "@media width >= 1118px"
+  ],
+  "src/ui/components/guide/skychart/ChartFrame.module.css": [
+    "@container width >= 62ch",
+    "@media orientation : portrait"
+  ],
+  "src/ui/components/location/LocationInput.module.css": [
+    "@media height <= 700px"
+  ],
+  "src/ui/screens/Live.module.css": [
+    "@media orientation : landscape and height <= 500px"
+  ],
+  "src/ui/screens/Settings.module.css": [
+    "@media width >= 964px"
+  ],
+  "src/ui/styles/global.css": [
+    "@media orientation : landscape and height <= 500px",
+    "@media width >= 964px"
+  ]
+}
