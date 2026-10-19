@@ -8,13 +8,13 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
-export const SRC_DIR = 'src';
-export const UI_DIR = 'src/ui';
+const SRC_DIR = 'src';
+const UI_DIR = 'src/ui';
 export const TOKENS_FILE = 'src/ui/styles/tokens.css';
 export const PRIMITIVES_DIR = 'src/ui/components/primitives';
 export const ALLOW_PATH = 'tests/styles/literals.allow.json';
 
-export type Kind = 'colour' | 'length' | 'z-index' | 'outline' | 'font-family' | 'bracket' | 'inline-style';
+type Kind = 'colour' | 'length' | 'z-index' | 'outline' | 'font-family' | 'bracket' | 'inline-style';
 
 export interface Literal {
   kind: Kind;
@@ -22,7 +22,7 @@ export interface Literal {
   text: string;
 }
 
-export interface Allowance {
+interface Allowance {
   count: number;
   reason: string;
 }

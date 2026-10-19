@@ -38,7 +38,7 @@ export function cssFiles(dir: string): string[] {
 }
 
 /** The stylesheet with its comments cut out. */
-export function stripComments(css: string): string {
+function stripComments(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
@@ -47,7 +47,7 @@ export function stripComments(css: string): string {
  * form `(width >= 964px)` as written, the legacy `min-`/`max-` form folded onto
  * the same shape, and a discrete feature (`orientation: landscape`) with `:`.
  */
-export function parseCondition(text: string): Condition {
+function parseCondition(text: string): Condition {
   const inner = text.trim().replace(/^\(|\)$/g, '').trim();
   const range = /^([a-z-]+)\s*(<=|>=|<|>|=)\s*(.+)$/.exec(inner);
   if (range?.[1] && range[2] && range[3]) return { feature: range[1], comparator: range[2], value: range[3].trim() };
