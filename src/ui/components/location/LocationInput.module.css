@@ -93,7 +93,7 @@
    blocks 0.75 rem apart, as App.module.css does for the step around it, and
    its two boxed fields half a rem inside (`--box-pad`, read by
    PlacePicker.module.css and CoordsInput.module.css). */
-@media (max-height: 700px) {
+@media (height <= 700px) {
   .group[data-look='boxed'],
   .group[data-look='boxed'] .inputs {
     gap: 0.75rem;

@@ -27,27 +27,26 @@ interface Registered {
 /**
  * `(min-width: 960px)` (`useLayoutMode`), since R61 `(min-width: …px) and (min-height: …px)` — the dome
  * ladder's queries (`useDomeStep`, D-314) — since R63 `(orientation: landscape)`, the follow screen's
- * (D-323), which is the stubbed size read the way CSS reads it: landscape unless it is taller than it is wide,
+ * (D-323), which is the stubbed size read the way CSS reads it: landscape only when it is wider than it is tall (a square is portrait),
  * and since R74 `(prefers-reduced-motion: reduce)`, which the mark asks (FR-MARK-5) and which is a
  * preference rather than a size, so it is answered from the stub's own switch. Nothing else: a query with
  * none of the four is a mistake, not a match.
  */
 function evaluate(query: string, widthPx: number, heightPx: number, reducedMotion: boolean): boolean {
-  const min = /min-width:\s*(\d+(?:\.\d+)?)px/.exec(query);
-  const minHeight = /min-height:\s*(\d+(?:\.\d+)?)px/.exec(query);
-  // R78: `(orientation: landscape) and (max-height: 500px)`, the landscape phone (`lib/layout.ts`, D-173).
-  const maxHeight = /max-height:\s*(\d+(?:\.\d+)?)px/.exec(query);
+  // R103 (FR-DS-3, D-702): the app's own queries are range syntax — `(width >= 964px)`, `(height <= 500px)` —
+  // read the way CSS reads them; the `min-`/`max-` forms stay understood for the tests that still write them.
+  const sizes = [...query.matchAll(/\((?:(min|max)-)?(width|height)\s*(?::|(<=|>=|<|>))\s*(\d+(?:\.\d+)?)px\)/g)].map((m) => {
+    const feature = m[2] === 'width' ? widthPx : heightPx;
+    const comparator = m[3] ?? (m[1] === 'min' ? '>=' : m[1] === 'max' ? '<=' : null);
+    const value = Number(m[4]);
+    if (comparator === null) throw new Error(`the matchMedia stub cannot read "${query}"`);
+    return comparator === '>=' ? feature >= value : comparator === '<=' ? feature <= value : comparator === '<' ? feature < value : feature > value;
+  });
   const orientation = /orientation:\s*(landscape|portrait)/.exec(query);
   const motion = /prefers-reduced-motion:\s*(reduce|no-preference)/.exec(query);
-  if (!min && !minHeight && !maxHeight && !orientation && !motion) throw new Error(`the matchMedia stub only understands min-width, min-height, orientation and prefers-reduced-motion queries, not "${query}"`);
-  const landscape = widthPx >= heightPx;
-  return (
-    (!min || widthPx >= Number(min[1])) &&
-    (!minHeight || heightPx >= Number(minHeight[1])) &&
-    (!maxHeight || heightPx <= Number(maxHeight[1])) &&
-    (!orientation || (orientation[1] === 'landscape') === landscape) &&
-    (!motion || (motion[1] === 'reduce') === reducedMotion)
-  );
+  if (sizes.length === 0 && !orientation && !motion) throw new Error(`the matchMedia stub only understands width, height, orientation and prefers-reduced-motion queries, not "${query}"`);
+  const landscape = widthPx > heightPx;
+  return sizes.every(Boolean) && (!orientation || (orientation[1] === 'landscape') === landscape) && (!motion || (motion[1] === 'reduce') === reducedMotion);
 }
 
 export function stubMatchMedia(widthPx: number, heightPx = DEFAULT_HEIGHT_PX): MatchMediaStub {

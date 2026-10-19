@@ -31,6 +31,11 @@ export const CHART_MARK_TOKENS = [
   'chart-compass',
   'chart-sun',
   'chart-moon',
+  // FR-DS-8 (R103): the four reserved for the stars — nothing draws with them yet.
+  'chart-star',
+  'chart-star-dim',
+  'chart-figure',
+  'chart-planet',
   // FR-LIVE-2 (R32): the live page's six per-satellite arc colours.
   'chart-series-1',
   'chart-series-2',
@@ -40,6 +45,8 @@ export const CHART_MARK_TOKENS = [
   'chart-series-6',
 ] as const;
 export const CHART_SURFACE_TOKENS = ['chart-ground', 'chart-sky'] as const;
+/** FR-DS-8 (R103): the four of `CHART_MARK_TOKENS` nothing draws with yet — held to their ratios, not to a palette. */
+export const CHART_RESERVED_TOKENS = ['chart-star', 'chart-star-dim', 'chart-figure', 'chart-planet'] as const;
 
 /** The themes `tokens.css` defines, and the selector each is written under (D-84). */
 export const THEMES = ['dark', 'night'] as const;
@@ -64,6 +71,49 @@ export function readTokens(css: string, theme: Theme = 'dark'): Map<string, stri
   const tokens = new Map<string, string>();
   for (const [, name, value] of block.matchAll(/--([a-z0-9-]+):\s*(#[0-9a-f]{6})\s*;/gi)) if (name && value) tokens.set(name, value.toLowerCase());
   return tokens;
+}
+
+/**
+ * FR-DS-1, D-700 (R103): the sheet's sections, in file order. `:root` is cut
+ * under six `/* == name == *\/` markers — `grid`, `space`, `type`, `edges`,
+ * `layers`, `colour` — and the night block is the seventh, `night`. Each
+ * section is every `--name: value;` under its marker, whatever the value (a
+ * colour, a `calc()`, an integer), so the guide and the style tests read the
+ * sheet through one parser and not by regexes of their own.
+ */
+export const SECTIONS = ['grid', 'space', 'type', 'edges', 'layers', 'colour', 'night'] as const;
+export type Section = (typeof SECTIONS)[number];
+
+export interface SheetSection {
+  name: Section;
+  tokens: Map<string, string>;
+}
+
+/** The `--name: value;` declarations of `block`, in order; a trailing comment on the line is not the value. */
+function declarations(block: string): Map<string, string> {
+  const tokens = new Map<string, string>();
+  for (const [, name, value] of block.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)) if (name && value) tokens.set(name, value.trim());
+  return tokens;
+}
+
+export function readSections(css: string): SheetSection[] {
+  const root = /^:root\s*\{([\s\S]*?)^\}/m.exec(css);
+  if (!root?.[1]) throw new Error(`no :root block in ${TOKENS_PATH}`);
+  const night = /^\[data-theme="night"\]\s*\{([\s\S]*?)^\}/m.exec(css);
+  if (!night?.[1]) throw new Error(`no night block in ${TOKENS_PATH}`);
+  const parts = root[1].split(/\/\*\s*==\s*([a-z]+)\s*==\s*\*\//);
+  // `split` with a capture group: [before the first marker, name, body, name, body, …].
+  if ((parts[0] ?? '').trim() !== '') throw new Error(`${TOKENS_PATH}: a declaration before the first section marker: ${(parts[0] ?? '').trim().split('\n')[0] ?? ''}`);
+  const sections: SheetSection[] = [];
+  for (let i = 1; i + 1 < parts.length; i += 2) {
+    const name = parts[i];
+    if (!SECTIONS.includes(name as Section)) throw new Error(`${TOKENS_PATH}: unknown section marker == ${name ?? ''} ==`);
+    sections.push({ name: name as Section, tokens: declarations(parts[i + 1] ?? '') });
+  }
+  sections.push({ name: 'night', tokens: declarations(night[1]) });
+  const names = sections.map((section) => section.name);
+  if (names.join(' ') !== SECTIONS.join(' ')) throw new Error(`${TOKENS_PATH}: sections are ${names.join(', ')}; expected ${SECTIONS.join(', ')}`);
+  return sections;
 }
 
 function channel(c: number): number {

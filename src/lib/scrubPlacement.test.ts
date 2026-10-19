@@ -6,7 +6,7 @@
  * the two where it must be (FR-WATCH-7).
  */
 import { describe, expect, it } from 'vitest';
-import { LANDSCAPE_PHONE_MAX_HEIGHT_PX, LANDSCAPE_PHONE_QUERY, layoutMode, LIVE_BOX_MIN_PX, LIVE_SCRUB_BLOCK_PX, liveKeptPx, pageShape, scrubPlacement, WIDE_MIN_PX, type LiveState, type ScrubPlacement } from './layout';
+import { SIDEWAYS_MAX_HEIGHT_PX, LANDSCAPE_PHONE_QUERY, layoutMode, LIVE_BOX_MIN_PX, LIVE_SCRUB_BLOCK_PX, liveKeptPx, pageShape, scrubPlacement, WIDE_MIN_PX, type LiveState, type ScrubPlacement } from './layout';
 
 type Size = readonly [width: number, height: number];
 
@@ -29,14 +29,14 @@ const STATES: readonly LiveState[] = ['watching', 'scrubbing'];
 function at([width, height]: Size): Parameters<typeof scrubPlacement>[0] {
   return {
     mode: layoutMode(width >= WIDE_MIN_PX),
-    shape: pageShape(width > height && height <= LANDSCAPE_PHONE_MAX_HEIGHT_PX),
+    shape: pageShape(width > height && height <= SIDEWAYS_MAX_HEIGHT_PX),
     boxHeightPx: height - liveKeptPx('watching'),
   };
 }
 
 describe('scrubPlacement (FR-WATCH-5, FR-WATCH-6)', () => {
   it('names the landscape phone as D-173 does', () => {
-    expect(LANDSCAPE_PHONE_QUERY).toBe('(orientation: landscape) and (max-height: 500px)');
+    expect(LANDSCAPE_PHONE_QUERY).toBe('(orientation: landscape) and (height <= 500px)');
   });
 
   for (const [group, placement, sizes] of MATRIX) {

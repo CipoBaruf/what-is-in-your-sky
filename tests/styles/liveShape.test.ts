@@ -83,7 +83,7 @@ function areaColumns(body: string): number {
 describe('the live stylesheet: the mode in every shape rule (FR-SHP-1, FR-SHP-2, D-379)', () => {
   it('has a shape rule to check', () => {
     expect(inMedia.length, `${LIVE_CSS} has no @media block — the landscape phone rule is not there`).toBeGreaterThan(0);
-    expect(inMedia.map((rule) => rule.media)).toContain('@media (orientation: landscape) and (max-height: 500px)');
+    expect(inMedia.map((rule) => rule.media)).toContain('@media (orientation: landscape) and (height <= 500px)');
   });
 
   // R78 (D-448): `usePageShape` asks the same query, so what the page renders and what the stylesheet lays out are one shape.

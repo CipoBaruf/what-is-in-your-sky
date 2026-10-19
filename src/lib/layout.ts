@@ -58,7 +58,8 @@ export function thresholdPx(cells: number): number {
 /** FR-DESK-1: wide starts at 100 cells of viewport width; 964 px, up from D-71's 960 (F-10). */
 export const WIDE_CELLS = 100;
 export const WIDE_MIN_PX = thresholdPx(WIDE_CELLS);
-export const WIDE_QUERY = `(min-width: ${String(WIDE_MIN_PX)}px)`;
+/** R103 (FR-DS-3, D-702): every query, in script and in the stylesheets, is range syntax — the floor is Safari 16.4 / Chrome 104 / Firefox 63. */
+export const WIDE_QUERY = `(width >= ${String(WIDE_MIN_PX)}px)`;
 
 /** The gutter between two columns of the wide shell, in cells (`App.module.css`). */
 export const GUTTER_CELLS = 3;
@@ -112,7 +113,7 @@ export const WIDE_SPLIT_MIN_PX = thresholdPx(WIDE_SPLIT_MIN_CELLS + 2 * GUTTER_C
  */
 export const HOME_THREE_PANE_MIN_CELLS = 108;
 export const HOME_THREE_PANE_MIN_PX = thresholdPx(HOME_THREE_PANE_MIN_CELLS + 2 * GUTTER_CELLS + SHELL_PADDING_CELLS);
-export const HOME_THREE_PANE_QUERY = `(min-width: ${String(HOME_THREE_PANE_MIN_PX)}px)`;
+export const HOME_THREE_PANE_QUERY = `(width >= ${String(HOME_THREE_PANE_MIN_PX)}px)`;
 
 /** FR-FIRST-5 (D-444): an open pass at three-pane widths takes the first two panes, at least this wide. */
 export const GUIDE_PANE_MIN_CELLS = 72;
@@ -164,6 +165,51 @@ export const COMPACT_MAX_CELLS = 60;
  * `tests/styles/breakpoint.test.ts` holds them to these.
  */
 export const FOOTER_ONE_LINE_MIN_PX = { en: 1118, es: 1137 } as const;
+
+/**
+ * R93 (FR-HOME-1, D-546, D-605), named here by R103 (FR-DS-3, D-702): the
+ * wide header's folds, one literal per language and per line, each derived as
+ * the breakpoints are (`thresholdPx` of the line's cells on the widest
+ * advance). Under `title` the title is its short form; under `tagline` the
+ * tagline is not drawn. `tests/styles/controlRows.test.ts` recomputes each
+ * from the catalog and the header's gaps, so a longer word in either catalog
+ * moves the number here before it wraps the header on a screen;
+ * `tests/styles/breakpoint.test.ts` holds `Header.module.css`'s `width <`
+ * folds to these, as it holds every other condition to an export of this file.
+ */
+export const HEADER_FOLD_PX = { en: { title: 973, tagline: 848 }, es: { title: 1089, tagline: 1050 } } as const;
+
+/**
+ * R103 (FR-DS-3, D-702): the three heights the stylesheets fold at, named
+ * beside the widths so every `@media` condition in the tree is one of this
+ * file's exports. CSS cannot read a constant, so each module keeps its number
+ * and `tests/styles/breakpoint.test.ts` is the join.
+ *
+ * - `SHORT_MAX_HEIGHT_PX`, 700: the compact page's short window (FR-FIRST-1's
+ *   360 × 640 phone). `App.module.css` halves the gaps of the home's rows and
+ *   `LocationInput.module.css` folds its hint, so the where step keeps its
+ *   footer on screen.
+ * - `WIDE_SHORT_MAX_HEIGHT_PX`, 720: the wide home at 1118 × 700 and 1024 × 768
+ *   (D-608). `App.module.css` halves the main's row of air above and below
+ *   the panes (`--short-window`), so When keeps its pane and FR-HOME-2's block
+ *   stays on screen.
+ * - `SIDEWAYS_MAX_HEIGHT_PX`, 500: the landscape phone (FR-SHP-1, FR-WATCH-5,
+ *   D-173), below as `LANDSCAPE_PHONE_QUERY` with its orientation.
+ *   `global.css` lifts the compact column's cap from the live page and
+ *   `Live.module.css` lays the page out as two panes.
+ */
+export const SHORT_MAX_HEIGHT_PX = 700;
+export const WIDE_SHORT_MAX_HEIGHT_PX = 720;
+
+/**
+ * R51 (D-232, D-259), named here by R103 (FR-DS-3, D-702): the chart frame's
+ * one `@container` condition — from 62 cells of frame the legend stands beside
+ * the drawing in a 24-cell column (the compact chart's 36 cells, a 2-cell gap
+ * and the 24), as a cell count because a container condition's `ch` resolves
+ * against the container's own font. `ChartFrame.module.css` carries it;
+ * `tests/styles/breakpoint.test.ts` holds it to this.
+ */
+export const FRAME_LEGEND_MIN_CELLS = 62;
 
 export type LayoutMode = 'compact' | 'wide';
 
@@ -300,8 +346,8 @@ export type LiveState = 'watching' | 'scrubbing';
 
 /** FR-SHP-1's second decision: portrait, or the landscape phone — wider than tall and at most 500 px high (D-173). */
 export type PageShape = 'portrait' | 'landscape-phone';
-export const LANDSCAPE_PHONE_MAX_HEIGHT_PX = 500;
-export const LANDSCAPE_PHONE_QUERY = `(orientation: landscape) and (max-height: ${String(LANDSCAPE_PHONE_MAX_HEIGHT_PX)}px)`;
+export const SIDEWAYS_MAX_HEIGHT_PX = 500;
+export const LANDSCAPE_PHONE_QUERY = `(orientation: landscape) and (height <= ${String(SIDEWAYS_MAX_HEIGHT_PX)}px)`;
 
 /** Which shape a `matchMedia(LANDSCAPE_PHONE_QUERY)` result means. The mode is asked separately (FR-SHP-1). */
 export function pageShape(matchesLandscapePhone: boolean): PageShape {

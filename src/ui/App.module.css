@@ -90,7 +90,7 @@
    spacing, the board's other one — so at 360 × 640 nothing but the footer is
    below the fold, in Spanish too. 700 px sits between the two sizes the
    requirement names; the board's 1.2 rem holds on every taller screen. */
-@media (max-height: 700px) {
+@media (height <= 700px) {
   .main[data-step] .cold {
     gap: 0.75rem;
     margin-top: calc(0.75rem - var(--row));
@@ -244,7 +244,7 @@
    gutter the mockup fixes (docs/mockups/desktop-1280.html). Widths are in
    cells; the query's own literal is D-71's, checked against `--cell` by
    `tests/styles/breakpoint.test.ts`. */
-@media (min-width: 964px) {
+@media (width >= 964px) {
   /* R93 (FR-HOME-4, D-546, D-604): the page stops growing at `HOME_MAX_CELLS`
      (`lib/layout.ts`, pinned by `tests/styles/breakpoint.test.ts`). The cap is
      on each of the shell's rows — the header, the notices, the main and the
@@ -360,10 +360,10 @@
    what the live page's folds do with their air (FR-SHP-3) — so When holds its
    stripe, table and next event at 1118 × 700 in Spanish, where the pane at the
    three-pane literal is 35 cells (D-443's lean) and one table row wraps. The
-   query is a height, so it is not one of the three width literals
-   `tests/styles/breakpoint.test.ts` holds; `tests/e2e/home-desk.spec.ts` is
-   what pins it. */
-@media (min-width: 964px) and (max-height: 720px) {
+   query is a height, `WIDE_SHORT_MAX_HEIGHT_PX` in `lib/layout.ts`, held like
+   the widths by `tests/styles/breakpoint.test.ts` (R103, D-702);
+   `tests/e2e/home-desk.spec.ts` is what shows it folding. */
+@media (width >= 964px) and (height <= 720px) {
   .main {
     --short-window: 0.5;
   }
@@ -383,7 +383,7 @@
    language under `:root[lang]`, the way the header's folds are written
    (`Header.module.css`, D-546). `tests/e2e/home-desk.spec.ts` at 1024 × 768
    and 1118 × 700 is the proof. */
-@media (min-width: 964px) and (width < 1118px) {
+@media (width >= 964px) and (width < 1118px) {
   :global(:root[lang='en']) .main {
     --two-line-footer: 0.5;
   }
@@ -393,7 +393,7 @@
   }
 }
 
-@media (min-width: 964px) and (width < 1137px) {
+@media (width >= 964px) and (width < 1137px) {
   :global(:root[lang='es']) .main {
     --two-line-footer: 0.5;
   }
@@ -412,7 +412,7 @@
    Where and When panes together — at least 72 cells, so the panel's 40-cell
    floor holds with room — and What keeps the list with the card highlighted.
    `lib/layout.ts` owns the literal; `tests/styles/breakpoint.test.ts` holds it. */
-@media (min-width: 1118px) {
+@media (width >= 1118px) {
   .main:is([data-home='readings'], [data-home='cold']) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -467,7 +467,7 @@
    pixels wider than the column and leans into the shell's right margin: that
    is what the twin of the constant is calculated to keep inside
    (`lib/layout.ts`, `tests/styles/breakpoint.test.ts`). */
-@media (min-width: 1272px) {
+@media (width >= 1272px) {
   /* Both tracks are on the page again. The values are the two elements' own —
      the list column is a plain block, the panel is the grid of head and body
      that `GuidePanel.module.css` gives it — because `display` has no keyword
