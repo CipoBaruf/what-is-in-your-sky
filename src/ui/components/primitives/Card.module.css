@@ -31,11 +31,23 @@
   box-sizing: border-box;
   width: 100%;
   min-height: 0;
-  margin: 0;
   font: inherit;
   text-align: start;
   color: inherit;
   background: none;
   text-decoration: none;
   cursor: pointer;
+}
+
+/* The sheet's margin on a button comes off under `:where()`, so a host's
+   margin on the card (its placement, D-704) wins whatever order the build
+   puts the stylesheets in. */
+:where(.control) {
+  margin: 0;
+}
+
+/* The sheet takes a focused link's block padding off (global.css: the ring
+   sits on the text line); a link card's padding is its box, so it stays. */
+.control:focus-visible {
+  padding-block: var(--space-2);
 }

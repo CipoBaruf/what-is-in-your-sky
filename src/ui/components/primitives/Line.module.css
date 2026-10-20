@@ -86,7 +86,7 @@
 }
 
 /* `rows="controls"`: a row of `--tap` controls a quarter row under the
-   sentence, centred on their row and two cells apart (the failure line's
+   sentence, at the row's start and two cells apart (the failure line's
    `[ retry ]` and `[ details ]`, R89, FR-FAIL-1). */
 .rowsControls {
   display: grid;

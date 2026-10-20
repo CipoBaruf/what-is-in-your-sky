@@ -15,7 +15,7 @@ import styles from './Card.module.css';
  * area. The focus ring is `global.css`'s and never restated here: a button or
  * link card wears the one `:focus-visible` ring, and an article whose
  * stretched child button is focused (`PassCard`'s `OpenGuide`) wears it by
- * the same rule's `[data-card]:has(> button:focus-visible)` (D-704, D-719).
+ * the same rule's `:where([data-card]:has(> button:focus-visible))` (D-704, D-719).
  */
 export interface CardOwnProps {
   /** The element: a pass's `article`, the next event's `section`, or the card as one `button` or `a`. */

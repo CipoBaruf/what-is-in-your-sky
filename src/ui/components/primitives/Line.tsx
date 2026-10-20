@@ -80,7 +80,7 @@ export function Line({ tone = 'status', marker, children, actions, ink = 'fg', s
       <span className={styles.text}>{children}</span>
       {actions !== undefined && (
         <>
-          {/* In the `rows` forms the line is a grid, which drops the space; the dot keeps its own (`white-space: pre`). */}
+          {/* The dot carries its own spaces as text, so the line reads the same to a test and to a reader and breaks after the dot as text does. */}
           {dot ? (
             <span className={styles.dot} aria-hidden="true">
               {' · '}
