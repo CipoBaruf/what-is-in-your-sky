@@ -11,6 +11,7 @@ import { PassCard } from '../../components/passes/PassCard';
 import { FaintToggle } from '../../components/passes/FaintToggle';
 import { ListFailure, listFailure } from '../../components/passes/ListFailure';
 import { nightLabel } from '../../components/passes/PassList';
+import { Rule } from '../../components/primitives/Rule';
 import { TextButton } from '../../components/primitives/TextButton';
 import { faintIds, hasEnded, usePassContext, useListedPasses, useShownClock } from './shownPasses';
 import styles from './Steps.module.css';
@@ -155,6 +156,8 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
         </div>
       )}
       <div className={styles.foot} data-testid="what-foot">
+        {/* R105 (D-720): the foot's rule, across the text and the control. */}
+        <Rule className={styles.footRule} />
         <p className={styles.footText}>
           {foot.map((piece, index) => (
             <Fragment key={index}>

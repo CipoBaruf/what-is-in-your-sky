@@ -1,6 +1,7 @@
 import type { LinkedText } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { Rule } from '../primitives/Rule';
 import styles from './Footer.module.css';
 
 /**
@@ -81,6 +82,8 @@ export function Footer({ inert = false, form = 'full' }: FooterProps) {
   if (wide || line) {
     return (
       <footer inert={inert} className={styles.footer} data-form={line ? 'line' : 'short'}>
+        {/* R105 (D-720): the one-row forms' rule above, as wide as the footer (R23, D-120). */}
+        <Rule className={styles.rule} />
         <p className={styles.line}>
           {t.footer.short.sources}{' '}
           <a href={ATTRIBUTION_URLS.celestrak}>CelesTrak</a>

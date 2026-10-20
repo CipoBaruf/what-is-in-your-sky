@@ -308,13 +308,14 @@ const rows = (t: Messages): readonly Row[] => [
   /*
    * R87 (FR-VISIT-2): the visit notice on a phone is at most two rows — the sentence's short form, then the two
    * controls — each at `--small`, so each is counted in its own characters. The place is the longest a link can
-   * name at the hash's two decimals shown: three digits of longitude and both signs.
+   * name at the hash's two decimals shown: three digits of longitude and both signs. R105 (D-718): the notice is
+   * a `Line`, whose actions row is the primitive's own element — found as the parent of the first control.
    */
   ...(['sentence', 'actions'] as const).map(
     (part): Row => ({
       name: `the visit notice: the ${part} (FR-VISIT-2)`,
       element: createElement(VisitNotice),
-      find: () => screen.getByTestId(`visit-${part}`),
+      find: () => (part === 'sentence' ? screen.getByTestId('visit-sentence') : (screen.getByTestId('visit-back').parentElement as Element)),
       setUp: () => {
         appStore.setState({ observer, visiting: { ...observer, lat: -38.93, lon: -167.99, label: '−38.93, −167.99' } });
       },

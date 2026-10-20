@@ -1,0 +1,16 @@
+/* R105 (FR-DS-4 item 5; D-703, D-720): the plain divider. The sheet's `<hr>`
+   is an inset box with half an em of margin; this is the one-pixel line in
+   `--rule` the modules drew as a `border-top`, drawn the same way — a top
+   border on a box of no height — so a rule that moved from a block's edge to
+   an element of its own is the same pixel row. The margin reset sits under
+   `:where()`: a host's margin on the rule (its placement, D-720) wins
+   whatever order the build puts the stylesheets in. */
+:where(.rule) {
+  margin: 0;
+}
+
+.rule {
+  border: 0;
+  border-top: var(--border);
+  height: 0;
+}

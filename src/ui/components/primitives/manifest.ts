@@ -1,5 +1,9 @@
 import type { BracketLinkOwnProps } from './BracketLink';
+import type { CardOwnProps } from './Card';
+import type { LineOwnProps } from './Line';
 import type { OptionToggleOwnProps } from './OptionToggle';
+import type { RuleProps } from './Rule';
+import type { SectionHeadingProps } from './SectionHeading';
 import type { TextButtonOwnProps } from './TextButton';
 import type { ToggleGroupProps } from './ToggleGroup';
 
@@ -31,7 +35,7 @@ export interface PrimitiveEntry {
 
 type Docs<P> = { readonly [K in keyof P]-?: Omit<PrimitivePropDoc, 'name'> };
 
-function entry<P>(name: string, when: string, docs: Docs<P>): PrimitiveEntry {
+function entry<P extends object>(name: string, when: string, docs: Docs<P>): PrimitiveEntry {
   return { name, file: `${name}.tsx`, when, props: Object.entries(docs as Record<string, Omit<PrimitivePropDoc, 'name'>>).map(([key, doc]) => ({ name: key, ...doc })) };
 }
 
@@ -80,6 +84,36 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     role: { type: "'group' | 'radiogroup'", text: 'Pressed buttons (the default), or radios with one tab stop where the arrow keys choose.' },
     mark: { type: "'check' | 'bracket' | 'tight'", text: 'How the chosen option is told from the others: `[x]`, bracketed, or bracketed without spaces.' },
     gap: { type: "'cell' | 'none'", text: 'A cell between options, or none where each option’s trailing cell is the whole gap (the wide speeds).' },
+    className: PLACEMENT,
+  }),
+  // R105 (FR-DS-4 items 4–6; D-718..D-720): the surfaces.
+  entry<CardOwnProps>('Card', 'A box ruled in the rule colour that holds one thing — a pass, the next event — and, as a button or a link, is one control.', {
+    as: { type: "'article' | 'section' | 'button' | 'a'", text: 'The element: a pass’s article, the next event’s named section, or the card as one button or link with the sheet’s control chrome taken off.' },
+    selected: { type: 'boolean', text: 'The card the guide is open on: ruled in the accent on the raised ground and `aria-current`.' },
+    frame: { type: "'rule' | 'accent'", text: 'The frame’s ink: the rule (a card among cards), or the accent (the phone’s first card).' },
+    children: { type: 'ReactNode', text: 'What the card holds.' },
+    className: PLACEMENT,
+  }),
+  entry<RuleProps>('Rule', 'The plain divider between two blocks, where a module used to draw a bare border-top; the space beside it is the host’s margin.', {
+    className: { type: 'string', text: 'Placement only: a grid area, a flex basis or a margin from the space scale (D-704).' },
+  }),
+  entry<SectionHeadingProps>('SectionHeading', 'A section’s title drawn as a character rule, `── Title ─────`, named by the title alone.', {
+    id: { type: 'string', text: 'The heading’s id, for the section’s `aria-labelledby`.' },
+    children: { type: 'ReactNode', text: 'The title.' },
+    tone: { type: "'active' | 'muted'", text: 'The home’s pane headings: the reading the reader is on in the accent, a pane not there yet in the dim ink.' },
+    level: { type: '2 | 3', text: 'The heading’s rank in the outline (FR-A11Y-2); the drawing is the same at either.' },
+  }),
+  entry<LineOwnProps>('Line', 'One line that tells the reader something — a status, a note, a failure — as a leading marker, a sentence and trailing actions.', {
+    tone: { type: "'status' | 'ok' | 'notice' | 'failure'", text: 'The ink for the marker and the frame’s edge: dim, `--ok`, `--warn` or `--danger`.' },
+    marker: { type: 'ReactNode', text: 'The leading marker in the tone’s ink, the banner’s spelled-out `[Warning]`: the second channel beside the colour (FR-X-5).' },
+    children: { type: 'ReactNode', text: 'The sentence.' },
+    actions: { type: 'ReactNode', text: 'The trailing controls, after the sentence or on the row under it.' },
+    ink: { type: "'fg' | 'dim' | 'tone'", text: 'The sentence’s ink: the page’s, the dim ink, or the tone’s (the elements line past five days).' },
+    size: { type: "'body' | 'small'", text: 'The body, or `--small` on its row.' },
+    box: { type: 'boolean', text: 'The banner’s frame: the rule all round and the tone’s edge half a cell wide at the left.' },
+    rows: { type: "'text' | 'controls'", text: 'The actions on the row under the sentence: a text row of inline controls a cell apart, or a row of `--tap` controls centred, two cells apart, a quarter row under.' },
+    dot: { type: 'boolean', text: 'A middle dot between the sentence and the actions.' },
+    as: { type: "'p' | 'div'", text: 'A paragraph, or a div where the host’s line was one.' },
     className: PLACEMENT,
   }),
 ];

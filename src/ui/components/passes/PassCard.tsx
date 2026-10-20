@@ -7,6 +7,7 @@ import { brightnessBand } from '../../../lib/phrases';
 import { formatShortClock } from '../../../lib/timeFormat';
 import type { Pass, WeatherSnapshot } from '../../../model';
 import { MoonGlareLabel } from '../moon/MoonGlare';
+import { Card } from '../primitives/Card';
 import { CloudBadge } from '../weather/CloudBadge';
 import { passMinutes } from './NextEventBlock';
 import { OpenGuide } from './OpenGuide';
@@ -40,6 +41,10 @@ import styles from './PassCard.module.css';
  *
  * R97 (FR-FAINT-2): a faint pass the reader asked to see is an ordinary card,
  * with its name in `--fg-dim` and `[faint]` on the third line.
+ *
+ * R105 (FR-DS-4 item 4, D-719): the box is a `Card` — the frame, the padding,
+ * the selected state and the ring are the primitive's; this module draws the
+ * three lines inside it and nothing of the box.
  */
 export interface PassCardProps {
   pass: Pass;
@@ -72,7 +77,7 @@ export function PassCard({ pass, timeZone, onOpen, weather, selected = false, de
   const headingId = useId();
   const flags = ended || weather !== undefined || pass.twilight || pass.moonGlare.glare || faint;
   return (
-    <article className={faint ? `${styles.card} ${styles.faint}` : styles.card} aria-labelledby={headingId} data-pass-id={pass.id} data-pass-card="" tabIndex={-1} {...(selected ? { 'data-selected': 'true', 'aria-current': true as const } : {})}>
+    <Card selected={selected} className={faint ? styles.faint : undefined} aria-labelledby={headingId} data-pass-id={pass.id} data-pass-card="" tabIndex={-1}>
       <div className={styles.first} data-testid="card-first-line">
         <span className={styles.time}>{formatShortClock(pass.start.t, timeZone, locale, timeZone === null)}</span>
         <Name id={headingId} className={styles.name}>
@@ -120,6 +125,6 @@ export function PassCard({ pass, timeZone, onOpen, weather, selected = false, de
       )}
       {/* Last in the card, so its stretched box lies over everything before it. */}
       {onOpen && <OpenGuide passId={pass.id} nameId={headingId} onOpen={onOpen} />}
-    </article>
+    </Card>
   );
 }

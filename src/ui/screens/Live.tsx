@@ -24,6 +24,7 @@ import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
 import { BackToLive, HiddenToggle, LegendToggle, PlaybackControls, ScrubButton } from '../components/live/PlaybackControls';
 import { INDICATOR_MARK_PX, StateIndicator } from '../components/live/StateIndicator';
+import { Rule } from '../components/primitives/Rule';
 import { TextButton } from '../components/primitives/TextButton';
 import { StatusStrip } from '../components/live/StatusStrip';
 import { StepControls } from '../components/live/StepControls';
@@ -562,7 +563,8 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const jumpAt = scrubbing ? null : jumpPlacement(mode, fitsOnPath);
   const nextEvent = has('next-event') ? (
     <div className={styles.headline} ref={headlineRef}>
-      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={nextEventContext} pending={passesPending} hours={liveHours} liveLink={false} {...(jumpAt === 'path' ? { onSee: seePass } : {})} />
+      {/* R105 (D-720): on compact the block is the page's headline and not a pane's last block — no rule above it. */}
+      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={nextEventContext} pending={passesPending} hours={liveHours} liveLink={false} ruled={!compact} {...(jumpAt === 'path' ? { onSee: seePass } : {})} />
     </div>
   ) : null;
   const readout = <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />;
@@ -770,6 +772,8 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   );
   const side = (
     <div className={styles.side} data-testid="live-side">
+      {/* R105 (D-720): the folded rail's line (FR-SHP-3, R78) is ruled off above; the rule takes the row's whole width. */}
+      {fold.includes('actions') && <Rule className={styles.sideRule} />}
       {railHead}
       <div className={styles.railFoot} data-testid="live-rail-foot">
         {(!scrubbing || overlaid) && overview}

@@ -2,7 +2,7 @@ import { useId, type ReactNode } from 'react';
 import { useT } from '../../../i18n/useT';
 import { MAX_FAVOURITES } from '../../../model';
 import { favouriteCellKey, useActiveObserver, useAppStore } from '../../../state';
-import { SectionHeading } from '../common/SectionHeading';
+import { SectionHeading } from '../primitives/SectionHeading';
 import { TextButton } from '../primitives/TextButton';
 import styles from './Favourites.module.css';
 

@@ -1,0 +1,53 @@
+/* R105 (FR-DS-4 item 4; D-703, D-719): the card. A box ruled in `--rule`,
+   `--space-2` (12 px) inside, positioned so a stretched control inside it
+   (`OpenGuide`) covers the whole box (R84, F-85). Every rule here is a prop of
+   `Card`; a feature module places the card and sets nothing on it. The focus
+   ring is `global.css`'s (D-704): nothing here says `outline`. */
+.card {
+  position: relative;
+  border: var(--border);
+  padding: var(--space-2);
+}
+
+/* `frame="accent"`: the phone's first card, ruled in the accent (FR-FIRST-4, R82). */
+.accent {
+  border-color: var(--accent);
+}
+
+/* `selected`: the pass the guide is open on, ruled in the accent on the raised
+   ground (R23, FR-DESK-3), on top of `aria-current` for anyone who is not
+   looking at it. */
+.card[data-selected] {
+  border-color: var(--accent);
+  background: var(--bg-raised);
+}
+
+/* `as="button"` / `as="a"`: the card as one control. The sheet's `<button>`
+   is a bordered `--tap` box in the ground colour and its `<a>` an underlined
+   inline box (global.css); the card keeps its own frame and padding and takes
+   the rest off, so the whole box is the hit area and reads as the card. */
+.control {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 0;
+  font: inherit;
+  text-align: start;
+  color: inherit;
+  background: none;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* The sheet's margin on a button comes off under `:where()`, so a host's
+   margin on the card (its placement, D-704) wins whatever order the build
+   puts the stylesheets in. */
+:where(.control) {
+  margin: 0;
+}
+
+/* The sheet takes a focused link's block padding off (global.css: the ring
+   sits on the text line); a link card's padding is its box, so it stays. */
+.control:focus-visible {
+  padding-block: var(--space-2);
+}

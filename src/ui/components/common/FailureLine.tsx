@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from 'react';
 import { useT } from '../../../i18n/useT';
 import type { Failure } from '../../../state/failure';
+import { Line } from '../primitives/Line';
 import { TextButton } from '../primitives/TextButton';
 import styles from './FailureLine.module.css';
 
@@ -18,6 +19,10 @@ import styles from './FailureLine.module.css';
  * FR-FAIL-1's 48 px control on compact; the caller shows the loading state
  * the retry puts the slice in. The live page places it first (R89); R91 places
  * it everywhere else.
+ *
+ * R105 (FR-DS-4 item 6, D-718): the sentence and its two controls are a
+ * `Line` in the `failure` tone with the controls on their own row
+ * (`rows="controls"`); the detail stands under it in this module's grid.
  */
 export interface FailureLineProps {
   failure: Failure;
@@ -36,23 +41,30 @@ export function FailureLine({ failure, what, instead, site, onRetry }: FailureLi
   const detailId = useId();
   return (
     <div className={styles.line} data-testid="failure-line" data-kind={failure.kind} data-site={site}>
-      <p className={styles.sentence} data-testid="failure-sentence">
-        {t.failure[failure.kind](what)}
-        {instead === undefined ? null : <> {instead}</>}
-      </p>
-      <span className={styles.actions}>
-        <TextButton label={t.failure.retry} data-testid="failure-retry" onClick={onRetry} />
-        <TextButton
-          inline
-          label={t.failure.details}
-          aria-expanded={open}
-          aria-controls={detailId}
-          data-testid="failure-details"
-          onClick={() => {
-            setOpen((o) => !o);
-          }}
-        />
-      </span>
+      <Line
+        tone="failure"
+        rows="controls"
+        actions={
+          <>
+            <TextButton label={t.failure.retry} data-testid="failure-retry" onClick={onRetry} />
+            <TextButton
+              inline
+              label={t.failure.details}
+              aria-expanded={open}
+              aria-controls={detailId}
+              data-testid="failure-details"
+              onClick={() => {
+                setOpen((o) => !o);
+              }}
+            />
+          </>
+        }
+      >
+        <span data-testid="failure-sentence">
+          {t.failure[failure.kind](what)}
+          {instead === undefined ? null : <> {instead}</>}
+        </span>
+      </Line>
       <pre id={detailId} hidden={!open} className={styles.detail} aria-label={t.failure.detailLabel} data-testid="failure-detail">
         {failure.detail}
       </pre>

@@ -293,7 +293,8 @@ describe('the wide breakpoints (FR-DESK-1, FR-DESK-3, D-71, D-252)', () => {
       const rules = [...body.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => [m[1]?.trim() ?? '', m[2]?.trim() ?? ''] as const);
       expect(rules.map(([selector]) => selector)).toEqual([`:global(:root[lang='${lang}']) .main`, `:global(:root[lang='${lang}'] #root) > :global(footer[data-form='short'])`]);
       expect(rules[0]?.[1]).toBe('--two-line-footer: 0.5;');
-      expect(rules[1]?.[1]).toBe('padding-top: calc(var(--row) / 2);');
+      // R105 (D-720): the footer's top padding is the space under its `Rule`, which Footer.module.css reads from this name.
+      expect(rules[1]?.[1]).toBe('--footer-rule-gap: var(--space-2);');
     }
     // The main's air is one calculation, the two shares subtracted, so both rules true leave none (D-608 composes).
     const wide = wideBlocks(app).join('\n');

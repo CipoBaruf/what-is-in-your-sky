@@ -1,22 +1,7 @@
-/* R81 (FR-FIRST-10, board 1B): a box ruled in `--rule`, 12 px inside. */
-.card {
-  position: relative;
-  border: 1px solid var(--rule);
-  padding: 12px;
-}
-
-/* R23 (FR-DESK-3): the pass the guide is open on, ruled in the accent on the
-   raised ground, on top of `aria-current` for anyone who is not looking at it. */
-.card[data-selected] {
-  border-color: var(--accent);
-  background: var(--bg-raised);
-}
-
-/* The card is the hit area, so the card wears the focus ring: its one button is `OpenGuide`. */
-.card:has(> button:focus-visible) {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
+/* R81 (FR-FIRST-10, board 1B): a box ruled in `--rule`, 12 px inside — the
+   `Card` primitive since R105 (D-719): its frame, its padding, the selected
+   state (R23, FR-DESK-3) and the ring its stretched `OpenGuide` hands it are
+   the primitive's and `global.css`'s; nothing here draws on the box. */
 
 /* `21:14   ISS`: the time and the name in the accent, three cells apart; the
    name is the part that gives when the line runs out, and the tag keeps its
@@ -36,7 +21,7 @@
 .name {
   min-width: 0;
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--text-body);
   font-weight: normal;
   color: var(--accent);
   white-space: nowrap;

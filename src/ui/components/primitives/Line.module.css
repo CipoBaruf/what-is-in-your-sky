@@ -1,0 +1,100 @@
+/* R105 (FR-DS-4 item 6; D-703, D-718): the line. Every rule here is a prop of
+   `Line`; a feature module places the line and sets nothing on it. The line is
+   a block of inline content — the marker, the sentence, the dot and the
+   actions flow as text does — unless `rows` makes it a grid of two rows. */
+.line {
+  margin: 0;
+}
+
+/* `tone`: the ink for the marker and the frame's edge. A status is dim, and a
+   note's edge is the accent — the page's own colour for "this is for you" —
+   while its marker stays dim (R11's info banner); the other three are one ink. */
+.status {
+  --line-tone: var(--fg-dim);
+  --line-edge: var(--accent);
+}
+
+.ok {
+  --line-tone: var(--ok);
+  --line-edge: var(--ok);
+}
+
+.notice {
+  --line-tone: var(--warn);
+  --line-edge: var(--warn);
+}
+
+.failure {
+  --line-tone: var(--danger);
+  --line-edge: var(--danger);
+}
+
+/* `size="small"`: the redesign's second size, 14 px on a 20 px row (D-504). */
+.small {
+  font-size: var(--small);
+  line-height: var(--small-row);
+}
+
+.marker {
+  color: var(--line-tone);
+}
+
+/* `ink`: the sentence's own ink — the page's, the dim ink, or the tone's. */
+.text {
+  color: var(--fg);
+}
+
+.dim > .text {
+  color: var(--fg-dim);
+}
+
+.toned > .text {
+  color: var(--line-tone);
+}
+
+/* `dot`: ` · ` between the sentence and the actions, in the dim ink. Its two
+   spaces are text and break as text does — the line wraps after the dot where
+   the control does not fit (the elements line in Spanish at 360 px) — so the
+   line reads the same to a test and to a reader. It is for the one-line forms;
+   the `rows` grids drop a text node between their items. */
+.dot {
+  color: var(--fg-dim);
+}
+
+/* The actions: inline controls a cell apart, wrapping where the line cannot hold them all. */
+.actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0 var(--cell);
+}
+
+/* `box`: the banner's frame (R11, FR-X-6) — the rule all round, the tone's
+   edge half a cell wide at the left, a quarter row by a cell inside; the
+   text keeps its line breaks and wraps rather than widening the page. */
+.box {
+  padding: var(--space-1) var(--cell);
+  border: var(--border);
+  border-left-width: calc(var(--cell) / 2);
+  border-left-color: var(--line-edge);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* `rows="text"`: the sentence's row and the controls' row, nothing between (the visit notice on a phone, R87). */
+.rowsText {
+  display: grid;
+}
+
+/* `rows="controls"`: a row of `--tap` controls a quarter row under the
+   sentence, at the row's start and two cells apart (the failure line's
+   `[ retry ]` and `[ details ]`, R89, FR-FAIL-1). */
+.rowsControls {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.rowsControls > .actions {
+  display: flex;
+  align-items: center;
+  gap: 0 calc(2 * var(--cell));
+}

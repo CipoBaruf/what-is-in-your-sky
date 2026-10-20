@@ -6,7 +6,7 @@ import styles from '../App.module.css';
 import { Banner } from '../components/common/Banner';
 import { InstallHint } from '../components/common/InstallHint';
 import { ReadinessLine } from '../components/common/ReadinessLine';
-import { SectionHeading } from '../components/common/SectionHeading';
+import { SectionHeading } from '../components/primitives/SectionHeading';
 import { UpdateBanner } from '../components/common/UpdateBanner';
 import { ElementsLine } from '../components/elements/ElementsLine';
 import { Favourites } from '../components/location/Favourites';

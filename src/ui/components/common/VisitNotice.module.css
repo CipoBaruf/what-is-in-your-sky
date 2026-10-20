@@ -26,33 +26,8 @@
 }
 
 /* FR-VISIT-2: one line where it fits; on a phone the sentence is one row and
-   the two controls the second. */
-.notice,
-.note {
-  margin: 0;
-}
-
-.notice[data-form='line'] {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-}
-
-.notice[data-form='rows'] {
-  display: grid;
-}
-
-.sentence {
-  color: var(--fg);
-}
-
-.dot {
-  padding: 0 var(--cell);
-}
-
-/* R104 (D-704): the three controls are inline `TextButton`s; nothing here draws on them. */
-.actions {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0 var(--cell);
-}
+   the two controls the second. R105 (D-718): the notice and the note are
+   `Line`s — the sentence, the dot, the two rows and the controls' spacing are
+   the primitive's, and R104's three inline `TextButton`s stand in its actions;
+   nothing here draws on either. The strip keeps its own type and ink above:
+   `--cell` is read at the strip's size, so its padding is written there. */

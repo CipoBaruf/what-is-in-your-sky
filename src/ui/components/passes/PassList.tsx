@@ -6,7 +6,7 @@ import { nextFeaturedPass, sortPasses } from '../../../lib/passSort';
 import type { EpochMs, Observer, Pass } from '../../../model';
 import { isFeatured, useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../../state';
 import { faintIds, hasEnded, useListedPasses, useShownClock } from '../../screens/home/shownPasses';
-import { SectionHeading } from '../common/SectionHeading';
+import { SectionHeading } from '../primitives/SectionHeading';
 import { FaintToggle } from './FaintToggle';
 import { ListFailure, listFailure } from './ListFailure';
 import { groupByNight, type NightGroup } from './nightGroups';

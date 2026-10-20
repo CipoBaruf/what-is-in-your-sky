@@ -3,6 +3,7 @@ import { coordsLabel } from '../../../lib/place';
 import { formatDate, formatShortClock } from '../../../lib/timeFormat';
 import { useActiveObserver, useAppStore, type OpenLinkResult } from '../../../state';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { Line } from '../primitives/Line';
 import { TextButton } from '../primitives/TextButton';
 import styles from './VisitNotice.module.css';
 
@@ -17,6 +18,10 @@ import styles from './VisitNotice.module.css';
  * the second, so the notice is at most two rows of 36 cells in both languages
  * (`tests/styles/controlRows.test.ts`). The live page mounts the same
  * component (R89).
+ *
+ * R105 (FR-DS-4 item 6, D-718): a `Line` at `--small` — on a desk the
+ * sentence, the dot and the two controls on one line (`dot`), on a phone the
+ * controls on the text row under the sentence (`rows="text"`).
  */
 export function VisitNotice({ inert = false }: { inert?: boolean }) {
   const t = useT();
@@ -27,16 +32,24 @@ export function VisitNotice({ inert = false }: { inert?: boolean }) {
   if (visiting === null) return null;
   const place = coordsLabel(visiting.lat, visiting.lon);
   return (
-    <div role="status" inert={inert} className={styles.notice} data-form={wide ? 'line' : 'rows'} data-testid="visit-notice">
-      <span className={styles.sentence} data-testid="visit-sentence">
-        {wide ? t.visit.showing({ place }) : t.visit.showingShort({ place })}
-      </span>
-      {wide && <span className={styles.dot}>·</span>}
-      <span className={styles.actions} data-testid="visit-actions">
-        <TextButton inline label={t.visit.back} data-testid="visit-back" onClick={endVisit} />
-        <TextButton inline label={t.visit.keep} data-testid="visit-keep" onClick={keepVisit} />
-      </span>
-    </div>
+    <Line
+      as="div"
+      role="status"
+      inert={inert}
+      size="small"
+      dot={wide}
+      {...(wide ? {} : { rows: 'text' as const })}
+      actions={
+        <>
+          <TextButton inline label={t.visit.back} data-testid="visit-back" onClick={endVisit} />
+          <TextButton inline label={t.visit.keep} data-testid="visit-keep" onClick={keepVisit} />
+        </>
+      }
+      data-form={wide ? 'line' : 'rows'}
+      data-testid="visit-notice"
+    >
+      <span data-testid="visit-sentence">{wide ? t.visit.showing({ place }) : t.visit.showingShort({ place })}</span>
+    </Line>
   );
 }
 
@@ -77,11 +90,11 @@ export function LinkNote({ kinds, inert = false }: { kinds: readonly LinkNoteKin
     const time = `${formatDate(at, timeZone, locale)} ${formatShortClock(at, timeZone, locale, true)}`;
     text = kind === 'past' ? t.visit.past({ time }) : t.visit.far({ time });
   }
+  // R105 (D-718): the same `Line` as the notice above, in the strip's dim ink, its one control after the sentence.
   return (
-    <p role="status" inert={inert} className={styles.note} data-note={kind} data-testid="link-note">
-      <span>{text}</span>{' '}
-      <TextButton inline label="×" aria-label={t.visit.dismiss} data-testid="link-note-dismiss" onClick={dismiss} />
-    </p>
+    <Line role="status" inert={inert} size="small" ink="dim" actions={<TextButton inline label="×" aria-label={t.visit.dismiss} data-testid="link-note-dismiss" onClick={dismiss} />} data-note={kind} data-testid="link-note">
+      {text}
+    </Line>
   );
 }
 

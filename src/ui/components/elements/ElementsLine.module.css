@@ -1,26 +1,16 @@
 /* R81 (FR-SAT-4 as amended v2.0.2, board 1B): one line at `--small`, dim, in
-   `--warn` past the five days; `[ details ]` opens the full status under it. */
+   `--warn` past the five days; `[ details ]` opens the full status under it.
+   R105 (D-718): the line is a `Line` and `[ details ]` an inline `TextButton`
+   (R104) in its actions; this module is the grid they stand in and the panel
+   the disclosure opens. */
 .block {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-2);
 }
-
-.line {
-  margin: 0;
-  font-size: var(--small);
-  line-height: var(--small-row);
-  color: var(--fg-dim);
-}
-
-.line[data-warn='true'] .age {
-  color: var(--warn);
-}
-
-/* `[ details ]` is an inline `TextButton` (R104, D-704); nothing here draws on it. */
 
 .panel {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-2);
 }
 
 .panel[hidden] {
