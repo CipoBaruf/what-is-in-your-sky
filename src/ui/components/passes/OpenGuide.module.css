@@ -16,6 +16,5 @@
   cursor: pointer;
 }
 
-.open:focus-visible {
-  outline: none;
-}
+/* R107 (D-704): the button draws no ring of its own — the card wears it in the
+   button's place — and both halves of that are global.css's one rule. */

@@ -77,7 +77,10 @@
   cursor: pointer;
 }
 
+/* The `×` stands in the screen's corner, so the ring sits inside its box — a
+   ring's width in — where one outside the box would be cut by the edge.
+   R107 (D-704, D-725): the ring itself is global.css's; this sets only the
+   offset the one rule reads. */
 .close:focus-visible {
-  outline: calc(var(--row) / 12) solid var(--accent);
-  outline-offset: calc(var(--row) / -12);
+  --focus-offset: calc(-1 * var(--focus-ring));
 }

@@ -2,7 +2,7 @@
    label, the input (or its unit box), the rows under it — a row gap apart;
    every rule here is a prop of `Field`, and a feature module places the field
    and sets nothing on it. The input's border, ground and ring are the sheet's
-   (global.css); nothing here says `outline`. */
+   (global.css); nothing here restates them. */
 .field {
   display: grid;
   row-gap: var(--space-2);

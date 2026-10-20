@@ -23,9 +23,9 @@
   box-sizing: border-box;
 }
 
+/* R107 (D-704): the ring is global.css's; the stripe only tightens its offset to the sheet's hairline. */
 .stripe:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline-offset: var(--focus-offset-tight);
 }
 
 .stripe[data-dragging='true'] {

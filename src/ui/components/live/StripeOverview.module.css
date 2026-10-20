@@ -3,7 +3,7 @@
    already reads, so it is the same picture at a coarser resolution: the day is
    the raised background, the twilight the ground's colour, the dark the sky
    bowl's, the marks the six series tokens their arcs take, the cursor the live
-   marker's colour. The bracket is the accent, an outline and not a fill, so
+   marker's colour. The bracket is the accent, a line round and not a fill, so
    what is inside it is still read (FR-X-5: it is a shape, not a colour). */
 .overview {
   display: block;
@@ -18,9 +18,9 @@
   box-sizing: border-box;
 }
 
+/* R107 (D-704): the ring is global.css's; the overview only tightens its offset to the sheet's hairline. */
 .overview:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline-offset: var(--focus-offset-tight);
 }
 
 .overview[data-dragging='true'] {

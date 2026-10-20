@@ -165,11 +165,26 @@ p {
    browser without `:has()` (Firefox before 121) drops the card's selector
    alone and keeps the ring on every other control, where a plain list would
    drop the whole rule; its zero specificity costs nothing, no module says
-   `outline` on a card. */
+   `outline` on a card.
+   R107 (FR-DS-1 edges, FR-DS-2; D-704, D-725): the ring is this one rule,
+   written from the sheet — `--focus-ring` wide, `--focus-offset` out — and
+   no module restates it. Where a control's ring must sit elsewhere, the
+   module sets `--focus-offset` on the control and this rule reads it: the
+   two stripes' `outline-offset: var(--focus-offset-tight)` is the one form
+   D-701 allows, the live page's compact Back sits flush (`0`, F-100), and
+   the sky screen's `×` at the screen's corner wears it inside its box. The
+   stretched card button draws no ring of its own — the card wears it in the
+   button's place, above — and that is said here, beside the ring, not in
+   `OpenGuide.module.css`: the same `:where()` guard, so a browser without
+   `:has()` keeps the button's own ring instead. */
 :focus-visible,
 :where([data-card]:has(> button:focus-visible)) {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: var(--focus-ring) solid var(--accent);
+  outline-offset: var(--focus-offset);
+}
+
+:where([data-card]:has(> button:focus-visible)) > button:focus-visible {
+  outline: none;
 }
 
 input,
