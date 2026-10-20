@@ -28,6 +28,9 @@
   "src/ui/components/location/LocationInput.module.css": [
     "@media (height <= 700px)"
   ],
+  "src/ui/components/primitives/Field.module.css": [
+    "@media (height <= 700px)"
+  ],
   "src/ui/screens/Live.module.css": [
     "@media (orientation : landscape) and (height <= 500px)"
   ],

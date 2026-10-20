@@ -6,6 +6,8 @@ import type { Observer, Place } from '../../../model';
 import { toFailure, type Failure } from '../../../state';
 import { useOnline } from '../../hooks/useOnline';
 import { FailureLine } from '../common/FailureLine';
+import { Field } from '../primitives/Field';
+import { Line } from '../primitives/Line';
 import { coordsLabel } from './CoordsInput';
 import styles from './PlacePicker.module.css';
 
@@ -235,30 +237,33 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
 
   const activeId = showList && active >= 0 ? `${listId}-${String(active)}` : undefined;
   const confirming = observer?.source === 'geocode' ? observer : null;
+  const home = look !== 'panel';
 
+  // R106 (D-722): the field is a `Field` — the panel's 32 cells with a row of
+  // space under, or the home group's small label over the column's width, in
+  // a box on a phone — and the pick list, the status, the failure and the
+  // confirmation are its rows.
   return (
-    <div className={look === 'panel' ? styles.field : `${styles.field} ${styles.home} ${look === 'boxed' ? styles.boxed : ''}`}>
-      <label htmlFor={inputId}>{t.location.placeLabel}</label>
-      <input
-        ref={inputRef}
-        id={inputId}
-        type="text"
-        role="combobox"
-        inputMode="text"
-        autoComplete="off"
-        spellCheck={false}
-        placeholder={t.location.placePlaceholder}
-        value={text}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        aria-autocomplete="list"
-        aria-expanded={showList}
-        aria-controls={listId}
-        aria-activedescendant={activeId}
-        aria-describedby={confirming ? noteId : undefined}
-        className={styles.input}
-      />
-      <ul id={listId} role="listbox" aria-label={t.location.placeList} className={styles.list} hidden={!showList}>
+    <Field
+      ref={inputRef}
+      id={inputId}
+      label={t.location.placeLabel}
+      {...(home ? { size: 'small' as const, box: look === 'boxed' } : { cells: 32, className: styles.panel })}
+      role="combobox"
+      inputMode="text"
+      autoComplete="off"
+      spellCheck={false}
+      placeholder={t.location.placePlaceholder}
+      value={text}
+      onChange={handleChange}
+      onKeyDown={handleKeyDown}
+      aria-autocomplete="list"
+      aria-expanded={showList}
+      aria-controls={listId}
+      aria-activedescendant={activeId}
+      aria-describedby={confirming ? noteId : undefined}
+    >
+      <ul id={listId} role="listbox" aria-label={t.location.placeList} className={home ? `${styles.list} ${styles.listFull}` : styles.list} hidden={!showList}>
         {showList &&
           places.map((place, i) => {
             const region = placeRegion(place);
@@ -298,7 +303,7 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
       {/* R91 (FR-FAIL-1, D-541): the failure line, where the matches would have been; `[ retry ]` runs the last
           query again, which puts the status back on "Searching for …". */}
       {!offline && list.kind === 'error' && (
-        <div role="alert" className={styles.error}>
+        <div role="alert">
           <FailureLine
             failure={list.failure}
             what={t.failure.what.search}
@@ -311,10 +316,10 @@ export function PlacePicker({ search, onObserver, observer, coordsInputId, initi
         </div>
       )}
       {confirming && (
-        <p id={noteId} className={styles.note} data-testid="place-confirmation">
+        <Line ink="dim" id={noteId} data-testid="place-confirmation">
           {t.location.placeCentre({ place: confirming.label, coords: coordsLabel(confirming.lat, confirming.lon) })}
-        </p>
+        </Line>
       )}
-    </div>
+    </Field>
   );
 }

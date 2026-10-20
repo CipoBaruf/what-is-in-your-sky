@@ -3,6 +3,8 @@ import type { Messages } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
 import { ALTITUDE_RANGE, LATITUDE_RANGE, LONGITUDE_RANGE, altitudeInRange, coordsLabel, latitudeInRange, longitudeInRange, observerFromCoords } from '../../../lib/place';
 import type { Observer } from '../../../model';
+import { Field } from '../primitives/Field';
+import { Line } from '../primitives/Line';
 import styles from './CoordsInput.module.css';
 
 /**
@@ -154,10 +156,23 @@ export function CoordsInput({ onObserver, id, initial, look = 'panel' }: CoordsI
     emit(text, value);
   };
 
+  // R106 (D-722): both fields are `Field`s and their messages `Line`s in the
+  // danger ink. The home group's pair is one field with the altitude in its
+  // trailing slot — one label over the two, the altitude's own label read and
+  // not drawn, its unit inside its box, and the messages across both columns;
+  // the panel's pair is two fields side by side on this module's row.
+  const coordsError = error && (
+    <Line tone="failure" ink="tone" id={errorId} role="alert">
+      {coordsErrorText(t, error)}
+    </Line>
+  );
   const altitude = (
-    <input
+    <Field
       id={altId}
-      type="text"
+      label={t.location.altitudeLabel}
+      labelHidden={home}
+      cells={10}
+      {...(home ? { unit: 'm' } : {})}
       inputMode="decimal"
       autoComplete="off"
       spellCheck={false}
@@ -166,53 +181,36 @@ export function CoordsInput({ onObserver, id, initial, look = 'panel' }: CoordsI
       onChange={handleAltChange}
       aria-invalid={altError !== null}
       aria-describedby={altError ? altErrorId : undefined}
-      className={styles.altitude}
-    />
+    >
+      {altError && (
+        <Line tone="failure" ink="tone" id={altErrorId} role="alert">
+          {altitudeErrorText(t, altError)}
+        </Line>
+      )}
+    </Field>
   );
+  const coords = (
+    <Field
+      id={inputId}
+      label={t.location.coordsLabel}
+      {...(home ? { size: 'small' as const, box: look === 'boxed', trailing: altitude, className: look === 'plain' ? styles.plain : undefined } : { cells: 24 })}
+      inputMode="text"
+      autoComplete="off"
+      spellCheck={false}
+      placeholder={t.location.coordsPlaceholder}
+      value={text}
+      onChange={handleChange}
+      aria-invalid={error !== null}
+      aria-describedby={error ? errorId : undefined}
+    >
+      {coordsError}
+    </Field>
+  );
+  if (home) return coords;
   return (
-    <div className={home ? `${styles.row} ${styles.home} ${look === 'boxed' ? styles.boxed : styles.plain}` : styles.row}>
-      <div className={`${styles.field} ${styles.coordsField}`}>
-        <label htmlFor={inputId}>{t.location.coordsLabel}</label>
-        <input
-          id={inputId}
-          type="text"
-          inputMode="text"
-          autoComplete="off"
-          spellCheck={false}
-          placeholder={t.location.coordsPlaceholder}
-          value={text}
-          onChange={handleChange}
-          aria-invalid={error !== null}
-          aria-describedby={error ? errorId : undefined}
-          className={styles.input}
-        />
-        {error && (
-          <p id={errorId} role="alert" className={styles.error}>
-            {coordsErrorText(t, error)}
-          </p>
-        )}
-      </div>
-      <div className={`${styles.field} ${styles.altField}`}>
-        <label htmlFor={altId} className={home ? 'sr-only' : undefined}>
-          {t.location.altitudeLabel}
-        </label>
-        {home ? (
-          // The unit follows the value, "0 m", as the board writes it: placed a cell after the value's last character, or the placeholder's.
-          <span className={styles.altBox} style={{ ['--value-cells' as string]: String(Math.max(altText.length, ALTITUDE_PLACEHOLDER.length)) }}>
-            {altitude}
-            <span className={styles.unit} aria-hidden="true">
-              m
-            </span>
-          </span>
-        ) : (
-          altitude
-        )}
-        {altError && (
-          <p id={altErrorId} role="alert" className={styles.error}>
-            {altitudeErrorText(t, altError)}
-          </p>
-        )}
-      </div>
+    <div className={styles.row}>
+      {coords}
+      {altitude}
     </div>
   );
 }

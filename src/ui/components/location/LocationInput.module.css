@@ -38,7 +38,7 @@
 .group {
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
+  gap: var(--space-block);
 }
 
 /* The saved places carry a row's margin for the settings panel, where they follow a sentence; in the group the grid's gap is already that row, and the two together left two. */
@@ -49,7 +49,7 @@
 .inputs {
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
+  gap: var(--space-block);
 }
 
 .alternatives {
@@ -76,16 +76,12 @@
 }
 
 /* R87 (D-574): the phone's where step on a screen shorter than 700 px puts its
-   blocks 0.75 rem apart, as App.module.css does for the step around it, and
-   its two boxed fields half a rem inside (`--box-pad`, read by
-   PlacePicker.module.css and CoordsInput.module.css). */
+   blocks half a row apart, as App.module.css does for the step around it. Its
+   two boxed fields tighten by the same height on their own (R106: a `Field`'s
+   `box` is a third of a row inside there, Field.module.css). */
 @media (height <= 700px) {
   .group[data-look='boxed'],
   .group[data-look='boxed'] .inputs {
-    gap: 0.75rem;
-  }
-
-  .group[data-look='boxed'] {
-    --box-pad: 0.5rem;
+    gap: var(--space-2);
   }
 }
