@@ -1,0 +1,37 @@
+/* R13, moved by R104 (FR-DS-4 item 3; D-704, D-705): the `[ ] option` /
+   `[x] option` text toggle — the pressed one reads `[x]` (FR-X-5: not colour
+   alone) in the accent, the others `[ ]` in the dim ink. The cell of padding
+   after an option is what separates it from the next in a group (D-172: the
+   wide speeds have no gap and still read as four); `tests/styles/controlRows.test.ts`
+   reads it off `.option` to recompute the header's folds. */
+.option {
+  border: 0;
+  background: none;
+  padding: 0 var(--cell) 0 0;
+  color: var(--fg-dim);
+}
+
+.option::before {
+  content: '[ ] ';
+  color: var(--fg-dim);
+}
+
+.option[aria-pressed='true'],
+.option[aria-checked='true'] {
+  color: var(--accent);
+}
+
+.option[aria-pressed='true']::before {
+  content: '[x] ';
+  color: var(--accent);
+}
+
+.option[aria-checked='true']::before {
+  content: '[x] ';
+  color: var(--accent);
+}
+
+/* `alone`: no option follows, so no cell after it (the live actions row's `[ ] Hidden`, FR-COMP-7). */
+.alone {
+  padding: 0;
+}

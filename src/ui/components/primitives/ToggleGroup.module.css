@@ -1,0 +1,21 @@
+/* R104 (FR-DS-4 item 3; D-705): the row of options and its prefix. One cell
+   between controls, which is what every control row declares and what
+   `tests/styles/cells.ts` counts; `tests/styles/controlRows.test.ts` reads
+   `.group`'s gap off this file to recompute the header's folds. */
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--cell);
+}
+
+/* `gap="none"` (D-172): the wide speeds — 34 cells with no gap between the
+   options, which keeps them on one line of a 36-cell phone; each option's own
+   trailing cell is what still makes them read as four. */
+.noGap {
+  gap: 0;
+}
+
+.prefix {
+  color: var(--fg-dim);
+}
