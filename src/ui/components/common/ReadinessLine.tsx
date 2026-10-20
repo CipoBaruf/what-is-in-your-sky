@@ -5,6 +5,7 @@ import { formatDate, formatShortClock } from '../../../lib/timeFormat';
 import type { EpochMs, Locale } from '../../../model';
 import { useAppStore } from '../../../state';
 import { useNow } from '../../hooks/useNow';
+import { Line } from '../primitives/Line';
 import styles from './ReadinessLine.module.css';
 
 /**
@@ -73,6 +74,8 @@ function useReadiness() {
 /**
  * R81 (FR-OFF-4 as amended v2.0.2, D-511): `form: 'line'` is the home page's — the one line, the
  * storage time moved behind the elements line's `[ details ]` (`StoredLine`). `full` keeps both rows.
+ *
+ * R105 (FR-DS-4 item 6, D-718): each row is a `Line` in the dim ink, at `--small` in the home's form.
  */
 export function ReadinessLine({ form = 'full' }: { form?: 'full' | 'line' } = {}) {
   const t = useT();
@@ -80,17 +83,18 @@ export function ReadinessLine({ form = 'full' }: { form?: 'full' | 'line' } = {}
   const read = useReadiness();
   if (read === null) return null;
   const { state, timeZone } = read;
+  const size = form === 'line' ? 'small' : 'body';
   return (
-    <div className={form === 'line' ? `${styles.block} ${styles.small}` : styles.block}>
-      <p className={styles.line} data-testid="readiness">
+    <div className={styles.block}>
+      <Line ink="dim" size={size} data-testid="readiness">
         {state.missing.length === 0 && state.offlineUntil !== null
           ? t.readiness.ready(readinessStamp(state.offlineUntil, timeZone, locale))
           : t.readiness.notReady(formatList(state.missing.map((gap) => t.readiness.gaps[gap]), locale))}
-      </p>
+      </Line>
       {form === 'full' && state.storedAt !== null && (
-        <p className={styles.line} data-testid="readiness-stored">
+        <Line ink="dim" size={size} data-testid="readiness-stored">
           {t.readiness.stored(readinessStamp(state.storedAt, timeZone, locale))}
-        </p>
+        </Line>
       )}
     </div>
   );
@@ -103,8 +107,8 @@ export function StoredLine() {
   const read = useReadiness();
   if (read === null || read.state.storedAt === null) return null;
   return (
-    <p className={styles.line} data-testid="readiness-stored">
+    <Line ink="dim" data-testid="readiness-stored">
       {t.readiness.stored(readinessStamp(read.state.storedAt, read.timeZone, locale))}
-    </p>
+    </Line>
   );
 }

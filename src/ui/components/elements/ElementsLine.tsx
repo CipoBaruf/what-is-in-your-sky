@@ -5,6 +5,7 @@ import type { EpochMs } from '../../../model';
 import { useAppStore } from '../../../state';
 import { useNow } from '../../hooks/useNow';
 import { StoredLine } from '../common/ReadinessLine';
+import { Line } from '../primitives/Line';
 import { TextButton } from '../primitives/TextButton';
 import { AGE_TICK_MS, ElementsBanners } from './ElementsBanners';
 import styles from './ElementsLine.module.css';
@@ -19,6 +20,11 @@ import styles from './ElementsLine.module.css';
  * line no longer carries on the home page (FR-OFF-4 as amended). Nothing
  * before the elements load, as the banners had: the pass list's status line
  * covers loading and errors.
+ *
+ * R105 (FR-DS-4 item 6, D-718): a `Line` at `--small` whose sentence takes
+ * the tone's ink (`ink="tone"`): the dim `status` while the elements are
+ * fresh, the `notice` tone's `--warn` past the five days, with `[ details ]`
+ * after the dot. The words say the age; the ink only underlines it (FR-X-5).
  */
 export interface ElementsLineProps {
   /** The clock, for tests; the app re-reads it every minute. */
@@ -37,20 +43,28 @@ export function ElementsLine({ now: nowProp }: ElementsLineProps) {
   const warn = elements.stale || (newest !== null && epochIsOld(newest, now));
   return (
     <div className={styles.block}>
-      <p className={styles.line} data-testid="elements-line" data-warn={warn}>
-        <span className={styles.age}>{newest === null ? t.elements.lineNone : t.elements.line(t.elements.age(ageParts(now - newest)))}</span>
-        <span aria-hidden="true">{' · '}</span>
-        <TextButton
-          inline
-          label={t.elements.details}
-          aria-expanded={open}
-          aria-controls={detailsId}
-          data-testid="elements-details"
-          onClick={() => {
-            setOpen((o) => !o);
-          }}
-        />
-      </p>
+      <Line
+        size="small"
+        tone={warn ? 'notice' : 'status'}
+        ink="tone"
+        dot
+        actions={
+          <TextButton
+            inline
+            label={t.elements.details}
+            aria-expanded={open}
+            aria-controls={detailsId}
+            data-testid="elements-details"
+            onClick={() => {
+              setOpen((o) => !o);
+            }}
+          />
+        }
+        data-testid="elements-line"
+        data-warn={warn}
+      >
+        {newest === null ? t.elements.lineNone : t.elements.line(t.elements.age(ageParts(now - newest)))}
+      </Line>
       <div id={detailsId} hidden={!open} className={styles.panel}>
         <ElementsBanners {...(nowProp === undefined ? {} : { now: nowProp })} />
         <StoredLine />

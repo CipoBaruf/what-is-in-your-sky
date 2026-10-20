@@ -3,10 +3,6 @@
     "count": 23,
     "reason": "Seeded by R103 at ed8748a's count — 22 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
   },
-  "src/ui/components/common/Banner.module.css": {
-    "count": 1,
-    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
-  },
   "src/ui/components/common/Countdown.module.css": {
     "count": 1,
     "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
@@ -22,10 +18,6 @@
   "src/ui/components/common/ShortcutsOverlay.module.css": {
     "count": 3,
     "reason": "Seeded by R103 at ed8748a's count — 2 px/rem/em lengths, 1 z-index number; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
-  },
-  "src/ui/components/elements/ElementsLine.module.css": {
-    "count": 2,
-    "reason": "Seeded by R103 at ed8748a's count, lowered by R104 (the brackets are TextButton's) — 2 px/rem/em lengths; R105–R107 and R110 lower it to the sheet's names."
   },
   "src/ui/components/guide/GuidePanel.module.css": {
     "count": 2,
