@@ -2,6 +2,7 @@ import { useId, useState, type ReactNode } from 'react';
 import { useT } from '../../../i18n/useT';
 import type { Failure } from '../../../state/failure';
 import { Line } from '../primitives/Line';
+import { Stack } from '../primitives/Stack';
 import { TextButton } from '../primitives/TextButton';
 import styles from './FailureLine.module.css';
 
@@ -40,7 +41,7 @@ export function FailureLine({ failure, what, instead, site, onRetry }: FailureLi
   const [open, setOpen] = useState(false);
   const detailId = useId();
   return (
-    <div className={styles.line} data-testid="failure-line" data-kind={failure.kind} data-site={site}>
+    <Stack gap={1} className={styles.line} data-testid="failure-line" data-kind={failure.kind} data-site={site}>
       <Line
         tone="failure"
         rows="controls"
@@ -68,6 +69,6 @@ export function FailureLine({ failure, what, instead, site, onRetry }: FailureLi
       <pre id={detailId} hidden={!open} className={styles.detail} aria-label={t.failure.detailLabel} data-testid="failure-detail">
         {failure.detail}
       </pre>
-    </div>
+    </Stack>
   );
 }

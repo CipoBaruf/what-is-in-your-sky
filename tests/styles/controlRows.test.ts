@@ -71,7 +71,6 @@ const LIVE_ROW_BUDGET = BUDGET - 2;
 const CSS = [
   'src/ui/components/common/Header.module.css',
   'src/ui/components/location/WherePlace.module.css',
-  'src/ui/components/elements/ElementsLine.module.css',
   'src/ui/components/passes/PassCard.module.css',
   'src/ui/components/passes/PassList.module.css',
   'src/ui/components/common/InstallAction.module.css',

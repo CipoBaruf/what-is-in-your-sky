@@ -2,11 +2,11 @@
    row under it, then the detail when it is open. The retry is a full button,
    `--tap` tall like every other control (global.css), so it is 48 px on
    compact; `[ details ]` is an inline control beside it. R105 (D-718): the
-   sentence and its controls' row are a `Line` (`rows="controls"`); this grid
-   puts the detail a quarter row under it. */
+   sentence and its controls' row are a `Line` (`rows="controls"`). R107
+   (D-725): the line and the detail a quarter row under it are a `Stack`;
+   what is left here is its placement — it may shrink below its content's
+   width inside a column. */
 .line {
-  display: grid;
-  gap: var(--space-1);
   min-width: 0;
 }
 

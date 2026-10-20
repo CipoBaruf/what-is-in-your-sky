@@ -1,14 +1,8 @@
-.share {
-  margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 calc(2 * var(--cell));
-}
-
-/* R104 (D-704): the action is a `TextButton` in its bordered form, `bare` of
-   its brackets where the compact live row asks (R71, D-411); nothing here
-   draws on it. */
+/* R107 (D-725): the row — the action and its confirmation, wrapping, two
+   cells apart on one baseline — is a `Cluster` as a paragraph; this module
+   keeps the confirmation's ink alone. R104 (D-704): the action is a
+   `TextButton` in its bordered form, `bare` of its brackets where the compact
+   live row asks (R71, D-411); nothing here draws on it. */
 
 .confirmation {
   color: var(--fg-dim);
