@@ -2,7 +2,7 @@ import { LOCALES, LOCALE_NAMES } from '../../../i18n/locale';
 import { useT } from '../../../i18n/useT';
 import type { Locale } from '../../../model';
 import { useAppStore } from '../../../state';
-import { OptionToggle } from './OptionToggle';
+import { ToggleGroup } from '../primitives/ToggleGroup';
 
 /**
  * FR-I18N-1 / US-13 (R17): the header's language switch. Each language is
@@ -28,12 +28,12 @@ export function LanguageToggle({ className }: LanguageToggleProps = {}) {
   const locale = useAppStore((s) => s.locale);
   const setLocale = useAppStore((s) => s.setLocale);
   return (
-    <OptionToggle<Locale>
+    <ToggleGroup<Locale>
       name={t.app.language}
       options={LOCALES.map((value) => ({ value, label: LOCALE_NAMES[value] }))}
       value={locale}
       onChange={setLocale}
-      className={className}
+      {...(className === undefined ? {} : { className })}
     />
   );
 }

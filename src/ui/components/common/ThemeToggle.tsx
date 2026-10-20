@@ -1,7 +1,7 @@
 import { useT } from '../../../i18n/useT';
 import { THEMES, type Theme } from '../../../model';
 import { useAppStore } from '../../../state';
-import { OptionToggle } from './OptionToggle';
+import { ToggleGroup } from '../primitives/ToggleGroup';
 
 /**
  * FR-THEME-1 / US-19 (R20): the header's palette switch. The choice goes
@@ -18,5 +18,5 @@ export function ThemeToggle() {
   const t = useT();
   const theme = useAppStore((s) => s.theme);
   const setTheme = useAppStore((s) => s.setTheme);
-  return <OptionToggle<Theme> name={t.app.theme} options={THEMES.map((value) => ({ value, label: t.app.themes[value] }))} value={theme} onChange={setTheme} />;
+  return <ToggleGroup<Theme> name={t.app.theme} options={THEMES.map((value) => ({ value, label: t.app.themes[value] }))} value={theme} onChange={setTheme} />;
 }

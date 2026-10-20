@@ -5,7 +5,7 @@ import type { ChartView, SavedChartView } from '../../../../model';
 import { useAppStore } from '../../../../state';
 import { DEFAULT_CHART_VIEW } from '../../../../state/slices/prefs';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
-import { OptionToggle } from '../../common/OptionToggle';
+import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { orientationApiPresent } from '../../live/compassHeading';
 import { useSkyScreen } from '../../screen/useSkyScreen';
 import { GuideText } from '../GuideText';
@@ -275,7 +275,7 @@ export function SkyChart(props: SkyChartProps) {
          * the one part of it that carries nothing: it is `aria-hidden`, and the group is named `Chart view`
          * for anything that reads the page. Dropping it leaves 33 cells, one row, with the same meaning.
          */
-        <OptionToggle name={t.chart.viewGroup} {...(compact ? {} : { prefix: t.chart.viewPrefix })} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
+        <ToggleGroup name={t.chart.viewGroup} {...(compact ? {} : { prefix: t.chart.viewPrefix })} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
       )}
       {note !== null && (
         <p className={styles.note} role="status" data-testid="chart-view-note">

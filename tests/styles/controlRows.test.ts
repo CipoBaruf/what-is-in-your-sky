@@ -49,7 +49,7 @@ import { ShareButton } from '../../src/ui/components/common/ShareButton';
 import { HiddenToggle, PlaybackControls } from '../../src/ui/components/live/PlaybackControls';
 import { StepControls } from '../../src/ui/components/live/StepControls';
 import { SortToggle } from '../../src/ui/components/passes/SortToggle';
-import { OptionToggle } from '../../src/ui/components/common/OptionToggle';
+import { ToggleGroup } from '../../src/ui/components/primitives/ToggleGroup';
 import { BEFORE_INSTALL_PROMPT, forgetInstallOffer, type BeforeInstallPromptEvent } from '../../src/ui/components/common/installOffer';
 import { SettingsPage } from '../../src/ui/screens/Settings';
 import { StepLine } from '../../src/ui/screens/Home';
@@ -75,11 +75,13 @@ const CSS = [
   'src/ui/components/passes/PassCard.module.css',
   'src/ui/components/passes/PassList.module.css',
   'src/ui/components/common/InstallAction.module.css',
-  'src/ui/components/common/OptionToggle.module.css',
+  // R104 (FR-DS-4, D-704): the brackets and the `[x]` marks are the primitives' alone, read off their modules.
+  'src/ui/components/primitives/TextButton.module.css',
+  'src/ui/components/primitives/BracketLink.module.css',
+  'src/ui/components/primitives/OptionToggle.module.css',
   'src/ui/components/common/ShareButton.module.css',
   'src/ui/components/live/PlaybackControls.module.css',
   'src/ui/components/live/StepControls.module.css',
-  'src/ui/components/passes/SortToggle.module.css',
   'src/ui/components/passes/FaintToggle.module.css',
   'src/ui/screens/Settings.module.css',
   'src/ui/components/location/UseMyLocation.module.css',
@@ -127,7 +129,7 @@ interface Row {
 }
 
 const chartView = (): ReactElement =>
-  createElement(OptionToggle, {
+  createElement(ToggleGroup, {
     name: 'View',
     prefix: 'View:',
     options: [
@@ -491,7 +493,8 @@ it('counts the compact header with the mark at 34 cells (FR-COMP-1, D-441)', () 
  * before it wraps the header on a screen.
  */
 const HEADER_CSS = readFileSync(resolve(process.cwd(), 'src/ui/components/common/Header.module.css'), 'utf8');
-const OPTION_CSS = readFileSync(resolve(process.cwd(), 'src/ui/components/common/OptionToggle.module.css'), 'utf8');
+const OPTION_CSS = readFileSync(resolve(process.cwd(), 'src/ui/components/primitives/OptionToggle.module.css'), 'utf8');
+const GROUP_CSS = readFileSync(resolve(process.cwd(), 'src/ui/components/primitives/ToggleGroup.module.css'), 'utf8');
 
 /** The `@media (width < N px)` blocks of a stylesheet: the literal and the rules under it. */
 function foldBlocks(css: string): { px: number; body: string }[] {
@@ -534,7 +537,7 @@ describe.each(LOCALES)('FR-HOME-1: the wide header folds where its lines would w
   const control = (text: string): number => `[ ${text} ]`.length;
   // An option is `[x] ` and its label, a cell of padding after it, and the group's gap before the next.
   const optionPadding = cellsOf(OPTION_CSS, '.option', 'padding');
-  const groupGap = cellsOf(OPTION_CSS, '.group', 'gap');
+  const groupGap = cellsOf(GROUP_CSS, '.group', 'gap');
   const group = (labels: readonly string[]): number => labels.reduce((sum, label) => sum + `[x] ${label}`.length + optionPadding, 0) + (labels.length - 1) * groupGap;
   const titleGap = cellsOf(HEADER_CSS, '.titleRow', 'gap');
   const headerGap = cellsOf(HEADER_CSS, '.wide', 'gap');

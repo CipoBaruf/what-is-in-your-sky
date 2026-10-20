@@ -91,10 +91,6 @@
     "count": 4,
     "reason": "Seeded by R103 at ed8748a's count — 3 px/rem/em lengths, 1 font-family; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
   },
-  "src/ui/components/live/PlaybackControls.module.css": {
-    "count": 2,
-    "reason": "Seeded by R103 at ed8748a's count — 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
-  },
   "src/ui/components/live/StatusStrip.module.css": {
     "count": 1,
     "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
@@ -170,10 +166,6 @@
   "src/ui/components/passes/PassList.module.css": {
     "count": 2,
     "reason": "Seeded by R103 at ed8748a's count — 2 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
-  },
-  "src/ui/components/passes/SortToggle.module.css": {
-    "count": 3,
-    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length, 2 bracket contents; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
   },
   "src/ui/components/screen/SkyScreen.module.css": {
     "count": 3,
