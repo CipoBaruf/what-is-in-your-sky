@@ -12,7 +12,7 @@ import type { ToggleGroupProps } from './ToggleGroup';
  * `P` and nothing else — so a prop added to a primitive without a sentence
  * here is a type error, and a sentence for a prop that is gone is one too.
  */
-export interface PrimitivePropDoc {
+interface PrimitivePropDoc {
   name: string;
   /** The type as the guide prints it. */
   type: string;

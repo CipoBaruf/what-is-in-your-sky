@@ -25,7 +25,7 @@ import styles from './TextButton.module.css';
  * (FR-FAIL-5) as the same control. A primitive is a leaf: no copy, no store,
  * only props (D-703).
  */
-export type TextButtonTone = 'accent' | 'dim' | 'danger';
+type TextButtonTone = 'accent' | 'dim' | 'danger';
 
 export interface TextButtonOwnProps {
   /** The words between the brackets. */

@@ -23,7 +23,7 @@ import styles from './ToggleGroup.module.css';
  * brackets are drawn (D-704). `gap="none"` is the wide speeds' row, 34 cells
  * with no gap between the options (D-172).
  */
-export interface ToggleGroupOption<T extends string> {
+interface ToggleGroupOption<T extends string> {
   value: T;
   label: string;
 }
