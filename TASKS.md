@@ -2896,7 +2896,8 @@ Decision blocks (§16.2), reserved in PLAN §16.20: **R103 D-710..D-713, R104 D-
 
 ### Wave 2
 
-- [ ] **R104 — The controls: `TextButton`, `BracketLink` and `ToggleGroup`; `OptionToggle` moved; the 21 bracket modules and the three private toggles onto them**
+- [x] **R104 — The controls: `TextButton`, `BracketLink` and `ToggleGroup`; `OptionToggle` moved; the 21 bracket modules and the three private toggles onto them**
+  - **Done (2026-10-19):** allow-list 244 matches in 51 files → 180 in 39 (D-716). Converted: `RootBoundary`, `Settings`, `PassDetail`, `Live`, `Steps` (WhenStep, WhatStep), `Header`, `FailureLine`, `InstallAction`, `ShareButton`, `UpdateBanner`, `VisitNotice`, `ElementsLine`, `GuidePanel`, `Favourites`, `LocationInput`, `UseMyLocation`, `WherePlace`, `FaintToggle`, `NextEventBlock`, `SortToggle`, `PlaybackControls`; the chart view and orientation controls, the language and theme switches render `ToggleGroup`. `OptionToggle` re-cut as one option (D-714); `TextButton` carries the forms the modules drew as props (D-715). `controlRows.test.ts` changed in its paths and the chart control's primitive only (D-716). Captures (a local plain-build re-shoot, 254 files): byte-identical but for F-99's 17 live/legend files and the 20 `v1-favourites-*` / `v1-settings-360|390-*` files where the saved-places row's `[ × ]` no longer splits across two lines (the primitive's `nowrap`; named in D-715, for the owner's gate).
   - **Lane:** ui
   - **Model:** fable
   - **Review:** opus

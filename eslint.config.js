@@ -14,6 +14,8 @@ import tseslint from 'typescript-eslint';
 const SRC = ['src/**/*.{ts,tsx}'];
 const TESTS = ['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'];
 const DOME = 'src/ui/components/guide/skychart/dome/**';
+/** R104 (D-703): the primitives are leaves — props only, no store, no copy, no behaviour of the app. */
+const PRIMITIVES = 'src/ui/components/primitives';
 
 /** FR-GUIDE-5: the charts are DOM text and SVG only; nothing may pull in a canvas or WebGL renderer. */
 const NO_CANVAS_WEBGL = { group: ['*canvas*', '*webgl*'], caseSensitive: false, message: 'No canvas / WebGL (FR-GUIDE-5, PLAN §3).' };
@@ -93,6 +95,12 @@ export default defineConfig([
             zone('src/ui', 'src/worker'),
             zone('src/ui', 'src/physics'),
             zone('src/model', 'src', ['./model']), // shared types import nothing but each other
+            // R104 (D-703): a primitive imports React, its own module and its siblings, and nothing of the app.
+            zone(PRIMITIVES, 'src/state'),
+            zone(PRIMITIVES, 'src/lib'),
+            zone(PRIMITIVES, 'src/i18n'),
+            zone(PRIMITIVES, 'src/data'),
+            zone(PRIMITIVES, 'src/ui', ['./components/primitives']),
           ],
         },
       ],

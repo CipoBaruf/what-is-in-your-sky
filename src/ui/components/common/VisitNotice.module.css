@@ -50,40 +50,9 @@
   padding: 0 var(--cell);
 }
 
+/* R104 (D-704): the three controls are inline `TextButton`s; nothing here draws on them. */
 .actions {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 0 var(--cell);
-}
-
-.action,
-.dismiss {
-  padding-inline: 0;
-  min-height: 0;
-  font: inherit;
-  color: var(--accent);
-  background: none;
-  border: 0;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.action::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.action::after {
-  content: ' ]';
-  color: var(--fg-dim);
-}
-
-.dismiss::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.dismiss::after {
-  content: ' ]';
-  color: var(--fg-dim);
 }

@@ -11,6 +11,7 @@ import { PassCard } from '../../components/passes/PassCard';
 import { FaintToggle } from '../../components/passes/FaintToggle';
 import { ListFailure, listFailure } from '../../components/passes/ListFailure';
 import { nightLabel } from '../../components/passes/PassList';
+import { TextButton } from '../../components/primitives/TextButton';
 import { faintIds, hasEnded, usePassContext, useListedPasses, useShownClock } from './shownPasses';
 import styles from './Steps.module.css';
 import { splitTonight } from './tonight';
@@ -129,29 +130,25 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
           {(hiddenTonight > 0 || (laterCount > 0 && !moreNights) || faintCount > 0) && (
             <div className={styles.more} data-testid="what-more">
               {hiddenTonight > 0 && (
-                <button
-                  type="button"
-                  className={`inline-control ${styles.moreControl}`}
+                <TextButton
+                  inline
+                  label={t.home.whatStep.moreTonight(hiddenTonight)}
                   data-testid="more-tonight"
                   onClick={() => {
                     setMoreTonight(true);
                   }}
-                >
-                  {t.home.whatStep.moreTonight(hiddenTonight)}
-                </button>
+                />
               )}
               {faintCount > 0 && <FaintToggle count={faintCount} />}
               {laterCount > 0 && !moreNights && (
-                <button
-                  type="button"
-                  className={`inline-control ${styles.moreControl}`}
+                <TextButton
+                  inline
+                  label={t.home.whatStep.moreNights(laterCount)}
                   data-testid="more-nights"
                   onClick={() => {
                     setMoreNights(true);
                   }}
-                >
-                  {t.home.whatStep.moreNights(laterCount)}
-                </button>
+                />
               )}
             </div>
           )}
@@ -167,9 +164,7 @@ export function WhatStep({ observer, head, onEdit, onOpenPass, selectedPassId, f
             </Fragment>
           ))}
         </p>
-        <button type="button" className={`inline-control ${styles.moreControl}`} data-testid="step-edit" onClick={onEdit}>
-          {t.home.whatStep.edit}
-        </button>
+        <TextButton inline label={t.home.whatStep.edit} data-testid="step-edit" onClick={onEdit} />
       </div>
     </section>
   );

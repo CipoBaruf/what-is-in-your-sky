@@ -5,6 +5,7 @@ import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { loadSettingsChunk } from '../../screens/settingsChunk';
 import { Mark } from '../mark/Mark';
 import { MARK_HEADER_PX } from '../mark/tiers';
+import { BracketLink } from '../primitives/BracketLink';
 import styles from './Header.module.css';
 import { LanguageToggle } from './LanguageToggle';
 import { ThemeToggle } from './ThemeToggle';
@@ -78,18 +79,9 @@ export function Header({ inert = false, current = 'home', busy = false }: Header
           <h1 className={styles.shortTitle}>{t.app.shortTitle}</h1>
         </div>
         <nav className={styles.links} aria-label={t.app.title}>
-          <a href="#live" className={styles.link} data-testid="live-link">
-            {t.live.openShort}
-          </a>
-          {current === 'settings' ? (
-            <span className={`${styles.link} ${styles.currentLink}`} aria-current="page" data-testid="settings-link">
-              {t.settings.open}
-            </span>
-          ) : (
-            <a href={SETTINGS_HASH} className={styles.link} data-testid="settings-link" onPointerEnter={prefetch} onFocus={prefetch}>
-              {t.settings.open}
-            </a>
-          )}
+          <BracketLink href="#live" label={t.live.openShort} data-testid="live-link" />
+          {/* R104 (D-704): the current page's own control is the primitive's `current` form, a dim `aria-current` span. */}
+          {current === 'settings' ? <BracketLink href={SETTINGS_HASH} label={t.settings.open} current data-testid="settings-link" /> : <BracketLink href={SETTINGS_HASH} label={t.settings.open} data-testid="settings-link" onPointerEnter={prefetch} onFocus={prefetch} />}
         </nav>
       </header>
     );
@@ -109,9 +101,7 @@ export function Header({ inert = false, current = 'home', busy = false }: Header
           </div>
           {/* R92 (FR-A11Y-1, D-529): the wide header's one link is its navigation too, in a box of its own that draws none. */}
           <nav className="landmark-contents" aria-label={t.app.title}>
-            <a href="#live" className={styles.link} data-testid="live-link">
-              {t.live.open}
-            </a>
+            <BracketLink href="#live" label={t.live.open} data-testid="live-link" />
           </nav>
         </div>
       </div>

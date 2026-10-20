@@ -69,41 +69,9 @@
   min-height: var(--tap);
 }
 
-/* The place name itself is the control; the remove action sits at the end of the row. */
-.use {
-  color: var(--accent);
-  text-align: start;
-  overflow-wrap: anywhere;
-}
-
+/* The place name itself is the control (a `TextButton` that may wrap); the
+   remove action sits at the end of the row. R104 (D-704): the controls are
+   the primitive's, and the one rule left here places the remove action. */
 .remove {
   margin-inline-start: auto;
-  color: var(--fg-dim);
-}
-
-.save {
-  color: var(--accent);
-}
-
-.use,
-.remove,
-.save {
-  background: none;
-  border: 0;
-  padding-inline: 0;
-}
-
-/* Bracketed text controls, like the location section's clear action. */
-.use::before,
-.remove::before,
-.save::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.use::after,
-.remove::after,
-.save::after {
-  content: ' ]';
-  color: var(--fg-dim);
 }

@@ -28,24 +28,4 @@
   color: var(--fg-dim);
 }
 
-/* A button — it opens the group in place — drawn as a bracketed text control;
-   `inline-control` (global.css) gives it the 48 px box. */
-.change {
-  color: var(--accent);
-  background: none;
-  border: 0;
-  padding-inline: 0;
-  min-height: 0;
-  font-size: inherit;
-  white-space: nowrap;
-}
-
-.change::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.change::after {
-  content: ' ]';
-  color: var(--fg-dim);
-}
+/* The change control — a button that opens the group in place — is an inline `TextButton` (R104, D-704); nothing here draws on it. */

@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from 'react';
 import { useT } from '../../../i18n/useT';
 import type { Failure } from '../../../state/failure';
+import { TextButton } from '../primitives/TextButton';
 import styles from './FailureLine.module.css';
 
 /**
@@ -40,21 +41,17 @@ export function FailureLine({ failure, what, instead, site, onRetry }: FailureLi
         {instead === undefined ? null : <> {instead}</>}
       </p>
       <span className={styles.actions}>
-        <button type="button" className={styles.retry} data-testid="failure-retry" onClick={onRetry}>
-          {t.failure.retry}
-        </button>
-        <button
-          type="button"
-          className={`inline-control ${styles.details}`}
+        <TextButton label={t.failure.retry} data-testid="failure-retry" onClick={onRetry} />
+        <TextButton
+          inline
+          label={t.failure.details}
           aria-expanded={open}
           aria-controls={detailId}
           data-testid="failure-details"
           onClick={() => {
             setOpen((o) => !o);
           }}
-        >
-          {t.failure.details}
-        </button>
+        />
       </span>
       <pre id={detailId} hidden={!open} className={styles.detail} aria-label={t.failure.detailLabel} data-testid="failure-detail">
         {failure.detail}

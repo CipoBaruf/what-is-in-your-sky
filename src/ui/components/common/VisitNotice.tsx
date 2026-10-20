@@ -3,6 +3,7 @@ import { coordsLabel } from '../../../lib/place';
 import { formatDate, formatShortClock } from '../../../lib/timeFormat';
 import { useActiveObserver, useAppStore, type OpenLinkResult } from '../../../state';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { TextButton } from '../primitives/TextButton';
 import styles from './VisitNotice.module.css';
 
 /**
@@ -32,12 +33,8 @@ export function VisitNotice({ inert = false }: { inert?: boolean }) {
       </span>
       {wide && <span className={styles.dot}>·</span>}
       <span className={styles.actions} data-testid="visit-actions">
-        <button type="button" className={`inline-control ${styles.action}`} data-testid="visit-back" onClick={endVisit}>
-          {t.visit.back}
-        </button>
-        <button type="button" className={`inline-control ${styles.action}`} data-testid="visit-keep" onClick={keepVisit}>
-          {t.visit.keep}
-        </button>
+        <TextButton inline label={t.visit.back} data-testid="visit-back" onClick={endVisit} />
+        <TextButton inline label={t.visit.keep} data-testid="visit-keep" onClick={keepVisit} />
       </span>
     </div>
   );
@@ -83,9 +80,7 @@ export function LinkNote({ kinds, inert = false }: { kinds: readonly LinkNoteKin
   return (
     <p role="status" inert={inert} className={styles.note} data-note={kind} data-testid="link-note">
       <span>{text}</span>{' '}
-      <button type="button" className={`inline-control ${styles.dismiss}`} aria-label={t.visit.dismiss} data-testid="link-note-dismiss" onClick={dismiss}>
-        ×
-      </button>
+      <TextButton inline label="×" aria-label={t.visit.dismiss} data-testid="link-note-dismiss" onClick={dismiss} />
     </p>
   );
 }

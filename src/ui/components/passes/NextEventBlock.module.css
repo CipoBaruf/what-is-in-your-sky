@@ -30,45 +30,12 @@
   overflow-wrap: anywhere;
 }
 
-/* R101 (FR-JUMP-1, D-246): `[ see this pass ]`, bracketed text in the accent like the live page's actions, one
-   text row tall with a 48 px hit box — the vertical padding and the matching negative margin — so the line it
-   stands on is no taller for it. It never breaks inside itself: it takes the rest of a line or none of it. */
-.see {
-  border: 0;
-  background: none;
-  padding: calc((var(--tap) - var(--row)) / 2) 0;
-  margin: calc(-1 * (var(--tap) - var(--row)) / 2) 0;
-  color: var(--accent);
-  white-space: nowrap;
-}
+/* R101 (FR-JUMP-1, D-246): `[ see this pass ]` is an inline `TextButton` (R104, D-704) — one text row tall with
+   the 48 px hit box `inline-control` gives it, never breaking inside itself; nothing here draws on it. */
 
-.see::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.see::after {
-  content: ' ]';
-  color: var(--fg-dim);
-}
-
-/* FR-LIVE-1: a bracketed control like the header's. */
+/* FR-LIVE-1: the live link is a `BracketLink`, like the header's; this is its line. */
 .live {
   margin: 0.75rem 0 0;
-}
-
-.liveLink {
-  text-decoration: none;
-}
-
-.liveLink::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.liveLink::after {
-  content: ' ]';
-  color: var(--fg-dim);
 }
 
 /* FR-FIRST-4 (R82's first card): a box ruled in the accent, the time and the

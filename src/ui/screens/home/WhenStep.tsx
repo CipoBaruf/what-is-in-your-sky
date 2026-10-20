@@ -7,6 +7,7 @@ import { SEARCH_WINDOW_HOURS, useAppStore } from '../../../state';
 import { coordsLabel } from '../../../lib/place';
 import { placeName } from '../../components/location/WherePlace';
 import { TonightStripe } from '../../components/now/TonightStripe';
+import { TextButton } from '../../components/primitives/TextButton';
 import { CloudBadge } from '../../components/weather/CloudBadge';
 import { usePassContext, useShownClock, useShownPasses } from './shownPasses';
 import styles from './Steps.module.css';
@@ -112,9 +113,7 @@ export function WhenStep({ observer, head, onNext, focus }: WhenStepProps) {
           </p>
         )}
       </div>
-      <button type="button" className={styles.next} data-testid="see-what" onClick={onNext}>
-        {t.home.whenStep.next}
-      </button>
+      <TextButton box="accent" fill tall label={t.home.whenStep.next} className={styles.next} data-testid="see-what" onClick={onNext} />
     </section>
   );
 }

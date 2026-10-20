@@ -1,7 +1,9 @@
 import { useT } from '../../../i18n/useT';
 import { isSpeed, SPEEDS, type Speed } from '../../../lib/playback';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
-import { OptionToggle } from '../common/OptionToggle';
+import { OptionToggle } from '../primitives/OptionToggle';
+import { TextButton } from '../primitives/TextButton';
+import { ToggleGroup } from '../primitives/ToggleGroup';
 import styles from './PlaybackControls.module.css';
 
 /**
@@ -23,6 +25,11 @@ import styles from './PlaybackControls.module.css';
  * state's alone, and `Now` has left it — `[ back to live ]` is that action
  * under a name that says where it goes, and it stands where FR-WATCH-4 puts it
  * (`BackToLive`, below) rather than beside play.
+ *
+ * R104 (FR-DS-4, D-705): the actions are `TextButton`s, the two speed rows
+ * are one `ToggleGroup` in its `tight` and `check` marks, and the
+ * hidden-objects toggle is an `OptionToggle` standing alone; this file keeps
+ * its names, its copy and its test ids, and its own bracket CSS is gone.
  */
 export interface PlaybackControlsProps {
   playing: boolean;
@@ -36,39 +43,22 @@ export function PlaybackControls({ playing, speed, onPlay, onPause, onSpeed }: P
   const t = useT();
   const compact = useLayoutMode() === 'compact';
   const playWord = playing ? t.live.pause : t.live.play;
+  const speeds = (
+    <ToggleGroup
+      name={t.live.speedGroup}
+      options={SPEEDS.map((value) => ({ value: String(value), label: t.live.speed(value) }))}
+      value={String(speed)}
+      onChange={(value) => {
+        const next = Number(value);
+        if (isSpeed(next)) onSpeed(next);
+      }}
+      {...(compact ? { mark: 'tight' as const } : { gap: 'none' as const })}
+    />
+  );
   return (
     <div className={styles.controls} role="group" aria-label={t.live.playback} data-testid="playback-controls" data-compact={compact}>
-      <button type="button" className={styles.action} data-testid="live-play" data-playing={playing} aria-label={playWord} onClick={playing ? onPause : onPlay}>
-        {compact ? (playing ? t.live.pauseShort : t.live.playShort) : playWord}
-      </button>
-      {compact ? (
-        <div role="group" aria-label={t.live.speedGroup} className={styles.speedsCompact}>
-          {SPEEDS.map((value) => (
-            <button
-              key={value}
-              type="button"
-              className={styles.speed}
-              aria-pressed={value === speed}
-              onClick={() => {
-                if (value !== speed) onSpeed(value);
-              }}
-            >
-              {t.live.speed(value)}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <OptionToggle
-          name={t.live.speedGroup}
-          className={styles.speeds}
-          options={SPEEDS.map((value) => ({ value: String(value), label: t.live.speed(value) }))}
-          value={String(speed)}
-          onChange={(value) => {
-            const next = Number(value);
-            if (isSpeed(next)) onSpeed(next);
-          }}
-        />
-      )}
+      <TextButton label={compact ? (playing ? t.live.pauseShort : t.live.playShort) : playWord} data-testid="live-play" data-playing={playing} aria-label={playWord} onClick={playing ? onPause : onPlay} />
+      {speeds}
     </div>
   );
 }
@@ -82,11 +72,7 @@ export function PlaybackControls({ playing, speed, onPlay, onPause, onSpeed }: P
 export function ScrubButton({ onScrub }: { onScrub: () => void }) {
   const t = useT();
   const compact = useLayoutMode() === 'compact';
-  return (
-    <button type="button" className={styles.action} data-testid="live-scrub" onClick={onScrub}>
-      {compact ? t.live.scrub : t.live.scrubWide}
-    </button>
-  );
+  return <TextButton label={compact ? t.live.scrub : t.live.scrubWide} data-testid="live-scrub" onClick={onScrub} />;
 }
 
 /**
@@ -100,11 +86,7 @@ export function ScrubButton({ onScrub }: { onScrub: () => void }) {
  */
 export function BackToLive({ onNow, short = false }: { onNow: () => void; short?: boolean }) {
   const t = useT();
-  return (
-    <button type="button" className={styles.action} data-testid="live-now" onClick={onNow} {...(short ? { 'aria-label': t.live.backToLive } : {})}>
-      {short ? t.live.backToLiveShort : t.live.backToLive}
-    </button>
-  );
+  return <TextButton label={short ? t.live.backToLiveShort : t.live.backToLive} data-testid="live-now" onClick={onNow} {...(short ? { 'aria-label': t.live.backToLive } : {})} />;
 }
 
 /**
@@ -115,11 +97,7 @@ export function BackToLive({ onNow, short = false }: { onNow: () => void; short?
 export function HiddenToggle({ hidden, onToggle }: { hidden: boolean; onToggle: () => void }) {
   const t = useT();
   const compact = useLayoutMode() === 'compact';
-  return (
-    <button type="button" className={styles.toggle} data-testid="live-hidden-toggle" aria-pressed={hidden} aria-label={t.live.hiddenToggle} onClick={onToggle}>
-      {compact ? t.live.hiddenShort : t.live.hiddenToggle}
-    </button>
-  );
+  return <OptionToggle label={compact ? t.live.hiddenShort : t.live.hiddenToggle} pressed={hidden} alone data-testid="live-hidden-toggle" aria-label={t.live.hiddenToggle} onPress={onToggle} />;
 }
 
 /**
@@ -136,9 +114,5 @@ export function HiddenToggle({ hidden, onToggle }: { hidden: boolean; onToggle: 
  */
 export function LegendToggle({ open, count, controls, onToggle }: { open: boolean; count: number; controls: string; onToggle: () => void }) {
   const t = useT();
-  return (
-    <button type="button" className={styles.action} data-testid="live-legend-toggle" aria-expanded={open} {...(open ? { 'aria-controls': controls } : {})} onClick={onToggle}>
-      {t.live.list({ count })}
-    </button>
-  );
+  return <TextButton label={t.live.list({ count })} data-testid="live-legend-toggle" aria-expanded={open} {...(open ? { 'aria-controls': controls } : {})} onClick={onToggle} />;
 }

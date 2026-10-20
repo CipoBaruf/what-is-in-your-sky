@@ -20,13 +20,13 @@ import { TonightStripe } from '../components/now/TonightStripe';
 import { useTonight } from '../components/now/useTonight';
 import { NextEventBlock } from '../components/passes/NextEventBlock';
 import { PassList } from '../components/passes/PassList';
+import { TextButton } from '../components/primitives/TextButton';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { clearPlaceRequest, placeRequested } from './home/placeRequest';
 import { StepLine, stepLabel, STEPS, type Step } from './home/StepLine';
 import { usePassContext, useShownPasses } from './home/shownPasses';
 import { WhatStep } from './home/WhatStep';
 import { WhenStep } from './home/WhenStep';
-import stepStyles from './home/Steps.module.css';
 
 /**
  * R76 (FR-FIRST-1..FR-FIRST-6, D-443, D-444): the home page as three readings —
@@ -287,11 +287,8 @@ export function WhereReading({ offersInert, geolocation, step, focusGroup = fals
           {...(geolocation ? { geolocation } : {})}
           {...(settle
             ? {
-                afterCoords: (
-                  <button type="button" className={stepStyles.continue} data-testid="step-continue" onClick={settle}>
-                    {t.location.continue}
-                  </button>
-                ),
+                // R84 (F-86): `[ continue ]` under the coordinate fields — the accent's box, 48 px tall, the width of the fields (R104: `TextButton`'s `box="accent"` with `fill`).
+                afterCoords: <TextButton box="accent" fill label={t.location.continue} data-testid="step-continue" onClick={settle} />,
               }
             : {})}
         />

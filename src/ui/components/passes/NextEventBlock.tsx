@@ -8,6 +8,8 @@ import { brightnessBand } from '../../../lib/phrases';
 import { formatShortClock } from '../../../lib/timeFormat';
 import type { EpochMs, Pass } from '../../../model';
 import { useNow } from '../../hooks/useNow';
+import { BracketLink } from '../primitives/BracketLink';
+import { TextButton } from '../primitives/TextButton';
 import styles from './NextEventBlock.module.css';
 import { OpenGuide } from './OpenGuide';
 
@@ -54,9 +56,7 @@ function LiveLink() {
   const t = useT();
   return (
     <p className={styles.live}>
-      <a href="#live" className={styles.liveLink} data-testid="now-live-link">
-        {t.nextEvent.openLive}
-      </a>
+      <BracketLink href="#live" label={t.nextEvent.openLive} data-testid="now-live-link" />
     </p>
   );
 }
@@ -92,9 +92,7 @@ export function jumpInstant(result: NextEvent | NoEvent, now: EpochMs, hours: nu
 function SeeThisPass({ rise, pass, onSee }: { rise: EpochMs; pass: Pass; onSee: (rise: EpochMs) => void }) {
   const t = useT();
   return (
-    <button type="button" className={styles.see} data-testid="next-event-see" data-rise={rise} data-pass={pass.id} aria-label={t.live.seeThisPassName(pass.name)} onClick={() => onSee(rise)}>
-      {t.live.seeThisPass}
-    </button>
+    <TextButton inline label={t.live.seeThisPass} data-testid="next-event-see" data-rise={rise} data-pass={pass.id} aria-label={t.live.seeThisPassName(pass.name)} onClick={() => onSee(rise)} />
   );
 }
 

@@ -3,6 +3,7 @@ import type { Messages } from '../../../i18n/messages';
 import { coordsLabel } from '../../../lib/place';
 import type { Observer } from '../../../model';
 import { useActiveObserver } from '../../../state';
+import { TextButton } from '../primitives/TextButton';
 import styles from './WherePlace.module.css';
 
 /**
@@ -66,9 +67,7 @@ export function WherePlace({ open, onToggle, controls }: WherePlaceProps) {
       </p>
       <p className={styles.sentence} data-testid="where-sentence">
         {whereSentence(observer, t)} {t.location.savedHere}{' '}
-        <button type="button" className={`inline-control ${styles.change}`} aria-expanded={open} aria-controls={controls} data-testid="location-summary-change" onClick={onToggle}>
-          {t.location.summaryChange}
-        </button>
+        <TextButton inline label={t.location.summaryChange} aria-expanded={open} aria-controls={controls} data-testid="location-summary-change" onClick={onToggle} />
       </p>
     </div>
   );

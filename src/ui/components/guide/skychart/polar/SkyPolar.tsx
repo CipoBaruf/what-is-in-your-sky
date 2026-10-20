@@ -4,7 +4,7 @@ import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
 import { interpolateTrack, resampleArc, splitArcAt, toPolar } from '../../../../../lib/skyGeometry';
 import type { SunState } from '../../../../../lib/skyBodies';
 import type { ChartOrientation, MoonState, PassPoint } from '../../../../../model';
-import { OptionToggle } from '../../../common/OptionToggle';
+import { ToggleGroup } from '../../../primitives/ToggleGroup';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
 import { ChartFrame } from '../ChartFrame';
 import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps, type SkyChartView } from '../SkyChart.types';
@@ -297,7 +297,7 @@ export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, mo
         controls={
           <>
             {controls}
-            <OptionToggle name={t.chart.orientationGroup} options={ORIENTATIONS.map((value) => ({ value, label: t.chart.orientation[value] }))} value={orientation} onChange={setChartOrientation} />
+            <ToggleGroup name={t.chart.orientationGroup} options={ORIENTATIONS.map((value) => ({ value, label: t.chart.orientation[value] }))} value={orientation} onChange={setChartOrientation} />
           </>
         }
         status={

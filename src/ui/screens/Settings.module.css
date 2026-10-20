@@ -31,28 +31,13 @@
   margin: 0 0 calc(var(--row) / 4);
 }
 
-/* A bracketed text control: the way back and the coordinates disclosure. */
-.link {
-  color: var(--accent);
-  background: none;
-  border: 0;
-  padding-inline: 0;
-  min-height: 0;
-}
-
-.link::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.link::after {
-  content: ' ]';
-  color: var(--fg-dim);
-}
+/* R104 (D-704): the way back (inline) and the coordinates disclosure are `TextButton`s; nothing here draws on them. */
 
 /* R75 (FR-SET-1): `[ Use my location ] [ coordinates ]`, one row of FR-COMP-4's
    36 cells. The device button's own block keeps its bottom margin and its error
-   line; the disclosure sits beside the button, on its line. */
+   line; the disclosure sits beside the button, on its line. The device button is
+   the same text control as the disclosure (R104): a bordered box's two cells of
+   padding a side are what pushed `[ coordinates ]` onto a second line at 390 px. */
 .controlRow {
   display: flex;
   align-items: flex-start;
@@ -61,20 +46,6 @@
 
 .controlRow > * {
   margin-bottom: 0;
-}
-
-.controlRow > .link {
-  min-height: var(--tap);
-}
-
-/* On this row the device button is drawn as the bracketed text control beside
-   it rather than as a bordered box: the box's two cells of padding a side are
-   what push `[ coordinates ]` onto a second line at 390 px. */
-.controlRow button {
-  color: var(--accent);
-  background: none;
-  border: 0;
-  padding-inline: 0;
 }
 
 /* The fields the disclosure opens, under the row; `hidden` takes them out, so

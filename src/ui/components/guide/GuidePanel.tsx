@@ -1,5 +1,6 @@
 import type { ReactNode, Ref } from 'react';
 import { useT } from '../../../i18n/useT';
+import { TextButton } from '../primitives/TextButton';
 import styles from './GuidePanel.module.css';
 
 /**
@@ -49,12 +50,8 @@ export function GuidePanel({ passId, name, headingId, headingRef, onClose, onSho
         </h2>
         <div className={styles.controls}>
           {/* Hidden by the stylesheet from the width at which the list is beside the panel anyway (F-6). */}
-          <button type="button" className={styles.toList} onClick={onShowList} data-testid="guide-to-list">
-            {t.guide.toList}
-          </button>
-          <button type="button" className={styles.close} onClick={onClose} aria-label={t.guide.close}>
-            ×
-          </button>
+          <TextButton padded label={t.guide.toList} className={styles.toList} onClick={onShowList} data-testid="guide-to-list" />
+          <TextButton padded label="×" onClick={onClose} aria-label={t.guide.close} />
         </div>
       </div>
       <div className={styles.body} data-testid="guide-body">

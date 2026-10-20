@@ -1,0 +1,221 @@
+/* R104 (FR-DS-4 item 1; D-703, D-704): the `[ label ]` control. The sheet's
+   `<button>` is a bordered box (global.css); the text control is the words and
+   their brackets alone, so the reset lives here once and the brackets are this
+   file's and BracketLink's (`tests/styles/literals.test.ts` fails them anywhere
+   else). Every rule below is a prop of `TextButton`; a feature module places
+   the control and sets nothing on it.
+
+   `tests/styles/cells.ts` reads the brackets off this file by class and state,
+   so each form has a root class of its own and the bracket rules are written
+   one selector per rule, never as a list. */
+
+/* The reset, once: no box, no ground, no padding inside, the words in the
+   accent, and a control that takes the rest of a line or none of it. The
+   block padding is left alone on purpose: `inline-control` (global.css) is
+   what sets it on an inline control, and a reset of `padding` here would
+   outrank that rule and take the 48 px box away. */
+.textButton,
+.bare,
+.toggle,
+.toggleTight,
+.boxedNote {
+  border: 0;
+  background: none;
+  padding-inline: 0;
+  color: var(--accent);
+}
+
+.textButton,
+.bare,
+.toggle,
+.toggleTight {
+  white-space: nowrap;
+}
+
+/* The brackets, in the dim ink (FR-X-6). */
+.textButton::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.textButton::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+/* `tone`. A disabled control is dim by global.css's `button:disabled`. */
+.dim {
+  color: var(--fg-dim);
+}
+
+.danger {
+  color: var(--danger);
+}
+
+/* `inline`: a control hung off a line of prose. `inline-control` (global.css)
+   gives it the 48 px box as padding and a matching negative margin; the box's
+   own floor goes, or the line it stands on would grow. */
+.inline {
+  min-height: 0;
+}
+
+/* `padded`: the sheet's button box without its border — a cell inside at each
+   side and a `--tap` floor on the width — for a control that stands clear of a
+   heading beside it (the guide panel's `[ × ]` and `[ to list ]`). */
+.padded {
+  padding-inline: var(--cell);
+  min-width: var(--tap);
+}
+
+/* `wrap`: a label that is a place name breaks anywhere rather than widening its row (Favourites). */
+.wrap {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+
+/* `pressed` (D-705, FR-X-5): the pressed option bracketed in the accent, the
+   others bare in the dim ink — `Sort: [ Soonest ] Best` (FR-FIRST-10). A bare
+   `Best` at `--small` is 34 px wide, so the box keeps the 44 px WCAG target
+   (identity.spec) and the word keeps its place at the box's start. */
+.toggle,
+.toggleTight {
+  color: var(--fg-dim);
+  text-align: start;
+}
+
+.toggle {
+  min-inline-size: calc(var(--tap) - var(--row) / 6);
+}
+
+.toggle[aria-pressed='true']:not(:disabled),
+.toggle[aria-checked='true']:not(:disabled),
+.toggleTight[aria-pressed='true']:not(:disabled),
+.toggleTight[aria-checked='true']:not(:disabled) {
+  color: var(--accent);
+}
+
+.toggle[aria-pressed='true']::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.toggle[aria-pressed='true']::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+.toggle[aria-checked='true']::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.toggle[aria-checked='true']::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+/* `tight` (D-245): the compact speeds, `1× [60×] 600× 3600×` — the brackets
+   without their spaces, 19 cells for the four, and the row the same width
+   whichever speed is chosen. */
+.toggleTight[aria-pressed='true']::before {
+  content: '[';
+  color: var(--fg-dim);
+}
+
+.toggleTight[aria-pressed='true']::after {
+  content: ']';
+  color: var(--fg-dim);
+}
+
+.toggleTight[aria-checked='true']::before {
+  content: '[';
+  color: var(--fg-dim);
+}
+
+.toggleTight[aria-checked='true']::after {
+  content: ']';
+  color: var(--fg-dim);
+}
+
+/* `bare`: the words without their brackets — `.bare` is a root class of its
+   own with no `::before` / `::after`, so `tests/styles/cells.ts` counts it at
+   its text alone — for the one row whose budget buys the brackets off (the
+   compact live actions row's share, D-411). */
+
+/* `box="edge"`: the sheet's bordered control (global.css `button`), restated
+   because the reset above took it away — the detail sheet's `[ close ]`, the
+   share action. */
+.edge {
+  border: var(--border-control);
+  background: var(--bg);
+  padding: 0 var(--cell);
+}
+
+/* `box="accent"` (board 1B): the home's primary actions, in the accent's
+   border; the brackets take the words' ink, so a disabled one is dim throughout. */
+.accent {
+  border: var(--hairline) solid var(--accent);
+}
+
+.accent::before,
+.accent::after {
+  color: inherit;
+}
+
+/* `fill`: the width of the column the box stands in (the where step's fields, the when step's foot). */
+.fill {
+  width: 100%;
+}
+
+/* `tall`: the when step's `[ See what crosses ]`, 56 px at the foot of the screen (board 1B). */
+.tall {
+  min-height: calc(var(--tap) + var(--row) / 3);
+}
+
+/* `note` (FR-FIRST-2): the primary action is the whole box — the label and
+   its note stacked at the box's start, 12 px by a cell inside on a phone — and
+   the brackets go round the label alone. The box fills the field it stands in. */
+.boxedNote {
+  display: grid;
+  align-content: start;
+  gap: calc(var(--row) / 12);
+  width: 100%;
+  height: 100%;
+  padding: var(--space-2) var(--cell);
+  text-align: left;
+}
+
+/* `look="plain"`: the wide pane's look, 16 by 12 px inside and 4 px between the lines (board 1B). */
+.boxedNote.plain {
+  gap: calc(var(--row) / 6);
+  padding: calc(2 * var(--row) / 3) var(--space-2);
+}
+
+.noteLabel::before {
+  content: '[ ';
+}
+
+.noteLabel::after {
+  content: ' ]';
+}
+
+.boxedNote:disabled .noteLabel {
+  color: var(--fg-dim);
+}
+
+.note {
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+}
+
+/* `as="summary"` (FR-FAIL-5): the disclosure drawn as the control — no marker, the pointer a control has. */
+.summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}

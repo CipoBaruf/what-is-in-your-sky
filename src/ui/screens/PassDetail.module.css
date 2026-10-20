@@ -38,19 +38,9 @@
   gap: 0 calc(3 * var(--cell));
 }
 
+/* R104 (D-704): the way back is a `TextButton` in the sheet's bordered form; this places it. */
 .close {
-  color: var(--accent);
   justify-self: start;
-}
-
-.close::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.close::after {
-  content: ' ]';
-  color: var(--fg-dim);
 }
 
 .heading {

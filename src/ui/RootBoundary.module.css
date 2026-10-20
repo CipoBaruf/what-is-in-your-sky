@@ -31,35 +31,8 @@
   margin: 0;
 }
 
-.reload {
-  color: var(--accent);
-  background: none;
-  border: 0;
-  padding-inline: 0;
-  font-size: inherit;
-}
-
-.reload::before,
-.details summary::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.reload::after,
-.details summary::after {
-  content: ' ]';
-  color: var(--fg-dim);
-}
-
-.details summary {
-  color: var(--accent);
-  cursor: pointer;
-  list-style: none;
-}
-
-.details summary::-webkit-details-marker {
-  display: none;
-}
+/* R104 (D-704): `[ reload ]` is a `TextButton` and `[ details ]` the same primitive as the `<summary>` of the
+   native disclosure (`as="summary"`); nothing here draws on either. */
 
 .detail {
   margin: calc(var(--row) / 2) 0 0;

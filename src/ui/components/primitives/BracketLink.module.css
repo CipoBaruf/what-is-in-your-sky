@@ -1,0 +1,23 @@
+/* R104 (FR-DS-4 item 2; D-704): `[ label ]` on an `<a>`. The accent and the
+   tap box are global.css's `a` rule; here the underline a prose link gets goes
+   and the brackets come, in the dim ink. With TextButton.module.css this is
+   the one other file that writes them (`tests/styles/literals.test.ts`). */
+.bracketLink {
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.bracketLink::before {
+  content: '[ ';
+  color: var(--fg-dim);
+}
+
+.bracketLink::after {
+  content: ' ]';
+  color: var(--fg-dim);
+}
+
+/* `current` (FR-COMP-1): the header's own page, a span with the same box in the dim ink rather than a link. */
+.current {
+  color: var(--fg-dim);
+}

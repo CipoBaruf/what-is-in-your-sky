@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { en } from '../i18n/en';
 import { es } from '../i18n/es';
+import { TextButton } from './components/primitives/TextButton';
 import styles from './RootBoundary.module.css';
 
 /**
@@ -56,19 +57,16 @@ export class RootBoundary extends Component<RootBoundaryProps, RootBoundaryState
         <main className={styles.main}>
           <h1 className={styles.sentence}>{w.sentence}</h1>
           <p className={styles.actions}>
-            <button
-              type="button"
-              className={styles.reload}
+            <TextButton
+              label={w.reload}
               data-testid="boundary-reload"
               onClick={() => {
                 window.location.reload();
               }}
-            >
-              {w.reload}
-            </button>
+            />
           </p>
-          <details className={styles.details}>
-            <summary data-testid="boundary-details">{w.details}</summary>
+          <details>
+            <TextButton as="summary" label={w.details} data-testid="boundary-details" />
             <pre className={styles.detail} data-testid="boundary-detail">
               {describe(this.state.error)}
               {this.state.stack}
