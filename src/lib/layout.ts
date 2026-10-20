@@ -186,8 +186,9 @@ export const HEADER_FOLD_PX = { en: { title: 973, tagline: 848 }, es: { title: 1
  * and `tests/styles/breakpoint.test.ts` is the join.
  *
  * - `SHORT_MAX_HEIGHT_PX`, 700: the compact page's short window (FR-FIRST-1's
- *   360 × 640 phone). `App.module.css` halves the gaps of the home's rows and
- *   `LocationInput.module.css` folds its hint, so the where step keeps its
+ *   360 × 640 phone). `App.module.css` halves the gaps of the home's rows,
+ *   `LocationInput.module.css` packs the where step's blocks closer and
+ *   `Field.module.css` tightens its boxed fields (R106), so the step keeps its
  *   footer on screen.
  * - `WIDE_SHORT_MAX_HEIGHT_PX`, 720: the wide home at 1118 × 700 and 1024 × 768
  *   (D-608). `App.module.css` halves the main's row of air above and below

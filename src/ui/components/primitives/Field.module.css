@@ -1,0 +1,126 @@
+/* R106 (FR-DS-4 item 7; D-703, D-722): the field. One grid column — the
+   label, the input (or its unit box), the rows under it — a row gap apart;
+   every rule here is a prop of `Field`, and a feature module places the field
+   and sets nothing on it. The input's border, ground and ring are the sheet's
+   (global.css); nothing here says `outline`. */
+.field {
+  display: grid;
+  row-gap: var(--space-2);
+  align-content: start;
+}
+
+/* `size="small"` (board 1B, R76): a 14 px dim label 8 px — a third of the row — over the field. */
+.small {
+  row-gap: calc(var(--row) / 3);
+}
+
+.small > .label {
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+}
+
+/* The input, or the box the unit shares with it: the column's width, or `cells` of it. */
+.input,
+.unitBox {
+  width: 100%;
+}
+
+.sized {
+  width: calc(var(--field-cells) * var(--cell));
+  max-width: 100%;
+}
+
+/* `unit`: the unit after the value, "0 m" (FR-FIRST-2, R76). The box is the
+   input itself — its border, its ground and its ring are the sheet's — and the
+   unit is drawn over its right-hand end: after the input's hairline and its
+   cell of padding, the value's characters and one space. Clicks pass through
+   to the input, and two cells at the right keep the value clear of the unit. */
+.unitBox {
+  position: relative;
+  display: block;
+}
+
+.inUnit {
+  width: 100%;
+  padding-right: calc(2 * var(--cell));
+}
+
+.unit {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--hairline) + (var(--value-cells, 1) + 2) * var(--cell));
+  transform: translateY(-50%);
+  color: var(--fg-dim);
+  pointer-events: none;
+}
+
+/* `box` (FR-FIRST-2 `boxed`, R76): a phone's alternative in a ruled box, half
+   a row by a cell inside. R87 (D-574): on a screen shorter than 700 px the
+   where step packs its blocks closer and the box a third of a row inside. */
+.box {
+  padding: var(--space-2) var(--cell);
+  border: var(--border);
+}
+
+@media (height <= 700px) {
+  .box {
+    padding-block: calc(var(--row) / 3);
+  }
+}
+
+/* `trailing`: a second column on the input's row, a cell away, as wide as what
+   stands in it — or `--field-trailing`, the one hook a host may set, for a
+   width that is not the control's own (the wide pane's 80 px altitude,
+   FR-FIRST-2; CoordsInput `.plain`). The label spans both columns on the
+   first row, the input takes the first column of the second, and every row
+   under them spans both. A `Field` in the slot joins the grid: the wrapper and
+   the field step aside (`display: contents`), its control takes the second
+   column of the input's row, its label the row above (hidden, it is placed
+   from this field, which is why this field is positioned), and its rows
+   span both columns after this field's own. */
+.withTrailing {
+  grid-template-columns: minmax(0, 1fr) var(--field-trailing, max-content);
+  column-gap: var(--cell);
+  position: relative;
+}
+
+.withTrailing > .label {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+.withTrailing > .input,
+.withTrailing > .unitBox {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.withTrailing > :not(.label, .input, .unitBox, .trailing) {
+  grid-column: 1 / -1;
+}
+
+.trailing,
+.trailing > .field {
+  display: contents;
+}
+
+.trailing > :not(.field) {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.trailing > .field > .label {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.trailing > .field > .input,
+.trailing > .field > .unitBox {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.trailing > .field > :not(.label, .input, .unitBox) {
+  grid-column: 1 / -1;
+}

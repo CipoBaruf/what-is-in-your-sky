@@ -366,7 +366,8 @@ describe('every media and container condition (FR-DS-3, D-702)', () => {
     expect(WIDE_SHORT_MAX_HEIGHT_PX).toBe(720);
     expect(SHORT_MAX_HEIGHT_PX).toBeLessThan(WIDE_SHORT_MAX_HEIGHT_PX);
     expect(at('height', SIDEWAYS_MAX_HEIGHT_PX).sort()).toEqual([GLOBAL_PATH, 'src/ui/screens/Live.module.css'].sort());
-    expect(at('height', SHORT_MAX_HEIGHT_PX).sort()).toEqual([APP_PATH, 'src/ui/components/location/LocationInput.module.css'].sort());
+    // R106 (D-722): the boxed field's tighter padding on a short screen is the `Field`'s own rule.
+    expect(at('height', SHORT_MAX_HEIGHT_PX).sort()).toEqual([APP_PATH, 'src/ui/components/location/LocationInput.module.css', 'src/ui/components/primitives/Field.module.css'].sort());
     expect(at('height', WIDE_SHORT_MAX_HEIGHT_PX)).toEqual([APP_PATH]);
     // The landscape phone's height stands with its orientation and nothing else, in both files, and is the query the page asks in script.
     for (const query of queries.filter((q) => q.conditions.some((c) => c.feature === 'height' && c.value === `${String(SIDEWAYS_MAX_HEIGHT_PX)}px`))) expect(query.prelude).toBe(LANDSCAPE_PHONE_QUERY);
