@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useT } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
 import { sameLocation } from '../../../state/slices/location';
-import { SectionHeading } from '../common/SectionHeading';
+import { SectionHeading } from '../primitives/SectionHeading';
 import { TextButton } from '../primitives/TextButton';
 import { CoordsInput, coordsLabel } from './CoordsInput';
 import { Favourites } from './Favourites';

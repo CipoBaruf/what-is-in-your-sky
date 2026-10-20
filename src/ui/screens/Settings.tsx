@@ -5,7 +5,7 @@ import { searchPlaces, useActiveObserver, useAppStore } from '../../state';
 import { InstallAction } from '../components/common/InstallAction';
 import { useInstallOffer, type InstallEnv } from '../components/common/installEnv';
 import { LanguageToggle } from '../components/common/LanguageToggle';
-import { SectionHeading } from '../components/common/SectionHeading';
+import { SectionHeading } from '../components/primitives/SectionHeading';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { ClearSavedLocation } from '../components/location/ClearSavedLocation';
 import { Favourites } from '../components/location/Favourites';

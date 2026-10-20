@@ -4,7 +4,7 @@ import { moonLoreParams, showsFullMoonName } from '../../../lib/moonPhrases';
 import { calendarMonth } from '../../../lib/timeFormat';
 import type { MoonState } from '../../../model';
 import { MOON_LORE, fullMoonName, phaseLore, signAtLongitude } from '../../../state/moonLore';
-import { SectionHeading } from '../common/SectionHeading';
+import { SectionHeading } from '../primitives/SectionHeading';
 import styles from './MoonLore.module.css';
 
 /**

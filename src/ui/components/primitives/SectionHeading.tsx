@@ -7,6 +7,9 @@ import styles from './SectionHeading.module.css';
  * the heading's accessible name is the title alone; the trailing rule is a
  * long run of `─` clipped to the width, which keeps it on the character grid
  * at any viewport. Sections use it through `aria-labelledby`.
+ *
+ * R105 (FR-DS-4 item 5; D-703): a primitive, moved here from `common/` with
+ * the rule characters it draws — a leaf with no copy of its own.
  */
 export interface SectionHeadingProps {
   id: string;
