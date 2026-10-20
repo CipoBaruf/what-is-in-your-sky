@@ -378,18 +378,20 @@
    those widths were measured against. The row is paid
    from the shell's air, never from the panes: the main's padding above and
    below them halves, as it does under 720 px tall, and where both rules hold
-   it is none; the footer's own top padding halves with it. The width decides,
-   as it decides the wrap: nothing measures the footer. One literal per
-   language under `:root[lang]`, the way the header's folds are written
-   (`Header.module.css`, D-546). `tests/e2e/home-desk.spec.ts` at 1024 × 768
-   and 1118 × 700 is the proof. */
+   it is none; the footer's own top padding halves with it — R105 (D-720):
+   that padding is the space under the footer's `Rule`, which `Footer.module.css`
+   reads from `--footer-rule-gap`, so this sets the name and not the rule's
+   margin. The width decides, as it decides the wrap: nothing measures the
+   footer. One literal per language under `:root[lang]`, the way the header's
+   folds are written (`Header.module.css`, D-546). `tests/e2e/home-desk.spec.ts`
+   at 1024 × 768 and 1118 × 700 is the proof. */
 @media (width >= 964px) and (width < 1118px) {
   :global(:root[lang='en']) .main {
     --two-line-footer: 0.5;
   }
 
   :global(:root[lang='en'] #root) > :global(footer[data-form='short']) {
-    padding-top: calc(var(--row) / 2);
+    --footer-rule-gap: var(--space-2);
   }
 }
 
@@ -399,7 +401,7 @@
   }
 
   :global(:root[lang='es'] #root) > :global(footer[data-form='short']) {
-    padding-top: calc(var(--row) / 2);
+    --footer-rule-gap: var(--space-2);
   }
 }
 

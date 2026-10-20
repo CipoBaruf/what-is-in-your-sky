@@ -39,9 +39,11 @@
   content: none;
 }
 
-/* …and out into the frame's two cells of side padding (global.css `header, main, footer`), where the border ran. */
+/* …and out into the frame's two cells of side padding (global.css `header, main, footer`), where the border ran.
+   The row under it is the shell's to halve on the two-line-footer widths (App.module.css, R102, D-681), which it
+   does by `--footer-rule-gap`. */
 .rule {
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--footer-rule-gap, var(--space-3));
   margin-inline: calc(-2 * var(--cell));
 }
 
