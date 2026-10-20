@@ -102,8 +102,11 @@ export function TextButton({ label, tone = 'accent', pressed, tight = false, inl
     label
   );
   if (as === 'summary') {
+    // A `<summary>` has no disabled state: the attribute would do nothing and the control would still open (review of #173).
+    const { disabled: _disabled, ...summaryRest } = rest;
+    void _disabled;
     return (
-      <summary className={classes} {...(rest as Omit<ComponentProps<'summary'>, 'children'>)}>
+      <summary className={classes} {...(summaryRest as Omit<ComponentProps<'summary'>, 'children'>)}>
         {content}
       </summary>
     );
@@ -111,7 +114,7 @@ export function TextButton({ label, tone = 'accent', pressed, tight = false, inl
   // A radio in a `radiogroup` (ToggleGroup) carries its state as `aria-checked`; everything else is a pressed button.
   const state = pressed === undefined ? {} : rest.role === 'radio' ? { 'aria-checked': pressed } : { 'aria-pressed': pressed };
   return (
-    <button type="button" className={classes} {...state} {...(hasNote ? { 'aria-describedby': noteId } : {})} {...rest}>
+    <button type="button" className={classes} {...state} {...rest} {...(hasNote ? { 'aria-describedby': [rest['aria-describedby'], noteId].filter(Boolean).join(' ') } : {})}>
       {content}
     </button>
   );

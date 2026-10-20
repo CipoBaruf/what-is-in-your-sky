@@ -73,12 +73,14 @@ export function ToggleGroup<T extends string>({ name, prefix, options, value, on
           {prefix}
         </span>
       )}
-      {options.map((option) => {
+      {options.map((option, index) => {
         const pressed = option.value === value;
+        // One tab stop in a radiogroup: the chosen option, or the first when `value` matches none (review of #173).
+        const stop = pressed || (index === 0 && !options.some((o) => o.value === value));
         const shared = {
           pressed,
           'data-option': option.value,
-          ...(radio ? { role: 'radio' as const, tabIndex: pressed ? 0 : -1 } : {}),
+          ...(radio ? { role: 'radio' as const, tabIndex: stop ? 0 : -1 } : {}),
         };
         return mark === 'check' ? (
           <OptionToggle key={option.value} {...shared} value={option.value} label={option.label} {...(pressed ? {} : { onPress: () => choose(option.value) })} />

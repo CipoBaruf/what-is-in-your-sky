@@ -88,10 +88,10 @@
   min-inline-size: calc(var(--tap) - var(--row) / 6);
 }
 
-.toggle[aria-pressed='true'],
-.toggle[aria-checked='true'],
-.toggleTight[aria-pressed='true'],
-.toggleTight[aria-checked='true'] {
+.toggle[aria-pressed='true']:not(:disabled),
+.toggle[aria-checked='true']:not(:disabled),
+.toggleTight[aria-pressed='true']:not(:disabled),
+.toggleTight[aria-checked='true']:not(:disabled) {
   color: var(--accent);
 }
 
