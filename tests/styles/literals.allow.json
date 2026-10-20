@@ -1,7 +1,7 @@
 {
   "src/ui/App.module.css": {
-    "count": 23,
-    "reason": "Seeded by R103 at ed8748a's count — 22 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "count": 20,
+    "reason": "Seeded by R103 at ed8748a's count, lowered by R107 (the hidden headings' clip rule is VisuallyHidden's) — 20 px/rem/em lengths; R110 lowers it to the sheet's names."
   },
   "src/ui/components/common/Countdown.module.css": {
     "count": 1,
@@ -112,7 +112,7 @@
     "reason": "Seeded by R103 at ed8748a's count, lowered by R104 (the two accent boxes and the brackets are TextButton's) and R105 (the what step's foot rule and its padding are a Rule and its margin) — 13 px/rem/em lengths, 1 outline rule; R106, R107 and R110 lower it to the sheet's names."
   },
   "src/ui/styles/global.css": {
-    "count": 14,
-    "reason": "Seeded by R103 at ed8748a's count — 8 px/rem/em lengths, 1 z-index number, 3 outline rules; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "count": 11,
+    "reason": "Seeded by R103 at ed8748a's count, lowered by R107 (the clip rule is VisuallyHidden's) — 5 px/rem/em lengths, 1 z-index number, 3 outline rules; R110 lowers it to the sheet's names."
   }
 }

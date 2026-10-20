@@ -7,6 +7,7 @@ import type { EpochMs, Observer, Pass } from '../../../model';
 import { isFeatured, useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../../state';
 import { faintIds, hasEnded, useListedPasses, useShownClock } from '../../screens/home/shownPasses';
 import { SectionHeading } from '../primitives/SectionHeading';
+import { VisuallyHidden } from '../primitives/VisuallyHidden';
 import { FaintToggle } from './FaintToggle';
 import { ListFailure, listFailure } from './ListFailure';
 import { groupByNight, type NightGroup } from './nightGroups';
@@ -224,7 +225,10 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
   };
   return (
     <section aria-labelledby={headingId} className={styles.section}>
-      <SectionHeading id={headingId}>{t.passes.heading}</SectionHeading>
+      {/* R76 (D-471), R107 (D-725): the list keeps its headed region and the heading is read, not drawn — the reading's own `── What ──` is over it. */}
+      <SectionHeading id={headingId} hidden>
+        {t.passes.heading}
+      </SectionHeading>
       {/* R84 (FR-FIRST-10 as amended v2.1, D-548, F-78): the ` · ` is a node on the sort's side, so a wrap
           carries it to the start of the next line, where the row's clipped left margin hides it. */}
       <div className={styles.countLine} data-testid="count-line">
@@ -280,9 +284,9 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
               {/* R92 (FR-A11Y-2, D-530): the night's heading, in the outline between the list's `h2` and the cards' `h4`,
                   and the group's name. The eye has it already, on the night's toggle under the cards; this one draws
                   nothing, so the page is not restyled and the heading still comes before what it heads. */}
-              <h3 id={`${nightsId}-${group.key}-heading`} className="sr-only" data-testid="night-heading">
+              <VisuallyHidden as="h3" id={`${nightsId}-${group.key}-heading`} data-testid="night-heading">
                 {nightLabel(group, tonight, t)}
-              </h3>
+              </VisuallyHidden>
               {cards(items, 4)}
             </div>
           );

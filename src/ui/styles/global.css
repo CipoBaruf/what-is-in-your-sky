@@ -153,11 +153,6 @@ h1::before {
   color: var(--fg-dim);
 }
 
-/* R92: a heading for the outline only (the live page's name) has no prompt, which would be part of its name. */
-h1.sr-only::before {
-  content: none;
-}
-
 p {
   overflow-wrap: anywhere;
 }
@@ -265,17 +260,4 @@ h1:focus {
    are cells of the page's grid. */
 .landmark-contents {
   display: contents;
-}
-
-/* Visually hidden, read by assistive technology. */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }

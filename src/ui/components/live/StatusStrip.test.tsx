@@ -63,7 +63,7 @@ describe('<StatusStrip>', () => {
     // The line as the eye reads it: the text outside the spoken labels and the spoken zone.
     const shown = (dd: Element): string => {
       const copy = dd.cloneNode(true) as Element;
-      for (const spoken of copy.querySelectorAll('.sr-only')) spoken.remove();
+      for (const spoken of copy.querySelectorAll('[data-visually-hidden]')) spoken.remove();
       return copy.textContent ?? '';
     };
     const visible = [...strip.querySelectorAll('dd')].map(shown).join(' ');
@@ -71,7 +71,7 @@ describe('<StatusStrip>', () => {
     // What a screen reader hears carries the labels and the zone.
     expect(field('time')).toHaveTextContent(/^Time 06:48:24 GMT-3$/);
     expect(field('time').querySelector('time')).toHaveAttribute('dateTime', new Date(T).toISOString());
-    expect(within(field('time')).getByText('Time')).toHaveClass('sr-only');
+    expect(within(field('time')).getByText('Time')).toHaveAttribute('data-visually-hidden');
     expect(field('count')).toHaveTextContent(/^Satellites 3 up$/);
     expect(screen.queryByTestId('live-moon')).toBeNull();
     expect(await axe(container)).toHaveNoViolations();
@@ -92,7 +92,7 @@ describe('<StatusStrip>', () => {
     const value = field('cloud').querySelector('[data-state]') as HTMLElement;
     const drawn = within(value).getByText('s/d');
     expect(drawn).toHaveAttribute('aria-hidden', 'true');
-    expect(within(value).getByText(es.live.cloudSpoken.unknown)).toHaveClass('sr-only');
+    expect(within(value).getByText(es.live.cloudSpoken.unknown)).toHaveAttribute('data-visually-hidden');
     expect(es.live.cloudSpoken.unknown).toBe('sin datos');
     expect(field('cloud')).toHaveTextContent(/^Nubes s\/dsin datos$/);
     expect(await axe(container)).toHaveNoViolations();

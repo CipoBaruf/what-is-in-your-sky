@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type HTMLAttributes, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { useT } from '../i18n/useT';
 import { appStore, followHash } from '../state';
+import { VisuallyHidden } from './components/primitives/VisuallyHidden';
 import { isRouteHref, open, subscribe, takeFocusTarget } from './navigation';
 
 /**
@@ -150,9 +151,9 @@ export function Shell({ chrome, routeKey, title, banner, footer, mainProps, befo
       )}
       {footer}
       {after}
-      <p role="status" aria-live="polite" className="sr-only" data-testid="route-announcer">
+      <VisuallyHidden as="p" role="status" aria-live="polite" data-testid="route-announcer">
         {announced}
-      </p>
+      </VisuallyHidden>
     </>
   );
 }
