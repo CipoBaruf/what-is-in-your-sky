@@ -1,0 +1,33 @@
+/* R107 (FR-DS-4 item 8; D-703, D-725): the stack. One grid column — a grid
+   and not a flex column because that is what every module it replaces drew
+   (`ElementsLine`, `FailureLine`), and the two differ in nothing a stack
+   shows — with its gap from the space scale as the one rule a step sets. A
+   stack that is `hidden` is off the page: `display: grid` would otherwise
+   outrank the attribute. */
+.stack {
+  display: grid;
+}
+
+.stack[hidden] {
+  display: none;
+}
+
+.gap1 {
+  gap: var(--space-1);
+}
+
+.gap2 {
+  gap: var(--space-2);
+}
+
+.gap3 {
+  gap: var(--space-3);
+}
+
+.gap4 {
+  gap: var(--space-4);
+}
+
+.gap5 {
+  gap: var(--space-5);
+}
