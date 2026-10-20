@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 import styles from './VisuallyHidden.module.css';
 
 /**
@@ -23,7 +23,8 @@ export interface VisuallyHiddenOwnProps {
   className?: string | undefined;
 }
 
-export type VisuallyHiddenProps = VisuallyHiddenOwnProps & Omit<ComponentProps<'label'>, keyof VisuallyHiddenOwnProps | 'style' | 'form'>;
+// The attributes any of the elements takes, plus the label's `htmlFor`; the element's own type is `as`'s, so no `ref`.
+export type VisuallyHiddenProps = VisuallyHiddenOwnProps & Omit<HTMLAttributes<HTMLElement>, keyof VisuallyHiddenOwnProps | 'style'> & { htmlFor?: string };
 
 export function VisuallyHidden({ as: Element = 'span', children, className, ...rest }: VisuallyHiddenProps) {
   return (
