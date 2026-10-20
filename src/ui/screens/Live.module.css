@@ -316,8 +316,13 @@
   justify-content: flex-start;
   align-items: baseline;
   gap: 0 calc(3 * var(--cell));
-  border-top: 1px solid var(--rule);
-  padding-top: var(--live-row-gap);
+}
+
+/* R105 (D-720): the rule above that line is a `Rule` the page renders first in the folded rail — a line of its
+   own at the rail's whole width, with the row gap that was the rail's padding under it. */
+.sideRule {
+  flex: 0 0 100%;
+  margin-bottom: var(--live-row-gap);
 }
 
 /* R77: the rail's head and foot wrappers join the line too, so the fields and the actions still flow as one. */

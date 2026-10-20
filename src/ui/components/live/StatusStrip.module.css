@@ -6,7 +6,9 @@
 .strip {
   margin: 0;
   line-height: var(--row);
-  border-top: 1px solid var(--rule);
+  /* R105 (D-720): the sheet's border, not a `Rule` — a `dl` may hold nothing but its groups, and the wide rail's
+     fold reads the strip by its element (`Live.module.css`: `.side dl { display: contents }`). */
+  border-top: var(--border);
   /* R59 (D-281): the air above the rule is one of the gaps under the box on compact, so it comes from the
      live page's one spacing token (`--live-row-gap`); a quarter row anywhere else. */
   padding-top: var(--live-row-gap, calc(var(--row) / 4));

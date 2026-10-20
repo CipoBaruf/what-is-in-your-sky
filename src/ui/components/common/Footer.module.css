@@ -23,18 +23,24 @@
    around them survive the wrap. */
 /* R87 (D-548): the phone's first-run steps take the same row, less its privacy word. */
 .footer:is([data-form='short'], [data-form='line']) {
-  padding-bottom: var(--row);
   /* The character rule above is a fixed 92-character string, which was the
      80-cell frame's width and stops short of a viewport that no longer has
      one. FR-X-6 takes either a plain-character border or a box-drawing one,
      and the 1 px line in the rule colour is the box-drawing weight every card
      on the page is already drawn at (`global.css`) — the difference is that
-     it is as wide as whatever contains it. */
-  border-top: 1px solid var(--rule);
+     it is as wide as whatever contains it. R105 (D-720): that line is a
+     `Rule`, the footer's first child, and the row's padding above is its
+     margin under. */
+  padding-top: 0;
+  padding-bottom: var(--row);
 }
 
 .footer:is([data-form='short'], [data-form='line'])::before {
   content: none;
+}
+
+.rule {
+  margin-bottom: var(--space-3);
 }
 
 .dot {

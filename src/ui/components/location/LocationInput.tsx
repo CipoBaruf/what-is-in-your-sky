@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useT } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
 import { sameLocation } from '../../../state/slices/location';
+import { Rule } from '../primitives/Rule';
 import { SectionHeading } from '../primitives/SectionHeading';
 import { TextButton } from '../primitives/TextButton';
 import { CoordsInput, coordsLabel } from './CoordsInput';
@@ -164,6 +165,8 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
           </div>
         </div>
         <div className={styles.foot} data-testid="location-foot">
+          {/* R105 (D-720): the boxed group's foot is ruled off above; the plain one is not. */}
+          {look === 'boxed' && <Rule className={styles.footRule} />}
           <p className={styles.note}>
             {look === 'boxed' ? t.home.savedFoot : t.location.precisionNote}
             {observer && showClear && (

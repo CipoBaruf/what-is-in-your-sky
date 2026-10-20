@@ -6,6 +6,7 @@ import { loadSettingsChunk } from '../../screens/settingsChunk';
 import { Mark } from '../mark/Mark';
 import { MARK_HEADER_PX } from '../mark/tiers';
 import { BracketLink } from '../primitives/BracketLink';
+import { Rule } from '../primitives/Rule';
 import styles from './Header.module.css';
 import { LanguageToggle } from './LanguageToggle';
 import { ThemeToggle } from './ThemeToggle';
@@ -110,6 +111,8 @@ export function Header({ inert = false, current = 'home', busy = false }: Header
         <ThemeToggle />
       </div>
       <p className={styles.tagline}>{t.app.tagline}</p>
+      {/* R105 (D-720): the wide header's rule under the tagline, across both columns (R23, FR-DESK-2). */}
+      <Rule className={styles.rule} />
     </header>
   );
 }

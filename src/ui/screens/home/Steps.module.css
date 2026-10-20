@@ -115,18 +115,23 @@
 
 /* The more controls and `[ edit ]` are inline `TextButton`s (R104, D-704); nothing here draws on them. */
 
-/* The what step's foot: ruled off at the bottom of the screen, at `--small`. The line breaks between its pieces, never inside one. */
+/* The what step's foot: ruled off at the bottom of the screen, at `--small`. The line breaks between its pieces,
+   never inside one. R105 (D-720): the rule is a `Rule` on the grid's first row, across the text and `[ edit ]`;
+   the text takes what the control leaves, as the flex row it was gave it. */
 .foot {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
-  justify-content: space-between;
-  gap: var(--cell);
+  column-gap: var(--cell);
   margin-top: auto;
-  padding-top: 0.75rem;
   font-size: var(--small);
   line-height: var(--small-row);
   color: var(--fg-dim);
-  border-top: 1px solid var(--rule);
+}
+
+.footRule {
+  grid-column: 1 / -1;
+  margin-bottom: var(--space-2);
 }
 
 .footText {

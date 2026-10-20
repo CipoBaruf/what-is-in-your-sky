@@ -68,8 +68,11 @@
 
 .group[data-look='boxed'] > .foot {
   margin-top: auto;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--rule);
+}
+
+/* R105 (D-720): the boxed foot's rule is a `Rule`, the foot's first row, with the 0.75 rem that was the foot's padding under it. */
+.footRule {
+  margin-bottom: var(--space-2);
 }
 
 /* R87 (D-574): the phone's where step on a screen shorter than 700 px puts its

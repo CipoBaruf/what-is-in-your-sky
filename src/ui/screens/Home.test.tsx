@@ -157,7 +157,8 @@ describe.each([
     // phone "Saved in this browser only. No account, no tracking.", in the wide pane the precision note (US-1 AC4).
     const foot = within(group).getByTestId('location-foot');
     const note = mode === 'compact' ? t.home.savedFoot : t.location.precisionNote;
-    expect([...foot.children].map((child) => child.textContent)).toEqual([note]);
+    // R105 (D-720): the boxed foot is ruled off above by a presentational `Rule`, which is a divider and not a note.
+    expect([...foot.children].filter((child) => child.getAttribute('role') !== 'presentation').map((child) => child.textContent)).toEqual([note]);
     expect(group).toHaveAttribute('data-look', mode === 'compact' ? 'boxed' : 'plain');
     expect(precedes(altitude, foot)).toBe(true);
     expect(group.lastElementChild).toBe(foot);
