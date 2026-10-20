@@ -3,8 +3,8 @@ import { useT } from '../../../i18n/useT';
 import { installOfferVisibility } from '../../../lib/installSnooze';
 import { useAppStore } from '../../../state';
 import { Banner } from './Banner';
+import { TextButton } from '../primitives/TextButton';
 import { InstallAction } from './InstallAction';
-import styles from './InstallAction.module.css';
 import { useInstallOffer, type InstallEnv } from './installEnv';
 
 /**
@@ -70,11 +70,7 @@ export function InstallHint({ env, inert = false }: InstallHintProps) {
     <Banner variant="info" testId="install-hint" inert={inert}>
       <InstallAction
         {...(env ? { env } : {})}
-        trailing={
-          <button type="button" onClick={declineOffer} className={styles.action}>
-            {t.install.dismiss}
-          </button>
-        }
+        trailing={<TextButton label={t.install.dismiss} onClick={declineOffer} />}
       />
     </Banner>
   );

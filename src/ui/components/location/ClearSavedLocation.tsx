@@ -1,5 +1,6 @@
 import { useT } from '../../../i18n/useT';
 import { useAppStore } from '../../../state';
+import { TextButton } from '../primitives/TextButton';
 import styles from './LocationInput.module.css';
 
 /**
@@ -19,6 +20,9 @@ import styles from './LocationInput.module.css';
  * dead control at the end of the page would be the reader's last impression of
  * it. The inputs above reseed themselves when the observer goes (F-29), and the
  * focus this control loses when it disappears goes to the place field with them.
+ *
+ * R104 (D-704): the control is the same inline `TextButton` the sentence's
+ * clear action is; this file's stylesheet only places the line.
  */
 export function ClearSavedLocation({ short = false }: { short?: boolean } = {}) {
   const t = useT();
@@ -29,9 +33,7 @@ export function ClearSavedLocation({ short = false }: { short?: boolean } = {}) 
   // full sentence stays the accessible name, and the short label is its start (WCAG 2.5.3, label in name).
   return (
     <p className={styles.standaloneClear}>
-      <button type="button" onClick={clearSavedObserver} className={`inline-control ${styles.clear}`} data-testid="clear-saved-location" {...(short ? { 'aria-label': t.location.clearSaved } : {})}>
-        {short ? t.settings.clearSaved : t.location.clearSaved}
-      </button>
+      <TextButton inline label={short ? t.settings.clearSaved : t.location.clearSaved} onClick={clearSavedObserver} data-testid="clear-saved-location" {...(short ? { 'aria-label': t.location.clearSaved } : {})} />
     </p>
   );
 }
