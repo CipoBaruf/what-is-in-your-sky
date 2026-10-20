@@ -16,24 +16,7 @@
   color: var(--warn);
 }
 
-.details {
-  color: var(--accent);
-  background: none;
-  border: 0;
-  padding-inline: 0;
-  min-height: 0;
-  font-size: inherit;
-}
-
-.details::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.details::after {
-  content: ' ]';
-  color: var(--fg-dim);
-}
+/* `[ details ]` is an inline `TextButton` (R104, D-704); nothing here draws on it. */
 
 .panel {
   display: grid;

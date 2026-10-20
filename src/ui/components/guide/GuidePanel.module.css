@@ -65,26 +65,8 @@
   gap: 0 var(--cell);
 }
 
-.close,
-.toList {
-  color: var(--accent);
-  background: none;
-  border: 0;
-  min-width: var(--tap);
-  white-space: nowrap;
-}
-
-.close::before,
-.toList::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.close::after,
-.toList::after {
-  content: ' ]';
-  color: var(--fg-dim);
-}
+/* R104 (D-704): the two controls are padded `TextButton`s; nothing here draws
+   on them, and `.toList` below only says where it is not shown. */
 
 /* R50 (F-6): from the width at which the list is beside the panel there is
    nothing for this control to bring back. R76 (D-444): that is

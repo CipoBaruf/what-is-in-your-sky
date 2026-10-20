@@ -10,6 +10,7 @@ import { ThemeToggle } from '../components/common/ThemeToggle';
 import { ClearSavedLocation } from '../components/location/ClearSavedLocation';
 import { Favourites } from '../components/location/Favourites';
 import { COORDS_INPUT_ID, LocationInput } from '../components/location/LocationInput';
+import { TextButton } from '../components/primitives/TextButton';
 import styles from './Settings.module.css';
 
 /**
@@ -94,9 +95,7 @@ export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
   return (
     <>
         <p className={styles.backRow}>
-          <button type="button" onClick={onLeave} ref={back} className={`inline-control ${styles.link}`} data-testid="settings-back">
-            {t.settings.back}
-          </button>
+          <TextButton inline label={t.settings.back} onClick={onLeave} ref={back} data-testid="settings-back" />
         </p>
 
         <div className={styles.location} onClickCapture={openCoordsForLink}>
@@ -112,18 +111,15 @@ export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
               <>
                 <div className={styles.controlRow} data-testid="location-actions">
                   {device}
-                  <button
-                    type="button"
-                    className={styles.link}
+                  <TextButton
+                    label={t.settings.coordinates}
                     aria-expanded={coordsOpen}
                     aria-controls={coordsRegionId}
                     data-testid="coords-disclosure"
                     onClick={() => {
                       setCoordsOpen((open) => !open);
                     }}
-                  >
-                    {t.settings.coordinates}
-                  </button>
+                  />
                 </div>
                 <div id={coordsRegionId} hidden={!coordsOpen} className={styles.coords}>
                   {coords}

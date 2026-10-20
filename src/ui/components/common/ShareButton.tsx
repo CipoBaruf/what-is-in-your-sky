@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useT } from '../../../i18n/useT';
+import { TextButton } from '../primitives/TextButton';
 import styles from './ShareButton.module.css';
 
 /**
@@ -84,16 +85,16 @@ export function ShareButton({ url, title, text, label, ariaLabel, plain = false 
 
   return (
     <p className={styles.share}>
-      <button
-        type="button"
-        className={plain ? styles.plain : styles.button}
+      {/* R104 (D-704): the sheet's bordered box (global.css `button`), which the live page's compact and folded rows strip to text. */}
+      <TextButton
+        box="edge"
+        bare={plain}
+        label={label ?? t.share.pass}
         {...(ariaLabel === undefined ? {} : { 'aria-label': ariaLabel })}
         onClick={() => {
           void onClick();
         }}
-      >
-        {label ?? t.share.pass}
-      </button>
+      />
       {/* Live from the first render, so the confirmation is announced when it arrives rather than when the region does. */}
       <span role="status" className={styles.confirmation} data-testid="share-status">
         {confirmation === 'copied' && t.share.copied}

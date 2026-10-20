@@ -33,7 +33,7 @@ export function LanguageToggle({ className }: LanguageToggleProps = {}) {
       options={LOCALES.map((value) => ({ value, label: LOCALE_NAMES[value] }))}
       value={locale}
       onChange={setLocale}
-      {...(className === undefined ? {} : { className })}
+      className={className}
     />
   );
 }

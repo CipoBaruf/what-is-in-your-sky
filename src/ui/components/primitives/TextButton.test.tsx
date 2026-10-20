@@ -46,11 +46,19 @@ describe.each(THEMES)('<TextButton> under data-theme=%s', (theme) => {
         <TextButton label="edge" box="edge" />
         <TextButton label="accent" box="accent" fill tall />
         <TextButton label="wrap" wrap />
+        <TextButton label="bare" bare box="edge" />
+        <TextButton label="padded" padded />
         <TextButton label="off" disabled onClick={onClick} />
       </>,
     );
     const className = (name: string): string => screen.getByRole('button', { name }).className;
     expect(className('plain')).toMatch(/textButton/);
+    // `bare` is a root class of its own with no brackets, so the cell count reads the words alone (D-411).
+    expect(className('bare')).toMatch(/bare/);
+    expect(className('bare')).not.toMatch(/textButton/);
+    expect(className('bare')).toMatch(/edge/);
+    expect(className('padded')).toMatch(/padded/);
+    expect(className('padded')).toMatch(/textButton/);
     expect(className('dim')).toMatch(/dim/);
     expect(className('danger')).toMatch(/danger/);
     expect(className('inline')).toMatch(/inline-control/);

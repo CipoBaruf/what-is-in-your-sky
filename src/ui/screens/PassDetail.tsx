@@ -10,6 +10,7 @@ import { ShareButton } from '../components/common/ShareButton';
 import { LanguageToggle } from '../components/common/LanguageToggle';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { GuidePanel } from '../components/guide/GuidePanel';
+import { TextButton } from '../components/primitives/TextButton';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import { useOpenerFocus } from '../hooks/useOpenerFocus';
@@ -216,9 +217,7 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
     <div ref={sheetRef} inert={inert || screenOpen} role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.sheet} data-pass-id={pass.id}>
       <div className={styles.frame}>
         <div className={styles.topRow}>
-          <button type="button" className={styles.close} onClick={onClose}>
-            {t.guide.back}
-          </button>
+          <TextButton box="edge" label={t.guide.back} className={styles.close} onClick={onClose} />
           <div className={styles.controls}>
             <LanguageToggle className={styles.prefsToggle} />
             <ThemeToggle />

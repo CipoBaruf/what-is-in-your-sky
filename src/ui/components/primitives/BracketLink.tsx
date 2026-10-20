@@ -17,7 +17,7 @@ export interface BracketLinkOwnProps {
   /** The page this control stands on: drawn as a dim `aria-current` span, not a link. */
   current?: boolean;
   /** Placement only — a grid area, a margin from the space scale (D-704). */
-  className?: string;
+  className?: string | undefined;
 }
 
 export type BracketLinkProps = BracketLinkOwnProps & Omit<ComponentProps<'a'>, keyof BracketLinkOwnProps | 'children' | 'style'>;

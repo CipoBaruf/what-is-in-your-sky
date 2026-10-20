@@ -18,24 +18,7 @@
   color: var(--fg-dim);
 }
 
-/* A bracketed text control inside the sentence; `inline-control` (global.css) gives it the 48 px box. */
-.clear {
-  color: var(--accent);
-  background: none;
-  border: 0;
-  padding-inline: 0;
-  min-height: 0;
-}
-
-.clear::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.clear::after {
-  content: ' ]';
-  color: var(--fg-dim);
-}
+/* The clear action inside the sentence is an inline `TextButton` (R104, D-704); nothing here draws on it. */
 
 /* R52: the settings page's placement — a control on a line of its own, last on
    the page (FR-COMP-2), rather than hung off the sentence about where the

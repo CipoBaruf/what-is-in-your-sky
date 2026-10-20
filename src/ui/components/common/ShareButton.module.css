@@ -6,27 +6,9 @@
   gap: 0 calc(2 * var(--cell));
 }
 
-.button {
-  color: var(--accent);
-}
-
-.button::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.button::after {
-  content: ' ]';
-  color: var(--fg-dim);
-}
-
-/* R71 (D-411): the same action without its brackets — the compact live page's
-   actions row, where `[ list (n) ]` (FR-LEG-7) needs the four cells they cost.
-   A class of its own rather than an override of `.button`, so `cells.ts` reads
-   this row's width off the stylesheet as it does every other control's. */
-.plain {
-  color: var(--accent);
-}
+/* R104 (D-704): the action is a `TextButton` in its bordered form, `bare` of
+   its brackets where the compact live row asks (R71, D-411); nothing here
+   draws on it. */
 
 .confirmation {
   color: var(--fg-dim);

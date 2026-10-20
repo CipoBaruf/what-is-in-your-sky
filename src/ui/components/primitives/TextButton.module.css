@@ -9,19 +9,24 @@
    so each form has a root class of its own and the bracket rules are written
    one selector per rule, never as a list. */
 
-/* The reset, once: no box, no ground, no padding, the words in the accent, and
-   a control that takes the rest of a line or none of it. */
+/* The reset, once: no box, no ground, no padding inside, the words in the
+   accent, and a control that takes the rest of a line or none of it. The
+   block padding is left alone on purpose: `inline-control` (global.css) is
+   what sets it on an inline control, and a reset of `padding` here would
+   outrank that rule and take the 48 px box away. */
 .textButton,
+.bare,
 .toggle,
 .toggleTight,
 .boxedNote {
   border: 0;
   background: none;
-  padding: 0;
+  padding-inline: 0;
   color: var(--accent);
 }
 
 .textButton,
+.bare,
 .toggle,
 .toggleTight {
   white-space: nowrap;
@@ -52,6 +57,14 @@
    own floor goes, or the line it stands on would grow. */
 .inline {
   min-height: 0;
+}
+
+/* `padded`: the sheet's button box without its border — a cell inside at each
+   side and a `--tap` floor on the width — for a control that stands clear of a
+   heading beside it (the guide panel's `[ × ]` and `[ to list ]`). */
+.padded {
+  padding-inline: var(--cell);
+  min-width: var(--tap);
 }
 
 /* `wrap`: a label that is a place name breaks anywhere rather than widening its row (Favourites). */
@@ -124,6 +137,11 @@
   content: ']';
   color: var(--fg-dim);
 }
+
+/* `bare`: the words without their brackets — `.bare` is a root class of its
+   own with no `::before` / `::after`, so `tests/styles/cells.ts` counts it at
+   its text alone — for the one row whose budget buys the brackets off (the
+   compact live actions row's share, D-411). */
 
 /* `box="edge"`: the sheet's bordered control (global.css `button`), restated
    because the reset above took it away — the detail sheet's `[ close ]`, the

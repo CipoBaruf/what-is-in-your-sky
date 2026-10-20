@@ -402,11 +402,8 @@
 /* R48 (FR-COMP-5, D-246): …and one text row tall. The return control keeps
    its 48 px hit box the way links in prose do (the global inline-control
    rule: vertical padding, the matching negative margin) rather than by its
-   height, so the row is 24 px and the dome has the other 24. */
-.page[data-compact='true'] .back {
-  padding-block: calc((var(--tap) - var(--row)) / 2);
-  margin-block: calc(-1 * (var(--tap) - var(--row)) / 2);
-}
+   height, so the row is 24 px and the dome has the other 24. R104 (D-704): it
+   is `TextButton`'s `inline` form on compact, so the rule is the primitive's. */
 
 /* F-100 (V21-24, D-642): entering `#live` focuses Back (FR-A11Y-4), and with no pointer or key yet pressed the
    browser draws that as `:focus-visible`. R75's rule for inline controls, applied here: the ring goes round the
@@ -439,22 +436,7 @@
   margin-left: auto;
 }
 
-.back {
-  border: 0;
-  background: none;
-  padding: 0;
-  color: var(--accent);
-}
-
-.back::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.back::after {
-  content: ' ]';
-  color: var(--fg-dim);
-}
+/* R104 (D-704): Back is a `TextButton`; `.back` is where the page places it (the compact row below, F-100 above). */
 
 .place {
   color: var(--fg-dim);
@@ -484,23 +466,7 @@
   gap: var(--cell);
 }
 
-.inertAction {
-  color: var(--accent);
-  background: none;
-  border: 0;
-  padding-inline: 0;
-  font-size: inherit;
-}
-
-.inertAction::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.inertAction::after {
-  content: ' ]';
-  color: var(--fg-dim);
-}
+/* The inert page's one action (`[ set a place ]`) is a `TextButton` (R104, D-704); nothing here draws on it. */
 
 /* R77 (FR-WATCH-2): the headline's row — the next-event block while watching, the held instant while
    scrubbing — above the frame on compact. Empty on wide, where the headline is the rail's. */
@@ -544,7 +510,6 @@
 
 .page[data-compact='true'] .back {
   flex: 0 0 auto;
-  white-space: nowrap;
 }
 
 /* R77 (FR-WATCH-4, FR-WATCH-5): the wide rail. Its head — the indicator with the clock or `[ back to live ]`,

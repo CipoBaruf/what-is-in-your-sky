@@ -24,6 +24,7 @@ import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
 import { BackToLive, HiddenToggle, LegendToggle, PlaybackControls, ScrubButton } from '../components/live/PlaybackControls';
 import { INDICATOR_MARK_PX, StateIndicator } from '../components/live/StateIndicator';
+import { TextButton } from '../components/primitives/TextButton';
 import { StatusStrip } from '../components/live/StatusStrip';
 import { StepControls } from '../components/live/StepControls';
 import { StripeOverview } from '../components/live/StripeOverview';
@@ -186,9 +187,7 @@ export function LivePage({ link, onLeave }: LivePageProps) {
           {state === 'no-place' && (
             <>
               <p className={styles.inertLine}>{t.live.noPlace}</p>
-              <button type="button" className={styles.inertAction} data-testid="live-set-place" onClick={requestPlace}>
-                {t.live.setPlace}
-              </button>
+              <TextButton label={t.live.setPlace} data-testid="live-set-place" onClick={requestPlace} />
             </>
           )}
           {state === 'loading' && (
@@ -283,9 +282,8 @@ function TopRow({ place, indicator, screenOpen, onLeave }: { place: string | nul
           the accessible tree, since `inert` alone is a browser behaviour and not a name a test can read. */}
       <div className={styles.topRow} data-testid="live-top-row" {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
         {/* R85 (FR-COMP-7, D-549): `[ ← ]` on compact, named by the word it no longer draws; the hit box is the same rule's. */}
-        <button type="button" className={styles.back} onClick={onLeave} data-testid="live-back" {...(compact ? { 'aria-label': t.live.backName } : {})}>
-          {compact ? t.live.backShort : t.live.back}
-        </button>
+        {/* R104 (D-704): the compact row's 48 px hit box on a text row (R48, D-246) is the primitive's `inline` form. */}
+        <TextButton inline={compact} label={compact ? t.live.backShort : t.live.back} className={styles.back} onClick={onLeave} data-testid="live-back" {...(compact ? { 'aria-label': t.live.backName } : {})} />
         {indicator}
         {place !== null && (
           <span className={styles.place} data-testid="live-place">

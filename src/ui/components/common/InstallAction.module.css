@@ -9,20 +9,4 @@
   min-height: var(--tap);
 }
 
-/* Bracketed text controls, like the location section's clear action. */
-.action {
-  color: var(--accent);
-  background: none;
-  border: 0;
-  padding-inline: 0;
-}
-
-.action::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.action::after {
-  content: ' ]';
-  color: var(--fg-dim);
-}
+/* R104 (D-704): the action is a `TextButton`; nothing here draws on it. */

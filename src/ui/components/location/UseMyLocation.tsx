@@ -1,7 +1,8 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Messages } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
+import { TextButton } from '../primitives/TextButton';
 import { coordsLabel } from './CoordsInput';
 import styles from './UseMyLocation.module.css';
 
@@ -60,11 +61,12 @@ export interface UseMyLocationProps {
    * accessible name stays "Use my location".
    */
   primary?: boolean;
+  /** R104: with `primary`, the input group's look (R76, board 1B) — `boxed` on a phone, `plain` in the wide pane — which the group used to hand down as `data-look`. */
+  look?: 'boxed' | 'plain';
 }
 
-export function UseMyLocation({ onObserver, env, primary = false }: UseMyLocationProps) {
+export function UseMyLocation({ onObserver, env, primary = false, look = 'boxed' }: UseMyLocationProps) {
   const t = useT();
-  const noteId = useId();
   const { geolocation, secure } = env ?? browserGeolocationEnv();
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,17 +104,13 @@ export function UseMyLocation({ onObserver, env, primary = false }: UseMyLocatio
       {primary ? (
         // R76 (FR-FIRST-2, at the owner's gate): the primary action is the whole box — the label and its note
         // are one control, so the note is as much a place to tap as the words. The name stays the label alone
-        // and the note is its description, as they were when the note sat under the button.
-        <button type="button" onClick={locate} disabled={locating} aria-busy={locating} aria-label={label} aria-describedby={noteId} className={styles.primaryButton}>
-          <span className={styles.primaryLabel}>{label}</span>
-          <span id={noteId} className={styles.note}>
-            {t.location.useMyLocationNote}
-          </span>
-        </button>
+        // and the note is its description, as they were when the note sat under the button. R104 (D-704): the
+        // box, the note and the two looks are `TextButton`'s.
+        <TextButton box="accent" fill note={t.location.useMyLocationNote} look={look} label={label} aria-label={label} onClick={locate} disabled={locating} aria-busy={locating} />
       ) : (
-        <button type="button" onClick={locate} disabled={locating} aria-busy={locating} className={styles.button}>
-          {label}
-        </button>
+        // R104: the plain `[ label ]` control. Its bordered form was reachable only through the settings page's
+        // device row, which restyled it to this; the primitive renders the text control and that override is gone.
+        <TextButton label={label} className={styles.device} onClick={locate} disabled={locating} aria-busy={locating} />
       )}
       {error && (
         <p role="alert" className={styles.error}>

@@ -46,6 +46,8 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     pressed: { type: 'boolean', text: 'A pressed text control: bracketed in the accent when pressed, bare and dim when not (the sort row, the compact speeds).' },
     tight: { type: 'boolean', text: 'With `pressed`: brackets without their spaces, `[60×]` (the compact speeds).' },
     inline: { type: 'boolean', text: 'Hung off a line of prose: the tap box is padding and a matching negative margin, so the line does not grow.' },
+    bare: { type: 'boolean', text: 'The words without their brackets, for the one row whose budget buys them off (the compact live actions row’s share).' },
+    padded: { type: 'boolean', text: 'A cell of padding inside at each side and a `--tap` floor on the width, for a control standing clear of a heading beside it.' },
     box: { type: "'edge' | 'accent'", text: 'A bordered control: the sheet’s own box, or the home’s primary action in the accent’s border.' },
     fill: { type: 'boolean', text: 'With `box`: the width of the column it stands in.' },
     tall: { type: 'boolean', text: 'With `box="accent"`: the when step’s 56 px foot action.' },

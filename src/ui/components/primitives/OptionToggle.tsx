@@ -21,7 +21,7 @@ export interface OptionToggleOwnProps {
   /** An option standing alone (the hidden-objects toggle) has no trailing cell: that cell is what separates it from the next option in a group. */
   alone?: boolean;
   /** Placement only — a grid area, a margin from the space scale (D-704). */
-  className?: string;
+  className?: string | undefined;
 }
 
 export type OptionToggleProps = OptionToggleOwnProps & Omit<ComponentProps<'button'>, keyof OptionToggleOwnProps | 'children' | 'style' | 'type' | 'onClick'>;

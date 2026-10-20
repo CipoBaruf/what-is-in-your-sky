@@ -61,27 +61,9 @@
   white-space: nowrap;
 }
 
-/* R32 (FR-LIVE-1), R52: every header control is bracketed like the rest of the
-   app's controls and without the underline a prose link gets. The current
-   page's own control is a `span` with the same box, dim rather than accent. */
-.link {
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.link::before {
-  content: '[ ';
-  color: var(--fg-dim);
-}
-
-.link::after {
-  content: ' ]';
-  color: var(--fg-dim);
-}
-
-.currentLink {
-  color: var(--fg-dim);
-}
+/* R32 (FR-LIVE-1), R52, R104 (D-704): every header control is a `BracketLink`
+   — the brackets, the dropped underline and the current page's dim span are
+   the primitive's, and nothing here draws on them. */
 
 /* The title block, so wide can put the header's controls beside it (FR-DESK-2). */
 .titles {

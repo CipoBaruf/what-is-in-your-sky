@@ -43,7 +43,7 @@ export interface ToggleGroupProps<T extends string> {
   /** The space between options: a cell, or none where each option's own trailing cell is the whole gap (the wide speeds). */
   gap?: 'cell' | 'none';
   /** Placement only — a grid area, a margin from the space scale (D-704). */
-  className?: string;
+  className?: string | undefined;
 }
 
 const STEP: Record<string, 1 | -1> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
@@ -55,8 +55,9 @@ export function ToggleGroup<T extends string>({ name, prefix, options, value, on
   };
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     const step = STEP[event.key];
-    if (step === undefined || !(event.target instanceof HTMLElement)) return;
-    const index = options.findIndex((option) => option.value === event.target.dataset.option);
+    const target = event.target;
+    if (step === undefined || !(target instanceof HTMLElement)) return;
+    const index = options.findIndex((option) => option.value === target.dataset.option);
     if (index < 0) return;
     event.preventDefault();
     const next = options[(index + step + options.length) % options.length];

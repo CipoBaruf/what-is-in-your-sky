@@ -3,6 +3,7 @@ import { useT } from '../../../i18n/useT';
 import type { Observer } from '../../../model';
 import { sameLocation } from '../../../state/slices/location';
 import { SectionHeading } from '../common/SectionHeading';
+import { TextButton } from '../primitives/TextButton';
 import { CoordsInput, coordsLabel } from './CoordsInput';
 import { Favourites } from './Favourites';
 import styles from './LocationInput.module.css';
@@ -146,7 +147,7 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
   const accuracy = observer?.source === 'device' ? accuracyText(observer.accuracyM, t) : null;
   const fieldLook = variant === 'group' ? look : 'panel';
   const coords = <CoordsInput key={`coords-${String(seed.key)}`} id={COORDS_INPUT_ID} onObserver={emit} look={fieldLook} {...(seed.observer?.source === 'coords' ? { initial: { lat: seed.observer.lat, lon: seed.observer.lon, altM: seed.observer.altM } } : {})} />;
-  const device = <UseMyLocation onObserver={emit} primary={variant === 'group'} {...(geolocation ? { env: geolocation } : {})} />;
+  const device = <UseMyLocation onObserver={emit} primary={variant === 'group'} look={look} {...(geolocation ? { env: geolocation } : {})} />;
   const place = <PlacePicker key={`place-${String(seed.key)}`} search={search} onObserver={emit} observer={observer} coordsInputId={COORDS_INPUT_ID} inputId={PLACE_INPUT_ID} look={fieldLook} {...(seed.observer?.source === 'geocode' ? { initialText: seed.observer.label } : {})} />;
   const favourites = showFavourites && <Favourites {...(savedPlacesFooter === undefined ? {} : { footer: savedPlacesFooter })} />;
 
@@ -168,9 +169,7 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
             {observer && showClear && (
               <>
                 {' '}
-                <button type="button" onClick={clear} className={`inline-control ${styles.clear}`} data-testid="clear-saved-location">
-                  {t.location.clearSaved}
-                </button>
+                <TextButton inline label={t.location.clearSaved} onClick={clear} data-testid="clear-saved-location" />
               </>
             )}
           </p>
@@ -208,9 +207,7 @@ export function LocationInput({ observer, onObserver, onClear, search, geolocati
           {showClear && (
             <>
               {' '}
-              <button type="button" onClick={clear} className={`inline-control ${styles.clear}`} data-testid="clear-saved-location">
-                {t.location.clearSaved}
-              </button>
+              <TextButton inline label={t.location.clearSaved} onClick={clear} data-testid="clear-saved-location" />
             </>
           )}
         </p>

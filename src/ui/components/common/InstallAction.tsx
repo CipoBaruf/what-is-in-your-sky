@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useT } from '../../../i18n/useT';
 import { useAppStore } from '../../../state';
+import { TextButton } from '../primitives/TextButton';
 import styles from './InstallAction.module.css';
 import { useInstallOffer, type InstallEnv } from './installEnv';
 import { forgetInstallOffer } from './installOffer';
@@ -87,11 +88,7 @@ export function InstallAction({ env, trailing, bare = false }: InstallActionProp
         {/* iOS has no button to give — the only route is the share sheet, and a
             button that cannot install would be a lie (D-153) — so there the
             note above is the whole of the offer. */}
-        {offer !== null && (
-          <button type="button" onClick={install} className={styles.action} data-testid="install-action">
-            {t.install.action}
-          </button>
-        )}
+        {offer !== null && <TextButton label={t.install.action} onClick={install} data-testid="install-action" />}
         {trailing}
       </span>
     </>

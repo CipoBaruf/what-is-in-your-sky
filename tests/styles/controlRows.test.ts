@@ -82,7 +82,6 @@ const CSS = [
   'src/ui/components/common/ShareButton.module.css',
   'src/ui/components/live/PlaybackControls.module.css',
   'src/ui/components/live/StepControls.module.css',
-  'src/ui/components/passes/FaintToggle.module.css',
   'src/ui/screens/Settings.module.css',
   'src/ui/components/location/UseMyLocation.module.css',
   'src/ui/components/location/Favourites.module.css',

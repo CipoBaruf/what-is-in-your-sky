@@ -1,7 +1,7 @@
 import { useT } from '../../../i18n/useT';
 import { useAppStore } from '../../../state';
+import { TextButton } from '../primitives/TextButton';
 import { Banner } from './Banner';
-import styles from './UpdateBanner.module.css';
 
 /**
  * FR-OFF-1, OQ-14: a new version of the shell has downloaded and is waiting;
@@ -23,6 +23,9 @@ import styles from './UpdateBanner.module.css';
  * so the page around it is not made inert and the caller has to say so here —
  * a reload offer under an open guide is exactly what D-154 rules out, at either
  * width.
+ *
+ * R104 (D-704): the control is an inline `TextButton`; the banner has no
+ * stylesheet of its own any more.
  */
 export interface UpdateBannerProps {
   inert?: boolean;
@@ -35,10 +38,7 @@ export function UpdateBanner({ inert = false }: UpdateBannerProps) {
   if (!updateReady || applyUpdate === null) return null;
   return (
     <Banner variant="info" testId="update-banner" inert={inert}>
-      {t.update.ready}{' '}
-      <button type="button" onClick={applyUpdate} className={`inline-control ${styles.reload}`}>
-        {t.update.reload}
-      </button>
+      {t.update.ready} <TextButton inline label={t.update.reload} onClick={applyUpdate} />
     </Banner>
   );
 }

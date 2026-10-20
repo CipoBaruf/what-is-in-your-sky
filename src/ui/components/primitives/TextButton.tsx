@@ -14,7 +14,9 @@ import styles from './TextButton.module.css';
  * (global.css `inline-control`); `pressed` is the sort row's and the compact
  * speeds' pressed text control, the pressed option bracketed and the others
  * bare (D-705), `tight` the speeds' `[60×]` without the spaces (D-245);
- * `box` is a bordered control — `edge` the sheet's own box (the detail sheet's
+ * `bare` is the words without the brackets (the compact live actions row's
+ * share, D-411) and `padded` the sheet's button box without its border (the
+ * guide panel's two controls); `box` is a bordered control — `edge` the sheet's own box (the detail sheet's
  * `[ close ]`, the share action), `accent` the home's primary actions in the
  * accent's border (board 1B), with `fill` for the column's width, `tall` for
  * the when step's taller foot and `note` for the primary action's line under
@@ -39,6 +41,10 @@ export interface TextButtonOwnProps {
   tight?: boolean;
   /** Hung off a line of prose: the 48 px box as padding and a matching negative margin (global.css `inline-control`), so the line does not grow. */
   inline?: boolean;
+  /** The words without their brackets, for the one row whose budget buys them off (the compact live actions row's share, D-411). */
+  bare?: boolean;
+  /** A cell of padding inside at each side and a `--tap` floor on the width: a control standing clear of a heading beside it (the guide panel's `[ × ]`). */
+  padded?: boolean;
   /** A bordered control: `edge` is the sheet's own box (`--border-control`), `accent` the home's primary action in the accent's border (board 1B). */
   box?: 'edge' | 'accent';
   /** With `box`: the width of the column it stands in. */
@@ -54,7 +60,7 @@ export interface TextButtonOwnProps {
   /** The element: a `<button>`, or the `<summary>` of a `<details>` drawn as the same control (the error page's `[ details ]`). */
   as?: 'button' | 'summary';
   /** Placement only — a grid area, a margin from the space scale (D-704). */
-  className?: string;
+  className?: string | undefined;
 }
 
 export type TextButtonProps = TextButtonOwnProps & Omit<ComponentProps<'button'>, keyof TextButtonOwnProps | 'children' | 'style' | 'type'>;
@@ -62,17 +68,19 @@ export type TextButtonProps = TextButtonOwnProps & Omit<ComponentProps<'button'>
 const TONE: Record<TextButtonTone, string | undefined> = { accent: undefined, dim: styles.dim, danger: styles.danger };
 const BOX: Record<NonNullable<TextButtonOwnProps['box']>, string | undefined> = { edge: styles.edge, accent: styles.accent };
 
-export function TextButton({ label, tone = 'accent', pressed, tight = false, inline = false, box, fill = false, tall = false, note, look = 'boxed', wrap = false, as = 'button', className, ...rest }: TextButtonProps) {
+export function TextButton({ label, tone = 'accent', pressed, tight = false, inline = false, bare = false, padded = false, box, fill = false, tall = false, note, look = 'boxed', wrap = false, as = 'button', className, ...rest }: TextButtonProps) {
   const noteId = useId();
   const hasNote = note !== undefined;
   // One root class per form, because `tests/styles/cells.ts` reads the brackets a class draws off this
   // stylesheet by class name and state; an element carries exactly one of them.
-  const root = pressed === undefined ? (hasNote ? styles.boxedNote : styles.textButton) : tight ? styles.toggleTight : styles.toggle;
+  const plain = hasNote ? styles.boxedNote : bare ? styles.bare : styles.textButton;
+  const root = pressed === undefined ? plain : tight ? styles.toggleTight : styles.toggle;
   const classes = [
     root,
     TONE[tone],
     inline ? 'inline-control' : undefined,
     inline ? styles.inline : undefined,
+    padded ? styles.padded : undefined,
     box === undefined ? undefined : BOX[box],
     fill ? styles.fill : undefined,
     tall ? styles.tall : undefined,

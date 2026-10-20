@@ -3,6 +3,7 @@ import { useT } from '../../../i18n/useT';
 import { MAX_FAVOURITES } from '../../../model';
 import { favouriteCellKey, useActiveObserver, useAppStore } from '../../../state';
 import { SectionHeading } from '../common/SectionHeading';
+import { TextButton } from '../primitives/TextButton';
 import styles from './Favourites.module.css';
 
 /**
@@ -70,28 +71,25 @@ export function Favourites({ footer, titled = false, limit = 'always', form = 'b
     const current = favourite.cellKey === activeCell;
     return (
       <li key={favourite.cellKey} className={styles.item} data-testid="favourite" data-current={current ? 'yes' : 'no'}>
-        <button
-          type="button"
-          className={styles.use}
+        <TextButton
+          wrap
+          label={favourite.observer.label}
           aria-label={t.favourites.use(favourite.observer.label)}
           {...(current ? { 'aria-current': true as const } : {})}
           onClick={() => {
             select(favourite.cellKey);
           }}
-        >
-          {favourite.observer.label}
-        </button>
+        />
         {current && <span className={styles.current}>({t.favourites.current})</span>}
-        <button
-          type="button"
+        <TextButton
+          tone="dim"
+          label="×"
           className={styles.remove}
           aria-label={t.favourites.remove(favourite.observer.label)}
           onClick={() => {
             remove(favourite.cellKey);
           }}
-        >
-          ×
-        </button>
+        />
       </li>
     );
   });
@@ -104,16 +102,13 @@ export function Favourites({ footer, titled = false, limit = 'always', form = 'b
           {observer !== null && (
             <>
               <span aria-hidden="true">·</span>
-              <button
-                type="button"
-                className={styles.save}
+              <TextButton
+                label={t.favourites.save}
                 data-testid="save-favourite"
                 onClick={() => {
                   add(observer);
                 }}
-              >
-                {t.favourites.save}
-              </button>
+              />
             </>
           )}
         </div>
@@ -133,16 +128,13 @@ export function Favourites({ footer, titled = false, limit = 'always', form = 'b
       )}
       {observer !== null && (
         <div className={styles.saveRow}>
-          <button
-            type="button"
-            className={styles.save}
+          <TextButton
+            label={t.favourites.save}
             data-testid="save-favourite"
             onClick={() => {
               add(observer);
             }}
-          >
-            {t.favourites.save}
-          </button>
+          />
           {footer}
         </div>
       )}
