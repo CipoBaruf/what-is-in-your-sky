@@ -142,10 +142,12 @@
 
   /* R105 (D-720): the rule under the header is a `Rule` on a row of its own
      across both columns, a row of space above it where the header's bottom
-     padding was. */
+     padding was, and out into the frame's two cells of side padding
+     (global.css `header, main, footer`), where the border it replaces ran. */
   .wide > .rule {
     grid-column: 1 / -1;
     margin-top: var(--space-3);
+    margin-inline: calc(-2 * var(--cell));
   }
 
   /* The preferences keep their 48 px tap boxes, but the row reserves one line

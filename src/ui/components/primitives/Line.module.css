@@ -53,11 +53,12 @@
 }
 
 /* `dot`: ` · ` between the sentence and the actions, in the dim ink. Its two
-   spaces are text, so the line reads the same to a test and to a reader, and
-   `pre` keeps them where the line is a grid or the dot stands at a line's end. */
+   spaces are text and break as text does — the line wraps after the dot where
+   the control does not fit (the elements line in Spanish at 360 px) — so the
+   line reads the same to a test and to a reader. It is for the one-line forms;
+   the `rows` grids drop a text node between their items. */
 .dot {
   color: var(--fg-dim);
-  white-space: pre;
 }
 
 /* The actions: inline controls a cell apart, wrapping where the line cannot hold them all. */

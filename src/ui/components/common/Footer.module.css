@@ -39,8 +39,10 @@
   content: none;
 }
 
+/* …and out into the frame's two cells of side padding (global.css `header, main, footer`), where the border ran. */
 .rule {
   margin-bottom: var(--space-3);
+  margin-inline: calc(-2 * var(--cell));
 }
 
 .dot {
