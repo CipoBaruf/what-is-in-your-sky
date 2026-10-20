@@ -52,21 +52,26 @@ export interface FieldOwnProps {
 
 export type FieldProps = FieldOwnProps & Omit<ComponentProps<'input'>, keyof FieldOwnProps | 'style'>;
 
+const join = (...names: (string | undefined)[]) => names.filter(Boolean).join(' ');
+
 export function Field({ id, label, labelHidden = false, size = 'body', cells, unit, box = false, trailing, children, className, type = 'text', value, placeholder, ...input }: FieldProps) {
-  const classes = [styles.field, size === 'small' ? styles.small : undefined, box ? styles.box : undefined, trailing !== undefined ? styles.withTrailing : undefined, className].filter(Boolean).join(' ');
+  // A slot holding `null` or `false` is an empty slot: no second column, no wrapper.
+  const hasTrailing = trailing !== undefined && trailing !== null && trailing !== false;
+  const classes = join(styles.field, size === 'small' ? styles.small : undefined, box ? styles.box : undefined, hasTrailing ? styles.withTrailing : undefined, className);
   const sized = cells === undefined ? undefined : { className: styles.sized, style: { ['--field-cells' as string]: String(cells) } };
-  const control = <input id={id} type={type} value={value} placeholder={placeholder} className={unit === undefined ? [styles.input, sized?.className].filter(Boolean).join(' ') : styles.inUnit} {...(unit === undefined && sized ? { style: sized.style } : {})} {...input} />;
+  const control = <input id={id} type={type} value={value} placeholder={placeholder} className={unit === undefined ? join(styles.input, sized?.className) : styles.inUnit} {...(unit === undefined && sized ? { style: sized.style } : {})} {...input} />;
   // The unit sits a cell after the value's last character, or the placeholder's, whichever is longer (CoordsInput, R76).
-  const valueCells = Math.max(String(value ?? '').length, String(placeholder ?? '').length);
+  const valueCells = unit === undefined ? 0 : Math.max(String(value ?? '').length, String(placeholder ?? '').length);
   return (
     <div className={classes}>
-      <label htmlFor={id} className={labelHidden ? 'sr-only' : styles.label}>
+      {/* A hidden label keeps `.label`: the grid rules place it as the label (it takes no cell, `sr-only` is absolute), and the rows' rule never reaches it. */}
+      <label htmlFor={id} className={labelHidden ? join('sr-only', styles.label) : styles.label}>
         {label}
       </label>
       {unit === undefined ? (
         control
       ) : (
-        <span className={[styles.unitBox, sized?.className].filter(Boolean).join(' ')} style={{ ...sized?.style, ['--value-cells' as string]: String(valueCells) }}>
+        <span className={join(styles.unitBox, sized?.className)} style={{ ...sized?.style, ['--value-cells' as string]: String(valueCells) }}>
           {control}
           <span className={styles.unit} aria-hidden="true">
             {unit}
@@ -74,7 +79,7 @@ export function Field({ id, label, labelHidden = false, size = 'body', cells, un
         </span>
       )}
       {children}
-      {trailing !== undefined && <div className={styles.trailing}>{trailing}</div>}
+      {hasTrailing && <div className={styles.trailing}>{trailing}</div>}
     </div>
   );
 }
