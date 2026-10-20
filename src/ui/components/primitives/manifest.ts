@@ -1,5 +1,6 @@
 import type { BracketLinkOwnProps } from './BracketLink';
 import type { CardOwnProps } from './Card';
+import type { FieldOwnProps } from './Field';
 import type { LineOwnProps } from './Line';
 import type { OptionToggleOwnProps } from './OptionToggle';
 import type { RuleProps } from './Rule';
@@ -114,6 +115,19 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     rows: { type: "'text' | 'controls'", text: 'The actions on the row under the sentence: a text row of inline controls a cell apart, or a row of `--tap` controls centred, two cells apart, a quarter row under.' },
     dot: { type: 'boolean', text: 'A middle dot between the sentence and the actions.' },
     as: { type: "'p' | 'div'", text: 'A paragraph, or a div where the host’s line was one.' },
+    className: PLACEMENT,
+  }),
+  // R106 (FR-DS-4 item 7; D-722): the field.
+  entry<FieldOwnProps>('Field', 'A label over a text input with the rows under it — a message, a status, a pick list — and, on the input’s row, a trailing control or field; every attribute of the input passes through.', {
+    id: { type: 'string', text: 'The input’s id, which is the label’s `htmlFor`.' },
+    label: { type: 'ReactNode', text: 'The label’s words.' },
+    labelHidden: { type: 'boolean', text: 'The label read by assistive technology and not drawn (the home’s altitude, whose unit is in its box).' },
+    size: { type: "'body' | 'small'", text: 'The label’s type and the space under it: the body half a row over the input, or `--small` in the dim ink a third of a row over it (the home group).' },
+    cells: { type: 'number', text: 'The input’s width in cells; left out, the width of the column it stands in.' },
+    unit: { type: 'string', text: 'A unit drawn inside the input’s box a cell after the value or the placeholder, `0 m`.' },
+    box: { type: 'boolean', text: 'A box ruled in `--rule` round the field, half a row by a cell inside and a third of a row on a short screen (the phone’s input group).' },
+    trailing: { type: 'ReactNode', text: 'A control or a field on the input’s row: a `Field` here joins this one’s grid, its control in the second column and its rows across both.' },
+    children: { type: 'ReactNode', text: 'The rows under the input: a validation message (a `Line`), a status, a pick list.' },
     className: PLACEMENT,
   }),
 ];
