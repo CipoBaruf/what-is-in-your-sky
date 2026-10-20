@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import type { Messages } from '../../../i18n/messages';
 import { useLocale, useT } from '../../../i18n/useT';
 import { formatClockDuration, formatMagnitude } from '../../../lib/format';
@@ -9,6 +9,8 @@ import { formatShortClock } from '../../../lib/timeFormat';
 import type { EpochMs, Pass } from '../../../model';
 import { useNow } from '../../hooks/useNow';
 import { BracketLink } from '../primitives/BracketLink';
+import { Card } from '../primitives/Card';
+import { Rule } from '../primitives/Rule';
 import { TextButton } from '../primitives/TextButton';
 import styles from './NextEventBlock.module.css';
 import { OpenGuide } from './OpenGuide';
@@ -34,6 +36,12 @@ import { OpenGuide } from './OpenGuide';
  * to the store, and the tick stays here so a host never re-renders every
  * second. `formatClockDuration` writes the countdown, "m:ss" under an hour and
  * "h:mm:ss" above (D-502).
+ *
+ * R105 (FR-DS-4 items 4 and 5; D-719, D-720): the card form is a `Card`
+ * ruled in the accent, and the block form's rule above it is a `Rule` — the
+ * host says with `ruled` whether the block is a pane's last block (the home's
+ * When reading, the wide live rail) or the page's own headline (the compact
+ * live page, which drew no rule and had it taken off from `Live.module.css`).
  */
 export const NEXT_EVENT_TICK_MS = 1000;
 
@@ -141,9 +149,14 @@ export interface NextEventBlockProps {
   onSee?: (rise: EpochMs) => void;
   /** R93 (FR-HOME-2): the host's own class on the section, for where the reading's grid puts the block. */
   className?: string | undefined;
+  /**
+   * R105 (D-720): whether the block form is ruled off above — a pane's last block (the default) — or is the
+   * page's own headline with no rule, which the compact live page passes (R77). The card form is never ruled.
+   */
+  ruled?: boolean;
 }
 
-export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block', liveLink = true, onOpen, onSee, className }: NextEventBlockProps) {
+export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block', liveLink = true, onOpen, onSee, className, ruled = true }: NextEventBlockProps) {
   const t = useT();
   const locale = useLocale();
   const nameId = useId();
@@ -151,16 +164,17 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
   const now = nowProp ?? clock;
   const result = nextEvent(passes, now, context);
   const card = form === 'card';
-  const sectionClass = `${card ? styles.card : styles.block}${className ? ` ${className}` : ''}`;
+  const Section = card ? CardSection : BlockSection;
+  const sectionProps = { 'aria-label': t.nextEvent.region, className, 'data-testid': 'next-event', 'data-form': form, ruled };
 
   if (isNoEvent(result)) {
     return (
-      <section aria-label={t.nextEvent.region} className={sectionClass} data-testid="next-event" data-form={form}>
+      <Section {...sectionProps}>
         <p className={styles.none} data-testid="next-event-none" data-reason={pending ? 'pending' : result.reason}>
           {pending ? t.nextEvent.pending : t.nextEvent.none({ reason: result.reason, hours })}
         </p>
         {!card && liveLink && <LiveLink />}
-      </section>
+      </Section>
     );
   }
 
@@ -170,7 +184,7 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
   const path = nextEventPath(pass, t);
   const rise = onSee && !card ? jumpInstant(result, now, hours) : null;
   return (
-    <section aria-label={t.nextEvent.region} className={sectionClass} data-testid="next-event" data-form={form}>
+    <Section {...sectionProps}>
       <p role="timer" aria-live="off" className={styles.label} data-kind={result.kind} data-testid="next-event-label">
         {nextEventLabel(result, now, t, card)}
       </p>
@@ -208,6 +222,34 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
           {liveLink && <LiveLink />}
         </>
       )}
+    </Section>
+  );
+}
+
+interface SectionProps {
+  'aria-label': string;
+  className: string | undefined;
+  'data-testid': string;
+  'data-form': 'block' | 'card';
+  ruled: boolean;
+  children: ReactNode;
+}
+
+/** The block form: the reading's section, ruled off above by a `Rule` unless the host is the page's headline. */
+function BlockSection({ ruled, className, children, ...rest }: SectionProps) {
+  return (
+    <section className={className ? `${styles.block} ${className}` : styles.block} {...rest}>
+      {ruled && <Rule className={styles.rule} />}
+      {children}
     </section>
+  );
+}
+
+/** The card form (FR-FIRST-4): a `Card` ruled in the accent, the section the first card is. */
+function CardSection({ ruled: _ruled, className, children, ...rest }: SectionProps) {
+  return (
+    <Card as="section" frame="accent" className={className} {...rest}>
+      {children}
+    </Card>
   );
 }

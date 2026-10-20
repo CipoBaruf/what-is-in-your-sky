@@ -483,13 +483,10 @@
   display: none;
 }
 
-/* On compact the block is the page's headline and not a pane's last block: no rule above it, and its clock
-   time at the readout's heading size on one text row, so the headline costs the box three rows and not four. */
-.page[data-compact='true'] .headline > section {
-  border-top: 0;
-  padding-top: 0;
-}
-
+/* On compact the block is the page's headline and not a pane's last block: no rule above it (R105, D-720:
+   `Live.tsx` passes `ruled={false}`, and the block draws neither the `Rule` nor the space under it), and its
+   clock time at the readout's heading size on one text row, so the headline costs the box three rows and not
+   four. */
 .page[data-compact='true'] .headline [data-testid='next-event-time'] {
   font-size: 1.25rem;
   line-height: var(--row);

@@ -162,8 +162,13 @@ p {
   overflow-wrap: anywhere;
 }
 
-/* FR-X-5: one focus ring for everything, in the accent colour (11.75 : 1 on the ground). */
-:focus-visible {
+/* FR-X-5: one focus ring for everything, in the accent colour (11.75 : 1 on the ground).
+   R105 (D-704, D-719): a `Card` whose control is a stretched child button
+   (`OpenGuide`, R84: the button covers the whole box and draws nothing of its
+   own) wears the ring in the button's place, by this one rule and not by a
+   rule of its own. */
+:focus-visible,
+[data-card]:has(> button:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }

@@ -115,17 +115,9 @@
     "count": 1,
     "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
   },
-  "src/ui/components/passes/NextEventBlock.module.css": {
-    "count": 13,
-    "reason": "Seeded by R103 at ed8748a's count, lowered by R104 (the brackets are TextButton's and BracketLink's) — 11 px/rem/em lengths, 2 outline rules; R105–R107 and R110 lower it to the sheet's names."
-  },
   "src/ui/components/passes/OpenGuide.module.css": {
     "count": 2,
     "reason": "Seeded by R103 at ed8748a's count — 1 z-index number, 1 outline rule; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
-  },
-  "src/ui/components/passes/PassCard.module.css": {
-    "count": 7,
-    "reason": "Seeded by R103 at ed8748a's count — 5 px/rem/em lengths, 2 outline rules; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
   },
   "src/ui/components/passes/PassList.module.css": {
     "count": 2,

@@ -562,7 +562,8 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const jumpAt = scrubbing ? null : jumpPlacement(mode, fitsOnPath);
   const nextEvent = has('next-event') ? (
     <div className={styles.headline} ref={headlineRef}>
-      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={nextEventContext} pending={passesPending} hours={liveHours} liveLink={false} {...(jumpAt === 'path' ? { onSee: seePass } : {})} />
+      {/* R105 (D-720): on compact the block is the page's headline and not a pane's last block — no rule above it. */}
+      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={nextEventContext} pending={passesPending} hours={liveHours} liveLink={false} ruled={!compact} {...(jumpAt === 'path' ? { onSee: seePass } : {})} />
     </div>
   ) : null;
   const readout = <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />;
