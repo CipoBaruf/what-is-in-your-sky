@@ -124,6 +124,19 @@ whole of the process instruction; there is no hidden prompt.
   390 px and 1280 px, in both languages and both themes, and file them under
   `docs/screenshots/`.
 
+## 7. [docs/DESIGN.md](DESIGN.md) — the design system
+
+What a screen is built from: every token of `src/ui/styles/tokens.css` with its value in both
+themes and the contrast the tests compute, every primitive under
+`src/ui/components/primitives/` with its props, the rules a module is held to, and the order
+a redesign lands in (the sheet, the primitives, the dev page's captures, then the screens).
+It is **generated**, not written: `scripts/design-guide.ts` reads the sheet and the
+manifest, `npm run design:guide` rewrites the page, and `tests/docs/design.test.ts` fails
+when the committed page differs from what the script writes, so it cannot drift from the
+files. The page it ends with, `dev/primitives.html`, is served by `npm run dev` only and
+shot by `npm run design:captures`; a session that is about to specify or build a screen reads
+this one first.
+
 ## What is deliberately public
 
 The process paperwork is in the tree on purpose, because the process is the thing this

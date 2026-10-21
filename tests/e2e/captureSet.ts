@@ -278,6 +278,35 @@ export interface Capture {
   readonly file: string;
 }
 
+/**
+ * R108 (FR-DS-6; D-706, D-728): the `design` group — the dev page
+ * `dev/primitives.html`, every primitive in every state and tone, shot by
+ * `tests/e2e/design-captures.spec.ts` under `playwright.design.config.ts`
+ * (`npm run design:captures`) at the phone's and the wide width, one file per
+ * theme, into a directory of its own so the `v1-` set and its filename rule are
+ * untouched. English only: the primitives carry no copy (D-703), so a Spanish
+ * twin would be the same picture. `captures.test.ts` holds the directory to
+ * these four and `docs/DESIGN.md` links them, so a redesign's change to a
+ * token or a primitive is a visible diff before any screen is touched (FR-DS-9).
+ */
+export const DESIGN_PAGE = '/dev/primitives.html';
+export const DESIGN_CAPTURE_DIR = 'docs/screenshots/design';
+const DESIGN_WIDTHS = [390, 1280] as const;
+type DesignWidth = (typeof DESIGN_WIDTHS)[number];
+/** `design-primitives-<width>-<theme>.png`: no screen (there is one page) and no language. */
+export const DESIGN_FILE = /^design-primitives-\d+-(dark|night)\.png$/;
+
+export interface DesignCapture {
+  readonly width: DesignWidth;
+  readonly theme: CaptureTheme;
+  readonly file: string;
+}
+
+/** The four design captures, width-major: 390 dark, 390 night, 1280 dark, 1280 night. */
+export function designCaptureSet(): DesignCapture[] {
+  return DESIGN_WIDTHS.flatMap((width) => THEMES.map((theme) => ({ width, theme, file: `design-primitives-${String(width)}-${theme}.png` })));
+}
+
 /** The whole matrix, in a stable order: a screen's captures, then its `-view` twins in the same order. */
 export function captureSet(): Capture[] {
   return SCREENS.flatMap((screen) =>

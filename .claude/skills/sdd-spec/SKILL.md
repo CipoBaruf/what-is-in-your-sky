@@ -10,6 +10,7 @@ The spec is the contract; the plan follows it; TASKS.md follows both. This skill
 ## Before writing
 
 1. Read SPEC.md, PLAN.md and TASKS.md in full. Note the current version numbers and the last Decision Log row.
+   Read `docs/DESIGN.md` before a screen: a handoff names the sheet's tokens and the primitives by the names it prints, and a name it does not print is translated into the sheet before a task is cut (FR-DS-9).
 2. List every requested change against the Decision Log (§12). A change that contradicts a row needs the owner's explicit authorisation and a new row; ask before drafting, one question at a time if the owner prefers.
 3. Ask the owner the open questions with a recommended default on each. Do not draft until the answers are in.
 4. Confirm the working tree is clean and create a branch `spec-<slug>` from `origin/main`. Never commit to `main`.

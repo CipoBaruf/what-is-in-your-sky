@@ -21,6 +21,9 @@ sdd-run/
 /scripts/debug-*
 /playwright.*.config.*
 /playwright-*.config.*
+# R108 (FR-DS-6, D-706, D-728): the one second config the spec names — the design captures' — is
+# tracked; the two patterns above still catch every other `playwright.<x>.config.*`.
+!/playwright.design.config.ts
 /redesign
 # FR-SHOW-3: the recording run (P4) writes into promo/; it is local-only and never tracked.
 /promo

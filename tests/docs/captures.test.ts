@@ -15,13 +15,15 @@
  * 1920 — is pinned here as well, so the arithmetic of D-626 is a test and not a
  * count somebody did once.
  */
-import { readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CAPTURE_DIR, CAPTURE_FILE, captureSet, LOCALES, SCREENS, THEMES } from '../e2e/captureSet';
+import { CAPTURE_DIR, CAPTURE_FILE, captureSet, DESIGN_CAPTURE_DIR, DESIGN_FILE, designCaptureSet, LOCALES, SCREENS, THEMES } from '../e2e/captureSet';
 
 const files = new Set(readdirSync(CAPTURE_DIR));
 const v1Files = [...files].filter((file) => file.startsWith('v1-')).sort();
+/** R108: the design captures' directory, read the same way; absent is an empty list and the test below says so. */
+const designFiles = existsSync(DESIGN_CAPTURE_DIR) ? readdirSync(DESIGN_CAPTURE_DIR).sort() : [];
 
 describe('the v1 capture set', () => {
   it('F-50: names every screen at both widths, in as many themes and languages as there are', () => {
@@ -99,5 +101,32 @@ describe('the v1 capture set', () => {
   it('carries no v1 capture the set does not name', () => {
     const named = new Set(captureSet().map((capture) => capture.file));
     expect(v1Files.filter((file) => !named.has(file))).toEqual([]);
+  });
+});
+
+/**
+ * R108 (FR-DS-6; D-706, D-728): the dev page's captures, the `design` group.
+ * Four files — the two widths by the two themes, no language — in a directory
+ * of their own under `docs/screenshots/`, held to the set the same way the
+ * `v1-` files are: every one named is on disk and non-empty, and nothing else
+ * is there. `docs/DESIGN.md` links them, so a missing one is also a broken link.
+ * Regenerate with `npm run design:captures`.
+ */
+describe('the design captures', () => {
+  it('are the two widths by the two themes, named by the one pattern', () => {
+    expect(designCaptureSet().map((capture) => capture.file)).toEqual(['design-primitives-390-dark.png', 'design-primitives-390-night.png', 'design-primitives-1280-dark.png', 'design-primitives-1280-night.png']);
+    for (const capture of designCaptureSet()) expect(capture.file).toMatch(DESIGN_FILE);
+    expect(designCaptureSet()).toHaveLength(THEMES.length * 2);
+  });
+
+  it('are every one on disk, none of them empty', () => {
+    const present = new Set(designFiles);
+    expect(designCaptureSet().filter((capture) => !present.has(capture.file)).map((capture) => capture.file)).toEqual([]);
+    expect(designCaptureSet().filter((capture) => statSync(join(DESIGN_CAPTURE_DIR, capture.file)).size === 0)).toEqual([]);
+  });
+
+  it('and the directory carries nothing the group does not name', () => {
+    const named = new Set(designCaptureSet().map((capture) => capture.file));
+    expect(designFiles.filter((file) => !named.has(file))).toEqual([]);
   });
 });
