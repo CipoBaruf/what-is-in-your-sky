@@ -106,7 +106,7 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     children: { type: 'ReactNode', text: 'The title.' },
     tone: { type: "'active' | 'muted'", text: 'The home’s pane headings: the reading the reader is on in the accent, a pane not there yet in the dim ink.' },
     level: { type: '2 | 3', text: 'The heading’s rank in the outline (FR-A11Y-2); the drawing is the same at either.' },
-    hidden: { type: 'boolean', text: 'The heading read and not drawn (a `VisuallyHidden` at the same rank), for a region whose name is on the screen already.' },
+    visuallyHidden: { type: 'boolean', text: 'The heading read and not drawn (a `VisuallyHidden` at the same rank), for a region whose name is on the screen already.' },
   }),
   entry<LineOwnProps>('Line', 'One line that tells the reader something — a status, a note, a failure — as a leading marker, a sentence and trailing actions.', {
     tone: { type: "'status' | 'ok' | 'notice' | 'failure'", text: 'The ink for the marker and the frame’s edge: dim, `--ok`, `--warn` or `--danger`.' },

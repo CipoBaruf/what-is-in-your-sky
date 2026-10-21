@@ -45,7 +45,7 @@ export function MoonLore({ moon, timeZone }: MoonLoreProps) {
   return (
     <section aria-labelledby={`${headingId} ${traditionId}`} className={styles.section} data-testid="moon-lore">
       {/* R76 (D-471), R107 (D-725): the line keeps its headed region and the heading is read, not drawn — the reading's own `── When ──` is over it. */}
-      <SectionHeading id={headingId} hidden>
+      <SectionHeading id={headingId} visuallyHidden>
         {t.moon.lore.heading}
       </SectionHeading>
       <p className={styles.line}>

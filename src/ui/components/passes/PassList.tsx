@@ -226,7 +226,7 @@ export function PassList({ onOpenPass, selectedPassId = null }: PassListProps) {
   return (
     <section aria-labelledby={headingId} className={styles.section}>
       {/* R76 (D-471), R107 (D-725): the list keeps its headed region and the heading is read, not drawn — the reading's own `── What ──` is over it. */}
-      <SectionHeading id={headingId} hidden>
+      <SectionHeading id={headingId} visuallyHidden>
         {t.passes.heading}
       </SectionHeading>
       {/* R84 (FR-FIRST-10 as amended v2.1, D-548, F-78): the ` · ` is a node on the sort's side, so a wrap

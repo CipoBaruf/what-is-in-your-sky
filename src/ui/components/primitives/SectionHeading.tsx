@@ -31,14 +31,15 @@ export interface SectionHeadingProps {
    * R107 (D-725): the heading read and not drawn — a `VisuallyHidden` at the
    * same rank, for a region whose name is on the screen already (the home's
    * Moon line and pass list under their reading's own heading, R76, D-471),
-   * where `App.module.css` used to clip it by selector.
+   * where `App.module.css` used to clip it by selector. Not HTML's `hidden`,
+   * which takes the heading out of the accessibility tree too.
    */
-  hidden?: boolean;
+  visuallyHidden?: boolean;
 }
 
-export function SectionHeading({ id, children, tone, level = 2, hidden = false }: SectionHeadingProps) {
+export function SectionHeading({ id, children, tone, level = 2, visuallyHidden = false }: SectionHeadingProps) {
   const Heading = level === 3 ? 'h3' : 'h2';
-  if (hidden) {
+  if (visuallyHidden) {
     return (
       <VisuallyHidden as={Heading} id={id}>
         {children}

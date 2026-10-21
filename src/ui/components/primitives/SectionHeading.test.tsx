@@ -33,7 +33,7 @@ describe.each(THEMES)('<SectionHeading> under data-theme=%s', (theme) => {
           </SectionHeading>
         </section>
         <section aria-labelledby="passes">
-          <SectionHeading id="passes" hidden>
+          <SectionHeading id="passes" visuallyHidden>
             Passes
           </SectionHeading>
         </section>
