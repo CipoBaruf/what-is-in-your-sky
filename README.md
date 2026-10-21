@@ -17,6 +17,7 @@ pushed the branch, opened a pull request, waited for CI, ran a second session wh
 job was to review the diff and post what it found, and only then merged.
 
 [How this was built](docs/HOW-THIS-WAS-BUILT.md) -
+[The design system](docs/DESIGN.md) -
 [Contributing](CONTRIBUTING.md) -
 [Licence](LICENSE) (MIT)
 

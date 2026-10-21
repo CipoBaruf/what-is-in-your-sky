@@ -29,12 +29,13 @@ const SKILLS = readdirSync('.claude/skills', { withFileTypes: true })
   .map((entry) => entry.name)
   .sort();
 
-/** The documents D-650 names, whose every path, script and skill must exist as named. */
+/** The documents D-650 names, whose every path, script and skill must exist as named — and, since R108 (D-707), the generated design guide. */
 const DOCUMENTS = [
   'README.md',
   'CONTRIBUTING.md',
   'CLAUDE.md',
   'docs/HOW-THIS-WAS-BUILT.md',
+  'docs/DESIGN.md',
   'docs/DEPLOY.md',
   'docs/RELEASE.md',
   ...SKILLS.map((skill) => `.claude/skills/${skill}/SKILL.md`),

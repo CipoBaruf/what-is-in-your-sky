@@ -72,6 +72,14 @@ jobs:
         env:
           CAPTURES: '1'
         run: npx playwright test v1-captures --reporter=list
+      # R108 (FR-DS-6, D-706): the dev page's four captures, after the set. The page is not in the
+      # build, so `playwright.design.config.ts` serves it with `vite` itself; the files join the
+      # set's diff (FR-CAP-1's rule), so a token's or a primitive's change is visible in review
+      # before any screen is touched. Cleared first for the same reason the set is.
+      - name: clear the design captures
+        run: find docs/screenshots/design -name 'design-*.png' -delete
+      - name: shoot the design captures
+        run: npm run design:captures
       # FR-CI-2: incomplete is a failure. The same check the unit suite runs, now against this run's files.
       - name: check the set is complete
         run: npx vitest run tests/docs/captures.test.ts
@@ -81,5 +89,12 @@ jobs:
         with:
           name: v1-captures
           path: docs/screenshots/v1-*.png
+          retention-days: 30
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: design-captures
+          path: docs/screenshots/design/design-*.png
           retention-days: 30
           if-no-files-found: error
