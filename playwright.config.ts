@@ -16,6 +16,12 @@ const HEADLESS_TASK = !!process.env['SDD_HEADLESS'];
  */
 export const PROMO_SPEC = /promo-record\.spec\.ts/;
 /**
+ * R108 (FR-DS-6, D-706, D-728): the design captures' spec. It shoots `dev/primitives.html`,
+ * which exists on the dev server and not in the build this config serves, so only
+ * `playwright.design.config.ts` matches it and every project here ignores it by name.
+ */
+export const DESIGN_SPEC = /design-captures\.spec\.ts/;
+/**
  * Whether this invocation asked for the recording run. A bare `playwright test`
  * runs every project in the config, so a `promo` project that was always there
  * would record under `npm run e2e` and on CI whatever the other projects
@@ -76,7 +82,7 @@ export default defineConfig({
   },
   projects: [
     // Desktop Chrome is 1280 × 720: the width the approved mockup fixes (FR-DESK-5).
-    { name: 'chromium', testIgnore: [/dome-fit\.spec\.ts/, PROMO_SPEC], use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', testIgnore: [/dome-fit\.spec\.ts/, PROMO_SPEC, DESIGN_SPEC], use: { ...devices['Desktop Chrome'] } },
     /*
      * R50 (FR-DESK-5 as amended, D-192): the mid width. Between the wide
      * breakpoint and `WIDE_SPLIT_MIN_PX` the right column shows one thing at a
