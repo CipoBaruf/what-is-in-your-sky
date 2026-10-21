@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <!-- R108 (FR-DS-6, D-706): the dev page. `npm run dev` serves it at /dev/primitives.html;
+         `vite build` never sees it (index.html is the only input), so nothing here is deployed.
+         `npm run design:captures` shoots it into docs/screenshots/design/. -->
+    <title>Primitives — the design system's dev page</title>
+  </head>
+  <body>
+    <div id="dev"></div>
+    <script type="module" src="./primitives.tsx"></script>
+  </body>
+</html>

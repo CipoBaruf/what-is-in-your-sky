@@ -39,16 +39,21 @@ describe('the tracked tree carries no scratch files (F-16, F-20)', () => {
     expect(trackedIn('scripts').filter((name) => DEBUG.test(name))).toEqual([]);
   });
 
-  it('tracks exactly one Playwright config, the committed one', () => {
+  it('tracks exactly two Playwright configs: the committed one and the design captures’ (R108, D-706)', () => {
+    // R108 (FR-DS-6, D-706, D-728): `playwright.design.config.ts` is the one second config the spec
+    // names — the dev page is shot under `vite` itself, not `vite preview` — so `.gitignore` un-ignores
+    // it by name and nothing else gets past the two patterns.
     const configs = trackedIn('.').filter((name) => name.startsWith('playwright') && name.includes('config'));
-    expect(configs).toEqual(['playwright.config.ts']);
+    expect(configs.sort()).toEqual(['playwright.config.ts', 'playwright.design.config.ts']);
+    expect(lines).toContain('!/playwright.design.config.ts');
   });
 
-  it('and the committed config never adopts a server it did not start under a driver session (F-20)', () => {
+  it('and neither committed config adopts a server it did not start under a driver session (F-20)', () => {
     // The scratch config's real defect: `reuseExistingServer: true` against a
     // fixed port is how one worktree's e2e ends up testing another's build.
-    const config = readFileSync('playwright.config.ts', 'utf8');
-    expect(config).toMatch(/reuseExistingServer: !process\.env\['CI'\] && !HEADLESS_TASK/);
+    for (const path of ['playwright.config.ts', 'playwright.design.config.ts']) {
+      expect(readFileSync(path, 'utf8'), path).toMatch(/reuseExistingServer: !process\.env\['CI'\] && !HEADLESS_TASK/);
+    }
   });
 });
 
