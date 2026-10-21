@@ -1,7 +1,7 @@
 {
   "src/ui/App.module.css": {
-    "count": 23,
-    "reason": "Seeded by R103 at ed8748a's count — 22 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "count": 20,
+    "reason": "Seeded by R103 at ed8748a's count, lowered by R107 (the hidden headings' clip rule is VisuallyHidden's) — 20 px/rem/em lengths; R110 lowers it to the sheet's names."
   },
   "src/ui/components/common/Countdown.module.css": {
     "count": 1,
@@ -52,16 +52,16 @@
     "reason": "Seeded by R103 at ed8748a's count — 3 px/rem/em lengths, 1 font-family; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
   },
   "src/ui/components/live/StripeOverview.module.css": {
-    "count": 7,
-    "reason": "Seeded by R103 at ed8748a's count — 4 px/rem/em lengths, 2 outline rules, 1 font-family; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "count": 3,
+    "reason": "Seeded by R103 at ed8748a's count, lowered by R107 (the ring is global.css's; the tight offset is the sheet's) — 2 px/rem/em lengths, 1 font-family; R110 lowers it to the sheet's names."
   },
   "src/ui/components/live/TimeReadout.module.css": {
     "count": 2,
     "reason": "Seeded by R103 at ed8748a's count — 2 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
   },
   "src/ui/components/live/TimeStripe.module.css": {
-    "count": 8,
-    "reason": "Seeded by R103 at ed8748a's count — 5 px/rem/em lengths, 2 outline rules, 1 font-family; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "count": 4,
+    "reason": "Seeded by R103 at ed8748a's count, lowered by R107 (the ring is global.css's; the tight offset is the sheet's) — 3 px/rem/em lengths, 1 font-family; R110 lowers it to the sheet's names."
   },
   "src/ui/components/location/UseMyLocation.module.css": {
     "count": 1,
@@ -84,35 +84,35 @@
     "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
   },
   "src/ui/components/passes/OpenGuide.module.css": {
-    "count": 2,
-    "reason": "Seeded by R103 at ed8748a's count — 1 z-index number, 1 outline rule; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "count": 1,
+    "reason": "Seeded by R103 at ed8748a's count, lowered by R107 (the stretched button's ring reset is global.css's) — 1 z-index number; R110 lowers it to the sheet's names."
   },
   "src/ui/components/passes/PassList.module.css": {
     "count": 2,
     "reason": "Seeded by R103 at ed8748a's count — 2 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
   },
   "src/ui/components/screen/SkyScreen.module.css": {
-    "count": 3,
-    "reason": "Seeded by R103 at ed8748a's count — 2 outline rules, 1 font-family; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "count": 1,
+    "reason": "Seeded by R103 at ed8748a's count, lowered by R107 (the close control's inset ring is global.css's rule reading `--focus-offset`) — 1 font-family; R110 lowers it to the sheet's names."
   },
   "src/ui/components/weather/CloudBadge.module.css": {
     "count": 3,
     "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length, 2 z-index numbers; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
   },
   "src/ui/screens/Live.module.css": {
-    "count": 2,
-    "reason": "Seeded by R103 at ed8748a's count, lowered by R104 (the brackets are TextButton's) and R105 (the folded rail's rule is a Rule) — 1 px/rem/em length, 1 outline rule (F-100's Back ring); R106, R107 and R110 lower it to the sheet's names."
+    "count": 1,
+    "reason": "Seeded by R103 at ed8748a's count, lowered by R104 (the brackets are TextButton's), R105 (the folded rail's rule is a Rule) and R107 (F-100's flush Back ring is global.css's rule reading `--focus-offset`) — 1 px/rem/em length; R110 lowers it to the sheet's names."
   },
   "src/ui/screens/PassDetail.module.css": {
     "count": 2,
     "reason": "Seeded by R103 at ed8748a's count, lowered by R104 (the brackets are TextButton's) — 1 px/rem/em length, 1 z-index number; R105–R107 and R110 lower it to the sheet's names."
   },
   "src/ui/screens/home/Steps.module.css": {
-    "count": 14,
-    "reason": "Seeded by R103 at ed8748a's count, lowered by R104 (the two accent boxes and the brackets are TextButton's) and R105 (the what step's foot rule and its padding are a Rule and its margin) — 13 px/rem/em lengths, 1 outline rule; R106, R107 and R110 lower it to the sheet's names."
+    "count": 13,
+    "reason": "Seeded by R103 at ed8748a's count, lowered by R104 (the two accent boxes and the brackets are TextButton's), R105 (the what step's foot rule and its padding are a Rule and its margin) and R107 (the heading's ring reset matched nothing a supported browser draws) — 13 px/rem/em lengths; R110 lowers it to the sheet's names."
   },
   "src/ui/styles/global.css": {
-    "count": 14,
-    "reason": "Seeded by R103 at ed8748a's count — 8 px/rem/em lengths, 1 z-index number, 3 outline rules; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "count": 10,
+    "reason": "Seeded by R103 at ed8748a's count, lowered by R107 (the clip rule is VisuallyHidden's; the ring is written from --focus-ring and --focus-offset) — 5 px/rem/em lengths, 1 z-index number, 4 outline rules (the one ring, the landmarks' and the stretched card button's resets, D-704); R110 lowers it to the sheet's names."
   }
 }

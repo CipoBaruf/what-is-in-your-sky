@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import styles from './SectionHeading.module.css';
+import { VisuallyHidden } from './VisuallyHidden';
 
 /**
  * R12 (FR-X-6): a section title drawn as a character rule, `── Title ─────`,
@@ -26,10 +27,25 @@ export interface SectionHeadingProps {
    * the element is what a screen reader walks by.
    */
   level?: 2 | 3;
+  /**
+   * R107 (D-725): the heading read and not drawn — a `VisuallyHidden` at the
+   * same rank, for a region whose name is on the screen already (the home's
+   * Moon line and pass list under their reading's own heading, R76, D-471),
+   * where `App.module.css` used to clip it by selector. Not HTML's `hidden`,
+   * which takes the heading out of the accessibility tree too.
+   */
+  visuallyHidden?: boolean;
 }
 
-export function SectionHeading({ id, children, tone, level = 2 }: SectionHeadingProps) {
+export function SectionHeading({ id, children, tone, level = 2, visuallyHidden = false }: SectionHeadingProps) {
   const Heading = level === 3 ? 'h3' : 'h2';
+  if (visuallyHidden) {
+    return (
+      <VisuallyHidden as={Heading} id={id}>
+        {children}
+      </VisuallyHidden>
+    );
+  }
   return (
     <Heading id={id} className={tone ? `${styles.heading} ${styles[tone]}` : styles.heading}>
       <span className={styles.title}>{children}</span>

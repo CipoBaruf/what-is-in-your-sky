@@ -2,7 +2,7 @@
    `--space-2` (12 px) inside, positioned so a stretched control inside it
    (`OpenGuide`) covers the whole box (R84, F-85). Every rule here is a prop of
    `Card`; a feature module places the card and sets nothing on it. The focus
-   ring is `global.css`'s (D-704): nothing here says `outline`. */
+   ring is `global.css`'s (D-704): nothing here restates it. */
 .card {
   position: relative;
   border: var(--border);

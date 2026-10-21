@@ -32,8 +32,20 @@ describe.each(THEMES)('<SectionHeading> under data-theme=%s', (theme) => {
             What
           </SectionHeading>
         </section>
+        <section aria-labelledby="passes">
+          <SectionHeading id="passes" visuallyHidden>
+            Passes
+          </SectionHeading>
+        </section>
       </>,
     );
+    // R107 (D-725): the hidden form is the same heading in the outline, clipped by `VisuallyHidden` and drawn by nothing.
+    const passes = screen.getByRole('heading', { level: 2, name: 'Passes' });
+    expect(passes).toHaveAttribute('id', 'passes');
+    expect(passes).toHaveAttribute('data-visually-hidden', '');
+    expect(passes.className).not.toMatch(/heading/);
+    expect(passes.textContent).toBe('Passes');
+    expect(screen.getByRole('region', { name: 'Passes' })).toContainElement(passes);
     const where = screen.getByRole('heading', { level: 2, name: 'Where' });
     expect(where).toHaveAttribute('id', 'where');
     expect(where.textContent).toBe('Where');

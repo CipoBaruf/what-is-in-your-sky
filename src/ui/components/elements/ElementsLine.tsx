@@ -6,9 +6,9 @@ import { useAppStore } from '../../../state';
 import { useNow } from '../../hooks/useNow';
 import { StoredLine } from '../common/ReadinessLine';
 import { Line } from '../primitives/Line';
+import { Stack } from '../primitives/Stack';
 import { TextButton } from '../primitives/TextButton';
 import { AGE_TICK_MS, ElementsBanners } from './ElementsBanners';
-import styles from './ElementsLine.module.css';
 
 /**
  * R81 (FR-SAT-4 as amended v2.0.2, FR-FIRST-11, D-511): the elements as one
@@ -25,6 +25,9 @@ import styles from './ElementsLine.module.css';
  * the tone's ink (`ink="tone"`): the dim `status` while the elements are
  * fresh, the `notice` tone's `--warn` past the five days, with `[ details ]`
  * after the dot. The words say the age; the ink only underlines it (FR-X-5).
+ * R107 (FR-DS-4 item 8, D-725): the line and the panel it opens are a
+ * `Stack` half a row apart, and the panel's blocks another; the module this
+ * drew that grid in is gone.
  */
 export interface ElementsLineProps {
   /** The clock, for tests; the app re-reads it every minute. */
@@ -42,7 +45,7 @@ export function ElementsLine({ now: nowProp }: ElementsLineProps) {
   const newest = newestEpoch(elements.records);
   const warn = elements.stale || (newest !== null && epochIsOld(newest, now));
   return (
-    <div className={styles.block}>
+    <Stack gap={2}>
       <Line
         size="small"
         tone={warn ? 'notice' : 'status'}
@@ -65,10 +68,10 @@ export function ElementsLine({ now: nowProp }: ElementsLineProps) {
       >
         {newest === null ? t.elements.lineNone : t.elements.line(t.elements.age(ageParts(now - newest)))}
       </Line>
-      <div id={detailsId} hidden={!open} className={styles.panel}>
+      <Stack gap={2} id={detailsId} hidden={!open}>
         <ElementsBanners {...(nowProp === undefined ? {} : { now: nowProp })} />
         <StoredLine />
-      </div>
-    </div>
+      </Stack>
+    </Stack>
   );
 }

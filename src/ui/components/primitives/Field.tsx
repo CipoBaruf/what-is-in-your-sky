@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react';
 import styles from './Field.module.css';
+import { VisuallyHidden } from './VisuallyHidden';
 
 /**
  * R106 (FR-DS-4 item 7; D-703, D-722): the field — a label over an input, an
@@ -64,10 +65,16 @@ export function Field({ id, label, labelHidden = false, size = 'body', cells, un
   const valueCells = unit === undefined ? 0 : Math.max(String(value ?? '').length, String(placeholder ?? '').length);
   return (
     <div className={classes}>
-      {/* A hidden label keeps `.label`: the grid rules place it as the label (it takes no cell, `sr-only` is absolute), and the rows' rule never reaches it. */}
-      <label htmlFor={id} className={labelHidden ? join('sr-only', styles.label) : styles.label}>
-        {label}
-      </label>
+      {/* A hidden label keeps `.label`: the grid rules place it as the label (it takes no cell, `VisuallyHidden` is absolute), and the rows' rule never reaches it. */}
+      {labelHidden ? (
+        <VisuallyHidden as="label" htmlFor={id} className={styles.label}>
+          {label}
+        </VisuallyHidden>
+      ) : (
+        <label htmlFor={id} className={styles.label}>
+          {label}
+        </label>
+      )}
       {unit === undefined ? (
         control
       ) : (

@@ -19,10 +19,10 @@
   color: var(--fg);
 }
 
-/* Focused on arrival so a screen reader starts at the step; the ring is for the keyboard. */
-.heading:focus:not(:focus-visible) {
-  outline: none;
-}
+/* Focused on arrival so a screen reader starts at the step; the ring is for
+   the keyboard, which `:focus-visible` already says (global.css, R107: the
+   `:focus:not(:focus-visible)` reset that stood here matched a ring no
+   supported browser draws). */
 
 .sentence {
   margin: calc(0.5rem - 1.2rem) 0 0;

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useT } from '../../../i18n/useT';
+import { Cluster } from '../primitives/Cluster';
 import { TextButton } from '../primitives/TextButton';
 import styles from './ShareButton.module.css';
 
@@ -84,7 +85,7 @@ export function ShareButton({ url, title, text, label, ariaLabel, plain = false 
   };
 
   return (
-    <p className={styles.share}>
+    <Cluster as="p">
       {/* R104 (D-704): the sheet's bordered box (global.css `button`), which the live page's compact and folded rows strip to text. */}
       <TextButton
         box="edge"
@@ -104,6 +105,6 @@ export function ShareButton({ url, title, text, label, ariaLabel, plain = false 
           </>
         )}
       </span>
-    </p>
+    </Cluster>
   );
 }

@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { useT } from '../../../i18n/useT';
+import { VisuallyHidden } from '../primitives/VisuallyHidden';
 import styles from './OpenGuide.module.css';
 
 /**
@@ -24,7 +25,7 @@ export function OpenGuide({ passId, nameId, onOpen }: { passId: string; nameId: 
         onOpen(passId);
       }}
     >
-      <span className="sr-only">{t.passes.openGuide}</span>
+      <VisuallyHidden>{t.passes.openGuide}</VisuallyHidden>
     </button>
   );
 }

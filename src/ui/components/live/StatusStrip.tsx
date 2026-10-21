@@ -4,6 +4,7 @@ import { moonFacts } from '../../../lib/moonPhrases';
 import { formatClock } from '../../../lib/timeFormat';
 import type { CloudVerdict, EpochMs, MoonState, SkyState } from '../../../model';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { VisuallyHidden } from '../primitives/VisuallyHidden';
 import { badgeText } from '../weather/CloudBadge';
 import styles from './StatusStrip.module.css';
 
@@ -49,7 +50,13 @@ export interface StatusStripProps {
 function Field({ id, label, spoken, children }: { id: string; label: string; spoken: boolean; children: ReactNode }) {
   return (
     <div className={styles.field} data-testid={`live-${id}`}>
-      <dt className={[styles.label, spoken ? 'sr-only' : undefined].filter(Boolean).join(' ')}>{label}</dt>{' '}
+      {spoken ? (
+        <VisuallyHidden as="dt" className={styles.label}>
+          {label}
+        </VisuallyHidden>
+      ) : (
+        <dt className={styles.label}>{label}</dt>
+      )}{' '}
       <dd className={styles.value}>{children}</dd>
     </div>
   );
@@ -67,7 +74,7 @@ export function StatusStrip({ t, timeZone, sky, cloud, count, moon }: StatusStri
         <Field id="time" label={m.live.timeLabel} spoken>
           <time dateTime={new Date(t).toISOString()}>
             {clock.slice(0, split)}
-            <span className="sr-only">{clock.slice(split)}</span>
+            <VisuallyHidden>{clock.slice(split)}</VisuallyHidden>
           </time>
         </Field>
         <Field id="sky" label={m.live.skyLabel} spoken>
@@ -80,7 +87,7 @@ export function StatusStrip({ t, timeZone, sky, cloud, count, moon }: StatusStri
           ) : (
             <span data-state={cloud.state}>
               <span aria-hidden="true">{m.live.cloudWord[cloud.state]}</span>
-              <span className="sr-only">{m.live.cloudSpoken[cloud.state]}</span>
+              <VisuallyHidden>{m.live.cloudSpoken[cloud.state]}</VisuallyHidden>
             </span>
           )}
         </Field>

@@ -1,0 +1,37 @@
+/* R107 (FR-DS-4 item 8; D-703, D-725): the cluster. A wrapping flex row, its
+   items on one baseline and a cell count apart, no gap between wrapped lines
+   — the form the share row, the panel's pair and the header's links drew for
+   themselves. The margin reset sits under `:where()`, so a cluster that is a
+   paragraph loses the sheet's margin and a host's margin on it (its
+   placement, D-704) wins whatever order the build puts the stylesheets in. A
+   cluster that is `hidden` is off the page: `display: flex` would otherwise
+   outrank the attribute. */
+:where(.cluster) {
+  margin: 0;
+}
+
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.cluster[hidden] {
+  display: none;
+}
+
+.center {
+  align-items: center;
+}
+
+.gap1 {
+  gap: 0 var(--cell);
+}
+
+.gap2 {
+  gap: 0 calc(2 * var(--cell));
+}
+
+.gap3 {
+  gap: 0 calc(3 * var(--cell));
+}

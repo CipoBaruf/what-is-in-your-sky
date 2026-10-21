@@ -83,10 +83,10 @@ function decorationOf(element: Element, rules: readonly Rule[]): number {
   return cells;
 }
 
-/** Whether the element is on the page at all: `hidden`, an empty `aria-hidden` and the `sr-only` box are not part of a row's width. */
+/** Whether the element is on the page at all: `hidden`, an empty `aria-hidden` and a `VisuallyHidden` block (R107) are not part of a row's width. */
 function isVisible(element: Element): boolean {
   if (element.hasAttribute('hidden')) return false;
-  return !element.classList.contains('sr-only');
+  return !element.hasAttribute('data-visually-hidden');
 }
 
 /**

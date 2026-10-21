@@ -42,6 +42,7 @@ import { JumpControl, NextEventBlock } from '../components/passes/NextEventBlock
 import { SkyScreen } from '../components/screen/SkyScreen';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
+import { VisuallyHidden } from '../components/primitives/VisuallyHidden';
 import { requestPlace } from './home/placeRequest';
 import styles from './Live.module.css';
 import { inventoryClip, jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type LiveRow } from './liveRows';
@@ -256,9 +257,7 @@ function Page({ state, wakeLock, fold, placement, top, children }: { state: 'liv
     >
       <header className="landmark-contents">{top}</header>
       <main className="landmark-contents">
-        <h1 className="sr-only">
-          {t.live.open}
-        </h1>
+        <VisuallyHidden as="h1">{t.live.open}</VisuallyHidden>
         {children}
       </main>
     </div>

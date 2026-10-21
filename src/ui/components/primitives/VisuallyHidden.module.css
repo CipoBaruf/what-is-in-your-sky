@@ -1,0 +1,24 @@
+/* R107 (FR-DS-4 item 8; D-703, D-704, D-725): the clip rule, once. A box one
+   hairline square, clipped, out of the flow and off the grid — read by
+   assistive technology, not drawn — the form `global.css`'s `.sr-only` and
+   `App.module.css`'s hidden headings both had. A hidden block carries no
+   prompt: `global.css` draws `> ` before every `h1`, which would be read as
+   part of a hidden heading's name (R92, the live page's). The rule is
+   written on the block's own attribute as well as its class, so a host's
+   placement class (a `.label` with `margin: 0`) never outranks the clip,
+   whatever order the build puts the stylesheets in. */
+.hidden[data-visually-hidden] {
+  position: absolute;
+  width: var(--hairline);
+  height: var(--hairline);
+  padding: 0;
+  margin: calc(-1 * var(--hairline));
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.hidden[data-visually-hidden]::before {
+  content: none;
+}

@@ -68,7 +68,7 @@ describe.each(THEMES)('<Field> under data-theme=%s', (theme) => {
     const { container, rerender } = render(<Field id="alt" label="Altitude (m)" labelHidden unit="m" cells={10} placeholder="0" value="" onChange={vi.fn()} inputMode="decimal" />);
     const input = screen.getByLabelText('Altitude (m)');
     const label = container.querySelector('label');
-    expect(label).toHaveClass('sr-only');
+    expect(label).toHaveAttribute('data-visually-hidden');
     expect(label).toHaveAttribute('for', 'alt');
     const box = input.parentElement;
     expect(box?.tagName).toBe('SPAN');

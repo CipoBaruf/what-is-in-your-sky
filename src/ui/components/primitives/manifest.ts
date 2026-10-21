@@ -1,12 +1,15 @@
 import type { BracketLinkOwnProps } from './BracketLink';
 import type { CardOwnProps } from './Card';
+import type { ClusterOwnProps } from './Cluster';
 import type { FieldOwnProps } from './Field';
 import type { LineOwnProps } from './Line';
 import type { OptionToggleOwnProps } from './OptionToggle';
 import type { RuleProps } from './Rule';
 import type { SectionHeadingProps } from './SectionHeading';
+import type { StackOwnProps } from './Stack';
 import type { TextButtonOwnProps } from './TextButton';
 import type { ToggleGroupProps } from './ToggleGroup';
+import type { VisuallyHiddenOwnProps } from './VisuallyHidden';
 
 /**
  * R104 (FR-DS-4, FR-DS-6; D-703): the manifest — one row per primitive, the
@@ -103,6 +106,7 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     children: { type: 'ReactNode', text: 'The title.' },
     tone: { type: "'active' | 'muted'", text: 'The home’s pane headings: the reading the reader is on in the accent, a pane not there yet in the dim ink.' },
     level: { type: '2 | 3', text: 'The heading’s rank in the outline (FR-A11Y-2); the drawing is the same at either.' },
+    visuallyHidden: { type: 'boolean', text: 'The heading read and not drawn (a `VisuallyHidden` at the same rank), for a region whose name is on the screen already.' },
   }),
   entry<LineOwnProps>('Line', 'One line that tells the reader something — a status, a note, a failure — as a leading marker, a sentence and trailing actions.', {
     tone: { type: "'status' | 'ok' | 'notice' | 'failure'", text: 'The ink for the marker and the frame’s edge: dim, `--ok`, `--warn` or `--danger`.' },
@@ -129,5 +133,23 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     trailing: { type: 'ReactNode', text: 'A control or a field on the input’s row: a `Field` here joins this one’s grid, its control in the second column and its rows across both.' },
     children: { type: 'ReactNode', text: 'The rows under the input: a validation message (a `Line`), a status, a pick list.' },
     className: PLACEMENT,
+  }),
+  // R107 (FR-DS-4 item 8; D-725): the layout helpers and the hidden-text block.
+  entry<StackOwnProps>('Stack', 'A column of blocks a step of the space scale apart — a line and the panel it opens, a sentence and the detail under it.', {
+    gap: { type: '1 | 2 | 3 | 4 | 5', text: 'The space between the blocks as a step of the space scale: `1` a quarter row (`--space-1`) up to `5` two rows (`--space-5`).' },
+    children: { type: 'ReactNode', text: 'The blocks, in order.' },
+    className: { type: 'string', text: 'Placement only: a grid area, a margin from the space scale, a `min-width` (D-704).' },
+  }),
+  entry<ClusterOwnProps>('Cluster', 'A row of controls that wraps when the width runs out, a cell count apart and on one baseline — a share row, a pair of fields, a row of links.', {
+    gap: { type: '1 | 2 | 3', text: 'The space between the controls, in cells; two left out.' },
+    align: { type: "'baseline' | 'center'", text: 'The controls on their baseline (a row of text controls) or centred (a row that mixes boxes and text).' },
+    as: { type: "'div' | 'p'", text: 'A `div`, or a `p` where the row is a sentence with its control.' },
+    children: { type: 'ReactNode', text: 'The controls, in order.' },
+    className: PLACEMENT,
+  }),
+  entry<VisuallyHiddenOwnProps>('VisuallyHidden', 'Words for assistive technology that the eye does not get — a spoken label, a live region, a heading the outline needs where the page draws none — in the one copy of the clip rule.', {
+    as: { type: "'span' | 'p' | 'h1' | 'h2' | 'h3' | 'dt' | 'label'", text: 'The element: a span in a line (the default), a paragraph, a heading in the outline, a `dt`, or a `label`; every other attribute passes through.' },
+    children: { type: 'ReactNode', text: 'The words.' },
+    className: { type: 'string', text: 'Placement only: a grid area the host’s rules name (D-704).' },
   }),
 ];

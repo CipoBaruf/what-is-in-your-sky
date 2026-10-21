@@ -5,6 +5,7 @@ import type { BodyLine, LegendRow } from '../../../../lib/legend';
 import { formatClock } from '../../../../lib/timeFormat';
 import { moonFacts } from '../../../../lib/moonPhrases';
 import type { Messages } from '../../../../i18n/messages';
+import { VisuallyHidden } from '../../primitives/VisuallyHidden';
 import { moonGlyph } from './bodies';
 import { LegendSwatch } from './LegendSwatch';
 import styles from './Legend.module.css';
@@ -119,7 +120,7 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
   // R85 (F-81): each time says what it is to a screen reader — `rise 09:48:24 UTC` — wherever the legend is drawn.
   const time = (key: (typeof TIME_KEYS)[number], ms: number | null): ReactNode => (
     <span className={styles.time}>
-      <span className="sr-only">{`${words.times[key]} `}</span>
+      <VisuallyHidden>{`${words.times[key]} `}</VisuallyHidden>
       {clock(ms)}
     </span>
   );
