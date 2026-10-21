@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import base from './playwright.config';
+import base, { DESIGN_SPEC } from './playwright.config';
 
 /**
  * R108 (FR-DS-6; D-706, D-728): the design captures' config. `playwright.config.ts`
@@ -21,7 +21,7 @@ const HEADLESS_TASK = !!process.env['SDD_HEADLESS'];
 
 export default defineConfig({
   ...base,
-  testMatch: /design-captures\.spec\.ts/,
+  testMatch: DESIGN_SPEC,
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   use: { ...base.use, baseURL: `http://localhost:${String(PORT)}` },
   webServer: {

@@ -22,7 +22,7 @@
  * Nothing here is copy of the app's: the primitives carry none (D-703), so the
  * words are placeholders in English and the capture set has no `-es` twin.
  */
-import { StrictMode, useEffect, useState, type ReactNode } from 'react';
+import { createContext, StrictMode, useContext, useEffect, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { WIDE_QUERY } from '../src/lib/layout';
 import { BracketLink } from '../src/ui/components/primitives/BracketLink';
@@ -257,28 +257,29 @@ function RuleCases() {
 }
 
 function SectionHeadingCases() {
+  const sid = useScopedId();
   return (
     <>
       <Case props="">
-        <SectionHeading id="dev-heading-plain">Tonight</SectionHeading>
+        <SectionHeading id={sid('dev-heading-plain')}>Tonight</SectionHeading>
       </Case>
       <Case props='tone="active"'>
-        <SectionHeading id="dev-heading-active" tone="active">
+        <SectionHeading id={sid('dev-heading-active')} tone="active">
           Where
         </SectionHeading>
       </Case>
       <Case props='tone="muted"'>
-        <SectionHeading id="dev-heading-muted" tone="muted">
+        <SectionHeading id={sid('dev-heading-muted')} tone="muted">
           When
         </SectionHeading>
       </Case>
       <Case props="level={3}">
-        <SectionHeading id="dev-heading-3" level={3}>
+        <SectionHeading id={sid('dev-heading-3')} level={3}>
           A subsection
         </SectionHeading>
       </Case>
       <Case props="visuallyHidden">
-        <SectionHeading id="dev-heading-hidden" visuallyHidden>
+        <SectionHeading id={sid('dev-heading-hidden')} visuallyHidden>
           Read, not drawn
         </SectionHeading>
         <p className="note">(a heading in the outline and nothing on the screen)</p>
@@ -378,28 +379,29 @@ function LineCases() {
 }
 
 function FieldCases() {
+  const sid = useScopedId();
   return (
     <>
       <Case props="">
-        <Field id="dev-field-plain" label="Place" placeholder="a city or an address" />
+        <Field id={sid('dev-field-plain')} label="Place" placeholder="a city or an address" />
       </Case>
       <Case props="labelHidden unit cells">
-        <Field id="dev-field-alt" label="Altitude" labelHidden unit="m" cells={8} defaultValue="839" />
+        <Field id={sid('dev-field-alt')} label="Altitude" labelHidden unit="m" cells={8} defaultValue="839" />
       </Case>
       <Case props='size="small" cells'>
-        <Field id="dev-field-small" label="Latitude" size="small" cells={12} defaultValue="-41.15" />
+        <Field id={sid('dev-field-small')} label="Latitude" size="small" cells={12} defaultValue="-41.15" />
       </Case>
       <Case props="box">
-        <Field id="dev-field-box" label="Place" box placeholder="in its box" />
+        <Field id={sid('dev-field-box')} label="Place" box placeholder="in its box" />
       </Case>
       <Case props="trailing (a control)">
-        <Field id="dev-field-trailing" label="Place" placeholder="with a control beside it" trailing={<TextButton label="search" onClick={noop} />} />
+        <Field id={sid('dev-field-trailing')} label="Place" placeholder="with a control beside it" trailing={<TextButton label="search" onClick={noop} />} />
       </Case>
       <Case props="trailing (a Field)">
-        <Field id="dev-field-pair" label="Latitude" cells={12} defaultValue="-41.15" trailing={<Field id="dev-field-pair-2" label="Longitude" cells={12} defaultValue="-71.31" />} />
+        <Field id={sid('dev-field-pair')} label="Latitude" cells={12} defaultValue="-41.15" trailing={<Field id={sid('dev-field-pair-2')} label="Longitude" cells={12} defaultValue="-71.31" />} />
       </Case>
       <Case props="children">
-        <Field id="dev-field-rows" label="Place" defaultValue="Bariloch">
+        <Field id={sid('dev-field-rows')} label="Place" defaultValue="Bariloch">
           <Line tone="failure" marker="×" size="small">
             A validation message under the input.
           </Line>
@@ -498,8 +500,21 @@ const SPECIMENS: Readonly<Record<string, () => ReactNode>> = {
   VisuallyHidden: VisuallyHiddenCases,
 };
 
+/**
+ * Every specimen is drawn once per column, so an id a specimen sets is scoped by
+ * the column's theme: a label, `htmlFor` or `aria-labelledby` in one column
+ * then points into that column and never at its twin in the other.
+ */
+const ThemeScope = createContext<Theme | null>(null);
+
+function useScopedId(): (id: string) => string {
+  const theme = useContext(ThemeScope);
+  return (id) => (theme === null ? id : `${id}-${theme}`);
+}
+
 function Column({ theme }: { theme: Theme }) {
   return (
+    <ThemeScope.Provider value={theme}>
     <section className="theme" data-theme={theme} aria-labelledby={`dev-theme-${theme}`}>
       <h1 id={`dev-theme-${theme}`} className="themeTitle">
         {theme}
@@ -517,6 +532,7 @@ function Column({ theme }: { theme: Theme }) {
         );
       })}
     </section>
+    </ThemeScope.Provider>
   );
 }
 
