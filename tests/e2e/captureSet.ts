@@ -291,8 +291,8 @@ export interface Capture {
  */
 export const DESIGN_PAGE = '/dev/primitives.html';
 export const DESIGN_CAPTURE_DIR = 'docs/screenshots/design';
-export const DESIGN_WIDTHS = [390, 1280] as const;
-export type DesignWidth = (typeof DESIGN_WIDTHS)[number];
+const DESIGN_WIDTHS = [390, 1280] as const;
+type DesignWidth = (typeof DESIGN_WIDTHS)[number];
 /** `design-primitives-<width>-<theme>.png`: no screen (there is one page) and no language. */
 export const DESIGN_FILE = /^design-primitives-\d+-(dark|night)\.png$/;
 
