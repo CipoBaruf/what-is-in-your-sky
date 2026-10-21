@@ -24,17 +24,13 @@ export const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 /**
  * Rules this run does not apply, each with why and the finding (SPEC §4.20) that tracks it. An entry with
  * `nodes` disables its rule only on the elements that selector matches, so the rule keeps measuring the rest
- * of the page; one without is off everywhere.
+ * of the page; one without is off everywhere (D-617).
+ *
+ * Empty since R109: the one entry was `color-contrast` on the dome's degree labels (F-98, drawn in `--chart-rings`
+ * at 0.8 opacity), and the labels are now drawn in `--chart-compass` at full opacity (FR-DS-5, D-708), so every
+ * rule runs on every node.
  */
-export const AXE_DISABLED_RULES: readonly { rule: string; nodes?: string; reason: string; finding: string }[] = [
-  {
-    rule: 'color-contrast',
-    nodes: '[data-hotspot-id^="tick-"] > *, [data-hotspot-id^="ring-"] > *',
-    reason:
-      "The dome's degree labels are drawn in --chart-rings, a 3:1 non-text token, at 0.8 opacity: 2.7:1 in dark, 2.53:1 in night. The fix is in the chart lane's SkyDome, which R96 does not touch.",
-    finding: 'F-98',
-  },
-];
+export const AXE_DISABLED_RULES: readonly { rule: string; nodes?: string; reason: string; finding: string }[] = [];
 
 const OFF_EVERYWHERE = AXE_DISABLED_RULES.filter(({ nodes }) => nodes === undefined).map(({ rule }) => rule);
 const OFF_ON_NODES = AXE_DISABLED_RULES.filter((entry): entry is (typeof AXE_DISABLED_RULES)[number] & { nodes: string } => entry.nodes !== undefined);
