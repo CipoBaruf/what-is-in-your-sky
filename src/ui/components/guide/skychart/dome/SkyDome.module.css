@@ -170,10 +170,14 @@
 
 /* FR-DOME-4: the horizon ticks' degree numbers and the 30°/60° ring labels.
    They name a fixed angle, so they never move (FR-DOME-3 gives way to them)
-   and they are set smaller than the names they make way for. */
+   and they are set smaller than the names they make way for.
+   R109 (F-98, FR-DS-5; D-708): they are text, so they are drawn in the compass
+   labels' text token at full opacity — 13.8 : 1 dark, 9.3 : 1 night — and not
+   in `--chart-rings` at 0.8, a 3 : 1 line token that measured 2.7 : 1 under
+   AA's 4.5 : 1 for 9 px text. */
 .degree {
   font-size: 9px;
-  opacity: 0.8;
+  color: var(--chart-compass);
 }
 
 /* R45 (FR-LEG-1, FR-LEG-5): the legend key at an arc's peak — one bold

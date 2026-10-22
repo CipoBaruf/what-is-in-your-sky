@@ -201,9 +201,12 @@ function arcColor(pass: Pass, index: number, highlightedPassId: string | null, p
  */
 export function domeLabels(input: LayersInput): DomeLabel[] {
   const { passes, highlightedPassId, hidden = [], palette, camera, measure, colorBy = 'highlight', legendKeys = {} } = input;
+  // R109 (F-98, FR-DS-5): the degree numbers are text, so they take the compass labels' text token and not the
+  // rings' line token they sit on — the same token `.degree` names in the stylesheet, which the palette's inline
+  // colour would otherwise override.
   const fixed: DomeLabel[] = [
-    ...tickAnchors().map((anchor) => ({ id: anchor.id, at: anchor.at, text: degreeText(anchor.valueDeg), kind: 'tick' as const, ...(palette ? { color: palette.rings } : {}) })),
-    ...ringAnchors().map((anchor) => ({ id: anchor.id, at: anchor.at, text: degreeText(anchor.valueDeg), kind: 'ring' as const, ...(palette ? { color: palette.rings } : {}) })),
+    ...tickAnchors().map((anchor) => ({ id: anchor.id, at: anchor.at, text: degreeText(anchor.valueDeg), kind: 'tick' as const, ...(palette ? { color: palette.compass } : {}) })),
+    ...ringAnchors().map((anchor) => ({ id: anchor.id, at: anchor.at, text: degreeText(anchor.valueDeg), kind: 'ring' as const, ...(palette ? { color: palette.compass } : {}) })),
   ];
 
   const requests: LabelRequest[] = [];

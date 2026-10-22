@@ -243,7 +243,9 @@ describe('domeLabels (FR-DOME-3, FR-DOME-4)', () => {
     const labels = domeLabels(input());
     expect(byId(labels, 'compass-N')?.color).toBe('compass');
     expect(byId(labels, `${pass.id}-key`)?.color).toBe('highlighted');
-    expect(labels.find((label) => label.kind === 'tick')?.color).toBe('rings');
+    // R109 (F-98): the degree numbers are text, so they take the compass labels' token and not the rings' line token.
+    expect(labels.find((label) => label.kind === 'tick')?.color).toBe('compass');
+    expect(labels.find((label) => label.kind === 'ring')?.color).toBe('compass');
   });
 
   it('leaves every label uncoloured without a palette', () => {
