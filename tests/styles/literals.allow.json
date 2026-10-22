@@ -37,7 +37,7 @@
   },
   "src/ui/components/guide/skychart/dome/SkyDome.module.css": {
     "count": 8,
-    "reason": "R110 (D-736): 5 the sheet names — the labels' 11px, 9px and 12px (--chart-text-11, -9, -12), the key's border-radius 2px (--radius-2), glyphcss's output reset to the generic monospace (--font-mono); 1 off the scale — the key's 0.2em padding (OQ-37); 2 stay — 'WIYS Braille', the generated braille face the @font-face declares and the scene's stack leads with (D-737)."
+    "reason": "R110 (D-736): 4 the sheet names — the labels' 11px, 9px and 12px (--chart-text-11, -9, -12), the key's border-radius 2px (--radius-2); 1 off the scale — the key's 0.2em padding (OQ-37); 3 stay — glyphcss's output reset to the generic monospace, which --font-mono's named stack would change, and 'WIYS Braille', the generated braille face the @font-face declares and the scene's stack leads with (D-737)."
   },
   "src/ui/components/guide/skychart/polar/SkyPolar.module.css": {
     "count": 4,
@@ -109,7 +109,7 @@
   },
   "src/ui/screens/home/Steps.module.css": {
     "count": 13,
-    "reason": "R110 (D-736): 10 the sheet names — four 1.2rem of the home's block gap (--space-block), the heading's 1.375/1.75rem pair (--text-question), three 0.75rem gaps and a padding (--space-2), the box's 1px border (--border); 3 off the scale — a 0.5rem margin, a 0.25rem gap and the line's 2.75rem min-height (OQ-37)."
+    "reason": "R110 (D-736): 10 the sheet names — four 1.2rem of the home's block gap (--space-block), the heading's 1.375/1.75rem pair (--text-question), two 0.75rem gaps and a padding (--space-2), the box's 1px border (--border); 3 off the scale — a 0.5rem margin, a 0.25rem gap and the line's 2.75rem min-height (OQ-37)."
   },
   "src/ui/styles/global.css": {
     "count": 10,

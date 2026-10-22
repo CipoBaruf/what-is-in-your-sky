@@ -901,14 +901,15 @@ Owner steps, in this order, and none of them belong to a task session:
 ## 15. v2.3 (spec §9 Phase 2k)
 
 Everything above still applies, §1 to §5 included, and §13's runs stay the reference for
-the screens v2.3 did not change — which is every screen: v2.3 is the design system, the
+what every screen does — v2.3 changed how the screens are built, not what they do, and the
+capture files that moved are §15.1's list: v2.3 is the design system, the
 `v2.2.0` app restyled from one sheet (`src/ui/styles/tokens.css`) and eight primitives
 (`src/ui/components/primitives/`), with one product change, F-98's dome degree labels, and
 one incidental one, a saved place's `[ × ]` that no longer breaks inside its own brackets
 (V23-11). The guide is `docs/DESIGN.md`, generated and held by `tests/docs/design.test.ts`;
 the dev page is `dev/primitives.html`, served by `npm run dev` only. Since D-739 the site
 moves at the tag and not at the merge: production is the `release` branch, fast-forwarded
-to the tagged commit (§15.5), and `main`'s preview is the build this section was checked on.
+to the tagged commit (§15.6), and `main`'s preview is the build this section was checked on.
 §13's phone run is v2.1's and stays owed; nothing here needs a phone.
 
 ### 15.1 The capture set and the two named moves (FR-DS-5, FR-CAP-5, US-37 AC5)
@@ -1002,14 +1003,14 @@ after R106 — to **111 matches in 29 files** at R107; R108, R109 and R110 touch
 so that is the remainder, and every entry now says what its literals are (PLAN D-736).
 Three kinds, counted across the 29 files:
 
-- **85 the sheet names.** A value `tokens.css` already has a token for, in a module no
+- **84 the sheet names.** A value `tokens.css` already has a token for, in a module no
   primitive was built on: the `0.75rem` gaps (`--space-2`), the home's `1.2rem` block gap
   (`--space-block`), the type pairs (`--text-question`, `--text-pane`, `--text-heading`,
   `--text-lead`, `--text-body`, `--text-countdown`, `--text-stripe-row`), the charts' px
   sizes (`--chart-text-9` … `-15`), the `1px` borders (`--border`, `--border-control`),
   the `1px`/`2px` radii (`--radius-1`, `--radius-2`), every `z-index` number (`--z-raised`,
   `--z-raised-2`, `--z-sheet`, `--z-overlay`, `--z-banner`), the gutter's spoken-marks clip
-  (`VisuallyHidden`'s rule) and six `font-family: inherit` resets the base rule already
+  (`VisuallyHidden`'s rule) and five `font-family: inherit` resets the base rule already
   makes. Each is a one-line swap that changes no pixel; none is in this task's lane
   (`docs`, no `src/`), so they are v2.4's first task or OQ-37's, and an entry's count still
   only falls.
@@ -1017,10 +1018,11 @@ Three kinds, counted across the 29 files:
   `0.5rem` margins and a gap, a `0.25rem` gap, the step line's `2.75rem` min-height, the
   legend swatch's `0.7em` height, the dome key's `0.2em` padding, the link's `0.15em`
   underline offset. Whether they join the grid is OQ-37's question.
-- **17 that stay (PLAN D-737).** `global.css`'s `16px` base, which every rem is a share of;
+- **18 that stay (PLAN D-737).** `global.css`'s `16px` base, which every rem is a share of;
   its one focus ring (two `outline` lines) and two `outline: none` resets, D-704's; the
   skip link's `-10000px`; the generated braille face `'WIYS Braille'`, twice in the dome and
-  twice in the mark; and the compass gutter's drawing in device pixels (seven lengths:
+  twice in the mark; the dome's generic `monospace`, glyphcss's output reset, which
+  `--font-mono`'s named stack would change; and the compass gutter's drawing in device pixels (seven lengths:
   the bracket's insets and rule, the centre line, the tick and the key's row), px on
   purpose like `--gutter` itself (D-711, OQ-38).
 
@@ -1048,7 +1050,7 @@ Three kinds, counted across the 29 files:
 
 - [ ] **FR-DS-7's 0.4 KB** (§15.2): a Decision Log row amending the allowance to the
       measured 1.9 KB, or a v2.4 task to trim main.
-- [ ] **The allow-list's 85** (§15.3): a v2.4 task that writes the sheet's names into the
+- [ ] **The allow-list's 84** (§15.3): a v2.4 task that writes the sheet's names into the
       remaining modules, or OQ-37 absorbing them with the scale question.
 - [ ] **The visual-review captures that show the dome.** The `r*-` files under
       `docs/screenshots/` a `ui` task shot still carry the old degree labels (R109 restored
@@ -1065,11 +1067,13 @@ Owner steps, in this order, and none of them belong to a task session:
       `TASKS.md` (R103..R110).
 - [ ] `npm run check:dead` on the release commit reports nothing, and the bundle table is
       §15.2's.
+- [ ] Find the release commit: `git fetch origin && git log --oneline -3 origin/main`, and
+      take the squash merge of R110's PR (its subject starts `R110:`). Its SHA exists only
+      once the PR merges, so no task note can carry it; write it in below, not whatever
+      `main` has reached by then (V22-12).
 - [ ] Tag it: `git tag -a v2.3.0 <sha> -m "v2.3: the design system" && git push origin
-      v2.3.0` — **with the release commit's SHA written in**, the squash merge of R110's PR
-      on `main` (its Done note in `TASKS.md` names it), not whatever `main` has reached by
-      then (V22-12).
-- [ ] Deploy it: `git fetch origin && git push origin <sha>:release` with the same SHA
+      v2.3.0`.
+- [ ] Deploy it: `git push origin <sha>:release` with the same SHA
       (D-739; `docs/DEPLOY.md`), and run §2 and §5 against `https://inyoursky.app`.
 - [ ] Dispatch `captures.yml` on the release commit and read it against §15.1.
 - [ ] Record in the release PR: the bundle table, the knip output, the capture run's
