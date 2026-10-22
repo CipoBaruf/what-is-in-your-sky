@@ -843,6 +843,8 @@ Owner steps, in this order, and none of them belong to a task session:
 
 ## 14. v2.2 (spec §9 Phase 2i)
 
+> *History (marked 2026-10-22, FR-SHOW-1): the v2.2 release's list as it was run. What is current is §1–§5, §10 and the last section.*
+
 Everything above still applies, §1 to §5 included, and §12's runs stay the reference for
 the screens v2.2 did not change. v2.2 is the showcase: the repository in front of a second
 audience, one product change (the footer's glyphcss credit, FR-SHOW-8), and the address.
