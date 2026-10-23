@@ -1,0 +1,159 @@
+{
+  "site": "neuquen",
+  "observer": {
+    "lat": -38.93,
+    "lon": -67.99,
+    "altM": 0
+  },
+  "instant": "2026-11-01T02:00:00Z",
+  "frame": "geometric altitude (no refraction), azimuth from north through east, degrees",
+  "stars": [
+    {
+      "hr": 617,
+      "name": "Hamal",
+      "designation": "Alp Ari",
+      "vmag": 2,
+      "raJ2000Deg": 31.79333,
+      "decJ2000Deg": 23.4625,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 911,
+      "name": "Menkar",
+      "designation": "Alp Cet",
+      "vmag": 2.53,
+      "raJ2000Deg": 45.57,
+      "decJ2000Deg": 4.08972,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 1713,
+      "name": "Rigel",
+      "designation": "Bet Ori",
+      "vmag": 0.12,
+      "raJ2000Deg": 78.63458,
+      "decJ2000Deg": -8.20167,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 1865,
+      "name": "Arneb",
+      "designation": "Alp Lep",
+      "vmag": 2.58,
+      "raJ2000Deg": 83.1825,
+      "decJ2000Deg": -17.82222,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 2326,
+      "name": "Canopus",
+      "designation": "Alp Car",
+      "vmag": -0.72,
+      "raJ2000Deg": 95.98792,
+      "decJ2000Deg": -52.69583,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 3685,
+      "name": "Miaplacidus",
+      "designation": "Bet Car",
+      "vmag": 1.68,
+      "raJ2000Deg": 138.3,
+      "decJ2000Deg": -69.71722,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 5459,
+      "name": "Rigil",
+      "designation": "Alp1Cen",
+      "vmag": -0.01,
+      "raJ2000Deg": 219.89958,
+      "decJ2000Deg": -60.83528,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 6527,
+      "name": "Shaula",
+      "designation": "Lam Sco",
+      "vmag": 1.63,
+      "raJ2000Deg": 263.40208,
+      "decJ2000Deg": -37.10389,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 8425,
+      "name": "Alnair",
+      "designation": "Alp Gru",
+      "vmag": 1.74,
+      "raJ2000Deg": 332.05833,
+      "decJ2000Deg": -46.96111,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 7557,
+      "name": "Altair",
+      "designation": "Alp Aql",
+      "vmag": 0.77,
+      "raJ2000Deg": 297.69583,
+      "decJ2000Deg": 8.86833,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 8308,
+      "name": "Enif",
+      "designation": "Eps Peg",
+      "vmag": 2.39,
+      "raJ2000Deg": 326.04667,
+      "decJ2000Deg": 9.875,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 8775,
+      "name": "Scheat",
+      "designation": "Bet Peg",
+      "vmag": 2.42,
+      "raJ2000Deg": 345.94375,
+      "decJ2000Deg": 28.08278,
+      "altDeg": null,
+      "azDeg": null
+    }
+  ],
+  "planets": [
+    {
+      "body": "Mercury",
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "body": "Venus",
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "body": "Mars",
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "body": "Jupiter",
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "body": "Saturn",
+      "altDeg": null,
+      "azDeg": null
+    }
+  ]
+}

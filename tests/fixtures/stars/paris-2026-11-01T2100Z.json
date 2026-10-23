@@ -1,0 +1,159 @@
+{
+  "site": "paris",
+  "observer": {
+    "lat": 48.86,
+    "lon": 2.35,
+    "altM": 0
+  },
+  "instant": "2026-11-01T21:00:00Z",
+  "frame": "geometric altitude (no refraction), azimuth from north through east, degrees",
+  "stars": [
+    {
+      "hr": 4301,
+      "name": "Dubhe",
+      "designation": "Alp UMa",
+      "vmag": 1.79,
+      "raJ2000Deg": 165.93208,
+      "decJ2000Deg": 61.75083,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 2088,
+      "name": "Menkalinan",
+      "designation": "Bet Aur",
+      "vmag": 1.9,
+      "raJ2000Deg": 89.88208,
+      "decJ2000Deg": 44.9475,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 1708,
+      "name": "Capella",
+      "designation": "Alp Aur",
+      "vmag": 0.08,
+      "raJ2000Deg": 79.1725,
+      "decJ2000Deg": 45.99806,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 1457,
+      "name": "Aldebaran",
+      "designation": "Alp Tau",
+      "vmag": 0.85,
+      "raJ2000Deg": 68.98,
+      "decJ2000Deg": 16.50917,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 617,
+      "name": "Hamal",
+      "designation": "Alp Ari",
+      "vmag": 2,
+      "raJ2000Deg": 31.79333,
+      "decJ2000Deg": 23.4625,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 188,
+      "name": "Diphda",
+      "designation": "Bet Cet",
+      "vmag": 2.04,
+      "raJ2000Deg": 10.8975,
+      "decJ2000Deg": -17.98667,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 8775,
+      "name": "Scheat",
+      "designation": "Bet Peg",
+      "vmag": 2.42,
+      "raJ2000Deg": 345.94375,
+      "decJ2000Deg": 28.08278,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 8308,
+      "name": "Enif",
+      "designation": "Eps Peg",
+      "vmag": 2.39,
+      "raJ2000Deg": 326.04667,
+      "decJ2000Deg": 9.875,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 7557,
+      "name": "Altair",
+      "designation": "Alp Aql",
+      "vmag": 0.77,
+      "raJ2000Deg": 297.69583,
+      "decJ2000Deg": 8.86833,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 7001,
+      "name": "Vega",
+      "designation": "Alp Lyr",
+      "vmag": 0.03,
+      "raJ2000Deg": 279.23458,
+      "decJ2000Deg": 38.78361,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 6705,
+      "name": "Eltanin",
+      "designation": "Gam Dra",
+      "vmag": 2.23,
+      "raJ2000Deg": 269.15167,
+      "decJ2000Deg": 51.48889,
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "hr": 4905,
+      "name": "Alioth",
+      "designation": "Eps UMa",
+      "vmag": 1.77,
+      "raJ2000Deg": 193.50708,
+      "decJ2000Deg": 55.95972,
+      "altDeg": null,
+      "azDeg": null
+    }
+  ],
+  "planets": [
+    {
+      "body": "Mercury",
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "body": "Venus",
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "body": "Mars",
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "body": "Jupiter",
+      "altDeg": null,
+      "azDeg": null
+    },
+    {
+      "body": "Saturn",
+      "altDeg": null,
+      "azDeg": null
+    }
+  ]
+}
