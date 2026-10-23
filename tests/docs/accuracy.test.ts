@@ -252,7 +252,7 @@ describe('the address (FR-ADDR-1, FR-ADDR-4)', () => {
       .split(/^(?=## )/m)
       .filter((part) => part.includes(HISTORY))
       .map((part) => /^## (\d+)\./.exec(part)?.[1] ?? '');
-    expect(marked).toEqual(['6', '7', '8', '9', '11', '12', '13']);
+    expect(marked).toEqual(['6', '7', '8', '9', '11', '12', '13', '14']);
     expect(existsSync('docs/RELEASE.md')).toBe(true);
   });
 });

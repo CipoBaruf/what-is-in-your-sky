@@ -1,118 +1,118 @@
 {
   "src/ui/App.module.css": {
     "count": 20,
-    "reason": "Seeded by R103 at ed8748a's count, lowered by R107 (the hidden headings' clip rule is VisuallyHidden's) — 20 px/rem/em lengths; R110 lowers it to the sheet's names."
+    "reason": "R110 (D-736): 18 the sheet names — five 0.75rem gaps, margins and a padding (--space-2), five 1.2rem of the home's block gap (--space-block), the cold heading's 1.375/1.75rem pair (--text-question), two 1.25/1.625rem pairs (--text-pane), the ghost stripe's 1.125rem row (--text-stripe-row), the cold box's 1px border (--border); 2 off the scale — two 0.5rem margins (OQ-37)."
   },
   "src/ui/components/common/Countdown.module.css": {
     "count": 1,
-    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 1 the sheet names — the headline's 1.5rem (--text-countdown)."
   },
   "src/ui/components/common/ShortcutsOverlay.module.css": {
     "count": 3,
-    "reason": "Seeded by R103 at ed8748a's count — 2 px/rem/em lengths, 1 z-index number; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 3 the sheet names — z-index 20 (--z-overlay), two 1px borders (--border)."
   },
   "src/ui/components/guide/GuidePanel.module.css": {
     "count": 2,
-    "reason": "Seeded by R103 at ed8748a's count, lowered by R104 (the brackets are TextButton's) — 2 px/rem/em lengths; R105–R107 and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 2 the sheet names — the panel's 1px border (--border), the heading's 1.25rem (--text-heading)."
   },
   "src/ui/components/guide/GuideText.module.css": {
     "count": 1,
-    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 1 the sheet names — the guide's 1.125rem (--text-lead)."
   },
   "src/ui/components/guide/PassNumbers.module.css": {
     "count": 1,
-    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 1 the sheet names — the 1px border-bottom (--border)."
   },
   "src/ui/components/guide/skychart/ChartFrame.module.css": {
     "count": 4,
-    "reason": "Seeded by R103 at ed8748a's count — 4 z-index numbers; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 4 the sheet names — three z-index 1 (--z-raised) and one z-index 2 (--z-raised-2)."
   },
   "src/ui/components/guide/skychart/LegendSwatch.module.css": {
     "count": 2,
-    "reason": "Seeded by R103 at ed8748a's count — 2 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 1 the sheet names — the swatch's border-radius 1px (--radius-1); 1 off the scale — its 0.7em height, a share of the legend's own font (OQ-37)."
   },
   "src/ui/components/guide/skychart/SkyChart.module.css": {
     "count": 1,
-    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 1 the sheet names — the 1px border (--border)."
   },
   "src/ui/components/guide/skychart/dome/SkyDome.module.css": {
     "count": 8,
-    "reason": "Seeded by R103 at ed8748a's count — 5 px/rem/em lengths, 3 font-families; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 4 the sheet names — the labels' 11px, 9px and 12px (--chart-text-11, -9, -12), the key's border-radius 2px (--radius-2); 1 off the scale — the key's 0.2em padding (OQ-37); 3 stay — glyphcss's output reset to the generic monospace, which --font-mono's named stack would change, and 'WIYS Braille', the generated braille face the @font-face declares and the scene's stack leads with (D-737)."
   },
   "src/ui/components/guide/skychart/polar/SkyPolar.module.css": {
     "count": 4,
-    "reason": "Seeded by R103 at ed8748a's count — 3 px/rem/em lengths, 1 font-family; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 4 the sheet names — the SVG root's font-family: inherit (the stack, already inherited), 12px, 11px and 9px (--chart-text-12, -11, -9)."
   },
   "src/ui/components/guide/skychart/window/CompassGutter.module.css": {
     "count": 10,
-    "reason": "Seeded by R103 at ed8748a's count — 9 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 3 the sheet names — the spoken marks' 1px × 1px clip with its -1px margin (VisuallyHidden's rule, D-704); 7 stay — the gutter's drawing in device pixels like --gutter itself (D-711, OQ-38): the bracket's 1px inset top and bottom and its 1px rule, the 1px centre line, the 3px × 8px tick and the key's 8px row (D-737)."
   },
   "src/ui/components/guide/skychart/window/SkyWindow.module.css": {
     "count": 4,
-    "reason": "Seeded by R103 at ed8748a's count — 3 px/rem/em lengths, 1 font-family; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 4 the sheet names — the SVG root's font-family: inherit (the stack, already inherited), 12px, 15px and 14px (--chart-text-12, -15, -14)."
   },
   "src/ui/components/live/StripeOverview.module.css": {
     "count": 3,
-    "reason": "Seeded by R103 at ed8748a's count, lowered by R107 (the ring is global.css's; the tight offset is the sheet's) — 2 px/rem/em lengths, 1 font-family; R110 lowers it to the sheet's names."
+    "reason": "R110 (D-736): 3 the sheet names — the control's font-family: inherit (global.css's font: inherit already makes it), its 1px border (--border) and 2px radius (--radius-2)."
   },
   "src/ui/components/live/TimeReadout.module.css": {
     "count": 2,
-    "reason": "Seeded by R103 at ed8748a's count — 2 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 2 the sheet names — the readout's 1.25rem (--text-heading), the offset's 1rem (--text-body)."
   },
   "src/ui/components/live/TimeStripe.module.css": {
     "count": 4,
-    "reason": "Seeded by R103 at ed8748a's count, lowered by R107 (the ring is global.css's; the tight offset is the sheet's) — 3 px/rem/em lengths, 1 font-family; R110 lowers it to the sheet's names."
+    "reason": "R110 (D-736): 4 the sheet names — the control's font-family: inherit (global.css's font: inherit already makes it), its 1px border (--border), 2px radius (--radius-2) and the hour's 1rem (--text-body)."
   },
   "src/ui/components/location/UseMyLocation.module.css": {
     "count": 1,
-    "reason": "Seeded by R103 at ed8748a's count, lowered by R104 (the primary box, its note and the brackets are TextButton's) — 1 px/rem/em length; R105–R107 and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 1 off the scale — the row's 0.5rem gap (OQ-37)."
   },
   "src/ui/components/mark/Mark.module.css": {
     "count": 2,
-    "reason": "Seeded by R103 at ed8748a's count — 2 font-families; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 2 stay — 'WIYS Braille', the generated braille face the mark's @font-face declares and its stack leads with (D-737)."
   },
   "src/ui/components/moon/MoonGlare.module.css": {
     "count": 3,
-    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length, 2 z-index numbers; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 3 the sheet names — z-index 1 (--z-raised), z-index 2 (--z-raised-2), the popover's 1px border (--border)."
   },
   "src/ui/components/now/ConditionsTable.module.css": {
     "count": 1,
-    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 1 the sheet names — the 0.75rem gap (--space-2)."
   },
   "src/ui/components/now/TonightStripe.module.css": {
     "count": 1,
-    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 1 the sheet names — the stripe's 1.125rem row (--text-stripe-row)."
   },
   "src/ui/components/passes/OpenGuide.module.css": {
     "count": 1,
-    "reason": "Seeded by R103 at ed8748a's count, lowered by R107 (the stretched button's ring reset is global.css's) — 1 z-index number; R110 lowers it to the sheet's names."
+    "reason": "R110 (D-736): 1 the sheet names — z-index 1 (--z-raised)."
   },
   "src/ui/components/passes/PassList.module.css": {
     "count": 2,
-    "reason": "Seeded by R103 at ed8748a's count — 2 px/rem/em lengths; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 2 the sheet names — two 0.75rem gaps (--space-2)."
   },
   "src/ui/components/screen/SkyScreen.module.css": {
     "count": 1,
-    "reason": "Seeded by R103 at ed8748a's count, lowered by R107 (the close control's inset ring is global.css's rule reading `--focus-offset`) — 1 font-family; R110 lowers it to the sheet's names."
+    "reason": "R110 (D-736): 1 the sheet names — the close control's font-family: inherit (global.css's font: inherit already makes it)."
   },
   "src/ui/components/weather/CloudBadge.module.css": {
     "count": 3,
-    "reason": "Seeded by R103 at ed8748a's count — 1 px/rem/em length, 2 z-index numbers; the primitive tasks (R104–R107) and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 3 the sheet names — z-index 1 (--z-raised), z-index 2 (--z-raised-2), the popover's 1px border (--border)."
   },
   "src/ui/screens/Live.module.css": {
     "count": 1,
-    "reason": "Seeded by R103 at ed8748a's count, lowered by R104 (the brackets are TextButton's), R105 (the folded rail's rule is a Rule) and R107 (F-100's flush Back ring is global.css's rule reading `--focus-offset`) — 1 px/rem/em length; R110 lowers it to the sheet's names."
+    "reason": "R110 (D-736): 1 the sheet names — the headline's 1.25rem (--text-heading)."
   },
   "src/ui/screens/PassDetail.module.css": {
     "count": 2,
-    "reason": "Seeded by R103 at ed8748a's count, lowered by R104 (the brackets are TextButton's) — 1 px/rem/em length, 1 z-index number; R105–R107 and R110 lower it to the sheet's names."
+    "reason": "R110 (D-736): 2 the sheet names — the sheet's z-index 10 (--z-sheet), the heading's 1.25rem (--text-heading)."
   },
   "src/ui/screens/home/Steps.module.css": {
     "count": 13,
-    "reason": "Seeded by R103 at ed8748a's count, lowered by R104 (the two accent boxes and the brackets are TextButton's), R105 (the what step's foot rule and its padding are a Rule and its margin) and R107 (the heading's ring reset matched nothing a supported browser draws) — 13 px/rem/em lengths; R110 lowers it to the sheet's names."
+    "reason": "R110 (D-736): 10 the sheet names — four 1.2rem of the home's block gap (--space-block), the heading's 1.375/1.75rem pair (--text-question), two 0.75rem gaps and a padding (--space-2), the box's 1px border (--border); 3 off the scale — a 0.5rem margin, a 0.25rem gap and the line's 2.75rem min-height (OQ-37)."
   },
   "src/ui/styles/global.css": {
     "count": 10,
-    "reason": "Seeded by R103 at ed8748a's count, lowered by R107 (the clip rule is VisuallyHidden's; the ring is written from --focus-ring and --focus-offset) — 5 px/rem/em lengths, 1 z-index number, 4 outline rules (the one ring, the landmarks' and the stretched card button's resets, D-704); R110 lowers it to the sheet's names."
+    "reason": "R110 (D-736): 3 the sheet names — the headings' 1rem (--text-body), the controls' 1px border (--border-control), the skip link's z-index 100 (--z-banner); 1 off the scale — the link's 0.15em underline offset (OQ-37); 6 stay — html's 16px base, the one length every rem is a share of; the one ring's two outline lines and the two outline: none resets, the card's inner button and the landmarks (D-704); the skip link's -10000px, an off-screen magnitude and not a length on the grid (D-737)."
   }
 }
