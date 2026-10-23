@@ -374,14 +374,19 @@ describe('hygiene (FR-PUB-7, D-372)', () => {
   const BINARY = /\.(png|jpe?g|gif|webp|ico|pdf|zip|otf|ttf|woff2?|wasm)$/i;
 
   /**
-   * Two tracked files are verbatim third-party metadata rather than text this
-   * repository wrote: the lockfile, which quotes npm's own deprecation notices,
-   * and the notices file, which quotes package authors' licence headers. Both
-   * carry addresses their authors published, and editing either to remove one
+   * Three tracked files are verbatim third-party metadata rather than text this
+   * repository wrote: the lockfile, which quotes npm's own deprecation notices;
+   * the notices file, which quotes package authors' licence headers; and the
+   * IAU star-name catalogue vendored for v2.4 (FR-STAR-1), whose header gives
+   * its maintainer's contact. All three carry addresses their authors published, and editing either to remove one
    * would falsify the record — the notices file is a licence obligation whose
    * whole point is that the text is unaltered.
    */
-  const THIRD_PARTY = new Set(['package-lock.json', 'public/third-party-notices.txt']);
+  const THIRD_PARTY = new Set([
+    'package-lock.json',
+    'public/third-party-notices.txt',
+    'data-src/stars/iau-csn.txt',
+  ]);
 
   /** An address, RFC-5322 shaped and kept simple: a local part, an `@`, a host with a dot. */
   const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/;
