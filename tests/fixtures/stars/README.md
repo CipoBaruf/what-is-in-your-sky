@@ -1,6 +1,6 @@
 # Star and planet positions (v2.4, FR-STAR-2)
 
-What `skyStars.test.ts` holds the app to: at each of the three R1 sites, at one instant, twelve stars spread around the sky and the five naked-eye planets. Every value must be within `STAR_TOLERANCE_DEG` (0.25°). The owner reads the values from a published ephemeris, so they are independent of the code under test. The app's own numbers never go in these files.
+What `skyStars.test.ts` holds the app to: at each of the three R1 sites, at one instant, twelve stars spread around the sky and the five naked-eye planets. Every value must be within `STAR_TOLERANCE_DEG` (0.25°). The values come from published sources, independent of the code under test. The app's own numbers never go in these files.
 
 | File | Site | Instant (UTC) | Local |
 |---|---|---|---|
@@ -10,16 +10,14 @@ What `skyStars.test.ts` holds the app to: at each of the three R1 sites, at one 
 
 The stars were chosen from the vendored catalogue (`data-src/stars/`): the brightest named star in each 30° of azimuth at 12° or more above the horizon, topped up with the next brightest. The `hr`, designation and J2000 coordinates are only there to find the star. The planets are listed whether they are up or not: a negative altitude is a value too.
 
-## Filling a file in Stellarium (desktop)
+## Filling a file in Stella## Where the values come from
 
-1. **Location** (F6): enter the latitude and longitude exactly as in the table, altitude 0 m.
-2. **Date and time** (F5): set the instant in UTC. Either choose UTC as the time zone (Configuration → Tools → Time zone) or enter the local time shown in the table.
-3. **Atmosphere off** (A): the altitudes must be geometric, with no refraction, as the passes' altitudes are. With the atmosphere off, the info panel shows "Az./Alt." with no "(apparent)".
-4. **Azimuth from north** (Configuration → Tools): leave "Azimuth from south" unticked.
-5. **Decimal degrees** (Configuration → Tools → "Use decimal degrees"): saves converting from d°m′s″.
-6. Search for each star (F3) and each planet. Copy the Az./Alt. into `azDeg` and `altDeg` with at least two decimals.
-7. In the matching `.meta.json`, record the Stellarium version, the date you captured, and the settings you used.
+Captured 2026-10-23 at the owner's request. Each `.meta.json` records its sources and settings.
 
-The US Naval Observatory's (USNO's) Celestial Navigation Data service, or JPL Horizons for the planets, is also acceptable. Name it in `source` and say whether its altitudes include refraction. If they do, use a mode without it.
+- **Stars:** the IAU's SOFA routines (release 2023-10-11) through astropy 8.0.2 and pyerfa 2.0.1.5. The template's J2000 RA/Dec are read in the FK5 frame, transformed to AltAz with pressure 0 (no refraction), at 0 m. Proper motion is not applied, as the catalogue build does not apply it.
+- **Planets:** NASA JPL Horizons API, observer table quantity 4, `APPARENT=AIRLESS`. It agrees with astropy's own planet positions within 0.006°.
+- The US Naval Observatory's celestial navigation service, the spec's other named source, was unreachable (connection reset).
 
-Once every `null` and every "TO FILL" is replaced, commit the six files. The test that reads them is written in v2.4's catalogue task.
+Checked against `astronomy-engine`'s `Rotation_EQJ_HOR` and `Horizon` on capture: every value agrees within 0.0065°, which is mostly annual aberration that the one rotation leaves out. That is 40 times inside `STAR_TOLERANCE_DEG`.
+
+To re-read a value by hand, use Stellarium (stellarium.org, or stellarium-web.org) with the atmosphere off (A), the location set exactly at 0 m, the time in UTC, azimuth from north, and decimal degrees.

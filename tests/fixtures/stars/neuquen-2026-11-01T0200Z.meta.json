@@ -1,8 +1,8 @@
 {
   "location": "Neuquén",
-  "source": "TO FILL: Stellarium <version> or USNO <service>",
-  "capturedBy": "owner",
-  "capturedAt": "TO FILL: YYYY-MM-DD",
-  "settings": "TO FILL: what was set (location, UTC, atmosphere off, ...)",
-  "notes": ""
+  "source": "Stars: IAU SOFA 20231011 through astropy 8.0.2 (pyerfa 2.0.1.5), FK5 J2000 to AltAz, pressure 0. Planets: NASA JPL Horizons API, observer table quantity 4, APPARENT=AIRLESS.",
+  "capturedBy": "Claude Code session at the owner's request (2026-10-23); the owner reviews the PR",
+  "capturedAt": "2026-10-23",
+  "settings": "Observer at the site's lat/lon, 0 m, WGS-84; instant in UTC; no refraction; azimuth from north through east; degrees. Star inputs are the template's J2000 RA/Dec from the vendored Yale catalogue, proper motion not applied.",
+  "notes": "The US Naval Observatory's service was unreachable (connection reset), so SOFA stands in for it. Horizons' planets agree with astropy's own built-in positions within 0.005 deg."
 }

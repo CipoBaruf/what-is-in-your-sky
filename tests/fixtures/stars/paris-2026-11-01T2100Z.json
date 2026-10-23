@@ -15,8 +15,8 @@
       "vmag": 1.79,
       "raJ2000Deg": 165.93208,
       "decJ2000Deg": 61.75083,
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": 20.893,
+      "azDeg": 6.16
     },
     {
       "hr": 2088,
@@ -25,8 +25,8 @@
       "vmag": 1.9,
       "raJ2000Deg": 89.88208,
       "decJ2000Deg": 44.9475,
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": 31.12,
+      "azDeg": 55.719
     },
     {
       "hr": 1708,
@@ -35,8 +35,8 @@
       "vmag": 0.08,
       "raJ2000Deg": 79.1725,
       "decJ2000Deg": 45.99806,
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": 37.744,
+      "azDeg": 60.185
     },
     {
       "hr": 1457,
@@ -45,8 +45,8 @@
       "vmag": 0.85,
       "raJ2000Deg": 68.98,
       "decJ2000Deg": 16.50917,
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": 24.928,
+      "azDeg": 93.103
     },
     {
       "hr": 617,
@@ -55,8 +55,8 @@
       "vmag": 2,
       "raJ2000Deg": 31.79333,
       "decJ2000Deg": 23.4625,
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": 53.437,
+      "azDeg": 121.48
     },
     {
       "hr": 188,
@@ -65,8 +65,8 @@
       "vmag": 2.04,
       "raJ2000Deg": 10.8975,
       "decJ2000Deg": -17.98667,
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": 22.345,
+      "azDeg": 166.894
     },
     {
       "hr": 8775,
@@ -75,8 +75,8 @@
       "vmag": 2.42,
       "raJ2000Deg": 345.94375,
       "decJ2000Deg": 28.08278,
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": 67.326,
+      "azDeg": 208.981
     },
     {
       "hr": 8308,
@@ -85,8 +85,8 @@
       "vmag": 2.39,
       "raJ2000Deg": 326.04667,
       "decJ2000Deg": 9.875,
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": 42.8,
+      "azDeg": 225.553
     },
     {
       "hr": 7557,
@@ -95,8 +95,8 @@
       "vmag": 0.77,
       "raJ2000Deg": 297.69583,
       "decJ2000Deg": 8.86833,
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": 25.921,
+      "azDeg": 252.917
     },
     {
       "hr": 7001,
@@ -105,8 +105,8 @@
       "vmag": 0.03,
       "raJ2000Deg": 279.23458,
       "decJ2000Deg": 38.78361,
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": 34.704,
+      "azDeg": 291.471
     },
     {
       "hr": 6705,
@@ -115,8 +115,8 @@
       "vmag": 2.23,
       "raJ2000Deg": 269.15167,
       "decJ2000Deg": 51.48889,
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": 36.509,
+      "azDeg": 309.23
     },
     {
       "hr": 4905,
@@ -125,35 +125,35 @@
       "vmag": 1.77,
       "raJ2000Deg": 193.50708,
       "decJ2000Deg": 55.95972,
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": 15.448,
+      "azDeg": 351.161
     }
   ],
   "planets": [
     {
       "body": "Mercury",
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": -42.704,
+      "azDeg": 295.196
     },
     {
       "body": "Venus",
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": -50.352,
+      "azDeg": 322.413
     },
     {
       "body": "Mars",
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": -16.918,
+      "azDeg": 36.561
     },
     {
       "body": "Jupiter",
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": -21.183,
+      "azDeg": 32.981
     },
     {
       "body": "Saturn",
-      "altDeg": null,
-      "azDeg": null
+      "altDeg": 41.397,
+      "azDeg": 165.234
     }
   ]
 }
