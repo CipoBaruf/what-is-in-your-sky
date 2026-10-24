@@ -6,5 +6,5 @@
     "jsx": "react-jsx",
     "types": ["node", "vite/client"]
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "playwright.config.ts", "scripts", "tests/e2e", "tests/deploy", "tests/docs", "tests/sdd", "spike/capture.ts", "spike/dome-composition/capture.ts", "spike/window/capture.ts", "spike/window/https.config.ts", "spike/vite.bundle.config.ts", "spike/stars/catalog.ts", "spike/stars/precession.ts", "spike/stars/perf.ts", "spike/stars/capture.ts", "spike/stars/measure.ts", "spike/stars/serve.ts"]
+  "include": ["vite.config.ts", "vitest.config.ts", "playwright.config.ts", "scripts", "tests/e2e", "tests/data", "tests/deploy", "tests/docs", "tests/sdd", "spike/capture.ts", "spike/dome-composition/capture.ts", "spike/window/capture.ts", "spike/window/https.config.ts", "spike/vite.bundle.config.ts", "spike/stars/catalog.ts", "spike/stars/precession.ts", "spike/stars/perf.ts", "spike/stars/capture.ts", "spike/stars/measure.ts", "spike/stars/serve.ts"]
 }
