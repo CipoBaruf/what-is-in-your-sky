@@ -220,7 +220,8 @@
      sheet and does not open it. The star is in `--fg`'s class (≥ 10 : 1), the
      dim star in `--fg-dim`'s (≥ 4.5 : 1), the figure — a constellation line,
      never text — in `--chart-rings`' (≥ 3 : 1), and the planet apart from a
-     star in lightness and, here, in hue (≥ 7 : 1). Nothing draws with them yet. */
+     star in lightness and, here, in hue (≥ 7 : 1). R114's star field draws
+     with them (FR-STAR-6 as amended). */
   --chart-star: #e3e8ee; /* 15.60 : 1 — a star */
   --chart-star-dim: #8a94a1; /* 6.25 : 1 — a faint star */
   --chart-figure: #5a7088; /* 3.76 : 1 — a constellation line */

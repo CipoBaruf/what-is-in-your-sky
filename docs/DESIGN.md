@@ -130,7 +130,7 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 | `--chart-star-dim` | `#8a94a1` | `#cc5848` | 6.25 : 1 on `--bg` (reserved for the stars, FR-DS-8) | 4.95 : 1 on `--bg` (reserved for the stars, FR-DS-8) | a faint star |
 | `--chart-figure` | `#5a7088` | `#9b4238` | 3.76 : 1 on `--bg` (reserved for the stars, FR-DS-8) | 3.16 : 1 on `--bg` (reserved for the stars, FR-DS-8) | a constellation line |
 | `--chart-planet` | `#f2c27a` | `#ff9a70` | 11.69 : 1 on `--bg` (reserved for the stars, FR-DS-8) | 9.89 : 1 on `--bg` (reserved for the stars, FR-DS-8) | a planet, gold against the stars' white |
-| `--chart-star-faint` | `#626d7a` | `#a24a40` | 3.65 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 3.51 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | the faintest rung, V ≤ 4.5 |
+| `--chart-star-faint` | `#626d7a` | `#a24a40` | 3.65 : 1 on `--bg` (reserved for the stars, FR-DS-8) | 3.51 : 1 on `--bg` (reserved for the stars, FR-DS-8) | the faintest rung, V ≤ 4.5 |
 | `--chart-figure-name` | `#7a8591` | `#c4544a` | 5.12 : 1 on `--bg` (chart text, ≥ 4.5 : 1) | 4.61 : 1 on `--bg` (chart text, ≥ 4.5 : 1) | a constellation's name, text |
 | `--chart-series-1` | `#8ec5ff` | `#ff5c4a` | 10.60 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 6.73 : 1 on `--bg` (a chart mark, ≥ 3 : 1) |  |
 | `--chart-series-2` | `#ffb86c` | `#ffa07a` | 11.28 : 1 on `--bg` (a chart mark, ≥ 3 : 1) | 10.33 : 1 on `--bg` (a chart mark, ≥ 3 : 1) |  |

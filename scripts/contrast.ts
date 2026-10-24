@@ -31,7 +31,7 @@ export const CHART_MARK_TOKENS = [
   'chart-compass',
   'chart-sun',
   'chart-moon',
-  // FR-DS-8 (R103): the four reserved for the stars — nothing draws with them yet.
+  // FR-DS-8 (R103): the four reserved for the stars, drawn by the window's star field since R114.
   'chart-star',
   'chart-star-dim',
   'chart-figure',
@@ -53,8 +53,13 @@ export const CHART_SURFACE_TOKENS = ['chart-ground', 'chart-sky'] as const;
  * page ground, in both themes. Listed apart from the marks for that reason.
  */
 export const CHART_TEXT_TOKENS = ['chart-figure-name'] as const;
-/** FR-DS-8 (R103): the four of `CHART_MARK_TOKENS` nothing draws with yet — held to their ratios, not to a palette. */
-export const CHART_RESERVED_TOKENS = ['chart-star', 'chart-star-dim', 'chart-figure', 'chart-planet'] as const;
+/**
+ * FR-DS-8 (R103, R114): the stars' marks among `CHART_MARK_TOKENS` — reserved
+ * by R103 and drawn by the sky window's star field since R114 (FR-STAR-6 as
+ * amended). They are held to their ratios here and are not the dome's: the
+ * dome palette names every other chart mark and none of these.
+ */
+export const CHART_RESERVED_TOKENS = ['chart-star', 'chart-star-dim', 'chart-star-faint', 'chart-figure', 'chart-planet'] as const;
 
 /** The themes `tokens.css` defines, and the selector each is written under (D-84). */
 export const THEMES = ['dark', 'night'] as const;

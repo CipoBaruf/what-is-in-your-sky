@@ -3169,7 +3169,7 @@ Decision block (§16.2), reserved in PLAN §16.21: **R111 D-744..D-747**. D-740.
 
 ### Wave 2 (second cut)
 
-- [ ] **R114 — The star field: the ladder, the ink offsets, the collision and hit test, the hairlines with their gap and clip, the ground, written by ref**
+- [x] **R114 — The star field: the ladder, the ink offsets, the collision and hit test, the hairlines with their gap and clip, the ground, written by ref** *(done 2026-10-24: the ink offsets probe is the browser project's `inkOffsets.integration.test.ts` rather than an e2e spec, D-771; `groundClipPath`, `HORIZON` and `ring` moved to `projection.ts`, D-773)*
   - **Lane:** window
   - **Model:** fable
   - **Review:** opus

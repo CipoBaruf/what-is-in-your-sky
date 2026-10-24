@@ -75,6 +75,7 @@ function contrastCell(name: string, tokens: Map<string, string>): string {
   }
   if (name === 'edge') return `${GROUND_TOKENS.map((ground) => `${ratio(value, get(ground))} on \`--${ground}\``).join(', ')} (a control’s edge, ≥ 3 : 1)`;
   if (name === 'rule') return `${ratio(value, get('bg'))} on \`--bg\` (decorative only)`;
+  // `tests/docs/design.test.ts` pins this phrase; since R114 the five are drawn by the window's star field, and "reserved" reads as "not the dome's".
   if ((CHART_RESERVED_TOKENS as readonly string[]).includes(name)) return `${ratio(value, get('bg'))} on \`--bg\` (reserved for the stars, FR-DS-8)`;
   if ((CHART_MARK_TOKENS as readonly string[]).includes(name)) return `${ratio(value, get('bg'))} on \`--bg\` (a chart mark, ≥ 3 : 1)`;
   if ((CHART_TEXT_TOKENS as readonly string[]).includes(name)) return `${ratio(value, get('bg'))} on \`--bg\` (chart text, ≥ 4.5 : 1)`;
