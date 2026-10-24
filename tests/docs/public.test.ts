@@ -19,7 +19,7 @@ import { join, normalize } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { geometry, HERO, PREVIEW, previewSources, SOURCES } from '../../scripts/readme-hero';
-import { productionPackages, RULE } from '../../scripts/third-party-notices';
+import { DATA_RULE, productionPackages, RULE } from '../../scripts/third-party-notices';
 
 const readme = readFileSync('README.md', 'utf8');
 const contributing = readFileSync('CONTRIBUTING.md', 'utf8');
@@ -312,9 +312,12 @@ describe('credits (FR-PUB-4)', () => {
 describe('third-party notices (FR-PUB-5)', () => {
   const NOTICES = 'public/third-party-notices.txt';
   const text = readFileSync(NOTICES, 'utf8');
-  /** One entry per rule: `name@version`, the licence, the source, then the verbatim text. */
+  /**
+   * One entry per rule: `name@version`, the licence, the source, then the verbatim text. The data
+   * section (`DATA_RULE`, D-765) is cut off first, so it never pads the last package's licence.
+   */
   const entries = new Map<string, string>(
-    text
+    (text.split(DATA_RULE)[0] ?? '')
       .split(RULE)
       .slice(1)
       .map((chunk) => {

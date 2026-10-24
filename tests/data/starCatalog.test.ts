@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { buildStars, gzippedBytes } from '../../scripts/build-stars';
+import { buildStars, gzippedBytes, SNAP_MAX_DEG } from '../../scripts/build-stars';
 import { DATA_RULE, dataNotices } from '../../scripts/third-party-notices';
 import { parseStarCatalog, starCatalog } from '../../src/data/stars/catalog';
 import { CONSTELLATION_NAMES, figureName } from '../../src/data/stars/constellations';
@@ -15,10 +15,27 @@ import { STAR_MAG_LIMIT } from '../../src/data/stars/constants';
 const FILE = new URL('../../src/data/stars/catalog.json', import.meta.url);
 const text = readFileSync(FILE, 'utf8');
 const catalog = starCatalog();
+const built = buildStars();
 
 describe('the star catalogue', () => {
   it('is what the build writes from data-src/stars/, byte for byte', () => {
-    expect(buildStars().text).toBe(text);
+    expect(built.text).toBe(text);
+  });
+
+  it(`snaps every figure point within ${String(SNAP_MAX_DEG)}° of its star, drops no name and draws no pair twice`, () => {
+    expect(built.report.worstSnapDeg).toBeLessThan(SNAP_MAX_DEG);
+    expect(built.report.worstSnapDeg).toBeLessThan(0.003); // the spike's 0.0025°
+    expect(built.report.nameCollisions).toBe(0);
+    expect(built.report.duplicateSegments).toBe(0);
+    for (const f of catalog.figures) {
+      const pairs = new Set<string>();
+      for (let k = 0; k < f.segments.length; k += 2) {
+        const a = f.segments[k] ?? -1;
+        const b = f.segments[k + 1] ?? -1;
+        pairs.add(a < b ? `${String(a)} ${String(b)}` : `${String(b)} ${String(a)}`);
+      }
+      expect(pairs.size, f.con).toBe(f.segments.length / 2);
+    }
   });
 
   it('parses with the reader, and the reader parses once', () => {
@@ -26,11 +43,11 @@ describe('the star catalogue', () => {
     expect(starCatalog()).toBe(catalog);
   });
 
-  it('has 1035 stars: 904 at V ≤ STAR_MAG_LIMIT and 131 fainter figure endpoints', () => {
-    expect(catalog.size).toBe(1035);
+  it('has 1033 stars: 904 at V ≤ STAR_MAG_LIMIT and 129 fainter figure endpoints', () => {
+    expect(catalog.size).toBe(1033);
     const mags = [...catalog.mag];
     expect(mags.filter((m) => m <= STAR_MAG_LIMIT)).toHaveLength(904);
-    expect(mags.filter((m) => m > STAR_MAG_LIMIT)).toHaveLength(131);
+    expect(mags.filter((m) => m > STAR_MAG_LIMIT)).toHaveLength(129);
     for (const column of [catalog.ra, catalog.dec, catalog.mag, catalog.name, catalog.desig, catalog.con]) expect(column).toHaveLength(catalog.size);
   });
 
@@ -64,12 +81,12 @@ describe('the star catalogue', () => {
 
   it('holds every star once, proper names unique and never blank when present', () => {
     // A star's id is its index. The Yale records of a double's two components share a designation
-    // (`Alp Gem` is Castor A and B, eight such pairs), so a star is its designation, position and magnitude.
+    // (`Alp Gem` is Castor A and B, six such pairs), so a star is its designation, position and magnitude.
     const records = catalog.desig.map((d, i) => `${d} ${String(catalog.ra[i])} ${String(catalog.dec[i])} ${String(catalog.mag[i])}`);
     expect(new Set(records).size).toBe(catalog.size);
-    expect(catalog.size - new Set(catalog.desig).size).toBe(8);
+    expect(catalog.size - new Set(catalog.desig).size).toBe(6);
     const named = catalog.name.filter((n) => n !== '');
-    expect(named).toHaveLength(288);
+    expect(named).toHaveLength(287);
     expect(new Set(named).size).toBe(named.length);
     for (const n of named) expect(n.trim()).toBe(n);
     for (const n of named) expect(n.length).toBeGreaterThan(0);

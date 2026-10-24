@@ -4,8 +4,9 @@ import type { EpochMs, Observer } from '../model';
 
 /**
  * FR-STAR-2 (R112, D-749): where every catalogue star and the five naked-eye
- * planets are in the observer's sky at one instant. This is the lint
- * boundary's second main-thread exception beside `skyBodies.ts`: the stars
+ * planets are in the observer's sky at one instant. This is one of the
+ * lint boundary's main-thread exceptions, beside `skyBodies.ts` and
+ * `arcReveal.ts` (`eslint.config.js`): the stars
  * follow the clock and the hand as the Sun and the Moon do, and a worker round
  * trip per frame is what FR-STAR-2 rules out.
  *

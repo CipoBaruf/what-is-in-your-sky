@@ -172,7 +172,8 @@ export interface DataNotice {
  * R112 (FR-STAR-1, D-748): the data that ships in the bundle without being a
  * package. `npm ls` cannot see it, so it is a fixed list, written after the
  * packages: the star catalogue's three sources (`data-src/stars/README.md`).
- * The figures' licence is quoted from the file vendored beside them.
+ * The figures' licence is quoted from the file vendored beside them, found
+ * from this script's own location so the call works from any directory.
  */
 export function dataNotices(): DataNotice[] {
   return [
@@ -181,7 +182,7 @@ export function dataNotices(): DataNotice[] {
       license: 'BSD-3-Clause',
       source: 'https://github.com/ofrohn/d3-celestial, data/constellations.lines.json (data-src/stars/d3-celestial-LICENSE.txt)',
       use: 'src/data/stars/catalog.json, the figures',
-      text: readFileSync(resolve('data-src/stars/d3-celestial-LICENSE.txt'), 'utf8').trim(),
+      text: readFileSync(new URL('../data-src/stars/d3-celestial-LICENSE.txt', import.meta.url), 'utf8').trim(),
     },
     {
       name: 'Yale Bright Star Catalogue, 5th revised edition',

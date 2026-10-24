@@ -13,24 +13,27 @@ import catalogJson from './catalog.json';
  * (FR-STAR-10 as amended); the figures' Latin names are `constellations.ts`.
  */
 
-const figureSchema = z.object({
-  con: z.string().min(1),
-  part: z.number().int().min(0),
-  segments: z.array(z.tuple([z.number().int().min(0), z.number().int().min(0)])),
-});
+/** The file's shape as the build writes it (`scripts/build-stars.ts`, `CatalogOut`). */
+interface CatalogFile {
+  ra: number[];
+  dec: number[];
+  mag: number[];
+  name: string[];
+  desig: string[];
+  con: string[];
+  figures: { con: string; part: number; segments: number[][] }[];
+}
 
+/**
+ * A cheap shape check, not an element-by-element parse: every column is an
+ * array with one entry per star. The values themselves are held by
+ * `tests/data/starCatalog.test.ts`, which re-runs the build and asserts the
+ * committed file byte for byte, so the main thread does not walk them again.
+ */
+const column = z.custom<unknown[]>((v) => Array.isArray(v), 'an array');
 const catalogSchema = z
-  .object({
-    ra: z.array(z.number().min(0).max(360)),
-    dec: z.array(z.number().min(-90).max(90)),
-    mag: z.array(z.number()),
-    name: z.array(z.string()),
-    desig: z.array(z.string().min(1)),
-    con: z.array(z.string().min(1)),
-    figures: z.array(figureSchema),
-  })
-  .refine((c) => [c.dec, c.mag, c.name, c.desig, c.con].every((column) => column.length === c.ra.length), 'every column has one entry per star')
-  .refine((c) => c.figures.every((f) => f.segments.every(([a, b]) => a < c.ra.length && b < c.ra.length)), 'every figure endpoint is a star');
+  .object({ ra: column, dec: column, mag: column, name: column, desig: column, con: column, figures: column })
+  .refine((c) => [c.dec, c.mag, c.name, c.desig, c.con].every((col) => col.length === c.ra.length), 'every column has one entry per star');
 
 /** One drawn feature: `segments` is flat, `[a0, b0, a1, b1, …]`, star indices. */
 interface StarFigure {
@@ -57,9 +60,10 @@ export interface StarCatalog {
   figures: readonly StarFigure[];
 }
 
-/** The file's JSON, validated, as typed arrays. */
+/** The file's JSON, its shape checked, as typed arrays. */
 export function parseStarCatalog(json: unknown): StarCatalog {
-  const c = catalogSchema.parse(json);
+  catalogSchema.parse(json);
+  const c = json as CatalogFile;
   return Object.freeze({
     size: c.ra.length,
     ra: Float64Array.from(c.ra),

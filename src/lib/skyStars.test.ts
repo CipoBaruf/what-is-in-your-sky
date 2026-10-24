@@ -3,6 +3,7 @@ import { HorizonFromVector, MakeTime, Observer, RotateVector, Rotation_EQJ_HOR, 
 import { describe, expect, it } from 'vitest';
 import { starCatalog } from '../data/stars/catalog';
 import { PLANETS, starsAt } from './skyStars';
+import { angularDistanceDeg } from './skyGeometry';
 
 /**
  * R112, FR-STAR-2, US-38 AC3: every star and planet within `STAR_TOLERANCE_DEG`
@@ -11,7 +12,6 @@ import { PLANETS, starsAt } from './skyStars';
  * catalogue as the app ships it, and the one memo slot.
  */
 const STAR_TOLERANCE_DEG = 0.25;
-const RAD = Math.PI / 180;
 const DIR = new URL('../../tests/fixtures/stars/', import.meta.url);
 
 interface Fixture {
@@ -27,9 +27,9 @@ const fixtures: Fixture[] = readdirSync(DIR)
   .sort()
   .map((f) => JSON.parse(readFileSync(new URL(f, DIR), 'utf8')) as Fixture);
 
-/** Great-circle distance between two alt/az points, degrees. */
+/** Great-circle distance between two alt/az points, degrees: the dome's one helper, clamped. */
 const separation = (a1: number, z1: number, a2: number, z2: number): number =>
-  Math.acos(Math.min(1, Math.sin(a1 * RAD) * Math.sin(a2 * RAD) + Math.cos(a1 * RAD) * Math.cos(a2 * RAD) * Math.cos((z1 - z2) * RAD))) / RAD;
+  angularDistanceDeg({ azDeg: z1, elDeg: a1 }, { azDeg: z2, elDeg: a2 });
 
 const catalog = starCatalog();
 

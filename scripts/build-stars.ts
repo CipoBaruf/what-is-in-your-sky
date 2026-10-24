@@ -24,10 +24,17 @@ import { fileURLToPath } from 'node:url';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { Constellation } from 'astronomy-engine';
 import { STAR_MAG_LIMIT } from '../src/data/stars/constants';
+import { angularDistanceDeg } from '../src/lib/skyGeometry';
 
-const SRC = resolve('data-src/stars');
-const OUT = resolve('src/data/stars/catalog.json');
-const RAD = Math.PI / 180;
+const SRC = fileURLToPath(new URL('../data-src/stars/', import.meta.url));
+const OUT = fileURLToPath(new URL('../src/data/stars/catalog.json', import.meta.url));
+
+/**
+ * The farthest a figure's point may sit from the star it snaps to, degrees.
+ * The spike measured 0.0025° at worst; a point farther than this means its
+ * star is missing from the parsed catalogue, and the build fails.
+ */
+export const SNAP_MAX_DEG = 0.1;
 
 /** One Yale record, the fields the catalogue keeps. */
 interface BscRecord {
@@ -66,15 +73,17 @@ export interface BuildReport {
   figures: number;
   segments: number;
   names: number;
+  /** WGSN lines whose HD already had a name: the first name in the file is kept. */
+  nameCollisions: number;
+  /** Segments dropped because the figure already drew that pair (either way round). */
+  duplicateSegments: number;
   /** Widest distance from a figure's endpoint to the star it snapped to, degrees. */
   worstSnapDeg: number;
 }
 
-/** Angular separation of two RA/Dec points, degrees. */
-function separationDeg(ra1: number, dec1: number, ra2: number, dec2: number): number {
-  const c = Math.sin(dec1 * RAD) * Math.sin(dec2 * RAD) + Math.cos(dec1 * RAD) * Math.cos(dec2 * RAD) * Math.cos((ra1 - ra2) * RAD);
-  return Math.acos(Math.max(-1, Math.min(1, c))) / RAD;
-}
+/** Great-circle separation of two RA/Dec points, degrees (the dome's helper: RA as azimuth, Dec as elevation). */
+const separationDeg = (ra1: number, dec1: number, ra2: number, dec2: number): number =>
+  angularDistanceDeg({ azDeg: ra1, elDeg: dec1 }, { azDeg: ra2, elDeg: dec2 });
 
 /**
  * The Yale catalogue's fixed-width records (CDS V/50 `ReadMe`: bytes 1-4 HR,
@@ -102,18 +111,24 @@ function parseBsc(text: string): BscRecord[] {
   return out;
 }
 
-/** The WGSN list, name by HD number: the name is the first 18 columns, the HD number three fields before the date. */
-function parseIauNames(text: string): Map<number, string> {
+/**
+ * The WGSN list, name by HD number: the name is the first 18 columns, the HD
+ * number three fields before the date. When two lines carry one HD, the first
+ * in the file keeps it and the rest are counted as collisions.
+ */
+function parseIauNames(text: string): { names: Map<number, string>; collisions: number } {
   const names = new Map<number, string>();
+  let collisions = 0;
   for (const line of text.split('\n')) {
     if (line.startsWith('#') || line.trim() === '') continue;
     const fields = line.trim().split(/\s+/);
     const at = fields.findIndex((f) => /^\d{4}-\d\d-\d\d$/.test(f));
     const hd = fields[at - 3];
     if (at < 4 || hd === undefined || hd === '_') continue;
-    names.set(Number(hd), line.slice(0, 18).trim());
+    if (names.has(Number(hd))) collisions += 1;
+    else names.set(Number(hd), line.slice(0, 18).trim());
   }
-  return names;
+  return { names, collisions };
 }
 
 interface LinesFile {
@@ -125,23 +140,40 @@ const round = (n: number, places: number): number => Math.round(n * 10 ** places
 /** The catalogue from the three sources' text. Pure, so the test can run it into memory. */
 export function buildCatalog(bscText: string, iauText: string, linesJson: string, magLimit = STAR_MAG_LIMIT): { catalog: CatalogOut; report: BuildReport } {
   const records = parseBsc(bscText);
-  const names = parseIauNames(iauText);
+  const { names, collisions: nameCollisions } = parseIauNames(iauText);
   const lines = JSON.parse(linesJson) as LinesFile;
 
+  // The records by declination, so a point searches only the band within SNAP_MAX_DEG of it.
+  const byDec = records.map((_, i) => i).sort((a, b) => (records[a]?.dec ?? 0) - (records[b]?.dec ?? 0));
+  const decOf = (k: number): number => records[byDec[k] ?? -1]?.dec ?? NaN;
+
+  // The nearest star by great-circle distance within SNAP_MAX_DEG; a tie goes to the brighter, then the lower HR.
   // d3-celestial writes RA as a longitude in [−180, 180].
   const snap = (lon: number, lat: number): { index: number; deg: number } => {
     const ra = (lon + 360) % 360;
+    let lo = 0;
+    let hi = byDec.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (decOf(mid) < lat - SNAP_MAX_DEG) lo = mid + 1;
+      else hi = mid;
+    }
     let index = -1;
     let deg = Infinity;
-    records.forEach((r, i) => {
-      if (Math.abs(r.dec - lat) > 1) return;
+    for (let k = lo; k < byDec.length && decOf(k) <= lat + SNAP_MAX_DEG; k += 1) {
+      const i = byDec[k] ?? -1;
+      const r = records[i];
+      if (r === undefined) continue;
       const d = separationDeg(ra, lat, r.ra, r.dec);
-      if (d < deg) {
+      const best = records[index];
+      if (d < deg || (d === deg && best !== undefined && (r.mag < best.mag || (r.mag === best.mag && i < index)))) {
         deg = d;
         index = i;
       }
-    });
-    if (index < 0) throw new Error(`no catalogue star near the figure point ${String(lon)}, ${String(lat)}`);
+    }
+    if (index < 0 || deg > SNAP_MAX_DEG) {
+      throw new Error(`no catalogue star within ${String(SNAP_MAX_DEG)}° of the figure point ${String(lon)}, ${String(lat)}`);
+    }
     return { index, deg };
   };
 
@@ -149,10 +181,12 @@ export function buildCatalog(bscText: string, iauText: string, linesJson: string
   const parts = new Map<string, number>();
   const snapped: { con: string; part: number; segments: [number, number][] }[] = [];
   let worstSnapDeg = 0;
+  let duplicateSegments = 0;
   for (const feature of lines.features) {
     const part = parts.get(feature.id) ?? 0;
     parts.set(feature.id, part + 1);
     const segments: [number, number][] = [];
+    const drawn = new Set<string>();
     for (const path of feature.geometry.coordinates) {
       const points = path.map(([lon, lat]) => snap(lon, lat));
       for (const p of points) {
@@ -162,7 +196,14 @@ export function buildCatalog(bscText: string, iauText: string, linesJson: string
       for (let i = 1; i < points.length; i += 1) {
         const a = points[i - 1]?.index ?? -1;
         const b = points[i]?.index ?? -1;
-        if (a !== b) segments.push([a, b]);
+        if (a === b) continue; // two points on one star: no segment
+        const key = a < b ? `${String(a)} ${String(b)}` : `${String(b)} ${String(a)}`;
+        if (drawn.has(key)) {
+          duplicateSegments += 1;
+          continue;
+        }
+        drawn.add(key);
+        segments.push([a, b]);
       }
     }
     snapped.push({ con: feature.id, part, segments });
@@ -200,6 +241,8 @@ export function buildCatalog(bscText: string, iauText: string, linesJson: string
       figures: catalog.figures.length,
       segments: catalog.figures.reduce((n, f) => n + f.segments.length, 0),
       names: catalog.name.filter((n) => n !== '').length,
+      nameCollisions,
+      duplicateSegments,
       worstSnapDeg,
     },
   };
@@ -232,7 +275,8 @@ if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(
       `${OUT}`,
       `stars: ${String(report.stars)} (${String(report.bright)} at V ≤ ${String(STAR_MAG_LIMIT)}, ${String(report.endpointsFainter)} fainter figure endpoints) of ${String(report.records)} records`,
       `figures: ${String(report.figures)} drawn features, ${String(report.segments)} segments, worst snap ${report.worstSnapDeg.toFixed(4)}°`,
-      `names: ${String(report.names)}`,
+      `figures: ${String(report.duplicateSegments)} duplicate segments dropped`,
+      `names: ${String(report.names)} (${String(report.nameCollisions)} WGSN lines on an HD already named, the first kept)`,
       `size: ${kb(Buffer.byteLength(text))} raw, ${kb(gzippedBytes(text))} gzipped`,
     ].join('\n'),
   );
