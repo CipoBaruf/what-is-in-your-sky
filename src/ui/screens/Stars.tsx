@@ -1,5 +1,6 @@
 import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { starCatalog } from '../../data/stars/catalog';
+import { useStarsPageT } from '../../i18n/starsPageT';
 import { useT } from '../../i18n/useT';
 import { normalizeAzimuthDeg, type CompassPoint } from '../../lib/compass';
 import { fitBox, RAIL_MIN_CELLS } from '../../lib/layout';
@@ -83,14 +84,15 @@ const RAIL_STYLE = { ['--rail-min-cells' as string]: String(RAIL_MIN_CELLS) } as
 
 export function StarsPage(props: StarsPageProps) {
   const t = useT();
+  const p = useStarsPageT();
   const observer = useActiveObserver();
   if (observer === null) {
     return (
       <>
         <VisuallyHidden as="h1">{t.stars.heading}</VisuallyHidden>
         <div className={styles.inert} data-testid="stars-inert">
-          <p>{t.stars.noPlace}</p>
-          <TextButton label={t.stars.setPlace} data-testid="stars-set-place" onClick={requestPlace} />
+          <p>{p.noPlace}</p>
+          <TextButton label={p.setPlace} data-testid="stars-set-place" onClick={requestPlace} />
         </div>
       </>
     );
@@ -101,6 +103,7 @@ export function StarsPage(props: StarsPageProps) {
 
 function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
   const t = useT();
+  const p = useStarsPageT();
   const mode = useLayoutMode();
   const wide = mode === 'wide';
   const facingId = useId();
@@ -192,7 +195,7 @@ function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
   const buried = box.width > 0 && groundState(settled.altDeg, view) === 'buried';
 
   const facing = facingOf(hand.azDeg, hand.altDeg);
-  const facingOptions = useMemo(() => [...FACING_POINTS.map((point) => ({ value: point as Facing, label: point })), { value: 'up' as Facing, label: t.stars.up }], [t]);
+  const facingOptions = useMemo(() => [...FACING_POINTS.map((point) => ({ value: point as Facing, label: point })), { value: 'up' as Facing, label: p.up }], [t]);
   const turnTo = (value: Facing): void => {
     if (value === 'up') camera.up();
     else camera.face(value);
@@ -200,29 +203,29 @@ function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
   const toggle = (key: keyof StarField['layers']) => () => {
     setLayers((was) => ({ ...was, [key]: !was[key] }));
   };
-  const layer = (key: keyof StarField['layers'], alone = false) => <OptionToggle key={key} label={t.stars.layers[key]} pressed={layers[key]} onPress={toggle(key)} data-layer={key} alone={alone} />;
+  const layer = (key: keyof StarField['layers'], alone = false) => <OptionToggle key={key} label={p.layers[key]} pressed={layers[key]} onPress={toggle(key)} data-layer={key} alone={alone} />;
 
   return (
     <>
       <VisuallyHidden as="h1">{t.stars.heading}</VisuallyHidden>
       <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE} data-look-az={Math.round(hand.azDeg)} data-look-alt={Math.round(hand.altDeg)}>
         {wide && <span className={styles.railProbe} ref={probeRef} aria-hidden="true" />}
-        <div className={styles.sky} ref={skyRef} role="group" aria-label={t.stars.drawing} data-testid="stars-sky">
+        <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky">
           <SkyWindow passes={[]} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} namedStar={named?.index ?? null} onNameStar={onNameStar} />
         </div>
         <div className={styles.rail} data-testid="stars-rail">
           <section aria-labelledby={facingId} className={styles.block}>
             <SectionHeading id={facingId} visuallyHidden={!wide}>
-              {t.stars.facing}
+              {p.facing}
             </SectionHeading>
-            <ToggleGroup<Facing> name={t.stars.facing} mark="bracket" options={facingOptions} value={facing as Facing} onChange={turnTo} className={styles.row} />
+            <ToggleGroup<Facing> name={p.facing} mark="bracket" options={facingOptions} value={facing as Facing} onChange={turnTo} className={styles.row} />
           </section>
           <section aria-labelledby={layersId} className={styles.block}>
             <SectionHeading id={layersId} visuallyHidden={!wide}>
-              {t.stars.layersHeading}
+              {p.layersHeading}
             </SectionHeading>
             {/* Four toggles in two rows of two: one row of four is 43 cells in English and 51 in Spanish (FR-COMP-4, D-776). */}
-            <div role="group" aria-label={t.stars.layersHeading} className={styles.layers} data-testid="stars-layers">
+            <div role="group" aria-label={p.layersHeading} className={styles.layers} data-testid="stars-layers">
               <div className={styles.row} data-testid="stars-layers-row">
                 {layer('stars')}
                 {layer('figures', true)}
@@ -234,7 +237,7 @@ function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
             </div>
           </section>
           <section aria-labelledby={fieldId} className={styles.block}>
-            <SectionHeading id={fieldId}>{t.stars.fieldHeading}</SectionHeading>
+            <SectionHeading id={fieldId}>{p.fieldHeading}</SectionHeading>
             <FieldList objects={objects} named={named?.index ?? null} onName={name} buried={buried} labelledBy={fieldId} />
           </section>
         </div>

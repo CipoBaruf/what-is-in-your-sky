@@ -25,6 +25,7 @@ import { useLayoutMode } from '../hooks/useLayoutMode';
 import { clearPlaceRequest, placeRequested } from './home/placeRequest';
 import { StepLine, stepLabel, STEPS, type Step } from './home/StepLine';
 import { usePassContext, useShownPasses } from './home/shownPasses';
+import { StarsLine } from './home/StarsLine';
 import { WhatStep } from './home/WhatStep';
 import { WhenStep } from './home/WhenStep';
 
@@ -331,6 +332,8 @@ function WhenReading({ observer, MoonLore, selectedPassId }: { observer: Observe
   const moon = now.observer === observer ? (now.state?.moon ?? null) : null;
   return (
     <Region step="when" className={`${styles.reading} ${styles.when}`} testId="reading-when">
+      {/* R115 (FR-STAR-3): the phone's way to the stars, the pane's first line; nothing on wide. */}
+      <StarsLine />
       <TonightStripe bands={tonight.bands} passes={passes} observer={observer} now={tonight.now} />
       <ConditionsTable observer={observer} bands={tonight.bands} sampledFrom={tonight.sampledFrom} now={tonight.now} />
       {MoonLore && moon && (

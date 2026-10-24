@@ -335,10 +335,12 @@ export const BUDGETS: readonly Budget[] = [
   { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 105 }, // R60: 94.2 measured, down from 97.1 (D-307); 94.2 again on 1.4.0 (R72)
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 40 },
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10 },
-  { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 25 },
+  // R115 (D-749, D-759): with the stars page importing `astronomy-engine` too, Rollup puts the library in a chunk of its own beside `skyBodies`; the row matches both and its limit is on their total, so the library is counted once, as before. 22.1 on 6cfa699; 22.6 with the stars page, the functions `skyStars.ts` calls that `skyBodies.ts` does not.
+  { name: 'astronomy', match: (file) => /^(skyBodies|astronomy)-.*\.js$/.test(file), limitKb: 25 },
   { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 15 }, // R53: back to the floor — R47 moved the World Magnetic Model to its own chunk and 1.1.0 measures 7.6 (D-178); R72: 8.5 on 1.4.0, the floor's last 1.5 KB; R100: 9.7 on 2.1.0, × 1.1 crosses 10 (D-638)
   { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 15 }, // R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345); R72: 12.1 on 1.4.0; R80: 12.8 with the compass gutter in it
   { name: 'settings', match: (file) => /^Settings-.*\.js$/.test(file), limitKb: 10 }, // R93 (D-545): 1.0 measured — the page's own composition; its controls are the home page's and stay in main
+  { name: 'stars', match: (file) => /^Stars-.*\.js$/.test(file), limitKb: 40 }, // R115 (FR-STAR-9, D-759): STARS_BUDGET_KB until the release re-sets it by D-178's rule; the page, the catalogue (18.8, D-763) and the positions
 ];
 
 export interface ChunkSize {
@@ -371,11 +373,17 @@ function scripts(distDir: string): { file: string; path: string }[] {
 
 export function measure(distDir = DIST): ChunkSize[] {
   const mainFile = mainChunkFile(readFileSync(join(distDir, 'index.html'), 'utf8'));
-  return scripts(distDir)
-    .map(({ file, path }) => {
-      const budget = BUDGETS.find((candidate) => candidate.match(file, mainFile)) ?? null;
-      const gzipKb = kb(gzipSync(readFileSync(path), { level: 9 }).length);
-      return { file, budget: budget?.name ?? null, rawKb: kb(statSync(path).size), gzipKb, limitKb: budget?.limitKb ?? null, over: budget !== null && gzipKb > budget.limitKb };
+  const files = scripts(distDir).map(({ file, path }) => ({ file, path, budget: BUDGETS.find((candidate) => candidate.match(file, mainFile)) ?? null, gzipBytes: gzipSync(readFileSync(path), { level: 9 }).length }));
+  // R115 (D-749): a row that matches more than one file (the astronomy row's two) is held to its limit by their total.
+  const totals = new Map<string, number>();
+  for (const { budget, gzipBytes } of files) if (budget) totals.set(budget.name, (totals.get(budget.name) ?? 0) + gzipBytes);
+  return files
+    .map(({ file, path, budget, gzipBytes }) => {
+      const gzipKb = kb(gzipBytes);
+      const rowKb = budget ? kb(totals.get(budget.name) ?? 0) : 0;
+      // The service worker row's two files have always been held one by one; every other row is held by its total.
+      const over = budget !== null && (budget.name === 'service worker' ? gzipKb : rowKb) > budget.limitKb;
+      return { file, budget: budget?.name ?? null, rawKb: kb(statSync(path).size), gzipKb, limitKb: budget?.limitKb ?? null, over };
     })
     .sort((a, b) => (a.budget === null ? 1 : 0) - (b.budget === null ? 1 : 0) || b.gzipKb - a.gzipKb);
 }

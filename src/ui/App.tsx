@@ -376,6 +376,14 @@ export function App() {
    * resolved to a pass of the run.
    */
   const liveShown = live.active && !liveUnreadable;
+  // The shortcuts overlay, over home and over the stars page alike.
+  const overlay = helpOpen && (
+    <ShortcutsOverlay
+      onClose={() => {
+        setHelpOpen(false);
+      }}
+    />
+  );
   const route: RouteName = liveShown ? 'live' : settings.active ? 'settings' : stars.active ? 'stars' : selected !== null ? 'pass' : 'home';
   const routeKey = route === 'pass' && selected !== null ? `pass:${selected.id}` : route;
   const title = routeTitle(route, t, selected && { name: selected.name, time: `${formatDate(selected.start.t, timeZone, locale)} ${formatShortClock(selected.start.t, timeZone, locale, timeZone === null)}` });
@@ -418,15 +426,7 @@ export function App() {
         title={title}
         banner={<Header current="stars" inert={helpOpen} />}
         mainProps={{ inert: helpOpen, className: styles.stars }}
-        after={
-          helpOpen && (
-            <ShortcutsOverlay
-              onClose={() => {
-                setHelpOpen(false);
-              }}
-            />
-          )
-        }
+        after={overlay}
       >
         <Suspense fallback={<p className={styles.starsLoading}>{t.stars.loading}</p>}>
           <StarsPage onLeave={stars.leave} />
@@ -443,15 +443,7 @@ export function App() {
       beforeMain={<PageNotices kinds={HOME_NOTES} inert={inert} />}
       mainProps={{ inert, className: styles.main, 'data-home': observer === null ? 'cold' : 'readings', 'data-guide': guide, ...(stepping ? { 'data-step': '' } : {}) }}
       footer={<Footer inert={inert} form={stepping ? 'line' : 'full'} />}
-      after={
-        helpOpen && (
-          <ShortcutsOverlay
-            onClose={() => {
-              setHelpOpen(false);
-            }}
-          />
-        )
-      }
+      after={overlay}
     >
         <Home
             offersInert={offersInert}

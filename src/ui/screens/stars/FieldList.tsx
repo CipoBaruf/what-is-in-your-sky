@@ -1,3 +1,4 @@
+import { useStarsPageT } from '../../../i18n/starsPageT';
 import { useLocale, useT } from '../../../i18n/useT';
 import { degrees } from '../../../lib/format';
 import { formatStarMag, type FieldObject } from './field';
@@ -33,6 +34,7 @@ export interface FieldListProps {
 
 export function FieldList({ objects, named, onName, buried, labelledBy }: FieldListProps) {
   const t = useT();
+  const p = useStarsPageT();
   const locale = useLocale();
   if (buried) {
     return (
@@ -44,14 +46,14 @@ export function FieldList({ objects, named, onName, buried, labelledBy }: FieldL
   if (objects.length === 0) {
     return (
       <p className={styles.note} role="status" data-testid="field-list-empty">
-        {t.stars.fieldEmpty}
+        {p.fieldEmpty}
       </p>
     );
   }
   return (
     <ul className={styles.list} aria-labelledby={labelledBy} data-testid="field-list">
       {objects.map((object) => {
-        const name = object.planet === null ? (object.name ?? '') : t.stars.planets[object.planet];
+        const name = object.planet === null ? (object.name ?? '') : p.planets[object.planet];
         const mag = formatStarMag(object.mag, locale);
         const altitude = degrees(object.altDeg);
         return (
@@ -62,7 +64,7 @@ export function FieldList({ objects, named, onName, buried, labelledBy }: FieldL
               data-index={object.index}
               data-kind={object.planet === null ? 'star' : 'planet'}
               aria-pressed={named === object.index}
-              aria-label={t.stars.named({ name, mag, altitude, point: object.point })}
+              aria-label={p.named({ name, mag, altitude, point: object.point })}
               onClick={() => {
                 onName(object.index);
               }}
@@ -71,7 +73,7 @@ export function FieldList({ objects, named, onName, buried, labelledBy }: FieldL
               }}
             >
               <span className={styles.name}>{name}</span>
-              <span className={styles.mag}>{t.stars.mag({ mag })}</span>
+              <span className={styles.mag}>{p.mag({ mag })}</span>
               <span className={styles.alt}>{altitude}</span>
               <span className={styles.point}>{object.point}</span>
             </button>
