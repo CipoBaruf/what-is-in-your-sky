@@ -1,0 +1,91 @@
+/* R111 spike: the field over the whole viewport, the sheet's chart tokens for every mark (FR-STAR-6). */
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  overscroll-behavior: none;
+}
+
+.page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.field {
+  display: block;
+}
+
+.field .horizon {
+  fill: none;
+  stroke: var(--chart-compass);
+  stroke-width: 1;
+}
+
+.field .figures line {
+  stroke: var(--chart-figure);
+  stroke-width: 1;
+}
+
+.field text {
+  text-anchor: middle;
+  dominant-baseline: central;
+  font-family: var(--font-mono);
+}
+
+.field .stars .star {
+  fill: var(--chart-star);
+}
+
+.field .stars .dim {
+  fill: var(--chart-star-dim);
+}
+
+.field .planets .planet {
+  fill: var(--chart-planet);
+}
+
+.field .labels text {
+  text-anchor: start;
+  fill: var(--chart-star-dim);
+}
+
+.readout,
+.panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+}
+
+.readout {
+  top: 0;
+  pointer-events: none;
+}
+
+.panel {
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding-bottom: max(6px, env(safe-area-inset-bottom));
+}
+
+.panel a,
+.panel button {
+  color: var(--accent);
+  font: inherit;
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  text-decoration: none;
+}
