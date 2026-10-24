@@ -285,6 +285,29 @@ export interface Budget {
  * remedy (zod or the guide out of `main`, D-609) is still the way down. The
  * ceiling itself is not moved.
  *
+ * R118 re-sets them on the 2.4.0 build (SPEC §9 Phase 2l; D-759, D-780,
+ * D-785), beside `6cfa699`'s (2.3.0, D-742) built on the same machine. **Two
+ * budgets move, and main is past FR-STAR-9's allowance.**
+ *
+ * | chunk          | file                    | measured | budget | was | `6cfa699` | ceiling |
+ * |----------------|-------------------------|---------:|-------:|----:|----------:|--------:|
+ * | main           | `index-*.js`            |    169.8 |    170 | 170 |     168.5 |     170 |
+ * | chart          | `SkyDome-*.js`          |     94.2 |    105 | 105 |      94.2 |     110 |
+ * | worker         | `passes.worker-*`       |     36.1 |     40 |  40 |      36.1 |     130 |
+ * | stars          | `Stars-*.js`            |     23.6 | **30** |  40 |         — |      40 |
+ * | astronomy      | `{skyBodies,astronomy}` |     22.6 |     25 |  25 |      22.1 |      30 |
+ * | window         | `SkyWindow-*.js`        |     22.1 | **25** |  15 |      12.8 |       — |
+ * | live           | `Live-*.js`             |      9.6 |     15 |  15 |       9.6 |      40 |
+ * | service worker | `workbox-*.js`          |      5.0 |     10 |  10 |       5.0 |      15 |
+ * | settings       | `Settings-*.js`         |      1.0 |     10 |  10 |       1.0 |       — |
+ *
+ * `stars` comes down from `STARS_BUDGET_KB`, the ceiling the page was allowed,
+ * to the rule's 30. `window` goes up to 25 by the same rule, not slimmed (V24-24):
+ * the star names, the page's label words, the constellation table and the
+ * magnitude format are shared by the two chunks, and Rollup puts what they share
+ * in `SkyWindow-*.js`. `main` is 1,270 bytes over `6cfa699`, past FR-STAR-9's 1 KB;
+ * the release records it rather than trims it (`docs/RELEASE.md` §16.2).
+ *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
  *
@@ -340,9 +363,9 @@ export const BUDGETS: readonly Budget[] = [
   // R115 (D-749, D-759): with the stars page importing `astronomy-engine` too, Rollup puts the library in a chunk of its own beside `skyBodies`; the row matches both and its limit is on their total, so the library is counted once, as before. 22.1 on 6cfa699; 22.6 with the stars page, the functions `skyStars.ts` calls that `skyBodies.ts` does not.
   { name: 'astronomy', match: (file) => /^(skyBodies|astronomy)-.*\.js$/.test(file), limitKb: 25 },
   { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 15 }, // R53: back to the floor — R47 moved the World Magnetic Model to its own chunk and 1.1.0 measures 7.6 (D-178); R72: 8.5 on 1.4.0, the floor's last 1.5 KB; R100: 9.7 on 2.1.0, × 1.1 crosses 10 (D-638)
-  { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 15 }, // R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345); R72: 12.1 on 1.4.0; R80: 12.8 with the compass gutter in it
+  { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 25 }, // R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345); R72: 12.1 on 1.4.0; R80: 12.8 with the compass gutter in it; R118 (D-759 as amended, D-780, D-785): 22.1 on 2.4.0, re-set by D-178's rule (× 1.1 = 24.3, up to 25) — the star names, the page's label words, the constellation table and the magnitude format are shared by the `stars` and `SkyWindow` chunks, and Rollup puts what they share in `SkyWindow-*.js`
   { name: 'settings', match: (file) => /^Settings-.*\.js$/.test(file), limitKb: 10 }, // R93 (D-545): 1.0 measured — the page's own composition; its controls are the home page's and stay in main
-  { name: 'stars', match: (file) => /^Stars-.*\.js$/.test(file), limitKb: 40 }, // R115 (FR-STAR-9, D-759): STARS_BUDGET_KB until the release re-sets it by D-178's rule; the page, the catalogue (18.8, D-763) and the positions
+  { name: 'stars', match: (file) => /^Stars-.*\.js$/.test(file), limitKb: 30 }, // R115 (FR-STAR-9, D-759): the page, the catalogue (18.8, D-763) and the positions, under STARS_BUDGET_KB (40), the ceiling; R118 (D-785): 23.6 on 2.4.0, re-set by D-178's rule (× 1.1 = 26.0, up to 30)
 ];
 
 export interface ChunkSize {
