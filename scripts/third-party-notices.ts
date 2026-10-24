@@ -17,6 +17,10 @@
  *
  * `tests/docs/public.test.ts` re-runs that command and fails when the file and
  * the installed tree disagree, in either direction.
+ *
+ * After the packages comes a fixed data section (`dataNotices`, R112, D-748):
+ * the star catalogue's sources, which ship in the bundle without being
+ * packages. `tests/data/starCatalog.test.ts` holds the file to that list.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -148,8 +152,56 @@ export function collect(): Notice[] {
   return notices.sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version));
 }
 
+/**
+ * The rule that opens the data section. It is not `RULE`, so the package
+ * entries `public.test.ts` splits on `RULE` stay exactly the installed tree.
+ */
+export const DATA_RULE = '='.repeat(76);
+
+/** One data source the bundle carries, as it is written out. */
+export interface DataNotice {
+  name: string;
+  license: string;
+  source: string;
+  /** Where in the repository it is used. */
+  use: string;
+  text: string;
+}
+
+/**
+ * R112 (FR-STAR-1, D-748): the data that ships in the bundle without being a
+ * package. `npm ls` cannot see it, so it is a fixed list, written after the
+ * packages: the star catalogue's three sources (`data-src/stars/README.md`).
+ * The figures' licence is quoted from the file vendored beside them.
+ */
+export function dataNotices(): DataNotice[] {
+  return [
+    {
+      name: 'd3-celestial constellation figures',
+      license: 'BSD-3-Clause',
+      source: 'https://github.com/ofrohn/d3-celestial, data/constellations.lines.json (data-src/stars/d3-celestial-LICENSE.txt)',
+      use: 'src/data/stars/catalog.json, the figures',
+      text: readFileSync(resolve('data-src/stars/d3-celestial-LICENSE.txt'), 'utf8').trim(),
+    },
+    {
+      name: 'Yale Bright Star Catalogue, 5th revised edition',
+      license: 'Public domain',
+      source: 'Hoffleit & Warren (1991), CDS catalogue V/50, https://cdsarc.cds.unistra.fr/ftp/V/50/',
+      use: 'src/data/stars/catalog.json, the stars and their positions, magnitudes and designations',
+      text: 'The catalogue is in the public domain. Hoffleit, D. and Warren, Jr., W.H., The Bright Star Catalogue, 5th Revised Ed. (Preliminary Version), 1991, distributed by the Centre de Données astronomiques de Strasbourg (CDS).',
+    },
+    {
+      name: 'IAU Catalog of Star Names (IAU-CSN)',
+      license: 'CC-BY-4.0',
+      source: 'IAU Division C Working Group on Star Names (WGSN), https://www.iau.org/public/themes/naming_stars/, as listed at https://www.pas.rochester.edu/~emamajek/WGSN/IAU-CSN.txt',
+      use: 'src/data/stars/catalog.json, the proper names',
+      text: 'The star names are the IAU Working Group on Star Names\' (WGSN), released by the International Astronomical Union under the Creative Commons Attribution 4.0 International licence: free to use as long as the source is mentioned. https://creativecommons.org/licenses/by/4.0/',
+    },
+  ];
+}
+
 /** The file, header and all. */
-export function render(notices: Notice[]): string {
+export function render(notices: Notice[], data: DataNotice[] = dataNotices()): string {
   const head = [
     'THIRD-PARTY NOTICES',
     '',
@@ -160,14 +212,16 @@ export function render(notices: Notice[]): string {
     '',
     'The app itself is MIT licensed. See LICENSE at the root of the repository.',
     '',
-    `${String(notices.length)} packages.`,
+    `${String(notices.length)} packages, then ${String(data.length)} data sources.`,
     '',
   ].join('\n');
   const bodies = notices.map(
     (notice) =>
       `${RULE}\n${notice.name}@${notice.version}\nLicence: ${notice.license}\nSource: ${notice.source}\n\n${notice.text}\n`,
   );
-  return `${head}\n${bodies.join('\n')}`;
+  const dataHead = `${DATA_RULE}\nDATA\n\nThe data the bundle carries that is not a package: the star catalogue's sources.\n`;
+  const dataBodies = data.map((entry) => `${DATA_RULE}\n${entry.name}\nLicence: ${entry.license}\nSource: ${entry.source}\nUsed in: ${entry.use}\n\n${entry.text}\n`);
+  return `${head}\n${bodies.join('\n')}\n${dataHead}\n${dataBodies.join('\n')}`;
 }
 
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

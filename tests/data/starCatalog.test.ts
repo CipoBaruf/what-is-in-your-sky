@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { buildStars, gzippedBytes } from '../../scripts/build-stars';
+import { DATA_RULE, dataNotices } from '../../scripts/third-party-notices';
 import { parseStarCatalog, starCatalog } from '../../src/data/stars/catalog';
 import { CONSTELLATION_NAMES, figureName } from '../../src/data/stars/constellations';
 import { STAR_MAG_LIMIT } from '../../src/data/stars/constants';
@@ -94,5 +95,22 @@ describe('the star catalogue', () => {
 
   it('is at most 22 KB gzipped', () => {
     expect(gzippedBytes(text)).toBeLessThanOrEqual(22 * 1024);
+  });
+});
+
+describe("the catalogue's sources in public/third-party-notices.txt (FR-STAR-1, D-748)", () => {
+  const notices = readFileSync(new URL('../../public/third-party-notices.txt', import.meta.url), 'utf8');
+
+  it('credits all three after the packages, each under the data rule', () => {
+    const data = notices.slice(notices.indexOf(`${DATA_RULE}\nDATA\n`));
+    expect(data.length).toBeLessThan(notices.length);
+    for (const entry of dataNotices()) {
+      expect(data, entry.name).toContain(`${DATA_RULE}\n${entry.name}\nLicence: ${entry.license}\n`);
+      expect(data, entry.name).toContain(entry.text);
+    }
+  });
+
+  it("quotes d3-celestial's licence verbatim from the file vendored beside the figures", () => {
+    expect(notices).toContain(readFileSync(new URL('../../data-src/stars/d3-celestial-LICENSE.txt', import.meta.url), 'utf8').trim());
   });
 });
