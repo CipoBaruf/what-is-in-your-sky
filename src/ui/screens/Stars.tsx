@@ -1,4 +1,5 @@
-import { useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
+import { memo, useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { starCatalog } from '../../data/stars/catalog';
 import { useStarsPageT } from '../../i18n/starsPageT';
 import { useT } from '../../i18n/useT';
@@ -6,7 +7,9 @@ import { normalizeAzimuthDeg, type CompassPoint } from '../../lib/compass';
 import { fitBox, RAIL_MIN_CELLS } from '../../lib/layout';
 import { starsAt } from '../../lib/skyStars';
 import type { Observer } from '../../model';
-import { useActiveObserver } from '../../state';
+import { useActiveObserver, useAppStore } from '../../state';
+import { SkyScreen, type SkyScreenProps } from '../components/screen/SkyScreen';
+import { useSkyScreen } from '../components/screen/useSkyScreen';
 import { PITCH_STEP_DEG } from '../components/guide/skychart/dome/camera';
 import { bearingOf, createHandCamera, handRotation, initialHand, STARS_DEFAULT_TILT, STARS_TILT_MAX_DEG, type HandCamera, type HandState } from '../components/guide/skychart/window/camera';
 import { groundState, WINDOW_FOV, type View } from '../components/guide/skychart/window/projection';
@@ -223,6 +226,103 @@ function StarsSky({ observer }: { observer: Observer }) {
 
   const view: View = useMemo(() => ({ fovDeg: WINDOW_FOV, width: box.width, height: box.height, screenAngleDeg: 0 }), [box]);
 
+  /*
+   * FR-STAR-5 (R117, D-756): the way into the sky screen's stars inventory. The tap is FR-WIN-4's — the permission
+   * inside it, one reading with a north before the layer (`useSkyScreen`) — and the store's flag is what says the
+   * layer is up, as on the live page and the pass detail; this page renders it over itself with its own scene, so
+   * the screen carries the layers as the toggles have them and the instant the page is showing (FR-FSC-8).
+   */
+  const entry = useSkyScreen();
+  const screenOpen = useAppStore((s) => s.skyScreen);
+  const closeScreen = useAppStore((s) => s.closeSkyScreen);
+  const windowRefocused = useAppStore((s) => s.windowRefocused);
+  const setWindowNote = useAppStore((s) => s.setWindowNote);
+  /*
+   * FR-FOL-2, FR-WIN-4: the note is the store's one line, which the live page's and the pass detail's taps set too;
+   * this row shows it only after this page's own tap, and leaving takes this page's note with it.
+   */
+  const [asked, setAsked] = useState(false);
+  const storeNote = useAppStore((s) => s.windowNote);
+  const note = asked ? storeNote : null;
+  const { open: openScreen } = entry;
+  const holdUp = useCallback(() => {
+    setAsked(true);
+    openScreen();
+  }, [openScreen]);
+  const holdUpRef = useRef<HTMLButtonElement>(null);
+  /*
+   * FR-FSC-2: `Esc` closes the screen and stops there, before the app's one `keydown` listener (`lib/shortcuts.ts`)
+   * reads the same press as "leave the page" — capture, and `stopPropagation`, as the pass detail does.
+   */
+  useEffect(() => {
+    if (!screenOpen) return;
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeScreen();
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [screenOpen, closeScreen]);
+  /*
+   * FR-FSC-2: leaving the page by any route closes the screen (the shell closes it first on a hash change). The
+   * close's one-shot refocus is this page's to spend and the page is going, so it is spent here rather than left
+   * for the next page to read as its own close; this page's note goes the same way.
+   */
+  const openRef = useRef(screenOpen);
+  const askedRef = useRef(asked);
+  useEffect(() => {
+    openRef.current = screenOpen;
+    askedRef.current = asked;
+  }, [screenOpen, asked]);
+  useEffect(
+    () => () => {
+      if (openRef.current) {
+        closeScreen();
+        windowRefocused();
+      }
+      if (askedRef.current) setWindowNote(null);
+    },
+    [closeScreen, windowRefocused, setWindowNote],
+  );
+  /*
+   * FR-FSC-9: the compact page scrolls the document, so the document is held still under the layer; a drag on the
+   * screen that the layer does not consume moves nothing behind it. The place comes back on this page's own close
+   * (below), not on an unmount, so a route change does not carry this page's offset to the next one.
+   */
+  const heldTop = useRef(0);
+  useEffect(() => {
+    if (!screenOpen) return;
+    const root = document.documentElement;
+    heldTop.current = window.scrollY;
+    const previous = root.style.overflow;
+    root.style.overflow = 'hidden';
+    return () => {
+      root.style.overflow = previous;
+    };
+  }, [screenOpen]);
+  /*
+   * FR-FSC-2 (D-351): a close of the screen this page opened gives the document its place back and the focus to the
+   * control that opened it — or, where the phone has just lost the window (FR-WIN-4), to the box, so focus never
+   * falls to the body. A close somewhere else (the store's flag is global) is not this page's to answer.
+   */
+  const openedHere = useRef(false);
+  useEffect(() => {
+    if (screenOpen) {
+      openedHere.current = true;
+      return;
+    }
+    if (!openedHere.current) return;
+    openedHere.current = false;
+    window.scrollTo({ top: heldTop.current, behavior: 'instant' });
+    const target = holdUpRef.current ?? (skyRef.current && windowBox(skyRef.current));
+    target?.focus({ preventScroll: true });
+    windowRefocused();
+  }, [screenOpen, windowRefocused]);
+
   const facingOptions = useMemo(() => [...FACING_POINTS.map((point) => ({ value: point as Facing, label: point })), { value: 'up' as Facing, label: p.up }], [p.up]);
   const toggle = (key: keyof StarField['layers']) => () => {
     setLayers((was) => ({ ...was, [key]: !was[key] }));
@@ -232,7 +332,11 @@ function StarsSky({ observer }: { observer: Observer }) {
   return (
     <>
       <VisuallyHidden as="h1">{t.stars.heading}</VisuallyHidden>
-      <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE}>
+      {/* FR-FSC-1 (D-321): under the layer the page is out of reach — `inert` for Tab and a tap past it, `aria-hidden`
+          for the accessible tree, as the live page's top row — and held at its last render, so the tick redraws
+          the screen's window and not a second one under it (FR-STAR-9). */}
+      <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE} {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
+        <Held held={screenOpen}>
         {wide && <span className={styles.railProbe} ref={probeRef} aria-hidden="true" />}
         <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky">
           <SkyWindow passes={[]} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} namedStar={named?.index ?? null} onNameStar={onName} />
@@ -261,14 +365,52 @@ function StarsSky({ observer }: { observer: Observer }) {
               </div>
             </div>
           </section>
+          {/* FR-STAR-5: one `--tap` row where FR-WIN-4's presence test passes, and FR-LIVE-8's note beside it after a denial or a phone with no north. */}
+          {(entry.available || note !== null) && (
+            <div className={styles.holdUp} data-testid="stars-hold-up-row">
+              {entry.available && <TextButton label={p.holdUp} onClick={holdUp} ref={holdUpRef} data-testid="stars-hold-up" />}
+              {note !== null && (
+                <p className={styles.note} role="status" data-testid="stars-hold-up-note">
+                  {t.window[note]}
+                </p>
+              )}
+            </div>
+          )}
           <section aria-labelledby={fieldId} className={styles.block}>
             <SectionHeading id={fieldId}>{p.fieldHeading}</SectionHeading>
             <FieldSection camera={camera} catalog={catalog} positions={positions} view={view} layers={layers} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
           </section>
         </div>
+        </Held>
       </div>
+      {/* Portaled to the body as the pass detail's is: a fixed layer, never the child of something that scrolls. The
+          sensor drives it from the hand's facing; the page's hand camera stays as it was for the return. */}
+      {screenOpen && <StarsScreen camera={camera} scene={scene} observer={observer} now={now} sun={sun} moon={moon} onClose={closeScreen} />}
     </>
   );
+}
+
+/**
+ * The page's own parts while the screen covers them: a `memo` that keeps its last render for as long as `held`, so a
+ * tick re-renders the layer's window and leaves this one, the picker and the list as they were until the close.
+ */
+const Held = memo(
+  function Held({ children }: { held: boolean; children: ReactNode }) {
+    return children;
+  },
+  (_previous, next) => next.held,
+);
+
+type StarsScreenProps = Pick<SkyScreenProps, 'observer' | 'now' | 'sun' | 'moon' | 'onClose'> & { camera: HandCamera; scene: SkyScene };
+
+/**
+ * The stars inventory's layer, portaled to the body as the pass detail's is. The sensor drives it from the hand's
+ * facing, read once as the layer mounts — the open — and not on every render; the page's camera stays as it was
+ * for the return.
+ */
+function StarsScreen({ camera, scene, observer, now, sun, moon, onClose }: StarsScreenProps) {
+  const [facingAzDeg] = useState(() => camera.get().azDeg);
+  return createPortal(<SkyScreen inventory="stars" scene={scene} observer={observer} now={now} {...(sun === undefined ? {} : { sun })} {...(moon === undefined ? {} : { moon })} initialFacingAzDeg={facingAzDeg} onClose={onClose} />, document.body);
 }
 
 /** The facing picker: its pressed option is a string read from the camera, so it re-renders only when that changes. */
