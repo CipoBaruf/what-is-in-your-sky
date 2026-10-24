@@ -79,6 +79,7 @@ describe('navigation (D-533)', () => {
   it('takes only the app routes from the browser', () => {
     expect(isRouteHref('#live')).toBe(true);
     expect(isRouteHref('#settings')).toBe(true);
+    expect(isRouteHref('#stars')).toBe(true);
     expect(isRouteHref('#pass=25544-1')).toBe(true);
     expect(isRouteHref('#coords-field')).toBe(false);
     expect(isRouteHref('#')).toBe(false);

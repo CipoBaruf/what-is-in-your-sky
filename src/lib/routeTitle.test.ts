@@ -16,6 +16,11 @@ describe('routeTitle (FR-A11Y-3, D-531)', () => {
     expect(routeTitle('settings', es)).toBe('Ajustes · Qué hay en el cielo ahora mismo');
   });
 
+  it('names the stars page by its heading (R115, FR-STAR-3)', () => {
+    expect(routeTitle('stars', en)).toBe('Stars · What is in your sky right now');
+    expect(routeTitle('stars', es)).toBe('Estrellas · Qué hay en el cielo ahora mismo');
+  });
+
   it('names an open pass by its satellite and start time', () => {
     expect(routeTitle('pass', en, { name: 'ISS (Zarya)', time: '2026-09-11 21:14' })).toBe('ISS (Zarya) 2026-09-11 21:14 · What is in your sky right now');
   });

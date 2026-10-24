@@ -138,7 +138,6 @@
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 1;
   min-height: 0;
   padding: 0 var(--cell);
   background: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);

@@ -59,6 +59,9 @@ import { StatusStrip } from '../../src/ui/components/live/StatusStrip';
 import { LivePage } from '../../src/ui/screens/Live';
 import { VisitNotice } from '../../src/ui/components/common/VisitNotice';
 import { FaintToggle } from '../../src/ui/components/passes/FaintToggle';
+import { STARS_PAGE_CATALOGS } from '../../src/i18n/starsPageT';
+import { StarsPage } from '../../src/ui/screens/Stars';
+import { StarsLine } from '../../src/ui/screens/home/StarsLine';
 import { decorations, rowCells, rowParts } from './cells';
 
 /** FR-COMP-4: a 390 px viewport at the default cell. */
@@ -322,7 +325,35 @@ const rows = (t: Messages): readonly Row[] => [
     }),
   ),
   { name: 'the settings install row (V11-16)', element: createElement(InstallAction, { env: { standalone: undefined } }), find: () => screen.getByTestId('install-action').parentElement as Element, setUp: offerAnInstall },
+  /*
+   * R115 (FR-STAR-3, FR-STAR-10, FR-COMP-4): the stars page's compact rows, from the page itself — the facing picker
+   * (`N NE E SE [S] SW W NW up`, the compact speeds' tight form with no gap, D-245: 32 cells in English, 36 in Spanish with `arriba`), the
+   * layers' two rows of two (`[x] stars [x] figures` 21 and 25; one row of four would be 43 and 51, D-776), and the
+   * When pane's way in at `--small` (`Estrellas esta noche · [ mirá arriba ]`, 38 of its 41).
+   */
+  {
+    name: 'the stars facing row (FR-STAR-3)',
+    element: createElement(StarsPage),
+    find: () => screen.getByRole('group', { name: starsPage(t).facing }),
+    setUp: () => {
+      appStore.setState({ observer });
+    },
+  },
+  ...([0, 1] as const).map(
+    (index): Row => ({
+      name: `the stars layers row ${String(index + 1)} (FR-STAR-3)`,
+      element: createElement(StarsPage),
+      find: () => screen.getAllByTestId('stars-layers-row')[index] as Element,
+      setUp: () => {
+        appStore.setState({ observer });
+      },
+    }),
+  ),
+  { name: 'the When pane’s stars line (FR-STAR-3)', element: createElement(StarsLine), find: () => screen.getByTestId('stars-line'), budget: SMALL_BUDGET },
 ];
+
+/** The stars page's own words for the catalog `rows` was given (they ride in the page's chunk, D-777). */
+const starsPage = (t: Messages) => STARS_PAGE_CATALOGS[t === CATALOGS.es ? 'es' : 'en'];
 
 beforeEach(() => {
   media = stubMatchMedia(COMPACT_PX);

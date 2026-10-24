@@ -195,7 +195,7 @@ function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
   const buried = box.width > 0 && groundState(settled.altDeg, view) === 'buried';
 
   const facing = facingOf(hand.azDeg, hand.altDeg);
-  const facingOptions = useMemo(() => [...FACING_POINTS.map((point) => ({ value: point as Facing, label: point })), { value: 'up' as Facing, label: p.up }], [t]);
+  const facingOptions = useMemo(() => [...FACING_POINTS.map((point) => ({ value: point as Facing, label: point })), { value: 'up' as Facing, label: p.up }], [p.up]);
   const turnTo = (value: Facing): void => {
     if (value === 'up') camera.up();
     else camera.face(value);
@@ -218,7 +218,8 @@ function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
             <SectionHeading id={facingId} visuallyHidden={!wide}>
               {p.facing}
             </SectionHeading>
-            <ToggleGroup<Facing> name={p.facing} mark="bracket" options={facingOptions} value={facing as Facing} onChange={turnTo} className={styles.row} />
+            {/* The compact speeds' form (D-245): `N NE E SE [S] SW W NW up`, each option's reserved brackets its gap — 32 cells in English, 36 in Spanish (FR-COMP-4). */}
+            <ToggleGroup<Facing> name={p.facing} mark="tight" gap="none" options={facingOptions} value={facing as Facing} onChange={turnTo} className={styles.row} />
           </section>
           <section aria-labelledby={layersId} className={styles.block}>
             <SectionHeading id={layersId} visuallyHidden={!wide}>
