@@ -167,6 +167,8 @@ export const COMPASS: readonly { azDeg: number; name: string; major: boolean }[]
 ];
 /** The compass names sit a little above the horizon line. */
 export const NAME_ALT_DEG = 3.5;
+/** How far outside the box a positioned thing is still "in view", so a marker leaves the frame rather than winking out at the edge; the star field's compass boxes use the same rule. */
+export const EDGE_MARGIN_PX = 14;
 
 const fmt1 = (n: number): string => n.toFixed(1);
 

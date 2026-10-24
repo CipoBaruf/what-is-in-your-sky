@@ -261,18 +261,26 @@ export function placeLabels(input: LabelInput): PlacedLabel[] {
     const forms = textWidth(full, FIGURE_NAME_PX) <= x1 - x0 + 2 * cell ? [full, abbr] : [abbr];
     const row = FIGURE_NAME_PX;
     // V24-22: past the three places, the grid over the drawn extent (a place whose box reaches into it), one row by one cell, nearest the centroid first.
-    const search = forms.flatMap((text) => {
-      const w = textWidth(text, FIGURE_NAME_PX);
-      const grid = gridOffsets(cx, cy, { x0: x0 - w / 2, y0: y0 - row / 2, x1: x1 + w / 2, y1: y1 + row / 2 }, cell, row);
-      return [0, -row, row].map((dy) => ({ dx: 0, dy })).concat(grid).map(({ dx, dy }) => ({ text, box: boxAt(cx + dx, cy + dy, w, FIGURE_NAME_PX) }));
-    });
-    const found = search.find((t) => free(t.box));
+    // The extent is clipped to the places whose box fits the field, so a figure reaching far past the edge costs no more than the field.
+    function* search(): Generator<{ text: string; box: Box }> {
+      for (const text of forms) {
+        const w = textWidth(text, FIGURE_NAME_PX);
+        for (const dy of [0, -row, row]) yield { text, box: boxAt(cx, cy + dy, w, FIGURE_NAME_PX) };
+        const extent = { x0: Math.max(x0 - w / 2, w / 2), y0: Math.max(y0 - row / 2, row / 2), x1: Math.min(x1 + w / 2, width - w / 2), y1: Math.min(y1 + row / 2, height - row / 2) };
+        for (const { dx, dy } of gridOffsets(cx, cy, extent, cell, row)) yield { text, box: boxAt(cx + dx, cy + dy, w, FIGURE_NAME_PX) };
+      }
+    }
+    const first = (test: (box: Box) => boolean): { text: string; box: Box } | undefined => {
+      for (const place of search()) if (test(place.box)) return place;
+      return undefined;
+    };
+    const found = first(free);
     if (found) {
       put('figure', f.key, found.text, found.box);
       continue;
     }
     // A figure keeps its name: the first place of the same walk that only star names are in the way of, and those names go, faintest first.
-    const yielding = search.find((t) => inside(t.box) && !fixed.hits(t.box) && placed.every((p) => p.kind === 'star' || !overlaps(p.box, t.box)));
+    const yielding = first((box) => inside(box) && !fixed.hits(box) && placed.every((p) => p.kind === 'star' || !overlaps(p.box, box)));
     if (!yielding) continue;
     const inWay = placed.filter((p) => p.kind === 'star' && overlaps(p.box, yielding.box)).sort((a, b) => (rank.get(b) ?? 0) - (rank.get(a) ?? 0));
     for (const p of inWay) {

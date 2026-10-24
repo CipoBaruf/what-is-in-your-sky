@@ -20,7 +20,7 @@ import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps } from '..
 import { SENSOR_CAMERA } from './camera';
 import { CompassGutter } from './CompassGutter';
 import { gutterMarks, passBearing, turnTo, type GutterMark, type GutterPass } from './gutter';
-import { COMPASS, drawableDeg, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type SkyPoint, type View } from './projection';
+import { COMPASS, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type SkyPoint, type View } from './projection';
 import { nearestQuarter, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
 import { hitTest, HIT_RADIUS_PX, type Point } from './starGlyphs';
@@ -146,8 +146,6 @@ export function placeholderAltDeg(peakElDeg: number | undefined, view: View): nu
 }
 /** The box in jsdom, where nothing can be measured: the compact phone's square. */
 const UNMEASURED = { width: 390, height: 390 };
-/** How far outside the box a positioned thing is still "in view", so a marker leaves the frame rather than winking out at the edge. */
-const EDGE_MARGIN = 14;
 
 // R114 (D-754): `SkyPoint`, `ring`, `HORIZON` and `groundClipPath` are `projection.ts`'s now, shared with the star field.
 const ALT_30 = ring(30, 3);
@@ -173,7 +171,7 @@ function pathFrom(points: readonly Projected[], limitDeg: number): string {
   return d;
 }
 
-const inFrame = (p: Projected, view: View): boolean => p.front && p.x >= -EDGE_MARGIN && p.x <= view.width + EDGE_MARGIN && p.y >= -EDGE_MARGIN && p.y <= view.height + EDGE_MARGIN;
+const inFrame = (p: Projected, view: View): boolean => p.front && p.x >= -EDGE_MARGIN_PX && p.x <= view.width + EDGE_MARGIN_PX && p.y >= -EDGE_MARGIN_PX && p.y <= view.height + EDGE_MARGIN_PX;
 const inBox = (p: Projected, view: View): boolean => p.front && p.x >= 0 && p.x <= view.width && p.y >= 0 && p.y <= view.height;
 
 /**
@@ -421,7 +419,7 @@ export function SkyWindow(props: SkyWindowProps) {
    * unchanged). The camera is the page's store, so a move notifies `useViewRotation` and the page alike, and
    * neither React state nor a callback prop stands in the per-frame path.
    */
-  const dragRef = useRef<{ pointerId: number; x: number; y: number; travel: number } | null>(null);
+  const dragRef = useRef<{ pointerId: number; x: number; y: number; x0: number; y0: number; travel: number } | null>(null);
   const pendingRef = useRef<{ dx: number; dy: number } | null>(null);
   const frameRef = useRef(0);
   const [dragging, setDragging] = useState(false);
@@ -436,7 +434,7 @@ export function SkyWindow(props: SkyWindowProps) {
     if (event.button !== 0 && event.pointerType === 'mouse') return;
     // One finger drags: a second pointer while the first is down is ignored, and so is its lift.
     if (dragRef.current) return;
-    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, travel: 0 };
+    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, x0: event.clientX, y0: event.clientY, travel: 0 };
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
@@ -452,13 +450,15 @@ export function SkyWindow(props: SkyWindowProps) {
    */
   const hitsRef = useRef<readonly (Point | null)[]>([]);
   const [hovered, setHovered] = useState<number | null>(null);
-  const hitAt = (event: PointerEvent<HTMLDivElement>): number | null => {
+  const hitAt = (event: PointerEvent<HTMLDivElement>, clientX = event.clientX, clientY = event.clientY): number | null => {
     const rect = event.currentTarget.getBoundingClientRect();
     const sx = rect.width > 0 ? size.width / rect.width : 1;
     const sy = rect.height > 0 ? size.height / rect.height : 1;
     // The drawing's viewBox is the measured box, the projection's `view`.
-    return hitTest(hitsRef.current, (event.clientX - rect.left) * sx, (event.clientY - rect.top) * sy);
+    return hitTest(hitsRef.current, (clientX - rect.left) * sx, (clientY - rect.top) * sy);
   };
+  // Where a tap can name, the sky holds still until the press travels past the tap's slop, so the marks a tap is tested against are the ones under the press.
+  const tapSlop = scene?.stars && onNameStar ? HIT_RADIUS_PX : 0;
   const onPointerMove = (event: PointerEvent<HTMLDivElement>): void => {
     const active = dragRef.current;
     if (!active && event.pointerType === 'mouse' && scene?.stars) {
@@ -474,6 +474,7 @@ export function SkyWindow(props: SkyWindowProps) {
     active.travel += Math.hypot(dx, dy);
     const pending = pendingRef.current ?? { dx: 0, dy: 0 };
     pendingRef.current = { dx: pending.dx + dx, dy: pending.dy + dy };
+    if (active.travel < tapSlop) return;
     if (!frameRef.current) frameRef.current = requestAnimationFrame(flush);
   };
   const endDrag = (event: PointerEvent<HTMLDivElement>): void => {
@@ -490,8 +491,12 @@ export function SkyWindow(props: SkyWindowProps) {
     const active = dragRef.current;
     const tapped = active?.pointerId === event.pointerId && active.travel < HIT_RADIUS_PX;
     endDrag(event);
-    if (!tapped || !scene?.stars || !onNameStar) return;
-    const hit = hitAt(event);
+    // The hover from before a drag no longer marks what is under the pointer.
+    if (event.pointerType === 'mouse' && hovered !== null) setHovered(null);
+    if (!tapped || !active || !scene?.stars || !onNameStar) return;
+    // A tap's wobble never turned the sky (`tapSlop`): it is dropped, and the press point is tested.
+    pendingRef.current = null;
+    const hit = hitAt(event, active.x0, active.y0);
     onNameStar(hit === namedStar ? null : hit);
   };
   const onPointerLeave = (): void => {

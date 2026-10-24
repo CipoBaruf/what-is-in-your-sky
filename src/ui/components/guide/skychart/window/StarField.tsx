@@ -7,7 +7,7 @@ import { degrees } from '../../../../../lib/format';
 import type { Locale } from '../../../../../model';
 import { formatStarMag } from '../../../../screens/stars/field';
 import { inkMeasured, inkOffset, inkOffsetsReady } from './inkOffsets';
-import { COMPASS, converged, drawableDeg, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, type Mat3, type View } from './projection';
+import { COMPASS, converged, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, type Mat3, type View } from './projection';
 import type { StarField as StarFieldData } from './scene';
 import styles from './SkyWindow.module.css';
 import { collide, COLLISION_PX, planetRungFor, rungFor, SIZE_PX, type ColourToken, type Point, type Rung, type SizeToken, type StarGlyph } from './starGlyphs';
@@ -271,12 +271,27 @@ export function frameOf(rotation: Mat3, view: View, field: StarFieldData, prepar
   const compass: Box[] = [];
   for (const { azDeg, name, major } of COMPASS) {
     const q = project(rotation, azDeg, NAME_ALT_DEG, view);
-    if (!q.front || !inBox(q.x, q.y)) continue;
+    // The window's own rule for a compass name in view (`inFrame`), not the glyphs' margin.
+    if (!q.front || q.x < -EDGE_MARGIN_PX || q.x > view.width + EDGE_MARGIN_PX || q.y < -EDGE_MARGIN_PX || q.y > view.height + EDGE_MARGIN_PX) continue;
     const size = major ? COMPASS_PX.major : COMPASS_PX.minor;
     const w = textWidth(name, size);
     compass.push({ x0: q.x - w / 2, y0: q.y - 0.8 * size, x1: q.x + w / 2, y1: q.y + 0.2 * size });
   }
   return { state, clip, ground, xs, ys, drawn, lines, compass };
+}
+
+/** Which marks and lines a frame draws, as a key: the names are placed again when it changes, however small the move. */
+function drawnKey(frame: FieldFrame): string {
+  let marks = 0;
+  let sum = 0;
+  frame.drawn.forEach((p, k) => {
+    if (!p) return;
+    marks += 1;
+    sum += k;
+  });
+  let lines = 0;
+  for (const line of frame.lines) if (line) lines += 1;
+  return `${frame.state}:${String(marks)}:${String(sum)}:${String(lines)}`;
 }
 
 /** The placement's input for one frame (D-755): the drawn marks and lines, the compass, the labelled object, the star names, the figures. */
@@ -291,6 +306,15 @@ export function labelInput(frame: FieldFrame, view: View, field: StarFieldData, 
     marks.push({ x: p.x, y: p.y, sizePx: sizeOf(prepared, n, k) });
   });
   const segments = frame.lines.filter((line): line is LabelSegment => line !== null);
+  // A labelled star whose glyph the collision hid (a row of `In this field` can name it) is still named, at its own point.
+  if (labelled && layers.stars && !markOf.has(labelled.index)) {
+    const x = frame.xs[labelled.index] ?? Number.NaN;
+    const y = frame.ys[labelled.index] ?? Number.NaN;
+    if ((positions.altDeg[labelled.index] ?? -1) >= 0 && x >= 0 && y >= 0 && x <= view.width && y <= view.height) {
+      markOf.set(labelled.index, marks.length);
+      marks.push({ x, y, sizePx: sizeOf(prepared, n, labelled.index) });
+    }
+  }
   const namedMark = labelled ? markOf.get(labelled.index) : undefined;
   const named: MarkLabel | null = labelled && namedMark !== undefined ? { key: labelled.index, mark: namedMark, text: labelled.text } : null;
   const stars: MarkLabel[] = [];
@@ -441,6 +465,7 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
   useLayoutEffect(() => {
     let nodes: Nodes | null = null;
     let placedAt: Mat3 | null = null;
+    let placedSet = '';
     return subscribe((rotation) => {
       const g = group.current;
       if (!g) return;
@@ -448,9 +473,12 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
       const frame = frameOf(rotation, view, field, prepared);
       drawField(g, nodes, frame, field);
       if (hits) hits.current = frame.drawn;
-      // D-751: the names are placed again only once the rotation has moved past `converged()` since they last were.
-      if (placedAt !== null && converged(placedAt, rotation)) return;
+      // D-751: the names are placed again only once the rotation has moved past `converged()` since they last were,
+      // or the drawn set changed under a smaller move (the ground buried or not, a mark in or out of the box).
+      const drawnSet = drawnKey(frame);
+      if (placedAt !== null && drawnSet === placedSet && converged(placedAt, rotation)) return;
       placedAt = rotation;
+      placedSet = drawnSet;
       drawNames(nodes, frame.state === 'buried' ? null : labelInput(frame, view, field, prepared, labelled !== null && label !== null ? { index: labelled, text: label } : null));
     });
   }, [subscribe, view, field, prepared, labelled, label, hits]);

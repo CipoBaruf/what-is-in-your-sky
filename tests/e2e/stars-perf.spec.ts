@@ -97,6 +97,7 @@ test('with every layer on, a drag draws at ≥ 30 updates/s at the phone width u
   if (!box) throw new Error('the drawing has no box');
   // The names are drawn: a figure's spaced capitals and at least one star's name are in the field.
   await expect(page.locator('[data-figure-name][visibility="visible"]').first()).toBeAttached();
+  await expect(page.locator('[data-star-name][visibility="visible"]').first()).toBeAttached();
 
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: THROTTLE });
