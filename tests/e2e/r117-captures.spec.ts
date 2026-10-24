@@ -18,7 +18,7 @@ const HOLD_UP = { en: 'hold up to the sky', es: 'apuntá al cielo' } as const;
 
 async function starsPage(page: Page, locale: 'en' | 'es', theme: 'dark' | 'night'): Promise<void> {
   await stubCompass(page);
-  await page.clock.install({ time: NINE_DAYS_ON });
+  await page.clock.install({ time: NINE_DAYS_ON - 60_000 });
   await page.clock.pauseAt(NINE_DAYS_ON);
   for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
   await page.addInitScript((prefs: string) => {

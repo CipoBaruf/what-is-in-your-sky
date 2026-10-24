@@ -50,7 +50,8 @@ const asks = (page: Page): Promise<number> => page.evaluate(() => window.__permi
 
 /** A reader with a saved place, every provider refused, on a held clock at the fixture's instant (FR-STAR-8). */
 async function starsPage(page: Page): Promise<void> {
-  await page.clock.install({ time: NINE_DAYS_ON });
+  // Installed a minute early: `pauseAt` the same instant fails once a loaded machine has let the clock run past it.
+  await page.clock.install({ time: NINE_DAYS_ON - 60_000 });
   await page.clock.pauseAt(NINE_DAYS_ON);
   for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
   await page.addInitScript((prefs: string) => {
