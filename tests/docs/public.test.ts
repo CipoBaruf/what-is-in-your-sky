@@ -281,7 +281,7 @@ describe('the stars, named where a reader looks (SPEC §9 Phase 2l, R118)', () =
   });
 
   it('the reading order carries the delivery sections to v2.4 and links the stars spike', () => {
-    expect(built).toContain('§16.9 to §16.22, v1.2 through\nv2.4');
+    expect(built).toMatch(/§16\.9\s+to\s+§16\.22,\s+v1\.2\s+through\s+v2\.4/);
     const relative = all(LINK, built).map((link) => normalize(join('docs', (link[2] ?? '').split('#')[0] ?? '')));
     expect(relative).toContain('docs/stars/FINDINGS.md');
   });

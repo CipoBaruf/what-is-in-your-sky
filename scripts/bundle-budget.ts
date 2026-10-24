@@ -286,27 +286,12 @@ export interface Budget {
  * ceiling itself is not moved.
  *
  * R118 re-sets them on the 2.4.0 build (SPEC §9 Phase 2l; D-759, D-780,
- * D-785), beside `6cfa699`'s (2.3.0, D-742) built on the same machine. **Two
- * budgets move, and main is past FR-STAR-9's allowance.**
- *
- * | chunk          | file                    | measured | budget | was | `6cfa699` | ceiling |
- * |----------------|-------------------------|---------:|-------:|----:|----------:|--------:|
- * | main           | `index-*.js`            |    169.8 |    170 | 170 |     168.5 |     170 |
- * | chart          | `SkyDome-*.js`          |     94.2 |    105 | 105 |      94.2 |     110 |
- * | worker         | `passes.worker-*`       |     36.1 |     40 |  40 |      36.1 |     130 |
- * | stars          | `Stars-*.js`            |     23.6 | **30** |  40 |         — |      40 |
- * | astronomy      | `{skyBodies,astronomy}` |     22.6 |     25 |  25 |      22.1 |      30 |
- * | window         | `SkyWindow-*.js`        |     22.1 | **25** |  15 |      12.8 |       — |
- * | live           | `Live-*.js`             |      9.6 |     15 |  15 |       9.6 |      40 |
- * | service worker | `workbox-*.js`          |      5.0 |     10 |  10 |       5.0 |      15 |
- * | settings       | `Settings-*.js`         |      1.0 |     10 |  10 |       1.0 |       — |
- *
- * `stars` comes down from `STARS_BUDGET_KB`, the ceiling the page was allowed,
- * to the rule's 30. `window` goes up to 25 by the same rule, not slimmed (V24-24):
- * the star names, the page's label words, the constellation table and the
- * magnitude format are shared by the two chunks, and Rollup puts what they share
- * in `SkyWindow-*.js`. `main` is 1,270 bytes over `6cfa699`, past FR-STAR-9's 1 KB;
- * the release records it rather than trims it (`docs/RELEASE.md` §16.2).
+ * D-785), beside `6cfa699`'s (2.3.0, D-742) built on the same machine: `stars`
+ * comes down from `STARS_BUDGET_KB`, the ceiling the page was allowed, to the
+ * rule's 30, and `window` goes up to the rule's 25, not slimmed (V24-24), for
+ * the reason beside its row. The rows below are the one copy of the budgets:
+ * the measured figures beside them are `docs/RELEASE.md` §16.2's table, whose
+ * budget column `tests/docs/accuracy.test.ts` checks against `BUDGETS`.
  *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:

@@ -691,7 +691,7 @@ const REACH: Record<string, Reach> = {
    */
   async stars(page, width, theme, locale) {
     await starsAt(page, width, theme, locale);
-    if (VIEWPORTS[width].width <= 390) await expect(page.getByTestId('stars-hold-up')).toBeVisible();
+    if (isTouch('stars', width)) await expect(page.getByTestId('stars-hold-up')).toBeVisible();
     else await expect(page.getByTestId('field-list').getByRole('button').first()).toBeVisible();
   },
 
@@ -745,12 +745,10 @@ const REACH: Record<string, Reach> = {
 const NOT_ON_THE_NIGHT = /\bUTC\b|Weather unknown|Clima desconocido|cloud forecast|pronóstico de nubes|lose accuracy|pierden precisión/;
 
 /** One test per capture: reach the screen, prove the seed took, wait for a settled frame, shoot the file. */
-function shoot(screen: (typeof SCREENS)[number], touch: boolean): void {
+function shoot(screen: (typeof SCREENS)[number], captures: ReturnType<typeof captureSet>): void {
   const reach = REACH[screen.name];
   if (!reach) throw new Error(`no route to the ${screen.name} screen`);
-  // R73 (FR-FSC-7 as amended): a screen may name fewer variants than there are; `captureSet` applies the
-  // default. R94 (FR-CAP-1): a screen with `view` has each file twice, and the twin is the viewport.
-  for (const { width, theme, locale, view, file } of captureSet().filter((capture) => capture.screen === screen && isTouch(screen.name, capture.width) === touch)) {
+  for (const { width, theme, locale, view, file } of captures) {
     test(`${screen.name} at ${String(width)} px${view ? ' (view)' : ''}, ${theme}, ${locale}`, async ({ page }) => {
       await reach(page, width, theme, locale, view);
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
@@ -763,12 +761,18 @@ function shoot(screen: (typeof SCREENS)[number], touch: boolean): void {
 }
 
 for (const screen of SCREENS) {
+  // R73 (FR-FSC-7 as amended): a screen may name fewer variants than there are; `captureSet` applies the
+  // default. R94 (FR-CAP-1): a screen with `view` has each file twice, and the twin is the viewport.
+  const captures = captureSet().filter((capture) => capture.screen === screen);
+  const touch = captures.filter((capture) => isTouch(screen.name, capture.width));
   // `test.use` is per file or per describe, and touch belongs to the browser context, so the
   // captures that need a touch device are grouped rather than the whole set being given one:
   // every other capture is of the app on the device the reader of that width really has.
-  test.describe(`${screen.name} (a touch device, FR-WIN-4)`, () => {
-    test.use({ hasTouch: true });
-    shoot(screen, true);
-  });
-  shoot(screen, false);
+  if (touch.length > 0) {
+    test.describe(`${screen.name} (a touch device, FR-WIN-4)`, () => {
+      test.use({ hasTouch: true });
+      shoot(screen, touch);
+    });
+  }
+  shoot(screen, captures.filter((capture) => !isTouch(screen.name, capture.width)));
 }

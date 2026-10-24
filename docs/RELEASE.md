@@ -1159,7 +1159,8 @@ files in the tree are R118's local shots (the Mac's), and the 99 files above are
 `npm run bundle:budget` on the branch, gzip level 9, beside `6cfa699` built on the same
 machine. The rows the release re-sets by D-178's rule — measured × 1.1, up to the next 5 KB,
 floored at 10, capped at the ceiling — are `stars` and `window` (D-759 as amended, D-780;
-PLAN D-785):
+PLAN D-785). The budgets themselves are `scripts/bundle-budget.ts`'s rows, the one copy;
+`tests/docs/accuracy.test.ts` checks this table's budget column against them:
 
 | Chunk | gzip KB | Budget KB | `6cfa699` | Change |
 |---|---|---|---|---|
@@ -1167,7 +1168,7 @@ PLAN D-785):
 | chart (`SkyDome`) | 94.2 | 105 | 94.2 | 0 |
 | worker | 36.1 | 40 | 36.1 | 0 |
 | stars | 23.6 | **30** (was 40) | — | new |
-| astronomy (`astronomy` + `skyBodies`) | 21.9 + 0.7 | 25 | 22.1 | +0.5 |
+| astronomy (`astronomy` + `skyBodies`) | 22.6 (21.9 + 0.7) | 25 | 22.1 | +0.5 |
 | window (`SkyWindow`) | 22.1 | **25** (was 15) | 12.8 | +9.3 |
 | live | 9.6 | 15 | 9.6 | 0 |
 | service worker | 5.0 + 1.1 | 10 | 5.0 + 1.1 | 0 |
@@ -1189,9 +1190,15 @@ unchanged.
 - **`main` is 0.24 KB past FR-STAR-9's allowance.** The spec allows the main chunk to grow
   by at most 1 KB over `6cfa699`, for the route and the link; it grew by 1,270 bytes. R115
   measured +923 after moving the page's own words into the `stars` chunk (PLAN D-777); R116
-  and R117 added the rest. The 170 KB budget holds with 0.2 KB to spare. R118 changes
-  nothing under `src/`, so the figure is recorded rather than trimmed (PLAN D-787), as
-  v2.3's 0.4 KB was (§15.2).
+  and R117 added the rest. What v2.4 left in main is the route and its lazy import, the
+  header's `[ stars ]`, the When pane's `Stars tonight · [ look up ]`, the `?` overlay's
+  three rows with their words in both catalogs, and R117's stars inventory in
+  `SkyScreen.tsx`, which main carries because the pass detail opens the screen. The
+  overrun is the When pane's line, the overlay's rows and the inventory, all past "the
+  route and the link". None of it is a cheap lazy import: main draws each of them before
+  the `stars` chunk loads, and the words that only the page draws already moved at R115.
+  The 170 KB budget holds with 0.2 KB to spare. R118 changes nothing under `src/`, so the
+  figure is recorded rather than trimmed (PLAN D-787), as v2.3's 0.4 KB was (§15.2).
 
 - [ ] The release PR carries this table.
 
