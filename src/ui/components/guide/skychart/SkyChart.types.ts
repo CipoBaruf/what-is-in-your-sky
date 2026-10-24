@@ -3,6 +3,7 @@ import type { ArcState } from '../../../../lib/arcReveal';
 import type { LegendRow } from '../../../../lib/legend';
 import type { SunState } from '../../../../lib/skyBodies';
 import type { ChartView, EpochMs, MoonState, Observer, Pass } from '../../../../model';
+import type { SkyScene } from './window/scene';
 
 /**
  * FR-TRAJ-1 / D-189 (R45): a pass with the state its arc is drawn in at the
@@ -190,6 +191,25 @@ export interface SkyChartProps {
    * call it.
    */
   onUnavailable?: (reason: 'denied' | 'relative') => void;
+  /**
+   * FR-STAR-11 / D-750 (R113): the bodies of the instant beyond what the props
+   * above already carry — in this phase the star field, or `null` for none.
+   * Only the window reads it; it draws every layer the scene carries and skips
+   * the ones it does not. Absent, the window is `v2.3.0`'s byte for byte, which
+   * is what the live page and the pass detail still get. The dome and the
+   * polar chart ignore it.
+   */
+  scene?: SkyScene;
+  /**
+   * FR-STAR-7 / D-750 (R113): the index into the scene's catalogue of the star
+   * (or, past the catalogue's length, the planet) the reader named by a tap or
+   * from `In this field`, `null` for none — the list's and the drawing's one
+   * shared selection. The window places the label (R116); the page holds the
+   * value and clears it after `STAR_LABEL_HOLD_S`.
+   */
+  namedStar?: number | null;
+  /** FR-STAR-7: the tap on a mark, or on nothing, asking the holder to set `namedStar`. */
+  onNameStar?: (i: number | null) => void;
   className?: string;
 }
 

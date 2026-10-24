@@ -66,8 +66,14 @@ export interface DeviceOrientationHandle {
   start: () => void;
 }
 
-export function useDeviceOrientation(declinationDeg = 0): DeviceOrientationHandle {
-  const available = useMemo(() => typeof window !== 'undefined' && orientationApiPresent(), []);
+/**
+ * `enabled` (R113, D-750): `false` is a window the hand drives — the stars
+ * page's box — where the sensor is not wanted at all: no listener is armed, no
+ * state moves, and the handle reads as a device without the API. The sensor
+ * path itself is unchanged; the flag only decides whether it runs.
+ */
+export function useDeviceOrientation(declinationDeg = 0, enabled = true): DeviceOrientationHandle {
+  const available = useMemo(() => enabled && typeof window !== 'undefined' && orientationApiPresent(), [enabled]);
   const [needsGesture, setNeedsGesture] = useState(() => available && orientationGestureNeeded());
   // What the toggle's tap left behind, read once at mount: a refusal is the state (no second prompt), a request
   // still in flight is awaited below, and where no gesture is needed at all the listener is armed at once

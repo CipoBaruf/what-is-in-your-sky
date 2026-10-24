@@ -24,6 +24,22 @@
   user-select: none;
 }
 
+/* R113 (FR-STAR-4, D-750): the hand-driven box takes the dome's controls and
+   its cursor; the sensor-driven box is left exactly as it was. */
+.hand {
+  touch-action: none;
+  cursor: grab;
+}
+
+.hand[data-dragging='true'] {
+  cursor: grabbing;
+}
+
+/* R113 (D-751): the star field's group, written outside render; R114 styles what goes in it. */
+.stars {
+  pointer-events: none;
+}
+
 .horizon {
   fill: none;
   stroke: var(--chart-horizon);
