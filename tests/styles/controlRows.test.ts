@@ -327,7 +327,7 @@ const rows = (t: Messages): readonly Row[] => [
   { name: 'the settings install row (V11-16)', element: createElement(InstallAction, { env: { standalone: undefined } }), find: () => screen.getByTestId('install-action').parentElement as Element, setUp: offerAnInstall },
   /*
    * R115 (FR-STAR-3, FR-STAR-10, FR-COMP-4): the stars page's compact rows, from the page itself — the facing picker
-   * (`N NE E SE [S] SW W NW up`, the compact speeds' tight form with no gap, D-245: 32 cells in English, 36 in Spanish with `arriba`), the
+   * (`N NE E SE [S] SW W NW up`, the compact speeds' tight form with a cell between, D-245: 24 cells in English, 28 in Spanish with `arriba`), the
    * layers' two rows of two (`[x] stars [x] figures` 21 and 25; one row of four would be 43 and 51, D-776), and the
    * When pane's way in at `--small` (`Estrellas esta noche · [ mirá arriba ]`, 38 of its 41).
    */

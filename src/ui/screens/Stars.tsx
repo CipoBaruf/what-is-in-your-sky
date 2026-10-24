@@ -218,8 +218,8 @@ function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
             <SectionHeading id={facingId} visuallyHidden={!wide}>
               {p.facing}
             </SectionHeading>
-            {/* The compact speeds' form (D-245): `N NE E SE [S] SW W NW up`, each option's reserved brackets its gap — 32 cells in English, 36 in Spanish (FR-COMP-4). */}
-            <ToggleGroup<Facing> name={p.facing} mark="tight" gap="none" options={facingOptions} value={facing as Facing} onChange={turnTo} className={styles.row} />
+            {/* The compact speeds' form (D-245), a cell between the options: `N NE E SE [S] SW W NW up`, 24 cells in English, 28 in Spanish (FR-COMP-4). */}
+            <ToggleGroup<Facing> name={p.facing} mark="tight" options={facingOptions} value={facing as Facing} onChange={turnTo} className={styles.row} />
           </section>
           <section aria-labelledby={layersId} className={styles.block}>
             <SectionHeading id={layersId} visuallyHidden={!wide}>
