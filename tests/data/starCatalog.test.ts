@@ -26,6 +26,7 @@ describe('the star catalogue', () => {
     expect(built.report.worstSnapDeg).toBeLessThan(SNAP_MAX_DEG);
     expect(built.report.worstSnapDeg).toBeLessThan(0.003); // the spike's 0.0025°
     expect(built.report.nameCollisions).toBe(0);
+    expect(built.report.namesCarried).toBe(2); // Alrescha and Izar, from a double's fainter record to the brighter
     expect(built.report.duplicateSegments).toBe(0);
     for (const f of catalog.figures) {
       const pairs = new Set<string>();
@@ -86,12 +87,14 @@ describe('the star catalogue', () => {
     expect(new Set(records).size).toBe(catalog.size);
     expect(catalog.size - new Set(catalog.desig).size).toBe(6);
     const named = catalog.name.filter((n) => n !== '');
-    expect(named).toHaveLength(287);
+    expect(named).toHaveLength(289);
     expect(new Set(named).size).toBe(named.length);
     for (const n of named) expect(n.trim()).toBe(n);
     for (const n of named) expect(n.length).toBeGreaterThan(0);
     expect(catalog.name).toContain('Polaris');
     expect(catalog.name).toContain('Acrux');
+    expect(catalog.desig[catalog.name.indexOf('Alrescha')]).toBe('Alp Psc');
+    expect(catalog.desig[catalog.name.indexOf('Izar')]).toBe('Eps Boo');
   });
 
   it('has a Latin name for every drawn feature: 88 constellations, 89 names, Serpens in two', () => {

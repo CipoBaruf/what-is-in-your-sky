@@ -75,6 +75,8 @@ export interface BuildReport {
   names: number;
   /** WGSN lines whose HD already had a name: the first name in the file is kept. */
   nameCollisions: number;
+  /** Names whose record is not kept, given to a nameless kept star within `SNAP_MAX_DEG` (a double's other component). */
+  namesCarried: number;
   /** Segments dropped because the figure already drew that pair (either way round). */
   duplicateSegments: number;
   /** Widest distance from a figure's endpoint to the star it snapped to, degrees. */
@@ -221,11 +223,35 @@ export function buildCatalog(bscText: string, iauText: string, linesJson: string
     return k;
   };
 
+  // A WGSN name whose record is not kept (the fainter record of a double, as Alrescha's is) goes to the
+  // nearest kept star within SNAP_MAX_DEG that has no name of its own, in HR order.
+  const nameColumn = kept.map(({ r }) => names.get(r.hd) ?? '');
+  let namesCarried = 0;
+  records.forEach((r, i) => {
+    const name = names.get(r.hd);
+    if (name === undefined || indexOf.has(i)) return;
+    let best = -1;
+    let bestDeg = SNAP_MAX_DEG;
+    kept.forEach(({ r: s }, k) => {
+      if (nameColumn[k] !== '' || Math.abs(s.dec - r.dec) > SNAP_MAX_DEG) return;
+      const d = separationDeg(r.ra, r.dec, s.ra, s.dec);
+      if (d <= bestDeg) {
+        if (d === bestDeg && best >= 0) return;
+        bestDeg = d;
+        best = k;
+      }
+    });
+    if (best >= 0) {
+      nameColumn[best] = name;
+      namesCarried += 1;
+    }
+  });
+
   const catalog: CatalogOut = {
     ra: kept.map(({ r }) => round(r.ra, 3)),
     dec: kept.map(({ r }) => round(r.dec, 3)),
     mag: kept.map(({ r }) => round(r.mag, 2)),
-    name: kept.map(({ r }) => names.get(r.hd) ?? ''),
+    name: nameColumn,
     desig: kept.map(({ r }) => r.desig),
     con: kept.map(({ r }) => r.con),
     figures: snapped.map((f) => ({ con: f.con, part: f.part, segments: f.segments.map(([a, b]) => [at(a), at(b)] as [number, number]) })),
@@ -242,6 +268,7 @@ export function buildCatalog(bscText: string, iauText: string, linesJson: string
       segments: catalog.figures.reduce((n, f) => n + f.segments.length, 0),
       names: catalog.name.filter((n) => n !== '').length,
       nameCollisions,
+      namesCarried,
       duplicateSegments,
       worstSnapDeg,
     },
@@ -276,7 +303,7 @@ if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(
       `stars: ${String(report.stars)} (${String(report.bright)} at V ≤ ${String(STAR_MAG_LIMIT)}, ${String(report.endpointsFainter)} fainter figure endpoints) of ${String(report.records)} records`,
       `figures: ${String(report.figures)} drawn features, ${String(report.segments)} segments, worst snap ${report.worstSnapDeg.toFixed(4)}°`,
       `figures: ${String(report.duplicateSegments)} duplicate segments dropped`,
-      `names: ${String(report.names)} (${String(report.nameCollisions)} WGSN lines on an HD already named, the first kept)`,
+      `names: ${String(report.names)} (${String(report.nameCollisions)} WGSN lines on an HD already named, the first kept; ${String(report.namesCarried)} carried to a double's kept component)`,
       `size: ${kb(Buffer.byteLength(text))} raw, ${kb(gzippedBytes(text))} gzipped`,
     ].join('\n'),
   );
