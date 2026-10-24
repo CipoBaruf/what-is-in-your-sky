@@ -1022,8 +1022,8 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     expect(group).not.toBeNull();
     expect(group).toHaveAttribute('data-stars', '2');
     expect(group).toHaveAttribute('data-planets', '1');
-    // R114 (D-754): the clip, the ground, the figures, the marks and the planets, in that order; what they draw is `SkyWindow.stars.test.tsx`'s.
-    expect([...group.children].map((child) => child.tagName)).toEqual(['defs', 'path', 'g', 'g', 'g']);
+    // R114 (D-754): the clip, the ground, the figures, the marks and the planets, in that order; R116 the names and the label over them. What they draw is `SkyWindow.stars.test.tsx`'s.
+    expect([...group.children].map((child) => child.tagName)).toEqual(['defs', 'path', 'g', 'g', 'g', 'g', 'text']);
     // Under the horizon and the rings: the group comes before the grid in the tree.
     const grid = container.querySelector('[data-horizon]') as Element;
     expect(group.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

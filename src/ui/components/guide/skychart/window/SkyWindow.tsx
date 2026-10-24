@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useStarsPageT } from '../../../../../i18n/starsPageT';
 import { useLocale, useT } from '../../../../../i18n/useT';
 import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
 import { compassPoint } from '../../../../../lib/compass';
@@ -19,10 +20,11 @@ import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps } from '..
 import { SENSOR_CAMERA } from './camera';
 import { CompassGutter } from './CompassGutter';
 import { gutterMarks, passBearing, turnTo, type GutterMark, type GutterPass } from './gutter';
-import { drawableDeg, groundClipPath, groundState, HORIZON, lookDirection, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type SkyPoint, type View } from './projection';
+import { COMPASS, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type SkyPoint, type View } from './projection';
 import { nearestQuarter, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
-import { StarField } from './StarField';
+import { hitTest, HIT_RADIUS_PX, type Point } from './starGlyphs';
+import { namedReadout, StarField } from './StarField';
 import { useViewRotation } from './useViewRotation';
 
 /**
@@ -144,25 +146,12 @@ export function placeholderAltDeg(peakElDeg: number | undefined, view: View): nu
 }
 /** The box in jsdom, where nothing can be measured: the compact phone's square. */
 const UNMEASURED = { width: 390, height: 390 };
-/** How far outside the box a positioned thing is still "in view", so a marker leaves the frame rather than winking out at the edge. */
-const EDGE_MARGIN = 14;
 
 // R114 (D-754): `SkyPoint`, `ring`, `HORIZON` and `groundClipPath` are `projection.ts`'s now, shared with the star field.
 const ALT_30 = ring(30, 3);
 const ALT_60 = ring(60, 4);
 const TICKS = Array.from({ length: 12 }, (_, i) => i * 30);
-const COMPASS: readonly { azDeg: number; name: string; major: boolean }[] = [
-  { azDeg: 0, name: 'N', major: true },
-  { azDeg: 45, name: 'NE', major: false },
-  { azDeg: 90, name: 'E', major: true },
-  { azDeg: 135, name: 'SE', major: false },
-  { azDeg: 180, name: 'S', major: true },
-  { azDeg: 225, name: 'SW', major: false },
-  { azDeg: 270, name: 'W', major: true },
-  { azDeg: 315, name: 'NW', major: false },
-];
-/** The names sit a little above the horizon line. */
-const NAME_ALT_DEG = 3.5;
+// R116: `COMPASS` and `NAME_ALT_DEG` are `projection.ts`'s now, so the star field places its names after the compass.
 
 const fmt = (n: number): string => n.toFixed(1);
 
@@ -182,7 +171,7 @@ function pathFrom(points: readonly Projected[], limitDeg: number): string {
   return d;
 }
 
-const inFrame = (p: Projected, view: View): boolean => p.front && p.x >= -EDGE_MARGIN && p.x <= view.width + EDGE_MARGIN && p.y >= -EDGE_MARGIN && p.y <= view.height + EDGE_MARGIN;
+const inFrame = (p: Projected, view: View): boolean => p.front && p.x >= -EDGE_MARGIN_PX && p.x <= view.width + EDGE_MARGIN_PX && p.y >= -EDGE_MARGIN_PX && p.y <= view.height + EDGE_MARGIN_PX;
 const inBox = (p: Projected, view: View): boolean => p.front && p.x >= 0 && p.x <= view.width && p.y >= 0 && p.y <= view.height;
 
 /**
@@ -373,10 +362,11 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
 }
 
 export function SkyWindow(props: SkyWindowProps) {
-  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, overlay, onUnavailable, scene, camera = SENSOR_CAMERA, inventory = 'passes', className } = props;
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, overlay, onUnavailable, scene, camera = SENSOR_CAMERA, inventory = 'passes', namedStar = null, onNameStar, className } = props;
   // D-323: `screen` reaches `SkyChartProps` with R62 (D-322); read through a cast, so this compiles either side of it.
   const onScreen = (props as SkyChartProps & { screen?: boolean }).screen === true;
   const t = useT();
+  const sp = useStarsPageT();
   const locale = useLocale();
   // R44: the observer's declination, once per observer; the hook folds it into every heading.
   const declinationDeg = useDeclination(observer);
@@ -429,7 +419,7 @@ export function SkyWindow(props: SkyWindowProps) {
    * unchanged). The camera is the page's store, so a move notifies `useViewRotation` and the page alike, and
    * neither React state nor a callback prop stands in the per-frame path.
    */
-  const dragRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
+  const dragRef = useRef<{ pointerId: number; x: number; y: number; x0: number; y0: number; travel: number } | null>(null);
   const pendingRef = useRef<{ dx: number; dy: number } | null>(null);
   const frameRef = useRef(0);
   const [dragging, setDragging] = useState(false);
@@ -444,7 +434,7 @@ export function SkyWindow(props: SkyWindowProps) {
     if (event.button !== 0 && event.pointerType === 'mouse') return;
     // One finger drags: a second pointer while the first is down is ignored, and so is its lift.
     if (dragRef.current) return;
-    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, x0: event.clientX, y0: event.clientY, travel: 0 };
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
@@ -452,16 +442,39 @@ export function SkyWindow(props: SkyWindowProps) {
     }
     setDragging(true);
   };
+  /*
+   * R116 (FR-STAR-7): a tap or a click on the drawing names the glyph `hitTest` finds under it, from the marks the
+   * star field last drew (`hitsRef`); a second tap on the named mark or a tap on nothing clears it. A press is a tap
+   * while it travels less than the hit radius, so a finger's wobble still names; anything longer is a drag. On a
+   * desk the pointer's hover shows the same label while it is over a mark.
+   */
+  const hitsRef = useRef<readonly (Point | null)[]>([]);
+  const [hovered, setHovered] = useState<number | null>(null);
+  const hitAt = (event: PointerEvent<HTMLDivElement>, clientX = event.clientX, clientY = event.clientY): number | null => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const sx = rect.width > 0 ? size.width / rect.width : 1;
+    const sy = rect.height > 0 ? size.height / rect.height : 1;
+    // The drawing's viewBox is the measured box, the projection's `view`.
+    return hitTest(hitsRef.current, (clientX - rect.left) * sx, (clientY - rect.top) * sy);
+  };
+  // Where a tap can name, the sky holds still until the press travels past the tap's slop, so the marks a tap is tested against are the ones under the press.
+  const tapSlop = scene?.stars && onNameStar ? HIT_RADIUS_PX : 0;
   const onPointerMove = (event: PointerEvent<HTMLDivElement>): void => {
     const active = dragRef.current;
+    if (!active && event.pointerType === 'mouse' && scene?.stars) {
+      const over = hitAt(event);
+      if (over !== hovered) setHovered(over);
+    }
     if (!active || active.pointerId !== event.pointerId) return;
     const dx = event.clientX - active.x;
     const dy = event.clientY - active.y;
     if (dx === 0 && dy === 0) return;
     active.x = event.clientX;
     active.y = event.clientY;
+    active.travel += Math.hypot(dx, dy);
     const pending = pendingRef.current ?? { dx: 0, dy: 0 };
     pendingRef.current = { dx: pending.dx + dx, dy: pending.dy + dy };
+    if (active.travel < tapSlop) return;
     if (!frameRef.current) frameRef.current = requestAnimationFrame(flush);
   };
   const endDrag = (event: PointerEvent<HTMLDivElement>): void => {
@@ -473,6 +486,21 @@ export function SkyWindow(props: SkyWindowProps) {
       // see setPointerCapture
     }
     setDragging(false);
+  };
+  const onPointerUp = (event: PointerEvent<HTMLDivElement>): void => {
+    const active = dragRef.current;
+    const tapped = active?.pointerId === event.pointerId && active.travel < HIT_RADIUS_PX;
+    endDrag(event);
+    // The hover from before a drag no longer marks what is under the pointer.
+    if (event.pointerType === 'mouse' && hovered !== null) setHovered(null);
+    if (!tapped || !active || !scene?.stars || !onNameStar) return;
+    // A tap's wobble never turned the sky (`tapSlop`): it is dropped, and the press point is tested.
+    pendingRef.current = null;
+    const hit = hitAt(event, active.x0, active.y0);
+    onNameStar(hit === namedStar ? null : hit);
+  };
+  const onPointerLeave = (): void => {
+    if (hovered !== null) setHovered(null);
   };
   // Capture lost without an up or a cancel reaching the box (the browser released it, the box moved): the drag is over.
   const onLostPointerCapture = (event: PointerEvent<HTMLDivElement>): void => {
@@ -620,9 +648,19 @@ export function SkyWindow(props: SkyWindowProps) {
 
   // `live`: the hand drives (always), or the sensor is on. FR-STAR-4, D-757: the hand points at true bearings and
   // has no declination to name, so its readout is the first line alone.
+  // R116 (FR-STAR-7): under the hand the readout's second line is the named object's, "Canopus · mag −0.7 · 28° up · S".
+  const namedLine = byHand && scene?.stars && namedStar !== null ? namedReadout(scene.stars, namedStar, sp, locale) : null;
   const status = live ? (
     <p className={styles.readout} data-testid="window-readout" {...(byHand ? { id: readoutId } : {})}>
       <span>{t.window.readout({ point: compassPoint(look.azDeg), azimuth: degrees(quantise(look.azDeg)), altitude: degrees(look.altDeg) })}</span>
+      {namedLine !== null && (
+        <>
+          <br />
+          <span className={styles.declination} data-testid="window-named" data-named={namedStar ?? ''}>
+            {namedLine}
+          </span>
+        </>
+      )}
       {!byHand && (
         <>
           <br />
@@ -713,7 +751,8 @@ export function SkyWindow(props: SkyWindowProps) {
                 onKeyDown,
                 onPointerDown,
                 onPointerMove,
-                onPointerUp: endDrag,
+                onPointerUp,
+                onPointerLeave,
                 onPointerCancel: endDrag,
                 onLostPointerCapture,
               }
@@ -737,7 +776,7 @@ export function SkyWindow(props: SkyWindowProps) {
             {/* FR-STAR-11, FR-STAR-6 (D-751): the star field, under the horizon and the rings, mounted only when the scene
                 carries one and kept mounted across the ground states — its nodes exist once, and it hides itself at
                 `buried` by the rotation it is given, not by a remount. */}
-            {scene?.stars && <StarField field={scene.stars} view={view} subscribe={subscribe} />}
+            {scene?.stars && <StarField field={scene.stars} view={view} subscribe={subscribe} labelled={hovered ?? namedStar} hits={hitsRef} />}
             {/* FR-FOL-5: with no sky left in the field there is nothing to draw but the ground. */}
             {ground !== 'buried' && (
               <>

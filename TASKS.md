@@ -3219,7 +3219,7 @@ Decision block (§16.2), reserved in PLAN §16.21: **R111 D-744..D-747**. D-740.
 
 ### Wave 3 (second cut)
 
-- [ ] **R116 — The names and the tap: the placement, spaced figure names, the tap and hover label, the readout's second line, the rate**
+- [x] **R116 — The names and the tap: the placement, spaced figure names, the tap and hover label, the readout's second line, the rate**
   - **Lane:** window
   - **Model:** fable
   - **Review:** opus
@@ -3240,6 +3240,7 @@ Decision block (§16.2), reserved in PLAN §16.21: **R111 D-744..D-747**. D-740.
     - `starLabels.test.ts` and `stars-perf.spec.ts` pass; the Done note carries the rate.
     - Captures under `docs/screenshots/r116/`: Crux over Neuquén and Orion over Paris at 390 and 1280, both themes, with `O R I O N` and `Betelgeuse` both placed and no label on a mark or a line.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+  - **Done (2026-10-24, D-778..D-781; V24-22..V24-24):** `stars-perf.spec.ts` draws **52.2 updates/s** at 4× under a 5 s drag, every layer on, Neuquén facing south, 390 px (51.6 on a second run; gate 30). The owner's decisions after the blocked run: a figure's name searches a grid over its drawn extent before a star name yields (V24-22, FR-STAR-6 and D-755 amended); the Done line is read with `Betelgeuse` required placed at 1280 only — at 390 the rule drops it and a tap names it (V24-23); the `window` row (21.8 KB against 15) is re-set by R118 from the measured build (V24-24, D-759 amended). `starLabels.test.ts` pins Orion over Paris (`O R I O N` at 390 and 1280, `Betelgeuse` at 1280, not at 390) and Crux over Neuquén (`C R U` at both, the cross being narrower than the full name; `C R U X` in a 900 × 640 box), and no label on a mark, a line or another label. Captures: `docs/screenshots/r116/r116-{orion-paris,crux-neuquen}-{390,1280}-{dark,night}.png` (`tests/e2e/r116-captures.spec.ts`, `CAPTURES=1`). `main` 169.7 KB, `stars` 23.6 of 40.
 
 - [x] **R117 — The screen's stars inventory: `[ hold up to the sky ]`, `inventory: 'stars'`, the true-north line**
   - **Lane:** ui

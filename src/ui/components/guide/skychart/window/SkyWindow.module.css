@@ -91,6 +91,29 @@
   fill: var(--chart-planet);
 }
 
+/* R116 (FR-STAR-6 as amended, FR-STAR-7; V24-16, D-755): the names, centred on
+   the box `starLabels` placed them in. A star's name and the named mark's
+   label at the small size in the dim star tone; a figure's name in spaced
+   capitals, a size down and in its own, dimmer tone. */
+.starName,
+.starLabel,
+.figureName {
+  text-anchor: middle;
+  dominant-baseline: central;
+  white-space: pre;
+}
+
+.starName,
+.starLabel {
+  font-size: var(--chart-text-12);
+  fill: var(--chart-star-dim);
+}
+
+.figureName {
+  font-size: var(--chart-text-11);
+  fill: var(--chart-figure-name);
+}
+
 .horizon {
   fill: none;
   stroke: var(--chart-horizon);
