@@ -907,6 +907,33 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     expect(screen.getByTestId('window-readout')).toHaveTextContent('Looking S (170°) · up 40°');
   });
 
+  it('a second finger neither takes the drag nor ends it, and a lost capture ends it', () => {
+    const frame = scriptedFrames();
+    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+    const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} />);
+    const box = container.querySelector('[tabindex="0"]') as HTMLElement;
+    const capture = vi.fn();
+    box.setPointerCapture = capture;
+    box.releasePointerCapture = vi.fn();
+    fireEvent.pointerDown(box, { button: 0, pointerId: 1, pointerType: 'touch', clientX: 100, clientY: 100 });
+    // The second finger is ignored: no capture, and its moves and its lift do nothing.
+    fireEvent.pointerDown(box, { button: 0, pointerId: 2, pointerType: 'touch', clientX: 300, clientY: 300 });
+    expect(capture).toHaveBeenCalledTimes(1);
+    fireEvent.pointerMove(box, { pointerId: 2, clientX: 340, clientY: 300 });
+    fireEvent.pointerUp(box, { pointerId: 2, clientX: 340, clientY: 300 });
+    expect(box).toHaveAttribute('data-dragging', 'true');
+    // The first finger still drags, from where it went down.
+    fireEvent.pointerMove(box, { pointerId: 1, clientX: 140, clientY: 100 });
+    frame();
+    expect(camera.get()).toEqual({ azDeg: 170, altDeg: 35 });
+    // Capture lost with no up or cancel: the drag is over, and a later move of that pointer is nothing.
+    fireEvent.lostPointerCapture(box, { pointerId: 1 });
+    expect(box).toHaveAttribute('data-dragging', 'false');
+    fireEvent.pointerMove(box, { pointerId: 1, clientX: 200, clientY: 100 });
+    frame();
+    expect(camera.get()).toEqual({ azDeg: 170, altDeg: 35 });
+  });
+
   it('the arrow keys step the camera by 15° and 5° while the box has focus, inside the page’s tilt range', () => {
     const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
     const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} />);

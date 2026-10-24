@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useInsertionEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import { handRotation, type HandState, type SkyCamera } from './camera';
 import type { Mat3 } from './projection';
 import { useDeviceOrientation, type DeviceOrientationHandle } from './useDeviceOrientation';
@@ -33,7 +33,7 @@ export type RotationListener = (rotation: Mat3) => void;
 export interface ViewRotation {
   /** The rotation this render draws: the source's, or `fallback` while the sensor has none. */
   rotation: Mat3;
-  /** Whether the source itself gave `rotation` — a reading has arrived, or the hand drives. */
+  /** Whether the source itself gives `rotation` now — the hand drives, or the sensor is `on` (a reading with a north). */
   live: boolean;
   /** One call per rotation the window draws, in the commit that draws it; the current one at once. Returns the unsubscribe. */
   subscribe: (listener: RotationListener) => () => void;
@@ -53,19 +53,30 @@ export function useViewRotation(camera: SkyCamera, declinationDeg: number, fallb
   const sensed = orientation.rotation;
   const rotation = useMemo(() => (hand ? handRotation(hand) : (sensed ?? fallback)), [hand, sensed, fallback]);
 
-  const listeners = useRef(new Set<RotationListener>());
+  // Each listener with the rotation it was last given, so no listener is called twice for one rotation.
+  const listeners = useRef(new Map<RotationListener, Mat3 | null>());
   const current = useRef<Mat3 | null>(null);
-  useLayoutEffect(() => {
+  // The commit's rotation is recorded in the mutation phase, before any layout effect runs: a child that
+  // re-subscribes in its own layout effect (which runs before this component's) is replayed this commit's
+  // rotation, not the last one, and the publish below then skips it — one write, with the child's new props.
+  useInsertionEffect(() => {
     current.current = rotation;
-    for (const listener of [...listeners.current]) listener(rotation);
+  }, [rotation]);
+  useLayoutEffect(() => {
+    for (const [listener, given] of [...listeners.current]) {
+      if (given === rotation || !listeners.current.has(listener)) continue;
+      listeners.current.set(listener, rotation);
+      listener(rotation);
+    }
   }, [rotation]);
   const subscribe = useCallback((listener: RotationListener) => {
-    listeners.current.add(listener);
-    if (current.current) listener(current.current);
+    const now = current.current;
+    listeners.current.set(listener, now);
+    if (now) listener(now);
     return () => {
       listeners.current.delete(listener);
     };
   }, []);
 
-  return { rotation, live: hand !== null || sensed !== null, subscribe, orientation };
+  return { rotation, live: hand !== null || orientation.state === 'on', subscribe, orientation };
 }

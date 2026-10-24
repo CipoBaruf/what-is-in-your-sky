@@ -57,7 +57,7 @@ export function initialHand(latDeg: number): HandState {
   return { azDeg: defaultFacingDeg(latDeg), altDeg: STARS_DEFAULT_TILT };
 }
 
-export function clampTilt(altDeg: number): number {
+export function clampWindowTilt(altDeg: number): number {
   return Math.min(STARS_TILT_MAX_DEG, Math.max(STARS_TILT_MIN_DEG, altDeg));
 }
 
@@ -68,7 +68,7 @@ export function bearingOf(point: CompassPoint): number {
   return COMPASS_POINTS.indexOf(point) * SECTOR_DEG;
 }
 
-const at = (azDeg: number, altDeg: number): HandState => ({ azDeg: normalizeAzimuthDeg(azDeg), altDeg: clampTilt(altDeg) });
+const at = (azDeg: number, altDeg: number): HandState => ({ azDeg: normalizeAzimuthDeg(azDeg), altDeg: clampWindowTilt(altDeg) });
 
 /**
  * A drag by (dx, dy) CSS pixels at `DRAG_PX_PER_DEG`: the sky follows the

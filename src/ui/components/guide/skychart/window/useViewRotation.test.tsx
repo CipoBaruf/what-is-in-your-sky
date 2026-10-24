@@ -6,11 +6,12 @@
  * under the hand.
  */
 import { act, render } from '@testing-library/react';
+import { useLayoutEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHandCamera, SENSOR_CAMERA, type SkyCamera } from './camera';
 import { resetOrientationAccess } from './orientationAccess';
 import { lookDirection, uprightRotation, type Mat3 } from './projection';
-import { useViewRotation, type ViewRotation } from './useViewRotation';
+import { useViewRotation, type RotationListener, type ViewRotation } from './useViewRotation';
 
 const FALLBACK = uprightRotation(45, 20);
 
@@ -176,5 +177,53 @@ describe('useViewRotation', () => {
     expect(listener).toHaveBeenCalledTimes(1);
     expect(last.value?.orientation.state).toBe('idle');
     expect(last.value?.rotation).toEqual(uprightRotation(180, 35));
+  });
+
+  it('a child that re-subscribes in the commit that also changes the rotation is called once, with the new rotation and its new props', () => {
+    const calls: string[] = [];
+    // StarField's shape: a layout effect on the subscribe and a prop (its view), which runs before the parent's publish.
+    function Child({ tag, subscribe }: { tag: string; subscribe: (listener: RotationListener) => () => void }) {
+      useLayoutEffect(
+        () =>
+          subscribe((rotation) => {
+            calls.push(`${tag}:${String(Math.round(lookDirection(rotation).azDeg))}`);
+          }),
+        [subscribe, tag],
+      );
+      return null;
+    }
+    function Parent({ camera, tag }: { camera: SkyCamera; tag: string }) {
+      const { subscribe } = useViewRotation(camera, 0, FALLBACK);
+      return <Child tag={tag} subscribe={subscribe} />;
+    }
+    const { rerender } = render(<Parent camera={createHandCamera({ azDeg: 90, altDeg: 10 })} tag="a" />);
+    expect(calls).toEqual(['a:90']);
+    // The prop and the rotation change in one commit: one call, both new — never the old rotation with the new prop.
+    rerender(<Parent camera={createHandCamera({ azDeg: 180, altDeg: 10 })} tag="b" />);
+    expect(calls).toEqual(['a:90', 'b:180']);
+    // The prop alone: the replay, with the rotation as it is.
+    rerender(<Parent camera={createHandCamera({ azDeg: 180, altDeg: 10 })} tag="c" />);
+    expect(calls).toEqual(['a:90', 'b:180', 'c:180']);
+  });
+
+  it('`live` is the hand, or the sensor while it is on: not before a reading, not on a reading with no north', () => {
+    withPhone();
+    const frame = scriptedFrames();
+    expect(mount(createHandCamera({ azDeg: 0, altDeg: 20 })).last.value?.live).toBe(true);
+    const { last } = mount(SENSOR_CAMERA);
+    expect(last.value?.live).toBe(false);
+    act(() => {
+      window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: 270, beta: 120, gamma: 0, absolute: true }));
+    });
+    frame();
+    expect(last.value?.orientation.state).toBe('on');
+    expect(last.value?.live).toBe(true);
+    act(() => {
+      window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: 270, beta: 120, gamma: 0, absolute: false }));
+    });
+    frame();
+    expect(last.value?.orientation.state).toBe('relative');
+    expect(last.value?.orientation.rotation).not.toBeNull();
+    expect(last.value?.live).toBe(false);
   });
 });

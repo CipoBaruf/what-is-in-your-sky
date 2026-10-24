@@ -3,6 +3,7 @@ import type { ArcState } from '../../../../lib/arcReveal';
 import type { LegendRow } from '../../../../lib/legend';
 import type { SunState } from '../../../../lib/skyBodies';
 import type { ChartView, EpochMs, MoonState, Observer, Pass } from '../../../../model';
+import type { SkyCamera } from './window/camera';
 import type { SkyScene } from './window/scene';
 
 /**
@@ -200,6 +201,13 @@ export interface SkyChartProps {
    * polar chart ignore it.
    */
   scene?: SkyScene;
+  /**
+   * D-750 (R113): what drives the window's rotation. Absent, or
+   * `SENSOR_CAMERA`, the phone's pose through `useDeviceOrientation`; a
+   * `HandCamera`, the page's two numbers, moved by the drag and the keys the
+   * window handles. Only the window reads it; the dome and the polar ignore it.
+   */
+  camera?: SkyCamera;
   /**
    * FR-STAR-7 / D-750 (R113): the index into the scene's catalogue of the star
    * (or, past the catalogue's length, the planet) the reader named by a tap or

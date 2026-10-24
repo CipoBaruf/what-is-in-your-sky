@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { DRAG_PX_PER_DEG, PITCH_MAX_DEG, PITCH_MIN_DEG, PITCH_STEP_DEG, YAW_STEP_DEG } from '../dome/camera';
 import {
   bearingOf,
-  clampTilt,
+  clampWindowTilt,
   createHandCamera,
   defaultFacingDeg,
   dragTo,
@@ -37,9 +37,9 @@ describe('the hand camera (FR-STAR-4)', () => {
     // The page's range is not the dome's [5°, 80°]: it reaches below the horizon and up to the zenith.
     expect(STARS_TILT_MIN_DEG).toBeLessThan(PITCH_MIN_DEG);
     expect(STARS_TILT_MAX_DEG).toBeGreaterThan(PITCH_MAX_DEG);
-    expect(clampTilt(-30)).toBe(STARS_TILT_MIN_DEG);
-    expect(clampTilt(95)).toBe(STARS_TILT_MAX_DEG);
-    expect(clampTilt(12.5)).toBe(12.5);
+    expect(clampWindowTilt(-30)).toBe(STARS_TILT_MIN_DEG);
+    expect(clampWindowTilt(95)).toBe(STARS_TILT_MAX_DEG);
+    expect(clampWindowTilt(12.5)).toBe(12.5);
   });
 
   it('opens on the pole side at 35° (FR-STAR-3)', () => {

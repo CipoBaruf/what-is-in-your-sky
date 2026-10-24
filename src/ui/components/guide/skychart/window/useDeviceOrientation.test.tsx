@@ -16,8 +16,8 @@ import { useDeviceOrientation } from './useDeviceOrientation';
 
 let renders = 0;
 
-function Harness({ declinationDeg = 0 }: { declinationDeg?: number }) {
-  const o = useDeviceOrientation(declinationDeg);
+function Harness({ declinationDeg = 0, enabled = true }: { declinationDeg?: number; enabled?: boolean }) {
+  const o = useDeviceOrientation(declinationDeg, enabled);
   // Commits, counted after each: the rate test's "one update per frame".
   useEffect(() => {
     renders += 1;
@@ -324,5 +324,32 @@ describe('useDeviceOrientation', () => {
       expect(screen.getByTestId('quarter'), `gamma ${String(gamma)}`).toHaveTextContent('90');
     }
     expect(screen.getByTestId('state')).toHaveTextContent('on');
+  });
+
+  it('switching `enabled` on a mounted hook starts over: off disarms and clears the state, on arms again (R113)', () => {
+    const { frame } = scriptedFrames();
+    withPhone();
+    const { rerender } = render(<Harness />);
+    reading({ alpha: 300, beta: 90, gamma: 0, absolute: true });
+    frame();
+    expect(screen.getByTestId('state')).toHaveTextContent('on');
+    rerender(<Harness enabled={false} />);
+    expect(screen.getByTestId('available')).toHaveTextContent('false');
+    expect(screen.getByTestId('state')).toHaveTextContent('idle');
+    expect(screen.getByTestId('look')).toHaveTextContent('none');
+    // No listener is left armed: a reading moves nothing and asks for no frame.
+    const before = renders;
+    reading({ alpha: 270, beta: 90, gamma: 0, absolute: true });
+    frame();
+    expect(renders).toBe(before);
+    expect(screen.getByTestId('state')).toHaveTextContent('idle');
+    expect(screen.getByTestId('look')).toHaveTextContent('none');
+    // Back on: armed as a fresh mount would be (Android, no request), and the next reading turns it on.
+    rerender(<Harness />);
+    expect(screen.getByTestId('available')).toHaveTextContent('true');
+    reading({ alpha: 270, beta: 90, gamma: 0, absolute: true });
+    frame();
+    expect(screen.getByTestId('state')).toHaveTextContent('on');
+    expect(screen.getByTestId('look')).toHaveTextContent('90.0/0.0');
   });
 });
