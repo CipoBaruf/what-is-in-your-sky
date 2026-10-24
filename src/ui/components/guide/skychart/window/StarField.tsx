@@ -152,7 +152,7 @@ const sizeOf = (prepared: Prepared, n: number, k: number): number => SIZE_PX[(k 
  * there is none, or the planet's name in the reader's language — and the
  * magnitude, `Canopus · mag −0.7`.
  */
-export function labelText(field: StarFieldData, k: number, p: StarsPageMessages, locale: Locale): string | null {
+function labelText(field: StarFieldData, k: number, p: StarsPageMessages, locale: Locale): string | null {
   const { catalog, positions } = field;
   const n = catalog.mag.length;
   if (k < n) {

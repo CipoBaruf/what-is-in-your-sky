@@ -39,7 +39,7 @@ export interface Box {
   y1: number;
 }
 
-export interface LabelPoint {
+interface LabelPoint {
   x: number;
   y: number;
 }
@@ -86,7 +86,7 @@ export interface LabelInput {
   figures: readonly FigureLabel[];
 }
 
-export type LabelKind = 'named' | 'star' | 'figure';
+type LabelKind = 'named' | 'star' | 'figure';
 
 /** A placed label: drawn centred on (`x`, `y`) with `text-anchor: middle` and `dominant-baseline: central`. */
 export interface PlacedLabel {
