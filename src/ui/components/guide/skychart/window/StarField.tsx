@@ -103,7 +103,7 @@ const collect = (group: SVGGElement): Nodes => ({
   ground: group.querySelector<SVGPathElement>('[data-ground-fill]'),
   lines: [...group.querySelectorAll<SVGLineElement>('[data-figures] > line')],
   stars: [...group.querySelectorAll<SVGTextElement>('[data-marks] > text')],
-  planets: [...group.querySelectorAll<SVGTextElement>('[data-planets] > text')],
+  planets: [...group.querySelectorAll<SVGTextElement>('[data-planet-marks] > text')],
 });
 
 /** The per-rotation write: everything the field changes outside render goes through here. */
@@ -267,7 +267,7 @@ export const StarField = memo(function StarField({ field, view, subscribe }: Sta
           <Glyph key={i} rung={rung} data-star={i} />
         ))}
       </g>
-      <g data-planets {...hidden(layers.planets)}>
+      <g data-planet-marks {...hidden(layers.planets)}>
         {positions.planets.map((planet, k) => (
           <Glyph key={planet.body} rung={prepared.planetRungs[k] ?? planetRungFor(planet.mag)} data-planet={planet.body} />
         ))}
