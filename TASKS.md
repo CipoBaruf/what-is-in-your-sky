@@ -32,6 +32,8 @@
 | Scope (v2.2.1) | Spec Phase 2j "the Bariloche night": **P7, P8** in the `## v2.2.1 tasks` block below, two tasks, two waves, one lane (`ui`), both on `fable` with an `opus` review, 500 turns and no fallback (V22-19); the recordings first, behind the owner's fixtures commit (PLAN §16.19). |
 | Inputs (v2.3) | `SPEC.md` v2.3, `PLAN.md` v0.10 (Decision Log V23-1..V23-10 and Decisions D-700..D-709, with §16.20 treated as fixed) |
 | Scope (v2.3) | Spec Phase 2k "the design system": **R103–R110** in the `## v2.3 tasks` block below, eight tasks, eight waves of one, every task alone across every lane's directories (PLAN D-709, D-655's rule), on `fable` with an `opus` review, 500 turns and no fallback (D-659); the sheet first, the re-shoot and the release last (PLAN §16.20). |
+| Inputs (v2.4) | `SPEC.md` v2.4, `PLAN.md` v0.11 (Decision Log V24-1..V24-12 and Decisions D-740..D-743 with §16.21 treated as fixed) |
+| Scope (v2.4) | Spec Phase 2l "the stars", first cut: **R111**, the spike, in the `## v2.4 tasks` block below. The rest of the phase is cut from its findings (V24-8, PLAN §16.21). |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |
 
 ## Conventions
@@ -3084,3 +3086,35 @@ graph LR
 ```
 
 **Waves** (the driver recomputes them from `main`; this is the sanity check): **wave 1** R103 — **wave 2** R104 — **wave 3** R105 — **wave 4** R106 — **wave 5** R107 — **wave 6** R108 — **wave 7** R109 — **wave 8** R110. One task per wave, so no file is shared within a wave; every `ui` task has every lane's directories in scope (PLAN D-709).
+
+## v2.4 tasks
+
+Draft, cut 2026-10-23 from `SPEC.md` v2.4 and `PLAN.md` v0.11, for review. Spec Phase 2l, "the stars": a `#stars` page that draws the bright stars, the 88 figures and the five planets in the window, with a hand camera on a desk and one tap to the sky screen on a phone (FR-STAR-1..12). This is the first cut, the spike alone, because its findings fix the catalogue's budget, the render path, the figure source and the glyph sizes before anything else is cut (V24-8, FR-STAR-12). The catalogue and positions, the scene and camera, the page, the screen's stars inventory and the release preparation are appended from R112 by the second cut (PLAN v0.12). No tag or deploy ends this phase (V24-11).
+
+Delivery is PLAN §16 unchanged, cut by §16.21: one task, `interactive`, which the driver lists and never runs.
+
+Decision block (§16.2), reserved in PLAN §16.21: **R111 D-744..D-747**. D-740..D-743 are the plan's.
+
+- [ ] **R111 — The stars spike: the catalogue's size, the rate with 900 glyphs, the render path, the precession path and the ladder, on a phone**
+  - **Lane:** window
+  - **Model:** interactive
+  - **Gate:** owner
+  - **Depends on:** none
+  - **Precondition:** `data-src/stars/README.md`
+  - **Precondition:** `tests/fixtures/stars/README.md`
+  - **Reads:** SPEC §4.46 whole (FR-STAR-1..12), US-38, US-39, §9 Phase 2l, §12 V24-1..V24-12, OQ-39..OQ-42; PLAN §2.39 (D-740..D-743), §8.10, §8.17, §16.21, D-62; `docs/window/FINDINGS.md`; `spike/window/sensors.ts`, `params.ts` and `https.config.ts`; `src/ui/components/guide/skychart/window/projection.ts` and `SkyWindow.tsx`; `data-src/stars/README.md`; `tests/fixtures/stars/README.md`.
+  - **Goal:** The owner reads, on a phone, whether 900 stars drawn as characters hold 30 updates/s, and which render path and glyph sizes the page is built on, with the catalogue's real size behind its budget.
+  - **Satisfies:** FR-STAR-12; resolves OQ-39; sets `STARS_BUDGET_KB`, the render path FR-STAR-9 names, and the ladder's two sizes and collision distance for FR-STAR-6.
+  - **Scope (PLAN §8.17, D-740, D-741):**
+    - `spike/stars/` — `index.html`, `main.tsx` and `params.ts`: one window-shaped field with every knob a URL parameter (`render`, `mark`, `layers`, `mag`, `big`, `small`, `collide`, `source`, `facing`, `tilt`, `fov`, `at`, `site` or `lat`/`lon`), the projection imported from `src/`, the sensor and the rate meter from `spike/window/sensors.ts`, the positions from `astronomy-engine`'s `Rotation_EQJ_HOR`.
+    - `catalog.ts` (counts, the worst snap distance, sizes raw and gzipped as objects and as columns, output under `.sdd-cache/spike-stars/`), `perf.ts` (D-62's method for the four `render` × `mark` combinations), `precession.ts` (the worst separation per fixture site), `capture.ts` (Crux over Neuquén and Orion over Paris at 390 × 844 and 1280 × 800, the default ladder and two alternatives on each side, into `docs/stars/captures/`).
+    - `package.json`: `spike:stars` (the window spike's HTTPS server, the page at `/spike/stars/`) and `spike:stars:measure` (the four scripts).
+    - `docs/stars/FINDINGS.md`: the five answers of PLAN D-741, each with a number or a capture behind it, and the owner's picks.
+  - **Touches outside the lane:** `package.json` (two scripts).
+  - **Out of scope:** any file under `src/`; any test in `npm test`; the catalogue build step and `catalog.json` (the second cut's first task).
+  - **Done when:**
+    - `docs/stars/FINDINGS.md` exists on `main` with OQ-39's source, `STARS_BUDGET_KB` and the encoding, the render path with the phone's and the proxy's rates for all four combinations, the precession path's worst error, and the two sizes and the collision distance the owner picked, each backed by a number or a capture.
+    - The owner has held the phone up to the sky with the spike open and seen Crux or the Plough where another app puts it.
+  - **How it runs:** the owner opens a session in this checkout and drives the spike with the phone on the local network (`npm run spike:stars`, then `https://<this machine's LAN address>:5173/spike/stars/`). The driver lists the task and never runs it.
+
+Waves (for the sanity check): **wave 1** R111.
