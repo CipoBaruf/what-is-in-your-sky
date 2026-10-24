@@ -285,6 +285,14 @@ export interface Budget {
  * remedy (zod or the guide out of `main`, D-609) is still the way down. The
  * ceiling itself is not moved.
  *
+ * R118 re-sets them on the 2.4.0 build (SPEC §9 Phase 2l; D-759, D-780,
+ * D-785), beside `6cfa699`'s (2.3.0, D-742) built on the same machine: `stars`
+ * comes down from `STARS_BUDGET_KB`, the ceiling the page was allowed, to the
+ * rule's 30, and `window` goes up to the rule's 25, not slimmed (V24-24), for
+ * the reason beside its row. The rows below are the one copy of the budgets:
+ * the measured figures beside them are `docs/RELEASE.md` §16.2's table, whose
+ * budget column `tests/docs/accuracy.test.ts` checks against `BUDGETS`.
+ *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
  *
@@ -340,9 +348,9 @@ export const BUDGETS: readonly Budget[] = [
   // R115 (D-749, D-759): with the stars page importing `astronomy-engine` too, Rollup puts the library in a chunk of its own beside `skyBodies`; the row matches both and its limit is on their total, so the library is counted once, as before. 22.1 on 6cfa699; 22.6 with the stars page, the functions `skyStars.ts` calls that `skyBodies.ts` does not.
   { name: 'astronomy', match: (file) => /^(skyBodies|astronomy)-.*\.js$/.test(file), limitKb: 25 },
   { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 15 }, // R53: back to the floor — R47 moved the World Magnetic Model to its own chunk and 1.1.0 measures 7.6 (D-178); R72: 8.5 on 1.4.0, the floor's last 1.5 KB; R100: 9.7 on 2.1.0, × 1.1 crosses 10 (D-638)
-  { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 15 }, // R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345); R72: 12.1 on 1.4.0; R80: 12.8 with the compass gutter in it
+  { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 25 }, // R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345); R72: 12.1 on 1.4.0; R80: 12.8 with the compass gutter in it; R118 (D-759 as amended, D-780, D-785): 22.1 on 2.4.0, re-set by D-178's rule (× 1.1 = 24.3, up to 25) — the star names, the page's label words, the constellation table and the magnitude format are shared by the `stars` and `SkyWindow` chunks, and Rollup puts what they share in `SkyWindow-*.js`
   { name: 'settings', match: (file) => /^Settings-.*\.js$/.test(file), limitKb: 10 }, // R93 (D-545): 1.0 measured — the page's own composition; its controls are the home page's and stay in main
-  { name: 'stars', match: (file) => /^Stars-.*\.js$/.test(file), limitKb: 40 }, // R115 (FR-STAR-9, D-759): STARS_BUDGET_KB until the release re-sets it by D-178's rule; the page, the catalogue (18.8, D-763) and the positions
+  { name: 'stars', match: (file) => /^Stars-.*\.js$/.test(file), limitKb: 30 }, // R115 (FR-STAR-9, D-759): the page, the catalogue (18.8, D-763) and the positions, under STARS_BUDGET_KB (40), the ceiling; R118 (D-785): 23.6 on 2.4.0, re-set by D-178's rule (× 1.1 = 26.0, up to 30)
 ];
 
 export interface ChunkSize {

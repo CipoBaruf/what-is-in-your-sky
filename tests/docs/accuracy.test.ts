@@ -22,6 +22,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, dirname } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { BUDGETS } from '../../scripts/bundle-budget';
 
 /** The four skills, read from the directory so a fifth is covered the day it lands. */
 const SKILLS = readdirSync('.claude/skills', { withFileTypes: true })
@@ -211,6 +212,19 @@ describe('the reading order (FR-SHOW-2, FR-SHOW-3, D-650)', () => {
 describe('the version (FR-SHOW-1)', () => {
   it('the release checklist knows the version package.json carries', () => {
     expect(release).toContain(`\`package.json\` is \`${pkg.version}\``);
+  });
+});
+
+describe('the release budget table (FR-STAR-9, D-759, R118)', () => {
+  it("§16.2's budget column is the script's rows, one row each and no other", () => {
+    const budget = section(release, '16. v2.4').split('### 16.2')[1]?.split('### 16.3')[0] ?? '';
+    const rows = budget
+      .split('\n')
+      .filter((line) => line.startsWith('| ') && !line.startsWith('| Chunk'))
+      .map((line) => line.split('|').map((cell) => cell.trim()));
+    const table = rows.map((cells) => ({ name: (cells[1] ?? '').replace(/\s*\(.*$/, ''), limitKb: Number(/\d+/.exec(cells[3] ?? '')?.[0]) }));
+    expect(table).toEqual(expect.arrayContaining(BUDGETS.map(({ name, limitKb }) => ({ name, limitKb }))));
+    expect(table).toHaveLength(BUDGETS.length);
   });
 });
 

@@ -3266,7 +3266,7 @@ Decision block (§16.2), reserved in PLAN §16.21: **R111 D-744..D-747**. D-740.
 
 ### Wave 4 (second cut)
 
-- [ ] **R118 — The capture set and the release preparation: the stars files, the diff against `6cfa699`, `2.4.0`, `docs/RELEASE.md` §16, no tag**
+- [x] **R118 — The capture set and the release preparation: the stars files, the diff against `6cfa699`, `2.4.0`, `docs/RELEASE.md` §16, no tag**
   - **Lane:** docs
   - **Model:** opus
   - **Review:** opus
@@ -3286,6 +3286,7 @@ Decision block (§16.2), reserved in PLAN §16.21: **R111 D-744..D-747**. D-740.
   - **Done when:**
     - `npx vitest run tests/docs` passes; `npm test`, lint, typecheck and `npm run e2e` green.
     - The Done note carries the `captures.yml` run ids, the diff list and the release SHA to tag at v2.5 (the squash merge, read from `main`).
+  - **Done (2026-10-24, D-785..D-787):** the set is **274 files**: `v1-stars-{360,390,1280,1920}` (16; 360 is FR-CAP-2's column, D-786) and `v1-stars-screen-844` (4), both themes and both languages, two local runs byte-identical. **The diff against `6cfa699`**, both commits shot on one Mac by this branch's spec off plain builds (D-787): 155 of 254 byte-identical, 99 differ, all on four lists — the header's `[ stars ]` (48: `home-{1024,1280,1920}` and `-view`, `guide-{1024,1280}`, `favourites`/`location`/`polar`/`settings-1280`), the When pane's `Stars tonight · [ look up ]` (24: `home-{360,390,768}` and `-view`), the `?` overlay's `s` and the page's two keys (12: `shortcuts-*`), F-99's noise (15, ≤ 6 px at Δ ≤ 2); every `live-*`, `window` and `sky-screen-*` file identical. So "none changed" is read as "nothing but what FR-STAR-3 and FR-DESK-4 moved". The shortcuts route had failed since R115 (it counted 8 keys; 11 now). **`captures.yml` runs** (Linux, D-732, dispatched on the branch at `c1a7838`): **40106274669**, green, 274 files — its artefact is the committed set (the 20 `v1-stars-*` files replace the Mac's; against `6cfa699` it differs in the 84 phase files and 15 F-99 files); **40106522515**, same commit, agrees on 253 of 274 and all four design captures, the 21 others sub-pixel (≤ 18 px). **Budget** (gzip, beside `6cfa699` on the same machine): main 169.8 (+1,270 bytes, 0.24 KB past FR-STAR-9's 1 KB: the When pane's line, the `?` overlay's three rows and R117's stars inventory in `SkyScreen.tsx`, all drawn by main before the `stars` chunk loads, so no cheap lazy import trims it; recorded, §16.2 and §16.4), `stars` 23.6 → budget 30 (was 40), `window` 22.1 → budget 25 (was 15; the reason beside the row), astronomy 22.6 (+0.5), the rest unmoved. `package.json` and the lock read 2.4.0; the README's first screen and the reading order name the stars (`tests/docs/public.test.ts`). **The release SHA** is the squash merge of this PR on `main` — unknowable on the branch — so read it from the merge: v2.5 tags that commit as `v2.4.0`'s reference (D-742), and §16.5 says where to read it. No tag, no `release` push.
 
 
 ### Requirement coverage (v2.4, second cut)

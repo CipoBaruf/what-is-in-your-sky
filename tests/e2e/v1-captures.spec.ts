@@ -137,7 +137,14 @@ async function settled(page: Page): Promise<void> {
  * touch panel. Playwright grants touch per context, so these tests need a
  * `test.use` of their own and the rest of the set must not have it.
  */
-const TOUCH = new Set(['window', 'sky-screen-sky', 'sky-screen-chip', 'sky-screen-ground', 'sky-screen-buried', 'sky-screen-portrait', 'sky-screen-turned']);
+const TOUCH = new Set(['window', 'sky-screen-sky', 'sky-screen-chip', 'sky-screen-ground', 'sky-screen-buried', 'sky-screen-portrait', 'sky-screen-turned', 'stars-screen']);
+
+/**
+ * R118 (FR-STAR-3, FR-WIN-4 as amended): the stars page is shot on the device each width's reader has —
+ * a touch phone at 360 and 390, where `[ hold up to the sky ]` is on the page, and a desk without touch at
+ * 1280 and 1920, where it is not. So touch is a property of the capture, not only of the screen.
+ */
+const isTouch = (screen: string, width: CaptureWidth): boolean => TOUCH.has(screen) || (screen === 'stars' && VIEWPORTS[width].width <= 390);
 
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
@@ -399,6 +406,35 @@ async function whereDomeDrawn(page: Page, drawn: boolean): Promise<void> {
     .toBeGreaterThan(0);
 }
 
+/**
+ * R118 (FR-STAR-3, FR-STAR-8; D-786): the `#stars` page, settled, at `CLOCK`. Reached the way `liveAt`
+ * reaches the live page — the home first, the search let finish, then the hash — so nothing the
+ * background run streams in can change the document between the two ticks `settled` reads. The page
+ * draws the catalogue and the clock (FR-STAR-8), so what it waits for is its own: the lazy chunk's and
+ * the window's Suspense reveals, which the paused clock holds (R32), and a star in the field. Then the
+ * instant is put back on `CLOCK` (F-48), since the positions move with it.
+ */
+async function starsAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale): Promise<void> {
+  await open(page, width, { locale, theme, observer: BARILOCHE });
+  await page.goto('/');
+  await listSettled(page);
+  await page.evaluate(() => {
+    location.hash = '#stars';
+  });
+  const sky = page.getByTestId('stars-sky');
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(500);
+      return sky.locator('[data-drawing="window"] [data-star]:not([visibility="hidden"])').count();
+    }, { timeout: 30_000 })
+    .toBeGreaterThan(0);
+  await pinnedAt(page, CLOCK);
+  // The opening facing is the pole side, which over Bariloche is south, 35° up (FR-STAR-3).
+  await expect(page.getByTestId('stars-page')).toHaveAttribute('data-look-az', '180');
+  await expect(page.getByTestId('stars-page')).toHaveAttribute('data-look-alt', '35');
+  await page.mouse.move(0, 0);
+}
+
 type Reach = (page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view: boolean) => Promise<void>;
 
 /** Every screen's route to itself, by the name it carries in `captureSet.ts`. */
@@ -589,7 +625,8 @@ const REACH: Record<string, Reach> = {
     await page.keyboard.press('?');
     const overlay = page.getByTestId('shortcuts-overlay');
     await expect(overlay).toBeVisible();
-    await expect(overlay.locator('kbd')).toHaveCount(8);
+    // R115 (FR-DESK-4 as amended v2.4): `s` for the stars page and that page's two key rows, 8 → 11.
+    await expect(overlay.locator('kbd')).toHaveCount(11);
     await expect(page.getByRole('main')).toHaveAttribute('inert', '');
   },
 
@@ -647,6 +684,57 @@ const REACH: Record<string, Reach> = {
   async 'sky-screen-turned'(page, width, theme, locale) {
     await followScreen(page, width, theme, locale, 'turned');
   },
+
+  /**
+   * R118 (FR-STAR-3, D-786): the page as it opens. A touch phone at 360 and 390 has `[ hold up to the sky ]`
+   * on it (FR-WIN-4); a desk has the rail and `In this field` beside the box.
+   */
+  async stars(page, width, theme, locale) {
+    await starsAt(page, width, theme, locale);
+    if (isTouch('stars', width)) await expect(page.getByTestId('stars-hold-up')).toBeVisible();
+    else await expect(page.getByTestId('field-list').getByRole('button').first()).toBeVisible();
+  },
+
+  /**
+   * R118 (FR-STAR-5, D-786): the sky screen in the stars inventory, opened by the page's own control on a phone
+   * held sideways — the tap, then the reading with a north in it that the layer opens on (D-350) — and aimed
+   * south, 35° up, the facing the page opened on, so the screen is the page's sky held up.
+   */
+  async 'stars-screen'(page, width, theme, locale) {
+    await stubCompass(page);
+    await starsAt(page, width, theme, locale);
+    await page.getByTestId('stars-hold-up').click();
+    await expect
+      .poll(
+        async () => {
+          await heading(page, 270);
+          return page.getByTestId('sky-screen').count();
+        },
+        { timeout: 15_000 },
+      )
+      .toBe(1);
+    // The paused clock holds the lazy chunk's Suspense reveal (R32).
+    await page.clock.runFor(1000);
+    const layer = page.getByTestId('sky-screen');
+    await expect(layer).toHaveAttribute('data-inventory', 'stars');
+    // The window's own listener mounts with the chunk, so the reading is repeated until it has had one (R73).
+    await expect
+      .poll(
+        async () => {
+          await point(page, 180, 35);
+          return layer.getByTestId('window-readout').count();
+        },
+        { timeout: 15_000 },
+      )
+      .toBe(1);
+    await settle(page);
+    await pinnedAt(page, CLOCK);
+    await expect(layer.locator('[data-look-az]')).toHaveAttribute('data-ground', 'sky');
+    await expect(layer.locator('[data-drawing="window"] [data-star]:not([visibility="hidden"])').first()).toBeAttached();
+    await expect(layer.getByTestId('window-heading')).toBeVisible();
+    await expect(layer.locator('[data-pass-id]')).toHaveCount(0);
+    await page.mouse.move(0, 0);
+  },
 };
 
 /**
@@ -657,12 +745,10 @@ const REACH: Record<string, Reach> = {
 const NOT_ON_THE_NIGHT = /\bUTC\b|Weather unknown|Clima desconocido|cloud forecast|pronóstico de nubes|lose accuracy|pierden precisión/;
 
 /** One test per capture: reach the screen, prove the seed took, wait for a settled frame, shoot the file. */
-function shoot(screen: (typeof SCREENS)[number]): void {
+function shoot(screen: (typeof SCREENS)[number], captures: ReturnType<typeof captureSet>): void {
   const reach = REACH[screen.name];
   if (!reach) throw new Error(`no route to the ${screen.name} screen`);
-  // R73 (FR-FSC-7 as amended): a screen may name fewer variants than there are; `captureSet` applies the
-  // default. R94 (FR-CAP-1): a screen with `view` has each file twice, and the twin is the viewport.
-  for (const { width, theme, locale, view, file } of captureSet().filter((capture) => capture.screen === screen)) {
+  for (const { width, theme, locale, view, file } of captures) {
     test(`${screen.name} at ${String(width)} px${view ? ' (view)' : ''}, ${theme}, ${locale}`, async ({ page }) => {
       await reach(page, width, theme, locale, view);
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
@@ -675,15 +761,18 @@ function shoot(screen: (typeof SCREENS)[number]): void {
 }
 
 for (const screen of SCREENS) {
-  if (TOUCH.has(screen.name)) {
-    // `test.use` is per file or per describe, and touch belongs to the browser context, so the
-    // screens that need a touch device are grouped rather than the whole set being given one:
-    // every other capture is of the app on the device the reader of that width really has.
+  // R73 (FR-FSC-7 as amended): a screen may name fewer variants than there are; `captureSet` applies the
+  // default. R94 (FR-CAP-1): a screen with `view` has each file twice, and the twin is the viewport.
+  const captures = captureSet().filter((capture) => capture.screen === screen);
+  const touch = captures.filter((capture) => isTouch(screen.name, capture.width));
+  // `test.use` is per file or per describe, and touch belongs to the browser context, so the
+  // captures that need a touch device are grouped rather than the whole set being given one:
+  // every other capture is of the app on the device the reader of that width really has.
+  if (touch.length > 0) {
     test.describe(`${screen.name} (a touch device, FR-WIN-4)`, () => {
       test.use({ hasTouch: true });
-      shoot(screen);
+      shoot(screen, touch);
     });
-  } else {
-    shoot(screen);
   }
+  shoot(screen, captures.filter((capture) => !isTouch(screen.name, capture.width)));
 }
