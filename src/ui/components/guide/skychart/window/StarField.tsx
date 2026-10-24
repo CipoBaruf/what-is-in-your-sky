@@ -2,7 +2,7 @@ import { memo, useLayoutEffect, useRef } from 'react';
 import { groundState, lookDirection, type Mat3, type View } from './projection';
 import type { StarField as StarFieldData } from './scene';
 import styles from './SkyWindow.module.css';
-import type { ViewRotation } from './useViewRotation';
+import type { RotationListener } from './useViewRotation';
 
 /**
  * R113 (FR-STAR-9 as amended, FR-STAR-11; PLAN D-751, D-744): the star field's
@@ -23,11 +23,12 @@ import type { ViewRotation } from './useViewRotation';
 export interface StarFieldProps {
   field: StarFieldData;
   view: View;
-  subscribe: ViewRotation['subscribe'];
+  /** `useViewRotation`'s channel: one call per rotation the window draws, in the commit that draws it. */
+  subscribe: (listener: RotationListener) => () => void;
 }
 
 /** The per-rotation write: everything the field changes outside render goes through here (R114 fills it). */
-export function drawField(group: SVGGElement, rotation: Mat3, view: View): void {
+function drawField(group: SVGGElement, rotation: Mat3, view: View): void {
   group.setAttribute('visibility', groundState(lookDirection(rotation).altDeg, view) === 'buried' ? 'hidden' : 'visible');
 }
 

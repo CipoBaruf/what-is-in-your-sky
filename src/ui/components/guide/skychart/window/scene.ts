@@ -13,8 +13,15 @@
  * shown instant and the window only projects it (FR-STAR-2, FR-LIVE-10).
  */
 
+/*
+ * Only `StarField` and `SkyScene` are exported: the parts are reached through
+ * them (`StarField['catalog']`) until a task imports one by name — the
+ * dead-export check (D-647) would otherwise fail on what is, for now, a
+ * contract and not a dependency.
+ */
+
 /** One figure, as the catalogue stores it (D-748): the segments are index pairs into the star columns. */
-export interface StarFigure {
+interface StarFigure {
   /** The IAU abbreviation, `Ori`, `Cru`; `Ser` appears twice with its two parts. */
   con: string;
   /** `""` for a whole constellation; `Caput` or `Cauda` for the halves of Serpens. */
@@ -27,7 +34,7 @@ export interface StarFigure {
  * (D-748). `ArrayLike<number>` admits the typed arrays the reader returns and
  * the plain arrays a test writes by hand.
  */
-export interface StarCatalog {
+interface StarCatalog {
   /** J2000 right ascension, degrees. */
   ra: ArrayLike<number>;
   /** J2000 declination, degrees. */
@@ -44,7 +51,7 @@ export interface StarCatalog {
 }
 
 /** One planet at the shown instant (D-749): where it is and how bright, the library's at that tick. */
-export interface PlanetPosition {
+interface PlanetPosition {
   body: 'Mercury' | 'Venus' | 'Mars' | 'Jupiter' | 'Saturn';
   azDeg: number;
   altDeg: number;
@@ -52,14 +59,14 @@ export interface PlanetPosition {
 }
 
 /** Every star's place at the shown instant, in catalogue order (D-749): one rotation applied to every J2000 vector, no refraction. */
-export interface StarPositions {
+interface StarPositions {
   altDeg: ArrayLike<number>;
   azDeg: ArrayLike<number>;
   planets: readonly PlanetPosition[];
 }
 
 /** FR-STAR-3's four layer switches, as the page's toggles hold them. */
-export interface StarLayers {
+interface StarLayers {
   stars: boolean;
   figures: boolean;
   planets: boolean;

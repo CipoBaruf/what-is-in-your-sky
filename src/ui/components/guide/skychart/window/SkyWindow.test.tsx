@@ -23,11 +23,14 @@ import { appStore } from '../../../../../state';
 import { ScreenTurnProvider } from '../../../screen/screenTurn';
 import { SkyChart } from '../SkyChart';
 import type { HiddenMarker } from '../SkyChart.types';
+import { createHandCamera, SENSOR_CAMERA } from './camera';
 import { requestOrientationAccess, resetOrientationAccess } from './orientationAccess';
 import { turnTo } from './gutter';
 import * as projection from './projection';
+import type { StarField as StarFieldData } from './scene';
 import type { Quarter } from './screenTurn';
 import { placeholderAltDeg, SkyWindow } from './SkyWindow';
+import { StarField } from './StarField';
 
 const pass = goldenPassFixture();
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
@@ -812,6 +815,200 @@ describe('<SkyWindow>', () => {
  * rule is read rather than measured, as `SkyScreen.test.tsx` reads the
  * layer's own two.
  */
+/** A two-star field with one figure, in the catalogue's columns (D-748, D-749), as the stars page would hand it. */
+const field: StarFieldData = {
+  catalog: { ra: [88.8, 78.6], dec: [7.4, -8.2], mag: [0.5, 0.18], name: ['Betelgeuse', 'Rigel'], desig: ['α Ori', 'β Ori'], con: ['Ori', 'Ori'], figures: [{ con: 'Ori', part: '', segments: [[0, 1]] }] },
+  positions: { altDeg: [40, 30], azDeg: [180, 190], planets: [{ body: 'Jupiter', azDeg: 200, altDeg: 50, mag: -2.3 }] },
+  layers: { stars: true, figures: true, planets: true, names: false },
+};
+
+/** Where `uprightRotation(az, alt)` looks, rounded as the wrapper's attributes are. */
+const looks = (azDeg: number, altDeg: number): { az: string; alt: string } => {
+  const look = projection.lookDirection(projection.uprightRotation(azDeg, altDeg));
+  return { az: String(quantiseAz(look.azDeg)), alt: String(Math.round(look.altDeg)) };
+};
+const quantiseAz = (azDeg: number): number => Math.round(azDeg) % 360;
+const expectLook = (w: Element, azDeg: number, altDeg: number): void => {
+  const at = looks(azDeg, altDeg);
+  expect(w).toHaveAttribute('data-look-az', at.az);
+  expect(w).toHaveAttribute('data-look-alt', at.alt);
+};
+
+describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STAR-11; D-750, D-751)', () => {
+  beforeEach(() => {
+    resetOrientationAccess();
+    withPhone();
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+  });
+
+  it('a hand camera drives the window: the box is focusable, the readout is the one line, the sensor is never armed', () => {
+    const frame = scriptedFrames();
+    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+    const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} />);
+    const w = wrapper(container);
+    expect(w).toHaveAttribute('data-state', 'hand');
+    expectLook(w, 180, 35);
+    const box = container.querySelector('[tabindex="0"]') as HTMLElement;
+    expect(box).not.toBeNull();
+    expect(box.querySelector('[data-drawing="window"]')).not.toBeNull();
+    const readout = screen.getByTestId('window-readout');
+    expect(readout).toHaveTextContent('Looking S (180°) · up 35°');
+    expect(box).toHaveAttribute('aria-describedby', readout.id);
+    // D-757: the hand points at true bearings; there is no declination line, no waiting note and no "hold the phone up" hint.
+    expect(screen.queryByTestId('window-heading')).toBeNull();
+    expect(screen.queryByTestId('window-note')).toBeNull();
+    expect(container.textContent).not.toContain(en.window.hint);
+    // The phone's sensor is present (`withPhone`) and would arm itself on mount under the sensor camera; under the hand it is not listening.
+    reading(aim(90, 0));
+    frame();
+    settle(frame);
+    expect(w).toHaveAttribute('data-state', 'hand');
+    expectLook(w, 180, 35);
+  });
+
+  it('a pointer drag moves the camera at 4 px per degree, captured, one move per animation frame', () => {
+    const frame = scriptedFrames();
+    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+    const moves = vi.fn();
+    camera.subscribe(moves);
+    const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} />);
+    const w = wrapper(container);
+    const box = container.querySelector('[tabindex="0"]') as HTMLElement;
+    const capture = vi.fn();
+    box.setPointerCapture = capture;
+    box.releasePointerCapture = vi.fn();
+    fireEvent.pointerDown(box, { button: 0, pointerId: 7, clientX: 100, clientY: 100 });
+    expect(capture).toHaveBeenCalledWith(7);
+    expect(box).toHaveAttribute('data-dragging', 'true');
+    // Two moves before the frame fold into one camera move: 40 px right and 20 px down together.
+    fireEvent.pointerMove(box, { pointerId: 7, clientX: 120, clientY: 110 });
+    fireEvent.pointerMove(box, { pointerId: 7, clientX: 140, clientY: 120 });
+    expect(moves).not.toHaveBeenCalled();
+    expectLook(w, 180, 35);
+    frame();
+    expect(moves).toHaveBeenCalledTimes(1);
+    expect(camera.get()).toEqual({ azDeg: 170, altDeg: 40 });
+    expectLook(w, 170, 40);
+    // Another pointer's move is not this drag's.
+    fireEvent.pointerMove(box, { pointerId: 8, clientX: 0, clientY: 0 });
+    frame();
+    expect(moves).toHaveBeenCalledTimes(1);
+    fireEvent.pointerUp(box, { pointerId: 7, clientX: 140, clientY: 120 });
+    expect(box).toHaveAttribute('data-dragging', 'false');
+    // After the pointer is up a move is nothing.
+    fireEvent.pointerMove(box, { pointerId: 7, clientX: 200, clientY: 200 });
+    frame();
+    expect(moves).toHaveBeenCalledTimes(1);
+    expect(camera.get()).toEqual({ azDeg: 170, altDeg: 40 });
+    // The readout follows the rotation `uprightRotation` gives for the hand.
+    expect(screen.getByTestId('window-readout')).toHaveTextContent('Looking S (170°) · up 40°');
+  });
+
+  it('the arrow keys step the camera by 15° and 5° while the box has focus, inside the page’s tilt range', () => {
+    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+    const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} />);
+    const w = wrapper(container);
+    const box = container.querySelector('[tabindex="0"]') as HTMLElement;
+    fireEvent.keyDown(box, { key: 'ArrowLeft' });
+    expect(camera.get()).toEqual({ azDeg: 165, altDeg: 35 });
+    expectLook(w, 165, 35);
+    fireEvent.keyDown(box, { key: 'ArrowRight' });
+    fireEvent.keyDown(box, { key: 'ArrowRight' });
+    expect(camera.get()).toEqual({ azDeg: 195, altDeg: 35 });
+    fireEvent.keyDown(box, { key: 'ArrowUp' });
+    expect(camera.get()).toEqual({ azDeg: 195, altDeg: 40 });
+    expectLook(w, 195, 40);
+    for (let i = 0; i < 12; i += 1) fireEvent.keyDown(box, { key: 'ArrowDown' });
+    // 40 − 60 would be −20: the clamp holds at −10, and the field is pointed at the ground with sky still in it (FR-FOL-5).
+    expect(camera.get()).toEqual({ azDeg: 195, altDeg: -10 });
+    expectLook(w, 195, -10);
+    expect(w).toHaveAttribute('data-ground', 'ground');
+    expect(screen.getByTestId('window-ground-note')).toHaveTextContent(en.window.ground);
+    for (let i = 0; i < 25; i += 1) fireEvent.keyDown(box, { key: 'ArrowUp' });
+    expect(camera.get()).toEqual({ azDeg: 195, altDeg: 90 });
+    expect(w).toHaveAttribute('data-ground', 'sky');
+    // A key that is not an arrow is left alone.
+    const other = fireEvent.keyDown(box, { key: 'a' });
+    expect(other).toBe(true);
+    expect(camera.get()).toEqual({ azDeg: 195, altDeg: 90 });
+  });
+
+  it('the page’s picker reaches the window through the same store: `face` and `up` turn the picture', () => {
+    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+    const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} />);
+    const w = wrapper(container);
+    act(() => {
+      camera.face('NE');
+    });
+    expectLook(w, 45, 35);
+    expect(screen.getByTestId('window-readout')).toHaveTextContent('Looking NE (45°) · up 35°');
+    act(() => {
+      camera.up();
+    });
+    expectLook(w, 45, 90);
+  });
+
+  it('the star field group is mounted only when the scene carries stars, stays mounted across the ground states, and is written once per published rotation without re-rendering', () => {
+    const memoed = StarField as unknown as { type: (props: unknown) => unknown };
+    const renderImpl = memoed.type;
+    const renders = vi.fn(renderImpl);
+    memoed.type = renders;
+    onTestFinished(() => {
+      memoed.type = renderImpl;
+    });
+    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+    const noScene = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} />);
+    expect(noScene.container.querySelector('[data-layer="stars"]')).toBeNull();
+    noScene.unmount();
+    const noStars = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} scene={{ stars: null }} />);
+    expect(noStars.container.querySelector('[data-layer="stars"]')).toBeNull();
+    noStars.unmount();
+    expect(renders).not.toHaveBeenCalled();
+
+    const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} scene={{ stars: field }} />);
+    const group = container.querySelector('[data-layer="stars"]') as SVGGElement;
+    expect(group).not.toBeNull();
+    expect(group).toHaveAttribute('data-stars', '2');
+    expect(group).toHaveAttribute('data-planets', '1');
+    expect(group.children).toHaveLength(0);
+    // Under the horizon and the rings: the group comes before the grid in the tree.
+    const grid = container.querySelector('[data-horizon]') as Element;
+    expect(group.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(renders).toHaveBeenCalledTimes(1);
+    // The mount's publish reached it: the one write, the group's visibility for this rotation.
+    expect(group).toHaveAttribute('visibility', 'visible');
+    const writes = vi.spyOn(group, 'setAttribute');
+    const box = container.querySelector('[tabindex="0"]') as HTMLElement;
+    for (let i = 0; i < 5; i += 1) fireEvent.keyDown(box, { key: 'ArrowRight' });
+    expect(writes).toHaveBeenCalledTimes(5);
+    for (const call of writes.mock.calls) expect(call).toEqual(['visibility', 'visible']);
+    // Pointed at the ground with sky still in the field: visible; the group is still the same node.
+    for (let i = 0; i < 9; i += 1) fireEvent.keyDown(box, { key: 'ArrowDown' });
+    expect(camera.get().altDeg).toBe(-10);
+    expect(wrapper(container)).toHaveAttribute('data-ground', 'ground');
+    expect(container.querySelector('[data-layer="stars"]')).toBe(group);
+    expect(writes).toHaveBeenCalledTimes(14);
+    // A key at the clamp changes no rotation and publishes nothing.
+    fireEvent.keyDown(box, { key: 'ArrowDown' });
+    expect(writes).toHaveBeenCalledTimes(14);
+    // Fourteen rotations drawn, and the window re-rendered for each; the field did not.
+    expect(renders).toHaveBeenCalledTimes(1);
+  });
+
+  it('under the sensor, a window given a scene with no stars is the same DOM as one given none, and `SENSOR_CAMERA` is the default', () => {
+    const plain = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} legendKeys={{ [pass.id]: 'A' }} />);
+    const html = plain.container.innerHTML;
+    plain.unmount();
+    const withScene = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} legendKeys={{ [pass.id]: 'A' }} scene={{ stars: null }} camera={SENSOR_CAMERA} />);
+    expect(withScene.container.innerHTML).toBe(html);
+    expect(wrapper(withScene.container)).toHaveAttribute('data-state', 'idle');
+    expect(withScene.container.querySelector('[tabindex]')).toBeNull();
+  });
+});
+
 describe('the notes clear the gutter on a screen (FR-GUT-1, FR-GUT-6, FR-FOL-5)', () => {
   it('stands the chip and the ground note above the gutter sideways, and at their own place otherwise', () => {
     const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/window/SkyWindow.module.css'), 'utf8');
