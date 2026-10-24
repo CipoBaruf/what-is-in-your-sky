@@ -274,6 +274,25 @@ describe('the reading order (FR-PUB-3)', () => {
   });
 });
 
+describe('the stars, named where a reader looks (SPEC §9 Phase 2l, R118)', () => {
+  it('the first screen says what the stars page does', () => {
+    expect(prologue).toMatch(/stars page/);
+    expect(prologue).toMatch(/held up to the sky/);
+  });
+
+  it('the reading order carries the delivery sections to v2.4 and links the stars spike', () => {
+    expect(built).toContain('§16.9 to §16.22, v1.2 through\nv2.4');
+    const relative = all(LINK, built).map((link) => normalize(join('docs', (link[2] ?? '').split('#')[0] ?? '')));
+    expect(relative).toContain('docs/stars/FINDINGS.md');
+  });
+
+  it('and the release checklist has the v2.4 section, with no tag', () => {
+    const v24 = section(release, '16. v2.4');
+    expect(v24).toContain('No tag and no push to `release`');
+    expect(v24).toContain('v1-stars-');
+  });
+});
+
 describe('credits (FR-PUB-4)', () => {
   const attributions = section(readme, 'Data sources and attributions');
 
