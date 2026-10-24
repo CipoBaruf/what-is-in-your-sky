@@ -8,11 +8,12 @@
  * the numbers, which are the machine's monospace face's.
  */
 import { describe, expect, it } from 'vitest';
-import '../../../../../styles/tokens.css';
+import '../../../../styles/tokens.css';
 import { inkMeasured, inkOffset, inkOffsetsReady, inkOffsetTable } from './inkOffsets';
 import { GLYPH_SIZES, SIZE_PX } from './starGlyphs';
 
-describe('the ink offsets in Chromium (D-752)', () => {
+// The `ui` project collects every test under `src/ui` into jsdom too, where there are no fonts and no metrics: the probe is the browser's alone.
+describe.skipIf(typeof document === 'undefined' || !document.fonts)('the ink offsets in Chromium (D-752)', () => {
   it('measures every glyph × size once the fonts are ready, to a tenth of a px', async () => {
     expect(await inkOffsetsReady()).toBe(true);
     expect(inkMeasured()).toBe(true);
