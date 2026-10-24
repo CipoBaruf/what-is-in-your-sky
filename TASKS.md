@@ -3095,7 +3095,7 @@ Delivery is PLAN §16 unchanged, cut by §16.21: one task, `interactive`, which 
 
 Decision block (§16.2), reserved in PLAN §16.21: **R111 D-744..D-747**. D-740..D-743 are the plan's.
 
-- [ ] **R111 — The stars spike: the catalogue's size, the rate with 900 glyphs, the render path, the precession path and the ladder, on a phone**
+- [x] **R111 — The stars spike: the catalogue's size, the rate with 900 glyphs, the render path, the precession path and the ladder, on a phone**
   - **Lane:** window
   - **Model:** interactive
   - **Gate:** owner
@@ -3116,5 +3116,6 @@ Decision block (§16.2), reserved in PLAN §16.21: **R111 D-744..D-747**. D-740.
     - `docs/stars/FINDINGS.md` exists on `main` with OQ-39's source, `STARS_BUDGET_KB` and the encoding, the render path with the phone's and the proxy's rates for all four combinations, the precession path's worst error, and the two sizes and the collision distance the owner picked, each backed by a number or a capture.
     - The owner has held the phone up to the sky with the spike open and seen Crux or the Plough where another app puts it.
   - **How it runs:** the owner opens a session in this checkout and drives the spike with the phone on the local network (`npm run spike:stars`, then `https://<this machine's LAN address>:5173/spike/stars/`). The driver lists the task and never runs it.
+  - **Done (2026-10-23, D-744..D-747):** `docs/stars/FINDINGS.md` answers all five. d3-celestial's figures snap within 0.0025°; 1035 stars, 21.1 KB gzipped as columns, under a 40 KB `STARS_BUDGET_KB` that stays; the ref path (React 19 at 4× falls to 19 draws/s, ref holds ~100; the owner's iPhone draws 61/s on both, the sensor's own rate), so V24-9 holds; precession worst 0.0064°; the owner picked 15/12, 0.5, `.` and the ink shift, which the spec did not foresee (`.` draws ~2 px low in the em box) and FR-STAR-6 is amended for. Crux and Canopus checked against Sky Guide at Neuquén. The phone's disc rows were not read (the sensor caps both glyph rows), the Android row and the declination are open lines. The owner also picked four looks from Sky Guide for v0.12 to cut: faint figure lines, spaced-capital figure names, the ground with N/E/S/W, and stronger brightness steps.
 
 Waves (for the sanity check): **wave 1** R111.
