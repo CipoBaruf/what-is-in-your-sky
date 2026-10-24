@@ -119,7 +119,7 @@ test('? opens the overlay, which lists the keys, and Esc closes it', async ({ pa
 
   const overlay = page.getByTestId('shortcuts-overlay');
   await expect(overlay).toBeVisible();
-  await expect(overlay.locator('kbd')).toHaveText(['j', 'k', 'Enter', 'Esc', 'l', 'v', 'n', '?']);
+  await expect(overlay.locator('kbd')).toHaveText(['j', 'k', 'Enter', 'Esc', 'l', 's', 'v', 'n', '?', '← →', '↑ ↓']);
   // Nothing behind it can be reached while it is up.
   await expect(page.getByRole('main')).toHaveAttribute('inert', '');
 
@@ -150,7 +150,7 @@ test('the overlay reads in Spanish with the keys untranslated (FR-I18N-2/4)', as
   await page.keyboard.press('?');
   const overlay = page.getByTestId('shortcuts-overlay');
   await expect(overlay.getByRole('heading', { name: 'Atajos de teclado' })).toBeVisible();
-  await expect(overlay.locator('kbd')).toHaveText(['j', 'k', 'Enter', 'Esc', 'l', 'v', 'n', '?']);
+  await expect(overlay.locator('kbd')).toHaveText(['j', 'k', 'Enter', 'Esc', 'l', 's', 'v', 'n', '?', '← →', '↑ ↓']);
   await expect(overlay).toContainText('Pase siguiente de la lista');
   await expect(overlay).not.toContainText('Next pass in the list');
 });
@@ -162,7 +162,7 @@ for (const locale of ['en', 'es'] as const) {
       if (theme === 'night') await page.keyboard.press('n');
       await page.keyboard.press('?');
       await expect(page.getByTestId('shortcuts-overlay')).toBeVisible();
-      await expect(page.getByTestId('shortcuts-overlay').locator('kbd')).toHaveCount(8);
+      await expect(page.getByTestId('shortcuts-overlay').locator('kbd')).toHaveCount(11); // R115: `s`, and the stars page's two key rows
       await page.screenshot({ path: `docs/screenshots/r35-shortcuts-1280-${theme}-${locale}.png` });
     });
   }
