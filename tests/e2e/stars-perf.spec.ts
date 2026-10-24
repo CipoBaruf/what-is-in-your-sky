@@ -85,6 +85,9 @@ async function openStars(page: Page): Promise<void> {
 }
 
 test.describe.configure({ mode: 'serial' });
+
+// As the dome's and the live page's: a measurement, not a CI gate. A GitHub runner under a 4x throttle draws 7-17 updates/s where a desk machine draws 52 (PR #190's run 40102419274); the number is read on a desk or a phone.
+test.skip(process.env['DOME_PERF'] !== '1', 'measurement, not a gate: run with DOME_PERF=1');
 test.use({ viewport: { width: 390, height: 844 } });
 
 test('with every layer on, a drag draws at ≥ 30 updates/s at the phone width under a 4x CPU throttle (FR-STAR-9)', async ({ page }) => {
