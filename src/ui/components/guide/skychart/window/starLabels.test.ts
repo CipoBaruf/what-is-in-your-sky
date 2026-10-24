@@ -127,13 +127,22 @@ describe('a figure name (V24-16, D-755)', () => {
     expect(placed[0]).toMatchObject({ x: 200, y: 150 });
   });
 
-  it('tries one row above, then one below, then the abbreviation in the same three', () => {
+  it('tries one row above, then one below, then the grid over the drawn figure (V24-22)', () => {
     const wide = { ...figure, endpoints: endpoints.map((p) => ({ x: centre.x + (p.x - centre.x) * 1.2, y: p.y })) };
     const atRow = (dy: number): LabelMark => ({ x: 200 + 60, y: 150 + dy, sizePx: 12 });
     // The full name's three rows blocked at its right end (x 260), which the abbreviation (19.8 px) does not reach.
     expect(placeLabels(base({ marks: [atRow(0)], figures: [wide] }))[0]).toMatchObject({ text: 'C A N I S   M A J O R', y: 150 - FIGURE_NAME_PX });
     expect(placeLabels(base({ marks: [atRow(0), atRow(-FIGURE_NAME_PX)], figures: [wide] }))[0]).toMatchObject({ text: 'C A N I S   M A J O R', y: 150 + FIGURE_NAME_PX });
-    expect(placeLabels(base({ marks: [atRow(0), atRow(-FIGURE_NAME_PX), atRow(FIGURE_NAME_PX)], figures: [wide] }))[0]).toMatchObject({ text: 'C M A', y: 150 });
+    // The three rows blocked: the full name moves two cells left on the centroid's row (one cell still reaches the mark), the nearest free place of the grid.
+    expect(placeLabels(base({ marks: [atRow(0), atRow(-FIGURE_NAME_PX), atRow(FIGURE_NAME_PX)], figures: [wide] }))[0]).toMatchObject({ text: 'C A N I S   M A J O R', x: 200 - 2 * ADVANCE_EM * FIGURE_NAME_PX, y: 150 });
+  });
+
+  it('takes the abbreviation where no place on the full name grid is free (V24-22)', () => {
+    const wide = { ...figure, endpoints: endpoints.map((p) => ({ x: centre.x + (p.x - centre.x) * 1.2, y: p.y })) };
+    // A wall of marks every cell across the figure's extent, but for a gap the abbreviation fits and the full name does not.
+    const wall: LabelMark[] = [];
+    for (let y = 60; y <= 240; y += 4) for (let x = 60; x <= 340; x += 4) if (Math.abs(x - 200) > 16 || Math.abs(y - 150) > 10) wall.push({ x, y, sizePx: 1 });
+    expect(placeLabels(base({ marks: wall, figures: [wide] }))[0]).toMatchObject({ text: 'C M A', x: 200, y: 150 });
   });
 
   it('is not drawn for a figure with fewer than two drawn segments', () => {
@@ -189,7 +198,7 @@ describe.each([
 ] as const)('%s', (_, site, iso, con) => {
   it.each([
     [390, 390],
-    [900, 640],
+    [798, 498],
   ])('at %i × %i no label covers a mark, a segment or another label', (width, height) => {
     const { input, placed } = sky(site, iso, con, width, height);
     expect(input.figures.some((f) => f.con === con)).toBe(true);
@@ -206,7 +215,29 @@ describe.each([
   });
 });
 
-describe('the Done cases (D-755) — blocked, see sdd-run/R116.blocked.md', () => {
-  it.todo('Orion over Paris places `O R I O N` and `Betelgeuse` at 390 and 1280');
-  it.todo('Crux over Neuquén places `C R U X`');
+// The Done cases (D-755 as amended, V24-22, V24-23): 390 × 390 is the phone's box, 798 × 498 the box the page draws at 1280 × 800.
+const figureText = (placed: PlacedLabel[]): string[] => placed.filter((p) => p.kind === 'figure').map((p) => p.text);
+const starText = (placed: PlacedLabel[]): string[] => placed.filter((p) => p.kind === 'star').map((p) => p.text);
+
+describe('Orion over Paris (D-755 as amended, V24-22, V24-23)', () => {
+  it('places `O R I O N` at 390 and at 1280, and `Betelgeuse` at 1280', () => {
+    const phone = sky(PARIS, '2026-12-15T23:00:00Z', 'Ori', 390, 390).placed;
+    const desk = sky(PARIS, '2026-12-15T23:00:00Z', 'Ori', 798, 498).placed;
+    expect(figureText(phone)).toContain('O R I O N');
+    expect(figureText(desk)).toContain('O R I O N');
+    expect(starText(desk)).toContain('Betelgeuse');
+  });
+
+  it('at 390 drops `Betelgeuse`, whose four places Orion covers; a tap names it (V24-23)', () => {
+    expect(starText(sky(PARIS, '2026-12-15T23:00:00Z', 'Ori', 390, 390).placed)).not.toContain('Betelgeuse');
+  });
+});
+
+describe('Crux over Neuquén (D-755 as amended, V24-22)', () => {
+  // The cross is narrower than `C R U X` less two cells at 390 and at 1280, so the fit rule gives the abbreviation; a wider box gives the full name.
+  it('places `C R U` at 390 and at 1280, and `C R U X` in a 900 × 640 box', () => {
+    expect(figureText(sky(NEUQUEN, '2027-04-15T03:00:00Z', 'Cru', 390, 390).placed)).toContain('C R U');
+    expect(figureText(sky(NEUQUEN, '2027-04-15T03:00:00Z', 'Cru', 798, 498).placed)).toContain('C R U');
+    expect(figureText(sky(NEUQUEN, '2027-04-15T03:00:00Z', 'Cru', 900, 640).placed)).toContain('C R U X');
+  });
 });

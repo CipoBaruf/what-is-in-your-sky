@@ -23,9 +23,11 @@
  * 4. The figure names, the figure with the most drawn segments first: the full
  *    spaced name where its width fits the drawn endpoints' width plus two
  *    cells, else the abbreviation; at the centroid of the drawn endpoints, then
- *    one row above, then one below; then the abbreviation in the same three. A
- *    figure with no free place takes the first of those places that only star
- *    names are in the way of, and the star names it covers are removed,
+ *    one row above, then one below, then (V24-22) the free place nearest the
+ *    centroid on a grid of one row by one cell over the figure's drawn extent;
+ *    then the abbreviation the same way. A figure with no free place takes the
+ *    first place of that walk that only star names are in the way of, and the
+ *    star names it covers are removed,
  *    faintest first — so `Ori` is not lost to `Betelgeuse`. A removed star name
  *    is not retried, and no mark and no compass point is ever dropped for a name.
  */
@@ -163,6 +165,30 @@ function besideMark(mark: LabelMark, text: string): Box[] {
   ];
 }
 
+/**
+ * The grid of V24-22: offsets from the centroid, one cell across by one row
+ * down, whose point falls inside `extent` (the caller's: the drawn extent
+ * grown by half the name's box, so the box reaches into it), nearest first
+ * (ties by row, then column, so the order is fixed). The three places of
+ * D-755 are tried before it, so the centroid's own row is not repeated.
+ */
+function gridOffsets(cx: number, cy: number, extent: Box, cell: number, row: number): { dx: number; dy: number }[] {
+  const out: { dx: number; dy: number; d: number }[] = [];
+  const i0 = Math.ceil((extent.x0 - cx) / cell);
+  const i1 = Math.floor((extent.x1 - cx) / cell);
+  const j0 = Math.ceil((extent.y0 - cy) / row);
+  const j1 = Math.floor((extent.y1 - cy) / row);
+  for (let j = j0; j <= j1; j += 1) {
+    for (let i = i0; i <= i1; i += 1) {
+      if (i === 0 && j >= -1 && j <= 1) continue;
+      const dx = i * cell;
+      const dy = j * row;
+      out.push({ dx, dy, d: dx * dx + dy * dy });
+    }
+  }
+  return out.sort((a, b) => a.d - b.d || a.dy - b.dy || a.dx - b.dx).map(({ dx, dy }) => ({ dx, dy }));
+}
+
 const centre = (box: Box): LabelPoint => ({ x: (box.x0 + box.x1) / 2, y: (box.y0 + box.y1) / 2 });
 
 export function placeLabels(input: LabelInput): PlacedLabel[] {
@@ -215,11 +241,15 @@ export function placeLabels(input: LabelInput): PlacedLabel[] {
   for (const { f } of order) {
     let x0 = Number.POSITIVE_INFINITY;
     let x1 = Number.NEGATIVE_INFINITY;
+    let y0 = Number.POSITIVE_INFINITY;
+    let y1 = Number.NEGATIVE_INFINITY;
     let sx = 0;
     let sy = 0;
     for (const p of f.endpoints) {
       x0 = Math.min(x0, p.x);
       x1 = Math.max(x1, p.x);
+      y0 = Math.min(y0, p.y);
+      y1 = Math.max(y1, p.y);
       sx += p.x;
       sy += p.y;
     }
@@ -230,14 +260,19 @@ export function placeLabels(input: LabelInput): PlacedLabel[] {
     const cell = ADVANCE_EM * FIGURE_NAME_PX;
     const forms = textWidth(full, FIGURE_NAME_PX) <= x1 - x0 + 2 * cell ? [full, abbr] : [abbr];
     const row = FIGURE_NAME_PX;
-    const tries = forms.flatMap((text) => [0, -row, row].map((dy) => ({ text, box: boxAt(cx, cy + dy, textWidth(text, FIGURE_NAME_PX), FIGURE_NAME_PX) })));
-    const found = tries.find((t) => free(t.box));
+    // V24-22: past the three places, the grid over the drawn extent (a place whose box reaches into it), one row by one cell, nearest the centroid first.
+    const search = forms.flatMap((text) => {
+      const w = textWidth(text, FIGURE_NAME_PX);
+      const grid = gridOffsets(cx, cy, { x0: x0 - w / 2, y0: y0 - row / 2, x1: x1 + w / 2, y1: y1 + row / 2 }, cell, row);
+      return [0, -row, row].map((dy) => ({ dx: 0, dy })).concat(grid).map(({ dx, dy }) => ({ text, box: boxAt(cx + dx, cy + dy, w, FIGURE_NAME_PX) }));
+    });
+    const found = search.find((t) => free(t.box));
     if (found) {
       put('figure', f.key, found.text, found.box);
       continue;
     }
-    // A figure keeps its name: the first place only star names are in the way of, and those names go, faintest first.
-    const yielding = tries.find((t) => inside(t.box) && !fixed.hits(t.box) && placed.every((p) => p.kind === 'star' || !overlaps(p.box, t.box)));
+    // A figure keeps its name: the first place of the same walk that only star names are in the way of, and those names go, faintest first.
+    const yielding = search.find((t) => inside(t.box) && !fixed.hits(t.box) && placed.every((p) => p.kind === 'star' || !overlaps(p.box, t.box)));
     if (!yielding) continue;
     const inWay = placed.filter((p) => p.kind === 'star' && overlaps(p.box, yielding.box)).sort((a, b) => (rank.get(b) ?? 0) - (rank.get(a) ?? 0));
     for (const p of inWay) {
