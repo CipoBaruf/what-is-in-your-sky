@@ -106,8 +106,8 @@ export function scaleFor(view: View): number {
   return half / Math.tan((view.fovDeg / 4) * RAD);
 }
 
-/** A device-frame unit vector to a point on the view. */
-export function projectDevice(d: Vec3, view: View): Projected {
+/** A device-frame unit vector to a point on the view. (Not exported: nothing outside `project` reads it, and the dead-export check, D-647, is a CI job.) */
+function projectDevice(d: Vec3, view: View): Projected {
   const forward = -d[2];
   const offAxisDeg = Math.acos(Math.max(-1, Math.min(1, forward))) / RAD;
   const front = forward > 1e-6;

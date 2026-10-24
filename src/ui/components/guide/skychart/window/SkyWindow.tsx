@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { useLocale, useT } from '../../../../../i18n/useT';
 import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
 import { compassPoint } from '../../../../../lib/compass';
@@ -16,12 +16,14 @@ import { NextEventBlock } from '../../../passes/NextEventBlock';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
 import { ChartFrame } from '../ChartFrame';
 import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
+import { SENSOR_CAMERA } from './camera';
 import { CompassGutter } from './CompassGutter';
 import { gutterMarks, passBearing, turnTo, type GutterMark, type GutterPass } from './gutter';
 import { drawableDeg, groundState, lookDirection, project, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type View } from './projection';
 import { nearestQuarter, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
-import { useDeviceOrientation } from './useDeviceOrientation';
+import { StarField } from './StarField';
+import { useViewRotation } from './useViewRotation';
 
 /**
  * R47 (FR-WIN-1, FR-WIN-2, FR-WIN-4, FR-WIN-5; US-21; PLAN D-188, §8.10): the
@@ -99,8 +101,29 @@ import { useDeviceOrientation } from './useDeviceOrientation';
  * read from the *screen's* measured box (a probe in the overlay slot), not
  * from the drawing's, since the band is capped square and would otherwise
  * decide its own orientation.
+ *
+ * R113 (FR-STAR-4, FR-STAR-9, FR-STAR-11; D-750, D-751): the window is re-cut
+ * for the stars without changing what it draws today. The rotation comes from
+ * `useViewRotation(camera)`, one `Mat3` whichever source drives it: the
+ * sensor, as before, when no `camera` is given or the camera's source is
+ * `sensor`; the hand when the stars page hands a `HandCamera`, and then the
+ * box takes the dome's controls — a captured pointer drag folded into one
+ * camera move per animation frame, the arrow keys while the box has focus —
+ * and the sensor is never armed. The same hook publishes each rotation to
+ * subscribers in the commit that draws it, and `scene.stars` mounts the
+ * `StarField` group, the one layer written outside render; without a scene
+ * nothing is mounted and the tree is `v2.3.0`'s.
  */
 
+/** The window's props: `SkyChartProps`, which every view implements; `camera` is on it for the window alone. */
+export type SkyWindowProps = SkyChartProps;
+
+/** The hand's stand-in for the placeholder: `useViewRotation` never reads its fallback under the hand. */
+const NO_PLACEHOLDER: Mat3 = [
+  [1, 0, 0],
+  [0, 1, 0],
+  [0, 0, 1],
+];
 /** Resampling step along each arc (PLAN §8.3), the polar's. */
 const ARC_STEP_DEG = 2;
 /** The placeholder's altitude before the first reading: the horizon and the arc's lower part both in view. */
@@ -383,21 +406,14 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
   );
 }
 
-export function SkyWindow(props: SkyChartProps) {
-  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, overlay, onUnavailable, className } = props;
+export function SkyWindow(props: SkyWindowProps) {
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, overlay, onUnavailable, scene, camera = SENSOR_CAMERA, className } = props;
   // D-323: `screen` reaches `SkyChartProps` with R62 (D-322); read through a cast, so this compiles either side of it.
   const onScreen = (props as SkyChartProps & { screen?: boolean }).screen === true;
   const t = useT();
   const locale = useLocale();
   // R44: the observer's declination, once per observer; the hook folds it into every heading.
   const declinationDeg = useDeclination(observer);
-  const orientation = useDeviceOrientation(declinationDeg);
-
-  // FR-WIN-4: a refusal or a compass-less phone is the boundary's to handle — the note, and the dome as the view.
-  const { state } = orientation;
-  useEffect(() => {
-    if (state === 'denied' || state === 'relative') onUnavailable?.(state);
-  }, [state, onUnavailable]);
 
   // The box, measured, so the field spans the shorter side of whatever the frame gives.
   const boxRef = useRef<HTMLDivElement>(null);
@@ -414,6 +430,111 @@ export function SkyWindow(props: SkyChartProps) {
       observerOfSize.disconnect();
     };
   }, []);
+
+  const handCamera = camera.source === 'hand' ? camera : null;
+  const byHand = handCamera !== null;
+  // Before the first reading: upright toward the explained pass's peak (or the caller's facing), 20° up or as high as the peak needs.
+  // The placeholder's altitude reads the box's shape and not its angle (`verticalHalfFieldDeg`), so it is known before the hook that gives the angle.
+  // Under the hand there is no first reading to wait for, so nothing is computed and the hook never reads it.
+  const placeholder = useMemo(() => {
+    if (byHand) return NO_PLACEHOLDER;
+    const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
+    const placeholderAlt = placeholderAltDeg(highlighted?.peak.elDeg, { fovDeg: WINDOW_FOV, width: size.width, height: size.height, screenAngleDeg: 0 });
+    return uprightRotation(initialFacingAzDeg ?? highlighted?.peak.azDeg ?? 0, placeholderAlt);
+  }, [byHand, passes, highlightedPassId, initialFacingAzDeg, size.width, size.height]);
+
+  // R113 (D-750, D-751): the one rotation, from the sensor or the hand, and the channel the star field reads it by.
+  const { rotation: m, live, subscribe, orientation } = useViewRotation(camera, declinationDeg, placeholder);
+  // The hand's view is laid out upright on whatever screen it is on: the sensor's screen angle (read at mount,
+  // and not followed while the sensor is off) is no part of it.
+  const screenAngleDeg = byHand ? 0 : orientation.screenAngleDeg;
+
+  // FR-WIN-4: a refusal or a compass-less phone is the boundary's to handle — the note, and the dome as the view.
+  const { state } = orientation;
+  useEffect(() => {
+    if (state === 'denied' || state === 'relative') onUnavailable?.(state);
+  }, [state, onUnavailable]);
+
+  /*
+   * FR-STAR-4 (D-750): under the hand the box takes the dome's controls, from the dome's own handlers' shape
+   * (`SkyDome`): the pointer is captured on the way down and its moves are summed into one camera move per
+   * animation frame, so a fast finger costs one render a frame and not one a move; the arrow keys step the
+   * camera while the box has focus (`tabIndex` only then — the sensor-driven box is not focusable and its DOM is
+   * unchanged). The camera is the page's store, so a move notifies `useViewRotation` and the page alike, and
+   * neither React state nor a callback prop stands in the per-frame path.
+   */
+  const dragRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
+  const pendingRef = useRef<{ dx: number; dy: number } | null>(null);
+  const frameRef = useRef(0);
+  const [dragging, setDragging] = useState(false);
+  useEffect(() => () => cancelAnimationFrame(frameRef.current), []);
+  const flush = useCallback(() => {
+    frameRef.current = 0;
+    const pending = pendingRef.current;
+    pendingRef.current = null;
+    if (pending) handCamera?.dragTo(pending.dx, pending.dy);
+  }, [handCamera]);
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>): void => {
+    if (event.button !== 0 && event.pointerType === 'mouse') return;
+    // One finger drags: a second pointer while the first is down is ignored, and so is its lift.
+    if (dragRef.current) return;
+    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // jsdom and old browsers: the drag still works while the pointer stays over the box.
+    }
+    setDragging(true);
+  };
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>): void => {
+    const active = dragRef.current;
+    if (!active || active.pointerId !== event.pointerId) return;
+    const dx = event.clientX - active.x;
+    const dy = event.clientY - active.y;
+    if (dx === 0 && dy === 0) return;
+    active.x = event.clientX;
+    active.y = event.clientY;
+    const pending = pendingRef.current ?? { dx: 0, dy: 0 };
+    pendingRef.current = { dx: pending.dx + dx, dy: pending.dy + dy };
+    if (!frameRef.current) frameRef.current = requestAnimationFrame(flush);
+  };
+  const endDrag = (event: PointerEvent<HTMLDivElement>): void => {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // see setPointerCapture
+    }
+    setDragging(false);
+  };
+  // Capture lost without an up or a cancel reaching the box (the browser released it, the box moved): the drag is over.
+  const onLostPointerCapture = (event: PointerEvent<HTMLDivElement>): void => {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    setDragging(false);
+  };
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+    if (!handCamera) return;
+    const moves: Record<string, () => void> = {
+      ArrowLeft: () => {
+        handCamera.stepYaw(-1);
+      },
+      ArrowRight: () => {
+        handCamera.stepYaw(1);
+      },
+      ArrowUp: () => {
+        handCamera.stepPitch(1);
+      },
+      ArrowDown: () => {
+        handCamera.stepPitch(-1);
+      },
+    };
+    const move = moves[event.key];
+    if (!move) return;
+    event.preventDefault();
+    move();
+  };
 
   /*
    * R79 (FR-GUT-7, D-451): the screen's own box, for which way up the layout is. Upright the band is capped at as
@@ -448,23 +569,18 @@ export function SkyWindow(props: SkyChartProps) {
    * that can keep a previous value without a ref read in a render or a state set from an effect.
    */
   const { report } = useScreenTurn();
-  const quarter: Quarter = onScreen && orientation.rotation !== null ? orientation.quarter : nearestQuarter(orientation.screenAngleDeg);
+  const quarter: Quarter = onScreen && orientation.rotation !== null ? orientation.quarter : nearestQuarter(screenAngleDeg);
   useEffect(() => {
     // One report per turn of the hand, and none at all off a screen, where `report` is the context's no-op.
     if (onScreen) report(quarter);
   }, [onScreen, quarter, report]);
 
   const view: View = useMemo(
-    () => ({ fovDeg: WINDOW_FOV, width: size.width, height: size.height, screenAngleDeg: onScreen ? quarter : orientation.screenAngleDeg }),
-    [size, onScreen, quarter, orientation.screenAngleDeg],
+    () => ({ fovDeg: WINDOW_FOV, width: size.width, height: size.height, screenAngleDeg: onScreen ? quarter : screenAngleDeg }),
+    [size, onScreen, quarter, screenAngleDeg],
   );
   const limitDeg = drawableDeg(view);
 
-  // Before the first reading: upright toward the explained pass's peak (or the caller's facing), 20° up or as high as the peak needs.
-  const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
-  const placeholderAz = initialFacingAzDeg ?? highlighted?.peak.azDeg ?? 0;
-  const placeholderAlt = placeholderAltDeg(highlighted?.peak.elDeg, view);
-  const m = useMemo(() => orientation.rotation ?? uprightRotation(placeholderAz, placeholderAlt), [orientation.rotation, placeholderAz, placeholderAlt]);
   const look = lookDirection(m);
   const at = useCallback((p: SkyPoint): Projected => project(m, p.azDeg, p.elDeg, view), [m, view]);
   const zenith = at({ azDeg: 0, elDeg: 90 });
@@ -533,15 +649,21 @@ export function SkyWindow(props: SkyChartProps) {
   }
   const hatchId = `${uid}-hatch`;
   const clipId = `${uid}-ground`;
+  const readoutId = `${uid}-readout`;
 
-  const live = state === 'on';
+  // `live`: the hand drives (always), or the sensor is on. FR-STAR-4, D-757: the hand points at true bearings and
+  // has no declination to name, so its readout is the first line alone.
   const status = live ? (
-    <p className={styles.readout} data-testid="window-readout">
+    <p className={styles.readout} data-testid="window-readout" {...(byHand ? { id: readoutId } : {})}>
       <span>{t.window.readout({ point: compassPoint(look.azDeg), azimuth: degrees(quantise(look.azDeg)), altitude: degrees(look.altDeg) })}</span>
-      <br />
-      <span className={styles.declination} data-testid="window-heading" data-declination={declinationDeg.toFixed(1)}>
-        {t.window.trueNorth({ declination: formatSignedDegrees(declinationDeg, locale) })}
-      </span>
+      {!byHand && (
+        <>
+          <br />
+          <span className={styles.declination} data-testid="window-heading" data-declination={declinationDeg.toFixed(1)}>
+            {t.window.trueNorth({ declination: formatSignedDegrees(declinationDeg, locale) })}
+          </span>
+        </>
+      )}
     </p>
   ) : state === 'waiting' || (state === 'idle' && !orientation.needsGesture) ? (
     <p className={styles.note} data-testid="window-note">
@@ -552,7 +674,7 @@ export function SkyWindow(props: SkyChartProps) {
   return (
     <div
       className={[styles.window, className].filter(Boolean).join(' ')}
-      data-state={state}
+      data-state={byHand ? 'hand' : state}
       data-ground={ground}
       {...(onScreen ? { 'data-screen': 'true', 'data-orientation': upright ? 'portrait' : 'landscape' } : {})}
       data-look-az={quantise(look.azDeg)}
@@ -604,13 +726,31 @@ export function SkyWindow(props: SkyChartProps) {
           onScreen ? undefined : (
             <>
               {controls}
-              <p className={styles.hint}>{t.window.hint}</p>
+              {/* The hint is the sensor's ("hold the phone up"); the hand's box has the page's rows for its controls. */}
+              {!byHand && <p className={styles.hint}>{t.window.hint}</p>}
             </>
           )
         }
         status={status}
       >
-        <div className={styles.box} ref={boxRef}>
+        <div
+          className={byHand ? [styles.box, styles.hand].join(' ') : styles.box}
+          ref={boxRef}
+          {...(byHand
+            ? {
+                // FR-STAR-4: focusable for the keys, described by its own readout; the page names the group (R115).
+                tabIndex: 0,
+                'aria-describedby': readoutId,
+                'data-dragging': dragging,
+                onKeyDown,
+                onPointerDown,
+                onPointerMove,
+                onPointerUp: endDrag,
+                onPointerCancel: endDrag,
+                onLostPointerCapture,
+              }
+            : {})}
+        >
           <svg className={styles.svg} viewBox={`0 0 ${String(view.width)} ${String(view.height)}`} aria-hidden="true" data-drawing="window" focusable="false">
             {/* FR-FOL-5: the ground's hatch — a pattern, not a colour, so it reads without one (FR-X-5). */}
             {ground !== 'sky' && (
@@ -626,6 +766,10 @@ export function SkyWindow(props: SkyChartProps) {
                 )}
               </defs>
             )}
+            {/* FR-STAR-11, FR-STAR-6 (D-751): the star field, under the horizon and the rings, mounted only when the scene
+                carries one and kept mounted across the ground states — its nodes exist once, and it hides itself at
+                `buried` by the rotation it is given, not by a remount. */}
+            {scene?.stars && <StarField field={scene.stars} view={view} subscribe={subscribe} />}
             {/* FR-FOL-5: with no sky left in the field there is nothing to draw but the ground. */}
             {ground !== 'buried' && (
               <>

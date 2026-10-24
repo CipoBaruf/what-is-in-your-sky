@@ -39,6 +39,10 @@ import { nearestQuarter, quarterTurnFor, type Quarter } from './screenTurn';
  */
 type OrientationState = 'idle' | 'waiting' | 'on' | 'relative' | 'denied';
 
+const initialGesture = (available: boolean): boolean => available && orientationGestureNeeded();
+const initialState = (available: boolean): OrientationState => (!available ? 'idle' : orientationAnswer() === 'denied' ? 'denied' : orientationRequestInFlight() ? 'waiting' : 'idle');
+const initialArmed = (available: boolean): boolean => available && orientationAnswer() !== 'denied' && orientationRequestInFlight() === null && !orientationGestureNeeded();
+
 export interface DeviceOrientationHandle {
   /** D-175's presence test: a touch screen with the constructor. */
   available: boolean;
@@ -66,15 +70,32 @@ export interface DeviceOrientationHandle {
   start: () => void;
 }
 
-export function useDeviceOrientation(declinationDeg = 0): DeviceOrientationHandle {
-  const available = useMemo(() => typeof window !== 'undefined' && orientationApiPresent(), []);
-  const [needsGesture, setNeedsGesture] = useState(() => available && orientationGestureNeeded());
-  // What the toggle's tap left behind, read once at mount: a refusal is the state (no second prompt), a request
+/**
+ * `enabled` (R113, D-750): `false` is a window the hand drives — the stars
+ * page's box — where the sensor is not wanted at all: no listener is armed, no
+ * state moves, and the handle reads as a device without the API. The sensor
+ * path itself is unchanged; the flag only decides whether it runs.
+ */
+export function useDeviceOrientation(declinationDeg = 0, enabled = true): DeviceOrientationHandle {
+  const available = useMemo(() => enabled && typeof window !== 'undefined' && orientationApiPresent(), [enabled]);
+  const [needsGesture, setNeedsGesture] = useState(() => initialGesture(available));
+  // What the toggle's tap left behind, read at mount: a refusal is the state (no second prompt), a request
   // still in flight is awaited below, and where no gesture is needed at all the listener is armed at once
   // (Android; the toggle's grant). Listening is not a request: FR-WIN-4's "never on load" is about the prompt.
-  const [state, setState] = useState<OrientationState>(() => (!available ? 'idle' : orientationAnswer() === 'denied' ? 'denied' : orientationRequestInFlight() ? 'waiting' : 'idle'));
-  const [armed, setArmed] = useState(() => available && orientationAnswer() !== 'denied' && orientationRequestInFlight() === null && !orientationGestureNeeded());
+  const [state, setState] = useState<OrientationState>(() => initialState(available));
+  const [armed, setArmed] = useState(() => initialArmed(available));
   const [rotation, setRotation] = useState<Mat3 | null>(null);
+  // `enabled` switched on a mounted window (the sensor camera swapped for a hand, or back): start over from
+  // what a mount with the new value would read, in this render, so the listener is disarmed (or armed) at once
+  // and no state of the other source survives (React's "adjust state when a prop changes" pattern).
+  const [wasAvailable, setWasAvailable] = useState(available);
+  if (wasAvailable !== available) {
+    setWasAvailable(available);
+    setNeedsGesture(initialGesture(available));
+    setState(initialState(available));
+    setArmed(initialArmed(available));
+    setRotation(null);
+  }
   const [screenAngleDeg, setScreenAngleDeg] = useState(() => (typeof window === 'undefined' ? 0 : screenAngle()));
   // The fold starts where the viewport is: on a phone that is free to turn the two agree, and starting there
   // is what keeps the hysteresis from having to travel out of a quarter nobody is in (FR-FSC-10).

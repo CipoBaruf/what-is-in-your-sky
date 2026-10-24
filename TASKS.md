@@ -3143,7 +3143,7 @@ Decision block (§16.2), reserved in PLAN §16.21: **R111 D-744..D-747**. D-740.
     - `npx vitest run tests/data/starCatalog.test.ts src/lib/skyStars.test.ts` passes; the Done note carries the printed counts, the gzipped size and the worst separation per site.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green; `npm run bundle:budget` shows no row moved.
 
-- [ ] **R113 — The scene, the camera and the rotation channel: `SkyScene`, `SkyCamera` with the hand source, `useViewRotation` publishing to state and to subscribers**
+- [x] **R113 — The scene, the camera and the rotation channel: `SkyScene`, `SkyCamera` with the hand source, `useViewRotation` publishing to state and to subscribers**
   - **Lane:** window
   - **Model:** fable
   - **Review:** opus
@@ -3165,6 +3165,7 @@ Decision block (§16.2), reserved in PLAN §16.21: **R111 D-744..D-747**. D-740.
     - `camera.test.ts` and the window's tests pass; a test drives the hand camera by drag and keys and reads the rotation `uprightRotation` gives.
     - A local `npx playwright test v1-captures` leaves every committed window file byte-identical (F-99's sub-pixel files excepted, named), and `tests/e2e/sky-window.spec.ts` is green.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+  - **Done (2026-10-24, D-766..D-769):** as written, with the hand camera a store (`createHandCamera`) rather than React state and `camera?` on `SkyWindowProps` rather than `SkyChartProps` (D-766); the channel publishes in the layout effect of the commit that draws the rotation, not in the frame that set it (D-767); `useDeviceOrientation` gains an `enabled` flag so the hand never arms the sensor (D-768). The committed set is not reproducible on the Mac (every one of the 254 files differs from CI's bytes by font rendering, as R94/R100 found), so the byte-identity was read against a same-machine baseline: the parent (`origin/main`) built and shot with the same spec and browser, then this branch — all 37 window files pixel-identical, by name: `v1-window-844-{dark,night}-{en,es}`, `v1-sky-screen-{sky,ground,buried,chip}-844-{dark,night}-{en,es}`, `v1-sky-screen-portrait-{360,390}-{dark,night}-{en,es}`, `v1-sky-screen-turned-{360,390}-dark-en`, `r66-window-390-denied-dark-en`, `r66-window-844-{dark,night}-{en,es}`, `r66-window-844-horizon-dark-en`, `r47-detail-1280-no-window-dark-en`; no F-99 file was among them. `projectDevice`, the parent's one dead export, is un-exported (D-769).
 
 ### Wave 2 (second cut)
 
