@@ -30,7 +30,18 @@ import type { SkyChartProps } from '../guide/skychart/SkyChart.types';
 import { resetOrientationAccess } from '../guide/skychart/window/orientationAccess';
 
 /** The props every `SkyChart` was rendered with: the screen's is the only one on this page. */
-const recorded = vi.hoisted(() => ({ props: [] as SkyChartProps[] }));
+const recorded = vi.hoisted(() => ({ props: [] as SkyChartProps[], pageWindow: 0 }));
+// The page's own window is the one with the hand's camera; the screen's is the sensor's (no `camera`).
+vi.mock('../guide/skychart/window/SkyWindow', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../guide/skychart/window/SkyWindow')>();
+  return {
+    ...actual,
+    SkyWindow: function SkyWindowSpy(props: SkyChartProps) {
+      if (props.camera !== undefined) recorded.pageWindow += 1;
+      return actual.SkyWindow(props);
+    },
+  };
+});
 vi.mock('../guide/skychart/SkyChart', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../guide/skychart/SkyChart')>();
   return {
@@ -120,6 +131,7 @@ describe('the sky screen’s stars inventory (FR-STAR-5)', () => {
 
   beforeEach(() => {
     recorded.props.length = 0;
+    recorded.pageWindow = 0;
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
     vi.setSystemTime(T);
     media = stubMatchMedia(COMPACT_PX);
@@ -190,6 +202,10 @@ describe('the sky screen’s stars inventory (FR-STAR-5)', () => {
     expect(shown.querySelector('[data-pass-id]')).toBeNull();
     expect(shown.querySelector('[data-gutter-mark]')).toBeNull();
     expect(within(shown).getByTestId('gutter-bracket')).toBeInTheDocument();
+    // D-783: told the inventory, the chart and the window build nothing that speaks of a pass — not hidden, absent.
+    expect(within(shown).queryByTestId('window-chip')).toBeNull();
+    expect(within(shown).queryByTestId('chart-legend-slot')).toBeNull();
+    expect(within(shown).queryByTestId('next-event')).toBeNull();
     const screens = recorded.props.filter((props) => props.screen === true);
     expect(screens.length).toBeGreaterThan(0);
     for (const props of screens) {
@@ -197,6 +213,7 @@ describe('the sky screen’s stars inventory (FR-STAR-5)', () => {
       expect(props.highlightedPassId).toBeNull();
       expect(props.scene?.stars?.layers).toEqual({ stars: true, figures: true, planets: true, names: true });
       expect(props.camera).toBeUndefined();
+      expect(props.inventory).toBe('stars');
     }
     // It is the modal dialog the passes inventory is, portaled over the page.
     expect(shown).toHaveAttribute('role', 'dialog');
@@ -273,5 +290,65 @@ describe('the sky screen’s stars inventory (FR-STAR-5)', () => {
     expect(layer()).toBeNull();
     expect(screen.getByTestId('stars-hold-up-note')).toHaveTextContent(en.window.relative);
     expect(holdUp()).toBeNull();
+  });
+
+  it('puts the page out of reach under the layer and holds it at its last render, and faces the hand at the open (FR-FSC-1, FR-STAR-9)', async () => {
+    withPhone();
+    page();
+    fireEvent.click(within(screen.getByRole('group', { name: p.facing })).getByRole('button', { name: 'E' }));
+    const shown = await open();
+    const stars = screen.getByTestId('stars-page');
+    expect(stars).toHaveAttribute('aria-hidden', 'true');
+    expect(stars).toHaveAttribute('inert');
+    const pageRenders = recorded.pageWindow;
+    const screenRenders = recorded.props.filter((props) => props.screen === true).length;
+    act(() => {
+      vi.advanceTimersByTime(30_000);
+    });
+    // The tick reaches the screen's window and not the page's under it.
+    expect(recorded.props.filter((props) => props.screen === true).length).toBeGreaterThan(screenRenders);
+    expect(recorded.pageWindow).toBe(pageRenders);
+    for (const props of recorded.props.filter((each) => each.screen === true)) expect(props.initialFacingAzDeg).toBe(90);
+    fireEvent.click(within(shown).getByRole('button', { name: en.chart.screenClose }));
+    expect(stars).not.toHaveAttribute('aria-hidden');
+    expect(stars).not.toHaveAttribute('inert');
+    expect(recorded.pageWindow).toBeGreaterThan(pageRenders);
+  });
+
+  it('answers only its own close and its own tap: another page’s refocus flag and note are not this page’s (FR-FSC-2, FR-FOL-2)', () => {
+    withPhone();
+    appStore.setState({ refocusWindow: true, windowNote: 'denied' });
+    page();
+    expect(holdUp()).not.toHaveFocus();
+    expect(document.activeElement?.querySelector('svg[data-drawing="window"]')).not.toBeNull();
+    expect(screen.queryByTestId('stars-hold-up-note')).toBeNull();
+  });
+
+  it('gives the document its place back on its own close, and leaves by a route with no scroll, no refocus and no note (FR-FSC-2, FR-FSC-9)', async () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+    try {
+      withPhone();
+      const first = page();
+      fireEvent.click(within(await open()).getByRole('button', { name: en.chart.screenClose }));
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'instant' });
+      scrollTo.mockClear();
+      // The shell closes the screen in the same render that changes the route, so the page goes with it still open.
+      await open();
+      first.unmount();
+      expect(scrollTo).not.toHaveBeenCalled();
+      expect(appStore.getState()).toMatchObject({ skyScreen: false, refocusWindow: false });
+      expect(document.documentElement.style.overflow).toBe('');
+    } finally {
+      scrollTo.mockRestore();
+    }
+  });
+
+  it('takes its own note with it when the page goes (FR-FOL-2)', async () => {
+    withPhone('denied');
+    const { unmount } = page();
+    fireEvent.click(holdUp() as HTMLElement);
+    await turns(() => screen.queryByTestId('stars-hold-up-note') !== null);
+    unmount();
+    expect(appStore.getState().windowNote).toBeNull();
   });
 });

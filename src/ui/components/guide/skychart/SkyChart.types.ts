@@ -202,6 +202,14 @@ export interface SkyChartProps {
    */
   scene?: SkyScene;
   /**
+   * FR-STAR-5 (R117, D-756): which of the sky screen's two inventories this
+   * chart is on. `'stars'` (opened from `#stars`) has no pass, so nothing that
+   * speaks of one is built: no legend rows, no empty-field chip (FR-GUT-6) and
+   * no next-event block upright (FR-GUT-7). Absent, or `'passes'`, the live
+   * page's and the pass detail's chart, unchanged.
+   */
+  inventory?: 'passes' | 'stars';
+  /**
    * D-750 (R113): what drives the window's rotation. Absent, or
    * `SENSOR_CAMERA`, the phone's pose through `useDeviceOrientation`; a
    * `HandCamera`, the page's two numbers, moved by the drag and the keys the

@@ -63,10 +63,10 @@ import { ScreenTurnProvider } from './screenTurn';
  * `[ hold up to the sky ]`: the same layer, `×`, readout and gutter, with the
  * page's scene in the window — the stars, the figures and the planets as the
  * page's toggles had them — and no pass. The window is handed no passes, so it
- * draws no arc and the gutter no tick (FR-GUT-2); what it still builds for a
- * screen with no pass — the empty-field chip, the next-event block upright and
- * the legend's body lines — is a passes inventory's and is not drawn here
- * (`SkyScreen.module.css`, by `data-inventory`). The sensor drives it, not the
+ * draws no arc and the gutter no tick (FR-GUT-2); and it is told the
+ * inventory (`inventory: 'stars'`), so what it would build for a screen with
+ * no pass — the empty-field chip, the next-event block upright and the
+ * legend — is a passes inventory's and is not built at all. The sensor drives it, not the
  * page's hand: the camera is the window's default, and the readout carries the
  * true-north line (D-757).
  */
@@ -227,7 +227,7 @@ export function SkyScreen(props: SkyScreenProps) {
            * guide is about and its key is in view from the first frame (D-188).
            */
           {...(initialFacingAzDeg === undefined ? {} : { initialFacingAzDeg })}
-          {...(stars ? { scene: props.scene } : {})}
+          {...(stars ? { scene: props.scene, inventory: 'stars' as const } : {})}
           overlay={
             <button type="button" ref={closeRef} className={styles.close} aria-label={t.chart.screenClose} onClick={onClose} data-testid="sky-screen-close">
               ×

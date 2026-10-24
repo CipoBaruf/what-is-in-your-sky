@@ -373,7 +373,7 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
 }
 
 export function SkyWindow(props: SkyWindowProps) {
-  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, overlay, onUnavailable, scene, camera = SENSOR_CAMERA, className } = props;
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, overlay, onUnavailable, scene, camera = SENSOR_CAMERA, inventory = 'passes', className } = props;
   // D-323: `screen` reaches `SkyChartProps` with R62 (D-322); read through a cast, so this compiles either side of it.
   const onScreen = (props as SkyChartProps & { screen?: boolean }).screen === true;
   const t = useT();
@@ -602,7 +602,8 @@ export function SkyWindow(props: SkyWindowProps) {
    * it, so over the ground it is not drawn at all.
    */
   let chip: string | null = null;
-  if (onScreen && now !== undefined && ground === 'sky' && !marks.some((mark) => mark.branch === 'in-bracket') && !drawnPasses.some(({ pass }) => arcInBox(pass, m, view, now))) {
+  // FR-STAR-5: the stars inventory has no pass to name, so no chip.
+  if (onScreen && inventory === 'passes' && now !== undefined && ground === 'sky' && !marks.some((mark) => mark.branch === 'in-bracket') && !drawnPasses.some(({ pass }) => arcInBox(pass, m, view, now))) {
     const event = nextEvent(
       drawnPasses.map(({ pass }) => pass),
       now,
@@ -678,7 +679,8 @@ export function SkyWindow(props: SkyWindowProps) {
               upright,
               headline: upright ? (
                 <div className={styles.headline} data-testid="window-headline">
-                  <NextEventBlock passes={drawnPasses.map(({ pass }) => pass)} timeZone={observer.timeZone} {...(now === undefined ? {} : { now })} hours={SEARCH_WINDOW_HOURS} />
+                  {/* FR-STAR-5: the stars inventory has no pass, so no next-event block — only the advice, which is about the picture. */}
+                  {inventory === 'passes' && <NextEventBlock passes={drawnPasses.map(({ pass }) => pass)} timeZone={observer.timeZone} {...(now === undefined ? {} : { now })} hours={SEARCH_WINDOW_HOURS} />}
                   {/* FR-GUT-7 (D-451): the advice is secondary copy under the peak line, not a note over the picture. */}
                   <p className={styles.advice} data-testid="window-turn-advice">
                     {t.window.turnAdvice}

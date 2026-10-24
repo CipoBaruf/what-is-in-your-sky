@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
+import { memo, useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { starCatalog } from '../../data/stars/catalog';
 import { useStarsPageT } from '../../i18n/starsPageT';
@@ -8,7 +8,7 @@ import { fitBox, RAIL_MIN_CELLS } from '../../lib/layout';
 import { starsAt } from '../../lib/skyStars';
 import type { Observer } from '../../model';
 import { useActiveObserver, useAppStore } from '../../state';
-import { SkyScreen } from '../components/screen/SkyScreen';
+import { SkyScreen, type SkyScreenProps } from '../components/screen/SkyScreen';
 import { useSkyScreen } from '../components/screen/useSkyScreen';
 import { PITCH_STEP_DEG } from '../components/guide/skychart/dome/camera';
 import { bearingOf, createHandCamera, handRotation, initialHand, STARS_DEFAULT_TILT, STARS_TILT_MAX_DEG, type HandCamera, type HandState } from '../components/guide/skychart/window/camera';
@@ -233,11 +233,22 @@ function StarsSky({ observer }: { observer: Observer }) {
    * the screen carries the layers as the toggles have them and the instant the page is showing (FR-FSC-8).
    */
   const entry = useSkyScreen();
-  const note = useAppStore((s) => s.windowNote);
   const screenOpen = useAppStore((s) => s.skyScreen);
   const closeScreen = useAppStore((s) => s.closeSkyScreen);
-  const refocus = useAppStore((s) => s.refocusWindow);
   const windowRefocused = useAppStore((s) => s.windowRefocused);
+  const setWindowNote = useAppStore((s) => s.setWindowNote);
+  /*
+   * FR-FOL-2, FR-WIN-4: the note is the store's one line, which the live page's and the pass detail's taps set too;
+   * this row shows it only after this page's own tap, and leaving takes this page's note with it.
+   */
+  const [asked, setAsked] = useState(false);
+  const storeNote = useAppStore((s) => s.windowNote);
+  const note = asked ? storeNote : null;
+  const { open: openScreen } = entry;
+  const holdUp = useCallback(() => {
+    setAsked(true);
+    openScreen();
+  }, [openScreen]);
   const holdUpRef = useRef<HTMLButtonElement>(null);
   /*
    * FR-FSC-2: `Esc` closes the screen and stops there, before the app's one `keydown` listener (`lib/shortcuts.ts`)
@@ -256,40 +267,61 @@ function StarsSky({ observer }: { observer: Observer }) {
       document.removeEventListener('keydown', onKeyDown, true);
     };
   }, [screenOpen, closeScreen]);
-  // FR-FSC-2: leaving the page by any route closes the screen (the shell closes it first on a hash change).
+  /*
+   * FR-FSC-2: leaving the page by any route closes the screen (the shell closes it first on a hash change). The
+   * close's one-shot refocus is this page's to spend and the page is going, so it is spent here rather than left
+   * for the next page to read as its own close; this page's note goes the same way.
+   */
   const openRef = useRef(screenOpen);
+  const askedRef = useRef(asked);
   useEffect(() => {
     openRef.current = screenOpen;
-  }, [screenOpen]);
+    askedRef.current = asked;
+  }, [screenOpen, asked]);
   useEffect(
     () => () => {
-      if (openRef.current) closeScreen();
+      if (openRef.current) {
+        closeScreen();
+        windowRefocused();
+      }
+      if (askedRef.current) setWindowNote(null);
     },
-    [closeScreen],
+    [closeScreen, windowRefocused, setWindowNote],
   );
   /*
-   * FR-FSC-9: the compact page scrolls the document, so the document is held still under the layer and has its
-   * place back on close; a drag on the screen that the layer does not consume moves nothing behind it.
+   * FR-FSC-9: the compact page scrolls the document, so the document is held still under the layer; a drag on the
+   * screen that the layer does not consume moves nothing behind it. The place comes back on this page's own close
+   * (below), not on an unmount, so a route change does not carry this page's offset to the next one.
    */
+  const heldTop = useRef(0);
   useEffect(() => {
     if (!screenOpen) return;
     const root = document.documentElement;
-    const top = window.scrollY;
+    heldTop.current = window.scrollY;
     const previous = root.style.overflow;
     root.style.overflow = 'hidden';
     return () => {
       root.style.overflow = previous;
-      window.scrollTo({ top, behavior: 'instant' });
     };
   }, [screenOpen]);
-  // FR-FSC-2 (D-351): the `×` gives focus back to the control that opened the screen — or, where the phone has just
-  // lost the window (FR-WIN-4), to the box, so focus never falls to the body.
+  /*
+   * FR-FSC-2 (D-351): a close of the screen this page opened gives the document its place back and the focus to the
+   * control that opened it — or, where the phone has just lost the window (FR-WIN-4), to the box, so focus never
+   * falls to the body. A close somewhere else (the store's flag is global) is not this page's to answer.
+   */
+  const openedHere = useRef(false);
   useEffect(() => {
-    if (screenOpen || !refocus) return;
+    if (screenOpen) {
+      openedHere.current = true;
+      return;
+    }
+    if (!openedHere.current) return;
+    openedHere.current = false;
+    window.scrollTo({ top: heldTop.current, behavior: 'instant' });
     const target = holdUpRef.current ?? (skyRef.current && windowBox(skyRef.current));
     target?.focus({ preventScroll: true });
     windowRefocused();
-  }, [screenOpen, refocus, windowRefocused]);
+  }, [screenOpen, windowRefocused]);
 
   const facingOptions = useMemo(() => [...FACING_POINTS.map((point) => ({ value: point as Facing, label: point })), { value: 'up' as Facing, label: p.up }], [p.up]);
   const toggle = (key: keyof StarField['layers']) => () => {
@@ -300,7 +332,11 @@ function StarsSky({ observer }: { observer: Observer }) {
   return (
     <>
       <VisuallyHidden as="h1">{t.stars.heading}</VisuallyHidden>
-      <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE}>
+      {/* FR-FSC-1 (D-321): under the layer the page is out of reach — `inert` for Tab and a tap past it, `aria-hidden`
+          for the accessible tree, as the live page's top row — and held at its last render, so the tick redraws
+          the screen's window and not a second one under it (FR-STAR-9). */}
+      <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE} {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
+        <Held held={screenOpen}>
         {wide && <span className={styles.railProbe} ref={probeRef} aria-hidden="true" />}
         <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky">
           <SkyWindow passes={[]} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} namedStar={named?.index ?? null} onNameStar={onName} />
@@ -332,7 +368,7 @@ function StarsSky({ observer }: { observer: Observer }) {
           {/* FR-STAR-5: one `--tap` row where FR-WIN-4's presence test passes, and FR-LIVE-8's note beside it after a denial or a phone with no north. */}
           {(entry.available || note !== null) && (
             <div className={styles.holdUp} data-testid="stars-hold-up-row">
-              {entry.available && <TextButton label={p.holdUp} onClick={entry.open} ref={holdUpRef} data-testid="stars-hold-up" />}
+              {entry.available && <TextButton label={p.holdUp} onClick={holdUp} ref={holdUpRef} data-testid="stars-hold-up" />}
               {note !== null && (
                 <p className={styles.note} role="status" data-testid="stars-hold-up-note">
                   {t.window[note]}
@@ -345,12 +381,36 @@ function StarsSky({ observer }: { observer: Observer }) {
             <FieldSection camera={camera} catalog={catalog} positions={positions} view={view} layers={layers} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
           </section>
         </div>
+        </Held>
       </div>
       {/* Portaled to the body as the pass detail's is: a fixed layer, never the child of something that scrolls. The
           sensor drives it from the hand's facing; the page's hand camera stays as it was for the return. */}
-      {screenOpen && createPortal(<SkyScreen inventory="stars" scene={scene} observer={observer} now={now} sun={sun} moon={moon} initialFacingAzDeg={camera.get().azDeg} onClose={closeScreen} />, document.body)}
+      {screenOpen && <StarsScreen camera={camera} scene={scene} observer={observer} now={now} sun={sun} moon={moon} onClose={closeScreen} />}
     </>
   );
+}
+
+/**
+ * The page's own parts while the screen covers them: a `memo` that keeps its last render for as long as `held`, so a
+ * tick re-renders the layer's window and leaves this one, the picker and the list as they were until the close.
+ */
+const Held = memo(
+  function Held({ children }: { held: boolean; children: ReactNode }) {
+    return children;
+  },
+  (_previous, next) => next.held,
+);
+
+type StarsScreenProps = Pick<SkyScreenProps, 'observer' | 'now' | 'sun' | 'moon' | 'onClose'> & { camera: HandCamera; scene: SkyScene };
+
+/**
+ * The stars inventory's layer, portaled to the body as the pass detail's is. The sensor drives it from the hand's
+ * facing, read once as the layer mounts — the open — and not on every render; the page's camera stays as it was
+ * for the return.
+ */
+function StarsScreen({ camera, scene, observer, now, sun, moon, onClose }: StarsScreenProps) {
+  const [facingAzDeg] = useState(() => camera.get().azDeg);
+  return createPortal(<SkyScreen inventory="stars" scene={scene} observer={observer} now={now} {...(sun === undefined ? {} : { sun })} {...(moon === undefined ? {} : { moon })} initialFacingAzDeg={facingAzDeg} onClose={onClose} />, document.body);
 }
 
 /** The facing picker: its pressed option is a string read from the camera, so it re-renders only when that changes. */
