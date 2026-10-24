@@ -19,7 +19,7 @@
  * their sizes above, unchanged, and this file is what proves it in both languages.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { HOME_MAX_CELLS, HOME_THREE_PANE_MIN_PX, LIVE_BOX_MIN_PX, WIDE_MIN_PX } from '../../src/lib/layout';
+import { HEADER_FOLD_PX, HOME_MAX_CELLS, HOME_THREE_PANE_MIN_PX, LIVE_BOX_MIN_PX, WIDE_MIN_PX } from '../../src/lib/layout';
 import { seedStoredRun } from './liveHelpers';
 
 const LOCALES = ['en', 'es'] as const;
@@ -116,9 +116,10 @@ test.describe('FR-HOME-1: the header holds', () => {
         // `[ Live sky ]` follows the title on that line rather than dropping under it (F-76).
         const live = await box(page.getByTestId('live-link'));
         expect(live.x).toBeGreaterThan(titleBox.x + titleBox.width - 1);
-        // The short form is drawn only under the language's fold (D-605): Spanish at 1024 px, never at three-pane widths.
+        // The short form is drawn only under the language's fold (D-605; R115, D-774: moved out by `[ stars ]`): both
+        // languages at 1024 px, Spanish at the three panes too, neither at 1280.
         const drawn = await title.evaluate((h1) => getComputedStyle(h1, '::after').content);
-        const folded = locale === 'es' ? width < HOME_THREE_PANE_MIN_PX : width < 973;
+        const folded = width < HEADER_FOLD_PX[locale].title;
         expect(drawn).toBe(folded ? `"${locale === 'es' ? 'Tu cielo' : 'Your sky'}"` : 'none');
         expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
       });

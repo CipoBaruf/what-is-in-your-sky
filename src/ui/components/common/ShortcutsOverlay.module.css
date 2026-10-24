@@ -60,3 +60,8 @@
   border: 1px solid var(--edge);
   color: var(--accent);
 }
+
+/* R115 (FR-DESK-4 as amended v2.4): the stars page's block opens on its own dim line, a row under the last shortcut. */
+.table th.group {
+  padding-top: var(--row);
+}

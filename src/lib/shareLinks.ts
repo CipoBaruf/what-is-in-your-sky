@@ -285,6 +285,19 @@ export function isSettingsRoute(hash: string): boolean {
 export const SETTINGS_HASH = '#settings';
 
 /**
+ * R115 (FR-STAR-3, D-756): whether the app is on the stars page. `#stars`
+ * carries nothing, as `#settings` does not: the page draws now (FR-STAR-8,
+ * no `t` in this phase) at the reader's own place, and its camera is not
+ * saved, so there is nothing for the hash to hold.
+ */
+export function isStarsRoute(hash: string): boolean {
+  return (hash.startsWith('#') ? hash.slice(1) : hash) === 'stars';
+}
+
+/** The hash the header's `[ stars ]`, the When pane's `[ look up ]` and the `s` key open. */
+export const STARS_HASH = '#stars';
+
+/**
  * R32 (FR-LIVE-1): whether the app is on the live page — `#live` on its own,
  * or a `#live?…` link whether or not it parses. A link that parses also sets
  * the observer (`parseHash`); one that does not still opens the page, which

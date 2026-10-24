@@ -83,12 +83,19 @@
 }
 
 .title {
+  /* R115: the stars page draws the title as a paragraph (its own `h1` is the page's name); an `h1`'s margin is already 0. */
+  margin: 0;
   white-space: nowrap;
 }
 
 /* The short title is drawn from the attribute only under the fold, so the
    heading's text is the full title at every width. */
 .title::after {
+  content: none;
+}
+
+/* R115 (D-774): the wide live link's short word, drawn from the attribute under the same fold as the title's. */
+.liveLabel::after {
   content: none;
 }
 
@@ -168,11 +175,13 @@
    gaps above.
 
    The title row is the shell's two paddings, the mark and its cell, the title,
-   two cells, `[ Live sky ]`, the header's two-cell gap, and the preferences —
-   `[x] English [ ] Español` and `[x] Dark [ ] Night`, each option a cell of
-   padding and a cell of gap from the next, three cells between the groups:
-   101 cells in English, 113 in Spanish. Under that width the title is its
-   short form (FR-COMP-1's), which frees 21 and 23 cells.
+   two cells, `[ Live sky ]`, two cells, `[ stars ]` (R115), the header's
+   two-cell gap, and the preferences — `[x] English [ ] Español` and
+   `[x] Dark [ ] Night`, each option a cell of padding and a cell of gap from
+   the next, three cells between the groups: 112 cells in English, 128 in
+   Spanish. Under that width the title is its short form (FR-COMP-1's) and the
+   live link its short word (D-774), which frees 25 and 32 cells: the folded
+   row is 87 and 96, inside the wide breakpoint's 100.
 
    The tagline is the two paddings, its indent (the mark and a cell) and its
    own words: 88 cells in English — under the wide breakpoint, so it never
@@ -182,12 +191,20 @@
    These are the only queries in this file besides the wide one, and they are
    `max` folds, so the compact header — which draws neither the full title nor
    the tagline — is not under them. */
-@media (width < 973px) {
+@media (width < 1079px) {
   :global(:root[lang='en']) .title > .fullTitle {
     display: none;
   }
 
   :global(:root[lang='en']) .title::after {
+    content: attr(data-short);
+  }
+
+  :global(:root[lang='en']) .liveLabel > .fullLabel {
+    display: none;
+  }
+
+  :global(:root[lang='en']) .liveLabel::after {
     content: attr(data-short);
   }
 }
@@ -198,12 +215,20 @@
   }
 }
 
-@media (width < 1089px) {
+@media (width < 1233px) {
   :global(:root[lang='es']) .title > .fullTitle {
     display: none;
   }
 
   :global(:root[lang='es']) .title::after {
+    content: attr(data-short);
+  }
+
+  :global(:root[lang='es']) .liveLabel > .fullLabel {
+    display: none;
+  }
+
+  :global(:root[lang='es']) .liveLabel::after {
     content: attr(data-short);
   }
 }

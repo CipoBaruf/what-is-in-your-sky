@@ -17,7 +17,7 @@ import type { AppStore } from './store';
  * - `unreadable`: a known route (`#pass…`, `#live?…`) that does not parse.
  * - `unknown`: a hash that is none of the app's routes.
  *
- * `#live`, `#settings`, `#pass=<id>` and no hash at all are routes that carry
+ * `#live`, `#settings`, `#stars` (R115), `#pass=<id>` and no hash at all are routes that carry
  * no place, and answer `null`: there is no link to report on.
  *
  * `note` is FR-VISIT-3's, for a live link's `t`: `past` when the clock is
@@ -41,7 +41,7 @@ export const LINK_SPAN_MS = 24 * 3_600_000;
 /** The hash's text without the `#`, and whether it is one of the routes that carry no place. */
 function routeOf(hash: string): { text: string; placeless: boolean } {
   const text = hash.startsWith('#') ? hash.slice(1) : hash;
-  const placeless = text === '' || text === 'live' || text === 'settings' || (text.startsWith('pass=') && parseHash(text)?.kind === 'passId');
+  const placeless = text === '' || text === 'live' || text === 'settings' || text === 'stars' || (text.startsWith('pass=') && parseHash(text)?.kind === 'passId');
   return { text, placeless };
 }
 

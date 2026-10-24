@@ -91,7 +91,7 @@ export default defineConfig([
             zone('src/lib', 'src/data'),
             zone('src/lib', 'src/ui'),
             zone('src/lib', 'src/worker'),
-            zone('src/ui', 'src/data'),
+            zone('src/ui', 'src/data', ['./stars']), // D-756, D-775: the stars page builds its scene from the catalogue, in its own chunk
             zone('src/ui', 'src/worker'),
             zone('src/ui', 'src/physics'),
             zone('src/model', 'src', ['./model']), // shared types import nothing but each other

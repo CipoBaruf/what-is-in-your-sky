@@ -11,7 +11,7 @@ import type { Messages } from '../i18n/messages';
  * announcer reads the same string, so what is said on a route change is what
  * the tab says.
  */
-export type RouteName = 'home' | 'live' | 'settings' | 'pass';
+export type RouteName = 'home' | 'live' | 'settings' | 'stars' | 'pass';
 
 export interface TitledPass {
   name: string;
@@ -28,6 +28,9 @@ export function routeTitle(route: RouteName, t: Messages, pass?: TitledPass | nu
       return t.a11y.title({ route: t.live.open, app });
     case 'settings':
       return t.a11y.title({ route: t.settings.heading, app });
+    case 'stars':
+      // R115 (FR-STAR-3): "Stars · …", the page's `h1`.
+      return t.a11y.title({ route: t.stars.heading, app });
     case 'pass':
       // A pass the run has not produced yet (or no longer has) has no name to give: the tab says the app.
       return pass ? t.a11y.title({ route: t.a11y.pass(pass), app }) : app;

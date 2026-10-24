@@ -11,10 +11,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../../i18n/useT';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
-import { SHORTCUTS } from '../../../lib/shortcuts';
+import { PAGE_KEYS, SHORTCUTS } from '../../../lib/shortcuts';
 import { ShortcutsOverlay } from './ShortcutsOverlay';
 
-const rows = () => within(screen.getByTestId('shortcuts-overlay')).getAllByRole('row').slice(1); // the header row is not a shortcut
+// The header row is not a shortcut, and the stars page's block (R115) is a table body of its own, asserted below.
+const rows = () => within(screen.getByTestId('shortcuts-overlay')).getAllByRole('row').slice(1).filter((row) => row.closest('[data-testid="shortcuts-page-keys"]') === null);
 
 describe('<ShortcutsOverlay> (FR-DESK-4)', () => {
   it('lists every registered shortcut, its key and what it does', () => {
@@ -24,6 +25,15 @@ describe('<ShortcutsOverlay> (FR-DESK-4)', () => {
       return { key: cells[0]?.textContent, does: cells[1]?.textContent, id: row.dataset.shortcut };
     });
     expect(listed).toEqual(SHORTCUTS.map((shortcut) => ({ key: shortcut.label, does: en.shortcuts.does[shortcut.id], id: shortcut.id })));
+  });
+
+  it('lists the stars page’s four keys under their own heading (FR-STAR-4, FR-DESK-4 as amended v2.4)', () => {
+    render(<ShortcutsOverlay onClose={vi.fn()} />);
+    const block = screen.getByTestId('shortcuts-page-keys');
+    expect(within(block).getByRole('rowheader', { name: en.stars.keysHeading })).toBeTruthy();
+    const listed = [...block.querySelectorAll<HTMLTableRowElement>('[data-page-key]')].map((row) => ({ id: row.dataset.pageKey, key: row.querySelector('kbd')?.textContent, does: row.cells[1]?.textContent }));
+    expect(listed).toEqual(PAGE_KEYS.map((key) => ({ id: key.id, key: key.label, does: en.stars.keys[key.id] })));
+    expect(listed.map((row) => row.key).join(' ')).toBe('← → ↑ ↓');
   });
 
   it('has no row that is not a registered shortcut', () => {

@@ -3,7 +3,7 @@ import { I18nProvider, useLocale, useT } from '../i18n/useT';
 import { isFaint } from '../lib/faint';
 import { MOON_LORE } from '../lib/flags';
 import { routeTitle, type RouteName } from '../lib/routeTitle';
-import { observerFromLink, resolvePassLink } from '../lib/shareLinks';
+import { observerFromLink, resolvePassLink, STARS_HASH } from '../lib/shareLinks';
 import type { ShortcutActions } from '../lib/shortcuts';
 import { formatClock, formatDate, formatShortClock } from '../lib/timeFormat';
 import { HOME_THREE_PANE_QUERY } from '../lib/layout';
@@ -25,6 +25,7 @@ import { PassDetail } from './screens/PassDetail';
 import { findSelectedPass, usePassSelection, useSettingsRoute } from './screens/passSelection';
 import { settingsShell } from './screens/SettingsRoute';
 import { prefetchSettingsWhenIdle } from './screens/settingsChunk';
+import { StarsPage, useStarsRoute } from './screens/StarsRoute';
 import { clearRoute, open as openRoute } from './navigation';
 import { Shell } from './Shell';
 
@@ -184,6 +185,8 @@ export function App() {
   const liveUnreadable = live.active && live.link === null && window.location.hash !== '#live';
   // R52 (FR-COMP-2, D-184): the third route, read from the hash beside the other two.
   const settings = useSettingsRoute();
+  // R115 (FR-STAR-3, D-756): the fourth, the stars page.
+  const stars = useStarsRoute();
   /*
    * R87 (FR-FIRST-1, FR-FIRST-4 as amended v2.1, D-548): the phone's first-run
    * steps are held here rather than in `Home`, because the footer is this
@@ -194,7 +197,7 @@ export function App() {
    * the route is passed in and `useSteps` does it. Without that, a place set on
    * the settings page came back to a step rather than to the stacked page.
    */
-  const steps = useSteps(observer, (live.active && !liveUnreadable) || settings.active);
+  const steps = useSteps(observer, (live.active && !liveUnreadable) || settings.active || stars.active);
   const stepping = mode === 'compact' && steps.step !== null;
   /*
    * R50 (FR-DESK-3 as amended, F-6, D-253): which of the right column's two
@@ -310,6 +313,11 @@ export function App() {
         settings.leave();
         return true;
       }
+      // R115: and the stars page, the same way.
+      if (stars.active) {
+        stars.leave();
+        return true;
+      }
       if (selected === null) return false;
       close();
       return true;
@@ -317,6 +325,13 @@ export function App() {
     live: () => {
       setHelpOpen(false);
       openRoute('#live');
+      return true;
+    },
+    // R115 (FR-DESK-4 as amended v2.4): `s` opens the stars page; on the page itself it is the page already.
+    stars: () => {
+      setHelpOpen(false);
+      if (stars.active) return false;
+      openRoute(STARS_HASH);
       return true;
     },
     view: () => {
@@ -361,7 +376,7 @@ export function App() {
    * resolved to a pass of the run.
    */
   const liveShown = live.active && !liveUnreadable;
-  const route: RouteName = liveShown ? 'live' : settings.active ? 'settings' : selected !== null ? 'pass' : 'home';
+  const route: RouteName = liveShown ? 'live' : settings.active ? 'settings' : stars.active ? 'stars' : selected !== null ? 'pass' : 'home';
   const routeKey = route === 'pass' && selected !== null ? `pass:${selected.id}` : route;
   const title = routeTitle(route, t, selected && { name: selected.name, time: `${formatDate(selected.start.t, timeZone, locale)} ${formatShortClock(selected.start.t, timeZone, locale, timeZone === null)}` });
   if (liveShown) {
@@ -390,6 +405,35 @@ export function App() {
    */
   // R93 (D-545): the page is a chunk; while it is on its way the header's bead runs (FR-MARK-5), through this flag.
   if (settings.active) return <Shell routeKey={routeKey} title={title} {...settingsShell(t, { onLeave: settings.leave }, { arriving: settingsArriving, onArriving: setSettingsArriving })} />;
+  /*
+   * R115 (FR-STAR-3, D-756): the stars page is a screen like the settings one — the header (its `[ stars ]` the
+   * current page's), the page as `main`, no footer — and a chunk of its own, fetched here or from the link ahead
+   * of the tap. The shortcuts overlay opens over it as over home.
+   */
+  if (stars.active) {
+    return (
+      <Shell
+        chrome="stars"
+        routeKey={routeKey}
+        title={title}
+        banner={<Header current="stars" inert={helpOpen} />}
+        mainProps={{ inert: helpOpen, className: styles.stars }}
+        after={
+          helpOpen && (
+            <ShortcutsOverlay
+              onClose={() => {
+                setHelpOpen(false);
+              }}
+            />
+          )
+        }
+      >
+        <Suspense fallback={<p className={styles.starsLoading}>{t.stars.loading}</p>}>
+          <StarsPage onLeave={stars.leave} />
+        </Suspense>
+      </Shell>
+    );
+  }
   return (
     <Shell
       chrome="home"

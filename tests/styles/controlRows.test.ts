@@ -558,18 +558,22 @@ describe.each(LOCALES)('FR-HOME-1: the wide header folds where its lines would w
     expect(screen.getByRole('heading', { level: 1, name: t.app.title })).toBeTruthy();
   });
 
-  it('shortens the title under the width the title row needs: the mark, the title, the live link and the preferences', () => {
-    const titleRow = markCells + 1 + t.app.title.length + titleGap + control(t.live.open);
+  it('shortens the title under the width the title row needs: the mark, the title, the live and stars links and the preferences', () => {
+    // R115 (FR-STAR-3, D-774): `[ stars ]` stands beside `[ live ]`, two cells after it.
+    const titleRow = markCells + 1 + t.app.title.length + titleGap + control(t.live.open) + titleGap + control(t.stars.link);
     const preferences = group(LOCALES.map((l) => LOCALE_NAMES[l])) + controlsGap + group(Object.values(t.app.themes));
     const cells = 2 * SHELL_PADDING_CELLS + titleRow + headerGap + preferences;
-    expect(cells).toBe(locale === 'es' ? 113 : 101);
+    expect(cells).toBe(locale === 'es' ? 128 : 112);
     expect(foldLiteral(locale, 'title')).toBe(thresholdPx(cells));
-    // F-76: Spanish at 1024 px is under its fold and English is not; neither is under it at three-pane widths.
-    expect(foldLiteral('es', 'title')).toBeGreaterThan(1024);
-    expect(foldLiteral('en', 'title')).toBeLessThan(1024);
-    expect(foldLiteral(locale, 'title')).toBeLessThan(HOME_THREE_PANE_MIN_PX);
-    // The short form frees enough that the folded row fits the wide breakpoint itself on every font.
-    expect(thresholdPx(cells - t.app.title.length + t.app.shortTitle.length)).toBeLessThanOrEqual(WIDE_MIN_PX);
+    // F-76, as R115 (D-774) moved it: both languages are under their fold at 1024 px, Spanish at the three panes too, and
+    // neither at 1280.
+    expect(foldLiteral(locale, 'title')).toBeGreaterThan(1024);
+    expect(foldLiteral('es', 'title')).toBeGreaterThan(HOME_THREE_PANE_MIN_PX);
+    expect(foldLiteral(locale, 'title')).toBeLessThan(1280);
+    // The short title and the live link's short word free enough that the folded row fits the wide breakpoint itself on every font.
+    const folded = cells - t.app.title.length + t.app.shortTitle.length - t.live.open.length + t.live.openShort.length;
+    expect(folded).toBe(locale === 'es' ? 96 : 87);
+    expect(thresholdPx(folded)).toBeLessThanOrEqual(WIDE_MIN_PX);
   });
 
   it('hides the tagline under the width its one line needs: the indent and its words', () => {

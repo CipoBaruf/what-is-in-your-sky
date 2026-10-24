@@ -478,3 +478,14 @@
   }
 }
 
+
+/* R115 (FR-STAR-3, D-756): the stars page's `main`. On wide it is the shell's middle row and holds the page at its
+   height (the page does not scroll there, its rail does); the page's own layout is `Stars.module.css`'s, in its chunk. */
+.stars {
+  min-height: 0;
+}
+
+.starsLoading {
+  margin: 0;
+  color: var(--fg-dim);
+}

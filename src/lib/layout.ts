@@ -177,7 +177,8 @@ export const FOOTER_ONE_LINE_MIN_PX = { en: 1118, es: 1137 } as const;
  * `tests/styles/breakpoint.test.ts` holds `Header.module.css`'s `width <`
  * folds to these, as it holds every other condition to an export of this file.
  */
-export const HEADER_FOLD_PX = { en: { title: 973, tagline: 848 }, es: { title: 1089, tagline: 1050 } } as const;
+// R115 (D-774): the title folds moved out with `[ stars ]` on the row, 973 → 1079 and 1089 → 1233.
+export const HEADER_FOLD_PX = { en: { title: 1079, tagline: 848 }, es: { title: 1233, tagline: 1050 } } as const;
 
 /**
  * R103 (FR-DS-3, D-702): the three heights the stylesheets fold at, named

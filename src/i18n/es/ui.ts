@@ -478,6 +478,7 @@ export const ui: typeof EnUi = {
       open: 'Abrir el pase donde está el cursor',
       close: 'Cerrar la guía, o esta lista',
       live: 'Abrir el cielo en vivo',
+      stars: 'Abrir las estrellas',
       view: 'Cambiar el gráfico entre el domo y la vista polar',
       theme: 'Cambiar la paleta entre oscura y nocturna',
       help: 'Mostrar esta lista',
