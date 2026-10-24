@@ -19,7 +19,7 @@ import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps } from '..
 import { SENSOR_CAMERA } from './camera';
 import { CompassGutter } from './CompassGutter';
 import { gutterMarks, passBearing, turnTo, type GutterMark, type GutterPass } from './gutter';
-import { drawableDeg, groundClipPath, groundState, HORIZON, lookDirection, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type SkyPoint, type View } from './projection';
+import { COMPASS, drawableDeg, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type SkyPoint, type View } from './projection';
 import { nearestQuarter, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
 import { StarField } from './StarField';
@@ -151,18 +151,7 @@ const EDGE_MARGIN = 14;
 const ALT_30 = ring(30, 3);
 const ALT_60 = ring(60, 4);
 const TICKS = Array.from({ length: 12 }, (_, i) => i * 30);
-const COMPASS: readonly { azDeg: number; name: string; major: boolean }[] = [
-  { azDeg: 0, name: 'N', major: true },
-  { azDeg: 45, name: 'NE', major: false },
-  { azDeg: 90, name: 'E', major: true },
-  { azDeg: 135, name: 'SE', major: false },
-  { azDeg: 180, name: 'S', major: true },
-  { azDeg: 225, name: 'SW', major: false },
-  { azDeg: 270, name: 'W', major: true },
-  { azDeg: 315, name: 'NW', major: false },
-];
-/** The names sit a little above the horizon line. */
-const NAME_ALT_DEG = 3.5;
+// R116: `COMPASS` and `NAME_ALT_DEG` are `projection.ts`'s now, so the star field places its names after the compass.
 
 const fmt = (n: number): string => n.toFixed(1);
 

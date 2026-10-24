@@ -154,6 +154,20 @@ export const ring = (elDeg: number, stepDeg: number): SkyPoint[] => {
 /** The horizon, sampled every 2°: the grid's line, the ground clip's outline and the star field's floor are all projected from these 181 points (F-57). */
 export const HORIZON: readonly SkyPoint[] = ring(0, 2);
 
+/** FR-WIN-2's compass names on the horizon, the major four bold; R116 (D-755): shared with the star field, whose names are placed after them. */
+export const COMPASS: readonly { azDeg: number; name: string; major: boolean }[] = [
+  { azDeg: 0, name: 'N', major: true },
+  { azDeg: 45, name: 'NE', major: false },
+  { azDeg: 90, name: 'E', major: true },
+  { azDeg: 135, name: 'SE', major: false },
+  { azDeg: 180, name: 'S', major: true },
+  { azDeg: 225, name: 'SW', major: false },
+  { azDeg: 270, name: 'W', major: true },
+  { azDeg: 315, name: 'NW', major: false },
+];
+/** The compass names sit a little above the horizon line. */
+export const NAME_ALT_DEG = 3.5;
+
 const fmt1 = (n: number): string => n.toFixed(1);
 
 /**
