@@ -3120,7 +3120,7 @@ Decision block (§16.2), reserved in PLAN §16.21: **R111 D-744..D-747**. D-740.
 
 ### Wave 1 (second cut)
 
-- [ ] **R112 — The catalogue and the positions: `build-stars.ts`, `catalog.json` in columns, the figure-name table, `skyStars.ts`, the two tests**
+- [x] **R112 — The catalogue and the positions: `build-stars.ts`, `catalog.json` in columns, the figure-name table, `skyStars.ts`, the two tests**
   - **Lane:** data
   - **Model:** opus
   - **Review:** opus
