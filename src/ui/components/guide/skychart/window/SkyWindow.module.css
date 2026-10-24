@@ -35,9 +35,60 @@
   cursor: grabbing;
 }
 
-/* R113 (D-751): the star field's group, written outside render; R114 styles what goes in it. */
+/* R113 (D-751): the star field's group, written outside render. R114
+   (FR-STAR-6 as amended, FR-DS-8 as amended; D-753, D-754) styles what goes
+   in it, every value a token: the ground is the chart's ground surface at the
+   hatch's opacity, a figure is a hairline in the figure token with no dash and
+   no opacity, and a glyph is the app's own type at one of the ladder's three
+   sizes in one of its four tones, its em box centred on the point and its
+   ink shifted onto it by `dx`/`dy`. */
 .stars {
   pointer-events: none;
+}
+
+.ground {
+  fill: var(--chart-ground);
+  fill-opacity: var(--window-fill-opacity);
+  stroke: none;
+}
+
+.figures line {
+  fill: none;
+  stroke: var(--chart-figure);
+  stroke-width: var(--chart-hairline);
+}
+
+.glyph {
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.size18 {
+  font-size: var(--chart-text-18);
+}
+
+.size15 {
+  font-size: var(--chart-text-15);
+}
+
+.size12 {
+  font-size: var(--chart-text-12);
+}
+
+.star {
+  fill: var(--chart-star);
+}
+
+.starDim {
+  fill: var(--chart-star-dim);
+}
+
+.starFaint {
+  fill: var(--chart-star-faint);
+}
+
+.planet {
+  fill: var(--chart-planet);
 }
 
 .horizon {

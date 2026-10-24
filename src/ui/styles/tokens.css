@@ -138,12 +138,14 @@
   /* The charts' text, in px on purpose (OQ-38): the drawings do not scale with
      the base, so these are named for the size. 9 the degree labels, 11 the
      dome's labels and the polar key, 12 the compass and the dome key, 14 the
-     window's key, 15 the window's major compass points. */
+     window's key, 15 the window's major compass points, 18 (FR-DS-8 as
+     amended, R114) the top rung of the stars' ladder, a `*` at V ≤ 0.5. */
   --chart-text-9: 9px;
   --chart-text-11: 11px;
   --chart-text-12: 12px;
   --chart-text-14: 14px;
   --chart-text-15: 15px;
+  --chart-text-18: 18px;
 
   /* == edges == */
   /* FR-DS-1: the plain-character borders, the three radii in use, the one
@@ -159,6 +161,8 @@
   --weight-bold: 700;
   /* FR-FOL-5 (R56, D-278): how much of the ground token the sky window's hatch tile shows through. */
   --window-fill-opacity: 0.88;
+  /* FR-STAR-6 as amended (R114, D-753): the constellation figures' width, three quarters of a hairline, so a line hints at the shape and the stars stand out. */
+  --chart-hairline: calc(var(--hairline) * 0.75);
   /* FR-FSC-3 (R62, D-322): how much of the theme's surface colour the sky
      screen's two overlays — the facing readout and the legend strip — put
      between their text and the drawing under them. One number for both, in one
@@ -216,11 +220,18 @@
      sheet and does not open it. The star is in `--fg`'s class (≥ 10 : 1), the
      dim star in `--fg-dim`'s (≥ 4.5 : 1), the figure — a constellation line,
      never text — in `--chart-rings`' (≥ 3 : 1), and the planet apart from a
-     star in lightness and, here, in hue (≥ 7 : 1). Nothing draws with them yet. */
+     star in lightness and, here, in hue (≥ 7 : 1). R114's star field draws
+     with them (FR-STAR-6 as amended). */
   --chart-star: #e3e8ee; /* 15.60 : 1 — a star */
   --chart-star-dim: #8a94a1; /* 6.25 : 1 — a faint star */
   --chart-figure: #5a7088; /* 3.76 : 1 — a constellation line */
   --chart-planet: #f2c27a; /* 11.69 : 1 — a planet, gold against the stars' white */
+  /* FR-DS-8 as amended (R114, D-753): the ladder's two dimmer tones. The faint
+     star is a mark (≥ 3 : 1) and the figure's name is text (≥ 4.5 : 1); both sit
+     below `--chart-star-dim` in both themes, so a figure's name is dimmer than
+     a star's and the faintest rung is the dimmest mark. */
+  --chart-star-faint: #626d7a; /* 3.65 : 1 — the faintest rung, V ≤ 4.5 */
+  --chart-figure-name: #7a8591; /* 5.12 : 1 — a constellation's name, text */
 
   /* FR-LIVE-2 (R32, D-158): the live page draws every pass of the coming 24 h
      at once, one colour per satellite in pass order, from these six. Six
@@ -278,6 +289,8 @@
   --chart-star-dim: #cc5848; /* 4.95 : 1 */
   --chart-figure: #9b4238; /* 3.16 : 1 */
   --chart-planet: #ff9a70; /* 9.89 : 1 */
+  --chart-star-faint: #a24a40; /* 3.51 : 1 */
+  --chart-figure-name: #c4544a; /* 4.61 : 1 */
 
   --chart-series-1: #ff5c4a; /* 6.73 : 1 */
   --chart-series-2: #ffa07a; /* 10.33 : 1 */

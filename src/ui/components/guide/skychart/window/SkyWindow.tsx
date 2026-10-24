@@ -19,7 +19,7 @@ import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps } from '..
 import { SENSOR_CAMERA } from './camera';
 import { CompassGutter } from './CompassGutter';
 import { gutterMarks, passBearing, turnTo, type GutterMark, type GutterPass } from './gutter';
-import { drawableDeg, groundState, lookDirection, project, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type View } from './projection';
+import { drawableDeg, groundClipPath, groundState, HORIZON, lookDirection, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type SkyPoint, type View } from './projection';
 import { nearestQuarter, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
 import { StarField } from './StarField';
@@ -147,18 +147,7 @@ const UNMEASURED = { width: 390, height: 390 };
 /** How far outside the box a positioned thing is still "in view", so a marker leaves the frame rather than winking out at the edge. */
 const EDGE_MARGIN = 14;
 
-interface SkyPoint {
-  azDeg: number;
-  elDeg: number;
-}
-
-/** A line of constant altitude all the way round. */
-const ring = (elDeg: number, stepDeg: number): SkyPoint[] => {
-  const out: SkyPoint[] = [];
-  for (let az = 0; az <= 360; az += stepDeg) out.push({ azDeg: az % 360, elDeg });
-  return out;
-};
-const HORIZON = ring(0, 2);
+// R114 (D-754): `SkyPoint`, `ring`, `HORIZON` and `groundClipPath` are `projection.ts`'s now, shared with the star field.
 const ALT_30 = ring(30, 3);
 const ALT_60 = ring(60, 4);
 const TICKS = Array.from({ length: 12 }, (_, i) => i * 30);
@@ -191,29 +180,6 @@ function pathFrom(points: readonly Projected[], limitDeg: number): string {
     pen = true;
   }
   return d;
-}
-
-/**
- * R56 (FR-FOL-5, D-278): the closed image of the horizon, for clipping the
- * ground's hatch to it. The projection is stereographic, so the horizon — a
- * great circle — draws a circle on the plane, and the point at infinity is the
- * antipode of where the phone points: with the centre of the field *below* the
- * horizon (which is every state this is drawn in) the sky is the part that
- * runs off to infinity, so the ground is exactly the inside of that closed
- * curve. It takes the horizon points the grid path already projected (F-57),
- * sampled the same way, but whole instead of clipped to the drawable field:
- * the curve may run far outside the box, and closing it is what makes the
- * clip a region.
- */
-function groundClipPath(points: readonly Projected[]): string {
-  let d = '';
-  for (const p of points) {
-    // Within a hair of the antipode the projection has no answer (`projectDevice` returns the centre);
-    // those samples are hundreds of box-widths away and only exist when the centre is on the horizon itself.
-    if (p.offAxisDeg > 179.5 || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
-    d += `${d ? 'L' : 'M'}${fmt(p.x)} ${fmt(p.y)} `;
-  }
-  return d ? `${d}Z` : '';
 }
 
 const inFrame = (p: Projected, view: View): boolean => p.front && p.x >= -EDGE_MARGIN && p.x <= view.width + EDGE_MARGIN && p.y >= -EDGE_MARGIN && p.y <= view.height + EDGE_MARGIN;

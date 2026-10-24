@@ -138,6 +138,48 @@ export function drawableDeg(view: View): number {
   return Math.min(150, (2 * Math.atan(r)) / RAD + 5);
 }
 
+// --- The horizon's closed image (FR-FOL-5, D-278; FR-STAR-6, D-754) ---------------
+
+export interface SkyPoint {
+  azDeg: number;
+  elDeg: number;
+}
+
+/** A line of constant altitude all the way round, `stepDeg` apart, the first point repeated at 360. */
+export const ring = (elDeg: number, stepDeg: number): SkyPoint[] => {
+  const out: SkyPoint[] = [];
+  for (let az = 0; az <= 360; az += stepDeg) out.push({ azDeg: az % 360, elDeg });
+  return out;
+};
+/** The horizon, sampled every 2°: the grid's line, the ground clip's outline and the star field's floor are all projected from these 181 points (F-57). */
+export const HORIZON: readonly SkyPoint[] = ring(0, 2);
+
+const fmt1 = (n: number): string => n.toFixed(1);
+
+/**
+ * R56 (FR-FOL-5, D-278): the closed image of the horizon, for clipping the
+ * ground's hatch to it. The projection is stereographic, so the horizon — a
+ * great circle — draws a circle on the plane, and the point at infinity is the
+ * antipode of where the phone points: with the centre of the field *below* the
+ * horizon the sky is the part that runs off to infinity, so the ground is
+ * exactly the inside of that closed curve; with the centre *above* it the
+ * inside is the sky and the ground is everything outside (R114, D-754, which
+ * is why the star field draws it against the box with `evenodd`). It takes the
+ * horizon points already projected (F-57), sampled the same way, but whole
+ * instead of clipped to the drawable field: the curve may run far outside the
+ * box, and closing it is what makes the clip a region.
+ */
+export function groundClipPath(points: readonly Projected[]): string {
+  let d = '';
+  for (const p of points) {
+    // Within a hair of the antipode the projection has no answer (`projectDevice` returns the centre);
+    // those samples are hundreds of box-widths away and only exist when the centre is on the horizon itself.
+    if (p.offAxisDeg > 179.5 || !Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+    d += `${d ? 'L' : 'M'}${fmt1(p.x)} ${fmt1(p.y)} `;
+  }
+  return d ? `${d}Z` : '';
+}
+
 // --- The ground (FR-FOL-5, D-278) ----------------------------------------------
 
 /**

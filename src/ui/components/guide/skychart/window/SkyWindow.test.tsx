@@ -278,6 +278,28 @@ describe('<SkyWindow>', () => {
       settle(frame);
     };
 
+    it('takes the star field out of the drawing at buried, though its marks were written visible (R114)', () => {
+      const frame = scriptedFrames();
+      const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={{ stars: field }} />);
+      reading(aim(185, 35));
+      frame();
+      settle(frame);
+      const group = container.querySelector('[data-layer="stars"]') as SVGGElement;
+      expect(container.querySelector('[data-star="0"]')).toHaveAttribute('visibility', 'visible');
+      reading(aim(185, -80));
+      frame();
+      settle(frame);
+      expect(wrapper(container)).toHaveAttribute('data-ground', 'buried');
+      // A child's own `visible` beats an inherited `hidden` in SVG, so the group is `display: none` as well.
+      expect(group).toHaveAttribute('visibility', 'hidden');
+      expect(group).toHaveAttribute('display', 'none');
+      reading(aim(185, 35));
+      frame();
+      settle(frame);
+      expect(group).toHaveAttribute('visibility', 'visible');
+      expect(group).not.toHaveAttribute('display');
+    });
+
     it('hatches the field below the horizon with a spoken note, and keeps drawing everything above it', () => {
       const frame = scriptedFrames();
       const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} moon={MOON_FIXTURE} legendKeys={{ [pass.id]: 'A' }} />);
@@ -1000,7 +1022,8 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     expect(group).not.toBeNull();
     expect(group).toHaveAttribute('data-stars', '2');
     expect(group).toHaveAttribute('data-planets', '1');
-    expect(group.children).toHaveLength(0);
+    // R114 (D-754): the clip, the ground, the figures, the marks and the planets, in that order; what they draw is `SkyWindow.stars.test.tsx`'s.
+    expect([...group.children].map((child) => child.tagName)).toEqual(['defs', 'path', 'g', 'g', 'g']);
     // Under the horizon and the rings: the group comes before the grid in the tree.
     const grid = container.querySelector('[data-horizon]') as Element;
     expect(group.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

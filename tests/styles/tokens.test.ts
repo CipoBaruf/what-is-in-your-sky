@@ -10,7 +10,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ICON_TONES } from '../../scripts/build-mark';
-import { CHART_MARK_TOKENS, CHART_SURFACE_TOKENS, contrastRatio, GROUND_TOKENS, hue, isRedHue, MAX_RED_HUE, readSections, readTokens, SECTIONS, TEXT_TOKENS, THEMES, TOKENS_PATH, type Section, type Theme } from '../../scripts/contrast';
+import { CHART_MARK_TOKENS, CHART_SURFACE_TOKENS, CHART_TEXT_TOKENS, contrastRatio, GROUND_TOKENS, hue, isRedHue, MAX_RED_HUE, readSections, readTokens, SECTIONS, TEXT_TOKENS, THEMES, TOKENS_PATH, type Section, type Theme } from '../../scripts/contrast';
 
 const css = readFileSync(TOKENS_PATH, 'utf8');
 /** The header comment wraps, so the prose assertions read it as one line. */
@@ -70,17 +70,19 @@ describe('tokens.css sections (FR-DS-1, D-700)', () => {
     expect([...section('space').keys()]).toEqual(['space-1', 'space-2', 'space-3', 'space-4', 'space-5', 'space-block', 'gutter']);
     expect(section('space').get('space-2')).toBe('calc(var(--row) / 2)');
     expect(section('space').get('space-5')).toBe('calc(2 * var(--row))');
-    for (const key of ['border', 'border-control', 'radius-0', 'radius-1', 'radius-2', 'focus-ring', 'focus-offset', 'focus-offset-tight', 'weight-bold', 'window-fill-opacity']) expect(section('edges').has(key), `--${key}`).toBe(true);
+    for (const key of ['border', 'border-control', 'radius-0', 'radius-1', 'radius-2', 'focus-ring', 'focus-offset', 'focus-offset-tight', 'weight-bold', 'window-fill-opacity', 'chart-hairline']) expect(section('edges').has(key), `--${key}`).toBe(true);
     expect(section('edges').get('border')).toBe('var(--hairline) solid var(--rule)');
     expect(section('edges').get('weight-bold')).toBe('700');
     expect(section('edges').get('window-fill-opacity')).toBe('0.88');
+    // FR-DS-8 as amended (R114, D-753): the figures' width, three quarters of the hairline and written from it.
+    expect(section('edges').get('chart-hairline')).toBe('calc(var(--hairline) * 0.75)');
     expect(Object.fromEntries(section('layers'))).toEqual({ 'z-raised': '1', 'z-raised-2': '2', 'z-sheet': '10', 'z-overlay': '20', 'z-screen': '30', 'z-banner': '100' });
     for (const [key, value] of section('type')) {
       if (key.startsWith('chart-text-')) expect(value).toBe(`${key.slice('chart-text-'.length)}px`);
       else if (key.endsWith('-row') || key === 'small' || key === 'small-row') expect(value).toMatch(/^(\d+(\.\d+)?rem|var\(--row\)|var\(--small\)|calc\(.*\))$/);
       else expect(section('type').has(`${key}-row`), `--${key} has no --${key}-row`).toBe(true);
     }
-    expect([...section('type').keys()].filter((key) => key.startsWith('chart-text-'))).toEqual(['chart-text-9', 'chart-text-11', 'chart-text-12', 'chart-text-14', 'chart-text-15']);
+    expect([...section('type').keys()].filter((key) => key.startsWith('chart-text-'))).toEqual(['chart-text-9', 'chart-text-11', 'chart-text-12', 'chart-text-14', 'chart-text-15', 'chart-text-18']);
   });
 });
 
@@ -114,6 +116,26 @@ describe.each(THEMES)('tokens.css contrast (%s)', (theme) => {
     expect(on('chart-planet')).toBeGreaterThanOrEqual(7);
     expect(Math.abs(on('chart-planet') - on('chart-star')), 'the planet and the star differ in lightness').toBeGreaterThan(1);
     if (theme === 'dark') expect(Math.abs(hue(token(theme, 'chart-planet')) - hue(token(theme, 'chart-star'))), 'the planet and the star differ in hue').toBeGreaterThan(90);
+  });
+
+  /**
+   * FR-DS-8 as amended (R114, D-753): the ladder's two dimmer tones. The faint
+   * star is a mark at ≥ 3 : 1, the figure name is text at ≥ 4.5 : 1, and each
+   * sits below `--chart-star-dim`, so the faintest rung is the dimmest mark and
+   * a figure's name is dimmer than a star's.
+   */
+  it('has the faint star and the figure name at FR-DS-8’s ratios, each below the dim star', () => {
+    const on = (mark: string): number => contrastRatio(token(theme, mark), token(theme, 'bg'));
+    expect(on('chart-star-faint')).toBeGreaterThanOrEqual(3);
+    expect(on('chart-star-faint')).toBeLessThan(on('chart-star-dim'));
+    expect(on('chart-figure-name')).toBeGreaterThanOrEqual(4.5);
+    expect(on('chart-figure-name')).toBeLessThan(on('chart-star-dim'));
+    expect(CHART_MARK_TOKENS).toContain('chart-star-faint');
+    expect(CHART_TEXT_TOKENS).toContain('chart-figure-name');
+  });
+
+  it('has every chart text token at ≥ 4.5 : 1 on the page ground', () => {
+    for (const text of CHART_TEXT_TOKENS) expect(contrastRatio(token(theme, text), token(theme, 'bg')), text).toBeGreaterThanOrEqual(4.5);
   });
 });
 
@@ -170,7 +192,7 @@ describe('tokens.css documentation', () => {
   });
 
   it('documents each chart token’s measured ratio beside it', () => {
-    for (const chart of [...CHART_MARK_TOKENS, ...CHART_SURFACE_TOKENS]) {
+    for (const chart of [...CHART_MARK_TOKENS, ...CHART_TEXT_TOKENS, ...CHART_SURFACE_TOKENS]) {
       for (const theme of THEMES) {
         const expected = ratio(theme, chart, 'bg');
         expect(css, `--${chart} (${theme}) should be documented as ${expected} : 1`).toContain(`--${chart}: ${token(theme, chart)}; /* ${expected} : 1`);
