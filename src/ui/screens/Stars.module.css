@@ -60,7 +60,7 @@
 }
 
 /* --- The window, placed. Its frame is the window's own (`ChartFrame`); the page places the frame's cells through
-   the frame's test ids and draws none of them. Under the hand the controls row is empty, so it is not drawn; the
+   the frame's test ids and its rows' `data-row` names, never their order, and draws none of them. Under the hand the controls row is empty, so it is not drawn; the
    status slot — the window's facing readout — is the row above the box on compact and the box's top-left corner
    on wide. The selectors are three deep so they outweigh the frame's own two-part rules whatever the order. --- */
 
@@ -70,7 +70,7 @@
   position: relative;
 }
 
-.layout .sky :global([data-testid='chart-frame']) > div:first-of-type {
+.layout .sky :global([data-testid='chart-frame'] > [data-row='controls']) {
   display: none;
 }
 
@@ -99,7 +99,7 @@
   aspect-ratio: 1 / 1;
 }
 
-.layout[data-layout='compact'] .sky :global([data-testid='chart-frame']) > div:last-of-type {
+.layout[data-layout='compact'] .sky :global([data-testid='chart-frame'] > [data-row='status']) {
   padding-inline: calc(2 * var(--cell));
 }
 
@@ -134,7 +134,7 @@
 }
 
 /* FR-STAR-3: the facing readout in the box's top-left corner, on the sky screen's overlay surface (FR-FSC-3's). */
-.layout[data-layout='wide'] .sky :global([data-testid='chart-frame']) > div:last-of-type {
+.layout[data-layout='wide'] .sky :global([data-testid='chart-frame'] > [data-row='status']) {
   position: absolute;
   top: 0;
   left: 0;

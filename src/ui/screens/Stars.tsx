@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
+import { useCallback, useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { starCatalog } from '../../data/stars/catalog';
 import { useStarsPageT } from '../../i18n/starsPageT';
 import { useT } from '../../i18n/useT';
@@ -7,7 +7,8 @@ import { fitBox, RAIL_MIN_CELLS } from '../../lib/layout';
 import { starsAt } from '../../lib/skyStars';
 import type { Observer } from '../../model';
 import { useActiveObserver } from '../../state';
-import { bearingOf, createHandCamera, handRotation, initialHand, STARS_TILT_MAX_DEG, type HandCamera } from '../components/guide/skychart/window/camera';
+import { PITCH_STEP_DEG } from '../components/guide/skychart/dome/camera';
+import { bearingOf, createHandCamera, handRotation, initialHand, STARS_DEFAULT_TILT, STARS_TILT_MAX_DEG, type HandCamera, type HandState } from '../components/guide/skychart/window/camera';
 import { groundState, WINDOW_FOV, type View } from '../components/guide/skychart/window/projection';
 import type { SkyScene, StarField } from '../components/guide/skychart/window/scene';
 import { SkyWindow } from '../components/guide/skychart/window/SkyWindow';
@@ -34,9 +35,9 @@ import styles from './Stars.module.css';
  * at the ticking instant (`lib/skyStars.ts`), with the four layer switches.
  * The camera is a store (`createHandCamera`, D-766): the window drives it from
  * the drag and the arrow keys, the facing picker from its points, and the page
- * reads it with `useSyncExternalStore` for the picker's pressed point and the
- * list — through `useDeferredValue`, so a drag's frame is the window's alone
- * and the list follows when React has the time. Every open starts at the pole
+ * reads it with `useSyncExternalStore` in the two parts that show it — the
+ * picker's pressed point, and the list through `useDeferredValue` — so a
+ * drag's frame is the window's and the list follows when React has the time. Every open starts at the pole
  * side at `STARS_DEFAULT_TILT` (`initialHand`): the camera is not saved.
  *
  * **Wide**: the box at the left, cut to the browser window's shape from what
@@ -49,19 +50,14 @@ import styles from './Stars.module.css';
  *
  * The window is placed, not restyled: its frame's controls row (empty under
  * the hand) is not drawn and its status slot is put where this page's layout
- * says, by `Stars.module.css` through the frame's own test ids — the frame's
- * cells, not its look.
+ * says, by `Stars.module.css` through the frame's test ids and `data-row` names —
+ * the frame's cells, not its look.
  *
  * Now and offline (FR-STAR-8): the instant is the clock, re-read every
  * `STARS_TICK_MS` as the live page's watching state ticks; the catalogue is
  * in this chunk, so a precached chunk and a saved observer are the whole page.
  * With no observer it is FR-LIVE-1's inert line and `[ set a place ]`.
  */
-export interface StarsPageProps {
-  /** Leaves the page: what `Esc` does (`App`), passed for the page's own use. */
-  onLeave?: () => void;
-}
-
 /** FR-STAR-8: the live page's real-time tick (`Live.tsx`'s `TICK_MS`), not imported so the live chunk stays out of this one. */
 const STARS_TICK_MS = 10_000;
 
@@ -72,25 +68,40 @@ const FACING_POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const sati
 type Facing = (typeof FACING_POINTS)[number] | 'up';
 
 /** The picker's pressed option: the zenith, a point the hand is exactly at, or none after a drag. */
-function facingOf(azDeg: number, altDeg: number): Facing | '' {
+function facingOf({ azDeg, altDeg }: HandState): Facing | '' {
   if (altDeg >= STARS_TILT_MAX_DEG) return 'up';
   return FACING_POINTS.find((point) => Math.abs(normalizeAzimuthDeg(azDeg - bearingOf(point) + 180) - 180) < 1e-6) ?? '';
 }
+
+/**
+ * A compass point from the zenith: `face` keeps the tilt (FR-STAR-4), and at 90° every azimuth is the same view, so
+ * the point would change nothing the reader sees. From `up` a point also brings the view down to the opening tilt,
+ * in the window's own `↓` steps (55° is eleven of them), so the camera's moves stay the five it has.
+ */
+const FROM_ZENITH_STEPS = (STARS_DEFAULT_TILT - STARS_TILT_MAX_DEG) / PITCH_STEP_DEG;
 
 const UNMEASURED = { width: 0, height: 0 };
 
 /** The rail's minimum, from `lib/layout.ts`, as the stylesheet's one input in cells (the probe and the grid read it). */
 const RAIL_STYLE = { ['--rail-min-cells' as string]: String(RAIL_MIN_CELLS) } as CSSProperties;
 
-export function StarsPage(props: StarsPageProps) {
+/** The box `SkyWindow` measures for its projection: the parent of its drawing, the element its `ResizeObserver` reads. */
+const windowBox = (sky: HTMLElement): HTMLElement | null => sky.querySelector('svg[data-drawing="window"]')?.parentElement ?? null;
+
+export function StarsPage() {
   const t = useT();
   const p = useStarsPageT();
   const observer = useActiveObserver();
+  // FR-A11Y-1..3: with no place the page's one control, `[ set a place ]`, takes the focus, as the box does with one.
+  const inertRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (observer === null) inertRef.current?.querySelector<HTMLElement>('button')?.focus({ preventScroll: true });
+  }, [observer]);
   if (observer === null) {
     return (
       <>
         <VisuallyHidden as="h1">{t.stars.heading}</VisuallyHidden>
-        <div className={styles.inert} data-testid="stars-inert">
+        <div className={styles.inert} data-testid="stars-inert" ref={inertRef}>
           <p>{p.noPlace}</p>
           <TextButton label={p.setPlace} data-testid="stars-set-place" onClick={requestPlace} />
         </div>
@@ -98,10 +109,10 @@ export function StarsPage(props: StarsPageProps) {
     );
   }
   // A new place is a new sky and a new pole side: the camera starts again for it.
-  return <StarsSky key={`${String(observer.lat)},${String(observer.lon)}`} observer={observer} {...props} />;
+  return <StarsSky key={`${String(observer.lat)},${String(observer.lon)}`} observer={observer} />;
 }
 
-function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
+function StarsSky({ observer }: { observer: Observer }) {
   const t = useT();
   const p = useStarsPageT();
   const mode = useLayoutMode();
@@ -110,9 +121,12 @@ function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
   const layersId = useId();
   const fieldId = useId();
 
+  /*
+   * The camera is read where it is shown and nowhere else, so a drag's frame re-renders no part of this page: the
+   * window subscribes for itself, the picker reads its one pressed option (a string, which a drag leaves at '' after
+   * its first frame), the list reads it deferred, and the page's `data-look-*` are written by ref.
+   */
   const [camera] = useState<HandCamera>(() => createHandCamera(initialHand(observer.lat)));
-  const hand = useSyncExternalStore(camera.subscribe, camera.get, camera.get);
-  const settled = useDeferredValue(hand);
 
   const now = useNow(STARS_TICK_MS);
   const catalog = starCatalog();
@@ -123,12 +137,8 @@ function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
 
   // FR-STAR-7: one named object for the drawing and the list, cleared after the hold; naming it again restarts the hold.
   const [named, setNamed] = useState<{ index: number; at: number } | null>(null);
-  const name = useCallback((index: number) => {
-    setNamed({ index, at: performance.now() });
-  }, []);
-  const onNameStar = useCallback((index: number | null) => {
-    if (index === null) setNamed(null);
-    else setNamed({ index, at: performance.now() });
+  const onName = useCallback((index: number | null) => {
+    setNamed(index === null ? null : { index, at: performance.now() });
   }, []);
   useEffect(() => {
     if (named === null) return;
@@ -140,43 +150,43 @@ function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
     };
   }, [named]);
 
-  /*
-   * The box, as the window measures it: the list's field is the drawing's own, so the list names what the box
-   * shows. On wide the box is also cut here — the largest rectangle of the browser window's shape beside the
-   * rail's minimum (`fitBox`) — and written as two custom properties the stylesheet sizes it from.
-   */
   const layoutRef = useRef<HTMLDivElement>(null);
   const skyRef = useRef<HTMLDivElement>(null);
   const probeRef = useRef<HTMLSpanElement>(null);
-  const [box, setBox] = useState(UNMEASURED);
+
+  // Where the camera looks, on the page's root for the tests and the captures, written by ref (no render per frame).
+  useLayoutEffect(() => {
+    const layout = layoutRef.current;
+    if (!layout) return;
+    const write = (): void => {
+      const { azDeg, altDeg } = camera.get();
+      layout.dataset.lookAz = String(Math.round(azDeg));
+      layout.dataset.lookAlt = String(Math.round(altDeg));
+    };
+    write();
+    return camera.subscribe(write);
+  }, [camera]);
+
+  /*
+   * On wide the box is cut here — the largest rectangle of the browser window's shape beside the rail's minimum
+   * (`fitBox`) — and written as two custom properties the stylesheet sizes it from.
+   */
   useEffect(() => {
     const layout = layoutRef.current;
-    const sky = skyRef.current;
-    if (!layout || !sky || typeof ResizeObserver === 'undefined') return;
-    const drawing = (): Element | null => sky.querySelector('[data-testid="chart-box"]');
-    const measure = (): void => {
-      if (wide) {
-        const { width, height } = layout.getBoundingClientRect();
-        const gap = parseFloat(getComputedStyle(layout).columnGap) || 0;
-        const rail = probeRef.current?.getBoundingClientRect().width ?? 0;
-        const aspect = window.innerHeight > 0 ? window.innerWidth / window.innerHeight : 1;
-        const fit = fitBox({ frameWidthPx: width, frameHeightPx: height, aboveHeightPx: 0, belowHeightPx: 0, besideWidthPx: rail + gap, aspect });
-        const next = { w: `${String(Math.floor(fit.widthPx))}px`, h: `${String(Math.floor(fit.heightPx))}px` };
-        if (layout.style.getPropertyValue('--stars-box-w') !== next.w) layout.style.setProperty('--stars-box-w', next.w);
-        if (layout.style.getPropertyValue('--stars-box-h') !== next.h) layout.style.setProperty('--stars-box-h', next.h);
-      }
-      const rect = drawing()?.getBoundingClientRect();
-      if (rect && rect.width > 0 && rect.height > 0) {
-        const width = Math.round(rect.width);
-        const height = Math.round(rect.height);
-        setBox((was) => (was.width === width && was.height === height ? was : { width, height }));
-      }
+    if (!wide || !layout || typeof ResizeObserver === 'undefined') return;
+    const fit = (): void => {
+      const { width, height } = layout.getBoundingClientRect();
+      const gap = parseFloat(getComputedStyle(layout).columnGap) || 0;
+      const rail = probeRef.current?.getBoundingClientRect().width ?? 0;
+      const aspect = window.innerHeight > 0 ? window.innerWidth / window.innerHeight : 1;
+      const box = fitBox({ frameWidthPx: width, frameHeightPx: height, aboveHeightPx: 0, belowHeightPx: 0, besideWidthPx: rail + gap, aspect });
+      const next = { w: `${String(Math.floor(box.widthPx))}px`, h: `${String(Math.floor(box.heightPx))}px` };
+      if (layout.style.getPropertyValue('--stars-box-w') !== next.w) layout.style.setProperty('--stars-box-w', next.w);
+      if (layout.style.getPropertyValue('--stars-box-h') !== next.h) layout.style.setProperty('--stars-box-h', next.h);
     };
-    const observer = new ResizeObserver(measure);
+    const observer = new ResizeObserver(fit);
     observer.observe(layout);
-    const drawn = drawing();
-    if (drawn) observer.observe(drawn);
-    measure();
+    fit();
     return () => {
       observer.disconnect();
       layout.style.removeProperty('--stars-box-w');
@@ -184,22 +194,36 @@ function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
     };
   }, [wide]);
 
+  /*
+   * The list's field is the drawing's own: the page observes the one element `SkyWindow` measures for its projection
+   * and reads the same `contentRect`, rounded the same way, so the list names what the box shows.
+   */
+  const [box, setBox] = useState(UNMEASURED);
+  useEffect(() => {
+    const drawn = skyRef.current && windowBox(skyRef.current);
+    if (!drawn || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      const rect = entries[0]?.contentRect;
+      if (rect && rect.width > 0 && rect.height > 0) {
+        const width = Math.round(rect.width);
+        const height = Math.round(rect.height);
+        setBox((was) => (was.width === width && was.height === height ? was : { width, height }));
+      }
+    });
+    observer.observe(drawn);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   // FR-A11Y-1..3: the page's focus target is the drawing's box, which takes the arrow keys (FR-STAR-4).
   useEffect(() => {
-    skyRef.current?.querySelector<HTMLElement>('[tabindex="0"]')?.focus({ preventScroll: true });
+    if (skyRef.current) windowBox(skyRef.current)?.focus({ preventScroll: true });
   }, []);
 
   const view: View = useMemo(() => ({ fovDeg: WINDOW_FOV, width: box.width, height: box.height, screenAngleDeg: 0 }), [box]);
-  const rotation = useMemo(() => handRotation(settled), [settled]);
-  const objects = useMemo(() => fieldObjects({ catalog, positions, rotation, view, layers }), [catalog, positions, rotation, view, layers]);
-  const buried = box.width > 0 && groundState(settled.altDeg, view) === 'buried';
 
-  const facing = facingOf(hand.azDeg, hand.altDeg);
   const facingOptions = useMemo(() => [...FACING_POINTS.map((point) => ({ value: point as Facing, label: point })), { value: 'up' as Facing, label: p.up }], [p.up]);
-  const turnTo = (value: Facing): void => {
-    if (value === 'up') camera.up();
-    else camera.face(value);
-  };
   const toggle = (key: keyof StarField['layers']) => () => {
     setLayers((was) => ({ ...was, [key]: !was[key] }));
   };
@@ -208,10 +232,10 @@ function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
   return (
     <>
       <VisuallyHidden as="h1">{t.stars.heading}</VisuallyHidden>
-      <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE} data-look-az={Math.round(hand.azDeg)} data-look-alt={Math.round(hand.altDeg)}>
+      <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE}>
         {wide && <span className={styles.railProbe} ref={probeRef} aria-hidden="true" />}
         <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky">
-          <SkyWindow passes={[]} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} namedStar={named?.index ?? null} onNameStar={onNameStar} />
+          <SkyWindow passes={[]} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} namedStar={named?.index ?? null} onNameStar={onName} />
         </div>
         <div className={styles.rail} data-testid="stars-rail">
           <section aria-labelledby={facingId} className={styles.block}>
@@ -219,7 +243,7 @@ function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
               {p.facing}
             </SectionHeading>
             {/* The compact speeds' form (D-245), a cell between the options: `N NE E SE [S] SW W NW up`, 24 cells in English, 28 in Spanish (FR-COMP-4). */}
-            <ToggleGroup<Facing> name={p.facing} mark="tight" options={facingOptions} value={facing as Facing} onChange={turnTo} className={styles.row} />
+            <FacingPicker camera={camera} name={p.facing} options={facingOptions} />
           </section>
           <section aria-labelledby={layersId} className={styles.block}>
             <SectionHeading id={layersId} visuallyHidden={!wide}>
@@ -239,7 +263,7 @@ function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
           </section>
           <section aria-labelledby={fieldId} className={styles.block}>
             <SectionHeading id={fieldId}>{p.fieldHeading}</SectionHeading>
-            <FieldList objects={objects} named={named?.index ?? null} onName={name} buried={buried} labelledBy={fieldId} />
+            <FieldSection camera={camera} catalog={catalog} positions={positions} view={view} layers={layers} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
           </section>
         </div>
       </div>
@@ -247,3 +271,42 @@ function StarsSky({ observer }: StarsPageProps & { observer: Observer }) {
   );
 }
 
+/** The facing picker: its pressed option is a string read from the camera, so it re-renders only when that changes. */
+function FacingPicker({ camera, name, options }: { camera: HandCamera; name: string; options: readonly { value: Facing; label: string }[] }) {
+  const read = useCallback(() => facingOf(camera.get()), [camera]);
+  const facing = useSyncExternalStore(camera.subscribe, read, read);
+  const turnTo = (value: Facing): void => {
+    if (value === 'up') {
+      camera.up();
+      return;
+    }
+    const fromZenith = camera.get().altDeg >= STARS_TILT_MAX_DEG;
+    camera.face(value);
+    if (fromZenith) camera.stepPitch(FROM_ZENITH_STEPS);
+  };
+  return <ToggleGroup<Facing> name={name} mark="tight" options={options} value={facing as Facing} onChange={turnTo} className={styles.row} />;
+}
+
+interface FieldSectionProps {
+  camera: HandCamera;
+  catalog: ReturnType<typeof starCatalog>;
+  positions: ReturnType<typeof starsAt>;
+  view: View;
+  layers: StarField['layers'];
+  named: number | null;
+  onName: (index: number | null) => void;
+  labelledBy: string;
+}
+
+/**
+ * `In this field`, reading the camera through `useDeferredValue`: a drag's frame re-renders this component with the
+ * old value, which every memo below answers, and the list follows when React has the time.
+ */
+function FieldSection({ camera, catalog, positions, view, layers, named, onName, labelledBy }: FieldSectionProps) {
+  const hand = useSyncExternalStore(camera.subscribe, camera.get, camera.get);
+  const settled = useDeferredValue(hand);
+  const rotation = useMemo(() => handRotation(settled), [settled]);
+  const objects = useMemo(() => fieldObjects({ catalog, positions, rotation, view, layers }), [catalog, positions, rotation, view, layers]);
+  const buried = view.width > 0 && groundState(settled.altDeg, view) === 'buried';
+  return useMemo(() => <FieldList objects={objects} named={named} onName={onName} buried={buried} labelledBy={labelledBy} />, [objects, named, onName, buried, labelledBy]);
+}

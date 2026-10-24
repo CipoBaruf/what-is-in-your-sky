@@ -327,10 +327,11 @@ export function App() {
       openRoute('#live');
       return true;
     },
-    // R115 (FR-DESK-4 as amended v2.4): `s` opens the stars page; on the page itself it is the page already.
+    // R115 (FR-DESK-4 as amended v2.4): `s` opens the stars page; on the page itself it is the page already, and
+    // the press did something only if it closed the overlay.
     stars: () => {
       setHelpOpen(false);
-      if (stars.active) return false;
+      if (stars.active) return helpOpen;
       openRoute(STARS_HASH);
       return true;
     },
@@ -429,7 +430,7 @@ export function App() {
         after={overlay}
       >
         <Suspense fallback={<p className={styles.starsLoading}>{t.stars.loading}</p>}>
-          <StarsPage onLeave={stars.leave} />
+          <StarsPage />
         </Suspense>
       </Shell>
     );

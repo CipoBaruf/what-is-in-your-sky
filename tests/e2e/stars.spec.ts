@@ -104,7 +104,11 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
     await picker.locator('[data-option="up"]').click();
     await expect(page$(page)).toHaveAttribute('data-look-alt', '90');
     await picker.locator('[data-option="S"]').click();
+    // From the zenith a point brings the view back down to the opening tilt, and is the pressed one.
     await expect(page$(page)).toHaveAttribute('data-look-az', '180');
+    await expect(page$(page)).toHaveAttribute('data-look-alt', '35');
+    await expect(picker.locator('[data-option="S"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(picker.locator('[data-option="up"]')).toHaveAttribute('aria-pressed', 'false');
     // A drag at the dome's 4 px a degree: 80 px right turns the view 20° left.
     const sky = await box(drawing(page));
     const cx = sky.x + sky.width / 2;
@@ -120,9 +124,8 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
     await page.getByTestId('stars-sky').locator('[tabindex="0"]').focus();
     await page.keyboard.press('ArrowRight');
     await expect(page$(page)).toHaveAttribute('data-look-az', '175');
-    // The tilt is still the zenith's (a point keeps the tilt, FR-STAR-4), so a step down is 85°.
     await page.keyboard.press('ArrowDown');
-    await expect(page$(page)).toHaveAttribute('data-look-alt', '85');
+    await expect(page$(page)).toHaveAttribute('data-look-alt', '30');
   });
 
   test('the layers are four toggles, all on, and each turns off (FR-STAR-3 as amended v2.4.1)', async ({ page }) => {
@@ -171,6 +174,8 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
     await page.keyboard.press('s');
     await expect(page).toHaveURL(/#stars$/);
     await expect(page$(page)).toBeVisible();
+    // FR-A11Y-1..3: opened by the key, the page places its focus as from the link.
+    await expect(page.getByRole('group', { name: WORDS.en.drawing }).locator('[tabindex="0"]')).toBeFocused();
   });
 });
 
@@ -252,6 +257,8 @@ test.describe('offline (FR-STAR-8, US-38 AC7)', () => {
     for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
     await page.goto('/#stars');
     await expect(page.getByTestId('stars-inert')).toContainText('The stars need a place.');
+    // FR-A11Y-1..3: the page's focus is its one control.
+    await expect(page.getByTestId('stars-set-place')).toBeFocused();
     await page.getByTestId('stars-set-place').click();
     await expect(page).not.toHaveURL(/#stars/);
   });

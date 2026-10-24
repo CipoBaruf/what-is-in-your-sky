@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useStarsPageT } from '../../../i18n/starsPageT';
 import { useLocale, useT } from '../../../i18n/useT';
 import { degrees } from '../../../lib/format';
@@ -14,9 +15,11 @@ import styles from './FieldList.module.css';
  * A row is a button: its activation or its focus names its mark, as a tap on
  * the mark does — FR-LEG-4's rule, the legend's two handlers — through the
  * page's one `namedStar`, which the window draws the label from (R116) and
- * clears after `STAR_LABEL_HOLD_S`. Focus and a click both name; a click on a
- * row already named names it again, which restarts the hold, so a mouse down
- * that focuses and the click that follows it never cancel each other.
+ * clears after `STAR_LABEL_HOLD_S`. Focus names; an activation of a row that
+ * was already named clears it, as a second tap on the mark does. A pointer's
+ * click is judged by what was named when the pointer went down, so the focus
+ * that press gives a row and the click that follows it never cancel each
+ * other: a first click names, a second one clears.
  *
  * Pointed at the ground (FR-FOL-5's second step, no sky in the field) the list
  * is the note instead, in the window's own words for it; with sky in the field
@@ -25,7 +28,8 @@ import styles from './FieldList.module.css';
 export interface FieldListProps {
   objects: readonly FieldObject[];
   named: number | null;
-  onName: (index: number) => void;
+  /** Names a mark, or clears the name with `null`. */
+  onName: (index: number | null) => void;
   /** No sky left in the field (FR-FOL-5): the note stands in for the list. */
   buried: boolean;
   /** The heading's id, which names the list. */
@@ -36,6 +40,8 @@ export function FieldList({ objects, named, onName, buried, labelledBy }: FieldL
   const t = useT();
   const p = useStarsPageT();
   const locale = useLocale();
+  // The row a pointer went down on, and whether it was named then (before the press focused it).
+  const down = useRef<{ index: number; named: boolean } | null>(null);
   if (buried) {
     return (
       <p className={styles.note} role="status" data-testid="field-list-note">
@@ -65,8 +71,13 @@ export function FieldList({ objects, named, onName, buried, labelledBy }: FieldL
               data-kind={object.planet === null ? 'star' : 'planet'}
               aria-pressed={named === object.index}
               aria-label={p.named({ name, mag, altitude, point: object.point })}
+              onPointerDown={() => {
+                down.current = { index: object.index, named: named === object.index };
+              }}
               onClick={() => {
-                onName(object.index);
+                const pressed = down.current?.index === object.index ? down.current.named : named === object.index;
+                down.current = null;
+                onName(pressed ? null : object.index);
               }}
               onFocus={() => {
                 onName(object.index);

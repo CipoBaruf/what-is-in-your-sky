@@ -208,6 +208,40 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
  * the shortcuts overlay up, the sheet is behind it like everything else and
  * its back control, its switches and its share button were all still live.
  */
+describe('<App> s on the stars page (FR-DESK-4 as amended v2.4)', () => {
+  beforeEach(() => {
+    media = stubMatchMedia(WIDE_PX);
+  });
+  afterEach(() => {
+    media.restore();
+    appStore.setState(initial, true);
+    window.history.replaceState(null, '', window.location.pathname);
+  });
+
+  it('claims the press when it closes the overlay, and leaves it to the browser when it does nothing', async () => {
+    window.history.replaceState(null, '', '#stars');
+    act(() => {
+      appStore.setState({ observer });
+    });
+    render(<App />);
+    expect(await screen.findByTestId('stars-page', {}, { timeout: 5000 })).toBeInTheDocument();
+    await userEvent.keyboard('?');
+    expect(screen.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeInTheDocument();
+    const closing = new KeyboardEvent('keydown', { key: 's', cancelable: true, bubbles: true });
+    act(() => {
+      document.dispatchEvent(closing);
+    });
+    expect(closing.defaultPrevented).toBe(true);
+    expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).toBeNull();
+    const idle = new KeyboardEvent('keydown', { key: 's', cancelable: true, bubbles: true });
+    act(() => {
+      document.dispatchEvent(idle);
+    });
+    expect(idle.defaultPrevented).toBe(false);
+    expect(window.location.hash).toBe('#stars');
+  });
+});
+
 describe('<App> the shortcuts overlay over the compact sheet (F-45)', () => {
   beforeEach(() => {
     media = stubMatchMedia(COMPACT_PX);

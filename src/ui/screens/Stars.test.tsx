@@ -65,7 +65,7 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(stars()).toHaveAttribute('data-look-az', '0');
   });
 
-  it('turns the camera from the facing picker: a point at the current tilt, and up to the zenith (FR-STAR-4)', () => {
+  it('turns the camera from the facing picker: a point at the current tilt, up to the zenith, and a point from there back down (FR-STAR-4)', () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: SOUTH });
     page();
@@ -77,12 +77,15 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     fireEvent.click(within(picker).getByRole('button', { name: 'up' }));
     expect(stars()).toHaveAttribute('data-look-alt', '90');
     expect(within(picker).getByRole('button', { name: 'up' })).toHaveAttribute('aria-pressed', 'true');
-    // A point from the zenith keeps the tilt, so `up` stays pressed; the arrow keys on the box are the window's, through the same camera.
+    // A point from the zenith brings the view back down to the opening tilt, and is the pressed one; the arrow keys on the box are the window's, through the same camera.
     fireEvent.click(within(picker).getByRole('button', { name: 'W' }));
     expect(stars()).toHaveAttribute('data-look-az', '270');
+    expect(stars()).toHaveAttribute('data-look-alt', String(STARS_DEFAULT_TILT));
+    expect(within(picker).getByRole('button', { name: 'W' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(picker).getByRole('button', { name: 'up' })).toHaveAttribute('aria-pressed', 'false');
     const box = screen.getByTestId('stars-sky').querySelector<HTMLElement>('[tabindex="0"]');
     fireEvent.keyDown(box as HTMLElement, { key: 'ArrowDown' });
-    expect(stars()).toHaveAttribute('data-look-alt', '85');
+    expect(stars()).toHaveAttribute('data-look-alt', String(STARS_DEFAULT_TILT - 5));
     fireEvent.keyDown(box as HTMLElement, { key: 'ArrowRight' });
     expect(stars()).toHaveAttribute('data-look-az', '285');
     expect(within(picker).getAllByRole('button').some((b) => b.getAttribute('aria-pressed') === 'true')).toBe(false);
@@ -113,6 +116,15 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(screen.getByTestId('stars-inert')).toHaveTextContent(STARS_PAGE_CATALOGS.en.noPlace);
     expect(screen.getByTestId('stars-set-place')).toHaveTextContent(STARS_PAGE_CATALOGS.en.setPlace);
     expect(screen.queryByTestId('stars-sky')).toBeNull();
+    // FR-A11Y-1..3: the page places its focus on its one control.
+    expect(screen.getByTestId('stars-set-place')).toHaveFocus();
+  });
+
+  it('focuses the drawing’s box on open (FR-A11Y-1..3)', () => {
+    media = stubMatchMedia(WIDE_PX);
+    appStore.setState({ observer: SOUTH });
+    page();
+    expect(screen.getByTestId('stars-sky').querySelector('[tabindex="0"]')).toHaveFocus();
   });
 
   it('is all Spanish in Spanish, the compass abbreviations and the star names aside (FR-STAR-10)', () => {
@@ -164,6 +176,36 @@ describe('<FieldList> (FR-STAR-7, FR-LEG-4)', () => {
       </I18nProvider>,
     );
     expect(screen.getByRole('button', { name: /^Júpiter · mag −2,3 · 40° de altura · NE$/ })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('clears a named row on a second activation, by pointer or by key, as a second tap on the mark does', () => {
+    const onName = vi.fn();
+    const list = (named: number | null) => (
+      <I18nProvider locale="en">
+        <FieldList objects={objects} named={named} onName={onName} buried={false} labelledBy="h" />
+      </I18nProvider>
+    );
+    const { rerender } = render(list(null));
+    const canopus = screen.getByRole('button', { name: /^Canopus/ });
+    // A first click: the press focuses the row (which names it) and the click that follows names it too, not clears it.
+    fireEvent.pointerDown(canopus);
+    act(() => {
+      canopus.focus();
+    });
+    rerender(list(1));
+    fireEvent.click(canopus);
+    expect(onName.mock.calls).toEqual([[1], [1]]);
+    // A second click on the named row clears it.
+    onName.mockClear();
+    fireEvent.pointerDown(canopus);
+    fireEvent.click(canopus);
+    expect(onName.mock.calls).toEqual([[null]]);
+    // By key: Enter on the named, focused row clears it; on a row not named it names it.
+    onName.mockClear();
+    fireEvent.click(canopus);
+    rerender(list(null));
+    fireEvent.click(canopus);
+    expect(onName.mock.calls).toEqual([[null], [1]]);
   });
 
   it('is FR-FOL-5’s note when the field is all ground, and says so when nothing is drawn', () => {
