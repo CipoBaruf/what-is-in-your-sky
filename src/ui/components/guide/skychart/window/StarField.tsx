@@ -54,6 +54,13 @@ export interface StarFieldProps {
 
 const fmt = (n: number): string => n.toFixed(1);
 const vis = (show: boolean): 'visible' | 'hidden' => (show ? 'visible' : 'hidden');
+/** What each mark or line was last written, so a frame writes `visibility` only where it changes (the per-frame path's cost is its DOM writes). */
+const lastShown = new WeakMap<Element, boolean>();
+const setShown = (node: Element, show: boolean): void => {
+  if (lastShown.get(node) === show) return;
+  lastShown.set(node, show);
+  node.setAttribute('visibility', vis(show));
+};
 /** How far outside the box a glyph is still drawn, so the largest leaves the frame rather than winking out at its edge: half the top size. */
 const EDGE_PX = SIZE_PX['chart-text-18'] / 2;
 /** A segment's end this far beyond the drawable field is still projected, so a line to a star just outside the frame is drawn to the edge (the spike's margin). */
@@ -111,7 +118,12 @@ function drawField(group: SVGGElement, nodes: Nodes, rotation: Mat3, view: View,
   const look = lookDirection(rotation);
   const state = groundState(look.altDeg, view);
   group.setAttribute('visibility', vis(state !== 'buried'));
-  if (state === 'buried') return;
+  // A child written `visible` overrides an inherited `hidden` in SVG, so the buried frame takes the whole group out of the drawing.
+  if (state === 'buried') {
+    group.setAttribute('display', 'none');
+    return;
+  }
+  group.removeAttribute('display');
 
   // The horizon's closed image, and which side of it is the sky (D-754).
   const image = groundClipPath(HORIZON.map((p) => project(rotation, p.azDeg, p.elDeg, view)));
@@ -164,7 +176,7 @@ function drawField(group: SVGGElement, nodes: Nodes, rotation: Mat3, view: View,
   const write = (node: SVGElement | undefined, p: Point | null | undefined, on: boolean): void => {
     if (!node) return;
     const show = on && p !== null && p !== undefined;
-    node.setAttribute('visibility', vis(show));
+    setShown(node, show);
     if (!show) return;
     node.setAttribute('x', fmt(p.x));
     node.setAttribute('y', fmt(p.y));
@@ -186,7 +198,7 @@ function drawField(group: SVGGElement, nodes: Nodes, rotation: Mat3, view: View,
     const y2 = ys[b] ?? 0;
     const length = Math.hypot(x2 - x1, y2 - y1);
     const show = up && seen && length >= 2 * GAP_PX;
-    node.setAttribute('visibility', vis(show));
+    setShown(node, show);
     if (!show) return;
     const ux = ((x2 - x1) / length) * GAP_PX;
     const uy = ((y2 - y1) / length) * GAP_PX;
@@ -250,7 +262,8 @@ export const StarField = memo(function StarField({ field, view, subscribe }: Sta
   }, [measuredAtRender, field]);
 
   const { catalog, positions, layers } = field;
-  const hidden = (on: boolean): { visibility?: 'hidden' } => (on ? {} : { visibility: 'hidden' });
+  // A layer that is off is `display: none`, not only `hidden`: its children carry the `visible` the last frame wrote, which would override an inherited `hidden`.
+  const hidden = (on: boolean): { visibility?: 'hidden'; display?: 'none' } => (on ? {} : { visibility: 'hidden', display: 'none' });
   return (
     <g ref={group} className={styles.stars} data-layer="stars" data-stars={catalog.mag.length} data-planets={positions.planets.length}>
       <defs>

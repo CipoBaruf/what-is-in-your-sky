@@ -98,7 +98,9 @@ export interface Point {
 export function collide(points: readonly (Point | null)[], distancePx = COLLISION_PX): boolean[] {
   const keep = points.map(() => false);
   if (distancePx <= 0) return points.map((p) => p !== null);
-  const cells = new Map<string, Point[]>();
+  const cells = new Map<number, Point[]>();
+  // A numeric cell key, so the per-frame walk builds no strings: the box is a few hundred px, far inside ±2^15 cells.
+  const cellKey = (cx: number, cy: number): number => cx * 65536 + cy;
   const d2 = distancePx * distancePx;
   points.forEach((p, i) => {
     if (!p) return;
@@ -106,10 +108,10 @@ export function collide(points: readonly (Point | null)[], distancePx = COLLISIO
     const cy = Math.floor(p.y / distancePx);
     for (let dx = -1; dx <= 1; dx += 1) {
       for (let dy = -1; dy <= 1; dy += 1) {
-        for (const q of cells.get(`${String(cx + dx)},${String(cy + dy)}`) ?? []) if ((q.x - p.x) ** 2 + (q.y - p.y) ** 2 < d2) return;
+        for (const q of cells.get(cellKey(cx + dx, cy + dy)) ?? []) if ((q.x - p.x) ** 2 + (q.y - p.y) ** 2 < d2) return;
       }
     }
-    const key = `${String(cx)},${String(cy)}`;
+    const key = cellKey(cx, cy);
     const list = cells.get(key);
     if (list) list.push(p);
     else cells.set(key, [p]);

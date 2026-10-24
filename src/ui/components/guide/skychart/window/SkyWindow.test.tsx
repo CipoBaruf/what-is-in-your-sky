@@ -278,6 +278,28 @@ describe('<SkyWindow>', () => {
       settle(frame);
     };
 
+    it('takes the star field out of the drawing at buried, though its marks were written visible (R114)', () => {
+      const frame = scriptedFrames();
+      const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={{ stars: field }} />);
+      reading(aim(185, 35));
+      frame();
+      settle(frame);
+      const group = container.querySelector('[data-layer="stars"]') as SVGGElement;
+      expect(container.querySelector('[data-star="0"]')).toHaveAttribute('visibility', 'visible');
+      reading(aim(185, -80));
+      frame();
+      settle(frame);
+      expect(wrapper(container)).toHaveAttribute('data-ground', 'buried');
+      // A child's own `visible` beats an inherited `hidden` in SVG, so the group is `display: none` as well.
+      expect(group).toHaveAttribute('visibility', 'hidden');
+      expect(group).toHaveAttribute('display', 'none');
+      reading(aim(185, 35));
+      frame();
+      settle(frame);
+      expect(group).toHaveAttribute('visibility', 'visible');
+      expect(group).not.toHaveAttribute('display');
+    });
+
     it('hatches the field below the horizon with a spoken note, and keeps drawing everything above it', () => {
       const frame = scriptedFrames();
       const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} sun={sun} moon={MOON_FIXTURE} legendKeys={{ [pass.id]: 'A' }} />);

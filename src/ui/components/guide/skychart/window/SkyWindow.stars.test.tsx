@@ -293,6 +293,19 @@ describe('the star field (FR-STAR-6 as amended, FR-STAR-9; D-752..D-754)', () =>
     expect(alone.container.querySelector('[data-marks]')).toHaveAttribute('visibility', 'hidden');
   });
 
+  it('takes a drawn layer out when it is switched off, though its nodes were written visible', () => {
+    const { container, camera, rerender } = mount();
+    expect(star(container, 0)).toHaveAttribute('visibility', 'visible');
+    expect(planet(container, 'Jupiter')).toHaveAttribute('visibility', 'visible');
+    expect(lines(container).some((line) => line.getAttribute('visibility') === 'visible')).toBe(true);
+    // In SVG a child's own `visible` beats an inherited `hidden`, so a layer that is off is `display: none`.
+    rerender(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} scene={{ stars: { ...field, layers: { stars: false, figures: false, planets: false, names: false } } }} />);
+    for (const layer of ['[data-marks]', '[data-figures]', '[data-planet-marks]']) expect(container.querySelector(layer), layer).toHaveAttribute('display', 'none');
+    rerender(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} scene={{ stars: field }} />);
+    for (const layer of ['[data-marks]', '[data-figures]', '[data-planet-marks]']) expect(container.querySelector(layer), layer).not.toHaveAttribute('display');
+
+  });
+
   it('draws nothing of the field in a window whose scene has no stars (FR-STAR-11)', () => {
     const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
     const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} scene={{ stars: null }} />);
