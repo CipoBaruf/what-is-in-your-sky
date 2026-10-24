@@ -625,7 +625,8 @@ const REACH: Record<string, Reach> = {
     await page.keyboard.press('?');
     const overlay = page.getByTestId('shortcuts-overlay');
     await expect(overlay).toBeVisible();
-    await expect(overlay.locator('kbd')).toHaveCount(8);
+    // R115 (FR-DESK-4 as amended v2.4): `s` for the stars page and that page's two key rows, 8 → 11.
+    await expect(overlay.locator('kbd')).toHaveCount(11);
     await expect(page.getByRole('main')).toHaveAttribute('inert', '');
   },
 
