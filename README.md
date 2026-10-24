@@ -2,9 +2,8 @@
 
 Type a location and see which of about thirty bright satellites cross the sky over it
 tonight: when each one appears, where to look for it, how long it stays and how bright it
-gets. On the stars page it draws the stars, the figures and the planets in front of you,
-turned by hand on a desk or held up to the sky on a phone. It runs in the browser, with no
-backend and no account.
+gets. On the stars page it draws the stars, figures and planets in front of you, turned by
+hand or held up to the sky. It runs in the browser, with no backend and no account.
 
 **Live:** <https://inyoursky.app>
 
