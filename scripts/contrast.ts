@@ -36,6 +36,8 @@ export const CHART_MARK_TOKENS = [
   'chart-star-dim',
   'chart-figure',
   'chart-planet',
+  // FR-DS-8 as amended (R114, D-753): the faintest rung of the stars' ladder, a mark below `--chart-star-dim`.
+  'chart-star-faint',
   // FR-LIVE-2 (R32): the live page's six per-satellite arc colours.
   'chart-series-1',
   'chart-series-2',
@@ -45,6 +47,12 @@ export const CHART_MARK_TOKENS = [
   'chart-series-6',
 ] as const;
 export const CHART_SURFACE_TOKENS = ['chart-ground', 'chart-sky'] as const;
+/**
+ * FR-DS-8 as amended (R114, D-753): chart tokens that colour *text* — the
+ * figure names of FR-STAR-6 — so WCAG's 4.5 : 1 for text is their bar, on the
+ * page ground, in both themes. Listed apart from the marks for that reason.
+ */
+export const CHART_TEXT_TOKENS = ['chart-figure-name'] as const;
 /** FR-DS-8 (R103): the four of `CHART_MARK_TOKENS` nothing draws with yet — held to their ratios, not to a palette. */
 export const CHART_RESERVED_TOKENS = ['chart-star', 'chart-star-dim', 'chart-figure', 'chart-planet'] as const;
 
@@ -183,6 +191,10 @@ if (process.argv[1]?.endsWith('contrast.ts')) {
 
   console.log('\nFR-DOME-2 marks, on each theme’s --bg (3 : 1 is the bar); the two base surfaces are meant to sit near 1.');
   for (const chart of [...CHART_MARK_TOKENS, ...CHART_SURFACE_TOKENS]) {
+    console.log(row(chart, (theme) => `${get(theme, chart)}  ${contrastRatio(get(theme, chart), get(theme, 'bg')).toFixed(2)} : 1`, ['bg']));
+  }
+  console.log('\nFR-DS-8 as amended: chart text, on each theme’s --bg (4.5 : 1 is the bar).');
+  for (const chart of CHART_TEXT_TOKENS) {
     console.log(row(chart, (theme) => `${get(theme, chart)}  ${contrastRatio(get(theme, chart), get(theme, 'bg')).toFixed(2)} : 1`, ['bg']));
   }
 

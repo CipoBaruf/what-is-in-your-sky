@@ -19,7 +19,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { PRIMITIVES, type PrimitiveEntry } from '../src/ui/components/primitives/manifest';
-import { CHART_MARK_TOKENS, CHART_RESERVED_TOKENS, CHART_SURFACE_TOKENS, contrastRatio, GROUND_TOKENS, readSections, TEXT_TOKENS, TOKENS_PATH, type Section, type SheetSection } from './contrast';
+import { CHART_MARK_TOKENS, CHART_RESERVED_TOKENS, CHART_SURFACE_TOKENS, CHART_TEXT_TOKENS, contrastRatio, GROUND_TOKENS, readSections, TEXT_TOKENS, TOKENS_PATH, type Section, type SheetSection } from './contrast';
 
 export const GUIDE_PATH = 'docs/DESIGN.md';
 export const MANIFEST_PATH = 'src/ui/components/primitives/manifest.ts';
@@ -77,6 +77,7 @@ function contrastCell(name: string, tokens: Map<string, string>): string {
   if (name === 'rule') return `${ratio(value, get('bg'))} on \`--bg\` (decorative only)`;
   if ((CHART_RESERVED_TOKENS as readonly string[]).includes(name)) return `${ratio(value, get('bg'))} on \`--bg\` (reserved for the stars, FR-DS-8)`;
   if ((CHART_MARK_TOKENS as readonly string[]).includes(name)) return `${ratio(value, get('bg'))} on \`--bg\` (a chart mark, ≥ 3 : 1)`;
+  if ((CHART_TEXT_TOKENS as readonly string[]).includes(name)) return `${ratio(value, get('bg'))} on \`--bg\` (chart text, ≥ 4.5 : 1)`;
   if ((CHART_SURFACE_TOKENS as readonly string[]).includes(name)) return `${ratio(value, get('bg'))} on \`--bg\` (a chart surface, meant to sit near 1)`;
   return `${ratio(value, get('bg'))} on \`--bg\``;
 }
