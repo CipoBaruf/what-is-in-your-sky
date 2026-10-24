@@ -454,8 +454,9 @@ export function SkyWindow(props: SkyWindowProps) {
   const [hovered, setHovered] = useState<number | null>(null);
   const hitAt = (event: PointerEvent<HTMLDivElement>): number | null => {
     const rect = event.currentTarget.getBoundingClientRect();
-    const sx = rect.width > 0 ? view.width / rect.width : 1;
-    const sy = rect.height > 0 ? view.height / rect.height : 1;
+    const sx = rect.width > 0 ? size.width / rect.width : 1;
+    const sy = rect.height > 0 ? size.height / rect.height : 1;
+    // The drawing's viewBox is the measured box, the projection's `view`.
     return hitTest(hitsRef.current, (event.clientX - rect.left) * sx, (event.clientY - rect.top) * sy);
   };
   const onPointerMove = (event: PointerEvent<HTMLDivElement>): void => {
