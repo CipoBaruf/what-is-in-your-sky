@@ -48,10 +48,14 @@ describe('the v1 capture set', () => {
      *
      * R94 (FR-CAP-2): every compact screen with a 390 px picture has a 360 px one beside it — the upright
      * sky screens included, since they are compact screens with a 390 px capture.
+     *
+     * R118 (FR-STAR-5, D-786): `stars-screen` is the same layer in its stars inventory, opened by
+     * `[ hold up to the sky ]`, which is offered only where the presence test passes; it is shot sideways
+     * at 844 like `sky-screen-sky`, and the `stars` page under it is an ordinary screen with all four widths.
      */
     const UPRIGHT = new Set(['sky-screen-portrait', 'sky-screen-turned']);
     for (const screen of SCREENS) {
-      if (screen.name.startsWith('sky-screen-') || screen.name === 'window') {
+      if (screen.name.startsWith('sky-screen-') || screen.name === 'window' || screen.name === 'stars-screen') {
         expect(screen.widths, screen.name).toEqual(UPRIGHT.has(screen.name) ? [360, 390] : [844]);
         continue;
       }
@@ -80,7 +84,8 @@ describe('the v1 capture set', () => {
     // FR-TAB-3: the 768 px column for the home, the guide, the live page (both states since R80) and settings.
     expect(SCREENS.filter((screen) => screen.widths.includes(768)).map((screen) => screen.name)).toEqual(['home', 'settings', 'guide', 'live-watching', 'live-scrubbing']);
     // D-626's arithmetic, as it came out: 161 + 45 (the 360 column) + 4 (home at 1920) + 20 (the 768 column) + 24 (the `-view` twins).
-    expect(captureSet()).toHaveLength(254);
+    // R118 (D-786): + 16 for the `stars` page (360, 390, 1280, 1920) and + 4 for `stars-screen` (844).
+    expect(captureSet()).toHaveLength(274);
   });
 
   it('names every file by the one pattern, `-view` included (FR-CAP-1)', () => {
