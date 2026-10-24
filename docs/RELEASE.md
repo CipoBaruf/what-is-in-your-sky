@@ -1140,19 +1140,28 @@ phase's own requirements moved" — the three lists above are FR-STAR-3's and FR
 merged with R115 — and a file on none of the four lists is a finding, not a re-baseline.
 The 20 new files were shot twice off one build and are byte-identical between the runs.
 
-**What is committed, and what is not yet.** The committed set is the Linux renderer's since
-R109 (§15.1), and a task session cannot dispatch `captures.yml`. So the 20 `v1-stars-*`
-files in the tree are R118's local shots (the Mac's), and the 99 files above are still
-`6cfa699`'s. The workflow runs on the push of R118's merge to `main`:
+**What is committed: the Linux runs (D-732).** The committed set is the Linux renderer's
+since R109 (§15.1), so the set of record is `captures.yml`'s, dispatched on R118's branch at
+`c1a7838` (the head before the review fixes, which change no capture):
 
-- run 1: _(the owner writes the run's URL here)_ — **commit its artefact as the set**: the
-  20 new files replace R118's local ones and the 99 replace `6cfa699`'s.
-- run 2: _(dispatched on the same commit)_ — agrees with run 1 but for F-99's files.
+- run 1: [40106274669](https://github.com/CipoBaruf/what-is-in-your-sky/actions/runs/40106274669)
+  — green, **274 files** and the four design captures. **Its artefact is the committed
+  set**: against `6cfa699`'s committed files it differs in the 20 new files and in 99
+  others — the 84 of the first three lists above and 15 of F-99's size (`v1-legend-{360,390,1280}`
+  and `v1-live-{scrubbing,watching}-{1024,1200,1280,1920}` files, each at most 18 pixels,
+  at a channel step of at most 8) — and nowhere else. The four design captures are
+  byte-identical to the committed ones.
+- run 2: [40106522515](https://github.com/CipoBaruf/what-is-in-your-sky/actions/runs/40106522515)
+  — green, on the same commit; agrees with run 1 on 253 of 274 files and all four design
+  captures. The 21 that differ are sub-pixel, each at most 18 pixels at a channel step of
+  at most 16: the eight `v1-home-{360,390}-view` files (1–8 px), four `v1-legend` files and
+  nine `v1-live-{scrubbing,watching}` files, F-99's places. No `v1-stars-*` file differs.
 
-- [ ] Run 1 is green: **274 files** and the four design captures, no capture missing.
-- [ ] Against the committed set (`6cfa699`'s), run 1 differs in the 20 new files and in the
-      99 files above and nowhere else beyond F-99's noise.
-- [ ] Run 1's artefact is committed as the set, and run 2 agrees with it (FR-CAP-5).
+- [x] Run 1 is green: **274 files** and the four design captures, no capture missing.
+- [x] Against the committed set (`6cfa699`'s), run 1 differs in the 20 new files and in the
+      84 files above, and elsewhere only by F-99's noise.
+- [x] Run 1's artefact is committed as the set, and run 2 agrees with it but for F-99's
+      noise (FR-CAP-5 as §15.1 reads it).
 
 ### 16.2 The budget (FR-STAR-9, US-39 AC5, D-759)
 
