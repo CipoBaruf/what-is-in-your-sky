@@ -143,3 +143,18 @@
   background: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
   pointer-events: none;
 }
+
+/* R117 (FR-STAR-5): `[ hold up to the sky ]`, one `--tap` row, and FR-LIVE-8's note beside it — the one line of the
+   row allowed to wrap, since a denial's words are longer than the compact row's cells. */
+.holdUp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--cell);
+  min-height: var(--tap);
+}
+
+.note {
+  margin: 0;
+  color: var(--fg-dim);
+}

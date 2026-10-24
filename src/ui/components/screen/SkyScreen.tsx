@@ -3,6 +3,7 @@ import { useT } from '../../../i18n/useT';
 import { SCREEN_STATUS_ID } from '../guide/skychart/ChartFrame';
 import { SkyChart } from '../guide/skychart/SkyChart';
 import type { SkyChartProps } from '../guide/skychart/SkyChart.types';
+import type { SkyScene } from '../guide/skychart/window/scene';
 import { nearestQuarter, type Quarter } from '../guide/skychart/window/screenTurn';
 import { screenAngle } from '../live/compassHeading';
 import styles from './SkyScreen.module.css';
@@ -55,11 +56,40 @@ import { ScreenTurnProvider } from './screenTurn';
  * border box, before transforms — so `WINDOW_FOV` lands across the reader's
  * wide side by construction and not by a media query. FR-FSC-9 is untouched: a
  * fixed layer the size of the viewport still cannot scroll.
+ *
+ * **Two inventories** (R117; FR-FSC-1 as amended v2.4, FR-STAR-5; D-756). The
+ * *passes* inventory is everything above, opened from the live page and the
+ * pass detail. The *stars* inventory is opened from `#stars` by
+ * `[ hold up to the sky ]`: the same layer, `×`, readout and gutter, with the
+ * page's scene in the window — the stars, the figures and the planets as the
+ * page's toggles had them — and no pass. The window is handed no passes, so it
+ * draws no arc and the gutter no tick (FR-GUT-2); what it still builds for a
+ * screen with no pass — the empty-field chip, the next-event block upright and
+ * the legend's body lines — is a passes inventory's and is not drawn here
+ * (`SkyScreen.module.css`, by `data-inventory`). The sensor drives it, not the
+ * page's hand: the camera is the window's default, and the readout carries the
+ * true-north line (D-757).
  */
-export interface SkyScreenProps extends Required<Pick<SkyChartProps, 'passes' | 'observer' | 'now'>>, Partial<Pick<SkyChartProps, 'sun' | 'moon' | 'highlightedPassId' | 'initialFacingAzDeg'>> {
+interface SkyScreenCommon extends Required<Pick<SkyChartProps, 'observer' | 'now'>>, Partial<Pick<SkyChartProps, 'sun' | 'moon' | 'initialFacingAzDeg'>> {
   /** FR-FSC-2: the `×` and `Esc`; the page decides what closing restores. */
   onClose: () => void;
 }
+
+/** The passes inventory (the default): the live page's set, or the pass detail's one pass. */
+interface PassesInventory extends Required<Pick<SkyChartProps, 'passes'>>, Partial<Pick<SkyChartProps, 'highlightedPassId'>> {
+  inventory?: 'passes';
+}
+
+/** FR-STAR-5: the stars inventory — the page's scene, at the page's instant, and nothing about a pass. */
+interface StarsInventory {
+  inventory: 'stars';
+  scene: SkyScene;
+}
+
+export type SkyScreenProps = SkyScreenCommon & (PassesInventory | StarsInventory);
+
+/** FR-STAR-5: the stars inventory's window has no pass on it at all. */
+const NO_PASSES: SkyChartProps['passes'] = [];
 
 /**
  * FR-FSC-10 (D-426): what the layer turns by — the shorter way round from the
@@ -94,7 +124,11 @@ const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select
  * highlight is the pass detail's explained pass and nothing on the live page,
  * where every arc is equal.
  */
-export function SkyScreen({ passes, observer, now, sun, moon, highlightedPassId = null, initialFacingAzDeg, onClose }: SkyScreenProps) {
+export function SkyScreen(props: SkyScreenProps) {
+  const { observer, now, sun, moon, initialFacingAzDeg, onClose } = props;
+  const stars = props.inventory === 'stars';
+  const passes = stars ? NO_PASSES : props.passes;
+  const highlightedPassId = stars ? null : (props.highlightedPassId ?? null);
   const t = useT();
   const layerRef = useRef<HTMLDivElement>(null);
 
@@ -172,6 +206,7 @@ export function SkyScreen({ passes, observer, now, sun, moon, highlightedPassId 
       aria-modal="true"
       aria-labelledby={SCREEN_STATUS_ID}
       data-testid="sky-screen"
+      data-inventory={stars ? 'stars' : 'passes'}
       data-turn={turnDeg}
       style={{ '--screen-turn': `${String(turnDeg)}deg` } as CSSProperties}
       onKeyDown={onKeyDown}
@@ -192,6 +227,7 @@ export function SkyScreen({ passes, observer, now, sun, moon, highlightedPassId 
            * guide is about and its key is in view from the first frame (D-188).
            */
           {...(initialFacingAzDeg === undefined ? {} : { initialFacingAzDeg })}
+          {...(stars ? { scene: props.scene } : {})}
           overlay={
             <button type="button" ref={closeRef} className={styles.close} aria-label={t.chart.screenClose} onClick={onClose} data-testid="sky-screen-close">
               ×

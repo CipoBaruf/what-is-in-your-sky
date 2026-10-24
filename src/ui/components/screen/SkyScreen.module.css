@@ -84,3 +84,15 @@
 .close:focus-visible {
   --focus-offset: calc(-1 * var(--focus-ring));
 }
+
+/* R117 (FR-FSC-1 as amended v2.4, FR-STAR-5; D-756): the stars inventory has no pass, so nothing that speaks of
+   one is drawn — not the empty-field chip ("no pass to turn to", FR-GUT-6), not the next-event block upright
+   (FR-GUT-7) and not the legend's rows. The window builds them for any screen with no pass in it; the layer is
+   where the inventory is known, so it leaves them out by the frame's and the window's test ids, as the stars page
+   places the frame's cells (`Stars.module.css`). The advice under the next-event block stays: it is about the
+   picture (FR-FSC-11), not about a pass. */
+.screen[data-inventory='stars'] :global([data-testid='window-chip']),
+.screen[data-inventory='stars'] :global([data-testid='chart-legend-slot']),
+.screen[data-inventory='stars'] :global([data-testid='window-headline'] > :not([data-testid='window-turn-advice'])) {
+  display: none;
+}
