@@ -126,6 +126,16 @@
  * by R99), and the home at 1920 × 1080 (FR-CAP-3, FR-HOME-4's evidence). "The
  * live page" at 768 is both of its states, since R80 made them two screens and
  * the pair is how the state split is read. The set is 254 files.
+ *
+ * R118 (SPEC §9 Phase 2l; PLAN D-758, D-786): v2.4 adds two places a reader can
+ * be — the `#stars` page (FR-STAR-3) and the sky screen in its stars inventory
+ * (FR-STAR-5) — and changes no other screen, so the set gains two screens and
+ * nothing else moves. `stars` is the page at 390, 1280 and 1920, as D-758 names
+ * it, and at 360 beside the 390, which FR-CAP-2 asks of every compact screen;
+ * `stars-screen` is the layer at 844 × 390, the one size a sky screen is shot
+ * at sideways, and `captures.test.ts` carries it in the sky screen's exception
+ * by name. Both are on the set's clock and the set's place (FR-SHOW-9). The set
+ * is 274 files.
  */
 
 export const THEMES = ['dark', 'night'] as const;
@@ -255,6 +265,16 @@ export const SCREENS: readonly CaptureScreen[] = [
     themes: ['dark'],
     locales: ['en'],
     what: 'The same portrait phone viewport (360 or 390 px wide) with the pose of a phone held sideways under a rotation lock (FR-FSC-10, US-21 AC15, R73): the layer has turned a quarter, so the picture is landscape inside a portrait viewport and the readout, the gutter and the `×` are the right way up to the reader\'s eye. One theme and one language: the turn is a geometry, not a piece of copy.',
+  },
+  {
+    name: 'stars',
+    widths: [360, 390, 1280, 1920],
+    what: "The `#stars` page as it opens (FR-STAR-3, FR-STAR-6, R115–R117), over Bariloche at 05:00 local on the 6th, facing the pole side — south, 35° up — with every layer on: the stars on the ladder's three sizes, the figures as hairlines with their spaced names (Crux, Centaurus, Carina), the bright stars named (Canopus, Acrux, Hadar) and the horizon at the box's foot. No planet is in that field at that instant, so the planet layer is on and draws nothing there. At 360 and 390 (a touch phone, FR-WIN-4) it is the readout, the box full-bleed and square, the facing row and the layers, with `[ hold up to the sky ]` where the sensor is; `In this field` is under the fold, which the viewport shot leaves out. At 1280 and 1920 it is the box at the left and the rail beside it — the facing picker, the layers and `In this field` with its rows.",
+  },
+  {
+    name: 'stars-screen',
+    widths: [844],
+    what: 'The sky screen in the stars inventory (FR-STAR-5, FR-FSC-1 as amended v2.4, R117), opened from the page by `[ hold up to the sky ]` on a phone held sideways and aimed by a stubbed reading south, 35° up: the star field filling the viewport, the `×`, the readout with its true-north line (D-757) and the compass gutter with its bracket — and no pass, no arc, no chip and no legend.',
   },
 ];
 
