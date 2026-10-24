@@ -1,0 +1,159 @@
+{
+  "site": "singapore",
+  "observer": {
+    "lat": 1.35,
+    "lon": 103.82,
+    "altM": 0
+  },
+  "instant": "2026-11-01T14:00:00Z",
+  "frame": "geometric altitude (no refraction), azimuth from north through east, degrees",
+  "stars": [
+    {
+      "hr": 15,
+      "name": "Alpheratz",
+      "designation": "Alp And",
+      "vmag": 2.06,
+      "raJ2000Deg": 2.09708,
+      "decJ2000Deg": 29.09056,
+      "altDeg": 61.144,
+      "azDeg": 14.122
+    },
+    {
+      "hr": 1017,
+      "name": "Mirfak",
+      "designation": "Alp Per",
+      "vmag": 1.79,
+      "raJ2000Deg": 51.08083,
+      "decJ2000Deg": 49.86111,
+      "altDeg": 21.684,
+      "azDeg": 35.44
+    },
+    {
+      "hr": 1457,
+      "name": "Aldebaran",
+      "designation": "Alp Tau",
+      "vmag": 0.85,
+      "raJ2000Deg": 68.98,
+      "decJ2000Deg": 16.50917,
+      "altDeg": 15.065,
+      "azDeg": 73.202
+    },
+    {
+      "hr": 188,
+      "name": "Diphda",
+      "designation": "Bet Cet",
+      "vmag": 2.04,
+      "raJ2000Deg": 10.8975,
+      "decJ2000Deg": -17.98667,
+      "altDeg": 64.829,
+      "azDeg": 140.405
+    },
+    {
+      "hr": 472,
+      "name": "Achernar",
+      "designation": "Alp Eri",
+      "vmag": 0.46,
+      "raJ2000Deg": 24.42875,
+      "decJ2000Deg": -57.23667,
+      "altDeg": 26.777,
+      "azDeg": 162.291
+    },
+    {
+      "hr": 8728,
+      "name": "Fomalhaut",
+      "designation": "Alp PsA",
+      "vmag": 1.16,
+      "raJ2000Deg": 344.41292,
+      "decJ2000Deg": -29.62222,
+      "altDeg": 57.75,
+      "azDeg": 196.303
+    },
+    {
+      "hr": 7194,
+      "name": "Ascella",
+      "designation": "Zet Sgr",
+      "vmag": 2.6,
+      "raJ2000Deg": 285.65292,
+      "decJ2000Deg": -29.88028,
+      "altDeg": 17.726,
+      "azDeg": 237.988
+    },
+    {
+      "hr": 7121,
+      "name": "Nunki",
+      "designation": "Sig Sgr",
+      "vmag": 2.02,
+      "raJ2000Deg": 283.81625,
+      "decJ2000Deg": -26.29667,
+      "altDeg": 16.821,
+      "azDeg": 241.997
+    },
+    {
+      "hr": 7557,
+      "name": "Altair",
+      "designation": "Alp Aql",
+      "vmag": 0.77,
+      "raJ2000Deg": 297.69583,
+      "decJ2000Deg": 8.86833,
+      "altDeg": 33.108,
+      "azDeg": 279.799
+    },
+    {
+      "hr": 7001,
+      "name": "Vega",
+      "designation": "Alp Lyr",
+      "vmag": 0.03,
+      "raJ2000Deg": 279.23458,
+      "decJ2000Deg": 38.78361,
+      "altDeg": 12.314,
+      "azDeg": 309.534
+    },
+    {
+      "hr": 8775,
+      "name": "Scheat",
+      "designation": "Bet Peg",
+      "vmag": 2.42,
+      "raJ2000Deg": 345.94375,
+      "decJ2000Deg": 28.08278,
+      "altDeg": 61.938,
+      "azDeg": 344.08
+    },
+    {
+      "hr": 7924,
+      "name": "Deneb",
+      "designation": "Alp Cyg",
+      "vmag": 1.25,
+      "raJ2000Deg": 310.35792,
+      "decJ2000Deg": 45.28028,
+      "altDeg": 31.397,
+      "azDeg": 325.059
+    }
+  ],
+  "planets": [
+    {
+      "body": "Mercury",
+      "altDeg": -39.681,
+      "azDeg": 247.619
+    },
+    {
+      "body": "Venus",
+      "altDeg": -59.754,
+      "azDeg": 242.984
+    },
+    {
+      "body": "Mars",
+      "altDeg": -52.933,
+      "azDeg": 59.492
+    },
+    {
+      "body": "Jupiter",
+      "altDeg": -58.483,
+      "azDeg": 59.82
+    },
+    {
+      "body": "Saturn",
+      "altDeg": 75.143,
+      "azDeg": 90.416
+    }
+  ]
+}
