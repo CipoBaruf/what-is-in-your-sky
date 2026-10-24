@@ -55,6 +55,32 @@ describe('<Header> wide (FR-DESK-2 as amended, V11-8)', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it('has [ stars ] beside [ Live sky ], and the compact row has no room for it (R115, FR-STAR-3)', () => {
+    media = stubMatchMedia(WIDE_PX);
+    const { unmount } = render(<Header />);
+    const stars = screen.getByTestId('stars-link');
+    expect(stars).toHaveAttribute('href', '#stars');
+    expect(stars).toHaveTextContent(en.stars.link);
+    expect(screen.getByTestId('live-link').compareDocumentPosition(stars) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(screen.getByRole('navigation')).getAllByRole('link')).toHaveLength(2);
+    unmount();
+    media.restore();
+    media = stubMatchMedia(COMPACT_PX);
+    render(<Header />);
+    expect(screen.queryByTestId('stars-link')).toBeNull();
+  });
+
+  it('on the stars page marks [ stars ] current and leaves the h1 to the page (R115, FR-A11Y-1)', async () => {
+    media = stubMatchMedia(WIDE_PX);
+    const { container } = render(<Header current="stars" />);
+    const stars = screen.getByTestId('stars-link');
+    expect(stars).toHaveAttribute('aria-current', 'page');
+    expect(stars).not.toHaveAttribute('href');
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+    expect(screen.getByRole('banner')).toHaveTextContent(en.app.title);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
   it('links to no settings page: at this width the settings are the page (US-20 AC5)', () => {
     media = stubMatchMedia(WIDE_PX);
     render(<Header />);

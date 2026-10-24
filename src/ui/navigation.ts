@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { isLiveRoute, isSettingsRoute, parseHash } from '../lib/shareLinks';
+import { isLiveRoute, isSettingsRoute, isStarsRoute, parseHash } from '../lib/shareLinks';
 
 /**
  * R92 (FR-ROUTE-1..3, FR-A11Y-4; D-532, D-533; F-91): the one place the app
@@ -164,7 +164,7 @@ export function takeFocusTarget(): HTMLElement | null {
 /** A same-document link to one of the app's routes, which `open` takes instead of the browser (so its entry is marked). */
 export function isRouteHref(href: string): boolean {
   if (!href.startsWith('#') || href === '#') return false;
-  return isLiveRoute(href) || isSettingsRoute(href) || isPassHash(href);
+  return isLiveRoute(href) || isSettingsRoute(href) || isStarsRoute(href) || isPassHash(href);
 }
 
 function isPassHash(hash: string): boolean {

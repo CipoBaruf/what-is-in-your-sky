@@ -387,7 +387,9 @@ describe('every media and container condition (FR-DS-3, D-702)', () => {
     }
     for (const [lang, fold] of Object.entries(HEADER_FOLD_PX)) {
       expect(fold.tagline, `${lang}: the tagline folds before the title`).toBeLessThan(fold.title);
-      expect(fold.title).toBeLessThan(HOME_THREE_PANE_MIN_PX);
+      // R115 (D-774): with `[ stars ]` on the title row the Spanish fold is past the three panes' 1118 px, and both are
+      // still under the split's 1272, where the home is widest.
+      expect(fold.title).toBeLessThan(WIDE_SPLIT_MIN_PX);
     }
     // The only other `width <` folds are the footer's two-line rule, one per language, each under its language's selector (R93, D-546).
     const app = readFileSync(APP_PATH, 'utf8');

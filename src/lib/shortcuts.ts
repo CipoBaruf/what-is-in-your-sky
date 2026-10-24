@@ -26,7 +26,7 @@
  */
 
 /** What a shortcut does; also the message key for its description. */
-export type ShortcutId = 'next' | 'previous' | 'open' | 'close' | 'live' | 'view' | 'theme' | 'help';
+export type ShortcutId = 'next' | 'previous' | 'open' | 'close' | 'live' | 'stars' | 'view' | 'theme' | 'help';
 
 export interface Shortcut {
   id: ShortcutId;
@@ -48,9 +48,27 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { id: 'open', keys: ['Enter'], label: 'Enter' },
   { id: 'close', keys: ['Escape'], label: 'Esc' },
   { id: 'live', keys: ['l'], label: 'l' },
+  // R115 (FR-DESK-4 as amended v2.4, V24-1): a plain letter, as `l` is.
+  { id: 'stars', keys: ['s'], label: 's' },
   { id: 'view', keys: ['v'], label: 'v' },
   { id: 'theme', keys: ['n'], label: 'n' },
   { id: 'help', keys: ['?'], label: '?' },
+];
+
+/** R115 (FR-STAR-4): the stars page's own keys, as the overlay names them. */
+export type PageKeyId = 'starsTurn' | 'starsTilt';
+
+/**
+ * R115 (FR-STAR-4, FR-DESK-4 as amended v2.4): the stars page's four keys,
+ * `←` `→` `↑` `↓`, in two rows. They are printed by the overlay and run by
+ * nothing here: the drawing's box handles them itself while it has the focus
+ * (`SkyWindow`, R113), because an arrow key anywhere else is the browser's
+ * scroll and the toggle groups' own move. Their descriptions are
+ * `t.stars.keys`, typed by the same id.
+ */
+export const PAGE_KEYS: readonly { id: PageKeyId; label: string }[] = [
+  { id: 'starsTurn', label: '← →' },
+  { id: 'starsTilt', label: '↑ ↓' },
 ];
 
 /**

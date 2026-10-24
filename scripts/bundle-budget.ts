@@ -19,6 +19,8 @@ export interface Budget {
   name: string;
   match: (file: string, mainFile: string | null) => boolean;
   limitKb: number;
+  /** R115 (D-749): `each` holds every matching file to the limit on its own (the service worker and its runtime); absent, the row is held by the total of the files it matches. */
+  per?: 'each';
 }
 
 /**
@@ -334,11 +336,13 @@ export const BUDGETS: readonly Budget[] = [
   { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 170 }, // R60: 136.6 measured (flag on), crossing the 150 line (D-307); R80: 158.0 on 2.0.0 — over, and deliberately not raised (D-495, F-69); R100: 166.6 on 2.1.0, still not raised (V21-13, D-638); raised to 170 by the owner at the release gate (V21-24, D-641)
   { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 105 }, // R60: 94.2 measured, down from 97.1 (D-307); 94.2 again on 1.4.0 (R72)
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 40 },
-  { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10 },
-  { name: 'astronomy', match: (file) => /^skyBodies-.*\.js$/.test(file), limitKb: 25 },
+  { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10, per: 'each' },
+  // R115 (D-749, D-759): with the stars page importing `astronomy-engine` too, Rollup puts the library in a chunk of its own beside `skyBodies`; the row matches both and its limit is on their total, so the library is counted once, as before. 22.1 on 6cfa699; 22.6 with the stars page, the functions `skyStars.ts` calls that `skyBodies.ts` does not.
+  { name: 'astronomy', match: (file) => /^(skyBodies|astronomy)-.*\.js$/.test(file), limitKb: 25 },
   { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 15 }, // R53: back to the floor — R47 moved the World Magnetic Model to its own chunk and 1.1.0 measures 7.6 (D-178); R72: 8.5 on 1.4.0, the floor's last 1.5 KB; R100: 9.7 on 2.1.0, × 1.1 crosses 10 (D-638)
   { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 15 }, // R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345); R72: 12.1 on 1.4.0; R80: 12.8 with the compass gutter in it
   { name: 'settings', match: (file) => /^Settings-.*\.js$/.test(file), limitKb: 10 }, // R93 (D-545): 1.0 measured — the page's own composition; its controls are the home page's and stay in main
+  { name: 'stars', match: (file) => /^Stars-.*\.js$/.test(file), limitKb: 40 }, // R115 (FR-STAR-9, D-759): STARS_BUDGET_KB until the release re-sets it by D-178's rule; the page, the catalogue (18.8, D-763) and the positions
 ];
 
 export interface ChunkSize {
@@ -346,6 +350,8 @@ export interface ChunkSize {
   budget: string | null;
   rawKb: number;
   gzipKb: number;
+  /** What the row's limit is held against: the file's own size for a `per: 'each'` row, the row's total otherwise. */
+  judgedKb: number;
   limitKb: number | null;
   over: boolean;
 }
@@ -371,11 +377,16 @@ function scripts(distDir: string): { file: string; path: string }[] {
 
 export function measure(distDir = DIST): ChunkSize[] {
   const mainFile = mainChunkFile(readFileSync(join(distDir, 'index.html'), 'utf8'));
-  return scripts(distDir)
-    .map(({ file, path }) => {
-      const budget = BUDGETS.find((candidate) => candidate.match(file, mainFile)) ?? null;
-      const gzipKb = kb(gzipSync(readFileSync(path), { level: 9 }).length);
-      return { file, budget: budget?.name ?? null, rawKb: kb(statSync(path).size), gzipKb, limitKb: budget?.limitKb ?? null, over: budget !== null && gzipKb > budget.limitKb };
+  const files = scripts(distDir).map(({ file, path }) => ({ file, path, budget: BUDGETS.find((candidate) => candidate.match(file, mainFile)) ?? null, gzipBytes: gzipSync(readFileSync(path), { level: 9 }).length }));
+  // R115 (D-749): a row that matches more than one file (the astronomy row's two) is held to its limit by their total.
+  const totals = new Map<string, number>();
+  for (const { budget, gzipBytes } of files) if (budget) totals.set(budget.name, (totals.get(budget.name) ?? 0) + gzipBytes);
+  return files
+    .map(({ file, path, budget, gzipBytes }) => {
+      const gzipKb = kb(gzipBytes);
+      const judgedKb = budget === null || budget.per === 'each' ? gzipKb : kb(totals.get(budget.name) ?? 0);
+      const over = budget !== null && judgedKb > budget.limitKb;
+      return { file, budget: budget?.name ?? null, rawKb: kb(statSync(path).size), gzipKb, judgedKb, limitKb: budget?.limitKb ?? null, over };
     })
     .sort((a, b) => (a.budget === null ? 1 : 0) - (b.budget === null ? 1 : 0) || b.gzipKb - a.gzipKb);
 }
@@ -384,8 +395,18 @@ function main(): void {
   const sizes = measure();
   const missing = BUDGETS.filter((budget) => !sizes.some((size) => size.budget === budget.name));
   console.log('Bundle budgets (PLAN §11), gzipped:');
-  console.table(sizes.map(({ file, budget, rawKb, gzipKb, limitKb, over }) => ({ chunk: budget ?? '(lazy, unbudgeted)', file, 'raw KB': rawKb, 'gzip KB': gzipKb, 'budget KB': limitKb ?? '', status: over ? 'OVER' : limitKb === null ? '' : 'ok' })));
-  for (const size of sizes.filter((s) => s.over)) console.log(`::warning::${size.budget} chunk ${size.file} is ${String(size.gzipKb)} KB gzipped, over the ${String(size.limitKb)} KB budget (PLAN §11)`);
+  console.table(sizes.map(({ file, budget, rawKb, gzipKb, judgedKb, limitKb, over }) => ({ chunk: budget ?? '(lazy, unbudgeted)', file, 'raw KB': rawKb, 'gzip KB': gzipKb, 'judged KB': limitKb === null ? '' : judgedKb, 'budget KB': limitKb ?? '', status: over ? 'OVER' : limitKb === null ? '' : 'ok' })));
+  // A row held by its total warns once, with the total and its files; a `per: 'each'` row warns per file.
+  const warned = new Set<string>();
+  for (const size of sizes.filter((s) => s.over)) {
+    const row = sizes.filter((s) => s.budget === size.budget);
+    const each = BUDGETS.find((b) => b.name === size.budget)?.per === 'each';
+    if (each) console.log(`::warning::${String(size.budget)} chunk ${size.file} is ${String(size.judgedKb)} KB gzipped, over the ${String(size.limitKb)} KB budget (PLAN §11)`);
+    else if (!warned.has(String(size.budget))) {
+      warned.add(String(size.budget));
+      console.log(`::warning::${String(size.budget)} chunks ${row.map((s) => s.file).join(' + ')} are ${String(size.judgedKb)} KB gzipped together, over the ${String(size.limitKb)} KB budget (PLAN §11)`);
+    }
+  }
   for (const budget of missing) console.log(`::warning::no chunk matched the ${budget.name} budget; check scripts/bundle-budget.ts against the build output`);
 }
 

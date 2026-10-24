@@ -1,0 +1,54 @@
+/* R115 (FR-STAR-7, D-756): `In this field`, the legend's row form (FR-LEG-4) in four columns — the name, the
+   magnitude, the altitude and the direction — aligned down the list, so twelve rows read as a table. */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  margin: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) calc(8 * var(--cell)) calc(4 * var(--cell)) calc(3 * var(--cell));
+  column-gap: var(--cell);
+  align-items: baseline;
+  width: 100%;
+  min-height: var(--tap);
+  padding: calc(var(--row) / 4) 0;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.row[aria-pressed='true'] .name {
+  color: var(--accent);
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mag,
+.alt,
+.point {
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+
+.alt {
+  text-align: right;
+}
+
+.note {
+  margin: 0;
+  color: var(--fg-dim);
+}

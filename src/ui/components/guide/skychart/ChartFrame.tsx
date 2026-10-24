@@ -346,7 +346,8 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
       >
         {/* D-314: the rail's minimum in px, read off this probe — `--cell` is `1ch`, which no script can turn into px by itself. */}
         {boxed && !isStacked && <span className={styles.railProbe} ref={railProbeRef} aria-hidden="true" />}
-        <div className={styles.controls} ref={controlsRef}>
+        {/* R115: the two rows a page that places the frame's cells reaches by name (the stars page), not by order. */}
+        <div className={styles.controls} ref={controlsRef} data-row="controls">
           {controls}
         </div>
         <div className={styles.drawing} data-testid="chart-box">
@@ -358,7 +359,9 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
             </div>
           )}
         </div>
-        <div className={styles.status}>{status}</div>
+        <div className={styles.status} data-row="status">
+          {status}
+        </div>
         {hasStripe && (
           <div className={styles.stripe} data-testid="chart-stripe" ref={stripeRef}>
             {stripe}

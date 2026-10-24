@@ -1,0 +1,19 @@
+import type { starsPage as EnStarsPage } from '../en/starsPage';
+
+/** FR-I18N-2, FR-STAR-10 (R115, D-777): las palabras que solo dibuja la página de estrellas, en el chunk `stars`. Los nombres de estrellas y figuras son datos del catálogo, iguales en los dos idiomas. */
+export const starsPage: typeof EnStarsPage = {
+  noPlace: 'Las estrellas necesitan un lugar.',
+  setPlace: 'elegir un lugar',
+  drawing: 'El cielo: arrastralo o usá las flechas',
+  facing: 'Mirando',
+  up: 'arriba',
+  layersHeading: 'Capas',
+  layers: { stars: 'estrellas', figures: 'figuras', planets: 'planetas', names: 'nombres' },
+  fieldHeading: 'En este campo',
+  fieldEmpty: 'Nada dibujado en este campo.',
+  planets: { Mercury: 'Mercurio', Venus: 'Venus', Mars: 'Marte', Jupiter: 'Júpiter', Saturn: 'Saturno' },
+  mag: (p) => `mag ${p.mag}`,
+  readout: (p) => `Mirando al ${p.point} · ${p.altitude} de altura · ${p.across} de ancho`,
+  named: (p) => `${p.name} · mag ${p.mag} · ${p.altitude} de altura · ${p.point}`,
+  holdUp: 'apuntá al cielo',
+};

@@ -50,7 +50,7 @@ describe('openLink (R83, D-539)', () => {
   });
 
   it('the routes that carry no place answer nothing', () => {
-    for (const hash of ['', '#', '#live', '#settings', '#pass=25544-1790000000000']) expect(openLink(hash, saved, NOW), hash).toBeNull();
+    for (const hash of ['', '#', '#live', '#settings', '#stars', '#pass=25544-1790000000000']) expect(openLink(hash, saved, NOW), hash).toBeNull();
   });
 
   it("a live link's t behind the clock is past, and more than the span ahead is far (FR-VISIT-3)", () => {

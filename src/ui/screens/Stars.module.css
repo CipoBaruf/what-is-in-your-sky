@@ -1,0 +1,145 @@
+/* R115 (FR-STAR-3, D-756): the stars page. Compact is one column — the readout row, the box full-bleed and square
+   (FR-COMP-5), the facing row, the layers' two rows, the list — and scrolls past the box. Wide is the box at the
+   left, cut by `Stars.tsx` to the browser window's shape from what the page leaves beside the rail's minimum
+   (`fitBox`, FR-LIVE-7's rule), and the rail beside it up to 60 cells; the page itself does not scroll there, the
+   rail does. Every length is a token or a count of cells (FR-DS-2). */
+
+.layout {
+  display: grid;
+  gap: calc(var(--row) / 2);
+  align-content: start;
+}
+
+/* The rail's minimum as a length the page can read in px, as the live frame's probe is (D-314). */
+.railProbe {
+  position: absolute;
+  visibility: hidden;
+  height: 0;
+  width: calc(var(--rail-min-cells) * var(--cell));
+}
+
+.sky {
+  min-width: 0;
+}
+
+.rail {
+  display: grid;
+  gap: var(--row);
+  align-content: start;
+  min-width: 0;
+}
+
+.block {
+  display: grid;
+  gap: calc(var(--row) / 4);
+  min-width: 0;
+}
+
+/* One control row: the toggles at the tap height, never wrapping (FR-COMP-4 counts them, `controlRows.test.ts`). */
+.row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  min-height: var(--tap);
+  white-space: nowrap;
+}
+
+.layers {
+  display: grid;
+}
+
+.inert {
+  display: grid;
+  gap: calc(var(--row) / 2);
+  justify-items: start;
+  padding-top: var(--row);
+}
+
+.inert p {
+  margin: 0;
+}
+
+/* --- The window, placed. Its frame is the window's own (`ChartFrame`); the page places the frame's cells through
+   the frame's test ids and its rows' `data-row` names, never their order, and draws none of them. Under the hand the controls row is empty, so it is not drawn; the
+   status slot — the window's facing readout — is the row above the box on compact and the box's top-left corner
+   on wide. The selectors are three deep so they outweigh the frame's own two-part rules whatever the order. --- */
+
+.layout .sky :global([data-testid='chart-frame']) {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  position: relative;
+}
+
+.layout .sky :global([data-testid='chart-frame'] > [data-row='controls']) {
+  display: none;
+}
+
+.layout .sky :global([data-testid='chart-box']) {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  min-height: 0;
+}
+
+/* Compact: the readout row, then the box, square and full-bleed — the page's two cells of padding given back. */
+.layout[data-layout='compact'] .sky {
+  margin-inline: calc(-2 * var(--cell));
+}
+
+.layout[data-layout='compact'] .sky :global([data-testid='chart-frame']) {
+  height: auto;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    'status'
+    'drawing';
+}
+
+.layout[data-layout='compact'] .sky :global([data-testid='chart-box']) {
+  height: auto;
+  aspect-ratio: 1 / 1;
+}
+
+.layout[data-layout='compact'] .sky :global([data-testid='chart-frame'] > [data-row='status']) {
+  padding-inline: calc(2 * var(--cell));
+}
+
+/* Wide: the box and the rail, the box's size written by the page. */
+.layout[data-layout='wide'] {
+  grid-template-columns: auto minmax(calc(var(--rail-min-cells) * var(--cell)), calc(60 * var(--cell)));
+  column-gap: calc(2 * var(--cell));
+  justify-content: start;
+  align-items: start;
+  height: 100%;
+  min-height: 0;
+}
+
+.layout[data-layout='wide'] .sky {
+  width: var(--stars-box-w, 0);
+  height: var(--stars-box-h, 0);
+}
+
+.layout[data-layout='wide'] .rail {
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.layout[data-layout='wide'] .sky :global([data-testid='chart-frame']) {
+  height: 100%;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'drawing';
+}
+
+.layout[data-layout='wide'] .sky :global([data-testid='chart-box']) {
+  height: 100%;
+}
+
+/* FR-STAR-3: the facing readout in the box's top-left corner, on the sky screen's overlay surface (FR-FSC-3's). */
+.layout[data-layout='wide'] .sky :global([data-testid='chart-frame'] > [data-row='status']) {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-height: 0;
+  padding: 0 var(--cell);
+  background: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
+  pointer-events: none;
+}

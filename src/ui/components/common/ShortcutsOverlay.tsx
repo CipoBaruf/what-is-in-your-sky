@@ -1,7 +1,7 @@
 import { useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useT } from '../../../i18n/useT';
-import { SHORTCUTS } from '../../../lib/shortcuts';
+import { PAGE_KEYS, SHORTCUTS } from '../../../lib/shortcuts';
 import { useOpenerFocus } from '../../hooks/useOpenerFocus';
 import styles from './ShortcutsOverlay.module.css';
 
@@ -59,6 +59,22 @@ export function ShortcutsOverlay({ onClose }: ShortcutsOverlayProps) {
                   <kbd className={styles.key}>{shortcut.label}</kbd>
                 </td>
                 <td>{t.shortcuts.does[shortcut.id]}</td>
+              </tr>
+            ))}
+          </tbody>
+          {/* R115 (FR-STAR-4, FR-DESK-4 as amended v2.4): the stars page's four keys, which its drawing handles itself. */}
+          <tbody data-testid="shortcuts-page-keys">
+            <tr>
+              <th scope="rowgroup" colSpan={2} className={styles.group}>
+                {t.stars.keysHeading}
+              </th>
+            </tr>
+            {PAGE_KEYS.map((key) => (
+              <tr key={key.id} data-page-key={key.id}>
+                <td>
+                  <kbd className={styles.key}>{key.label}</kbd>
+                </td>
+                <td>{t.stars.keys[key.id]}</td>
               </tr>
             ))}
           </tbody>

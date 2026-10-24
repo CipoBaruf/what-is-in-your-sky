@@ -3192,7 +3192,7 @@ Decision block (§16.2), reserved in PLAN §16.21: **R111 D-744..D-747**. D-740.
     - The Done note carries the ink offsets measured in Chromium (an e2e probe of `inkOffsets.ts` on any page) and the window row's size; the field's captures are R115's and R116's, once the page exists.
     - `npm test`, lint, typecheck and `npm run e2e` green; the committed window captures unchanged.
 
-- [ ] **R115 — The `#stars` page: route, chunk and budget row, both layouts, the hand camera, the picker, the layers, `In this field`, the way in, every string**
+- [x] **R115 — The `#stars` page: route, chunk and budget row, both layouts, the hand camera, the picker, the layers, `In this field`, the way in, every string**
   - **Lane:** ui
   - **Model:** opus
   - **Review:** opus
@@ -3215,6 +3215,7 @@ Decision block (§16.2), reserved in PLAN §16.21: **R111 D-744..D-747**. D-740.
     - `tests/e2e/stars.spec.ts` and `controlRows.test.ts` (the compact rows in 36 cells, both languages) pass.
     - `npm run bundle:budget`: `stars` present and under 40, main ≤ 1 KB over `6cfa699`, no other row's total moved; the Done note carries the numbers.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs tests/styles` and `npm run e2e` green; captures of the page at 390 and 1280 in both themes and languages under `docs/screenshots/r115/`.
+  - **Done (2026-10-24, D-774..D-777):** the budget, gzipped, against `6cfa699` built on the same machine: main 168.5 → 169.4 KB (+923 bytes); `stars` 24.4 of 40; `astronomy` 22.1 → 22.6 (Rollup split the library into `astronomy-*.js` 21.9 beside `skyBodies-*.js` 0.7; the row matches both and holds their total — the 0.5 is the functions `skyStars.ts` calls that `skyBodies.ts` does not); `window` 12.8 → 14.4 (13.9 on R113's merge; the 0.5 since is R113's hand camera, tree-shaken until a page created one, and the exports the `stars` chunk imports), under 15; `chart`, `live`, `settings`, `worker` and the service worker unmoved. Three differences from the text: the page's own words are a `starsPage` section the `stars` chunk carries (`i18n/{en,es}/starsPage.ts`, `useStarsPageT`), the `stars` section in the main catalogs keeping only what main draws — one section in both catalogs put main at +1.3 KB (D-777); the wide header's live link takes its short word under the title's fold, which `[ stars ]` moved to 1079 and 1233 px (D-774); and the layers are two rows of two on every width, since one row of four `[x]` toggles is 43 cells in English (D-776). `In this field`'s FR-FOL-5 note is wired, but the hand's −10° cannot bury a wide field (it takes −30°), so only the screen reaches it.
 
 ### Wave 3 (second cut)
 

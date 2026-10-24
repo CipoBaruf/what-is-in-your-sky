@@ -1,8 +1,9 @@
 import { useT } from '../../../i18n/useT';
-import { SETTINGS_HASH } from '../../../lib/shareLinks';
+import { SETTINGS_HASH, STARS_HASH } from '../../../lib/shareLinks';
 import { useAppStore, type AppState } from '../../../state';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { loadSettingsChunk } from '../../screens/settingsChunk';
+import { loadStarsChunk } from '../../screens/starsChunk';
 import { Mark } from '../mark/Mark';
 import { MARK_HEADER_PX } from '../mark/tiers';
 import { BracketLink } from '../primitives/BracketLink';
@@ -53,12 +54,18 @@ import { ThemeToggle } from './ThemeToggle';
  * stylesheet's own gaps. The short form is the `data-short` attribute drawn by
  * the stylesheet, so the `h1`'s text is the full title at every width and its
  * accessible name is whichever form is drawn.
+ *
+ * R115 (FR-STAR-3, FR-A11Y-1, D-756): the wide header's links gain
+ * `[ stars ]` beside `[ live ]`; the compact row has no room for it (34 of its
+ * 36 cells), so a phone reaches the page from the When pane. On the stars page
+ * the title is a paragraph and not the `h1`: the page's own name is its
+ * heading, one `h1` a route, as the live page's is.
  */
 export interface HeaderProps {
   /** R6/R35: made inert with the rest of the shell while the compact sheet or the shortcuts overlay is up. */
   inert?: boolean;
   /** Which screen this header sits on; the matching control is marked current rather than linked. */
-  current?: 'home' | 'settings';
+  current?: 'home' | 'settings' | 'stars';
   /** R93 (D-545): the page under this header is still on its way (the settings chunk), so the bead runs. */
   busy?: boolean;
 }
@@ -71,13 +78,16 @@ export function Header({ inert = false, current = 'home', busy = false }: Header
   // R93 (D-545): the settings chunk is fetched as the pointer or the focus reaches its link, ahead of the tap.
   // Best effort: a prefetch that fails is dropped by `loadSettingsChunk`, and the tap will ask again.
   const prefetch = (): void => void loadSettingsChunk().catch(() => undefined);
+  // R115 (D-756): the same for the stars chunk, from its own link.
+  const prefetchStars = (): void => void loadStarsChunk().catch(() => undefined);
+  const Title = current === 'stars' ? 'p' : 'h1';
 
   if (mode === 'compact') {
     return (
       <header inert={inert} className={`${styles.header} ${styles.compact}`} data-testid="header">
         <div className={styles.brand}>
           {mark}
-          <h1 className={styles.shortTitle}>{t.app.shortTitle}</h1>
+          <Title className={styles.shortTitle}>{t.app.shortTitle}</Title>
         </div>
         <nav className={styles.links} aria-label={t.app.title}>
           <BracketLink href="#live" label={t.live.openShort} data-testid="live-link" />
@@ -96,13 +106,28 @@ export function Header({ inert = false, current = 'home', busy = false }: Header
             {mark}
             {/* R93 (FR-HOME-1, D-546, D-605): the full title as text, and the short one (FR-COMP-1's) as an
                 attribute the stylesheet draws in its place under the language's own fold width. */}
-            <h1 className={styles.title} data-short={t.app.shortTitle}>
+            <Title className={styles.title} data-short={t.app.shortTitle}>
               <span className={styles.fullTitle}>{t.app.title}</span>
-            </h1>
+            </Title>
           </div>
           {/* R92 (FR-A11Y-1, D-529): the wide header's one link is its navigation too, in a box of its own that draws none. */}
           <nav className="landmark-contents" aria-label={t.app.title}>
-            <BracketLink href="#live" label={t.live.open} data-testid="live-link" />
+            {/* R115 (D-774): under the title's fold the live link takes its short word too, as the title does, so the
+                row with `[ stars ]` on it still fits the wide breakpoint in Spanish. */}
+            <BracketLink
+              href="#live"
+              label={
+                <span className={styles.liveLabel} data-short={t.live.openShort}>
+                  <span className={styles.fullLabel}>{t.live.open}</span>
+                </span>
+              }
+              data-testid="live-link"
+            />
+            {current === 'stars' ? (
+              <BracketLink href={STARS_HASH} label={t.stars.link} current data-testid="stars-link" />
+            ) : (
+              <BracketLink href={STARS_HASH} label={t.stars.link} data-testid="stars-link" onPointerEnter={prefetchStars} onFocus={prefetchStars} />
+            )}
           </nav>
         </div>
       </div>

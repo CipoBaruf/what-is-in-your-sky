@@ -658,6 +658,7 @@ export const ui = {
       open: 'Open the pass the cursor is on',
       close: 'Close the guide, or this list',
       live: 'Open the live sky',
+      stars: 'Open the stars',
       view: 'Switch the chart between the dome and the polar view',
       theme: 'Switch the palette between dark and night',
       help: 'Show this list',

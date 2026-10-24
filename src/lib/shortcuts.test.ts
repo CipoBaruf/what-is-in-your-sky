@@ -26,8 +26,8 @@ function spyActions(): ShortcutActions & { calls: ShortcutId[] } {
 }
 
 describe('the shortcut table', () => {
-  it('holds FR-DESK-4 exactly: j, k, Enter, Esc, l, v, n and ?', () => {
-    expect(SHORTCUTS.map((shortcut) => shortcut.keys.join('/'))).toEqual(['j', 'k', 'Enter', 'Escape', 'l', 'v', 'n', '?']);
+  it('holds FR-DESK-4 exactly: j, k, Enter, Esc, l, s, v, n and ? (s since v2.4, V24-1)', () => {
+    expect(SHORTCUTS.map((shortcut) => shortcut.keys.join('/'))).toEqual(['j', 'k', 'Enter', 'Escape', 'l', 's', 'v', 'n', '?']);
   });
 
   it('gives every shortcut a distinct id and no key to two shortcuts', () => {

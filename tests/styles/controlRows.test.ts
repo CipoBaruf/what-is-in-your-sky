@@ -59,6 +59,9 @@ import { StatusStrip } from '../../src/ui/components/live/StatusStrip';
 import { LivePage } from '../../src/ui/screens/Live';
 import { VisitNotice } from '../../src/ui/components/common/VisitNotice';
 import { FaintToggle } from '../../src/ui/components/passes/FaintToggle';
+import { STARS_PAGE_CATALOGS } from '../../src/i18n/starsPageT';
+import { StarsPage } from '../../src/ui/screens/Stars';
+import { StarsLine } from '../../src/ui/screens/home/StarsLine';
 import { decorations, rowCells, rowParts } from './cells';
 
 /** FR-COMP-4: a 390 px viewport at the default cell. */
@@ -322,7 +325,35 @@ const rows = (t: Messages): readonly Row[] => [
     }),
   ),
   { name: 'the settings install row (V11-16)', element: createElement(InstallAction, { env: { standalone: undefined } }), find: () => screen.getByTestId('install-action').parentElement as Element, setUp: offerAnInstall },
+  /*
+   * R115 (FR-STAR-3, FR-STAR-10, FR-COMP-4): the stars page's compact rows, from the page itself — the facing picker
+   * (`N NE E SE [S] SW W NW up`, the compact speeds' tight form with a cell between, D-245: 24 cells in English, 28 in Spanish with `arriba`), the
+   * layers' two rows of two (`[x] stars [x] figures` 21 and 25; one row of four would be 43 and 51, D-776), and the
+   * When pane's way in at `--small` (`Estrellas esta noche · [ mirá arriba ]`, 38 of its 41).
+   */
+  {
+    name: 'the stars facing row (FR-STAR-3)',
+    element: createElement(StarsPage),
+    find: () => screen.getByRole('group', { name: starsPage(t).facing }),
+    setUp: () => {
+      appStore.setState({ observer });
+    },
+  },
+  ...([0, 1] as const).map(
+    (index): Row => ({
+      name: `the stars layers row ${String(index + 1)} (FR-STAR-3)`,
+      element: createElement(StarsPage),
+      find: () => screen.getAllByTestId('stars-layers-row')[index] as Element,
+      setUp: () => {
+        appStore.setState({ observer });
+      },
+    }),
+  ),
+  { name: 'the When pane’s stars line (FR-STAR-3)', element: createElement(StarsLine), find: () => screen.getByTestId('stars-line'), budget: SMALL_BUDGET },
 ];
+
+/** The stars page's own words for the catalog `rows` was given (they ride in the page's chunk, D-777). */
+const starsPage = (t: Messages) => STARS_PAGE_CATALOGS[t === CATALOGS.es ? 'es' : 'en'];
 
 beforeEach(() => {
   media = stubMatchMedia(COMPACT_PX);
@@ -558,18 +589,22 @@ describe.each(LOCALES)('FR-HOME-1: the wide header folds where its lines would w
     expect(screen.getByRole('heading', { level: 1, name: t.app.title })).toBeTruthy();
   });
 
-  it('shortens the title under the width the title row needs: the mark, the title, the live link and the preferences', () => {
-    const titleRow = markCells + 1 + t.app.title.length + titleGap + control(t.live.open);
+  it('shortens the title under the width the title row needs: the mark, the title, the live and stars links and the preferences', () => {
+    // R115 (FR-STAR-3, D-774): `[ stars ]` stands beside `[ live ]`, two cells after it.
+    const titleRow = markCells + 1 + t.app.title.length + titleGap + control(t.live.open) + titleGap + control(t.stars.link);
     const preferences = group(LOCALES.map((l) => LOCALE_NAMES[l])) + controlsGap + group(Object.values(t.app.themes));
     const cells = 2 * SHELL_PADDING_CELLS + titleRow + headerGap + preferences;
-    expect(cells).toBe(locale === 'es' ? 113 : 101);
+    expect(cells).toBe(locale === 'es' ? 128 : 112);
     expect(foldLiteral(locale, 'title')).toBe(thresholdPx(cells));
-    // F-76: Spanish at 1024 px is under its fold and English is not; neither is under it at three-pane widths.
-    expect(foldLiteral('es', 'title')).toBeGreaterThan(1024);
-    expect(foldLiteral('en', 'title')).toBeLessThan(1024);
-    expect(foldLiteral(locale, 'title')).toBeLessThan(HOME_THREE_PANE_MIN_PX);
-    // The short form frees enough that the folded row fits the wide breakpoint itself on every font.
-    expect(thresholdPx(cells - t.app.title.length + t.app.shortTitle.length)).toBeLessThanOrEqual(WIDE_MIN_PX);
+    // F-76, as R115 (D-774) moved it: both languages are under their fold at 1024 px, Spanish at the three panes too, and
+    // neither at 1280.
+    expect(foldLiteral(locale, 'title')).toBeGreaterThan(1024);
+    expect(foldLiteral('es', 'title')).toBeGreaterThan(HOME_THREE_PANE_MIN_PX);
+    expect(foldLiteral(locale, 'title')).toBeLessThan(1280);
+    // The short title and the live link's short word free enough that the folded row fits the wide breakpoint itself on every font.
+    const folded = cells - t.app.title.length + t.app.shortTitle.length - t.live.open.length + t.live.openShort.length;
+    expect(folded).toBe(locale === 'es' ? 96 : 87);
+    expect(thresholdPx(folded)).toBeLessThanOrEqual(WIDE_MIN_PX);
   });
 
   it('hides the tagline under the width its one line needs: the indent and its words', () => {
