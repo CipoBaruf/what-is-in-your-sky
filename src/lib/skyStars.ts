@@ -27,9 +27,9 @@ export interface StarPositionsSource {
 }
 
 export const PLANETS = ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'] as const;
-export type PlanetName = (typeof PLANETS)[number];
+type PlanetName = (typeof PLANETS)[number];
 
-export interface PlanetAt {
+interface PlanetAt {
   body: PlanetName;
   /** Azimuth from north through east, degrees. */
   azDeg: number;

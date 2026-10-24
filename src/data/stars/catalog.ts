@@ -19,7 +19,7 @@ const figureSchema = z.object({
   segments: z.array(z.tuple([z.number().int().min(0), z.number().int().min(0)])),
 });
 
-export const catalogSchema = z
+const catalogSchema = z
   .object({
     ra: z.array(z.number().min(0).max(360)),
     dec: z.array(z.number().min(-90).max(90)),
@@ -33,7 +33,7 @@ export const catalogSchema = z
   .refine((c) => c.figures.every((f) => f.segments.every(([a, b]) => a < c.ra.length && b < c.ra.length)), 'every figure endpoint is a star');
 
 /** One drawn feature: `segments` is flat, `[a0, b0, a1, b1, …]`, star indices. */
-export interface StarFigure {
+interface StarFigure {
   con: string;
   /** 0, or 1 for the second half of Serpens (`constellations.ts`). */
   part: number;
