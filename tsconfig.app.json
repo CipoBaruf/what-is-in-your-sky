@@ -7,5 +7,5 @@
     "types": ["node", "vite/client"]
   },
   "include": ["src", "tests/support", "tests/setup", "tests/live", "tests/styles", "spike", "dev"],
-  "exclude": ["spike/capture.ts", "spike/dome-composition/capture.ts", "spike/window/capture.ts", "spike/window/https.config.ts", "spike/vite.bundle.config.ts"]
+  "exclude": ["spike/capture.ts", "spike/dome-composition/capture.ts", "spike/window/capture.ts", "spike/window/https.config.ts", "spike/vite.bundle.config.ts", "spike/stars/catalog.ts", "spike/stars/precession.ts", "spike/stars/perf.ts", "spike/stars/capture.ts", "spike/stars/measure.ts", "spike/stars/serve.ts"]
 }

@@ -21,6 +21,8 @@
     "spike:dome-composition": "tsx spike/dome-composition/capture.ts",
     "spike:window": "vite --config spike/window/https.config.ts --host",
     "spike:window:capture": "tsx spike/window/capture.ts",
+    "spike:stars": "tsx spike/stars/catalog.ts && vite --config spike/window/https.config.ts --host",
+    "spike:stars:measure": "tsx spike/stars/measure.ts",
     "build:braille-font": "tsx scripts/build-braille-font.ts",
     "build:icons": "tsx scripts/build-mark.ts",
     "build:stored-run": "tsx scripts/build-stored-run.ts",
