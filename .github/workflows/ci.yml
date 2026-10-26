@@ -21,7 +21,10 @@ env:
   # with nothing retried (185 tests, 6.6 min of e2e behind about 3 min of
   # install, unit and build that every shard repeats), so the next spec
   # would have cancelled it.
-  CI_E2E_SHARDS: 4
+  # D-833 (2026-10-26): five since v2.5's wave 2. #195's shard 1 ran 10m01s
+  # with every test green (171 tests, 6.2 min of e2e behind about 3.2 min of
+  # the stages every shard repeats) and was cancelled twice.
+  CI_E2E_SHARDS: 5
   STAGE_TIMES: stage-times.tsv
 
 jobs:
@@ -37,7 +40,7 @@ jobs:
       # hide half the failures from the reader it is meant to inform.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5]
     name: ci (shard ${{ matrix.shard }})
     steps:
       - uses: actions/checkout@v5
