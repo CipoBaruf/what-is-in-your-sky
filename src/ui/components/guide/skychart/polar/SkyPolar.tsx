@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useAppStore } from '../../../../../state';
 import { useT } from '../../../../../i18n/useT';
 import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
@@ -10,7 +10,6 @@ import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible 
 import { ChartFrame } from '../ChartFrame';
 import { sceneFor, starsFor } from '../layers';
 import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps, type SkyChartView } from '../SkyChart.types';
-import { inkMeasured, inkOffset, inkOffsetsReady } from '../window/inkOffsets';
 import type { StarField } from '../window/scene';
 import { collide, planetRungFor, rungFor, type ColourToken, type Rung, type SizeToken } from '../window/starGlyphs';
 import styles from './SkyPolar.module.css';
@@ -302,47 +301,32 @@ function placeGlyphs(stars: StarField, orientation: ChartOrientation): PlacedGly
  * R122 (FR-SKY-4, D-792): the scene's stars to `POLAR_STAR_MAG` and the
  * planets as FR-STAR-6's characters, under the grid and the arcs — `*`, `+`
  * and `.` by magnitude, `@` for a planet, each centred on its projected point
- * (`text-anchor: middle`, `dominant-baseline: central`, the ink offset as
- * `dx`/`dy`). The group follows the looking-up / map toggle because every
- * point goes through the chart's `project`. Each text keeps R119's anchor,
- * `data-star` or `data-planet` with the `translate`, which the contract test
- * reads. No figures and no names: the table leaves them to the window.
+ * (`text-anchor: middle`, `dominant-baseline: central`). The window's ink
+ * offsets are not applied: they would bring `inkOffsets.ts` into `main`, and
+ * this chart draws no figure line for a glyph's ink to meet (D-811). The group
+ * follows the looking-up / map toggle because every point goes through the
+ * chart's `project`. Each text keeps R119's anchor, `data-star` or
+ * `data-planet` with the `translate`, which the contract test reads. No
+ * figures and no names: the table leaves them to the window.
  */
 function StarGlyphs({ stars, orientation }: { stars: StarField; orientation: ChartOrientation }) {
-  // D-752: the ink offsets are measured once, after the fonts are ready; a chart drawn before that redraws once with them.
-  const [, setMeasured] = useState(inkMeasured);
-  useEffect(() => {
-    let live = true;
-    if (!inkMeasured())
-      void inkOffsetsReady().then((measured) => {
-        if (live && measured) setMeasured(true);
-      });
-    return () => {
-      live = false;
-    };
-  }, []);
   const glyphs = useMemo(() => placeGlyphs(stars, orientation), [stars, orientation]);
   return (
     <g className={styles.stars} data-layer="stars">
-      {glyphs.map(({ key, star, planet, rung, p }) => {
-        const { dx, dy } = inkOffset(rung.glyph, rung.sizeToken);
-        return (
-          <text
-            key={key}
-            className={[styles.glyph, SIZE_CLASS[rung.sizeToken], TONE_CLASS[rung.colourToken]].filter(Boolean).join(' ')}
-            {...(star === undefined ? {} : { 'data-star': star })}
-            {...(planet === undefined ? {} : { 'data-planet': planet })}
-            data-glyph={rung.glyph}
-            data-size={rung.sizeToken}
-            data-tone={rung.colourToken}
-            transform={at(p)}
-            dx={dx}
-            dy={dy}
-          >
-            {rung.glyph}
-          </text>
-        );
-      })}
+      {glyphs.map(({ key, star, planet, rung, p }) => (
+        <text
+          key={key}
+          className={[styles.glyph, SIZE_CLASS[rung.sizeToken], TONE_CLASS[rung.colourToken]].filter(Boolean).join(' ')}
+          {...(star === undefined ? {} : { 'data-star': star })}
+          {...(planet === undefined ? {} : { 'data-planet': planet })}
+          data-glyph={rung.glyph}
+          data-size={rung.sizeToken}
+          data-tone={rung.colourToken}
+          transform={at(p)}
+        >
+          {rung.glyph}
+        </text>
+      ))}
     </g>
   );
 }
