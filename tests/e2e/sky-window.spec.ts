@@ -426,18 +426,23 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
     await expect(picker.getByRole('button')).toHaveText(['peak', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'up']);
     await expect(picker.locator('[data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
     await expect(figure.getByTestId('window-hold-up')).toHaveCount(0);
+    // The guide panel scrolls on its own, so the box stands below its fold at 800 px: bring its foot to the panel's edge first.
+    await figure.getByTestId('chart-box').evaluate((el) => { el.scrollIntoView({ block: 'end' }); });
     await page.mouse.move(0, 0);
     await page.screenshot({ path: `${CAPTURE_DIR}/r121-detail-1280-window-dark-en.png` });
     // The hand (FR-STAR-4): a drag at 4 px per degree, the sky following the pointer; the keys while the box has focus.
-    await page.mouse.move(boxRect.x + boxRect.width / 2, boxRect.y + boxRect.height / 2);
+    // The box stands below the fold at 800 px, and the mouse works in viewport coordinates: bring it up first.
+    await figure.getByTestId('chart-box').scrollIntoViewIfNeeded();
+    const dragRect = await rectOf(figure.getByTestId('chart-box'));
+    await page.mouse.move(dragRect.x + dragRect.width / 2, dragRect.y + dragRect.height / 2);
     await page.mouse.down();
-    await page.mouse.move(boxRect.x + boxRect.width / 2 + 120, boxRect.y + boxRect.height / 2, { steps: 5 });
+    await page.mouse.move(dragRect.x + dragRect.width / 2 + 120, dragRect.y + dragRect.height / 2, { steps: 5 });
     await page.clock.runFor(FRAME_MS);
     await page.mouse.up();
     await page.clock.runFor(FRAME_MS);
     expect((await look(w)).az).toBe((opened.az - 30 + 360) % 360);
     await expect(picker.locator('[data-option="peak"]')).toHaveAttribute('aria-pressed', 'false');
-    await figure.locator('[tabindex="0"]').focus();
+    await figure.locator('[data-dragging]').focus();
     await page.keyboard.press('ArrowUp');
     expect((await look(w)).alt).toBe(51);
     await picker.locator('[data-option="up"]').click();
@@ -461,6 +466,7 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
     await expect(figure.getByRole('group', { name: 'Mirando' }).getByRole('button')).toHaveText(['pico', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'arriba']);
     await expect(figure.getByTestId('window-readout')).toContainText('Mirando al');
     await boxSettled(page, figure.getByTestId('chart-box'));
+    await figure.getByTestId('chart-box').evaluate((el) => { el.scrollIntoView({ block: 'end' }); });
     await page.mouse.move(0, 0);
     await page.screenshot({ path: `${CAPTURE_DIR}/r121-detail-1280-window-dark-es.png` });
   });
