@@ -415,6 +415,7 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
     await expect(frame).toHaveAttribute('data-hand-window', 'true');
     const box = await boxSettled(page, figure.getByTestId('chart-box'));
     expect(Math.abs(box.width / box.height - 1280 / 800)).toBeLessThan(0.02);
+    console.log(`R121 pass detail window box at 1280 × 800: ${String(box.width)} × ${String(box.height)} px`);
     const readout = await rectOf(figure.getByTestId('window-readout'));
     const boxRect = await rectOf(figure.getByTestId('chart-box'));
     expect(readout.x).toBeGreaterThanOrEqual(boxRect.x - 1);
