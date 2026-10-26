@@ -1,0 +1,39 @@
+/* R122 (FR-STAR-6 as amended, FR-SKY-4; D-813): the ladder's look, one sheet
+   for every view that draws `starGlyphs.ts`'s glyphs — the window's field and
+   the polar chart's group each put `.glyphs` on theirs. A glyph is keyed by the
+   rung's own token names, `data-size` and `data-tone`, so there is no class
+   map for a view to miss: a rung `starGlyphs.ts` adds is styled here once, and
+   `starGlyphs.test.ts` holds every token of the ladder to a rule. The em box is
+   centred on the point; the ink offsets (`inkOffsets.ts`) move the ink onto it. */
+.glyphs [data-glyph] {
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.glyphs [data-size='chart-text-18'] {
+  font-size: var(--chart-text-18);
+}
+
+.glyphs [data-size='chart-text-15'] {
+  font-size: var(--chart-text-15);
+}
+
+.glyphs [data-size='chart-text-12'] {
+  font-size: var(--chart-text-12);
+}
+
+.glyphs [data-tone='chart-star'] {
+  fill: var(--chart-star);
+}
+
+.glyphs [data-tone='chart-star-dim'] {
+  fill: var(--chart-star-dim);
+}
+
+.glyphs [data-tone='chart-star-faint'] {
+  fill: var(--chart-star-faint);
+}
+
+.glyphs [data-tone='chart-planet'] {
+  fill: var(--chart-planet);
+}

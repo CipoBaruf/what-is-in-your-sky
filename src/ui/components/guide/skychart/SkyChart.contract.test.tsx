@@ -57,6 +57,8 @@ const initial = appStore.getInitialState();
 const ANCHORS = ['N', 'E', 'S', 'W'];
 /** FR-LEG-1: what a drawing may write — a compass name, a degree figure (ring or tick) or a legend key. */
 const ALLOWED_TEXT = /^(N|NE|E|SE|S|SW|W|NW|\d+°|[A-Z]\d?)$/;
+/** FR-STAR-6, FR-SKY-4 (R122): a star or a planet is a glyph of the ladder — a mark, as a marker is, not a word. */
+const GLYPH_TEXT = /^[*+.@]$/;
 /** Every element a view writes text into: the polar's `<text>`, the dome's label spans (each carries `data-side`). */
 const TEXT_ELEMENTS = '[data-drawing] text, [data-drawing] span[data-side]';
 
@@ -83,6 +85,8 @@ const starScene: SkyScene = {
     layers: { stars: true, figures: true, planets: true, names: true },
   },
 };
+/** The pass pages' scene (FR-LEG-1 as amended v2.5): the stars and the planets on, the names layer the stars page's. */
+const passPageScene: SkyScene = { stars: starScene.stars && { ...starScene.stars, layers: { ...starScene.stars.layers, names: false } } };
 /** The anchors each view placed for the star and the planet, compared across views once all have run. */
 const starAnchors = new Map<string, [string, string]>();
 
@@ -188,7 +192,14 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
   });
 
   it('labels N, E, S, W and the pass by its key at the peak, nothing else in words; the drawing is aria-hidden and is not a canvas', async () => {
-    const { container } = render(<SkyChart {...props()} />);
+    // With the pass pages' scene, so the stars' glyphs are in the drawing the rule reads (R122).
+    const { container } = render(<SkyChart {...props({ scene: passPageScene })} />);
+    // The polar chart's star group is a lazy chunk (D-813), as the window is.
+    if (view.id !== 'dome') {
+      await waitFor(() => {
+        expect(container.querySelector('[data-drawing] [data-glyph]')).not.toBeNull();
+      });
+    }
     const drawing = container.querySelector('[data-drawing]');
     expect(drawing).not.toBeNull();
     expect(drawing).toHaveAttribute('aria-hidden', 'true');
@@ -205,9 +216,15 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
     expect(keys[0]?.closest('[data-pass-id]')).toHaveAttribute('data-pass-id', pass.id);
     expect(container.querySelector('[data-anchor="pass"]')).toBeNull();
     expect(container.querySelector('[data-anchor="peak"]')).toBeNull();
-    const written = [...container.querySelectorAll(TEXT_ELEMENTS)].map((el) => el.textContent ?? '');
+    // What a layer that is off holds is not drawn (`display: none`), and an empty text writes nothing.
+    const drawn = [...container.querySelectorAll(TEXT_ELEMENTS)].filter((el) => !el.closest('[display="none"]') && (el.textContent ?? '') !== '');
+    const [glyphs, words] = [drawn.filter((el) => el.hasAttribute('data-glyph')), drawn.filter((el) => !el.hasAttribute('data-glyph'))];
+    const written = words.map((el) => el.textContent ?? '');
     expect(written.length).toBeGreaterThan(ANCHORS.length);
     expect(written.filter((text) => !ALLOWED_TEXT.test(text))).toEqual([]);
+    // FR-SKY-4, FR-STAR-6: the polar chart and the window write the star and the planet as glyphs, and only glyphs.
+    if (view.id !== 'dome') expect(glyphs.map((el) => el.textContent)).toEqual(expect.arrayContaining(['*', '@']));
+    expect(glyphs.map((el) => el.textContent ?? '').filter((text) => !GLYPH_TEXT.test(text))).toEqual([]);
     expect(drawing?.textContent).not.toContain(pass.name);
     // FR-LEG-2 / US-23 AC2: the legend beside it carries the words — the same key, the name and the three times.
     const legend = container.querySelector('[data-testid="chart-legend"]');

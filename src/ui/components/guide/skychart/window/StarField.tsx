@@ -10,7 +10,8 @@ import { inkMeasured, inkOffset, inkOffsetsReady } from './inkOffsets';
 import { COMPASS, converged, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, type Mat3, type View } from './projection';
 import type { StarField as StarFieldData } from './scene';
 import styles from './SkyWindow.module.css';
-import { collide, COLLISION_PX, planetRungFor, rungFor, SIZE_PX, type ColourToken, type Point, type Rung, type SizeToken, type StarGlyph } from './starGlyphs';
+import { collide, COLLISION_PX, magnitudeOrder, planetRungFor, rungFor, SIZE_PX, type Point, type Rung, type SizeToken, type StarGlyph } from './starGlyphs';
+import glyphStyles from './starGlyphs.module.css';
 import { placeLabels, textWidth, type Box, type FigureLabel, type LabelInput, type LabelMark, type LabelSegment, type MarkLabel } from './starLabels';
 import type { RotationListener } from './useViewRotation';
 
@@ -96,10 +97,6 @@ const NAMED_MAG = 1.5;
 /** The compass names' sizes, the window stylesheet's `.compass` and `.compassMajor`. */
 const COMPASS_PX = { major: 15, minor: 12 };
 
-const SIZE_CLASS: Readonly<Record<SizeToken, string | undefined>> = { 'chart-text-18': styles.size18, 'chart-text-15': styles.size15, 'chart-text-12': styles.size12 };
-const TONE_CLASS: Readonly<Record<ColourToken, string | undefined>> = { 'chart-star': styles.star, 'chart-star-dim': styles.starDim, 'chart-star-faint': styles.starFaint, 'chart-planet': styles.planet };
-const glyphClass = (rung: Rung): string => [styles.glyph, SIZE_CLASS[rung.sizeToken], TONE_CLASS[rung.colourToken]].filter(Boolean).join(' ');
-
 /** A figure's Latin name: the table's (data, the same in both languages), the half of Serpens by its part's word, the abbreviation where the table has none. */
 function latinName(con: string, part: string): string {
   const names = Object.hasOwn(CONSTELLATION_NAMES, con) ? (CONSTELLATION_NAMES[con] ?? []) : [];
@@ -139,7 +136,7 @@ export function prepare(field: StarFieldData): Prepared {
   });
   const figureNames = catalog.figures.map((figure) => latinName(figure.con, figure.part));
   const mag = (k: number): number => (k < n ? (catalog.mag[k] ?? 0) : (positions.planets[k - n]?.mag ?? 0));
-  const order = Array.from({ length: n + positions.planets.length }, (_, k) => k).sort((a, b) => mag(a) - mag(b));
+  const order = magnitudeOrder([...Array.from(catalog.mag), ...positions.planets.map((planet) => planet.mag)]);
   const nameStars = order.filter((k) => k < n && mag(k) <= NAMED_MAG && (catalog.name[k] ?? '') !== '');
   return { rungs, planetRungs, segments, figureRanges, figureNames, nameStars, order };
 }
@@ -444,7 +441,7 @@ function applyInk(group: SVGGElement): void {
 function Glyph({ rung, ...rest }: { rung: Rung } & Record<`data-${string}`, string | number>) {
   const { dx, dy } = inkOffset(rung.glyph, rung.sizeToken);
   return (
-    <text className={glyphClass(rung)} data-glyph={rung.glyph} data-size={rung.sizeToken} data-tone={rung.colourToken} dx={dx} dy={dy} visibility="hidden" {...rest}>
+    <text data-glyph={rung.glyph} data-size={rung.sizeToken} data-tone={rung.colourToken} dx={dx} dy={dy} visibility="hidden" {...rest}>
       {rung.glyph}
     </text>
   );
@@ -500,7 +497,7 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
   // A layer that is off is `display: none`, not only `hidden`: its children carry the `visible` the last frame wrote, which would override an inherited `hidden`.
   const hidden = (on: boolean): { visibility?: 'hidden'; display?: 'none' } => (on ? {} : { visibility: 'hidden', display: 'none' });
   return (
-    <g ref={group} className={styles.stars} data-layer="stars" data-stars={catalog.mag.length} data-planets={positions.planets.length}>
+    <g ref={group} className={`${styles.stars} ${glyphStyles.glyphs}`} data-layer="stars" data-stars={catalog.mag.length} data-planets={positions.planets.length}>
       <defs>
         <clipPath id={clipId}>
           <path data-sky-clip clipRule="evenodd" d="" />

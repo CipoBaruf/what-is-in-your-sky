@@ -7,7 +7,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { collide, COLLISION_PX, GLYPH_SIZES, HIT_RADIUS_PX, hitTest, LADDER, planetRungFor, rungFor, SIZE_PX, SMALL_SIZE, type Rung, type SizeToken } from './starGlyphs';
+import { collide, COLLISION_PX, GLYPH_SIZES, HIT_RADIUS_PX, hitTest, LADDER, magnitudeOrder, planetRungFor, rungFor, SIZE_PX, SMALL_SIZE, type ColourToken, type Rung, type SizeToken } from './starGlyphs';
 
 const tokens = readFileSync('src/ui/styles/tokens.css', 'utf8');
 
@@ -113,6 +113,31 @@ describe('the collision rule (FR-STAR-6)', () => {
   it('takes the distance as a parameter and at zero keeps everything drawn', () => {
     expect(collide([{ x: 0, y: 0 }, { x: 5, y: 0 }], 4)).toEqual([true, true]);
     expect(collide([{ x: 0, y: 0 }, { x: 5, y: 0 }, null], 0)).toEqual([true, true, false]);
+  });
+});
+
+describe('the draw order (FR-STAR-6, FR-SKY-4; D-813)', () => {
+  it('is brightest first, a tie in the given order, a missing or NaN magnitude last', () => {
+    expect(magnitudeOrder([2, -1, 0.5, 2, 1])).toEqual([1, 2, 4, 0, 3]);
+    expect(magnitudeOrder([Number.NaN, 3, Number.NaN, -4])).toEqual([3, 1, 0, 2]);
+    expect(magnitudeOrder(new Float32Array([1.5, 0.5]))).toEqual([1, 0]);
+    expect(magnitudeOrder([])).toEqual([]);
+  });
+});
+
+describe('the one sheet (FR-STAR-6, FR-DS-2; D-813)', () => {
+  const sheet = readFileSync('src/ui/components/guide/skychart/window/starGlyphs.module.css', 'utf8');
+  const sizes: SizeToken[] = ['chart-text-18', 'chart-text-15', 'chart-text-12'];
+  const tones: ColourToken[] = ['chart-star', 'chart-star-dim', 'chart-star-faint', 'chart-planet'];
+
+  it('styles every size and tone the ladder and the planets draw from the token of the same name, and nothing else', () => {
+    const drawn = [...LADDER, ...LADDER.map((row) => planetRungFor(row.maxMag))];
+    expect(new Set(drawn.map((rung) => rung.sizeToken))).toEqual(new Set(sizes));
+    expect(new Set(drawn.map((rung) => rung.colourToken))).toEqual(new Set(tones));
+    for (const size of sizes) expect(sheet).toContain(`.glyphs [data-size='${size}'] {\n  font-size: var(--${size});\n}`);
+    for (const tone of tones) expect(sheet).toContain(`.glyphs [data-tone='${tone}'] {\n  fill: var(--${tone});\n}`);
+    expect(sheet).toMatch(/\.glyphs \[data-glyph\] \{\n {2}text-anchor: middle;\n {2}dominant-baseline: central;\n\}/);
+    expect(sheet).not.toMatch(/#[0-9a-f]{3,8}\b|\d+px/i);
   });
 });
 
