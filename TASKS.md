@@ -3331,7 +3331,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
 
 ### Wave 1
 
-- [ ] **R119 — The scene for every view: `useSkyScene`, the layer table, `scene` on the props, the contract test's star case; no visible change**
+- [x] **R119 — The scene for every view: `useSkyScene`, the layer table, `scene` on the props, the contract test's star case; no visible change**
   - **Lane:** chart
   - **Model:** fable
   - **Review:** opus
