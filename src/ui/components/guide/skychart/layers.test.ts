@@ -120,13 +120,13 @@ describe('sceneFor (FR-SKY-1)', () => {
 });
 
 describe('starsFor (FR-SKY-1): the polar chart and the dome place by one rule', () => {
-  it('places each star at the cap above the horizon by catalogue index, then each planet above it', () => {
+  it('places each star at the cap above the horizon by catalogue index, then each planet above it, each with its magnitude', () => {
     const polar = sceneFor('polar', scene)?.stars as StarField;
     expect(starsFor('polar', polar)).toEqual([
-      { key: 'star-0', azDeg: 90, altDeg: 40, star: 0 },
-      { key: 'star-1', azDeg: 100, altDeg: 30, star: 1 },
-      { key: 'star-2', azDeg: 110, altDeg: 20, star: 2 },
-      { key: 'planet-Venus', azDeg: 270, altDeg: 10, planet: 'Venus' },
+      { key: 'star-0', azDeg: 90, altDeg: 40, mag: -1.4, star: 0 },
+      { key: 'star-1', azDeg: 100, altDeg: 30, mag: 1.5, star: 1 },
+      { key: 'star-2', azDeg: 110, altDeg: 20, mag: 3.5, star: 2 },
+      { key: 'planet-Venus', azDeg: 270, altDeg: 10, mag: -4, planet: 'Venus' },
     ]);
   });
 

@@ -3,6 +3,15 @@
 <path d="M88.93 19.81 L90.67 9.00 L91.09 -1.94 L90.20 -12.86 L88.01 -23.58 L84.54 -33.97 L79.86 -43.86 L74.02 -53.12 L67.11 -61.62" stroke-width="17.78" opacity="0.58">
 </path>
 </g>
+<g data-layer="stars">
+<text data-planet="Venus" data-glyph="@" data-size="chart-text-18" data-tone="chart-planet" dx="0" dy="0" transform="translate(86.34 -7.55)">@</text>
+<text data-star="0" data-glyph="*" data-size="chart-text-18" data-tone="chart-star" dx="0" dy="0" transform="translate(-13.30 36.54)">*</text>
+<text data-star="1" data-glyph="*" data-size="chart-text-15" data-tone="chart-star" dx="0" dy="0" transform="translate(39.28 46.81)">*</text>
+<text data-planet="Mars" data-glyph="@" data-size="chart-text-15" data-tone="chart-planet" dx="0" dy="0" transform="translate(-69.28 40.00)">@</text>
+<text data-star="2" data-glyph="+" data-size="chart-text-12" data-tone="chart-star" dx="0" dy="0" transform="translate(-24.70 -67.87)">+</text>
+<text data-planet="Jupiter" data-glyph="@" data-size="chart-text-12" data-tone="chart-planet" dx="0" dy="0" transform="translate(-9.62 -5.56)">@</text>
+<text data-star="4" data-glyph="." data-size="chart-text-12" data-tone="chart-star-dim" dx="0" dy="0" transform="translate(19.25 -11.11)">.</text>
+</g>
 <circle r="100">
 </circle>
 <circle r="66.67" data-ring="30">

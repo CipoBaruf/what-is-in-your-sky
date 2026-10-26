@@ -131,9 +131,10 @@ describe('the star field (FR-STAR-6 as amended, FR-STAR-9; D-752..D-754)', () =>
       ['Mars', '@', 'chart-text-15', 'chart-planet'],
       ['Saturn', '@', 'chart-text-15', 'chart-planet'],
     ]);
-    // The size and the tone are classes of the sheet's tokens, one of each on every glyph, beside the centring class.
+    // R122 (D-813): the size and the tone are the shared sheet's, keyed by `data-size` and `data-tone` under the group's class; a glyph carries no class of its own.
+    expect(container.querySelector('[data-layer="stars"]')?.classList).toHaveLength(2);
     for (const node of [...marks, ...planets]) {
-      expect(node.classList).toHaveLength(3);
+      expect(node.classList).toHaveLength(0);
       // D-752: jsdom has no text metrics, so every ink shift is 0 — written as an attribute all the same, so the measured ones land in the same place.
       expect(node).toHaveAttribute('dx', '0');
       expect(node).toHaveAttribute('dy', '0');

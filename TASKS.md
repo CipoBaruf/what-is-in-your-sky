@@ -3404,7 +3404,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
     - The Done note carries the box's measured size at 1280 and 1920 px and every capture file that moved, by name.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
 
-- [ ] **R122 — The polar chart's stars: the star group, the planets as `@`, the snapshot re-baselined**
+- [x] **R122 — The polar chart's stars: the star group, the planets as `@`, the snapshot re-baselined**
   - **Lane:** chart
   - **Model:** opus
   - **Review:** opus
@@ -3423,6 +3423,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
   - **Done when:**
     - The polar tests pass with the new snapshot; the Done note gives its diff in glyph count.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+  - **Done (2026-10-26):** as written. R119's empty anchors became the glyph `<text>` nodes, each keeping its `data-star` / `data-planet` and `translate`. `SkyPolar.live.svg` re-baselined once with a scene written by hand under the arcs: **+7 glyphs** (2 `*`, 1 `+`, 1 `.`, 3 `@`), +9 lines including the group's open and close, nothing else changed. The glyphs take the window's ink offsets (D-811); the sizes are the chart text tokens in user units (D-812); the group is a lazy chunk on the window's sheet and draw order (D-813). `main` 170.6 → 170.0 KB (−0.6).
 
 ### Wave 3
 

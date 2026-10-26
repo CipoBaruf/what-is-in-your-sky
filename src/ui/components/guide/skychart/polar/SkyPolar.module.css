@@ -16,6 +16,18 @@
   font-family: inherit;
 }
 
+/* R122 (FR-SKY-4, D-792, D-813): the stars and the planets as FR-STAR-6's
+   characters, in the app's own type. Their sizes and tones are the window's,
+   from the one sheet both views share (`window/starGlyphs.module.css`). A
+   chart text token set on SVG text is a length in the viewBox's user units, so
+   the glyphs scale with the box as the compass labels do. The glyph and its
+   size carry the magnitude and `@` the planet, so the reading survives
+   monochrome (FR-X-5). */
+.stars {
+  font-family: var(--font-mono);
+  pointer-events: none;
+}
+
 .horizon {
   fill: none;
   stroke: var(--chart-horizon);

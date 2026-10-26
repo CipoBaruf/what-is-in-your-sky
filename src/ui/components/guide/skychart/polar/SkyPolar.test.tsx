@@ -5,7 +5,7 @@
  * choice in `wiys:prefs:v1`; shadow boundaries and the current position get
  * their own markers; the other passes are drawn dim.
  */
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -14,12 +14,81 @@ import { MOON_DOWN, MOON_FIXTURE } from '../../../../../../tests/support/moonFix
 import { toPolar } from '../../../../../lib/skyGeometry';
 import type { ChartOrientation, Observer, PassPoint } from '../../../../../model';
 import { appStore } from '../../../../../state';
+import { starCatalog } from '../../../../../data/stars/catalog';
+import { starsAt } from '../../../../../lib/skyStars';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, MOON_PHASE_GLYPH } from '../bodies';
+import { POLAR_STAR_MAG } from '../layers';
+import type { SkyScene } from '../window/scene';
+import { COLLISION_PX } from '../window/starGlyphs';
 import { HORIZON_R, SkyPolar } from './SkyPolar';
 
 const pass = goldenPassFixture();
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
 const initial = appStore.getInitialState();
+
+/** The app's own catalogue and positions for `observer` at `t`, every layer on: the scene the live page builds. */
+function realScene(t: number): SkyScene {
+  const catalog = starCatalog();
+  const at = starsAt(catalog, observer, t);
+  return {
+    stars: {
+      catalog: { ra: catalog.ra, dec: catalog.dec, mag: catalog.mag, name: catalog.name, desig: catalog.desig, con: catalog.con, figures: [] },
+      positions: { altDeg: at.altDeg, azDeg: at.azDeg, planets: at.planets },
+      layers: { stars: true, figures: true, planets: true, names: true },
+    },
+  };
+}
+
+interface HandBody {
+  mag: number;
+  azDeg: number;
+  altDeg: number;
+}
+
+/** A scene written by hand: the stars in the order given (the catalogue's is by magnitude), the planets after them. */
+function handScene(stars: readonly HandBody[], planets: readonly (HandBody & { body: 'Venus' | 'Mars' | 'Jupiter' })[] = []): SkyScene {
+  return {
+    stars: {
+      catalog: { ra: stars.map(() => 0), dec: stars.map(() => 0), mag: stars.map((s) => s.mag), name: stars.map(() => ''), desig: stars.map((_, i) => `s${String(i)}`), con: stars.map(() => 'Ori'), figures: [] },
+      positions: { altDeg: stars.map((s) => s.altDeg), azDeg: stars.map((s) => s.azDeg), planets },
+      layers: { stars: true, figures: true, planets: true, names: true },
+    },
+  };
+}
+
+/**
+ * The snapshot's sky: each rung of the ladder once, a planet at each size, a
+ * star past the cap, one below the horizon, and a close pair whose fainter
+ * glyph the collision rule drops — seven glyphs drawn.
+ */
+const SNAPSHOT_SCENE = handScene(
+  [
+    { mag: -0.7, azDeg: 160, altDeg: 55 },
+    { mag: 1.1, azDeg: 220, altDeg: 35 },
+    { mag: 2.0, azDeg: 20, altDeg: 25 },
+    { mag: 2.2, azDeg: 20, altDeg: 25.2 },
+    { mag: 3.1, azDeg: 300, altDeg: 70 },
+    { mag: 4.2, azDeg: 90, altDeg: 45 },
+    { mag: 1.6, azDeg: 250, altDeg: -10 },
+  ],
+  [
+    { body: 'Venus', mag: -4.1, azDeg: 275, altDeg: 12 },
+    { body: 'Mars', mag: 1.4, azDeg: 120, altDeg: 18 },
+    { body: 'Jupiter', mag: 2.1, azDeg: 60, altDeg: 80 },
+  ],
+);
+
+/** The star group is a lazy chunk (D-813): its first render waits for the import, as the page's does. */
+const settle = (): Promise<void> =>
+  act(async () => {
+    await import('./PolarStars');
+  });
+
+const translateOf = (el: Element | null): { x: number; y: number } => {
+  const m = /translate\((-?[\d.]+) (-?[\d.]+)\)/.exec(el?.getAttribute('transform') ?? '');
+  if (!m) throw new Error('no translate');
+  return { x: Number(m[1]), y: Number(m[2]) };
+};
 
 /** The (x, y) a marker's `translate(x y)` carries. */
 function markerAt(container: HTMLElement, marker: string): { x: number; y: number } {
@@ -265,8 +334,13 @@ describe('<SkyPolar>', () => {
     // the Moon up, reviewed in the PR and regenerated deliberately. Class
     // names are dropped — they are the stylesheet's business, and this
     // snapshot is about the geometry.
+    // R122 (FR-SKY-4, FR-SKY-9): re-baselined once with the scene's stars under the arcs — a scene written by
+    // hand, so neither a catalogue edit nor an `astronomy-engine` patch rewrites the geometry this file is about.
     const now = Math.round((pass.start.t + pass.end.t) / 2);
-    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} now={now} sun={{ t: now, azDeg: 285, altDeg: -8 }} moon={MOON_FIXTURE} legendKeys={{ [pass.id]: 'A' }} />);
+    const scene = SNAPSHOT_SCENE;
+    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} now={now} sun={{ t: now, azDeg: 285, altDeg: -8 }} moon={MOON_FIXTURE} legendKeys={{ [pass.id]: 'A' }} scene={scene} />);
+    await settle();
+    expect(container.querySelectorAll('[data-layer="stars"] text')).toHaveLength(7);
     const svg = container.querySelector('svg');
     if (!svg) throw new Error('no drawing');
     const markup = svg.outerHTML.replace(/ class="[^"]*"/g, '').replace(/></g, '>\n<');
@@ -307,6 +381,139 @@ describe('<SkyPolar>', () => {
     expect(drawing).not.toMatch(/var\(--(accent|warn|fg|fg-dim)\)/);
     for (const token of ['--chart-horizon', '--chart-rings', '--chart-compass', '--chart-pass', '--chart-pass-dim', '--chart-pass-flown', '--chart-peak', '--chart-shadow', '--chart-now', '--chart-sun', '--chart-moon']) {
       expect(drawing, token).toContain(`var(${token})`);
+    }
+  });
+});
+
+/** R122 (FR-SKY-4, US-40 AC3, D-792): the polar chart's stars, on V24-9's glyphs. */
+describe('<SkyPolar> stars', () => {
+  afterEach(() => {
+    appStore.setState(initial, true);
+    window.localStorage.clear();
+  });
+
+  const glyphs = (container: HTMLElement): Element[] => [...container.querySelectorAll('[data-layer="stars"] text')];
+
+  it('draws each star to POLAR_STAR_MAG on the ladder and each planet as @ at its magnitude’s size, in the ladder’s tones', async () => {
+    const scene = handScene(
+      [
+        { mag: 0, azDeg: 0, altDeg: 30 },
+        { mag: 1, azDeg: 60, altDeg: 30 },
+        { mag: 2, azDeg: 120, altDeg: 30 },
+        { mag: 3, azDeg: 180, altDeg: 30 },
+        { mag: 4, azDeg: 240, altDeg: 30 },
+      ],
+      [
+        { body: 'Venus', mag: -4, azDeg: 300, altDeg: 30 },
+        { body: 'Mars', mag: 1.2, azDeg: 30, altDeg: 60 },
+        { body: 'Jupiter', mag: 2, azDeg: 90, altDeg: 60 },
+      ],
+    );
+    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={scene} />);
+    await settle();
+    const drawn = glyphs(container).map((el) => [el.getAttribute('data-star') ?? el.getAttribute('data-planet'), el.textContent, el.getAttribute('data-size'), el.getAttribute('data-tone')]);
+    // Brightest first; the V = 4 star is past POLAR_STAR_MAG and not drawn.
+    expect(POLAR_STAR_MAG).toBe(3.5);
+    expect(drawn).toEqual([
+      ['Venus', '@', 'chart-text-18', 'chart-planet'],
+      ['0', '*', 'chart-text-18', 'chart-star'],
+      ['1', '*', 'chart-text-15', 'chart-star'],
+      ['Mars', '@', 'chart-text-15', 'chart-planet'],
+      ['2', '+', 'chart-text-12', 'chart-star'],
+      ['Jupiter', '@', 'chart-text-12', 'chart-planet'],
+      ['3', '.', 'chart-text-12', 'chart-star-dim'],
+    ]);
+    // D-813: the sizes and the tones are the window's sheet, keyed by `data-size` and `data-tone` under the group's
+    // class (`starGlyphs.test.ts` holds it to every token); the chart's own adds only the type.
+    expect(container.querySelector('[data-layer="stars"]')?.classList).toHaveLength(2);
+    for (const el of glyphs(container)) expect(el.classList).toHaveLength(0);
+    const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/polar/SkyPolar.module.css'), 'utf8');
+    expect(css.slice(css.indexOf('.stars {'), css.indexOf('.horizon'))).toBe('.stars {\n  font-family: var(--font-mono);\n  pointer-events: none;\n}\n\n');
+  });
+
+  it.each<ChartOrientation>(['looking-up', 'map'])('puts each glyph at toPolar of its altitude and azimuth (%s), and draws nothing below the horizon', async (orientation) => {
+    appStore.getState().setChartOrientation(orientation);
+    const scene = handScene([
+      { mag: 1, azDeg: 100, altDeg: 20 },
+      { mag: 2, azDeg: 200, altDeg: -1 },
+    ]);
+    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={scene} />);
+    await settle();
+    expect(glyphs(container)).toHaveLength(1);
+    expectAt(translateOf(container.querySelector('[data-star="0"]')), expected({ t: 0, azDeg: 100, elDeg: 20 } as PassPoint, orientation));
+  });
+
+  it('follows the looking-up / map toggle with the arcs', async () => {
+    const scene = handScene([{ mag: 1, azDeg: 90, altDeg: 10 }]);
+    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={scene} />);
+    await settle();
+    const x = (): number => translateOf(container.querySelector('[data-star="0"]')).x;
+    expect(x()).toBeLessThan(0);
+    fireEvent.click(within(screen.getByRole('group', { name: 'Chart orientation' })).getByRole('button', { name: 'Map' }));
+    expect(x()).toBeGreaterThan(0);
+    expectAt(translateOf(container.querySelector('[data-star="0"]')), expected({ t: 0, azDeg: 90, elDeg: 10 } as PassPoint, 'map'));
+  });
+
+  it('draws the brighter alone of two glyphs closer than half the small size, a planet included', async () => {
+    // At the zenith a degree is HORIZON_R / 90 user units, so a quarter of a degree is far inside COLLISION_PX.
+    const scene = handScene(
+      [
+        { mag: 2, azDeg: 0, altDeg: 89.75 },
+        { mag: 1, azDeg: 0, altDeg: 90 },
+        { mag: 3, azDeg: 180, altDeg: 45 },
+      ],
+      [{ body: 'Venus', mag: -4, azDeg: 180, altDeg: 45.1 }],
+    );
+    expect(((0.25 * HORIZON_R) / 90) < COLLISION_PX).toBe(true);
+    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={scene} />);
+    await settle();
+    expect(glyphs(container).map((el) => el.getAttribute('data-star') ?? el.getAttribute('data-planet'))).toEqual(['Venus', '1']);
+  });
+
+  it('draws the stars under the grid and the arcs, no figure and no name, and nothing without a scene or with the layers off', async () => {
+    const { container, rerender } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={SNAPSHOT_SCENE} />);
+    await settle();
+    const svg = container.querySelector('svg') as SVGSVGElement;
+    const children = [...svg.children];
+    const layerIndex = children.findIndex((el) => el.getAttribute('data-layer') === 'stars');
+    expect(layerIndex).toBeGreaterThanOrEqual(0);
+    expect(layerIndex).toBeLessThan(children.findIndex((el) => el.tagName.toLowerCase() === 'circle'));
+    expect(layerIndex).toBeLessThan(children.findIndex((el) => el.hasAttribute('data-pass-id')));
+    expect(svg.querySelector('[data-figure], [data-star-name], [data-figure-name], line[data-segment]')).toBeNull();
+    expect(svg.querySelector('[data-layer="stars"]')).toHaveAttribute('class', expect.stringContaining('stars'));
+
+    rerender(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    expect(container.querySelector('[data-layer="stars"]')).toBeNull();
+    rerender(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={{ stars: null }} />);
+    expect(container.querySelector('[data-layer="stars"]')).toBeNull();
+    const off = handScene([{ mag: 1, azDeg: 90, altDeg: 10 }], [{ body: 'Venus', mag: -4, azDeg: 180, altDeg: 20 }]);
+    if (off.stars) off.stars = { ...off.stars, layers: { stars: false, figures: false, planets: false, names: false } };
+    rerender(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={off} />);
+    expect(glyphs(container)).toHaveLength(0);
+  });
+
+  it('draws only stars to 3.5 from the real catalogue, each above the horizon, none two within the collision distance', async () => {
+    const scene = realScene(pass.peak.t);
+    const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={scene} />);
+    await settle();
+    const field = scene.stars;
+    if (!field) throw new Error('no field');
+    const drawn = glyphs(container);
+    expect(drawn.length).toBeGreaterThan(20);
+    const points = drawn.map((el) => translateOf(el));
+    for (const el of drawn) {
+      const i = el.getAttribute('data-star');
+      if (i === null) continue;
+      expect(field.catalog.mag[Number(i)]).toBeLessThanOrEqual(POLAR_STAR_MAG);
+      expect(field.positions.altDeg[Number(i)]).toBeGreaterThanOrEqual(0);
+    }
+    for (let a = 0; a < points.length; a += 1) {
+      for (let b = a + 1; b < points.length; b += 1) {
+        const p = points[a] as { x: number; y: number };
+        const q = points[b] as { x: number; y: number };
+        // Two decimals in the transform: allow their rounding.
+        expect(Math.hypot(p.x - q.x, p.y - q.y)).toBeGreaterThanOrEqual(COLLISION_PX - 0.01);
+      }
     }
   });
 });
