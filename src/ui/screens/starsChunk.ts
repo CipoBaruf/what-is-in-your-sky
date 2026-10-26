@@ -34,12 +34,11 @@ export function loadStarsChunk(): Promise<StarsModule> {
 
 /**
  * R123 (D-791): fetch the chunk once the browser is idle (`whenIdle`, the
- * settings page's rule) and hand the module to `onLoad`. Returns the cancel,
- * for an unmount before it fires; a failure is dropped (the toggle's own load
- * asks again).
+ * settings page's rule) and nothing more: the catalogue is built only when the
+ * toggle turns on, from the module this has in hand. Returns the cancel, for
+ * an unmount before it fires; a failure is dropped (the toggle's own load asks
+ * again).
  */
-export function prefetchStarsWhenIdle(onLoad: (module: StarsModule) => void): () => void {
-  return whenIdle(() => {
-    loadStarsChunk().then(onLoad, () => undefined);
-  });
+export function prefetchStarsWhenIdle(): () => void {
+  return whenIdle(() => void loadStarsChunk().catch(() => undefined));
 }
