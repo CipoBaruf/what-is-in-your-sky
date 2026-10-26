@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { EpochMs, Observer } from '../../../../model';
-import { cutCatalog } from './layers';
+import { cutCatalog } from './catalogCut';
 import type { SkyScene, StarField } from './window/scene';
 
 /**
@@ -32,7 +32,7 @@ import type { SkyScene, StarField } from './window/scene';
  * still imports none of it, so `astronomy-engine` stays in the `stars` chunk.
  * With every rung drawn the scene is the whole field; with fewer (the Sun
  * above −6°) the catalogue is cut to the drawn rungs' magnitude, which in
- * D-748's magnitude order is a prefix (`layers.ts`'s `cutCatalog`, the views'
+ * D-748's magnitude order is a prefix (`catalogCut.ts`'s `cutCatalog`, the views'
  * own cut), and the figures are left out, since their lines would run to stars
  * the step hides; above 0° the scene carries no stars at all. The planets go
  * with the first two rungs (`planetsDrawn` is true wherever a rung is drawn),
