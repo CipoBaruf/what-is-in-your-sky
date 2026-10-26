@@ -34,14 +34,14 @@ import { FIXTURES_DIR } from '../../../../../tests/support/fixtures';
 import { stubMatchMedia } from '../../../../../tests/support/matchMedia';
 import { stubResizeObserver } from '../../../../../tests/support/resizeObserver';
 import { MOON_FIXTURE } from '../../../../../tests/support/moonFixtures';
-import { toDome, toPolar } from '../../../../lib/skyGeometry';
+import { toPolar } from '../../../../lib/skyGeometry';
 import { formatClock } from '../../../../lib/timeFormat';
 import { PassNumbers } from '../PassNumbers';
 import type { ChartOrientation, Observer } from '../../../../model';
 import { appStore } from '../../../../state';
 import { ChartFrame } from './ChartFrame';
 import { toRotY } from './dome/camera';
-import { projectToScreen, tickAnchors, type Tuple3 } from './dome/domeGeometry';
+import { anchorAt, projectToScreen, tickAnchors, type Tuple3 } from './dome/domeGeometry';
 import { HORIZON_R } from './polar/SkyPolar';
 import { SKY_CHART_VIEWS, SkyChart } from './SkyChart';
 import type { SkyChartProps } from './SkyChart.types';
@@ -107,10 +107,6 @@ function domeMap(points: { world: { x: number; y: number }; screen: { x: number;
   const d = (s2.y * w1.x - s1.y * w2.x) / det;
   return (world) => ({ x: p0.screen.x + a * (world.x - p0.world.x) + b * (world.y - p0.world.y), y: p0.screen.y + c * (world.x - p0.world.x) + d * (world.y - p0.world.y) });
 }
-const onDome = (point: { azDeg: number; altDeg: number }, radius = 1): Tuple3 => {
-  const v = toDome(point.azDeg, point.altDeg);
-  return [v.x * radius, v.y * radius, v.z * radius];
-};
 
 /** The legend's rows in order: `[key, passId]` pairs. */
 function legendEntries(container: HTMLElement): [string, string][] {
@@ -377,8 +373,8 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
     const fourth = ticks[3] as (typeof ticks)[number];
     within(container.querySelector(`[data-hotspot-id="${tickAnchors()[3]?.id ?? ''}"] > span`) as Element, tickAnchors()[3]?.at ?? [0, 0, 0], 'the fourth tick');
     expect(fourth.screen.x).not.toBeNaN();
-    within(star, onDome(STAR), 'the star');
-    within(planet, onDome(PLANET), 'the planet');
+    within(star, anchorAt(STAR.azDeg, STAR.altDeg), 'the star');
+    within(planet, anchorAt(PLANET.azDeg, PLANET.altDeg), 'the planet');
   });
 
   /** FR-LIVE-1 / FR-LIVE-10 (R32): the live page's chart is the same component, named rather than captioned, filling its box. */

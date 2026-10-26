@@ -1,8 +1,9 @@
-import { toDome } from '../../../../../lib/skyGeometry';
 import type { MoonState, Pass } from '../../../../../model';
+import { starsFor } from '../layers';
 import type { StarField } from '../window/scene';
 import {
   aheadStrip,
+  anchorAt,
   compassAnchors,
   COMPASS_LABEL_RADIUS,
   diamond,
@@ -108,12 +109,6 @@ export interface LayersInput {
   camera: { rotYDeg: number; tiltDeg: number };
   /** How big a label is on the drawing, in world units. */
   measure: (text: string) => LabelBox;
-  /**
-   * R119 (FR-SKY-1, D-803): the scene's stars as the table leaves them to the
-   * dome — already cut to `DOME_STAR_MAG` by `sceneFor`. Each one above the
-   * horizon, and each planet, is an anchor on the bowl; R124 draws the points.
-   */
-  stars?: StarField | null | undefined;
 }
 
 /**
@@ -132,35 +127,25 @@ export interface DomeAnchor {
   planet?: string;
 }
 
+/**
+ * The anchors of the scene's stars as the table leaves them to the dome
+ * (`sceneFor('dome', …)`): what `starsFor` places, on the unit sphere. Apart
+ * from `domeLayers`, so a new scene moves the anchors and nothing else.
+ */
 export function starAnchors(stars: StarField | null | undefined): DomeAnchor[] {
   if (!stars) return [];
-  const { catalog, positions, layers } = stars;
-  const at = (azDeg: number, altDeg: number): Tuple3 => {
-    const v = toDome(azDeg, altDeg);
-    return [v.x, v.y, v.z];
-  };
-  const anchors: DomeAnchor[] = [];
-  if (layers.stars) {
-    for (let i = 0; i < catalog.mag.length; i += 1) {
-      const altDeg = positions.altDeg[i] ?? -90;
-      if (altDeg < 0) continue;
-      anchors.push({ id: `star-${String(i)}`, at: at(positions.azDeg[i] ?? 0, altDeg), star: i });
-    }
-  }
-  if (layers.planets) {
-    for (const planet of positions.planets) {
-      if (planet.altDeg < 0) continue;
-      anchors.push({ id: `planet-${planet.body}`, at: at(planet.azDeg, planet.altDeg), planet: planet.body });
-    }
-  }
-  return anchors;
+  return starsFor('dome', stars).map(({ key, azDeg, altDeg, star, planet }) => ({
+    id: key,
+    at: anchorAt(azDeg, altDeg),
+    ...(star === undefined ? {} : { star }),
+    ...(planet === undefined ? {} : { planet }),
+  }));
 }
 
 export interface DomeLayers {
   base: Mesh[];
   lines: Mesh[];
   labels: DomeLabel[];
-  anchors: DomeAnchor[];
 }
 
 const colored = (mesh: Mesh): boolean => mesh.polygons.length > 0;
@@ -305,5 +290,5 @@ export function domeLabels(input: LayersInput): DomeLabel[] {
 const degreeText = (valueDeg: number): string => `${String(valueDeg)}°`;
 
 export function domeLayers(input: LayersInput): DomeLayers {
-  return { base: baseLayer(input), lines: lineLayer(input), labels: domeLabels(input), anchors: starAnchors(input.stars) };
+  return { base: baseLayer(input), lines: lineLayer(input), labels: domeLabels(input) };
 }

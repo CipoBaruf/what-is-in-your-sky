@@ -8,7 +8,7 @@ import type { ChartOrientation, MoonState, PassPoint } from '../../../../../mode
 import { ToggleGroup } from '../../../primitives/ToggleGroup';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
 import { ChartFrame } from '../ChartFrame';
-import { sceneFor } from '../layers';
+import { sceneFor, starsFor } from '../layers';
 import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps, type SkyChartView } from '../SkyChart.types';
 import type { StarField } from '../window/scene';
 import styles from './SkyPolar.module.css';
@@ -270,25 +270,10 @@ function HiddenPoint({ marker, orientation, legendKey }: { marker: HiddenMarker;
  * puts V24-9's glyph in each; the contract test reads the anchors now.
  */
 function StarAnchors({ stars, orientation }: { stars: StarField; orientation: ChartOrientation }) {
-  const { catalog, positions, layers } = stars;
-  const anchors: { key: string; attrs: Record<`data-${string}`, string | number>; p: Xy }[] = [];
-  if (layers.stars) {
-    for (let i = 0; i < catalog.mag.length; i += 1) {
-      const elDeg = positions.altDeg[i] ?? -90;
-      if (elDeg < 0) continue;
-      anchors.push({ key: `star-${String(i)}`, attrs: { 'data-star': i }, p: project({ azDeg: positions.azDeg[i] ?? 0, elDeg }, orientation) });
-    }
-  }
-  if (layers.planets) {
-    for (const planet of positions.planets) {
-      if (planet.altDeg < 0) continue;
-      anchors.push({ key: `planet-${planet.body}`, attrs: { 'data-planet': planet.body }, p: project({ azDeg: planet.azDeg, elDeg: planet.altDeg }, orientation) });
-    }
-  }
   return (
     <g data-layer="stars">
-      {anchors.map((anchor) => (
-        <g key={anchor.key} {...anchor.attrs} transform={at(anchor.p)} />
+      {starsFor('polar', stars).map(({ key, azDeg, altDeg, star, planet }) => (
+        <g key={key} {...(star === undefined ? {} : { 'data-star': star })} {...(planet === undefined ? {} : { 'data-planet': planet })} transform={at(project({ azDeg, elDeg: altDeg }, orientation))} />
       ))}
     </g>
   );

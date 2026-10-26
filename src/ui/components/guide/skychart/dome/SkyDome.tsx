@@ -33,7 +33,7 @@ import {
   type RowMetrics,
 } from './camera';
 import { screenSide, sunDirection, type Tuple3 } from './domeGeometry';
-import { domeLayers, type DomeAnchor, type DomeLabel } from './domeLayers';
+import { domeLayers, starAnchors, type DomeAnchor, type DomeLabel } from './domeLayers';
 import { useDomePalette } from './palette';
 import styles from './SkyDome.module.css';
 
@@ -232,6 +232,8 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
   const t = useT();
   // FR-SKY-1 (R119): what the table leaves the dome of the scene — the stars to `DOME_STAR_MAG`, the planets, no figures, no names.
   const stars = useMemo(() => sceneFor('dome', scene)?.stars ?? null, [scene]);
+  // Its own memo: a new scene moves the anchors and leaves the meshes and the label placement alone.
+  const anchors = useMemo(() => starAnchors(stars), [stars]);
   const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
   const [camera, setCamera] = useState<CameraState>(() => initialFor(highlighted, facingAzDeg ?? initialFacingAzDeg));
 
@@ -380,10 +382,9 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
         moon,
         hidden,
         colorBy,
-        stars,
         ...(now === undefined ? {} : { now }),
       }),
-    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, measure, legendKeys, sun, moon, hidden, now, colorBy, stars],
+    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, measure, legendKeys, sun, moon, hidden, now, colorBy],
   );
 
   // FR-DOME-8a: the key light points along the Sun's real direction, so twilight
@@ -468,7 +469,7 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
                       <GlyphMesh key={mesh.id} id={mesh.id} polygons={mesh.polygons} />
                     ))}
                     <DomeLabels labels={layers.labels} rotY={rotY} onSelect={onSelectPass} />
-                    <DomeAnchors anchors={layers.anchors} />
+                    <DomeAnchors anchors={anchors} />
                   </GlyphScene>
                 </GlyphOrthographicCamera>
               </div>

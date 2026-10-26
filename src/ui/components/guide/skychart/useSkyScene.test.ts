@@ -50,4 +50,16 @@ describe('useSkyScene (FR-SKY-1, FR-SKY-8; D-788, D-802)', () => {
     rerender({ observer, now: 1_000, starsLayer: true, source });
     expect(result.current.stars).not.toBeNull();
   });
+
+  it('holds the scene for a source rebuilt inline with the same two fields, and hands out frozen shared objects', () => {
+    const source = fakeSource();
+    const { result, rerender } = renderHook((input: SkySceneInput) => useSkyScene(input), { initialProps: { observer, now: 1_000, starsLayer: true, source } as SkySceneInput });
+    const first = result.current;
+    rerender({ observer, now: 1_000, starsLayer: true, source: { catalog: source.catalog, positionsAt: source.positionsAt } });
+    expect(result.current).toBe(first);
+    expect(source.positionsAt).toHaveBeenCalledTimes(1);
+    expect(Object.isFrozen(first.stars?.layers)).toBe(true);
+    rerender({ observer, now: 1_000, starsLayer: false, source });
+    expect(Object.isFrozen(result.current)).toBe(true);
+  });
 });

@@ -38,51 +38,115 @@ export function drawsLayer(view: SkyView, layer: Layer): boolean {
   return LAYERS[view].includes(layer);
 }
 
-/** The first `n` of a column; the catalogue is in magnitude order (D-748), so a cap is a prefix. */
+type Catalog = StarField['catalog'];
+type Cut = Omit<Catalog, 'figures'>;
+
+/** The first `n` of a column. */
 function prefix<T>(column: ArrayLike<T>, n: number): ArrayLike<T> {
   return n >= column.length ? column : Array.prototype.slice.call(column, 0, n);
 }
 
-/** How many of the catalogue's stars are at `mag` or brighter: the first index past it. */
-function brighterThan(mag: ArrayLike<number>, cap: number): number {
-  let n = 0;
-  while (n < mag.length && (mag[n] ?? Infinity) <= cap) n += 1;
-  return n;
+/**
+ * How far into the catalogue a cap reaches: one past the last star at `cap` or
+ * brighter. In D-748's magnitude order that is exactly the stars at the cap;
+ * out of order, no bright star is lost behind a faint one, and a missing or
+ * NaN magnitude never counts — `starsFor` holds the cap star by star.
+ */
+function reach(mag: ArrayLike<number>, cap: number): number {
+  for (let i = mag.length - 1; i >= 0; i -= 1) if ((mag[i] ?? Number.NaN) <= cap) return i + 1;
+  return 0;
+}
+
+/** The catalogue cut to each cap, once per catalogue: only the positions change from tick to tick. */
+const cuts = new WeakMap<Catalog, Map<number, Cut>>();
+
+function cutCatalog(catalog: Catalog, cap: number): Cut {
+  let byCap = cuts.get(catalog);
+  if (!byCap) {
+    byCap = new Map();
+    cuts.set(catalog, byCap);
+  }
+  let cut = byCap.get(cap);
+  if (!cut) {
+    const n = reach(catalog.mag, cap);
+    cut = {
+      ra: prefix(catalog.ra, n),
+      dec: prefix(catalog.dec, n),
+      mag: prefix(catalog.mag, n),
+      name: catalog.name.slice(0, n),
+      desig: catalog.desig.slice(0, n),
+      con: catalog.con.slice(0, n),
+    };
+    byCap.set(cap, cut);
+  }
+  return cut;
 }
 
 /**
  * The scene as `view` draws it: the layers the table leaves it, the stars cut
- * to its cap. The window, the one view without a cap, draws every layer and
- * gets the scene itself, so a memo on it holds; a scene with no stars is
- * returned as it is.
+ * to its cap. A scene the table leaves whole — the window's, which draws every
+ * layer and has no cap — is returned as it is, so a memo on it holds; so is a
+ * scene with no stars.
  */
 export function sceneFor(view: SkyView, scene: SkyScene | undefined): SkyScene | undefined {
   const field = scene?.stars;
-  const cap = STAR_MAG[view];
-  if (!scene || !field || cap === Infinity) return scene;
+  if (!scene || !field) return scene;
   const layers: StarField['layers'] = {
     stars: field.layers.stars && drawsLayer(view, 'stars'),
     figures: field.layers.figures && drawsLayer(view, 'figures'),
     planets: field.layers.planets && drawsLayer(view, 'planets'),
     names: field.layers.names && drawsLayer(view, 'names'),
   };
-  const n = brighterThan(field.catalog.mag, cap);
-  const { catalog, positions } = field;
+  const cap = STAR_MAG[view];
+  if (cap === Infinity) {
+    const whole = layers.stars === field.layers.stars && layers.figures === field.layers.figures && layers.planets === field.layers.planets && layers.names === field.layers.names;
+    return whole ? scene : { ...scene, stars: { ...field, layers } };
+  }
+  const catalog = cutCatalog(field.catalog, cap);
+  const n = catalog.mag.length;
+  const { positions } = field;
   return {
     ...scene,
     stars: {
-      catalog: {
-        ra: prefix(catalog.ra, n),
-        dec: prefix(catalog.dec, n),
-        mag: prefix(catalog.mag, n),
-        name: catalog.name.slice(0, n),
-        desig: catalog.desig.slice(0, n),
-        con: catalog.con.slice(0, n),
-        // A figure's segments index the whole catalogue; a view that draws no figures carries none.
-        figures: layers.figures ? catalog.figures : [],
-      },
+      // A figure's segments index the whole catalogue; a view that draws no figures carries none.
+      catalog: { ...catalog, figures: layers.figures ? field.catalog.figures : [] },
       positions: { altDeg: prefix(positions.altDeg, n), azDeg: prefix(positions.azDeg, n), planets: positions.planets },
       layers,
     },
   };
+}
+
+/** One star or planet a capped view places: its key, its direction, and its identity — a catalogue index or a planet's name. */
+export interface PlacedBody {
+  key: string;
+  azDeg: number;
+  altDeg: number;
+  star?: number;
+  planet?: string;
+}
+
+/**
+ * The one visibility rule the polar chart and the dome share, on a field
+ * `sceneFor` gave `view`: each star at the view's cap and above the horizon,
+ * then each planet above it, for the switches the field leaves on. A star with
+ * no altitude, or a NaN one, is not placed.
+ */
+export function starsFor(view: SkyView, field: StarField): PlacedBody[] {
+  const { catalog, positions, layers } = field;
+  const cap = STAR_MAG[view];
+  const placed: PlacedBody[] = [];
+  if (layers.stars) {
+    for (let i = 0; i < catalog.mag.length; i += 1) {
+      const altDeg = positions.altDeg[i];
+      if (!((catalog.mag[i] ?? Number.NaN) <= cap) || altDeg === undefined || !(altDeg >= 0)) continue;
+      placed.push({ key: `star-${String(i)}`, azDeg: positions.azDeg[i] ?? 0, altDeg, star: i });
+    }
+  }
+  if (layers.planets) {
+    for (const planet of positions.planets) {
+      if (!(planet.altDeg >= 0)) continue;
+      placed.push({ key: `planet-${planet.body}`, azDeg: planet.azDeg, altDeg: planet.altDeg, planet: planet.body });
+    }
+  }
+  return placed;
 }

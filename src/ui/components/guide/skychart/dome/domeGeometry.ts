@@ -513,7 +513,8 @@ export interface PlacedLabel extends LabelBox {
   shiftedDeg: number;
 }
 
-const anchorAt = (azDeg: number, elDeg: number, radius: number): Tuple3 => tuple(toDome(azDeg, elDeg), radius);
+/** A direction on the bowl at `radius` (the unit sphere by default): every anchor's convention, the stars' too (R119). */
+export const anchorAt = (azDeg: number, elDeg: number, radius = 1): Tuple3 => tuple(toDome(azDeg, elDeg), radius);
 
 interface ScreenBox extends LabelBox {
   x: number;

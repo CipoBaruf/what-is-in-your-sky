@@ -404,7 +404,5 @@ describe('starAnchors (FR-SKY-1, R119)', () => {
     expect(starAnchors({ ...stars, layers: { ...stars.layers, planets: false } }).map((anchor) => anchor.id)).toEqual(['star-0', 'star-2']);
     expect(starAnchors(null)).toEqual([]);
     expect(starAnchors(undefined)).toEqual([]);
-    expect(domeLayers(input({ stars })).anchors).toHaveLength(3);
-    expect(domeLayers(input({})).anchors).toEqual([]);
   });
 });

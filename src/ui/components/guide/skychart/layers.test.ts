@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DOME_STAR_MAG, drawsLayer, LAYERS, POLAR_STAR_MAG, sceneFor, type Layer, type SkyView } from './layers';
+import { DOME_STAR_MAG, drawsLayer, LAYERS, POLAR_STAR_MAG, sceneFor, starsFor, type Layer, type SkyView } from './layers';
 import type { SkyScene, StarField } from './window/scene';
 
 /**
@@ -60,6 +60,21 @@ describe('sceneFor (FR-SKY-1)', () => {
     expect(sceneFor('dome', none)).toBe(none);
   });
 
+  it('applies the table to the window too: a scene is handed back whole only when the window draws every switch it has on', () => {
+    // Every row of the window's is on today, so the scene comes back as it is; the check is the table's, not a shortcut for the uncapped view.
+    const off: SkyScene = { stars: { ...field, layers: { stars: false, figures: true, planets: false, names: true } } };
+    expect(sceneFor('window', off)).toBe(off);
+  });
+
+  it('cuts each catalogue once per cap and moves only the positions from tick to tick', () => {
+    const next: SkyScene = { stars: { ...field, positions: { ...field.positions, altDeg: [41, 31, 21, -4] } } };
+    const a = sceneFor('polar', scene)?.stars;
+    const b = sceneFor('polar', next)?.stars;
+    expect(b?.catalog.mag).toBe(a?.catalog.mag);
+    expect(b?.catalog.name).toBe(a?.catalog.name);
+    expect(b?.positions.altDeg).toEqual([41, 31, 21]);
+  });
+
   it('cuts the polar chart to the stars at 3.5 or brighter with the planets, no figures and no names', () => {
     const polar = sceneFor('polar', scene)?.stars;
     expect(polar?.catalog.mag).toEqual([-1.4, 1.5, 3.5]);
@@ -90,5 +105,34 @@ describe('sceneFor (FR-SKY-1)', () => {
     const dome = sceneFor('dome', typed)?.stars;
     expect(Array.from(dome?.catalog.mag ?? [])).toEqual([-1.5, 1.5]);
     expect(Array.from(dome?.positions.azDeg ?? [])).toEqual([90, 100]);
+  });
+
+  it('keeps a bright star behind a faint or NaN one, so the cap does not hang on the order', () => {
+    const unordered: StarField = {
+      ...field,
+      catalog: { ...field.catalog, mag: [-1.4, Number.NaN, 4.4, 1.0] },
+      positions: { ...field.positions, altDeg: [40, 30, 20, 10] },
+    };
+    const dome = sceneFor('dome', { stars: unordered })?.stars;
+    expect(dome?.catalog.mag).toHaveLength(4);
+    expect(starsFor('dome', dome as StarField).map((body) => body.key)).toEqual(['star-0', 'star-3', 'planet-Venus']);
+  });
+});
+
+describe('starsFor (FR-SKY-1): the polar chart and the dome place by one rule', () => {
+  it('places each star at the cap above the horizon by catalogue index, then each planet above it', () => {
+    const polar = sceneFor('polar', scene)?.stars as StarField;
+    expect(starsFor('polar', polar)).toEqual([
+      { key: 'star-0', azDeg: 90, altDeg: 40, star: 0 },
+      { key: 'star-1', azDeg: 100, altDeg: 30, star: 1 },
+      { key: 'star-2', azDeg: 110, altDeg: 20, star: 2 },
+      { key: 'planet-Venus', azDeg: 270, altDeg: 10, planet: 'Venus' },
+    ]);
+  });
+
+  it('skips a star or planet below the horizon or with no altitude, and a switch that is off', () => {
+    const low: StarField = { ...field, positions: { altDeg: [Number.NaN, -1, 0], azDeg: [0, 0, 0], planets: [{ body: 'Mars', azDeg: 0, altDeg: -2, mag: 1 }] } };
+    expect(starsFor('polar', low).map((body) => body.key)).toEqual(['star-2']);
+    expect(starsFor('polar', { ...field, layers: { ...field.layers, stars: false } }).map((body) => body.key)).toEqual(['planet-Venus']);
   });
 });

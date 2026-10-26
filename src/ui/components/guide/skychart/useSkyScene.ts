@@ -42,15 +42,19 @@ export interface SkySceneInput {
   source: StarSource | null;
 }
 
-const ALL_LAYERS: StarField['layers'] = { stars: true, figures: true, planets: true, names: true };
+/** Frozen: every scene shares it, so no page or test may change it under the others. */
+const ALL_LAYERS: StarField['layers'] = Object.freeze({ stars: true, figures: true, planets: true, names: true });
 
-/** The one scene with no stars, so a view's memo on the scene holds across ticks that change nothing. */
-const NO_STARS: SkyScene = { stars: null };
+/** The one scene with no stars, so a view's memo on the scene holds across ticks that change nothing; frozen like `ALL_LAYERS`. */
+const NO_STARS: SkyScene = Object.freeze({ stars: null });
 
 export function useSkyScene({ observer, now, starsLayer, source }: SkySceneInput): SkyScene {
   const { lat, lon } = observer;
+  // Keyed on the source's two fields, not on the object: a page may build `{ catalog, positionsAt }` inline each render.
+  const catalog = source?.catalog;
+  const positionsAt = source?.positionsAt;
   return useMemo<SkyScene>(() => {
-    if (!starsLayer || source === null || now === undefined) return NO_STARS;
-    return { stars: { catalog: source.catalog, positions: source.positionsAt({ lat, lon }, now), layers: ALL_LAYERS } };
-  }, [lat, lon, now, starsLayer, source]);
+    if (!starsLayer || catalog === undefined || positionsAt === undefined || now === undefined) return NO_STARS;
+    return { stars: { catalog, positions: positionsAt({ lat, lon }, now), layers: ALL_LAYERS } };
+  }, [lat, lon, now, starsLayer, catalog, positionsAt]);
 }
