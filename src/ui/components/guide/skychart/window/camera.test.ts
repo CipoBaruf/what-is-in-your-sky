@@ -269,6 +269,15 @@ describe('createHandCamera', () => {
     expect(listener).toHaveBeenCalledTimes(6);
     camera.resetZoom();
     expect(listener).toHaveBeenCalledTimes(6);
+    // R125 review: a zoom after `peak` (the reset above, and this one) moves neither the aim nor the field the peak
+    // was faced at, so `peak` stays pressed through it; the field alone would reckon another tilt (53.5° at 30°).
+    expect(camera.peakFovDeg()).toBe(20);
+    camera.zoomBy(0.5);
+    expect(camera.get()).toEqual({ azDeg: 203, altDeg: 56, fovDeg: 30 });
+    expect(facingOf(camera.get(), { azDeg: 203, elDeg: 61 })).toBe('');
+    expect(facingOf(camera.get(), { azDeg: 203, elDeg: 61 }, camera.peakFovDeg())).toBe('peak');
+    // A camera made at the peak (the pass detail's) was faced at its opening field.
+    expect(createHandCamera(facePeak({ azDeg: 203, elDeg: 61 }, WINDOW_FOV)).peakFovDeg()).toBe(WINDOW_FOV);
     // An opening field is held to the range too, and a camera made at a field keeps it.
     expect(createHandCamera({ azDeg: 0, altDeg: 20, fovDeg: 200 }).get().fovDeg).toBe(WINDOW_FOV_MAX_DEG);
     expect(createHandCamera({ azDeg: 0, altDeg: 20, fovDeg: 30 }).get()).toEqual({ azDeg: 0, altDeg: 20, fovDeg: 30 });

@@ -40,7 +40,8 @@ export interface FacingPickerProps {
 export function FacingPicker({ camera, options = FACING_OPTIONS, peak = null, prefix = false, className }: FacingPickerProps) {
   const t = useT();
   const sp = useStarsPageT();
-  const read = useCallback(() => facingOf(camera.get(), peak), [camera, peak]);
+  // R125: the peak at the field it was faced at, so a zoom that keeps the aim keeps `peak` pressed (FR-SKY-14).
+  const read = useCallback(() => facingOf(camera.get(), peak, camera.peakFovDeg()), [camera, peak]);
   const facing = useSyncExternalStore(camera.subscribe, read, read);
   const turnTo = (value: FacingOption): void => {
     if (value === 'up') {

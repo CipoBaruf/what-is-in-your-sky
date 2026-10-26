@@ -123,8 +123,10 @@ import { useViewRotation } from './useViewRotation';
  *
  * R125 (FR-SKY-14; FR-WIN-1, FR-GUT-3, FR-STAR-4 as amended; D-798, D-820,
  * D-821): the zoom. The field across the box's shorter side is `fovDeg` —
- * the hand camera's under the hand, this window's own state under the sensor,
- * `WINDOW_FOV` at every mount and never saved — and everything `WINDOW_FOV`
+ * the hand camera's under the hand (page state: the slot keeps it through the
+ * dome and back, as it keeps the facing), this window's own state under the
+ * sensor, `WINDOW_FOV` on every page and every opening of the screen, never
+ * saved — and everything `WINDOW_FOV`
  * fed reads it: the projection's `view`, the placeholder, the ground state,
  * the gutter's bracket. One pointer handler on the box tracks the active
  * pointers: one is FR-STAR-4's drag (under the hand), two are the pinch, which
@@ -165,6 +167,16 @@ export function placeholderAltDeg(peakElDeg: number | undefined, view: View): nu
 }
 /** The box in jsdom, where nothing can be measured: the compact phone's square. */
 const UNMEASURED = { width: 390, height: 390 };
+/** FR-SKY-14: the box's zoom keys; with ctrl or cmd they are the browser's page zoom and the box leaves them alone. */
+const ZOOM_KEYS: ReadonlySet<string> = new Set(['+', '=', '-', '0']);
+/** Whether the box holds this pointer's capture; jsdom and old browsers, which cannot capture, never do. */
+function hasCapture(event: PointerEvent<HTMLDivElement>): boolean {
+  try {
+    return event.currentTarget.hasPointerCapture(event.pointerId);
+  } catch {
+    return false;
+  }
+}
 
 // R114 (D-754): `SkyPoint`, `ring`, `HORIZON` and `groundClipPath` are `projection.ts`'s now, shared with the star field.
 const ALT_30 = ring(30, 3);
@@ -508,19 +520,41 @@ export function SkyWindow(props: SkyWindowProps) {
     pendingZoomRef.current = 1;
     zoomBy(zoom);
   }, [handCamera, zoomBy]);
-  const scheduleZoom = (factor: number): void => {
-    pendingZoomRef.current *= factor;
-    if (!frameRef.current) frameRef.current = requestAnimationFrame(flush);
-  };
+  // The one way a pinch or a ctrl + wheel asks for a zoom: into the pending factor, applied on the next frame.
+  const scheduleZoom = useCallback(
+    (factor: number): void => {
+      pendingZoomRef.current *= factor;
+      if (!frameRef.current) frameRef.current = requestAnimationFrame(flush);
+    },
+    [flush],
+  );
+  const pointerTypes = useRef(new Map<number, string>());
   const forget = (pointerId: number): void => {
     pointersRef.current.delete(pointerId);
+    pointerTypes.current.delete(pointerId);
     const pinch = pinchRef.current;
     if (pinch && (pinch.a === pointerId || pinch.b === pointerId)) pinchRef.current = null;
   };
   const onPointerDown = (event: PointerEvent<HTMLDivElement>): void => {
     if (event.button !== 0 && event.pointerType === 'mouse') return;
     const pointers = pointersRef.current;
+    /*
+     * A primary pointer starts a new contact: every other pointer of its type has lifted, whether or not its up
+     * reached the box (a capture that failed and a finger lifted outside). Without this a stale finger would make
+     * every later one-finger touch the second finger of a pinch.
+     */
+    if (event.isPrimary) {
+      for (const id of [...pointers.keys()]) {
+        if (pointerTypes.current.get(id) !== event.pointerType) continue;
+        forget(id);
+        if (dragRef.current?.pointerId === id) {
+          dragRef.current = null;
+          pendingRef.current = null;
+        }
+      }
+    }
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    pointerTypes.current.set(event.pointerId, event.pointerType);
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
@@ -571,14 +605,20 @@ export function SkyWindow(props: SkyWindowProps) {
       const b = pointersRef.current.get(pinch.b);
       if (!a || !b) return;
       const distance = Math.hypot(a.x - b.x, a.y - b.y);
-      if (distance > 0 && pinch.distance > 0 && distance !== pinch.distance) {
+      // Two fingers that landed on one point have no distance to scale by: the first apart is where the pinch starts.
+      if (pinch.distance === 0) {
+        pinch.distance = distance;
+        return;
+      }
+      if (distance > 0 && distance !== pinch.distance) {
         scheduleZoom(pinch.distance / distance);
         pinch.distance = distance;
       }
       return;
     }
     const active = dragRef.current;
-    if (!active && event.pointerType === 'mouse' && scene?.stars) {
+    // The hover's label is the hand's, as before the pinch put these handlers on the sensor's box too.
+    if (!active && byHand && event.pointerType === 'mouse' && scene?.stars) {
       const over = hitAt(event);
       if (over !== hovered) setHovered(over);
     }
@@ -617,8 +657,10 @@ export function SkyWindow(props: SkyWindowProps) {
     const hit = hitAt(event, active.x0, active.y0);
     onNameStar(hit === namedStar ? null : hit);
   };
-  const onPointerLeave = (): void => {
+  const onPointerLeave = (event: PointerEvent<HTMLDivElement>): void => {
     if (hovered !== null) setHovered(null);
+    // A pointer the box could not capture is gone once it leaves: no up for it will reach the box.
+    if (pointersRef.current.has(event.pointerId) && !hasCapture(event)) endDrag(event);
   };
   // Capture lost without an up or a cancel reaching the box (the browser released it, the box moved): the drag, or the pinch, is over.
   const onLostPointerCapture = (event: PointerEvent<HTMLDivElement>): void => {
@@ -640,18 +682,17 @@ export function SkyWindow(props: SkyWindowProps) {
       if (!event.ctrlKey) return;
       event.preventDefault();
       if (event.deltaY === 0) return;
-      pendingZoomRef.current *= Math.exp(event.deltaY * ZOOM_WHEEL_RATE);
-      if (!frameRef.current) frameRef.current = requestAnimationFrame(flush);
+      scheduleZoom(Math.exp(event.deltaY * ZOOM_WHEEL_RATE));
     };
     box.addEventListener('wheel', onWheel, { passive: false });
     return () => {
       box.removeEventListener('wheel', onWheel);
     };
-  }, [flush]);
+  }, [scheduleZoom]);
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     if (!handCamera) return;
-    // FR-SKY-14: box keys, not page shortcuts — and with a modifier the press is the browser's (ctrl + `+` zooms the page).
-    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    // FR-SKY-14: box keys, not page shortcuts — ctrl or cmd with `+`/`=`/`-`/`0` is the browser's own zoom, left to it; the arrows turn with any modifier, as before.
+    if ((event.ctrlKey || event.metaKey) && ZOOM_KEYS.has(event.key)) return;
     const moves: Record<string, () => void> = {
       ArrowLeft: () => {
         handCamera.stepYaw(-1);
@@ -809,12 +850,14 @@ export function SkyWindow(props: SkyWindowProps) {
   const namedLine = byHand && scene?.stars && namedStar !== null ? namedReadout(scene.stars, namedStar, sp, locale) : null;
   /*
    * FR-SKY-14 (D-798, D-822): while the field is not `WINDOW_FOV` the first line ends with ` · field 30°` (rounded
-   * to 5°). The word is R123's string (`window.field`, the live lane, in this task's wave), read through the
-   * catalog's record so this compiles either side of it — as `screen` was read either side of R62 — and until it
-   * lands no suffix is drawn; `data-fov` on the root carries the field in whole degrees for the tests either way.
+   * to 5°). The word is R123's string (`window.field`, the live lane, in this task's wave), read through a typed
+   * optional field so this compiles either side of it — as `screen` was read either side of R62 — and a key R123
+   * gives another type is a type error here; until it lands no suffix is drawn. `data-fov` on the root carries the
+   * field in whole degrees for the tests either way.
    */
-  const fieldWord = (t.window as Record<string, unknown>)['field'];
-  const fieldSuffix = fovDeg !== WINDOW_FOV && typeof fieldWord === 'string' ? ` · ${fieldWord} ${degrees(Math.round(fovDeg / 5) * 5)}` : '';
+  const windowCatalog: { readout: unknown; field?: string } = t.window;
+  const fieldWord = windowCatalog.field;
+  const fieldSuffix = fovDeg !== WINDOW_FOV && fieldWord !== undefined ? ` · ${fieldWord} ${degrees(Math.round(fovDeg / 5) * 5)}` : '';
   const status = live ? (
     <p className={styles.readout} data-testid="window-readout" {...(byHand ? { id: readoutId } : {})}>
       <span>

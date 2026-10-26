@@ -41,8 +41,14 @@ export const WINDOW_FOV = 60;
 export const WINDOW_FOV_MIN_DEG = 20;
 export const WINDOW_FOV_MAX_DEG = 90;
 
-/** FR-SKY-14: the field held inside the zoom's range. */
+const FOV_SNAP_DEG = 1e-9;
+/**
+ * FR-SKY-14: the field held inside the zoom's range. A field within a hair of `WINDOW_FOV` is `WINDOW_FOV`: a zoom in
+ * and back out by the same amount (ctrl + wheel's `exp`, the keys' 1.25) lands a rounding error away, and the
+ * readout's suffix is drawn while the field is not the default (R125 review).
+ */
 export function clampWindowFov(fovDeg: number): number {
+  if (Math.abs(fovDeg - WINDOW_FOV) < FOV_SNAP_DEG) return WINDOW_FOV;
   return Math.min(WINDOW_FOV_MAX_DEG, Math.max(WINDOW_FOV_MIN_DEG, fovDeg));
 }
 /** FR-WIN-3: the weight the previous frame's axes keep per frame, 0 none, 0.98 the most (FR-WIN-7's pick). */

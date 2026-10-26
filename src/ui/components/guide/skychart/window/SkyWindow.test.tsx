@@ -1015,6 +1015,62 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     expect(camera.get()).toEqual({ azDeg: 170, altDeg: 35, fovDeg: projection.WINDOW_FOV_MAX_DEG });
   });
 
+  /** R125 review: two fingers that land on one point pinch from where they first part. */
+  it('a pinch that starts at no distance zooms from where the fingers first part', () => {
+    const frame = scriptedFrames();
+    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+    const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} />);
+    const box = container.querySelector('[tabindex="0"]') as HTMLElement;
+    box.setPointerCapture = vi.fn();
+    box.releasePointerCapture = vi.fn();
+    fireEvent.pointerDown(box, { button: 0, pointerId: 1, pointerType: 'touch', clientX: 100, clientY: 100 });
+    fireEvent.pointerDown(box, { button: 0, pointerId: 2, pointerType: 'touch', clientX: 100, clientY: 100 });
+    // Apart to 50 px: the pinch's start, no zoom yet; then to 100 px, which halves the field.
+    fireEvent.pointerMove(box, { pointerId: 2, clientX: 150, clientY: 100 });
+    frame();
+    expect(camera.get().fovDeg).toBe(60);
+    fireEvent.pointerMove(box, { pointerId: 2, clientX: 200, clientY: 100 });
+    frame();
+    expect(camera.get()).toEqual({ azDeg: 180, altDeg: 35, fovDeg: 30 });
+  });
+
+  /**
+   * R125 review: a pointer the box could not capture and whose up never reached it (lifted outside) is forgotten —
+   * when it leaves the box, and in any case when a new primary pointer of its type lands — so the next one-finger
+   * touch drags instead of pinching with a ghost.
+   */
+  it('forgets a finger whose up never reached the box, so the next touch drags', () => {
+    const frame = scriptedFrames();
+    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+    const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} />);
+    const box = container.querySelector('[tabindex="0"]') as HTMLElement;
+    box.setPointerCapture = vi.fn(() => {
+      throw new Error('no capture');
+    });
+    box.releasePointerCapture = vi.fn();
+    box.hasPointerCapture = vi.fn(() => false);
+    // Left the box with no up: gone.
+    fireEvent.pointerDown(box, { button: 0, pointerId: 1, pointerType: 'touch', isPrimary: true, clientX: 100, clientY: 100 });
+    fireEvent.pointerLeave(box, { pointerId: 1, pointerType: 'touch', clientX: 0, clientY: 100 });
+    expect(box).toHaveAttribute('data-dragging', 'false');
+    fireEvent.pointerDown(box, { button: 0, pointerId: 2, pointerType: 'touch', isPrimary: true, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(box, { pointerId: 2, clientX: 140, clientY: 100 });
+    frame();
+    expect(camera.get()).toEqual({ azDeg: 170, altDeg: 35, fovDeg: 60 });
+    // No up and no leave reached the box: the next primary touch says every earlier one has lifted.
+    fireEvent.pointerDown(box, { button: 0, pointerId: 3, pointerType: 'touch', isPrimary: true, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(box, { pointerId: 3, clientX: 140, clientY: 100 });
+    frame();
+    expect(camera.get()).toEqual({ azDeg: 160, altDeg: 35, fovDeg: 60 });
+    expect(box).toHaveAttribute('data-dragging', 'true');
+    // A second finger of the same touch (not primary) still makes the pinch.
+    fireEvent.pointerDown(box, { button: 0, pointerId: 4, pointerType: 'touch', isPrimary: false, clientX: 240, clientY: 100 });
+    expect(box).toHaveAttribute('data-dragging', 'false');
+    fireEvent.pointerMove(box, { pointerId: 4, clientX: 340, clientY: 100 });
+    frame();
+    expect(camera.get()).toEqual({ azDeg: 160, altDeg: 35, fovDeg: 30 });
+  });
+
   /** R125 (FR-SKY-14): ctrl + wheel at `ZOOM_WHEEL_RATE`, taken from the browser; a plain wheel left to it. */
   it('ctrl + wheel scales the field by exp(deltaY × 0.002) and is prevented; a plain wheel is neither', () => {
     const frame = scriptedFrames();
@@ -1070,9 +1126,32 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     expect(fireEvent.keyDown(box, { key: '+', ctrlKey: true })).toBe(true);
     expect(fireEvent.keyDown(box, { key: '0', metaKey: true })).toBe(true);
     expect(camera.get().fovDeg).toBe(projection.WINDOW_FOV_MIN_DEG);
-    // The arrows still step at any field.
+    // The arrows still step at any field, and with a modifier too: only the zoom keys are the browser's with ctrl or cmd.
     fireEvent.keyDown(box, { key: 'ArrowRight' });
     expect(camera.get()).toEqual({ azDeg: 195, altDeg: 35, fovDeg: projection.WINDOW_FOV_MIN_DEG });
+    expect(fireEvent.keyDown(box, { key: 'ArrowRight', ctrlKey: true })).toBe(false);
+    fireEvent.keyDown(box, { key: 'ArrowUp', metaKey: true });
+    fireEvent.keyDown(box, { key: 'ArrowLeft', altKey: true });
+    expect(camera.get()).toEqual({ azDeg: 195, altDeg: 40, fovDeg: projection.WINDOW_FOV_MIN_DEG });
+  });
+
+  /** R125 review (FR-SKY-14): in and back out by the same amount is the default field again, so the readout names none. */
+  it('ctrl + wheel in and back out lands on 60° exactly, and the readout draws no field', () => {
+    const frame = scriptedFrames();
+    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+    const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} />);
+    const box = container.querySelector('[tabindex="0"]') as HTMLElement;
+    const catalog = en.window as Record<string, unknown>;
+    catalog['field'] = 'field';
+    onTestFinished(() => {
+      delete catalog['field'];
+    });
+    for (const deltaY of [-70, -70, 70, 70]) {
+      fireEvent.wheel(box, { deltaY, ctrlKey: true });
+      frame();
+    }
+    expect(camera.get().fovDeg).toBe(projection.WINDOW_FOV);
+    expect(screen.getByTestId('window-readout')).toHaveTextContent(/^Looking S \(180°\) · up 35°$/);
   });
 
   /**
@@ -1167,6 +1246,35 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     unmount();
     const again = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
     expect(wrapper(again.container)).toHaveAttribute('data-fov', '60');
+  });
+
+  /** R125 review: the sensor's box takes the pointers for the pinch, and the desk's hover label stays the hand's. */
+  it('under the sensor a mouse over a mark shows no label; under the hand it does', () => {
+    const frame = scriptedFrames();
+    const star = (azDeg: number, altDeg: number): StarFieldData => ({
+      catalog: { ra: [0], dec: [0], mag: [-0.7], name: ['Canopus'], desig: ['α Car'], con: ['Car'], figures: [] },
+      positions: { altDeg: [altDeg], azDeg: [azDeg], planets: [] },
+      layers: { stars: true, figures: false, planets: false, names: true },
+    });
+    const { container, rerender } = render(<SkyWindow passes={[]} observer={observer} highlightedPassId={null} scene={{ stars: star(0, -80) }} />);
+    const w = wrapper(container);
+    reading(aim(90, 20));
+    frame();
+    settle(frame);
+    expect(w).toHaveAttribute('data-state', 'on');
+    // The star where the sensor looks, so it is drawn at the drawing's centre, under the pointer.
+    rerender(<SkyWindow passes={[]} observer={observer} highlightedPassId={null} scene={{ stars: star(Number(w.getAttribute('data-look-az')), Number(w.getAttribute('data-look-alt'))) }} />);
+    settle(frame);
+    const box = container.querySelector('[data-drawing="window"]')?.parentElement as HTMLElement;
+    const label = (): Element | null => container.querySelector('[data-star-label]');
+    fireEvent.pointerMove(box, { pointerType: 'mouse', pointerId: 1, clientX: 195, clientY: 195 });
+    expect(label()).not.toHaveAttribute('visibility', 'visible');
+    // The same mark under the hand is labelled by the hover.
+    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+    rerender(<SkyWindow passes={[]} observer={observer} highlightedPassId={null} camera={camera} scene={{ stars: star(180, 35) }} />);
+    const handBox = container.querySelector('[tabindex="0"]') as HTMLElement;
+    fireEvent.pointerMove(handBox, { pointerType: 'mouse', pointerId: 1, clientX: 195, clientY: 195 });
+    expect(label()).toHaveAttribute('visibility', 'visible');
   });
 
   it('the arrow keys step the camera by 15° and 5° while the box has focus, inside the page’s tilt range', () => {

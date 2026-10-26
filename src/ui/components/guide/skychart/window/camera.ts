@@ -189,7 +189,9 @@ export { FACING_OPTIONS, FACING_POINTS, PEAK_FACING_OPTIONS, type FacingOption }
  * range, the peak where the hand is exactly where `facePeak` put it, a point
  * the hand is exactly at, or none after a drag. The zenith wins over the peak
  * and a point: at 90° every azimuth is the same view. The peak is compared at
- * the state's own field unless another is given (R125).
+ * the state's own field unless another is given (R125); the picker gives the
+ * store's `peakFovDeg`, the field the peak was faced at, so a zoom alone does
+ * not un-press it.
  */
 export function facingOf(state: HandState, peak: SkyAim | null = null, fovDeg: number = state.fovDeg): FacingOption | '' {
   if (state.altDeg >= STARS_TILT_MAX_DEG) return 'up';
@@ -227,6 +229,11 @@ export interface HandCamera {
   up(): void;
   /** FR-SKY-7 (R121): the picker's `peak` — the pass's peak azimuth at the tilt `facePeak` gives for the field shown (the camera's own unless said). */
   facePeak(peak: SkyAim, fovDeg?: number): void;
+  /**
+   * R125: the field the peak was last faced at (the field at creation until then). A zoom moves neither the aim nor
+   * this, so the picker's `peak` stays pressed through a zoom (`facingOf(get(), peak, peakFovDeg())`).
+   */
+  peakFovDeg(): number;
   /** FR-SKY-14 (R125): the field scaled by `factor`, inside the range; the aim untouched. */
   zoomBy(factor: number): void;
   /** FR-SKY-14 (R125): the field back to `WINDOW_FOV`. */
@@ -240,6 +247,7 @@ export const SENSOR_CAMERA: SensorCamera = { source: 'sensor' };
 
 export function createHandCamera(initial: HandAim): HandCamera {
   let state = at(initial.azDeg, initial.altDeg, initial.fovDeg);
+  let peakField = state.fovDeg;
   const listeners = new Set<() => void>();
   const apply = (next: HandState): void => {
     if (next.azDeg === state.azDeg && next.altDeg === state.altDeg && next.fovDeg === state.fovDeg) return;
@@ -271,8 +279,11 @@ export function createHandCamera(initial: HandAim): HandCamera {
       apply(up(state));
     },
     facePeak: (peak, fovDeg = state.fovDeg) => {
-      apply(facePeak(peak, fovDeg));
+      const next = facePeak(peak, fovDeg);
+      peakField = next.fovDeg;
+      apply(next);
     },
+    peakFovDeg: () => peakField,
     zoomBy: (factor) => {
       apply(zoomBy(state, factor));
     },

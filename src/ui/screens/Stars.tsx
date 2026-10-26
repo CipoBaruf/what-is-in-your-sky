@@ -205,7 +205,6 @@ function StarsSky({ observer }: { observer: Observer }) {
     if (skyRef.current) windowBox(skyRef.current)?.focus({ preventScroll: true });
   }, []);
 
-
   /*
    * FR-STAR-5 (R117, D-756): the way into the sky screen's stars inventory. The tap is FR-WIN-4's — the permission
    * inside it, one reading with a north before the layer (`useSkyScreen`) — and the store's flag is what says the
