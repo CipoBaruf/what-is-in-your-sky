@@ -135,7 +135,7 @@ export function constellationName(names: StarNamesSource, con: string, lang: Loc
 export const RUNG_MAX_MAG: readonly number[] = [0.5, 1.5, 2.5, 3.5, Number.POSITIVE_INFINITY];
 
 /** Above this Sun altitude, degrees, the stars layer draws nothing: a daytime sky. */
-export const DAYLIGHT_ALT = 0;
+const DAYLIGHT_ALT = 0;
 
 /** How many rungs are drawn at a Sun altitude: every one at `sunAltMaxDeg` (−6°, the threshold `skyStateOf` calls day) and below, the first two up to 0°, none above. */
 export function drawnRungs(sunAltDeg: number, thresholds: Pick<VisibilityThresholds, 'sunAltMaxDeg'> = DEFAULT_THRESHOLDS): number {
