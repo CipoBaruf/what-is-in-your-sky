@@ -1,6 +1,6 @@
 import { COMPASS_POINTS, normalizeAzimuthDeg, type CompassPoint } from '../../../../../lib/compass';
 import { DRAG_PX_PER_DEG, PITCH_STEP_DEG, YAW_STEP_DEG } from '../dome/camera';
-import { uprightRotation, type Mat3 } from './projection';
+import { uprightRotation, WINDOW_FOV, type Mat3 } from './projection';
 
 /**
  * R113 (FR-STAR-4, FR-STAR-11; PLAN D-750): the window's camera — one
@@ -25,6 +25,13 @@ import { uprightRotation, type Mat3 } from './projection';
  * so the horizon can stand high in the field and FR-FOL-5's `ground` state is
  * reachable by hand, to `STARS_TILT_MAX_DEG` (90°), the zenith, which `up()`
  * jumps to. The dome's [5°, 80°] is the dome's.
+ *
+ * R121 (FR-SKY-2, FR-SKY-7; D-789, D-790): the same camera drives the window
+ * on the live page and the pass detail, where the window is laid out in the
+ * frame's box. The sixth move is `facePeak`, the pass detail's opening state
+ * and its picker's `peak`; the picker's option lists and its pressed-option
+ * rule (`facingOf`) live here too, so the stars page and the chart's window
+ * read one definition.
  */
 
 /** The hand's state: where the centre of the field points, degrees. */
@@ -100,6 +107,59 @@ export function up(state: HandState): HandState {
   return at(state.azDeg, STARS_TILT_MAX_DEG);
 }
 
+/**
+ * FR-SKY-7 (R121, D-790): where a pass's peak stands in the field when the
+ * window faces it — this far below the centre, so the peak is in the field's
+ * upper half with the arc under it: 15° at `WINDOW_FOV`, a quarter of the
+ * field, and no more than a quarter of a narrower one (D-798's zoom), so the
+ * peak never leaves the field it was aimed at.
+ */
+export const PEAK_BELOW_CENTRE_DEG = 15;
+/** FR-SKY-7: the tilt the peak is faced at stays inside [20°, 75°] — the horizon in the lower part, never the zenith. */
+export const PEAK_TILT_MIN_DEG = 20;
+export const PEAK_TILT_MAX_DEG = 75;
+
+/** A point in the sky by its azimuth and elevation — a pass's `peak`, as `Pass` carries it. */
+export interface SkyAim {
+  azDeg: number;
+  elDeg: number;
+}
+
+/**
+ * The picker's `peak` (FR-SKY-7, D-790): face the pass's peak azimuth at
+ * `clamp(peakAlt − 15°, 20°, 75°)`. The pass detail's window opens here, on
+ * the page and on the screen before the sensor's first reading. `state` is
+ * taken for the shape every move has; the peak decides both numbers.
+ */
+export function facePeak(state: HandState, peak: SkyAim, fovDeg: number): HandState {
+  const below = Math.min(PEAK_BELOW_CENTRE_DEG, fovDeg / 4);
+  return at(peak.azDeg, Math.min(PEAK_TILT_MAX_DEG, Math.max(PEAK_TILT_MIN_DEG, peak.elDeg - below)));
+}
+
+/** FR-STAR-3, FR-SKY-7: the facing picker's eight points, in the order the row shows them. */
+export const FACING_POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const satisfies readonly CompassPoint[];
+/** What the picker can offer: a point, the zenith, or (the pass detail) the explained pass's peak. */
+export type FacingOption = (typeof FACING_POINTS)[number] | 'up' | 'peak';
+/** The stars page's and the live page's list: the eight points, then the zenith. */
+export const FACING_OPTIONS: readonly FacingOption[] = [...FACING_POINTS, 'up'];
+/** The pass detail's list (D-790): `peak` first, then the eight points and the zenith. */
+export const PEAK_FACING_OPTIONS: readonly FacingOption[] = ['peak', ...FACING_POINTS, 'up'];
+
+/**
+ * The picker's pressed option for a hand state: the zenith at the top of the
+ * range, the peak where the hand is exactly where `facePeak` put it, a point
+ * the hand is exactly at, or none after a drag. The zenith wins over the peak
+ * and a point: at 90° every azimuth is the same view.
+ */
+export function facingOf(state: HandState, peak: SkyAim | null = null): FacingOption | '' {
+  if (state.altDeg >= STARS_TILT_MAX_DEG) return 'up';
+  if (peak !== null) {
+    const aimed = facePeak(state, peak, WINDOW_FOV);
+    if (Math.abs(normalizeAzimuthDeg(state.azDeg - aimed.azDeg + 180) - 180) < 1e-6 && Math.abs(state.altDeg - aimed.altDeg) < 1e-6) return 'peak';
+  }
+  return FACING_POINTS.find((point) => Math.abs(normalizeAzimuthDeg(state.azDeg - bearingOf(point) + 180) - 180) < 1e-6) ?? '';
+}
+
 /** The hand's rotation: the phone held upright, its back pointing where the hand says (`projection.ts`). */
 export function handRotation(state: HandState): Mat3 {
   return uprightRotation(state.azDeg, state.altDeg);
@@ -125,6 +185,8 @@ export interface HandCamera {
   stepPitch(steps: number): void;
   face(point: CompassPoint): void;
   up(): void;
+  /** FR-SKY-7 (R121): the picker's `peak` — the pass's peak azimuth at the tilt `facePeak` gives, at the window's field. */
+  facePeak(peak: SkyAim): void;
 }
 
 export type SkyCamera = SensorCamera | HandCamera;
@@ -163,6 +225,9 @@ export function createHandCamera(initial: HandState): HandCamera {
     },
     up: () => {
       apply(up(state));
+    },
+    facePeak: (peak) => {
+      apply(facePeak(state, peak, WINDOW_FOV));
     },
   };
 }
