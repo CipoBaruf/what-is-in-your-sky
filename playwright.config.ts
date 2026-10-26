@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 import { DEVICES as PROMO_DEVICES } from './tests/e2e/promoFlows';
 
@@ -57,6 +59,23 @@ export const PROMO_PROJECT = {
   use: { ...devices['Desktop Chrome'], video: { mode: 'on' as const, size: PROMO_DEVICES.phone.frame } },
 };
 
+/**
+ * D-836 (FR-CI-1): a spec whose first-level `test.skip` waits for `CAPTURES=1` or `DOME_PERF=1`.
+ * Playwright sizes its shards by test count, skipped tests included, so without this the 500-odd
+ * capture tests that skip on CI filled shards 2 to 5 and shard 1 ran nearly every real test
+ * (161 of them in 5.7 min against 22 to 55 elsewhere). Such a spec is ignored when its variable
+ * is unset, so every shard's share is tests that run; with the variable set it runs as before.
+ */
+const GATE = /^test\.skip\(process\.env\['(CAPTURES|DOME_PERF)'\] !== '1'/m;
+export const gatedSpecs = (dir: string, env: Record<string, string | undefined>): string[] =>
+  readdirSync(dir)
+    .filter((file) => file.endsWith('.spec.ts'))
+    .filter((file) => {
+      const gate = GATE.exec(readFileSync(join(dir, file), 'utf8'))?.[1];
+      return gate !== undefined && env[gate] !== '1';
+    });
+const GATED = gatedSpecs(join(import.meta.dirname, 'tests/e2e'), process.env).map((file) => new RegExp(`/${file.replaceAll('.', '\\.')}$`));
+
 export default defineConfig({
   testDir: 'tests/e2e',
   // R24: the window went from 24 h to 72 h (FR-VIS-1 amended), so every test that waits for a
@@ -82,7 +101,7 @@ export default defineConfig({
   },
   projects: [
     // Desktop Chrome is 1280 × 720: the width the approved mockup fixes (FR-DESK-5).
-    { name: 'chromium', testIgnore: [/dome-fit\.spec\.ts/, PROMO_SPEC, DESIGN_SPEC], use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', testIgnore: [/dome-fit\.spec\.ts/, PROMO_SPEC, DESIGN_SPEC, ...GATED], use: { ...devices['Desktop Chrome'] } },
     /*
      * R50 (FR-DESK-5 as amended, D-192): the mid width. Between the wide
      * breakpoint and `WIDE_SPLIT_MIN_PX` the right column shows one thing at a
