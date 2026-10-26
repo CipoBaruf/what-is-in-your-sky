@@ -3,6 +3,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSPrope
 import { useT } from '../../../../../i18n/useT';
 import { normalizeAzimuthDeg } from '../../../../../lib/compass';
 import { ChartFrame } from '../ChartFrame';
+import { sceneFor } from '../layers';
 import type { SkyChartProps } from '../SkyChart.types';
 import {
   AMBIENT_INTENSITY,
@@ -32,7 +33,7 @@ import {
   type RowMetrics,
 } from './camera';
 import { screenSide, sunDirection, type Tuple3 } from './domeGeometry';
-import { domeLayers, type DomeLabel } from './domeLayers';
+import { domeLayers, type DomeAnchor, type DomeLabel } from './domeLayers';
 import { useDomePalette } from './palette';
 import styles from './SkyDome.module.css';
 
@@ -210,8 +211,27 @@ function DomeLabels({ labels, rotY, onSelect }: DomeLabelsProps) {
   );
 }
 
-export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, className }: SkyChartProps) {
+/**
+ * R119 (FR-SKY-1, D-803): the scene's star and planet anchors — a hotspot each
+ * on the bowl, with no text and no mark. The contract test reads them where it
+ * reads the compass names; R124 draws the points in the line layer under them.
+ */
+function DomeAnchors({ anchors }: { anchors: readonly DomeAnchor[] }) {
+  return (
+    <>
+      {anchors.map((anchor) => (
+        <GlyphHotspot key={anchor.id} id={anchor.id} at={anchor.at} size={[1, 1]}>
+          <span {...(anchor.star === undefined ? {} : { 'data-star': anchor.star })} {...(anchor.planet === undefined ? {} : { 'data-planet': anchor.planet })} />
+        </GlyphHotspot>
+      ))}
+    </>
+  );
+}
+
+export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, scene, className }: SkyChartProps) {
   const t = useT();
+  // FR-SKY-1 (R119): what the table leaves the dome of the scene — the stars to `DOME_STAR_MAG`, the planets, no figures, no names.
+  const stars = useMemo(() => sceneFor('dome', scene)?.stars ?? null, [scene]);
   const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
   const [camera, setCamera] = useState<CameraState>(() => initialFor(highlighted, facingAzDeg ?? initialFacingAzDeg));
 
@@ -360,9 +380,10 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
         moon,
         hidden,
         colorBy,
+        stars,
         ...(now === undefined ? {} : { now }),
       }),
-    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, measure, legendKeys, sun, moon, hidden, now, colorBy],
+    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, measure, legendKeys, sun, moon, hidden, now, colorBy, stars],
   );
 
   // FR-DOME-8a: the key light points along the Sun's real direction, so twilight
@@ -447,6 +468,7 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
                       <GlyphMesh key={mesh.id} id={mesh.id} polygons={mesh.polygons} />
                     ))}
                     <DomeLabels labels={layers.labels} rotY={rotY} onSelect={onSelectPass} />
+                    <DomeAnchors anchors={layers.anchors} />
                   </GlyphScene>
                 </GlyphOrthographicCamera>
               </div>

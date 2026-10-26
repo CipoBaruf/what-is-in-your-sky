@@ -17,7 +17,8 @@ import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtur
 import { MOON_DOWN, MOON_FIXTURE } from '../../../../../../tests/support/moonFixtures';
 import type { Pass } from '../../../../../model';
 import { LABEL_SHIFT_MAX_DEG, RING_ELEVATIONS, TICK_LABEL_STEP_DEG, type LabelBox } from './domeGeometry';
-import { baseLayer, domeLabels, domeLayers, lineLayer, type DomeLabel, type LayersInput } from './domeLayers';
+import { baseLayer, domeLabels, domeLayers, lineLayer, starAnchors, type DomeLabel, type LayersInput } from './domeLayers';
+import type { StarField } from '../window/scene';
 import type { DomePalette } from './palette';
 import { MEANINGS } from './palette';
 
@@ -370,5 +371,40 @@ describe('the Sun and the Moon (FR-DOME-6)', () => {
     const labels = domeLabels(input({ sun, moon: moonUp }));
     expect(labels.filter((label) => label.kind !== 'compass' && label.kind !== 'tick' && label.kind !== 'ring' && label.kind !== 'key')).toEqual([]);
     expect(labels.some((label) => /sun|moon/i.test(label.text))).toBe(false);
+  });
+});
+
+/**
+ * R119 (FR-SKY-1, D-803): the scene's stars and planets as anchors on the
+ * bowl — one per star above the horizon and per planet, on the unit sphere at
+ * its direction, none for a switch that is off, and nothing without a scene.
+ */
+describe('starAnchors (FR-SKY-1, R119)', () => {
+  const stars: StarField = {
+    catalog: { ra: [0, 0, 0], dec: [0, 0, 0], mag: [-1.4, 0.5, 1.2], name: ['Sirius', 'B', 'C'], desig: ['a', 'b', 'c'], con: ['CMa', 'CMa', 'CMa'], figures: [] },
+    positions: { altDeg: [30, -5, 90], azDeg: [90, 180, 0], planets: [{ body: 'Venus', azDeg: 270, altDeg: 10, mag: -4 }, { body: 'Mars', azDeg: 0, altDeg: -20, mag: 1 }] },
+    layers: { stars: true, figures: false, planets: true, names: false },
+  };
+
+  const round = (v: number): number => Number(v.toFixed(6)) + 0;
+
+  it('puts one anchor per star and planet above the horizon on the unit sphere, by catalogue index and by name', () => {
+    const anchors = starAnchors(stars);
+    expect(anchors.map((anchor) => anchor.id)).toEqual(['star-0', 'star-2', 'planet-Venus']);
+    expect(anchors.map((anchor) => [anchor.star, anchor.planet])).toEqual([[0, undefined], [2, undefined], [undefined, 'Venus']]);
+    for (const anchor of anchors) expect(Math.hypot(...anchor.at)).toBeCloseTo(1, 9);
+    // D-58's frame: x south, y east, z up — Sirius at E 30° up, star 2 at the zenith, Venus at W 10° up.
+    expect(anchors[0]?.at.map(round)).toEqual([0, 0.866025, 0.5]);
+    expect(anchors[1]?.at.map(round)).toEqual([0, 0, 1]);
+    expect(anchors[2]?.at.map(round)).toEqual([0, -0.984808, 0.173648]);
+  });
+
+  it('leaves out a layer whose switch is off, and gives nothing without a scene', () => {
+    expect(starAnchors({ ...stars, layers: { ...stars.layers, stars: false } }).map((anchor) => anchor.id)).toEqual(['planet-Venus']);
+    expect(starAnchors({ ...stars, layers: { ...stars.layers, planets: false } }).map((anchor) => anchor.id)).toEqual(['star-0', 'star-2']);
+    expect(starAnchors(null)).toEqual([]);
+    expect(starAnchors(undefined)).toEqual([]);
+    expect(domeLayers(input({ stars })).anchors).toHaveLength(3);
+    expect(domeLayers(input({})).anchors).toEqual([]);
   });
 });

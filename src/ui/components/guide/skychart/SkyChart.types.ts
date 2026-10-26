@@ -194,11 +194,14 @@ export interface SkyChartProps {
   onUnavailable?: (reason: 'denied' | 'relative') => void;
   /**
    * FR-STAR-11 / D-750 (R113): the bodies of the instant beyond what the props
-   * above already carry — in this phase the star field, or `null` for none.
-   * Only the window reads it; it draws every layer the scene carries and skips
-   * the ones it does not. Absent, the window is `v2.3.0`'s byte for byte, which
-   * is what the live page and the pass detail still get. The dome and the
-   * polar chart ignore it.
+   * above already carry — the star field, or `null` for none. R119 (FR-SKY-1,
+   * FR-LIVE-10 as amended; D-788): one scene per page, built by `useSkyScene`
+   * beside `passes`, and every view reads it through the layer table
+   * (`layers.ts`): the window draws every layer the scene carries, the polar
+   * chart and the dome the stars to their cap and the planets, no figures and
+   * no names — by the table, never by a condition of their own. Absent, every
+   * view draws `ece8bfd`'s picture, which is what the live page and the pass
+   * detail get until R123 hands them a scene. The passes stay on `passes`.
    */
   scene?: SkyScene;
   /**
