@@ -1,6 +1,7 @@
 import { Body, Equator, Horizon, Illumination, MakeTime, Observer as AeObserver, Rotation_EQJ_HOR } from 'astronomy-engine';
+import { DEFAULT_THRESHOLDS } from '../physics/constants';
 import { msToDate } from '../physics/time';
-import type { EpochMs, Observer } from '../model';
+import type { EpochMs, Locale, Observer, VisibilityThresholds } from '../model';
 
 /**
  * FR-STAR-2 (R112, D-749): where every catalogue star and the five naked-eye
@@ -94,3 +95,56 @@ export function starsAt(catalog: StarPositionsSource, observer: Pick<Observer, '
   memo = { catalog, t, lat, lon, result };
   return result;
 }
+
+/**
+ * FR-STAR-10 as amended v2.5 (D-832): what the names need of the catalogue
+ * (`data/stars/catalog.ts`'s `StarCatalog` has it). These three are the only
+ * readers of a star's or a figure's name; `src/lib` may not import `src/data`,
+ * so the catalogue is passed in, as `starsAt` takes it.
+ */
+export interface StarNamesSource {
+  name: readonly string[];
+  nameEs: readonly string[];
+  desig: readonly string[];
+  figureNames: Readonly<Record<Locale, Readonly<Record<string, readonly string[]>>>>;
+  wholeNames: Readonly<Record<Locale, Readonly<Record<string, string>>>>;
+}
+
+/** Star `i`'s name: the Spanish one where `names-es.tsv` has it, else the IAU proper name, else the designation. */
+export function starName(names: StarNamesSource, i: number, lang: Locale): string {
+  return (lang === 'es' ? names.nameEs[i] : '') || names.name[i] || (names.desig[i] ?? '');
+}
+
+const own = <T>(table: Readonly<Record<string, T>>, key: string): T | undefined => (Object.hasOwn(table, key) ? table[key] : undefined);
+
+/** One drawn part's name in `lang` (`Serpens Caput` / `Cabeza de la Serpiente`), or `undefined` for a part the table does not have. */
+export function figureName(names: StarNamesSource, con: string, part: number, lang: Locale): string | undefined {
+  return own(names.figureNames[lang], con)?.[part];
+}
+
+/** A constellation's one name in `lang` (`Serpens` / `Serpiente` whole, otherwise its one part's), or `undefined`. */
+export function constellationName(names: StarNamesSource, con: string, lang: Locale): string | undefined {
+  return own(names.wholeNames[lang], con) ?? figureName(names, con, 0, lang);
+}
+
+/**
+ * FR-STAR-13, FR-SKY-3 (D-791): the twilight steps. The ladder's rungs
+ * (FR-STAR-6, `starGlyphs.ts`'s `LADDER`) by their faintest magnitude; a star
+ * is on rung `k` when `k` is the first whose bound it does not exceed.
+ */
+export const RUNG_MAX_MAG: readonly number[] = [0.5, 1.5, 2.5, 3.5, Number.POSITIVE_INFINITY];
+
+/** Above this Sun altitude, degrees, the stars layer draws nothing: a daytime sky. */
+export const DAYLIGHT_ALT = 0;
+
+/** How many rungs are drawn at a Sun altitude: every one at `sunAltMaxDeg` (−6°, the threshold `skyStateOf` calls day) and below, the first two up to 0°, none above. */
+export function drawnRungs(sunAltDeg: number, thresholds: Pick<VisibilityThresholds, 'sunAltMaxDeg'> = DEFAULT_THRESHOLDS): number {
+  if (sunAltDeg > DAYLIGHT_ALT) return 0;
+  return sunAltDeg > thresholds.sunAltMaxDeg ? 2 : RUNG_MAX_MAG.length;
+}
+
+/** Whether the planets are drawn at a Sun altitude: up to 0° (Venus is a twilight object). */
+export const planetsDrawn = (sunAltDeg: number): boolean => sunAltDeg <= DAYLIGHT_ALT;
+
+/** The faintest magnitude `rungs` drawn rungs show; `-Infinity` for none. */
+export const drawnMagLimit = (rungs: number): number => (rungs > 0 ? (RUNG_MAX_MAG[Math.min(rungs, RUNG_MAX_MAG.length) - 1] ?? Number.NEGATIVE_INFINITY) : Number.NEGATIVE_INFINITY);
