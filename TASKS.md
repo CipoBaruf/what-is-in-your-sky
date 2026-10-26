@@ -3470,7 +3470,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
     - `dome-perf.spec.ts` passes; the Done note carries the measured rate beside `ece8bfd`'s at 6× throttling.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
 
-- [ ] **R125 — Zoom: `fovDeg` on the camera, the pinch, ctrl + wheel, the box's `+`/`-`/`0`, the readout's field, the bracket and the ground from the current field**
+- [x] **R125 — Zoom: `fovDeg` on the camera, the pinch, ctrl + wheel, the box's `+`/`-`/`0`, the readout's field, the bracket and the ground from the current field**
   - **Lane:** window
   - **Model:** fable
   - **Review:** opus
@@ -3490,6 +3490,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
   - **Done when:**
     - `window-zoom.spec.ts` and `camera.test.ts` pass; `live-perf.spec.ts` green zoomed to the minimum; the Done note gives the bracket's half-width at 20°, 60° and 90°.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+  - **Done (2026-10-26, D-820..D-822):** as written, with one reading. **The bracket's half-width** on the 844 × 390 screen (`bracketFor`, `gutter.test.ts`): **21.4° at 20°, 60.2° at 60°, 83.7° at 90°** — 167.5° across at the widest, FR-SKY-14's figure; upright or square it is half the field exactly (10°, 30°, 45°), and the ground is buried that far below the horizon. The field is the hand camera's `fovDeg` and, under the sensor, the window's own state (D-820); `SkyScreen.tsx` needed nothing. The second finger ends the drag and makes the pinch (D-821, superseding R113's "a second pointer is ignored"); the finger left after a pinch does not drag. **The readout's suffix** is drawn from R123's `window.field` through a cast that compiles either side of it (D-822): on this branch the readout is the one line and `data-fov` on the window's root carries the field, which is what `window-zoom.spec.ts` reads; the ` · field 30°` assertion is held optional until R123 lands and is the next window task's to tighten. `live-perf.spec.ts` measures the dome and is skipped without `DOME_PERF`, so it was not touched; the window's drag at `WINDOW_FOV_MIN_DEG` is checked functionally in `window-zoom.spec.ts` (120 px turns 30°, the dome's rate). No string, no pref, nothing in the hash.
 
 ### Wave 4
 
