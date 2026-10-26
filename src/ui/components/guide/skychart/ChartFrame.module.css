@@ -484,6 +484,18 @@
   min-height: 0;
 }
 
+/* R121 (FR-FSC-6 as amended v2.5, V25-17, D-834): on the compact live page the
+   row is the view control's tap row, 48 px, and no taller. The control's
+   options are `inline` there — one text row each, the 48 px box as padding and
+   a matching negative margin — so one line of them is this floor, the same
+   48 px the row measured with the options' own boxes (what the compact rows
+   count on, FR-WATCH-5), and two lines, where a column too narrow for the
+   three wraps the control (the landscape phone's 740 × 360), are two text rows
+   inside the same 48: the row does not grow and the box keeps its floor. */
+.fill[data-compact='true'] .controls {
+  min-height: var(--tap);
+}
+
 .status > p,
 .cornerStatus > p {
   margin: 0;

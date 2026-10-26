@@ -317,8 +317,13 @@ export function SkyChart(props: SkyChartProps) {
          * two, which is what V13-4 had taken away and what the owner did not want back — and the prefix is
          * the one part of it that carries nothing: it is `aria-hidden`, and the group is named `Chart view`
          * for anything that reads the page. Dropping it leaves 33 cells, one row, with the same meaning.
+         *
+         * R121 (FR-FSC-6 as amended v2.5, V25-17, D-834): on compact the options have no gap between them (each
+         * option's own trailing cell is the whole gap, D-172's device) and are `inline`, their 48 px box padding
+         * and a matching negative margin, so on a column too narrow for the three — the landscape phone's 740 ×
+         * 360 — the control wraps to two text rows inside its one tap row, and the row above the box does not grow.
          */
-        <ToggleGroup name={t.chart.viewGroup} {...(compact ? {} : { prefix: t.chart.viewPrefix })} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
+        <ToggleGroup name={t.chart.viewGroup} {...(compact ? { gap: 'none' as const, inline: true } : { prefix: t.chart.viewPrefix })} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
       )}
       {note !== null && (
         <p className={styles.note} role="status" data-testid="chart-view-note">
