@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocale, useT } from '../../i18n/useT';
 import { guideParams } from '../../lib/phrases';
@@ -18,8 +18,13 @@ import { MoonAtPeak } from '../components/moon/MoonAtPeak';
 import { MoonGlareNote } from '../components/moon/MoonGlare';
 import { PassNumbers } from '../components/guide/PassNumbers';
 import { useAppStore } from '../../state';
+import { ChartFrameSlots } from '../components/guide/skychart/ChartFrame';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { PEAK_FACING_OPTIONS } from '../components/guide/skychart/SkyChart.types';
+import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
+import { useSkyScene } from '../components/guide/skychart/useSkyScene';
+import { StarsToggle } from '../components/live/StarsToggle';
+import { useStarSource } from '../components/live/useStarSource';
 import { SkyScreen } from '../components/screen/SkyScreen';
 import styles from './PassDetail.module.css';
 
@@ -101,6 +106,17 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   const headingRef = useRef<HTMLHeadingElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const now = useNow(TICK_MS);
+  /*
+   * R123 (FR-SKY-3, FR-SKY-8, FR-STAR-13; D-791): the stars under the arc at this page's own instant, thinned by
+   * the twilight. The Sun and the Moon are evaluated here once, for the scene's step, and handed to the chart and
+   * the screen, which would otherwise each evaluate them again (D-149). `[ stars ]` is on the view row on wide and
+   * at the end of the readout row on compact, where the view row has no room (FR-COMP-4, D-814).
+   */
+  const bodies = useSkyBodies({ observer, now });
+  const starsLayer = useAppStore((s) => s.starsLayer);
+  const starSource = useStarSource(starsLayer);
+  const scene = useSkyScene({ observer, now, starsLayer, source: starSource, sunAltDeg: bodies.sun?.altDeg });
+  const slots = useMemo(() => (compact ? { readoutAction: <StarsToggle inline /> } : { viewAction: <StarsToggle /> }), [compact]);
   /*
    * R66 (FR-FSC-1, FR-FSC-9; V13-9, D-351, D-354): the sky screen over this
    * sheet. The window is a view this page offers again (FR-FSC-6) and what
@@ -187,14 +203,19 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
       </p>
       <Countdown pass={pass} now={now} timeZone={timeZone} />
       {/* R121 (FR-SKY-7, D-790): the window here faces the pass's peak and its facing picker offers `peak` first. */}
-      <SkyChart
-        passes={[pass]}
-        observer={observer}
-        highlightedPassId={pass.id}
-        now={now}
-        facingOptions={PEAK_FACING_OPTIONS}
-        legendLead={(row) => <PassNumbers pass={pass} timeZone={timeZone} legendKey={row.key} colorToken={row.colorToken} />}
-      />
+      <ChartFrameSlots.Provider value={slots}>
+        <SkyChart
+          passes={[pass]}
+          observer={observer}
+          highlightedPassId={pass.id}
+          now={now}
+          sun={bodies.sun}
+          moon={bodies.moon}
+          scene={scene}
+          facingOptions={PEAK_FACING_OPTIONS}
+          legendLead={(row) => <PassNumbers pass={pass} timeZone={timeZone} legendKey={row.key} colorToken={row.colorToken} />}
+        />
+      </ChartFrameSlots.Provider>
       <MoonAtPeak moon={pass.moonAtPeak} variant="guide" />
       <MoonGlareNote moon={pass.moonAtPeak} glare={pass.moonGlare} />
       <ShareButton url={shareUrl(window.location.href, passLinkFor(observer, pass))} title={t.share.title({ name: pass.name })} text={t.guide.sentence(guideParams(pass, timeZone, locale))} />
@@ -202,7 +223,7 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   );
 
   // The screen is the same layer on both shells; the sheet is what has a scroll to hold still.
-  const screen = screenOpen && createPortal(<SkyScreen passes={[pass]} observer={observer} now={now} highlightedPassId={pass.id} onClose={closeScreen} />, document.body);
+  const screen = screenOpen && createPortal(<SkyScreen passes={[pass]} observer={observer} now={now} sun={bodies.sun} moon={bodies.moon} scene={scene} highlightedPassId={pass.id} onClose={closeScreen} />, document.body);
 
   if (!compact) {
     return (
