@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAppStore } from '../../../../../state';
 import { useT } from '../../../../../i18n/useT';
 import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
@@ -10,7 +10,9 @@ import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible 
 import { ChartFrame } from '../ChartFrame';
 import { sceneFor, starsFor } from '../layers';
 import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps, type SkyChartView } from '../SkyChart.types';
+import { inkMeasured, inkOffset, inkOffsetsReady } from '../window/inkOffsets';
 import type { StarField } from '../window/scene';
+import { collide, planetRungFor, rungFor, type ColourToken, type Rung, type SizeToken } from '../window/starGlyphs';
 import styles from './SkyPolar.module.css';
 
 /**
@@ -263,18 +265,84 @@ function HiddenPoint({ marker, orientation, legendKey }: { marker: HiddenMarker;
   );
 }
 
+const SIZE_CLASS: Readonly<Record<SizeToken, string | undefined>> = { 'chart-text-18': styles.size18, 'chart-text-15': styles.size15, 'chart-text-12': styles.size12 };
+const TONE_CLASS: Readonly<Record<ColourToken, string | undefined>> = { 'chart-star': styles.star, 'chart-star-dim': styles.starDim, 'chart-star-faint': styles.starFaint, 'chart-planet': styles.planet };
+
+/** One body the chart draws: its anchor, its rung and where it lands, in user units. */
+interface PlacedGlyph {
+  key: string;
+  star: number | undefined;
+  planet: string | undefined;
+  mag: number;
+  rung: Rung;
+  p: Xy;
+}
+
 /**
- * R119 (FR-SKY-1, D-803): the scene's stars as the table leaves them to this
- * chart — one empty group per star above the horizon and per planet, at its
- * projected place, under the grid where the glyphs go. Nothing is drawn: R122
- * puts V24-9's glyph in each; the contract test reads the anchors now.
+ * The scene's stars and planets as the chart draws them: each placed body
+ * (`starsFor`'s rule: at the cap, above the horizon) on `starGlyphs`'s ladder,
+ * brightest first, then the collision rule, so of a close pair the brighter
+ * alone is drawn. The sizes are the sheet's chart text tokens set on SVG text,
+ * so they are user units of the 250-unit viewBox and scale with the box as the
+ * compass labels' do; the collision distance is in the same units.
  */
-function StarAnchors({ stars, orientation }: { stars: StarField; orientation: ChartOrientation }) {
+function placeGlyphs(stars: StarField, orientation: ChartOrientation): PlacedGlyph[] {
+  const planetMag = new Map<string, number>(stars.positions.planets.map((planet) => [planet.body, planet.mag]));
+  const placed = starsFor('polar', stars).map(({ key, azDeg, altDeg, star, planet }): PlacedGlyph => {
+    const mag = star !== undefined ? (stars.catalog.mag[star] ?? Number.NaN) : (planetMag.get(planet ?? '') ?? Number.NaN);
+    return { key, star, planet, mag, rung: planet === undefined ? rungFor(mag) : planetRungFor(mag), p: project({ azDeg, elDeg: altDeg }, orientation) };
+  });
+  // Stable, so the catalogue's own order breaks a tie; a NaN magnitude sorts last.
+  placed.sort((a, b) => (Number.isNaN(a.mag) ? Infinity : a.mag) - (Number.isNaN(b.mag) ? Infinity : b.mag));
+  const keep = collide(placed.map((g) => g.p));
+  return placed.filter((_, i) => keep[i]);
+}
+
+/**
+ * R122 (FR-SKY-4, D-792): the scene's stars to `POLAR_STAR_MAG` and the
+ * planets as FR-STAR-6's characters, under the grid and the arcs — `*`, `+`
+ * and `.` by magnitude, `@` for a planet, each centred on its projected point
+ * (`text-anchor: middle`, `dominant-baseline: central`, the ink offset as
+ * `dx`/`dy`). The group follows the looking-up / map toggle because every
+ * point goes through the chart's `project`. Each text keeps R119's anchor,
+ * `data-star` or `data-planet` with the `translate`, which the contract test
+ * reads. No figures and no names: the table leaves them to the window.
+ */
+function StarGlyphs({ stars, orientation }: { stars: StarField; orientation: ChartOrientation }) {
+  // D-752: the ink offsets are measured once, after the fonts are ready; a chart drawn before that redraws once with them.
+  const [, setMeasured] = useState(inkMeasured);
+  useEffect(() => {
+    let live = true;
+    if (!inkMeasured())
+      void inkOffsetsReady().then((measured) => {
+        if (live && measured) setMeasured(true);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+  const glyphs = useMemo(() => placeGlyphs(stars, orientation), [stars, orientation]);
   return (
-    <g data-layer="stars">
-      {starsFor('polar', stars).map(({ key, azDeg, altDeg, star, planet }) => (
-        <g key={key} {...(star === undefined ? {} : { 'data-star': star })} {...(planet === undefined ? {} : { 'data-planet': planet })} transform={at(project({ azDeg, elDeg: altDeg }, orientation))} />
-      ))}
+    <g className={styles.stars} data-layer="stars">
+      {glyphs.map(({ key, star, planet, rung, p }) => {
+        const { dx, dy } = inkOffset(rung.glyph, rung.sizeToken);
+        return (
+          <text
+            key={key}
+            className={[styles.glyph, SIZE_CLASS[rung.sizeToken], TONE_CLASS[rung.colourToken]].filter(Boolean).join(' ')}
+            {...(star === undefined ? {} : { 'data-star': star })}
+            {...(planet === undefined ? {} : { 'data-planet': planet })}
+            data-glyph={rung.glyph}
+            data-size={rung.sizeToken}
+            data-tone={rung.colourToken}
+            transform={at(p)}
+            dx={dx}
+            dy={dy}
+          >
+            {rung.glyph}
+          </text>
+        );
+      })}
     </g>
   );
 }
@@ -330,8 +398,8 @@ export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, mo
       <svg className={styles.svg} viewBox={VIEWBOX} aria-hidden="true" data-drawing="polar" focusable="false">
         {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}
         {sun && sunVisible(sun) && <SunGlow sun={sun} orientation={orientation} />}
-        {/* FR-SKY-1, FR-SKY-3: the stars under the arcs, in SVG order — the anchors now, the glyphs with R122. */}
-        {stars && <StarAnchors stars={stars} orientation={orientation} />}
+        {/* FR-SKY-1, FR-SKY-4: the stars and the planets under the grid and the arcs, in SVG order. */}
+        {stars && <StarGlyphs stars={stars} orientation={orientation} />}
         <circle className={styles.horizon} r={HORIZON_R} />
         <circle className={styles.ring} r={fmt(ring(30))} data-ring="30" />
         <circle className={styles.ring} r={fmt(ring(60))} data-ring="60" />
