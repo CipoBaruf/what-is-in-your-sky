@@ -355,7 +355,13 @@ async function openLive(page: Page): Promise<void> {
   await expect(page.locator(`article[data-pass-id="${GLARE_PASS}"]`)).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
   await page.getByTestId('live-link').click();
-  await expect(page.getByTestId('sky-chart')).toBeAttached();
+  // The paused clock holds React's lazy reveal (R32): the live chunk lands only as the clock runs.
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      return page.getByTestId('sky-chart').count();
+    }, { timeout: 30_000 })
+    .toBeGreaterThan(0);
   await page.clock.runFor(1000);
 }
 
