@@ -77,6 +77,7 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     onPress: { type: '() => void', text: 'What a tap means; a group passes nothing for the option already pressed.' },
     value: { type: 'string', text: 'The option’s value as `data-option`, so a caller can find it in its group again.' },
     alone: { type: 'boolean', text: 'An option standing alone has no trailing cell; in a group that cell separates it from the next.' },
+    inline: { type: 'boolean', text: 'The 48 px box as padding and a matching negative margin, so the option’s line is one text row (the compact chart’s view control).' },
     className: PLACEMENT,
   }),
   entry<ToggleGroupProps<string>>('ToggleGroup', 'A row of options under one name where exactly one is chosen: a view, a sort, a speed, a language, a theme.', {
@@ -88,6 +89,7 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     role: { type: "'group' | 'radiogroup'", text: 'Pressed buttons (the default), or radios with one tab stop where the arrow keys choose.' },
     mark: { type: "'check' | 'bracket' | 'tight'", text: 'How the chosen option is told from the others: `[x]`, bracketed, or bracketed without spaces.' },
     gap: { type: "'cell' | 'none'", text: 'A cell between options, or none where each option’s trailing cell is the whole gap (the wide speeds).' },
+    inline: { type: 'boolean', text: 'Each option’s line is one text row with its 48 px box as padding and a matching negative margin, so a group that wraps to two lines stands inside one tap row.' },
     className: PLACEMENT,
   }),
   // R105 (FR-DS-4 items 4–6; D-718..D-720): the surfaces.
