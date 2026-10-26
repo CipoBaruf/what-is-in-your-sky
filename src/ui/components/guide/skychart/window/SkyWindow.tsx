@@ -21,11 +21,11 @@ import { useSkyScreen } from '../../../screen/useSkyScreen';
 import { ChartFrame } from '../ChartFrame';
 import { sceneFor } from '../layers';
 import { arcOf, FACING_OPTIONS, type ChartPass, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
-import { createHandCamera, facePeak, initialHand, SENSOR_CAMERA, type SkyCamera } from './camera';
+import { createHandCamera, facePeak, initialHand, SENSOR_CAMERA, ZOOM_KEY_FACTOR, ZOOM_WHEEL_RATE, type SkyCamera } from './camera';
 import { CompassGutter } from './CompassGutter';
 import { FacingPicker, type FacingPickerProps } from './FacingPicker';
 import { gutterMarks, passBearing, turnTo, type GutterMark, type GutterPass } from './gutter';
-import { COMPASS, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type SkyPoint, type View } from './projection';
+import { clampWindowFov, COMPASS, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type SkyPoint, type View } from './projection';
 import { nearestQuarter, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
 import { hitTest, HIT_RADIUS_PX, type Point } from './starGlyphs';
@@ -120,6 +120,20 @@ import { useViewRotation } from './useViewRotation';
  * subscribers in the commit that draws it, and `scene.stars` mounts the
  * `StarField` group, the one layer written outside render; without a scene
  * nothing is mounted and the tree is `v2.3.0`'s.
+ *
+ * R125 (FR-SKY-14; FR-WIN-1, FR-GUT-3, FR-STAR-4 as amended; D-798, D-820,
+ * D-821): the zoom. The field across the box's shorter side is `fovDeg` —
+ * the hand camera's under the hand, this window's own state under the sensor,
+ * `WINDOW_FOV` at every mount and never saved — and everything `WINDOW_FOV`
+ * fed reads it: the projection's `view`, the placeholder, the ground state,
+ * the gutter's bracket. One pointer handler on the box tracks the active
+ * pointers: one is FR-STAR-4's drag (under the hand), two are the pinch, which
+ * scales the field by the inverse of the change in their distance, folded
+ * into one move per animation frame like the drag; a native `wheel` listener
+ * (`passive: false`, since React's own is passive) takes ctrl + wheel at
+ * `ZOOM_WHEEL_RATE` and lets a plain wheel scroll the page; `+`/`=`/`-` and
+ * `0` are the box's keys beside the arrows. Glyphs, line weights and hit
+ * distances are px and stay so: zooming in spreads the same marks apart.
  */
 
 /** The window's props: `SkyChartProps`, which every view implements; `camera` is on it for the window alone. */
@@ -416,25 +430,33 @@ export function SkyWindow(props: SkyWindowProps) {
 
   const handCamera = camera.source === 'hand' ? camera : null;
   const byHand = handCamera !== null;
+  /*
+   * FR-SKY-14 (D-798, D-820): the field under the sensor — the screen's — is this window's own state, `WINDOW_FOV`
+   * at every mount (every opening of the screen opens at the default) and written only by the pinch below; under
+   * the hand the field is the camera's and this is not read. Neither reaches the prefs or the hash.
+   */
+  const [sensorFov, setSensorFov] = useState(WINDOW_FOV);
   // Before the first reading: upright toward the explained pass's peak (or the caller's facing), 20° up or as high as the peak needs.
   // The placeholder's altitude reads the box's shape and not its angle (`verticalHalfFieldDeg`), so it is known before the hook that gives the angle.
   // Under the hand there is no first reading to wait for, so nothing is computed and the hook never reads it.
   const placeholder = useMemo(() => {
     if (byHand) return NO_PLACEHOLDER;
     // FR-SKY-7 (R121, D-790): opened from a pass detail — an explained pass and no facing of the caller's — the
-    // screen looks at the peak as `facePeak` says until the sensor's first reading. The live page's screen, which
-    // names its facing, keeps D-241's placeholder.
+    // screen looks at the peak as `facePeak` says until the sensor's first reading, at the field shown (R125). The
+    // live page's screen, which names its facing, keeps D-241's placeholder.
     if (explained !== null && initialFacingAzDeg === undefined) {
-      const aim = facePeak(explained.peak, WINDOW_FOV);
+      const aim = facePeak(explained.peak, sensorFov);
       return uprightRotation(aim.azDeg, aim.altDeg);
     }
     const highlighted = explained ?? passes[0];
-    const placeholderAlt = placeholderAltDeg(highlighted?.peak.elDeg, { fovDeg: WINDOW_FOV, width: size.width, height: size.height, screenAngleDeg: 0 });
+    const placeholderAlt = placeholderAltDeg(highlighted?.peak.elDeg, { fovDeg: sensorFov, width: size.width, height: size.height, screenAngleDeg: 0 });
     return uprightRotation(initialFacingAzDeg ?? highlighted?.peak.azDeg ?? 0, placeholderAlt);
-  }, [byHand, passes, explained, initialFacingAzDeg, size.width, size.height]);
+  }, [byHand, passes, explained, initialFacingAzDeg, size.width, size.height, sensorFov]);
 
   // R113 (D-750, D-751): the one rotation, from the sensor or the hand, and the channel the star field reads it by.
-  const { rotation: m, live, subscribe, orientation } = useViewRotation(camera, declinationDeg, placeholder);
+  const { rotation: m, hand: handState, live, subscribe, orientation } = useViewRotation(camera, declinationDeg, placeholder);
+  // FR-SKY-14: the field this render draws — the camera's under the hand, the window's own under the sensor.
+  const fovDeg = handState?.fovDeg ?? sensorFov;
   // The hand's view is laid out upright on whatever screen it is on: the sensor's screen angle (read at mount,
   // and not followed while the sensor is off) is no part of it.
   const screenAngleDeg = byHand ? 0 : orientation.screenAngleDeg;
@@ -458,22 +480,65 @@ export function SkyWindow(props: SkyWindowProps) {
   const frameRef = useRef(0);
   const [dragging, setDragging] = useState(false);
   useEffect(() => () => cancelAnimationFrame(frameRef.current), []);
+  /*
+   * FR-SKY-14 (D-798, D-821): the zoom's pointers. Every active pointer on the box is tracked; the first is the
+   * drag's (under the hand), the second makes the two a pinch — the drag ends there, its pending move dropped —
+   * and a third is nothing. The pinch's factor is the product of the change in the two pointers' distance since
+   * the last frame, inverted (fingers apart narrow the field), and ctrl + wheel and the keys multiply into the
+   * same pending factor, so one frame applies one zoom whatever drove it. After a pinch the finger left on the
+   * box does not take up the drag: a jump to where it now is would be the first thing the reader saw.
+   */
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchRef = useRef<{ a: number; b: number; distance: number } | null>(null);
+  const pendingZoomRef = useRef(1);
+  const zoomBy = useCallback(
+    (factor: number) => {
+      if (!(factor > 0) || !Number.isFinite(factor) || factor === 1) return;
+      if (handCamera) handCamera.zoomBy(factor);
+      else setSensorFov((was) => clampWindowFov(was * factor));
+    },
+    [handCamera],
+  );
   const flush = useCallback(() => {
     frameRef.current = 0;
     const pending = pendingRef.current;
     pendingRef.current = null;
     if (pending) handCamera?.dragTo(pending.dx, pending.dy);
-  }, [handCamera]);
+    const zoom = pendingZoomRef.current;
+    pendingZoomRef.current = 1;
+    zoomBy(zoom);
+  }, [handCamera, zoomBy]);
+  const scheduleZoom = (factor: number): void => {
+    pendingZoomRef.current *= factor;
+    if (!frameRef.current) frameRef.current = requestAnimationFrame(flush);
+  };
+  const forget = (pointerId: number): void => {
+    pointersRef.current.delete(pointerId);
+    const pinch = pinchRef.current;
+    if (pinch && (pinch.a === pointerId || pinch.b === pointerId)) pinchRef.current = null;
+  };
   const onPointerDown = (event: PointerEvent<HTMLDivElement>): void => {
     if (event.button !== 0 && event.pointerType === 'mouse') return;
-    // One finger drags: a second pointer while the first is down is ignored, and so is its lift.
-    if (dragRef.current) return;
-    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, x0: event.clientX, y0: event.clientY, travel: 0 };
+    const pointers = pointersRef.current;
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
-      // jsdom and old browsers: the drag still works while the pointer stays over the box.
+      // jsdom and old browsers: the drag and the pinch still work while the pointers stay over the box.
     }
+    if (pointers.size === 2 && pinchRef.current === null) {
+      const [first, second] = [...pointers.entries()] as [[number, { x: number; y: number }], [number, { x: number; y: number }]];
+      pinchRef.current = { a: first[0], b: second[0], distance: Math.hypot(first[1].x - second[1].x, first[1].y - second[1].y) };
+      if (dragRef.current) {
+        dragRef.current = null;
+        pendingRef.current = null;
+        setDragging(false);
+      }
+      return;
+    }
+    // A third finger, a finger after a pinch, or any finger on the sensor's box: no drag.
+    if (pointers.size !== 1 || pinchRef.current !== null || !byHand || dragRef.current) return;
+    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, x0: event.clientX, y0: event.clientY, travel: 0 };
     setDragging(true);
   };
   /*
@@ -494,6 +559,24 @@ export function SkyWindow(props: SkyWindowProps) {
   // Where a tap can name, the sky holds still until the press travels past the tap's slop, so the marks a tap is tested against are the ones under the press.
   const tapSlop = scene?.stars && onNameStar ? HIT_RADIUS_PX : 0;
   const onPointerMove = (event: PointerEvent<HTMLDivElement>): void => {
+    const tracked = pointersRef.current.get(event.pointerId);
+    if (tracked) {
+      tracked.x = event.clientX;
+      tracked.y = event.clientY;
+    }
+    const pinch = pinchRef.current;
+    if (pinch !== null) {
+      if (event.pointerId !== pinch.a && event.pointerId !== pinch.b) return;
+      const a = pointersRef.current.get(pinch.a);
+      const b = pointersRef.current.get(pinch.b);
+      if (!a || !b) return;
+      const distance = Math.hypot(a.x - b.x, a.y - b.y);
+      if (distance > 0 && pinch.distance > 0 && distance !== pinch.distance) {
+        scheduleZoom(pinch.distance / distance);
+        pinch.distance = distance;
+      }
+      return;
+    }
     const active = dragRef.current;
     if (!active && event.pointerType === 'mouse' && scene?.stars) {
       const over = hitAt(event);
@@ -512,13 +595,14 @@ export function SkyWindow(props: SkyWindowProps) {
     if (!frameRef.current) frameRef.current = requestAnimationFrame(flush);
   };
   const endDrag = (event: PointerEvent<HTMLDivElement>): void => {
-    if (dragRef.current?.pointerId !== event.pointerId) return;
-    dragRef.current = null;
+    forget(event.pointerId);
     try {
       event.currentTarget.releasePointerCapture(event.pointerId);
     } catch {
       // see setPointerCapture
     }
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
     setDragging(false);
   };
   const onPointerUp = (event: PointerEvent<HTMLDivElement>): void => {
@@ -536,14 +620,38 @@ export function SkyWindow(props: SkyWindowProps) {
   const onPointerLeave = (): void => {
     if (hovered !== null) setHovered(null);
   };
-  // Capture lost without an up or a cancel reaching the box (the browser released it, the box moved): the drag is over.
+  // Capture lost without an up or a cancel reaching the box (the browser released it, the box moved): the drag, or the pinch, is over.
   const onLostPointerCapture = (event: PointerEvent<HTMLDivElement>): void => {
+    forget(event.pointerId);
     if (dragRef.current?.pointerId !== event.pointerId) return;
     dragRef.current = null;
     setDragging(false);
   };
+  /*
+   * FR-SKY-14 (D-798): ctrl + wheel — what a trackpad pinch sends, and ctrl + wheel on a mouse — scales the field
+   * by `exp(deltaY × ZOOM_WHEEL_RATE)`. A native listener with `passive: false`, because React registers `wheel`
+   * passive and a passive listener cannot keep the browser from zooming the page; `preventDefault` only with
+   * `ctrlKey`, so a plain wheel scrolls the page as it did. On every window, under the sensor too.
+   */
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!box) return;
+    const onWheel = (event: WheelEvent): void => {
+      if (!event.ctrlKey) return;
+      event.preventDefault();
+      if (event.deltaY === 0) return;
+      pendingZoomRef.current *= Math.exp(event.deltaY * ZOOM_WHEEL_RATE);
+      if (!frameRef.current) frameRef.current = requestAnimationFrame(flush);
+    };
+    box.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      box.removeEventListener('wheel', onWheel);
+    };
+  }, [flush]);
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     if (!handCamera) return;
+    // FR-SKY-14: box keys, not page shortcuts — and with a modifier the press is the browser's (ctrl + `+` zooms the page).
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
     const moves: Record<string, () => void> = {
       ArrowLeft: () => {
         handCamera.stepYaw(-1);
@@ -556,6 +664,19 @@ export function SkyWindow(props: SkyWindowProps) {
       },
       ArrowDown: () => {
         handCamera.stepPitch(-1);
+      },
+      // FR-SKY-14 (D-798): `+` (or `=`, its unshifted key) narrows the field by `ZOOM_KEY_FACTOR`, `-` widens it, `0` restores `WINDOW_FOV`.
+      '+': () => {
+        handCamera.zoomBy(1 / ZOOM_KEY_FACTOR);
+      },
+      '=': () => {
+        handCamera.zoomBy(1 / ZOOM_KEY_FACTOR);
+      },
+      '-': () => {
+        handCamera.zoomBy(ZOOM_KEY_FACTOR);
+      },
+      '0': () => {
+        handCamera.resetZoom();
       },
     };
     const move = moves[event.key];
@@ -603,9 +724,11 @@ export function SkyWindow(props: SkyWindowProps) {
     if (onScreen) report(quarter);
   }, [onScreen, quarter, report]);
 
+  // FR-SKY-14: the field is the current one, so everything drawn from `view` — the scale, the drawable limit, the
+  // ground thresholds, the bracket — follows the zoom.
   const view: View = useMemo(
-    () => ({ fovDeg: WINDOW_FOV, width: size.width, height: size.height, screenAngleDeg: onScreen ? quarter : screenAngleDeg }),
-    [size, onScreen, quarter, screenAngleDeg],
+    () => ({ fovDeg, width: size.width, height: size.height, screenAngleDeg: onScreen ? quarter : screenAngleDeg }),
+    [fovDeg, size, onScreen, quarter, screenAngleDeg],
   );
   const limitDeg = drawableDeg(view);
 
@@ -684,9 +807,20 @@ export function SkyWindow(props: SkyWindowProps) {
   // has no declination to name, so its readout is the first line alone.
   // R116 (FR-STAR-7): under the hand the readout's second line is the named object's, "Canopus · mag −0.7 · 28° up · S".
   const namedLine = byHand && scene?.stars && namedStar !== null ? namedReadout(scene.stars, namedStar, sp, locale) : null;
+  /*
+   * FR-SKY-14 (D-798, D-822): while the field is not `WINDOW_FOV` the first line ends with ` · field 30°` (rounded
+   * to 5°). The word is R123's string (`window.field`, the live lane, in this task's wave), read through the
+   * catalog's record so this compiles either side of it — as `screen` was read either side of R62 — and until it
+   * lands no suffix is drawn; `data-fov` on the root carries the field in whole degrees for the tests either way.
+   */
+  const fieldWord = (t.window as Record<string, unknown>)['field'];
+  const fieldSuffix = fovDeg !== WINDOW_FOV && typeof fieldWord === 'string' ? ` · ${fieldWord} ${degrees(Math.round(fovDeg / 5) * 5)}` : '';
   const status = live ? (
     <p className={styles.readout} data-testid="window-readout" {...(byHand ? { id: readoutId } : {})}>
-      <span>{t.window.readout({ point: compassPoint(look.azDeg), azimuth: degrees(quantise(look.azDeg)), altitude: degrees(look.altDeg) })}</span>
+      <span>
+        {t.window.readout({ point: compassPoint(look.azDeg), azimuth: degrees(quantise(look.azDeg)), altitude: degrees(look.altDeg) })}
+        {fieldSuffix}
+      </span>
       {namedLine !== null && (
         <>
           <br />
@@ -731,6 +865,7 @@ export function SkyWindow(props: SkyWindowProps) {
       {...(inBox ? { 'data-in-box': 'true' } : {})}
       data-look-az={quantise(look.azDeg)}
       data-look-alt={Math.round(look.altDeg)}
+      data-fov={Math.round(fovDeg)}
     >
       <ChartFrame
         fill={fill}
@@ -800,6 +935,13 @@ export function SkyWindow(props: SkyWindowProps) {
         <div
           className={byHand ? [styles.box, styles.hand].join(' ') : styles.box}
           ref={boxRef}
+          // FR-SKY-14: the pointer handlers are on every box, since the pinch is the sensor's too; the drag inside them is the hand's.
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerLeave={onPointerLeave}
+          onPointerCancel={endDrag}
+          onLostPointerCapture={onLostPointerCapture}
           {...(byHand
             ? {
                 // FR-STAR-4: focusable for the keys, described by its own readout; the page names the group (R115).
@@ -807,12 +949,6 @@ export function SkyWindow(props: SkyWindowProps) {
                 'aria-describedby': readoutId,
                 'data-dragging': dragging,
                 onKeyDown,
-                onPointerDown,
-                onPointerMove,
-                onPointerUp,
-                onPointerLeave,
-                onPointerCancel: endDrag,
-                onLostPointerCapture,
               }
             : {})}
         >

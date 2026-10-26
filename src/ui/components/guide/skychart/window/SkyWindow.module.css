@@ -8,11 +8,14 @@
   display: contents;
 }
 
-/* The measured box: the drawing fills it, and the gate sits over it. */
+/* The measured box: the drawing fills it, and the gate sits over it. R125 (FR-SKY-14): the pinch is the
+   box's on every window, the sensor's too, so the browser's own pinch is off over the whole box — the
+   notes over the drawing included, which the SVG's `touch-action` did not cover. */
 .box {
   position: relative;
   width: 100%;
   height: 100%;
+  touch-action: none;
 }
 
 .svg {

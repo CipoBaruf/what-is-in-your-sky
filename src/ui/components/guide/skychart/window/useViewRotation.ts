@@ -33,6 +33,8 @@ export type RotationListener = (rotation: Mat3) => void;
 export interface ViewRotation {
   /** The rotation this render draws: the source's, or `fallback` while the sensor has none. */
   rotation: Mat3;
+  /** R125 (FR-SKY-14): the hand's state this render reads — its `fovDeg` is the field — or `null` under the sensor. */
+  hand: HandState | null;
   /** Whether the source itself gives `rotation` now — the hand drives, or the sensor is `on` (a reading with a north). */
   live: boolean;
   /** One call per rotation the window draws, in the commit that draws it; the current one at once. Returns the unsubscribe. */
@@ -78,5 +80,5 @@ export function useViewRotation(camera: SkyCamera, declinationDeg: number, fallb
     };
   }, []);
 
-  return { rotation, live: hand !== null || orientation.state === 'on', subscribe, orientation };
+  return { rotation, hand, live: hand !== null || orientation.state === 'on', subscribe, orientation };
 }
