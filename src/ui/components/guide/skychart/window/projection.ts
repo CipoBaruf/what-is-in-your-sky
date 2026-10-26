@@ -30,8 +30,21 @@ export type Vec3 = readonly [number, number, number];
 /** Row-major 3×3, `m[row][col]`, with earth = m · device; column c is the earth-frame image of device axis c. */
 export type Mat3 = readonly [Vec3, Vec3, Vec3];
 
-/** FR-WIN-1: degrees across the shorter side of the view (FR-WIN-7's pick). */
+/** FR-WIN-1: degrees across the shorter side of the view (FR-WIN-7's pick) — the default field, since R125's zoom (FR-SKY-14). */
 export const WINDOW_FOV = 60;
+/**
+ * FR-SKY-14 (R125, D-798): the zoom's range. 20° is about the height of Orion,
+ * so one figure fills the box; 90° on an 844 × 390 screen spans about 167°
+ * across, nearly the horizon from side to side, before the stereographic edge
+ * stretches past a third (D-204).
+ */
+export const WINDOW_FOV_MIN_DEG = 20;
+export const WINDOW_FOV_MAX_DEG = 90;
+
+/** FR-SKY-14: the field held inside the zoom's range. */
+export function clampWindowFov(fovDeg: number): number {
+  return Math.min(WINDOW_FOV_MAX_DEG, Math.max(WINDOW_FOV_MIN_DEG, fovDeg));
+}
 /** FR-WIN-3: the weight the previous frame's axes keep per frame, 0 none, 0.98 the most (FR-WIN-7's pick). */
 export const WINDOW_SMOOTHING = 0.6;
 
@@ -83,7 +96,7 @@ export function lookDirection(m: Mat3): { azDeg: number; altDeg: number } {
 }
 
 export interface View {
-  /** Degrees across the shorter side. */
+  /** Degrees across the shorter side: `WINDOW_FOV` until the reader zooms, then the camera's (FR-SKY-14). */
   fovDeg: number;
   width: number;
   height: number;

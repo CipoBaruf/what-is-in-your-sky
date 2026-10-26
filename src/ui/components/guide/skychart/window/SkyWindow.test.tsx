@@ -917,7 +917,7 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     expectLook(w, 180, 35);
     frame();
     expect(moves).toHaveBeenCalledTimes(1);
-    expect(camera.get()).toEqual({ azDeg: 170, altDeg: 40 });
+    expect(camera.get()).toEqual({ azDeg: 170, altDeg: 40, fovDeg: projection.WINDOW_FOV });
     expectLook(w, 170, 40);
     // Another pointer's move is not this drag's.
     fireEvent.pointerMove(box, { pointerId: 8, clientX: 0, clientY: 0 });
@@ -929,7 +929,7 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     fireEvent.pointerMove(box, { pointerId: 7, clientX: 200, clientY: 200 });
     frame();
     expect(moves).toHaveBeenCalledTimes(1);
-    expect(camera.get()).toEqual({ azDeg: 170, altDeg: 40 });
+    expect(camera.get()).toEqual({ azDeg: 170, altDeg: 40, fovDeg: projection.WINDOW_FOV });
     // The readout follows the rotation `uprightRotation` gives for the hand.
     expect(screen.getByTestId('window-readout')).toHaveTextContent('Looking S (170°) · up 40°');
   });
@@ -952,13 +952,13 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     // The first finger still drags, from where it went down.
     fireEvent.pointerMove(box, { pointerId: 1, clientX: 140, clientY: 100 });
     frame();
-    expect(camera.get()).toEqual({ azDeg: 170, altDeg: 35 });
+    expect(camera.get()).toEqual({ azDeg: 170, altDeg: 35, fovDeg: projection.WINDOW_FOV });
     // Capture lost with no up or cancel: the drag is over, and a later move of that pointer is nothing.
     fireEvent.lostPointerCapture(box, { pointerId: 1 });
     expect(box).toHaveAttribute('data-dragging', 'false');
     fireEvent.pointerMove(box, { pointerId: 1, clientX: 200, clientY: 100 });
     frame();
-    expect(camera.get()).toEqual({ azDeg: 170, altDeg: 35 });
+    expect(camera.get()).toEqual({ azDeg: 170, altDeg: 35, fovDeg: projection.WINDOW_FOV });
   });
 
   it('the arrow keys step the camera by 15° and 5° while the box has focus, inside the page’s tilt range', () => {
@@ -967,27 +967,27 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     const w = wrapper(container);
     const box = container.querySelector('[tabindex="0"]') as HTMLElement;
     fireEvent.keyDown(box, { key: 'ArrowLeft' });
-    expect(camera.get()).toEqual({ azDeg: 165, altDeg: 35 });
+    expect(camera.get()).toEqual({ azDeg: 165, altDeg: 35, fovDeg: projection.WINDOW_FOV });
     expectLook(w, 165, 35);
     fireEvent.keyDown(box, { key: 'ArrowRight' });
     fireEvent.keyDown(box, { key: 'ArrowRight' });
-    expect(camera.get()).toEqual({ azDeg: 195, altDeg: 35 });
+    expect(camera.get()).toEqual({ azDeg: 195, altDeg: 35, fovDeg: projection.WINDOW_FOV });
     fireEvent.keyDown(box, { key: 'ArrowUp' });
-    expect(camera.get()).toEqual({ azDeg: 195, altDeg: 40 });
+    expect(camera.get()).toEqual({ azDeg: 195, altDeg: 40, fovDeg: projection.WINDOW_FOV });
     expectLook(w, 195, 40);
     for (let i = 0; i < 12; i += 1) fireEvent.keyDown(box, { key: 'ArrowDown' });
     // 40 − 60 would be −20: the clamp holds at −10, and the field is pointed at the ground with sky still in it (FR-FOL-5).
-    expect(camera.get()).toEqual({ azDeg: 195, altDeg: -10 });
+    expect(camera.get()).toEqual({ azDeg: 195, altDeg: -10, fovDeg: projection.WINDOW_FOV });
     expectLook(w, 195, -10);
     expect(w).toHaveAttribute('data-ground', 'ground');
     expect(screen.getByTestId('window-ground-note')).toHaveTextContent(en.window.ground);
     for (let i = 0; i < 25; i += 1) fireEvent.keyDown(box, { key: 'ArrowUp' });
-    expect(camera.get()).toEqual({ azDeg: 195, altDeg: 90 });
+    expect(camera.get()).toEqual({ azDeg: 195, altDeg: 90, fovDeg: projection.WINDOW_FOV });
     expect(w).toHaveAttribute('data-ground', 'sky');
     // A key that is not an arrow is left alone.
     const other = fireEvent.keyDown(box, { key: 'a' });
     expect(other).toBe(true);
-    expect(camera.get()).toEqual({ azDeg: 195, altDeg: 90 });
+    expect(camera.get()).toEqual({ azDeg: 195, altDeg: 90, fovDeg: projection.WINDOW_FOV });
   });
 
   it('the page’s picker reaches the window through the same store: `face` and `up` turn the picture', () => {
