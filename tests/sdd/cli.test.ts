@@ -48,3 +48,13 @@ describe('--fallback (§16.4 step 10, D-197)', () => {
     expect(helpText('origin/main')).toContain('--no-fallback');
   });
 });
+
+describe('--wait (§16.4 step 10, D-835)', () => {
+  it('waits out the limit unless --no-wait, on a wave and on one task', () => {
+    expect(parseArgs(['--wave']).waitForReset).toBe(true);
+    expect(parseArgs(['--task', 'R22']).waitForReset).toBe(true);
+    expect(parseArgs(['--wave', '--no-wait']).waitForReset).toBe(false);
+    expect(parseArgs(['--no-wait', '--task', 'R22', '--wait']).waitForReset).toBe(true);
+    expect(helpText('origin/main')).toContain('--no-wait');
+  });
+});
