@@ -116,11 +116,12 @@ export function sceneFor(view: SkyView, scene: SkyScene | undefined): SkyScene |
   };
 }
 
-/** One star or planet a capped view places: its key, its direction, and its identity — a catalogue index or a planet's name. */
+/** One star or planet a capped view places: its key, its direction, its magnitude (the catalogue's, or the planet's at the instant) and its identity — a catalogue index or a planet's name. */
 export interface PlacedBody {
   key: string;
   azDeg: number;
   altDeg: number;
+  mag: number;
   star?: number;
   planet?: string;
 }
@@ -138,14 +139,15 @@ export function starsFor(view: SkyView, field: StarField): PlacedBody[] {
   if (layers.stars) {
     for (let i = 0; i < catalog.mag.length; i += 1) {
       const altDeg = positions.altDeg[i];
-      if (!((catalog.mag[i] ?? Number.NaN) <= cap) || altDeg === undefined || !(altDeg >= 0)) continue;
-      placed.push({ key: `star-${String(i)}`, azDeg: positions.azDeg[i] ?? 0, altDeg, star: i });
+      const mag = catalog.mag[i] ?? Number.NaN;
+      if (!(mag <= cap) || altDeg === undefined || !(altDeg >= 0)) continue;
+      placed.push({ key: `star-${String(i)}`, azDeg: positions.azDeg[i] ?? 0, altDeg, mag, star: i });
     }
   }
   if (layers.planets) {
     for (const planet of positions.planets) {
       if (!(planet.altDeg >= 0)) continue;
-      placed.push({ key: `planet-${planet.body}`, azDeg: planet.azDeg, altDeg: planet.altDeg, planet: planet.body });
+      placed.push({ key: `planet-${planet.body}`, azDeg: planet.azDeg, altDeg: planet.altDeg, mag: planet.mag, planet: planet.body });
     }
   }
   return placed;

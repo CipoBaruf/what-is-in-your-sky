@@ -91,6 +91,22 @@ export interface Point {
 }
 
 /**
+ * The collision walk's order, one rule for every view that draws the ladder:
+ * the indices of `mags` brightest first. A tie keeps the given order (the
+ * sort is stable: the catalogue's own order, then the planets'), and a
+ * magnitude that is missing or not a number ranks last, as `rungFor` puts it
+ * on the faintest rung — so the window and the polar chart keep the same body
+ * of a close pair.
+ */
+export function magnitudeOrder(mags: ArrayLike<number>): number[] {
+  const rank = (k: number): number => {
+    const mag = mags[k];
+    return mag === undefined || Number.isNaN(mag) ? Infinity : mag;
+  };
+  return Array.from({ length: mags.length }, (_, k) => k).sort((a, b) => rank(a) - rank(b) || 0);
+}
+
+/**
  * The collision rule. `points` are in draw order, brightest first, `null` for
  * one not drawn; the result says which survive: walking in order, a point
  * within `distancePx` of one already kept is dropped, so of any close pair the
