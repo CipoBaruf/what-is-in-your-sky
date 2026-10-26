@@ -1,16 +1,20 @@
 import { z } from '../zod';
 import catalogJson from './catalog.json';
+import { CONSTELLATION_NAMES, CONSTELLATION_WHOLE_NAMES } from './constellations';
 
 /**
  * FR-STAR-1 (R112, D-748): the star catalogue, read once from the committed
  * build output `catalog.json` (`npm run build:stars`) and handed out as typed
  * arrays in catalogue order — brightest first. Star `i` is `ra[i]`, `dec[i]`,
- * `mag[i]`, `name[i]`, `desig[i]`, `con[i]`; a figure's segments are pairs of
- * those indices.
+ * `mag[i]`, `name[i]`, `nameEs[i]`, `desig[i]`, `con[i]`; a figure's segments
+ * are pairs of those indices.
  *
  * Positions are J2000 degrees with no proper motion; `lib/skyStars.ts` turns
- * them into an observer's sky. The names are data, the same in both languages
- * (FR-STAR-10 as amended); the figures' Latin names are `constellations.ts`.
+ * them into an observer's sky. The names are data in the `stars` chunk, never
+ * strings in the catalog (FR-STAR-10 as amended v2.5, D-832): the Spanish ones
+ * come from `data-src/stars/names-es.tsv` through the build, the figures' Latin
+ * names are `constellations.ts`, and `lib/skyStars.ts`'s `starName`,
+ * `figureName` and `constellationName` are the only readers of either.
  */
 
 /** The file's shape as the build writes it (`scripts/build-stars.ts`, `CatalogOut`). */
@@ -19,9 +23,12 @@ interface CatalogFile {
   dec: number[];
   mag: number[];
   name: string[];
+  nameEs: string[];
   desig: string[];
   con: string[];
   figures: { con: string; part: number; segments: number[][] }[];
+  figuresEs: Record<string, string[]>;
+  wholeEs: Record<string, string>;
 }
 
 /**
@@ -32,8 +39,8 @@ interface CatalogFile {
  */
 const column = z.custom<unknown[]>((v) => Array.isArray(v), 'an array');
 const catalogSchema = z
-  .object({ ra: column, dec: column, mag: column, name: column, desig: column, con: column, figures: column })
-  .refine((c) => [c.dec, c.mag, c.name, c.desig, c.con].every((col) => col.length === c.ra.length), 'every column has one entry per star');
+  .object({ ra: column, dec: column, mag: column, name: column, nameEs: column, desig: column, con: column, figures: column, figuresEs: z.record(z.string(), column), wholeEs: z.record(z.string(), z.string()) })
+  .refine((c) => [c.dec, c.mag, c.name, c.nameEs, c.desig, c.con].every((col) => col.length === c.ra.length), 'every column has one entry per star');
 
 /** One drawn feature: `segments` is flat, `[a0, b0, a1, b1, …]`, star indices. */
 interface StarFigure {
@@ -53,11 +60,17 @@ export interface StarCatalog {
   mag: Float32Array;
   /** IAU proper name, or `''`. */
   name: readonly string[];
+  /** Spanish name where `names-es.tsv` has one, or `''` (D-832). */
+  nameEs: readonly string[];
   /** Bayer or Flamsteed designation (`Alp UMa`, `61 Cyg`), or `HR n`. */
   desig: readonly string[];
   /** IAU constellation abbreviation. */
   con: readonly string[];
   figures: readonly StarFigure[];
+  /** Each language's name of every drawn part, by abbreviation, indexed by `part`. */
+  figureNames: Readonly<Record<'en' | 'es', Readonly<Record<string, readonly string[]>>>>;
+  /** Each language's name of a constellation drawn in more than one part, whole (`Ser`). */
+  wholeNames: Readonly<Record<'en' | 'es', Readonly<Record<string, string>>>>;
 }
 
 /** The file's JSON, its shape checked, as typed arrays. */
@@ -70,9 +83,12 @@ export function parseStarCatalog(json: unknown): StarCatalog {
     dec: Float64Array.from(c.dec),
     mag: Float32Array.from(c.mag),
     name: Object.freeze(c.name),
+    nameEs: Object.freeze(c.nameEs),
     desig: Object.freeze(c.desig),
     con: Object.freeze(c.con),
     figures: Object.freeze(c.figures.map((f) => Object.freeze({ con: f.con, part: f.part, segments: Uint16Array.from(f.segments.flat()) }))),
+    figureNames: Object.freeze({ en: CONSTELLATION_NAMES, es: Object.freeze(c.figuresEs) }),
+    wholeNames: Object.freeze({ en: CONSTELLATION_WHOLE_NAMES, es: Object.freeze(c.wholeEs) }),
   });
 }
 
