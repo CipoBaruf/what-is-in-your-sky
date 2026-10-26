@@ -47,8 +47,8 @@ test.describe('the live page', () => {
     const side = await page.getByTestId('live-side').boundingBox();
     expect(side?.y).toBeGreaterThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) - 1);
     expect(side?.x).toBeLessThan((dome?.x ?? 0) + 1);
-    // R66 (FR-WIN-4, V13-6): no touch screen in this profile, so no window to point and the control offers two views.
-    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome']);
+    // R121 (FR-WIN-4 as amended v2.5): no touch screen in this profile, and the control offers all three views all the same.
+    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
 
     // FR-LIVE-3: the five fields.
     await stripFilled(page);
@@ -239,7 +239,7 @@ for (const width of [390, 1280] as const) {
     const side = await page.getByTestId(width === 390 ? 'live-side' : 'live-rail-head').boundingBox();
     if (width === 390) expect(side?.y).toBeGreaterThanOrEqual((box?.y ?? 0) + (box?.height ?? 0) - 1);
     else expect(side?.x).toBeGreaterThanOrEqual((box?.x ?? 0) + (box?.width ?? 0) - 1);
-    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome']);
+    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
     await page.screenshot({ path: `docs/screenshots/r32-live-${String(width)}-dark-en.png` });
     // R48 (D-244): the compact live page carries no theme switch, so the theme is set on the home page.
     await reenterLiveWithTheme(page, 'en', 'night');
