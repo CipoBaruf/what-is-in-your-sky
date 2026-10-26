@@ -34,9 +34,9 @@ describe('fitBox', () => {
 describe('windowBox', () => {
   it('is fitBox at the viewport’s aspect', () => {
     const room = { frameWidthPx: 1882, frameHeightPx: 668, aboveHeightPx: 48, belowHeightPx: 0, besideWidthPx: 451 };
-    // A 1920 × 800 browser window at 2.4 : 1: the height binds — 620 tall, 1488 wide, beside a 451 px rail in 1882 px.
-    expect(windowBox({ ...room, viewportWidthPx: 1920, viewportHeightPx: 800 })).toEqual(fitBox({ ...room, aspect: 2.4 }));
-    expect(windowBox({ ...room, viewportWidthPx: 1920, viewportHeightPx: 800 })).toEqual({ widthPx: 1488, heightPx: 620 });
+    // A 1920 × 1080 browser window (16 : 9): the height binds — 620 tall, 1102 wide, beside a 451 px rail in 1882 px.
+    expect(windowBox({ ...room, viewportWidthPx: 1920, viewportHeightPx: 1080 })).toEqual(fitBox({ ...room, aspect: 1920 / 1080 }));
+    expect(windowBox({ ...room, viewportWidthPx: 1920, viewportHeightPx: 1080 })).toEqual({ widthPx: Math.floor((620 * 1920) / 1080), heightPx: 620 });
     // A 1280 × 800 window (1.6 : 1) whose page leaves the frame 1242 px: the width binds at 791, and the height follows the shape.
     expect(windowBox({ ...room, frameWidthPx: 1242, viewportWidthPx: 1280, viewportHeightPx: 800 })).toEqual({ widthPx: 791, heightPx: Math.floor(791 / 1.6) });
   });
