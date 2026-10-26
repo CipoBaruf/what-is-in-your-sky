@@ -428,8 +428,15 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
         </div>
         {!cornerStatus && (
           <div className={styles.status} data-row="status" data-action={hasReadoutAction}>
-            {status}
-            {hasReadoutAction && <div className={styles.readoutAction}>{slots.readoutAction}</div>}
+            {hasReadoutAction ? (
+              <>
+                {/* The status in a cell of its own, so the toggle is the row's last column whether the status is one node, several or none. */}
+                <div className={styles.readoutStatus}>{status}</div>
+                <div className={styles.readoutAction}>{slots.readoutAction}</div>
+              </>
+            ) : (
+              status
+            )}
           </div>
         )}
         {hasStripe && (

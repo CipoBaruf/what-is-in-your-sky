@@ -491,7 +491,12 @@
   min-height: calc(2 * var(--row));
 }
 
+.readoutStatus {
+  min-width: 0;
+}
+
 .readoutAction {
+  grid-column: 2;
   white-space: nowrap;
 }
 
@@ -513,6 +518,7 @@
 }
 
 .status > p,
+.readoutStatus > p,
 .cornerStatus > p {
   margin: 0;
 }
