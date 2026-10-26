@@ -69,9 +69,6 @@ const ALL_LAYERS: StarField['layers'] = Object.freeze({ stars: true, figures: tr
 /** FR-STAR-13 in twilight: the drawn rungs and, by the step, the planets — never the figures, whose lines would reach hidden stars. */
 const TWILIGHT_LAYERS: StarField['layers'] = Object.freeze({ stars: true, figures: false, planets: true, names: true });
 const TWILIGHT_NO_PLANETS: StarField['layers'] = Object.freeze({ stars: true, figures: false, planets: false, names: true });
-/** The whole ladder with no planet: the steps never ask for it (the planets go only above 0°), but a source may. */
-const NIGHT_NO_PLANETS: StarField['layers'] = Object.freeze({ stars: true, figures: true, planets: false, names: true });
-const PLANETS_ONLY: StarField['layers'] = Object.freeze({ stars: false, figures: false, planets: true, names: true });
 
 type Catalog = StarField['catalog'];
 
@@ -116,11 +113,11 @@ export function useSkyScene({ observer, now, starsLayer, source, sunAltDeg }: Sk
   const limit = source !== null && rungs > 0 ? source.drawnMagLimit(rungs) : Number.NEGATIVE_INFINITY;
   return useMemo<SkyScene>(() => {
     if (!starsLayer || catalog === undefined || positionsAt === undefined || now === undefined) return NO_STARS;
-    if (rungs === 0 && !planets) return NO_STARS;
+    // The steps go together (`skyStars.ts`): no rung is drawn only where no planet is, and every rung only where every planet is.
+    if (rungs === 0) return NO_STARS;
     const positions = positionsAt({ lat, lon }, now);
-    if (limit === Number.POSITIVE_INFINITY) return { stars: { catalog, positions, layers: planets ? ALL_LAYERS : NIGHT_NO_PLANETS } };
+    if (limit === Number.POSITIVE_INFINITY) return { stars: { catalog, positions, layers: ALL_LAYERS } };
     // A view counts its stars by the catalogue's length, so the positions stay whole and only the catalogue is cut.
-    if (rungs === 0) return { stars: { catalog: cutTo(catalog, Number.NEGATIVE_INFINITY), positions, layers: PLANETS_ONLY } };
     return { stars: { catalog: cutTo(catalog, limit), positions, layers: planets ? TWILIGHT_LAYERS : TWILIGHT_NO_PLANETS } };
   }, [lat, lon, now, starsLayer, catalog, positionsAt, rungs, planets, limit]);
 }

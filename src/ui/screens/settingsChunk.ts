@@ -1,3 +1,5 @@
+import { whenIdle } from './whenIdle';
+
 /**
  * R93 (D-545, F-69): the settings page is its own chunk, and this is the one
  * place that fetches it, so the route, the header's link and the idle prefetch
@@ -35,16 +37,5 @@ export function loadSettingsChunk(): Promise<SettingsModule> {
  * twice (D-545). Returns the cancel, for an unmount before it fires.
  */
 export function prefetchSettingsWhenIdle(): () => void {
-  if (typeof window === 'undefined') return () => undefined;
-  const idle = (window as Window & { requestIdleCallback?: (fn: () => void, options?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void }).requestIdleCallback;
-  if (idle) {
-    const id = idle(() => void loadSettingsChunk().catch(() => undefined), { timeout: 5_000 });
-    return () => {
-      (window as Window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(id);
-    };
-  }
-  const id = window.setTimeout(() => void loadSettingsChunk().catch(() => undefined), 2_000);
-  return () => {
-    window.clearTimeout(id);
-  };
+  return whenIdle(() => void loadSettingsChunk().catch(() => undefined));
 }

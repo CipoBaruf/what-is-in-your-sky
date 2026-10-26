@@ -1,3 +1,5 @@
+import { whenIdle } from './whenIdle';
+
 /**
  * R115 (FR-STAR-9, D-756): the stars page is its own chunk, `stars` — the
  * page, the catalogue and the positions (`data/stars/catalog.ts`,
@@ -31,26 +33,13 @@ export function loadStarsChunk(): Promise<StarsModule> {
 }
 
 /**
- * R123 (D-791): fetch the chunk once the browser is idle — `requestIdleCallback`
- * where it exists (not on iOS Safari), a short timer otherwise, as
- * `settingsChunk.ts` does — and hand the module to `onLoad`. Returns the
- * cancel, for an unmount before it fires; a failure is dropped (the toggle's
- * own load asks again).
+ * R123 (D-791): fetch the chunk once the browser is idle (`whenIdle`, the
+ * settings page's rule) and hand the module to `onLoad`. Returns the cancel,
+ * for an unmount before it fires; a failure is dropped (the toggle's own load
+ * asks again).
  */
 export function prefetchStarsWhenIdle(onLoad: (module: StarsModule) => void): () => void {
-  if (typeof window === 'undefined') return () => undefined;
-  const fetchNow = (): void => {
+  return whenIdle(() => {
     loadStarsChunk().then(onLoad, () => undefined);
-  };
-  const idle = (window as Window & { requestIdleCallback?: (fn: () => void, options?: { timeout: number }) => number }).requestIdleCallback;
-  if (idle) {
-    const id = idle(fetchNow, { timeout: 5_000 });
-    return () => {
-      (window as Window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(id);
-    };
-  }
-  const id = window.setTimeout(fetchNow, 2_000);
-  return () => {
-    window.clearTimeout(id);
-  };
+  });
 }
