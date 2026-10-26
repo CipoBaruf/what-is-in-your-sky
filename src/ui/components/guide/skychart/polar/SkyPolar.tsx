@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useAppStore } from '../../../../../state';
 import { useT } from '../../../../../i18n/useT';
 import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
@@ -7,7 +8,9 @@ import type { ChartOrientation, MoonState, PassPoint } from '../../../../../mode
 import { ToggleGroup } from '../../../primitives/ToggleGroup';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
 import { ChartFrame } from '../ChartFrame';
+import { sceneFor, starsFor } from '../layers';
 import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps, type SkyChartView } from '../SkyChart.types';
+import type { StarField } from '../window/scene';
 import styles from './SkyPolar.module.css';
 
 /**
@@ -260,6 +263,22 @@ function HiddenPoint({ marker, orientation, legendKey }: { marker: HiddenMarker;
   );
 }
 
+/**
+ * R119 (FR-SKY-1, D-803): the scene's stars as the table leaves them to this
+ * chart — one empty group per star above the horizon and per planet, at its
+ * projected place, under the grid where the glyphs go. Nothing is drawn: R122
+ * puts V24-9's glyph in each; the contract test reads the anchors now.
+ */
+function StarAnchors({ stars, orientation }: { stars: StarField; orientation: ChartOrientation }) {
+  return (
+    <g data-layer="stars">
+      {starsFor('polar', stars).map(({ key, azDeg, altDeg, star, planet }) => (
+        <g key={key} {...(star === undefined ? {} : { 'data-star': star })} {...(planet === undefined ? {} : { 'data-planet': planet })} transform={at(project({ azDeg, elDeg: altDeg }, orientation))} />
+      ))}
+    </g>
+  );
+}
+
 function Marker({ kind, p }: { kind: 'rise' | 'end' | 'shadow' | 'peak' | 'now'; p: Xy }) {
   switch (kind) {
     case 'peak':
@@ -279,10 +298,12 @@ function Marker({ kind, p }: { kind: 'rise' | 'end' | 'shadow' | 'peak' | 'now';
   }
 }
 
-export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, className }: SkyChartProps) {
+export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, scene, className }: SkyChartProps) {
   const t = useT();
   const orientation = useAppStore((s) => s.chartOrientation);
   const setChartOrientation = useAppStore((s) => s.setChartOrientation);
+  // FR-SKY-1 (R119): what the table leaves this chart of the scene — the stars to `POLAR_STAR_MAG`, the planets, no figures, no names.
+  const stars = useMemo(() => sceneFor('polar', scene)?.stars ?? null, [scene]);
   const ring = (elDeg: number): number => project({ azDeg: 0, elDeg }, orientation).y * -1;
   return (
     <div className={[styles.polar, className].filter(Boolean).join(' ')} data-orientation={orientation}>
@@ -309,6 +330,8 @@ export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, mo
       <svg className={styles.svg} viewBox={VIEWBOX} aria-hidden="true" data-drawing="polar" focusable="false">
         {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}
         {sun && sunVisible(sun) && <SunGlow sun={sun} orientation={orientation} />}
+        {/* FR-SKY-1, FR-SKY-3: the stars under the arcs, in SVG order — the anchors now, the glyphs with R122. */}
+        {stars && <StarAnchors stars={stars} orientation={orientation} />}
         <circle className={styles.horizon} r={HORIZON_R} />
         <circle className={styles.ring} r={fmt(ring(30))} data-ring="30" />
         <circle className={styles.ring} r={fmt(ring(60))} data-ring="60" />

@@ -3331,7 +3331,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
 
 ### Wave 1
 
-- [ ] **R119 — The scene for every view: `useSkyScene`, the layer table, `scene` on the props, the contract test's star case; no visible change**
+- [x] **R119 — The scene for every view: `useSkyScene`, the layer table, `scene` on the props, the contract test's star case; no visible change**
   - **Lane:** chart
   - **Model:** fable
   - **Review:** opus
@@ -3353,6 +3353,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
     - `npx vitest run src/ui/components/guide/skychart` passes with the star case and `layers.test.ts`.
     - A local capture run leaves the live and pass detail files byte-identical to `ece8bfd` against a same-machine baseline; the Done note names them.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green; `npm run bundle:budget` shows no row moved.
+  - **Done (2026-10-26):** as written, plus the anchors D-803 records (the polar chart and the dome place one empty anchor per scene star and planet so the star case holds the three views to one anchor; R122 and R124 draw into them). Captures: the live page's and the pass detail's 154 files — `v1-live-watching-*` and `v1-live-scrubbing-*` at the ten widths, `v1-guide-*`, `v1-polar-*`, `v1-window-844-*`, `v1-legend-*` and the `v1-sky-screen-*` set, in both themes and languages — re-shot on this machine against an `ece8bfd` build on the same machine: 146 byte-identical; 8 differ by 1–15 px at a channel delta ≤ 2 (F-99's anti-aliasing noise, FR-CAP-5): `v1-legend-360-{dark,night}-es`, `v1-live-scrubbing-1024-dark-en`, `v1-live-scrubbing-1200-night-es`, `v1-live-watching-1024-{dark-en,night-es}`, `v1-live-watching-1200-night-{en,es}`. No capture is committed. Budget: `main` 169.8 → 170.4 (the table and the polar anchors, +0.6 of FR-SKY-10's ≤ 1 KB; over its 170 line by 0.4, a warning), `chart` 94.2 → 94.5 (+0.3 of ≤ 2 KB), every other row unchanged.
 
 - [x] **R120 — The landmark, the constellation at a point, the twilight steps and the Spanish names, as data and pure functions**
   - **Done 2026-10-26:** as specified, with the readers taking the catalogue first (`starName(catalog, i, lang)`; `src/lib` may not import `src/data`, D-805) and `drawnRungs` living in `skyStars.ts`, re-exported by `landmark.ts`, counting the ladder's five rungs (D-806). Worst fixture separation over the three sites: landmark 0.0056°, `Among` column 0.0062° (tolerance 0.25°). `stars` row 24.6 KB against `ece8bfd`'s 23.6 (24,168 → 25,175 bytes gzipped, the names; ceiling 30, FR-SKY-10's ≤ 1 KB for the names, D-807); `main` 169.8, unchanged.

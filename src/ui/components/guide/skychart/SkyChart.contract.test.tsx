@@ -34,13 +34,20 @@ import { FIXTURES_DIR } from '../../../../../tests/support/fixtures';
 import { stubMatchMedia } from '../../../../../tests/support/matchMedia';
 import { stubResizeObserver } from '../../../../../tests/support/resizeObserver';
 import { MOON_FIXTURE } from '../../../../../tests/support/moonFixtures';
+import { toPolar } from '../../../../lib/skyGeometry';
 import { formatClock } from '../../../../lib/timeFormat';
 import { PassNumbers } from '../PassNumbers';
-import type { Observer } from '../../../../model';
+import type { ChartOrientation, Observer } from '../../../../model';
 import { appStore } from '../../../../state';
 import { ChartFrame } from './ChartFrame';
+import { toRotY } from './dome/camera';
+import { anchorAt, projectToScreen, tickAnchors, type Tuple3 } from './dome/domeGeometry';
+import { HORIZON_R } from './polar/SkyPolar';
 import { SKY_CHART_VIEWS, SkyChart } from './SkyChart';
 import type { SkyChartProps } from './SkyChart.types';
+import { createHandCamera } from './window/camera';
+import { project, uprightRotation, WINDOW_FOV } from './window/projection';
+import type { SkyScene } from './window/scene';
 
 const golden = JSON.parse(readFileSync(join(FIXTURES_DIR, 'guide-sentences.json'), 'utf8')) as { en: { asComputed: string } };
 const pass = goldenPassFixture();
@@ -56,6 +63,50 @@ const TEXT_ELEMENTS = '[data-drawing] text, [data-drawing] span[data-side]';
 const other = { ...pass, id: 'other', name: 'Tiangong', start: { ...pass.start, t: pass.start.t + 3_600_000 } };
 /** The legend order each view showed for `[other, pass]`, compared across views once both have run (FR-LEG-2). */
 const legendOrders = new Map<string, string[]>();
+
+/**
+ * FR-SKY-1 / PLAN §9.7, D-788, D-804 (R119): the star case. One star and one
+ * planet at a known altitude and azimuth, a facing that holds both in the
+ * window's field, and the anchor each view places for them — read where the
+ * view's compass anchors are read, and checked against the view's own
+ * projection within its own tolerance: the polar chart's two decimals of a
+ * user unit, the window's half pixel, the dome's cell.
+ */
+const STAR = { azDeg: 120, altDeg: 40 };
+const PLANET = { body: 'Venus' as const, azDeg: 150, altDeg: 25 };
+const FACING = 135;
+const TILT = 35;
+const starScene: SkyScene = {
+  stars: {
+    catalog: { ra: [0], dec: [0], mag: [0.5], name: ['Star'], desig: ['s'], con: ['Ori'], figures: [] },
+    positions: { altDeg: [STAR.altDeg], azDeg: [STAR.azDeg], planets: [{ ...PLANET, mag: -4 }] },
+    layers: { stars: true, figures: true, planets: true, names: true },
+  },
+};
+/** The anchors each view placed for the star and the planet, compared across views once all have run. */
+const starAnchors = new Map<string, [string, string]>();
+
+const num = (value: string | null | undefined): number => Number(value ?? NaN);
+/** A hotspot's place on the dome: glyphcss positions its overlay in px, and the span is inside it. */
+const hotspotPlace = (span: Element): { x: number; y: number } => {
+  const style = (span.parentElement as HTMLElement).style;
+  return { x: Number.parseFloat(style.left), y: Number.parseFloat(style.top) };
+};
+/** The dome's world-to-screen map, fitted from three fixed anchors: orthographic, so affine. */
+function domeMap(points: { world: { x: number; y: number }; screen: { x: number; y: number } }[]): (world: { x: number; y: number }) => { x: number; y: number } {
+  const [p0, p1, p2] = points as [(typeof points)[number], (typeof points)[number], (typeof points)[number]];
+  const w1 = { x: p1.world.x - p0.world.x, y: p1.world.y - p0.world.y };
+  const w2 = { x: p2.world.x - p0.world.x, y: p2.world.y - p0.world.y };
+  const s1 = { x: p1.screen.x - p0.screen.x, y: p1.screen.y - p0.screen.y };
+  const s2 = { x: p2.screen.x - p0.screen.x, y: p2.screen.y - p0.screen.y };
+  const det = w1.x * w2.y - w2.x * w1.y;
+  // A = S · W⁻¹ for the 2 × 2 matrices whose columns are the two differences.
+  const a = (s1.x * w2.y - s2.x * w1.y) / det;
+  const b = (s2.x * w1.x - s1.x * w2.x) / det;
+  const c = (s1.y * w2.y - s2.y * w1.y) / det;
+  const d = (s2.y * w1.x - s1.y * w2.x) / det;
+  return (world) => ({ x: p0.screen.x + a * (world.x - p0.world.x) + b * (world.y - p0.world.y), y: p0.screen.y + c * (world.x - p0.world.x) + d * (world.y - p0.world.y) });
+}
 
 /** The legend's rows in order: `[key, passId]` pairs. */
 function legendEntries(container: HTMLElement): [string, string][] {
@@ -231,6 +282,99 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
     expect(screen.getByTestId('guide-sentence').textContent).toBe(golden.en.asComputed);
     rerender(<SkyChart {...props({ passes: [], highlightedPassId: null })} />);
     expect(screen.getByRole('figure')).toHaveTextContent('No pass to draw.');
+  });
+
+  /**
+   * FR-SKY-1 / US-41 AC3 (R119): the star case. The scene's one star and one planet are one anchor each in every
+   * view — `data-star="0"`, `data-planet="Venus"`, the same identity whichever view is mounted — and each sits where
+   * that view projects the known altitude and azimuth, within the view's own tolerance. Nothing else of the scene
+   * reaches the drawing: no figure, no name (the table leaves them to the window alone, and this scene has none).
+   */
+  it('places the scene’s star and planet at the same anchor, where this view projects their altitude and azimuth', async () => {
+    const camera = createHandCamera({ azDeg: FACING, altDeg: TILT });
+    const { container } = render(<SkyChart {...props({ scene: starScene, camera, initialFacingAzDeg: FACING })} />);
+    await waitFor(() => {
+      expect(container.querySelector('[data-drawing] [data-star]')).not.toBeNull();
+      expect(container.querySelector('[data-drawing] [data-planet]')).not.toBeNull();
+    });
+    const stars = container.querySelectorAll('[data-drawing] [data-star]');
+    const planets = container.querySelectorAll('[data-drawing] [data-planet]');
+    expect(stars).toHaveLength(1);
+    expect(planets).toHaveLength(1);
+    const star = stars[0] as Element;
+    const planet = planets[0] as Element;
+    expect(star).toHaveAttribute('data-star', '0');
+    expect(planet).toHaveAttribute('data-planet', PLANET.body);
+    expect(container.querySelector('[data-drawing] [data-figure]')).toBeNull();
+    // The names are the table's `names` row: the window draws the star's, the polar chart and the dome never do.
+    if (view.id === 'window') expect(container.querySelector('[data-drawing] [data-star-name="0"]')).toHaveTextContent('Star');
+    else expect(container.querySelector('[data-drawing] [data-star-name]')).toBeNull();
+    starAnchors.set(view.id, [star.getAttribute('data-star') ?? '', planet.getAttribute('data-planet') ?? '']);
+
+    if (view.id === 'polar') {
+      // The chart's own projection, `toPolar` at the horizon radius, in whichever convention the store holds; the
+      // transform is written to two decimals.
+      const orientation = container.querySelector('[data-orientation]')?.getAttribute('data-orientation') as ChartOrientation;
+      const placed = (el: Element): { x: number; y: number } => {
+        const match = /translate\((-?[\d.]+) (-?[\d.]+)\)/.exec(el.getAttribute('transform') ?? '');
+        return { x: num(match?.[1]), y: num(match?.[2]) };
+      };
+      for (const [el, point] of [
+        [star, STAR],
+        [planet, PLANET],
+      ] as const) {
+        const expected = toPolar(point.azDeg, point.altDeg, orientation);
+        expect(Math.abs(placed(el).x - expected.x * HORIZON_R)).toBeLessThanOrEqual(0.01);
+        expect(Math.abs(placed(el).y - expected.y * HORIZON_R)).toBeLessThanOrEqual(0.01);
+      }
+      return;
+    }
+    if (view.id === 'window') {
+      // The window's projection under the hand camera, in the box the viewBox says, to half a pixel.
+      const viewBox = (container.querySelector('[data-drawing="window"]')?.getAttribute('viewBox') ?? '').split(' ').map(Number);
+      const box = { fovDeg: WINDOW_FOV, width: viewBox[2] ?? 0, height: viewBox[3] ?? 0, screenAngleDeg: 0 };
+      expect(box.width).toBeGreaterThan(0);
+      const rotation = uprightRotation(FACING, TILT);
+      for (const [el, point] of [
+        [star, STAR],
+        [planet, PLANET],
+      ] as const) {
+        const expected = project(rotation, point.azDeg, point.altDeg, box);
+        expect(expected.front).toBe(true);
+        expect(el).not.toHaveAttribute('visibility', 'hidden');
+        expect(Math.abs(num(el.getAttribute('x')) - expected.x)).toBeLessThanOrEqual(0.5);
+        expect(Math.abs(num(el.getAttribute('y')) - expected.y)).toBeLessThanOrEqual(0.5);
+      }
+      return;
+    }
+    // The dome: the anchors are hotspots on the bowl, placed by glyphcss's orthographic camera. Its screen map is
+    // fitted from three of FR-DOME-4's degree numbers — fixed anchors that never move — through the dome's own
+    // `projectToScreen` at the facing and tilt the drawing reports, checked on a fourth, and the star and the planet
+    // must land where it says within one cell of the line layer.
+    const root = container.querySelector('[data-facing-az]');
+    const domeCamera = { rotYDeg: toRotY(num(root?.getAttribute('data-facing-az'))), tiltDeg: num(root?.getAttribute('data-tilt')) };
+    expect(domeCamera.rotYDeg).toBe(toRotY(FACING));
+    const ticks = tickAnchors().map((anchor) => {
+      const span = container.querySelector(`[data-hotspot-id="${anchor.id}"] > span`);
+      expect(span, anchor.id).not.toBeNull();
+      return { world: projectToScreen(anchor.at, domeCamera), screen: hotspotPlace(span as Element) };
+    });
+    const map = domeMap(ticks.slice(0, 3));
+    const layer = container.querySelector<HTMLElement>('[data-layer="lines"]');
+    const cell = { w: Number.parseFloat(layer?.style.getPropertyValue('--dome-cell-w') ?? ''), h: Number.parseFloat(layer?.style.getPropertyValue('--dome-cell-h') ?? '') };
+    expect(cell.w).toBeGreaterThan(0);
+    expect(cell.h).toBeGreaterThan(0);
+    const within = (el: Element, at: Tuple3, what: string): void => {
+      const expected = map(projectToScreen(at, domeCamera));
+      const actual = hotspotPlace(el);
+      expect(Math.abs(actual.x - expected.x), `${what} x`).toBeLessThanOrEqual(cell.w);
+      expect(Math.abs(actual.y - expected.y), `${what} y`).toBeLessThanOrEqual(cell.h);
+    };
+    const fourth = ticks[3] as (typeof ticks)[number];
+    within(container.querySelector(`[data-hotspot-id="${tickAnchors()[3]?.id ?? ''}"] > span`) as Element, tickAnchors()[3]?.at ?? [0, 0, 0], 'the fourth tick');
+    expect(fourth.screen.x).not.toBeNaN();
+    within(star, anchorAt(STAR.azDeg, STAR.altDeg), 'the star');
+    within(planet, anchorAt(PLANET.azDeg, PLANET.altDeg), 'the planet');
   });
 
   /** FR-LIVE-1 / FR-LIVE-10 (R32): the live page's chart is the same component, named rather than captioned, filling its box. */
@@ -467,6 +611,12 @@ describe('<SkyChart> contract across views', () => {
     expect([...legendOrders.keys()].sort()).toEqual(SKY_CHART_VIEWS.map((view) => view.id).sort());
     const orders = [...legendOrders.values()];
     for (const order of orders) expect(order).toEqual(orders[0]);
+  });
+
+  /** FR-SKY-1 / US-41 AC3 (R119): the scene's star and planet are the same anchor in every registered view. */
+  it('places the scene’s star and planet under the same anchor in every registered view', () => {
+    expect([...starAnchors.keys()].sort()).toEqual(SKY_CHART_VIEWS.map((view) => view.id).sort());
+    for (const anchors of starAnchors.values()) expect(anchors).toEqual(['0', PLANET.body]);
   });
 });
 

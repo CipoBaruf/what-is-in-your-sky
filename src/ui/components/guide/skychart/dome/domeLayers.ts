@@ -1,6 +1,9 @@
 import type { MoonState, Pass } from '../../../../../model';
+import { starsFor } from '../layers';
+import type { StarField } from '../window/scene';
 import {
   aheadStrip,
+  anchorAt,
   compassAnchors,
   COMPASS_LABEL_RADIUS,
   diamond,
@@ -106,6 +109,37 @@ export interface LayersInput {
   camera: { rotYDeg: number; tiltDeg: number };
   /** How big a label is on the drawing, in world units. */
   measure: (text: string) => LabelBox;
+}
+
+/**
+ * R119 (FR-SKY-1, D-803): one anchor per drawn star and planet, on the unit
+ * sphere where the mark goes — a hotspot that carries `data-star` or
+ * `data-planet` and no text, so the contract test reads the dome's placement
+ * as it reads the polar chart's and the window's, and the raster is untouched
+ * until R124 puts a point under it.
+ */
+export interface DomeAnchor {
+  id: string;
+  at: Tuple3;
+  /** The catalogue index of a star… */
+  star?: number;
+  /** …or a planet's name (`D-750`'s convention: one or the other). */
+  planet?: string;
+}
+
+/**
+ * The anchors of the scene's stars as the table leaves them to the dome
+ * (`sceneFor('dome', …)`): what `starsFor` places, on the unit sphere. Apart
+ * from `domeLayers`, so a new scene moves the anchors and nothing else.
+ */
+export function starAnchors(stars: StarField | null | undefined): DomeAnchor[] {
+  if (!stars) return [];
+  return starsFor('dome', stars).map(({ key, azDeg, altDeg, star, planet }) => ({
+    id: key,
+    at: anchorAt(azDeg, altDeg),
+    ...(star === undefined ? {} : { star }),
+    ...(planet === undefined ? {} : { planet }),
+  }));
 }
 
 export interface DomeLayers {
