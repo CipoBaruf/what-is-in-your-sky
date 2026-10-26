@@ -13,7 +13,7 @@
  *   - the two inert states, and the two ways back.
  */
 import { readFileSync } from 'node:fs';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../tests/support/catalogFixtures';
@@ -818,6 +818,78 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('playback-controls')).toBeInTheDocument();
     expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
     expect(screen.getByRole('button', { name: 'back to live' })).toBeEnabled();
+  });
+
+  /**
+   * D-789 (R121 review): the window in the box is the page's, not its chart's. The live page drops its chart for
+   * the sky screen and mounts a different one for the landscape rail than for portrait; the hand's facing and the
+   * compact choice of the window without a sensor outlive both, and a trip to wide drops the choice for the saved view.
+   */
+  describe('the window in the box across the page’s charts (FR-SKY-2, D-789)', () => {
+    const handBox = (): HTMLElement => document.querySelector<HTMLElement>('[data-state="hand"] [tabindex="0"]') as HTMLElement;
+    const lookAz = (): string | null => document.querySelector('[data-look-az]')?.getAttribute('data-look-az') ?? null;
+    const windowDrawn = async (): Promise<void> => {
+      await waitFor(() => {
+        expect(document.querySelector('[data-drawing="window"]')).not.toBeNull();
+      });
+    };
+
+    it('keeps the hand’s facing through the sky screen on wide', async () => {
+      media = stubMatchMedia(1280, 800);
+      withSky();
+      act(() => {
+        appStore.getState().setChartView('window');
+      });
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      await windowDrawn();
+      const before = lookAz();
+      fireEvent.keyDown(handBox(), { key: 'ArrowRight' });
+      const turned = lookAz();
+      expect(turned).not.toBe(before);
+      act(() => {
+        appStore.getState().openSkyScreen();
+      });
+      // The page's chart is gone with the page; the screen's chart is the only one.
+      expect(screen.getByTestId('sky-screen')).toBeInTheDocument();
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-screen', 'true');
+      act(() => {
+        appStore.getState().closeSkyScreen();
+      });
+      await windowDrawn();
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+      expect(lookAz()).toBe(turned);
+    });
+
+    it('keeps the compact choice and the facing through a rotation, and drops the choice on a trip to wide', async () => {
+      media = stubMatchMedia(390, 844);
+      withSky();
+      act(() => {
+        appStore.getState().setChartView('dome');
+      });
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Window' }));
+      await windowDrawn();
+      fireEvent.keyDown(handBox(), { key: 'ArrowRight' });
+      const turned = lookAz();
+      // The landscape phone: the rail's chart, another element, still the window and still facing where it was.
+      act(() => {
+        media?.setSize(844, 390);
+      });
+      expect(screen.getByTestId('live-rail-head')).toBeInTheDocument();
+      await windowDrawn();
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+      expect(lookAz()).toBe(turned);
+      // Wide: the saved view, and back on compact the choice is gone — the saved view again, not a stale window.
+      act(() => {
+        media?.setSize(1280, 800);
+      });
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
+      act(() => {
+        media?.setSize(390, 844);
+      });
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
+      expect(appStore.getState().chartView).toBe('dome');
+    });
   });
 
   /**

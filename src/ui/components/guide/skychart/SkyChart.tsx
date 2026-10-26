@@ -13,9 +13,9 @@ import { ChartFrame } from './ChartFrame';
 import { Legend } from './Legend';
 import { POLAR_VIEW } from './polar/SkyPolar';
 import styles from './SkyChart.module.css';
-import type { HandSlot, SkyChartProps, SkyChartView } from './SkyChart.types';
+import type { SkyChartProps, SkyChartView } from './SkyChart.types';
+import { useChartHand } from './useChartHand';
 import { useSkyBodies } from './useSkyBodies';
-import type { HandCamera } from './window/camera';
 
 /**
  * PLAN §8.1 (R13): the single boundary the app mounts. A `<figure>` whose
@@ -69,10 +69,12 @@ import type { HandCamera } from './window/camera';
  * a phone-sized desk window, every headless capture at 390 px, or a phone
  * that has lost the sensor this session — there is no screen to open and
  * nothing to ask, so the window is laid out in the box here too; that choice
- * is this chart's own state (`handWindow`) and never written, so a reload
- * opens on the saved view. The hand camera is one slot this chart keeps
- * (`HandSlot`), filled by the window in its own chunk and kept across a view
- * change and back, so the facing survives a look at the dome.
+ * is page state (`handWindow`) and never written, so a reload opens on the
+ * saved view. The hand camera is one slot (`HandSlot`), filled by the window
+ * in its own chunk and kept across a view change and back, so the facing
+ * survives a look at the dome. Both are `useChartHand`'s: the live page holds
+ * them (`chartHand`) because it remounts its chart on a rotation and drops it
+ * for the sky screen; elsewhere the chart holds its own.
  */
 const SkyDome = lazy(() => import('./dome/SkyDome').then((module) => ({ default: module.SkyDome })));
 const SkyWindow = lazy(() => import('./window/SkyWindow').then((module) => ({ default: module.SkyWindow })));
@@ -104,6 +106,14 @@ function DomeView(props: SkyChartProps) {
 
 const DOME_VIEW: SkyChartView = { Component: DomeView, id: 'dome' };
 
+/**
+ * D-789: whether the window will be laid out in the page's box under the hand — `SkyWindow`'s own `inBox`, read
+ * before its chunk arrives, so the fallback's box is already the window's shape and does not jump when it lands.
+ */
+function inBox(props: SkyChartProps): boolean {
+  return props.hand !== undefined && props.screen !== true && (props.camera === undefined || props.camera.source === 'hand');
+}
+
 function WindowView(props: SkyChartProps) {
   return (
     <Suspense
@@ -121,6 +131,7 @@ function WindowView(props: SkyChartProps) {
           {...(props.legendOpen === undefined ? {} : { legendOpen: props.legendOpen })}
           {...(props.screen === undefined ? {} : { screen: props.screen })}
           {...(props.overlay === undefined ? {} : { overlay: props.overlay })}
+          handWindow={inBox(props)}
           fill={props.fill ?? false}
         >
           <div className={styles.loadingBox} data-testid="window-loading" />
@@ -132,26 +143,18 @@ function WindowView(props: SkyChartProps) {
   );
 }
 
-// R121 (FR-WIN-4 as amended v2.5, D-789): no `available()` — the window is offered on every page and every device.
+// R121 (FR-WIN-4 as amended v2.5, D-789): offered on every page and every device; `SkyChartView`'s `available()` is gone with it.
 const WINDOW_VIEW: SkyChartView = { Component: WindowView, id: 'window' };
 
 export const SKY_CHART_VIEWS: readonly SkyChartView[] = [POLAR_VIEW, DOME_VIEW, WINDOW_VIEW];
 
 /**
- * The views this device is offered: the registered ones minus those
- * `available()` rules out. R62's `views` prop, which let a page offer fewer,
- * is gone with the rule it served (V13-6); R121 (FR-WIN-4 as amended v2.5)
- * takes the session's `windowLost` out of it too — a phone with no north
- * loses the sensor, not the view, which it gets in the box under the hand.
- * Every page offers all three, to every reader.
+ * The view for a preference: itself, else the dome (the default), else the first one registered. R121 (FR-WIN-4 as
+ * amended v2.5): every page offers all three views to every reader — no `available()` filters them any more, and a
+ * phone with no north loses the sensor, not the view, which it gets in the box under the hand.
  */
-export function offeredViews(): SkyChartView[] {
-  return SKY_CHART_VIEWS.filter((candidate) => candidate.available?.() ?? true);
-}
-
-/** The view for a preference: itself where offered, else the dome (the default), else the first one offered. */
-function viewFor(id: SkyChartView['id'], offered: readonly SkyChartView[] = offeredViews()): SkyChartView {
-  const view = offered.find((candidate) => candidate.id === id) ?? offered.find((candidate) => candidate.id === DEFAULT_CHART_VIEW) ?? offered[0];
+function viewFor(id: SkyChartView['id']): SkyChartView {
+  const view = SKY_CHART_VIEWS.find((candidate) => candidate.id === id) ?? SKY_CHART_VIEWS.find((candidate) => candidate.id === DEFAULT_CHART_VIEW) ?? SKY_CHART_VIEWS[0];
   if (!view) throw new Error('SkyChart: no views registered');
   return view;
 }
@@ -181,18 +184,13 @@ export function SkyChart(props: SkyChartProps) {
   // D-350: the tap that chooses the window on a compact phone — the permission inside the gesture, then the reading that decides.
   const entry = useSkyScreen();
   /*
-   * D-789 (R121): the window in the box. On wide it is the saved view; on compact without a sensor it is this
-   * chart's own, unsaved choice, which a reload forgets (FR-SKY-2). The hand camera's slot is this chart's for
-   * as long as it is mounted, so the dome and back keeps the facing; the window fills it in its own chunk.
+   * D-789 (R121): the window in the box. On wide it is the saved view; on compact without a sensor it is an
+   * unsaved choice, which a reload forgets (FR-SKY-2). That choice and the hand camera's slot are the page's where
+   * it gives them (`chartHand`, the live page), else this chart's own: the dome and back keeps the facing, and on
+   * the live page so do a rotation and a trip to the screen. The window fills the slot in its own chunk.
    */
-  const [handWindow, setHandWindow] = useState(false);
-  const handCamera = useRef<HandCamera | null>(null);
-  const [hand] = useState<HandSlot>(() => ({
-    get: () => handCamera.current,
-    keep: (camera) => {
-      handCamera.current = camera;
-    },
-  }));
+  const ownHand = useChartHand();
+  const { slot: hand, window: handWindow, setWindow: setHandWindow } = props.chartHand ?? ownHand;
   /*
    * FR-FSC-2 (D-351): the screen's `×` gives focus back to the option that opened it. The page's chart is
    * unmounted while the layer is up and is a new element when it returns, so what says "the screen just
@@ -214,11 +212,10 @@ export function SkyChart(props: SkyChartProps) {
   // so the saved preference is neither read for the view nor written on the way (FR-WIN-5 as amended).
   const screen = props.screen ?? false;
   const moonPhase = props.moonPhase ?? false;
-  const offered = useMemo(() => offeredViews(), []);
   // D-789: on compact the saved view is never the window (the store's guard reads a stored one as the dome at load;
   // a window saved on wide and then narrowed draws as the dome too) — the window there is this chart's own choice.
   const pageView: ChartView = compact ? (handWindow ? 'window' : compactChartView(chartView)) : chartView;
-  const view = screen ? WINDOW_VIEW : viewFor(pageView, offered);
+  const view = screen ? WINDOW_VIEW : viewFor(pageView);
   const choose = useCallback(
     (id: ChartView) => {
       if (id === 'window') {
@@ -238,10 +235,10 @@ export function SkyChart(props: SkyChartProps) {
         return;
       }
       setHandWindow(false);
-      viewFor(id, offered).choose?.();
+      viewFor(id).choose?.();
       setChartView(id);
     },
-    [compact, offered, setChartView, setWindowNote, entry],
+    [compact, setChartView, setWindowNote, entry, setHandWindow],
   );
   // R58 review (D-277) → R66 (D-352): a window that cannot run here closes the screen and leaves the note beside
   // this control; nothing is written, because the reader chose neither the failure nor a view to fall back to.
@@ -310,21 +307,19 @@ export function SkyChart(props: SkyChartProps) {
   // D-322: a screen has no controls at all — not in the figure, not in the frame's row — so there is nothing to build.
   const chartControls = screen ? null : (
     <>
-      {offered.length > 1 && (
-        /*
-         * R66 (FR-COMP-4, US-5 AC2; V13-6, D-358): no visible `View:` on compact. With the window back in
-         * the control (V13-6) the three options plus the prefix are 38 cells at 390 px — the row wrapped to
-         * two, which is what V13-4 had taken away and what the owner did not want back — and the prefix is
-         * the one part of it that carries nothing: it is `aria-hidden`, and the group is named `Chart view`
-         * for anything that reads the page. Dropping it leaves 33 cells, one row, with the same meaning.
-         *
-         * R121 (FR-FSC-6 as amended v2.5, V25-17, D-834): on compact the options have no gap between them (each
-         * option's own trailing cell is the whole gap, D-172's device) and are `inline`, their 48 px box padding
-         * and a matching negative margin, so on a column too narrow for the three — the landscape phone's 740 ×
-         * 360 — the control wraps to two text rows inside its one tap row, and the row above the box does not grow.
-         */
-        <ToggleGroup name={t.chart.viewGroup} {...(compact ? { gap: 'none' as const, inline: true } : { prefix: t.chart.viewPrefix })} options={offered.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
-      )}
+      {/*
+       * R66 (FR-COMP-4, US-5 AC2; V13-6, D-358): no visible `View:` on compact. With the window back in
+       * the control (V13-6) the three options plus the prefix are 38 cells at 390 px — the row wrapped to
+       * two, which is what V13-4 had taken away and what the owner did not want back — and the prefix is
+       * the one part of it that carries nothing: it is `aria-hidden`, and the group is named `Chart view`
+       * for anything that reads the page. Dropping it leaves 33 cells, one row, with the same meaning.
+       *
+       * R121 (FR-FSC-6 as amended v2.5, V25-17, D-834): on compact the options have no gap between them (each
+       * option's own trailing cell is the whole gap, D-172's device) and are `inline`, their 48 px box padding
+       * and a matching negative margin, so on a column too narrow for the three — the landscape phone's 740 ×
+       * 360 — the control wraps to two text rows inside its one tap row, and the row above the box does not grow.
+       */}
+      <ToggleGroup name={t.chart.viewGroup} {...(compact ? { gap: 'none' as const, inline: true } : { prefix: t.chart.viewPrefix })} options={SKY_CHART_VIEWS.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
       {note !== null && (
         <p className={styles.note} role="status" data-testid="chart-view-note">
           {t.window[note]}
@@ -334,8 +329,8 @@ export function SkyChart(props: SkyChartProps) {
   );
   // D-322: on a screen the rails are not the chart's to place — there is no stripe row and no side column to
   // stand one in — so they are dropped here rather than left for the frame to ignore.
-  const { aside, stripe, ...bare } = props;
-  const forwarded = screen ? { ...bare, fill: true } : props;
+  const { aside, stripe, chartHand: _chartHand, ...bare } = props;
+  const forwarded = screen ? { ...bare, fill: true } : { ...bare, aside, stripe };
   return (
     <figure
       ref={figureRef}

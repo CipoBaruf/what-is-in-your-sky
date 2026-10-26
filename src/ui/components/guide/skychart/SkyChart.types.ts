@@ -39,6 +39,23 @@ export interface HandSlot {
 }
 
 /**
+ * D-789 (R121 review): what a page holds for the window in its box, so it
+ * outlives the chart that draws it — the hand camera's slot, and the compact
+ * reader's unsaved choice of the window where there is no sensor
+ * (`handWindow`, FR-SKY-2). The live page mounts a different chart for the
+ * landscape rail than for portrait and none at all while the sky screen is up,
+ * so the facing and the choice are the page's and survive a rotation and a
+ * trip to the screen; the choice is compact's alone and is dropped when the
+ * layout goes wide, so the saved view is what comes back. `useChartHand`.
+ */
+export interface ChartHand {
+  slot: HandSlot;
+  /** The compact choice of the window without a sensor; always false on wide. */
+  window: boolean;
+  setWindow(on: boolean): void;
+}
+
+/**
  * FR-TRAJ-1 / D-189 (R45): a pass with the state its arc is drawn in at the
  * shown instant. `arc` defaults to `'full'` — the whole arc, the pass
  * detail's reading — so a plain `Pass` is still a valid entry; the live page
@@ -280,6 +297,13 @@ export interface SkyChartProps {
    * points and the zenith. Read with `hand` by the window alone.
    */
   facingOptions?: readonly FacingOption[];
+  /**
+   * D-789 (R121 review): the page's `ChartHand`, for a page whose chart is
+   * remounted while the page is not (the live page). Read by `SkyChart`
+   * alone, which keeps its own where it is absent; the views get its slot as
+   * `hand`.
+   */
+  chartHand?: ChartHand;
   className?: string;
 }
 
@@ -297,12 +321,6 @@ export interface HiddenMarker {
 export interface SkyChartView {
   Component: ComponentType<SkyChartProps>;
   id: ChartView;
-  /**
-   * FR-WIN-4 / D-188 (R47): whether this device can show the view at all;
-   * absent means always. The toggle offers only the available views, and a
-   * saved preference for one that is not falls back to the dome.
-   */
-  available?: () => boolean;
   /**
    * D-240 (R47): called inside the tap that picks the view, before it mounts.
    * The window's orientation permission is requested here (FR-WIN-4: in the

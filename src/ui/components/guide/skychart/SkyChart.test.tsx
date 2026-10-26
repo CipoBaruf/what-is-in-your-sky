@@ -28,7 +28,7 @@ import { stubMatchMedia, WIDE_PX } from '../../../../../tests/support/matchMedia
 import { resetOrientationAccess } from './window/orientationAccess';
 import { facePeak } from './window/camera';
 import { WINDOW_FOV } from './window/projection';
-import { offeredViews, SKY_CHART_VIEWS, SkyChart } from './SkyChart';
+import { SKY_CHART_VIEWS, SkyChart } from './SkyChart';
 import { PEAK_FACING_OPTIONS } from './SkyChart.types';
 
 /** A reading on the window, on the event `useSkyScreen` listens to (the old follow control's helper). */
@@ -72,12 +72,14 @@ afterEach(() => {
 
 describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121: FR-WIN-4 and FR-SKY-2 as amended v2.5, D-789)', () => {
   it('keeps the registered order, on every device, with nothing lost for the session', () => {
-    expect(offeredViews().map((view) => view.id)).toEqual(['polar', 'dome', 'window']);
+    const { unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    expect(options()).toEqual(['Polar', 'Dome', 'Window']);
+    unmount();
     withPhone();
-    expect(offeredViews().map((view) => view.id)).toEqual(['polar', 'dome', 'window']);
     // FR-WIN-4 as amended v2.5: a relative-only phone loses the sensor, never the view.
     appStore.getState().dropWindowView('relative');
-    expect(offeredViews().map((view) => view.id)).toEqual(['polar', 'dome', 'window']);
+    render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    expect(options()).toEqual(['Polar', 'Dome', 'Window']);
   });
 
   /** V13-6: the live page's two-option control is gone — every page offers all three where the phone has them. */
@@ -126,6 +128,30 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
     await waitFor(() => {
       expect(container.querySelector('[data-look-az]')).toHaveAttribute('data-look-az', '195');
     });
+  });
+
+  /** D-789 (R121 review): the compact choice is compact's alone — a trip to wide drops it, so the saved view is what comes back. */
+  it('drops the compact choice of the window when the layout goes wide, and opens on the saved view back on compact', async () => {
+    const media = stubMatchMedia(390);
+    try {
+      appStore.getState().setChartView('polar');
+      const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+      fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
+      await waitFor(() => {
+        expect(container.querySelector('[data-drawing="window"]')).not.toBeNull();
+      });
+      act(() => {
+        media.setWidth(WIDE_PX);
+      });
+      expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'polar');
+      act(() => {
+        media.setWidth(390);
+      });
+      expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'polar');
+      expect(savedChartView()).toBe('polar');
+    } finally {
+      media.restore();
+    }
   });
 
   /** FR-WIN-5 as amended v2.5 (D-789): on wide the window is a view like the other two — saved, in the box, cut to the window's shape. */
