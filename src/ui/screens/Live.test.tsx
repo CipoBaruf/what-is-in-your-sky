@@ -705,6 +705,33 @@ describe('<LivePage>', () => {
     expect(within(screen.getByTestId('playback-row')).getByRole('button', { name: 'Play' })).toBeInTheDocument();
   });
 
+  /**
+   * R123 (FR-SKY-3, FR-COMP-4, US-40 AC1; D-791, D-814): `[ stars ]` is on by default; on compact it ends the
+   * chart's readout row (the actions rows are full, FR-COMP-7), on wide it is on the actions row in both states;
+   * a press turns the stars off and the prefs remember it.
+   */
+  it('offers [ stars ], on by default, in the readout row on compact and on the actions row on wide, and remembers a press', () => {
+    withSky();
+    const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
+    const toggle = screen.getByTestId('stars-toggle');
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(toggle).toHaveAccessibleName(en.live.starsToggleName);
+    expect(toggle).toHaveTextContent(en.live.starsToggle);
+    expect(toggle.closest('[data-row="status"]')).toHaveAttribute('data-action', 'true');
+    expect(within(screen.getByTestId('live-actions')).queryByTestId('stars-toggle')).toBeNull();
+    fireEvent.click(toggle);
+    expect(screen.getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
+    expect(appStore.getState().starsLayer).toBe(false);
+    expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ starsLayer: false });
+    unmount();
+    media = stubMatchMedia(1280, 800);
+    render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(within(screen.getByTestId('live-actions')).getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getAllByTestId('stars-toggle')).toHaveLength(1);
+    scrub();
+    expect(within(screen.getByTestId('live-actions')).getByTestId('stars-toggle')).toBeInTheDocument();
+  });
+
   /** R48 (FR-TRAJ-1, FR-TRAJ-3, US-22 AC1..AC3, D-189): the arcs appear, grow and fade with the shown instant, and the legend says the same. */
   it('scrubs a pass through ahead, live, linger and gone, with the drawn arc and the legend state following (FR-TRAJ-1)', () => {
     withSky();

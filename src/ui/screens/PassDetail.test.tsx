@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../tests/support/catalogFixtures';
 import { FIXTURES_DIR } from '../../../tests/support/fixtures';
 import { MOON_FIXTURE } from '../../../tests/support/moonFixtures';
+import { stubMatchMedia } from '../../../tests/support/matchMedia';
 import type { Observer } from '../../model';
 import { en } from '../../i18n/en';
 import { appStore, type ElementsState } from '../../state';
@@ -188,6 +189,33 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     // With the Moon below the horizon there is nothing to say about it here.
     rerender(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
     expect(within(screen.getByRole('dialog')).queryByTestId('moon-at-peak')).toBeNull();
+  });
+
+  /**
+   * R123 (FR-SKY-3, FR-COMP-4, US-40 AC1; D-791, D-814): `[ stars ]`, on by default and the same saved toggle as the
+   * live page's — at the end of the chart's readout row on compact, on the view row after the view control on wide.
+   */
+  it('offers [ stars ] in the readout row on compact and on the view row on wide, and a press is the saved toggle', () => {
+    const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+    const toggle = screen.getByTestId('stars-toggle');
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(toggle.closest('[data-row="status"]')).toHaveAttribute('data-action', 'true');
+    expect(screen.queryByTestId('chart-view-row')).toBeNull();
+    fireEvent.click(toggle);
+    expect(appStore.getState().starsLayer).toBe(false);
+    unmount();
+    const media = stubMatchMedia(1280, 800);
+    try {
+      render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+      const row = screen.getByTestId('chart-view-row');
+      expect(within(row).getByRole('group', { name: en.chart.viewGroup })).toBeInTheDocument();
+      expect(within(row).getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getAllByTestId('stars-toggle')).toHaveLength(1);
+    } finally {
+      media.restore();
+      appStore.setState(initial, true);
+      window.localStorage.clear();
+    }
   });
 
   it('omits the twilight label when the pass is not a twilight one', () => {

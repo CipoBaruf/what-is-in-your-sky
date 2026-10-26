@@ -57,6 +57,7 @@ import { UseMyLocation } from '../../src/ui/components/location/UseMyLocation';
 import { NextEventBlock } from '../../src/ui/components/passes/NextEventBlock';
 import { StatusStrip } from '../../src/ui/components/live/StatusStrip';
 import { LivePage } from '../../src/ui/screens/Live';
+import { PassDetail } from '../../src/ui/screens/PassDetail';
 import { VisitNotice } from '../../src/ui/components/common/VisitNotice';
 import { FaintToggle } from '../../src/ui/components/passes/FaintToggle';
 import { STARS_PAGE_CATALOGS } from '../../src/i18n/starsPageT';
@@ -300,6 +301,22 @@ const rows = (t: Messages): readonly Row[] => [
       fireEvent.click(screen.getByTestId('live-scrub'));
     },
     budget: LIVE_ROW_BUDGET,
+  },
+  /*
+   * R123 (FR-SKY-3, FR-COMP-4; D-791, D-814): `[x] stars` / `[x] estrellas` at the end of the chart's readout row on
+   * compact — the live page's and the pass detail's — where the readout wraps in the column it leaves, so the
+   * control is the row's fixed part: 9 cells in English, 13 in Spanish. The actions rows above stay as they were.
+   */
+  {
+    name: 'the live readout row’s [ stars ] (FR-SKY-3)',
+    element: createElement(LivePage, { link: null, onLeave: noop }),
+    find: () => screen.getByTestId('stars-toggle').parentElement as Element,
+    setUp: withLiveSky,
+  },
+  {
+    name: 'the pass detail readout row’s [ stars ] (FR-SKY-3)',
+    element: createElement(PassDetail, { pass, observer, onClose: noop, onShowList: noop }),
+    find: () => screen.getByTestId('stars-toggle').parentElement as Element,
   },
   {
     // FR-WATCH-3: the clock, the longest sky word, the longest cloud word and a two-digit count — `21:14:32 crepúsculo limpio 12 arriba`.
