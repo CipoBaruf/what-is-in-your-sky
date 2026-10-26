@@ -52,22 +52,21 @@ function brighterThan(mag: ArrayLike<number>, cap: number): number {
 
 /**
  * The scene as `view` draws it: the layers the table leaves it, the stars cut
- * to its cap. A view that draws every layer gets the scene itself, so a memo
- * on it holds; a scene with no stars is returned as it is.
+ * to its cap. The window, the one view without a cap, draws every layer and
+ * gets the scene itself, so a memo on it holds; a scene with no stars is
+ * returned as it is.
  */
 export function sceneFor(view: SkyView, scene: SkyScene | undefined): SkyScene | undefined {
   const field = scene?.stars;
-  if (!scene || !field) return scene;
   const cap = STAR_MAG[view];
+  if (!scene || !field || cap === Infinity) return scene;
   const layers: StarField['layers'] = {
     stars: field.layers.stars && drawsLayer(view, 'stars'),
     figures: field.layers.figures && drawsLayer(view, 'figures'),
     planets: field.layers.planets && drawsLayer(view, 'planets'),
     names: field.layers.names && drawsLayer(view, 'names'),
   };
-  const same = (Object.keys(layers) as (keyof typeof layers)[]).every((key) => layers[key] === field.layers[key]);
-  if (same && cap === Infinity) return scene;
-  const n = cap === Infinity ? field.catalog.mag.length : brighterThan(field.catalog.mag, cap);
+  const n = brighterThan(field.catalog.mag, cap);
   const { catalog, positions } = field;
   return {
     ...scene,

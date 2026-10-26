@@ -21,7 +21,7 @@ function fakeSource(): StarSource & { positionsAt: ReturnType<typeof vi.fn> } {
 describe('useSkyScene (FR-SKY-1, FR-SKY-8; D-788, D-802)', () => {
   it('builds the scene from the source at the shown instant with every switch on, once per tick', () => {
     const source = fakeSource();
-    const { result, rerender } = renderHook((input: SkySceneInput) => useSkyScene(input), { initialProps: { observer, now: 1_000, starsLayer: true, source } });
+    const { result, rerender } = renderHook((input: SkySceneInput) => useSkyScene(input), { initialProps: { observer, now: 1_000, starsLayer: true, source } as SkySceneInput });
     const first = result.current;
     expect(first.stars?.catalog).toBe(catalog);
     expect(first.stars?.layers).toEqual({ stars: true, figures: true, planets: true, names: true });
@@ -38,7 +38,7 @@ describe('useSkyScene (FR-SKY-1, FR-SKY-8; D-788, D-802)', () => {
 
   it('carries no stars with the toggle off, without a source, or without an instant — and the same object each time', () => {
     const source = fakeSource();
-    const { result, rerender } = renderHook((input: SkySceneInput) => useSkyScene(input), { initialProps: { observer, now: 1_000, starsLayer: false, source } });
+    const { result, rerender } = renderHook((input: SkySceneInput) => useSkyScene(input), { initialProps: { observer, now: 1_000, starsLayer: false, source } as SkySceneInput });
     const none = result.current;
     expect(none).toEqual({ stars: null });
     rerender({ observer, now: 1_000, starsLayer: true, source: null });
