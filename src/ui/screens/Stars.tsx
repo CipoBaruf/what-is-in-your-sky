@@ -11,7 +11,7 @@ import { SkyScreen, type SkyScreenProps } from '../components/screen/SkyScreen';
 import { useSkyScreen } from '../components/screen/useSkyScreen';
 import { createHandCamera, handRotation, initialHand, type HandCamera } from '../components/guide/skychart/window/camera';
 import { FacingPicker } from '../components/guide/skychart/window/FacingPicker';
-import { groundState, WINDOW_FOV, type View } from '../components/guide/skychart/window/projection';
+import { groundState, type View } from '../components/guide/skychart/window/projection';
 import type { SkyScene, StarField } from '../components/guide/skychart/window/scene';
 import { SkyWindow } from '../components/guide/skychart/window/SkyWindow';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
@@ -205,8 +205,6 @@ function StarsSky({ observer }: { observer: Observer }) {
     if (skyRef.current) windowBox(skyRef.current)?.focus({ preventScroll: true });
   }, []);
 
-  const view: View = useMemo(() => ({ fovDeg: WINDOW_FOV, width: box.width, height: box.height, screenAngleDeg: 0 }), [box]);
-
   /*
    * FR-STAR-5 (R117, D-756): the way into the sky screen's stars inventory. The tap is FR-WIN-4's — the permission
    * inside it, one reading with a north before the layer (`useSkyScreen`) — and the store's flag is what says the
@@ -358,7 +356,7 @@ function StarsSky({ observer }: { observer: Observer }) {
           )}
           <section aria-labelledby={fieldId} className={styles.block}>
             <SectionHeading id={fieldId}>{p.fieldHeading}</SectionHeading>
-            <FieldSection camera={camera} catalog={catalog} positions={positions} view={view} layers={layers} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
+            <FieldSection camera={camera} catalog={catalog} positions={positions} box={box} layers={layers} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
           </section>
         </div>
         </Held>
@@ -397,7 +395,8 @@ interface FieldSectionProps {
   camera: HandCamera;
   catalog: ReturnType<typeof starCatalog>;
   positions: ReturnType<typeof starsAt>;
-  view: View;
+  /** The drawing's measured box; the field across it is the camera's (R125, FR-SKY-14). */
+  box: { width: number; height: number };
   layers: StarField['layers'];
   named: number | null;
   onName: (index: number | null) => void;
@@ -406,11 +405,13 @@ interface FieldSectionProps {
 
 /**
  * `In this field`, reading the camera through `useDeferredValue`: a drag's frame re-renders this component with the
- * old value, which every memo below answers, and the list follows when React has the time.
+ * old value, which every memo below answers, and the list follows when React has the time. R125 (FR-SKY-14): the
+ * view's field is the camera's `fovDeg`, read the same deferred way, so a zoom lists what the narrowed box shows.
  */
-function FieldSection({ camera, catalog, positions, view, layers, named, onName, labelledBy }: FieldSectionProps) {
+function FieldSection({ camera, catalog, positions, box, layers, named, onName, labelledBy }: FieldSectionProps) {
   const hand = useSyncExternalStore(camera.subscribe, camera.get, camera.get);
   const settled = useDeferredValue(hand);
+  const view: View = useMemo(() => ({ fovDeg: settled.fovDeg, width: box.width, height: box.height, screenAngleDeg: 0 }), [settled.fovDeg, box]);
   const rotation = useMemo(() => handRotation(settled), [settled]);
   const objects = useMemo(() => fieldObjects({ catalog, positions, rotation, view, layers }), [catalog, positions, rotation, view, layers]);
   const buried = view.width > 0 && groundState(settled.altDeg, view) === 'buried';

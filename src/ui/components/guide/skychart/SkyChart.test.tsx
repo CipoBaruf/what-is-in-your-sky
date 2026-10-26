@@ -228,6 +228,44 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
   });
 
   /**
+   * FR-SKY-14 (R125 review): a zoom moves neither the aim nor the picker's pressed `peak`; the field is page state,
+   * so the dome and back keeps it with the facing ("only `0`, the range's ends and a reload change it"), and a new
+   * page — every pass detail — opens at `WINDOW_FOV`.
+   */
+  it('keeps peak pressed through a zoom, keeps the zoom through the dome and back, and opens a new page at 60°', async () => {
+    const { container, unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} facingOptions={PEAK_FACING_OPTIONS} />);
+    fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
+    await waitFor(() => {
+      expect(container.querySelector('[data-drawing="window"]')).not.toBeNull();
+    });
+    const aim = facePeak(pass.peak, WINDOW_FOV);
+    const box = (): HTMLElement => container.querySelector('[data-drawing="window"]')?.closest('[tabindex="0"]') as HTMLElement;
+    const peakButton = (): HTMLElement => within(rtl.getByRole('group', { name: 'Facing' })).getByRole('button', { name: 'peak' });
+    fireEvent.keyDown(box(), { key: '+' });
+    fireEvent.keyDown(box(), { key: '+' });
+    const w = container.querySelector('[data-look-az]');
+    expect(w).toHaveAttribute('data-fov', '38');
+    expect(w).toHaveAttribute('data-look-alt', String(Math.round(aim.altDeg)));
+    expect(peakButton()).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(rtl.getByRole('button', { name: 'Dome' }));
+    fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
+    await waitFor(() => {
+      expect(container.querySelector('[data-drawing="window"]')).not.toBeNull();
+    });
+    const back = container.querySelector('[data-look-az]');
+    expect(back).toHaveAttribute('data-fov', '38');
+    expect(back).toHaveAttribute('data-look-alt', String(Math.round(aim.altDeg)));
+    expect(peakButton()).toHaveAttribute('aria-pressed', 'true');
+    unmount();
+    const again = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} facingOptions={PEAK_FACING_OPTIONS} />);
+    fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
+    await waitFor(() => {
+      expect(again.container.querySelector('[data-drawing="window"]')).not.toBeNull();
+    });
+    expect(again.container.querySelector('[data-look-az]')).toHaveAttribute('data-fov', '60');
+  });
+
+  /**
    * FR-FSC-6, FR-WIN-5 as amended v1.3.1 (V13-6, V13-8, D-350, D-352): the
    * window's option is a mode, not a view. The tap opens the screen — through
    * the permission and the one reading `useSkyScreen` waits for — and the chart

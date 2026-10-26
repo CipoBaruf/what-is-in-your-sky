@@ -10,6 +10,7 @@ import {
   alphaFor,
   calibrationSample,
   converged,
+  clampWindowFov,
   drawableDeg,
   groundState,
   lookDirection,
@@ -21,6 +22,8 @@ import {
   uprightRotation,
   verticalHalfFieldDeg,
   WINDOW_FOV,
+  WINDOW_FOV_MAX_DEG,
+  WINDOW_FOV_MIN_DEG,
   WINDOW_SMOOTHING,
   windowReadingFrom,
   type Mat3,
@@ -51,6 +54,71 @@ describe('the picks (FR-WIN-7, docs/window/FINDINGS.md)', () => {
   it('are 60° across the shorter side and 0.6 of smoothing', () => {
     expect(WINDOW_FOV).toBe(60);
     expect(WINDOW_SMOOTHING).toBe(0.6);
+  });
+
+  /** R125 (FR-SKY-14, D-798): the range the reader may zoom the field through. */
+  it('zoom from 20° to 90° about the default, and the clamp holds the range', () => {
+    expect(WINDOW_FOV_MIN_DEG).toBe(20);
+    expect(WINDOW_FOV_MAX_DEG).toBe(90);
+    expect(WINDOW_FOV_MIN_DEG).toBeLessThan(WINDOW_FOV);
+    expect(WINDOW_FOV_MAX_DEG).toBeGreaterThan(WINDOW_FOV);
+    expect(clampWindowFov(WINDOW_FOV)).toBe(WINDOW_FOV);
+    expect(clampWindowFov(0)).toBe(WINDOW_FOV_MIN_DEG);
+    expect(clampWindowFov(1000)).toBe(WINDOW_FOV_MAX_DEG);
+  });
+});
+
+/**
+ * R125 (FR-SKY-14, FR-WIN-1 as amended; D-798): what zoom changes is the
+ * projection's scale and nothing else — the field across the shorter side is
+ * `fovDeg`, and everything derived from it (the drawable limit, the half
+ * fields, the ground thresholds) reads the current one. Pinned at both ends
+ * of the range.
+ */
+describe('the field at both ends of the zoom (FR-SKY-14)', () => {
+  const at = (fovDeg: number, width = 390, height = 390): View => ({ fovDeg, width, height, screenAngleDeg: 0 });
+  const m = uprightRotation(0, 0);
+
+  it('spans `fovDeg` across the shorter side at 20° and at 90°, so the same star stands further from the centre zoomed in', () => {
+    for (const fovDeg of [WINDOW_FOV_MIN_DEG, WINDOW_FOV, WINDOW_FOV_MAX_DEG]) {
+      // A point half the field to the right of the centre lands on the right edge.
+      const edge = project(m, fovDeg / 2, 0, at(fovDeg));
+      expect(edge.x).toBeCloseTo(390, 6);
+      expect(edge.y).toBeCloseTo(195, 6);
+      expect(verticalHalfFieldDeg(at(fovDeg))).toBeCloseTo(fovDeg / 2, 6);
+    }
+    // 10° east of north: at 20° it is at the edge, at 60° a third of the way out, at 90° nearer still to the centre.
+    const narrow = project(m, 10, 0, at(WINDOW_FOV_MIN_DEG));
+    const normal = project(m, 10, 0, at(WINDOW_FOV));
+    const wide = project(m, 10, 0, at(WINDOW_FOV_MAX_DEG));
+    expect(narrow.x).toBeCloseTo(390, 6);
+    expect(normal.x - 195).toBeGreaterThan(0);
+    expect(normal.x - 195).toBeLessThan(narrow.x - 195);
+    expect(wide.x - 195).toBeLessThan(normal.x - 195);
+    // The drawable limit grows with the field and never past 150°.
+    expect(drawableDeg(at(WINDOW_FOV_MIN_DEG))).toBeLessThan(drawableDeg(at(WINDOW_FOV)));
+    expect(drawableDeg(at(WINDOW_FOV))).toBeLessThan(drawableDeg(at(WINDOW_FOV_MAX_DEG)));
+    expect(drawableDeg(at(WINDOW_FOV_MAX_DEG))).toBeLessThanOrEqual(150);
+  });
+
+  it('the ground thresholds follow the field: a 20° field is buried 10° below the horizon, a 90° one 45° below', () => {
+    const looking = (altDeg: number): number => lookDirection(uprightRotation(120, altDeg)).altDeg;
+    // Square boxes: the vertical half field is `fovDeg / 2` exactly, so `buried` is that far below the horizon.
+    expect(groundState(looking(-9.95), at(WINDOW_FOV_MIN_DEG))).toBe('ground');
+    expect(groundState(looking(-10.05), at(WINDOW_FOV_MIN_DEG))).toBe('buried');
+    expect(groundState(looking(-44.95), at(WINDOW_FOV_MAX_DEG))).toBe('ground');
+    expect(groundState(looking(-45.05), at(WINDOW_FOV_MAX_DEG))).toBe('buried');
+    // The same aim in the two fields: the narrow one has lost the sky the wide one still holds.
+    expect(groundState(looking(-20), at(WINDOW_FOV_MIN_DEG))).toBe('buried');
+    expect(groundState(looking(-20), at(WINDOW_FOV_MAX_DEG))).toBe('ground');
+    // `sky` is the horizon in every field.
+    for (const fovDeg of [WINDOW_FOV_MIN_DEG, WINDOW_FOV_MAX_DEG]) {
+      expect(groundState(looking(0.05), at(fovDeg))).toBe('sky');
+      expect(groundState(looking(-0.05), at(fovDeg))).toBe('ground');
+    }
+    // The 844 × 390 screen sideways: the field spans the height, so the thresholds are the square box's.
+    expect(groundState(looking(-10.05), at(WINDOW_FOV_MIN_DEG, 844, 390))).toBe('buried');
+    expect(groundState(looking(-44.95), at(WINDOW_FOV_MAX_DEG, 844, 390))).toBe('ground');
   });
 });
 
