@@ -50,3 +50,19 @@
   align-items: center;
   column-gap: var(--cell);
 }
+
+/* R123 (D-814): on compact the toggle is `inline` and wraps under the control. Its tap box reaches down from
+   its own line only, and stands over the options' boxes there, so it never covers the options above it and a
+   tap on its line is its own: the 48 px are the line and the row below it. */
+.viewRow > :global(.inline-control):last-child {
+  position: relative;
+  z-index: var(--z-raised);
+  padding-block: 0 calc(var(--tap) - var(--row));
+  margin-block: 0 calc(-1 * (var(--tap) - var(--row)));
+}
+
+/* …and the ring is drawn round the text line, as `.inline-control`'s own (R75). */
+.viewRow > :global(.inline-control):last-child:focus-visible {
+  padding-block: 0;
+  margin-block: 0;
+}
