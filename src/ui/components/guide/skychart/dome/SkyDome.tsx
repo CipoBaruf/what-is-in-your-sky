@@ -381,10 +381,11 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
         sun,
         moon,
         hidden,
+        stars,
         colorBy,
         ...(now === undefined ? {} : { now }),
       }),
-    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, measure, legendKeys, sun, moon, hidden, now, colorBy],
+    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, measure, legendKeys, sun, moon, hidden, stars, now, colorBy],
   );
 
   // FR-DOME-8a: the key light points along the Sun's real direction, so twilight

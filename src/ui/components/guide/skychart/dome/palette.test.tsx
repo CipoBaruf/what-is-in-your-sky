@@ -36,11 +36,19 @@ afterEach(() => {
 });
 
 describe('dome palette', () => {
-  // R103 (FR-DS-8): the four star tokens are reserved — in the sheet, measured, and drawn by nothing until v2.4.
-  it('names every FR-DOME-2 token tokens.css defines but the reserved four, and no others', () => {
-    const reserved = new Set<string>(CHART_RESERVED_TOKENS);
+  // R103 (FR-DS-8): the star tokens were reserved — in the sheet, measured, and drawn by nothing until v2.4.
+  // R124 (FR-SKY-5, D-793): the dome now draws with two of them, the star and the planet; the dim star, the
+  // faint star and the figure stay the window's and the polar chart's.
+  it('names every FR-DOME-2 token tokens.css defines, the star and the planet among the reserved, and no others', () => {
+    const drawn = new Set<string>(['chart-star', 'chart-planet']);
+    const reserved = new Set<string>(CHART_RESERVED_TOKENS.filter((name) => !drawn.has(name)));
+    for (const name of drawn) expect(CHART_RESERVED_TOKENS, `${name} is one of FR-DS-8's`).toContain(name);
     const declared = [...CHART_MARK_TOKENS.filter((name) => !reserved.has(name)), ...CHART_SURFACE_TOKENS].map((name) => `--${name}`).sort();
     expect([...MEANINGS].map((meaning) => CHART_TOKENS[meaning]).sort()).toEqual(declared);
+    expect(CHART_TOKENS.star).toBe('--chart-star');
+    expect(CHART_TOKENS.planet).toBe('--chart-planet');
+    expect(Object.values(CHART_TOKENS)).not.toContain('--chart-star-dim');
+    expect(Object.values(CHART_TOKENS)).not.toContain('--chart-figure');
   });
 
   it('hard-codes no colour (D-75: the tokens are the only source)', () => {

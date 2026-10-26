@@ -21,12 +21,70 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
 import { MOON_FIXTURE } from '../../../../../../tests/support/moonFixtures';
 import type { Observer } from '../../../../../model';
+import type { SkyScene } from '../window/scene';
 import { baseColsFor, CELL_ASPECT, DEFAULT_CELL_WIDTH_PX, GRID_COLS, GRID_ROWS } from './camera';
 import { SkyDome } from './SkyDome';
 
 const pass = goldenPassFixture();
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
 const PROBE = Array(20).fill('M').join('\n');
+
+interface HandBody {
+  mag: number;
+  azDeg: number;
+  altDeg: number;
+}
+
+/** A scene written by hand: the stars in the order given (the catalogue's is by magnitude), the planets after them. */
+function handScene(stars: readonly HandBody[], planets: readonly (HandBody & { body: 'Venus' | 'Mars' | 'Jupiter' })[] = []): SkyScene {
+  return {
+    stars: {
+      catalog: { ra: stars.map(() => 0), dec: stars.map(() => 0), mag: stars.map((s) => s.mag), name: stars.map(() => ''), desig: stars.map((_, i) => `s${String(i)}`), con: stars.map(() => 'Ori'), figures: [] },
+      positions: { altDeg: stars.map((s) => s.altDeg), azDeg: stars.map((s) => s.azDeg), planets },
+      layers: { stars: true, figures: true, planets: true, names: true },
+    },
+  };
+}
+
+/**
+ * R124 (FR-SKY-5, D-793): the snapshot's sky, the polar chart's (R122) so the
+ * two rasters tell one story: of its seven stars the dome keeps the two at
+ * `DOME_STAR_MAG` or brighter, and the three planets — five dots.
+ */
+const SNAPSHOT_SCENE = handScene(
+  [
+    { mag: -0.7, azDeg: 160, altDeg: 55 },
+    { mag: 1.1, azDeg: 220, altDeg: 35 },
+    { mag: 2.0, azDeg: 20, altDeg: 25 },
+    { mag: 2.2, azDeg: 20, altDeg: 25.2 },
+    { mag: 3.1, azDeg: 300, altDeg: 70 },
+    { mag: 4.2, azDeg: 90, altDeg: 45 },
+    { mag: 1.6, azDeg: 250, altDeg: -10 },
+  ],
+  [
+    { body: 'Venus', mag: -4.1, azDeg: 275, altDeg: 12 },
+    { body: 'Mars', mag: 1.4, azDeg: 120, altDeg: 18 },
+    // Off the grid: at (60°, 80°) the dot fell on a meridian near the zenith, where a dot on a set dot counts for nothing.
+    { body: 'Jupiter', mag: 2.1, azDeg: 60, altDeg: 70 },
+  ],
+);
+const SNAPSHOT_DOTS = 5;
+
+/** How many braille dots a raster carries: the bits of every cell in the braille block. */
+function brailleDots(text: string): number {
+  let dots = 0;
+  for (const ch of text) {
+    const code = ch.codePointAt(0) ?? 0;
+    if (code >= 0x2800 && code <= 0x28ff) {
+      let bits = code - 0x2800;
+      while (bits) {
+        dots += bits & 1;
+        bits >>= 1;
+      }
+    }
+  }
+  return dots;
+}
 
 /**
  * The phone's layout: the 390 × 390 px box, filled by either layer. One line
@@ -62,8 +120,9 @@ describe('<SkyDome> raster', () => {
     vi.restoreAllMocks();
   });
 
-  it('draws the golden pass at the initial camera as the committed braille raster', async () => {
-    const { container, getByTestId } = render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+  // R124 (FR-SKY-5, FR-SKY-9): re-baselined once, with the snapshot's sky under the arc.
+  it('draws the golden pass at the initial camera, with the stars and the planets as dots, as the committed braille raster', async () => {
+    const { container, getByTestId } = render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={SNAPSHOT_SCENE} />);
     const { text, lines } = rasterOf(container, 'lines');
     expect(lines).toHaveLength(GRID_ROWS);
     for (const line of lines) expect(line).toHaveLength(GRID_COLS);
@@ -72,8 +131,21 @@ describe('<SkyDome> raster', () => {
     await expect(text).toMatchFileSnapshot('./__snapshots__/SkyDome.golden.txt');
   });
 
+  /**
+   * FR-SKY-5: "one braille dot each" — the sky adds exactly as many dots as it
+   * has bodies at the dome's cap above the horizon, and the Where pane's scene
+   * with no stars (OQ-44), or no scene at all, draws `ece8bfd`'s picture.
+   */
+  it('adds one braille dot per star at the cap and per planet, and none without a star field', () => {
+    const bare = rasterOf(render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} />).container, 'lines').text;
+    const none = rasterOf(render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={{ stars: null }} />).container, 'lines').text;
+    const starry = rasterOf(render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={SNAPSHOT_SCENE} />).container, 'lines').text;
+    expect(none).toBe(bare);
+    expect(brailleDots(starry) - brailleDots(bare)).toBe(SNAPSHOT_DOTS);
+  });
+
   it('draws the base layer of surfaces under it, on half the grid and aligned cell for cell', async () => {
-    const { container } = render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    const { container } = render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={SNAPSHOT_SCENE} />);
     const base = rasterOf(container, 'base');
     const lines = rasterOf(container, 'lines');
 
@@ -97,8 +169,8 @@ describe('<SkyDome> raster', () => {
   it('draws the live marker, the flown arc, the Moon and the Sun glow at an instant inside the pass', async () => {
     const now = Math.round((pass.start.t + pass.end.t) / 2);
     const sun = { t: now, azDeg: 285, altDeg: -8 };
-    const still = render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-    const live = render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} now={now} sun={sun} moon={MOON_FIXTURE} />);
+    const still = render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={SNAPSHOT_SCENE} />);
+    const live = render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} now={now} sun={sun} moon={MOON_FIXTURE} scene={SNAPSHOT_SCENE} />);
 
     // FR-DOME-6 as amended (R45): neither body is captioned on the drawing — the legend carries their lines.
     expect(live.container.querySelector('[data-anchor="sun"]')).toBeNull();
