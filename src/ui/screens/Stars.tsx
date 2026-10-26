@@ -416,3 +416,6 @@ function FieldSection({ camera, catalog, positions, view, layers, named, onName,
   const buried = view.width > 0 && groundState(settled.altDeg, view) === 'buried';
   return useMemo(() => <FieldList objects={objects} named={named} onName={onName} buried={buried} labelledBy={labelledBy} />, [objects, named, onName, buried, labelledBy]);
 }
+
+/** R123 (FR-SKY-3, FR-SKY-10, D-791): the live page's and the pass detail's stars, from this chunk through `starsChunk.ts`. */
+export { starSource } from './stars/source';

@@ -5,11 +5,17 @@
  * and the header's link share a single request: `settingsChunk.ts`'s pattern,
  * for the same reasons, a failure dropped rather than kept.
  *
- * There is no idle prefetch, unlike the settings page's 1 KB: the chunk is
- * some 30 KB gzipped and a reader who never opens `#stars` should not pay for
- * it on a phone's network. The link's `pointerenter` and `focus` fetch it
- * ahead of the tap; the service worker precaches it with the other chunks
- * (FR-OFF-1, D-79), so offline the route loads from the cache (FR-STAR-8).
+ * The home page has no idle prefetch, unlike the settings page's 1 KB: the
+ * chunk is some 30 KB gzipped and a reader who never opens `#stars` should not
+ * pay for it on a phone's network. The link's `pointerenter` and `focus`
+ * fetch it ahead of the tap; the service worker precaches it with the other
+ * chunks (FR-OFF-1, D-79), so offline the route loads from the cache
+ * (FR-STAR-8).
+ *
+ * R123 (FR-SKY-3, FR-SKY-10, D-791): the live page and the pass detail draw
+ * the stars under the arcs from this chunk too (`Stars.tsx`'s `starSource`).
+ * With `[ stars ]` on they load it when they mount; with it off they prefetch
+ * it here, on idle, so turning the toggle on draws on the next tick.
  */
 type StarsModule = typeof import('./Stars');
 
@@ -22,4 +28,29 @@ export function loadStarsChunk(): Promise<StarsModule> {
     throw reason;
   });
   return chunk;
+}
+
+/**
+ * R123 (D-791): fetch the chunk once the browser is idle — `requestIdleCallback`
+ * where it exists (not on iOS Safari), a short timer otherwise, as
+ * `settingsChunk.ts` does — and hand the module to `onLoad`. Returns the
+ * cancel, for an unmount before it fires; a failure is dropped (the toggle's
+ * own load asks again).
+ */
+export function prefetchStarsWhenIdle(onLoad: (module: StarsModule) => void): () => void {
+  if (typeof window === 'undefined') return () => undefined;
+  const fetchNow = (): void => {
+    loadStarsChunk().then(onLoad, () => undefined);
+  };
+  const idle = (window as Window & { requestIdleCallback?: (fn: () => void, options?: { timeout: number }) => number }).requestIdleCallback;
+  if (idle) {
+    const id = idle(fetchNow, { timeout: 5_000 });
+    return () => {
+      (window as Window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(id);
+    };
+  }
+  const id = window.setTimeout(fetchNow, 2_000);
+  return () => {
+    window.clearTimeout(id);
+  };
 }
