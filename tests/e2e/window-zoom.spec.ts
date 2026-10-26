@@ -16,6 +16,7 @@
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
+import { CAPTURE_DIR } from './captureSet';
 import { FIXTURE_DATE, NEUQUEN, NINE_DAYS_ON, PARIS } from './observers';
 import { ctrlWheel, pinch, placedAt, wheel } from './windowZoom';
 
@@ -112,6 +113,9 @@ test.describe('zoom on the live page’s box (wide, the window as the saved view
     const narrowed = await placedAt(zenith(w));
     expect(narrowed.x).toBeCloseTo(before.x, 0);
     expect(narrowed.y).toBeLessThan(before.y - 50);
+    // The capture for the PR: the live page's window at 30°, the same stars spread about the centre.
+    await page.mouse.move(0, 0);
+    await page.screenshot({ path: `${CAPTURE_DIR}/r125-live-1280-window-30-dark-en.png` });
     // `-` widens by the same factor; `0` restores the default and the drawing with it.
     await page.keyboard.press('-');
     await expect(w).toHaveAttribute('data-fov', '38');
@@ -227,6 +231,7 @@ test.describe('zoom on a compact page without a sensor', () => {
     await pinch(box(w), 80, 160);
     await expect(w).toHaveAttribute('data-fov', '30');
     await expect(w).toHaveAttribute('data-look-az', '180');
+    await page.screenshot({ path: `${CAPTURE_DIR}/r125-stars-390-window-30-dark-en.png` });
     await pinch(box(w), 160, 40);
     await expect(w).toHaveAttribute('data-fov', '90');
     await expect(readout(page)).toHaveText(READOUT);
