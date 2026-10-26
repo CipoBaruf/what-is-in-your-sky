@@ -376,6 +376,7 @@ export const ui: typeof EnUi = {
       endsWhen: 'Termina cuando',
       sunAtPeak: 'Sol en el máximo',
       sunWithLabel: (p) => `${p.degrees}${p.twilight ? ' (cielo todavía claro)' : ''}`,
+      among: 'Entre',
     },
     azimuth: (p) => `${p.point} ${p.degrees}`,
   },

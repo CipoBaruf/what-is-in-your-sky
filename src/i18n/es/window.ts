@@ -10,6 +10,8 @@ export const windowMessages: typeof EnWindow = {
     peak: 'pico',
     handHint: 'Arrastrar la ventana, o usar las flechas del teclado, para mirar alrededor.',
     readout: (p) => `Mirando al ${p.point} (${p.azimuth}) · ${p.altitude} de altura`,
+    following: (p) => `Siguiendo ${p.key}`,
+    field: (p) => ` · campo ${p.degrees}`,
     trueNorth: (p) => `norte verdadero, declinación ${p.declination}`,
     ground: 'Apuntando al suelo — levantá el teléfono.',
     buried: 'Estás apuntando al suelo — levantá el teléfono.',

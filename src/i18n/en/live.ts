@@ -1,6 +1,12 @@
+import type { Landmark } from '../../lib/landmark';
 import type { MoonFacts } from '../../lib/moonPhrases';
 import type { CloudState, MoonPhaseName, SkyState } from '../../model';
 import type { HiddenReason } from '../messages';
+
+type LandmarkWord = Landmark['word'];
+
+/** R123 for R127 (FR-SKY-11): the direction word of the landmark line, from the peak's altitude against the star's (`lib/landmark.ts`). */
+const landmarkWord = { above: 'above', below: 'below', beside: 'beside' } satisfies Record<LandmarkWord, string>;
 
 /** FR-I18N-2 (D-69): the eight phases as `live.moon` reads them out; the same spelling as `en/ui.ts`'s (D-103), duplicated because the `live` lane owns this file alone. */
 const moonPhase = {
@@ -175,5 +181,20 @@ export const live = {
     pauseShort: '‖',
     hiddenShort: 'Hidden',
     shareShort: 'Share',
+    /**
+     * R123 (FR-SKY-3, D-791): `[x] stars` — the stars, the figures and the planets under the arcs — on the live
+     * page's actions row and the pass detail's view row (on compact the readout row). One word in both shells; the
+     * name says what is drawn, and starts with the word on the control (WCAG 2.5.3).
+     */
+    starsToggle: 'stars',
+    starsToggleName: 'Stars under the arcs',
+    /**
+     * R123 for R127 (FR-SKY-11, D-796): the landmark line under the highlighted pass's name, "passes 7° above
+     * Betelgeuse, in Orion"; with no landmark star "passes through Orion". The degrees come formatted, the star's
+     * and the constellation's names in the active language (D-832).
+     */
+    landmarkWord,
+    landmarkLine: (p: { degrees: string; word: LandmarkWord; star: string; constellation: string }) => `passes ${p.degrees} ${landmarkWord[p.word]} ${p.star}, in ${p.constellation}`,
+    landmarkThrough: (p: { constellation: string }) => `passes through ${p.constellation}`,
   },
 };
