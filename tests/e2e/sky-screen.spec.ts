@@ -146,6 +146,40 @@ test.describe('the sky screen on a phone held sideways', () => {
   });
 
   /**
+   * R123 (FR-SKY-3, FR-SKY-8, FR-SKY-10, US-40 AC1; D-791): the screen draws the page's stars under the arcs, on by
+   * default, at the page's instant — the `stars` chunk asked for by the page and not by the screen — and turning
+   * `[ stars ]` off on the page before opening it is what the screen shows (FR-FSC-1: the screen holds no toggle).
+   */
+  test('draws the stars under the arcs from the page’s toggle, and none with it off (FR-SKY-3, US-40 AC1)', async ({ page }) => {
+    await stubCompass(page);
+    await livePage(page);
+    const toggle = page.getByTestId('stars-toggle');
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+
+    // FR-SKY-10: the field is there because the page loaded the `stars` chunk for its toggle; the screen asks for nothing.
+    await openScreen(page);
+    const field = page.locator('[data-drawing="window"] [data-layer="stars"]');
+    await expect(field).toHaveCount(1);
+    expect(Number(await field.getAttribute('data-stars'))).toBeGreaterThan(0);
+    await expect(field.locator('[data-star]').first()).toBeAttached();
+    // The arcs are drawn over the stars: the field comes first in the drawing's order.
+    expect(await page.locator('[data-drawing="window"]').evaluate((svg) => {
+      const stars = svg.querySelector('[data-layer="stars"]');
+      const arc = svg.querySelector('[data-pass-id], [data-arc]');
+      return stars !== null && (arc === null || (stars.compareDocumentPosition(arc) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0);
+    })).toBe(true);
+    await page.getByRole('button', { name: CLOSE }).click();
+    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
+
+    // Off on the page: saved, and the screen opened after it has no star field at all.
+    await page.getByTestId('stars-toggle').click();
+    await expect(page.getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
+    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('wiys:prefs:v1') ?? '{}')) as { starsLayer?: boolean }).toMatchObject({ starsLayer: false });
+    await openScreen(page);
+    await expect(page.locator('[data-drawing="window"] [data-layer="stars"]')).toHaveCount(0);
+  });
+
+  /**
    * V13-9 / FR-FSC-9 (US-21 AC14): the same screen over a pass detail. The
    * sheet is the app's one scrolling container, so what a browser has to answer
    * is that it is held still under the layer and comes back where it was.

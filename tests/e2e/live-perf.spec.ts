@@ -10,6 +10,10 @@
  * updates/s at the phone width; if it is short, the FR-DOME-8 fallback order
  * (`colorTolerance`, `interactiveDownscale`, dropping the base layer) is what
  * is tried, in that order.
+ *
+ * R123 (FR-SKY-3, FR-SKY-8, D-791): measured with `[ stars ]` on, its default —
+ * the page rotates the catalogue once per shown instant for the scene, so at
+ * 3600× that work is inside every frame counted here.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { ha, stubNetwork, T, withSettings } from './liveHelpers';
@@ -75,10 +79,13 @@ async function openLive(page: Page): Promise<void> {
   await page.getByTestId('live-link').click();
   await expect(page.getByTestId('live-dome').locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('live-sky')).not.toContainText('…', { timeout: 30_000 });
+  await expect(page.getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'true');
 }
 
 async function measure(page: Page): Promise<Sample & { cols: number }> {
   const cols = await page.getByTestId('live-dome').locator('[data-layer="lines"] pre.glyph-output').evaluate((el) => (el.textContent ?? '').split('\n')[0]?.length ?? 0);
+  // R123: since v2.0 (FR-WATCH-1) the speeds are the scrubbing state's; `[ scrub ]` holds the instant and shows them.
+  await page.getByTestId('live-scrub').click();
   await page.getByRole('button', { name: '3600×' }).click();
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: THROTTLE });
