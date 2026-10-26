@@ -503,7 +503,9 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
       // Before any measurement the properties are what the effect wrote from jsdom's zero rects: a 0 × 0 box.
       expect(frame).toHaveAttribute('data-box', 'true');
       expect(frame).toHaveAttribute('data-stripe', 'true');
-      expect([...frame.children].map((el) => el.getAttribute('data-testid'))).toEqual([null, null, 'chart-box', null, 'chart-stripe', 'chart-legend-slot']);
+      // D-834: on the wide live frame the status slot is inside the box (its corner), not a row of the frame.
+      expect([...frame.children].map((el) => el.getAttribute('data-testid'))).toEqual([null, null, 'chart-box', 'chart-stripe', 'chart-legend-slot']);
+      expect(within(screen.getByTestId('chart-box')).getByTestId('chart-status')).toBeInTheDocument();
       expect(within(screen.getByTestId('chart-stripe')).getByText('stripe')).toBeInTheDocument();
       // Now the sizes: the frame 1700 × 1000; controls 48 tall; stripe 108 tall; the rail probe 422 wide.
       heights.set('chart-frame', rect(1700, 1000));
@@ -538,7 +540,8 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
     expect(beside).toMatch(/\[data-box='true'\] \.drawing \{\n\s+width: var\(--chart-box-w\);\n\s+height: var\(--chart-box-h\);/);
     // …and the stripe row is the box's width by rule, so a stripe that measured a wider window cannot hold the track open.
     expect(beside).toMatch(/\[data-aside='true'\]\[data-box='true'\] \.stripe \{\n\s+width: max\(var\(--chart-box-w\), calc\(44 \* var\(--cell\)\)\);/);
-    expect(beside).toMatch(/\[data-stripe='true'\] \{\n\s+grid-template-rows: auto auto auto;\n\s+grid-template-areas:\n\s+'controls status legend'\n\s+'drawing drawing legend'\n\s+'stripe stripe legend';/);
+    // D-834 (V25-17): the row above the box is the controls alone; the status slot is in the box's corner.
+    expect(beside).toMatch(/\[data-stripe='true'\] \{\n\s+grid-template-rows: auto auto auto;\n\s+grid-template-areas:\n\s+'controls controls legend'\n\s+'drawing drawing legend'\n\s+'stripe stripe legend';/);
     expect(css).toMatch(/\.stripe \{\n\s+grid-area: stripe;/);
   });
 
@@ -561,7 +564,7 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
       expect(frame).toHaveAttribute('data-box', 'true');
       expect(frame).toHaveAttribute('data-aside', 'false');
       // No rail probe: the box is cut from the frame's whole width.
-      expect([...frame.children].map((el) => el.getAttribute('data-testid'))).toEqual([null, 'chart-box', null, 'chart-stripe', 'chart-legend-slot']);
+      expect([...frame.children].map((el) => el.getAttribute('data-testid'))).toEqual([null, 'chart-box', 'chart-stripe', 'chart-legend-slot']);
       unmount();
       render(
         <ChartFrame fill legend={<p>legend</p>} aside={<p>rail</p>} stripe={<p>stripe</p>} boxAspect={1.2} stacked>
@@ -574,7 +577,7 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
       media.restore();
     }
     const beside = /@container \(min-width: 62ch\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
-    expect(beside).toMatch(/\[data-stacked='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\);\n\s+grid-template-rows: auto auto auto auto;\n\s+grid-template-areas:\n\s+'controls status'\n\s+'drawing drawing'\n\s+'stripe stripe'\n\s+'legend legend';/);
+    expect(beside).toMatch(/\[data-stacked='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\);\n\s+grid-template-rows: auto auto auto auto;\n\s+grid-template-areas:\n\s+'controls controls'\n\s+'drawing drawing'\n\s+'stripe stripe'\n\s+'legend legend';/);
     expect(beside).toMatch(/\[data-stacked='true'\]\[data-box='true'\] \.drawing \{\n\s+width: var\(--chart-box-w\);\n\s+height: var\(--chart-box-h\);\n\s+margin: 0 auto;/);
     // D-320 (V12-15): the stripe and the legend both span the frame — the page's whole width — under a centred drawing.
     expect(beside).toMatch(/\[data-stacked='true'\]\[data-box='true'\] \.stripe \{\n\s+width: 100%;\n\s+\}/);
@@ -654,17 +657,17 @@ describe('<SkyChart> view choice (US-6 AC5, FR-WIN-4)', () => {
   });
 
   /**
-   * FR-WIN-4 / US-21 AC4, as amended v1.3.1 (V13-6, V13-8): a desktop never sees
-   * the option; a phone sees all three, on every page. The option is a mode, so
-   * the view under it stays what the reader picked and the window is only ever
-   * drawn on the screen.
+   * FR-WIN-4 / US-21 AC4, as amended v1.3.1 (V13-6, V13-8) and v2.5 (R121,
+   * FR-SKY-2, D-789): every reader sees all three options, on every page — the
+   * presence test governs the sensor, never the view. Asked for a screen the
+   * chart is the window whatever the preference says.
    */
-  it('offers the window only where there is a phone to point, and draws it only as the screen', async () => {
+  it('offers the window with or without a phone to point, and draws it as the screen when asked', async () => {
     appStore.getState().setChartView('dome');
     const { unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
     expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'dome');
     const toggle = screen.getByRole('group', { name: 'Chart view' });
-    expect(within(toggle).getAllByRole('button').map((button) => button.textContent)).toEqual(['Polar', 'Dome']);
+    expect(within(toggle).getAllByRole('button').map((button) => button.textContent)).toEqual(['Polar', 'Dome', 'Window']);
     unmount();
 
     withPhone();

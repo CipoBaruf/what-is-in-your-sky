@@ -26,7 +26,7 @@ import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../.
 import { stubMatchMedia, type MatchMediaStub } from '../../../../tests/support/matchMedia';
 import { MOON_FIXTURE } from '../../../../tests/support/moonFixtures';
 import { en } from '../../../i18n/en';
-import type { NowState, Observer, SavedChartView } from '../../../model';
+import type { ChartView, NowState, Observer } from '../../../model';
 import { appStore, setLiveNowClient, type ElementsState } from '../../../state';
 import { IDLE_PASSES } from '../../../state/slices/passes';
 import { SCREEN_STATUS_ID } from '../guide/skychart/ChartFrame';
@@ -60,7 +60,7 @@ const initial = appStore.getInitialState();
 const LANDSCAPE = [844, 390] as const;
 const PORTRAIT = [390, 844] as const;
 
-const withSky = (view: SavedChartView = 'polar'): void => {
+const withSky = (view: ChartView = 'polar'): void => {
   act(() => {
     appStore.getState().setChartView(view);
     appStore.setState({ observer, nowMs: NOW, elements: ready, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [pass], hasDarkness: true } });

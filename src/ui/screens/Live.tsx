@@ -19,6 +19,7 @@ import { ChartFrameSlots, LEGEND_PANEL_ID } from '../components/guide/skychart/C
 import { DOME_BOX_ASPECT } from '../components/guide/skychart/dome/camera';
 import { LegendInventoryContext, type LegendInventory } from '../components/guide/skychart/Legend';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
+import { useChartHand } from '../components/guide/skychart/useChartHand';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
@@ -426,6 +427,13 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   // R85 (F-81): the dome row, inside which the short wide inventory's scroll box is measured.
   const domeRef = useRef<HTMLDivElement>(null);
   /*
+   * D-789 (R121 review): the window in the box is this page's, not its chart's. The page mounts a different chart
+   * for the landscape rail than for portrait and none at all while the sky screen is up, so the hand camera's
+   * facing and the compact choice of the window without a sensor are held here, where a rotation, a trip to the
+   * screen and back, or the screen opened from `[ hold up to the sky ]` keep them; a trip to wide drops the choice.
+   */
+  const chartHand = useChartHand();
+  /*
    * R78 (FR-WATCH-5, FR-WATCH-6; D-448): where the scrub block goes, and what folds, from one measured number —
    * the height the chart's frame has for the box with nothing under it (`ChartFrame`'s `onBoxSpace`), not the
    * viewport's. The fold changes the rows that number is measured under, so it is stored with the fold in force
@@ -686,7 +694,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
     return page(
       <>
         <div className={styles.dome} data-testid="live-dome" data-stripe-under={false}>
-          <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} moonPhase />
+          <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} moonPhase chartHand={chartHand} />
         </div>
         <div className={styles.side} data-testid="live-side">
           <div className={styles.railHead} data-testid="live-rail-head">
@@ -730,7 +738,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
         <div className={styles.dome} data-testid="live-dome" data-stripe-under={false}>
           {/* R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): `moonPhase` is the compact page's alone — the phase and
               the illumination its conditions line gave up. The wide page below leaves the legend's plain Moon line. */}
-          <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} moonPhase />
+          <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} moonPhase chartHand={chartHand} />
         </div>
         <div className={styles.side} data-testid="live-side">
           {conditions}
@@ -811,6 +819,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
             initialFacingAzDeg={0}
             aside={side}
             boxAspect={DOME_BOX_ASPECT}
+            chartHand={chartHand}
             {...(scrubBlock === null || overlaid ? {} : { stripe: scrubBlock })}
           />
           </LegendInventoryContext.Provider>

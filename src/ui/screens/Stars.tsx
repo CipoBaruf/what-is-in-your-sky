@@ -3,15 +3,14 @@ import { createPortal } from 'react-dom';
 import { starCatalog } from '../../data/stars/catalog';
 import { useStarsPageT } from '../../i18n/starsPageT';
 import { useT } from '../../i18n/useT';
-import { normalizeAzimuthDeg, type CompassPoint } from '../../lib/compass';
-import { fitBox, RAIL_MIN_CELLS } from '../../lib/layout';
+import { RAIL_MIN_CELLS, windowBox as fitWindowBox } from '../../lib/layout';
 import { starsAt } from '../../lib/skyStars';
 import type { Observer } from '../../model';
 import { useActiveObserver, useAppStore } from '../../state';
 import { SkyScreen, type SkyScreenProps } from '../components/screen/SkyScreen';
 import { useSkyScreen } from '../components/screen/useSkyScreen';
-import { PITCH_STEP_DEG } from '../components/guide/skychart/dome/camera';
-import { bearingOf, createHandCamera, handRotation, initialHand, STARS_DEFAULT_TILT, STARS_TILT_MAX_DEG, type HandCamera, type HandState } from '../components/guide/skychart/window/camera';
+import { createHandCamera, handRotation, initialHand, type HandCamera } from '../components/guide/skychart/window/camera';
+import { FacingPicker } from '../components/guide/skychart/window/FacingPicker';
 import { groundState, WINDOW_FOV, type View } from '../components/guide/skychart/window/projection';
 import type { SkyScene, StarField } from '../components/guide/skychart/window/scene';
 import { SkyWindow } from '../components/guide/skychart/window/SkyWindow';
@@ -19,7 +18,6 @@ import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { OptionToggle } from '../components/primitives/OptionToggle';
 import { SectionHeading } from '../components/primitives/SectionHeading';
 import { TextButton } from '../components/primitives/TextButton';
-import { ToggleGroup } from '../components/primitives/ToggleGroup';
 import { VisuallyHidden } from '../components/primitives/VisuallyHidden';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
@@ -65,23 +63,6 @@ import styles from './Stars.module.css';
 const STARS_TICK_MS = 10_000;
 
 const ALL_LAYERS: StarField['layers'] = { stars: true, figures: true, planets: true, names: true };
-
-/** FR-STAR-3: the picker's eight points, then the zenith. */
-const FACING_POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const satisfies readonly CompassPoint[];
-type Facing = (typeof FACING_POINTS)[number] | 'up';
-
-/** The picker's pressed option: the zenith, a point the hand is exactly at, or none after a drag. */
-function facingOf({ azDeg, altDeg }: HandState): Facing | '' {
-  if (altDeg >= STARS_TILT_MAX_DEG) return 'up';
-  return FACING_POINTS.find((point) => Math.abs(normalizeAzimuthDeg(azDeg - bearingOf(point) + 180) - 180) < 1e-6) ?? '';
-}
-
-/**
- * A compass point from the zenith: `face` keeps the tilt (FR-STAR-4), and at 90° every azimuth is the same view, so
- * the point would change nothing the reader sees. From `up` a point also brings the view down to the opening tilt,
- * in the window's own `↓` steps (55° is eleven of them), so the camera's moves stay the five it has.
- */
-const FROM_ZENITH_STEPS = (STARS_DEFAULT_TILT - STARS_TILT_MAX_DEG) / PITCH_STEP_DEG;
 
 const UNMEASURED = { width: 0, height: 0 };
 
@@ -181,9 +162,9 @@ function StarsSky({ observer }: { observer: Observer }) {
       const { width, height } = layout.getBoundingClientRect();
       const gap = parseFloat(getComputedStyle(layout).columnGap) || 0;
       const rail = probeRef.current?.getBoundingClientRect().width ?? 0;
-      const aspect = window.innerHeight > 0 ? window.innerWidth / window.innerHeight : 1;
-      const box = fitBox({ frameWidthPx: width, frameHeightPx: height, aboveHeightPx: 0, belowHeightPx: 0, besideWidthPx: rail + gap, aspect });
-      const next = { w: `${String(Math.floor(box.widthPx))}px`, h: `${String(Math.floor(box.heightPx))}px` };
+      // R121 (D-789): `windowBox`, the rule the live page's and the pass detail's window share with this page.
+      const box = fitWindowBox({ frameWidthPx: width, frameHeightPx: height, aboveHeightPx: 0, belowHeightPx: 0, besideWidthPx: rail + gap, viewportWidthPx: window.innerWidth, viewportHeightPx: window.innerHeight });
+      const next = { w: `${String(box.widthPx)}px`, h: `${String(box.heightPx)}px` };
       if (layout.style.getPropertyValue('--stars-box-w') !== next.w) layout.style.setProperty('--stars-box-w', next.w);
       if (layout.style.getPropertyValue('--stars-box-h') !== next.h) layout.style.setProperty('--stars-box-h', next.h);
     };
@@ -323,7 +304,6 @@ function StarsSky({ observer }: { observer: Observer }) {
     windowRefocused();
   }, [screenOpen, windowRefocused]);
 
-  const facingOptions = useMemo(() => [...FACING_POINTS.map((point) => ({ value: point as Facing, label: point })), { value: 'up' as Facing, label: p.up }], [p.up]);
   const toggle = (key: keyof StarField['layers']) => () => {
     setLayers((was) => ({ ...was, [key]: !was[key] }));
   };
@@ -346,8 +326,8 @@ function StarsSky({ observer }: { observer: Observer }) {
             <SectionHeading id={facingId} visuallyHidden={!wide}>
               {p.facing}
             </SectionHeading>
-            {/* The compact speeds' form (D-245), a cell between the options: `N NE E SE [S] SW W NW up`, 24 cells in English, 28 in Spanish (FR-COMP-4). */}
-            <FacingPicker camera={camera} name={p.facing} options={facingOptions} />
+            {/* R121 (D-789): the window lane's picker, the eight points and the zenith — the row it was here (R115), shared with the chart's window. */}
+            <FacingPicker camera={camera} className={styles.row} />
           </section>
           <section aria-labelledby={layersId} className={styles.block}>
             <SectionHeading id={layersId} visuallyHidden={!wide}>
@@ -411,22 +391,6 @@ type StarsScreenProps = Pick<SkyScreenProps, 'observer' | 'now' | 'sun' | 'moon'
 function StarsScreen({ camera, scene, observer, now, sun, moon, onClose }: StarsScreenProps) {
   const [facingAzDeg] = useState(() => camera.get().azDeg);
   return createPortal(<SkyScreen inventory="stars" scene={scene} observer={observer} now={now} {...(sun === undefined ? {} : { sun })} {...(moon === undefined ? {} : { moon })} initialFacingAzDeg={facingAzDeg} onClose={onClose} />, document.body);
-}
-
-/** The facing picker: its pressed option is a string read from the camera, so it re-renders only when that changes. */
-function FacingPicker({ camera, name, options }: { camera: HandCamera; name: string; options: readonly { value: Facing; label: string }[] }) {
-  const read = useCallback(() => facingOf(camera.get()), [camera]);
-  const facing = useSyncExternalStore(camera.subscribe, read, read);
-  const turnTo = (value: Facing): void => {
-    if (value === 'up') {
-      camera.up();
-      return;
-    }
-    const fromZenith = camera.get().altDeg >= STARS_TILT_MAX_DEG;
-    camera.face(value);
-    if (fromZenith) camera.stepPitch(FROM_ZENITH_STEPS);
-  };
-  return <ToggleGroup<Facing> name={name} mark="tight" options={options} value={facing as Facing} onChange={turnTo} className={styles.row} />;
 }
 
 interface FieldSectionProps {

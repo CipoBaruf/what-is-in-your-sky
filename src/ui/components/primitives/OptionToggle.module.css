@@ -35,3 +35,12 @@
 .alone {
   padding: 0;
 }
+
+/* `inline` (R121, FR-FSC-6 as amended v2.5, D-834): the option's line is one
+   text row and its 48 px box is `inline-control`'s (global.css) — padding and
+   a matching negative margin — as `TextButton`'s `inline` has it; the box's
+   own floor goes, or the line it stands on would grow. A group of these that
+   wraps to two lines is two text rows: one tap row, not two. */
+.inline {
+  min-height: 0;
+}

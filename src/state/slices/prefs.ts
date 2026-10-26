@@ -5,7 +5,8 @@ import { decline, type InstallAnswer } from '../../lib/installSnooze';
 import { DEFAULT_PASS_SORT } from '../../lib/passSort';
 import { browserLanguages, resolveLocale } from '../../i18n/locale';
 import { DEFAULT_CHART_ORIENTATION } from '../../lib/skyGeometry';
-import { DEFAULT_LIVE_LEGEND_OPEN, DEFAULT_SHOW_FAINT, DEFAULT_THEME, savedChartView as narrowChartView, type ChartOrientation, type EpochMs, type Favourite, type Locale, type Observer, type PassSort, type SavedChartView, type Theme } from '../../model';
+import { WIDE_QUERY } from '../../lib/layout';
+import { compactChartView, DEFAULT_LIVE_LEGEND_OPEN, DEFAULT_SHOW_FAINT, DEFAULT_THEME, type ChartOrientation, type ChartView, type EpochMs, type Favourite, type Locale, type Observer, type PassSort, type Theme } from '../../model';
 import type { AppState } from '../store';
 
 /**
@@ -51,6 +52,13 @@ import type { AppState } from '../store';
  * dome and the polar chart — the window is a mode, not a view a page can be
  * left in — and a `'window'` written by an older build is migrated to the dome
  * on load, once, so nothing downstream has to know the old shape.
+ * R121 (FR-WIN-5 and FR-SKY-2 as amended v2.5; D-789, D-808): the window is a
+ * saved view again, on wide — laid out in the box under the hand camera — and
+ * the migration becomes a load guard: below `lib/layout.ts`'s wide breakpoint
+ * (`deps.wide`, asked once at load) a stored `window` reads as the dome and is
+ * *not* rewritten, so the desk's choice survives a visit from a phone-sized
+ * window; a compact choice of the window is the chart's own state and never
+ * reaches here (FR-SKY-2).
  *
  * Beside it are the three things the screen and the page that opened it have
  * to agree on, all session-only: `skyScreen`, whether the layer is up;
@@ -65,20 +73,25 @@ export interface PrefsDeps {
   prefs: LocalPrefs;
   /** The same clock `LocationDeps` uses; the slice stamps `lastUsedAt` with it and never reads the wall clock itself. */
   now: () => EpochMs;
+  /** D-789 (R121): whether the viewport is wide at load — the chart view's guard. Absent, `viewportIsWide` below. */
+  wide?: () => boolean;
 }
+
+/** D-789: the load guard's question, asked once: `lib/layout.ts`'s one wide query, which is what every page lays out by (D-72). */
+const viewportIsWide = (): boolean => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(WIDE_QUERY).matches;
 
 /** US-6 AC3: the dome is the default chart view; until R15 registers it, `SkyChart` falls back to the polar view. */
 // FR-DOME-7: the dome again, now that FR-DOME-1..4 and FR-DOME-8 have made it readable. D-68 (polar for now) is closed by V1-4.
-export const DEFAULT_CHART_VIEW: SavedChartView = 'dome';
+export const DEFAULT_CHART_VIEW: ChartView = 'dome';
 
 export interface PrefsSlice {
   /** The pass list order (US-5 AC2), `chronological` unless saved otherwise. */
   sort: PassSort;
   setSort: (sort: PassSort) => void;
-  /** The sky chart view (US-6 AC5), the dome unless saved otherwise (V1-4); never the window, which is a mode (D-352). */
-  chartView: SavedChartView;
-  /** Sets the view, through to storage. The window is not one of them: choosing it opens the screen and writes nothing. */
-  setChartView: (view: SavedChartView) => void;
+  /** The sky chart view (US-6 AC5), the dome unless saved otherwise (V1-4); the window only on wide (D-789), where it is a view. */
+  chartView: ChartView;
+  /** Sets the view, through to storage. On compact the window is not one of them: choosing it opens the screen and writes nothing. */
+  setChartView: (view: ChartView) => void;
   /**
    * R71 (FR-LEG-7, D-387): whether the compact live page's legend panel is
    * open. Closed unless saved otherwise, so a first visit gets the box at
@@ -157,16 +170,15 @@ export interface PrefsSlice {
 }
 
 /**
- * D-352: the stored view, narrowed, and the migration that goes with it. A
- * device that chose the window before v1.3.1 has `'window'` under the key;
- * it reads as the dome and is rewritten at once, so the preference the reader
- * sees is the one the app will keep using.
+ * D-789 (R121): the stored view behind the load guard. On wide it is what was
+ * saved, the window included; on compact the window is the screen and not a
+ * view a page opens on, so a stored `window` reads as the dome and stays in
+ * storage as it was. D-352's one-off rewrite of a pre-v1.3.1 `window` is gone
+ * with the rule it served: nothing is written on load any more.
  */
-function migrateChartView(prefs: LocalPrefs): SavedChartView {
-  const stored = prefs.read();
-  const view = narrowChartView(stored.chartView, DEFAULT_CHART_VIEW);
-  if (stored.chartView === 'window') prefs.write({ ...stored, chartView: view });
-  return view;
+function loadChartView(prefs: LocalPrefs, wide: () => boolean): ChartView {
+  const stored = prefs.read().chartView ?? DEFAULT_CHART_VIEW;
+  return wide() ? stored : compactChartView(stored);
 }
 
 /**
@@ -212,7 +224,7 @@ export const createPrefsSlice =
         set({ sort });
         deps.prefs.write({ ...deps.prefs.read(), sort });
       },
-      chartView: migrateChartView(deps.prefs),
+      chartView: loadChartView(deps.prefs, deps.wide ?? viewportIsWide),
       setChartView: (chartView) => {
         set({ chartView, windowNote: null });
         deps.prefs.write({ ...deps.prefs.read(), chartView });

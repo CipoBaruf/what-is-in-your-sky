@@ -15,11 +15,15 @@ import { quantise } from '../../../live/compassHeading';
 import { useDeclination } from '../../../live/useDeclination';
 import { NextEventBlock } from '../../../passes/NextEventBlock';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
+import { useLayoutMode } from '../../../../hooks/useLayoutMode';
+import { TextButton } from '../../../primitives/TextButton';
+import { useSkyScreen } from '../../../screen/useSkyScreen';
 import { ChartFrame } from '../ChartFrame';
 import { sceneFor } from '../layers';
-import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
-import { SENSOR_CAMERA } from './camera';
+import { arcOf, FACING_OPTIONS, type ChartPass, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
+import { createHandCamera, facePeak, initialHand, SENSOR_CAMERA, type SkyCamera } from './camera';
 import { CompassGutter } from './CompassGutter';
+import { FacingPicker, type FacingPickerProps } from './FacingPicker';
 import { gutterMarks, passBearing, turnTo, type GutterMark, type GutterPass } from './gutter';
 import { COMPASS, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type SkyPoint, type View } from './projection';
 import { nearestQuarter, type Quarter } from './screenTurn';
@@ -363,7 +367,7 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
 }
 
 export function SkyWindow(props: SkyWindowProps) {
-  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, overlay, onUnavailable, scene: given, camera = SENSOR_CAMERA, inventory = 'passes', namedStar = null, onNameStar, className } = props;
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, overlay, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, inventory = 'passes', namedStar = null, onNameStar, className } = props;
   // FR-SKY-1 (R119): the scene through the layer table. The window's row has every layer and no cap, so today this is the page's scene object; the memo keeps it so if the row ever drops one.
   const scene = useMemo(() => sceneFor('window', given), [given]);
   // D-323: `screen` reaches `SkyChartProps` with R62 (D-322); read through a cast, so this compiles either side of it.
@@ -371,6 +375,26 @@ export function SkyWindow(props: SkyWindowProps) {
   const t = useT();
   const sp = useStarsPageT();
   const locale = useLocale();
+  const compact = useLayoutMode() === 'compact';
+  /*
+   * FR-SKY-7 (D-790): the explained pass — the pass detail's one — and its peak where the page's picker offers
+   * `peak`. The pass detail's window opens facing it, on the page and on the screen before the first reading.
+   */
+  const explained = useMemo(() => passes.find((pass) => pass.id === highlightedPassId) ?? null, [passes, highlightedPassId]);
+  const peak = facingOptions.includes('peak') && explained !== null ? explained.peak : null;
+  /*
+   * D-789 (R121): the camera. The stars page hands one in; the chart hands a slot, from which this window takes
+   * the camera a window before it left, or makes one on its first mount — the pass detail's at the peak, the live
+   * page's at the pole side (FR-STAR-3's rule) — and leaves it there, so the dome and back finds the facing where
+   * it was. Neither given, the sensor drives.
+   */
+  const [slotCamera] = useState(() => (hand !== undefined && givenCamera === undefined ? (hand.get() ?? createHandCamera(peak !== null ? facePeak(peak, WINDOW_FOV) : initialHand(observer.lat))) : null));
+  useEffect(() => {
+    if (slotCamera !== null) hand?.keep(slotCamera);
+  }, [hand, slotCamera]);
+  const camera: SkyCamera = givenCamera ?? slotCamera ?? SENSOR_CAMERA;
+  // FR-SKY-2: the window laid out in the page's box under the hand — the frame cuts the box and corners the readout.
+  const inBox = hand !== undefined && camera.source === 'hand' && !onScreen;
   // R44: the observer's declination, once per observer; the hook folds it into every heading.
   const declinationDeg = useDeclination(observer);
 
@@ -397,10 +421,17 @@ export function SkyWindow(props: SkyWindowProps) {
   // Under the hand there is no first reading to wait for, so nothing is computed and the hook never reads it.
   const placeholder = useMemo(() => {
     if (byHand) return NO_PLACEHOLDER;
-    const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
+    // FR-SKY-7 (R121, D-790): opened from a pass detail — an explained pass and no facing of the caller's — the
+    // screen looks at the peak as `facePeak` says until the sensor's first reading. The live page's screen, which
+    // names its facing, keeps D-241's placeholder.
+    if (explained !== null && initialFacingAzDeg === undefined) {
+      const aim = facePeak(explained.peak, WINDOW_FOV);
+      return uprightRotation(aim.azDeg, aim.altDeg);
+    }
+    const highlighted = explained ?? passes[0];
     const placeholderAlt = placeholderAltDeg(highlighted?.peak.elDeg, { fovDeg: WINDOW_FOV, width: size.width, height: size.height, screenAngleDeg: 0 });
     return uprightRotation(initialFacingAzDeg ?? highlighted?.peak.azDeg ?? 0, placeholderAlt);
-  }, [byHand, passes, highlightedPassId, initialFacingAzDeg, size.width, size.height]);
+  }, [byHand, passes, explained, initialFacingAzDeg, size.width, size.height]);
 
   // R113 (D-750, D-751): the one rotation, from the sensor or the hand, and the channel the star field reads it by.
   const { rotation: m, live, subscribe, orientation } = useViewRotation(camera, declinationDeg, placeholder);
@@ -679,20 +710,43 @@ export function SkyWindow(props: SkyWindowProps) {
     </p>
   ) : null;
 
+  /*
+   * FR-SKY-2 (D-789, D-790): the window in the page's box has the stars page's controls around it — the facing
+   * picker from the page's list and, where the device has a sensor as well (a tablet), `[ hold up to the sky ]`,
+   * which opens the screen as the stars page's does. In the rail where the page has one (the wide live page), in
+   * the frame's controls row otherwise (the pass detail, the compact pages), after the view control.
+   */
+  const railed = inBox && fill && aside !== undefined && aside !== null;
+  const facingRow =
+    inBox && handCamera ? (
+      <HandFacingRow camera={handCamera} options={facingOptions} peak={peak} prefix={!compact} />
+    ) : null;
+
   return (
     <div
       className={[styles.window, className].filter(Boolean).join(' ')}
       data-state={byHand ? 'hand' : state}
       data-ground={ground}
       {...(onScreen ? { 'data-screen': 'true', 'data-orientation': upright ? 'portrait' : 'landscape' } : {})}
+      {...(inBox ? { 'data-in-box': 'true' } : {})}
       data-look-az={quantise(look.azDeg)}
       data-look-alt={Math.round(look.altDeg)}
     >
       <ChartFrame
         fill={fill}
         legend={legend}
-        aside={aside}
+        aside={
+          railed ? (
+            <>
+              {facingRow}
+              {aside}
+            </>
+          ) : (
+            aside
+          )
+        }
         stripe={stripe}
+        handWindow={inBox}
         {...(boxAspect === undefined ? {} : { boxAspect })}
         {...(stacked === undefined ? {} : { stacked })}
         {...(legendOpen === undefined ? {} : { legendOpen })}
@@ -735,8 +789,9 @@ export function SkyWindow(props: SkyWindowProps) {
           onScreen ? undefined : (
             <>
               {controls}
-              {/* The hint is the sensor's ("hold the phone up"); the hand's box has the page's rows for its controls. */}
+              {/* The hint is the sensor's ("hold the phone up"); the hand's box has its own hint in the box (below). */}
               {!byHand && <p className={styles.hint}>{t.window.hint}</p>}
+              {!railed && facingRow}
             </>
           )
         }
@@ -858,12 +913,35 @@ export function SkyWindow(props: SkyWindowProps) {
               {chip}
             </p>
           )}
+          {/* FR-SKY-2 (D-789): the hand's hint in the box's bottom-left corner — the dome's words for the window's controls. */}
+          {inBox && (
+            <p className={styles.handHint} data-testid="window-hand-hint">
+              {t.window.handHint}
+            </p>
+          )}
           {/* R66 (FR-WIN-5 as amended v1.3.1, V13-8): no `[ point at the sky ]`. The window is only ever mounted
               on the sky screen, and the tap that opened the screen is the tap that asked (FR-WIN-4, D-350), so
               the gate had nothing left to guard: it was already suppressed on a screen (R64), and a screen is
               now the only place a window is. `useDeviceOrientation` keeps `start` for the state machine. */}
         </div>
       </ChartFrame>
+    </div>
+  );
+}
+
+/**
+ * FR-SKY-2 (D-789): the in-box window's facing row — the picker and, where the device has a sensor as well (a
+ * tablet), `[ hold up to the sky ]`, which is `useSkyScreen.open()`. Its own component so the screen's store and
+ * the presence test are read by the window in a page's box alone, not by the stars page's or the screen's.
+ */
+function HandFacingRow({ camera, options, peak, prefix }: Pick<FacingPickerProps, 'camera' | 'options' | 'peak' | 'prefix'>) {
+  const sp = useStarsPageT();
+  // On a compact page without a sensor there is no way to the screen to offer.
+  const entry = useSkyScreen();
+  return (
+    <div className={styles.facingRow} data-testid="window-facing">
+      <FacingPicker camera={camera} {...(options === undefined ? {} : { options })} {...(peak === undefined ? {} : { peak })} {...(prefix === undefined ? {} : { prefix })} />
+      {entry.available && <TextButton label={sp.holdUp} onClick={entry.open} data-testid="window-hold-up" />}
     </div>
   );
 }

@@ -1,10 +1,59 @@
 import type { ComponentType, ReactNode } from 'react';
 import type { ArcState } from '../../../../lib/arcReveal';
+import type { CompassPoint } from '../../../../lib/compass';
 import type { LegendRow } from '../../../../lib/legend';
 import type { SunState } from '../../../../lib/skyBodies';
 import type { ChartView, EpochMs, MoonState, Observer, Pass } from '../../../../model';
-import type { SkyCamera } from './window/camera';
+import type { HandCamera, SkyCamera } from './window/camera';
 import type { SkyScene } from './window/scene';
+
+/**
+ * R121 (FR-STAR-3, FR-SKY-7; D-789, D-790): the facing picker's options. The
+ * lists are values a page names — the pass detail's puts `peak` first — and
+ * they stand here, beside the props that carry them, rather than in
+ * `window/camera.ts`, so a page in the main chunk can name one without
+ * pulling the camera and the projection in with it; `camera.ts` re-exports
+ * them for the picker and the tests.
+ */
+/** The picker's eight points, in the order the row shows them. */
+export const FACING_POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const satisfies readonly CompassPoint[];
+/** What the picker can offer: a point, the zenith, or (the pass detail) the explained pass's peak. */
+export type FacingOption = (typeof FACING_POINTS)[number] | 'up' | 'peak';
+/** The stars page's and the live page's list: the eight points, then the zenith. */
+export const FACING_OPTIONS: readonly FacingOption[] = [...FACING_POINTS, 'up'];
+/** The pass detail's list (D-790): `peak` first, then the eight points and the zenith. */
+export const PEAK_FACING_OPTIONS: readonly FacingOption[] = ['peak', ...FACING_POINTS, 'up'];
+
+/**
+ * D-789 (R121): the place the chart keeps for the window's hand camera. The
+ * chart is in the main chunk and may not make the camera itself — that would
+ * pull `camera.ts` and the projection in with it — so it holds the slot and
+ * the window fills it on its first mount, in its own chunk; the chart keeps
+ * the slot across a view change and back, which is what keeps the facing.
+ */
+export interface HandSlot {
+  /** The camera a window left here, or `null` before the first one. */
+  get(): HandCamera | null;
+  /** The window's camera, kept for the next window this chart mounts. */
+  keep(camera: HandCamera): void;
+}
+
+/**
+ * D-789 (R121 review): what a page holds for the window in its box, so it
+ * outlives the chart that draws it — the hand camera's slot, and the compact
+ * reader's unsaved choice of the window where there is no sensor
+ * (`handWindow`, FR-SKY-2). The live page mounts a different chart for the
+ * landscape rail than for portrait and none at all while the sky screen is up,
+ * so the facing and the choice are the page's and survive a rotation and a
+ * trip to the screen; the choice is compact's alone and is dropped when the
+ * layout goes wide, so the saved view is what comes back. `useChartHand`.
+ */
+export interface ChartHand {
+  slot: HandSlot;
+  /** The compact choice of the window without a sensor; always false on wide. */
+  window: boolean;
+  setWindow(on: boolean): void;
+}
 
 /**
  * FR-TRAJ-1 / D-189 (R45): a pass with the state its arc is drawn in at the
@@ -230,6 +279,31 @@ export interface SkyChartProps {
   namedStar?: number | null;
   /** FR-STAR-7: the tap on a mark, or on nothing, asking the holder to set `namedStar`. */
   onNameStar?: (i: number | null) => void;
+  /**
+   * FR-SKY-2 / D-789 (R121): the window is this page's view, laid out in the
+   * frame's box under the hand camera — `SkyChart` hands its slot to the view
+   * it mounts, and the window fills it (its `camera` prop, given, wins). With
+   * it the window asks the frame for the window's box on wide, draws the hand
+   * hint in the box's corner, and places the facing picker: in the rail where
+   * the page has one, in the controls row otherwise. Absent on the stars page,
+   * which lays the frame out itself, and on a screen. The dome and the polar
+   * chart ignore it.
+   */
+  hand?: HandSlot;
+  /**
+   * FR-SKY-7 / D-790 (R121): the facing picker's option list, from the page:
+   * the pass detail's `PEAK_FACING_OPTIONS`, whose `peak` is the explained
+   * pass's (`highlightedPassId`) and where the window opens; absent, the eight
+   * points and the zenith. Read with `hand` by the window alone.
+   */
+  facingOptions?: readonly FacingOption[];
+  /**
+   * D-789 (R121 review): the page's `ChartHand`, for a page whose chart is
+   * remounted while the page is not (the live page). Read by `SkyChart`
+   * alone, which keeps its own where it is absent; the views get its slot as
+   * `hand`.
+   */
+  chartHand?: ChartHand;
   className?: string;
 }
 
@@ -247,12 +321,6 @@ export interface HiddenMarker {
 export interface SkyChartView {
   Component: ComponentType<SkyChartProps>;
   id: ChartView;
-  /**
-   * FR-WIN-4 / D-188 (R47): whether this device can show the view at all;
-   * absent means always. The toggle offers only the available views, and a
-   * saved preference for one that is not falls back to the dome.
-   */
-  available?: () => boolean;
   /**
    * D-240 (R47): called inside the tap that picks the view, before it mounts.
    * The window's orientation permission is requested here (FR-WIN-4: in the
