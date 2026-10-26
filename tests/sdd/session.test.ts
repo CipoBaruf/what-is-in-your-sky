@@ -4,7 +4,7 @@
  * synthetic sentence — and the sentence alone for a CLI that drops the event.
  */
 import { describe, expect, it } from 'vitest';
-import { isLimitStop, limitFromEvent } from '../../scripts/sdd/session';
+import { isLimitStop, limitFromEvent, MAX_RESET_WAIT_MS, RESET_MARGIN_MS, resetWaitMs } from '../../scripts/sdd/session';
 
 /** Verbatim from `logs/sdd/R42-2026-09-05T21-18-43-739Z.log`. */
 const EVENT = JSON.parse(
@@ -40,5 +40,25 @@ describe('isLimitStop', () => {
     expect(isLimitStop('The rate limit on the geocoder is one request a second.')).toBe(false);
     expect(isLimitStop(null)).toBe(false);
     expect(isLimitStop(undefined)).toBe(false);
+  });
+});
+
+describe('resetWaitMs (D-835)', () => {
+  const now = 1788646200_000 - 30 * 60_000;
+  const limit = { window: 'five_hour', resetsAt: 1788646200_000, accountWide: true };
+
+  it('waits to the reset and the margin past it', () => {
+    expect(resetWaitMs(limit, now)).toBe(30 * 60_000 + RESET_MARGIN_MS);
+  });
+
+  it('waits only the margin when the reset has already passed', () => {
+    expect(resetWaitMs(limit, limit.resetsAt + 60_000)).toBe(RESET_MARGIN_MS);
+  });
+
+  it('does not wait for an unknown reset, or one past the cap', () => {
+    expect(resetWaitMs({ ...limit, resetsAt: null }, now)).toBeNull();
+    expect(resetWaitMs(null, now)).toBeNull();
+    expect(resetWaitMs({ ...limit, window: 'seven_day', resetsAt: now + 2 * 24 * 60 * 60_000 }, now)).toBeNull();
+    expect(resetWaitMs({ ...limit, resetsAt: now + MAX_RESET_WAIT_MS }, now)).toBeNull();
   });
 });

@@ -15,10 +15,12 @@ export interface Options {
   model: SessionModel | null;
   /** §16.4 step 10 (D-197): retry a limit-stopped session once on the next model. On unless `--no-fallback`. */
   fallback: boolean;
+  /** §16.4 step 10 (D-835): wait out an account limit and resume in the same worktree. On unless `--no-wait`. */
+  waitForReset: boolean;
 }
 
 export function parseArgs(argv: readonly string[]): Options {
-  const options: Options = { mode: 'help', taskId: null, tasksFile: null, model: null, fallback: true };
+  const options: Options = { mode: 'help', taskId: null, tasksFile: null, model: null, fallback: true, waitForReset: true };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--status') options.mode = 'status';
@@ -39,6 +41,8 @@ export function parseArgs(argv: readonly string[]): Options {
       options.model = model;
     } else if (arg === '--fallback') options.fallback = true;
     else if (arg === '--no-fallback') options.fallback = false;
+    else if (arg === '--wait') options.waitForReset = true;
+    else if (arg === '--no-wait') options.waitForReset = false;
     else if (arg === '--help' || arg === '-h') options.mode = 'help';
     else throw new Error(`unknown argument \`${String(arg)}\``);
   }
@@ -56,6 +60,7 @@ export const helpText = (base: string): string => `sdd-run — the v1 task drive
   npm run sdd -- --task R17               run one task, dependencies checked
   npm run sdd -- --task R22 --model opus  the same, on another model than TASKS.md says (§16.6)
   npm run sdd -- --wave --no-fallback     do not retry a limit-stopped session on the next model (§16.4 step 10)
+  npm run sdd -- --wave --no-wait         end a task as limit instead of waiting for the reset and resuming (D-835)
 
   --tasks-file <path>                     read TASKS.md from a file instead of ${base}
                                           (--status and --dry-run only)

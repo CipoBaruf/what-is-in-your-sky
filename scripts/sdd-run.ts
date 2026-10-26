@@ -23,7 +23,7 @@ import { helpText, parseArgs, type Options } from './sdd/cli';
 import { fallbackFor, limitsFor, modelFor, nextModel, parseTasks, reviewModelFor, type SessionModel, type Task } from './sdd/tasks';
 import { addWorktree, branchAt, changedFiles, commentOnPullRequest, commitsAhead, createPullRequest, dirtyFiles, fetchOrigin, fileExistsAtRef, installDeps, labelPullRequest, mergePullRequest, openPullRequests, push, readTasksAtRef, rebaseOnto, remoteBranches, removeWorktree, watchChecks } from './sdd/git';
 import { consoleLogger, openTaskLog, writeRunReport, type Logger, type RunReport, type TaskReport } from './sdd/report';
-import { DENIED_TOOLS, IMPLEMENT_TOOLS, resetTime, REVIEW_TOOLS, runSession, type SessionOptions, type SessionResult } from './sdd/session';
+import { DENIED_TOOLS, IMPLEMENT_TOOLS, MAX_RESET_WAITS, resetTime, resetWaitMs, REVIEW_TOOLS, runSession, type SessionOptions, type SessionResult } from './sdd/session';
 import { openFindings, refusalFor, selectWave, statusOf, type TaskStatus } from './sdd/waves';
 
 const BASE = 'origin/main';
@@ -159,15 +159,28 @@ function writeBrief(dir: string, task: Task, logger: Logger): string {
  * and `--fallback` is on. The limit seen on 2026-09-05 was the account's
  * five-hour window, which every model shares, so that one ends the task
  * `limit` with the reset time and keeps the worktree for a later run to
- * resume. Every attempt lands in `attempts`.
+ * resume. Every attempt lands in `attempts`. With `waitForReset` (D-835, on
+ * unless `--no-wait`) that limit is waited out instead: the driver sleeps to
+ * the reset and runs the stage again in the same worktree, on `resumePrompt`
+ * where one is given, up to `MAX_RESET_WAITS` times.
  */
-async function runWithFallback(stage: 'implement' | 'review', model: SessionModel, options: Omit<SessionOptions, 'model'>, fallback: boolean, attempts: TaskReport['attempts']): Promise<{ session: SessionResult; model: SessionModel }> {
+async function runWithFallback(stage: 'implement' | 'review', model: SessionModel, options: Omit<SessionOptions, 'model'>, fallback: boolean, attempts: TaskReport['attempts'], waitForReset = false, resumePrompt?: string): Promise<{ session: SessionResult; model: SessionModel }> {
   let current = model;
+  let prompt = options.prompt;
+  let waits = 0;
   for (;;) {
-    const session = await runSession({ ...options, model: current });
+    const session = await runSession({ ...options, prompt, model: current });
     attempts.push({ stage, model: current, outcome: session.outcome, durationMs: session.durationMs });
     const next = session.outcome === 'limit' && fallback && !session.limit?.accountWide ? nextModel(current) : null;
     if (next === null) {
+      const wait = session.outcome === 'limit' && waitForReset && waits < MAX_RESET_WAITS ? resetWaitMs(session.limit, Date.now()) : null;
+      if (wait !== null) {
+        waits += 1;
+        options.logger.line(`  the ${stage} session ended on the account limit (${session.limit?.window ?? 'window unknown'}); waiting until ${resetTime(session.limit)} and resuming in the same worktree (D-835, wait ${String(waits)} of ${String(MAX_RESET_WAITS)})`);
+        await new Promise((done) => setTimeout(done, wait));
+        if (resumePrompt !== undefined) prompt = resumePrompt;
+        continue;
+      }
       if (session.outcome === 'limit') options.logger.line(`  the ${stage} session ended on the account limit (${session.limit?.window ?? 'window unknown'}, resets ${resetTime(session.limit)}); no model escapes it, the worktree is kept`);
       return { session, model: current };
     }
@@ -185,7 +198,7 @@ function prBody(task: Task, handoff: Handoff, screenshots: readonly string[], lo
 }
 
 /** §16.4 steps 1–8 for one task. `slot` is its place in the wave: the e2e port and, when the wave has more than one task, the console prefix. */
-async function runTask(status: TaskStatus, slot: { index: number; count: number }, fallback: boolean): Promise<TaskReport> {
+async function runTask(status: TaskStatus, slot: { index: number; count: number }, fallback: boolean, waitForReset: boolean): Promise<TaskReport> {
   const { task } = status;
   const logger = openTaskLog(task.id, undefined, undefined, { prefixConsole: slot.count > 1 });
   const env = { npm_config_cache: NPM_CACHE, E2E_PORT: String(E2E_BASE_PORT + slot.index) };
@@ -248,12 +261,14 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
   const limits = limitsFor(task, { implement: IMPLEMENT, review: REVIEW });
   const retryOnLimit = fallbackFor(task, fallback);
   logger.line(`  running the implementation session… (${String(limits.implement.maxTurns)} turns, ${String(Math.round(limits.implement.timeoutMs / 60_000))} min, fallback ${retryOnLimit ? 'on' : 'off'})`);
+  const implementPrompt = (cutShort: boolean): string =>
+    `Use the sdd-implement skill on ${task.id}. Read ${brief} first: it replaces SPEC.md, PLAN.md and TASKS.md for this session. This is a headless session: decide and record rather than ask, and commit each coherent step as you finish it — an uncommitted worktree is what the turn cap and the wall clock throw away.${cutShort ? ` An earlier session on this branch was cut short: read \`git log ${BASE}..HEAD\` and \`git status\` first, commit what it left in the working tree if it is coherent, and continue from there rather than starting over.` : ''}`;
   const { session, model } = await runWithFallback(
     'implement',
     modelFor(task),
     {
       cwd: dir,
-      prompt: `Use the sdd-implement skill on ${task.id}. Read ${brief} first: it replaces SPEC.md, PLAN.md and TASKS.md for this session. This is a headless session: decide and record rather than ask, and commit each coherent step as you finish it — an uncommitted worktree is what the turn cap and the wall clock throw away.${resumed ? ` An earlier session on this branch was cut short: read \`git log ${BASE}..HEAD\` and \`git status\` first, commit what it left in the working tree if it is coherent, and continue from there rather than starting over.` : ''}`,
+      prompt: implementPrompt(resumed),
       maxTurns: limits.implement.maxTurns,
       timeoutMs: limits.implement.timeoutMs,
       allowedTools: IMPLEMENT_TOOLS,
@@ -262,6 +277,8 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
     },
     retryOnLimit,
     report.attempts,
+    waitForReset,
+    implementPrompt(true),
   );
   report.model = model;
   report.durations.implementMs = report.attempts.filter((attempt) => attempt.stage === 'implement').reduce((sum, attempt) => sum + attempt.durationMs, 0);
@@ -305,6 +322,7 @@ async function runTask(status: TaskStatus, slot: { index: number; count: number 
     },
     retryOnLimit,
     report.attempts,
+    waitForReset,
   );
   report.durations.reviewMs = report.attempts.filter((attempt) => attempt.stage === 'review').reduce((sum, attempt) => sum + attempt.durationMs, 0);
   const findings = readHandoff(dir, task.id).findings;
@@ -379,7 +397,8 @@ async function main(): Promise<number> {
   // D-132: the wave runs concurrently; each task has its own worktree, log, port and PR.
   if (planned.length > 1) consoleLogger.line(`\nRunning ${String(planned.length)} at once; console lines are prefixed with the task id, the full transcripts are the per-task logs.`);
   if (!options.fallback) consoleLogger.line('--no-fallback: a session that ends on the account limit fails its task (§16.4 step 10).');
-  reports.push(...(await Promise.all(planned.map((status, index) => runTask(status, { index, count: planned.length }, options.fallback)))));
+  if (!options.waitForReset) consoleLogger.line('--no-wait: a session that ends on the account limit ends its task `limit` instead of waiting for the reset (D-835).');
+  reports.push(...(await Promise.all(planned.map((status, index) => runTask(status, { index, count: planned.length }, options.fallback, options.waitForReset)))));
   const run: RunReport = { startedAt: startedAt.toISOString(), finishedAt: new Date().toISOString(), mode: options.mode, tasks: reports };
   consoleLogger.line(`\nRun summary: ${writeRunReport(run)}`);
   for (const report of reports) consoleLogger.line(`  ${report.id.padEnd(4)} ${report.outcome.padEnd(15)} ${report.reason}`);
