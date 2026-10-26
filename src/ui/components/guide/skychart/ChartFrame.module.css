@@ -315,6 +315,17 @@
   column-gap: calc(3 * var(--cell));
 }
 
+/* R121 (FR-FSC-6 as amended v2.5; D-810): the view toggle's third option. With
+   `[ ] Window` the toggle is 35 cells (37 in Spanish), and beside the dome's
+   readout it no longer fits the box column at the live page's mid widths —
+   1024 and 1200 px, and the scrubbing page's column at 1280, all 56–58 cells
+   — so the third option wraps alone under the first two, one row's cost. The
+   container above cannot tell those widths apart: the shell it measures is
+   the box and the rail together, over 100 cells at 1024, and a threshold on
+   the box column alone would be a second container condition under FR-DS-3
+   (a named constant, the listing, `breakpoint.test.ts`), which this task does
+   not add. Left as the frame lays it out; the finding is in R121's Done note. */
+
 .fill[data-compact='false'] .controls,
 .fill[data-compact='false'] .status {
   align-self: baseline;
@@ -323,6 +334,7 @@
 .fill[data-compact='false'] .status {
   min-height: 0;
 }
+
 
 /* FR-LIVE-1 (R32): the live page's chart. The frame is as tall as the box it
    is given, the controls and status rows keep their own height, and the

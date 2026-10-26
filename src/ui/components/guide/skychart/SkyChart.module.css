@@ -24,15 +24,6 @@
   color: var(--fg-dim);
 }
 
-/* FR-FSC-6 as amended v2.5 (R121, D-810): three options on one row. The view
-   toggle is one unit in the frame's controls row: where the row is too narrow
-   for the toggle and the status beside it (the live page's mid widths, 1024
-   and 1200 px, with the dome's readout in the row), the status wraps whole to
-   the next line instead of the third option wrapping alone. */
-.views {
-  flex-wrap: nowrap;
-}
-
 /* FR-WIN-4 (R47): the one-line note a refused or compass-less window leaves under the toggle. */
 .note {
   margin: 0;
