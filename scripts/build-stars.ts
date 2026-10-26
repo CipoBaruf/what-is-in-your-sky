@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { Constellation } from 'astronomy-engine';
 import { STAR_MAG_LIMIT } from '../src/data/stars/constants';
+import { CONSTELLATION_NAMES } from '../src/data/stars/constellations';
 import { angularDistanceDeg } from '../src/lib/skyGeometry';
 
 const SRC = fileURLToPath(new URL('../data-src/stars/', import.meta.url));
@@ -60,9 +61,73 @@ export interface CatalogOut {
   dec: number[];
   mag: number[];
   name: string[];
+  /** The Spanish name where `names-es.tsv` has a row for the star, else `''` (D-832). */
+  nameEs: string[];
   desig: string[];
   con: string[];
   figures: FigureOut[];
+  /** The Spanish name of every drawn part, by abbreviation, indexed by `part` (D-832). */
+  figuresEs: Record<string, string[]>;
+  /** The Spanish name of a constellation drawn in more than one part, whole: `{ Ser: 'Serpiente' }`. */
+  wholeEs: Record<string, string>;
+}
+
+/** The Spanish names as `names-es.tsv` lists them, checked against the catalogue (D-832). */
+export interface NamesEs {
+  stars: Map<string, string>;
+  figures: Record<string, string[]>;
+  whole: Record<string, string>;
+}
+
+/**
+ * `data-src/stars/names-es.tsv`: tab-separated `kind key part es`, `#` comments.
+ * `con` rows by IAU abbreviation and part (`all` for a split constellation
+ * whole), `star` rows by the IAU name the catalogue carries. Fails on an
+ * unknown kind, an abbreviation outside the 88, a part the figure does not
+ * have or one it lacks, a `star` key the catalogue does not carry, a blank
+ * name or a duplicate row.
+ */
+export function parseNamesEs(text: string, starNames: readonly string[]): NamesEs {
+  const known = new Set(starNames.filter((n) => n !== ''));
+  const stars = new Map<string, string>();
+  const figures: Record<string, string[]> = {};
+  const whole: Record<string, string> = {};
+  const seen = new Set<string>();
+  text.split(/\r?\n/).forEach((line, n) => {
+    if (line.startsWith('#') || line.trim() === '') return;
+    const [kind = '', key = '', part = '', es = '', ...rest] = line.split('\t');
+    const at = `names-es.tsv line ${String(n + 1)}`;
+    if (rest.length > 0 || es.trim() === '' || es.trim() !== es) throw new Error(`${at}: expected four fields and a name`);
+    // A part is keyed by its number, so `1` and `01` are the same row.
+    const id = `${kind} ${key} ${/^\d+$/.test(part) ? String(Number(part)) : part}`;
+    if (seen.has(id)) throw new Error(`${at}: duplicate row ${id}`);
+    seen.add(id);
+    if (kind === 'star') {
+      if (part !== '') throw new Error(`${at}: a star row has no part`);
+      if (!known.has(key)) throw new Error(`${at}: ${key} is not a name the catalogue carries`);
+      stars.set(key, es);
+    } else if (kind === 'con') {
+      const latin = Object.hasOwn(CONSTELLATION_NAMES, key) ? CONSTELLATION_NAMES[key] : undefined;
+      if (latin === undefined) throw new Error(`${at}: ${key} is not one of the 88 abbreviations`);
+      if (part === 'all') {
+        if (latin.length < 2) throw new Error(`${at}: ${key} is drawn in one part and has no whole row`);
+        whole[key] = es;
+      } else {
+        const p = Number(part);
+        if (!/^\d+$/.test(part) || p >= latin.length) throw new Error(`${at}: ${key} has no part ${part}`);
+        (figures[key] ??= [])[p] = es;
+      }
+    } else {
+      throw new Error(`${at}: unknown kind ${kind}`);
+    }
+  });
+  for (const [con, latin] of Object.entries(CONSTELLATION_NAMES)) {
+    for (let p = 0; p < latin.length; p += 1) if (figures[con]?.[p] === undefined) throw new Error(`names-es.tsv: ${con} part ${String(p)} has no row`);
+    if (latin.length > 1 && whole[con] === undefined) throw new Error(`names-es.tsv: ${con} has no whole row`);
+  }
+  // In the 88's order, so the file does not move with the list's.
+  const ordered = Object.fromEntries(Object.keys(CONSTELLATION_NAMES).map((con) => [con, figures[con] ?? []]));
+  return { stars, figures: ordered, whole };
 }
 
 export interface BuildReport {
@@ -73,6 +138,8 @@ export interface BuildReport {
   figures: number;
   segments: number;
   names: number;
+  /** Stars with a Spanish name (D-832). */
+  namesEs: number;
   /** WGSN lines whose HD already had a name: the first name in the file is kept. */
   nameCollisions: number;
   /** Names whose record is not kept, given to a nameless kept star within `SNAP_MAX_DEG` (a double's other component). */
@@ -140,7 +207,13 @@ interface LinesFile {
 const round = (n: number, places: number): number => Math.round(n * 10 ** places) / 10 ** places;
 
 /** The catalogue from the three sources' text. Pure, so the test can run it into memory. */
-export function buildCatalog(bscText: string, iauText: string, linesJson: string, magLimit = STAR_MAG_LIMIT): { catalog: CatalogOut; report: BuildReport } {
+export function buildCatalog(
+  bscText: string,
+  iauText: string,
+  linesJson: string,
+  namesEsText: string,
+  magLimit = STAR_MAG_LIMIT,
+): { catalog: CatalogOut; report: BuildReport } {
   const records = parseBsc(bscText);
   const { names, collisions: nameCollisions } = parseIauNames(iauText);
   const lines = JSON.parse(linesJson) as LinesFile;
@@ -247,14 +320,18 @@ export function buildCatalog(bscText: string, iauText: string, linesJson: string
     }
   });
 
+  const es = parseNamesEs(namesEsText, nameColumn);
   const catalog: CatalogOut = {
     ra: kept.map(({ r }) => round(r.ra, 3)),
     dec: kept.map(({ r }) => round(r.dec, 3)),
     mag: kept.map(({ r }) => round(r.mag, 2)),
     name: nameColumn,
+    nameEs: nameColumn.map((n) => es.stars.get(n) ?? ''),
     desig: kept.map(({ r }) => r.desig),
     con: kept.map(({ r }) => r.con),
     figures: snapped.map((f) => ({ con: f.con, part: f.part, segments: f.segments.map(([a, b]) => [at(a), at(b)] as [number, number]) })),
+    figuresEs: es.figures,
+    wholeEs: es.whole,
   };
 
   return {
@@ -267,6 +344,7 @@ export function buildCatalog(bscText: string, iauText: string, linesJson: string
       figures: catalog.figures.length,
       segments: catalog.figures.reduce((n, f) => n + f.segments.length, 0),
       names: catalog.name.filter((n) => n !== '').length,
+      namesEs: catalog.nameEs.filter((n) => n !== '').length,
       nameCollisions,
       namesCarried,
       duplicateSegments,
@@ -286,7 +364,8 @@ export function buildStars(srcDir = SRC): { text: string; report: BuildReport } 
   const bsc = gunzipSync(readFileSync(resolve(srcDir, 'bsc5-catalog.gz'))).toString('latin1');
   const iau = readFileSync(resolve(srcDir, 'iau-csn.txt'), 'utf8');
   const lines = readFileSync(resolve(srcDir, 'd3-celestial-constellations.lines.json'), 'utf8');
-  const { catalog, report } = buildCatalog(bsc, iau, lines);
+  const namesEs = readFileSync(resolve(srcDir, 'names-es.tsv'), 'utf8');
+  const { catalog, report } = buildCatalog(bsc, iau, lines, namesEs);
   return { text: serialize(catalog), report };
 }
 
@@ -304,6 +383,7 @@ if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(
       `figures: ${String(report.figures)} drawn features, ${String(report.segments)} segments, worst snap ${report.worstSnapDeg.toFixed(4)}°`,
       `figures: ${String(report.duplicateSegments)} duplicate segments dropped`,
       `names: ${String(report.names)} (${String(report.nameCollisions)} WGSN lines on an HD already named, the first kept; ${String(report.namesCarried)} carried to a double's kept component)`,
+      `names-es.tsv: ${String(report.namesEs)} stars with a Spanish name, every figure part and split constellation named`,
       `size: ${kb(Buffer.byteLength(text))} raw, ${kb(gzippedBytes(text))} gzipped`,
     ].join('\n'),
   );

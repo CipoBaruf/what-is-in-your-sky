@@ -3354,7 +3354,8 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
     - A local capture run leaves the live and pass detail files byte-identical to `ece8bfd` against a same-machine baseline; the Done note names them.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green; `npm run bundle:budget` shows no row moved.
 
-- [ ] **R120 — The landmark, the constellation at a point, the twilight steps and the Spanish names, as data and pure functions**
+- [x] **R120 — The landmark, the constellation at a point, the twilight steps and the Spanish names, as data and pure functions**
+  - **Done 2026-10-26:** as specified, with the readers taking the catalogue first (`starName(catalog, i, lang)`; `src/lib` may not import `src/data`, D-805) and `drawnRungs` living in `skyStars.ts`, re-exported by `landmark.ts`, counting the ladder's five rungs (D-806). Worst fixture separation over the three sites: landmark 0.0056°, `Among` column 0.0062° (tolerance 0.25°). `stars` row 24.6 KB against `ece8bfd`'s 23.6 (24,168 → 25,175 bytes gzipped, the names; ceiling 30, FR-SKY-10's ≤ 1 KB for the names, D-807); `main` 169.8, unchanged.
   - **Lane:** data
   - **Model:** opus
   - **Review:** opus

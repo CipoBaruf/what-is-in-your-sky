@@ -98,7 +98,8 @@ export const CONSTELLATION_NAMES: Readonly<Record<string, readonly string[]>> = 
   Vul: ['Vulpecula'],
 };
 
-/** The Latin name of one drawn feature, or `undefined` for an abbreviation or a part the table does not have. */
-export function figureName(con: string, part = 0): string | undefined {
-  return Object.hasOwn(CONSTELLATION_NAMES, con) ? CONSTELLATION_NAMES[con]?.[part] : undefined;
-}
+/**
+ * FR-SKY-12 (D-832): the one name of a constellation drawn in parts, for the
+ * `Among` column and the landmark line. Serpens' halves are one name there.
+ */
+export const CONSTELLATION_WHOLE_NAMES: Readonly<Record<string, string>> = { Ser: 'Serpens' };
