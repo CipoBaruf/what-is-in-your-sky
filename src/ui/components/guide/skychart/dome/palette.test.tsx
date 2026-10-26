@@ -43,12 +43,26 @@ describe('dome palette', () => {
     const drawn = new Set<string>(['chart-star', 'chart-planet']);
     const reserved = new Set<string>(CHART_RESERVED_TOKENS.filter((name) => !drawn.has(name)));
     for (const name of drawn) expect(CHART_RESERVED_TOKENS, `${name} is one of FR-DS-8's`).toContain(name);
+    expect([...reserved].sort()).toEqual(['chart-figure', 'chart-star-dim', 'chart-star-faint']);
     const declared = [...CHART_MARK_TOKENS.filter((name) => !reserved.has(name)), ...CHART_SURFACE_TOKENS].map((name) => `--${name}`).sort();
     expect([...MEANINGS].map((meaning) => CHART_TOKENS[meaning]).sort()).toEqual(declared);
     expect(CHART_TOKENS.star).toBe('--chart-star');
     expect(CHART_TOKENS.planet).toBe('--chart-planet');
-    expect(Object.values(CHART_TOKENS)).not.toContain('--chart-star-dim');
-    expect(Object.values(CHART_TOKENS)).not.toContain('--chart-figure');
+    for (const name of reserved) expect(Object.values(CHART_TOKENS), `the dome draws no ${name}`).not.toContain(`--${name}`);
+  });
+
+  it('reads the star and the planet as their own tokens, distinct in each theme (FR-SKY-5, FR-DS-8)', () => {
+    const probe = document.createElement('span');
+    document.body.append(probe);
+    for (const theme of ['dark', 'night'] as const) {
+      paint(probe, theme);
+      const tokens = readTokens(css, theme);
+      const palette = readPalette(probe);
+      expect(palette?.star, theme).toBe(tokens.get('chart-star'));
+      expect(palette?.planet, theme).toBe(tokens.get('chart-planet'));
+      expect(palette?.star, theme).not.toBe(palette?.planet);
+    }
+    probe.remove();
   });
 
   it('hard-codes no colour (D-75: the tokens are the only source)', () => {

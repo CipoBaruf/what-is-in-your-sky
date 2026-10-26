@@ -33,7 +33,7 @@ import {
   type RowMetrics,
 } from './camera';
 import { screenSide, sunDirection, type Tuple3 } from './domeGeometry';
-import { domeLayers, starAnchors, type DomeAnchor, type DomeLabel } from './domeLayers';
+import { domeLayers, starAnchors, starDots, withStarDots, type DomeAnchor, type DomeLabel } from './domeLayers';
 import { useDomePalette } from './palette';
 import styles from './SkyDome.module.css';
 
@@ -381,12 +381,15 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
         sun,
         moon,
         hidden,
-        stars,
         colorBy,
         ...(now === undefined ? {} : { now }),
       }),
-    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, measure, legendKeys, sun, moon, hidden, stars, now, colorBy],
+    [passes, highlightedPassId, palette, rotY, camera.tiltDeg, measure, legendKeys, sun, moon, hidden, now, colorBy],
   );
+  // FR-SKY-5 (R124, D-793): the dots from the anchors above, laid into the line scene on their own memo — so a new
+  // scene rebuilds the dots alone, and a camera move or a tick rebuilds the line meshes without walking the stars.
+  const dots = useMemo(() => starDots(anchors, palette), [anchors, palette]);
+  const lineMeshes = useMemo(() => withStarDots(layers.lines, dots), [layers.lines, dots]);
 
   // FR-DOME-8a: the key light points along the Sun's real direction, so twilight
   // brightens the side of the sky it is really on. Without one (no instant yet,
@@ -466,7 +469,7 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
                 <GlyphOrthographicCamera key={layerKey('lines', lines)} rotX={camera.tiltDeg} rotY={rotY} zoom={lines.zoom} center={layerCenter(lines, camera.tiltDeg)}>
                   <GlyphScene mode="wireframe" charMode="braille" glyphPalette="ascii" useColors={colored} cols={lines.cols} rows={lines.rows} cellAspect={CELL_ASPECT}>
                     <SceneInteracting active={dragging} />
-                    {layers.lines.map((mesh) => (
+                    {lineMeshes.map((mesh) => (
                       <GlyphMesh key={mesh.id} id={mesh.id} polygons={mesh.polygons} />
                     ))}
                     <DomeLabels labels={layers.labels} rotY={rotY} onSelect={onSelectPass} />

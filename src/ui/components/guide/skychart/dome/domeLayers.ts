@@ -98,8 +98,6 @@ export interface LayersInput {
   moon?: MoonState | null | undefined;
   /** FR-LIVE-6 (R33): the dimmed objects, already worded by the page (`SkyChartProps.hidden`). */
   hidden?: readonly HiddenMarker[] | undefined;
-  /** FR-SKY-5 (R124): the scene's star field as the table leaves it to the dome (`sceneFor('dome', …)`); `null` or absent draws no star, which is the Where pane's dome (OQ-44). */
-  stars?: StarField | null | undefined;
   /** FR-DOME-2 colours, or `null` for the monochrome reading. */
   palette: DomePalette | null;
   /**
@@ -165,27 +163,38 @@ export function baseLayer(input: Pick<LayersInput, 'palette' | 'sun'>): Mesh[] {
 
 /**
  * FR-SKY-5 (R124, D-793): the stars to `DOME_STAR_MAG` and the planets as one
- * mesh of single dots — one `pointMark` per body `starsFor` places, at the
- * anchor's place, a star in the star colour and a planet in the planet colour.
- * No figure and no name: the font holds no letters and the raster budget holds
+ * mesh of single dots — one `pointMark` per anchor, at the anchor's place, a
+ * star in the star colour and a planet in the planet colour. It takes the
+ * anchors `starAnchors` made, so the catalogue is walked once per scene. No
+ * figure and no name: the font holds no letters and the raster budget holds
  * no more. Empty without a field, so the Where pane's dome draws none (OQ-44).
  */
-export function starDots(stars: StarField | null | undefined, palette: DomePalette | null): Poly[] {
-  return starAnchors(stars).map((anchor) => pointMark(anchor.at, palette ? (anchor.planet === undefined ? palette.star : palette.planet) : undefined));
+export function starDots(anchors: readonly DomeAnchor[], palette: DomePalette | null): Poly[] {
+  return anchors.map((anchor) => pointMark(anchor.at, palette ? (anchor.planet === undefined ? palette.star : palette.planet) : undefined));
 }
 
 /**
- * The line scene: the grid, the stars (FR-SKY-5) under everything that moves,
- * one mesh per pass with its markers, the flown part of each arc and the live
- * marker (FR-DOME-5), and the Moon (FR-DOME-6). The Moon comes last so it is
- * drawn over whatever it sits on.
+ * The line scene with the dots (FR-SKY-5) laid in as the `stars` mesh, right
+ * after the grid and under everything that moves. Apart from `lineLayer` so a
+ * new scene rebuilds the dots and leaves the line meshes and the label
+ * placement alone, as it leaves them for the anchors (R119); no dots, no mesh,
+ * so the Where pane's dome is `ece8bfd`'s mesh for mesh.
  */
-export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId' | 'now' | 'moon' | 'hidden' | 'stars' | 'palette' | 'colorBy'>): Mesh[] {
-  const { passes, highlightedPassId, now, moon, hidden = [], stars, palette, colorBy = 'highlight' } = input;
-  const meshes: Mesh[] = [
-    { id: 'grid', polygons: gridPolygons({ ...(palette ? { horizon: palette.horizon, rings: palette.rings } : {}) }) },
-    { id: 'stars', polygons: starDots(stars, palette) },
-  ];
+export function withStarDots(lines: Mesh[], dots: Poly[]): Mesh[] {
+  if (dots.length === 0) return lines;
+  const after = lines.findIndex((mesh) => mesh.id === 'grid') + 1;
+  return [...lines.slice(0, after), { id: 'stars', polygons: dots }, ...lines.slice(after)];
+}
+
+/**
+ * The line scene: the grid, one mesh per pass with its markers, the flown part
+ * of each arc and the live marker (FR-DOME-5), and the Moon (FR-DOME-6). The
+ * Moon comes last so it is drawn over whatever it sits on. The stars go in
+ * after the grid by `withStarDots`.
+ */
+export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId' | 'now' | 'moon' | 'hidden' | 'palette' | 'colorBy'>): Mesh[] {
+  const { passes, highlightedPassId, now, moon, hidden = [], palette, colorBy = 'highlight' } = input;
+  const meshes: Mesh[] = [{ id: 'grid', polygons: gridPolygons({ ...(palette ? { horizon: palette.horizon, rings: palette.rings } : {}) }) }];
   passes.forEach((pass, index) => {
     // FR-LEG-4 (R45): a highlight dims the others in either colouring — by weight in series mode, where the colour is the pass's identity.
     const highlighted = isHighlighted(pass, highlightedPassId);

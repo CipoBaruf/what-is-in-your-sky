@@ -19,8 +19,10 @@
 import { render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
+import { bitCount, brailleBits } from '../../../../../../tests/support/braille';
 import { MOON_FIXTURE } from '../../../../../../tests/support/moonFixtures';
 import type { Observer } from '../../../../../model';
+import { DOME_STAR_MAG } from '../layers';
 import type { SkyScene } from '../window/scene';
 import { baseColsFor, CELL_ASPECT, DEFAULT_CELL_WIDTH_PX, GRID_COLS, GRID_ROWS } from './camera';
 import { SkyDome } from './SkyDome';
@@ -34,9 +36,10 @@ interface HandBody {
   azDeg: number;
   altDeg: number;
 }
+type HandPlanet = HandBody & { body: 'Venus' | 'Mars' | 'Jupiter' };
 
 /** A scene written by hand: the stars in the order given (the catalogue's is by magnitude), the planets after them. */
-function handScene(stars: readonly HandBody[], planets: readonly (HandBody & { body: 'Venus' | 'Mars' | 'Jupiter' })[] = []): SkyScene {
+function handScene(stars: readonly HandBody[], planets: readonly HandPlanet[] = []): SkyScene {
   return {
     stars: {
       catalog: { ra: stars.map(() => 0), dec: stars.map(() => 0), mag: stars.map((s) => s.mag), name: stars.map(() => ''), desig: stars.map((_, i) => `s${String(i)}`), con: stars.map(() => 'Ori'), figures: [] },
@@ -51,39 +54,43 @@ function handScene(stars: readonly HandBody[], planets: readonly (HandBody & { b
  * two rasters tell one story: of its seven stars the dome keeps the two at
  * `DOME_STAR_MAG` or brighter, and the three planets — five dots.
  */
-const SNAPSHOT_SCENE = handScene(
-  [
-    { mag: -0.7, azDeg: 160, altDeg: 55 },
-    { mag: 1.1, azDeg: 220, altDeg: 35 },
-    { mag: 2.0, azDeg: 20, altDeg: 25 },
-    { mag: 2.2, azDeg: 20, altDeg: 25.2 },
-    { mag: 3.1, azDeg: 300, altDeg: 70 },
-    { mag: 4.2, azDeg: 90, altDeg: 45 },
-    { mag: 1.6, azDeg: 250, altDeg: -10 },
-  ],
-  [
-    { body: 'Venus', mag: -4.1, azDeg: 275, altDeg: 12 },
-    { body: 'Mars', mag: 1.4, azDeg: 120, altDeg: 18 },
-    // Off the grid: at (60°, 80°) the dot fell on a meridian near the zenith, where a dot on a set dot counts for nothing.
-    { body: 'Jupiter', mag: 2.1, azDeg: 60, altDeg: 70 },
-  ],
-);
-const SNAPSHOT_DOTS = 5;
+const SNAPSHOT_STARS: readonly HandBody[] = [
+  { mag: -0.7, azDeg: 160, altDeg: 55 },
+  { mag: 1.1, azDeg: 220, altDeg: 35 },
+  { mag: 2.0, azDeg: 20, altDeg: 25 },
+  { mag: 2.2, azDeg: 20, altDeg: 25.2 },
+  { mag: 3.1, azDeg: 300, altDeg: 70 },
+  { mag: 4.2, azDeg: 90, altDeg: 45 },
+  { mag: 1.6, azDeg: 250, altDeg: -10 },
+];
+const SNAPSHOT_PLANETS: readonly HandPlanet[] = [
+  { body: 'Venus', mag: -4.1, azDeg: 275, altDeg: 12 },
+  { body: 'Mars', mag: 1.4, azDeg: 120, altDeg: 18 },
+  // Off the grid: at (60°, 80°) the dot fell on a meridian near the zenith, where a dot on a set dot counts for nothing.
+  { body: 'Jupiter', mag: 2.1, azDeg: 60, altDeg: 70 },
+];
+const SNAPSHOT_SCENE = handScene(SNAPSHOT_STARS, SNAPSHOT_PLANETS);
 
-/** How many braille dots a raster carries: the bits of every cell in the braille block. */
-function brailleDots(text: string): number {
-  let dots = 0;
-  for (const ch of text) {
-    const code = ch.codePointAt(0) ?? 0;
-    if (code >= 0x2800 && code <= 0x28ff) {
-      let bits = code - 0x2800;
-      while (bits) {
-        dots += bits & 1;
-        bits >>= 1;
-      }
-    }
-  }
-  return dots;
+/**
+ * What `after` changed of `before`, cell by cell: the braille dots it raised
+ * and the cells where it took something away (a dot cleared, or a cell that
+ * is not braille changed). The two rasters are one grid, so cells pair up.
+ */
+function rasterChange(before: string, after: string): { raised: number; lost: number } {
+  const a = [...before];
+  const b = [...after];
+  expect(b).toHaveLength(a.length);
+  let raised = 0;
+  let lost = 0;
+  a.forEach((was, i) => {
+    const now = b[i] ?? '';
+    if (now === was) return;
+    const wasBits = brailleBits(was);
+    const nowBits = brailleBits(now);
+    if ((wasBits === 0 && was !== '\u2800' && was !== ' ') || nowBits === 0 || (wasBits & ~nowBits) !== 0) lost++;
+    raised += bitCount(nowBits & ~wasBits);
+  });
+  return { raised, lost };
 }
 
 /**
@@ -132,16 +139,30 @@ describe('<SkyDome> raster', () => {
   });
 
   /**
-   * FR-SKY-5: "one braille dot each" — the sky adds exactly as many dots as it
-   * has bodies at the dome's cap above the horizon, and the Where pane's scene
-   * with no stars (OQ-44), or no scene at all, draws `ece8bfd`'s picture.
+   * FR-SKY-5: "one braille dot each" — each body, drawn alone, raises one dot
+   * at most and clears none (a dot that lands on a set one raises nothing,
+   * D-818, so the count is not pinned to where the grid's dots happen to
+   * fall: the snapshot above pins the picture); a star past the dome's cap
+   * raises none; and the Where pane's scene with no stars (OQ-44), or no
+   * scene at all, draws `ece8bfd`'s picture.
    */
-  it('adds one braille dot per star at the cap and per planet, and none without a star field', () => {
-    const bare = rasterOf(render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} />).container, 'lines').text;
-    const none = rasterOf(render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={{ stars: null }} />).container, 'lines').text;
-    const starry = rasterOf(render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={SNAPSHOT_SCENE} />).container, 'lines').text;
-    expect(none).toBe(bare);
-    expect(brailleDots(starry) - brailleDots(bare)).toBe(SNAPSHOT_DOTS);
+  it('adds one braille dot at most per star at the cap and per planet, and none without a star field', () => {
+    const lines = (scene?: SkyScene): string => rasterOf(render(<SkyDome passes={[pass]} observer={observer} highlightedPassId={pass.id} {...(scene ? { scene } : {})} />).container, 'lines').text;
+    const bare = lines();
+    expect(lines({ stars: null })).toBe(bare);
+
+    const capped = SNAPSHOT_STARS.filter((star) => star.mag <= DOME_STAR_MAG);
+    for (const star of SNAPSHOT_STARS.filter((s) => s.mag > DOME_STAR_MAG)) expect(lines(handScene([star])), `a mag ${String(star.mag)} star`).toBe(bare);
+    const alone = [...capped.map((star) => handScene([star])), ...SNAPSHOT_PLANETS.map((planet) => handScene([], [planet]))].map((scene) => rasterChange(bare, lines(scene)));
+    for (const change of alone) {
+      expect(change.lost).toBe(0);
+      expect(change.raised).toBeLessThanOrEqual(1);
+    }
+    // The mesh draws at all: the bodies, together, raise dots, and never more than one each.
+    const together = rasterChange(bare, lines(SNAPSHOT_SCENE));
+    expect(together.lost).toBe(0);
+    expect(together.raised).toBeGreaterThan(0);
+    expect(together.raised).toBeLessThanOrEqual(capped.length + SNAPSHOT_PLANETS.length);
   });
 
   it('draws the base layer of surfaces under it, on half the grid and aligned cell for cell', async () => {
