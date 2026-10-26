@@ -128,8 +128,9 @@ export interface ChartFrameProps {
    * aspect-locked measurement in place of `boxAspect`, on the guide's square
    * through `--chart-box-aspect`, written from the viewport; and the `status`
    * slot — the facing readout — stands in the box's top-left corner on the
-   * screen's overlay surface instead of in its row. Compact is unchanged: the
-   * box the dome has, the readout in its row. Ignored on a `screen`.
+   * screen's overlay surface instead of in its row (on a wide `fill` frame
+   * every view's slot stands there, D-834). Compact is unchanged: the box the
+   * dome has, the readout in its row. Ignored on a `screen`.
    */
   handWindow?: boolean;
   className?: string;
@@ -178,6 +179,11 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
   const compact = useLayoutMode() === 'compact';
   // D-789: the window in the box on wide — the box cut to the browser window's shape, the readout in its corner.
   const windowShaped = handWindow && !screen && !compact;
+  // D-834 (FR-SKY-2, V25-17): the status slot stands in the box's top-left corner on the wide live page (`fill`) for
+  // every view — the dome's readout, the polar chart's convention line, the window's readout — so the row above
+  // the box is the view control alone and stays one line; and on the guide's window (D-789). The compact rows and
+  // the guide's other views keep the slot in its own row.
+  const cornerStatus = !screen && !compact && (fill || handWindow);
   const slots = useContext(ChartFrameSlots);
   const bar = bottomOverlay ?? slots.bottomOverlay;
   const hasBar = bar !== undefined && bar !== null;
@@ -381,6 +387,7 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
         data-box={boxed}
         data-stacked={isStacked}
         data-hand-window={handWindow && !screen}
+        data-corner-status={cornerStatus}
       >
         {/* D-314: the rail's minimum in px, read off this probe — `--cell` is `1ch`, which no script can turn into px by itself. */}
         {boxed && !isStacked && <span className={styles.railProbe} ref={railProbeRef} aria-hidden="true" />}
@@ -390,8 +397,9 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
         </div>
         <div className={styles.drawing} data-testid="chart-box">
           {children}
-          {/* D-789 (R121): the window's readout in the box's top-left corner on wide, as the stars page draws it (FR-STAR-3). */}
-          {windowShaped && (
+          {/* D-789, D-834 (R121): the status slot in the box's top-left corner — the window's readout on wide as the
+              stars page draws it (FR-STAR-3), and every view's on the wide live page (V25-17). */}
+          {cornerStatus && (
             <div className={styles.cornerStatus} data-row="status" data-testid="chart-status">
               {status}
             </div>
@@ -403,7 +411,7 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
             </div>
           )}
         </div>
-        {!windowShaped && (
+        {!cornerStatus && (
           <div className={styles.status} data-row="status">
             {status}
           </div>
