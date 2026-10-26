@@ -1,5 +1,5 @@
 import { starCatalog } from '../../../data/stars/catalog';
-import { drawnMagLimit, drawnRungs, planetsDrawn, starsAt } from '../../../lib/skyStars';
+import { drawnMagLimit, drawnRungs, starsAt } from '../../../lib/skyStars';
 import type { StarSource } from '../../components/guide/skychart/useSkyScene';
 import { sceneCatalog } from './field';
 
@@ -23,7 +23,6 @@ export function starSource(): StarSource {
     // `starsAt` memoises on the instant itself: one rotation per tick, whatever number of views reads it (FR-SKY-8).
     positionsAt: (observer, t) => starsAt(catalog, observer, t),
     drawnRungs,
-    planetsDrawn,
     drawnMagLimit,
   } satisfies StarSource);
   return source;

@@ -492,11 +492,12 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   /*
    * R123 (FR-SKY-3, FR-SKY-8, FR-STAR-13; D-791): the stars under the arcs, at the shown instant — one scene for
    * whichever view the page draws and for the screen, rotated once per shown instant, so at 3600× the stars turn
-   * with the arcs. The twilight step reads the Sun the page already has (at most a second of wall time old).
+   * with the arcs. The twilight step reads the Sun at the same shown instant (the positions carry it), not the
+   * once-a-second bodies, so a fast scrub into the day never draws a night sky.
    */
   const starsLayer = useAppStore((s) => s.starsLayer);
   const starSource = useStarSource(starsLayer);
-  const scene = useSkyScene({ observer, now: shown, starsLayer, source: starSource, sunAltDeg: bodies.sun?.altDeg });
+  const scene = useSkyScene({ observer, now: shown, starsLayer, source: starSource });
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   const cloud = cloudVerdict(snapshot, shown);
   const count = visibleCount(passes, shown);

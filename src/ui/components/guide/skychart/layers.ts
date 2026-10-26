@@ -39,7 +39,6 @@ export function drawsLayer(view: SkyView, layer: Layer): boolean {
 }
 
 type Catalog = StarField['catalog'];
-type Cut = Omit<Catalog, 'figures'>;
 
 /** The first `n` of a column. */
 function prefix<T>(column: ArrayLike<T>, n: number): ArrayLike<T> {
@@ -58,9 +57,14 @@ function reach(mag: ArrayLike<number>, cap: number): number {
 }
 
 /** The catalogue cut to each cap, once per catalogue: only the positions change from tick to tick. */
-const cuts = new WeakMap<Catalog, Map<number, Cut>>();
+const cuts = new WeakMap<Catalog, Map<number, Catalog>>();
 
-function cutCatalog(catalog: Catalog, cap: number): Cut {
+/**
+ * The catalogue cut to the stars at `cap` or brighter (D-748's prefix), with no figures — a figure's segments
+ * index the whole catalogue. Memoised per catalogue and cap, so a memo on the cut holds from tick to tick: the
+ * views' caps here, and the scene's twilight step (`useSkyScene`, R123).
+ */
+export function cutCatalog(catalog: Catalog, cap: number): Catalog {
   let byCap = cuts.get(catalog);
   if (!byCap) {
     byCap = new Map();
@@ -76,6 +80,7 @@ function cutCatalog(catalog: Catalog, cap: number): Cut {
       name: catalog.name.slice(0, n),
       desig: catalog.desig.slice(0, n),
       con: catalog.con.slice(0, n),
+      figures: [],
     };
     byCap.set(cap, cut);
   }
