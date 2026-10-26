@@ -303,20 +303,20 @@ const rows = (t: Messages): readonly Row[] => [
     budget: LIVE_ROW_BUDGET,
   },
   /*
-   * R123 (FR-SKY-3, FR-COMP-4; D-791, D-814): `[x] stars` / `[x] estrellas` at the end of the chart's readout row on
-   * compact — the live page's and the pass detail's — where the readout wraps in the column it leaves, so the
-   * control is the row's fixed part: 9 cells in English, 13 in Spanish. The actions rows above stay as they were.
+   * R123 (FR-SKY-3, FR-COMP-4; D-791, D-814): `[x] stars` / `[x] estrellas` after the chart view control on compact —
+   * the live page's and the pass detail's — `inline`, so beside the control's 33 cells it is the tap row's second text
+   * line: that line is counted, 9 cells in English, 13 in Spanish. The actions rows above stay as they were.
    */
   {
-    name: 'the live readout row’s [ stars ] (FR-SKY-3)',
+    name: 'the live view row’s [ stars ] line (FR-SKY-3)',
     element: createElement(LivePage, { link: null, onLeave: noop }),
-    find: () => screen.getByTestId('stars-toggle').parentElement as Element,
+    find: () => screen.getByTestId('stars-toggle'),
     setUp: withLiveSky,
   },
   {
-    name: 'the pass detail readout row’s [ stars ] (FR-SKY-3)',
+    name: 'the pass detail view row’s [ stars ] line (FR-SKY-3)',
     element: createElement(PassDetail, { pass, observer, onClose: noop, onShowList: noop }),
-    find: () => screen.getByTestId('stars-toggle').parentElement as Element,
+    find: () => screen.getByTestId('stars-toggle'),
   },
   {
     // FR-WATCH-3: the clock, the longest sky word, the longest cloud word and a two-digit count — `21:14:32 crepúsculo limpio 12 arriba`.

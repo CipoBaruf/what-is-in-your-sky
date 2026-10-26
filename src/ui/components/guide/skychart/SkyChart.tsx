@@ -324,7 +324,7 @@ export function SkyChart(props: SkyChartProps) {
       {viewAction === undefined || viewAction === null ? (
         viewControl
       ) : (
-        // R123 (FR-SKY-3, D-791): the page's `[ stars ]` after the control, on its row, where the page hands one (the pass detail on wide).
+        // R123 (FR-SKY-3, D-791, D-814): the page's `[ stars ]` after the control, on its row, where the page hands one.
         <div className={styles.viewRow} data-testid="chart-view-row">
           {viewControl}
           {viewAction}

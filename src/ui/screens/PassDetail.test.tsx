@@ -193,14 +193,14 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
 
   /**
    * R123 (FR-SKY-3, FR-COMP-4, US-40 AC1; D-791, D-814): `[ stars ]`, on by default and the same saved toggle as the
-   * live page's — at the end of the chart's readout row on compact, on the view row after the view control on wide.
+   * live page's — on the view row after the view control, `inline` on compact so it takes the row's second line.
    */
-  it('offers [ stars ] in the readout row on compact and on the view row on wide, and a press is the saved toggle', () => {
+  it('offers [ stars ] on the view row on compact and on wide, and a press is the saved toggle', () => {
     const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
     const toggle = screen.getByTestId('stars-toggle');
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    expect(toggle.closest('[data-row="status"]')).toHaveAttribute('data-action', 'true');
-    expect(screen.queryByTestId('chart-view-row')).toBeNull();
+    expect(toggle.parentElement).toBe(screen.getByTestId('chart-view-row'));
+    expect(toggle.className).toContain('inline-control');
     fireEvent.click(toggle);
     expect(appStore.getState().starsLayer).toBe(false);
     unmount();

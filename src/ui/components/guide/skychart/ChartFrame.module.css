@@ -479,8 +479,8 @@
   min-height: var(--row);
 }
 
-/* R123 (FR-SKY-3, FR-COMP-4, D-814): the page's `[ stars ]` at the end of the
-   readout row, the readout wrapping in what it leaves. The row holds two text
+/* R123 (FR-SKY-3, FR-COMP-4, D-814): the landscape phone's `[ stars ]` at the
+   end of the readout row, the readout wrapping in what it leaves. The row holds two text
    rows wherever the toggle is in it, so a readout that wraps beside it on one
    facing and not on the next never moves the box under a drag. */
 .status[data-action='true'] {

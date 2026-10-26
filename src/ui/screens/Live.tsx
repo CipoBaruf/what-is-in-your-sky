@@ -655,7 +655,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
       {has('next-event') && jumpAt === 'actions' && <JumpControl passes={passes} context={nextEventContext} hours={liveHours} onSee={seePass} />}
       {has('back-to-live') && !backAtHead && <BackToLive onNow={playback.toNow} short />}
       {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
-      {/* R123 (FR-SKY-3, D-791): on wide in both states; on compact it is the readout row's (`compactSlots`), the actions rows being full (FR-COMP-7). */}
+      {/* R123 (FR-SKY-3, D-791, D-814): on wide in both states; on compact the actions rows are full (FR-COMP-7), so it is the chart's (`compactSlots`). */}
       {!compact && <StarsToggle />}
       {has('list') && <LegendToggle open={legendOpen} count={legendCount} controls={LEGEND_PANEL_ID} onToggle={toggleLegend} />}
       {/* R85 (FR-COMP-7, D-549): bracketed again on compact, as every other action; the Spanish labels beside it were shortened instead (D-411 withdrawn). */}
@@ -685,8 +685,10 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
         : { clip: (entryRows, headerRows) => inventoryClip(entryRows, Math.max(0, inventoryRows - headerRows)), moreLabel: t.live.more },
     [inventoryRows, t],
   );
-  // R123 (FR-SKY-3, FR-COMP-4; D-791, D-814): on compact `[ stars ]` ends the chart's readout row, past the view, as the wide page's bar does.
-  const compactSlots = useMemo(() => ({ readoutAction: <StarsToggle inline /> }), []);
+  // R123 (FR-SKY-3, FR-COMP-4, FR-COMP-5; D-791, D-814): on compact `[ stars ]` goes past the view to the chart, as the wide page's bar does —
+  // `inline` on the view row, the second text line of its one tap row, so the box keeps its floor; on the landscape phone, whose
+  // narrow column already wraps the view control to two lines, at the end of the readout row.
+  const compactSlots = useMemo(() => (placement === 'rail' ? { readoutAction: <StarsToggle inline /> } : { viewAction: <StarsToggle inline /> }), [placement]);
   const top = <TopRow place={observer.label} indicator={compact && placement !== 'rail' ? indicator : null} screenOpen={screenOpen} onLeave={onLeave} />;
   const page = (children: ReactNode): ReactNode => (
     <Page state="live" wakeLock={wakeLock} fold={fold} placement={placement} top={top}>

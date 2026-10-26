@@ -335,9 +335,9 @@ const JUMP_ALLOWANCE: Readonly<Record<string, Readonly<Record<string, number>>>>
   '844x390 es': { 'next event': ROW_PX },
   '932x430 es': { 'next event': ROW_PX },
   '844x500 es': { 'next event': ROW_PX },
-  '1200x450 en': { actions: 2 * ROW_PX },
-  '1400x480 en': { actions: 2 * ROW_PX },
-  '1920x500 en': { actions: 2 * ROW_PX },
+  // R123 (D-814): with `[ stars ]` on the wide actions row the English short wide rows hold the control on the path, and two Spanish ones carry it on a second actions line.
+  '964x420 es': { actions: 2 * ROW_PX },
+  '1024x450 es': { actions: 2 * ROW_PX },
   '768x1024 en': { 'next event': ROW_PX, 'chart box': -ROW_PX },
   '820x1180 en': { 'next event': ROW_PX, 'chart box': -ROW_PX },
   '768x1024 es': { 'next event': ROW_PX, 'chart box': -ROW_PX },

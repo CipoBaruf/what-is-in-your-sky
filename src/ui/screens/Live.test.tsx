@@ -706,18 +706,19 @@ describe('<LivePage>', () => {
   });
 
   /**
-   * R123 (FR-SKY-3, FR-COMP-4, US-40 AC1; D-791, D-814): `[ stars ]` is on by default; on compact it ends the
-   * chart's readout row (the actions rows are full, FR-COMP-7), on wide it is on the actions row in both states;
+   * R123 (FR-SKY-3, FR-COMP-4, US-40 AC1; D-791, D-814): `[ stars ]` is on by default; on compact it is on the
+   * chart's view row, after the control (the actions rows are full, FR-COMP-7), on wide on the actions row in both states;
    * a press turns the stars off and the prefs remember it.
    */
-  it('offers [ stars ], on by default, in the readout row on compact and on the actions row on wide, and remembers a press', () => {
+  it('offers [ stars ], on by default, on the view row on compact and on the actions row on wide, and remembers a press', () => {
     withSky();
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
     const toggle = screen.getByTestId('stars-toggle');
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
     expect(toggle).toHaveAccessibleName(en.live.starsToggleName);
     expect(toggle).toHaveTextContent(en.live.starsToggle);
-    expect(toggle.closest('[data-row="status"]')).toHaveAttribute('data-action', 'true');
+    expect(within(screen.getByTestId('chart-view-row')).getByRole('group', { name: en.chart.viewGroup })).toBeInTheDocument();
+    expect(toggle.parentElement).toBe(screen.getByTestId('chart-view-row'));
     expect(within(screen.getByTestId('live-actions')).queryByTestId('stars-toggle')).toBeNull();
     fireEvent.click(toggle);
     expect(screen.getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');

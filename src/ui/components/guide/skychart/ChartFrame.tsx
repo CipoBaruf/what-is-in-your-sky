@@ -178,10 +178,10 @@ export const ChartFrameSlots = createContext<ChartFrameSlotValues>({});
 /**
  * R123 (FR-SKY-3, FR-COMP-4, D-791, D-814): the page's `[ stars ]` reaches the
  * chart the same way, past the view. `readoutAction` stands at the end of the
- * readout row — the status slot in its own row, which is where it is on
- * compact — and is not placed where the slot is the box's corner or on a
- * screen; `viewAction` stands after the view control where `SkyChart` heads
- * the figure with it (the pass detail's view row on wide).
+ * readout row — the status slot in its own row (the landscape phone's, D-814)
+ * — and is not placed where the slot is the box's corner or on a
+ * screen; `viewAction` stands after the view control, wherever `SkyChart`
+ * places the control (the pass detail's view row; the compact live page's).
  */
 export interface ChartFrameSlotValues extends Pick<ChartFrameProps, 'bottomOverlay' | 'onBoxSpace'> {
   readoutAction?: ReactNode;
