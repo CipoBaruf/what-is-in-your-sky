@@ -23,7 +23,7 @@ import { sceneFor } from '../layers';
 import { arcOf, FACING_OPTIONS, type ChartPass, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
 import { createHandCamera, facePeak, initialHand, SENSOR_CAMERA, type SkyCamera } from './camera';
 import { CompassGutter } from './CompassGutter';
-import { FacingPicker } from './FacingPicker';
+import { FacingPicker, type FacingPickerProps } from './FacingPicker';
 import { gutterMarks, passBearing, turnTo, type GutterMark, type GutterPass } from './gutter';
 import { COMPASS, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type SkyPoint, type View } from './projection';
 import { nearestQuarter, type Quarter } from './screenTurn';
@@ -395,8 +395,6 @@ export function SkyWindow(props: SkyWindowProps) {
   const camera: SkyCamera = givenCamera ?? slotCamera ?? SENSOR_CAMERA;
   // FR-SKY-2: the window laid out in the page's box under the hand — the frame cuts the box and corners the readout.
   const inBox = hand !== undefined && camera.source === 'hand' && !onScreen;
-  // FR-SKY-2: a tablet's way to the screen from the box; on a compact page without a sensor there is none to offer.
-  const entry = useSkyScreen();
   // R44: the observer's declination, once per observer; the hook folds it into every heading.
   const declinationDeg = useDeclination(observer);
 
@@ -721,10 +719,7 @@ export function SkyWindow(props: SkyWindowProps) {
   const railed = inBox && fill && aside !== undefined && aside !== null;
   const facingRow =
     inBox && handCamera ? (
-      <div className={styles.facingRow} data-testid="window-facing">
-        <FacingPicker camera={handCamera} options={facingOptions} peak={peak} prefix={!compact} />
-        {entry.available && <TextButton label={sp.holdUp} onClick={entry.open} data-testid="window-hold-up" />}
-      </div>
+      <HandFacingRow camera={handCamera} options={facingOptions} peak={peak} prefix={!compact} />
     ) : null;
 
   return (
@@ -930,6 +925,23 @@ export function SkyWindow(props: SkyWindowProps) {
               now the only place a window is. `useDeviceOrientation` keeps `start` for the state machine. */}
         </div>
       </ChartFrame>
+    </div>
+  );
+}
+
+/**
+ * FR-SKY-2 (D-789): the in-box window's facing row — the picker and, where the device has a sensor as well (a
+ * tablet), `[ hold up to the sky ]`, which is `useSkyScreen.open()`. Its own component so the screen's store and
+ * the presence test are read by the window in a page's box alone, not by the stars page's or the screen's.
+ */
+function HandFacingRow({ camera, options, peak, prefix }: Pick<FacingPickerProps, 'camera' | 'options' | 'peak' | 'prefix'>) {
+  const sp = useStarsPageT();
+  // On a compact page without a sensor there is no way to the screen to offer.
+  const entry = useSkyScreen();
+  return (
+    <div className={styles.facingRow} data-testid="window-facing">
+      <FacingPicker camera={camera} {...(options === undefined ? {} : { options })} {...(peak === undefined ? {} : { peak })} {...(prefix === undefined ? {} : { prefix })} />
+      {entry.available && <TextButton label={sp.holdUp} onClick={entry.open} data-testid="window-hold-up" />}
     </div>
   );
 }

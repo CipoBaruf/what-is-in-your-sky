@@ -269,11 +269,12 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
    * caps at `--chart-size` — so the window's shape reaches it as a ratio, `--chart-box-aspect`, which the stylesheet
    * puts on the box's `aspect-ratio` in place of 1 : 1. A ratio, not a length: no px is written in a wide block
    * (`tests/styles/breakpoint.test.ts`). Read from the viewport on every resize of the browser window, which is the
-   * only thing that changes it.
+   * only thing that changes it. A `fill` frame never reads it (the rule is the guide's, `data-fill='false'`): a
+   * boxed one has `windowBox`'s lengths, and an unboxed one fills what the page gives it.
    */
   useEffect(() => {
     const frame = frameRef.current;
-    if (!windowShaped || boxed || !frame) return;
+    if (!windowShaped || fill || !frame) return;
     const shape = (): void => {
       const next = viewportAspect(window.innerWidth, window.innerHeight).toFixed(4);
       if (frame.style.getPropertyValue('--chart-box-aspect') !== next) frame.style.setProperty('--chart-box-aspect', next);
@@ -284,7 +285,7 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
       window.removeEventListener('resize', shape);
       frame.style.removeProperty('--chart-box-aspect');
     };
-  }, [windowShaped, boxed]);
+  }, [windowShaped, fill]);
 
   // FR-COMP-5 / D-187: the live floor. The drawing's minimum height is the frame's width, measured, so a
   // portrait phone never gets a dome shorter than it is wide whatever the rows around it take.

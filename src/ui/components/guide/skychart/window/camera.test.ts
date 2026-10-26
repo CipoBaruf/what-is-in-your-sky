@@ -127,6 +127,9 @@ describe('the hand camera (FR-STAR-4)', () => {
     expect(facingOf({ azDeg: 203, altDeg: 45 }, peak)).toBe('');
     expect(facingOf({ azDeg: 180, altDeg: 46 }, peak)).toBe('S');
     expect(facingOf({ azDeg: 203, altDeg: 90 }, peak)).toBe('up');
+    // A narrowed field (D-798) is passed through: the peak pressed is where `facePeak` puts it for that field.
+    expect(facingOf({ azDeg: 203, altDeg: 56 }, peak, 20)).toBe('peak');
+    expect(facingOf({ azDeg: 203, altDeg: 46 }, peak, 20)).toBe('');
     // Without a peak to compare against, the hand where a peak would be is no option at all.
     expect(facingOf({ azDeg: 203, altDeg: 46 })).toBe('');
   });
@@ -174,12 +177,17 @@ describe('createHandCamera', () => {
     camera.facePeak({ azDeg: 203, elDeg: 61 });
     expect(listener).toHaveBeenCalledTimes(6);
     expect(camera.get()).toEqual({ azDeg: 203, altDeg: 46 });
-    camera.face('S');
+    // A narrowed field (D-798) holds the peak a quarter of it below the centre, so it stays in view.
+    camera.facePeak({ azDeg: 203, elDeg: 61 }, 20);
     expect(listener).toHaveBeenCalledTimes(7);
+    expect(camera.get()).toEqual({ azDeg: 203, altDeg: 56 });
+    expect(facingOf(camera.get(), { azDeg: 203, elDeg: 61 }, 20)).toBe('peak');
+    camera.face('S');
+    expect(listener).toHaveBeenCalledTimes(8);
     stop();
     camera.stepYaw(-1);
-    expect(listener).toHaveBeenCalledTimes(7);
-    expect(camera.get()).toEqual({ azDeg: 165, altDeg: 46 });
+    expect(listener).toHaveBeenCalledTimes(8);
+    expect(camera.get()).toEqual({ azDeg: 165, altDeg: 56 });
   });
 
   it('the sensor camera carries nothing but its source', () => {

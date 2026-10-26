@@ -78,7 +78,7 @@ export interface PrefsDeps {
 }
 
 /** D-789: the load guard's question, asked once: `lib/layout.ts`'s one wide query, which is what every page lays out by (D-72). */
-export const viewportIsWide = (): boolean => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(WIDE_QUERY).matches;
+const viewportIsWide = (): boolean => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(WIDE_QUERY).matches;
 
 /** US-6 AC3: the dome is the default chart view; until R15 registers it, `SkyChart` falls back to the polar view. */
 // FR-DOME-7: the dome again, now that FR-DOME-1..4 and FR-DOME-8 have made it readable. D-68 (polar for now) is closed by V1-4.

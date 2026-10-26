@@ -113,7 +113,9 @@ export function up(state: HandState): HandState {
  * window faces it — this far below the centre, so the peak is in the field's
  * upper half with the arc under it: 15° at `WINDOW_FOV`, a quarter of the
  * field, and no more than a quarter of a narrower one (D-798's zoom), so the
- * peak never leaves the field it was aimed at.
+ * peak never leaves the field it was aimed at — the field the caller passes.
+ * Until R125's zoom every field is `WINDOW_FOV`, which is what the window, the
+ * camera's `facePeak` and `facingOf` default to; the zoom passes its own.
  */
 export const PEAK_BELOW_CENTRE_DEG = 15;
 /** FR-SKY-7: the tilt the peak is faced at stays inside [20°, 75°] — the horizon in the lower part, never the zenith. */
@@ -147,10 +149,10 @@ export { FACING_OPTIONS, FACING_POINTS, PEAK_FACING_OPTIONS, type FacingOption }
  * the hand is exactly at, or none after a drag. The zenith wins over the peak
  * and a point: at 90° every azimuth is the same view.
  */
-export function facingOf(state: HandState, peak: SkyAim | null = null): FacingOption | '' {
+export function facingOf(state: HandState, peak: SkyAim | null = null, fovDeg: number = WINDOW_FOV): FacingOption | '' {
   if (state.altDeg >= STARS_TILT_MAX_DEG) return 'up';
   if (peak !== null) {
-    const aimed = facePeak(peak, WINDOW_FOV);
+    const aimed = facePeak(peak, fovDeg);
     if (Math.abs(normalizeAzimuthDeg(state.azDeg - aimed.azDeg + 180) - 180) < 1e-6 && Math.abs(state.altDeg - aimed.altDeg) < 1e-6) return 'peak';
   }
   return FACING_POINTS.find((point) => Math.abs(normalizeAzimuthDeg(state.azDeg - bearingOf(point) + 180) - 180) < 1e-6) ?? '';
@@ -181,8 +183,8 @@ export interface HandCamera {
   stepPitch(steps: number): void;
   face(point: CompassPoint): void;
   up(): void;
-  /** FR-SKY-7 (R121): the picker's `peak` — the pass's peak azimuth at the tilt `facePeak` gives, at the window's field. */
-  facePeak(peak: SkyAim): void;
+  /** FR-SKY-7 (R121): the picker's `peak` — the pass's peak azimuth at the tilt `facePeak` gives for the field shown (`WINDOW_FOV` unless said). */
+  facePeak(peak: SkyAim, fovDeg?: number): void;
 }
 
 export type SkyCamera = SensorCamera | HandCamera;
@@ -222,8 +224,8 @@ export function createHandCamera(initial: HandState): HandCamera {
     up: () => {
       apply(up(state));
     },
-    facePeak: (peak) => {
-      apply(facePeak(peak, WINDOW_FOV));
+    facePeak: (peak, fovDeg = WINDOW_FOV) => {
+      apply(facePeak(peak, fovDeg));
     },
   };
 }

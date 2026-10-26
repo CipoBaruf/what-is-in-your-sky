@@ -8,8 +8,11 @@ export type ChartView = 'dome' | 'polar' | 'window';
  * chose it and left by the sky screen's `×`. R121 (FR-WIN-5 and FR-SKY-2 as
  * amended v2.5; D-789) opens it again on wide, where the window is a view laid
  * out in the box under the hand camera; on compact the window is still the
- * screen and the preference still holds these two. `localPrefs.ts` is where a
- * stored `window` is read as the dome below the wide breakpoint.
+ * screen and the preference still holds these two. A stored `window` is read
+ * as the dome below the wide breakpoint by the prefs slice's load
+ * (`state/slices/prefs.ts`, `loadChartView`) and by a compact chart drawing a
+ * view saved on wide, both through `compactChartView` below; `localPrefs.ts`
+ * round-trips all three values and narrows nothing.
  */
 export type CompactChartView = Exclude<ChartView, 'window'>;
 /** A stored `chartView` on compact, narrowed: the window there is a mode, so a stored one (saved on wide) is the dome. */
