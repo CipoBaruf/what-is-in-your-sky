@@ -16,6 +16,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { domeDrawn, homeAt, openSkyScreen, pose, stripFilled, stubCompass, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
+import { pinch } from './windowZoom';
 
 const LANDSCAPE = { width: 844, height: 390 };
 const PORTRAIT = { width: 390, height: 844 };
@@ -314,6 +315,55 @@ test.describe('the compass gutter on a phone held sideways (FR-GUT-1..6)', () =>
     await expect(band.getByTestId('gutter-bracket')).toHaveCount(1);
     const words = await band.getByRole('listitem').count();
     expect(await band.locator('[data-gutter-mark]').count()).toBe(words);
+  });
+
+  /**
+   * R125 (FR-SKY-14, FR-GUT-3 as amended; D-798): the pinch under the sensor. Two pointers on the screen's box
+   * halve the field; the sensor's aim is untouched, the bracket narrows with the field, the ground thresholds
+   * follow it, and a second opening of the screen is at 60° again.
+   */
+  test('a pinch zooms the screen under the sensor: the bracket narrows with the field, the aim stays the sensor’s, and the next opening is at 60° (FR-SKY-14)', async ({ page }) => {
+    await stubCompass(page);
+    await livePage(page);
+    await openScreen(page);
+    const w = page.getByTestId('sky-screen').locator('[data-look-az]');
+    await expect(w).toHaveAttribute('data-fov', '60');
+    await face(page, 270);
+    const az = await w.getAttribute('data-look-az');
+    const bracket = page.getByTestId('gutter-bracket');
+    const wide = await bracket.boundingBox();
+    if (!wide) throw new Error('no bracket');
+    // On the 844 × 390 screen the bracket's half-width is about 60° at 60°: two thirds of the band's 90°.
+    expect(wide.width / LANDSCAPE.width).toBeCloseTo(60.22 / 90, 1);
+
+    await pinch(page.getByTestId('chart-box'), 100, 200);
+    await page.clock.runFor(100);
+    await expect(w).toHaveAttribute('data-fov', '30');
+    await expect(w).toHaveAttribute('data-look-az', az ?? '');
+    // The bracket narrows with the field (FR-GUT-3 as amended): about 30° of half-width now, a third of the band.
+    const narrow = await bracket.boundingBox();
+    if (!narrow) throw new Error('no bracket');
+    expect(narrow.width / LANDSCAPE.width).toBeCloseTo(30.11 / 90, 1);
+    expect(narrow.x + narrow.width / 2).toBeCloseTo(wide.x + wide.width / 2, 0);
+    // The sensor keeps driving the aim under the zoom.
+    await face(page, 90);
+    await expect(w).toHaveAttribute('data-look-az', /^(8[5-9]|9[0-5])$/);
+    await expect(w).toHaveAttribute('data-fov', '30');
+    // The ground thresholds follow the field: 20° below the horizon is `ground` at 60° and `buried` at 30°.
+    await pose(page, { alpha: 270, beta: 70, gamma: 0 });
+    await expect(w).toHaveAttribute('data-ground', 'buried');
+    await pinch(page.getByTestId('chart-box'), 200, 100);
+    await page.clock.runFor(100);
+    await expect(w).toHaveAttribute('data-fov', '60');
+    await expect(w).toHaveAttribute('data-ground', 'ground');
+    await pinch(page.getByTestId('chart-box'), 200, 100);
+    await page.clock.runFor(100);
+    await expect(w).toHaveAttribute('data-fov', '90');
+    // Closed and opened again: the field is the default (never saved, every opening at `WINDOW_FOV`).
+    await page.getByRole('button', { name: CLOSE }).click();
+    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
+    await openScreen(page);
+    await expect(page.getByTestId('sky-screen').locator('[data-look-az]')).toHaveAttribute('data-fov', '60');
   });
 
   test('says which way to turn with the phone turned away from every pass, and goes when a pass is in the field (FR-GUT-6, US-28 AC4)', async ({ page }) => {
