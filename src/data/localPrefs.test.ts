@@ -80,6 +80,18 @@ describe('createLocalPrefs', () => {
     expect(prefs.read()).toEqual({ chartView: 'dome' });
   });
 
+  /** R121 (FR-WIN-5 as amended v2.5, D-789, D-808): the window is a saved view again; this layer keeps it whatever the viewport. */
+  it('round-trips the window as a chart view and never rewrites it: the compact guard is the store’s, not this reader’s', () => {
+    const storage = memoryStorage();
+    const prefs = createLocalPrefs(storage);
+    prefs.write({ chartView: 'window', sort: 'best' });
+    expect(prefs.read()).toEqual({ chartView: 'window', sort: 'best' });
+    expect(JSON.parse(storage.map.get(PREFS_KEY) ?? '{}')).toEqual({ chartView: 'window', sort: 'best' });
+    // A write-through of another preference spreads the read and so carries the window with it.
+    prefs.write({ ...prefs.read(), theme: 'night' });
+    expect(prefs.read()).toEqual({ chartView: 'window', sort: 'best', theme: 'night' });
+  });
+
   it('round-trips the saved places with the whole observer, so selecting one offline needs no geocode (R26, FR-OFF-7)', () => {
     const storage = memoryStorage();
     const prefs = createLocalPrefs(storage);

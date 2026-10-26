@@ -1,17 +1,20 @@
 /** US-5 AC2: the pass list order. `chronological` is the default; `best` ranks by brightness × elevation (`lib/passSort.ts`). Persisted in `wiys:prefs:v1`. */
 export type PassSort = 'chronological' | 'best';
-/** US-6 AC3/AC5 (R13): which sky chart view is shown, the 2D polar chart (default for now, D-68), the ASCII dome (R15) or, on a phone, the sky window (R47, FR-WIN-5). Persisted in `wiys:prefs:v1`. */
+/** US-6 AC3/AC5 (R13): which sky chart view is shown, the 2D polar chart (default for now, D-68), the ASCII dome (R15) or the sky window (R47, FR-WIN-5). Persisted in `wiys:prefs:v1`. */
 export type ChartView = 'dome' | 'polar' | 'window';
 /**
- * R66 (FR-WIN-5 as amended v1.3.1, V13-8, D-352): the views a *preference* can
- * hold. The window is a mode, not a view a page can be left in — it is entered
- * by the tap that chooses it and left by the sky screen's `×` — so nothing
- * writes it and a value stored by an older build reads as the dome.
+ * R66 (FR-WIN-5 as amended v1.3.1, V13-8, D-352) narrowed the *preference* to
+ * the dome and the polar chart: the window was a mode, entered by the tap that
+ * chose it and left by the sky screen's `×`. R121 (FR-WIN-5 and FR-SKY-2 as
+ * amended v2.5; D-789) opens it again on wide, where the window is a view laid
+ * out in the box under the hand camera; on compact the window is still the
+ * screen and the preference still holds these two. `localPrefs.ts` is where a
+ * stored `window` is read as the dome below the wide breakpoint.
  */
-export type SavedChartView = Exclude<ChartView, 'window'>;
-/** A stored `chartView`, narrowed: anything that is not a saved view (a `window` from a build before v1.3.1) is the dome. */
-export function savedChartView(view: ChartView | undefined, fallback: SavedChartView): SavedChartView {
-  return view === undefined || view === 'window' ? fallback : view;
+export type CompactChartView = Exclude<ChartView, 'window'>;
+/** A stored `chartView` on compact, narrowed: the window there is a mode, so a stored one (saved on wide) is the dome. */
+export function compactChartView(view: ChartView): CompactChartView {
+  return view === 'window' ? 'dome' : view;
 }
 /**
  * FR-LEG-7 / D-387 (R71): whether the compact live page's legend panel is

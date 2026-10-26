@@ -94,23 +94,23 @@ describe('the hand camera (FR-STAR-4)', () => {
     expect(PEAK_TILT_MIN_DEG).toBe(20);
     expect(PEAK_TILT_MAX_DEG).toBe(75);
     // The glare pass of `sky-window.spec.ts`: a 61° peak in the south-southwest is faced at 46°.
-    expect(facePeak(hand, { azDeg: 203, elDeg: 61 }, WINDOW_FOV)).toEqual({ azDeg: 203, altDeg: 46 });
+    expect(facePeak({ azDeg: 203, elDeg: 61 }, WINDOW_FOV)).toEqual({ azDeg: 203, altDeg: 46 });
     // A low pass: the floor, so the horizon stays in the lower part of the field. A pass overhead: the ceiling, never the zenith.
-    expect(facePeak(hand, { azDeg: 90, elDeg: 12 }, WINDOW_FOV)).toEqual({ azDeg: 90, altDeg: 20 });
-    expect(facePeak(hand, { azDeg: 350, elDeg: 88 }, WINDOW_FOV)).toEqual({ azDeg: 350, altDeg: 73 });
-    expect(facePeak(hand, { azDeg: 350, elDeg: 90 }, WINDOW_FOV)).toEqual({ azDeg: 350, altDeg: 75 });
+    expect(facePeak({ azDeg: 90, elDeg: 12 }, WINDOW_FOV)).toEqual({ azDeg: 90, altDeg: 20 });
+    expect(facePeak({ azDeg: 350, elDeg: 88 }, WINDOW_FOV)).toEqual({ azDeg: 350, altDeg: 73 });
+    expect(facePeak({ azDeg: 350, elDeg: 90 }, WINDOW_FOV)).toEqual({ azDeg: 350, altDeg: 75 });
     // The azimuth is normalised like every other move's.
-    expect(facePeak(hand, { azDeg: -10, elDeg: 40 }, WINDOW_FOV).azDeg).toBe(350);
+    expect(facePeak({ azDeg: -10, elDeg: 40 }, WINDOW_FOV).azDeg).toBe(350);
     // Why 15 and not `peakAlt / 2` (FR-SKY-7): at 60° across a square box the half-field is 30°, so an 80° peak faced at
     // 65° stands 15° above the centre — in view — where `peakAlt / 2` would have left it 40° up and out of it.
     const half = verticalHalfFieldDeg({ fovDeg: WINDOW_FOV, width: 390, height: 390, screenAngleDeg: 0 });
     for (const elDeg of [10, 25, 40, 61, 80, 90]) {
-      const faced = facePeak(hand, { azDeg: 0, elDeg }, WINDOW_FOV);
+      const faced = facePeak({ azDeg: 0, elDeg }, WINDOW_FOV);
       expect(elDeg - faced.altDeg).toBeGreaterThanOrEqual(-half);
       expect(elDeg - faced.altDeg).toBeLessThanOrEqual(half);
     }
     // A narrower field (D-798) keeps the peak a quarter of the field below the centre, never 15° in a 20° field.
-    expect(facePeak(hand, { azDeg: 180, elDeg: 50 }, 20)).toEqual({ azDeg: 180, altDeg: 45 });
+    expect(facePeak({ azDeg: 180, elDeg: 50 }, 20)).toEqual({ azDeg: 180, altDeg: 45 });
   });
 
   it('lists the picker’s options, and names the pressed one from the hand', () => {

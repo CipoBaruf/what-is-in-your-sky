@@ -27,6 +27,16 @@ import { z } from './zod';
  * preference is optional and read
  * independently, so an unknown or invalid value of one never loses the
  * others.
+ *
+ * R121 (FR-WIN-5 and FR-SKY-2 as amended v2.5; D-789, D-808): `chartView` may
+ * hold `window` again — a desk reader's saved view, laid out in the box under
+ * the hand camera — and this layer round-trips all three values as it did
+ * before v1.3.1. The window is a wide view only; the guard that reads a stored
+ * `window` as the dome below the wide breakpoint is the prefs slice's, at its
+ * load, and not this reader's: this layer may not import the breakpoint (PLAN
+ * §3), and a narrowing read would be written back by every other preference's
+ * write-through on compact, which would cost a desk reader the view it chose
+ * the first time it changed the sort on a phone-sized window.
  */
 export const PREFS_KEY = 'wiys:prefs:v1';
 

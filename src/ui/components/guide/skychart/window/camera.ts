@@ -128,10 +128,11 @@ export interface SkyAim {
 /**
  * The picker's `peak` (FR-SKY-7, D-790): face the pass's peak azimuth at
  * `clamp(peakAlt − 15°, 20°, 75°)`. The pass detail's window opens here, on
- * the page and on the screen before the sensor's first reading. `state` is
- * taken for the shape every move has; the peak decides both numbers.
+ * the page and on the screen before the sensor's first reading. D-790 wrote it
+ * `facePeak(state, peak, fovDeg)`; the peak decides both numbers, so the state
+ * is not a parameter (D-808).
  */
-export function facePeak(state: HandState, peak: SkyAim, fovDeg: number): HandState {
+export function facePeak(peak: SkyAim, fovDeg: number): HandState {
   const below = Math.min(PEAK_BELOW_CENTRE_DEG, fovDeg / 4);
   return at(peak.azDeg, Math.min(PEAK_TILT_MAX_DEG, Math.max(PEAK_TILT_MIN_DEG, peak.elDeg - below)));
 }
@@ -154,7 +155,7 @@ export const PEAK_FACING_OPTIONS: readonly FacingOption[] = ['peak', ...FACING_P
 export function facingOf(state: HandState, peak: SkyAim | null = null): FacingOption | '' {
   if (state.altDeg >= STARS_TILT_MAX_DEG) return 'up';
   if (peak !== null) {
-    const aimed = facePeak(state, peak, WINDOW_FOV);
+    const aimed = facePeak(peak, WINDOW_FOV);
     if (Math.abs(normalizeAzimuthDeg(state.azDeg - aimed.azDeg + 180) - 180) < 1e-6 && Math.abs(state.altDeg - aimed.altDeg) < 1e-6) return 'peak';
   }
   return FACING_POINTS.find((point) => Math.abs(normalizeAzimuthDeg(state.azDeg - bearingOf(point) + 180) - 180) < 1e-6) ?? '';
@@ -227,7 +228,7 @@ export function createHandCamera(initial: HandState): HandCamera {
       apply(up(state));
     },
     facePeak: (peak) => {
-      apply(facePeak(state, peak, WINDOW_FOV));
+      apply(facePeak(peak, WINDOW_FOV));
     },
   };
 }
