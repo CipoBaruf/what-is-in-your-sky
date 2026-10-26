@@ -17,7 +17,7 @@ import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtur
 import { MOON_DOWN, MOON_FIXTURE } from '../../../../../../tests/support/moonFixtures';
 import type { Pass } from '../../../../../model';
 import { LABEL_SHIFT_MAX_DEG, RING_ELEVATIONS, TICK_LABEL_STEP_DEG, type LabelBox } from './domeGeometry';
-import { baseLayer, domeLabels, domeLayers, lineLayer, starAnchors, type DomeLabel, type LayersInput } from './domeLayers';
+import { baseLayer, domeLabels, domeLayers, lineLayer, starAnchors, starDots, type DomeLabel, type LayersInput } from './domeLayers';
 import type { StarField } from '../window/scene';
 import type { DomePalette } from './palette';
 import { MEANINGS } from './palette';
@@ -404,5 +404,37 @@ describe('starAnchors (FR-SKY-1, R119)', () => {
     expect(starAnchors({ ...stars, layers: { ...stars.layers, planets: false } }).map((anchor) => anchor.id)).toEqual(['star-0', 'star-2']);
     expect(starAnchors(null)).toEqual([]);
     expect(starAnchors(undefined)).toEqual([]);
+  });
+
+  /**
+   * FR-SKY-5 (R124, D-793): the same bodies as one mesh of single dots in the
+   * line layer — one polygon per anchor at the anchor's place, the star colour
+   * for a star and the planet colour for a planet, uncoloured without a
+   * palette, and no mesh content at all without a field (OQ-44).
+   */
+  describe('starDots (FR-SKY-5, R124)', () => {
+    it('makes one zero-length polygon per anchor, at the anchor, coloured by what it is', () => {
+      const anchors = starAnchors(stars);
+      const dots = starDots(stars, palette);
+      expect(dots).toHaveLength(anchors.length);
+      dots.forEach((dot, i) => {
+        expect(dot.vertices.length).toBeGreaterThanOrEqual(2);
+        for (const vertex of dot.vertices) expect(vertex).toEqual(anchors[i]?.at);
+      });
+      expect(dots.map((dot) => dot.color)).toEqual(['star', 'star', 'planet']);
+      expect(starDots(stars, null).map((dot) => dot.color)).toEqual([undefined, undefined, undefined]);
+    });
+
+    it('is the `stars` mesh of the line layer, under the passes, and no mesh at all without a field', () => {
+      const withStars = lineLayer({ passes: [goldenPassFixture()], highlightedPassId: null, now: undefined, stars, palette });
+      const without = lineLayer({ passes: [goldenPassFixture()], highlightedPassId: null, now: undefined, stars: null, palette });
+      const bare = lineLayer({ passes: [goldenPassFixture()], highlightedPassId: null, now: undefined, palette });
+      expect(withStars.map((mesh) => mesh.id).slice(0, 2)).toEqual(['grid', 'stars']);
+      expect(withStars.find((mesh) => mesh.id === 'stars')?.polygons).toHaveLength(3);
+      // An empty mesh is dropped with the rest, so the Where pane's dome is `ece8bfd`'s mesh for mesh.
+      expect(without.map((mesh) => mesh.id)).toEqual(bare.map((mesh) => mesh.id));
+      expect(without.map((mesh) => mesh.id)).not.toContain('stars');
+      expect(without).toEqual(bare);
+    });
   });
 });
