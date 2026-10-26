@@ -59,6 +59,13 @@ interface Prefs {
    * a record written before v2.1 loads as off and stays one field shorter.
    */
   showFaint?: boolean;
+  /**
+   * R123 (FR-SKY-3, D-791): whether the pages draw the stars layer. Only
+   * `false` is read back — `true` is what an absent key already means, and a
+   * value that is not a boolean reads as absent (`.catch(true)`) — so a record
+   * written before v2.5 loads with the stars on.
+   */
+  starsLayer?: boolean;
   /** FR-OFF-6: the install hint has been answered and is not offered again. Absent until then. */
   installHintDismissed?: boolean;
   /** FR-OFF-6 as amended (D-272): how many times "Not now" has been pressed. Absent until the first. */
@@ -87,6 +94,8 @@ const storedPrefsSchema = z.object({
   liveLegendOpen: z.boolean().optional().catch(undefined),
   // FR-FAINT-3 (D-623): absent, malformed or false all mean the default list; the field is never optional on read.
   showFaint: z.boolean().catch(false),
+  // FR-SKY-3 (D-791): the same, the other way up — absent, malformed or true all mean the stars on.
+  starsLayer: z.boolean().catch(true),
   // `.catch(null)` per item, not on the array: a malformed favourite becomes a hole that is
   // filtered out, where a schema on the array alone would drop all eight for one bad entry.
   favourites: z
@@ -114,7 +123,7 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (!raw) return {};
         const parsed = storedPrefsSchema.safeParse(JSON.parse(raw));
         if (!parsed.success) return {};
-        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, liveLegendOpen, showFaint, installHintDismissed, installHintDeclines, installHintSnoozedUntil } = parsed.data;
+        const { observer, sort, chartView, chartOrientation, locale, theme, favourites, liveHidden, liveLegendOpen, showFaint, starsLayer, installHintDismissed, installHintDeclines, installHintSnoozedUntil } = parsed.data;
         const prefs: Prefs = {};
         if (observer) prefs.observer = toObserver(observer);
         if (sort) prefs.sort = sort;
@@ -126,6 +135,8 @@ export function createLocalPrefs(storage: StorageLike | null): LocalPrefs {
         if (liveLegendOpen !== undefined) prefs.liveLegendOpen = liveLegendOpen;
         // Only `true` is a choice (FR-FAINT-3); `false` is what an absent key already means, so the key stays out.
         if (showFaint) prefs.showFaint = true;
+        // Only `false` is a choice (FR-SKY-3): the stars are on unless the toggle turned them off.
+        if (!starsLayer) prefs.starsLayer = false;
         // The limit is applied on read too, so a hand-edited or half-written list is still eight at most.
         if (favourites) {
           const kept = favourites.filter((favourite) => favourite !== null).map((favourite) => ({ ...favourite, observer: toObserver(favourite.observer) }));

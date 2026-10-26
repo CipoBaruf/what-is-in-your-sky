@@ -36,6 +36,14 @@ export const DEFAULT_LIVE_LEGEND_OPEN = false;
  * no choice at all. Persisted in `wiys:prefs:v1`; read by R97's control.
  */
 export const DEFAULT_SHOW_FAINT = false;
+/**
+ * FR-SKY-3 / D-791 (R123): whether the live page, the pass detail and their
+ * screens draw the stars layer — the stars, the figures and the planets under
+ * the arcs — behind the one `[ stars ]` toggle. On until the toggle is used,
+ * and on again for a stored value that is not a boolean. Persisted in
+ * `wiys:prefs:v1`.
+ */
+export const DEFAULT_STARS_LAYER = true;
 /** FR-GUIDE-4 (R13): the polar chart's convention, `looking-up` (east on the left, the default) or `map` (east on the right). Persisted in `wiys:prefs:v1`. */
 export type ChartOrientation = 'looking-up' | 'map';
 /** FR-I18N-1 (R17): the language the app renders in, chosen from the browser on the first visit and overridden by the header switch. Persisted in `wiys:prefs:v1`. */

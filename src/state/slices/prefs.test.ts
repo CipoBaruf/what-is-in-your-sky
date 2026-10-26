@@ -273,6 +273,25 @@ describe('prefs slice', () => {
     expect(corrupt.getState().locale).toBe('es');
   });
 
+  /** R123 (FR-SKY-3, US-40 AC1, D-791): `[ stars ]` is on by default, and turning it off is remembered. */
+  it('draws the stars until the toggle turns them off, remembers that across a reload, and reads a malformed value as on', () => {
+    const storage = memoryStorage();
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night' }));
+    const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(fresh.getState().starsLayer).toBe(true);
+    fresh.getState().setStarsLayer(false);
+    expect(fresh.getState().starsLayer).toBe(false);
+    expect(stored(storage)).toEqual({ theme: 'night', starsLayer: false });
+    const reloaded = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(reloaded.getState().starsLayer).toBe(false);
+    reloaded.getState().setStarsLayer(true);
+    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState().starsLayer).toBe(true);
+    storage.map.set(PREFS_KEY, JSON.stringify({ starsLayer: 'off', locale: 'es' }));
+    const corrupt = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(corrupt.getState().starsLayer).toBe(true);
+    expect(corrupt.getState().locale).toBe('es');
+  });
+
   it('ignores a theme it does not know without losing the other preferences', () => {
     const storage = memoryStorage();
     storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'sepia', locale: 'es' }));
