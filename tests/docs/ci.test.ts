@@ -17,6 +17,7 @@ import { describe, expect, it } from 'vitest';
 import { observerFromCoords } from '../../src/lib/place';
 import { storedObserverSchema } from '../../src/data/schemas';
 import { NEUQUEN, PARIS } from '../e2e/observers';
+import { gatedSpecs } from '../../playwright.config';
 
 const read = (path: string): string => readFileSync(path, 'utf8');
 const ci = read('.github/workflows/ci.yml');
@@ -55,6 +56,25 @@ describe('the pull-request budget (FR-CI-1)', () => {
     // …and the summary step reads them back, on a failed run as well as a passing one.
     expect(ci).toContain('$GITHUB_STEP_SUMMARY');
     expect(ci).toMatch(/name: stage times\n\s+if: always\(\)/);
+  });
+});
+
+/** D-836: Playwright sizes shards by test count, skipped tests included, so a spec that skips whole on CI is left out of the run instead. */
+describe('the shards share tests that run (FR-CI-1, D-836)', () => {
+  it('leaves out a spec only when the variable its first-level skip waits for is unset', () => {
+    const unset = gatedSpecs('tests/e2e', {});
+    expect(unset).toContain('v1-captures.spec.ts');
+    expect(unset).toContain('dome-perf.spec.ts');
+    // Captures that run on every pull request are not gated, so they stay in.
+    expect(unset).not.toContain('r57-captures.spec.ts');
+    expect(unset).not.toContain('r77-captures.spec.ts');
+    expect(gatedSpecs('tests/e2e', { CAPTURES: '1' })).not.toContain('v1-captures.spec.ts');
+    expect(gatedSpecs('tests/e2e', { DOME_PERF: '1' })).not.toContain('dome-perf.spec.ts');
+    expect(gatedSpecs('tests/e2e', { CAPTURES: '1', DOME_PERF: '1' })).toEqual([]);
+  });
+
+  it('every spec it leaves out skips every test without its variable', () => {
+    for (const file of gatedSpecs('tests/e2e', {})) expect(read(`tests/e2e/${file}`)).toMatch(/^test\.skip\(process\.env\['(CAPTURES|DOME_PERF)'\] !== '1'/m);
   });
 });
 
