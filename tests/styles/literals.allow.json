@@ -24,8 +24,8 @@
     "reason": "R110 (D-736): 1 the sheet names — the 1px border-bottom (--border)."
   },
   "src/ui/components/guide/skychart/ChartFrame.module.css": {
-    "count": 4,
-    "reason": "R110 (D-736): 4 the sheet names — three z-index 1 (--z-raised) and one z-index 2 (--z-raised-2)."
+    "count": 5,
+    "reason": "R110 (D-736): 4 the sheet names — three z-index 1 (--z-raised) and one z-index 2 (--z-raised-2). R121 (D-789): one more z-index 1, the window's corner readout over the box."
   },
   "src/ui/components/guide/skychart/LegendSwatch.module.css": {
     "count": 2,

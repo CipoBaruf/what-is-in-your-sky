@@ -4,7 +4,7 @@ import { starCatalog } from '../../data/stars/catalog';
 import { useStarsPageT } from '../../i18n/starsPageT';
 import { useT } from '../../i18n/useT';
 import { normalizeAzimuthDeg, type CompassPoint } from '../../lib/compass';
-import { fitBox, RAIL_MIN_CELLS } from '../../lib/layout';
+import { RAIL_MIN_CELLS, windowBox as fitWindowBox } from '../../lib/layout';
 import { starsAt } from '../../lib/skyStars';
 import type { Observer } from '../../model';
 import { useActiveObserver, useAppStore } from '../../state';
@@ -181,9 +181,9 @@ function StarsSky({ observer }: { observer: Observer }) {
       const { width, height } = layout.getBoundingClientRect();
       const gap = parseFloat(getComputedStyle(layout).columnGap) || 0;
       const rail = probeRef.current?.getBoundingClientRect().width ?? 0;
-      const aspect = window.innerHeight > 0 ? window.innerWidth / window.innerHeight : 1;
-      const box = fitBox({ frameWidthPx: width, frameHeightPx: height, aboveHeightPx: 0, belowHeightPx: 0, besideWidthPx: rail + gap, aspect });
-      const next = { w: `${String(Math.floor(box.widthPx))}px`, h: `${String(Math.floor(box.heightPx))}px` };
+      // R121 (D-789): `windowBox`, the rule the live page's and the pass detail's window share with this page.
+      const box = fitWindowBox({ frameWidthPx: width, frameHeightPx: height, aboveHeightPx: 0, belowHeightPx: 0, besideWidthPx: rail + gap, viewportWidthPx: window.innerWidth, viewportHeightPx: window.innerHeight });
+      const next = { w: `${String(box.widthPx)}px`, h: `${String(box.heightPx)}px` };
       if (layout.style.getPropertyValue('--stars-box-w') !== next.w) layout.style.setProperty('--stars-box-w', next.w);
       if (layout.style.getPropertyValue('--stars-box-h') !== next.h) layout.style.setProperty('--stars-box-h', next.h);
     };

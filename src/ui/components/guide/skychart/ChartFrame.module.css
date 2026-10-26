@@ -429,6 +429,37 @@
   background: var(--screen-overlay);
 }
 
+/* R121 (FR-SKY-2, D-789): the window laid out in the box under the hand camera
+   — the live page's and the pass detail's window on a desk. On wide the facing
+   readout stands in the box's top-left corner on the sky screen's overlay
+   surface, as the stars page draws it (FR-STAR-3, `Stars.module.css`), and the
+   box takes the browser window's shape: on the live page `ChartFrame` measures
+   it with `windowBox` in place of the dome's aspect, so the rules above apply
+   as they are; on the guide, whose box is the square capped at `--chart-size`,
+   the shape is the ratio `ChartFrame` writes as `--chart-box-aspect` — a ratio
+   and not a length, since no px may stand in a wide block. Compact is left as
+   the dome has it. */
+.frame[data-hand-window='true'] .drawing {
+  position: relative;
+}
+
+.cornerStatus {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  min-height: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0 var(--cell);
+  background: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
+  pointer-events: none;
+}
+
+.frame[data-hand-window='true'][data-compact='false'][data-fill='false'] .drawing {
+  aspect-ratio: var(--chart-box-aspect, 1);
+}
+
 .fill .status {
   min-height: var(--row);
 }
