@@ -1,5 +1,6 @@
 import { COMPASS_POINTS, normalizeAzimuthDeg, type CompassPoint } from '../../../../../lib/compass';
 import { DRAG_PX_PER_DEG, PITCH_STEP_DEG, YAW_STEP_DEG } from '../dome/camera';
+import { FACING_POINTS, type FacingOption } from '../SkyChart.types';
 import { uprightRotation, WINDOW_FOV, type Mat3 } from './projection';
 
 /**
@@ -137,14 +138,8 @@ export function facePeak(peak: SkyAim, fovDeg: number): HandState {
   return at(peak.azDeg, Math.min(PEAK_TILT_MAX_DEG, Math.max(PEAK_TILT_MIN_DEG, peak.elDeg - below)));
 }
 
-/** FR-STAR-3, FR-SKY-7: the facing picker's eight points, in the order the row shows them. */
-export const FACING_POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const satisfies readonly CompassPoint[];
-/** What the picker can offer: a point, the zenith, or (the pass detail) the explained pass's peak. */
-export type FacingOption = (typeof FACING_POINTS)[number] | 'up' | 'peak';
-/** The stars page's and the live page's list: the eight points, then the zenith. */
-export const FACING_OPTIONS: readonly FacingOption[] = [...FACING_POINTS, 'up'];
-/** The pass detail's list (D-790): `peak` first, then the eight points and the zenith. */
-export const PEAK_FACING_OPTIONS: readonly FacingOption[] = ['peak', ...FACING_POINTS, 'up'];
+/** The picker's option lists are `SkyChart.types.ts`'s (a page in the main chunk names one); re-exported here for the picker and the tests. */
+export { FACING_OPTIONS, FACING_POINTS, PEAK_FACING_OPTIONS, type FacingOption } from '../SkyChart.types';
 
 /**
  * The picker's pressed option for a hand state: the zenith at the top of the

@@ -451,7 +451,7 @@ describe('<SkyWindow>', () => {
       expect(wrapper(container)).toHaveAttribute('data-state', 'on');
     });
 
-    it('through SkyChart: a refusal keeps the page on its view with the note, and the option stays; a compass-less phone loses it', async () => {
+    it('through SkyChart: a refusal keeps the page on its view with the note, and the option stays; a compass-less phone keeps it too and gets the box by hand (R121)', async () => {
       const frame = scriptedFrames();
       withPhone(() => Promise.resolve('denied'));
       appStore.getState().setChartView('dome');
@@ -471,7 +471,8 @@ describe('<SkyWindow>', () => {
       fireEvent.click(within(toggle).getByRole('button', { name: 'Polar' }));
       expect(screen.queryByTestId('chart-view-note')).toBeNull();
 
-      // A phone with no north in its readings: the note, no screen, and no window option for the session.
+      // A phone with no north in its readings: the note, no screen, and (FR-WIN-4 as amended v2.5) the option kept —
+      // the sensor is lost for the session, so the next tap lays the window out in the box under the hand (FR-SKY-2).
       withPhone();
       resetOrientationAccess();
       fireEvent.click(within(toggle).getByRole('button', { name: 'Window' }));
@@ -480,7 +481,11 @@ describe('<SkyWindow>', () => {
       expect(appStore.getState().skyScreen).toBe(false);
       expect(figure).toHaveAttribute('data-view', 'polar');
       expect(screen.getByTestId('chart-view-note')).toHaveTextContent(en.window.relative);
-      expect(within(screen.getByRole('group', { name: 'Chart view' })).queryByRole('button', { name: 'Window' })).toBeNull();
+      expect(appStore.getState().windowLost).toBe(true);
+      fireEvent.click(within(screen.getByRole('group', { name: 'Chart view' })).getByRole('button', { name: 'Window' }));
+      expect(figure).toHaveAttribute('data-view', 'window');
+      expect(appStore.getState().skyScreen).toBe(false);
+      expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'polar' });
     });
 
     it('asks for the permission inside the tap that chooses the view (FR-WIN-4), and opens the screen on the first reading', async () => {

@@ -637,17 +637,17 @@ describe('<SkyChart> view choice (US-6 AC5, FR-WIN-4)', () => {
   });
 
   /**
-   * FR-WIN-4 / US-21 AC4, as amended v1.3.1 (V13-6, V13-8): a desktop never sees
-   * the option; a phone sees all three, on every page. The option is a mode, so
-   * the view under it stays what the reader picked and the window is only ever
-   * drawn on the screen.
+   * FR-WIN-4 / US-21 AC4, as amended v1.3.1 (V13-6, V13-8) and v2.5 (R121,
+   * FR-SKY-2, D-789): every reader sees all three options, on every page — the
+   * presence test governs the sensor, never the view. Asked for a screen the
+   * chart is the window whatever the preference says.
    */
-  it('offers the window only where there is a phone to point, and draws it only as the screen', async () => {
+  it('offers the window with or without a phone to point, and draws it as the screen when asked', async () => {
     appStore.getState().setChartView('dome');
     const { unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
     expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'dome');
     const toggle = screen.getByRole('group', { name: 'Chart view' });
-    expect(within(toggle).getAllByRole('button').map((button) => button.textContent)).toEqual(['Polar', 'Dome']);
+    expect(within(toggle).getAllByRole('button').map((button) => button.textContent)).toEqual(['Polar', 'Dome', 'Window']);
     unmount();
 
     withPhone();

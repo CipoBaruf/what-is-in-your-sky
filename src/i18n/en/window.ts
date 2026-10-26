@@ -22,6 +22,8 @@ export const windowMessages = {
     hint: 'Hold the phone up: the window shows the sky it points at.',
     /** R121 (FR-SKY-7, D-790): the pass detail's facing picker's first option — the explained pass's peak, beside the eight points and `up`. */
     peak: 'peak',
+    /** R121 (FR-SKY-2, D-789): the hand's hint in the box's corner where the window is the page's view — the dome's words for the window. */
+    handHint: 'Drag the window, or use the arrow keys, to look around.',
     /** FR-GUIDE-4's readout for the window: where the back of the phone points, e.g. "Looking NE (53°) · up 10°". */
     readout: (p: { point: CompassPoint; azimuth: string; altitude: string }) => `Looking ${p.point} (${p.azimuth}) · up ${p.altitude}`,
     /** FR-WIN-3 / US-21 AC6: the correction named, as the live strip names it. */

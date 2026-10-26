@@ -1,12 +1,11 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '../../../../i18n/useT';
 import { bodyLines, legendKeys, legendRows, promoteRow } from '../../../../lib/legend';
-import type { ChartView, SavedChartView } from '../../../../model';
+import { compactChartView, type ChartView } from '../../../../model';
 import { useAppStore } from '../../../../state';
 import { DEFAULT_CHART_VIEW } from '../../../../state/slices/prefs';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
-import { orientationApiPresent } from '../../live/compassHeading';
 import { useSkyScreen } from '../../screen/useSkyScreen';
 import { GuideText } from '../GuideText';
 import { moonVisible, sunVisible } from './bodies';
@@ -14,8 +13,9 @@ import { ChartFrame } from './ChartFrame';
 import { Legend } from './Legend';
 import { POLAR_VIEW } from './polar/SkyPolar';
 import styles from './SkyChart.module.css';
-import type { SkyChartProps, SkyChartView } from './SkyChart.types';
+import type { HandSlot, SkyChartProps, SkyChartView } from './SkyChart.types';
 import { useSkyBodies } from './useSkyBodies';
+import type { HandCamera } from './window/camera';
 
 /**
  * PLAN §8.1 (R13): the single boundary the app mounts. A `<figure>` whose
@@ -56,6 +56,23 @@ import { useSkyBodies } from './useSkyBodies';
  * give — a refused permission, no compass heading — are the store's
  * `windowNote` and `windowLost`, because the window that gives them is the one
  * on the screen and this control is on the page beneath it.
+ *
+ * R121 (FR-SKY-2, FR-SKY-7, FR-WIN-4, FR-WIN-5, FR-FSC-6 as amended v2.5;
+ * US-41 AC1, AC2; D-789, D-790): the window is offered everywhere, to every
+ * reader — `WINDOW_VIEW` has no `available()` any more, and the presence test
+ * answers one question only, whether the screen can follow the phone
+ * (`useSkyScreen`). What the option does depends on where it is tapped. **On
+ * wide** it is a view like the other two: chosen, it is saved (`chartView:
+ * 'window'`) and the window is laid out in the frame's box under the hand
+ * camera. **On compact with a sensor** it is still the mode it was: the tap
+ * asks and opens the screen, nothing is written. **On compact without one** —
+ * a phone-sized desk window, every headless capture at 390 px, or a phone
+ * that has lost the sensor this session — there is no screen to open and
+ * nothing to ask, so the window is laid out in the box here too; that choice
+ * is this chart's own state (`handWindow`) and never written, so a reload
+ * opens on the saved view. The hand camera is one slot this chart keeps
+ * (`HandSlot`), filled by the window in its own chunk and kept across a view
+ * change and back, so the facing survives a look at the dome.
  */
 const SkyDome = lazy(() => import('./dome/SkyDome').then((module) => ({ default: module.SkyDome })));
 const SkyWindow = lazy(() => import('./window/SkyWindow').then((module) => ({ default: module.SkyWindow })));
@@ -115,23 +132,21 @@ function WindowView(props: SkyChartProps) {
   );
 }
 
-const WINDOW_VIEW: SkyChartView = {
-  Component: WindowView,
-  id: 'window',
-  available: () => typeof window !== 'undefined' && orientationApiPresent(),
-};
+// R121 (FR-WIN-4 as amended v2.5, D-789): no `available()` — the window is offered on every page and every device.
+const WINDOW_VIEW: SkyChartView = { Component: WindowView, id: 'window' };
 
 export const SKY_CHART_VIEWS: readonly SkyChartView[] = [POLAR_VIEW, DOME_VIEW, WINDOW_VIEW];
 
 /**
  * The views this device is offered: the registered ones minus those
- * `available()` rules out and those lost for the session. R62's `views` prop,
- * which let a page offer fewer, is gone with the rule it served (V13-6): every
- * page offers all three where the device has them, and the live page is no
- * longer the exception.
+ * `available()` rules out. R62's `views` prop, which let a page offer fewer,
+ * is gone with the rule it served (V13-6); R121 (FR-WIN-4 as amended v2.5)
+ * takes the session's `windowLost` out of it too — a phone with no north
+ * loses the sensor, not the view, which it gets in the box under the hand.
+ * Every page offers all three, to every reader.
  */
-export function offeredViews(lost: ReadonlySet<ChartView> = new Set()): SkyChartView[] {
-  return SKY_CHART_VIEWS.filter((candidate) => !lost.has(candidate.id) && (candidate.available?.() ?? true));
+export function offeredViews(): SkyChartView[] {
+  return SKY_CHART_VIEWS.filter((candidate) => candidate.available?.() ?? true);
 }
 
 /** The view for a preference: itself where offered, else the dome (the default), else the first one offered. */
@@ -160,11 +175,24 @@ export function SkyChart(props: SkyChartProps) {
   const chartView = useAppStore((s) => s.chartView);
   const setChartView = useAppStore((s) => s.setChartView);
   const dropWindowView = useAppStore((s) => s.dropWindowView);
-  // FR-FOL-2: the one line the last answer left, and (FR-WIN-4) the option a compass-less phone has lost for the session.
+  const setWindowNote = useAppStore((s) => s.setWindowNote);
+  // FR-FOL-2: the one line the last answer left.
   const note = useAppStore((s) => s.windowNote);
-  const windowLost = useAppStore((s) => s.windowLost);
-  // D-350: the tap that chooses the window — the permission inside the gesture, then the reading that decides.
+  // D-350: the tap that chooses the window on a compact phone — the permission inside the gesture, then the reading that decides.
   const entry = useSkyScreen();
+  /*
+   * D-789 (R121): the window in the box. On wide it is the saved view; on compact without a sensor it is this
+   * chart's own, unsaved choice, which a reload forgets (FR-SKY-2). The hand camera's slot is this chart's for
+   * as long as it is mounted, so the dome and back keeps the facing; the window fills it in its own chunk.
+   */
+  const [handWindow, setHandWindow] = useState(false);
+  const handCamera = useRef<HandCamera | null>(null);
+  const [hand] = useState<HandSlot>(() => ({
+    get: () => handCamera.current,
+    keep: (camera) => {
+      handCamera.current = camera;
+    },
+  }));
   /*
    * FR-FSC-2 (D-351): the screen's `×` gives focus back to the option that opened it. The page's chart is
    * unmounted while the layer is up and is a new element when it returns, so what says "the screen just
@@ -182,24 +210,38 @@ export function SkyChart(props: SkyChartProps) {
     (group?.querySelector<HTMLElement>('[data-option="window"]') ?? group?.querySelector<HTMLElement>('[data-option]'))?.focus();
     windowRefocused();
   }, [refocus, props.screen, windowRefocused]);
-  const lost = useMemo<ReadonlySet<ChartView>>(() => (windowLost ? new Set<ChartView>(['window']) : new Set<ChartView>()), [windowLost]);
   // FR-FSC-1 / D-322 (R62): asked for a screen the chart is the window and nothing else — `viewFor` is not consulted,
   // so the saved preference is neither read for the view nor written on the way (FR-WIN-5 as amended).
   const screen = props.screen ?? false;
   const moonPhase = props.moonPhase ?? false;
-  const offered = useMemo(() => offeredViews(lost), [lost]);
-  const view = screen ? WINDOW_VIEW : viewFor(chartView, offered);
+  const offered = useMemo(() => offeredViews(), []);
+  // D-789: on compact the saved view is never the window (the store's guard reads a stored one as the dome at load;
+  // a window saved on wide and then narrowed draws as the dome too) — the window there is this chart's own choice.
+  const pageView: ChartView = compact ? (handWindow ? 'window' : compactChartView(chartView)) : chartView;
+  const view = screen ? WINDOW_VIEW : viewFor(pageView, offered);
   const choose = useCallback(
     (id: ChartView) => {
-      // D-350: the window is a mode, so its option opens the screen and writes nothing; the tap is where iOS is asked.
       if (id === 'window') {
-        entry.open();
+        // FR-WIN-5 as amended v2.5: on wide the window is a view like the other two, and the preference may hold it.
+        if (!compact) {
+          setChartView('window');
+          return;
+        }
+        // D-350: with a sensor the window is a mode — its option opens the screen and writes nothing; the tap is where iOS is asked.
+        if (entry.available) {
+          entry.open();
+          return;
+        }
+        // FR-SKY-2: a compact reader without a sensor has no screen to open and nothing to ask: the box, unsaved.
+        setWindowNote(null);
+        setHandWindow(true);
         return;
       }
+      setHandWindow(false);
       viewFor(id, offered).choose?.();
-      setChartView(id as SavedChartView);
+      setChartView(id);
     },
-    [offered, setChartView, entry],
+    [compact, offered, setChartView, setWindowNote, entry],
   );
   // R58 review (D-277) → R66 (D-352): a window that cannot run here closes the screen and leaves the note beside
   // this control; nothing is written, because the reader chose neither the failure nor a view to fall back to.
@@ -300,7 +342,8 @@ export function SkyChart(props: SkyChartProps) {
     >
       {!fill && <figcaption className={styles.caption}>{captioned ? <GuideText pass={captioned} timeZone={observer.timeZone} /> : <p className={styles.empty}>{t.chart.noPass}</p>}</figcaption>}
       {!fill && chartControls}
-      <view.Component {...forwarded} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legend} onUnavailable={unavailable} {...(fill && !screen ? { controls: chartControls } : {})} />
+      {/* D-789: the hand camera's slot goes to the page's view and not to a screen, whose window is the sensor's. */}
+      <view.Component {...forwarded} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legend} onUnavailable={unavailable} {...(fill && !screen ? { controls: chartControls } : {})} {...(screen ? {} : { hand })} />
     </figure>
   );
 }

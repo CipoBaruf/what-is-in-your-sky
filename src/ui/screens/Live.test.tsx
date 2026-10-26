@@ -1356,12 +1356,12 @@ describe('<LivePage>', () => {
     expect(screen.queryByTestId('sky-screen')).toBeNull();
     expect(screen.getByTestId('overview-row')).toBeInTheDocument();
 
-    // FR-WIN-4: and this phone is not offered the window again for the rest of the session.
+    // FR-WIN-4 as amended v2.5 (R121): the option stays — the presence test governs the sensor, never the view.
     expect(
       within(screen.getByRole('group', { name: en.chart.viewGroup }))
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['Polar', 'Dome']);
+    ).toEqual(['Polar', 'Dome', 'Window']);
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
   });
 
