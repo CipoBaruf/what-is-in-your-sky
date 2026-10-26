@@ -173,7 +173,20 @@ export const LEGEND_PANEL_ID = 'live-legend-panel';
  * of who reads the measurement, so these come by context, from the page that
  * owns them (`Live.tsx`), and the frame's own props win where both are given.
  */
-export const ChartFrameSlots = createContext<Pick<ChartFrameProps, 'bottomOverlay' | 'onBoxSpace'>>({});
+export const ChartFrameSlots = createContext<ChartFrameSlotValues>({});
+
+/**
+ * R123 (FR-SKY-3, FR-COMP-4, D-791, D-814): the page's `[ stars ]` reaches the
+ * chart the same way, past the view. `readoutAction` stands at the end of the
+ * readout row — the status slot in its own row, which is where it is on
+ * compact — and is not placed where the slot is the box's corner or on a
+ * screen; `viewAction` stands after the view control where `SkyChart` heads
+ * the figure with it (the pass detail's view row on wide).
+ */
+export interface ChartFrameSlotValues extends Pick<ChartFrameProps, 'bottomOverlay' | 'onBoxSpace'> {
+  readoutAction?: ReactNode;
+  viewAction?: ReactNode;
+}
 
 export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe, boxAspect, stacked = false, screen = false, overlay, gutter, upright = false, headline, bottomOverlay, onBoxSpace, handWindow = false, className, fill = false, children }: ChartFrameProps) {
   const compact = useLayoutMode() === 'compact';
@@ -187,6 +200,7 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
   const slots = useContext(ChartFrameSlots);
   const bar = bottomOverlay ?? slots.bottomOverlay;
   const hasBar = bar !== undefined && bar !== null;
+  const hasReadoutAction = slots.readoutAction !== undefined && slots.readoutAction !== null;
   // The callback is read through a ref: a page's new closure is not a reason to measure again.
   const reportSpace = onBoxSpace ?? slots.onBoxSpace;
   const reportSpaceRef = useRef(reportSpace);
@@ -413,8 +427,9 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
           )}
         </div>
         {!cornerStatus && (
-          <div className={styles.status} data-row="status">
+          <div className={styles.status} data-row="status" data-action={hasReadoutAction}>
             {status}
+            {hasReadoutAction && <div className={styles.readoutAction}>{slots.readoutAction}</div>}
           </div>
         )}
         {hasStripe && (

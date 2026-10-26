@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '../../../../i18n/useT';
 import { bodyLines, legendKeys, legendRows, promoteRow } from '../../../../lib/legend';
 import { compactChartView, type ChartView } from '../../../../model';
@@ -9,7 +9,7 @@ import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { useSkyScreen } from '../../screen/useSkyScreen';
 import { GuideText } from '../GuideText';
 import { moonVisible, sunVisible } from './bodies';
-import { ChartFrame } from './ChartFrame';
+import { ChartFrame, ChartFrameSlots } from './ChartFrame';
 import { Legend } from './Legend';
 import { POLAR_VIEW } from './polar/SkyPolar';
 import styles from './SkyChart.module.css';
@@ -305,6 +305,8 @@ export function SkyChart(props: SkyChartProps) {
   // R54 (FR-LIVE-7 as amended v1.1.1, D-269): the view toggle and its note. On the guide they head the figure; on the live
   // page (`fill`) they go to the view for the frame's controls slot, so the row above the drawing is one row.
   // D-322: a screen has no controls at all — not in the figure, not in the frame's row — so there is nothing to build.
+  const { viewAction } = useContext(ChartFrameSlots);
+  const viewControl = <ToggleGroup name={t.chart.viewGroup} {...(compact ? { gap: 'none' as const, inline: true } : { prefix: t.chart.viewPrefix })} options={SKY_CHART_VIEWS.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />;
   const chartControls = screen ? null : (
     <>
       {/*
@@ -319,7 +321,15 @@ export function SkyChart(props: SkyChartProps) {
        * and a matching negative margin, so on a column too narrow for the three — the landscape phone's 740 ×
        * 360 — the control wraps to two text rows inside its one tap row, and the row above the box does not grow.
        */}
-      <ToggleGroup name={t.chart.viewGroup} {...(compact ? { gap: 'none' as const, inline: true } : { prefix: t.chart.viewPrefix })} options={SKY_CHART_VIEWS.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
+      {viewAction === undefined || viewAction === null ? (
+        viewControl
+      ) : (
+        // R123 (FR-SKY-3, D-791): the page's `[ stars ]` after the control, on its row, where the page hands one (the pass detail on wide).
+        <div className={styles.viewRow} data-testid="chart-view-row">
+          {viewControl}
+          {viewAction}
+        </div>
+      )}
       {note !== null && (
         <p className={styles.note} role="status" data-testid="chart-view-note">
           {t.window[note]}

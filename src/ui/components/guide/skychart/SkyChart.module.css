@@ -42,3 +42,11 @@
   border: 1px dashed var(--rule);
   box-sizing: border-box;
 }
+
+/* R123 (FR-SKY-3, D-791): the view control and the page's `[ stars ]` on one row, a cell apart, wrapping at the separator where a row cannot hold both. */
+.viewRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--cell);
+}

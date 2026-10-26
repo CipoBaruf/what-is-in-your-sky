@@ -76,7 +76,7 @@ interface SkyScreenCommon extends Required<Pick<SkyChartProps, 'observer' | 'now
 }
 
 /** The passes inventory (the default): the live page's set, or the pass detail's one pass. */
-interface PassesInventory extends Required<Pick<SkyChartProps, 'passes'>>, Partial<Pick<SkyChartProps, 'highlightedPassId'>> {
+interface PassesInventory extends Required<Pick<SkyChartProps, 'passes'>>, Partial<Pick<SkyChartProps, 'highlightedPassId' | 'scene'>> {
   inventory?: 'passes';
 }
 
@@ -227,7 +227,7 @@ export function SkyScreen(props: SkyScreenProps) {
            * guide is about and its key is in view from the first frame (D-188).
            */
           {...(initialFacingAzDeg === undefined ? {} : { initialFacingAzDeg })}
-          {...(stars ? { scene: props.scene, inventory: 'stars' as const } : {})}
+          {...(stars ? { scene: props.scene, inventory: 'stars' as const } : props.scene === undefined ? {} : { scene: props.scene })}
           overlay={
             <button type="button" ref={closeRef} className={styles.close} aria-label={t.chart.screenClose} onClick={onClose} data-testid="sky-screen-close">
               ×
