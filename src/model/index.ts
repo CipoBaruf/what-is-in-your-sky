@@ -8,6 +8,6 @@ export type { MoonPhaseName, MoonState, MoonGlare, MoonGlareThresholds } from '.
 export type { HourlyCloud, WeatherSnapshot, CloudState, CloudVerdict } from './weather';
 export type { PassRun, Favourite, Readiness, ReadinessGap } from './offline';
 export { MAX_FAVOURITES } from './offline';
-export type { PassSort, ChartView, SavedChartView, ChartOrientation, Locale, Theme } from './prefs';
-export { savedChartView } from './prefs';
+export type { PassSort, ChartView, ChartOrientation, Locale, Theme } from './prefs';
+export { compactChartView } from './prefs';
 export { THEMES, DEFAULT_THEME, DEFAULT_LIVE_LEGEND_OPEN, DEFAULT_SHOW_FAINT } from './prefs';

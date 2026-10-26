@@ -42,13 +42,19 @@ export interface ToggleGroupProps<T extends string> {
   mark?: 'check' | 'bracket' | 'tight';
   /** The space between options: a cell, or none where each option's own trailing cell is the whole gap (the wide speeds). */
   gap?: 'cell' | 'none';
+  /**
+   * R121 (FR-FSC-6 as amended v2.5, D-834): each option's line is one text row with its 48 px box as padding and a
+   * matching negative margin (`OptionToggle`'s and `TextButton`'s `inline`), so a group that wraps to two lines
+   * stands inside one tap row — the compact chart's view control, three options on the landscape phone's column.
+   */
+  inline?: boolean;
   /** Placement only — a grid area, a margin from the space scale (D-704). */
   className?: string | undefined;
 }
 
 const STEP: Record<string, 1 | -1> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
 
-export function ToggleGroup<T extends string>({ name, prefix, options, value, onChange, role = 'group', mark = 'check', gap = 'cell', className }: ToggleGroupProps<T>) {
+export function ToggleGroup<T extends string>({ name, prefix, options, value, onChange, role = 'group', mark = 'check', gap = 'cell', inline = false, className }: ToggleGroupProps<T>) {
   const radio = role === 'radiogroup';
   const choose = (next: T): void => {
     if (next !== value) onChange(next);
@@ -83,9 +89,9 @@ export function ToggleGroup<T extends string>({ name, prefix, options, value, on
           ...(radio ? { role: 'radio' as const, tabIndex: stop ? 0 : -1 } : {}),
         };
         return mark === 'check' ? (
-          <OptionToggle key={option.value} {...shared} value={option.value} label={option.label} {...(pressed ? {} : { onPress: () => choose(option.value) })} />
+          <OptionToggle key={option.value} {...shared} inline={inline} value={option.value} label={option.label} {...(pressed ? {} : { onPress: () => choose(option.value) })} />
         ) : (
-          <TextButton key={option.value} {...shared} tight={mark === 'tight'} label={option.label} onClick={() => choose(option.value)} />
+          <TextButton key={option.value} {...shared} inline={inline} tight={mark === 'tight'} label={option.label} onClick={() => choose(option.value)} />
         );
       })}
     </div>

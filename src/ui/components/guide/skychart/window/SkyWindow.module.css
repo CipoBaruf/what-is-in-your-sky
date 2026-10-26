@@ -384,6 +384,32 @@
   color: var(--fg-dim);
 }
 
+/* R121 (FR-SKY-2, D-789): the window in the page's box under the hand. The
+   facing row — the picker and, on a tablet, `[ hold up to the sky ]` — is one
+   control row at the tap height, a cell between its controls, that may wrap
+   where the row it joins is already full (the compact view control's); the
+   hand's hint stands in the box's bottom-left corner as secondary copy, out of
+   the way of FR-FOL-5's notes a row above it. */
+.facingRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--cell);
+  min-height: var(--tap);
+}
+
+.handHint {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 0 var(--cell);
+  color: var(--fg-dim);
+  font-size: var(--small);
+  line-height: var(--small-row);
+  pointer-events: none;
+}
+
 .readout {
   margin: 0;
   color: var(--fg);

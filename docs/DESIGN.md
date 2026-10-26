@@ -189,6 +189,7 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 | `onPress` | `() => void` | What a tap means; a group passes nothing for the option already pressed. |
 | `value` | `string` | The option’s value as `data-option`, so a caller can find it in its group again. |
 | `alone` | `boolean` | An option standing alone has no trailing cell; in a group that cell separates it from the next. |
+| `inline` | `boolean` | The 48 px box as padding and a matching negative margin, so the option’s line is one text row (the compact chart’s view control). |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
 
 ### `ToggleGroup`
@@ -205,6 +206,7 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 | `role` | `'group' \| 'radiogroup'` | Pressed buttons (the default), or radios with one tab stop where the arrow keys choose. |
 | `mark` | `'check' \| 'bracket' \| 'tight'` | How the chosen option is told from the others: `[x]`, bracketed, or bracketed without spaces. |
 | `gap` | `'cell' \| 'none'` | A cell between options, or none where each option’s trailing cell is the whole gap (the wide speeds). |
+| `inline` | `boolean` | Each option’s line is one text row with its 48 px box as padding and a matching negative margin, so a group that wraps to two lines stands inside one tap row. |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
 
 ### `Card`

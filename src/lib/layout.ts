@@ -261,6 +261,29 @@ export function fitBox({ frameWidthPx, frameHeightPx, aboveHeightPx, belowHeight
   return { widthPx: Math.floor(widthPx), heightPx: Math.floor(widthPx / aspect) };
 }
 
+/**
+ * R121 (FR-SKY-2, FR-STAR-3; D-789): the window's box. The stars page cuts its
+ * box to the browser window's own shape (R115), and the live page and the
+ * pass detail lay the window out the same way where the dome had its 2.4 : 2.0
+ * box — so this is `fitBox` at the viewport's aspect, one rule for both, with
+ * the viewport given rather than read so it stays a unit test. A viewport with
+ * no size yet (jsdom, a hidden tab) is square.
+ */
+export interface WindowBoxFit extends Omit<BoxFit, 'aspect'> {
+  /** The browser window's inner size, CSS px — the shape the box takes. */
+  viewportWidthPx: number;
+  viewportHeightPx: number;
+}
+
+/** Width over height of the viewport, 1 where it has no size. */
+export function viewportAspect(viewportWidthPx: number, viewportHeightPx: number): number {
+  return viewportWidthPx > 0 && viewportHeightPx > 0 ? viewportWidthPx / viewportHeightPx : 1;
+}
+
+export function windowBox({ viewportWidthPx, viewportHeightPx, ...room }: WindowBoxFit): { widthPx: number; heightPx: number } {
+  return fitBox({ ...room, aspect: viewportAspect(viewportWidthPx, viewportHeightPx) });
+}
+
 /*
  * R71 (FR-LEG-6, D-386): `LIVE_TWO_COLUMN_MIN_PX` (1660) and its query stood
  * here. The wide live page is the rail at every wide width now — one wide

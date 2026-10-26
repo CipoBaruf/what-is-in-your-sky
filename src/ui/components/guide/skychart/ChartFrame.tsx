@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
-import { fitBox } from '../../../../lib/layout';
+import { fitBox, viewportAspect, windowBox } from '../../../../lib/layout';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import styles from './ChartFrame.module.css';
 
@@ -120,6 +120,19 @@ export interface ChartFrameProps {
    * page decides where its scrub block goes from this, not from the viewport.
    */
   onBoxSpace?: (heightPx: number) => void;
+  /**
+   * FR-SKY-2 (R121, D-789): the window laid out in the box under the hand
+   * camera — the live page's and the pass detail's window, which the window
+   * itself asks for. On wide the box takes the browser window's shape, as the
+   * stars page's does (`lib/layout.ts` `windowBox`): on a `fill` frame in the
+   * aspect-locked measurement in place of `boxAspect`, on the guide's square
+   * through `--chart-box-aspect`, written from the viewport; and the `status`
+   * slot — the facing readout — stands in the box's top-left corner on the
+   * screen's overlay surface instead of in its row (on a wide `fill` frame
+   * every view's slot stands there, D-834). Compact is unchanged: the box the
+   * dome has, the readout in its row. Ignored on a `screen`.
+   */
+  handWindow?: boolean;
   className?: string;
   /** FR-LIVE-1 (R32): the drawing takes the frame's whole height instead of a capped square; the frame takes its parent's. */
   fill?: boolean;
@@ -162,8 +175,15 @@ export const LEGEND_PANEL_ID = 'live-legend-panel';
  */
 export const ChartFrameSlots = createContext<Pick<ChartFrameProps, 'bottomOverlay' | 'onBoxSpace'>>({});
 
-export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe, boxAspect, stacked = false, screen = false, overlay, gutter, upright = false, headline, bottomOverlay, onBoxSpace, className, fill = false, children }: ChartFrameProps) {
+export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe, boxAspect, stacked = false, screen = false, overlay, gutter, upright = false, headline, bottomOverlay, onBoxSpace, handWindow = false, className, fill = false, children }: ChartFrameProps) {
   const compact = useLayoutMode() === 'compact';
+  // D-789: the window in the box on wide — the box cut to the browser window's shape, the readout in its corner.
+  const windowShaped = handWindow && !screen && !compact;
+  // D-834 (FR-SKY-2, V25-17): the status slot stands in the box's top-left corner on the wide live page (`fill`) for
+  // every view — the dome's readout, the polar chart's convention line, the window's readout — so the row above
+  // the box is the view control alone and stays one line; and on the guide's window (D-789). The compact rows and
+  // the guide's other views keep the slot in its own row.
+  const cornerStatus = !screen && !compact && (fill || handWindow);
   const slots = useContext(ChartFrameSlots);
   const bar = bottomOverlay ?? slots.bottomOverlay;
   const hasBar = bar !== undefined && bar !== null;
@@ -216,14 +236,15 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
         lastSpace.current = space;
         reportSpaceRef.current?.(space);
       }
-      const box = fitBox({
+      const room = {
         frameWidthPx: width,
         frameHeightPx: height,
         aboveHeightPx: above + gap,
         belowHeightPx: below,
         besideWidthPx: isStacked ? 0 : rail + columnGap,
-        aspect: boxAspect,
-      });
+      };
+      // D-789: the window takes the browser window's shape (the stars page's rule), the dome its own aspect.
+      const box = windowShaped ? windowBox({ ...room, viewportWidthPx: window.innerWidth, viewportHeightPx: window.innerHeight }) : fitBox({ ...room, aspect: boxAspect });
       const next = { w: `${String(box.widthPx)}px`, h: `${String(box.heightPx)}px` };
       if (frame.style.getPropertyValue('--chart-box-w') !== next.w) frame.style.setProperty('--chart-box-w', next.w);
       if (frame.style.getPropertyValue('--chart-box-h') !== next.h) frame.style.setProperty('--chart-box-h', next.h);
@@ -241,7 +262,30 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
       frame.style.removeProperty('--chart-box-w');
       frame.style.removeProperty('--chart-box-h');
     };
-  }, [boxed, boxAspect, hasStripe, isStacked, hasLegend]);
+  }, [boxed, boxAspect, hasStripe, isStacked, hasLegend, windowShaped]);
+
+  /*
+   * D-789: the guide's window. The pass detail's frame is not aspect-locked — its box is the square the stylesheet
+   * caps at `--chart-size` — so the window's shape reaches it as a ratio, `--chart-box-aspect`, which the stylesheet
+   * puts on the box's `aspect-ratio` in place of 1 : 1. A ratio, not a length: no px is written in a wide block
+   * (`tests/styles/breakpoint.test.ts`). Read from the viewport on every resize of the browser window, which is the
+   * only thing that changes it. A `fill` frame never reads it (the rule is the guide's, `data-fill='false'`): a
+   * boxed one has `windowBox`'s lengths, and an unboxed one fills what the page gives it.
+   */
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!windowShaped || fill || !frame) return;
+    const shape = (): void => {
+      const next = viewportAspect(window.innerWidth, window.innerHeight).toFixed(4);
+      if (frame.style.getPropertyValue('--chart-box-aspect') !== next) frame.style.setProperty('--chart-box-aspect', next);
+    };
+    window.addEventListener('resize', shape);
+    shape();
+    return () => {
+      window.removeEventListener('resize', shape);
+      frame.style.removeProperty('--chart-box-aspect');
+    };
+  }, [windowShaped, fill]);
 
   // FR-COMP-5 / D-187: the live floor. The drawing's minimum height is the frame's width, measured, so a
   // portrait phone never gets a dome shorter than it is wide whatever the rows around it take.
@@ -343,6 +387,8 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
         data-bottom-overlay={hasBar}
         data-box={boxed}
         data-stacked={isStacked}
+        data-hand-window={handWindow && !screen}
+        data-corner-status={cornerStatus}
       >
         {/* D-314: the rail's minimum in px, read off this probe — `--cell` is `1ch`, which no script can turn into px by itself. */}
         {boxed && !isStacked && <span className={styles.railProbe} ref={railProbeRef} aria-hidden="true" />}
@@ -352,6 +398,13 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
         </div>
         <div className={styles.drawing} data-testid="chart-box">
           {children}
+          {/* D-789, D-834 (R121): the status slot in the box's top-left corner — the window's readout on wide as the
+              stars page draws it (FR-STAR-3), and every view's on the wide live page (V25-17). */}
+          {cornerStatus && (
+            <div className={styles.cornerStatus} data-row="status" data-testid="chart-status">
+              {status}
+            </div>
+          )}
           {/* FR-WATCH-6 (D-449): inside the box's own box, so the box is the same size with it and without. */}
           {hasBar && (
             <div className={styles.bottomOverlay} data-testid="chart-bottom-overlay">
@@ -359,9 +412,11 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
             </div>
           )}
         </div>
-        <div className={styles.status} data-row="status">
-          {status}
-        </div>
+        {!cornerStatus && (
+          <div className={styles.status} data-row="status">
+            {status}
+          </div>
+        )}
         {hasStripe && (
           <div className={styles.stripe} data-testid="chart-stripe" ref={stripeRef}>
             {stripe}

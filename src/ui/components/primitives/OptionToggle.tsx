@@ -20,14 +20,20 @@ export interface OptionToggleOwnProps {
   value?: string;
   /** An option standing alone (the hidden-objects toggle) has no trailing cell: that cell is what separates it from the next option in a group. */
   alone?: boolean;
+  /**
+   * R121 (FR-FSC-6 as amended v2.5, D-834): the 48 px box as padding and a matching negative margin (global.css
+   * `inline-control`, `TextButton`'s `inline`), so the option's line is one text row and a group that wraps to two
+   * lines stands inside one tap row — the compact chart's view control on the landscape phone.
+   */
+  inline?: boolean;
   /** Placement only — a grid area, a margin from the space scale (D-704). */
   className?: string | undefined;
 }
 
 export type OptionToggleProps = OptionToggleOwnProps & Omit<ComponentProps<'button'>, keyof OptionToggleOwnProps | 'children' | 'style' | 'type' | 'onClick'>;
 
-export function OptionToggle({ label, pressed, onPress, value, alone = false, className, ...rest }: OptionToggleProps) {
-  const classes = [styles.option, alone ? styles.alone : undefined, className].filter(Boolean).join(' ');
+export function OptionToggle({ label, pressed, onPress, value, alone = false, inline = false, className, ...rest }: OptionToggleProps) {
+  const classes = [styles.option, alone ? styles.alone : undefined, inline ? 'inline-control' : undefined, inline ? styles.inline : undefined, className].filter(Boolean).join(' ');
   const state = rest.role === 'radio' ? { 'aria-checked': pressed } : { 'aria-pressed': pressed };
   return (
     <button type="button" className={classes} {...state} {...(value === undefined ? {} : { 'data-option': value })} onClick={onPress} {...rest}>

@@ -106,7 +106,7 @@ describe('prefs slice', () => {
    * left is one written preference that can only be the dome or the polar
    * chart, and a session flag for the screen.
    */
-  it('keeps one written view preference, and a window stored by an older build reads as the dome and is rewritten', () => {
+  it('keeps one written view preference, and a stored window reads as the dome on compact, unwritten, and as itself on wide (R121, D-789)', () => {
     const storage = memoryStorage();
     storage.map.set(PREFS_KEY, JSON.stringify({ chartView: 'polar' }));
     const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
@@ -116,12 +116,25 @@ describe('prefs slice', () => {
     expect(store.getState().chartView).toBe('dome');
     expect(stored(storage)).toEqual({ chartView: 'dome' });
 
-    // The migration: every device that chose the window before v1.3.1 has it under the key.
-    const old = memoryStorage();
-    old.map.set(PREFS_KEY, JSON.stringify({ chartView: 'window', sort: 'best' }));
-    const migrated = createAppStore({ now: () => NOW, prefs: createLocalPrefs(old) });
-    expect(migrated.getState().chartView).toBe('dome');
-    expect(stored(old)).toEqual({ chartView: 'dome', sort: 'best' });
+    // The load guard (FR-WIN-5 as amended v2.5): a phone-sized window opens on the dome and leaves the key as it was —
+    // a device that chose the window before v1.3.1, and a desk that chose it in v2.5, read the same.
+    const saved = memoryStorage();
+    saved.map.set(PREFS_KEY, JSON.stringify({ chartView: 'window', sort: 'best' }));
+    const compact = createAppStore({ now: () => NOW, prefs: createLocalPrefs(saved), wide: () => false });
+    expect(compact.getState().chartView).toBe('dome');
+    expect(stored(saved)).toEqual({ chartView: 'window', sort: 'best' });
+    // Another preference's write-through on compact leaves the desk's view alone too.
+    compact.getState().setSort('chronological');
+    expect(stored(saved)).toEqual({ chartView: 'window', sort: 'chronological' });
+    // Without a viewport to ask (jsdom has no `matchMedia`), the load is compact.
+    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(saved) }).getState().chartView).toBe('dome');
+
+    // On wide the window is a view like the other two, saved and restored.
+    const wide = createAppStore({ now: () => NOW, prefs: createLocalPrefs(saved), wide: () => true });
+    expect(wide.getState().chartView).toBe('window');
+    wide.getState().setChartView('polar');
+    wide.getState().setChartView('window');
+    expect(stored(saved)).toEqual({ chartView: 'window', sort: 'chronological' });
   });
 
   /**

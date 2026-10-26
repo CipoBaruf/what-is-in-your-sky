@@ -8,9 +8,14 @@
  * and the compass names with it — the picture eased toward each reading one
  * frame at a time under the installed clock (the rate figure in the summary).
  * A saved window that still needs a tap shows `[ point at the sky ]` in its
- * place; the tap asks, and a refusal leaves the dome with the note. Without
- * touch (the desktop profile) the option is absent and a saved window is the
- * dome.
+ * place; the tap asks, and a refusal leaves the dome with the note.
+ *
+ * R121 (FR-SKY-2, FR-SKY-7, FR-WIN-4, FR-WIN-5 as amended v2.5; D-789, D-790):
+ * the option is on every device. On a desk (the last two blocks) it is a view
+ * laid out in the box under the hand camera — saved on wide, cut to the
+ * browser window's shape, the picker in the rail or the controls row; the
+ * chart's own unsaved choice on compact without a sensor — and the pass
+ * detail's window opens facing the pass's peak, on the page and on the screen.
  *
  * The captures for the PR: the window at 390 px, both themes, both languages,
  * aimed from the stubbed orientation at the glare pass's peak, 20° up — the
@@ -145,10 +150,11 @@ test.describe('the sky window on a phone', () => {
     await expect(drawing).toHaveAttribute('aria-hidden', 'true');
     expect(await page.locator('canvas').count()).toBe(0);
     const w = layer.locator('[data-look-az]');
-    // The placeholder: at the pass's peak azimuth, raised from 20° so the 61° peak keeps 8° inside the top of the
-    // 60° box (61 − 30 + 8), the key at the peak in view.
+    // R121 (FR-SKY-7, D-790): before the first reading the screen looks at the pass as `facePeak` says — the peak's
+    // azimuth at `clamp(61 − 15, 20, 75)` = 46°, the peak in the field's upper half and its key in view. (R47's rule,
+    // 61 − 30 + 8 = 39°, is the live page's screen's still, which names its own facing.)
     const placeholder = await look(w);
-    expect(placeholder.alt).toBe(39);
+    expect(placeholder.alt).toBe(46);
     await expect(layer.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
     await expect(layer.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveText('A');
     await expect(layer.locator('[data-anchor="pass"], [data-anchor="peak"]')).toHaveCount(0);
@@ -225,8 +231,12 @@ test.describe('the sky window on a phone', () => {
     await expect(toggle.getByRole('button', { name: 'Window' })).toBeVisible();
   });
 
-  /** FR-WIN-4: a phone whose readings carry no north opens nothing and is not offered the window again. */
-  test('a phone with no compass heading gets the note and loses the option', async ({ page }) => {
+  /**
+   * FR-WIN-4: a phone whose readings carry no north opens nothing. R121 (FR-WIN-4 as amended v2.5, FR-SKY-2): it
+   * keeps the option — the presence test governs the sensor, never the view — and the next tap, with no sensor
+   * left to ask, lays the window out in the box under the hand, unsaved.
+   */
+  test('a phone with no compass heading gets the note, keeps the option, and the next tap is the box by hand', async ({ page }) => {
     await stubCompass(page);
     await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     const figure = await openDetail(page, 'en');
@@ -239,7 +249,13 @@ test.describe('the sky window on a phone', () => {
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(figure).toHaveAttribute('data-view', 'dome');
     await expect(figure.getByTestId('chart-view-note')).toHaveText('This device is not reporting which way it faces.');
-    await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome']);
+    await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
+    await tapWindow(page, figure, 'en');
+    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
+    await expect(figure).toHaveAttribute('data-view', 'window');
+    await expect(figure.locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
+    await expect(figure.getByTestId('chart-view-note')).toHaveCount(0);
+    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'dome' });
   });
 
   /** R90 (FR-FAIL-7): the two notes it changed, captured in both languages. */
@@ -272,7 +288,8 @@ test.describe('the sky window on a phone', () => {
     await expect(figure.getByTestId('chart-view-note')).toHaveText('This device is not reporting which way it faces.');
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(figure).toHaveAttribute('data-view', 'dome');
-    await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome']);
+    // R121 (FR-WIN-4 as amended v2.5): the option stays; it is the sensor that is lost for the session.
+    await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
   });
 
   for (const theme of THEMES) {
@@ -329,15 +346,217 @@ test.describe('the sky window on a phone', () => {
   });
 });
 
-test.describe('the sky window without a touch screen', () => {
+/** The box a locator is laid out in. */
+const rectOf = async (locator: Locator): Promise<{ x: number; y: number; width: number; height: number }> => (await locator.boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
+
+/** The live page from the home page the fixtures filled, on whatever view is saved. */
+async function openLive(page: Page): Promise<void> {
+  await page.goto('/');
+  await expect(page.locator(`article[data-pass-id="${GLARE_PASS}"]`)).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
+  await page.getByTestId('live-link').click();
+  // The paused clock holds React's lazy reveal (R32): the live chunk lands only as the clock runs.
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      return page.getByTestId('sky-chart').count();
+    }, { timeout: 30_000 })
+    .toBeGreaterThan(0);
+  await page.clock.runFor(1000);
+}
+
+/** The box has stopped moving: two identical reads a frame apart (the frame cuts it on a `ResizeObserver`). */
+async function boxSettled(page: Page, box: Locator): Promise<{ width: number; height: number }> {
+  let last = '';
+  await expect
+    .poll(async () => {
+      const rect = await rectOf(box);
+      const now = `${String(Math.round(rect.width))}x${String(Math.round(rect.height))}`;
+      const same = now === last && rect.width > 100;
+      last = now;
+      await page.clock.runFor(FRAME_MS);
+      return same;
+    })
+    .toBe(true);
+  const rect = await rectOf(box);
+  return { width: Math.round(rect.width), height: Math.round(rect.height) };
+}
+
+/**
+ * R121 (FR-SKY-2, FR-SKY-7, FR-WIN-4, FR-WIN-5, FR-FSC-6 as amended v2.5; US-41
+ * AC1, AC2; D-789, D-790): the window on a desk. R47's "not offered without a
+ * touch screen, and a saved window is the dome" is the opposite now: the option
+ * is on every device, on wide it is a saved view laid out in the box under the
+ * hand camera, and the pass detail's opens looking at the pass.
+ */
+test.describe('the sky window on a desk (wide, no sensor)', () => {
   test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false });
 
-  test('is not offered, and a saved window is the dome', async ({ page }) => {
-    await open(page, { width: 1280, height: 800 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'window' });
+  test('is offered on the pass detail, saved as the view, laid out in the window-shaped box facing the peak, and turned by hand', async ({ page }) => {
+    await open(page, { width: 1280, height: 800 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     const figure = await openDetail(page, 'en');
+    const toggle = figure.getByRole('group', { name: VIEW_GROUP.en });
+    await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
+    await toggle.getByRole('button', { name: 'Window' }).click();
+    await page.clock.runFor(1000);
+    // A view like the other two: drawn here, not on a screen, and saved (FR-WIN-5 as amended v2.5).
+    await expect(figure).toHaveAttribute('data-view', 'window');
+    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
+    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'window' });
+    const w = figure.locator('[data-look-az]');
+    await expect(w).toHaveAttribute('data-state', 'hand');
+    await expect(w).toHaveAttribute('data-in-box', 'true');
+    // FR-SKY-7: facing the peak's azimuth at clamp(61 − 15, 20, 75) = 46°, the arc under it and its key in view.
+    const opened = await look(w);
+    expect(opened.alt).toBe(46);
+    await expect(figure.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
+    // The box takes the browser window's shape (D-789), the readout stands in its corner, the hint in its foot.
+    const frame = figure.getByTestId('chart-frame');
+    await expect(frame).toHaveAttribute('data-hand-window', 'true');
+    const box = await boxSettled(page, figure.getByTestId('chart-box'));
+    expect(Math.abs(box.width / box.height - 1280 / 800)).toBeLessThan(0.02);
+    console.log(`R121 pass detail window box at 1280 × 800: ${String(box.width)} × ${String(box.height)} px`);
+    const readout = await rectOf(figure.getByTestId('window-readout'));
+    const boxRect = await rectOf(figure.getByTestId('chart-box'));
+    expect(readout.x).toBeGreaterThanOrEqual(boxRect.x - 1);
+    expect(readout.y).toBeGreaterThanOrEqual(boxRect.y - 1);
+    expect(readout.y).toBeLessThan(boxRect.y + boxRect.height / 2);
+    await expect(figure.getByTestId('window-hand-hint')).toHaveText('Drag the window, or use the arrow keys, to look around.');
+    // The picker: `peak` first and pressed, the eight points, `up`; no `[ hold up to the sky ]` without a sensor.
+    const picker = figure.getByRole('group', { name: 'Facing' });
+    await expect(picker.getByRole('button')).toHaveText(['peak', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'up']);
+    await expect(picker.locator('[data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(figure.getByTestId('window-hold-up')).toHaveCount(0);
+    // The guide panel scrolls on its own, so the box stands below its fold at 800 px: bring its foot to the panel's edge first.
+    await figure.getByTestId('chart-box').evaluate((el) => { el.scrollIntoView({ block: 'end' }); });
+    await page.mouse.move(0, 0);
+    await page.screenshot({ path: `${CAPTURE_DIR}/r121-detail-1280-window-dark-en.png` });
+    // The hand (FR-STAR-4): a drag at 4 px per degree, the sky following the pointer; the keys while the box has focus.
+    // The box stands below the fold at 800 px, and the mouse works in viewport coordinates: bring it up first.
+    await figure.getByTestId('chart-box').scrollIntoViewIfNeeded();
+    const dragRect = await rectOf(figure.getByTestId('chart-box'));
+    await page.mouse.move(dragRect.x + dragRect.width / 2, dragRect.y + dragRect.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(dragRect.x + dragRect.width / 2 + 120, dragRect.y + dragRect.height / 2, { steps: 5 });
+    await page.clock.runFor(FRAME_MS);
+    await page.mouse.up();
+    await page.clock.runFor(FRAME_MS);
+    expect((await look(w)).az).toBe((opened.az - 30 + 360) % 360);
+    await expect(picker.locator('[data-option="peak"]')).toHaveAttribute('aria-pressed', 'false');
+    await figure.locator('[data-dragging]').focus();
+    await page.keyboard.press('ArrowUp');
+    expect((await look(w)).alt).toBe(51);
+    await picker.locator('[data-option="up"]').click();
+    expect((await look(w)).alt).toBe(90);
+    await picker.locator('[data-option="peak"]').click();
+    expect(await look(w)).toEqual(opened);
+    // The dome and back keeps the facing (the chart's slot, D-789).
+    await picker.locator('[data-option="W"]').click();
+    await toggle.getByRole('button', { name: 'Dome' }).click();
     await expect(figure).toHaveAttribute('data-view', 'dome');
-    await expect(figure.getByRole('group', { name: VIEW_GROUP.en }).getByRole('button')).toHaveText(['Polar', 'Dome']);
-    await expect(figure.getByTestId('window-gate')).toHaveCount(0);
-    await page.screenshot({ path: `${CAPTURE_DIR}/r47-detail-1280-no-window-dark-en.png` });
+    await toggle.getByRole('button', { name: 'Window' }).click();
+    await page.clock.runFor(1000);
+    expect((await look(figure.locator('[data-look-az]'))).az).toBe(270);
+  });
+
+  test('opens on the saved window, in Spanish too', async ({ page }) => {
+    await open(page, { width: 1280, height: 800 }, { locale: 'es', theme: 'dark', observer: PARIS, chartView: 'window' });
+    const figure = await openDetail(page, 'es');
+    await expect(figure).toHaveAttribute('data-view', 'window');
+    await expect(figure.locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
+    await expect(figure.getByRole('group', { name: 'Mirando' }).getByRole('button')).toHaveText(['pico', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'arriba']);
+    await expect(figure.getByTestId('window-readout')).toContainText('Mirando al');
+    await boxSettled(page, figure.getByTestId('chart-box'));
+    await figure.getByTestId('chart-box').evaluate((el) => { el.scrollIntoView({ block: 'end' }); });
+    await page.mouse.move(0, 0);
+    await page.screenshot({ path: `${CAPTURE_DIR}/r121-detail-1280-window-dark-es.png` });
+  });
+
+  for (const [width, height] of [
+    [1280, 800],
+    [1920, 1080],
+  ] as const) {
+    for (const theme of width === 1280 ? THEMES : (['dark'] as const)) {
+      test(`the live page at ${String(width)} × ${String(height)}, ${theme}: the window in the box beside the rail, the picker in the rail`, async ({ page }) => {
+        await open(page, { width, height }, { locale: 'en', theme, observer: PARIS, chartView: 'window' });
+        await openLive(page);
+        const chart = page.getByTestId('sky-chart');
+        await expect(chart).toHaveAttribute('data-view', 'window');
+        const w = chart.locator('[data-look-az]');
+        await expect(w).toHaveAttribute('data-state', 'hand');
+        // FR-STAR-3's rule for a page with no pass to face: the pole side — north for Paris — at 35°.
+        expect(await look(w)).toEqual({ az: 0, alt: 35 });
+        const box = await boxSettled(page, page.getByTestId('chart-box'));
+        // The box is cut to the browser window's shape (`windowBox`) and the rail stands beside it.
+        expect(Math.abs(box.width / box.height - width / height)).toBeLessThan(0.02);
+        const [boxRect, rail] = await Promise.all([rectOf(page.getByTestId('chart-box')), rectOf(page.getByTestId('live-rail-head'))]);
+        expect(rail.x).toBeGreaterThanOrEqual(boxRect.x + boxRect.width - 1);
+        // The facing picker in the rail (FR-SKY-2), the readout in the box's corner.
+        await expect(page.getByTestId('chart-aside').getByTestId('window-facing')).toBeVisible();
+        await expect(page.getByTestId('chart-aside').getByRole('group', { name: 'Facing' }).getByRole('button')).toHaveText(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'up']);
+        const readout = await rectOf(page.getByTestId('window-readout'));
+        expect(readout.y).toBeLessThan(boxRect.y + boxRect.height / 2);
+        expect(readout.x).toBeGreaterThanOrEqual(boxRect.x - 1);
+        test.info().annotations.push({ type: 'box', description: `${String(width)} × ${String(height)}: the window's box is ${String(box.width)} × ${String(box.height)} px` });
+        console.log(`R121 live window box at ${String(width)} × ${String(height)}: ${String(box.width)} × ${String(box.height)} px`);
+        await page.mouse.move(0, 0);
+        await page.screenshot({ path: `${CAPTURE_DIR}/r121-live-${String(width)}-window-${theme}-en.png` });
+      });
+    }
+  }
+});
+
+/**
+ * FR-SKY-2: a compact reader without a sensor — a phone-sized desk window, and
+ * every headless capture at 390 px — gets the window laid out in the box under
+ * the hand camera, since there is no screen to open and nothing to ask; the
+ * choice is not saved, so a reload opens on the saved view.
+ */
+test.describe('the sky window on a compact page without a sensor', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: false });
+
+  test('lays the window out in the box by hand on the pass detail, does not save it, and a reload opens on the saved view', async ({ page }) => {
+    await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
+    const figure = await openDetail(page, 'en');
+    const toggle = figure.getByRole('group', { name: VIEW_GROUP.en });
+    await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
+    await toggle.getByRole('button', { name: 'Window' }).click();
+    await page.clock.runFor(1000);
+    await expect(figure).toHaveAttribute('data-view', 'window');
+    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
+    const w = figure.locator('[data-look-az]');
+    await expect(w).toHaveAttribute('data-state', 'hand');
+    expect((await look(w)).alt).toBe(46);
+    // Compact keeps the dome's box — square, full-bleed — and the readout in its row, not the corner.
+    const frame = figure.getByTestId('chart-frame');
+    await expect(frame).toHaveAttribute('data-compact', 'true');
+    const box = await rectOf(figure.getByTestId('chart-box'));
+    expect(Math.abs(box.width - box.height)).toBeLessThanOrEqual(1);
+    const readout = await rectOf(figure.getByTestId('window-readout'));
+    expect(readout.y).toBeGreaterThanOrEqual(box.y + box.height - 1);
+    await expect(figure.getByRole('group', { name: 'Facing' }).locator('[data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
+    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'dome' });
+    await figure.getByTestId('chart-box').scrollIntoViewIfNeeded();
+    await page.mouse.move(0, 0);
+    await page.screenshot({ path: `${CAPTURE_DIR}/r121-detail-390-window-dark-en.png` });
+    // Unsaved: the reload opens on the dome.
+    await page.reload();
+    const again = guide(page).getByRole('figure');
+    await expect(again).toBeVisible({ timeout: 60_000 });
+    await expect(again).toHaveAttribute('data-view', 'dome');
+  });
+
+  test('lays the window out in the box by hand on the live page, the picker in the controls row', async ({ page }) => {
+    await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
+    await openLive(page);
+    const chart = page.getByTestId('sky-chart');
+    await chart.getByRole('group', { name: VIEW_GROUP.en }).getByRole('button', { name: 'Window' }).click();
+    await page.clock.runFor(1000);
+    await expect(chart).toHaveAttribute('data-view', 'window');
+    await expect(page.getByTestId('sky-screen')).toHaveCount(0);
+    await expect(chart.locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
+    await expect(chart.locator('[data-row="controls"]').getByTestId('window-facing')).toBeVisible();
+    await page.mouse.move(0, 0);
+    await page.screenshot({ path: `${CAPTURE_DIR}/r121-live-390-window-dark-en.png` });
   });
 });

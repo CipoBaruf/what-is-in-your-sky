@@ -19,6 +19,7 @@ import { MoonGlareNote } from '../components/moon/MoonGlare';
 import { PassNumbers } from '../components/guide/PassNumbers';
 import { useAppStore } from '../../state';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
+import { PEAK_FACING_OPTIONS } from '../components/guide/skychart/SkyChart.types';
 import { SkyScreen } from '../components/screen/SkyScreen';
 import styles from './PassDetail.module.css';
 
@@ -185,11 +186,13 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
         {pass.twilight && <span className={styles.twilight}>{t.passes.twilightLabel}</span>}
       </p>
       <Countdown pass={pass} now={now} timeZone={timeZone} />
+      {/* R121 (FR-SKY-7, D-790): the window here faces the pass's peak and its facing picker offers `peak` first. */}
       <SkyChart
         passes={[pass]}
         observer={observer}
         highlightedPassId={pass.id}
         now={now}
+        facingOptions={PEAK_FACING_OPTIONS}
         legendLead={(row) => <PassNumbers pass={pass} timeZone={timeZone} legendKey={row.key} colorToken={row.colorToken} />}
       />
       <MoonAtPeak moon={pass.moonAtPeak} variant="guide" />

@@ -47,8 +47,8 @@ test.describe('the live page', () => {
     const side = await page.getByTestId('live-side').boundingBox();
     expect(side?.y).toBeGreaterThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) - 1);
     expect(side?.x).toBeLessThan((dome?.x ?? 0) + 1);
-    // R66 (FR-WIN-4, V13-6): no touch screen in this profile, so no window to point and the control offers two views.
-    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome']);
+    // R121 (FR-WIN-4 as amended v2.5): no touch screen in this profile, and the control offers all three views all the same.
+    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
 
     // FR-LIVE-3: the five fields.
     await stripFilled(page);
@@ -239,7 +239,7 @@ for (const width of [390, 1280] as const) {
     const side = await page.getByTestId(width === 390 ? 'live-side' : 'live-rail-head').boundingBox();
     if (width === 390) expect(side?.y).toBeGreaterThanOrEqual((box?.y ?? 0) + (box?.height ?? 0) - 1);
     else expect(side?.x).toBeGreaterThanOrEqual((box?.x ?? 0) + (box?.width ?? 0) - 1);
-    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome']);
+    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
     await page.screenshot({ path: `docs/screenshots/r32-live-${String(width)}-dark-en.png` });
     // R48 (D-244): the compact live page carries no theme switch, so the theme is set on the home page.
     await reenterLiveWithTheme(page, 'en', 'night');
@@ -287,6 +287,18 @@ test.describe('the wide live page (R61)', () => {
   const rightOf = (row: { x: number } | null, box: { x: number; width: number } | null): void => {
     if (!row || !box) throw new Error('a row is missing');
     expect(row.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
+  };
+  // R121 (FR-SKY-2 as amended v2.5, V25-17, D-834): the status slot stands in the box's top-left corner, over the
+  // drawing, with the readout inside it (the slot pads a cell at each side).
+  const inCorner = async (page: Page, box: { x: number; y: number; width: number; height: number } | null): Promise<void> => {
+    const slot = await page.getByTestId('chart-status').boundingBox();
+    const readout = await page.getByTestId('dome-readout').boundingBox();
+    if (!slot || !readout || !box) throw new Error('a row is missing');
+    expect(Math.abs(slot.x - box.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(slot.y - box.y)).toBeLessThanOrEqual(1);
+    expect(slot.x + slot.width).toBeLessThanOrEqual(box.x + box.width + 1);
+    expect(slot.y + slot.height).toBeLessThanOrEqual(box.y + box.height + 1);
+    band(readout, slot);
   };
 
   /**
@@ -336,11 +348,10 @@ test.describe('the wide live page (R61)', () => {
     // R77 (FR-WATCH-4): the stripe block under the box is the scrubbing state's.
     await enterScrubbing(page);
     const toggle = await page.getByRole('group', { name: 'Chart view' }).boundingBox();
-    const readout = await page.getByTestId('dome-readout').boundingBox();
     const box = await page.getByTestId('chart-box').boundingBox();
-    // One row above: the readout shares the toggle's row, and the box starts right under it.
-    band(readout, toggle);
+    // One row above: the control alone, the box right under it, and the readout in the box's corner (D-834).
     below(box, toggle);
+    await inCorner(page, box);
     await expectTheRail(page, box, 'under the box');
     await expectLabelsClear(page);
     // The hidden-objects toggle is with the actions in the rail (V12-13). R70 (FR-TRAJ-5 as amended v1.4,
@@ -371,12 +382,11 @@ test.describe('the wide live page (R61)', () => {
     await stripFilled(page);
     await enterScrubbing(page);
     const toggle = await page.getByRole('group', { name: 'Chart view' }).boundingBox();
-    const readout = await page.getByTestId('dome-readout').boundingBox();
     const box = await page.getByTestId('chart-box').boundingBox();
     const stripe = await page.getByTestId('time-stripe').boundingBox();
     const clock = await page.getByTestId('time-readout').boundingBox();
-    band(readout, toggle);
     below(box, toggle);
+    await inCorner(page, box);
     await expectTheRail(page, box, 'under the box');
     // The legend is in that column too, over the rail's foot (FR-LEG-2 as amended v1.4; R77: the head above it).
     const rail = await page.getByTestId('live-rail-foot').boundingBox();

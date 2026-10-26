@@ -22,6 +22,7 @@ import { render, screen as rtl, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { stubMatchMedia, WIDE_PX } from '../../../../../tests/support/matchMedia';
 import { ChartFrame } from './ChartFrame';
 
 const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/ChartFrame.module.css'), 'utf8');
@@ -182,5 +183,37 @@ describe('<ChartFrame> as a screen (FR-FSC-1, D-322)', () => {
     // The layer over both is not itself a target, or the legend under it would stop taking taps (FR-LEG-4).
     expect(/\.screen \.overlay \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '').toContain('pointer-events: none;');
     expect(css).toContain('.screen .overlay > * {\n  pointer-events: auto;\n}');
+  });
+});
+
+/**
+ * D-789 (R121 review): `--chart-box-aspect` is the guide's — the stylesheet reads it on a frame that is not
+ * `fill` — so a `fill` frame with the window in it neither writes it nor listens to the browser window for it.
+ */
+describe('<ChartFrame> the window’s ratio (FR-SKY-2, D-789)', () => {
+  it('writes --chart-box-aspect on the guide’s frame and not on a fill frame', () => {
+    const media = stubMatchMedia(WIDE_PX);
+    const listen = vi.spyOn(window, 'addEventListener');
+    try {
+      const { unmount } = render(
+        <ChartFrame handWindow status={<p>readout</p>}>
+          <div data-drawing="window" />
+        </ChartFrame>,
+      );
+      expect(rtl.getByTestId('chart-frame').style.getPropertyValue('--chart-box-aspect')).not.toBe('');
+      expect(listen.mock.calls.some(([type]) => type === 'resize')).toBe(true);
+      unmount();
+      listen.mockClear();
+      render(
+        <ChartFrame handWindow fill status={<p>readout</p>}>
+          <div data-drawing="window" />
+        </ChartFrame>,
+      );
+      expect(rtl.getByTestId('chart-frame').style.getPropertyValue('--chart-box-aspect')).toBe('');
+      expect(listen.mock.calls.some(([type]) => type === 'resize')).toBe(false);
+    } finally {
+      listen.mockRestore();
+      media.restore();
+    }
   });
 });

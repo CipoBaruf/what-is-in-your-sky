@@ -122,7 +122,7 @@
     grid-template-columns: auto minmax(0, 1fr) calc(24 * var(--cell));
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas:
-      'controls status legend'
+      'controls controls legend'
       'drawing drawing legend';
   }
 
@@ -219,7 +219,7 @@
   .fill[data-compact='false'][data-legend='true'][data-aside='true'][data-stripe='true'] {
     grid-template-rows: auto auto auto;
     grid-template-areas:
-      'controls status legend'
+      'controls controls legend'
       'drawing drawing legend'
       'stripe stripe legend';
   }
@@ -237,7 +237,7 @@
     grid-template-columns: auto minmax(0, 1fr);
     grid-template-rows: auto auto auto auto;
     grid-template-areas:
-      'controls status'
+      'controls controls'
       'drawing drawing'
       'stripe stripe'
       'legend legend';
@@ -300,29 +300,40 @@
    the row above the drawing is one row. The controls slot — the view toggle
    the page hands down (D-269), then the view's own control: the polar
    orientation toggle, the window hint — and the status slot — the dome's
-   facing readout, the polar convention line — sit side by side on one
+   facing readout, the polar convention line — sat side by side on one
    baseline, and the drawing takes the rows the fold gives back. At 1920 × 1080
    the toggle's row and the readout's row were 48 + 24 px plus two gaps of the
    box's height; now they are one 48 px row. Compact keeps the stack: the
-   readout under the drawing is what R48's portrait rows count on. */
+   readout under the drawing is what R48's portrait rows count on.
+
+   R121 (FR-SKY-2, FR-FSC-6 as amended v2.5; V25-17, D-834): the row is the
+   control alone. With `[ ] Window` the toggle is 37 cells (39 in Spanish) and
+   beside the dome's readout it no longer fit the box column at the live page's
+   mid widths — 1024 and 1200 px, and the scrubbing page's column at 1280, all
+   56–58 cells — so the third option wrapped alone under the first two and the
+   fold table (`lib/layout.ts`), which counts this row as one line, turned a
+   row early. The container above cannot tell those widths apart (the shell it
+   measures is the box and the rail together) and a second condition is not
+   FR-DS-3's. So the status slot — the dome's facing readout, the polar
+   chart's convention line, the window's readout — stands in the box's
+   top-left corner on the overlay surface D-789 added for the window
+   (`.cornerStatus`, below), for every view, and the controls span both
+   columns: 37 cells against 55.5 at 1024, one line at every wide width. The
+   pass detail keeps its own readout row. */
 .fill[data-compact='false'] {
   grid-template-columns: auto minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) minmax(0, auto);
   grid-template-areas:
-    'controls status'
+    'controls controls'
     'drawing drawing'
     'legend legend';
   column-gap: calc(3 * var(--cell));
 }
 
-.fill[data-compact='false'] .controls,
-.fill[data-compact='false'] .status {
+.fill[data-compact='false'] .controls {
   align-self: baseline;
 }
 
-.fill[data-compact='false'] .status {
-  min-height: 0;
-}
 
 /* FR-LIVE-1 (R32): the live page's chart. The frame is as tall as the box it
    is given, the controls and status rows keep their own height, and the
@@ -429,6 +440,41 @@
   background: var(--screen-overlay);
 }
 
+/* R121 (FR-SKY-2, D-789): the window laid out in the box under the hand camera
+   — the live page's and the pass detail's window on a desk. On wide the facing
+   readout stands in the box's top-left corner on the sky screen's overlay
+   surface, as the stars page draws it (FR-STAR-3, the same `.cornerStatus`), and the
+   box takes the browser window's shape: on the live page `ChartFrame` measures
+   it with `windowBox` in place of the dome's aspect, so the rules above apply
+   as they are; on the guide, whose box is the square capped at `--chart-size`,
+   the shape is the ratio `ChartFrame` writes as `--chart-box-aspect` — a ratio
+   and not a length, since no px may stand in a wide block. Compact is left as
+   the dome has it.
+
+   D-834 (V25-17): the same corner holds every view's status slot on the wide
+   live page — `ChartFrame` sets `data-corner-status` where it renders the slot
+   there — so the row above the box is the view control alone. */
+.frame[data-corner-status='true'] .drawing {
+  position: relative;
+}
+
+.cornerStatus {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  min-height: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0 var(--cell);
+  background: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
+  pointer-events: none;
+}
+
+.frame[data-hand-window='true'][data-compact='false'][data-fill='false'] .drawing {
+  aspect-ratio: var(--chart-box-aspect, 1);
+}
+
 .fill .status {
   min-height: var(--row);
 }
@@ -438,7 +484,20 @@
   min-height: 0;
 }
 
-.status > p {
+/* R121 (FR-FSC-6 as amended v2.5, V25-17, D-834): on the compact live page the
+   row is the view control's tap row, 48 px, and no taller. The control's
+   options are `inline` there — one text row each, the 48 px box as padding and
+   a matching negative margin — so one line of them is this floor, the same
+   48 px the row measured with the options' own boxes (what the compact rows
+   count on, FR-WATCH-5), and two lines, where a column too narrow for the
+   three wraps the control (the landscape phone's 740 × 360), are two text rows
+   inside the same 48: the row does not grow and the box keeps its floor. */
+.fill[data-compact='true'] .controls {
+  min-height: var(--tap);
+}
+
+.status > p,
+.cornerStatus > p {
   margin: 0;
 }
 
