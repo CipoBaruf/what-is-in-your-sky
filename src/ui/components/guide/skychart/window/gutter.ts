@@ -13,9 +13,11 @@ import { scaleFor, type View } from './projection';
  * drawing shows (FR-GUT-3), a tick per drawn pass at its bearing (FR-GUT-4),
  * and, for a pass off the band, a marker at the nearer end with the angle to
  * turn (FR-GUT-5). Everything here is a function of numbers the drawing
- * already has — the facing the readout shows, the measured box and
- * `WINDOW_FOV` through `projection.ts`'s own scale — so the band is the same
- * function of the facing the projection is and moves with it, never in steps.
+ * already has — the facing the readout shows, the measured box and the
+ * current field (`View.fovDeg`: `WINDOW_FOV` until R125's zoom, FR-SKY-14)
+ * through `projection.ts`'s own scale — so the band is the same function of
+ * the facing the projection is and moves with it, never in steps, and the
+ * bracket narrows and widens with the zoom (FR-GUT-3 as amended).
  *
  * The band runs west to east left to right, as the drawing does: a bearing
  * clockwise of the facing is right of centre (`projection.ts` puts east on
@@ -51,8 +53,9 @@ export function gutterX(bearingDeg: number, facingDeg: number, widthPx: number):
 /**
  * FR-GUT-3: half the horizontal field the projection draws in this box, in
  * degrees — `verticalHalfFieldDeg`'s twin across the width, from the same
- * `scaleFor`, so it is `WINDOW_FOV / 2` upright and wider sideways, and no
- * constant of its own.
+ * `scaleFor`, so it is `fovDeg / 2` upright and wider sideways, and no
+ * constant of its own: at `WINDOW_FOV` on the 844 × 390 screen about 60°,
+ * about 21° zoomed to 20° and about 84° at 90° (`gutter.test.ts`).
  */
 export function horizontalHalfFieldDeg(view: View): number {
   return (2 * Math.atan(view.width / 2 / scaleFor(view))) / RAD;

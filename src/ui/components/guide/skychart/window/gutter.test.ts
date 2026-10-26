@@ -8,7 +8,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PassPoint } from '../../../../../model';
 import { bandNames, bracketFor, edgeMarkers, GUTTER_HALF_SPAN_DEG, gutterMarks, gutterX, horizontalHalfFieldDeg, passBearing, turnTo, wrapDeg, type GutterBranch, type GutterPass } from './gutter';
-import { project, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type View } from './projection';
+import { project, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, WINDOW_FOV_MAX_DEG, WINDOW_FOV_MIN_DEG, type View } from './projection';
 
 /** A phone held sideways and upright, as the sky screen measures them. */
 const SIDEWAYS: View = { fovDeg: WINDOW_FOV, width: 844, height: 390, screenAngleDeg: 0 };
@@ -79,6 +79,37 @@ describe('bracketFor', () => {
     const upright = bracketFor(UPRIGHT);
     expect(upright.x0).toBeCloseTo(130, 9);
     expect(upright.x1).toBeCloseTo(260, 9);
+  });
+
+  /** R125 (FR-GUT-3 as amended, FR-SKY-14; D-798): the bracket is derived from the current field, so it narrows and widens with the zoom. */
+  it('narrows and widens with the zoom: on the 844 × 390 screen about 21° at 20°, 60° at 60° and 84° at 90°', () => {
+    const at = (fovDeg: number): View => ({ ...SIDEWAYS, fovDeg });
+    const narrow = bracketFor(at(WINDOW_FOV_MIN_DEG));
+    const normal = bracketFor(at(WINDOW_FOV));
+    const wide = bracketFor(at(WINDOW_FOV_MAX_DEG));
+    // The Done note's three numbers: the half-width in degrees at each field, from the same scale as the drawing.
+    expect(narrow.halfDeg).toBeCloseTo(21.44, 2);
+    expect(normal.halfDeg).toBeCloseTo(60.22, 2);
+    expect(wide.halfDeg).toBeCloseTo(83.75, 2);
+    // 90° spans about 167° across the sideways screen (FR-SKY-14's figure), inside the band's 180°.
+    expect(2 * wide.halfDeg).toBeCloseTo(167.5, 1);
+    expect(wide.halfDeg).toBeLessThan(GUTTER_HALF_SPAN_DEG);
+    expect(narrow.halfDeg).toBeLessThan(normal.halfDeg);
+    expect(normal.halfDeg).toBeLessThan(wide.halfDeg);
+    // The ends move in with the field; the centre does not.
+    expect(narrow.x0).toBeGreaterThan(normal.x0);
+    expect(narrow.x1).toBeLessThan(normal.x1);
+    expect(wide.x0).toBeLessThan(normal.x0);
+    expect((narrow.x0 + narrow.x1) / 2).toBeCloseTo(422, 9);
+    expect((wide.x0 + wide.x1) / 2).toBeCloseTo(422, 9);
+    // Upright, where the field spans the width, the half-width is half the field exactly at both ends.
+    expect(bracketFor({ ...UPRIGHT, fovDeg: WINDOW_FOV_MIN_DEG }).halfDeg).toBeCloseTo(WINDOW_FOV_MIN_DEG / 2, 9);
+    expect(bracketFor({ ...UPRIGHT, fovDeg: WINDOW_FOV_MAX_DEG }).halfDeg).toBeCloseTo(WINDOW_FOV_MAX_DEG / 2, 9);
+    // A pass 30° off the facing is in the bracket at 60° and on the band at 20°; one 70° off is on the band at 60° and in the bracket at 90°.
+    expect(gutterMarks([pass(30)], 0, at(WINDOW_FOV))[0]?.branch).toBe('in-bracket');
+    expect(gutterMarks([pass(30)], 0, at(WINDOW_FOV_MIN_DEG))[0]?.branch).toBe('on-band');
+    expect(gutterMarks([pass(70)], 0, at(WINDOW_FOV))[0]?.branch).toBe('on-band');
+    expect(gutterMarks([pass(70)], 0, at(WINDOW_FOV_MAX_DEG))[0]?.branch).toBe('in-bracket');
   });
 
   it('stops at the band’s half span on a box whose field is wider than the band, so no mark in the bracket is off the band', () => {
