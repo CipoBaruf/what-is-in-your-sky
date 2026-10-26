@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocale, useT } from '../../i18n/useT';
 import { guideParams } from '../../lib/phrases';
@@ -108,14 +108,19 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   const now = useNow(TICK_MS);
   /*
    * R123 (FR-SKY-3, FR-SKY-8, FR-STAR-13; D-791): the stars under the arc at this page's own instant, thinned by
-   * the twilight. The Sun and the Moon are evaluated here once, for the scene's step, and handed to the chart and
-   * the screen, which would otherwise each evaluate them again (D-149). `[ stars ]` is on the view row, after the view
-   * control; on compact `inline`, so it takes the row's second text line and not a row of its own (D-814).
+   * the twilight. The Sun and the Moon are evaluated here once and handed to the chart and the screen, which would
+   * otherwise each evaluate them again (D-149). `[ stars ]` is on the view row, after the view control; on compact
+   * `inline`, so it takes the row's second text line and not a row of its own (D-814). While the sheet is `inert`
+   * behind another layer none of the drawing is seen, so the drawing's instant holds where it was and neither the
+   * bodies nor the stars are evaluated again until the sheet is back; the countdown keeps the clock. The screen
+   * is not such a layer: it draws this scene, so it keeps it ticking.
    */
-  const bodies = useSkyBodies({ observer, now });
+  const [drawnNow, setDrawnNow] = useState(now);
+  if (!inert && drawnNow !== now) setDrawnNow(now);
+  const bodies = useSkyBodies({ observer, now: drawnNow });
   const starsLayer = useAppStore((s) => s.starsLayer);
   const starSource = useStarSource(starsLayer);
-  const scene = useSkyScene({ observer, now, starsLayer, source: starSource, sunAltDeg: bodies.sun?.altDeg });
+  const scene = useSkyScene({ observer, now: drawnNow, starsLayer, source: starSource });
   const slots = useMemo(() => ({ viewAction: <StarsToggle inline={compact} /> }), [compact]);
   /*
    * R66 (FR-FSC-1, FR-FSC-9; V13-9, D-351, D-354): the sky screen over this
@@ -208,7 +213,7 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
           passes={[pass]}
           observer={observer}
           highlightedPassId={pass.id}
-          now={now}
+          now={drawnNow}
           sun={bodies.sun}
           moon={bodies.moon}
           scene={scene}
@@ -223,7 +228,7 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   );
 
   // The screen is the same layer on both shells; the sheet is what has a scroll to hold still.
-  const screen = screenOpen && createPortal(<SkyScreen passes={[pass]} observer={observer} now={now} sun={bodies.sun} moon={bodies.moon} scene={scene} highlightedPassId={pass.id} onClose={closeScreen} />, document.body);
+  const screen = screenOpen && createPortal(<SkyScreen passes={[pass]} observer={observer} now={drawnNow} sun={bodies.sun} moon={bodies.moon} scene={scene} highlightedPassId={pass.id} onClose={closeScreen} />, document.body);
 
   if (!compact) {
     return (
