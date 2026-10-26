@@ -2,6 +2,7 @@ import { Body, Equator, Horizon, Illumination, MakeTime, Observer as AeObserver,
 import { DEFAULT_THRESHOLDS } from '../physics/constants';
 import { msToDate } from '../physics/time';
 import type { EpochMs, Locale, Observer, VisibilityThresholds } from '../model';
+import { RUNG_MAX_MAG } from './starRungs';
 
 /**
  * FR-STAR-2 (R112, D-749): where every catalogue star and the five naked-eye
@@ -127,19 +128,19 @@ export function constellationName(names: StarNamesSource, con: string, lang: Loc
   return own(names.wholeNames[lang], con) ?? figureName(names, con, 0, lang);
 }
 
-/**
- * FR-STAR-13, FR-SKY-3 (D-791): the twilight steps. The ladder's rungs
- * (FR-STAR-6, `starGlyphs.ts`'s `LADDER`) by their faintest magnitude; a star
- * is on rung `k` when `k` is the first whose bound it does not exceed.
- */
-export const RUNG_MAX_MAG: readonly number[] = [0.5, 1.5, 2.5, 3.5, Number.POSITIVE_INFINITY];
+/* FR-STAR-13, FR-SKY-3 (D-791, D-806): the twilight steps, over the ladder's rungs (`starRungs.ts`'s `RUNG_MAX_MAG`). */
 
 /** Above this Sun altitude, degrees, the stars layer draws nothing: a daytime sky. */
 const DAYLIGHT_ALT = 0;
 
-/** How many rungs are drawn at a Sun altitude: every one at `sunAltMaxDeg` (−6°, the threshold `skyStateOf` calls day) and below, the first two up to 0°, none above. */
-export function drawnRungs(sunAltDeg: number, thresholds: Pick<VisibilityThresholds, 'sunAltMaxDeg'> = DEFAULT_THRESHOLDS): number {
-  if (sunAltDeg > DAYLIGHT_ALT) return 0;
+/**
+ * How many rungs are drawn at a Sun altitude: every one (`RUNG_MAX_MAG.length`)
+ * at `sunAltMaxDeg` (−6°, the threshold `skyStateOf` calls day) and below, the
+ * first two up to 0°, none above, and none for an altitude that is not a
+ * number, as `planetsDrawn` draws no planet then.
+ */
+export function drawnRungs(sunAltDeg: number, thresholds: Pick<VisibilityThresholds, 'sunAltMaxDeg'> = DEFAULT_THRESHOLDS): 0 | 2 | typeof RUNG_MAX_MAG.length {
+  if (!(sunAltDeg <= DAYLIGHT_ALT)) return 0;
   return sunAltDeg > thresholds.sunAltMaxDeg ? 2 : RUNG_MAX_MAG.length;
 }
 

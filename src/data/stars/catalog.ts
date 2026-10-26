@@ -33,14 +33,24 @@ interface CatalogFile {
 
 /**
  * A cheap shape check, not an element-by-element parse: every column is an
- * array with one entry per star. The values themselves are held by
+ * array with one entry per star, and the Spanish tables hold a name for
+ * every abbreviation and part the English ones do, so `figureName(…, 'es')`
+ * never comes back empty where `'en'` does not. The values themselves are held by
  * `tests/data/starCatalog.test.ts`, which re-runs the build and asserts the
  * committed file byte for byte, so the main thread does not walk them again.
  */
 const column = z.custom<unknown[]>((v) => Array.isArray(v), 'an array');
+const names = z.custom<string[]>((v) => Array.isArray(v) && v.every((n) => typeof n === 'string' && n !== ''), 'an array of names');
+/** Whether `table` has exactly `latin`'s abbreviations as keys (D-832). */
+const sameKeys = (table: Readonly<Record<string, unknown>>, latin: Readonly<Record<string, unknown>>): boolean => {
+  const keys = Object.keys(latin);
+  return Object.keys(table).length === keys.length && keys.every((k) => Object.hasOwn(table, k));
+};
 const catalogSchema = z
-  .object({ ra: column, dec: column, mag: column, name: column, nameEs: column, desig: column, con: column, figures: column, figuresEs: z.record(z.string(), column), wholeEs: z.record(z.string(), z.string()) })
-  .refine((c) => [c.dec, c.mag, c.name, c.nameEs, c.desig, c.con].every((col) => col.length === c.ra.length), 'every column has one entry per star');
+  .object({ ra: column, dec: column, mag: column, name: column, nameEs: column, desig: column, con: column, figures: column, figuresEs: z.record(z.string(), names), wholeEs: z.record(z.string(), z.string()) })
+  .refine((c) => [c.dec, c.mag, c.name, c.nameEs, c.desig, c.con].every((col) => col.length === c.ra.length), 'every column has one entry per star')
+  .refine((c) => sameKeys(c.figuresEs, CONSTELLATION_NAMES) && Object.entries(CONSTELLATION_NAMES).every(([con, latin]) => c.figuresEs[con]?.length === latin.length), 'figuresEs names every part CONSTELLATION_NAMES does')
+  .refine((c) => sameKeys(c.wholeEs, CONSTELLATION_WHOLE_NAMES) && Object.values(c.wholeEs).every((n) => n !== ''), 'wholeEs names every whole CONSTELLATION_WHOLE_NAMES does');
 
 /** One drawn feature: `segments` is flat, `[a0, b0, a1, b1, …]`, star indices. */
 interface StarFigure {

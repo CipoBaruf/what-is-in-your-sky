@@ -5,7 +5,8 @@ import { DEFAULT_THRESHOLDS } from '../physics/constants';
 import { LADDER } from '../ui/components/guide/skychart/window/starGlyphs';
 import { AMONG_MAX_DEG, constellationAt, drawnRungs, landmark, LANDMARK_DEG, LANDMARK_LEVEL_DEG, LANDMARK_MAG, segmentDistanceDeg, type SkyPoint } from './landmark';
 import { angularDistanceDeg } from './skyGeometry';
-import { constellationName, drawnMagLimit, planetsDrawn, RUNG_MAX_MAG, starName, starsAt } from './skyStars';
+import { constellationName, drawnMagLimit, planetsDrawn, starName, starsAt } from './skyStars';
+import { RUNG_MAX_MAG } from './starRungs';
 
 /**
  * R120, FR-SKY-11, FR-SKY-12, FR-STAR-13, FR-STAR-14 (D-795): the landmark,
@@ -114,6 +115,15 @@ describe('landmark', () => {
     expect(landmark(stars, peak, ALL)?.index).toBe(0);
   });
 
+  it('looks at every star, so an input out of brightness order loses none', () => {
+    const stars = sky([
+      { mag: 3.0, at: { azDeg: 180, altDeg: 41 } }, // fainter than LANDMARK_MAG, first
+      { mag: 1.0, at: { azDeg: 180, altDeg: 45 } },
+      { mag: 2.0, at: { azDeg: 180, altDeg: 37 } }, // the nearest bright one, last
+    ]);
+    expect(landmark(stars, peak, ALL)).toMatchObject({ index: 2, word: 'above' });
+  });
+
   it('picks only among the rungs the twilight draws, and none in daylight', () => {
     const stars = sky([
       { mag: 1.5, at: { azDeg: 180, altDeg: 51 } },
@@ -138,9 +148,9 @@ describe('landmark', () => {
       { mag: 0.5, at: { azDeg: 175, altDeg: 40 } },
       { mag: 0.4, at: { azDeg: 185, altDeg: 40 } },
     ]);
-    // The catalogue is brightest first; equal distances keep the first.
+    // Equal distances go to the lower magnitude whichever comes first.
     expect(landmark(sky([{ mag: 0.4, at: { azDeg: 185, altDeg: 40 } }, { mag: 0.5, at: { azDeg: 175, altDeg: 40 } }]), peak, ALL)?.index).toBe(0);
-    expect(landmark(stars, peak, ALL)?.index).toBe(0);
+    expect(landmark(stars, peak, ALL)?.index).toBe(1);
   });
 });
 
@@ -183,6 +193,11 @@ describe('the twilight steps (FR-STAR-13, FR-SKY-3)', () => {
     expect(drawnRungs(0)).toBe(2);
     expect(drawnRungs(1)).toBe(0);
     expect(drawnRungs(-7, { sunAltMaxDeg: -8 })).toBe(2);
+  });
+
+  it('draws nothing for a Sun altitude that is not a number, as the planets', () => {
+    expect(drawnRungs(NaN)).toBe(0);
+    expect(planetsDrawn(NaN)).toBe(false);
   });
 
   it("reads −6° from the threshold skyStateOf calls day", () => {

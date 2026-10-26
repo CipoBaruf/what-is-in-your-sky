@@ -1,8 +1,8 @@
 import { compassPoint, type CompassPoint } from '../../../lib/compass';
 import { INTL_LOCALE } from '../../../i18n/locale';
 import type { StarCatalog } from '../../../data/stars/catalog';
-import { CONSTELLATION_NAMES, figureName } from '../../../data/stars/constellations';
-import type { StarsAt } from '../../../lib/skyStars';
+import { CONSTELLATION_NAMES } from '../../../data/stars/constellations';
+import { figureName, type StarsAt } from '../../../lib/skyStars';
 import type { Locale } from '../../../model';
 import { project, type Mat3, type View } from '../../components/guide/skychart/window/projection';
 import type { StarField } from '../../components/guide/skychart/window/scene';
@@ -112,7 +112,7 @@ export function sceneCatalog(catalog: StarCatalog): StarField['catalog'] {
     for (let k = 0; k + 1 < figure.segments.length; k += 2) segments.push([figure.segments[k] ?? 0, figure.segments[k + 1] ?? 0]);
     // A constellation drawn in parts (Serpens alone) names each by its last word, `Serpens Caput` → `Caput`; a whole one is `''`.
     const parts = CONSTELLATION_NAMES[figure.con]?.length ?? 1;
-    const part = parts > 1 ? (figureName(figure.con, figure.part)?.split(' ').at(-1) ?? '') : '';
+    const part = parts > 1 ? (figureName(catalog, figure.con, figure.part, 'en')?.split(' ').at(-1) ?? '') : '';
     return { con: figure.con, part, segments };
   });
   const shaped: StarField['catalog'] = { ra: catalog.ra, dec: catalog.dec, mag: catalog.mag, name: catalog.name, desig: catalog.desig, con: catalog.con, figures };

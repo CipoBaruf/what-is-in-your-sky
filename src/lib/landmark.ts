@@ -26,7 +26,7 @@ export interface SkyPoint {
   altDeg: number;
 }
 
-/** The stars as the scene has them: catalogue magnitudes beside one instant's positions, in catalogue order (brightest first). */
+/** The stars as the scene has them: catalogue magnitudes beside one instant's positions, in catalogue order (brightest first, though nothing here needs the order). */
 export interface LandmarkStars {
   mag: ArrayLike<number>;
   altDeg: ArrayLike<number>;
@@ -83,7 +83,11 @@ const vecOf = (p: SkyPoint): Vec => vec(p.azDeg, p.altDeg);
  * nearer end (FR-STAR-14's tap, FR-SKY-12's column).
  */
 export function segmentDistanceDeg(p: SkyPoint, a: SkyPoint, b: SkyPoint): number {
-  const [vp, va, vb] = [vecOf(p), vecOf(a), vecOf(b)];
+  return segmentDistance(vecOf(p), vecOf(a), vecOf(b));
+}
+
+/** `segmentDistanceDeg` on unit vectors, so a caller can convert each star once. */
+function segmentDistance(vp: Vec, va: Vec, vb: Vec): number {
   const n = cross(va, vb);
   const len = norm(n);
   const toEnd = Math.min(angleDeg(vp, va), angleDeg(vp, vb));
@@ -104,14 +108,19 @@ export function landmark(stars: LandmarkStars, peak: SkyPoint, rungs: number): L
   const limit = Math.min(LANDMARK_MAG, drawnMagLimit(rungs));
   const at = vecOf(peak);
   let best: Landmark | null = null;
-  // The catalogue is brightest first, so the walk ends at the first star past the limit.
-  for (let i = 0; i < stars.mag.length && (stars.mag[i] ?? Infinity) <= limit; i += 1) {
+  let bestMag = Infinity;
+  // Every star is looked at, so a subset or a reordered list gives the same answer as the catalogue's order.
+  for (let i = 0; i < stars.mag.length; i += 1) {
+    const mag = stars.mag[i] ?? NaN;
+    if (!(mag <= limit)) continue;
     const altDeg = stars.altDeg[i] ?? NaN;
     if (!(altDeg >= 0)) continue; // below the horizon nothing is drawn (FR-STAR-6)
     const sepDeg = angleDeg(at, vec(stars.azDeg[i] ?? NaN, altDeg));
-    if (sepDeg > LANDMARK_DEG || (best !== null && sepDeg >= best.sepDeg)) continue;
+    if (!(sepDeg <= LANDMARK_DEG)) continue;
+    if (best !== null && (sepDeg > best.sepDeg || (sepDeg === best.sepDeg && mag >= bestMag))) continue;
     const rise = peak.altDeg - altDeg;
     best = { index: i, sepDeg, word: rise >= LANDMARK_LEVEL_DEG ? 'above' : rise <= -LANDMARK_LEVEL_DEG ? 'below' : 'beside' };
+    bestMag = mag;
   }
   return best;
 }
@@ -123,11 +132,21 @@ export function landmark(stars: LandmarkStars, peak: SkyPoint, rungs: number): L
  * to the figure first in the catalogue.
  */
 export function constellationAt(point: SkyPoint, figures: readonly FigureLines[], positions: Pick<LandmarkStars, 'altDeg' | 'azDeg'>): Among | null {
-  const star = (k: number): SkyPoint => ({ azDeg: positions.azDeg[k] ?? NaN, altDeg: positions.altDeg[k] ?? NaN });
+  // Stars are shared between segments and figures: each is turned into a vector once per call.
+  const vectors = new Map<number, Vec>();
+  const star = (k: number): Vec => {
+    let v = vectors.get(k);
+    if (v === undefined) {
+      v = vec(positions.azDeg[k] ?? NaN, positions.altDeg[k] ?? NaN);
+      vectors.set(k, v);
+    }
+    return v;
+  };
+  const at = vecOf(point);
   let best: Among | null = null;
   for (const f of figures) {
     for (let k = 0; k + 1 < f.segments.length; k += 2) {
-      const deg = segmentDistanceDeg(point, star(f.segments[k] ?? -1), star(f.segments[k + 1] ?? -1));
+      const deg = segmentDistance(at, star(f.segments[k] ?? -1), star(f.segments[k + 1] ?? -1));
       if (deg <= AMONG_MAX_DEG && (best === null || deg < best.deg)) best = { con: f.con, part: f.part, deg };
     }
   }

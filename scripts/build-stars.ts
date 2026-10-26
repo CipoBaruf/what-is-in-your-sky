@@ -93,12 +93,13 @@ export function parseNamesEs(text: string, starNames: readonly string[]): NamesE
   const figures: Record<string, string[]> = {};
   const whole: Record<string, string> = {};
   const seen = new Set<string>();
-  text.split('\n').forEach((line, n) => {
+  text.split(/\r?\n/).forEach((line, n) => {
     if (line.startsWith('#') || line.trim() === '') return;
     const [kind = '', key = '', part = '', es = '', ...rest] = line.split('\t');
     const at = `names-es.tsv line ${String(n + 1)}`;
     if (rest.length > 0 || es.trim() === '' || es.trim() !== es) throw new Error(`${at}: expected four fields and a name`);
-    const id = `${kind} ${key} ${part}`;
+    // A part is keyed by its number, so `1` and `01` are the same row.
+    const id = `${kind} ${key} ${/^\d+$/.test(part) ? String(Number(part)) : part}`;
     if (seen.has(id)) throw new Error(`${at}: duplicate row ${id}`);
     seen.add(id);
     if (kind === 'star') {

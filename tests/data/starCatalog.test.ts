@@ -3,9 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { buildCatalog, buildStars, gzippedBytes, parseNamesEs, SNAP_MAX_DEG } from '../../scripts/build-stars';
 import { DATA_RULE, dataNotices } from '../../scripts/third-party-notices';
 import { parseStarCatalog, starCatalog } from '../../src/data/stars/catalog';
-import { CONSTELLATION_NAMES, figureName } from '../../src/data/stars/constellations';
+import { CONSTELLATION_NAMES } from '../../src/data/stars/constellations';
 import { STAR_MAG_LIMIT } from '../../src/data/stars/constants';
-import { constellationName, figureName as nameOf, starName } from '../../src/lib/skyStars';
+import { constellationName, figureName, starName } from '../../src/lib/skyStars';
 
 /**
  * R112, FR-STAR-1, FR-STAR-10 (as amended, V24-20), D-748: the committed
@@ -102,17 +102,17 @@ describe('the star catalogue', () => {
   it('has a Latin name for every drawn feature: 88 constellations, 89 names, Serpens in two', () => {
     expect(Object.keys(CONSTELLATION_NAMES)).toHaveLength(88);
     expect(Object.values(CONSTELLATION_NAMES).flat()).toHaveLength(89);
-    for (const f of catalog.figures) expect(figureName(f.con, f.part), `${f.con} ${String(f.part)}`).toBeTruthy();
+    for (const f of catalog.figures) expect(figureName(catalog, f.con, f.part, 'en'), `${f.con} ${String(f.part)}`).toBeTruthy();
     expect(new Set(catalog.figures.map((f) => `${f.con} ${String(f.part)}`)).size).toBe(89);
     expect(new Set(catalog.figures.map((f) => f.con)).size).toBe(88);
-    expect(catalog.figures.filter((f) => f.con === 'Ser').map((f) => figureName(f.con, f.part))).toEqual(['Serpens Caput', 'Serpens Cauda']);
-    expect(figureName('Ori')).toBe('Orion');
-    expect(figureName('Xyz')).toBeUndefined();
-    expect(figureName('toString')).toBeUndefined();
+    expect(catalog.figures.filter((f) => f.con === 'Ser').map((f) => figureName(catalog, f.con, f.part, 'en'))).toEqual(['Serpens Caput', 'Serpens Cauda']);
+    expect(figureName(catalog, 'Ori', 0, 'en')).toBe('Orion');
+    expect(figureName(catalog, 'Xyz', 0, 'en')).toBeUndefined();
+    expect(figureName(catalog, 'toString', 0, 'en')).toBeUndefined();
   });
 
   it("puts every star in one of the table's constellations", () => {
-    for (const con of catalog.con) expect(figureName(con), con).toBeTruthy();
+    for (const con of catalog.con) expect(figureName(catalog, con, 0, 'en'), con).toBeTruthy();
   });
 
   it('is at most 22 KB gzipped', () => {
@@ -122,7 +122,7 @@ describe('the star catalogue', () => {
 
 /** `names-es.tsv`'s rows, read here independently of the build: `kind key part es`. */
 const TSV = readFileSync(new URL('../../data-src/stars/names-es.tsv', import.meta.url), 'utf8');
-const rows = TSV.split('\n')
+const rows = TSV.split(/\r?\n/)
   .filter((l) => !l.startsWith('#') && l.trim() !== '')
   .map((l) => {
     const [kind = '', key = '', part = '', es = ''] = l.split('\t');
@@ -147,7 +147,7 @@ describe('the Spanish names (FR-STAR-10 as amended v2.5, D-832)', () => {
     expect(json.wholeEs).toEqual(Object.fromEntries(conRows.filter((r) => r.part === 'all').map((r) => [r.key, r.es])));
     expect(json.wholeEs).toEqual({ Ser: 'Serpiente' });
     expect(conRows).toHaveLength(90);
-    for (const f of catalog.figures) expect(nameOf(catalog, f.con, f.part, 'es'), `${f.con} ${String(f.part)}`).toBeTruthy();
+    for (const f of catalog.figures) expect(figureName(catalog, f.con, f.part, 'es'), `${f.con} ${String(f.part)}`).toBeTruthy();
   });
 
   it('gives the fourteen stars their row and no other star a Spanish name', () => {
@@ -172,11 +172,11 @@ describe('the Spanish names (FR-STAR-10 as amended v2.5, D-832)', () => {
     const nameless = catalog.name.indexOf('');
     expect(starName(catalog, nameless, 'es')).toBe(catalog.desig[nameless]);
     expect(starName(catalog, nameless, 'en')).toBe(catalog.desig[nameless]);
-    expect([nameOf(catalog, 'Ori', 0, 'en'), nameOf(catalog, 'Ori', 0, 'es')]).toEqual(['Orion', 'Orión']);
-    expect([nameOf(catalog, 'Ser', 1, 'en'), nameOf(catalog, 'Ser', 1, 'es')]).toEqual(['Serpens Cauda', 'Cola de la Serpiente']);
+    expect([figureName(catalog, 'Ori', 0, 'en'), figureName(catalog, 'Ori', 0, 'es')]).toEqual(['Orion', 'Orión']);
+    expect([figureName(catalog, 'Ser', 1, 'en'), figureName(catalog, 'Ser', 1, 'es')]).toEqual(['Serpens Cauda', 'Cola de la Serpiente']);
     expect([constellationName(catalog, 'Ser', 'en'), constellationName(catalog, 'Ser', 'es')]).toEqual(['Serpens', 'Serpiente']);
     expect([constellationName(catalog, 'CMa', 'en'), constellationName(catalog, 'CMa', 'es')]).toEqual(['Canis Major', 'Can Mayor']);
-    expect(nameOf(catalog, 'Ori', 1, 'es')).toBeUndefined();
+    expect(figureName(catalog, 'Ori', 1, 'es')).toBeUndefined();
     expect(constellationName(catalog, 'Xyz', 'es')).toBeUndefined();
     expect(constellationName(catalog, 'toString', 'en')).toBeUndefined();
   });
@@ -184,7 +184,7 @@ describe('the Spanish names (FR-STAR-10 as amended v2.5, D-832)', () => {
   it('fails the build on an unknown key, a missing part, a duplicate or a malformed row', () => {
     const names = ['Sirius', 'Canopus'];
     const fail = (tsv: string) => () => parseNamesEs(tsv, names);
-    const ok = TSV.split('\n').filter((l) => !l.startsWith('star')).join('\n');
+    const ok = TSV.split(/\r?\n/).filter((l) => !l.startsWith('star')).join('\n');
     expect(() => parseNamesEs(ok, names)).not.toThrow();
     expect(fail(`${ok}\nstar\tVega\t\tVega`)).toThrow(/Vega is not a name the catalogue carries/);
     expect(fail(`${ok}\ncon\tXyz\t0\tEquis`)).toThrow(/Xyz is not one of the 88/);
@@ -192,11 +192,37 @@ describe('the Spanish names (FR-STAR-10 as amended v2.5, D-832)', () => {
     expect(fail(`${ok}\ncon\tOri\tall\tOrión`)).toThrow(/Ori is drawn in one part/);
     expect(fail(`${ok}\ncon\tOri\t0\tOrión`)).toThrow(/duplicate row con Ori 0/);
     expect(fail(`${ok}\nstar\tSirius\t\tSirio\nstar\tSirius\t\tSirio`)).toThrow(/duplicate row star Sirius/);
+    expect(fail(`${ok}\ncon\tSer\t01\tCola`)).toThrow(/duplicate row con Ser 1/);
     expect(fail(ok.replace('con\tOri\t0\tOrión\n', ''))).toThrow(/Ori part 0 has no row/);
     expect(fail(ok.replace('con\tSer\tall\tSerpiente\n', ''))).toThrow(/Ser has no whole row/);
     expect(fail(`${ok}\nname\tSirius\t\tSirio`)).toThrow(/unknown kind name/);
     expect(fail(`${ok}\nstar\tSirius\t\t`)).toThrow(/four fields and a name/);
     expect(fail(`${ok}\nstar\tSirius\t\tSirio\textra`)).toThrow(/four fields and a name/);
+  });
+
+  it('reads a CRLF checkout of names-es.tsv as the LF one', () => {
+    const names = ['Sirius', 'Canopus'];
+    const lf = TSV.split(/\r?\n/).filter((l) => !l.startsWith('star') || l.includes('\tSirius\t')).join('\n');
+    const crlf = parseNamesEs(lf.replaceAll('\n', '\r\n'), names);
+    expect(crlf).toEqual(parseNamesEs(lf, names));
+    expect(crlf.stars.get('Sirius')).toBe('Sirio');
+    expect(crlf.figures.Ori).toEqual(['Orión']);
+  });
+
+  it('refuses a catalog.json whose Spanish tables do not name what the English ones do', () => {
+    const json = JSON.parse(text) as { figuresEs: Record<string, unknown>; wholeEs: Record<string, unknown> };
+    const broken = (edit: (j: typeof json) => void) => () => {
+      const j = structuredClone(json);
+      edit(j);
+      return parseStarCatalog(j);
+    };
+    expect(broken(() => undefined)).not.toThrow();
+    expect(broken((j) => (j.figuresEs.Ori = [7]))).toThrow(/an array of names/);
+    expect(broken((j) => (j.figuresEs.Ori = ['']))).toThrow(/an array of names/);
+    expect(broken((j) => delete j.figuresEs.Ori)).toThrow(/figuresEs names every part/);
+    expect(broken((j) => (j.figuresEs.Ser = ['Cabeza de la Serpiente']))).toThrow(/figuresEs names every part/);
+    expect(broken((j) => (j.figuresEs.Xyz = ['Equis']))).toThrow(/figuresEs names every part/);
+    expect(broken((j) => (j.wholeEs = {}))).toThrow(/wholeEs names every whole/);
   });
 
   it('builds the catalogue through the same check: a star row against a catalogue without the star fails', () => {

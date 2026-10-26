@@ -1,3 +1,5 @@
+import { RUNG_MAX_MAG } from '../../../../../lib/starRungs';
+
 /**
  * R114 (FR-STAR-6 as amended, FR-DS-8 as amended; PLAN D-753): the ladder,
  * the collision rule and the hit test — the star field's pure rules, with no
@@ -48,14 +50,14 @@ export const HIT_RADIUS_PX = 12;
 
 type Row = Rung & { maxMag: number };
 /** The bottom rung: everything the catalogue holds beyond 3.5 (its limit is `STAR_MAG_LIMIT`, 4.5), and the row a magnitude outside every bound falls to. */
-const FAINTEST: Row = { maxMag: Number.POSITIVE_INFINITY, glyph: '.', sizeToken: 'chart-text-12', colourToken: 'chart-star-faint' };
+const FAINTEST: Row = { maxMag: RUNG_MAX_MAG[4], glyph: '.', sizeToken: 'chart-text-12', colourToken: 'chart-star-faint' };
 
-/** The ladder as a table, top rung first: the first row whose `maxMag` the magnitude does not exceed is the rung. */
+/** The ladder as a table, top rung first: the first row whose `maxMag` the magnitude does not exceed is the rung. The bounds are `RUNG_MAX_MAG`'s (D-806). */
 export const LADDER: readonly Row[] = [
-  { maxMag: 0.5, glyph: '*', sizeToken: 'chart-text-18', colourToken: 'chart-star' },
-  { maxMag: 1.5, glyph: '*', sizeToken: 'chart-text-15', colourToken: 'chart-star' },
-  { maxMag: 2.5, glyph: '+', sizeToken: 'chart-text-12', colourToken: 'chart-star' },
-  { maxMag: 3.5, glyph: '.', sizeToken: 'chart-text-12', colourToken: 'chart-star-dim' },
+  { maxMag: RUNG_MAX_MAG[0], glyph: '*', sizeToken: 'chart-text-18', colourToken: 'chart-star' },
+  { maxMag: RUNG_MAX_MAG[1], glyph: '*', sizeToken: 'chart-text-15', colourToken: 'chart-star' },
+  { maxMag: RUNG_MAX_MAG[2], glyph: '+', sizeToken: 'chart-text-12', colourToken: 'chart-star' },
+  { maxMag: RUNG_MAX_MAG[3], glyph: '.', sizeToken: 'chart-text-12', colourToken: 'chart-star-dim' },
   FAINTEST,
 ];
 
