@@ -11,6 +11,7 @@ Retrieved 2026-10-23.
 | `d3-celestial-constellations.lines.json` | The constellation figures as GeoJSON line strings in RA/Dec degrees (89 features: Serpens is drawn as two) | https://github.com/ofrohn/d3-celestial, `data/constellations.lines.json` | BSD-3-Clause, `d3-celestial-LICENSE.txt` |
 | `d3-celestial-LICENSE.txt` | That licence | https://github.com/ofrohn/d3-celestial, `LICENSE` | — |
 | `iau-csn.txt` | The IAU WGSN catalogue of star names, fixed-width, joined to the catalogue by HD number | https://www.pas.rochester.edu/~emamajek/WGSN/IAU-CSN.txt | CC BY 4.0 |
+| `names-es.tsv` *(v2.5, V25-16)* | The Spanish names: one row per constellation part (88 constellations, 89 parts, and Serpens whole) and one per star with an established Spanish form (14); every other star keeps its IAU name in Spanish | Written 2026-10-25 from standard Spanish-language usage, for the owner's review; not a retrieved file | Facts, no licence |
 
 Checked on retrieval: 904 records with V ≤ 4.5; every one of the figures' 893 endpoints is within 0.1° of a catalogue star (OQ-39's default and its test bound).
 

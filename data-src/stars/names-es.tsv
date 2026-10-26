@@ -1,0 +1,109 @@
+# Spanish names for the stars page and the pass pages (SPEC FR-STAR-10 as amended v2.5, V25-16).
+# kind	key	part	es
+# con: key is the IAU abbreviation, part is the figure's part (Serpens has two, plus "all" for its one name in the Among column); every one of the 88 has a row.
+# star: key is the IAU WGSN name as catalog.json carries it; only names with an established Spanish form have a row; every other star keeps its IAU name.
+# Source: the standard Spanish names (Spanish-language astronomy usage, as in es.wikipedia "Anexo:Constelaciones"), written 2026-10-25 for the owner's review.
+con	And	0	Andrómeda
+con	Ant	0	Máquina Neumática
+con	Aps	0	Ave del Paraíso
+con	Aqr	0	Acuario
+con	Aql	0	Águila
+con	Ara	0	Altar
+con	Ari	0	Aries
+con	Aur	0	Auriga
+con	Boo	0	Boyero
+con	Cae	0	Cincel
+con	Cam	0	Jirafa
+con	Cnc	0	Cáncer
+con	CVn	0	Perros de Caza
+con	CMa	0	Can Mayor
+con	CMi	0	Can Menor
+con	Cap	0	Capricornio
+con	Car	0	Quilla
+con	Cas	0	Casiopea
+con	Cen	0	Centauro
+con	Cep	0	Cefeo
+con	Cet	0	Ballena
+con	Cha	0	Camaleón
+con	Cir	0	Compás
+con	Col	0	Paloma
+con	Com	0	Cabellera de Berenice
+con	CrA	0	Corona Austral
+con	CrB	0	Corona Boreal
+con	Crv	0	Cuervo
+con	Crt	0	Copa
+con	Cru	0	Cruz del Sur
+con	Cyg	0	Cisne
+con	Del	0	Delfín
+con	Dor	0	Dorado
+con	Dra	0	Dragón
+con	Equ	0	Caballito
+con	Eri	0	Erídano
+con	For	0	Horno
+con	Gem	0	Géminis
+con	Gru	0	Grulla
+con	Her	0	Hércules
+con	Hor	0	Reloj
+con	Hya	0	Hidra
+con	Hyi	0	Hidra Macho
+con	Ind	0	Indio
+con	Lac	0	Lagarto
+con	Leo	0	Leo
+con	LMi	0	León Menor
+con	Lep	0	Liebre
+con	Lib	0	Libra
+con	Lup	0	Lobo
+con	Lyn	0	Lince
+con	Lyr	0	Lira
+con	Men	0	Mesa
+con	Mic	0	Microscopio
+con	Mon	0	Unicornio
+con	Mus	0	Mosca
+con	Nor	0	Escuadra
+con	Oct	0	Octante
+con	Oph	0	Ofiuco
+con	Ori	0	Orión
+con	Pav	0	Pavo
+con	Peg	0	Pegaso
+con	Per	0	Perseo
+con	Phe	0	Fénix
+con	Pic	0	Pintor
+con	Psc	0	Piscis
+con	PsA	0	Pez Austral
+con	Pup	0	Popa
+con	Pyx	0	Brújula
+con	Ret	0	Retículo
+con	Sge	0	Flecha
+con	Sgr	0	Sagitario
+con	Sco	0	Escorpio
+con	Scl	0	Escultor
+con	Sct	0	Escudo
+con	Ser	0	Cabeza de la Serpiente
+con	Ser	1	Cola de la Serpiente
+con	Ser	all	Serpiente
+con	Sex	0	Sextante
+con	Tau	0	Tauro
+con	Tel	0	Telescopio
+con	Tri	0	Triángulo
+con	TrA	0	Triángulo Austral
+con	Tuc	0	Tucán
+con	UMa	0	Osa Mayor
+con	UMi	0	Osa Menor
+con	Vel	0	Vela
+con	Vir	0	Virgo
+con	Vol	0	Pez Volador
+con	Vul	0	Zorrilla
+star	Sirius		Sirio
+star	Canopus		Canopo
+star	Arcturus		Arturo
+star	Procyon		Proción
+star	Aldebaran		Aldebarán
+star	Pollux		Pólux
+star	Castor		Cástor
+star	Regulus		Régulo
+star	Spica		Espiga
+star	Polaris		Estrella Polar
+star	Denebola		Denébola
+star	Alphard		Alfard
+star	Alcyone		Alcíone
+star	Merope		Mérope
