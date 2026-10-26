@@ -37,6 +37,11 @@ export const CHART_TOKENS = {
   series4: '--chart-series-4',
   series5: '--chart-series-5',
   series6: '--chart-series-6',
+  // FR-SKY-5 (R124, D-793): the dome's dots — a star and a planet, two of FR-DS-8's five star colours
+  // (`CHART_RESERVED_TOKENS`); the dim star, the faint star and the figure stay the window's and the polar
+  // chart's (the dome draws every star at one weight and no figure).
+  star: '--chart-star',
+  planet: '--chart-planet',
 } as const;
 
 export type DomeMeaning = keyof typeof CHART_TOKENS;

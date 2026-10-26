@@ -3450,7 +3450,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
     - The Done note carries main, `live` and `stars` against `ece8bfd`.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
 
-- [ ] **R124 — The dome's dots and the rate: the points mesh, the two palette entries, `dome-perf` against `ece8bfd`, the rasters re-baselined**
+- [x] **R124 — The dome's dots and the rate: the points mesh, the two palette entries, `dome-perf` against `ece8bfd`, the rasters re-baselined**
   - **Lane:** chart
   - **Model:** fable
   - **Review:** opus
@@ -3469,6 +3469,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
   - **Done when:**
     - `dome-perf.spec.ts` passes; the Done note carries the measured rate beside `ece8bfd`'s at 6× throttling.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+  - **Done (2026-10-26):** as written. The `stars` mesh sits between the grid and the passes: one two-vertex polygon per body `starsFor` places, at the anchor's place (D-818), dropped with the other empty meshes without a field, so the Where pane's dome is `ece8bfd`'s mesh for mesh. `SkyDome.golden.txt` and `SkyDome.live.txt` re-baselined once with a scene written by hand: **+5 dots** each (2 stars at the cap, 3 planets), 4 of 30 lines changed in both. The rate at 6× throttle, best of three drags (D-817), middle of three runs: `ece8bfd` **59.4/s** at 390 px and 53.1/s at 1280 px; with 20 stars and 5 planets on, **57.2/s** at 390 px (−3.7 %, floor 53.5) and **43.9/s** at 1280 px (−17 %, reported, not gated: D-91). The stars came from a scratch build that hands the dome a field when the page hands none, because R123 wires the page's in the same wave (D-819); on the branch's own page the spec reads 59.4 and 53.7. The desktop's cost is not the hotspots (none), not the colour (about 3/s) and not the degenerate polygon (a real tiny triangle costs the same): a per-polygon cost in glyphcss's frame, left as a follow-up.
 
 - [x] **R125 — Zoom: `fovDeg` on the camera, the pinch, ctrl + wheel, the box's `+`/`-`/`0`, the readout's field, the bracket and the ground from the current field**
   - **Lane:** window
