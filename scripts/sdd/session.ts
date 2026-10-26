@@ -126,6 +126,20 @@ export function limitFromEvent(event: RateLimitEvent): LimitInfo | null {
   return { window, resetsAt: typeof info.resetsAt === 'number' ? info.resetsAt * 1000 : null, accountWide: window === null || window === 'five_hour' || window === 'seven_day' };
 }
 
+/** §16.4 step 10 (D-835): how long past the reset a resumed session starts, so the window has turned over. */
+export const RESET_MARGIN_MS = 2 * 60_000;
+/** D-835: the longest a run waits for a reset; a weekly window days away ends the task `limit` instead. */
+export const MAX_RESET_WAIT_MS = 6 * 60 * 60_000;
+/** D-835: how many times one stage of one task waits and resumes before it gives up. */
+export const MAX_RESET_WAITS = 3;
+
+/** D-835: milliseconds to wait before resuming after `limit`, or `null` when the reset is unknown or too far off to wait for. */
+export function resetWaitMs(limit: LimitInfo | null, now: number, maxMs: number = MAX_RESET_WAIT_MS): number | null {
+  if (!limit?.resetsAt) return null;
+  const wait = Math.max(limit.resetsAt - now, 0) + RESET_MARGIN_MS;
+  return wait > maxMs ? null : wait;
+}
+
 /** `19:10` in the machine's zone, for the log and the run summary. */
 export const resetTime = (limit: LimitInfo | null): string => (limit?.resetsAt ? new Date(limit.resetsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'unknown');
 
