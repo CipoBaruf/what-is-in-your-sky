@@ -21,6 +21,7 @@ import {
   PASS_LABEL_RADIUS,
   passMarkers,
   passStrip,
+  pointMark,
   resolveLabels,
   riseMarker,
   ringAnchors,
@@ -161,9 +162,35 @@ export function baseLayer(input: Pick<LayersInput, 'palette' | 'sun'>): Mesh[] {
 }
 
 /**
+ * FR-SKY-5 (R124, D-793): the stars to `DOME_STAR_MAG` and the planets as one
+ * mesh of single dots — one `pointMark` per anchor, at the anchor's place, a
+ * star in the star colour and a planet in the planet colour. It takes the
+ * anchors `starAnchors` made, so the catalogue is walked once per scene. No
+ * figure and no name: the font holds no letters and the raster budget holds
+ * no more. Empty without a field, so the Where pane's dome draws none (OQ-44).
+ */
+export function starDots(anchors: readonly DomeAnchor[], palette: DomePalette | null): Poly[] {
+  return anchors.map((anchor) => pointMark(anchor.at, palette ? (anchor.planet === undefined ? palette.star : palette.planet) : undefined));
+}
+
+/**
+ * The line scene with the dots (FR-SKY-5) laid in as the `stars` mesh, right
+ * after the grid and under everything that moves. Apart from `lineLayer` so a
+ * new scene rebuilds the dots and leaves the line meshes and the label
+ * placement alone, as it leaves them for the anchors (R119); no dots, no mesh,
+ * so the Where pane's dome is `ece8bfd`'s mesh for mesh.
+ */
+export function withStarDots(lines: Mesh[], dots: Poly[]): Mesh[] {
+  if (dots.length === 0) return lines;
+  const after = lines.findIndex((mesh) => mesh.id === 'grid') + 1;
+  return [...lines.slice(0, after), { id: 'stars', polygons: dots }, ...lines.slice(after)];
+}
+
+/**
  * The line scene: the grid, one mesh per pass with its markers, the flown part
  * of each arc and the live marker (FR-DOME-5), and the Moon (FR-DOME-6). The
- * Moon comes last so it is drawn over whatever it sits on.
+ * Moon comes last so it is drawn over whatever it sits on. The stars go in
+ * after the grid by `withStarDots`.
  */
 export function lineLayer(input: Pick<LayersInput, 'passes' | 'highlightedPassId' | 'now' | 'moon' | 'hidden' | 'palette' | 'colorBy'>): Mesh[] {
   const { passes, highlightedPassId, now, moon, hidden = [], palette, colorBy = 'highlight' } = input;

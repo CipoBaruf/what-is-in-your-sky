@@ -399,6 +399,21 @@ export function moonMarker(moon: Pick<MoonState, 'azDeg' | 'elDeg'>, color?: str
   return circleAround(moon, MOON_MARKER_SIZE_DEG, MARKER_RADIUS, color);
 }
 
+/**
+ * FR-SKY-5 (R124, D-793): a star or a planet as one braille dot. The polygon
+ * has one place twice over: the wireframe strokes each edge from vertex to
+ * vertex, so an edge of no length plots the one sub-cell its vertex falls in
+ * and nothing else — no figure, no glyph, no second dot whatever the zoom.
+ * Two vertices and not one, because glyphcss skips a polygon with fewer than
+ * two (D-818); not three, because it keeps one edge per pair of endpoints and
+ * the third would be the same edge again. On the unit sphere where
+ * `starAnchors` puts the hotspot, so the dot and the anchor the contract test
+ * reads are one place.
+ */
+export function pointMark(at: Tuple3, color?: string): Poly {
+  return painted({ vertices: [at, at] }, color);
+}
+
 export const COMPASS: readonly { label: string; azDeg: number }[] = [
   { label: 'N', azDeg: 0 },
   { label: 'NE', azDeg: 45 },
