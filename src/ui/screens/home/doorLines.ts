@@ -89,14 +89,14 @@ export function doorLines(input: DoorInput, t: Messages): Doors {
   } else {
     const { pass, kind } = result;
     const countdown = formatClockDuration((result.at - now) / 1000);
-    const head = kind === 'rise' ? words.satellites.next({ time: clock(result.at, true), countdown }) : t.nextEvent.label({ kind, reason: kind === 'end' ? pass.endReason : pass.startReason, countdown });
+    const head = kind === 'rise' ? words.satellites.next({ time: clock(result.at, true), countdown }) : words.satellites.up({ kind, reason: pass.endReason, countdown });
     const path = passPath(pass);
     const pathLine = fitName(pass.name, (name) => words.satellites.path({ name, peakPoint: path.peak.point, peakDeg: path.peak.altitude, endPoint: path.end.point }));
     const wide = sky === null ? null : (sky.landmark?.line ?? undefined);
     satellites = { title: words.satellites.title, lines: [head, pathLine], passId: pass.id, ...(wide === undefined ? {} : { wide }) };
   }
 
-  const darkLine: DoorLine = bandsKnown ? (dark ? words.stars.dark({ from: clock(dark.from), to: clock(dark.to, true), cloud }) : words.stars.noDark(cloud)) : null;
+  const darkLine: DoorLine = bandsKnown ? (dark ? words.stars.dark({ from: clock(dark.from), to: clock(dark.to, true), cloud: zone === null ? null : cloud }) : words.stars.noDark(cloud)) : null;
   let brightLine: DoorLine = null;
   if (sky !== null) {
     if (sky.brightest !== null) {

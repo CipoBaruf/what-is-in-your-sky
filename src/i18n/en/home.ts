@@ -1,5 +1,5 @@
 import type { CompassPoint } from '../../lib/compass';
-import type { CloudState } from '../../model';
+import type { CloudState, PassBoundaryReason } from '../../model';
 
 /**
  * R130 (FR-FLOW-1, FR-FLOW-2; D-843, D-844): the home's three doors and the
@@ -20,6 +20,9 @@ export const home = {
       title: 'Satellites',
       /** `Next 05:48 · in 48:04`: the next rise, its clock time and the countdown to it. */
       next: (p: { time: string; countdown: string }) => `Next ${p.time} · in ${p.countdown}`,
+      /** `Up now · peaks in 0:08` while a pass is up, then its end by the end's reason — shorter than the block's label, for 34 cells. */
+      up: (p: { kind: 'peak' | 'end'; reason: PassBoundaryReason; countdown: string }) =>
+        `Up now · ${p.kind === 'peak' ? 'peaks' : { horizon: 'sets', shadow: 'into shadow', twilight: 'fades' }[p.reason]} in ${p.countdown}`,
       /** `Tiangong · NE 11° → ENE`: the pass, where it peaks and how high, and where it goes. */
       path: (p: { name: string; peakPoint: CompassPoint; peakDeg: number; endPoint: CompassPoint }) => `${p.name} · ${p.peakPoint} ${String(p.peakDeg)}° → ${p.endPoint}`,
       none: (hours: number) => `No visible pass in ${String(hours)} h`,
@@ -27,7 +30,8 @@ export const home = {
     },
     stars: {
       title: 'Stars',
-      dark: (p: { from: string; to: string; cloud: CloudState }) => `Dark ${p.from} → ${p.to} · ${cloudWord[p.cloud]}`,
+      /** `cloud` is null with no zone yet: the stamp says UTC (F-27), and with no forecast there is no word to give. */
+      dark: (p: { from: string; to: string; cloud: CloudState | null }) => `Dark ${p.from} → ${p.to}${p.cloud === null ? '' : ` · ${cloudWord[p.cloud]}`}`,
       noDark: (cloud: CloudState) => `No full dark · ${cloudWord[cloud]}`,
       brightest: (p: { name: string; point: CompassPoint }) => `Brightest now: ${p.name}, ${p.point}`,
       from: (time: string) => `Stars from ${time}`,
