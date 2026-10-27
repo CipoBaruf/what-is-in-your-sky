@@ -20,10 +20,12 @@
 }
 
 /* FR-FLOW-1: the whole box is the link, and its title row and answer row with the card's padding put it past
-   44 px (`home.spec.ts` measures it); the card's own rules are not restated (D-704), so this only stretches it
-   to the row's height on wide. */
+   44 px (`home.spec.ts` measures it); the card's own rules are not restated (D-704). The item's grid stretches it
+   to the row's height on wide, so the three boxes are as tall as the tallest. */
 .door {
-  height: 100%;
+  /* global.css stands an inline link's 48 px tap box out of its line with a negative block margin, and `Card`'s
+     `:where()` reset is too weak to take it off an `a`: without this the boxes overlap their gap by 24 px. */
+  margin: 0;
   /* A grid item's floor is its content's, and a line that never wraps would widen the row past the page (964 px). */
   min-width: 0;
 }

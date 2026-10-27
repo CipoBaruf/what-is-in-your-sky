@@ -166,7 +166,9 @@ test.describe('the doors at 390 × 844 (FR-FLOW-1)', () => {
       // In order, one under the other, under the Where's status line; each at least 44 px tall and full width.
       for (const [i, box] of boxes.entries()) {
         expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
-        expect(box?.y ?? 0).toBeGreaterThan(i === 0 ? (status?.y ?? Infinity) : (boxes[i - 1]?.y ?? Infinity));
+        // Clear of what is above it, by at least the space scale's step: the boxes never touch or overlap.
+        const above = i === 0 ? status : boxes[i - 1];
+        expect(box?.y ?? 0).toBeGreaterThanOrEqual((above?.y ?? Infinity) + (above?.height ?? 0) + 6);
         expect(Math.abs((box?.width ?? 0) - (boxes[0]?.width ?? 0))).toBeLessThanOrEqual(1);
       }
       // Every line on one row: a door line never wraps (34 cells, `doorRows.test.ts`).
