@@ -28,7 +28,7 @@ const inBox = (azDeg: number, altDeg: number, view: View, at: { azDeg: number; a
 
 describe('fieldObjects (FR-STAR-7)', () => {
   const south = { azDeg: 180, altDeg: 35 };
-  const listed = fieldObjects({ catalog, positions, rotation: handRotation(south), view: VIEW, layers: ON });
+  const listed = fieldObjects({ catalog, positions, rotation: handRotation(south), view: VIEW, layers: ON, lang: 'en' });
 
   it('lists at most FIELD_LIST_MAX objects, brightest first', () => {
     expect(listed.length).toBe(FIELD_LIST_MAX);
@@ -72,14 +72,14 @@ describe('fieldObjects (FR-STAR-7)', () => {
   });
 
   it('lists nothing of a layer that is off, and nothing in an unmeasured box', () => {
-    const starsOff = fieldObjects({ catalog, positions, rotation: handRotation(south), view: VIEW, layers: { stars: false, planets: true } });
+    const starsOff = fieldObjects({ catalog, positions, rotation: handRotation(south), view: VIEW, layers: { stars: false, planets: true }, lang: 'en' });
     expect(starsOff.every((object) => object.planet !== null)).toBe(true);
-    expect(fieldObjects({ catalog, positions, rotation: handRotation(south), view: VIEW, layers: { stars: false, planets: false } })).toEqual([]);
-    expect(fieldObjects({ catalog, positions, rotation: handRotation(south), view: { ...VIEW, width: 0, height: 0 }, layers: ON })).toEqual([]);
+    expect(fieldObjects({ catalog, positions, rotation: handRotation(south), view: VIEW, layers: { stars: false, planets: false }, lang: 'en' })).toEqual([]);
+    expect(fieldObjects({ catalog, positions, rotation: handRotation(south), view: { ...VIEW, width: 0, height: 0 }, layers: ON, lang: 'en' })).toEqual([]);
   });
 
   it('lists nothing when the field is all ground', () => {
-    expect(fieldObjects({ catalog, positions, rotation: handRotation({ azDeg: 180, altDeg: -10 }), view: { ...VIEW, height: 200 }, layers: ON }).every((object) => object.altDeg >= 0)).toBe(true);
+    expect(fieldObjects({ catalog, positions, rotation: handRotation({ azDeg: 180, altDeg: -10 }), view: { ...VIEW, height: 200 }, layers: ON, lang: 'en' }).every((object) => object.altDeg >= 0)).toBe(true);
   });
 
   it('merges the planets in by their magnitude, with an index past the catalogue', () => {
@@ -87,7 +87,7 @@ describe('fieldObjects (FR-STAR-7)', () => {
     for (const [k, planet] of positions.planets.entries()) {
       if (planet.altDeg < 5) continue;
       const at = { azDeg: planet.azDeg, altDeg: planet.altDeg };
-      const here = fieldObjects({ catalog, positions, rotation: handRotation(at), view: VIEW, layers: ON });
+      const here = fieldObjects({ catalog, positions, rotation: handRotation(at), view: VIEW, layers: ON, lang: 'en' });
       const found = here.find((object) => object.planet === planet.body);
       expect(found?.index, planet.body).toBe(catalog.size + k);
       expect(found?.mag).toBe(planet.mag);

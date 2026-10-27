@@ -2,11 +2,13 @@ import { memo, useCallback, useDeferredValue, useEffect, useId, useLayoutEffect,
 import { createPortal } from 'react-dom';
 import { starCatalog } from '../../data/stars/catalog';
 import { useStarsPageT } from '../../i18n/starsPageT';
-import { useT } from '../../i18n/useT';
+import { useLocale, useT } from '../../i18n/useT';
 import { RAIL_MIN_CELLS, windowBox as fitWindowBox } from '../../lib/layout';
+import { legendKeys, legendRows, type LegendPass } from '../../lib/legend';
 import { starsAt } from '../../lib/skyStars';
-import type { Observer } from '../../model';
+import type { EpochMs, Observer } from '../../model';
 import { useActiveObserver, useAppStore } from '../../state';
+import { sameLocation } from '../../state/slices/location';
 import { SkyScreen, type SkyScreenProps } from '../components/screen/SkyScreen';
 import { useSkyScreen } from '../components/screen/useSkyScreen';
 import { createHandCamera, handRotation, initialHand, type HandCamera } from '../components/guide/skychart/window/camera';
@@ -23,7 +25,7 @@ import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import { requestPlace } from './home/placeRequest';
 import { FieldList } from './stars/FieldList';
-import { fieldObjects, sceneCatalog, STAR_LABEL_HOLD_S } from './stars/field';
+import { fieldObjects, fieldPasses, sceneCatalog, STAR_LABEL_HOLD_S, tonightPasses } from './stars/field';
 import styles from './Stars.module.css';
 
 /**
@@ -65,6 +67,8 @@ const STARS_TICK_MS = 10_000;
 const ALL_LAYERS: StarField['layers'] = { stars: true, figures: true, planets: true, names: true };
 
 const UNMEASURED = { width: 0, height: 0 };
+
+const NO_PASSES: readonly LegendPass[] = [];
 
 /** The rail's minimum, from `lib/layout.ts`, as the stylesheet's one input in cells (the probe and the grid read it). */
 const RAIL_STYLE = { ['--rail-min-cells' as string]: String(RAIL_MIN_CELLS) } as CSSProperties;
@@ -118,6 +122,18 @@ function StarsSky({ observer }: { observer: Observer }) {
   const [layers, setLayers] = useState(ALL_LAYERS);
   const scene: SkyScene = useMemo(() => ({ stars: { catalog: sceneCatalog(catalog), positions, layers } }), [catalog, positions, layers]);
   const { sun, moon } = useSkyBodies({ observer, now });
+
+  /*
+   * R126 (FR-SKY-6, D-794): `[ passes ]` — page state, off on every open and never saved. With it on the scene
+   * carries tonight's passes: the store's run for this place, FR-TRAJ-1's set at now with each arc's state, handed
+   * to the window with the legend's keys and series colours as the live page's chart hands them, to the screen,
+   * and to `In this field`. A run for another place is not this sky's, so it carries none (FR-OFF-8's rule).
+   */
+  const [showPasses, setShowPasses] = useState(false);
+  const passesState = useAppStore((s) => s.passes);
+  const ownPasses = sameLocation(passesState.observer, observer);
+  const passes = useMemo(() => (showPasses && ownPasses ? tonightPasses(passesState.passes, now) : NO_PASSES), [showPasses, ownPasses, passesState.passes, now]);
+  const keys = useMemo(() => legendKeys(legendRows({ passes, highlightedPassId: null, now, colorBy: 'pass' })), [passes, now]);
 
   // FR-STAR-7: one named object for the drawing and the list, cleared after the hold; naming it again restarts the hold.
   const [named, setNamed] = useState<{ index: number; at: number } | null>(null);
@@ -305,6 +321,9 @@ function StarsSky({ observer }: { observer: Observer }) {
   const toggle = (key: keyof StarField['layers']) => () => {
     setLayers((was) => ({ ...was, [key]: !was[key] }));
   };
+  const togglePasses = (): void => {
+    setShowPasses((was) => !was);
+  };
   const layer = (key: keyof StarField['layers'], alone = false) => <OptionToggle key={key} label={p.layers[key]} pressed={layers[key]} onPress={toggle(key)} data-layer={key} alone={alone} />;
 
   return (
@@ -317,7 +336,7 @@ function StarsSky({ observer }: { observer: Observer }) {
         <Held held={screenOpen}>
         {wide && <span className={styles.railProbe} ref={probeRef} aria-hidden="true" />}
         <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky">
-          <SkyWindow passes={[]} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} namedStar={named?.index ?? null} onNameStar={onName} />
+          <SkyWindow passes={passes} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} colorBy="pass" legendKeys={keys} namedStar={named?.index ?? null} onNameStar={onName} />
         </div>
         <div className={styles.rail} data-testid="stars-rail">
           <section aria-labelledby={facingId} className={styles.block}>
@@ -331,7 +350,8 @@ function StarsSky({ observer }: { observer: Observer }) {
             <SectionHeading id={layersId} visuallyHidden={!wide}>
               {p.layersHeading}
             </SectionHeading>
-            {/* Four toggles in two rows of two: one row of four is 43 cells in English and 51 in Spanish (FR-COMP-4, D-776). */}
+            {/* Four toggles in two rows of two: one row of four is 43 cells in English and 51 in Spanish (FR-COMP-4, D-776).
+                R126 (FR-SKY-6): `[ passes ]` is a row of its own under them, so the two rows stay as they were. */}
             <div role="group" aria-label={p.layersHeading} className={styles.layers} data-testid="stars-layers">
               <div className={styles.row} data-testid="stars-layers-row">
                 {layer('stars')}
@@ -340,6 +360,9 @@ function StarsSky({ observer }: { observer: Observer }) {
               <div className={styles.row} data-testid="stars-layers-row">
                 {layer('planets')}
                 {layer('names', true)}
+              </div>
+              <div className={styles.row} data-testid="stars-layers-row">
+                <OptionToggle label={p.passesLayer} pressed={showPasses} onPress={togglePasses} data-layer="passes" alone />
               </div>
             </div>
           </section>
@@ -356,14 +379,14 @@ function StarsSky({ observer }: { observer: Observer }) {
           )}
           <section aria-labelledby={fieldId} className={styles.block}>
             <SectionHeading id={fieldId}>{p.fieldHeading}</SectionHeading>
-            <FieldSection camera={camera} catalog={catalog} positions={positions} box={box} layers={layers} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
+            <FieldSection camera={camera} catalog={catalog} positions={positions} passes={passes} now={now} box={box} layers={layers} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
           </section>
         </div>
         </Held>
       </div>
       {/* Portaled to the body as the pass detail's is: a fixed layer, never the child of something that scrolls. The
           sensor drives it from the hand's facing; the page's hand camera stays as it was for the return. */}
-      {screenOpen && <StarsScreen camera={camera} scene={scene} observer={observer} now={now} sun={sun} moon={moon} onClose={closeScreen} />}
+      {screenOpen && <StarsScreen camera={camera} scene={scene} passes={showPasses ? passes : undefined} observer={observer} now={now} sun={sun} moon={moon} onClose={closeScreen} />}
     </>
   );
 }
@@ -379,22 +402,29 @@ const Held = memo(
   (_previous, next) => next.held,
 );
 
-type StarsScreenProps = Pick<SkyScreenProps, 'observer' | 'now' | 'sun' | 'moon' | 'onClose'> & { camera: HandCamera; scene: SkyScene };
+type StarsScreenProps = Pick<SkyScreenProps, 'observer' | 'now' | 'sun' | 'moon' | 'onClose'> & { camera: HandCamera; scene: SkyScene; passes: readonly LegendPass[] | undefined };
 
 /**
  * The stars inventory's layer, portaled to the body as the pass detail's is. The sensor drives it from the hand's
  * facing, read once as the layer mounts — the open — and not on every render; the page's camera stays as it was
- * for the return.
+ * for the return. R126 (FR-SKY-6, D-794): with `[ passes ]` on it is handed the scene's passes — an empty set too,
+ * which is a night with nothing to name and still the live page's screen — and with it off none at all.
  */
-function StarsScreen({ camera, scene, observer, now, sun, moon, onClose }: StarsScreenProps) {
+function StarsScreen({ camera, scene, passes, observer, now, sun, moon, onClose }: StarsScreenProps) {
   const [facingAzDeg] = useState(() => camera.get().azDeg);
-  return createPortal(<SkyScreen inventory="stars" scene={scene} observer={observer} now={now} {...(sun === undefined ? {} : { sun })} {...(moon === undefined ? {} : { moon })} initialFacingAzDeg={facingAzDeg} onClose={onClose} />, document.body);
+  return createPortal(
+    <SkyScreen inventory="stars" scene={scene} {...(passes === undefined ? {} : { passes })} observer={observer} now={now} {...(sun === undefined ? {} : { sun })} {...(moon === undefined ? {} : { moon })} initialFacingAzDeg={facingAzDeg} onClose={onClose} />,
+    document.body,
+  );
 }
 
 interface FieldSectionProps {
   camera: HandCamera;
   catalog: ReturnType<typeof starCatalog>;
   positions: ReturnType<typeof starsAt>;
+  /** R126 (FR-SKY-6): the scene's passes, empty with `[ passes ]` off, at the page's instant. */
+  passes: readonly LegendPass[];
+  now: EpochMs;
   /** The drawing's measured box; the field across it is the camera's (R125, FR-SKY-14). */
   box: { width: number; height: number };
   layers: StarField['layers'];
@@ -408,14 +438,18 @@ interface FieldSectionProps {
  * old value, which every memo below answers, and the list follows when React has the time. R125 (FR-SKY-14): the
  * view's field is the camera's `fovDeg`, read the same deferred way, so a zoom lists what the narrowed box shows.
  */
-function FieldSection({ camera, catalog, positions, box, layers, named, onName, labelledBy }: FieldSectionProps) {
+function FieldSection({ camera, catalog, positions, passes, now, box, layers, named, onName, labelledBy }: FieldSectionProps) {
+  const lang = useLocale();
   const hand = useSyncExternalStore(camera.subscribe, camera.get, camera.get);
   const settled = useDeferredValue(hand);
   const view: View = useMemo(() => ({ fovDeg: settled.fovDeg, width: box.width, height: box.height, screenAngleDeg: 0 }), [settled.fovDeg, box]);
   const rotation = useMemo(() => handRotation(settled), [settled]);
-  const objects = useMemo(() => fieldObjects({ catalog, positions, rotation, view, layers }), [catalog, positions, rotation, view, layers]);
+  // R126 (D-832): the star names in the reader's language, through `starName`.
+  const objects = useMemo(() => fieldObjects({ catalog, positions, rotation, view, layers, lang }), [catalog, positions, rotation, view, layers, lang]);
+  // R126 (FR-SKY-6, D-794): the passes drawn in the field, ahead of the stars.
+  const inField = useMemo(() => (passes.length === 0 ? [] : fieldPasses({ passes, rotation, view, now })), [passes, rotation, view, now]);
   const buried = view.width > 0 && groundState(settled.altDeg, view) === 'buried';
-  return useMemo(() => <FieldList objects={objects} named={named} onName={onName} buried={buried} labelledBy={labelledBy} />, [objects, named, onName, buried, labelledBy]);
+  return useMemo(() => <FieldList objects={objects} passes={inField} named={named} onName={onName} buried={buried} labelledBy={labelledBy} />, [objects, inField, named, onName, buried, labelledBy]);
 }
 
 /** R123 (FR-SKY-3, FR-SKY-10, D-791): the live page's and the pass detail's stars, from this chunk through `starsChunk.ts`. */

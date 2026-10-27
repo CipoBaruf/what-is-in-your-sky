@@ -26,6 +26,16 @@
   cursor: pointer;
 }
 
+/* R126 (FR-SKY-6, D-794): a pass's row is the same four columns — the key, the swatch and the name; the FR-LEG-3
+   state word; the peak's altitude; its direction — and names nothing on a tap, so it is not a control. */
+.row[data-kind='pass'] {
+  cursor: default;
+}
+
+.key {
+  color: var(--fg);
+}
+
 .row[aria-pressed='true'] .name {
   color: var(--accent);
 }
