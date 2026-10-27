@@ -215,9 +215,10 @@ describe('the version (FR-SHOW-1)', () => {
   });
 });
 
-describe('the release budget table (FR-STAR-9, D-759, R118)', () => {
-  it("§16.2's budget column is the script's rows, one row each and no other", () => {
-    const budget = section(release, '16. v2.4').split('### 16.2')[1]?.split('### 16.3')[0] ?? '';
+describe('the release budget table (FR-STAR-9, D-759, R118; FR-SKY-10, D-799, R128)', () => {
+  // R128: the last release's table is the one that carries the script's rows; §16.2 is v2.4's as it was measured.
+  it("§17.2's budget column is the script's rows, one row each and no other", () => {
+    const budget = section(release, '17. v2.5').split('### 17.2')[1]?.split('### 17.3')[0] ?? '';
     const rows = budget
       .split('\n')
       .filter((line) => line.startsWith('| ') && !line.startsWith('| Chunk'))
