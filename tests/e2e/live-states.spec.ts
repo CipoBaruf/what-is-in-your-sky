@@ -179,7 +179,7 @@ test('the short wide inventory ends on a whole row with a +n line, and names its
   await expect(list).toHaveAttribute('data-clip-rows', /^\d+$/);
   const more = page.getByTestId('legend-more');
   await expect(more).toBeVisible();
-  await expect(page.getByTestId('legend-times-header')).toHaveText(/^rise\s*peak\s*end$/);
+  await expect(page.getByTestId('legend-times-header')).toHaveText(/^rise\s*peak\s*set$/);
   const geometry = await list.evaluate((ol) => {
     const box = ol.getBoundingClientRect();
     const items = Array.from(ol.children, (li) => li.getBoundingClientRect());
