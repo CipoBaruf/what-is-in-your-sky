@@ -415,7 +415,7 @@ export function App() {
    * 844 px phone.
    */
   // R93 (D-545): the page is a chunk; while it is on its way the header's bead runs (FR-MARK-5), through this flag.
-  if (settings.active) return <Shell routeKey={routeKey} title={title} {...settingsShell(t, { onLeave: settings.leave }, { arriving: settingsArriving, onArriving: setSettingsArriving })} />;
+  if (settings.active) return <Shell routeKey={routeKey} title={title} {...settingsShell(t, { onLeave: settings.leave }, { arriving: settingsArriving, onArriving: setSettingsArriving, place: observer?.label ?? null })} />;
   /*
    * R115 (FR-STAR-3, D-756): the stars page is a screen like the settings one — the header (its `[ stars ]` the
    * current page's), the page as `main`, no footer — and a chunk of its own, fetched here or from the link ahead
@@ -427,7 +427,7 @@ export function App() {
         chrome="stars"
         routeKey={routeKey}
         title={title}
-        banner={<Header current="stars" inert={helpOpen} />}
+        banner={<Header page="stars" context={observer?.label ?? null} onBack={stars.leave} inert={helpOpen} />}
         mainProps={{ inert: helpOpen, className: styles.stars }}
         after={overlay}
       >

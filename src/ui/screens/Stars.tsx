@@ -21,10 +21,11 @@ import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { OptionToggle } from '../components/primitives/OptionToggle';
 import { SectionHeading } from '../components/primitives/SectionHeading';
 import { TextButton } from '../components/primitives/TextButton';
-import { VisuallyHidden } from '../components/primitives/VisuallyHidden';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
+import { darkWindowText } from '../components/now/ConditionsTable';
 import { requestPlace } from './home/placeRequest';
+import { useNight } from './home/useNight';
 import { FieldList } from './stars/FieldList';
 import { fieldObjects, fieldPasses, fieldRows, sceneCatalog, STAR_LABEL_HOLD_S } from './stars/field';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
@@ -90,7 +91,6 @@ const RAIL_STYLE = { ['--rail-min-cells' as string]: String(RAIL_MIN_CELLS) } as
 const windowBox = (sky: HTMLElement): HTMLElement | null => sky.querySelector('svg[data-drawing="window"]')?.parentElement ?? null;
 
 export function StarsPage() {
-  const t = useT();
   const p = useStarsPageT();
   const observer = useActiveObserver();
   // FR-A11Y-1..3: with no place the page's one control, `[ set a place ]`, takes the focus, as the box does with one.
@@ -101,7 +101,7 @@ export function StarsPage() {
   if (observer === null) {
     return (
       <>
-        <VisuallyHidden as="h1">{t.stars.heading}</VisuallyHidden>
+        <StarsHeading observer={null} />
         <div className={styles.inert} data-testid="stars-inert" ref={inertRef}>
           <p>{p.noPlace}</p>
           <TextButton label={p.setPlace} data-testid="stars-set-place" onClick={requestPlace} />
@@ -358,8 +358,10 @@ function StarsSky({ observer }: { observer: Observer }) {
   const layer = (key: keyof StarField['layers'], alone = false) => <OptionToggle key={key} label={p.layers[key]} pressed={layers[key]} onPress={toggle(key)} data-layer={key} alone={alone} />;
 
   return (
-    <>
-      <VisuallyHidden as="h1">{t.stars.heading}</VisuallyHidden>
+    <div className={styles.page} data-layout={mode}>
+      <div {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
+        <StarsHeading observer={observer} />
+      </div>
       {/* FR-FSC-1 (D-321): under the layer the page is out of reach — `inert` for Tab and a tap past it, `aria-hidden`
           for the accessible tree, as the live page's top row — and held at its last render, so the tick redraws
           the screen's window and not a second one under it (FR-STAR-9). */}
@@ -418,7 +420,35 @@ function StarsSky({ observer }: { observer: Observer }) {
       {/* Portaled to the body as the pass detail's is: a fixed layer, never the child of something that scrolls. The
           sensor drives it from the hand's facing; the page's hand camera stays as it was for the return. */}
       {screenOpen && <StarsScreen camera={camera} scene={scene} passes={passes ?? undefined} observer={observer} now={now} sun={sun} moon={moon} onClose={closeScreen} />}
-    </>
+    </div>
+  );
+}
+
+/**
+ * R129 (FR-FLOW-3; F7, D4): the page names itself — a visible `h1`, "Stars tonight", and under it at `--small` the
+ * dark window and the cloud word, as the home's What step words them (`useNight`: the stripe's bands and the
+ * forecast at the middle of the night). Before the bands are known the line is the cloud word alone; with no place,
+ * the heading alone. R132 moves the block into the `answer` slot.
+ */
+function StarsHeading({ observer }: { observer: Observer | null }) {
+  const t = useT();
+  return (
+    <div className={styles.intro} data-testid="stars-intro">
+      <h1 className={styles.heading}>{t.starsHeading}</h1>
+      {observer !== null && <TonightLine observer={observer} />}
+    </div>
+  );
+}
+
+function TonightLine({ observer }: { observer: Observer }) {
+  const t = useT();
+  const locale = useLocale();
+  const night = useNight(observer);
+  const dark = night.bands.length === 0 ? null : night.dark === null ? t.home.noDarkWindow : `${t.home.conditions.dark} ${darkWindowText(night.dark, night.sampledFrom, observer.timeZone, locale, t)}`;
+  return (
+    <p className={styles.tonight} data-testid="stars-tonight">
+      {[dark, t.weather.state[night.clouds.state]].filter((piece) => piece !== null).join(' · ')}
+    </p>
   );
 }
 

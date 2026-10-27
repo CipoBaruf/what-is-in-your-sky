@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useId, useState, type MouseEvent } from 'react';
 import { flushSync } from 'react-dom';
 import { useT } from '../../i18n/useT';
 import { searchPlaces, useActiveObserver, useAppStore } from '../../state';
@@ -49,18 +49,20 @@ import styles from './Settings.module.css';
  * looks like. Taking it installs the app and ends the hint.
  *
  * The route exists at every width (FR-COMP-2) — a reload on `#settings` reopens
- * it whatever the screen — but only the compact header links to it (US-20 AC5),
- * which is `Header`'s business. `Esc` closes it through the one `keydown`
+ * it whatever the screen, and since R129 (FR-FLOW-3, V26-10) the header links to
+ * it on both widths: the language and theme switches are this page's alone.
+ * The way back is the header's `[ ← ]` (D-845), which `SettingsRoute` hands this
+ * page's `onLeave`. `Esc` closes it through the one `keydown`
  * listener in `App` (D-73), and the browser's Back does it by clearing the hash.
  */
 export interface SettingsPageProps {
-  /** Returns to the home screen: the page's own `[ ← Back ]`, and what `Esc` and the browser's Back do. */
+  /** Returns to the home screen: the header's `[ ← ]` (R129), and what `Esc` and the browser's Back do. */
   onLeave: () => void;
   /** The browser, for `InstallAction`; the app reads the real `navigator`. */
   installEnv?: InstallEnv;
 }
 
-export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
+export function SettingsPage({ installEnv }: SettingsPageProps) {
   const t = useT();
   const setObserver = useAppStore((s) => s.setObserver);
   const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
@@ -69,17 +71,18 @@ export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
   const coordsRegionId = useId();
   const [coordsOpen, setCoordsOpen] = useState(() => observer?.source === 'coords');
   const { available: canInstall } = useInstallOffer(installEnv);
-  const back = useRef<HTMLButtonElement>(null);
 
   /*
    * The reader arrived by pressing a control that is no longer under their
    * cursor — `[ settings ]` in the header is now the current page's own dim
    * marker — so focus is placed on the way out. It is the first thing on the
    * page and the answer to "how do I get back", which is the one question a
-   * settings screen has to answer before any of its rows do.
+   * settings screen has to answer before any of its rows do. R129 (D-845): that
+   * control is the header's `[ ← ]` now, outside this chunk, so it is found by
+   * its test id, as the live page finds its own.
    */
   useEffect(() => {
-    back.current?.focus();
+    document.querySelector<HTMLElement>('[data-testid="settings-back"]')?.focus();
   }, []);
 
   /** The picker's "enter coordinates instead" link: open the fields first, so its own handler finds one to focus. */
@@ -94,10 +97,6 @@ export function SettingsPage({ onLeave, installEnv }: SettingsPageProps) {
 
   return (
     <>
-        <p className={styles.backRow}>
-          <TextButton inline label={t.settings.back} onClick={onLeave} ref={back} data-testid="settings-back" />
-        </p>
-
         <div className={styles.location} onClickCapture={openCoordsForLink}>
           <LocationInput
             observer={observer}

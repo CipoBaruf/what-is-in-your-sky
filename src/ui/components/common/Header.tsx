@@ -96,7 +96,7 @@ export function Header({ page = 'home', context = null, onBack, status, landmark
   const prefetchStars = (): void => void loadStarsChunk().catch(() => undefined);
   const Root = landmark ? 'header' : 'div';
   const sub = page !== 'home';
-  const rootClass = (shape: string): string => [styles.header, shape, landmark ? styles.landmark : undefined].filter(Boolean).join(' ');
+  const rootClass = (shape: string | undefined): string => [styles.header, shape, landmark ? styles.landmark : undefined].filter(Boolean).join(' ');
 
   const back = sub && (
     <TextButton inline label={t.header.back} aria-label={t.header.backName} className={styles.back} onClick={onBack} data-testid={`${page}-back`} />

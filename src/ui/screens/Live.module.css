@@ -387,69 +387,12 @@
   padding: 0;
 }
 
-/* The return control, the place, and (on wide) the switches the header would have carried. */
+/* R129 (FR-FLOW-3, D-845): the top row is the app's one header, told it is the live page (`Header.module.css` lays it
+   out: `[ ← ]`, the indicator and the place on compact, one cell apart, the place ellipsising — FR-COMP-7's 360 px
+   coordinate pair; the one wide row elsewhere). This box is only what the sky screen makes inert.
+   F-100 (V21-24, D-642): Back's flush focus ring went with it, into the header's stylesheet. */
 .topRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0 calc(2 * var(--cell));
-}
-
-/* R48 (FR-COMP-1, D-244): on compact the top row is one row: nothing wraps, and the place ellipsises.
-   R85 (FR-COMP-7, D-549): one cell between its items, not two — with `[ ← ]` for `[ ← Volver ]` that is what
-   lets a 360 px phone show a whole coordinate pair (`−38.93, −67.99`, 14 cells) beside `en vivo`. */
-.page[data-compact='true'] .topRow {
-  flex-wrap: nowrap;
-  gap: 0 var(--cell);
-}
-
-/* R48 (FR-COMP-5, D-246): …and one text row tall. The return control keeps
-   its 48 px hit box the way links in prose do (the global inline-control
-   rule: vertical padding, the matching negative margin) rather than by its
-   height, so the row is 24 px and the dome has the other 24. R104 (D-704): it
-   is `TextButton`'s `inline` form on compact, so the rule is the primitive's. */
-
-/* F-100 (V21-24, D-642): entering `#live` focuses Back (FR-A11Y-4), and with no pointer or key yet pressed the
-   browser draws that as `:focus-visible`. R75's rule for inline controls, applied here: the ring goes round the
-   text line, not the tap box, so the padding, the buttons' `min-height` and the matching negative margin are all
-   dropped while it shows. The margin box is the text line either way, so nothing moves: a row that grew here moved
-   `[ scrub ]` between a pointer's down and up, and the click was lost. The offset is 0 rather than the global 2 px, which keeps the ring inside the
-   header row's leading and off the line under it. Both layouts give Back the tap box (compact here, a short wide window
-   through `[data-fold] button`), so the rule is not scoped to either, and it is written to outrank both.
-   R104 (D-704): kept whole as this page's one focus rule on a primitive — on wide, Back is not the
-   `inline` form, so the primitive's and global.css's `:focus-visible` collapse do not reach it, and
-   dropping these lines moved every wide live capture by the ring's height (the review of #173 asked,
-   the re-shoot answered). R107 (D-704, D-725): the ring is global.css's one rule; the flush offset is
-   `--focus-offset` set here, which that rule reads, and not an offset rule of this module's own. */
-.page[data-compact] .back:focus-visible {
-  --focus-offset: 0;
-  min-height: 0;
-  padding-block: 0;
-  margin-block: 0;
-}
-
-.page[data-compact='true'] .place {
-  flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: right;
-}
-
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 calc(3 * var(--cell));
-  margin-left: auto;
-}
-
-/* R104 (D-704): Back is a `TextButton`; `.back` is where the page places it (the compact row below, F-100 above). */
-
-.place {
-  color: var(--fg-dim);
 }
 
 .dome {
@@ -507,16 +450,6 @@
   font-size: var(--small);
   line-height: var(--row);
   color: var(--fg-dim);
-}
-
-/* R77 (FR-WATCH-2): on compact the indicator stands on the top row between the return control and the place;
-   the place is what gives (it ellipsises), never the word. */
-.page[data-compact='true'] .topRow {
-  align-items: center;
-}
-
-.page[data-compact='true'] .back {
-  flex: 0 0 auto;
 }
 
 /* R77 (FR-WATCH-4, FR-WATCH-5): the wide rail. Its head — the indicator with the clock or `[ back to live ]`,
