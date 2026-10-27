@@ -140,11 +140,6 @@ export function collide(points: readonly (Point | null)[], distancePx = COLLISIO
   return keep;
 }
 
-/**
- * The hit test: the index of the nearest drawn point within `radiusPx` of
- * (`x`, `y`), or `null`. `points` are the glyphs as drawn — `null` for one
- * hidden this frame — in draw order, so a tie goes to the brighter.
- */
 /** A drawn figure segment in the box's px, as the star field writes its line. */
 export interface Segment {
   x1: number;
@@ -177,6 +172,11 @@ export function hitLine(lines: readonly (Segment | null)[], x: number, y: number
   return best;
 }
 
+/**
+ * The hit test: the index of the nearest drawn point within `radiusPx` of
+ * (`x`, `y`), or `null`. `points` are the glyphs as drawn — `null` for one
+ * hidden this frame — in draw order, so a tie goes to the brighter.
+ */
 export function hitTest(points: readonly (Point | null)[], x: number, y: number, radiusPx = HIT_RADIUS_PX): number | null {
   let best: number | null = null;
   let bestD2 = radiusPx * radiusPx;

@@ -11,7 +11,7 @@ import { starsAt } from '../../../../../lib/skyStars';
 import type { EpochMs } from '../../../../../model';
 import { sceneCatalog } from '../../../../screens/stars/field';
 import { handRotation } from './camera';
-import { WINDOW_FOV, type View } from './projection';
+import { project, WINDOW_FOV, type View } from './projection';
 import type { StarField as StarFieldData } from './scene';
 import { frameOf, labelInput, prepare } from './StarField';
 import { ADVANCE_EM, FIGURE_NAME_PX, placeLabels, SEGMENT_SAMPLE_PX, spaced, STAR_NAME_PX, textWidth, type Box, type LabelInput, type LabelMark, type PlacedLabel } from './starLabels';
@@ -248,5 +248,31 @@ describe('Crux over Neuquén (D-755 as amended, V24-22)', () => {
     expect(figureText(sky(NEUQUEN, '2027-04-15T03:00:00Z', 'Cru', 390, 390).placed)).toContain('C R U');
     expect(figureText(sky(NEUQUEN, '2027-04-15T03:00:00Z', 'Cru', 798, 498).placed)).toContain('C R U');
     expect(figureText(sky(NEUQUEN, '2027-04-15T03:00:00Z', 'Cru', 900, 640).placed)).toContain('C R U X');
+  });
+});
+
+// --- The tap's segments (FR-STAR-14, R127 review) ----------------------------
+
+describe('frameOf’s hit lines (FR-STAR-14)', () => {
+  const field: StarFieldData = {
+    catalog: { ra: [0, 0, 0], dec: [0, 0, 0], mag: [1, 1, 1], name: ['A', 'B', 'C'], desig: ['a', 'b', 'c'], con: ['Ori', 'Ori', 'Ori'], figures: [{ con: 'Ori', part: '', segments: [[0, 1], [0, 2]] }] },
+    positions: { altDeg: [12, -12, 24], azDeg: [0, 0, 4], planets: [] },
+    layers: { stars: true, figures: true, planets: true, names: false },
+  };
+  const view: View = { fovDeg: WINDOW_FOV, width: 400, height: 300, screenAngleDeg: 0 };
+  const rotation = handRotation({ azDeg: 0, altDeg: 5 });
+  const frame = frameOf(rotation, view, field, prepare(field));
+
+  it('cuts a line with one end below the horizon where it meets the horizon, and keeps a line wholly up as drawn', () => {
+    const drawn = frame.lines[0];
+    const hit = frame.hitLines[0];
+    expect(drawn).not.toBeNull();
+    const horizon = project(rotation, 0, 0, view);
+    expect(hit?.x1).toBe(drawn?.x1);
+    expect(hit?.x2).toBeCloseTo(horizon.x, 6);
+    expect(hit?.y2).toBeCloseTo(horizon.y, 6);
+    // The drawn line runs on under the horizon (the clip hides it); the tap's stops there.
+    expect(drawn?.y2 ?? 0).toBeGreaterThan(horizon.y + 20);
+    expect(frame.hitLines[1]).toEqual(frame.lines[1]);
   });
 });

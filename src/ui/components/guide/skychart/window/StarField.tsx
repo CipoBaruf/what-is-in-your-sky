@@ -8,7 +8,7 @@ import { figureName, starName, type StarNamesSource } from '../../../../../lib/s
 import type { Locale } from '../../../../../model';
 import { formatStarMag } from '../../../../screens/stars/field';
 import { inkMeasured, inkOffset, inkOffsetsReady } from './inkOffsets';
-import { COMPASS, converged, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, type Mat3, type View } from './projection';
+import { COMPASS, converged, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, skyVector, type Mat3, type View } from './projection';
 import type { StarField as StarFieldData } from './scene';
 import styles from './SkyWindow.module.css';
 import { collide, COLLISION_PX, LANDMARK_RING_PX, magnitudeOrder, planetRungFor, rungFor, SIZE_PX, type Point, type Rung, type SizeToken, type StarGlyph } from './starGlyphs';
@@ -124,6 +124,7 @@ export const figureKey = (segment: number): number => -(segment + 1);
 const figureSegment = (key: number): number | null => (key < 0 ? -key - 1 : null);
 
 const fmt = (n: number): string => n.toFixed(1);
+const DEG_PER_RAD = 180 / Math.PI;
 const vis = (show: boolean): 'visible' | 'hidden' => (show ? 'visible' : 'hidden');
 /** What each mark or line was last written, so a frame writes `visibility` only where it changes (the per-frame path's cost is its DOM writes). */
 const lastShown = new WeakMap<Element, boolean>();
@@ -213,6 +214,20 @@ function labelText(field: StarFieldData, prepared: Prepared, k: number, p: Stars
 }
 
 /**
+ * FR-STAR-14: the name of the figure drawn segment `segment` belongs to, in `prepare`'s segment order, read off the
+ * catalogue alone — the readout asks it every render, so it walks the figures rather than preparing the field (R127 review).
+ */
+function figureNameAt(catalog: StarFieldData['catalog'], segment: number, lang: Locale): string | null {
+  let first = 0;
+  for (const figure of catalog.figures) {
+    const end = first + figure.segments.length;
+    if (segment >= first && segment < end) return figureLabelName(catalogNames(catalog), figure.con, figure.part, lang);
+    first = end;
+  }
+  return null;
+}
+
+/**
  * FR-STAR-7: the readout's second line for object `k`, the list row's words,
  * "Canopus · mag −0.7 · 28° up · S"; FR-STAR-14: a figure's is its name alone.
  */
@@ -220,11 +235,7 @@ export function namedReadout(field: StarFieldData, k: number, p: StarsPageMessag
   const { catalog, positions } = field;
   const n = catalog.mag.length;
   const segment = figureSegment(k);
-  if (segment !== null) {
-    const prepared = prepare(field, locale);
-    const f = figureOf(prepared, segment);
-    return f === null ? null : (prepared.figureNames[f] ?? null);
-  }
+  if (segment !== null) return figureNameAt(catalog, segment, locale);
   const planet = k < n ? null : positions.planets[k - n];
   if (k >= n && !planet) return null;
   const name = planet ? p.planets[planet.body] : starName(catalogNames(catalog), k, locale);
@@ -247,6 +258,11 @@ export interface FieldFrame {
   drawn: (Point | null)[];
   /** Each segment as its line is drawn, `null` for one hidden. */
   lines: (LabelSegment | null)[];
+  /**
+   * R127 review (FR-STAR-14): each drawn segment's sky side, for the tap — the line cut where it meets the horizon
+   * when one end is below it (the clip hides the rest, so a tap on the ground there names nothing).
+   */
+  hitLines: (LabelSegment | null)[];
   /** The compass names' boxes, where they are drawn. */
   compass: Box[];
 }
@@ -261,7 +277,8 @@ export function frameOf(rotation: Mat3, view: View, field: StarFieldData, prepar
   const ys = new Float64Array(n);
   const drawn: (Point | null)[] = Array.from({ length: n + positions.planets.length }, () => null);
   const lines: (LabelSegment | null)[] = prepared.segments.map(() => null);
-  if (state === 'buried') return { state, clip: '', ground: '', xs, ys, drawn, lines, compass: [] };
+  const hitLines: (LabelSegment | null)[] = prepared.segments.map(() => null);
+  if (state === 'buried') return { state, clip: '', ground: '', xs, ys, drawn, lines, hitLines, compass: [] };
 
   // The horizon's closed image, and which side of it is the sky (D-754).
   const image = groundClipPath(HORIZON.map((p) => project(rotation, p.azDeg, p.elDeg, view)));
@@ -320,7 +337,21 @@ export function frameOf(rotation: Mat3, view: View, field: StarFieldData, prepar
       if (!(up && seen && length >= 2 * GAP_PX)) return;
       const ux = ((x2 - x1) / length) * GAP_PX;
       const uy = ((y2 - y1) / length) * GAP_PX;
-      lines[s] = { x1: x1 + ux, y1: y1 + uy, x2: x2 - ux, y2: y2 - uy };
+      const line = { x1: x1 + ux, y1: y1 + uy, x2: x2 - ux, y2: y2 - uy };
+      lines[s] = line;
+      const aUp = (positions.altDeg[a] ?? -1) >= 0;
+      const bUp = (positions.altDeg[b] ?? -1) >= 0;
+      if (aUp && bUp) {
+        hitLines[s] = line;
+        return;
+      }
+      // One end below: the great circle between them meets the horizon where the earth-frame vector's height is zero.
+      const va = skyVector(positions.azDeg[a] ?? 0, positions.altDeg[a] ?? 0);
+      const vb = skyVector(positions.azDeg[b] ?? 0, positions.altDeg[b] ?? 0);
+      const t = va[2] / (va[2] - vb[2]);
+      const cross = project(rotation, Math.atan2(va[0] + t * (vb[0] - va[0]), va[1] + t * (vb[1] - va[1])) * DEG_PER_RAD, 0, view);
+      if (!cross.front) return;
+      hitLines[s] = aUp ? { x1: line.x1, y1: line.y1, x2: cross.x, y2: cross.y } : { x1: cross.x, y1: cross.y, x2: line.x2, y2: line.y2 };
     });
   }
 
@@ -334,7 +365,7 @@ export function frameOf(rotation: Mat3, view: View, field: StarFieldData, prepar
     const w = textWidth(name, size);
     compass.push({ x0: q.x - w / 2, y0: q.y - 0.8 * size, x1: q.x + w / 2, y1: q.y + 0.2 * size });
   }
-  return { state, clip, ground, xs, ys, drawn, lines, compass };
+  return { state, clip, ground, xs, ys, drawn, lines, hitLines, compass };
 }
 
 /** Which marks and lines a frame draws, as a key: the names are placed again when it changes, however small the move. */
@@ -583,7 +614,7 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
       const frame = frameOf(rotation, view, field, prepared);
       drawField(g, nodes, frame, field, ringAt(frame, view, field, landmark));
       if (hits) hits.current = frame.drawn;
-      if (lineHits) lineHits.current = frame.lines;
+      if (lineHits) lineHits.current = frame.hitLines;
       // D-751: the names are placed again only once the rotation has moved past `converged()` since they last were,
       // or the drawn set changed under a smaller move (the ground buried or not, a mark in or out of the box).
       const drawnSet = drawnKey(frame);
