@@ -3543,7 +3543,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
 
 ### Wave 5
 
-- [ ] **R128 — The capture set and the release preparation: FR-SKY-9's files, the diff against `ece8bfd`, `2.5.0`, `docs/RELEASE.md` §17, the README's screens, no tag**
+- [x] **R128 — The capture set and the release preparation: FR-SKY-9's files, the diff against `ece8bfd`, `2.5.0`, `docs/RELEASE.md` §17, the README's screens, no tag**
   - **Lane:** docs
   - **Model:** opus
   - **Review:** opus
@@ -3563,6 +3563,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
   - **Done when:**
     - `npx vitest run tests/docs` passes; `npm test`, lint, typecheck and `npm run e2e` green.
     - The Done note carries the `captures.yml` run ids, the diff list (FR-SKY-9's files only), the budget table and the release SHA to tag (read from `main` after the merge).
+  - **Done (2026-10-27, D-829..D-831):** as written, with three readings. **The set** is 330 files: `live-window` and `guide-window` (360, 390, 1280, 1920), `live-window-follow` and `stars-zoom` (1280), `stars-passes` (360, 390, 1280) and `stars-passes-screen` (844); the live page's screen with stars and a pass is `sky-screen-sky`, re-shot (D-829). **The diff against `ece8bfd`**, each set shot by its own commit's spec off its own plain build on one Mac: of 274 shared files 90 are byte-identical and 184 differ, every one on `docs/RELEASE.md` §17.1's four lists — the stars under the arcs and the landmark on every chart file (154), the overlay's `f` row (`v1-shortcuts-*`, 12), the stars page's `[ passes ]` row (`v1-stars-*`, 16) and the Spanish names (`v1-stars-screen-844-*-es`, 2). Two runs of the branch first disagreed beyond noise because the lazy `stars` chunk raced the shot; the spec now prefetches it and waits for a placed star (D-830), and two runs agree on 315 of 330, the rest F-99's size. **The `captures.yml` run ids are not in this note**: a task session cannot dispatch a workflow, so the 56 new files are committed as a Mac run shot them and the 184 moved files keep `ece8bfd`'s bytes until §17.1's two runs (with the new `base` input, `ece8bfd`) are dispatched and run 1's artefact committed — §17.1's and §17.5's unchecked items. **The budget** (§17.2, D-831): `main` 173.0 (+3.29 KB, held at its 170 ceiling, over), `chart` 94.7, `worker` 36.1, `stars` 25.8 (+2.29 KB), `astronomy` 22.6, `window` 25.7 → budget **30**, `live` 9.7, service worker 5.0 + 1.2, settings 1.0; `main`, `stars` and `window` are past FR-SKY-10's allowances and are the owner's (§17.4). `package.json` 2.5.0; the README's laptop tile is the pass detail's window. **The release SHA** is R128's squash merge, or the commit that lands the Linux set after it — read from `main` after the merge (§17.5); no tag.
 
 ### Requirement coverage (v2.5)
 
