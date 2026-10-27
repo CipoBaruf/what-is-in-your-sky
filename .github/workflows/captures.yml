@@ -45,8 +45,11 @@ name: Captures
 # the stars page with `[ passes ]` at 360, 390 and 1280 and the screen it opens at 844. Locally
 # (ten cores) the set takes about 2.7 min, so the 60 min ceiling stands. And the run says what it
 # moved: the `base` input (PLAN D-742, a SHA and never a tag) names the commit whose committed set
-# the release compares against, and the last step lists every file that differs from it — new,
-# changed or gone — in the job summary. v2.5's base is `ece8bfd`, v2.4's release preparation.
+# the run compares against, and the last step lists every file that differs from it — new, changed
+# or gone — in the job summary. With no input (every push to `main`, or a dispatch left empty) the
+# base is the commit itself, so the list is the drift from the set that commit carries; a release
+# dispatches with its previous release's SHA (v2.5: `ece8bfd`, v2.4's release preparation), so no
+# literal here has to change from one release to the next.
 #
 # This job commits nothing. It uploads the set as an artefact and fails when a
 # capture is missing — the committed files under `docs/screenshots/` are cleared
@@ -60,9 +63,9 @@ on:
   workflow_dispatch:
     inputs:
       base:
-        description: The commit the set is compared against (PLAN D-742, a SHA, never a tag)
+        description: The commit the set is compared against (PLAN D-742, a SHA, never a tag); empty is the commit being shot
         required: false
-        default: ece8bfd
+        default: ''
 
 jobs:
   captures:
@@ -104,11 +107,16 @@ jobs:
         run: npx vitest run tests/docs/captures.test.ts
       # R128 (PLAN D-742, D-799): the release's diff list, this run's files against the base's committed
       # ones, with the changed pixels and the largest channel step of each so F-99's noise reads as noise.
-      # A push to `main` has no input and compares against the default.
+      # A push to `main` has no input and compares against its own commit. `shell: bash` is GitHub's
+      # `bash -eo pipefail`: without it the default shell has no pipefail, `tee` answers for the pipe, and a
+      # failing script (a base that does not resolve, a bad PNG) would leave the step green with a short list.
+      # `pngjs` is a direct devDependency for this step, not one reached through glyphcss (`knip.json` ignores it:
+      # this script is its only importer).
       - name: diff against the base
         if: always()
+        shell: bash
         env:
-          BASE: ${{ inputs.base || 'ece8bfd' }}
+          BASE: ${{ inputs.base || github.sha }}
         run: |
           node --input-type=module <<'EOF' | tee -a "$GITHUB_STEP_SUMMARY"
           import { execFileSync } from 'node:child_process';

@@ -2,6 +2,6 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["scripts/*.ts", "spike/**/main.tsx", "dev/primitives.tsx"],
   "ignore": ["spike/**"],
-  "ignoreDependencies": [],
+  "ignoreDependencies": ["pngjs"],
   "ignoreBinaries": ["ffmpeg"]
 }
