@@ -3620,7 +3620,7 @@ What every session reads (§16.24, D-284's rule), written once here and named in
 
 ### Wave 1
 
-- [ ] **R129 — One header: `Header.tsx`'s `page` and `context`, the compact top row on the four sub-pages, the wide nav with `aria-current`, `[ settings ]`, and the language and theme switches removed from the header and the pass detail**
+- [x] **R129 — One header: `Header.tsx`'s `page` and `context`, the compact top row on the four sub-pages, the wide nav with `aria-current`, `[ settings ]`, and the language and theme switches removed from the header and the pass detail**
   - **Lane:** ui
   - **Model:** opus
   - **Review:** opus
@@ -3644,6 +3644,7 @@ What every session reads (§16.24, D-284's rule), written once here and named in
     - `npx vitest run src/ui/components/common src/ui/App.structure.test.tsx tests/styles` passes.
     - The Done note gives the header's cells at 360 px in Spanish on each of the four sub-pages.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+  - **Done:** at 360 px (33 cells on the widest font) in Spanish the compact header is: live `[ ← ]` + the mark + `en vivo` = 17 cells, with `−38.93, −67.99` 32; stars `[ ← ] estrellas` 15, with the pair 30; pass `[ ← ] pase` 10, with the date 21; settings `[ ← ] ajustes` 13, with the pair 28 (`controlRows.test.ts` pins each). On the live page the state indicator stands in the name's place (D-855); the settings page's own back row went to the header (D-856); the wide title no longer folds (D-857).
 
 - [ ] **R130 — The home's doors and the folded Where: `HomeDoors`, `doorLines`, `brightestDrawn`, the Satellites door's target, `WherePlace`'s `folded`, `StarsLine` and `WhereDome` removed, the doors at both widths**
   - **Lane:** data
