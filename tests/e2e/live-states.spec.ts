@@ -204,8 +204,8 @@ test('the short wide inventory ends on a whole row with a +n line, and names its
   const scrollBox = await page.getByTestId('chart-legend-scroll').boundingBox();
   if (!moreBox || !scrollBox) throw new Error('the inventory is not laid out');
   expect(moreBox.y + moreBox.height).toBeLessThanOrEqual(scrollBox.y + scrollBox.height + 0.5);
-  // Each row's times are named for a screen reader: rise, peak, end.
-  await expect(list.getByRole('button').first()).toHaveAccessibleName(/rise \d\d:\d\d:\d\d \S+ peak \d\d:\d\d:\d\d \S+ end \d\d:\d\d:\d\d/);
+  // Each row's times are named, drawn and read (FR-FLOW-13): rise, peak, set.
+  await expect(list.getByRole('button').first()).toHaveAccessibleName(/rise \d\d:\d\d:\d\d \S+ · peak \d\d:\d\d:\d\d \S+ · set \d\d:\d\d:\d\d/);
 });
 
 /**
