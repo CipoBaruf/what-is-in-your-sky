@@ -39,7 +39,8 @@ function openWhat(event: MouseEvent<HTMLAnchorElement>): void {
   event.preventDefault();
   const what = document.querySelector<HTMLElement>('[data-reading="what"]');
   if (!what) return;
-  what.scrollIntoView({ block: 'start' });
+  // Not every host has it (jsdom), and the focus below is what matters to a reader who cannot see the scroll.
+  if ('scrollIntoView' in what) what.scrollIntoView({ block: 'start' });
   const heading = what.querySelector<HTMLElement>('h2');
   if (heading) {
     heading.tabIndex = -1;

@@ -224,44 +224,64 @@ describe('once there is a place (FR-FIRST-3, FR-FIRST-4)', () => {
     media = stubMatchMedia(COMPACT_PX);
   });
 
-  it('stacks the readings in board 1B’s order: Where, then When — the stripe, the table, the next event — then What (FR-FIRST-4, FR-FIRST-5)', () => {
+  it('stacks the page as FR-FLOW-1 has it: Where in two lines, the three doors, When — the stripe, the table — then What (R130)', () => {
     act(() => {
       appStore.setState({ observer, elements: { ...ready, stale: false }, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [pass], hasDarkness: true } });
     });
     render(<App />);
-    const block = screen.getByTestId('next-event');
-    expect(within(block).getByTestId('next-event-label')).toHaveTextContent(/^Next up · in 4:12$/);
-    expect(within(block).getByTestId('next-event-path')).toHaveTextContent(/^ISS \(Zarya\) · [NESW]{1,3} low → \d+° [NESW]{1,3} → [NESW]{1,3}$/);
-    expect(within(block).getByRole('link', { name: 'Open the live sky' })).toHaveAttribute('href', '#live');
+    const doors = screen.getByRole('navigation', { name: en.doors.region });
+    const [satellites, stars, both] = within(doors).getAllByRole('link');
+    // FR-FLOW-1: the fixed order, the Satellites door the next event's two lines, opening that pass.
+    expect(satellites).toHaveTextContent(/^Satellites/);
+    expect(within(satellites as HTMLElement).getAllByTestId('door-satellites-line').map((line) => line.textContent)).toEqual([
+      expect.stringMatching(/^Next \d\d:\d\d( UTC)? · in 4:12$/),
+      expect.stringMatching(/^ISS \(Zarya\) · [NESW]{1,3} \d+° → [NESW]{1,3}$/),
+    ]);
+    expect(satellites).toHaveAttribute('href', `#pass=${encodeURIComponent(pass.id)}`);
+    expect(stars).toHaveTextContent(/^Stars/);
+    expect(stars).toHaveAttribute('href', '#stars');
+    expect(both).toHaveTextContent(/^Both · live sky/);
+    expect(both).toHaveAttribute('href', '#live');
+    // The next-event block and the When pane's stars line are gone from the home (D-843).
+    expect(screen.queryByTestId('next-event')).toBeNull();
+    expect(screen.queryByTestId('stars-line')).toBeNull();
 
     const where = screen.getByTestId('reading-where');
     const when = screen.getByTestId('reading-when');
     const list = screen.getByRole('region', { name: 'Upcoming passes' });
-    expect(precedes(screen.getByTestId('location-summary'), block)).toBe(true);
-    expect(precedes(block, list)).toBe(true);
-    // The three readings in order, each under its plain heading (FR-FIRST-5 as amended).
-    expect(precedes(where, when)).toBe(true);
+    expect(precedes(where, doors)).toBe(true);
+    expect(precedes(doors, when)).toBe(true);
     expect(precedes(when, screen.getByTestId('list-column'))).toBe(true);
     for (const [reading, name] of [[where, 'Where'], [when, 'When'], [screen.getByTestId('list-column'), 'What']] as const) expect(within(reading).getByRole('heading', { level: 2, name })).toBeInTheDocument();
-    // When: the table (the stripe once the astronomy chunk lands), then the next event last; no Now panel.
-    expect(precedes(within(when).getByTestId('conditions'), block)).toBe(true);
-    expect(when.lastElementChild).toBe(block);
+    // When: the table (the stripe once the astronomy chunk lands); no Now panel.
+    expect(within(when).getByTestId('conditions')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Right now' })).toBeNull();
-    // Where: the place, the readiness, the elements and the saved places as lines; no dome on a phone.
-    expect(within(where).getByTestId('favourites')).toBeInTheDocument();
-    expect(within(where).getByTestId('elements-line')).toBeInTheDocument();
+    // Where (FR-FLOW-2): two lines, the readiness, the elements and the saved places behind `[ details ]`; no dome.
+    expect(within(where).getByTestId('where-status')).toBeVisible();
+    const panel = within(where).getByTestId('where-details-panel');
+    expect(panel).not.toBeVisible();
+    expect(within(panel).getByTestId('favourites')).toBeInTheDocument();
+    expect(within(panel).getByTestId('elements-line')).toBeInTheDocument();
+    fireEvent.click(within(where).getByTestId('where-details'));
+    expect(panel).toBeVisible();
     expect(within(where).queryByTestId('where-dome')).toBeNull();
     // What: the tag in place of the hero card.
     expect(screen.queryByTestId('iss-hero')).toBeNull();
     expect(within(list).getByTestId('next-tag')).toHaveTextContent('Next ISS');
   });
 
-  it('says in one line why there is nothing to count down to', () => {
+  it('says in the Satellites door that there is nothing to count down to, and the door opens the What reading in place', () => {
     act(() => {
       appStore.setState({ observer, elements: { ...ready, stale: false }, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [], hasDarkness: false } });
     });
     render(<App />);
-    expect(screen.getByTestId('next-event-none')).toHaveTextContent(en.nextEvent.none({ reason: 'no-darkness', hours: 72 }));
+    const door = screen.getByTestId('door-satellites');
+    expect(door).toHaveTextContent(en.doors.satellites.none(72));
+    expect(door).toHaveAttribute('href', '#what');
+    const before = window.location.hash;
+    fireEvent.click(door);
+    expect(window.location.hash).toBe(before);
+    expect(within(screen.getByTestId('list-column')).getByRole('heading', { level: 2, name: 'What' })).toHaveFocus();
   });
 });
 

@@ -37,6 +37,9 @@
   "src/ui/screens/Settings.module.css": [
     "@media (width >= 964px)"
   ],
+  "src/ui/screens/home/HomeDoors.module.css": [
+    "@media (width >= 964px)"
+  ],
   "src/ui/styles/global.css": [
     "@media (orientation : landscape) and (height <= 500px)",
     "@media (width >= 964px)"
