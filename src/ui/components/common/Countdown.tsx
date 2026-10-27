@@ -32,6 +32,8 @@ export interface CountdownProps {
   pass: Pass;
   now: EpochMs;
   timeZone: string | null;
+  /** R132 (FR-FLOW-7): the rise → peak → set line under the headline; the pass detail's head draws the three times as `TimesRow` instead. */
+  steps?: boolean;
 }
 
 const STEPS = ['start', 'peak', 'end'] as const;
@@ -51,7 +53,7 @@ function activeStep(phase: CountdownPhase): 'start' | 'peak' | 'end' | null {
   }
 }
 
-export function Countdown({ pass, now, timeZone }: CountdownProps) {
+export function Countdown({ pass, now, timeZone, steps = true }: CountdownProps) {
   const t = useT();
   const locale = useLocale();
   const state = countdownState(pass, now);
@@ -62,6 +64,7 @@ export function Countdown({ pass, now, timeZone }: CountdownProps) {
       <p className={styles.headline} role="timer" aria-live="off" data-phase={state.phase}>
         {t.countdown.headline({ phase: state.phase, reason: state.reason, clock })}
       </p>
+      {steps && (
       <ol className={styles.steps} aria-label={t.countdown.steps}>
         {STEPS.map((key) => (
           <li key={key} className={styles.step} aria-current={active === key ? 'step' : undefined}>
@@ -69,6 +72,7 @@ export function Countdown({ pass, now, timeZone }: CountdownProps) {
           </li>
         ))}
       </ol>
+      )}
     </div>
   );
 }

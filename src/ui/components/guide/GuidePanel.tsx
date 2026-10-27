@@ -28,6 +28,11 @@ import styles from './GuidePanel.module.css';
  * without the closing, since the pass stays selected and in the hash. Which
  * of the two is on the page is the stylesheet's business (`App.module.css`),
  * so this control is always rendered and hidden above that width.
+ *
+ * R132 (FR-FLOW-7, D-849): the head is one band — the name, the countdown and
+ * the landmark line at the left (`head`), the three times at the right
+ * (`times`), the close control last — so the panel's `answer` is the same head
+ * the compact sheet draws, and the body under it is the sky view layout.
  */
 export interface GuidePanelProps {
   passId: string;
@@ -37,17 +42,25 @@ export interface GuidePanelProps {
   onClose: () => void;
   /** R50 (F-6): show the list instead of this panel, below `WIDE_SPLIT_MIN_CELLS` where only one of them is on the page. */
   onShowList: () => void;
+  /** R132 (FR-FLOW-7): under the name at the band's left — the countdown line and the landmark line. */
+  head?: ReactNode;
+  /** R132 (FR-FLOW-7): the band's right — the rise, peak and set times (`TimesRow`). */
+  times?: ReactNode;
   children: ReactNode;
 }
 
-export function GuidePanel({ passId, name, headingId, headingRef, onClose, onShowList, children }: GuidePanelProps) {
+export function GuidePanel({ passId, name, headingId, headingRef, onClose, onShowList, head, times, children }: GuidePanelProps) {
   const t = useT();
   return (
     <section className={styles.panel} aria-label={t.guide.panelLabel({ name })} data-pass-id={passId} data-guide-panel="" data-testid="guide-panel">
-      <div className={styles.head}>
-        <h2 id={headingId} ref={headingRef} tabIndex={-1} className={styles.heading}>
-          {name}
-        </h2>
+      <div className={styles.head} data-testid="guide-head">
+        <div className={styles.lead}>
+          <h2 id={headingId} ref={headingRef} tabIndex={-1} className={styles.heading}>
+            {name}
+          </h2>
+          {head}
+        </div>
+        {times !== undefined && times !== null && <div className={styles.times}>{times}</div>}
         <div className={styles.controls}>
           {/* Hidden by the stylesheet from the width at which the list is beside the panel anyway (F-6). */}
           <TextButton padded label={t.guide.toList} className={styles.toList} onClick={onShowList} data-testid="guide-to-list" />

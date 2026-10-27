@@ -37,12 +37,30 @@
   margin-top: 0;
 }
 
-/* The name at the left, the close control at the right, on one line. */
+/* R132 (D-849): the body is the sky view layout's panel; its drawing is measured against this box's height
+   (`--sky-drawing-h`), so the box's own scroll padding stays out of the sum. */
+.body {
+  padding-right: var(--cell);
+}
+
+/* R132 (FR-FLOW-7, D-849): the head is one band — the name with the countdown and the landmark line under it at
+   the left, the three times at the right, the close control last. */
 .head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: start;
   gap: 0 calc(2 * var(--cell));
+}
+
+.lead {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.times {
+  align-self: start;
+  padding-top: var(--space-1);
 }
 
 .heading {
