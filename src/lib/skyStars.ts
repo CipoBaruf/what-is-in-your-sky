@@ -195,14 +195,22 @@ export interface MoonNow {
 
 /**
  * The wide Stars door's third line, "Moon 64 % · sets 02:10": the lit part at `t` and the Moon's next set while it
- * is up, or its next rise while it is down. Geometric altitude for up or down, as the rest of this module; the
- * search is astronomy-engine's, which counts the upper limb with refraction, so the two can differ by minutes.
+ * is up, or its next rise while it is down. Up or down is the search's own criterion — astronomy-engine's, the upper
+ * limb with refraction — read from which of the next rise and the next set comes first, so the two never disagree in
+ * the minutes around a rise or a set (D-860); the geometric centre would still be below 0° just after a refracted
+ * rise and ask for a rise a lunar day away. With neither within a day (a polar month), up is the centre's altitude.
  */
 export function moonNow(observer: Pick<Observer, 'lat' | 'lon'>, t: EpochMs): MoonNow {
   const time = MakeTime(msToDate(t));
   const where = new AeObserver(observer.lat, observer.lon, 0);
-  const eq = Equator(Body.Moon, time, where, true, true);
-  const up = Horizon(time, where, eq.ra, eq.dec).altitude > 0;
-  const next = SearchRiseSet(Body.Moon, where, up ? -1 : 1, time, 1);
+  const rise = SearchRiseSet(Body.Moon, where, 1, time, 1);
+  const set = SearchRiseSet(Body.Moon, where, -1, time, 1);
+  let up: boolean;
+  if (rise !== null || set !== null) up = set !== null && (rise === null || set.ut < rise.ut);
+  else {
+    const eq = Equator(Body.Moon, time, where, true, true);
+    up = Horizon(time, where, eq.ra, eq.dec).altitude > 0;
+  }
+  const next = up ? set : rise;
   return { pct: Math.round(Illumination(Body.Moon, time).phase_fraction * 100), event: up ? 'sets' : 'rises', at: next === null ? null : next.date.getTime() };
 }

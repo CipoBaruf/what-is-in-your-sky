@@ -300,6 +300,8 @@ test('offline: the readiness line, the three nights, and the soft failures (R27,
   await withSettings(page, async () => {
     await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
   });
+  // Back from settings the Where is folded again, and `[ details ]` mounts its lines only while open.
+  await page.getByTestId('where-details').click();
   await expect(readiness).toHaveText(/^Listo sin red hasta \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
   expect(await rows(readiness)).toBeLessThanOrEqual(1);
   await withSettings(page, async () => {
@@ -322,5 +324,6 @@ test('offline: the readiness line, the three nights, and the soft failures (R27,
   await leaveSettings(page);
   await expect(status).toHaveText(/visible passes in 72 h|No visible passes|No darkness/, { timeout: 60_000 });
   // Recomputed from the cached elements, with no forecast for the new cell: FR-X-4's "weather then shows unknown".
+  await page.getByTestId('where-details').click();
   await expect(page.getByTestId('readiness')).toHaveText(/^Not ready offline: no cloud forecast/);
 });

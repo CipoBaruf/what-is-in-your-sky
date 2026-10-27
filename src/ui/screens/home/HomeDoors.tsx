@@ -8,7 +8,7 @@ import { NEXT_EVENT_TICK_MS } from '../../components/passes/NextEventBlock';
 import { Card } from '../../components/primitives/Card';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useNow } from '../../hooks/useNow';
-import { doorLines, type Door } from './doorLines';
+import { doorLines, WHAT_ID, type Door } from './doorLines';
 import styles from './HomeDoors.module.css';
 import { usePassContext, useShownPasses } from './shownPasses';
 import { useDoorSky } from './useDoorSky';
@@ -22,9 +22,10 @@ import { useNight } from './useNight';
  * of three equal boxes over the panes, each with one more line.
  *
  * The Satellites door opens the next event's pass (`#pass=<id>`, the hash the
- * cards open), or with no visible pass in the span the What reading in place:
- * the page scrolls to it and its heading takes the focus, and the hash is not
- * touched. The Stars door opens `#stars`, the Both door `#live`, where the
+ * cards open), or with no visible pass in the span the What reading: its
+ * `#what` is the reading's own id, so a new tab or a copied link lands on it,
+ * and a plain click opens it in place — the page scrolls to it and its heading
+ * takes the focus, and the hash is not touched. The Stars door opens `#stars`, the Both door `#live`, where the
  * saved `starsLayer` is the live page's own.
  */
 export interface HomeDoorsProps {
@@ -34,11 +35,12 @@ export interface HomeDoorsProps {
   className?: string;
 }
 
-/** The What reading, found by its region: on the page wherever the doors are. */
+/** A plain click opens the What reading in place; a new-tab or new-window gesture is the browser's, with the href. */
 function openWhat(event: MouseEvent<HTMLAnchorElement>): void {
-  event.preventDefault();
-  const what = document.querySelector<HTMLElement>('[data-reading="what"]');
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const what = document.getElementById(WHAT_ID);
   if (!what) return;
+  event.preventDefault();
   // Not every host has it (jsdom), and the focus below is what matters to a reader who cannot see the scroll.
   if ('scrollIntoView' in what) what.scrollIntoView({ block: 'start' });
   const heading = what.querySelector<HTMLElement>('h2');
@@ -72,12 +74,12 @@ export function HomeDoors({ observer, selectedPassId, className }: HomeDoorsProp
   const now = useNow(NEXT_EVENT_TICK_MS);
   const passes = useShownPasses(selectedPassId);
   const { elementCount, hasDarkness, pending } = usePassContext();
-  const context = { elementCount, hasDarkness };
   const night = useNight(observer);
-  const event = nextEvent(passes, now, context);
+  // Worked out once per tick: the doors' lines and the landmark's pass are the same event's.
+  const event = nextEvent(passes, now, { elementCount, hasDarkness });
   const sky = useDoorSky(observer, now, isNoEvent(event) ? null : event.pass);
   const doors = doorLines(
-    { now, zone: observer.timeZone, locale, passes, context, pending, hours: SEARCH_WINDOW_HOURS, bandsKnown: night.bands.length > 0, dark: night.dark, cloud: night.clouds.state, sky },
+    { now, zone: observer.timeZone, locale, passes, event, pending, hours: SEARCH_WINDOW_HOURS, bandsKnown: night.bands.length > 0, dark: night.dark, cloud: night.clouds.state, sky },
     t,
   );
   const { passId } = doors.satellites;
@@ -85,7 +87,7 @@ export function HomeDoors({ observer, selectedPassId, className }: HomeDoorsProp
     // A labelled list of links and not a `nav`: the page's one navigation landmark is the header's (FR-A11Y-1).
     <div className={[styles.doors, className].filter(Boolean).join(' ')} data-testid="home-doors">
       <ul aria-label={t.doors.region} className={styles.list}>
-        <DoorBox door={doors.satellites} href={passId === null ? '#what' : passIdHash(passId)} wide={wide} testId="door-satellites" {...(passId === null ? { onClick: openWhat } : {})} />
+        <DoorBox door={doors.satellites} href={passId === null ? `#${WHAT_ID}` : passIdHash(passId)} wide={wide} testId="door-satellites" {...(passId === null ? { onClick: openWhat } : {})} />
         <DoorBox door={doors.stars} href={STARS_HASH} wide={wide} testId="door-stars" />
         <DoorBox door={doors.both} href="#live" wide={wide} testId="door-both" />
       </ul>

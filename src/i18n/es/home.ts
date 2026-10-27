@@ -16,7 +16,7 @@ export const home: typeof EnHome = {
     satellites: {
       title: 'Satélites',
       next: (p) => `Próximo ${p.time} · en ${p.countdown}`,
-      up: (p) => `Arriba ·${p.kind === 'peak' ? 'culmina' : { horizon: 'se pone', shadow: 'a la sombra', twilight: 'se apaga' }[p.reason]} en ${p.countdown}`,
+      up: (p) => `Arriba · ${p.kind === 'peak' ? 'culmina' : { horizon: 'se pone', shadow: 'a la sombra', twilight: 'se apaga' }[p.reason]} en ${p.countdown}`,
       path: (p) => `${p.name} · ${p.peakPoint} ${String(p.peakDeg)}° → ${p.endPoint}`,
       none: (hours) => `Ningún pase visible en ${String(hours)} h`,
       pending: 'Buscando el próximo pase…',
@@ -24,7 +24,7 @@ export const home: typeof EnHome = {
     stars: {
       title: 'Estrellas',
       dark: (p) => `Oscuro ${p.from} → ${p.to}${p.cloud === null ? '' : ` · ${cloudWord[p.cloud]}`}`,
-      noDark: (cloud) => `Sin oscuridad total · ${cloudWord[cloud]}`,
+      noDark: (cloud) => `Sin oscuridad total${cloud === null ? '' : ` · ${cloudWord[cloud]}`}`,
       brightest: (p) => `La más brillante: ${p.name}, ${p.point}`,
       from: (time) => `Estrellas desde las ${time}`,
       noNight: 'Sin cielo oscuro esta noche',

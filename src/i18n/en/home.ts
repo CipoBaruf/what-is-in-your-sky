@@ -32,7 +32,8 @@ export const home = {
       title: 'Stars',
       /** `cloud` is null with no zone yet: the stamp says UTC (F-27), and with no forecast there is no word to give. */
       dark: (p: { from: string; to: string; cloud: CloudState | null }) => `Dark ${p.from} → ${p.to}${p.cloud === null ? '' : ` · ${cloudWord[p.cloud]}`}`,
-      noDark: (cloud: CloudState) => `No full dark · ${cloudWord[cloud]}`,
+      /** As `dark`'s: no cloud word with no zone yet. */
+      noDark: (cloud: CloudState | null) => `No full dark${cloud === null ? '' : ` · ${cloudWord[cloud]}`}`,
       brightest: (p: { name: string; point: CompassPoint }) => `Brightest now: ${p.name}, ${p.point}`,
       from: (time: string) => `Stars from ${time}`,
       /** The Sun up and no dark band tonight to wait for (a polar summer). */

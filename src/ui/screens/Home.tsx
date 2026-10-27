@@ -22,6 +22,7 @@ import { TextButton } from '../components/primitives/TextButton';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { clearPlaceRequest, placeRequested } from './home/placeRequest';
 import { StepLine, stepLabel, STEPS, type Step } from './home/StepLine';
+import { WHAT_ID } from './home/doorLines';
 import { HomeDoors } from './home/HomeDoors';
 import { useShownPasses } from './home/shownPasses';
 import { WhatStep } from './home/WhatStep';
@@ -72,11 +73,11 @@ export { StepLine, type Step } from './home/StepLine';
  * the plain word — `── When ──`, the title in `--fg` and the rules in
  * `--fg-dim` — the numbers being the cold open's and the steps'.
  */
-function Region({ step, className, testId, children }: { step: Step; className: string; testId: string; children: ReactNode }) {
+function Region({ step, className, testId, id, children }: { step: Step; className: string; testId: string; id?: string; children: ReactNode }) {
   const t = useT();
   const headingId = useId();
   return (
-    <section aria-labelledby={headingId} className={className} data-testid={testId} data-reading={step}>
+    <section id={id} aria-labelledby={headingId} className={className} data-testid={testId} data-reading={step}>
       <SectionHeading id={headingId}>{t.home.panes[step]}</SectionHeading>
       {children}
     </section>
@@ -515,7 +516,7 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
       )}
       {observer && (
         <div className={styles.column} data-testid="col-right" data-guide={guide}>
-          <Region step="what" className={`${styles.reading} ${styles.listColumn}`} testId="list-column">
+          <Region step="what" id={WHAT_ID} className={`${styles.reading} ${styles.listColumn}`} testId="list-column">
             {shareNotice && (
               <Banner variant="info" testId="share-fallback">
                 {shareNotice}

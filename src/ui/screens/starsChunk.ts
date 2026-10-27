@@ -21,23 +21,36 @@ import { whenIdle } from './whenIdle';
 type StarsModule = typeof import('./Stars');
 
 let chunk: Promise<StarsModule> | undefined;
+let loaded: StarsModule | undefined;
 
 /** Fetch the stars chunk once; later calls return the same promise, and a rejection is not kept. */
 export function loadStarsChunk(): Promise<StarsModule> {
-  chunk ??= import('./Stars').catch((reason: unknown) => {
-    chunk = undefined;
-    throw reason;
-  });
+  chunk ??= import('./Stars').then(
+    (module) => {
+      loaded = module;
+      return module;
+    },
+    (reason: unknown) => {
+      chunk = undefined;
+      throw reason;
+    },
+  );
   return chunk;
+}
+
+/** R130 (D-860): the chunk if it has already loaded, so a door mounted again reads it at once rather than on idle. */
+export function loadedStarsChunk(): StarsModule | undefined {
+  return loaded;
 }
 
 /**
  * R123 (D-791): fetch the chunk once the browser is idle (`whenIdle`, the
  * settings page's rule) and nothing more: the catalogue is built only when the
  * toggle turns on, from the module this has in hand. Returns the cancel, for
- * an unmount before it fires; a failure is dropped (the toggle's own load asks
- * again).
+ * an unmount before it fires; a failure goes to `onError` or is dropped, and
+ * since `loadStarsChunk` does not keep it, the next request fetches again (the
+ * toggle's own load, or the doors' next minute, D-860).
  */
-export function prefetchStarsWhenIdle(onLoad?: (module: StarsModule) => void): () => void {
-  return whenIdle(() => void loadStarsChunk().then(onLoad, () => undefined));
+export function prefetchStarsWhenIdle(onLoad?: (module: StarsModule) => void, onError?: () => void): () => void {
+  return whenIdle(() => void loadStarsChunk().then(onLoad, () => onError?.()));
 }

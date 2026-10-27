@@ -260,10 +260,12 @@ describe('once there is a place (FR-FIRST-3, FR-FIRST-4)', () => {
     expect(within(where).getByTestId('where-status')).toBeVisible();
     const panel = within(where).getByTestId('where-details-panel');
     expect(panel).not.toBeVisible();
-    expect(within(panel).getByTestId('favourites')).toBeInTheDocument();
-    expect(within(panel).getByTestId('elements-line')).toBeInTheDocument();
+    // Mounted only while open: folded, the status line is the one reader of the readiness and the elements' age.
+    expect(within(panel).queryByTestId('elements-line')).toBeNull();
     fireEvent.click(within(where).getByTestId('where-details'));
     expect(panel).toBeVisible();
+    expect(within(panel).getByTestId('favourites')).toBeInTheDocument();
+    expect(within(panel).getByTestId('elements-line')).toBeInTheDocument();
     expect(within(where).queryByTestId('where-dome')).toBeNull();
     // What: the tag in place of the hero card.
     expect(screen.queryByTestId('iss-hero')).toBeNull();
@@ -278,8 +280,12 @@ describe('once there is a place (FR-FIRST-3, FR-FIRST-4)', () => {
     const door = screen.getByTestId('door-satellites');
     expect(door).toHaveTextContent(en.doors.satellites.none(72));
     expect(door).toHaveAttribute('href', '#what');
+    // The href is the What reading's own id, so a new tab or a copied link lands on it, and a new-tab gesture is the browser's.
+    expect(document.getElementById('what')).toBe(screen.getByTestId('list-column'));
+    expect(fireEvent.click(door, { ctrlKey: true })).toBe(true);
+    expect(fireEvent.click(door, { metaKey: true })).toBe(true);
     const before = window.location.hash;
-    fireEvent.click(door);
+    expect(fireEvent.click(door)).toBe(false);
     expect(window.location.hash).toBe(before);
     expect(within(screen.getByTestId('list-column')).getByRole('heading', { level: 2, name: 'What' })).toHaveFocus();
   });

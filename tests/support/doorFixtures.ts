@@ -3,6 +3,7 @@
  * the stars chunk's answers — shared by `doorLines.test.ts`, `HomeDoors.test.tsx`
  * and `tests/styles/doorRows.test.ts`.
  */
+import { nextEvent } from '../../src/lib/nextEvent';
 import type { DoorInput, DoorSky } from '../../src/ui/screens/home/doorLines';
 import type { EpochMs, Pass } from '../../src/model';
 import { NO_MOON_AT_PEAK } from './moonFixtures';
@@ -42,17 +43,20 @@ export const DOOR_SKY: DoorSky = {
   landmark: { line: 'passes 3° beside Mintaka, in Orion', star: { name: 'Mintaka', word: 'beside' } },
 };
 
-export const doorInput = (over: Partial<DoorInput> = {}): DoorInput => ({
-  now: local(11, 5, 0),
-  zone: DOOR_ZONE,
-  locale: 'en',
-  passes: [doorPass('tiangong', local(11, 5, 48), 'Tiangong')],
-  context: { elementCount: 30, hasDarkness: true },
-  pending: false,
-  hours: 72,
-  bandsKnown: true,
-  dark: DOOR_NIGHT,
-  cloud: 'clear',
-  sky: DOOR_SKY,
-  ...over,
-});
+/** The input at `over`, with the next event worked out from its `now` and `passes` as `HomeDoors` does. */
+export function doorInput(over: Partial<Omit<DoorInput, 'event'>> = {}): DoorInput {
+  const input = {
+    now: local(11, 5, 0),
+    zone: DOOR_ZONE,
+    locale: 'en' as const,
+    passes: [doorPass('tiangong', local(11, 5, 48), 'Tiangong')],
+    pending: false,
+    hours: 72,
+    bandsKnown: true,
+    dark: DOOR_NIGHT,
+    cloud: 'clear' as const,
+    sky: DOOR_SKY,
+    ...over,
+  };
+  return { ...input, event: nextEvent(input.passes, input.now, { elementCount: 30, hasDarkness: true }) };
+}

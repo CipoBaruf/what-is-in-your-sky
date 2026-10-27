@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { HorizonFromVector, MakeTime, Observer, RotateVector, Rotation_EQJ_HOR, Spherical, VectorFromSphere } from 'astronomy-engine';
+import { Body, Equator, Horizon, HorizonFromVector, MakeTime, Observer, RotateVector, Rotation_EQJ_HOR, SearchRiseSet, Spherical, VectorFromSphere } from 'astronomy-engine';
 import { describe, expect, it } from 'vitest';
 import { starCatalog } from '../data/stars/catalog';
 import { sunAltitudeDeg } from '../physics/sun';
@@ -148,6 +148,24 @@ describe('moonNow', () => {
       // Half an hour past the event the Moon is on the other side of the horizon.
       expect(after.event).not.toBe(moon.event);
     }
+  });
+
+  it('agrees with the search around a moonrise: just after the refracted rise it is up, with its set ahead', () => {
+    const rise = SearchRiseSet(Body.Moon, new Observer(paris.lat, paris.lon, 0), 1, MakeTime(new Date(Date.UTC(2026, 0, 15))), 2);
+    expect(rise).not.toBeNull();
+    const at = rise?.date.getTime() ?? 0;
+    const before = moonNow(paris, at - 60_000);
+    expect(before.event).toBe('rises');
+    expect(Math.abs((before.at ?? 0) - at)).toBeLessThan(1_000);
+    // A minute after the upper limb clears the refracted horizon the centre is still below 0°: the line stays.
+    const where = new Observer(paris.lat, paris.lon, 0);
+    const time = MakeTime(new Date(at + 60_000));
+    const eq = Equator(Body.Moon, time, where, true, true);
+    expect(Horizon(time, where, eq.ra, eq.dec).altitude).toBeLessThan(0);
+    const after = moonNow(paris, at + 60_000);
+    expect(after.event).toBe('sets');
+    expect(after.at).not.toBeNull();
+    expect(after.at ?? 0).toBeGreaterThan(at);
   });
 });
 

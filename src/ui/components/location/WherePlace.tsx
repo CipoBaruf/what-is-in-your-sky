@@ -153,12 +153,14 @@ export function WherePlace({ open, onToggle, controls, folded = false, details }
             setDetailsOpen((o) => !o);
           }}
         />
-        {/* FR-FIRST-11's order: the observer's sentence, then the readiness line, the elements line and the saved places. */}
+        {/* FR-FIRST-11's order: the observer's sentence, then the readiness line, the elements line and the saved places.
+            `details` is mounted only while open: folded, the status line is the one reader of the readiness and the
+            elements' age, not a second set of timers and store reads under it. */}
         <Stack gap={2} id={detailsId} hidden={!detailsOpen} className={styles.details} data-testid="where-details-panel">
           <p className={styles.sentence} data-testid="where-sentence">
             {whereSentence(observer, t)} {t.location.savedHere}
           </p>
-          {details}
+          {detailsOpen ? details : null}
         </Stack>
       </div>
     );

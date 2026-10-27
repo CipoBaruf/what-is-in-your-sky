@@ -18,13 +18,15 @@ import { IDLE_PASSES } from '../../../state/slices/passes';
 import { HomeDoors } from './HomeDoors';
 
 /** The chunk's idle prefetch, held so each test decides when (and whether) the chunk "lands". */
-const chunk = vi.hoisted(() => ({ land: null as null | ((module: unknown) => void) }));
+const chunk = vi.hoisted(() => ({ land: null as null | ((module: unknown) => void), asked: 0, loaded: undefined as unknown }));
 vi.mock('../starsChunk', () => ({
   prefetchStarsWhenIdle: (onLoad: (module: unknown) => void) => {
     chunk.land = onLoad;
+    chunk.asked += 1;
     return () => undefined;
   },
   loadStarsChunk: () => new Promise(() => undefined),
+  loadedStarsChunk: () => chunk.loaded,
 }));
 
 const STARS_MODULE = {
@@ -50,6 +52,8 @@ const show = () =>
 beforeEach(() => {
   vi.spyOn(Date, 'now').mockReturnValue(local(11, 5, 0));
   chunk.land = null;
+  chunk.asked = 0;
+  chunk.loaded = undefined;
   act(() => {
     appStore.setState({
       observer,
@@ -96,6 +100,30 @@ describe('HomeDoors (R130: FR-FLOW-1)', () => {
     expect(after).toHaveLength(2);
     expect(after[1]).toHaveTextContent('Brightest now: Canopus, S');
     expect(after[1]).not.toHaveAttribute('data-pending');
+  });
+
+  it('reads a chunk already loaded at once, so a door mounted again draws its lines on its first frame', () => {
+    media = stubMatchMedia(COMPACT_PX);
+    chunk.loaded = STARS_MODULE;
+    show();
+    expect(within(screen.getByTestId('door-stars')).getAllByTestId('door-stars-line')[1]).toHaveTextContent('Brightest now: Canopus, S');
+    expect(chunk.asked).toBe(0);
+  });
+
+  it('asks for the chunk again at the next minute while it is not in (a failed fetch is not kept)', () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'setTimeout'] });
+    try {
+      media = stubMatchMedia(COMPACT_PX);
+      show();
+      expect(chunk.asked).toBe(1);
+      vi.spyOn(Date, 'now').mockReturnValue(local(11, 5, 1));
+      act(() => {
+        vi.advanceTimersByTime(1_000);
+      });
+      expect(chunk.asked).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('on wide, one more line each: the Moon, and the Both door’s hint', () => {

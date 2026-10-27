@@ -1,7 +1,7 @@
 import type { Messages } from '../../../i18n/messages';
 import type { CompassPoint } from '../../../lib/compass';
 import { formatClockDuration } from '../../../lib/format';
-import { isNoEvent, nextEvent, type NextEventContext } from '../../../lib/nextEvent';
+import { isNoEvent, type NextEvent, type NoEvent } from '../../../lib/nextEvent';
 import { passPath } from '../../../lib/passPath';
 import type { MoonNow } from '../../../lib/skyStars';
 import { formatShortClock } from '../../../lib/timeFormat';
@@ -25,6 +25,9 @@ import type { CloudState, EpochMs, Locale, Pass } from '../../../model';
 /** FR-COMP-4: a compact door line's width, in cells (`tests/styles/doorRows.test.ts`). */
 export const DOOR_CELLS = 34;
 
+/** The What reading's id (`screens/Home.tsx`): the Satellites door's href with no pass, and what a plain click on it opens. */
+export const WHAT_ID = 'what';
+
 /** What the `stars` chunk adds once it has loaded (`useDoorSky`). */
 export interface DoorSky {
   /** The brightest star or planet drawn above 0° now, named; `null` with nothing drawn (the Sun up). */
@@ -39,7 +42,8 @@ export interface DoorInput {
   zone: string | null;
   locale: Locale;
   passes: readonly Pass[];
-  context: NextEventContext;
+  /** `nextEvent(passes, now, …)`, worked out once by the caller, which hands its pass to `useDoorSky` too. */
+  event: NextEvent | NoEvent;
   /** The passes are still arriving, so no pass is not yet "no pass". */
   pending: boolean;
   hours: number;
@@ -78,9 +82,8 @@ function fitName(name: string, line: (name: string) => string): string {
 }
 
 export function doorLines(input: DoorInput, t: Messages): Doors {
-  const { now, zone, locale, passes, context, pending, hours, bandsKnown, dark, cloud, sky } = input;
+  const { now, zone, locale, passes, event: result, pending, hours, bandsKnown, dark, cloud, sky } = input;
   const clock = (at: EpochMs, last = false): string => formatShortClock(at, zone, locale, last && zone === null);
-  const result = nextEvent(passes, now, context);
   const words = t.doors;
 
   let satellites: Doors['satellites'];
@@ -96,7 +99,9 @@ export function doorLines(input: DoorInput, t: Messages): Doors {
     satellites = { title: words.satellites.title, lines: [head, pathLine], passId: pass.id, ...(wide === undefined ? {} : { wide }) };
   }
 
-  const darkLine: DoorLine = bandsKnown ? (dark ? words.stars.dark({ from: clock(dark.from), to: clock(dark.to, true), cloud: zone === null ? null : cloud }) : words.stars.noDark(cloud)) : null;
+  // With no zone the stamps say UTC (F-27) and there is no forecast: neither line gives a cloud word (D-859).
+  const cloudWord = zone === null ? null : cloud;
+  const darkLine: DoorLine = bandsKnown ? (dark ? words.stars.dark({ from: clock(dark.from), to: clock(dark.to, true), cloud: cloudWord }) : words.stars.noDark(cloudWord)) : null;
   let brightLine: DoorLine = null;
   if (sky !== null) {
     if (sky.brightest !== null) {

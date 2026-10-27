@@ -31,6 +31,24 @@ describe('doorLines', () => {
     expect(doorLines(doorInput({ now, sky: null }), en).both.lines).toEqual(['1 up now']);
   });
 
+  it('words the up-now line exactly in both languages: the peak, then the end by its reason', () => {
+    const now = local(11, 5, 49);
+    const at = (locale: 'en' | 'es', over = {}) => doorLines(doorInput({ now, locale, ...over }), locale === 'en' ? en : es).satellites.lines[0];
+    expect(at('en')).toBe('Up now · peaks in 1:00');
+    expect(at('es')).toBe('Arriba · culmina en 1:00');
+    const later = local(11, 5, 51);
+    const shadow = [{ ...doorPass('tiangong', local(11, 5, 48), 'Tiangong'), endReason: 'shadow' as const }];
+    expect(at('en', { now: later, passes: shadow })).toBe('Up now · into shadow in 1:00');
+    expect(at('es', { now: later, passes: shadow })).toBe('Arriba · a la sombra en 1:00');
+  });
+
+  it('no zone: neither of the Stars door’s first lines gives a cloud word', () => {
+    expect(doorLines(doorInput({ zone: null }), en).stars.lines[0]).toBe('Dark 23:25 → 10:05 UTC');
+    expect(doorLines(doorInput({ zone: null, dark: null }), en).stars.lines[0]).toBe('No full dark');
+    expect(doorLines(doorInput({ zone: null, dark: null, locale: 'es' }), es).stars.lines[0]).toBe('Sin oscuridad total');
+    expect(doorLines(doorInput({ dark: null, locale: 'es' }), es).stars.lines[0]).toBe('Sin oscuridad total · Despejado');
+  });
+
   it('no pass in the span: one line, and the door opens the What reading (no pass id)', () => {
     const { satellites, both } = doorLines(doorInput({ passes: [] }), en);
     expect(satellites).toEqual({ title: 'Satellites', lines: ['No visible pass in 72 h'], passId: null });
