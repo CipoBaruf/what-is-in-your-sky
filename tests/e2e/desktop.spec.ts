@@ -23,7 +23,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { GUIDE_PANE_MIN_CELLS, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
-import { seedStoredRun } from './liveHelpers';
+import { seedStoredRun, withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -335,8 +335,14 @@ test('captures the wide layout in both languages, list and guide (FR-DESK-5)', a
   await expect(panel.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toHaveCount(0);
   await page.screenshot({ path: 'test-results/r23-guide-1280-en.png' });
 
-  // FR-I18N-2: the header switch, which the wide header carries at the right (FR-DESK-2).
-  await page.getByRole('banner').getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
+  // FR-I18N-2: the switch is the settings page's alone (R129, FR-FLOW-3, V26-10), so the guide is closed for it and
+  // the same pass opened again.
+  await panel.getByRole('button', { name: 'Close the guide' }).click();
+  await withSettings(page, async () => {
+    await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
+  });
+  await page.locator(`article[data-pass-id="${passId}"]`).getByRole('button', { name: /Abrir la guía/ }).click();
+  await expect(panel.locator(`[data-layer="lines"] [data-pass-id="${passId}"][data-anchor="key"]`)).toHaveText('A', { timeout: 30_000 });
   await expect(panel.getByRole('button', { name: 'Cerrar la guía' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Próximos pases' })).toBeVisible();
   await page.screenshot({ path: 'test-results/r23-guide-1280-es.png' });

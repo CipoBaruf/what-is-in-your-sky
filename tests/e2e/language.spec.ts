@@ -1,6 +1,6 @@
 /**
  * R17 (US-13, FR-I18N-1..6): the whole app in Spanish for a Spanish browser,
- * switched from the header without a reload, and remembered. The clock, the
+ * switched on the settings page without a reload (R129), and remembered. The clock, the
  * observer and the CelesTrak fixtures are the R1 golden set, so the pass on
  * screen is the one `src/lib/phrases.test.ts` pins the golden sentence for,
  * in both languages.
@@ -53,7 +53,7 @@ async function showNumbers(dialog: Locator): Promise<void> {
   await dialog.getByRole('table').evaluate((table) => table.parentElement?.scrollTo(0, 0));
 }
 
-test('a Spanish browser gets a Spanish app, and the header switch changes it without a reload', async ({ page }) => {
+test('a Spanish browser gets a Spanish app, and the settings switch changes it without a reload', async ({ page }) => {
   const pass = reference.firstGoldenPass;
   if (!pass) throw new Error('reference-values.json has no firstGoldenPass');
   const passId = `25544-${String(pass.start.t)}`;
@@ -113,17 +113,22 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
   await page.screenshot({ path: 'test-results/r17-numbers-390-es.png' });
   await dialog.evaluate((el) => el.scrollTo(0, 0)); // back to the top of the sheet, so the next capture frames the same thing
 
-  // FR-I18N-5: switching keeps the observer and the open pass, and never reloads — a marker on `window` survives it.
+  // FR-I18N-5: switching keeps the observer, and never reloads — a marker on `window` survives it. R129 (FR-FLOW-3,
+  // V26-10, D-845): the switch is the settings page's alone, so the sheet is left for it and the same pass reopened.
   await page.evaluate(() => {
     (window as unknown as { __wiys: boolean }).__wiys = true;
   });
-  await dialog.getByRole('group', { name: 'Idioma' }).getByRole('button', { name: 'English' }).click();
+  await dialog.getByRole('button', { name: 'Volver', exact: true }).click();
+  await withSettings(page, async () => {
+    await page.getByRole('group', { name: 'Idioma' }).getByRole('button', { name: 'English' }).click();
+  });
+  await card.getByRole('button', { name: /Open guide/ }).click();
   await expect(dialog.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
   expect(await page.evaluate(() => (window as unknown as { __wiys?: boolean }).__wiys)).toBe(true);
   // R92 (FR-A11Y-3): with a pass open the title names it first, then the app, in the language just chosen.
   await expect(page).toHaveTitle(new RegExp(`^.+ · ${EN_TITLE}$`));
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-  await expect(page).toHaveURL(new RegExp(`#pass=${passId}$`)); // D-13: the selection is untouched
+  await expect(page).toHaveURL(new RegExp(`#pass=${passId}$`));
   await expect(dialog.getByRole('heading', { name: 'ISS (Zarya)' })).toBeVisible();
   await expect(track).toHaveText('A');
   await expect(dialog.getByTestId('chart-legend')).toHaveAttribute('aria-label', 'Legend');
@@ -134,7 +139,7 @@ test('a Spanish browser gets a Spanish app, and the header switch changes it wit
   await dialog.evaluate((el) => el.scrollTo(0, 0));
 
   // Back on the list, the observer is the one the page opened with and the screen is English throughout.
-  await dialog.getByRole('button', { name: /Back to the list/ }).click();
+  await dialog.getByRole('button', { name: 'Back', exact: true }).click();
   // R52: the field that holds the observer is on `#settings` now; the home screen names it in the summary line.
   await expect(page.getByTestId('location-summary')).toBeVisible();
   await withSettings(page, async () => {

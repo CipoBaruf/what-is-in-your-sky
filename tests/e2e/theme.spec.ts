@@ -146,24 +146,27 @@ test('night mode reaches the pass list and the guide sheet, in both languages', 
   await expect(passes).toHaveText(/\d+ visible passes in 72 h/, { timeout: 30_000 });
   await page.screenshot({ path: 'test-results/r20-passes-390-night-en.png', fullPage: true });
 
-  // The sheet makes the header inert, so it carries its own switches (D-94 and R20).
+  // R129 (FR-FLOW-3, V26-10, D-845): the sheet carries no switch any more — they are the settings page's alone.
   await page.locator('article[data-pass-id]').first().getByRole('button', { name: /Open guide/ }).click();
   const dialog = page.getByRole('dialog').first();
   await expect(dialog.getByRole('figure')).toBeVisible();
+  await expect(dialog.getByRole('group', { name: 'Language' })).toHaveCount(0);
+  await expect(dialog.getByRole('group', { name: 'Theme' })).toHaveCount(0);
   await page.screenshot({ path: 'test-results/r20-detail-390-night-en.png' });
+  await dialog.getByRole('button', { name: 'Back', exact: true }).click();
 
-  // FR-I18N-2 / FR-THEME-1: the two preferences are independent, and both switches work from here.
-  await dialog.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
+  // FR-I18N-2 / FR-THEME-1: the two preferences are independent.
+  await withSettings(page, async () => {
+    await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
+  });
   await expect(html).toHaveAttribute('lang', 'es');
   await expect(html).toHaveAttribute('data-theme', 'night');
-  await page.screenshot({ path: 'test-results/r20-detail-390-night-es.png' });
 
-  await dialog.getByRole('group', { name: 'Tema' }).getByRole('button', { name: 'Oscuro' }).click();
+  await withSettings(page, async () => {
+    await page.getByRole('group', { name: 'Tema' }).getByRole('button', { name: 'Oscuro' }).click();
+  });
   await expect(html).toHaveAttribute('data-theme', 'dark');
   await expect(html).toHaveAttribute('lang', 'es');
-  await page.screenshot({ path: 'test-results/r20-detail-390-dark-es.png' });
-
-  await dialog.getByRole('button', { name: /Volver a la lista/ }).click();
   await page.screenshot({ path: 'test-results/r20-passes-390-dark-es.png', fullPage: true });
 
   await withSettings(page, async () => {

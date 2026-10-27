@@ -192,8 +192,9 @@ export function Header({ page = 'home', context = null, onBack, status, landmark
         {settings}
       </div>
       {page === 'home' && <p className={styles.tagline}>{t.app.tagline}</p>}
-      {/* R105 (D-720): the wide header's rule under its last line (R23, FR-DESK-2). */}
-      <Rule className={styles.rule} />
+      {/* R105 (D-720): the wide header's rule under its last line (R23, FR-DESK-2). The live page's own grid draws its
+          rows (D-855): there the header is the top row, one text row on a short window (FR-SHP-3), and carries no rule. */}
+      {landmark && <Rule className={styles.rule} />}
     </Root>
   );
 }

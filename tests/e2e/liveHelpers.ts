@@ -6,7 +6,6 @@
  * typed in, and the live page with its dome drawn.
  */
 import { readFileSync } from 'node:fs';
-import { WIDE_QUERY } from '../../src/lib/layout';
 import { expect, type Locator, type Page } from '@playwright/test';
 import { BARILOCHE_FORECAST_FILE, BARILOCHE_GEOCODE_FILE, BARILOCHE_QUERY, FIXTURE_DATE, LONDON_FORECAST_FILE, LONDON_GEOCODE_FILE, LONDON_QUERY, NEUQUEN as NEUQUEN_OBSERVER, NINE_DAYS_ON, STORED_RUN_FILE } from './observers';
 
@@ -110,11 +109,10 @@ export async function stubNetwork(page: Page, elements: 'fixtures' | 'down' = 'f
  * R52 (FR-COMP-2): runs `body` where the language switch, the theme switch and
  * the location form are, and comes back.
  *
- * On compact they are on `#settings`, one tap from the home screen; on wide
- * they are still on the home screen itself (US-20 AC5). Which of the two this
- * viewport is showing is read off the page — the `[ settings ]` control exists
- * only on the compact header — so a spec that only wants "the app in Neuquén,
- * in Spanish" says nothing about where the form lives.
+ * They are on `#settings`, one tap from the home screen. R129 (FR-FLOW-3,
+ * V26-10, D-845): on wide too — the switches left the wide header, and its row
+ * ends with `[ settings ]` — so a spec that only wants "the app in Neuquén, in
+ * Spanish" says nothing about where the form lives.
  */
 export async function withSettings(page: Page, body: () => Promise<void>): Promise<void> {
   const compact = await openSettings(page);
@@ -123,23 +121,11 @@ export async function withSettings(page: Page, body: () => Promise<void>): Promi
 }
 
 /**
- * Opens the settings page if this viewport has one, and says whether it did —
- * for a spec whose subject *is* the form, which stays on it across several
- * steps rather than making the trip for each.
+ * Opens the settings page and says that it did (it always does since R129: the
+ * switches are there alone, at both widths) — for a spec whose subject *is* the
+ * form, which stays on it across several steps rather than making the trip for each.
  */
 export async function openSettings(page: Page): Promise<boolean> {
-  // The app's own media query, asked of the browser, rather than "is the
-  // `[ settings ]` link in the DOM yet": after a `setViewportSize` the query
-  // answers immediately and React has not necessarily re-rendered the header,
-  // so probing the DOM reads the layout the page is leaving rather than the one
-  // it is in.
-  const compact = !(await page.evaluate((query: string) => window.matchMedia(query).matches, WIDE_QUERY));
-  if (!compact) {
-    // R76 (FR-FIRST-4, FR-SET-3): on the wide home the form is the cold open's with no place, and one
-    // `[ change ]` away, in place, with one.
-    await openLocationGroup(page);
-    return false;
-  }
   const link = page.getByTestId('settings-link');
   /*
    * R93 (D-545): the settings page is a lazy chunk now, and React reveals a chunk from behind its Suspense
@@ -161,7 +147,8 @@ export async function openSettings(page: Page): Promise<boolean> {
   await link.hover();
   await chunk;
   await link.click();
-  await expect(page.getByTestId('settings-back')).toBeVisible();
+  // R129 (D-856): Back is the header's and stands before the chunk lands; the page's own first row is the sign it has.
+  await expect(page.getByTestId('location-actions')).toBeVisible();
   await openCoordinates(page);
   return true;
 }
