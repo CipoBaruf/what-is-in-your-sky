@@ -321,7 +321,7 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     const named = (): void => {
       expect(layer).toHaveAttribute('aria-labelledby', SCREEN_STATUS_ID);
       expect(layer).not.toHaveAttribute('aria-label');
-      expect(document.getElementById(SCREEN_STATUS_ID)).toHaveTextContent('Looking');
+      expect(document.getElementById(SCREEN_STATUS_ID)).toHaveTextContent('Facing');
     };
     named();
     act(() => {

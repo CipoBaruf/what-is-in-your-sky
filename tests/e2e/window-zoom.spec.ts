@@ -28,7 +28,7 @@ const FRAME_MS = 16;
 const DESK = { width: 1280, height: 800 };
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
 /** The readout's first line under the hand, the field named after it while it is not 60° (R123's word, when it lands). */
-const READOUT = /^Looking [NESW]{1,3} \(\d+°\) · up -?\d+°( · field \d+°)?$/;
+const READOUT = /^Facing [NESW]{1,3} \(\d+°\) · up -?\d+°( · field \d+°)?$/;
 
 /** `sky-window.spec.ts`'s opening: the saved view in the prefs, the elements from the fixtures, the clock paused. */
 async function openLiveWindow(page: Page, prefs: { observer: Observer; chartView: 'window' }): Promise<Locator> {

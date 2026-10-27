@@ -24,8 +24,8 @@ export const windowMessages = {
     peak: 'peak',
     /** R121 (FR-SKY-2, D-789): the hand's hint in the box's corner where the window is the page's view — the dome's words for the window. */
     handHint: 'Drag the window, or use the arrow keys, to look around.',
-    /** FR-GUIDE-4's readout for the window: where the back of the phone points, e.g. "Looking NE (53°) · up 10°". */
-    readout: (p: { point: CompassPoint; azimuth: string; altitude: string }) => `Looking ${p.point} (${p.azimuth}) · up ${p.altitude}`,
+    /** FR-GUIDE-4's readout for the window: where the back of the phone points, e.g. "Facing NE (53°) · up 10°" — the dome's first word too (FR-FLOW-5, D-847). */
+    readout: (p: { point: CompassPoint; azimuth: string; altitude: string }) => `Facing ${p.point} (${p.azimuth}) · up ${p.altitude}`,
     /** R123 for R127 (FR-SKY-13, D-797): the readout's first line while the facing key follows the highlighted pass, "Following A". */
     following: (p: { key: string }) => `Following ${p.key}`,
     /** R123 for R125 (FR-SKY-14, D-798): the readout's first line's suffix while the field is zoomed, " · field 30°" (rounded to 5°). */

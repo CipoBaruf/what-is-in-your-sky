@@ -202,7 +202,7 @@ describe('the sky screen’s stars inventory (FR-STAR-5)', () => {
     expect(shown.querySelector('[data-drawing="window"]')).not.toBeNull();
     expect(shown.querySelector('[data-drawing="window"] [data-layer="stars"]')).not.toBeNull();
     expect(within(shown).getByRole('button', { name: en.chart.screenClose })).toHaveTextContent('×');
-    expect(within(shown).getByTestId('window-readout')).toHaveTextContent(/^Looking [NESW]{1,3} \(\d+°\) · up \d+°/);
+    expect(within(shown).getByTestId('window-readout')).toHaveTextContent(/^Facing [NESW]{1,3} \(\d+°\) · up \d+°/);
     // D-757: the sensor drives it, so the readout names the correction — the hand's had no second line.
     expect(within(shown).getByTestId('window-heading')).toHaveTextContent(/^true north, declination [+−]\d+\.\d°$/);
     expect(within(shown).getByTestId('compass-gutter')).toBeInTheDocument();

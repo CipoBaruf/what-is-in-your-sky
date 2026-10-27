@@ -3672,7 +3672,7 @@ What every session reads (§16.24, D-284's rule), written once here and named in
     - The Done note gives the doors' bottom edge at 390 × 844 in both languages, and the `main` and `stars` rows of `npm run bundle:budget` against 2.5.0 (`main` within D-853's 174.5, `stars` ≤ 0.5 KB more).
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
 
-- [ ] **R131 — The words: "Facing" in the three readouts, the legend's rise · peak · set**
+- [x] **R131 — The words: "Facing" in the three readouts, the legend's rise · peak · set** — done: `chart.legend.times` replaced by `rise/peak/end` (D-861; "end", not "set", V26-13); the sky screen's strip keeps bare figures; `starsPage.readout` takes the azimuth (D-862); the named times fit their rows, the zone once and no inventory header (D-863).
   - **Lane:** chart
   - **Model:** opus
   - **Review:** opus
@@ -3685,7 +3685,7 @@ What every session reads (§16.24, D-284's rule), written once here and named in
   - **Satisfies:** FR-FLOW-5, FR-FLOW-13; F12, D9, D10.
   - **Scope (PLAN D-847, D-852):**
     - `chart.readout` keeps "Facing … · tilt …" and reads "Hacia el …" in Spanish; `window.readout` and `starsPage.readout` become "Facing <point> (<az>) · up <alt>" / "Hacia el <point> (<az>) · <alt> de altura" (the stars page keeps "· <n>° across").
-    - `chart.legend.rise/peak/set` ("rise", "peak", "set" / "sale", "máximo", "se pone"); `Legend.tsx`'s pass row writes "rise 07:23:47 · peak 07:23:55 · set 07:27:03" on its second line under the name and state, at both widths.
+    - `chart.legend.rise/peak/end` ("rise", "peak", "end" / "sale", "máximo", "termina"; V26-13); `Legend.tsx`'s pass row writes "rise 07:23:47 · peak 07:23:55 · end 07:27:03" on its second line under the name and state, at both widths.
     - `messages.test.ts`'s snapshot re-baselined once; the readout tests and `Legend.test.tsx` in both languages.
   - **Touches outside the lane:** `src/i18n/{en,es}/{chart,window,starsPage}.ts`, `src/i18n/messages.test.ts` (`ui`); the window's readout test (`window`).
   - **Out of scope:** where the readout sits (R132); any layout.

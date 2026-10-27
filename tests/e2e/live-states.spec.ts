@@ -179,7 +179,8 @@ test('the short wide inventory ends on a whole row with a +n line, and names its
   await expect(list).toHaveAttribute('data-clip-rows', /^\d+$/);
   const more = page.getByTestId('legend-more');
   await expect(more).toBeVisible();
-  await expect(page.getByTestId('legend-times-header')).toHaveText(/^rise\s*peak\s*end$/);
+  // D-863: no header row; each row names its own times.
+  await expect(page.getByTestId('legend-times-header')).toHaveCount(0);
   const geometry = await list.evaluate((ol) => {
     const box = ol.getBoundingClientRect();
     const items = Array.from(ol.children, (li) => li.getBoundingClientRect());
@@ -204,8 +205,8 @@ test('the short wide inventory ends on a whole row with a +n line, and names its
   const scrollBox = await page.getByTestId('chart-legend-scroll').boundingBox();
   if (!moreBox || !scrollBox) throw new Error('the inventory is not laid out');
   expect(moreBox.y + moreBox.height).toBeLessThanOrEqual(scrollBox.y + scrollBox.height + 0.5);
-  // Each row's times are named for a screen reader: rise, peak, end.
-  await expect(list.getByRole('button').first()).toHaveAccessibleName(/rise \d\d:\d\d:\d\d \S+ peak \d\d:\d\d:\d\d \S+ end \d\d:\d\d:\d\d/);
+  // Each row's times are named, drawn and read (FR-FLOW-13, V26-13); the inventory keeps rise and end (D-863).
+  await expect(list.getByRole('button').first()).toHaveAccessibleName(/rise \d\d:\d\d:\d\d\s*·\s*end \d\d:\d\d:\d\d \S+/);
 });
 
 /**

@@ -41,7 +41,7 @@ function screenFrame(upright = false) {
       screen
       fill
       upright={upright}
-      status={<p>Looking N (1°) · up 20°</p>}
+      status={<p>Facing N (1°) · up 20°</p>}
       headline={<p>Next up</p>}
       legend={<p>legend</p>}
       gutter={<p>gutter</p>}
