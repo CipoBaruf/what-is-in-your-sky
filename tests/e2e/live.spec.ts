@@ -79,8 +79,8 @@ test.describe('the live page', () => {
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByTestId('live-page')).toHaveCount(0);
 
-    // …and the next-event block's `[ Open the live sky ]` (the Now panel's link, FR-FIRST-6) opens it again; the return control closes it.
-    await page.getByTestId('now-live-link').click();
+    // …and the Both door (R130, FR-FLOW-1; the next-event block's `[ Open the live sky ]` before it) opens it again; the return control closes it.
+    await page.getByTestId('door-both').click();
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-state', 'live');
     await page.getByRole('button', { name: LABEL.en.backCompact, exact: true }).click();
     await expect(page.getByTestId('conditions')).toBeVisible();
@@ -103,8 +103,8 @@ test.describe('the live page', () => {
     await stripFilled(page);
     // Real time was not touched by the link.
     await page.keyboard.press('Escape');
-    // R81: the Now panel's `as of` is gone with it; the next-event block counts from real time, ten seconds into the pass.
-    await expect(page.getByTestId('next-event-label')).toHaveText(`Up now · peaks in ${formatClockDuration((golden().peak - T) / 1000)}`, { timeout: 60_000 });
+    // R81: the Now panel's `as of` is gone with it; the Satellites door (R130) counts from real time, ten seconds into the pass.
+    await expect(page.getByTestId('door-satellites-line').first()).toHaveText(`Up now · peaks in ${formatClockDuration((golden().peak - T) / 1000)}`, { timeout: 60_000 });
     // R52 (FR-COMP-3): the home screen names the observer in its summary line; the form that holds it is on `#settings`.
     await expect(page.getByTestId('location-summary')).toContainText('−38.93, −67.99');
 

@@ -199,9 +199,9 @@ test('the Next ISS tag marks the next ISS pass; "best first" reorders the list a
   if (!golden) throw new Error('reference-values.json has no firstGoldenPass');
   await homeWithPasses(page);
   const hero = page.locator('article[data-pass-card]', { has: page.getByTestId('next-tag') });
-  // R81 (FR-FIRST-6, D-510): the hero card is the tag on its card, and its countdown is the next-event block's.
+  // R81 (FR-FIRST-6, D-510): the hero card is the tag on its card, and its countdown is the Satellites door's (R130).
   await expect(hero.getByTestId('next-tag')).toHaveText('Next ISS');
-  await expect(page.getByTestId('next-event-label')).toHaveText(/^Next up · in (\d+:)?\d\d?:\d\d$/);
+  await expect(page.getByTestId('door-satellites-line').first()).toHaveText(/^Next \d\d:\d\d( \S+)? · in (\d+:)?\d\d?:\d\d$/);
   const heroId = (await hero.getAttribute('data-pass-id')) ?? '';
   expect(Math.abs(Number(heroId.split('-')[1]) - golden.start.t)).toBeLessThanOrEqual(5_000);
 
