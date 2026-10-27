@@ -229,7 +229,7 @@ describe('once there is a place (FR-FIRST-3, FR-FIRST-4)', () => {
       appStore.setState({ observer, elements: { ...ready, stale: false }, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer, passes: [pass], hasDarkness: true } });
     });
     render(<App />);
-    const doors = screen.getByRole('navigation', { name: en.doors.region });
+    const doors = screen.getByRole('list', { name: en.doors.region });
     const [satellites, stars, both] = within(doors).getAllByRole('link');
     // FR-FLOW-1: the fixed order, the Satellites door the next event's two lines, opening that pass.
     expect(satellites).toHaveTextContent(/^Satellites/);

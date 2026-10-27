@@ -71,7 +71,7 @@ describe('HomeDoors (R130: FR-FLOW-1)', () => {
   it('draws the three doors in their fixed order, each one link with its target', async () => {
     media = stubMatchMedia(COMPACT_PX);
     const { container } = show();
-    const nav = screen.getByRole('navigation', { name: en.doors.region });
+    const nav = screen.getByRole('list', { name: en.doors.region });
     const links = within(nav).getAllByRole('link');
     expect(links.map((link) => link.getAttribute('data-testid'))).toEqual(['door-satellites', 'door-stars', 'door-both']);
     expect(links.map((link) => link.getAttribute('href'))).toEqual([`#pass=${encodeURIComponent(tiangong.id)}`, '#stars', '#live']);

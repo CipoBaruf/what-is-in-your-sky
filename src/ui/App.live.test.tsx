@@ -47,14 +47,16 @@ describe('<App> and the live route', () => {
     window.localStorage.clear();
   });
 
-  it('links to the live page from the header and from the next-event block (FR-LIVE-1, FR-FIRST-6)', () => {
+  it('links to the live page from the header and from the Both door (FR-LIVE-1, FR-FLOW-1)', () => {
     withSky();
     render(<App />);
     expect(screen.getByTestId('live-link')).toHaveAttribute('href', '#live');
     // R52 (FR-COMP-1): the header's control is `[ live ]` on compact, which is what jsdom is without a `matchMedia` stub; `App.wide.test.tsx` has the wide name.
     expect(screen.getByTestId('live-link')).toHaveTextContent('live');
-    expect(screen.getByTestId('now-live-link')).toHaveAttribute('href', '#live');
-    expect(screen.getByTestId('now-live-link')).toHaveTextContent('Open the live sky');
+    // R130: the next-event block and its `[ Open the live sky ]` left the home; the Both door opens #live.
+    expect(screen.queryByTestId('now-live-link')).toBeNull();
+    expect(screen.getByTestId('door-both')).toHaveAttribute('href', '#live');
+    expect(screen.getByTestId('door-both')).toHaveTextContent(/^Both · live sky/);
   });
 
   it('mounts the live page, and nothing of the home page, under #live; leaving restores the home page', async () => {

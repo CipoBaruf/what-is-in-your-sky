@@ -96,7 +96,8 @@ describe('<App> frame (R12)', () => {
     // R81 (§8 rank 1 as amended): the next ISS pass stays in the list, tagged.
     expect(screen.getByTestId('next-tag').closest('article')).toHaveAttribute('data-pass-id', pass.id);
     expect(screen.getByRole('group', { name: 'Sort passes' })).toBeInTheDocument();
-    expect(within(screen.getByRole('list')).getAllByRole('listitem')).toHaveLength(2);
+    // R130: the home's doors are a list too; the passes' is the one in the list region.
+    expect(within(within(screen.getByRole('region', { name: 'Upcoming passes' })).getByRole('list')).getAllByRole('listitem')).toHaveLength(2);
     expect(await axe(container)).toHaveNoViolations();
 
     act(() => {

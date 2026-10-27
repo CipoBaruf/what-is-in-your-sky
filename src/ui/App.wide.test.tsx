@@ -70,7 +70,9 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     media.setWidth(MID_PX);
     withPasses();
     render(<App />);
-    const columns = screen.getByRole('main').children;
+    // R130 (FR-FLOW-1): the three doors are the main's first row, over the two columns.
+    const [doors, ...columns] = Array.from(screen.getByRole('main').children);
+    expect(doors).toHaveAttribute('data-testid', 'home-doors');
     expect(columns).toHaveLength(2);
     const [left, right] = [columns[0] as HTMLElement, columns[1] as HTMLElement];
     // R76 (FR-FIRST-5): Where above When in the left column, What at the right.
