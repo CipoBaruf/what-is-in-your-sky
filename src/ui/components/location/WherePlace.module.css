@@ -28,4 +28,22 @@
   color: var(--fg-dim);
 }
 
+/* R130 (FR-FLOW-2, D-844): folded, the place and `[ change ]` share a row, the place clipped and the control at
+   the row's right end; the status line under it, and the panel `[ details ]` opens half a row below that. */
+.placeRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--cell);
+  min-width: 0;
+}
+
+.placeRow > .place {
+  min-width: 0;
+}
+
+.details {
+  margin-top: var(--space-1);
+}
+
 /* The change control — a button that opens the group in place — is an inline `TextButton` (R104, D-704); nothing here draws on it. */

@@ -10,10 +10,12 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { axe } from 'jest-axe';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fixtureRecords } from '../../../../tests/support/catalogFixtures';
+import { NO_MOON_AT_PEAK } from '../../../../tests/support/moonFixtures';
 import { I18nProvider } from '../../../i18n/useT';
-import type { Observer } from '../../../model';
-import { appStore } from '../../../state';
+import type { Observer, Pass, WeatherSnapshot } from '../../../model';
+import { appStore, type AppState, type ElementsState } from '../../../state';
 import { WherePlace } from './WherePlace';
 
 /** The place as the Where reading hosts it: the open state is the host's, and the group it controls is the host's too. */
@@ -112,5 +114,155 @@ describe('<WherePlace> (FR-FIRST-11)', () => {
     render(<Host />);
     expect(screen.queryByTestId('location-summary')).toBeNull();
     expect(screen.queryByRole('button', { name: 'change' })).toBeNull();
+  });
+});
+
+/**
+ * R130 (FR-FLOW-2, D-844): the folded Where on compact — the place with `[ change ]`, one status line ending in
+ * `[ details ]` that opens the sentence and the rest in FR-FIRST-11's order, and each fault taking the line whole.
+ */
+describe('WherePlace folded (R130: FR-FLOW-2)', () => {
+  const T0 = Date.UTC(2026, 8, 11, 21, 0, 0);
+  const HOUR = 3_600_000;
+  const DAY = 24 * HOUR;
+  const observer = cipolletti;
+  const fresh: ElementsState = { status: 'ready', records: fixtureRecords().map((r) => ({ ...r, epochMs: T0 - 4 * DAY })), unavailable: [], rejected: [], fetchedAt: T0, stale: false, persistent: true };
+  const snapshot: WeatherSnapshot = {
+    provider: 'open-meteo',
+    lat: observer.lat,
+    lon: observer.lon,
+    cellKey: '-38.9,-68.0',
+    fetchedAt: T0,
+    timeZone: 'America/Argentina/Salta',
+    hourly: Array.from({ length: 96 }, (_, i) => ({ t: T0 + i * HOUR, totalPct: 20 })),
+  };
+  const pass = (startH: number): Pass => ({
+    id: `p${String(startH)}`,
+    noradId: 25544,
+    name: 'ISS (Zarya)',
+    start: { t: T0 + startH * HOUR, azDeg: 200, elDeg: 10, rangeKm: 1500 },
+    peak: { t: T0 + startH * HOUR + 120_000, azDeg: 250, elDeg: 60, rangeKm: 800 },
+    end: { t: T0 + startH * HOUR + 240_000, azDeg: 300, elDeg: 10, rangeKm: 1500 },
+    startReason: 'horizon',
+    endReason: 'horizon',
+    durationS: 240,
+    peakMagnitude: -1.8,
+    sunAltAtPeakDeg: -15,
+    twilight: false,
+    track: [],
+    elementsEpochMs: T0,
+    ...NO_MOON_AT_PEAK,
+  });
+  const ready = (patch: Partial<AppState> = {}): void => {
+    act(() => {
+      appStore.setState({
+        observer,
+        elements: fresh,
+        weather: { observer, status: 'ready', snapshot, error: null },
+        passes: { ...initial.passes, status: 'done', observer, window: { startMs: T0, endMs: T0 + 72 * HOUR }, passes: [pass(4), pass(68)], hasDarkness: true, storedAt: null },
+        ...patch,
+      });
+    });
+  };
+
+  function Folded({ locale = 'en' as const }: { locale?: 'en' | 'es' }) {
+    const [open, setOpen] = useState(false);
+    return (
+      <I18nProvider locale={locale}>
+        <main>
+          <WherePlace
+            folded
+            open={open}
+            controls="group"
+            onToggle={() => {
+              setOpen((o) => !o);
+            }}
+            details={<p data-testid="rest">the readiness line, the elements line, the saved places</p>}
+          />
+          <div id="group" hidden={!open} data-testid="group" />
+        </main>
+      </I18nProvider>
+    );
+  }
+
+  beforeEach(() => {
+    vi.spyOn(Date, 'now').mockReturnValue(T0);
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('folded: the place with [ change ] on its row, and "Ready offline · elements 4 d old · [ details ]"; the rest hidden', async () => {
+    ready();
+    const { container } = render(<Folded />);
+    expect(screen.getByTestId('location-summary')).toHaveTextContent('Cipolletti (−38.93, −67.99)');
+    expect(screen.getByTestId('location-summary').parentElement).toContainElement(screen.getByTestId('location-summary-change'));
+    const status = screen.getByTestId('where-status');
+    expect(status).toHaveTextContent(/^Ready offline · elements 4 d old/);
+    expect(status).not.toHaveAttribute('data-fault');
+    const details = screen.getByTestId('where-details');
+    expect(status).toContainElement(details);
+    expect(details).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByTestId('where-details-panel')).not.toBeVisible();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('opened: [ details ] shows the sentence first and then the rest, in place; [ change ] still opens the group', () => {
+    ready();
+    render(<Folded />);
+    fireEvent.click(screen.getByTestId('where-details'));
+    expect(screen.getByTestId('where-details')).toHaveAttribute('aria-expanded', 'true');
+    const panel = screen.getByTestId('where-details-panel');
+    expect(panel).toBeVisible();
+    expect(screen.getByTestId('where-details')).toHaveAttribute('aria-controls', panel.id);
+    const [first, second] = Array.from(panel.children);
+    expect(first).toHaveTextContent('Using the centre of Cipolletti. Saved in this browser only.');
+    expect(second).toBe(screen.getByTestId('rest'));
+    fireEvent.click(screen.getByTestId('location-summary-change'));
+    expect(screen.getByTestId('group')).toBeVisible();
+  });
+
+  it('Spanish: the status line in Spanish', () => {
+    ready();
+    render(<Folded locale="es" />);
+    expect(screen.getByTestId('where-status')).toHaveTextContent(/^Listo sin conexión · elementos de 4 d/);
+    expect(screen.getByTestId('where-details')).toHaveTextContent('detalles');
+  });
+
+  it('a not-ready state takes the line whole', () => {
+    ready({ weather: { observer, status: 'error', snapshot: null, error: { kind: 'offline', detail: 'offline' } } });
+    render(<Folded />);
+    const status = screen.getByTestId('where-status');
+    expect(status).toHaveAttribute('data-fault', 'not-ready');
+    expect(status).toHaveTextContent(/^Not ready offline: no cloud forecast stored yet\./);
+    expect(status).toContainElement(screen.getByTestId('where-details'));
+  });
+
+  it('an elements warning takes the line whole, in the warning ink', () => {
+    ready({ elements: { ...fresh, stale: true } });
+    render(<Folded />);
+    const status = screen.getByTestId('where-status');
+    expect(status).toHaveAttribute('data-fault', 'elements-warning');
+    expect(status).toHaveTextContent(/^Elements 4 d old/);
+  });
+
+  it('a failure takes the line whole, with its [ retry ]', () => {
+    const retryElements = vi.fn();
+    act(() => {
+      appStore.setState({
+        observer,
+        retryElements,
+        elements: { status: 'error', failure: { kind: 'offline', detail: 'offline' } },
+        weather: { observer, status: 'ready', snapshot, error: null },
+        passes: { ...initial.passes, status: 'idle', observer },
+      });
+    });
+    render(<Folded />);
+    const status = screen.getByTestId('where-status');
+    expect(status).toHaveTextContent(/^Could not load the orbital elements: this device is offline\./);
+    // D-858: the readiness line is not ready too (no elements, no job), and the failure, with its retry, goes first.
+    expect(status).toHaveAttribute('data-fault', 'failure');
+    fireEvent.click(screen.getByTestId('where-retry'));
+    expect(retryElements).toHaveBeenCalledOnce();
   });
 });
