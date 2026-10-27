@@ -7,12 +7,11 @@ import { whenIdle } from './whenIdle';
  * and the header's link share a single request: `settingsChunk.ts`'s pattern,
  * for the same reasons, a failure dropped rather than kept.
  *
- * The home page has no idle prefetch, unlike the settings page's 1 KB: the
- * chunk is some 30 KB gzipped and a reader who never opens `#stars` should not
- * pay for it on a phone's network. The link's `pointerenter` and `focus`
- * fetch it ahead of the tap; the service worker precaches it with the other
- * chunks (FR-OFF-1, D-79), so offline the route loads from the cache
- * (FR-STAR-8).
+ * R130 (FR-FLOW-1, D-843): the home prefetches it on idle too, since the
+ * Stars door's second line ("Brightest now: Canopus, S") is computed in it;
+ * `prefetchStarsWhenIdle`'s `onLoad` hands the door the module. The service
+ * worker precaches it with the other chunks (FR-OFF-1, D-79), so offline the
+ * route loads from the cache (FR-STAR-8).
  *
  * R123 (FR-SKY-3, FR-SKY-10, D-791): the live page and the pass detail draw
  * the stars under the arcs from this chunk too (`Stars.tsx`'s `starSource`).
@@ -39,6 +38,6 @@ export function loadStarsChunk(): Promise<StarsModule> {
  * an unmount before it fires; a failure is dropped (the toggle's own load asks
  * again).
  */
-export function prefetchStarsWhenIdle(): () => void {
-  return whenIdle(() => void loadStarsChunk().catch(() => undefined));
+export function prefetchStarsWhenIdle(onLoad?: (module: StarsModule) => void): () => void {
+  return whenIdle(() => void loadStarsChunk().then(onLoad, () => undefined));
 }
