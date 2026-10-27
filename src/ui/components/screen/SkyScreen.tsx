@@ -69,6 +69,11 @@ import { ScreenTurnProvider } from './screenTurn';
  * legend — is a passes inventory's and is not built at all. The sensor drives it, not the
  * page's hand: the camera is the window's default, and the readout carries the
  * true-north line (D-757).
+ *
+ * **One screen** (R126; FR-SKY-6, FR-FSC-1 as amended v2.5; D-794). The stars
+ * page's `[ passes ]` puts tonight's passes in its scene, and then they are on
+ * this screen as the live page's are: arcs, keys, the gutter's ticks, the chip
+ * and the legend. The inventory is left naming which page opened the layer.
  */
 interface SkyScreenCommon extends Required<Pick<SkyChartProps, 'observer' | 'now'>>, Partial<Pick<SkyChartProps, 'sun' | 'moon' | 'initialFacingAzDeg'>> {
   /** FR-FSC-2: the `×` and `Esc`; the page decides what closing restores. */
@@ -80,15 +85,20 @@ interface PassesInventory extends Required<Pick<SkyChartProps, 'passes'>>, Parti
   inventory?: 'passes';
 }
 
-/** FR-STAR-5: the stars inventory — the page's scene, at the page's instant, and nothing about a pass. */
+/**
+ * FR-STAR-5: the stars inventory — the page's scene, at the page's instant. R126 (FR-SKY-6, D-794): with the page's
+ * `[ passes ]` on, the scene carries tonight's passes too, and the screen is the passes inventory's with the stars
+ * on; absent, there is no pass on it at all.
+ */
 interface StarsInventory {
   inventory: 'stars';
   scene: SkyScene;
+  passes?: SkyChartProps['passes'];
 }
 
 export type SkyScreenProps = SkyScreenCommon & (PassesInventory | StarsInventory);
 
-/** FR-STAR-5: the stars inventory's window has no pass on it at all. */
+/** FR-STAR-5: the stars inventory's window with `[ passes ]` off has no pass on it at all. */
 const NO_PASSES: SkyChartProps['passes'] = [];
 
 /**
@@ -127,7 +137,14 @@ const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select
 export function SkyScreen(props: SkyScreenProps) {
   const { observer, now, sun, moon, initialFacingAzDeg, onClose } = props;
   const stars = props.inventory === 'stars';
-  const passes = stars ? NO_PASSES : props.passes;
+  /*
+   * R126 (FR-SKY-6, FR-FSC-1 as amended v2.5, D-794): one screen. The inventory names only the page that opened it
+   * (`data-inventory`; the page's own `onClose` is the way back); what is drawn is the scene's. The chart is told
+   * there is no pass to speak of — no tick, no chip, no legend — only where the scene carries none, which is the
+   * stars page with `[ passes ]` off.
+   */
+  const scenePasses = stars ? (props.passes ?? null) : props.passes;
+  const passes = scenePasses ?? NO_PASSES;
   const highlightedPassId = stars ? null : (props.highlightedPassId ?? null);
   const t = useT();
   const layerRef = useRef<HTMLDivElement>(null);
@@ -227,7 +244,8 @@ export function SkyScreen(props: SkyScreenProps) {
            * guide is about and its key is in view from the first frame (D-188).
            */
           {...(initialFacingAzDeg === undefined ? {} : { initialFacingAzDeg })}
-          {...(stars ? { scene: props.scene, inventory: 'stars' as const } : props.scene === undefined ? {} : { scene: props.scene })}
+          {...(props.scene === undefined ? {} : { scene: props.scene })}
+          {...(scenePasses === null ? { inventory: 'stars' as const } : {})}
           overlay={
             <button type="button" ref={closeRef} className={styles.close} aria-label={t.chart.screenClose} onClick={onClose} data-testid="sky-screen-close">
               ×

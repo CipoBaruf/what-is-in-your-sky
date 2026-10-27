@@ -15,7 +15,7 @@
  *   npx playwright test stars-screen --project=chromium
  */
 import { expect, test, type Page } from '@playwright/test';
-import { heading, pose, stubCompass } from './liveHelpers';
+import { heading, homeAt, pose, stubCompass, T } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 
 const LANDSCAPE = { width: 844, height: 390 };
@@ -253,6 +253,73 @@ test.describe('the stars screen on a phone that does not rotate (FR-FSC-10)', ()
     await pose(page, { beta: 110, gamma: 0 });
     await expect(layer(page)).toHaveAttribute('data-turn', '0');
     expect(await asks(page)).toBe(1);
+  });
+});
+
+/**
+ * R126 (FR-SKY-6, FR-FSC-1 as amended v2.5; US-40 AC5; D-794): `[ passes ]` on the stars page. The reader comes
+ * from the home screen with the fixture's run on it (the ISS up at `T`), so the store holds tonight's passes for
+ * this place; the page's toggle brings them onto its sky, into `In this field`, and onto the screen it opens,
+ * which is then the live page's screen with the stars on: the arcs and the gutter's ticks.
+ */
+test.describe('[ passes ] on the stars page (FR-SKY-6, US-40 AC5)', () => {
+  test.use({ viewport: LANDSCAPE, hasTouch: true });
+  const PASSES = 'passes';
+
+  test('brings tonight’s passes onto the sky, the list and the screen, which draws their ticks', async ({ page }) => {
+    await stubCompass(page);
+    await permission(page);
+    await homeAt(page, T, 'en');
+    await page.evaluate(() => {
+      window.location.hash = '#stars';
+    });
+    await expect
+      .poll(async () => {
+        await page.clock.runFor(500);
+        return page.getByTestId('stars-sky').locator('[data-drawing="window"]').count();
+      }, { timeout: 15_000 })
+      .toBe(1);
+
+    // Off on every open: no arc on the page's sky.
+    const toggle = page.getByTestId('stars-layers').getByRole('button', { name: PASSES });
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByTestId('stars-sky').locator('[data-pass-id]')).toHaveCount(0);
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('stars-sky').locator('[data-pass-id]').first()).toBeAttached();
+
+    // `In this field` lists a pass ahead of the stars wherever the camera faces its arc: one of the eight points does.
+    const picker = page.getByRole('group', { name: 'Facing' });
+    /*
+     * The list reads the camera deferred (`useDeferredValue`), so a loaded machine may show the last point's field for
+     * a step or two of the paused clock: the list is read in one snapshot, and the walk stops at the first field with
+     * a pass in it, where the pass must be the first row.
+     */
+    const snapshot = () =>
+      page.getByTestId('field-list').evaluate((list) => ({
+        passes: list.querySelectorAll('[data-kind="pass"]').length,
+        firstIsPass: list.querySelector('li')?.querySelector('[data-kind="pass"]') != null,
+        first: list.querySelector('li')?.textContent ?? '',
+      }));
+    let seen: Awaited<ReturnType<typeof snapshot>> | null = null;
+    for (const point of ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']) {
+      await picker.getByRole('button', { name: point, exact: true }).click();
+      for (let step = 0; step < 10 && seen === null; step += 1) {
+        await page.clock.runFor(100);
+        const now = await snapshot();
+        if (now.passes > 0) seen = now;
+      }
+      if (seen !== null) break;
+    }
+    expect(seen?.firstIsPass).toBe(true);
+    expect(seen?.first).toMatch(/^[A-Z]: .+ · (up|soon|gone) · peaks \d+° up · [NESW]{1,3}/);
+
+    // The screen is the live page's with the stars on: the stars, the arcs and the gutter's ticks.
+    await holdUp(page);
+    await expect(layer(page)).toHaveAttribute('data-inventory', 'stars');
+    await expect(layer(page).locator('[data-drawing="window"] [data-layer="stars"]')).toHaveCount(1);
+    await expect(layer(page).locator('[data-drawing="window"] [data-pass-id]').first()).toBeAttached();
+    expect(await layer(page).locator('[data-gutter-mark]').count()).toBeGreaterThan(0);
   });
 });
 

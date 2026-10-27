@@ -3,6 +3,7 @@ import { useLocale, useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
 import { foldRows, ROW_PX, scrubPlacement, unfoldedBoxHeightPx, type LiveFold, type ScrubPlacement } from '../../lib/layout';
 import { legendRows } from '../../lib/legend';
+import { LIVE_WINDOW_MS, livePasses } from '../../lib/livePasses';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS, linkInstant } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import { formatClock } from '../../lib/timeFormat';
@@ -104,16 +105,8 @@ export interface LivePageProps {
   onLeave: () => void;
 }
 
-/** FR-LIVE-2: the span of passes the page draws, from now. */
-export const LIVE_WINDOW_MS = 24 * 3_600_000;
 /** FR-VIS-5's tick: real time advances at the pace of the Now panel. */
 export const TICK_MS = 10_000;
-
-/** The passes drawn: every one with `start ≤ now + 24 h` and `end ≥ now`, in the list's own (start) order, which is the series order (FR-LIVE-2). */
-export function livePasses(passes: readonly Pass[], now: EpochMs): Pass[] {
-  const until = now + LIVE_WINDOW_MS;
-  return passes.filter((pass) => pass.start.t <= until && pass.end.t >= now);
-}
 
 /** D-160: the satellites visible at `t` are the passes whose interval contains it — exactly the markers on the dome. */
 export function visibleCount(passes: readonly Pass[], t: EpochMs): number {

@@ -6,7 +6,7 @@
  * place, and both languages. The box's layout and the list against a measured
  * box are the e2e's (`tests/e2e/stars.spec.ts`): jsdom lays nothing out.
  */
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { COMPACT_PX, stubMatchMedia, WIDE_PX, type MatchMediaStub } from '../../../tests/support/matchMedia';
@@ -15,10 +15,12 @@ import { STARS_PAGE_CATALOGS } from '../../i18n/starsPageT';
 import { I18nProvider } from '../../i18n/useT';
 import type { Locale, Observer } from '../../model';
 import { appStore } from '../../state';
+import { IDLE_PASSES } from '../../state/slices/passes';
+import { goldenPassFixture } from '../../../tests/support/catalogFixtures';
 import { STARS_DEFAULT_TILT } from '../components/guide/skychart/window/camera';
 import { FieldList } from './stars/FieldList';
 import { STAR_LABEL_HOLD_S } from './stars/field';
-import { StarsPage } from './Stars';
+import { passesRunIn, StarsPage } from './Stars';
 
 const SOUTH: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: 'Cipolletti', source: 'coords', timeZone: null };
 const NORTH: Observer = { ...SOUTH, lat: 48.86, lon: 2.35, label: 'Paris' };
@@ -91,7 +93,7 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(within(picker).getAllByRole('button').some((b) => b.getAttribute('aria-pressed') === 'true')).toBe(false);
   });
 
-  it('toggles the four layers, all on at first, names included (FR-STAR-3 as amended v2.4.1)', () => {
+  it('toggles the four layers, all on at first, names included, and [ passes ] off (FR-STAR-3 as amended v2.4.1, FR-SKY-6)', () => {
     media = stubMatchMedia(COMPACT_PX);
     appStore.setState({ observer: SOUTH });
     page();
@@ -102,11 +104,56 @@ describe('<StarsPage> (FR-STAR-3)', () => {
       ['figures', 'true'],
       ['planets', 'true'],
       ['names', 'true'],
+      ['passes', 'false'],
     ]);
     fireEvent.click(within(layers).getByRole('button', { name: 'figures' }));
     expect(within(layers).getByRole('button', { name: 'figures' })).toHaveAttribute('aria-pressed', 'false');
-    // Two rows of two on every width (D-776).
-    expect(within(layers).getAllByTestId('stars-layers-row').map((row) => row.children.length)).toEqual([2, 2]);
+    // Two rows of two on every width (D-776), and R126's `[ passes ]` on a row of its own.
+    expect(within(layers).getAllByTestId('stars-layers-row').map((row) => row.children.length)).toEqual([2, 2, 1]);
+  });
+
+  /*
+   * R126 (FR-SKY-6, D-794; US-40 AC5): `[ passes ]` brings the store's run for this place onto the sky — the arc in
+   * the page's window with its key — and is page state: off on every open, never in the saved prefs.
+   */
+  it('brings tonight’s passes onto the sky with [ passes ], off on every open and never saved (FR-SKY-6)', () => {
+    media = stubMatchMedia(COMPACT_PX);
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+    const golden = goldenPassFixture();
+    vi.setSystemTime(golden.start.t + 10_000);
+    appStore.setState({ observer: SOUTH, passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: SOUTH, passes: [golden], hasDarkness: true } });
+    const { unmount } = page();
+    const sky = screen.getByTestId('stars-sky');
+    expect(sky.querySelector('[data-pass-id]')).toBeNull();
+    const toggle = screen.getByRole('button', { name: STARS_PAGE_CATALOGS.en.passesLayer });
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(sky.querySelector(`[data-pass-id="${golden.id}"]`)).not.toBeNull();
+    expect(sky.querySelector('[data-key="A"]')).not.toBeNull();
+    expect(JSON.stringify(window.localStorage)).not.toMatch(/passes/i);
+    unmount();
+    page();
+    expect(screen.getByRole('button', { name: STARS_PAGE_CATALOGS.en.passesLayer })).toHaveAttribute('aria-pressed', 'false');
+    // A run for another place is not this sky's.
+    appStore.setState({ passes: { ...appStore.getState().passes, observer: NORTH } });
+    fireEvent.click(screen.getByRole('button', { name: STARS_PAGE_CATALOGS.en.passesLayer }));
+    expect(screen.getByTestId('stars-sky').querySelector('[data-pass-id]')).toBeNull();
+  });
+
+  /*
+   * R126 review: `[ passes ]` hands the screen the store's passes only once the run for this place is in — otherwise
+   * the screen would draw the empty-sky chip ("nothing tonight") for a night not yet computed.
+   */
+  it('takes the store’s passes only once the run for this place is in (FR-SKY-6)', () => {
+    const golden = goldenPassFixture();
+    const run = { ...IDLE_PASSES, observer: SOUTH };
+    expect(passesRunIn({ ...run, status: 'done', passes: [] }, SOUTH)).toBe(true);
+    expect(passesRunIn({ ...run, status: 'done', passes: [golden] }, SOUTH)).toBe(true);
+    expect(passesRunIn({ ...run, status: 'computing', passes: [golden] }, SOUTH)).toBe(true);
+    expect(passesRunIn({ ...run, status: 'computing', passes: [] }, SOUTH)).toBe(false);
+    expect(passesRunIn({ ...run, status: 'error', passes: [] }, SOUTH)).toBe(false);
+    expect(passesRunIn({ ...run, status: 'idle', passes: [] }, SOUTH)).toBe(false);
+    expect(passesRunIn({ ...run, status: 'done', observer: NORTH, passes: [golden] }, SOUTH)).toBe(false);
   });
 
   it('is the inert line with [ set a place ] when there is no observer (FR-LIVE-1)', () => {
@@ -134,7 +181,7 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     const p = STARS_PAGE_CATALOGS.es;
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([p.facing, p.layersHeading, p.fieldHeading]);
     expect(within(screen.getByRole('group', { name: p.facing })).getByRole('button', { name: 'arriba' })).toBeInTheDocument();
-    expect(within(screen.getByRole('group', { name: p.layersHeading })).getAllByRole('button').map((b) => b.textContent)).toEqual(['estrellas', 'figuras', 'planetas', 'nombres']);
+    expect(within(screen.getByRole('group', { name: p.layersHeading })).getAllByRole('button').map((b) => b.textContent)).toEqual(['estrellas', 'figuras', 'planetas', 'nombres', 'pases']);
   });
 });
 
@@ -155,6 +202,38 @@ describe('<FieldList> (FR-STAR-7, FR-LEG-4)', () => {
     const rows = within(list).getAllByRole('button');
     expect(rows.map((row) => row.getAttribute('aria-label'))).toEqual(['Canopus · mag −0.7 · 28° up · SE', 'Jupiter · mag −2.3 · 40° up · NE']);
     expect(rows[0]).toHaveTextContent('Canopusmag −0.728°SE');
+  });
+
+  /*
+   * R126 (FR-SKY-6, D-794; FR-STAR-10 as amended v2.5): the passes first — the key, the swatch and the name, the
+   * FR-LEG-3 state word, the peak's altitude and direction — as rows that are not controls, with the whole row as
+   * what is read; the stars after them, as before.
+   */
+  it('lists the passes in the field ahead of the stars: key, name, state and peak (FR-SKY-6)', () => {
+    const passes = [{ id: 'iss', key: 'A', color: 'series-1' as const, name: 'ISS (ZARYA)', state: 'live' as const, peakAltDeg: 64.4, peakPoint: 'NNW' as const }];
+    render(
+      <I18nProvider locale="es">
+        <h2 id="h">En este campo</h2>
+        <FieldList objects={objects} passes={passes} named={null} onName={vi.fn()} buried={false} labelledBy="h" />
+      </I18nProvider>,
+    );
+    const items = within(screen.getByRole('list', { name: 'En este campo' })).getAllByRole('listitem');
+    expect(items).toHaveLength(3);
+    const row = items[0]?.querySelector('[data-kind="pass"]');
+    expect(row).toHaveAttribute('data-pass-id', 'iss');
+    expect(within(items[0] as HTMLElement).queryByRole('button')).toBeNull();
+    expect(items[0]).toHaveTextContent('A: ISS (ZARYA) · arriba · culmina a 64° de altura · NNW');
+    expect(row?.querySelector('[data-color="series-1"]')).not.toBeNull();
+    expect(within(items[1] as HTMLElement).getByRole('button')).toHaveAttribute('data-kind', 'star');
+    // A list with passes in it and nothing else is not the empty note.
+    cleanup();
+    render(
+      <I18nProvider locale="en">
+        <FieldList objects={[]} passes={passes} named={null} onName={vi.fn()} buried={false} labelledBy="h" />
+      </I18nProvider>,
+    );
+    expect(screen.queryByTestId('field-list-empty')).toBeNull();
+    expect(screen.getByTestId('field-list')).toHaveTextContent('A: ISS (ZARYA) · up · peaks 64° up · NNW');
   });
 
   it('names a row’s mark on focus and on a click, and shows the named one pressed', () => {

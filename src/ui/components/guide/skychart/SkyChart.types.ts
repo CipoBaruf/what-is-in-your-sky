@@ -260,6 +260,10 @@ export interface SkyChartProps {
    * speaks of one is built: no legend rows, no empty-field chip (FR-GUT-6) and
    * no next-event block upright (FR-GUT-7). Absent, or `'passes'`, the live
    * page's and the pass detail's chart, unchanged.
+   *
+   * R126 (FR-SKY-6, D-794): the sky screen sets `'stars'` only where its
+   * scene carries no pass — the stars page with `[ passes ]` off. With the
+   * passes on, the stars page's screen is the passes inventory's.
    */
   inventory?: 'passes' | 'stars';
   /**

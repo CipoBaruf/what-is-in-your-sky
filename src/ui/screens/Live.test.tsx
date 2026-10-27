@@ -29,7 +29,8 @@ import { IDLE_PASSES } from '../../state/slices/passes';
 import { stubMatchMedia, type MatchMediaStub } from '../../../tests/support/matchMedia';
 import { MOON_FIXTURE } from '../../../tests/support/moonFixtures';
 import { LEGEND_OPEN_ROWS, LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
-import { LIVE_WINDOW_MS, LivePage, livePasses, TICK_MS, visibleCount } from './Live';
+import { LIVE_WINDOW_MS, livePasses } from '../../lib/livePasses';
+import { LivePage, TICK_MS, visibleCount } from './Live';
 import { LIVE_ROW_TEST_ID, LIVE_ROWS, rowsFor } from './liveRows';
 import { clearPlaceRequest, placeRequested } from './home/placeRequest';
 

@@ -3496,7 +3496,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
 
 ### Wave 4
 
-- [ ] **R126 — The passes on the stars page and one screen: `[ passes ]`, the pass rows in `In this field`, the gutter from the scene, the list's names in both languages**
+- [x] **R126 — The passes on the stars page and one screen: `[ passes ]`, the pass rows in `In this field`, the gutter from the scene, the list's names in both languages**
   - **Lane:** ui
   - **Model:** opus
   - **Review:** opus
@@ -3516,6 +3516,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
   - **Done when:**
     - `stars-screen.spec.ts` and `controlRows.test.ts` pass; the Done note names the e2e specs.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+  - **Done (2026-10-26):** as written, except that `gutter.ts` needed no change: the window already draws a tick per pass it is handed, so the one screen is `SkyScreen` handing the chart the stars page's passes and telling it `inventory: 'stars'` only where the scene carries none (D-823). `[ passes ]` is a third layers row of its own, so the two rows of two stay (D-824); the pass rows are the list's four columns, not buttons, the whole sentence as what is read, and they count in the list's twelve (D-825). The set and its window are the live page's, moved to `src/lib/livePasses.ts`, and `[ passes ]` brings nothing to the screen until the run for this place is in (D-824). The constellation names are in no list row yet, so the 360 px check renders the two longest Spanish names as a star's and a pass's row. E2E: `tests/e2e/stars-screen.spec.ts` (`[ passes ] on the stars page`, with the six earlier cases) and `tests/e2e/stars.spec.ts` (the fifth toggle, off, and the third layers row at 390 px); review captures `r126-stars-passes-{390,1280}-dark-{en,es}`, `r126-stars-screen-passes-844-dark-{en,es}` (`r126-captures.spec.ts`). Bundle (after merging main's #203): `stars` 24.9 KB gzipped; `main` 171.5, the parent's warning, the same as `origin/main` built on the same machine.
 
 - [ ] **R127 — The landmark on the drawing and the page, the `Among` column, the facing key that follows, the figure tap, every drawn name in both languages**
   - **Lane:** window

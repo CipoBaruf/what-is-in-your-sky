@@ -2,8 +2,12 @@ import { useRef } from 'react';
 import { useStarsPageT } from '../../../i18n/starsPageT';
 import { useLocale, useT } from '../../../i18n/useT';
 import { degrees } from '../../../lib/format';
-import { formatStarMag, type FieldObject } from './field';
+import { LegendSwatch } from '../../components/guide/skychart/LegendSwatch';
+import { VisuallyHidden } from '../../components/primitives/VisuallyHidden';
+import { formatStarMag, type FieldObject, type FieldPass } from './field';
 import styles from './FieldList.module.css';
+
+const NO_PASSES: readonly FieldPass[] = [];
 
 /**
  * R115 (FR-STAR-7, FR-GUIDE-7, FR-LEG-4; D-756): `In this field` — the
@@ -21,12 +25,21 @@ import styles from './FieldList.module.css';
  * that press gives a row and the click that follows it never cancel each
  * other: a first click names, a second one clears.
  *
+ * R126 (FR-SKY-6, D-794): with `[ passes ]` on, the passes drawn in the field
+ * come first, one row each in the same columns — the legend key, the swatch
+ * and the name, the FR-LEG-3 state word (the legend's own), the peak's
+ * altitude and direction. They are not buttons: a pass has no star label to
+ * name. Every name column is one line ended by `…`, and the row's accessible
+ * name carries the whole name (FR-STAR-10 as amended v2.5).
+ *
  * Pointed at the ground (FR-FOL-5's second step, no sky in the field) the list
  * is the note instead, in the window's own words for it; with sky in the field
  * and nothing drawn in it — every object layer off — it says so, once.
  */
 export interface FieldListProps {
   objects: readonly FieldObject[];
+  /** R126 (FR-SKY-6, D-794): the passes drawn in the field, listed ahead of the stars; empty with `[ passes ]` off. */
+  passes?: readonly FieldPass[];
   named: number | null;
   /** Names a mark, or clears the name with `null`. */
   onName: (index: number | null) => void;
@@ -36,7 +49,7 @@ export interface FieldListProps {
   labelledBy: string;
 }
 
-export function FieldList({ objects, named, onName, buried, labelledBy }: FieldListProps) {
+export function FieldList({ objects, passes = NO_PASSES, named, onName, buried, labelledBy }: FieldListProps) {
   const t = useT();
   const p = useStarsPageT();
   const locale = useLocale();
@@ -49,7 +62,7 @@ export function FieldList({ objects, named, onName, buried, labelledBy }: FieldL
       </p>
     );
   }
-  if (objects.length === 0) {
+  if (objects.length === 0 && passes.length === 0) {
     return (
       <p className={styles.note} role="status" data-testid="field-list-empty">
         {p.fieldEmpty}
@@ -58,6 +71,29 @@ export function FieldList({ objects, named, onName, buried, labelledBy }: FieldL
   }
   return (
     <ul className={styles.list} aria-labelledby={labelledBy} data-testid="field-list">
+      {passes.map((pass) => {
+        const state = t.chart.legend.state[pass.state];
+        const altitude = degrees(pass.peakAltDeg);
+        return (
+          <li key={pass.id} className={styles.item}>
+            <div className={styles.row} data-kind="pass" data-pass-id={pass.id} data-state={pass.state}>
+              <VisuallyHidden>{p.passRow({ key: pass.key, name: pass.name, state, altitude, point: pass.peakPoint })}</VisuallyHidden>
+              <span className={styles.name} aria-hidden="true">
+                <span className={styles.key}>{pass.key}</span> <LegendSwatch color={pass.color} /> {pass.name}
+              </span>
+              <span className={styles.mag} aria-hidden="true">
+                {state}
+              </span>
+              <span className={styles.alt} aria-hidden="true">
+                {altitude}
+              </span>
+              <span className={styles.point} aria-hidden="true">
+                {pass.peakPoint}
+              </span>
+            </div>
+          </li>
+        );
+      })}
       {objects.map((object) => {
         const name = object.planet === null ? (object.name ?? '') : p.planets[object.planet];
         const mag = formatStarMag(object.mag, locale);

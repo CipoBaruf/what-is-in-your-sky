@@ -20,8 +20,8 @@ const PHONE = { width: 390, height: 844 };
 const DESK = { width: 1280, height: 800 };
 
 const WORDS = {
-  en: { app: 'What is in your sky right now', heading: 'Stars', link: 'stars', facing: 'Facing', layers: 'Layers', field: 'In this field', up: 'up', drawing: 'The sky: drag it, or use the arrow keys', lookUp: 'look up', layerNames: ['stars', 'figures', 'planets', 'names'], row: /^.+ · mag −?\d\.\d · \d+° up · [NESW]{1,3}$/ },
-  es: { app: 'Qué hay en el cielo ahora mismo', heading: 'Estrellas', link: 'estrellas', facing: 'Mirando', layers: 'Capas', field: 'En este campo', up: 'arriba', drawing: 'El cielo: arrastralo o usá las flechas', lookUp: 'mirá arriba', layerNames: ['estrellas', 'figuras', 'planetas', 'nombres'], row: /^.+ · mag −?\d,\d · \d+° de altura · [NESW]{1,3}$/ },
+  en: { app: 'What is in your sky right now', heading: 'Stars', link: 'stars', facing: 'Facing', layers: 'Layers', field: 'In this field', up: 'up', drawing: 'The sky: drag it, or use the arrow keys', lookUp: 'look up', layerNames: ['stars', 'figures', 'planets', 'names', 'passes'], row: /^.+ · mag −?\d\.\d · \d+° up · [NESW]{1,3}$/ },
+  es: { app: 'Qué hay en el cielo ahora mismo', heading: 'Estrellas', link: 'estrellas', facing: 'Mirando', layers: 'Capas', field: 'En este campo', up: 'arriba', drawing: 'El cielo: arrastralo o usá las flechas', lookUp: 'mirá arriba', layerNames: ['estrellas', 'figuras', 'planetas', 'nombres', 'pases'], row: /^.+ · mag −?\d,\d · \d+° de altura · [NESW]{1,3}$/ },
 } as const;
 
 /** A reader with a saved place and a language, every provider refused, at the fixture's instant. */
@@ -128,12 +128,13 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
     await expect(page$(page)).toHaveAttribute('data-look-alt', '30');
   });
 
-  test('the layers are four toggles, all on, and each turns off (FR-STAR-3 as amended v2.4.1)', async ({ page }) => {
+  test('the layers are four toggles, all on, and each turns off, and [ passes ] off (FR-STAR-3 as amended v2.4.1, FR-SKY-6)', async ({ page }) => {
     await asReader(page);
     await page.goto('/#stars');
     const layers = page.getByRole('group', { name: WORDS.en.layers });
     await expect(layers.getByRole('button')).toHaveText(WORDS.en.layerNames.map((name) => name));
-    for (const name of WORDS.en.layerNames) await expect(layers.getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true');
+    for (const name of WORDS.en.layerNames.slice(0, 4)) await expect(layers.getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true');
+    await expect(layers.getByRole('button', { name: 'passes' })).toHaveAttribute('aria-pressed', 'false');
     await layers.getByRole('button', { name: 'figures' }).click();
     await expect(layers.getByRole('button', { name: 'figures' })).toHaveAttribute('aria-pressed', 'false');
     // Stars off: the list holds the planets alone, or says nothing is drawn.
@@ -196,12 +197,12 @@ test.describe('the stars page on a phone, 390 × 844 (US-39 AC3)', () => {
     const [drawn, readout, facing, layers] = await Promise.all([box(sky), box(page.getByTestId('window-readout')), box(page.getByRole('group', { name: WORDS.en.facing })), box(page.getByTestId('stars-layers'))]);
     expect(drawn.x).toBe(0);
     expect(Math.abs(drawn.height - drawn.width)).toBeLessThanOrEqual(1);
-    // The readout above the box, the facing row and the layers' two rows under it, each on one line.
+    // The readout above the box, the facing row and the layers' three rows under it (R126's [ passes ] the third), each on one line.
     expect(readout.y + readout.height).toBeLessThanOrEqual(drawn.y + 0.5);
     expect(facing.y).toBeGreaterThanOrEqual(drawn.y + drawn.height - 0.5);
     expect(facing.height).toBeLessThanOrEqual(48 + 1);
     expect(layers.y).toBeGreaterThanOrEqual(facing.y + facing.height - 0.5);
-    expect(layers.height).toBeLessThanOrEqual(2 * 48 + 1);
+    expect(layers.height).toBeLessThanOrEqual(3 * 48 + 1);
     // The drawing is on the first screen; the list follows under the fold.
     expect(drawn.y + drawn.height).toBeLessThanOrEqual(PHONE.height);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
