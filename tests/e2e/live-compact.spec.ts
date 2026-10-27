@@ -57,8 +57,12 @@ const STATE_ROWS: Readonly<Record<'watching' | 'scrubbing', readonly string[]>> 
  * label, the clock time, the path — over the top row's 24 and the view control's 48. Without the view row the
  * box would be 378. OQ-27 leaves the row where it is and asks for the measurement; the floor at this height is
  * the owner's call on that row (and now on the headline's height), recorded in `sdd-run/R77.summary.md`.
+ *
+ * R127 (FR-SKY-11, D-838): the landmark line is the headline's fourth text line on compact, and the box pays
+ * the 23 px a text row costs (D-814): 306 with a one-line path, 282 with two, so FR-COMP-5's floor while watching
+ * is 280 (amended v2.5, V25-18; D-839), which `shapes.spec.ts` asserts. The measurement moves with it.
  */
-const WATCHING_667 = 329;
+const WATCHING_667 = 306;
 
 interface Box {
   x: number;

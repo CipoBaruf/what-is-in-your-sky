@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DOME_STAR_MAG, drawsLayer, LAYERS, POLAR_STAR_MAG, sceneFor, starsFor, type Layer, type SkyView } from './layers';
-import type { SkyScene, StarField } from './window/scene';
+import { DOME_STAR_MAG, drawsLayer, landmarkFor, LAYERS, POLAR_STAR_MAG, sceneFor, starsFor, type Layer, type SkyView } from './layers';
+import type { SkyLandmark, SkyScene, StarField } from './window/scene';
 
 /**
  * FR-SKY-1 / PLAN §9.7 (R119): the layer table is a pure module — every view
@@ -49,6 +49,31 @@ describe('the layer table (FR-SKY-1, D-788)', () => {
   it('caps the polar chart at 3.5 and the dome at 1.5', () => {
     expect(POLAR_STAR_MAG).toBe(3.5);
     expect(DOME_STAR_MAG).toBe(1.5);
+  });
+});
+
+/** R127 (FR-SKY-11, D-796): which view rings the landmark — every view, but the dome only one of its own stars. */
+describe('landmarkFor (FR-SKY-11)', () => {
+  const landmarkOf = (index: number): SkyLandmark => ({ passId: 'p', star: { index, sepDeg: 3, word: 'above' }, among: null });
+
+  it('rings a bright star in every view, and a star past the dome’s cap in the window and the polar chart alone', () => {
+    const bright: SkyScene = { stars: field, landmark: landmarkOf(1) };
+    for (const view of VIEWS) expect(landmarkFor(view, bright)).toBe(1);
+    // Star 2 is V 3.5: within the polar chart's cap, past the dome's.
+    const faint: SkyScene = { stars: field, landmark: landmarkOf(2) };
+    expect(landmarkFor('window', faint)).toBe(2);
+    expect(landmarkFor('polar', faint)).toBe(2);
+    expect(landmarkFor('dome', faint)).toBeNull();
+  });
+
+  it('rings nothing without a landmark star, with the stars switch off, under the horizon, or with no scene', () => {
+    expect(landmarkFor('window', { stars: field, landmark: { passId: 'p', star: null, among: { con: 'CMa', part: 0 } } })).toBeNull();
+    expect(landmarkFor('window', { stars: field, landmark: null })).toBeNull();
+    expect(landmarkFor('window', { stars: field })).toBeNull();
+    expect(landmarkFor('window', { stars: { ...field, layers: { ...field.layers, stars: false } }, landmark: landmarkOf(1) })).toBeNull();
+    expect(landmarkFor('window', { stars: field, landmark: landmarkOf(3) })).toBeNull();
+    expect(landmarkFor('window', { stars: null, landmark: landmarkOf(1) })).toBeNull();
+    expect(landmarkFor('window', undefined)).toBeNull();
   });
 });
 

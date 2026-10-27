@@ -4,6 +4,8 @@
  * gives for where the hand points.
  */
 import { describe, expect, it, vi } from 'vitest';
+import { goldenPassFixture } from '../../../../../../tests/support/catalogFixtures';
+import { interpolateTrack } from '../../../../../lib/skyGeometry';
 import { DRAG_PX_PER_DEG, PITCH_MAX_DEG, PITCH_MIN_DEG, PITCH_STEP_DEG, YAW_STEP_DEG } from '../dome/camera';
 import {
   bearingOf,
@@ -12,12 +14,16 @@ import {
   defaultFacingDeg,
   dragTo,
   face,
+  facedPassId,
   facePeak,
   FACING_OPTIONS,
   FACING_POINTS,
   facingOf,
+  followPass,
   handRotation,
   initialHand,
+  passFacing,
+  passPosition,
   PEAK_BELOW_CENTRE_DEG,
   PEAK_FACING_OPTIONS,
   PEAK_TILT_MAX_DEG,
@@ -30,6 +36,7 @@ import {
   STARS_TILT_MIN_DEG,
   stepPitch,
   stepYaw,
+  unfollow,
   up,
   ZOOM_KEY_FACTOR,
   ZOOM_WHEEL_RATE,
@@ -285,5 +292,95 @@ describe('createHandCamera', () => {
 
   it('the sensor camera carries nothing but its source', () => {
     expect(SENSOR_CAMERA).toEqual({ source: 'sensor' });
+  });
+});
+
+/**
+ * R127 (FR-SKY-13; D-797, D-827): the seventh move — the camera turned to a
+ * pass and following it. The pass's position by the instant, FR-SKY-7's tilt,
+ * `follow` on the state while it stands, the moves that end it and the zoom
+ * that keeps it, the picker's pressed option, and the store's notice.
+ */
+describe('followPass (FR-SKY-13, D-797)', () => {
+  const pass = goldenPassFixture();
+  const rise = { azDeg: pass.start.azDeg, elDeg: pass.start.elDeg };
+  const set = { azDeg: pass.end.azDeg, elDeg: pass.end.elDeg };
+
+  it('places a pass at its rise point before it rises, on its track while it is up, and at its set point after', () => {
+    expect(passPosition(pass, pass.start.t - 60_000)).toEqual(rise);
+    expect(passPosition(pass, undefined)).toEqual(rise);
+    expect(passPosition(pass, pass.start.t)).toEqual(rise);
+    const mid = interpolateTrack(pass.track, pass.peak.t);
+    expect(passPosition(pass, pass.peak.t)).toEqual({ azDeg: mid.azDeg, elDeg: mid.elDeg });
+    expect(passPosition(pass, pass.end.t + 1)).toEqual(set);
+    // A pass with no track (a test's) is at its set point while up: there is nothing to interpolate.
+    expect(passPosition({ ...pass, track: [] }, pass.peak.t)).toEqual(set);
+  });
+
+  it('aims at the position at FR-SKY-7’s tilt for the state’s field and marks the state as following', () => {
+    const followed = followPass(hand, 'p1', { azDeg: 203, elDeg: 61 });
+    expect(followed).toEqual({ azDeg: 203, altDeg: 46, fovDeg: WINDOW_FOV, follow: 'p1' });
+    // The tilt is clamped as the peak's is, and reckoned at a narrowed field (D-808).
+    expect(followPass(hand, 'p1', { azDeg: 90, elDeg: 12 }).altDeg).toBe(PEAK_TILT_MIN_DEG);
+    expect(followPass(hand, 'p1', { azDeg: 350, elDeg: 90 }).altDeg).toBe(PEAK_TILT_MAX_DEG);
+    expect(followPass({ ...hand, fovDeg: 20 }, 'p1', { azDeg: 203, elDeg: 61 })).toEqual({ azDeg: 203, altDeg: 56, fovDeg: 20, follow: 'p1' });
+    // Applied again at a new position — the next tick — it keeps following.
+    expect(followPass(followed, 'p1', { azDeg: 210, elDeg: 50 })).toEqual({ azDeg: 210, altDeg: 35, fovDeg: WINDOW_FOV, follow: 'p1' });
+  });
+
+  it('ends where it stands on `unfollow`, the aim and the field kept (R127 review)', () => {
+    const followed = followPass({ ...hand, fovDeg: 20 }, 'p1', { azDeg: 203, elDeg: 61 });
+    expect(unfollow(followed)).toEqual({ azDeg: 203, altDeg: 56, fovDeg: 20 });
+    expect(unfollow(hand)).toBe(hand);
+    const camera = createHandCamera(hand);
+    camera.followPass('p1', { azDeg: 203, elDeg: 61 });
+    camera.unfollow();
+    expect(camera.get()).toEqual({ azDeg: 203, altDeg: 46, fovDeg: WINDOW_FOV });
+  });
+
+  it('is ended by a drag, an arrow key, a point, `up` and `peak`, and kept by a zoom', () => {
+    const followed = followPass(hand, 'p1', { azDeg: 203, elDeg: 61 });
+    for (const next of [dragTo(followed, 4, 0), stepYaw(followed, 1), stepPitch(followed, 1), face(followed, 'S'), up(followed), facePeak({ azDeg: 203, elDeg: 61 }, WINDOW_FOV)]) expect(next.follow).toBeUndefined();
+    expect(zoomBy(followed, 0.5)).toEqual({ azDeg: 203, altDeg: 46, fovDeg: 30, follow: 'p1' });
+    expect(resetZoom(zoomBy(followed, 0.5))).toEqual({ azDeg: 203, altDeg: 46, fovDeg: WINDOW_FOV, follow: 'p1' });
+    // A state that follows nothing is the three numbers it was: no `follow` key at all.
+    expect(Object.keys(dragTo(followed, 4, 0))).toEqual(['azDeg', 'altDeg', 'fovDeg']);
+  });
+
+  it('is the picker’s pressed option while it stands, before the zenith, the peak and the points', () => {
+    expect(passFacing('p1')).toBe('pass:p1');
+    expect(facedPassId('pass:p1')).toBe('p1');
+    expect(facedPassId('pass:25544-1756785166469')).toBe('25544-1756785166469');
+    expect(facedPassId('up')).toBeNull();
+    expect(facedPassId('S')).toBeNull();
+    const followed = followPass(hand, 'p1', { azDeg: 180, elDeg: 90 });
+    expect(followed.altDeg).toBe(PEAK_TILT_MAX_DEG);
+    expect(facingOf(followed)).toBe('pass:p1');
+    expect(facingOf({ ...followed, altDeg: 90 })).toBe('pass:p1');
+    expect(facingOf({ ...followed, follow: undefined } as typeof hand)).toBe('S');
+    expect(facingOf(followPass(hand, 'p1', { azDeg: 203, elDeg: 61 }), { azDeg: 203, elDeg: 61 })).toBe('pass:p1');
+  });
+
+  it('as a store: one notice per move, none for the same position again, and the next move ends it', () => {
+    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+    const listener = vi.fn();
+    camera.subscribe(listener);
+    camera.followPass('p1', { azDeg: 203, elDeg: 61 });
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(camera.get()).toEqual({ azDeg: 203, altDeg: 46, fovDeg: WINDOW_FOV, follow: 'p1' });
+    camera.followPass('p1', { azDeg: 203, elDeg: 61 });
+    expect(listener).toHaveBeenCalledTimes(1);
+    camera.followPass('p1', { azDeg: 204, elDeg: 60 });
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(camera.get().follow).toBe('p1');
+    // The same aim with another pass's id is a change: the key moved to the new pass.
+    camera.followPass('p2', { azDeg: 204, elDeg: 60 });
+    expect(listener).toHaveBeenCalledTimes(3);
+    expect(camera.get().follow).toBe('p2');
+    camera.zoomBy(0.5);
+    expect(camera.get().follow).toBe('p2');
+    camera.dragTo(4, 0);
+    expect(camera.get().follow).toBeUndefined();
+    expect(listener).toHaveBeenCalledTimes(5);
   });
 });

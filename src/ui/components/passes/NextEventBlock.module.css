@@ -68,3 +68,11 @@
   line-height: var(--small-row);
   color: var(--warn);
 }
+
+/* R127 (FR-SKY-11, D-796): the landmark line under the path, dim like the
+   label — the star beside the pass, not the pass itself. */
+.landmark {
+  margin: 0;
+  color: var(--fg-dim);
+  overflow-wrap: anywhere;
+}

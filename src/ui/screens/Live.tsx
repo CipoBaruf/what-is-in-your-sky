@@ -2,8 +2,10 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { useLocale, useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
 import { foldRows, ROW_PX, scrubPlacement, unfoldedBoxHeightPx, type LiveFold, type ScrubPlacement } from '../../lib/layout';
+import { landmarkLine, landmarkNames } from '../../lib/landmarkLine';
 import { legendRows } from '../../lib/legend';
 import { LIVE_WINDOW_MS, livePasses } from '../../lib/livePasses';
+import { isNoEvent, nextEvent as nextEventOf } from '../../lib/nextEvent';
 import { BODIES_EVERY_MS, due, HASH_EVERY_MS, linkInstant } from '../../lib/playback';
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import { formatClock } from '../../lib/timeFormat';
@@ -490,7 +492,26 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
    */
   const starsLayer = useAppStore((s) => s.starsLayer);
   const starSource = useStarSource(starsLayer);
-  const scene = useSkyScene({ observer, now: shown, starsLayer, source: starSource });
+  /*
+   * R127 (FR-SKY-11, FR-SKY-13; D-796, D-797): the highlighted pass is the one the headline is about — `nextEvent` on
+   * the page's clock, as the next-event block reads it (the block ticks on the real time, not the shown instant) — so
+   * the scene's landmark is its peak's, the window's picker offers its key and `f` faces it; a scrub does not move it.
+   */
+  const headline = useMemo(() => nextEventOf(passes, now), [passes, now]);
+  const highlighted = isNoEvent(headline) ? null : headline.pass;
+  const scene = useSkyScene({ observer, now: shown, starsLayer, source: starSource, pass: highlighted });
+  // FR-SKY-11: the line under the headline's name line, worded once (`lib/landmarkLine.ts`) in the active language (D-832).
+  const landmarkText = useMemo(() => {
+    if (!starSource || !highlighted || scene.landmark?.passId !== highlighted.id) return null;
+    return landmarkLine(
+      scene.landmark,
+      landmarkNames(starSource.names, starSource.catalog.con, locale),
+      t.live,
+    );
+  }, [starSource, highlighted, scene.landmark, locale, t]);
+  // FR-SKY-11 as amended v2.5 (V25-19, D-840): on a short wide window — the scrub block over the box — the line is
+  // the headline's first row to fold, before the overview row; the ring still marks the star and the pass detail keeps it.
+  const headlineLine = placement === 'overlay' ? null : landmarkText;
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   const cloud = cloudVerdict(snapshot, shown);
   const count = visibleCount(passes, shown);
@@ -576,7 +597,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const nextEvent = has('next-event') ? (
     <div className={styles.headline} ref={headlineRef}>
       {/* R105 (D-720): on compact the block is the page's headline and not a pane's last block — no rule above it. */}
-      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={nextEventContext} pending={passesPending} hours={liveHours} liveLink={false} ruled={!compact} {...(jumpAt === 'path' ? { onSee: seePass } : {})} />
+      <NextEventBlock passes={passes} timeZone={observer.timeZone} context={nextEventContext} pending={passesPending} hours={liveHours} liveLink={false} ruled={!compact} line={headlineLine} {...(jumpAt === 'path' ? { onSee: seePass } : {})} />
     </div>
   ) : null;
   const readout = <TimeReadout t={shown} now={now} timeZone={observer.timeZone} />;
@@ -706,7 +727,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
       <>
         <div className={styles.dome} data-testid="live-dome" data-stripe-under={false}>
           <ChartFrameSlots.Provider value={compactSlots}>
-            <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} moonPhase chartHand={chartHand} scene={scene} />
+            <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} moonPhase chartHand={chartHand} scene={scene} facingPassId={highlighted?.id ?? null} />
           </ChartFrameSlots.Provider>
         </div>
         <div className={styles.side} data-testid="live-side">
@@ -752,7 +773,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
           {/* R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): `moonPhase` is the compact page's alone — the phase and
               the illumination its conditions line gave up. The wide page below leaves the legend's plain Moon line. */}
           <ChartFrameSlots.Provider value={compactSlots}>
-            <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} moonPhase chartHand={chartHand} scene={scene} />
+            <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} moonPhase chartHand={chartHand} scene={scene} facingPassId={highlighted?.id ?? null} />
           </ChartFrameSlots.Provider>
         </div>
         <div className={styles.side} data-testid="live-side">
@@ -836,6 +857,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
             boxAspect={DOME_BOX_ASPECT}
             chartHand={chartHand}
             scene={scene}
+            facingPassId={highlighted?.id ?? null}
             {...(scrubBlock === null || overlaid ? {} : { stripe: scrubBlock })}
           />
           </LegendInventoryContext.Provider>

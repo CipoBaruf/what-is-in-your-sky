@@ -3,7 +3,7 @@ import type { ChartOrientation } from '../../../../../model';
 import { sceneFor, starsFor, type PlacedBody } from '../layers';
 import { inkMeasured, inkOffset, inkOffsetsReady } from '../window/inkOffsets';
 import type { StarField } from '../window/scene';
-import { collide, magnitudeOrder, planetRungFor, rungFor, type Point, type Rung } from '../window/starGlyphs';
+import { collide, LANDMARK_RING_PX, magnitudeOrder, planetRungFor, rungFor, type Point, type Rung } from '../window/starGlyphs';
 import glyphStyles from '../window/starGlyphs.module.css';
 import styles from './SkyPolar.module.css';
 
@@ -41,6 +41,8 @@ interface PolarStarsProps {
   /** The chart's own projection and transform, so the group follows the looking-up / map toggle with the arcs. */
   project: Project;
   at: (p: Point) => string;
+  /** R127 (FR-SKY-11, D-796): the landmark star to ring, a catalogue index (`layers.ts`'s `landmarkFor`), or `null`. */
+  landmark?: number | null;
 }
 
 /**
@@ -58,8 +60,13 @@ interface PolarStarsProps {
  * The props are the scene's parts, not the scene, and the placement is
  * memoised on them: a page that rebuilds the scene around the same positions
  * neither places nor renders the group again.
+ *
+ * R127 (FR-SKY-11, D-796): the landmark's ring after the glyphs — a dashed
+ * circle of `LANDMARK_RING_PX` in the chart's user units at the star's own
+ * projected point, whether or not the collision walk kept its glyph; the ring
+ * is what marks the place.
  */
-export const PolarStars = memo(function PolarStars({ catalog, positions, stars, planets, orientation, project, at }: PolarStarsProps) {
+export const PolarStars = memo(function PolarStars({ catalog, positions, stars, planets, orientation, project, at, landmark = null }: PolarStarsProps) {
   const glyphs = useMemo(() => {
     // FR-SKY-1 (R119): what the table leaves this chart of the scene — the stars to `POLAR_STAR_MAG`, the planets, no figures, no names.
     const field = sceneFor('polar', { stars: { catalog, positions, layers: { stars, figures: false, planets, names: false } } })?.stars;
@@ -76,8 +83,11 @@ export const PolarStars = memo(function PolarStars({ catalog, positions, stars, 
       live = false;
     };
   }, []);
+  const ringAlt = landmark === null ? undefined : positions.altDeg[landmark];
+  const ring = landmark !== null && stars && ringAlt !== undefined && ringAlt >= 0 ? project({ azDeg: positions.azDeg[landmark] ?? 0, elDeg: ringAlt }, orientation) : null;
   return (
     <g className={`${styles.stars} ${glyphStyles.glyphs}`} data-layer="stars">
+      {ring !== null && <circle className={styles.landmarkRing} data-landmark-ring={landmark} r={LANDMARK_RING_PX} transform={at(ring)} />}
       {glyphs.map(({ key, star, planet, rung, p }) => {
         const { dx, dy } = inkOffset(rung.glyph, rung.sizeToken);
         return (

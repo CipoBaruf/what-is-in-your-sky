@@ -84,6 +84,8 @@ const starScene: SkyScene = {
     positions: { altDeg: [STAR.altDeg], azDeg: [STAR.azDeg], planets: [{ ...PLANET, mag: -4 }] },
     layers: { stars: true, figures: true, planets: true, names: true },
   },
+  // R127 (FR-SKY-11): the one star is the landmark of the explained pass, so every view rings it.
+  landmark: { passId: 'p1', star: { index: 0, sepDeg: 5, word: 'above' }, among: { con: 'Ori', part: 0 } },
 };
 /** The pass pages' scene (FR-LEG-1 as amended v2.5): the stars and the planets on, the names layer the stars page's. */
 const passPageScene: SkyScene = { stars: starScene.stars && { ...starScene.stars, layers: { ...starScene.stars.layers, names: false } } };
@@ -327,6 +329,10 @@ describe.each(SKY_CHART_VIEWS)('<SkyChart> contract: $id view', (view) => {
     if (view.id === 'window') expect(container.querySelector('[data-drawing] [data-star-name="0"]')).toHaveTextContent('Star');
     else expect(container.querySelector('[data-drawing] [data-star-name]')).toBeNull();
     starAnchors.set(view.id, [star.getAttribute('data-star') ?? '', planet.getAttribute('data-planet') ?? '']);
+    // R127 (FR-SKY-11, D-796): the landmark's ring in every view, at the star (the dome's, since the star is within its cap).
+    const ring = container.querySelector('[data-drawing] [data-landmark-ring="0"]');
+    expect(ring, 'the landmark ring').not.toBeNull();
+    expect(ring).not.toHaveAttribute('visibility', 'hidden');
 
     if (view.id === 'polar') {
       // The chart's own projection, `toPolar` at the horizon radius, in whichever convention the store holds; the

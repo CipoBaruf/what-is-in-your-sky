@@ -12,7 +12,7 @@ import { PassDetail, TICK_MS } from './PassDetail';
  * stubbed so the test counts the placements, not the catalogue.
  */
 const positionsAt = vi.fn((_where: Pick<Observer, 'lat' | 'lon'>, _t: number): ReturnType<StarParts['positionsAt']> => ({ altDeg: [], azDeg: [], planets: [], sunAltDeg: -18 }));
-const source = starSourceOf({ catalog: { ra: [], dec: [], mag: [], name: [], desig: [], con: [], figures: [] }, positionsAt, drawnRungs, drawnMagLimit });
+const source = starSourceOf({ catalog: { ra: [], dec: [], mag: [], name: [], desig: [], con: [], figures: [] }, positionsAt, drawnRungs, drawnMagLimit, landmark: () => null, constellationAt: () => null, names: { star: () => '', figure: () => undefined, constellation: () => undefined } });
 
 vi.mock('../components/live/useStarSource', () => ({ useStarSource: () => source }));
 
@@ -32,7 +32,9 @@ describe('<PassDetail> while inert (FR-SKY-8)', () => {
   it('places the stars every second while seen, holds them while inert, and catches up when the sheet is back', () => {
     const props = { pass, observer, onClose: () => undefined, onShowList: () => undefined };
     const { rerender } = render(<PassDetail {...props} />);
-    const instants = (): number[] => positionsAt.mock.calls.map(([, t]) => t);
+    // R127 (FR-SKY-12): the `Among` column asks for the positions at the pass's three points once per pass; those calls are not the scene's.
+    const points = new Set([pass.start.t, pass.peak.t, pass.end.t]);
+    const instants = (): number[] => positionsAt.mock.calls.map(([, t]) => t).filter((t) => !points.has(t));
     expect(instants()).toEqual([pass.start.t - 754_000]);
     act(() => {
       vi.advanceTimersByTime(TICK_MS);

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import type { EpochMs, Observer } from '../../../../model';
-import type { SkyScene } from './window/scene';
+import type { Among, SkyPoint } from '../../../../lib/landmark';
+import type { EpochMs, Locale, Observer } from '../../../../model';
+import type { SkyScene, StarField } from './window/scene';
 
 /**
  * R119 (FR-SKY-1, FR-SKY-8, FR-LIVE-10 as amended; PLAN D-788, D-802): the one
@@ -41,6 +42,25 @@ import type { SkyScene } from './window/scene';
  * The names layer is off in every scene this hook builds: the live page and the
  * pass detail do not offer it (FR-SKY-3, FR-LEG-1 as amended, OQ-45) — a tap
  * names a star (FR-STAR-7), which the window draws apart from the layer.
+ *
+ * R127 (FR-SKY-11, FR-SKY-12; D-796, D-826): the **landmark** is the scene's.
+ * The page names the highlighted pass — the headline's on the live page, the
+ * explained one on the pass detail — and the hook finds the bright star
+ * nearest its peak and the figure the peak is among, through the source's
+ * `sceneAt` (`starScene.ts`, over `lib/landmark.ts`'s `landmark` and
+ * `constellationAt`, in the `stars` chunk since D-837), so every view rings the same
+ * star. The stars are taken **at the peak's own instant** (one more rotation,
+ * once per pass, not per tick): the peak is a fixed point of the sky over
+ * which the stars drift a degree every four minutes, so a landmark picked at
+ * the shown instant would change under a scrub while the pass did not, which
+ * FR-SKY-11 rules out ("moves with a scrub only when the highlighted pass
+ * changes"), and it is what the reader sees beside the pass at its peak — the
+ * column's rule too (FR-SKY-12, each point at its own instant). The twilight
+ * step is the shown instant's, the drawing's: a star the step hides now is no
+ * landmark and leaves no line (FR-SKY-11), so the scene then carries
+ * `landmark: null` even where a figure is near. The names (D-832) come the
+ * same way, as closures over the catalogue, so the pages word the line and the
+ * column without the chunk's modules.
  */
 
 /**
@@ -48,8 +68,36 @@ import type { SkyScene } from './window/scene';
  * `starSourceOf` builds it in the chunk — the positions, the twilight step and the cut — so none of that is in
  * `main`; the same call twice is expected to return the same object (the positions are memoised on the instant).
  */
+/** D-832's three readers of a name, as the page reaches them without the `stars` chunk's modules. */
+export interface StarNames {
+  /** Star `i`'s name in `lang`: the Spanish one where there is one, else the IAU name, else the designation. */
+  star: (i: number, lang: Locale) => string;
+  /** One drawn part's name (`Serpens Caput`), or `undefined` for a part the table does not have. */
+  figure: (con: string, part: number, lang: Locale) => string | undefined;
+  /** A constellation's one name (`Serpens` / `Serpiente` whole), or `undefined`. */
+  constellation: (con: string, lang: Locale) => string | undefined;
+}
+
 export interface StarSource {
-  sceneAt: (observer: Pick<Observer, 'lat' | 'lon'>, t: EpochMs) => SkyScene;
+  /**
+   * The scene at `t`; R127 (FR-SKY-11; D-826): with the highlighted pass, its landmark too — among the stars at the
+   * peak's own instant, kept per pass in the chunk, under the twilight step drawn at `t` (`null` where there is none).
+   */
+  sceneAt: (observer: Pick<Observer, 'lat' | 'lon'>, t: EpochMs, pass?: ScenePass | null) => SkyScene;
+  /** The catalogue in the scene's shape, for the pages' names (a star's constellation, D-832). */
+  catalog: StarField['catalog'];
+  /** Every star and planet for the observer at `t` (`starsAt`), for FR-SKY-12's column at each point's own instant. */
+  positionsAt: (observer: Pick<Observer, 'lat' | 'lon'>, t: EpochMs) => StarField['positions'];
+  /** R127 (FR-SKY-12, D-795): the figure `point` is among, over the catalogue's figures at `positions`. */
+  constellationAt: (point: SkyPoint, positions: StarField['positions']) => Among | null;
+  /** R127 (D-832): the names, in the reader's language. */
+  names: StarNames;
+}
+
+/** R127: the highlighted pass as the scene needs it — its id and its peak, with the peak's instant. */
+export interface ScenePass {
+  id: string;
+  peak: { azDeg: number; elDeg: number; t: EpochMs };
 }
 
 export interface SkySceneInput {
@@ -60,13 +108,24 @@ export interface SkySceneInput {
   starsLayer: boolean;
   /** `null` until the chunk is loaded. */
   source: StarSource | null;
+  /** R127 (FR-SKY-11): the highlighted pass, whose peak the landmark is of; absent or `null`, the scene carries none. */
+  pass?: ScenePass | null | undefined;
 }
 
 /** The one scene with no stars, so a view's memo on the scene holds across ticks that change nothing; frozen, shared with `starScene.ts`. */
 export const NO_STARS: SkyScene = Object.freeze({ stars: null });
 
-export function useSkyScene({ observer, now, starsLayer, source }: SkySceneInput): SkyScene {
+export function useSkyScene({ observer, now, starsLayer, source, pass = null }: SkySceneInput): SkyScene {
   const { lat, lon } = observer;
   const sceneAt = source?.sceneAt;
-  return useMemo<SkyScene>(() => (starsLayer && sceneAt !== undefined && now !== undefined ? sceneAt({ lat, lon }, now) : NO_STARS), [lat, lon, now, starsLayer, sceneAt]);
+  // R127: keyed on the pass's id and peak, not the object — the live page's set is rebuilt with its arc states each tick.
+  const passId = pass?.id;
+  const peakAz = pass?.peak.azDeg;
+  const peakEl = pass?.peak.elDeg;
+  const peakT = pass?.peak.t;
+  return useMemo<SkyScene>(() => {
+    if (!starsLayer || sceneAt === undefined || now === undefined) return NO_STARS;
+    const highlighted = passId === undefined || peakAz === undefined || peakEl === undefined || peakT === undefined ? null : { id: passId, peak: { azDeg: peakAz, elDeg: peakEl, t: peakT } };
+    return sceneAt({ lat, lon }, now, highlighted);
+  }, [lat, lon, now, starsLayer, sceneAt, passId, peakAz, peakEl, peakT]);
 }

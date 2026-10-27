@@ -225,7 +225,8 @@ export function sceneCatalog(catalog: StarCatalog): StarField['catalog'] {
     const part = parts > 1 ? (figureName(catalog, figure.con, figure.part, 'en')?.split(' ').at(-1) ?? '') : '';
     return { con: figure.con, part, segments };
   });
-  const shaped: StarField['catalog'] = { ra: catalog.ra, dec: catalog.dec, mag: catalog.mag, name: catalog.name, desig: catalog.desig, con: catalog.con, figures };
+  // R127 (D-832): the names' columns go with it, so the views name a star or a figure in the reader's language.
+  const shaped: StarField['catalog'] = { ra: catalog.ra, dec: catalog.dec, mag: catalog.mag, name: catalog.name, desig: catalog.desig, con: catalog.con, figures, nameEs: catalog.nameEs, figureNames: catalog.figureNames, wholeNames: catalog.wholeNames };
   converted.set(catalog, shaped);
   return shaped;
 }

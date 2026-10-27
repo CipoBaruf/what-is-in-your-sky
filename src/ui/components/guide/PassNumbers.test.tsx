@@ -19,6 +19,30 @@ describe('<PassNumbers> (US-6 AC2, FR-VIS-3)', () => {
     expect(row('End')).toEqual(['09:49:02 UTC', 'ENE 60°', '10°', '1,516 km']);
   });
 
+  /** R127 (FR-SKY-12 as amended, V25-16; D-796): the `Among` column, given, in the active language; `—` past the reach; no column without it. */
+  it('adds the Among column where the page gives it, — for a point no figure is near, and no column without it', () => {
+    const { rerender } = render(<PassNumbers pass={pass} timeZone={null} among={{ start: 'Canis Major', peak: 'Orion', end: null }} />);
+    expect(screen.getAllByRole('columnheader').map((th) => th.textContent)).toEqual(['Point', 'Time', 'Azimuth', 'Elevation', 'Range', 'Among']);
+    const row = (name: string): string[] =>
+      within(screen.getByRole('row', { name: new RegExp(`^${name} `) }))
+        .getAllByRole('cell')
+        .map((c) => c.textContent ?? '');
+    expect(row('Start')).toEqual(['09:48:14 UTC', 'NE 46°', '10°', '1,513 km', 'Canis Major']);
+    expect(row('Peak').at(-1)).toBe('Orion');
+    expect(row('End').at(-1)).toBe('—');
+    expect(screen.getByRole('row', { name: /^Start / }).querySelector('[data-among]')).toHaveAttribute('data-among', 'Canis Major');
+    rerender(<PassNumbers pass={pass} timeZone={null} />);
+    expect(screen.getAllByRole('columnheader').map((th) => th.textContent)).toEqual(['Point', 'Time', 'Azimuth', 'Elevation', 'Range']);
+    rerender(
+      <I18nProvider locale="es">
+        <PassNumbers pass={pass} timeZone={null} among={{ start: 'Can Mayor', peak: 'Orión', end: null }} />
+      </I18nProvider>,
+    );
+    expect(screen.getAllByRole('columnheader').at(-1)).toHaveTextContent('Entre');
+    expect(row('Salida').at(-1)).toBe('Can Mayor');
+    expect(row('Máximo').at(-1)).toBe('Orión');
+  });
+
   it('translates the table and formats its numbers in Spanish (FR-I18N-2, FR-I18N-4)', () => {
     render(
       <I18nProvider locale="es">

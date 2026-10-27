@@ -81,12 +81,20 @@ export interface LabelInput {
   segments: readonly LabelSegment[];
   compass: readonly Box[];
   named: MarkLabel | null;
+  /**
+   * R127 (FR-SKY-11, D-796): the landmark's name beside its ring, placed after the named mark's label and before
+   * the star names, at the first free of the four places — and dropped where none is free (V24-23: the ring stands
+   * alone and the line names it). A tap's label on the same mark takes its place while it holds.
+   */
+  landmark?: MarkLabel | null;
   /** The star-name candidates, brightest first. */
   stars: readonly MarkLabel[];
   figures: readonly FigureLabel[];
+  /** R127 (D-832): the language the figures' capitals are spaced in; English where absent. */
+  lang?: string;
 }
 
-type LabelKind = 'named' | 'star' | 'figure';
+type LabelKind = 'named' | 'landmark' | 'star' | 'figure';
 
 /** A placed label: drawn centred on (`x`, `y`) with `text-anchor: middle` and `dominant-baseline: central`. */
 export interface PlacedLabel {
@@ -108,12 +116,16 @@ export const SEGMENT_SAMPLE_PX = 4;
 /** The space between a mark's box and its name: half a cell at the name's size. */
 const GAP_EM = ADVANCE_EM / 2;
 
-/** FR-STAR-6: the figure's name in spaced capitals, `Crux` → `C R U X`, three spaces between two words. */
-export function spaced(name: string): string {
+/**
+ * FR-STAR-6: the figure's name in spaced capitals, `Crux` → `C R U X`, three
+ * spaces between two words. R127 (D-832): the capitals are the language's
+ * (`toLocaleUpperCase(lang)`), so `Orión` is `O R I Ó N`.
+ */
+export function spaced(name: string, lang = 'en'): string {
   return name
     .trim()
     .split(/\s+/)
-    .map((word) => [...word.toLocaleUpperCase('en')].join(' '))
+    .map((word) => [...word.toLocaleUpperCase(lang)].join(' '))
     .join('   ');
 }
 
@@ -228,10 +240,18 @@ export function placeLabels(input: LabelInput): PlacedLabel[] {
     if (box) put('named', named.key, named.text, box);
   }
 
+  // R127 (FR-SKY-11): the landmark's name, unless the tap's label is on its mark; dropped where no place is free.
+  const landmark = input.landmark ?? null;
+  const landmarkMark = landmark && (named === null || named.mark !== landmark.mark) ? marks[landmark.mark] : undefined;
+  if (landmark && landmarkMark) {
+    const box = besideMark(landmarkMark, landmark.text).find(free);
+    if (box) put('landmark', landmark.key, landmark.text, box);
+  }
+
   input.stars.forEach((star, i) => {
     const mark = marks[star.mark];
-    // The named mark carries its label already; its name is not drawn twice.
-    if (!mark || (named !== null && star.mark === named.mark)) return;
+    // The named mark carries its label already, and so does the landmark's; its name is not drawn twice.
+    if (!mark || (named !== null && star.mark === named.mark) || (landmark !== null && star.mark === landmark.mark)) return;
     const box = besideMark(mark, star.text).find(free);
     if (box) rank.set(put('star', star.key, star.text, box), i);
   });
@@ -255,8 +275,8 @@ export function placeLabels(input: LabelInput): PlacedLabel[] {
     }
     const cx = sx / f.endpoints.length;
     const cy = sy / f.endpoints.length;
-    const full = spaced(f.name);
-    const abbr = spaced(f.con);
+    const full = spaced(f.name, input.lang);
+    const abbr = spaced(f.con, input.lang);
     const cell = ADVANCE_EM * FIGURE_NAME_PX;
     const forms = textWidth(full, FIGURE_NAME_PX) <= x1 - x0 + 2 * cell ? [full, abbr] : [abbr];
     const row = FIGURE_NAME_PX;

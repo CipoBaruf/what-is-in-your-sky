@@ -131,9 +131,12 @@ const label = ([width, height]: Size): string => `${String(width)}x${String(heig
  * column now, and the rows under the box — the strip's fields, the headline — wrap once more in it than they did
  * across 844 px: the box measures 140 px watching where it measured 164, and is held at five and a half rows.
  * The row is the boundary FR-SHP-3 leaves to the compact page's own rules, as the note above says.
+ *
+ * R127 (FR-SKY-11, D-838): the landmark line is the compact headline's fourth line, 23 px, and the column's box
+ * pays it: 116 px watching where it measured 140, held at four and a half rows.
  */
 const FLOOR_ALLOWANCE: Readonly<Record<string, Partial<Record<'watching' | 'scrubbing', number>>>> = {
-  '844x501': { watching: 5.5 * ROW_PX, scrubbing: ROW_PX },
+  '844x501': { watching: 4.5 * ROW_PX, scrubbing: ROW_PX },
   '360x640': { scrubbing: 7 * ROW_PX },
 };
 
@@ -147,7 +150,8 @@ const floorFor = (size: Size, state: 'watching' | 'scrubbing'): number => FLOOR_
  * least this tall the box is never shorter than it is wide — 374 px at 390 × 844, where F-62 measured 259 before
  * R71 and 375 after it; at 390 × 667 it is at least `COMPACT_BOX_MIN_SHORT_PX`, since every gap is already at its
  * minimum there and the box is what the rows leave: 329 with a one-line path on the headline, 306 with this seed's
- * two-line path (V21-23, D-615). The square rule is asserted in both states on the phones and while watching on the
+ * two-line path (V21-23, D-615). R127 (FR-COMP-5 as amended v2.5, V25-18; D-839): the landmark line is the compact
+ * headline's fourth line, 23 px, so 306 and 282 now, and the floor is 280. The square rule is asserted in both states on the phones and while watching on the
  * tablets, where R99's column caps the box; the short phone's floor while watching
  * only (scrubbing's stripe block leaves it about 220), with the list closed
  * (FR-LEG-8) and R101's `[ see this pass ]` on the headline, which is how `openLive` leaves the page. The compact

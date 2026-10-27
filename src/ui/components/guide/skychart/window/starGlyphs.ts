@@ -47,6 +47,8 @@ export const SMALL_SIZE: SizeToken = 'chart-text-12';
 export const COLLISION_PX = SIZE_PX[SMALL_SIZE] / 2;
 /** FR-STAR-6: `--tap` / 4 — the tap floor is two 24 px rows — the radius a tap or a click reaches a glyph within. */
 export const HIT_RADIUS_PX = 12;
+/** R127 (FR-SKY-11, D-796): the landmark's ring, px of radius — dashed in `--chart-star` at the chart hairline, in every view (the polar chart in its user units, D-812). */
+export const LANDMARK_RING_PX = 13;
 
 type Row = Rung & { maxMag: number };
 /** The bottom rung: everything the catalogue holds beyond 3.5 (its limit is `STAR_MAG_LIMIT`, 4.5), and the row a magnitude outside every bound falls to. */
@@ -136,6 +138,38 @@ export function collide(points: readonly (Point | null)[], distancePx = COLLISIO
     keep[i] = true;
   });
   return keep;
+}
+
+/** A drawn figure segment in the box's px, as the star field writes its line. */
+export interface Segment {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+/**
+ * R127 (FR-STAR-14, D-795): the figure line under a tap — the nearest drawn
+ * segment within `radiusPx` of the point (the glyphs' own radius), by the
+ * distance to the segment itself, or `null`. Called only where `hitTest`
+ * found no mark: a star or a planet within the distance wins over a line.
+ */
+export function hitLine(lines: readonly (Segment | null)[], x: number, y: number, radiusPx = HIT_RADIUS_PX): number | null {
+  let best: number | null = null;
+  let bestD2 = radiusPx * radiusPx;
+  lines.forEach((s, i) => {
+    if (!s) return;
+    const dx = s.x2 - s.x1;
+    const dy = s.y2 - s.y1;
+    const len2 = dx * dx + dy * dy;
+    const u = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((x - s.x1) * dx + (y - s.y1) * dy) / len2));
+    const d2 = (s.x1 + u * dx - x) ** 2 + (s.y1 + u * dy - y) ** 2;
+    if (d2 <= bestD2 && (best === null || d2 < bestD2)) {
+      best = i;
+      bestD2 = d2;
+    }
+  });
+  return best;
 }
 
 /**

@@ -48,6 +48,10 @@ export function cutCatalog(catalog: Catalog, cap: number): Catalog {
       desig: catalog.desig.slice(0, n),
       con: catalog.con.slice(0, n),
       figures: [],
+      // R127 (D-832): the names' columns ride with the cut, so a view names a star of the cut in the reader's language.
+      ...(catalog.nameEs === undefined ? {} : { nameEs: catalog.nameEs.slice(0, n) }),
+      ...(catalog.figureNames === undefined ? {} : { figureNames: catalog.figureNames }),
+      ...(catalog.wholeNames === undefined ? {} : { wholeNames: catalog.wholeNames }),
     };
     byCap.set(cap, cut);
   }

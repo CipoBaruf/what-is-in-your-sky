@@ -73,6 +73,24 @@ export function sceneFor(view: SkyView, scene: SkyScene | undefined): SkyScene |
   };
 }
 
+/**
+ * R127 (FR-SKY-11, D-796): the landmark star `view` rings, as a catalogue
+ * index, or `null` — no landmark star in the scene, the layer not the view's,
+ * the stars switch off, the star past the view's cap (the dome rings only one
+ * of its own stars, never an empty place) or under the horizon. The scene is
+ * the page's whole one: the cut is the prefix the cap gives, so the star is
+ * in it exactly when its index is under the cut's length.
+ */
+export function landmarkFor(view: SkyView, scene: SkyScene | undefined): number | null {
+  const star = scene?.landmark?.star;
+  const field = scene?.stars;
+  if (!star || !field || !field.layers.stars || !drawsLayer(view, 'landmark')) return null;
+  const cut = sceneFor(view, scene)?.stars;
+  if (!cut || star.index >= cut.catalog.mag.length) return null;
+  const altDeg = field.positions.altDeg[star.index];
+  return altDeg !== undefined && altDeg >= 0 ? star.index : null;
+}
+
 /** One star or planet a capped view places: its key, its direction, its magnitude (the catalogue's, or the planet's at the instant) and its identity — a catalogue index or a planet's name. */
 export interface PlacedBody {
   key: string;

@@ -1,5 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { constellationAt, landmark, type FigureLines } from '../../../../lib/landmark';
 import { drawnMagLimit, drawnRungs } from '../../../../lib/skyStars';
 import type { Observer } from '../../../../model';
 import { starSourceOf, type StarParts } from './starScene';
@@ -7,6 +8,16 @@ import { useSkyScene, type SkySceneInput, type StarSource } from './useSkyScene'
 import type { StarField } from './window/scene';
 
 type Positions = ReturnType<StarParts['positionsAt']>;
+
+/** R127: the source's landmark closures over a catalogue, as `stars/source.ts` builds them, and names that are the catalogue's. */
+function landmarkOf(catalog: StarField['catalog'], figures: readonly FigureLines[] = []): Pick<StarParts, 'landmark' | 'constellationAt' | 'names'> {
+  return {
+    landmark: (positions, peak, rungs) => landmark({ mag: catalog.mag, altDeg: positions.altDeg, azDeg: positions.azDeg }, peak, rungs),
+    constellationAt: (point, positions) => constellationAt(point, figures, positions),
+    names: { star: (i) => catalog.name[i] ?? '', figure: (con) => con, constellation: (con) => con },
+  };
+}
+
 
 /**
  * FR-SKY-1, FR-SKY-8 / PLAN D-788, D-802 (R119): one scene per tick from the
@@ -23,7 +34,7 @@ const NIGHT = -18;
 
 function fakeSource(): StarSource & { positionsAt: ReturnType<typeof vi.fn> } {
   const positionsAt = vi.fn((_where: Pick<Observer, 'lat' | 'lon'>, t: number): Positions => ({ altDeg: [t % 90], azDeg: [0], planets: [], sunAltDeg: NIGHT }));
-  return { ...starSourceOf({ catalog, positionsAt, drawnRungs, drawnMagLimit }), positionsAt };
+  return { ...starSourceOf({ catalog, positionsAt, drawnRungs, drawnMagLimit, ...landmarkOf(catalog) }), positionsAt };
 }
 
 const input = (rest: Omit<SkySceneInput, 'observer'> & Partial<Pick<SkySceneInput, 'observer'>>): SkySceneInput => ({ observer, ...rest });
@@ -94,7 +105,8 @@ describe('useSkyScene (FR-SKY-1, FR-SKY-8; D-788, D-802)', () => {
     const planets: StarField['positions']['planets'] = [{ body: 'Venus', azDeg: 270, altDeg: 10, mag: -4 }];
     const positions = (sunAltDeg: number): Positions => ({ altDeg: [10, 20, 30, 40, 50], azDeg: [0, 0, 0, 0, 0], planets, sunAltDeg });
     // The Sun at `t` is `t`'s own here: the step reads it from the positions at the scene's instant.
-    const source: StarSource = starSourceOf({ catalog: ladder, positionsAt: (_where, t) => positions(t), drawnRungs, drawnMagLimit });
+    const figures: FigureLines[] = [{ con: 'Ori', part: 0, segments: [0, 4] }];
+    const source: StarSource = starSourceOf({ catalog: ladder, positionsAt: (_where, t) => positions(t), drawnRungs, drawnMagLimit, ...landmarkOf(ladder, figures) });
     const at = (sunAltDeg: number) => renderHook(() => useSkyScene({ observer, now: sunAltDeg, starsLayer: true, source })).result.current;
 
     it('draws the whole field, the figures and the planets at −18° and at −6°', () => {
@@ -128,6 +140,68 @@ describe('useSkyScene (FR-SKY-1, FR-SKY-8; D-788, D-802)', () => {
       expect(result.current.stars?.catalog.mag).toHaveLength(2);
       rerender(5);
       expect(result.current).toEqual({ stars: null });
+    });
+
+    /*
+     * R127 (FR-SKY-11, FR-SKY-12; D-796, D-826): the highlighted pass's landmark is the scene's — found among the
+     * stars at the peak's instant under the scene's twilight step, the same star for every view, through the source's closures.
+     */
+    describe('the landmark (FR-SKY-11, D-796)', () => {
+      const scene = (sunAltDeg: number, pass: SkySceneInput['pass']) => renderHook(() => useSkyScene({ observer, now: sunAltDeg, starsLayer: true, source, pass })).result.current;
+
+      it('rings the bright star nearest the peak and names the figure the peak is among, with the peak’s word against the star', () => {
+        const found = scene(-18, { id: 'p', peak: { azDeg: 0, elDeg: 33, t: -18 } }).landmark;
+        expect(found?.passId).toBe('p');
+        expect(found?.star?.index).toBe(2);
+        expect(found?.star?.sepDeg).toBeCloseTo(3, 6);
+        expect(found?.star?.word).toBe('above');
+        expect(found?.among).toEqual({ con: 'Ori', part: 0 });
+      });
+
+      it('names the figure alone where no star is within reach, and nothing where neither is', () => {
+        expect(scene(-18, { id: 'p', peak: { azDeg: 5, elDeg: 58, t: -18 } }).landmark).toEqual({ passId: 'p', star: null, among: { con: 'Ori', part: 0 } });
+        expect(scene(-18, { id: 'p', peak: { azDeg: 90, elDeg: 30, t: -18 } }).landmark).toBeNull();
+      });
+
+      it('carries none without a pass, and none when the twilight step hides the star the night would show', () => {
+        // Without a pass the scene carries no `landmark` at all (absent is none, D-826).
+        expect(scene(-18, null).landmark).toBeUndefined();
+        expect(scene(-18, undefined).landmark).toBeUndefined();
+        // At −3° the first two rungs are drawn: the mag 2 star by the peak is hidden, so there is no landmark and no line — not the figure's either.
+        expect(scene(-3, { id: 'p', peak: { azDeg: 0, elDeg: 33, t: -18 } }).landmark).toBeNull();
+        // Nor a farther star the step still draws: at 27° the night's landmark is C (3° off, hidden at −3°), and B,
+        // 7° off and drawn, does not stand in for it (R127 review).
+        expect(scene(-18, { id: 'p', peak: { azDeg: 0, elDeg: 27, t: -18 } }).landmark?.star?.index).toBe(2);
+        expect(scene(-3, { id: 'p', peak: { azDeg: 0, elDeg: 27, t: -18 } }).landmark).toBeNull();
+        // A star the step still draws is the landmark in twilight too.
+        expect(scene(-3, { id: 'p', peak: { azDeg: 0, elDeg: 21, t: -18 } }).landmark?.star?.index).toBe(1);
+      });
+
+      it('places the peak’s stars and searches once per pass and step, for two passes in turn (R127 review)', () => {
+        const parts = landmarkOf(ladder, figures);
+        const search = vi.fn(parts.landmark);
+        const place = vi.fn((_where: Pick<Observer, 'lat' | 'lon'>, t: number) => positions(t));
+        const counted = starSourceOf({ catalog: ladder, positionsAt: place, drawnRungs, drawnMagLimit, ...parts, landmark: search });
+        const p = { id: 'p', peak: { azDeg: 0, elDeg: 33, t: -18 } };
+        const q = { id: 'q', peak: { azDeg: 0, elDeg: 21, t: -19 } };
+        for (const now of [-18.5, -18.4, -18.3]) {
+          expect(counted.sceneAt(observer, now, p).landmark?.star?.index).toBe(2);
+          expect(counted.sceneAt(observer, now, q).landmark?.star?.index).toBe(1);
+        }
+        // Two searches (the step's and the night's) per pass, one placement of each peak, and one of each instant.
+        expect(search).toHaveBeenCalledTimes(4);
+        expect(place.mock.calls.filter(([, t]) => t === -18 || t === -19)).toHaveLength(2);
+      });
+
+      it('holds the scene for a pass rebuilt with the same id and peak, and remakes it for another pass', () => {
+        const { result, rerender } = renderHook((pass: SkySceneInput['pass']) => useSkyScene({ observer, now: -18, starsLayer: true, source, pass }), { initialProps: { id: 'p', peak: { azDeg: 0, elDeg: 33, t: -18 } } });
+        const first = result.current;
+        rerender({ id: 'p', peak: { azDeg: 0, elDeg: 33, t: -18 } });
+        expect(result.current).toBe(first);
+        rerender({ id: 'q', peak: { azDeg: 0, elDeg: 33, t: -18 } });
+        expect(result.current).not.toBe(first);
+        expect(result.current.landmark?.passId).toBe('q');
+      });
     });
   });
 });

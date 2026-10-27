@@ -68,3 +68,11 @@
   margin-right: var(--cell);
   vertical-align: baseline;
 }
+
+/* R127 (FR-SKY-12 as amended, V25-16): the `Among` column's names wrap to a
+   second line in their cell on compact rather than being cut — the one
+   column the table's `nowrap` does not hold. */
+.among {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

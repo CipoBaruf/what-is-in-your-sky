@@ -144,6 +144,94 @@ describe('the tap, the hover and the readout (FR-STAR-7)', () => {
   });
 });
 
+/**
+ * R127 (FR-STAR-14, FR-SKY-11, FR-STAR-7 as amended; D-796, D-832): the figure
+ * tap — a tap on a line with no mark within reach names the figure, beside the
+ * line and on the readout — the window's own named object where the page holds
+ * none (cleared after the hold), and the landmark's ring and name.
+ */
+describe('the figure tap, the window’s own named object and the landmark (R127)', () => {
+  beforeEach(() => {
+    resetOrientationAccess();
+  });
+
+  it('a tap on a figure line names the figure, at the line’s middle and on the readout; a star within reach wins', () => {
+    const { box, onNameStar, rename, q, getByTestId } = mount();
+    // The middle of the 0–2 segment, 3° from each star: past the 12 px hit radius of both, on the line.
+    tap(box, at(176, 35));
+    expect(onNameStar).toHaveBeenLastCalledWith(-1);
+    rename(-1);
+    const label = q('[data-star-label]');
+    expect(label).toHaveTextContent('Carina');
+    expect(label).toHaveAttribute('visibility', 'visible');
+    expect(Math.abs(Number(label.getAttribute('y')) - at(176, 35).y)).toBeLessThan(30);
+    expect(getByTestId('window-named')).toHaveTextContent(/^Carina$/);
+    expect(getByTestId('window-named')).toHaveAttribute('data-named', '-1');
+    // The 0–3 segment is the figure's second line: its own key, the same name.
+    tap(box, at(184, 35));
+    expect(onNameStar).toHaveBeenLastCalledWith(-2);
+    // A tap near a star names the star, not the line under it.
+    tap(box, at(180, 35));
+    expect(onNameStar).toHaveBeenLastCalledWith(0);
+    // Off every line and mark: nothing.
+    tap(box, at(180, 20));
+    expect(onNameStar).toHaveBeenLastCalledWith(null);
+  });
+
+  it('holds its own named object where the page gives none, and clears it after STAR_LABEL_HOLD_S', () => {
+    vi.useFakeTimers();
+    try {
+      const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+      const { container, getByTestId, queryByTestId } = render(<SkyWindow passes={[]} observer={observer} highlightedPassId={null} camera={camera} scene={{ stars: field }} />);
+      const box = container.querySelector('[tabindex="0"]') as HTMLElement;
+      act(() => {
+        tap(box, at(180, 35));
+      });
+      expect(getByTestId('window-named')).toHaveTextContent('Canopus · mag −0.7 · 35° up · S');
+      act(() => {
+        vi.advanceTimersByTime(3_900);
+      });
+      expect(getByTestId('window-named')).toBeInTheDocument();
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(queryByTestId('window-named')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('rings the landmark star and names it beside the ring, once; a tap’s label on it takes the name’s place', () => {
+    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+    const landmark = { passId: 'p', star: { index: 1, sepDeg: 5, word: 'above' as const }, among: null };
+    const ui = (named: number | null) => <SkyWindow passes={[]} observer={observer} highlightedPassId={null} camera={camera} scene={{ stars: field, landmark }} namedStar={named} onNameStar={vi.fn()} />;
+    const { container, rerender } = render(ui(null));
+    const q = (selector: string): Element => container.querySelector(selector) as Element;
+    const ring = q('[data-landmark-ring="1"]');
+    expect(ring.tagName).toBe('circle');
+    expect(ring).toHaveAttribute('r', '13');
+    expect(ring).toHaveAttribute('visibility', 'visible');
+    const p = at(180, 41);
+    expect(Math.abs(Number(ring.getAttribute('cx')) - p.x)).toBeLessThan(0.1);
+    expect(Math.abs(Number(ring.getAttribute('cy')) - p.y)).toBeLessThan(0.1);
+    const name = q('[data-landmark-name="1"]');
+    expect(name).toHaveTextContent('Bravo');
+    expect(name).toHaveAttribute('visibility', 'visible');
+    // The star's own name is not drawn twice.
+    expect(q('[data-star-name="1"]')).toHaveAttribute('visibility', 'hidden');
+    // A tap's label on the landmark takes its place while it holds.
+    rerender(ui(1));
+    expect(q('[data-star-label]')).toHaveTextContent('Bravo · mag 1.2');
+    expect(q('[data-landmark-name="1"]')).toHaveAttribute('visibility', 'hidden');
+    rerender(ui(null));
+    expect(q('[data-landmark-name="1"]')).toHaveAttribute('visibility', 'visible');
+    // No landmark, no ring and no name.
+    rerender(<SkyWindow passes={[]} observer={observer} highlightedPassId={null} camera={camera} scene={{ stars: field }} />);
+    expect(q('[data-landmark-ring]')).toHaveAttribute('visibility', 'hidden');
+    expect(q('[data-landmark-name]')).toHaveAttribute('visibility', 'hidden');
+  });
+});
+
 describe('the placement and the rotation (D-751)', () => {
   beforeEach(() => {
     resetOrientationAccess();

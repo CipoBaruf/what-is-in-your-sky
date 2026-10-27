@@ -33,11 +33,21 @@ export interface PassNumbersProps {
   legendKey?: string | undefined;
   /** FR-LEG-3: the arc's colour token, for the swatch beside the key. */
   colorToken?: LegendColor | undefined;
+  /**
+   * R127 (FR-SKY-12, D-796): the `Among` / `Entre` column — the constellation each point is among, in the active
+   * language, `null` for a point past `AMONG_MAX_DEG` (drawn as `—`). The page computes it from the stars source
+   * (`constellationAt` at each point's own instant); absent while the source is not in hand, and then there is no
+   * column.
+   */
+  among?: Readonly<Record<(typeof POINTS)[number], string | null>> | undefined;
 }
 
 const POINTS = ['start', 'peak', 'end'] as const;
 
-export function PassNumbers({ pass, timeZone, legendKey, colorToken }: PassNumbersProps) {
+/** FR-SKY-12: a point no figure's line comes within `AMONG_MAX_DEG` of. */
+const NO_CONSTELLATION = '—';
+
+export function PassNumbers({ pass, timeZone, legendKey, colorToken, among }: PassNumbersProps) {
   const t = useT();
   const locale = useLocale();
   const numbers = t.guide.numbers;
@@ -63,6 +73,7 @@ export function PassNumbers({ pass, timeZone, legendKey, colorToken }: PassNumbe
               <th scope="col">{numbers.azimuth}</th>
               <th scope="col">{numbers.elevation}</th>
               <th scope="col">{numbers.range}</th>
+              {among !== undefined && <th scope="col">{numbers.among}</th>}
             </tr>
           </thead>
           <tbody>
@@ -73,6 +84,11 @@ export function PassNumbers({ pass, timeZone, legendKey, colorToken }: PassNumbe
                 <td>{t.guide.azimuth({ point: compassPoint(pass[key].azDeg), degrees: degrees(pass[key].azDeg) })}</td>
                 <td>{degrees(pass[key].elDeg)}</td>
                 <td>{formatRange(pass[key].rangeKm, locale)}</td>
+                {among !== undefined && (
+                  <td className={styles.among} data-among={among[key] ?? ''}>
+                    {among[key] ?? NO_CONSTELLATION}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

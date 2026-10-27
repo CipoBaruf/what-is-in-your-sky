@@ -26,7 +26,7 @@
  */
 
 /** What a shortcut does; also the message key for its description. */
-export type ShortcutId = 'next' | 'previous' | 'open' | 'close' | 'live' | 'stars' | 'view' | 'theme' | 'help';
+export type ShortcutId = 'next' | 'previous' | 'open' | 'close' | 'live' | 'stars' | 'view' | 'follow' | 'theme' | 'help';
 
 export interface Shortcut {
   id: ShortcutId;
@@ -51,6 +51,12 @@ export const SHORTCUTS: readonly Shortcut[] = [
   // R115 (FR-DESK-4 as amended v2.4, V24-1): a plain letter, as `l` is.
   { id: 'stars', keys: ['s'], label: 's' },
   { id: 'view', keys: ['v'], label: 'v' },
+  /*
+   * R127 (FR-DESK-4 as amended v2.5, FR-SKY-13; V25-11, D-797): a plain letter. It acts on the live page alone, where
+   * the window is in the box — `SkyWindow` listens for it there, through `shortcutFor`'s one guard — and `App`'s
+   * action for it does nothing, so the row is documented once and runs where the spec says.
+   */
+  { id: 'follow', keys: ['f'], label: 'f' },
   { id: 'theme', keys: ['n'], label: 'n' },
   { id: 'help', keys: ['?'], label: '?' },
 ];

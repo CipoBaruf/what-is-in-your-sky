@@ -17,8 +17,19 @@ import type { SkyScene } from './window/scene';
  */
 /** The picker's eight points, in the order the row shows them. */
 export const FACING_POINTS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const satisfies readonly CompassPoint[];
-/** What the picker can offer: a point, the zenith, or (the pass detail) the explained pass's peak. */
-export type FacingOption = (typeof FACING_POINTS)[number] | 'up' | 'peak';
+/**
+ * R127 (FR-SKY-13, D-797): the live page's option that follows a pass, by the
+ * pass's id — D-797's `{ pass: string }` written as a string, since the toggle
+ * group's values are strings (its `data-option`); `passFacing` and
+ * `facedPassId` are the two ends of it.
+ */
+export type PassFacing = `pass:${string}`;
+export const passFacing = (passId: string): PassFacing => `pass:${passId}`;
+/** The pass id a facing option follows, or `null` for a point, the zenith or the peak. */
+export const facedPassId = (option: string): string | null => (option.startsWith('pass:') ? option.slice('pass:'.length) : null);
+export const isPassFacing = (option: string): option is PassFacing => option.startsWith('pass:');
+/** What the picker can offer: a point, the zenith, (the pass detail) the explained pass's peak, or (the live page) the highlighted pass's key. */
+export type FacingOption = (typeof FACING_POINTS)[number] | 'up' | 'peak' | PassFacing;
 /** The stars page's and the live page's list: the eight points, then the zenith. */
 export const FACING_OPTIONS: readonly FacingOption[] = [...FACING_POINTS, 'up'];
 /** The pass detail's list (D-790): `peak` first, then the eight points and the zenith. */
@@ -301,6 +312,13 @@ export interface SkyChartProps {
    * points and the zenith. Read with `hand` by the window alone.
    */
   facingOptions?: readonly FacingOption[];
+  /**
+   * FR-SKY-13 / D-797 (R127): the live page's highlighted pass — the headline's — whose key the window's facing
+   * picker offers after `up` and `f` faces, in the box under the hand; the camera then follows the pass each tick
+   * until a drag, an arrow or another facing. Absent (the pass detail, the stars page, a screen) nothing is offered
+   * and `f` does nothing. The landmark (FR-SKY-11) does not read this: it is the scene's.
+   */
+  facingPassId?: string | null;
   /**
    * D-789 (R121 review): the page's `ChartHand`, for a page whose chart is
    * remounted while the page is not (the live page). Read by `SkyChart`
