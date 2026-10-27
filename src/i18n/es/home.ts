@@ -39,7 +39,7 @@ export const home: typeof EnHome = {
     },
   },
   whereFold: {
-    ready: (age) => `Listo sin conexión · elementos de ${age}`,
+    ready: (age) => `Listo sin red · elementos de ${age}`,
     elements: (age) => `Elementos de ${age}`,
   },
 };

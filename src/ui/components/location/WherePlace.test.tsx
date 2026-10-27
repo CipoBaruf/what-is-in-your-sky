@@ -225,7 +225,7 @@ describe('WherePlace folded (R130: FR-FLOW-2)', () => {
   it('Spanish: the status line in Spanish', () => {
     ready();
     render(<Folded locale="es" />);
-    expect(screen.getByTestId('where-status')).toHaveTextContent(/^Listo sin conexión · elementos de 4 d/);
+    expect(screen.getByTestId('where-status')).toHaveTextContent(/^Listo sin red · elementos de 4 d/);
     expect(screen.getByTestId('where-details')).toHaveTextContent('detalles');
   });
 

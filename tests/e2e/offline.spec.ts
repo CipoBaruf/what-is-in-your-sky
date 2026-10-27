@@ -293,8 +293,9 @@ test('offline: the readiness line, the three nights, and the soft failures (R27,
   await toggles.nth(closed).click();
   await expect(nights.nth(closed).locator('article[data-pass-id]').first()).toBeVisible();
 
-  // The line fits one row on a phone, in both languages.
+  // The line fits one row on a phone, in both languages; R130 (FR-FLOW-2): there it is behind the folded Where's `[ details ]`.
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByTestId('where-details').click();
   expect(await rows(readiness)).toBeLessThanOrEqual(1);
   await withSettings(page, async () => {
     await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
