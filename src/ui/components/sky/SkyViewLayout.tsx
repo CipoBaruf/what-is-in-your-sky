@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
-/* eslint-disable react/jsx-key -- the slots are keyed inside `slot()` */
 import { createPortal } from 'react-dom';
 import { useT } from '../../../i18n/useT';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
@@ -93,10 +92,8 @@ export function SkyViewLayout({ wide = 'rail', describedBy, className, ref, 'dat
   const register = useCallback((name: ChartSlotName, element: HTMLElement | null) => {
     setTargets((was) => {
       if ((was[name] ?? null) === element) return was;
-      const next = { ...was };
-      if (element === null) delete next[name];
-      else next[name] = element;
-      return next;
+      const { [name]: _gone, ...rest } = was;
+      return element === null ? rest : { ...rest, [name]: element };
     });
   }, []);
   const context = useMemo<SkyViewContextValue>(() => ({ shape, targets, register, describedBy }), [shape, targets, register, describedBy]);
@@ -201,6 +198,8 @@ export interface ChartSlot {
   shape: SkyViewShape | null;
   /** The drawing's text alternative on the page, for the figure's `aria-describedby`. */
   describedBy: string | undefined;
+  /** The slot's element on the page, where a part has been placed — for a query the chart used to run inside its figure. */
+  target: HTMLElement | null;
   /** The part, portaled into the page's slot — or nothing, while the slot is not on the page. */
   place: (node: ReactNode) => ReactNode;
 }
@@ -214,6 +213,7 @@ export function useChartSlot(name: ChartSlotName): ChartSlot {
       inLayout: layout !== null,
       shape: layout?.shape ?? null,
       describedBy: layout?.describedBy,
+      target,
       place: (node) => (target === null || node === null || node === undefined ? null : createPortal(node, target)),
     }),
     [layout, target],

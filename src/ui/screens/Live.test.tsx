@@ -323,10 +323,11 @@ describe('<LivePage>', () => {
     await within(screen.getByTestId('live-sky')).findByText(en.live.skyShort[expected.sky]);
     // FR-MOON-3 as amended: the Moon's phase and illumination are the list panel's Moon line, not the line's.
     expect(screen.queryByTestId('live-moon')).toBeNull();
-    const moonLine = figure.querySelector('[data-testid="chart-legend"] [data-body="moon"]');
+    // R132 (D-842): the legend is the layout's `list` slot, outside the figure.
+    const moonLine = container.querySelector('[data-testid="chart-legend"] [data-body="moon"]');
     if (moonLine !== null) expect(moonLine).toHaveTextContent(`${String(Math.round(expected.moon.illuminatedFraction * 100))} %`);
     // R45 (FR-DOME-6 as amended): the Sun is a glow in the raster and a legend line, not a caption in the drawing.
-    expect(figure.querySelector('[data-testid="chart-legend"] [data-body="sun"]') !== null).toBe(expected.sun.altDeg > -18 && expected.sun.altDeg < 0);
+    expect(container.querySelector('[data-testid="chart-legend"] [data-body="sun"]') !== null).toBe(expected.sun.altDeg > -18 && expected.sun.altDeg < 0);
     expect(figure.querySelector('[data-anchor="sun"]')).toBeNull();
     expect(await axe(container)).toHaveNoViolations();
     // R77 (FR-WATCH-4): the stripe is the scrubbing state's; held at the same instant, it draws the pass under way.
@@ -497,17 +498,25 @@ describe('<LivePage>', () => {
    * and the page carries no column count at all. This fails on the old rule at
    * 964 and 1280, where the frame stacked and the page kept its own row.
    */
-  it('gives the side column to the chart at every wide width, and keeps it in the page on compact', () => {
+  /**
+   * R132 (FR-FLOW-4, D-842): the page is `SkyViewLayout`'s at every width — the column on compact, the box beside the
+   * layout's own rail on wide, where the frame cuts the box inside the drawing slot (`stacked`, the dome's aspect)
+   * and carries no aside of its own any more (R61's D-312 rail is the layout's).
+   */
+  it('is the layout’s column on compact and its box and rail at every wide width, the frame cutting the box inside the slot', () => {
     withSky();
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'true');
-    expect(screen.getByTestId('live-page')).not.toHaveAttribute('data-columns');
-    expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).toBeNull();
+    expect(screen.getByTestId('live-page')).toHaveAttribute('data-column', 'true');
+    expect(screen.getByTestId('live-layout')).toHaveAttribute('data-shape', 'column');
     // R92 (D-529): a cell of the page's grid, through the `display: contents` main.
-    expect(screen.getByTestId('live-side').parentElement).toBe(screen.getByRole('main'));
+    expect(screen.getByTestId('live-layout').parentElement).toBe(screen.getByRole('main'));
     expect(screen.getByRole('main').parentElement).toBe(screen.getByTestId('live-page'));
+    // FR-FLOW-4's order on compact: the headline, the view row, the readout, the drawing, the picker, the hint, the actions, the list.
+    expect([...screen.getByTestId('live-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'))).toEqual(['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint', 'action', 'list']);
+    expect(within(screen.getByTestId('live-layout').querySelector('[data-slot="action"]') as HTMLElement).getByTestId('live-actions')).toBeInTheDocument();
     unmount();
-    // D-386: 964, 1280 and 1660 are one layout — the rail beside the cut box, the page two rows.
+    // D-386: 964, 1280 and 1660 are one layout — the rail beside the cut box.
     for (const [width, height] of [
       [WIDE_MIN_PX, 700],
       [1280, 800],
@@ -516,33 +525,24 @@ describe('<LivePage>', () => {
       media?.restore();
       media = stubMatchMedia(width, height);
       const wide = render(<LivePage link={null} onLeave={() => undefined} />);
-      expect(screen.getByTestId('live-page'), `${String(width)} px carries no column count`).not.toHaveAttribute('data-columns');
-      expect(screen.getByTestId('live-dome')).not.toHaveAttribute('data-columns');
-      expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]'), `the rail at ${String(width)} px`).not.toBeNull();
-      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
-      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'false');
+      expect(screen.getByTestId('live-page'), `${String(width)} px`).toHaveAttribute('data-column', 'false');
+      expect(screen.getByTestId('live-layout'), `the rail at ${String(width)} px`).toHaveAttribute('data-shape', 'rail');
+      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'false');
+      expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
       expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
+      // The rail's order: the answer, the view row, the facing row, the legend and the conditions, the foot.
+      expect([...screen.getByTestId('live-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'))).toEqual(['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint', 'list', 'foot']);
       wide.unmount();
     }
-    // …and the one-column block is out of the stylesheet with the rule it drew (D-386).
-    expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).not.toMatch(/\.page\[data-compact='false'\]\[data-columns='one'\]/);
     media?.restore();
     media = stubMatchMedia(1660, 1080);
     render(<LivePage link={null} onLeave={() => undefined} />);
-    // The fluid rail is 26 % of the frame between 44 and 60 cells, so its share falls as the page grows (D-313); the page's third row goes with the rows that moved.
-    expect(readFileSync('src/ui/components/guide/skychart/ChartFrame.module.css', 'utf8')).toMatch(
-      /\[data-aside='true'\] \{\n\s+grid-template-columns: auto minmax\(0, 1fr\) clamp\(calc\(44 \* var\(--cell\)\), 26%, calc\(60 \* var\(--cell\)\)\);/,
-    );
-    expect(readFileSync('src/ui/screens/Live.module.css', 'utf8')).toMatch(/\.page\[data-compact='false'\] \{\n\s+grid-template-areas:\n\s+'top'\n\s+'dome';/);
-    // R61 (D-314, D-315): the box is cut to the dome's aspect, and the stripe block is the frame's row under it —
-    // R77 (FR-WATCH-4): while scrubbing; watching there is no block, and no stripe row for the frame to cut.
-    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
+    // R77 (FR-WATCH-4): watching there is no scrub block; scrubbing it is the rail's foot (FR-FLOW-4 wide: the stripe and the actions).
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
     expect(screen.queryByTestId('stripe-block')).toBeNull();
     scrub();
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
-    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('live-rail-foot'));
   });
 
   /**
@@ -642,36 +642,33 @@ describe('<LivePage>', () => {
    * chart is handed the dome's aspect so the frame cuts the box to it. Compact keeps both in the page: a phone
    * never has a cut box, and its stripe is a row of the page under the drawing as it has been since R48.
    */
-  it('puts the stripe block under the box on wide at every width, hands the chart the dome\'s aspect there, and keeps both in the page on compact', () => {
+  it('puts the stripe block at the rail’s foot on wide at every width, hands the chart the dome’s aspect there, and keeps it in the column’s foot on compact', () => {
     withSky();
     media = stubMatchMedia(1920, 1080);
     render(<LivePage link={null} onLeave={() => undefined} />);
     scrub();
-    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
-    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
-    // R77 (FR-WATCH-4): the rail's head and foot — the conditions in the head, the actions at the foot.
-    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-rail-head', 'live-rail-foot']);
-    expect(within(screen.getByTestId('live-rail-head')).getByTestId('status-strip')).toBeInTheDocument();
-    expect([...screen.getByTestId('live-rail-foot').children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-actions']);
-    // The narrowest wide page: the same stripe row, the same rail (R71, D-386).
+    // R132 (FR-FLOW-4 wide): the rail's head is the answer — the indicator line and the headline; the conditions follow the legend in the list; the foot is the scrub block and the actions.
+    expect(screen.getByTestId('live-rail-head').closest('[data-slot]')).toHaveAttribute('data-slot', 'answer');
+    expect(screen.getByTestId('status-strip').closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
+    expect(screen.getByTestId('live-rail-foot').closest('[data-slot]')).toHaveAttribute('data-slot', 'foot');
+    expect([...screen.getByTestId('live-rail-foot').children].map((el) => el.getAttribute('data-testid'))).toEqual(['stripe-block', 'live-actions']);
+    // The narrowest wide page: the same foot, the same rail (R71, D-386).
     act(() => {
       media?.setSize(WIDE_MIN_PX, 700);
     });
-    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'false');
-    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
-    expect(screen.getByTestId('live-side').closest('[data-testid="chart-aside"]')).not.toBeNull();
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'true');
-    // Compact: no cut box, no stripe row; the block is a row of the page's own side column.
+    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('live-rail-foot'));
+    expect(screen.getByTestId('live-layout')).toHaveAttribute('data-shape', 'rail');
+    // Compact: no cut box; the block is the column's foot, after the actions (FR-FLOW-4: "the page's primary action … then the stripe").
     act(() => {
       media?.setSize(390, 3000);
     });
-    expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
+    expect(screen.getByTestId('live-layout')).toHaveAttribute('data-shape', 'column');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'false');
     expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stripe', 'false');
-    expect(screen.getByTestId('time-stripe').closest('[data-testid="live-side"]')).not.toBeNull();
+    expect(screen.getByTestId('time-stripe').closest('[data-slot]')).toHaveAttribute('data-slot', 'foot');
   });
 
   /**
@@ -688,22 +685,24 @@ describe('<LivePage>', () => {
     // Compact, no touch: the toggle is on the actions row, the playback row is the page's own, and — R77
     // (FR-WATCH-4) — the rows under the box are the conditions, the overview, the stripe, the stepping row, the
     // playback row and the actions, with the held instant in the headline's place above the box.
+    // R132 (FR-FLOW-4): the actions are the `action` slot, the conditions and the overview the `list`, the stripe block the `foot`.
     expect(within(screen.getByTestId('live-actions')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
-    expect(screen.getByTestId('playback-row').parentElement).toBe(screen.getByTestId('live-side'));
-    expect([...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'))).toEqual(['status-strip', 'overview-row', 'time-stripe', 'step-controls', 'playback-row', 'live-actions']);
-    expect(within(screen.getByTestId('live-head')).getByTestId('time-readout')).toBeInTheDocument();
+    expect(screen.getByTestId('playback-row').parentElement).toBe(screen.getByTestId('stripe-block'));
+    expect([...(screen.getByTestId('live-layout').querySelector('[data-slot="list"]')?.children ?? [])].map((el) => el.getAttribute('data-testid') ?? el.getAttribute('data-chart-slot'))).toEqual(['list', 'status-strip', 'overview-row']);
+    expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-stripe', 'step-controls', 'playback-row']);
+    expect(within(screen.getByTestId('live-rail-head')).getByTestId('time-readout')).toBeInTheDocument();
     unmount();
     media = stubMatchMedia(1280, 800);
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 1 });
     render(<LivePage link={null} onLeave={() => undefined} />);
     scrub();
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
-    // The rail is the sky's: the conditions at its head, the actions at its foot, the toggle among them.
-    expect(within(screen.getByTestId('live-rail-head')).getByTestId('status-strip')).toBeInTheDocument();
+    // The rail is the sky's: the conditions after the legend in the list, the actions at its foot, the toggle among them.
+    expect(screen.getByTestId('status-strip').closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
     expect(within(screen.getByTestId('live-rail-foot')).getByTestId('live-actions')).toBeInTheDocument();
     expect(within(screen.getByTestId('live-actions')).getByTestId('live-hidden-toggle')).toBeInTheDocument();
-    // The stripe block is the frame's row under the box (D-315): the time row — the readout and the playback row — the overview, the stripe, the stepping row.
-    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('chart-stripe'));
+    // R132: the stripe block is the rail's foot: the time row — the readout and the playback row — the overview, the stripe, the stepping row.
+    expect(screen.getByTestId('stripe-block').parentElement).toBe(screen.getByTestId('live-rail-foot'));
     expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-row', 'overview-row', 'time-stripe', 'step-controls']);
     expect([...screen.getByTestId('time-row').children].map((el) => el.getAttribute('data-testid'))).toEqual(['time-readout', 'playback-row']);
     expect(within(screen.getByTestId('playback-row')).getByRole('button', { name: 'Play' })).toBeInTheDocument();
@@ -714,15 +713,19 @@ describe('<LivePage>', () => {
    * chart's view row, after the control (the actions rows are full, FR-COMP-7), on wide on the actions row in both states;
    * a press turns the stars off and the prefs remember it.
    */
-  it('offers [ stars ], on by default, on the view row on compact and on the actions row on wide, and remembers a press', () => {
+  it('offers [ stars ], on by default, at the end of the view row on compact and on wide, and remembers a press', () => {
     withSky();
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
     const toggle = screen.getByTestId('stars-toggle');
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
     expect(toggle).toHaveAccessibleName(en.live.starsToggleName);
     expect(toggle).toHaveTextContent(en.live.starsToggle);
-    expect(within(screen.getByTestId('chart-view-row')).getByRole('group', { name: en.chart.viewGroup })).toBeInTheDocument();
-    expect(toggle.parentElement).toBe(screen.getByTestId('chart-view-row'));
+    // R132 (FR-FLOW-4, D-846): the view row is the layout's slot — the control in the picker's idiom, `[x] stars` last.
+    const viewRow = toggle.closest('[data-slot="viewRow"]') as HTMLElement;
+    expect(viewRow).not.toBeNull();
+    const control = within(viewRow).getByRole('group', { name: en.chart.viewGroup });
+    expect(within(control).getAllByRole('button').map((b) => b.textContent)).toEqual(['Polar', 'Dome', 'Window']);
+    expect(viewRow.lastElementChild).toBe(toggle);
     expect(within(screen.getByTestId('live-actions')).queryByTestId('stars-toggle')).toBeNull();
     fireEvent.click(toggle);
     expect(screen.getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
@@ -731,10 +734,12 @@ describe('<LivePage>', () => {
     unmount();
     media = stubMatchMedia(1280, 800);
     render(<LivePage link={null} onLeave={() => undefined} />);
-    expect(within(screen.getByTestId('live-actions')).getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('stars-toggle').closest('[data-slot]')).toHaveAttribute('data-slot', 'viewRow');
+    expect(screen.getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getAllByTestId('stars-toggle')).toHaveLength(1);
+    expect(within(screen.getByTestId('live-actions')).queryByTestId('stars-toggle')).toBeNull();
     scrub();
-    expect(within(screen.getByTestId('live-actions')).getByTestId('stars-toggle')).toBeInTheDocument();
+    expect(screen.getByTestId('stars-toggle').closest('[data-slot]')).toHaveAttribute('data-slot', 'viewRow');
   });
 
   /** R48 (FR-TRAJ-1, FR-TRAJ-3, US-22 AC1..AC3, D-189): the arcs appear, grow and fade with the shown instant, and the legend says the same. */
@@ -789,9 +794,10 @@ describe('<LivePage>', () => {
     const stripe = screen.getByTestId('time-stripe');
     // R77 (FR-WATCH-2): the readout is the scrubbing headline, above the box; the rows under it keep D-389's
     // order — the overview, the stripe, the stepping row.
-    const readout = within(screen.getByTestId('live-head')).getByTestId('time-readout');
-    const under = [...screen.getByTestId('live-side').children].map((el) => el.getAttribute('data-testid'));
-    expect(under.slice(under.indexOf('overview-row'), under.indexOf('overview-row') + 3)).toEqual(['overview-row', 'time-stripe', 'step-controls']);
+    // R132 (FR-FLOW-4): the readout is the answer slot's; the overview is the list's and the stripe with the stepping row the foot's.
+    const readout = within(screen.getByTestId('live-rail-head')).getByTestId('time-readout');
+    expect(screen.getByTestId('overview-row').closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
+    expect([...screen.getByTestId('stripe-block').children].map((el) => el.getAttribute('data-testid')).slice(0, 2)).toEqual(['time-stripe', 'step-controls']);
     expect(readout).toHaveTextContent(/^09:48 · \+0 min$/);
     expect(readout).toHaveAttribute('data-today', 'true');
     // Four hours on, and back to the minute: the chunk arrows and the fine step.
@@ -1161,10 +1167,12 @@ describe('<LivePage>', () => {
         expect(screen.queryByTestId('chart-stripe')).toBeNull();
         expect(screen.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'false');
       } else {
-        const rail = within(screen.getByTestId('live-side'));
-        for (const id of ['time-row', 'status-strip', 'overview-row', 'time-stripe', 'step-controls', 'playback-row', 'live-actions']) expect(rail.getByTestId(id)).toBeInTheDocument();
-        // Nothing but the frame is in the dome's column, in either state: no headline row above it.
-        expect(screen.queryByTestId('live-head')).toBeNull();
+        // R132 (FR-FLOW-4, D-842): the landscape phone is the layout's rail form — the rows are its slots, none in the drawing's.
+        const layout = screen.getByTestId('live-layout');
+        expect(layout).toHaveAttribute('data-shape', 'rail');
+        for (const id of ['time-row', 'status-strip', 'overview-row', 'time-stripe', 'step-controls', 'playback-row', 'live-actions']) {
+          expect(screen.getByTestId(id).closest('[data-slot]')?.getAttribute('data-slot'), id).not.toBe('drawing');
+        }
         expect(within(screen.getByTestId('live-top-row')).queryByTestId('live-indicator')).toBeNull();
       }
 
@@ -1513,7 +1521,9 @@ describe('<LivePage>', () => {
       await Promise.resolve();
     });
     // R45 (FR-LEG-1): the reason is a legend row; the drawing carries the dimmed position and the row's key.
-    const legend = within(screen.getByTestId('live-dome')).getByTestId('chart-legend');
+    // R132 (D-842): the legend is the layout's `list` slot's, not the dome row's.
+    const legend = screen.getByTestId('chart-legend');
+    expect(legend.closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
     expect(within(legend).getByText('Envisat · in shadow')).toBeInTheDocument();
     const tiangongKey = within(legend).getByText('Tiangong · too faint').closest('button')?.getAttribute('data-key');
     expect(tiangongKey).toMatch(/^[A-Z]$/);

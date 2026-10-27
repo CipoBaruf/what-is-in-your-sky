@@ -92,7 +92,7 @@
 
 /* FR-COMP-5's rule, the layout's: a `fill` chart in the column is never shorter than wide, whichever way the phone is held. */
 .layout[data-shape='column'] .drawing {
-  min-height: var(--sky-drawing-floor, 0px);
+  min-height: var(--sky-drawing-floor, 0);
 }
 
 /* --- The rail: the box at the left, the rail at the right, the readout on the box's corner, the hint under the box
@@ -161,7 +161,7 @@
   grid-area: drawing;
   align-self: start;
   justify-self: start;
-  z-index: 1;
+  z-index: var(--z-raised);
   margin-top: 0;
   max-width: 100%;
   box-sizing: border-box;

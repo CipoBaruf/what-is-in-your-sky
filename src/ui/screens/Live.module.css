@@ -1,22 +1,15 @@
-/* R32 (FR-LIVE-1): the live page is exactly one viewport high and never
-   scrolls: the controls row, the dome taking every row left, then (R33) the
-   side column — the status strip, the stripe block and the two control rows
-   (R48's order, FR-LIVE-7 as amended). Two cells of side padding, like the
-   frame the rest of the app draws in; no 80-cell cap, because the dome is the
-   point. `minmax(0, 1fr)` so the dome row can shrink below its content and
-   the grid bounds it (D-119's lesson). The gaps are a quarter row: the stripe
-   took a row from the dome at 390 px and the gaps give half of it back
-   (D-162's loose end).
+/* R32 (FR-LIVE-1): the live page. R132 (FR-FLOW-4, FR-FLOW-6; D-842): the page is the top row and, under it,
+   `SkyViewLayout` — the column on a portrait phone (the headline, the view row, the readout, the box, the facing
+   row, the hint, the actions, the legend and the conditions, then the stripe block while scrubbing), the box
+   beside the rail on wide and on the landscape phone. The layout owns the order and the gaps; this file lays out
+   the page's own rows — the headline, the conditions, the stripe block, the actions, the rail's head and foot —
+   and the page's two heights: one viewport high wherever there is a rail, a column that scrolls past the box on
+   the portrait phone. Two cells of side padding, like the frame the rest of the app draws in. `minmax(0, 1fr)`
+   tracks throughout, so a row wider than the phone cannot widen the page (R71, `tests/e2e/narrow.spec.ts`).
 
-   R34 (FR-LIVE-7, D-173): on a landscape phone the same three areas go
-   sideways — the top row across the top, the dome on the left with every row
-   under it, the side column on the right — by a media query and not a device
-   sniff (PLAN §8.8). Portrait keeps the stack above, unchanged.
-
-   R48 (FR-COMP-5, D-244): the portrait rows are re-cut — one top row, the
-   strip, the stripe block (a heading row, three stripe rows, a stepping row)
-   and two control rows — and the chart's floor (never shorter than wide) is
-   back on: at 390 × 844 the rows leave the dome about 400 px, its width. */
+   R69 (FR-SHP-1, FR-SHP-2; F-65; D-379): the shape is `usePageShape`'s and the mode `useLayoutMode`'s, both
+   written on the page (`data-shape`, `data-compact`), and the one `@media` block below names the mode in its
+   selector (`tests/styles/liveShape.test.ts`). */
 .page {
   height: 100dvh;
   box-sizing: border-box;
@@ -24,165 +17,57 @@
   display: grid;
   grid-template-areas:
     'top'
-    'head'
-    'dome'
-    'side';
-  /* The one column is `minmax(0, 1fr)` and not the implicit `auto`: an `auto` track cannot go under its
-     content's minimum, so a row wider than the phone — 36 cells is FR-COMP-4's budget, and a 360 px screen
-     has 32.4 of them once the page's two-cell padding is off — widens the track past the page's content box,
-     and the full-bleed drawing (`ChartFrame.module.css`, D-187) then breaks out from a pane that is already
-     too wide and the whole page scrolls sideways. Measured at 360 x 800 in WebKit: the track 326.4 where the
-     content box is 320.4, the drawing 366 in a 360 px viewport. `tests/e2e/narrow.spec.ts` holds it. */
+    'body';
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-  gap: calc(var(--row) / 4);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-3);
   background: var(--bg);
   color: var(--fg);
 }
 
-/* D-173: a landscape phone is a viewport wider than tall and under 500 px
-   high — a desktop is wider than tall too, and keeps the stack (its dome has
-   the height to spare, D-161). The top row spans both columns: at 82 cells it
-   is one line, where inside the side column it was three of the 48 px rows
-   every button is (G6) and pushed the strip below the fold. The side column
-   takes three fifths of the width — 49 cells at 844 px, where the playback
-   controls are three lines and the strip four, and the whole column fits the
-   324 px under the top row in English — and the dome the rest: its zoom
-   follows the shorter side of its box (D-161), so width past the height buys
-   only label margin. The side column scrolls itself where the strip wraps
-   past the viewport (Spanish, a smaller phone; D-119), so the page never does.
+/* R132 (FR-FLOW-4): the portrait phone's column scrolls past its box (the box is the frame's floor, never shorter
+   than wide, FR-COMP-5); the page is as tall as its rows and at least the viewport. */
+.page[data-column='true'] {
+  height: auto;
+  min-height: 100dvh;
+}
 
-   R69 (FR-SHP-1, FR-SHP-2; F-65; D-379): the shape is the media query and
-   the mode is the selector, and this block has both. It used to match `.page`
-   alone, on the assumption the comment above states — a landscape phone is
-   compact — and a wide window dragged under 500 px is landscape too: it took
-   these two column tracks while `.page[data-compact='false']`'s one-column
-   areas won on specificity, and the whole page was drawn inside the `2fr`
-   column with a drawing of zero height and a scrollbar (F-65, 1200 × 450).
-   Every rule here is the compact page's now, said in the selector, so a short
-   wide window keeps the desktop layout with a smaller box (FR-SHP-3).
-   `tests/styles/liveShape.test.ts` holds it: no `@media` block in this file
-   has a selector without `[data-compact=`, and no block re-cuts one half of
-   the grid without the other. */
+.layout {
+  grid-area: body;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* R66 (F-63, FR-COMP-5 and FR-LIVE-7 as amended v1.3.1, D-355): full-bleed is the pane's, not the viewport's. On
+   the landscape phone the box is the left column of the layout's two, with no page padding under it to escape, so
+   the frame's negative margin (`ChartFrame.module.css`, D-187) is told there is nothing to break out of. The mode
+   is in the selector with the shape (FR-SHP-1, D-379). */
 @media (orientation: landscape) and (height <= 500px) {
-  .page[data-compact='true'] {
-    /* R78 (FR-WATCH-5): two areas under the top row — the dome's column and the rail. The headline is the
-       rail's own second row (`Live.tsx` renders it inside the rail at this shape), so the dome's column is one
-       track in both states and the drawing cannot move between them. */
-    grid-template-areas:
-      'top top'
-      'dome side';
-    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-    grid-template-rows: auto minmax(0, 1fr);
-    column-gap: calc(2 * var(--cell));
-  }
-
-  /* R66 (F-63, FR-COMP-5 and FR-LIVE-7 as amended v1.3.1, D-355): full-bleed is
-     the pane's, not the viewport's. The compact chart box breaks out of the
-     page's side padding with a negative margin of `--page-pad-x` on each side
-     (`ChartFrame.module.css`, D-187), which is right in portrait, where this
-     pane is the whole page. Here it is the left column of a two-column grid,
-     with no page padding under it to escape: the drawing came out one padding
-     wider than its pane on each side and lay over the status strip and the
-     stripe in the column beside it — 19 px off the left edge of the page and
-     15 px into the strip at 844 x 390. The pane says there is nothing to break
-     out of, and the box is the column's width. */
   .page[data-compact='true'] .dome {
     --page-pad-x: 0px;
   }
-
-  .page[data-compact='true'] .side {
-    overflow-y: auto;
-  }
-
-  /* R78 (FR-WATCH-5): the rail scrolls, it does not squeeze. Its rows are flex items, and one that clips its own
-     overflow (the conditions line) has no minimum to stop at: where scrubbing's rows came to a few pixels more
-     than the rail, the line gave them up and its clock lost its descenders (measured at 844 x 390 with touch:
-     a 24 px line holding a field 26 px tall). Every row keeps its height and the rail's own scroll takes the rest. */
-  .page[data-compact='true'] .side > * {
-    flex-shrink: 0;
-  }
-}
-
-/* The strip, the stripe block and the control rows, stacked with the page's gap. */
-.side {
-  grid-area: side;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--row) / 4);
 }
 
 /* R48 (FR-TRAJ-4, FR-TRAJ-5): the readout, the stripe and the stepping row, one block. */
 .stripeBlock {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--row) / 4);
+  gap: var(--space-1);
 }
 
-/* R59 (FR-LIVE-7 as amended v1.2, F-55, D-281): one spacing token under the box
-   on compact. The rows the requirement names — the facing readout inside the
-   frame, the status strip, the clock readout, the stripe and the stepping row —
-   were spaced by four separate quarter-row rules that added up (the page's gap,
-   the column's, the block's, the frame's, and the strip's own padding), and on
-   a 667 px phone the sum was what pushed the drawing past the rows under it.
-   They take it from here now: `--live-row-gap` is a sixth of a row, and
-   `StatusStrip.module.css` reads the same property for the air above its rule.
-
-   The frame's gap is in this list because the facing readout is one of the
-   rows: it sits under the drawing inside the frame, so the space above it is
-   the frame's own. `[data-fill]` is the live chart's frame (`ChartFrame` sets
-   it), reached from here rather than by editing the chart's stylesheet: the
-   spacing under the box is the live page's arithmetic, and every other page
-   the frame draws on keeps the half row it had. */
+/* R59 (FR-LIVE-7 as amended v1.2, F-55, D-281): one spacing token for the rows under the box on compact; the
+   layout's own gaps are its slots' (`SkyViewLayout.module.css`). */
 .page[data-compact='true'] {
   --live-row-gap: calc(var(--row) / 6);
-  gap: var(--live-row-gap);
-  /* …and `--chart-floor-on`, the switch the block below explains, set here so the compact page
-     states its own variables in one place. */
-  --chart-floor-on: 0;
+  /* `--chart-floor-on` (D-233): the frame's floor is on — the column scrolls, so the box may be as tall as it is wide. */
+  --chart-floor-on: 1;
 }
 
-.page[data-compact='true'] .side,
-.page[data-compact='true'] .stripeBlock,
-.page[data-compact='true'] .dome [data-fill='true'] {
-  gap: var(--live-row-gap);
-}
-
-/* …and the box is what gives last (D-281). `--chart-floor` (D-187) is the
-   frame's measured width, and `ChartFrame.module.css` applies it as a hard
-   minimum on both the drawing and its track. Where the rows leave less than
-   that, a hard minimum is not a floor but an overflow: the frame's grid grew
-   past its own box and every row of the frame under the drawing — the facing
-   readout — landed on the rows of the page beneath it, which is what F-55 saw
-   on a 390 × 667 phone. And the rows do leave less than that: on a phone the
-   view control is two 48 px rows (three views, FR-WIN-1) and the legend four,
-   so the box's own frame takes some 190 px before the page's rows are counted.
-
-   `--chart-floor-on` is the page's switch, and this is the case it was put
-   there for (D-233): "a page whose rows do not yet leave the box its width
-   sets it to 0 rather than have the drawing spill over the rows under it". So
-   the page turns it off and the floor becomes the page's own `minmax(0, 1fr)`
-   dome row — every pixel the rows leave, which is more than the frame's width
-   where there is room for it and everything that is left where there is not.
-   Nothing overlaps at either phone height, and the page does not scroll
-   (`live-compact.spec.ts`). */
-
-/* R61 (FR-LIVE-7 as amended v1.2.1, V12-13, D-318): on wide the clock readout and the playback controls share
-   one row above the stripe, under the dome — the controls beside the instant they set. The readout keeps its
-   heading size; the controls sit on its baseline, two cells off, and wrap under it in a box too narrow for both. */
-/* R70 (FR-SPAN-2): the overview's row — one row of body-size cells above the
-   stripe, the width of the block. It is the first row of FR-SHP-3's fold
-   order (D-389): under the box's floor the whole span goes and the four hours
-   the stripe draws stay, which is the row a short window can most afford to
-   lose. */
+/* R70 (FR-SPAN-2): the overview's row — one row of body-size cells above the stripe, the width of the block. */
 .overviewRow {
   display: block;
   height: var(--row);
 }
-
-/* R78 (FR-WATCH-6, FR-SHP-3 as amended v2.0): the overview does not fold. Where the scrub block would take the
-   box under its floor the block is a bar over the drawing and the overview is the rail's, in both states. */
 
 .timeRow {
   display: flex;
@@ -199,74 +84,13 @@
   gap: 0 calc(2 * var(--cell));
 }
 
-/* R61 (FR-LIVE-7 as amended v1.2, D-312, F-59): wide is two columns, not
-   stacked rows. R54 folded the rows under the box from five to two and gave
-   the box the three it saved; the box was still the whole width of the page,
-   and the drawing cannot be: it is 2.16 world units across and 1.53 tall at
-   the default tilt, about 1.41 : 1, in a box that is 1.96 : 1 at 1920 x 1080
-   and wider still above it. D-187 sizes it from the shorter side, so the
-   height set it and a third of the width was left blank at every desktop size
-   (F-59, measured: 65 % of the box at 1280, 66 % at 1920, 69 % at 3840).
-
-   So the side column moves beside the box instead of under it — `Live.tsx`
-   hands it to the chart, which places it in the column it already keeps for
-   the legend (`aside`, D-312) — and the rows it took go to the box: 833 px
-   tall to 960 at 1920 x 1080, in a column 1356 px wide, which is the drawing's
-   own shape and a drawing that covers 90 % of it. The column's own rules are
-   the stacked ones above, which is what a 44-cell column wants: the strip
-   wraps, the stripe block stacks its readout over its stripe, and the
-   playback row wraps its speeds — the same arrangement a phone gets, at the
-   width the rail has. Nothing here is a media query: `data-compact` is
-   `useLayoutMode`'s answer (FR-DESK-1's 100 cells), and the landscape phone
-   (D-173) is compact and keeps its own two columns.
-
-   The page's third row goes with the rows: on wide the page is the top row
-   and the box, and the box is `minmax(0, 1fr)` as before. */
-.page[data-compact='false'] {
-  grid-template-areas:
-    'top'
-    'dome';
-  grid-template-rows: auto minmax(0, 1fr);
-}
-
-/* R71 (FR-LEG-6, V14-4, D-386): the one-column wide page — R61's
-   `[data-columns='one']` block, its third grid row and the row rules that laid
-   the status strip and the actions out on one line under the frame — is gone
-   with `LIVE_TWO_COLUMN_MIN_PX`. There is one wide layout: the rule above, the
-   box and the rail, at every wide width. The rail's own column stacks its rows,
-   which is what the `.side` rules at the top of this file already do. */
-
-/* R69 (FR-SHP-3, FR-SHP-4; F-65; D-381, D-389): the wide page on a window too
-   short for the box's floor. `Live.tsx` writes `data-fold` from
-   `lib/layout.ts`'s `foldRows` — the rows under the box that fold at this
-   height, in FR-SHP-3's order — and these rules are the folding. Nothing here
-   is a media query: the mode is `data-compact` and the fold is the page's own
-   attribute, so the compact page (which keeps its own rules, FR-LIVE-7 as
-   amended v1.2) matches none of it.
-
-   Two things happen under the floor. The rows the page keeps let their air
-   out: the gaps take the compact page's spacing token, and every control
-   around the box — the return control and the switches on the top row, the
-   view control on the frame's row, the playback controls on the time row, the
-   actions — keeps its 48 px hit box by D-246's device (vertical padding and
-   the matching negative margin) while its row is one text row, so four rows
-   of 48 are four rows of 24. That is what the arithmetic needs: the actions
-   row alone is 48 px against a floor the box misses by 85 at 1200 × 450
-   (spec §4.20 F-65: a 107 px box under 343 px of rows). And the row the
-   order names folds: the actions join the status strip's line — the strip's
-   `dl` becomes `display: contents`, so its five fields and the two actions
-   flow as one wrapped line under the rule the side column now draws. */
-/* R78 (FR-WATCH-6, FR-SHP-3 as amended v2.0; D-448): the fold is decided from
-   what the chart's frame has measured for the box, not from the viewport, and
-   its order is `controls` — everything in the paragraph above about air — then
-   `actions`, the rail's two rows as one wrapped line. `[data-fold]` is any fold,
-   so it is the first step; the overview is not in the order any more. The
-   scrub block at these heights is the frame's bar over the drawing
-   (`ChartFrame.module.css` `.bottomOverlay`): its rows are laid out by the rules
-   below like any other, one text row each, and nothing here sizes the box. */
+/* R69 (FR-SHP-3, FR-SHP-4; F-65; D-381, D-389) → R78 (D-448): the wide page on a window too short for the box's
+   floor lets its air out — `Live.tsx` writes `data-fold` from `lib/layout.ts`'s `foldRows` — and every control
+   around the box keeps its 48 px hit box by D-246's device while its row is one text row. R132: the rail is the
+   layout's, so the `actions` fold (the rail's rows as one wrapped line) is gone with the frame's aside; R133
+   sizes the box and R136 the short shapes. */
 .page[data-compact='false'][data-fold] {
   --live-row-gap: calc(var(--row) / 6);
-  gap: var(--live-row-gap);
   /* The last line's hit boxes overhang their row by half a row (D-246's negative margin), and an overhang past
      the page's bottom is a scrollbar: the padding under the page is that half row while the fold is on. */
   padding-bottom: calc(var(--row) / 2);
@@ -274,11 +98,6 @@
 
 .page[data-compact='false'][data-fold] .stripeBlock {
   gap: var(--live-row-gap);
-}
-
-/* Only the frame's row gap: on two columns its column gap is the rail's, not a row's. */
-.page[data-compact='false'][data-fold] .dome [data-fill='true'] {
-  row-gap: var(--live-row-gap);
 }
 
 .page[data-compact='false'][data-fold] button {
@@ -297,51 +116,9 @@
   gap: 0;
 }
 
-/* R78: …and where the actions wrap — Spanish, in a 44-cell rail — their lines stand a row apart. A folded
-   control is one text row with a 48 px hit box (D-246), so on two lines a row apart the lower one's hit box
-   lay over the upper one's text and took its taps (seen at 1200 x 450: `[ Compartir este cielo ]` over
-   `[ recorrer la noche ]`). One line, as in English, costs nothing. */
+/* R78: …and where the actions wrap — Spanish, in a 44-cell rail — their lines stand a row apart, so no hit box lies over the line above. */
 .page[data-compact='false'][data-fold] .actions {
   row-gap: var(--row);
-}
-
-/* FR-SHP-3's row: the actions join the strip's line — the rail's two rows read
-   as one wrapped line at the box's right while the window is too short for the
-   rows under it. R71 (D-386) took away the one-column `.side` rule this used to
-   replace at equal weight; it is the only rule that lays the column out sideways
-   now, and it still needs none of the weight that rule had. */
-.page[data-compact='false'][data-fold~='actions'] .side {
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  align-items: baseline;
-  gap: 0 calc(3 * var(--cell));
-}
-
-/* R105 (D-720): the rule above that line is a `Rule` the page renders first in the folded rail — a line of its
-   own at the rail's whole width, with the row gap that was the rail's padding under it. */
-.sideRule {
-  flex: 0 0 100%;
-  margin-bottom: var(--live-row-gap);
-}
-
-/* R77: the rail's head and foot wrappers join the line too, so the fields and the actions still flow as one. */
-.page[data-compact='false'][data-fold~='actions'] .side :is(.railHead, .railFoot, .indicatorLine, dl) {
-  display: contents;
-}
-
-/* R78 (FR-WATCH-6): …and the overview, which does not fold, is a line of its own under that flow — the rail's
-   whole width, in both states. Ordered last, so the actions still ride on the conditions' line and not under
-   the overview on a row of their own. */
-.page[data-compact='false'][data-fold~='actions'] .side .overviewRow {
-  flex: 0 0 100%;
-  order: 1;
-}
-
-/* R78 (FR-WATCH-5): the landscape phone's rail head — the indicator's line and the headline — takes the compact
-   page's spacing token like the rows under it. */
-.page[data-compact='true'] .railHead {
-  gap: var(--live-row-gap);
 }
 
 /* The hidden-objects toggle, the follow control and the share action on one row (R48: the second control row, 31 cells on a phone). */
@@ -352,27 +129,20 @@
   gap: 0 var(--cell);
 }
 
-/* R48 (FR-COMP-4, D-245): on compact the share action is bracketed text like
-   the two toggles beside it, not the boxed button: the box's cell of padding
-   each side put the Spanish row (`[ ] Ocultos [ ] Seguir [ Compartir ]`, 36
-   cells) at 38 and wrapped it, and the wrap cost the dome a row. R85 (D-549):
-   bracketed again, `[ Compartir ]`, after D-411 had taken the brackets too. */
+/* R48 (FR-COMP-4, D-245): on compact the share action is bracketed text like the toggles beside it, not the boxed
+   button. R85 (D-549): bracketed again, `[ Compartir ]`. */
 .page[data-compact='true'] .actions button {
   padding: 0;
   border: 0;
   background: none;
 }
 
-/* …and the share action's own row (the button and its confirmation, a flex row two cells apart) keeps no
-   gap before an empty confirmation: those two cells were the 37th and 38th. The confirmation, when it
-   comes, wraps under the row as before. */
+/* …and the share action's own row keeps no gap before an empty confirmation: those two cells were the 37th and 38th. */
 .page[data-compact='true'] .actions p {
   gap: 0;
 }
 
-/* R89 (FR-VISIT-2, FR-VISIT-3): the top row and, under it, R87's notice strip, one grid item. The strip is
-   `display: none` while empty, so the area is the row alone and nothing under it moves; when it holds the notice
-   or a note it sits in the page's own padding, not the home frame's. */
+/* R89 (FR-VISIT-2, FR-VISIT-3): the top row and, under it, R87's notice strip, one grid item. */
 .topArea {
   grid-area: top;
   min-width: 0;
@@ -387,21 +157,12 @@
   padding: 0;
 }
 
-/* R129 (FR-FLOW-3, D-845): the top row is the app's one header, told it is the live page (`Header.module.css` lays it
-   out: `[ ← ]`, the indicator and the place on compact, one cell apart, the place ellipsising — FR-COMP-7's 360 px
-   coordinate pair; the one wide row elsewhere). This box is only what the sky screen makes inert.
-   */
+/* R129 (FR-FLOW-3, D-845): the top row is the app's one header, told it is the live page. This box is only what the sky screen makes inert. */
 .topRow {
   min-width: 0;
 }
 
-/* F-100 (V21-24, D-642): entering `#live` focuses Back (FR-A11Y-4), and with no pointer or key yet pressed the
-   browser draws that as `:focus-visible`. R75's rule for inline controls, applied here: the ring goes round the
-   text line, not the tap box, so the padding, the buttons' `min-height` and the matching negative margin are all
-   dropped while it shows, and nothing moves. The offset is 0, which keeps the ring inside the row's leading. Both
-   layouts give Back the tap box here (compact as the primitive's `inline` form, a short wide window through
-   `[data-fold] button`), so the rule is scoped to neither and written to outrank both. R129 (D-855): Back is the
-   header's `[ ← ]` now, which carries this class (`backClassName`) and its own flush offset. */
+/* F-100 (V21-24, D-642): entering `#live` focuses Back (FR-A11Y-4); the ring goes round the text line, not the tap box. R129 (D-855): Back is the header's `[ ← ]`. */
 .page[data-compact] .back:focus-visible {
   min-height: 0;
   padding-block: 0;
@@ -409,14 +170,15 @@
 }
 
 .dome {
-  grid-area: dome;
   min-height: 0;
+  min-width: 0;
+  height: 100%;
 }
 
-/* FR-LIVE-1's states before the page can draw, where the dome would be. R89 (as amended v2.1): no place is the
+/* FR-LIVE-1's states before the page can draw, where the layout would be. R89 (as amended v2.1): no place is the
    sentence and `[ set a place ]`; loading the mark's bead beside its line; failed the failure line. */
 .inert {
-  grid-area: dome;
+  grid-area: body;
   margin: 0;
   align-self: start;
   display: grid;
@@ -432,30 +194,19 @@
   gap: var(--cell);
 }
 
-/* The inert page's one action (`[ set a place ]`) is a `TextButton` (R104, D-704); nothing here draws on it. */
-
-/* R77 (FR-WATCH-2): the headline's row — the next-event block while watching, the held instant while
-   scrubbing — above the frame on compact. Empty on wide, where the headline is the rail's. */
-.head {
-  grid-area: head;
+/* R77 (FR-WATCH-2): the headline's block — the next-event block while watching, the held instant while scrubbing. */
+.headline {
   min-width: 0;
 }
 
-.head:empty {
-  display: none;
-}
-
-/* On compact the block is the page's headline and not a pane's last block: no rule above it (R105, D-720:
-   `Live.tsx` passes `ruled={false}`, and the block draws neither the `Rule` nor the space under it), and its
-   clock time at the readout's heading size on one text row, so the headline costs the box three rows and not
-   four. */
+/* On compact the block is the page's headline and not a pane's last block (R105, D-720), and its clock time at the
+   readout's heading size on one text row, so the headline costs the box three rows and not four. */
 .page[data-compact='true'] .headline [data-testid='next-event-time'] {
   font-size: 1.25rem;
   line-height: var(--row);
 }
 
-/* R77 (FR-WATCH-4, FR-SPAN-2): the watching overview's end labels on compact, `now` at the left and `+24 h`
-   at the right, one text row in the dim ink. */
+/* R77 (FR-WATCH-4, FR-SPAN-2): the watching overview's end labels on compact, `now` at the left and `+24 h` at the right. */
 .overviewLabels {
   margin: 0;
   display: flex;
@@ -465,40 +216,25 @@
   color: var(--fg-dim);
 }
 
-/* R77 (FR-WATCH-4, FR-WATCH-5): the wide rail. Its head — the indicator with the clock or `[ back to live ]`,
-   the next-event block, the conditions line — stands above the legend, and its foot — the overview while
-   watching, the actions — at the rail's bottom. The legend is the frame's (FR-LEG-6), so the order is made
-   here: the frame's aside wrapper and this column step out of the box tree (`display: contents`), and the head
-   and the foot become items of the legend slot's own column, the head ordered first. On a short window the
-   rail keeps R69's folded line (below) until R78 re-cuts it (FR-WATCH-6). */
-.page[data-compact='false']:not([data-fold~='actions']) .dome [data-testid='chart-aside'],
-.page[data-compact='false']:not([data-fold~='actions']) .side {
-  display: contents;
-}
-
+/* R77 (FR-WATCH-4, FR-WATCH-5) → R132: the rail's head is the layout's `answer` — the indicator with the clock or
+   `[ back to live ]`, the next-event block, on compact the time row — and its foot the layout's `foot`: the
+   overview while watching, the scrub block while scrubbing, the actions. Their rows a row's quarter apart. */
 .railHead,
 .railFoot {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--row) / 2);
-  flex: 0 0 auto;
+  gap: var(--space-1);
   min-width: 0;
 }
 
-.page[data-compact='false']:not([data-fold~='actions']) .railHead {
-  order: -1;
-}
-
-.page[data-compact='false']:not([data-fold~='actions']) .railFoot {
-  margin-top: auto;
-}
-
-/* R85 (F-81, FR-CAP-5, D-549): on the short wide window the frame's legend scroll box takes what the rail's
-   head and foot leave — `flex: 1 1 0`, so its height does not follow what is in it — and that height is the
-   inventory's budget (`useInventoryRows` in `Live.tsx`): the list inside is clipped to whole entries with its
-   `+n` line, and the space under it stays blank rather than holding half a row. */
-.page[data-state='live'][data-compact='false'][data-scrub-placement='overlay'] .dome [data-testid='chart-legend-scroll'] {
-  flex: 1 1 0;
+/* R71 (FR-LEG-7, FR-LEG-8; V14-5, D-387): the compact legend panel behind `[ list (n) ]` is exactly two rows of
+   `--tap` — a height, not a maximum — scrolling inside, so it takes the same room whatever it holds. The row count
+   is `LEGEND_OPEN_ROWS` (`ChartFrame.tsx`); the literal is the one the frame's own rule carried. */
+.page[data-compact='true'] .layout [data-testid='chart-legend-slot'] {
+  --legend-row: var(--tap);
+  height: calc(2 * var(--legend-row));
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .indicatorLine {

@@ -75,6 +75,29 @@ const STARS_TICK_MS = 10_000;
 
 const ALL_LAYERS: StarField['layers'] = { stars: true, figures: true, planets: true, names: true };
 
+/** FR-FLOW-8: the four layer toggles in this order, over two rows; `[ passes ]` ends the second. */
+const LAYER_KEYS = ['stars', 'figures', 'planets', 'names'] as const satisfies readonly (keyof StarField['layers'])[];
+
+/** FR-COMP-4: a 390 px viewport at the default cell, the budget the first layer row is cut to. */
+const LAYER_ROW_BUDGET = 36;
+
+/**
+ * R132 (FR-FLOW-8, D-865): how many of the layer toggles the first row holds — as many as fit the budget as `[x] label`
+ * cells with a cell between (`tests/styles/cells.ts`'s count), at least one. Three in English (33 cells); two in Spanish,
+ * where the three would be 38.
+ */
+export function firstRowCount(labels: readonly string[], budget: number): number {
+  let cells = 0;
+  let count = 0;
+  for (const label of labels) {
+    const next = cells + (count > 0 ? 1 : 0) + 4 + label.length;
+    if (next > budget && count > 0) break;
+    cells = next;
+    count += 1;
+  }
+  return Math.max(1, Math.min(count, labels.length - 1));
+}
+
 const UNMEASURED = { width: 0, height: 0 };
 
 /**
@@ -366,6 +389,10 @@ function StarsSky({ observer }: { observer: Observer }) {
     setShowPasses((was) => !was);
   };
   const layer = (key: keyof StarField['layers'], alone = false) => <OptionToggle key={key} label={p.layers[key]} pressed={layers[key]} onPress={toggle(key)} data-layer={key} alone={alone} />;
+  const firstRow = firstRowCount(
+    LAYER_KEYS.map((key) => p.layers[key]),
+    LAYER_ROW_BUDGET,
+  );
 
   /*
    * R132 (FR-FLOW-4, FR-FLOW-8; D-842): the page is `SkyViewLayout`'s slots — the `h1` block as `answer`, the
@@ -391,16 +418,15 @@ function StarsSky({ observer }: { observer: Observer }) {
       <SectionHeading id={layersId} visuallyHidden={!wide}>
         {p.layersHeading}
       </SectionHeading>
-      {/* FR-FLOW-8: one group of two rows `--space-1` apart — `[x] stars [x] figures [x] planets` and `[x] names [ ] passes`
-          (31 and 19 cells in English, 36 and 24 in Spanish, FR-COMP-4). */}
+      {/* FR-FLOW-8: one group of two rows `--space-1` apart — `[x] stars [x] figures [x] planets` and `[x] names [ ] passes`,
+          33 and 19 cells in English. In Spanish the first three are 38 cells, two past FR-COMP-4's 36, so the split is by the
+          budget (`firstRowCount`): `[x] estrellas [x] figuras` and `[x] planetas [x] nombres [ ] pases` (25 and 34). */}
       <div role="group" aria-label={p.layersHeading} className={styles.layers} data-testid="stars-layers">
         <div className={styles.row} data-testid="stars-layers-row">
-          {layer('stars')}
-          {layer('figures', true)}
-          {layer('planets', true)}
+          {LAYER_KEYS.slice(0, firstRow).map((key, index) => layer(key, index > 0))}
         </div>
         <div className={styles.row} data-testid="stars-layers-row">
-          {layer('names')}
+          {LAYER_KEYS.slice(firstRow).map((key, index) => layer(key, index > 0))}
           <OptionToggle label={p.passesLayer} pressed={showPasses} onPress={togglePasses} data-layer="passes" alone />
         </div>
       </div>

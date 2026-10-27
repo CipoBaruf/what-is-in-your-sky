@@ -203,12 +203,18 @@ export function SkyChart(props: SkyChartProps) {
   const refocus = useAppStore((s) => s.refocusWindow);
   const windowRefocused = useAppStore((s) => s.windowRefocused);
   const figureRef = useRef<HTMLElement>(null);
+  // R132 (D-842): the control may stand in the page's view row rather than in the figure; the slot says where.
+  const controlSlot = useChartSlot('control');
+  const controlTarget = controlSlot.target;
+  const inLayoutForFocus = controlSlot.inLayout;
   useEffect(() => {
     if (props.screen === true || !refocus) return;
-    const group = figureRef.current;
+    // In a layout the option lands in the page's slot a commit after this chart mounts: the flag waits for it.
+    if (inLayoutForFocus && controlTarget === null) return;
+    const group = controlTarget ?? figureRef.current;
     (group?.querySelector<HTMLElement>('[data-option="window"]') ?? group?.querySelector<HTMLElement>('[data-option]'))?.focus();
     windowRefocused();
-  }, [refocus, props.screen, windowRefocused]);
+  }, [refocus, props.screen, windowRefocused, controlTarget, inLayoutForFocus]);
   // FR-FSC-1 / D-322 (R62): asked for a screen the chart is the window and nothing else — `viewFor` is not consulted,
   // so the saved preference is neither read for the view nor written on the way (FR-WIN-5 as amended).
   const screen = props.screen ?? false;
@@ -314,7 +320,6 @@ export function SkyChart(props: SkyChartProps) {
    * and their picker the same way (`useChartSlot`). The figure then has no caption and no controls row of its own:
    * the page's prose is its description (`describedBy`), and the frame is the box alone.
    */
-  const controlSlot = useChartSlot('control');
   const listSlot = useChartSlot('list');
   const inLayout = controlSlot.inLayout;
   const viewControl = inLayout ? (
