@@ -2,6 +2,7 @@ import { Body, Equator, Horizon, Illumination, MakeTime, Observer as AeObserver,
 import { DEFAULT_THRESHOLDS } from '../physics/constants';
 import { msToDate } from '../physics/time';
 import type { EpochMs, Locale, Observer, VisibilityThresholds } from '../model';
+import { compassPoint, type CompassPoint } from './compass';
 import { RUNG_MAX_MAG } from './starRungs';
 
 /**
@@ -30,7 +31,7 @@ export interface StarPositionsSource {
 }
 
 export const PLANETS = ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'] as const;
-type PlanetName = (typeof PLANETS)[number];
+export type PlanetName = (typeof PLANETS)[number];
 
 interface PlanetAt {
   body: PlanetName;
@@ -154,3 +155,30 @@ export const planetsDrawn = (sunAltDeg: number): boolean => sunAltDeg <= DAYLIGH
 
 /** The faintest magnitude `rungs` drawn rungs show; `-Infinity` for none. */
 export const drawnMagLimit = (rungs: number): number => (rungs > 0 ? (RUNG_MAX_MAG[Math.min(rungs, RUNG_MAX_MAG.length) - 1] ?? Number.NEGATIVE_INFINITY) : Number.NEGATIVE_INFINITY);
+
+/** R130 (FR-FLOW-1, D-843): the brightest thing the stars layer draws, a catalogue star by index or a planet by name. */
+export type BrightestDrawn = ({ kind: 'star'; index: number } | { kind: 'planet'; body: PlanetName }) & { mag: number; dir: CompassPoint };
+
+/**
+ * R130 (FR-FLOW-1, D-843): the home's Stars door's "Brightest now: Canopus, S"
+ * — of the stars and planets FR-SKY-3's twilight step draws above 0° at the
+ * positions' instant (`drawnRungs`, `planetsDrawn`), the one with the lowest
+ * magnitude, with its 16-point direction. `null` with nothing drawn above the
+ * horizon, which is every daytime sky.
+ */
+export function brightestDrawn(scene: { mag: ArrayLike<number>; positions: StarsAt }): BrightestDrawn | null {
+  const { mag, positions } = scene;
+  const limit = drawnMagLimit(drawnRungs(positions.sunAltDeg));
+  let best: BrightestDrawn | null = null;
+  for (let i = 0; i < mag.length; i += 1) {
+    const m = mag[i] ?? Number.POSITIVE_INFINITY;
+    const alt = positions.altDeg[i] ?? 0;
+    if (m <= limit && alt > 0 && (best === null || m < best.mag)) best = { kind: 'star', index: i, mag: m, dir: compassPoint(positions.azDeg[i] ?? 0) };
+  }
+  if (planetsDrawn(positions.sunAltDeg)) {
+    for (const p of positions.planets) {
+      if (p.altDeg > 0 && (best === null || p.mag < best.mag)) best = { kind: 'planet', body: p.body, mag: p.mag, dir: compassPoint(p.azDeg) };
+    }
+  }
+  return best;
+}

@@ -3,7 +3,7 @@ import { HorizonFromVector, MakeTime, Observer, RotateVector, Rotation_EQJ_HOR, 
 import { describe, expect, it } from 'vitest';
 import { starCatalog } from '../data/stars/catalog';
 import { sunAltitudeDeg } from '../physics/sun';
-import { PLANETS, starsAt } from './skyStars';
+import { brightestDrawn, PLANETS, starsAt, type StarsAt } from './skyStars';
 import { angularDistanceDeg } from './skyGeometry';
 
 /**
@@ -129,5 +129,47 @@ describe('starsAt memo', () => {
     for (const at of [t, t + 6 * 3_600_000, t + 12 * 3_600_000]) {
       expect(starsAt(catalog, paris, at).sunAltDeg).toBeCloseTo(sunAltitudeDeg({ ...paris, altM: 0, label: '', source: 'coords', timeZone: null }, at), 2);
     }
+  });
+});
+
+/** R130 (FR-FLOW-1, D-843): the Stars door's "Brightest now", over a made-up scene so each rule is seen alone. */
+describe('brightestDrawn', () => {
+  const scene = (over: { sunAltDeg?: number; alt?: number[]; az?: number[]; planets?: StarsAt['planets'] } = {}) => ({
+    // Sirius-like, Canopus-like, a faint one: the catalogue is in magnitude order.
+    mag: [-1.46, -0.74, 3.0],
+    positions: {
+      t: 0,
+      altDeg: Float32Array.from(over.alt ?? [20, 30, 60]),
+      azDeg: Float32Array.from(over.az ?? [90, 180, 0]),
+      planets: over.planets ?? [],
+      sunAltDeg: over.sunAltDeg ?? -18,
+    } satisfies StarsAt,
+  });
+
+  it('takes the lowest magnitude above the horizon, with its 16-point direction', () => {
+    expect(brightestDrawn(scene())).toEqual({ kind: 'star', index: 0, mag: -1.46, dir: 'E' });
+    expect(brightestDrawn(scene({ alt: [-5, 30, 60] }))).toEqual({ kind: 'star', index: 1, mag: -0.74, dir: 'S' });
+  });
+
+  it('lets a brighter planet win, and drops one below the horizon', () => {
+    const venus = { body: 'Venus' as const, azDeg: 250, altDeg: 10, mag: -4.2 };
+    expect(brightestDrawn(scene({ planets: [venus] }))).toEqual({ kind: 'planet', body: 'Venus', mag: -4.2, dir: 'WSW' });
+    expect(brightestDrawn(scene({ planets: [{ ...venus, altDeg: -1 }] }))?.kind).toBe('star');
+  });
+
+  it('follows the twilight step: the first two rungs in civil twilight, nothing with the Sun up', () => {
+    // At −3° only the rungs to magnitude 1.5 are drawn, so the faint star never counts even alone above the horizon.
+    expect(brightestDrawn(scene({ sunAltDeg: -3, alt: [-5, -5, 60] }))).toBeNull();
+    expect(brightestDrawn(scene({ sunAltDeg: -3, alt: [-5, 30, 60] }))?.dir).toBe('S');
+    expect(brightestDrawn(scene({ sunAltDeg: 5, planets: [{ body: 'Venus', azDeg: 250, altDeg: 10, mag: -4.2 }] }))).toBeNull();
+  });
+
+  it('names the real sky: the brightest drawn over Paris at night is in the catalogue and above the horizon', () => {
+    const catalog = starCatalog();
+    const night = Date.UTC(2026, 0, 15, 23);
+    const positions = starsAt(catalog, { lat: 48.86, lon: 2.35 }, night);
+    const found = brightestDrawn({ mag: catalog.mag, positions });
+    expect(found).not.toBeNull();
+    if (found?.kind === 'star') expect(positions.altDeg[found.index]).toBeGreaterThan(0);
   });
 });
