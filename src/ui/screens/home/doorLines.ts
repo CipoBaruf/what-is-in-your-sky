@@ -52,7 +52,7 @@ export interface DoorInput {
   sky: DoorSky | null;
 }
 
-export type DoorLine = string | null;
+type DoorLine = string | null;
 
 export interface Door {
   title: string;

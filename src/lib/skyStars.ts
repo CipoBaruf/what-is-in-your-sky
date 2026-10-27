@@ -31,7 +31,7 @@ export interface StarPositionsSource {
 }
 
 export const PLANETS = ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'] as const;
-export type PlanetName = (typeof PLANETS)[number];
+type PlanetName = (typeof PLANETS)[number];
 
 interface PlanetAt {
   body: PlanetName;

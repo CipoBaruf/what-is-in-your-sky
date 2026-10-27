@@ -7,7 +7,7 @@ import type { DoorInput, DoorSky } from '../../src/ui/screens/home/doorLines';
 import type { EpochMs, Pass } from '../../src/model';
 import { NO_MOON_AT_PEAK } from './moonFixtures';
 
-export const DOOR_ZONE = 'America/Argentina/Salta'; // UTC−3, no DST
+const DOOR_ZONE = 'America/Argentina/Salta'; // UTC−3, no DST
 const MINUTE = 60_000;
 
 /** `local(11, 22, 0)` is 2026-09-11 22:00 in DOOR_ZONE. */
