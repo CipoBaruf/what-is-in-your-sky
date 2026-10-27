@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../tests/support/catalogFixtures';
 import { drawnMagLimit, drawnRungs } from '../../lib/skyStars';
 import type { Observer } from '../../model';
-import type { StarSource } from '../components/guide/skychart/useSkyScene';
+import { starSourceOf, type StarParts } from '../components/guide/skychart/starScene';
 import { PassDetail, TICK_MS } from './PassDetail';
 
 /**
@@ -11,8 +11,8 @@ import { PassDetail, TICK_MS } from './PassDetail';
  * — but not while the sheet is `inert` behind another layer, where none of the drawing is seen. The source is
  * stubbed so the test counts the placements, not the catalogue.
  */
-const positionsAt = vi.fn((_where: Pick<Observer, 'lat' | 'lon'>, _t: number): ReturnType<StarSource['positionsAt']> => ({ altDeg: [], azDeg: [], planets: [], sunAltDeg: -18 }));
-const source: StarSource = { catalog: { ra: [], dec: [], mag: [], name: [], desig: [], con: [], figures: [] }, positionsAt, drawnRungs, drawnMagLimit };
+const positionsAt = vi.fn((_where: Pick<Observer, 'lat' | 'lon'>, _t: number): ReturnType<StarParts['positionsAt']> => ({ altDeg: [], azDeg: [], planets: [], sunAltDeg: -18 }));
+const source = starSourceOf({ catalog: { ra: [], dec: [], mag: [], name: [], desig: [], con: [], figures: [] }, positionsAt, drawnRungs, drawnMagLimit });
 
 vi.mock('../components/live/useStarSource', () => ({ useStarSource: () => source }));
 
