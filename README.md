@@ -2,12 +2,12 @@
 
 Type a location and see which of about thirty bright satellites cross the sky over it
 tonight: when each one appears, where to look for it, how long it stays and how bright it
-gets. On the stars page it draws the stars, figures and planets in front of you, turned by
-hand or held up to the sky. It runs in the browser, with no backend and no account.
+gets, drawn over the stars, figures and planets it crosses; the stars page has them alone,
+turned by hand or held up to the sky. It runs in the browser, with no backend and no account.
 
 **Live:** <https://inyoursky.app>
 
-![Three screens: a phone showing the sky over you drawn as braille text with the passes and the time stripe under it, a phone turned sideways held up at the sky, and a laptop showing when the next pass starts, how high it climbs and how bright it gets](docs/readme/hero.png)
+![Three screens: a phone showing the sky over you drawn as braille text with the passes and the time stripe under it, a phone turned sideways held up at the sky with the stars and a pass in it, and a laptop showing a pass among the stars it crosses, with when it starts, how high it climbs and how bright it gets](docs/readme/hero.png)
 
 It was built spec-driven, and mostly not by hand. Every line traces to a numbered
 requirement in `SPEC.md`, and each slice in `TASKS.md` was one Claude Code session. The

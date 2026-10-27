@@ -87,8 +87,11 @@ export const SOURCES = [
     slot: 'stack',
   },
   {
-    file: 'v1-home-1280-dark-en.png',
-    caption: 'And on a laptop: when the next pass starts, how high, how bright',
+    // R128 (FR-SKY-9): v2.5 draws one sky in every view, so the laptop tile is the pass detail on the
+    // window — the pass among the stars it crosses, with its time, peak and brightness in the card beside
+    // it — where it was the home page; the same size, so the layout does not move.
+    file: 'v1-guide-window-1280-dark-en.png',
+    caption: 'And on a laptop: the pass among the stars, when, how high, how bright',
     w: 1280,
     h: 800,
     slot: 'stack',
