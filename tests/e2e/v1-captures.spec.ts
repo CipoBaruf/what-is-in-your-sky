@@ -177,50 +177,65 @@ async function open(page: Page, width: CaptureWidth, prefs: SeedPrefs, time = CL
  * catalogue is the lazy `stars` chunk, whose load is a timer and a fetch the paused clock does not order against
  * the chart's own reveal — the first local run of the set shot `v1-polar-390-dark-es` with no star on it and the
  * second with them. Every view marks a placed star `data-star` (the polar chart's glyph, the dome's hotspot, the
- * window's mark), so the wait is that, ticking the clock; then a second for the drawing to take them, before the
- * caller pins its instant (F-48).
+ * window's mark), so the wait is that, ticking the clock by `tickMs`; then a second for the drawing to take them,
+ * before the caller pins its instant (F-48). `stars` narrows the match where a view draws marks it hides — the
+ * window's out-of-field stars are `visibility="hidden"`.
  */
-async function starsDrawn(page: Page, scope: Locator): Promise<void> {
+const PLACED_STAR = '[data-star]';
+const SHOWN_WINDOW_STAR = '[data-star]:not([visibility="hidden"])';
+async function starsDrawn(page: Page, scope: Locator, stars = PLACED_STAR, tickMs = 200): Promise<void> {
   await expect
     .poll(async () => {
-      await page.clock.runFor(200);
-      return scope.locator('[data-star]').count();
+      await page.clock.runFor(tickMs);
+      return scope.locator(stars).count();
     }, { timeout: 30_000 })
     .toBeGreaterThan(0);
   await page.clock.runFor(1000);
 }
 
-/**
- * R128 (FR-CAP-5; D-830): the `stars` chunk fetched on the home page, before a chart mounts, by the reader's own
- * prefetch — focus on the header's `[ stars ]` (wide) or the When pane's `[ look up ]` (compact), which load it
- * ahead of the tap (`starsChunk.ts`). Without it the chunk races the chart's first measurement: on compact the
- * landmark line it brings is a fourth headline line that takes 23 px from the box (D-838), and where the chunk
- * lands after the dome has measured, the dome keeps the scale of the taller box — two local runs drew the
- * `v1-live-watching-390` dome at two scales. That race is the app's (a finding, RELEASE §17.4), so the set is
- * shot in the state it settles to when the chunk is in hand, which is the drawing the box was measured for.
- */
-async function starsChunkLoaded(page: Page): Promise<void> {
-  // The home page never asks for the chunk on its own, so the response is this focus's.
-  let fetched = false;
-  void page.waitForResponse((response) => /\/assets\/Stars-[^/]*\.js$/.test(response.url()), { timeout: 30_000 }).then(() => {
-    fetched = true;
-  }, () => undefined);
-  await page.locator('[data-testid="stars-link"]:visible, [data-testid="stars-look-up"]:visible').first().focus();
-  await expect
-    .poll(async () => {
-      await page.clock.runFor(100);
-      return fetched;
-    }, { timeout: 30_000 })
-    .toBe(true);
-  await page.clock.runFor(200);
+/** A click or a focus left a ring on a control; the picture is of the page, not of a focused control. */
+async function blurFocus(page: Page): Promise<void> {
   await page.evaluate(() => {
     (document.activeElement as HTMLElement | null)?.blur();
   });
 }
 
+/**
+ * R128 (FR-CAP-5; D-830): whether the `stars` chunk has been fetched, from a listener attached before the page's
+ * first navigation — so a fetch made before the route asks (a prefetch, a precache hit) is counted, not missed.
+ */
+function starsChunkWatch(page: Page): () => boolean {
+  let fetched = false;
+  page.on('response', (response) => {
+    if (/\/assets\/Stars-[^/]*\.js$/.test(response.url())) fetched = true;
+  });
+  return () => fetched;
+}
+
+/**
+ * R128 (FR-CAP-5; D-830): the `stars` chunk in hand before a chart mounts, fetched by the reader's own prefetch —
+ * focus on the header's `[ stars ]` (wide) or the When pane's `[ look up ]` (compact), which load it ahead of the
+ * tap (`starsChunk.ts`). Not for the dome's size: that was F-103, fixed in the app, and a cold page draws the same
+ * dome. For the order the dome's meshes mount in: where the stars' points mesh mounts after the arcs, a braille
+ * cell an arc and a star share takes one colour or the other by when the chunk landed, which two cold runs of the
+ * set disagreed on (a few cells at a channel step of about 30 on four wide live files).
+ */
+async function starsChunkLoaded(page: Page, fetched: () => boolean): Promise<void> {
+  if (!fetched()) await page.locator('[data-testid="stars-link"]:visible, [data-testid="stars-look-up"]:visible').first().focus();
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(100);
+      return fetched();
+    }, { timeout: 30_000 })
+    .toBe(true);
+  await page.clock.runFor(200);
+  await blurFocus(page);
+}
+
 /** The chart screens: the night's brightest pass open on `view`, three minutes in (D-684; the night has no glare pass). */
 async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view: 'dome' | 'polar'): Promise<void> {
   await open(page, width, { locale, theme, observer: BARILOCHE, chartView: view });
+  const starsFetched = starsChunkWatch(page);
   await page.goto('/');
 
   const card = page.locator(`article[data-pass-id="${SHOWN_PASS}"]`);
@@ -228,7 +243,7 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
   // The wide layout keeps the list beside the guide, so the capture would otherwise carry
   // "Computing passes… 17 of 93" next to a finished chart. The search is let finish first.
   await listSettled(page);
-  await starsChunkLoaded(page);
+  await starsChunkLoaded(page, starsFetched);
   await card.getByRole('button', { name: OPEN_GUIDE[locale] }).click();
   const figure = guide(page).getByRole('figure');
   // The view came from the seeded preference (US-6 AC5), so there is no toggle to click and no frame drawn on the other one.
@@ -264,9 +279,10 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
  */
 async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, shown: number = SHOWN, prefs: Partial<SeedPrefs> = {}): Promise<void> {
   await open(page, width, { locale, theme, observer: BARILOCHE, ...prefs }, shown);
+  const starsFetched = starsChunkWatch(page);
   await page.goto('/');
   await listSettled(page);
-  await starsChunkLoaded(page);
+  await starsChunkLoaded(page, starsFetched);
   // The router listens for `hashchange`, so setting the hash in the page navigates without
   // reloading it — which is the point: a reload would start the search again.
   await page.evaluate(() => {
@@ -475,13 +491,7 @@ async function starsAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loc
   await page.evaluate(() => {
     location.hash = '#stars';
   });
-  const sky = page.getByTestId('stars-sky');
-  await expect
-    .poll(async () => {
-      await page.clock.runFor(500);
-      return sky.locator('[data-drawing="window"] [data-star]:not([visibility="hidden"])').count();
-    }, { timeout: 30_000 })
-    .toBeGreaterThan(0);
+  await starsDrawn(page, page.getByTestId('stars-sky').locator('[data-drawing="window"]'), SHOWN_WINDOW_STAR, 500);
   await pinnedAt(page, time);
   // The opening facing is the pole side, which over Bariloche is south, 35° up (FR-STAR-3).
   await expect(page.getByTestId('stars-page')).toHaveAttribute('data-look-az', '180');
@@ -503,17 +513,9 @@ async function windowInTheBox(page: Page, scope: Locator, locale: CaptureLocale,
   await expect(page.getByTestId('sky-screen')).toHaveCount(0);
   const w = scope.locator('[data-look-az]');
   await expect(w).toHaveAttribute('data-state', 'hand');
-  await expect
-    .poll(async () => {
-      await page.clock.runFor(200);
-      return w.locator('[data-star]:not([visibility="hidden"])').count();
-    }, { timeout: 30_000 })
-    .toBeGreaterThan(0);
+  await starsDrawn(page, w, SHOWN_WINDOW_STAR);
   await pinnedAt(page, shown);
-  // The click left the focus ring on the option; the picture is of the page, not of a focused control.
-  await page.evaluate(() => {
-    (document.activeElement as HTMLElement | null)?.blur();
-  });
+  await blurFocus(page);
   return w;
 }
 
@@ -541,9 +543,7 @@ async function starsWithPasses(page: Page, width: CaptureWidth, theme: CaptureTh
   await expect(page.getByTestId('field-list').locator('[data-kind="pass"]').first()).toBeAttached();
   await pinnedAt(page, SHOWN);
   await expect(page.getByTestId('stars-sky').locator('[data-drawing="window"] [data-pass-id]').first()).toBeAttached();
-  await page.evaluate(() => {
-    (document.activeElement as HTMLElement | null)?.blur();
-  });
+  await blurFocus(page);
   await page.mouse.move(0, 0);
   return azDeg;
 }
@@ -862,6 +862,15 @@ const REACH: Record<string, Reach> = {
     await windowInTheBox(page, chart, locale, SHOWN);
     await expect(chart).toHaveAttribute('data-view', 'window');
     await expect(chart.getByTestId('window-facing')).toBeVisible();
+    if (width >= 1280) {
+      // FR-SKY-13: the rail's picker carries the highlighted pass's key after `up`, as the screen's `what` says.
+      const norad = SHOWN_PASS.split('-')[0] ?? '';
+      const options = page.getByTestId('chart-aside').locator('[data-option]');
+      const names = await options.evaluateAll((els) => els.map((el) => el.getAttribute('data-option') ?? ''));
+      const key = names.findIndex((name) => name.startsWith(`pass:${norad}-`));
+      expect(key, "the highlighted pass's key is in the picker").toBeGreaterThan(-1);
+      expect(key, '…after `up`').toBeGreaterThan(names.indexOf('up'));
+    }
     await page.mouse.move(0, 0);
   },
 
@@ -924,9 +933,7 @@ const REACH: Record<string, Reach> = {
     await expect(w).toHaveAttribute('data-look-az', '180');
     await expect(page.getByTestId('window-readout')).toContainText(`${String(WINDOW_FOV_MIN_DEG)}°`);
     await pinnedAt(page, CLOCK);
-    await page.evaluate(() => {
-      (document.activeElement as HTMLElement | null)?.blur();
-    });
+    await blurFocus(page);
     await page.mouse.move(0, 0);
   },
 
@@ -960,10 +967,17 @@ const REACH: Record<string, Reach> = {
       )
       .toBe(1);
     await settle(page);
+    // The reading is magnetic and the page faced a true azimuth: the second reading takes off the declination the
+    // window applies (FR-WIN-3), as the `window` route does, so the screen faces where the page faced.
+    const declination = Number(await layer.getByTestId('window-readout').getAttribute('data-declination'));
+    await point(page, azDeg - declination, 35);
+    await settle(page);
     await pinnedAt(page, SHOWN);
     await expect(layer.locator('[data-look-az]')).toHaveAttribute('data-ground', 'sky');
-    await expect(layer.locator('[data-drawing="window"] [data-star]:not([visibility="hidden"])').first()).toBeAttached();
+    await expect(layer.locator(`[data-drawing="window"] ${SHOWN_WINDOW_STAR}`).first()).toBeAttached();
     await expect(layer.locator('[data-drawing="window"] [data-pass-id]').first()).toBeAttached();
+    // The gutter's tick in the bracket, as the screen's `what` says and `sky-screen-sky` asserts.
+    await expect(layer.locator('[data-branch="in-bracket"]').first()).toBeAttached();
     await page.mouse.move(0, 0);
   },
 };
