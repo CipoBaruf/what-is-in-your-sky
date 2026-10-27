@@ -99,6 +99,15 @@ export const ui: typeof EnUi = {
     shortTitle: 'Tu cielo',
   },
 
+  header: {
+    back: '←',
+    backName: 'Volver',
+    nav: 'Páginas',
+    pages: { home: 'inicio', live: 'en vivo', stars: 'estrellas', pass: 'pase', settings: 'ajustes' },
+  },
+
+  starsHeading: 'Estrellas esta noche',
+
   banner: { info: 'Nota', warning: 'Aviso' },
 
   a11y: {

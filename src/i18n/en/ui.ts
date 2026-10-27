@@ -7,7 +7,7 @@ import type { NextEventKind, NoEventReason } from '../../lib/nextEvent';
 import type { PassPath, PathEnd } from '../../lib/passPath';
 import type { ShortcutId } from '../../lib/shortcuts';
 import type { CloudState, MoonPhaseName, PassBoundaryReason, PassSort, ReadinessGap, Theme } from '../../model';
-import type { CountdownPhase, LinkedText } from '../messages';
+import type { CountdownPhase, HeaderPage, LinkedText } from '../messages';
 
 /**
  * FR-I18N-2 (D-69): every string the `ui` lane renders, in English — the
@@ -118,6 +118,21 @@ export const ui = {
      */
     shortTitle: 'Your sky',
   },
+
+  /**
+   * R129 (FR-FLOW-3, D-845): the one header's words. A sub-page's row is `[ ← ]`, its name and the place; the
+   * wide row's links are the names of the three pages a reader moves between, under `nav`.
+   */
+  header: {
+    /** FR-COMP-7: drawn `[ ← ]`; `backName` is its accessible name. */
+    back: '←',
+    backName: 'Back',
+    nav: 'Pages',
+    pages: { home: 'home', live: 'live', stars: 'stars', pass: 'pass', settings: 'settings' } satisfies Record<HeaderPage, string>,
+  },
+
+  /** R129 (FR-FLOW-3): the stars page's visible `h1`, with the dark window and the cloud word under it. */
+  starsHeading: 'Stars tonight',
 
   banner: { info: 'Note', warning: 'Warning' },
 

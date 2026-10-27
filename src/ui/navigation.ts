@@ -140,6 +140,22 @@ export function close(): void {
   clearRoute();
 }
 
+/**
+ * R129 (FR-FLOW-3, D-845): the wide header's `home` link. Every entry this session pushed since home is left at
+ * once, back to the entry it was opened from — `close` would leave only the last, and a reader who went from the
+ * stars to the live page would land on the stars — or home in place when the route was the load's.
+ */
+export function home(): void {
+  if (window.location.hash === '') return;
+  const d = depth();
+  if (d > 0) {
+    window.history.go(-d);
+    return;
+  }
+  pending = 'h1';
+  clearRoute();
+}
+
 /** Home, in place: no history entry, the state kept. For a hash that names no route the app can draw (FR-VISIT-4). */
 export function clearRoute(): void {
   if (window.location.hash !== '') window.history.replaceState(window.history.state, '', path());

@@ -1,4 +1,6 @@
-.header {
+/* R129 (D-845): the shell's header stands a row below the page's top; a header a page holds inside its own
+   landmark or dialog (`landmark={false}`) sits where that page puts it. */
+.landmark {
   padding-top: var(--row);
 }
 
@@ -15,6 +17,48 @@
   white-space: nowrap;
 }
 
+/* R129 (FR-FLOW-3, FR-COMP-7): a compact sub-page's row — `[ ← ]`, the page's
+   name, the context — from the left, one cell between each, centred on the
+   line (the live page's indicator carries a mark). The context is what gives:
+   it ellipsises where the row's cells run out, never the name. */
+.compact.sub {
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0 var(--cell);
+}
+
+.back {
+  flex: 0 0 auto;
+}
+
+/* F-100 (D-642), as the live page had it: the ring of a focused Back sits flush round its text line, so it stays in
+   the row's leading and off the line under it. The primitive's `inline` form collapses the tap box while it shows. */
+.back:focus-visible {
+  --focus-offset: 0;
+}
+
+.pageName {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+  color: var(--accent);
+}
+
+.compact .pageName::before {
+  content: none;
+}
+
+.context {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg-dim);
+}
+
 /* R74 (FR-MARK-4, D-441): the mark and the title are one group, so the row's
    own `space-between` still puts the title at the left and the controls at the
    right, and the tagline below can be aligned to the title's first letter with
@@ -22,11 +66,9 @@
    restates: the mark's width plus that cell. */
 /* R75 (D-501): the group hands the row the title's baseline, not the mark's.
    The mark's two layers are absolutely positioned, so its box holds no line of
-   its own and its baseline is its bottom edge — a group aligned on that put
-   `[ live ] [ settings ]`, and `[ Live sky ]` in the wide header, seven pixels
-   below the title they read beside. Baseline alignment here makes the title
-   the one item that carries a baseline, and the mark centres across the line
-   as it did before (FR-MARK-4, D-441). */
+   its own and its baseline is its bottom edge. Baseline alignment here makes the
+   title the one item that carries a baseline, and the mark centres across the
+   line as it did before (FR-MARK-4, D-441). */
 .brand {
   display: flex;
   align-items: baseline;
@@ -40,10 +82,7 @@
 
 /* The mark stands where the `>` prompt was (`global.css`'s `h1::before`): two
    marks of the same thing before one title is one too many, and the compact row
-   needs those two cells — with the prompt still on it, "Your sky" is ellipsised
-   at 390 px (FR-COMP-4). It also makes the tagline's indent the one D-441
-   writes down: the mark's width plus a cell puts it under the title's first
-   letter, which with a prompt in between it would not be. */
+   needs those two cells (FR-COMP-4). */
 .brand h1::before {
   content: none;
 }
@@ -61,175 +100,88 @@
   white-space: nowrap;
 }
 
-/* R32 (FR-LIVE-1), R52, R104 (D-704): every header control is a `BracketLink`
-   — the brackets, the dropped underline and the current page's dim span are
-   the primitive's, and nothing here draws on them. */
+/* R32 (FR-LIVE-1), R52, R104 (D-704): `[ live ]` and `[ settings ]` are
+   `BracketLink`s — the brackets, the dropped underline and the current page's
+   dim span are the primitive's, and nothing here draws on them. */
 
-/* The title block, so wide can put the header's controls beside it (FR-DESK-2). */
-.titles {
-  min-width: 0;
-}
-
-/* FR-DESK-2 as amended (V11-8): `[ Live sky ]` on the title's own line, as
-   navigation, rather than in the group of preferences at the right. */
-/* R93 (FR-HOME-1, D-546, D-605; F-76): the row never wraps — `[ Live sky ]`
-   dropping to a line of its own outside the tagline's indent is what F-76 saw
-   in Spanish at 1024 px. What gives instead is the title, below (the fold). */
-.titleRow {
+/* R129 (FR-FLOW-3, FR-DESK-2 as amended v2.6): the wide header's one row, on
+   every page. It never wraps: what gives is the context, which ellipsises, and
+   the title row without the switches fits the wide breakpoint in both languages
+   (`controlRows.test.ts`). `[ settings ]` is pushed to the row's right end. */
+.row {
   display: flex;
   align-items: baseline;
   gap: 0 calc(2 * var(--cell));
   flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.wide .back {
+  align-self: baseline;
 }
 
 .title {
-  /* R115: the stars page draws the title as a paragraph (its own `h1` is the page's name); an `h1`'s margin is already 0. */
+  /* The live and stars pages draw the title as a paragraph (their own `h1` is the page's name). */
   margin: 0;
   white-space: nowrap;
 }
 
-/* The short title is drawn from the attribute only under the fold, so the
-   heading's text is the full title at every width. */
-.title::after {
-  content: none;
+.nav {
+  display: flex;
+  gap: 0 calc(2 * var(--cell));
 }
 
-/* R115 (D-774): the wide live link's short word, drawn from the attribute under the same fold as the title's. */
-.liveLabel::after {
-  content: none;
+/* The page links are words, not bracketed controls: the accent, no underline but the current page's. */
+.navLink {
+  text-decoration: none;
+}
+
+/* D4: the current page in the body's ink with a 2 px accent rule under it, not dimmed — a dim link read as a
+   disabled one. `aria-current` says it to a screen reader. */
+.navCurrent {
+  color: var(--fg);
+  text-decoration: underline 2px var(--accent);
+  text-underline-offset: 0.3em;
+}
+
+.wide .context {
+  flex: 0 1 auto;
+}
+
+.settings {
+  margin-left: auto;
 }
 
 /* R74 (FR-DESK-2 as amended, D-441): the tagline starts under the wordmark's
    first letter, so its indent is the mark's width — one `--row`, which is what
    `MARK_HEADER_PX` is — plus the cell of gap `.brand` puts after it.
    R75 (FR-X-5): a quarter row above it, because the title row's links carry a
-   focus ring and the two rows were flush — the ring's offset and its own line
-   landed on the tagline's first words. The compact header has no tagline, so
-   this is the wide header only, where the row is there to be spent. */
+   focus ring and the two rows were flush. */
 .tagline {
   margin: calc(var(--row) / 4) 0 0;
   padding-left: calc(var(--row) + var(--cell));
   color: var(--fg-dim);
 }
 
-/* The header's switches (language, theme) sit on the right, side by side when
-   the width allows and stacked when it does not (R17, R20). The language group
-   is the one that wraps, so it carries the alignment itself. */
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0 calc(3 * var(--cell));
+/* R105 (D-720): the rule under the header, a row of space above it, and out
+   into the frame's two cells of side padding (global.css `header, main,
+   footer`), where the border it replaces ran. */
+.wide > .rule {
+  margin-top: var(--space-3);
+  margin-inline: calc(-2 * var(--cell));
 }
 
-.prefsToggle {
-  justify-content: flex-end;
-}
-
-/* R23 (FR-DESK-2): the header spans both columns of the wide shell and puts
-   its preference controls at the right of the title. The query's own literal
-   is D-71's, checked against `--cell` by `tests/styles/breakpoint.test.ts`. */
-/* R76 (at the owner's gate): the first row is the title, `[ Live sky ]` and the
-   preferences on one baseline, and the tagline is a row of its own across the
-   whole header. Aligned to the top, the preferences' 48 px tap boxes put their
-   text twelve pixels under the title's; and inside the title's column the
-   tagline had only what the preferences left, so it wrapped at 1280 px and at
-   1024 px, where one line of it is 86 cells. */
-@media (width >= 964px) {
-  .wide {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: baseline;
-    gap: 0 calc(2 * var(--cell));
-  }
-
-  .wide > .tagline {
-    grid-column: 1 / -1;
-  }
-
-  /* R105 (D-720): the rule under the header is a `Rule` on a row of its own
-     across both columns, a row of space above it where the header's bottom
-     padding was, and out into the frame's two cells of side padding
-     (global.css `header, main, footer`), where the border it replaces ran. */
-  .wide > .rule {
-    grid-column: 1 / -1;
-    margin-top: var(--space-3);
-    margin-inline: calc(-2 * var(--cell));
-  }
-
-  /* The preferences keep their 48 px tap boxes, but the row reserves one line
-     for them, as the title's line is one: the boxes stand half a tap row into
-     the space above and below, as `inline-control` does (global.css). Without
-     this the title row was 48 px and every pane under the header 22 px lower
-     than board 1B draws it. */
-  .wide > .controls {
-    margin-block: calc((var(--row) - var(--tap)) / 2);
-  }
-}
-
-/* R93 (FR-HOME-1, D-546, D-605): the header's fold, one literal per language
-   and per line, derived as the breakpoints are (F-10, `thresholdPx`): the
-   line's cells on the widest advance in the font stack, rounded up, so the
-   line never wraps on any font and folds a few pixels early on a narrower one.
-   `tests/styles/controlRows.test.ts` recomputes each from the catalog and the
-   gaps above.
-
-   The title row is the shell's two paddings, the mark and its cell, the title,
-   two cells, `[ Live sky ]`, two cells, `[ stars ]` (R115), the header's
-   two-cell gap, and the preferences — `[x] English [ ] Español` and
-   `[x] Dark [ ] Night`, each option a cell of padding and a cell of gap from
-   the next, three cells between the groups: 112 cells in English, 128 in
-   Spanish. Under that width the title is its short form (FR-COMP-1's) and the
-   live link its short word (D-774), which frees 25 and 32 cells: the folded
-   row is 87 and 96, inside the wide breakpoint's 100.
-
-   The tagline is the two paddings, its indent (the mark and a cell) and its
-   own words: 88 cells in English — under the wide breakpoint, so it never
-   folds — and 109 in Spanish. Under that width it is not shown: one tagline
-   line or none, never two.
-
-   These are the only queries in this file besides the wide one, and they are
-   `max` folds, so the compact header — which draws neither the full title nor
-   the tagline — is not under them. */
-@media (width < 1079px) {
-  :global(:root[lang='en']) .title > .fullTitle {
-    display: none;
-  }
-
-  :global(:root[lang='en']) .title::after {
-    content: attr(data-short);
-  }
-
-  :global(:root[lang='en']) .liveLabel > .fullLabel {
-    display: none;
-  }
-
-  :global(:root[lang='en']) .liveLabel::after {
-    content: attr(data-short);
-  }
-}
-
+/* R93 (FR-HOME-1, D-546, D-605): the tagline's fold, one literal per language,
+   derived as the breakpoints are (F-10, `thresholdPx`): the line's cells on the
+   widest advance in the font stack, rounded up, so the line never wraps on any
+   font and folds a few pixels early on a narrower one. The line is the two
+   paddings, its indent (the mark and a cell) and its own words: 88 cells in
+   English — under the wide breakpoint, so it never folds — and 109 in Spanish.
+   Under that width it is not shown: one tagline line or none, never two.
+   `tests/styles/controlRows.test.ts` recomputes each from the catalog. */
 @media (width < 848px) {
   :global(:root[lang='en']) .wide > .tagline {
     display: none;
-  }
-}
-
-@media (width < 1233px) {
-  :global(:root[lang='es']) .title > .fullTitle {
-    display: none;
-  }
-
-  :global(:root[lang='es']) .title::after {
-    content: attr(data-short);
-  }
-
-  :global(:root[lang='es']) .liveLabel > .fullLabel {
-    display: none;
-  }
-
-  :global(:root[lang='es']) .liveLabel::after {
-    content: attr(data-short);
   }
 }
 
