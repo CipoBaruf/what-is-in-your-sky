@@ -23,8 +23,10 @@ import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../../../../tes
 import { en } from '../../../i18n/en';
 import { STARS_PAGE_CATALOGS } from '../../../i18n/starsPageT';
 import { I18nProvider } from '../../../i18n/useT';
-import type { Observer } from '../../../model';
+import type { Observer, Pass } from '../../../model';
 import { appStore } from '../../../state';
+import { IDLE_PASSES } from '../../../state/slices/passes';
+import { goldenPassFixture } from '../../../../tests/support/catalogFixtures';
 import { StarsPage } from '../../screens/Stars';
 import type { SkyChartProps } from '../guide/skychart/SkyChart.types';
 import { resetOrientationAccess } from '../guide/skychart/window/orientationAccess';
@@ -119,6 +121,12 @@ async function turns(until: () => boolean): Promise<void> {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
   }
+}
+
+/** A pass moved in time by `ms`, every instant with it (its id too, as the worker would name it). */
+function shiftPass(pass: Pass, ms: number): Pass {
+  const at = <P extends { t: number }>(point: P): P => ({ ...point, t: point.t + ms });
+  return { ...pass, id: `${String(pass.noradId)}-${String(pass.start.t + ms)}`, start: at(pass.start), peak: at(pass.peak), end: at(pass.end), track: pass.track.map(at) };
 }
 
 const page = () => render(<I18nProvider locale="en">{<StarsPage />}</I18nProvider>);
@@ -220,6 +228,51 @@ describe('the sky screen’s stars inventory (FR-STAR-5)', () => {
     expect(shown).toHaveAttribute('aria-modal', 'true');
     expect(shown.parentElement).toBe(document.body);
     expect(await axe(shown)).toHaveNoViolations();
+  });
+
+  /*
+   * R126 (FR-SKY-6, FR-FSC-1 as amended v2.5, D-794; US-40 AC5): with `[ passes ]` on, the stars page's screen is the
+   * live page's with the stars on — the arcs, their keys and the gutter's ticks — and the inventory only says who
+   * opened it. The golden pass, moved so it is up at the page's instant.
+   */
+  it('with [ passes ] on, is the live page’s screen with the stars on: the passes, their keys and the gutter’s ticks (FR-SKY-6)', async () => {
+    const golden = goldenPassFixture();
+    const pass = shiftPass(golden, T - 10_000 - golden.start.t);
+    appStore.setState({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: SOUTH, passes: [pass], hasDarkness: true } });
+    withPhone();
+    page();
+    const toggle = within(screen.getByTestId('stars-layers')).getByRole('button', { name: p.passesLayer });
+    // Off on every open, and never saved.
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(window.localStorage.getItem('wiys:prefs:v1') ?? '').not.toMatch(/passes/i);
+    const shown = await open();
+    expect(shown).toHaveAttribute('data-inventory', 'stars');
+    const last = recorded.props.filter((props) => props.screen === true).at(-1);
+    expect(last?.passes.map((given) => given.id)).toEqual([pass.id]);
+    expect(last?.passes[0]?.arc).toBe('live');
+    expect(last?.inventory).toBeUndefined();
+    expect(last?.colorBy).toBe('pass');
+    expect(last?.scene?.stars?.layers).toEqual({ stars: true, figures: true, planets: true, names: true });
+    // The arc, its tick on the gutter at its bearing, and its legend key at the peak.
+    expect(shown.querySelector(`[data-drawing="window"] [data-pass-id="${pass.id}"]`)).not.toBeNull();
+    expect(shown.querySelectorAll('[data-gutter-mark]')).toHaveLength(1);
+    expect(shown.querySelector(`[data-gutter-mark="${pass.id}"]`)).not.toBeNull();
+    expect(shown.querySelector('[data-drawing="window"] [data-key="A"]')).not.toBeNull();
+  });
+
+  it('with [ passes ] on and no pass tonight, is still the live page’s screen: the empty-sky chip, no tick (FR-SKY-6, FR-GUT-6)', async () => {
+    appStore.setState({ passes: { ...IDLE_PASSES, jobId: 'job-1', status: 'done', observer: SOUTH, passes: [], hasDarkness: true } });
+    withPhone();
+    page();
+    fireEvent.click(within(screen.getByTestId('stars-layers')).getByRole('button', { name: p.passesLayer }));
+    const shown = await open();
+    const last = recorded.props.filter((props) => props.screen === true).at(-1);
+    expect(last?.passes).toEqual([]);
+    expect(last?.inventory).toBeUndefined();
+    expect(shown.querySelector('[data-gutter-mark]')).toBeNull();
+    expect(within(shown).getByTestId('window-chip')).toHaveTextContent(en.window.emptySky);
   });
 
   it('carries the layers as the page’s toggles had them (FR-STAR-5)', async () => {
