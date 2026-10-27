@@ -488,6 +488,16 @@ export async function setThemeOnHome(page: Page, locale: 'en' | 'es', theme: 'da
   await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
 }
 
+/**
+ * R129 (FR-FLOW-3, V26-10): the theme switch is the settings page's alone, so a capture that wants the other palette
+ * on the page it stands on — a guide open, the list beside it — presses `n` (FR-DESK-4), which toggles it there.
+ */
+export async function setThemeByKey(page: Page, theme: 'dark' | 'night'): Promise<void> {
+  const html = page.locator('html');
+  if ((await html.getAttribute('data-theme')) !== theme) await page.keyboard.press('n');
+  await expect(html).toHaveAttribute('data-theme', theme);
+}
+
 /** Leaves the live page for the home one, sets the theme there and comes back with the dome drawn. */
 export async function reenterLiveWithTheme(page: Page, locale: 'en' | 'es', theme: 'dark' | 'night'): Promise<void> {
   await page.keyboard.press('Escape');

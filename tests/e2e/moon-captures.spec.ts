@@ -9,7 +9,7 @@
  * hour before the ISS pass whose peak the Moon stands 8° from.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { withSettings } from './liveHelpers';
+import { setThemeByKey, withSettings } from './liveHelpers';
 
 /*
  * FR-CI-2 (R37, D-195): off the pull-request path. These are evidence, as the
@@ -53,8 +53,8 @@ async function open(page: Page, width: 390 | 1280, locale: 'en' | 'es'): Promise
 
 /** The theme is remembered (US-19), so a capture run has to put it back before the next language starts. */
 async function setTheme(page: Page, theme: 'dark' | 'night'): Promise<void> {
-  await page.getByRole('banner').getByRole('group', { name: 'Theme' }).getByRole('button', { name: theme === 'night' ? 'Night' : 'Dark' }).click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+  // R129 (V26-10): the switch is the settings page's alone; `n` (FR-DESK-4) sets the palette where the page stands.
+  await setThemeByKey(page, theme);
 }
 
 for (const width of [390, 1280] as const) {
@@ -92,12 +92,11 @@ test('the glare label with its tooltip open, and the guide sentence, at 390 px',
     await expect(note).toBeVisible();
     await page.screenshot({ path: `test-results/r30-guide-390-dark-${locale}.png` });
     if (locale === 'en') {
-      // D-99: the compact sheet carries its own theme switch, because it covers the header's.
-      const themes = dialog.getByRole('group', { name: 'Theme' });
-      await themes.getByRole('button', { name: 'Night' }).click();
+      // R129 (V26-10): the sheet carries no switch any more; `n` sets the palette under it.
+      await setThemeByKey(page, 'night');
       await note.scrollIntoViewIfNeeded();
       await page.screenshot({ path: `test-results/r30-guide-390-night-${locale}.png` });
-      await themes.getByRole('button', { name: 'Dark' }).click();
+      await setThemeByKey(page, 'dark');
     }
   }
 });
