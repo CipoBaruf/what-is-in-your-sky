@@ -4,10 +4,11 @@ import { starCatalog } from '../../data/stars/catalog';
 import { useStarsPageT } from '../../i18n/starsPageT';
 import { useLocale, useT } from '../../i18n/useT';
 import { RAIL_MIN_CELLS, windowBox as fitWindowBox } from '../../lib/layout';
-import { legendKeys, legendRows, type LegendPass } from '../../lib/legend';
+import { legendKeys, legendRows, type LegendPass, type LegendRow } from '../../lib/legend';
+import { livePasses } from '../../lib/livePasses';
 import { starsAt } from '../../lib/skyStars';
 import type { EpochMs, Observer } from '../../model';
-import { useActiveObserver, useAppStore } from '../../state';
+import { useActiveObserver, useAppStore, type PassesState } from '../../state';
 import { sameLocation } from '../../state/slices/location';
 import { SkyScreen, type SkyScreenProps } from '../components/screen/SkyScreen';
 import { useSkyScreen } from '../components/screen/useSkyScreen';
@@ -25,7 +26,8 @@ import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import { requestPlace } from './home/placeRequest';
 import { FieldList } from './stars/FieldList';
-import { fieldObjects, fieldPasses, sceneCatalog, STAR_LABEL_HOLD_S, tonightPasses } from './stars/field';
+import { fieldObjects, fieldPasses, fieldRows, sceneCatalog, STAR_LABEL_HOLD_S } from './stars/field';
+import { arcKey, withArcStates } from '../components/live/liveArcs';
 import styles from './Stars.module.css';
 
 /**
@@ -68,7 +70,18 @@ const ALL_LAYERS: StarField['layers'] = { stars: true, figures: true, planets: t
 
 const UNMEASURED = { width: 0, height: 0 };
 
+/**
+ * R126 (FR-SKY-6): whether the store's run is this sky's and has arrived — the live page's `liveState` rule: this
+ * place's run (`sameLocation`), finished, or with passes standing in while a new one computes. A run computing from
+ * nothing, one that failed with nothing, or one for another place is not in, and `[ passes ]` then hands the screen
+ * no passes rather than an empty night.
+ */
+export function passesRunIn(passes: Pick<PassesState, 'observer' | 'status' | 'passes'>, observer: Observer): boolean {
+  return sameLocation(passes.observer, observer) && (passes.status === 'done' || passes.passes.length > 0);
+}
+
 const NO_PASSES: readonly LegendPass[] = [];
+const NO_ROWS: readonly LegendRow[] = [];
 
 /** The rail's minimum, from `lib/layout.ts`, as the stylesheet's one input in cells (the probe and the grid read it). */
 const RAIL_STYLE = { ['--rail-min-cells' as string]: String(RAIL_MIN_CELLS) } as CSSProperties;
@@ -128,12 +141,30 @@ function StarsSky({ observer }: { observer: Observer }) {
    * carries tonight's passes: the store's run for this place, FR-TRAJ-1's set at now with each arc's state, handed
    * to the window with the legend's keys and series colours as the live page's chart hands them, to the screen,
    * and to `In this field`. A run for another place is not this sky's, so it carries none (FR-OFF-8's rule).
+   *
+   * The run is "in" as the live page's `liveState` has it: this place's, and finished or standing in with passes.
+   * Until it is, `passes` is `null` — the screen is handed none and stays the stars inventory, so no empty-sky chip
+   * says "nothing tonight" for a night not yet computed.
+   *
+   * The set is the live page's (`livePasses`, `src/lib`), and the arcs' states are its `arcKey` / `withArcStates`:
+   * the array is remade only when the set or a state changes, not on every 10 s tick. The legend's rows are worked
+   * out once here, for the window's keys and the list.
    */
   const [showPasses, setShowPasses] = useState(false);
   const passesState = useAppStore((s) => s.passes);
-  const ownPasses = sameLocation(passesState.observer, observer);
-  const passes = useMemo(() => (showPasses && ownPasses ? tonightPasses(passesState.passes, now) : NO_PASSES), [showPasses, ownPasses, passesState.passes, now]);
-  const keys = useMemo(() => legendKeys(legendRows({ passes, highlightedPassId: null, now, colorBy: 'pass' })), [passes, now]);
+  const runIn = passesRunIn(passesState, observer);
+  const source = showPasses && runIn ? passesState.passes : null;
+  const tonightIds = source === null ? null : livePasses(source, now).map((pass) => pass.id).join(' ');
+  const tonight = useMemo(() => {
+    if (source === null || tonightIds === null) return null;
+    const ids = new Set(tonightIds.split(' '));
+    return source.filter((pass) => ids.has(pass.id));
+  }, [source, tonightIds]);
+  const arcs = tonight === null ? null : arcKey(tonight, now);
+  const passes = useMemo(() => (tonight === null || arcs === null ? null : withArcStates(tonight, arcs)), [tonight, arcs]);
+  const drawnPasses = passes ?? NO_PASSES;
+  const rows = useMemo(() => (drawnPasses.length === 0 ? NO_ROWS : legendRows({ passes: drawnPasses, highlightedPassId: null, now, colorBy: 'pass' })), [drawnPasses, now]);
+  const keys = useMemo(() => legendKeys(rows), [rows]);
 
   // FR-STAR-7: one named object for the drawing and the list, cleared after the hold; naming it again restarts the hold.
   const [named, setNamed] = useState<{ index: number; at: number } | null>(null);
@@ -336,7 +367,7 @@ function StarsSky({ observer }: { observer: Observer }) {
         <Held held={screenOpen}>
         {wide && <span className={styles.railProbe} ref={probeRef} aria-hidden="true" />}
         <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky">
-          <SkyWindow passes={passes} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} colorBy="pass" legendKeys={keys} namedStar={named?.index ?? null} onNameStar={onName} />
+          <SkyWindow passes={drawnPasses} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} colorBy="pass" legendKeys={keys} namedStar={named?.index ?? null} onNameStar={onName} />
         </div>
         <div className={styles.rail} data-testid="stars-rail">
           <section aria-labelledby={facingId} className={styles.block}>
@@ -379,14 +410,14 @@ function StarsSky({ observer }: { observer: Observer }) {
           )}
           <section aria-labelledby={fieldId} className={styles.block}>
             <SectionHeading id={fieldId}>{p.fieldHeading}</SectionHeading>
-            <FieldSection camera={camera} catalog={catalog} positions={positions} passes={passes} now={now} box={box} layers={layers} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
+            <FieldSection camera={camera} catalog={catalog} positions={positions} passes={drawnPasses} rows={rows} now={now} box={box} layers={layers} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
           </section>
         </div>
         </Held>
       </div>
       {/* Portaled to the body as the pass detail's is: a fixed layer, never the child of something that scrolls. The
           sensor drives it from the hand's facing; the page's hand camera stays as it was for the return. */}
-      {screenOpen && <StarsScreen camera={camera} scene={scene} passes={showPasses ? passes : undefined} observer={observer} now={now} sun={sun} moon={moon} onClose={closeScreen} />}
+      {screenOpen && <StarsScreen camera={camera} scene={scene} passes={passes ?? undefined} observer={observer} now={now} sun={sun} moon={moon} onClose={closeScreen} />}
     </>
   );
 }
@@ -424,6 +455,8 @@ interface FieldSectionProps {
   positions: ReturnType<typeof starsAt>;
   /** R126 (FR-SKY-6): the scene's passes, empty with `[ passes ]` off, at the page's instant. */
   passes: readonly LegendPass[];
+  /** The legend's rows over `passes`, the page's one computation of them (the window's keys come from the same rows). */
+  rows: readonly LegendRow[];
   now: EpochMs;
   /** The drawing's measured box; the field across it is the camera's (R125, FR-SKY-14). */
   box: { width: number; height: number };
@@ -438,7 +471,7 @@ interface FieldSectionProps {
  * old value, which every memo below answers, and the list follows when React has the time. R125 (FR-SKY-14): the
  * view's field is the camera's `fovDeg`, read the same deferred way, so a zoom lists what the narrowed box shows.
  */
-function FieldSection({ camera, catalog, positions, passes, now, box, layers, named, onName, labelledBy }: FieldSectionProps) {
+function FieldSection({ camera, catalog, positions, passes, rows, now, box, layers, named, onName, labelledBy }: FieldSectionProps) {
   const lang = useLocale();
   const hand = useSyncExternalStore(camera.subscribe, camera.get, camera.get);
   const settled = useDeferredValue(hand);
@@ -447,9 +480,10 @@ function FieldSection({ camera, catalog, positions, passes, now, box, layers, na
   // R126 (D-832): the star names in the reader's language, through `starName`.
   const objects = useMemo(() => fieldObjects({ catalog, positions, rotation, view, layers, lang }), [catalog, positions, rotation, view, layers, lang]);
   // R126 (FR-SKY-6, D-794): the passes drawn in the field, ahead of the stars.
-  const inField = useMemo(() => (passes.length === 0 ? [] : fieldPasses({ passes, rotation, view, now })), [passes, rotation, view, now]);
+  // R126 (FR-STAR-7, D-825): with the passes first, the list is still at most `FIELD_LIST_MAX` rows.
+  const listed = useMemo(() => fieldRows(passes.length === 0 ? [] : fieldPasses({ passes, rows, rotation, view, now }), objects), [passes, rows, rotation, view, now, objects]);
   const buried = view.width > 0 && groundState(settled.altDeg, view) === 'buried';
-  return useMemo(() => <FieldList objects={objects} passes={inField} named={named} onName={onName} buried={buried} labelledBy={labelledBy} />, [objects, inField, named, onName, buried, labelledBy]);
+  return useMemo(() => <FieldList objects={listed.objects} passes={listed.passes} named={named} onName={onName} buried={buried} labelledBy={labelledBy} />, [listed, named, onName, buried, labelledBy]);
 }
 
 /** R123 (FR-SKY-3, FR-SKY-10, D-791): the live page's and the pass detail's stars, from this chunk through `starsChunk.ts`. */

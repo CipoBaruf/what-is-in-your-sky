@@ -20,7 +20,7 @@ import { goldenPassFixture } from '../../../tests/support/catalogFixtures';
 import { STARS_DEFAULT_TILT } from '../components/guide/skychart/window/camera';
 import { FieldList } from './stars/FieldList';
 import { STAR_LABEL_HOLD_S } from './stars/field';
-import { StarsPage } from './Stars';
+import { passesRunIn, StarsPage } from './Stars';
 
 const SOUTH: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: 'Cipolletti', source: 'coords', timeZone: null };
 const NORTH: Observer = { ...SOUTH, lat: 48.86, lon: 2.35, label: 'Paris' };
@@ -138,6 +138,22 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     appStore.setState({ passes: { ...appStore.getState().passes, observer: NORTH } });
     fireEvent.click(screen.getByRole('button', { name: STARS_PAGE_CATALOGS.en.passesLayer }));
     expect(screen.getByTestId('stars-sky').querySelector('[data-pass-id]')).toBeNull();
+  });
+
+  /*
+   * R126 review: `[ passes ]` hands the screen the store's passes only once the run for this place is in — otherwise
+   * the screen would draw the empty-sky chip ("nothing tonight") for a night not yet computed.
+   */
+  it('takes the store’s passes only once the run for this place is in (FR-SKY-6)', () => {
+    const golden = goldenPassFixture();
+    const run = { ...IDLE_PASSES, observer: SOUTH };
+    expect(passesRunIn({ ...run, status: 'done', passes: [] }, SOUTH)).toBe(true);
+    expect(passesRunIn({ ...run, status: 'done', passes: [golden] }, SOUTH)).toBe(true);
+    expect(passesRunIn({ ...run, status: 'computing', passes: [golden] }, SOUTH)).toBe(true);
+    expect(passesRunIn({ ...run, status: 'computing', passes: [] }, SOUTH)).toBe(false);
+    expect(passesRunIn({ ...run, status: 'error', passes: [] }, SOUTH)).toBe(false);
+    expect(passesRunIn({ ...run, status: 'idle', passes: [] }, SOUTH)).toBe(false);
+    expect(passesRunIn({ ...run, status: 'done', observer: NORTH, passes: [golden] }, SOUTH)).toBe(false);
   });
 
   it('is the inert line with [ set a place ] when there is no observer (FR-LIVE-1)', () => {

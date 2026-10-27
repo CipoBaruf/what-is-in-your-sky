@@ -72,7 +72,7 @@ export function FieldList({ objects, passes = NO_PASSES, named, onName, buried, 
   return (
     <ul className={styles.list} aria-labelledby={labelledBy} data-testid="field-list">
       {passes.map((pass) => {
-        const state = t.chart.legend.state[pass.state === 'full' ? 'live' : pass.state];
+        const state = t.chart.legend.state[pass.state];
         const altitude = degrees(pass.peakAltDeg);
         return (
           <li key={pass.id} className={styles.item}>
