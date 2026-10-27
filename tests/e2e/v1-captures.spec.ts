@@ -172,6 +172,52 @@ async function open(page: Page, width: CaptureWidth, prefs: SeedPrefs, time = CL
   await stubNetwork(page, 'fixtures', 'showcase');
 }
 
+/**
+ * R128 (FR-CAP-5, FR-SKY-3; D-830): the stars under the arcs, arrived. `[ stars ]` is on by default and the
+ * catalogue is the lazy `stars` chunk, whose load is a timer and a fetch the paused clock does not order against
+ * the chart's own reveal — the first local run of the set shot `v1-polar-390-dark-es` with no star on it and the
+ * second with them. Every view marks a placed star `data-star` (the polar chart's glyph, the dome's hotspot, the
+ * window's mark), so the wait is that, ticking the clock; then a second for the drawing to take them, before the
+ * caller pins its instant (F-48).
+ */
+async function starsDrawn(page: Page, scope: Locator): Promise<void> {
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      return scope.locator('[data-star]').count();
+    }, { timeout: 30_000 })
+    .toBeGreaterThan(0);
+  await page.clock.runFor(1000);
+}
+
+/**
+ * R128 (FR-CAP-5; D-830): the `stars` chunk fetched on the home page, before a chart mounts, by the reader's own
+ * prefetch — focus on the header's `[ stars ]` (wide) or the When pane's `[ look up ]` (compact), which load it
+ * ahead of the tap (`starsChunk.ts`). Without it the chunk races the chart's first measurement: on compact the
+ * landmark line it brings is a fourth headline line that takes 23 px from the box (D-838), and where the chunk
+ * lands after the dome has measured, the dome keeps the scale of the taller box — two local runs drew the
+ * `v1-live-watching-390` dome at two scales. That race is the app's (a finding, RELEASE §17.4), so the set is
+ * shot in the state it settles to when the chunk is in hand, which is the drawing the box was measured for.
+ */
+async function starsChunkLoaded(page: Page): Promise<void> {
+  // The home page never asks for the chunk on its own, so the response is this focus's.
+  let fetched = false;
+  void page.waitForResponse((response) => /\/assets\/Stars-[^/]*\.js$/.test(response.url()), { timeout: 30_000 }).then(() => {
+    fetched = true;
+  }, () => undefined);
+  await page.locator('[data-testid="stars-link"]:visible, [data-testid="stars-look-up"]:visible').first().focus();
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(100);
+      return fetched;
+    }, { timeout: 30_000 })
+    .toBe(true);
+  await page.clock.runFor(200);
+  await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
+  });
+}
+
 /** The chart screens: the night's brightest pass open on `view`, three minutes in (D-684; the night has no glare pass). */
 async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view: 'dome' | 'polar'): Promise<void> {
   await open(page, width, { locale, theme, observer: BARILOCHE, chartView: view });
@@ -182,6 +228,7 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
   // The wide layout keeps the list beside the guide, so the capture would otherwise carry
   // "Computing passes… 17 of 93" next to a finished chart. The search is let finish first.
   await listSettled(page);
+  await starsChunkLoaded(page);
   await card.getByRole('button', { name: OPEN_GUIDE[locale] }).click();
   const figure = guide(page).getByRole('figure');
   // The view came from the seeded preference (US-6 AC5), so there is no toggle to click and no frame drawn on the other one.
@@ -189,6 +236,7 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
   // The chart chunk, the raster font and glyphcss's first rasterisation all wait on timers the paused clock is holding.
   await page.clock.runFor(1000);
   if (view === 'dome') await expect(figure.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+  await starsDrawn(page, figure);
 
   // …and then into the pass, arriving on the tick the sheet lives by rather than through three hundred of them.
   await pinnedAt(page, SHOWN);
@@ -218,6 +266,7 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
   await open(page, width, { locale, theme, observer: BARILOCHE, ...prefs }, shown);
   await page.goto('/');
   await listSettled(page);
+  await starsChunkLoaded(page);
   // The router listens for `hashchange`, so setting the hash in the page navigates without
   // reloading it — which is the point: a reload would start the search again.
   await page.evaluate(() => {
@@ -230,6 +279,7 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
   // The strip settled: five fields, each visible and none still on its pending ellipsis (F-47:
   // `liveHelpers.ts` owns that check, and this file had been carrying a copy without the visibility half).
   await stripFilled(page);
+  await starsDrawn(page, page.getByTestId('sky-chart'));
   // F-48: `domeDrawn` left the clock wherever its last tick fell, so the shown instant is put back
   // on `shown` before the picture — and the strip is read to prove the page went there with it.
   await pinnedAt(page, shown);
@@ -610,7 +660,9 @@ const REACH: Record<string, Reach> = {
     await point(page, aim.az, aim.alt);
     await settle(page);
     await expect(drawing).toHaveAttribute('data-state', 'on');
-    const declination = Number(await layer.getByTestId('window-heading').getAttribute('data-declination'));
+    // R128: read off the readout itself — since R127 its second line is the landmark's where there is one (FR-SKY-11),
+    // and `window-heading`, the true-north line, is drawn only where there is not.
+    const declination = Number(await layer.getByTestId('window-readout').getAttribute('data-declination'));
     await point(page, aim.az - declination, aim.alt);
     await settle(page);
     await expect(layer.locator(`[data-pass-id="${SHOWN_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
@@ -689,7 +741,8 @@ const REACH: Record<string, Reach> = {
     const overlay = page.getByTestId('shortcuts-overlay');
     await expect(overlay).toBeVisible();
     // R115 (FR-DESK-4 as amended v2.4): `s` for the stars page and that page's two key rows, 8 → 11.
-    await expect(overlay.locator('kbd')).toHaveCount(11);
+    // R127 (FR-DESK-4 as amended v2.5): `f`, the window turned to the pass, 11 → 12.
+    await expect(overlay.locator('kbd')).toHaveCount(12);
     await expect(page.getByRole('main')).toHaveAttribute('inert', '');
   },
 
