@@ -3496,7 +3496,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
 
 ### Wave 4
 
-- [ ] **R126 — The passes on the stars page and one screen: `[ passes ]`, the pass rows in `In this field`, the gutter from the scene, the list's names in both languages**
+- [x] **R126 — The passes on the stars page and one screen: `[ passes ]`, the pass rows in `In this field`, the gutter from the scene, the list's names in both languages**
   - **Lane:** ui
   - **Model:** opus
   - **Review:** opus
@@ -3516,6 +3516,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
   - **Done when:**
     - `stars-screen.spec.ts` and `controlRows.test.ts` pass; the Done note names the e2e specs.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+  - **Done (2026-10-26):** as written, except that `gutter.ts` needed no change: the window already draws a tick per pass it is handed, so the one screen is `SkyScreen` handing the chart the stars page's passes and telling it `inventory: 'stars'` only where the scene carries none (D-823). `[ passes ]` is a third layers row of its own, so the two rows of two stay (D-824); the pass rows are the list's four columns, not buttons, the whole sentence as what is read (D-825). The constellation names are in no list row yet, so the 360 px check renders the two longest Spanish names as a star's and a pass's row. E2E: `tests/e2e/stars-screen.spec.ts` (`[ passes ] on the stars page`, with the six earlier cases). Bundle: `stars` 24.5 KB gzipped; `main` 172.1, the parent's warning, which this task moves only by `SkyScreen`'s few lines.
 
 - [ ] **R127 — The landmark on the drawing and the page, the `Among` column, the facing key that follows, the figure tap, every drawn name in both languages**
   - **Lane:** window
