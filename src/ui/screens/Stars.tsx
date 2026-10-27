@@ -21,10 +21,15 @@ import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { OptionToggle } from '../components/primitives/OptionToggle';
 import { SectionHeading } from '../components/primitives/SectionHeading';
 import { TextButton } from '../components/primitives/TextButton';
-import { VisuallyHidden } from '../components/primitives/VisuallyHidden';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
+import { darkWindowText } from '../components/now/ConditionsTable';
 import { requestPlace } from './home/placeRequest';
+import { nightWindow } from './home/tonight';
+import { useSkyBands } from '../components/live/useSkyBands';
+import { cloudVerdict } from '../../lib/cloudVerdict';
+import { HOUR_MS, type Span } from '../../lib/timeStripe';
+import { tonightsDark } from '../../lib/tonightStripe';
 import { FieldList } from './stars/FieldList';
 import { fieldObjects, fieldPasses, fieldRows, sceneCatalog, STAR_LABEL_HOLD_S } from './stars/field';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
@@ -90,7 +95,6 @@ const RAIL_STYLE = { ['--rail-min-cells' as string]: String(RAIL_MIN_CELLS) } as
 const windowBox = (sky: HTMLElement): HTMLElement | null => sky.querySelector('svg[data-drawing="window"]')?.parentElement ?? null;
 
 export function StarsPage() {
-  const t = useT();
   const p = useStarsPageT();
   const observer = useActiveObserver();
   // FR-A11Y-1..3: with no place the page's one control, `[ set a place ]`, takes the focus, as the box does with one.
@@ -101,7 +105,7 @@ export function StarsPage() {
   if (observer === null) {
     return (
       <>
-        <VisuallyHidden as="h1">{t.stars.heading}</VisuallyHidden>
+        <StarsHeading observer={null} now={null} />
         <div className={styles.inert} data-testid="stars-inert" ref={inertRef}>
           <p>{p.noPlace}</p>
           <TextButton label={p.setPlace} data-testid="stars-set-place" onClick={requestPlace} />
@@ -358,8 +362,10 @@ function StarsSky({ observer }: { observer: Observer }) {
   const layer = (key: keyof StarField['layers'], alone = false) => <OptionToggle key={key} label={p.layers[key]} pressed={layers[key]} onPress={toggle(key)} data-layer={key} alone={alone} />;
 
   return (
-    <>
-      <VisuallyHidden as="h1">{t.stars.heading}</VisuallyHidden>
+    <div className={styles.page} data-layout={mode}>
+      <div {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
+        <StarsHeading observer={observer} now={now} />
+      </div>
       {/* FR-FSC-1 (D-321): under the layer the page is out of reach — `inert` for Tab and a tap past it, `aria-hidden`
           for the accessible tree, as the live page's top row — and held at its last render, so the tick redraws
           the screen's window and not a second one under it (FR-STAR-9). */}
@@ -418,7 +424,51 @@ function StarsSky({ observer }: { observer: Observer }) {
       {/* Portaled to the body as the pass detail's is: a fixed layer, never the child of something that scrolls. The
           sensor drives it from the hand's facing; the page's hand camera stays as it was for the return. */}
       {screenOpen && <StarsScreen camera={camera} scene={scene} passes={passes ?? undefined} observer={observer} now={now} sun={sun} moon={moon} onClose={closeScreen} />}
-    </>
+    </div>
+  );
+}
+
+/**
+ * R129 (FR-FLOW-3; F7, D4): the page names itself — a visible `h1`, "Stars tonight", and under it at `--small` the
+ * dark window and the cloud word, as the home's What step words them (`useNight`: the stripe's bands and the
+ * forecast at the middle of the night). Before the bands are known the line is the cloud word alone; with no place,
+ * the heading alone. R132 moves the block into the `answer` slot.
+ */
+function StarsHeading({ observer, now }: { observer: Observer | null; now: EpochMs | null }) {
+  const t = useT();
+  return (
+    <div className={styles.intro} data-testid="stars-intro">
+      <h1 className={styles.heading}>{t.starsHeading}</h1>
+      {observer !== null && now !== null && <TonightLine observer={observer} now={now} />}
+    </div>
+  );
+}
+
+/** `useTonight`'s span: a day back and a day and a half ahead of the hour, so tonight's dark band is in it whole. */
+const TONIGHT_BACK_MS = 24 * HOUR_MS;
+const TONIGHT_AHEAD_MS = 36 * HOUR_MS;
+
+/**
+ * `useNight`'s reading, on the page's own clock: the stars page already ticks (`STARS_TICK_MS`), so the line takes
+ * that `now` rather than a second timer, and samples the bands once an hour, when the span moves.
+ */
+function TonightLine({ observer, now }: { observer: Observer; now: EpochMs }) {
+  const t = useT();
+  const locale = useLocale();
+  const hour = Math.floor(now / HOUR_MS) * HOUR_MS;
+  const span = useMemo<Span>(() => ({ start: hour - TONIGHT_BACK_MS, end: hour + TONIGHT_AHEAD_MS }), [hour]);
+  const bands = useSkyBands(observer, span);
+  const weather = useAppStore((s) => s.weather);
+  const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
+  const known = bands.length > 0;
+  const night = known ? nightWindow(bands, observer, now) : null;
+  const darkBand = known ? tonightsDark(bands, now) : null;
+  const clouds = cloudVerdict(snapshot, night ? (night.start + night.end) / 2 : now);
+  const dark = !known ? null : darkBand === null ? t.home.noDarkWindow : `${t.home.conditions.dark} ${darkWindowText(darkBand, span.start, observer.timeZone, locale, t)}`;
+  return (
+    <p className={styles.tonight} data-testid="stars-tonight">
+      {[dark, t.weather.state[clouds.state]].filter((piece) => piece !== null).join(' · ')}
+    </p>
   );
 }
 

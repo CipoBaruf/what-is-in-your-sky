@@ -42,6 +42,8 @@ interface Opener {
 const openers: Opener[] = [];
 /** Where the focus goes after the route the reader just left; `undefined` when nothing was left. */
 let pending: Opener | 'h1' | undefined;
+/** `home` went back to the load's entry, which `emit` clears in place if it is a route. */
+let homing = false;
 
 const listeners = new Set<(event: Event) => void>();
 
@@ -72,6 +74,13 @@ function emit(event: Event): void {
   if (openers.length > d) {
     pending = openers[d];
     openers.length = d;
+  }
+  if (homing && event.type === 'popstate') {
+    homing = false;
+    if (window.location.hash !== '') {
+      window.history.replaceState(window.history.state, '', path());
+      pending = 'h1';
+    }
   }
   for (const listener of listeners) listener(event);
 }
@@ -140,6 +149,25 @@ export function close(): void {
   clearRoute();
 }
 
+/**
+ * R129 (FR-FLOW-3, D-845): the wide header's `home` link. Every entry this session pushed since home is left at
+ * once, back to the entry the first was opened from — `close` would leave only the last, and a reader who went from
+ * the stars to the live page would land on the stars — or home in place when the route was the load's. The entry
+ * that traversal lands on is the load's, and the load can have been a route (a bookmark on `#stars`, a reload on a
+ * pushed entry), so `homing` asks `emit` to clear it in place once there (D-857).
+ */
+export function home(): void {
+  if (window.location.hash === '') return;
+  const d = depth();
+  if (d > 0) {
+    homing = true;
+    window.history.go(-d);
+    return;
+  }
+  pending = 'h1';
+  clearRoute();
+}
+
 /** Home, in place: no history entry, the state kept. For a hash that names no route the app can draw (FR-VISIT-4). */
 export function clearRoute(): void {
   if (window.location.hash !== '') window.history.replaceState(window.history.state, '', path());
@@ -176,4 +204,5 @@ function isPassHash(hash: string): boolean {
 export function resetNavigation(): void {
   openers.length = 0;
   pending = undefined;
+  homing = false;
 }

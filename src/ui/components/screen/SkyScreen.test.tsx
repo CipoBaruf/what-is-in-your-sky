@@ -176,7 +176,7 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     }
     expect(screen.queryByRole('group', { name: en.chart.viewGroup })).toBeNull();
     expect(screen.getByTestId('live-top-row')).toHaveAttribute('aria-hidden', 'true');
-    expect(screen.queryByRole('button', { name: en.live.back })).toBeNull();
+    expect(screen.queryByRole('button', { name: en.header.backName })).toBeNull();
 
     // FR-FSC-2: the `×` is the one icon in the app, named rather than bracketed, and the layer is a modal dialog.
     expect(layer).toHaveAttribute('role', 'dialog');

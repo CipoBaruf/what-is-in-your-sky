@@ -14,9 +14,8 @@ import type { EpochMs, Observer, Pass } from '../../model';
 import { useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../state';
 import { sameLocation } from '../../state/slices/location';
 import { FailureLine } from '../components/common/FailureLine';
-import { LanguageToggle } from '../components/common/LanguageToggle';
+import { Header } from '../components/common/Header';
 import { ShareButton } from '../components/common/ShareButton';
-import { ThemeToggle } from '../components/common/ThemeToggle';
 import { PageNotices, type LinkNoteKind } from '../components/common/VisitNotice';
 import { ChartFrameSlots, LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
 import { DOME_BOX_ASPECT } from '../components/guide/skychart/dome/camera';
@@ -264,14 +263,14 @@ function Page({ state, wakeLock, fold, placement, top, children }: { state: 'liv
 }
 
 /**
- * The return control, the place, and on wide the switches the header would have carried (D-244). R77
- * (FR-WATCH-2, V20-8): on compact the state indicator stands here, between the two — `[ ← Back ]` at the left,
- * the mark, the word and the place at the right — so the actions row keeps its cells. The live page renders it
- * from `LiveSky`, which owns the state; the inert page renders it without one.
+ * The page's top row. R77 (FR-WATCH-2, V20-8): on compact the state indicator stands on it, after `[ ← ]`, and the
+ * place after the indicator. R129 (FR-FLOW-3, D-845): the row is the app's one `Header`, told it is the live page —
+ * `[ ← ]`, the indicator in the page name's place (its word, watching, is the name) and the place on compact; on
+ * wide the one header row every page has, with `live` marked in its links. The language and theme switches the
+ * wide row used to carry here (D-244) are the settings page's (V26-10). The page renders it from `LiveSky`, which
+ * owns the state; the inert page renders it without one. It is a `div`: the `banner` is the page's own, in its grid.
  */
 function TopRow({ place, indicator, screenOpen, onLeave }: { place: string | null; indicator: ReactNode; screenOpen: boolean; onLeave: () => void }) {
-  const t = useT();
-  const compact = useLayoutMode() === 'compact';
   return (
     /* R89 (FR-VISIT-2, FR-VISIT-3): the visit notice and the link's moment note head the page under this row,
        R87's components as home mounts them; empty, the strip is not drawn and the area is the row alone. */
@@ -280,21 +279,8 @@ function TopRow({ place, indicator, screenOpen, onLeave }: { place: string | nul
           the layer is reachable, by Tab or by a tap that lands past it — and `aria-hidden` is what takes it out of
           the accessible tree, since `inert` alone is a browser behaviour and not a name a test can read. */}
       <div className={styles.topRow} data-testid="live-top-row" {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
-        {/* R85 (FR-COMP-7, D-549): `[ ← ]` on compact, named by the word it no longer draws; the hit box is the same rule's. */}
-        {/* R104 (D-704): the compact row's 48 px hit box on a text row (R48, D-246) is the primitive's `inline` form. */}
-        <TextButton inline={compact} label={compact ? t.live.backShort : t.live.back} className={styles.back} onClick={onLeave} data-testid="live-back" {...(compact ? { 'aria-label': t.live.backName } : {})} />
-        {indicator}
-        {place !== null && (
-          <span className={styles.place} data-testid="live-place">
-            {place}
-          </span>
-        )}
-        {!compact && (
-          <div className={styles.controls}>
-            <LanguageToggle />
-            <ThemeToggle />
-          </div>
-        )}
+        {/* R85 (FR-COMP-7, D-549): `[ ← ]`, named by the word it no longer draws, is the header's on every sub-page now. */}
+        <Header page="live" landmark={false} context={place} onBack={onLeave} backClassName={styles.back} status={indicator ?? undefined} />
       </div>
       {!screenOpen && <PageNotices kinds={LIVE_NOTES} />}
     </div>

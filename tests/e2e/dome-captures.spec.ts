@@ -6,7 +6,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { withSettings } from './liveHelpers';
+import { setThemeByKey, withSettings } from './liveHelpers';
 
 /*
  * FR-CI-2 (R37, D-195): off the pull-request path. These are evidence, as the
@@ -88,11 +88,8 @@ async function showDome(page: Page): Promise<void> {
 const guide = (page: Page): Locator => page.locator('[role="dialog"], [data-testid="guide-panel"]').first();
 
 async function setNight(page: Page): Promise<void> {
-  // D-99: the compact sheet carries its own switch, because it covers the header's. The wide shell has only the header's.
-  const inGuide = guide(page).getByRole('group', { name: 'Theme' });
-  const themes = (await inGuide.count()) > 0 ? inGuide : page.getByRole('banner').getByRole('group', { name: 'Theme' });
-  await themes.getByRole('button', { name: 'Night' }).click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'night');
+  // R129 (V26-10): neither the sheet nor the header carries the switch any more; `n` sets the palette under the guide.
+  await setThemeByKey(page, 'night');
   // Bring the drawing back into frame before the capture.
   await showDome(page);
 }

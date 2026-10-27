@@ -88,8 +88,9 @@ for (const viewport of [PHONE, DESK]) {
       await page.evaluate(() => {
         window.location.hash = 'settings';
       });
-      await expect(page.getByTestId('settings-back')).toBeVisible();
-      expect(await landmarkCounts(page)).toEqual({ main: 1, h1: 1, banner: 1, navigation: 1, contentinfo: 1 });
+      await expect(page.getByTestId('location-actions')).toBeVisible();
+      // R129 (D-845): on a phone the settings header is its `[ ← ]` row, which holds no links.
+      expect(await landmarkCounts(page)).toEqual({ main: 1, h1: 1, banner: 1, navigation: viewport === PHONE ? 0 : 1, contentinfo: 1 });
     });
 
     test(`the populated home with 40 passes skips no level and has at most ${String(A11Y_MAX_H2)} h2 (FR-A11Y-2)`, async ({ page }) => {
@@ -237,6 +238,8 @@ test.describe('history (FR-ROUTE-1..3, F-91)', () => {
   });
 
   test('Back and Forward render the route the URL names, and the page controls go back the way they came', async ({ page }) => {
+    // R129 (FR-FLOW-3): the settings page links to the live page only from the wide header's row.
+    await page.setViewportSize(DESK);
     await seedStoredRun(page);
     await page.getByTestId('settings-link').click();
     await expect(page.getByTestId('settings-back')).toBeVisible();
@@ -271,6 +274,9 @@ test.describe('history (FR-ROUTE-1..3, F-91)', () => {
     await expect(page.getByTestId('settings-back')).toBeVisible();
     await expect(page).toHaveTitle(`Settings · ${TITLE.en.app}`);
 
+    // R129 (FR-FLOW-3): the phone's settings row is `[ ← ]` and its name; the live page is the home's link.
+    await page.getByTestId('settings-back').click();
+    await home(page);
     await page.getByTestId('live-link').click();
     await expect(page.getByTestId('live-page')).toBeVisible();
     await page.reload();

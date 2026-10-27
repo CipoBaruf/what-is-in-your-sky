@@ -42,7 +42,7 @@ export interface ShellProps {
   routeKey: string;
   /** `document.title`, from `lib/routeTitle` (D-531). */
   title: string;
-  /** The `banner` landmark: the header, which renders its own `<header>`. Home and settings only. */
+  /** The `banner` landmark: the header, which renders its own `<header>` told its page (R129, D-845). Home, settings and stars; the live page holds its header in its own grid. */
   banner?: ReactNode;
   /** The `contentinfo` landmark, rendering its own `<footer>`. */
   footer?: ReactNode;

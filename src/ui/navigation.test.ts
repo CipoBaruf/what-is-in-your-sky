@@ -3,7 +3,7 @@
  * what opened the route. jsdom traverses the history a task later, as a browser does, hence the waits.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearRoute, close, depth, isRouteHref, open, resetNavigation, subscribe, takeFocusTarget } from './navigation';
+import { clearRoute, close, depth, home, isRouteHref, open, resetNavigation, subscribe, takeFocusTarget } from './navigation';
 
 // Every traversal here lands on home; waiting for it rather than for a fixed time keeps a loaded run honest.
 const settle = (): Promise<void> =>
@@ -129,5 +129,56 @@ describe('the focus after a route is left (D-532)', () => {
     window.history.back();
     await settle();
     expect(takeFocusTarget()).toBe(button);
+  });
+});
+
+describe('home, the wide header link (R129, FR-FLOW-3, D-857)', () => {
+  it('goes back past every entry the session pushed in one step, to home', async () => {
+    const button = document.body.appendChild(document.createElement('button'));
+    open('#stars', button);
+    open('#live');
+    expect(depth()).toBe(2);
+    home();
+    await settle();
+    expect(depth()).toBe(0);
+    expect(takeFocusTarget()).toBe(button);
+  });
+
+  it('lands on home when the load was a route: a bookmark on #stars, then the live link, then home', async () => {
+    const h1 = document.body.appendChild(document.createElement('h1'));
+    window.history.replaceState(null, '', '#stars');
+    const heard = vi.fn();
+    const off = subscribe(heard);
+    open('#live');
+    home();
+    await settle();
+    // The entry is the load's own, cleared in place: Back from here leaves the app, as it would have from #stars.
+    expect(depth()).toBe(0);
+    await vi.waitFor(() => {
+      expect(heard).toHaveBeenCalled();
+    });
+    off();
+    expect(takeFocusTarget()).toBe(h1);
+  });
+
+  it('lands on home after a reload on a pushed entry, when the openers are gone', async () => {
+    window.history.replaceState(null, '', '#settings');
+    open('#stars');
+    open('#live');
+    // A reload keeps the entries and their states but not this module's memory of them.
+    resetNavigation();
+    home();
+    await settle();
+    expect(depth()).toBe(0);
+  });
+
+  it('clears a route that was the load entry in place, and does nothing at home', () => {
+    window.history.replaceState(null, '', '#stars');
+    const entries = window.history.length;
+    home();
+    expect(window.location.hash).toBe('');
+    expect(window.history.length).toBe(entries);
+    home();
+    expect(window.location.hash).toBe('');
   });
 });

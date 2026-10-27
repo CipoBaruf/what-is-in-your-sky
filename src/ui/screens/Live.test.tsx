@@ -422,7 +422,8 @@ describe('<LivePage>', () => {
         <LivePage link={null} onLeave={() => undefined} />
       </I18nProvider>,
     );
-    expect(screen.getByRole('button', { name: `← ${name}` })).toHaveTextContent(`← ${name}`);
+    // R129 (FR-FLOW-3, D-845): the wide row's way back is the header's `[ ← ]` too.
+    expect(screen.getByRole('button', { name })).toHaveTextContent(/^←$/);
   });
 
   /**
@@ -461,7 +462,7 @@ describe('<LivePage>', () => {
     }
   });
 
-  it('carries the language and the theme switches on wide, since there is no header on this page; compact keeps one top row without them (D-244)', () => {
+  it('carries no language or theme switch at either width: the top row is the header, told it is the live page (R129, D-845, V26-10)', () => {
     withSky();
     // jsdom has no `matchMedia`: the compact shell. The top row is the return control and the place.
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
@@ -476,8 +477,10 @@ describe('<LivePage>', () => {
     media = stubMatchMedia(1280, 800);
     render(<LivePage link={null} onLeave={() => undefined} />);
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'false');
-    expect(screen.getByRole('group', { name: 'Language' })).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: 'Theme' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Language' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Theme' })).toBeNull();
+    expect(within(screen.getByTestId('live-top-row')).getByTestId('live-link')).toHaveAttribute('aria-current', 'page');
+    expect(within(screen.getByTestId('live-top-row')).getByTestId('live-place')).toHaveTextContent(observer.label);
     expect(screen.getByRole('button', { name: 'Share this sky' })).toHaveTextContent('Share this sky');
   });
 
@@ -836,7 +839,7 @@ describe('<LivePage>', () => {
     for (const testid of ['live-side', 'stripe-block', 'time-stripe', 'playback-controls', 'playback-row', 'live-actions', 'live-time']) expect(screen.queryByTestId(testid)).toBeNull();
     // The page's one-row header is covered rather than unmounted, and out of the accessible tree with it.
     expect(screen.getByTestId('live-top-row')).toHaveAttribute('aria-hidden', 'true');
-    expect(screen.queryByRole('button', { name: en.live.back })).toBeNull();
+    expect(screen.queryByRole('button', { name: en.header.backName })).toBeNull();
     // Leaving the screen: the whole page is back, at the instant it was left at — not at now.
     act(() => {
       appStore.getState().closeSkyScreen();
@@ -1045,7 +1048,7 @@ describe('<LivePage>', () => {
     // The live page is where the block's link goes, so the block here carries none.
     expect(screen.queryByTestId('now-live-link')).toBeNull();
     // On compact the indicator is the top row's; on wide it heads the rail with the clock.
-    if (mode === 'compact') expect(screen.getByTestId('live-indicator').parentElement).toBe(screen.getByTestId('live-top-row'));
+    if (mode === 'compact') expect(screen.getByTestId('live-indicator').parentElement).toBe(within(screen.getByTestId('live-top-row')).getByTestId('header'));
     else {
       expect(within(screen.getByTestId('live-rail-head')).getByTestId('live-indicator')).toBeInTheDocument();
       expect(screen.getByTestId('live-clock')).toHaveTextContent(/^09:48:24 UTC$/);

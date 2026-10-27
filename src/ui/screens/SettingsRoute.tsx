@@ -50,16 +50,24 @@ export interface SettingsRouteOptions {
   /** Whether the chunk is still on its way, and where to say so: `App`'s state, read by the header's bead. */
   arriving?: boolean;
   onArriving?: (arriving: boolean) => void;
+  /** R129 (FR-FLOW-3): the place, the header's context. */
+  place?: string | null;
   /** Tests: the page rendered in place of the chunk, so the route composes synchronously. */
   page?: ReactNode;
 }
 
+/** The page's props, and the route's way out: the header's `[ ← ]` (US-20 AC4). */
+interface SettingsShellProps extends SettingsPageProps {
+  onLeave: () => void;
+}
+
 const noop = (): void => undefined;
 
-export function settingsShell(t: Messages, props: SettingsPageProps, { arriving = false, onArriving = noop, page }: SettingsRouteOptions = {}): Pick<ShellProps, 'chrome' | 'banner' | 'footer' | 'mainProps' | 'children'> {
+export function settingsShell(t: Messages, { onLeave, ...props }: SettingsShellProps, { arriving = false, onArriving = noop, place = null, page }: SettingsRouteOptions = {}): Pick<ShellProps, 'chrome' | 'banner' | 'footer' | 'mainProps' | 'children'> {
   return {
     chrome: 'settings',
-    banner: <Header current="settings" busy={arriving} />,
+    // R129 (D-845): the header is the page's top row, its `[ ← ]` the page's way back (US-20 AC4).
+    banner: <Header page="settings" context={place} onBack={onLeave} backRef={props.backRef} busy={arriving} />,
     mainProps: { className: styles.page, 'aria-label': t.settings.heading },
     footer: <SettingsPrivacy />,
     children: page ?? (

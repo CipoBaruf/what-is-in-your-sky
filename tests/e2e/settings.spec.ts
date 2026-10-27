@@ -87,13 +87,16 @@ test.describe('the settings page at 390 px (FR-COMP-1..4, US-20)', () => {
     expect(settings).toEqual(title);
   });
 
-  test('the settings page still has a one-line header, and its own [ settings ] is the current page', async ({ page }) => {
+  test('the settings page has the one-line [ ← ] row: its name and the place (FR-FLOW-3, D-845)', async ({ page }) => {
     await seedStoredRun(page);
     await page.getByTestId('settings-link').click();
     const header = page.getByTestId('header');
+    await expect(header).toHaveAttribute('data-page', 'settings');
     expect(await isOneLine(header)).toBe(true);
-    await expect(page.getByTestId('settings-link')).toHaveAttribute('aria-current', 'page');
-    await expect(page.getByTestId('live-link')).toHaveAttribute('href', '#live');
+    await expect(page.getByTestId('settings-back')).toHaveAccessibleName('Back');
+    await expect(page.getByTestId('header-page')).toHaveText('settings');
+    await expect(page.getByTestId('settings-place')).toBeVisible();
+    await expect(header.getByRole('link')).toHaveCount(0);
   });
 
   test('a change on the settings page applies at once and survives the trip back (US-20 AC2)', async ({ page }) => {
@@ -101,7 +104,9 @@ test.describe('the settings page at 390 px (FR-COMP-1..4, US-20)', () => {
     await page.getByTestId('settings-link').click();
     await page.getByRole('button', { name: 'Español' }).click();
     await expect(page.locator('html')).toHaveAttribute('lang', 'es');
-    await expect(page.getByTestId('settings-back')).toHaveText('← Volver');
+    // R129 (FR-COMP-7, D-845): the header's `[ ← ]`, named Volver.
+    await expect(page.getByTestId('settings-back')).toHaveText('←');
+    await expect(page.getByTestId('settings-back')).toHaveAccessibleName('Volver');
     await page.getByTestId('settings-back').click();
     await expect(page).toHaveURL((url) => url.hash === '');
     await expect(page.locator('html')).toHaveAttribute('lang', 'es');
@@ -268,7 +273,7 @@ test.describe('the settings page rows and the coordinates disclosure (FR-SET-1)'
 });
 
 test.describe('the focus ring on the phone (FR-X-5, D-500)', () => {
-  test('the way back is ringed round its own line, clear of the header and the first heading', async ({ page }) => {
+  test('the way back is ringed round its own line, inside the header row and clear of the first heading', async ({ page }) => {
     await seedStoredRun(page);
     // Opened without a pointer, so the page's own focus on the way back is drawn with a
     // ring: `:focus-visible` is the state this rule is about.
@@ -287,8 +292,9 @@ test.describe('the focus ring on the phone (FR-X-5, D-500)', () => {
     // The ring is drawn round the text line, not round the 48 px tap box.
     expect(ring.height).toBeLessThanOrEqual(26);
     const box = (locator: Locator): Promise<DOMRect> => locator.evaluate((el: HTMLElement) => el.getBoundingClientRect().toJSON() as DOMRect);
-    const [above, below] = await Promise.all([box(page.getByTestId('header')), box(page.getByRole('heading', { level: 2, name: 'Location' }))]);
-    expect(above.bottom).toBeLessThanOrEqual(ring.top);
+    // R129 (D-845): the way back is the header's `[ ← ]` now, so the ring stands in the header's row.
+    const [header, below] = await Promise.all([box(page.getByTestId('header')), box(page.getByRole('heading', { level: 2, name: 'Location' }))]);
+    expect(ring.top).toBeGreaterThanOrEqual(header.top);
     expect(below.top).toBeGreaterThanOrEqual(ring.bottom);
   });
 });
@@ -296,35 +302,58 @@ test.describe('the focus ring on the phone (FR-X-5, D-500)', () => {
 test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', () => {
   test.use({ viewport: WIDE });
 
-  test('has [ Live sky ] beside the title, the preferences at the right, and no link to #settings', async ({ page }) => {
+  test('one row: the title, the page links with home current, and [ settings ] at the right end, no switches (FR-FLOW-3, D-845)', async ({ page }) => {
     await seedStoredRun(page);
     const header = page.getByTestId('header');
     await expect(header.getByRole('heading', { level: 1 })).toHaveText('What is in your sky right now');
-    await expect(page.getByTestId('live-link')).toHaveText('Live sky');
-    await expect(page.getByTestId('settings-link')).toHaveCount(0);
-    // The live control is on the title's own line, not in the group of preferences at the right (V11-8).
+    await expect(page.getByTestId('live-link')).toHaveText('live');
+    await expect(page.getByTestId('home-link')).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByTestId('settings-link')).toHaveAttribute('href', '#settings');
+    await expect(header.getByRole('group', { name: 'Language' })).toHaveCount(0);
+    await expect(header.getByRole('group', { name: 'Theme' })).toHaveCount(0);
+    // The links and `[ settings ]` are on the title's line — the boxes overlap it vertically — `[ settings ]` at the right.
     const box = (locator: Locator): Promise<DOMRect> => locator.evaluate((el: HTMLElement) => el.getBoundingClientRect().toJSON() as DOMRect);
-    const [title, live, language] = await Promise.all([box(header.getByRole('heading', { level: 1 })), box(page.getByTestId('live-link')), box(page.getByRole('group', { name: 'Language' }))]);
-    // Beside the title, on its line — the two boxes overlap vertically — and left of the preferences.
-    expect(live.top).toBeLessThan(title.bottom);
-    expect(title.top).toBeLessThan(live.bottom);
-    expect(live.right).toBeLessThan(language.left);
-    // R76 (FR-FIRST-4, FR-SET-3): the wide home's location is the Where reading's line, its `[ change ]`
-    // opens the whole form in place, and nothing on the page links to #settings (US-20 AC5).
+    const [title, live, settings] = await Promise.all([box(header.getByRole('heading', { level: 1 })), box(page.getByTestId('live-link')), box(page.getByTestId('settings-link'))]);
+    for (const other of [live, settings]) {
+      expect(other.top).toBeLessThan(title.bottom);
+      expect(title.top).toBeLessThan(other.bottom);
+    }
+    expect(live.left).toBeGreaterThan(title.right);
+    expect(settings.left).toBeGreaterThan(live.right);
+    // The current page is drawn in the body's ink with the accent rule under it, not dimmed (D4).
+    const current = await page.getByTestId('home-link').evaluate((el: HTMLElement) => ({ color: getComputedStyle(el).color, line: getComputedStyle(el).textDecorationLine, fg: getComputedStyle(document.body).color }));
+    expect(current.line).toContain('underline');
+    expect(current.color).toBe(current.fg);
+    // R76 (FR-FIRST-4, FR-SET-3): the wide home's location is the Where reading's line, its `[ change ]` opens the
+    // whole form in place; the header's `[ settings ]` is the one link to #settings.
     await expect(page.getByTestId('location-summary')).toBeVisible();
     await page.getByTestId('location-summary-change').click();
     await expect(page.getByRole('region', { name: 'Location' })).toBeVisible();
-    await expect(page.locator('a[href="#settings"]')).toHaveCount(0);
+    await expect(page.locator('a[href="#settings"]')).toHaveCount(1);
   });
 
-  test('[ Live sky ] is drawn on the title’s own line (FR-DESK-2, D-501)', async ({ page }) => {
+  test('home reaches home when the page the app loaded on was a route: #settings, then live, then home (D-857)', async ({ page }) => {
+    await seedStoredRun(page);
+    // A bookmark on #settings: the load's own entry is the route.
+    await page.goto('/#settings');
+    await page.reload();
+    await expect(page.getByTestId('header')).toHaveAttribute('data-page', 'settings');
+    await page.getByTestId('live-link').click();
+    await expect(page).toHaveURL(/#live$/);
+    await page.getByTestId('home-link').click();
+    await expect(page.getByTestId('header')).toHaveAttribute('data-page', 'home');
+    expect(new URL(page.url()).hash).toBe('');
+    await expect(page.getByTestId('home-link')).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('the live link is drawn on the title’s own line (FR-DESK-2, D-501)', async ({ page }) => {
     await seedStoredRun(page);
     const header = page.getByTestId('header');
     const [title, live] = await Promise.all([textLine(header.getByRole('heading', { level: 1 })), textLine(page.getByTestId('live-link'))]);
     expect(live).toEqual(title);
   });
 
-  test('the focus ring on [ Live sky ] clears the tagline under it (FR-X-5, D-500)', async ({ page }) => {
+  test('the focus ring on the live link clears the tagline under it (FR-X-5, D-500)', async ({ page }) => {
     await seedStoredRun(page);
     const live = page.getByTestId('live-link');
     await live.focus();
@@ -339,7 +368,7 @@ test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', ()
     expect(ring.bottom).toBeLessThanOrEqual(tagline.top);
   });
 
-  test('renders #settings when navigated to, at a width that links to it from nowhere (FR-COMP-2)', async ({ page }) => {
+  test('renders #settings when navigated to (FR-COMP-2)', async ({ page }) => {
     await seedStoredRun(page);
     await page.evaluate(() => {
       window.location.hash = 'settings';
