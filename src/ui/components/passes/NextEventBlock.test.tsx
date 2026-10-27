@@ -35,6 +35,17 @@ describe('<NextEventBlock> (FR-FIRST-3)', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  /** R127 (FR-SKY-11, D-796): the landmark line under the name line on the live page's block, where the page hands one; none otherwise, and never on the card. */
+  it('puts the landmark line under the path where the host gives one', () => {
+    const { rerender } = render(<NextEventBlock passes={passes} timeZone={ZONE} now={FIRST.start.t - 60_000} hours={72} liveLink={false} line="passes 7° above Betelgeuse, in Orion" />);
+    expect(lines()).toEqual(['Next up · in 1:00', '04:36', 'SL-16 R/B (Cosmos 2369) · S low → 32° ESE → ENE', 'passes 7° above Betelgeuse, in Orion']);
+    expect(screen.getByTestId('next-event-landmark')).toHaveTextContent('passes 7° above Betelgeuse, in Orion');
+    rerender(<NextEventBlock passes={passes} timeZone={ZONE} now={FIRST.start.t - 60_000} hours={72} liveLink={false} line={null} />);
+    expect(screen.queryByTestId('next-event-landmark')).toBeNull();
+    rerender(<NextEventBlock passes={passes} timeZone={ZONE} now={FIRST.start.t - 60_000} hours={72} form="card" line="passes through Orion" />);
+    expect(screen.queryByTestId('next-event-landmark')).toBeNull();
+  });
+
   it('under way, counts to the peak and then to the end, and names the end’s time', () => {
     const { rerender } = render(<NextEventBlock passes={passes} timeZone={ZONE} now={FIRST.peak.t - 70_000} hours={72} />);
     expect(screen.getByTestId('next-event-label')).toHaveTextContent('Up now · peaks in 1:10');

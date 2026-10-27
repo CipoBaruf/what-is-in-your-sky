@@ -3,7 +3,8 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSPrope
 import { useT } from '../../../../../i18n/useT';
 import { normalizeAzimuthDeg } from '../../../../../lib/compass';
 import { ChartFrame } from '../ChartFrame';
-import { sceneFor } from '../layers';
+import { landmarkFor, sceneFor } from '../layers';
+import { LANDMARK_RING_PX } from '../window/starGlyphs';
 import type { SkyChartProps } from '../SkyChart.types';
 import {
   AMBIENT_INTENSITY,
@@ -228,12 +229,32 @@ function DomeAnchors({ anchors }: { anchors: readonly DomeAnchor[] }) {
   );
 }
 
+/**
+ * R127 (FR-SKY-11, D-796): the landmark's ring — a hotspot at the landmark
+ * star's own anchor carrying a dashed circle of `LANDMARK_RING_PX` radius in
+ * the star tone, the font holding no circle. Drawn only when the landmark is
+ * one of the dome's own stars (`landmarkFor('dome', …)`), so the dome never
+ * rings an empty place.
+ */
+function DomeLandmark({ anchor }: { anchor: DomeAnchor }) {
+  return (
+    <GlyphHotspot id="landmark" at={anchor.at} size={[1, 1]}>
+      <span className={styles.landmarkRing} data-landmark-ring={anchor.star} style={{ '--landmark-ring': `${String(LANDMARK_RING_PX)}px` } as CSSProperties} />
+    </GlyphHotspot>
+  );
+}
+
 export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, scene, className }: SkyChartProps) {
   const t = useT();
   // FR-SKY-1 (R119): what the table leaves the dome of the scene — the stars to `DOME_STAR_MAG`, the planets, no figures, no names.
   const stars = useMemo(() => sceneFor('dome', scene)?.stars ?? null, [scene]);
   // Its own memo: a new scene moves the anchors and leaves the meshes and the label placement alone.
   const anchors = useMemo(() => starAnchors(stars), [stars]);
+  // R127 (FR-SKY-11): the landmark's anchor, where the landmark is one of the dome's own stars.
+  const landmarkAnchor = useMemo(() => {
+    const star = landmarkFor('dome', scene);
+    return star === null ? null : (anchors.find((anchor) => anchor.star === star) ?? null);
+  }, [scene, anchors]);
   const highlighted = passes.find((pass) => pass.id === highlightedPassId) ?? passes[0];
   const [camera, setCamera] = useState<CameraState>(() => initialFor(highlighted, facingAzDeg ?? initialFacingAzDeg));
 
@@ -474,6 +495,7 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
                     ))}
                     <DomeLabels labels={layers.labels} rotY={rotY} onSelect={onSelectPass} />
                     <DomeAnchors anchors={anchors} />
+                    {landmarkAnchor !== null && <DomeLandmark anchor={landmarkAnchor} />}
                   </GlyphScene>
                 </GlyphOrthographicCamera>
               </div>

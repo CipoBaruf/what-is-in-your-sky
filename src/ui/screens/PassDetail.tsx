@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocale, useT } from '../../i18n/useT';
+import { landmarkLine } from '../../lib/landmarkLine';
 import { guideParams } from '../../lib/phrases';
 import { passLinkFor, shareUrl } from '../../lib/shareLinks';
 import { formatDate } from '../../lib/timeFormat';
@@ -119,9 +120,38 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   if (!inert && drawnNow !== now) setDrawnNow(now);
   const bodies = useSkyBodies({ observer, now: drawnNow });
   const starsLayer = useAppStore((s) => s.starsLayer);
-  const starSource = useStarSource(starsLayer);
-  const scene = useSkyScene({ observer, now: drawnNow, starsLayer, source: starSource });
+  /*
+   * R127 (FR-SKY-12, D-826): the source is asked for whatever the toggle says, because the `Among` column is about
+   * the fixed sky and not about the drawing: the figures' lines are data the app ships, and the column stands with
+   * the stars off. The scene still reads the toggle, so the drawing is unchanged by this.
+   */
+  const starSource = useStarSource(true);
+  // FR-SKY-11 (D-796): the explained pass is the highlighted one, so the scene's landmark is its peak's.
+  const scene = useSkyScene({ observer, now: drawnNow, starsLayer, source: starSource, pass });
   const slots = useMemo(() => ({ viewAction: <StarsToggle inline={compact} /> }), [compact]);
+  const { lat, lon } = observer;
+  // FR-SKY-11: the line under the pass's name, worded once (`lib/landmarkLine.ts`) in the active language (D-832).
+  const landmarkText = useMemo(() => {
+    if (!starSource || scene.landmark?.passId !== pass.id) return null;
+    return landmarkLine(
+      scene.landmark,
+      { star: (i) => starSource.names.star(i, locale), constellation: (con) => starSource.names.constellation(con, locale), constellationOf: (i) => starSource.catalog.con[i] ?? '' },
+      t.live,
+    );
+  }, [starSource, scene.landmark, pass.id, locale, t]);
+  /*
+   * FR-SKY-12 (D-796): the constellation each point is among, at the point's own instant — the pass is fixed, so
+   * this is computed once per pass and source and not per tick. `null` past `AMONG_MAX_DEG`; the column is absent
+   * until the source is in hand, since nothing could fill it.
+   */
+  const among = useMemo(() => {
+    if (!starSource) return undefined;
+    const at = (point: Pass['peak']): string | null => {
+      const found = starSource.constellationAt({ azDeg: point.azDeg, altDeg: point.elDeg }, starSource.positionsAt({ lat, lon }, point.t));
+      return found === null ? null : (starSource.names.constellation(found.con, locale) ?? found.con);
+    };
+    return { start: at(pass.start), peak: at(pass.peak), end: at(pass.end) };
+  }, [starSource, pass, lat, lon, locale]);
   /*
    * R66 (FR-FSC-1, FR-FSC-9; V13-9, D-351, D-354): the sky screen over this
    * sheet. The window is a view this page offers again (FR-FSC-6) and what
@@ -202,6 +232,12 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
 
   const body = (
     <>
+      {/* R127 (FR-SKY-11): the landmark line under the pass's name, on both shells. */}
+      {landmarkText !== null && (
+        <p className={styles.landmark} data-testid="pass-landmark">
+          {landmarkText}
+        </p>
+      )}
       <p className={styles.meta}>
         {formatDate(pass.start.t, timeZone, locale)}
         {pass.twilight && <span className={styles.twilight}>{t.passes.twilightLabel}</span>}
@@ -218,7 +254,7 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
           moon={bodies.moon}
           scene={scene}
           facingOptions={PEAK_FACING_OPTIONS}
-          legendLead={(row) => <PassNumbers pass={pass} timeZone={timeZone} legendKey={row.key} colorToken={row.colorToken} />}
+          legendLead={(row) => <PassNumbers pass={pass} timeZone={timeZone} legendKey={row.key} colorToken={row.colorToken} among={among} />}
         />
       </ChartFrameSlots.Provider>
       <MoonAtPeak moon={pass.moonAtPeak} variant="guide" />

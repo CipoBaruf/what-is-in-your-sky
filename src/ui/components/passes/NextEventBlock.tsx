@@ -150,13 +150,19 @@ export interface NextEventBlockProps {
   /** R93 (FR-HOME-2): the host's own class on the section, for where the reading's grid puts the block. */
   className?: string | undefined;
   /**
+   * R127 (FR-SKY-11, D-796): the landmark line under the pass's name line — "passes 7° above Betelgeuse, in Orion",
+   * already worded by `lib/landmarkLine.ts` from the page's scene — on the live page's headline block alone (wide and
+   * compact); the home page passes nothing. `null` or absent draws no line.
+   */
+  line?: string | null | undefined;
+  /**
    * R105 (D-720): whether the block form is ruled off above — a pane's last block (the default) — or is the
    * page's own headline with no rule, which the compact live page passes (R77). The card form is never ruled.
    */
   ruled?: boolean;
 }
 
-export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block', liveLink = true, onOpen, onSee, className, ruled = true }: NextEventBlockProps) {
+export function NextEventBlock({ passes, timeZone, context, pending = false, now: nowProp, hours, form = 'block', liveLink = true, onOpen, onSee, className, ruled = true, line = null }: NextEventBlockProps) {
   const t = useT();
   const locale = useLocale();
   const nameId = useId();
@@ -219,6 +225,12 @@ export function NextEventBlock({ passes, timeZone, context, pending = false, now
               </>
             )}
           </p>
+          {/* R127 (FR-SKY-11): the landmark line, under the name line, where the live page hands one. */}
+          {line !== null && (
+            <p className={styles.landmark} data-testid="next-event-landmark">
+              {line}
+            </p>
+          )}
           {liveLink && <LiveLink />}
         </>
       )}

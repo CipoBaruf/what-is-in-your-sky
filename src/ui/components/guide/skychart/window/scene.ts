@@ -48,6 +48,18 @@ interface StarCatalog {
   /** The constellation's IAU abbreviation. */
   con: readonly string[];
   figures: readonly StarFigure[];
+  /**
+   * R127 (FR-STAR-10 as amended v2.5, D-832): the names as data, so a view reads
+   * them through `lib/skyStars.ts`'s accessors and in the reader's language.
+   * Optional: a catalogue built by hand (a test's) without them is read in
+   * English with the abbreviation where a table is missing.
+   */
+  /** The Spanish name where `names-es.tsv` has one, else `''`. */
+  nameEs?: readonly string[];
+  /** Each language's name of every drawn part, by abbreviation, indexed by `part`. */
+  figureNames?: Readonly<Record<'en' | 'es', Readonly<Record<string, readonly string[]>>>>;
+  /** Each language's one name of a constellation drawn in parts (`Ser`). */
+  wholeNames?: Readonly<Record<'en' | 'es', Readonly<Record<string, string>>>>;
 }
 
 /** One planet at the shown instant (D-749): where it is and how bright, the library's at that tick. */
@@ -81,10 +93,33 @@ export interface StarField {
 }
 
 /**
+ * R127 (FR-SKY-11, FR-SKY-12; D-796): the highlighted pass's landmark, the
+ * scene's and so one star in every view. `star` is the bright star nearest the
+ * peak (`lib/landmark.ts`'s `landmark`), `null` where none is within reach;
+ * `among` the figure the peak is among (`constellationAt`), `null` past
+ * `AMONG_MAX_DEG`. The scene carries it only when one of the two is there.
+ */
+export interface SkyLandmark {
+  /** The pass whose peak it is — the highlighted one: the headline's on the live page, the explained one on the pass detail. */
+  passId: string;
+  star: {
+    /** The star's catalogue index. */
+    index: number;
+    /** Its distance from the peak, degrees. */
+    sepDeg: number;
+    /** The peak against the star. */
+    word: 'above' | 'below' | 'beside';
+  } | null;
+  among: { con: string; part: number } | null;
+}
+
+/**
  * The scene (FR-STAR-11). `stars: null` is a window with no star field — the
  * live page's and the pass detail's — and draws exactly what it drew before
- * the scene existed.
+ * the scene existed. R127: `landmark` is the highlighted pass's; absent or
+ * `null`, nothing is ringed, named or lined.
  */
 export interface SkyScene {
   stars: StarField | null;
+  landmark?: SkyLandmark | null;
 }

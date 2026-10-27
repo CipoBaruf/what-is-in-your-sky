@@ -1,7 +1,8 @@
 import { starCatalog } from '../../../data/stars/catalog';
-import { drawnMagLimit, drawnRungs, starsAt } from '../../../lib/skyStars';
+import { constellationAt, landmark } from '../../../lib/landmark';
+import { constellationName, drawnMagLimit, drawnRungs, figureName, starName, starsAt } from '../../../lib/skyStars';
 import { starSourceOf } from '../../components/guide/skychart/starScene';
-import type { StarSource } from '../../components/guide/skychart/useSkyScene';
+import type { StarNames, StarSource } from '../../components/guide/skychart/useSkyScene';
 import { sceneCatalog } from './field';
 
 /**
@@ -26,6 +27,14 @@ export function starSource(): StarSource {
     positionsAt: (observer, t) => starsAt(catalog, observer, t),
     drawnRungs,
     drawnMagLimit,
+    // R127 (FR-SKY-11, FR-SKY-12, D-832): the landmark, the column's figure and the names, closed over the catalogue here.
+    landmark: (positions, peak, rungs) => landmark({ mag: catalog.mag, altDeg: positions.altDeg, azDeg: positions.azDeg }, peak, rungs),
+    constellationAt: (point, positions) => constellationAt(point, catalog.figures, positions),
+    names: Object.freeze({
+      star: (i, lang) => starName(catalog, i, lang),
+      figure: (con, part, lang) => figureName(catalog, con, part, lang),
+      constellation: (con, lang) => constellationName(catalog, con, lang),
+    } satisfies StarNames),
   });
   return source;
 }

@@ -662,6 +662,8 @@ export const ui = {
       live: 'Open the live sky',
       stars: 'Open the stars',
       view: 'Switch the chart between the dome and the polar view',
+      /** R127 (FR-DESK-4 as amended v2.5, FR-SKY-13): on the live page with the window in the box; elsewhere it does nothing. */
+      follow: 'Turn the window to the highlighted pass and keep it there (live page)',
       theme: 'Switch the palette between dark and night',
       help: 'Show this list',
     } satisfies Record<ShortcutId, string>,

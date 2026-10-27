@@ -246,3 +246,14 @@
   margin: 0;
   color: var(--fg-dim);
 }
+
+/* R127 (FR-SKY-11, D-796): the landmark's ring under the grid and the arcs
+   with the stars — dashed, in the star tone, at the chart hairline; the
+   radius is the window's `LANDMARK_RING_PX` in the chart's user units, as the
+   glyph sizes are (D-812). */
+.landmarkRing {
+  fill: none;
+  stroke: var(--chart-star);
+  stroke-width: var(--chart-hairline);
+  stroke-dasharray: 3 3;
+}

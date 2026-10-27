@@ -1,16 +1,17 @@
 import { memo, useEffect, useId, useLayoutEffect, useMemo, useRef } from 'react';
-import { CONSTELLATION_NAMES } from '../../../../../data/stars/constellations';
+import { CONSTELLATION_NAMES, CONSTELLATION_WHOLE_NAMES } from '../../../../../data/stars/constellations';
 import { useLocale } from '../../../../../i18n/useT';
 import { useStarsPageT, type StarsPageMessages } from '../../../../../i18n/starsPageT';
 import { compassPoint } from '../../../../../lib/compass';
 import { degrees } from '../../../../../lib/format';
+import { figureName, starName, type StarNamesSource } from '../../../../../lib/skyStars';
 import type { Locale } from '../../../../../model';
 import { formatStarMag } from '../../../../screens/stars/field';
 import { inkMeasured, inkOffset, inkOffsetsReady } from './inkOffsets';
 import { COMPASS, converged, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, type Mat3, type View } from './projection';
 import type { StarField as StarFieldData } from './scene';
 import styles from './SkyWindow.module.css';
-import { collide, COLLISION_PX, magnitudeOrder, planetRungFor, rungFor, SIZE_PX, type Point, type Rung, type SizeToken, type StarGlyph } from './starGlyphs';
+import { collide, COLLISION_PX, LANDMARK_RING_PX, magnitudeOrder, planetRungFor, rungFor, SIZE_PX, type Point, type Rung, type SizeToken, type StarGlyph } from './starGlyphs';
 import glyphStyles from './starGlyphs.module.css';
 import { placeLabels, textWidth, type Box, type FigureLabel, type LabelInput, type LabelMark, type LabelSegment, type MarkLabel } from './starLabels';
 import type { RotationListener } from './useViewRotation';
@@ -65,6 +66,18 @@ import type { RotationListener } from './useViewRotation';
  * The group's own `visibility` is still the first write of every pass: hidden
  * when FR-FOL-5's `buried` state leaves no sky in the field (the frame the
  * window itself draws nothing in), visible otherwise.
+ *
+ * R127 (FR-SKY-11, FR-STAR-14, FR-STAR-10 as amended; D-796, D-832) adds the
+ * **landmark** — a dashed ring of `LANDMARK_RING_PX` at the landmark star,
+ * written per rotation like a mark, and its name beside it through the
+ * placement as a tapped star's — and the **figure tap**: each pass leaves the
+ * segments as drawn in `lineHits`, and a tap on one names the figure. A figure
+ * is in `namedStar`'s index space below zero, `−(s + 1)` for drawn segment
+ * `s`, so the page holds and clears it as it does a star; its label stands at
+ * the segment's middle and reads the figure's name. Every name the field
+ * writes — the star names, the figures' spaced capitals, the tap's label and
+ * the readout's line — is read through D-832's accessors in the reader's
+ * language.
  */
 export interface StarFieldProps {
   field: StarFieldData;
@@ -75,7 +88,40 @@ export interface StarFieldProps {
   labelled?: number | null;
   /** Written each pass: the glyphs as drawn, `null` for one hidden, in `namedStar`'s index space, for the window's hit test. */
   hits?: { current: readonly (Point | null)[] };
+  /** R127 (FR-STAR-14): written each pass: the figure segments as drawn, `null` for one hidden, in `prepare`'s segment order. */
+  lineHits?: { current: readonly (LabelSegment | null)[] };
+  /** R127 (FR-SKY-11): the landmark star to ring and name, a catalogue index, or `null` (`layers.ts`'s `landmarkFor`). */
+  landmark?: number | null;
 }
+
+/** R127 (D-832): the catalogue as the name readers take it; a catalogue without the Spanish tables (a test's) reads in English. */
+export function catalogNames(catalog: StarFieldData['catalog']): StarNamesSource {
+  return {
+    name: catalog.name,
+    nameEs: catalog.nameEs ?? [],
+    desig: catalog.desig,
+    figureNames: catalog.figureNames ?? { en: CONSTELLATION_NAMES, es: {} },
+    wholeNames: catalog.wholeNames ?? { en: CONSTELLATION_WHOLE_NAMES, es: {} },
+  };
+}
+
+/** The part index D-832's tables take for a figure the scene names by its last word (`''` whole, `Caput`, `Cauda`). */
+function partIndex(names: StarNamesSource, con: string, part: string): number {
+  if (part === '') return 0;
+  const parts = Object.hasOwn(names.figureNames.en, con) ? (names.figureNames.en[con] ?? []) : [];
+  const found = parts.findIndex((name) => name.endsWith(` ${part}`));
+  return found < 0 ? 0 : found;
+}
+
+/** A figure's name in `lang` through the accessor, the abbreviation where the table has none. */
+function figureLabelName(names: StarNamesSource, con: string, part: string, lang: Locale): string {
+  return figureName(names, con, partIndex(names, con, part), lang) ?? con;
+}
+
+/** FR-STAR-14: a figure in `namedStar`'s index space — below zero, by its drawn segment. */
+export const figureKey = (segment: number): number => -(segment + 1);
+/** The segment a figure key names, or `null` for a star's or a planet's key. */
+const figureSegment = (key: number): number | null => (key < 0 ? -key - 1 : null);
 
 const fmt = (n: number): string => n.toFixed(1);
 const vis = (show: boolean): 'visible' | 'hidden' => (show ? 'visible' : 'hidden');
@@ -97,12 +143,6 @@ const NAMED_MAG = 1.5;
 /** The compass names' sizes, the window stylesheet's `.compass` and `.compassMajor`. */
 const COMPASS_PX = { major: 15, minor: 12 };
 
-/** A figure's Latin name: the table's (data, the same in both languages), the half of Serpens by its part's word, the abbreviation where the table has none. */
-function latinName(con: string, part: string): string {
-  const names = Object.hasOwn(CONSTELLATION_NAMES, con) ? (CONSTELLATION_NAMES[con] ?? []) : [];
-  return (part === '' ? names[0] : (names.find((name) => name.endsWith(` ${part}`)) ?? names[0])) ?? con;
-}
-
 /** What a field needs computed once per props and not per frame. */
 export interface Prepared {
   /** Each star's rung, in catalogue order. */
@@ -113,16 +153,19 @@ export interface Prepared {
   segments: readonly (readonly [number, number])[];
   /** Each figure's segments, as `[first, end)` into `segments`. */
   figureRanges: readonly (readonly [number, number])[];
-  /** Each figure's Latin name. */
+  /** Each figure's name in the reader's language (D-832). */
   figureNames: readonly string[];
   /** The stars that may be named, brightest first: V ≤ 1.5 with a proper name. */
   nameStars: readonly number[];
+  /** Each named star's name in the reader's language, by catalogue index. */
+  starNames: ReadonlyMap<number, string>;
   /** The stars (index `i`) and the planets (index `n + k`) by magnitude, brightest first: the collision walk's order. */
   order: readonly number[];
 }
 
-export function prepare(field: StarFieldData): Prepared {
+export function prepare(field: StarFieldData, lang: Locale = 'en'): Prepared {
   const { catalog, positions } = field;
+  const names = catalogNames(catalog);
   const n = catalog.mag.length;
   const rungs: Rung[] = [];
   for (let i = 0; i < n; i += 1) rungs.push(rungFor(catalog.mag[i] ?? 0));
@@ -134,40 +177,57 @@ export function prepare(field: StarFieldData): Prepared {
     at += figure.segments.length;
     return range;
   });
-  const figureNames = catalog.figures.map((figure) => latinName(figure.con, figure.part));
+  const figureNames = catalog.figures.map((figure) => figureLabelName(names, figure.con, figure.part, lang));
   const mag = (k: number): number => (k < n ? (catalog.mag[k] ?? 0) : (positions.planets[k - n]?.mag ?? 0));
   const order = magnitudeOrder([...Array.from(catalog.mag), ...positions.planets.map((planet) => planet.mag)]);
   const nameStars = order.filter((k) => k < n && mag(k) <= NAMED_MAG && (catalog.name[k] ?? '') !== '');
-  return { rungs, planetRungs, segments, figureRanges, figureNames, nameStars, order };
+  const starNames = new Map(nameStars.map((i) => [i, starName(names, i, lang)]));
+  return { rungs, planetRungs, segments, figureRanges, figureNames, nameStars, starNames, order };
 }
 
 /** The size, in px, the glyph of object `k` (`namedStar`'s index space) is drawn at. */
 const sizeOf = (prepared: Prepared, n: number, k: number): number => SIZE_PX[(k < n ? prepared.rungs[k] : prepared.planetRungs[k - n])?.sizeToken ?? 'chart-text-12'];
 
+/** The figure a drawn segment belongs to, by `prepare`'s ranges, or `null` past them. */
+function figureOf(prepared: Prepared, segment: number): number | null {
+  const f = prepared.figureRanges.findIndex(([first, end]) => segment >= first && segment < end);
+  return f < 0 ? null : f;
+}
+
 /**
- * FR-STAR-7: the label's words — the proper name, or the designation where
- * there is none, or the planet's name in the reader's language — and the
- * magnitude, `Canopus · mag −0.7`.
+ * FR-STAR-7: the label's words — the name in the reader's language (D-832),
+ * or the designation where there is none, or the planet's name — and the
+ * magnitude, `Canopus · mag −0.7`. FR-STAR-14: a figure's label is its name.
  */
-function labelText(field: StarFieldData, k: number, p: StarsPageMessages, locale: Locale): string | null {
+function labelText(field: StarFieldData, prepared: Prepared, k: number, p: StarsPageMessages, locale: Locale): string | null {
   const { catalog, positions } = field;
   const n = catalog.mag.length;
-  if (k < n) {
-    const name = catalog.name[k] ?? '';
-    return `${name === '' ? (catalog.desig[k] ?? '') : name} · ${p.mag({ mag: formatStarMag(catalog.mag[k] ?? 0, locale) })}`;
+  const segment = figureSegment(k);
+  if (segment !== null) {
+    const f = figureOf(prepared, segment);
+    return f === null ? null : (prepared.figureNames[f] ?? null);
   }
+  if (k < n) return `${starName(catalogNames(catalog), k, locale)} · ${p.mag({ mag: formatStarMag(catalog.mag[k] ?? 0, locale) })}`;
   const planet = positions.planets[k - n];
   return planet ? `${p.planets[planet.body]} · ${p.mag({ mag: formatStarMag(planet.mag, locale) })}` : null;
 }
 
-/** FR-STAR-7: the readout's second line for object `k`, the list row's words, "Canopus · mag −0.7 · 28° up · S". */
+/**
+ * FR-STAR-7: the readout's second line for object `k`, the list row's words,
+ * "Canopus · mag −0.7 · 28° up · S"; FR-STAR-14: a figure's is its name alone.
+ */
 export function namedReadout(field: StarFieldData, k: number, p: StarsPageMessages, locale: Locale): string | null {
   const { catalog, positions } = field;
   const n = catalog.mag.length;
+  const segment = figureSegment(k);
+  if (segment !== null) {
+    const prepared = prepare(field, locale);
+    const f = figureOf(prepared, segment);
+    return f === null ? null : (prepared.figureNames[f] ?? null);
+  }
   const planet = k < n ? null : positions.planets[k - n];
   if (k >= n && !planet) return null;
-  const starName = catalog.name[k] ?? '';
-  const name = planet ? p.planets[planet.body] : starName === '' ? (catalog.desig[k] ?? '') : starName;
+  const name = planet ? p.planets[planet.body] : starName(catalogNames(catalog), k, locale);
   const mag = planet ? planet.mag : (catalog.mag[k] ?? 0);
   const altDeg = planet ? planet.altDeg : (positions.altDeg[k] ?? 0);
   const azDeg = planet ? planet.azDeg : (positions.azDeg[k] ?? 0);
@@ -291,8 +351,14 @@ function drawnKey(frame: FieldFrame): string {
   return `${frame.state}:${String(marks)}:${String(sum)}:${String(lines)}`;
 }
 
-/** The placement's input for one frame (D-755): the drawn marks and lines, the compass, the labelled object, the star names, the figures. */
-export function labelInput(frame: FieldFrame, view: View, field: StarFieldData, prepared: Prepared, labelled: { index: number; text: string } | null): LabelInput {
+/**
+ * The placement's input for one frame (D-755): the drawn marks and lines, the
+ * compass, the labelled object, the landmark (R127), the star names, the
+ * figures. A labelled figure (FR-STAR-14) is given a mark of no size at the
+ * middle of its drawn segment, so its label stands beside the line as a
+ * star's beside its glyph.
+ */
+export function labelInput(frame: FieldFrame, view: View, field: StarFieldData, prepared: Prepared, labelled: { index: number; text: string } | null, landmark: number | null = null, lang?: Locale): LabelInput {
   const { catalog, positions, layers } = field;
   const n = catalog.mag.length;
   const marks: LabelMark[] = [];
@@ -303,23 +369,38 @@ export function labelInput(frame: FieldFrame, view: View, field: StarFieldData, 
     marks.push({ x: p.x, y: p.y, sizePx: sizeOf(prepared, n, k) });
   });
   const segments = frame.lines.filter((line): line is LabelSegment => line !== null);
-  // A labelled star whose glyph the collision hid (a row of `In this field` can name it) is still named, at its own point.
-  if (labelled && layers.stars && !markOf.has(labelled.index)) {
-    const x = frame.xs[labelled.index] ?? Number.NaN;
-    const y = frame.ys[labelled.index] ?? Number.NaN;
-    if ((positions.altDeg[labelled.index] ?? -1) >= 0 && x >= 0 && y >= 0 && x <= view.width && y <= view.height) {
+  // A star whose glyph the collision hid is still named when it is the labelled one (a row of `In this field` can
+  // name it) or the landmark, at its own point.
+  const markAt = (i: number): void => {
+    if (i < 0 || i >= n || !layers.stars || markOf.has(i)) return;
+    const x = frame.xs[i] ?? Number.NaN;
+    const y = frame.ys[i] ?? Number.NaN;
+    if ((positions.altDeg[i] ?? -1) >= 0 && x >= 0 && y >= 0 && x <= view.width && y <= view.height) {
+      markOf.set(i, marks.length);
+      marks.push({ x, y, sizePx: sizeOf(prepared, n, i) });
+    }
+  };
+  if (labelled) markAt(labelled.index);
+  if (landmark !== null) markAt(landmark);
+  // FR-STAR-14: a labelled figure's mark is the middle of its drawn segment, of no size.
+  const labelledSegment = labelled ? figureSegment(labelled.index) : null;
+  if (labelled && labelledSegment !== null) {
+    const line = frame.lines[labelledSegment];
+    if (line) {
       markOf.set(labelled.index, marks.length);
-      marks.push({ x, y, sizePx: sizeOf(prepared, n, labelled.index) });
+      marks.push({ x: (line.x1 + line.x2) / 2, y: (line.y1 + line.y2) / 2, sizePx: 0 });
     }
   }
   const namedMark = labelled ? markOf.get(labelled.index) : undefined;
   const named: MarkLabel | null = labelled && namedMark !== undefined ? { key: labelled.index, mark: namedMark, text: labelled.text } : null;
+  const landmarkMark = landmark === null ? undefined : markOf.get(landmark);
+  const landmarkLabel: MarkLabel | null = landmark !== null && landmarkMark !== undefined ? { key: landmark, mark: landmarkMark, text: starName(catalogNames(catalog), landmark, lang ?? 'en') } : null;
   const stars: MarkLabel[] = [];
   const figures: FigureLabel[] = [];
   if (layers.names) {
     for (const i of prepared.nameStars) {
       const mark = markOf.get(i);
-      if (mark !== undefined) stars.push({ key: i, mark, text: catalog.name[i] ?? '' });
+      if (mark !== undefined) stars.push({ key: i, mark, text: prepared.starNames.get(i) ?? '' });
     }
     if (layers.figures) {
       catalog.figures.forEach((figure, f) => {
@@ -339,7 +420,7 @@ export function labelInput(frame: FieldFrame, view: View, field: StarFieldData, 
       });
     }
   }
-  return { width: view.width, height: view.height, marks, segments, compass: frame.compass, named, stars, figures };
+  return { width: view.width, height: view.height, marks, segments, compass: frame.compass, named, landmark: landmarkLabel, stars, figures, ...(lang === undefined ? {} : { lang }) };
 }
 
 /** The nodes the per-rotation pass writes, found once per node set. */
@@ -352,6 +433,9 @@ interface Nodes {
   starNames: Map<number, SVGTextElement>;
   figureNames: SVGTextElement[];
   label: SVGTextElement | null;
+  /** R127 (FR-SKY-11): the landmark's ring and its name. */
+  ring: SVGCircleElement | null;
+  landmarkName: SVGTextElement | null;
 }
 
 const collect = (group: SVGGElement): Nodes => ({
@@ -363,10 +447,29 @@ const collect = (group: SVGGElement): Nodes => ({
   starNames: new Map([...group.querySelectorAll<SVGTextElement>('[data-star-name]')].map((node) => [Number(node.dataset.starName), node])),
   figureNames: [...group.querySelectorAll<SVGTextElement>('[data-figure-name]')],
   label: group.querySelector<SVGTextElement>('[data-star-label]'),
+  ring: group.querySelector<SVGCircleElement>('[data-landmark-ring]'),
+  landmarkName: group.querySelector<SVGTextElement>('[data-landmark-name]'),
 });
 
-/** The per-rotation write of the marks and the lines: everything but the names. */
-function drawField(group: SVGGElement, nodes: Nodes, frame: FieldFrame, field: StarFieldData): void {
+/**
+ * FR-SKY-11: where the landmark's ring goes this frame — the star's projected
+ * point while it is up, in front and inside the box (the ring is drawn whether
+ * or not the collision walk kept the glyph: the ring is what marks it) — or
+ * `null`.
+ */
+function ringAt(frame: FieldFrame, view: View, field: StarFieldData, landmark: number | null): Point | null {
+  if (landmark === null || frame.state === 'buried' || !field.layers.stars) return null;
+  const drawn = frame.drawn[landmark];
+  if (drawn) return drawn;
+  const x = frame.xs[landmark] ?? Number.NaN;
+  const y = frame.ys[landmark] ?? Number.NaN;
+  if (!((field.positions.altDeg[landmark] ?? -1) >= 0) || !(x >= 0 && y >= 0 && x <= view.width && y <= view.height)) return null;
+  // Behind the camera the projection is marked `front: false`; `frameOf` keeps only x and y, so the altitude and the box decide, as the label does.
+  return { x, y };
+}
+
+/** The per-rotation write of the marks, the lines and the ring: everything but the names. */
+function drawField(group: SVGGElement, nodes: Nodes, frame: FieldFrame, field: StarFieldData, ring: Point | null): void {
   group.setAttribute('visibility', vis(frame.state !== 'buried'));
   // A child written `visible` overrides an inherited `hidden` in SVG, so the buried frame takes the whole group out of the drawing.
   if (frame.state === 'buried') {
@@ -389,6 +492,13 @@ function drawField(group: SVGGElement, nodes: Nodes, frame: FieldFrame, field: S
   };
   if (layers.stars) for (let i = 0; i < n; i += 1) write(nodes.stars[i], frame.drawn[i]);
   if (layers.planets) positions.planets.forEach((_, k) => write(nodes.planets[k], frame.drawn[n + k]));
+  if (nodes.ring) {
+    setShown(nodes.ring, ring !== null);
+    if (ring) {
+      nodes.ring.setAttribute('cx', fmt(ring.x));
+      nodes.ring.setAttribute('cy', fmt(ring.y));
+    }
+  }
   if (!layers.figures) return;
   frame.lines.forEach((line, s) => {
     const node = nodes.lines[s];
@@ -413,9 +523,10 @@ function drawNames(nodes: Nodes, input: LabelInput | null): void {
   };
   const shown = new Set<Element>();
   for (const label of placed) {
-    const node = label.kind === 'named' ? nodes.label : label.kind === 'star' ? nodes.starNames.get(label.key) : nodes.figureNames[label.key];
+    const node = label.kind === 'named' ? nodes.label : label.kind === 'landmark' ? nodes.landmarkName : label.kind === 'star' ? nodes.starNames.get(label.key) : nodes.figureNames[label.key];
     if (!node) continue;
-    if (label.kind === 'figure' && node.textContent !== label.text) node.textContent = label.text;
+    // A figure's words change with the placement; the landmark's with the star (R127), written here so the node is one.
+    if ((label.kind === 'figure' || label.kind === 'landmark') && node.textContent !== label.text) node.textContent = label.text;
     at(node, label.x, label.y);
     shown.add(node);
   }
@@ -423,6 +534,7 @@ function drawNames(nodes: Nodes, input: LabelInput | null): void {
     if (node && !shown.has(node)) setShown(node, false);
   };
   hide(nodes.label);
+  hide(nodes.landmarkName);
   for (const node of nodes.starNames.values()) hide(node);
   for (const node of nodes.figureNames) hide(node);
 }
@@ -447,14 +559,15 @@ function Glyph({ rung, ...rest }: { rung: Rung } & Record<`data-${string}`, stri
   );
 }
 
-export const StarField = memo(function StarField({ field, view, subscribe, labelled = null, hits }: StarFieldProps) {
+export const StarField = memo(function StarField({ field, view, subscribe, labelled = null, hits, lineHits, landmark = null }: StarFieldProps) {
   const group = useRef<SVGGElement>(null);
   const clipId = `${useId().replaceAll(':', '')}-sky`;
-  const prepared = useMemo(() => prepare(field), [field]);
+  const locale = useLocale();
+  // R127 (D-832): the names are the language's, so the prepared names follow it.
+  const prepared = useMemo(() => prepare(field, locale), [field, locale]);
   const measuredAtRender = inkMeasured();
   const p = useStarsPageT();
-  const locale = useLocale();
-  const label = labelled === null ? null : labelText(field, labelled, p, locale);
+  const label = labelled === null ? null : labelText(field, prepared, labelled, p, locale);
 
   // A layout effect, like the publisher's: the subscription is in place before the window's first publish of
   // this commit reaches the list, and a late mount is given the current rotation by `subscribe` itself. The
@@ -468,17 +581,18 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
       if (!g) return;
       nodes ??= collect(g);
       const frame = frameOf(rotation, view, field, prepared);
-      drawField(g, nodes, frame, field);
+      drawField(g, nodes, frame, field, ringAt(frame, view, field, landmark));
       if (hits) hits.current = frame.drawn;
+      if (lineHits) lineHits.current = frame.lines;
       // D-751: the names are placed again only once the rotation has moved past `converged()` since they last were,
       // or the drawn set changed under a smaller move (the ground buried or not, a mark in or out of the box).
       const drawnSet = drawnKey(frame);
       if (placedAt !== null && drawnSet === placedSet && converged(placedAt, rotation)) return;
       placedAt = rotation;
       placedSet = drawnSet;
-      drawNames(nodes, frame.state === 'buried' ? null : labelInput(frame, view, field, prepared, labelled !== null && label !== null ? { index: labelled, text: label } : null));
+      drawNames(nodes, frame.state === 'buried' ? null : labelInput(frame, view, field, prepared, labelled !== null && label !== null ? { index: labelled, text: label } : null, landmark, locale));
     });
-  }, [subscribe, view, field, prepared, labelled, label, hits]);
+  }, [subscribe, view, field, prepared, labelled, label, hits, lineHits, landmark, locale]);
 
   // D-752: the offsets are measured once, after the fonts are ready. Nodes made before that carry 0 and are
   // written once when the measurement lands; nodes made after it carry the measured values from their render.
@@ -517,17 +631,21 @@ export const StarField = memo(function StarField({ field, view, subscribe, label
           <Glyph key={planet.body} rung={prepared.planetRungs[k] ?? planetRungFor(planet.mag)} data-planet={planet.body} />
         ))}
       </g>
+      {/* R127 (FR-SKY-11): the landmark's ring over the marks, written per rotation like them; its name is placed with the names below. */}
+      <circle className={styles.landmarkRing} data-landmark-ring={landmark ?? ''} r={LANDMARK_RING_PX} visibility="hidden" />
       {/* R116: the names, over the marks; placed by `starLabels`, written by ref like the marks. */}
       <g data-names {...hidden(layers.names)}>
         {prepared.nameStars.map((i) => (
           <text key={i} className={styles.starName} data-star-name={i} visibility="hidden">
-            {catalog.name[i]}
+            {prepared.starNames.get(i)}
           </text>
         ))}
         {catalog.figures.map((figure, f) => (
           <text key={`${figure.con}-${figure.part}`} className={styles.figureName} data-figure-name={f} data-con={figure.con} visibility="hidden" />
         ))}
       </g>
+      {/* R127: the landmark's name, apart from the names layer (FR-LEG-1 as amended: the one star name the pass pages draw unasked). */}
+      <text className={styles.starName} data-landmark-name={landmark ?? ''} visibility="hidden" />
       <text className={styles.starLabel} data-star-label data-labelled={labelled ?? ''} visibility="hidden">
         {label}
       </text>

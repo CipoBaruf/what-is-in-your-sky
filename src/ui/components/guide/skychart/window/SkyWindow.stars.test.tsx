@@ -109,7 +109,8 @@ describe('the star field (FR-STAR-6 as amended, FR-STAR-9; D-752..D-754)', () =>
   it('makes one node per star, per planet and per segment, in the ladder’s glyph, size and tone, the ink shift on each, under the horizon and the rings', () => {
     const { container } = mount();
     const group = container.querySelector('[data-layer="stars"]') as SVGGElement;
-    expect([...group.children].map((child) => `${child.tagName}${child.getAttribute('data-figures') !== null ? '.figures' : ''}`)).toEqual(['defs', 'path', 'g.figures', 'g', 'g', 'g', 'text']);
+    // R127: the landmark's ring (a circle) over the marks, and its name node before the tap's label.
+    expect([...group.children].map((child) => `${child.tagName}${child.getAttribute('data-figures') !== null ? '.figures' : ''}`)).toEqual(['defs', 'path', 'g.figures', 'g', 'g', 'circle', 'g', 'text', 'text']);
     expect(group.compareDocumentPosition(container.querySelector('[data-horizon]') as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     const marks = [...container.querySelectorAll<SVGTextElement>('[data-marks] > text')];

@@ -30,7 +30,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
 import { CAPTURE_DIR, LOCALES, THEMES, type CaptureLocale, type CaptureTheme } from './captureSet';
 import { stubCompass } from './liveHelpers';
-import { FIXTURE_DATE, PARIS } from './observers';
+import { BARILOCHE, FIXTURE_DATE, PARIS } from './observers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
 const GLARE_PASS_START = Date.parse('2026-09-02T03:52:46.469Z');
@@ -172,13 +172,17 @@ test.describe('the sky window on a phone', () => {
     await settle(page);
     await expect(w).toHaveAttribute('data-state', 'on');
     const north = await look(w);
-    // Paris: the declination is about +2°, so magnetic north is a true 2° (US-21 AC6).
-    const declination = Number(await layer.getByTestId('window-heading').getAttribute('data-declination'));
+    // Paris: the declination is about +2°, so magnetic north is a true 2° (US-21 AC6). R127: the readout carries it
+    // whatever its second line says — the landmark line while the pass detail's pass has one (FR-SKY-11), the
+    // true-north line otherwise.
+    const declination = Number(await layer.getByTestId('window-readout').getAttribute('data-declination'));
     expect(Math.abs(declination)).toBeGreaterThan(0.5);
     expect(north.az).toBe((Math.round(declination) + 360) % 360);
     expect(north.alt).toBe(0);
     await expect(layer.getByTestId('window-readout')).toContainText(`Looking N (${String(north.az)}°) · up 0°`);
-    await expect(layer.getByTestId('window-heading')).toHaveText(/^true north, declination [+−-]\d\.\d°$/);
+    await expect(layer.locator('[data-testid="window-landmark"], [data-testid="window-heading"]')).toHaveCount(1);
+    if ((await layer.getByTestId('window-heading').count()) > 0) await expect(layer.getByTestId('window-heading')).toHaveText(/^true north, declination [+−-]\d\.\d°$/);
+    else await expect(layer.getByTestId('window-landmark')).toHaveText(/^passes /);
     await expect(layer.locator('[data-anchor="N"]')).toHaveAttribute('data-in-view', 'true');
     await expect(layer.locator('[data-anchor="S"]')).toHaveAttribute('data-in-view', 'false');
     expect(await layer.locator('[data-horizon]').getAttribute('d')).not.toBe(horizonBefore);
@@ -307,7 +311,7 @@ test.describe('the sky window on a phone', () => {
         await point(page, aim.az, aim.alt);
         await settle(page);
         await expect(w).toHaveAttribute('data-state', 'on');
-        const declination = Number(await layer.getByTestId('window-heading').getAttribute('data-declination'));
+        const declination = Number(await layer.getByTestId('window-readout').getAttribute('data-declination'));
         await point(page, aim.az - declination, aim.alt);
         await settle(page);
         expect(await look(w)).toEqual(aim);
@@ -315,7 +319,10 @@ test.describe('the sky window on a phone', () => {
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         await expect(page.locator('html')).toHaveAttribute('lang', locale);
         await expect(layer.getByTestId('window-readout')).toContainText(locale === 'es' ? 'Mirando al' : 'Looking');
-        await expect(layer.getByTestId('window-heading')).toContainText(locale === 'es' ? 'norte verdadero' : 'true north');
+        // R127 (FR-SKY-11): the second line is the landmark line while the pass has one, the true-north line otherwise.
+        const second = layer.locator('[data-testid="window-landmark"], [data-testid="window-heading"]');
+        await expect(second).toHaveCount(1);
+        await expect(second).toContainText(locale === 'es' ? /norte verdadero|^pasa / : /true north|^passes /);
         await page.mouse.move(0, 0);
         await page.screenshot({ path: `${CAPTURE_DIR}/r66-window-844-${theme}-${locale}.png` });
       });
@@ -332,7 +339,7 @@ test.describe('the sky window on a phone', () => {
     await point(page, peakAz, 12);
     await settle(page);
     await expect(w).toHaveAttribute('data-state', 'on');
-    const declination = Number(await layer.getByTestId('window-heading').getAttribute('data-declination'));
+    const declination = Number(await layer.getByTestId('window-readout').getAttribute('data-declination'));
     await point(page, peakAz - declination, 12);
     await settle(page);
     expect(await look(w)).toEqual({ az: peakAz, alt: 12 });
@@ -559,4 +566,185 @@ test.describe('the sky window on a compact page without a sensor', () => {
     await page.mouse.move(0, 0);
     await page.screenshot({ path: `${CAPTURE_DIR}/r121-live-390-window-dark-en.png` });
   });
+});
+
+/**
+ * R127 (FR-SKY-11, FR-SKY-12, FR-SKY-13, FR-DESK-4 as amended v2.5; US-40 AC6,
+ * AC7, AC8; US-41 AC5; D-796, D-797, D-832): the landmark and the facing key,
+ * on the showcase night over Bariloche, where Tiangong crosses Orion at 09:25
+ * UTC on 2026-09-07 — "pasa 8° bajo Bellatrix, en Orión", the peak among
+ * Orión in the table — so the Spanish captures show `Orión` on the line and in
+ * `Entre`. The passes come from the fixtures' elements as every spec's do.
+ */
+/** Tiangong's catalogue number: the card's id carries its start to the millisecond, which the worker's run sets, so the id is read off the card. */
+const ORION_NORAD = '48274';
+const ORION_RISE = Date.parse('2026-09-07T09:24:57.000Z');
+const ORION_PEAK = Date.parse('2026-09-07T09:25:40.089Z');
+/** Five minutes before the rise: the headline counts down to Tiangong, the pass the landmark is of. */
+const ORION_CLOCK = ORION_RISE - 5 * 60_000;
+
+/** The showcase night's home page, the passes computed. */
+async function openShowcase(page: Page, viewport: { width: number; height: number }, locale: CaptureLocale, chartView: 'dome' | 'window'): Promise<string> {
+  await page.setViewportSize(viewport);
+  await page.addInitScript(
+    ([key, value]: [string, string]) => {
+      localStorage.setItem(key, value);
+    },
+    [PREFS_KEY, JSON.stringify({ locale, theme: 'dark', observer: BARILOCHE, chartView })] as [string, string],
+  );
+  await page.route('https://celestrak.org/**', async (route) => {
+    const url = new URL(route.request().url());
+    await route.fulfill({ path: `tests/fixtures/omm/${FIXTURE_DATE}-${url.searchParams.get('GROUP') ?? 'unknown'}.json`, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } });
+  });
+  for (const pattern of ['https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**']) await page.route(pattern, (route) => route.abort('failed'));
+  await page.clock.install({ time: ORION_CLOCK });
+  await page.clock.pauseAt(ORION_CLOCK);
+  await page.goto('/');
+  const card = page.locator(`article[data-pass-id^="${ORION_NORAD}-"]`).first();
+  await expect(card).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
+  return (await card.getAttribute('data-pass-id')) ?? '';
+}
+
+test.describe('the landmark and the facing key (R127)', () => {
+  test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false });
+
+  for (const locale of LOCALES) {
+    test(`the live page at 1280, ${locale}: the landmark line under the headline, the pass's key after up, the key and f follow the pass`, async ({ page }) => {
+      const passId = await openShowcase(page, { width: 1280, height: 800 }, locale, 'window');
+      await page.getByTestId('live-link').click();
+      await expect
+        .poll(async () => {
+          await page.clock.runFor(200);
+          return page.getByTestId('sky-chart').count();
+        }, { timeout: 30_000 })
+        .toBeGreaterThan(0);
+      await page.clock.runFor(1000);
+      const chart = page.getByTestId('sky-chart');
+      await expect(chart).toHaveAttribute('data-view', 'window');
+      const w = chart.locator('[data-look-az]');
+      await expect(w).toHaveAttribute('data-state', 'hand');
+      // Two minutes before the rise: inside FR-TRAJ-1's look-ahead, so the arc is drawn and the pass has its key (FR-LEG-1).
+      await page.clock.setSystemTime(ORION_RISE - 2 * 60_000 - TICK_MS);
+      await page.clock.runFor(TICK_MS);
+      await page.clock.runFor(1000);
+      // FR-SKY-11: the line under the headline's name line, in the reader's language (D-832).
+      const line = page.getByTestId('next-event-landmark');
+      // The star is whichever bright one the worker's peak is nearest (Aldebarán or Bellatrix, by a degree); the figure is Orion.
+      const linePattern = locale === 'es' ? /^pasa \d+° (?:sobre|bajo|junto a) (.+), en Orión$/ : /^passes \d+° (?:above|below|beside) (.+), in Orion$/;
+      await expect(line).toHaveText(linePattern, { timeout: 30_000 });
+      const starName = linePattern.exec((await line.textContent()) ?? '')?.[1] ?? '';
+      expect(starName).not.toBe('');
+      // FR-SKY-13: the picker ends with the pass's key, after `up` — one capital, the legend's (the arc itself is not drawn yet five minutes out).
+      const picker = page.getByTestId('chart-aside').getByRole('group', { name: locale === 'es' ? 'Mirando' : 'Facing' });
+      const points = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', locale === 'es' ? 'arriba' : 'up'];
+      await expect(picker.getByRole('button')).toHaveText([...points, /^[A-Z]$/]);
+      const key = (await picker.getByRole('button').last().textContent()) ?? '';
+      const keyOption = picker.locator(`[data-option="pass:${passId}"]`);
+      await expect(keyOption).toHaveAttribute('aria-pressed', 'false');
+      // Choosing it: before the rise the camera turns to the rise point at FR-SKY-7's tilt, and the readout says so.
+      await keyOption.click();
+      await expect(keyOption).toHaveAttribute('aria-pressed', 'true');
+      const readout = page.getByTestId('window-readout');
+      await expect(readout).toHaveAttribute('data-following', passId);
+      await expect(readout).toContainText(locale === 'es' ? `Siguiendo ${key}` : `Following ${key}`);
+      const atRise = await look(w);
+      expect(atRise.alt).toBe(20);
+      // The pass under way: every tick re-aims, so the look moves with the satellite and the key stays pressed.
+      await page.clock.setSystemTime(ORION_PEAK - TICK_MS);
+      await page.clock.runFor(TICK_MS);
+      await page.clock.runFor(1000);
+      const atPeak = await look(w);
+      expect(atPeak).not.toEqual(atRise);
+      expect(Math.abs(atPeak.az - 24)).toBeLessThanOrEqual(3);
+      await expect(keyOption).toHaveAttribute('aria-pressed', 'true');
+      await expect(readout).toHaveAttribute('data-following', passId);
+      // FR-SKY-11: the landmark ringed in the window, a few degrees from the peak, in the field now; named beside the ring
+      // where the placement finds a free place (Bellatrix sits among Orion's lines, Aldebarán where the Hyades' lines
+      // meet, so there the ring stands alone and the line names it, V24-23's rule).
+      await expect(chart.locator('[data-landmark-ring]')).not.toHaveAttribute('visibility', 'hidden');
+      const name = chart.locator('[data-landmark-name]');
+      await expect(name).toHaveCount(1);
+      if ((await name.getAttribute('visibility')) !== 'hidden') await expect(name).toHaveText(starName);
+      await page.mouse.move(0, 0);
+      await page.screenshot({ path: `${CAPTURE_DIR}/r127-live-1280-window-dark-${locale}.png` });
+      // A drag ends it: the key is no longer pressed and the readout names the facing again.
+      const box = (await chart.getByTestId('chart-box').boundingBox()) ?? { x: 0, y: 0, width: 0, height: 0 };
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2, { steps: 5 });
+      await page.clock.runFor(FRAME_MS);
+      await page.mouse.up();
+      await page.clock.runFor(FRAME_MS);
+      await expect(keyOption).toHaveAttribute('aria-pressed', 'false');
+      await expect(readout).not.toHaveAttribute('data-following', passId);
+      await expect(readout).toContainText(locale === 'es' ? 'Mirando al' : 'Looking');
+      expect((await look(w)).az).toBe((atPeak.az - 30 + 360) % 360);
+      // FR-DESK-4 as amended v2.5: `f` does the same as the key, and an arrow key ends it.
+      await page.keyboard.press('f');
+      await page.clock.runFor(FRAME_MS);
+      await expect(keyOption).toHaveAttribute('aria-pressed', 'true');
+      await expect(readout).toHaveAttribute('data-following', passId);
+      await chart.locator('div[data-dragging]').focus();
+      await page.keyboard.press('ArrowLeft');
+      await expect(keyOption).toHaveAttribute('aria-pressed', 'false');
+      await page.keyboard.press('f');
+      await page.clock.runFor(FRAME_MS);
+      await expect(keyOption).toHaveAttribute('aria-pressed', 'true');
+    });
+  }
+
+  /**
+   * FR-SKY-11 as amended v2.5 (V25-19, D-840): on a short wide window — FR-SHP-3's shape, the scrub block over the
+   * box — the headline carries no landmark line, the first row to fold; the ring still marks the star. The same page
+   * at 1280 × 800 has the line, so the one condition is the placement.
+   */
+  test('the short wide window: no landmark line on the headline, the ring stands, the line back on a tall window', async ({ page }) => {
+    await openShowcase(page, { width: 1200, height: 450 }, 'en', 'window');
+    await page.getByTestId('live-link').click();
+    await expect
+      .poll(async () => {
+        await page.clock.runFor(200);
+        return page.getByTestId('sky-chart').count();
+      }, { timeout: 30_000 })
+      .toBeGreaterThan(0);
+    await page.clock.setSystemTime(ORION_RISE - 2 * 60_000 - TICK_MS);
+    await page.clock.runFor(TICK_MS);
+    await page.clock.runFor(1000);
+    await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', 'overlay');
+    await expect(page.getByTestId('sky-chart').locator('[data-landmark-ring]')).toHaveCount(1);
+    await expect(page.getByTestId('next-event-landmark')).toHaveCount(0);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.clock.runFor(1000);
+    await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', 'under');
+    await expect(page.getByTestId('next-event-landmark')).toHaveText(/^passes \d+° (?:above|below|beside) .+, in Orion$/);
+  });
+
+  for (const locale of LOCALES) {
+    test(`the pass detail at 390, ${locale}: the line under the name, Orión in the Entre column, the ring on the polar chart`, async ({ page }) => {
+    const passId = await openShowcase(page, { width: 390, height: 844 }, locale, 'dome');
+    await page.locator(`article[data-pass-id="${passId}"]`).getByRole('button', { name: OPEN_GUIDE[locale] }).click();
+    const sheet = guide(page);
+    await expect(sheet).toBeVisible();
+    // FR-SKY-11: the line, under the name, in the reader's language (D-832).
+    await expect(sheet.getByTestId('pass-landmark')).toHaveText(locale === 'es' ? /^pasa \d+° (?:sobre|bajo|junto a) .+, en Orión$/ : /^passes \d+° (?:above|below|beside) .+, in Orion$/, { timeout: 30_000 });
+    // FR-SKY-12: the `Among` / `Entre` column, the peak among Orión; the rise and the set named by where the eye is sent.
+    const table = sheet.getByRole('table');
+    await expect(table.getByRole('columnheader').last()).toHaveText(locale === 'es' ? 'Entre' : 'Among');
+    await expect(table.locator('tr[data-point="peak"] td').last()).toHaveText(locale === 'es' ? 'Orión' : 'Orion');
+    // The rise (out of the shadow) and the set are named too, by where the eye is sent — a name or the dash.
+    for (const row of [0, 2]) await expect(table.locator('tbody tr').nth(row).locator('td').last()).toHaveText(/^(\p{Lu}[\p{L} ]+|—)$/u);
+    await page.clock.runFor(1000);
+    await page.mouse.move(0, 0);
+    await page.screenshot({ path: `${CAPTURE_DIR}/r127-detail-390-dark-${locale}.png` });
+    await table.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${CAPTURE_DIR}/r127-detail-390-among-dark-${locale}.png` });
+    // The polar chart rings the landmark too (FR-SKY-11: one ring in every view).
+    await sheet.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: 'Polar' }).click();
+    await page.clock.runFor(1000);
+    await expect(sheet.locator('[data-drawing="polar"] [data-landmark-ring]')).toHaveCount(1);
+    await sheet.locator('[data-drawing="polar"]').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${CAPTURE_DIR}/r127-detail-390-polar-dark-${locale}.png` });
+    });
+  }
 });

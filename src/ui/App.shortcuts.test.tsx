@@ -129,8 +129,8 @@ describe('<App> keyboard shortcuts (FR-DESK-4)', () => {
     render(<App />);
     await userEvent.keyboard('?');
     const overlay = screen.getByRole('dialog', { name: en.shortcuts.title });
-    // the nine shortcuts and the header row, then R115's block: its heading row and the stars page's two key rows
-    expect(within(overlay).getAllByRole('row')).toHaveLength(9 + 1 + 1 + 2);
+    // the ten shortcuts (R127: `f`) and the header row, then R115's block: its heading row and the stars page's two key rows
+    expect(within(overlay).getAllByRole('row')).toHaveLength(10 + 1 + 1 + 2);
     for (const role of ['banner', 'main', 'contentinfo']) expect(screen.getByRole(role, { hidden: true })).toHaveAttribute('inert');
 
     await userEvent.keyboard('{Escape}');

@@ -78,3 +78,11 @@
 .prefsToggle {
   justify-content: flex-end;
 }
+
+/* R127 (FR-SKY-11, D-796): the landmark line under the pass's name, on both
+   shells — "passes 7° above Betelgeuse, in Orion" — dim, as the date line is. */
+.landmark {
+  margin: 0;
+  color: var(--fg-dim);
+  overflow-wrap: anywhere;
+}

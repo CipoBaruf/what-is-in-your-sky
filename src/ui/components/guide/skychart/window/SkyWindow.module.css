@@ -426,3 +426,13 @@
   margin: 0;
   color: var(--fg-dim);
 }
+
+/* R127 (FR-SKY-11, D-796): the landmark's ring — a dashed circle of
+   `LANDMARK_RING_PX` radius in the star tone at the chart hairline — over the
+   marks, at the landmark star of the highlighted pass. */
+.landmarkRing {
+  fill: none;
+  stroke: var(--chart-star);
+  stroke-width: var(--chart-hairline);
+  stroke-dasharray: 3 3;
+}

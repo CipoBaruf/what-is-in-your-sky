@@ -443,6 +443,29 @@ describe('<SkyPolar> stars', () => {
     expectAt(translateOf(container.querySelector('[data-star="0"]')), expected({ t: 0, azDeg: 100, elDeg: 20 } as PassPoint, orientation));
   });
 
+  /** R127 (FR-SKY-11, D-796): the landmark's ring at the star's own point, dashed in the star tone, with the stars; none without a landmark or under the horizon. */
+  it('rings the landmark star at toPolar of its place, and nothing without one', async () => {
+    const stars = [
+      { mag: 1, azDeg: 100, altDeg: 20 },
+      { mag: 2, azDeg: 200, altDeg: -1 },
+    ];
+    const scene = { ...handScene(stars), landmark: { passId: pass.id, star: { index: 0, sepDeg: 4, word: 'beside' as const }, among: null } };
+    const { container, rerender } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={scene} />);
+    await settle();
+    const ring = container.querySelector('[data-layer="stars"] [data-landmark-ring="0"]');
+    expect(ring).not.toBeNull();
+    expect(ring?.tagName).toBe('circle');
+    expect(ring).toHaveAttribute('r', '13');
+    expectAt(translateOf(ring), expected({ t: 0, azDeg: 100, elDeg: 20 } as PassPoint, 'looking-up'));
+    const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/polar/SkyPolar.module.css'), 'utf8');
+    expect(css).toContain('.landmarkRing {\n  fill: none;\n  stroke: var(--chart-star);\n  stroke-width: var(--chart-hairline);\n  stroke-dasharray: 3 3;\n}');
+    // A landmark under the horizon is not ringed; a scene without one rings nothing.
+    rerender(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={{ ...scene, landmark: { ...scene.landmark, star: { index: 1, sepDeg: 4, word: 'beside' } } }} />);
+    expect(container.querySelector('[data-landmark-ring]')).toBeNull();
+    rerender(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={handScene(stars)} />);
+    expect(container.querySelector('[data-landmark-ring]')).toBeNull();
+  });
+
   it('follows the looking-up / map toggle with the arcs', async () => {
     const scene = handScene([{ mag: 1, azDeg: 90, altDeg: 10 }]);
     const { container } = render(<SkyPolar passes={[pass]} observer={observer} highlightedPassId={pass.id} scene={scene} />);

@@ -1,15 +1,19 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { useStarsPageT } from '../../../../../i18n/starsPageT';
 import { useLocale, useT } from '../../../../../i18n/useT';
 import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
 import { compassPoint } from '../../../../../lib/compass';
 import { degrees, formatClockDuration, formatSignedDegrees } from '../../../../../lib/format';
+import { landmarkLine } from '../../../../../lib/landmarkLine';
 import { SERIES_COUNT, seriesToken } from '../../../../../lib/legend';
 import { isNoEvent, nextEvent } from '../../../../../lib/nextEvent';
+import { shortcutFor } from '../../../../../lib/shortcuts';
 import type { SunState } from '../../../../../lib/skyBodies';
 import { interpolateTrack, resampleArc, splitArcAt } from '../../../../../lib/skyGeometry';
+import { constellationName, starName } from '../../../../../lib/skyStars';
 import type { MoonState, PassPoint } from '../../../../../model';
 import { SEARCH_WINDOW_HOURS } from '../../../../../state/passWindow';
+import { STAR_LABEL_HOLD_S } from '../../../../screens/stars/field';
 import { useScreenTurn } from '../../../screen/screenTurn';
 import { quantise } from '../../../live/compassHeading';
 import { useDeclination } from '../../../live/useDeclination';
@@ -19,17 +23,18 @@ import { useLayoutMode } from '../../../../hooks/useLayoutMode';
 import { TextButton } from '../../../primitives/TextButton';
 import { useSkyScreen } from '../../../screen/useSkyScreen';
 import { ChartFrame } from '../ChartFrame';
-import { sceneFor } from '../layers';
+import { landmarkFor, sceneFor } from '../layers';
 import { arcOf, FACING_OPTIONS, type ChartPass, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
-import { createHandCamera, facePeak, initialHand, SENSOR_CAMERA, ZOOM_KEY_FACTOR, ZOOM_WHEEL_RATE, type SkyCamera } from './camera';
+import { createHandCamera, facePeak, initialHand, passPosition, SENSOR_CAMERA, ZOOM_KEY_FACTOR, ZOOM_WHEEL_RATE, type SkyCamera } from './camera';
 import { CompassGutter } from './CompassGutter';
-import { FacingPicker, type FacingPickerProps } from './FacingPicker';
+import { FacingPicker, type FacingPickerProps, type FollowTarget } from './FacingPicker';
 import { gutterMarks, passBearing, turnTo, type GutterMark, type GutterPass } from './gutter';
 import { clampWindowFov, COMPASS, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type SkyPoint, type View } from './projection';
 import { nearestQuarter, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
-import { hitTest, HIT_RADIUS_PX, type Point } from './starGlyphs';
-import { namedReadout, StarField } from './StarField';
+import { hitLine, hitTest, HIT_RADIUS_PX, type Point } from './starGlyphs';
+import { catalogNames, figureKey, namedReadout, StarField } from './StarField';
+import type { LabelSegment } from './starLabels';
 import { useViewRotation } from './useViewRotation';
 
 /**
@@ -393,9 +398,29 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
 }
 
 export function SkyWindow(props: SkyWindowProps) {
-  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, overlay, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, inventory = 'passes', namedStar = null, onNameStar, className } = props;
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, overlay, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, inventory = 'passes', namedStar: givenNamed = null, onNameStar, className } = props;
   // FR-SKY-1 (R119): the scene through the layer table. The window's row has every layer and no cap, so today this is the page's scene object; the memo keeps it so if the row ever drops one.
   const scene = useMemo(() => sceneFor('window', given), [given]);
+  // R127 (FR-SKY-11, D-796): the landmark star this window rings and names, from the page's scene through the table.
+  const landmark = useMemo(() => landmarkFor('window', given), [given]);
+  /*
+   * R127 (FR-STAR-7 as amended, FR-STAR-14; FR-LEG-1 as amended: "a tap names a star anywhere"): where the page
+   * holds no named object — the live page, the pass detail and their screens — the window holds its own, cleared
+   * after `STAR_LABEL_HOLD_S` as the stars page clears its; the stars page's `namedStar` and `onNameStar` win where
+   * they are given, since its list shares the value.
+   */
+  const [ownNamed, setOwnNamed] = useState<number | null>(null);
+  useEffect(() => {
+    if (ownNamed === null || onNameStar !== undefined) return;
+    const id = window.setTimeout(() => {
+      setOwnNamed(null);
+    }, STAR_LABEL_HOLD_S * 1000);
+    return () => {
+      window.clearTimeout(id);
+    };
+  }, [ownNamed, onNameStar]);
+  const namedStar = onNameStar === undefined ? ownNamed : givenNamed;
+  const nameStar = onNameStar ?? setOwnNamed;
   // D-323: `screen` reaches `SkyChartProps` with R62 (D-322); read through a cast, so this compiles either side of it.
   const onScreen = (props as SkyChartProps & { screen?: boolean }).screen === true;
   const t = useT();
@@ -570,10 +595,11 @@ export function SkyWindow(props: SkyWindowProps) {
       }
       return;
     }
-    // A third finger, a finger after a pinch, or any finger on the sensor's box: no drag.
-    if (pointers.size !== 1 || pinchRef.current !== null || !byHand || dragRef.current) return;
+    // A third finger, or a finger after a pinch: no drag. R127: the sensor's box tracks the press too, for the tap
+    // that names (FR-STAR-7 on the screen); its moves turn nothing, since there is no hand camera to move.
+    if (pointers.size !== 1 || pinchRef.current !== null || dragRef.current) return;
     dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, x0: event.clientX, y0: event.clientY, travel: 0 };
-    setDragging(true);
+    if (byHand) setDragging(true);
   };
   /*
    * R116 (FR-STAR-7): a tap or a click on the drawing names the glyph `hitTest` finds under it, from the marks the
@@ -582,16 +608,24 @@ export function SkyWindow(props: SkyWindowProps) {
    * desk the pointer's hover shows the same label while it is over a mark.
    */
   const hitsRef = useRef<readonly (Point | null)[]>([]);
+  // R127 (FR-STAR-14): the figure segments as last drawn, for the tap on a line where no mark is under it.
+  const lineHitsRef = useRef<readonly (LabelSegment | null)[]>([]);
   const [hovered, setHovered] = useState<number | null>(null);
-  const hitAt = (event: PointerEvent<HTMLDivElement>, clientX = event.clientX, clientY = event.clientY): number | null => {
+  const hitAt = (event: PointerEvent<HTMLDivElement>, clientX = event.clientX, clientY = event.clientY, lines = false): number | null => {
     const rect = event.currentTarget.getBoundingClientRect();
     const sx = rect.width > 0 ? size.width / rect.width : 1;
     const sy = rect.height > 0 ? size.height / rect.height : 1;
     // The drawing's viewBox is the measured box, the projection's `view`.
-    return hitTest(hitsRef.current, (clientX - rect.left) * sx, (clientY - rect.top) * sy);
+    const x = (clientX - rect.left) * sx;
+    const y = (clientY - rect.top) * sy;
+    const mark = hitTest(hitsRef.current, x, y);
+    if (mark !== null || !lines) return mark;
+    // FR-STAR-14: a star or a planet within the distance wins; else the nearest drawn line within it names its figure.
+    const segment = hitLine(lineHitsRef.current, x, y);
+    return segment === null ? null : figureKey(segment);
   };
   // Where a tap can name, the sky holds still until the press travels past the tap's slop, so the marks a tap is tested against are the ones under the press.
-  const tapSlop = scene?.stars && onNameStar ? HIT_RADIUS_PX : 0;
+  const tapSlop = scene?.stars ? HIT_RADIUS_PX : 0;
   const onPointerMove = (event: PointerEvent<HTMLDivElement>): void => {
     const tracked = pointersRef.current.get(event.pointerId);
     if (tracked) {
@@ -651,11 +685,11 @@ export function SkyWindow(props: SkyWindowProps) {
     endDrag(event);
     // The hover from before a drag no longer marks what is under the pointer.
     if (event.pointerType === 'mouse' && hovered !== null) setHovered(null);
-    if (!tapped || !active || !scene?.stars || !onNameStar) return;
+    if (!tapped || !active || !scene?.stars) return;
     // A tap's wobble never turned the sky (`tapSlop`): it is dropped, and the press point is tested.
     pendingRef.current = null;
-    const hit = hitAt(event, active.x0, active.y0);
-    onNameStar(hit === namedStar ? null : hit);
+    const hit = hitAt(event, active.x0, active.y0, true);
+    nameStar(hit === namedStar ? null : hit);
   };
   const onPointerLeave = (event: PointerEvent<HTMLDivElement>): void => {
     if (hovered !== null) setHovered(null);
@@ -844,10 +878,69 @@ export function SkyWindow(props: SkyWindowProps) {
   const clipId = `${uid}-ground`;
   const readoutId = `${uid}-readout`;
 
+  /*
+   * FR-SKY-13 (R127, D-797): the pass the picker's key follows — the live page's highlighted pass, where the page
+   * names one and the window is in the box — at its position now (`passPosition`), with the key the drawing gives
+   * it. While the camera follows (`follow` on its state), every tick re-aims it here, before the frame is drawn:
+   * a layout effect on the shown instant, so a pass crossing the field at 3600× stays in it. The key moves with
+   * the highlighted pass, and so does the following.
+   */
+  // The pass has a key only while its arc is drawn (FR-LEG-1, FR-TRAJ-1's look-ahead): before that there is nothing to offer.
+  const facingPass = inBox && facingPassId !== null && (legendKeys[facingPassId] ?? '') !== '' ? (passes.find((pass) => pass.id === facingPassId) ?? null) : null;
+  const followTarget: FollowTarget | null = facingPass === null ? null : { id: facingPass.id, key: legendKeys[facingPass.id] ?? '', position: passPosition(facingPass, now) };
+  const following = handState?.follow !== undefined && followTarget !== null;
+  const followId = followTarget?.id;
+  const followAz = followTarget?.position.azDeg;
+  const followEl = followTarget?.position.elDeg;
+  useLayoutEffect(() => {
+    if (!handCamera || followId === undefined || followAz === undefined || followEl === undefined || handCamera.get().follow === undefined) return;
+    handCamera.followPass(followId, { azDeg: followAz, elDeg: followEl });
+  }, [handCamera, followId, followAz, followEl]);
+  // FR-DESK-4 as amended v2.5: `f`, on the live page with the window in the box, through the shortcut table's one guard.
+  // The listener is installed once per camera and target and reads the position of the moment through the ref.
+  const followRef = useRef<FollowTarget | null>(null);
+  useEffect(() => {
+    followRef.current = followTarget;
+  });
+  useEffect(() => {
+    if (!handCamera || followId === undefined) return;
+    const onKey = (event: globalThis.KeyboardEvent): void => {
+      if (shortcutFor(event)?.id !== 'follow') return;
+      const target = followRef.current;
+      if (!target) return;
+      event.preventDefault();
+      handCamera.followPass(target.id, target.position);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [handCamera, followId]);
+
   // `live`: the hand drives (always), or the sensor is on. FR-STAR-4, D-757: the hand points at true bearings and
   // has no declination to name, so its readout is the first line alone.
-  // R116 (FR-STAR-7): under the hand the readout's second line is the named object's, "Canopus · mag −0.7 · 28° up · S".
-  const namedLine = byHand && scene?.stars && namedStar !== null ? namedReadout(scene.stars, namedStar, sp, locale) : null;
+  // R116 (FR-STAR-7): the readout's second line is the named object's, "Canopus · mag −0.7 · 28° up · S" — under the
+  // hand and, since R127, on the screen too (FR-SKY-11: a tap's name takes the line while it holds).
+  const namedLine = scene?.stars && namedStar !== null ? namedReadout(scene.stars, namedStar, sp, locale) : null;
+  /*
+   * R127 (FR-SKY-11, D-796): on the screen the second line is the landmark line while a pass is in the scene and
+   * none is tapped — the same formatter as the page's headline — and the declination line (FR-FSC-4) where the
+   * scene has no pass. Off a screen the line is the page's, under the pass's name.
+   */
+  const sceneLandmark = given?.landmark ?? null;
+  const sceneCatalog = scene?.stars?.catalog;
+  const landmarkText =
+    onScreen && sceneCatalog !== undefined && sceneLandmark !== null && passes.some((pass) => pass.id === sceneLandmark.passId)
+      ? landmarkLine(
+          sceneLandmark,
+          {
+            star: (i) => starName(catalogNames(sceneCatalog), i, locale),
+            constellation: (con) => constellationName(catalogNames(sceneCatalog), con, locale),
+            constellationOf: (i) => sceneCatalog.con[i] ?? '',
+          },
+          t.live,
+        )
+      : null;
   /*
    * FR-SKY-14 (D-798, D-822): while the field is not `WINDOW_FOV` the first line ends with ` · field 30°` (rounded
    * to 5°). The words are R123's string, `window.field`, which takes the degrees and carries its own separator, as
@@ -855,26 +948,35 @@ export function SkyWindow(props: SkyWindowProps) {
    */
   const fieldSuffix = fovDeg !== WINDOW_FOV ? t.window.field({ degrees: degrees(Math.round(fovDeg / 5) * 5) }) : '';
   const status = live ? (
-    <p className={styles.readout} data-testid="window-readout" {...(byHand ? { id: readoutId } : {})}>
+    <p className={styles.readout} data-testid="window-readout" {...(byHand ? { id: readoutId } : { 'data-declination': declinationDeg.toFixed(1) })} {...(following ? { 'data-following': followTarget.id } : {})}>
       <span>
-        {t.window.readout({ point: compassPoint(look.azDeg), azimuth: degrees(quantise(look.azDeg)), altitude: degrees(look.altDeg) })}
+        {/* FR-SKY-13: `Following A` in place of the facing point while the key holds. */}
+        {following ? t.window.following({ key: followTarget.key }) : t.window.readout({ point: compassPoint(look.azDeg), azimuth: degrees(quantise(look.azDeg)), altitude: degrees(look.altDeg) })}
         {fieldSuffix}
       </span>
-      {namedLine !== null && (
+      {namedLine !== null ? (
         <>
           <br />
-          <span className={styles.declination} data-testid="window-named" data-named={namedStar ?? ''}>
+          <span className={styles.declination} data-testid="window-named" data-named={namedStar}>
             {namedLine}
           </span>
         </>
-      )}
-      {!byHand && (
+      ) : landmarkText !== null ? (
         <>
           <br />
-          <span className={styles.declination} data-testid="window-heading" data-declination={declinationDeg.toFixed(1)}>
-            {t.window.trueNorth({ declination: formatSignedDegrees(declinationDeg, locale) })}
+          <span className={styles.declination} data-testid="window-landmark" data-landmark={sceneLandmark?.star?.index ?? ''}>
+            {landmarkText}
           </span>
         </>
+      ) : (
+        !byHand && (
+          <>
+            <br />
+            <span className={styles.declination} data-testid="window-heading" data-declination={declinationDeg.toFixed(1)}>
+              {t.window.trueNorth({ declination: formatSignedDegrees(declinationDeg, locale) })}
+            </span>
+          </>
+        )
       )}
     </p>
   ) : state === 'waiting' || (state === 'idle' && !orientation.needsGesture) ? (
@@ -892,7 +994,7 @@ export function SkyWindow(props: SkyWindowProps) {
   const railed = inBox && fill && aside !== undefined && aside !== null;
   const facingRow =
     inBox && handCamera ? (
-      <HandFacingRow camera={handCamera} options={facingOptions} peak={peak} prefix={!compact} />
+      <HandFacingRow camera={handCamera} options={facingOptions} peak={peak} follow={followTarget} prefix={!compact} />
     ) : null;
 
   return (
@@ -1009,7 +1111,7 @@ export function SkyWindow(props: SkyWindowProps) {
             {/* FR-STAR-11, FR-STAR-6 (D-751): the star field, under the horizon and the rings, mounted only when the scene
                 carries one and kept mounted across the ground states — its nodes exist once, and it hides itself at
                 `buried` by the rotation it is given, not by a remount. */}
-            {scene?.stars && <StarField field={scene.stars} view={view} subscribe={subscribe} labelled={hovered ?? namedStar} hits={hitsRef} />}
+            {scene?.stars && <StarField field={scene.stars} view={view} subscribe={subscribe} labelled={hovered ?? namedStar} hits={hitsRef} lineHits={lineHitsRef} landmark={landmark} />}
             {/* FR-FOL-5: with no sky left in the field there is nothing to draw but the ground. */}
             {ground !== 'buried' && (
               <>
@@ -1109,13 +1211,13 @@ export function SkyWindow(props: SkyWindowProps) {
  * tablet), `[ hold up to the sky ]`, which is `useSkyScreen.open()`. Its own component so the screen's store and
  * the presence test are read by the window in a page's box alone, not by the stars page's or the screen's.
  */
-function HandFacingRow({ camera, options, peak, prefix }: Pick<FacingPickerProps, 'camera' | 'options' | 'peak' | 'prefix'>) {
+function HandFacingRow({ camera, options, peak, follow, prefix }: Pick<FacingPickerProps, 'camera' | 'options' | 'peak' | 'follow' | 'prefix'>) {
   const sp = useStarsPageT();
   // On a compact page without a sensor there is no way to the screen to offer.
   const entry = useSkyScreen();
   return (
     <div className={styles.facingRow} data-testid="window-facing">
-      <FacingPicker camera={camera} {...(options === undefined ? {} : { options })} {...(peak === undefined ? {} : { peak })} {...(prefix === undefined ? {} : { prefix })} />
+      <FacingPicker camera={camera} {...(options === undefined ? {} : { options })} {...(peak === undefined ? {} : { peak })} {...(follow === undefined ? {} : { follow })} {...(prefix === undefined ? {} : { prefix })} />
       {entry.available && <TextButton label={sp.holdUp} onClick={entry.open} data-testid="window-hold-up" />}
     </div>
   );

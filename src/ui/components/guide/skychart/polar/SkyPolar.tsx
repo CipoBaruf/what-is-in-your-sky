@@ -8,6 +8,7 @@ import type { ChartOrientation, MoonState, PassPoint } from '../../../../../mode
 import { ToggleGroup } from '../../../primitives/ToggleGroup';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
 import { ChartFrame } from '../ChartFrame';
+import { landmarkFor } from '../layers';
 import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps, type SkyChartView } from '../SkyChart.types';
 import styles from './SkyPolar.module.css';
 
@@ -323,7 +324,7 @@ export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, mo
         {/* FR-SKY-1, FR-SKY-4: the stars and the planets under the grid and the arcs, in SVG order. */}
         {field && (
           <Suspense fallback={null}>
-            <PolarStars catalog={field.catalog} positions={field.positions} stars={field.layers.stars} planets={field.layers.planets} orientation={orientation} project={project} at={at} />
+            <PolarStars catalog={field.catalog} positions={field.positions} stars={field.layers.stars} planets={field.layers.planets} orientation={orientation} project={project} at={at} landmark={landmarkFor('polar', scene)} />
           </Suspense>
         )}
         <circle className={styles.horizon} r={HORIZON_R} />

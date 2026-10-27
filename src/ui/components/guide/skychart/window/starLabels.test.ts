@@ -44,6 +44,15 @@ describe('spaced capitals and widths (FR-STAR-6, D-755)', () => {
     expect(spaced(name)).toBe(out);
   });
 
+  /** R127 (D-832): the capitals are the language's — `Orión` keeps its accent, `Can Mayor` its two words. */
+  it.each([
+    ['Orión', 'O R I Ó N'],
+    ['Can Mayor', 'C A N   M A Y O R'],
+    ['Cabeza de la Serpiente', 'C A B E Z A   D E   L A   S E R P I E N T E'],
+  ])('%s → %s in Spanish', (name, out) => {
+    expect(spaced(name, 'es')).toBe(out);
+  });
+
   it('measures n × 0.6 em, a code point a cell', () => {
     expect(textWidth('C R U X', FIGURE_NAME_PX)).toBeCloseTo(7 * 0.6 * 11);
     expect(textWidth('B O Ö T E S', 12)).toBeCloseTo(11 * 0.6 * 12);

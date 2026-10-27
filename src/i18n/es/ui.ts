@@ -481,6 +481,7 @@ export const ui: typeof EnUi = {
       live: 'Abrir el cielo en vivo',
       stars: 'Abrir las estrellas',
       view: 'Cambiar el gráfico entre el domo y la vista polar',
+      follow: 'Girar la ventana hacia el pase destacado y seguirlo (cielo en vivo)',
       theme: 'Cambiar la paleta entre oscura y nocturna',
       help: 'Mostrar esta lista',
     },

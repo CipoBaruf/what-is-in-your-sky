@@ -1,6 +1,8 @@
 import { COMPASS_POINTS, normalizeAzimuthDeg, type CompassPoint } from '../../../../../lib/compass';
+import { interpolateTrack } from '../../../../../lib/skyGeometry';
+import type { EpochMs, Pass } from '../../../../../model';
 import { DRAG_PX_PER_DEG, PITCH_STEP_DEG, YAW_STEP_DEG } from '../dome/camera';
-import { FACING_POINTS, type FacingOption } from '../SkyChart.types';
+import { FACING_POINTS, passFacing, type FacingOption } from '../SkyChart.types';
 import { clampWindowFov, uprightRotation, WINDOW_FOV, type Mat3 } from './projection';
 
 /**
@@ -41,6 +43,18 @@ import { clampWindowFov, uprightRotation, WINDOW_FOV, type Mat3 } from './projec
  * facing point keeps the zoom. The two zoom rates are the window's own
  * constants, beside the dome's three the hand imports: `ZOOM_WHEEL_RATE` for
  * ctrl + wheel and `ZOOM_KEY_FACTOR` for `+`/`-`.
+ *
+ * R127 (FR-SKY-13; D-797, D-827): the seventh move **follows a pass**. The
+ * live page's picker offers the highlighted pass's key after `up`, and `f`
+ * does the same: `followPass` aims the camera at the pass's position — on
+ * its track while it is up, its rise point before, its set point after
+ * (`passPosition`) — at FR-SKY-7's tilt, and leaves the pass's id on the
+ * state as `follow`, which the window re-applies on every tick while it
+ * stands, so a pass crossing the field at 3600× stays in it. A drag, an arrow
+ * key, a point, `up` or `peak` ends it (`at` never carries it); a zoom keeps
+ * it, since the next tick re-aims at the new field. D-797 wrote `follow:
+ * string | null`; it is absent rather than `null`, so a state that follows
+ * nothing is the three numbers it was.
  */
 
 /** The hand's state: where the centre of the field points, degrees, and how wide the field is. */
@@ -51,6 +65,8 @@ export interface HandState {
   altDeg: number;
   /** FR-SKY-14: degrees across the box's shorter side, in [WINDOW_FOV_MIN_DEG, WINDOW_FOV_MAX_DEG]; `WINDOW_FOV` at every open. */
   fovDeg: number;
+  /** FR-SKY-13: the id of the pass the camera follows, while it does. */
+  follow?: string;
 }
 
 /** Where a camera starts: the aim, and the field unless given is `WINDOW_FOV` (FR-SKY-14: every open is at the default). */
@@ -139,12 +155,38 @@ export function up(state: HandState): HandState {
  */
 export function zoomBy(state: HandState, factor: number): HandState {
   if (!(factor > 0) || !Number.isFinite(factor)) return state;
-  return at(state.azDeg, state.altDeg, state.fovDeg * factor);
+  return keepFollow(state, at(state.azDeg, state.altDeg, state.fovDeg * factor));
 }
 
 /** FR-SKY-14: `0` — the field back to `WINDOW_FOV`, the aim untouched. */
 export function resetZoom(state: HandState): HandState {
-  return at(state.azDeg, state.altDeg, WINDOW_FOV);
+  return keepFollow(state, at(state.azDeg, state.altDeg, WINDOW_FOV));
+}
+
+/** A zoom keeps the pass the camera follows (FR-SKY-13): the next tick re-aims at the new field. */
+const keepFollow = (from: HandState, next: HandState): HandState => (from.follow === undefined ? next : { ...next, follow: from.follow });
+
+/**
+ * FR-SKY-13 (D-797): where a pass is to the camera at `now` — on its track
+ * while it is up (the live marker's point, `interpolateTrack` as the arc
+ * draws it), its rise point before it rises, its set point after it sets.
+ * Without an instant, the rise point.
+ */
+export function passPosition(pass: Pick<Pass, 'start' | 'end' | 'track'>, now: EpochMs | undefined): SkyAim {
+  if (now === undefined || now < pass.start.t) return { azDeg: pass.start.azDeg, elDeg: pass.start.elDeg };
+  if (now > pass.end.t || pass.track.length === 0) return { azDeg: pass.end.azDeg, elDeg: pass.end.elDeg };
+  const p = interpolateTrack(pass.track, now);
+  return { azDeg: p.azDeg, elDeg: p.elDeg };
+}
+
+/**
+ * FR-SKY-13 (D-797): the camera turned to pass `passId` at `position`, at
+ * FR-SKY-7's tilt for the field the state has (`facePeak`'s rule, so the
+ * pass stands in the field's upper half), and following it: the window calls
+ * this again on every tick while `follow` stands.
+ */
+export function followPass(state: HandState, passId: string, position: SkyAim): HandState {
+  return { ...facePeak(position, state.fovDeg), follow: passId };
 }
 
 /**
@@ -182,18 +224,20 @@ export function facePeak(peak: SkyAim, fovDeg: number): HandState {
 }
 
 /** The picker's option lists are `SkyChart.types.ts`'s (a page in the main chunk names one); re-exported here for the picker and the tests. */
-export { FACING_OPTIONS, FACING_POINTS, PEAK_FACING_OPTIONS, type FacingOption } from '../SkyChart.types';
+export { FACING_OPTIONS, FACING_POINTS, facedPassId, isPassFacing, passFacing, PEAK_FACING_OPTIONS, type FacingOption } from '../SkyChart.types';
 
 /**
- * The picker's pressed option for a hand state: the zenith at the top of the
- * range, the peak where the hand is exactly where `facePeak` put it, a point
- * the hand is exactly at, or none after a drag. The zenith wins over the peak
- * and a point: at 90° every azimuth is the same view. The peak is compared at
- * the state's own field unless another is given (R125); the picker gives the
- * store's `peakFovDeg`, the field the peak was faced at, so a zoom alone does
- * not un-press it.
+ * The picker's pressed option for a hand state: the pass it follows
+ * (FR-SKY-13) first, then the zenith at the top of the range, the peak where
+ * the hand is exactly where `facePeak` put it, a point the hand is exactly
+ * at, or none after a drag. The zenith wins over the peak and a point: at 90°
+ * every azimuth is the same view. The peak is compared at the state's own
+ * field unless another is given (R125); the picker gives the store's
+ * `peakFovDeg`, the field the peak was faced at, so a zoom alone does not
+ * un-press it.
  */
 export function facingOf(state: HandState, peak: SkyAim | null = null, fovDeg: number = state.fovDeg): FacingOption | '' {
+  if (state.follow !== undefined) return passFacing(state.follow);
   if (state.altDeg >= STARS_TILT_MAX_DEG) return 'up';
   if (peak !== null) {
     const aimed = facePeak(peak, fovDeg);
@@ -238,6 +282,8 @@ export interface HandCamera {
   zoomBy(factor: number): void;
   /** FR-SKY-14 (R125): the field back to `WINDOW_FOV`. */
   resetZoom(): void;
+  /** FR-SKY-13 (R127): turned to pass `passId` at `position` and following it; the window calls it again each tick while `get().follow` is the id. */
+  followPass(passId: string, position: SkyAim): void;
 }
 
 export type SkyCamera = SensorCamera | HandCamera;
@@ -250,7 +296,7 @@ export function createHandCamera(initial: HandAim): HandCamera {
   let peakField = state.fovDeg;
   const listeners = new Set<() => void>();
   const apply = (next: HandState): void => {
-    if (next.azDeg === state.azDeg && next.altDeg === state.altDeg && next.fovDeg === state.fovDeg) return;
+    if (next.azDeg === state.azDeg && next.altDeg === state.altDeg && next.fovDeg === state.fovDeg && next.follow === state.follow) return;
     state = next;
     for (const listener of [...listeners]) listener();
   };
@@ -289,6 +335,9 @@ export function createHandCamera(initial: HandAim): HandCamera {
     },
     resetZoom: () => {
       apply(resetZoom(state));
+    },
+    followPass: (passId, position) => {
+      apply(followPass(state, passId, position));
     },
   };
 }

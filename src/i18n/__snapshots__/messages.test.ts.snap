@@ -414,6 +414,7 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".share.title:function",
   ".shortcuts.close:string",
   ".shortcuts.does.close:string",
+  ".shortcuts.does.follow:string",
   ".shortcuts.does.help:string",
   ".shortcuts.does.live:string",
   ".shortcuts.does.next:string",

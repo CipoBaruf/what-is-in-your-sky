@@ -209,3 +209,20 @@
   margin: 0;
   color: var(--fg-dim);
 }
+
+/* R127 (FR-SKY-11, D-796): the landmark's ring on the bowl — a hotspot's
+   span, a dashed circle of `--landmark-ring` radius (the window's
+   `LANDMARK_RING_PX`, written by the component) in the star tone, centred on
+   the star's anchor; the raster font holds no circle. */
+.landmarkRing {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(2 * var(--landmark-ring));
+  height: calc(2 * var(--landmark-ring));
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  border: var(--hairline) dashed var(--chart-star);
+  border-radius: 50%;
+  pointer-events: none;
+}

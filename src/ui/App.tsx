@@ -339,6 +339,8 @@ export function App() {
       setChartView(chartView === 'dome' ? 'polar' : 'dome');
       return true;
     },
+    // R127 (FR-DESK-4 as amended v2.5): `f` is the live page's, where its window listens for it; here it does nothing.
+    follow: () => false,
     theme: () => {
       setTheme(theme === 'night' ? 'dark' : 'night');
       return true;
