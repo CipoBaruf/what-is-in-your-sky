@@ -126,10 +126,12 @@ const rowMetrics =
  * `colsFor` is capped at `MAX_GRID_COLS`, which every desktop box reaches, so on a desktop the count never
  * changed and a resize left the scene drawing the new font size through the cell it measured at mount
  * (107 % of the box at 1280 × 800 after 3840 × 2160, clipped at 3840 after 1920). The font size is what
- * sets the cell (`fitLayout`), so it is in the key.
+ * sets the cell (`fitLayout`), so it is in the key. R128 (F-103): so are the rows. A box that changes height
+ * alone — on a phone, the landmark line arriving with the `stars` chunk after the dome mounted (D-838) — moves
+ * the rows and neither of the other two, and the scene kept the projection of the box it mounted in.
  */
 function layerKey(layer: 'base' | 'lines', layout: DomeLayout): string {
-  return `${layer}-${String(layout.cols)}-${String(layout.fontSizePx)}`;
+  return `${layer}-${String(layout.cols)}x${String(layout.rows)}-${String(layout.fontSizePx)}`;
 }
 
 /** The cell metrics a layer reaches its stylesheet with (through the CSSOM, which `style-src 'self'` allows). */
