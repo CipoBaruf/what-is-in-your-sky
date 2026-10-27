@@ -42,17 +42,42 @@ const legend = (inventory: LegendInventory | null, locale: 'en' | 'es' = 'en', l
     </I18nProvider>,
   );
 
-describe('<Legend> as the short wide inventory (F-81)', () => {
-  it('names the three times in each row’s accessible name, in both languages, without an inventory too', () => {
-    // jsdom lays nothing out, so the name's pieces meet without the spaces a browser puts between the row's boxes.
+describe('<Legend>: the named times (FR-FLOW-13, D-852)', () => {
+  it('writes the name and state, then "rise … · peak … · set …" on the second line, in both languages', () => {
     const { unmount } = legend(null);
-    expect(screen.getByRole('button', { name: /^A\s*SAT 0\s*rise\s*09:48:24 UTC\s*peak\s*09:48:38 UTC\s*end\s*09:49:02 UTC\s*soon$/ })).toBeInTheDocument();
+    const en = screen.getByRole('button', { name: /^A\s*SAT 0\s*soon\s*rise 09:48:24 UTC\s*· peak 09:48:38 UTC\s*· set 09:49:02 UTC$/ });
+    expect(en.querySelector('[class*="name"]')).toHaveTextContent(/^SAT 0 soon$/);
+    expect(en.querySelector('[class*="times"]')).toHaveTextContent(/^rise 09:48:24 UTC\s*· peak 09:48:38 UTC\s*· set 09:49:02 UTC$/);
     expect(screen.queryByTestId('legend-inventory')).toBeNull();
     expect(screen.queryByTestId('legend-more')).toBeNull();
     unmount();
     legend(null, 'es');
-    expect(screen.getByRole('button', { name: /^A\s*SAT 0\s*sale\s*09:48:24 UTC\s*culmina\s*09:48:38 UTC\s*termina\s*09:49:02 UTC\s*pronto$/ })).toBeInTheDocument();
+    const es = screen.getByRole('button', { name: /^A\s*SAT 0\s*pronto\s*sale 09:48:24 UTC\s*· máximo 09:48:38 UTC\s*· se pone 09:49:02 UTC$/ });
+    expect(es.querySelector('[class*="name"]')).toHaveTextContent(/^SAT 0 pronto$/);
+    expect(es.querySelector('[class*="times"]')).toHaveTextContent(/^sale 09:48:24 UTC\s*· máximo 09:48:38 UTC\s*· se pone 09:49:02 UTC$/);
   });
+
+  it('keeps the words on the pass detail’s dim rows, which drop the peak (FR-LEG-3)', () => {
+    render(
+      <I18nProvider locale="en">
+        <Legend rows={[row(0), row(1)]} bodies={[]} timeZone={null} highlightedPassId={null} onActivate={noop} onFocusRow={noop} lead={{ passId: 'pass-0', node: <p>table</p> }} />
+      </I18nProvider>,
+    );
+    expect(screen.getByRole('button', { name: /^B\s*SAT 1\s*soon\s*rise 09:58:24 UTC\s*· set 09:59:02 UTC$/ })).toBeInTheDocument();
+  });
+
+  it('leaves the sky screen’s one-line strip its bare figures, the words said to a screen reader alone', () => {
+    render(
+      <I18nProvider locale="es">
+        <Legend rows={[row(0)]} bodies={[]} timeZone={null} highlightedPassId={null} onActivate={noop} onFocusRow={noop} screen />
+      </I18nProvider>,
+    );
+    const button = screen.getByRole('button', { name: /^A\s*SAT 0\s*sale\s*09:48:24 UTC\s*se pone\s*09:49:02 UTC\s*pronto$/ });
+    expect(button.querySelector('[class*="name"]')).toHaveTextContent(/^SAT 0$/);
+  });
+});
+
+describe('<Legend> as the short wide inventory (F-81)', () => {
 
   it('clips the list to whole entries and counts the rest in the +n line', () => {
     const budget = 8;
@@ -65,8 +90,9 @@ describe('<Legend> as the short wide inventory (F-81)', () => {
     // The header row is drawn, not read: the names carry the words already.
     const header = screen.getByTestId('legend-times-header');
     expect(header).toHaveAttribute('aria-hidden', 'true');
-    expect([...header.children].map((cell) => cell.textContent)).toEqual(['rise', 'peak', 'end']);
-    expect([...header.children].map((cell) => (cell as HTMLElement).style.minWidth)).toEqual(['12ch', '12ch', '12ch']);
+    expect([...header.children].map((cell) => cell.textContent)).toEqual(['rise', 'peak', 'set']);
+    // Each as wide as the named time under it: `rise 09:48:24 UTC`, `· peak 09:48:38 UTC`, `· set 09:49:02 UTC`.
+    expect([...header.children].map((cell) => (cell as HTMLElement).style.minWidth)).toEqual(['17ch', '19ch', '18ch']);
     // Every entry is still in the list — the clip is a height, and the list scrolls to them.
     expect(within(list).getAllByRole('listitem')).toHaveLength(rows.length + bodies.length);
   });
