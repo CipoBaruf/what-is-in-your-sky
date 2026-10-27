@@ -32,7 +32,8 @@ import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../support/matc
 import { goldenPassFixture } from '../support/catalogFixtures';
 import { CATALOGS, I18nProvider } from '../../src/i18n/useT';
 import { LOCALE_NAMES, LOCALES } from '../../src/i18n/locale';
-import { HOME_THREE_PANE_MIN_PX, SHELL_PADDING_CELLS, thresholdPx, WIDE_MIN_PX } from '../../src/lib/layout';
+import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, HOME_THREE_PANE_MIN_PX, SHELL_PADDING_CELLS, thresholdPx, WIDE_MIN_PX } from '../../src/lib/layout';
+import { FieldList } from '../../src/ui/screens/stars/FieldList';
 import type { Messages } from '../../src/i18n/messages';
 import type { Locale, Observer } from '../../src/model';
 import { appStore } from '../../src/state';
@@ -356,9 +357,10 @@ const rows = (t: Messages): readonly Row[] => [
       appStore.setState({ observer });
     },
   },
-  ...([0, 1] as const).map(
+  // R126 (FR-SKY-6): `[x] passes` / `[x] pases` is the third row, alone: 10 and 8 cells.
+  ...([0, 1, 2] as const).map(
     (index): Row => ({
-      name: `the stars layers row ${String(index + 1)} (FR-STAR-3)`,
+      name: `the stars layers row ${String(index + 1)} (FR-STAR-3, FR-SKY-6)`,
       element: createElement(StarsPage),
       find: () => screen.getAllByTestId('stars-layers-row')[index] as Element,
       setUp: () => {
@@ -394,6 +396,61 @@ describe.each(LOCALES)('FR-COMP-4: every compact control row fits %s in 36 cells
     const element = row.find();
     const cells = row.measure ? row.measure(element) : rowCells(element, table);
     expect(cells, `${row.name} in ${locale}: ${rowParts(element, table).join(' | ')}`).toBeLessThanOrEqual(row.budget ?? BUDGET);
+  });
+});
+
+/**
+ * R126 (FR-STAR-10 as amended v2.5, D-832): the longest Spanish names in
+ * `In this field` at 360 px — `Cabeza de la Serpiente` and `Cabellera de
+ * Berenice`, 22 and 21 characters. A row is the name column and three fixed
+ * ones (`FieldList.module.css`: 8, 4 and 3 cells, a cell between each), so at
+ * 360 px the name has what the fixed columns leave, which is less than either
+ * name: the row stays one line because the name column is cut — no wrap,
+ * hidden overflow, `…` — and the button's accessible name carries the whole
+ * name. A pass's row is the same columns with the key and the swatch at the
+ * head of its name column, and the whole sentence as what is read.
+ */
+describe('FR-STAR-10: the longest Spanish names in In this field at 360 px', () => {
+  const css = readFileSync(resolve(process.cwd(), 'src/ui/screens/stars/FieldList.module.css'), 'utf8');
+  const block = (selector: string): string => new RegExp(`\\n${selector.replace('.', '\\.')} \\{([^}]*)\\}`).exec(css)?.[1] ?? '';
+  /** The cells a 360 px viewport gives a row on the widest font in the stack, less the shell's padding (F-10). */
+  const rowCells360 = Math.floor(360 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
+  const fixed = [...block('.row').matchAll(/calc\((\d+) \* var\(--cell\)\)/g)].map((match) => Number(match[1]));
+  const nameCells = rowCells360 - fixed.reduce((sum, cells) => sum + cells, 0) - fixed.length;
+  const LONGEST = ['Cabeza de la Serpiente', 'Cabellera de Berenice'];
+
+  it('leaves the name a column narrower than either name, and cuts it on one line with …', () => {
+    expect(fixed).toEqual([8, 4, 3]);
+    expect(nameCells).toBeGreaterThan(0);
+    for (const name of LONGEST) expect(name.length).toBeGreaterThan(nameCells);
+    const name = block('.name');
+    expect(name).toMatch(/white-space: nowrap;/);
+    expect(name).toMatch(/overflow: hidden;/);
+    expect(name).toMatch(/text-overflow: ellipsis;/);
+    expect(name).toMatch(/min-width: 0;/);
+  });
+
+  it.each(LONGEST)('reads “%s” whole as the row’s accessible name, the drawn text the same name in the cut column', (longest) => {
+    render(
+      createElement(I18nProvider, {
+        locale: 'es',
+        children: createElement(FieldList, {
+          objects: [{ index: 1, name: longest, planet: null, mag: 2.6, altDeg: 45, point: 'SSW' }],
+          passes: [{ id: 'p', key: 'A', color: 'series-1', name: longest, state: 'live', peakAltDeg: 64, peakPoint: 'NNW' }],
+          named: null,
+          onName: () => undefined,
+          buried: false,
+          labelledBy: 'h',
+        }),
+      }),
+    );
+    const star = screen.getByRole('button');
+    expect(star.getAttribute('aria-label')).toBe(`${longest} · mag 2,6 · 45° de altura · SSW`);
+    expect(star.firstElementChild?.textContent).toBe(longest);
+    const pass = screen.getByTestId('field-list').querySelector('[data-kind="pass"]');
+    expect(pass?.textContent).toContain(`A: ${longest} · arriba`);
+    // The pass's name column opens with the key and the two-cell swatch, and still has room for a name to cut.
+    expect(nameCells - 'A '.length - 3).toBeGreaterThan(0);
   });
 });
 
