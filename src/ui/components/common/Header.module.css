@@ -140,8 +140,8 @@
    disabled one. `aria-current` says it to a screen reader. */
 .navCurrent {
   color: var(--fg);
-  text-decoration: underline 2px var(--accent);
-  text-underline-offset: 0.3em;
+  text-decoration: underline calc(var(--row) / 12) var(--accent); /* 2 px */
+  text-underline-offset: calc(var(--row) / 8);
 }
 
 .wide .context {
