@@ -487,4 +487,5 @@ function FieldSection({ camera, catalog, positions, passes, rows, now, box, laye
 }
 
 /** R123 (FR-SKY-3, FR-SKY-10, D-791): the live page's and the pass detail's stars, from this chunk through `starsChunk.ts`. */
-export { starSource } from './stars/source';
+export { brightestNow, starSource } from './stars/source';
+export { moonNow } from '../../lib/skyStars';

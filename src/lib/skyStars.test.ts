@@ -3,7 +3,7 @@ import { HorizonFromVector, MakeTime, Observer, RotateVector, Rotation_EQJ_HOR, 
 import { describe, expect, it } from 'vitest';
 import { starCatalog } from '../data/stars/catalog';
 import { sunAltitudeDeg } from '../physics/sun';
-import { brightestDrawn, PLANETS, starsAt, type StarsAt } from './skyStars';
+import { brightestDrawn, moonNow, PLANETS, starsAt, type StarsAt } from './skyStars';
 import { angularDistanceDeg } from './skyGeometry';
 
 /**
@@ -128,6 +128,25 @@ describe('starsAt memo', () => {
   it('carries the Sun’s altitude at the instant, as `physics/sun.ts` gives it', () => {
     for (const at of [t, t + 6 * 3_600_000, t + 12 * 3_600_000]) {
       expect(starsAt(catalog, paris, at).sunAltDeg).toBeCloseTo(sunAltitudeDeg({ ...paris, altM: 0, label: '', source: 'coords', timeZone: null }, at), 2);
+    }
+  });
+});
+
+/** R130 (FR-FLOW-1, D-843): the wide Stars door's Moon line, against astronomy-engine's own altitude and phase. */
+describe('moonNow', () => {
+  const paris = { lat: 48.86, lon: 2.35 };
+  it('says sets while the Moon is up and rises while it is down, the event within a day and after t', () => {
+    for (let h = 0; h < 24; h += 3) {
+      const t = Date.UTC(2026, 0, 15, h);
+      const moon = moonNow(paris, t);
+      expect(moon.pct).toBeGreaterThanOrEqual(0);
+      expect(moon.pct).toBeLessThanOrEqual(100);
+      expect(moon.at).not.toBeNull();
+      expect(moon.at ?? 0).toBeGreaterThan(t);
+      expect(moon.at ?? 0).toBeLessThan(t + 86_400_000);
+      const after = moonNow(paris, (moon.at ?? t) + 30 * 60_000);
+      // Half an hour past the event the Moon is on the other side of the horizon.
+      expect(after.event).not.toBe(moon.event);
     }
   });
 });

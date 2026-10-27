@@ -1,6 +1,9 @@
 import { starCatalog } from '../../../data/stars/catalog';
 import { constellationAt, landmark } from '../../../lib/landmark';
-import { constellationName, drawnMagLimit, drawnRungs, figureName, starName, starsAt } from '../../../lib/skyStars';
+import { STARS_PAGE_CATALOGS } from '../../../i18n/starsPageT';
+import type { CompassPoint } from '../../../lib/compass';
+import { brightestDrawn, constellationName, drawnMagLimit, drawnRungs, figureName, starName, starsAt } from '../../../lib/skyStars';
+import type { EpochMs, Locale, Observer } from '../../../model';
 import { starSourceOf } from '../../components/guide/skychart/starScene';
 import type { StarNames, StarSource } from '../../components/guide/skychart/useSkyScene';
 import { sceneCatalog } from './field';
@@ -37,4 +40,17 @@ export function starSource(): StarSource {
     } satisfies StarNames),
   });
   return source;
+}
+
+/**
+ * R130 (FR-FLOW-1, D-843): the home's Stars door's second line — the brightest star or planet the twilight step
+ * draws above 0° for `observer` at `t` (`brightestDrawn`), named in `lang` with its 16-point direction, or `null`
+ * with nothing drawn (the Sun up). Here, in the `stars` chunk, beside the catalogue and the planets' names.
+ */
+export function brightestNow(observer: Pick<Observer, 'lat' | 'lon'>, t: EpochMs, lang: Locale): { name: string; dir: CompassPoint } | null {
+  const catalog = starCatalog();
+  const found = brightestDrawn({ mag: catalog.mag, positions: starsAt(catalog, observer, t) });
+  if (found === null) return null;
+  const name = found.kind === 'star' ? starName(catalog, found.index, lang) : STARS_PAGE_CATALOGS[lang].planets[found.body];
+  return { name, dir: found.dir };
 }

@@ -1,4 +1,4 @@
-import { Body, Equator, Horizon, Illumination, MakeTime, Observer as AeObserver, Rotation_EQJ_HOR } from 'astronomy-engine';
+import { Body, Equator, Horizon, Illumination, MakeTime, Observer as AeObserver, Rotation_EQJ_HOR, SearchRiseSet } from 'astronomy-engine';
 import { DEFAULT_THRESHOLDS } from '../physics/constants';
 import { msToDate } from '../physics/time';
 import type { EpochMs, Locale, Observer, VisibilityThresholds } from '../model';
@@ -181,4 +181,28 @@ export function brightestDrawn(scene: { mag: ArrayLike<number>; positions: Stars
     }
   }
   return best;
+}
+
+/** R130 (FR-FLOW-1, D-843): the Moon as the wide Stars door states it. */
+export interface MoonNow {
+  /** The lit part, whole percent. */
+  pct: number;
+  /** `sets` while the Moon is above 0° at `t`, `rises` while it is below. */
+  event: 'sets' | 'rises';
+  /** When, within a day of `t`; `null` with none (a polar month). */
+  at: EpochMs | null;
+}
+
+/**
+ * The wide Stars door's third line, "Moon 64 % · sets 02:10": the lit part at `t` and the Moon's next set while it
+ * is up, or its next rise while it is down. Geometric altitude for up or down, as the rest of this module; the
+ * search is astronomy-engine's, which counts the upper limb with refraction, so the two can differ by minutes.
+ */
+export function moonNow(observer: Pick<Observer, 'lat' | 'lon'>, t: EpochMs): MoonNow {
+  const time = MakeTime(msToDate(t));
+  const where = new AeObserver(observer.lat, observer.lon, 0);
+  const eq = Equator(Body.Moon, time, where, true, true);
+  const up = Horizon(time, where, eq.ra, eq.dec).altitude > 0;
+  const next = SearchRiseSet(Body.Moon, where, up ? -1 : 1, time, 1);
+  return { pct: Math.round(Illumination(Body.Moon, time).phase_fraction * 100), event: up ? 'sets' : 'rises', at: next === null ? null : next.date.getTime() };
 }
