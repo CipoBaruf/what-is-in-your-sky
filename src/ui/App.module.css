@@ -213,11 +213,6 @@
   margin-top: 0;
 }
 
-/* R93 (FR-HOME-2, D-606): the next event's own class, for the two-column rule in the wide block below. */
-.nextEvent {
-  min-width: 0;
-}
-
 /* R76 (D-471, at the owner's gate): inside a reading the Moon line and the
    pass list keep their headed regions, so every name a reader or a test finds
    them by is still theirs — but the headings are read, not drawn. Drawn, they
@@ -301,14 +296,17 @@
     overflow-y: auto;
   }
 
-  /* R93 (FR-HOME-2, D-606; F-76): on the two columns Where stands above When
-     in this one scrolling column, and the next event at the foot of When was
-     under the fold at 1024 × 768 — the one block the page is for. Here it is
-     the reading's third row, directly under the heading and the stripe; the
-     table and the Moon line auto-place after it, and the DOM keeps board 1B's
-     order for the phone and the screen reader. The three panes put it back. */
-  .when > .nextEvent {
-    grid-row: 3;
+  /* R130 (FR-FLOW-1, D-843): populated, the three doors are one row over the
+     panes, across all of them, and the panes take the rest of the height — over
+     the two columns here and over the three panes below. (R93's rule placing
+     the next event under the stripe went with the block, which is the
+     Satellites door's now.) */
+  .main[data-home='readings'] {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .doors {
+    grid-column: 1 / -1;
   }
 
   /* R50 (FR-DESK-3 as amended, F-6, D-253): between the wide breakpoint and
@@ -428,8 +426,9 @@
     grid-column: 2;
   }
 
-  .when > .nextEvent {
-    grid-row: auto;
+  /* R130: under the doors' row. */
+  .main[data-home='readings'] :is(.where, .when, .listColumn) {
+    grid-row: 2;
   }
 
   .main:is([data-home='readings'], [data-home='cold']) .listColumn {
@@ -444,6 +443,10 @@
   .main[data-guide='pane'] [data-guide-panel] {
     grid-column: 1 / span 2;
     grid-row: 1;
+  }
+
+  .main[data-home='readings'][data-guide='pane'] [data-guide-panel] {
+    grid-row: 2;
   }
 }
 
