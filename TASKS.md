@@ -3671,7 +3671,7 @@ What every session reads (§16.24, D-284's rule), written once here and named in
     - The Done note gives the doors' bottom edge at 390 × 844 in both languages, and the `main` and `stars` rows of `npm run bundle:budget` against 2.5.0 (`main` within D-853's 174.5, `stars` ≤ 0.5 KB more).
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
 
-- [ ] **R131 — The words: "Facing" in the three readouts, the legend's rise · peak · set**
+- [x] **R131 — The words: "Facing" in the three readouts, the legend's rise · peak · set** — done: `chart.legend.times` replaced by `rise/peak/set` (D-861); the sky screen's strip keeps bare figures; `starsPage.readout` takes the azimuth (D-862).
   - **Lane:** chart
   - **Model:** opus
   - **Review:** opus
