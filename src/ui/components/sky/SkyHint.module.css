@@ -1,0 +1,7 @@
+/* R132 (FR-FLOW-6): one line at `--small` in the dim ink, under the facing picker. */
+.hint {
+  margin: 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+}

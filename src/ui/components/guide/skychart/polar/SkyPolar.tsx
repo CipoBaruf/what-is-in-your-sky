@@ -7,6 +7,7 @@ import type { SunState } from '../../../../../lib/skyBodies';
 import type { ChartOrientation, MoonState, PassPoint } from '../../../../../model';
 import { ToggleGroup } from '../../../primitives/ToggleGroup';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible } from '../bodies';
+import { useChartSlot } from '../../../sky/SkyViewLayout';
 import { ChartFrame } from '../ChartFrame';
 import { landmarkFor } from '../layers';
 import { arcOf, type ChartPass, type HiddenMarker, type SkyChartProps, type SkyChartView } from '../SkyChart.types';
@@ -296,8 +297,23 @@ export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, mo
   const setChartOrientation = useAppStore((s) => s.setChartOrientation);
   const field = scene?.stars;
   const ring = (elDeg: number): number => project({ azDeg: 0, elDeg }, orientation).y * -1;
+  /*
+   * R132 (FR-FLOW-4, D-842): inside a `SkyViewLayout` the convention line is the page's `readout` slot's and the
+   * orientation control stands where the window's facing picker does, in the `picker` slot — the polar chart's
+   * "facing" is its convention. Outside one both are the frame's rows, as R13 placed them.
+   */
+  const readoutSlot = useChartSlot('readout');
+  const pickerSlot = useChartSlot('picker');
+  const orientationControl = <ToggleGroup name={t.chart.orientationGroup} options={ORIENTATIONS.map((value) => ({ value, label: t.chart.orientation[value] }))} value={orientation} onChange={setChartOrientation} />;
+  const convention = (
+    <p className={styles.convention} data-testid="chart-convention">
+      {t.chart.orientationNote[orientation]}
+    </p>
+  );
   return (
     <div className={[styles.polar, className].filter(Boolean).join(' ')} data-orientation={orientation}>
+      {readoutSlot.place(convention)}
+      {pickerSlot.place(orientationControl)}
       <ChartFrame
         fill={fill}
         legend={legend}
@@ -309,14 +325,10 @@ export function SkyPolar({ passes, highlightedPassId, onSelectPass, now, sun, mo
         controls={
           <>
             {controls}
-            <ToggleGroup name={t.chart.orientationGroup} options={ORIENTATIONS.map((value) => ({ value, label: t.chart.orientation[value] }))} value={orientation} onChange={setChartOrientation} />
+            {!pickerSlot.inLayout && orientationControl}
           </>
         }
-        status={
-          <p className={styles.convention} data-testid="chart-convention">
-            {t.chart.orientationNote[orientation]}
-          </p>
-        }
+        status={readoutSlot.inLayout ? null : convention}
       >
       <svg className={styles.svg} viewBox={VIEWBOX} aria-hidden="true" data-drawing="polar" focusable="false">
         {/* FR-DOME-6: the glow is a surface, so it goes under the grid. */}

@@ -473,3 +473,20 @@ export function foldBelowPx(row: LiveFold): number {
  * site has; past it the page may scroll, since what grows it is the reader's own list.
  */
 export const SETTINGS_FIT_PLACES = 2;
+
+/**
+ * R132 (FR-FLOW-7, D-849): on compact the pass detail's drawing has its top edge at or above this, in both
+ * languages, at 390 × 844 — so the chart is on the first screen. The head above it is the top row (48), the name,
+ * the countdown line at the headline size (48), the landmark line (one or two lines), the three-cell times row and
+ * the view row (48) with the readout under it: about 400 px in English, and the longer Spanish landmark line keeps
+ * it under 480, which still leaves the drawing's upper half — the horizon and the arc's rise — on an 844 px screen.
+ */
+export const DETAIL_DRAWING_TOP_PX = 480;
+
+/**
+ * R132 (FR-FLOW-7, D-849): on wide the guide panel's drawing is at least this share of the panel's area at
+ * 1280 × 800. The panel is the home's right-hand column; its head band, its one control line and the hint under
+ * the box are about a quarter of its height, so a drawing at the panel's full width and the rest of its height is
+ * a little over 0.6 — the number says the drawing, not the prose, is what the panel is for (F10, F11).
+ */
+export const DETAIL_DRAWING_MIN_SHARE = 0.6;

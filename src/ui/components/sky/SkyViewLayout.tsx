@@ -1,0 +1,223 @@
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
+import { createPortal } from 'react-dom';
+import { useT } from '../../../i18n/useT';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { usePageShape } from '../live/usePageShape';
+import { SectionHeading } from '../primitives/SectionHeading';
+import styles from './SkyViewLayout.module.css';
+
+/**
+ * R132 (FR-FLOW-4, FR-FLOW-6, FR-FLOW-7; D-842, D-851): one layout for every
+ * sky view. The live page, the stars page and the pass detail fill named slots
+ * and lay out none of their sky parts themselves; this component renders the
+ * slots in FR-FLOW-4's order and owns the gap between them.
+ *
+ * **Compact** (`column`) is one column, top to bottom: `answer`, `viewRow`,
+ * `readout`, `drawing`, `picker`, `hint`, `action`, `layers`, `list`, `foot`.
+ * **Wide** is the box at the left and the rail at the right (`rail`): the
+ * readout stands in the box's top-left corner (V25-17) and the hint under the
+ * box at the box's width; the rail holds `answer`, the `View` row, the
+ * `Facing` row, `layers`, `list`, and at its foot `action` and `foot`. The
+ * landscape phone (`usePageShape`) takes the rail form too, with the compact
+ * tokens. The pass detail's wide shell asks for `panel` (D-849): one column
+ * where the view row and the picker share a line and the drawing takes the
+ * panel's remaining height (`--sky-drawing-h`, measured here).
+ *
+ * An empty slot renders nothing. Every rendered slot carries
+ * `data-slot` and `data-rhythm="row" | "group" | "section"` (D-851), and its
+ * gap from the slot above is the rhythm's token — `--space-1`, `--space-3`,
+ * `--space-5` — so a page cannot add a gap of its own (FR-FLOW-10).
+ *
+ * **The chart's parts.** The view control, the facing readout, the facing
+ * picker and the legend are drawn by `SkyChart` and its views, which know
+ * nothing of the page. A page puts `<SkyViewChartSlot name="…" />` where it
+ * wants each (in `viewRow`, `readout`, `picker`, `list`), and the chart, which
+ * reads this layout's context (`useChartSlot`), portals the part there and
+ * draws nothing in its frame's own row. The frame's emptied rows are hidden by
+ * `SkyViewLayout.module.css` (`ChartFrame.tsx` itself is unchanged, R132).
+ */
+export type SkyViewSlotName = 'answer' | 'viewRow' | 'readout' | 'drawing' | 'picker' | 'hint' | 'action' | 'layers' | 'list' | 'foot';
+
+/** D-851: how far a slot stands from the one above it — a row (`--space-1`), a group (`--space-3`) or a section (`--space-5`). */
+export type SkyViewRhythm = 'row' | 'group' | 'section';
+
+export const SLOT_RHYTHM: Readonly<Record<SkyViewSlotName, SkyViewRhythm>> = {
+  answer: 'section',
+  viewRow: 'group',
+  readout: 'row',
+  drawing: 'row',
+  picker: 'row',
+  hint: 'row',
+  action: 'group',
+  layers: 'group',
+  list: 'section',
+  foot: 'section',
+};
+
+/** FR-FLOW-4's order, which is also the DOM order the slots are rendered in. */
+export const SLOT_ORDER: readonly SkyViewSlotName[] = ['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint', 'action', 'layers', 'list', 'foot'];
+
+/** The parts a chart hands the layout past the page (`SkyViewChartSlot`, `useChartSlot`). */
+export type ChartSlotName = 'control' | 'readout' | 'picker' | 'list';
+
+export type SkyViewShape = 'column' | 'rail' | 'panel';
+
+export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, ReactNode>> {
+  drawing: ReactNode;
+  /** The wide form: the box and the rail (the default), or the guide panel's one column (D-849). Compact is always the column. */
+  wide?: 'rail' | 'panel';
+  /** The id of the drawing's text alternative on the page — the pass detail's prose — for the chart's figure (`aria-describedby`). */
+  describedBy?: string;
+  className?: string;
+  ref?: Ref<HTMLDivElement>;
+  'data-testid'?: string;
+}
+
+interface SkyViewContextValue {
+  shape: SkyViewShape;
+  targets: Partial<Record<ChartSlotName, HTMLElement>>;
+  register: (name: ChartSlotName, element: HTMLElement | null) => void;
+  describedBy: string | undefined;
+}
+
+const SkyViewContext = createContext<SkyViewContextValue | null>(null);
+
+export function SkyViewLayout({ wide = 'rail', describedBy, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
+  const t = useT();
+  const mode = useLayoutMode();
+  const pageShape = usePageShape();
+  // FR-FLOW-4: compact is the column, except the landscape phone, whose box stands beside its rail (FR-WATCH-5).
+  const shape: SkyViewShape = mode === 'wide' ? wide : pageShape === 'landscape-phone' ? 'rail' : 'column';
+  const [targets, setTargets] = useState<Partial<Record<ChartSlotName, HTMLElement>>>({});
+  const register = useCallback((name: ChartSlotName, element: HTMLElement | null) => {
+    setTargets((was) => {
+      if ((was[name] ?? null) === element) return was;
+      const next = { ...was };
+      if (element === null) delete next[name];
+      else next[name] = element;
+      return next;
+    });
+  }, []);
+  const context = useMemo<SkyViewContextValue>(() => ({ shape, targets, register, describedBy }), [shape, targets, register, describedBy]);
+  const viewId = useId();
+  const facingId = useId();
+
+  /*
+   * D-849 (FR-FLOW-7): on the panel the drawing takes the height the panel's scroll box leaves under the control
+   * line, and the prose and the table follow under it. Measured, since the rows above the drawing are text in
+   * either language and the box is whatever the panel's column leaves: the drawing slot's top in the layout, the
+   * hint's row under it, and the scroll box's height, written once per change as `--sky-drawing-h`. The column
+   * form writes `--sky-drawing-floor`, the slot's own width, so a `fill` chart in it is never shorter than wide
+   * on any phone, whichever way it is held (FR-COMP-5's rule, the layout's to apply).
+   */
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const setRoot = useCallback(
+    (element: HTMLDivElement | null) => {
+      rootRef.current = element;
+      if (typeof ref === 'function') ref(element);
+      else if (ref) ref.current = element;
+    },
+    [ref],
+  );
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || typeof ResizeObserver === 'undefined') return;
+    const measure = (): void => {
+      const drawing = root.querySelector<HTMLElement>('[data-slot="drawing"]');
+      if (!drawing) return;
+      if (shape === 'column') {
+        const floor = `${String(Math.round(drawing.getBoundingClientRect().width))}px`;
+        if (root.style.getPropertyValue('--sky-drawing-floor') !== floor) root.style.setProperty('--sky-drawing-floor', floor);
+        return;
+      }
+      if (shape !== 'panel') return;
+      const scrollBox = root.parentElement;
+      if (!scrollBox) return;
+      const hint = root.querySelector<HTMLElement>('[data-slot="hint"]');
+      const hintPx = hint ? hint.getBoundingClientRect().height + (parseFloat(getComputedStyle(hint).marginTop) || 0) : 0;
+      const top = drawing.getBoundingClientRect().top - root.getBoundingClientRect().top;
+      const height = Math.max(0, Math.floor(scrollBox.clientHeight - top - hintPx));
+      const next = `${String(height)}px`;
+      if (root.style.getPropertyValue('--sky-drawing-h') !== next) root.style.setProperty('--sky-drawing-h', next);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    if (root.parentElement) observer.observe(root.parentElement);
+    measure();
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--sky-drawing-h');
+      root.style.removeProperty('--sky-drawing-floor');
+    };
+  }, [shape]);
+
+  const labelled = shape === 'rail';
+  const slot = (name: SkyViewSlotName): ReactNode => {
+    const node = slots[name];
+    if (node === undefined || node === null || node === false) return null;
+    // D-846: on wide the rail labels the view row and the facing row; the drawing's corner and the column do not.
+    const label = labelled && name === 'viewRow' ? { id: viewId, text: t.skyView.view } : labelled && name === 'picker' ? { id: facingId, text: t.skyView.facing } : null;
+    return (
+      <div key={name} className={[styles.slot, styles[name]].join(' ')} data-slot={name} data-rhythm={SLOT_RHYTHM[name]} {...(label ? { role: 'group', 'aria-labelledby': label.id } : {})}>
+        {label && (
+          <SectionHeading id={label.id} level={3}>
+            {label.text}
+          </SectionHeading>
+        )}
+        {node}
+      </div>
+    );
+  };
+
+  return (
+    <SkyViewContext.Provider value={context}>
+      <div ref={setRoot} className={[styles.layout, className].filter(Boolean).join(' ')} data-shape={shape} data-sky-layout="" {...(testId === undefined ? {} : { 'data-testid': testId })}>
+        {SLOT_ORDER.map(slot)}
+      </div>
+    </SkyViewContext.Provider>
+  );
+}
+
+/**
+ * The place in a slot where the chart's part lands. A page renders one per part it wants from the chart — the view
+ * control in `viewRow`, the readout in `readout`, the facing picker (or the polar chart's orientation control) in
+ * `picker`, the legend in `list` — and the chart portals the part into it (`useChartSlot`).
+ */
+export function SkyViewChartSlot({ name }: { name: ChartSlotName }) {
+  const layout = useContext(SkyViewContext);
+  if (layout === null) throw new Error('SkyViewChartSlot must be rendered inside SkyViewLayout');
+  const { register } = layout;
+  const setElement = useCallback(
+    (element: HTMLDivElement | null) => {
+      register(name, element);
+    },
+    [register, name],
+  );
+  return <div ref={setElement} className={styles.chartSlot} data-chart-slot={name} />;
+}
+
+export interface ChartSlot {
+  /** Whether the chart is inside a `SkyViewLayout` at all; outside one it draws the part where it always did. */
+  inLayout: boolean;
+  /** The layout's shape, for a view that words a part differently in the rail (`null` outside a layout). */
+  shape: SkyViewShape | null;
+  /** The drawing's text alternative on the page, for the figure's `aria-describedby`. */
+  describedBy: string | undefined;
+  /** The part, portaled into the page's slot — or nothing, while the slot is not on the page. */
+  place: (node: ReactNode) => ReactNode;
+}
+
+/** Read by `SkyChart` and its views: where the layout wants a part, and the portal that puts it there. */
+export function useChartSlot(name: ChartSlotName): ChartSlot {
+  const layout = useContext(SkyViewContext);
+  const target = layout?.targets[name] ?? null;
+  return useMemo<ChartSlot>(
+    () => ({
+      inLayout: layout !== null,
+      shape: layout?.shape ?? null,
+      describedBy: layout?.describedBy,
+      place: (node) => (target === null || node === null || node === undefined ? null : createPortal(node, target)),
+    }),
+    [layout, target],
+  );
+}

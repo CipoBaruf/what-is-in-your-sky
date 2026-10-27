@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useAppStore } from '../../../../state';
+import { appStore } from '../../../../state';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import type { ChartHand, HandSlot } from './SkyChart.types';
 import type { HandCamera } from './window/camera';
@@ -30,7 +30,7 @@ export function useChartHand(): ChartHand {
         kept = camera;
       },
       gesture: () => {
-        const state = useAppStore.getState();
+        const state = appStore.getState();
         if (!state.skyHintSeen) state.setSkyHintSeen(true);
       },
     };

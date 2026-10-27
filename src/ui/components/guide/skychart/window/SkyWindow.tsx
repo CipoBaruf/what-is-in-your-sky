@@ -22,6 +22,7 @@ import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible, sunVisible 
 import { useLayoutMode } from '../../../../hooks/useLayoutMode';
 import { TextButton } from '../../../primitives/TextButton';
 import { useSkyScreen } from '../../../screen/useSkyScreen';
+import { useChartSlot } from '../../../sky/SkyViewLayout';
 import { ChartFrame } from '../ChartFrame';
 import { landmarkFor, sceneFor } from '../layers';
 import { arcOf, FACING_OPTIONS, type ChartPass, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
@@ -997,9 +998,16 @@ export function SkyWindow(props: SkyWindowProps) {
    * the frame's controls row otherwise (the pass detail, the compact pages), after the view control.
    */
   const railed = inBox && fill && aside !== undefined && aside !== null;
+  /*
+   * R132 (FR-FLOW-4, D-842, D-846): inside a `SkyViewLayout` the readout is the page's `readout` slot's and the
+   * facing row its `picker` slot's, with no `Facing:` prefix of its own (the rail labels the row, D-846). Outside
+   * one they are the frame's, as above.
+   */
+  const readoutSlot = useChartSlot('readout');
+  const pickerSlot = useChartSlot('picker');
   const facingRow =
     inBox && handCamera ? (
-      <HandFacingRow camera={handCamera} options={facingOptions} peak={peak} follow={followTarget} prefix={!compact} />
+      <HandFacingRow camera={handCamera} options={facingOptions} peak={peak} follow={followTarget} prefix={!compact && !pickerSlot.inLayout} />
     ) : null;
 
   return (
@@ -1013,6 +1021,8 @@ export function SkyWindow(props: SkyWindowProps) {
       data-look-alt={Math.round(look.altDeg)}
       data-fov={Math.round(fovDeg)}
     >
+      {!onScreen && readoutSlot.place(status)}
+      {!onScreen && pickerSlot.place(facingRow)}
       <ChartFrame
         fill={fill}
         legend={legend}
@@ -1072,11 +1082,11 @@ export function SkyWindow(props: SkyWindowProps) {
               {controls}
               {/* The hint is the sensor's ("hold the phone up"); the hand's box has its own hint in the box (below). */}
               {!byHand && <p className={styles.hint}>{t.window.hint}</p>}
-              {!railed && facingRow}
+              {!railed && !pickerSlot.inLayout && facingRow}
             </>
           )
         }
-        status={status}
+        status={readoutSlot.inLayout && !onScreen ? null : status}
       >
         <div
           className={byHand ? [styles.box, styles.hand].join(' ') : styles.box}

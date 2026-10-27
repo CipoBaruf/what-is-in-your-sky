@@ -43,6 +43,11 @@
   box-sizing: border-box;
 }
 
+/* R132 (D-842): the legend as the page's `list` slot's block, in a `SkyViewLayout`; the frame's own slot rules are the frame's. */
+.legendSlot {
+  min-width: 0;
+}
+
 /* R123 (FR-SKY-3, D-791): the view control and the page's `[ stars ]` on one row, a cell apart, wrapping at the separator where a row cannot hold both. */
 .viewRow {
   display: flex;

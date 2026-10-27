@@ -7,13 +7,15 @@ import styles from './GuideText.module.css';
 export interface GuideTextProps {
   pass: Pass;
   timeZone: string | null;
+  /** R132 (FR-FLOW-7): the sentence's id where it is the drawing's text alternative on the page (`aria-describedby`). */
+  id?: string;
 }
 
-export function GuideText({ pass, timeZone }: GuideTextProps) {
+export function GuideText({ pass, timeZone, id }: GuideTextProps) {
   const t = useT();
   const locale = useLocale();
   return (
-    <p className={styles.guide} data-testid="guide-sentence">
+    <p className={styles.guide} data-testid="guide-sentence" {...(id === undefined ? {} : { id })}>
       {t.guide.sentence(guideParams(pass, timeZone, locale))}
     </p>
   );
