@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import type { EpochMs, Observer } from '../../../../model';
-import { cutCatalog } from './catalogCut';
-import type { SkyScene, StarField } from './window/scene';
+import type { SkyScene } from './window/scene';
 
 /**
  * R119 (FR-SKY-1, FR-SKY-8, FR-LIVE-10 as amended; PLAN D-788, D-802): the one
@@ -24,7 +23,8 @@ import type { SkyScene, StarField } from './window/scene';
  * switches, is what keeps the figures off the polar chart and the dome.
  *
  * R123 (FR-SKY-3, FR-STAR-13 as amended; D-791, D-814): the twilight step is
- * applied here, once, so no view changes for it and one rule thins every
+ * applied once per scene — since D-837 by the source this hook is handed
+ * (`starScene.ts`, in the `stars` chunk) — so no view changes for it and one rule thins every
  * drawing of the sky. The source carries `lib/skyStars.ts`'s `drawnRungs` and
  * `drawnMagLimit` with the positions, and the positions carry the Sun's
  * altitude at the same instant — so at 3600× the step follows the shown `t`
@@ -43,18 +43,13 @@ import type { SkyScene, StarField } from './window/scene';
  * names a star (FR-STAR-7), which the window draws apart from the layer.
  */
 
-/** Where the stars come from: the loaded `stars` chunk, in the scene's shape. */
+/**
+ * Where the stars come from: the loaded `stars` chunk, as the scene at an instant (D-837). `starScene.ts`'s
+ * `starSourceOf` builds it in the chunk — the positions, the twilight step and the cut — so none of that is in
+ * `main`; the same call twice is expected to return the same object (the positions are memoised on the instant).
+ */
 export interface StarSource {
-  catalog: StarField['catalog'];
-  /**
-   * Every star and planet for the observer at `t`, and the Sun's altitude then (degrees); the same call twice is
-   * expected to return the same object (`starsAt`).
-   */
-  positionsAt: (observer: Pick<Observer, 'lat' | 'lon'>, t: EpochMs) => StarField['positions'] & { sunAltDeg: number };
-  /** FR-STAR-13's steps (`skyStars.ts`): how many of the ladder's rungs are drawn at a Sun altitude, … */
-  drawnRungs: (sunAltDeg: number) => number;
-  /** … and the faintest magnitude that many rungs show (`Infinity` for the whole ladder). */
-  drawnMagLimit: (rungs: number) => number;
+  sceneAt: (observer: Pick<Observer, 'lat' | 'lon'>, t: EpochMs) => SkyScene;
 }
 
 export interface SkySceneInput {
@@ -67,31 +62,11 @@ export interface SkySceneInput {
   source: StarSource | null;
 }
 
-/** Frozen: every scene shares it, so no page or test may change it under the others. No names: see above. */
-const ALL_LAYERS: StarField['layers'] = Object.freeze({ stars: true, figures: true, planets: true, names: false });
-
-/** FR-STAR-13 in twilight: the drawn rungs and the planets — never the figures, whose lines would reach hidden stars. */
-const TWILIGHT_LAYERS: StarField['layers'] = Object.freeze({ stars: true, figures: false, planets: true, names: false });
-
-/** The one scene with no stars, so a view's memo on the scene holds across ticks that change nothing; frozen like `ALL_LAYERS`. */
-const NO_STARS: SkyScene = Object.freeze({ stars: null });
+/** The one scene with no stars, so a view's memo on the scene holds across ticks that change nothing; frozen, shared with `starScene.ts`. */
+export const NO_STARS: SkyScene = Object.freeze({ stars: null });
 
 export function useSkyScene({ observer, now, starsLayer, source }: SkySceneInput): SkyScene {
   const { lat, lon } = observer;
-  // Keyed on the source's fields, not on the object: a page may build the source inline each render.
-  const catalog = source?.catalog;
-  const positionsAt = source?.positionsAt;
-  const drawnRungs = source?.drawnRungs;
-  const drawnMagLimit = source?.drawnMagLimit;
-  return useMemo<SkyScene>(() => {
-    if (!starsLayer || catalog === undefined || positionsAt === undefined || drawnRungs === undefined || drawnMagLimit === undefined || now === undefined) return NO_STARS;
-    const positions = positionsAt({ lat, lon }, now);
-    // FR-STAR-13: the step at the Sun of this very instant.
-    const rungs = drawnRungs(positions.sunAltDeg);
-    if (rungs === 0) return NO_STARS;
-    const limit = drawnMagLimit(rungs);
-    if (limit === Number.POSITIVE_INFINITY) return { stars: { catalog, positions, layers: ALL_LAYERS } };
-    // A view counts its stars by the catalogue's length, so the positions stay whole and only the catalogue is cut.
-    return { stars: { catalog: cutCatalog(catalog, limit), positions, layers: TWILIGHT_LAYERS } };
-  }, [lat, lon, now, starsLayer, catalog, positionsAt, drawnRungs, drawnMagLimit]);
+  const sceneAt = source?.sceneAt;
+  return useMemo<SkyScene>(() => (starsLayer && sceneAt !== undefined && now !== undefined ? sceneAt({ lat, lon }, now) : NO_STARS), [lat, lon, now, starsLayer, sceneAt]);
 }

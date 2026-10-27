@@ -2,10 +2,11 @@ import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { drawnMagLimit, drawnRungs } from '../../../../lib/skyStars';
 import type { Observer } from '../../../../model';
+import { starSourceOf, type StarParts } from './starScene';
 import { useSkyScene, type SkySceneInput, type StarSource } from './useSkyScene';
 import type { StarField } from './window/scene';
 
-type Positions = ReturnType<StarSource['positionsAt']>;
+type Positions = ReturnType<StarParts['positionsAt']>;
 
 /**
  * FR-SKY-1, FR-SKY-8 / PLAN D-788, D-802 (R119): one scene per tick from the
@@ -22,7 +23,7 @@ const NIGHT = -18;
 
 function fakeSource(): StarSource & { positionsAt: ReturnType<typeof vi.fn> } {
   const positionsAt = vi.fn((_where: Pick<Observer, 'lat' | 'lon'>, t: number): Positions => ({ altDeg: [t % 90], azDeg: [0], planets: [], sunAltDeg: NIGHT }));
-  return { catalog, positionsAt, drawnRungs, drawnMagLimit };
+  return { ...starSourceOf({ catalog, positionsAt, drawnRungs, drawnMagLimit }), positionsAt };
 }
 
 const input = (rest: Omit<SkySceneInput, 'observer'> & Partial<Pick<SkySceneInput, 'observer'>>): SkySceneInput => ({ observer, ...rest });
@@ -93,7 +94,7 @@ describe('useSkyScene (FR-SKY-1, FR-SKY-8; D-788, D-802)', () => {
     const planets: StarField['positions']['planets'] = [{ body: 'Venus', azDeg: 270, altDeg: 10, mag: -4 }];
     const positions = (sunAltDeg: number): Positions => ({ altDeg: [10, 20, 30, 40, 50], azDeg: [0, 0, 0, 0, 0], planets, sunAltDeg });
     // The Sun at `t` is `t`'s own here: the step reads it from the positions at the scene's instant.
-    const source: StarSource = { catalog: ladder, positionsAt: (_where, t) => positions(t), drawnRungs, drawnMagLimit };
+    const source: StarSource = starSourceOf({ catalog: ladder, positionsAt: (_where, t) => positions(t), drawnRungs, drawnMagLimit });
     const at = (sunAltDeg: number) => renderHook(() => useSkyScene({ observer, now: sunAltDeg, starsLayer: true, source })).result.current;
 
     it('draws the whole field, the figures and the planets at −18° and at −6°', () => {
