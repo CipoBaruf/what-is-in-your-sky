@@ -43,18 +43,18 @@ const legend = (inventory: LegendInventory | null, locale: 'en' | 'es' = 'en', l
   );
 
 describe('<Legend>: the named times (FR-FLOW-13, D-852)', () => {
-  it('writes the name and state, then "rise … · peak … · set …" on the second line, in both languages', () => {
+  it('writes the name and state, then "rise … · peak … · end …" on the second line, in both languages', () => {
     const { unmount } = legend(null);
-    const en = screen.getByRole('button', { name: /^A\s*SAT 0\s*soon\s*rise 09:48:24 UTC\s*· peak 09:48:38 UTC\s*· set 09:49:02 UTC$/ });
+    const en = screen.getByRole('button', { name: /^A\s*SAT 0\s*soon\s*rise 09:48:24\s*·\s*peak 09:48:38\s*·\s*end 09:49:02 UTC$/ });
     expect(en.querySelector('[class*="name"]')).toHaveTextContent(/^SAT 0 soon$/);
-    expect(en.querySelector('[class*="times"]')).toHaveTextContent(/^rise 09:48:24 UTC\s*· peak 09:48:38 UTC\s*· set 09:49:02 UTC$/);
+    expect(en.querySelector('[class*="times"]')).toHaveTextContent(/^rise 09:48:24\s*·\s*peak 09:48:38\s*·\s*end 09:49:02 UTC$/);
     expect(screen.queryByTestId('legend-inventory')).toBeNull();
     expect(screen.queryByTestId('legend-more')).toBeNull();
     unmount();
     legend(null, 'es');
-    const es = screen.getByRole('button', { name: /^A\s*SAT 0\s*pronto\s*sale 09:48:24 UTC\s*· máximo 09:48:38 UTC\s*· se pone 09:49:02 UTC$/ });
+    const es = screen.getByRole('button', { name: /^A\s*SAT 0\s*pronto\s*sale 09:48:24\s*·\s*máximo 09:48:38\s*·\s*termina 09:49:02 UTC$/ });
     expect(es.querySelector('[class*="name"]')).toHaveTextContent(/^SAT 0 pronto$/);
-    expect(es.querySelector('[class*="times"]')).toHaveTextContent(/^sale 09:48:24 UTC\s*· máximo 09:48:38 UTC\s*· se pone 09:49:02 UTC$/);
+    expect(es.querySelector('[class*="times"]')).toHaveTextContent(/^sale 09:48:24\s*·\s*máximo 09:48:38\s*·\s*termina 09:49:02 UTC$/);
   });
 
   it('keeps the words on the pass detail’s dim rows, which drop the peak (FR-LEG-3)', () => {
@@ -63,7 +63,7 @@ describe('<Legend>: the named times (FR-FLOW-13, D-852)', () => {
         <Legend rows={[row(0), row(1)]} bodies={[]} timeZone={null} highlightedPassId={null} onActivate={noop} onFocusRow={noop} lead={{ passId: 'pass-0', node: <p>table</p> }} />
       </I18nProvider>,
     );
-    expect(screen.getByRole('button', { name: /^B\s*SAT 1\s*soon\s*rise 09:58:24 UTC\s*· set 09:59:02 UTC$/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^B\s*SAT 1\s*soon\s*rise 09:58:24\s*·\s*end 09:59:02 UTC$/ })).toBeInTheDocument();
   });
 
   it('leaves the sky screen’s one-line strip its bare figures, the words said to a screen reader alone', () => {
@@ -72,7 +72,7 @@ describe('<Legend>: the named times (FR-FLOW-13, D-852)', () => {
         <Legend rows={[row(0)]} bodies={[]} timeZone={null} highlightedPassId={null} onActivate={noop} onFocusRow={noop} screen />
       </I18nProvider>,
     );
-    const button = screen.getByRole('button', { name: /^A\s*SAT 0\s*sale\s*09:48:24 UTC\s*se pone\s*09:49:02 UTC\s*pronto$/ });
+    const button = screen.getByRole('button', { name: /^A\s*SAT 0\s*sale\s*09:48:24 UTC\s*termina\s*09:49:02 UTC\s*pronto$/ });
     expect(button.querySelector('[class*="name"]')).toHaveTextContent(/^SAT 0$/);
   });
 });
@@ -83,16 +83,15 @@ describe('<Legend> as the short wide inventory (F-81)', () => {
     const budget = 8;
     legend({ clip: (entryRows, headerRows) => inventoryClip(entryRows, budget - headerRows), moreLabel: (n) => `+${String(n)} more` });
     const list = screen.getByTestId('chart-legend');
-    // Eight rows: one for the header, one for the line, six for the list — three passes whole. Two passes and both bodies are under it.
+    // Eight rows: one for the line, six for the list — three passes whole, a seventh row too few for a fourth.
+    // Two passes and both bodies are under it.
     expect(list).toHaveAttribute('data-clip-rows', '6');
     expect(list.style.getPropertyValue('--inventory-rows')).toBe('6');
     expect(screen.getByTestId('legend-more')).toHaveTextContent(/^\+4 more$/);
-    // The header row is drawn, not read: the names carry the words already.
-    const header = screen.getByTestId('legend-times-header');
-    expect(header).toHaveAttribute('aria-hidden', 'true');
-    expect([...header.children].map((cell) => cell.textContent)).toEqual(['rise', 'peak', 'set']);
-    // Each as wide as the named time under it: `rise 09:48:24 UTC`, `· peak 09:48:38 UTC`, `· set 09:49:02 UTC`.
-    expect([...header.children].map((cell) => (cell as HTMLElement).style.minWidth)).toEqual(['17ch', '19ch', '18ch']);
+    // D-863: no header row over the times — each row names its own (FR-FLOW-13).
+    expect(screen.queryByTestId('legend-times-header')).toBeNull();
+    // and its rows keep rise and end, the zone once: the line does not wrap there.
+    expect(within(list).getAllByRole('button')[0]?.querySelector('[class*="times"]')).toHaveTextContent(/^rise 09:48:24\s*·\s*end 09:49:02 UTC$/);
     // Every entry is still in the list — the clip is a height, and the list scrolls to them.
     expect(within(list).getAllByRole('listitem')).toHaveLength(rows.length + bodies.length);
   });
@@ -101,17 +100,5 @@ describe('<Legend> as the short wide inventory (F-81)', () => {
     legend({ clip: (entryRows, headerRows) => inventoryClip(entryRows, 21 - headerRows), moreLabel: (n) => `+${String(n)} more` });
     expect(screen.getByTestId('chart-legend')).toHaveAttribute('data-clip-rows', '12');
     expect(screen.queryByTestId('legend-more')).toBeNull();
-  });
-
-  it('keeps the header’s row for the list when no listed row has times', () => {
-    // Hidden objects (`lib/legend.ts`) are listed after the passes with no times, and alone they draw no header.
-    const hidden = [0, 1, 2, 3, 4].map((i) => ({ ...row(i), riseMs: null, peakMs: null, endMs: null }));
-    const budget = 9;
-    legend({ clip: (entryRows, headerRows) => inventoryClip(entryRows, budget - headerRows), moreLabel: (n) => `+${String(n)} more` }, 'en', hidden);
-    expect(screen.queryByTestId('legend-times-header')).toBeNull();
-    // All nine rows are the list's: four markers whole, one for the `+n` line. Reserving the header's row too
-    // would have ended the list a marker earlier, at six rows and `+4 more`.
-    expect(screen.getByTestId('chart-legend')).toHaveAttribute('data-clip-rows', '8');
-    expect(screen.getByTestId('legend-more')).toHaveTextContent(/^\+3 more$/);
   });
 });

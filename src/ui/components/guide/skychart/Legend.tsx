@@ -16,7 +16,7 @@ import styles from './Legend.module.css';
  * the drawing carries at the arc's peak, a two-cell swatch in the arc's
  * colour (the same `--chart-*` token in both themes, FR-LEG-5), the name and
  * the state at the shown instant (`up`, `soon`, `gone`; nothing for a whole
- * arc), then on a second line the rise, peak and set clock times in the
+ * arc), then on a second line the rise, peak and end clock times in the
  * observer's zone, each after its word (FR-FLOW-13, D-852). A tap,
  * a click or keyboard focus on a row highlights its arc and dims the others
  * (FR-LEG-4); R54 (D-271, F-53): a click or tap *activates* — pins the row
@@ -102,7 +102,7 @@ export const LegendInventoryContext = createContext<LegendInventory | null>(null
 /** An entry's height in text rows on the inventory: a row button is the tap target, two rows; a line is one. */
 const ENTRY_ROWS = { row: 2, line: 1 } as const;
 
-const TIME_KEYS = ['rise', 'peak', 'set'] as const;
+type TimeKey = 'rise' | 'peak' | 'end';
 
 export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, onFocusRow, lead, screen = false, moonPhase = false }: LegendProps) {
   const t = useT();
@@ -116,18 +116,20 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
   const entryRows = [...(listed.length === 0 ? [ENTRY_ROWS.line] : listed.map(() => ENTRY_ROWS.row)), ...bodies.map(() => ENTRY_ROWS.line)];
   // The header row lines its words up over the first timed row's three clock strings, so with no timed row
   // there is no header and the budget keeps that row for the list.
-  const timed = listed.find((row) => row.riseMs !== null);
-  const clip = clipped ? inventory.clip(entryRows, timed === undefined ? 0 : 1) : null;
-  // FR-FLOW-13 (D-852): each time is written with its word — `rise 09:48:24 UTC · peak … · set …` — on the row's
-  // second line. The sky screen's one-line strip keeps its bare figures and says the words to a screen reader
-  // alone (R85, F-81), since its width is the name's.
-  const time = (key: (typeof TIME_KEYS)[number], ms: number | null, first: boolean): ReactNode => (
+  const clip = clipped ? inventory.clip(entryRows, 0) : null;
+  // FR-FLOW-13 (D-852, V26-13): each time is written with its word on the row's second line, the zone once after
+  // the last — `rise 09:48:24 · peak 09:48:38 · end 09:49:02 UTC`. The separator closes the time before it, and a
+  // time never breaks inside, so a narrow column wraps between whole times and no line starts with `·` (D-863). The
+  // sky screen's one-line strip keeps its bare figures and says the words to a screen reader alone (R85, F-81),
+  // since its width is the name's.
+  const time = (key: TimeKey, ms: number | null, last: boolean): ReactNode => (
     <span className={styles.time}>
-      {screen ? <VisuallyHidden>{`${words[key]} `}</VisuallyHidden> : `${first ? '' : '· '}${words[key]} `}
-      {clock(ms)}
+      {screen ? <VisuallyHidden>{`${words[key]} `}</VisuallyHidden> : `${words[key]} `}
+      {screen || last ? clock(ms) : clock(ms).split(' ', 1)[0]}
+      {!screen && !last && ' · '}
     </span>
   );
-  const state = (row: LegendRow): ReactNode =>
+  const stateOf = (row: LegendRow): ReactNode =>
     (row.state === 'live' || row.state === 'ahead' || row.state === 'linger') && <span className={styles.state}>{words.state[row.state]}</span>;
   const list = (
     <ol
@@ -151,41 +153,47 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
           <span role="status">{words.empty}</span>
         </li>
       )}
-      {listed.map((row) => (
-        <li key={row.passId} className={styles.item}>
-          <button
-            type="button"
-            className={styles.row}
-            data-pass-id={row.passId}
-            data-key={row.key}
-            data-state={row.state}
-            data-highlighted={row.highlighted}
-            aria-pressed={highlightedPassId === row.passId}
-            onClick={() => {
-              onActivate(row.passId);
-            }}
-            onFocus={() => {
-              onFocusRow(row.passId);
-            }}
-          >
-            <span className={styles.key}>{row.key}</span>
-            <LegendSwatch color={row.colorToken} />
-            {/* FR-FLOW-13: the name and the state are the first line, the named times the second. */}
-            <span className={styles.name}>
-              {row.name}
-              {!screen && row.riseMs !== null && state(row) && <> {state(row)}</>}
-            </span>
-            {row.riseMs !== null && (
-              <span className={styles.times}>
-                {time('rise', row.riseMs, true)}
-                {lead === undefined && !screen && time('peak', row.peakMs, false)}
-                {time('set', row.endMs, false)}
-                {screen && state(row)}
+      {listed.map((row) => {
+        const state = stateOf(row);
+        return (
+          <li key={row.passId} className={styles.item}>
+            <button
+              type="button"
+              className={styles.row}
+              data-pass-id={row.passId}
+              data-key={row.key}
+              data-state={row.state}
+              data-highlighted={row.highlighted}
+              aria-pressed={highlightedPassId === row.passId}
+              onClick={() => {
+                onActivate(row.passId);
+              }}
+              onFocus={() => {
+                onFocusRow(row.passId);
+              }}
+            >
+              <span className={styles.key}>{row.key}</span>
+              <LegendSwatch color={row.colorToken} />
+              {/* FR-FLOW-13: the name and the state are the first line, the named times the second. The state stands
+                  outside the name's text, so a name cut by an ellipsis never takes the state with it (D-863). */}
+              <span className={styles.name}>
+                <span className={styles.nameText}>{row.name}</span>
+                {!screen && row.riseMs !== null && state !== false && <> {state}</>}
               </span>
-            )}
-          </button>
-        </li>
-      ))}
+              {row.riseMs !== null && (
+                <span className={styles.times}>
+                  {time('rise', row.riseMs, false)}
+                  {/* D-863: the short wide inventory keeps rise and end, as the strip and the dim rows do: its line
+                      does not wrap, and three named times with a zone are wider than its rail. */}
+                  {lead === undefined && !screen && clip === null && time('peak', row.peakMs, false)}
+                  {time('end', row.endMs, true)}
+                  {screen && state}
+                </span>
+              )}
+            </button>
+          </li>
+        );
+      })}
       {bodies.map((line) => (
         <li key={line.body} className={[styles.item, styles.body].join(' ')} data-body={line.body}>
           <LegendSwatch color={line.body} />
@@ -201,22 +209,9 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
     </ol>
   );
   if (clip === null) return list;
-  // Each of the header's words is as wide as the named time it stands over (`· peak 09:48:38 UTC`, FR-FLOW-13).
+  // D-863: no header row over the times — each row writes its own words (FR-FLOW-13), so a header would repeat them.
   return (
     <div className={styles.inventory} data-testid="legend-inventory">
-      {timed !== undefined && (
-        <p className={styles.timesHeader} aria-hidden="true" data-testid="legend-times-header">
-          {TIME_KEYS.map((key) => (
-            <span
-              key={key}
-              className={styles.timeLabel}
-              style={{ minWidth: `${String((key === 'rise' ? 0 : 2) + words[key].length + 1 + clock(key === 'rise' ? timed.riseMs : key === 'peak' ? timed.peakMs : timed.endMs).length)}ch` }}
-            >
-              {words[key]}
-            </span>
-          ))}
-        </p>
-      )}
       {list}
       {clip.more > 0 && (
         <p className={styles.more} data-testid="legend-more">
