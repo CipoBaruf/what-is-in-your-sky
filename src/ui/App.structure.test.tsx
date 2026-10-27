@@ -105,14 +105,36 @@ describe('the outline of each screen (FR-A11Y-2, US-30 AC2)', () => {
     withPasses();
     render(<App />);
     go('#settings');
-    // R93 (D-545): the page is a chunk of its own; its Back control is the sign it has landed.
-    await screen.findByTestId('settings-back');
+    // R93 (D-545): the page is a chunk of its own; its first heading is the sign it has landed (R129: Back is the header's).
+    await screen.findByRole('heading', { level: 2, name: en.location.heading });
+    // R129 (FR-FLOW-3, D-845): the compact header names the page, and that name is the page's h1.
     expect(outline()).toEqual([
-      [1, en.app.shortTitle],
+      [1, en.header.pages.settings],
       [2, en.location.heading],
       [2, en.favourites.heading],
       [2, en.settings.browser],
     ]);
+  });
+
+  it('stars: the page is named by its visible h1, "Stars tonight", the header leaving it the rank (R129, FR-FLOW-3)', async () => {
+    for (const width of [390, WIDE_PX]) {
+      media = stubMatchMedia(width);
+      withPasses();
+      const { unmount } = render(<App />);
+      go('#stars');
+      const heading = await screen.findByRole('heading', { level: 1, name: en.starsHeading });
+      expect(heading).not.toHaveAttribute('data-visually-hidden');
+      const headings = outline();
+      expect(headings[0]).toEqual([1, en.starsHeading]);
+      expect(headings.filter(([level]) => level === 1)).toHaveLength(1);
+      expect(skippedLevels(headings)).toEqual([]);
+      unmount();
+      media.restore();
+      media = null;
+      act(() => {
+        window.history.replaceState(null, '', window.location.pathname);
+      });
+    }
   });
 
   it('live: the page is named by its h1, and nothing under it skips a rank', async () => {
@@ -136,7 +158,8 @@ describe('the landmarks of each route (FR-A11Y-1, US-30 AC1)', () => {
       expect(landmarks()).toEqual({ main: 1, h1: 1, banner: 1, navigation: 1, contentinfo: 1 });
       go('#settings');
       await screen.findByTestId('settings-back');
-      expect(landmarks()).toEqual({ main: 1, h1: 1, banner: 1, navigation: 1, contentinfo: 1 });
+      // R129 (D-845): the compact settings header is its `[ ← ]` row, which holds no links; the wide one has the page links.
+      expect(landmarks()).toEqual({ main: 1, h1: 1, banner: 1, navigation: width === 390 ? 0 : 1, contentinfo: 1 });
       go('#live');
       await screen.findByTestId('live-page');
       expect(landmarks()).toMatchObject({ main: 1, h1: 1, banner: 1, contentinfo: 0 });
