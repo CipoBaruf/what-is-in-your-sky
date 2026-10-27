@@ -169,8 +169,28 @@ describe('useSkyScene (FR-SKY-1, FR-SKY-8; D-788, D-802)', () => {
         expect(scene(-18, undefined).landmark).toBeUndefined();
         // At −3° the first two rungs are drawn: the mag 2 star by the peak is hidden, so there is no landmark and no line — not the figure's either.
         expect(scene(-3, { id: 'p', peak: { azDeg: 0, elDeg: 33, t: -18 } }).landmark).toBeNull();
+        // Nor a farther star the step still draws: at 27° the night's landmark is C (3° off, hidden at −3°), and B,
+        // 7° off and drawn, does not stand in for it (R127 review).
+        expect(scene(-18, { id: 'p', peak: { azDeg: 0, elDeg: 27, t: -18 } }).landmark?.star?.index).toBe(2);
+        expect(scene(-3, { id: 'p', peak: { azDeg: 0, elDeg: 27, t: -18 } }).landmark).toBeNull();
         // A star the step still draws is the landmark in twilight too.
         expect(scene(-3, { id: 'p', peak: { azDeg: 0, elDeg: 21, t: -18 } }).landmark?.star?.index).toBe(1);
+      });
+
+      it('places the peak’s stars and searches once per pass and step, for two passes in turn (R127 review)', () => {
+        const parts = landmarkOf(ladder, figures);
+        const search = vi.fn(parts.landmark);
+        const place = vi.fn((_where: Pick<Observer, 'lat' | 'lon'>, t: number) => positions(t));
+        const counted = starSourceOf({ catalog: ladder, positionsAt: place, drawnRungs, drawnMagLimit, ...parts, landmark: search });
+        const p = { id: 'p', peak: { azDeg: 0, elDeg: 33, t: -18 } };
+        const q = { id: 'q', peak: { azDeg: 0, elDeg: 21, t: -19 } };
+        for (const now of [-18.5, -18.4, -18.3]) {
+          expect(counted.sceneAt(observer, now, p).landmark?.star?.index).toBe(2);
+          expect(counted.sceneAt(observer, now, q).landmark?.star?.index).toBe(1);
+        }
+        // Two searches (the step's and the night's) per pass, one placement of each peak, and one of each instant.
+        expect(search).toHaveBeenCalledTimes(4);
+        expect(place.mock.calls.filter(([, t]) => t === -18 || t === -19)).toHaveLength(2);
       });
 
       it('holds the scene for a pass rebuilt with the same id and peak, and remakes it for another pass', () => {
