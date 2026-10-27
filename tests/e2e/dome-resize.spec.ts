@@ -13,6 +13,11 @@
  * case the owner saw (107 % across, the labels off the dome), it is compared
  * with a fresh load at that size within one cell of the raster: the two are
  * the same picture or the resize is wrong. Two page loads in all (FR-CI-1).
+ *
+ * R128 (F-103): the same on a phone, where a box that changes height alone — the landmark line arriving
+ * with the `stars` chunk takes 23 px from it (D-838) — changes the grid's rows and neither its columns nor
+ * its font size. The key carried those two, so the scene kept the projection it mounted with: the drawing
+ * of the taller box. The key now carries the rows too, and the rasters after the change are a fresh load's.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { fitFloor, painted, type Painted } from './domeInk';
@@ -84,5 +89,40 @@ test('draws the same dome after a resize as a fresh load at that size gives', as
       }
     }
   }
+  await context.close();
+});
+
+/** Each layer's raster text and its row count: what the scene drew, character for character. */
+async function rasters(page: Page): Promise<string[]> {
+  const dome = page.getByTestId('live-dome').locator('[data-drawing="dome"]');
+  let last = '';
+  await expect
+    .poll(async () => {
+      const now = (await dome.locator('pre.glyph-output').allTextContents()).join('\u0000');
+      const settled = now.length > 0 && now === last;
+      last = now;
+      return settled;
+    })
+    .toBe(true);
+  return last.split('\u0000');
+}
+
+test('redraws the dome when the box changes height alone, as a fresh load at that height draws it (F-103)', async ({ browser }) => {
+  const SHORT = { width: 390, height: 780 };
+  const referenceContext = await browser.newContext({ viewport: SHORT });
+  const referencePage = await referenceContext.newPage();
+  await openLive(referencePage);
+  const reference = await rasters(referencePage);
+  await referenceContext.close();
+
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+  await openLive(page);
+  const tall = await rasters(page);
+  await page.setViewportSize(SHORT);
+  const resized = await rasters(page);
+  // The case is the one the key missed: the rows moved, so the grid is not the tall box's.
+  expect(resized.map((text) => text.split('\n').length), 'the rows follow the box').not.toEqual(tall.map((text) => text.split('\n').length));
+  expect(resized, 'the rasters after the box shrank, against a fresh load at that size').toEqual(reference);
   await context.close();
 });

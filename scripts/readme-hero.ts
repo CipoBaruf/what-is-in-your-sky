@@ -65,8 +65,9 @@ export interface Source {
  * what the sky over them looks like (the live page on a standing phone, the
  * tile the eye lands on first), what the app is for outdoors (the sky screen,
  * held up, which is what the whole v1.3 phase was for), and what it actually
- * tells you (the laptop page, where the next pass carries its time, elevation,
- * duration, magnitude and cloud verdict in one card).
+ * shows you (the laptop's pass detail on the window since R128: the pass's arc
+ * under the stars it crosses, faced to its peak, with its time, peak and
+ * brightness in the card beside it — v2.5's one sky, FR-SKY-9).
  */
 export const SOURCES = [
   {
@@ -87,8 +88,11 @@ export const SOURCES = [
     slot: 'stack',
   },
   {
-    file: 'v1-home-1280-dark-en.png',
-    caption: 'And on a laptop: when the next pass starts, how high, how bright',
+    // R128 (FR-SKY-9): v2.5 draws one sky in every view, so the laptop tile is the pass detail on the
+    // window — the pass among the stars it crosses, with its time, peak and brightness in the card beside
+    // it — where it was the home page; the same size, so the layout does not move.
+    file: 'v1-guide-window-1280-dark-en.png',
+    caption: 'And on a laptop: the pass among the stars, when, how high, how bright',
     w: 1280,
     h: 800,
     slot: 'stack',

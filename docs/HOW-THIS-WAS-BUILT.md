@@ -37,8 +37,8 @@ session that disagrees has to argue with a written reason rather than with a sil
 The section to read is [§16, Delivery](../PLAN.md#16-delivery-of-the-v1-and-v11-tasks-v1-11-v11-9).
 It opens with the v1 contract — lanes (which files a task may touch), waves (which tasks
 can run at once), what an entry must carry, the driver, the merge policy and the model
-policy — and then carries one delivery section per phase, §16.9 to §16.22, v1.2 through
-v2.4, each with its wave table and the block of decision numbers its tasks may spend.
+policy — and then carries one delivery section per phase, §16.9 to §16.23, v1.2 through
+v2.5, each with its wave table and the block of decision numbers its tasks may spend.
 
 ## 3. [TASKS.md](../TASKS.md) — the ordered slices
 

@@ -136,6 +136,22 @@
  * at sideways, and `captures.test.ts` carries it in the sky screen's exception
  * by name. Both are on the set's clock and the set's place (FR-SHOW-9). The set
  * is 274 files.
+ *
+ * R128 (SPEC §9 Phase 2m, FR-SKY-9; PLAN D-799, D-829): v2.5 draws one sky in
+ * every view and adds the files FR-SKY-9 names. `live-window` and `guide-window`
+ * are the live page and the pass detail with the view control on `Window`, at
+ * 1280 and 1920 (the box beside the rail, the box in the sheet) and at 390 with
+ * 360 beside it (FR-CAP-2), where the headless reader is the compact one without
+ * a sensor and the window is drawn in the box by hand (FR-SKY-2).
+ * `live-window-follow` is the live page's window after `f` and `stars-zoom` the
+ * stars page at `WINDOW_FOV_MIN_DEG`, each at the one width FR-SKY-9 names, 1280;
+ * `captures.test.ts` carries the pair as the desk's exception by name.
+ * `stars-passes` is the stars page with `[ passes ]` on, and
+ * `stars-passes-screen` the screen it opens at 844; the live page's own screen
+ * with the stars and a pass together is `sky-screen-sky`, re-shot, so FR-SKY-9's
+ * "from both pages" is that file and the new one. Every chart file of the set
+ * moved with the stars under the arcs, which is FR-SKY-9's first named move.
+ * The set is 330 files.
  */
 
 export const THEMES = ['dark', 'night'] as const;
@@ -275,6 +291,36 @@ export const SCREENS: readonly CaptureScreen[] = [
     name: 'stars-screen',
     widths: [844],
     what: 'The sky screen in the stars inventory (FR-STAR-5, FR-FSC-1 as amended v2.4, R117), opened from the page by `[ hold up to the sky ]` on a phone held sideways and aimed by a stubbed reading south, 35° up: the star field filling the viewport, the `×`, the readout with its true-north line (D-757) and the compass gutter with its bracket — and no pass, no arc, no chip and no legend.',
+  },
+  {
+    name: 'live-window',
+    widths: [360, 390, 1280, 1920],
+    what: "The live page watching at the set's instant with the view control on `Window` (FR-SKY-2, R121): the window laid out in the box under the hand camera, the stars, the figures and the planets under the arcs (FR-SKY-3), the readout in the box's corner on wide and in its row on compact. At 1280 and 1920 the box takes the browser window's shape and the rail stands beside it with the facing picker, the highlighted pass's key after `up` (FR-SKY-13); at 360 and 390 it is the compact reader without a sensor — what a headless capture is — so the window is drawn in the square box by hand and the choice is not saved.",
+  },
+  {
+    name: 'live-window-follow',
+    widths: [1280],
+    what: "The same page at 1280 with `f` pressed (FR-SKY-13, FR-DESK-4 as amended v2.5, R127): the window turned to the highlighted pass and following it, the key pressed in the picker and the readout reading `Following` with the key's capital; the landmark's ring in the field where the pass's peak is near one (FR-SKY-11). A desk's screen: `f` is a key, and a phone has no rail to press the key in, so it is the one window file with no compact width.",
+  },
+  {
+    name: 'guide-window',
+    widths: [360, 390, 1280, 1920],
+    what: "The night's brightest pass (the `guide` screen's) open on the window (FR-SKY-2, FR-SKY-7, R121): the hand camera facing the peak's azimuth at the tilt that keeps the peak in the field, the arc under the stars clipped at the box's edge, the picker with `peak` first and pressed, and the landmark line under the pass's name (FR-SKY-11). Wide is the window-shaped box in the sheet; at 360 and 390 it is the compact reader without a sensor, the square box by hand.",
+  },
+  {
+    name: 'stars-passes',
+    widths: [360, 390, 1280],
+    what: "The `#stars` page at the set's instant with `[ passes ]` on (FR-SKY-6, R126), faced to the first of the eight points whose field holds the night's brightest pass (north, over Orion): the pass's mark with its key `A` among the stars, and `In this field` listing the pass ahead of the stars (D-825). At 360 and 390 a touch phone, as `stars` is, with `[ hold up to the sky ]` on the page and the list under the fold; at 1280 the rail beside the box.",
+  },
+  {
+    name: 'stars-zoom',
+    widths: [1280],
+    what: 'The `#stars` page as `stars` opens it at 1280, zoomed by `+` to `WINDOW_FOV_MIN_DEG`, 20° (FR-SKY-14, R125): the same stars spread about the centre at their sizes, the readout naming the field and the facing unchanged. FR-SKY-9 names this one width for it.',
+  },
+  {
+    name: 'stars-passes-screen',
+    widths: [844],
+    what: "The sky screen opened from the stars page with `[ passes ]` on (FR-SKY-6, FR-FSC-1 as amended v2.5, R126), on a phone held sideways and aimed where the page faced: the stars and the night's brightest pass together, its arc and key in the field, the gutter's tick in the bracket. The live page's own screen with the stars on is `sky-screen-sky`.",
   },
 ];
 

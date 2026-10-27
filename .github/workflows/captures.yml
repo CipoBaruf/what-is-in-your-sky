@@ -38,6 +38,19 @@ name: Captures
 # FR-CAP-5 is stated over this workflow: two runs on one commit must produce
 # byte-identical files, and every capture waits for a settled frame first.
 #
+# R118: 274 since v2.4 added the stars page at four widths and its sky screen at 844.
+#
+# R128: 330 since v2.5 added FR-SKY-9's files — the window on the live page and the pass detail
+# at 360, 390, 1280 and 1920, the window following the pass and the stars page zoomed in at 1280,
+# the stars page with `[ passes ]` at 360, 390 and 1280 and the screen it opens at 844. Locally
+# (ten cores) the set takes about 2.7 min, so the 60 min ceiling stands. And the run says what it
+# moved: the `base` input (PLAN D-742, a SHA and never a tag) names the commit whose committed set
+# the run compares against, and the last step lists every file that differs from it — new, changed
+# or gone — in the job summary. With no input (every push to `main`, or a dispatch left empty) the
+# base is the commit itself, so the list is the drift from the set that commit carries; a release
+# dispatches with its previous release's SHA (v2.5: `ece8bfd`, v2.4's release preparation), so no
+# literal here has to change from one release to the next.
+#
 # This job commits nothing. It uploads the set as an artefact and fails when a
 # capture is missing — the committed files under `docs/screenshots/` are cleared
 # before the run, so the check is about what this run produced and not about
@@ -48,6 +61,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      base:
+        description: The commit the set is compared against (PLAN D-742, a SHA, never a tag); empty is the commit being shot
+        required: false
+        default: ''
 
 jobs:
   captures:
@@ -57,6 +75,9 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
+        with:
+          # The base's committed set is read with `git show`, so the history must be there.
+          fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
           node-version: 24
@@ -84,6 +105,53 @@ jobs:
       # FR-CI-2: incomplete is a failure. The same check the unit suite runs, now against this run's files.
       - name: check the set is complete
         run: npx vitest run tests/docs/captures.test.ts
+      # R128 (PLAN D-742, D-799): the release's diff list, this run's files against the base's committed
+      # ones, with the changed pixels and the largest channel step of each so F-99's noise reads as noise.
+      # A push to `main` has no input and compares against its own commit. `shell: bash` is GitHub's
+      # `bash -eo pipefail`: without it the default shell has no pipefail, `tee` answers for the pipe, and a
+      # failing script (a base that does not resolve, a bad PNG) would leave the step green with a short list.
+      # `pngjs` is a direct devDependency for this step, not one reached through glyphcss (`knip.json` ignores it:
+      # this script is its only importer).
+      - name: diff against the base
+        if: always()
+        shell: bash
+        env:
+          BASE: ${{ inputs.base || github.sha }}
+        run: |
+          node --input-type=module <<'EOF' | tee -a "$GITHUB_STEP_SUMMARY"
+          import { execFileSync } from 'node:child_process';
+          import { existsSync, readdirSync, readFileSync } from 'node:fs';
+          import { PNG } from 'pngjs';
+          const base = process.env.BASE;
+          const dir = 'docs/screenshots';
+          const listed = execFileSync('git', ['ls-tree', '--name-only', base, `${dir}/`]).toString().split('\n').filter((f) => /\/v1-[^/]*\.png$/.test(f));
+          const before = new Map(listed.map((f) => [f.slice(dir.length + 1), f]));
+          const now = readdirSync(dir).filter((f) => /^v1-.*\.png$/.test(f)).sort();
+          const rows = [];
+          let same = 0;
+          for (const file of now) {
+            if (!before.has(file)) { rows.push(`| new | ${file} | | |`); continue; }
+            const a = execFileSync('git', ['show', `${base}:${before.get(file)}`], { maxBuffer: 1 << 28 });
+            const b = readFileSync(`${dir}/${file}`);
+            if (a.equals(b)) { same += 1; continue; }
+            const p = PNG.sync.read(a);
+            const q = PNG.sync.read(b);
+            if (p.width !== q.width || p.height !== q.height) { rows.push(`| size | ${file} | ${p.width}×${p.height} → ${q.width}×${q.height} | |`); continue; }
+            let pixels = 0;
+            let step = 0;
+            for (let i = 0; i < p.data.length; i += 4) {
+              let d = 0;
+              for (let c = 0; c < 4; c += 1) d = Math.max(d, Math.abs(p.data[i + c] - q.data[i + c]));
+              if (d > 0) { pixels += 1; step = Math.max(step, d); }
+            }
+            if (pixels === 0) same += 1;
+            else rows.push(`| changed | ${file} | ${pixels} | ${step} |`);
+          }
+          for (const file of before.keys()) if (!existsSync(`${dir}/${file}`)) rows.push(`| gone | ${file} | | |`);
+          console.log(`### The set against \`${base}\`\n\n${now.length} files: ${same} byte- or pixel-identical, ${rows.length} listed.\n`);
+          console.log('| | File | Pixels | Step |\n|---|---|---|---|');
+          for (const row of rows) console.log(row);
+          EOF
       - uses: actions/upload-artifact@v5
         # Even on a failure: the captures that were shot are how the missing one gets diagnosed.
         if: always()
