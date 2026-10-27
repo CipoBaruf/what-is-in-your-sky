@@ -12,6 +12,8 @@ export interface MatchMediaStub {
   setSize: (widthPx: number, heightPx: number) => void;
   /** R74 (FR-MARK-5): answer `(prefers-reduced-motion: reduce)` the way a reader who asked for less motion would. */
   setReducedMotion: (on: boolean) => void;
+  /** R132 (FR-FLOW-6): answer `(pointer: coarse)` as a touch screen would; fine (a mouse) until set. */
+  setCoarsePointer: (on: boolean) => void;
   /** Put the real `matchMedia` back. */
   restore: () => void;
   /** Live listener count, so a test can prove the hook detaches on unmount. */
@@ -32,7 +34,11 @@ interface Registered {
  * preference rather than a size, so it is answered from the stub's own switch. Nothing else: a query with
  * none of the four is a mistake, not a match.
  */
-function evaluate(query: string, widthPx: number, heightPx: number, reducedMotion: boolean): boolean {
+function evaluate(query: string, widthPx: number, heightPx: number, reducedMotion: boolean, coarsePointer = false): boolean {
+  // R132 (FR-FLOW-6, D-848): `(pointer: coarse)` is the sky hint's one question — a touch screen or a mouse — and,
+  // like the motion preference, a switch of the stub's and not a size.
+  const pointer = /^\(pointer:\s*(coarse|fine)\)$/.exec(query.trim());
+  if (pointer) return (pointer[1] === 'coarse') === coarsePointer;
   // R103 (FR-DS-3, D-702): the app's own queries are range syntax — `(width >= 964px)`, `(height <= 500px)` —
   // read the way CSS reads them; the `min-`/`max-` forms stay understood for the tests that still write them.
   const sizes = [...query.matchAll(/\((?:(min|max)-)?(width|height)\s*(?::|(<=|>=|<|>))\s*(\d+(?:\.\d+)?)px\)/g)].map((m) => {
@@ -55,13 +61,14 @@ export function stubMatchMedia(widthPx: number, heightPx = DEFAULT_HEIGHT_PX): M
   let width = widthPx;
   let height = heightPx;
   let reducedMotion = false;
+  let coarsePointer = false;
 
   const matchMedia = (query: string): MediaQueryList => {
     const handlers = new Set<(event: MediaQueryListEvent) => void>();
     const list = {
       media: query,
       get matches() {
-        return evaluate(query, width, height, reducedMotion);
+        return evaluate(query, width, height, reducedMotion, coarsePointer);
       },
       addEventListener: (type: string, handler: (event: MediaQueryListEvent) => void) => {
         if (type === 'change') handlers.add(handler);
@@ -74,7 +81,7 @@ export function stubMatchMedia(widthPx: number, heightPx = DEFAULT_HEIGHT_PX): M
       dispatchEvent: () => true,
       onchange: null,
     } as unknown as MediaQueryList;
-    registered.push({ query, matched: evaluate(query, width, height, reducedMotion), handlers });
+    registered.push({ query, matched: evaluate(query, width, height, reducedMotion, coarsePointer), handlers });
     return list;
   };
 
@@ -82,7 +89,7 @@ export function stubMatchMedia(widthPx: number, heightPx = DEFAULT_HEIGHT_PX): M
 
   const moved = (): void => {
     for (const entry of registered) {
-      const matched = evaluate(entry.query, width, height, reducedMotion);
+      const matched = evaluate(entry.query, width, height, reducedMotion, coarsePointer);
       if (matched === entry.matched) continue;
       entry.matched = matched;
       for (const handler of entry.handlers) handler({ matches: matched, media: entry.query } as MediaQueryListEvent);
@@ -101,6 +108,10 @@ export function stubMatchMedia(widthPx: number, heightPx = DEFAULT_HEIGHT_PX): M
     },
     setReducedMotion: (on: boolean) => {
       reducedMotion = on;
+      moved();
+    },
+    setCoarsePointer: (on: boolean) => {
+      coarsePointer = on;
       moved();
     },
     restore: () => {

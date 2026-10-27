@@ -246,7 +246,7 @@ function DomeLandmark({ anchor }: { anchor: DomeAnchor }) {
   );
 }
 
-export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, scene, className }: SkyChartProps) {
+export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, scene, hand, className }: SkyChartProps) {
   const t = useT();
   // FR-SKY-1 (R119): what the table leaves the dome of the scene — the stars to `DOME_STAR_MAG`, the planets, no figures, no names.
   const stars = useMemo(() => sceneFor('dome', scene)?.stars ?? null, [scene]);
@@ -334,6 +334,8 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
   }, []);
   const onPointerDown = (event: PointerEvent<HTMLDivElement>): void => {
     if (event.button !== 0 && event.pointerType === 'mouse') return;
+    // R132 (FR-FLOW-6, D-848): the first drag on the dome puts the layout's hint away, as the window's does.
+    hand?.gesture();
     dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
     try {
       event.currentTarget.setPointerCapture(event.pointerId);

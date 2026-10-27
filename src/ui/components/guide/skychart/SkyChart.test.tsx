@@ -107,9 +107,9 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
     const w = container.querySelector('[data-look-az]');
     expect(w).toHaveAttribute('data-state', 'hand');
     expect(w).toHaveAttribute('data-in-box', 'true');
-    // The hand's controls: the box takes the keys, the picker stands in the controls row (no rail here), the hint in the box.
+    // The hand's controls: the box takes the keys, the picker stands in the controls row (no rail here); the hint is the layout's (R132).
     expect(rtl.getByTestId('window-facing')).toBeInTheDocument();
-    expect(rtl.getByTestId('window-hand-hint')).toHaveTextContent(en.window.handHint);
+    expect(rtl.queryByTestId('window-hand-hint')).toBeNull();
     expect(rtl.queryByTestId('window-hold-up')).toBeNull();
     expect(appStore.getState().skyScreen).toBe(false);
     expect(appStore.getState().chartView).toBe('dome');

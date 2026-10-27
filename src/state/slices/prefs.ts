@@ -6,7 +6,7 @@ import { DEFAULT_PASS_SORT } from '../../lib/passSort';
 import { browserLanguages, resolveLocale } from '../../i18n/locale';
 import { DEFAULT_CHART_ORIENTATION } from '../../lib/skyGeometry';
 import { WIDE_QUERY } from '../../lib/layout';
-import { compactChartView, DEFAULT_LIVE_LEGEND_OPEN, DEFAULT_SHOW_FAINT, DEFAULT_STARS_LAYER, DEFAULT_THEME, type ChartOrientation, type ChartView, type EpochMs, type Favourite, type Locale, type Observer, type PassSort, type Theme } from '../../model';
+import { compactChartView, DEFAULT_LIVE_LEGEND_OPEN, DEFAULT_SHOW_FAINT, DEFAULT_SKY_HINT_SEEN, DEFAULT_STARS_LAYER, DEFAULT_THEME, type ChartOrientation, type ChartView, type EpochMs, type Favourite, type Locale, type Observer, type PassSort, type Theme } from '../../model';
 import type { AppState } from '../store';
 
 /**
@@ -115,6 +115,12 @@ export interface PrefsSlice {
    */
   starsLayer: boolean;
   setStarsLayer: (starsLayer: boolean) => void;
+  /**
+   * R132 (FR-FLOW-6, D-848): whether the reader has made a first drag, pinch or tap on a sky view. The hint under the
+   * drawing shows until then; `useChartHand`'s gesture sets it, once, and it is never unset. Only `true` is stored.
+   */
+  skyHintSeen: boolean;
+  setSkyHintSeen: (skyHintSeen: boolean) => void;
   /** R66 (FR-FSC-1, D-351): whether the sky screen is up. Session only — no page restores it and no hash carries it (FR-FSC-2). */
   skyScreen: boolean;
   /** Opens the screen. The caller has already asked for the permission inside its tap and had a reading with a heading (FR-WIN-4, D-350). */
@@ -251,6 +257,11 @@ export const createPrefsSlice =
       setStarsLayer: (starsLayer) => {
         set({ starsLayer });
         deps.prefs.write({ ...deps.prefs.read(), starsLayer });
+      },
+      skyHintSeen: deps.prefs.read().skyHintSeen ?? DEFAULT_SKY_HINT_SEEN,
+      setSkyHintSeen: (skyHintSeen) => {
+        set({ skyHintSeen });
+        deps.prefs.write({ ...deps.prefs.read(), skyHintSeen });
       },
       skyScreen: false,
       openSkyScreen: () => {

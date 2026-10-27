@@ -8,7 +8,12 @@ export const windowMessages: typeof EnWindow = {
     relative: 'Este dispositivo no informa hacia dónde apunta.',
     hint: 'Levantá el teléfono: la ventana muestra el cielo al que apunta.',
     peak: 'pico',
-    handHint: 'Arrastrar la ventana, o usar las flechas del teclado, para mirar alrededor.',
+    skyHint: {
+      drag: { coarse: 'Arrastrá para mirar', fine: 'Arrastrá o usá las flechas' },
+      zoom: { coarse: 'pellizcá para acercar', fine: 'ctrl + rueda para acercar' },
+      star: { coarse: 'tocá una estrella', fine: 'hacé clic en una estrella' },
+      follow: (p) => `tocá ${p.key} para seguir`,
+    },
     readout: (p) => `Hacia el ${p.point} (${p.azimuth}) · ${p.altitude} de altura`,
     following: (p) => `Siguiendo ${p.key}`,
     field: (p) => ` · campo ${p.degrees}`,

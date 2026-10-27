@@ -562,6 +562,8 @@ export function SkyWindow(props: SkyWindowProps) {
   };
   const onPointerDown = (event: PointerEvent<HTMLDivElement>): void => {
     if (event.button !== 0 && event.pointerType === 'mouse') return;
+    // R132 (FR-FLOW-6, D-848): a drag, a pinch or a tap all begin here; the first one puts the hint away for good.
+    hand?.gesture();
     const pointers = pointersRef.current;
     /*
      * A primary pointer starts a new contact: every other pointer of its type has lifted, whether or not its up
@@ -1193,12 +1195,7 @@ export function SkyWindow(props: SkyWindowProps) {
               {chip}
             </p>
           )}
-          {/* FR-SKY-2 (D-789): the hand's hint in the box's bottom-left corner — the dome's words for the window's controls. */}
-          {inBox && (
-            <p className={styles.handHint} data-testid="window-hand-hint">
-              {t.window.handHint}
-            </p>
-          )}
+          {/* R132 (FR-FLOW-6, D-848): R121's hand hint in the box's corner is the layout's `SkyHint` under the picker now. */}
           {/* R66 (FR-WIN-5 as amended v1.3.1, V13-8): no `[ point at the sky ]`. The window is only ever mounted
               on the sky screen, and the tap that opened the screen is the tap that asked (FR-WIN-4, D-350), so
               the gate had nothing left to guard: it was already suppressed on a screen (R64), and a screen is

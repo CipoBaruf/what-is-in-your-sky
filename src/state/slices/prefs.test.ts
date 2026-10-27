@@ -273,6 +273,23 @@ describe('prefs slice', () => {
     expect(corrupt.getState().locale).toBe('es');
   });
 
+  /** R132 (FR-FLOW-6, D-848): the sky hint shows until the first gesture, which is remembered across a reload. */
+  it('shows the sky hint until a gesture sets it seen, remembers that across a reload, and reads a malformed value as unseen', () => {
+    const storage = memoryStorage();
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night' }));
+    const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(fresh.getState().skyHintSeen).toBe(false);
+    fresh.getState().setSkyHintSeen(true);
+    expect(fresh.getState().skyHintSeen).toBe(true);
+    expect(stored(storage)).toEqual({ theme: 'night', skyHintSeen: true });
+    const reloaded = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(reloaded.getState().skyHintSeen).toBe(true);
+    storage.map.set(PREFS_KEY, JSON.stringify({ skyHintSeen: 'yes', locale: 'es' }));
+    const corrupt = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
+    expect(corrupt.getState().skyHintSeen).toBe(false);
+    expect(corrupt.getState().locale).toBe('es');
+  });
+
   /** R123 (FR-SKY-3, US-40 AC1, D-791): `[ stars ]` is on by default, and turning it off is remembered. */
   it('draws the stars until the toggle turns them off, remembers that across a reload, and reads a malformed value as on', () => {
     const storage = memoryStorage();

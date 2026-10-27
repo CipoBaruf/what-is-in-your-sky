@@ -22,8 +22,18 @@ export const windowMessages = {
     hint: 'Hold the phone up: the window shows the sky it points at.',
     /** R121 (FR-SKY-7, D-790): the pass detail's facing picker's first option — the explained pass's peak, beside the eight points and `up`. */
     peak: 'peak',
-    /** R121 (FR-SKY-2, D-789): the hand's hint in the box's corner where the window is the page's view — the dome's words for the window. */
-    handHint: 'Drag the window, or use the arrow keys, to look around.',
+    /**
+     * R132 (FR-FLOW-6, D-848): the hand hint under the facing picker (`SkyHint`), one line joined with ` · ` from
+     * these clauses by the pointer — `coarse` a touch screen, `fine` a mouse. The window gets all three; the dome
+     * and the polar chart the drag clause alone; the live page with a highlighted pass ends the coarse line with
+     * `follow` (FR-SKY-13). R121's `handHint` in the box's corner is gone with it.
+     */
+    skyHint: {
+      drag: { coarse: 'Drag to look', fine: 'Drag or use the arrow keys' },
+      zoom: { coarse: 'pinch to zoom', fine: 'ctrl + wheel to zoom' },
+      star: { coarse: 'tap a star', fine: 'click a star' },
+      follow: (p: { key: string }) => `tap ${p.key} to follow`,
+    },
     /** FR-GUIDE-4's readout for the window: where the back of the phone points, e.g. "Facing NE (53°) · up 10°" — the dome's first word too (FR-FLOW-5, D-847). */
     readout: (p: { point: CompassPoint; azimuth: string; altitude: string }) => `Facing ${p.point} (${p.azimuth}) · up ${p.altitude}`,
     /** R123 for R127 (FR-SKY-13, D-797): the readout's first line while the facing key follows the highlighted pass, "Following A". */
