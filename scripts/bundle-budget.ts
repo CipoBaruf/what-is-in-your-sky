@@ -294,12 +294,13 @@ export interface Budget {
  * budget column `tests/docs/accuracy.test.ts` checks against `BUDGETS`.
  *
  * R128 re-sets every row on the 2.5.0 build (SPEC §9 Phase 2m, FR-SKY-10;
- * D-799, D-831), beside `ece8bfd`'s (2.4.0, D-742) built on the same machine.
- * **One budget moves, and main is over its ceiling.**
+ * D-799, D-831), beside `ece8bfd`'s (2.4.0, D-742) built on the same machine,
+ * and the owner accepted v2.5's measured sizes at the release (V25-20, D-841).
+ * **Two budgets move: `window` by the rule, `main` with its ceiling.**
  *
  * | chunk          | file                  | `ece8bfd` | measured | budget | was | ceiling |
  * |----------------|-----------------------|----------:|---------:|-------:|----:|--------:|
- * | main           | `index-*.js`          |     169.8 |    173.0 |    170 | 170 |     170 |
+ * | main           | `index-*.js`          |     169.8 |    173.0 | **175** | 170 | **175** |
  * | chart          | `SkyDome-*.js`        |      94.2 |     94.7 |    105 | 105 |     110 |
  * | worker         | `passes.worker-*`     |      36.1 |     36.1 |     40 |  40 |     130 |
  * | stars          | `Stars-*.js`          |      23.6 |     25.8 |     30 |  30 |      40 |
@@ -312,10 +313,12 @@ export interface Budget {
  * `window` crosses its row with the hand camera on every page, the facing
  * picker, the zoom and the landmark's ring and name (R121, R125, R127), and the
  * rule puts it on the next 5 KB line. `main` is 3.2 KB over `ece8bfd` against
- * FR-SKY-10's 1 KB and 3.0 KB over its 170: the rule would make it 195 and the
- * §11 ceiling holds it at 170, which only the owner moves (V21-24's
- * precedent), so the `::warning::` stands. `docs/RELEASE.md` §17.2 has the
- * byte counts and what each row's growth is.
+ * FR-SKY-10's 1 KB and was 3.0 KB over its 170: the rule would make it 195 and
+ * the §11 ceiling held it at 170, which only the owner moves. The owner moved
+ * it (V25-20, D-841): the ceiling and the budget go to 175, the next 5 KB line
+ * over the measured 173.0 — V21-24's shape, where 166.6 put main on 170 — and
+ * not to the rule's 195, which would leave a regression of 20 KB unannounced.
+ * `docs/RELEASE.md` §17.2 has the byte counts and what each row's growth is.
  *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
@@ -365,7 +368,7 @@ export interface Budget {
  * the app never fetches.
  */
 export const BUDGETS: readonly Budget[] = [
-  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 170 }, // R60: 136.6 measured (flag on), crossing the 150 line (D-307); R80: 158.0 on 2.0.0 — over, and deliberately not raised (D-495, F-69); R100: 166.6 on 2.1.0, still not raised (V21-13, D-638); raised to 170 by the owner at the release gate (V21-24, D-641)
+  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 175 }, // R128 (V25-20, D-841): 173.0 on 2.5.0, the owner's raise to the next 5 KB line, ceiling with it; R60: 136.6 measured (flag on), crossing the 150 line (D-307); R80: 158.0 on 2.0.0 — over, and deliberately not raised (D-495, F-69); R100: 166.6 on 2.1.0, still not raised (V21-13, D-638); raised to 170 by the owner at the release gate (V21-24, D-641)
   { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 105 }, // R60: 94.2 measured, down from 97.1 (D-307); 94.2 again on 1.4.0 (R72)
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 40 },
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10, per: 'each' },

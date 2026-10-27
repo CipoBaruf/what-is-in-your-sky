@@ -1317,16 +1317,27 @@ not a re-baseline; there is none.
 reason was the set's, not the renderer's. `[ stars ]` is on by default and the `stars` chunk
 is lazy, so the first run shot `v1-polar-390-dark-es` with no star on it and the second with
 them; and on compact the landmark line the chunk brings is a fourth headline line that takes
-23 px from the box (D-838), so where the chunk landed after the dome had measured, the dome
-kept the taller box's scale (`v1-live-watching-{360,390,768}`, about 5,000 pixels each).
-The spec now fetches the chunk on the home page by the reader's own prefetch — focus on the
-header's `[ stars ]` or the When pane's `[ look up ]` — and waits for a placed star in the
-view before it pins the instant (PLAN D-830). After that, two runs off one build agree on 315
-of 330 files; the 15 that differ are F-99's places and size — 13 files at most 18 pixels at a
-channel step of at most 2 (the live clocks' edges, the legend's rule) — and two polar files,
-`v1-polar-{360,390}-night-en`, at 51 and 171 pixels (step 22 and 52), the anti-aliasing of a
-star's glyph and the arc's edge with nothing moved. The cold-load race itself is the app's
-and is §17.4's.
+23 px from the box (D-838), so where the chunk landed after the dome had mounted, the dome
+kept drawing the taller box (`v1-live-watching-{360,390,768}`, about 5,000 pixels each). That
+one was the app's, and R128 fixed it (F-103): the dome remounted its scene when the grid's
+columns or font size changed, and a box that changes height alone moves neither, only the
+rows, so glyphcss kept the projection of the box it mounted in. The scene's key carries the
+rows now (`SkyDome.tsx`), and `dome-resize.spec.ts` holds a 390 px box shortened by its
+height alone to a fresh load's rasters. The same fix redraws the compact live page's dome
+when the scrubbing block takes its height, so `v1-legend-{360,390}-*` and
+`v1-live-scrubbing-{360,390,768}-*` (20 files, 8,000–20,000 pixels inside the dome) move
+against the spec's first run: they had been shot through the watching box's projection.
+The spec waits for a placed star in the view before it pins the instant, and still has the
+reader's own prefetch fetch the chunk on the home page — focus on the header's `[ stars ]` or
+the When pane's `[ look up ]`, counted by a response listener attached before the first
+navigation — not for the dome's size any more but for the order its meshes mount in: without
+it, a braille cell an arc and a star share took one colour or the other by when the chunk
+landed, and two cold runs disagreed on four wide live files (PLAN D-830). After that, two runs
+off one build (at the review's head) agree on 306 of 330 files; the 24 that differ are F-99's places and
+size — 21 files at most 18 pixels at a channel step of at most 2 (the live clocks' edges, the
+legend's rule) — and three polar files, `v1-polar-1280-dark-en` and `v1-polar-360-{dark-en,night-es}`,
+at 51 to 123 pixels (step at most 39), the anti-aliasing of a star's glyph and the arc's edge
+with nothing moved.
 
 **What is committed.** The set of record is the Linux renderer's (D-732), so this branch
 commits the 56 new files as one Mac run shot them, to keep `captures.test.ts` whole, and
@@ -1347,13 +1358,14 @@ step, in the job summary — so the run itself prints the list above.
 
 `npm run bundle:budget` on the branch, gzip level 9, beside `ece8bfd` built on the same
 machine. Every row is re-set by D-178's rule — measured × 1.1, up to the next 5 KB, floored at
-10, capped at the ceiling — and one moves: `window`. The budgets themselves are
+10, capped at the ceiling — and the owner accepted the measured sizes (V25-20, PLAN D-841), so
+two move: `window` by the rule, `main` with its ceiling. The budgets themselves are
 `scripts/bundle-budget.ts`'s rows, the one copy; `tests/docs/accuracy.test.ts` checks this
 table's budget column against them:
 
 | Chunk | gzip KB | Budget KB | `ece8bfd` | Change |
 |---|---|---|---|---|
-| main | 173.0 | 170 (rule 195, held at the ceiling) | 169.8 | +3.21 (3,288 bytes) |
+| main | 173.0 | **175** (was 170; rule 195, the ceiling raised to 175 by V25-20) | 169.8 | +3.21 (3,288 bytes) |
 | chart (`SkyDome`) | 94.7 | 105 | 94.2 | +0.48 (493 bytes) |
 | worker | 36.1 | 40 | 36.1 | 0 |
 | stars | 25.8 | 30 | 23.6 | +2.23 (2,287 bytes) |
@@ -1370,18 +1382,21 @@ gzipped against 10.9 at `ece8bfd`, and a 0.2 KB `starGlyphs` sheet is new.
 
 - **`chart`** grew by the dome's points mesh, inside FR-SKY-10's 2 KB; **`live`** by 121
   bytes, inside its 1 KB.
-- **`window`** goes up to the rule's 30 (25.7 × 1.1 = 28.3). FR-SKY-10 says no other row
-  moves and D-799 lets the window's grow for the zoom and the follow inside its 25 KB row;
+- **`window`** goes up to the rule's 30 (25.7 × 1.1 = 28.3). FR-SKY-10 said no other row
+  moves and D-799 let the window's grow for the zoom and the follow inside its 25 KB row;
   it is 0.7 KB past that row, with the hand camera on every page and the landmark's ring and
-  name as well (R121, R125, R127). §17.4.
+  name as well (R121, R125, R127). The owner accepted the measured size (V25-20).
 - **`stars`** grew by 2,287 bytes against FR-SKY-10's 2 KB (the landmark, `constellationAt`
-  and the Spanish names): 239 bytes over. §17.4.
-- **`main`** grew by 3,288 bytes against FR-SKY-10's 1 KB, and at 173.0 it is 3.0 KB past its
-  170, which is also the §11 ceiling, so the rule cannot move it and the `::warning::` R123
-  and R127 left stands. What v2.5 put in `main`: the `[ stars ]` toggle and the prefetch, the
-  landmark line's formatter, the `Among` column, the facing picker's follow row, and the
-  phase's strings in both catalogs (R123's and R127's Done notes). R128 changes nothing under `src/`, so the figure is recorded, not trimmed,
-  as v2.3's and v2.4's were (§15.2, §16.2). §17.4.
+  and the Spanish names): 239 bytes over, accepted as measured (V25-20); the row's budget
+  stays 30 by the rule.
+- **`main`** grew by 3,288 bytes against FR-SKY-10's 1 KB, and at 173.0 it was 3.0 KB past its
+  170, which was also the §11 ceiling. What v2.5 put in `main`: the `[ stars ]` toggle and the
+  prefetch, the landmark line's formatter, the `Among` column, the facing picker's follow row,
+  and the phase's strings in both catalogs (R123's and R127's Done notes). The owner accepted
+  the measured size and R128 raised the ceiling and the budget to 175, the next 5 KB line, as
+  V21-24 put 166.6 on 170 (V25-20, D-841); the rule's 195 would hide a 20 KB regression. The
+  `::warning::` R123 and R127 left is gone. R128's one change under `src/`, F-103's key, is in
+  the `chart` row and moves no figure.
 
 - [ ] The release PR carries this table.
 
@@ -1408,15 +1423,13 @@ lists are owed with them:
 
 ### 17.4 What the owner decides on this release
 
-- [ ] **`main`'s 3.2 KB** (§17.2): FR-SKY-10 allows 1 KB, and the row is 3.0 KB past its 170
-      ceiling. A Decision Log row raising the ceiling (V21-24 did it once) or a task that moves
-      the pass detail's new parts out of `main` (F-69's remedy, D-609).
-- [ ] **`stars`' 239 bytes** and **`window`'s 0.7 KB past its row** (§17.2): an amendment of
-      FR-SKY-10's allowances to the measured figures, or a trim.
-- [ ] **The cold-load race on compact** (§17.1): the live page and the pass detail opened
-      before the `stars` chunk is in draw the dome at the scale of a box the landmark line
-      then shrinks; the set is shot with the chunk in hand (D-830), so no capture shows it.
-      A finding to file, or a re-measure on the chunk's arrival in the dome's frame.
+- [x] **`main`'s 3.2 KB, `stars`' 239 bytes and `window`'s 0.7 KB past its row** (§17.2):
+      decided 2026-10-27 — the owner accepted v2.5's measured sizes and had R128 re-set the
+      rows to them (V25-20, PLAN D-841): `main` and its §11 ceiling 175, `window` 30 by the
+      rule, `stars` 30 unchanged; FR-SKY-10's allowances amended to the measured figures.
+- [x] **The cold-load race on compact** (§17.1): fixed in R128 at the owner's preference for
+      an app fix over a capture-spec workaround — F-103, the dome's scene key carries the
+      grid's rows (PLAN D-830).
 - [ ] **The four screens FR-SKY-9 named once and the set shoots twice or not at all**: the
       live page's screen with stars and passes is `sky-screen-sky`, not a new file
       (PLAN D-829); accepted, or a new screen.
