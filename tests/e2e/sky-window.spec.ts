@@ -691,6 +691,15 @@ test.describe('the landmark and the facing key (R127)', () => {
       await page.keyboard.press('f');
       await page.clock.runFor(FRAME_MS);
       await expect(keyOption).toHaveAttribute('aria-pressed', 'true');
+      // Past the pass, its key gone and the headline on the next: following ends where the camera stands, and no
+      // later pass takes the camera without the reader's hand (R127 review).
+      const before = await look(w);
+      await page.clock.setSystemTime(ORION_PEAK + 30 * 60_000 - TICK_MS);
+      await page.clock.runFor(TICK_MS);
+      await page.clock.runFor(1000);
+      await expect(readout).not.toHaveAttribute('data-following', /.+/);
+      await expect(keyOption).toHaveCount(0);
+      expect((await look(w)).az).toBe(before.az);
     });
   }
 

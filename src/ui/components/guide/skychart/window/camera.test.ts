@@ -36,6 +36,7 @@ import {
   STARS_TILT_MIN_DEG,
   stepPitch,
   stepYaw,
+  unfollow,
   up,
   ZOOM_KEY_FACTOR,
   ZOOM_WHEEL_RATE,
@@ -325,6 +326,16 @@ describe('followPass (FR-SKY-13, D-797)', () => {
     expect(followPass({ ...hand, fovDeg: 20 }, 'p1', { azDeg: 203, elDeg: 61 })).toEqual({ azDeg: 203, altDeg: 56, fovDeg: 20, follow: 'p1' });
     // Applied again at a new position — the next tick — it keeps following.
     expect(followPass(followed, 'p1', { azDeg: 210, elDeg: 50 })).toEqual({ azDeg: 210, altDeg: 35, fovDeg: WINDOW_FOV, follow: 'p1' });
+  });
+
+  it('ends where it stands on `unfollow`, the aim and the field kept (R127 review)', () => {
+    const followed = followPass({ ...hand, fovDeg: 20 }, 'p1', { azDeg: 203, elDeg: 61 });
+    expect(unfollow(followed)).toEqual({ azDeg: 203, altDeg: 56, fovDeg: 20 });
+    expect(unfollow(hand)).toBe(hand);
+    const camera = createHandCamera(hand);
+    camera.followPass('p1', { azDeg: 203, elDeg: 61 });
+    camera.unfollow();
+    expect(camera.get()).toEqual({ azDeg: 203, altDeg: 46, fovDeg: WINDOW_FOV });
   });
 
   it('is ended by a drag, an arrow key, a point, `up` and `peak`, and kept by a zoom', () => {

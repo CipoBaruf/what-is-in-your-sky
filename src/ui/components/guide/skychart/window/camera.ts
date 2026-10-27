@@ -189,6 +189,11 @@ export function followPass(state: HandState, passId: string, position: SkyAim): 
   return { ...facePeak(position, state.fovDeg), follow: passId };
 }
 
+/** FR-SKY-13 (R127 review): following ends where it stands — the aim and the field kept — when its pass is no longer the one offered. */
+export function unfollow(state: HandState): HandState {
+  return state.follow === undefined ? state : at(state.azDeg, state.altDeg, state.fovDeg);
+}
+
 /**
  * FR-SKY-7 (R121, D-790): where a pass's peak stands in the field when the
  * window faces it — this far below the centre, so the peak is in the field's
@@ -284,6 +289,8 @@ export interface HandCamera {
   resetZoom(): void;
   /** FR-SKY-13 (R127): turned to pass `passId` at `position` and following it; the window calls it again each tick while `get().follow` is the id. */
   followPass(passId: string, position: SkyAim): void;
+  /** FR-SKY-13 (R127 review): stops following, the camera where it is; the window calls it when the followed pass is no longer offered. */
+  unfollow(): void;
 }
 
 export type SkyCamera = SensorCamera | HandCamera;
@@ -338,6 +345,9 @@ export function createHandCamera(initial: HandAim): HandCamera {
     },
     followPass: (passId, position) => {
       apply(followPass(state, passId, position));
+    },
+    unfollow: () => {
+      apply(unfollow(state));
     },
   };
 }

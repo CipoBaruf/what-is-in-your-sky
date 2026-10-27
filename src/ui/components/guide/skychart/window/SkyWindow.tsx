@@ -4,7 +4,7 @@ import { useLocale, useT } from '../../../../../i18n/useT';
 import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
 import { compassPoint } from '../../../../../lib/compass';
 import { degrees, formatClockDuration, formatSignedDegrees } from '../../../../../lib/format';
-import { landmarkLine } from '../../../../../lib/landmarkLine';
+import { landmarkLine, landmarkNames } from '../../../../../lib/landmarkLine';
 import { SERIES_COUNT, seriesToken } from '../../../../../lib/legend';
 import { isNoEvent, nextEvent } from '../../../../../lib/nextEvent';
 import { shortcutFor } from '../../../../../lib/shortcuts';
@@ -883,7 +883,7 @@ export function SkyWindow(props: SkyWindowProps) {
    * names one and the window is in the box — at its position now (`passPosition`), with the key the drawing gives
    * it. While the camera follows (`follow` on its state), every tick re-aims it here, before the frame is drawn:
    * a layout effect on the shown instant, so a pass crossing the field at 3600× stays in it. The key moves with
-   * the highlighted pass, and so does the following.
+   * the highlighted pass; the following does not — it ends when its pass is no longer offered.
    */
   // The pass has a key only while its arc is drawn (FR-LEG-1, FR-TRAJ-1's look-ahead): before that there is nothing to offer.
   const facingPass = inBox && facingPassId !== null && (legendKeys[facingPassId] ?? '') !== '' ? (passes.find((pass) => pass.id === facingPassId) ?? null) : null;
@@ -893,7 +893,14 @@ export function SkyWindow(props: SkyWindowProps) {
   const followAz = followTarget?.position.azDeg;
   const followEl = followTarget?.position.elDeg;
   useLayoutEffect(() => {
-    if (!handCamera || followId === undefined || followAz === undefined || followEl === undefined || handCamera.get().follow === undefined) return;
+    const followed = handCamera?.get().follow;
+    if (!handCamera || followed === undefined) return;
+    // The followed pass no longer offered — its key gone with its arc, or the headline on another pass: following ends
+    // where the camera stands, so no later pass swings the camera without the reader's hand (R127 review).
+    if (followed !== followId || followAz === undefined || followEl === undefined) {
+      handCamera.unfollow();
+      return;
+    }
     handCamera.followPass(followId, { azDeg: followAz, elDeg: followEl });
   }, [handCamera, followId, followAz, followEl]);
   // FR-DESK-4 as amended v2.5: `f`, on the live page with the window in the box, through the shortcut table's one guard.
@@ -933,11 +940,7 @@ export function SkyWindow(props: SkyWindowProps) {
     onScreen && sceneCatalog !== undefined && sceneLandmark !== null && passes.some((pass) => pass.id === sceneLandmark.passId)
       ? landmarkLine(
           sceneLandmark,
-          {
-            star: (i) => starName(catalogNames(sceneCatalog), i, locale),
-            constellation: (con) => constellationName(catalogNames(sceneCatalog), con, locale),
-            constellationOf: (i) => sceneCatalog.con[i] ?? '',
-          },
+          landmarkNames({ star: (i, lang) => starName(catalogNames(sceneCatalog), i, lang), constellation: (con, lang) => constellationName(catalogNames(sceneCatalog), con, lang) }, sceneCatalog.con, locale),
           t.live,
         )
       : null;

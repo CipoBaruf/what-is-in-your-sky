@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { en } from '../i18n/en';
 import { es } from '../i18n/es';
-import { landmarkLine, type LandmarkNames } from './landmarkLine';
+import { landmarkLine, landmarkNames, type LandmarkNames } from './landmarkLine';
 
 const names = (lang: 'en' | 'es'): LandmarkNames => ({
   star: (i) => (lang === 'es' ? ['Betelgeuse', 'Sirio'] : ['Betelgeuse', 'Sirius'])[i] ?? '',
@@ -37,5 +37,16 @@ describe('landmarkLine (FR-SKY-11, D-796)', () => {
 
   it('falls back to the abbreviation for a figure the table does not name', () => {
     expect(landmarkLine({ star: null, among: { con: 'Xyz' } }, names('en'), en.live)).toBe('passes through Xyz');
+  });
+});
+
+describe('landmarkNames (R127 review)', () => {
+  it('reads the names in the one language and the constellation column, empty past it', () => {
+    const names = landmarkNames({ star: (i: number, lang: string) => `${lang}:${String(i)}`, constellation: (con: string, lang: string) => (con === 'Ori' ? `${lang}:Orion` : undefined) }, ['Ori'], 'es');
+    expect(names.star(3)).toBe('es:3');
+    expect(names.constellation('Ori')).toBe('es:Orion');
+    expect(names.constellation('Tau')).toBeUndefined();
+    expect(names.constellationOf(0)).toBe('Ori');
+    expect(names.constellationOf(1)).toBe('');
   });
 });

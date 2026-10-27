@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocale, useT } from '../../i18n/useT';
-import { landmarkLine } from '../../lib/landmarkLine';
+import { landmarkLine, landmarkNames } from '../../lib/landmarkLine';
 import { guideParams } from '../../lib/phrases';
 import { passLinkFor, shareUrl } from '../../lib/shareLinks';
 import { formatDate } from '../../lib/timeFormat';
@@ -135,7 +135,7 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
     if (!starSource || scene.landmark?.passId !== pass.id) return null;
     return landmarkLine(
       scene.landmark,
-      { star: (i) => starSource.names.star(i, locale), constellation: (con) => starSource.names.constellation(con, locale), constellationOf: (i) => starSource.catalog.con[i] ?? '' },
+      landmarkNames(starSource.names, starSource.catalog.con, locale),
       t.live,
     );
   }, [starSource, scene.landmark, pass.id, locale, t]);

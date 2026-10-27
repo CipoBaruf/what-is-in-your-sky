@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { useLocale, useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
 import { foldRows, ROW_PX, scrubPlacement, unfoldedBoxHeightPx, type LiveFold, type ScrubPlacement } from '../../lib/layout';
-import { landmarkLine } from '../../lib/landmarkLine';
+import { landmarkLine, landmarkNames } from '../../lib/landmarkLine';
 import { legendRows } from '../../lib/legend';
 import { LIVE_WINDOW_MS, livePasses } from '../../lib/livePasses';
 import { isNoEvent, nextEvent as nextEventOf } from '../../lib/nextEvent';
@@ -493,11 +493,11 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const starsLayer = useAppStore((s) => s.starsLayer);
   const starSource = useStarSource(starsLayer);
   /*
-   * R127 (FR-SKY-11, FR-SKY-13; D-796, D-797): the highlighted pass is the one the headline is about — `nextEvent` at
-   * the shown instant, the next-event block's own rule — so the scene's landmark is its peak's, the window's picker
-   * offers its key and `f` faces it; a scrub moves the landmark only when this pass changes.
+   * R127 (FR-SKY-11, FR-SKY-13; D-796, D-797): the highlighted pass is the one the headline is about — `nextEvent` on
+   * the page's clock, as the next-event block reads it (the block ticks on the real time, not the shown instant) — so
+   * the scene's landmark is its peak's, the window's picker offers its key and `f` faces it; a scrub does not move it.
    */
-  const headline = useMemo(() => nextEventOf(passes, shown), [passes, shown]);
+  const headline = useMemo(() => nextEventOf(passes, now), [passes, now]);
   const highlighted = isNoEvent(headline) ? null : headline.pass;
   const scene = useSkyScene({ observer, now: shown, starsLayer, source: starSource, pass: highlighted });
   // FR-SKY-11: the line under the headline's name line, worded once (`lib/landmarkLine.ts`) in the active language (D-832).
@@ -505,7 +505,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
     if (!starSource || !highlighted || scene.landmark?.passId !== highlighted.id) return null;
     return landmarkLine(
       scene.landmark,
-      { star: (i) => starSource.names.star(i, locale), constellation: (con) => starSource.names.constellation(con, locale), constellationOf: (i) => starSource.catalog.con[i] ?? '' },
+      landmarkNames(starSource.names, starSource.catalog.con, locale),
       t.live,
     );
   }, [starSource, highlighted, scene.landmark, locale, t]);

@@ -33,6 +33,15 @@ export interface LandmarkNames {
 }
 
 /** The catalog's two sentences, keyed as `live` carries them so `t.live` is handed in whole. */
+/**
+ * The names in one language, as the pages and the window reach them — the star source's `names` (D-832) or the
+ * window's own accessors over the scene's catalogue — with the catalogue's constellation column (R127 review: one
+ * adapter, not one per caller).
+ */
+export function landmarkNames<L>(names: { star: (i: number, lang: L) => string; constellation: (con: string, lang: L) => string | undefined }, con: readonly string[], lang: L): LandmarkNames {
+  return { star: (i) => names.star(i, lang), constellation: (c) => names.constellation(c, lang), constellationOf: (i) => con[i] ?? '' };
+}
+
 export interface LandmarkWords {
   landmarkLine: (p: { degrees: string; word: 'above' | 'below' | 'beside'; star: string; constellation: string }) => string;
   landmarkThrough: (p: { constellation: string }) => string;
