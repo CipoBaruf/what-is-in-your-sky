@@ -38,12 +38,15 @@ const page = (locale: Locale = 'en') => render(<I18nProvider locale={locale}>{<S
 const stars = () => screen.getByTestId('stars-page');
 
 describe('<StarsPage> (FR-STAR-3)', () => {
-  it('has its own h1, three h2 blocks in the rail, and the drawing named as a group (FR-A11Y-1, FR-A11Y-2)', async () => {
+  it('has its own visible h1, three h2 blocks in the rail, and the drawing named as a group (FR-A11Y-1, FR-A11Y-2, FR-FLOW-3)', async () => {
     media = stubMatchMedia(WIDE_PX);
     appStore.setState({ observer: SOUTH });
     const { container } = page();
     const p = STARS_PAGE_CATALOGS.en;
-    expect(screen.getAllByRole('heading', { level: 1 }).map((h) => h.textContent)).toEqual([en.stars.heading]);
+    expect(screen.getAllByRole('heading', { level: 1 }).map((h) => h.textContent)).toEqual([en.starsHeading]);
+    // R129 (FR-FLOW-3): under it at `--small`, the dark window and the cloud word — with no forecast, the cloud word says so.
+    expect(screen.getByTestId('stars-intro')).toContainElement(screen.getByTestId('stars-tonight'));
+    expect(screen.getByTestId('stars-tonight')).toHaveTextContent(en.weather.state.unknown);
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([p.facing, p.layersHeading, p.fieldHeading]);
     expect(screen.getByRole('group', { name: p.drawing })).toContainElement(screen.getByTestId('window-readout'));
     // The window is the hand's: the box takes the focus and the arrow keys, and the drawing itself is hidden from AT.

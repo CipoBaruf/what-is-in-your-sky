@@ -83,11 +83,11 @@ describe('<App> wide (FR-DESK-2, FR-DESK-3)', () => {
     // R81 (FR-FIRST-9): the Now panel's facts are the When reading's table.
     expect(within(within(left).getByRole('region', { name: pane('when') })).getByTestId('conditions')).toBeInTheDocument();
     expect(within(right).getByRole('region', { name: 'Upcoming passes' })).toBeInTheDocument();
-    // The header spans both and keeps the title, the tagline and the controls.
+    // The header spans both and keeps the title and the tagline; the switches are the settings page's (R129, V26-10).
     const header = screen.getByRole('banner');
     expect(within(header).getByRole('heading', { level: 1, name: en.app.title })).toBeInTheDocument();
     expect(header).toHaveTextContent(en.app.tagline);
-    for (const control of [en.app.language, en.app.theme]) expect(within(header).getByRole('group', { name: control })).toBeInTheDocument();
+    for (const control of [en.app.language, en.app.theme]) expect(within(header).queryByRole('group', { name: control })).toBeNull();
   });
 
   it('opens the guide as a panel beside the list, not over it: the list stays live, the open pass is marked, and the hash follows', async () => {

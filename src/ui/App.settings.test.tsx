@@ -60,14 +60,15 @@ afterEach(() => {
 });
 
 describe('<App> and the #settings route (FR-COMP-2)', () => {
-  // R93 (D-545): the page is a chunk of its own, so every entry to `#settings` waits for its Back control.
+  // R93 (D-545): the page is a chunk of its own, so every entry to `#settings` waits for its Back control. R129 (D-845):
+  // Back is the header's now, drawn before the chunk lands, so what is inside the page is waited for with `findBy`.
   it('opens the settings page from the compact header, and the hash follows (US-20 AC1)', async () => {
     withSky();
     render(<App />);
     expect(screen.getByTestId('settings-link')).toHaveAttribute('href', '#settings');
     goTo('#settings');
     expect(await screen.findByTestId('settings-back')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: en.location.heading })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 2, name: en.location.heading })).toBeInTheDocument();
     // Nothing of the home screen is left underneath it.
     expect(screen.queryByTestId('location-summary')).toBeNull();
     expect(screen.queryByRole('region', { name: en.passes.heading })).toBeNull();
@@ -119,20 +120,21 @@ describe('<App> and the #settings route (FR-COMP-2)', () => {
     expect(screen.getByTestId('settings-back')).toBeInTheDocument();
   });
 
-  it('shows no link to #settings on wide, but still renders the page when navigated to (US-20 AC5, FR-COMP-2)', async () => {
+  it('links to #settings from the wide header too, its one link there; the page renders when navigated to (FR-FLOW-3, FR-COMP-2)', async () => {
     media.restore();
     media = stubMatchMedia(WIDE_PX);
     withSky();
     const { container } = render(<App />);
-    expect(screen.queryByTestId('settings-link')).toBeNull();
+    // R129 (FR-FLOW-3, V26-10): `[ settings ]` ends the wide header's row, since the switches are the page's alone.
+    expect(screen.getByTestId('settings-link')).toHaveAttribute('href', '#settings');
+    expect(container.querySelectorAll('a[href="#settings"]')).toHaveLength(1);
     // R76 (FR-FIRST-4, FR-SET-3): the wide home's location is the Where reading's line, and its
-    // `[ change ]` opens the whole form in place; nothing on the page links to #settings.
-    expect(container.querySelector('a[href="#settings"]')).toBeNull();
+    // `[ change ]` opens the whole form in place; nothing else on the page links to #settings.
     act(() => {
       screen.getByTestId('location-summary-change').click();
     });
     expect(screen.getByRole('region', { name: en.location.heading })).toBeInTheDocument();
-    expect(container.querySelector('a[href="#settings"]')).toBeNull();
+    expect(container.querySelectorAll('a[href="#settings"]')).toHaveLength(1);
     goTo('#settings');
     expect(await screen.findByTestId('settings-back')).toBeInTheDocument();
   });

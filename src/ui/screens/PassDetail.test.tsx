@@ -251,7 +251,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={onClose} onShowList={() => undefined} />);
     expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'ISS (Zarya)' }));
 
-    await user.click(screen.getByRole('button', { name: '← Back to the list' }));
+    await user.click(screen.getByRole('button', { name: en.header.backName }));
     expect(onClose).toHaveBeenCalledTimes(1);
 
     unmount();
@@ -282,7 +282,7 @@ describe('<App> with the detail sheet (D-13)', () => {
     expect(dialog).toHaveAttribute('data-pass-id', pass.id);
     expect(screen.getByRole('main')).toHaveAttribute('inert');
 
-    await userEvent.click(within(dialog).getByRole('button', { name: '← Back to the list' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: en.header.backName }));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(window.location.hash).toBe('');
     expect(screen.getByRole('main')).not.toHaveAttribute('inert');
