@@ -290,17 +290,29 @@ test.describe('[ passes ] on the stars page (FR-SKY-6, US-40 AC5)', () => {
 
     // `In this field` lists a pass ahead of the stars wherever the camera faces its arc: one of the eight points does.
     const picker = page.getByRole('group', { name: 'Facing' });
-    let listed = 0;
+    /*
+     * The list reads the camera deferred (`useDeferredValue`), so a loaded machine may show the last point's field for
+     * a step or two of the paused clock: the list is read in one snapshot, and the walk stops at the first field with
+     * a pass in it, where the pass must be the first row.
+     */
+    const snapshot = () =>
+      page.getByTestId('field-list').evaluate((list) => ({
+        passes: list.querySelectorAll('[data-kind="pass"]').length,
+        firstIsPass: list.querySelector('li')?.querySelector('[data-kind="pass"]') != null,
+        first: list.querySelector('li')?.textContent ?? '',
+      }));
+    let seen: Awaited<ReturnType<typeof snapshot>> | null = null;
     for (const point of ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']) {
       await picker.getByRole('button', { name: point, exact: true }).click();
-      await page.clock.runFor(100);
-      const rows = page.getByTestId('field-list').locator('li');
-      if ((await page.getByTestId('field-list').locator('[data-kind="pass"]').count()) === 0) continue;
-      listed += 1;
-      await expect(rows.first().locator('[data-kind="pass"]')).toHaveCount(1);
-      await expect(rows.first()).toContainText(/^[A-Z]: .+ · (up|soon|gone) · peaks \d+° up · [NESW]{1,3}/);
+      for (let step = 0; step < 10 && seen === null; step += 1) {
+        await page.clock.runFor(100);
+        const now = await snapshot();
+        if (now.passes > 0) seen = now;
+      }
+      if (seen !== null) break;
     }
-    expect(listed).toBeGreaterThan(0);
+    expect(seen?.firstIsPass).toBe(true);
+    expect(seen?.first).toMatch(/^[A-Z]: .+ · (up|soon|gone) · peaks \d+° up · [NESW]{1,3}/);
 
     // The screen is the live page's with the stars on: the stars, the arcs and the gutter's ticks.
     await holdUp(page);
