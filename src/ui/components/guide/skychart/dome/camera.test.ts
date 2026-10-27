@@ -111,7 +111,7 @@ describe('readoutParams (FR-GUIDE-4)', () => {
     expect(en.chart.readout(readoutParams({ facingAzDeg: 202.5, tiltDeg: 25 }))).toBe('Facing SSW (203°) · tilt 25°');
     expect(en.chart.readout(readoutParams(initialFor(pass)))).toBe('Facing NE (46°) · tilt 45°'); // D-92: the default tilt is 45°
     expect(en.chart.readout(readoutParams({ facingAzDeg: 359.6, tiltDeg: 80 }))).toBe('Facing N (360°) · tilt 80°');
-    expect(es.chart.readout(readoutParams(initialFor(pass)))).toBe('Hacia NE (46°) · inclinación 45°');
+    expect(es.chart.readout(readoutParams(initialFor(pass)))).toBe('Hacia el NE (46°) · inclinación 45°');
   });
 });
 

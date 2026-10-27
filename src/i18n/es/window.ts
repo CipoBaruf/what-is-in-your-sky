@@ -9,7 +9,7 @@ export const windowMessages: typeof EnWindow = {
     hint: 'Levantá el teléfono: la ventana muestra el cielo al que apunta.',
     peak: 'pico',
     handHint: 'Arrastrar la ventana, o usar las flechas del teclado, para mirar alrededor.',
-    readout: (p) => `Mirando al ${p.point} (${p.azimuth}) · ${p.altitude} de altura`,
+    readout: (p) => `Hacia el ${p.point} (${p.azimuth}) · ${p.altitude} de altura`,
     following: (p) => `Siguiendo ${p.key}`,
     field: (p) => ` · campo ${p.degrees}`,
     trueNorth: (p) => `norte verdadero, declinación ${p.declination}`,

@@ -139,7 +139,7 @@ test.describe('the stars screen on a phone held sideways (US-38 AC1, AC2)', () =
     // D-757 / FR-WIN-3: the sensor's readout, with the correction to true north named under it.
     const readout = layer(page).getByTestId('window-readout');
     await expect(readout).toBeVisible();
-    await expect(readout).toContainText(/Looking S(SW|SE)? \(\d+°\) · up \d+°/);
+    await expect(readout).toContainText(/Facing S(SW|SE)? \(\d+°\) · up \d+°/);
     await expect(layer(page).getByTestId('window-heading')).toHaveText(/^true north, declination [+−]\d+\.\d°$/);
     const declination = Number(await layer(page).getByTestId('window-heading').getAttribute('data-declination'));
     expect(Math.abs(declination)).toBeGreaterThan(0);

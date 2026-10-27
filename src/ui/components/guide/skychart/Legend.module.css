@@ -67,6 +67,8 @@
 
 .time {
   font-variant-numeric: tabular-nums;
+  /* D-863: a named time never breaks inside, so a narrow column wraps between whole times. */
+  white-space: nowrap;
 }
 
 .state {
@@ -130,28 +132,12 @@
    line one row — so a `max-height` of `--inventory-rows` rows (what the page's
    `inventoryClip` says fits whole) ends on an entry's bottom edge and cuts no
    glyph. The list still scrolls to what is under the clip; the `+n` line says
-   how much that is. The header row names the three times over the columns
-   they stand in: past the key, the swatch and their gaps, five cells in. */
+   how much that is. D-863: no header row — each row names its own times
+   (FR-FLOW-13). */
 .inventory {
   display: flex;
   flex-direction: column;
   min-height: 0;
-}
-
-.timesHeader {
-  flex: 0 0 auto;
-  display: flex;
-  gap: 0 var(--cell);
-  margin: 0;
-  padding-left: calc(5 * var(--cell));
-  line-height: var(--row);
-  white-space: nowrap;
-  overflow: hidden;
-  color: var(--fg-dim);
-}
-
-.timeLabel {
-  flex: 0 0 auto;
 }
 
 /* Block, not the list's grid: a grid squeezed by its flex parent gave its rows a text row each and the
@@ -178,11 +164,21 @@
   overflow: hidden;
 }
 
+/* D-863: the name is cut by an ellipsis and the state after it is not — it is the row's fixed part. */
 .clipped .name {
+  display: flex;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   overflow-wrap: normal;
+}
+.clipped .nameText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.clipped .name > .state {
+  flex: none;
+  margin-left: 1ch;
 }
 
 .clipped .times {
