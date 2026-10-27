@@ -205,7 +205,7 @@ describe('<SkyWindow>', () => {
     expect(inView(container.querySelector('[data-anchor="N"]'))).toBe(true);
     expect(inView(container.querySelector('[data-anchor="S"]'))).toBe(false);
     const readout = screen.getByTestId('window-readout');
-    expect(readout).toHaveTextContent(`Looking N (${String(trueAz(0))}°) · up 0°`);
+    expect(readout).toHaveTextContent(`Facing N (${String(trueAz(0))}°) · up 0°`);
     // A quarter turn to the east: part of the way after one frame, there after the smoothing settles.
     reading(aim(90, 30));
     frame();
@@ -216,7 +216,7 @@ describe('<SkyWindow>', () => {
     expect(w).toHaveAttribute('data-look-az', String(trueAz(90)));
     expect(w).toHaveAttribute('data-look-alt', '30');
     expect(inView(container.querySelector('[data-anchor="N"]'))).toBe(false);
-    expect(readout).toHaveTextContent(`Looking E (${String(trueAz(90))}°) · up 30°`);
+    expect(readout).toHaveTextContent(`Facing E (${String(trueAz(90))}°) · up 30°`);
   });
 
   it('draws the Sun on the horizon and the Moon where it is, and the hidden objects with their keys', () => {
@@ -562,7 +562,7 @@ describe('<SkyWindow>', () => {
       expect(container.querySelector(`[data-pass-id="${pass.id}"] [data-marker]`)).not.toBeNull();
       expect(container.querySelector('[data-horizon]')?.getAttribute('d')).toMatch(/^M/);
       expect(inView(container.querySelector('[data-marker="peak"]'))).toBe(true);
-      expect(screen.getByTestId('window-readout')).toHaveTextContent('Looking');
+      expect(screen.getByTestId('window-readout')).toHaveTextContent('Facing');
       expect(screen.getByTestId('window-legend')).toBeInTheDocument();
       expect(screen.getByTestId('chart-legend-slot')).toBeInTheDocument();
       expect(screen.queryByTestId('window-gate')).toBeNull();
@@ -882,7 +882,7 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     expect(box).not.toBeNull();
     expect(box.querySelector('[data-drawing="window"]')).not.toBeNull();
     const readout = screen.getByTestId('window-readout');
-    expect(readout).toHaveTextContent('Looking S (180°) · up 35°');
+    expect(readout).toHaveTextContent('Facing S (180°) · up 35°');
     expect(box).toHaveAttribute('aria-describedby', readout.id);
     // D-757: the hand points at true bearings; there is no declination line, no waiting note and no "hold the phone up" hint.
     expect(screen.queryByTestId('window-heading')).toBeNull();
@@ -931,7 +931,7 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     expect(moves).toHaveBeenCalledTimes(1);
     expect(camera.get()).toEqual({ azDeg: 170, altDeg: 40, fovDeg: projection.WINDOW_FOV });
     // The readout follows the rotation `uprightRotation` gives for the hand.
-    expect(screen.getByTestId('window-readout')).toHaveTextContent('Looking S (170°) · up 40°');
+    expect(screen.getByTestId('window-readout')).toHaveTextContent('Facing S (170°) · up 40°');
   });
 
   it('a lost capture ends the drag, and a later move of that pointer is nothing', () => {
@@ -1146,7 +1146,7 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
       frame();
     }
     expect(camera.get().fovDeg).toBe(projection.WINDOW_FOV);
-    expect(screen.getByTestId('window-readout')).toHaveTextContent(/^Looking S \(180°\) · up 35°$/);
+    expect(screen.getByTestId('window-readout')).toHaveTextContent(/^Facing S \(180°\) · up 35°$/);
   });
 
   /**
@@ -1166,7 +1166,7 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     fireEvent.keyDown(box, { key: '+' });
     fireEvent.keyDown(box, { key: '+' });
     fireEvent.keyDown(box, { key: '+' });
-    expect(readout).toHaveTextContent(/^Looking S \(180°\) · up 35° · field 30°$/);
+    expect(readout).toHaveTextContent(/^Facing S \(180°\) · up 35° · field 30°$/);
     expect(w).toHaveAttribute('data-fov', '31');
     // The zenith, 55° above the centre, is further up the drawing at 30° than at 60° (and off the box: the drawing is 390 px).
     expect(zenithX()).toBeLessThan(atDefault);
@@ -1186,12 +1186,12 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
       camera.up();
     });
     fireEvent.keyDown(box, { key: '+' });
-    expect(readout).toHaveTextContent(/^Looking S \(180°\) · up 90° · field 50°$/);
+    expect(readout).toHaveTextContent(/^Facing S \(180°\) · up 90° · field 50°$/);
     fireEvent.keyDown(box, { key: '+' });
     fireEvent.keyDown(box, { key: '+' });
-    expect(readout).toHaveTextContent(/^Looking S \(180°\) · up 90° · field 30°$/);
+    expect(readout).toHaveTextContent(/^Facing S \(180°\) · up 90° · field 30°$/);
     fireEvent.keyDown(box, { key: '0' });
-    expect(readout).toHaveTextContent(/^Looking S \(180°\) · up 90°$/);
+    expect(readout).toHaveTextContent(/^Facing S \(180°\) · up 90°$/);
   });
 
   /** R123 (FR-SKY-14, D-822): the readout's field suffix is the catalog's, in Spanish too. */
@@ -1203,8 +1203,10 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
       </I18nProvider>,
     );
     const box = container.querySelector('[tabindex="0"]') as HTMLElement;
+    // FR-FLOW-5 (D-847): the dome's first word, "Hacia el".
+    expect(screen.getByTestId('window-readout')).toHaveTextContent(/^Hacia el S \(180°\) · 35° de altura$/);
     for (let i = 0; i < 3; i += 1) fireEvent.keyDown(box, { key: '+' });
-    expect(screen.getByTestId('window-readout')).toHaveTextContent(/ · campo 30°$/);
+    expect(screen.getByTestId('window-readout')).toHaveTextContent(/^Hacia el S \(180°\) · 35° de altura · campo 30°$/);
     fireEvent.keyDown(box, { key: '0' });
     expect(screen.getByTestId('window-readout')).not.toHaveTextContent(/campo/);
   });
@@ -1319,7 +1321,7 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
       camera.face('NE');
     });
     expectLook(w, 45, 35);
-    expect(screen.getByTestId('window-readout')).toHaveTextContent('Looking NE (45°) · up 35°');
+    expect(screen.getByTestId('window-readout')).toHaveTextContent('Facing NE (45°) · up 35°');
     act(() => {
       camera.up();
     });

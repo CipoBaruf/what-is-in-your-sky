@@ -68,7 +68,8 @@ describe('<App> and the live route', () => {
     expect(page).toHaveAttribute('data-state', 'live');
     // R92 (FR-A11Y-1, F-71): nothing of the home page, and the live page's own landmarks — its top row the
     // banner, the rest the main, no footer.
-    expect(screen.queryByTestId('header')).toBeNull();
+    // R129 (D-845): the header is the live page's own, told its page, inside the page's banner.
+    expect(screen.getByTestId('header')).toHaveAttribute('data-page', 'live');
     expect(screen.getByRole('banner')).toContainElement(screen.getByTestId('live-top-row'));
     expect(screen.getByRole('main')).toContainElement(screen.getByTestId('live-dome'));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Live sky');
@@ -135,7 +136,8 @@ describe('<App> and the live route', () => {
     render(<App />);
     go('#live');
     expect(await screen.findByTestId('live-inert')).toBeInTheDocument();
-    expect(screen.queryByTestId('header')).toBeNull();
+    // R129 (D-845): the header is the live page's own, told its page, inside the page's banner.
+    expect(screen.getByTestId('header')).toHaveAttribute('data-page', 'live');
     expect(screen.getByRole('banner')).toContainElement(screen.getByTestId('live-top-row'));
     expect(screen.getByRole('main')).toContainElement(screen.getByTestId('live-inert'));
   });

@@ -4,6 +4,36 @@
    (`fitBox`, FR-LIVE-7's rule), and the rail beside it up to 60 cells; the page itself does not scroll there, the
    rail does. Every length is a token or a count of cells (FR-DS-2). */
 
+/* R129 (FR-FLOW-3): the page's name over the layout. On wide the layout keeps the height the main leaves, under the
+   heading's two lines (a row of its own, so its `height: 100%` is of what is left). */
+.page[data-layout='wide'] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: calc(var(--row) / 2);
+  height: 100%;
+  min-height: 0;
+}
+
+.page[data-layout='compact'] {
+  display: grid;
+  gap: calc(var(--row) / 2);
+}
+
+.intro {
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+}
+
+/* The dark window and the cloud word, at `--small` in the dim ink. */
+.tonight {
+  margin: 0;
+  font-size: var(--small);
+  color: var(--fg-dim);
+}
+
 .layout {
   display: grid;
   gap: calc(var(--row) / 2);

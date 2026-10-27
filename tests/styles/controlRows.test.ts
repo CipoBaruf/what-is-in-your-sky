@@ -26,13 +26,13 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { createElement, type ReactElement } from 'react';
+import { createElement, createRef, type ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../support/matchMedia';
 import { goldenPassFixture } from '../support/catalogFixtures';
 import { CATALOGS, I18nProvider } from '../../src/i18n/useT';
-import { LOCALE_NAMES, LOCALES } from '../../src/i18n/locale';
-import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, HOME_THREE_PANE_MIN_PX, SHELL_PADDING_CELLS, thresholdPx, WIDE_MIN_PX } from '../../src/lib/layout';
+import { LOCALES } from '../../src/i18n/locale';
+import { BASE_FONT_PX, CELL_ADVANCE_EM_MAX, SHELL_PADDING_CELLS, thresholdPx, WIDE_CELLS, WIDE_MIN_PX } from '../../src/lib/layout';
 import { FieldList } from '../../src/ui/screens/stars/FieldList';
 import type { Messages } from '../../src/i18n/messages';
 import type { Locale, Observer } from '../../src/model';
@@ -63,6 +63,9 @@ import { VisitNotice } from '../../src/ui/components/common/VisitNotice';
 import { FaintToggle } from '../../src/ui/components/passes/FaintToggle';
 import { STARS_PAGE_CATALOGS } from '../../src/i18n/starsPageT';
 import { StarsPage } from '../../src/ui/screens/Stars';
+import { StateIndicator } from '../../src/ui/components/live/StateIndicator';
+import { formatDate } from '../../src/lib/timeFormat';
+import type { HeaderPage } from '../../src/i18n/messages';
 import { decorations, rowCells, rowParts } from './cells';
 
 /** FR-COMP-4: a 390 px viewport at the default cell. */
@@ -71,6 +74,8 @@ const BUDGET = 36;
 const SMALL_BUDGET = Math.floor((BUDGET * 16) / 14);
 /** FR-COMP-7 (R85, D-549): the compact live page's top row and actions rows keep two cells of the 36 spare. */
 const LIVE_ROW_BUDGET = BUDGET - 2;
+/** R129 (FR-FLOW-3): the four pages under the home, each with the compact `[ ← ]` row. */
+const SUB_PAGES = ['live', 'stars', 'pass', 'settings'] as const satisfies readonly HeaderPage[];
 
 const CSS = [
   'src/ui/components/common/Header.module.css',
@@ -398,6 +403,39 @@ describe.each(LOCALES)('FR-COMP-4: every compact control row fits %s in 36 cells
 });
 
 /**
+ * R129 (FR-FLOW-3, FR-COMP-7 as amended v2.6, D-845): the four compact sub-page rows — `[ ← ]`, the page's name (on
+ * the live page the state indicator in its place: the mark and `live` / `en vivo`) and the context — at 360 and
+ * 390 px in both languages. The context ellipsises, so what is pinned is the row's fixed part and that the context
+ * it is about shows whole beside it: a coordinate pair (FR-COMP-7's, 14 cells) for the place, the date for the pass.
+ * At 390 px the row with it stays inside FR-COMP-7's 34 cells; at 360 px inside what that width has.
+ */
+describe.each(LOCALES)('FR-FLOW-3: the four compact sub-page rows in %s', (locale: Locale) => {
+  /** The cells a viewport gives a row on the widest font in the stack, less the shell's padding (F-10). */
+  const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
+  const context = (page: HeaderPage): string => (page === 'pass' ? formatDate(pass.start.t, null, locale) : observer.label);
+  const header = (page: HeaderPage, withContext: boolean): ReactElement =>
+    createElement(Header, { page, context: withContext ? context(page) : null, onBack: noop, ...(page === 'live' ? { status: createElement(StateIndicator, { held: false }) } : {}) });
+  /** The fixed part — `[ ← ]`, the name, the gaps — in cells, per page; the Done note's numbers. */
+  const FIXED: Record<Locale, Record<(typeof SUB_PAGES)[number], number>> = {
+    en: { live: 14, stars: 11, pass: 10, settings: 14 },
+    es: { live: 17, stars: 15, pass: 10, settings: 13 },
+  };
+
+  it.each(SUB_PAGES)('%s: the fixed part, and the context whole beside it at 390 and 360 px', (page) => {
+    const fixed = render(createElement(I18nProvider, { locale, children: header(page, false) }));
+    const bare = screen.getByTestId('header');
+    expect(rowCells(bare, table), rowParts(bare, table).join(' | ')).toBe(FIXED[locale][page]);
+    fixed.unmount();
+    render(createElement(I18nProvider, { locale, children: header(page, true) }));
+    const row = screen.getByTestId('header');
+    const cells = rowCells(row, table);
+    expect(cells, rowParts(row, table).join(' | ')).toBe(FIXED[locale][page] + 1 + context(page).length);
+    expect(cells, `${page} at 390 px`).toBeLessThanOrEqual(Math.min(LIVE_ROW_BUDGET, rowCellsAt(390)));
+    expect(cells, `${page} at 360 px`).toBeLessThanOrEqual(rowCellsAt(360));
+  });
+});
+
+/**
  * R126 (FR-STAR-10 as amended v2.5, D-832): the longest Spanish names in
  * `In this field` at 360 px — `Cabeza de la Serpiente` and `Cabellera de
  * Berenice`, 22 and 21 characters. A row is the name column and three fixed
@@ -524,7 +562,7 @@ describe.each(LOCALES)('FR-SET-1: every settings row fits %s in 36 cells', (loca
     };
     appStore.setState({ observer, favourites: [{ cellKey: '-38.93,-67.99', observer, addedAt: 0, lastUsedAt: 0 }] });
     offerAnInstall();
-    render(createElement(I18nProvider, { locale, children: createElement(SettingsPage, { onLeave: noop, installEnv: { standalone: undefined } }) }));
+    render(createElement(I18nProvider, { locale, children: createElement(SettingsPage, { backRef: createRef<HTMLButtonElement>(), installEnv: { standalone: undefined } }) }));
   });
 
   afterEach(() => {
@@ -588,15 +626,15 @@ it('counts the compact header with the mark at 34 cells (FR-COMP-1, D-441)', () 
  * what makes that true is not measured at run time: each line's width in cells
  * is known from the catalog, so `Header.module.css` carries one pixel literal
  * per language per line, derived as the breakpoints are (`thresholdPx`, F-10),
- * under which the title takes its short form or the tagline is not drawn.
+ * under which the tagline is not drawn. R129 (FR-FLOW-3, D-845): the title row
+ * lost the switches and its fold with them; what is pinned for it now is that a
+ * sub-page's row fits the wide breakpoint with room for its context.
  * This is where those literals are recomputed — from the catalogs, the mark's
  * declared cells, and the gaps the stylesheets declare, which are read rather
  * than remembered — so a longer word in either catalog moves the number here
  * before it wraps the header on a screen.
  */
 const HEADER_CSS = readFileSync(resolve(process.cwd(), 'src/ui/components/common/Header.module.css'), 'utf8');
-const OPTION_CSS = readFileSync(resolve(process.cwd(), 'src/ui/components/primitives/OptionToggle.module.css'), 'utf8');
-const GROUP_CSS = readFileSync(resolve(process.cwd(), 'src/ui/components/primitives/ToggleGroup.module.css'), 'utf8');
 
 /** The `@media (width < N px)` blocks of a stylesheet: the literal and the rules under it. */
 function foldBlocks(css: string): { px: number; body: string }[] {
@@ -615,11 +653,10 @@ function foldBlocks(css: string): { px: number; body: string }[] {
   return blocks;
 }
 
-/** The one literal under which `locale`'s block does `what`. */
-function foldLiteral(locale: Locale, what: 'title' | 'tagline'): number {
-  const mark = what === 'title' ? 'content: attr(data-short)' : '.tagline';
-  const found = foldBlocks(HEADER_CSS).filter(({ body }) => body.includes(`:root[lang='${locale}']`) && body.includes(mark));
-  expect(found, `Header.module.css should fold the ${what} once for ${locale}`).toHaveLength(1);
+/** The one literal under which `locale`'s block hides the tagline. */
+function foldLiteral(locale: Locale): number {
+  const found = foldBlocks(HEADER_CSS).filter(({ body }) => body.includes(`:root[lang='${locale}']`) && body.includes('.tagline'));
+  expect(found, `Header.module.css should fold the tagline once for ${locale}`).toHaveLength(1);
   return found[0]?.px ?? NaN;
 }
 
@@ -634,16 +671,11 @@ function cellsOf(css: string, selector: string, property: 'gap' | 'padding'): nu
   return 1;
 }
 
-describe.each(LOCALES)('FR-HOME-1: the wide header folds where its lines would wrap in %s (D-546)', (locale: Locale) => {
+describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its tagline in %s (D-546, D-845)', (locale: Locale) => {
   const t = CATALOGS[locale];
   const control = (text: string): number => `[ ${text} ]`.length;
-  // An option is `[x] ` and its label, a cell of padding after it, and the group's gap before the next.
-  const optionPadding = cellsOf(OPTION_CSS, '.option', 'padding');
-  const groupGap = cellsOf(GROUP_CSS, '.group', 'gap');
-  const group = (labels: readonly string[]): number => labels.reduce((sum, label) => sum + `[x] ${label}`.length + optionPadding, 0) + (labels.length - 1) * groupGap;
-  const titleGap = cellsOf(HEADER_CSS, '.titleRow', 'gap');
-  const headerGap = cellsOf(HEADER_CSS, '.wide', 'gap');
-  const controlsGap = cellsOf(HEADER_CSS, '.controls', 'gap');
+  const rowGap = cellsOf(HEADER_CSS, '.row', 'gap');
+  const navGap = cellsOf(HEADER_CSS, '.nav', 'gap');
   let markCells = 0;
 
   beforeEach(() => {
@@ -654,34 +686,52 @@ describe.each(LOCALES)('FR-HOME-1: the wide header folds where its lines would w
     expect(markCells).toBeGreaterThan(0);
   });
 
-  it('never wraps the title row, and draws the short title only under the fold', () => {
-    expect(HEADER_CSS).toMatch(/\.titleRow\s*\{[^}]*flex-wrap:\s*nowrap;/);
+  it('never wraps the row, and draws the full title at every wide width', () => {
+    expect(HEADER_CSS).toMatch(/\.row\s*\{[^}]*flex-wrap:\s*nowrap;/);
     expect(HEADER_CSS).toMatch(/\.title\s*\{[^}]*white-space:\s*nowrap;/);
-    expect(screen.getByRole('heading', { level: 1 }).getAttribute('data-short')).toBe(t.app.shortTitle);
+    expect(HEADER_CSS).not.toMatch(/attr\(data-short\)/);
     expect(screen.getByRole('heading', { level: 1, name: t.app.title })).toBeTruthy();
   });
 
-  it('shortens the title under the width the title row needs: the mark, the title, the live and stars links and the preferences', () => {
-    // R115 (FR-STAR-3, D-774): `[ stars ]` stands beside `[ live ]`, two cells after it.
-    const titleRow = markCells + 1 + t.app.title.length + titleGap + control(t.live.open) + titleGap + control(t.stars.link);
-    const preferences = group(LOCALES.map((l) => LOCALE_NAMES[l])) + controlsGap + group(Object.values(t.app.themes));
-    const cells = 2 * SHELL_PADDING_CELLS + titleRow + headerGap + preferences;
-    expect(cells).toBe(locale === 'es' ? 128 : 112);
-    expect(foldLiteral(locale, 'title')).toBe(thresholdPx(cells));
-    // F-76, as R115 (D-774) moved it: both languages are under their fold at 1024 px, Spanish at the three panes too, and
-    // neither at 1280.
-    expect(foldLiteral(locale, 'title')).toBeGreaterThan(1024);
-    expect(foldLiteral('es', 'title')).toBeGreaterThan(HOME_THREE_PANE_MIN_PX);
-    expect(foldLiteral(locale, 'title')).toBeLessThan(1280);
-    // The short title and the live link's short word free enough that the folded row fits the wide breakpoint itself on every font.
-    const folded = cells - t.app.title.length + t.app.shortTitle.length - t.live.open.length + t.live.openShort.length;
-    expect(folded).toBe(locale === 'es' ? 96 : 87);
-    expect(thresholdPx(folded)).toBeLessThanOrEqual(WIDE_MIN_PX);
+  it('fits a sub-page’s row — [ ← ], the mark and title, the three links, the context, [ settings ] — in the wide breakpoint, the context with ten cells at least', () => {
+    // R129 (D-845): with the switches gone the title has no short form on wide; the context is what ellipsises.
+    const nav = Object.values({ home: t.header.pages.home, live: t.header.pages.live, stars: t.header.pages.stars }).reduce((sum, word) => sum + word.length, 0) + 2 * navGap;
+    const fixed = 2 * SHELL_PADDING_CELLS + control(t.header.back) + rowGap + markCells + 1 + t.app.title.length + rowGap + nav + rowGap + rowGap + control(t.settings.open);
+    expect(fixed).toBe(locale === 'es' ? 89 : 79);
+    expect(WIDE_CELLS - fixed).toBeGreaterThanOrEqual(10);
+    expect(thresholdPx(fixed + 10)).toBeLessThanOrEqual(WIDE_MIN_PX);
+  });
+
+  it('draws a sub-page’s row with [ ← ] and a long place as counted above, and at 1024 px the place gives first, then the title, never the links', () => {
+    // The finding this answers: on a full Spanish row near 1024 px every item shrank by its share and the title drew
+    // over `inicio`. The rendered row — not only the arithmetic — is measured here, `[ ← ]` and the place on it.
+    const place = 'San Carlos de Bariloche, Río Negro, Argentina';
+    const { container } = render(createElement(I18nProvider, { locale, children: createElement(Header, { page: 'live', context: place, onBack: noop }) }));
+    const row = within(container).getByTestId('header');
+    const parts = rowParts(row, table);
+    const nav = [t.header.pages.home, t.header.pages.live, t.header.pages.stars];
+    expect(parts.slice(1)).toEqual(['#'.repeat(markCells), t.app.title, ...nav, place, expect.stringContaining(t.settings.open)]);
+    expect(parts[0]).toContain(t.header.back);
+    // The row's gaps: two cells between its items, one between the mark and the title, the nav's between its links.
+    const drawn = parts.filter((part) => part !== place).reduce((sum, part) => sum + part.length, 0);
+    const measured = 2 * SHELL_PADDING_CELLS + drawn + 4 * rowGap + 1 + 2 * navGap;
+    expect(measured, parts.join(' | ')).toBe(locale === 'es' ? 89 : 79);
+    const at1024 = Math.floor(1024 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
+    expect(at1024 - measured, 'the place keeps cells at 1024 px').toBeGreaterThanOrEqual(10);
+    expect(at1024 - measured).toBeLessThan(place.length + rowGap);
+    // What gives, in order: the place (its shrink weight dwarfs the title's), then the title, cut with an ellipsis;
+    // `[ ← ]`, the links and `[ settings ]` never shrink.
+    const rule = (selector: string): string => new RegExp(`(?:^|\\n)${selector.replace(/[.\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(HEADER_CSS)?.[1] ?? '';
+    expect(rule('.wide .context')).toMatch(/flex:\s*0 1000 auto;/);
+    expect(rule('.context')).toMatch(/text-overflow:\s*ellipsis;/);
+    expect(rule('.title')).toMatch(/min-width:\s*0;[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;/);
+    expect(rule('.brand')).toMatch(/min-width:\s*0;/);
+    for (const fixed of ['.back', '.nav', '.settings']) expect(rule(fixed), fixed).toMatch(/flex:\s*0 0 auto;/);
   });
 
   it('hides the tagline under the width its one line needs: the indent and its words', () => {
     const cells = 2 * SHELL_PADDING_CELLS + markCells + 1 + t.app.tagline.length;
     expect(cells).toBe(locale === 'es' ? 109 : 88);
-    expect(foldLiteral(locale, 'tagline')).toBe(thresholdPx(cells));
+    expect(foldLiteral(locale)).toBe(thresholdPx(cells));
   });
 });

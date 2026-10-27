@@ -373,23 +373,21 @@ describe('every media and container condition (FR-DS-3, D-702)', () => {
     for (const query of queries.filter((q) => q.conditions.some((c) => c.feature === 'height' && c.value === `${String(SIDEWAYS_MAX_HEIGHT_PX)}px`))) expect(query.prelude).toBe(LANDSCAPE_PHONE_QUERY);
   });
 
-  it('holds the header’s four folds to HEADER_FOLD_PX, as `width <` and nothing else, under the wide breakpoint’s neighbours', () => {
+  it('holds the header’s two tagline folds to HEADER_FOLD_PX, as `width <` and nothing else, under the wide breakpoint’s neighbours', () => {
     const folds = conditions.filter((c) => c.path === HEADER_PATH && c.comparator === '<').map((c) => Number.parseInt(c.value, 10));
     expect(folds.sort((a, b) => a - b)).toEqual(Object.values(HEADER_FOLD_PX).flatMap((fold) => Object.values(fold)).sort((a, b) => a - b));
-    // Each fold is held to its language and its line, not only to the set: the block under `width < HEADER_FOLD_PX[lang][line]` is the one that hides that language's title or tagline.
+    // Each fold is held to its language and its line, not only to the set: the block under `width < HEADER_FOLD_PX[lang][line]` is the one that hides that language's tagline (R129, D-845: the title no longer folds).
     const header = readFileSync(HEADER_PATH, 'utf8');
     for (const [lang, fold] of Object.entries(HEADER_FOLD_PX)) {
       for (const [line, px] of Object.entries(fold)) {
         const block = new RegExp(`@media \\(width < ${String(px)}px\\) \\{([^}]*\\{[^}]*\\})`).exec(header)?.[1] ?? '';
         expect(block, `${lang} ${line} at ${String(px)}px`).toContain(`[lang='${lang}']`);
-        expect(block, `${lang} ${line} at ${String(px)}px`).toContain(line === 'title' ? '.fullTitle' : '.tagline');
+        expect(block, `${lang} ${line} at ${String(px)}px`).toContain('.tagline');
       }
     }
     for (const [lang, fold] of Object.entries(HEADER_FOLD_PX)) {
-      expect(fold.tagline, `${lang}: the tagline folds before the title`).toBeLessThan(fold.title);
-      // R115 (D-774): with `[ stars ]` on the title row the Spanish fold is past the three panes' 1118 px, and both are
-      // still under the split's 1272, where the home is widest.
-      expect(fold.title).toBeLessThan(WIDE_SPLIT_MIN_PX);
+      // Under the split's 1272, where the home is widest.
+      expect(fold.tagline, lang).toBeLessThan(WIDE_SPLIT_MIN_PX);
     }
     // The only other `width <` folds are the footer's two-line rule, one per language, each under its language's selector (R93, D-546).
     const app = readFileSync(APP_PATH, 'utf8');

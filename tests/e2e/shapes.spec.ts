@@ -37,7 +37,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { COMPACT_BOX_MIN_SHORT_PX, COMPACT_MAX_CELLS, foldBelowPx, LIVE_BOX_MIN_PX, liveKeptPx, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
 import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { fitFloor, painted, type Painted, type Rect } from './domeInk';
-import { backToLive, domeDrawn, enterScrubbing, leaveSettings, openSettings, seedStoredRun, stripFilled } from './liveHelpers';
+import { backToLive, domeDrawn, enterScrubbing, leaveSettings, openSettings, reenterLiveWithTheme, seedStoredRun, stripFilled } from './liveHelpers';
 
 type Size = readonly [width: number, height: number];
 
@@ -824,7 +824,8 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
  * FR-SHP-5 (FR-COMP-6's rule for the phase): the live page at 1200 × 450 in
  * both themes in English — the shape's record, against the picture in F-65 —
  * and the desktop live page at 1024 × 768, the wide width the capture set has
- * never covered. The wide page keeps its theme switch on the top row.
+ * never covered. R129 (FR-FLOW-3, V26-10): the theme switch is the settings page's alone, so each palette is set
+ * there and the live page entered again.
  */
 test.describe('the captures (FR-SHP-5)', () => {
   test.use({ viewport: { width: 1200, height: 450 } });
@@ -838,12 +839,13 @@ test.describe('the captures (FR-SHP-5)', () => {
       await page.setViewportSize({ width, height });
       await settled(page);
       for (const theme of ['dark', 'night'] as const) {
-        await page.getByRole('group', { name: 'Theme' }).getByRole('button', { name: theme === 'night' ? 'Night' : 'Dark' }).click();
+        await reenterLiveWithTheme(page, 'en', theme);
+        await settled(page);
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         await page.clock.runFor(500);
         await page.screenshot({ path: `docs/screenshots/r69-live-${String(width)}x${String(height)}-${theme}-en.png` });
       }
-      await page.getByRole('group', { name: 'Theme' }).getByRole('button', { name: 'Dark' }).click();
+      await reenterLiveWithTheme(page, 'en', 'dark');
     }
   });
 });

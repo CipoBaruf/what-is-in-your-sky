@@ -9,10 +9,7 @@
     "@media (width >= 1272px)"
   ],
   "src/ui/components/common/Header.module.css": [
-    "@media (width >= 964px)",
-    "@media (width < 1079px)",
     "@media (width < 848px)",
-    "@media (width < 1233px)",
     "@media (width < 1050px)"
   ],
   "src/ui/components/common/VisitNotice.module.css": [

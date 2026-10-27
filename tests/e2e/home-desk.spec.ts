@@ -20,7 +20,7 @@
  * their sizes above, unchanged, and this file is what proves it in both languages.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { HEADER_FOLD_PX, HOME_MAX_CELLS, HOME_THREE_PANE_MIN_PX, WIDE_MIN_PX } from '../../src/lib/layout';
+import { HOME_MAX_CELLS, HOME_THREE_PANE_MIN_PX, WIDE_MIN_PX } from '../../src/lib/layout';
 import { seedStoredRun } from './liveHelpers';
 
 const LOCALES = ['en', 'es'] as const;
@@ -100,25 +100,22 @@ test.describe('FR-HOME-1: the header holds', () => {
         const tagline = header.getByText(locale === 'es' ? /^Pases de satélites/ : /^Naked-eye satellite/);
         if (Math.round(height) === HEADER_WITH_TAGLINE) await expect(tagline).toBeVisible();
         else await expect(tagline).toBeHidden();
-        // The title row: the mark, the title, `[ Live sky ]`, and the language and theme controls, on one line.
+        // The title row (R129, FR-FLOW-3): the mark, the title, the page links and `[ settings ]`, on one line.
         // Their boxes are the 48 px tap boxes centred on the title's line, so each holds the title's line box.
         const title = header.getByRole('heading', { level: 1 });
         const titleBox = await box(title);
-        const others = [page.getByTestId('live-link'), header.getByRole('group', { name: locale === 'es' ? 'Idioma' : 'Language' }), header.getByRole('group', { name: locale === 'es' ? 'Tema' : 'Theme' })];
+        const others = [page.getByTestId('live-link'), page.getByTestId('stars-link'), page.getByTestId('settings-link')];
         for (const other of others) {
           const rect = await box(other);
           expect(rect.y, `${String(other)} starts under the title's line`).toBeLessThanOrEqual(titleBox.y + 1);
           expect(rect.y + rect.height, `${String(other)} ends above the title's line`).toBeGreaterThanOrEqual(titleBox.y + titleBox.height - 1);
           expect(Math.abs(rect.y + rect.height / 2 - (titleBox.y + titleBox.height / 2)), `${String(other)} is not on the title's line`).toBeLessThanOrEqual(1);
         }
-        // `[ Live sky ]` follows the title on that line rather than dropping under it (F-76).
+        // The links follow the title on that line rather than dropping under it (F-76).
         const live = await box(page.getByTestId('live-link'));
         expect(live.x).toBeGreaterThan(titleBox.x + titleBox.width - 1);
-        // The short form is drawn only under the language's fold (D-605; R115, D-774: moved out by `[ stars ]`): both
-        // languages at 1024 px, Spanish at the three panes too, neither at 1280.
-        const drawn = await title.evaluate((h1) => getComputedStyle(h1, '::after').content);
-        const folded = width < HEADER_FOLD_PX[locale].title;
-        expect(drawn).toBe(folded ? `"${locale === 'es' ? 'Tu cielo' : 'Your sky'}"` : 'none');
+        // R129 (D-845): the title no longer folds — without the switches the row fits the wide breakpoint in both languages.
+        await expect(title).toHaveText(locale === 'es' ? 'Qué hay en el cielo ahora mismo' : 'What is in your sky right now');
         expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
       });
     }

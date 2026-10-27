@@ -170,15 +170,15 @@ export const FOOTER_ONE_LINE_MIN_PX = { en: 1118, es: 1137 } as const;
  * R93 (FR-HOME-1, D-546, D-605), named here by R103 (FR-DS-3, D-702): the
  * wide header's folds, one literal per language and per line, each derived as
  * the breakpoints are (`thresholdPx` of the line's cells on the widest
- * advance). Under `title` the title is its short form; under `tagline` the
- * tagline is not drawn. `tests/styles/controlRows.test.ts` recomputes each
+ * advance). Under `tagline` the tagline is not drawn. R129 (FR-FLOW-3, D-845):
+ * the title's fold is gone — without the switches the title row fits the wide
+ * breakpoint in both languages, and its context is what gives. `tests/styles/controlRows.test.ts` recomputes each
  * from the catalog and the header's gaps, so a longer word in either catalog
  * moves the number here before it wraps the header on a screen;
  * `tests/styles/breakpoint.test.ts` holds `Header.module.css`'s `width <`
  * folds to these, as it holds every other condition to an export of this file.
  */
-// R115 (D-774): the title folds moved out with `[ stars ]` on the row, 973 → 1079 and 1089 → 1233.
-export const HEADER_FOLD_PX = { en: { title: 1079, tagline: 848 }, es: { title: 1233, tagline: 1050 } } as const;
+export const HEADER_FOLD_PX = { en: { tagline: 848 }, es: { tagline: 1050 } } as const;
 
 /**
  * R103 (FR-DS-3, D-702): the three heights the stylesheets fold at, named

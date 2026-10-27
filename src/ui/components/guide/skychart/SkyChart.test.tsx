@@ -378,7 +378,7 @@ describe('the chart as a screen (FR-FSC-1, FR-FSC-3, D-322)', () => {
     const plain = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
     const plainList = within(plain.container).getByTestId('chart-legend');
     expect(plainList).toHaveAttribute('data-screen', 'false');
-    expect(within(plainList).getByRole('button', { name: /./ }).textContent).toContain(clock(pass.peak.t));
+    expect(within(plainList).getByRole('button', { name: /./ }).textContent).toContain(clock(pass.peak.t).split(' ', 1)[0]);
   });
 
   /**

@@ -7,11 +7,9 @@ import { passLinkFor, shareUrl } from '../../lib/shareLinks';
 import { formatDate } from '../../lib/timeFormat';
 import type { Observer, Pass } from '../../model';
 import { Countdown } from '../components/common/Countdown';
+import { Header } from '../components/common/Header';
 import { ShareButton } from '../components/common/ShareButton';
-import { LanguageToggle } from '../components/common/LanguageToggle';
-import { ThemeToggle } from '../components/common/ThemeToggle';
 import { GuidePanel } from '../components/guide/GuidePanel';
-import { TextButton } from '../components/primitives/TextButton';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import { useOpenerFocus } from '../hooks/useOpenerFocus';
@@ -42,21 +40,17 @@ import styles from './PassDetail.module.css';
  * observer is passed whole: the chart wants it (PLAN §8.1), the times want
  * its zone. The page's own scroll is locked while the sheet is up: the sheet
  * is fixed and scrolls itself, so the list's scrollbar behind it was a
- * second, dead scrollbar on desktop (R13 review). R17 (D-94): the sheet
- * carries the language switch beside the back control — the page behind it,
- * header included, is inert while the sheet is up, so without it the
- * language could not be changed on this screen at all, and R31's share links
- * open straight onto it. R20 puts the theme switch beside it for the same
- * reason, and a stronger one: this is the screen someone is looking at while
- * standing outside in the dark (US-19).
+ * second, dead scrollbar on desktop (R13 review). R17 (D-94) and R20 put the
+ * language and theme switches beside the back control; R129 (FR-FLOW-3,
+ * V26-10, D-845) took them off again — they are the settings page's alone —
+ * and the sheet's top row is the app's one `Header`: `[ ← ]`, `pass`, the date.
  *
  * R23 (FR-DESK-3, D-72): two shells over that one content. Compact keeps the
  * full-screen sheet, portaled to `document.body` so that the page behind it
  * can be made inert while the sheet is not (D-117). Wide renders
  * `GuidePanel` in place — the second track of the right column, beside a list
- * that stays live — so it carries neither the language and theme switches
- * (the header is right there and interactive) nor the scroll lock (nothing is
- * covered). What both shells share is everything that is about the guide
+ * that stays live — so it carries neither the sheet's top row (the header is
+ * right there and interactive) nor the scroll lock (nothing is covered). What both shells share is everything that is about the guide
  * rather than its frame: the heading and its focus, and the content.
  *
  * R30 (FR-MOON-2): the glare sentence follows the chart, directly under the
@@ -281,13 +275,10 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
     <>
     <div ref={sheetRef} inert={inert || screenOpen} role="dialog" aria-modal="true" aria-labelledby={headingId} className={styles.sheet} data-pass-id={pass.id}>
       <div className={styles.frame}>
-        <div className={styles.topRow}>
-          <TextButton box="edge" label={t.guide.back} className={styles.close} onClick={onClose} />
-          <div className={styles.controls}>
-            <LanguageToggle className={styles.prefsToggle} />
-            <ThemeToggle />
-          </div>
-        </div>
+        {/* R129 (FR-FLOW-3, D-845; F10): the sheet's top row is the app's one header, told it is the pass detail —
+            `[ ← ]`, `pass` and the pass's date. The language and theme switches that opened the page are the settings
+            page's alone (V26-10). A `div`: the page behind the sheet has the `banner`. */}
+        <Header page="pass" landmark={false} context={formatDate(pass.start.t, timeZone, locale)} onBack={onClose} />
         <h2 id={headingId} ref={headingRef} tabIndex={-1} className={styles.heading}>
           {pass.name}
         </h2>

@@ -179,7 +179,7 @@ test.describe('the sky window on a phone', () => {
     expect(Math.abs(declination)).toBeGreaterThan(0.5);
     expect(north.az).toBe((Math.round(declination) + 360) % 360);
     expect(north.alt).toBe(0);
-    await expect(layer.getByTestId('window-readout')).toContainText(`Looking N (${String(north.az)}°) · up 0°`);
+    await expect(layer.getByTestId('window-readout')).toContainText(`Facing N (${String(north.az)}°) · up 0°`);
     await expect(layer.locator('[data-testid="window-landmark"], [data-testid="window-heading"]')).toHaveCount(1);
     if ((await layer.getByTestId('window-heading').count()) > 0) await expect(layer.getByTestId('window-heading')).toHaveText(/^true north, declination [+−-]\d\.\d°$/);
     else await expect(layer.getByTestId('window-landmark')).toHaveText(/^passes /);
@@ -318,7 +318,7 @@ test.describe('the sky window on a phone', () => {
         await expect(layer.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         await expect(page.locator('html')).toHaveAttribute('lang', locale);
-        await expect(layer.getByTestId('window-readout')).toContainText(locale === 'es' ? 'Mirando al' : 'Looking');
+        await expect(layer.getByTestId('window-readout')).toContainText(locale === 'es' ? 'Hacia el' : 'Facing');
         // R127 (FR-SKY-11): the second line is the landmark line while the pass has one, the true-north line otherwise.
         const second = layer.locator('[data-testid="window-landmark"], [data-testid="window-heading"]');
         await expect(second).toHaveCount(1);
@@ -472,7 +472,7 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
     await expect(figure).toHaveAttribute('data-view', 'window');
     await expect(figure.locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
     await expect(figure.getByRole('group', { name: 'Mirando' }).getByRole('button')).toHaveText(['pico', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'arriba']);
-    await expect(figure.getByTestId('window-readout')).toContainText('Mirando al');
+    await expect(figure.getByTestId('window-readout')).toContainText('Hacia el');
     await boxSettled(page, figure.getByTestId('chart-box'));
     await figure.getByTestId('chart-box').evaluate((el) => { el.scrollIntoView({ block: 'end' }); });
     await page.mouse.move(0, 0);
@@ -678,7 +678,7 @@ test.describe('the landmark and the facing key (R127)', () => {
       await page.clock.runFor(FRAME_MS);
       await expect(keyOption).toHaveAttribute('aria-pressed', 'false');
       await expect(readout).not.toHaveAttribute('data-following', passId);
-      await expect(readout).toContainText(locale === 'es' ? 'Mirando al' : 'Looking');
+      await expect(readout).toContainText(locale === 'es' ? 'Hacia el' : 'Facing');
       expect((await look(w)).az).toBe((atPeak.az - 30 + 360) % 360);
       // FR-DESK-4 as amended v2.5: `f` does the same as the key, and an arrow key ends it.
       await page.keyboard.press('f');

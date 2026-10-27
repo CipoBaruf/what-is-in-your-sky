@@ -7,6 +7,7 @@ import { en } from './en';
 import { es } from './es';
 import type { CountdownPhase, LinkedText, Messages } from './messages';
 import { LOCALES } from './locale';
+import { STARS_PAGE_CATALOGS } from './starsPageT';
 import { CATALOGS } from './useT';
 
 /**
@@ -152,7 +153,6 @@ function render(t: Messages): string[] {
     t.countdown.rise,
     t.countdown.peak,
     t.countdown.set,
-    t.guide.back,
     t.guide.sentence(GUIDE),
     t.guide.sentence({ ...GUIDE, startReason: 'twilight', endReason: 'horizon', twilight: false, startBand: 'overhead', peakBand: 'mid', brightness: 'faint' }),
     t.guide.sentence({ ...GUIDE, startReason: 'shadow', endReason: 'twilight', brightness: 'venus', startBand: 'mid', peakBand: 'overhead' }),
@@ -174,6 +174,9 @@ function render(t: Messages): string[] {
     ...Object.values(t.chart.orientationNote),
     t.chart.legend.label,
     ...Object.values(t.chart.legend.state),
+    t.chart.legend.rise,
+    t.chart.legend.peak,
+    t.chart.legend.end,
     t.chart.legend.sun({ azimuth: '285°', altitude: '−8.0°' }),
     t.chart.legend.moon({ glyph: '◕', azimuth: '120°', altitude: '+31.2°' }),
     t.chart.legend.moonLit({ glyph: '◕', phase: t.moon.phase.waxingGibbous, illumination: '72', azimuth: '120°', altitude: '+31.2°' }),
@@ -183,7 +186,6 @@ function render(t: Messages): string[] {
     t.chart.liveLabel,
     t.live.open,
     t.live.openFromNow,
-    t.live.back,
     t.live.loading,
     t.live.noPlace,
     t.live.setPlace,
@@ -412,5 +414,20 @@ describe('the two catalogs (FR-I18N-2)', () => {
     const flatten = (value: unknown, path: string): string[] =>
       typeof value === 'object' && value !== null ? Object.entries(value).flatMap(([key, child]) => flatten(child, `${path}.${key}`)) : [`${path}:${typeof value}`];
     expect(flatten(en, '').sort()).toMatchSnapshot();
+  });
+});
+
+/**
+ * FR-FLOW-5 (D-847): every readout of where a view faces begins with the same word. The window and the stars
+ * page read the same line (the stars page keeps its field width after it); the dome keeps its tilt.
+ */
+describe('the three readouts (FR-FLOW-5)', () => {
+  it('begin with "Facing" / "Hacia el"', () => {
+    expect(en.window.readout({ point: 'S', azimuth: '180°', altitude: '35°' })).toBe('Facing S (180°) · up 35°');
+    expect(es.window.readout({ point: 'S', azimuth: '180°', altitude: '35°' })).toBe('Hacia el S (180°) · 35° de altura');
+    expect(STARS_PAGE_CATALOGS.en.readout({ point: 'S', azimuth: '180°', altitude: '35°', across: '60°' })).toBe('Facing S (180°) · up 35° · 60° across');
+    expect(STARS_PAGE_CATALOGS.es.readout({ point: 'S', azimuth: '180°', altitude: '35°', across: '60°' })).toBe('Hacia el S (180°) · 35° de altura · 60° de ancho');
+    expect(en.chart.readout({ point: 'S', azimuth: '180°', tilt: '45°' })).toBe('Facing S (180°) · tilt 45°');
+    expect(es.chart.readout({ point: 'S', azimuth: '180°', tilt: '45°' })).toBe('Hacia el S (180°) · inclinación 45°');
   });
 });

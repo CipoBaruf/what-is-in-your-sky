@@ -10,6 +10,7 @@
  * three ways out lead back to the home screen. The route and the header are
  * covered from `App` (`App.settings.test.tsx`), which is where they meet.
  */
+import { createRef } from 'react';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
@@ -38,11 +39,13 @@ const offerAnInstall = (): void => {
   });
 };
 
+const backRef = createRef<HTMLButtonElement>();
+
 const show = (onLeave = vi.fn(), env: InstallEnv = NOTHING_TO_OFFER, locale: 'en' | 'es' = 'en') =>
   render(
     <I18nProvider locale={locale}>
       {/* R93 (D-545): the route with the page in place of its chunk, so the composition renders synchronously here. */}
-      <Shell routeKey="settings" title="" {...settingsShell(locale === 'es' ? es : en, { onLeave, installEnv: env }, { page: <SettingsPage onLeave={onLeave} installEnv={env} /> })} />
+      <Shell routeKey="settings" title="" {...settingsShell(locale === 'es' ? es : en, { onLeave, backRef, installEnv: env }, { page: <SettingsPage backRef={backRef} installEnv={env} /> })} />
     </I18nProvider>,
   );
 

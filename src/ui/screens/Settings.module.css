@@ -22,16 +22,7 @@
   gap: 0;
 }
 
-/* R75 (FR-X-5, D-500): a quarter row under the way back, which is the room its
-   focus ring needs — its 2 px offset and its own 2 px line — over the Location
-   heading that follows. The page's own fit (FR-SET-2) still has the room: the
-   tightest state, Spanish with the coordinate fields open and two saved places,
-   is measured by `settings.spec.ts` in the same run. */
-.backRow {
-  margin: 0 0 calc(var(--row) / 4);
-}
-
-/* R104 (D-704): the way back (inline) and the coordinates disclosure are `TextButton`s; nothing here draws on them. */
+/* R104 (D-704): the coordinates disclosure is a `TextButton`; nothing here draws on it. R129 (D-845): the way back is the header's. */
 
 /* R75 (FR-SET-1): `[ Use my location ] [ coordinates ]`, one row of FR-COMP-4's
    36 cells. The device button's own block keeps its bottom margin and its error

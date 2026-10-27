@@ -11,7 +11,7 @@
  * 60° up and the Sun is inside FR-DOME-6's twilight band all at once.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { withSettings } from './liveHelpers';
+import { setThemeByKey, withSettings } from './liveHelpers';
 
 /*
  * FR-CI-2 (R37, D-195): off the pull-request path. These are evidence, as the
@@ -103,10 +103,8 @@ async function openChart(page: Page, width: 390 | 1280, locale: 'en' | 'es', vie
 
 /** The theme is remembered (US-19), so a capture run has to put it back before the next one starts. */
 async function setTheme(page: Page, theme: 'dark' | 'night'): Promise<void> {
-  const inGuide = guide(page).getByRole('group', { name: 'Theme' });
-  const themes = (await inGuide.count()) > 0 ? inGuide : page.getByRole('banner').getByRole('group', { name: 'Theme' });
-  await themes.getByRole('button', { name: theme === 'night' ? 'Night' : 'Dark' }).click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+  // R129 (V26-10): neither the sheet nor the header carries the switch any more; `n` sets the palette under the guide.
+  await setThemeByKey(page, theme);
   await guide(page).getByRole('figure').locator('[data-drawing]').scrollIntoViewIfNeeded();
 }
 

@@ -99,6 +99,15 @@ export const ui: typeof EnUi = {
     shortTitle: 'Tu cielo',
   },
 
+  header: {
+    back: '←',
+    backName: 'Volver',
+    nav: 'Páginas',
+    pages: { home: 'inicio', live: 'en vivo', stars: 'estrellas', pass: 'pase', settings: 'ajustes' },
+  },
+
+  starsHeading: 'Estrellas esta noche',
+
   banner: { info: 'Nota', warning: 'Aviso' },
 
   a11y: {
@@ -109,7 +118,6 @@ export const ui: typeof EnUi = {
 
   settings: {
     open: 'ajustes',
-    back: '\u2190 Volver',
     heading: 'Ajustes',
     browser: 'Este navegador',
     /* R75: "[ Usar mi ubicación ] [ coordenadas ]" is 37 cells, one past FR-COMP-4's 36; the field's own placeholder says "lat, lon" (R84) and its label gives the example. */
@@ -343,7 +351,6 @@ export const ui: typeof EnUi = {
   },
 
   guide: {
-    back: '← Volver a la lista',
     close: 'Cerrar la guía',
     panelLabel: (p: { name: string }) => `Guía: ${p.name}`,
     toList: 'lista',

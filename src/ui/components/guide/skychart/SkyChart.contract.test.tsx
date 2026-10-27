@@ -740,11 +740,12 @@ describe("<SkyChart> with the detail's numeric table as the legend (FR-LEG-3, US
     const row = container.querySelector('[data-testid="chart-legend"] button[data-pass-id="other"]');
     expect(row?.querySelector('[data-color]')).toHaveAttribute('data-color', 'pass-dim');
     expect(row?.textContent).toContain(other.name);
-    // The dim row times the arc's ends; the explained pass's peak is a line of the table.
+    // The dim row times the arc's ends, the zone once after the last (D-863); the explained pass's peak is a line of the table.
     const times = row?.textContent ?? '';
-    expect(times).toContain(formatClock(other.start.t, null, 'en'));
+    const hms = (t: number): string => formatClock(t, null, 'en').split(' ', 1)[0] ?? '';
+    expect(times).toContain(hms(other.start.t));
     expect(times).toContain(formatClock(other.end.t, null, 'en'));
-    expect(times).not.toContain(formatClock(other.peak.t, null, 'en'));
+    expect(times).not.toContain(hms(other.peak.t));
   });
 
   it('keeps the Sun and the Moon to one line each under the rows (FR-DOME-6 as amended)', () => {

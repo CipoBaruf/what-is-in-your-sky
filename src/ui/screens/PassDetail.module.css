@@ -21,27 +21,8 @@
   gap: var(--row);
 }
 
-/* R17: the sheet replaces the page while it is up (the header behind it is inert), so it carries the language switch itself. */
-.topRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0 calc(2 * var(--cell));
-}
-
-/* The sheet's switches (language, theme) stay together on the right of the top row. */
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 calc(3 * var(--cell));
-}
-
-/* R104 (D-704): the way back is a `TextButton` in the sheet's bordered form; this places it. */
-.close {
-  justify-self: start;
-}
+/* R129 (FR-FLOW-3, D-845): the sheet's top row is the app's one `Header` (`[ ← ]`, `pass`, the date), laid out by its own
+   stylesheet; the language and theme switches it used to carry here are the settings page's. */
 
 .heading {
   font-size: 1.25rem;
@@ -70,13 +51,6 @@
 
 .twilight::after {
   content: ']';
-}
-
-/* R52: the sheet's preference group keeps the header's right alignment; the
-   class moved out of `LanguageToggle` when the settings page wanted the other
-   one (the alignment is a placement, not the control). */
-.prefsToggle {
-  justify-content: flex-end;
 }
 
 /* R127 (FR-SKY-11, D-796): the landmark line under the pass's name, on both

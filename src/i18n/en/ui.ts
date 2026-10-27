@@ -7,7 +7,7 @@ import type { NextEventKind, NoEventReason } from '../../lib/nextEvent';
 import type { PassPath, PathEnd } from '../../lib/passPath';
 import type { ShortcutId } from '../../lib/shortcuts';
 import type { CloudState, MoonPhaseName, PassBoundaryReason, PassSort, ReadinessGap, Theme } from '../../model';
-import type { CountdownPhase, LinkedText } from '../messages';
+import type { CountdownPhase, HeaderPage, LinkedText } from '../messages';
 
 /**
  * FR-I18N-2 (D-69): every string the `ui` lane renders, in English — the
@@ -119,6 +119,21 @@ export const ui = {
     shortTitle: 'Your sky',
   },
 
+  /**
+   * R129 (FR-FLOW-3, D-845): the one header's words. A sub-page's row is `[ ← ]`, its name and the place; the
+   * wide row's links are the names of the three pages a reader moves between, under `nav`.
+   */
+  header: {
+    /** FR-COMP-7: drawn `[ ← ]`; `backName` is its accessible name. */
+    back: '←',
+    backName: 'Back',
+    nav: 'Pages',
+    pages: { home: 'home', live: 'live', stars: 'stars', pass: 'pass', settings: 'settings' } satisfies Record<HeaderPage, string>,
+  },
+
+  /** R129 (FR-FLOW-3): the stars page's visible `h1`, with the dark window and the cloud word under it. */
+  starsHeading: 'Stars tonight',
+
   banner: { info: 'Note', warning: 'Warning' },
 
   /** R92 (FR-A11Y-3, FR-A11Y-5): the shell's words — the skip link and the document title of a route that is not home. */
@@ -134,8 +149,6 @@ export const ui = {
   settings: {
     /** The compact header's control. Lower case, like `[ live ]` beside it: they are one row of the same kind. */
     open: 'settings',
-    /** The page's own way back, beside `Esc` and the browser's Back (US-20 AC4). */
-    back: '\u2190 Back',
     /** Names the region for assistive technology; the page shows no title of its own (the mockup). */
     heading: 'Settings',
     /**
@@ -486,7 +499,6 @@ export const ui = {
   },
 
   guide: {
-    back: '← Back to the list',
     /** R23 (FR-DESK-3): the wide panel's close control. The glyph is `×`; this is what it is called. */
     close: 'Close the guide',
     /** The wide panel is a labelled region rather than a dialog (D-118), so it says what kind of region it is. */

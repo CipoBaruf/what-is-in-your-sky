@@ -11,7 +11,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { withSettings } from './liveHelpers';
+import { setThemeByKey, withSettings } from './liveHelpers';
 
 /*
  * FR-CI-2 (R37, D-195): off the pull-request path. These are evidence, as the
@@ -88,8 +88,8 @@ async function toHeading(page: Page, index: number): Promise<void> {
 
 /** The theme is remembered (US-19), so a capture run has to put it back before the next language starts. */
 async function setTheme(page: Page, theme: 'dark' | 'night'): Promise<void> {
-  await page.getByRole('banner').getByRole('group', { name: 'Theme' }).getByRole('button', { name: theme === 'night' ? 'Night' : 'Dark' }).click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+  // R129 (V26-10): the switch is the settings page's alone; `n` (FR-DESK-4) sets the palette where the page stands.
+  await setThemeByKey(page, theme);
 }
 
 test('the readiness line and the three nights at 390 px, in both languages and both themes', async ({ page }) => {
