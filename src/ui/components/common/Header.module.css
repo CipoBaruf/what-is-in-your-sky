@@ -107,7 +107,10 @@
 /* R129 (FR-FLOW-3, FR-DESK-2 as amended v2.6): the wide header's one row, on
    every page. It never wraps: what gives is the context, which ellipsises, and
    the title row without the switches fits the wide breakpoint in both languages
-   (`controlRows.test.ts`). `[ settings ]` is pushed to the row's right end. */
+   (`controlRows.test.ts`). `[ settings ]` is pushed to the row's right end.
+   `[ ← ]`, the links and `[ settings ]` never shrink; the context shrinks first
+   (its weight), and only once it is gone does the title, which ellipsises too
+   rather than draw over the links. */
 .row {
   display: flex;
   align-items: baseline;
@@ -123,10 +126,14 @@
 .title {
   /* The live and stars pages draw the title as a paragraph (their own `h1` is the page's name). */
   margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .nav {
+  flex: 0 0 auto;
   display: flex;
   gap: 0 calc(2 * var(--cell));
 }
@@ -145,10 +152,11 @@
 }
 
 .wide .context {
-  flex: 0 1 auto;
+  flex: 0 1000 auto;
 }
 
 .settings {
+  flex: 0 0 auto;
   margin-left: auto;
 }
 

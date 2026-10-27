@@ -1,4 +1,4 @@
-import type { MouseEvent, ReactNode } from 'react';
+import type { MouseEvent, ReactNode, Ref } from 'react';
 import type { HeaderPage } from '../../../i18n/messages';
 import { useT } from '../../../i18n/useT';
 import { SETTINGS_HASH, STARS_HASH } from '../../../lib/shareLinks';
@@ -67,6 +67,10 @@ export interface HeaderProps {
   context?: string | null;
   /** A sub-page's `[ ← ]`: leaves the page. */
   onBack?: () => void;
+  /** The `[ ← ]` element, for a page that places the focus on it when it is entered (the settings page). */
+  backRef?: Ref<HTMLButtonElement>;
+  /** A class of the page's own on `[ ← ]`, for a rule only that page's layout needs (the live page's grid, F-100). */
+  backClassName?: string | undefined;
   /** The live page's state indicator, drawn in the compact name's place (FR-WATCH-2). */
   status?: ReactNode;
   /** `false`: a `div`, inside a landmark or a dialog the page renders itself. */
@@ -84,7 +88,7 @@ const NAV_HREF: Record<(typeof NAV_PAGES)[number], string> = { home: '#', live: 
 /** The context's test id: the place on most pages, as the live page's was (`live-place`), and the date on the pass. */
 const contextTestId = (page: HeaderPage): string => (page === 'pass' ? 'pass-date' : `${page}-place`);
 
-export function Header({ page = 'home', context = null, onBack, status, landmark = true, inert = false, busy = false }: HeaderProps) {
+export function Header({ page = 'home', context = null, onBack, backRef, backClassName, status, landmark = true, inert = false, busy = false }: HeaderProps) {
   const t = useT();
   const mode = useLayoutMode();
   const loading = (useAppStore(isLoading) && page === 'home') || busy;
@@ -106,7 +110,7 @@ export function Header({ page = 'home', context = null, onBack, status, landmark
    */
   const inlineBack = mode === 'compact' || landmark;
   const back = sub && (
-    <TextButton inline={inlineBack} label={t.header.back} aria-label={t.header.backName} className={styles.back} onClick={onBack} data-testid={`${page}-back`} />
+    <TextButton inline={inlineBack} label={t.header.back} aria-label={t.header.backName} className={[styles.back, backClassName].filter(Boolean).join(' ')} onClick={onBack} ref={backRef} data-testid={`${page}-back`} />
   );
   const contextText =
     sub && context !== null && context !== '' ? (
@@ -142,7 +146,7 @@ export function Header({ page = 'home', context = null, onBack, status, landmark
           {mark}
           <h1 className={styles.shortTitle}>{t.app.shortTitle}</h1>
         </div>
-        <nav className={styles.links} aria-label={t.app.title}>
+        <nav className={styles.links} aria-label={t.header.nav}>
           <BracketLink href="#live" label={t.live.openShort} data-testid="live-link" />
           {settings}
         </nav>
@@ -170,6 +174,8 @@ export function Header({ page = 'home', context = null, onBack, status, landmark
         {...(target === 'home'
           ? {
               onClick: (event: MouseEvent<HTMLAnchorElement>) => {
+                // As the shell's route links (`takeRouteLink`): a modified or other-button click is the browser's.
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                 event.preventDefault();
                 home();
               },
@@ -191,7 +197,7 @@ export function Header({ page = 'home', context = null, onBack, status, landmark
           {mark}
           <Title className={styles.title}>{t.app.title}</Title>
         </div>
-        {/* R92 (FR-A11Y-1, D-529): the header's links are its navigation. */}
+        {/* R92 (FR-A11Y-1, D-529): the header's links are its navigation, one name on both widths (`t.header.nav`). */}
         <nav className={styles.nav} aria-label={t.header.nav}>
           {NAV_PAGES.map(navLink)}
         </nav>

@@ -17,6 +17,7 @@ import type { HeaderPage } from '../../../i18n/messages';
 import { CATALOGS, I18nProvider } from '../../../i18n/useT';
 import { LOCALES } from '../../../i18n/locale';
 import type { Locale } from '../../../model';
+import { open, resetNavigation, subscribe } from '../../navigation';
 import { Header, type HeaderProps } from './Header';
 
 let media: MatchMediaStub;
@@ -52,6 +53,8 @@ describe.each(LOCALES)('<Header> compact in %s (FR-COMP-1, FR-FLOW-3)', (locale:
     expect(screen.getByTestId('settings-link')).toHaveAttribute('href', '#settings');
     expect(screen.getByTestId('settings-link')).toHaveTextContent(t.settings.open);
     expect(screen.queryByTestId('stars-link')).toBeNull();
+    // One name for the header's navigation on both widths.
+    expect(screen.getByRole('navigation', { name: t.header.nav })).toContainElement(screen.getByTestId('live-link'));
     expectNoSwitches(locale);
     expect(await axe(container)).toHaveNoViolations();
   });
@@ -174,5 +177,39 @@ describe('<Header> wide links', () => {
     });
     expect(screen.getByTestId('live-link')).toHaveTextContent(en.live.openShort);
     expect(screen.getByTestId('settings-link')).toBeInTheDocument();
+  });
+});
+
+/**
+ * R129 (D-857): the wide `home` link leaves every route the session pushed in one step, and lands on home even when
+ * the page the app loaded on was a route; a modified click is the browser's (a new tab), as on `live` and `stars`.
+ */
+describe('<Header> wide: the home link', () => {
+  it('lands on home from the live page opened from a bookmarked #stars', async () => {
+    media = stubMatchMedia(WIDE_PX);
+    resetNavigation();
+    const off = subscribe(() => undefined);
+    window.history.replaceState(null, '', '#stars');
+    open('#live');
+    renderIn('en', { page: 'live', onBack: vi.fn() });
+    fireEvent.click(screen.getByTestId('home-link'));
+    await vi.waitFor(() => {
+      expect(window.location.hash).toBe('');
+    });
+    off();
+  });
+
+  it('leaves a modified or middle click to the browser', () => {
+    media = stubMatchMedia(WIDE_PX);
+    window.history.replaceState(null, '', '#stars');
+    renderIn('en', { page: 'stars', onBack: vi.fn() });
+    const link = screen.getByTestId('home-link');
+    for (const init of [{ metaKey: true }, { ctrlKey: true }, { shiftKey: true }, { button: 1 }]) {
+      // `fireEvent` returns false when a handler called `preventDefault`.
+      expect(fireEvent.click(link, init), JSON.stringify(init)).toBe(true);
+    }
+    expect(window.location.hash).toBe('#stars');
+    expect(fireEvent.click(link)).toBe(false);
+    expect(window.location.hash).toBe('');
   });
 });

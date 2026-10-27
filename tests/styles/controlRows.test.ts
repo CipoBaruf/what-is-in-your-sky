@@ -26,7 +26,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { createElement, type ReactElement } from 'react';
+import { createElement, createRef, type ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../support/matchMedia';
 import { goldenPassFixture } from '../support/catalogFixtures';
@@ -564,7 +564,7 @@ describe.each(LOCALES)('FR-SET-1: every settings row fits %s in 36 cells', (loca
     };
     appStore.setState({ observer, favourites: [{ cellKey: '-38.93,-67.99', observer, addedAt: 0, lastUsedAt: 0 }] });
     offerAnInstall();
-    render(createElement(I18nProvider, { locale, children: createElement(SettingsPage, { onLeave: noop, installEnv: { standalone: undefined } }) }));
+    render(createElement(I18nProvider, { locale, children: createElement(SettingsPage, { backRef: createRef<HTMLButtonElement>(), installEnv: { standalone: undefined } }) }));
   });
 
   afterEach(() => {
@@ -702,6 +702,33 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its taglin
     expect(fixed).toBe(locale === 'es' ? 89 : 79);
     expect(WIDE_CELLS - fixed).toBeGreaterThanOrEqual(10);
     expect(thresholdPx(fixed + 10)).toBeLessThanOrEqual(WIDE_MIN_PX);
+  });
+
+  it('draws a sub-page’s row with [ ← ] and a long place as counted above, and at 1024 px the place gives first, then the title, never the links', () => {
+    // The finding this answers: on a full Spanish row near 1024 px every item shrank by its share and the title drew
+    // over `inicio`. The rendered row — not only the arithmetic — is measured here, `[ ← ]` and the place on it.
+    const place = 'San Carlos de Bariloche, Río Negro, Argentina';
+    const { container } = render(createElement(I18nProvider, { locale, children: createElement(Header, { page: 'live', context: place, onBack: noop }) }));
+    const row = within(container).getByTestId('header');
+    const parts = rowParts(row, table);
+    const nav = [t.header.pages.home, t.header.pages.live, t.header.pages.stars];
+    expect(parts.slice(1)).toEqual(['#'.repeat(markCells), t.app.title, ...nav, place, expect.stringContaining(t.settings.open)]);
+    expect(parts[0]).toContain(t.header.back);
+    // The row's gaps: two cells between its items, one between the mark and the title, the nav's between its links.
+    const drawn = parts.filter((part) => part !== place).reduce((sum, part) => sum + part.length, 0);
+    const measured = 2 * SHELL_PADDING_CELLS + drawn + 4 * rowGap + 1 + 2 * navGap;
+    expect(measured, parts.join(' | ')).toBe(locale === 'es' ? 89 : 79);
+    const at1024 = Math.floor(1024 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
+    expect(at1024 - measured, 'the place keeps cells at 1024 px').toBeGreaterThanOrEqual(10);
+    expect(at1024 - measured).toBeLessThan(place.length + rowGap);
+    // What gives, in order: the place (its shrink weight dwarfs the title's), then the title, cut with an ellipsis;
+    // `[ ← ]`, the links and `[ settings ]` never shrink.
+    const rule = (selector: string): string => new RegExp(`(?:^|\\n)${selector.replace(/[.\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(HEADER_CSS)?.[1] ?? '';
+    expect(rule('.wide .context')).toMatch(/flex:\s*0 1000 auto;/);
+    expect(rule('.context')).toMatch(/text-overflow:\s*ellipsis;/);
+    expect(rule('.title')).toMatch(/min-width:\s*0;[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;/);
+    expect(rule('.brand')).toMatch(/min-width:\s*0;/);
+    for (const fixed of ['.back', '.nav', '.settings']) expect(rule(fixed), fixed).toMatch(/flex:\s*0 0 auto;/);
   });
 
   it('hides the tagline under the width its one line needs: the indent and its words', () => {
