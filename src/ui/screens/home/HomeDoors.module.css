@@ -24,6 +24,8 @@
    to the row's height on wide. */
 .door {
   height: 100%;
+  /* A grid item's floor is its content's, and a line that never wraps would widen the row past the page (964 px). */
+  min-width: 0;
 }
 
 .title {

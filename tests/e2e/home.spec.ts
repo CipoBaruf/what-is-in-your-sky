@@ -12,7 +12,7 @@
  * still in the document beside it.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { GUIDE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, LIVE_BOX_MIN_PX, WIDE_MIN_PX } from '../../src/lib/layout';
+import { GUIDE_PANE_MIN_CELLS, HOME_THREE_PANE_MIN_PX, WIDE_MIN_PX } from '../../src/lib/layout';
 import { ha, NINE_DAYS_ON, seedStoredRun, stubNetwork } from './liveHelpers';
 
 /** One character advance, as this browser resolves the app's own monospace stack. */
@@ -27,8 +27,8 @@ async function cellPx(page: Page): Promise<number> {
   });
 }
 
-/** FR-FIRST-3 as amended v2.0.2: `Next up · in 3:45:07`, `Up now · peaks in 1:10`, `Up now · sets in 2:05`. */
-const NEXT_LABEL = /^(Next up · in|Up now · (peaks|sets|enters shadow|fades) in) (\d+:)?\d\d?:\d\d$/;
+/** R130 (FR-FLOW-1): the Satellites door's first line — `Next 05:48 · in 48:04`, `Up now · peaks in 0:08`, `Up now · sets in 2:05`. */
+const NEXT_LABEL = /^(Next \d\d:\d\d( \S+)? · in|Up now · (peaks|sets|into shadow|fades) in) (\d+:)?\d\d?:\d\d$/;
 
 /**
  * R82 (FR-FIRST-4 as amended v2.0.2, D-513, D-514): the first visit on a phone
@@ -112,29 +112,84 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3, FR-FIRST-4)', (
 
     // A later visit — the reload — is the stacked page, and never a step.
     await page.reload();
-    const block = page.getByTestId('next-event');
-    // FR-FIRST-3 as amended v2.0.2: the label line, the clock time and the path.
-    await expect(block.getByTestId('next-event-label')).toHaveText(NEXT_LABEL, { timeout: 60_000 });
-    await expect(block.getByTestId('next-event-time')).toHaveText(/^\d\d:\d\d( \S+)?$/);
-    await expect(block.getByTestId('next-event-path')).toHaveText(/^.+ · [NESW]{1,3}( low| \d+°)? → \d+° [NESW]{1,3} → [NESW]{1,3}( \d+°)?$/);
+    // R130 (FR-FLOW-1): the next event is the Satellites door's — the label line, then the name and the path.
+    const block = page.getByTestId('door-satellites');
+    const label = block.getByTestId('door-satellites-line').first();
+    await expect(label).toHaveText(NEXT_LABEL, { timeout: 60_000 });
+    await expect(block.getByTestId('door-satellites-line').nth(1)).toHaveText(/^.+ · [NESW]{1,3} \d+° → [NESW]{1,3}$/);
+    await expect(page.getByTestId('next-event')).toHaveCount(0);
     await expect(page.getByTestId('step-line')).toHaveCount(0);
     await expect(page.getByTestId('step-when')).toHaveCount(0);
     // FR-FIRST-11: the coordinates alone, and the sentence by the source with the accuracy the device gave.
     await expect(page.getByTestId('location-summary')).toHaveText('−38.93, −67.99');
-    await expect(page.getByTestId('where-sentence')).toHaveText(/^Using your device's location \(±300 m\)\. Saved in this browser only\. /);
+    // R130 (FR-FLOW-2): the sentence is behind the folded Where's `[ details ]`.
+    await expect(page.getByTestId('where-sentence')).toBeHidden();
+    await page.getByTestId('where-details').click();
+    await expect(page.getByTestId('where-sentence')).toHaveText(/^Using your device's location \(±300 m\)\. Saved in this browser only\.$/);
+    await page.getByTestId('where-details').click();
     // The group folded away under the line.
     await expect(page.getByTestId('location-summary-change')).toHaveAttribute('aria-expanded', 'false');
 
-    // FR-FIRST-4: the stacked page — Where, then When ending on the next event, then What; no dome on a phone (D-512).
+    // FR-FIRST-4, FR-FLOW-1: the stacked page — Where, the doors, When, then What; no dome on a phone (D-512).
     const [summaryBox, blockBox, listBox] = await Promise.all([page.getByTestId('location-summary').boundingBox(), block.boundingBox(), page.getByTestId('list-column').boundingBox()]);
     if (!summaryBox || !blockBox || !listBox) throw new Error('the readings are not laid out');
     expect(blockBox.y).toBeGreaterThan(summaryBox.y);
     expect(listBox.y).toBeGreaterThan(blockBox.y);
     await expect(page.getByTestId('where-dome')).toHaveCount(0);
     // It ticks once a second from the wall clock.
-    const before = await block.getByTestId('next-event-label').textContent();
+    const before = await label.textContent();
     await page.clock.setFixedTime(NINE_DAYS_ON + 5_000);
-    await expect(block.getByTestId('next-event-label')).not.toHaveText(before ?? '');
+    await expect(label).not.toHaveText(before ?? '');
+  });
+});
+
+/**
+ * R130 (FR-FLOW-1, FR-FLOW-2; D-843, D-844): on a phone the home is the Where
+ * reading in two lines and then the three doors, whose foot is inside the first
+ * 600 px of an 844 px screen in both languages; each door is one link to its
+ * page — the next event's pass, `#stars`, `#live`.
+ */
+test.describe('the doors at 390 × 844 (FR-FLOW-1)', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  for (const locale of ['en', 'es'] as const) {
+    test(`in ${locale}: the doors' bottom edge is at or above 600 px, under the two-line Where`, async ({ page }) => {
+      await seedStoredRun(page, { locale });
+      const doors = ['door-satellites', 'door-stars', 'door-both'].map((id) => page.getByTestId(id));
+      for (const door of doors) await expect(door).toBeVisible();
+      await expect(page.getByTestId('door-stars').getByTestId('door-stars-line').nth(1)).not.toHaveAttribute('data-pending', '', { timeout: 30_000 });
+      const boxes = await Promise.all(doors.map((door) => door.boundingBox()));
+      const status = await page.getByTestId('where-status').boundingBox();
+      const bottom = Math.max(...boxes.map((box) => (box?.y ?? Infinity) + (box?.height ?? 0)));
+      console.log(`R130: the doors' bottom edge at 390 × 844 in ${locale}: ${String(Math.round(bottom))} px`);
+      expect(bottom).toBeLessThanOrEqual(600);
+      // In order, one under the other, under the Where's status line; each at least 44 px tall and full width.
+      for (const [i, box] of boxes.entries()) {
+        expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+        expect(box?.y ?? 0).toBeGreaterThan(i === 0 ? (status?.y ?? Infinity) : (boxes[i - 1]?.y ?? Infinity));
+        expect(Math.abs((box?.width ?? 0) - (boxes[0]?.width ?? 0))).toBeLessThanOrEqual(1);
+      }
+      // Every line on one row: a door line never wraps (34 cells, `doorRows.test.ts`).
+      const wrapped = await page.locator('[data-testid^="door-"][data-testid$="-line"]').evaluateAll((lines) => lines.filter((line) => line.scrollWidth > line.clientWidth + 1).map((line) => line.textContent));
+      expect(wrapped).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+    });
+  }
+
+  test('each door opens its page: the next pass, #stars, #live', async ({ page }) => {
+    await seedStoredRun(page);
+    const satellites = page.getByTestId('door-satellites');
+    await expect(satellites).toHaveAttribute('href', /^#pass=/);
+    // The stored run is recomputed under the page, so the next pass may change; the URL is the door's own at the tap.
+    await satellites.click();
+    await expect(page).toHaveURL(/#pass=[^&]+$/);
+    await expect(page.getByTestId('guide-panel').or(page.getByRole('dialog')).first()).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.getByTestId('door-stars').click();
+    await expect(page).toHaveURL(/#stars$/);
+    await page.goBack();
+    await page.getByTestId('door-both').click();
+    await expect(page).toHaveURL(/#live$/);
   });
 });
 
@@ -164,22 +219,19 @@ test.describe('the three readings by width (FR-FIRST-5, D-443)', () => {
         await expect(heading).toBeVisible();
         expect((await heading.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(20);
       }
-      // Board 1B's When: the stripe, the table, then the next event (FR-FIRST-8, FR-FIRST-9, FR-FIRST-3).
-      // R93 (FR-HOME-2, D-606): on the two columns the next event stands directly under the stripe, the table after it.
+      // Board 1B's When: the stripe, then the table (FR-FIRST-8, FR-FIRST-9); the next event is the Satellites door's (R130).
       const whenPane = page.getByTestId('reading-when');
-      const blocks = panes ? ['tonight-stripe', 'conditions', 'next-event'] : ['tonight-stripe', 'next-event', 'conditions'];
-      const order = await Promise.all(blocks.map(async (id) => (await whenPane.getByTestId(id).boundingBox())?.y ?? NaN));
+      const order = await Promise.all(['tonight-stripe', 'conditions'].map(async (id) => (await whenPane.getByTestId(id).boundingBox())?.y ?? NaN));
       expect(order).toEqual([...order].sort((a, b) => a - b));
+      await expect(page.getByTestId('next-event')).toHaveCount(0);
+      // R130 (FR-FLOW-1, FR-FIRST-11 as amended): the doors one row over the panes, and no dome in Where.
+      await expect(page.getByTestId('where-dome')).toHaveCount(0);
+      const doors = await Promise.all(['door-satellites', 'door-stars', 'door-both'].map((id) => page.getByTestId(id).boundingBox()));
+      for (const door of doors) {
+        expect(Math.abs((door?.y ?? NaN) - (doors[0]?.y ?? NaN))).toBeLessThanOrEqual(1);
+        expect((door?.y ?? Infinity) + (door?.height ?? 0)).toBeLessThanOrEqual(Math.min(where.y, when.y, what.y));
+      }
       if (panes) {
-        // FR-FIRST-11 (D-512): the dome of the sky now, in Where, the pane's width square, one link to #live.
-        const dome = page.getByTestId('reading-where').getByTestId('where-dome');
-        await expect(dome).toHaveAttribute('href', '#live');
-        await expect(dome.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
-        // R93 (FR-HOME-3, D-607): square, never wider than the pane, and the pane does not scroll by it.
-        const domeBox = await dome.boundingBox();
-        expect(domeBox?.width ?? 0).toBeGreaterThanOrEqual(LIVE_BOX_MIN_PX);
-        expect(domeBox?.width ?? 0).toBeLessThanOrEqual(where.width + 1);
-        expect(Math.abs((domeBox?.height ?? 0) - (domeBox?.width ?? 0))).toBeLessThanOrEqual(2);
         // Three equal panes, side by side, on one band.
         expect(when.x).toBeGreaterThan(where.x + where.width - 1);
         expect(what.x).toBeGreaterThan(when.x + when.width - 1);
