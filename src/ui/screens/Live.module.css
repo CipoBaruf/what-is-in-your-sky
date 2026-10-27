@@ -401,9 +401,8 @@
    dropped while it shows, and nothing moves. The offset is 0, which keeps the ring inside the row's leading. Both
    layouts give Back the tap box here (compact as the primitive's `inline` form, a short wide window through
    `[data-fold] button`), so the rule is scoped to neither and written to outrank both. R129 (D-855): Back is the
-   header's `[ ← ]` now, found by its test id. */
-.page[data-compact] .topRow [data-testid='live-back']:focus-visible {
-  --focus-offset: 0;
+   header's `[ ← ]` now, which carries this class (`backClassName`) and its own flush offset. */
+.page[data-compact] .back:focus-visible {
   min-height: 0;
   padding-block: 0;
   margin-block: 0;

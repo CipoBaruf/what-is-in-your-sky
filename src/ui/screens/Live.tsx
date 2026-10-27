@@ -280,7 +280,7 @@ function TopRow({ place, indicator, screenOpen, onLeave }: { place: string | nul
           the accessible tree, since `inert` alone is a browser behaviour and not a name a test can read. */}
       <div className={styles.topRow} data-testid="live-top-row" {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
         {/* R85 (FR-COMP-7, D-549): `[ ← ]`, named by the word it no longer draws, is the header's on every sub-page now. */}
-        <Header page="live" landmark={false} context={place} onBack={onLeave} status={indicator ?? undefined} />
+        <Header page="live" landmark={false} context={place} onBack={onLeave} backClassName={styles.back} status={indicator ?? undefined} />
       </div>
       {!screenOpen && <PageNotices kinds={LIVE_NOTES} />}
     </div>

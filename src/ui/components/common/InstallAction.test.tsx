@@ -1,3 +1,4 @@
+import { createRef } from 'react';
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -172,7 +173,7 @@ describe('<InstallAction> (V11-16, D-260)', () => {
       fire(installable().event);
       render(
         <I18nProvider locale={locale}>
-          <SettingsPage onLeave={vi.fn()} installEnv={CHROMIUM} />
+          <SettingsPage backRef={createRef()} installEnv={CHROMIUM} />
         </I18nProvider>,
       );
       const row = screen.getByTestId('settings-install');

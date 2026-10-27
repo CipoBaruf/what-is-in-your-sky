@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { createRef, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { I18nProvider, useLocale, useT } from '../i18n/useT';
 import { isFaint } from '../lib/faint';
 import { MOON_LORE } from '../lib/flags';
@@ -46,6 +46,9 @@ const MoonLore = MOON_LORE ? lazy(() => import('./components/moon/MoonLore').the
 
 /** R87 (FR-VISIT-4): the one link note home can be showing; the moment's two are the live page's (R89). */
 const HOME_NOTES = ['unreadable'] as const;
+
+/** R129 (D-845): the settings header's `[ ← ]`, which the settings chunk focuses when it arrives. One app, one ref. */
+const SETTINGS_BACK = createRef<HTMLButtonElement>();
 
 /**
  * R5: the screen only writes the observer to the store; the effects started
@@ -415,7 +418,7 @@ export function App() {
    * 844 px phone.
    */
   // R93 (D-545): the page is a chunk; while it is on its way the header's bead runs (FR-MARK-5), through this flag.
-  if (settings.active) return <Shell routeKey={routeKey} title={title} {...settingsShell(t, { onLeave: settings.leave }, { arriving: settingsArriving, onArriving: setSettingsArriving, place: observer?.label ?? null })} />;
+  if (settings.active) return <Shell routeKey={routeKey} title={title} {...settingsShell(t, { onLeave: settings.leave, backRef: SETTINGS_BACK }, { arriving: settingsArriving, onArriving: setSettingsArriving, place: observer?.label ?? null })} />;
   /*
    * R115 (FR-STAR-3, D-756): the stars page is a screen like the settings one — the header (its `[ stars ]` the
    * current page's), the page as `main`, no footer — and a chunk of its own, fetched here or from the link ahead

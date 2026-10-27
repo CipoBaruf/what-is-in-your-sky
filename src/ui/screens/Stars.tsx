@@ -25,7 +25,11 @@ import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import { darkWindowText } from '../components/now/ConditionsTable';
 import { requestPlace } from './home/placeRequest';
-import { useNight } from './home/useNight';
+import { nightWindow } from './home/tonight';
+import { useSkyBands } from '../components/live/useSkyBands';
+import { cloudVerdict } from '../../lib/cloudVerdict';
+import { HOUR_MS, type Span } from '../../lib/timeStripe';
+import { tonightsDark } from '../../lib/tonightStripe';
 import { FieldList } from './stars/FieldList';
 import { fieldObjects, fieldPasses, fieldRows, sceneCatalog, STAR_LABEL_HOLD_S } from './stars/field';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
@@ -101,7 +105,7 @@ export function StarsPage() {
   if (observer === null) {
     return (
       <>
-        <StarsHeading observer={null} />
+        <StarsHeading observer={null} now={null} />
         <div className={styles.inert} data-testid="stars-inert" ref={inertRef}>
           <p>{p.noPlace}</p>
           <TextButton label={p.setPlace} data-testid="stars-set-place" onClick={requestPlace} />
@@ -360,7 +364,7 @@ function StarsSky({ observer }: { observer: Observer }) {
   return (
     <div className={styles.page} data-layout={mode}>
       <div {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
-        <StarsHeading observer={observer} />
+        <StarsHeading observer={observer} now={now} />
       </div>
       {/* FR-FSC-1 (D-321): under the layer the page is out of reach — `inert` for Tab and a tap past it, `aria-hidden`
           for the accessible tree, as the live page's top row — and held at its last render, so the tick redraws
@@ -430,24 +434,40 @@ function StarsSky({ observer }: { observer: Observer }) {
  * forecast at the middle of the night). Before the bands are known the line is the cloud word alone; with no place,
  * the heading alone. R132 moves the block into the `answer` slot.
  */
-function StarsHeading({ observer }: { observer: Observer | null }) {
+function StarsHeading({ observer, now }: { observer: Observer | null; now: EpochMs | null }) {
   const t = useT();
   return (
     <div className={styles.intro} data-testid="stars-intro">
       <h1 className={styles.heading}>{t.starsHeading}</h1>
-      {observer !== null && <TonightLine observer={observer} />}
+      {observer !== null && now !== null && <TonightLine observer={observer} now={now} />}
     </div>
   );
 }
 
-function TonightLine({ observer }: { observer: Observer }) {
+/** `useTonight`'s span: a day back and a day and a half ahead of the hour, so tonight's dark band is in it whole. */
+const TONIGHT_BACK_MS = 24 * HOUR_MS;
+const TONIGHT_AHEAD_MS = 36 * HOUR_MS;
+
+/**
+ * `useNight`'s reading, on the page's own clock: the stars page already ticks (`STARS_TICK_MS`), so the line takes
+ * that `now` rather than a second timer, and samples the bands once an hour, when the span moves.
+ */
+function TonightLine({ observer, now }: { observer: Observer; now: EpochMs }) {
   const t = useT();
   const locale = useLocale();
-  const night = useNight(observer);
-  const dark = night.bands.length === 0 ? null : night.dark === null ? t.home.noDarkWindow : `${t.home.conditions.dark} ${darkWindowText(night.dark, night.sampledFrom, observer.timeZone, locale, t)}`;
+  const hour = Math.floor(now / HOUR_MS) * HOUR_MS;
+  const span = useMemo<Span>(() => ({ start: hour - TONIGHT_BACK_MS, end: hour + TONIGHT_AHEAD_MS }), [hour]);
+  const bands = useSkyBands(observer, span);
+  const weather = useAppStore((s) => s.weather);
+  const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
+  const known = bands.length > 0;
+  const night = known ? nightWindow(bands, observer, now) : null;
+  const darkBand = known ? tonightsDark(bands, now) : null;
+  const clouds = cloudVerdict(snapshot, night ? (night.start + night.end) / 2 : now);
+  const dark = !known ? null : darkBand === null ? t.home.noDarkWindow : `${t.home.conditions.dark} ${darkWindowText(darkBand, span.start, observer.timeZone, locale, t)}`;
   return (
     <p className={styles.tonight} data-testid="stars-tonight">
-      {[dark, t.weather.state[night.clouds.state]].filter((piece) => piece !== null).join(' · ')}
+      {[dark, t.weather.state[clouds.state]].filter((piece) => piece !== null).join(' · ')}
     </p>
   );
 }
