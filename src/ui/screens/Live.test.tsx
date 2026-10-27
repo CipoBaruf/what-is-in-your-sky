@@ -839,7 +839,7 @@ describe('<LivePage>', () => {
     for (const testid of ['live-side', 'stripe-block', 'time-stripe', 'playback-controls', 'playback-row', 'live-actions', 'live-time']) expect(screen.queryByTestId(testid)).toBeNull();
     // The page's one-row header is covered rather than unmounted, and out of the accessible tree with it.
     expect(screen.getByTestId('live-top-row')).toHaveAttribute('aria-hidden', 'true');
-    expect(screen.queryByRole('button', { name: en.live.back })).toBeNull();
+    expect(screen.queryByRole('button', { name: en.header.backName })).toBeNull();
     // Leaving the screen: the whole page is back, at the instant it was left at — not at now.
     act(() => {
       appStore.getState().closeSkyScreen();

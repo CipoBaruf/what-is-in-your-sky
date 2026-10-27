@@ -9,8 +9,6 @@ import type { PageKeyId } from '../../lib/shortcuts';
  */
 export const stars = {
   stars: {
-    /** FR-STAR-3: the wide header's page link, beside `[ live ]`. */
-    link: 'stars',
     /** FR-A11Y-1, FR-A11Y-3: the page's `h1` and the tab's route name, "Stars · …". */
     heading: 'Stars',
     /** FR-STAR-3: the compact When pane's first line, "Stars tonight · [ look up ]". */

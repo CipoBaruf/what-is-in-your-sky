@@ -149,8 +149,6 @@ export const ui = {
   settings: {
     /** The compact header's control. Lower case, like `[ live ]` beside it: they are one row of the same kind. */
     open: 'settings',
-    /** The page's own way back, beside `Esc` and the browser's Back (US-20 AC4). */
-    back: '\u2190 Back',
     /** Names the region for assistive technology; the page shows no title of its own (the mockup). */
     heading: 'Settings',
     /**
@@ -501,7 +499,6 @@ export const ui = {
   },
 
   guide: {
-    back: '← Back to the list',
     /** R23 (FR-DESK-3): the wide panel's close control. The glyph is `×`; this is what it is called. */
     close: 'Close the guide',
     /** The wide panel is a labelled region rather than a dialog (D-118), so it says what kind of region it is. */

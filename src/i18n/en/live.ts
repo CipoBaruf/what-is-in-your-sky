@@ -35,13 +35,6 @@ export const live = {
     openShort: 'live',
     /** The Now panel's link to the same page. */
     openFromNow: 'Watch the sky live',
-    back: '← Back',
-    /**
-     * R85 (FR-COMP-7, D-549): on compact the return control draws the arrow alone, `[ ← ]`, and says the word —
-     * the place has the width the word took. `backName` is its accessible name there.
-     */
-    backShort: '←',
-    backName: 'Back',
     loading: 'Loading the live sky…',
     /**
      * R89 (FR-LIVE-1 as amended v2.1, FR-FIRST-1, F-75, F-92): the three states before the page can draw, told
