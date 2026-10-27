@@ -1141,11 +1141,6 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
     const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} />);
     const box = container.querySelector('[tabindex="0"]') as HTMLElement;
-    const catalog = en.window as Record<string, unknown>;
-    catalog['field'] = 'field';
-    onTestFinished(() => {
-      delete catalog['field'];
-    });
     for (const deltaY of [-70, -70, 70, 70]) {
       fireEvent.wheel(box, { deltaY, ctrlKey: true });
       frame();
@@ -1156,10 +1151,10 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
 
   /**
    * R125 (FR-SKY-14, FR-GUT-3 as amended, FR-FOL-5): what the field feeds follows it — the readout's suffix, the
-   * projection's scale (the same star further from the centre zoomed in), and the ground thresholds. The suffix's
-   * word is R123's string: without it no suffix is drawn (D-822); with it, ` · field 30°`, rounded to 5°.
+   * projection's scale (the same star further from the centre zoomed in), and the ground thresholds. The suffix is
+   * R123's `window.field` (D-822): ` · field 30°`, rounded to 5°.
    */
-  it('zooming scales the drawing about the centre, moves the ground threshold, and names the field in the readout once the word exists', () => {
+  it('zooming scales the drawing about the centre, moves the ground threshold, and names the field in the readout', () => {
     const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
     const { container } = render(<SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} />);
     const w = wrapper(container);
@@ -1167,11 +1162,11 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     const readout = screen.getByTestId('window-readout');
     const zenithX = (): number => Number(/translate\((-?[\d.]+) (-?[\d.]+)\)/.exec(container.querySelector('[data-marker="zenith"]')?.getAttribute('transform') ?? '')?.[2]);
     const atDefault = zenithX();
-    // No word in the catalog yet (R123's): the readout is the one line, and the field is on the root for the tests.
+    // Zoomed: the readout names the field, rounded to 5°, and the root carries it in whole degrees.
     fireEvent.keyDown(box, { key: '+' });
     fireEvent.keyDown(box, { key: '+' });
     fireEvent.keyDown(box, { key: '+' });
-    expect(readout).toHaveTextContent(/^Looking S \(180°\) · up 35°$/);
+    expect(readout).toHaveTextContent(/^Looking S \(180°\) · up 35° · field 30°$/);
     expect(w).toHaveAttribute('data-fov', '31');
     // The zenith, 55° above the centre, is further up the drawing at 30° than at 60° (and off the box: the drawing is 390 px).
     expect(zenithX()).toBeLessThan(atDefault);
@@ -1186,12 +1181,7 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     expect(w).toHaveAttribute('data-ground', 'buried');
     fireEvent.keyDown(box, { key: '0' });
     expect(w).toHaveAttribute('data-ground', 'ground');
-    // With the word (R123 adds `window.field`): the suffix, rounded to 5°, and none at the default field.
-    const catalog = en.window as Record<string, unknown>;
-    catalog['field'] = 'field';
-    onTestFinished(() => {
-      delete catalog['field'];
-    });
+    // The suffix, rounded to 5°, and none at the default field.
     act(() => {
       camera.up();
     });
@@ -1202,6 +1192,21 @@ describe('the hand camera and the rotation channel (FR-STAR-4, FR-STAR-9, FR-STA
     expect(readout).toHaveTextContent(/^Looking S \(180°\) · up 90° · field 30°$/);
     fireEvent.keyDown(box, { key: '0' });
     expect(readout).toHaveTextContent(/^Looking S \(180°\) · up 90°$/);
+  });
+
+  /** R123 (FR-SKY-14, D-822): the readout's field suffix is the catalog's, in Spanish too. */
+  it('names the zoomed field in Spanish', () => {
+    const camera = createHandCamera({ azDeg: 180, altDeg: 35 });
+    const { container } = render(
+      <I18nProvider locale="es">
+        <SkyWindow passes={[pass]} observer={observer} highlightedPassId={pass.id} camera={camera} />
+      </I18nProvider>,
+    );
+    const box = container.querySelector('[tabindex="0"]') as HTMLElement;
+    for (let i = 0; i < 3; i += 1) fireEvent.keyDown(box, { key: '+' });
+    expect(screen.getByTestId('window-readout')).toHaveTextContent(/ · campo 30°$/);
+    fireEvent.keyDown(box, { key: '0' });
+    expect(screen.getByTestId('window-readout')).not.toHaveTextContent(/campo/);
   });
 
   /** R125 (FR-SKY-14): under the sensor — the screen — the pinch is the window's own field state, `WINDOW_FOV` at every mount. */

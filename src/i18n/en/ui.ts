@@ -533,6 +533,8 @@ export const ui = {
       endsWhen: 'Ends when it',
       sunAtPeak: 'Sun at peak',
       sunWithLabel: (p: { degrees: string; twilight: boolean }) => `${p.degrees}${p.twilight ? ' (sky still bright)' : ''}`,
+      /** R123 for R127 (FR-SKY-12, D-796): the table's last column, the constellation each point is among (`—` past `AMONG_MAX_DEG`). */
+      among: 'Among',
     },
     /** "N 46°" in the table: abbreviation then degrees. */
     azimuth: (p: { point: CompassPoint; degrees: string }) => `${p.point} ${p.degrees}`,

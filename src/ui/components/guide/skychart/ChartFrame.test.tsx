@@ -20,10 +20,11 @@
  */
 import { render, screen as rtl, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
+import type { ReactNode } from 'react';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { stubMatchMedia, WIDE_PX } from '../../../../../tests/support/matchMedia';
-import { ChartFrame } from './ChartFrame';
+import { ChartFrame, ChartFrameSlots } from './ChartFrame';
 
 const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/ChartFrame.module.css'), 'utf8');
 const rect = (width: number, height: number): DOMRect => ({ width, height, x: 0, y: 0, top: 0, left: 0, right: width, bottom: height, toJSON: () => ({}) });
@@ -215,5 +216,27 @@ describe('<ChartFrame> the window’s ratio (FR-SKY-2, D-789)', () => {
       listen.mockRestore();
       media.restore();
     }
+  });
+});
+
+/** R123 review (FR-SKY-3, D-814): `[ stars ]` at the end of the readout row whatever the status renders. */
+describe('<ChartFrame> the readout row’s action (FR-SKY-3, D-814)', () => {
+  const statusRow = (status: ReactNode) =>
+    render(
+      <ChartFrameSlots.Provider value={{ readoutAction: <button type="button">[ stars ]</button> }}>
+        <ChartFrame fill status={status}>
+          <div data-drawing="window" />
+        </ChartFrame>
+      </ChartFrameSlots.Provider>,
+    ).container.querySelector('[data-row="status"]');
+
+  it('keeps the status in one cell and the toggle in the last, for one node, several or none', () => {
+    for (const status of [<p key="one">readout</p>, [<p key="a">readout</p>, <p key="b">true north</p>], null]) {
+      const row = statusRow(status);
+      expect(row).toHaveAttribute('data-action', 'true');
+      expect(row?.children).toHaveLength(2);
+      expect(row?.lastElementChild).toContainElement(rtl.getAllByRole('button', { name: '[ stars ]' }).at(-1) ?? null);
+    }
+    expect(css).toMatch(/\.readoutAction \{[^}]*grid-column: 2;/);
   });
 });

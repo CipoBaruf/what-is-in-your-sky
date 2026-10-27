@@ -70,6 +70,12 @@ async function recordFirstFrames(page: Page): Promise<void> {
     const sample = (left: number): void => {
       requestAnimationFrame(() => {
         const html = document.documentElement;
+        // `page.clock` fakes `requestAnimationFrame` as a 16 ms timer, so a callback can run before the parser
+        // has made the root element; that is no frame at all, so it is not sampled and does not count.
+        if (html === null) {
+          sample(left);
+          return;
+        }
         const theme = html.getAttribute('data-theme');
         frames.push({ theme, background: getComputedStyle(html).backgroundColor });
         if (theme !== null || left <= 1) window_.__framesDone = true;

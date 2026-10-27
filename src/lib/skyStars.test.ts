@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { HorizonFromVector, MakeTime, Observer, RotateVector, Rotation_EQJ_HOR, Spherical, VectorFromSphere } from 'astronomy-engine';
 import { describe, expect, it } from 'vitest';
 import { starCatalog } from '../data/stars/catalog';
+import { sunAltitudeDeg } from '../physics/sun';
 import { PLANETS, starsAt } from './skyStars';
 import { angularDistanceDeg } from './skyGeometry';
 
@@ -122,5 +123,11 @@ describe('starsAt memo', () => {
     const d = separation(altA, azA, b.altDeg[i] ?? NaN, b.azDeg[i] ?? NaN);
     expect(d).toBeGreaterThan(0.2);
     expect(d).toBeLessThan(0.3);
+  });
+  /** R123 (FR-STAR-13): the Sun the twilight steps read is the Sun at the same instant, as the physics has it. */
+  it('carries the Sun’s altitude at the instant, as `physics/sun.ts` gives it', () => {
+    for (const at of [t, t + 6 * 3_600_000, t + 12 * 3_600_000]) {
+      expect(starsAt(catalog, paris, at).sunAltDeg).toBeCloseTo(sunAltitudeDeg({ ...paris, altM: 0, label: '', source: 'coords', timeZone: null }, at), 2);
+    }
   });
 });

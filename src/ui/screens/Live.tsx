@@ -21,6 +21,7 @@ import { LegendInventoryContext, type LegendInventory } from '../components/guid
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useChartHand } from '../components/guide/skychart/useChartHand';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
+import { useSkyScene } from '../components/guide/skychart/useSkyScene';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
 import { BackToLive, HiddenToggle, LegendToggle, PlaybackControls, ScrubButton } from '../components/live/PlaybackControls';
@@ -28,6 +29,7 @@ import { INDICATOR_MARK_PX, StateIndicator } from '../components/live/StateIndic
 import { Rule } from '../components/primitives/Rule';
 import { TextButton } from '../components/primitives/TextButton';
 import { StatusStrip } from '../components/live/StatusStrip';
+import { StarsToggle } from '../components/live/StarsToggle';
 import { StepControls } from '../components/live/StepControls';
 import { StripeOverview } from '../components/live/StripeOverview';
 import { TimeReadout } from '../components/live/TimeReadout';
@@ -37,6 +39,7 @@ import { usePageShape } from '../components/live/usePageShape';
 import { usePlayback } from '../components/live/usePlayback';
 import { useSkyBands } from '../components/live/useSkyBands';
 import { useWakeLock, type WakeLockState } from '../components/live/useWakeLock';
+import { useStarSource } from '../components/live/useStarSource';
 import { useWallThrottle } from '../components/live/useWallThrottle';
 import { Mark } from '../components/mark/Mark';
 import { JumpControl, NextEventBlock } from '../components/passes/NextEventBlock';
@@ -486,6 +489,15 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   const bodiesAt = useWallThrottle(shown, BODIES_EVERY_MS);
   const bodies = useSkyBodies({ observer, now: bodiesAt });
   const bands = useSkyBands(observer, span);
+  /*
+   * R123 (FR-SKY-3, FR-SKY-8, FR-STAR-13; D-791): the stars under the arcs, at the shown instant — one scene for
+   * whichever view the page draws and for the screen, rotated once per shown instant, so at 3600× the stars turn
+   * with the arcs. The twilight step reads the Sun at the same shown instant (the positions carry it), not the
+   * once-a-second bodies, so a fast scrub into the day never draws a night sky.
+   */
+  const starsLayer = useAppStore((s) => s.starsLayer);
+  const starSource = useStarSource(starsLayer);
+  const scene = useSkyScene({ observer, now: shown, starsLayer, source: starSource });
   const snapshot = weather.observer === observer && weather.status === 'ready' ? weather.snapshot : null;
   const cloud = cloudVerdict(snapshot, shown);
   const count = visibleCount(passes, shown);
@@ -644,6 +656,8 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
       {has('next-event') && jumpAt === 'actions' && <JumpControl passes={passes} context={nextEventContext} hours={liveHours} onSee={seePass} />}
       {has('back-to-live') && !backAtHead && <BackToLive onNow={playback.toNow} short />}
       {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
+      {/* R123 (FR-SKY-3, D-791, D-814): on wide in both states; on compact the actions rows are full (FR-COMP-7), so it is the chart's (`compactSlots`). */}
+      {!compact && <StarsToggle />}
       {has('list') && <LegendToggle open={legendOpen} count={legendCount} controls={LEGEND_PANEL_ID} onToggle={toggleLegend} />}
       {/* R85 (FR-COMP-7, D-549): bracketed again on compact, as every other action; the Spanish labels beside it were shortened instead (D-411 withdrawn). */}
       <div className={styles.share} data-testid="live-share">
@@ -672,6 +686,10 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
         : { clip: (entryRows, headerRows) => inventoryClip(entryRows, Math.max(0, inventoryRows - headerRows)), moreLabel: t.live.more },
     [inventoryRows, t],
   );
+  // R123 (FR-SKY-3, FR-COMP-4, FR-COMP-5; D-791, D-814): on compact `[ stars ]` goes past the view to the chart, as the wide page's bar does —
+  // `inline` on the view row, the second text line of its one tap row, so the box keeps its floor; on the landscape phone, whose
+  // narrow column already wraps the view control to two lines, at the end of the readout row.
+  const compactSlots = useMemo(() => (placement === 'rail' ? { readoutAction: <StarsToggle inline /> } : { viewAction: <StarsToggle inline /> }), [placement]);
   const top = <TopRow place={observer.label} indicator={compact && placement !== 'rail' ? indicator : null} screenOpen={screenOpen} onLeave={onLeave} />;
   const page = (children: ReactNode): ReactNode => (
     <Page state="live" wakeLock={wakeLock} fold={fold} placement={placement} top={top}>
@@ -679,7 +697,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
     </Page>
   );
   if (screenOpen) {
-    return page(<SkyScreen passes={chartPasses} observer={observer} now={shown} sun={bodies.sun} moon={bodies.moon} initialFacingAzDeg={0} onClose={closeScreen} />);
+    return page(<SkyScreen passes={chartPasses} observer={observer} now={shown} sun={bodies.sun} moon={bodies.moon} scene={scene} initialFacingAzDeg={0} onClose={closeScreen} />);
   }
 
   if (compact && placement === 'rail') {
@@ -694,7 +712,9 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
     return page(
       <>
         <div className={styles.dome} data-testid="live-dome" data-stripe-under={false}>
-          <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} moonPhase chartHand={chartHand} />
+          <ChartFrameSlots.Provider value={compactSlots}>
+            <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} moonPhase chartHand={chartHand} scene={scene} />
+          </ChartFrameSlots.Provider>
         </div>
         <div className={styles.side} data-testid="live-side">
           <div className={styles.railHead} data-testid="live-rail-head">
@@ -738,7 +758,9 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
         <div className={styles.dome} data-testid="live-dome" data-stripe-under={false}>
           {/* R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): `moonPhase` is the compact page's alone — the phase and
               the illumination its conditions line gave up. The wide page below leaves the legend's plain Moon line. */}
-          <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} moonPhase chartHand={chartHand} />
+          <ChartFrameSlots.Provider value={compactSlots}>
+            <SkyChart passes={chartPasses} observer={observer} highlightedPassId={null} now={shown} sun={bodies.sun} moon={bodies.moon} hidden={hidden} colorBy="pass" fill initialFacingAzDeg={0} legendOpen={legendOpen} moonPhase chartHand={chartHand} scene={scene} />
+          </ChartFrameSlots.Provider>
         </div>
         <div className={styles.side} data-testid="live-side">
           {conditions}
@@ -820,6 +842,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
             aside={side}
             boxAspect={DOME_BOX_ASPECT}
             chartHand={chartHand}
+            scene={scene}
             {...(scrubBlock === null || overlaid ? {} : { stripe: scrubBlock })}
           />
           </LegendInventoryContext.Provider>

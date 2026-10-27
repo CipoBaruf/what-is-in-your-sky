@@ -26,6 +26,10 @@ export const windowMessages = {
     handHint: 'Drag the window, or use the arrow keys, to look around.',
     /** FR-GUIDE-4's readout for the window: where the back of the phone points, e.g. "Looking NE (53°) · up 10°". */
     readout: (p: { point: CompassPoint; azimuth: string; altitude: string }) => `Looking ${p.point} (${p.azimuth}) · up ${p.altitude}`,
+    /** R123 for R127 (FR-SKY-13, D-797): the readout's first line while the facing key follows the highlighted pass, "Following A". */
+    following: (p: { key: string }) => `Following ${p.key}`,
+    /** R123 for R125 (FR-SKY-14, D-798): the readout's first line's suffix while the field is zoomed, " · field 30°" (rounded to 5°). */
+    field: (p: { degrees: string }) => ` · field ${p.degrees}`,
     /** FR-WIN-3 / US-21 AC6: the correction named, as the live strip names it. */
     trueNorth: (p: { declination: string }) => `true north, declination ${p.declination}`,
     /** R56 (FR-FOL-5, US-21 AC10): the note over the hatched ground while some sky is still in the field. */

@@ -3427,7 +3427,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
 
 ### Wave 3
 
-- [ ] **R123 — The stars under the arcs: `[ stars ]`, `starsLayer`, the chunk's load and prefetch, the twilight steps in the scene, and every string of the phase**
+- [x] **R123 — The stars under the arcs: `[ stars ]`, `starsLayer`, the chunk's load and prefetch, the twilight steps in the scene, and every string of the phase**
   - **Lane:** live
   - **Model:** opus
   - **Review:** opus
@@ -3449,6 +3449,7 @@ Decision block (§16.2), reserved in PLAN §16.23: **R119 D-802..D-804, R120 D-8
     - `localPrefs.test.ts`, `controlRows.test.ts` and `sky-screen.spec.ts` with stars pass; `live-perf.spec.ts` green with the stars on.
     - The Done note carries main, `live` and `stars` against `ece8bfd`.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+  - **Done (2026-10-26):** as written, except where `[ stars ]` stands on compact: D-791's readout row, built and measured, cost the box a text row and failed FR-COMP-5 (373 px against 374 at 390 × 844 scrubbing, 282 against 304 at 390 × 667) and the guide's equal dome and polar frames, so on compact portrait it is the view row's second text line, `inline` inside the row's one 48 px tap row, and on the landscape phone it ends the readout row (D-814); wide is as written. The twilight step cuts the scene's catalogue through the source, which carries `drawnRungs` and `drawnMagLimit` from the `stars` chunk, the Sun's altitude riding with the positions at the scene's instant (D-815); the stars page keeps its own scene (its file is R125's in this wave), so its twilight step is left to R126. The pass detail evaluates its bodies once and hands them to the chart and the screen; the loader shares `whenIdle` with the settings prefetch (D-816). `live-perf.spec.ts` with the stars on: 42.5 updates/s at 390 px, 37.5 at 1280 px (6× throttle, 3600×), and after the review (the Sun evaluated with the stars at every shown instant) 44.3 and 35.6; it now enters scrubbing for the speeds. Budget against `ece8bfd` (same machine): `main` 169.8 → 171.7 KB (the parent 170.5; +1.2 here; after merging R124 and R125 and the review, 171.8 against the parent's 170.6, the scene hook, the loader, the toggle, the slots and the strings the pass detail pulls into `main` — over FR-SKY-10's ≤ 1 KB for the phase, accepted for the D-178 re-set), `live` 9.6 → 9.8, `stars` 23.6 → 24.1 (the parent 24.0). `shapes.spec.ts`'s `[ see this pass ]` table re-measured (D-814). Review captures: `r123-live-{1280-polar,390-dome}-dark-{en,es}`, `r123-live-844-polar-dark-en`, `r123-detail-1280-polar-dark-{en,es}`, `r123-detail-390-polar-dark-es` (`r123-captures.spec.ts`).
 
 - [x] **R124 — The dome's dots and the rate: the points mesh, the two palette entries, `dome-perf` against `ece8bfd`, the rasters re-baselined**
   - **Lane:** chart

@@ -49,6 +49,8 @@ export interface StarsAt {
   /** Azimuth of star `i` from north through east, degrees, in `[0, 360)`. */
   azDeg: Float32Array;
   planets: readonly PlanetAt[];
+  /** R123 (FR-STAR-13, FR-SKY-3): the Sun's geometric altitude at `t`, degrees — what the twilight steps read, at the very instant the stars are placed. */
+  sunAltDeg: number;
 }
 
 const RAD = Math.PI / 180;
@@ -92,7 +94,10 @@ export function starsAt(catalog: StarPositionsSource, observer: Pick<Observer, '
     return { body, azDeg: h.azimuth, altDeg: h.altitude, mag: Illumination(Body[body], time).mag };
   });
 
-  const result: StarsAt = { t, altDeg, azDeg, planets };
+  const sunEq = Equator(Body.Sun, time, where, true, true);
+  const sunAltDeg = Horizon(time, where, sunEq.ra, sunEq.dec).altitude;
+
+  const result: StarsAt = { t, altDeg, azDeg, planets, sunAltDeg };
   memo = { catalog, t, lat, lon, result };
   return result;
 }

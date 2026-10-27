@@ -1,6 +1,9 @@
 import type { MoonPhaseName } from '../../model';
 import type { live as EnLive } from '../en/live';
 
+/** R123 para R127 (FR-SKY-11): la palabra de dirección de la línea del punto de referencia. */
+const landmarkWord: typeof EnLive.live.landmarkWord = { above: 'sobre', below: 'bajo', beside: 'junto a' };
+
 /** Las ocho fases (D-103): la misma grafía que `es/ui.ts` usa para `moon.phase`, duplicada porque el lane `live` es dueño único de este archivo. */
 const moonPhase = {
   new: 'nueva',
@@ -111,5 +114,10 @@ export const live: typeof EnLive = {
     pauseShort: '‖',
     hiddenShort: 'Ocultos',
     shareShort: 'Compartir',
+    starsToggle: 'estrellas',
+    starsToggleName: 'Estrellas bajo los arcos',
+    landmarkWord,
+    landmarkLine: (p) => `pasa ${p.degrees} ${landmarkWord[p.word]} ${p.star}, en ${p.constellation}`,
+    landmarkThrough: (p) => `pasa por ${p.constellation}`,
   },
 };

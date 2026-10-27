@@ -57,6 +57,7 @@ import { UseMyLocation } from '../../src/ui/components/location/UseMyLocation';
 import { NextEventBlock } from '../../src/ui/components/passes/NextEventBlock';
 import { StatusStrip } from '../../src/ui/components/live/StatusStrip';
 import { LivePage } from '../../src/ui/screens/Live';
+import { PassDetail } from '../../src/ui/screens/PassDetail';
 import { VisitNotice } from '../../src/ui/components/common/VisitNotice';
 import { FaintToggle } from '../../src/ui/components/passes/FaintToggle';
 import { STARS_PAGE_CATALOGS } from '../../src/i18n/starsPageT';
@@ -300,6 +301,22 @@ const rows = (t: Messages): readonly Row[] => [
       fireEvent.click(screen.getByTestId('live-scrub'));
     },
     budget: LIVE_ROW_BUDGET,
+  },
+  /*
+   * R123 (FR-SKY-3, FR-COMP-4; D-791, D-814): `[x] stars` / `[x] estrellas` after the chart view control on compact —
+   * the live page's and the pass detail's — `inline`, so beside the control's 33 cells it is the tap row's second text
+   * line: that line is counted, 9 cells in English, 13 in Spanish. The actions rows above stay as they were.
+   */
+  {
+    name: 'the live view row’s [ stars ] line (FR-SKY-3)',
+    element: createElement(LivePage, { link: null, onLeave: noop }),
+    find: () => screen.getByTestId('stars-toggle'),
+    setUp: withLiveSky,
+  },
+  {
+    name: 'the pass detail view row’s [ stars ] line (FR-SKY-3)',
+    element: createElement(PassDetail, { pass, observer, onClose: noop, onShowList: noop }),
+    find: () => screen.getByTestId('stars-toggle'),
   },
   {
     // FR-WATCH-3: the clock, the longest sky word, the longest cloud word and a two-digit count — `21:14:32 crepúsculo limpio 12 arriba`.

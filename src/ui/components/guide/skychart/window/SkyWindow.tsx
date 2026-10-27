@@ -850,14 +850,10 @@ export function SkyWindow(props: SkyWindowProps) {
   const namedLine = byHand && scene?.stars && namedStar !== null ? namedReadout(scene.stars, namedStar, sp, locale) : null;
   /*
    * FR-SKY-14 (D-798, D-822): while the field is not `WINDOW_FOV` the first line ends with ` · field 30°` (rounded
-   * to 5°). The word is R123's string (`window.field`, the live lane, in this task's wave), read through a typed
-   * optional field so this compiles either side of it — as `screen` was read either side of R62 — and a key R123
-   * gives another type is a type error here; until it lands no suffix is drawn. `data-fov` on the root carries the
-   * field in whole degrees for the tests either way.
+   * to 5°). The words are R123's string, `window.field`, which takes the degrees and carries its own separator, as
+   * `following` takes the key. `data-fov` on the root carries the field in whole degrees for the tests.
    */
-  const windowCatalog: { readout: unknown; field?: string } = t.window;
-  const fieldWord = windowCatalog.field;
-  const fieldSuffix = fovDeg !== WINDOW_FOV && fieldWord !== undefined ? ` · ${fieldWord} ${degrees(Math.round(fovDeg / 5) * 5)}` : '';
+  const fieldSuffix = fovDeg !== WINDOW_FOV ? t.window.field({ degrees: degrees(Math.round(fovDeg / 5) * 5) }) : '';
   const status = live ? (
     <p className={styles.readout} data-testid="window-readout" {...(byHand ? { id: readoutId } : {})}>
       <span>

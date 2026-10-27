@@ -149,6 +149,24 @@ describe('createLocalPrefs', () => {
     expect(prefs.read()).toEqual({ locale: 'es' });
   });
 
+  it('reads the stars layer only when it is false, and as absent when it is true, missing or malformed (R123, FR-SKY-3, D-791)', () => {
+    const storage = memoryStorage();
+    const prefs = createLocalPrefs(storage);
+    prefs.write({ theme: 'night', starsLayer: false });
+    expect(prefs.read()).toEqual({ theme: 'night', starsLayer: false });
+    // `true` is what an absent key means: the stars are on by default.
+    prefs.write({ starsLayer: true });
+    expect(prefs.read()).toEqual({});
+    // A record from before v2.5 has no field at all.
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night' }));
+    expect(prefs.read()).toEqual({ theme: 'night' });
+    // `.catch(true)`: a value that is not a boolean is no choice, so the stars stay on and nothing else is lost.
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night', starsLayer: 'no' }));
+    expect(prefs.read()).toEqual({ theme: 'night' });
+    storage.map.set(PREFS_KEY, JSON.stringify({ locale: 'es', starsLayer: 0 }));
+    expect(prefs.read()).toEqual({ locale: 'es' });
+  });
+
   it('reads at most eight places, newest use first, whatever the stored list says (R26, D-85)', () => {
     const storage = memoryStorage();
     const prefs = createLocalPrefs(storage);
