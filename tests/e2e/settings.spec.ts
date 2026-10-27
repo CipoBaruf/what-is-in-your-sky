@@ -332,6 +332,20 @@ test.describe('the wide header at 1280 px (FR-DESK-2 as amended, US-20 AC5)', ()
     await expect(page.locator('a[href="#settings"]')).toHaveCount(1);
   });
 
+  test('home reaches home when the page the app loaded on was a route: #settings, then live, then home (D-857)', async ({ page }) => {
+    await seedStoredRun(page);
+    // A bookmark on #settings: the load's own entry is the route.
+    await page.goto('/#settings');
+    await page.reload();
+    await expect(page.getByTestId('header')).toHaveAttribute('data-page', 'settings');
+    await page.getByTestId('live-link').click();
+    await expect(page).toHaveURL(/#live$/);
+    await page.getByTestId('home-link').click();
+    await expect(page.getByTestId('header')).toHaveAttribute('data-page', 'home');
+    expect(new URL(page.url()).hash).toBe('');
+    await expect(page.getByTestId('home-link')).toHaveAttribute('aria-current', 'page');
+  });
+
   test('the live link is drawn on the title’s own line (FR-DESK-2, D-501)', async ({ page }) => {
     await seedStoredRun(page);
     const header = page.getByTestId('header');
