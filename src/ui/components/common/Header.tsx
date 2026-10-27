@@ -98,8 +98,15 @@ export function Header({ page = 'home', context = null, onBack, status, landmark
   const sub = page !== 'home';
   const rootClass = (shape: string | undefined): string => [styles.header, shape, landmark ? styles.landmark : undefined].filter(Boolean).join(' ');
 
+  /*
+   * `[ ← ]` hangs off its text row (`inline`, its 48 px hit box as padding and a matching negative margin) on every
+   * compact row and in the shell's wide header. In the live page's wide grid it keeps the boxed form it had there
+   * (D-855): `lib/layout.ts`'s `LIVE_KEPT_ROWS_PX` counts that top row as a tap row, and the short window's fold
+   * (`Live.module.css` `[data-fold] button`) is what takes it to one text row.
+   */
+  const inlineBack = mode === 'compact' || landmark;
   const back = sub && (
-    <TextButton inline label={t.header.back} aria-label={t.header.backName} className={styles.back} onClick={onBack} data-testid={`${page}-back`} />
+    <TextButton inline={inlineBack} label={t.header.back} aria-label={t.header.backName} className={styles.back} onClick={onBack} data-testid={`${page}-back`} />
   );
   const contextText =
     sub && context !== null && context !== '' ? (

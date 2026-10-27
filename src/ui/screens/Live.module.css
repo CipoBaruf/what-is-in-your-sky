@@ -390,9 +390,23 @@
 /* R129 (FR-FLOW-3, D-845): the top row is the app's one header, told it is the live page (`Header.module.css` lays it
    out: `[ ← ]`, the indicator and the place on compact, one cell apart, the place ellipsising — FR-COMP-7's 360 px
    coordinate pair; the one wide row elsewhere). This box is only what the sky screen makes inert.
-   F-100 (V21-24, D-642): Back's flush focus ring went with it, into the header's stylesheet. */
+   */
 .topRow {
   min-width: 0;
+}
+
+/* F-100 (V21-24, D-642): entering `#live` focuses Back (FR-A11Y-4), and with no pointer or key yet pressed the
+   browser draws that as `:focus-visible`. R75's rule for inline controls, applied here: the ring goes round the
+   text line, not the tap box, so the padding, the buttons' `min-height` and the matching negative margin are all
+   dropped while it shows, and nothing moves. The offset is 0, which keeps the ring inside the row's leading. Both
+   layouts give Back the tap box here (compact as the primitive's `inline` form, a short wide window through
+   `[data-fold] button`), so the rule is scoped to neither and written to outrank both. R129 (D-855): Back is the
+   header's `[ ← ]` now, found by its test id. */
+.page[data-compact] .topRow [data-testid='live-back']:focus-visible {
+  --focus-offset: 0;
+  min-height: 0;
+  padding-block: 0;
+  margin-block: 0;
 }
 
 .dome {
