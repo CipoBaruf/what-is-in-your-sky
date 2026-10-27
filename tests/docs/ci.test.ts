@@ -140,7 +140,9 @@ describe('the R36 capture findings (FR-FIX-2)', () => {
     expect(read('tests/e2e/captureSeeds.ts')).toContain('export async function pinnedAt(page: Page, t: number)');
     expect(captureSpec).toMatch(/import \{[^}]*pinnedAt[^}]*\} from '\.\/captureSeeds'/);
     // R79: `liveAt` pins to its `shown` parameter, `SHOWN` unless the chip capture asks for its own instant.
-    expect([...captureSpec.matchAll(/await pinnedAt\(page, (SHOWN|shown)\)/g)]).toHaveLength(2);
+    // R128 (FR-SKY-9): four more — the window laid out in the box, the stars page with `[ passes ]`, the window
+    // following the pass and the screen from the stars page each put the instant back on `SHOWN` after their waits.
+    expect([...captureSpec.matchAll(/await pinnedAt\(page, (SHOWN|shown)\)/g)]).toHaveLength(6);
     expect(captureSpec).toContain('shown: number = SHOWN');
     expect(captureSpec).not.toContain('await page.clock.setSystemTime(SHOWN - TICK_MS)');
   });
