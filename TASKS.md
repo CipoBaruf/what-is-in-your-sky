@@ -3645,7 +3645,7 @@ What every session reads (§16.24, D-284's rule), written once here and named in
     - The Done note gives the header's cells at 360 px in Spanish on each of the four sub-pages.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
 
-- [ ] **R130 — The home's doors and the folded Where: `HomeDoors`, `doorLines`, `brightestDrawn`, the Satellites door's target, `WherePlace`'s `folded`, `StarsLine` and `WhereDome` removed, the doors at both widths**
+- [x] **R130 — The home's doors and the folded Where: `HomeDoors`, `doorLines`, `brightestDrawn`, the Satellites door's target, `WherePlace`'s `folded`, `StarsLine` and `WhereDome` removed, the doors at both widths**
   - **Lane:** data
   - **Model:** opus
   - **Review:** opus
