@@ -46,8 +46,8 @@ function readinessStamp(at: EpochMs, timeZone: string | null, locale: Locale): s
 /** How often the line re-checks whether its own date has gone past (F-23). A minute is finer than the date it states. */
 const READINESS_CHECK_MS = 60_000;
 
-/** What the line reads, once every input it reads has an answer for this observer; null before. */
-function useReadiness() {
+/** What the line reads, once every input it reads has an answer for this observer; null before. R130: the folded Where reads it too (D-844). */
+export function useReadiness() {
   const observer = useAppStore((s) => s.observer);
   const passes = useAppStore((s) => s.passes);
   const elements = useAppStore((s) => s.elements);

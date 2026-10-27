@@ -7,10 +7,11 @@
  * - FR-HOME-1: at 964, 1024, 1118 and 1280 px in both languages the header's
  *   height is one of two values — with its tagline line or without — and the
  *   title row's children stand on one line.
- * - FR-HOME-2: at 1024 × 768 and 1280 × 800 in both languages the next-event
- *   block is wholly inside the viewport on load.
+ * - FR-HOME-2: at 1024 × 768 and 1280 × 800 in both languages the next event —
+ *   since R130 (FR-FLOW-1) the Satellites door's — is wholly inside the viewport
+ *   on load, and the three doors are one row above the panes.
  * - FR-HOME-3: at 1118 × 700, 1280 × 800 and 1920 × 1080 Where and When do not
- *   scroll, and Where holds the dome with its lines.
+ *   scroll, and Where's lines are on screen; no dome (FR-FIRST-11 as amended).
  * - FR-HOME-4: at 1920 and 2560 px the content is `HOME_MAX_CELLS` wide and
  *   centred, the panes equal.
  *
@@ -19,7 +20,7 @@
  * their sizes above, unchanged, and this file is what proves it in both languages.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { HOME_MAX_CELLS, HOME_THREE_PANE_MIN_PX, LIVE_BOX_MIN_PX, WIDE_MIN_PX } from '../../src/lib/layout';
+import { HOME_MAX_CELLS, HOME_THREE_PANE_MIN_PX, WIDE_MIN_PX } from '../../src/lib/layout';
 import { seedStoredRun } from './liveHelpers';
 
 const LOCALES = ['en', 'es'] as const;
@@ -69,14 +70,11 @@ async function overflowPx(pane: Locator): Promise<number> {
   return pane.evaluate((element, discount) => element.scrollHeight - discount - element.clientHeight, allowance);
 }
 
-/** `global.css`'s inline control: the 48 px tap box stands a quarter row above and below the 24 px line it keeps. */
-const TAP_PAD = 12;
-
 async function openHome(page: Page, width: number, height: number, locale: Locale): Promise<void> {
   await page.setViewportSize({ width, height });
   await seedStoredRun(page, { locale });
   await expect(page.getByTestId('reading-when')).toBeVisible();
-  await expect(page.getByTestId('next-event-label')).toBeVisible();
+  await expect(page.getByTestId('door-satellites')).toBeVisible();
   // The When pane's late blocks — the flag's tradition line rides on a lazy chunk and the Moon's state — are
   // in before anything is measured: the pane's content is read until it has stood still for a moment.
   await page.waitForLoadState('networkidle');
@@ -130,30 +128,26 @@ test.describe('FR-HOME-2: the next event is on screen', () => {
     [1280, 800],
   ] as const) {
     for (const locale of LOCALES) {
-      test(`at ${String(width)} × ${String(height)} in ${locale}: the block is wholly inside the viewport on load`, async ({ page }) => {
+      test(`at ${String(width)} × ${String(height)} in ${locale}: the doors are one row above the panes, the Satellites door wholly on screen`, async ({ page }) => {
         await openHome(page, width, height, locale);
-        const block = page.getByTestId('next-event');
-        const when = page.getByTestId('reading-when');
-        const allowance = await loreAllowancePx(when);
-        if (allowance === 0) {
-          await expect(block).toBeInViewport({ ratio: 1 });
-          for (const part of ['next-event-label', 'next-event-time', 'next-event-path']) await expect(block.getByTestId(part)).toBeInViewport({ ratio: 1 });
-          // `[ Open the live sky ]` is the block's last line; its tap box stands a quarter row under that line, past
-          // the block's own edge, so the line is what is asked to be inside.
-          const [rect, link] = await Promise.all([box(block), box(block.getByTestId('now-live-link'))]);
-          expect(link.y + TAP_PAD).toBeGreaterThanOrEqual(rect.y - 1);
-          expect(link.y + link.height - TAP_PAD).toBeLessThanOrEqual(rect.y + rect.height + 1);
-        } else {
-          // The flag's line stands above the block on the three panes; without it the block is inside the pane's box and the viewport.
-          const [rect, pane] = await Promise.all([box(block), box(when)]);
-          expect(rect.y - allowance).toBeGreaterThanOrEqual(0);
-          expect(rect.y + rect.height - allowance).toBeLessThanOrEqual(Math.min(height, pane.y + pane.height) + 1);
+        // R130 (FR-FLOW-1, D-843): the next event is the Satellites door's, and the block has left the home.
+        await expect(page.getByTestId('next-event')).toHaveCount(0);
+        const satellites = page.getByTestId('door-satellites');
+        await expect(satellites).toBeInViewport({ ratio: 1 });
+        const doors = await Promise.all(['door-satellites', 'door-stars', 'door-both'].map((id) => box(page.getByTestId(id))));
+        const panes = await Promise.all(['reading-where', 'reading-when', 'list-column'].map((id) => box(page.getByTestId(id))));
+        const top = Math.min(...panes.map((pane) => pane.y));
+        for (const door of doors) {
+          // One row of three equal boxes, every one above the panes.
+          expect(Math.abs(door.y - (doors[0]?.y ?? NaN))).toBeLessThanOrEqual(1);
+          expect(Math.abs(door.width - (doors[0]?.width ?? NaN))).toBeLessThanOrEqual(1);
+          expect(door.y + door.height).toBeLessThanOrEqual(top);
         }
-        // Under the stripe on the two columns (D-606), after the table on the three panes (board 1B).
-        const [stripe, table, next] = await Promise.all([box(page.getByTestId('tonight-stripe')), box(page.getByTestId('conditions')), box(block)]);
-        expect(next.y).toBeGreaterThan(stripe.y + stripe.height - 1);
-        if (width < HOME_THREE_PANE_MIN_PX) expect(table.y).toBeGreaterThan(next.y + next.height - 1);
-        else expect(next.y).toBeGreaterThan(table.y + table.height - 1);
+        expect(doors[1]?.x ?? 0).toBeGreaterThan((doors[0]?.x ?? 0) + (doors[0]?.width ?? 0) - 1);
+        expect(doors[2]?.x ?? 0).toBeGreaterThan((doors[1]?.x ?? 0) + (doors[1]?.width ?? 0) - 1);
+        // No dome in the Where pane (FR-FIRST-11 as amended).
+        await expect(page.getByTestId('reading-where').getByTestId('where-dome')).toHaveCount(0);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
       });
     }
   }
@@ -166,20 +160,15 @@ test.describe('FR-HOME-3: one pane scrolls', () => {
     [1920, 1080],
   ] as const) {
     for (const locale of LOCALES) {
-      test(`at ${String(width)} × ${String(height)} in ${locale}: Where and When fit their panes, Where with the dome`, async ({ page }) => {
+      test(`at ${String(width)} × ${String(height)} in ${locale}: Where and When fit their panes, under the doors`, async ({ page }) => {
         await openHome(page, width, height, locale);
         const where = page.getByTestId('reading-where');
         const when = page.getByTestId('reading-when');
-        // The dome is the height the pane has left, square, never wider than the pane (D-607).
-        const dome = where.getByTestId('where-dome');
-        await expect(dome).toBeVisible();
-        const [domeBox, whereBox] = await Promise.all([box(dome), box(where)]);
-        expect(domeBox.width).toBeGreaterThanOrEqual(LIVE_BOX_MIN_PX);
-        expect(domeBox.width).toBeLessThanOrEqual(whereBox.width + 1);
-        expect(Math.abs(domeBox.height - domeBox.width)).toBeLessThanOrEqual(2);
+        // R130: no dome in the Where pane (FR-FIRST-11 as amended); the Both door does its job.
+        await expect(where.getByTestId('where-dome')).toHaveCount(0);
         expect(await overflowPx(where), 'Where scrolls').toBeLessThanOrEqual(0);
         expect(await overflowPx(when), 'When scrolls').toBeLessThanOrEqual(0);
-        // With the dome drawn, the lines under it are all on screen: the elements line and the saved places (and the readiness line where it is shown).
+        // The Where pane's lines are all on screen: the elements line and the saved places (and the readiness line where it is shown).
         for (const line of ['elements-line', 'favourites']) await expect(where.getByTestId(line)).toBeInViewport({ ratio: 1 });
         if ((await where.getByTestId('readiness').count()) > 0) await expect(where.getByTestId('readiness')).toBeInViewport({ ratio: 1 });
       });

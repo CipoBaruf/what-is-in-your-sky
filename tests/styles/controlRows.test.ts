@@ -63,7 +63,6 @@ import { VisitNotice } from '../../src/ui/components/common/VisitNotice';
 import { FaintToggle } from '../../src/ui/components/passes/FaintToggle';
 import { STARS_PAGE_CATALOGS } from '../../src/i18n/starsPageT';
 import { StarsPage } from '../../src/ui/screens/Stars';
-import { StarsLine } from '../../src/ui/screens/home/StarsLine';
 import { StateIndicator } from '../../src/ui/components/live/StateIndicator';
 import { formatDate } from '../../src/lib/timeFormat';
 import type { HeaderPage } from '../../src/i18n/messages';
@@ -373,7 +372,6 @@ const rows = (t: Messages): readonly Row[] => [
       },
     }),
   ),
-  { name: 'the When pane’s stars line (FR-STAR-3)', element: createElement(StarsLine), find: () => screen.getByTestId('stars-line'), budget: SMALL_BUDGET },
 ];
 
 /** The stars page's own words for the catalog `rows` was given (they ride in the page's chunk, D-777). */

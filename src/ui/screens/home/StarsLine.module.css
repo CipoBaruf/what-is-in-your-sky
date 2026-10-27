@@ -1,9 +1,0 @@
-/* R115 (FR-STAR-3): the When pane's first line on a phone, at `--small` like the pane's other secondary lines, on one
-   row: 27 characters in English, 38 in Spanish, of the 41 a 390 px row holds at this size. */
-.line {
-  margin: 0;
-  font-size: var(--small);
-  line-height: var(--small-row);
-  white-space: nowrap;
-  color: var(--fg-dim);
-}

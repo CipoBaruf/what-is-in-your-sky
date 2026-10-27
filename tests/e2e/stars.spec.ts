@@ -183,14 +183,13 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
 test.describe('the stars page on a phone, 390 × 844 (US-39 AC3)', () => {
   test.use({ viewport: PHONE, hasTouch: true });
 
-  test('opens from the When pane’s first line, and lays out the readout, the box full-bleed and square, then the rows', async ({ page }) => {
+  test('opens from the home’s Stars door, and lays out the readout, the box full-bleed and square, then the rows', async ({ page }) => {
     await asReader(page);
     await page.goto('/');
-    const line = page.getByTestId('stars-line');
-    // The link's brackets are the stylesheet's (BracketLink): the text is the words.
-    await expect(line).toHaveText(`Stars tonight · ${WORDS.en.lookUp}`);
+    // R130 (FR-FLOW-1): the When pane's "Stars tonight · [ look up ]" gave way to the Stars door.
+    await expect(page.getByTestId('stars-line')).toHaveCount(0);
     await expect(page.getByTestId('stars-link')).toHaveCount(0);
-    await page.getByTestId('stars-look-up').click();
+    await page.getByTestId('door-stars').click();
     await expect(page).toHaveURL(/#stars$/);
     const sky = drawing(page);
     await expect.poll(async () => (await box(sky)).width).toBe(PHONE.width);

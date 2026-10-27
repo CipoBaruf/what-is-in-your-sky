@@ -1,9 +1,9 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { HorizonFromVector, MakeTime, Observer, RotateVector, Rotation_EQJ_HOR, Spherical, VectorFromSphere } from 'astronomy-engine';
+import { Body, Equator, Horizon, HorizonFromVector, MakeTime, Observer, RotateVector, Rotation_EQJ_HOR, SearchRiseSet, Spherical, VectorFromSphere } from 'astronomy-engine';
 import { describe, expect, it } from 'vitest';
 import { starCatalog } from '../data/stars/catalog';
 import { sunAltitudeDeg } from '../physics/sun';
-import { PLANETS, starsAt } from './skyStars';
+import { brightestDrawn, moonNow, PLANETS, starsAt, type StarsAt } from './skyStars';
 import { angularDistanceDeg } from './skyGeometry';
 
 /**
@@ -129,5 +129,84 @@ describe('starsAt memo', () => {
     for (const at of [t, t + 6 * 3_600_000, t + 12 * 3_600_000]) {
       expect(starsAt(catalog, paris, at).sunAltDeg).toBeCloseTo(sunAltitudeDeg({ ...paris, altM: 0, label: '', source: 'coords', timeZone: null }, at), 2);
     }
+  });
+});
+
+/** R130 (FR-FLOW-1, D-843): the wide Stars door's Moon line, against astronomy-engine's own altitude and phase. */
+describe('moonNow', () => {
+  const paris = { lat: 48.86, lon: 2.35 };
+  it('says sets while the Moon is up and rises while it is down, the event within a day and after t', () => {
+    for (let h = 0; h < 24; h += 3) {
+      const t = Date.UTC(2026, 0, 15, h);
+      const moon = moonNow(paris, t);
+      expect(moon.pct).toBeGreaterThanOrEqual(0);
+      expect(moon.pct).toBeLessThanOrEqual(100);
+      expect(moon.at).not.toBeNull();
+      expect(moon.at ?? 0).toBeGreaterThan(t);
+      expect(moon.at ?? 0).toBeLessThan(t + 86_400_000);
+      const after = moonNow(paris, (moon.at ?? t) + 30 * 60_000);
+      // Half an hour past the event the Moon is on the other side of the horizon.
+      expect(after.event).not.toBe(moon.event);
+    }
+  });
+
+  it('agrees with the search around a moonrise: just after the refracted rise it is up, with its set ahead', () => {
+    const rise = SearchRiseSet(Body.Moon, new Observer(paris.lat, paris.lon, 0), 1, MakeTime(new Date(Date.UTC(2026, 0, 15))), 2);
+    expect(rise).not.toBeNull();
+    const at = rise?.date.getTime() ?? 0;
+    const before = moonNow(paris, at - 60_000);
+    expect(before.event).toBe('rises');
+    expect(Math.abs((before.at ?? 0) - at)).toBeLessThan(1_000);
+    // A minute after the upper limb clears the refracted horizon the centre is still below 0°: the line stays.
+    const where = new Observer(paris.lat, paris.lon, 0);
+    const time = MakeTime(new Date(at + 60_000));
+    const eq = Equator(Body.Moon, time, where, true, true);
+    expect(Horizon(time, where, eq.ra, eq.dec).altitude).toBeLessThan(0);
+    const after = moonNow(paris, at + 60_000);
+    expect(after.event).toBe('sets');
+    expect(after.at).not.toBeNull();
+    expect(after.at ?? 0).toBeGreaterThan(at);
+  });
+});
+
+/** R130 (FR-FLOW-1, D-843): the Stars door's "Brightest now", over a made-up scene so each rule is seen alone. */
+describe('brightestDrawn', () => {
+  const scene = (over: { sunAltDeg?: number; alt?: number[]; az?: number[]; planets?: StarsAt['planets'] } = {}) => ({
+    // Sirius-like, Canopus-like, a faint one: the catalogue is in magnitude order.
+    mag: [-1.46, -0.74, 3.0],
+    positions: {
+      t: 0,
+      altDeg: Float32Array.from(over.alt ?? [20, 30, 60]),
+      azDeg: Float32Array.from(over.az ?? [90, 180, 0]),
+      planets: over.planets ?? [],
+      sunAltDeg: over.sunAltDeg ?? -18,
+    } satisfies StarsAt,
+  });
+
+  it('takes the lowest magnitude above the horizon, with its 16-point direction', () => {
+    expect(brightestDrawn(scene())).toEqual({ kind: 'star', index: 0, mag: -1.46, dir: 'E' });
+    expect(brightestDrawn(scene({ alt: [-5, 30, 60] }))).toEqual({ kind: 'star', index: 1, mag: -0.74, dir: 'S' });
+  });
+
+  it('lets a brighter planet win, and drops one below the horizon', () => {
+    const venus = { body: 'Venus' as const, azDeg: 250, altDeg: 10, mag: -4.2 };
+    expect(brightestDrawn(scene({ planets: [venus] }))).toEqual({ kind: 'planet', body: 'Venus', mag: -4.2, dir: 'WSW' });
+    expect(brightestDrawn(scene({ planets: [{ ...venus, altDeg: -1 }] }))?.kind).toBe('star');
+  });
+
+  it('follows the twilight step: the first two rungs in civil twilight, nothing with the Sun up', () => {
+    // At −3° only the rungs to magnitude 1.5 are drawn, so the faint star never counts even alone above the horizon.
+    expect(brightestDrawn(scene({ sunAltDeg: -3, alt: [-5, -5, 60] }))).toBeNull();
+    expect(brightestDrawn(scene({ sunAltDeg: -3, alt: [-5, 30, 60] }))?.dir).toBe('S');
+    expect(brightestDrawn(scene({ sunAltDeg: 5, planets: [{ body: 'Venus', azDeg: 250, altDeg: 10, mag: -4.2 }] }))).toBeNull();
+  });
+
+  it('names the real sky: the brightest drawn over Paris at night is in the catalogue and above the horizon', () => {
+    const catalog = starCatalog();
+    const night = Date.UTC(2026, 0, 15, 23);
+    const positions = starsAt(catalog, { lat: 48.86, lon: 2.35 }, night);
+    const found = brightestDrawn({ mag: catalog.mag, positions });
+    expect(found).not.toBeNull();
+    if (found?.kind === 'star') expect(positions.altDeg[found.index]).toBeGreaterThan(0);
   });
 });

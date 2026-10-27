@@ -1,7 +1,8 @@
-import { Body, Equator, Horizon, Illumination, MakeTime, Observer as AeObserver, Rotation_EQJ_HOR } from 'astronomy-engine';
+import { Body, Equator, Horizon, Illumination, MakeTime, Observer as AeObserver, Rotation_EQJ_HOR, SearchRiseSet } from 'astronomy-engine';
 import { DEFAULT_THRESHOLDS } from '../physics/constants';
 import { msToDate } from '../physics/time';
 import type { EpochMs, Locale, Observer, VisibilityThresholds } from '../model';
+import { compassPoint, type CompassPoint } from './compass';
 import { RUNG_MAX_MAG } from './starRungs';
 
 /**
@@ -154,3 +155,62 @@ export const planetsDrawn = (sunAltDeg: number): boolean => sunAltDeg <= DAYLIGH
 
 /** The faintest magnitude `rungs` drawn rungs show; `-Infinity` for none. */
 export const drawnMagLimit = (rungs: number): number => (rungs > 0 ? (RUNG_MAX_MAG[Math.min(rungs, RUNG_MAX_MAG.length) - 1] ?? Number.NEGATIVE_INFINITY) : Number.NEGATIVE_INFINITY);
+
+/** R130 (FR-FLOW-1, D-843): the brightest thing the stars layer draws, a catalogue star by index or a planet by name. */
+export type BrightestDrawn = ({ kind: 'star'; index: number } | { kind: 'planet'; body: PlanetName }) & { mag: number; dir: CompassPoint };
+
+/**
+ * R130 (FR-FLOW-1, D-843): the home's Stars door's "Brightest now: Canopus, S"
+ * — of the stars and planets FR-SKY-3's twilight step draws above 0° at the
+ * positions' instant (`drawnRungs`, `planetsDrawn`), the one with the lowest
+ * magnitude, with its 16-point direction. `null` with nothing drawn above the
+ * horizon, which is every daytime sky.
+ */
+export function brightestDrawn(scene: { mag: ArrayLike<number>; positions: StarsAt }): BrightestDrawn | null {
+  const { mag, positions } = scene;
+  const limit = drawnMagLimit(drawnRungs(positions.sunAltDeg));
+  let best: BrightestDrawn | null = null;
+  for (let i = 0; i < mag.length; i += 1) {
+    const m = mag[i] ?? Number.POSITIVE_INFINITY;
+    const alt = positions.altDeg[i] ?? 0;
+    if (m <= limit && alt > 0 && (best === null || m < best.mag)) best = { kind: 'star', index: i, mag: m, dir: compassPoint(positions.azDeg[i] ?? 0) };
+  }
+  if (planetsDrawn(positions.sunAltDeg)) {
+    for (const p of positions.planets) {
+      if (p.altDeg > 0 && (best === null || p.mag < best.mag)) best = { kind: 'planet', body: p.body, mag: p.mag, dir: compassPoint(p.azDeg) };
+    }
+  }
+  return best;
+}
+
+/** R130 (FR-FLOW-1, D-843): the Moon as the wide Stars door states it. */
+export interface MoonNow {
+  /** The lit part, whole percent. */
+  pct: number;
+  /** `sets` while the Moon is above 0° at `t`, `rises` while it is below. */
+  event: 'sets' | 'rises';
+  /** When, within a day of `t`; `null` with none (a polar month). */
+  at: EpochMs | null;
+}
+
+/**
+ * The wide Stars door's third line, "Moon 64 % · sets 02:10": the lit part at `t` and the Moon's next set while it
+ * is up, or its next rise while it is down. Up or down is the search's own criterion — astronomy-engine's, the upper
+ * limb with refraction — read from which of the next rise and the next set comes first, so the two never disagree in
+ * the minutes around a rise or a set (D-860); the geometric centre would still be below 0° just after a refracted
+ * rise and ask for a rise a lunar day away. With neither within a day (a polar month), up is the centre's altitude.
+ */
+export function moonNow(observer: Pick<Observer, 'lat' | 'lon'>, t: EpochMs): MoonNow {
+  const time = MakeTime(msToDate(t));
+  const where = new AeObserver(observer.lat, observer.lon, 0);
+  const rise = SearchRiseSet(Body.Moon, where, 1, time, 1);
+  const set = SearchRiseSet(Body.Moon, where, -1, time, 1);
+  let up: boolean;
+  if (rise !== null || set !== null) up = set !== null && (rise === null || set.ut < rise.ut);
+  else {
+    const eq = Equator(Body.Moon, time, where, true, true);
+    up = Horizon(time, where, eq.ra, eq.dec).altitude > 0;
+  }
+  const next = up ? set : rise;
+  return { pct: Math.round(Illumination(Body.Moon, time).phase_fraction * 100), event: up ? 'sets' : 'rises', at: next === null ? null : next.date.getTime() };
+}

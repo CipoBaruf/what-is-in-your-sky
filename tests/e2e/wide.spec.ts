@@ -203,12 +203,9 @@ test('the list is as tall as the shell and no taller, with a pass open and witho
 
   // The recompute replaces the stored list as it streams in, and would fold the nights opened below.
   await listSettled(page);
-  // FR-FIRST-11 (D-512): on wide the Where reading holds the dome of the sky now, one link to #live.
-  // R93 (FR-HOME-3, D-607): the dome takes the height its pane has left, so on the two columns at 768 px —
-  // where Where and When share one scrolling column that their lines already overflow — it is not drawn.
-  const dome = page.getByTestId('reading-where').getByTestId('where-dome');
-  if (panes) await expect(dome).toHaveAttribute('href', '#live');
-  else await expect(dome).toHaveCount(0);
+  // FR-FIRST-11 as amended v2.6 (R130): the Where pane has no dome at any width; the Both door does its job.
+  await expect(page.getByTestId('reading-where').getByTestId('where-dome')).toHaveCount(0);
+  await expect(page.getByTestId('door-both')).toHaveAttribute('href', '#live');
   // The one-line cards (FR-FIRST-10) leave tonight alone shorter than a laptop's list: every night open, as a
   // reader planning the three would have them, is the list this is about.
   const closed = page.locator('[data-testid="night-toggle"][aria-expanded="false"]');

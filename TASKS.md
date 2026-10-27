@@ -3646,7 +3646,7 @@ What every session reads (§16.24, D-284's rule), written once here and named in
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
   - **Done:** at 360 px (33 cells on the widest font) in Spanish the compact header is: live `[ ← ]` + the mark + `en vivo` = 17 cells, with `−38.93, −67.99` 32; stars `[ ← ] estrellas` 15, with the pair 30; pass `[ ← ] pase` 10, with the date 21; settings `[ ← ] ajustes` 13, with the pair 28 (`controlRows.test.ts` pins each). On the live page the state indicator stands in the name's place (D-855); the settings page's own back row went to the header (D-856); the wide title no longer folds (D-857).
 
-- [ ] **R130 — The home's doors and the folded Where: `HomeDoors`, `doorLines`, `brightestDrawn`, the Satellites door's target, `WherePlace`'s `folded`, `StarsLine` and `WhereDome` removed, the doors at both widths**
+- [x] **R130 — The home's doors and the folded Where: `HomeDoors`, `doorLines`, `brightestDrawn`, the Satellites door's target, `WherePlace`'s `folded`, `StarsLine` and `WhereDome` removed, the doors at both widths**
   - **Lane:** data
   - **Model:** opus
   - **Review:** opus
@@ -3671,6 +3671,7 @@ What every session reads (§16.24, D-284's rule), written once here and named in
     - `npx vitest run src/ui/screens src/ui/components/location src/lib tests/styles` passes; `home.spec.ts` and `home-desk.spec.ts` pass.
     - The Done note gives the doors' bottom edge at 390 × 844 in both languages, and the `main` and `stars` rows of `npm run bundle:budget` against 2.5.0 (`main` within D-853's 174.5, `stars` ≤ 0.5 KB more).
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+  - **Done note:** the doors' bottom edge at 390 × 844 is 450 px in English and 470 px in Spanish (the stored-run fixture, whose not-ready line takes two rows); `npm run bundle:budget` against 2.5.0: `main` 173.0 → 174.5 KB (at D-853's 174.5, the whole of `FLOW_MAIN_KB`), `stars` 25.8 → 25.9 KB. The Satellites door opens `#pass=<id>`, the cards' hash, where the entry says `#pass/<id>`; the folded Where puts a failure first (D-858).
 
 - [x] **R131 — The words: "Facing" in the three readouts, the legend's rise · peak · set** — done: `chart.legend.times` replaced by `rise/peak/end` (D-861; "end", not "set", V26-13); the sky screen's strip keeps bare figures; `starsPage.readout` takes the azimuth (D-862); the named times fit their rows, the zone once and no inventory header (D-863).
   - **Lane:** chart

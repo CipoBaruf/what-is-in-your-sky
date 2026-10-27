@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent, type LazyExoticComponent, type ReactNode } from 'react';
 import { useT } from '../../i18n/useT';
-import type { Observer, Pass } from '../../model';
-import { searchPlaces, SEARCH_WINDOW_HOURS, useActiveObserver, useAppStore } from '../../state';
+import type { Observer } from '../../model';
+import { searchPlaces, useActiveObserver, useAppStore } from '../../state';
 import styles from '../App.module.css';
 import { Banner } from '../components/common/Banner';
 import { InstallHint } from '../components/common/InstallHint';
@@ -12,20 +12,19 @@ import { ElementsLine } from '../components/elements/ElementsLine';
 import { Favourites } from '../components/location/Favourites';
 import { LocationInput } from '../components/location/LocationInput';
 import type { GeolocationEnv } from '../components/location/UseMyLocation';
-import { WhereDome } from '../components/location/WhereDome';
 import { WherePlace } from '../components/location/WherePlace';
 import type { MoonLore as MoonLoreComponent } from '../components/moon/MoonLore';
 import { ConditionsTable } from '../components/now/ConditionsTable';
 import { TonightStripe } from '../components/now/TonightStripe';
 import { useTonight } from '../components/now/useTonight';
-import { NextEventBlock } from '../components/passes/NextEventBlock';
 import { PassList } from '../components/passes/PassList';
 import { TextButton } from '../components/primitives/TextButton';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { clearPlaceRequest, placeRequested } from './home/placeRequest';
 import { StepLine, stepLabel, STEPS, type Step } from './home/StepLine';
-import { usePassContext, useShownPasses } from './home/shownPasses';
-import { StarsLine } from './home/StarsLine';
+import { WHAT_ID } from './home/doorLines';
+import { HomeDoors } from './home/HomeDoors';
+import { useShownPasses } from './home/shownPasses';
 import { WhatStep } from './home/WhatStep';
 import { WhenStep } from './home/WhenStep';
 
@@ -53,6 +52,12 @@ import { WhenStep } from './home/WhenStep';
  * count and sort line and the one-line cards. The phone's stacked page is the
  * same components in the same order, without the dome.
  *
+ * R130 (FR-FLOW-1, FR-FLOW-2; D-843, D-844): the three doors (`HomeDoors`)
+ * stand under the Where reading on compact and in one row over the panes on
+ * wide; the next event and the When pane's stars line are theirs now, and the
+ * Where pane's dome is gone, whose job the Both door does. On compact the Where
+ * reading is two lines, the rest behind `[ details ]` (`WherePlace`'s `folded`).
+ *
  * The two columns' wrappers (`col-left`, `col-right`) are kept, because between
  * the wide breakpoint and the three-pane width the page *is* those two columns
  * and D-253's guide rules are written against the right one. At three-pane
@@ -68,11 +73,11 @@ export { StepLine, type Step } from './home/StepLine';
  * the plain word — `── When ──`, the title in `--fg` and the rules in
  * `--fg-dim` — the numbers being the cold open's and the steps'.
  */
-function Region({ step, className, testId, children }: { step: Step; className: string; testId: string; children: ReactNode }) {
+function Region({ step, className, testId, id, children }: { step: Step; className: string; testId: string; id?: string; children: ReactNode }) {
   const t = useT();
   const headingId = useId();
   return (
-    <section aria-labelledby={headingId} className={className} data-testid={testId} data-reading={step}>
+    <section id={id} aria-labelledby={headingId} className={className} data-testid={testId} data-reading={step}>
       <SectionHeading id={headingId}>{t.home.panes[step]}</SectionHeading>
       {children}
     </section>
@@ -180,15 +185,13 @@ export interface WhereReadingProps {
   step?: WhereStep;
   /** R87: the reader asked to set a place (`[ set a place ]`), so the focus goes into the group on arrival. */
   focusGroup?: boolean;
-  /** R97 (FR-FAINT-1): the open pass, which the shown passes keep whether or not it is faint, as the list does. */
-  selectedPassId?: string | null;
 }
 
 /**
  * FR-FIRST-1, FR-FIRST-2, FR-FIRST-11: the Where reading — the cold open with
  * no observer, and with one the place and its sentence (`WherePlace`), the
- * dome on wide, the readiness line, the elements line and the saved places,
- * each one line (R81, D-511).
+ * readiness line, the elements line and the saved places, each one line (R81,
+ * D-511) — on compact folded behind `[ details ]` (R130, D-844).
  *
  * The input group is one mounted instance across the two states, in the same
  * place in the tree, and only shown or hidden (D-467). A coordinate pair
@@ -209,14 +212,22 @@ export interface WhereReadingProps {
  * exactly while `step.onSettle` is given, `[ continue ]` stands under the
  * coordinate fields and does the same, so the way forward is on the screen.
  */
-export function WhereReading({ offersInert, geolocation, step, focusGroup = false, selectedPassId = null }: WhereReadingProps) {
+export function WhereReading({ offersInert, geolocation, step, focusGroup = false }: WhereReadingProps) {
   const t = useT();
   const mode = useLayoutMode();
   const observer = useActiveObserver();
   const setObserver = useAppStore((s) => s.setObserver);
   const clearSavedObserver = useAppStore((s) => s.clearSavedObserver);
-  const passes = useShownPasses(selectedPassId);
   const cold = observer === null || step !== undefined;
+  // R130 (FR-FLOW-2, D-844): on compact the populated Where is two lines, the rest behind `[ details ]`.
+  const folded = mode === 'compact';
+  const rest = (
+    <>
+      <ReadinessLine form="line" />
+      <ElementsLine />
+      <Favourites form="line" />
+    </>
+  );
   const [open, setOpen] = useState(false);
   const [wasCold, setWasCold] = useState(cold);
   const group = useRef<HTMLDivElement>(null);
@@ -267,6 +278,8 @@ export function WhereReading({ offersInert, geolocation, step, focusGroup = fals
       {/* FR-FIRST-11: the place, its sentence, and `[ change ]` opening the group in place (FR-SET-3). */}
       {!cold && (
         <WherePlace
+          folded={folded}
+          {...(folded ? { details: rest } : {})}
           open={open}
           controls={groupId}
           onToggle={() => {
@@ -294,34 +307,18 @@ export function WhereReading({ offersInert, geolocation, step, focusGroup = fals
             : {})}
         />
       </div>
-      {observer && !cold && <WhereDome observer={observer} passes={passes} />}
-      {!cold && <ReadinessLine form="line" />}
-      {!cold && <ElementsLine />}
-      {!cold && <Favourites form="line" />}
+      {!cold && !folded && rest}
     </section>
   );
-}
-
-/** FR-FIRST-3's host on the home page: the stored run's passes, and why there may be none. */
-function NextEventHost({ observer, passes }: { observer: Observer; passes: readonly Pass[] }) {
-  const { elementCount, hasDarkness, pending } = usePassContext();
-  // R93 (FR-HOME-2, D-606): the class is where the two-column layout's grid puts the block — under the stripe.
-  return <NextEventBlock passes={passes} timeZone={observer.timeZone} context={{ hasDarkness, elementCount }} pending={pending} hours={SEARCH_WINDOW_HOURS} className={styles.nextEvent} />;
 }
 
 /**
  * FR-FIRST-8, FR-FIRST-9, FR-FIRST-3 (R81): the When reading — tonight's
  * stripe, the conditions table with the Moon's tradition line under it
- * (FR-MOON-4), and the next event. The stripe and the table read one set of
- * bands (`useTonight`), so they cannot disagree.
- *
- * R93 (FR-HOME-2, D-606; F-76): the order here is the DOM's — the next event
- * last, as board 1B draws it and as the phone stacks it. On the two-column
- * layout (964 to 1117 px) Where stands above When in one scrolling column, and
- * the block at the foot of When was below the fold at 1024 × 768; there the
- * stylesheet places the block directly under the stripe through its one class
- * (`App.module.css` `.nextEvent`), and the table and the Moon line follow it.
- * The three panes put the order back.
+ * (FR-MOON-4). The stripe and the table read one set of bands (`useTonight`),
+ * so they cannot disagree. R130 (D-843): the next event is the Satellites
+ * door's now, at both widths, so R93's rule placing it under the stripe on the
+ * two columns went with it.
  */
 function WhenReading({ observer, MoonLore, selectedPassId }: { observer: Observer; MoonLore: HomeProps['MoonLore']; selectedPassId: string | null }) {
   const now = useAppStore((s) => s.now);
@@ -332,8 +329,6 @@ function WhenReading({ observer, MoonLore, selectedPassId }: { observer: Observe
   const moon = now.observer === observer ? (now.state?.moon ?? null) : null;
   return (
     <Region step="when" className={`${styles.reading} ${styles.when}`} testId="reading-when">
-      {/* R115 (FR-STAR-3): the phone's way to the stars, the pane's first line; nothing on wide. */}
-      <StarsLine />
       <TonightStripe bands={tonight.bands} passes={passes} observer={observer} now={tonight.now} />
       <ConditionsTable observer={observer} bands={tonight.bands} sampledFrom={tonight.sampledFrom} now={tonight.now} />
       {MoonLore && moon && (
@@ -341,7 +336,6 @@ function WhenReading({ observer, MoonLore, selectedPassId }: { observer: Observe
           <MoonLore moon={moon} timeZone={observer.timeZone} />
         </Suspense>
       )}
-      <NextEventHost observer={observer} passes={passes} />
     </Region>
   );
 }
@@ -504,10 +498,14 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
     );
   }
   const ghosts = observer === null && mode === 'wide';
+  // R130 (FR-FLOW-1, D-843): the three doors — under the Where reading on compact, one row over the panes on wide.
+  const doors = observer && <HomeDoors observer={observer} selectedPassId={selectedPassId} {...(mode === 'wide' ? { className: styles.doors } : {})} />;
   return (
     <>
+      {mode === 'wide' && doors}
       <div className={`${styles.column} ${styles.leftColumn}`} data-testid="col-left">
-        <WhereReading offersInert={offersInert} {...(geolocation ? { geolocation } : {})} focusGroup={placeRequest} selectedPassId={selectedPassId} />
+        <WhereReading offersInert={offersInert} {...(geolocation ? { geolocation } : {})} focusGroup={placeRequest} />
+        {mode !== 'wide' && doors}
         {ghosts && <GhostWhen />}
         {observer && <WhenReading observer={observer} MoonLore={MoonLore} selectedPassId={selectedPassId} />}
       </div>
@@ -518,7 +516,7 @@ export function Home({ offersInert, guide, shareNotice, selectedPassId, onOpenPa
       )}
       {observer && (
         <div className={styles.column} data-testid="col-right" data-guide={guide}>
-          <Region step="what" className={`${styles.reading} ${styles.listColumn}`} testId="list-column">
+          <Region step="what" id={WHAT_ID} className={`${styles.reading} ${styles.listColumn}`} testId="list-column">
             {shareNotice && (
               <Banner variant="info" testId="share-fallback">
                 {shareNotice}
