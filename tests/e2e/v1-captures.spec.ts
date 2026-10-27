@@ -49,7 +49,8 @@
  * the set reads cloud badges and `GMT-3` clocks where D-179's Paris night read
  * "weather unknown" and UTC. The routes are unchanged; only the seeds moved.
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import { WINDOW_FOV_MIN_DEG } from '../../src/ui/components/guide/skychart/window/projection';
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 // P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
 import { CLOCK, DAY_MS, SHOWN_PASS, SHOWN_PASS_START, guide, listSettled, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
@@ -137,18 +138,21 @@ async function settled(page: Page): Promise<void> {
  * touch panel. Playwright grants touch per context, so these tests need a
  * `test.use` of their own and the rest of the set must not have it.
  */
-const TOUCH = new Set(['window', 'sky-screen-sky', 'sky-screen-chip', 'sky-screen-ground', 'sky-screen-buried', 'sky-screen-portrait', 'sky-screen-turned', 'stars-screen']);
+const TOUCH = new Set(['window', 'sky-screen-sky', 'sky-screen-chip', 'sky-screen-ground', 'sky-screen-buried', 'sky-screen-portrait', 'sky-screen-turned', 'stars-screen', 'stars-passes-screen']);
 
 /**
  * R118 (FR-STAR-3, FR-WIN-4 as amended): the stars page is shot on the device each width's reader has —
  * a touch phone at 360 and 390, where `[ hold up to the sky ]` is on the page, and a desk without touch at
  * 1280 and 1920, where it is not. So touch is a property of the capture, not only of the screen.
  */
-const isTouch = (screen: string, width: CaptureWidth): boolean => TOUCH.has(screen) || (screen === 'stars' && VIEWPORTS[width].width <= 390);
+const isTouch = (screen: string, width: CaptureWidth): boolean => TOUCH.has(screen) || ((screen === 'stars' || screen === 'stars-passes') && VIEWPORTS[width].width <= 390);
 
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
 const VIEW_OPTION_WINDOW = { en: 'Window', es: 'Ventana' } as const;
+/** R128: the stars page's layer and its facing picker, by their names (R126's). */
+const PASSES = { en: 'passes', es: 'pases' } as const;
+const FACING = { en: 'Facing', es: 'Mirando' } as const;
 const FRAME_MS = 16;
 
 /** The two states R56 added to the window: `state` is how far below the horizon the phone points, in a square 60° box (R56's own numbers). */
@@ -414,8 +418,8 @@ async function whereDomeDrawn(page: Page, drawn: boolean): Promise<void> {
  * the window's Suspense reveals, which the paused clock holds (R32), and a star in the field. Then the
  * instant is put back on `CLOCK` (F-48), since the positions move with it.
  */
-async function starsAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale): Promise<void> {
-  await open(page, width, { locale, theme, observer: BARILOCHE });
+async function starsAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, time = CLOCK): Promise<void> {
+  await open(page, width, { locale, theme, observer: BARILOCHE }, time);
   await page.goto('/');
   await listSettled(page);
   await page.evaluate(() => {
@@ -428,11 +432,70 @@ async function starsAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loc
       return sky.locator('[data-drawing="window"] [data-star]:not([visibility="hidden"])').count();
     }, { timeout: 30_000 })
     .toBeGreaterThan(0);
-  await pinnedAt(page, CLOCK);
+  await pinnedAt(page, time);
   // The opening facing is the pole side, which over Bariloche is south, 35° up (FR-STAR-3).
   await expect(page.getByTestId('stars-page')).toHaveAttribute('data-look-az', '180');
   await expect(page.getByTestId('stars-page')).toHaveAttribute('data-look-alt', '35');
   await page.mouse.move(0, 0);
+}
+
+/**
+ * R128 (FR-SKY-2, FR-SKY-9; D-829): a chart's view control turned to `Window`, by the reader's click rather than
+ * a seeded `chartView` — on compact the choice is not saved (FR-SKY-2), so a seed would be a state no compact
+ * reader opens in, and the click is the same route at every width. With no touch panel the window is laid out
+ * in the box under the hand camera (the compact reader without a sensor, which is what a headless capture is);
+ * then the stars are waited for, since the `stars` chunk is lazy and the paused clock holds its reveal (R32),
+ * and the instant is put back where the capture wants it (F-48).
+ */
+async function windowInTheBox(page: Page, scope: Locator, locale: CaptureLocale, shown: number): Promise<Locator> {
+  await scope.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
+  await page.clock.runFor(1000);
+  await expect(page.getByTestId('sky-screen')).toHaveCount(0);
+  const w = scope.locator('[data-look-az]');
+  await expect(w).toHaveAttribute('data-state', 'hand');
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      return w.locator('[data-star]:not([visibility="hidden"])').count();
+    }, { timeout: 30_000 })
+    .toBeGreaterThan(0);
+  await pinnedAt(page, shown);
+  // The click left the focus ring on the option; the picture is of the page, not of a focused control.
+  await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
+  });
+  return w;
+}
+
+/**
+ * R128 (FR-SKY-6, D-829): the stars page at `SHOWN` with `[ passes ]` on, faced to the first of the eight points
+ * whose field lists a pass — R126's route (`r126-captures.spec.ts`) on the set's night. At `CLOCK` no pass is up or
+ * near, so the page is shot three minutes into the night's brightest pass, the instant the chart screens are of.
+ * Returns the azimuth faced, which the screen is then aimed at.
+ */
+async function starsWithPasses(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale): Promise<number> {
+  await starsAt(page, width, theme, locale, SHOWN);
+  await page.getByTestId('stars-layers').getByRole('button', { name: PASSES[locale] }).click();
+  const picker = page.getByTestId('stars-page').getByRole('group', { name: FACING[locale] });
+  let azDeg = 0;
+  for (const [index, name] of ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].entries()) {
+    azDeg = index * 45;
+    await picker.getByRole('button', { name, exact: true }).click();
+    let found = 0;
+    for (let step = 0; step < 10 && found === 0; step += 1) {
+      await page.clock.runFor(100);
+      found = await page.getByTestId('field-list').locator('[data-kind="pass"]').count();
+    }
+    if (found > 0) break;
+  }
+  await expect(page.getByTestId('field-list').locator('[data-kind="pass"]').first()).toBeAttached();
+  await pinnedAt(page, SHOWN);
+  await expect(page.getByTestId('stars-sky').locator('[data-drawing="window"] [data-pass-id]').first()).toBeAttached();
+  await page.evaluate(() => {
+    (document.activeElement as HTMLElement | null)?.blur();
+  });
+  await page.mouse.move(0, 0);
+  return azDeg;
 }
 
 type Reach = (page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, view: boolean) => Promise<void>;
@@ -733,6 +796,121 @@ const REACH: Record<string, Reach> = {
     await expect(layer.locator('[data-drawing="window"] [data-star]:not([visibility="hidden"])').first()).toBeAttached();
     await expect(layer.getByTestId('window-heading')).toBeVisible();
     await expect(layer.locator('[data-pass-id]')).toHaveCount(0);
+    await page.mouse.move(0, 0);
+  },
+
+  /**
+   * R128 (FR-SKY-2, FR-SKY-9; US-41 AC1, AC4): the live page watching at `SHOWN`, its view control on `Window`.
+   * Wide: the window-shaped box and the picker in the rail; compact: the square box by hand, the picker in its row.
+   */
+  async 'live-window'(page, width, theme, locale) {
+    await liveAt(page, width, theme, locale);
+    const chart = page.getByTestId('sky-chart');
+    await windowInTheBox(page, chart, locale, SHOWN);
+    await expect(chart).toHaveAttribute('data-view', 'window');
+    await expect(chart.getByTestId('window-facing')).toBeVisible();
+    await page.mouse.move(0, 0);
+  },
+
+  /**
+   * R128 (FR-SKY-13, FR-DESK-4 as amended v2.5; US-41 AC5): the same page at 1280 with `f` pressed — the window
+   * turned to the highlighted pass, which at `SHOWN` is the one three minutes in, and the key pressed in the rail.
+   */
+  async 'live-window-follow'(page, width, theme, locale) {
+    await liveAt(page, width, theme, locale);
+    const chart = page.getByTestId('sky-chart');
+    await windowInTheBox(page, chart, locale, SHOWN);
+    await page.keyboard.press('f');
+    await page.clock.runFor(FRAME_MS);
+    // The live page's set starts a pass already up at the instant it computed (`CHIP_SHOWN`'s note), so the
+    // pass is known by its catalogue number here and not by `SHOWN_PASS`'s start.
+    const norad = SHOWN_PASS.split('-')[0] ?? '';
+    const readout = page.getByTestId('window-readout');
+    await expect(readout).toHaveAttribute('data-following', new RegExp(`^${norad}-`));
+    await expect(page.getByTestId('chart-aside').locator(`[data-option^="pass:${norad}-"]`)).toHaveAttribute('aria-pressed', 'true');
+    // The look is re-aimed each tick while it follows; put the instant back on `SHOWN` so the aim is the instant's.
+    await pinnedAt(page, SHOWN);
+    await expect(chart.locator(`[data-pass-id^="${norad}-"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
+    await page.mouse.move(0, 0);
+  },
+
+  /**
+   * R128 (FR-SKY-2, FR-SKY-7; US-41 AC2, AC4): the `guide` screen's pass on the window, facing the peak.
+   */
+  async 'guide-window'(page, width, theme, locale) {
+    await openChart(page, width, theme, locale, 'dome');
+    const figure = guide(page).getByRole('figure');
+    await windowInTheBox(page, figure, locale, SHOWN);
+    await expect(figure).toHaveAttribute('data-view', 'window');
+    await expect(figure.locator('[data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(figure.locator(`[data-pass-id="${SHOWN_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
+    // The box's foot to the panel's edge, as `sky-window.spec.ts` does: on wide the sheet scrolls on its own.
+    await figure.getByTestId('chart-box').evaluate((el) => {
+      el.scrollIntoView({ block: 'end' });
+    });
+    await page.mouse.move(0, 0);
+  },
+
+  /** R128 (FR-SKY-6; US-40 AC5): the stars page with `[ passes ]` on, faced to the pass. */
+  async 'stars-passes'(page, width, theme, locale) {
+    await starsWithPasses(page, width, theme, locale);
+  },
+
+  /**
+   * R128 (FR-SKY-14 as FR-SKY-9 names it; US-41 AC6): the stars page as it opens at 1280, zoomed to the narrowest
+   * field by the box's `+`. The page opens with the box focused (FR-A11Y-1..3), so the keys reach it at once; one
+   * press more than 60 / 1.25ⁿ needs is held at the minimum.
+   */
+  async 'stars-zoom'(page, width, theme, locale) {
+    await starsAt(page, width, theme, locale);
+    const w = page.getByTestId('stars-sky').locator('[data-look-az]');
+    await w.locator('div[data-dragging]').focus();
+    for (let i = 0; i < 6; i += 1) await page.keyboard.press('+');
+    await page.clock.runFor(FRAME_MS);
+    await expect(w).toHaveAttribute('data-fov', String(WINDOW_FOV_MIN_DEG));
+    await expect(w).toHaveAttribute('data-look-az', '180');
+    await expect(page.getByTestId('window-readout')).toContainText(`${String(WINDOW_FOV_MIN_DEG)}°`);
+    await pinnedAt(page, CLOCK);
+    await page.evaluate(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+    await page.mouse.move(0, 0);
+  },
+
+  /**
+   * R128 (FR-SKY-6, FR-FSC-1 as amended v2.5; US-41 AC4): the screen `[ hold up to the sky ]` opens from the stars
+   * page with `[ passes ]` on, aimed at the point the page faced, 35° up — the stars and the pass together.
+   */
+  async 'stars-passes-screen'(page, width, theme, locale) {
+    await stubCompass(page);
+    const azDeg = await starsWithPasses(page, width, theme, locale);
+    await page.getByTestId('stars-hold-up').click();
+    await expect
+      .poll(
+        async () => {
+          await heading(page, 270);
+          return page.getByTestId('sky-screen').count();
+        },
+        { timeout: 15_000 },
+      )
+      .toBe(1);
+    // The paused clock holds the lazy chunk's Suspense reveal (R32).
+    await page.clock.runFor(1000);
+    const layer = page.getByTestId('sky-screen');
+    await expect
+      .poll(
+        async () => {
+          await point(page, azDeg, 35);
+          return layer.getByTestId('window-readout').count();
+        },
+        { timeout: 15_000 },
+      )
+      .toBe(1);
+    await settle(page);
+    await pinnedAt(page, SHOWN);
+    await expect(layer.locator('[data-look-az]')).toHaveAttribute('data-ground', 'sky');
+    await expect(layer.locator('[data-drawing="window"] [data-star]:not([visibility="hidden"])').first()).toBeAttached();
+    await expect(layer.locator('[data-drawing="window"] [data-pass-id]').first()).toBeAttached();
     await page.mouse.move(0, 0);
   },
 };

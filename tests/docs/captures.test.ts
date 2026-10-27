@@ -52,11 +52,20 @@ describe('the v1 capture set', () => {
      * R118 (FR-STAR-5, D-786): `stars-screen` is the same layer in its stars inventory, opened by
      * `[ hold up to the sky ]`, which is offered only where the presence test passes; it is shot sideways
      * at 844 like `sky-screen-sky`, and the `stars` page under it is an ordinary screen with all four widths.
+     *
+     * R128 (FR-SKY-9, D-829): `stars-passes-screen` is the same layer opened from the page with `[ passes ]` on,
+     * so it joins the exception. And the other way round, two desk screens: `live-window-follow` (`f` is a key,
+     * FR-SKY-13) and `stars-zoom` (the narrowest field), each at the one width FR-SKY-9 names for it, 1280.
      */
     const UPRIGHT = new Set(['sky-screen-portrait', 'sky-screen-turned']);
+    const DESK_ONLY = new Set(['live-window-follow', 'stars-zoom']);
     for (const screen of SCREENS) {
-      if (screen.name.startsWith('sky-screen-') || screen.name === 'window' || screen.name === 'stars-screen') {
+      if (screen.name.startsWith('sky-screen-') || screen.name === 'window' || screen.name === 'stars-screen' || screen.name === 'stars-passes-screen') {
         expect(screen.widths, screen.name).toEqual(UPRIGHT.has(screen.name) ? [360, 390] : [844]);
+        continue;
+      }
+      if (DESK_ONLY.has(screen.name)) {
+        expect(screen.widths, screen.name).toEqual([1280]);
         continue;
       }
       expect(screen.widths, screen.name).toContain(390);
@@ -85,7 +94,9 @@ describe('the v1 capture set', () => {
     expect(SCREENS.filter((screen) => screen.widths.includes(768)).map((screen) => screen.name)).toEqual(['home', 'settings', 'guide', 'live-watching', 'live-scrubbing']);
     // D-626's arithmetic, as it came out: 161 + 45 (the 360 column) + 4 (home at 1920) + 20 (the 768 column) + 24 (the `-view` twins).
     // R118 (D-786): + 16 for the `stars` page (360, 390, 1280, 1920) and + 4 for `stars-screen` (844).
-    expect(captureSet()).toHaveLength(274);
+    // R128 (FR-SKY-9, D-829): + 16 `live-window` and + 16 `guide-window` (360, 390, 1280, 1920), + 12 `stars-passes`
+    // (360, 390, 1280), + 4 each for `live-window-follow` and `stars-zoom` (1280) and `stars-passes-screen` (844).
+    expect(captureSet()).toHaveLength(330);
   });
 
   it('names every file by the one pattern, `-view` included (FR-CAP-1)', () => {
