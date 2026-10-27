@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
+/* eslint-disable react/jsx-key -- the slots are keyed inside `slot()` */
 import { createPortal } from 'react-dom';
 import { useT } from '../../../i18n/useT';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
@@ -157,13 +158,10 @@ export function SkyViewLayout({ wide = 'rail', describedBy, className, ref, 'dat
     if (node === undefined || node === null || node === false) return null;
     // D-846: on wide the rail labels the view row and the facing row; the drawing's corner and the column do not.
     const label = labelled && name === 'viewRow' ? { id: viewId, text: t.skyView.view } : labelled && name === 'picker' ? { id: facingId, text: t.skyView.facing } : null;
+    // The label is a heading over the row and not the row's group name: the control inside already names itself (`Chart view`, `Facing`).
     return (
-      <div key={name} className={[styles.slot, styles[name]].join(' ')} data-slot={name} data-rhythm={SLOT_RHYTHM[name]} {...(label ? { role: 'group', 'aria-labelledby': label.id } : {})}>
-        {label && (
-          <SectionHeading id={label.id} level={3}>
-            {label.text}
-          </SectionHeading>
-        )}
+      <div key={name} className={[styles.slot, styles[name]].join(' ')} data-slot={name} data-rhythm={SLOT_RHYTHM[name]}>
+        {label && <SectionHeading id={label.id}>{label.text}</SectionHeading>}
         {node}
       </div>
     );

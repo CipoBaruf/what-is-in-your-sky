@@ -33,6 +33,8 @@ import { tonightsDark } from '../../lib/tonightStripe';
 import { FieldList } from './stars/FieldList';
 import { fieldObjects, fieldPasses, fieldRows, sceneCatalog, STAR_LABEL_HOLD_S } from './stars/field';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
+import { SkyHint } from '../components/sky/SkyHint';
+import { SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import styles from './Stars.module.css';
 
 /**
@@ -105,7 +107,9 @@ export function StarsPage() {
   if (observer === null) {
     return (
       <>
-        <StarsHeading observer={null} now={null} />
+        <div className={styles.page}>
+          <StarsHeading observer={null} now={null} />
+        </div>
         <div className={styles.inert} data-testid="stars-inert" ref={inertRef}>
           <p>{p.noPlace}</p>
           <TextButton label={p.setPlace} data-testid="stars-set-place" onClick={requestPlace} />
@@ -122,7 +126,6 @@ function StarsSky({ observer }: { observer: Observer }) {
   const p = useStarsPageT();
   const mode = useLayoutMode();
   const wide = mode === 'wide';
-  const facingId = useId();
   const layersId = useId();
   const fieldId = useId();
 
@@ -204,14 +207,17 @@ function StarsSky({ observer }: { observer: Observer }) {
 
   /*
    * On wide the box is cut here — the largest rectangle of the browser window's shape beside the rail's minimum
-   * (`fitBox`) — and written as two custom properties the stylesheet sizes it from.
+   * (`fitBox`) — and written as two custom properties the stylesheet sizes it from. R132: the layout's column gap
+   * is the one between the box and the rail now (`SkyViewLayout.module.css`, two cells); the box's size itself is
+   * R133's.
    */
   useEffect(() => {
     const layout = layoutRef.current;
     if (!wide || !layout || typeof ResizeObserver === 'undefined') return;
     const fit = (): void => {
       const { width, height } = layout.getBoundingClientRect();
-      const gap = parseFloat(getComputedStyle(layout).columnGap) || 0;
+      const skyLayout = layout.querySelector('[data-sky-layout]');
+      const gap = skyLayout ? parseFloat(getComputedStyle(skyLayout).columnGap) || 0 : 0;
       const rail = probeRef.current?.getBoundingClientRect().width ?? 0;
       // R121 (D-789): `windowBox`, the rule the live page's and the pass detail's window share with this page.
       const box = fitWindowBox({ frameWidthPx: width, frameHeightPx: height, aboveHeightPx: 0, belowHeightPx: 0, besideWidthPx: rail + gap, viewportWidthPx: window.innerWidth, viewportHeightPx: window.innerHeight });
@@ -361,64 +367,78 @@ function StarsSky({ observer }: { observer: Observer }) {
   };
   const layer = (key: keyof StarField['layers'], alone = false) => <OptionToggle key={key} label={p.layers[key]} pressed={layers[key]} onPress={toggle(key)} data-layer={key} alone={alone} />;
 
+  /*
+   * R132 (FR-FLOW-4, FR-FLOW-8; D-842): the page is `SkyViewLayout`'s slots — the `h1` block as `answer`, the
+   * window's readout in `readout` (placed by the window itself), the drawing, this page's own facing picker, the
+   * hint, `[ hold up to the sky ]` full width right after it, the layer toggles as one group of two rows, then
+   * `In this field`. On wide the layout is the box and the rail, in the same order; the box is cut here, as
+   * before, and written on the layout's root.
+   */
+  const action =
+    entry.available || note !== null ? (
+      <div className={styles.holdUp} data-testid="stars-hold-up-row">
+        {/* FR-STAR-5, FR-FLOW-8: one full-width button at least 48 px tall, and FR-LIVE-8's note under it after a denial or a phone with no north. */}
+        {entry.available && <TextButton label={p.holdUp} onClick={holdUp} ref={holdUpRef} data-testid="stars-hold-up" box="accent" fill className={styles.holdUpButton} />}
+        {note !== null && (
+          <p className={styles.note} role="status" data-testid="stars-hold-up-note">
+            {t.window[note]}
+          </p>
+        )}
+      </div>
+    ) : null;
+  const layerRows = (
+    <section aria-labelledby={layersId} className={styles.block}>
+      <SectionHeading id={layersId} visuallyHidden={!wide}>
+        {p.layersHeading}
+      </SectionHeading>
+      {/* FR-FLOW-8: one group of two rows `--space-1` apart — `[x] stars [x] figures [x] planets` and `[x] names [ ] passes`
+          (31 and 19 cells in English, 36 and 24 in Spanish, FR-COMP-4). */}
+      <div role="group" aria-label={p.layersHeading} className={styles.layers} data-testid="stars-layers">
+        <div className={styles.row} data-testid="stars-layers-row">
+          {layer('stars')}
+          {layer('figures', true)}
+          {layer('planets', true)}
+        </div>
+        <div className={styles.row} data-testid="stars-layers-row">
+          {layer('names')}
+          <OptionToggle label={p.passesLayer} pressed={showPasses} onPress={togglePasses} data-layer="passes" alone />
+        </div>
+      </div>
+    </section>
+  );
+  const field = (
+    <section aria-labelledby={fieldId} className={styles.block}>
+      <SectionHeading id={fieldId}>{p.fieldHeading}</SectionHeading>
+      <FieldSection camera={camera} catalog={catalog} positions={positions} passes={drawnPasses} rows={rows} now={now} box={box} layers={layers} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
+    </section>
+  );
+
   return (
     <div className={styles.page} data-layout={mode}>
-      <div {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
-        <StarsHeading observer={observer} now={now} />
-      </div>
       {/* FR-FSC-1 (D-321): under the layer the page is out of reach — `inert` for Tab and a tap past it, `aria-hidden`
           for the accessible tree, as the live page's top row — and held at its last render, so the tick redraws
           the screen's window and not a second one under it (FR-STAR-9). */}
       <div className={styles.layout} data-layout={mode} ref={layoutRef} data-testid="stars-page" style={RAIL_STYLE} {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
         <Held held={screenOpen}>
-        {wide && <span className={styles.railProbe} ref={probeRef} aria-hidden="true" />}
-        <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky">
-          <SkyWindow passes={drawnPasses} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} colorBy="pass" legendKeys={keys} namedStar={named?.index ?? null} onNameStar={onName} />
-        </div>
-        <div className={styles.rail} data-testid="stars-rail">
-          <section aria-labelledby={facingId} className={styles.block}>
-            <SectionHeading id={facingId} visuallyHidden={!wide}>
-              {p.facing}
-            </SectionHeading>
-            {/* R121 (D-789): the window lane's picker, the eight points and the zenith — the row it was here (R115), shared with the chart's window. */}
-            <FacingPicker camera={camera} className={styles.row} />
-          </section>
-          <section aria-labelledby={layersId} className={styles.block}>
-            <SectionHeading id={layersId} visuallyHidden={!wide}>
-              {p.layersHeading}
-            </SectionHeading>
-            {/* Four toggles in two rows of two: one row of four is 43 cells in English and 51 in Spanish (FR-COMP-4, D-776).
-                R126 (FR-SKY-6): `[ passes ]` is a row of its own under them, so the two rows stay as they were. */}
-            <div role="group" aria-label={p.layersHeading} className={styles.layers} data-testid="stars-layers">
-              <div className={styles.row} data-testid="stars-layers-row">
-                {layer('stars')}
-                {layer('figures', true)}
+          {wide && <span className={styles.railProbe} ref={probeRef} aria-hidden="true" />}
+          <SkyViewLayout
+            className={styles.skyLayout}
+            data-testid="stars-layout"
+            answer={<StarsHeading observer={observer} now={now} />}
+            readout={<SkyViewChartSlot name="readout" />}
+            drawing={
+              <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky">
+                <SkyWindow passes={drawnPasses} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} colorBy="pass" legendKeys={keys} namedStar={named?.index ?? null} onNameStar={onName} />
               </div>
-              <div className={styles.row} data-testid="stars-layers-row">
-                {layer('planets')}
-                {layer('names', true)}
-              </div>
-              <div className={styles.row} data-testid="stars-layers-row">
-                <OptionToggle label={p.passesLayer} pressed={showPasses} onPress={togglePasses} data-layer="passes" alone />
-              </div>
-            </div>
-          </section>
-          {/* FR-STAR-5: one `--tap` row where FR-WIN-4's presence test passes, and FR-LIVE-8's note beside it after a denial or a phone with no north. */}
-          {(entry.available || note !== null) && (
-            <div className={styles.holdUp} data-testid="stars-hold-up-row">
-              {entry.available && <TextButton label={p.holdUp} onClick={holdUp} ref={holdUpRef} data-testid="stars-hold-up" />}
-              {note !== null && (
-                <p className={styles.note} role="status" data-testid="stars-hold-up-note">
-                  {t.window[note]}
-                </p>
-              )}
-            </div>
-          )}
-          <section aria-labelledby={fieldId} className={styles.block}>
-            <SectionHeading id={fieldId}>{p.fieldHeading}</SectionHeading>
-            <FieldSection camera={camera} catalog={catalog} positions={positions} passes={drawnPasses} rows={rows} now={now} box={box} layers={layers} named={named?.index ?? null} onName={onName} labelledBy={fieldId} />
-          </section>
-        </div>
+            }
+            // R121 (D-789): the window lane's picker, the eight points and the zenith — the row it was here (R115), shared with the
+            // chart's window. It names itself (`Facing`); on wide the layout labels its row (D-846).
+            picker={<FacingPicker camera={camera} className={styles.row} />}
+            hint={<SkyHint view="window" />}
+            {...(action === null ? {} : { action })}
+            layers={layerRows}
+            list={field}
+          />
         </Held>
       </div>
       {/* Portaled to the body as the pass detail's is: a fixed layer, never the child of something that scrolls. The

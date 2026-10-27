@@ -108,20 +108,20 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
   it('labels the rail’s view row and facing row `View` and `Facing` (`Vista`, `Hacia`) on wide and not on compact (D-846)', () => {
     media = stubMatchMedia(WIDE_PX);
     all();
-    expect(screen.getByRole('heading', { level: 3, name: en.skyView.view }).closest('[data-slot]')).toHaveAttribute('data-slot', 'viewRow');
-    expect(screen.getByRole('heading', { level: 3, name: en.skyView.facing }).closest('[data-slot]')).toHaveAttribute('data-slot', 'picker');
+    expect(screen.getByRole('heading', { level: 2, name: en.skyView.view }).closest('[data-slot]')).toHaveAttribute('data-slot', 'viewRow');
+    expect(screen.getByRole('heading', { level: 2, name: en.skyView.facing }).closest('[data-slot]')).toHaveAttribute('data-slot', 'picker');
     cleanup();
     all('es');
-    expect(screen.getByRole('heading', { level: 3, name: es.skyView.view })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 3, name: es.skyView.facing })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: es.skyView.view })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: es.skyView.facing })).toBeInTheDocument();
     cleanup();
     all('en', 'panel');
-    expect(screen.queryByRole('heading', { level: 3 })).toBeNull();
+    expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
     cleanup();
     media.restore();
     media = stubMatchMedia(COMPACT_PX);
     all();
-    expect(screen.queryByRole('heading', { level: 3 })).toBeNull();
+    expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
   });
 
   it('puts the chart’s parts in the page’s slots and draws none of them in the drawing (useChartSlot)', () => {

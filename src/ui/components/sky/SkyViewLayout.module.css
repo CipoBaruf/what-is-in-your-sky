@@ -188,8 +188,7 @@
 }
 
 /* The rail's label stands above its row, not beside it. */
-.viewRow > :global(h3),
-.picker > :global(h3) {
+.viewRow > :global(h2) {
   flex: 0 0 100%;
 }
 

@@ -47,8 +47,11 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     // R129 (FR-FLOW-3): under it at `--small`, the dark window and the cloud word — with no forecast, the cloud word says so.
     expect(screen.getByTestId('stars-intro')).toContainElement(screen.getByTestId('stars-tonight'));
     expect(screen.getByTestId('stars-tonight')).toHaveTextContent(en.weather.state.unknown);
-    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([p.facing, p.layersHeading, p.fieldHeading]);
-    expect(screen.getByRole('group', { name: p.drawing })).toContainElement(screen.getByTestId('window-readout'));
+    // R132 (FR-FLOW-4, D-846): the rail's facing row is labelled by the layout (`Facing`), then the page's Layers and In this field.
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([en.skyView.facing, p.layersHeading, p.fieldHeading]);
+    // The readout is the layout's `readout` slot — in the box's corner on wide — placed there by the window itself.
+    expect(screen.getByTestId('window-readout').closest('[data-slot]')).toHaveAttribute('data-slot', 'readout');
+    expect(screen.getByRole('group', { name: p.drawing })).toContainElement(container.querySelector('[data-drawing="window"]') as HTMLElement);
     // The window is the hand's: the box takes the focus and the arrow keys, and the drawing itself is hidden from AT.
     expect(container.querySelector('[data-state="hand"] [tabindex="0"]')).not.toBeNull();
     expect(container.querySelector('svg[data-drawing="window"]')).toHaveAttribute('aria-hidden', 'true');
@@ -111,8 +114,12 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     ]);
     fireEvent.click(within(layers).getByRole('button', { name: 'figures' }));
     expect(within(layers).getByRole('button', { name: 'figures' })).toHaveAttribute('aria-pressed', 'false');
-    // Two rows of two on every width (D-776), and R126's `[ passes ]` on a row of its own.
-    expect(within(layers).getAllByTestId('stars-layers-row').map((row) => row.children.length)).toEqual([2, 2, 1]);
+    // R132 (FR-FLOW-8): one group of two rows — three toggles, then names and `[ passes ]`.
+    expect(within(layers).getAllByTestId('stars-layers-row').map((row) => row.children.length)).toEqual([3, 2]);
+    // FR-FLOW-4's order: the action right after the hint, the layers after it, then `In this field`.
+    const slots = [...screen.getByTestId('stars-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'));
+    expect(slots).toEqual(['answer', 'readout', 'drawing', 'picker', 'hint', 'layers', 'list']);
+    expect(screen.getByTestId('sky-hint')).toHaveTextContent('Drag or use the arrow keys · ctrl + wheel to zoom · click a star');
   });
 
   /*
@@ -182,7 +189,7 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     appStore.setState({ observer: SOUTH });
     page('es');
     const p = STARS_PAGE_CATALOGS.es;
-    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([p.facing, p.layersHeading, p.fieldHeading]);
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Hacia', p.layersHeading, p.fieldHeading]);
     expect(within(screen.getByRole('group', { name: p.facing })).getByRole('button', { name: 'arriba' })).toBeInTheDocument();
     expect(within(screen.getByRole('group', { name: p.layersHeading })).getAllByRole('button').map((b) => b.textContent)).toEqual(['estrellas', 'figuras', 'planetas', 'nombres', 'pases']);
   });
