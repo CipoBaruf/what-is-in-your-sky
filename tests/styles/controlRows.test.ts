@@ -412,7 +412,6 @@ describe.each(LOCALES)('FR-COMP-4: every compact control row fits %s in 36 cells
  * At 390 px the row with it stays inside FR-COMP-7's 34 cells; at 360 px inside what that width has.
  */
 describe.each(LOCALES)('FR-FLOW-3: the four compact sub-page rows in %s', (locale: Locale) => {
-  const t = CATALOGS[locale];
   /** The cells a viewport gives a row on the widest font in the stack, less the shell's padding (F-10). */
   const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
   const context = (page: HeaderPage): string => (page === 'pass' ? formatDate(pass.start.t, null, locale) : observer.label);
