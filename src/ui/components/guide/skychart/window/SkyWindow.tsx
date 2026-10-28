@@ -26,7 +26,7 @@ import { useChartSlot } from '../../../sky/SkyViewLayout';
 import { ChartFrame } from '../ChartFrame';
 import { landmarkFor, sceneFor } from '../layers';
 import { arcOf, FACING_OPTIONS, type ChartPass, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
-import { createHandCamera, facePeak, initialHand, passPosition, SENSOR_CAMERA, ZOOM_KEY_FACTOR, ZOOM_WHEEL_RATE, type SkyCamera } from './camera';
+import { createHandCamera, facePeak, nextRising, openingFacing, passPosition, SENSOR_CAMERA, ZOOM_KEY_FACTOR, ZOOM_WHEEL_RATE, type SkyCamera } from './camera';
 import { CompassGutter } from './CompassGutter';
 import { FacingPicker, type FacingPickerProps, type FollowTarget } from './FacingPicker';
 import { gutterMarks, passBearing, turnTo, type GutterMark, type GutterPass } from './gutter';
@@ -437,10 +437,18 @@ export function SkyWindow(props: SkyWindowProps) {
   /*
    * D-789 (R121): the camera. The stars page hands one in; the chart hands a slot, from which this window takes
    * the camera a window before it left, or makes one on its first mount — the pass detail's at the peak, the live
-   * page's at the pole side (FR-STAR-3's rule) — and leaves it there, so the dome and back finds the facing where
-   * it was. Neither given, the sensor drives.
+   * page's facing the pass (R136, FR-FLOW-14: `openingFacing` — following the highlighted pass, else the next
+   * rise, else the pole side) — and leaves it there, so the dome and back, and a turn of the phone, find the facing
+   * where it was. Neither given, the sensor drives.
    */
-  const [slotCamera] = useState(() => (hand !== undefined && givenCamera === undefined ? (hand.get() ?? createHandCamera(peak !== null ? facePeak(peak, WINDOW_FOV) : initialHand(observer.lat))) : null));
+  const [slotCamera] = useState(() => {
+    if (hand === undefined || givenCamera !== undefined) return null;
+    const kept = hand.get();
+    if (kept !== null) return kept;
+    if (peak !== null) return createHandCamera(facePeak(peak, WINDOW_FOV));
+    const followed = facingPassId === null ? null : (passes.find((pass) => pass.id === facingPassId) ?? null);
+    return createHandCamera(openingFacing({ latDeg: observer.lat, now }, followed, nextRising(passes, now)));
+  });
   useEffect(() => {
     if (slotCamera !== null) hand?.keep(slotCamera);
   }, [hand, slotCamera]);
