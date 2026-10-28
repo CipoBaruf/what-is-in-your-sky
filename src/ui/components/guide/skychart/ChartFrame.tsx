@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { COMPACT_BOX_MIN_SHORT_PX, compactDomeBoxHeightPx, fitBox, viewportAspect } from '../../../../lib/layout';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
+import { usePageShape } from '../../live/usePageShape';
 import styles from './ChartFrame.module.css';
 import { bowlHeightPx } from './dome/camera';
 
@@ -212,8 +213,11 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
   const compact = useLayoutMode() === 'compact';
   // D-789: the window in the box on wide — the readout in its corner; the guide's square takes the browser window's shape.
   const windowShaped = handWindow && !screen && !compact;
-  // R133 (D-850): the compact dome's box is cut from the bowl — a portrait rule, which the stylesheet's media block keeps.
-  const bowlBoxed = bowl && !screen && fill && compact;
+  // R133 (D-850): the compact dome's box is cut from the bowl — in the column (FR-FLOW-4), which a compact page wider
+  // than tall still is; the landscape phone's box is its rail's (FR-WATCH-5, R136), so the page's shape is asked, not
+  // the orientation.
+  const pageShape = usePageShape();
+  const bowlBoxed = bowl && !screen && fill && compact && pageShape === 'portrait';
   // D-834 (FR-SKY-2, V25-17): the status slot stands in the box's top-left corner on the wide live page (`fill`) for
   // every view — the dome's readout, the polar chart's convention line, the window's readout — so the row above
   // the box is the view control alone and stays one line; and on the guide's window (D-789). The compact rows and
