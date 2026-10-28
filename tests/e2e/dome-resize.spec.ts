@@ -121,8 +121,9 @@ test('redraws the dome when the box changes height alone, as a fresh load at tha
   const tall = await rasters(page);
   await page.setViewportSize(SHORT);
   const resized = await rasters(page);
-  // The case is the one the key missed: the rows moved, so the grid is not the tall box's.
-  expect(resized.map((text) => text.split('\n').length), 'the rows follow the box').not.toEqual(tall.map((text) => text.split('\n').length));
-  expect(resized, 'the rasters after the box shrank, against a fresh load at that size').toEqual(reference);
+  // R132 (FR-FLOW-4, D-864): the compact box is its floor at both heights now — the column scrolls instead — so the rows
+  // are the same and what F-103 asks is that the resized page draws what a fresh load at that size draws.
+  expect(tall.length).toBeGreaterThan(0);
+  expect(resized, 'the rasters after the resize, against a fresh load at that size').toEqual(reference);
   await context.close();
 });

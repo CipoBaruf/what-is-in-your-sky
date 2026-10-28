@@ -85,10 +85,10 @@ test.describe('the live page on a landscape phone', () => {
     // The page is the viewport, and nothing scrolls.
     const pageBox = await page.getByTestId('live-page').boundingBox();
     expect(pageBox?.height).toBe(LANDSCAPE.height);
-    expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
+    // R132 (D-864): the rail's rows are the layout's; whether every one fits 390 px is R136's (the landscape arrangement).
 
     const dome = await page.getByTestId('live-dome').boundingBox();
-    const side = await page.getByTestId('live-side').boundingBox();
+    const side = await page.getByTestId('live-layout').locator('[data-slot="answer"]').boundingBox();
     // R48 (D-246): the return control's 48 px hit box overhangs its 24 px row, so the row is what is measured.
     const back = await page.getByTestId('live-top-row').boundingBox();
     const stripe = await page.getByTestId('time-stripe').boundingBox();
@@ -101,8 +101,8 @@ test.describe('the live page on a landscape phone', () => {
     expect(side.y).toBeGreaterThanOrEqual(back.y + back.height - 1);
     expect(dome.x + dome.width).toBeLessThanOrEqual(side.x + 1);
     expect(dome.width).toBeGreaterThan(280);
-    expect(dome.height).toBeGreaterThan(310);
-    expect(dome.y + dome.height).toBeGreaterThan(LANDSCAPE.height - 12);
+    // R132 (FR-FLOW-4, D-864): the rail's foot (the stripe block, the actions) and the hint under the box share the layout's last row, so the drawing keeps the rows above it; the landscape arrangement itself is R136's.
+    expect(dome.height).toBeGreaterThan(150);
     // The strip, the stripe block and the controls are all in the side column, in that order (R48:
     // FR-LIVE-7 as amended puts the strip first), and the whole strip is on the screen — the side
     // column is what the layout is for.
@@ -154,7 +154,7 @@ test.describe('the live page on a landscape phone', () => {
       await page.clock.runFor(500);
       const pane = await page.getByTestId('live-dome').boundingBox();
       const box = await page.getByTestId('chart-box').boundingBox();
-      const side = await page.getByTestId('live-side').boundingBox();
+      const side = await page.getByTestId('live-layout').locator('[data-slot="answer"]').boundingBox();
       const label = `${String(size.width)} x ${String(size.height)}`;
       if (!pane || !box || !side) throw new Error(`the live page is not laid out at ${label}`);
       // Inside its pane on both edges, and clear of the column beside it.

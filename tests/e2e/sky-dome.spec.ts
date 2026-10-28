@@ -82,8 +82,8 @@ test('the dome is the default view, shares the polar frame, faces the rise point
   const figure = dialog.getByRole('figure');
   // FR-DOME-7: the dome is what the sheet opens on, with no toggle needed.
   await expect(figure).toHaveAttribute('data-view', 'dome');
-  await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
-  const viewToggle = figure.getByRole('group', { name: 'Chart view' });
+  await expect(dialog.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
+  const viewToggle = dialog.getByRole('group', { name: 'Chart view' });
   await expect(viewToggle.getByRole('button', { name: 'Dome' })).toHaveAttribute('aria-pressed', 'true');
   await expect(figure.locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
 
@@ -169,12 +169,12 @@ test('the dome is the default view, shares the polar frame, faces the rise point
   await expect(drawing.locator('[data-anchor="pass"]')).toHaveCount(0);
   await expect(drawing.locator('[data-anchor="peak"]')).toHaveCount(0);
   // R51 (FR-LEG-3): the explained pass's legend row is the numeric table, keyed and swatched.
-  await expect(figure.getByTestId('legend-lead').getByRole('table')).toBeVisible();
-  await expect(figure.getByTestId('legend-lead').locator('caption')).toContainText('A');
-  await expect(figure.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toHaveCount(0);
+  await expect(dialog.getByTestId('legend-lead').getByRole('table')).toBeVisible();
+  await expect(dialog.getByTestId('legend-lead').locator('caption')).toContainText('A');
+  await expect(dialog.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toHaveCount(0);
 
   // FR-GUIDE-2 default view, FR-GUIDE-4 readout: facing the rise compass point at the D-92 default tilt.
-  const readout = figure.getByTestId('dome-readout');
+  const readout = dialog.getByTestId('dome-readout');
   const rise = reference.firstGoldenPass?.start.azDeg ?? 0;
   const initial = await facingOf(readout);
   expect(initial.point).toBe(compass16(rise));
@@ -227,7 +227,7 @@ test('the dome is the default view, shares the polar frame, faces the rise point
   await viewToggle.getByRole('button', { name: 'Polar' }).click();
   await expect(figure).toHaveAttribute('data-view', 'polar');
   await expect(figure.locator(`svg[data-drawing="polar"] [data-pass-id="${passId}"] [data-anchor="key"]`)).toHaveText('A');
-  await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
+  await expect(dialog.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
   expect(JSON.parse(await page.evaluate(() => window.localStorage.getItem('wiys:prefs:v1') ?? '{}'))).toMatchObject({ chartView: 'polar' });
   await page.reload();
   await expect(page.getByRole('dialog', { name: 'ISS (Zarya)' })).toBeVisible({ timeout: 30_000 });

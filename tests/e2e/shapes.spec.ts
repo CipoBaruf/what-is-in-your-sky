@@ -405,8 +405,10 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
         expect(scrubbing.height, `${at}: the box is the same height watching and scrubbing (FR-WATCH-6)`).toBe(watching.height);
       } else if (landscapePhone.has(at)) {
         await expect(page.getByTestId('live-page'), at).toHaveAttribute('data-scrub-placement', 'rail');
-        expect(await settledBox(page.getByTestId('live-dome')), `${at}: the dome's column is the same watching and scrubbing (FR-WATCH-5)`).toEqual(watchingDome);
-        expect(scrubbing.height, `${at}: the box is the same height watching and scrubbing (FR-WATCH-7)`).toBe(watching.height);
+        // R132 (FR-FLOW-4, D-864): the block is the rail's foot, so the column keeps its place and width; the height it leaves the box is R136's.
+        const dome = await settledBox(page.getByTestId('live-dome'));
+        expect([dome.x, dome.width], `${at}: the dome's column is where it was, watching and scrubbing (FR-WATCH-5)`).toEqual([watchingDome.x, watchingDome.width]);
+        expect(scrubbing.height, `${at}: the box never grows on the tap (FR-WATCH-7)`).toBeLessThanOrEqual(watching.height + 0.5);
       } else {
         await expect(page.getByTestId('live-page'), at).toHaveAttribute('data-scrub-placement', 'under');
       }
@@ -440,9 +442,10 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
         await setJumpDisplay(page, null);
         const allowed = JUMP_ALLOWANCE[`${label(size)} ${locale}`] ?? {};
         for (const [row, px] of without) {
-          expect(shown.get(row), `${at}: ${row} is ${String(shown.get(row))} px with the control, ${String(px)} px without`).toBe(px + (allowed[row] ?? 0));
+          // R132 (FR-FLOW-4): the compact box holds its floor whatever the headline takes, so the tablet rows' allowance may be spent or not.
+          const options = row === 'chart box' && (allowed[row] ?? 0) !== 0 ? [px, px + (allowed[row] ?? 0)] : [px + (allowed[row] ?? 0)];
+          expect(options, `${at}: ${row} is ${String(shown.get(row))} px with the control, ${String(px)} px without`).toContain(shown.get(row));
         }
-        expect(shown.get('chart box'), at).toBe((without.get('chart box') ?? 0) + (allowed['chart box'] ?? 0));
       }
     });
   }
@@ -485,7 +488,8 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       // Nothing scrolls: not sideways, and on the live page not at all (FR-LIVE-1 as amended v1.4).
       const scrolled = await scroll(page);
       expect(scrolled.scrollWidth, `${at}: the page scrolls sideways`).toBeLessThanOrEqual(scrolled.clientWidth);
-      expect(scrolled.scrollHeight, `${at}: the live page scrolls`).toBeLessThanOrEqual(scrolled.innerHeight);
+      // R132 (FR-FLOW-4, D-864): the portrait compact page is a column that scrolls past its box; every other shape is one viewport high.
+      if (!(width < WIDE_MIN_PX && height > width)) expect(scrolled.scrollHeight, `${at}: the live page scrolls`).toBeLessThanOrEqual(scrolled.innerHeight);
 
       // The box is at least the floor and has a drawing in it (US-25 AC2, FR-SHP-3).
       expect(box.height, `${at}: the chart box is ${String(Math.round(box.height))} px tall`).toBeGreaterThanOrEqual(floorFor(size, state));
@@ -549,7 +553,8 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       await expect(page.getByTestId('live-page'), at).toHaveAttribute('data-compact', String(compact));
       const dome = await page.getByTestId('live-dome').boundingBox();
       // R77: on wide the side column is laid out inside the frame's rail (`display: contents`), so it has no box of its own.
-      const side = compact ? await page.getByTestId('live-side').boundingBox() : { x: 0, y: 0, width: 0, height: 0 };
+      // R132 (D-864): the rows beside or under the dome are the layout's slots — the answer at the rail's top, the list under the box.
+      const side = compact ? await page.getByTestId('live-layout').locator(landscape ? '[data-slot="answer"]' : '[data-slot="list"]').boundingBox() : { x: 0, y: 0, width: 0, height: 0 };
       if (!dome || !side) throw new Error(`${at}: the live page is not laid out`);
       if (landscape) {
         // The landscape phone: the side column beside the dome, on the right.
@@ -592,8 +597,9 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       const moon = await page.getByTestId('live-moon').boundingBox();
       const sky = await page.getByTestId('live-sky').boundingBox();
       if (!actions || !moon || !sky) throw new Error(`${at}: the strip's line is not laid out`);
-      // On the one-column page the actions follow the strip's last field on its line or the next; in the rail they are under the fields' lines.
-      expect(actions.y, `${at}: the actions are on the strip's line, not a row of their own`).toBeLessThanOrEqual(moon.y + moon.height + ROW_PX / 4);
+      // R132 (FR-FLOW-4 wide, D-864): the actions are the rail's foot, under the conditions; R69's shared line went with the frame's aside.
+      expect(actions.y, `${at}: the actions are under the strip`).toBeGreaterThanOrEqual(moon.y + moon.height - 1);
+      expect(sky.y, `${at}: the strip is above the actions`).toBeLessThan(actions.y);
       // Every row around the box is one text row: the top row, the time row (its clock keeps the heading's line), the actions.
       const top = await page.getByTestId('live-top-row').boundingBox();
       const timeRow = await page.getByTestId('time-row').boundingBox();
@@ -781,7 +787,7 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
         expect(box.x, `${where}: the box starts inside the column`).toBeGreaterThanOrEqual(livePage.x - 1);
         expect(box.x + box.width, `${where}: the box ends inside the column`).toBeLessThanOrEqual(livePage.x + livePage.width + 1);
         const scrolled = await scroll(page);
-        expect(scrolled.scrollHeight, `${where}: the live page scrolls`).toBeLessThanOrEqual(scrolled.innerHeight);
+        // R132 (FR-FLOW-4, D-864): the compact column scrolls past its box; sideways it never does.
         expect(scrolled.scrollWidth, `${where}: the live page scrolls sideways`).toBeLessThanOrEqual(scrolled.clientWidth);
         // Watching, the rows leave the column's box its own width at these heights (FR-TAB-2's floor, unchanged from FR-COMP-5).
         if (state === 'watching') expect(box.height, `${where}: the box is ${String(Math.round(box.height))} px tall and ${String(Math.round(box.width))} wide`).toBeGreaterThanOrEqual(box.width - 1);

@@ -88,7 +88,7 @@
    fold). An interim shape: the box's size is R133's, which reads `sky-layout.spec.ts` and replaces this rule with
    the fit it decides. The frame's own floor (its width, FR-COMP-5) is off here (D-233's switch), since the slot is
    what sizes the box. */
-.skyLayout[data-shape='column'] :global([data-slot='drawing']) {
+.layout[data-layout='compact'] .skyLayout[data-shape='column'] :global([data-slot='drawing']) {
   --chart-floor-on: 0;
   aspect-ratio: 4 / 3;
   min-height: 0;

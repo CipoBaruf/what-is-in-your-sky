@@ -345,15 +345,20 @@ function useInventoryRows(active: boolean, domeRef: RefObject<HTMLDivElement | n
     }
     let observed: Element | null = null;
     const measure = (): void => {
-      const box = dome.querySelector('[data-testid="chart-legend-scroll"]');
+      // R132 (D-864): the legend is the layout's `list` slot, beside the dome row, with the conditions line under it;
+      // the budget is the slot's height less what the conditions take, in the legend's own rows.
+      const box = dome.closest('[data-sky-layout]')?.querySelector<HTMLElement>('[data-slot="list"]') ?? null;
       if (!box) return;
       if (box !== observed) {
         if (observed) observer.unobserve(observed);
         observer.observe(box);
         observed = box;
       }
-      const rowPx = parseFloat(getComputedStyle(box).lineHeight) || ROW_PX;
-      const next = Math.max(0, Math.floor(box.clientHeight / rowPx));
+      const legend = box.querySelector('[data-testid="chart-legend"]');
+      const rowPx = (legend && parseFloat(getComputedStyle(legend).lineHeight)) || ROW_PX;
+      const others = [...box.children].filter((child) => !child.querySelector('[data-testid="chart-legend"]') && child.getAttribute('data-testid') !== 'chart-legend-slot');
+      const taken = others.reduce((sum, child) => sum + child.getBoundingClientRect().height, 0) + others.length * (parseFloat(getComputedStyle(box).rowGap) || 0);
+      const next = Math.max(0, Math.floor((box.clientHeight - taken) / rowPx));
       setRows((last) => (last === next ? last : next));
     };
     const observer = new ResizeObserver(measure);

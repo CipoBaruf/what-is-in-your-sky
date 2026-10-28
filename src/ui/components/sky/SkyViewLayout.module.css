@@ -90,9 +90,13 @@
     'foot';
 }
 
-/* FR-COMP-5's rule, the layout's: a `fill` chart in the column is never shorter than wide, whichever way the phone is held. */
+/* FR-COMP-5's rule, the layout's: a `fill` chart in the column is never shorter than wide, whichever way the phone is
+   held. The slot is as tall as it is wide before anything is measured (`aspect-ratio`, so a `fill` chart's 100 % has a
+   height to resolve against from the first frame), and at least the full-bleed box's own width once it is — the slot's
+   measured width plus the page padding the frame breaks out of on each side (`--page-pad-x`, D-187's device). */
 .layout[data-shape='column'] .drawing {
-  min-height: var(--sky-drawing-floor, 0);
+  aspect-ratio: 1 / 1;
+  min-height: calc(var(--sky-drawing-floor, 0px) + 2 * var(--page-pad-x, calc(2 * var(--cell))));
 }
 
 /* --- The rail: the box at the left, the rail at the right, the readout on the box's corner, the hint under the box
@@ -212,6 +216,16 @@
 .layout .drawing :global([data-testid='chart-frame'] > [data-row='status']),
 .layout .drawing :global([data-testid='chart-frame'] [data-testid='chart-status']:empty) {
   display: none;
+}
+
+/* R61 (D-314) inside the layout: an aspect-locked frame (`data-box`, the wide live page's `stacked` frame) still
+   writes `--chart-box-w` / `--chart-box-h` from what the drawing slot gives it, and the box is cut to them here —
+   the frame's own rule for it is keyed on a legend slot the layout has taken (`data-legend='true'`). Centred in the
+   slot, as the stacked frame centred it (D-319); R133 decides the fit itself. */
+.layout .drawing :global([data-testid='chart-frame'][data-box='true'] > [data-testid='chart-box']) {
+  width: var(--chart-box-w);
+  height: var(--chart-box-h);
+  margin: 0 auto;
 }
 
 /* The figure is its frame: no caption row, no controls row of its own (both are the page's slots). */

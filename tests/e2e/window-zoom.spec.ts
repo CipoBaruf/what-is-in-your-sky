@@ -154,7 +154,7 @@ test.describe('zoom on the live page’s box (wide, the window as the saved view
     await page.clock.runFor(FRAME_MS);
     await expect(w).toHaveAttribute('data-fov', '20');
     // Picking a facing point keeps the zoom (FR-SKY-14).
-    await page.getByTestId('chart-aside').getByRole('group', { name: 'Facing' }).locator('[data-option="E"]').click();
+    await page.getByTestId('live-layout').locator('[data-slot="picker"]').getByRole('group', { name: 'Facing' }).locator('[data-option="E"]').click();
     await expect(w).toHaveAttribute('data-look-az', '90');
     await expect(w).toHaveAttribute('data-fov', '20');
 
