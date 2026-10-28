@@ -3799,7 +3799,8 @@ What every session reads (§16.24, D-284's rule), written once here and named in
 
 ### Wave 4
 
-- [ ] **R135 — The capture set and the release preparation: FR-FLOW-12's files, the diff against 2.5.0, `2.6.0`, `docs/RELEASE.md` §18, the README's screens, no tag**
+- [x] **R135 — The capture set and the release preparation: FR-FLOW-12's files, the diff against 2.5.0, `2.6.0`, `docs/RELEASE.md` §18, the README's screens, no tag**
+  - **Note:** done: 394 files; 20 of 2.5.0's 330 byte-identical, 310 moved on FR-FLOW-12's lists (RELEASE §18.1) and the settings page by its header (D-856) and R134's gaps (D-870), as FR-FLOW-12 now says (V26-14); two runs agree on 379; the `captures.yml` run ids are the owner's to record (dispatch with `base` `89a8e5b`, RELEASE §18.1). Budget per §18.2 and the owner's call of 2026-10-28 (V26-14, D-875): the branch measured `main` 181.0, over the 175 ceiling, and R135 stopped; the owner had the import fixed and `main`'s ceiling and budget raised to 180. On plain builds against `89a8e5b`: `main` 177.5 (+4,667 bytes) under 180, `chart` 97.1 (+2,445) under 110, `stars` 26.7 (+834), `astronomy` 24.1 (+1,510) under 30, `window` 26.6 (+913), `settings` 1.1 (+112), `worker`, `live` and `service worker` unmoved; `chart` and `astronomy` re-set by D-178's rule. One change under `src/`, outside the task's scope and approved by the owner with the budget call: `skychart/dome/bowl.ts` takes `bowlHeightPx`, `compactBowlBoxPx` and their constants out of `dome/camera.ts`, which `ChartFrame` (in `main`) had pulled into `main` since R133; `camera.ts` and `domeGeometry.ts` re-export them, no behaviour or capture changes (D-882). The release SHA to tag is read from `main` after the merge (RELEASE §18.5).
   - **Lane:** docs
   - **Model:** opus
   - **Review:** opus
