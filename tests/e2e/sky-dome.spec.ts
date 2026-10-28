@@ -15,7 +15,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { withSettings } from './liveHelpers';
+import { savedDome, withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -49,6 +49,8 @@ async function openGoldenPass(page: Page, violations: string[]): Promise<{ passI
     });
   });
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
+  // R136 (FR-FLOW-14): a phone with nothing saved opens on the window; this spec is about the dome, saved.
+  await savedDome(page);
   await page.addInitScript(() => {
     document.addEventListener('securitypolicyviolation', (event) => {
       (window as unknown as { __cspViolations: string[] }).__cspViolations ??= [];
@@ -76,11 +78,11 @@ const facingOf = async (readout: Locator): Promise<{ point: string; az: number; 
   return { point: match[1], az: Number(match[2]), tilt: Number(match[3]) };
 };
 
-test('the dome is the default view, shares the polar frame, faces the rise point, turns by drag and by keys within the tilt clamp, and the polar toggle keeps the pass', async ({ page }) => {
+test('the dome, saved, is the view the sheet opens on, shares the polar frame, faces the rise point, turns by drag and by keys within the tilt clamp, and the polar toggle keeps the pass', async ({ page }) => {
   const violations: string[] = [];
   const { passId, dialog } = await openGoldenPass(page, violations);
   const figure = dialog.getByRole('figure');
-  // FR-DOME-7: the dome is what the sheet opens on, with no toggle needed.
+  // FR-DOME-7 (FR-FLOW-14 since R136: the saved view wins on a phone): the dome is what the sheet opens on, with no toggle needed.
   await expect(figure).toHaveAttribute('data-view', 'dome');
   await expect(dialog.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
   const viewToggle = dialog.getByRole('group', { name: 'Chart view' });

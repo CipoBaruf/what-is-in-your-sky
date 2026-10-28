@@ -196,6 +196,7 @@ export async function homeAt(page: Page, t: number, locale: 'en' | 'es' = 'en', 
   await page.clock.install({ time: t });
   await page.clock.pauseAt(t);
   await stubNetwork(page);
+  await savedDome(page);
   await page.goto('/');
   await withSettings(page, async () => {
     if (locale === 'es') await page.getByRole('button', { name: 'Español' }).click();
@@ -252,6 +253,22 @@ export interface StoredRun {
 export const STORED_RUN = JSON.parse(readFileSync(STORED_RUN_FILE, 'utf8')) as StoredRun;
 const PREFS_KEY = 'wiys:prefs:v1';
 
+/**
+ * R136 (FR-FLOW-14, D-876): with nothing saved a phone opens the live page and the pass detail on the window. The
+ * specs written about the compact dome say so with this: `chartView: 'dome'` saved before the app reads its
+ * preferences, merged into whatever the spec seeds and only while no view is saved, so a view the test then
+ * picks and reloads to check is kept. Call it after the spec's own seed (a seed that writes only an empty key
+ * would otherwise find this one's key written). `homeAt` calls it and `seedStoredRun` seeds the same view, so the
+ * specs those two open keep the page they were written about; `sky-layout.spec.ts` asks for the fresh profile.
+ */
+export async function savedDome(page: Page): Promise<void> {
+  await page.addInitScript((key: string) => {
+    const raw = localStorage.getItem(key);
+    const saved = (raw === null ? {} : JSON.parse(raw)) as Record<string, unknown>;
+    if (saved['chartView'] === undefined) localStorage.setItem(key, JSON.stringify({ ...saved, chartView: 'dome' }));
+  }, PREFS_KEY);
+}
+
 export async function seedStoredRun(
   page: Page,
   {
@@ -305,7 +322,8 @@ export async function seedStoredRun(
     ([key, value]: [string, string]) => {
       if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
     },
-    [PREFS_KEY, JSON.stringify({ locale, observer: NEUQUEN_OBSERVER, ...prefs })] as [string, string],
+    // R136 (D-876): the dome saved, as `savedDome` says why; `prefs: { chartView: undefined }` is a fresh profile.
+    [PREFS_KEY, JSON.stringify({ locale, observer: NEUQUEN_OBSERVER, chartView: 'dome', ...prefs })] as [string, string],
   );
   await page.reload();
   // The stored list, on screen without a search: the count is what a spec that follows builds on,
@@ -456,8 +474,19 @@ export const VIEW_OPTION = { en: { dome: 'Dome', polar: 'Polar', window: 'Window
  * until it is up.
  */
 export async function openSkyScreen(page: Page, locale: 'en' | 'es' = 'en', within: Locator | null = null): Promise<Locator> {
-  const group = (within ?? page).getByRole('group', { name: VIEW_GROUP[locale] });
-  await group.getByRole('button', { name: VIEW_OPTION[locale].window }).click();
+  const scope = within ?? page;
+  // R136 (FR-FLOW-15, FR-STAR-5): the window is a view in the box, and the screen opens only from its
+  // `[ hold up to the sky ]`, which the window offers where a compass can follow.
+  await scope.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: VIEW_OPTION[locale].window }).click();
+  const holdUp = scope.getByTestId('window-hold-up');
+  // A paused clock holds the window chunk's Suspense reveal (R32), so the clock is run until the control is there.
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200).catch(() => undefined);
+      return holdUp.count();
+    }, { timeout: 15_000 })
+    .toBe(1);
+  await holdUp.click();
   await expect
     .poll(
       async () => {

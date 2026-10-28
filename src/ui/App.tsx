@@ -19,6 +19,7 @@ import { useLayoutMode } from './hooks/useLayoutMode';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useShortcuts } from './hooks/useShortcuts';
 import { moveCursor, passIdAtCursor, PASS_CARD } from './components/passes/passCursor';
+import { defaultChartView } from './screens/chartViewDefault';
 import { Home, useSteps } from './screens/Home';
 import { useLiveRoute } from './screens/LiveRoute';
 import { PassDetail } from './screens/PassDetail';
@@ -339,7 +340,8 @@ export function App() {
       return true;
     },
     view: () => {
-      setChartView(chartView === 'dome' ? 'polar' : 'dome');
+      // D-876: the view shown, which with nothing saved is the window on compact and the dome on wide.
+      setChartView(defaultChartView(mode, chartView) === 'dome' ? 'polar' : 'dome');
       return true;
     },
     // R127 (FR-DESK-4 as amended v2.5): `f` is the live page's, where its window listens for it; here it does nothing.

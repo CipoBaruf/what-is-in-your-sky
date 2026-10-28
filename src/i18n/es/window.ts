@@ -4,7 +4,7 @@ import type { windowMessages as EnWindow } from '../en/window';
 export const windowMessages: typeof EnWindow = {
   window: {
     waiting: 'Esperando los sensores del teléfono…',
-    denied: 'Se rechazó el acceso al movimiento, así que la cúpula sigue siendo la vista. Para que te lo vuelva a preguntar, recargá la página: Safari pregunta una vez por carga.',
+    denied: 'Se rechazó el acceso al movimiento. Para que te lo vuelva a preguntar, recargá la página: Safari pregunta una vez por carga.',
     relative: 'Este dispositivo no informa hacia dónde apunta.',
     hint: 'Levantá el teléfono: la ventana muestra el cielo al que apunta.',
     peak: 'pico',

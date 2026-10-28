@@ -37,6 +37,11 @@ import { z } from './zod';
  * §3), and a narrowing read would be written back by every other preference's
  * write-through on compact, which would cost a desk reader the view it chose
  * the first time it changed the sort on a phone-sized window.
+ *
+ * R136 (FR-FLOW-14, V26-11, D-876): that guard is gone; the window is saved
+ * and read back on compact as on wide. With nothing saved (or a value that is
+ * not a view) the reader leaves `chartView` out, and the page's
+ * `defaultChartView` picks the window on a phone and the dome on a desk.
  */
 export const PREFS_KEY = 'wiys:prefs:v1';
 

@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
+import { LANDSCAPE_DRAWING_MIN_SHARE } from '../../../lib/layout';
 import { useT } from '../../../i18n/useT';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { usePageShape } from '../live/usePageShape';
@@ -18,9 +19,12 @@ import styles from './SkyViewLayout.module.css';
  * readout stands in the box's top-left corner (V25-17) and the hint under the
  * box at the box's width; the rail holds `answer`, the `View` row, the
  * `Facing` row, `layers`, `list`, and at its foot `action` and `foot`. The
- * landscape phone (`usePageShape`) takes the rail form too, with the compact
- * tokens; where the page gives the layout a height (`fill`, the live page)
- * the rail scrolls inside it and the box keeps the layout's height. The pass
+ * landscape phone (`usePageShape`; R136, FR-FLOW-15, D-877) takes the rail
+ * form too, with the compact tokens, on all three pages: the drawing at the
+ * left at `LANDSCAPE_DRAWING_MIN_SHARE` of the viewport's width, the layout
+ * one viewport high under the top row (given by the page with `fill`, else
+ * measured here), the rail scrolling inside it and the page not at all. The
+ * turn changes the CSS only: the slots, the chart and its state stay mounted. The pass
  * detail's wide shell asks for `panel` (D-849): one column
  * where the view row and the picker share a line and the drawing takes the
  * panel's remaining height (`--sky-drawing-h`, measured here).
@@ -154,12 +158,57 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
   }, [shape]);
 
   /*
-   * FR-FLOW-6 on the landscape phone that fills its height: the hint wraps under the box (the follow clause and the
-   * Spanish line are longer than the box is wide), so the box keeps the layout's height less the hint's measured
-   * rows — `--sky-hint-h`, unset (one row) while there is no hint. The landscape arrangement itself is R136's.
+   * R136 (FR-FLOW-15, D-877): the landscape phone's layout is one viewport high under the page's top row, and the
+   * page does not scroll. The live page gives it that height (`fill`); the stars page and the sheet grow with their
+   * rows, so the height is measured here — the scroll box's height less the layout's top in it — and the page's
+   * padding under the layout is taken back by a negative margin (`--sky-landscape-trail`), so the page is exactly
+   * one scroll box high. The layout is first set to the scroll box's whole height, which makes the box overflow,
+   * so its `scrollHeight` reads what stands under the layout and not the box's own height.
+   */
+  const landscape = shape === 'rail' && mode === 'compact';
+  // The drawing's share of the viewport's width, from the one constant (CSSOM, not a style attribute: the CSP).
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root || !landscape) return;
+    root.style.setProperty('--sky-drawing-share', String(LANDSCAPE_DRAWING_MIN_SHARE));
+    return () => {
+      root.style.removeProperty('--sky-drawing-share');
+    };
+  }, [landscape]);
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root || !landscape || fill) return;
+    const scroller = scrollBoxOf(root);
+    const measure = (): void => {
+      const height = scroller.clientHeight;
+      root.style.setProperty('--sky-landscape-trail', '0px');
+      root.style.setProperty('--sky-landscape-h', `${String(height)}px`);
+      const top = root.getBoundingClientRect().top - (scroller === document.scrollingElement ? 0 : scroller.getBoundingClientRect().top) + scroller.scrollTop;
+      const trail = Math.max(0, scroller.scrollHeight - top - root.offsetHeight);
+      root.style.setProperty('--sky-landscape-trail', `${String(trail)}px`);
+      root.style.setProperty('--sky-landscape-h', `${String(Math.max(0, Math.floor(height - top)))}px`);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    // A top row that wraps or a notice that comes and goes moves the layout's top: the size of an ancestor under the
+    // scroll box says so, whichever one holds it.
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    for (let at = root.parentElement; at !== null && at !== scroller; at = at.parentElement) observer?.observe(at);
+    return () => {
+      window.removeEventListener('resize', measure);
+      observer?.disconnect();
+      root.style.removeProperty('--sky-landscape-h');
+      root.style.removeProperty('--sky-landscape-trail');
+    };
+  }, [landscape, fill]);
+
+  /*
+   * FR-FLOW-6 on the landscape phone: the hint wraps under the box (the follow clause and the Spanish line are
+   * longer than the box is wide), so the box keeps the layout's height less the hint's measured rows —
+   * `--sky-hint-h`, unset (one row) while there is no hint.
    */
   const hasHint = slots.hint !== undefined && slots.hint !== null && slots.hint !== false;
-  const sticky = shape === 'rail' && mode === 'compact' && fill;
+  const sticky = landscape;
   useEffect(() => {
     const root = rootRef.current;
     const hint = root?.querySelector<HTMLElement>('[data-slot="hint"]');
@@ -199,6 +248,15 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
       </div>
     </SkyViewContext.Provider>
   );
+}
+
+/** The box the page scrolls in: the nearest ancestor that scrolls (the pass detail's sheet), else the document. */
+function scrollBoxOf(element: HTMLElement): HTMLElement {
+  for (let at = element.parentElement; at; at = at.parentElement) {
+    const overflow = getComputedStyle(at).overflowY;
+    if (overflow === 'auto' || overflow === 'scroll') return at;
+  }
+  return (document.scrollingElement as HTMLElement | null) ?? document.documentElement;
 }
 
 /**

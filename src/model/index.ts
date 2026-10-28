@@ -9,5 +9,4 @@ export type { HourlyCloud, WeatherSnapshot, CloudState, CloudVerdict } from './w
 export type { PassRun, Favourite, Readiness, ReadinessGap } from './offline';
 export { MAX_FAVOURITES } from './offline';
 export type { PassSort, ChartView, ChartOrientation, Locale, Theme } from './prefs';
-export { compactChartView } from './prefs';
 export { THEMES, DEFAULT_THEME, DEFAULT_LIVE_LEGEND_OPEN, DEFAULT_SHOW_FAINT, DEFAULT_SKY_HINT_SEEN, DEFAULT_STARS_LAYER } from './prefs';

@@ -21,7 +21,8 @@ import { PassNumbers } from '../components/guide/PassNumbers';
 import { useAppStore } from '../../state';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { PEAK_FACING_OPTIONS } from '../components/guide/skychart/SkyChart.types';
-import { shownChartView, useChartHand } from '../components/guide/skychart/useChartHand';
+import { useChartHand } from '../components/guide/skychart/useChartHand';
+import { defaultChartView } from './chartViewDefault';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
 import { StarsToggle } from '../components/live/StarsToggle';
@@ -237,7 +238,8 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
    */
   const chartHand = useChartHand();
   const chartView = useAppStore((s) => s.chartView);
-  const view = shownChartView(compact, chartHand.window, chartView);
+  // R136 (FR-FLOW-14, D-876): the saved view, else the window on a phone and the dome on a desk.
+  const view = defaultChartView(mode, chartView);
   const hintShown = useSkyHintShown(view);
   const proseId = useId();
   const landmark =

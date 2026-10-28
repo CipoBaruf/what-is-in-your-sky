@@ -22,6 +22,8 @@ import {
   followPass,
   handRotation,
   initialHand,
+  nextRising,
+  openingFacing,
   passFacing,
   passPosition,
   PEAK_BELOW_CENTRE_DEG,
@@ -382,5 +384,50 @@ describe('followPass (FR-SKY-13, D-797)', () => {
     camera.dragTo(4, 0);
     expect(camera.get().follow).toBeUndefined();
     expect(listener).toHaveBeenCalledTimes(5);
+  });
+});
+
+/**
+ * R136 (FR-FLOW-14, D-876): where the live page's window opens — the
+ * highlighted pass followed, else the next rise at FR-SKY-7's tilt, else
+ * today's default — so a phone opening on the window never faces an empty field.
+ */
+describe('openingFacing (FR-FLOW-14, D-876)', () => {
+  const pass = goldenPassFixture();
+  const later = { ...pass, id: 'later', start: { ...pass.start, t: pass.start.t + 3_600_000, azDeg: 300, elDeg: 10 } };
+  const south = { latDeg: -38.9, now: pass.start.t - 60_000 };
+
+  it('follows the highlighted pass as f does, at its position now', () => {
+    const opened = openingFacing(south, pass, later);
+    expect(opened).toEqual(followPass(initialHand(south.latDeg), pass.id, passPosition(pass, south.now)));
+    expect(opened.follow).toBe(pass.id);
+    expect(opened.fovDeg).toBe(WINDOW_FOV);
+  });
+
+  it('faces the next rise at clamp(alt − 15°, 20°, 75°) with no highlighted pass', () => {
+    const opened = openingFacing(south, null, later);
+    expect(opened).toEqual({ azDeg: 300, altDeg: PEAK_TILT_MIN_DEG, fovDeg: WINDOW_FOV });
+    expect(opened.follow).toBeUndefined();
+    const high = { ...later, start: { ...later.start, elDeg: 50 } };
+    expect(openingFacing(south, null, high).altDeg).toBe(50 - PEAK_BELOW_CENTRE_DEG);
+  });
+
+  it('faces today’s default with no pass in the span', () => {
+    expect(openingFacing(south, null, null)).toEqual(initialHand(south.latDeg));
+    expect(openingFacing({ latDeg: 48.9, now: undefined }, null, null)).toEqual({ azDeg: STARS_DEFAULT_FACING.north, altDeg: STARS_DEFAULT_TILT, fovDeg: WINDOW_FOV });
+  });
+
+  it('picks the first pass still to rise as the next one', () => {
+    expect(nextRising([later, pass], south.now)?.id).toBe(pass.id);
+    expect(nextRising([later, pass], pass.start.t)?.id).toBe('later');
+    expect(nextRising([pass], pass.end.t)).toBeNull();
+    expect(nextRising([], undefined)).toBeNull();
+  });
+
+  it('opens a camera that keeps the follow it is created with, which the first drag ends', () => {
+    const camera = createHandCamera(openingFacing(south, pass, null));
+    expect(camera.get().follow).toBe(pass.id);
+    camera.dragTo(4, 0);
+    expect(camera.get().follow).toBeUndefined();
   });
 });

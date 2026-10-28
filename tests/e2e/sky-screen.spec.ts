@@ -15,7 +15,7 @@
  *   npx playwright test sky-screen --project=chromium
  */
 import { expect, test, type Page } from '@playwright/test';
-import { domeDrawn, homeAt, openSkyScreen, pose, stripFilled, stubCompass, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
+import { domeDrawn, homeAt, openSkyScreen, pose, stripFilled, stubCompass, T } from './liveHelpers';
 import { pinch } from './windowZoom';
 
 const LANDSCAPE = { width: 844, height: 390 };
@@ -133,17 +133,17 @@ test.describe('the sky screen on a phone held sideways', () => {
     // No second prompt for the turn (FR-FOL-2: the request is the tap on the control and nothing else).
     expect(await asks(page)).toBe(1);
 
-    // FR-FSC-2: the `×` is the way out — the live page comes back as it was, on the view it had.
+    // FR-FSC-2: the `×` is the way out — the live page comes back as it was, on the window it had in the box.
     await page.getByRole('button', { name: CLOSE }).click();
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
-    await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
+    await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
     await expect(page.getByTestId('overview-row')).toBeVisible();
     await expect(page.getByTestId('live-top-row')).not.toHaveAttribute('aria-hidden', 'true');
-    // FR-FSC-2 (D-351): focus is back on the option that opened it.
-    await expect(page.getByRole('group', { name: VIEW_GROUP.en }).getByRole('button', { name: VIEW_OPTION.en.window })).toBeFocused();
+    // FR-FSC-2 (D-351): focus is back on the control the screen was opened from — R136 (V26-12): `[ hold up to the sky ]`.
+    await expect(page.getByTestId('window-hold-up')).toBeFocused();
     expect(await asks(page)).toBe(1);
-    // Nothing was written: the window is a mode, not a saved view (FR-WIN-5 as amended v1.3.1).
-    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('wiys:prefs:v1') ?? '{}')) as { chartView?: string }).not.toMatchObject({ chartView: 'window' });
+    // R136 (FR-FLOW-14, D-876): the window the reader chose is saved on compact; the screen wrote nothing of its own.
+    expect(JSON.parse(await page.evaluate(() => localStorage.getItem('wiys:prefs:v1') ?? '{}')) as { chartView?: string }).toMatchObject({ chartView: 'window' });
   });
 
   /**
@@ -194,7 +194,9 @@ test.describe('the sky screen on a phone held sideways', () => {
     await card.getByRole('button', { name: /Open guide/ }).click();
     const sheet = page.getByRole('dialog').first();
     await expect(sheet).toBeVisible();
-    await sheet.evaluate((element) => {
+    // R136 (FR-FLOW-15, D-878): on the phone held sideways the sheet no longer scrolls; its rail does, inside the layout.
+    const rail = sheet.getByTestId('pass-layout');
+    await rail.evaluate((element) => {
       element.scrollTop = 80;
     });
 
@@ -216,9 +218,9 @@ test.describe('the sky screen on a phone held sideways', () => {
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(sheet).toBeVisible();
     // The guide comes back where it was and not at the top: the exact number is `PassDetail.test.tsx`'s,
-    // where the timing is controlled; what a browser adds is that the sheet is scrolled at all after the close.
-    expect(await sheet.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
-    await expect(sheet.getByRole('group', { name: VIEW_GROUP.en }).getByRole('button', { name: VIEW_OPTION.en.window })).toBeFocused();
+    // where the timing is controlled; what a browser adds is that the rail is scrolled at all after the close.
+    expect(await rail.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+    await expect(sheet.getByTestId('window-hold-up')).toBeFocused();
     expect(await asks(page)).toBe(1);
   });
 });

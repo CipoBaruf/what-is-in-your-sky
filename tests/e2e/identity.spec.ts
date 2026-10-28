@@ -10,7 +10,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { listSettled, withSettings } from './liveHelpers';
+import { listSettled, savedDome, withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -82,6 +82,9 @@ async function homeWithPasses(page: Page): Promise<void> {
 }
 
 test('Home: dark monospace frame, no sideways scroll, every control ≥ 44 px, empty and with passes; the detail sheet likewise', async ({ page }) => {
+  // R136 (FR-FLOW-14): with nothing saved the sheet opens on the window, whose compass points and plain `Dome`
+  // are under 44 px wide; the targets are R134's (FR-FLOW-11), so this spec keeps the sheet it was written about.
+  await savedDome(page);
   await page.goto('/');
   // R52 (FR-COMP-1): at 390 px the header's heading is the short title; the document title keeps the full one.
   await expect(page.getByRole('banner').getByRole('heading', { level: 1 })).toHaveText('Your sky');
