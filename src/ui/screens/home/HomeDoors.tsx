@@ -85,7 +85,7 @@ export function HomeDoors({ observer, selectedPassId, className }: HomeDoorsProp
   const { passId } = doors.satellites;
   return (
     // A labelled list of links and not a `nav`: the page's one navigation landmark is the header's (FR-A11Y-1).
-    <div className={[styles.doors, className].filter(Boolean).join(' ')} data-testid="home-doors">
+    <div className={[styles.doors, className].filter(Boolean).join(' ')} data-testid="home-doors" data-rhythm="section">
       <ul aria-label={t.doors.region} className={styles.list}>
         <DoorBox door={doors.satellites} href={passId === null ? `#${WHAT_ID}` : passIdHash(passId)} wide={wide} testId="door-satellites" {...(passId === null ? { onClick: openWhat } : {})} />
         <DoorBox door={doors.stars} href={STARS_HASH} wide={wide} testId="door-stars" />

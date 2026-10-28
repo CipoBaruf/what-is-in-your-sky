@@ -77,7 +77,7 @@ function Region({ step, className, testId, id, children }: { step: Step; classNa
   const t = useT();
   const headingId = useId();
   return (
-    <section id={id} aria-labelledby={headingId} className={className} data-testid={testId} data-reading={step}>
+    <section id={id} aria-labelledby={headingId} className={className} data-testid={testId} data-reading={step} data-rhythm="section">
       <SectionHeading id={headingId}>{t.home.panes[step]}</SectionHeading>
       {children}
     </section>
@@ -264,6 +264,7 @@ export function WhereReading({ offersInert, geolocation, step, focusGroup = fals
       className={cold ? `${styles.cold} ${styles.where}` : `${styles.reading} ${styles.where}`}
       data-testid={cold ? 'cold-open' : 'reading-where'}
       data-reading="where"
+      data-rhythm="section"
       {...(step ? { 'data-step': 'where' } : {})}
       {...settling}
     >

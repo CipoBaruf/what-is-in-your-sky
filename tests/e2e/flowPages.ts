@@ -1,0 +1,84 @@
+/**
+ * R134 (FR-FLOW-10, FR-FLOW-11; D-851): the five pages `rhythm.spec.ts` and `targets.spec.ts` measure at 390 × 844 —
+ * the home, the live page, the stars page, the pass detail and the settings page — and the sky screen, each opened
+ * the way R132's `sky-layout.spec.ts` opens them and returned as the root to measure under.
+ */
+import { expect, type Locator, type Page } from '@playwright/test';
+import { domeDrawn, homeAt, openSkyScreen, seedStoredRun, stubCompass, T } from './liveHelpers';
+import { NEUQUEN, NINE_DAYS_ON } from './observers';
+
+export const PHONE = { width: 390, height: 844 };
+export const LOCALES = ['en', 'es'] as const;
+export type Locale = (typeof LOCALES)[number];
+export type FlowPage = 'home' | 'live' | 'stars' | 'detail' | 'settings';
+export const FLOW_PAGES: readonly FlowPage[] = ['home', 'live', 'stars', 'detail', 'settings'];
+
+const PREFS_KEY = 'wiys:prefs:v1';
+const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
+const OPEN_GUIDE = { en: /Open guide/, es: /Abrir la guía/ } as const;
+
+/** A reader with a place and no stored run: the stars page and the settings page need nothing else. */
+async function seedReader(page: Page, locale: Locale): Promise<void> {
+  await page.clock.setFixedTime(NINE_DAYS_ON);
+  for (const pattern of EXTERNAL) await page.route(pattern, (route) => route.abort('failed'));
+  await page.addInitScript(
+    ([key, value]: [string, string]) => {
+      if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
+    },
+    [PREFS_KEY, JSON.stringify({ locale, observer: NEUQUEN })] as [string, string],
+  );
+}
+
+/** Opens one of the five pages, settled, and returns the element its measures are taken under. */
+export async function openFlowPage(page: Page, which: FlowPage, locale: Locale): Promise<Locator> {
+  switch (which) {
+    case 'home': {
+      await seedStoredRun(page, { locale, settled: true });
+      await expect(page.getByTestId('home-doors')).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByTestId('reading-when')).toBeVisible();
+      await expect(page.getByTestId('list-column')).toBeVisible();
+      return page.locator('main');
+    }
+    case 'live': {
+      await seedStoredRun(page, { locale, settled: true });
+      await page.goto('/#live');
+      await page.reload();
+      const layout = page.getByTestId('live-layout');
+      await expect(layout).toBeVisible({ timeout: 30_000 });
+      await expect(layout.locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
+      return page.locator('body');
+    }
+    case 'stars': {
+      await seedReader(page, locale);
+      await page.goto('/#stars');
+      const layout = page.getByTestId('stars-layout');
+      await expect(layout).toBeVisible();
+      await expect(layout.locator('[data-drawing="window"]')).toBeAttached();
+      return page.locator('body');
+    }
+    case 'detail': {
+      await seedStoredRun(page, { locale, settled: true });
+      await page.locator('article[data-pass-id]').first().getByRole('button', { name: OPEN_GUIDE[locale] }).click();
+      const layout = page.getByTestId('pass-layout');
+      await expect(layout).toBeVisible();
+      await expect(layout.locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
+      // The compact guide is a sheet over the home, which it makes inert: the sheet is the page.
+      return page.locator('[role="dialog"][data-pass-id]');
+    }
+    case 'settings': {
+      await seedReader(page, locale);
+      await page.goto('/#settings');
+      await expect(page.getByTestId('settings-browser')).toBeVisible();
+      return page.locator('body');
+    }
+  }
+}
+
+/** The sky screen, upright on a phone, opened from the live page's view control with a compass reading. */
+export async function openSkyScreenPage(page: Page, locale: Locale): Promise<Locator> {
+  await stubCompass(page);
+  await homeAt(page, T, locale);
+  await page.getByTestId('live-link').click();
+  await domeDrawn(page);
+  return openSkyScreen(page, locale);
+}
