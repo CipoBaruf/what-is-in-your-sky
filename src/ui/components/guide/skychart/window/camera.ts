@@ -329,8 +329,10 @@ export type SkyCamera = SensorCamera | HandCamera;
 /** The one sensor camera: it carries no state, so one value serves every window. */
 export const SENSOR_CAMERA: SensorCamera = { source: 'sensor' };
 
-export function createHandCamera(initial: HandAim): HandCamera {
-  let state = at(initial.azDeg, initial.altDeg, initial.fovDeg);
+export function createHandCamera(initial: HandAim & Pick<HandState, 'follow'>): HandCamera {
+  // R136 (FR-FLOW-14): a camera may open following a pass (`openingFacing`), so the opening state keeps its `follow`.
+  const aimed = at(initial.azDeg, initial.altDeg, initial.fovDeg);
+  let state: HandState = initial.follow === undefined ? aimed : { ...aimed, follow: initial.follow };
   let peakField = state.fovDeg;
   const listeners = new Set<() => void>();
   const apply = (next: HandState): void => {

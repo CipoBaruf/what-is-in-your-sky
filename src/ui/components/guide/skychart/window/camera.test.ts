@@ -423,4 +423,11 @@ describe('openingFacing (FR-FLOW-14, D-876)', () => {
     expect(nextRising([pass], pass.end.t)).toBeNull();
     expect(nextRising([], undefined)).toBeNull();
   });
+
+  it('opens a camera that keeps the follow it is created with, which the first drag ends', () => {
+    const camera = createHandCamera(openingFacing(south, pass, null));
+    expect(camera.get().follow).toBe(pass.id);
+    camera.dragTo(4, 0);
+    expect(camera.get().follow).toBeUndefined();
+  });
 });

@@ -446,8 +446,7 @@ export function SkyWindow(props: SkyWindowProps) {
     const kept = hand.get();
     if (kept !== null) return kept;
     if (peak !== null) return createHandCamera(facePeak(peak, WINDOW_FOV));
-    const followed = facingPassId === null ? null : (passes.find((pass) => pass.id === facingPassId) ?? null);
-    return createHandCamera(openingFacing({ latDeg: observer.lat, now }, followed, nextRising(passes, now)));
+    const followed = facingPassId === null ? null : (passes.find((pass) => pass.id === facingPassId) ?? null);    return createHandCamera(openingFacing({ latDeg: observer.lat, now }, followed, nextRising(passes, now)));
   });
   useEffect(() => {
     if (slotCamera !== null) hand?.keep(slotCamera);

@@ -900,7 +900,8 @@ describe('<LivePage>', () => {
       expect(lookAz()).toBe(turned);
     });
 
-    it('keeps the compact choice and the facing through a rotation, and drops the choice on a trip to wide', async () => {
+    /** R136 (FR-FLOW-14, FR-FLOW-15; D-876, D-877): the compact choice is saved, and a turn of the phone keeps the view and the facing. */
+    it('saves the compact choice of the window and keeps it and the facing through a turn and a trip to wide', async () => {
       media = stubMatchMedia(390, 844);
       withSky();
       act(() => {
@@ -908,10 +909,11 @@ describe('<LivePage>', () => {
       });
       render(<LivePage link={null} onLeave={() => undefined} />);
       fireEvent.click(screen.getByRole('button', { name: 'Window' }));
+      expect(appStore.getState().chartView).toBe('window');
       await windowDrawn();
       fireEvent.keyDown(handBox(), { key: 'ArrowRight' });
       const turned = lookAz();
-      // The landscape phone: the rail's chart, another element, still the window and still facing where it was.
+      // The landscape phone: the rail's arrangement, still the window and still facing where it was.
       act(() => {
         media?.setSize(844, 390);
       });
@@ -919,16 +921,33 @@ describe('<LivePage>', () => {
       await windowDrawn();
       expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
       expect(lookAz()).toBe(turned);
-      // Wide: the saved view, and back on compact the choice is gone — the saved view again, not a stale window.
+      expect(appStore.getState().skyScreen).toBe(false);
+      // Wide and back: the saved view on both.
       act(() => {
         media?.setSize(1280, 800);
       });
-      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
       act(() => {
         media?.setSize(390, 844);
       });
-      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
-      expect(appStore.getState().chartView).toBe('dome');
+      await windowDrawn();
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+      expect(lookAz()).toBe(turned);
+    });
+
+    /** R136 (FR-FLOW-14, D-876): a fresh profile opens the phone on the window, following the highlighted pass. */
+    it('opens a fresh phone on the window, following the highlighted pass', async () => {
+      media = stubMatchMedia(390, 844);
+      withSky();
+      // `withSky` saves the polar chart for the tests above; this one is a profile with nothing saved.
+      act(() => {
+        appStore.setState({ chartView: undefined });
+      });
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+      await windowDrawn();
+      expect(appStore.getState().chartView).toBeUndefined();
+      expect(screen.getByTestId('window-readout')).toHaveTextContent(/^Following [A-Z]/);
     });
   });
 
