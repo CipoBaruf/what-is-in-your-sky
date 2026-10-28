@@ -18,7 +18,7 @@ import { Header } from '../components/common/Header';
 import { ShareButton } from '../components/common/ShareButton';
 import { PageNotices, type LinkNoteKind } from '../components/common/VisitNotice';
 import { ChartFrameSlots, LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
-import { DOME_BOX_ASPECT } from '../components/guide/skychart/dome/camera';
+import { DOME_BOX_ASPECT } from '../components/guide/skychart/dome/bowl';
 import { LegendInventoryContext, type LegendInventory } from '../components/guide/skychart/Legend';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useChartHand } from '../components/guide/skychart/useChartHand';
