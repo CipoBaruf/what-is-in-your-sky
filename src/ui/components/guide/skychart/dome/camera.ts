@@ -130,6 +130,19 @@ export function zoomFor(widthPx: number, heightPx: number): number {
 }
 
 /**
+ * R133 (FR-FLOW-9, D-850): the bowl's drawn height, in CSS px, in a box of
+ * `widthPx` where the width binds — the compact box (FR-COMP-5's full-bleed
+ * width). `DRAWING_HEIGHT_UNITS` at the width's zoom: the silhouette a radius
+ * over the observer and the ground disc's near edge under it, the extent
+ * F-61 derived the height divisor from. `lib/layout.ts` `compactDomeBoxHeightPx`
+ * adds the slack above and below it, and `ChartFrame` cuts the box to that.
+ * 288.9 at 390 px.
+ */
+export function bowlHeightPx(widthPx: number): number {
+  return (widthPx / ZOOM_WIDTH_DIVISOR) * DRAWING_HEIGHT_UNITS;
+}
+
+/**
  * D-290 (R57, F-54): what the *raster* has to hold, in world units, as against
  * the divisors above, which are what the *box* has to hold. The two differ by
  * the labels: a label is a DOM element positioned over the grid, not a cell of
