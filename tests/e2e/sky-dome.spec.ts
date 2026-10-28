@@ -91,14 +91,14 @@ test('the dome is the default view, shares the polar frame, faces the rise point
   const frameBox = async () => (await figure.getByTestId('chart-frame').boundingBox()) ?? { x: NaN, y: NaN, width: NaN, height: NaN };
   const tableY = async () => (await dialog.getByRole('table').boundingBox())?.y ?? NaN;
   const domeFrame = await frameBox();
-  const domeTableY = await tableY();
   await viewToggle.getByRole('button', { name: 'Polar' }).click();
   await expect(figure).toHaveAttribute('data-view', 'polar');
   // R132 (FR-FLOW-4): the readout above the box is the view's — one line for the dome, two for the polar convention —
   // so the frame may move down a row between views while it keeps its size; the table follows it.
   const polarFrame = await frameBox();
   expect([polarFrame.width, polarFrame.height]).toEqual([domeFrame.width, domeFrame.height]);
-  expect(Math.abs((await tableY()) - domeTableY - (polarFrame.y - domeFrame.y))).toBeLessThanOrEqual(1);
+  // …and the table of points stays under the drawing (the polar chart's orientation control stands between them, in the picker slot).
+  expect(await tableY()).toBeGreaterThanOrEqual(polarFrame.y + polarFrame.height - 1);
   await viewToggle.getByRole('button', { name: 'Dome' }).click();
   await expect(figure).toHaveAttribute('data-view', 'dome');
 

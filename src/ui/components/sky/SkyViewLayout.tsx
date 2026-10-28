@@ -149,8 +149,10 @@ export function SkyViewLayout({ wide = 'rail', describedBy, className, ref, 'dat
     // D-846: on wide the rail labels the view row and the facing row; the drawing's corner and the column do not.
     const label = labelled && name === 'viewRow' ? { id: viewId, text: t.skyView.view } : labelled && name === 'picker' ? { id: facingId, text: t.skyView.facing } : null;
     // The label is a heading over the row and not the row's group name: the control inside already names itself (`Chart view`, `Facing`).
+    // The rail's list scrolls inside itself (FR-DESK-2), so it is a keyboard stop too (axe `scrollable-region-focusable`, FR-A11Y-7).
+    const scrolls = name === 'list' && shape === 'rail' && mode === 'wide';
     return (
-      <div key={name} className={[styles.slot, styles[name]].join(' ')} data-slot={name} data-rhythm={SLOT_RHYTHM[name]}>
+      <div key={name} className={[styles.slot, styles[name]].join(' ')} data-slot={name} data-rhythm={SLOT_RHYTHM[name]} {...(scrolls ? { tabIndex: 0 } : {})}>
         {label && <SectionHeading id={label.id}>{label.text}</SectionHeading>}
         {node}
       </div>

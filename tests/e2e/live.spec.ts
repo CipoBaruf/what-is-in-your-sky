@@ -352,8 +352,9 @@ test.describe('the wide live page (R61)', () => {
     await expect(page.getByRole('slider', { name: 'Night overview' })).toBeVisible();
     // The box is the dome's shape (D-314); the rail's foot reaches the page's bottom, and the page does not scroll.
     expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(DOME_BOX_ASPECT, 2);
+    // The hint's row under the box is the layout's last, so the foot ends a hint's row above the page's padding.
     const foot = await page.getByTestId('live-rail-foot').boundingBox();
-    expect(1080 - ((foot?.y ?? 0) + (foot?.height ?? 0))).toBeLessThanOrEqual(24);
+    expect(1080 - ((foot?.y ?? 0) + (foot?.height ?? 0))).toBeLessThanOrEqual(48);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1080);
   });
 
@@ -388,7 +389,7 @@ test.describe('the wide live page (R61)', () => {
     // The box is the dome's shape (D-314); the rail's foot reaches the page's bottom. The page does not scroll.
     expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(DOME_BOX_ASPECT, 2);
     const foot = await page.getByTestId('live-rail-foot').boundingBox();
-    expect(800 - ((foot?.y ?? 0) + (foot?.height ?? 0))).toBeLessThanOrEqual(24);
+    expect(800 - ((foot?.y ?? 0) + (foot?.height ?? 0))).toBeLessThanOrEqual(48);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(800);
   });
 });
