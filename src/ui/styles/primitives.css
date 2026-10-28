@@ -8,8 +8,13 @@
   /* The floor is the hit area's, padding included: a link is `content-box` otherwise, and its tap box's padding
      would be added to the floor (68 px, which stretched the wide header's row). */
   box-sizing: border-box;
-  min-block-size: var(--target);
   min-inline-size: var(--target);
+}
+
+/* The height floor carries no weight (`:where`), so a floor already written for the element wins: a button keeps
+   global.css's `--tap` (48 px) rather than shrinking to 44 beside an untouched one (the live page's actions row). */
+:where(.target) {
+  min-block-size: var(--target);
 }
 
 /* A focused inline control keeps D-500's ring round its text line, which drops the tap box while the ring shows
