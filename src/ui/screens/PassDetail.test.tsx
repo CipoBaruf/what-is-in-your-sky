@@ -45,7 +45,8 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     // R13: the chart is a figure described by the sentence; the drawing is hidden from AT (FR-GUIDE-7) and is DOM, never canvas (FR-GUIDE-5).
     // R21 (FR-DOME-7): the dome is the default again and the polar view is one toggle away; the contract test covers both views themselves.
     // R132 (FR-FLOW-7, D-849): the sentence is the `list` slot's first line, after the drawing, and the figure points at it.
-    const figure = within(dialog).getByRole('figure');
+    // With no caption in the layout the figure is named by the pass's heading (D-864).
+    const figure = within(dialog).getByRole('figure', { name: 'ISS (Zarya)' });
     const sentence = within(dialog).getByTestId('guide-sentence');
     expect(figure).toHaveAttribute('aria-describedby', sentence.id);
     expect(sentence.closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
@@ -233,6 +234,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       expect(within(head).getByRole('timer')).toBeInTheDocument();
       expect(within(head).getByTestId('pass-times')).toBeInTheDocument();
       expect(screen.getByTestId('pass-layout')).toHaveAttribute('data-shape', 'panel');
+      expect(within(screen.getByTestId('pass-layout')).getByRole('figure', { name: 'ISS (Zarya)' })).toBeInTheDocument();
     } finally {
       media.restore();
       appStore.setState(initial, true);

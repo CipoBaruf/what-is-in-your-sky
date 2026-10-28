@@ -512,8 +512,10 @@ describe('<LivePage>', () => {
     // R92 (D-529): a cell of the page's grid, through the `display: contents` main.
     expect(screen.getByTestId('live-layout').parentElement).toBe(screen.getByRole('main'));
     expect(screen.getByRole('main').parentElement).toBe(screen.getByTestId('live-page'));
-    // FR-FLOW-4's order on compact: the headline, the view row, the readout, the drawing, the picker, the hint, the actions, the list.
-    expect([...screen.getByTestId('live-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'))).toEqual(['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint', 'action', 'list']);
+    // FR-FLOW-4's order on compact: the headline, the view row, the readout, the drawing, the picker, the actions, the list —
+    // and no hint slot, since the polar chart has no drag (D-864).
+    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'polar');
+    expect([...screen.getByTestId('live-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'))).toEqual(['answer', 'viewRow', 'readout', 'drawing', 'picker', 'action', 'list']);
     expect(within(screen.getByTestId('live-layout').querySelector('[data-slot="action"]') as HTMLElement).getByTestId('live-actions')).toBeInTheDocument();
     unmount();
     // D-386: 964, 1280 and 1660 are one layout — the rail beside the cut box.
@@ -530,8 +532,8 @@ describe('<LivePage>', () => {
       expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'false');
       expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
       expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
-      // The rail's order: the answer, the view row, the facing row, the legend and the conditions, the foot.
-      expect([...screen.getByTestId('live-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'))).toEqual(['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint', 'list', 'foot']);
+      // The rail's order: the answer, the view row, the facing row, the legend and the conditions, the foot (no hint on the polar chart).
+      expect([...screen.getByTestId('live-layout').querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'))).toEqual(['answer', 'viewRow', 'readout', 'drawing', 'picker', 'list', 'foot']);
       wide.unmount();
     }
     media?.restore();

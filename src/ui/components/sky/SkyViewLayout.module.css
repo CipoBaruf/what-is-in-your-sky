@@ -165,15 +165,14 @@
 
 .layout[data-shape='rail'][data-mode='compact'][data-fill] .drawing {
   align-self: start;
-  height: calc(100cqh - var(--row) - var(--space-1));
+  height: calc(100cqh - max(var(--sky-hint-h, 0px), var(--row)) - var(--space-1));
 }
 
+/* The hint wraps to its own lines rather than cutting the follow clause; `SkyViewLayout` measures it (`--sky-hint-h`).
+   No min-height of its own: the grid is shorter than its rows, so a set one would be the row's whole height. */
 .layout[data-shape='rail'][data-mode='compact'][data-fill] .hint {
   position: sticky;
   bottom: 0;
-  height: var(--row);
-  box-sizing: border-box;
-  overflow: hidden;
 }
 
 .layout[data-shape='rail'] .drawing,

@@ -2,7 +2,7 @@
 /**
  * R132 (FR-FLOW-6, D-848): the hand hint in the reader's terms — worded by the
  * pointer, the follow clause on a coarse pointer with a key, the drag clause
- * alone on the dome and the polar chart, both languages, and gone for good
+ * alone on the dome and nothing on the polar chart (no drag, D-864), both languages, and gone for good
  * once a first gesture on any view sets `skyHintSeen` through
  * `useChartHand`'s slot.
  */
@@ -13,7 +13,7 @@ import { I18nProvider } from '../../../i18n/useT';
 import type { Locale } from '../../../model';
 import { appStore } from '../../../state';
 import { useChartHand } from '../guide/skychart/useChartHand';
-import { SkyHint, type SkyHintProps } from './SkyHint';
+import { SkyHint, useSkyHintShown, type SkyHintProps } from './SkyHint';
 
 let media: MatchMediaStub | null = null;
 const initial = appStore.getInitialState();
@@ -56,14 +56,19 @@ describe('<SkyHint> (FR-FLOW-6)', () => {
     expect(screen.getByTestId('sky-hint')).toHaveTextContent('Drag or use the arrow keys · ctrl + wheel to zoom · click a star');
   });
 
-  it('gives the dome and the polar chart the drag clause alone', () => {
+  it('gives the dome the drag clause alone, and the polar chart, which has no drag, no hint (D-864)', () => {
     media = stubMatchMedia(1280);
     hint({ view: 'dome' });
     expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^Drag or use the arrow keys$/);
     cleanup();
     media.setCoarsePointer(true);
-    hint({ view: 'polar', followKey: 'A' });
+    hint({ view: 'dome', followKey: 'A' });
     expect(screen.getByTestId('sky-hint')).toHaveTextContent(/^Drag to look · tap A to follow$/);
+    cleanup();
+    hint({ view: 'polar', followKey: 'A' });
+    expect(screen.queryByTestId('sky-hint')).toBeNull();
+    expect(renderHook(() => useSkyHintShown('polar')).result.current).toBe(false);
+    expect(renderHook(() => useSkyHintShown('dome')).result.current).toBe(true);
   });
 
   it('speaks Spanish', () => {

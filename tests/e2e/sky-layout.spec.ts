@@ -170,7 +170,9 @@ for (const locale of LOCALES) {
         await chooseView(page, layout, locale, view);
         const slots = await slotBoxes(layout);
         const names = slots.map((slot) => slot.name);
-        expect(names.slice(0, 6), view).toEqual(['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint'].filter((name) => name !== 'picker' || names.includes('picker')));
+        // The polar chart has no drag, so it has no hint and no hint slot (D-864).
+        expect(names.includes('hint'), view).toBe(view !== 'polar');
+        expect(names.slice(0, names.includes('hint') ? 6 : 5), view).toEqual(['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint'].filter((name) => names.includes(name)));
         expect(names.indexOf('action'), view).toBeGreaterThan(names.indexOf('hint'));
         expect(names.indexOf('list'), view).toBeGreaterThan(names.indexOf('action'));
         expectStacked(slots);
@@ -203,6 +205,26 @@ for (const locale of LOCALES) {
       await layout.getByTestId('stars-layers').getByRole('button', { name: WORDS[locale].passes }).click();
       await expect(layout.locator('[data-layer="passes"]')).toHaveAttribute('aria-pressed', 'true');
       await check();
+    });
+
+    test('the first drag on the stars page puts the hint away for good, with no slot and no gap left for it (FR-FLOW-6)', async ({ page }) => {
+      const layout = await openStars(page, locale);
+      await expect(layout.getByTestId('sky-hint')).toBeVisible();
+      const drawing = await box(layout.locator('[data-slot="drawing"]'));
+      await page.mouse.move(drawing.x + drawing.width / 2, drawing.y + drawing.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(drawing.x + drawing.width / 2 + 40, drawing.y + drawing.height / 2, { steps: 4 });
+      await page.mouse.up();
+      await expect(layout.getByTestId('sky-hint')).toHaveCount(0);
+      await expect(layout.locator('[data-slot="hint"]')).toHaveCount(0);
+      // The slot under the picker stands its own rhythm's gap from it, and nothing more.
+      const picker = await box(layout.locator('[data-slot="picker"]'));
+      const next = layout.locator('[data-slot="picker"] + [data-slot]');
+      const gap = await next.evaluate((el) => parseFloat(getComputedStyle(el).marginTop));
+      expect(Math.abs((await box(next)).y - (picker.y + picker.height) - gap)).toBeLessThanOrEqual(1);
+      await page.reload();
+      await expect(layout.locator('[data-drawing="window"]')).toBeAttached();
+      await expect(layout.getByTestId('sky-hint')).toHaveCount(0);
     });
 
     test('the pass detail leads with its head and its drawing is on the first screen (FR-FLOW-7)', async ({ page }) => {

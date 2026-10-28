@@ -10,7 +10,7 @@ import { BODIES_EVERY_MS, due, HASH_EVERY_MS, linkInstant } from '../../lib/play
 import { liveLinkHash, shareUrl, type LiveLink } from '../../lib/shareLinks';
 import { formatClock } from '../../lib/timeFormat';
 import type { Span } from '../../lib/timeStripe';
-import { compactChartView, type EpochMs, type Observer, type Pass } from '../../model';
+import type { EpochMs, Observer, Pass } from '../../model';
 import { useActiveObserver, useAppStore, type ElementsState, type PassesState } from '../../state';
 import { sameLocation } from '../../state/slices/location';
 import { FailureLine } from '../components/common/FailureLine';
@@ -21,7 +21,7 @@ import { ChartFrameSlots, LEGEND_PANEL_ID } from '../components/guide/skychart/C
 import { DOME_BOX_ASPECT } from '../components/guide/skychart/dome/camera';
 import { LegendInventoryContext, type LegendInventory } from '../components/guide/skychart/Legend';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
-import { useChartHand } from '../components/guide/skychart/useChartHand';
+import { shownChartView, useChartHand } from '../components/guide/skychart/useChartHand';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
@@ -45,7 +45,7 @@ import { useWallThrottle } from '../components/live/useWallThrottle';
 import { Mark } from '../components/mark/Mark';
 import { JumpControl, NextEventBlock } from '../components/passes/NextEventBlock';
 import { SkyScreen } from '../components/screen/SkyScreen';
-import { SkyHint } from '../components/sky/SkyHint';
+import { SkyHint, useSkyHintShown } from '../components/sky/SkyHint';
 import { SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
@@ -429,15 +429,11 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   /*
    * R78 (FR-WATCH-5, FR-WATCH-6; D-448): where the scrub block goes, and what folds, from one measured number —
    * the height the chart's frame has for the box with nothing under it (`ChartFrame`'s `onBoxSpace`), not the
-   * viewport's. The fold changes the rows that number is measured under, so it is stored with the fold in force
-   * taken back out (`unfoldedBoxHeightPx`): otherwise folding would hand the box the height that unfolds it
-   * again. `foldRef` is the fold the measured layout was drawn with — committed in a layout effect, which runs
-   * before the frame's observer reports on that layout. Neither answer reads the state, so at the short shapes
-   * the box is one height in the two (FR-WATCH-7).
+   * viewport's. Neither answer reads the state, so at the short shapes the box is one height in the two
+   * (FR-WATCH-7). R132 (D-864): the box's slot spans every rail row, so a fold lets air out of the rail and gives
+   * the box nothing back; the measurement is stored as it is, with no fold to take back out of it.
    */
   const [boxHeightPx, setBoxHeightPx] = useState<number | null>(null);
-  // R132 (D-864): the box's slot spans every rail row, so a fold lets air out of the rail and gives the box nothing
-  // back — `unfoldedBoxHeightPx`'s correction (R78) would now add rows the box never had and flip the fold on itself.
   const onBoxSpace = useCallback((measuredPx: number) => {
     setBoxHeightPx(measuredPx);
   }, []);
@@ -685,9 +681,8 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
    * R85 (F-81, FR-CAP-5, D-549): on the short wide window the legend between the rail's head and foot is an
    * inventory that ends on a whole entry, with a `+n` line — `liveRows.ts`'s `inventoryClip` over what the rail
    * leaves it, measured here in whole text rows. `headerRows` is the legend's answer to whether it draws the
-   * times header, which takes one of those rows; it draws none when no listed row has times. R132: the legend is
-   * the layout's `list` slot now and no longer inside the dome row, so the measurement finds no box and the
-   * list scrolls in the rail instead (R133 sizes the box; a follow-up re-points the measurement).
+   * times header, which takes one of those rows; it draws none when no listed row has times. R132 (D-864): the
+   * legend is the layout's `list` slot now, so the budget is that slot's height less the conditions line under it.
    */
   const inventoryRows = useInventoryRows(!compact && placement === 'overlay' && !screenOpen, domeRef);
   const legendInventory = useMemo<LegendInventory | null>(
@@ -703,6 +698,11 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
       {children}
     </Page>
   );
+  // FR-FLOW-6: the hint's view is the chart's — the compact hand window, else the saved view as the chart narrows it.
+  const hintView = shownChartView(compact, chartHand.window, chartView);
+  const hintShown = useSkyHintShown(hintView);
+  const highlightedId = highlighted?.id ?? null;
+  const followKey = useMemo(() => (highlightedId === null ? null : (legendKeys(legendRowsNow)[highlightedId] ?? null)), [legendRowsNow, highlightedId]);
   if (screenOpen) {
     return page(<SkyScreen passes={chartPasses} observer={observer} now={shown} sun={bodies.sun} moon={bodies.moon} scene={scene} initialFacingAzDeg={0} onClose={closeScreen} />);
   }
@@ -753,9 +753,6 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
       <StarsToggle />
     </>
   );
-  // FR-FLOW-6: the hint's view is the chart's — the compact hand window, else the saved view as the chart narrows it.
-  const hintView = chartHand.window ? 'window' : compact ? compactChartView(chartView) : chartView;
-  const followKey = highlighted === null ? null : (legendKeys(legendRowsNow)[highlighted.id] ?? null);
   const list = (
     <>
       <SkyViewChartSlot name="list" />
@@ -809,7 +806,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
         </div>
       }
       picker={<SkyViewChartSlot name="picker" />}
-      hint={<SkyHint view={hintView} followKey={followKey} />}
+      hint={hintShown && <SkyHint view={hintView} followKey={followKey} />}
       {...(compact ? { action: actions } : {})}
       list={list}
       {...(foot === null ? {} : { foot })}

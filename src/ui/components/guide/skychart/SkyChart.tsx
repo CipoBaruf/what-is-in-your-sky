@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '../../../../i18n/useT';
 import { bodyLines, legendKeys, legendRows, promoteRow } from '../../../../lib/legend';
-import { compactChartView, type ChartView } from '../../../../model';
+import type { ChartView } from '../../../../model';
 import { useAppStore } from '../../../../state';
 import { DEFAULT_CHART_VIEW } from '../../../../state/slices/prefs';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
@@ -15,7 +15,7 @@ import { Legend } from './Legend';
 import { POLAR_VIEW } from './polar/SkyPolar';
 import styles from './SkyChart.module.css';
 import type { SkyChartProps, SkyChartView } from './SkyChart.types';
-import { useChartHand } from './useChartHand';
+import { shownChartView, useChartHand } from './useChartHand';
 import { useSkyBodies } from './useSkyBodies';
 
 /**
@@ -221,7 +221,7 @@ export function SkyChart(props: SkyChartProps) {
   const moonPhase = props.moonPhase ?? false;
   // D-789: on compact the saved view is never the window (the store's guard reads a stored one as the dome at load;
   // a window saved on wide and then narrowed draws as the dome too) — the window there is this chart's own choice.
-  const pageView: ChartView = compact ? (handWindow ? 'window' : compactChartView(chartView)) : chartView;
+  const pageView: ChartView = shownChartView(compact, handWindow, chartView);
   const view = screen ? WINDOW_VIEW : viewFor(pageView);
   const choose = useCallback(
     (id: ChartView) => {
@@ -368,7 +368,14 @@ export function SkyChart(props: SkyChartProps) {
       {legend}
     </div>
   ) : null;
-  const figureName = inLayout && !screen ? (controlSlot.describedBy === undefined ? (fill ? { 'aria-label': t.chart.liveLabel } : {}) : { 'aria-describedby': controlSlot.describedBy }) : fill ? { 'aria-label': t.chart.liveLabel } : {};
+  // R132 (D-864): in a layout the figure has no caption, so it is named by the page's heading where there is one (the pass's name), else as the live page's.
+  const { labelledBy, describedBy } = controlSlot;
+  const figureName =
+    inLayout && !screen
+      ? { ...(labelledBy === undefined ? (fill ? { 'aria-label': t.chart.liveLabel } : {}) : { 'aria-labelledby': labelledBy }), ...(describedBy === undefined ? {} : { 'aria-describedby': describedBy }) }
+      : fill
+        ? { 'aria-label': t.chart.liveLabel }
+        : {};
   return (
     <figure
       ref={figureRef}

@@ -5,7 +5,7 @@ import { landmarkLine, landmarkNames } from '../../lib/landmarkLine';
 import { guideParams } from '../../lib/phrases';
 import { passLinkFor, shareUrl } from '../../lib/shareLinks';
 import { formatDate } from '../../lib/timeFormat';
-import { compactChartView, type Observer, type Pass } from '../../model';
+import type { Observer, Pass } from '../../model';
 import { Countdown } from '../components/common/Countdown';
 import { Header } from '../components/common/Header';
 import { ShareButton } from '../components/common/ShareButton';
@@ -21,13 +21,13 @@ import { PassNumbers } from '../components/guide/PassNumbers';
 import { useAppStore } from '../../state';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { PEAK_FACING_OPTIONS } from '../components/guide/skychart/SkyChart.types';
-import { useChartHand } from '../components/guide/skychart/useChartHand';
+import { shownChartView, useChartHand } from '../components/guide/skychart/useChartHand';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
 import { StarsToggle } from '../components/live/StarsToggle';
 import { useStarSource } from '../components/live/useStarSource';
 import { SkyScreen } from '../components/screen/SkyScreen';
-import { SkyHint } from '../components/sky/SkyHint';
+import { SkyHint, useSkyHintShown } from '../components/sky/SkyHint';
 import { SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import styles from './PassDetail.module.css';
 
@@ -237,7 +237,8 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
    */
   const chartHand = useChartHand();
   const chartView = useAppStore((s) => s.chartView);
-  const view = chartHand.window ? 'window' : compact ? compactChartView(chartView) : chartView;
+  const view = shownChartView(compact, chartHand.window, chartView);
+  const hintShown = useSkyHintShown(view);
   const proseId = useId();
   const landmark =
     landmarkText !== null ? (
@@ -296,6 +297,7 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
     <SkyViewLayout
       wide={wide}
       describedBy={proseId}
+      labelledBy={headingId}
       data-testid="pass-layout"
       className={styles.layout}
       {...(answer === null ? {} : { answer })}
@@ -303,7 +305,7 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
       readout={<SkyViewChartSlot name="readout" />}
       drawing={chart}
       picker={<SkyViewChartSlot name="picker" />}
-      hint={<SkyHint view={view} />}
+      hint={hintShown && <SkyHint view={view} />}
       list={list}
       foot={foot}
     />

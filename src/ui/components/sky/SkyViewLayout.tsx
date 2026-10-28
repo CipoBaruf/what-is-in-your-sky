@@ -70,6 +70,8 @@ export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, Reac
   wide?: 'rail' | 'panel';
   /** The id of the drawing's text alternative on the page — the pass detail's prose — for the chart's figure (`aria-describedby`). */
   describedBy?: string | undefined;
+  /** The id of the heading that names the drawing on the page — the pass's name — for the chart's figure (`aria-labelledby`). */
+  labelledBy?: string | undefined;
   /**
    * The page gives the layout a height and the layout fills it (the live page: one viewport high wherever there is
    * a rail, FR-LIVE-7). On the landscape phone the rail then scrolls inside the layout and the box keeps the
@@ -86,11 +88,12 @@ interface SkyViewContextValue {
   targets: Partial<Record<ChartSlotName, HTMLElement>>;
   register: (name: ChartSlotName, element: HTMLElement | null) => void;
   describedBy: string | undefined;
+  labelledBy: string | undefined;
 }
 
 const SkyViewContext = createContext<SkyViewContextValue | null>(null);
 
-export function SkyViewLayout({ wide = 'rail', describedBy, fill = false, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
+export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = false, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
   const t = useT();
   const mode = useLayoutMode();
   const pageShape = usePageShape();
@@ -104,7 +107,7 @@ export function SkyViewLayout({ wide = 'rail', describedBy, fill = false, classN
       return element === null ? rest : { ...rest, [name]: element };
     });
   }, []);
-  const context = useMemo<SkyViewContextValue>(() => ({ shape, targets, register, describedBy }), [shape, targets, register, describedBy]);
+  const context = useMemo<SkyViewContextValue>(() => ({ shape, targets, register, describedBy, labelledBy }), [shape, targets, register, describedBy, labelledBy]);
   const viewId = useId();
   const facingId = useId();
 
@@ -149,6 +152,28 @@ export function SkyViewLayout({ wide = 'rail', describedBy, fill = false, classN
       root.style.removeProperty('--sky-drawing-h');
     };
   }, [shape]);
+
+  /*
+   * FR-FLOW-6 on the landscape phone that fills its height: the hint wraps under the box (the follow clause and the
+   * Spanish line are longer than the box is wide), so the box keeps the layout's height less the hint's measured
+   * rows — `--sky-hint-h`, unset (one row) while there is no hint. The landscape arrangement itself is R136's.
+   */
+  const hasHint = slots.hint !== undefined && slots.hint !== null && slots.hint !== false;
+  const sticky = shape === 'rail' && mode === 'compact' && fill;
+  useEffect(() => {
+    const root = rootRef.current;
+    const hint = root?.querySelector<HTMLElement>('[data-slot="hint"]');
+    if (!root || !hint || !sticky || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      const next = `${String(Math.ceil(hint.getBoundingClientRect().height))}px`;
+      if (root.style.getPropertyValue('--sky-hint-h') !== next) root.style.setProperty('--sky-hint-h', next);
+    });
+    observer.observe(hint);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--sky-hint-h');
+    };
+  }, [sticky, hasHint]);
 
   const labelled = shape === 'rail';
   const slot = (name: SkyViewSlotName): ReactNode => {
@@ -201,6 +226,8 @@ export interface ChartSlot {
   shape: SkyViewShape | null;
   /** The drawing's text alternative on the page, for the figure's `aria-describedby`. */
   describedBy: string | undefined;
+  /** The heading that names the drawing on the page, for the figure's `aria-labelledby`. */
+  labelledBy: string | undefined;
   /** The slot's element on the page, where a part has been placed — for a query the chart used to run inside its figure. */
   target: HTMLElement | null;
   /** The part, portaled into the page's slot — or nothing, while the slot is not on the page. */
@@ -216,6 +243,7 @@ export function useChartSlot(name: ChartSlotName): ChartSlot {
       inLayout: layout !== null,
       shape: layout?.shape ?? null,
       describedBy: layout?.describedBy,
+      labelledBy: layout?.labelledBy,
       target,
       place: (node) => (target === null || node === null || node === undefined ? null : createPortal(node, target)),
     }),

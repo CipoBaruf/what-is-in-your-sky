@@ -17,6 +17,7 @@ import { FacingPicker } from '../components/guide/skychart/window/FacingPicker';
 import { groundState, type View } from '../components/guide/skychart/window/projection';
 import type { SkyScene, StarField } from '../components/guide/skychart/window/scene';
 import { SkyWindow } from '../components/guide/skychart/window/SkyWindow';
+import { markSkyHintSeen } from '../components/guide/skychart/useChartHand';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { OptionToggle } from '../components/primitives/OptionToggle';
 import { SectionHeading } from '../components/primitives/SectionHeading';
@@ -33,7 +34,7 @@ import { tonightsDark } from '../../lib/tonightStripe';
 import { FieldList } from './stars/FieldList';
 import { fieldObjects, fieldPasses, fieldRows, sceneCatalog, STAR_LABEL_HOLD_S } from './stars/field';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
-import { SkyHint } from '../components/sky/SkyHint';
+import { SkyHint, useSkyHintShown } from '../components/sky/SkyHint';
 import { SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import styles from './Stars.module.css';
 
@@ -213,6 +214,7 @@ function StarsSky({ observer }: { observer: Observer }) {
 
   const layoutRef = useRef<HTMLDivElement>(null);
   const skyRef = useRef<HTMLDivElement>(null);
+  const hintShown = useSkyHintShown('window');
   const probeRef = useRef<HTMLSpanElement>(null);
 
   // Where the camera looks, on the page's root for the tests and the captures, written by ref (no render per frame).
@@ -455,14 +457,16 @@ function StarsSky({ observer }: { observer: Observer }) {
             answer={<StarsHeading observer={observer} now={now} />}
             readout={<SkyViewChartSlot name="readout" />}
             drawing={
-              <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky">
+              // R132 (FR-FLOW-6, D-848): the page's own camera, so no hand slot reports the gesture — a drag, a pinch or a
+              // tap all begin with a pointer down in the box, caught here before the window's own handlers.
+              <div className={styles.sky} ref={skyRef} role="group" aria-label={p.drawing} data-testid="stars-sky" onPointerDownCapture={markSkyHintSeen}>
                 <SkyWindow passes={drawnPasses} observer={observer} highlightedPassId={null} now={now} sun={sun} moon={moon} fill scene={scene} camera={camera} colorBy="pass" legendKeys={keys} namedStar={named?.index ?? null} onNameStar={onName} />
               </div>
             }
             // R121 (D-789): the window lane's picker, the eight points and the zenith — the row it was here (R115), shared with the
             // chart's window. It names itself (`Facing`); on wide the layout labels its row (D-846).
             picker={<FacingPicker camera={camera} className={styles.row} />}
-            hint={<SkyHint view="window" />}
+            hint={hintShown && <SkyHint view="window" />}
             {...(action === null ? {} : { action })}
             layers={layerRows}
             list={field}

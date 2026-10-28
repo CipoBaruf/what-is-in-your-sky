@@ -84,6 +84,10 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
     render(<SkyViewLayout data-testid="layout" drawing={<div>box</div>} list={<p>list</p>} />);
     expect(slots()).toEqual(['drawing', 'list']);
     expect(screen.getByTestId('layout').querySelector('[data-slot="answer"]')).toBeNull();
+    // A page that has no hint to show (seen, or the polar chart) hands the slot `false`, and no wrapper or gap is left.
+    cleanup();
+    render(<SkyViewLayout data-testid="layout" drawing={<div>box</div>} hint={false} list={<p>list</p>} />);
+    expect(slots()).toEqual(['drawing', 'list']);
     // `fill` (the live page, FR-LIVE-7): the layout says it fills the height its page gives it, so the stylesheet can
     // scroll the landscape rail inside it and pin the box; a page that grows with its rows says nothing.
     expect(screen.getByTestId('layout')).not.toHaveAttribute('data-fill');

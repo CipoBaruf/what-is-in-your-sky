@@ -122,6 +122,18 @@ describe('<StarsPage> (FR-STAR-3)', () => {
     expect(screen.getByTestId('sky-hint')).toHaveTextContent('Drag or use the arrow keys · ctrl + wheel to zoom · click a star');
   });
 
+  it('puts the hint away for good on the first drag, pinch or tap in the box, and renders no hint slot after it (FR-FLOW-6)', () => {
+    media = stubMatchMedia(COMPACT_PX);
+    appStore.setState({ observer: SOUTH });
+    page();
+    expect(screen.getByTestId('sky-hint')).toBeInTheDocument();
+    const box = screen.getByTestId('stars-sky').querySelector<HTMLElement>('[tabindex="0"]');
+    fireEvent.pointerDown(box as HTMLElement, { pointerId: 1, button: 0, pointerType: 'touch', clientX: 10, clientY: 10 });
+    expect(appStore.getState().skyHintSeen).toBe(true);
+    expect(screen.queryByTestId('sky-hint')).toBeNull();
+    expect(screen.getByTestId('stars-layout').querySelector('[data-slot="hint"]')).toBeNull();
+  });
+
   /*
    * R126 (FR-SKY-6, D-794; US-40 AC5): `[ passes ]` brings the store's run for this place onto the sky — the arc in
    * the page's window with its key — and is page state: off on every open, never in the saved prefs.

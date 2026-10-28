@@ -393,8 +393,8 @@ export const LIVE_SCRUB_BLOCK_PX = liveKeptPx('scrubbing') - liveKeptPx('watchin
  * reader's own tap (FR-WATCH-5). The mode is asked first: a short wide window is landscape and under 500 px
  * too, and it is not a phone (FR-SHP-1).
  *
- * `boxHeightPx` is the height the frame has measured for the box with nothing under it and nothing folded
- * (`unfoldedBoxHeightPx`), so the answer is the same in both states and the box never moves on it. Before the
+ * `boxHeightPx` is the height the frame has measured for the box with nothing under it (R132: a fold gives the box
+ * nothing back, D-864), so the answer is the same in both states and the box never moves on it. Before the
  * frame has measured — the first render, jsdom — it is `null` and the block is under the box, as it always was.
  */
 export type ScrubPlacement = 'under' | 'rail' | 'overlay';
@@ -433,15 +433,6 @@ export const LIVE_FOLD_GIVES_PX: Readonly<Record<LiveFold, number>> = {
 };
 /** The rail gives its actions' row up a row of tap targets under the height at which the controls fold. */
 const LIVE_FOLD_ACTIONS_UNDER_PX = TAP_PX;
-
-/**
- * The frame's measurement with the fold taken back out: what the box would have with nothing under it on the
- * unfolded page. The fold changes the rows the frame is measured under, so the decision is made on this, which
- * the fold does not move — otherwise folding would give the box the height that unfolds it again.
- */
-export function unfoldedBoxHeightPx(measuredPx: number, folded: readonly LiveFold[]): number {
-  return measuredPx - folded.reduce((sum, row) => sum + LIVE_FOLD_GIVES_PX[row], 0);
-}
 
 /**
  * FR-SHP-3: which rows the wide page folds with `boxHeightPx` for the box (as `scrubPlacement` reads it) — the
