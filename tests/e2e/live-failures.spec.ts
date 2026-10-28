@@ -92,7 +92,7 @@ test('with the elements failing, the page says so, and [ retry ] shows loading a
     ([key, value]: [string, string]) => {
       localStorage.setItem(key, value);
     },
-    [PREFS_KEY, JSON.stringify({ locale: 'en', observer: NEUQUEN })] as [string, string],
+    [PREFS_KEY, JSON.stringify({ locale: 'en', observer: NEUQUEN, chartView: 'dome' })] as [string, string],
   );
   await page.goto('/#live');
   const inert = page.getByTestId('live-inert');

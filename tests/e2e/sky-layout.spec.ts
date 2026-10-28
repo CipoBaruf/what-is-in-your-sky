@@ -136,9 +136,12 @@ async function seedReader(page: Page, locale: Locale): Promise<void> {
   );
 }
 
+/** A fresh profile: no view saved, so the page opens on its default (FR-FLOW-14). */
+const FRESH = { chartView: undefined };
+
 /** The live page with the stored run's sky, the drawing arrived. */
 async function openLive(page: Page, locale: Locale): Promise<Locator> {
-  await seedStoredRun(page, { locale, settled: true });
+  await seedStoredRun(page, { locale, settled: true, prefs: FRESH });
   await page.goto('/#live');
   await page.reload();
   const layout = page.getByTestId('live-layout');
@@ -149,7 +152,7 @@ async function openLive(page: Page, locale: Locale): Promise<Locator> {
 
 /** The golden pass's guide, the drawing arrived. */
 async function openDetail(page: Page, locale: Locale): Promise<Locator> {
-  await seedStoredRun(page, { locale, settled: true });
+  await seedStoredRun(page, { locale, settled: true, prefs: FRESH });
   await page.locator('article[data-pass-id]').first().getByRole('button', { name: WORDS[locale].openGuide }).click();
   const layout = page.getByTestId('pass-layout');
   await expect(layout).toBeVisible();
