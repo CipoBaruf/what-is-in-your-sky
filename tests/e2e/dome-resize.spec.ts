@@ -20,7 +20,7 @@
  * of the taller box. The key now carries the rows too, and the rasters after the change are a fresh load's.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { fitFloor, painted, type Painted } from './domeInk';
+import { painted, shorterSide, shorterSideFloor, type Painted } from './domeInk';
 import { domeDrawn, seedStoredRun, stripFilled } from './liveHelpers';
 
 const SIZES = [
@@ -81,7 +81,9 @@ test('draws the same dome after a resize as a fresh load at that size gives', as
     expect(resized.extent.x + resized.extent.width, `${key}: the drawing ends inside the box`).toBeLessThanOrEqual(box.x + box.width + 1);
     expect(resized.extent.y, `${key}: the drawing's top is inside the box`).toBeGreaterThanOrEqual(box.y - 1);
     expect(resized.extent.y + resized.extent.height, `${key}: the drawing's bottom is inside the box`).toBeLessThanOrEqual(box.y + box.height + 1);
-    expect(resized.extent.width / box.width, `${key}: the drawing over the box's width`).toBeGreaterThanOrEqual(fitFloor(resized.layers, box));
+    // R133 (FR-FLOW-9, D-868): the box is the room, so the coverage is the shorter side's, as `live-rail.spec.ts` holds it.
+    const side = shorterSide(box);
+    expect(resized.extent[side] / box[side], `${key}: the drawing over the box's ${side}`).toBeGreaterThanOrEqual(shorterSideFloor(resized.layers, box));
     if (size.width === REFERENCE.width && size.height === REFERENCE.height) {
       const cell = Math.max(...resized.layers.map((layer) => layer.cellWidthPx));
       for (const side of ['x', 'y', 'width', 'height'] as const) {

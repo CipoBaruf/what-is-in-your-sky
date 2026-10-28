@@ -5,7 +5,7 @@
  * rail leaves it. The helper lives here so the two specs measure one thing.
  */
 import type { Locator } from '@playwright/test';
-import { MIN_EXTENT_RATIO, zoomFor, zoomWithinRaster } from '../../src/ui/components/guide/skychart/dome/camera';
+import { DOME_BOX_ASPECT, MIN_EXTENT_RATIO, zoomFor, zoomWithinRaster } from '../../src/ui/components/guide/skychart/dome/camera';
 
 /** FR-DOME-1's floor: the drawing, labels included, over the side of the box it is fitted to. */
 export { MIN_EXTENT_RATIO };
@@ -52,6 +52,19 @@ export function fitFloor(layers: readonly LayerInk[], box: Pick<Rect, 'width' | 
   const shortByMoreThanTheQuantum = layers.some(({ cols, cellWidthPx }) => cellWidthPx < box.width / cols - ADVANCE_QUANTUM_PX - CELL_EPS_PX);
   if (shortByMoreThanTheQuantum) return MIN_EXTENT_RATIO;
   return MIN_EXTENT_RATIO * Math.min(1, platformZoom(layers, box) / zoomFor(box.width, box.height));
+}
+
+/** The side of the box FR-DOME-1 measures: the shorter one. */
+export const shorterSide = (box: Pick<Rect, 'width' | 'height'>): 'width' | 'height' => (box.width <= box.height ? 'width' : 'height');
+
+/**
+ * R133 (FR-FLOW-9, D-868): the wide box is the room and not the drawing's own shape any more, so the longer side is
+ * the box's margin and the floor is the shorter side's — `fitFloor`, scaled by the box's shape where the height is the
+ * shorter and the box squarer than the drawing's 2.4 : 2.0 (`shapes.spec.ts`'s rule): there the width binds the zoom
+ * and the height has the shape's slack. `live-rail.spec.ts` and `dome-resize.spec.ts` hold the drawing to this.
+ */
+export function shorterSideFloor(layers: readonly LayerInk[], box: Pick<Rect, 'width' | 'height'>): number {
+  return fitFloor(layers, box) * (shorterSide(box) === 'height' ? Math.min(1, box.width / box.height / DOME_BOX_ASPECT) : 1);
 }
 
 export interface Rect {
