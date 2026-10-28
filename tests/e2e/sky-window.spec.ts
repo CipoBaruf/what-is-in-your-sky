@@ -104,7 +104,7 @@ async function point(page: Page, azDeg: number, altDeg: number): Promise<void> {
  * caller gets a reading in before it waits for the layer.
  */
 async function chooseWindow(page: Page, locale: CaptureLocale): Promise<Locator> {
-  await guide(page).getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
+  await holdUp(page, locale);
   await page.evaluate(() => {
     window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: 0, beta: 90, gamma: 0, absolute: true }));
   });
@@ -112,9 +112,21 @@ async function chooseWindow(page: Page, locale: CaptureLocale): Promise<Locator>
   return page.getByTestId('sky-screen');
 }
 
-/** The option's tap where nothing is expected to open: a refusal, or a phone with no north. */
+/**
+ * R136 (FR-FLOW-14, FR-FLOW-15): the window option chooses the view, and the screen's one door is the window's
+ * `[ hold up to the sky ]`, whose tap is the one that asks for the sensor. The window is chosen first where the
+ * guide is not on it yet.
+ */
+async function holdUp(page: Page, locale: CaptureLocale): Promise<void> {
+  const option = guide(page).getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] });
+  if ((await option.getAttribute('aria-pressed')) !== 'true') await option.click();
+  await page.clock.runFor(1000);
+  await guide(page).getByTestId('window-hold-up').click();
+}
+
+/** The hold-up's tap where nothing is expected to open: a refusal, or a phone with no north. */
 async function tapWindow(page: Page, locale: CaptureLocale): Promise<void> {
-  await guide(page).getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
+  await holdUp(page, locale);
   await page.clock.runFor(1000);
 }
 
@@ -140,11 +152,12 @@ test.describe('the sky window on a phone', () => {
     const toggle = guide(page).getByRole('group', { name: VIEW_GROUP.en });
     await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
 
-    // US-21 AC1, AC14: the tap chooses the view and what it opens is the screen, over the sheet.
+    // US-21 AC1, AC14 (R136: FR-FLOW-15): the option chooses the window, and its `[ hold up to the sky ]` opens the
+    // screen, over the sheet.
     const layer = await chooseWindow(page, 'en');
     await expect(layer).toHaveCount(1);
-    // The sheet is untouched under it: the guide is still on the view the reader picked.
-    await expect(figure).toHaveAttribute('data-view', 'dome');
+    // The sheet is untouched under it: the guide is still on the view the reader picked, the window.
+    await expect(figure).toHaveAttribute('data-view', 'window');
     const drawing = layer.locator('[data-drawing="window"]');
     await expect(drawing).toBeVisible();
     await expect(drawing).toHaveAttribute('aria-hidden', 'true');
@@ -213,8 +226,8 @@ test.describe('the sky window on a phone', () => {
     expect((await look(w)).alt).toBe(89);
     await expect(layer.locator('[data-marker="zenith"]')).toHaveAttribute('data-in-view', 'true');
 
-    // FR-WIN-5 as amended v1.3.1 (V13-8): the window is a mode — the device still carries the view the reader picked.
-    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'dome' });
+    // R136 (FR-FLOW-14, D-876): the device carries the view the reader picked, the window, saved on compact too.
+    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'window' });
   });
 
   /** FR-FOL-2 as amended v1.3.1: a refusal opens no screen, leaves the guide on its view, and keeps the option. */
@@ -226,7 +239,8 @@ test.describe('the sky window on a phone', () => {
     const toggle = guide(page).getByRole('group', { name: VIEW_GROUP.en });
     await tapWindow(page, 'en');
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
-    await expect(figure).toHaveAttribute('data-view', 'dome');
+    // R136: the refusal is the hold-up's, and the guide stays on the window the option chose.
+    await expect(figure).toHaveAttribute('data-view', 'window');
     await expect(guide(page).getByTestId('chart-view-note')).toHaveText('Motion access was refused, so the dome stays the view. To be asked again, reload the page: Safari asks once per load.');
     await page.screenshot({ path: `${CAPTURE_DIR}/r66-window-390-denied-dark-en.png` });
     // Any other choice clears the note.
@@ -251,15 +265,16 @@ test.describe('the sky window on a phone', () => {
     });
     await page.clock.runFor(FRAME_MS);
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
-    await expect(figure).toHaveAttribute('data-view', 'dome');
+    // R136: the window the option chose stays the view, by hand, under the note.
+    await expect(figure).toHaveAttribute('data-view', 'window');
+    await expect(figure.locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
     await expect(guide(page).getByTestId('chart-view-note')).toHaveText('This device is not reporting which way it faces.');
     await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
     await tapWindow(page, 'en');
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(figure).toHaveAttribute('data-view', 'window');
     await expect(figure.locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
-    await expect(guide(page).getByTestId('chart-view-note')).toHaveCount(0);
-    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'dome' });
+    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'window' });
   });
 
   /** R90 (FR-FAIL-7): the two notes it changed, captured in both languages. */
@@ -270,7 +285,7 @@ test.describe('the sky window on a phone', () => {
         if (note === 'denied') await withPermissionPrompt(page, 'denied');
         await open(page, { width: 390, height: 844 }, { locale, theme: 'dark', observer: PARIS, chartView: 'dome' });
         await openDetail(page, locale);
-        await guide(page).getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
+        await holdUp(page, locale);
         await page.clock.runFor(3000);
         await expect(guide(page).getByTestId('chart-view-note')).toBeVisible();
         await guide(page).getByTestId('chart-view-note').scrollIntoViewIfNeeded();
@@ -285,13 +300,13 @@ test.describe('the sky window on a phone', () => {
     await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     const figure = await openDetail(page, 'en');
     const toggle = guide(page).getByRole('group', { name: VIEW_GROUP.en });
-    await toggle.getByRole('button', { name: WINDOW_OPTION.en }).click();
+    await holdUp(page, 'en');
     await page.clock.runFor(2900);
     await expect(guide(page).getByTestId('chart-view-note')).toHaveCount(0);
     await page.clock.runFor(100);
     await expect(guide(page).getByTestId('chart-view-note')).toHaveText('This device is not reporting which way it faces.');
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
-    await expect(figure).toHaveAttribute('data-view', 'dome');
+    await expect(figure).toHaveAttribute('data-view', 'window');
     // R121 (FR-WIN-4 as amended v2.5): the option stays; it is the sensor that is lost for the session.
     await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
   });
@@ -525,7 +540,7 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
 test.describe('the sky window on a compact page without a sensor', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: false });
 
-  test('lays the window out in the box by hand on the pass detail, does not save it, and a reload opens on the saved view', async ({ page }) => {
+  test('lays the window out in the box by hand on the pass detail, saves it, and a reload opens on it (FR-FLOW-14)', async ({ page }) => {
     await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     const figure = await openDetail(page, 'en');
     const toggle = guide(page).getByRole('group', { name: VIEW_GROUP.en });
@@ -546,15 +561,16 @@ test.describe('the sky window on a compact page without a sensor', () => {
     const readout = await rectOf(guide(page).getByTestId('window-readout'));
     expect(readout.y + readout.height).toBeLessThanOrEqual(box.y + 1);
     await expect(guide(page).getByRole('group', { name: 'Facing' }).locator('[data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
-    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'dome' });
+    // R136 (FR-FLOW-14, D-876): the window is saved on compact as on wide.
+    expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'window' });
     await figure.getByTestId('chart-box').scrollIntoViewIfNeeded();
     await page.mouse.move(0, 0);
     await page.screenshot({ path: `${CAPTURE_DIR}/r121-detail-390-window-dark-en.png` });
-    // Unsaved: the reload opens on the dome.
+    // Saved: the reload opens on the window.
     await page.reload();
     const again = guide(page).getByRole('figure');
     await expect(again).toBeVisible({ timeout: 60_000 });
-    await expect(again).toHaveAttribute('data-view', 'dome');
+    await expect(again).toHaveAttribute('data-view', 'window');
   });
 
   test('lays the window out in the box by hand on the live page, the picker in the controls row', async ({ page }) => {

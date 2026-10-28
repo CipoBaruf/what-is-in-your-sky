@@ -474,8 +474,19 @@ export const VIEW_OPTION = { en: { dome: 'Dome', polar: 'Polar', window: 'Window
  * until it is up.
  */
 export async function openSkyScreen(page: Page, locale: 'en' | 'es' = 'en', within: Locator | null = null): Promise<Locator> {
-  const group = (within ?? page).getByRole('group', { name: VIEW_GROUP[locale] });
-  await group.getByRole('button', { name: VIEW_OPTION[locale].window }).click();
+  const scope = within ?? page;
+  // R136 (FR-FLOW-15, FR-STAR-5): the window is a view in the box, and the screen opens only from its
+  // `[ hold up to the sky ]`, which the window offers where a compass can follow.
+  await scope.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: VIEW_OPTION[locale].window }).click();
+  const holdUp = scope.getByTestId('window-hold-up');
+  // A paused clock holds the window chunk's Suspense reveal (R32), so the clock is run until the control is there.
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200).catch(() => undefined);
+      return holdUp.count();
+    }, { timeout: 15_000 })
+    .toBe(1);
+  await holdUp.click();
   await expect
     .poll(
       async () => {
