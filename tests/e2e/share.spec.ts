@@ -12,7 +12,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { withSettings } from './liveHelpers';
+import { savedDome, withSettings } from './liveHelpers';
 
 interface HaFixture {
   capturedAt: string;
@@ -131,6 +131,8 @@ for (const width of [390, 1280] as const) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 800 });
       await page.clock.setFixedTime(CLOCK);
       await stubNetwork(page);
+      // R136 (FR-FLOW-14): the capture is of the sheet on its dome, a saved view on a phone.
+      await savedDome(page);
       await page.goto('/');
       if (locale === 'es') {
         await withSettings(page, async () => {

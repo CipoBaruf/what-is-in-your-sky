@@ -228,6 +228,37 @@ export function facePeak(peak: SkyAim, fovDeg: number): HandState {
   return at(peak.azDeg, Math.min(PEAK_TILT_MAX_DEG, Math.max(PEAK_TILT_MIN_DEG, peak.elDeg - below)), field);
 }
 
+/** What `openingFacing` reads of the page's scene: the observer's latitude (today's default) and the shown instant. */
+export interface OpeningScene {
+  latDeg: number;
+  now: EpochMs | undefined;
+}
+
+/**
+ * FR-FLOW-14 (R136, D-876): where the live page's window opens, so a phone
+ * that opens on it never faces an empty field. In order: the highlighted pass,
+ * followed as `f` follows it (D-797's `followPass`, the readout reading
+ * `Following A`); else the next pass's rise point at `clamp(alt − 15°, 20°,
+ * 75°)` (`facePeak`'s rule on the rise point); else today's default, the pole
+ * side at the opening tilt (`initialHand`). The pass detail keeps `facePeak`.
+ */
+export function openingFacing(scene: OpeningScene, highlighted: Pick<Pass, 'id' | 'start' | 'end' | 'track'> | null, nextPass: Pick<Pass, 'start'> | null): HandState {
+  const fallback = initialHand(scene.latDeg);
+  if (highlighted !== null) return followPass(fallback, highlighted.id, passPosition(highlighted, scene.now));
+  if (nextPass !== null) return facePeak({ azDeg: nextPass.start.azDeg, elDeg: nextPass.start.elDeg }, WINDOW_FOV);
+  return fallback;
+}
+
+/** `openingFacing`'s `nextPass`: the first pass in the span still to rise after `now`, or none. */
+export function nextRising<P extends Pick<Pass, 'start'>>(passes: readonly P[], now: EpochMs | undefined): P | null {
+  let next: P | null = null;
+  for (const pass of passes) {
+    if (now !== undefined && pass.start.t <= now) continue;
+    if (next === null || pass.start.t < next.start.t) next = pass;
+  }
+  return next;
+}
+
 /** The picker's option lists are `SkyChart.types.ts`'s (a page in the main chunk names one); re-exported here for the picker and the tests. */
 export { FACING_OPTIONS, FACING_POINTS, facedPassId, isPassFacing, passFacing, PEAK_FACING_OPTIONS, type FacingOption } from '../SkyChart.types';
 
@@ -298,8 +329,10 @@ export type SkyCamera = SensorCamera | HandCamera;
 /** The one sensor camera: it carries no state, so one value serves every window. */
 export const SENSOR_CAMERA: SensorCamera = { source: 'sensor' };
 
-export function createHandCamera(initial: HandAim): HandCamera {
-  let state = at(initial.azDeg, initial.altDeg, initial.fovDeg);
+export function createHandCamera(initial: HandAim & Pick<HandState, 'follow'>): HandCamera {
+  // R136 (FR-FLOW-14): a camera may open following a pass (`openingFacing`), so the opening state keeps its `follow`.
+  const aimed = at(initial.azDeg, initial.altDeg, initial.fovDeg);
+  let state: HandState = initial.follow === undefined ? aimed : { ...aimed, follow: initial.follow };
   let peakField = state.fovDeg;
   const listeners = new Set<() => void>();
   const apply = (next: HandState): void => {

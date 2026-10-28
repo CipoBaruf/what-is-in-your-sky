@@ -451,55 +451,57 @@ describe('<SkyWindow>', () => {
       expect(wrapper(container)).toHaveAttribute('data-state', 'on');
     });
 
-    it('through SkyChart: a refusal keeps the page on its view with the note, and the option stays; a compass-less phone keeps it too and gets the box by hand (R121)', async () => {
+    /**
+     * R136 (FR-FLOW-14, FR-FLOW-15; V26-11, V26-12): the window is a saved view on a phone too, and the permission
+     * is asked for by `[ hold up to the sky ]` beside its picker, never by the view option.
+     */
+    it('through SkyChart: a refusal at [ hold up to the sky ] keeps the page on the window with the note; a compass-less phone keeps the option too', async () => {
       const frame = scriptedFrames();
       withPhone(() => Promise.resolve('denied'));
-      appStore.getState().setChartView('dome');
+      appStore.getState().setChartView('window');
       render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
       const figure = screen.getByRole('figure');
       const toggle = screen.getByRole('group', { name: 'Chart view' });
-      fireEvent.click(within(toggle).getByRole('button', { name: 'Window' }));
+      fireEvent.click(await screen.findByTestId('window-hold-up'));
       await flush();
       // FR-FOL-2: nothing opened, the page is on the view it was on, and the note says why.
       expect(appStore.getState().skyScreen).toBe(false);
-      expect(figure).toHaveAttribute('data-view', 'dome');
+      expect(figure).toHaveAttribute('data-view', 'window');
       expect(screen.getByTestId('chart-view-note')).toHaveTextContent(en.window.denied);
-      expect(appStore.getState().chartView).toBe('dome');
-      expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'dome' });
+      expect(appStore.getState().chartView).toBe('window');
       expect(within(toggle).getByRole('button', { name: 'Window' })).toBeInTheDocument();
       // Choosing another view clears the note.
       fireEvent.click(within(toggle).getByRole('button', { name: 'Polar' }));
       expect(screen.queryByTestId('chart-view-note')).toBeNull();
 
-      // A phone with no north in its readings: the note, no screen, and (FR-WIN-4 as amended v2.5) the option kept —
-      // the sensor is lost for the session, so the next tap lays the window out in the box under the hand (FR-SKY-2).
+      // A phone with no north in its readings: the note, no screen, and (FR-WIN-4 as amended v2.5) the option kept.
       withPhone();
       resetOrientationAccess();
       fireEvent.click(within(toggle).getByRole('button', { name: 'Window' }));
+      expect(appStore.getState().skyScreen).toBe(false);
+      fireEvent.click(await screen.findByTestId('window-hold-up'));
       reading({ alpha: 30, beta: 90, absolute: false });
       frame();
       expect(appStore.getState().skyScreen).toBe(false);
-      expect(figure).toHaveAttribute('data-view', 'polar');
+      expect(figure).toHaveAttribute('data-view', 'window');
       expect(screen.getByTestId('chart-view-note')).toHaveTextContent(en.window.relative);
       expect(appStore.getState().windowLost).toBe(true);
-      fireEvent.click(within(screen.getByRole('group', { name: 'Chart view' })).getByRole('button', { name: 'Window' }));
-      expect(figure).toHaveAttribute('data-view', 'window');
-      expect(appStore.getState().skyScreen).toBe(false);
-      expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'polar' });
+      expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'window' });
     });
 
-    it('asks for the permission inside the tap that chooses the view (FR-WIN-4), and opens the screen on the first reading', async () => {
+    it('asks for the permission inside the tap on [ hold up to the sky ], not on the view option (FR-WIN-4), and opens the screen on the first reading', async () => {
       const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
       withPhone(requestPermission);
       appStore.getState().setChartView('dome');
       render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-      expect(requestPermission).not.toHaveBeenCalled();
       fireEvent.click(within(screen.getByRole('group', { name: 'Chart view' })).getByRole('button', { name: 'Window' }));
+      expect(requestPermission).not.toHaveBeenCalled();
+      fireEvent.click(await screen.findByTestId('window-hold-up'));
       expect(requestPermission).toHaveBeenCalledTimes(1);
       // Granted, but not yet open: the reading with a heading is what decides (F-42, D-350).
       await flush();
       expect(appStore.getState().skyScreen).toBe(false);
-      expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'dome');
+      expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'window');
       reading({ alpha: 30, beta: 90, absolute: true });
       expect(appStore.getState().skyScreen).toBe(true);
       // One prompt in total: the window the screen mounts inherits the grant (D-350).

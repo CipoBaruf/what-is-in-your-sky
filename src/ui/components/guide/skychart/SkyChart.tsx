@@ -3,10 +3,8 @@ import { useT } from '../../../../i18n/useT';
 import { bodyLines, legendKeys, legendRows, promoteRow } from '../../../../lib/legend';
 import type { ChartView } from '../../../../model';
 import { useAppStore } from '../../../../state';
-import { DEFAULT_CHART_VIEW } from '../../../../state/slices/prefs';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
-import { useSkyScreen } from '../../screen/useSkyScreen';
 import { GuideText } from '../GuideText';
 import { moonVisible, sunVisible } from './bodies';
 import { useChartSlot } from '../../sky/SkyViewLayout';
@@ -15,7 +13,8 @@ import { Legend } from './Legend';
 import { POLAR_VIEW } from './polar/SkyPolar';
 import styles from './SkyChart.module.css';
 import type { SkyChartProps, SkyChartView } from './SkyChart.types';
-import { shownChartView, useChartHand } from './useChartHand';
+import { defaultChartView } from '../../../screens/chartViewDefault';
+import { useChartHand } from './useChartHand';
 import { useSkyBodies } from './useSkyBodies';
 
 /**
@@ -76,6 +75,12 @@ import { useSkyBodies } from './useSkyBodies';
  * survives a look at the dome. Both are `useChartHand`'s: the live page holds
  * them (`chartHand`) because it remounts its chart on a rotation and drops it
  * for the sky screen; elsewhere the chart holds its own.
+ *
+ * R136 (FR-FLOW-14, FR-FLOW-15; V26-11, V26-12, D-876): the compact cases
+ * are gone. The window is a view on compact as on wide — chosen, it is saved
+ * and laid out in the box — and the default with nothing saved is the window
+ * on compact and the dome on wide (`defaultChartView`). The option never
+ * opens the screen; `[ hold up to the sky ]` beside the facing picker does.
  */
 const SkyDome = lazy(() => import('./dome/SkyDome').then((module) => ({ default: module.SkyDome })));
 const SkyWindow = lazy(() => import('./window/SkyWindow').then((module) => ({ default: module.SkyWindow })));
@@ -150,13 +155,13 @@ const WINDOW_VIEW: SkyChartView = { Component: WindowView, id: 'window' };
 export const SKY_CHART_VIEWS: readonly SkyChartView[] = [POLAR_VIEW, DOME_VIEW, WINDOW_VIEW];
 
 /**
- * The view for a preference: itself, else the dome (the default), else the first one registered. R121 (FR-WIN-4 as
+ * The view for a preference. R136 (D-876): the default is `defaultChartView`'s alone, decided before this. R121 (FR-WIN-4 as
  * amended v2.5): every page offers all three views to every reader — no `available()` filters them any more, and a
  * phone with no north loses the sensor, not the view, which it gets in the box under the hand.
  */
 function viewFor(id: SkyChartView['id']): SkyChartView {
-  const view = SKY_CHART_VIEWS.find((candidate) => candidate.id === id) ?? SKY_CHART_VIEWS.find((candidate) => candidate.id === DEFAULT_CHART_VIEW) ?? SKY_CHART_VIEWS[0];
-  if (!view) throw new Error('SkyChart: no views registered');
+  const view = SKY_CHART_VIEWS.find((candidate) => candidate.id === id);
+  if (!view) throw new Error(`SkyChart: no view registered for ${id}`);
   return view;
 }
 
@@ -170,35 +175,32 @@ function viewFor(id: SkyChartView['id']): SkyChartView {
  * filling the host, with no caption, no toggle, no controls row and no rails,
  * its readout and its legend overlaid on the drawing by the frame. It is the
  * only way the window is ever mounted since R66 (D-351): the pages render
- * `SkyScreen`, `SkyScreen` renders this chart with `screen`, and the chart a
- * page lays out is always the dome or the polar chart.
+ * `SkyScreen`, `SkyScreen` renders this chart with `screen`. R136 (D-876):
+ * a page lays out any of the three, the window in the box under the hand.
  */
 export function SkyChart(props: SkyChartProps) {
   const t = useT();
-  const compact = useLayoutMode() === 'compact';
+  const mode = useLayoutMode();
+  const compact = mode === 'compact';
   const chartView = useAppStore((s) => s.chartView);
   const setChartView = useAppStore((s) => s.setChartView);
   const dropWindowView = useAppStore((s) => s.dropWindowView);
-  const setWindowNote = useAppStore((s) => s.setWindowNote);
   // FR-FOL-2: the one line the last answer left.
   const note = useAppStore((s) => s.windowNote);
-  // D-350: the tap that chooses the window on a compact phone — the permission inside the gesture, then the reading that decides.
-  const entry = useSkyScreen();
   /*
-   * D-789 (R121): the window in the box. On wide it is the saved view; on compact without a sensor it is an
-   * unsaved choice, which a reload forgets (FR-SKY-2). That choice and the hand camera's slot are the page's where
-   * it gives them (`chartHand`, the live page), else this chart's own: the dome and back keeps the facing, and on
-   * the live page so do a rotation and a trip to the screen. The window fills the slot in its own chunk.
+   * D-789 (R121): the window in the box, under the hand camera. The camera's slot is the page's where it gives one
+   * (`chartHand`), else this chart's own: the dome and back keeps the facing, and on the live page so do a turn of
+   * the phone and a trip to the screen. The window fills the slot in its own chunk.
    */
   const ownHand = useChartHand();
-  const { slot: hand, window: handWindow, setWindow: setHandWindow } = props.chartHand ?? ownHand;
+  const { slot: hand } = props.chartHand ?? ownHand;
   /*
-   * FR-FSC-2 (D-351): the screen's `×` gives focus back to the option that opened it. The page's chart is
-   * unmounted while the layer is up and is a new element when it returns, so what says "the screen just
-   * closed" is the store's one-shot flag and not a ref of this component's. The option is queried inside the
-   * figure — wherever the frame has put the control, its own row or the frame's slot — because it is one of
-   * three the toggle builds from a list (`data-option`); where the phone has just lost the window (FR-WIN-4)
-   * the first option takes it instead, so focus never falls to the body.
+   * FR-FSC-2 (D-351): the screen's `×` gives focus back to the control that opened it — since R136 (V26-12)
+   * `[ hold up to the sky ]` beside the facing picker, queried in the picker's slot or the figure. The page's
+   * chart is unmounted while the layer is up and is a new element when it returns, so what says "the screen
+   * just closed" is the store's one-shot flag and not a ref of this component's. Where the control is gone —
+   * the phone has just lost the sensor (FR-WIN-4) — the window's view option takes it, else the first option,
+   * queried wherever the frame has put the control, so focus never falls to the body.
    */
   const refocus = useAppStore((s) => s.refocusWindow);
   const windowRefocused = useAppStore((s) => s.windowRefocused);
@@ -207,45 +209,34 @@ export function SkyChart(props: SkyChartProps) {
   const controlSlot = useChartSlot('control');
   const controlTarget = controlSlot.target;
   const inLayoutForFocus = controlSlot.inLayout;
+  const pickerTarget = useChartSlot('picker').target;
   useEffect(() => {
     if (props.screen === true || !refocus) return;
     // In a layout the option lands in the page's slot a commit after this chart mounts: the flag waits for it.
     if (inLayoutForFocus && controlTarget === null) return;
     const group = controlTarget ?? figureRef.current;
-    (group?.querySelector<HTMLElement>('[data-option="window"]') ?? group?.querySelector<HTMLElement>('[data-option]'))?.focus();
+    const holdUp = (pickerTarget ?? figureRef.current)?.querySelector<HTMLElement>('[data-testid="window-hold-up"]');
+    (holdUp ?? group?.querySelector<HTMLElement>('[data-option="window"]') ?? group?.querySelector<HTMLElement>('[data-option]'))?.focus();
     windowRefocused();
-  }, [refocus, props.screen, windowRefocused, controlTarget, inLayoutForFocus]);
+  }, [refocus, props.screen, windowRefocused, controlTarget, inLayoutForFocus, pickerTarget]);
   // FR-FSC-1 / D-322 (R62): asked for a screen the chart is the window and nothing else — `viewFor` is not consulted,
   // so the saved preference is neither read for the view nor written on the way (FR-WIN-5 as amended).
   const screen = props.screen ?? false;
   const moonPhase = props.moonPhase ?? false;
-  // D-789: on compact the saved view is never the window (the store's guard reads a stored one as the dome at load;
-  // a window saved on wide and then narrowed draws as the dome too) — the window there is this chart's own choice.
-  const pageView: ChartView = shownChartView(compact, handWindow, chartView);
+  // D-876 (R136): the saved view, else the window on compact and the dome on wide (`defaultChartView`).
+  const pageView: ChartView = defaultChartView(mode, chartView);
   const view = screen ? WINDOW_VIEW : viewFor(pageView);
+  /*
+   * FR-FLOW-14 (V26-11, D-876): every option is a view and is saved, the window too, on compact as on wide; the
+   * window is laid out in the box under the hand. The screen opens from `[ hold up to the sky ]` alone (V26-12),
+   * so choosing the window asks for no permission; choosing any view clears the note the last refusal left.
+   */
   const choose = useCallback(
     (id: ChartView) => {
-      if (id === 'window') {
-        // FR-WIN-5 as amended v2.5: on wide the window is a view like the other two, and the preference may hold it.
-        if (!compact) {
-          setChartView('window');
-          return;
-        }
-        // D-350: with a sensor the window is a mode — its option opens the screen and writes nothing; the tap is where iOS is asked.
-        if (entry.available) {
-          entry.open();
-          return;
-        }
-        // FR-SKY-2: a compact reader without a sensor has no screen to open and nothing to ask: the box, unsaved.
-        setWindowNote(null);
-        setHandWindow(true);
-        return;
-      }
-      setHandWindow(false);
       viewFor(id).choose?.();
       setChartView(id);
     },
-    [compact, setChartView, setWindowNote, entry, setHandWindow],
+    [setChartView],
   );
   // R58 review (D-277) → R66 (D-352): a window that cannot run here closes the screen and leaves the note beside
   // this control; nothing is written, because the reader chose neither the failure nor a view to fall back to.

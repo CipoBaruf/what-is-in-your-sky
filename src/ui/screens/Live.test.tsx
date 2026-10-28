@@ -882,10 +882,16 @@ describe('<LivePage>', () => {
       });
       render(<LivePage link={null} onLeave={() => undefined} />);
       await windowDrawn();
+      // Under CI load the hand camera can arrive after the first drawing; a key before it is dropped.
+      await waitFor(() => {
+        expect(document.querySelector('[data-state="hand"]')).not.toBeNull();
+      });
       const before = lookAz();
       fireEvent.keyDown(handBox(), { key: 'ArrowRight' });
+      await waitFor(() => {
+        expect(lookAz()).not.toBe(before);
+      });
       const turned = lookAz();
-      expect(turned).not.toBe(before);
       act(() => {
         appStore.getState().openSkyScreen();
       });
@@ -900,7 +906,8 @@ describe('<LivePage>', () => {
       expect(lookAz()).toBe(turned);
     });
 
-    it('keeps the compact choice and the facing through a rotation, and drops the choice on a trip to wide', async () => {
+    /** R136 (FR-FLOW-14, FR-FLOW-15; D-876, D-877): the compact choice is saved, and a turn of the phone keeps the view and the facing. */
+    it('saves the compact choice of the window and keeps it and the facing through a turn and a trip to wide', async () => {
       media = stubMatchMedia(390, 844);
       withSky();
       act(() => {
@@ -908,10 +915,11 @@ describe('<LivePage>', () => {
       });
       render(<LivePage link={null} onLeave={() => undefined} />);
       fireEvent.click(screen.getByRole('button', { name: 'Window' }));
+      expect(appStore.getState().chartView).toBe('window');
       await windowDrawn();
       fireEvent.keyDown(handBox(), { key: 'ArrowRight' });
       const turned = lookAz();
-      // The landscape phone: the rail's chart, another element, still the window and still facing where it was.
+      // The landscape phone: the rail's arrangement, still the window and still facing where it was.
       act(() => {
         media?.setSize(844, 390);
       });
@@ -919,16 +927,33 @@ describe('<LivePage>', () => {
       await windowDrawn();
       expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
       expect(lookAz()).toBe(turned);
-      // Wide: the saved view, and back on compact the choice is gone — the saved view again, not a stale window.
+      expect(appStore.getState().skyScreen).toBe(false);
+      // Wide and back: the saved view on both.
       act(() => {
         media?.setSize(1280, 800);
       });
-      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
       act(() => {
         media?.setSize(390, 844);
       });
-      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
-      expect(appStore.getState().chartView).toBe('dome');
+      await windowDrawn();
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+      expect(lookAz()).toBe(turned);
+    });
+
+    /** R136 (FR-FLOW-14, D-876): a fresh profile opens the phone on the window, following the highlighted pass. */
+    it('opens a fresh phone on the window, following the highlighted pass', async () => {
+      media = stubMatchMedia(390, 844);
+      withSky();
+      // `withSky` saves the polar chart for the tests above; this one is a profile with nothing saved.
+      act(() => {
+        appStore.setState({ chartView: undefined });
+      });
+      render(<LivePage link={null} onLeave={() => undefined} />);
+      expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+      await windowDrawn();
+      expect(appStore.getState().chartView).toBeUndefined();
+      expect(screen.getByTestId('window-readout')).toHaveTextContent(/^Following [A-Z]/);
     });
   });
 
@@ -1349,8 +1374,22 @@ describe('<LivePage>', () => {
       window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: 270, absolute }));
     });
   };
+  /**
+   * R136 (FR-FLOW-15, V26-12): the screen's one door is `[ hold up to the sky ]`, which the window in the box offers
+   * beside its picker; the view option chooses the window and opens nothing. Real turns of the event loop for the
+   * window's chunk (`setTimeout` is not faked in this describe).
+   */
+  const holdUp = async (): Promise<void> => {
+    if (screen.queryByTestId('window-hold-up') === null) fireEvent.click(windowOption());
+    for (let i = 0; i < 500 && screen.queryByTestId('window-hold-up') === null; i += 1) {
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+    fireEvent.click(screen.getByTestId('window-hold-up'));
+  };
 
-  it.each(['polar', 'dome'] as const)('the window option mounts the screen over the %s at the page\'s instant, and its × gives the page back there (FR-FSC-1, FR-FSC-2, FR-FSC-8)', (from) => {
+  it.each(['polar', 'dome'] as const)('[ hold up to the sky ] mounts the screen over the window chosen from the %s at the page\'s instant, and its × gives the page back there (FR-FSC-1, FR-FSC-2, FR-FSC-8)', async (from) => {
     withPhone();
     withSky();
     act(() => {
@@ -1362,14 +1401,14 @@ describe('<LivePage>', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Next pass' }));
     expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
 
-    fireEvent.click(windowOption());
+    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', from);
+    await holdUp();
     // The tap arms the sensor; the reading is what opens the screen (F-42's lesson, D-350).
     expect(screen.queryByTestId('sky-screen')).toBeNull();
-    // The page's own chart never switches to the window: the option opens a layer, not a view (D-321, D-352).
-    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', from);
+    // R136 (D-876): the option chose the window as a view, saved, and the screen opens over it.
+    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
     reading(true);
-    // FR-WIN-5 as amended v1.3.1: nothing is written, and the preference is still the view the reader picked.
-    expect(appStore.getState()).toMatchObject({ chartView: from, skyScreen: true });
+    expect(appStore.getState()).toMatchObject({ chartView: 'window', skyScreen: true });
     const layer = screen.getByTestId('sky-screen');
     expect(layer).toHaveAttribute('role', 'dialog');
     expect(layer).toHaveAttribute('aria-modal', 'true');
@@ -1382,8 +1421,8 @@ describe('<LivePage>', () => {
     expect(close).toHaveTextContent('×');
     fireEvent.click(close);
     expect(screen.queryByTestId('sky-screen')).toBeNull();
-    expect(appStore.getState()).toMatchObject({ chartView: from, skyScreen: false });
-    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', from);
+    expect(appStore.getState()).toMatchObject({ chartView: 'window', skyScreen: false });
+    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
     expect(screen.getByTestId('time-stripe')).toBeInTheDocument();
     expect(screen.getByTestId('playback-controls')).toBeInTheDocument();
     expect(Number(screen.getByTestId('time-stripe').getAttribute('aria-valuenow'))).toBe(later.start.t);
@@ -1393,12 +1432,12 @@ describe('<LivePage>', () => {
   });
 
   /** FR-FSC-2 / D-321: `Esc` closes the screen before it can leave the page, and the next one leaves as it always did. */
-  it('closes the screen on Esc, and only then leaves the live page (FR-FSC-2)', () => {
+  it('closes the screen on Esc, and only then leaves the live page (FR-FSC-2)', async () => {
     withPhone();
     withSky();
     const onLeave = vi.fn();
     render(<LivePage link={null} onLeave={onLeave} />);
-    fireEvent.click(windowOption());
+    await holdUp();
     reading(true);
     expect(screen.getByTestId('sky-screen')).toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -1411,15 +1450,16 @@ describe('<LivePage>', () => {
   });
 
   /** D-321: focus goes to the `×` on open and back to the control that opened it on close — a new element by then. */
-  it('moves focus to the × and back to the follow control (FR-FSC-2)', () => {
+  it('moves focus to the × and back to [ hold up to the sky ] (FR-FSC-2)', async () => {
     withPhone();
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
-    fireEvent.click(windowOption());
+    await holdUp();
     reading(true);
     expect(document.activeElement).toBe(screen.getByRole('button', { name: en.chart.screenClose }));
     fireEvent.click(screen.getByRole('button', { name: en.chart.screenClose }));
-    expect(document.activeElement).toBe(windowOption());
+    // R136 (V26-12): back to `[ hold up to the sky ]`, the one control that opens the screen.
+    expect(document.activeElement).toBe(screen.getByTestId('window-hold-up'));
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
   });
 
@@ -1441,7 +1481,7 @@ describe('<LivePage>', () => {
     await act(async () => {
       await Promise.resolve();
     });
-    fireEvent.click(windowOption());
+    await holdUp();
     reading(true);
     expect(screen.getByTestId('sky-screen')).toBeInTheDocument();
     expect(appStore.getState().liveHidden).toBe(true);
@@ -1458,14 +1498,14 @@ describe('<LivePage>', () => {
    * belongs to both drawn views now — but its shape survives here: the state
    * says what the chart is doing and nothing else.
    */
-  it('leaves the page alone with a note where the phone gives no heading, and drops the option for the session (FR-FOL-2, FR-WIN-4)', () => {
+  it('leaves the page alone with a note where the phone gives no heading, and drops the option for the session (FR-FOL-2, FR-WIN-4)', async () => {
     withPhone();
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
-    fireEvent.click(windowOption());
+    await holdUp();
     reading(false);
     expect(screen.getByTestId('chart-view-note')).toHaveTextContent(en.window.relative);
-    expect(appStore.getState()).toMatchObject({ chartView: 'polar', skyScreen: false });
+    expect(appStore.getState()).toMatchObject({ chartView: 'window', skyScreen: false });
     // FR-FOL-2: nothing opened, so the page is untouched — the layer is not there and the rows still are.
     expect(screen.queryByTestId('sky-screen')).toBeNull();
     expect(screen.getByTestId('overview-row')).toBeInTheDocument();
@@ -1484,7 +1524,7 @@ describe('<LivePage>', () => {
     withPhone(() => Promise.resolve('denied'));
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
-    fireEvent.click(windowOption());
+    await holdUp();
     await act(async () => {
       await Promise.resolve();
     });

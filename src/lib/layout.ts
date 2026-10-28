@@ -369,6 +369,13 @@ export type PageShape = 'portrait' | 'landscape-phone';
 export const SIDEWAYS_MAX_HEIGHT_PX = 500;
 export const LANDSCAPE_PHONE_QUERY = `(orientation: landscape) and (height <= ${String(SIDEWAYS_MAX_HEIGHT_PX)}px)`;
 
+/**
+ * R136 (FR-FLOW-15, D-877): on the landscape phone the live page, the stars page and the pass detail stand the
+ * drawing at the left, at least this share of the viewport's width; the rail takes the rest. `SkyViewLayout`
+ * writes it as `--sky-drawing-share` and `sky-layout.spec.ts` asserts it at 844 × 390 and 667 × 375.
+ */
+export const LANDSCAPE_DRAWING_MIN_SHARE = 0.55;
+
 /** Which shape a `matchMedia(LANDSCAPE_PHONE_QUERY)` result means. The mode is asked separately (FR-SHP-1). */
 export function pageShape(matchesLandscapePhone: boolean): PageShape {
   return matchesLandscapePhone ? 'landscape-phone' : 'portrait';

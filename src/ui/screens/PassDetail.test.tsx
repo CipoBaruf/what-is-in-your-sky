@@ -32,10 +32,15 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
   });
   afterEach(() => {
     vi.useRealTimers();
+    // R136: the saved view decides what a test opens on (D-876), so no test inherits the last one's.
+    appStore.setState(initial, true);
+    window.localStorage.clear();
   });
 
   // R23 (D-117): the compact sheet is portaled to the body, so the axe runs here take the document and not RTL's container — which no longer holds the sheet at all.
   it('is a labelled dialog carrying the guide sentence (once, as the chart caption), the numbers, the twilight label and the sky chart', async () => {
+    // R136 (D-876): a phone with nothing saved opens on the window (the [ stars ] test below); this one reads the dome.
+    appStore.getState().setChartView('dome');
     render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
     const dialog = screen.getByRole('dialog', { name: 'ISS (Zarya)' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
@@ -118,8 +123,19 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
     }
 
-    const openScreen = (): void => {
-      fireEvent.click(within(screen.getByRole('group', { name: en.chart.viewGroup })).getByRole('button', { name: en.chart.view.window }));
+    /**
+     * R136 (FR-FLOW-15, V26-12): the screen opens from `[ hold up to the sky ]` alone, beside the in-box window's
+     * picker; the view option chooses the window (and saves it) and opens nothing. Real turns of the event loop
+     * for the window's chunk: `setTimeout` is not among the faked timers.
+     */
+    const openScreen = async (): Promise<void> => {
+      if (screen.queryByTestId('window-hold-up') === null) fireEvent.click(within(screen.getByRole('group', { name: en.chart.viewGroup })).getByRole('button', { name: en.chart.view.window }));
+      for (let i = 0; i < 500 && screen.queryByTestId('window-hold-up') === null; i += 1) {
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+      }
+      fireEvent.click(screen.getByTestId('window-hold-up'));
       act(() => {
         window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: 270, absolute: true }));
       });
@@ -130,14 +146,14 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
     });
 
-    it('opens from the view control over the sheet, holds the sheet still, and the × gives it back', () => {
+    it('opens from [ hold up to the sky ] over the sheet, holds the sheet still, and the × gives it back', async () => {
       withPhone();
       appStore.getState().setChartView('dome');
       render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
       const sheet = screen.getByRole('dialog', { name: 'ISS (Zarya)' });
       sheet.scrollTop = 120;
 
-      openScreen();
+      await openScreen();
       const layer = screen.getByTestId('sky-screen');
       // FR-FSC-1: nothing of the sheet is on it, and the sheet under it is inert and held still (FR-FSC-9).
       expect(within(layer).queryByTestId('guide-sentence')).toBeNull();
@@ -151,17 +167,17 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       expect(sheet).not.toHaveAttribute('inert');
       expect(sheet.style.overflow).toBe('');
       expect(sheet.scrollTop).toBe(120);
-      expect(appStore.getState()).toMatchObject({ chartView: 'dome', skyScreen: false });
+      expect(appStore.getState()).toMatchObject({ chartView: 'window', skyScreen: false });
     });
 
-    it('closes on Esc without closing the guide, and on leaving the guide (FR-FSC-2)', () => {
+    it('closes on Esc without closing the guide, and on leaving the guide (FR-FSC-2)', async () => {
       withPhone();
       const onClose = vi.fn();
       const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={onClose} onShowList={() => undefined} />);
       // The app's own listener is a bubble listener on the document (`lib/shortcuts.ts`); this stands in for it.
       const appListener = vi.fn();
       document.addEventListener('keydown', appListener);
-      openScreen();
+      await openScreen();
       expect(screen.getByTestId('sky-screen')).toBeInTheDocument();
       fireEvent.keyDown(document, { key: 'Escape' });
       expect(screen.queryByTestId('sky-screen')).toBeNull();
@@ -173,7 +189,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       expect(appListener).toHaveBeenCalledTimes(1);
       document.removeEventListener('keydown', appListener);
 
-      openScreen();
+      await openScreen();
       unmount();
       expect(appStore.getState().skyScreen).toBe(false);
     });
@@ -217,7 +233,8 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     expect(row.lastElementChild).toBe(toggle);
     const control = within(row).getByRole('group', { name: en.chart.viewGroup });
     expect(within(control).getAllByRole('button').map((b) => b.textContent)).toEqual(['Polar', 'Dome', 'Window']);
-    expect(within(control).getByRole('button', { name: 'Dome' })).toHaveAttribute('aria-pressed', 'true');
+    // R136 (FR-FLOW-14, D-876): nothing saved, so the phone opens on the window.
+    expect(within(control).getByRole('button', { name: 'Window' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(toggle);
     expect(appStore.getState().starsLayer).toBe(false);
     unmount();
@@ -226,6 +243,8 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
       render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
       const wideRow = screen.getByTestId('pass-layout').querySelector('[data-slot="viewRow"]') as HTMLElement;
       expect(within(wideRow).getByRole('group', { name: en.chart.viewGroup })).toBeInTheDocument();
+      // R136 (D-876): still nothing saved, and a desk opens on the dome.
+      expect(within(within(wideRow).getByRole('group', { name: en.chart.viewGroup })).getByRole('button', { name: 'Dome' })).toHaveAttribute('aria-pressed', 'true');
       expect(within(wideRow).getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
       expect(screen.getAllByTestId('stars-toggle')).toHaveLength(1);
       // FR-FLOW-7 on wide: the panel's head is one band — the name, the countdown, the times — and the layout is the panel.

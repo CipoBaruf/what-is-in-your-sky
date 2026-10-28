@@ -80,7 +80,8 @@ describe('prefs slice', () => {
   it('reads the saved chart view and orientation at creation, writes each through, and the other write-throughs keep them (R13, US-6 AC5, FR-GUIDE-4)', () => {
     const storage = memoryStorage();
     const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) }).getState();
-    expect(fresh.chartView).toBe('dome'); // FR-DOME-7, closing D-68
+    // D-876 (R136): nothing saved is no view; the page's `defaultChartView` decides (the dome on wide, FR-DOME-7).
+    expect(fresh.chartView).toBeUndefined();
     expect(fresh.chartOrientation).toBe('looking-up');
     // The saved view is the one the default is not, so this proves the read rather than agreeing with it by accident.
     storage.map.set(PREFS_KEY, JSON.stringify({ chartView: 'polar', chartOrientation: 'map' }));
@@ -101,12 +102,11 @@ describe('prefs slice', () => {
   });
 
   /**
-   * R66 (FR-WIN-5 as amended v1.3.1, V13-8, D-352): the window is a mode, not a
-   * saved view. R58's override is gone with the control that set it; what is
-   * left is one written preference that can only be the dome or the polar
-   * chart, and a session flag for the screen.
+   * R136 (FR-FLOW-14, V26-11, D-876): one written view preference, any of the
+   * three, read back as it was saved whatever the viewport — the D-789 load
+   * guard is gone — and nothing written until the reader picks one.
    */
-  it('keeps one written view preference, and a stored window reads as the dome on compact, unwritten, and as itself on wide (R121, D-789)', () => {
+  it('keeps one written view preference, the window included, read back as saved on any viewport (R136, D-876)', () => {
     const storage = memoryStorage();
     storage.map.set(PREFS_KEY, JSON.stringify({ chartView: 'polar' }));
     const store = createAppStore({ now: () => NOW, prefs: createLocalPrefs(storage) });
@@ -116,25 +116,23 @@ describe('prefs slice', () => {
     expect(store.getState().chartView).toBe('dome');
     expect(stored(storage)).toEqual({ chartView: 'dome' });
 
-    // The load guard (FR-WIN-5 as amended v2.5): a phone-sized window opens on the dome and leaves the key as it was —
-    // a device that chose the window before v1.3.1, and a desk that chose it in v2.5, read the same.
+    // A stored window loads as the window (jsdom has no `matchMedia`, which the guard read as compact).
     const saved = memoryStorage();
     saved.map.set(PREFS_KEY, JSON.stringify({ chartView: 'window', sort: 'best' }));
-    const compact = createAppStore({ now: () => NOW, prefs: createLocalPrefs(saved), wide: () => false });
-    expect(compact.getState().chartView).toBe('dome');
-    expect(stored(saved)).toEqual({ chartView: 'window', sort: 'best' });
-    // Another preference's write-through on compact leaves the desk's view alone too.
-    compact.getState().setSort('chronological');
+    const loaded = createAppStore({ now: () => NOW, prefs: createLocalPrefs(saved) });
+    expect(loaded.getState().chartView).toBe('window');
+    loaded.getState().setSort('chronological');
     expect(stored(saved)).toEqual({ chartView: 'window', sort: 'chronological' });
-    // Without a viewport to ask (jsdom has no `matchMedia`), the load is compact.
-    expect(createAppStore({ now: () => NOW, prefs: createLocalPrefs(saved) }).getState().chartView).toBe('dome');
+    loaded.getState().setChartView('polar');
+    loaded.getState().setChartView('window');
+    expect(stored(saved)).toEqual({ chartView: 'window', sort: 'chronological' });
 
-    // On wide the window is a view like the other two, saved and restored.
-    const wide = createAppStore({ now: () => NOW, prefs: createLocalPrefs(saved), wide: () => true });
-    expect(wide.getState().chartView).toBe('window');
-    wide.getState().setChartView('polar');
-    wide.getState().setChartView('window');
-    expect(stored(saved)).toEqual({ chartView: 'window', sort: 'chronological' });
+    // Nothing saved: the store says so, and writes nothing for it.
+    const empty = memoryStorage();
+    const fresh = createAppStore({ now: () => NOW, prefs: createLocalPrefs(empty) });
+    expect(fresh.getState().chartView).toBeUndefined();
+    fresh.getState().setSort('best');
+    expect(stored(empty)).toEqual({ sort: 'best' });
   });
 
   /**

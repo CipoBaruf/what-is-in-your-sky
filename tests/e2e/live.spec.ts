@@ -16,7 +16,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { formatClockDuration } from '../../src/lib/format';
-import { bandUnderBox, domeDrawn, enterScrubbing, golden, ha, heading, hhmmss, homeAt, LABEL, openLegend, realTimeField, reenterLiveWithTheme, SPACE_3_PX, stripFilled, stubCompass, stubNetwork, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
+import { bandUnderBox, domeDrawn, enterScrubbing, golden, ha, heading, hhmmss, homeAt, LABEL, openLegend, openSkyScreen, realTimeField, savedDome, reenterLiveWithTheme, SPACE_3_PX, stripFilled, stubCompass, stubNetwork, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
 
 test.describe('the live page', () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -90,6 +90,8 @@ test.describe('the live page', () => {
     await page.clock.install({ time: T });
     await page.clock.pauseAt(T);
     await stubNetwork(page);
+    // R136 (FR-FLOW-14): the dome this spec measures is a saved view on a phone.
+    await savedDome(page);
     await page.goto(`/#live?lat=${String(ha.observer.lat)}&lon=${String(ha.observer.lon)}&alt=0&t=${new Date(peak).toISOString().replace('.000Z', 'Z')}`);
 
     // The observer came out of the link: rounded label, no saved location involved (a fresh context has none).
@@ -167,7 +169,7 @@ test.describe('the live page with the sky screen open upright', () => {
     ['en', 'Turn the phone sideways to see more sky.'],
     ['es', 'Gira el teléfono de lado para ver más cielo.'],
   ] as const) {
-    test(`the window option opens the sky screen, which draws upright with the advice over it (${locale})`, async ({ page }) => {
+    test(`[ hold up to the sky ] opens the sky screen, which draws upright with the advice over it (${locale})`, async ({ page }) => {
       await stubCompass(page);
       await homeAt(page, T, locale);
       await page.getByTestId('live-link').click();
@@ -182,15 +184,15 @@ test.describe('the live page with the sky screen open upright', () => {
       await expect(page.getByTestId('overview-row')).toBeVisible();
       await expect(page.getByTestId('sky-screen')).toHaveCount(0);
 
-      // The tap arms the sensor and the first reading with a north in it opens the screen (D-350).
+      // R136 (FR-FLOW-15): the window option is a view in the box and opens nothing; its `[ hold up to the sky ]`
+      // arms the sensor, and the first reading with a north in it opens the screen (D-350).
       expect(await page.evaluate(() => screen.orientation.angle)).toBe(0);
       await page.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: VIEW_OPTION[locale].window }).click();
-      await expect(page.getByTestId('sky-screen')).toHaveCount(0);
+      await expect(chart).toHaveAttribute('data-view', 'window');
       await heading(page, 270);
-      const layer = page.getByTestId('sky-screen');
+      await expect(page.getByTestId('sky-screen')).toHaveCount(0);
+      const layer = await openSkyScreen(page, locale);
       await expect(layer).toHaveCount(1);
-      // The paused clock holds the lazy chunk's Suspense reveal (R32).
-      await page.clock.runFor(1000);
       // FR-FSC-1: nothing of the page is on the layer, and the page's own chart never became the window.
       await expect(page.getByTestId('stripe-block')).toHaveCount(0);
       await expect(page.getByTestId('playback-row')).toHaveCount(0);
@@ -204,15 +206,14 @@ test.describe('the live page with the sky screen open upright', () => {
       // off `r66-…`, whose two files are the evidence for the state this replaces and stay as they were.
       await page.screenshot({ path: `docs/screenshots/r73-live-390-screen-portrait-dark-${locale}.png` });
 
-      // FR-FSC-2: the `×` is the way out, and what is saved is still the view the page had.
+      // FR-FSC-2: the `×` is the way out, back to the window in the box the reader picked.
       await page.getByTestId('sky-screen-close').click();
       await expect(layer).toHaveCount(0);
-      await expect(chart).toHaveAttribute('data-view', 'dome');
+      await expect(chart).toHaveAttribute('data-view', 'window');
       await expect(page.getByTestId('overview-row')).toBeVisible();
-      // FR-WIN-5 as amended v1.3.1: nothing was saved on the way through — the window is a mode, and the
-      // reader picked no view, so the device still carries none.
+      // FR-FLOW-14 (D-876): the window the reader chose is saved on compact as on wide; the screen saved nothing of its own.
       const prefs = await page.evaluate(() => JSON.parse(localStorage.getItem('wiys:prefs:v1') ?? '{}') as { chartView?: string });
-      expect(prefs.chartView ?? 'dome').toBe('dome');
+      expect(prefs.chartView).toBe('window');
     });
   }
 });
