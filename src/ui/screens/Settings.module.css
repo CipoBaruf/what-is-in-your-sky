@@ -12,7 +12,8 @@
 .page {
   display: grid;
   align-content: start;
-  gap: 0;
+  /* R134 (FR-FLOW-10, D-851): Location, Saved places and This browser are groups (`data-rhythm`), `--space-3` apart. */
+  gap: var(--space-3);
   padding-top: calc(0.5 * var(--row));
   padding-bottom: 0;
 }

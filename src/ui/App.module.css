@@ -15,7 +15,15 @@
      Measured at 360 x 800 in WebKit, Spanish: the column 346 px where the content box is 320.
      `tests/e2e/narrow.spec.ts` holds it. */
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--row);
+  gap: var(--home-section-gap, var(--row));
+}
+
+/* R134 (FR-FLOW-10, D-851): on compact the populated home's Where, doors, When and What are sections
+   (`data-rhythm`), so the gap between them is `--space-5` — between the two stacked columns as well as inside
+   them. The phone's steps keep the row the cold open's margins are written against, and the wide grid its own
+   gaps (below). */
+.main[data-home='readings']:not([data-step]) {
+  --home-section-gap: var(--space-5);
 }
 
 /* Each column is the compact page's own stack; in compact the two of them
@@ -24,7 +32,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
-  gap: var(--row);
+  gap: var(--home-section-gap, var(--row));
 }
 
 /* R76 (FR-FIRST-4), R81 (FR-FIRST-5 as amended v2.0.2): a reading is a
@@ -274,6 +282,11 @@
 
   .main > .column {
     min-height: 0;
+  }
+
+  /* The wide panes are not stacked sections: their gaps are the grid's, as before R134. */
+  .main[data-home='readings']:not([data-step]) {
+    --home-section-gap: var(--row);
   }
 
   /* R76 (FR-FIRST-1, board 1B): on a desk the cold open is the Where pane, in

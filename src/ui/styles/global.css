@@ -4,6 +4,9 @@
    (SectionHeading), controls are bracketed `[ … ]` text. Focus is one visible
    ring for every control (`:focus-visible`, never removed without a
    replacement), and every control is at least `--tap` (48 px) tall. */
+
+/* R134 (FR-FLOW-11, D-851): the hit-area classes, `.target` and `.target-row`. */
+@import './primitives.css';
 html {
   color: var(--fg);
   font-family: var(--font-mono);

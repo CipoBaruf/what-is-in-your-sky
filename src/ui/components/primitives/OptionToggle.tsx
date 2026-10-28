@@ -26,14 +26,17 @@ export interface OptionToggleOwnProps {
    * lines stands inside one tap row — the compact chart's view control on the landscape phone.
    */
   inline?: boolean;
+  /** R134 (FR-FLOW-11, D-871): a `.target` (the default); `false` in a `.target-row`, where the row is the target. */
+  target?: boolean;
   /** Placement only — a grid area, a margin from the space scale (D-704). */
   className?: string | undefined;
 }
 
 export type OptionToggleProps = OptionToggleOwnProps & Omit<ComponentProps<'button'>, keyof OptionToggleOwnProps | 'children' | 'style' | 'type' | 'onClick'>;
 
-export function OptionToggle({ label, pressed, onPress, value, alone = false, inline = false, className, ...rest }: OptionToggleProps) {
-  const classes = [styles.option, alone ? styles.alone : undefined, inline ? 'inline-control' : undefined, inline ? styles.inline : undefined, className].filter(Boolean).join(' ');
+export function OptionToggle({ label, pressed, onPress, value, alone = false, inline = false, target = true, className, ...rest }: OptionToggleProps) {
+  // R134 (FR-FLOW-11, D-851): a 44 px hit area at least, unless the caller's row is a `.target-row` (`ToggleGroup`'s `dense`), which passes `target={false}`.
+  const classes = [styles.option, target ? 'target' : undefined, alone ? styles.alone : undefined, inline ? 'inline-control' : undefined, inline ? styles.inline : undefined, className].filter(Boolean).join(' ');
   const state = rest.role === 'radio' ? { 'aria-checked': pressed } : { 'aria-pressed': pressed };
   return (
     <button type="button" className={classes} {...state} {...(value === undefined ? {} : { 'data-option': value })} onClick={onPress} {...rest}>

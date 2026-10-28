@@ -40,5 +40,8 @@
   "src/ui/styles/global.css": [
     "@media (orientation : landscape) and (height <= 500px)",
     "@media (width >= 964px)"
+  ],
+  "src/ui/styles/primitives.css": [
+    "@media (width >= 964px)"
   ]
 }

@@ -48,13 +48,19 @@ export interface ToggleGroupProps<T extends string> {
    * stands inside one tap row — the compact chart's view control, three options on the landscape phone's column.
    */
   inline?: boolean;
+  /**
+   * R134 (FR-FLOW-11, D-851): a row too dense for a 44 px target per option — the facing picker's points. The group is
+   * a `.target-row` (primitives.css): each option at least 44 px tall, the cell between options split into their
+   * padding so the hit areas meet. Otherwise each option is a `.target`.
+   */
+  dense?: boolean;
   /** Placement only — a grid area, a margin from the space scale (D-704). */
   className?: string | undefined;
 }
 
 const STEP: Record<string, 1 | -1> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
 
-export function ToggleGroup<T extends string>({ name, prefix, options, value, onChange, role = 'group', mark = 'check', gap = 'cell', inline = false, className }: ToggleGroupProps<T>) {
+export function ToggleGroup<T extends string>({ name, prefix, options, value, onChange, role = 'group', mark = 'check', gap = 'cell', inline = false, dense = false, className }: ToggleGroupProps<T>) {
   const radio = role === 'radiogroup';
   const choose = (next: T): void => {
     if (next !== value) onChange(next);
@@ -73,7 +79,7 @@ export function ToggleGroup<T extends string>({ name, prefix, options, value, on
     if (radio) choose(next.value);
   };
   return (
-    <div role={role} aria-label={name} className={[styles.group, gap === 'none' ? styles.noGap : undefined, className].filter(Boolean).join(' ')} onKeyDown={onKeyDown}>
+    <div role={role} aria-label={name} className={[styles.group, gap === 'none' || dense ? styles.noGap : undefined, dense ? 'target-row' : undefined, className].filter(Boolean).join(' ')} onKeyDown={onKeyDown}>
       {prefix && (
         <span className={styles.prefix} aria-hidden="true">
           {prefix}
@@ -89,9 +95,9 @@ export function ToggleGroup<T extends string>({ name, prefix, options, value, on
           ...(radio ? { role: 'radio' as const, tabIndex: stop ? 0 : -1 } : {}),
         };
         return mark === 'check' ? (
-          <OptionToggle key={option.value} {...shared} inline={inline} value={option.value} label={option.label} {...(pressed ? {} : { onPress: () => choose(option.value) })} />
+          <OptionToggle key={option.value} {...shared} target={!dense} inline={inline} value={option.value} label={option.label} {...(pressed ? {} : { onPress: () => choose(option.value) })} />
         ) : (
-          <TextButton key={option.value} {...shared} inline={inline} tight={mark === 'tight'} label={option.label} onClick={() => choose(option.value)} />
+          <TextButton key={option.value} {...shared} {...(dense ? {} : { className: 'target' })} inline={inline} tight={mark === 'tight'} label={option.label} onClick={() => choose(option.value)} />
         );
       })}
     </div>

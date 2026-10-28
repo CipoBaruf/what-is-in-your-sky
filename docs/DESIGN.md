@@ -18,6 +18,7 @@ The source every other length is written from: one character advance (`--cell`),
 | `--cell` | `1ch` |  |
 | `--row` | `1.5rem` |  |
 | `--tap` | `calc(2 * var(--row))` |  |
+| `--target` | `calc(var(--tap) - var(--row) / 6)` |  |
 | `--hairline` | `1px` |  |
 
 ### Space
@@ -190,6 +191,7 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 | `value` | `string` | The option’s value as `data-option`, so a caller can find it in its group again. |
 | `alone` | `boolean` | An option standing alone has no trailing cell; in a group that cell separates it from the next. |
 | `inline` | `boolean` | The 48 px box as padding and a matching negative margin, so the option’s line is one text row (the compact chart’s view control). |
+| `target` | `boolean` | A 44 px hit area at least (`.target`, the default); `false` in a dense row, where the row is the target. |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
 
 ### `ToggleGroup`
@@ -207,6 +209,7 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 | `mark` | `'check' \| 'bracket' \| 'tight'` | How the chosen option is told from the others: `[x]`, bracketed, or bracketed without spaces. |
 | `gap` | `'cell' \| 'none'` | A cell between options, or none where each option’s trailing cell is the whole gap (the wide speeds). |
 | `inline` | `boolean` | Each option’s line is one text row with its 48 px box as padding and a matching negative margin, so a group that wraps to two lines stands inside one tap row. |
+| `dense` | `boolean` | A row too dense for a 44 px target per option (the facing picker): the options at least 44 px tall with their hit areas meeting, the cell between them split into their padding. |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
 
 ### `Card`

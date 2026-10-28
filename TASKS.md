@@ -3772,7 +3772,8 @@ What every session reads (§16.24, D-284's rule), written once here and named in
     - The Done note gives the default for each pref case, the drawing's share at 844 × 390 and 667 × 375, and the turn test's names.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
 
-- [ ] **R134 — The rhythm and the targets: `data-rhythm`, `.target`, `.target-row`, the two specs, and every gap or target they find on the five pages**
+- [x] **R134 — The rhythm and the targets: `data-rhythm`, `.target`, `.target-row`, the two specs, and every gap or target they find on the five pages**
+  - **Note:** done; the settings blocks are groups (D-870), the facing picker is `ToggleGroup`'s `dense` (`FacingPicker` passes it, D-871), targets are measured at rest (D-872), and the dome view's empty picker slot (12 px drawing → hint) is a named exception in `rhythm.spec.ts` for the layout to close.
   - **Lane:** ui
   - **Model:** opus
   - **Review:** opus

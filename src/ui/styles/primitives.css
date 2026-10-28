@@ -1,0 +1,73 @@
+/* R134 (FR-FLOW-11, F13; D-851): targets a thumb can hit. On compact every control's hit area is at least
+   `--target` (44 px) each way, grown by padding so no row's cell count changes; a row too dense for that is a row of
+   targets instead. `tests/e2e/targets.spec.ts` measures both on the five pages and the sky screen. */
+
+/* One control: `ToggleGroup`'s options, `OptionToggle`, the header's links and Back, the home's doors. A control
+   already drawn at `--tap` is unchanged; a narrower one grows to the floor (a button keeps its words centred). */
+.target {
+  /* The floor is the hit area's, padding included: a link is `content-box` otherwise, and its tap box's padding
+     would be added to the floor (68 px, which stretched the wide header's row). */
+  box-sizing: border-box;
+}
+
+/* The floors carry no weight (`:where`), so a floor already written for the element wins: a button keeps
+   global.css's `--tap` (48 px) rather than shrinking to 44 beside an untouched one (the live page's actions row),
+   and a grid item's `min-width: 0` (a door, a header link) still lets it shrink. global.css, which imports this
+   file, is bundled after the modules, so a class here would outrank a module's rule of the same weight. */
+:where(.target) {
+  min-block-size: var(--target);
+  min-inline-size: var(--target);
+}
+
+/* A focused inline control keeps D-500's ring round its text line, which drops the tap box while the ring shows
+   (global.css): that is the keyboard's state, and `targets.spec.ts` measures the controls at rest. The floor gives
+   way with the box, or the ring would be drawn round 44 px again. */
+.target:is(a, .inline-control):focus-visible {
+  min-block-size: auto;
+}
+
+/* A dense row — the facing picker's points, ten in 350 px — meets the rule as a row: every item at least
+   `--target` tall, the cell between two items split into half a cell on each side of both, so the hit areas meet
+   and every point of the row is a target. The row's cells are the ones it had: the gap became padding, and a
+   prefix (`Facing:`, on wide) keeps its one cell before the first point. */
+.target-row {
+  gap: 0;
+}
+
+.target-row > [data-option] {
+  /* The row is the target, not each point: an option in it has no width floor of its own. */
+  min-inline-size: 0;
+  padding-inline: calc(var(--cell) / 2);
+  /* Stretched over whatever the row has to spare, on compact (below). */
+  flex: 1 1 auto;
+}
+
+/* Weightless, as `.target`'s: a button keeps global.css's `--tap` (48 px). */
+:where(.target-row > [data-option]) {
+  min-block-size: var(--target);
+}
+
+.target-row > [data-option]:first-child {
+  padding-inline-start: 0;
+}
+
+.target-row > :not([data-option]) + [data-option] {
+  padding-inline-start: var(--cell);
+}
+
+.target-row > [data-option]:last-child {
+  padding-inline-end: 0;
+}
+
+/* The width floor and the stretch are compact's (FR-FLOW-11). On wide a short tight option (the view control's
+   `dome`) keeps its own width, so the wide live page's one-line controls row (R121) is the width it was, and the
+   facing picker's points on the wide rail stay at their cells instead of spreading over a wrapped line. */
+@media (width >= 964px) {
+  :where(.target) {
+    min-inline-size: auto;
+  }
+
+  .target-row > [data-option] {
+    flex: 0 1 auto;
+  }
+}

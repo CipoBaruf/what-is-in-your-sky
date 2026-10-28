@@ -76,6 +76,9 @@
   --row: 1.5rem;
   /* G6: minimum tap target, two text rows (48 px at the 16 px base, above the 44 px floor). */
   --tap: calc(2 * var(--row));
+  /* FR-FLOW-11 (D-851): the least hit area a control may have on compact, WCAG 2.5.5's 44 px — what `.target`
+     and `.target-row` (primitives.css) hold a control to, where `--tap` is what a control is drawn at. */
+  --target: calc(var(--tap) - var(--row) / 6);
   /* A hairline: one CSS pixel, the width of every rule, border and tight ring
      offset. It is not a share of the row — a border is one device pixel
      whatever the base size — so it is the one length here not written from

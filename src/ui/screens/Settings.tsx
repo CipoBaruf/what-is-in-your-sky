@@ -97,7 +97,7 @@ export function SettingsPage({ backRef, installEnv }: SettingsPageProps) {
 
   return (
     <>
-        <div className={styles.location} onClickCapture={openCoordsForLink}>
+        <div className={styles.location} data-rhythm="group" onClickCapture={openCoordsForLink}>
           <LocationInput
             observer={observer}
             onObserver={setObserver}
@@ -128,9 +128,11 @@ export function SettingsPage({ backRef, installEnv }: SettingsPageProps) {
           />
         </div>
 
-        <Favourites titled limit="empty-or-full" footer={<ClearSavedLocation short />} />
+        <div data-rhythm="group">
+          <Favourites titled limit="empty-or-full" footer={<ClearSavedLocation short />} />
+        </div>
 
-        <section aria-labelledby={browserId} className={styles.browser} data-testid="settings-browser">
+        <section aria-labelledby={browserId} className={styles.browser} data-testid="settings-browser" data-rhythm="group">
           <SectionHeading id={browserId}>{t.settings.browser}</SectionHeading>
           <div className={styles.rows}>
             {/* The visible labels are for the eye; each control is already a group named by the same word. */}
