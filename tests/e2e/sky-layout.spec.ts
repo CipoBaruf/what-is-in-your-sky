@@ -372,6 +372,13 @@ async function expectTurned(page: Page, layout: Locator, viewport: { width: numb
   expect(Math.abs(drawing.y - whole.y)).toBeLessThanOrEqual(1);
   expect(drawing.height + hintPx).toBeGreaterThanOrEqual(whole.height - 30);
   expect(await pageScrolls(layout)).toEqual([]);
+  // Nothing lost in the narrow rail: every slot holds its own content, so a row that wraps grows and lies over nothing.
+  const overflowing = await layout.evaluate((el) =>
+    [...el.querySelectorAll<HTMLElement>('[data-slot]')]
+      .filter((slot) => !['drawing', 'readout', 'hint'].includes(slot.dataset['slot'] ?? '') && slot.scrollHeight > slot.clientHeight + 1)
+      .map((slot) => `${slot.dataset['slot'] ?? ''} ${String(slot.scrollHeight)} > ${String(slot.clientHeight)}`),
+  );
+  expect(overflowing).toEqual([]);
   // The rail scrolls inside the layout, and the box stays where it is while it does.
   expect(await layout.evaluate((el) => getComputedStyle(el).overflowY)).toBe('auto');
   await layout.evaluate((el) => {
@@ -400,7 +407,7 @@ for (const viewport of TURNED) {
         for (const part of [row.getByRole('group', { name: WORDS[locale].viewGroup }), row.getByRole('button', { name: WORDS[locale].stars })]) {
           await expect(part).toBeVisible();
           const partBox = await box(part);
-          expect(partBox.x).toBeGreaterThanOrEqual(rowBox.x - 1);
+          expect(inside(partBox, rowBox), 'inside the view row').toBe(true);
           expect(partBox.x + partBox.width).toBeLessThanOrEqual(viewport.width);
         }
         await expectHintOffTheDrawing(layout);

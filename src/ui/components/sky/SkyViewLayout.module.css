@@ -135,7 +135,10 @@
    as tall as the rail's rows are. --- */
 .layout[data-shape='rail'][data-mode='compact'] {
   grid-template-columns: calc(var(--sky-drawing-share) * 100vw) minmax(0, 1fr);
-  grid-template-rows: auto auto auto auto auto auto auto auto;
+  /* `max-content`, not `auto`: the grid is shorter than its rows, so an auto row is its items' minimum contribution,
+     which for a slot with a `min-height` of its own (the view row's `--tap`) is that minimum — a view row that wraps
+     in the narrow rail would keep one line's height and lie over the facing row. */
+  grid-template-rows: repeat(8, max-content);
   margin-inline: calc(50% - 50vw + 2 * var(--cell));
   height: var(--sky-landscape-h, 100%);
   margin-bottom: calc(-1 * var(--sky-landscape-trail, 0px));
