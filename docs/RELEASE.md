@@ -1549,35 +1549,40 @@ opens on.
 ### 18.2 The budget (FR-FLOW-12, D-853, D-178)
 
 `npm run bundle:budget` on the branch, gzip level 9, beside `89a8e5b` built on the same
-machine, both plain (`VITE_MOON_LORE` unset). FR-FLOW-12 allows `main` `FLOW_MAIN_KB` (1.5 KB)
-over 2.5.0 within its 175, `stars` 0.5 KB, and no other row; the release re-sets every row by
-D-178. The budget column is `scripts/bundle-budget.ts`'s rows, unchanged by R135 (PLAN
-D-875); `tests/docs/accuracy.test.ts` checks it against them:
+machine, both plain (`VITE_MOON_LORE` unset). FR-FLOW-12 as amended (V26-14) allows the
+measured figures below; the release re-sets every row by D-178, with `main`'s ceiling and
+budget at the owner's 180 (PLAN D-875). The budget column is `scripts/bundle-budget.ts`'s rows;
+`tests/docs/accuracy.test.ts` checks it against them:
 
 | Chunk | gzip KB | Budget KB | `89a8e5b` | Change |
 |---|---|---|---|---|
-| main | **181.0** | 175 (over; the rule's 200 is capped at the 175 ceiling) | 172.9 | **+8.09 (8,287 bytes)** |
-| chart (`SkyDome`) | 94.8 | 105 | 94.7 | +0.11 (113 bytes) |
+| main | **177.5** | **180** (was 175; the owner's, V26-14; the rule's 200 is not taken) | 172.9 | **+4.56 (4,667 bytes)** |
+| chart (`SkyDome`) | 97.1 | **110** (was 105; the rule's, its ceiling) | 94.7 | **+2.39 (2,445 bytes)** |
 | worker | 36.1 | 40 | 36.1 | 0 |
-| stars | 26.6 | 30 | 25.8 | **+0.80 (819 bytes)** |
-| astronomy (`astronomy` + `skyBodies`) | 24.1 | 25 (the rule's 30 not taken) | 22.6 | **+1.47 (1,508 bytes)** |
-| window (`SkyWindow`) | 26.6 | 30 | 25.7 | **+0.88 (899 bytes)** |
+| stars | 26.7 | 30 | 25.8 | **+0.81 (834 bytes)** |
+| astronomy (`astronomy` + `skyBodies`) | 24.1 | **30** (was 25; the rule's, its ceiling) | 22.6 | **+1.47 (1,510 bytes)** |
+| window (`SkyWindow`) | 26.6 | 30 | 25.7 | **+0.89 (913 bytes)** |
 | live | 9.7 | 15 | 9.7 | −0.05 (−48 bytes) |
 | service worker | 5.0 | 10 | 5.0 | 0 |
-| settings | 1.1 | 10 | 1.0 | +0.11 (113 bytes) |
+| settings | 1.1 | 10 | 1.0 | +0.11 (112 bytes) |
 
-The lazy `camera` chunk (3.8 KB at `89a8e5b`) is gone: it is in `main`. The main stylesheet is
-12.3 KB gzipped against 11.1.
+The lazy `camera` chunk is 1.2 KB (3.8 at `89a8e5b`). The main stylesheet is 12.3 KB gzipped
+against 11.1.
 
-Where `main`'s 8.1 KB came from, each merge built plainly against the one before it: R131
+Where `main`'s growth came from, each merge built plainly against the one before it: R131
 (the words) 0, R129 (the header) +0.2, R130 (the doors and the folded Where) +1.7, R132 (the
 layout) +2.6, R134 (the rhythm and the targets) +0.1, R136 (the window first, the turn) −0.2,
-R133 (the boxes) +3.7. R133's is one import: `lib/layout.ts` takes `bowlHeightPx` from
-`skychart/dome/camera.ts`, and `lib/layout.ts` is in `main`, so the `camera` module and what it
-reaches left their lazy chunk. Without it `main` would be 177.3, still over 175. R130 took
-the whole of `FLOW_MAIN_KB` on its own (its Done note: 173.0 → 174.5), so every later task's
-`main` bytes were over the allowance when they merged. `stars` grew in R129 (+0.4), R130 and
-R132; `astronomy` in R130 (`moonNow`'s rise and set); `window` in R130, R134 and R136.
+R133 (the boxes) +3.7. That took the branch to 181.0. R133's 3.7 was one import:
+`ChartFrame.tsx`, which is in `main`, took `compactBowlBoxPx` from `skychart/dome/camera.ts`, so
+the `camera` module and `domeGeometry` left their lazy chunk. R135 moved the bowl's numbers into
+`dome/bowl.ts`, which imports only `lib/layout` (D-882): `main` came back to 177.5 and `camera`
+is lazy again. `chart` gains 2.4 KB in the same move: 2.5.0 shared `domeGeometry` with the
+window, live and stars pages through the `camera` chunk, because `camera.ts` took
+`GROUND_RADIUS` from it; with that number in `bowl.ts` only the dome reaches it, so the dome
+page loads the same bytes and the other pages fewer. R130 took the whole of `FLOW_MAIN_KB` on
+its own (its Done note: 173.0 → 174.5), so every later task's `main` bytes were over the
+allowance when they merged. `stars` grew in R129 (+0.4), R130 and R132; `astronomy` in R130
+(`moonNow`'s rise and set); `window` in R130, R134 and R136.
 
 - [ ] The release PR carries this table.
 
@@ -1595,16 +1600,12 @@ R132; `astronomy` in R130 (`moonNow`'s rise and set); `window` in R130, R134 and
 
 ### 18.4 What the owner decides on this release
 
-- [ ] **`main` at 181.0 KB, 6.0 over its 175 ceiling and budget and 8.1 over 2.5.0 against
-      `FLOW_MAIN_KB`'s 1.5** (§18.2), with `stars` 0.3 KB past its 0.5 and `astronomy`,
-      `window` and `settings` moved where D-853 said no row would. R135 cannot change `src/`
-      and only the owner moves a ceiling, so it stopped here (`sdd-run/R135.blocked.md`).
-      The choices: accept the measured sizes and raise `main` and its ceiling to 185, the next
-      5 KB line, as V25-20 did for v2.5; or a fix task first — `bowlHeightPx` out of
-      `dome/camera.ts` (or `compactDomeBoxHeightPx` out of `lib/layout.ts`) takes back about
-      3.7 KB — and then decide on the rest.
-- [ ] **The settings page is not byte-identical** (§18.1): the header (R129) and R134's group
-      gaps move it. Accept both as the phase's, or have FR-FLOW-12 name them.
+- [x] **The budget** (§18.2), decided 2026-10-28 (V26-14): R135 first moves the bowl's numbers
+      out of `dome/camera.ts` (D-882, `main` 181.0 → 177.5), then `main`'s ceiling and budget go
+      to 180 and FR-FLOW-12's allowances become the measured figures; `chart` and `astronomy`
+      are re-set by D-178's rule.
+- [x] **The settings page is not byte-identical** (§18.1): the header (R129, D-856) and R134's
+      group gaps (D-870) move it. FR-FLOW-12 as amended names both (V26-14).
 - [ ] **The sky screen is byte-identical but for the readout's word**, which FR-FLOW-12 names
       as a move; the two lines say the same thing once read together. No action unless the
       owner wants the requirement's wording to say so.
@@ -1623,8 +1624,8 @@ Owner steps, in this order, and none of them belong to a task session:
 
 - [ ] `package.json` is `2.6.0` on `main` and every task of the phase is checked off in
       `TASKS.md` (R129..R136).
-- [ ] §18.4's first item is decided and, if the budget moved, `scripts/bundle-budget.ts` and
-      §18.2's table say so.
+- [x] §18.4's first item is decided (V26-14), and `scripts/bundle-budget.ts` and §18.2's table
+      say so.
 - [ ] §18.1's two `captures.yml` runs are recorded and run 1's artefact is committed.
 - [ ] `npm run check:dead` on the release commit reports nothing, and the bundle table is
       §18.2's.
