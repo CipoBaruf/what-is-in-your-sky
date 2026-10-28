@@ -62,7 +62,7 @@ export const SLOT_ORDER: readonly SkyViewSlotName[] = ['answer', 'viewRow', 'rea
 /** The parts a chart hands the layout past the page (`SkyViewChartSlot`, `useChartSlot`). */
 export type ChartSlotName = 'control' | 'readout' | 'picker' | 'list';
 
-export type SkyViewShape = 'column' | 'rail' | 'panel';
+type SkyViewShape = 'column' | 'rail' | 'panel';
 
 export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, ReactNode>> {
   drawing: ReactNode;
