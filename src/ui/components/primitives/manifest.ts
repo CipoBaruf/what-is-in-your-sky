@@ -78,6 +78,7 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     value: { type: 'string', text: 'The option’s value as `data-option`, so a caller can find it in its group again.' },
     alone: { type: 'boolean', text: 'An option standing alone has no trailing cell; in a group that cell separates it from the next.' },
     inline: { type: 'boolean', text: 'The 48 px box as padding and a matching negative margin, so the option’s line is one text row (the compact chart’s view control).' },
+    target: { type: 'boolean', text: 'A 44 px hit area at least (`.target`, the default); `false` in a dense row, where the row is the target.' },
     className: PLACEMENT,
   }),
   entry<ToggleGroupProps<string>>('ToggleGroup', 'A row of options under one name where exactly one is chosen: a view, a sort, a speed, a language, a theme.', {

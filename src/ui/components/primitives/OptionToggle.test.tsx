@@ -59,4 +59,9 @@ describe('<OptionToggle> target (R134, FR-FLOW-11, D-851)', () => {
     render(<OptionToggle label="Hidden" pressed={false} alone />);
     expect(screen.getByRole('button', { name: 'Hidden' })).toHaveClass('target');
   });
+
+  it('is no .target when its row is the target', () => {
+    render(<OptionToggle label="N" pressed={false} target={false} />);
+    expect(screen.getByRole('button', { name: /N/ })).not.toHaveClass('target');
+  });
 });

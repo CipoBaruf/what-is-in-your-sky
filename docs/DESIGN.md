@@ -191,6 +191,7 @@ Every colour in both themes. The night values are reds (FR-THEME-3: `r ≥ g ≥
 | `value` | `string` | The option’s value as `data-option`, so a caller can find it in its group again. |
 | `alone` | `boolean` | An option standing alone has no trailing cell; in a group that cell separates it from the next. |
 | `inline` | `boolean` | The 48 px box as padding and a matching negative margin, so the option’s line is one text row (the compact chart’s view control). |
+| `target` | `boolean` | A 44 px hit area at least (`.target`, the default); `false` in a dense row, where the row is the target. |
 | `className` | `string` | Placement only: a grid area or a margin from the space scale (D-704). |
 
 ### `ToggleGroup`

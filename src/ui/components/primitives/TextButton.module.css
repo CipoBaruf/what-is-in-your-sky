@@ -85,7 +85,7 @@
 }
 
 .toggle {
-  min-inline-size: calc(var(--tap) - var(--row) / 6);
+  min-inline-size: var(--target);
 }
 
 .toggle[aria-pressed='true']:not(:disabled),

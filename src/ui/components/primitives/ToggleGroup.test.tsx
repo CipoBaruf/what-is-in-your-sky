@@ -116,4 +116,14 @@ describe('<ToggleGroup> targets (R134, FR-FLOW-11, D-851)', () => {
     expect(group.className).toMatch(/noGap/);
     for (const button of within(group).getAllByRole('button')) expect(button).not.toHaveClass('target');
   });
+
+  it.each(['check', 'tight'] as const)('gives each %s option the class once, and none when dense', (mark) => {
+    const { unmount } = render(<ToggleGroup name="Pick" options={options} value="a" onChange={vi.fn()} mark={mark} />);
+    for (const button of within(screen.getByRole('group', { name: 'Pick' })).getAllByRole('button')) {
+      expect(button.className.split(/\s+/).filter((c) => c === 'target')).toHaveLength(1);
+    }
+    unmount();
+    render(<ToggleGroup name="Pick" options={options} value="a" onChange={vi.fn()} mark={mark} dense />);
+    for (const button of within(screen.getByRole('group', { name: 'Pick' })).getAllByRole('button')) expect(button).not.toHaveClass('target');
+  });
 });
