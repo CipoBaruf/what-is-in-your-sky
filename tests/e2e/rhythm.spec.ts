@@ -13,8 +13,7 @@
 import { expect, test, type Locator } from '@playwright/test';
 import { FLOW_PAGES, LOCALES, openFlowPage, PHONE, type FlowPage } from './flowPages';
 
-const RHYTHMS = ['row', 'group', 'section'] as const;
-type Rhythm = (typeof RHYTHMS)[number];
+type Rhythm = 'row' | 'group' | 'section';
 const TOKEN: Record<Rhythm, string> = { row: '--space-1', group: '--space-3', section: '--space-5' };
 
 /**
