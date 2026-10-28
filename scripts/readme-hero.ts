@@ -73,9 +73,11 @@ export const SOURCES = [
   {
     // R80: the set's `live` screen is `live-watching` since v2.0 split the live page into
     // its two states (FR-WATCH-9 f). Watching is the right half of that split for a first
-    // picture: it is the page as it opens, with no scrub block over the sky.
+    // picture: it is the page as it opens, with no scrub block over the sky. R135 (FR-FLOW-14):
+    // a phone opens on the window since v2.6, following the pass that is up, so the tile is the
+    // pass among the stars and no longer the braille dome; the caption says what it shows.
     file: 'v1-live-watching-390-dark-en.png',
-    caption: 'The sky over you, drawn as text',
+    caption: 'The sky over you, the pass among the stars',
     w: 390,
     h: 844,
     slot: 'main',

@@ -152,6 +152,19 @@
  * "from both pages" is that file and the new one. Every chart file of the set
  * moved with the stars under the arcs, which is FR-SKY-9's first named move.
  * The set is 330 files.
+ *
+ * R135 (SPEC §9 Phase 2n, FR-FLOW-12; PLAN D-853, D-873): v2.6 changes where
+ * things stand on every page and adds the files FR-FLOW-12 names. The home's
+ * doors in four states at 360, 390, 1280 and 1920: `a later pass` is the home's
+ * own `-view` twin at `CLOCK`, which already has those widths, and the other
+ * three are `home-up-now`, `home-no-pass` and `home-daylight`, cropped to the
+ * viewport as the twin is. The folded Where is the top of the home's compact
+ * files and the opened one `where-opened`, a phone's screen
+ * (`captures.test.ts` carries it by name). The live page, the stars page and
+ * the pass detail at 844 × 390 are `live-watching` (already there), `stars`
+ * and `guide` with the width added. The phone's live files show the window
+ * because a phone opens on it (FR-FLOW-14), so that is a route change and not
+ * a screen. The set is 394 files.
  */
 
 export const THEMES = ['dark', 'night'] as const;
@@ -251,7 +264,7 @@ export const SCREENS: readonly CaptureScreen[] = [
   {
     name: 'live-watching',
     widths: [360, 390, 768, 844, 1024, 1200, 1280, 1920, 2560, 3840],
-    what: "The live sky page in the state it opens in (FR-WATCH-1 a, FR-WATCH-4): the mark's bead running beside `live`, the headline, the conditions line, the dome and the actions — and no stripe, no step row and no playback row anywhere in the document. 360 is the narrow phone (FR-CAP-2) and 768 the tablet upright (FR-TAB-3); 844 is the landscape phone; 1024 is the desktop width the set had never shot the page at until R72 and 1200 × 450 the window dragged short (FR-SHP-5, F-65); 1280 and up are the rail beside the box, which since R71 is every wide width (FR-LEG-6) and not only R61's 1920, 2560 and 3840.",
+    what: "The live sky page in the state it opens in (FR-WATCH-1 a, FR-WATCH-4): the mark's bead running beside `live`, the headline, the conditions line, the drawing and the actions — and no stripe, no step row and no playback row anywhere in the document. Since v2.6 a phone with nothing saved opens on the window (FR-FLOW-14, D-876), following the pass that is up (`openingFacing`), so the compact files — 360, 390, 768 and 844 — show the window and the wide ones the dome; at 844 × 390 it is the turned arrangement, the drawing left at full height and the rail beside it (FR-FLOW-15). 360 is the narrow phone (FR-CAP-2) and 768 the tablet upright (FR-TAB-3); 844 is the landscape phone; 1024 is the desktop width the set had never shot the page at until R72 and 1200 × 450 the window dragged short (FR-SHP-5, F-65); 1280 and up are the rail beside the box, which since R71 is every wide width (FR-LEG-6) and not only R61's 1920, 2560 and 3840.",
   },
   {
     name: 'live-scrubbing',

@@ -1031,7 +1031,8 @@ const REACH: Record<string, Reach> = {
     const figure = guide(page).getByRole('figure');
     await windowInTheBox(page, figure, locale, SHOWN);
     await expect(figure).toHaveAttribute('data-view', 'window');
-    await expect(figure.locator('[data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
+    // R132 (D-864): the facing picker is the layout's `picker` slot, outside the figure.
+    await expect(guide(page).locator('[data-slot="picker"] [data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
     await expect(figure.locator(`[data-pass-id="${SHOWN_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
     // The box's foot to the panel's edge, as `sky-window.spec.ts` does: on wide the sheet scrolls on its own.
     await figure.getByTestId('chart-box').evaluate((el) => {
