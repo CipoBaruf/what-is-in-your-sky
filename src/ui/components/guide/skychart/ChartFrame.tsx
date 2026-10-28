@@ -3,7 +3,7 @@ import { fitBox, viewportAspect } from '../../../../lib/layout';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { usePageShape } from '../../live/usePageShape';
 import styles from './ChartFrame.module.css';
-import { compactBowlBoxPx } from './dome/camera';
+import { compactBowlBoxPx } from './dome/bowl';
 
 /**
  * R15 review: one frame for every sky chart view, so switching between the

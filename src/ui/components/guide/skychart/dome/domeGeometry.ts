@@ -2,6 +2,7 @@ import { cutTrack } from '../../../../../lib/arcReveal';
 import { interpolateTrack, resampleArc, splitArcAt, toDome, type Vec3 } from '../../../../../lib/skyGeometry';
 import type { MoonState, Pass, PassPoint } from '../../../../../model';
 import { glowHalfWidthDeg, glowHeightDeg, glowStrength, moonVisible } from '../bodies';
+import { GROUND_RADIUS } from './bowl';
 
 /**
  * PLAN §8.3 / §8.7 (R15, extended by R21): the dome scene as polygon lists for
@@ -59,8 +60,8 @@ const RISE_LABEL_RADIUS = 1.18;
 export const TICK_LABEL_RADIUS = 1.03;
 const RING_LABEL_RADIUS = 1.02;
 const RING_LABEL_AZ_DEG = 315;
-/** Base layer (FR-DOME-8a, D-92): the ground reaches 1.1 radii, the sky bowl sits just inside the lines, the glow just inside the horizon ring. */
-export const GROUND_RADIUS = 1.1;
+/** Base layer (FR-DOME-8a, D-92): the ground reaches 1.1 radii (`GROUND_RADIUS`, in `bowl.ts` since R135, D-882), the sky bowl sits just inside the lines, the glow just inside the horizon ring. */
+export { GROUND_RADIUS };
 const GROUND_DEPTH = 0.002;
 export const BOWL_RADIUS = 0.985;
 const GLOW_RADIUS = 0.995;
