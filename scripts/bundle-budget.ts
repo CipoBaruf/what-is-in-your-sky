@@ -339,11 +339,16 @@ export interface Budget {
  * | service worker | `workbox-*.js`        |       5.0 |      5.0 |     10 |  10 |      15 |
  * | settings       | `Settings-*.js`       |       1.0 |      1.1 |     10 |  10 |       — |
  *
- * `chart` grows by `domeGeometry`, which 2.5.0 shared with the window, live and
- * stars pages through the lazy `camera` chunk (3.8 KB then, 1.2 now) because
- * `camera.ts` took `GROUND_RADIUS` from it; with that number in `bowl.ts` only
- * the dome reaches it. The dome page loads the same bytes, the other pages
- * fewer. `docs/RELEASE.md` §18.2 has the byte counts.
+ * `chart` grows by `domeGeometry`, which the build now puts in the `SkyDome`
+ * chunk. 2.5.0's put it in the lazy `camera` chunk the window, live and stars
+ * pages share (3.8 KB then, 1.2 now), because `camera.ts` used its
+ * `GROUND_RADIUS`. `camera.ts` still imports `projectToScreen` and
+ * `COMPASS_LABEL_RADIUS` from it, but only for `drawingExtent`, which the app
+ * never calls (the tests do), so Rollup drops those uses and nothing outside the
+ * dome's chunk keeps any of `domeGeometry`. That placement rests on the
+ * tree-shaking, not on the import graph: an app call to `drawingExtent` would
+ * move the module back into `camera`. The dome page loads the same bytes, the
+ * other pages fewer. `docs/RELEASE.md` §18.2 has the byte counts.
  *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
@@ -394,7 +399,7 @@ export interface Budget {
  */
 export const BUDGETS: readonly Budget[] = [
   { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 180 }, // R135 (V26-14, D-875): 177.5 on 2.6.0, the owner's raise to the next 5 KB line, ceiling with it, after D-882 took the dome camera back out; R128 (V25-20, D-841): 173.0 on 2.5.0, the owner's raise to the next 5 KB line, ceiling with it; R60: 136.6 measured (flag on), crossing the 150 line (D-307); R80: 158.0 on 2.0.0 — over, and deliberately not raised (D-495, F-69); R100: 166.6 on 2.1.0, still not raised (V21-13, D-638); raised to 170 by the owner at the release gate (V21-24, D-641)
-  { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 110 }, // R135 (D-875, D-882): 97.1 on 2.6.0, re-set by D-178's rule (× 1.1 = 106.8, up to 110, its ceiling) — `domeGeometry` is the dome's alone now, not shared through the `camera` chunk; R60: 94.2 measured, down from 97.1 (D-307); 94.2 again on 1.4.0 (R72)
+  { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 110 }, // R135 (D-875, D-882): 97.1 on 2.6.0, re-set by D-178's rule (× 1.1 = 106.8, up to 110, its ceiling) — the build puts `domeGeometry` here now, not in the shared `camera` chunk (camera.ts's uses of it are test-only and shaken out); R60: 94.2 measured, down from 97.1 (D-307); 94.2 again on 1.4.0 (R72)
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 40 },
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10, per: 'each' },
   // R115 (D-749, D-759): with the stars page importing `astronomy-engine` too, Rollup puts the library in a chunk of its own beside `skyBodies`; the row matches both and its limit is on their total, so the library is counted once, as before. 22.1 on 6cfa699; 22.6 with the stars page, the functions `skyStars.ts` calls that `skyBodies.ts` does not.
