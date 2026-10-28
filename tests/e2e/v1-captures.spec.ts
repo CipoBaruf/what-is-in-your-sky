@@ -54,7 +54,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import { WINDOW_FOV_MIN_DEG } from '../../src/ui/components/guide/skychart/window/projection';
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 // P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
-import { CLOCK, DAY_MS, SHOWN_PASS, SHOWN_PASS_START, guide, listSettled as listAndReadinessSettled, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
+import { CLOCK, DAY_MS, SHOWN_PASS, SHOWN_PASS_START, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
 import { domeDrawn, enterScrubbing, heading, openLegend, openSettings, openSkyScreen, stripFilled, stubCompass, stubNetwork } from './liveHelpers';
 // Bariloche is the place picker's observer for the geocoder's first answer, at its 839 m (FR-SHOW-9), which is
 // what the stored Bariloche run and `SHOWN_PASS`'s id were computed at. Neuquén is only the second row of the
@@ -94,16 +94,14 @@ const WHERE_READY = /^(Ready offline · |Listo sin red · )/;
  * folded Where's ready line where it is folded. The promo recording's copy of the wait is not this file's (Follow-ups).
  */
 async function listSettled(page: Page): Promise<void> {
+  await settledList(page, readyOrFolded);
+}
+
+/** The finished run stored: the readiness line where it is drawn, else the folded Where's `Ready offline` line. */
+async function readyOrFolded(page: Page): Promise<void> {
   await expect(page.locator('[data-testid="readiness"], [data-testid="where-status"]').first()).toBeVisible({ timeout: 60_000 });
-  if ((await page.getByTestId('where-status').count()) === 0) {
-    await listAndReadinessSettled(page);
-    return;
-  }
-  await expect(page.locator('article[data-pass-card]').first()).toBeVisible({ timeout: 60_000 });
-  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
-  expect(await page.getByTestId('night-group').count()).toBeGreaterThan(0);
-  await expect(page.getByTestId('where-status')).toHaveText(WHERE_READY, { timeout: 60_000 });
-  await page.mouse.move(0, 0);
+  if ((await page.getByTestId('where-status').count()) === 0) await readinessShown(page);
+  else await expect(page.getByTestId('where-status')).toHaveText(WHERE_READY, { timeout: 60_000 });
 }
 
 /** R53: the legend screen's instant, two minutes further on — see the `legend` route. */
@@ -239,9 +237,10 @@ function starsChunkWatch(page: Page): () => boolean {
 }
 
 /**
- * R128 (FR-CAP-5; D-830): the `stars` chunk in hand before a chart mounts, fetched by the reader's own prefetch —
- * focus on the header's `[ stars ]` (wide) or the When pane's `[ look up ]` (compact), which load it ahead of the
- * tap (`starsChunk.ts`). Not for the dome's size: that was F-103, fixed in the app, and a cold page draws the same
+ * R128 (FR-CAP-5; D-830): the `stars` chunk in hand before a chart mounts, fetched by the reader's own prefetch.
+ * Since R135 (D-860) that is the home's idle prefetch for the doors, which the poll's ticks run, at every width;
+ * on wide the header's `[ stars ]` is focused as well, which loads it ahead of the tap (`starsChunk.ts`). The
+ * When pane's `[ look up ]` that compact used to focus is gone. Not for the dome's size: that was F-103, fixed in the app, and a cold page draws the same
  * dome. For the order the dome's meshes mount in: where the stars' points mesh mounts after the arcs, a braille
  * cell an arc and a star share takes one colour or the other by when the chunk landed, which two cold runs of the
  * set disagreed on (a few cells at a channel step of about 30 on four wide live files).
@@ -506,12 +505,16 @@ async function doorsFilled(page: Page): Promise<void> {
 }
 
 /**
- * R135 (FR-FLOW-12): the elements answer for the doors' `no pass` state — the fixtures' catalogue cut to the
- * objects whose orbits keep them below a 41° S observer's horizon or too low to be drawn: inclinations under
- * 32°, which four of the `visual` group's objects have (HST, Hitomi, XRISM and an Atlas Centaur stage) and none
- * of the `stations` group's. Over Bariloche that is a 72 h search with nothing visible in it, the state a
- * reader at a latitude the catalogue never reaches sees, with the rest of the home — the forecast, the zone, the
- * elements' age — as the set's night has it.
+ * R135 (FR-FLOW-12): the elements answer for the doors' `no pass` state — the fixtures' catalogue cut to
+ * inclinations under 32°, four of the `visual` group's objects (HST, Hitomi, XRISM and an Atlas Centaur stage)
+ * and none of the `stations` group's. The orbits alone do not keep them out of a 41° S sky: all four rise over
+ * Bariloche, and XRISM (31°, about 575 km) climbs 20° and more. What leaves the 72 h search empty is these
+ * fixtures' lighting and brightness: in the set's three days none of the four is sunlit above the horizon in a
+ * dark enough sky and bright enough to pass the visibility rule (FR-PASS-*). So the state belongs to the
+ * fixtures' date, not to the cut: a refresh of `tests/fixtures/omm/` (new epochs, or a new `FIXTURE_DATE`) can
+ * give one of them a visible pass, and then `home-no-pass` fails on the Satellites door's `No visible pass in
+ * 72 h`, not on anything this cut says. The fix then is a lower bound on the cut, or fewer objects. The rest of
+ * the home — the forecast, the zone, the elements' age — is the set's night.
  */
 const NO_PASS_MAX_INCLINATION_DEG = 32;
 async function noPassCatalogue(page: Page): Promise<void> {
@@ -554,6 +557,10 @@ async function homeAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
     // yet") — the state a reader with no pass is in, and a finding in RELEASE §18 — and the fold shows that fault.
     if ((await page.getByTestId('where-status').count()) > 0) await expect(page.getByTestId('where-status')).toHaveAttribute('data-fault', 'not-ready', { timeout: 60_000 });
     else await expect(page.getByTestId('readiness')).toBeVisible({ timeout: 60_000 });
+    // The search finished: the Satellites door reads `none` only once the run is `done` (`usePassContext`'s
+    // `pending`, `doorLines`); before and during it the door reads its pending line, and every check above holds
+    // before the search starts as well.
+    await expect(page.getByTestId('door-satellites-line').first()).toHaveText(DOOR_WORDS.noPass[locale], { timeout: 60_000 });
     await expect(page.locator('article[data-pass-card]')).toHaveCount(0);
   } else {
     await listSettled(page);
@@ -702,9 +709,19 @@ const REACH: Record<string, Reach> = {
     await homeAt(page, width, theme, locale, CLOCK);
     const details = page.getByTestId('where-details');
     await details.click();
-    await page.clock.runFor(FRAME_MS);
     await expect(details).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.getByTestId('where-details-panel')).toBeVisible();
+    // The panel mounts its readiness and elements lines only on open (`WherePlace`'s `details`), and each draws
+    // nothing until its store answers, so the clock is ticked until both are there, then put back (F-48).
+    const panel = page.getByTestId('where-details-panel');
+    await expect
+      .poll(async () => {
+        await page.clock.runFor(FRAME_MS);
+        return (await panel.getByTestId('readiness').count()) + (await panel.getByTestId('elements-line').count());
+      }, { timeout: 15_000 })
+      .toBe(2);
+    await expect(panel.getByTestId('readiness')).toBeVisible();
+    await expect(panel.getByTestId('elements-line')).toBeVisible();
+    await pinnedAt(page, CLOCK);
     await blurFocus(page);
     await page.mouse.move(0, 0);
   },
