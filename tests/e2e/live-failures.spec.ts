@@ -13,7 +13,7 @@
  *     30 h ahead opens held at the span's end with its note.
  */
 import { expect, test, type Page, type Route } from '@playwright/test';
-import { domeDrawn, FIXTURE_DATE, ha, NINE_DAYS_ON, seedStoredRun, stubNetwork, T } from './liveHelpers';
+import { domeDrawn, FIXTURE_DATE, ha, NINE_DAYS_ON, savedDome, seedStoredRun, stubNetwork, T } from './liveHelpers';
 
 const HOUR = 3_600_000;
 const PREFS_KEY = 'wiys:prefs:v1';
@@ -140,6 +140,7 @@ test.describe('a live link’s moment (FR-VISIT-3)', () => {
   test.beforeEach(async ({ page }) => {
     await page.clock.setFixedTime(T);
     await stubNetwork(page);
+    await savedDome(page);
   });
 
   test('a t that has passed opens watching, with its note', async ({ page }) => {
