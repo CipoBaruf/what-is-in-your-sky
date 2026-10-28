@@ -20,7 +20,7 @@
     'body';
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
-  gap: var(--space-3);
+  gap: calc(var(--row) / 4);
   background: var(--bg);
   color: var(--fg);
 }

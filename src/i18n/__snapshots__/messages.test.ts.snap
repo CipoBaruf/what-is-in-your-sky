@@ -448,6 +448,8 @@ exports[`the two catalogs (FR-I18N-2) > keeps the same flattened key set the sin
   ".shortcuts.doesHeading:string",
   ".shortcuts.keyHeading:string",
   ".shortcuts.title:string",
+  ".skyView.facing:string",
+  ".skyView.view:string",
   ".stars.heading:string",
   ".stars.keys.starsTilt:string",
   ".stars.keys.starsTurn:string",
