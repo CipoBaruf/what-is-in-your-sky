@@ -90,8 +90,7 @@
    what sizes the box. */
 .layout[data-layout='compact'] .skyLayout[data-shape='column'] :global([data-slot='drawing']) {
   --chart-floor-on: 0;
-  aspect-ratio: 4 / 3;
-  min-height: 0;
+  height: calc((100cqw + 4 * var(--cell)) * 3 / 4);
 }
 
 /* Wide: the box's size, written by the page (`--stars-box-w` / `--stars-box-h`) on the layout's root; the window

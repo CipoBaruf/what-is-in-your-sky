@@ -5,6 +5,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;
+  /* A size container, so the column's box can be as tall as the layout is wide in CSS alone (`cqw`, below). */
+  container-type: inline-size;
   --sky-corner-surface: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
 }
 
@@ -90,13 +92,12 @@
     'foot';
 }
 
-/* FR-COMP-5's rule, the layout's: a `fill` chart in the column is never shorter than wide, whichever way the phone is
-   held. The slot is as tall as it is wide before anything is measured (`aspect-ratio`, so a `fill` chart's 100 % has a
-   height to resolve against from the first frame), and at least the full-bleed box's own width once it is — the slot's
-   measured width plus the page padding the frame breaks out of on each side (`--page-pad-x`, D-187's device). */
+/* FR-COMP-5's rule, the layout's: a `fill` chart in the column is as tall as the full-bleed box is wide, whichever way
+   the phone is held — the layout's own width (`100cqw`) plus the page padding the frame breaks out of on each side
+   (`--page-pad-x`, D-187's device). A height, not a floor, and from CSS alone: a `fill` chart's 100 % has it to
+   resolve against from the first frame, with nothing measured and nothing to feed back. */
 .layout[data-shape='column'] .drawing {
-  aspect-ratio: 1 / 1;
-  min-height: calc(var(--sky-drawing-floor, 0px) + 2 * var(--page-pad-x, calc(2 * var(--cell))));
+  height: calc(100cqw + 2 * var(--page-pad-x, calc(2 * var(--cell))));
 }
 
 /* --- The rail: the box at the left, the rail at the right, the readout on the box's corner, the hint under the box

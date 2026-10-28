@@ -105,8 +105,7 @@ export function SkyViewLayout({ wide = 'rail', describedBy, className, ref, 'dat
    * line, and the prose and the table follow under it. Measured, since the rows above the drawing are text in
    * either language and the box is whatever the panel's column leaves: the drawing slot's top in the layout, the
    * hint's row under it, and the scroll box's height, written once per change as `--sky-drawing-h`. The column
-   * form writes `--sky-drawing-floor`, the slot's own width, so a `fill` chart in it is never shorter than wide
-   * on any phone, whichever way it is held (FR-COMP-5's rule, the layout's to apply).
+   * form measures nothing: its box is as tall as the layout is wide, in CSS (`SkyViewLayout.module.css`).
    */
   const rootRef = useRef<HTMLDivElement | null>(null);
   const setRoot = useCallback(
@@ -120,15 +119,10 @@ export function SkyViewLayout({ wide = 'rail', describedBy, className, ref, 'dat
   useEffect(() => {
     const root = rootRef.current;
     if (!root || typeof ResizeObserver === 'undefined') return;
+    if (shape !== 'panel') return;
     const measure = (): void => {
       const drawing = root.querySelector<HTMLElement>('[data-slot="drawing"]');
       if (!drawing) return;
-      if (shape === 'column') {
-        const floor = `${String(Math.round(drawing.getBoundingClientRect().width))}px`;
-        if (root.style.getPropertyValue('--sky-drawing-floor') !== floor) root.style.setProperty('--sky-drawing-floor', floor);
-        return;
-      }
-      if (shape !== 'panel') return;
       const scrollBox = root.parentElement;
       if (!scrollBox) return;
       const hint = root.querySelector<HTMLElement>('[data-slot="hint"]');
@@ -145,7 +139,6 @@ export function SkyViewLayout({ wide = 'rail', describedBy, className, ref, 'dat
     return () => {
       observer.disconnect();
       root.style.removeProperty('--sky-drawing-h');
-      root.style.removeProperty('--sky-drawing-floor');
     };
   }, [shape]);
 
