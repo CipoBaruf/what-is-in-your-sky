@@ -87,6 +87,11 @@ export async function seedPage(page: Page, prefs: SeedPrefs, time = CLOCK): Prom
 /** R23 (D-72): the guide is a modal sheet on a phone and a column beside the list on a wide screen. */
 export const guide = (page: Page): Locator => page.locator('[role="dialog"], [data-testid="guide-panel"]').first();
 
+/** The readiness line drawn: the run stored (FR-OFF-4). `listSettled`'s default `ready`. */
+export async function readinessShown(page: Page): Promise<void> {
+  await expect(page.getByTestId('readiness')).toBeVisible({ timeout: 60_000 });
+}
+
 /**
  * The list, settled, asked in neither language: a card is up, the 72 h search
  * has stopped (nothing is left `aria-busy`) and the passes are grouped by
@@ -94,14 +99,14 @@ export const guide = (page: Page): Locator => page.locator('[role="dialog"], [da
  * English and the Spanish run take the same path. P8: it waited for the ISS's
  * `Next` tag until the showcase night, which has no ISS pass (FR-SHOW-9).
  */
-export async function listSettled(page: Page): Promise<void> {
+export async function listSettled(page: Page, ready: (page: Page) => Promise<void> = readinessShown): Promise<void> {
   await expect(page.locator('article[data-pass-card]').first()).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
   expect(await page.getByTestId('night-group').count()).toBeGreaterThan(0);
-  // The readiness line appears once the finished run has been stored (FR-OFF-4), which is a
-  // beat after the search itself ends: without this wait two runs of the same capture
-  // disagree about whether the location block has a line under it.
-  await expect(page.getByTestId('readiness')).toBeVisible({ timeout: 60_000 });
+  // The finished run stored (FR-OFF-4), a beat after the search itself ends: without this wait two
+  // runs of the same capture disagree about whether the location block has a line under it. R135:
+  // `ready` is how a caller reads it where the line is folded away (`v1-captures.spec.ts`).
+  await ready(page);
   // The pointer is wherever the last action left it, and a cloud badge under it opens its tooltip over the capture.
   await page.mouse.move(0, 0);
 }

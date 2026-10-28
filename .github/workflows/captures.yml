@@ -51,6 +51,12 @@ name: Captures
 # dispatches with its previous release's SHA (v2.5: `ece8bfd`, v2.4's release preparation), so no
 # literal here has to change from one release to the next.
 #
+# R135: 386 since v2.6 added FR-FLOW-12's files — the home's doors up now, with no pass and in
+# daylight at 360, 390, 1280 and 1920 (the later pass is the home's `-view` twin), the compact Where
+# opened at 360 and 390, and the pass detail and the stars page turned at 844 × 390 — and retired
+# `live-window` at 360 and 390, which a phone opening on the window made `live-watching`'s picture. v2.6 dispatches
+# with `base` 89a8e5b, v2.5's release preparation.
+#
 # This job commits nothing. It uploads the set as an artefact and fails when a
 # capture is missing — the committed files under `docs/screenshots/` are cleared
 # before the run, so the check is about what this run produced and not about

@@ -320,6 +320,36 @@ export interface Budget {
  * not to the rule's 195, which would leave a regression of 20 KB unannounced.
  * `docs/RELEASE.md` §17.2 has the byte counts and what each row's growth is.
  *
+ * R135 re-sets every row on the 2.6.0 build (SPEC §9 Phase 2n, FR-FLOW-12;
+ * D-853, D-875), beside `89a8e5b`'s (2.5.0) built on the same machine, both
+ * plain. The owner's call (V26-14): D-882's leaf module first, which takes the
+ * dome camera back out of `main`, then `main`'s ceiling and budget to 180, the
+ * next 5 KB line over the measured 177.5, not the rule's 200. **Three budgets
+ * move: `main` with its ceiling, `chart` and `astronomy` by the rule.**
+ *
+ * | chunk          | file                  | `89a8e5b` | measured | budget | was | ceiling |
+ * |----------------|-----------------------|----------:|---------:|-------:|----:|--------:|
+ * | main           | `index-*.js`          |     172.9 |    177.5 | **180** | 175 | **180** |
+ * | chart          | `SkyDome-*.js`        |      94.7 |     97.1 | **110** | 105 |     110 |
+ * | worker         | `passes.worker-*`     |      36.1 |     36.1 |     40 |  40 |     130 |
+ * | stars          | `Stars-*.js`          |      25.8 |     26.7 |     30 |  30 |      40 |
+ * | window         | `SkyWindow-*.js`      |      25.7 |     26.6 |     30 |  30 |       — |
+ * | astronomy      | `astronomy-*` + `skyBodies-*` | 22.6 |  24.1 | **30** |  25 |      30 |
+ * | live           | `Live-*.js`           |       9.7 |      9.7 |     15 |  15 |      40 |
+ * | service worker | `workbox-*.js`        |       5.0 |      5.0 |     10 |  10 |      15 |
+ * | settings       | `Settings-*.js`       |       1.0 |      1.1 |     10 |  10 |       — |
+ *
+ * `chart` grows by `domeGeometry`, which the build now puts in the `SkyDome`
+ * chunk. 2.5.0's put it in the lazy `camera` chunk the window, live and stars
+ * pages share (3.8 KB then, 1.2 now), because `camera.ts` used its
+ * `GROUND_RADIUS`. `camera.ts` still imports `projectToScreen` and
+ * `COMPASS_LABEL_RADIUS` from it, but only for `drawingExtent`, which the app
+ * never calls (the tests do), so Rollup drops those uses and nothing outside the
+ * dome's chunk keeps any of `domeGeometry`. That placement rests on the
+ * tree-shaking, not on the import graph: an app call to `drawingExtent` would
+ * move the module back into `camera`. The dome page loads the same bytes, the
+ * other pages fewer. `docs/RELEASE.md` §18.2 has the byte counts.
+ *
  * What each one holds, and why it is a budget of its own rather than a row in
  * the main chunk:
  *
@@ -368,12 +398,12 @@ export interface Budget {
  * the app never fetches.
  */
 export const BUDGETS: readonly Budget[] = [
-  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 175 }, // R128 (V25-20, D-841): 173.0 on 2.5.0, the owner's raise to the next 5 KB line, ceiling with it; R60: 136.6 measured (flag on), crossing the 150 line (D-307); R80: 158.0 on 2.0.0 — over, and deliberately not raised (D-495, F-69); R100: 166.6 on 2.1.0, still not raised (V21-13, D-638); raised to 170 by the owner at the release gate (V21-24, D-641)
-  { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 105 }, // R60: 94.2 measured, down from 97.1 (D-307); 94.2 again on 1.4.0 (R72)
+  { name: 'main', match: (file, mainFile) => file === mainFile, limitKb: 180 }, // R135 (V26-14, D-875): 177.5 on 2.6.0, the owner's raise to the next 5 KB line, ceiling with it, after D-882 took the dome camera back out; R128 (V25-20, D-841): 173.0 on 2.5.0, the owner's raise to the next 5 KB line, ceiling with it; R60: 136.6 measured (flag on), crossing the 150 line (D-307); R80: 158.0 on 2.0.0 — over, and deliberately not raised (D-495, F-69); R100: 166.6 on 2.1.0, still not raised (V21-13, D-638); raised to 170 by the owner at the release gate (V21-24, D-641)
+  { name: 'chart', match: (file) => /^SkyDome-.*\.js$/.test(file), limitKb: 110 }, // R135 (D-875, D-882): 97.1 on 2.6.0, re-set by D-178's rule (× 1.1 = 106.8, up to 110, its ceiling) — the build puts `domeGeometry` here now, not in the shared `camera` chunk (camera.ts's uses of it are test-only and shaken out); R60: 94.2 measured, down from 97.1 (D-307); 94.2 again on 1.4.0 (R72)
   { name: 'worker', match: (file) => /^passes\.worker-.*\.js$/.test(file), limitKb: 40 },
   { name: 'service worker', match: (file) => /^(sw|workbox-.*)\.js$/.test(file), limitKb: 10, per: 'each' },
   // R115 (D-749, D-759): with the stars page importing `astronomy-engine` too, Rollup puts the library in a chunk of its own beside `skyBodies`; the row matches both and its limit is on their total, so the library is counted once, as before. 22.1 on 6cfa699; 22.6 with the stars page, the functions `skyStars.ts` calls that `skyBodies.ts` does not.
-  { name: 'astronomy', match: (file) => /^(skyBodies|astronomy)-.*\.js$/.test(file), limitKb: 25 },
+  { name: 'astronomy', match: (file) => /^(skyBodies|astronomy)-.*\.js$/.test(file), limitKb: 30 }, // R135 (D-875): 24.1 on 2.6.0, re-set by D-178's rule (× 1.1 = 26.5, up to 30, its ceiling) — R130's `moonNow`
   { name: 'live', match: (file) => /^Live-.*\.js$/.test(file), limitKb: 15 }, // R53: back to the floor — R47 moved the World Magnetic Model to its own chunk and 1.1.0 measures 7.6 (D-178); R72: 8.5 on 1.4.0, the floor's last 1.5 KB; R100: 9.7 on 2.1.0, × 1.1 crosses 10 (D-638)
   { name: 'window', match: (file) => /^SkyWindow-.*\.js$/.test(file), limitKb: 30 }, // R128 (D-831): 25.7 on 2.5.0, re-set by D-178's rule (× 1.1 = 28.3, up to 30) — the hand camera on every page, the picker, the zoom and the landmark (R121, R125, R127); R65: 12.0 measured — the WMM folded back in when the window became its only caller (D-345); R72: 12.1 on 1.4.0; R80: 12.8 with the compass gutter in it; R118 (D-759 as amended, D-780, D-785): 22.1 on 2.4.0, re-set by D-178's rule (× 1.1 = 24.3, up to 25) — the star names, the page's label words, the constellation table and the magnitude format are shared by the `stars` and `SkyWindow` chunks, and Rollup puts what they share in `SkyWindow-*.js`
   { name: 'settings', match: (file) => /^Settings-.*\.js$/.test(file), limitKb: 10 }, // R93 (D-545): 1.0 measured — the page's own composition; its controls are the home page's and stay in main

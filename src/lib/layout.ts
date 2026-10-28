@@ -226,7 +226,7 @@ export function layoutMode(matchesWide: boolean): LayoutMode {
  * — not whatever the page leaves (a third of it blank, F-59) and not a step of
  * a table (which wasted most of a real browser window, whose viewport is some
  * 200 px shorter than the screen it is on: V12-10). The aspect is `zoomFor`'s
- * two divisors, 2.4 : 2.0 (`dome/camera.ts` `DOME_BOX_ASPECT`), the one shape
+ * two divisors, 2.4 : 2.0 (`dome/bowl.ts` `DOME_BOX_ASPECT`), the one shape
  * at which the drawing's fit binds across and down at once.
  *
  * `fitBox` is the rule, pure, so it is a unit test: the box is as tall as the
@@ -280,7 +280,7 @@ export function viewportAspect(viewportWidthPx: number, viewportHeightPx: number
  * `ZOOM_WIDTH_DIVISOR`), and a square box left a band of blank over and under
  * the drawing — 66 px of a 390 px square at 390 × 844. So the box is the
  * bowl's drawn height at that zoom — `DRAWING_HEIGHT_UNITS` of it, F-61's
- * silhouette-to-ground extent, which `dome/camera.ts` `bowlHeightPx` gives for
+ * silhouette-to-ground extent, which `dome/bowl.ts` `bowlHeightPx` gives for
  * a width — plus this slack above and below it: one `--space-3`, the group
  * rhythm (D-851), so the rows over and under the drawing stand a group away
  * from the bowl and not from an empty corner of its box. The scene's cell

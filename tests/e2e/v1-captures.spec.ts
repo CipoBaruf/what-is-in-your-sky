@@ -49,16 +49,17 @@
  * the set reads cloud badges and `GMT-3` clocks where D-179's Paris night read
  * "weather unknown" and UTC. The routes are unchanged; only the seeds moved.
  */
+import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { WINDOW_FOV_MIN_DEG } from '../../src/ui/components/guide/skychart/window/projection';
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 // P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
-import { CLOCK, DAY_MS, SHOWN_PASS, SHOWN_PASS_START, guide, listSettled, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
-import { domeDrawn, enterScrubbing, heading, openLegend, openSettings, stripFilled, stubCompass, stubNetwork } from './liveHelpers';
+import { CLOCK, DAY_MS, SHOWN_PASS, SHOWN_PASS_START, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
+import { domeDrawn, enterScrubbing, heading, openLegend, openSettings, openSkyScreen, stripFilled, stubCompass, stubNetwork } from './liveHelpers';
 // Bariloche is the place picker's observer for the geocoder's first answer, at its 839 m (FR-SHOW-9), which is
 // what the stored Bariloche run and `SHOWN_PASS`'s id were computed at. Neuquén is only the second row of the
 // saved places.
-import { BARILOCHE, NEUQUEN } from './observers';
+import { BARILOCHE, FIXTURE_DATE, NEUQUEN } from './observers';
 
 /** `hh:mm:ss` in the observer's zone: the page's clocks read local time now that the observer has one (D-36). */
 const localHhmmss = (t: number): string =>
@@ -80,6 +81,29 @@ test.skip(process.env['CAPTURES'] !== '1', 'the release capture set: run with CA
  * is `captureSeeds.ts`'s, with the reasons (D-684: the showcase night, and
  * what it does not hold).
  */
+/**
+ * R135 (FR-FLOW-2, D-844): the folded Where's ready line, in both languages (`i18n/{en,es}/home.ts`'s `whereFold`).
+ * On the compact home the readiness line is inside the folded Where's closed panel and not in the document, so the
+ * "finished run stored" signal `captureSeeds.ts`'s wait reads is this line's `Ready offline` instead — the same
+ * readiness, worded for the fold, which says `Elements … old` until it has an answer.
+ */
+const WHERE_READY = /^(Ready offline · |Listo sin red · )/;
+
+/**
+ * The list, settled (`captureSeeds.ts`'s `listSettled`), on either home: the readiness line where it is drawn, the
+ * folded Where's ready line where it is folded. The promo recording's copy of the wait is not this file's (Follow-ups).
+ */
+async function listSettled(page: Page): Promise<void> {
+  await settledList(page, readyOrFolded);
+}
+
+/** The finished run stored: the readiness line where it is drawn, else the folded Where's `Ready offline` line. */
+async function readyOrFolded(page: Page): Promise<void> {
+  await expect(page.locator('[data-testid="readiness"], [data-testid="where-status"]').first()).toBeVisible({ timeout: 60_000 });
+  if ((await page.getByTestId('where-status').count()) === 0) await readinessShown(page);
+  else await expect(page.getByTestId('where-status')).toHaveText(WHERE_READY, { timeout: 60_000 });
+}
+
 /** R53: the legend screen's instant, two minutes further on — see the `legend` route. */
 const LEGEND_SHOWN = SHOWN + 120_000;
 /**
@@ -144,12 +168,12 @@ const TOUCH = new Set(['window', 'sky-screen-sky', 'sky-screen-chip', 'sky-scree
  * R118 (FR-STAR-3, FR-WIN-4 as amended): the stars page is shot on the device each width's reader has —
  * a touch phone at 360 and 390, where `[ hold up to the sky ]` is on the page, and a desk without touch at
  * 1280 and 1920, where it is not. So touch is a property of the capture, not only of the screen.
+ * R135 (FR-FLOW-15): the page at 844 × 390 is the same phone turned, so it has touch too.
  */
-const isTouch = (screen: string, width: CaptureWidth): boolean => TOUCH.has(screen) || ((screen === 'stars' || screen === 'stars-passes') && VIEWPORTS[width].width <= 390);
+const isTouch = (screen: string, width: CaptureWidth): boolean => TOUCH.has(screen) || ((screen === 'stars' || screen === 'stars-passes') && (VIEWPORTS[width].width <= 390 || width === 844));
 
 const VIEW_GROUP = { en: 'Chart view', es: 'Vista del gráfico' } as const;
 const WINDOW_OPTION = { en: 'Window', es: 'Ventana' } as const;
-const VIEW_OPTION_WINDOW = { en: 'Window', es: 'Ventana' } as const;
 /** R128: the stars page's layer and its facing picker, by their names (R126's). */
 const PASSES = { en: 'passes', es: 'pases' } as const;
 const FACING = { en: 'Facing', es: 'Mirando' } as const;
@@ -213,15 +237,19 @@ function starsChunkWatch(page: Page): () => boolean {
 }
 
 /**
- * R128 (FR-CAP-5; D-830): the `stars` chunk in hand before a chart mounts, fetched by the reader's own prefetch —
- * focus on the header's `[ stars ]` (wide) or the When pane's `[ look up ]` (compact), which load it ahead of the
- * tap (`starsChunk.ts`). Not for the dome's size: that was F-103, fixed in the app, and a cold page draws the same
+ * R128 (FR-CAP-5; D-830): the `stars` chunk in hand before a chart mounts, fetched by the reader's own prefetch.
+ * Since R135 (D-860) that is the home's idle prefetch for the doors, which the poll's ticks run, at every width;
+ * on wide the header's `[ stars ]` is focused as well, which loads it ahead of the tap (`starsChunk.ts`). The
+ * When pane's `[ look up ]` that compact used to focus is gone. Not for the dome's size: that was F-103, fixed in the app, and a cold page draws the same
  * dome. For the order the dome's meshes mount in: where the stars' points mesh mounts after the arcs, a braille
  * cell an arc and a star share takes one colour or the other by when the chunk landed, which two cold runs of the
  * set disagreed on (a few cells at a channel step of about 30 on four wide live files).
  */
 async function starsChunkLoaded(page: Page, fetched: () => boolean): Promise<void> {
-  if (!fetched()) await page.locator('[data-testid="stars-link"]:visible, [data-testid="stars-look-up"]:visible').first().focus();
+  // R135 (D-860): the home prefetches the chunk on idle for the doors, so the poll's ticks fetch it; the header's
+  // `[ stars ]` (wide, R129's nav) is focused where it is drawn, as it was before the doors.
+  const link = page.locator('[data-testid="stars-link"]:visible');
+  if (!fetched() && (await link.count()) > 0) await link.first().focus();
   await expect
     .poll(async () => {
       await page.clock.runFor(100);
@@ -264,6 +292,33 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
 }
 
 /**
+ * R135 (FR-FLOW-14, D-876): the live page drawn, in whichever view it opened on. Since R136 a phone with nothing
+ * saved opens on the window and a desk on the dome, so `domeDrawn`'s wait for the dome's glyphs holds only on wide;
+ * on compact the wait is the window's camera in the box. Returns the view, so the caller waits for its stars.
+ */
+async function liveDrawn(page: Page): Promise<'dome' | 'window'> {
+  const chart = page.getByTestId('sky-chart');
+  // The page's chunk and the chart's are lazy, and the paused clock holds their reveals (R32).
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      return (await chart.count()) === 0 ? null : chart.getAttribute('data-view');
+    }, { timeout: 30_000 })
+    .not.toBeNull();
+  if ((await chart.getAttribute('data-view')) !== 'window') {
+    await domeDrawn(page);
+    return 'dome';
+  }
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(200);
+      return (await page.getByTestId('live-page').getAttribute('data-state')) === 'live' && (await chart.locator('[data-look-az]').count()) > 0;
+    }, { timeout: 30_000 })
+    .toBe(true);
+  return 'window';
+}
+
+/**
  * The live page, settled, at `SHOWN` (R36; lifted out of the `live` route by
  * R53 so the `legend` screen photographs the same page rather than a second
  * route to it).
@@ -288,14 +343,14 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
   await page.evaluate(() => {
     location.hash = '#live';
   });
-  // The place is asserted after the dome, not before: the route is lazy, and its Suspense
-  // reveal is one of the timers the paused clock is holding until `domeDrawn` ticks it.
-  await domeDrawn(page);
+  // The place is asserted after the drawing, not before: the route is lazy, and its Suspense
+  // reveal is one of the timers the paused clock is holding until `liveDrawn` ticks it.
+  const view = await liveDrawn(page);
   await expect(page.getByTestId('live-place')).toHaveText(BARILOCHE.label);
   // The strip settled: five fields, each visible and none still on its pending ellipsis (F-47:
   // `liveHelpers.ts` owns that check, and this file had been carrying a copy without the visibility half).
   await stripFilled(page);
-  await starsDrawn(page, page.getByTestId('sky-chart'));
+  await starsDrawn(page, page.getByTestId('sky-chart'), view === 'window' ? SHOWN_WINDOW_STAR : PLACED_STAR);
   // F-48: `domeDrawn` left the clock wherever its last tick fell, so the shown instant is put back
   // on `shown` before the picture — and the strip is read to prove the page went there with it.
   await pinnedAt(page, shown);
@@ -353,18 +408,9 @@ async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme
   await stubCompass(page);
   const shown = state === 'chip' ? CHIP_SHOWN : SHOWN;
   await liveAt(page, width, theme, locale, shown);
-  await page.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: VIEW_OPTION_WINDOW[locale] }).click();
-  await expect
-    .poll(
-      async () => {
-        await heading(page, 270);
-        return page.getByTestId('sky-screen').count();
-      },
-      { timeout: 15_000 },
-    )
-    .toBe(1);
-  // The paused clock holds the lazy chunk's Suspense reveal (R32).
-  await page.clock.runFor(1000);
+  // R136 (FR-FLOW-15): the view control's `Window` lays the window in the box, and the screen opens from its
+  // `[ hold up to the sky ]`, on the reading with a north in it that the tap waits for (D-350).
+  await openSkyScreen(page, locale);
   // FR-FSC-1: none of the live page is under the layer any more — the rows are not rendered at all.
   await expect(page.getByTestId('stripe-block')).toHaveCount(0);
   await expect(page.getByTestId('sky-screen-close')).toBeVisible();
@@ -441,39 +487,87 @@ async function followScreen(page: Page, width: CaptureWidth, theme: CaptureTheme
 }
 
 /**
- * R94 (FR-CAP-1, F-80): the Where pane's dome, drawn. `WhereDome` mounts after
- * an animation frame the paused clock holds, measures its room on a
- * `ResizeObserver`, loads the chart chunk and then waits for the raster font
- * and glyphcss's first rasterisation — every one of them a timer or a frame
- * the clock is holding, so the poll ticks it. The dome is only on the wide
- * layout (`WhereDome` returns nothing on compact), and the pane draws it only
- * where its room reaches `LIVE_BOX_MIN_PX` (D-607): at 1024 × 768 the left
- * column holds Where and When and has none, so there the slot is what the
- * frame proves and `drawn` is false; from 1280 up the drawing is asserted —
- * OQ-32's evidence is the 1280 and 1920 files.
+ * R135 (FR-FLOW-1, FR-FLOW-12; D-843, D-860): the home's three doors, every line arrived. The Stars door's second
+ * line and the wide lines are the `stars` chunk's, which the home prefetches on idle (`useDoorSky`); until it lands
+ * a line is drawn empty at its height and marked `data-pending`, so the wait is for none left, ticking the paused
+ * clock that holds the idle callback and the fetch. R130 removed the Where pane's dome (`WhereDome`) that R94's
+ * wait was for, so this is the home's one wait after the list.
  */
-async function whereDomeDrawn(page: Page, drawn: boolean): Promise<void> {
-  const slot = page.getByTestId('where-dome-slot');
+async function doorsFilled(page: Page): Promise<void> {
+  const doors = page.getByTestId('home-doors');
   await expect
     .poll(async () => {
       await page.clock.runFor(200);
-      return slot.count();
+      if ((await doors.count()) === 0) return -1;
+      return doors.locator('[data-pending]').count();
     }, { timeout: 30_000 })
-    .toBe(1);
-  if (!drawn) return;
-  await expect
-    .poll(async () => {
-      await page.clock.runFor(200);
-      return page.getByTestId('where-dome').count();
-    }, { timeout: 30_000 })
-    .toBe(1);
-  const glyphs = page.getByTestId('where-dome').locator('[data-layer="lines"] pre.glyph-output');
-  await expect
-    .poll(async () => {
-      await page.clock.runFor(200);
-      return (await glyphs.count()) > 0 ? ((await glyphs.first().textContent()) ?? '').trim().length : 0;
-    }, { timeout: 30_000 })
-    .toBeGreaterThan(0);
+    .toBe(0);
+}
+
+/**
+ * R135 (FR-FLOW-12): the elements answer for the doors' `no pass` state — the fixtures' catalogue cut to
+ * inclinations under 32°, four of the `visual` group's objects (HST, Hitomi, XRISM and an Atlas Centaur stage)
+ * and none of the `stations` group's. The orbits alone do not keep them out of a 41° S sky: all four rise over
+ * Bariloche, and XRISM (31°, about 575 km) climbs 20° and more. What leaves the 72 h search empty is these
+ * fixtures' lighting and brightness: in the set's three days none of the four is sunlit above the horizon in a
+ * dark enough sky and bright enough to pass the visibility rule (FR-PASS-*). So the state belongs to the
+ * fixtures' date, not to the cut: a refresh of `tests/fixtures/omm/` (new epochs, or a new `FIXTURE_DATE`) can
+ * give one of them a visible pass, and then `home-no-pass` fails on the Satellites door's `No visible pass in
+ * 72 h`, not on anything this cut says. The fix then is a lower bound on the cut, or fewer objects. The rest of
+ * the home — the forecast, the zone, the elements' age — is the set's night.
+ */
+const NO_PASS_MAX_INCLINATION_DEG = 32;
+async function noPassCatalogue(page: Page): Promise<void> {
+  // Registered after `stubNetwork`'s, so it answers first (Playwright tries the newest route first).
+  await page.route('https://celestrak.org/**', async (route) => {
+    const group = new URL(route.request().url()).searchParams.get('GROUP') ?? 'unknown';
+    const all = JSON.parse(readFileSync(`tests/fixtures/omm/${FIXTURE_DATE}-${group}.json`, 'utf8')) as { INCLINATION: number }[];
+    await route.fulfill({
+      body: JSON.stringify(all.filter((omm) => omm.INCLINATION < NO_PASS_MAX_INCLINATION_DEG)),
+      contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' },
+    });
+  });
+}
+
+/** The doors' four states (FR-FLOW-12): the home at the instant, or over the catalogue, that puts the doors there. */
+type DoorState = 'later' | 'up-now' | 'no-pass' | 'daylight';
+/** 13:00 local on the 6th: the Sun up, so the Stars door names when the stars come out and no star; the Satellites door the evening's first pass. */
+const DAYLIGHT = CLOCK + 480 * 60_000;
+const DOOR_TIME: Record<DoorState, number> = { later: CLOCK, 'up-now': SHOWN, 'no-pass': CLOCK, daylight: DAYLIGHT };
+/** What proves each state took, in the door's own words (`i18n/{en,es}/home.ts`'s `doors`). */
+const DOOR_WORDS = {
+  upNow: { en: /^Up now · /, es: /^Arriba · / },
+  noPass: { en: /^No visible pass in 72 h$/, es: /^Ningún pase visible en 72 h$/ },
+  starsFrom: { en: /^Stars from /, es: /^Estrellas desde las / },
+} as const;
+
+/**
+ * The home, settled, at `time`: the list (or, with no pass, the finished search and the readiness line), the doors
+ * filled, and the instant put back where the capture wants it (F-48).
+ */
+async function homeAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, time: number, noPass = false): Promise<void> {
+  await open(page, width, { locale, theme, observer: BARILOCHE }, time);
+  if (noPass) await noPassCatalogue(page);
+  await page.goto('/');
+  if (noPass) {
+    await expect(page.locator('[data-testid="readiness"], [data-testid="where-status"]').first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator('[aria-busy="true"]')).toHaveCount(0, { timeout: 60_000 });
+    // A finished search with nothing in it stores no run, so the readiness answer is not-ready ("no passes stored
+    // yet") — the state a reader with no pass is in, and a finding in RELEASE §18 — and the fold shows that fault.
+    if ((await page.getByTestId('where-status').count()) > 0) await expect(page.getByTestId('where-status')).toHaveAttribute('data-fault', 'not-ready', { timeout: 60_000 });
+    else await expect(page.getByTestId('readiness')).toBeVisible({ timeout: 60_000 });
+    // The search finished: the Satellites door reads `none` only once the run is `done` (`usePassContext`'s
+    // `pending`, `doorLines`); before and during it the door reads its pending line, and every check above holds
+    // before the search starts as well.
+    await expect(page.getByTestId('door-satellites-line').first()).toHaveText(DOOR_WORDS.noPass[locale], { timeout: 60_000 });
+    await expect(page.locator('article[data-pass-card]')).toHaveCount(0);
+  } else {
+    await listSettled(page);
+  }
+  await doorsFilled(page);
+  await pinnedAt(page, time);
+  await page.mouse.move(0, 0);
 }
 
 /**
@@ -561,19 +655,7 @@ const REACH: Record<string, Reach> = {
   },
 
   async home(page, width, theme, locale, view) {
-    await open(page, width, { locale, theme, observer: BARILOCHE });
-    await page.goto('/');
-    await listSettled(page);
-    /*
-     * R94 (FR-CAP-1, F-80): the Where pane's dome, from 1280 up, in both files. The dome waits on frames and
-     * timers the paused clock holds, so the clock is run through them and then put back on `CLOCK` (F-48: the
-     * countdown and the dome's own instant must not depend on how many ticks that took). The full-page file
-     * used to show the pane without it only because nothing ticked the clock; now that every shot ticks two
-     * frames (`settled`), a file shot with the dome half-loaded would differ between two runs, so the wait is
-     * the same for both and the only thing the full-page file differs in is the nights (D-610).
-     */
-    if (VIEWPORTS[width].width >= 1024) await whereDomeDrawn(page, VIEWPORTS[width].width >= 1280);
-    await pinnedAt(page, CLOCK);
+    await homeAt(page, width, theme, locale, CLOCK);
     if (view) {
       // The `-view` twin is the home as it opens — tonight open (FR-NIGHT-1's default) — cropped to the viewport.
       await expect(page.locator('[data-testid="night-group"][data-open="true"]')).toHaveCount(1);
@@ -593,6 +675,55 @@ const REACH: Record<string, Reach> = {
     const openNights = page.locator('[data-testid="night-toggle"][aria-expanded="true"]');
     while ((await openNights.count()) > 0) await openNights.first().click();
     await expect(page.locator('[data-testid="night-group"]:not([hidden])')).toHaveCount(0);
+  },
+
+  /**
+   * R135 (FR-FLOW-1, FR-FLOW-12): the doors' three other states, each the home as it opens at that state's instant
+   * (or over the catalogue that puts it there), cropped to the viewport like the `-view` twin — which is the fourth,
+   * the later pass, at `CLOCK`.
+   */
+  async 'home-up-now'(page, width, theme, locale) {
+    await homeAt(page, width, theme, locale, DOOR_TIME['up-now']);
+    await expect(page.getByTestId('door-satellites-line').first()).toHaveText(DOOR_WORDS.upNow[locale]);
+  },
+
+  async 'home-no-pass'(page, width, theme, locale) {
+    await homeAt(page, width, theme, locale, DOOR_TIME['no-pass'], true);
+    await expect(page.getByTestId('door-satellites-line').first()).toHaveText(DOOR_WORDS.noPass[locale]);
+    // The Satellites door opens the What reading in place: there is no pass to link to.
+    await expect(page.getByTestId('door-satellites')).toHaveAttribute('href', '#what');
+  },
+
+  async 'home-daylight'(page, width, theme, locale) {
+    await homeAt(page, width, theme, locale, DOOR_TIME.daylight);
+    // The Sun is up, so the Stars door says when they come out rather than naming one.
+    await expect(page.getByTestId('door-stars-line').nth(1)).toHaveText(DOOR_WORDS.starsFrom[locale]);
+  },
+
+  /**
+   * R135 (FR-FLOW-2, FR-FLOW-12; D-844): the compact Where opened by its `[ details ]` — the place, the status line's
+   * button pressed and the panel in FR-FIRST-11's order under it. The folded Where is the top of the home's own
+   * 360 and 390 files, and of their `-view` twins.
+   */
+  async 'where-opened'(page, width, theme, locale) {
+    await homeAt(page, width, theme, locale, CLOCK);
+    const details = page.getByTestId('where-details');
+    await details.click();
+    await expect(details).toHaveAttribute('aria-expanded', 'true');
+    // The panel mounts its readiness and elements lines only on open (`WherePlace`'s `details`), and each draws
+    // nothing until its store answers, so the clock is ticked until both are there, then put back (F-48).
+    const panel = page.getByTestId('where-details-panel');
+    await expect
+      .poll(async () => {
+        await page.clock.runFor(FRAME_MS);
+        return (await panel.getByTestId('readiness').count()) + (await panel.getByTestId('elements-line').count());
+      }, { timeout: 15_000 })
+      .toBe(2);
+    await expect(panel.getByTestId('readiness')).toBeVisible();
+    await expect(panel.getByTestId('elements-line')).toBeVisible();
+    await pinnedAt(page, CLOCK);
+    await blurFocus(page);
+    await page.mouse.move(0, 0);
   },
 
   async guide(page, width, theme, locale) {
@@ -645,8 +776,19 @@ const REACH: Record<string, Reach> = {
   async window(page, width, theme, locale) {
     await stubCompass(page);
     await openChart(page, width, theme, locale, 'dome');
-    // R66 (V13-6, V13-9): the option opens the sky screen over the sheet, and the reading is what opens it (D-350).
+    // R66 (V13-6, V13-9): the sky screen over the sheet, and the reading is what opens it (D-350). R136 (FR-FLOW-15):
+    // the option lays the window in the box, and the screen is its `[ hold up to the sky ]`.
     await guide(page).getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
+    const holdUp = guide(page).getByTestId('window-hold-up');
+    await expect
+      .poll(async () => {
+        await page.clock.runFor(200);
+        return holdUp.count();
+      }, { timeout: 15_000 })
+      .toBe(1);
+    // Back on `SHOWN`, so the screen opens on the instant 2.5.0's route opened it on (F-48): the poll above ticked.
+    await pinnedAt(page, SHOWN);
+    await holdUp.click();
     await page.evaluate(() => {
       window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: 0, beta: 90, gamma: 0, absolute: true }));
     });
@@ -906,7 +1048,8 @@ const REACH: Record<string, Reach> = {
     const figure = guide(page).getByRole('figure');
     await windowInTheBox(page, figure, locale, SHOWN);
     await expect(figure).toHaveAttribute('data-view', 'window');
-    await expect(figure.locator('[data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
+    // R132 (D-864): the facing picker is the layout's `picker` slot, outside the figure.
+    await expect(guide(page).locator('[data-slot="picker"] [data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
     await expect(figure.locator(`[data-pass-id="${SHOWN_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
     // The box's foot to the panel's edge, as `sky-window.spec.ts` does: on wide the sheet scrolls on its own.
     await figure.getByTestId('chart-box').evaluate((el) => {

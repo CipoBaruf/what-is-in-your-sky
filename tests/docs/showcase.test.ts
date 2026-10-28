@@ -73,6 +73,8 @@ const CAPTURE_INSTANTS: { what: string; t: number }[] = [
   { what: 'CHIP_SHOWN', t: specInstant('CHIP_SHOWN', { SHOWN_PASS_START: BRIGHTEST_PASS.start }) },
   // The chip is pinned a strip tick after its instant (`followScreen`).
   { what: 'CHIP_SHOWN + TICK_MS', t: specInstant('CHIP_SHOWN', { SHOWN_PASS_START: BRIGHTEST_PASS.start }) + TICK_MS },
+  // R135 (FR-FLOW-12): the doors' daylight state, the afternoon of the 6th.
+  { what: 'DAYLIGHT', t: specInstant('DAYLIGHT', { CLOCK: SHOWCASE_NIGHT }) },
 ];
 
 /** Every instant the recordings name: the night, each flow's start and where its clock stops, and the desk live flow's pass. */
