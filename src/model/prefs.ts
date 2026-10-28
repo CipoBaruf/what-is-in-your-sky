@@ -11,14 +11,11 @@ export type ChartView = 'dome' | 'polar' | 'window';
  * screen and the preference still holds these two. A stored `window` is read
  * as the dome below the wide breakpoint by the prefs slice's load
  * (`state/slices/prefs.ts`, `loadChartView`) and by a compact chart drawing a
- * view saved on wide, both through `compactChartView` below; `localPrefs.ts`
- * round-trips all three values and narrows nothing.
+ * view saved on wide; `localPrefs.ts` round-trips all three values and
+ * narrows nothing. R136 (FR-FLOW-14, V26-11, D-876) removes the narrowing:
+ * the window is a saved view on compact as on wide, and with nothing saved a
+ * phone opens on it (`ui/screens/chartViewDefault.ts`).
  */
-export type CompactChartView = Exclude<ChartView, 'window'>;
-/** A stored `chartView` on compact, narrowed: the window there is a mode, so a stored one (saved on wide) is the dome. */
-export function compactChartView(view: ChartView): CompactChartView {
-  return view === 'window' ? 'dome' : view;
-}
 /**
  * FR-LEG-7 / D-387 (R71): whether the compact live page's legend panel is
  * open. The legend is behind the `[ list (n) ]` control there, so this is the

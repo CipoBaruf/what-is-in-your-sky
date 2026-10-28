@@ -80,8 +80,19 @@ describe('createLocalPrefs', () => {
     expect(prefs.read()).toEqual({ chartView: 'dome' });
   });
 
-  /** R121 (FR-WIN-5 as amended v2.5, D-789, D-808): the window is a saved view again; this layer keeps it whatever the viewport. */
-  it('round-trips the window as a chart view and never rewrites it: the compact guard is the store’s, not this reader’s', () => {
+  /** R136 (FR-FLOW-14, D-876): nothing saved is no `chartView` at all, so the page's default decides; a malformed one is nothing saved. */
+  it('reads no chart view when none is saved, or when the saved one is not a view (R136, D-876)', () => {
+    const storage = memoryStorage();
+    const prefs = createLocalPrefs(storage);
+    expect(prefs.read().chartView).toBeUndefined();
+    prefs.write({ sort: 'best' });
+    expect('chartView' in prefs.read()).toBe(false);
+    storage.map.set(PREFS_KEY, JSON.stringify({ chartView: 42, sort: 'best' }));
+    expect(prefs.read()).toEqual({ sort: 'best' });
+  });
+
+  /** R121 (FR-WIN-5 as amended v2.5, D-789, D-808), R136 (D-876): the window is a saved view on compact as on wide; this layer keeps it whatever the viewport. */
+  it('round-trips the window as a chart view and never rewrites it', () => {
     const storage = memoryStorage();
     const prefs = createLocalPrefs(storage);
     prefs.write({ chartView: 'window', sort: 'best' });

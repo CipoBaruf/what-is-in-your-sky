@@ -21,7 +21,8 @@ import { ChartFrameSlots, LEGEND_PANEL_ID } from '../components/guide/skychart/C
 import { DOME_BOX_ASPECT } from '../components/guide/skychart/dome/camera';
 import { LegendInventoryContext, type LegendInventory } from '../components/guide/skychart/Legend';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
-import { shownChartView, useChartHand } from '../components/guide/skychart/useChartHand';
+import { useChartHand } from '../components/guide/skychart/useChartHand';
+import { defaultChartView } from './chartViewDefault';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
@@ -420,10 +421,9 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   // R85 (F-81): the dome row, inside which the short wide inventory's scroll box is measured.
   const domeRef = useRef<HTMLDivElement>(null);
   /*
-   * D-789 (R121 review): the window in the box is this page's, not its chart's. The page mounts a different chart
-   * for the landscape rail than for portrait and none at all while the sky screen is up, so the hand camera's
-   * facing and the compact choice of the window without a sensor are held here, where a rotation, a trip to the
-   * screen and back, or the screen opened from `[ hold up to the sky ]` keep them; a trip to wide drops the choice.
+   * D-789 (R121 review): the window in the box is this page's, not its chart's. The page mounts no chart at all
+   * while the sky screen is up, so the hand camera's facing is held here, where a turn of the phone, a trip to the
+   * screen and back, or the screen opened from `[ hold up to the sky ]` keep it (FR-FLOW-15).
    */
   const chartHand = useChartHand();
   /*
@@ -698,8 +698,8 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
       {children}
     </Page>
   );
-  // FR-FLOW-6: the hint's view is the chart's — the compact hand window, else the saved view as the chart narrows it.
-  const hintView = shownChartView(compact, chartHand.window, chartView);
+  // FR-FLOW-6: the hint's view is the chart's — the saved view, else the window on a phone and the dome on a desk (D-876).
+  const hintView = defaultChartView(mode, chartView);
   const hintShown = useSkyHintShown(hintView);
   const highlightedId = highlighted?.id ?? null;
   const followKey = useMemo(() => (highlightedId === null ? null : (legendKeys(legendRowsNow)[highlightedId] ?? null)), [legendRowsNow, highlightedId]);

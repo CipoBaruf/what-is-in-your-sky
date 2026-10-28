@@ -56,19 +56,14 @@ export interface HandSlot {
 
 /**
  * D-789 (R121 review): what a page holds for the window in its box, so it
- * outlives the chart that draws it — the hand camera's slot, and the compact
- * reader's unsaved choice of the window where there is no sensor
- * (`handWindow`, FR-SKY-2). The live page mounts a different chart for the
- * landscape rail than for portrait and none at all while the sky screen is up,
- * so the facing and the choice are the page's and survive a rotation and a
- * trip to the screen; the choice is compact's alone and is dropped when the
- * layout goes wide, so the saved view is what comes back. `useChartHand`.
+ * outlives the chart that draws it — the hand camera's slot. The live page
+ * mounts no chart at all while the sky screen is up, so the facing is the
+ * page's and survives a turn of the phone and a trip to the screen.
+ * `useChartHand`. R136 (D-876) took the compact reader's unsaved choice of the
+ * window out of it: the window is a saved view on compact as on wide.
  */
 export interface ChartHand {
   slot: HandSlot;
-  /** The compact choice of the window without a sensor; always false on wide. */
-  window: boolean;
-  setWindow(on: boolean): void;
 }
 
 /**
