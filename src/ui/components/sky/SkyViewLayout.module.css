@@ -134,7 +134,8 @@
    scrolls. A size container, so the box's height is the layout's own (`cqh`) and not its grid area's, which is
    as tall as the rail's rows are. --- */
 .layout[data-shape='rail'][data-mode='compact'] {
-  grid-template-columns: calc(var(--sky-drawing-share) * 100vw) minmax(0, 1fr);
+  /* The fallback is `LANDSCAPE_DRAWING_MIN_SHARE`, for any frame before `SkyViewLayout` writes the property. */
+  grid-template-columns: calc(var(--sky-drawing-share, 0.55) * 100vw) minmax(0, 1fr);
   /* `max-content`, not `auto`: the grid is shorter than its rows, so an auto row is its items' minimum contribution,
      which for a slot with a `min-height` of its own (the view row's `--tap`) is that minimum — a view row that wraps
      in the narrow rail would keep one line's height and lie over the facing row. */

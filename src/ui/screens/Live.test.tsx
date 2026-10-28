@@ -1444,7 +1444,7 @@ describe('<LivePage>', () => {
   });
 
   /** D-321: focus goes to the `×` on open and back to the control that opened it on close — a new element by then. */
-  it('moves focus to the × and back to the follow control (FR-FSC-2)', async () => {
+  it('moves focus to the × and back to [ hold up to the sky ] (FR-FSC-2)', async () => {
     withPhone();
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
@@ -1452,7 +1452,8 @@ describe('<LivePage>', () => {
     reading(true);
     expect(document.activeElement).toBe(screen.getByRole('button', { name: en.chart.screenClose }));
     fireEvent.click(screen.getByRole('button', { name: en.chart.screenClose }));
-    expect(document.activeElement).toBe(windowOption());
+    // R136 (V26-12): back to `[ hold up to the sky ]`, the one control that opens the screen.
+    expect(document.activeElement).toBe(screen.getByTestId('window-hold-up'));
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
   });
 

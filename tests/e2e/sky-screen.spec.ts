@@ -15,7 +15,7 @@
  *   npx playwright test sky-screen --project=chromium
  */
 import { expect, test, type Page } from '@playwright/test';
-import { domeDrawn, homeAt, openSkyScreen, pose, stripFilled, stubCompass, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
+import { domeDrawn, homeAt, openSkyScreen, pose, stripFilled, stubCompass, T } from './liveHelpers';
 import { pinch } from './windowZoom';
 
 const LANDSCAPE = { width: 844, height: 390 };
@@ -139,8 +139,8 @@ test.describe('the sky screen on a phone held sideways', () => {
     await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
     await expect(page.getByTestId('overview-row')).toBeVisible();
     await expect(page.getByTestId('live-top-row')).not.toHaveAttribute('aria-hidden', 'true');
-    // FR-FSC-2 (D-351): focus is back on the view control's window option, the view the screen was opened from.
-    await expect(page.getByRole('group', { name: VIEW_GROUP.en }).getByRole('button', { name: VIEW_OPTION.en.window })).toBeFocused();
+    // FR-FSC-2 (D-351): focus is back on the control the screen was opened from — R136 (V26-12): `[ hold up to the sky ]`.
+    await expect(page.getByTestId('window-hold-up')).toBeFocused();
     expect(await asks(page)).toBe(1);
     // R136 (FR-FLOW-14, D-876): the window the reader chose is saved on compact; the screen wrote nothing of its own.
     expect(JSON.parse(await page.evaluate(() => localStorage.getItem('wiys:prefs:v1') ?? '{}')) as { chartView?: string }).toMatchObject({ chartView: 'window' });
@@ -220,7 +220,7 @@ test.describe('the sky screen on a phone held sideways', () => {
     // The guide comes back where it was and not at the top: the exact number is `PassDetail.test.tsx`'s,
     // where the timing is controlled; what a browser adds is that the rail is scrolled at all after the close.
     expect(await rail.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
-    await expect(sheet.getByRole('group', { name: VIEW_GROUP.en }).getByRole('button', { name: VIEW_OPTION.en.window })).toBeFocused();
+    await expect(sheet.getByTestId('window-hold-up')).toBeFocused();
     expect(await asks(page)).toBe(1);
   });
 });

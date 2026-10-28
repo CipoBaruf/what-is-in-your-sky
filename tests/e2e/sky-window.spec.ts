@@ -242,7 +242,7 @@ test.describe('the sky window on a phone', () => {
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     // R136: the refusal is the hold-up's, and the guide stays on the window the option chose.
     await expect(figure).toHaveAttribute('data-view', 'window');
-    await expect(guide(page).getByTestId('chart-view-note')).toHaveText('Motion access was refused, so the dome stays the view. To be asked again, reload the page: Safari asks once per load.');
+    await expect(guide(page).getByTestId('chart-view-note')).toHaveText('Motion access was refused. To be asked again, reload the page: Safari asks once per load.');
     await page.screenshot({ path: `${CAPTURE_DIR}/r66-window-390-denied-dark-en.png` });
     // Any other choice clears the note.
     await toggle.getByRole('button', { name: 'Polar' }).click();

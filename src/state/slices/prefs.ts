@@ -79,10 +79,6 @@ export interface PrefsDeps {
   now: () => EpochMs;
 }
 
-/** US-6 AC3: the dome is the default chart view; until R15 registers it, `SkyChart` falls back to the polar view. */
-// FR-DOME-7: the dome again, now that FR-DOME-1..4 and FR-DOME-8 have made it readable. D-68 (polar for now) is closed by V1-4.
-export const DEFAULT_CHART_VIEW: ChartView = 'dome';
-
 export interface PrefsSlice {
   /** The pass list order (US-5 AC2), `chronological` unless saved otherwise. */
   sort: PassSort;

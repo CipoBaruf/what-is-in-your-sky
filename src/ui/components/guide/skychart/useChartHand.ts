@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { appStore } from '../../../../state';
 import type { ChartHand, HandSlot } from './SkyChart.types';
 import type { HandCamera } from './window/camera';
@@ -21,15 +21,16 @@ export function markSkyHintSeen(): void {
 }
 
 export function useChartHand(): ChartHand {
-  const [slot] = useState<HandSlot>(() => {
+  const [hand] = useState<ChartHand>(() => {
     let kept: HandCamera | null = null;
-    return {
+    const slot: HandSlot = {
       get: () => kept,
       keep: (camera) => {
         kept = camera;
       },
       gesture: markSkyHintSeen,
     };
+    return { slot };
   });
-  return useMemo(() => ({ slot }), [slot]);
+  return hand;
 }

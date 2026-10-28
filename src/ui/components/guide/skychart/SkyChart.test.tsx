@@ -132,6 +132,19 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
     });
   });
 
+  /** R136 (FR-FSC-2, V26-12): the screen opens from `[ hold up to the sky ]` alone, so closing it gives that control the focus. */
+  it('gives the focus back to [ hold up to the sky ] when the screen closes', async () => {
+    withPhone();
+    appStore.getState().setChartView('window');
+    render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    const holdUp = await rtl.findByTestId('window-hold-up');
+    act(() => {
+      appStore.setState({ refocusWindow: true });
+    });
+    expect(holdUp).toHaveFocus();
+    expect(appStore.getState().refocusWindow).toBe(false);
+  });
+
   /** R136 (FR-FLOW-14, D-876): with nothing saved a phone opens on the window and a desk on the dome; a saved view wins on both. */
   it('opens a fresh profile on the window on compact and on the dome on wide, and a saved view on both', async () => {
     const media = stubMatchMedia(390);

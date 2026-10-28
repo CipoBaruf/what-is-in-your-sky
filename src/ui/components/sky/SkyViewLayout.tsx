@@ -190,9 +190,10 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
     };
     measure();
     window.addEventListener('resize', measure);
-    // A top row that wraps or a notice that comes and goes moves the layout's top: the parent's size says so.
+    // A top row that wraps or a notice that comes and goes moves the layout's top: the size of an ancestor under the
+    // scroll box says so, whichever one holds it.
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
-    if (root.parentElement) observer?.observe(root.parentElement);
+    for (let at = root.parentElement; at !== null && at !== scroller; at = at.parentElement) observer?.observe(at);
     return () => {
       window.removeEventListener('resize', measure);
       observer?.disconnect();

@@ -12,8 +12,8 @@ export const windowMessages = {
     /** FR-WIN-5: the one control in the window's place while the browser still needs a tap before it gives orientation. */
     /** Between the tap and the first reading. */
     waiting: 'Waiting for the phone’s sensors…',
-    /** FR-WIN-4: the permission was refused; the dome is the view again. R90 (FR-FAIL-7): and how to be asked again, since the app cannot. */
-    denied: 'Motion access was refused, so the dome stays the view. To be asked again, reload the page: Safari asks once per load.',
+    /** FR-WIN-4: the permission was refused; the page stays as it was (FR-STAR-5, R136). R90 (FR-FAIL-7): and how to be asked again, since the app cannot. */
+    denied: 'Motion access was refused. To be asked again, reload the page: Safari asks once per load.',
     /**
      * FR-WIN-4: the readings carry no north (FR-LIVE-8's case); the window is not offered. R90 (FR-FAIL-7): also the
      * note when no reading arrives within `SENSOR_WAIT_S`, in the spec's words for both cases.

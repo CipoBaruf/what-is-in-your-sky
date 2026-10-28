@@ -275,7 +275,7 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
   });
 
   /** D-321: focus lands on the way out, and comes back to the control that opened the screen — a new element by then. */
-  it('moves focus to the × and gives it back to the window option', async () => {
+  it('moves focus to the × and gives it back to [ hold up to the sky ]', async () => {
     withSky();
     render(<LivePage link={null} onLeave={() => undefined} />);
     await open();
@@ -296,8 +296,8 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     expect(document.activeElement).toBe(close);
 
     fireEvent.click(close);
-    // R66 (D-351): back to the option that opened it — the view control's "Window", a new element by now.
-    expect(document.activeElement).toBe(within(screen.getByRole('group', { name: en.chart.viewGroup })).getByRole('button', { name: en.chart.view.window }));
+    // R66 (D-351): back to the control that opened it, a new element by now — R136 (V26-12): `[ hold up to the sky ]`.
+    expect(document.activeElement).toBe(screen.getByTestId('window-hold-up'));
   });
 
   /**

@@ -3,7 +3,6 @@ import { useT } from '../../../../i18n/useT';
 import { bodyLines, legendKeys, legendRows, promoteRow } from '../../../../lib/legend';
 import type { ChartView } from '../../../../model';
 import { useAppStore } from '../../../../state';
-import { DEFAULT_CHART_VIEW } from '../../../../state/slices/prefs';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { GuideText } from '../GuideText';
@@ -156,13 +155,13 @@ const WINDOW_VIEW: SkyChartView = { Component: WindowView, id: 'window' };
 export const SKY_CHART_VIEWS: readonly SkyChartView[] = [POLAR_VIEW, DOME_VIEW, WINDOW_VIEW];
 
 /**
- * The view for a preference: itself, else the dome (the default), else the first one registered. R121 (FR-WIN-4 as
+ * The view for a preference. R136 (D-876): the default is `defaultChartView`'s alone, decided before this. R121 (FR-WIN-4 as
  * amended v2.5): every page offers all three views to every reader — no `available()` filters them any more, and a
  * phone with no north loses the sensor, not the view, which it gets in the box under the hand.
  */
 function viewFor(id: SkyChartView['id']): SkyChartView {
-  const view = SKY_CHART_VIEWS.find((candidate) => candidate.id === id) ?? SKY_CHART_VIEWS.find((candidate) => candidate.id === DEFAULT_CHART_VIEW) ?? SKY_CHART_VIEWS[0];
-  if (!view) throw new Error('SkyChart: no views registered');
+  const view = SKY_CHART_VIEWS.find((candidate) => candidate.id === id);
+  if (!view) throw new Error(`SkyChart: no view registered for ${id}`);
   return view;
 }
 
@@ -176,8 +175,8 @@ function viewFor(id: SkyChartView['id']): SkyChartView {
  * filling the host, with no caption, no toggle, no controls row and no rails,
  * its readout and its legend overlaid on the drawing by the frame. It is the
  * only way the window is ever mounted since R66 (D-351): the pages render
- * `SkyScreen`, `SkyScreen` renders this chart with `screen`, and the chart a
- * page lays out is always the dome or the polar chart.
+ * `SkyScreen`, `SkyScreen` renders this chart with `screen`. R136 (D-876):
+ * a page lays out any of the three, the window in the box under the hand.
  */
 export function SkyChart(props: SkyChartProps) {
   const t = useT();
@@ -196,12 +195,12 @@ export function SkyChart(props: SkyChartProps) {
   const ownHand = useChartHand();
   const { slot: hand } = props.chartHand ?? ownHand;
   /*
-   * FR-FSC-2 (D-351): the screen's `×` gives focus back to the option that opened it. The page's chart is
-   * unmounted while the layer is up and is a new element when it returns, so what says "the screen just
-   * closed" is the store's one-shot flag and not a ref of this component's. The option is queried inside the
-   * figure — wherever the frame has put the control, its own row or the frame's slot — because it is one of
-   * three the toggle builds from a list (`data-option`); where the phone has just lost the window (FR-WIN-4)
-   * the first option takes it instead, so focus never falls to the body.
+   * FR-FSC-2 (D-351): the screen's `×` gives focus back to the control that opened it — since R136 (V26-12)
+   * `[ hold up to the sky ]` beside the facing picker, queried in the picker's slot or the figure. The page's
+   * chart is unmounted while the layer is up and is a new element when it returns, so what says "the screen
+   * just closed" is the store's one-shot flag and not a ref of this component's. Where the control is gone —
+   * the phone has just lost the sensor (FR-WIN-4) — the window's view option takes it, else the first option,
+   * queried wherever the frame has put the control, so focus never falls to the body.
    */
   const refocus = useAppStore((s) => s.refocusWindow);
   const windowRefocused = useAppStore((s) => s.windowRefocused);
@@ -210,14 +209,16 @@ export function SkyChart(props: SkyChartProps) {
   const controlSlot = useChartSlot('control');
   const controlTarget = controlSlot.target;
   const inLayoutForFocus = controlSlot.inLayout;
+  const pickerTarget = useChartSlot('picker').target;
   useEffect(() => {
     if (props.screen === true || !refocus) return;
     // In a layout the option lands in the page's slot a commit after this chart mounts: the flag waits for it.
     if (inLayoutForFocus && controlTarget === null) return;
     const group = controlTarget ?? figureRef.current;
-    (group?.querySelector<HTMLElement>('[data-option="window"]') ?? group?.querySelector<HTMLElement>('[data-option]'))?.focus();
+    const holdUp = (pickerTarget ?? figureRef.current)?.querySelector<HTMLElement>('[data-testid="window-hold-up"]');
+    (holdUp ?? group?.querySelector<HTMLElement>('[data-option="window"]') ?? group?.querySelector<HTMLElement>('[data-option]'))?.focus();
     windowRefocused();
-  }, [refocus, props.screen, windowRefocused, controlTarget, inLayoutForFocus]);
+  }, [refocus, props.screen, windowRefocused, controlTarget, inLayoutForFocus, pickerTarget]);
   // FR-FSC-1 / D-322 (R62): asked for a screen the chart is the window and nothing else — `viewFor` is not consulted,
   // so the saved preference is neither read for the view nor written on the way (FR-WIN-5 as amended).
   const screen = props.screen ?? false;
