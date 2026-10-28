@@ -882,10 +882,16 @@ describe('<LivePage>', () => {
       });
       render(<LivePage link={null} onLeave={() => undefined} />);
       await windowDrawn();
+      // Under CI load the hand camera can arrive after the first drawing; a key before it is dropped.
+      await waitFor(() => {
+        expect(document.querySelector('[data-state="hand"]')).not.toBeNull();
+      });
       const before = lookAz();
       fireEvent.keyDown(handBox(), { key: 'ArrowRight' });
+      await waitFor(() => {
+        expect(lookAz()).not.toBe(before);
+      });
       const turned = lookAz();
-      expect(turned).not.toBe(before);
       act(() => {
         appStore.getState().openSkyScreen();
       });
