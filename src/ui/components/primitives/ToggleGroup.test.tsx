@@ -100,3 +100,20 @@ describe.each(THEMES)('<ToggleGroup> under data-theme=%s', (theme) => {
     expect(await axe(container)).toHaveNoViolations();
   });
 });
+
+describe('<ToggleGroup> targets (R134, FR-FLOW-11, D-851)', () => {
+  it('makes each option a .target, and no row of the group itself', () => {
+    render(<ToggleGroup name="Pick" options={options} value="a" onChange={vi.fn()} mark="tight" />);
+    const group = screen.getByRole('group', { name: 'Pick' });
+    expect(group).not.toHaveClass('target-row');
+    for (const button of within(group).getAllByRole('button')) expect(button).toHaveClass('target');
+  });
+
+  it('is a .target-row when dense: the options meet, so none carries its own floor', () => {
+    render(<ToggleGroup name="Facing" options={options} value="a" onChange={vi.fn()} mark="tight" dense />);
+    const group = screen.getByRole('group', { name: 'Facing' });
+    expect(group).toHaveClass('target-row');
+    expect(group.className).toMatch(/noGap/);
+    for (const button of within(group).getAllByRole('button')) expect(button).not.toHaveClass('target');
+  });
+});
