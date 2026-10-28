@@ -149,6 +149,7 @@
   margin-top: var(--space-3);
 }
 
+
 .layout[data-shape='panel'] .drawing {
   height: var(--sky-drawing-h, auto);
   align-self: stretch;
@@ -168,6 +169,11 @@
   padding: 0 var(--cell);
   background: var(--sky-corner-surface);
   pointer-events: none;
+}
+
+/* On the panel the drawing keeps its row gap above; the readout shares the area and the gap, so it lands on the box's corner and not above it. */
+.layout[data-shape='panel'] .readout {
+  margin-top: var(--space-1);
 }
 
 .readout > :global(p) {
@@ -195,21 +201,21 @@
 /* --- The chart's frame inside the drawing slot: its rows for the view control, the readout and the legend are
    the layout's slots now, so the frame is its box alone — the same device the stars page used to place the frame
    (R115), three selectors deep to outweigh the frame's own rules. --- */
-.drawing :global([data-testid='chart-frame']) {
+.layout .drawing :global([data-testid='chart-frame']) {
   gap: 0;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
   grid-template-areas: 'drawing';
 }
 
-.drawing :global([data-testid='chart-frame'] > [data-row='controls']),
-.drawing :global([data-testid='chart-frame'] > [data-row='status']),
-.drawing :global([data-testid='chart-frame'] [data-testid='chart-status']:empty) {
+.layout .drawing :global([data-testid='chart-frame'] > [data-row='controls']),
+.layout .drawing :global([data-testid='chart-frame'] > [data-row='status']),
+.layout .drawing :global([data-testid='chart-frame'] [data-testid='chart-status']:empty) {
   display: none;
 }
 
 /* The figure is its frame: no caption row, no controls row of its own (both are the page's slots). */
-.drawing :global([data-testid='sky-chart']) {
+.layout .drawing :global([data-testid='sky-chart']) {
   grid-template-rows: minmax(0, 1fr);
   gap: 0;
   height: 100%;

@@ -241,7 +241,9 @@ function StarsSky({ observer }: { observer: Observer }) {
       const { width, height } = layout.getBoundingClientRect();
       const skyLayout = layout.querySelector('[data-sky-layout]');
       const gap = skyLayout ? parseFloat(getComputedStyle(skyLayout).columnGap) || 0 : 0;
-      const rail = probeRef.current?.getBoundingClientRect().width ?? 0;
+      // The rail as laid out — the layout's column, 44 to 60 cells — read off a rail slot; the probe is its floor.
+      const railSlot = skyLayout?.querySelector('[data-slot="answer"]');
+      const rail = Math.max(probeRef.current?.getBoundingClientRect().width ?? 0, railSlot?.getBoundingClientRect().width ?? 0);
       // R121 (D-789): `windowBox`, the rule the live page's and the pass detail's window share with this page.
       const box = fitWindowBox({ frameWidthPx: width, frameHeightPx: height, aboveHeightPx: 0, belowHeightPx: 0, besideWidthPx: rail + gap, viewportWidthPx: window.innerWidth, viewportHeightPx: window.innerHeight });
       const next = { w: `${String(box.widthPx)}px`, h: `${String(box.heightPx)}px` };

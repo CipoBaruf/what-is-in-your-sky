@@ -484,9 +484,12 @@ export const SETTINGS_FIT_PLACES = 2;
 export const DETAIL_DRAWING_TOP_PX = 480;
 
 /**
- * R132 (FR-FLOW-7, D-849): on wide the guide panel's drawing is at least this share of the panel's area at
- * 1280 × 800. The panel is the home's right-hand column; its head band, its one control line and the hint under
- * the box are about a quarter of its height, so a drawing at the panel's full width and the rest of its height is
- * a little over 0.6 — the number says the drawing, not the prose, is what the panel is for (F10, F11).
+ * R132 (FR-FLOW-7, D-849): on wide the guide panel's drawing is at least this share of the area the panel has under
+ * its head band — its body — at 1280 × 800. The panel is the home's right-hand column, 818 × 442 px there; the band
+ * (the name, the countdown at the headline size, the landmark line, the three times) is a third of it, and the one
+ * control line and the hint under the box take another 80 px of the body, so a drawing at the panel's full width
+ * and the rest of the body's height is about 0.65 — the number says the drawing, not the prose, is what the panel
+ * is for (F10, F11). Of the whole panel the same drawing is about 0.45, which no head the requirement allows can
+ * raise to 0.6: the share is read against the body (R132's summary records the reading).
  */
 export const DETAIL_DRAWING_MIN_SHARE = 0.6;
