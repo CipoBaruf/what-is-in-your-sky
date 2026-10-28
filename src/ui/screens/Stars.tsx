@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { starCatalog } from '../../data/stars/catalog';
 import { useStarsPageT } from '../../i18n/starsPageT';
 import { useLocale, useT } from '../../i18n/useT';
-import { RAIL_MIN_CELLS, windowBox as fitWindowBox } from '../../lib/layout';
+import { fitBox, RAIL_MIN_CELLS } from '../../lib/layout';
 import { legendKeys, legendRows, type LegendPass, type LegendRow } from '../../lib/legend';
 import { livePasses } from '../../lib/livePasses';
 import { starsAt } from '../../lib/skyStars';
@@ -53,9 +53,10 @@ import styles from './Stars.module.css';
  * drag's frame is the window's and the list follows when React has the time. Every open starts at the pole
  * side at `STARS_DEFAULT_TILT` (`initialHand`): the camera is not saved.
  *
- * **Wide**: the box at the left, cut to the browser window's shape from what
- * the page leaves beside a rail of at least `RAIL_MIN_CELLS` (`fitBox`, the
- * live page's rule), and the rail — `Facing`, `Layers`, `In this field`. The
+ * **Wide**: the box at the left, the room the page leaves beside a rail of at
+ * least `RAIL_MIN_CELLS` and over the hint's row (`fitBox`, the live page's
+ * rule; R133, FR-FLOW-9: down to the hint line, not the browser window's
+ * shape), and the rail — `Facing`, `Layers`, `In this field`. The
  * window's facing readout stands in the box's top-left corner on the screen's
  * overlay surface. **Compact**: the readout row, the box full-bleed and
  * square, the facing row, the layers' two rows (four `[x]` toggles are 43
@@ -231,10 +232,13 @@ function StarsSky({ observer }: { observer: Observer }) {
   }, [camera]);
 
   /*
-   * On wide the box is cut here — the largest rectangle of the browser window's shape beside the rail's minimum
-   * (`fitBox`) — and written as two custom properties the stylesheet sizes it from. R132: the layout's column gap
-   * is the one between the box and the rail now (`SkyViewLayout.module.css`, two cells); the box's size itself is
-   * R133's.
+   * On wide the box is cut here — the room beside the rail's minimum and over the hint's row (`fitBox`) — and
+   * written as two custom properties the stylesheet sizes it from. R132: the layout's column gap is the one between
+   * the box and the rail now (`SkyViewLayout.module.css`, two cells). R133 (FR-FLOW-9, D-850): the box's height is
+   * the layout's less the hint's row and its gap, so it runs from under the header to the hint line as the live
+   * page's does, and no longer the browser window's shape (R121's `windowBox`, gone); the hint's row is read off
+   * the slot, which is text at the box's width and never depends on the box's height, so nothing feeds back. The
+   * hint comes and goes with the reader's first drag (FR-FLOW-6), so the fit runs again on that.
    */
   useEffect(() => {
     const layout = layoutRef.current;
@@ -246,8 +250,10 @@ function StarsSky({ observer }: { observer: Observer }) {
       // The rail as laid out — the layout's column, 44 to 60 cells — read off a rail slot; the probe is its floor.
       const railSlot = skyLayout?.querySelector('[data-slot="answer"]');
       const rail = Math.max(probeRef.current?.getBoundingClientRect().width ?? 0, railSlot?.getBoundingClientRect().width ?? 0);
-      // R121 (D-789): `windowBox`, the rule the live page's and the pass detail's window share with this page.
-      const box = fitWindowBox({ frameWidthPx: width, frameHeightPx: height, aboveHeightPx: 0, belowHeightPx: 0, besideWidthPx: rail + gap, viewportWidthPx: window.innerWidth, viewportHeightPx: window.innerHeight });
+      // The hint's row under the box: its height and the gap over it (the slot's own margin, D-851's rhythm).
+      const hintSlot = skyLayout?.querySelector('[data-slot="hint"]');
+      const hint = hintSlot ? hintSlot.getBoundingClientRect().height + (parseFloat(getComputedStyle(hintSlot).marginTop) || 0) : 0;
+      const box = fitBox({ frameWidthPx: width, frameHeightPx: height, aboveHeightPx: 0, belowHeightPx: hint, besideWidthPx: rail + gap });
       const next = { w: `${String(box.widthPx)}px`, h: `${String(box.heightPx)}px` };
       if (layout.style.getPropertyValue('--stars-box-w') !== next.w) layout.style.setProperty('--stars-box-w', next.w);
       if (layout.style.getPropertyValue('--stars-box-h') !== next.h) layout.style.setProperty('--stars-box-h', next.h);
@@ -260,7 +266,7 @@ function StarsSky({ observer }: { observer: Observer }) {
       layout.style.removeProperty('--stars-box-w');
       layout.style.removeProperty('--stars-box-h');
     };
-  }, [wide]);
+  }, [wide, hintShown]);
 
   /*
    * The list's field is the drawing's own: the page observes the one element `SkyWindow` measures for its projection

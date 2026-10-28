@@ -377,6 +377,19 @@
   .fill[data-compact='true'] {
     grid-template-rows: auto minmax(calc(var(--chart-floor, 0px) * var(--chart-floor-on, 1)), 1fr) auto minmax(0, auto);
   }
+
+  /* R133 (FR-FLOW-9, D-850; F4, D5): the dome's box is cut from the bowl. `ChartFrame` measures the box's
+     full-bleed width and writes the bowl's drawn height at it plus `DOME_COMPACT_SLACK_PX` above and below,
+     never under FR-LIVE-7's compact floor, as `--chart-box-h`; the frame writes no `--chart-floor` for this box, so
+     the square's floor above is 0 here and the height is the rule's. Until the first measurement the box is the
+     fit rule's own shape (2.4 : 2.0, D-314) from its width, which is within a cell of the answer, so the first
+     paint is not a square that then jumps. The slot the frame stands in follows the chart's height
+     (`SkyViewLayout.module.css`, keyed on `data-bowl`), which is what moves the rows under the drawing up to it. */
+  .fill[data-compact='true'][data-bowl='true'] .drawing {
+    height: var(--chart-box-h, auto);
+    min-height: 0;
+    aspect-ratio: 2.4 / 2;
+  }
 }
 
 /* The live page's legend, under the drawing (compact, or a wide frame without

@@ -100,6 +100,13 @@
   height: calc(100cqw + 2 * var(--page-pad-x, calc(2 * var(--cell))));
 }
 
+/* R133 (FR-FLOW-9, D-850): …unless the chart cuts its own box — the dome's, from the bowl (`ChartFrame`'s
+   `data-bowl`, its height written as `--chart-box-h`) — in which case the slot is as tall as the chart, and the
+   picker, the hint and the rows under them stand a row under the bowl rather than under an empty corner of a square. */
+.layout[data-shape='column'] .drawing:has([data-bowl='true']) {
+  height: auto;
+}
+
 /* --- The rail: the box at the left, the rail at the right, the readout on the box's corner, the hint under the box
    at its width, `action` and `foot` at the rail's foot. The list is the row that gives, scrolling inside. --- */
 .layout[data-shape='rail'] {
