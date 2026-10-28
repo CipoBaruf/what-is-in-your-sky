@@ -3,9 +3,11 @@
  * and a `SENSOR_WAIT_S` timer; a device that sends nothing within it gets
  * FR-FOL-5's relative note and loses the option, a reading before it is the
  * reading that decides, and an iOS denial's note says how to be asked again.
- * Driven through `SkyChart`, which is where the tap and the note live.
+ * Driven through `SkyChart`, which is where the note lives, and a button that
+ * calls `open()` as `[ hold up to the sky ]` does: since R136 (FR-FLOW-15,
+ * V26-12) the view option opens no screen, so the button is the only tap.
  */
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { goldenPassFixture } from '../../../../tests/support/catalogFixtures';
 import { en } from '../../../i18n/en';
@@ -15,7 +17,7 @@ import type { Observer } from '../../../model';
 import { appStore } from '../../../state';
 import { SkyChart } from '../guide/skychart/SkyChart';
 import { resetOrientationAccess } from '../guide/skychart/window/orientationAccess';
-import { SENSOR_WAIT_S } from './useSkyScreen';
+import { SENSOR_WAIT_S, useSkyScreen } from './useSkyScreen';
 
 const pass = goldenPassFixture();
 const observer: Observer = { lat: -38.93, lon: -67.99, altM: 0, label: '−38.93, −67.99', source: 'coords', timeZone: null };
@@ -46,9 +48,18 @@ const advance = (ms: number): void => {
   });
 };
 
-function tapWindow(label: string): void {
-  const group = screen.getByRole('figure').querySelector('[role="group"]') as HTMLElement;
-  fireEvent.click(within(group).getByRole('button', { name: label }));
+/** What `[ hold up to the sky ]` is: `useSkyScreen().open`, on a button (FR-STAR-5, FR-FLOW-15). */
+function HoldUp() {
+  const entry = useSkyScreen();
+  return (
+    <button type="button" onClick={entry.open}>
+      hold up
+    </button>
+  );
+}
+
+function holdUp(): void {
+  fireEvent.click(screen.getByRole('button', { name: 'hold up' }));
 }
 
 beforeEach(() => {
@@ -72,8 +83,8 @@ describe('the sky screen’s wait (FR-FAIL-7)', () => {
   it('shows the relative note and drops the option when no reading arrives within SENSOR_WAIT_S', () => {
     withPhone();
     appStore.getState().setChartView('dome');
-    render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-    tapWindow('Window');
+    render(<><SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} /><HoldUp /></>);
+    holdUp();
     advance(SENSOR_WAIT_S * 1000 - 100);
     expect(screen.queryByTestId('chart-view-note')).toBeNull();
     advance(100);
@@ -88,8 +99,8 @@ describe('the sky screen’s wait (FR-FAIL-7)', () => {
 
   it('opens the screen on a reading at 2.9 s, and the timer does not fire after it', () => {
     withPhone();
-    render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-    tapWindow('Window');
+    render(<><SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} /><HoldUp /></>);
+    holdUp();
     advance(2900);
     reading({ alpha: 30, absolute: true });
     expect(appStore.getState().skyScreen).toBe(true);
@@ -100,16 +111,17 @@ describe('the sky screen’s wait (FR-FAIL-7)', () => {
   });
 
   it.each([
-    ['en', en, 'Window'],
-    ['es', es, 'Ventana'],
-  ] as const)('after an iOS denial the note says to reload (%s)', async (locale, messages, label) => {
+    ['en', en],
+    ['es', es],
+  ] as const)('after an iOS denial the note says to reload (%s)', async (locale, messages) => {
     withPhone(() => Promise.resolve('denied'));
     render(
       <I18nProvider locale={locale}>
         <SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />
+        <HoldUp />
       </I18nProvider>,
     );
-    tapWindow(label);
+    holdUp();
     await act(async () => {
       await Promise.resolve();
       await Promise.resolve();
