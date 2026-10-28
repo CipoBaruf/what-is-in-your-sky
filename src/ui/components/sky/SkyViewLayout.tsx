@@ -19,9 +19,12 @@ import styles from './SkyViewLayout.module.css';
  * readout stands in the box's top-left corner (V25-17) and the hint under the
  * box at the box's width; the rail holds `answer`, the `View` row, the
  * `Facing` row, `layers`, `list`, and at its foot `action` and `foot`. The
- * landscape phone (`usePageShape`) takes the rail form too, with the compact
- * tokens; where the page gives the layout a height (`fill`, the live page)
- * the rail scrolls inside it and the box keeps the layout's height. The pass
+ * landscape phone (`usePageShape`; R136, FR-FLOW-15, D-877) takes the rail
+ * form too, with the compact tokens, on all three pages: the drawing at the
+ * left at `LANDSCAPE_DRAWING_MIN_SHARE` of the viewport's width, the layout
+ * one viewport high under the top row (given by the page with `fill`, else
+ * measured here), the rail scrolling inside it and the page not at all. The
+ * turn changes the CSS only: the slots, the chart and its state stay mounted. The pass
  * detail's wide shell asks for `panel` (D-849): one column
  * where the view row and the picker share a line and the drawing takes the
  * panel's remaining height (`--sky-drawing-h`, measured here).
