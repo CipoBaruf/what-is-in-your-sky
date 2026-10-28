@@ -269,7 +269,7 @@ test.describe('the sky window on a phone', () => {
         await stubCompass(page);
         if (note === 'denied') await withPermissionPrompt(page, 'denied');
         await open(page, { width: 390, height: 844 }, { locale, theme: 'dark', observer: PARIS, chartView: 'dome' });
-        const figure = await openDetail(page, locale);
+        await openDetail(page, locale);
         await guide(page).getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
         await page.clock.runFor(3000);
         await expect(guide(page).getByTestId('chart-view-note')).toBeVisible();
