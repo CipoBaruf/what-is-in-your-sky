@@ -59,7 +59,14 @@ describe('the v1 capture set', () => {
      */
     const UPRIGHT = new Set(['sky-screen-portrait', 'sky-screen-turned']);
     const DESK_ONLY = new Set(['live-window-follow', 'stars-zoom']);
+    // R135 (FR-FLOW-2, FR-FLOW-12): the Where opened by its `[ details ]` is a phone's screen — on wide the Where is
+    // never folded (D-844), so there is nothing to open and no 1280 px file to shoot.
+    const PHONE_ONLY = new Set(['where-opened']);
     for (const screen of SCREENS) {
+      if (PHONE_ONLY.has(screen.name)) {
+        expect(screen.widths, screen.name).toEqual([360, 390]);
+        continue;
+      }
       if (screen.name.startsWith('sky-screen-') || screen.name === 'window' || screen.name === 'stars-screen' || screen.name === 'stars-passes-screen') {
         expect(screen.widths, screen.name).toEqual(UPRIGHT.has(screen.name) ? [360, 390] : [844]);
         continue;
@@ -96,7 +103,9 @@ describe('the v1 capture set', () => {
     // R118 (D-786): + 16 for the `stars` page (360, 390, 1280, 1920) and + 4 for `stars-screen` (844).
     // R128 (FR-SKY-9, D-829): + 16 `live-window` and + 16 `guide-window` (360, 390, 1280, 1920), + 12 `stars-passes`
     // (360, 390, 1280), + 4 each for `live-window-follow` and `stars-zoom` (1280) and `stars-passes-screen` (844).
-    expect(captureSet()).toHaveLength(330);
+    // R135 (FR-FLOW-12): + 16 each for `home-up-now`, `home-no-pass` and `home-daylight` (360, 390, 1280, 1920),
+    // + 8 `where-opened` (360, 390), and + 4 each for `guide` and `stars` at 844 × 390, the phone turned.
+    expect(captureSet()).toHaveLength(394);
   });
 
   it('names every file by the one pattern, `-view` included (FR-CAP-1)', () => {

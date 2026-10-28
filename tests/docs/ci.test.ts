@@ -142,7 +142,9 @@ describe('the R36 capture findings (FR-FIX-2)', () => {
     // R79: `liveAt` pins to its `shown` parameter, `SHOWN` unless the chip capture asks for its own instant.
     // R128 (FR-SKY-9): four more — the window laid out in the box, the stars page with `[ passes ]`, the window
     // following the pass and the screen from the stars page each put the instant back on `SHOWN` after their waits.
-    expect([...captureSpec.matchAll(/await pinnedAt\(page, (SHOWN|shown)\)/g)]).toHaveLength(6);
+    // R135 (R136's hold-up): the pass detail's sky screen is put back on `SHOWN` before `[ hold up to the sky ]`,
+    // since the wait for the control ticked the clock 2.5.0's route did not.
+    expect([...captureSpec.matchAll(/await pinnedAt\(page, (SHOWN|shown)\)/g)]).toHaveLength(7);
     expect(captureSpec).toContain('shown: number = SHOWN');
     expect(captureSpec).not.toContain('await page.clock.setSystemTime(SHOWN - TICK_MS)');
   });
