@@ -122,55 +122,63 @@
   min-height: 0;
 }
 
-/* The landscape phone (compact, FR-WATCH-5): the box two fifths and the rail three, as D-173 cut them. The rail's
-   rows are content-sized, so the list is not the row that gives here; a page that grows with its rows lets the page
-   scroll (the stars page, the sheet), and the landscape arrangement itself is R136's. */
+/* --- The landscape phone (R136: FR-FLOW-15, D-877; FR-WATCH-5): the rail form at the compact type size, for the
+   live page, the stars page and the pass detail alike. The drawing takes the left at `--sky-drawing-share` of the
+   viewport's width (`LANDSCAPE_DRAWING_MIN_SHARE`, written by `SkyViewLayout`) and the rail the rest. The layout
+   breaks out of the page's column to the viewport's side padding (the stars page and the sheet keep a 60-cell
+   column for the portrait phone; both centre it, so half the column less half the viewport is the way out), and
+   it is one viewport high under the page's top row: the page gives it that height (`fill`, the live page), or
+   `SkyViewLayout` measures it (`--sky-landscape-h`, with `--sky-landscape-trail` taking back the page's padding
+   under it). The layout is the scroll box: the rail's rows scroll inside it, the box keeps the layout's height less
+   the hint's row and never grows with the rail (FR-WATCH-7), and the box and the hint stay put while the rail
+   scrolls. A size container, so the box's height is the layout's own (`cqh`) and not its grid area's, which is
+   as tall as the rail's rows are. --- */
 .layout[data-shape='rail'][data-mode='compact'] {
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  grid-template-columns: calc(var(--sky-drawing-share) * 100vw) minmax(0, 1fr);
   grid-template-rows: auto auto auto auto auto auto auto auto;
-  height: auto;
-  min-height: 100%;
-}
-
-.layout[data-shape='rail'][data-mode='compact'] .list {
-  overflow: visible;
-}
-
-/* …and where the page gives the layout a height (`fill`: the live page, one viewport high wherever there is a
-   rail, FR-LIVE-7) the layout is the scroll box: the rail's rows scroll inside it, the box keeps the layout's
-   height less the hint's row and never grows with the rail (FR-WATCH-7), and the box and the hint stay put while
-   the rail scrolls. A size container, so the box's height is the layout's own (`cqh`) and not its grid area's,
-   which is as tall as the rail's rows are. */
-.layout[data-shape='rail'][data-mode='compact'][data-fill] {
-  height: 100%;
+  margin-inline: calc(50% - 50vw + 2 * var(--cell));
+  height: var(--sky-landscape-h, 100%);
+  margin-bottom: calc(-1 * var(--sky-landscape-trail, 0px));
   min-height: 0;
   overflow-y: auto;
   container-type: size;
+  /* The containing block of the rail's absolutely placed text (the visually hidden labels), so the scroll box clips
+     it: a size container is not one, and without this the document grew by what the rail scrolls past (FR-LIVE-1). */
+  position: relative;
   /* The rail's rows swap with the state (watching to scrubbing changes the head and the foot); with the browser's
      scroll anchoring off, a swap above the scroll position never moves the rail under the reader's thumb. */
   overflow-anchor: none;
 }
 
-/* The grid is shorter than its rows and has no free space to hand out, so an auto row is its items' minimum
-   contribution: the list's is its content again here, not the wide rail's zero (the row that gives, above). */
-.layout[data-shape='rail'][data-mode='compact'][data-fill] .list {
-  min-height: auto;
+/* The page that gives the layout its height has the viewport's padding already (the live page). */
+.layout[data-shape='rail'][data-mode='compact'][data-fill] {
+  height: 100%;
+  margin: 0;
 }
 
-.layout[data-shape='rail'][data-mode='compact'][data-fill] .drawing,
-.layout[data-shape='rail'][data-mode='compact'][data-fill] .readout {
+/* The grid is shorter than its rows and has no free space to hand out, so an auto row is its items' minimum
+   contribution: the list's is its content again here, not the wide rail's zero (the row that gives, above). */
+.layout[data-shape='rail'][data-mode='compact'] .list {
+  min-height: auto;
+  overflow: visible;
+}
+
+.layout[data-shape='rail'][data-mode='compact'] .drawing,
+.layout[data-shape='rail'][data-mode='compact'] .readout {
   position: sticky;
   top: 0;
 }
 
-.layout[data-shape='rail'][data-mode='compact'][data-fill] .drawing {
+/* The box beside the rail has no page padding under it to escape (the compact frame's full bleed, D-187). */
+.layout[data-shape='rail'][data-mode='compact'] .drawing {
+  --page-pad-x: 0px;
   align-self: start;
   height: calc(100cqh - max(var(--sky-hint-h, 0px), var(--row)) - var(--space-1));
 }
 
 /* The hint wraps to its own lines rather than cutting the follow clause; `SkyViewLayout` measures it (`--sky-hint-h`).
    No min-height of its own: the grid is shorter than its rows, so a set one would be the row's whole height. */
-.layout[data-shape='rail'][data-mode='compact'][data-fill] .hint {
+.layout[data-shape='rail'][data-mode='compact'] .hint {
   position: sticky;
   bottom: 0;
 }
