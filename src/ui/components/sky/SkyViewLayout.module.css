@@ -122,16 +122,49 @@
   min-height: 0;
 }
 
-/* The landscape phone (compact, FR-WATCH-5): the box two fifths and the rail three, as D-173 cut them; the rail's rows
-   overflow 390 px at some shapes and the page then scrolls — the landscape arrangement itself is R136's. */
+/* The landscape phone (compact, FR-WATCH-5): the box two fifths and the rail three, as D-173 cut them. The rail's
+   rows are content-sized, so the list is not the row that gives here; a page that grows with its rows lets the page
+   scroll (the stars page, the sheet), and the landscape arrangement itself is R136's. */
 .layout[data-shape='rail'][data-mode='compact'] {
   grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  grid-template-rows: auto auto auto auto auto auto auto auto;
   height: auto;
   min-height: 100%;
 }
 
 .layout[data-shape='rail'][data-mode='compact'] .list {
   overflow: visible;
+}
+
+/* …and where the page gives the layout a height (`fill`: the live page, one viewport high wherever there is a
+   rail, FR-LIVE-7) the layout is the scroll box: the rail's rows scroll inside it, the box keeps the layout's
+   height less the hint's row and never grows with the rail (FR-WATCH-7), and the box and the hint stay put while
+   the rail scrolls. A size container, so the box's height is the layout's own (`cqh`) and not its grid area's,
+   which is as tall as the rail's rows are. */
+.layout[data-shape='rail'][data-mode='compact'][data-fill] {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  container-type: size;
+}
+
+.layout[data-shape='rail'][data-mode='compact'][data-fill] .drawing,
+.layout[data-shape='rail'][data-mode='compact'][data-fill] .readout {
+  position: sticky;
+  top: 0;
+}
+
+.layout[data-shape='rail'][data-mode='compact'][data-fill] .drawing {
+  align-self: start;
+  height: calc(100cqh - var(--row) - var(--space-1));
+}
+
+.layout[data-shape='rail'][data-mode='compact'][data-fill] .hint {
+  position: sticky;
+  bottom: 0;
+  height: var(--row);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .layout[data-shape='rail'] .drawing,
@@ -172,8 +205,10 @@
 }
 
 
+/* A short panel (964 × 700: the band wraps its times under the name and the body has 46 px left) would leave the
+   drawing nothing; it keeps seven rows at least, and the body scrolls (D-119) to the prose under it. */
 .layout[data-shape='panel'] .drawing {
-  height: var(--sky-drawing-h, auto);
+  height: max(var(--sky-drawing-h, 0px), calc(7 * var(--row)));
   align-self: stretch;
 }
 

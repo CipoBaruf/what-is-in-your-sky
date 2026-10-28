@@ -775,6 +775,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
     <SkyViewLayout
       className={styles.layout}
       data-testid="live-layout"
+      fill
       answer={answer}
       viewRow={viewRow}
       readout={<SkyViewChartSlot name="readout" />}

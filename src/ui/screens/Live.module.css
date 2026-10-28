@@ -26,9 +26,9 @@
 }
 
 /* R132 (FR-FLOW-4): the portrait phone's column scrolls past its box (the box is the frame's floor, never shorter
-   than wide, FR-COMP-5); the page is as tall as its rows and at least the viewport. */
-.page[data-column='true'],
-.page[data-compact='true'][data-shape='landscape-phone'] {
+   than wide, FR-COMP-5); the page is as tall as its rows and at least the viewport. The landscape phone keeps the
+   viewport (FR-LIVE-7): the layout fills the body (`fill`) and its rail scrolls inside it. */
+.page[data-column='true'] {
   height: auto;
   min-height: 100dvh;
 }

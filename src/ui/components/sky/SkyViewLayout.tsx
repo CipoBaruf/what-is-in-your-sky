@@ -19,7 +19,9 @@ import styles from './SkyViewLayout.module.css';
  * box at the box's width; the rail holds `answer`, the `View` row, the
  * `Facing` row, `layers`, `list`, and at its foot `action` and `foot`. The
  * landscape phone (`usePageShape`) takes the rail form too, with the compact
- * tokens. The pass detail's wide shell asks for `panel` (D-849): one column
+ * tokens; where the page gives the layout a height (`fill`, the live page)
+ * the rail scrolls inside it and the box keeps the layout's height. The pass
+ * detail's wide shell asks for `panel` (D-849): one column
  * where the view row and the picker share a line and the drawing takes the
  * panel's remaining height (`--sky-drawing-h`, measured here).
  *
@@ -68,6 +70,12 @@ export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, Reac
   wide?: 'rail' | 'panel';
   /** The id of the drawing's text alternative on the page — the pass detail's prose — for the chart's figure (`aria-describedby`). */
   describedBy?: string | undefined;
+  /**
+   * The page gives the layout a height and the layout fills it (the live page: one viewport high wherever there is
+   * a rail, FR-LIVE-7). On the landscape phone the rail then scrolls inside the layout and the box keeps the
+   * layout's height, never the rail's (FR-WATCH-7); without it the layout grows with its rows and the page scrolls.
+   */
+  fill?: boolean | undefined;
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
   'data-testid'?: string | undefined;
@@ -82,7 +90,7 @@ interface SkyViewContextValue {
 
 const SkyViewContext = createContext<SkyViewContextValue | null>(null);
 
-export function SkyViewLayout({ wide = 'rail', describedBy, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
+export function SkyViewLayout({ wide = 'rail', describedBy, fill = false, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
   const t = useT();
   const mode = useLayoutMode();
   const pageShape = usePageShape();
@@ -161,7 +169,7 @@ export function SkyViewLayout({ wide = 'rail', describedBy, className, ref, 'dat
 
   return (
     <SkyViewContext.Provider value={context}>
-      <div ref={setRoot} className={[styles.layout, className].filter(Boolean).join(' ')} data-shape={shape} data-mode={mode} data-sky-layout="" {...(testId === undefined ? {} : { 'data-testid': testId })}>
+      <div ref={setRoot} className={[styles.layout, className].filter(Boolean).join(' ')} data-shape={shape} data-mode={mode} data-sky-layout="" {...(fill ? { 'data-fill': '' } : {})} {...(testId === undefined ? {} : { 'data-testid': testId })}>
         {SLOT_ORDER.map(slot)}
       </div>
     </SkyViewContext.Provider>

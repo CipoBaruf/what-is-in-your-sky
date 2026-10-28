@@ -103,7 +103,7 @@ async function point(page: Page, azDeg: number, altDeg: number): Promise<void> {
  * and the first reading with a north in it is what opens anything, so the
  * caller gets a reading in before it waits for the layer.
  */
-async function chooseWindow(page: Page, figure: Locator, locale: CaptureLocale): Promise<Locator> {
+async function chooseWindow(page: Page, locale: CaptureLocale): Promise<Locator> {
   await guide(page).getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
   await page.evaluate(() => {
     window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: 0, beta: 90, gamma: 0, absolute: true }));
@@ -113,7 +113,7 @@ async function chooseWindow(page: Page, figure: Locator, locale: CaptureLocale):
 }
 
 /** The option's tap where nothing is expected to open: a refusal, or a phone with no north. */
-async function tapWindow(page: Page, figure: Locator, locale: CaptureLocale): Promise<void> {
+async function tapWindow(page: Page, locale: CaptureLocale): Promise<void> {
   await guide(page).getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
   await page.clock.runFor(1000);
 }
@@ -141,7 +141,7 @@ test.describe('the sky window on a phone', () => {
     await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
 
     // US-21 AC1, AC14: the tap chooses the view and what it opens is the screen, over the sheet.
-    const layer = await chooseWindow(page, figure, 'en');
+    const layer = await chooseWindow(page, 'en');
     await expect(layer).toHaveCount(1);
     // The sheet is untouched under it: the guide is still on the view the reader picked.
     await expect(figure).toHaveAttribute('data-view', 'dome');
@@ -224,7 +224,7 @@ test.describe('the sky window on a phone', () => {
     await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     const figure = await openDetail(page, 'en');
     const toggle = guide(page).getByRole('group', { name: VIEW_GROUP.en });
-    await tapWindow(page, figure, 'en');
+    await tapWindow(page, 'en');
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(figure).toHaveAttribute('data-view', 'dome');
     await expect(guide(page).getByTestId('chart-view-note')).toHaveText('Motion access was refused, so the dome stays the view. To be asked again, reload the page: Safari asks once per load.');
@@ -245,7 +245,7 @@ test.describe('the sky window on a phone', () => {
     await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     const figure = await openDetail(page, 'en');
     const toggle = guide(page).getByRole('group', { name: VIEW_GROUP.en });
-    await tapWindow(page, figure, 'en');
+    await tapWindow(page, 'en');
     await page.evaluate(() => {
       window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: 30, beta: 90, gamma: 0, absolute: false }));
     });
@@ -254,7 +254,7 @@ test.describe('the sky window on a phone', () => {
     await expect(figure).toHaveAttribute('data-view', 'dome');
     await expect(guide(page).getByTestId('chart-view-note')).toHaveText('This device is not reporting which way it faces.');
     await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
-    await tapWindow(page, figure, 'en');
+    await tapWindow(page, 'en');
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(figure).toHaveAttribute('data-view', 'window');
     await expect(figure.locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
@@ -301,8 +301,8 @@ test.describe('the sky window on a phone', () => {
       test(`capture: the sky screen from a pass detail at 844 x 390, ${theme}, ${locale}, aimed at the peak`, async ({ page }) => {
         await stubCompass(page);
         await open(page, { width: 844, height: 390 }, { locale, theme, observer: PARIS, chartView: 'dome' });
-        const figure = await openDetail(page, locale);
-        const layer = await chooseWindow(page, figure, locale);
+        await openDetail(page, locale);
+        const layer = await chooseWindow(page, locale);
         const w = layer.locator('[data-look-az]');
         await expect(w).toBeAttached();
         // The placeholder already points at the peak azimuth, as high as the peak needs: the reading puts the phone
@@ -332,8 +332,8 @@ test.describe('the sky window on a phone', () => {
   test('capture: the horizon with its compass names, aimed 12° up toward the peak', async ({ page }) => {
     await stubCompass(page);
     await open(page, { width: 844, height: 390 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
-    const figure = await openDetail(page, 'en');
-    const layer = await chooseWindow(page, figure, 'en');
+    await openDetail(page, 'en');
+    const layer = await chooseWindow(page, 'en');
     const w = layer.locator('[data-look-az]');
     const peakAz = Number(await w.getAttribute('data-look-az'));
     await point(page, peakAz, 12);

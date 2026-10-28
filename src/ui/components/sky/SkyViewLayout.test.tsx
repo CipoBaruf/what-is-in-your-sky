@@ -84,6 +84,12 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
     render(<SkyViewLayout data-testid="layout" drawing={<div>box</div>} list={<p>list</p>} />);
     expect(slots()).toEqual(['drawing', 'list']);
     expect(screen.getByTestId('layout').querySelector('[data-slot="answer"]')).toBeNull();
+    // `fill` (the live page, FR-LIVE-7): the layout says it fills the height its page gives it, so the stylesheet can
+    // scroll the landscape rail inside it and pin the box; a page that grows with its rows says nothing.
+    expect(screen.getByTestId('layout')).not.toHaveAttribute('data-fill');
+    cleanup();
+    render(<SkyViewLayout data-testid="layout" fill drawing={<div>box</div>} />);
+    expect(screen.getByTestId('layout')).toHaveAttribute('data-fill', '');
   });
 
   it('is the column on compact, the box and the rail on wide and on the landscape phone, and the panel where asked', () => {
