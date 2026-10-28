@@ -93,7 +93,7 @@ test.use({ viewport: { width: 390, height: 844 } });
 test('with every layer on, a drag draws at ≥ 30 updates/s at the phone width under a 4x CPU throttle (FR-STAR-9)', async ({ page }) => {
   await openStars(page);
   // Every layer on: the page's default, asserted rather than assumed.
-  for (const layer of LAYERS) await expect(page.locator(`[data-testid="stars-rail"] [data-layer="${layer}"]`)).toHaveAttribute('aria-pressed', 'true');
+  for (const layer of LAYERS) await expect(page.locator(`[data-testid="stars-layers"] [data-layer="${layer}"]`)).toHaveAttribute('aria-pressed', 'true');
   const sky = page.getByTestId('stars-sky').locator('[tabindex="0"]');
   await sky.scrollIntoViewIfNeeded();
   const box = await sky.boundingBox();

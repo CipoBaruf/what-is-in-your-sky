@@ -92,8 +92,8 @@ async function openChart(page: Page, width: 390 | 1280, locale: 'en' | 'es', vie
   // What the capture is named after: the live marker, the flown arc, the Sun
   // and the Moon. In the dome they live in the raster, so the labels stand for
   // the two bodies there and the polar view carries the markers as elements.
-  await expect(figure.getByTestId('chart-legend').locator('[data-body="sun"]')).toHaveCount(1);
-  await expect(figure.getByTestId('chart-legend').locator('[data-body="moon"]')).toHaveCount(1);
+  await expect(guide(page).getByTestId('chart-legend').locator('[data-body="sun"]')).toHaveCount(1);
+  await expect(guide(page).getByTestId('chart-legend').locator('[data-body="moon"]')).toHaveCount(1);
   if (view === 'polar') {
     await expect(figure.locator('[data-marker="now"]')).toHaveCount(1);
     await expect(figure.locator('[data-marker="flown"]')).toHaveCount(1);
