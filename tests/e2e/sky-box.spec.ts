@@ -105,11 +105,12 @@ async function expectBowlCut(layout: Locator, label: string): Promise<void> {
   expect(above, `${label}: the bowl's top is inside the box`).toBeGreaterThanOrEqual(-1);
   expect(below, `${label}: the bowl's bottom is inside the box`).toBeGreaterThanOrEqual(-1);
 
-  // The rows: the readout a row gap over the box, the hint a row gap under it — nothing else between them and the bowl.
+  // The rows: the readout a row gap over the box, and under it the hint, past the dome's empty picker row and its gap
+  // — two row gaps — so nothing but the slack and the rhythm stands between the rows and the bowl.
   const readout = await box(layout.locator('[data-slot="readout"]'));
   expect(chartBox.y - (readout.y + readout.height), `${label}: the readout over the box`).toBeLessThanOrEqual(ROW_GAP_PX);
   const hint = await box(layout.locator('[data-slot="hint"]'));
-  expect(hint.y - (chartBox.y + chartBox.height), `${label}: the hint under the box`).toBeLessThanOrEqual(ROW_GAP_PX + 1);
+  expect(hint.y - (chartBox.y + chartBox.height), `${label}: the hint under the box`).toBeLessThanOrEqual(2 * ROW_GAP_PX);
 }
 
 test.describe('the compact dome’s box hugs the bowl (FR-FLOW-9)', () => {
@@ -125,6 +126,36 @@ test.describe('the compact dome’s box hugs the bowl (FR-FLOW-9)', () => {
   test('the pass detail at 390 × 844: the same cut', async ({ page }) => {
     const layout = await openDetail(page);
     await expectBowlCut(layout, 'detail 390 × 844');
+  });
+});
+
+test.describe('PROBE', () => {
+  test.use({ viewport: { width: 390, height: 667 }, hasTouch: false });
+  test('legend toggle interception at 390 × 667', async ({ page }) => {
+    await openLive(page);
+    const control = page.getByTestId('live-legend-toggle');
+    await control.click();
+    await expect(control).toHaveAttribute('aria-expanded', 'true');
+    await page.waitForTimeout(500);
+    const report = await page.evaluate(() => {
+      const r = (el: Element | null) => (el ? JSON.stringify(el.getBoundingClientRect().toJSON()) : 'none');
+      const toggle = document.querySelector('[data-testid="live-legend-toggle"]');
+      const t = toggle?.getBoundingClientRect();
+      const hit = t ? document.elementFromPoint(t.left + t.width / 2, t.top + t.height / 2) : null;
+      const pres = Array.from(document.querySelectorAll('pre.glyph-output')).map((p) => `${p.closest('[data-layer]')?.getAttribute('data-layer') ?? '?'} ${r(p)} overflow:${getComputedStyle(p.parentElement!).overflow}`);
+      return {
+        scrollY: window.scrollY,
+        toggle: r(toggle),
+        hit: hit ? `${hit.tagName}.${hit.className} ${r(hit)}` : 'none',
+        box: r(document.querySelector('[data-testid="chart-box"]')),
+        slot: r(document.querySelector('[data-slot="drawing"]')),
+        frame: r(document.querySelector('[data-testid="chart-frame"]')),
+        stage: r(document.querySelector('[data-drawing="dome"]')),
+        pres,
+        boxOverflow: getComputedStyle(document.querySelector('[data-testid="chart-box"]')!).overflow,
+      };
+    });
+    console.log(JSON.stringify(report, null, 1));
   });
 });
 

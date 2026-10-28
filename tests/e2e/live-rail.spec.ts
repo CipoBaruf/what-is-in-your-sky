@@ -38,6 +38,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { fitFloor, MIN_EXTENT_RATIO, painted } from './domeInk';
+import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { bandUnderBox, domeDrawn, enterScrubbing, seedStoredRun, SPACE_3_PX, stripFilled } from './liveHelpers';
 
 /** The page's bottom padding plus the frame's gap: what may be left under the lowest row when the height binds. */
@@ -168,21 +169,27 @@ for (const [width, height] of [
       // The page never scrolls to make room: the box was cut from what fits.
       expect(await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight])).toEqual([width, height]);
 
-      // …and the drawing in it: at least 90 % across and down, centred, not two thirds of it with the top cut off.
-      // One load per size (FR-CI-1): the coverage is read off the same page as the layout.
+      // …and the drawing in it: at least 90 % of the box's shorter side (FR-DOME-1), centred, not two thirds of it with
+      // the top cut off. R133 (FR-FLOW-9, D-850): the box is the room and not the drawing's own shape any more, so the
+      // longer side is the box's margin — the floor is the shorter side's, scaled by the box's shape where the height
+      // is the shorter and the box squarer than 2.4 : 2.0 (`shapes.spec.ts`'s rule). One load per size (FR-CI-1).
       const dome = page.getByTestId('live-dome');
+      const shorterOf = (b: { width: number; height: number }): 'width' | 'height' => (b.width <= b.height ? 'width' : 'height');
+      const floorOf = (layers: Parameters<typeof fitFloor>[0], b: { width: number; height: number }): number => fitFloor(layers, b) * (shorterOf(b) === 'height' ? Math.min(1, b.width / b.height / DOME_BOX_ASPECT) : 1);
       await expect
         .poll(async () => {
           const boxNow = await dome.getByTestId('chart-box').boundingBox();
           if (!boxNow) return 0;
           const { extent, layers } = await painted(dome.locator('[data-drawing="dome"]'));
           if (layers.length === 0) return 0;
-          return (extent.width / boxNow.width) * (MIN_EXTENT_RATIO / fitFloor(layers, boxNow));
-        }, { message: 'the drawing over the width of its box, at FR-DOME-1’s own floor' })
+          const side = shorterOf(boxNow);
+          return (extent[side] / boxNow[side]) * (MIN_EXTENT_RATIO / floorOf(layers, boxNow));
+        }, { message: 'the drawing over the shorter side of its box, at FR-DOME-1’s own floor' })
         .toBeGreaterThanOrEqual(MIN_EXTENT_RATIO);
       const { extent, layers } = await painted(dome.locator('[data-drawing="dome"]'));
       const cell = Math.max(...layers.map((layer) => layer.cellWidthPx)) * 2;
-      expect(extent.height / box.height).toBeGreaterThanOrEqual(fitFloor(layers, box));
+      expect(extent.x).toBeGreaterThanOrEqual(box.x - 1);
+      expect(extent.x + extent.width).toBeLessThanOrEqual(box.x + box.width + 1);
       expect(extent.y).toBeGreaterThanOrEqual(box.y);
       expect(extent.y + extent.height).toBeLessThanOrEqual(box.y + box.height + 1);
       const blankAbove = extent.y - box.y;

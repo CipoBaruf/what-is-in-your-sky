@@ -129,10 +129,11 @@ test.describe('the compact live page under the box (F-55)', () => {
       expect(drawing?.height ?? 0).toBeGreaterThan(0);
 
       // R132 (FR-FLOW-4, D-864): the column is at least the screen and scrolls past the box (F-55's rows no longer
-      // squeeze it); the box is never shorter than wide (FR-COMP-5), so the rows under it are where the scroll is.
+      // squeeze it). R133 (FR-FLOW-9, D-850): the box is the bowl's — its drawn height at the box's width plus the
+      // slack above and below, 337 at 390 px — so the rows under it are where the scroll is.
       const page_ = await page.getByTestId('live-page').boundingBox();
       expect(page_?.height).toBeGreaterThanOrEqual(height);
-      expect(drawing?.height ?? 0).toBeGreaterThanOrEqual((drawing?.width ?? 0) - 1);
+      expect(Math.abs((drawing?.height ?? 0) - compactDomeBoxHeightPx({ bowlHeightPx: bowlHeightPx(drawing?.width ?? 0), floorPx: COMPACT_BOX_MIN_SHORT_PX }))).toBeLessThanOrEqual(1);
     });
     }
 

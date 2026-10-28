@@ -129,6 +129,19 @@
   min-height: 0;
 }
 
+/* R133 (FR-FLOW-9, D-850): where the page gives the wide layout a height (`fill`, the live page) the box is the layout's
+   height less the hint's row — the room the frame measures and cuts the box to — and never the rail's: on a short
+   window the rail's rows overflow the layout (the short shapes are R136's), and a box that followed them would move
+   with the state and `[ see this pass ]` (D-448, FR-WATCH-6). A size container, as the landscape phone's is below, so
+   the box's height is the layout's own (`cqh`) and not its grid area's. The hint's row is one text row on wide. */
+.layout[data-shape='rail'][data-mode='wide'][data-fill] {
+  container-type: size;
+}
+
+.layout[data-shape='rail'][data-mode='wide'][data-fill] .drawing {
+  height: calc(100cqh - max(var(--sky-hint-h, 0px), var(--row)) - var(--space-1));
+}
+
 /* The landscape phone (compact, FR-WATCH-5): the box two fifths and the rail three, as D-173 cut them. The rail's
    rows are content-sized, so the list is not the row that gives here; a page that grows with its rows lets the page
    scroll (the stars page, the sheet), and the landscape arrangement itself is R136's. */

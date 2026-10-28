@@ -387,11 +387,13 @@ export const SPACE_3_PX = ROW_PX;
  * one `--space-3` on the live page and the stars page: the box runs from under the header to the hint line.
  */
 export async function bandUnderBox(page: Page, box: { y: number; height: number }, layoutId = 'live-layout'): Promise<number> {
-  const layout = page.getByTestId(layoutId);
-  const hint = await layout.locator('[data-slot="hint"]').boundingBox();
-  const whole = await layout.boundingBox();
-  if (!whole) throw new Error(`${layoutId} is not laid out`);
-  return (hint ? hint.y : whole.y + whole.height) - (box.y + box.height);
+  // The hint is a slot only while it is shown (FR-FLOW-6), so it is looked for rather than waited for.
+  const under = await page.getByTestId(layoutId).evaluate((layout) => {
+    const hint = layout.querySelector('[data-slot="hint"]');
+    const rect = hint?.getBoundingClientRect();
+    return rect && rect.height > 0 ? rect.top : layout.getBoundingClientRect().bottom;
+  });
+  return under - (box.y + box.height);
 }
 
 export async function domeDrawn(page: Page): Promise<void> {
