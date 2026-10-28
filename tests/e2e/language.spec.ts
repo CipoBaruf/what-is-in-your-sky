@@ -99,7 +99,7 @@ test('a Spanish browser gets a Spanish app, and the settings switch changes it w
   await expect(dialog.getByTestId('legend-lead').locator('caption')).toContainText('Salida, máximo y fin');
   await expect(dialog.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toHaveCount(0);
   await expect(dialog.getByTestId('chart-legend')).toHaveAttribute('aria-label', 'Leyenda');
-  await expect(dialog.getByRole('figure')).toContainText('Arrastrar el domo');
+  await expect(dialog).toContainText('Arrastrá o usá las flechas');
   await expect(dialog.getByTestId('dome-readout')).toHaveText(/^Hacia .+ · inclinación \d+°$/);
   await page.screenshot({ path: 'test-results/r17-detail-390-es.png' });
   // The polar view is one toggle away and carries its own translated convention line (FR-GUIDE-4).
@@ -107,7 +107,7 @@ test('a Spanish browser gets a Spanish app, and the settings switch changes it w
   await dialog.getByRole('group', { name: 'Vista del gráfico' }).getByRole('button', { name: 'Polar' }).click();
   const track = dialog.locator(`svg[data-drawing="polar"] [data-pass-id="${passId}"] [data-anchor="key"]`);
   await expect(track).toHaveText('A');
-  await expect(dialog.getByRole('figure')).toContainText('Vista al cielo: el este a la izquierda');
+  await expect(dialog).toContainText('Vista al cielo: el este a la izquierda');
   // Further down the sheet: the chart's caption and the numeric table, which carry translated text of their own.
   await showNumbers(dialog);
   await page.screenshot({ path: 'test-results/r17-numbers-390-es.png' });
@@ -132,7 +132,7 @@ test('a Spanish browser gets a Spanish app, and the settings switch changes it w
   await expect(dialog.getByRole('heading', { name: 'ISS (Zarya)' })).toBeVisible();
   await expect(track).toHaveText('A');
   await expect(dialog.getByTestId('chart-legend')).toHaveAttribute('aria-label', 'Legend');
-  await expect(dialog.getByRole('figure')).toContainText('Looking up: east on the left');
+  await expect(dialog).toContainText('Looking up: east on the left');
   await page.screenshot({ path: 'test-results/r17-detail-390-en.png' });
   await showNumbers(dialog);
   await page.screenshot({ path: 'test-results/r17-numbers-390-en.png' });

@@ -36,8 +36,20 @@
   color: var(--fg-dim);
 }
 
+/* R132 (FR-FLOW-7, D-849): the head — the name, the countdown line, the landmark line, the three times — one block
+   in the layout's `answer` slot, its lines a row's quarter apart; the layout owns the gap under it. */
+.head {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.layout {
+  min-width: 0;
+}
+
 .meta {
-  margin: calc(-1 * var(--row) / 2) 0 0;
+  margin: 0;
   color: var(--fg-dim);
 }
 

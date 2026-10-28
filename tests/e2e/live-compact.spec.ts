@@ -126,16 +126,11 @@ test.describe('the compact live page under the box (F-55)', () => {
       expect(drawing && frame && drawing.y + drawing.height).toBeLessThanOrEqual((frame?.y ?? 0) + (frame?.height ?? 0) + 0.5);
       expect(drawing?.height ?? 0).toBeGreaterThan(0);
 
-      // …and the page still fits one screen: it does not scroll to make room (F-55).
+      // R132 (FR-FLOW-4, D-864): the column is at least the screen and scrolls past the box (F-55's rows no longer
+      // squeeze it); the box is never shorter than wide (FR-COMP-5), so the rows under it are where the scroll is.
       const page_ = await page.getByTestId('live-page').boundingBox();
-      expect(page_?.height).toBe(height);
-      expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
-      // Every row is inside the viewport, which is the same statement read from the other end.
-      for (const id of ROWS) {
-        const box = boxes[id];
-        if (!box) continue;
-        expect(box.y + box.height, `${id} is above the fold`).toBeLessThanOrEqual(height + 0.5);
-      }
+      expect(page_?.height).toBeGreaterThanOrEqual(height);
+      expect(drawing?.height ?? 0).toBeGreaterThanOrEqual((drawing?.width ?? 0) - 1);
     });
     }
 
@@ -184,9 +179,10 @@ test.describe('the compact live page under the box (F-55)', () => {
       // Two rows of `--tap` (48 px at the default cell): the panel's height, not its maximum.
       expect(panel.height, 'the open panel is two tap rows').toBeCloseTo(2 * TAP_PX, 0);
       const open = await page.getByTestId('chart-box').boundingBox();
-      expect(open?.height ?? 0, 'the box gives the panel its height').toBeLessThanOrEqual(closed.height);
-      // …and nothing on the page has moved off it or onto anything else.
-      expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
+      // R132 (FR-FLOW-4): the column scrolls, so the panel costs the box nothing and lands under it, in the list slot.
+      expect(open?.height ?? 0, 'the box keeps its floor').toBeCloseTo(closed.height, 0);
+      expect(panel.y).toBeGreaterThanOrEqual(closed.y + closed.height - 1);
+      // …and nothing on the page has moved onto anything else.
       const rows = await Promise.all(STATE_ROWS.watching.map((id) => page.getByTestId(id).boundingBox()));
       for (const [i, first] of rows.entries()) {
         for (const second of [...rows.slice(i + 1), panel]) {
@@ -219,14 +215,13 @@ test.describe('the compact live page under the box (F-55)', () => {
     const box = await page.getByTestId('chart-box').boundingBox();
     if (!box) throw new Error('the box is not laid out');
     expect(box.height, `the watching box at 390 × 667 is ${String(Math.round(box.height))} px`).toBeGreaterThanOrEqual(WATCHING_667);
-    // The reader's tap is what changes it (FR-WATCH-7): scrubbing takes rows, back to live gives them back.
+    // R132 (FR-FLOW-4, D-864): the rows the tap adds go under the box in the column, which scrolls; the box holds its floor in both states (FR-WATCH-7's other reading).
     await enterScrubbing(page);
     const scrubbing = await page.getByTestId('chart-box').boundingBox();
-    expect(scrubbing?.height ?? 0).toBeLessThan(box.height);
+    expect(scrubbing?.height ?? 0).toBeCloseTo(box.height, 0);
     await page.getByTestId('live-now').click();
     await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
     const again = await page.getByTestId('chart-box').boundingBox();
     expect(again?.height ?? 0).toBeCloseTo(box.height, 0);
-    expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
   });
 });

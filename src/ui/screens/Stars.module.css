@@ -1,22 +1,13 @@
-/* R115 (FR-STAR-3, D-756): the stars page. Compact is one column — the readout row, the box full-bleed and square
-   (FR-COMP-5), the facing row, the layers' two rows, the list — and scrolls past the box. Wide is the box at the
-   left, cut by `Stars.tsx` to the browser window's shape from what the page leaves beside the rail's minimum
-   (`fitBox`, FR-LIVE-7's rule), and the rail beside it up to 60 cells; the page itself does not scroll there, the
-   rail does. Every length is a token or a count of cells (FR-DS-2). */
+/* R115 (FR-STAR-3, D-756): the stars page. R132 (FR-FLOW-4, FR-FLOW-8; D-842): the page is `SkyViewLayout`'s —
+   the column on compact (the `h1` block, the readout, the box full-bleed and square, the facing row, the hint,
+   `[ hold up to the sky ]`, the layers' two rows, the list) and the box beside the rail on wide, in the same order.
+   The layout owns the gaps; this file sizes the wide box (cut by `Stars.tsx` to the browser window's shape beside
+   the rail's minimum, `fitBox`, FR-LIVE-7's rule) and the page's own rows. Every length is a token or a count of
+   cells (FR-DS-2). */
 
-/* R129 (FR-FLOW-3): the page's name over the layout. On wide the layout keeps the height the main leaves, under the
-   heading's two lines (a row of its own, so its `height: 100%` is of what is left). */
 .page[data-layout='wide'] {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: calc(var(--row) / 2);
   height: 100%;
   min-height: 0;
-}
-
-.page[data-layout='compact'] {
-  display: grid;
-  gap: calc(var(--row) / 2);
 }
 
 .intro {
@@ -35,9 +26,16 @@
 }
 
 .layout {
-  display: grid;
-  gap: calc(var(--row) / 2);
-  align-content: start;
+  min-width: 0;
+}
+
+.layout[data-layout='wide'] {
+  height: 100%;
+  min-height: 0;
+}
+
+.skyLayout {
+  min-width: 0;
 }
 
 /* The rail's minimum as a length the page can read in px, as the live frame's probe is (D-314). */
@@ -50,18 +48,12 @@
 
 .sky {
   min-width: 0;
-}
-
-.rail {
-  display: grid;
-  gap: var(--row);
-  align-content: start;
-  min-width: 0;
+  height: 100%;
 }
 
 .block {
   display: grid;
-  gap: calc(var(--row) / 4);
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -74,8 +66,10 @@
   white-space: nowrap;
 }
 
+/* FR-FLOW-8: the layer toggles are one group of two rows, `--space-1` apart. */
 .layers {
   display: grid;
+  gap: var(--space-1);
 }
 
 .inert {
@@ -89,88 +83,37 @@
   margin: 0;
 }
 
-/* --- The window, placed. Its frame is the window's own (`ChartFrame`); the page places the frame's cells through
-   the frame's test ids and its rows' `data-row` names, never their order, and draws none of them. Under the hand the controls row is empty, so it is not drawn; the
-   status slot — the window's facing readout — is the row above the box on compact and the box's top-left corner
-   on wide. The selectors are three deep so they outweigh the frame's own two-part rules whatever the order. --- */
-
-.layout .sky :global([data-testid='chart-frame']) {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0;
-  position: relative;
+/* R132 (FR-FLOW-8): on the phone the box is four wide to three tall, so that the heading of `In this field` and its
+   first row are inside 390 × 844 with the rows FR-FLOW-4 puts above them (the square left them 50 px under the
+   fold). An interim shape: the box's size is R133's, which reads `sky-layout.spec.ts` and replaces this rule with
+   the fit it decides. The frame's own floor (its width, FR-COMP-5) is off here (D-233's switch), since the slot is
+   what sizes the box. */
+.layout[data-layout='compact'] .skyLayout[data-shape='column'] :global([data-slot='drawing']) {
+  --chart-floor-on: 0;
+  height: calc((100cqw + 4 * var(--cell)) * 3 / 4);
 }
 
-.layout .sky :global([data-testid='chart-frame'] > [data-row='controls']) {
-  display: none;
+/* Wide: the box's size, written by the page (`--stars-box-w` / `--stars-box-h`) on the layout's root; the window
+   fills it (`fill`). */
+.layout[data-layout='wide'] .skyLayout :global([data-slot='drawing']) {
+  width: var(--stars-box-w, auto);
+  height: var(--stars-box-h, auto);
+  justify-self: start;
 }
 
-.layout .sky :global([data-testid='chart-box']) {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  min-height: 0;
-}
-
-/* Compact: the readout row, then the box, square and full-bleed — the page's two cells of padding given back. */
-.layout[data-layout='compact'] .sky {
-  margin-inline: calc(-2 * var(--cell));
-}
-
-.layout[data-layout='compact'] .sky :global([data-testid='chart-frame']) {
-  height: auto;
-  grid-template-rows: auto auto;
-  grid-template-areas:
-    'status'
-    'drawing';
-}
-
-.layout[data-layout='compact'] .sky :global([data-testid='chart-box']) {
-  height: auto;
-  aspect-ratio: 1 / 1;
-}
-
-.layout[data-layout='compact'] .sky :global([data-testid='chart-frame'] > [data-row='status']) {
-  padding-inline: calc(2 * var(--cell));
-}
-
-/* Wide: the box and the rail, the box's size written by the page. */
-.layout[data-layout='wide'] {
-  grid-template-columns: auto minmax(calc(var(--rail-min-cells) * var(--cell)), calc(60 * var(--cell)));
-  column-gap: calc(2 * var(--cell));
-  justify-content: start;
-  align-items: start;
-  height: 100%;
-  min-height: 0;
-}
-
-.layout[data-layout='wide'] .sky {
-  width: var(--stars-box-w, 0);
-  height: var(--stars-box-h, 0);
-}
-
-.layout[data-layout='wide'] .rail {
-  max-height: 100%;
-  overflow-y: auto;
-}
-
-.layout[data-layout='wide'] .sky :global([data-testid='chart-frame']) {
-  height: 100%;
-  grid-template-rows: minmax(0, 1fr);
-  grid-template-areas: 'drawing';
-}
-
-.layout[data-layout='wide'] .sky :global([data-testid='chart-box']) {
-  height: 100%;
-}
-
-/* R117 (FR-STAR-5): `[ hold up to the sky ]`, one `--tap` row, and FR-LIVE-8's note beside it — the one line of the
-   row allowed to wrap, since a denial's words are longer than the compact row's cells. */
+/* R117 (FR-STAR-5), R132 (FR-FLOW-8): `[ hold up to the sky ]` is a full-width button at least 48 px tall, right
+   after the hint, and FR-LIVE-8's note under it — the one line of the row allowed to wrap, since a denial's words
+   are longer than the compact row's cells. */
 .holdUp {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  column-gap: var(--cell);
+  display: grid;
+  gap: var(--space-1);
   min-height: var(--tap);
+}
+
+.holdUpButton {
+  width: 100%;
+  min-height: var(--tap);
+  justify-content: center;
 }
 
 .note {

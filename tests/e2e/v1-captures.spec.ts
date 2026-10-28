@@ -256,8 +256,8 @@ async function openChart(page: Page, width: CaptureWidth, theme: CaptureTheme, l
   // …and then into the pass, arriving on the tick the sheet lives by rather than through three hundred of them.
   await pinnedAt(page, SHOWN);
   // R45 (FR-DOME-6 as amended): the two bodies are legend lines, not captions in the drawing.
-  await expect(figure.getByTestId('chart-legend').locator('[data-body="sun"]')).toHaveCount(1);
-  await expect(figure.getByTestId('chart-legend').locator('[data-body="moon"]')).toHaveCount(1);
+  await expect(guide(page).getByTestId('chart-legend').locator('[data-body="sun"]')).toHaveCount(1);
+  await expect(guide(page).getByTestId('chart-legend').locator('[data-body="moon"]')).toHaveCount(1);
   if (view === 'polar') await expect(figure.locator('[data-marker="now"]')).toHaveCount(1);
   await figure.locator('[data-drawing]').scrollIntoViewIfNeeded();
   await page.mouse.move(0, 0);
@@ -508,7 +508,8 @@ async function starsAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loc
  * and the instant is put back where the capture wants it (F-48).
  */
 async function windowInTheBox(page: Page, scope: Locator, locale: CaptureLocale, shown: number): Promise<Locator> {
-  await scope.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
+  // R132 (D-864): the view control is the layout's view row, outside the figure.
+  await scope.locator('xpath=ancestor::*[@data-sky-layout][1]').getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
   await page.clock.runFor(1000);
   await expect(page.getByTestId('sky-screen')).toHaveCount(0);
   const w = scope.locator('[data-look-az]');
@@ -644,9 +645,8 @@ const REACH: Record<string, Reach> = {
   async window(page, width, theme, locale) {
     await stubCompass(page);
     await openChart(page, width, theme, locale, 'dome');
-    const figure = guide(page).getByRole('figure');
     // R66 (V13-6, V13-9): the option opens the sky screen over the sheet, and the reading is what opens it (D-350).
-    await figure.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
+    await guide(page).getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
     await page.evaluate(() => {
       window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: 0, beta: 90, gamma: 0, absolute: true }));
     });
@@ -861,11 +861,13 @@ const REACH: Record<string, Reach> = {
     const chart = page.getByTestId('sky-chart');
     await windowInTheBox(page, chart, locale, SHOWN);
     await expect(chart).toHaveAttribute('data-view', 'window');
-    await expect(chart.getByTestId('window-facing')).toBeVisible();
+    // R132 (D-864): the facing row is the layout's `picker` slot, outside the figure.
+    const picker = page.getByTestId('live-layout').locator('[data-slot="picker"]');
+    await expect(picker.getByTestId('window-facing')).toBeVisible();
     if (width >= 1280) {
       // FR-SKY-13: the rail's picker carries the highlighted pass's key after `up`, as the screen's `what` says.
       const norad = SHOWN_PASS.split('-')[0] ?? '';
-      const options = page.getByTestId('chart-aside').locator('[data-option]');
+      const options = picker.locator('[data-option]');
       const names = await options.evaluateAll((els) => els.map((el) => el.getAttribute('data-option') ?? ''));
       const key = names.findIndex((name) => name.startsWith(`pass:${norad}-`));
       expect(key, "the highlighted pass's key is in the picker").toBeGreaterThan(-1);
@@ -889,7 +891,7 @@ const REACH: Record<string, Reach> = {
     const norad = SHOWN_PASS.split('-')[0] ?? '';
     const readout = page.getByTestId('window-readout');
     await expect(readout).toHaveAttribute('data-following', new RegExp(`^${norad}-`));
-    await expect(page.getByTestId('chart-aside').locator(`[data-option^="pass:${norad}-"]`)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('live-layout').locator('[data-slot="picker"]').locator(`[data-option^="pass:${norad}-"]`)).toHaveAttribute('aria-pressed', 'true');
     // The look is re-aimed each tick while it follows; put the instant back on `SHOWN` so the aim is the instant's.
     await pinnedAt(page, SHOWN);
     await expect(chart.locator(`[data-pass-id^="${norad}-"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');

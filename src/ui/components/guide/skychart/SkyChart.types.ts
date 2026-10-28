@@ -47,6 +47,11 @@ export interface HandSlot {
   get(): HandCamera | null;
   /** The window's camera, kept for the next window this chart mounts. */
   keep(camera: HandCamera): void;
+  /**
+   * R132 (FR-FLOW-6, D-848): the reader's first drag, pinch or tap on the view — the window's box or the dome's
+   * stage calls it on every pointer down, and `useChartHand` marks the sky hint seen on the first (`skyHintSeen`).
+   */
+  gesture(): void;
 }
 
 /**

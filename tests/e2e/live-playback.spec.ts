@@ -181,7 +181,7 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     await page.clock.runFor(300);
     // The pass it landed on is the live one in the legend, and its id carries its rise (D-56).
     await openLegend(page);
-    const passId = (await page.getByTestId('live-dome').getByTestId('chart-legend').locator('button[data-state="live"]').first().getAttribute('data-pass-id')) ?? '';
+    const passId = (await page.getByTestId('chart-legend').locator('button[data-state="live"]').first().getAttribute('data-pass-id')) ?? '';
     const rise = Number(passId.split('-')[1]);
     expect(Math.abs((await shownInstant(page)) - rise)).toBeLessThanOrEqual(1000);
     // …and the tap that found the pass is the tap that drew it: the chunk moved with the instant.
@@ -284,7 +284,7 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
       }, { timeout: 30_000 })
       .toBeGreaterThan(0);
     await expect(hidden.first()).toHaveText(/^[A-Z]$/);
-    const rows = dome.getByTestId('chart-legend').locator('button[data-state="hidden-object"]');
+    const rows = page.getByTestId('chart-legend').locator('button[data-state="hidden-object"]');
     await expect(rows.first()).toHaveText(/ · (too low|in shadow|daylight|too faint)$/);
     // The ISS is on its arc, so it is not among the dimmed (D-102).
     await expect(rows.filter({ hasText: 'ISS' })).toHaveCount(0);

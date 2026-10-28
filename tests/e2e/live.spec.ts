@@ -30,10 +30,10 @@ test.describe('the live page', () => {
     await expect(page).toHaveURL(/#live$/);
     await domeDrawn(page);
 
-    // FR-LIVE-1: the page is the viewport — as tall as it, and nothing to scroll.
+    // FR-LIVE-1 → R132 (FR-FLOW-4, D-864): the compact page is a column at least the viewport tall that scrolls past its box.
     const box = await page.getByTestId('live-page').boundingBox();
-    expect(box?.height).toBe(844);
-    expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
+    expect(box?.height).toBeGreaterThanOrEqual(844);
+    await expect(page.getByTestId('live-layout')).toHaveAttribute('data-shape', 'column');
     // R92 (FR-A11Y-1): the banner is the page's own top row. R129 (D-845): the row is the one header, told its page.
     await expect(page.getByTestId('header')).toHaveAttribute('data-page', 'live');
     await expect(page.getByRole('banner')).toHaveCount(1);
@@ -43,8 +43,8 @@ test.describe('the live page', () => {
     expect(dome?.width).toBeGreaterThan(390 - 4 * 9.6 - 1);
     // R33 (D-172): the stripe and the playback row took their share; 300 px is what the portrait dome keeps, and R34's landscape is the phone's real answer.
     expect(dome?.height).toBeGreaterThan(300);
-    // R34 (FR-LIVE-7): portrait still stacks — the side column is under the dome, not beside it (`live-landscape.spec.ts` is the other case).
-    const side = await page.getByTestId('live-side').boundingBox();
+    // R34 (FR-LIVE-7): portrait still stacks — the list (the conditions, the overview) is under the dome, not beside it (`live-landscape.spec.ts` is the other case).
+    const side = await page.getByTestId('live-layout').locator('[data-slot="list"]').boundingBox();
     expect(side?.y).toBeGreaterThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) - 1);
     expect(side?.x).toBeLessThan((dome?.x ?? 0) + 1);
     // R121 (FR-WIN-4 as amended v2.5): no touch screen in this profile, and the control offers all three views all the same.
@@ -67,8 +67,8 @@ test.describe('the live page', () => {
     await expect(page.getByTestId('live-dome').locator('[data-drawing] [data-pass-id^="25544-"]')).toHaveCount(1);
     // R71 (FR-LEG-7): on a phone the list is one tap away.
     await openLegend(page);
-    await expect(page.getByTestId('live-dome').getByTestId('chart-legend').locator('button[data-pass-id^="25544-"]')).toContainText('ISS (Zarya)');
-    const moonLine = page.getByTestId('live-dome').getByTestId('chart-legend').locator('[data-body="moon"]');
+    await expect(page.getByTestId('chart-legend').locator('button[data-pass-id^="25544-"]')).toContainText('ISS (Zarya)');
+    const moonLine = page.getByTestId('chart-legend').locator('[data-body="moon"]');
     if ((await moonLine.count()) > 0) await expect(moonLine).toHaveText(/Moon .+, \d+ % · az /);
     // FR-SHARE-1's live form.
     await expect(page.getByRole('button', { name: 'Share this sky' })).toBeVisible();
@@ -235,8 +235,8 @@ for (const width of [390, 1280] as const) {
      * is under the box on the phone and beside it at every wide width, which `live-rail.spec.ts` measures.
      */
     const box = await page.getByTestId('chart-box').boundingBox();
-    // R77: on wide the side column is the rail's head and foot, laid out inside the frame's column (`live-rail-head`).
-    const side = await page.getByTestId(width === 390 ? 'live-side' : 'live-rail-head').boundingBox();
+    // R132 (FR-FLOW-4): on the phone the list is under the box; on wide the rail's head stands beside it.
+    const side = await (width === 390 ? page.getByTestId('live-layout').locator('[data-slot="list"]') : page.getByTestId('live-rail-head')).boundingBox();
     if (width === 390) expect(side?.y).toBeGreaterThanOrEqual((box?.y ?? 0) + (box?.height ?? 0) - 1);
     else expect(side?.x).toBeGreaterThanOrEqual((box?.x ?? 0) + (box?.width ?? 0) - 1);
     await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
@@ -288,10 +288,10 @@ test.describe('the wide live page (R61)', () => {
     if (!row || !box) throw new Error('a row is missing');
     expect(row.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
   };
-  // R121 (FR-SKY-2 as amended v2.5, V25-17, D-834): the status slot stands in the box's top-left corner, over the
-  // drawing, with the readout inside it (the slot pads a cell at each side).
+  // R121 (FR-SKY-2 as amended v2.5, V25-17, D-834): the readout stands in the box's top-left corner, over the
+  // drawing, inside the layout's `readout` slot (R132, D-864; the slot pads a cell at each side).
   const inCorner = async (page: Page, box: { x: number; y: number; width: number; height: number } | null): Promise<void> => {
-    const slot = await page.getByTestId('chart-status').boundingBox();
+    const slot = await page.getByTestId('live-layout').locator('[data-slot="readout"]').boundingBox();
     const readout = await page.getByTestId('dome-readout').boundingBox();
     if (!slot || !readout || !box) throw new Error('a row is missing');
     expect(Math.abs(slot.x - box.x)).toBeLessThanOrEqual(1);
@@ -302,31 +302,21 @@ test.describe('the wide live page (R61)', () => {
   };
 
   /**
-   * The rail's rows, top to bottom, and every one of them beside the box rather than under it. The stripe
-   * block is a row under the box on every wide page (D-315, V12-12); `'in the rail'` is kept for the record.
+   * The rail's rows, top to bottom, and every one of them beside the box rather than under it. R132 (FR-FLOW-4
+   * wide, D-864): the stripe block is the rail's foot, under the conditions and above the actions, with the
+   * playback row on its clock row (V12-13) and the stripe under that; R61's row under the box (D-315) is gone.
    */
-  const expectTheRail = async (page: Page, box: { x: number; y: number; width: number; height: number } | null, stripe: 'in the rail' | 'under the box'): Promise<void> => {
+  const expectTheRail = async (page: Page, box: { x: number; y: number; width: number; height: number } | null): Promise<void> => {
     const strip = await page.getByTestId('status-strip').boundingBox();
     const block = await page.getByTestId('stripe-block').boundingBox();
     const playback = await page.getByTestId('playback-row').boundingBox();
     const actions = await page.getByTestId('live-actions').boundingBox();
-    for (const row of [strip, actions]) rightOf(row, box);
-    below(actions, strip);
-    if (stripe === 'in the rail') {
-      rightOf(block, box);
-      rightOf(playback, box);
-      below(block, strip);
-      below(playback, block);
-      below(actions, playback);
-    } else {
-      // V12-13: the playback row is the stripe block's, on the clock's row above the stripe, under the box.
-      below(block, box);
-      expect(block?.x ?? 0).toBeCloseTo(box?.x ?? -1, 0);
-      expect(block?.width ?? 0).toBeCloseTo(box?.width ?? -1, 0);
-      band(playback, block);
-      const stripeRows = await page.getByTestId('time-stripe').boundingBox();
-      below(stripeRows, playback);
-    }
+    for (const row of [strip, block, playback, actions]) rightOf(row, box);
+    below(block, strip);
+    band(playback, block);
+    const stripeRows = await page.getByTestId('time-stripe').boundingBox();
+    below(stripeRows, playback);
+    below(actions, block);
   };
 
   /** FR-TRAJ-4: whatever cadence the stripe's width buys, no label is drawn over the one beside it. */
@@ -339,20 +329,20 @@ test.describe('the wide live page (R61)', () => {
     }
   };
 
-  test('at 1920 × 1080: one row above the box, the strip and the actions in the rail beside it, the stripe under the box with the playback on its clock row, nothing scrolls, no stepping row', async ({ page }) => {
+  test('at 1920 × 1080: the view row in the rail beside the box, the strip and the actions with it, the stripe at the rail’s foot with the playback on its clock row, nothing scrolls, no stepping row', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
     await domeDrawn(page);
     await stripFilled(page);
-    // R77 (FR-WATCH-4): the stripe block under the box is the scrubbing state's.
+    // R77 (FR-WATCH-4): the stripe block is the scrubbing state's.
     await enterScrubbing(page);
     const toggle = await page.getByRole('group', { name: 'Chart view' }).boundingBox();
     const box = await page.getByTestId('chart-box').boundingBox();
-    // One row above: the control alone, the box right under it, and the readout in the box's corner (D-834).
-    below(box, toggle);
+    // R132 (FR-FLOW-4 wide): the view control is the rail's `View` row, beside the box; the readout in the box's corner (D-834).
+    rightOf(toggle, box);
     await inCorner(page, box);
-    await expectTheRail(page, box, 'under the box');
+    await expectTheRail(page, box);
     await expectLabelsClear(page);
     // The hidden-objects toggle is with the actions in the rail (V12-13). R70 (FR-TRAJ-5 as amended v1.4,
     // V14-6): the stepping row is under the stripe on a pointer too — `pass ▶|` is a control a mouse has no
@@ -360,11 +350,11 @@ test.describe('the wide live page (R61)', () => {
     await expect(page.getByTestId('live-actions').getByTestId('live-hidden-toggle')).toBeVisible();
     await expect(page.getByTestId('step-controls')).toBeVisible();
     await expect(page.getByRole('slider', { name: 'Night overview' })).toBeVisible();
-    // The box is the dome's shape and reaches the page's bottom through the stripe (D-314), and the page does not scroll.
-    await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
+    // The box is the dome's shape (D-314); the rail's foot reaches the page's bottom, and the page does not scroll.
     expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(DOME_BOX_ASPECT, 2);
-    const stripeBlock = await page.getByTestId('stripe-block').boundingBox();
-    expect(1080 - ((stripeBlock?.y ?? 0) + (stripeBlock?.height ?? 0))).toBeLessThanOrEqual(24);
+    // The hint's row under the box is the layout's last, so the foot ends a hint's row above the page's padding.
+    const foot = await page.getByTestId('live-rail-foot').boundingBox();
+    expect(1080 - ((foot?.y ?? 0) + (foot?.height ?? 0))).toBeLessThanOrEqual(48);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1080);
   });
 
@@ -374,7 +364,7 @@ test.describe('the wide live page (R61)', () => {
    * so this width gets the same rail as 1920 does, and this test fails on the old rule: it asserted
    * `data-columns='one'` and no `chart-aside`, and both are gone.
    */
-  test('at 1280 × 800: the rail beside the box, the stripe under it with the playback on its clock row, and no label over another', async ({ page }) => {
+  test('at 1280 × 800: the rail beside the box, the stripe at its foot with the playback on its clock row, and no label over another', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
@@ -385,22 +375,21 @@ test.describe('the wide live page (R61)', () => {
     const box = await page.getByTestId('chart-box').boundingBox();
     const stripe = await page.getByTestId('time-stripe').boundingBox();
     const clock = await page.getByTestId('time-readout').boundingBox();
-    below(box, toggle);
+    rightOf(toggle, box);
     await inCorner(page, box);
-    await expectTheRail(page, box, 'under the box');
-    // The legend is in that column too, over the rail's foot (FR-LEG-2 as amended v1.4; R77: the head above it).
+    await expectTheRail(page, box);
+    // The legend is in that column too, over the rail's foot (FR-LEG-2 as amended v1.4; R132: in the `list` slot, above the conditions).
     const rail = await page.getByTestId('live-rail-foot').boundingBox();
-    const legend = await page.getByTestId('chart-legend-scroll').boundingBox();
+    const legend = await page.getByTestId('chart-legend-slot').boundingBox();
     rightOf(legend, box);
     below(rail, legend);
     // The block stacks: the clock readout over the stripe.
     below(stripe, clock);
     await expectLabelsClear(page);
-    // The box is the dome's shape (D-314) and reaches the page's bottom through the stripe. The page does not scroll.
-    await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
+    // The box is the dome's shape (D-314); the rail's foot reaches the page's bottom. The page does not scroll.
     expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(DOME_BOX_ASPECT, 2);
-    const block = await page.getByTestId('stripe-block').boundingBox();
-    expect(800 - ((block?.y ?? 0) + (block?.height ?? 0))).toBeLessThanOrEqual(24);
+    const foot = await page.getByTestId('live-rail-foot').boundingBox();
+    expect(800 - ((foot?.y ?? 0) + (foot?.height ?? 0))).toBeLessThanOrEqual(48);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(800);
   });
 });

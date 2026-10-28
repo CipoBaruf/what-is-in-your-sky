@@ -73,7 +73,8 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
     await expect(page$(page)).toBeVisible();
     const sky = drawing(page);
     await expect.poll(async () => (await box(sky)).width).toBeGreaterThan(400);
-    const [drawn, rail, readout] = await Promise.all([box(sky), box(page.getByTestId('stars-rail')), box(page.getByTestId('window-readout'))]);
+    // R132 (FR-FLOW-4, D-842): the rail is the layout's — its first slot, the `h1` block, stands where the rail does.
+    const [drawn, rail, readout] = await Promise.all([box(sky), box(page.getByTestId('stars-layout').locator('[data-slot="answer"]')), box(page.getByTestId('window-readout'))]);
     // The box has the browser window's shape (fitBox), the rail stands beside it at 44 cells or more.
     expect(Math.abs(drawn.width / drawn.height - DESK.width / DESK.height)).toBeLessThan(0.02);
     expect(rail.x).toBeGreaterThanOrEqual(drawn.x + drawn.width);
@@ -83,8 +84,8 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
     expect(readout.x).toBeGreaterThanOrEqual(drawn.x - 0.5);
     expect(readout.y).toBeGreaterThanOrEqual(drawn.y - 0.5);
     expect(readout.y + readout.height).toBeLessThan(drawn.y + drawn.height / 4);
-    // The rail's three blocks, in order (FR-STAR-3).
-    await expect(page.getByTestId('stars-rail').getByRole('heading', { level: 2 })).toHaveText([WORDS.en.facing, WORDS.en.layers, WORDS.en.field]);
+    // The rail's three blocks, in order (FR-STAR-3): the layout's `Facing` label (D-846), then the page's two.
+    await expect(page.getByTestId('stars-layout').getByRole('heading', { level: 2 })).toHaveText([WORDS.en.facing, WORDS.en.layers, WORDS.en.field]);
     expect(await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight)).toBeLessThanOrEqual(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
   });
@@ -183,7 +184,7 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
 test.describe('the stars page on a phone, 390 × 844 (US-39 AC3)', () => {
   test.use({ viewport: PHONE, hasTouch: true });
 
-  test('opens from the home’s Stars door, and lays out the readout, the box full-bleed and square, then the rows', async ({ page }) => {
+  test('opens from the home’s Stars door, and lays out the readout, the box full-bleed, then the rows', async ({ page }) => {
     await asReader(page);
     await page.goto('/');
     // R130 (FR-FLOW-1): the When pane's "Stars tonight · [ look up ]" gave way to the Stars door.
@@ -195,13 +196,14 @@ test.describe('the stars page on a phone, 390 × 844 (US-39 AC3)', () => {
     await expect.poll(async () => (await box(sky)).width).toBe(PHONE.width);
     const [drawn, readout, facing, layers] = await Promise.all([box(sky), box(page.getByTestId('window-readout')), box(page.getByRole('group', { name: WORDS.en.facing })), box(page.getByTestId('stars-layers'))]);
     expect(drawn.x).toBe(0);
-    expect(Math.abs(drawn.height - drawn.width)).toBeLessThanOrEqual(1);
-    // The readout above the box, the facing row and the layers' three rows under it (R126's [ passes ] the third), each on one line.
+    // R132 (FR-FLOW-8): no taller than wide — four to three for now, R133's call — so `In this field` starts inside the first screen.
+    expect(drawn.height).toBeLessThanOrEqual(drawn.width + 1);
+    // The readout above the box; under it the facing row, the hint, then the layers' two rows (FR-FLOW-8), each on one line.
     expect(readout.y + readout.height).toBeLessThanOrEqual(drawn.y + 0.5);
     expect(facing.y).toBeGreaterThanOrEqual(drawn.y + drawn.height - 0.5);
     expect(facing.height).toBeLessThanOrEqual(48 + 1);
     expect(layers.y).toBeGreaterThanOrEqual(facing.y + facing.height - 0.5);
-    expect(layers.height).toBeLessThanOrEqual(3 * 48 + 1);
+    expect(layers.height).toBeLessThanOrEqual(2 * 48 + 6 + 1);
     // The drawing is on the first screen; the list follows under the fold.
     expect(drawn.y + drawn.height).toBeLessThanOrEqual(PHONE.height);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
@@ -219,15 +221,16 @@ test.describe('both languages (FR-STAR-10, FR-A11Y-3)', () => {
     await page.getByTestId('stars-link').click();
     await expect(page).toHaveTitle(`Estrellas · ${WORDS.es.app}`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(WORDS.es.heading);
-    await expect(page.getByTestId('stars-rail').getByRole('heading', { level: 2 })).toHaveText([WORDS.es.facing, WORDS.es.layers, WORDS.es.field]);
+    // R132 (D-846): the rail labels the facing row `Hacia`; the picker's own name stays `Mirando`.
+    await expect(page.getByTestId('stars-layout').getByRole('heading', { level: 2 })).toHaveText(['Hacia', WORDS.es.layers, WORDS.es.field]);
     await expect(page.getByRole('group', { name: WORDS.es.facing }).getByRole('button').last()).toHaveText(WORDS.es.up);
     await expect(page.getByRole('group', { name: WORDS.es.layers }).getByRole('button')).toHaveText(WORDS.es.layerNames.map((name) => name));
     const rows = page.getByRole('list', { name: WORDS.es.field }).getByRole('button');
     await expect.poll(async () => rows.count()).toBeGreaterThan(0);
     for (const label of await rows.evaluateAll((buttons) => buttons.map((b) => b.getAttribute('aria-label') ?? ''))) expect(label).toMatch(WORDS.es.row);
     // No English word of the page's own on it.
-    const rail = (await page.getByTestId('stars-rail').textContent()) ?? '';
-    for (const word of ['Facing', 'Layers', 'In this field', 'figures', 'planets', ' up ']) expect(rail).not.toContain(word);
+    const rail = (await page.getByTestId('stars-layout').textContent()) ?? '';
+    for (const word of ['Facing', 'Layers', 'In this field', 'figures', 'planets', ' up ', 'Drag ']) expect(rail).not.toContain(word);
   });
 });
 

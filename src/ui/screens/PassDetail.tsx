@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocale, useT } from '../../i18n/useT';
 import { landmarkLine, landmarkNames } from '../../lib/landmarkLine';
@@ -10,6 +10,8 @@ import { Countdown } from '../components/common/Countdown';
 import { Header } from '../components/common/Header';
 import { ShareButton } from '../components/common/ShareButton';
 import { GuidePanel } from '../components/guide/GuidePanel';
+import { GuideText } from '../components/guide/GuideText';
+import { TimesRow } from '../components/guide/TimesRow';
 import { useLayoutMode } from '../hooks/useLayoutMode';
 import { useNow } from '../hooks/useNow';
 import { useOpenerFocus } from '../hooks/useOpenerFocus';
@@ -17,14 +19,16 @@ import { MoonAtPeak } from '../components/moon/MoonAtPeak';
 import { MoonGlareNote } from '../components/moon/MoonGlare';
 import { PassNumbers } from '../components/guide/PassNumbers';
 import { useAppStore } from '../../state';
-import { ChartFrameSlots } from '../components/guide/skychart/ChartFrame';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { PEAK_FACING_OPTIONS } from '../components/guide/skychart/SkyChart.types';
+import { shownChartView, useChartHand } from '../components/guide/skychart/useChartHand';
 import { useSkyBodies } from '../components/guide/skychart/useSkyBodies';
 import { useSkyScene } from '../components/guide/skychart/useSkyScene';
 import { StarsToggle } from '../components/live/StarsToggle';
 import { useStarSource } from '../components/live/useStarSource';
 import { SkyScreen } from '../components/screen/SkyScreen';
+import { SkyHint, useSkyHintShown } from '../components/sky/SkyHint';
+import { SkyViewChartSlot, SkyViewLayout } from '../components/sky/SkyViewLayout';
 import styles from './PassDetail.module.css';
 
 /**
@@ -122,7 +126,6 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   const starSource = useStarSource(true);
   // FR-SKY-11 (D-796): the explained pass is the highlighted one, so the scene's landmark is its peak's.
   const scene = useSkyScene({ observer, now: drawnNow, starsLayer, source: starSource, pass });
-  const slots = useMemo(() => ({ viewAction: <StarsToggle inline={compact} /> }), [compact]);
   const { lat, lon } = observer;
   // FR-SKY-11: the line under the pass's name, worded once (`lib/landmarkLine.ts`) in the active language (D-832).
   const landmarkText = useMemo(() => {
@@ -224,37 +227,88 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
     };
   }, [compact]);
 
-  const body = (
-    <>
-      {/* R127 (FR-SKY-11): the landmark line under the pass's name, on both shells. */}
-      {landmarkText !== null && (
-        <p className={styles.landmark} data-testid="pass-landmark">
-          {landmarkText}
-        </p>
-      )}
-      <p className={styles.meta}>
-        {formatDate(pass.start.t, timeZone, locale)}
+  /*
+   * R132 (FR-FLOW-4, FR-FLOW-7; D-842, D-849): the guide is `SkyViewLayout`'s slots. The head — the name, the
+   * countdown line at the headline size, the landmark line, the three times — is `answer` on compact and the
+   * panel's band on wide; the view row is the chart's control with `[x] stars` at its end; the readout and the
+   * facing picker are the chart's, placed by the layout; the hint is the layout's `SkyHint`; the prose, the glare
+   * sentence and the table of points are `list`, the Moon line and the share action `foot`. The chart is `fill`:
+   * the box is the layout's to size (a square on the phone, the panel's remaining height on a desk).
+   */
+  const chartHand = useChartHand();
+  const chartView = useAppStore((s) => s.chartView);
+  const view = shownChartView(compact, chartHand.window, chartView);
+  const hintShown = useSkyHintShown(view);
+  const proseId = useId();
+  const landmark =
+    landmarkText !== null ? (
+      <p className={styles.landmark} data-testid="pass-landmark">
+        {landmarkText}
+      </p>
+    ) : null;
+  // The date is the compact header's (R129); the band keeps it on wide. The twilight label stays on both.
+  const meta =
+    !compact || pass.twilight ? (
+      <p className={styles.meta} data-testid="pass-meta">
+        {!compact && formatDate(pass.start.t, timeZone, locale)}
         {pass.twilight && <span className={styles.twilight}>{t.passes.twilightLabel}</span>}
       </p>
-      <Countdown pass={pass} now={now} timeZone={timeZone} />
-      {/* R121 (FR-SKY-7, D-790): the window here faces the pass's peak and its facing picker offers `peak` first. */}
-      <ChartFrameSlots.Provider value={slots}>
-        <SkyChart
-          passes={[pass]}
-          observer={observer}
-          highlightedPassId={pass.id}
-          now={drawnNow}
-          sun={bodies.sun}
-          moon={bodies.moon}
-          scene={scene}
-          facingOptions={PEAK_FACING_OPTIONS}
-          legendLead={(row) => <PassNumbers pass={pass} timeZone={timeZone} legendKey={row.key} colorToken={row.colorToken} among={among} />}
-        />
-      </ChartFrameSlots.Provider>
-      <MoonAtPeak moon={pass.moonAtPeak} variant="guide" />
+    ) : null;
+  const countdown = <Countdown pass={pass} now={now} timeZone={timeZone} steps={false} />;
+  const times = <TimesRow pass={pass} timeZone={timeZone} />;
+  const viewRow = (
+    <>
+      <SkyViewChartSlot name="control" />
+      <StarsToggle />
+    </>
+  );
+  // R121 (FR-SKY-7, D-790): the window here faces the pass's peak and its facing picker offers `peak` first.
+  const chart = (
+    <SkyChart
+      passes={[pass]}
+      observer={observer}
+      highlightedPassId={pass.id}
+      now={drawnNow}
+      sun={bodies.sun}
+      moon={bodies.moon}
+      scene={scene}
+      fill
+      chartHand={chartHand}
+      facingOptions={PEAK_FACING_OPTIONS}
+      legendLead={(row) => <PassNumbers pass={pass} timeZone={timeZone} legendKey={row.key} colorToken={row.colorToken} among={among} />}
+    />
+  );
+  const list = (
+    <>
+      <GuideText pass={pass} timeZone={timeZone} id={proseId} />
+      {/* R30 (FR-MOON-2): the glare sentence directly under the FR-GUIDE-1 sentence. */}
       <MoonGlareNote moon={pass.moonAtPeak} glare={pass.moonGlare} />
+      {/* R51 (FR-LEG-3): the table of points is the chart's legend, placed here. */}
+      <SkyViewChartSlot name="list" />
+    </>
+  );
+  const foot = (
+    <>
+      <MoonAtPeak moon={pass.moonAtPeak} variant="guide" />
       <ShareButton url={shareUrl(window.location.href, passLinkFor(observer, pass))} title={t.share.title({ name: pass.name })} text={t.guide.sentence(guideParams(pass, timeZone, locale))} />
     </>
+  );
+  const layout = (answer: ReactNode, wide: 'rail' | 'panel') => (
+    <SkyViewLayout
+      wide={wide}
+      describedBy={proseId}
+      labelledBy={headingId}
+      data-testid="pass-layout"
+      className={styles.layout}
+      {...(answer === null ? {} : { answer })}
+      viewRow={viewRow}
+      readout={<SkyViewChartSlot name="readout" />}
+      drawing={chart}
+      picker={<SkyViewChartSlot name="picker" />}
+      hint={hintShown && <SkyHint view={view} />}
+      list={list}
+      foot={foot}
+    />
   );
 
   // The screen is the same layer on both shells; the sheet is what has a scroll to hold still.
@@ -263,8 +317,23 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
   if (!compact) {
     return (
       <>
-        <GuidePanel passId={pass.id} name={pass.name} headingId={headingId} headingRef={headingRef} onClose={onClose} onShowList={onShowList}>
-          {body}
+        <GuidePanel
+          passId={pass.id}
+          name={pass.name}
+          headingId={headingId}
+          headingRef={headingRef}
+          onClose={onClose}
+          onShowList={onShowList}
+          head={
+            <>
+              {countdown}
+              {landmark}
+              {meta}
+            </>
+          }
+          times={times}
+        >
+          {layout(null, 'panel')}
         </GuidePanel>
         {screen}
       </>
@@ -279,10 +348,19 @@ export function PassDetail({ pass, observer, onClose, onShowList, inert = false 
             `[ ← ]`, `pass` and the pass's date. The language and theme switches that opened the page are the settings
             page's alone (V26-10). A `div`: the page behind the sheet has the `banner`. */}
         <Header page="pass" landmark={false} context={formatDate(pass.start.t, timeZone, locale)} onBack={onClose} />
-        <h2 id={headingId} ref={headingRef} tabIndex={-1} className={styles.heading}>
-          {pass.name}
-        </h2>
-        {body}
+        {layout(
+          <div className={styles.head} data-testid="pass-head">
+            {/* FR-FLOW-7: the name is the sheet's `h1` — the sheet is the whole screen, and the page behind it is inert. */}
+            <h1 id={headingId} ref={headingRef} tabIndex={-1} className={styles.heading}>
+              {pass.name}
+            </h1>
+            {countdown}
+            {landmark}
+            {times}
+            {meta}
+          </div>,
+          'rail',
+        )}
       </div>
     </div>
     {screen}

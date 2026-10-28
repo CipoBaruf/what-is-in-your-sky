@@ -401,17 +401,7 @@
   min-height: var(--tap);
 }
 
-.handHint {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  margin: 0;
-  padding: 0 var(--cell);
-  color: var(--fg-dim);
-  font-size: var(--small);
-  line-height: var(--small-row);
-  pointer-events: none;
-}
+/* R132 (FR-FLOW-6, D-848): R121's `.handHint` in the box's corner is gone; the hint is the layout's `SkyHint`. */
 
 .readout {
   margin: 0;

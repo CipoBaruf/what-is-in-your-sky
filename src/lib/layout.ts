@@ -393,8 +393,8 @@ export const LIVE_SCRUB_BLOCK_PX = liveKeptPx('scrubbing') - liveKeptPx('watchin
  * reader's own tap (FR-WATCH-5). The mode is asked first: a short wide window is landscape and under 500 px
  * too, and it is not a phone (FR-SHP-1).
  *
- * `boxHeightPx` is the height the frame has measured for the box with nothing under it and nothing folded
- * (`unfoldedBoxHeightPx`), so the answer is the same in both states and the box never moves on it. Before the
+ * `boxHeightPx` is the height the frame has measured for the box with nothing under it (R132: a fold gives the box
+ * nothing back, D-864), so the answer is the same in both states and the box never moves on it. Before the
  * frame has measured — the first render, jsdom — it is `null` and the block is under the box, as it always was.
  */
 export type ScrubPlacement = 'under' | 'rail' | 'overlay';
@@ -435,15 +435,6 @@ export const LIVE_FOLD_GIVES_PX: Readonly<Record<LiveFold, number>> = {
 const LIVE_FOLD_ACTIONS_UNDER_PX = TAP_PX;
 
 /**
- * The frame's measurement with the fold taken back out: what the box would have with nothing under it on the
- * unfolded page. The fold changes the rows the frame is measured under, so the decision is made on this, which
- * the fold does not move — otherwise folding would give the box the height that unfolds it again.
- */
-export function unfoldedBoxHeightPx(measuredPx: number, folded: readonly LiveFold[]): number {
-  return measuredPx - folded.reduce((sum, row) => sum + LIVE_FOLD_GIVES_PX[row], 0);
-}
-
-/**
  * FR-SHP-3: which rows the wide page folds with `boxHeightPx` for the box (as `scrubPlacement` reads it) — the
  * head of the order, as far as the height asks. `controls` folds exactly where the scrub block is an overlay,
  * in both states, so the box is one height in the two (FR-WATCH-6); `actions` a row of tap targets under that.
@@ -473,3 +464,23 @@ export function foldBelowPx(row: LiveFold): number {
  * site has; past it the page may scroll, since what grows it is the reader's own list.
  */
 export const SETTINGS_FIT_PLACES = 2;
+
+/**
+ * R132 (FR-FLOW-7, D-849): on compact the pass detail's drawing has its top edge at or above this, in both
+ * languages, at 390 × 844 — so the chart is on the first screen. The head above it is the top row (48), the name,
+ * the countdown line at the headline size (48), the landmark line (one or two lines), the three-cell times row and
+ * the view row (48) with the readout under it: about 400 px in English, and the longer Spanish landmark line keeps
+ * it under 480, which still leaves the drawing's upper half — the horizon and the arc's rise — on an 844 px screen.
+ */
+export const DETAIL_DRAWING_TOP_PX = 480;
+
+/**
+ * R132 (FR-FLOW-7, D-849): on wide the guide panel's drawing is at least this share of the area the panel has under
+ * its head band — its body — at 1280 × 800. The panel is the home's right-hand column, 818 × 442 px there; the band
+ * (the name, the countdown at the headline size, the landmark line, the three times) is a third of it, and the one
+ * control line and the hint under the box take another 80 px of the body, so a drawing at the panel's full width
+ * and the rest of the body's height is about 0.65 — the number says the drawing, not the prose, is what the panel
+ * is for (F10, F11). Of the whole panel the same drawing is about 0.45, which no head the requirement allows can
+ * raise to 0.6: the share is read against the body (R132's summary records the reading).
+ */
+export const DETAIL_DRAWING_MIN_SHARE = 0.6;

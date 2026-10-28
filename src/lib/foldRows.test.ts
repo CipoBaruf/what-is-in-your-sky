@@ -26,7 +26,6 @@ import {
   liveKeptPx,
   ROW_PX,
   TAP_PX,
-  unfoldedBoxHeightPx,
 } from './layout';
 
 const tokens = readFileSync('src/ui/styles/tokens.css', 'utf8');
@@ -118,17 +117,9 @@ describe('the box floor and the fold (FR-SHP-3)', () => {
     expect(foldBelowPx('controls')).toBe(FLOOR);
   });
 
-  it('gives the box back what the control rows let out, and takes it out of the measurement again', () => {
+  it('gives the box back what the control rows let out', () => {
     // Two rows of 48 at 24, two gaps of 6 at 4, less the 6 px the page's foot grows by: at 1200 × 450, 330 to 376.
     expect(LIVE_FOLD_GIVES_PX.controls).toBe(46);
     expect(LIVE_FOLD_GIVES_PX.actions).toBe(0);
-    expect(unfoldedBoxHeightPx(376, ['controls', 'actions'])).toBe(330);
-    expect(unfoldedBoxHeightPx(330, [])).toBe(330);
-    // The decision is the same from either side of the fold, so folding cannot unfold itself.
-    for (let height = 0; height <= 1200; height += 1) {
-      const folded = foldRows(height, WIDE_ROWS);
-      const measured = height + folded.reduce((sum, row) => sum + LIVE_FOLD_GIVES_PX[row], 0);
-      expect(foldRows(unfoldedBoxHeightPx(measured, folded), WIDE_ROWS)).toEqual(folded);
-    }
   });
 });

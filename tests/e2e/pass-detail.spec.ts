@@ -67,11 +67,11 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   expect(await page.evaluate(() => document.querySelector('canvas'))).toBeNull();
   const figure = dialog.getByRole('figure');
   await expect(figure).toHaveAttribute('data-view', 'dome');
-  const views = figure.getByRole('group', { name: 'Chart view' });
+  const views = dialog.getByRole('group', { name: 'Chart view' });
   await views.getByRole('button', { name: 'Polar' }).click();
   await expect(figure).toHaveAttribute('data-view', 'polar');
   await expect(views.getByRole('button', { name: 'Polar' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(figure.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
+  await expect(dialog.getByTestId('guide-sentence')).toHaveText(golden.en.asComputed);
   const drawing = figure.locator('svg[data-drawing="polar"]');
   await expect(drawing).toHaveAttribute('aria-hidden', 'true');
   for (const cardinal of ['N', 'E', 'S', 'W']) await expect(drawing.locator(`[data-anchor="${cardinal}"]`)).toHaveText(cardinal);
@@ -80,9 +80,9 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
   await expect(drawing.locator(`[data-pass-id="${passId}"] [data-anchor="key"]`)).toHaveText('A');
   await expect(drawing.locator('[data-anchor="pass"]')).toHaveCount(0);
   await expect(drawing.locator('[data-anchor="peak"]')).toHaveCount(0);
-  await expect(figure.getByTestId('legend-lead').getByRole('table')).toBeVisible();
-  await expect(figure.getByTestId('legend-lead').locator('caption')).toContainText('A');
-  await expect(figure.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toHaveCount(0);
+  await expect(dialog.getByTestId('legend-lead').getByRole('table')).toBeVisible();
+  await expect(dialog.getByTestId('legend-lead').locator('caption')).toContainText('A');
+  await expect(dialog.getByTestId('chart-legend').locator(`button[data-pass-id="${passId}"]`)).toHaveCount(0);
   for (const marker of ['rise', 'peak', 'end', 'arrow']) await expect(drawing.locator(`[data-marker="${marker}"]`)).toHaveCount(1);
   const box = await drawing.boundingBox();
   if (!box) throw new Error('drawing has no box');
@@ -92,13 +92,13 @@ test('opening the golden ISS pass shows the golden guide sentence, mirrors the h
 
   // FR-GUIDE-4: looking up by default (east on the left); the toggle flips it, relabels the convention, and the choice survives a reload.
   const eastX = async (): Promise<number> => (await drawing.locator('[data-anchor="E"]').boundingBox())?.x ?? NaN;
-  const orientation = figure.getByRole('group', { name: 'Chart orientation' });
+  const orientation = dialog.getByRole('group', { name: 'Chart orientation' });
   await expect(orientation.getByRole('button', { name: 'Looking up' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(figure.getByTestId('chart-convention')).toHaveText('Looking up: east on the left, as when lying on your back.');
+  await expect(dialog.getByTestId('chart-convention')).toHaveText('Looking up: east on the left, as when lying on your back.');
   expect(await eastX()).toBeLessThan(box.x + box.width / 2);
   await orientation.getByRole('button', { name: 'Map' }).click();
   await expect(orientation.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true');
-  await expect(figure.getByTestId('chart-convention')).toHaveText('Map: east on the right, as on a map.');
+  await expect(dialog.getByTestId('chart-convention')).toHaveText('Map: east on the right, as on a map.');
   expect(await eastX()).toBeGreaterThan(box.x + box.width / 2);
   expect(JSON.parse(await page.evaluate(() => window.localStorage.getItem('wiys:prefs:v1') ?? '{}'))).toMatchObject({ chartOrientation: 'map' });
   await figure.evaluate((el) => el.scrollIntoView({ block: 'start' }));

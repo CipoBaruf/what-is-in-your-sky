@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '../../../../i18n/useT';
 import { bodyLines, legendKeys, legendRows, promoteRow } from '../../../../lib/legend';
-import { compactChartView, type ChartView } from '../../../../model';
+import type { ChartView } from '../../../../model';
 import { useAppStore } from '../../../../state';
 import { DEFAULT_CHART_VIEW } from '../../../../state/slices/prefs';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
@@ -9,12 +9,13 @@ import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { useSkyScreen } from '../../screen/useSkyScreen';
 import { GuideText } from '../GuideText';
 import { moonVisible, sunVisible } from './bodies';
-import { ChartFrame, ChartFrameSlots } from './ChartFrame';
+import { useChartSlot } from '../../sky/SkyViewLayout';
+import { ChartFrame, ChartFrameSlots, LEGEND_PANEL_ID } from './ChartFrame';
 import { Legend } from './Legend';
 import { POLAR_VIEW } from './polar/SkyPolar';
 import styles from './SkyChart.module.css';
 import type { SkyChartProps, SkyChartView } from './SkyChart.types';
-import { useChartHand } from './useChartHand';
+import { shownChartView, useChartHand } from './useChartHand';
 import { useSkyBodies } from './useSkyBodies';
 
 /**
@@ -202,19 +203,25 @@ export function SkyChart(props: SkyChartProps) {
   const refocus = useAppStore((s) => s.refocusWindow);
   const windowRefocused = useAppStore((s) => s.windowRefocused);
   const figureRef = useRef<HTMLElement>(null);
+  // R132 (D-842): the control may stand in the page's view row rather than in the figure; the slot says where.
+  const controlSlot = useChartSlot('control');
+  const controlTarget = controlSlot.target;
+  const inLayoutForFocus = controlSlot.inLayout;
   useEffect(() => {
     if (props.screen === true || !refocus) return;
-    const group = figureRef.current;
+    // In a layout the option lands in the page's slot a commit after this chart mounts: the flag waits for it.
+    if (inLayoutForFocus && controlTarget === null) return;
+    const group = controlTarget ?? figureRef.current;
     (group?.querySelector<HTMLElement>('[data-option="window"]') ?? group?.querySelector<HTMLElement>('[data-option]'))?.focus();
     windowRefocused();
-  }, [refocus, props.screen, windowRefocused]);
+  }, [refocus, props.screen, windowRefocused, controlTarget, inLayoutForFocus]);
   // FR-FSC-1 / D-322 (R62): asked for a screen the chart is the window and nothing else — `viewFor` is not consulted,
   // so the saved preference is neither read for the view nor written on the way (FR-WIN-5 as amended).
   const screen = props.screen ?? false;
   const moonPhase = props.moonPhase ?? false;
   // D-789: on compact the saved view is never the window (the store's guard reads a stored one as the dome at load;
   // a window saved on wide and then narrowed draws as the dome too) — the window there is this chart's own choice.
-  const pageView: ChartView = compact ? (handWindow ? 'window' : compactChartView(chartView)) : chartView;
+  const pageView: ChartView = shownChartView(compact, handWindow, chartView);
   const view = screen ? WINDOW_VIEW : viewFor(pageView);
   const choose = useCallback(
     (id: ChartView) => {
@@ -306,7 +313,20 @@ export function SkyChart(props: SkyChartProps) {
   // page (`fill`) they go to the view for the frame's controls slot, so the row above the drawing is one row.
   // D-322: a screen has no controls at all — not in the figure, not in the frame's row — so there is nothing to build.
   const { viewAction } = useContext(ChartFrameSlots);
-  const viewControl = <ToggleGroup name={t.chart.viewGroup} {...(compact ? { gap: 'none' as const, inline: true } : { prefix: t.chart.viewPrefix })} options={SKY_CHART_VIEWS.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />;
+  /*
+   * R132 (FR-FLOW-4, D-842, D-846): inside a `SkyViewLayout` the chart draws none of its rows itself. The view
+   * control goes to the page's `viewRow` slot in the facing picker's idiom — the chosen view bracketed, the others
+   * plain, `Polar Dome [Window]`, a cell between — and the legend to the `list` slot; the views send their readout
+   * and their picker the same way (`useChartSlot`). The figure then has no caption and no controls row of its own:
+   * the page's prose is its description (`describedBy`), and the frame is the box alone.
+   */
+  const listSlot = useChartSlot('list');
+  const inLayout = controlSlot.inLayout;
+  const viewControl = inLayout ? (
+    <ToggleGroup name={t.chart.viewGroup} mark="tight" options={SKY_CHART_VIEWS.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
+  ) : (
+    <ToggleGroup name={t.chart.viewGroup} {...(compact ? { gap: 'none' as const, inline: true } : { prefix: t.chart.viewPrefix })} options={SKY_CHART_VIEWS.map((candidate) => ({ value: candidate.id, label: t.chart.view[candidate.id] }))} value={view.id} onChange={choose} />
+  );
   const chartControls = screen ? null : (
     <>
       {/*
@@ -341,6 +361,21 @@ export function SkyChart(props: SkyChartProps) {
   // stand one in — so they are dropped here rather than left for the frame to ignore.
   const { aside, stripe, chartHand: _chartHand, ...bare } = props;
   const forwarded = screen ? { ...bare, fill: true } : { ...bare, aside, stripe };
+  // R132 (D-842): in a layout the legend is the page's `list` slot's — the compact live page's panel keeps its id for `[ list (n) ]`'s `aria-controls` (FR-LEG-7).
+  const legendPlaced = inLayout && !screen;
+  const placedLegend = legendPlaced && legend !== null && props.legendOpen !== false ? (
+    <div className={styles.legendSlot} data-testid="chart-legend-slot" {...(props.legendOpen === undefined ? {} : { id: LEGEND_PANEL_ID })}>
+      {legend}
+    </div>
+  ) : null;
+  // R132 (D-864): in a layout the figure has no caption, so it is named by the page's heading where there is one (the pass's name), else as the live page's.
+  const { labelledBy, describedBy } = controlSlot;
+  const figureName =
+    inLayout && !screen
+      ? { ...(labelledBy === undefined ? (fill ? { 'aria-label': t.chart.liveLabel } : {}) : { 'aria-labelledby': labelledBy }), ...(describedBy === undefined ? {} : { 'aria-describedby': describedBy }) }
+      : fill
+        ? { 'aria-label': t.chart.liveLabel }
+        : {};
   return (
     <figure
       ref={figureRef}
@@ -348,12 +383,14 @@ export function SkyChart(props: SkyChartProps) {
       data-testid="sky-chart"
       data-view={view.id}
       data-screen={screen}
-      {...(fill ? { 'aria-label': t.chart.liveLabel } : {})}
+      {...figureName}
     >
-      {!fill && <figcaption className={styles.caption}>{captioned ? <GuideText pass={captioned} timeZone={observer.timeZone} /> : <p className={styles.empty}>{t.chart.noPass}</p>}</figcaption>}
-      {!fill && chartControls}
+      {!fill && !inLayout && <figcaption className={styles.caption}>{captioned ? <GuideText pass={captioned} timeZone={observer.timeZone} /> : <p className={styles.empty}>{t.chart.noPass}</p>}</figcaption>}
+      {!fill && !inLayout && chartControls}
+      {inLayout && !screen && controlSlot.place(chartControls)}
+      {listSlot.place(placedLegend)}
       {/* D-789: the hand camera's slot goes to the page's view and not to a screen, whose window is the sensor's. */}
-      <view.Component {...forwarded} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legend} onUnavailable={unavailable} {...(fill && !screen ? { controls: chartControls } : {})} {...(screen ? {} : { hand })} />
+      <view.Component {...forwarded} highlightedPassId={highlightedPassId} onSelectPass={select} sun={bodies.sun} moon={bodies.moon} legendKeys={keys} legend={legendPlaced ? null : legend} onUnavailable={unavailable} {...(fill && !screen && !inLayout ? { controls: chartControls } : {})} {...(screen ? {} : { hand })} />
     </figure>
   );
 }

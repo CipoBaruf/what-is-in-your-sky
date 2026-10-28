@@ -70,13 +70,13 @@ for (const width of [390, 1280] as const) {
 
         // What the capture is named after: the table at the head of the legend, keyed and swatched, directly under
         // the drawing, with no second row for the pass it explains and the two body lines under it (FR-LEG-3).
-        const lead = figure.getByTestId('legend-lead');
+        const lead = guide(page).getByTestId('legend-lead');
         await expect(lead.getByRole('table')).toBeVisible();
         await expect(lead.locator('caption')).toContainText('A');
         await expect(lead.locator('caption [data-color="pass"]')).toHaveCount(1);
         await expect(figure.locator(`[data-pass-id="${GLARE_PASS}"][data-anchor="key"]`)).toHaveText('A');
-        await expect(figure.getByTestId('chart-legend').locator(`button[data-pass-id="${GLARE_PASS}"]`)).toHaveCount(0);
-        for (const body of ['sun', 'moon']) await expect(figure.getByTestId('chart-legend').locator(`[data-body="${body}"]`)).toHaveCount(1);
+        await expect(guide(page).getByTestId('chart-legend').locator(`button[data-pass-id="${GLARE_PASS}"]`)).toHaveCount(0);
+        for (const body of ['sun', 'moon']) await expect(guide(page).getByTestId('chart-legend').locator(`[data-body="${body}"]`)).toHaveCount(1);
         const box = await figure.getByTestId('chart-box').boundingBox();
         const table = await lead.boundingBox();
         if (!box || !table) throw new Error('no chart box or table');
@@ -114,12 +114,12 @@ test('the pass detail at 1920 px, dark, en: the table under the drawing, not bes
   await page.clock.runFor(TICK_MS);
 
   const box = await figure.getByTestId('chart-box').boundingBox();
-  const lead = await figure.getByTestId('legend-lead').boundingBox();
+  const lead = await guide(page).getByTestId('legend-lead').boundingBox();
   if (!box || !lead) throw new Error('no chart box or table');
   expect(lead.y).toBeGreaterThanOrEqual(box.y + box.height);
   // The readout in the middle of the panel, which is what holds the dome and the table under it in one shot;
   // `scrollIntoViewIfNeeded` would not move at all here, since the readout is already on screen.
-  await figure.getByTestId('dome-readout').evaluate((el) => {
+  await guide(page).getByTestId('dome-readout').evaluate((el) => {
     el.scrollIntoView({ block: 'center' });
   });
   await page.mouse.move(0, 0);

@@ -167,6 +167,24 @@ describe('createLocalPrefs', () => {
     expect(prefs.read()).toEqual({ locale: 'es' });
   });
 
+  it('reads the sky hint as seen only when it is true, and as absent when it is false, missing or malformed (R132, FR-FLOW-6, D-848)', () => {
+    const storage = memoryStorage();
+    const prefs = createLocalPrefs(storage);
+    prefs.write({ theme: 'night', skyHintSeen: true });
+    expect(prefs.read()).toEqual({ theme: 'night', skyHintSeen: true });
+    // `false` is what an absent key means: the hint shows until the first gesture.
+    prefs.write({ skyHintSeen: false });
+    expect(prefs.read()).toEqual({});
+    // A record from before v2.6 has no field at all.
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night' }));
+    expect(prefs.read()).toEqual({ theme: 'night' });
+    // `.catch(false)`: a value that is not a boolean is no gesture, so the hint still shows and nothing else is lost.
+    storage.map.set(PREFS_KEY, JSON.stringify({ theme: 'night', skyHintSeen: 'yes' }));
+    expect(prefs.read()).toEqual({ theme: 'night' });
+    storage.map.set(PREFS_KEY, JSON.stringify({ locale: 'es', skyHintSeen: 1 }));
+    expect(prefs.read()).toEqual({ locale: 'es' });
+  });
+
   it('reads at most eight places, newest use first, whatever the stored list says (R26, D-85)', () => {
     const storage = memoryStorage();
     const prefs = createLocalPrefs(storage);

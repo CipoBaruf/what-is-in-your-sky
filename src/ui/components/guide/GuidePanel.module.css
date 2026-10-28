@@ -37,12 +37,39 @@
   margin-top: 0;
 }
 
-/* The name at the left, the close control at the right, on one line. */
+/* R132 (D-849): the body is the sky view layout's panel; its drawing is measured against this box's height
+   (`--sky-drawing-h`), so the box's own scroll padding stays out of the sum. */
+.body {
+  padding-right: var(--cell);
+}
+
+/* R132 (FR-FLOW-7, D-849): the head is one band — the name with the countdown and the landmark line under it at
+   the left, the three times at the right, the close control last. */
 .head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: var(--space-1) calc(2 * var(--cell));
+}
+
+/* The name keeps a column to read in — 36 cells, the compact row's width — and the times beside it wrap their cells
+   before the name wraps its letters; in a panel too narrow for both, the times go under. */
+.lead {
+  flex: 2 1 calc(36 * var(--cell));
+  min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
-  gap: 0 calc(2 * var(--cell));
+  gap: var(--space-1);
+}
+
+/* The times start at 24 cells — two cells on a line — and wrap their third under; what the band has to spare they share with the name two to one. */
+.times {
+  flex: 1 1 calc(24 * var(--cell));
+  min-width: 0;
+  padding-top: var(--space-1);
+}
+
+.controls {
+  margin-left: auto;
 }
 
 .heading {

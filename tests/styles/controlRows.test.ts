@@ -74,6 +74,8 @@ const BUDGET = 36;
 const SMALL_BUDGET = Math.floor((BUDGET * 16) / 14);
 /** FR-COMP-7 (R85, D-549): the compact live page's top row and actions rows keep two cells of the 36 spare. */
 const LIVE_ROW_BUDGET = BUDGET - 2;
+/** R132 (FR-FLOW-4, D-846): the view row is 30 cells in English and 35 in Spanish, and the spec pins the Spanish number. */
+const VIEW_ROW_BUDGET = 35;
 /** R129 (FR-FLOW-3): the four pages under the home, each with the compact `[ ← ]` row. */
 const SUB_PAGES = ['live', 'stars', 'pass', 'settings'] as const satisfies readonly HeaderPage[];
 
@@ -308,15 +310,23 @@ const rows = (t: Messages): readonly Row[] => [
     budget: LIVE_ROW_BUDGET,
   },
   /*
-   * R123 (FR-SKY-3, FR-COMP-4; D-791, D-814): `[x] stars` / `[x] estrellas` after the chart view control on compact —
-   * the live page's and the pass detail's — `inline`, so beside the control's 33 cells it is the tap row's second text
-   * line: that line is counted, 9 cells in English, 13 in Spanish. The actions rows above stay as they were.
+   * R132 (FR-FLOW-4, D-846): the view row is one line — the view control in the facing picker's idiom, the chosen view
+   * bracketed and the others plain (`Polar Dome [Window]`, 19 cells; `Polar Domo [Ventana]`, 20), and `[x] stars` /
+   * `[x] estrellas` at the row's end: 30 cells in English and 35 in Spanish, the spec's numbers, on the live page and
+   * the pass detail. R123's `inline` second line is gone with the row.
    */
   {
-    name: 'the live view row’s [ stars ] line (FR-SKY-3)',
+    name: 'the live view row (FR-FLOW-4, D-846)',
     element: createElement(LivePage, { link: null, onLeave: noop }),
-    find: () => screen.getByTestId('stars-toggle'),
+    find: () => screen.getByTestId('live-layout').querySelector('[data-slot="viewRow"]') as Element,
     setUp: withLiveSky,
+    budget: VIEW_ROW_BUDGET,
+  },
+  {
+    name: 'the pass detail view row (FR-FLOW-4, D-846)',
+    element: createElement(PassDetail, { pass, observer, onClose: noop, onShowList: noop }),
+    find: () => screen.getByTestId('pass-layout').querySelector('[data-slot="viewRow"]') as Element,
+    budget: VIEW_ROW_BUDGET,
   },
   {
     name: 'the pass detail view row’s [ stars ] line (FR-SKY-3)',
@@ -361,8 +371,9 @@ const rows = (t: Messages): readonly Row[] => [
       appStore.setState({ observer });
     },
   },
-  // R126 (FR-SKY-6): `[x] passes` / `[x] pases` is the third row, alone: 10 and 8 cells.
-  ...([0, 1, 2] as const).map(
+  // R132 (FR-FLOW-8): two rows — three toggles then `names` and `passes` in English (33 and 19 cells), two then three in
+  // Spanish (25 and 34), the split cut to the budget by `firstRowCount`.
+  ...([0, 1] as const).map(
     (index): Row => ({
       name: `the stars layers row ${String(index + 1)} (FR-STAR-3, FR-SKY-6)`,
       element: createElement(StarsPage),
@@ -432,6 +443,34 @@ describe.each(LOCALES)('FR-FLOW-3: the four compact sub-page rows in %s', (local
     expect(cells, rowParts(row, table).join(' | ')).toBe(FIXED[locale][page] + 1 + context(page).length);
     expect(cells, `${page} at 390 px`).toBeLessThanOrEqual(Math.min(LIVE_ROW_BUDGET, rowCellsAt(390)));
     expect(cells, `${page} at 360 px`).toBeLessThanOrEqual(rowCellsAt(360));
+  });
+});
+
+/**
+ * R132 (FR-FLOW-4, D-846): the view row at 360 and 390 px in both languages, on the live page and the pass detail —
+ * `Polar Dome [Window]  [x] stars` is 30 cells and `Polar Domo [Ventana]  [x] estrellas` 35, the spec's numbers; at
+ * 390 px inside FR-COMP-4's 36, at 360 px inside what that width has on the widest font in the stack.
+ */
+describe.each(LOCALES)('FR-FLOW-4: the view row at 360 and 390 px in %s', (locale: Locale) => {
+  const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
+  // `cells.ts` counts one cell between a row's controls; the spec's 30 and 35 count the two the row's end leaves.
+  const EXPECTED: Record<Locale, number> = { en: 29, es: 34 };
+
+  it.each([
+    ['the live page', () => createElement(LivePage, { link: null, onLeave: noop }), 'live-layout', withLiveSky],
+    ['the pass detail', () => createElement(PassDetail, { pass, observer, onClose: noop, onShowList: noop }), 'pass-layout', noop],
+  ] as const)('%s: one line, the spec’s cells, inside both widths', (_name, element, layoutId, setUp) => {
+    setUp();
+    render(createElement(I18nProvider, { locale, children: element() }));
+    const row = screen.getByTestId(layoutId).querySelector('[data-slot="viewRow"]') as Element;
+    const cells = rowCells(row, table);
+    expect(cells, rowParts(row, table).join(' | ')).toBe(EXPECTED[locale]);
+    expect(cells, 'at 390 px').toBeLessThanOrEqual(Math.min(BUDGET, rowCellsAt(390)));
+    // At 360 px the widest font gives the row 33 cells: the English row is inside it; the Spanish row is the spec's
+    // own 35 (FR-FLOW-4), two past it, so `[x] estrellas` wraps under the control there — a finding for the spec,
+    // recorded in R132's summary; this pins the number so the gap cannot grow unnoticed.
+    expect(cells, 'at 360 px').toBeLessThanOrEqual(Math.max(rowCellsAt(360), VIEW_ROW_BUDGET));
+    if (locale === 'en') expect(cells, 'at 360 px').toBeLessThanOrEqual(rowCellsAt(360));
   });
 });
 

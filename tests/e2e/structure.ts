@@ -29,7 +29,9 @@ export function landmarkCounts(page: Page): Promise<LandmarkCounts> {
       Array.from(document.querySelectorAll(selector)).filter((element) => element.parentElement?.closest('article, aside, main, nav, section') == null).length;
     return {
       main: document.querySelectorAll('main, [role="main"]').length,
-      h1: document.querySelectorAll('h1').length,
+      // R132 (FR-FLOW-7, D-866): the phone's pass sheet has the pass's name as its `h1` over the home, whose header,
+      // main and footer are `inert` under it — out of the accessibility tree, so the route still reads one `h1`.
+      h1: Array.from(document.querySelectorAll('h1')).filter((element) => element.closest('[inert]') === null).length,
       banner: topLevel('header'),
       navigation: document.querySelectorAll('nav, [role="navigation"]').length,
       contentinfo: topLevel('footer'),

@@ -2,6 +2,7 @@ import { GlyphHotspot, GlyphMesh, GlyphOrthographicCamera, GlyphScene, useGlyphS
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import { useT } from '../../../../../i18n/useT';
 import { normalizeAzimuthDeg } from '../../../../../lib/compass';
+import { useChartSlot } from '../../../sky/SkyViewLayout';
 import { ChartFrame } from '../ChartFrame';
 import { landmarkFor, sceneFor } from '../layers';
 import { LANDMARK_RING_PX } from '../window/starGlyphs';
@@ -246,7 +247,7 @@ function DomeLandmark({ anchor }: { anchor: DomeAnchor }) {
   );
 }
 
-export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, scene, className }: SkyChartProps) {
+export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, scene, hand, className }: SkyChartProps) {
   const t = useT();
   // FR-SKY-1 (R119): what the table leaves the dome of the scene — the stars to `DOME_STAR_MAG`, the planets, no figures, no names.
   const stars = useMemo(() => sceneFor('dome', scene)?.stars ?? null, [scene]);
@@ -282,6 +283,13 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
   const [fontReady, setFontReady] = useState(() => typeof document === 'undefined' || !document.fonts);
   const [measured, setMeasured] = useState(() => typeof ResizeObserver === 'undefined');
   const readoutId = useId();
+  // R132 (D-842): the facing readout, in the frame's status row — or, inside a `SkyViewLayout`, in the page's `readout` slot.
+  const readoutSlot = useChartSlot('readout');
+  const readout = (
+    <p className={styles.readout} id={readoutId} data-testid="dome-readout">
+      {t.chart.readout(readoutParams(camera))}
+    </p>
+  );
   const palette = useDomePalette(probeRef);
 
   // D-65: the scene waits for the raster font; without a font API (jsdom) it is ready at once.
@@ -334,6 +342,8 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
   }, []);
   const onPointerDown = (event: PointerEvent<HTMLDivElement>): void => {
     if (event.button !== 0 && event.pointerType === 'mouse') return;
+    // R132 (FR-FLOW-6, D-848): the first drag on the dome puts the layout's hint away, as the window's does.
+    hand?.gesture();
     dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -433,18 +443,16 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
         {...(legendOpen === undefined ? {} : { legendOpen })}
         // R48 (FR-LIVE-7 as amended): the hint is not shown on the live page — `fill` is that page — where the row it took is the dome's.
         // R54 (D-269): what the page hands down (the view toggle) heads the slot instead.
+        // R132 (FR-FLOW-6, D-848): in a `SkyViewLayout` the hint is the layout's `SkyHint`, and the readout goes to its `readout` slot.
         controls={
           <>
             {controls}
-            {!fill && <p className={styles.hint}>{t.chart.domeHint}</p>}
+            {!fill && !readoutSlot.inLayout && <p className={styles.hint}>{t.chart.domeHint}</p>}
           </>
         }
-        status={
-          <p className={styles.readout} id={readoutId} data-testid="dome-readout">
-            {t.chart.readout(readoutParams(camera))}
-          </p>
-        }
+        status={readoutSlot.inLayout ? null : readout}
       >
+        {readoutSlot.place(readout)}
         <div
           role="group"
           aria-label={t.chart.domeGroup}

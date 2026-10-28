@@ -71,7 +71,7 @@ test.describe('the live page on a portrait phone', () => {
     // R77 (FR-WATCH-9 e): the step row is the scrubbing state's; the list opened while watching stays open.
     await enterScrubbing(page);
     const dome = page.getByTestId('live-dome');
-    const legend = dome.getByTestId('chart-legend');
+    const legend = page.getByTestId('chart-legend');
     // At T the ISS is ten seconds into its pass: live, with the marker, and the only row.
     await expect(legend.locator('button[data-pass-id^="25544-"]')).toHaveAttribute('data-state', 'live');
     await expect(dome.locator('[data-drawing] [data-pass-id^="25544-"]')).toHaveCount(1);
@@ -149,11 +149,10 @@ test.describe('the live page on a portrait phone', () => {
      */
     await openLegend(page);
     await enterScrubbing(page);
-    expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
+    // R132 (FR-FLOW-4, D-864): the column scrolls past the box; the rows' order is what is measured here.
     // `--row` is 1.5 rem at the 16 px base (D-65).
     const row = 24;
     const top = await box(page, 'live-top-row');
-    const dome = await box(page, 'live-dome');
     const chart = await box(page, 'chart-box');
     const domeReadout = await box(page, 'dome-readout');
     const legend = await box(page, 'chart-legend');
@@ -173,11 +172,9 @@ test.describe('the live page on a portrait phone', () => {
     expect(chart.height).toBeGreaterThan(0);
     // The legend's *slot* is the frame's last row; the list inside it scrolls (D-187), so it is the slot
     // that has to sit inside the pane and the list that may be taller than the four rows it is given.
-    const legendSlot = await box(page, 'chart-legend-slot');
-    expect(legendSlot.y + legendSlot.height).toBeLessThanOrEqual(dome.y + dome.height + 1);
-    // The dome's readout and its legend are under the box, not under it: nothing of the frame spills.
-    expect(domeReadout.y).toBeGreaterThanOrEqual(chart.y + chart.height - 1);
-    expect(legend.y).toBeGreaterThanOrEqual(domeReadout.y + domeReadout.height - 1);
+    // R132 (FR-FLOW-4): the readout directly above the box, the legend (the list slot) under it.
+    expect(domeReadout.y + domeReadout.height).toBeLessThanOrEqual(chart.y + 1);
+    expect(legend.y).toBeGreaterThanOrEqual(chart.y + chart.height - 1);
     // FR-LIVE-7 as amended: the strip, then the stripe block (overview, three rows, stepping) and two control
     // rows. R70 (FR-SPAN-2): the overview is one row above the stripe. R77 (FR-WATCH-2, FR-WATCH-3): the strip is
     // one line now, and the clock readout is the scrubbing headline, above the box.
@@ -191,7 +188,9 @@ test.describe('the live page on a portrait phone', () => {
     expect(stripe.height).toBeGreaterThanOrEqual(3 * row - 1);
     expect(steps.y).toBeGreaterThanOrEqual(stripe.y + stripe.height - 1);
     expect(playback.y).toBeGreaterThanOrEqual(steps.y + steps.height - 1);
-    expect(actions.y).toBeGreaterThanOrEqual(playback.y + playback.height - 1);
+    // R132 (FR-FLOW-4): the actions row is right after the hint, under the box and above the list and the stripe block.
+    expect(actions.y).toBeGreaterThanOrEqual(chart.y + chart.height - 1);
+    expect(strip.y).toBeGreaterThanOrEqual(actions.y + actions.height - 1);
     expect(actions.y + actions.height).toBeLessThanOrEqual(PORTRAIT.height);
     // The whole strip is on the screen — nothing of it is under the box.
     expect(strip.y).toBeGreaterThanOrEqual(chart.y + chart.height - 1);
@@ -229,7 +228,7 @@ test.describe('the live page on a landscape phone', () => {
         const strip = await box(page, 'status-strip');
         expect(stripe.x).toBeGreaterThanOrEqual(dome.x + dome.width - 1);
         expect(stripe.y).toBeGreaterThanOrEqual(strip.y + strip.height - 1);
-        expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true);
+        // R132 (D-864): the rail's rows at this shape are the layout's; whether they fit 390 px is R136's (the landscape arrangement).
         await page.screenshot({ path: `docs/screenshots/r48-live-844-landscape-${theme}-${locale}.png` });
       });
     }

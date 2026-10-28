@@ -102,7 +102,7 @@ test.describe('the phone pointed at the ground', () => {
           await stubCompass(page);
           await open(page, { locale, theme, observer: PARIS });
           const figure = await openDetail(page, locale);
-          await figure.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
+          await guide(page).getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: WINDOW_OPTION[locale] }).click();
           // The paused clock holds the lazy chunk's Suspense reveal (R32).
           await page.clock.runFor(1000);
           await expect(figure).toHaveAttribute('data-view', 'window');

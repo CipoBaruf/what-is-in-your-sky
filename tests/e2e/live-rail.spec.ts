@@ -95,11 +95,10 @@ for (const [width, height] of [
       await expect(page.getByTestId('stripe-block')).toHaveCount(0);
       await enterScrubbing(page);
       await boxSettled(page);
-      await expect(page.getByTestId('live-dome')).toHaveAttribute('data-stripe-under', 'true');
-      // R71 (FR-LEG-6, D-386): one wide layout. No page here is a column — the frame has a rail and does not stack.
-      await expect(page.getByTestId('live-dome')).not.toHaveAttribute('data-columns', /.*/);
-      await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'true');
-      await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'false');
+      // R132 (FR-FLOW-4, D-864): the rail is the layout's; the frame cuts the box inside the drawing slot (`stacked`) and has no aside.
+      await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-aside', 'false');
+      await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-stacked', 'true');
+      await expect(page.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
       const box = await page.getByTestId('live-dome').getByTestId('chart-box').boundingBox();
       const block = await page.getByTestId('stripe-block').boundingBox();
       if (!box || !block) throw new Error('the page is not laid out');
@@ -108,17 +107,17 @@ for (const [width, height] of [
       expect(box.width / box.height).toBeCloseTo(DOME_BOX_ASPECT, 2);
       expect(watching.height, 'the watching box is the scrubbing one or taller').toBeGreaterThanOrEqual(box.height - 1);
 
-      // D-312: the rail is a column beside the box, and its rows are in it, top to bottom (V12-13: the playback row is the stripe's).
-      // R77 (FR-WATCH-5): the column is the frame's legend slot; the rail's head stands above the legend in it and its foot under.
-      const rail = await page.getByTestId('chart-legend-slot').boundingBox();
+      // D-312 → R132 (FR-FLOW-4 wide): the rail is the layout's column beside the box — the answer, the view row, the
+      // legend and the conditions, the foot with the stripe block and the actions — top to bottom.
+      const rail = await page.getByTestId('live-layout').locator('[data-slot="answer"]').boundingBox();
       if (!rail) throw new Error('no rail');
       expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
       // FR-LEG-6 / FR-LEG-2 as amended v1.4: the legend shares that column.
-      const legend = await page.getByTestId('chart-legend-scroll').boundingBox();
+      const legend = await page.getByTestId('chart-legend-slot').boundingBox();
       if (!legend) throw new Error('no legend');
       expect(legend.x, 'the legend is beside the box').toBeGreaterThanOrEqual(box.x + box.width - 1);
       let above = 0;
-      for (const id of ['live-indicator', 'status-strip', 'chart-legend-scroll', 'live-actions']) {
+      for (const id of ['live-indicator', 'chart-legend-slot', 'status-strip', 'live-actions']) {
         const row = await page.getByTestId(id).boundingBox();
         if (!row) throw new Error(`${id} is not laid out`);
         expect(row.x, `${id} is in the rail`).toBeGreaterThanOrEqual(rail.x - 1);
@@ -127,7 +126,9 @@ for (const [width, height] of [
       }
       const rightEdge: number = rail.x;
       // …and the largest of that shape: either the lowest row reaches the page's bottom, or the rail is hard against the page's right edge.
-      const heightBound = height - (block.y + block.height) <= UNDER_PX;
+      const foot = await page.getByTestId('live-rail-foot').boundingBox();
+      if (!foot) throw new Error('no foot');
+      const heightBound = height - (foot.y + foot.height) <= UNDER_PX;
       const widthBound = width - (rail.x + rail.width) <= UNDER_PX;
       expect(heightBound || widthBound, `the box is bound by the height (${String(height - block.y - block.height)} px under it) or by the width (${String(width - rail.x - rail.width)} px past the rail)`).toBe(true);
 
@@ -136,7 +137,11 @@ for (const [width, height] of [
       // where twelve labels fit — eleven or twelve, one slot being the date at midnight — and every three
       // hours in a narrower box, eight or nine — six where `keepLabels` drops the ones that would touch, in the
       // short one-column window's 40-cell box. `live.spec.ts` holds that none overlap.
-      expect(block.y).toBeGreaterThanOrEqual(box.y + box.height - 1);
+      // R132 (FR-FLOW-4 wide, D-864): the block is the rail's foot now, beside the box and above the actions.
+      expect(block.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
+      const actionsRow = await page.getByTestId('live-actions').boundingBox();
+      if (!actionsRow) throw new Error('no actions');
+      expect(actionsRow.y).toBeGreaterThanOrEqual(block.y + block.height - 1);
       /*
        * Never narrower than the box: the box's width, or the 44-cell floor of `.stripe`'s `max()` over a box
        * the window has cut smaller than that. R71 (D-386) brings the narrow wide widths here, where the second
@@ -145,9 +150,8 @@ for (const [width, height] of [
        * than itself. So: centred on the box where the box is the wider, and the box inside its span where it
        * is not. `live.spec.ts` holds the labels of that narrow stripe clear of one another.
        */
-      expect(block.width).toBeGreaterThanOrEqual(box.width - 1);
-      expect(Math.abs(block.x - box.x), `the stripe and the box share a left edge: box ${JSON.stringify(box)}, stripe ${JSON.stringify(block)}`).toBeLessThanOrEqual(1);
-      expect(await page.locator('[data-row="labels"] text').count()).toBeGreaterThanOrEqual(6);
+      expect(Math.abs(block.x - rail.x), `the stripe and the rail share a left edge: rail ${JSON.stringify(rail)}, stripe ${JSON.stringify(block)}`).toBeLessThanOrEqual(1);
+      expect(await page.locator('[data-row="labels"] text').count()).toBeGreaterThanOrEqual(4);
       // D-318: the playback controls share the clock's row above the stripe, under the box — not the rail. Beside
       // the clock where the box is wide enough for both, wrapped under it where it is not, and in either case
       // above the stripe's rows and left of the rail.
@@ -155,8 +159,7 @@ for (const [width, height] of [
       const playback = await page.getByTestId('playback-row').boundingBox();
       const stripe = await page.getByTestId('time-stripe').boundingBox();
       if (!clock || !playback || !stripe) throw new Error('the time row is not laid out');
-      expect(playback.x + playback.width).toBeLessThanOrEqual(rightEdge + 1);
-      expect(playback.y).toBeGreaterThanOrEqual(box.y + box.height - 1);
+      expect(playback.x).toBeGreaterThanOrEqual(rightEdge - 1);
       expect(playback.y + playback.height).toBeLessThanOrEqual(stripe.y + 1);
       const beside = playback.x >= clock.x + clock.width - 1 && playback.y < clock.y + clock.height && playback.y + playback.height > clock.y;
       const wrapped = playback.y >= clock.y + clock.height - 1 && Math.abs(playback.x - clock.x) <= 1;

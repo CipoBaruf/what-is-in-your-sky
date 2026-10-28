@@ -168,7 +168,8 @@ test.describe('focus and the announcer (FR-A11Y-4, US-30 AC4)', () => {
     const opener = openGuide(page);
     await opener.focus();
     await page.keyboard.press('Enter');
-    await expect.poll(() => focused(page)).toMatch(/^h2:/);
+    // R132 (FR-FLOW-7, D-866): the name is the phone sheet's `h1` and the desk panel's `h2`.
+    await expect.poll(() => focused(page)).toMatch(/^h[12]:/);
     await page.keyboard.press('Escape');
     await home(page);
     await expect(opener).toBeFocused();

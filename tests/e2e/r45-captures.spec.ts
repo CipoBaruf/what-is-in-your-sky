@@ -88,7 +88,7 @@ async function openDetail(page: Page, width: Width, theme: CaptureTheme, locale:
   const key = view === 'dome' ? figure.locator(`[data-pass-id="${GLARE_PASS}"][data-anchor="key"]`) : figure.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`);
   await expect(key).toHaveText('A');
   await expect(figure.locator('[data-anchor="pass"], [data-anchor="peak"], [data-anchor="sun"], [data-anchor="moon"]')).toHaveCount(0);
-  const legend = figure.getByTestId('chart-legend');
+  const legend = guide(page).getByTestId('chart-legend');
   // R51 (FR-LEG-3): on the detail the explained pass's row is the numeric table, at the head of the legend.
   await expect(legend.getByTestId('legend-lead').locator('caption')).toContainText('A');
   await expect(legend.locator(`button[data-pass-id="${GLARE_PASS}"]`)).toHaveCount(0);
@@ -126,7 +126,8 @@ test('the live page at 1280 px, dark, en: the legend beside the dome', async ({ 
   await page.clock.runFor(TICK_MS);
   const dome = page.getByTestId('live-dome');
   await expect(dome.locator('[data-drawing] [data-anchor="key"]').first()).toBeAttached();
-  const legend = dome.getByTestId('chart-legend');
+  // R132 (D-864): the legend is the layout's `list` slot in the rail.
+  const legend = page.getByTestId('live-layout').getByTestId('chart-legend');
   await expect(legend.locator('button[data-pass-id]').first()).toBeAttached();
   const box = await dome.getByTestId('chart-box').boundingBox();
   const list = await legend.boundingBox();

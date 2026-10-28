@@ -42,18 +42,24 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     expect(within(dialog).getByTestId('guide-sentence').textContent).toBe(golden.en.asComputed);
     expect(within(dialog).getByRole('table')).toBeInTheDocument();
     expect(within(dialog).getByText('sky still bright', { selector: 'p span' })).toBeInTheDocument();
-    // R13: the chart is a figure captioned by the sentence; the drawing is hidden from AT (FR-GUIDE-7) and is DOM, never canvas (FR-GUIDE-5).
+    // R13: the chart is a figure described by the sentence; the drawing is hidden from AT (FR-GUIDE-7) and is DOM, never canvas (FR-GUIDE-5).
     // R21 (FR-DOME-7): the dome is the default again and the polar view is one toggle away; the contract test covers both views themselves.
-    const figure = within(dialog).getByRole('figure');
-    expect(figure).toContainElement(within(dialog).getByTestId('guide-sentence'));
+    // R132 (FR-FLOW-7, D-849): the sentence is the `list` slot's first line, after the drawing, and the figure points at it.
+    // With no caption in the layout the figure is named by the pass's heading (D-864).
+    const figure = within(dialog).getByRole('figure', { name: 'ISS (Zarya)' });
+    const sentence = within(dialog).getByTestId('guide-sentence');
+    expect(figure).toHaveAttribute('aria-describedby', sentence.id);
+    expect(sentence.closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
+    expect(figure.closest('[data-slot]')).toHaveAttribute('data-slot', 'drawing');
     expect(figure).toHaveAttribute('data-view', 'dome');
     // PLAN §11: the dome is the chart chunk, behind `React.lazy`, so the drawing arrives a tick after the sheet.
     await within(figure).findByRole('group', { name: 'Sky dome' });
     expect(figure.querySelector('[data-drawing="dome"]')).toHaveAttribute('aria-hidden', 'true');
     expect(dialog.querySelector('canvas')).toBeNull();
     // The orientation toggle is the polar view's (FR-GUIDE-4); the dome is turned by dragging it instead.
-    expect(within(figure).queryByRole('group', { name: 'Chart orientation' })).toBeNull();
-    expect(within(figure).getByRole('group', { name: 'Chart view' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('group', { name: 'Chart orientation' })).toBeNull();
+    // R132 (D-842): the view control is the layout's view row, not the figure's.
+    expect(within(dialog).getByRole('group', { name: 'Chart view' }).closest('[data-slot]')).toHaveAttribute('data-slot', 'viewRow');
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
@@ -71,16 +77,22 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     expect(lead).toContainElement(table);
     const slot = dialog.querySelector('[data-testid="chart-legend-slot"]');
     expect(slot).toContainElement(lead as HTMLElement);
-    // Directly under the drawing: the frame's box comes first, the legend's slot after it.
-    const frame = dialog.querySelector('[data-testid="chart-frame"]');
-    const children = [...(frame?.children ?? [])];
-    expect(children.indexOf(dialog.querySelector('[data-testid="chart-box"]') as Element)).toBeLessThan(children.indexOf(slot as Element));
+    // R132 (FR-FLOW-7, D-849): in the layout's `list` slot, after the drawing — the prose first, then the table (FR-FLOW-4's order).
+    const slots = [...dialog.querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'));
+    expect(slots.indexOf('drawing')).toBeLessThan(slots.indexOf('list'));
+    expect(slot?.closest('[data-slot]')).toHaveAttribute('data-slot', 'list');
+    const list = dialog.querySelector('[data-slot="list"]') as HTMLElement;
+    expect([...list.querySelectorAll('[data-testid]')].map((el) => el.getAttribute('data-testid')).filter((id) => id === 'guide-sentence' || id === 'chart-legend-slot')).toEqual(['guide-sentence', 'chart-legend-slot']);
     const caption = table.querySelector('caption');
     expect(caption?.textContent).toContain('A');
     expect(caption?.querySelector('[data-color]')).toHaveAttribute('data-color', 'pass');
-    // The guide sentence stays above the drawing, as the figure's caption, and the table is not repeated below the Moon lines.
+    // The table is not repeated below the Moon lines, and the figure carries no caption of its own any more.
     expect(within(dialog).getAllByRole('table')).toHaveLength(1);
-    expect(within(dialog).getByRole('figure').querySelector('figcaption')).toContainElement(within(dialog).getByTestId('guide-sentence'));
+    expect(within(dialog).getByRole('figure').querySelector('figcaption')).toBeNull();
+    // FR-FLOW-7: the head — the name as the h1, the countdown line, the three times — before the view row and the drawing.
+    expect(within(dialog).getByRole('heading', { level: 1, name: 'ISS (Zarya)' }).closest('[data-slot]')).toHaveAttribute('data-slot', 'answer');
+    expect(within(dialog).getByTestId('pass-times').closest('[data-slot]')).toHaveAttribute('data-slot', 'answer');
+    expect(slots.slice(0, 4)).toEqual(['answer', 'viewRow', 'readout', 'drawing']);
   });
 
   it('locks the page scroll while open and restores it on close (one scrollbar, the sheet\'s)', () => {
@@ -197,20 +209,32 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
    */
   it('offers [ stars ] on the view row on compact and on wide, and a press is the saved toggle', () => {
     const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+    // R132 (FR-FLOW-4, D-846): the view row is the layout's slot — the view control in the picker's idiom, `[x] stars` at the row's end.
     const toggle = screen.getByTestId('stars-toggle');
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    expect(toggle.parentElement).toBe(screen.getByTestId('chart-view-row'));
-    expect(toggle.className).toContain('inline-control');
+    const row = toggle.closest('[data-slot="viewRow"]') as HTMLElement;
+    expect(row).not.toBeNull();
+    expect(row.lastElementChild).toBe(toggle);
+    const control = within(row).getByRole('group', { name: en.chart.viewGroup });
+    expect(within(control).getAllByRole('button').map((b) => b.textContent)).toEqual(['Polar', 'Dome', 'Window']);
+    expect(within(control).getByRole('button', { name: 'Dome' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(toggle);
     expect(appStore.getState().starsLayer).toBe(false);
     unmount();
     const media = stubMatchMedia(1280, 800);
     try {
       render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
-      const row = screen.getByTestId('chart-view-row');
-      expect(within(row).getByRole('group', { name: en.chart.viewGroup })).toBeInTheDocument();
-      expect(within(row).getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
+      const wideRow = screen.getByTestId('pass-layout').querySelector('[data-slot="viewRow"]') as HTMLElement;
+      expect(within(wideRow).getByRole('group', { name: en.chart.viewGroup })).toBeInTheDocument();
+      expect(within(wideRow).getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'false');
       expect(screen.getAllByTestId('stars-toggle')).toHaveLength(1);
+      // FR-FLOW-7 on wide: the panel's head is one band — the name, the countdown, the times — and the layout is the panel.
+      const head = screen.getByTestId('guide-head');
+      expect(within(head).getByRole('heading', { level: 2, name: 'ISS (Zarya)' })).toBeInTheDocument();
+      expect(within(head).getByRole('timer')).toBeInTheDocument();
+      expect(within(head).getByTestId('pass-times')).toBeInTheDocument();
+      expect(screen.getByTestId('pass-layout')).toHaveAttribute('data-shape', 'panel');
+      expect(within(screen.getByTestId('pass-layout')).getByRole('figure', { name: 'ISS (Zarya)' })).toBeInTheDocument();
     } finally {
       media.restore();
       appStore.setState(initial, true);

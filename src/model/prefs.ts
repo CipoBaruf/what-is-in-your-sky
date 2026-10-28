@@ -44,6 +44,13 @@ export const DEFAULT_SHOW_FAINT = false;
  * `wiys:prefs:v1`.
  */
 export const DEFAULT_STARS_LAYER = true;
+/**
+ * FR-FLOW-6 / D-848 (R132): whether the reader has made a first drag, pinch or
+ * tap on any sky view. The hand hint under the drawing (`SkyHint`) shows until
+ * then and is gone for good after; false until the first gesture, and false
+ * again for a stored value that is not a boolean. Persisted in `wiys:prefs:v1`.
+ */
+export const DEFAULT_SKY_HINT_SEEN = false;
 /** FR-GUIDE-4 (R13): the polar chart's convention, `looking-up` (east on the left, the default) or `map` (east on the right). Persisted in `wiys:prefs:v1`. */
 export type ChartOrientation = 'looking-up' | 'map';
 /** FR-I18N-1 (R17): the language the app renders in, chosen from the browser on the first visit and overridden by the header switch. Persisted in `wiys:prefs:v1`. */

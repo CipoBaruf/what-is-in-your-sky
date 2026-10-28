@@ -1,0 +1,28 @@
+/* R132 (FR-FLOW-7): three cells on one row — the word over the time, the peak's with its altitude and direction. */
+.row {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: start;
+  column-gap: calc(3 * var(--cell));
+}
+
+.cell {
+  min-width: 0;
+}
+
+.word {
+  color: var(--fg-dim);
+  font-size: var(--small);
+  line-height: var(--small-row);
+}
+
+.value {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.peak {
+  color: var(--fg-dim);
+}

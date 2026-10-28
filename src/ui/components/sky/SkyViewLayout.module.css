@@ -1,0 +1,299 @@
+/* R132 (FR-FLOW-4, FR-FLOW-6, FR-FLOW-7; D-842, D-851): one layout for every sky view. The slots are grid items
+   named by area, so one DOM order serves the three forms; the gap above a slot is its rhythm's token and nothing
+   else (FR-FLOW-10). Every length is a token or a count of cells (FR-DS-2). */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  /* A size container, so the column's box can be as tall as the layout is wide in CSS alone (`cqw`, below). */
+  container-type: inline-size;
+  --sky-corner-surface: color-mix(in srgb, var(--bg-raised) var(--screen-overlay-alpha), transparent);
+}
+
+.slot {
+  min-width: 0;
+}
+
+/* D-851: the gap is the lower slot's, from its rhythm. */
+.slot[data-rhythm='row'] {
+  margin-top: var(--space-1);
+}
+
+.slot[data-rhythm='group'] {
+  margin-top: var(--space-3);
+}
+
+.slot[data-rhythm='section'] {
+  margin-top: var(--space-5);
+}
+
+.slot:first-child {
+  margin-top: 0;
+}
+
+.answer {
+  grid-area: answer;
+}
+
+.viewRow {
+  grid-area: viewRow;
+}
+
+.readout {
+  grid-area: readout;
+}
+
+.drawing {
+  grid-area: drawing;
+  min-height: 0;
+}
+
+.picker {
+  grid-area: picker;
+}
+
+.hint {
+  grid-area: hint;
+}
+
+.action {
+  grid-area: action;
+}
+
+.layers {
+  grid-area: layers;
+}
+
+.list {
+  grid-area: list;
+}
+
+.foot {
+  grid-area: foot;
+}
+
+/* The place a chart's part lands (`SkyViewChartSlot`); the part is what the page sees, not this box. */
+.chartSlot {
+  display: contents;
+}
+
+/* --- The column: compact, FR-FLOW-4's order top to bottom. --- */
+.layout[data-shape='column'] {
+  grid-template-areas:
+    'answer'
+    'viewRow'
+    'readout'
+    'drawing'
+    'picker'
+    'hint'
+    'action'
+    'layers'
+    'list'
+    'foot';
+}
+
+/* FR-COMP-5's rule, the layout's: a `fill` chart in the column is as tall as the full-bleed box is wide, whichever way
+   the phone is held — the layout's own width (`100cqw`) plus the page padding the frame breaks out of on each side
+   (`--page-pad-x`, D-187's device). A height, not a floor, and from CSS alone: a `fill` chart's 100 % has it to
+   resolve against from the first frame, with nothing measured and nothing to feed back. */
+.layout[data-shape='column'] .drawing {
+  height: calc(100cqw + 2 * var(--page-pad-x, calc(2 * var(--cell))));
+}
+
+/* --- The rail: the box at the left, the rail at the right, the readout on the box's corner, the hint under the box
+   at its width, `action` and `foot` at the rail's foot. The list is the row that gives, scrolling inside. --- */
+.layout[data-shape='rail'] {
+  grid-template-columns: minmax(0, 1fr) minmax(calc(44 * var(--cell)), calc(60 * var(--cell)));
+  grid-template-rows: auto auto auto auto minmax(0, 1fr) auto auto auto;
+  /* The box spans every rail row and the hint has a row of its own under it, so the box's height is the layout's
+     less the hint's and nothing the rail does — a foot that grows, a fold that lets air out — can change what the
+     frame measures for the box (D-448) and feed the fold back on itself. */
+  grid-template-areas:
+    'drawing answer'
+    'drawing viewRow'
+    'drawing picker'
+    'drawing layers'
+    'drawing list'
+    'drawing action'
+    'drawing foot'
+    'hint .';
+  column-gap: calc(2 * var(--cell));
+  height: 100%;
+  min-height: 0;
+}
+
+/* The landscape phone (compact, FR-WATCH-5): the box two fifths and the rail three, as D-173 cut them. The rail's
+   rows are content-sized, so the list is not the row that gives here; a page that grows with its rows lets the page
+   scroll (the stars page, the sheet), and the landscape arrangement itself is R136's. */
+.layout[data-shape='rail'][data-mode='compact'] {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  grid-template-rows: auto auto auto auto auto auto auto auto;
+  height: auto;
+  min-height: 100%;
+}
+
+.layout[data-shape='rail'][data-mode='compact'] .list {
+  overflow: visible;
+}
+
+/* …and where the page gives the layout a height (`fill`: the live page, one viewport high wherever there is a
+   rail, FR-LIVE-7) the layout is the scroll box: the rail's rows scroll inside it, the box keeps the layout's
+   height less the hint's row and never grows with the rail (FR-WATCH-7), and the box and the hint stay put while
+   the rail scrolls. A size container, so the box's height is the layout's own (`cqh`) and not its grid area's,
+   which is as tall as the rail's rows are. */
+.layout[data-shape='rail'][data-mode='compact'][data-fill] {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  container-type: size;
+  /* The rail's rows swap with the state (watching to scrubbing changes the head and the foot); with the browser's
+     scroll anchoring off, a swap above the scroll position never moves the rail under the reader's thumb. */
+  overflow-anchor: none;
+}
+
+/* The grid is shorter than its rows and has no free space to hand out, so an auto row is its items' minimum
+   contribution: the list's is its content again here, not the wide rail's zero (the row that gives, above). */
+.layout[data-shape='rail'][data-mode='compact'][data-fill] .list {
+  min-height: auto;
+}
+
+.layout[data-shape='rail'][data-mode='compact'][data-fill] .drawing,
+.layout[data-shape='rail'][data-mode='compact'][data-fill] .readout {
+  position: sticky;
+  top: 0;
+}
+
+.layout[data-shape='rail'][data-mode='compact'][data-fill] .drawing {
+  align-self: start;
+  height: calc(100cqh - max(var(--sky-hint-h, 0px), var(--row)) - var(--space-1));
+}
+
+/* The hint wraps to its own lines rather than cutting the follow clause; `SkyViewLayout` measures it (`--sky-hint-h`).
+   No min-height of its own: the grid is shorter than its rows, so a set one would be the row's whole height. */
+.layout[data-shape='rail'][data-mode='compact'][data-fill] .hint {
+  position: sticky;
+  bottom: 0;
+}
+
+.layout[data-shape='rail'] .drawing,
+.layout[data-shape='rail'] .answer {
+  margin-top: 0;
+}
+
+.layout[data-shape='rail'] .list {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* The foot pinned to the rail's bottom: its row is the last, after the list's `1fr`. */
+.layout[data-shape='rail'] .foot {
+  align-self: end;
+}
+
+/* --- The panel (D-849): the guide's one column; the view row and the picker share a line, the drawing takes the
+   height the panel leaves (`--sky-drawing-h`, measured by `SkyViewLayout`), the prose and the table follow. --- */
+.layout[data-shape='panel'] {
+  /* The view row and the picker share the control line three to two; a narrow panel wraps each group's options rather than scrolling sideways. */
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  grid-template-areas:
+    'answer answer'
+    'viewRow picker'
+    'drawing drawing'
+    'hint hint'
+    'action action'
+    'layers layers'
+    'list list'
+    'foot foot';
+  column-gap: calc(2 * var(--cell));
+  align-items: baseline;
+}
+
+.layout[data-shape='panel'] .picker {
+  margin-top: var(--space-3);
+}
+
+
+/* A short panel (964 × 700: the band wraps its times under the name and the body has 46 px left) would leave the
+   drawing nothing; it keeps seven rows at least, and the body scrolls (D-119) to the prose under it. */
+.layout[data-shape='panel'] .drawing {
+  height: max(var(--sky-drawing-h, 0px), calc(7 * var(--row)));
+  align-self: stretch;
+}
+
+/* V25-17 (FR-SKY-14): on wide the readout stands in the box's top-left corner on the screen's overlay surface, as
+   the frame's own corner slot drew it (`ChartFrame.module.css` `.cornerStatus`), and takes no row. */
+.layout[data-shape='rail'] .readout,
+.layout[data-shape='panel'] .readout {
+  grid-area: drawing;
+  align-self: start;
+  justify-self: start;
+  z-index: var(--z-raised);
+  margin-top: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0 var(--cell);
+  background: var(--sky-corner-surface);
+  pointer-events: none;
+}
+
+/* On the panel the drawing keeps its row gap above; the readout shares the area and the gap, so it lands on the box's corner and not above it. */
+.layout[data-shape='panel'] .readout {
+  margin-top: var(--space-1);
+}
+
+.readout > :global(p) {
+  margin: 0;
+}
+
+/* The view row: the view control at the left and `[x] stars` at the row's right end, one line (FR-FLOW-4). */
+.viewRow > :global(*:last-child:not(:first-child)) {
+  margin-left: auto;
+}
+
+.viewRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--cell);
+  min-height: var(--tap);
+}
+
+/* The rail's label stands above its row, not beside it. */
+.viewRow > :global(h2) {
+  flex: 0 0 100%;
+}
+
+/* --- The chart's frame inside the drawing slot: its rows for the view control, the readout and the legend are
+   the layout's slots now, so the frame is its box alone — the same device the stars page used to place the frame
+   (R115), three selectors deep to outweigh the frame's own rules. --- */
+.layout .drawing :global([data-testid='chart-frame']) {
+  gap: 0;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'drawing';
+}
+
+.layout .drawing :global([data-testid='chart-frame'] > [data-row='controls']),
+.layout .drawing :global([data-testid='chart-frame'] > [data-row='status']),
+.layout .drawing :global([data-testid='chart-frame'] [data-testid='chart-status']:empty) {
+  display: none;
+}
+
+/* R61 (D-314) inside the layout: an aspect-locked frame (`data-box`, the wide live page's `stacked` frame) still
+   writes `--chart-box-w` / `--chart-box-h` from what the drawing slot gives it, and the box is cut to them here —
+   the frame's own rule for it is keyed on a legend slot the layout has taken (`data-legend='true'`). Centred in the
+   slot, as the stacked frame centred it (D-319); R133 decides the fit itself. */
+.layout .drawing :global([data-testid='chart-frame'][data-box='true'] > [data-testid='chart-box']) {
+  width: var(--chart-box-w);
+  height: var(--chart-box-h);
+  /* At the left (FR-LIVE-7, D-386), where the readout on the slot's corner is the box's corner too. */
+  margin: 0;
+}
+
+/* The figure is its frame: no caption row, no controls row of its own (both are the page's slots). */
+.layout .drawing :global([data-testid='sky-chart']) {
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+}

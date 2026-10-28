@@ -134,6 +134,9 @@ export const ui = {
   /** R129 (FR-FLOW-3): the stars page's visible `h1`, with the dark window and the cloud word under it. */
   starsHeading: 'Stars tonight',
 
+  /** R132 (FR-FLOW-4, D-846): the wide rail's labels over the view row and the facing row (`SkyViewLayout`). */
+  skyView: { view: 'View', facing: 'Facing' },
+
   banner: { info: 'Note', warning: 'Warning' },
 
   /** R92 (FR-A11Y-3, FR-A11Y-5): the shell's words — the skip link and the document title of a route that is not home. */
