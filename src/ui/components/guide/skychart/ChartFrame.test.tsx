@@ -18,13 +18,15 @@
  * placement` block, untouched by R62: the screen frame carries a class of its
  * own and no rule there can reach it.
  */
-import { render, screen as rtl, within } from '@testing-library/react';
+import { act, render, screen as rtl, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import type { ReactNode } from 'react';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { stubMatchMedia, WIDE_PX } from '../../../../../tests/support/matchMedia';
+import { COMPACT_BOX_MIN_SHORT_PX, compactDomeBoxHeightPx } from '../../../../lib/layout';
+import { COMPACT_PX, stubMatchMedia, WIDE_PX } from '../../../../../tests/support/matchMedia';
 import { ChartFrame, ChartFrameSlots } from './ChartFrame';
+import { bowlHeightPx } from './dome/camera';
 
 const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/ChartFrame.module.css'), 'utf8');
 const rect = (width: number, height: number): DOMRect => ({ width, height, x: 0, y: 0, top: 0, left: 0, right: width, bottom: height, toJSON: () => ({}) });
@@ -214,6 +216,94 @@ describe('<ChartFrame> the window’s ratio (FR-SKY-2, D-789)', () => {
       expect(listen.mock.calls.some(([type]) => type === 'resize')).toBe(false);
     } finally {
       listen.mockRestore();
+      media.restore();
+    }
+  });
+});
+
+/**
+ * R133 (FR-FLOW-9, D-850): the compact dome's box is cut from the bowl. jsdom lays nothing out, so the box's
+ * full-bleed width is mocked and the height the frame writes is asserted against the rule: at 390 px the bowl is
+ * 288.9 px (`bowlHeightPx`) and the box 337 with `DOME_COMPACT_SLACK_PX` above and below; at 300 px the floor
+ * (`COMPACT_BOX_MIN_SHORT_PX`, 280) binds. The other views, and the dome on wide, write nothing of the kind.
+ */
+describe('<ChartFrame> the compact dome’s box (FR-FLOW-9, D-850)', () => {
+  const observe = (): { trigger: () => void } => {
+    const instances: { trigger: () => void }[] = [];
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(private readonly callback: (entries: ResizeObserverEntry[]) => void) {
+          instances.push(this);
+        }
+        observe() {
+          /* triggered by hand */
+        }
+        disconnect() {
+          /* nothing to detach */
+        }
+        trigger() {
+          this.callback([]);
+        }
+      },
+    );
+    return { trigger: () => instances.forEach((instance) => instance.trigger()) };
+  };
+  const boxWidth = (px: number): void => {
+    HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+      return this.dataset['testid'] === 'chart-box' ? rect(px, 0) : realGetRect.call(this);
+    };
+  };
+
+  it('writes the bowl’s height plus the slack as --chart-box-h on a compact fill frame, never under the floor, and no --chart-floor', () => {
+    const media = stubMatchMedia(COMPACT_PX, 844);
+    const { trigger } = observe();
+    boxWidth(390);
+    try {
+      render(
+        <ChartFrame fill bowl status={<p>readout</p>}>
+          <div data-drawing="dome" />
+        </ChartFrame>,
+      );
+      const frame = rtl.getByTestId('chart-frame');
+      expect(frame).toHaveAttribute('data-bowl', 'true');
+      expect(frame.style.getPropertyValue('--chart-box-h')).toBe(`${String(compactDomeBoxHeightPx({ bowlHeightPx: bowlHeightPx(390), floorPx: COMPACT_BOX_MIN_SHORT_PX }))}px`);
+      expect(frame.style.getPropertyValue('--chart-box-h')).toBe('337px');
+      expect(frame.style.getPropertyValue('--chart-floor')).toBe('');
+      // A narrower box: the floor.
+      boxWidth(300);
+      act(() => trigger());
+      expect(frame.style.getPropertyValue('--chart-box-h')).toBe(`${String(COMPACT_BOX_MIN_SHORT_PX)}px`);
+      // The stylesheet sizes the box from it, in portrait, with no floor of the square's under it.
+      expect(css).toMatch(/\.fill\[data-compact='true'\]\[data-bowl='true'\] \.drawing \{\s+height: var\(--chart-box-h, auto\);\s+min-height: 0;/);
+      expect(/\.fill\[data-compact='true'\]\[data-bowl='true'\] \.drawing \{([\s\S]*?)\n\s+\}/.exec(css)?.[1] ?? '').not.toContain('aspect-ratio');
+    } finally {
+      media.restore();
+    }
+  });
+
+  it('leaves the other views their square, and the dome on wide its measured room', () => {
+    const media = stubMatchMedia(COMPACT_PX, 844);
+    observe();
+    boxWidth(390);
+    try {
+      const { unmount } = render(
+        <ChartFrame fill status={<p>readout</p>}>
+          <div data-drawing="polar" />
+        </ChartFrame>,
+      );
+      expect(rtl.getByTestId('chart-frame')).toHaveAttribute('data-bowl', 'false');
+      expect(rtl.getByTestId('chart-frame').style.getPropertyValue('--chart-box-h')).toBe('');
+      unmount();
+      media.setWidth(WIDE_PX);
+      render(
+        <ChartFrame fill bowl stacked boxAspect={2.4 / 2} status={<p>readout</p>}>
+          <div data-drawing="dome" />
+        </ChartFrame>,
+      );
+      expect(rtl.getByTestId('chart-frame')).toHaveAttribute('data-bowl', 'false');
+      expect(rtl.getByTestId('chart-frame')).toHaveAttribute('data-box', 'true');
+    } finally {
       media.restore();
     }
   });

@@ -381,14 +381,15 @@
   /* R133 (FR-FLOW-9, D-850; F4, D5): the dome's box is cut from the bowl. `ChartFrame` measures the box's
      full-bleed width and writes the bowl's drawn height at it plus `DOME_COMPACT_SLACK_PX` above and below,
      never under FR-LIVE-7's compact floor, as `--chart-box-h`; the frame writes no `--chart-floor` for this box, so
-     the square's floor above is 0 here and the height is the rule's. Until the first measurement the box is the
-     fit rule's own shape (2.4 : 2.0, D-314) from its width, which is within a cell of the answer, so the first
-     paint is not a square that then jumps. The slot the frame stands in follows the chart's height
-     (`SkyViewLayout.module.css`, keyed on `data-bowl`), which is what moves the rows under the drawing up to it. */
+     the square's floor above is 0 here and the height is the rule's. The height is written in a layout effect,
+     before the first paint, so the fallback is never drawn; no `aspect-ratio` stands in for it, since with the
+     height set and the width `auto` an aspect would size the *width* from the height and feed the measurement
+     its own answer (514 px wide at the 390 px phone, measured). The slot the frame stands in follows the chart's
+     height (`SkyViewLayout.module.css`, keyed on `data-bowl`), which is what moves the rows under the drawing up
+     to it. */
   .fill[data-compact='true'][data-bowl='true'] .drawing {
     height: var(--chart-box-h, auto);
     min-height: 0;
-    aspect-ratio: 2.4 / 2;
   }
 }
 

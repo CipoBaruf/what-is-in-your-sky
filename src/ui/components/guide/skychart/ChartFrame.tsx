@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { COMPACT_BOX_MIN_SHORT_PX, compactDomeBoxHeightPx, fitBox, viewportAspect } from '../../../../lib/layout';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import styles from './ChartFrame.module.css';
@@ -336,8 +336,10 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
   // full-bleed width (the frame's and the page padding it breaks out of) is what the zoom is taken from, and
   // it does not depend on the box's height, so the observer never feeds itself; the height is written once per
   // change as `--chart-box-h`, the floor `COMPACT_BOX_MIN_SHORT_PX` (FR-LIVE-7). The scene's own key is the
-  // raster it measures (F-60): a box that changes height remounts it through that key and nothing here.
-  useEffect(() => {
+  // raster it measures (F-60): a box that changes height remounts it through that key and nothing here. A
+  // layout effect, so the first height is on the frame before the first paint: the stylesheet has no fallback
+  // for it (an aspect would size the width from the height and feed the measurement its own answer).
+  useLayoutEffect(() => {
     const frame = frameRef.current;
     if (screen || !fill || !compact || !frame || typeof ResizeObserver === 'undefined') return;
     const measure = (entries: readonly ResizeObserverEntry[]): void => {
