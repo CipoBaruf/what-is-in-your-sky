@@ -141,7 +141,15 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
    * somewhere.
    */
   const open = async (): Promise<HTMLElement> => {
-    fireEvent.click(screen.getByRole('button', { name: en.chart.view.window }));
+    // R136 (FR-FLOW-15, V26-12): the screen opens from `[ hold up to the sky ]` alone, which the window in the box
+    // offers beside its picker on a phone with a sensor; the view option only chooses the view.
+    if (screen.queryByTestId('window-hold-up') === null) fireEvent.click(screen.getByRole('button', { name: en.chart.view.window }));
+    for (let i = 0; i < 500 && screen.queryByTestId('window-hold-up') === null; i += 1) {
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+    fireEvent.click(screen.getByTestId('window-hold-up'));
     reading();
     // Real turns of the event loop and not microtasks: the first mount in a file is the one that really fetches
     // the chunk, and the loader reads and transforms a file to do it. `setTimeout` is not among the faked timers
@@ -231,34 +239,39 @@ describe('the follow screen (FR-FSC-1, FR-FSC-2, D-321)', () => {
     for (const props of screens) expect(props.now).toBe(scrubbed);
   });
 
-  /** FR-FSC-2 / FR-FOL-1: three ways out, and each gives back the view the press came from with the rows at real time. */
+  /**
+   * FR-FSC-2 / FR-FOL-1: three ways out, and each gives back the view the press came from with the rows at real time.
+   * R136 (FR-FLOW-15): the press is `[ hold up to the sky ]`, which the window in the box offers, so that view is the
+   * window — saved, whichever view the page was on before it (D-876).
+   */
   /* R77 (FR-WATCH-1, FR-WATCH-4): at real time the page is watching — the overview and `[ scrub ]`, and no `back to live` to press. */
-  it.each(['dome', 'polar'] as const)('closes back to the %s with the watching rows at real time', async (from) => {
+  it.each(['dome', 'polar'] as const)('closes back to the window chosen from the %s, with the watching rows at real time', async (from) => {
     withSky(from);
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
+    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', from);
 
     // The `×`.
     await open();
     fireEvent.click(screen.getByTestId('sky-screen-close'));
     expect(screen.queryByTestId('sky-screen')).toBeNull();
-    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', from);
+    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
     expect(screen.getByTestId('overview-row')).toBeInTheDocument();
     expect(screen.getByTestId('live-scrub')).toBeInTheDocument();
     expect(screen.queryByTestId('live-now')).toBeNull();
-    expect(appStore.getState()).toMatchObject({ chartView: from, skyScreen: false });
+    expect(appStore.getState()).toMatchObject({ chartView: 'window', skyScreen: false });
 
     // `Esc`, which closes the screen before it can leave the page (D-321).
     await open();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByTestId('sky-screen')).toBeNull();
-    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', from);
+    expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
     expect(screen.getByTestId('overview-row')).toBeInTheDocument();
-    expect(appStore.getState()).toMatchObject({ chartView: from, skyScreen: false });
+    expect(appStore.getState()).toMatchObject({ chartView: 'window', skyScreen: false });
 
     // And leaving the live page altogether (FR-FOL-1's "leaving the live page").
     await open();
     unmount();
-    expect(appStore.getState()).toMatchObject({ chartView: from, skyScreen: false });
+    expect(appStore.getState()).toMatchObject({ chartView: 'window', skyScreen: false });
   });
 
   /** D-321: focus lands on the way out, and comes back to the control that opened the screen — a new element by then. */
