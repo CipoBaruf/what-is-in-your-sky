@@ -17,7 +17,7 @@
 import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { expect, test, type Page } from '@playwright/test';
 import { formatClockDuration } from '../../src/lib/format';
-import { domeDrawn, enterScrubbing, golden, ha, heading, hhmmss, homeAt, LABEL, openLegend, openSkyScreen, realTimeField, reenterLiveWithTheme, stripFilled, stubCompass, stubNetwork, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
+import { domeDrawn, enterScrubbing, golden, ha, heading, hhmmss, homeAt, LABEL, openLegend, openSkyScreen, realTimeField, savedDome, reenterLiveWithTheme, stripFilled, stubCompass, stubNetwork, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
 
 test.describe('the live page', () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -91,6 +91,8 @@ test.describe('the live page', () => {
     await page.clock.install({ time: T });
     await page.clock.pauseAt(T);
     await stubNetwork(page);
+    // R136 (FR-FLOW-14): the dome this spec measures is a saved view on a phone.
+    await savedDome(page);
     await page.goto(`/#live?lat=${String(ha.observer.lat)}&lon=${String(ha.observer.lon)}&alt=0&t=${new Date(peak).toISOString().replace('.000Z', 'Z')}`);
 
     // The observer came out of the link: rounded label, no saved location involved (a fresh context has none).

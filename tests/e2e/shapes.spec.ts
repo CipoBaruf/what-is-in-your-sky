@@ -339,6 +339,10 @@ const JUMP_ALLOWANCE: Readonly<Record<string, Readonly<Record<string, number>>>>
   '844x390 es': { 'next event': ROW_PX },
   '932x430 es': { 'next event': ROW_PX },
   '844x500 es': { 'next event': ROW_PX },
+  // R136 (FR-FLOW-15, D-878): the drawing takes 0.55 of the width, so the rail at 740 px is 28 cells; the path wraps
+  // there as before, and the control no longer rides on its last line but takes one of its own (24 px).
+  '740x360 en': { 'next event': ROW_PX },
+  '740x360 es': { 'next event': ROW_PX },
   // R123 (D-814): with `[ stars ]` on the wide actions row the English short wide rows hold the control on the path, and two Spanish ones carry it on a second actions line.
   '964x420 es': { actions: 2 * ROW_PX },
   '1024x450 es': { actions: 2 * ROW_PX },
