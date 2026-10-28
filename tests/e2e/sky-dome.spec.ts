@@ -94,8 +94,11 @@ test('the dome is the default view, shares the polar frame, faces the rise point
   const domeTableY = await tableY();
   await viewToggle.getByRole('button', { name: 'Polar' }).click();
   await expect(figure).toHaveAttribute('data-view', 'polar');
-  expect(await frameBox()).toEqual(domeFrame);
-  expect(await tableY()).toBe(domeTableY);
+  // R132 (FR-FLOW-4): the readout above the box is the view's — one line for the dome, two for the polar convention —
+  // so the frame may move down a row between views while it keeps its size; the table follows it.
+  const polarFrame = await frameBox();
+  expect([polarFrame.width, polarFrame.height]).toEqual([domeFrame.width, domeFrame.height]);
+  expect(Math.abs((await tableY()) - domeTableY - (polarFrame.y - domeFrame.y))).toBeLessThanOrEqual(1);
   await viewToggle.getByRole('button', { name: 'Dome' }).click();
   await expect(figure).toHaveAttribute('data-view', 'dome');
 

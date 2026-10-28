@@ -57,6 +57,8 @@ async function settledBox(page: Page, testId: string): Promise<Box> {
 }
 
 for (const [width, height, placement] of SHAPES) {
+  /** R132: the column's box is `100cqw` of the layout, a sub-pixel length; the boxes are compared to the pixel. */
+  const rounded = (b: { x: number; y: number; width: number; height: number }) => ({ x: Math.round(b.x), y: Math.round(b.y), width: Math.round(b.width), height: Math.round(b.height) });
   test(`watching, then scrubbing: steps a pass, plays at 60× and returns to live at ${String(width)} × ${String(height)} (FR-WATCH-1, FR-WATCH-9 b)`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await homeAt(page, T);
@@ -147,7 +149,7 @@ for (const [width, height, placement] of SHAPES) {
     expect(played - rise).toBeLessThan(70_000);
     await expect(indicator).toHaveAttribute('data-state', 'held');
     // FR-WATCH-7: a step onto a pass, a speed change and a minute of playback moved the box nowhere, at any shape.
-    expect(await settledBox(page, 'chart-box'), 'nothing the sky does resizes the box').toEqual(scrubbing.box);
+    expect(rounded(await settledBox(page, 'chart-box')), 'nothing the sky does resizes the box').toEqual(rounded(scrubbing.box));
     await page.getByRole('button', { name: 'Pause' }).click();
 
     // `[ back to live ]` (US-27 AC2): the block goes, the instant is real time again and advances on the tick,
@@ -160,8 +162,8 @@ for (const [width, height, placement] of SHAPES) {
     await expect(page).toHaveURL(/#live$/);
     // …and the watching box is the one the page opened with: the bar, the rail's rows or the block left no trace.
     await expect(page.getByTestId('chart-bottom-overlay')).toHaveCount(0);
-    expect(await settledBox(page, 'chart-box')).toEqual(watching.box);
-    expect(await settledBox(page, 'live-dome')).toEqual(watching.dome);
+    expect(rounded(await settledBox(page, 'chart-box'))).toEqual(rounded(watching.box));
+    expect(rounded(await settledBox(page, 'live-dome'))).toEqual(rounded(watching.dome));
   });
 }
 

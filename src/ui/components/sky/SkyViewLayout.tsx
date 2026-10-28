@@ -159,7 +159,7 @@ export function SkyViewLayout({ wide = 'rail', describedBy, className, ref, 'dat
 
   return (
     <SkyViewContext.Provider value={context}>
-      <div ref={setRoot} className={[styles.layout, className].filter(Boolean).join(' ')} data-shape={shape} data-sky-layout="" {...(testId === undefined ? {} : { 'data-testid': testId })}>
+      <div ref={setRoot} className={[styles.layout, className].filter(Boolean).join(' ')} data-shape={shape} data-mode={mode} data-sky-layout="" {...(testId === undefined ? {} : { 'data-testid': testId })}>
         {SLOT_ORDER.map(slot)}
       </div>
     </SkyViewContext.Provider>

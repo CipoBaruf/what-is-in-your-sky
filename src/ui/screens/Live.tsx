@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useLocale, useT } from '../../i18n/useT';
 import { cloudVerdict } from '../../lib/cloudVerdict';
-import { foldRows, ROW_PX, scrubPlacement, unfoldedBoxHeightPx, type LiveFold, type PageShape, type ScrubPlacement } from '../../lib/layout';
+import { foldRows, ROW_PX, scrubPlacement, type LiveFold, type PageShape, type ScrubPlacement } from '../../lib/layout';
 import { landmarkLine, landmarkNames } from '../../lib/landmarkLine';
 import { legendKeys, legendRows } from '../../lib/legend';
 import { LIVE_WINDOW_MS, livePasses } from '../../lib/livePasses';
@@ -436,9 +436,10 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
    * the box is one height in the two (FR-WATCH-7).
    */
   const [boxHeightPx, setBoxHeightPx] = useState<number | null>(null);
-  const foldRef = useRef<readonly LiveFold[]>(NO_FOLD);
+  // R132 (D-864): the box's slot spans every rail row, so a fold lets air out of the rail and gives the box nothing
+  // back — `unfoldedBoxHeightPx`'s correction (R78) would now add rows the box never had and flip the fold on itself.
   const onBoxSpace = useCallback((measuredPx: number) => {
-    setBoxHeightPx(unfoldedBoxHeightPx(measuredPx, foldRef.current));
+    setBoxHeightPx(measuredPx);
   }, []);
   const placement = scrubPlacement({ mode, shape, boxHeightPx });
   const locale = useLocale();
@@ -468,9 +469,6 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   // FR-SHP-3 as amended v2.0: the wide page's fold, from the same number and the state's own rows (D-447).
   const foldKey = (compact ? NO_FOLD : foldRows(boxHeightPx, inventory)).join(' ');
   const fold = useMemo<readonly LiveFold[]>(() => (foldKey === '' ? NO_FOLD : (foldKey.split(' ') as LiveFold[])), [foldKey]);
-  useLayoutEffect(() => {
-    foldRef.current = fold;
-  }, [fold]);
   // The passes belong to this observer only once the slice says so; before that the dome is empty rather than someone else's.
   // R89 (FR-OFF-8): by place and not by object, since a stored run's observer is the one it was stored with.
   const ownPasses = sameLocation(passesState.observer, observer);

@@ -284,7 +284,7 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
       }, { timeout: 30_000 })
       .toBeGreaterThan(0);
     await expect(hidden.first()).toHaveText(/^[A-Z]$/);
-    const rows = dome.getByTestId('chart-legend').locator('button[data-state="hidden-object"]');
+    const rows = page.getByTestId('chart-legend').locator('button[data-state="hidden-object"]');
     await expect(rows.first()).toHaveText(/ · (too low|in shadow|daylight|too faint)$/);
     // The ISS is on its arc, so it is not among the dimmed (D-102).
     await expect(rows.filter({ hasText: 'ISS' })).toHaveCount(0);

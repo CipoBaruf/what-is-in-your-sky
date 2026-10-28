@@ -104,7 +104,10 @@
    at its width, `action` and `foot` at the rail's foot. The list is the row that gives, scrolling inside. --- */
 .layout[data-shape='rail'] {
   grid-template-columns: minmax(0, 1fr) minmax(calc(44 * var(--cell)), calc(60 * var(--cell)));
-  grid-template-rows: auto auto auto auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr) auto auto auto;
+  /* The box spans every rail row and the hint has a row of its own under it, so the box's height is the layout's
+     less the hint's and nothing the rail does — a foot that grows, a fold that lets air out — can change what the
+     frame measures for the box (D-448) and feed the fold back on itself. */
   grid-template-areas:
     'drawing answer'
     'drawing viewRow'
@@ -112,10 +115,23 @@
     'drawing layers'
     'drawing list'
     'drawing action'
-    'hint foot';
+    'drawing foot'
+    'hint .';
   column-gap: calc(2 * var(--cell));
   height: 100%;
   min-height: 0;
+}
+
+/* The landscape phone (compact, FR-WATCH-5): the box two fifths and the rail three, as D-173 cut them; the rail's rows
+   overflow 390 px at some shapes and the page then scrolls — the landscape arrangement itself is R136's. */
+.layout[data-shape='rail'][data-mode='compact'] {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  height: auto;
+  min-height: 100%;
+}
+
+.layout[data-shape='rail'][data-mode='compact'] .list {
+  overflow: visible;
 }
 
 .layout[data-shape='rail'] .drawing,
@@ -136,7 +152,8 @@
 /* --- The panel (D-849): the guide's one column; the view row and the picker share a line, the drawing takes the
    height the panel leaves (`--sky-drawing-h`, measured by `SkyViewLayout`), the prose and the table follow. --- */
 .layout[data-shape='panel'] {
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* The view row and the picker share the control line three to two; a narrow panel wraps each group's options rather than scrolling sideways. */
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   grid-template-areas:
     'answer answer'
     'viewRow picker'
@@ -226,7 +243,8 @@
 .layout .drawing :global([data-testid='chart-frame'][data-box='true'] > [data-testid='chart-box']) {
   width: var(--chart-box-w);
   height: var(--chart-box-h);
-  margin: 0 auto;
+  /* At the left (FR-LIVE-7, D-386), where the readout on the slot's corner is the box's corner too. */
+  margin: 0;
 }
 
 /* The figure is its frame: no caption row, no controls row of its own (both are the page's slots). */

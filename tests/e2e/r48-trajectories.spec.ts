@@ -71,7 +71,7 @@ test.describe('the live page on a portrait phone', () => {
     // R77 (FR-WATCH-9 e): the step row is the scrubbing state's; the list opened while watching stays open.
     await enterScrubbing(page);
     const dome = page.getByTestId('live-dome');
-    const legend = dome.getByTestId('chart-legend');
+    const legend = page.getByTestId('chart-legend');
     // At T the ISS is ten seconds into its pass: live, with the marker, and the only row.
     await expect(legend.locator('button[data-pass-id^="25544-"]')).toHaveAttribute('data-state', 'live');
     await expect(dome.locator('[data-drawing] [data-pass-id^="25544-"]')).toHaveCount(1);
