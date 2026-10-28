@@ -114,6 +114,13 @@
   min-height: auto;
 }
 
+/* The bowl's box is shorter than the square, so a page that gives the column a height (`fill`, the live page at
+   390 × 844) leaves it room over: it stays under the last row rather than stretching every auto row, which would
+   draw the empty picker slot (1 px) and put a fraction on each FR-FLOW-10 gap. */
+.layout[data-shape='column']:has(.drawing [data-bowl='true']) {
+  align-content: start;
+}
+
 /* --- The rail: the box at the left, the rail at the right, the readout on the box's corner, the hint under the box
    at its width, `action` and `foot` at the rail's foot. The list is the row that gives, scrolling inside. --- */
 .layout[data-shape='rail'] {
