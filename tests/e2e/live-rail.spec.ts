@@ -37,9 +37,8 @@
  * Every test sets its own viewport, so this file runs in the default project.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { fitFloor, MIN_EXTENT_RATIO, painted } from './domeInk';
-import { domeDrawn, enterScrubbing, seedStoredRun, stripFilled } from './liveHelpers';
+import { bandUnderBox, domeDrawn, enterScrubbing, seedStoredRun, SPACE_3_PX, stripFilled } from './liveHelpers';
 
 /** The page's bottom padding plus the frame's gap: what may be left under the lowest row when the height binds. */
 const UNDER_PX = 24;
@@ -82,16 +81,17 @@ for (const [width, height] of [
   test.describe(`at ${String(width)} x ${String(height)}`, () => {
     test.use({ viewport: { width, height } });
 
-    test("cuts the box to the dome's shape from what the window leaves, places the rows, and fills the box both ways", async ({ page }) => {
+    test('cuts the box to the room the window leaves — down to the hint line — places the rows, and fills the box both ways', async ({ page }) => {
       await openLive(page);
       /*
        * R77 (FR-WATCH-5): watching, there is no scrub block under the box, so the box takes the height down to
-       * the page's foot — cut to the same shape, and never smaller than the one the block leaves. The rest of
-       * this test is the scrubbing page, where the block is under the box as FR-LIVE-7 has it.
+       * the page's foot — and never smaller than the one the block leaves. The rest of this test is the scrubbing
+       * page, where the block is under the box as FR-LIVE-7 has it. R133 (FR-FLOW-9, D-850): the box is the room,
+       * not the dome's 2.4 : 2.0 cut from it (D-314): no band taller than a group gap stands under it.
        */
       const watching = await page.getByTestId('live-dome').getByTestId('chart-box').boundingBox();
       if (!watching) throw new Error('the page is not laid out');
-      expect(watching.width / watching.height).toBeCloseTo(DOME_BOX_ASPECT, 2);
+      expect(await bandUnderBox(page, watching)).toBeLessThanOrEqual(SPACE_3_PX);
       await expect(page.getByTestId('stripe-block')).toHaveCount(0);
       await enterScrubbing(page);
       await boxSettled(page);
@@ -103,8 +103,8 @@ for (const [width, height] of [
       const block = await page.getByTestId('stripe-block').boundingBox();
       if (!box || !block) throw new Error('the page is not laid out');
 
-      // The box is the dome's shape, to the pixel the grid rounds to.
-      expect(box.width / box.height).toBeCloseTo(DOME_BOX_ASPECT, 2);
+      // The box is the room over the block, to the pixel the grid rounds to: as wide as the watching one.
+      expect(box.width).toBeCloseTo(watching.width, 0);
       expect(watching.height, 'the watching box is the scrubbing one or taller').toBeGreaterThanOrEqual(box.height - 1);
 
       // D-312 → R132 (FR-FLOW-4 wide): the rail is the layout's column beside the box — the answer, the view row, the

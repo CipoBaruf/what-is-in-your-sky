@@ -20,14 +20,14 @@
  * legend has rows above the rail. The theme is seeded in `wiys:prefs:v1`
  * (D-70), never clicked, and one capture is one test.
  */
-import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
+import { bandUnderBox, SPACE_3_PX } from './liveHelpers';
 import { expect, test } from '@playwright/test';
 import { CAPTURE_DIR } from './captureSet';
 import { openParisLive } from './parisLive';
 
 test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
 
-/** The box is the dome's shape (D-314) with the stripe under it (D-315) and the rail beside it (D-312) — at every wide width since R71 (D-386). */
+/** The box is the room down to the hint line (R133, FR-FLOW-9; it was the dome's shape, D-314) with the stripe under it (D-315) and the rail beside it (D-312) — at every wide width since R71 (D-386). */
 const shoot = async (page: import('@playwright/test').Page, width: 1280 | 1920 | 2560 | 3840, theme: 'dark' | 'night'): Promise<void> => {
   await openParisLive(page, width, theme);
   const box = await page.getByTestId('chart-box').boundingBox();
@@ -39,7 +39,7 @@ const shoot = async (page: import('@playwright/test').Page, width: 1280 | 1920 |
   if (!rail) throw new Error('no rail');
   expect(rail.x).toBeGreaterThanOrEqual(box.x + box.width - 1);
   expect(strip.y).toBeLessThan(actions.y);
-  expect(box.width / box.height).toBeCloseTo(DOME_BOX_ASPECT, 1);
+  expect(await bandUnderBox(page, box)).toBeLessThanOrEqual(SPACE_3_PX);
   await expect(page.getByTestId('live-layout')).toHaveAttribute('data-shape', 'rail');
   await page.screenshot({ path: `${CAPTURE_DIR}/r61-live-${String(width)}-${theme}-en.png` });
 };

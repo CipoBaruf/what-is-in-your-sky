@@ -26,8 +26,10 @@ export const FIT_EPS_PX = 3;
  * layer's settled raster, D-292's one zoom for both), fed the rasters the page actually painted.
  * Where every advance rendered at the width it was asked for this is `zoomFor`'s number; where the
  * platform rounded the cell down it is less, and the drawing — painted on that raster — follows it.
+ * R133 (`sky-box.spec.ts`): exported, since the blank a short raster leaves around the bowl is this
+ * zoom's and not the box's.
  */
-function platformZoom(layers: readonly LayerInk[], box: Pick<Rect, 'width' | 'height'>): number {
+export function platformZoom(layers: readonly LayerInk[], box: Pick<Rect, 'width' | 'height'>): number {
   return Math.min(zoomFor(box.width, box.height), ...layers.map(({ cols, rows, cellWidthPx, cellHeightPx }) => zoomWithinRaster(box.width, box.height, { widthPx: cols * cellWidthPx, heightPx: rows * cellHeightPx, cellWidthPx })));
 }
 

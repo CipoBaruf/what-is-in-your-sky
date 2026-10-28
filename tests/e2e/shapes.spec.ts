@@ -34,8 +34,8 @@
  * it, and the live page does not scroll.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { COMPACT_BOX_MIN_SHORT_PX, COMPACT_MAX_CELLS, foldBelowPx, LIVE_BOX_MIN_PX, liveKeptPx, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
-import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
+import { COMPACT_BOX_MIN_SHORT_PX, COMPACT_MAX_CELLS, compactDomeBoxHeightPx, foldBelowPx, LIVE_BOX_MIN_PX, liveKeptPx, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
+import { bowlHeightPx, DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { fitFloor, painted, type Painted, type Rect } from './domeInk';
 import { backToLive, domeDrawn, enterScrubbing, leaveSettings, openSettings, reenterLiveWithTheme, seedStoredRun, stripFilled } from './liveHelpers';
 
@@ -519,10 +519,13 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       expect(box.width, at).toBeGreaterThan(0);
       // FR-COMP-5 as amended v2.1 (R95, V21-23, F-62; D-615): the compact box's floor by height — the square rule in
       // both states where the box spans the viewport (the phones), while watching where R99's column caps it (the
-      // tablets: 578 × 577 scrubbing at 768 × 1024), and the short phone's floor while watching.
+      // tablets: 578 × 577 scrubbing at 768 × 1024), and the short phone's floor while watching. R133 (FR-FLOW-9,
+      // D-850): the square is the bowl's box now — its drawn height at the box's width plus the slack above and
+      // below, 337 at 390 px — in both states, since the column scrolls past it (R132); the short phone's floor stands.
       const capped = box.width < width;
       if (width < WIDE_MIN_PX && height >= COMPACT_BOX_SQUARE_FROM_PX && (state === 'watching' || !capped)) {
-        expect(box.height, `${at}: the compact box is ${fmt(box)}, shorter than it is wide (FR-COMP-5)`).toBeGreaterThanOrEqual(box.width);
+        const bowl = compactDomeBoxHeightPx({ bowlHeightPx: bowlHeightPx(box.width), floorPx: COMPACT_BOX_MIN_SHORT_PX });
+        expect(Math.abs(box.height - bowl), `${at}: the compact box is ${fmt(box)}, not the bowl's ${String(bowl)} px (FR-FLOW-9)`).toBeLessThanOrEqual(1);
       }
       if (label(size) === COMPACT_SHORT_PHONE && state === 'watching') {
         expect(box.height, `${at}: the short phone's box is ${fmt(box)}, under COMPACT_BOX_MIN_SHORT_PX (FR-COMP-5)`).toBeGreaterThanOrEqual(COMPACT_BOX_MIN_SHORT_PX);
@@ -817,8 +820,9 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
         const scrolled = await scroll(page);
         // R132 (FR-FLOW-4, D-864): the compact column scrolls past its box; sideways it never does.
         expect(scrolled.scrollWidth, `${where}: the live page scrolls sideways`).toBeLessThanOrEqual(scrolled.clientWidth);
-        // Watching, the rows leave the column's box its own width at these heights (FR-TAB-2's floor, unchanged from FR-COMP-5).
-        if (state === 'watching') expect(box.height, `${where}: the box is ${String(Math.round(box.height))} px tall and ${String(Math.round(box.width))} wide`).toBeGreaterThanOrEqual(box.width - 1);
+        // R133 (FR-FLOW-9, D-850): the column's box is the bowl's at its width, in both states (it was its own width while watching, FR-TAB-2).
+        const bowl = compactDomeBoxHeightPx({ bowlHeightPx: bowlHeightPx(box.width), floorPx: COMPACT_BOX_MIN_SHORT_PX });
+        expect(Math.abs(box.height - bowl), `${where}: the box is ${String(Math.round(box.height))} px tall and ${String(Math.round(box.width))} wide, not the bowl's ${String(bowl)}`).toBeLessThanOrEqual(1);
       }
       await backToLive(page);
     }
