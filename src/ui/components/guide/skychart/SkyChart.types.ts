@@ -183,11 +183,11 @@ export interface SkyChartProps {
    */
   stripe?: ReactNode;
   /**
-   * FR-LIVE-7 as amended (v1.2.1) / D-314 (R61): the box's aspect, width over
-   * height — the dome's `DOME_BOX_ASPECT`. Given, the frame cuts the drawing
-   * box to the largest rectangle of that shape the frame leaves it
-   * (`lib/layout.ts` `fitBox`) and stands the side column beside it; absent,
-   * the box is fluid — every row the page leaves, whatever its shape.
+   * FR-LIVE-7 as amended (v1.2.1) / D-314 (R61): given, the frame measures
+   * the room it leaves the drawing (`lib/layout.ts` `fitBox`) and writes the
+   * box from it; absent, the box is fluid. R133 (D-868): the number's value is
+   * ignored — the box is the whole room, not a rectangle of that shape — so
+   * the prop is a switch; a boolean is a follow-up.
    */
   boxAspect?: number;
   /**

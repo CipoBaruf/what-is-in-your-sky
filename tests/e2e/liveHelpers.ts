@@ -7,6 +7,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, type Locator, type Page } from '@playwright/test';
+import { ROW_PX } from '../../src/lib/layout';
 import { BARILOCHE_FORECAST_FILE, BARILOCHE_GEOCODE_FILE, BARILOCHE_QUERY, FIXTURE_DATE, LONDON_FORECAST_FILE, LONDON_GEOCODE_FILE, LONDON_QUERY, NEUQUEN as NEUQUEN_OBSERVER, NINE_DAYS_ON, STORED_RUN_FILE } from './observers';
 
 interface HaFixture {
@@ -382,6 +383,24 @@ export async function shownAndHidden(page: Page): Promise<number> {
   const text = (await toggle.count()) > 0 ? ((await toggle.textContent()) ?? '') : '';
   const hidden = /^(?:show|ver) (\d+)/.exec(text);
   return cards + (hidden ? Number(hidden[1]) : 0);
+}
+
+/** One `--space-3`, the group gap (D-851): `--row`, 24 px at the default cell — the band FR-FLOW-9 allows under the wide box. */
+export const SPACE_3_PX = ROW_PX;
+
+/**
+ * R133 (FR-FLOW-9, D-850): the band under the wide box, in px — from the box's bottom edge to the hint's top
+ * where the hint is shown (the layout's last row, under the box), else to the layout's foot. FR-FLOW-9 holds it to
+ * one `--space-3` on the live page and the stars page: the box runs from under the header to the hint line.
+ */
+export async function bandUnderBox(page: Page, box: { y: number; height: number }, layoutId = 'live-layout'): Promise<number> {
+  // The hint is a slot only while it is shown (FR-FLOW-6), so it is looked for rather than waited for.
+  const under = await page.getByTestId(layoutId).evaluate((layout) => {
+    const hint = layout.querySelector('[data-slot="hint"]');
+    const rect = hint?.getBoundingClientRect();
+    return rect && rect.height > 0 ? rect.top : layout.getBoundingClientRect().bottom;
+  });
+  return under - (box.y + box.height);
 }
 
 /**

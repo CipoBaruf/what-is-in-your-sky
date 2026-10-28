@@ -441,6 +441,8 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
         {...(boxAspect === undefined ? {} : { boxAspect })}
         {...(stacked === undefined ? {} : { stacked })}
         {...(legendOpen === undefined ? {} : { legendOpen })}
+        // R133 (FR-FLOW-9, D-850): this view is the bowl — on a compact portrait `fill` frame the box is cut from it.
+        bowl
         // R48 (FR-LIVE-7 as amended): the hint is not shown on the live page — `fill` is that page — where the row it took is the dome's.
         // R54 (D-269): what the page hands down (the view toggle) heads the slot instead.
         // R132 (FR-FLOW-6, D-848): in a `SkyViewLayout` the hint is the layout's `SkyHint`, and the readout goes to its `readout` slot.

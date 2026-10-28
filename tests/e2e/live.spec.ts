@@ -14,10 +14,9 @@
  *   - the captures the PR carries, at both widths, in both themes, and in
  *     Spanish at the phone width.
  */
-import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { expect, test, type Page } from '@playwright/test';
 import { formatClockDuration } from '../../src/lib/format';
-import { domeDrawn, enterScrubbing, golden, ha, heading, hhmmss, homeAt, LABEL, openLegend, openSkyScreen, realTimeField, savedDome, reenterLiveWithTheme, stripFilled, stubCompass, stubNetwork, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
+import { bandUnderBox, domeDrawn, enterScrubbing, golden, ha, heading, hhmmss, homeAt, LABEL, openLegend, openSkyScreen, realTimeField, savedDome, reenterLiveWithTheme, SPACE_3_PX, stripFilled, stubCompass, stubNetwork, T, VIEW_GROUP, VIEW_OPTION } from './liveHelpers';
 
 test.describe('the live page', () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -351,8 +350,11 @@ test.describe('the wide live page (R61)', () => {
     await expect(page.getByTestId('live-actions').getByTestId('live-hidden-toggle')).toBeVisible();
     await expect(page.getByTestId('step-controls')).toBeVisible();
     await expect(page.getByRole('slider', { name: 'Night overview' })).toBeVisible();
-    // The box is the dome's shape (D-314); the rail's foot reaches the page's bottom, and the page does not scroll.
-    expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(DOME_BOX_ASPECT, 2);
+    // R133 (FR-FLOW-9, D-850): the box is the room, down to the hint line — no band taller than a group gap under it
+    // (it was the dome's 2.4 : 2.0, D-314, with the rest of the column blank); the rail's foot reaches the page's
+    // bottom, and the page does not scroll.
+    if (!box) throw new Error('no box');
+    expect(await bandUnderBox(page, box)).toBeLessThanOrEqual(SPACE_3_PX);
     // The hint's row under the box is the layout's last, so the foot ends a hint's row above the page's padding.
     const foot = await page.getByTestId('live-rail-foot').boundingBox();
     expect(1080 - ((foot?.y ?? 0) + (foot?.height ?? 0))).toBeLessThanOrEqual(48);
@@ -387,8 +389,9 @@ test.describe('the wide live page (R61)', () => {
     // The block stacks: the clock readout over the stripe.
     below(stripe, clock);
     await expectLabelsClear(page);
-    // The box is the dome's shape (D-314); the rail's foot reaches the page's bottom. The page does not scroll.
-    expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(DOME_BOX_ASPECT, 2);
+    // R133 (FR-FLOW-9, D-850): the box is the room, down to the hint line; the rail's foot reaches the page's bottom. The page does not scroll.
+    if (!box) throw new Error('no box');
+    expect(await bandUnderBox(page, box)).toBeLessThanOrEqual(SPACE_3_PX);
     const foot = await page.getByTestId('live-rail-foot').boundingBox();
     expect(800 - ((foot?.y ?? 0) + (foot?.height ?? 0))).toBeLessThanOrEqual(48);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(800);

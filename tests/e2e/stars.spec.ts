@@ -12,6 +12,7 @@
  * the catalogue's and the clock's (FR-STAR-8).
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { bandUnderBox, SPACE_3_PX } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
@@ -75,8 +76,10 @@ test.describe('the stars page on a desk, 1280 × 800 (US-39 AC1, AC4)', () => {
     await expect.poll(async () => (await box(sky)).width).toBeGreaterThan(400);
     // R132 (FR-FLOW-4, D-842): the rail is the layout's — its first slot, the `h1` block, stands where the rail does.
     const [drawn, rail, readout] = await Promise.all([box(sky), box(page.getByTestId('stars-layout').locator('[data-slot="answer"]')), box(page.getByTestId('window-readout'))]);
-    // The box has the browser window's shape (fitBox), the rail stands beside it at 44 cells or more.
-    expect(Math.abs(drawn.width / drawn.height - DESK.width / DESK.height)).toBeLessThan(0.02);
+    // R133 (FR-FLOW-9, D-850): the box is the room, down to the hint line — no band taller than a group gap under it
+    // (it was the browser window's shape, `windowBox`); the rail stands beside it at 44 cells or more.
+    expect(await bandUnderBox(page, drawn, 'stars-layout')).toBeLessThanOrEqual(SPACE_3_PX);
+    expect(drawn.y + drawn.height).toBeLessThanOrEqual(DESK.height);
     expect(rail.x).toBeGreaterThanOrEqual(drawn.x + drawn.width);
     expect(rail.width).toBeGreaterThanOrEqual(400);
     expect(rail.x + rail.width).toBeLessThanOrEqual(DESK.width);

@@ -29,7 +29,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { Observer } from '../../src/model';
 import { CAPTURE_DIR, LOCALES, THEMES, type CaptureLocale, type CaptureTheme } from './captureSet';
-import { stubCompass } from './liveHelpers';
+import { bandUnderBox, SPACE_3_PX, stubCompass } from './liveHelpers';
 import { BARILOCHE, FIXTURE_DATE, PARIS } from './observers';
 
 const PREFS_KEY = 'wiys:prefs:v1';
@@ -513,9 +513,9 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
         // rise point — Paris's next one rises at 352°, on the horizon — at `clamp(alt − 15°, 20°, 75°)` = 20°.
         expect(await look(w)).toEqual({ az: 352, alt: 20 });
         const box = await boxSettled(page, page.getByTestId('chart-box'));
-        // The box is cut to the browser window's shape (`windowBox`) and the rail stands beside it.
-        expect(Math.abs(box.width / box.height - width / height)).toBeLessThan(0.02);
         const [boxRect, rail] = await Promise.all([rectOf(page.getByTestId('chart-box')), rectOf(page.getByTestId('live-rail-head'))]);
+        // R133 (FR-FLOW-9, D-850): the box is the room, down to the hint line (it was the browser window's shape, `windowBox`), and the rail stands beside it.
+        expect(await bandUnderBox(page, boxRect)).toBeLessThanOrEqual(SPACE_3_PX);
         expect(rail.x).toBeGreaterThanOrEqual(boxRect.x + boxRect.width - 1);
         // The facing picker in the rail (FR-SKY-2), the readout in the box's corner.
         await expect(page.getByTestId('live-layout').locator('[data-slot="picker"]').getByTestId('window-facing')).toBeVisible();

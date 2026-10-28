@@ -236,6 +236,13 @@ export function layoutMode(matchesWide: boolean): LayoutMode {
  * `ChartFrame` measures the four inputs and writes the answer inline as two
  * custom properties (px may not be written in a wide stylesheet block,
  * `tests/styles/breakpoint.test.ts`).
+ *
+ * R133 (FR-FLOW-9, D-850): on wide the box is the room itself, with no
+ * aspect: as tall as the frame leaves it *and* as wide as the rail does — from
+ * under the header to the hint line, for every view, on the live page and on
+ * the stars page — so no band stands under the drawing (F4, D5). The drawing's
+ * own fit (FR-DOME-1, `zoomFor`) is what keeps the bowl its shape inside a box
+ * that is not 2.4 : 2.0, so the aspect cut R61 made here is gone.
  */
 export interface BoxFit {
   /** The frame's own box, CSS px. */
@@ -246,42 +253,51 @@ export interface BoxFit {
   belowHeightPx: number;
   /** The rail's minimum, in px, plus the column gap before it. */
   besideWidthPx: number;
-  /** Width over height. */
-  aspect: number;
 }
 
 /** The rail's minimum, `ChartFrame.module.css` (D-313): what the playback row and the strip need to be read. */
 export const RAIL_MIN_CELLS = 44;
 
-/** The largest `aspect` box the frame leaves, height-bound or width-bound; never negative. */
-export function fitBox({ frameWidthPx, frameHeightPx, aboveHeightPx, belowHeightPx, besideWidthPx, aspect }: BoxFit): { widthPx: number; heightPx: number } {
-  const heightPx = Math.max(0, frameHeightPx - aboveHeightPx - belowHeightPx);
-  const widthPx = Math.max(0, frameWidthPx - besideWidthPx);
-  if (heightPx * aspect <= widthPx) return { widthPx: Math.floor(heightPx * aspect), heightPx: Math.floor(heightPx) };
-  return { widthPx: Math.floor(widthPx), heightPx: Math.floor(widthPx / aspect) };
+/** The room the frame leaves, whole pixels, never negative. */
+export function fitBox({ frameWidthPx, frameHeightPx, aboveHeightPx, belowHeightPx, besideWidthPx }: BoxFit): { widthPx: number; heightPx: number } {
+  return { widthPx: Math.floor(Math.max(0, frameWidthPx - besideWidthPx)), heightPx: Math.floor(Math.max(0, frameHeightPx - aboveHeightPx - belowHeightPx)) };
 }
 
 /**
- * R121 (FR-SKY-2, FR-STAR-3; D-789): the window's box. The stars page cuts its
- * box to the browser window's own shape (R115), and the live page and the
- * pass detail lay the window out the same way where the dome had its 2.4 : 2.0
- * box — so this is `fitBox` at the viewport's aspect, one rule for both, with
- * the viewport given rather than read so it stays a unit test. A viewport with
- * no size yet (jsdom, a hidden tab) is square.
+ * R121 (FR-SKY-2, D-789): width over height of the viewport, 1 where it has no
+ * size (jsdom, a hidden tab). The pass detail's wide window takes this shape
+ * through `--chart-box-aspect` (`ChartFrame`). R133 (D-850): `windowBox` — the
+ * live page's and the stars page's box at this shape — stood here; both boxes
+ * are the room now (`fitBox` without an aspect), so it is gone.
  */
-export interface WindowBoxFit extends Omit<BoxFit, 'aspect'> {
-  /** The browser window's inner size, CSS px — the shape the box takes. */
-  viewportWidthPx: number;
-  viewportHeightPx: number;
-}
-
-/** Width over height of the viewport, 1 where it has no size. */
 export function viewportAspect(viewportWidthPx: number, viewportHeightPx: number): number {
   return viewportWidthPx > 0 && viewportHeightPx > 0 ? viewportWidthPx / viewportHeightPx : 1;
 }
 
-export function windowBox({ viewportWidthPx, viewportHeightPx, ...room }: WindowBoxFit): { widthPx: number; heightPx: number } {
-  return fitBox({ ...room, aspect: viewportAspect(viewportWidthPx, viewportHeightPx) });
+/**
+ * R133 (FR-FLOW-9, D-850; F4, D5): the compact dome's box is cut from the bowl.
+ * On a phone the box is width-bound (FR-DOME-1: the zoom is the width over
+ * `ZOOM_WIDTH_DIVISOR`), and a square box left a band of blank over and under
+ * the drawing — 66 px of a 390 px square at 390 × 844. So the box is the
+ * bowl's drawn height at that zoom — `DRAWING_HEIGHT_UNITS` of it, F-61's
+ * silhouette-to-ground extent, which `dome/camera.ts` `bowlHeightPx` gives for
+ * a width — plus this slack above and below it: one `--space-3`, the group
+ * rhythm (D-851), so the rows over and under the drawing stand a group away
+ * from the bowl and not from an empty corner of its box. The scene's cell
+ * snap takes part of the slack (the raster's rows are whole cells, D-293),
+ * so the blank the reader sees is at most this and usually less; the e2e test
+ * (`sky-box.spec.ts`) reads the drawn cells and holds both gaps to it.
+ */
+export const DOME_COMPACT_SLACK_PX = 24;
+
+/**
+ * The compact dome's box height: the bowl plus the slack above and below it,
+ * and never under the floor the caller names — FR-LIVE-7's compact floor,
+ * `COMPACT_BOX_MIN_SHORT_PX`, which binds under about 313 px of box width
+ * (where the rounding is whole px, as every box length here is).
+ */
+export function compactDomeBoxHeightPx({ bowlHeightPx, floorPx }: { bowlHeightPx: number; floorPx: number }): number {
+  return Math.max(Math.round(floorPx), Math.round(bowlHeightPx + 2 * DOME_COMPACT_SLACK_PX));
 }
 
 /*
@@ -331,8 +347,10 @@ export const LIVE_BOX_MIN_PX = 8 * ROW_PX;
  * line (FR-SKY-11) is the headline's fourth line and takes 23 px — 306 with a
  * one-line path, 282 with two — so the floor is 280, which holds either.
  * Scrubbing's stripe block takes it to about 220, so the floor is
- * not asserted there. Nothing in the layout reads it: it is the assertion's
- * constant, kept beside `LIVE_BOX_MIN_PX` so the two floors are found together.
+ * not asserted there. Kept beside `LIVE_BOX_MIN_PX` so the two floors are
+ * found together. R133 (FR-FLOW-9, D-850): the layout reads it now — it is
+ * the floor `ChartFrame` holds the compact dome's bowl-cut box to
+ * (`compactDomeBoxHeightPx`), which at the 390 px phone is 337 and well over it.
  */
 export const COMPACT_BOX_MIN_SHORT_PX = 280;
 

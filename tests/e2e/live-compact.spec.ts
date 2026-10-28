@@ -17,23 +17,25 @@
  */
 import { expect, test } from '@playwright/test';
 import { TAP_PX } from '../../src/lib/layout';
+import { compactBowlBoxPx } from '../../src/ui/components/guide/skychart/dome/camera';
 import { domeDrawn, enterScrubbing, homeAt, stripFilled, T } from './liveHelpers';
 
 /**
  * R71 (FR-LEG-8, F-62): what the box is held to with the list closed, by phone height.
  *
- * At 844 it is FR-COMP-5's floor itself — the frame's own measured width (D-187's `--chart-floor`, 374 px at
- * 390 px of viewport, which is the number F-62 quotes) — and the measurement on this branch is 375. The legend
- * off the page's rows is what gives it back: F-62 measured 259 here, so this fails on the old layout.
+ * At 844 it was FR-COMP-5's floor itself — the frame's own measured width (D-187's `--chart-floor`, 374 px at
+ * 390 px of viewport, which is the number F-62 quotes). At 667 the floor was out of reach and the number was a
+ * measurement (198: FR-COMP-5's escape, "only where the gaps are at their minimum and the rows still do not fit
+ * does the box yield below its floor"; the rest of F-62 is in `sdd-run/R71.summary.md` and spec §4.20).
  *
- * At 667 the floor is out of reach and this number is a measurement, not a rule. The rows the page must draw
- * under the box — the strip's two lines, the clock, the overview row (FR-SPAN-2), the stripe's three rows, the
- * stepping row and the actions — take more than the 293 px a 667 px phone has left over a 374 px box, so
- * FR-COMP-5's own escape applies ("only where the gaps are at their minimum and the rows still do not fit does
- * the box yield below its floor"). What R71 buys there is 82 px → 198, and that is what is held. The rest of
- * F-62 is open: see `sdd-run/R71.summary.md` and spec §4.20.
+ * R133 (FR-FLOW-9, D-850): the dome's compact box is cut from the bowl — its drawn height at the box's width plus
+ * `DOME_COMPACT_SLACK_PX` above and below, 337 at the 390 px phone — and the column scrolls past it (R132), so the
+ * box is that at both heights and in both states, and this holds it to the rule rather than to the old numbers.
  */
-const FLOOR_TODAY: Readonly<Record<667 | 844, number>> = { 844: 374, 667: 198 };
+const FLOOR_TODAY: Readonly<Record<667 | 844, number>> = {
+  844: compactBowlBoxPx(390) - 1,
+  667: compactBowlBoxPx(390) - 1,
+};
 
 /**
  * The rows under the box, in the order the page stacks them (FR-LIVE-7 as amended v1.2) — R77 (FR-WATCH-4):
@@ -127,10 +129,11 @@ test.describe('the compact live page under the box (F-55)', () => {
       expect(drawing?.height ?? 0).toBeGreaterThan(0);
 
       // R132 (FR-FLOW-4, D-864): the column is at least the screen and scrolls past the box (F-55's rows no longer
-      // squeeze it); the box is never shorter than wide (FR-COMP-5), so the rows under it are where the scroll is.
+      // squeeze it). R133 (FR-FLOW-9, D-850): the box is the bowl's — its drawn height at the box's width plus the
+      // slack above and below, 337 at 390 px — so the rows under it are where the scroll is.
       const page_ = await page.getByTestId('live-page').boundingBox();
       expect(page_?.height).toBeGreaterThanOrEqual(height);
-      expect(drawing?.height ?? 0).toBeGreaterThanOrEqual((drawing?.width ?? 0) - 1);
+      expect(Math.abs((drawing?.height ?? 0) - compactBowlBoxPx(drawing?.width ?? 0))).toBeLessThanOrEqual(1);
     });
     }
 
@@ -167,10 +170,9 @@ test.describe('the compact live page under the box (F-55)', () => {
       const closed = await page.getByTestId('chart-box').boundingBox();
       const frame = await page.getByTestId('chart-frame').boundingBox();
       if (!closed || !frame) throw new Error('the box is not laid out');
-      // FR-COMP-5's floor, on the box rather than argued from the rows (FR-LEG-8). The floor is the frame's
-      // own measured width (D-187, `--chart-floor`), which is F-62's 374 at this phone: the box is full-bleed
-      // and 390 wide, and the floor it is held to is the content width the page's padding leaves.
-      expect(closed.height, `at ${String(height)} the box is ${String(Math.round(closed.height))} px tall against a floor of ${String(Math.round(frame.width))}`).toBeGreaterThanOrEqual(FLOOR_TODAY[height]);
+      // The box's height, on the box rather than argued from the rows (FR-LEG-8). R133 (FR-FLOW-9): the bowl's rule
+      // at the box's full-bleed width (390 here; the frame is the content width the page's padding leaves).
+      expect(closed.height, `at ${String(height)} the box is ${String(Math.round(closed.height))} px tall in a frame ${String(Math.round(frame.width))} wide`).toBeGreaterThanOrEqual(FLOOR_TODAY[height]);
 
       await control.click();
       await expect(control).toHaveAttribute('aria-expanded', 'true');

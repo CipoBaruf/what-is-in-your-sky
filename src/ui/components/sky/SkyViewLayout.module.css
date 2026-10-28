@@ -100,6 +100,27 @@
   height: calc(100cqw + 2 * var(--page-pad-x, calc(2 * var(--cell))));
 }
 
+/* R133 (FR-FLOW-9, D-850): …unless the chart cuts its own box — the dome's, from the bowl (`ChartFrame`'s
+   `data-bowl`, its height written as `--chart-box-h`) — in which case the slot is as tall as the chart, and the
+   picker, the hint and the rows under them stand a row under the bowl rather than under an empty corner of a square.
+   `min-height: auto`, not the slot's 0: the chart's box is the slot's content and the slot is never shorter than it.
+   A grid shorter than its rows hands an auto row its items' minimum (D-881), and this column can be shorter than its
+   rows for a frame — Chromium re-lays the layout (`container-type`, above) at the height it had when a row the reader
+   opens arrives, the legend's two rows at 390 × 667, and the one row whose minimum was 0 gave the 96 px: the box
+   stood over `[ list (n) ]` (`live-compact.spec.ts`). With the box as the slot's minimum the rows overflow the stale
+   height instead and the page grows to them, which is what a column that scrolls past its box means (R132). */
+.layout[data-shape='column'] .drawing:has([data-bowl='true']) {
+  height: auto;
+  min-height: auto;
+}
+
+/* The bowl's box is shorter than the square, so a page that gives the column a height (`fill`, the live page at
+   390 × 844) leaves it room over: it stays under the last row rather than stretching every auto row, which would
+   draw the empty picker slot (1 px) and put a fraction on each FR-FLOW-10 gap. */
+.layout[data-shape='column']:has(.drawing [data-bowl='true']) {
+  align-content: start;
+}
+
 /* --- The rail: the box at the left, the rail at the right, the readout on the box's corner, the hint under the box
    at its width, `action` and `foot` at the rail's foot. The list is the row that gives, scrolling inside. --- */
 .layout[data-shape='rail'] {
@@ -120,6 +141,21 @@
   column-gap: calc(2 * var(--cell));
   height: 100%;
   min-height: 0;
+}
+
+/* R133 (FR-FLOW-9, D-868): the wide page that gives the layout a height (`fill`, the live page) cuts the box to the
+   layout's height less the hint's row, the landscape phone's rule below, so the box never follows a rail that
+   overflows a short window (D-448, FR-WATCH-6). With no hint (the polar chart) the box runs to the layout's foot. */
+.layout[data-shape='rail'][data-mode='wide'][data-fill] {
+  container-type: size;
+}
+
+.layout[data-shape='rail'][data-mode='wide'][data-fill] .drawing {
+  height: calc(100cqh - max(var(--sky-hint-h, 0px), var(--row)) - var(--space-1));
+}
+
+.layout[data-shape='rail'][data-mode='wide'][data-fill]:not(:has(.hint)) .drawing {
+  height: 100cqh;
 }
 
 /* --- The landscape phone (R136: FR-FLOW-15, D-877; FR-WATCH-5): the rail form at the compact type size, for the

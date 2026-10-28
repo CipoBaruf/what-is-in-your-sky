@@ -37,9 +37,8 @@
  * Every test sets its own viewport, so this file runs in the default project.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
-import { fitFloor, MIN_EXTENT_RATIO, painted } from './domeInk';
-import { domeDrawn, enterScrubbing, seedStoredRun, stripFilled } from './liveHelpers';
+import { MIN_EXTENT_RATIO, painted, shorterSide, shorterSideFloor } from './domeInk';
+import { bandUnderBox, domeDrawn, enterScrubbing, seedStoredRun, SPACE_3_PX, stripFilled } from './liveHelpers';
 
 /** The page's bottom padding plus the frame's gap: what may be left under the lowest row when the height binds. */
 const UNDER_PX = 24;
@@ -82,16 +81,17 @@ for (const [width, height] of [
   test.describe(`at ${String(width)} x ${String(height)}`, () => {
     test.use({ viewport: { width, height } });
 
-    test("cuts the box to the dome's shape from what the window leaves, places the rows, and fills the box both ways", async ({ page }) => {
+    test('cuts the box to the room the window leaves — down to the hint line — places the rows, and fills the box both ways', async ({ page }) => {
       await openLive(page);
       /*
        * R77 (FR-WATCH-5): watching, there is no scrub block under the box, so the box takes the height down to
-       * the page's foot — cut to the same shape, and never smaller than the one the block leaves. The rest of
-       * this test is the scrubbing page, where the block is under the box as FR-LIVE-7 has it.
+       * the page's foot — and never smaller than the one the block leaves. The rest of this test is the scrubbing
+       * page, where the block is under the box as FR-LIVE-7 has it. R133 (FR-FLOW-9, D-850): the box is the room,
+       * not the dome's 2.4 : 2.0 cut from it (D-314): no band taller than a group gap stands under it.
        */
       const watching = await page.getByTestId('live-dome').getByTestId('chart-box').boundingBox();
       if (!watching) throw new Error('the page is not laid out');
-      expect(watching.width / watching.height).toBeCloseTo(DOME_BOX_ASPECT, 2);
+      expect(await bandUnderBox(page, watching)).toBeLessThanOrEqual(SPACE_3_PX);
       await expect(page.getByTestId('stripe-block')).toHaveCount(0);
       await enterScrubbing(page);
       await boxSettled(page);
@@ -103,8 +103,8 @@ for (const [width, height] of [
       const block = await page.getByTestId('stripe-block').boundingBox();
       if (!box || !block) throw new Error('the page is not laid out');
 
-      // The box is the dome's shape, to the pixel the grid rounds to.
-      expect(box.width / box.height).toBeCloseTo(DOME_BOX_ASPECT, 2);
+      // The box is the room over the block, to the pixel the grid rounds to: as wide as the watching one.
+      expect(box.width).toBeCloseTo(watching.width, 0);
       expect(watching.height, 'the watching box is the scrubbing one or taller').toBeGreaterThanOrEqual(box.height - 1);
 
       // D-312 → R132 (FR-FLOW-4 wide): the rail is the layout's column beside the box — the answer, the view row, the
@@ -168,8 +168,10 @@ for (const [width, height] of [
       // The page never scrolls to make room: the box was cut from what fits.
       expect(await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight])).toEqual([width, height]);
 
-      // …and the drawing in it: at least 90 % across and down, centred, not two thirds of it with the top cut off.
-      // One load per size (FR-CI-1): the coverage is read off the same page as the layout.
+      // …and the drawing in it: at least 90 % of the box's shorter side (FR-DOME-1), centred, not two thirds of it with
+      // the top cut off. R133 (FR-FLOW-9, D-850): the box is the room and not the drawing's own shape any more, so the
+      // longer side is the box's margin — the floor is the shorter side's, scaled by the box's shape where the height
+      // is the shorter and the box squarer than 2.4 : 2.0 (`shapes.spec.ts`'s rule). One load per size (FR-CI-1).
       const dome = page.getByTestId('live-dome');
       await expect
         .poll(async () => {
@@ -177,12 +179,14 @@ for (const [width, height] of [
           if (!boxNow) return 0;
           const { extent, layers } = await painted(dome.locator('[data-drawing="dome"]'));
           if (layers.length === 0) return 0;
-          return (extent.width / boxNow.width) * (MIN_EXTENT_RATIO / fitFloor(layers, boxNow));
-        }, { message: 'the drawing over the width of its box, at FR-DOME-1’s own floor' })
+          const side = shorterSide(boxNow);
+          return (extent[side] / boxNow[side]) * (MIN_EXTENT_RATIO / shorterSideFloor(layers, boxNow));
+        }, { message: 'the drawing over the shorter side of its box, at FR-DOME-1’s own floor' })
         .toBeGreaterThanOrEqual(MIN_EXTENT_RATIO);
       const { extent, layers } = await painted(dome.locator('[data-drawing="dome"]'));
       const cell = Math.max(...layers.map((layer) => layer.cellWidthPx)) * 2;
-      expect(extent.height / box.height).toBeGreaterThanOrEqual(fitFloor(layers, box));
+      expect(extent.x).toBeGreaterThanOrEqual(box.x - 1);
+      expect(extent.x + extent.width).toBeLessThanOrEqual(box.x + box.width + 1);
       expect(extent.y).toBeGreaterThanOrEqual(box.y);
       expect(extent.y + extent.height).toBeLessThanOrEqual(box.y + box.height + 1);
       const blankAbove = extent.y - box.y;

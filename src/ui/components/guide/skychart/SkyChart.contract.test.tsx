@@ -469,7 +469,7 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
    * the drawing. jsdom lays nothing out, so the measurement is stubbed — the rects, the gaps and the
    * observer — and the arithmetic is asserted both ways round, height-bound and width-bound.
    */
-  it('cuts the drawing to the given aspect from what it measures, and gives a stripe its own row under the drawing', () => {
+  it('cuts the drawing to the room it measures — R133: no longer to the given aspect — and gives a stripe its own row under the drawing', () => {
     const heights = new Map<string, DOMRect>();
     const rect = (width: number, height: number): DOMRect => ({ width, height, x: 0, y: 0, top: 0, left: 0, right: width, bottom: height, toJSON: () => ({}) });
     const realGetRect = HTMLElement.prototype.getBoundingClientRect;
@@ -518,20 +518,21 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
       heights.set('chart-stripe', rect(1103, 108));
       heights.set(frame.children[0]?.className ?? '', rect(422, 0));
       heights.set(frame.children[1]?.className ?? '', rect(1103, 48));
-      // Height-bound: 1000 − (48 + 12) − (108 + 12) = 820 tall, 1157 wide at 2.4 : 1.7; the width beside the rail (1700 − 451 = 1249) allows it.
+      // The room: 1000 − (48 + 12) − (108 + 12) = 820 tall, and the width beside the rail, 1700 − 451 = 1249 — R133 (FR-FLOW-9,
+      // D-850): the whole of it, not the 1157 the 2.4 : 1.7 aspect would have cut, so no band stands under the drawing.
       // The observer is triggered by hand: every instance shares the class above, so the last constructed one is the frame's.
       act(() => {
         for (const instance of resizeObservers()) instance.trigger();
       });
       expect(frame.style.getPropertyValue('--chart-box-h')).toBe('820px');
-      expect(frame.style.getPropertyValue('--chart-box-w')).toBe(`${String(Math.floor((820 * 2.4) / 1.7))}px`);
-      // Width-bound: a frame 900 wide leaves 449 beside the rail, so the box is 449 × 318.
+      expect(frame.style.getPropertyValue('--chart-box-w')).toBe('1249px');
+      // A frame 900 wide leaves 449 beside the rail: the box is 449 × 820, as tall as before (the aspect used to make it 318).
       heights.set('chart-frame', rect(900, 1000));
       act(() => {
         for (const instance of resizeObservers()) instance.trigger();
       });
       expect(frame.style.getPropertyValue('--chart-box-w')).toBe('449px');
-      expect(frame.style.getPropertyValue('--chart-box-h')).toBe(`${String(Math.floor(449 / (2.4 / 1.7)))}px`);
+      expect(frame.style.getPropertyValue('--chart-box-h')).toBe('820px');
       unmount();
       expect(frame.style.getPropertyValue('--chart-box-w')).toBe('');
     } finally {

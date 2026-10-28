@@ -15,6 +15,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { compactBowlBoxPx } from '../../src/ui/components/guide/skychart/dome/camera';
 import { savedDome, withSettings } from './liveHelpers';
 
 interface HaFixture {
@@ -96,9 +97,11 @@ test('the dome, saved, is the view the sheet opens on, shares the polar frame, f
   await viewToggle.getByRole('button', { name: 'Polar' }).click();
   await expect(figure).toHaveAttribute('data-view', 'polar');
   // R132 (FR-FLOW-4): the readout above the box is the view's — one line for the dome, two for the polar convention —
-  // so the frame may move down a row between views while it keeps its size; the table follows it.
+  // so the frame may move down a row between views while it keeps its width; the table follows it. R133 (FR-FLOW-9,
+  // D-850): the dome's frame is the bowl's height and the polar chart's the square, so the heights differ by rule.
   const polarFrame = await frameBox();
-  expect([polarFrame.width, polarFrame.height]).toEqual([domeFrame.width, domeFrame.height]);
+  expect(polarFrame.width).toBe(domeFrame.width);
+  expect(domeFrame.height).toBeLessThan(polarFrame.height);
   // …and the table of points stays under the drawing (the polar chart's orientation control stands between them, in the picker slot).
   expect(await tableY()).toBeGreaterThanOrEqual(polarFrame.y + polarFrame.height - 1);
   await viewToggle.getByRole('button', { name: 'Dome' }).click();
@@ -114,17 +117,19 @@ test('the dome, saved, is the view the sheet opens on, shares the polar frame, f
   const rows = raster.split('\n');
   // FR-DOME-1: the columns are the phone's 60 at this width (an integer rule, so exact everywhere), and the rows follow the
   // box's height at cell aspect 2. The row count is therefore platform-dependent: where glyph advances round to whole pixels
-  // (Linux Chromium) the fitted cell is a little narrower, so a few more rows fit the same square box. 30 is the floor.
+  // (Linux Chromium) the fitted cell is a little narrower, so a few more rows fit the same box. R133 (FR-FLOW-9): the box is
+  // the bowl's height — 337 at 390 px, 25 rows of 13 px — so the floor is the rows that box holds at the exact cell.
+  const box = await stage.boundingBox(); // the focusable stage fills the frame's box; the drawing inside is sized by its raster
+  if (!box) throw new Error('drawing has no box');
   expect(rows[0]).toHaveLength(60);
-  expect(rows.length).toBeGreaterThanOrEqual(30);
+  expect(rows.length).toBeGreaterThanOrEqual(Math.floor(box.height / (2 * (box.width / 60))));
   expect(raster.replace(/[\s⠀]/g, '').length).toBeGreaterThan(200);
   expect(await page.evaluate(() => document.querySelector('canvas'))).toBeNull();
-  const box = await stage.boundingBox(); // the focusable stage fills the frame's square box; the drawing inside is sized by its raster
-  if (!box) throw new Error('drawing has no box');
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width).toBeLessThanOrEqual(390);
   expect(box.width).toBeGreaterThan(300);
-  expect(Math.abs(box.width - box.height)).toBeLessThanOrEqual(2); // the shared square box
+  // R133 (FR-FLOW-9, D-850): the box is cut from the bowl — its drawn height at this width plus the slack above and below — not the square.
+  expect(Math.abs(box.height - compactBowlBoxPx(box.width))).toBeLessThanOrEqual(1);
   const preBox = await pre.boundingBox();
   if (!preBox) throw new Error('raster has no box');
   // FR-DOME-1: no frame, so the drawing fills the box itself rather than the box less a border — the *height* exactly, because
