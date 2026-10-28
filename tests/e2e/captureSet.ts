@@ -164,7 +164,9 @@
  * the pass detail at 844 × 390 are `live-watching` (already there), `stars`
  * and `guide` with the width added. The phone's live files show the window
  * because a phone opens on it (FR-FLOW-14), so that is a route change and not
- * a screen. The set is 394 files.
+ * a screen — and it makes `live-window` at 360 and 390 the same picture as
+ * `live-watching` there, so those eight files are retired and `live-window` is
+ * a desk's screen at 1280 and 1920. The set is 386 files.
  */
 
 export const THEMES = ['dark', 'night'] as const;
@@ -307,8 +309,8 @@ export const SCREENS: readonly CaptureScreen[] = [
   },
   {
     name: 'live-window',
-    widths: [360, 390, 1280, 1920],
-    what: "The live page watching at the set's instant with the view control on `Window` (FR-SKY-2, R121): the window laid out in the box under the hand camera, the stars, the figures and the planets under the arcs (FR-SKY-3), the readout in the box's corner on wide and in its row on compact. At 1280 and 1920 the box takes the browser window's shape and the rail stands beside it with the facing picker, the highlighted pass's key after `up` (FR-SKY-13); at 360 and 390 it is the compact reader without a sensor — what a headless capture is — so the window is drawn in the square box by hand and the choice is not saved.",
+    widths: [1280, 1920],
+    what: "The live page watching at the set's instant with the view control on `Window` (FR-SKY-2, R121): the window laid out in the box under the hand camera, the stars, the figures and the planets under the arcs (FR-SKY-3), the readout in the box's corner on wide and in its row on compact. The box takes the browser window's shape and the rail stands beside it with the facing picker, the highlighted pass's key after `up` (FR-SKY-13). A desk's screen since v2.6: a phone with nothing saved opens the live page on the window (FR-FLOW-14), so `live-watching` at 360 and 390 is the compact window in the box (FR-SKY-9's 390 px file), and a `live-window` file there was the same picture under a second name (R135).",
   },
   {
     name: 'live-window-follow',

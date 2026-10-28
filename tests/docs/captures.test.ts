@@ -59,6 +59,9 @@ describe('the v1 capture set', () => {
      */
     const UPRIGHT = new Set(['sky-screen-portrait', 'sky-screen-turned']);
     const DESK_ONLY = new Set(['live-window-follow', 'stars-zoom']);
+    // R135 (FR-FLOW-14): `live-window` is a desk's screen too — on a phone `live-watching` opens on the window, and
+    // a 360 or 390 px `live-window` file was the same picture under a second name. It keeps both desk widths.
+    const DESK_WIDE = new Set(['live-window']);
     // R135 (FR-FLOW-2, FR-FLOW-12): the Where opened by its `[ details ]` is a phone's screen — on wide the Where is
     // never folded (D-844), so there is nothing to open and no 1280 px file to shoot.
     const PHONE_ONLY = new Set(['where-opened']);
@@ -69,6 +72,10 @@ describe('the v1 capture set', () => {
       }
       if (screen.name.startsWith('sky-screen-') || screen.name === 'window' || screen.name === 'stars-screen' || screen.name === 'stars-passes-screen') {
         expect(screen.widths, screen.name).toEqual(UPRIGHT.has(screen.name) ? [360, 390] : [844]);
+        continue;
+      }
+      if (DESK_WIDE.has(screen.name)) {
+        expect(screen.widths, screen.name).toEqual([1280, 1920]);
         continue;
       }
       if (DESK_ONLY.has(screen.name)) {
@@ -104,8 +111,9 @@ describe('the v1 capture set', () => {
     // R128 (FR-SKY-9, D-829): + 16 `live-window` and + 16 `guide-window` (360, 390, 1280, 1920), + 12 `stars-passes`
     // (360, 390, 1280), + 4 each for `live-window-follow` and `stars-zoom` (1280) and `stars-passes-screen` (844).
     // R135 (FR-FLOW-12): + 16 each for `home-up-now`, `home-no-pass` and `home-daylight` (360, 390, 1280, 1920),
-    // + 8 `where-opened` (360, 390), and + 4 each for `guide` and `stars` at 844 × 390, the phone turned.
-    expect(captureSet()).toHaveLength(394);
+    // + 8 `where-opened` (360, 390), and + 4 each for `guide` and `stars` at 844 × 390, the phone turned; − 8 for
+    // `live-window` at 360 and 390, which since FR-FLOW-14 is `live-watching`'s picture there.
+    expect(captureSet()).toHaveLength(386);
   });
 
   it('names every file by the one pattern, `-view` included (FR-CAP-1)', () => {
