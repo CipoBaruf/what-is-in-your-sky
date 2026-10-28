@@ -15,8 +15,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { COMPACT_BOX_MIN_SHORT_PX, compactDomeBoxHeightPx } from '../../src/lib/layout';
-import { bowlHeightPx } from '../../src/ui/components/guide/skychart/dome/camera';
+import { compactBowlBoxPx } from '../../src/ui/components/guide/skychart/dome/camera';
 import { savedDome, withSettings } from './liveHelpers';
 
 interface HaFixture {
@@ -130,7 +129,7 @@ test('the dome, saved, is the view the sheet opens on, shares the polar frame, f
   expect(box.x + box.width).toBeLessThanOrEqual(390);
   expect(box.width).toBeGreaterThan(300);
   // R133 (FR-FLOW-9, D-850): the box is cut from the bowl — its drawn height at this width plus the slack above and below — not the square.
-  expect(Math.abs(box.height - compactDomeBoxHeightPx({ bowlHeightPx: bowlHeightPx(box.width), floorPx: COMPACT_BOX_MIN_SHORT_PX }))).toBeLessThanOrEqual(1);
+  expect(Math.abs(box.height - compactBowlBoxPx(box.width))).toBeLessThanOrEqual(1);
   const preBox = await pre.boundingBox();
   if (!preBox) throw new Error('raster has no box');
   // FR-DOME-1: no frame, so the drawing fills the box itself rather than the box less a border — the *height* exactly, because

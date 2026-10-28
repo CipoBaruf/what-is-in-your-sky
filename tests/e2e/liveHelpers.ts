@@ -385,17 +385,6 @@ export async function shownAndHidden(page: Page): Promise<number> {
   return cards + (hidden ? Number(hidden[1]) : 0);
 }
 
-/**
- * The live page with its dome drawn. React reveals a lazy chunk behind its
- * Suspense fallback on a timer (its 300 ms fallback throttle), and the chart
- * chunk, the raster font and the first rasterisation wait on timers too — all
- * of them held by the installed clock. A single `runFor` before the expectation
- * is a race: when the chunk lands after it, the reveal timer is set on a clock
- * nobody advances again and the page stays on its fallback (main CI, run
- * 33943966372). So the clock is ticked until each expectation holds, in steps
- * small enough to keep the shown instant inside the ten-second bucket the
- * strip assertions read (`realTimeField`).
- */
 /** One `--space-3`, the group gap (D-851): `--row`, 24 px at the default cell — the band FR-FLOW-9 allows under the wide box. */
 export const SPACE_3_PX = ROW_PX;
 
@@ -414,6 +403,17 @@ export async function bandUnderBox(page: Page, box: { y: number; height: number 
   return under - (box.y + box.height);
 }
 
+/**
+ * The live page with its dome drawn. React reveals a lazy chunk behind its
+ * Suspense fallback on a timer (its 300 ms fallback throttle), and the chart
+ * chunk, the raster font and the first rasterisation wait on timers too — all
+ * of them held by the installed clock. A single `runFor` before the expectation
+ * is a race: when the chunk lands after it, the reveal timer is set on a clock
+ * nobody advances again and the page stays on its fallback (main CI, run
+ * 33943966372). So the clock is ticked until each expectation holds, in steps
+ * small enough to keep the shown instant inside the ten-second bucket the
+ * strip assertions read (`realTimeField`).
+ */
 export async function domeDrawn(page: Page): Promise<void> {
   // `getAttribute` would wait for the element and hold the poll on its first tick; `count` does not.
   const livePage = page.getByTestId('live-page');

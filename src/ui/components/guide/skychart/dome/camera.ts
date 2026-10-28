@@ -1,5 +1,6 @@
 import { compassPoint, normalizeAzimuthDeg, type CompassPoint } from '../../../../../lib/compass';
 import { degrees } from '../../../../../lib/format';
+import { COMPACT_BOX_MIN_SHORT_PX, compactDomeBoxHeightPx } from '../../../../../lib/layout';
 import { toDome } from '../../../../../lib/skyGeometry';
 import type { Pass } from '../../../../../model';
 import { COMPASS_LABEL_RADIUS, GROUND_RADIUS, projectToScreen, type Tuple3 } from './domeGeometry';
@@ -140,6 +141,22 @@ export function zoomFor(widthPx: number, heightPx: number): number {
  */
 export function bowlHeightPx(widthPx: number): number {
   return (widthPx / ZOOM_WIDTH_DIVISOR) * DRAWING_HEIGHT_UNITS;
+}
+
+/**
+ * R133 (FR-FLOW-9, D-867): the compact dome's box height for a box `widthPx`
+ * wide — the bowl plus `DOME_COMPACT_SLACK_PX` above and below, never under
+ * FR-LIVE-7's floor, and never under the height at which the width still binds
+ * the zoom, so `bowlHeightPx` is the bowl the scene draws. Past about 525 px
+ * of width (a tablet's column) the bowl and its slack are shorter than that,
+ * and a box cut to them would be height-bound and draw the bowl smaller than
+ * it was cut for; there the blank over and under the bowl is the height
+ * divisor's own margin (0.045 of the width) and FR-FLOW-9's 24 px, which is
+ * the phone's, is over. 337 at 390 px, 640 at 768.
+ */
+export function compactBowlBoxPx(widthPx: number): number {
+  const widthBoundPx = Math.ceil((widthPx / ZOOM_WIDTH_DIVISOR) * ZOOM_HEIGHT_DIVISOR);
+  return compactDomeBoxHeightPx({ bowlHeightPx: bowlHeightPx(widthPx), floorPx: Math.max(COMPACT_BOX_MIN_SHORT_PX, widthBoundPx) });
 }
 
 /**

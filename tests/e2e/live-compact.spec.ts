@@ -16,8 +16,8 @@
  * off the bottom first.
  */
 import { expect, test } from '@playwright/test';
-import { COMPACT_BOX_MIN_SHORT_PX, compactDomeBoxHeightPx, TAP_PX } from '../../src/lib/layout';
-import { bowlHeightPx } from '../../src/ui/components/guide/skychart/dome/camera';
+import { TAP_PX } from '../../src/lib/layout';
+import { compactBowlBoxPx } from '../../src/ui/components/guide/skychart/dome/camera';
 import { domeDrawn, enterScrubbing, homeAt, stripFilled, T } from './liveHelpers';
 
 /**
@@ -33,8 +33,8 @@ import { domeDrawn, enterScrubbing, homeAt, stripFilled, T } from './liveHelpers
  * box is that at both heights and in both states, and this holds it to the rule rather than to the old numbers.
  */
 const FLOOR_TODAY: Readonly<Record<667 | 844, number>> = {
-  844: compactDomeBoxHeightPx({ bowlHeightPx: bowlHeightPx(390), floorPx: COMPACT_BOX_MIN_SHORT_PX }) - 1,
-  667: compactDomeBoxHeightPx({ bowlHeightPx: bowlHeightPx(390), floorPx: COMPACT_BOX_MIN_SHORT_PX }) - 1,
+  844: compactBowlBoxPx(390) - 1,
+  667: compactBowlBoxPx(390) - 1,
 };
 
 /**
@@ -133,7 +133,7 @@ test.describe('the compact live page under the box (F-55)', () => {
       // slack above and below, 337 at 390 px — so the rows under it are where the scroll is.
       const page_ = await page.getByTestId('live-page').boundingBox();
       expect(page_?.height).toBeGreaterThanOrEqual(height);
-      expect(Math.abs((drawing?.height ?? 0) - compactDomeBoxHeightPx({ bowlHeightPx: bowlHeightPx(drawing?.width ?? 0), floorPx: COMPACT_BOX_MIN_SHORT_PX }))).toBeLessThanOrEqual(1);
+      expect(Math.abs((drawing?.height ?? 0) - compactBowlBoxPx(drawing?.width ?? 0))).toBeLessThanOrEqual(1);
     });
     }
 

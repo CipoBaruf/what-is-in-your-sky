@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react';
-import { COMPACT_BOX_MIN_SHORT_PX, compactDomeBoxHeightPx, fitBox, viewportAspect } from '../../../../lib/layout';
+import { fitBox, viewportAspect } from '../../../../lib/layout';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { usePageShape } from '../../live/usePageShape';
 import styles from './ChartFrame.module.css';
-import { bowlHeightPx } from './dome/camera';
+import { compactBowlBoxPx } from './dome/camera';
 
 /**
  * R15 review: one frame for every sky chart view, so switching between the
@@ -66,11 +66,11 @@ export interface ChartFrameProps {
    *
    * R133 (FR-FLOW-9, D-850): the box written is the *room* — as tall as the
    * frame leaves it, down to the hint line, and as wide as the rail does — for
-   * every view (`fitBox` without an aspect); the value given no longer cuts
-   * the box to its shape, since the drawing's own fit (FR-DOME-1) keeps the
-   * bowl its shape inside whatever box it has and a band under the box was
-   * the finding (F4, D5). The prop stays the measurement's switch: the live
-   * page passes it on wide (`Live.tsx`, with `stacked`).
+   * every view (`fitBox`); the value given is ignored and does not cut the box
+   * to its shape, since the drawing's own fit (FR-DOME-1) keeps the bowl its
+   * shape inside whatever box it has and a band under the box was the finding
+   * (F4, D5). The prop is only the measurement's switch: the live page passes
+   * it on wide (`Live.tsx`, with `stacked`); a boolean is a follow-up (D-868).
    */
   boxAspect?: number;
   /**
@@ -79,7 +79,7 @@ export interface ChartFrameProps {
    * gives it: the frame measures the box's full-bleed width, takes the bowl's
    * drawn height at that width (`dome/camera.ts` `bowlHeightPx`) plus
    * `DOME_COMPACT_SLACK_PX` above and below, never under FR-LIVE-7's compact
-   * floor (`compactDomeBoxHeightPx`), and writes it as `--chart-box-h`;
+   * floor (`compactBowlBoxPx`), and writes it as `--chart-bowl-h`;
    * `data-bowl` is the stylesheet's key, and `SkyViewLayout.module.css` lets
    * the slot be as tall as the chart where it is set. The other views keep
    * their square (FR-COMP-5); wide frames and screens ignore it.
@@ -145,9 +145,9 @@ export interface ChartFrameProps {
    * FR-SKY-2 (R121, D-789): the window laid out in the box under the hand
    * camera — the live page's and the pass detail's window, which the window
    * itself asks for. On wide the box takes the browser window's shape, as the
-   * stars page's does (`lib/layout.ts` `windowBox`): on a `fill` frame in the
-   * aspect-locked measurement in place of `boxAspect`, on the guide's square
-   * through `--chart-box-aspect`, written from the viewport; and the `status`
+   * guide's square does through `--chart-box-aspect`, written from the
+   * viewport (R133, D-868: a `fill` frame's box is the room, whatever the
+   * view, so the window's shape cuts it no more); and the `status`
    * slot — the facing readout — stands in the box's top-left corner on the
    * screen's overlay surface instead of in its row (on a wide `fill` frame
    * every view's slot stands there, D-834). Compact is unchanged: the box the
@@ -317,7 +317,7 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
    * puts on the box's `aspect-ratio` in place of 1 : 1. A ratio, not a length: no px is written in a wide block
    * (`tests/styles/breakpoint.test.ts`). Read from the viewport on every resize of the browser window, which is the
    * only thing that changes it. A `fill` frame never reads it (the rule is the guide's, `data-fill='false'`): a
-   * boxed one has `windowBox`'s lengths, and an unboxed one fills what the page gives it.
+   * boxed one has the room's lengths (`fitBox`), and an unboxed one fills what the page gives it.
    */
   useEffect(() => {
     const frame = frameRef.current;
@@ -339,7 +339,10 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
   // R133 (FR-FLOW-9, D-850): …except the dome's own box, which is cut from the bowl instead. The box's
   // full-bleed width (the frame's and the page padding it breaks out of) is what the zoom is taken from, and
   // it does not depend on the box's height, so the observer never feeds itself; the height is written once per
-  // change as `--chart-box-h`, the floor `COMPACT_BOX_MIN_SHORT_PX` (FR-LIVE-7). The scene's own key is the
+  // change as `--chart-bowl-h` — a property of its own, so the wide box's effect, whose cleanup runs after this one on
+  // a wide → compact switch, cannot remove it. The rule is `dome/camera.ts` `compactBowlBoxPx`: the bowl plus its
+  // slack over two floors, `COMPACT_BOX_MIN_SHORT_PX` (FR-LIVE-7) and the height at which the width still binds the
+  // zoom (a tablet's column, past about 525 px). The scene's own key is the
   // raster it measures (F-60): a box that changes height remounts it through that key and nothing here. A
   // layout effect, so the first height is on the frame before the first paint: the stylesheet has no fallback
   // for it (an aspect would size the width from the height and feed the measurement its own answer).
@@ -349,8 +352,8 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
     const measure = (entries: readonly ResizeObserverEntry[]): void => {
       if (bowlBoxed) {
         const width = boxRef.current?.getBoundingClientRect().width ?? 0;
-        const next = `${String(compactDomeBoxHeightPx({ bowlHeightPx: bowlHeightPx(width), floorPx: COMPACT_BOX_MIN_SHORT_PX }))}px`;
-        if (frame.style.getPropertyValue('--chart-box-h') !== next) frame.style.setProperty('--chart-box-h', next);
+        const next = `${String(compactBowlBoxPx(width))}px`;
+        if (frame.style.getPropertyValue('--chart-bowl-h') !== next) frame.style.setProperty('--chart-bowl-h', next);
         return;
       }
       const width = entries[0]?.contentRect.width ?? 0;
@@ -362,7 +365,7 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
     return () => {
       observer.disconnect();
       frame.style.removeProperty('--chart-floor');
-      frame.style.removeProperty('--chart-box-h');
+      frame.style.removeProperty('--chart-bowl-h');
     };
   }, [fill, compact, screen, bowlBoxed]);
 

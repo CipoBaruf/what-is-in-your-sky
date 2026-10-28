@@ -1,31 +1,14 @@
 /**
- * R61 (FR-LIVE-7 as amended v1.2.1, D-314): the box rule. Height-bound where
- * the frame is wide, width-bound where the rail leaves less than the aspect
- * wants, whole pixels, never negative. R133 (FR-FLOW-9, D-850): without an
- * aspect the box is the room, and the compact dome's box is the bowl plus its
- * slack.
+ * R61 (FR-LIVE-7 as amended v1.2.1, D-314): the box rule, whole pixels, never
+ * negative. R133 (FR-FLOW-9, D-850): the box is the room, with no aspect cut,
+ * and the compact dome's box is the bowl plus its slack.
  */
 import { describe, expect, it } from 'vitest';
 import { bowlHeightPx } from '../ui/components/guide/skychart/dome/camera';
 import { COMPACT_BOX_MIN_SHORT_PX, compactDomeBoxHeightPx, DOME_COMPACT_SLACK_PX, fitBox, RAIL_MIN_CELLS, viewportAspect } from './layout';
 
-const ASPECT = 2.4 / 1.7;
-
 describe('fitBox', () => {
-  it('is as tall as the frame leaves and as wide as the aspect says where the width allows it', () => {
-    // A 1920 × 1080 window: the page leaves the frame about 1882 × 950; the controls row and the stripe row cost 60 and 120.
-    const box = fitBox({ frameWidthPx: 1882, frameHeightPx: 950, aboveHeightPx: 60, belowHeightPx: 120, besideWidthPx: 451, aspect: ASPECT });
-    expect(box).toEqual({ heightPx: 770, widthPx: Math.floor(770 * ASPECT) });
-    expect(box.widthPx).toBeLessThanOrEqual(1882 - 451);
-  });
-
-  it('is as wide as the space beside the rail where that binds first, and the height follows', () => {
-    const box = fitBox({ frameWidthPx: 1000, frameHeightPx: 950, aboveHeightPx: 60, belowHeightPx: 0, besideWidthPx: 451, aspect: ASPECT });
-    expect(box).toEqual({ widthPx: 549, heightPx: Math.floor(549 / ASPECT) });
-  });
-
   it('never goes negative in a frame the rows have used up', () => {
-    expect(fitBox({ frameWidthPx: 400, frameHeightPx: 100, aboveHeightPx: 60, belowHeightPx: 120, besideWidthPx: 451, aspect: ASPECT })).toEqual({ widthPx: 0, heightPx: 0 });
     expect(fitBox({ frameWidthPx: 400, frameHeightPx: 100, aboveHeightPx: 60, belowHeightPx: 120, besideWidthPx: 451 })).toEqual({ widthPx: 0, heightPx: 0 });
   });
 

@@ -23,10 +23,10 @@ import { readFileSync } from 'node:fs';
 import type { ReactNode } from 'react';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { COMPACT_BOX_MIN_SHORT_PX, compactDomeBoxHeightPx } from '../../../../lib/layout';
+import { COMPACT_BOX_MIN_SHORT_PX } from '../../../../lib/layout';
 import { COMPACT_PX, stubMatchMedia, WIDE_PX } from '../../../../../tests/support/matchMedia';
 import { ChartFrame, ChartFrameSlots } from './ChartFrame';
-import { bowlHeightPx } from './dome/camera';
+import { compactBowlBoxPx } from './dome/camera';
 
 const css = readFileSync(join(process.cwd(), 'src/ui/components/guide/skychart/ChartFrame.module.css'), 'utf8');
 const rect = (width: number, height: number): DOMRect => ({ width, height, x: 0, y: 0, top: 0, left: 0, right: width, bottom: height, toJSON: () => ({}) });
@@ -255,7 +255,7 @@ describe('<ChartFrame> the compact dome’s box (FR-FLOW-9, D-850)', () => {
     };
   };
 
-  it('writes the bowl’s height plus the slack as --chart-box-h on a compact fill frame, never under the floor, and no --chart-floor', () => {
+  it('writes the bowl’s height plus the slack as --chart-bowl-h on a compact fill frame, never under the floor, and no --chart-floor', () => {
     const media = stubMatchMedia(COMPACT_PX, 844);
     const { trigger } = observe();
     boxWidth(390);
@@ -267,16 +267,41 @@ describe('<ChartFrame> the compact dome’s box (FR-FLOW-9, D-850)', () => {
       );
       const frame = rtl.getByTestId('chart-frame');
       expect(frame).toHaveAttribute('data-bowl', 'true');
-      expect(frame.style.getPropertyValue('--chart-box-h')).toBe(`${String(compactDomeBoxHeightPx({ bowlHeightPx: bowlHeightPx(390), floorPx: COMPACT_BOX_MIN_SHORT_PX }))}px`);
-      expect(frame.style.getPropertyValue('--chart-box-h')).toBe('337px');
+      expect(frame.style.getPropertyValue('--chart-bowl-h')).toBe(`${String(compactBowlBoxPx(390))}px`);
+      expect(frame.style.getPropertyValue('--chart-bowl-h')).toBe('337px');
       expect(frame.style.getPropertyValue('--chart-floor')).toBe('');
       // A narrower box: the floor.
       boxWidth(300);
       act(() => trigger());
-      expect(frame.style.getPropertyValue('--chart-box-h')).toBe(`${String(COMPACT_BOX_MIN_SHORT_PX)}px`);
+      expect(frame.style.getPropertyValue('--chart-bowl-h')).toBe(`${String(COMPACT_BOX_MIN_SHORT_PX)}px`);
+      // A tablet's column: the bowl and its slack (618) would make the box height-bound and the bowl smaller than
+      // cut for, so the box is the height at which the width still binds the zoom, 768 / 2.4 × 2.0.
+      boxWidth(768);
+      act(() => trigger());
+      expect(frame.style.getPropertyValue('--chart-bowl-h')).toBe('640px');
       // The stylesheet sizes the box from it, in portrait, with no floor of the square's under it.
-      expect(css).toMatch(/\.fill\[data-compact='true'\]\[data-bowl='true'\] \.drawing \{\s+height: var\(--chart-box-h, auto\);\s+min-height: 0;/);
+      expect(css).toMatch(/\.fill\[data-compact='true'\]\[data-bowl='true'\] \.drawing \{\s+height: var\(--chart-bowl-h, auto\);\s+min-height: 0;/);
       expect(/\.fill\[data-compact='true'\]\[data-bowl='true'\] \.drawing \{([\s\S]*?)\n\s+\}/.exec(css)?.[1] ?? '').not.toContain('aspect-ratio');
+    } finally {
+      media.restore();
+    }
+  });
+
+  it('keeps the bowl’s height when the frame turns from wide to compact (the wide box’s cleanup is another property)', () => {
+    const media = stubMatchMedia(WIDE_PX, 844);
+    observe();
+    boxWidth(390);
+    try {
+      render(
+        <ChartFrame fill bowl stacked boxAspect={2.4 / 2} status={<p>readout</p>}>
+          <div data-drawing="dome" />
+        </ChartFrame>,
+      );
+      act(() => media.setWidth(COMPACT_PX));
+      const frame = rtl.getByTestId('chart-frame');
+      expect(frame).toHaveAttribute('data-bowl', 'true');
+      expect(frame.style.getPropertyValue('--chart-bowl-h')).toBe('337px');
+      expect(frame.style.getPropertyValue('--chart-box-h')).toBe('');
     } finally {
       media.restore();
     }
@@ -293,7 +318,7 @@ describe('<ChartFrame> the compact dome’s box (FR-FLOW-9, D-850)', () => {
         </ChartFrame>,
       );
       expect(rtl.getByTestId('chart-frame')).toHaveAttribute('data-bowl', 'false');
-      expect(rtl.getByTestId('chart-frame').style.getPropertyValue('--chart-box-h')).toBe('');
+      expect(rtl.getByTestId('chart-frame').style.getPropertyValue('--chart-bowl-h')).toBe('');
       unmount();
       media.setWidth(WIDE_PX);
       render(

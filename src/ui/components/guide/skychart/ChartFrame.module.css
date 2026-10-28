@@ -173,12 +173,11 @@
     flex: 0 0 auto;
   }
 
-  /* R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315, F-59): the aspect-locked
-     box. With `boxAspect` the frame measures what it leaves the drawing and
-     cuts the box to the largest rectangle of the dome's own shape that fits —
+  /* R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315, F-59): the measured
+     box. With `boxAspect` the frame measures what it leaves the drawing —
      `--chart-box-w` / `--chart-box-h`, written inline by `ChartFrame` from
-     `lib/layout.ts`'s `fitBox`, since no px may be written here — rather than
-     whatever the rows leave. The two columns the drawing spans are `auto`, so
+     `lib/layout.ts`'s `fitBox`, since no px may be written here; R61 cut it to
+     the dome's own shape, and since R133 (D-868) it is the whole room. The two columns the drawing spans are `auto`, so
      they are the drawing's width and no more, and the grid packs at the start
      so the rail stands beside the box, takes what is left up to its cap
      (D-313), and whatever a wide page has past that is blank at the right. The
@@ -382,7 +381,7 @@
 
 /* R133 (FR-FLOW-9, D-850; F4, D5): the dome's box is cut from the bowl. `ChartFrame` measures the box's
    full-bleed width and writes the bowl's drawn height at it plus `DOME_COMPACT_SLACK_PX` above and below,
-   never under FR-LIVE-7's compact floor, as `--chart-box-h`; the frame writes no `--chart-floor` for this box, so
+   never under FR-LIVE-7's compact floor, as `--chart-bowl-h`; the frame writes no `--chart-floor` for this box, so
    the square's floor above is 0 here and the height is the rule's. The height is written in a layout effect,
    before the first paint, so the fallback is never drawn; no `aspect-ratio` stands in for it, since with the
    height set and the width `auto` an aspect would size the *width* from the height and feed the measurement
@@ -392,7 +391,7 @@
    shape (`usePageShape`, the column and not the landscape phone), and a compact column on a window wider than
    tall (963 × 700, `shapes.spec.ts`) is the column too. */
 .fill[data-compact='true'][data-bowl='true'] .drawing {
-  height: var(--chart-box-h, auto);
+  height: var(--chart-bowl-h, auto);
   min-height: 0;
 }
 

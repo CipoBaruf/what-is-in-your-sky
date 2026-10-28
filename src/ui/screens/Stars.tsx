@@ -260,6 +260,9 @@ function StarsSky({ observer }: { observer: Observer }) {
     };
     const observer = new ResizeObserver(fit);
     observer.observe(layout);
+    // The hint rewraps without the layout changing size (the language, a late font): its height is the box's too.
+    const hintSlot = layout.querySelector('[data-sky-layout] [data-slot="hint"]');
+    if (hintSlot) observer.observe(hintSlot);
     fit();
     return () => {
       observer.disconnect();

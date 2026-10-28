@@ -34,8 +34,8 @@
  * it, and the live page does not scroll.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { COMPACT_BOX_MIN_SHORT_PX, COMPACT_MAX_CELLS, compactDomeBoxHeightPx, foldBelowPx, LIVE_BOX_MIN_PX, liveKeptPx, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
-import { bowlHeightPx, DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
+import { COMPACT_BOX_MIN_SHORT_PX, COMPACT_MAX_CELLS, foldBelowPx, LIVE_BOX_MIN_PX, liveKeptPx, ROW_PX, WIDE_MIN_PX } from '../../src/lib/layout';
+import { compactBowlBoxPx, DOME_BOX_ASPECT } from '../../src/ui/components/guide/skychart/dome/camera';
 import { fitFloor, painted, type Painted, type Rect } from './domeInk';
 import { backToLive, domeDrawn, enterScrubbing, leaveSettings, openSettings, reenterLiveWithTheme, seedStoredRun, stripFilled } from './liveHelpers';
 
@@ -522,7 +522,7 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       // below, 337 at 390 px — in both states, since the column scrolls past it (R132); the short phone's floor stands.
       const capped = box.width < width;
       if (width < WIDE_MIN_PX && height >= COMPACT_BOX_SQUARE_FROM_PX && (state === 'watching' || !capped)) {
-        const bowl = compactDomeBoxHeightPx({ bowlHeightPx: bowlHeightPx(box.width), floorPx: COMPACT_BOX_MIN_SHORT_PX });
+        const bowl = compactBowlBoxPx(box.width);
         expect(Math.abs(box.height - bowl), `${at}: the compact box is ${fmt(box)}, not the bowl's ${String(bowl)} px (FR-FLOW-9)`).toBeLessThanOrEqual(1);
       }
       if (label(size) === COMPACT_SHORT_PHONE && state === 'watching') {
@@ -819,7 +819,7 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
         // R132 (FR-FLOW-4, D-864): the compact column scrolls past its box; sideways it never does.
         expect(scrolled.scrollWidth, `${where}: the live page scrolls sideways`).toBeLessThanOrEqual(scrolled.clientWidth);
         // R133 (FR-FLOW-9, D-850): the column's box is the bowl's at its width, in both states (it was its own width while watching, FR-TAB-2).
-        const bowl = compactDomeBoxHeightPx({ bowlHeightPx: bowlHeightPx(box.width), floorPx: COMPACT_BOX_MIN_SHORT_PX });
+        const bowl = compactBowlBoxPx(box.width);
         expect(Math.abs(box.height - bowl), `${where}: the box is ${String(Math.round(box.height))} px tall and ${String(Math.round(box.width))} wide, not the bowl's ${String(bowl)}`).toBeLessThanOrEqual(1);
       }
       await backToLive(page);

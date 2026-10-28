@@ -17,8 +17,8 @@
  *   reading, D-866); its share of the whole panel is logged beside it for the record.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { COMPACT_BOX_MIN_SHORT_PX, compactDomeBoxHeightPx, DETAIL_DRAWING_MIN_SHARE, DOME_COMPACT_SLACK_PX } from '../../src/lib/layout';
-import { bowlHeightPx, DRAWING_HEIGHT_UNITS, zoomFor } from '../../src/ui/components/guide/skychart/dome/camera';
+import { COMPACT_BOX_MIN_SHORT_PX, DETAIL_DRAWING_MIN_SHARE, DOME_COMPACT_SLACK_PX } from '../../src/lib/layout';
+import { compactBowlBoxPx, DRAWING_HEIGHT_UNITS, zoomFor } from '../../src/ui/components/guide/skychart/dome/camera';
 import { painted, platformZoom } from './domeInk';
 import { bandUnderBox, domeDrawn, seedStoredRun, SPACE_3_PX } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
@@ -83,7 +83,7 @@ async function expectBowlCut(layout: Locator, label: string): Promise<void> {
   const chartBox = await settledBox(layout.getByTestId('chart-box'));
   // The frame cut the box: full-bleed, at the rule's height, over the floor.
   expect(chartBox.width, `${label}: full-bleed`).toBeCloseTo(390, 0);
-  const rule = compactDomeBoxHeightPx({ bowlHeightPx: bowlHeightPx(chartBox.width), floorPx: COMPACT_BOX_MIN_SHORT_PX });
+  const rule = compactBowlBoxPx(chartBox.width);
   expect(Math.abs(chartBox.height - rule), `${label}: the box is ${fmt(chartBox)}, the rule says ${String(rule)} px tall`).toBeLessThanOrEqual(1);
   expect(chartBox.height).toBeGreaterThanOrEqual(COMPACT_BOX_MIN_SHORT_PX);
   await expect(layout.getByTestId('chart-frame')).toHaveAttribute('data-bowl', 'true');

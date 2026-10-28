@@ -237,13 +237,12 @@ export function layoutMode(matchesWide: boolean): LayoutMode {
  * custom properties (px may not be written in a wide stylesheet block,
  * `tests/styles/breakpoint.test.ts`).
  *
- * R133 (FR-FLOW-9, D-850): on wide the box is the room itself. The aspect is
- * optional, and without one the box is as tall as the frame leaves it *and* as
- * wide as the rail does — from under the header to the hint line, for every
- * view, on the live page and on the stars page — so no band stands under the
- * drawing (F4, D5). The drawing's own fit (FR-DOME-1, `zoomFor`) is what keeps
- * the bowl its shape inside a box that is not 2.4 : 2.0; the aspect still cuts
- * a box where a caller gives one.
+ * R133 (FR-FLOW-9, D-850): on wide the box is the room itself, with no
+ * aspect: as tall as the frame leaves it *and* as wide as the rail does — from
+ * under the header to the hint line, for every view, on the live page and on
+ * the stars page — so no band stands under the drawing (F4, D5). The drawing's
+ * own fit (FR-DOME-1, `zoomFor`) is what keeps the bowl its shape inside a box
+ * that is not 2.4 : 2.0, so the aspect cut R61 made here is gone.
  */
 export interface BoxFit {
   /** The frame's own box, CSS px. */
@@ -254,20 +253,14 @@ export interface BoxFit {
   belowHeightPx: number;
   /** The rail's minimum, in px, plus the column gap before it. */
   besideWidthPx: number;
-  /** Width over height; absent, the box is the whole room (R133, D-850). */
-  aspect?: number;
 }
 
 /** The rail's minimum, `ChartFrame.module.css` (D-313): what the playback row and the strip need to be read. */
 export const RAIL_MIN_CELLS = 44;
 
-/** The room the frame leaves, or the largest `aspect` box in it, height-bound or width-bound; never negative. */
-export function fitBox({ frameWidthPx, frameHeightPx, aboveHeightPx, belowHeightPx, besideWidthPx, aspect }: BoxFit): { widthPx: number; heightPx: number } {
-  const heightPx = Math.max(0, frameHeightPx - aboveHeightPx - belowHeightPx);
-  const widthPx = Math.max(0, frameWidthPx - besideWidthPx);
-  if (aspect === undefined) return { widthPx: Math.floor(widthPx), heightPx: Math.floor(heightPx) };
-  if (heightPx * aspect <= widthPx) return { widthPx: Math.floor(heightPx * aspect), heightPx: Math.floor(heightPx) };
-  return { widthPx: Math.floor(widthPx), heightPx: Math.floor(widthPx / aspect) };
+/** The room the frame leaves, whole pixels, never negative. */
+export function fitBox({ frameWidthPx, frameHeightPx, aboveHeightPx, belowHeightPx, besideWidthPx }: BoxFit): { widthPx: number; heightPx: number } {
+  return { widthPx: Math.floor(Math.max(0, frameWidthPx - besideWidthPx)), heightPx: Math.floor(Math.max(0, frameHeightPx - aboveHeightPx - belowHeightPx)) };
 }
 
 /**
