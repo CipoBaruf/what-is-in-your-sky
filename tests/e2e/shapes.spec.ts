@@ -318,10 +318,9 @@ const STRIP_FIELDS = ['strip time', 'strip sky', 'strip cloud', 'strip count', '
  * px it costs — measured on the seed's pass, whose path is 47 cells (`SL-16 R/B (Cosmos 2369) · S low → 32° ESE
  * → ENE`). The chart box is in none of them.
  *
- * - The landscape phone at 844 and 932 px: the rail is 49–55 cells, the path is one line in it, and the control
- *   takes a text line under it inside the rail (24 px), which has the room and scrolls inside itself; the
- *   compact actions row beside `[ scrub ]` would have cost a tap row (48) at 844. At 740 the path already wraps
- *   and the control rides on its last line.
+ * - The landscape phone: since R136 the rail is what the drawing's 0.55 leaves (28–37 cells), the path wraps in
+ *   it, and the control rides on its last line at 844 and 932; at 740 it takes a text line of its own (24 px)
+ *   inside the rail, which scrolls inside itself.
  * - The short wide window from 1200 px, English: the rail's rows are one flowing line under the fold (FR-SHP-3),
  *   the path fills the rail's line, and beside `[ scrub the night ]` the control takes a line of that flow with
  *   its gap (48). The box is the overlay's and does not move; Spanish, whose path wraps, costs nothing.
@@ -333,14 +332,9 @@ const STRIP_FIELDS = ['strip time', 'strip sky', 'strip cloud', 'strip count', '
  *   [ Share ]` has the room it lacks at 36 cells) is R101's rule and is left to the owner (R99's summary).
  */
 const JUMP_ALLOWANCE: Readonly<Record<string, Readonly<Record<string, number>>>> = {
-  '844x390 en': { 'next event': ROW_PX },
-  '932x430 en': { 'next event': ROW_PX },
-  '844x500 en': { 'next event': ROW_PX },
-  '844x390 es': { 'next event': ROW_PX },
-  '932x430 es': { 'next event': ROW_PX },
-  '844x500 es': { 'next event': ROW_PX },
-  // R136 (FR-FLOW-15, D-878): the drawing takes 0.55 of the width, so the rail at 740 px is 28 cells; the path wraps
-  // there as before, and the control no longer rides on its last line but takes one of its own (24 px).
+  // R136 (FR-FLOW-15, D-878): the drawing takes 0.55 of the width, so the rail is 28 cells at 740 px, 33 at 844 and
+  // 37 at 932. At 844 and 932 the path wraps now and the control rides on its last line (no cost); at 740 the
+  // wrapped path's last line has no room left for it, and it takes a line of its own (24 px).
   '740x360 en': { 'next event': ROW_PX },
   '740x360 es': { 'next event': ROW_PX },
   // R123 (D-814): with `[ stars ]` on the wide actions row the English short wide rows hold the control on the path, and two Spanish ones carry it on a second actions line.
