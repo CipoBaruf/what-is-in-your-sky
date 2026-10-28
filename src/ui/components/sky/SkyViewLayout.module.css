@@ -146,6 +146,15 @@
   min-height: 0;
   overflow-y: auto;
   container-type: size;
+  /* The rail's rows swap with the state (watching to scrubbing changes the head and the foot); with the browser's
+     scroll anchoring off, a swap above the scroll position never moves the rail under the reader's thumb. */
+  overflow-anchor: none;
+}
+
+/* The grid is shorter than its rows and has no free space to hand out, so an auto row is its items' minimum
+   contribution: the list's is its content again here, not the wide rail's zero (the row that gives, above). */
+.layout[data-shape='rail'][data-mode='compact'][data-fill] .list {
+  min-height: auto;
 }
 
 .layout[data-shape='rail'][data-mode='compact'][data-fill] .drawing,

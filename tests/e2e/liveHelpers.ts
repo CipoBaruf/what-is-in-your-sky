@@ -546,6 +546,13 @@ export async function enterScrubbing(page: Page): Promise<void> {
   await page.getByTestId('live-scrub').click();
   await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'held');
   await expect(page.getByTestId('time-stripe')).toBeVisible();
+  // R132 (D-864): on the landscape phone `[ scrub ]` is the rail's foot and the rail scrolls inside the layout (the
+  // page never does, FR-LIVE-7), so the click above scrolled the rail to reach it; the rail's head is read from the
+  // top, as a reader who scrolled back would. Whether every row fits the landscape rail is R136's.
+  await page.evaluate(() => {
+    const layout = document.querySelector<HTMLElement>('[data-testid="live-layout"]');
+    if (layout && layout.scrollTop > 0) layout.scrollTop = 0;
+  });
 }
 
 /** R77 (FR-WATCH-1): the way back — real time, and the scrub block gone with the state. */
