@@ -90,6 +90,7 @@ export const PRIMITIVES: readonly PrimitiveEntry[] = [
     mark: { type: "'check' | 'bracket' | 'tight'", text: 'How the chosen option is told from the others: `[x]`, bracketed, or bracketed without spaces.' },
     gap: { type: "'cell' | 'none'", text: 'A cell between options, or none where each option’s trailing cell is the whole gap (the wide speeds).' },
     inline: { type: 'boolean', text: 'Each option’s line is one text row with its 48 px box as padding and a matching negative margin, so a group that wraps to two lines stands inside one tap row.' },
+    dense: { type: 'boolean', text: 'A row too dense for a 44 px target per option (the facing picker): the options at least 44 px tall with their hit areas meeting, the cell between them split into their padding.' },
     className: PLACEMENT,
   }),
   // R105 (FR-DS-4 items 4–6; D-718..D-720): the surfaces.

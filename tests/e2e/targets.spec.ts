@@ -5,6 +5,10 @@
  * neighbours' so every point of the row is a target. Links inside a `p` are running text and exempt; so is what
  * the page has put out of reach (`inert`, `aria-hidden`) or not drawn.
  *
+ * The controls are measured at rest. A page that focuses a control on arrival (the sub-pages' `[ ← ]`) shows it with
+ * D-500's ring round its text line, which takes the inline control's tap box away while the ring is drawn — the
+ * keyboard's state, held by `settings.spec.ts` — so the focus is let go before the measure.
+ *
  *   npx playwright test targets --project=chromium
  */
 import { expect, test, type Locator } from '@playwright/test';
@@ -17,6 +21,9 @@ const SLACK = 0.5;
 
 /** Every control under `root` that misses the rule, described for the failure message. */
 async function misses(root: Locator): Promise<string[]> {
+  await root.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  });
   return root.evaluate(
     (el, [min, slack]) => {
       const out: string[] = [];

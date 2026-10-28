@@ -88,6 +88,9 @@ const NAV_HREF: Record<(typeof NAV_PAGES)[number], string> = { home: '#', live: 
 /** The context's test id: the place on most pages, as the live page's was (`live-place`), and the date on the pass. */
 const contextTestId = (page: HeaderPage): string => (page === 'pass' ? 'pass-date' : `${page}-place`);
 
+/** R134 (FR-FLOW-11, D-851): the header's links and Back are 44 px targets at least (`ui/styles/primitives.css`). */
+const TARGET = 'target';
+
 export function Header({ page = 'home', context = null, onBack, backRef, backClassName, status, landmark = true, inert = false, busy = false }: HeaderProps) {
   const t = useT();
   const mode = useLayoutMode();
@@ -110,7 +113,7 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
    */
   const inlineBack = mode === 'compact' || landmark;
   const back = sub && (
-    <TextButton inline={inlineBack} label={t.header.back} aria-label={t.header.backName} className={[styles.back, backClassName].filter(Boolean).join(' ')} onClick={onBack} ref={backRef} data-testid={`${page}-back`} />
+    <TextButton inline={inlineBack} label={t.header.back} aria-label={t.header.backName} className={[styles.back, TARGET, backClassName].filter(Boolean).join(' ')} onClick={onBack} ref={backRef} data-testid={`${page}-back`} />
   );
   const contextText =
     sub && context !== null && context !== '' ? (
@@ -120,9 +123,9 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
     ) : null;
   const settings =
     page === 'settings' ? (
-      <BracketLink href={SETTINGS_HASH} label={t.settings.open} current className={styles.settings} data-testid="settings-link" />
+      <BracketLink href={SETTINGS_HASH} label={t.settings.open} current className={`${styles.settings} ${TARGET}`} data-testid="settings-link" />
     ) : (
-      <BracketLink href={SETTINGS_HASH} label={t.settings.open} className={styles.settings} data-testid="settings-link" onPointerEnter={prefetch} onFocus={prefetch} />
+      <BracketLink href={SETTINGS_HASH} label={t.settings.open} className={`${styles.settings} ${TARGET}`} data-testid="settings-link" onPointerEnter={prefetch} onFocus={prefetch} />
     );
 
   if (mode === 'compact') {
@@ -147,7 +150,7 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
           <h1 className={styles.shortTitle}>{t.app.shortTitle}</h1>
         </div>
         <nav className={styles.links} aria-label={t.header.nav}>
-          <BracketLink href="#live" label={t.live.openShort} data-testid="live-link" />
+          <BracketLink href="#live" label={t.live.openShort} className={TARGET} data-testid="live-link" />
           {settings}
         </nav>
       </Root>
@@ -169,7 +172,7 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
       <a
         key={target}
         href={NAV_HREF[target]}
-        className={styles.navLink}
+        className={`${styles.navLink} ${TARGET}`}
         data-testid={`${target}-link`}
         {...(target === 'home'
           ? {

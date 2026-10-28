@@ -54,7 +54,7 @@ function DoorBox({ door, href, wide, testId, onClick }: { door: Door; href: stri
   const lines = wide && door.wide !== undefined ? [...door.lines, door.wide] : door.lines;
   return (
     <li className={styles.item}>
-      <Card as="a" href={href} className={styles.door} data-testid={testId} {...(onClick ? { onClick } : {})}>
+      <Card as="a" href={href} className={`${styles.door} target`} data-testid={testId} {...(onClick ? { onClick } : {})}>
         <span className={styles.title}>{door.title}</span>
         {lines.map((line, i) => (
           // A line not in yet is drawn empty at its full height (`min-height: 1lh`), so nothing below moves when it lands.

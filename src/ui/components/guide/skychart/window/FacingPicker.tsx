@@ -84,6 +84,7 @@ export function FacingPicker({ camera, options = FACING_OPTIONS, peak = null, fo
       name={sp.facing}
       {...(prefix ? { prefix: `${sp.facing}:` } : {})}
       mark="tight"
+      dense
       options={offered.map((option) => ({ value: option, label: label(option) }))}
       value={facing as FacingOption}
       onChange={turnTo}

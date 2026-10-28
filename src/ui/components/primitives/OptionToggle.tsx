@@ -33,7 +33,8 @@ export interface OptionToggleOwnProps {
 export type OptionToggleProps = OptionToggleOwnProps & Omit<ComponentProps<'button'>, keyof OptionToggleOwnProps | 'children' | 'style' | 'type' | 'onClick'>;
 
 export function OptionToggle({ label, pressed, onPress, value, alone = false, inline = false, className, ...rest }: OptionToggleProps) {
-  const classes = [styles.option, alone ? styles.alone : undefined, inline ? 'inline-control' : undefined, inline ? styles.inline : undefined, className].filter(Boolean).join(' ');
+  // R134 (FR-FLOW-11, D-851): a 44 px hit area at least, unless the caller's row is a `.target-row` (`ToggleGroup`'s `dense`).
+  const classes = [styles.option, 'target', alone ? styles.alone : undefined, inline ? 'inline-control' : undefined, inline ? styles.inline : undefined, className].filter(Boolean).join(' ');
   const state = rest.role === 'radio' ? { 'aria-checked': pressed } : { 'aria-pressed': pressed };
   return (
     <button type="button" className={classes} {...state} {...(value === undefined ? {} : { 'data-option': value })} onClick={onPress} {...rest}>
