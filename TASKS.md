@@ -3725,7 +3725,7 @@ What every session reads (§16.24, D-284's rule), written once here and named in
 
 ### Wave 3
 
-- [ ] **R133 — The boxes: the compact dome cut from the bowl, the wide box to the hint line, the pass panel's share**
+- [x] **R133 — The boxes: the compact dome cut from the bowl, the wide box to the hint line, the pass panel's share** — done: at 390 × 844 at the opening tilt the dome's box is 390 × 337 on the live page and the pass detail (the bowl's drawn height 288.9 px at that width plus `DOME_COMPACT_SLACK_PX` above and below, D-867), with 18.0 px of blank over the bowl's highest drawn cell and 14.5 px under its lowest, read from the raster inside the box (the readout stands a row gap over the box and the hint two under it); the live page is one screen at 844. At 1280 × 800 the box is the room (`fitBox` without an aspect, D-868): 644 × 728 for the dome, 644 × 734 for the polar chart (no hint row) and 644 × 704 for the window on the live page, 644 × 653 on the stars page, with 10, 0, 10 and 6 px under the drawing against `--space-3`'s 24; the pass panel's drawing is 787 × 174 of a 797 × 254 body, 0.677 of the body (R132's reading, D-866) and 0.379 of the whole 818 × 442 panel. `windowBox` is gone. Three touches on `components/sky/**` against the out-of-scope line, each one rule the task could not be done without (D-867, D-868, D-869): the column's bowl slot follows the chart (`height: auto; min-height: auto`), the wide `fill` layout is a size container whose slot is the layout's height less the hint, and the wide rail measures its hint (two lines in Spanish at 1280). The dome's scene key is unchanged. `sky-box.spec.ts` is the check; `r133-captures.spec.ts` the review captures.
   - **Lane:** chart
   - **Model:** fable
   - **Review:** opus
