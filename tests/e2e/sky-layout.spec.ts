@@ -11,9 +11,18 @@
  * - The pass detail's drawing has its top at or above `DETAIL_DRAWING_TOP_PX` on the phone and is at least
  *   `DETAIL_DRAWING_MIN_SHARE` of the guide panel's area on the desk (FR-FLOW-7).
  * - On the stars page `In this field`'s heading and first row are inside 390 × 844 with `[ passes ]` off and on (FR-FLOW-8).
+ *
+ * R136 (FR-FLOW-14, FR-FLOW-15; D-876, D-877):
+ *
+ * - A fresh profile opens the live page and the pass detail on the window at 390 × 844 and on the dome at 1280 × 800.
+ * - At 844 × 390 and 667 × 375 the three sky pages stand the drawing at the left, at least
+ *   `LANDSCAPE_DRAWING_MIN_SHARE` of the viewport's width and the layout's height less the hint's, the rail's slots
+ *   in FR-FLOW-4's order at the right scrolling inside the layout, and the page itself does not scroll.
+ * - Turning 390 × 844 → 844 × 390 → 390 × 844 keeps the camera (`data-look-az`, `data-look-alt`, `data-fov`) and
+ *   the shown instant, and opens no screen.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { DETAIL_DRAWING_MIN_SHARE, DETAIL_DRAWING_TOP_PX } from '../../src/lib/layout';
+import { DETAIL_DRAWING_MIN_SHARE, DETAIL_DRAWING_TOP_PX, LANDSCAPE_DRAWING_MIN_SHARE } from '../../src/lib/layout';
 import { seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 
@@ -21,6 +30,10 @@ const PREFS_KEY = 'wiys:prefs:v1';
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
 const PHONE = { width: 390, height: 844 };
 const DESK = { width: 1280, height: 800 };
+const TURNED = [
+  { width: 844, height: 390 },
+  { width: 667, height: 375 },
+] as const;
 const LOCALES = ['en', 'es'] as const;
 type Locale = (typeof LOCALES)[number];
 
@@ -87,13 +100,16 @@ async function expectHintOffTheDrawing(layout: Locator): Promise<void> {
   await expect(hint).toHaveText(/\S/);
 }
 
+const RAIL_ORDER = ['answer', 'viewRow', 'picker', 'layers', 'list', 'action', 'foot'];
+
 /** The desk's rail form: the box at the left, the readout on its corner, the hint under it, the rail's slots stacked at the right. */
 async function expectRail(layout: Locator): Promise<void> {
   await expect(layout).toHaveAttribute('data-shape', 'rail');
   const slots = await slotBoxes(layout);
   const drawing = slots.find((slot) => slot.name === 'drawing');
   if (!drawing) throw new Error('no drawing slot');
-  const rail = slots.filter((slot) => !['drawing', 'readout', 'hint'].includes(slot.name));
+  // The rail's order: FR-FLOW-4's, with `action` and `foot` at the rail's foot.
+  const rail = slots.filter((slot) => !['drawing', 'readout', 'hint'].includes(slot.name)).sort((a, b) => RAIL_ORDER.indexOf(a.name) - RAIL_ORDER.indexOf(b.name));
   for (const slot of rail) expect(slot.box.x, `${slot.name} beside the box`).toBeGreaterThanOrEqual(drawing.box.x + drawing.box.width - 1);
   expectStacked(rail);
   const readout = slots.find((slot) => slot.name === 'readout');
@@ -315,3 +331,156 @@ for (const locale of LOCALES) {
     });
   });
 }
+
+/** The window's camera, as the drawing writes it: the facing, the tilt and the field. */
+async function camera(layout: Locator): Promise<(string | null)[]> {
+  const window = layout.locator('[data-look-az]');
+  return [await window.getAttribute('data-look-az'), await window.getAttribute('data-look-alt'), await window.getAttribute('data-fov')];
+}
+
+/** FR-LIVE-1 on the turned phone: no box the reader can scroll the page in has anything to scroll — only the layout does. */
+async function pageScrolls(layout: Locator): Promise<string[]> {
+  return layout.evaluate((el) => {
+    const out: string[] = [];
+    for (let at = el.parentElement; at; at = at.parentElement) {
+      const overflow = getComputedStyle(at).overflowY;
+      const root = at === document.documentElement || at === document.body;
+      const scrolls = root ? overflow !== 'hidden' : overflow === 'auto' || overflow === 'scroll';
+      if (scrolls && at.scrollHeight > at.clientHeight + 1) out.push(`${at.tagName}.${at.className} ${String(at.scrollHeight)} > ${String(at.clientHeight)}`);
+    }
+    return out;
+  });
+}
+
+/** FR-FLOW-15: the drawing at the left at the share and the layout's height, the rail in order at the right and scrolling on its own, the page still. */
+async function expectTurned(page: Page, layout: Locator, viewport: { width: number; height: number }): Promise<void> {
+  await expect(layout).toHaveAttribute('data-mode', 'compact');
+  await expectRail(layout);
+  const whole = await box(layout);
+  const drawing = await box(layout.locator('[data-slot="drawing"]'));
+  const hint = layout.locator('[data-slot="hint"]');
+  const hintPx = (await hint.count()) === 0 ? 0 : (await box(hint)).height;
+  expect(drawing.width, 'the drawing’s share of the width').toBeGreaterThanOrEqual(LANDSCAPE_DRAWING_MIN_SHARE * viewport.width - 0.5);
+  expect(drawing.x).toBeLessThan(viewport.width / 10);
+  // One viewport high under the top row: the layout reaches the viewport's foot (less the live page's quarter row)…
+  expect(whole.y + whole.height).toBeGreaterThanOrEqual(viewport.height - 8);
+  expect(whole.y + whole.height).toBeLessThanOrEqual(viewport.height + 1);
+  // …and the drawing takes its height, less the hint's row under it.
+  expect(Math.abs(drawing.y - whole.y)).toBeLessThanOrEqual(1);
+  expect(drawing.height + hintPx).toBeGreaterThanOrEqual(whole.height - 30);
+  expect(await pageScrolls(layout)).toEqual([]);
+  // The rail scrolls inside the layout, and the box stays where it is while it does.
+  expect(await layout.evaluate((el) => getComputedStyle(el).overflowY)).toBe('auto');
+  await layout.evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+  });
+  expect(Math.abs((await box(layout.locator('[data-slot="drawing"]'))).y - drawing.y)).toBeLessThanOrEqual(1);
+  await layout.evaluate((el) => {
+    el.scrollTop = 0;
+  });
+  await expect(page.getByTestId('sky-screen')).toHaveCount(0);
+}
+
+for (const viewport of TURNED) {
+  for (const locale of LOCALES) {
+    test.describe(`FR-FLOW-15 on the turned phone, ${String(viewport.width)} × ${String(viewport.height)}, ${locale}`, () => {
+      test.use({ viewport, hasTouch: false });
+
+      test('the live page: the window at the left at its share and full height, the rail in order, no page scroll', async ({ page }) => {
+        const layout = await openLive(page, locale);
+        await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+        await expectTurned(page, layout, viewport);
+        // The rail is 25 to 33 cells beside a drawing at its share, under the view row's 30 and 35 (FR-FLOW-4), so
+        // `[x] stars` may take a second line here; nothing is lost: both stand inside the rail's row.
+        const row = layout.locator('[data-slot="viewRow"]');
+        const rowBox = await box(row);
+        for (const part of [row.getByRole('group', { name: WORDS[locale].viewGroup }), row.getByRole('button', { name: WORDS[locale].stars })]) {
+          await expect(part).toBeVisible();
+          const partBox = await box(part);
+          expect(partBox.x).toBeGreaterThanOrEqual(rowBox.x - 1);
+          expect(partBox.x + partBox.width).toBeLessThanOrEqual(viewport.width);
+        }
+        await expectHintOffTheDrawing(layout);
+      });
+
+      test('the stars page: the drawing at the left at its share and full height, the rail in order, no page scroll', async ({ page }) => {
+        const layout = await openStars(page, locale);
+        await expectTurned(page, layout, viewport);
+        await expectHintOffTheDrawing(layout);
+        const names = (await slotBoxes(layout)).map((slot) => slot.name);
+        expect(names.filter((name) => !['drawing', 'readout', 'hint', 'action'].includes(name))).toEqual(['answer', 'picker', 'layers', 'list']);
+      });
+
+      test('the pass detail: the drawing at the left at its share and full height, the head first in the rail, no page scroll', async ({ page }) => {
+        const layout = await openDetail(page, locale);
+        await expect(layout.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+        await expectTurned(page, layout, viewport);
+        await expectHintOffTheDrawing(layout);
+        const names = (await slotBoxes(layout)).map((slot) => slot.name);
+        expect(names.filter((name) => !['drawing', 'readout', 'hint'].includes(name)).slice(0, 3)).toEqual(['answer', 'viewRow', 'picker']);
+      });
+    });
+  }
+}
+
+test.describe('FR-FLOW-14: the view a fresh profile opens on', () => {
+  test.describe('a phone', () => {
+    test.use({ viewport: PHONE, hasTouch: false });
+
+    test('the live page and the pass detail open on the window at 390 × 844', async ({ page }) => {
+      const live = await openLive(page, 'en');
+      await expect(live.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+      const detail = await openDetail(page, 'en');
+      await expect(detail.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+    });
+  });
+
+  test.describe('a desk', () => {
+    test.use({ viewport: DESK, hasTouch: false });
+
+    test('the live page and the pass detail open on the dome at 1280 × 800', async ({ page }) => {
+      const live = await openLive(page, 'en');
+      await expect(live.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
+      const detail = await openDetail(page, 'en');
+      await expect(detail.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
+    });
+  });
+});
+
+test.describe('FR-FLOW-15: the turn', () => {
+  test.use({ viewport: PHONE, hasTouch: false });
+
+  test('turning 390 × 844 → 844 × 390 → 390 × 844 keeps the camera and the shown instant and opens no screen', async ({ page }) => {
+    const layout = await openLive(page, 'en');
+    await expect(layout).toHaveAttribute('data-shape', 'column');
+    // A facing of the reader's own, so the turn has something to lose.
+    const drawing = await box(layout.locator('[data-slot="drawing"]'));
+    await page.mouse.move(drawing.x + drawing.width / 2, drawing.y + drawing.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(drawing.x + drawing.width / 2 + 60, drawing.y + drawing.height / 2 + 30, { steps: 4 });
+    await page.mouse.up();
+    // The drag's last frames land after the release: the camera is read once it holds still.
+    let before = await camera(layout);
+    for (let i = 0; i < 20; i++) {
+      await page.waitForTimeout(150);
+      const now = await camera(layout);
+      if (now.join() === before.join()) break;
+      before = now;
+    }
+    const instant = page.getByTestId('status-strip').locator('time').first();
+    const shown = await instant.getAttribute('datetime');
+    expect(before.every((value) => value !== null)).toBe(true);
+    const turns = [
+      { viewport: { width: 844, height: 390 }, shape: 'rail' },
+      { viewport: PHONE, shape: 'column' },
+    ];
+    for (const { viewport, shape } of turns) {
+      await page.setViewportSize(viewport);
+      await expect(layout).toHaveAttribute('data-shape', shape);
+      await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
+      expect(await camera(layout)).toEqual(before);
+      await expect(instant).toHaveAttribute('datetime', shown ?? '');
+      await expect(page.getByTestId('sky-screen')).toHaveCount(0);
+    }
+  });
+});
