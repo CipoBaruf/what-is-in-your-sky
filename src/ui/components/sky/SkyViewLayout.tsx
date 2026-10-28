@@ -67,10 +67,10 @@ export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, Reac
   /** The wide form: the box and the rail (the default), or the guide panel's one column (D-849). Compact is always the column. */
   wide?: 'rail' | 'panel';
   /** The id of the drawing's text alternative on the page — the pass detail's prose — for the chart's figure (`aria-describedby`). */
-  describedBy?: string;
-  className?: string;
-  ref?: Ref<HTMLDivElement>;
-  'data-testid'?: string;
+  describedBy?: string | undefined;
+  className?: string | undefined;
+  ref?: Ref<HTMLDivElement> | undefined;
+  'data-testid'?: string | undefined;
 }
 
 interface SkyViewContextValue {

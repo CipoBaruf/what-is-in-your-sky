@@ -793,7 +793,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
                 colorBy="pass"
                 fill
                 initialFacingAzDeg={0}
-                legendOpen={compact ? legendOpen : undefined}
+                {...(compact ? { legendOpen } : {})}
                 moonPhase={compact}
                 chartHand={chartHand}
                 scene={scene}
