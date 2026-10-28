@@ -49,7 +49,8 @@ async function open(page: Page, viewport: { width: number; height: number }, pre
   await page.setViewportSize(viewport);
   await page.addInitScript(
     ([key, value]: [string, string]) => {
-      localStorage.setItem(key, value);
+      // Only when nothing is saved yet (R136): the window is saved on compact now, and a reload must read it back.
+      if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
     },
     [PREFS_KEY, JSON.stringify(prefs)] as [string, string],
   );
@@ -251,10 +252,10 @@ test.describe('the sky window on a phone', () => {
 
   /**
    * FR-WIN-4: a phone whose readings carry no north opens nothing. R121 (FR-WIN-4 as amended v2.5, FR-SKY-2): it
-   * keeps the option — the presence test governs the sensor, never the view — and the next tap, with no sensor
-   * left to ask, lays the window out in the box under the hand, unsaved.
+   * keeps the option — the presence test governs the sensor, never the view. R136 (FR-FLOW-15): the ask is the
+   * hold-up's, the window stays in the box under the hand, and with no sensor left the hold-up is gone.
    */
-  test('a phone with no compass heading gets the note, keeps the option, and the next tap is the box by hand', async ({ page }) => {
+  test('a phone with no compass heading gets the note, keeps the option, and the window stays in the box by hand', async ({ page }) => {
     await stubCompass(page);
     await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     const figure = await openDetail(page, 'en');
@@ -270,10 +271,9 @@ test.describe('the sky window on a phone', () => {
     await expect(figure.locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
     await expect(guide(page).getByTestId('chart-view-note')).toHaveText('This device is not reporting which way it faces.');
     await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
-    await tapWindow(page, 'en');
+    // The sensor is lost for the session, so the window no longer offers the screen's door; the box stays by hand.
+    await expect(guide(page).getByTestId('window-hold-up')).toHaveCount(0);
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
-    await expect(figure).toHaveAttribute('data-view', 'window');
-    await expect(figure.locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
     expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'window' });
   });
 
@@ -509,8 +509,9 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
         await expect(chart).toHaveAttribute('data-view', 'window');
         const w = chart.locator('[data-look-az]');
         await expect(w).toHaveAttribute('data-state', 'hand');
-        // FR-STAR-3's rule for a page with no pass to face: the pole side — north for Paris — at 35°.
-        expect(await look(w)).toEqual({ az: 0, alt: 35 });
+        // R136 (FR-FLOW-14, D-876: `openingFacing`): no pass is highlighted, so the window opens on the next pass's
+        // rise point — Paris's next one rises at 352°, on the horizon — at `clamp(alt − 15°, 20°, 75°)` = 20°.
+        expect(await look(w)).toEqual({ az: 352, alt: 20 });
         const box = await boxSettled(page, page.getByTestId('chart-box'));
         // The box is cut to the browser window's shape (`windowBox`) and the rail stands beside it.
         expect(Math.abs(box.width / box.height - width / height)).toBeLessThan(0.02);
@@ -534,8 +535,9 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
 /**
  * FR-SKY-2: a compact reader without a sensor — a phone-sized desk window, and
  * every headless capture at 390 px — gets the window laid out in the box under
- * the hand camera, since there is no screen to open and nothing to ask; the
- * choice is not saved, so a reload opens on the saved view.
+ * the hand camera, since there is no screen to open and nothing to ask. R136
+ * (FR-FLOW-14, D-876): the choice is saved on compact as on wide, so a reload
+ * opens on the window.
  */
 test.describe('the sky window on a compact page without a sensor', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: false });

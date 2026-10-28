@@ -93,6 +93,12 @@ test.describe('zoom on the live page’s box (wide, the window as the saved view
   test('+ three times narrows the field to 30° about the centre, 0 restores it, ctrl + wheel and a pinch move it the same way, a plain wheel is the browser’s', async ({ page }) => {
     const w = await openLiveWindow(page, { observer: PARIS, chartView: 'window' });
     await expect(w).toHaveAttribute('data-fov', '60');
+    // R136 (FR-FLOW-14, D-876): the live page's window opens on the next rise (352°, 20° here); the zoom is measured
+    // from north at 35°, as it was, so the window is turned there first: three `↑` and the picker's `N`.
+    await box(w).focus();
+    for (let i = 0; i < 3; i += 1) await page.keyboard.press('ArrowUp');
+    await page.getByRole('group', { name: 'Facing' }).getByRole('button', { name: 'N', exact: true }).click();
+    await page.clock.runFor(FRAME_MS);
     await expect(w).toHaveAttribute('data-look-az', '0');
     await expect(w).toHaveAttribute('data-look-alt', '35');
     await expect(readout(page)).toHaveText(READOUT);
