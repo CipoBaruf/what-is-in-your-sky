@@ -417,11 +417,14 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
     const opened = await look(w);
     expect(opened.alt).toBe(46);
     await expect(figure.locator(`[data-pass-id="${GLARE_PASS}"] [data-anchor="key"]`)).toHaveAttribute('data-in-view', 'true');
-    // The box takes the browser window's shape (D-789), the readout stands in its corner, the hint in its foot.
+    // R132 (FR-FLOW-7, D-849): on the panel the drawing is the layout's slot at the panel's full width and the height
+    // the body leaves (D-789's window shape is the sky screen's); the readout stands in its corner.
     const frame = figure.getByTestId('chart-frame');
     await expect(frame).toHaveAttribute('data-hand-window', 'true');
     const box = await boxSettled(page, figure.getByTestId('chart-box'));
-    expect(Math.abs(box.width / box.height - 1280 / 800)).toBeLessThan(0.02);
+    const slot = await rectOf(page.getByTestId('pass-layout').locator('[data-slot="drawing"]'));
+    expect(Math.abs(box.width - slot.width)).toBeLessThanOrEqual(1);
+    expect(box.height).toBeGreaterThan(0);
     console.log(`R121 pass detail window box at 1280 × 800: ${String(box.width)} × ${String(box.height)} px`);
     const readout = await rectOf(guide(page).getByTestId('window-readout'));
     const boxRect = await rectOf(figure.getByTestId('chart-box'));
@@ -534,13 +537,14 @@ test.describe('the sky window on a compact page without a sensor', () => {
     const w = figure.locator('[data-look-az]');
     await expect(w).toHaveAttribute('data-state', 'hand');
     expect((await look(w)).alt).toBe(46);
-    // Compact keeps the dome's box — square, full-bleed — and the readout in its row, not the corner.
+    // Compact keeps the dome's box — square, full-bleed — and the readout in its row, not the corner: directly above
+    // the drawing (R132, FR-FLOW-4), where the column puts the readout slot.
     const frame = figure.getByTestId('chart-frame');
     await expect(frame).toHaveAttribute('data-compact', 'true');
     const box = await rectOf(figure.getByTestId('chart-box'));
     expect(Math.abs(box.width - box.height)).toBeLessThanOrEqual(1);
     const readout = await rectOf(guide(page).getByTestId('window-readout'));
-    expect(readout.y).toBeGreaterThanOrEqual(box.y + box.height - 1);
+    expect(readout.y + readout.height).toBeLessThanOrEqual(box.y + 1);
     await expect(guide(page).getByRole('group', { name: 'Facing' }).locator('[data-option="peak"]')).toHaveAttribute('aria-pressed', 'true');
     expect(JSON.parse(await page.evaluate((key) => localStorage.getItem(key) ?? '{}', PREFS_KEY)) as { chartView?: string }).toMatchObject({ chartView: 'dome' });
     await figure.getByTestId('chart-box').scrollIntoViewIfNeeded();

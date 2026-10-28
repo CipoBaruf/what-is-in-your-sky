@@ -139,7 +139,8 @@ test.describe('the first run on a phone (FR-FIRST-2, FR-FIRST-3 as amended v2.1)
     const opened = new URL(page.url()).hash.slice('#pass='.length);
     const guide = guideFor(page, opened);
     await expect(guide).toBeVisible();
-    await expect(guide.getByRole('heading', { level: 2 }).first()).toContainText(passName ?? '');
+    // R132 (FR-FLOW-7, D-866): on the phone the pass's name is the sheet's `h1`.
+    await expect(guide.getByRole('heading', { level: 1 }).first()).toContainText(passName ?? '');
     await expect(what.locator(`article[data-pass-id="${opened}"]`)).toHaveCount(0);
   });
 });
