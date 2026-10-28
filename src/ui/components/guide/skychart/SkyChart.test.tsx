@@ -91,11 +91,10 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
   });
 
   /**
-   * R121 (FR-SKY-2, US-41 AC1): a desk reader is offered the window too. On compact without a sensor — a
-   * phone-sized desk window, jsdom here — choosing it lays the window out in the box under the hand camera,
-   * and the choice is the chart's own: nothing is written, so a reload opens on the saved view.
+   * R121 (FR-SKY-2, US-41 AC1): a desk reader is offered the window too. R136 (FR-FLOW-14, D-876): on compact
+   * choosing it lays the window out in the box under the hand camera and saves it, as on wide.
    */
-  it('offers the window where the device has no orientation, lays it out in the box by hand on compact, and writes nothing', async () => {
+  it('lays the window out in the box by hand on compact and saves it', async () => {
     appStore.getState().setChartView('dome');
     const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
     expect(options()).toEqual(['Polar', 'Dome', 'Window']);
@@ -112,36 +111,43 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
     expect(rtl.queryByTestId('window-hand-hint')).toBeNull();
     expect(rtl.queryByTestId('window-hold-up')).toBeNull();
     expect(appStore.getState().skyScreen).toBe(false);
-    expect(appStore.getState().chartView).toBe('dome');
-    expect(savedChartView()).toBe('dome');
+    expect(appStore.getState().chartView).toBe('window');
+    expect(savedChartView()).toBe('window');
     // On compact the frame is not window-shaped: the box the dome has, the readout in its row (D-789).
     expect(rtl.getByTestId('chart-frame')).toHaveAttribute('data-hand-window', 'true');
     expect(rtl.getByTestId('chart-frame')).toHaveAttribute('data-compact', 'true');
     // Back to the dome, and the window again: the facing is where it was left (the slot the chart keeps).
+    // R136 (FR-FLOW-14): with no pass to follow the window opened on the next rise (`openingFacing`); a step from there.
+    const turned = String(Math.round(pass.start.azDeg + 15) % 360);
+    expect(w).toHaveAttribute('data-look-az', String(Math.round(pass.start.azDeg) % 360));
     const box = container.querySelector('[tabindex="0"]') as HTMLElement;
     fireEvent.keyDown(box, { key: 'ArrowRight' });
-    expect(w).toHaveAttribute('data-look-az', '195');
+    expect(w).toHaveAttribute('data-look-az', turned);
     fireEvent.click(rtl.getByRole('button', { name: 'Dome' }));
     expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'dome');
     expect(appStore.getState().chartView).toBe('dome');
     fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
     await waitFor(() => {
-      expect(container.querySelector('[data-look-az]')).toHaveAttribute('data-look-az', '195');
+      expect(container.querySelector('[data-look-az]')).toHaveAttribute('data-look-az', turned);
     });
   });
 
-  /** D-789 (R121 review): the compact choice is compact's alone — a trip to wide drops it, so the saved view is what comes back. */
-  it('drops the compact choice of the window when the layout goes wide, and opens on the saved view back on compact', async () => {
+  /** R136 (FR-FLOW-14, D-876): with nothing saved a phone opens on the window and a desk on the dome; a saved view wins on both. */
+  it('opens a fresh profile on the window on compact and on the dome on wide, and a saved view on both', async () => {
     const media = stubMatchMedia(390);
     try {
-      appStore.getState().setChartView('polar');
       const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-      fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
+      expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
       await waitFor(() => {
-        expect(container.querySelector('[data-drawing="window"]')).not.toBeNull();
+        expect(container.querySelector('[data-look-az]')).toHaveAttribute('data-in-box', 'true');
       });
+      expect(savedChartView()).toBeUndefined();
       act(() => {
         media.setWidth(WIDE_PX);
+      });
+      expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'dome');
+      act(() => {
+        appStore.getState().setChartView('polar');
       });
       expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'polar');
       act(() => {
@@ -266,63 +272,62 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
   });
 
   /**
-   * FR-FSC-6, FR-WIN-5 as amended v1.3.1 (V13-6, V13-8, D-350, D-352): the
-   * window's option is a mode, not a view. The tap opens the screen — through
-   * the permission and the one reading `useSkyScreen` waits for — and the chart
-   * stays on the view the reader picked, which is what the `×` comes back to.
+   * R136 (FR-FLOW-14, FR-FLOW-15; V26-11, V26-12): on a phone with a sensor the window's option is a view like the
+   * other two — it asks for nothing and opens nothing — and the screen opens from `[ hold up to the sky ]` beside
+   * the facing picker, through the permission and the one reading `useSkyScreen` waits for (F-42).
    */
-  it('opens the sky screen from the window option and writes nothing', () => {
+  it('opens no screen from the window option on a phone; [ hold up to the sky ] does', async () => {
     withPhone();
     appStore.getState().setChartView('polar');
-    render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
 
     fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
+    reading({ alpha: 30, absolute: true });
+    expect(appStore.getState().skyScreen).toBe(false);
+    expect(savedChartView()).toBe('window');
+    await waitFor(() => {
+      expect(container.querySelector('[data-look-az]')).toHaveAttribute('data-in-box', 'true');
+    });
+    fireEvent.click(rtl.getByTestId('window-hold-up'));
     // Armed, not open: the reading is what decides (F-42).
     expect(appStore.getState().skyScreen).toBe(false);
     reading({ alpha: 30, absolute: true });
     expect(appStore.getState().skyScreen).toBe(true);
-    expect(appStore.getState().chartView).toBe('polar');
-    expect(savedChartView()).toBe('polar');
-    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'polar');
+    expect(appStore.getState().chartView).toBe('window');
   });
 
   /**
    * FR-FOL-2: a phone whose readings carry no north opens nothing and says so beside the control. R121 (FR-WIN-4
-   * as amended v2.5): it keeps the option — the presence test governs the sensor alone — and the next tap, with no
-   * sensor left to ask, lays the window out in the box under the hand (FR-SKY-2).
+   * as amended v2.5): it keeps the option — the presence test governs the sensor alone — and the window stays in
+   * the box under the hand; choosing a view clears the note.
    */
-  it('shows the note and keeps the option where the readings carry no north; the next tap is the box by hand', async () => {
+  it('shows the note and keeps the option where the readings carry no north', async () => {
     withPhone();
-    appStore.getState().setChartView('dome');
+    appStore.getState().setChartView('window');
     const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
+    await waitFor(() => {
+      expect(rtl.getByTestId('window-hold-up')).toBeInTheDocument();
+    });
 
-    fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
+    fireEvent.click(rtl.getByTestId('window-hold-up'));
     reading({ alpha: 30, absolute: false });
     expect(appStore.getState().skyScreen).toBe(false);
     expect(rtl.getByTestId('chart-view-note')).toHaveTextContent('This device is not reporting which way it faces.');
     expect(options()).toEqual(['Polar', 'Dome', 'Window']);
-    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'dome');
-
-    fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
-    expect(rtl.queryByTestId('chart-view-note')).toBeNull();
     expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
-    await waitFor(() => {
-      expect(container.querySelector('[data-look-az]')).toHaveAttribute('data-state', 'hand');
-    });
-    expect(appStore.getState().skyScreen).toBe(false);
+    expect(container.querySelector('[data-look-az]')).toHaveAttribute('data-state', 'hand');
+
+    fireEvent.click(rtl.getByRole('button', { name: 'Dome' }));
+    expect(rtl.queryByTestId('chart-view-note')).toBeNull();
     expect(savedChartView()).toBe('dome');
   });
 
-  /** FR-WIN-5 as amended v1.3.1 and v2.5: on compact nothing a page saves can be the window — a stored one is the dome. */
-  it('draws a saved window as the dome on compact, with or without the screen up', () => {
+  /** R136 (FR-FLOW-14, D-876): a saved window is the window on compact as on wide. */
+  it('draws a saved window as the window on compact', () => {
     withPhone();
     appStore.setState({ chartView: 'window' });
-    const { unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'dome');
-    unmount();
-    appStore.getState().openSkyScreen();
     render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'dome');
+    expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
   });
 });
 

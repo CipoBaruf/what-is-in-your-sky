@@ -186,7 +186,6 @@ export function SkyChart(props: SkyChartProps) {
   const chartView = useAppStore((s) => s.chartView);
   const setChartView = useAppStore((s) => s.setChartView);
   const dropWindowView = useAppStore((s) => s.dropWindowView);
-  const setWindowNote = useAppStore((s) => s.setWindowNote);
   // FR-FOL-2: the one line the last answer left.
   const note = useAppStore((s) => s.windowNote);
   /*
@@ -229,15 +228,14 @@ export function SkyChart(props: SkyChartProps) {
   /*
    * FR-FLOW-14 (V26-11, D-876): every option is a view and is saved, the window too, on compact as on wide; the
    * window is laid out in the box under the hand. The screen opens from `[ hold up to the sky ]` alone (V26-12),
-   * so choosing the window asks for no permission and clears the note the last refusal left.
+   * so choosing the window asks for no permission; choosing any view clears the note the last refusal left.
    */
   const choose = useCallback(
     (id: ChartView) => {
-      if (id === 'window') setWindowNote(null);
       viewFor(id).choose?.();
       setChartView(id);
     },
-    [setChartView, setWindowNote],
+    [setChartView],
   );
   // R58 review (D-277) → R66 (D-352): a window that cannot run here closes the screen and leaves the note beside
   // this control; nothing is written, because the reader chose neither the failure nor a view to fall back to.
