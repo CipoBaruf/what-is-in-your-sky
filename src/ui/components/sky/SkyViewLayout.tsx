@@ -154,16 +154,19 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
   }, [shape]);
 
   /*
-   * FR-FLOW-6 on the landscape phone that fills its height: the hint wraps under the box (the follow clause and the
-   * Spanish line are longer than the box is wide), so the box keeps the layout's height less the hint's measured
-   * rows — `--sky-hint-h`, unset (one row) while there is no hint. The landscape arrangement itself is R136's.
+   * FR-FLOW-6 on a rail that fills its height: the hint wraps under the box (the follow clause and the Spanish line
+   * are longer than the box is wide), so the box keeps the layout's height less the hint's measured rows —
+   * `--sky-hint-h`, unset (one row) while there is no hint. The landscape phone first (R132); R133 (FR-FLOW-9,
+   * D-868) cut the wide box the same way, to the hint line, and the Spanish window hint is two lines beside a 644 px
+   * box at 1280 × 800 (`sky-layout.spec.ts`), so the wide rail measures too. The landscape arrangement itself is
+   * R136's.
    */
   const hasHint = slots.hint !== undefined && slots.hint !== null && slots.hint !== false;
-  const sticky = shape === 'rail' && mode === 'compact' && fill;
+  const measuresHint = shape === 'rail' && fill;
   useEffect(() => {
     const root = rootRef.current;
     const hint = root?.querySelector<HTMLElement>('[data-slot="hint"]');
-    if (!root || !hint || !sticky || typeof ResizeObserver === 'undefined') return;
+    if (!root || !hint || !measuresHint || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(() => {
       const next = `${String(Math.ceil(hint.getBoundingClientRect().height))}px`;
       if (root.style.getPropertyValue('--sky-hint-h') !== next) root.style.setProperty('--sky-hint-h', next);
@@ -173,7 +176,7 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
       observer.disconnect();
       root.style.removeProperty('--sky-hint-h');
     };
-  }, [sticky, hasHint]);
+  }, [measuresHint, hasHint]);
 
   const labelled = shape === 'rail';
   const slot = (name: SkyViewSlotName): ReactNode => {

@@ -102,9 +102,16 @@
 
 /* R133 (FR-FLOW-9, D-850): …unless the chart cuts its own box — the dome's, from the bowl (`ChartFrame`'s
    `data-bowl`, its height written as `--chart-box-h`) — in which case the slot is as tall as the chart, and the
-   picker, the hint and the rows under them stand a row under the bowl rather than under an empty corner of a square. */
+   picker, the hint and the rows under them stand a row under the bowl rather than under an empty corner of a square.
+   `min-height: auto`, not the slot's 0: the chart's box is the slot's content and the slot is never shorter than it.
+   A grid shorter than its rows hands an auto row its items' minimum (D-881), and this column can be shorter than its
+   rows for a frame — Chromium re-lays the layout (`container-type`, above) at the height it had when a row the reader
+   opens arrives, the legend's two rows at 390 × 667, and the one row whose minimum was 0 gave the 96 px: the box
+   stood over `[ list (n) ]` (`live-compact.spec.ts`). With the box as the slot's minimum the rows overflow the stale
+   height instead and the page grows to them, which is what a column that scrolls past its box means (R132). */
 .layout[data-shape='column'] .drawing:has([data-bowl='true']) {
   height: auto;
+  min-height: auto;
 }
 
 /* --- The rail: the box at the left, the rail at the right, the readout on the box's corner, the hint under the box

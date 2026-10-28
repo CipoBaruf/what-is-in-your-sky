@@ -129,50 +129,22 @@ test.describe('the compact dome’s box hugs the bowl (FR-FLOW-9)', () => {
   });
 });
 
-test.describe('PROBE', () => {
-  test.use({ viewport: { width: 390, height: 667 }, hasTouch: false });
-  test('legend toggle interception at 390 × 667', async ({ page }) => {
-    await openLive(page);
-    const control = page.getByTestId('live-legend-toggle');
-    await control.click();
-    await expect(control).toHaveAttribute('aria-expanded', 'true');
-    await page.waitForTimeout(500);
-    const report = await page.evaluate(() => {
-      const r = (el: Element | null) => (el ? JSON.stringify(el.getBoundingClientRect().toJSON()) : 'none');
-      const toggle = document.querySelector('[data-testid="live-legend-toggle"]');
-      const t = toggle?.getBoundingClientRect();
-      const hit = t ? document.elementFromPoint(t.left + t.width / 2, t.top + t.height / 2) : null;
-      const pres = Array.from(document.querySelectorAll('pre.glyph-output')).map((p) => `${p.closest('[data-layer]')?.getAttribute('data-layer') ?? '?'} ${r(p)} overflow:${getComputedStyle(p.parentElement!).overflow}`);
-      return {
-        scrollY: window.scrollY,
-        toggle: r(toggle),
-        hit: hit ? `${hit.tagName}.${hit.className} ${r(hit)}` : 'none',
-        box: r(document.querySelector('[data-testid="chart-box"]')),
-        slot: r(document.querySelector('[data-slot="drawing"]')),
-        frame: r(document.querySelector('[data-testid="chart-frame"]')),
-        stage: r(document.querySelector('[data-drawing="dome"]')),
-        pres,
-        boxOverflow: getComputedStyle(document.querySelector('[data-testid="chart-box"]')!).overflow,
-      };
-    });
-    console.log(JSON.stringify(report, null, 1));
-  });
-});
-
 test.describe('the wide box runs to the hint line (FR-FLOW-9) and the panel’s drawing takes its body (FR-FLOW-7)', () => {
   test.use({ viewport: { width: 1280, height: 800 }, hasTouch: false });
 
   test('the live page at 1280 × 800: no band taller than --space-3 under the box, in the three views', async ({ page }) => {
     const layout = await openLive(page);
-    const layoutBox = await box(layout);
     for (const view of ['Dome', 'Polar', 'Window'] as const) {
       if (view !== 'Dome') {
         await layout.getByRole('group', { name: 'Chart view' }).getByRole('button', { name: view }).click();
         await expect(layout.locator(`[data-drawing="${view.toLowerCase()}"]`)).toBeAttached({ timeout: 30_000 });
       }
       const chartBox = await settledBox(layout.getByTestId('chart-box'));
+      // Read with the box: a view that scrolls the page or moves the top row moves the layout too.
+      const layoutBox = await box(layout);
       const band = await bandUnderBox(page, chartBox);
-      console.log(`live 1280 × 800 ${view}: box ${fmt(chartBox)}, band under it ${band.toFixed(1)} px`);
+      const scrollY = await page.evaluate(() => window.scrollY);
+      console.log(`live 1280 × 800 ${view}: box ${fmt(chartBox)}, layout ${fmt(layoutBox)}, scrollY ${String(scrollY)}, band under it ${band.toFixed(1)} px`);
       expect(band, `${view}: ${band.toFixed(1)} px under the box`).toBeLessThanOrEqual(SPACE_3_PX);
       // From under the header: the box's top is the layout's.
       expect(Math.abs(chartBox.y - layoutBox.y), `${view}: the box at the layout's top`).toBeLessThanOrEqual(1);
