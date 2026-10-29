@@ -3939,7 +3939,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.48's F
 
 ### Wave 2
 
-- [ ] **R140 — What v2.6 left behind and 2.6.1: FR-FLOW-17's removals and comments, `package.json` 2.6.1, `docs/RELEASE.md` §19, no tag**
+- [x] **R140 — What v2.6 left behind and 2.6.1: FR-FLOW-17's removals and comments, `package.json` 2.6.1, `docs/RELEASE.md` §19, no tag**
   - **Lane:** docs
   - **Model:** opus
   - **Review:** opus
@@ -3962,6 +3962,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.48's F
     - `npm run bundle:budget` no row larger than 2.6.0's.
     - The Done note lists every removal and comment by name, and the SHA to tag.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+  - **Note:** `boxAspect` is the boolean `measureBox` (`measured` was `SkyDome`'s state, D-894); `moon-captures.spec.ts` fixed rather than retired, the card's glare tooltip checked as a description since R84 (D-895); `main` and `window` are 89 and 79 bytes over 2.6.0 from R137/R138, put to the owner in `docs/RELEASE.md` §19.3. The SHA to tag is this PR's squash merge (§19.4).
 
 ### Requirement coverage (v2.6.1)
 
