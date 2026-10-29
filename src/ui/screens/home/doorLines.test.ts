@@ -7,6 +7,10 @@ import { describe, expect, it } from 'vitest';
 import { DOOR_SKY, doorInput, doorPass, local } from '../../../../tests/support/doorFixtures';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
+import { skyStateAt } from '../../../lib/skyBodies';
+import { HOUR_MS, skyBands } from '../../../lib/timeStripe';
+import { tonightsDark, tonightsStarsFrom } from '../../../lib/tonightStripe';
+import type { Observer } from '../../../model';
 import { DOOR_CELLS, doorLines } from './doorLines';
 
 const SKY = DOOR_SKY;
@@ -64,6 +68,31 @@ describe('doorLines', () => {
     expect(doorLines(doorInput({ now: local(11, 14), sky, locale: 'es' }), es).stars.lines[1]).toBe('Estrellas desde las 20:25');
     // No dark band tonight (a polar summer): no time to give.
     expect(doorLines(doorInput({ now: local(11, 14), sky, dark: null }), en).stars.lines).toEqual(['No full dark · Clear', 'No dark sky tonight']);
+  });
+
+  describe('a June night with no dark band (FR-FLOW-1 as amended v2.6.1, D-884)', () => {
+    /** 21 June 2026, 12:00 UTC: the bands as `useTonight` samples them, from the astronomy module. */
+    const NOON = Date.UTC(2026, 5, 21, 12, 0);
+    const night = (lat: number, lon: number, timeZone: string) => {
+      const observer: Observer = { lat, lon, altM: 0, label: `${lat}, ${lon}`, source: 'coords', timeZone };
+      const bands = skyBands(NOON - 24 * HOUR_MS, NOON + 38 * HOUR_MS, 5 * 60_000, (t) => skyStateAt(t, observer));
+      const at = (locale: 'en' | 'es') =>
+        doorInput({ now: NOON, zone: timeZone, locale, passes: [], sky: { ...SKY, brightest: null }, dark: tonightsDark(bands, NOON), starsFrom: tonightsStarsFrom(bands, NOON) });
+      return { en: doorLines(at('en'), en).stars.lines, es: doorLines(at('es'), es).stars.lines };
+    };
+
+    it('at 58° N the second line is the start of bright twilight, in both languages', () => {
+      // The Sun stays above −12° all night; it is below −6° from 22:40 UTC, 23:40 on the UK's summer clock.
+      const lines = night(58, -4, 'Europe/London');
+      expect(lines.en).toEqual(['No full dark · Clear', 'Stars from 23:40']);
+      expect(lines.es).toEqual(['Sin oscuridad total · Despejado', 'Estrellas desde las 23:40']);
+    });
+
+    it('at 70° N, with neither band, it is still "No dark sky tonight", in both languages', () => {
+      const lines = night(70, 19, 'Europe/Oslo');
+      expect(lines.en).toEqual(['No full dark · Clear', 'No dark sky tonight']);
+      expect(lines.es).toEqual(['Sin oscuridad total · Despejado', 'Sin cielo oscuro esta noche']);
+    });
   });
 
   it('the stars chunk not loaded: the Stars door keeps its second line, empty, and the wide lines wait', () => {

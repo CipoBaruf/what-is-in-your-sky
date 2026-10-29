@@ -51,6 +51,8 @@ export interface DoorInput {
   bandsKnown: boolean;
   /** Tonight's dark band, or `null` with none. */
   dark: SkyBand | null;
+  /** When tonight's stars come out (`tonightsStarsFrom`, D-884): the dark band, else the bright-twilight band, else `null`. */
+  starsFrom: SkyBand | null;
   cloud: CloudState;
   /** `null` until the `stars` chunk has loaded. */
   sky: DoorSky | null;
@@ -82,7 +84,7 @@ function fitName(name: string, line: (name: string) => string): string {
 }
 
 export function doorLines(input: DoorInput, t: Messages): Doors {
-  const { now, zone, locale, passes, event: result, pending, hours, bandsKnown, dark, cloud, sky } = input;
+  const { now, zone, locale, passes, event: result, pending, hours, bandsKnown, dark, starsFrom, cloud, sky } = input;
   const clock = (at: EpochMs, last = false): string => formatShortClock(at, zone, locale, last && zone === null);
   const words = t.doors;
 
@@ -102,12 +104,14 @@ export function doorLines(input: DoorInput, t: Messages): Doors {
   // With no zone the stamps say UTC (F-27) and there is no forecast: neither line gives a cloud word (D-859).
   const cloudWord = zone === null ? null : cloud;
   const darkLine: DoorLine = bandsKnown ? (dark ? words.stars.dark({ from: clock(dark.from), to: clock(dark.to, true), cloud: cloudWord }) : words.stars.noDark(cloudWord)) : null;
+  // The second line's "from" is `starsFrom`, not `dark`: with no dark band tonight (above about 54.5° N near the
+  // June solstice) the stars come with bright twilight (D-884). The first line still reads `dark`.
   let brightLine: DoorLine = null;
   if (sky !== null) {
     if (sky.brightest !== null) {
       const { dir } = sky.brightest;
       brightLine = fitName(sky.brightest.name, (name) => words.stars.brightest({ name, point: dir }));
-    } else if (dark && dark.from > now) brightLine = words.stars.from(clock(dark.from, true));
+    } else if (starsFrom && starsFrom.from > now) brightLine = words.stars.from(clock(starsFrom.from, true));
     else brightLine = words.stars.noNight;
   }
   const moon = sky?.moon;
