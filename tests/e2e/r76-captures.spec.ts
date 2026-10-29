@@ -86,8 +86,8 @@ for (const [label, size, expand] of [
       test(`the populated home at ${label}, ${theme}, ${locale}`, async ({ page }) => {
         await page.setViewportSize(size);
         await seedStoredRun(page, { locale, prefs: { theme }, settled: true });
-        await expect(page.getByTestId('next-event-label')).toBeVisible();
-        // R139 (FR-FLOW-16, D-886): v2.6 took the Where dome off the home; the capture waits for the doors, at every width.
+        // R139 (FR-FLOW-16, D-886): v2.6 took the Where dome and the next event off the home (FR-FIRST-3 as amended
+        // v2.6); the capture waits for the doors, at every width.
         await expect(page.getByTestId('home-doors')).toBeVisible({ timeout: 30_000 });
         if (expand) {
           await page.getByTestId('location-summary-change').click();
@@ -174,14 +174,8 @@ test('the populated panes at 1280 measured against FR-FIRST-3..11', async ({ pag
   expect((await style('conditions', 'dd')).colour).toBe(fg);
   for (const gap of await gaps('conditions')) expect(gap).toBe(12);
 
-  // FR-FIRST-3: ruled off above in --rule with 0.75 rem inside; the label small and dim; the time in the accent at 32 on 38; the path in --fg.
-  const block = await style('next-event', '');
-  expect([block.borderTop, block.borderTopWidth, block.paddingTop]).toEqual([rule, '1px', '12px']);
-  const label = await style('next-event-label', '');
-  expect([label.size, label.colour]).toEqual(['14px', dim]);
-  const time = await style('next-event-time', '');
-  expect([time.size, time.line, time.colour]).toEqual(['32px', '38px', accent]);
-  expect((await style('next-event-path', '')).colour).toBe(fg);
+  // FR-FIRST-3's next-event block is not measured here: v2.6 made it the Satellites door's answer and took it out of
+  // the When pane (FR-FIRST-3 as amended v2.6, FR-FLOW-1), so the home at 1280 draws none (R139).
 
   // FR-FIRST-10: a box ruled in --rule, 12 px inside, 0.75 rem apart; the first line in the accent, the second small and dim.
   const card = await page
@@ -362,9 +356,13 @@ test("the phone's steps at 390 measured against FR-FIRST-4", async ({ page, cont
   const next = await style('see-what', '');
   expect([next.border, next.colour]).toEqual([accent, accent]);
   expect(next.height).toBeGreaterThanOrEqual(56);
-  // At the foot of the screen: the shell's bottom row under it and nothing else.
-  expect(next.bottom).toBeLessThanOrEqual(844);
-  expect(next.bottom).toBeGreaterThan(844 - 30);
+  // At the foot of the screen: the shell's bottom row under it and nothing else. R139: that row is FR-FIRST-1's line
+  // form, three lines at 390 px since R102 put `Chart: glyphcss` in it, so the button stands on the footer and the
+  // footer on the screen's foot, rather than within a fixed 30 px of it.
+  const shell = await page.locator('footer[data-form="line"]').boundingBox();
+  if (!shell) throw new Error('no first-run footer');
+  expect(Math.abs(shell.y - next.bottom)).toBeLessThanOrEqual(1);
+  expect(Math.abs(shell.y + shell.height - 844)).toBeLessThanOrEqual(1);
 
   await page.getByTestId('see-what').click();
   await expect(page.getByTestId('step-what')).toBeVisible();
@@ -381,7 +379,18 @@ test("the phone's steps at 390 measured against FR-FIRST-4", async ({ page, cont
   });
   expect(cardGap).toBe(12);
   // The foot: ruled off in --rule, 12 px above its text, at --small in --fg-dim, at the bottom of the screen.
+  // R139: since R105 (D-720) the rule is the foot's own `Rule` and the 12 px its margin under, not a border and padding.
   const foot = await style('what-foot', '');
-  expect([foot.border, foot.borderWidth, foot.paddingTop, foot.size, foot.colour]).toEqual([rule, '1px', '12px', '14px', dim]);
-  expect(foot.bottom).toBeGreaterThan(844 - 60);
+  expect([foot.size, foot.colour]).toEqual(['14px', dim]);
+  const footRule = await style('what-foot', 'hr');
+  expect([footRule.border, footRule.borderWidth]).toEqual([rule, '1px']);
+  const footText = await style('what-foot', 'hr + p');
+  expect(Math.round(footText.bottom - footText.height - footRule.bottom)).toBe(12);
+  // R139: at the step's bottom, on the shell's line-form footer (three lines at 390 px since R102) and the page's end —
+  // the step is longer than the screen with the stored run's cards, so a fixed distance from 844 px no longer holds.
+  const whatShell = await page.locator('footer[data-form="line"]').boundingBox();
+  if (!whatShell) throw new Error('no first-run footer');
+  expect(Math.abs(whatShell.y - foot.bottom)).toBeLessThanOrEqual(1);
+  const pageEnd = await page.evaluate(() => document.documentElement.scrollHeight);
+  expect(Math.abs(whatShell.y + whatShell.height - Math.max(844, pageEnd))).toBeLessThanOrEqual(1);
 });
