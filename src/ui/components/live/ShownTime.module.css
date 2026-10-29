@@ -1,5 +1,7 @@
 /* R143 (FR-TONIGHT-7): the headline is one text row — the time at the heading size the readout uses (1.25 rem),
-   the chip after it at the body size in the dim ink, so the row is still one row of the grid. */
+   the chip after it at `--small` in the dim ink, so the row is still one row of the grid. At the body size the
+   Spanish chip's longest form (`esta noche · en 23 h 59 min`) took the row to 35 cells, two past what 360 px holds;
+   at `--small` it is 31 (`controlRows.test.ts`). */
 .headline {
   margin: 0;
   font-size: 1.25rem;
@@ -10,7 +12,7 @@
 }
 
 .chip {
-  font-size: 1rem;
+  font-size: var(--small);
   color: var(--fg-dim);
 }
 
