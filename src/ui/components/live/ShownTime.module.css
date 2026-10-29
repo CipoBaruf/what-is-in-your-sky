@@ -1,0 +1,43 @@
+/* R143 (FR-TONIGHT-7): the headline is one text row — the time at the heading size the readout uses (1.25 rem),
+   the chip after it at the body size in the dim ink, so the row is still one row of the grid. */
+.headline {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: var(--row);
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.chip {
+  font-size: 1rem;
+  color: var(--fg-dim);
+}
+
+/* `now` in the accent while the page shows real time. */
+.chip[data-kind='now'] {
+  color: var(--accent);
+}
+
+/* The context line: one line at `--small`. A pass's name is the part that gives way, cut with an ellipsis, so
+   what the pass does next always shows whole. */
+.context {
+  display: flex;
+  margin: 0;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tail {
+  flex: none;
+  white-space: pre;
+}

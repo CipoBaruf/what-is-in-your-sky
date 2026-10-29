@@ -1,9 +1,27 @@
+import type { CompassPoint } from '../../lib/compass';
+import type { UpEvent } from '../../lib/contextLine';
 import type { Landmark } from '../../lib/landmark';
 import type { MoonFacts } from '../../lib/moonPhrases';
 import type { CloudState, MoonPhaseName, SkyState } from '../../model';
 import type { HiddenReason } from '../messages';
 
 type LandmarkWord = Landmark['word'];
+
+/**
+ * R143 (FR-TONIGHT-7): the chip as the catalog takes it — `lib/shownTime.ts`'s `ShownChip` with the weekday spelt
+ * out by the component (`shortWeekday`), `null` when the chip carries none.
+ */
+export type ChipWords = { kind: 'now' } | { kind: 'ahead' | 'behind'; minutes: number; tonight: boolean; weekday: string | null };
+
+/** `12 min`, `6 h 12 min`, `6 h 05 min`: the hours split off past sixty, as `heldOffset` reads them. */
+const span = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return hours === 0 ? `${String(rest)} min` : `${String(hours)} h ${String(rest).padStart(2, '0')} min`;
+};
+
+/** R143 (FR-TONIGHT-7): the context line's verb for what an up pass does next. */
+const upVerb = { peak: 'peaks', horizon: 'sets', shadow: 'into shadow', twilight: 'fades' } satisfies Record<UpEvent, string>;
 
 /** R123 for R127 (FR-SKY-11): the direction word of the landmark line, from the peak's altitude against the star's (`lib/landmark.ts`). */
 const landmarkWord = { above: 'above', below: 'below', beside: 'beside' } satisfies Record<LandmarkWord, string>;
@@ -189,5 +207,38 @@ export const live = {
     landmarkWord,
     landmarkLine: (p: { degrees: string; word: LandmarkWord; star: string; constellation: string }) => `passes ${p.degrees} ${landmarkWord[p.word]} ${p.star}, in ${p.constellation}`,
     landmarkThrough: (p: { constellation: string }) => `passes through ${p.constellation}`,
+    /**
+     * R143 (FR-TONIGHT-4, FR-TONIGHT-8): the three taps under the time track, `▶ [ tonight ] [ next ] [ now ]`,
+     * 30 cells. The play control is one glyph each way, named by `play` and `pause`.
+     */
+    taps: 'Jump in time',
+    tap: { tonight: 'tonight', next: 'next', now: 'now' },
+    playGlyph: '▶',
+    pauseGlyph: '❚❚',
+    /**
+     * R143 (FR-TONIGHT-7): the chip after the shown time — `now`; `in 6 h 12 min`, `12 min ago`; `tonight · in 6 h
+     * 12 min` inside tonight's night band; `Sat · in 20 h 00 min` when the instant is not today.
+     */
+    chip: (c: ChipWords): string => {
+      if (c.kind === 'now') return 'now';
+      const offset = c.kind === 'ahead' ? `in ${span(c.minutes)}` : `${span(c.minutes)} ago`;
+      const day = c.tonight ? 'tonight' : c.weekday;
+      return day === null || day === '' ? offset : `${day} · ${offset}`;
+    },
+    /** R143 (FR-TONIGHT-7): the shown time's accessible name, the headline's own words. */
+    shownTime: 'Shown time',
+    /**
+     * R143 (FR-TONIGHT-7): the context line, one line at `--small` within 36 cells. While a pass is up, its name and
+     * what it does next, `Tiangong · peaks SE 0:40`; otherwise the sky, the cloud word and the next rise, `Dark ·
+     * Clear · next 21:47`; or one of the two no-pass sentences (FR-TONIGHT-1, FR-TONIGHT-4).
+     */
+    context: {
+      up: (p: { name: string; event: UpEvent; point: CompassPoint; countdown: string }) => `${p.name} · ${upVerb[p.event]} ${p.point} ${p.countdown}`,
+      sky: (p: { sky: string; cloud: string; next: string | null }) => `${p.sky} · ${p.cloud}${p.next === null ? '' : ` · next ${p.next}`}`,
+      skyWord: { day: 'Day', 'bright-twilight': 'Twilight', dark: 'Dark' } satisfies Record<SkyState, string>,
+      cloudWord: { clear: 'Clear', partly: 'Partly', obscured: 'Cloudy', unknown: 'Unknown' } satisfies Record<CloudState, string>,
+      noneSpan: 'No visible pass in 24 h',
+      noneTonight: 'No visible pass tonight',
+    },
   },
 };

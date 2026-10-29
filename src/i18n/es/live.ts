@@ -1,3 +1,4 @@
+import type { UpEvent } from '../../lib/contextLine';
 import type { MoonPhaseName } from '../../model';
 import type { live as EnLive } from '../en/live';
 
@@ -15,6 +16,16 @@ const moonPhase = {
   lastQuarter: 'cuarto menguante',
   waningCrescent: 'menguante',
 } satisfies Record<MoonPhaseName, string>;
+
+/** R143 (FR-TONIGHT-7): `12 min`, `6 h 12 min`, `6 h 05 min`, como en inglés. */
+const span = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return hours === 0 ? `${String(rest)} min` : `${String(hours)} h ${String(rest).padStart(2, '0')} min`;
+};
+
+/** R143 (FR-TONIGHT-7): qué hace después un pase que está arriba; las mismas palabras que la puerta de satélites (`es/home.ts`). */
+const upVerb: Record<UpEvent, string> = { peak: 'culmina', horizon: 'se pone', shadow: 'a la sombra', twilight: 'se apaga' };
 
 /** FR-I18N-2 (D-199 (2)): the `live` lane's own section of the Spanish catalog, typed against `en/live.ts`'s shape. */
 export const live: typeof EnLive = {
@@ -116,5 +127,31 @@ export const live: typeof EnLive = {
     landmarkWord,
     landmarkLine: (p) => `pasa ${p.degrees} ${landmarkWord[p.word]} ${p.star}, en ${p.constellation}`,
     landmarkThrough: (p) => `pasa por ${p.constellation}`,
+    /** R143 (FR-TONIGHT-4): `▶ [ noche ] [ próximo ] [ ahora ]`, 33 celdas ("esta noche" en el botón serían 38). */
+    taps: 'Saltar en el tiempo',
+    tap: { tonight: 'noche', next: 'próximo', now: 'ahora' },
+    playGlyph: '▶',
+    pauseGlyph: '❚❚',
+    /** R143 (FR-TONIGHT-7): `ahora`; `en 6 h 12 min`, `hace 12 min`; `esta noche · en 6 h 12 min`; `sáb · en 20 h 00 min`. */
+    chip: (c) => {
+      if (c.kind === 'now') return 'ahora';
+      const offset = c.kind === 'ahead' ? `en ${span(c.minutes)}` : `hace ${span(c.minutes)}`;
+      const day = c.tonight ? 'esta noche' : c.weekday;
+      return day === null || day === '' ? offset : `${day} · ${offset}`;
+    },
+    shownTime: 'Hora mostrada',
+    /**
+     * R143 (FR-TONIGHT-7): la línea de contexto en 36 celdas. `S/d` y no "Sin datos": con "Crepúsculo" y la hora
+     * del próximo pase la línea larga es `Crepúsculo · S/d · próximo 21:47`, 32; "Sin datos" la llevaba a 38. Se lee
+     * "sin datos" (`cloudSpoken`).
+     */
+    context: {
+      up: (p) => `${p.name} · ${upVerb[p.event]} ${p.point} ${p.countdown}`,
+      sky: (p) => `${p.sky} · ${p.cloud}${p.next === null ? '' : ` · próximo ${p.next}`}`,
+      skyWord: { day: 'Día', 'bright-twilight': 'Crepúsculo', dark: 'Oscuro' },
+      cloudWord: { clear: 'Limpio', partly: 'Nuboso', obscured: 'Tapado', unknown: 'S/d' },
+      noneSpan: 'Ningún pase visible en 24 h',
+      noneTonight: 'Ningún pase visible esta noche',
+    },
   },
 };
