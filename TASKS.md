@@ -4013,7 +4013,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.49 who
     - The Done note gives the rate at each edge and names the frame-split test.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
 
-- [ ] **R142 — The time track: `TimeTrack`, `TRACK_HEIGHT_PX`, its strings, its tests**
+- [x] **R142 — The time track: `TimeTrack`, `TRACK_HEIGHT_PX`, its strings, its tests** — a tick tap hands the page the pass's start with `lead: true` (D-909); the track does not import `TONIGHT_LEAD_MIN`.
   - **Lane:** chart
   - **Model:** opus
   - **Review:** opus
