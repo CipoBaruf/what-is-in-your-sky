@@ -1399,3 +1399,81 @@ describe('the notes clear the gutter on a screen (FR-GUT-1, FR-GUT-6, FR-FOL-5)'
     expect(css).not.toContain('.turnNote');
   });
 });
+
+/**
+ * R137 (FR-FLOW-14 as amended, V26-16; D-883): a cold load of `#live` draws the window before the worker's
+ * passes. It opens at the pole side, turns once to the pass when they arrive, and never turns a camera the
+ * reader has moved, nor again on a later pass update.
+ */
+describe('the turn when the passes arrive (FR-FLOW-14 as amended, D-883)', () => {
+  beforeEach(() => {
+    resetOrientationAccess();
+    withPhone();
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+  });
+
+  type Camera = ReturnType<typeof createHandCamera>;
+  const slot = () => {
+    let kept: Camera | null = null;
+    return {
+      get: () => kept,
+      keep: (camera: Camera) => {
+        kept = camera;
+      },
+      gesture: vi.fn(),
+    };
+  };
+  const now = pass.start.t - 60_000;
+  const later = { ...pass, id: `${pass.id}-later`, start: { ...pass.start, t: pass.start.t + 3_600_000 } };
+  const keys = { [pass.id]: 'A', [later.id]: 'B' };
+  const window = (hand: ReturnType<typeof slot>, passes: (typeof pass)[], id: string | null) => (
+    <SkyWindow passes={passes} observer={observer} highlightedPassId={null} facingPassId={id} now={now} legendKeys={passes.length === 0 ? {} : keys} hand={hand} />
+  );
+
+  for (const [locale, following, facing] of [
+    ['en', 'Following A', 'Facing S (180°) · up 35°'],
+    ['es', 'Siguiendo A', 'Hacia el S (180°) · 35° de altura'],
+  ] as const) {
+    it(`mounted with no passes it faces the pole side, then follows the highlighted pass once they arrive (${locale})`, () => {
+      const hand = slot();
+      const { rerender } = render(<I18nProvider locale={locale}>{window(hand, [], null)}</I18nProvider>);
+      expect(screen.getByTestId('window-readout')).toHaveTextContent(facing);
+      expect(screen.getByTestId('window-readout')).not.toHaveTextContent(following);
+      rerender(<I18nProvider locale={locale}>{window(hand, [pass], pass.id)}</I18nProvider>);
+      expect(screen.getByTestId('window-readout')).toHaveTextContent(following);
+      expect(hand.get()?.get().follow).toBe(pass.id);
+    });
+  }
+
+  it('a camera moved before the passes arrive keeps its facing', () => {
+    const hand = slot();
+    const { container, rerender } = render(window(hand, [], null));
+    const box = container.querySelector('[tabindex="0"]') as HTMLElement;
+    fireEvent.keyDown(box, { key: 'ArrowLeft' });
+    const moved = hand.get()?.get();
+    const readout = screen.getByTestId('window-readout').textContent;
+    rerender(window(hand, [pass], pass.id));
+    expect(hand.get()?.get()).toEqual(moved);
+    expect(screen.getByTestId('window-readout').textContent).toBe(readout);
+    expect(screen.getByTestId('window-readout')).not.toHaveTextContent('Following');
+  });
+
+  it('turns at most once: after the turn and a move, later pass updates leave the camera where the reader put it', () => {
+    const hand = slot();
+    const { container, rerender } = render(window(hand, [], null));
+    rerender(window(hand, [pass], pass.id));
+    expect(screen.getByTestId('window-readout')).toHaveTextContent('Following A');
+    // A key step ends the following (D-797); the camera is now the reader's.
+    const box = container.querySelector('[tabindex="0"]') as HTMLElement;
+    fireEvent.keyDown(box, { key: 'ArrowLeft' });
+    const moved = hand.get()?.get();
+    expect(moved?.follow).toBeUndefined();
+    rerender(window(hand, [pass, later], later.id));
+    rerender(window(hand, [later, pass], pass.id));
+    expect(hand.get()?.get()).toEqual(moved);
+    expect(screen.getByTestId('window-readout')).not.toHaveTextContent('Following');
+  });
+});

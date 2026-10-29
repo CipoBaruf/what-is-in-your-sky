@@ -441,17 +441,52 @@ export function SkyWindow(props: SkyWindowProps) {
    * rise, else the pole side) — and leaves it there, so the dome and back, and a turn of the phone, find the facing
    * where it was. Neither given, the sensor drives.
    */
-  const [slotCamera] = useState(() => {
-    if (hand === undefined || givenCamera !== undefined) return null;
+  const [slot] = useState(() => {
+    if (hand === undefined || givenCamera !== undefined) return { camera: null, unturned: false };
     const kept = hand.get();
-    if (kept !== null) return kept;
-    if (peak !== null) return createHandCamera(facePeak(peak, WINDOW_FOV));
+    // D-883: a camera restored from the slot counts as moved.
+    if (kept !== null) return { camera: kept, unturned: false };
+    if (peak !== null) return { camera: createHandCamera(facePeak(peak, WINDOW_FOV)), unturned: false };
     const followed = facingPassId === null ? null : (passes.find((pass) => pass.id === facingPassId) ?? null);
-    return createHandCamera(openingFacing({ latDeg: observer.lat, now }, followed, nextRising(passes, now)));
+    return { camera: createHandCamera(openingFacing({ latDeg: observer.lat, now }, followed, nextRising(passes, now))), unturned: passes.length === 0 };
   });
+  const slotCamera = slot.camera;
   useEffect(() => {
     if (slotCamera !== null) hand?.keep(slotCamera);
   }, [hand, slotCamera]);
+  /*
+   * FR-FLOW-14 as amended (V26-16, D-883): an opening taken before the passes were known turns once, when they
+   * arrive, to the facing the initializer would have given them — unless the camera has moved by then. Every
+   * write to the camera (the drag, the keys, the zoom, the picker, `Following A`, or the page) reaches its
+   * listeners, so one subscription is the "moved" flag; the turn's own write is told apart by `turningRef`.
+   */
+  const unturnedRef = useRef(slot.unturned);
+  const turningRef = useRef(false);
+  useEffect(() => {
+    if (slotCamera === null || !unturnedRef.current) return;
+    return slotCamera.subscribe(() => {
+      if (!turningRef.current) unturnedRef.current = false;
+    });
+  }, [slotCamera]);
+  useEffect(() => {
+    if (slotCamera === null || !unturnedRef.current) return;
+    if (passes.length === 0 && peak === null) return;
+    unturnedRef.current = false;
+    turningRef.current = true;
+    try {
+      if (peak !== null) {
+        slotCamera.facePeak(peak, WINDOW_FOV);
+        return;
+      }
+      const followed = facingPassId === null ? null : (passes.find((pass) => pass.id === facingPassId) ?? null);
+      const rising = nextRising(passes, now);
+      // `openingFacing`'s three cases, through the setters the picker uses; with neither, it is the pole side already.
+      if (followed !== null) slotCamera.followPass(followed.id, passPosition(followed, now));
+      else if (rising !== null) slotCamera.facePeak({ azDeg: rising.start.azDeg, elDeg: rising.start.elDeg }, WINDOW_FOV);
+    } finally {
+      turningRef.current = false;
+    }
+  }, [slotCamera, passes, facingPassId, peak, now]);
   const camera: SkyCamera = givenCamera ?? slotCamera ?? SENSOR_CAMERA;
   // FR-SKY-2: the window laid out in the page's box under the hand — the frame cuts the box and corners the readout.
   const inBox = hand !== undefined && camera.source === 'hand' && !onScreen;
