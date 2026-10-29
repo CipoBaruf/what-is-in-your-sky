@@ -134,7 +134,7 @@ export interface ChartFrameProps {
    */
   bottomOverlay?: ReactNode;
   /**
-   * D-448 (R78): what the aspect-locked frame has measured for the box with
+   * D-448 (R78): what the measuring frame (`measureBox`) has measured for the box with
    * nothing under it — its height less its controls row and the gap, `fitBox`'s
    * height input before the stripe row — reported when it changes. The live
    * page decides where its scrub block goes from this, not from the viewport.
@@ -245,7 +245,7 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
   const hasLegend = legend !== undefined && legend !== null && legendOpen !== false;
   // D-319: stacked only where there is no rail to stand beside; an aside wins, since the rail is what it is for.
   const isStacked = stacked && !hasAside;
-  // D-322: a screen measures nothing. The box is the host's, so neither the aspect fit nor the compact floor runs.
+  // D-322: a screen measures nothing. The box is the host's, so neither the box fit nor the compact floor runs.
   const boxed = !screen && fill && !compact && measureBox && (hasAside || isStacked);
 
   /*

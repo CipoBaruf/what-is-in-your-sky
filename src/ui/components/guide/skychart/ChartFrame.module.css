@@ -177,8 +177,9 @@
      box. With `measureBox` the frame measures what it leaves the drawing —
      `--chart-box-w` / `--chart-box-h`, written inline by `ChartFrame` from
      `lib/layout.ts`'s `fitBox`, since no px may be written here; R61 cut it to
-     the dome's own shape, and since R133 (D-868) it is the whole room. The two columns the drawing spans are `auto`, so
-     they are the drawing's width and no more, and the grid packs at the start
+     the dome's own shape, and since R133 (D-868) it is the whole room. The
+     two columns the drawing spans are `auto`, so they are the drawing's width
+     and no more, and the grid packs at the start
      so the rail stands beside the box, takes what is left up to its cap
      (D-313), and whatever a wide page has past that is blank at the right. The
      rows are `auto` too and packed at the top: a `1fr` drawing track would put
@@ -541,8 +542,8 @@
 /* R62 (FR-FSC-1, FR-FSC-3, FR-LEG-2 as amended v1.3, D-322): the screen.
 
    Everything above this point is the framed chart: rows above and below a box,
-   a column beside it, a square on the guide and an aspect-cut rectangle on the
-   wide live page. A screen is none of that — the drawing *is* the surface, and
+   a column beside it, a square on the guide and the measured room on the wide
+   live page (D-868). A screen is none of that — the drawing *is* the surface, and
    the two things that must stay legible over it are the facing readout and the
    legend. So the frame here carries its own class rather than `.frame` and
    `.fill`: no rule above can reach `.screen`, and this block does not have to

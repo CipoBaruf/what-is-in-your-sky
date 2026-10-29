@@ -221,13 +221,13 @@ export function layoutMode(matchesWide: boolean): LayoutMode {
 }
 
 /**
- * R61 (FR-LIVE-7 as amended v1.2.1, D-314, F-59): the wide live page's dome box
- * is the largest rectangle at the drawing's own aspect that the window leaves
+ * R61 (FR-LIVE-7 as amended v1.2.1, D-314, F-59), until R133: the wide live
+ * page's dome box was the largest rectangle at the drawing's own aspect that the window left
  * — not whatever the page leaves (a third of it blank, F-59) and not a step of
  * a table (which wasted most of a real browser window, whose viewport is some
- * 200 px shorter than the screen it is on: V12-10). The aspect is `zoomFor`'s
- * two divisors, 2.4 : 2.0 (`dome/bowl.ts` `DOME_BOX_ASPECT`), the one shape
- * at which the drawing's fit binds across and down at once.
+ * 200 px shorter than the screen it is on: V12-10). The aspect was `zoomFor`'s
+ * two divisors, 2.4 : 2.0 (`dome/bowl.ts` `DOME_BOX_ASPECT`); R133 dropped it
+ * (below).
  *
  * `fitBox` is the rule, pure, so it is a unit test: the box is as tall as the
  * height the frame leaves it — under its controls row and, where the stripe is
