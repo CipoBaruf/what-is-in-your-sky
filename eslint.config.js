@@ -26,6 +26,9 @@ const DECLINATION = 'src/lib/declination.ts';
 const NO_GEOMAGNETISM = { name: 'geomagnetism', message: `Only ${DECLINATION} may import geomagnetism (PLAN §3, D-185).` };
 const NO_REACT = { group: ['react', 'react-dom', 'react/*', 'react-dom/*'], message: 'This directory must not import React (PLAN §3).' };
 
+/** R141 (D-896): the two `src/lib` modules that read FR-TONIGHT's constants from `physics/constants.ts`. */
+const TONIGHT_CONSTANTS = ['src/lib/playback.ts', 'src/lib/tonightJump.ts'];
+
 /** `no-restricted-imports` is not merged across config blocks, so every block restates the app-wide bans. */
 const restrictedImports = (extra = {}) => [
   'error',
@@ -121,10 +124,24 @@ export default defineConfig([
     // `lib/arcReveal.ts` reads the two FR-TRAJ-2 thresholds that D-189 keeps in
     // `physics/constants.ts` beside the other thresholds (R45).
     files: ['src/lib/**'],
-    ignores: [...TESTS, 'src/lib/skyBodies.ts', 'src/lib/skyStars.ts', 'src/lib/arcReveal.ts'],
+    ignores: [...TESTS, 'src/lib/skyBodies.ts', 'src/lib/skyStars.ts', 'src/lib/arcReveal.ts', ...TONIGHT_CONSTANTS],
     rules: {
       '@typescript-eslint/no-restricted-imports': restrictedImports({
         patterns: [NO_REACT, { group: ['**/physics/**', '**/physics'], allowTypeImports: true, message: 'src/lib may import physics types only (PLAN §3).' }],
+      }),
+    },
+  },
+  {
+    // R141 (D-896, D-907): `lib/playback.ts` and `lib/tonightJump.ts` read FR-TONIGHT's constants, which
+    // D-896 keeps in `physics/constants.ts` beside FR-TRAJ-2's. That one module is allowed; the rest of
+    // physics stays types only, as in the block above.
+    files: TONIGHT_CONSTANTS,
+    rules: {
+      '@typescript-eslint/no-restricted-imports': restrictedImports({
+        patterns: [
+          NO_REACT,
+          { regex: '(^|/)physics(/(?!constants$).*)?$', allowTypeImports: true, message: 'src/lib may import physics types only; these two may also read `physics/constants` (PLAN §3, D-896).' },
+        ],
       }),
     },
   },
