@@ -3989,7 +3989,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.49 who
 
 ### Wave 1
 
-- [ ] **R141 — The targets and the speed: the constants, `tonightJump.ts`, `autoSpeed`, `nightEnd`, `usePlayback`'s `'auto'` and its reader-wrote ref**
+- [x] **R141 — The targets and the speed: the constants, `tonightJump.ts`, `autoSpeed`, `nightEnd`, `usePlayback`'s `'auto'` and its reader-wrote ref**
   - **Lane:** data
   - **Model:** opus
   - **Review:** opus
