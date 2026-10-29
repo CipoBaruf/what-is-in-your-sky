@@ -4,8 +4,6 @@ import type { stars as EnStars } from '../en/stars';
 export const stars: typeof EnStars = {
   stars: {
     heading: 'Estrellas',
-    tonight: 'Estrellas esta noche',
-    lookUp: 'mirá arriba',
     loading: 'Cargando las estrellas…',
     keysHeading: 'En la página de estrellas',
     keys: {

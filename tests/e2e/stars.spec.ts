@@ -21,8 +21,8 @@ const PHONE = { width: 390, height: 844 };
 const DESK = { width: 1280, height: 800 };
 
 const WORDS = {
-  en: { app: 'What is in your sky right now', heading: 'Stars tonight', link: 'stars', facing: 'Facing', layers: 'Layers', field: 'In this field', up: 'up', drawing: 'The sky: drag it, or use the arrow keys', lookUp: 'look up', layerNames: ['stars', 'figures', 'planets', 'names', 'passes'], row: /^.+ · mag −?\d\.\d · \d+° up · [NESW]{1,3}$/ },
-  es: { app: 'Qué hay en el cielo ahora mismo', heading: 'Estrellas esta noche', link: 'estrellas', facing: 'Mirando', layers: 'Capas', field: 'En este campo', up: 'arriba', drawing: 'El cielo: arrastralo o usá las flechas', lookUp: 'mirá arriba', layerNames: ['estrellas', 'figuras', 'planetas', 'nombres', 'pases'], row: /^.+ · mag −?\d,\d · \d+° de altura · [NESW]{1,3}$/ },
+  en: { app: 'What is in your sky right now', heading: 'Stars tonight', link: 'stars', facing: 'Facing', layers: 'Layers', field: 'In this field', up: 'up', drawing: 'The sky: drag it, or use the arrow keys', layerNames: ['stars', 'figures', 'planets', 'names', 'passes'], row: /^.+ · mag −?\d\.\d · \d+° up · [NESW]{1,3}$/ },
+  es: { app: 'Qué hay en el cielo ahora mismo', heading: 'Estrellas esta noche', link: 'estrellas', facing: 'Mirando', layers: 'Capas', field: 'En este campo', up: 'arriba', drawing: 'El cielo: arrastralo o usá las flechas', layerNames: ['estrellas', 'figuras', 'planetas', 'nombres', 'pases'], row: /^.+ · mag −?\d,\d · \d+° de altura · [NESW]{1,3}$/ },
 } as const;
 
 /** A reader with a saved place and a language, every provider refused, at the fixture's instant. */

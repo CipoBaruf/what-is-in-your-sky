@@ -15,7 +15,6 @@ export const starsPage: typeof EnStarsPage = {
   fieldEmpty: 'Nada dibujado en este campo.',
   planets: { Mercury: 'Mercurio', Venus: 'Venus', Mars: 'Marte', Jupiter: 'Júpiter', Saturn: 'Saturno' },
   mag: (p) => `mag ${p.mag}`,
-  readout: (p) => `Hacia el ${p.point} (${p.azimuth}) · ${p.altitude} de altura · ${p.across} de ancho`,
   named: (p) => `${p.name} · mag ${p.mag} · ${p.altitude} de altura · ${p.point}`,
   holdUp: 'apuntá al cielo',
 };

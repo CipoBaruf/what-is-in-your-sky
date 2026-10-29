@@ -7,7 +7,6 @@ import { en } from './en';
 import { es } from './es';
 import type { CountdownPhase, LinkedText, Messages } from './messages';
 import { LOCALES } from './locale';
-import { STARS_PAGE_CATALOGS } from './starsPageT';
 import { CATALOGS } from './useT';
 
 /**
@@ -418,15 +417,14 @@ describe('the two catalogs (FR-I18N-2)', () => {
 });
 
 /**
- * FR-FLOW-5 (D-847): every readout of where a view faces begins with the same word. The window and the stars
- * page read the same line (the stars page keeps its field width after it); the dome keeps its tilt.
+ * FR-FLOW-5 (D-847, as amended v2.6.1): every readout of where a view faces begins with the same word. The
+ * window and the stars page read the window's line (the stars page adds its field width only while zoomed,
+ * FR-SKY-14); the dome keeps its tilt.
  */
 describe('the three readouts (FR-FLOW-5)', () => {
   it('begin with "Facing" / "Hacia el"', () => {
     expect(en.window.readout({ point: 'S', azimuth: '180°', altitude: '35°' })).toBe('Facing S (180°) · up 35°');
     expect(es.window.readout({ point: 'S', azimuth: '180°', altitude: '35°' })).toBe('Hacia el S (180°) · 35° de altura');
-    expect(STARS_PAGE_CATALOGS.en.readout({ point: 'S', azimuth: '180°', altitude: '35°', across: '60°' })).toBe('Facing S (180°) · up 35° · 60° across');
-    expect(STARS_PAGE_CATALOGS.es.readout({ point: 'S', azimuth: '180°', altitude: '35°', across: '60°' })).toBe('Hacia el S (180°) · 35° de altura · 60° de ancho');
     expect(en.chart.readout({ point: 'S', azimuth: '180°', tilt: '45°' })).toBe('Facing S (180°) · tilt 45°');
     expect(es.chart.readout({ point: 'S', azimuth: '180°', tilt: '45°' })).toBe('Hacia el S (180°) · inclinación 45°');
   });

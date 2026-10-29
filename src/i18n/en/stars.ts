@@ -11,9 +11,6 @@ export const stars = {
   stars: {
     /** FR-A11Y-1, FR-A11Y-3: the page's `h1` and the tab's route name, "Stars · …". */
     heading: 'Stars',
-    /** FR-STAR-3: the compact When pane's first line, "Stars tonight · [ look up ]". */
-    tonight: 'Stars tonight',
-    lookUp: 'look up',
     /** While the `stars` chunk is on its way. */
     loading: 'Loading the stars…',
     /** FR-DESK-4 as amended v2.4: the `?` overlay's block for the page's four keys. */
