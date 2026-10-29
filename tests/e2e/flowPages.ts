@@ -19,9 +19,13 @@ export const FLOW_PAGES: readonly FlowPage[] = ['home', 'live', 'stars', 'detail
 export type FlowView = 'window' | 'dome';
 export const FLOW_VIEWS: readonly FlowView[] = ['window', 'dome'];
 /** The cases the two specs run: each page once, and the live page and the pass detail once in each view. */
-export const FLOW_CASES: readonly { page: FlowPage; view: FlowView | null }[] = FLOW_PAGES.flatMap((page) => (page === 'live' || page === 'detail' ? FLOW_VIEWS.map((view) => ({ page, view })) : [{ page, view: null }]));
+export interface FlowCase {
+  page: FlowPage;
+  view: FlowView | null;
+}
+export const FLOW_CASES: readonly FlowCase[] = FLOW_PAGES.flatMap((page): FlowCase[] => (page === 'live' || page === 'detail' ? FLOW_VIEWS.map((view) => ({ page, view })) : [{ page, view: null }]));
 /** A case's name in a test title: `live (window)`, `home`. */
-export const caseName = ({ page, view }: { page: FlowPage; view: FlowView | null }): string => (view === null ? page : `${page} (${view})`);
+export const caseName = ({ page, view }: FlowCase): string => (view === null ? page : `${page} (${view})`);
 
 /** `seedStoredRun`'s prefs for a view: the window seeds no `chartView` (a fresh profile), the dome the saved one. */
 const viewPrefs = (view: FlowView): Record<string, unknown> => ({ chartView: view === 'window' ? undefined : 'dome' });
