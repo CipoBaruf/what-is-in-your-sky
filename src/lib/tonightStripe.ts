@@ -30,6 +30,17 @@ export function tonightsDark(bands: readonly SkyBand[], now: EpochMs): SkyBand |
 }
 
 /**
+ * R138 (FR-FLOW-1 as amended v2.6.1, D-884): when tonight's stars come out —
+ * the dark band, else the first bright-twilight band (the Sun below −6°, where
+ * FR-STAR-13 draws every rung) still open at `now` or the next to open, as
+ * there is no dark band above about 54.5° N near the June solstice; null when
+ * the bands hold neither.
+ */
+export function tonightsStarsFrom(bands: readonly SkyBand[], now: EpochMs): SkyBand | null {
+  return tonightsDark(bands, now) ?? bands.find((band) => band.sky === 'bright-twilight' && band.to > now) ?? null;
+}
+
+/**
  * Local solar midnight — UTC midnight less the longitude at 4 min a degree —
  * the first one after `now` (OQ-33): the middle of the night at any latitude,
  * dark band or not.
