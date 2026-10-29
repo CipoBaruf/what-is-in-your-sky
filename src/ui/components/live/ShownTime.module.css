@@ -4,7 +4,7 @@
    at `--small` it is 31 (`controlRows.test.ts`). */
 .headline {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--text-heading);
   line-height: var(--row);
   color: var(--fg);
   font-variant-numeric: tabular-nums;

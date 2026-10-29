@@ -24,7 +24,7 @@ export type ContextParts =
   | { kind: 'none'; reason: NoPassReason }
   | { kind: 'sky'; sky: SkyState | null; cloud: CloudState; nextAt: EpochMs | null };
 
-export type NoPassReason = 'span' | 'tonight';
+type NoPassReason = 'span' | 'tonight';
 
 export interface ContextInput {
   /** The visible passes of the stored run. */
