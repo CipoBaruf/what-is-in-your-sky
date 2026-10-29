@@ -84,7 +84,7 @@ export const SLOT_RHYTHM: Readonly<Record<SkyViewSlotName, SkyViewRhythm>> = {
 export const SLOT_ORDER: readonly SkyViewSlotName[] = ['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint', 'timeline', 'action', 'layers', 'list', 'foot'];
 
 /** R144 (D-904): where the readout stands — its own row above the drawing (the default), or the box's top-left corner as the picker's toggle. */
-export type SkyViewReadoutPlace = 'row' | 'corner';
+type SkyViewReadoutPlace = 'row' | 'corner';
 
 /** The parts a chart hands the layout past the page (`SkyViewChartSlot`, `useChartSlot`). */
 export type ChartSlotName = 'control' | 'readout' | 'picker' | 'list';

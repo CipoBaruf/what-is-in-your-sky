@@ -23,11 +23,6 @@ export const ha = JSON.parse(readFileSync(`tests/fixtures/heavens-above/${FIXTUR
 const reference = JSON.parse(readFileSync('tests/fixtures/reference-values.json', 'utf8')) as Reference;
 const NEUQUEN = `${String(ha.observer.lat)}, ${String(ha.observer.lon)}`;
 export const hhmmss = (t: number): string => new Date(t).toISOString().slice(11, 19);
-/**
- * The strip's time field for real time at `t`, to the ten-second tick the page reads the clock at
- * (FR-VIS-5): whether the page mounted before or after the second `domeDrawn` lets run is not the point.
- */
-export const realTimeField = (t: number): RegExp => new RegExp(`^Time (${new Date(t).toISOString().slice(0, 10)} )?${hhmmss(t).slice(0, 7)}\\d UTC$`);
 
 export const golden = (): { start: number; peak: number; end: number } => {
   const pass = reference.firstGoldenPass;
@@ -412,7 +407,7 @@ export async function bandUnderBox(page: Page, box: { y: number; height: number 
  * nobody advances again and the page stays on its fallback (main CI, run
  * 33943966372). So the clock is ticked until each expectation holds, in steps
  * small enough to keep the shown instant inside the ten-second bucket the
- * strip assertions read (`realTimeField`).
+ * wide strip's time assertions read.
  */
 export async function domeDrawn(page: Page): Promise<void> {
   // `getAttribute` would wait for the element and hold the poll on its first tick; `count` does not.
