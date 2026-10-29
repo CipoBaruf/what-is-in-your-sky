@@ -59,6 +59,7 @@ for (const locale of ['en', 'es'] as const) {
       const words = WORDS[locale];
       const rise = await firstRise(page);
       const landing = rise - TONIGHT_LEAD_MS;
+      test.info().annotations.push({ type: 'landing', description: `${locale}: the clock ${new Date(MIDDAY).toISOString()}, the first visible rise ${new Date(rise).toISOString()}, the jump ${new Date(landing).toISOString()}` });
 
       // FR-TONIGHT-1 (US-42 AC1): the jump — `t` one minute before the first visible rise, playing, the chip ahead.
       await expect
