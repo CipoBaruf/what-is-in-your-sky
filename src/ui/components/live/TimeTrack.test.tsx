@@ -3,8 +3,10 @@
  * default width of 390 px (nothing has a layout here). Against a fixed run —
  * a day, an hour of bright twilight, ten hours of dark, the day again, and
  * three passes — the bands, the ticks and the thumb; a drag, a tick tap (the
- * nearest of two close ticks) and the keys, each asserting the instant asked
- * for; the slider's ARIA values; the label row in both languages.
+ * nearest of two close ticks, a pass already up) and the keys, each asserting
+ * the instant asked for; one pointer at a time, a lost capture, the bar's box
+ * as the drawing's frame; the slider's ARIA values; the label row in both
+ * languages.
  */
 import { fireEvent, render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
@@ -14,7 +16,7 @@ import { I18nProvider } from '../../../i18n/useT';
 import { TRACK_HEIGHT_PX } from '../../../lib/layout';
 import { HOUR_MS, MINUTE_MS, timeAt, type SkyBand, type Span } from '../../../lib/timeStripe';
 import type { Pass } from '../../../model';
-import { DEFAULT_WIDTH, TAP_SLOP_PX, TICK_MIN_PX, TICK_ZONE_PX, tickAt, TimeTrack, trackKeyStep, trackLabels, trackTicks } from './TimeTrack';
+import { DEFAULT_WIDTH, leadInstant, TAP_SLOP_PX, TICK_MIN_PX, TICK_ZONE_PX, tickAt, TimeTrack, trackKeyStep, trackLabels, trackTicks } from './TimeTrack';
 
 const pass = goldenPassFixture();
 // 06:30 in Salta (GMT−3, no DST), so the span's hours are local hours plus a half.
@@ -37,9 +39,11 @@ const bands: SkyBand[] = [
   { from: START + 19 * HOUR_MS, to: span.end, sky: 'day' },
 ];
 const px = (ms: number): number => (ms / (24 * HOUR_MS)) * DEFAULT_WIDTH;
+// The page's `TONIGHT_LEAD_MIN`, in ms (D-909).
+const LEAD = 2 * MINUTE_MS;
 
-const mount = (t: number, onSeek = vi.fn()) => {
-  const utils = render(<TimeTrack span={span} bands={bands} passes={passes} t={t} onSeek={onSeek} timeZone={ZONE} valueText="12:30 · in 6 h" />);
+const mount = (t: number, onSeek = vi.fn(), shown: readonly Pass[] = passes) => {
+  const utils = render(<TimeTrack span={span} bands={bands} passes={shown} t={t} onSeek={onSeek} leadMs={LEAD} timeZone={ZONE} valueText="12:30 · in 6 h" />);
   return { ...utils, onSeek, bar: screen.getByTestId('time-track-bar') };
 };
 
@@ -75,7 +79,7 @@ describe('<TimeTrack>', () => {
   it('keeps the thumb inside the bar at both ends of the span', () => {
     const { rerender } = mount(START);
     expect(Number(screen.getByTestId('time-track-thumb').getAttribute('x'))).toBe(0);
-    rerender(<TimeTrack span={span} bands={bands} passes={passes} t={span.end} onSeek={vi.fn()} timeZone={ZONE} valueText="" />);
+    rerender(<TimeTrack span={span} bands={bands} passes={passes} t={span.end} onSeek={vi.fn()} leadMs={LEAD} timeZone={ZONE} valueText="" />);
     const thumb = screen.getByTestId('time-track-thumb');
     expect(Number(thumb.getAttribute('x')) + Number(thumb.getAttribute('width'))).toBeCloseTo(DEFAULT_WIDTH, 1);
   });
@@ -116,7 +120,7 @@ describe('<TimeTrack>', () => {
     expect(onSeek).toHaveBeenCalledTimes(4);
   });
 
-  it('asks for a tapped pass’s lead instant, the nearest of two close ticks winning (FR-TONIGHT-3)', () => {
+  it('lands on a tapped pass’s lead instant, the nearest of two close ticks winning (FR-TONIGHT-3)', () => {
     const b = passes[1] as Pass;
     const c = passes[2] as Pass;
     const { bar, onSeek } = mount(START);
@@ -125,14 +129,14 @@ describe('<TimeTrack>', () => {
     // The two zones overlap: a point between the centres, nearer `c`, is `c`'s; nearer `b`, `b`'s.
     expect(centreC - centreB).toBeLessThan(TICK_ZONE_PX);
     fireEvent.pointerDown(bar, { button: 0, clientX: centreC - 1, pointerId: 1 });
-    expect(onSeek).toHaveBeenLastCalledWith(c.start.t, { lead: true });
+    expect(onSeek).toHaveBeenLastCalledWith(c.start.t - LEAD, { lead: true });
     fireEvent.pointerUp(bar, { pointerId: 1 });
     fireEvent.pointerDown(bar, { button: 0, clientX: centreB + 1, pointerId: 1 });
-    expect(onSeek).toHaveBeenLastCalledWith(b.start.t, { lead: true });
+    expect(onSeek).toHaveBeenLastCalledWith(b.start.t - LEAD, { lead: true });
     fireEvent.pointerUp(bar, { pointerId: 1 });
     // The zone reaches half of `TICK_ZONE_PX` either side of the centre, and no further.
     fireEvent.pointerDown(bar, { button: 0, clientX: centreB - TICK_ZONE_PX / 2 + 1, pointerId: 1 });
-    expect(onSeek).toHaveBeenLastCalledWith(b.start.t, { lead: true });
+    expect(onSeek).toHaveBeenLastCalledWith(b.start.t - LEAD, { lead: true });
     fireEvent.pointerUp(bar, { pointerId: 1 });
     const outside = centreB - TICK_ZONE_PX / 2 - 1;
     fireEvent.pointerDown(bar, { button: 0, clientX: outside, pointerId: 1 });
@@ -147,13 +151,67 @@ describe('<TimeTrack>', () => {
     fireEvent.pointerDown(bar, { button: 0, clientX: centreC, pointerId: 1 });
     fireEvent.pointerMove(bar, { clientX: centreC + TAP_SLOP_PX - 1, pointerId: 1 });
     expect(onSeek).toHaveBeenCalledTimes(1);
-    expect(onSeek).toHaveBeenLastCalledWith(c.start.t, { lead: true });
+    expect(onSeek).toHaveBeenLastCalledWith(c.start.t - LEAD, { lead: true });
     fireEvent.pointerMove(bar, { clientX: centreC + 40, pointerId: 1 });
     expect(onSeek).toHaveBeenLastCalledWith(timeAt(centreC + 40, span, DEFAULT_WIDTH), { lead: false });
     // Once a drag, back inside the slop is still a drag.
     fireEvent.pointerMove(bar, { clientX: centreC, pointerId: 1 });
     expect(onSeek).toHaveBeenLastCalledWith(timeAt(centreC, span, DEFAULT_WIDTH), { lead: false });
     fireEvent.pointerUp(bar, { pointerId: 1 });
+  });
+
+  it('lands a tap on a pass already up at now on now, not before the span (D-909)', () => {
+    // Up since ten minutes before the span: its tick is clipped to the left edge, and its start less the lead is outside.
+    const up = at('up', -10 * MINUTE_MS, 20 * MINUTE_MS);
+    const { bar, onSeek } = mount(START + HOUR_MS, vi.fn(), [up, ...passes]);
+    fireEvent.pointerDown(bar, { button: 0, clientX: 1, pointerId: 1 });
+    expect(onSeek).toHaveBeenLastCalledWith(span.start, { lead: true });
+    // A pass that starts inside the lead of `now` lands on `now` too; one later lands its lead before its start.
+    const tick = (start: number) => ({ passId: 'x', start, x: 0, width: TICK_MIN_PX, series: 1 });
+    expect(leadInstant(tick(START + MINUTE_MS), LEAD, span)).toBe(span.start);
+    expect(leadInstant(tick(START + HOUR_MS), LEAD, span)).toBe(START + HOUR_MS - LEAD);
+  });
+
+  it('measures x from the bar’s own box, read once at the press, and frames the drawing inside it', () => {
+    const { bar, container, onSeek } = mount(START);
+    // No letterboxing: the drawing stretches to the box, which has no CSS border, and the frame is inside the viewBox.
+    expect(bar).toHaveAttribute('preserveAspectRatio', 'none');
+    const frame = screen.getByTestId('time-track-frame');
+    expect(Number(frame.getAttribute('width')) + 1).toBeCloseTo(DEFAULT_WIDTH, 1);
+    expect(container.querySelector('svg > rect:last-of-type')).toBe(frame);
+    const rect = vi.spyOn(bar, 'getBoundingClientRect').mockReturnValue({ left: 100 } as DOMRect);
+    fireEvent.pointerDown(bar, { button: 0, clientX: 100 + 195, pointerId: 1 });
+    expect(onSeek).toHaveBeenLastCalledWith(START + 12 * HOUR_MS, { lead: false });
+    fireEvent.pointerMove(bar, { clientX: 100 + 292.5, pointerId: 1 });
+    expect(onSeek).toHaveBeenLastCalledWith(START + 18 * HOUR_MS, { lead: false });
+    // The moves read no layout: the left edge is the press's.
+    expect(rect).toHaveBeenCalledTimes(1);
+    fireEvent.pointerUp(bar, { pointerId: 1 });
+  });
+
+  it('follows the finger that pressed and ignores a second one', () => {
+    const { bar, onSeek } = mount(START);
+    fireEvent.pointerDown(bar, { button: 0, clientX: 195, pointerId: 1 });
+    // A second finger neither presses, moves nor releases the track.
+    fireEvent.pointerDown(bar, { button: 0, clientX: 292.5, pointerId: 2 });
+    fireEvent.pointerMove(bar, { clientX: 300, pointerId: 2 });
+    fireEvent.pointerUp(bar, { pointerId: 2 });
+    expect(onSeek).toHaveBeenCalledTimes(1);
+    expect(bar).toHaveAttribute('data-dragging', 'true');
+    fireEvent.pointerMove(bar, { clientX: 292.5, pointerId: 1 });
+    expect(onSeek).toHaveBeenLastCalledWith(START + 18 * HOUR_MS, { lead: false });
+    fireEvent.pointerUp(bar, { pointerId: 1 });
+    expect(bar).toHaveAttribute('data-dragging', 'false');
+  });
+
+  it('ends the drag when the capture is lost without a release', () => {
+    const { bar, onSeek } = mount(START);
+    fireEvent.pointerDown(bar, { button: 0, clientX: 195, pointerId: 1 });
+    fireEvent.lostPointerCapture(bar, { pointerId: 1 });
+    expect(bar).toHaveAttribute('data-dragging', 'false');
+    // A hover afterwards is not a drag: no seek, so no pause.
+    fireEvent.pointerMove(bar, { clientX: 30, pointerId: 1 });
+    expect(onSeek).toHaveBeenCalledTimes(1);
   });
 
   it('steps a quarter hour on the arrows and an hour on the page keys, clamped to the span', () => {
@@ -171,8 +229,13 @@ describe('<TimeTrack>', () => {
     expect(onSeek).toHaveBeenLastCalledWith(t + HOUR_MS, { lead: false });
     fireEvent.keyDown(bar, { key: 'PageDown' });
     expect(onSeek).toHaveBeenLastCalledWith(t - HOUR_MS, { lead: false });
+    // Home and End: the two ends, as the ARIA slider pattern has them.
+    fireEvent.keyDown(bar, { key: 'Home' });
+    expect(onSeek).toHaveBeenLastCalledWith(span.start, { lead: false });
+    fireEvent.keyDown(bar, { key: 'End' });
+    expect(onSeek).toHaveBeenLastCalledWith(span.end, { lead: false });
     fireEvent.keyDown(bar, { key: 'Escape' });
-    expect(onSeek).toHaveBeenCalledTimes(6);
+    expect(onSeek).toHaveBeenCalledTimes(8);
     expect(trackKeyStep(START, 'ArrowLeft', span)).toBe(START);
     expect(trackKeyStep(span.end - MINUTE_MS, 'PageUp', span)).toBe(span.end);
   });
@@ -193,7 +256,7 @@ describe('<TimeTrack>', () => {
   it('speaks Spanish (FR-I18N-2)', () => {
     render(
       <I18nProvider locale="es">
-        <TimeTrack span={span} bands={bands} passes={passes} t={START} onSeek={vi.fn()} timeZone={ZONE} valueText="06:30 ahora" />
+        <TimeTrack span={span} bands={bands} passes={passes} t={START} onSeek={vi.fn()} leadMs={LEAD} timeZone={ZONE} valueText="06:30 ahora" />
       </I18nProvider>,
     );
     expect(screen.getByRole('slider', { name: 'Línea de tiempo' })).toHaveAttribute('aria-valuetext', '06:30 ahora');

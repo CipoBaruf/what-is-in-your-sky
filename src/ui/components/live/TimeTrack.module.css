@@ -3,7 +3,10 @@
    attribute), and one `--small` row of labels under it. The day is the raised
    background, the bright twilight halfway from it to the page's background,
    the dark the page's background itself, so tonight reads as one block; the
-   ticks take the six series tokens their arcs take, the thumb the accent. */
+   ticks take the six series tokens their arcs take, the thumb the accent.
+   The hairline frame is a rect inside the SVG, not a CSS border: a border
+   would shrink the drawing inside the box the pointer and the label row
+   measure (D-910). */
 .track {
   display: block;
   inline-size: 100%;
@@ -15,9 +18,7 @@
   touch-action: none;
   user-select: none;
   cursor: col-resize;
-  border: var(--border);
   border-radius: var(--radius-2);
-  box-sizing: border-box;
 }
 
 /* The ring is global.css's; the track only tightens its offset to the sheet's hairline, as the two stripes do. */
@@ -71,6 +72,12 @@
 
 .thumb {
   fill: var(--accent);
+}
+
+.frame {
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: var(--hairline);
 }
 
 /* One text row: the two ends in the flow, the hours placed over it by the share of the span they stand at. */

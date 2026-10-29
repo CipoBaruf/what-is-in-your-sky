@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { useT } from '../../../i18n/useT';
 import { TRACK_HEIGHT_PX } from '../../../lib/layout';
-import { CELL_PX, clampToSpan, cursorAt, DAY_MS, HOUR_MS, MINUTE_MS, nightBands, passSegments, timeAt, xAt, zoneOffsetMs, type SkyBand, type Span } from '../../../lib/timeStripe';
+import { CELL_PX, clampToSpan, cursorAt, DAY_MS, HOUR_MS, MINUTE_MS, nightBands, passSegments, spanKeyStep, timeAt, xAt, zoneOffsetMs, type SkyBand, type Span } from '../../../lib/timeStripe';
 import type { EpochMs, Pass } from '../../../model';
 import styles from './TimeTrack.module.css';
 
@@ -14,18 +14,19 @@ import styles from './TimeTrack.module.css';
  * HTML row of labels: `now`, the local hour at every third hour from
  * midnight, `+24 h`.
  *
- * Input is pointer events with capture. A press inside a tick's
- * `TICK_ZONE_PX` zone (nearest tick centre wins) asks for that pass's lead
- * instant — `onSeek(pass.start, { lead: true })`, the page taking
- * `TONIGHT_LEAD_MIN` off it — and a press anywhere else, or a move while the
- * pointer is held, sets the instant under it (`lead: false`). A press on a
- * tick holds its choice until the finger has moved `TAP_SLOP_PX`, so a tap's
- * jitter is not a drag. The page pauses on every `onSeek`.
+ * Input is pointer events with capture, one pointer at a time. A press
+ * inside a tick's `TICK_ZONE_PX` zone (nearest tick centre wins) lands on
+ * that pass's lead instant — `pass.start − leadMs`, clamped to the span, with
+ * `lead: true` — and a press anywhere else, or a move of the held pointer,
+ * sets the instant under it (`lead: false`). A press on a tick holds its
+ * choice until the finger has moved `TAP_SLOP_PX`, so a tap's jitter is not a
+ * drag. The drag ends on release, cancel or a lost capture. The page pauses
+ * on every `onSeek`.
  *
  * One `slider` to assistive technology: the value is the instant in epoch ms
  * and its text the page's headline string (FR-TONIGHT-7), which the page
  * passes in as `valueText`; the arrows step a quarter hour and the page keys
- * an hour (FR-SPAN-2's keys).
+ * an hour (FR-SPAN-2's keys), Home and End go to the two ends.
  */
 export interface TimeTrackProps {
   span: Span;
@@ -36,10 +37,12 @@ export interface TimeTrackProps {
   /** The shown instant. */
   t: EpochMs;
   /**
-   * The instant the reader asked for. With `lead: false` it is the instant itself; with `lead: true` it is a
-   * tapped pass's start, and the page lands `TONIGHT_LEAD_MIN` before it (FR-TONIGHT-3).
+   * The instant the reader asked for, inside the span. `lead: true` when it is a tapped pass's lead instant,
+   * `start − leadMs` (FR-TONIGHT-3, D-909); `lead: false` for a press off the ticks, a drag or a key.
    */
   onSeek: (t: EpochMs, options: { lead: boolean }) => void;
+  /** How long before a tapped pass's start the track lands: the page's `TONIGHT_LEAD_MIN` in ms (D-909). */
+  leadMs: number;
   timeZone: string | null;
   /** The slider's `aria-valuetext`: the shown time and its chip (FR-TONIGHT-7). */
   valueText: string;
@@ -55,7 +58,7 @@ export const TICK_ZONE_PX = 44;
 export const TAP_SLOP_PX = 6;
 /** The thumb: a full-height bar this wide, kept inside the track at the two ends. */
 const THUMB_PX = 3;
-/** FR-TONIGHT-3: the arrows step a quarter hour, Page Up and Page Down an hour. */
+/** FR-TONIGHT-3: the arrows step a quarter hour, Page Up and Page Down an hour (`spanKeyStep`). */
 const TRACK_KEY_STEP_MS = 15 * MINUTE_MS;
 const TRACK_PAGE_STEP_MS = HOUR_MS;
 /** FR-TONIGHT-3: the label row's hours are every third hour of the observer's clock, counted from midnight. */
@@ -96,19 +99,16 @@ export function tickAt(x: number, ticks: readonly TrackTick[]): TrackTick | null
   return best;
 }
 
-/** The instant after one key from `t`, clamped; `null` for a key that is not a step. */
+/** The instant after one key from `t`, clamped; Home and End are the span's two ends (the ARIA slider's keys); `null` for a key that is not a step. */
 export function trackKeyStep(t: EpochMs, key: string, span: Span): EpochMs | null {
-  const step =
-    key === 'PageUp'
-      ? TRACK_PAGE_STEP_MS
-      : key === 'PageDown'
-        ? -TRACK_PAGE_STEP_MS
-        : key === 'ArrowRight' || key === 'ArrowUp'
-          ? TRACK_KEY_STEP_MS
-          : key === 'ArrowLeft' || key === 'ArrowDown'
-            ? -TRACK_KEY_STEP_MS
-            : 0;
-  return step === 0 ? null : clampToSpan(t + step, span);
+  if (key === 'Home') return span.start;
+  if (key === 'End') return span.end;
+  return spanKeyStep(t, key, span, TRACK_KEY_STEP_MS, TRACK_PAGE_STEP_MS);
+}
+
+/** Where a tap on `tick` lands: its pass's start less the lead, clamped, so a pass already up at `now` lands on `now` (D-909). */
+export function leadInstant(tick: TrackTick, leadMs: number, span: Span): EpochMs {
+  return clampToSpan(tick.start - leadMs, span);
 }
 
 export interface TrackLabel {
@@ -124,9 +124,10 @@ export interface TrackLabel {
  */
 export function trackLabels(span: Span, width: number, timeZone: string | null, ends: { now: string; end: string }): TrackLabel[] {
   const offset = zoneOffsetMs(span.start, timeZone);
-  const half = SMALL_CELL_PX;
-  const left = ends.now.length * SMALL_CELL_PX + SMALL_CELL_PX + half;
-  const right = width - ends.end.length * SMALL_CELL_PX - SMALL_CELL_PX - half;
+  // A two-digit hour is centred on its x, so one cell of it reaches each side; a cell of air between it and an end word.
+  const halfLabel = SMALL_CELL_PX;
+  const left = ends.now.length * SMALL_CELL_PX + SMALL_CELL_PX + halfLabel;
+  const right = width - ends.end.length * SMALL_CELL_PX - SMALL_CELL_PX - halfLabel;
   const labels: TrackLabel[] = [];
   for (let t = Math.ceil((span.start + offset) / LABEL_EVERY_MS) * LABEL_EVERY_MS - offset; t <= span.end; t += LABEL_EVERY_MS) {
     const x = xAt(t, span, width);
@@ -137,13 +138,15 @@ export function trackLabels(span: Span, width: number, timeZone: string | null, 
   return labels;
 }
 
-export function TimeTrack({ span, bands, passes, t, onSeek, timeZone, valueText }: TimeTrackProps) {
+export function TimeTrack({ span, bands, passes, t, onSeek, leadMs, timeZone, valueText }: TimeTrackProps) {
   const m = useT();
   const ref = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [dragging, setDragging] = useState(false);
   // Where a press on a tick landed, while it still counts as a tap; `null` once it is a drag or off a tick.
   const pressRef = useRef<number | null>(null);
+  // The held pointer and the bar's left edge, read once at the press: other fingers are ignored, and a move reads no layout.
+  const dragRef = useRef<{ pointerId: number; left: number } | null>(null);
   const height = TRACK_HEIGHT_PX;
 
   useLayoutEffect(() => {
@@ -166,30 +169,36 @@ export function TimeTrack({ span, bands, passes, t, onSeek, timeZone, valueText 
   const ticks = useMemo(() => trackTicks(passes, span, width), [passes, span, width]);
   const labels = useMemo(() => trackLabels(span, width, timeZone, { now: m.track.now, end: m.track.end }), [span, width, timeZone, m]);
 
-  const xOf = (clientX: number): number => clientX - (ref.current?.getBoundingClientRect().left ?? 0);
+  // The bar has no CSS border (the frame is drawn inside the SVG), so its box, its viewBox and the label row share one x.
   const onPointerDown = (event: PointerEvent<SVGSVGElement>): void => {
-    if (event.button !== 0) return;
+    if (event.button !== 0 || dragRef.current !== null) return;
     // R39 (F-39), as on the stripe: no `preventDefault()`, so the press gives the track the focus its keys need.
     event.currentTarget.focus({ preventScroll: true });
     // jsdom has no pointer capture; the browser keeps the drag on the track when the finger leaves it.
     if (typeof event.currentTarget.setPointerCapture === 'function') event.currentTarget.setPointerCapture(event.pointerId);
+    const left = event.currentTarget.getBoundingClientRect().left;
+    dragRef.current = { pointerId: event.pointerId, left };
     setDragging(true);
-    const x = xOf(event.clientX);
+    const x = event.clientX - left;
     const tick = tickAt(x, ticks);
     pressRef.current = tick ? x : null;
-    if (tick) onSeek(tick.start, { lead: true });
+    if (tick) onSeek(leadInstant(tick, leadMs, span), { lead: true });
     else onSeek(timeAt(x, span, width), { lead: false });
   };
   const onPointerMove = (event: PointerEvent<SVGSVGElement>): void => {
-    if (!dragging) return;
-    const x = xOf(event.clientX);
+    const drag = dragRef.current;
+    if (drag?.pointerId !== event.pointerId) return;
+    const x = event.clientX - drag.left;
     if (pressRef.current !== null) {
       if (Math.abs(x - pressRef.current) < TAP_SLOP_PX) return;
       pressRef.current = null;
     }
     onSeek(timeAt(x, span, width), { lead: false });
   };
-  const endDrag = (): void => {
+  // Release, cancel, or a capture the browser took back without either: the held pointer's drag is over.
+  const endDrag = (event: PointerEvent<SVGSVGElement>): void => {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
     pressRef.current = null;
     setDragging(false);
   };
@@ -208,6 +217,7 @@ export function TimeTrack({ span, bands, passes, t, onSeek, timeZone, valueText 
         ref={ref}
         className={styles.bar}
         viewBox={`0 0 ${String(width)} ${String(height)}`}
+        preserveAspectRatio="none"
         width="100%"
         height={height}
         role="slider"
@@ -224,6 +234,7 @@ export function TimeTrack({ span, bands, passes, t, onSeek, timeZone, valueText 
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
+        onLostPointerCapture={endDrag}
         onKeyDown={onKeyDown}
       >
         <rect className={styles.day} x="0" y="0" width={fmt(width)} height={fmt(height)} />
@@ -246,6 +257,8 @@ export function TimeTrack({ span, bands, passes, t, onSeek, timeZone, valueText 
           ))}
         </g>
         <rect className={styles.thumb} data-testid="time-track-thumb" x={fmt(thumbX)} y="0" width={THUMB_PX} height={fmt(height)} />
+        {/* The sheet's hairline frame, drawn over the fills inside the viewBox rather than as a CSS border that would shrink it. */}
+        <rect className={styles.frame} data-testid="time-track-frame" x="0.5" y="0.5" width={fmt(width - 1)} height={fmt(height - 1)} rx="1.5" />
       </svg>
       <div className={styles.labels} aria-hidden="true" data-testid="time-track-labels">
         <span>{m.track.now}</span>
