@@ -25,8 +25,7 @@ for (const [width, height, locale] of [
     test(`home at ${String(width)} × ${String(height)} px, ${theme}, ${locale}`, async ({ page }) => {
       await page.setViewportSize({ width, height });
       await seedStoredRun(page, { locale, prefs: { theme } });
-      await expect(page.getByTestId('next-event-label')).toBeVisible();
-      // R139 (FR-FLOW-16, D-886): the doors, where this waited for the Where dome v2.6 removed.
+      // R139 (FR-FLOW-16, D-886): the doors, where this waited for the next event and the Where dome v2.6 took off the home.
       await expect(page.getByTestId('home-doors')).toBeVisible({ timeout: 30_000 });
       await page.waitForTimeout(500);
       await page.screenshot({ path: `${CAPTURE_DIR}/r93-home-${String(width)}-${theme}-${locale}.png` });
