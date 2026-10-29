@@ -89,7 +89,7 @@ test.describe('the sky screen on a phone held sideways', () => {
     await stubCompass(page);
     await countPermissionAsks(page);
     await livePage(page);
-    await expect(page.getByTestId('overview-row')).toBeVisible();
+    await expect(page.getByTestId('live-track')).toBeVisible();
     expect(await asks(page)).toBe(0);
 
     await openScreen(page);

@@ -282,6 +282,11 @@ function liveRows(page: Page): (readonly [string, Locator])[] {
     ['stepping row', page.getByTestId('step-controls')],
     ['strip', page.getByTestId('status-strip')],
     ...(['time', 'sky', 'cloud', 'count', 'moon'] as const).map((field) => [`strip ${field}`, page.getByTestId(`live-${field}`)] as const),
+    // R144 (FR-TONIGHT-6): the compact page's rows — the headline, the context line, the track and the taps.
+    ['headline', page.getByTestId('live-headline')],
+    ['context', page.getByTestId('live-context')],
+    ['track', page.getByTestId('live-track')],
+    ['taps', page.getByTestId('live-taps')],
     ['actions', page.getByTestId('live-actions')],
     // The legend itself, not its slot: in two columns the slot is the whole rail, with the strip and the actions inside it.
     ['legend', page.getByTestId('chart-legend')],
@@ -425,10 +430,11 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
    * stack's box's, and the table says so by name.
    */
   for (const locale of ['en', 'es'] as const) {
-    test(`[ see this pass ] adds no row at any row of the matrix, watching, ${locale} (FR-JUMP-1, FR-SHP-4)`, async ({ page }) => {
+    test(`[ see this pass ] adds no row at any wide row of the matrix, watching, ${locale} (FR-JUMP-1, FR-SHP-4)`, async ({ page }) => {
       test.setTimeout(240_000);
       await openLive(page, locale);
-      const rows: Size[] = [...MATRIX.compactPortrait, ...MATRIX.landscapePhone, ...MATRIX.shortWide, ...MATRIX.desktop, ...MATRIX.boundaries];
+      // R144 (FR-TONIGHT-6): the next-event block and its control are the wide page's; the compact rows have neither.
+      const rows: Size[] = [...MATRIX.shortWide, ...MATRIX.desktop, ...MATRIX.boundaries.filter(([width]) => width >= WIDE_MIN_PX)];
       for (const size of rows) {
         const [width, height] = size;
         const at = `${label(size)} ${locale}`;
@@ -504,13 +510,12 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       // Nothing scrolls: not sideways, and on the live page not at all (FR-LIVE-1 as amended v1.4).
       const scrolled = await scroll(page);
       expect(scrolled.scrollWidth, `${at}: the page scrolls sideways`).toBeLessThanOrEqual(scrolled.clientWidth);
-      // R132 (FR-FLOW-4, D-864): the portrait compact page is a column that scrolls past its box; every other shape is
-      // one viewport high (the landscape phone's rail scrolls inside the layout, not the page).
-      const column = (await page.getByTestId('live-page').getAttribute('data-column')) === 'true';
+      // R132 (FR-FLOW-4, D-864) → R144 (FR-TONIGHT-9): every shape is one viewport high — the compact column's box is
+      // what its rows leave, and the landscape phone's rail scrolls inside the layout, not the page.
       // …except the short wide rows, where the rail's labelled rows exceed the window by a few px until R133/R136
       // re-cut the short shapes (the fold's and the overlay's own tests above carry the same `fixme`).
       const short = MATRIX.shortWide.some((row) => label(row) === label(size));
-      if (!column && !short) expect(scrolled.scrollHeight, `${at}: the live page scrolls`).toBeLessThanOrEqual(scrolled.innerHeight);
+      if (!short) expect(scrolled.scrollHeight, `${at}: the live page scrolls`).toBeLessThanOrEqual(scrolled.innerHeight);
 
       // The box is at least the floor and has a drawing in it (US-25 AC2, FR-SHP-3).
       expect(box.height, `${at}: the chart box is ${String(Math.round(box.height))} px tall`).toBeGreaterThanOrEqual(floorFor(size, state));

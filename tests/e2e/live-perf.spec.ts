@@ -78,15 +78,21 @@ async function openLive(page: Page): Promise<void> {
   await expect(page.getByRole('region', { name: 'Upcoming passes' }).getByRole('status')).toHaveText(/\d+ visible passes in 72 h/, { timeout: 60_000 });
   await page.getByTestId('live-link').click();
   await expect(page.getByTestId('live-dome').locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('live-sky')).not.toContainText('…', { timeout: 30_000 });
+  // R144 (FR-TONIGHT-7): on compact the sky word is the context line's; on wide the conditions line's.
+  const skyLine = (await page.getByTestId('live-sky').count()) > 0 ? page.getByTestId('live-sky') : page.getByTestId('context-line');
+  await expect(skyLine).not.toContainText('…', { timeout: 30_000 });
   await expect(page.getByTestId('stars-toggle')).toHaveAttribute('aria-pressed', 'true');
 }
 
 async function measure(page: Page): Promise<Sample & { cols: number }> {
   const cols = await page.getByTestId('live-dome').locator('[data-layer="lines"] pre.glyph-output').evaluate((el) => (el.textContent ?? '').split('\n')[0]?.length ?? 0);
   // R123: since v2.0 (FR-WATCH-1) the speeds are the scrubbing state's; `[ scrub ]` holds the instant and shows them.
-  await page.getByTestId('live-scrub').click();
-  await page.getByRole('button', { name: '3600×' }).click();
+  // R144 (FR-TONIGHT-5): on compact the rate is automatic (60× near a pass, 600× between) and the play control is the taps row's.
+  const compact = (await page.getByTestId('live-scrub').count()) === 0;
+  if (!compact) {
+    await page.getByTestId('live-scrub').click();
+    await page.getByRole('button', { name: '3600×' }).click();
+  }
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: THROTTLE });
   await page.evaluate(installCounter);

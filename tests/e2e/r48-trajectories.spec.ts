@@ -61,14 +61,19 @@ async function box(page: Page, testId: string): Promise<{ x: number; y: number; 
   return rect;
 }
 
-test.describe('the live page on a portrait phone', () => {
-  test.use({ viewport: PORTRAIT, hasTouch: true });
+/**
+ * R144 (FR-TONIGHT-6, FR-WATCH-1 as amended v2.7): the stepping row and the stripe are the wide page's now, so the
+ * arcs' states are stepped through on a desk with a touch screen (`.tap()` needs one); the phone's own timeline is
+ * the track (`live-tonight.spec.ts`), and the portrait rows and the captures below keep the phone.
+ */
+test.describe('the live page on a desk with a touch screen', () => {
+  test.use({ viewport: { width: 1280, height: 800 }, hasTouch: true });
 
   test('stepping across one pass moves it through ahead, live, linger and gone, and the legend follows (FR-TRAJ-1, FR-TRAJ-3, US-22 AC1..AC3, AC6)', async ({ page }) => {
     await openLive(page);
-    // R71 (FR-LEG-7): the legend is behind `[ list (n) ]` on a phone, and this test is about what it says.
+    // R71 (FR-LEG-7): on wide the legend stands in the rail (a no-op), and this test is about what it says.
     await openLegend(page);
-    // R77 (FR-WATCH-9 e): the step row is the scrubbing state's; the list opened while watching stays open.
+    // R77 (FR-WATCH-9 e): the step row is the scrubbing state's.
     await enterScrubbing(page);
     const dome = page.getByTestId('live-dome');
     const legend = page.getByTestId('chart-legend');
@@ -137,65 +142,56 @@ test.describe('the live page on a portrait phone', () => {
     const nowLive = await legend.locator('button[data-state="live"]').first().getAttribute('data-pass-id');
     expect(Math.abs(backTo - riseOf(nowLive ?? ''))).toBeLessThanOrEqual(MINUTE);
   });
+});
 
-  test('the portrait rows: one top row, the box at least its width, the strip in two lines, the stripe block, two control rows, nothing scrolls (FR-LIVE-7, FR-COMP-5, FR-TRAJ-4)', async ({ page }) => {
+test.describe('the live page on a portrait phone', () => {
+  test.use({ viewport: PORTRAIT, hasTouch: true });
+
+  test('the portrait rows: one top row, the headline, the full-bleed box with the readout in its corner, the track, the taps, the actions, the list, nothing scrolls (FR-LIVE-7, FR-COMP-5, FR-TONIGHT-6)', async ({ page }) => {
     await openLive(page);
     /*
      * R71 (FR-LEG-7): the legend is a row of this page only while `[ list (n) ]` holds it open, so the rows
      * below are measured with it open — the state that has one of everything. Closed, the box has the panel's
      * height instead, which is `live-compact.spec.ts`'s measurement (FR-LEG-8).
      *
-     * R77 (FR-WATCH-4): and scrubbing, the state with every row; the list is opened from the watching row first.
+     * R144 (FR-TONIGHT-6): the rows are the same held or not; the instant is held on the track all the same.
      */
     await openLegend(page);
     await enterScrubbing(page);
-    // R132 (FR-FLOW-4, D-864): the column scrolls past the box; the rows' order is what is measured here.
     // `--row` is 1.5 rem at the 16 px base (D-65).
     const row = 24;
     const top = await box(page, 'live-top-row');
+    const headline = await box(page, 'live-headline');
+    const context = await box(page, 'live-context');
     const chart = await box(page, 'chart-box');
-    const domeReadout = await box(page, 'dome-readout');
+    const readout = await box(page, 'sky-readout-toggle');
     const legend = await box(page, 'chart-legend');
-    const strip = await box(page, 'status-strip');
-    const readout = await box(page, 'time-readout');
-    const stripe = await box(page, 'time-stripe');
-    const steps = await box(page, 'step-controls');
-    const playback = await box(page, 'playback-controls');
+    const head = await box(page, 'live-list-head');
+    const track = await box(page, 'live-track');
+    const taps = await box(page, 'live-taps');
     const actions = await box(page, 'live-actions');
     // FR-COMP-1: one text row at the top (D-246); FR-COMP-5: the box is full-bleed.
     expect(top.height).toBeLessThanOrEqual(row + 1);
     expect(chart.width).toBe(PORTRAIT.width);
-    // R59 (D-300, F-55): the box no longer carries D-233's floor on this page — a touch phone's frame
-    // spends its first rows on the three-view control and the legend, and a floor that could not be met
-    // was met by overflowing the frame onto the rows below. What holds instead is that the box takes what
-    // the frame's own rows leave and the frame stays inside the pane the page gives it.
     expect(chart.height).toBeGreaterThan(0);
-    // The legend's *slot* is the frame's last row; the list inside it scrolls (D-187), so it is the slot
-    // that has to sit inside the pane and the list that may be taller than the four rows it is given.
-    // R132 (FR-FLOW-4): the readout directly above the box, the legend (the list slot) under it.
-    expect(domeReadout.y + domeReadout.height).toBeLessThanOrEqual(chart.y + 1);
-    expect(legend.y).toBeGreaterThanOrEqual(chart.y + chart.height - 1);
-    // FR-LIVE-7 as amended: the strip, then the stripe block (overview, three rows, stepping) and two control
-    // rows. R70 (FR-SPAN-2): the overview is one row above the stripe. R77 (FR-WATCH-2, FR-WATCH-3): the strip is
-    // one line now, and the clock readout is the scrubbing headline, above the box.
-    const overview = await box(page, 'stripe-overview');
-    expect(strip.height).toBeLessThanOrEqual(row + 8);
-    expect(readout.y + readout.height).toBeLessThanOrEqual(chart.y + 1);
-    expect(readout.y).toBeGreaterThanOrEqual(top.y + top.height - 1);
-    expect(overview.y).toBeGreaterThanOrEqual(strip.y + strip.height - 1);
-    expect(overview.height).toBeLessThanOrEqual(row + 1);
-    expect(stripe.y).toBeGreaterThanOrEqual(overview.y + overview.height - 1);
-    expect(stripe.height).toBeGreaterThanOrEqual(3 * row - 1);
-    expect(steps.y).toBeGreaterThanOrEqual(stripe.y + stripe.height - 1);
-    expect(playback.y).toBeGreaterThanOrEqual(steps.y + steps.height - 1);
-    // R132 (FR-FLOW-4): the actions row is right after the hint, under the box and above the list and the stripe block.
-    expect(actions.y).toBeGreaterThanOrEqual(chart.y + chart.height - 1);
-    expect(strip.y).toBeGreaterThanOrEqual(actions.y + actions.height - 1);
-    expect(actions.y + actions.height).toBeLessThanOrEqual(PORTRAIT.height);
-    // The whole strip is on the screen — nothing of it is under the box.
-    expect(strip.y).toBeGreaterThanOrEqual(chart.y + chart.height - 1);
+    // FR-TONIGHT-6: the headline and its context line between the top row and the box; the readout inside the box's corner.
+    expect(headline.y).toBeGreaterThanOrEqual(top.y + top.height - 1);
+    expect(context.y).toBeGreaterThanOrEqual(headline.y + headline.height - 1);
+    expect(chart.y).toBeGreaterThanOrEqual(context.y + context.height - 1);
+    expect(readout.y).toBeGreaterThanOrEqual(chart.y - 1);
+    expect(readout.y + readout.height).toBeLessThanOrEqual(chart.y + chart.height / 2);
+    // Under the box: the track (two tap rows with its label row), the taps, the actions, then the list's head and the list.
+    expect(track.y).toBeGreaterThanOrEqual(chart.y + chart.height - 1);
+    expect(track.height).toBeGreaterThanOrEqual(2 * row - 1);
+    expect(taps.y).toBeGreaterThanOrEqual(track.y + track.height - 1);
+    expect(actions.y).toBeGreaterThanOrEqual(taps.y + taps.height - 1);
+    expect(head.y).toBeGreaterThanOrEqual(actions.y + actions.height - 1);
+    expect(legend.y).toBeGreaterThanOrEqual(head.y + head.height - 1);
+    // FR-TONIGHT-9: everything inside the viewport, and the page does not scroll.
+    expect(legend.y + legend.height).toBeLessThanOrEqual(PORTRAIT.height + 0.5);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(PORTRAIT.height + 1);
     // FR-LIVE-7 as amended: no "drag the dome" hint on this page.
-    await expect(page.getByText(/Drag the dome|Arrastra/)).toHaveCount(0);
+    await expect(page.getByText(/Drag the dome|Arrastra el domo/)).toHaveCount(0);
   });
 
   for (const theme of THEMES) {
@@ -205,7 +201,7 @@ test.describe('the live page on a portrait phone', () => {
         await enterScrubbing(page);
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         await expect(page.locator('html')).toHaveAttribute('lang', locale);
-        await expect(page.getByRole('button', { name: STEP[locale].next })).toBeVisible();
+        await expect(page.getByTestId('live-tap-next')).toBeVisible();
         await page.screenshot({ path: `docs/screenshots/r48-live-390-${theme}-${locale}.png` });
       });
     }
@@ -222,13 +218,12 @@ test.describe('the live page on a landscape phone', () => {
         await enterScrubbing(page);
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         await expect(page.locator('html')).toHaveAttribute('lang', locale);
-        // The stripe block is in the side column, under the strip, and the page does not scroll.
+        // R144 (FR-TONIGHT-6, FR-FLOW-15): the track is in the rail, under the headline, and the page does not scroll.
         const dome = await box(page, 'live-dome');
-        const stripe = await box(page, 'time-stripe');
-        const strip = await box(page, 'status-strip');
-        expect(stripe.x).toBeGreaterThanOrEqual(dome.x + dome.width - 1);
-        expect(stripe.y).toBeGreaterThanOrEqual(strip.y + strip.height - 1);
-        // R132 (D-864): the rail's rows at this shape are the layout's; whether they fit 390 px is R136's (the landscape arrangement).
+        const track = await box(page, 'live-track');
+        const headline = await box(page, 'live-headline');
+        expect(track.x).toBeGreaterThanOrEqual(dome.x + dome.width - 1);
+        expect(track.y).toBeGreaterThanOrEqual(headline.y + headline.height - 1);
         await page.screenshot({ path: `docs/screenshots/r48-live-844-landscape-${theme}-${locale}.png` });
       });
     }

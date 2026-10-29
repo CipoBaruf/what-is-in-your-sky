@@ -12,7 +12,7 @@
  * phone it is the rail's and the dome's column is identical in both.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { backToLive, domeDrawn, enterScrubbing, homeAt, stripFilled, T } from './liveHelpers';
+import { backToLive, domeDrawn, enterScrubbing, homeAt, pressTrackAt, shownOnTrack, stripFilled, T } from './liveHelpers';
 import { openParisLive } from './parisLive';
 
 /** A speed button named exactly — the name is a substring match otherwise, and `60×` would name three (F-37). */
@@ -24,12 +24,19 @@ const shown = async (page: Page): Promise<number> => Number(await page.getByTest
 /** The rows only scrubbing renders (FR-WATCH-4): absent while watching, not merely hidden. */
 const SCRUB_ROWS = ['time-row', 'time-stripe', 'step-controls', 'playback-row'] as const;
 
-/** FR-WATCH-9 b's four shapes, with where `scrubPlacement` (D-448) puts the scrub block at each. */
+/**
+ * FR-WATCH-9 b's wide shapes, with where `scrubPlacement` (D-448) puts the scrub block at each. R144
+ * (FR-TONIGHT-6, FR-WATCH-5 as amended v2.7): the two compact shapes render one inventory and have no scrub block;
+ * they are the test after this one.
+ */
 const SHAPES = [
-  [390, 844, 'under'],
-  [844, 390, 'rail'],
   [1280, 800, 'under'],
   [1200, 450, 'overlay'],
+] as const;
+/** The compact shapes: the portrait phone and the landscape phone, with their layout form. */
+const COMPACT_SHAPES = [
+  [390, 844, 'column', 'under'],
+  [844, 390, 'rail', 'rail'],
 ] as const;
 
 interface Box {
@@ -56,9 +63,10 @@ async function settledBox(page: Page, testId: string): Promise<Box> {
   return box;
 }
 
+/** R132: the column's box is `100cqw` of the layout, a sub-pixel length; the boxes are compared to the pixel. */
+const rounded = (b: { x: number; y: number; width: number; height: number }) => ({ x: Math.round(b.x), y: Math.round(b.y), width: Math.round(b.width), height: Math.round(b.height) });
+
 for (const [width, height, placement] of SHAPES) {
-  /** R132: the column's box is `100cqw` of the layout, a sub-pixel length; the boxes are compared to the pixel. */
-  const rounded = (b: { x: number; y: number; width: number; height: number }) => ({ x: Math.round(b.x), y: Math.round(b.y), width: Math.round(b.width), height: Math.round(b.height) });
   test(`watching, then scrubbing: steps a pass, plays at 60× and returns to live at ${String(width)} × ${String(height)} (FR-WATCH-1, FR-WATCH-9 b)`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await homeAt(page, T);
@@ -112,11 +120,6 @@ for (const [width, height, placement] of SHAPES) {
       // The overview stays in the rail, and `[ back to live ]` at its head (FR-WATCH-6).
       await expect(page.getByTestId('live-rail-foot').getByTestId('overview-row')).toBeVisible();
       await expect(page.getByTestId('live-rail-head').getByTestId('live-now')).toBeVisible();
-    } else if (placement === 'rail') {
-      // R132 (FR-FLOW-4, D-864): the rail's foot takes the block, so the column keeps its place and width; its height is R136's (the landscape arrangement).
-      expect([scrubbing.dome.x, scrubbing.dome.width], 'the dome column is where it was, watching and scrubbing').toEqual([watching.dome.x, watching.dome.width]);
-      for (const id of SCRUB_ROWS) await expect(page.getByTestId('live-layout').getByTestId(id), `${id} is in the rail`).toBeVisible();
-      await expect(page.getByTestId('live-rail-head').getByTestId('live-now')).toBeVisible();
     } else {
       // R132 (FR-FLOW-4 wide, D-864): the block is the rail's foot, not a row under the box; the box may give the foot height and never grows on the tap.
       expect(scrubbing.box.height, 'the box never grows on the tap').toBeLessThanOrEqual(watching.box.height + 0.5);
@@ -163,6 +166,74 @@ for (const [width, height, placement] of SHAPES) {
     await expect(page).toHaveURL(/#live$/);
     // …and the watching box is the one the page opened with: the bar, the rail's rows or the block left no trace.
     await expect(page.getByTestId('chart-bottom-overlay')).toHaveCount(0);
+    expect(rounded(await settledBox(page, 'chart-box'))).toEqual(rounded(watching.box));
+    expect(rounded(await settledBox(page, 'live-dome'))).toEqual(rounded(watching.dome));
+  });
+}
+
+/**
+ * R144 (FR-TONIGHT-6, FR-TONIGHT-9, FR-WATCH-4 and FR-WATCH-5 as amended v2.7; US-42 AC5): the compact page at both
+ * its shapes — the portrait phone and the landscape phone — renders one inventory in both states. Nothing appears
+ * or disappears when `t` leaves real time, and the box's height before and after a drag on the track is identical;
+ * `[ next ]` lands a minute before the next rise and `[ now ]` returns to real time and the bare route.
+ */
+for (const [width, height, shape, placement] of COMPACT_SHAPES) {
+  test(`one inventory, the box unchanged across a drag on the track, next and now at ${String(width)} × ${String(height)} (FR-TONIGHT-6, FR-TONIGHT-9, FR-WATCH-5)`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await homeAt(page, T);
+    await page.getByTestId('live-link').click();
+    await domeDrawn(page);
+    await stripFilled(page);
+    await expect(page.getByTestId('live-layout')).toHaveAttribute('data-shape', shape);
+    await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', placement);
+    const ROWS = ['live-top-row', 'live-state-mark', 'live-headline', 'live-context', 'live-track', 'live-taps', 'live-actions', 'live-legend-toggle', 'live-share'] as const;
+    const GONE = ['live-indicator', 'live-state-word', 'next-event', 'status-strip', 'overview-row', 'time-stripe', 'step-controls', 'playback-row', 'time-row', 'live-scrub', 'live-now', 'live-hidden-toggle', 'stripe-block'] as const;
+    const inventory = async (state: string): Promise<void> => {
+      for (const id of ROWS) await expect(page.getByTestId(id), `${state}: ${id} is rendered`).toBeAttached();
+      for (const id of GONE) await expect(page.getByTestId(id), `${state}: ${id} is not in the DOM`).toHaveCount(0);
+    };
+    // Watching: the ISS is up at T, so the page stays on real time (FR-TONIGHT-1), the mark runs and the chip says now.
+    await inventory('watching');
+    await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'live');
+    await expect(page.getByTestId('live-state-mark').getByTestId('mark')).toHaveAttribute('data-mark-running', 'true');
+    await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
+    await expect(page.getByTestId('live-tap-now')).toBeDisabled();
+    await expect(page).toHaveURL(/#live$/);
+    const watching = { dome: await settledBox(page, 'live-dome'), box: await settledBox(page, 'chart-box') };
+
+    // A drag on the track: held, the same rows, the box the same height (FR-TONIGHT-9: identical before and after).
+    await pressTrackAt(page, T + 6 * 3_600_000);
+    await page.clock.runFor(600);
+    const held = await shownOnTrack(page);
+    expect(Math.abs(held - (T + 6 * 3_600_000))).toBeLessThan(15 * 60_000);
+    await inventory('held');
+    await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'held');
+    await expect(page.getByTestId('live-state-mark').getByTestId('mark')).toHaveAttribute('data-mark-running', 'false');
+    await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'ahead');
+    await expect(page).toHaveURL(/#live\?lat=-38\.93&lon=-67\.99&alt=0&t=/);
+    const dragged = { dome: await settledBox(page, 'live-dome'), box: await settledBox(page, 'chart-box') };
+    expect(dragged.box, 'the box before and after the drag').toEqual(watching.box);
+    expect(dragged.dome).toEqual(watching.dome);
+    // Real time moves on under a held instant; the instant does not (FR-WATCH-1).
+    await page.clock.runFor(3000);
+    expect(await shownOnTrack(page)).toBe(held);
+
+    // `[ next ]`: a minute before the first rise after `t` (FR-TONIGHT-4), the box still where it was.
+    const ticks = await page.getByTestId('time-track-bar').locator('[data-pass-tick]').evaluateAll((els) => els.map((el) => Number((el.getAttribute('data-pass-tick') ?? '').split('-')[1])));
+    const nextRise = ticks.filter((t) => t > held + 60_000).sort((a, b) => a - b)[0];
+    if (nextRise !== undefined) {
+      await page.getByTestId('live-tap-next').click();
+      expect(await shownOnTrack(page)).toBe(nextRise - 60_000);
+      expect(await settledBox(page, 'chart-box')).toEqual(watching.box);
+    } else {
+      await expect(page.getByTestId('live-tap-next')).toBeDisabled();
+    }
+
+    // `[ now ]`: real time again, the bare route, the same rows and the same box.
+    await backToLive(page);
+    await inventory('watching again');
+    await page.clock.runFor(600);
+    await expect(page).toHaveURL(/#live$/);
     expect(rounded(await settledBox(page, 'chart-box'))).toEqual(rounded(watching.box));
     expect(rounded(await settledBox(page, 'live-dome'))).toEqual(rounded(watching.dome));
   });
@@ -238,26 +309,32 @@ test('at 360 px in Spanish the compact top row shows a whole coordinate pair (FR
 
 // R78 (FR-WATCH-9 f): the captures of both states at the two short shapes are `r78-captures.spec.ts`, run with CAPTURES=1.
 
-/** FR-WATCH-1 c (D-446): the URL is the state — a link with `t` opens scrubbing, a bare one watching, and a reload keeps it. */
-test('a #live link with an instant opens scrubbing, and a reload after back to live opens watching (FR-WATCH-1, FR-LIVE-9)', async ({ page }) => {
+/**
+ * FR-WATCH-1 c (D-446): the URL is the state — a link with `t` opens scrubbing, a bare one watching, and a reload
+ * keeps it. R144 (FR-TONIGHT-1): a link's `t` is never jumped from, and a bare `#live` with a pass up at now stays
+ * on real time.
+ */
+test('a #live link with an instant opens held, and a reload after now opens watching (FR-WATCH-1, FR-LIVE-9, FR-TONIGHT-1)', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await homeAt(page, T);
   await page.getByTestId('live-link').click();
   await domeDrawn(page);
-  await enterScrubbing(page);
-  await page.getByRole('button', { name: 'Next pass' }).click();
+  await page.getByTestId('live-tap-next').click();
+  const landed = await shownOnTrack(page);
   await page.clock.runFor(600);
   const url = page.url();
   expect(url).toMatch(/#live\?lat=.*&t=/);
   await page.reload();
   await domeDrawn(page);
-  await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'held');
-  await expect(page.getByTestId('time-stripe')).toBeVisible();
+  await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'held');
+  await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'ahead');
+  expect(await shownOnTrack(page)).toBe(landed);
   await backToLive(page);
   await page.clock.runFor(600);
   await expect(page).toHaveURL(/#live$/);
   await page.reload();
   await domeDrawn(page);
-  await expect(page.getByTestId('live-indicator')).toHaveAttribute('data-state', 'live');
+  await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'live');
+  await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
   await expect(page.getByTestId('time-stripe')).toHaveCount(0);
 });

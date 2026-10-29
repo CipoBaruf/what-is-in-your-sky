@@ -79,21 +79,21 @@ test.describe('the live page on a landscape phone', () => {
   test('two panes — the dome left with the whole height, the rest right — nothing scrolls, and the wake lock follows visibility (FR-LIVE-7)', async ({ page }) => {
     await stubWakeLock(page);
     await liveLandscape(page);
-    // R77 (FR-WATCH-9 e): the stripe is the scrubbing state's; R78 re-cuts this shape's rail for both states.
+    // R77 (FR-WATCH-9 e) → R144 (FR-TONIGHT-6, FR-FLOW-15): the rail holds the same slots in both states; the instant is held on the track.
     await enterScrubbing(page);
 
     // The page is the viewport, and nothing scrolls.
     const pageBox = await page.getByTestId('live-page').boundingBox();
     expect(pageBox?.height).toBe(LANDSCAPE.height);
-    // R132 (D-864): the rail's rows are the layout's; whether every one fits 390 px is R136's (the landscape arrangement).
 
     const dome = await page.getByTestId('live-dome').boundingBox();
     const side = await page.getByTestId('live-layout').locator('[data-slot="answer"]').boundingBox();
     // R48 (D-246): the return control's 48 px hit box overhangs its 24 px row, so the row is what is measured.
     const back = await page.getByTestId('live-top-row').boundingBox();
-    const stripe = await page.getByTestId('time-stripe').boundingBox();
-    const strip = await page.getByTestId('status-strip').boundingBox();
-    if (!dome || !side || !back || !stripe || !strip) throw new Error('the live page is not laid out');
+    const track = await page.getByTestId('live-track').boundingBox();
+    const headline = await page.getByTestId('live-headline').boundingBox();
+    const context = await page.getByTestId('live-context').boundingBox();
+    if (!dome || !side || !back || !track || !headline || !context) throw new Error('the live page is not laid out');
     // The top row is one line across the top; under it the dome is the left two fifths and the
     // side column the right three (D-173). The dome keeps every row under the top one: about
     // 324 px against portrait's 300 (D-172).
@@ -101,17 +101,15 @@ test.describe('the live page on a landscape phone', () => {
     expect(side.y).toBeGreaterThanOrEqual(back.y + back.height - 1);
     expect(dome.x + dome.width).toBeLessThanOrEqual(side.x + 1);
     expect(dome.width).toBeGreaterThan(280);
-    // R132 (FR-FLOW-4, D-864): the rail's foot (the stripe block, the actions) and the hint under the box share the layout's last row, so the drawing keeps the rows above it; the landscape arrangement itself is R136's.
     expect(dome.height).toBeGreaterThan(150);
-    // The strip, the stripe block and the controls are all in the side column, in that order (R48:
-    // FR-LIVE-7 as amended puts the strip first), and the whole strip is on the screen — the side
-    // column is what the layout is for.
-    expect(stripe.x).toBeGreaterThanOrEqual(dome.x + dome.width - 1);
-    expect(strip.x).toBeGreaterThanOrEqual(dome.x + dome.width - 1);
-    expect(stripe.y).toBeGreaterThan(strip.y + strip.height - 1);
-    expect(strip.y + strip.height).toBeLessThanOrEqual(LANDSCAPE.height);
-    // R77 (FR-WATCH-3): the compact line's fields; the Moon is the list panel's (FR-MOON-3 as amended).
-    for (const field of ['time', 'sky', 'cloud', 'count']) await expect(page.getByTestId(`live-${field}`)).toBeInViewport({ ratio: 1 });
+    // R144 (FR-TONIGHT-6, FR-FLOW-15): the headline, the context line and the track are all in the rail, in that order,
+    // and the headline with its context is on the screen — the rail is what the layout is for.
+    expect(track.x).toBeGreaterThanOrEqual(dome.x + dome.width - 1);
+    expect(headline.x).toBeGreaterThanOrEqual(dome.x + dome.width - 1);
+    expect(context.y).toBeGreaterThanOrEqual(headline.y + headline.height - 1);
+    expect(track.y).toBeGreaterThan(context.y + context.height - 1);
+    expect(context.y + context.height).toBeLessThanOrEqual(LANDSCAPE.height);
+    for (const id of ['shown-time', 'context-line']) await expect(page.getByTestId(id)).toBeInViewport({ ratio: 1 });
     // The side column may scroll itself where its content wraps past the viewport; the page never does.
     expect(side.y + side.height).toBeLessThanOrEqual(LANDSCAPE.height + 1);
 
@@ -178,8 +176,9 @@ test.describe('the live page on a landscape phone', () => {
   test('captures in landscape in Spanish: the control and its row carry no English (FR-I18N-2)', async ({ page }) => {
     await liveLandscape(page, 'es', true);
     await expect(page.getByRole('button', { name: 'Compartir este cielo' })).toBeVisible();
-    // R77 (FR-WATCH-3): the compact line's one-word sky states.
-    await expect(page.getByTestId('live-sky')).toHaveText(/Cielo (oscuro|crepúsculo|día)/);
+    // R144 (FR-TONIGHT-7): the chip and the taps in Spanish.
+    await expect(page.getByTestId('shown-chip')).toHaveText('ahora');
+    await expect(page.getByTestId('live-taps').getByRole('button', { name: 'noche', exact: true })).toBeVisible();
     await page.screenshot({ path: 'docs/screenshots/r34-live-844-landscape-dark-es.png' });
   });
 });
@@ -202,16 +201,19 @@ test.describe('the live page on a portrait phone with a compass', () => {
     const dome = await page.getByTestId('live-dome').boundingBox();
     const drawing = await page.getByTestId('chart-box').boundingBox();
     expect((drawing?.y ?? 0) + (drawing?.height ?? 0)).toBeLessThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) + 0.5);
-    // FR-COMP-4: the actions row stays one line in both states — R77 (V20-8): `[ scrub ] [ list (n) ] Share`
-    // while watching, and the hidden-objects toggle on the scrubbing row, `[ back to live ] [ hidden ] Share`.
-    const scrub = await page.getByTestId('live-scrub').boundingBox();
+    // FR-COMP-4: the actions row stays one line in both states — R144 (FR-TONIGHT-6): `[ list (n) ] Share`, and the
+    // taps row `▶ [ tonight ] [ next ] [ now ]` one line too, held or not.
+    const list = await page.getByTestId('live-legend-toggle').boundingBox();
     const shareWatching = await page.getByRole('button', { name: 'Share this sky' }).boundingBox();
-    expect(Math.abs((shareWatching?.y ?? 0) - (scrub?.y ?? 0))).toBeLessThanOrEqual(1);
+    expect(Math.abs((shareWatching?.y ?? 0) - (list?.y ?? 0))).toBeLessThanOrEqual(1);
+    const taps = await page.getByTestId('live-taps').getByRole('button').all();
+    const tapTops = await Promise.all(taps.map(async (tap) => (await tap.boundingBox())?.y ?? 0));
+    for (const top of tapTops) expect(Math.abs(top - (tapTops[0] ?? 0))).toBeLessThanOrEqual(1);
     await enterScrubbing(page);
     const share = await page.getByRole('button', { name: 'Share this moment' }).boundingBox();
-    const hidden = await page.getByRole('button', { name: 'Hidden objects' }).boundingBox();
-    expect(Math.abs((share?.y ?? 0) - (hidden?.y ?? 0))).toBeLessThanOrEqual(1);
-    await page.getByTestId('live-now').click();
+    const listHeld = await page.getByTestId('live-legend-toggle').boundingBox();
+    expect(Math.abs((share?.y ?? 0) - (listHeld?.y ?? 0))).toBeLessThanOrEqual(1);
+    await page.getByTestId('live-tap-now').click();
     // The view control is one row too, with three options (V13-4's two-option row is withdrawn).
     const options = await toggle.getByRole('button').all();
     const tops = await Promise.all(options.map(async (option) => (await option.boundingBox())?.y ?? 0));

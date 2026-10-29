@@ -284,29 +284,37 @@ const rows = (t: Messages): readonly Row[] => [
    * FR-COMP-4's 36, in both languages — the room to spare F-82 found Spanish did not have.
    */
   {
-    // `[ ← ]`, the mark, `en vivo` and `Cipolletti`: 28 cells in Spanish.
-    name: 'the live top row with the state indicator (FR-WATCH-2, V20-8, FR-COMP-7)',
+    // R144 (FR-TONIGHT-6): `[ ← ]`, the mark, `en vivo` and `Cipolletti` — the state word has left the row: 28 cells in Spanish.
+    name: 'the live top row with the mark and the page name (FR-WATCH-2, FR-TONIGHT-6, FR-COMP-7)',
     element: createElement(LivePage, { link: null, onLeave: noop }),
     find: () => screen.getByTestId('live-top-row'),
     setUp: withLiveSky,
     budget: LIVE_ROW_BUDGET,
   },
   {
-    // `[ scrub ] [ list (1) ] [ Share ]`, 32 cells in English; `[ fijar ] [ ver 1 ] [ Compartir ]`, 33 in Spanish.
-    name: 'the live watching actions row (FR-WATCH-4, V20-8, FR-COMP-7)',
+    // R144 (FR-TONIGHT-6): `[ list (1) ] [ Share ]`, 23 cells in English; `[ ver 1 ] [ Compartir ]`, 24 in Spanish — the one actions row, in both states.
+    name: 'the live actions row (FR-WATCH-4, FR-TONIGHT-6, FR-COMP-7)',
     element: createElement(LivePage, { link: null, onLeave: noop }),
     find: () => screen.getByTestId('live-actions'),
     setUp: withLiveSky,
     budget: LIVE_ROW_BUDGET,
   },
   {
-    // `[ live ] [ ] Hidden [ Share ]`, 29 cells; `[ vivo ] [ ] Ocultos [ Compartir ]`, 34.
-    name: 'the live scrubbing actions row (FR-WATCH-4, V20-8, FR-COMP-7)',
+    // R144 (FR-TONIGHT-4, D-901): the taps row as the page renders it — `▶ [ tonight ] [ next ] [ now ]`, 30 cells; `▶ [ noche ] [ próximo ] [ ahora ]`, 33.
+    name: 'the live taps row (FR-TONIGHT-4)',
     element: createElement(LivePage, { link: null, onLeave: noop }),
-    find: () => screen.getByTestId('live-actions'),
+    find: () => screen.getByTestId('live-taps'),
+    setUp: withLiveSky,
+    budget: LIVE_ROW_BUDGET,
+  },
+  {
+    // R144 (FR-TONIGHT-6, D-905): the open list panel's head — the hidden-objects toggle alone, `[ ] Hidden` / `[ ] Ocultos`.
+    name: 'the live list panel head (FR-TONIGHT-6, FR-LIVE-6)',
+    element: createElement(LivePage, { link: null, onLeave: noop }),
+    find: () => screen.getByTestId('live-list-head'),
     setUp: withLiveSky,
     after: () => {
-      fireEvent.click(screen.getByTestId('live-scrub'));
+      fireEvent.click(screen.getByTestId('live-legend-toggle'));
     },
     budget: LIVE_ROW_BUDGET,
   },

@@ -100,7 +100,7 @@ async function expectHintOffTheDrawing(layout: Locator): Promise<void> {
   await expect(hint).toHaveText(/\S/);
 }
 
-const RAIL_ORDER = ['answer', 'viewRow', 'picker', 'layers', 'list', 'action', 'foot'];
+const RAIL_ORDER = ['answer', 'viewRow', 'picker', 'layers', 'list', 'timeline', 'action', 'foot'];
 
 /** The desk's rail form: the box at the left, the readout on its corner, the hint under it, the rail's slots stacked at the right. */
 async function expectRail(layout: Locator): Promise<void> {
@@ -182,25 +182,43 @@ for (const locale of LOCALES) {
   test.describe(`FR-FLOW-4 on a phone, ${locale}`, () => {
     test.use({ viewport: PHONE, hasTouch: false });
 
-    test('the live page lays its slots out top to bottom in every view, the view row one line, the hint off the drawing', async ({ page }) => {
+    /**
+     * R144 (FR-TONIGHT-6, D-904): on the compact live page the readout stands in the box's top-left corner, inside
+     * the drawing slot, and the picker row is on the page only while the readout holds it open; the timeline (the
+     * track and the taps) stands between the hint and the action.
+     */
+    test('the live page lays its slots out top to bottom in every view, the readout in the box’s corner, the view row one line, the hint off the drawing', async ({ page }) => {
       const layout = await openLive(page, locale);
       await expect(layout).toHaveAttribute('data-shape', 'column');
+      await expect(layout).toHaveAttribute('data-readout', 'corner');
       for (const view of VIEWS) {
         await chooseView(page, layout, locale, view);
         const slots = await slotBoxes(layout);
         const names = slots.map((slot) => slot.name);
         // The polar chart has no drag, so it has no hint and no hint slot (D-864).
         expect(names.includes('hint'), view).toBe(view !== 'polar');
-        expect(names.slice(0, names.includes('hint') ? 6 : 5), view).toEqual(['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint'].filter((name) => names.includes(name)));
-        expect(names.indexOf('action'), view).toBeGreaterThan(names.indexOf('hint'));
-        expect(names.indexOf('list'), view).toBeGreaterThan(names.indexOf('action'));
-        expectStacked(slots);
+        // The readout's button is inside the drawing slot, so it reads after it; no picker row until the readout is tapped.
+        expect(names.filter((name) => name !== 'hint'), view).toEqual(['answer', 'viewRow', 'drawing', 'readout', 'timeline', 'action', 'list']);
+        if (names.includes('hint')) expect(names.indexOf('hint'), view).toBe(names.indexOf('readout') + 1);
+        expectStacked(slots.filter((slot) => slot.name !== 'readout'));
         await expectViewRowOneLine(layout, locale);
         await expectHintOffTheDrawing(layout);
-        // The readout directly above the drawing and the picker directly under it (FR-FLOW-4).
+        // The readout inside the drawing's box, at its top-left corner (FR-TONIGHT-6).
         const readout = slots.find((slot) => slot.name === 'readout');
         const drawing = slots.find((slot) => slot.name === 'drawing');
-        if (readout && drawing) expect(drawing.box.y - (readout.box.y + readout.box.height)).toBeLessThanOrEqual(8);
+        if (!readout || !drawing) throw new Error('no readout or drawing');
+        expect(readout.box.y).toBeGreaterThanOrEqual(drawing.box.y - 1);
+        expect(readout.box.x).toBeGreaterThanOrEqual(drawing.box.x - 1);
+        expect(readout.box.y + readout.box.height).toBeLessThan(drawing.box.y + drawing.box.height / 3);
+        // A tap on it opens the picker directly under the drawing (the window and the polar chart have one; the dome's row is empty), a second tap closes it.
+        const toggle = layout.getByTestId('sky-readout-toggle');
+        await toggle.click();
+        await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        const opened = (await slotBoxes(layout)).map((slot) => slot.name);
+        expect(opened.indexOf('picker'), view).toBe(opened.indexOf('readout') + 1);
+        await toggle.click();
+        await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        await expect(layout.locator('[data-slot="picker"]')).toHaveCount(0);
       }
     });
 
@@ -477,8 +495,9 @@ test.describe('FR-FLOW-15: the turn', () => {
       if (now.join() === before.join()) break;
       before = now;
     }
-    const instant = page.getByTestId('status-strip').locator('time').first();
-    const shown = await instant.getAttribute('datetime');
+    // R144 (FR-TONIGHT-7): the shown instant is the headline's `<time>`; on real time it ticks each second, so the turn is read against its minute.
+    const instant = page.getByTestId('shown-time').locator('time').first();
+    const shown = ((await instant.getAttribute('datetime')) ?? '').slice(0, 16);
     expect(before.every((value) => value !== null)).toBe(true);
     const turns = [
       { viewport: { width: 844, height: 390 }, shape: 'rail' },
@@ -489,7 +508,8 @@ test.describe('FR-FLOW-15: the turn', () => {
       await expect(layout).toHaveAttribute('data-shape', shape);
       await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
       expect(await camera(layout)).toEqual(before);
-      await expect(instant).toHaveAttribute('datetime', shown ?? '');
+      await expect(instant).toHaveAttribute('datetime', new RegExp(`^${shown}`));
+      await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
       await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     }
   });

@@ -17,12 +17,15 @@
  * `runFor` is playback's wall time.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { backToLive, domeDrawn, enterScrubbing, homeAt, openLegend, realTimeField, setThemeOnHome, stripFilled, T } from './liveHelpers';
+import { backToLive, domeDrawn, enterScrubbing, homeAt, openLegend, pressTrackAt, setThemeOnHome, shownOnTrack, stripFilled, T } from './liveHelpers';
 
 const HOUR = 3_600_000;
 
-/** The time field's instant: the `<time>` element's `datetime`. */
-const shownInstant = async (page: Page): Promise<number> => Date.parse((await page.getByTestId('live-time').locator('time').getAttribute('datetime')) ?? '');
+/** The shown instant: the stripe's slider value (R144: the stripe is the wide page's, where this describe runs). */
+const shownInstant = async (page: Page): Promise<number> => Number(await page.getByTestId('time-stripe').getAttribute('aria-valuenow'));
+/** The wide clock, real time as the rail's head says it. */
+const liveClock = (page: Page) => page.getByTestId('live-clock');
+const clockText = (t: number): RegExp => new RegExp(`^${new Date(t).toISOString().slice(11, 18)}\\d UTC$`);
 
 /**
  * R39 (F-37): a speed button, named exactly. A `name` option is a substring
@@ -50,7 +53,9 @@ async function drawn(page: Page): Promise<{ start: number; end: number }> {
 }
 
 test.describe('the live page: stripe, playback and hidden objects', () => {
-  test.use({ viewport: { width: 390, height: 844 } });
+  // R144 (FR-TONIGHT-6, FR-WATCH-1 as amended v2.7): the stripe, the step row, the speeds and `[ scrub ]` are the wide
+  // page's; the compact page has the track, the taps and the automatic rate (`live-tonight.spec.ts`, `live-states.spec.ts`).
+  test.use({ viewport: { width: 1280, height: 800 } });
 
   test('the stripe scrubs the shown instant, the arrow keys step it, and the hash follows (FR-LIVE-4, FR-LIVE-9)', async ({ page }) => {
     await homeAt(page, T, 'en', true);
@@ -108,7 +113,7 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     // `[ back to live ]` returns to real time and the bare route.
     await backToLive(page);
     await page.clock.runFor(600);
-    await expect(page.getByTestId('live-time')).toHaveText(realTimeField(T));
+    await expect(liveClock(page)).toHaveText(clockText(T));
     await expect(page).toHaveURL(/#live$/);
   });
 
@@ -153,7 +158,7 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     expect(later - paused).toBeLessThan(70_000);
     await backToLive(page);
     await expect(page.getByRole('button', { name: 'Play' })).toHaveCount(0);
-    await expect(page.getByTestId('live-time')).toHaveText(realTimeField(T + 4000));
+    await expect(liveClock(page)).toHaveText(clockText(T + 4000));
   });
 
   /**
@@ -265,7 +270,7 @@ test.describe('the live page: stripe, playback and hidden objects', () => {
     await homeAt(page, T, 'en', true);
     await page.getByTestId('live-link').click();
     await domeDrawn(page);
-    // R77 (FR-WATCH-4, V20-8): on a phone the toggle is on the scrubbing row; the list is opened from the watching one.
+    // On wide the toggle is on the actions row in both states; the legend stands in the rail.
     await openLegend(page);
     await enterScrubbing(page);
     const toggle = page.getByRole('button', { name: 'Hidden objects' });
@@ -311,7 +316,11 @@ async function scrubbedWithHidden(page: Page, locale: 'en' | 'es'): Promise<void
   await page.getByTestId('live-link').click();
   await domeDrawn(page);
   await stripFilled(page);
-  await pressRow(page, 'stripe-overview', 3 / 24);
+  // R144 (FR-TONIGHT-3, D-905): on compact the instant is moved on the track, and the hidden-objects toggle is the open list's head.
+  if ((await page.getByTestId('stripe-overview').count()) === 0) {
+    await pressTrackAt(page, T + 3 * HOUR);
+    await openLegend(page);
+  } else await pressRow(page, 'stripe-overview', 3 / 24);
   await page.getByRole('button', { name: locale === 'es' ? 'Objetos ocultos' : 'Hidden objects' }).click();
   await page.clock.runFor(1500);
 }
@@ -337,11 +346,12 @@ test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async 
   await page.setViewportSize({ width: 390, height: 844 });
   await homeAt(page, T, 'es', true);
   await scrubbedWithHidden(page, 'es');
-  await expect(page.getByRole('group', { name: 'Reproducción', exact: true })).toBeVisible();
+  // R144 (FR-TONIGHT-4, FR-TONIGHT-7): the taps row and the headline in Spanish; the held instant three hours on.
+  await expect(page.getByRole('group', { name: 'Saltar en el tiempo', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reproducir' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'ir al vivo' })).toBeVisible();
-  await expect(page.getByTestId('time-stripe')).toHaveAttribute('aria-label', 'Franja de tiempo: cuatro de las próximas 24 horas');
-  await expect(page.getByTestId('stripe-overview')).toHaveAttribute('aria-label', 'Vista de la noche');
+  await expect(page.getByRole('button', { name: 'ahora', exact: true })).toBeEnabled();
+  await expect(page.getByTestId('shown-chip')).toHaveText(/en (2|3) h \d\d min/);
+  await expect(page.getByTestId('time-stripe')).toHaveCount(0);
   await page.screenshot({ path: 'docs/screenshots/r33-live-390-dark-es.png' });
 });
 
@@ -365,12 +375,20 @@ for (const width of [390, 1280] as const) {
         await domeDrawn(page);
         await stripFilled(page);
         // Three hours on: the cursor is inside the night, and the chunk drawn is the one that holds it.
-        await pressRow(page, 'stripe-overview', 3 / 24);
-        await page.clock.runFor(600);
-        await expect(page.getByTestId('stripe-overview')).toHaveAttribute('aria-label', CHUNK_LABEL[locale]);
-        await expect(page.getByTestId('step-controls')).toBeVisible();
-        const window_ = await drawn(page);
-        expect(window_.end - window_.start).toBeLessThanOrEqual(4 * HOUR);
+        // R144 (FR-TONIGHT-3): on the phone the track is the one timeline; the record is the page three hours on.
+        if (width === 390) {
+          await pressTrackAt(page, T + 3 * HOUR);
+          await page.clock.runFor(600);
+          expect(Math.abs((await shownOnTrack(page)) - (T + 3 * HOUR))).toBeLessThan(10 * 60_000);
+          await expect(page.getByTestId('live-taps')).toBeVisible();
+        } else {
+          await pressRow(page, 'stripe-overview', 3 / 24);
+          await page.clock.runFor(600);
+          await expect(page.getByTestId('stripe-overview')).toHaveAttribute('aria-label', CHUNK_LABEL[locale]);
+          await expect(page.getByTestId('step-controls')).toBeVisible();
+          const window_ = await drawn(page);
+          expect(window_.end - window_.start).toBeLessThanOrEqual(4 * HOUR);
+        }
         await page.screenshot({ path: `docs/screenshots/r70-live-${String(width)}-${theme}-${locale}.png` });
       });
     }
