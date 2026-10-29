@@ -42,8 +42,9 @@ async function open(page: Page, width: 390 | 1280, locale: 'en' | 'es'): Promise
   });
   await page.route('https://api.open-meteo.com/**', (route) => route.abort('failed'));
   await page.goto('/');
-  if (locale === 'es') await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
   await withSettings(page, async () => {
+    // R129 (V26-10): the language switch is the settings page's alone.
+    if (locale === 'es') await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Español' }).click();
     await page.getByLabel(locale === 'es' ? 'Coordenadas · p. ej. -38.93, -67.99' : 'Coordinates · e.g. -38.93, -67.99').fill(PARIS);
   });
   const passes = page.getByRole('region', { name: locale === 'es' ? 'Próximos pases' : 'Upcoming passes' });
@@ -74,23 +75,27 @@ for (const width of [390, 1280] as const) {
   });
 }
 
-test('the glare label with its tooltip open, and the guide sentence, at 390 px', async ({ page }) => {
+test('the glare label, and the guide sentence with its tooltip open, at 390 px', async ({ page }) => {
   for (const locale of ['en', 'es'] as const) {
     await open(page, 390, locale);
     const card = page.locator(`article[data-pass-id="${GLARE_PASS}"]`).first();
     await card.scrollIntoViewIfNeeded();
-    // The tooltip opens on focus as well as on hover (FR-X-5), which is what a capture can hold still.
-    await card.getByText(locale === 'es' ? 'resplandor lunar' : 'moon glare').first().focus();
-    await expect(card.getByRole('tooltip').first()).toBeVisible();
+    // R84 (D-548): the card's label is text inside the card's control — no tab stop and no pointer target — so its
+    // tooltip is the label's description and is not drawn on the card; the guide's sentence below still opens it.
+    await expect(card.getByText(locale === 'es' ? 'resplandor lunar' : 'moon glare').first()).toHaveAccessibleDescription(/74 %/);
     await page.screenshot({ path: `test-results/r30-glare-390-dark-${locale}.png` });
 
     await card.getByRole('button', { name: locale === 'es' ? /Abrir la guía/ : /Open guide/ }).click();
     const dialog = page.getByRole('dialog', { name: 'ISS (Zarya)' });
-    // Let the dome finish drawing, or the capture shows its loading line above the sentence.
-    await expect(dialog.locator('[data-layer="base"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+    // Let the chart finish drawing, or the capture shows its loading line above the sentence. R136 (FR-FLOW-14,
+    // D-876): with no view saved a phone opens on the window, not the dome.
+    await expect(dialog.locator('svg[data-drawing="window"]')).toBeVisible({ timeout: 30_000 });
     const note = dialog.getByTestId('moon-glare-note');
     await note.scrollIntoViewIfNeeded();
     await expect(note).toBeVisible();
+    // The sentence opens its tooltip on focus as well as on hover (FR-X-5), which is what a capture can hold still.
+    await note.locator('[tabindex="0"]').focus();
+    await expect(note.getByRole('tooltip')).toBeVisible();
     await page.screenshot({ path: `test-results/r30-guide-390-dark-${locale}.png` });
     if (locale === 'en') {
       // R129 (V26-10): the sheet carries no switch any more; `n` sets the palette under it.
