@@ -26,7 +26,7 @@ import type { EpochMs } from '../../../model';
  */
 
 /** Who made a write: the page itself (the jump, FR-TONIGHT-1) passes `'page'`; anything else is the reader's. */
-export type WriteOrigin = 'page';
+type WriteOrigin = 'page';
 
 export interface Playback {
   /** The shown instant: real time, or the held one clamped to the span. */

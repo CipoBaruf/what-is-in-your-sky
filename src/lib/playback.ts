@@ -132,7 +132,7 @@ export function advanceAuto(t: EpochMs, wallDeltaMs: number, rates: AutoRates, e
 }
 
 /** The nights of a run of bands: each stretch of consecutive non-`day` bands (twilight, dark, twilight) as one interval (D-897). */
-export function nightRuns(bands: readonly SkyBand[]): { from: EpochMs; to: EpochMs }[] {
+function nightRuns(bands: readonly SkyBand[]): { from: EpochMs; to: EpochMs }[] {
   const runs: { from: EpochMs; to: EpochMs }[] = [];
   for (const band of bands) {
     if (band.sky === 'day') continue;
