@@ -679,8 +679,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   /*
    * R85 (F-81, FR-CAP-5, D-549): on the short wide window the legend between the rail's head and foot is an
    * inventory that ends on a whole entry, with a `+n` line — `liveRows.ts`'s `inventoryClip` over what the rail
-   * leaves it, measured here in whole text rows. `headerRows` is the legend's answer to whether it draws the
-   * times header, which takes one of those rows; it draws none when no listed row has times. R132 (D-864): the
+   * leaves it, measured here in whole text rows; no times header takes one of them (D-863). R132 (D-864): the
    * legend is the layout's `list` slot now, so the budget is that slot's height less the conditions line under it.
    */
   const inventoryRows = useInventoryRows(!compact && placement === 'overlay' && !screenOpen, domeRef);
@@ -688,7 +687,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
     () =>
       inventoryRows === null
         ? null
-        : { clip: (entryRows, headerRows) => inventoryClip(entryRows, Math.max(0, inventoryRows - headerRows)), moreLabel: t.live.more },
+        : { clip: (entryRows) => inventoryClip(entryRows, inventoryRows), moreLabel: t.live.more },
     [inventoryRows, t],
   );
   const top = <TopRow place={observer.label} indicator={compact && placement !== 'rail' ? indicator : null} screenOpen={screenOpen} onLeave={onLeave} />;
