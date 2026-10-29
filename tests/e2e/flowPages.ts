@@ -12,6 +12,19 @@ export const LOCALES = ['en', 'es'] as const;
 export type Locale = (typeof LOCALES)[number];
 export type FlowPage = 'home' | 'live' | 'stars' | 'detail' | 'settings';
 export const FLOW_PAGES: readonly FlowPage[] = ['home', 'live', 'stars', 'detail', 'settings'];
+/**
+ * R139 (FR-FLOW-10, FR-FLOW-11 as amended; D-885): the two views a phone opens the live page and the pass detail on —
+ * the window, a fresh profile's (FR-FLOW-14: no `chartView` saved), and the dome, a saved `chartView`.
+ */
+export type FlowView = 'window' | 'dome';
+export const FLOW_VIEWS: readonly FlowView[] = ['window', 'dome'];
+/** The cases the two specs run: each page once, and the live page and the pass detail once in each view. */
+export const FLOW_CASES: readonly { page: FlowPage; view: FlowView | null }[] = FLOW_PAGES.flatMap((page) => (page === 'live' || page === 'detail' ? FLOW_VIEWS.map((view) => ({ page, view })) : [{ page, view: null }]));
+/** A case's name in a test title: `live (window)`, `home`. */
+export const caseName = ({ page, view }: { page: FlowPage; view: FlowView | null }): string => (view === null ? page : `${page} (${view})`);
+
+/** `seedStoredRun`'s prefs for a view: the window seeds no `chartView` (a fresh profile), the dome the saved one. */
+const viewPrefs = (view: FlowView): Record<string, unknown> => ({ chartView: view === 'window' ? undefined : 'dome' });
 
 const PREFS_KEY = 'wiys:prefs:v1';
 const EXTERNAL = ['https://celestrak.org/**', 'https://api.open-meteo.com/**', 'https://geocoding-api.open-meteo.com/**'];
@@ -29,8 +42,12 @@ async function seedReader(page: Page, locale: Locale): Promise<void> {
   );
 }
 
-/** Opens one of the five pages, settled, and returns the element its measures are taken under. */
-export async function openFlowPage(page: Page, which: FlowPage, locale: Locale): Promise<Locator> {
+/**
+ * Opens one of the five pages, settled, and returns the element its measures are taken under. `view` is the chart's
+ * view on the live page and the pass detail (D-885); the other pages have one form and ignore it.
+ */
+export async function openFlowPage(page: Page, which: FlowPage, locale: Locale, view: FlowView | null = 'dome'): Promise<Locator> {
+  const drawn = view ?? 'dome';
   switch (which) {
     case 'home': {
       await seedStoredRun(page, { locale, settled: true });
@@ -40,12 +57,12 @@ export async function openFlowPage(page: Page, which: FlowPage, locale: Locale):
       return page.locator('main');
     }
     case 'live': {
-      await seedStoredRun(page, { locale, settled: true });
+      await seedStoredRun(page, { locale, settled: true, prefs: viewPrefs(drawn) });
       await page.goto('/#live');
       await page.reload();
       const layout = page.getByTestId('live-layout');
       await expect(layout).toBeVisible({ timeout: 30_000 });
-      await expect(layout.locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
+      await expect(layout.locator(`[data-drawing="${drawn}"]`)).toBeAttached({ timeout: 30_000 });
       return page.locator('body');
     }
     case 'stars': {
@@ -57,11 +74,11 @@ export async function openFlowPage(page: Page, which: FlowPage, locale: Locale):
       return page.locator('body');
     }
     case 'detail': {
-      await seedStoredRun(page, { locale, settled: true });
+      await seedStoredRun(page, { locale, settled: true, prefs: viewPrefs(drawn) });
       await page.locator('article[data-pass-id]').first().getByRole('button', { name: OPEN_GUIDE[locale] }).click();
       const layout = page.getByTestId('pass-layout');
       await expect(layout).toBeVisible();
-      await expect(layout.locator('[data-drawing]')).toBeAttached({ timeout: 30_000 });
+      await expect(layout.locator(`[data-drawing="${drawn}"]`)).toBeAttached({ timeout: 30_000 });
       // The compact guide is a sheet over the home, which it makes inert: the sheet is the page.
       return page.locator('[role="dialog"][data-pass-id]');
     }

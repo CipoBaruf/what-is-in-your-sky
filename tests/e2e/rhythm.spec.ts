@@ -8,26 +8,17 @@
  * the home's readings count across its two columns and a sky view's slots among themselves. A block the page has
  * not drawn (no box) is not one.
  *
+ * R139 (FR-FLOW-10 as amended, D-885): the live page and the pass detail are measured in both views a phone opens
+ * them on, the window (a fresh profile) and the dome (a saved `chartView`), and no gap is a known exception: the
+ * dome's empty `picker` slot takes no gap, so its drawing and its hint stand one row apart.
+ *
  *   npx playwright test rhythm --project=chromium
  */
 import { expect, test, type Locator } from '@playwright/test';
-import { FLOW_PAGES, LOCALES, openFlowPage, PHONE, type FlowPage } from './flowPages';
+import { caseName, FLOW_CASES, LOCALES, openFlowPage, PHONE } from './flowPages';
 
 type Rhythm = 'row' | 'group' | 'section';
 const TOKEN: Record<Rhythm, string> = { row: '--space-1', group: '--space-3', section: '--space-5' };
-
-/**
- * The one gap the spec finds that is not this task's to close (R134's Done note, for R135): in the dome view the
- * live page and the pass detail render the `picker` slot around an empty chart slot (the dome has no facing
- * picker), and the empty slot's own `--space-1` stacks on the hint's, so the drawing and the hint stand two rows
- * apart. The fix is `SkyViewLayout`'s — not rendering, or not spacing, a slot the chart left empty — and
- * `components/sky/**` is out of R134's scope. Held to exactly that value, so the fix fails here and takes the entry
- * out with it.
- */
-const KNOWN: readonly { page: FlowPage; above: string; below: string; rows: number }[] = [
-  { page: 'live', above: 'drawing', below: 'hint', rows: 2 },
-  { page: 'detail', above: 'drawing', below: 'hint', rows: 2 },
-];
 
 interface Gap {
   above: string;
@@ -81,17 +72,11 @@ for (const locale of LOCALES) {
   test.describe(`FR-FLOW-10 at 390 × 844, ${locale}`, () => {
     test.use({ viewport: PHONE });
 
-    for (const which of FLOW_PAGES) {
-      test(`the ${which} page keeps three gaps`, async ({ page }) => {
-        const root = await openFlowPage(page, which, locale);
-        const { tokens, gaps: all } = await measure(root);
-        expect(all.length, 'marked blocks on the page').toBeGreaterThan(0);
-        const known = KNOWN.filter((k) => k.page === which);
-        for (const k of known) {
-          const found = all.find((g) => g.above === k.above && g.below === k.below);
-          expect(found?.gap, `${k.above} → ${k.below}, the known gap`).toBeCloseTo(k.rows * tokens.row, 0);
-        }
-        const gaps = all.filter((g) => !known.some((k) => k.above === g.above && k.below === g.below));
+    for (const flow of FLOW_CASES) {
+      test(`the ${caseName(flow)} page keeps three gaps`, async ({ page }) => {
+        const root = await openFlowPage(page, flow.page, locale, flow.view);
+        const { tokens, gaps } = await measure(root);
+        expect(gaps.length, 'marked blocks on the page').toBeGreaterThan(0);
         const wrong = gaps.filter(({ rhythm, gap }) => Math.abs(gap - tokens[rhythm]) > 1).map(({ above, below, rhythm, gap }) => `${above} → ${below}: ${gap.toFixed(1)} px, ${rhythm} is ${String(tokens[rhythm])} px`);
         expect(wrong).toEqual([]);
         // row ≤ group ≤ section, as measured.
