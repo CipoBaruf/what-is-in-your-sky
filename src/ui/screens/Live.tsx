@@ -509,7 +509,9 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
     const instant = openingJump(passes, now, span);
     if (instant === null) return;
     playback.scrub(instant, 'page');
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) playback.play('page');
+    // Without `matchMedia` (jsdom, a server) nothing asked for less motion, as `useMediaQuery` reads it.
+    const reduced = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduced) playback.play('page');
     // D-898: the decision is taken once, on the first render with passes; what it reads is what that render has.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasPasses]);

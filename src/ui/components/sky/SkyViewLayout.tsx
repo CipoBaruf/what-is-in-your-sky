@@ -128,6 +128,9 @@ interface SkyViewContextValue {
 
 const SkyViewContext = createContext<SkyViewContextValue | null>(null);
 
+/** R144 (D-904): what counts as a pick in the opened picker — one of its options, not a control beside them. */
+const PICK = '[role="group"] button, [role="radiogroup"] [role="radio"], [role="listbox"] [role="option"]';
+
 export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = false, readoutIn = 'row', roomKey, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
   const t = useT();
   const mode = useLayoutMode();
@@ -311,11 +314,13 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
    * chart, in the drawing slot), not through the DOM: a tap on the readout's text never reaches the button's own
    * handler, and a pick in the facing row never reaches the picker slot's. The drawing slot is the one element both
    * paths pass — the button is its child, the chart its other child — so the toggle and the close are its handler,
-   * read off the DOM target. The picker slot keeps its own for a part a page puts there itself.
+   * read off the DOM target. The picker slot keeps its own for a part a page puts there itself. A pick is one of
+   * the row's options — a control in its group — so `[ hold up to the sky ]` beside the points opens the screen and
+   * leaves the row as it was (its focus comes back to it, FR-FSC-2).
    */
   const closeOnPick = (event: MouseEvent<HTMLElement>): void => {
     const target = event.target instanceof Element ? event.target : null;
-    if (target?.closest('[data-slot="picker"]') && target.closest('button, [role="radio"], [role="option"], a')) setPickerOpen(false);
+    if (target?.closest('[data-slot="picker"]') && target.closest(PICK)) setPickerOpen(false);
   };
   const onDrawingClick = (event: MouseEvent<HTMLElement>): void => {
     const target = event.target instanceof Element ? event.target : null;

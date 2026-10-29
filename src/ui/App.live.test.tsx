@@ -74,7 +74,8 @@ describe('<App> and the live route', () => {
     expect(screen.getByRole('main')).toContainElement(screen.getByTestId('live-dome'));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Live sky');
     expect(screen.queryByRole('contentinfo')).toBeNull();
-    expect(await screen.findByTestId('status-strip')).toBeInTheDocument();
+    // R144 (FR-TONIGHT-6): on compact the conditions are the context line under the shown time.
+    expect(await screen.findByTestId('live-context')).toBeInTheDocument();
     act(() => {
       // R85 (FR-COMP-7): the compact return control is `[ ← ]`, named "Back".
       screen.getByRole('button', { name: 'Back' }).click();

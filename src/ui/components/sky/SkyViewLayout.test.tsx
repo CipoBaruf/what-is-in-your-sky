@@ -193,13 +193,48 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
     media = stubMatchMedia(COMPACT_PX);
     render(
       <I18nProvider locale="en">
-        <SkyViewLayout data-testid="layout" readoutIn="corner" readout={<p>Facing N</p>} drawing={<div>box</div>} picker={<button type="button">NE</button>} />
+        <SkyViewLayout
+          data-testid="layout"
+          readoutIn="corner"
+          readout={<p>Facing N</p>}
+          drawing={<div>box</div>}
+          picker={
+            <div role="group" aria-label="Facing">
+              <button type="button">NE</button>
+            </div>
+          }
+        />
       </I18nProvider>,
     );
     fireEvent.click(screen.getByTestId('sky-readout-toggle'));
     fireEvent.click(screen.getByRole('button', { name: 'NE' }));
     expect(screen.getByTestId('layout').querySelector('[data-slot="picker"]')).toBeNull();
     expect(screen.getByTestId('sky-readout-toggle')).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('with readoutIn corner a control beside the picker’s options (the screen’s door) leaves the row open', () => {
+    media = stubMatchMedia(COMPACT_PX);
+    render(
+      <I18nProvider locale="en">
+        <SkyViewLayout
+          data-testid="layout"
+          readoutIn="corner"
+          readout={<p>Facing N</p>}
+          drawing={<div>box</div>}
+          picker={
+            <div>
+              <div role="group" aria-label="Facing">
+                <button type="button">NE</button>
+              </div>
+              <button type="button">hold up</button>
+            </div>
+          }
+        />
+      </I18nProvider>,
+    );
+    fireEvent.click(screen.getByTestId('sky-readout-toggle'));
+    fireEvent.click(screen.getByRole('button', { name: 'hold up' }));
+    expect(screen.getByTestId('sky-readout-toggle')).toHaveAttribute('aria-expanded', 'true');
   });
 
   /**
