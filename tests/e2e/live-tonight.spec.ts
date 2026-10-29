@@ -12,7 +12,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { TONIGHT_LEAD_MS } from '../../src/lib/tonightJump';
-import { domeDrawn, NINE_DAYS_ON, pressTrackAt, recomputeEnded, seedStoredRun, shownOnTrack, stripFilled, trackBar } from './liveHelpers';
+import { domeDrawn, NINE_DAYS_ON, recomputeEnded, seedStoredRun, shownOnTrack, stripFilled, trackBar } from './liveHelpers';
 
 const HOUR = 3_600_000;
 /** Twelve hours after the seed's instant: 15:51 UTC, 12:51 at Neuquén — by day, with tonight's passes ahead. */
@@ -39,6 +39,20 @@ async function openLiveAtMidday(page: Page, locale: 'en' | 'es'): Promise<void> 
   });
   await domeDrawn(page);
   await stripFilled(page);
+}
+
+/** A drag on the track from one instant to another: press, move in steps, release (FR-TONIGHT-3, D-909). */
+async function dragTrack(page: Page, from: number, to: number): Promise<void> {
+  const bar = trackBar(page);
+  const span = { start: Number(await bar.getAttribute('aria-valuemin')), end: Number(await bar.getAttribute('aria-valuemax')) };
+  const box = await bar.boundingBox();
+  if (!box) throw new Error('the time track has no box');
+  const x = (t: number): number => box.x + (box.width * (t - span.start)) / (span.end - span.start);
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x(from), y);
+  await page.mouse.down();
+  await page.mouse.move(x(to), y, { steps: 8 });
+  await page.mouse.up();
 }
 
 /** The first visible rise after `now` in the span, read off the track's first tick (`<norad>-<rise ms>`, D-56). */
@@ -90,24 +104,23 @@ for (const locale of ['en', 'es'] as const) {
       for (const id of ['time-stripe', 'step-controls', 'playback-row', 'status-strip', 'next-event', 'live-scrub', 'live-now']) await expect(page.getByTestId(id)).toHaveCount(0);
 
       // FR-TONIGHT-3 (US-42 AC3): a drag on the track to 03:00 pauses there, within the track's pixel, and the hash
-      // carries `t`. A press inside a pass tick's zone lands on that pass's lead instant instead (D-909), so the
-      // press is the first quarter hour from 03:00 that is clear of every tick by the zone's half width.
+      // carries `t`. A drag, not a press: 03:00 is inside the first pass's tick zone (44 px is three hours of the
+      // track), where a press lands on that pass's lead instant (D-909). The drag starts an hour into the span, clear
+      // of every tick, and every move past the slop sets `t` from x.
       const ticks = await trackBar(page).locator('[data-pass-tick]').evaluateAll((els) => els.map((el) => Number((el.getAttribute('data-pass-tick') ?? '').split('-')[1])));
-      const msPerPx = (24 * HOUR) / ((await trackBar(page).boundingBox())?.width ?? 390);
-      let target = THREE_AM;
-      while (ticks.some((rise) => Math.abs(rise - target) < 30 * msPerPx)) target += 15 * 60_000;
-      await pressTrackAt(page, target);
+      const target = THREE_AM;
+      await dragTrack(page, MIDDAY + HOUR, target);
       await page.clock.runFor(600);
       await expect(page.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
       const dragged = await shownOnTrack(page);
       expect(Math.abs(dragged - target), 'within the track’s resolution (24 h in 390 px)').toBeLessThan(10 * 60_000);
-      await expect(page).toHaveURL(/#live\?lat=-38\.93&lon=-67\.99&alt=0&t=2026-09-12T0[5-9]:/);
+      await expect(page).toHaveURL(/#live\?lat=-38\.93&lon=-67\.99&alt=0&t=2026-09-12T0[56]:/);
       await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'ahead');
-      await expect(page.getByTestId('shown-time')).toContainText(/0[2-6]:[0-5]\d/);
+      await expect(page.getByTestId('shown-time')).toContainText(/0[56]:[0-5]\d/);
 
       // FR-TONIGHT-4: `[ next ]` lands a minute before the first rise after `t` — paused, as it was.
       const nextRise = ticks.filter((t) => t > dragged + TONIGHT_LEAD_MS).sort((a, b) => a - b)[0];
-      await page.getByRole('button', { name: words.next, exact: true }).click();
+      await page.getByRole('button', { name: `[ ${words.next} ]`, exact: true }).click();
       await page.clock.runFor(100);
       if (nextRise === undefined) {
         await expect(page.getByTestId('live-tap-next')).toBeDisabled();
@@ -117,14 +130,14 @@ for (const locale of ['en', 'es'] as const) {
       }
 
       // `[ tonight ]` goes to tonight's first visible pass and plays (FR-TONIGHT-4).
-      await page.getByRole('button', { name: words.tonight, exact: true }).click();
+      await page.getByRole('button', { name: `[ ${words.tonight} ]`, exact: true }).click();
       await page.clock.runFor(100);
       await expect(page.getByTestId('live-play')).toHaveAttribute('data-playing', 'true');
       expect(await shownOnTrack(page)).toBeGreaterThanOrEqual(landing);
       expect(await shownOnTrack(page)).toBeLessThan(landing + 5 * 60_000);
 
       // FR-TONIGHT-4 (US-42 AC2): `[ now ]` returns to real time, stopped, the bare route, and the visit stays on now.
-      await page.getByRole('button', { name: words.now, exact: true }).click();
+      await page.getByRole('button', { name: `[ ${words.now} ]`, exact: true }).click();
       await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
       await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'live');
       await expect(page.getByTestId('live-tap-now')).toBeDisabled();
