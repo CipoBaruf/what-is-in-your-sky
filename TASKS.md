@@ -3866,7 +3866,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.48's F
 
 ### Wave 1
 
-- [ ] **R137 — The window turns to the pass when the passes arrive: the moved flag, the one turn, its two tests**
+- [x] **R137 — The window turns to the pass when the passes arrive: the moved flag, the one turn, its two tests**
   - **Lane:** chart
   - **Model:** opus
   - **Review:** opus
@@ -3887,6 +3887,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.48's F
     - The three tests pass; `camera.test.ts` unchanged and green.
     - The Done note names the tests and the readout before and after the passes arrive.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+  - **Note:** done. The moved flag is one subscription to the slot camera (every write reaches its listeners, the turn's own write excepted), so the page's writes count as the reader's too; the turn writes through `followPass` or `facePeak` as the picker does. Tests in `SkyWindow.test.tsx`, "the turn when the passes arrive": `mounted with no passes … once they arrive (en)` and `(es)` (readout `Facing S (180°) · up 35°` / `Hacia el S (180°) · 35° de altura` at −38.93° before, `Following A` / `Siguiendo A` after), `a camera moved before the passes arrive keeps its facing`, `turns at most once`.
 
 - [x] **R138 — The Stars door on a night with no dark band: `tonightsStarsFrom`, `doorLines`'s second line, the two nights**
   - **Lane:** data
