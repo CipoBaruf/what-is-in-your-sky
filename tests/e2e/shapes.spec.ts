@@ -486,6 +486,22 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
           else found.delete(name);
         }
       }
+      // R144 (FR-FLOW-15, FR-TONIGHT-6): on the landscape phone the layout is the rail's scroll box, and a key on the
+      // track (how a spec holds the instant) scrolls the rail to it, so a row above it is clipped under the top row.
+      // What counts is the part of each rail row the layout shows.
+      if (width < WIDE_MIN_PX && width > height) {
+        const layout = await page.getByTestId('live-layout').boundingBox();
+        const drawing = await page.getByTestId('live-layout').locator('[data-slot="drawing"]').boundingBox();
+        if (layout && drawing) {
+          for (const [name, rect] of [...found.entries()]) {
+            if (rect.x < drawing.x + drawing.width) continue;
+            const top = Math.max(rect.y, layout.y);
+            const bottom = Math.min(rect.y + rect.height, layout.y + layout.height);
+            if (bottom - top > 1) found.set(name, { ...rect, y: top, height: bottom - top });
+            else found.delete(name);
+          }
+        }
+      }
       /*
        * R78 (FR-WATCH-6): the one thing that lies over another by design — the scrub bar, inside the box and over
        * its bottom edge. Its rows are taken out of the page's set and held to their own rules: clear of one

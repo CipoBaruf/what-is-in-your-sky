@@ -100,7 +100,7 @@ test.describe('the live page', () => {
     await expect(page.getByTestId('live-place')).toHaveText('−38.93, −67.99');
     await domeDrawn(page);
     // The shown instant is the link's, not the clock's: the headline is the held `HH:MM` with its offset (FR-TONIGHT-7), and FR-TONIGHT-1 never jumps from a link's `t`.
-    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(peak).slice(0, 5)} UTC in \\d+ min$`));
+    await expect(page.getByTestId('shown-time')).toHaveText(new RegExp(`^Shown time: ${hhmmss(peak).slice(0, 5)} UTC (tonight · )?in (<1|\\d+) min$`));
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'ahead');
     // At the peak the ISS is up: the context line names it, once the passes are in.
     await expect(page.getByTestId('context-line')).toHaveAttribute('data-kind', 'up', { timeout: 60_000 });

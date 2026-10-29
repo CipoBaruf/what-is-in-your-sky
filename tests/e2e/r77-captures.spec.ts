@@ -4,6 +4,9 @@
  * `docs/screenshots/r77-live-<state>-<width>-<theme>-<locale>.png`. The Spanish captures also check that the
  * words the task added are the catalog's and not English left in place (FR-I18N-2). The landscape phone and
  * the short wide window are R78's.
+ *
+ * R144 (FR-TONIGHT-6): the compact rows shot here — the state word, `[ scrub ]`, the step row — are gone; the
+ * compact page's record is `r144-captures.spec.ts`, and this file shoots the wide page alone, which R144 leaves.
  */
 import { expect, test } from '@playwright/test';
 import { domeDrawn, enterScrubbing, homeAt, setThemeOnHome, stripFilled, T } from './liveHelpers';
@@ -13,11 +16,11 @@ const WORDS = {
   es: { live: 'en vivo', held: 'fijado', next: 'Pasada siguiente', share: 'Compartir este cielo', moment: 'Compartir este momento' },
 } as const;
 
-for (const width of [390, 1280] as const) {
+for (const width of [1280] as const) {
   for (const theme of ['dark', 'night'] as const) {
     for (const locale of ['en', 'es'] as const) {
       test(`captures ${String(width)} px, ${theme}, ${locale}: watching and scrubbing`, async ({ page }) => {
-        await page.setViewportSize({ width, height: width === 390 ? 844 : 800 });
+        await page.setViewportSize({ width, height: 800 });
         await homeAt(page, T, locale, true);
         if (theme === 'night') await setThemeOnHome(page, locale, 'night');
         await page.getByTestId('live-link').click();

@@ -178,7 +178,7 @@ test.describe('the live page on a landscape phone', () => {
     await expect(page.getByRole('button', { name: 'Compartir este cielo' })).toBeVisible();
     // R144 (FR-TONIGHT-7): the chip and the taps in Spanish.
     await expect(page.getByTestId('shown-chip')).toHaveText('ahora');
-    await expect(page.getByTestId('live-taps').getByRole('button', { name: 'noche', exact: true })).toBeVisible();
+    await expect(page.getByTestId('live-taps').getByRole('button', { name: '[ noche ]', exact: true })).toBeVisible();
     await page.screenshot({ path: 'docs/screenshots/r34-live-844-landscape-dark-es.png' });
   });
 });

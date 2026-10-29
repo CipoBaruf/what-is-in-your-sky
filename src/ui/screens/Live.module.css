@@ -101,6 +101,12 @@
   min-width: 0;
 }
 
+/* On the landscape phone the rail scrolls inside itself (FR-FLOW-15) and has no height to save: the taps row holds
+   the half row its hit boxes overhang (D-913) inside its own box, so nothing spills past the timeline slot. */
+.page[data-shape='landscape-phone'] .tapsRow {
+  padding-block: calc((var(--tap) - var(--row)) / 2);
+}
+
 /* R70 (FR-SPAN-2): the overview's row — one row of body-size cells above the stripe, the width of the block. */
 .overviewRow {
   display: block;
@@ -173,20 +179,26 @@
    as the taps row's are — so the box at 390 × 667 keeps its 280 px; the page's padding under the last row is the
    half row the boxes overhang (below). */
 .page[data-compact='true'] .actions button {
-  padding: calc((var(--tap) - var(--row)) / 2) 0;
-  margin-block: calc(-1 * (var(--tap) - var(--row)) / 2);
+  padding: 0;
   border: 0;
   background: none;
 }
 
-.page[data-compact='true'] .actions button:focus-visible {
+.page[data-compact='true'][data-shape='portrait'] .actions button {
+  padding: calc((var(--tap) - var(--row)) / 2) 0;
+  margin-block: calc(-1 * (var(--tap) - var(--row)) / 2);
+}
+
+.page[data-compact='true'][data-shape='portrait'] .actions button:focus-visible {
   padding-block: 0;
   margin-block: 0;
 }
 
 /* The actions row's and the taps row's hit boxes overhang their text row by half a row (D-246); under the page's last
-   row that overhang would be a scrollbar (FR-LIVE-1), so the compact page's padding under its rows is that half row. */
-.page[data-compact='true'] {
+   row that overhang would be a scrollbar (FR-LIVE-1), so the compact page's padding under its rows is that half row.
+   Portrait alone: on the landscape phone the two rows stand in the rail, which scrolls inside itself (FR-FLOW-15),
+   and the layout keeps the viewport's height less the quarter row it had. */
+.page[data-compact='true'][data-shape='portrait'] {
   padding-bottom: calc(var(--row) / 2);
 }
 

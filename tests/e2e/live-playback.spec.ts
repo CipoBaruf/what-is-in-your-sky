@@ -349,7 +349,7 @@ test('captures in Spanish at 390 px: no English on the page (FR-I18N-2)', async 
   // R144 (FR-TONIGHT-4, FR-TONIGHT-7): the taps row and the headline in Spanish; the held instant three hours on.
   await expect(page.getByRole('group', { name: 'Saltar en el tiempo', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reproducir' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'ahora', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '[ ahora ]', exact: true })).toBeEnabled();
   await expect(page.getByTestId('shown-chip')).toHaveText(/en (2|3) h \d\d min/);
   await expect(page.getByTestId('time-stripe')).toHaveCount(0);
   await page.screenshot({ path: 'docs/screenshots/r33-live-390-dark-es.png' });

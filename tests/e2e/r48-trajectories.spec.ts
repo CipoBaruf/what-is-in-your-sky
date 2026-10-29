@@ -165,7 +165,8 @@ test.describe('the live page on a portrait phone', () => {
     const context = await box(page, 'live-context');
     const chart = await box(page, 'chart-box');
     const readout = await box(page, 'sky-readout-toggle');
-    const legend = await box(page, 'chart-legend');
+    // The list's panel, two tap rows that scroll inside themselves (`live-compact.spec.ts`), not the rows it holds.
+    const legend = await box(page, 'chart-legend-slot');
     const head = await box(page, 'live-list-head');
     const track = await box(page, 'live-track');
     const taps = await box(page, 'live-taps');

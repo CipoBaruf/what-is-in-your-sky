@@ -481,6 +481,12 @@ test.describe('FR-FLOW-15: the turn', () => {
   test('turning 390 × 844 → 844 × 390 → 390 × 844 keeps the camera and the shown instant and opens no screen', async ({ page }) => {
     const layout = await openLive(page, 'en');
     await expect(layout).toHaveAttribute('data-shape', 'column');
+    // R144 (FR-TONIGHT-1): nothing visible is up at the seed's instant, so the page jumps to the next rise and plays;
+    // the pause holds the instant the turn must keep, and the turn keeps it paused (FR-FLOW-15).
+    const play = page.getByTestId('live-play');
+    await expect.poll(() => play.getAttribute('data-playing'), { timeout: 15_000 }).toBe('true');
+    await play.click();
+    await expect(play).toHaveAttribute('data-playing', 'false');
     // A facing of the reader's own, so the turn has something to lose.
     const drawing = await box(layout.locator('[data-slot="drawing"]'));
     await page.mouse.move(drawing.x + drawing.width / 2, drawing.y + drawing.height / 2);
@@ -495,9 +501,10 @@ test.describe('FR-FLOW-15: the turn', () => {
       if (now.join() === before.join()) break;
       before = now;
     }
-    // R144 (FR-TONIGHT-7): the shown instant is the headline's `<time>`; on real time it ticks each second, so the turn is read against its minute.
+    // R144 (FR-TONIGHT-7): the shown instant is the headline's `<time>`, held where the pause left it.
     const instant = page.getByTestId('shown-time').locator('time').first();
-    const shown = ((await instant.getAttribute('datetime')) ?? '').slice(0, 16);
+    const shown = (await instant.getAttribute('datetime')) ?? '';
+    expect(shown).not.toBe('');
     expect(before.every((value) => value !== null)).toBe(true);
     const turns = [
       { viewport: { width: 844, height: 390 }, shape: 'rail' },
@@ -508,8 +515,9 @@ test.describe('FR-FLOW-15: the turn', () => {
       await expect(layout).toHaveAttribute('data-shape', shape);
       await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
       expect(await camera(layout)).toEqual(before);
-      await expect(instant).toHaveAttribute('datetime', new RegExp(`^${shown}`));
-      await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
+      await expect(instant).toHaveAttribute('datetime', shown);
+      await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'ahead');
+      await expect(play).toHaveAttribute('data-playing', 'false');
       await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     }
   });
