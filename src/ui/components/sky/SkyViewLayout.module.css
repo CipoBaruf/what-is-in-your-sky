@@ -109,7 +109,7 @@
 }
 
 /* R133 (FR-FLOW-9, D-850): …unless the chart cuts its own box — the dome's, from the bowl (`ChartFrame`'s
-   `data-bowl`, its height written as `--chart-box-h`) — in which case the slot is as tall as the chart, and the
+   `data-bowl`, its height written as `--chart-bowl-h`) — in which case the slot is as tall as the chart, and the
    picker, the hint and the rows under them stand a row under the bowl rather than under an empty corner of a square.
    `min-height: auto`, not the slot's 0: the chart's box is the slot's content and the slot is never shorter than it.
    A grid shorter than its rows hands an auto row its items' minimum (D-881), and this column can be shorter than its

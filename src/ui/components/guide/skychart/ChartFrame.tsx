@@ -76,7 +76,7 @@ export interface ChartFrameProps {
    * R133 (FR-FLOW-9, D-850): the view is the dome. On a compact portrait `fill`
    * frame the box is cut from the bowl rather than being the square the slot
    * gives it: the frame measures the box's full-bleed width, takes the bowl's
-   * drawn height at that width (`dome/camera.ts` `bowlHeightPx`) plus
+   * drawn height at that width (`dome/bowl.ts` `bowlHeightPx`) plus
    * `DOME_COMPACT_SLACK_PX` above and below, never under FR-LIVE-7's compact
    * floor (`compactBowlBoxPx`), and writes it as `--chart-bowl-h`;
    * `data-bowl` is the stylesheet's key, and `SkyViewLayout.module.css` lets
@@ -339,7 +339,7 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
   // full-bleed width (the frame's and the page padding it breaks out of) is what the zoom is taken from, and
   // it does not depend on the box's height, so the observer never feeds itself; the height is written once per
   // change as `--chart-bowl-h` — a property of its own, so the wide box's effect, whose cleanup runs after this one on
-  // a wide → compact switch, cannot remove it. The rule is `dome/camera.ts` `compactBowlBoxPx`: the bowl plus its
+  // a wide → compact switch, cannot remove it. The rule is `dome/bowl.ts` `compactBowlBoxPx`: the bowl plus its
   // slack over two floors, `COMPACT_BOX_MIN_SHORT_PX` (FR-LIVE-7) and the height at which the width still binds the
   // zoom (a tablet's column, past about 525 px). The scene's own key is the
   // raster it measures (F-60): a box that changes height remounts it through that key and nothing here. A

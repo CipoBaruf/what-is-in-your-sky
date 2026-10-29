@@ -459,10 +459,9 @@
 /* R121 (FR-SKY-2, D-789): the window laid out in the box under the hand camera
    — the live page's and the pass detail's window on a desk. On wide the facing
    readout stands in the box's top-left corner on the sky screen's overlay
-   surface, as the stars page draws it (FR-STAR-3, the same `.cornerStatus`), and the
-   box takes the browser window's shape: on the live page `ChartFrame` measures
-   it with `windowBox` in place of the dome's aspect, so the rules above apply
-   as they are; on the guide, whose box is the square capped at `--chart-size`,
+   surface, as the stars page draws it (FR-STAR-3, the same `.cornerStatus`). On
+   the live page the box is the measured room, as for every view since R133
+   (D-868, `fitBox`), so the rules above apply as they are; on the guide, whose box is the square capped at `--chart-size`,
    the shape is the ratio `ChartFrame` writes as `--chart-box-aspect` — a ratio
    and not a length, since no px may stand in a wide block. Compact is left as
    the dome has it.

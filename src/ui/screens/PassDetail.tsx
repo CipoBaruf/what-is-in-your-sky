@@ -88,7 +88,7 @@ export interface PassDetailProps {
   pass: Pass;
   observer: Observer;
   onClose: () => void;
-  /** R50 (F-6): the wide panel's `[ list ]`; the compact sheet has `← Back`, which closes instead. */
+  /** R50 (F-6): the wide panel's `[ list ]`; the compact sheet's top row has `[ ← ]` (R129), which closes instead. */
   onShowList: () => void;
   /** R50 (F-45): the compact sheet portals out of everything `App` makes inert, so the overlay has to say so here. */
   inert?: boolean;

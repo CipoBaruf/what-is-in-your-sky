@@ -1,21 +1,16 @@
 /** US-5 AC2: the pass list order. `chronological` is the default; `best` ranks by brightness × elevation (`lib/passSort.ts`). Persisted in `wiys:prefs:v1`. */
 export type PassSort = 'chronological' | 'best';
-/** US-6 AC3/AC5 (R13): which sky chart view is shown, the 2D polar chart (default for now, D-68), the ASCII dome (R15) or the sky window (R47, FR-WIN-5). Persisted in `wiys:prefs:v1`. */
-export type ChartView = 'dome' | 'polar' | 'window';
 /**
- * R66 (FR-WIN-5 as amended v1.3.1, V13-8, D-352) narrowed the *preference* to
- * the dome and the polar chart: the window was a mode, entered by the tap that
- * chose it and left by the sky screen's `×`. R121 (FR-WIN-5 and FR-SKY-2 as
- * amended v2.5; D-789) opens it again on wide, where the window is a view laid
- * out in the box under the hand camera; on compact the window is still the
- * screen and the preference still holds these two. A stored `window` is read
- * as the dome below the wide breakpoint by the prefs slice's load
- * (`state/slices/prefs.ts`, `loadChartView`) and by a compact chart drawing a
- * view saved on wide; `localPrefs.ts` round-trips all three values and
- * narrows nothing. R136 (FR-FLOW-14, V26-11, D-876) removes the narrowing:
- * the window is a saved view on compact as on wide, and with nothing saved a
- * phone opens on it (`ui/screens/chartViewDefault.ts`).
+ * US-6 AC3/AC5 (R13): which sky chart view is shown — the 2D polar chart, the
+ * ASCII dome (R15) or the sky window (R47, FR-WIN-5). Persisted in
+ * `wiys:prefs:v1`. R66 (D-352) narrowed the preference to the dome and the
+ * polar chart, R121 (D-789) opened the window again on wide, and R136
+ * (FR-FLOW-14, V26-11, D-876) removed the narrowing: the window is a saved view
+ * on compact as on wide, and with nothing saved a phone opens on the window and
+ * a desk on the dome (`ui/screens/chartViewDefault.ts`). `localPrefs.ts`
+ * round-trips all three values and narrows nothing.
  */
+export type ChartView = 'dome' | 'polar' | 'window';
 /**
  * FR-LEG-7 / D-387 (R71): whether the compact live page's legend panel is
  * open. The legend is behind the `[ list (n) ]` control there, so this is the

@@ -24,8 +24,8 @@ import styles from './GuidePanel.module.css';
  * R50 (FR-DESK-3 as amended, F-6, D-253): below `WIDE_SPLIT_MIN_CELLS` the
  * panel has the right column to itself, because the split there left the
  * guide a column too narrow to read a chart in. `[ list ]` is what the reader
- * gets back to the list with while it does — the compact sheet's `← Back`
- * without the closing, since the pass stays selected and in the hash. Which
+ * gets back to the list with while it does — the compact sheet's `[ ← ]`
+ * (R129) without the closing, since the pass stays selected and in the hash. Which
  * of the two is on the page is the stylesheet's business (`App.module.css`),
  * so this control is always rendered and hidden above that width.
  *
