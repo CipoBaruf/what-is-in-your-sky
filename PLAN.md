@@ -2901,11 +2901,11 @@ The V1-11 rules are unchanged; the gate and the models are v2.6's (D-854). Four 
 | Wave | Task | Lane | Model | Gate | Depends on |
 |---|---|---|---|---|---|
 | 1 | R137 — The window turns to the pass when the passes arrive: the moved flag, the one turn, its two tests | `chart` (`skychart/window/SkyWindow.tsx`, `skychart/window/camera.ts`, their tests) | opus | auto | — |
-| 1 | R138 — The Stars door on a night with no dark band: `tonightsStarsFrom`, `doorLines`'s second line, the two nights | `home` (`lib/tonightStripe.ts` and its test, `screens/home/{doorLines.ts,HomeDoors.tsx}` and their tests) | opus | auto | — |
-| 1 | R139 — The empty slot and the specs: `SkyViewLayout`'s slots, `flowPages.ts`'s `view`, the two specs over the window, the capture specs' waits, `captureIds.test.ts` | `sky` (`components/sky/SkyViewLayout.{tsx,module.css}` and its test, `tests/e2e/{flowPages.ts,rhythm.spec.ts,targets.spec.ts,r76-captures.spec.ts,r84-captures.spec.ts}`, `tests/docs/captureIds.test.ts`) | opus | auto | — |
+| 1 | R138 — The Stars door on a night with no dark band: `tonightsStarsFrom`, `doorLines`'s second line, the two nights | `data` (`lib/tonightStripe.ts` and its test, `screens/home/{doorLines.ts,HomeDoors.tsx}` and their tests) | opus | auto | — |
+| 1 | R139 — The empty slot and the specs: `SkyViewLayout`'s slots, `flowPages.ts`'s `view`, the two specs over the window, the capture specs' waits, `captureIds.test.ts` | `live` (`components/sky/SkyViewLayout.{tsx,module.css}` and its test, `tests/e2e/{flowPages.ts,rhythm.spec.ts,targets.spec.ts,r76-captures.spec.ts,r84-captures.spec.ts}`, `tests/docs/captureIds.test.ts`) | opus | auto | — |
 | 2 | R140 — What v2.6 left behind and 2.6.1: FR-FLOW-17's removals and comments, `package.json` 2.6.1, `docs/RELEASE.md` §19, no tag | `docs`, crossing into the files FR-FLOW-17 names (`src/i18n/**`, `LanguageToggle.tsx`, `Legend.tsx`, `Live.tsx`, `ChartFrame.{tsx,module.css}`, `SkyViewLayout.module.css`'s comment, `model/prefs.ts`, `PassDetail.tsx`, `GuidePanel.tsx`, `tests/e2e/{r85-captures,v1-captures}.spec.ts`, `package.json`, `package-lock.json`, `docs/RELEASE.md`) | opus | auto | R137, R138, R139 |
 
-No two wave-1 tasks name the same file. R139 owns `SkyViewLayout.module.css`; R140 corrects its one comment after R139 merges.
+Lanes are §16.1's: R137 `chart`, R138 `data`, R139 `live`, R140 `docs`, one per lane in each wave. No two wave-1 tasks name the same file. R139 owns `SkyViewLayout.module.css`; R140 corrects its one comment after R139 merges.
 
 **Sessions** (D-854): every row carries `Review: opus`, `Turns: 500`, `Fallback: off`, `Model: opus`. None of the four is hard enough for fable.
 
@@ -2915,6 +2915,6 @@ No two wave-1 tasks name the same file. R139 owns `SkyViewLayout.module.css`; R1
 
 **Decision block** (§16.2): **R137 takes D-888..D-889, R138 D-890..D-891, R139 D-892..D-893, R140 D-894..D-895.**
 
-**What `Done` must say.** R137: the two tests and the cold-load e2e's readout. R138: the two nights' lines in both languages. R139: the gaps and targets in both views, and the ids the new test reads. R140: every removed key, prop and comment by name, and `check:dead` green.
+**What `Done` must say.** R137: the three tests and the readout before and after the passes arrive. R138: the two nights' lines in both languages. R139: the gaps and targets in both views, and the ids the new test reads. R140: every removed key, prop and comment by name, and `check:dead` green.
 
 What every session reads (D-284's rule): SPEC §4.48 (FR-FLOW-1, 4, 5, 10, 11, 13, 14, 16, 17), §9 Phase 2o, §12 V26-15..V26-19; PLAN §2.42 and this section. Each task's `Reads:` adds its own files.
