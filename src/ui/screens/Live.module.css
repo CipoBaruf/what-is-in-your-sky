@@ -25,13 +25,10 @@
   color: var(--fg);
 }
 
-/* R132 (FR-FLOW-4): the portrait phone's column scrolls past its box (the box is the frame's floor, never shorter
-   than wide, FR-COMP-5); the page is as tall as its rows and at least the viewport. The landscape phone keeps the
-   viewport (FR-LIVE-7): the layout fills the body (`fill`) and its rail scrolls inside it. */
-.page[data-column='true'] {
-  height: auto;
-  min-height: 100dvh;
-}
+/* R132 (FR-FLOW-4) → R144 (FR-TONIGHT-9): the portrait phone's column no longer scrolls past its box. The page is
+   one viewport high in every shape; the layout fills the body (`fill`) and measures the room its rows leave the
+   drawing (`SkyViewLayout`, `--sky-drawing-room`), so the box is what the rows leave, up to the bowl's cut or the
+   square (FR-COMP-5: the gaps give, then the box). The landscape phone's rail scrolls inside the layout as before. */
 
 .layout {
   grid-area: body;
@@ -60,8 +57,48 @@
    layout's own gaps are its slots' (`SkyViewLayout.module.css`). */
 .page[data-compact='true'] {
   --live-row-gap: calc(var(--row) / 6);
-  /* `--chart-floor-on` (D-233): the frame's floor is on — the column scrolls, so the box may be as tall as it is wide. */
-  --chart-floor-on: 1;
+  /* `--chart-floor-on` (D-233) → R144 (FR-TONIGHT-9): the frame's own square floor is off again. The square is the
+     layout's rule now (`SkyViewLayout.module.css`, capped at the room the rows leave), and a floor inside the frame
+     would spill the drawing over the track and the taps on a short phone rather than let the box give. */
+  --chart-floor-on: 0;
+}
+
+/* R144 (FR-TONIGHT-6): the compact top row's status — the mark, then the page's name in the accent as the header
+   draws it (`Header.module.css` `.pageName`), the place after. The header draws the name itself when it is given no
+   status; here the status is the mark and the name together. */
+.topStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cell);
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.pageName {
+  color: var(--accent);
+}
+
+/* R144 (FR-TONIGHT-6, D-905): the list panel's head on compact — the hidden-objects toggle, one tap row, over the
+   panel's two rows; it is on the page only while the panel is open, so the closed list takes no gap (D-892). */
+.listHead {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  min-width: 0;
+}
+
+/* R144 (FR-TONIGHT-3, FR-TONIGHT-4): the timeline slot — the track with its label row, then the taps, a row apart
+   (one control group, FR-FLOW-10); each is a marked block for `rhythm.spec.ts`. */
+.timeline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.trackRow,
+.tapsRow {
+  min-width: 0;
 }
 
 /* R70 (FR-SPAN-2): the overview's row — one row of body-size cells above the stripe, the width of the block. */

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { LANDSCAPE_DRAWING_MIN_SHARE } from '../../../lib/layout';
 import { useT } from '../../../i18n/useT';
@@ -43,8 +43,25 @@ import styles from './SkyViewLayout.module.css';
  * reads this layout's context (`useChartSlot`), portals the part there and
  * draws nothing in its frame's own row. The frame's emptied rows are hidden by
  * `SkyViewLayout.module.css` (`ChartFrame.tsx` itself is unchanged, R132).
+ *
+ * **R144 (FR-TONIGHT-6, FR-TONIGHT-9; D-904).** Three things for the compact
+ * live page, which alone asks for them. `timeline` is a slot between the hint
+ * and the action, a group away from each, for the time track and the three
+ * taps (FR-TONIGHT-6's rows 7 and 8); the other pages pass nothing and render
+ * no row. `readoutIn: 'corner'` draws the readout inside the drawing slot's
+ * wrapper, in the box's top-left corner at `--small` on the screen's overlay
+ * surface, as a button (`aria-expanded`) that opens the picker slot under the
+ * drawing; the slot is rendered only while open, a pick or a second tap
+ * closes it, and the column's rows above the drawing lose the readout's row.
+ * In the rail form the readout already stands on the box's corner and the
+ * picker in the rail, so the prop changes nothing there. And a column that
+ * fills its page (`fill`) measures the room its rows leave the drawing —
+ * `--sky-drawing-room` on the layout — so the box is what the rows leave, up
+ * to its own rule (the bowl's cut, or the square), and the page does not
+ * scroll at any compact size (FR-TONIGHT-9, FR-COMP-5's "the gaps give, then
+ * the box").
  */
-export type SkyViewSlotName = 'answer' | 'viewRow' | 'readout' | 'drawing' | 'picker' | 'hint' | 'action' | 'layers' | 'list' | 'foot';
+export type SkyViewSlotName = 'answer' | 'viewRow' | 'readout' | 'drawing' | 'picker' | 'hint' | 'timeline' | 'action' | 'layers' | 'list' | 'foot';
 
 /** D-851: how far a slot stands from the one above it — a row (`--space-1`), a group (`--space-3`) or a section (`--space-5`). */
 export type SkyViewRhythm = 'row' | 'group' | 'section';
@@ -56,14 +73,18 @@ export const SLOT_RHYTHM: Readonly<Record<SkyViewSlotName, SkyViewRhythm>> = {
   drawing: 'row',
   picker: 'row',
   hint: 'row',
+  timeline: 'group',
   action: 'group',
   layers: 'group',
   list: 'section',
   foot: 'section',
 };
 
-/** FR-FLOW-4's order, which is also the DOM order the slots are rendered in. */
-export const SLOT_ORDER: readonly SkyViewSlotName[] = ['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint', 'action', 'layers', 'list', 'foot'];
+/** FR-FLOW-4's order (FR-TONIGHT-6's for `timeline`), which is also the DOM order the slots are rendered in. */
+export const SLOT_ORDER: readonly SkyViewSlotName[] = ['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint', 'timeline', 'action', 'layers', 'list', 'foot'];
+
+/** R144 (D-904): where the readout stands — its own row above the drawing (the default), or the box's top-left corner as the picker's toggle. */
+export type SkyViewReadoutPlace = 'row' | 'corner';
 
 /** The parts a chart hands the layout past the page (`SkyViewChartSlot`, `useChartSlot`). */
 export type ChartSlotName = 'control' | 'readout' | 'picker' | 'list';
@@ -84,6 +105,8 @@ export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, Reac
    * layout's height, never the rail's (FR-WATCH-7); without it the layout grows with its rows and the page scrolls.
    */
   fill?: boolean | undefined;
+  /** R144 (FR-TONIGHT-6, D-904): the readout in the box's corner as the picker's toggle — the compact live page alone passes `'corner'`. */
+  readoutIn?: SkyViewReadoutPlace | undefined;
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
   'data-testid'?: string | undefined;
@@ -99,12 +122,16 @@ interface SkyViewContextValue {
 
 const SkyViewContext = createContext<SkyViewContextValue | null>(null);
 
-export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = false, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
+export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = false, readoutIn = 'row', className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
   const t = useT();
   const mode = useLayoutMode();
   const pageShape = usePageShape();
   // FR-FLOW-4: compact is the column, except the landscape phone, whose box stands beside its rail (FR-WATCH-5).
   const shape: SkyViewShape = mode === 'wide' ? wide : pageShape === 'landscape-phone' ? 'rail' : 'column';
+  // R144 (D-904): the corner readout is the column's device; the rail form has its own corner and its picker row.
+  const corner = readoutIn === 'corner' && shape === 'column';
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerId = useId();
   const [targets, setTargets] = useState<Partial<Record<ChartSlotName, HTMLElement>>>({});
   const register = useCallback((name: ChartSlotName, element: HTMLElement | null) => {
     setTargets((was) => {
@@ -227,18 +254,96 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
     };
   }, [measuresHint, hasHint]);
 
+  /*
+   * R144 (FR-TONIGHT-9, FR-COMP-5): a column that fills its page gives the drawing what its rows leave. The room is
+   * the layout's height less every other slot's height and gap and the drawing's own gap, written as
+   * `--sky-drawing-room`; the stylesheet caps the drawing at it (the bowl's cut and the square both read it), so
+   * the rows under the box stay inside the viewport and the page never scrolls. No answer feeds itself: the other
+   * rows are text, a track and a panel of fixed height, none of which the drawing's height can change. Re-run as
+   * slots come and go (the hint, the picker on tap) and re-measured as any of them resizes (the list's head).
+   */
+  const roomMeasured = shape === 'column' && fill;
+  const slotKey = SLOT_ORDER.filter((name) => slots[name] !== undefined && slots[name] !== null && slots[name] !== false).join(' ');
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root || !roomMeasured || typeof ResizeObserver === 'undefined') return;
+    const measure = (): void => {
+      let taken = 0;
+      for (const slot of root.querySelectorAll<HTMLElement>(':scope > [data-slot]')) {
+        const gap = parseFloat(getComputedStyle(slot).marginTop) || 0;
+        taken += gap + (slot.dataset['slot'] === 'drawing' ? 0 : slot.getBoundingClientRect().height);
+      }
+      const next = `${String(Math.max(0, Math.floor(root.clientHeight - taken)))}px`;
+      if (root.style.getPropertyValue('--sky-drawing-room') !== next) root.style.setProperty('--sky-drawing-room', next);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    for (const slot of root.querySelectorAll<HTMLElement>(':scope > [data-slot]:not([data-slot="drawing"])')) observer.observe(slot);
+    measure();
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--sky-drawing-room');
+    };
+  }, [roomMeasured, slotKey, pickerOpen]);
+
   const labelled = shape === 'rail';
+  const given = (name: SkyViewSlotName): boolean => {
+    const node = slots[name];
+    return node !== undefined && node !== null && node !== false;
+  };
+  /*
+   * R144 (FR-TONIGHT-6, D-904): the readout in the box's corner, a button that opens the picker slot under the
+   * drawing. The chart still portals its readout into the page's `SkyViewChartSlot`, which stands inside the
+   * button; the picker's slot is rendered only while open, so the chart places its facing row there on the tap and
+   * nowhere before it (FR-WATCH-7: nothing but the reader's tap changes the rows). A pick — any control inside the
+   * open row — closes it, as does a second tap on the readout.
+   */
+  const cornerReadout =
+    corner && given('readout') ? (
+      <button
+        type="button"
+        className={styles.cornerReadout}
+        data-slot="readout"
+        data-readout="corner"
+        data-testid="sky-readout-toggle"
+        aria-expanded={pickerOpen}
+        {...(pickerOpen ? { 'aria-controls': pickerId } : {})}
+        onClick={() => {
+          setPickerOpen((was) => !was);
+        }}
+      >
+        <span className={styles.cornerLabel}>{slots.readout}</span>
+      </button>
+    ) : null;
   const slot = (name: SkyViewSlotName): ReactNode => {
     const node = slots[name];
     if (node === undefined || node === null || node === false) return null;
+    if (corner && name === 'readout') return null;
+    if (corner && name === 'picker' && !pickerOpen) return null;
     // D-846: on wide the rail labels the view row and the facing row; the drawing's corner and the column do not.
     const label = labelled && name === 'viewRow' ? { id: viewId, text: t.skyView.view } : labelled && name === 'picker' ? { id: facingId, text: t.skyView.facing } : null;
     // The label is a heading over the row and not the row's group name: the control inside already names itself (`Chart view`, `Facing`).
     // The rail's list scrolls inside itself (FR-DESK-2), so it is a keyboard stop too (axe `scrollable-region-focusable`, FR-A11Y-7).
     const scrolls = name === 'list' && shape === 'rail' && mode === 'wide';
+    const picked = corner && name === 'picker';
     return (
-      <div key={name} className={[styles.slot, styles[name]].join(' ')} data-slot={name} data-rhythm={SLOT_RHYTHM[name]} {...(scrolls ? { tabIndex: 0 } : {})}>
+      <div
+        key={name}
+        className={[styles.slot, styles[name]].join(' ')}
+        data-slot={name}
+        data-rhythm={SLOT_RHYTHM[name]}
+        {...(scrolls ? { tabIndex: 0 } : {})}
+        {...(picked
+          ? {
+              id: pickerId,
+              onClick: (event: MouseEvent<HTMLDivElement>) => {
+                if (event.target instanceof Element && event.target.closest('button, [role="radio"], [role="option"], a')) setPickerOpen(false);
+              },
+            }
+          : {})}
+      >
         {label && <SectionHeading id={label.id}>{label.text}</SectionHeading>}
+        {name === 'drawing' && cornerReadout}
         {node}
       </div>
     );
@@ -246,7 +351,7 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
 
   return (
     <SkyViewContext.Provider value={context}>
-      <div ref={setRoot} className={[styles.layout, className].filter(Boolean).join(' ')} data-shape={shape} data-mode={mode} data-sky-layout="" {...(fill ? { 'data-fill': '' } : {})} {...(testId === undefined ? {} : { 'data-testid': testId })}>
+      <div ref={setRoot} className={[styles.layout, className].filter(Boolean).join(' ')} data-shape={shape} data-mode={mode} data-sky-layout="" {...(fill ? { 'data-fill': '' } : {})} {...(corner ? { 'data-readout': 'corner' } : {})} {...(testId === undefined ? {} : { 'data-testid': testId })}>
         {SLOT_ORDER.map(slot)}
       </div>
     </SkyViewContext.Provider>

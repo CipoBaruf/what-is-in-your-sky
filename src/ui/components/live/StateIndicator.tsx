@@ -25,3 +25,16 @@ export function StateIndicator({ held }: { held: boolean }) {
     </span>
   );
 }
+
+/**
+ * R144 (FR-TONIGHT-6): the mark alone, for the compact live page's top row — the word has left it, the chip beside
+ * the shown time says `now` or the offset (FR-TONIGHT-7), and the mark still runs or stands still with the state.
+ * Its own test id, since `live-indicator` names the row with the word, which the compact inventory no longer holds.
+ */
+export function StateMark({ held }: { held: boolean }) {
+  return (
+    <span className={styles.indicator} data-testid="live-state-mark" data-state={held ? 'held' : 'live'}>
+      <Mark tier="header32" sizePx={INDICATOR_MARK_PX} running={!held} tone={held ? 'warn' : 'accent'} />
+    </span>
+  );
+}
