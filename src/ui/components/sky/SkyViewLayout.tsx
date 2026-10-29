@@ -107,6 +107,12 @@ export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, Reac
   fill?: boolean | undefined;
   /** R144 (FR-TONIGHT-6, D-904): the readout in the box's corner as the picker's toggle — the compact live page alone passes `'corner'`. */
   readoutIn?: SkyViewReadoutPlace | undefined;
+  /**
+   * R144 (FR-TONIGHT-9): a value that changes when a slot's content changes height on the reader's tap — the live
+   * page's list opening — so a `fill` column re-measures the drawing's room in that commit, before the paint, and
+   * not a frame later from the resize observer (the page would scroll for that frame, or keep the open list's room).
+   */
+  roomKey?: string | undefined;
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
   'data-testid'?: string | undefined;
@@ -122,7 +128,7 @@ interface SkyViewContextValue {
 
 const SkyViewContext = createContext<SkyViewContextValue | null>(null);
 
-export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = false, readoutIn = 'row', className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
+export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = false, readoutIn = 'row', roomKey, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
   const t = useT();
   const mode = useLayoutMode();
   const pageShape = usePageShape();
@@ -260,7 +266,10 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
    * `--sky-drawing-room`; the stylesheet caps the drawing at it (the bowl's cut and the square both read it), so
    * the rows under the box stay inside the viewport and the page never scrolls. No answer feeds itself: the other
    * rows are text, a track and a panel of fixed height, none of which the drawing's height can change. Re-run as
-   * slots come and go (the hint, the picker on tap) and re-measured as any of them resizes (the list's head).
+   * slots come and go (the hint, the picker on tap) and re-measured as any of them resizes (the list's head). The
+   * observer answers a frame after the change, which is a frame of scroll, so the commits that change a row's
+   * height measure before the paint too: a slot coming or going, the picker's tap, the page's `roomKey`, and
+   * `targets` — a slot the chart portals into is filled in the commit after it registers (the opened picker).
    */
   const roomMeasured = shape === 'column' && fill;
   const slotKey = SLOT_ORDER.filter((name) => slots[name] !== undefined && slots[name] !== null && slots[name] !== false).join(' ');
@@ -284,7 +293,7 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
       observer.disconnect();
       root.style.removeProperty('--sky-drawing-room');
     };
-  }, [roomMeasured, slotKey, pickerOpen]);
+  }, [roomMeasured, slotKey, pickerOpen, roomKey, targets]);
 
   const labelled = shape === 'rail';
   const given = (name: SkyViewSlotName): boolean => {
@@ -297,7 +306,22 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
    * button; the picker's slot is rendered only while open, so the chart places its facing row there on the tap and
    * nowhere before it (FR-WATCH-7: nothing but the reader's tap changes the rows). A pick — any control inside the
    * open row — closes it, as does a second tap on the readout.
+   *
+   * The chart portals both parts in, and React bubbles a portal's events through the tree that rendered it (the
+   * chart, in the drawing slot), not through the DOM: a tap on the readout's text never reaches the button's own
+   * handler, and a pick in the facing row never reaches the picker slot's. The drawing slot is the one element both
+   * paths pass — the button is its child, the chart its other child — so the toggle and the close are its handler,
+   * read off the DOM target. The picker slot keeps its own for a part a page puts there itself.
    */
+  const closeOnPick = (event: MouseEvent<HTMLElement>): void => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest('[data-slot="picker"]') && target.closest('button, [role="radio"], [role="option"], a')) setPickerOpen(false);
+  };
+  const onDrawingClick = (event: MouseEvent<HTMLElement>): void => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest('button[data-readout="corner"]')) setPickerOpen((was) => !was);
+    else closeOnPick(event);
+  };
   const cornerReadout =
     corner && given('readout') ? (
       <button
@@ -308,9 +332,6 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
         data-testid="sky-readout-toggle"
         aria-expanded={pickerOpen}
         {...(pickerOpen ? { 'aria-controls': pickerId } : {})}
-        onClick={() => {
-          setPickerOpen((was) => !was);
-        }}
       >
         <span className={styles.cornerLabel}>{slots.readout}</span>
       </button>
@@ -333,14 +354,8 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
         data-slot={name}
         data-rhythm={SLOT_RHYTHM[name]}
         {...(scrolls ? { tabIndex: 0 } : {})}
-        {...(picked
-          ? {
-              id: pickerId,
-              onClick: (event: MouseEvent<HTMLDivElement>) => {
-                if (event.target instanceof Element && event.target.closest('button, [role="radio"], [role="option"], a')) setPickerOpen(false);
-              },
-            }
-          : {})}
+        {...(picked ? { id: pickerId, onClick: closeOnPick } : {})}
+        {...(corner && name === 'drawing' ? { onClick: onDrawingClick } : {})}
       >
         {label && <SectionHeading id={label.id}>{label.text}</SectionHeading>}
         {name === 'drawing' && cornerReadout}

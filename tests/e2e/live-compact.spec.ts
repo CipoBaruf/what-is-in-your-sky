@@ -236,7 +236,7 @@ test.describe('the compact live page: one inventory, the box what the rows leave
     const barAfter = await trackBar(page).boundingBox();
     expect(barAfter?.y ?? 0).toBeGreaterThanOrEqual(bar?.y ?? 0);
     // A pick closes it.
-    await picker.getByRole('radio').first().click();
+    await picker.getByRole('button', { name: 'NE', exact: true }).click();
     await expect(picker).toHaveCount(0);
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     const after = await page.getByTestId('chart-box').boundingBox();

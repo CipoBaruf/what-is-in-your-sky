@@ -202,6 +202,44 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
     expect(screen.getByTestId('sky-readout-toggle')).toHaveAttribute('aria-expanded', 'false');
   });
 
+  /**
+   * R144: the chart portals its readout and its facing row in, and React bubbles a portal's events through the chart's
+   * tree, not the DOM's — a tap on the readout's own text and a pick in the portaled row still toggle and close.
+   */
+  it('with readoutIn corner a tap on the chart’s portaled readout opens the picker and a pick in its portaled row closes it', () => {
+    media = stubMatchMedia(COMPACT_PX);
+    function Chart() {
+      const readout = useChartSlot('readout');
+      const picker = useChartSlot('picker');
+      return (
+        <>
+          {readout.place(<p data-placed="readout">Facing N</p>)}
+          {picker.place(
+            <div role="radiogroup" aria-label="Facing">
+              <span role="radio" aria-checked="false" tabIndex={-1}>
+                NE
+              </span>
+            </div>,
+          )}
+        </>
+      );
+    }
+    render(
+      <I18nProvider locale="en">
+        <SkyViewLayout data-testid="layout" readoutIn="corner" readout={<SkyViewChartSlot name="readout" />} drawing={<Chart />} picker={<SkyViewChartSlot name="picker" />} />
+      </I18nProvider>,
+    );
+    const toggle = screen.getByTestId('sky-readout-toggle');
+    fireEvent.click(screen.getByText('Facing N'));
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(screen.getByRole('radio', { name: 'NE' }));
+    expect(screen.getByTestId('layout').querySelector('[data-slot="picker"]')).toBeNull();
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(screen.getByText('Facing N'));
+    fireEvent.click(screen.getByText('Facing N'));
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('with readoutIn corner the rail form keeps its own corner and picker row, and the default row form is unchanged', () => {
     media = stubMatchMedia(844, 390);
     all('en', undefined, { readoutIn: 'corner' });

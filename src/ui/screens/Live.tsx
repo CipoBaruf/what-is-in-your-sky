@@ -904,6 +904,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
       data-testid="live-layout"
       fill
       readoutIn={compact ? 'corner' : 'row'}
+      roomKey={compact ? String(legendOpen) : undefined}
       answer={answer}
       viewRow={viewRow}
       readout={<SkyViewChartSlot name="readout" />}
