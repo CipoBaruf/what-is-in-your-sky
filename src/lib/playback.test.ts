@@ -4,8 +4,10 @@
  * budgets are one rule.
  */
 import { describe, expect, it } from 'vitest';
-import { advance, BODIES_EVERY_MS, DEFAULT_SPEED, due, heldOffset, HIDDEN_EVERY_MS, isSpeed, linkInstant, SPEEDS } from './playback';
+import { advance, advanceAuto, autoSpeed, BODIES_EVERY_MS, DEFAULT_SPEED, due, heldOffset, HIDDEN_EVERY_MS, isSpeed, linkInstant, nightEnd, SPEEDS } from './playback';
+import type { SkyBand } from './timeStripe';
 
+const HOUR_MS = 3_600_000;
 const T = Date.UTC(2026, 8, 11, 9, 30, 0);
 const END = T + 24 * 3_600_000;
 
@@ -63,6 +65,79 @@ describe('heldOffset (R77, FR-WATCH-2)', () => {
     expect(heldOffset(T, T)).toEqual({ sign: '+', hours: 0, minutes: 0 });
     expect(heldOffset(T - 20_000, T)).toEqual({ sign: '+', hours: 0, minutes: 0 });
     expect(heldOffset(T + 31_000, T)).toEqual({ sign: '+', hours: 0, minutes: 1 });
+  });
+});
+
+describe('autoSpeed (R141, FR-TONIGHT-5)', () => {
+  const MIN = 60_000;
+  const rise = T + HOUR_MS;
+  const passes = [{ start: { t: rise }, end: { t: rise + 6 * MIN } }];
+
+  it('is 60× while a visible pass is up, edges included', () => {
+    expect(autoSpeed(rise, passes)).toBe(60);
+    expect(autoSpeed(rise + 3 * MIN, passes)).toBe(60);
+    expect(autoSpeed(rise + 6 * MIN, passes)).toBe(60);
+  });
+
+  it('is 60× with a rise 5 min ahead and 600× at 5 min and one second', () => {
+    expect(autoSpeed(rise - 5 * MIN, passes)).toBe(60);
+    expect(autoSpeed(rise - 5 * MIN - 1000, passes)).toBe(600);
+  });
+
+  it('is 600× in a gap, after the last pass and with none', () => {
+    expect(autoSpeed(T, passes)).toBe(600);
+    expect(autoSpeed(rise + 6 * MIN + 1000, passes)).toBe(600);
+    expect(autoSpeed(T, [])).toBe(600);
+  });
+});
+
+describe('advanceAuto (R141, D-899)', () => {
+  const MIN = 60_000;
+  const rise = T + HOUR_MS;
+  const passes = [{ start: { t: rise }, end: { t: rise + 6 * MIN } }];
+
+  it('runs a gap frame at 600× and a near frame at 60×', () => {
+    expect(advanceAuto(T, 16, passes, END)).toEqual({ t: T + 16 * 600, atEnd: false, speed: 600 });
+    expect(advanceAuto(rise, 16, passes, END)).toEqual({ t: rise + 16 * 60, atEnd: false, speed: 60 });
+  });
+
+  it('splits a frame that crosses the slow-down boundary there, the rest at 60×', () => {
+    const boundary = rise - 5 * MIN;
+    // 1 s of wall: 0.5 s reaches the boundary at 600×, the other 0.5 s runs at 60×.
+    const from = boundary - 300_000;
+    expect(advanceAuto(from, 1000, passes, END)).toEqual({ t: boundary + 500 * 60, atEnd: false, speed: 60 });
+    // However long the frame, the rise is not passed at 600×: ten seconds of wall land 9.5 min of 60× past the boundary.
+    expect(advanceAuto(from, 10_000, passes, END).t).toBe(boundary + 9500 * 60);
+  });
+
+  it('stops at the end, and a boundary past the end splits nothing', () => {
+    expect(advanceAuto(T, 10_000, passes, T + 1000)).toEqual({ t: T + 1000, atEnd: true, speed: 600 });
+  });
+});
+
+describe('nightEnd (R141, FR-TONIGHT-5)', () => {
+  const H = HOUR_MS;
+  const bands: SkyBand[] = [
+    { from: T, to: T + 8 * H, sky: 'day' },
+    { from: T + 8 * H, to: T + 9 * H, sky: 'bright-twilight' },
+    { from: T + 9 * H, to: T + 18 * H, sky: 'dark' },
+    { from: T + 18 * H, to: T + 19 * H, sky: 'bright-twilight' },
+    { from: T + 19 * H, to: T + 30 * H, sky: 'day' },
+  ];
+
+  it('is the end of the night holding t, its twilights included', () => {
+    expect(nightEnd(bands, T + 8 * H)).toBe(T + 19 * H);
+    expect(nightEnd(bands, T + 12 * H)).toBe(T + 19 * H);
+    expect(nightEnd(bands, T + 18 * H + 30 * 60_000)).toBe(T + 19 * H);
+  });
+
+  it('from the day, is the end of the next night', () => {
+    expect(nightEnd(bands, T)).toBe(T + 19 * H);
+  });
+
+  it('is unbounded with no night left in the bands, so the span’s end wins', () => {
+    expect(nightEnd(bands, T + 20 * H)).toBe(Number.POSITIVE_INFINITY);
+    expect(nightEnd([], T)).toBe(Number.POSITIVE_INFINITY);
   });
 });
 

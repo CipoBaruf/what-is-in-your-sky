@@ -1,4 +1,6 @@
-import type { EpochMs } from '../model';
+import type { EpochMs, Pass } from '../model';
+import { AUTO_NEAR_MIN, AUTO_SPEED_GAP, AUTO_SPEED_NEAR } from '../physics/constants';
+import type { SkyBand } from './timeStripe';
 
 /**
  * R33 (FR-LIVE-5, D-81): playback arithmetic, pure and clock-free (D-15).
@@ -31,6 +33,85 @@ export function advance(t: EpochMs, wallDeltaMs: number, speed: Speed, end: Epoc
   const delta = Number.isFinite(wallDeltaMs) && wallDeltaMs > 0 ? wallDeltaMs : 0;
   const next = Math.min(end, t + delta * speed);
   return { t: next, atEnd: next >= end };
+}
+
+/** FR-TONIGHT-5: the two rates the compact page's playback runs at. */
+export type AutoSpeed = typeof AUTO_SPEED_NEAR | typeof AUTO_SPEED_GAP;
+
+const NEAR_MS = AUTO_NEAR_MIN * 60_000;
+
+/**
+ * R141 (FR-TONIGHT-5, D-899): the rate at `t`. `AUTO_SPEED_NEAR` while a
+ * visible pass is up (`start ≤ t ≤ end`) or one rises within `AUTO_NEAR_MIN`
+ * after `t` (inclusive: a rise exactly five minutes ahead is near), the gap
+ * speed otherwise. `passes` are the visible ones (D-897): the caller's list.
+ */
+export function autoSpeed(t: EpochMs, passes: readonly Pick<Pass, 'start' | 'end'>[]): AutoSpeed {
+  for (const pass of passes) {
+    if (pass.start.t <= t && t <= pass.end.t) return AUTO_SPEED_NEAR;
+    if (pass.start.t > t && pass.start.t - t <= NEAR_MS) return AUTO_SPEED_NEAR;
+  }
+  return AUTO_SPEED_GAP;
+}
+
+/** The first instant after `t` where the rate drops to `AUTO_SPEED_NEAR`: the earliest `rise − AUTO_NEAR_MIN` past `t`, or `null`. */
+export function slowDownAfter(t: EpochMs, passes: readonly Pick<Pass, 'start'>[]): EpochMs | null {
+  let best: EpochMs | null = null;
+  for (const pass of passes) {
+    const boundary = pass.start.t - NEAR_MS;
+    if (boundary > t && (best === null || boundary < best)) best = boundary;
+  }
+  return best;
+}
+
+export interface AutoAdvance extends Advance {
+  /** The rate the frame ended at, for the readout. */
+  speed: AutoSpeed;
+}
+
+/**
+ * R141 (FR-TONIGHT-5, D-899): one frame at the automatic speed. The rate is
+ * read at the frame's start; a frame at the gap speed that would cross a
+ * slow-down boundary is split there — the wall time to reach it at 600×, the
+ * rest at 60× — so no rise is passed at 600× however long the frame. Each
+ * piece is `advance`, whose contract is unchanged.
+ */
+export function advanceAuto(t: EpochMs, wallDeltaMs: number, passes: readonly Pick<Pass, 'start' | 'end'>[], end: EpochMs): AutoAdvance {
+  let wall = Number.isFinite(wallDeltaMs) && wallDeltaMs > 0 ? wallDeltaMs : 0;
+  let at = t;
+  let speed = autoSpeed(at, passes);
+  if (speed === AUTO_SPEED_GAP) {
+    const boundary = slowDownAfter(at, passes);
+    if (boundary !== null && boundary < end && at + wall * speed > boundary) {
+      wall -= (boundary - at) / speed;
+      at = boundary;
+      speed = autoSpeed(at, passes);
+    }
+  }
+  return { ...advance(at, wall, speed, end), speed };
+}
+
+/** The nights of a run of bands: each stretch of consecutive non-`day` bands (twilight, dark, twilight) as one interval (D-897). */
+export function nightRuns(bands: readonly SkyBand[]): { from: EpochMs; to: EpochMs }[] {
+  const runs: { from: EpochMs; to: EpochMs }[] = [];
+  for (const band of bands) {
+    if (band.sky === 'day') continue;
+    const last = runs[runs.length - 1];
+    if (last && last.to >= band.from) last.to = Math.max(last.to, band.to);
+    else runs.push({ from: band.from, to: band.to });
+  }
+  return runs;
+}
+
+/**
+ * R141 (FR-TONIGHT-5, D-899): where playback started at `t` stops — the end
+ * of the night holding `t`, or of the next night when `t` is in the day.
+ * `Infinity` when the bands hold no such night (not loaded yet, a polar
+ * summer): the span's end, which the caller takes the minimum with, wins.
+ */
+export function nightEnd(bands: readonly SkyBand[], t: EpochMs): EpochMs {
+  for (const run of nightRuns(bands)) if (run.to > t) return run.to;
+  return Number.POSITIVE_INFINITY;
 }
 
 /**
