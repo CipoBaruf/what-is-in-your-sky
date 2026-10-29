@@ -11,13 +11,13 @@ export const PHONE = { width: 390, height: 844 };
 export const LOCALES = ['en', 'es'] as const;
 export type Locale = (typeof LOCALES)[number];
 export type FlowPage = 'home' | 'live' | 'stars' | 'detail' | 'settings';
-export const FLOW_PAGES: readonly FlowPage[] = ['home', 'live', 'stars', 'detail', 'settings'];
+const FLOW_PAGES: readonly FlowPage[] = ['home', 'live', 'stars', 'detail', 'settings'];
 /**
  * R139 (FR-FLOW-10, FR-FLOW-11 as amended; D-885): the two views a phone opens the live page and the pass detail on —
  * the window, a fresh profile's (FR-FLOW-14: no `chartView` saved), and the dome, a saved `chartView`.
  */
 export type FlowView = 'window' | 'dome';
-export const FLOW_VIEWS: readonly FlowView[] = ['window', 'dome'];
+const FLOW_VIEWS: readonly FlowView[] = ['window', 'dome'];
 /** The cases the two specs run: each page once, and the live page and the pass detail once in each view. */
 export interface FlowCase {
   page: FlowPage;
