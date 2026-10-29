@@ -86,6 +86,19 @@ describe('tonightsStarsFrom (FR-FLOW-1, D-884)', () => {
     expect(tonightsStarsFrom(summer, now + 12 * HOUR_MS)).toBe(twilight);
   });
 
+  it("reads tonight's run only, not a later night's dark band (R138's review)", () => {
+    // Late July near 56° N: tonight still has no dark band, tomorrow night has one.
+    const later: SkyBand = { from: now + 35 * HOUR_MS, to: now + 37 * HOUR_MS, sky: 'dark' };
+    const bands: SkyBand[] = [
+      { from: now - 2 * HOUR_MS, to: twilight.from, sky: 'day' },
+      twilight,
+      { from: twilight.to, to: now + 34 * HOUR_MS, sky: 'day' },
+      { from: now + 34 * HOUR_MS, to: later.from, sky: 'bright-twilight' },
+      later,
+    ];
+    expect(tonightsStarsFrom(bands, now)).toBe(twilight);
+  });
+
   it('with neither band is null', () => {
     const midnightSun: SkyBand[] = [{ from: now - 24 * HOUR_MS, to: now + 24 * HOUR_MS, sky: 'day' }];
     expect(tonightsStarsFrom(midnightSun, now)).toBeNull();

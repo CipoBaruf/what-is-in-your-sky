@@ -4,7 +4,7 @@
  * languages, from the one pure builder the doors draw.
  */
 import { describe, expect, it } from 'vitest';
-import { DOOR_SKY, doorInput, doorPass, local } from '../../../../tests/support/doorFixtures';
+import { DOOR_NIGHT, DOOR_SKY, doorInput, doorPass, local } from '../../../../tests/support/doorFixtures';
 import { en } from '../../../i18n/en';
 import { es } from '../../../i18n/es';
 import { skyStateAt } from '../../../lib/skyBodies';
@@ -70,8 +70,15 @@ describe('doorLines', () => {
     expect(doorLines(doorInput({ now: local(11, 14), sky, dark: null }), en).stars.lines).toEqual(['No full dark · Clear', 'No dark sky tonight']);
   });
 
+  it('reads the second line from `starsFrom`, not from `dark` (D-884)', () => {
+    const twilight = { ...DOOR_NIGHT, from: DOOR_NIGHT.from - 60 * 60_000, sky: 'bright-twilight' as const };
+    const lines = doorLines(doorInput({ now: local(11, 14), sky: { ...DOOR_SKY, brightest: null }, starsFrom: twilight }), en).stars.lines;
+    expect(lines[1]).toBe(doorLines(doorInput({ now: local(11, 14), sky: { ...DOOR_SKY, brightest: null }, dark: twilight, starsFrom: twilight }), en).stars.lines[1]);
+    expect(lines[1]).not.toBe(doorLines(doorInput({ now: local(11, 14), sky: { ...DOOR_SKY, brightest: null } }), en).stars.lines[1]);
+  });
+
   describe('a June night with no dark band (FR-FLOW-1 as amended v2.6.1, D-884)', () => {
-    /** 21 June 2026, 12:00 UTC: the bands as `useTonight` samples them, from the astronomy module. */
+    /** 21 June 2026, 12:00 UTC: the bands from the astronomy module, sampled over the span `tonightStripe.test.ts` uses (a day before to 38 h after). */
     const NOON = Date.UTC(2026, 5, 21, 12, 0);
     const night = (lat: number, lon: number, timeZone: string) => {
       const observer: Observer = { lat, lon, altM: 0, label: `${lat}, ${lon}`, source: 'coords', timeZone };
