@@ -4063,7 +4063,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.49 who
 
 ### Wave 2
 
-- [ ] **R144 — The page: the jump effect and `stayOnNow`, `TimeTaps`, one compact inventory, the readout in the corner, the hidden toggle in the list panel, the compact rows removed, the specs at the compact sizes**
+- [x] **R144 — The page: the jump effect and `stayOnNow`, `TimeTaps`, one compact inventory, the readout in the corner, the hidden toggle in the list panel, the compact rows removed, the specs at the compact sizes**
   - **Lane:** live
   - **Model:** fable
   - **Review:** opus
