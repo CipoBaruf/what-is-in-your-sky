@@ -4036,7 +4036,8 @@ What every session reads, named in each task as "the phase set": SPEC §4.49 who
     - The Done note gives the track's rendered size at 360 and 390 px and its slider values for a fixed `t`.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
 
-- [ ] **R143 — The words: `ShownTime`, `shownTime.ts`, `contextLine.ts`, the taps' and the chip's strings, `controlRows.test.ts`**
+- [x] **R143 — The words: `ShownTime`, `shownTime.ts`, `contextLine.ts`, the taps' and the chip's strings, `controlRows.test.ts`**
+  - *Done:* as written, plus `ContextLine` beside `ShownTime` and the chip at `--small` (D-911, D-912); every form with its cells is in `tests/styles/__snapshots__/controlRows.test.ts.snap` and R143's PR body. The Spanish taps row while playing is 34 cells, one past 360 px (D-912).
   - **Lane:** ui
   - **Model:** opus
   - **Review:** opus
