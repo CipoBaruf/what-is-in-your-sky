@@ -31,7 +31,7 @@ import styles from './SkyViewLayout.module.css';
  *
  * An empty slot renders nothing (D-885): a slot given nothing has no wrapper, and a slot given only a
  * `SkyViewChartSlot` the chart leaves empty (the dome's picker) keeps its wrapper, the chart's portal target, but
- * is not drawn (`SkyViewLayout.module.css`), so it takes no gap. Every rendered slot carries
+ * takes no gap in the column (`SkyViewLayout.module.css`). Every rendered slot carries
  * `data-slot` and `data-rhythm="row" | "group" | "section"` (D-851), and its
  * gap from the slot above is the rhythm's token — `--space-1`, `--space-3`,
  * `--space-5` — so a page cannot add a gap of its own (FR-FLOW-10).
