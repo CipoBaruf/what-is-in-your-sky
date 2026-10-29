@@ -56,8 +56,8 @@ export const TAP_SLOP_PX = 6;
 /** The thumb: a full-height bar this wide, kept inside the track at the two ends. */
 const THUMB_PX = 3;
 /** FR-TONIGHT-3: the arrows step a quarter hour, Page Up and Page Down an hour. */
-export const TRACK_KEY_STEP_MS = 15 * MINUTE_MS;
-export const TRACK_PAGE_STEP_MS = HOUR_MS;
+const TRACK_KEY_STEP_MS = 15 * MINUTE_MS;
+const TRACK_PAGE_STEP_MS = HOUR_MS;
 /** FR-TONIGHT-3: the label row's hours are every third hour of the observer's clock, counted from midnight. */
 const LABEL_EVERY_MS = 3 * HOUR_MS;
 /** A `--small` cell (0.875 of the base cell): what the label row's text is laid out in. */
