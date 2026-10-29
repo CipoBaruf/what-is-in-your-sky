@@ -87,8 +87,8 @@ for (const [label, size, expand] of [
         await page.setViewportSize(size);
         await seedStoredRun(page, { locale, prefs: { theme }, settled: true });
         await expect(page.getByTestId('next-event-label')).toBeVisible();
-        // On wide the Where dome is loaded after the page (D-512); the capture waits for its drawing.
-        if (size.width > 390) await expect(page.getByTestId('where-dome').locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+        // R139 (FR-FLOW-16, D-886): v2.6 took the Where dome off the home; the capture waits for the doors, at every width.
+        await expect(page.getByTestId('home-doors')).toBeVisible({ timeout: 30_000 });
         if (expand) {
           await page.getByTestId('location-summary-change').click();
           await expect(page.getByTestId('location-group')).toBeVisible();
@@ -126,7 +126,7 @@ for (const locale of LOCALES) {
 test('the populated panes at 1280 measured against FR-FIRST-3..11', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await seedStoredRun(page, { settled: true });
-  await expect(page.getByTestId('where-dome').locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('home-doors')).toBeVisible({ timeout: 30_000 });
   await settle(page);
 
   const token = (name: string): Promise<string> =>
@@ -197,16 +197,18 @@ test('the populated panes at 1280 measured against FR-FIRST-3..11', async ({ pag
   const detail = await style('card-detail', '');
   expect([detail.size, detail.colour]).toEqual(['14px', dim]);
 
-  // FR-FIRST-11: the sentence small and dim; the dome the pane's width, square.
+  // FR-FIRST-11: the sentence small and dim.
   const sentence = await style('where-sentence', '');
   expect([sentence.size, sentence.colour]).toEqual(['14px', dim]);
   // …and the readiness and elements lines at --small too.
   for (const line of ['readiness', 'elements-line']) expect((await style(line, '')).size, line).toBe('14px');
-  const [dome, where] = await Promise.all([page.getByTestId('where-dome').boundingBox(), page.getByTestId('reading-where').boundingBox()]);
-  if (!dome || !where) throw new Error('the Where pane is not laid out');
-  // R93 (FR-HOME-3, D-607): the square is the height the pane has left, never wider than the pane.
-  expect(dome.width).toBeLessThanOrEqual(where.width + 1);
-  expect(Math.abs(dome.height - dome.width)).toBeLessThanOrEqual(2);
+  // R139 (D-886): the box that measured the Where dome measures the Where pane, which v2.6 left without one: laid out,
+  // and inside the page's width.
+  const where = await page.getByTestId('reading-where').boundingBox();
+  if (!where) throw new Error('the Where pane is not laid out');
+  expect(where.width).toBeGreaterThan(0);
+  expect(where.height).toBeGreaterThan(0);
+  expect(where.x + where.width).toBeLessThanOrEqual(1280 + 1);
 });
 
 const STORED_RUN = JSON.parse(readFileSync(STORED_RUN_FILE, 'utf8')) as unknown;
