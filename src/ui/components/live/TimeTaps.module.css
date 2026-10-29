@@ -1,0 +1,15 @@
+/* R144 (FR-TONIGHT-4, D-901): one row of four text controls, a cell apart — `▶ [ tonight ] [ next ] [ now ]` —
+   each a `.target` (FR-FLOW-11, primitives.css). The controls are the primitive's; this file places the row and
+   draws nothing on them (D-704). No wrap: the row is 33 cells at most (D-911), inside FR-COMP-4's 36. */
+.taps {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0 var(--cell);
+  min-width: 0;
+}
+
+/* The play glyph stands in one cell of text; its `.target` floor is the hit area round it, centred. */
+.play {
+  text-align: center;
+}

@@ -22,6 +22,16 @@ import type { LayoutMode, LiveState, ScrubPlacement } from '../../lib/layout';
  * landscape phone and the short wide window — in `lib/layout.ts`'s words, the
  * shapes where `scrubPlacement` (D-448) answers `rail` or `overlay` rather than
  * `under`. R77 cut the tall shapes and R78 the short ones (`shortRowsFor`).
+ *
+ * R144 (FR-TONIGHT-6, FR-WATCH-4 as amended v2.7; D-902): on compact the two
+ * states render **one** inventory, in both shapes — the top row, the shown
+ * time with its chip (`headline`), the context line, the box, the time track,
+ * the three taps and `[ list (n) ] Share` — so nothing appears or disappears
+ * when `t` leaves real time. The indicator's word, the next-event block, the
+ * conditions line, the overview, the stripe, the step row, the playback row,
+ * `[ scrub ]`, `[ back to live ]` and the hidden-objects toggle have left the
+ * compact lists (the toggle is the list panel's head now, D-905, and is not a
+ * row). The wide lists are R77's and R78's, unchanged.
  */
 export type { LiveState };
 export type LiveShape = 'tall' | 'short';
@@ -37,7 +47,11 @@ export type LiveRow =
   | 'clock'
   | 'next-event'
   | 'time-row'
+  | 'headline'
+  | 'context'
   | 'box'
+  | 'track'
+  | 'taps'
   | 'conditions'
   | 'overview'
   | 'overview-labels'
@@ -58,7 +72,11 @@ export const LIVE_ROW_TEST_ID: Readonly<Record<LiveRow, string>> = {
   clock: 'live-clock',
   'next-event': 'next-event',
   'time-row': 'time-row',
+  headline: 'live-headline',
+  context: 'live-context',
   box: 'live-dome',
+  track: 'live-track',
+  taps: 'live-taps',
   conditions: 'status-strip',
   overview: 'overview-row',
   'overview-labels': 'overview-labels',
@@ -76,15 +94,18 @@ export const LIVE_ROW_TEST_ID: Readonly<Record<LiveRow, string>> = {
 export const LIVE_ROWS = Object.keys(LIVE_ROW_TEST_ID) as readonly LiveRow[];
 
 /**
+ * R144 (FR-TONIGHT-6, D-902): the compact page's one inventory, in both states and both shapes — on the
+ * landscape phone the same slots stand in its rail (FR-FLOW-15). In reading order: the top row (`[ ← ]`, the
+ * mark, `live`, the place), the shown time with its chip, the context line, the box (the view row, the readout
+ * in its corner, the drawing, the picker on tap and the hint are the frame's and the layout's, `box`), the time
+ * track with its label row, the three taps, and `[ list (n) ] Share`.
+ */
+export const COMPACT_ROWS: readonly LiveRow[] = ['top-row', 'headline', 'context', 'box', 'track', 'taps', 'actions', 'list', 'share'];
+
+/**
  * FR-WATCH-4's inventory, in reading order.
  *
- * - **Compact, watching:** the top row with the indicator on it (V20-8), the
- *   next-event block, the box, the conditions line, the overview with its end
- *   labels, and `[ scrub ] [ list (n) ] Share`.
- * - **Compact, scrubbing:** the held instant in the headline's place, the box,
- *   the conditions line, the overview, the stripe, the step row, the playback
- *   row and `[ back to live ] [ hidden ] Share` — the hidden-objects toggle
- *   joins this row and the list control leaves it (33 cells, V20-8).
+ * - **Compact, both states:** `COMPACT_ROWS` (R144, FR-TONIGHT-6).
  * - **Wide, watching:** the box, and the rail — the indicator with the clock,
  *   the next-event block, the conditions line, the overview and
  *   `[ scrub the night ] [ Hidden ] [ Share this sky ]`.
@@ -94,12 +115,8 @@ export const LIVE_ROWS = Object.keys(LIVE_ROW_TEST_ID) as readonly LiveRow[];
  *   `[ Hidden ] [ Share this moment ]`.
  */
 export function rowsFor(state: LiveState, mode: LayoutMode, shape: LiveShape): readonly LiveRow[] {
-  if (shape === 'short') return shortRowsFor(state, mode);
-  if (mode === 'compact') {
-    return state === 'watching'
-      ? ['top-row', 'indicator', 'next-event', 'box', 'conditions', 'overview', 'overview-labels', 'actions', 'scrub', 'list', 'share']
-      : ['top-row', 'indicator', 'time-row', 'box', 'conditions', 'overview', 'stripe', 'steps', 'playback', 'actions', 'back-to-live', 'hidden', 'share'];
-  }
+  if (mode === 'compact') return COMPACT_ROWS;
+  if (shape === 'short') return shortRowsFor(state);
   return state === 'watching'
     ? ['top-row', 'box', 'indicator', 'clock', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'hidden', 'share']
     : ['top-row', 'box', 'time-row', 'playback', 'overview', 'stripe', 'steps', 'indicator', 'back-to-live', 'conditions', 'actions', 'hidden', 'share'];
@@ -140,22 +157,14 @@ export function jumpFitsOnPath({ lastLineEndPx, spacePx, controlPx, rowPx }: { l
 }
 
 /**
- * R78 (FR-WATCH-5, FR-WATCH-6; D-448): the two short shapes, where the box is
- * the same height in both states and the scrub block goes beside or over it.
- *
- * - **The landscape phone** (compact, `scrubPlacement` answers `rail`): the
- *   dome has the `2fr` column to itself and everything else is the `3fr` rail's.
- *   Watching: the indicator with the clock, the next event, the conditions line,
- *   the overview and `[ scrub ] [ list (n) ] Share`. Scrubbing adds the time
- *   row, the stripe, the step row and the playback row, with `[ back to live ]`
- *   beside the indicator at the rail's head — the rail scrolls inside itself,
- *   and the way out of the state is the one control that must not scroll away.
- *   The indicator is the rail's here and not the top row's: the top row's cells
- *   were V20-8's worry on a portrait phone, and this rail has them to spare.
- * - **The short wide window** (`overlay`): watching is the tall wide page's
- *   inventory. Scrubbing, the bar over the bottom of the drawing is the time row
- *   with the playback controls, the stripe and the step row; the overview stays
- *   in the rail, under the conditions line, in both states.
+ * R78 (FR-WATCH-5, FR-WATCH-6; D-448): the short wide window, where the box is
+ * the same height in both states and the scrub block goes over it (`overlay`):
+ * watching is the tall wide page's inventory. Scrubbing, the bar over the
+ * bottom of the drawing is the time row with the playback controls, the
+ * stripe and the step row; the overview stays in the rail, under the
+ * conditions line, in both states. (The landscape phone's short inventory —
+ * the rail with the indicator and the clock at its head — is gone with R144:
+ * compact is `COMPACT_ROWS` in both shapes, FR-FLOW-15.)
  */
 /**
  * R85 (F-81, FR-CAP-5, D-549): the short wide window's inventory — the legend in the rail, between the rail's
@@ -190,12 +199,7 @@ export function inventoryClip(entryRows: readonly number[], budgetRows: number):
   return { rows, shown, more: entryRows.length - shown };
 }
 
-function shortRowsFor(state: LiveState, mode: LayoutMode): readonly LiveRow[] {
-  if (mode === 'compact') {
-    return state === 'watching'
-      ? ['top-row', 'box', 'indicator', 'clock', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'list', 'share']
-      : ['top-row', 'box', 'indicator', 'back-to-live', 'time-row', 'conditions', 'overview', 'stripe', 'steps', 'playback', 'actions', 'hidden', 'share'];
-  }
+function shortRowsFor(state: LiveState): readonly LiveRow[] {
   return state === 'watching'
     ? ['top-row', 'box', 'indicator', 'clock', 'next-event', 'conditions', 'overview', 'actions', 'scrub', 'hidden', 'share']
     : ['top-row', 'box', 'time-row', 'playback', 'stripe', 'steps', 'indicator', 'back-to-live', 'conditions', 'overview', 'actions', 'hidden', 'share'];
