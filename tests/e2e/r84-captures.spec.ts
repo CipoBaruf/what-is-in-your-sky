@@ -123,7 +123,8 @@ for (const [label, size] of [
       test(`the populated list at ${label}, ${theme}, ${locale}`, async ({ page }) => {
         await page.setViewportSize(size);
         await seedStoredRun(page, { locale, prefs: { theme }, settled: true });
-        if (size.width > 390) await expect(page.getByTestId('where-dome').locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+        // R139 (FR-FLOW-16, D-886): the doors, where this waited for the Where dome v2.6 removed.
+        await expect(page.getByTestId('home-doors')).toBeVisible({ timeout: 30_000 });
         await settle(page);
         if (label === '390') {
           await page.getByTestId('list-column').screenshot({ path: `${CAPTURE_DIR}/r84-list-390-${theme}-${locale}.png` });

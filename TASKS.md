@@ -3912,7 +3912,8 @@ What every session reads, named in each task as "the phase set": SPEC §4.48's F
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
   - **Note:** done. On 21 June 2026 at noon UTC, from the bands `useTonight` samples (`doorLines.test.ts`): at 58° N 4° W (`Europe/London`) the Stars door reads `No full dark · Clear` / `Stars from 23:40` and `Sin oscuridad total · Despejado` / `Estrellas desde las 23:40` (the Sun below −6° from 22:40 UTC to 02:00 UTC, never below −12°); at 70° N 19° E (`Europe/Oslo`) it reads `No full dark · Clear` / `No dark sky tonight` and `Sin oscuridad total · Despejado` / `Sin cielo oscuro esta noche` (day all night). `doorRows.test.ts` gains the twilight line and still fits every line in 34 cells. `tests/support/doorFixtures.ts`'s `doorInput` makes `starsFrom` follow `dark` unless a test sets it.
 
-- [ ] **R139 — The empty slot and the specs: `SkyViewLayout`'s slots, `flowPages.ts`'s `view`, the two specs over the window, the capture specs' waits, `captureIds.test.ts`**
+- [x] **R139 — The empty slot and the specs: `SkyViewLayout`'s slots, `flowPages.ts`'s `view`, the two specs over the window, the capture specs' waits, `captureIds.test.ts`**
+  - **Note:** the empty picker loses its gap in CSS (the wrapper is the chart's portal target, D-892); `r93` and `moon-captures` waited for removed ids too, and `r76` had three measures stale since R102/R105/v2.6, all fixed (D-893); `moon-captures` stays broken past its waits, for R140.
   - **Lane:** live
   - **Model:** opus
   - **Review:** opus

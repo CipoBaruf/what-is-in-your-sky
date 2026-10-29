@@ -48,7 +48,8 @@ async function open(page: Page, width: 390 | 1280, locale: 'en' | 'es'): Promise
   });
   const passes = page.getByRole('region', { name: locale === 'es' ? 'Próximos pases' : 'Upcoming passes' });
   await expect(passes.getByRole('status')).toHaveText(/\d+ (visible passes in 72 h|pases visibles en 72 h)/, { timeout: 60_000 });
-  await expect(page.getByTestId('moon-line')).toBeVisible();
+  // R139 (FR-FLOW-16): the conditions table's Moon row, which R81 put where the Moon line was.
+  await expect(page.getByTestId('moon-row')).toBeVisible();
 }
 
 /** The theme is remembered (US-19), so a capture run has to put it back before the next language starts. */

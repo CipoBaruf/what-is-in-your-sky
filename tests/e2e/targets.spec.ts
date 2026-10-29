@@ -12,7 +12,7 @@
  *   npx playwright test targets --project=chromium
  */
 import { expect, test, type Locator } from '@playwright/test';
-import { FLOW_PAGES, LOCALES, openFlowPage, openSkyScreenPage, PHONE } from './flowPages';
+import { caseName, FLOW_CASES, LOCALES, openFlowPage, openSkyScreenPage, PHONE } from './flowPages';
 
 /** WCAG 2.5.5 (target size, enhanced) and Apple's guideline. */
 const TARGET_PX = 44;
@@ -77,9 +77,9 @@ for (const locale of LOCALES) {
   test.describe(`FR-FLOW-11 at 390 × 844, ${locale}`, () => {
     test.use({ viewport: PHONE });
 
-    for (const which of FLOW_PAGES) {
-      test(`every control on the ${which} page is a 44 × 44 target or a meeting row`, async ({ page }) => {
-        const root = await openFlowPage(page, which, locale);
+    for (const flow of FLOW_CASES) {
+      test(`every control on the ${caseName(flow)} page is a 44 × 44 target or a meeting row`, async ({ page }) => {
+        const root = await openFlowPage(page, flow.page, locale, flow.view);
         expect(await misses(root)).toEqual([]);
       });
     }

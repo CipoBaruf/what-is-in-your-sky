@@ -77,6 +77,14 @@
   display: contents;
 }
 
+/* R139 (FR-FLOW-10 as amended, D-885, D-892): an empty slot is not a block. In the column, a slot that holds only the
+   place for a chart's part, which the chart left empty (the dome has no facing picker), is 0 px tall and takes no gap
+   of its own: the drawing and the hint stand one row apart, as in the window. It stays in the grid as the chart's
+   portal target. A slot with anything else in it is the page's and keeps its gap. */
+.layout[data-shape='column'] > .slot:has(> .chartSlot:empty):not(:has(> :not(.chartSlot))) {
+  margin-top: 0;
+}
+
 /* --- The column: compact, FR-FLOW-4's order top to bottom. --- */
 .layout[data-shape='column'] {
   grid-template-areas:

@@ -25,9 +25,8 @@ for (const [width, height, locale] of [
     test(`home at ${String(width)} × ${String(height)} px, ${theme}, ${locale}`, async ({ page }) => {
       await page.setViewportSize({ width, height });
       await seedStoredRun(page, { locale, prefs: { theme } });
-      await expect(page.getByTestId('next-event-label')).toBeVisible();
-      // The dome is drawn from three panes up (D-607); the two columns at 1024 × 768 have no room for it.
-      if (width >= 1118) await expect(page.getByTestId('where-dome').locator('[data-layer="lines"] pre.glyph-output')).toBeVisible({ timeout: 30_000 });
+      // R139 (FR-FLOW-16, D-886): the doors, where this waited for the next event and the Where dome v2.6 took off the home.
+      await expect(page.getByTestId('home-doors')).toBeVisible({ timeout: 30_000 });
       await page.waitForTimeout(500);
       await page.screenshot({ path: `${CAPTURE_DIR}/r93-home-${String(width)}-${theme}-${locale}.png` });
     });
