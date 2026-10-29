@@ -22,7 +22,7 @@ const THREE_AM = Date.UTC(2026, 8, 12, 6, 0, 0);
 const PHONE = { width: 390, height: 844 };
 const WORDS = {
   en: { tonight: 'tonight', next: 'next', now: 'now', play: 'Play', pause: 'Pause' },
-  es: { tonight: 'noche', next: 'próximo', now: 'ahora', play: 'Reproducir', pause: 'Pausar' },
+  es: { tonight: 'noche', next: 'próximo', now: 'ahora', play: 'Reproducir', pause: 'Pausa' },
 } as const;
 
 async function openLiveAtMidday(page: Page, locale: 'en' | 'es'): Promise<void> {
@@ -88,18 +88,23 @@ for (const locale of ['en', 'es'] as const) {
       for (const id of ['live-headline', 'live-context', 'live-track', 'live-taps', 'live-actions', 'sky-readout-toggle']) await expect(page.getByTestId(id)).toBeVisible();
       for (const id of ['time-stripe', 'step-controls', 'playback-row', 'status-strip', 'next-event', 'live-scrub', 'live-now']) await expect(page.getByTestId(id)).toHaveCount(0);
 
-      // FR-TONIGHT-3 (US-42 AC3): a drag on the track to 03:00 pauses there, within the track's pixel, and the hash carries `t`.
-      await pressTrackAt(page, THREE_AM);
+      // FR-TONIGHT-3 (US-42 AC3): a drag on the track to 03:00 pauses there, within the track's pixel, and the hash
+      // carries `t`. A press inside a pass tick's zone lands on that pass's lead instant instead (D-909), so the
+      // press is the first quarter hour from 03:00 that is clear of every tick by the zone's half width.
+      const ticks = await trackBar(page).locator('[data-pass-tick]').evaluateAll((els) => els.map((el) => Number((el.getAttribute('data-pass-tick') ?? '').split('-')[1])));
+      const msPerPx = (24 * HOUR) / ((await trackBar(page).boundingBox())?.width ?? 390);
+      let target = THREE_AM;
+      while (ticks.some((rise) => Math.abs(rise - target) < 30 * msPerPx)) target += 15 * 60_000;
+      await pressTrackAt(page, target);
       await page.clock.runFor(600);
       await expect(page.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
       const dragged = await shownOnTrack(page);
-      expect(Math.abs(dragged - THREE_AM), 'within the track’s resolution (24 h in 390 px)').toBeLessThan(10 * 60_000);
-      await expect(page).toHaveURL(/#live\?lat=-38\.93&lon=-67\.99&alt=0&t=2026-09-12T0[56]:/);
+      expect(Math.abs(dragged - target), 'within the track’s resolution (24 h in 390 px)').toBeLessThan(10 * 60_000);
+      await expect(page).toHaveURL(/#live\?lat=-38\.93&lon=-67\.99&alt=0&t=2026-09-12T0[5-9]:/);
       await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'ahead');
-      await expect(page.getByTestId('shown-time')).toContainText(/0[23]:[0-5]\d/);
+      await expect(page.getByTestId('shown-time')).toContainText(/0[2-6]:[0-5]\d/);
 
       // FR-TONIGHT-4: `[ next ]` lands a minute before the first rise after `t` — paused, as it was.
-      const ticks = await trackBar(page).locator('[data-pass-tick]').evaluateAll((els) => els.map((el) => Number((el.getAttribute('data-pass-tick') ?? '').split('-')[1])));
       const nextRise = ticks.filter((t) => t > dragged + TONIGHT_LEAD_MS).sort((a, b) => a - b)[0];
       await page.getByRole('button', { name: words.next, exact: true }).click();
       await page.clock.runFor(100);

@@ -168,11 +168,26 @@
 }
 
 /* R48 (FR-COMP-4, D-245): on compact the share action is bracketed text like the toggles beside it, not the boxed
-   button. R85 (D-549): bracketed again, `[ Compartir ]`. */
+   button. R85 (D-549): bracketed again, `[ Compartir ]`. R144 (FR-TONIGHT-9): the row is one text row — each
+   control's 48 px hit box is padding and a matching negative margin (D-246's device, global.css `inline-control`),
+   as the taps row's are — so the box at 390 × 667 keeps its 280 px; the page's padding under the last row is the
+   half row the boxes overhang (below). */
 .page[data-compact='true'] .actions button {
-  padding: 0;
+  padding: calc((var(--tap) - var(--row)) / 2) 0;
+  margin-block: calc(-1 * (var(--tap) - var(--row)) / 2);
   border: 0;
   background: none;
+}
+
+.page[data-compact='true'] .actions button:focus-visible {
+  padding-block: 0;
+  margin-block: 0;
+}
+
+/* The actions row's and the taps row's hit boxes overhang their text row by half a row (D-246); under the page's last
+   row that overhang would be a scrollbar (FR-LIVE-1), so the compact page's padding under its rows is that half row. */
+.page[data-compact='true'] {
+  padding-bottom: calc(var(--row) / 2);
 }
 
 /* …and the share action's own row keeps no gap before an empty confirmation: those two cells were the 37th and 38th. */

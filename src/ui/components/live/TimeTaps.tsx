@@ -8,7 +8,10 @@ import styles from './TimeTaps.module.css';
  * (`[ noche ]`, `[ próximo ]`, `[ ahora ]`): 30 cells in English and 33 in
  * Spanish (D-911), inside FR-COMP-4's 36. The play control is one glyph, `▶`
  * or `‖`, named "Play" / "Pause", padded to a `.target` like the three words
- * (FR-FLOW-11). Pure display: the page owns the instant and decides what each
+ * (FR-FLOW-11) — `inline`, D-246's device: the 48 px hit box is padding and a
+ * matching negative margin, so the row is one text row (24 px) and the box
+ * keeps the rows' worth (FR-TONIGHT-9: 280 px at 390 × 667 asks for it).
+ * Pure display: the page owns the instant and decides what each
  * tap lands on (`lib/tonightJump.ts`, D-897); `next` is disabled at the span's
  * last pass and `now` while `t` is real time, as FR-TONIGHT-4 says.
  * `PlaybackControls` stays for wide.
@@ -33,10 +36,10 @@ export function TimeTaps({ playing, onPlay, onPause, onTonight, onNext, nextDisa
   const t = useT();
   return (
     <div className={styles.taps} role="group" aria-label={t.live.taps} data-testid="live-taps">
-      <TextButton bare label={playing ? t.live.pauseShort : t.live.playShort} aria-label={playing ? t.live.pause : t.live.play} className={`${styles.play} target`} data-testid="live-play" data-playing={playing} onClick={playing ? onPause : onPlay} />
-      <TextButton label={t.live.tap.tonight} className="target" data-testid="live-tap-tonight" onClick={onTonight} />
-      <TextButton label={t.live.tap.next} className="target" data-testid="live-tap-next" disabled={nextDisabled} onClick={onNext} />
-      <TextButton label={t.live.tap.now} className="target" data-testid="live-tap-now" disabled={nowDisabled} onClick={onNow} />
+      <TextButton bare inline label={playing ? t.live.pauseShort : t.live.playShort} aria-label={playing ? t.live.pause : t.live.play} className={`${styles.play} target`} data-testid="live-play" data-playing={playing} onClick={playing ? onPause : onPlay} />
+      <TextButton inline label={t.live.tap.tonight} className="target" data-testid="live-tap-tonight" onClick={onTonight} />
+      <TextButton inline label={t.live.tap.next} className="target" data-testid="live-tap-next" disabled={nextDisabled} onClick={onNext} />
+      <TextButton inline label={t.live.tap.now} className="target" data-testid="live-tap-now" disabled={nowDisabled} onClick={onNow} />
     </div>
   );
 }
