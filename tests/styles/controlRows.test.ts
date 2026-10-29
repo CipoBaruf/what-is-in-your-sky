@@ -782,11 +782,8 @@ describe.each(LOCALES)('FR-HOME-1, FR-FLOW-3: the wide header row and its taglin
  * languages, from the catalogs (`tonightRows.ts` words them at their longest). Each is at most 36 characters
  * (FR-COMP-4, FR-TONIGHT-7's "at most 36 cells in both languages") and inside what 390 and 360 px hold on the widest
  * font, the headline and the context line counted at their own sizes (1.25 rem and `--small`). The snapshot is the
- * strings' snapshot FR-TONIGHT-7 asks for, with the counts the task's Done note lists.
- *
- * The one exception is the taps row while playing in Spanish at 360 px: `❚❚ [ noche ] [ próximo ] [ ahora ]` is 34
- * cells, one past 33. The spec pins the labels and the glyph, so this pins the number, as FR-FLOW-4's view row does;
- * recorded in R143's summary.
+ * strings' snapshot FR-TONIGHT-7 asks for, with the counts the task's Done note lists. No row is exempt: the play
+ * control is one glyph each way (`▶`, `‖`), so the Spanish taps row is 33 cells, what 360 px holds (D-911).
  */
 describe.each(LOCALES)('FR-TONIGHT-4, FR-TONIGHT-7: the taps row, the chip and the context line in %s', (locale: Locale) => {
   const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
@@ -796,12 +793,11 @@ describe.each(LOCALES)('FR-TONIGHT-4, FR-TONIGHT-7: the taps row, the chip and t
   it.each(all.map((row) => [row.name, row] as const))('%s: within 36 cells, and inside 390 and 360 px', (_name, row) => {
     expect(row.text.length, row.text).toBeLessThanOrEqual(BUDGET);
     expect(row.cells, `${row.text} at 390 px`).toBeLessThanOrEqual(rowCellsAt(390));
-    const spanishPause = locale === 'es' && row.text.startsWith(t.live.pauseGlyph);
-    expect(row.cells, `${row.text} at 360 px`).toBeLessThanOrEqual(spanishPause ? 34 : rowCellsAt(360));
+    expect(row.cells, `${row.text} at 360 px`).toBeLessThanOrEqual(rowCellsAt(360));
   });
 
-  it('the taps row is the spec’s: 30 cells in English, 33 in Spanish', () => {
-    expect(tapsRows(t)[0]?.cells).toBe(locale === 'en' ? 30 : 33);
+  it('the taps row is the spec’s: 30 cells in English, 33 in Spanish, playing or not', () => {
+    expect(tapsRows(t).map((row) => row.cells)).toEqual(locale === 'en' ? [30, 30] : [33, 33]);
   });
 
   it('the strings, with their cells', () => {

@@ -1,8 +1,8 @@
 import { useLocale, useT } from '../../../i18n/useT';
 import type { ContextParts } from '../../../lib/contextLine';
-import { chipFor } from '../../../lib/shownTime';
+import { chipFor, type Interval, type ShownChip } from '../../../lib/shownTime';
 import { formatClock, formatCountdown, formatShortClock } from '../../../lib/timeFormat';
-import { shortWeekday, type SkyBand } from '../../../lib/timeStripe';
+import { shortWeekday } from '../../../lib/timeStripe';
 import type { Messages } from '../../../i18n/messages';
 import type { EpochMs, Locale } from '../../../model';
 import { VisuallyHidden } from '../primitives/VisuallyHidden';
@@ -18,41 +18,50 @@ import styles from './ShownTime.module.css';
  * Not a live region: at 600× it changes every frame.
  */
 export interface ShownTimeProps {
-  /** The shown instant; equal to `now` while the page watches real time. */
+  /** The shown instant, `usePlayback`'s `t`. */
   t: EpochMs;
+  /** `usePlayback`'s `realTime`: the page watches real time and holds nothing (D-911). */
+  realTime: boolean;
+  /** The real clock the offset is measured from, `usePlayback`'s `realNow`. */
   now: EpochMs;
-  /** The sky bands the stripe draws (`useSkyBands`, D-170), for tonight's night band. */
-  bands: readonly SkyBand[];
+  /**
+   * The clock the time is read from while on real time, with its seconds: a 1 s clock, so `HH:MM:SS` ticks each
+   * second and not in `realNow`'s 10 s steps. Off real time the time is `t`'s.
+   */
+  clock: EpochMs;
+  /** Tonight's night band, `tonightBand(bands, now)`, worked out once per tick by the page (D-911). */
+  night: Interval | null;
   timeZone: string | null;
 }
 
-/** The headline as one string — the time and the chip — for the time track's value text (FR-TONIGHT-3, D-900). */
-export function shownTimeText(m: Messages, locale: Locale, { t, now, bands, timeZone }: ShownTimeProps): string {
-  const chip = chipFor(t, now, bands, timeZone);
-  const clock = chip.kind === 'now' ? formatClock(t, timeZone, locale) : formatShortClock(t, timeZone, locale, true);
-  return `${clock} ${chipWords(m, locale, chip, t, timeZone)}`;
+/** The time as drawn (with its zone after a space, which the component speaks and does not draw) and the chip. */
+function headline(m: Messages, locale: Locale, { t, realTime, now, clock, night, timeZone }: ShownTimeProps): { time: string; chip: ShownChip; words: string } {
+  const chip = chipFor(t, now, realTime, night, timeZone);
+  const time = chip.kind === 'now' ? formatClock(clock, timeZone, locale) : formatShortClock(t, timeZone, locale, true);
+  const words = m.live.chip(chip.kind === 'now' ? chip : { ...chip, weekday: chip.weekday ? shortWeekday(t, timeZone, locale) : null });
+  return { time, chip, words };
 }
 
-function chipWords(m: Messages, locale: Locale, chip: ReturnType<typeof chipFor>, t: EpochMs, timeZone: string | null): string {
-  return m.live.chip(chip.kind === 'now' ? chip : { ...chip, weekday: chip.weekday ? shortWeekday(t, timeZone, locale) : null });
+/** The headline as one string — the time and the chip — for the time track's value text (FR-TONIGHT-3, D-900). */
+export function shownTimeText(m: Messages, locale: Locale, props: ShownTimeProps): string {
+  const { time, words } = headline(m, locale, props);
+  return `${time} ${words}`;
 }
 
 export function ShownTime(props: ShownTimeProps) {
-  const { t, now, bands, timeZone } = props;
   const m = useT();
   const locale = useLocale();
-  const chip = chipFor(t, now, bands, timeZone);
-  const clock = chip.kind === 'now' ? formatClock(t, timeZone, locale) : formatShortClock(t, timeZone, locale, true);
-  const split = clock.indexOf(' ');
+  const { time, chip, words } = headline(m, locale, props);
+  const split = time.indexOf(' ');
   return (
     <p className={styles.headline} data-testid="shown-time">
       <VisuallyHidden>{`${m.live.shownTime}: `}</VisuallyHidden>
-      <time className={styles.clock} dateTime={new Date(t).toISOString()}>
-        {clock.slice(0, split)}
-        <VisuallyHidden>{clock.slice(split)}</VisuallyHidden>
+      <time className={styles.clock} dateTime={new Date(chip.kind === 'now' ? props.clock : props.t).toISOString()}>
+        {time.slice(0, split)}
+        <VisuallyHidden>{time.slice(split)}</VisuallyHidden>
       </time>{' '}
       <span className={styles.chip} data-kind={chip.kind} data-testid="shown-chip">
-        {chipWords(m, locale, chip, t, timeZone)}
+        {words}
       </span>
     </p>
   );
@@ -73,11 +82,14 @@ export function ContextLine({ parts, timeZone }: ContextLineProps) {
   const locale = useLocale();
   const words = m.live.context;
   if (parts.kind === 'up') {
-    const tail = words.up({ name: '', event: parts.event, point: parts.point, countdown: formatCountdown(parts.inMs) });
+    const tail = words.up({ event: parts.event, point: parts.point, countdown: formatCountdown(parts.inMs) });
     return (
       <p className={styles.context} data-testid="context-line" data-kind="up">
         <span className={styles.name}>{parts.name}</span>
-        <span className={styles.tail}>{tail}</span>
+        <span className={styles.tail}>
+          {words.separator}
+          {tail}
+        </span>
       </p>
     );
   }
@@ -90,7 +102,7 @@ export function ContextLine({ parts, timeZone }: ContextLineProps) {
   }
   const sky = parts.sky ? words.skyWord[parts.sky] : m.live.pending;
   const cloud = words.cloudWord[parts.cloud];
-  const next = parts.nextAt === null ? null : formatShortClock(parts.nextAt, timeZone, locale);
+  const next = formatShortClock(parts.nextAt, timeZone, locale);
   const drawn = words.sky({ sky, cloud, next });
   const spoken = m.live.cloudSpoken[parts.cloud];
   return (

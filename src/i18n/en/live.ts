@@ -2,6 +2,7 @@ import type { CompassPoint } from '../../lib/compass';
 import type { UpEvent } from '../../lib/contextLine';
 import type { Landmark } from '../../lib/landmark';
 import type { MoonFacts } from '../../lib/moonPhrases';
+import { offsetSpan } from '../../lib/playback';
 import type { CloudState, MoonPhaseName, SkyState } from '../../model';
 import type { HiddenReason } from '../messages';
 
@@ -11,14 +12,7 @@ type LandmarkWord = Landmark['word'];
  * R143 (FR-TONIGHT-7): the chip as the catalog takes it — `lib/shownTime.ts`'s `ShownChip` with the weekday spelt
  * out by the component (`shortWeekday`), `null` when the chip carries none.
  */
-export type ChipWords = { kind: 'now' } | { kind: 'ahead' | 'behind'; minutes: number; tonight: boolean; weekday: string | null };
-
-/** `12 min`, `6 h 12 min`, `6 h 05 min`: the hours split off past sixty, as `heldOffset` reads them. */
-const span = (minutes: number): string => {
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return hours === 0 ? `${String(rest)} min` : `${String(hours)} h ${String(rest).padStart(2, '0')} min`;
-};
+export type ChipWords = { kind: 'now' } | { kind: 'ahead' | 'behind'; hours: number; minutes: number; tonight: boolean; weekday: string | null };
 
 /** R143 (FR-TONIGHT-7): the context line's verb for what an up pass does next. */
 const upVerb = { peak: 'peaks', horizon: 'sets', shadow: 'into shadow', twilight: 'fades' } satisfies Record<UpEvent, string>;
@@ -112,8 +106,7 @@ export const live = {
     seeThisPass: 'see this pass',
     seeThisPassName: (name: string) => `See this pass: ${name}, held at its rise`,
     /** R77 (FR-WATCH-2, FR-TRAJ-4): the held instant's offset from real time — `+33 min`, `−1 h 05 min`. */
-    heldOffset: (p: { sign: '+' | '−'; hours: number; minutes: number }) =>
-      p.hours === 0 ? `${p.sign}${String(p.minutes)} min` : `${p.sign}${String(p.hours)} h ${String(p.minutes).padStart(2, '0')} min`,
+    heldOffset: (p: { sign: '+' | '−'; hours: number; minutes: number }) => `${p.sign}${offsetSpan(p)}`,
     /** R77 (FR-WATCH-4, FR-SPAN-2): the watching overview's end labels, one text row under it on compact. */
     overviewStart: 'now',
     overviewEnd: '+24 h',
@@ -209,32 +202,34 @@ export const live = {
     landmarkThrough: (p: { constellation: string }) => `passes through ${p.constellation}`,
     /**
      * R143 (FR-TONIGHT-4, FR-TONIGHT-8): the three taps under the time track, `▶ [ tonight ] [ next ] [ now ]`,
-     * 30 cells. The play control is one glyph each way, named by `play` and `pause`.
+     * 30 cells either way: the play control is `playShort` or `pauseShort`, one glyph and one cell (D-911), named
+     * by `play` and `pause`.
      */
     taps: 'Jump in time',
     tap: { tonight: 'tonight', next: 'next', now: 'now' },
-    playGlyph: '▶',
-    pauseGlyph: '❚❚',
     /**
      * R143 (FR-TONIGHT-7): the chip after the shown time — `now`; `in 6 h 12 min`, `12 min ago`; `tonight · in 6 h
-     * 12 min` inside tonight's night band; `Sat · in 20 h 00 min` when the instant is not today.
+     * 12 min` inside tonight's night band; `Sat · in 20 h 00 min` when the instant is not today; `in <1 min`,
+     * `<1 min ago` under half a minute off real time (D-911).
      */
     chip: (c: ChipWords): string => {
       if (c.kind === 'now') return 'now';
-      const offset = c.kind === 'ahead' ? `in ${span(c.minutes)}` : `${span(c.minutes)} ago`;
+      const offset = c.kind === 'ahead' ? `in ${offsetSpan(c, true)}` : `${offsetSpan(c, true)} ago`;
       const day = c.tonight ? 'tonight' : c.weekday;
       return day === null || day === '' ? offset : `${day} · ${offset}`;
     },
     /** R143 (FR-TONIGHT-7): the shown time's accessible name, the headline's own words. */
     shownTime: 'Shown time',
     /**
-     * R143 (FR-TONIGHT-7): the context line, one line at `--small` within 36 cells. While a pass is up, its name and
-     * what it does next, `Tiangong · peaks SE 0:40`; otherwise the sky, the cloud word and the next rise, `Dark ·
-     * Clear · next 21:47`; or one of the two no-pass sentences (FR-TONIGHT-1, FR-TONIGHT-4).
+     * R143 (FR-TONIGHT-7): the context line, one line at `--small` within 36 cells. While a pass is up, its name,
+     * the separator and what it does next, `Tiangong · peaks SE 0:40` — the name drawn apart, as the part that
+     * gives way; otherwise the sky, the cloud word and the next rise, `Dark · Clear · next 21:47`; or one of the
+     * two no-pass sentences (FR-TONIGHT-1, FR-TONIGHT-4).
      */
     context: {
-      up: (p: { name: string; event: UpEvent; point: CompassPoint; countdown: string }) => `${p.name} · ${upVerb[p.event]} ${p.point} ${p.countdown}`,
-      sky: (p: { sky: string; cloud: string; next: string | null }) => `${p.sky} · ${p.cloud}${p.next === null ? '' : ` · next ${p.next}`}`,
+      separator: ' · ',
+      up: (p: { event: UpEvent; point: CompassPoint; countdown: string }) => `${upVerb[p.event]} ${p.point} ${p.countdown}`,
+      sky: (p: { sky: string; cloud: string; next: string }) => `${p.sky} · ${p.cloud} · next ${p.next}`,
       skyWord: { day: 'Day', 'bright-twilight': 'Twilight', dark: 'Dark' } satisfies Record<SkyState, string>,
       cloudWord: { clear: 'Clear', partly: 'Partly', obscured: 'Cloudy', unknown: 'Unknown' } satisfies Record<CloudState, string>,
       noneSpan: 'No visible pass in 24 h',

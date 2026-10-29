@@ -26,16 +26,17 @@ export interface CountedRow {
 
 const round = (n: number): number => Math.round(n * 100) / 100;
 
-/** Friday 2026-09-11, 21:14:32 in Neuquén; a Saturday instant for the weekday. */
+/** 2026-09-12 00:14:32 UTC: Friday 2026-09-11, 21:14:32 in Salta (UTC−3), so the weekday is `Fri` / `vie`. */
 const T = Date.UTC(2026, 8, 12, 0, 14, 32);
 const ZONE = 'America/Argentina/Salta';
-const LONGEST = 23 * 60 + 59;
+/** 23 h 59 min, `heldOffset`'s hours and minutes. */
+const LONGEST = { hours: 23, minutes: 59 };
 
 export function tapsRows(m: Messages): CountedRow[] {
   const taps = (glyph: string): string => `${glyph} [ ${m.live.tap.tonight} ] [ ${m.live.tap.next} ] [ ${m.live.tap.now} ]`;
   return [
-    { name: 'taps, playing stopped (▶)', text: taps(m.live.playGlyph), cells: taps(m.live.playGlyph).length },
-    { name: 'taps, playing (❚❚)', text: taps(m.live.pauseGlyph), cells: taps(m.live.pauseGlyph).length },
+    { name: 'taps, paused (▶)', text: taps(m.live.playShort), cells: taps(m.live.playShort).length },
+    { name: 'taps, playing (‖)', text: taps(m.live.pauseShort), cells: taps(m.live.pauseShort).length },
   ];
 }
 
@@ -59,7 +60,7 @@ export function chipRows(m: Messages, locale: Locale): CountedRow[] {
   ] as const;
   return [
     row('chip: now', seconds, m.live.chip({ kind: 'now' })),
-    ...forms.map(([name, kind, tonight, day]) => row(`chip: ${name}`, minutes, m.live.chip({ kind, minutes: LONGEST, tonight, weekday: day }))),
+    ...forms.map(([name, kind, tonight, day]) => row(`chip: ${name}`, minutes, m.live.chip({ kind, ...LONGEST, tonight, weekday: day }))),
   ];
 }
 
@@ -69,12 +70,12 @@ export function contextRows(m: Messages): CountedRow[] {
   const longest = <K extends string>(words: Record<K, string>): string => Object.values<string>(words).reduce((a, b) => (b.length > a.length ? b : a));
   const sky = longest<SkyState>(c.skyWord);
   const cloud = longest<CloudState>(c.cloudWord);
-  const up = (['peak', 'horizon', 'shadow', 'twilight'] as const).map((event) => small(`context: up, ${event}`, c.up({ name: 'Tiangong', event, point: 'SSW', countdown: '12:05' })));
+  const tail = (event: 'peak' | 'horizon' | 'shadow' | 'twilight'): string => `${c.separator}${c.up({ event, point: 'SSW', countdown: '12:05' })}`;
+  const up = (['peak', 'horizon', 'shadow', 'twilight'] as const).map((event) => small(`context: up, ${event}`, `Tiangong${tail(event)}`));
   return [
     ...up,
-    small('context: up, the fixed part (the name’s room is the rest)', c.up({ name: '', event: 'shadow', point: 'SSW', countdown: '12:05' })),
-    small('context: sky, next', c.sky({ sky, cloud, next: '21:47' })),
-    small('context: sky, no next', c.sky({ sky, cloud, next: null })),
+    small('context: up, the fixed part (the name’s room is the rest)', tail('shadow')),
+    small('context: sky', c.sky({ sky, cloud, next: '21:47' })),
     small('context: no pass in 24 h', c.noneSpan),
     small('context: no pass tonight', c.noneTonight),
   ];

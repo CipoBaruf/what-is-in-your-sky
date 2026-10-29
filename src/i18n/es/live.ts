@@ -1,4 +1,5 @@
 import type { UpEvent } from '../../lib/contextLine';
+import { offsetSpan } from '../../lib/playback';
 import type { MoonPhaseName } from '../../model';
 import type { live as EnLive } from '../en/live';
 
@@ -16,13 +17,6 @@ const moonPhase = {
   lastQuarter: 'cuarto menguante',
   waningCrescent: 'menguante',
 } satisfies Record<MoonPhaseName, string>;
-
-/** R143 (FR-TONIGHT-7): `12 min`, `6 h 12 min`, `6 h 05 min`, como en inglés. */
-const span = (minutes: number): string => {
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return hours === 0 ? `${String(rest)} min` : `${String(hours)} h ${String(rest).padStart(2, '0')} min`;
-};
 
 /** R143 (FR-TONIGHT-7): qué hace después un pase que está arriba; las mismas palabras que la puerta de satélites (`es/home.ts`). */
 const upVerb: Record<UpEvent, string> = { peak: 'culmina', horizon: 'se pone', shadow: 'a la sombra', twilight: 'se apaga' };
@@ -76,7 +70,7 @@ export const live: typeof EnLive = {
     /** R101 (FR-JUMP-1): `[ ver este pase ]`, que fija la página en la salida del pase que nombra el titular. */
     seeThisPass: 'ver este pase',
     seeThisPassName: (name) => `Ver este pase: ${name}, fijado en su salida`,
-    heldOffset: (p) => (p.hours === 0 ? `${p.sign}${String(p.minutes)} min` : `${p.sign}${String(p.hours)} h ${String(p.minutes).padStart(2, '0')} min`),
+    heldOffset: (p) => `${p.sign}${offsetSpan(p)}`,
     overviewStart: 'ahora',
     overviewEnd: '+24 h',
     share: 'Compartir este cielo',
@@ -127,15 +121,16 @@ export const live: typeof EnLive = {
     landmarkWord,
     landmarkLine: (p) => `pasa ${p.degrees} ${landmarkWord[p.word]} ${p.star}, en ${p.constellation}`,
     landmarkThrough: (p) => `pasa por ${p.constellation}`,
-    /** R143 (FR-TONIGHT-4): `▶ [ noche ] [ próximo ] [ ahora ]`, 33 celdas ("esta noche" en el botón serían 38). */
+    /**
+     * R143 (FR-TONIGHT-4): `▶ [ noche ] [ próximo ] [ ahora ]`, 33 celdas con `▶` o `‖`, lo que caben 360 px ("esta
+     * noche" en el botón serían 38).
+     */
     taps: 'Saltar en el tiempo',
     tap: { tonight: 'noche', next: 'próximo', now: 'ahora' },
-    playGlyph: '▶',
-    pauseGlyph: '❚❚',
-    /** R143 (FR-TONIGHT-7): `ahora`; `en 6 h 12 min`, `hace 12 min`; `esta noche · en 6 h 12 min`; `sáb · en 20 h 00 min`. */
+    /** R143 (FR-TONIGHT-7): `ahora`; `en 6 h 12 min`, `hace 12 min`; `esta noche · en 6 h 12 min`; `sáb · en 20 h 00 min`; `en <1 min`. */
     chip: (c) => {
       if (c.kind === 'now') return 'ahora';
-      const offset = c.kind === 'ahead' ? `en ${span(c.minutes)}` : `hace ${span(c.minutes)}`;
+      const offset = c.kind === 'ahead' ? `en ${offsetSpan(c, true)}` : `hace ${offsetSpan(c, true)}`;
       const day = c.tonight ? 'esta noche' : c.weekday;
       return day === null || day === '' ? offset : `${day} · ${offset}`;
     },
@@ -146,8 +141,9 @@ export const live: typeof EnLive = {
      * "sin datos" (`cloudSpoken`).
      */
     context: {
-      up: (p) => `${p.name} · ${upVerb[p.event]} ${p.point} ${p.countdown}`,
-      sky: (p) => `${p.sky} · ${p.cloud}${p.next === null ? '' : ` · próximo ${p.next}`}`,
+      separator: ' · ',
+      up: (p) => `${upVerb[p.event]} ${p.point} ${p.countdown}`,
+      sky: (p) => `${p.sky} · ${p.cloud} · próximo ${p.next}`,
       skyWord: { day: 'Día', 'bright-twilight': 'Crepúsculo', dark: 'Oscuro' },
       cloudWord: { clear: 'Limpio', partly: 'Nuboso', obscured: 'Tapado', unknown: 'S/d' },
       noneSpan: 'Ningún pase visible en 24 h',

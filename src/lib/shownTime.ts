@@ -1,4 +1,5 @@
 import type { EpochMs } from '../model';
+import { heldOffset } from './playback';
 import { formatDate } from './timeFormat';
 import type { SkyBand } from './timeStripe';
 
@@ -7,10 +8,12 @@ import type { SkyBand } from './timeStripe';
  * otherwise how far `t` is from it, with `tonight` when `t` is inside tonight's night band and the weekday when `t`
  * is not today (FR-WATCH-2's rule). Pure: the words are the catalog's, the weekday's spelling the component's.
  *
- * "Real time" is `t === now`: the page passes the real clock as `t` while nothing is held (`usePlayback`), so a held
- * instant that happens to equal the clock reads `now` too, which is what it shows.
+ * "Real time" is `usePlayback`'s `realTime` flag, passed in, and not `t === now`: a held instant that lands on the
+ * clock is still held, and the page's clocks need not be the same tick (D-911). The offset is `heldOffset`'s
+ * hours and minutes; its side is the sign of `t − now` itself, so a held `t` under half a minute behind is
+ * `behind` and not a rounded `−0` read as ahead.
  */
-export type ShownChip = { kind: 'now' } | { kind: 'ahead' | 'behind'; minutes: number; tonight: boolean; weekday: boolean };
+export type ShownChip = { kind: 'now' } | { kind: 'ahead' | 'behind'; hours: number; minutes: number; tonight: boolean; weekday: boolean };
 
 /** An instant interval, `from` inclusive and `to` exclusive. */
 export interface Interval {
@@ -42,21 +45,20 @@ export function tonightBand(bands: readonly SkyBand[], now: EpochMs): Interval |
   return night;
 }
 
-/** Whether `t` is inside tonight's night band. */
-export function isTonight(t: EpochMs, bands: readonly SkyBand[], now: EpochMs): boolean {
-  const night = tonightBand(bands, now);
+/** Whether `t` is inside `night`, `tonightBand`'s, which the caller works out once and not per frame. */
+export function isTonight(t: EpochMs, night: Interval | null): boolean {
   return night !== null && t >= night.from && t < night.to;
 }
 
 /**
- * The chip for `t`. The offset is in whole minutes, rounded as the held offset is (`heldOffset`). "Tonight" names
- * the night already, so a `t` past midnight inside it carries `tonight` and not the weekday as well: the headline
- * keeps its 36 cells and says one thing about the day.
+ * The chip for `t`. `night` is `tonightBand(bands, now)`, which `ShownTime` works out once per tick and not on
+ * every frame of playback. "Tonight" names the night already, so a `t` past midnight inside it carries `tonight` and not the weekday
+ * as well: the headline keeps its 36 cells and says one thing about the day.
  */
-export function chipFor(t: EpochMs, now: EpochMs, bands: readonly SkyBand[], timeZone: string | null): ShownChip {
-  if (t === now) return { kind: 'now' };
-  const total = Math.round((t - now) / 60_000);
-  const tonight = isTonight(t, bands, now);
+export function chipFor(t: EpochMs, now: EpochMs, realTime: boolean, night: Interval | null, timeZone: string | null): ShownChip {
+  if (realTime) return { kind: 'now' };
+  const { hours, minutes } = heldOffset(t, now);
+  const tonight = isTonight(t, night);
   const today = formatDate(t, timeZone, 'en') === formatDate(now, timeZone, 'en');
-  return { kind: total < 0 ? 'behind' : 'ahead', minutes: Math.abs(total), tonight, weekday: !today && !tonight };
+  return { kind: t < now ? 'behind' : 'ahead', hours, minutes, tonight, weekday: !today && !tonight };
 }
