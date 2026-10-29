@@ -202,6 +202,17 @@ export function heldOffset(t: EpochMs, now: EpochMs): HeldOffset {
 }
 
 /**
+ * R143 (FR-WATCH-2, FR-TONIGHT-7): an offset's size as both catalogs write it — `12 min`, `6 h 12 min`, `6 h 05 min`,
+ * the hours split off past sixty. Locale-neutral, `h` and `min` being the same in English and Spanish, so the held
+ * readout and the chip share it. `lessThanOne` writes a zero as `<1 min` (the chip, D-911); the held readout keeps
+ * `+0 min`.
+ */
+export function offsetSpan({ hours, minutes }: Pick<HeldOffset, 'hours' | 'minutes'>, lessThanOne = false): string {
+  if (hours === 0) return minutes === 0 && lessThanOne ? '<1 min' : `${String(minutes)} min`;
+  return `${String(hours)} h ${String(minutes).padStart(2, '0')} min`;
+}
+
+/**
  * R89 (FR-VISIT-3): the instant a live link opens on. A `t` behind the clock
  * is a moment that has passed, so the page opens at real time — watching, not
  * held — and says so (`null`); a `t` beyond the stripe's span is held at the
