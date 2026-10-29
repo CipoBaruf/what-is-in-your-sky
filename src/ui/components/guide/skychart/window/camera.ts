@@ -322,6 +322,8 @@ export interface HandCamera {
   followPass(passId: string, position: SkyAim): void;
   /** FR-SKY-13 (R127 review): stops following, the camera where it is; the window calls it when the followed pass is no longer offered. */
   unfollow(): void;
+  /** FR-FLOW-14 as amended (D-883): set to an opening state (`openingFacing`'s), its field the peak field; the window's one turn when the passes arrive. */
+  open(state: HandState): void;
 }
 
 export type SkyCamera = SensorCamera | HandCamera;
@@ -381,6 +383,10 @@ export function createHandCamera(initial: HandAim & Pick<HandState, 'follow'>): 
     },
     unfollow: () => {
       apply(unfollow(state));
+    },
+    open: (next) => {
+      peakField = next.fovDeg;
+      apply(next);
     },
   };
 }

@@ -26,7 +26,7 @@ import { useChartSlot } from '../../../sky/SkyViewLayout';
 import { ChartFrame } from '../ChartFrame';
 import { landmarkFor, sceneFor } from '../layers';
 import { arcOf, FACING_OPTIONS, type ChartPass, type HiddenMarker, type SkyChartProps } from '../SkyChart.types';
-import { createHandCamera, facePeak, nextRising, openingFacing, passPosition, SENSOR_CAMERA, ZOOM_KEY_FACTOR, ZOOM_WHEEL_RATE, type SkyCamera } from './camera';
+import { createHandCamera, facePeak, nextRising, openingFacing, passPosition, SENSOR_CAMERA, ZOOM_KEY_FACTOR, ZOOM_WHEEL_RATE, type HandCamera, type SkyCamera } from './camera';
 import { CompassGutter } from './CompassGutter';
 import { FacingPicker, type FacingPickerProps, type FollowTarget } from './FacingPicker';
 import { gutterMarks, passBearing, turnTo, type GutterMark, type GutterPass } from './gutter';
@@ -155,6 +155,9 @@ const NO_PLACEHOLDER: Mat3 = [
 ];
 /** Resampling step along each arc (PLAN §8.3), the polar's. */
 const ARC_STEP_DEG = 2;
+
+/** FR-FLOW-14 as amended (D-883): the hand cameras opened before the passes were known and not yet turned or moved. */
+const UNTURNED = new WeakSet<HandCamera>();
 /** The placeholder's altitude before the first reading: the horizon and the arc's lower part both in view. */
 const PLACEHOLDER_ALT_DEG = 20;
 /** How far inside the top of the box the placeholder keeps the peak, so its marker and key (9 px up) stay in view. */
@@ -441,52 +444,36 @@ export function SkyWindow(props: SkyWindowProps) {
    * rise, else the pole side) — and leaves it there, so the dome and back, and a turn of the phone, find the facing
    * where it was. Neither given, the sensor drives.
    */
-  const [slot] = useState(() => {
-    if (hand === undefined || givenCamera !== undefined) return { camera: null, unturned: false };
+  const [slotCamera] = useState(() => {
+    if (hand === undefined || givenCamera !== undefined) return null;
     const kept = hand.get();
-    // D-883: a camera restored from the slot counts as moved.
-    if (kept !== null) return { camera: kept, unturned: false };
-    if (peak !== null) return { camera: createHandCamera(facePeak(peak, WINDOW_FOV)), unturned: false };
+    if (kept !== null) return kept;
+    if (peak !== null) return createHandCamera(facePeak(peak, WINDOW_FOV));
     const followed = facingPassId === null ? null : (passes.find((pass) => pass.id === facingPassId) ?? null);
-    return { camera: createHandCamera(openingFacing({ latDeg: observer.lat, now }, followed, nextRising(passes, now))), unturned: passes.length === 0 };
+    const opened = createHandCamera(openingFacing({ latDeg: observer.lat, now }, followed, nextRising(passes, now)));
+    if (passes.length === 0) UNTURNED.add(opened);
+    return opened;
   });
-  const slotCamera = slot.camera;
   useEffect(() => {
     if (slotCamera !== null) hand?.keep(slotCamera);
   }, [hand, slotCamera]);
   /*
-   * FR-FLOW-14 as amended (V26-16, D-883): an opening taken before the passes were known turns once, when they
-   * arrive, to the facing the initializer would have given them — unless the camera has moved by then. Every
-   * write to the camera (the drag, the keys, the zoom, the picker, `Following A`, or the page) reaches its
-   * listeners, so one subscription is the "moved" flag; the turn's own write is told apart by `turningRef`.
+   * FR-FLOW-14 as amended (V26-16, D-883): a camera opened before the passes were known is in `UNTURNED` until it
+   * turns or the reader moves it. Every write to the camera reaches its listeners, so one subscription is the
+   * "moved" flag; it unsubscribes at the first write after the turn, and the turn's own write is told apart by
+   * `turningRef`. The set is keyed by the camera, so a remount from the slot (the dome and back, a turn of the
+   * phone) before the passes arrive still turns. The turn itself is below, where the offered pass is known.
    */
-  const unturnedRef = useRef(slot.unturned);
   const turningRef = useRef(false);
   useEffect(() => {
-    if (slotCamera === null || !unturnedRef.current) return;
-    return slotCamera.subscribe(() => {
-      if (!turningRef.current) unturnedRef.current = false;
+    if (slotCamera === null || !UNTURNED.has(slotCamera)) return;
+    const stop = slotCamera.subscribe(() => {
+      if (turningRef.current) return;
+      UNTURNED.delete(slotCamera);
+      stop();
     });
+    return stop;
   }, [slotCamera]);
-  useEffect(() => {
-    if (slotCamera === null || !unturnedRef.current) return;
-    if (passes.length === 0 && peak === null) return;
-    unturnedRef.current = false;
-    turningRef.current = true;
-    try {
-      if (peak !== null) {
-        slotCamera.facePeak(peak, WINDOW_FOV);
-        return;
-      }
-      const followed = facingPassId === null ? null : (passes.find((pass) => pass.id === facingPassId) ?? null);
-      const rising = nextRising(passes, now);
-      // `openingFacing`'s three cases, through the setters the picker uses; with neither, it is the pole side already.
-      if (followed !== null) slotCamera.followPass(followed.id, passPosition(followed, now));
-      else if (rising !== null) slotCamera.facePeak({ azDeg: rising.start.azDeg, elDeg: rising.start.elDeg }, WINDOW_FOV);
-    } finally {
-      turningRef.current = false;
-    }
-  }, [slotCamera, passes, facingPassId, peak, now]);
   const camera: SkyCamera = givenCamera ?? slotCamera ?? SENSOR_CAMERA;
   // FR-SKY-2: the window laid out in the page's box under the hand — the frame cuts the box and corners the readout.
   const inBox = hand !== undefined && camera.source === 'hand' && !onScreen;
@@ -935,6 +922,17 @@ export function SkyWindow(props: SkyWindowProps) {
   const facingPass = inBox && facingPassId !== null && (legendKeys[facingPassId] ?? '') !== '' ? (passes.find((pass) => pass.id === facingPassId) ?? null) : null;
   const followTarget: FollowTarget | null = facingPass === null ? null : { id: facingPass.id, key: legendKeys[facingPass.id] ?? '', position: passPosition(facingPass, now) };
   const following = handState?.follow !== undefined && followTarget !== null;
+  // D-883's one turn: `openingFacing` again, for the passes as they now stand and the pass the window offers.
+  useEffect(() => {
+    if (slotCamera === null || !UNTURNED.has(slotCamera) || passes.length === 0) return;
+    UNTURNED.delete(slotCamera);
+    turningRef.current = true;
+    try {
+      slotCamera.open(openingFacing({ latDeg: observer.lat, now }, facingPass, nextRising(passes, now)));
+    } finally {
+      turningRef.current = false;
+    }
+  }, [slotCamera, passes, facingPass, observer.lat, now]);
   const followId = followTarget?.id;
   const followAz = followTarget?.position.azDeg;
   const followEl = followTarget?.position.elDeg;

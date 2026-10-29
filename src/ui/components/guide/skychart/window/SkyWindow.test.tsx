@@ -1429,7 +1429,7 @@ describe('the turn when the passes arrive (FR-FLOW-14 as amended, D-883)', () =>
   const now = pass.start.t - 60_000;
   const later = { ...pass, id: `${pass.id}-later`, start: { ...pass.start, t: pass.start.t + 3_600_000 } };
   const keys = { [pass.id]: 'A', [later.id]: 'B' };
-  const window = (hand: ReturnType<typeof slot>, passes: (typeof pass)[], id: string | null) => (
+  const view = (hand: ReturnType<typeof slot>, passes: (typeof pass)[], id: string | null) => (
     <SkyWindow passes={passes} observer={observer} highlightedPassId={null} facingPassId={id} now={now} legendKeys={passes.length === 0 ? {} : keys} hand={hand} />
   );
 
@@ -1439,10 +1439,10 @@ describe('the turn when the passes arrive (FR-FLOW-14 as amended, D-883)', () =>
   ] as const) {
     it(`mounted with no passes it faces the pole side, then follows the highlighted pass once they arrive (${locale})`, () => {
       const hand = slot();
-      const { rerender } = render(<I18nProvider locale={locale}>{window(hand, [], null)}</I18nProvider>);
+      const { rerender } = render(<I18nProvider locale={locale}>{view(hand, [], null)}</I18nProvider>);
       expect(screen.getByTestId('window-readout')).toHaveTextContent(facing);
       expect(screen.getByTestId('window-readout')).not.toHaveTextContent(following);
-      rerender(<I18nProvider locale={locale}>{window(hand, [pass], pass.id)}</I18nProvider>);
+      rerender(<I18nProvider locale={locale}>{view(hand, [pass], pass.id)}</I18nProvider>);
       expect(screen.getByTestId('window-readout')).toHaveTextContent(following);
       expect(hand.get()?.get().follow).toBe(pass.id);
     });
@@ -1450,29 +1450,58 @@ describe('the turn when the passes arrive (FR-FLOW-14 as amended, D-883)', () =>
 
   it('a camera moved before the passes arrive keeps its facing', () => {
     const hand = slot();
-    const { container, rerender } = render(window(hand, [], null));
+    const { container, rerender } = render(view(hand, [], null));
     const box = container.querySelector('[tabindex="0"]') as HTMLElement;
     fireEvent.keyDown(box, { key: 'ArrowLeft' });
     const moved = hand.get()?.get();
     const readout = screen.getByTestId('window-readout').textContent;
-    rerender(window(hand, [pass], pass.id));
+    rerender(view(hand, [pass], pass.id));
     expect(hand.get()?.get()).toEqual(moved);
     expect(screen.getByTestId('window-readout').textContent).toBe(readout);
     expect(screen.getByTestId('window-readout')).not.toHaveTextContent('Following');
   });
 
+  it('with the highlighted pass not offered yet (no arc, no key) it faces the next rise and does not follow', () => {
+    const hand = slot();
+    const quiet = (passes: (typeof pass)[], id: string | null) => (
+      <SkyWindow passes={passes} observer={observer} highlightedPassId={null} facingPassId={id} now={now} legendKeys={{}} hand={hand} />
+    );
+    const { rerender } = render(quiet([], null));
+    rerender(quiet([pass], pass.id));
+    expect(hand.get()?.get().follow).toBeUndefined();
+    expect(screen.getByTestId('window-readout')).not.toHaveTextContent('Following');
+    expect(hand.get()?.get().azDeg).toBeCloseTo(pass.start.azDeg, 0);
+  });
+
+  it('with no highlighted pass it turns to the next rise', () => {
+    const hand = slot();
+    const { rerender } = render(view(hand, [], null));
+    rerender(view(hand, [pass], null));
+    expect(hand.get()?.get().follow).toBeUndefined();
+    expect(hand.get()?.get().azDeg).toBeCloseTo(pass.start.azDeg, 0);
+  });
+
+  it('a camera kept in the slot and remounted before the passes arrive still turns', () => {
+    const hand = slot();
+    const first = render(view(hand, [], null));
+    first.unmount();
+    const { rerender } = render(view(hand, [], null));
+    rerender(view(hand, [pass], pass.id));
+    expect(screen.getByTestId('window-readout')).toHaveTextContent('Following A');
+  });
+
   it('turns at most once: after the turn and a move, later pass updates leave the camera where the reader put it', () => {
     const hand = slot();
-    const { container, rerender } = render(window(hand, [], null));
-    rerender(window(hand, [pass], pass.id));
+    const { container, rerender } = render(view(hand, [], null));
+    rerender(view(hand, [pass], pass.id));
     expect(screen.getByTestId('window-readout')).toHaveTextContent('Following A');
     // A key step ends the following (D-797); the camera is now the reader's.
     const box = container.querySelector('[tabindex="0"]') as HTMLElement;
     fireEvent.keyDown(box, { key: 'ArrowLeft' });
     const moved = hand.get()?.get();
     expect(moved?.follow).toBeUndefined();
-    rerender(window(hand, [pass, later], later.id));
-    rerender(window(hand, [later, pass], pass.id));
+    rerender(view(hand, [pass, later], later.id));
+    rerender(view(hand, [later, pass], pass.id));
     expect(hand.get()?.get()).toEqual(moved);
     expect(screen.getByTestId('window-readout')).not.toHaveTextContent('Following');
   });
