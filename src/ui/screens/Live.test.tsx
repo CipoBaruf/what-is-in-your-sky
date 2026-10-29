@@ -396,7 +396,7 @@ describe('<LivePage>', () => {
 
   /**
    * R85 (FR-COMP-7, D-549; F-82): on compact the return control draws `[ ← ]` and is named by the word, in
-   * both languages; wide keeps `← Back`. The actions rows give Share its brackets back and draw the short
+   * both languages, and on wide since R129 (FR-FLOW-3). The actions rows give Share its brackets back and draw the short
    * `[ live ]`, whose accessible name is still the whole phrase.
    */
   it.each([

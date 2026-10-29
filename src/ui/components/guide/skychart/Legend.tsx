@@ -84,15 +84,12 @@ function moonLitFacts(line: BodyLine, t: Messages): { phase: string; illuminatio
  * R85 (F-81, FR-CAP-5, D-549): a page that has only so many rows for the list — the short wide live window's
  * rail — says so here, past the view that renders the legend, as `ChartFrameSlots` does for the frame. Given
  * one, the list is an inventory: every entry a whole number of text rows (a pass two, the tap target; a body
- * line one), a header row naming the three times, the list's `max-height` whatever whole entries `clip` says
- * fit, and a `+n` line under it for the rest. The arithmetic is the page's (`liveRows.ts`, `inventoryClip`).
+ * line one), no header row over the times (D-863: each row names its own), the list's `max-height` whatever
+ * whole entries `clip` says fit, and a `+n` line under it for the rest. The arithmetic is the page's (`liveRows.ts`, `inventoryClip`).
  */
 export interface LegendInventory {
-  /**
-   * The entries' heights in text rows, in list order, and the rows the times header takes above them — one
-   * where it is drawn, none where no listed row has times → the rows the list shows and the entries it leaves out.
-   */
-  clip: (entryRows: readonly number[], headerRows: number) => { rows: number; more: number };
+  /** The entries' heights in text rows, in list order → the rows the list shows and the entries it leaves out. */
+  clip: (entryRows: readonly number[]) => { rows: number; more: number };
   /** The line under a clipped list: `+2 more`. */
   moreLabel: (n: number) => string;
 }
@@ -114,9 +111,7 @@ export function Legend({ rows, bodies, timeZone, highlightedPassId, onActivate, 
   const inventory = useContext(LegendInventoryContext);
   const clipped = inventory !== null && !screen && lead === undefined;
   const entryRows = [...(listed.length === 0 ? [ENTRY_ROWS.line] : listed.map(() => ENTRY_ROWS.row)), ...bodies.map(() => ENTRY_ROWS.line)];
-  // The header row lines its words up over the first timed row's three clock strings, so with no timed row
-  // there is no header and the budget keeps that row for the list.
-  const clip = clipped ? inventory.clip(entryRows, 0) : null;
+  const clip = clipped ? inventory.clip(entryRows) : null;
   // FR-FLOW-13 (D-852, V26-13): each time is written with its word on the row's second line, the zone once after
   // the last — `rise 09:48:24 · peak 09:48:38 · end 09:49:02 UTC`. The separator closes the time before it, and a
   // time never breaks inside, so a narrow column wraps between whole times and no line starts with `·` (D-863). The

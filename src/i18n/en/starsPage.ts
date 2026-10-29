@@ -5,7 +5,7 @@ type Planet = (typeof PLANETS)[number];
 
 /**
  * FR-I18N-2, FR-STAR-10 (R115, D-756, D-777): the words only the stars page
- * draws — the page, `In this field`, the window's star label and readout line
+ * draws — the page, `In this field`, the window's star label and the readout's second line
  * and the screen's control — so the names task (R116) and the screen task
  * (R117) add none. Not merged into `en.ts`: the main chunk carries the
  * catalogs (D-69), and these ride in the `stars` chunk that draws them, read
@@ -45,8 +45,6 @@ export const starsPage = {
   planets: { Mercury: 'Mercury', Venus: 'Venus', Mars: 'Mars', Jupiter: 'Jupiter', Saturn: 'Saturn' } satisfies Record<Planet, string>,
   /** FR-STAR-7: the magnitude beside a mark, `mag 0.6`; the number comes formatted (`formatStarMag`). */
   mag: (p: { mag: string }) => `mag ${p.mag}`,
-  /** FR-FSC-3's form for the page: where the field is centred and how wide it is, "Facing SW (225°) · up 32° · 60° across" — the window's words, then the width (FR-FLOW-5, D-847). */
-  readout: (p: { point: CompassPoint; azimuth: string; altitude: string; across: string }) => `Facing ${p.point} (${p.azimuth}) · up ${p.altitude} · ${p.across} across`,
   /** FR-STAR-7: the readout's second line and a row of the list, "Canopus · mag −0.7 · 28° up · S". */
   named: (p: { name: string; mag: string; altitude: string; point: CompassPoint }) => `${p.name} · mag ${p.mag} · ${p.altitude} up · ${p.point}`,
   /** FR-STAR-5 (R117): the one `--tap` row that opens the sky screen in the stars inventory, where the sensor is. */

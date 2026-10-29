@@ -1,8 +1,8 @@
 /**
  * R62 (FR-FSC-1, FR-FSC-3, FR-LEG-2 as amended v1.3; D-322): the frame as a
  * screen. Everything the frame usually does is layout — rows above and below a
- * box, a column beside it, a square on the guide, an aspect-cut rectangle on
- * the wide live page — and a screen is the one shape that has none of it: the
+ * box, a column beside it, a square on the guide, the measured room on the
+ * wide live page (D-868) — and a screen is the one shape that has none of it: the
  * drawing is the host, and the readout and the legend are drawn over it.
  *
  * jsdom lays nothing out, so "the box is the host's whole size" is asserted the
@@ -50,7 +50,7 @@ function screenFrame(upright = false) {
       overlay={<button type="button">×</button>}
       aside={<p>rail</p>}
       stripe={<p>stripe</p>}
-      boxAspect={2.4 / 2}
+      measureBox
       stacked
     >
       <div data-drawing="window" />
@@ -293,7 +293,7 @@ describe('<ChartFrame> the compact dome’s box (FR-FLOW-9, D-850)', () => {
     boxWidth(390);
     try {
       render(
-        <ChartFrame fill bowl stacked boxAspect={2.4 / 2} status={<p>readout</p>}>
+        <ChartFrame fill bowl stacked measureBox status={<p>readout</p>}>
           <div data-drawing="dome" />
         </ChartFrame>,
       );
@@ -322,7 +322,7 @@ describe('<ChartFrame> the compact dome’s box (FR-FLOW-9, D-850)', () => {
       unmount();
       media.setWidth(WIDE_PX);
       render(
-        <ChartFrame fill bowl stacked boxAspect={2.4 / 2} status={<p>readout</p>}>
+        <ChartFrame fill bowl stacked measureBox status={<p>readout</p>}>
           <div data-drawing="dome" />
         </ChartFrame>,
       );

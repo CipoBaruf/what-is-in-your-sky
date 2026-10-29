@@ -402,7 +402,7 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
 }
 
 export function SkyWindow(props: SkyWindowProps) {
-  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, overlay, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, inventory = 'passes', namedStar: givenNamed = null, onNameStar, className } = props;
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, overlay, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, inventory = 'passes', namedStar: givenNamed = null, onNameStar, className } = props;
   // FR-SKY-1 (R119): the scene through the layer table. The window's row has every layer and no cap, so today this is the page's scene object; the memo keeps it so if the row ever drops one.
   const scene = useMemo(() => sceneFor('window', given), [given]);
   // R127 (FR-SKY-11, D-796): the landmark star this window rings and names, from the page's scene through the table.
@@ -1079,7 +1079,7 @@ export function SkyWindow(props: SkyWindowProps) {
         }
         stripe={stripe}
         handWindow={inBox}
-        {...(boxAspect === undefined ? {} : { boxAspect })}
+        {...(measureBox === undefined ? {} : { measureBox })}
         {...(stacked === undefined ? {} : { stacked })}
         {...(legendOpen === undefined ? {} : { legendOpen })}
         /* D-322: the frame's screen mode is the window's to pass on — it is the window that renders the frame. Cast, like `screen` itself, so this compiles either side of R62. */

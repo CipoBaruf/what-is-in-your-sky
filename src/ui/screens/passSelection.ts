@@ -61,7 +61,7 @@ export interface PassSelection {
 /**
  * R52 (FR-COMP-2, US-20, D-184): the third route, read the way the other two
  * are. `#settings` is a screen, not a state — it survives a reload, the
- * browser's Back leaves it, and `Esc` and the page's own `[ ← Back ]` close it.
+ * browser's Back leaves it, and `Esc` and the top row's `[ ← ]` close it.
  *
  * The route exists at every width (FR-COMP-2); only the compact header links to
  * it (US-20 AC5), which is the header's business and not this file's.

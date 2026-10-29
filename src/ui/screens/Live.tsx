@@ -18,7 +18,6 @@ import { Header } from '../components/common/Header';
 import { ShareButton } from '../components/common/ShareButton';
 import { PageNotices, type LinkNoteKind } from '../components/common/VisitNotice';
 import { ChartFrameSlots, LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
-import { DOME_BOX_ASPECT } from '../components/guide/skychart/dome/bowl';
 import { LegendInventoryContext, type LegendInventory } from '../components/guide/skychart/Legend';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useChartHand } from '../components/guide/skychart/useChartHand';
@@ -680,8 +679,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
   /*
    * R85 (F-81, FR-CAP-5, D-549): on the short wide window the legend between the rail's head and foot is an
    * inventory that ends on a whole entry, with a `+n` line — `liveRows.ts`'s `inventoryClip` over what the rail
-   * leaves it, measured here in whole text rows. `headerRows` is the legend's answer to whether it draws the
-   * times header, which takes one of those rows; it draws none when no listed row has times. R132 (D-864): the
+   * leaves it, measured here in whole text rows; no times header takes one of them (D-863). R132 (D-864): the
    * legend is the layout's `list` slot now, so the budget is that slot's height less the conditions line under it.
    */
   const inventoryRows = useInventoryRows(!compact && placement === 'overlay' && !screenOpen, domeRef);
@@ -689,7 +687,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
     () =>
       inventoryRows === null
         ? null
-        : { clip: (entryRows, headerRows) => inventoryClip(entryRows, Math.max(0, inventoryRows - headerRows)), moreLabel: t.live.more },
+        : { clip: (entryRows) => inventoryClip(entryRows, inventoryRows), moreLabel: t.live.more },
     [inventoryRows, t],
   );
   const top = <TopRow place={observer.label} indicator={compact && placement !== 'rail' ? indicator : null} screenOpen={screenOpen} onLeave={onLeave} />;
@@ -780,7 +778,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
         <div className={styles.dome} data-testid="live-dome" data-stripe-under={false} ref={domeRef}>
           {/* R77 (FR-WATCH-3, FR-MOON-3 as amended v2.0): `moonPhase` is the compact page's alone — the phase and the illumination
               its conditions line gave up. The wide page leaves the legend's plain Moon line. R61 (D-312) → R132: on wide the box is
-              cut inside the drawing slot (`stacked`, `boxAspect`); the rail is the layout's, not the frame's. */}
+              cut inside the drawing slot (`stacked`, `measureBox`); the rail is the layout's, not the frame's. */}
           <ChartFrameSlots.Provider value={{ onBoxSpace, ...(overlaid && scrubBlock !== null ? { bottomOverlay: scrubBlock } : {}) }}>
             <LegendInventoryContext.Provider value={legendInventory}>
               <SkyChart
@@ -799,7 +797,7 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
                 chartHand={chartHand}
                 scene={scene}
                 facingPassId={highlighted?.id ?? null}
-                {...(compact ? {} : { stacked: true, boxAspect: DOME_BOX_ASPECT })}
+                {...(compact ? {} : { stacked: true, measureBox: true })}
               />
             </LegendInventoryContext.Provider>
           </ChartFrameSlots.Provider>

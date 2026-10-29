@@ -96,7 +96,7 @@ function DomeView(props: SkyChartProps) {
           legend={props.legend}
           aside={props.aside}
           stripe={props.stripe}
-          {...(props.boxAspect === undefined ? {} : { boxAspect: props.boxAspect })}
+          {...(props.measureBox === undefined ? {} : { measureBox: props.measureBox })}
           {...(props.stacked === undefined ? {} : { stacked: props.stacked })}
           {...(props.legendOpen === undefined ? {} : { legendOpen: props.legendOpen })}
           fill={props.fill ?? false}
@@ -132,7 +132,7 @@ function WindowView(props: SkyChartProps) {
           legend={props.legend}
           aside={props.aside}
           stripe={props.stripe}
-          {...(props.boxAspect === undefined ? {} : { boxAspect: props.boxAspect })}
+          {...(props.measureBox === undefined ? {} : { measureBox: props.measureBox })}
           {...(props.stacked === undefined ? {} : { stacked: props.stacked })}
           {...(props.legendOpen === undefined ? {} : { legendOpen: props.legendOpen })}
           {...(props.screen === undefined ? {} : { screen: props.screen })}

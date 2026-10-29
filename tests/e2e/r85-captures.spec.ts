@@ -2,7 +2,8 @@
  * R85 (FR-COMP-7, FR-CAP-5; F-81, F-82): the owner's gate. The compact live page in Spanish at 360 and 390 px,
  * watching and scrubbing — `[ ← ]` with the place beside it, `[ fijar ] [ ver n ] [ Compartir ]` and
  * `[ vivo ] [ ] Ocultos [ Compartir ]` — and the short wide window (1200 × 450) watching on the four-pass Paris
- * instant, where the inventory ends on a whole entry with its `+n` line and the header row names the times. Both
+ * instant, where the inventory ends on a whole entry with its `+n` line, each row naming its own times (no
+ * header row since D-863). Both
  * themes. Twelve files under `docs/screenshots/r85-live-…`.
  *
  * Not part of a pull request's CI (FR-CI-1, FR-CI-2): run on demand,

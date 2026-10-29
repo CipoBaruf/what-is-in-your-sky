@@ -174,11 +174,12 @@
   }
 
   /* R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315, F-59): the measured
-     box. With `boxAspect` the frame measures what it leaves the drawing —
+     box. With `measureBox` the frame measures what it leaves the drawing —
      `--chart-box-w` / `--chart-box-h`, written inline by `ChartFrame` from
      `lib/layout.ts`'s `fitBox`, since no px may be written here; R61 cut it to
-     the dome's own shape, and since R133 (D-868) it is the whole room. The two columns the drawing spans are `auto`, so
-     they are the drawing's width and no more, and the grid packs at the start
+     the dome's own shape, and since R133 (D-868) it is the whole room. The
+     two columns the drawing spans are `auto`, so they are the drawing's width
+     and no more, and the grid packs at the start
      so the rail stands beside the box, takes what is left up to its cap
      (D-313), and whatever a wide page has past that is blank at the right. The
      rows are `auto` too and packed at the top: a `1fr` drawing track would put
@@ -459,10 +460,9 @@
 /* R121 (FR-SKY-2, D-789): the window laid out in the box under the hand camera
    — the live page's and the pass detail's window on a desk. On wide the facing
    readout stands in the box's top-left corner on the sky screen's overlay
-   surface, as the stars page draws it (FR-STAR-3, the same `.cornerStatus`), and the
-   box takes the browser window's shape: on the live page `ChartFrame` measures
-   it with `windowBox` in place of the dome's aspect, so the rules above apply
-   as they are; on the guide, whose box is the square capped at `--chart-size`,
+   surface, as the stars page draws it (FR-STAR-3, the same `.cornerStatus`). On
+   the live page the box is the measured room, as for every view since R133
+   (D-868, `fitBox`), so the rules above apply as they are; on the guide, whose box is the square capped at `--chart-size`,
    the shape is the ratio `ChartFrame` writes as `--chart-box-aspect` — a ratio
    and not a length, since no px may stand in a wide block. Compact is left as
    the dome has it.
@@ -542,8 +542,8 @@
 /* R62 (FR-FSC-1, FR-FSC-3, FR-LEG-2 as amended v1.3, D-322): the screen.
 
    Everything above this point is the framed chart: rows above and below a box,
-   a column beside it, a square on the guide and an aspect-cut rectangle on the
-   wide live page. A screen is none of that — the drawing *is* the surface, and
+   a column beside it, a square on the guide and the measured room on the wide
+   live page (D-868). A screen is none of that — the drawing *is* the surface, and
    the two things that must stay legible over it are the facing readout and the
    legend. So the frame here carries its own class rather than `.frame` and
    `.fill`: no rule above can reach `.screen`, and this block does not have to

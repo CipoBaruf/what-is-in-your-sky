@@ -234,7 +234,7 @@ export function App() {
    * The control the reader pressed goes away with the panel, so focus would
    * fall to the body and `j` would start from the top of the list again. It
    * goes to the card of the pass they were reading, which is where the compact
-   * sheet's `← Back` leaves them too.
+   * sheet's `[ ← ]` leaves them too.
    */
   useEffect(() => {
     if (guideView !== 'list') return;

@@ -81,7 +81,7 @@ describe('<Legend> as the short wide inventory (F-81)', () => {
 
   it('clips the list to whole entries and counts the rest in the +n line', () => {
     const budget = 8;
-    legend({ clip: (entryRows, headerRows) => inventoryClip(entryRows, budget - headerRows), moreLabel: (n) => `+${String(n)} more` });
+    legend({ clip: (entryRows) => inventoryClip(entryRows, budget), moreLabel: (n) => `+${String(n)} more` });
     const list = screen.getByTestId('chart-legend');
     // Eight rows: one for the line, six for the list — three passes whole, a seventh row too few for a fourth.
     // Two passes and both bodies are under it.
@@ -97,7 +97,7 @@ describe('<Legend> as the short wide inventory (F-81)', () => {
   });
 
   it('draws no +n line when everything fits', () => {
-    legend({ clip: (entryRows, headerRows) => inventoryClip(entryRows, 21 - headerRows), moreLabel: (n) => `+${String(n)} more` });
+    legend({ clip: (entryRows) => inventoryClip(entryRows, 21), moreLabel: (n) => `+${String(n)} more` });
     expect(screen.getByTestId('chart-legend')).toHaveAttribute('data-clip-rows', '12');
     expect(screen.queryByTestId('legend-more')).toBeNull();
   });

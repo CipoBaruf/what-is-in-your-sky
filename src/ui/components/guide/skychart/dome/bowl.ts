@@ -76,7 +76,7 @@ const EXTENT_TOP_UNITS = DOME_RADIUS;
 const EXTENT_BOTTOM_UNITS = GROUND_RADIUS * Math.cos((DEFAULT_TILT_DEG * Math.PI) / 180);
 export const DRAWING_HEIGHT_UNITS = EXTENT_TOP_UNITS + EXTENT_BOTTOM_UNITS;
 export const ZOOM_HEIGHT_DIVISOR = 2.0;
-/** R61 (D-314): the box shape at which both divisors bind at once — the wide live page's box is cut to it. */
+/** R61 (D-314): the box shape at which both divisors bind at once. No box is cut to it since R133 (D-868); the e2e helpers read it to check the bowl's fit. */
 export const DOME_BOX_ASPECT = ZOOM_WIDTH_DIVISOR / ZOOM_HEIGHT_DIVISOR;
 
 /**

@@ -34,10 +34,9 @@
  * R94 (SPEC §4.39, FR-CAP-1, FR-CAP-5; F-80, F-66, F-70; D-547): a capture is
  * the screen as the reader opens it, and the set comes out the same twice. The
  * home's full-page file keeps its closed nights and says so in `captureSet.ts`;
- * its `-view` twin leaves tonight open, runs the paused clock through the
- * animation frame `WhereDome` waits for and the fonts gate the dome mounts
- * behind — the R32 lesson, applied one more time — and is shot cropped to the
- * viewport with the dome's `<pre>` proven non-empty first. And every shot waits
+ * its `-view` twin leaves tonight open and is shot cropped to the viewport
+ * once the doors' lines have arrived (`doorsFilled`; R130 removed the Where
+ * pane's dome R94 waited for). And every shot waits
  * for a settled frame: two ticks of the clock with identical document text,
  * so a drawing still being rasterised (the glyph or two F-66 and F-70 measured)
  * is not what the file shows.
@@ -655,7 +654,7 @@ const REACH: Record<string, Reach> = {
   },
 
   async home(page, width, theme, locale, view) {
-    await homeAt(page, width, theme, locale, CLOCK);
+    await homeAt(page, width, theme, locale, DOOR_TIME.later);
     if (view) {
       // The `-view` twin is the home as it opens — tonight open (FR-NIGHT-1's default) — cropped to the viewport.
       await expect(page.locator('[data-testid="night-group"][data-open="true"]')).toHaveCount(1);
