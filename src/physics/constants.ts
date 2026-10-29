@@ -83,6 +83,26 @@ const MOON_GLARE_MAX_SEPARATION_DEG = 30;
 export const ARC_LOOKAHEAD_MS = 5 * 60_000;
 export const ARC_LINGER_MS = 10 * 60_000;
 
+/**
+ * FR-TONIGHT-1, FR-TONIGHT-4 (v2.7, D-896): the jump, `tonight` and `next`
+ * land this many minutes of shown time before a visible rise, so the reader
+ * sees the dot appear rather than one already halfway across the sky.
+ */
+export const TONIGHT_LEAD_MIN = 1;
+
+/**
+ * FR-TONIGHT-5 (v2.7, D-896, D-899): the compact page's automatic playback
+ * speed. Near and during a visible pass it runs at FR-LIVE-5's 60×, so a
+ * five-minute pass crosses in about five seconds, slow enough to follow with
+ * the eye; between passes at 600×, so an hour of empty sky goes by in six
+ * seconds. It slows `AUTO_NEAR_MIN` minutes of shown time before a visible
+ * rise — five seconds of watching at 600× — so no pass starts at the gap speed.
+ * Shown-time constants, not physics: the golden fixtures do not read them.
+ */
+export const AUTO_SPEED_NEAR = 60;
+export const AUTO_SPEED_GAP = 600;
+export const AUTO_NEAR_MIN = 5;
+
 /** The FR-MOON-2 thresholds as one object. Not user settings and not carried by the protocol; `findPasses` uses these defaults. */
 export const DEFAULT_MOON_GLARE_THRESHOLDS: Readonly<MoonGlareThresholds> = Object.freeze({
   minAltDeg: MOON_GLARE_MIN_ALT_DEG,

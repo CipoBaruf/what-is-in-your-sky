@@ -3989,7 +3989,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.49 who
 
 ### Wave 1
 
-- [ ] **R141 — The targets and the speed: the constants, `tonightJump.ts`, `autoSpeed`, `nightEnd`, `usePlayback`'s `'auto'` and its reader-wrote ref**
+- [x] **R141 — The targets and the speed: the constants, `tonightJump.ts`, `autoSpeed`, `nightEnd`, `usePlayback`'s `'auto'` and its reader-wrote ref**
   - **Lane:** data
   - **Model:** opus
   - **Review:** opus
@@ -4012,6 +4012,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.49 who
     - `tonightJump.test.ts`, `playback.test.ts` and `usePlayback.test.tsx` pass with the cases of §9.9; `passes.golden.test.ts` and every golden fixture untouched.
     - The Done note gives the rate at each edge and names the frame-split test.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+  - **Done:** `autoSpeed` is 60× with a pass up (at its start, middle and end) and with a rise exactly 5 min ahead, 600× at 5 min + 1 s ahead, after the last pass and with none. The frame-split test is `usePlayback.test.tsx`'s "splits a frame that crosses the slow-down boundary, so the rise is not passed at 600× (the frame-split test)", with `advanceAuto`'s twin in `playback.test.ts`; the night-end stop is "stops, paused, at the `end` override". `usePlayback`'s `end` is a rule `(from) => EpochMs` and the page flags its writes with a last argument `'page'` (D-907, D-908).
 
 - [ ] **R142 — The time track: `TimeTrack`, `TRACK_HEIGHT_PX`, its strings, its tests**
   - **Lane:** chart
