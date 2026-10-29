@@ -67,6 +67,8 @@ function cases(locale: Locale): [string, DoorInput][] {
     ['daylight', at({ now: local(11, 14), sky: { ...DOOR_SKY, brightest: null } })],
     ['daylight, no zone', at({ now: local(11, 14), zone: null, sky: { ...DOOR_SKY, brightest: null } })],
     ['no dark band', at({ dark: null, sky: { ...DOOR_SKY, brightest: null } })],
+    // R138 (D-884): no dark band, so the second line is bright twilight's start.
+    ['no dark band, stars from bright twilight', at({ now: local(11, 14), dark: null, starsFrom: { ...DOOR_NIGHT, sky: 'bright-twilight' }, sky: { ...DOOR_SKY, brightest: null } })],
     ['the chunk pending', at({ sky: null })],
     ['a long star', at({ sky: { ...DOOR_SKY, brightest: { name: 'Rigil Kentaurus Alpha Centauri', dir: 'WNW' } } })],
     ['a planet', at({ sky: { ...DOOR_SKY, brightest: { name: locale === 'es' ? 'Júpiter' : 'Jupiter', dir: 'SSW' } } })],

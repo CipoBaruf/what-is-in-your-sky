@@ -58,5 +58,7 @@ export function doorInput(over: Partial<Omit<DoorInput, 'event'>> = {}): DoorInp
     sky: DOOR_SKY,
     ...over,
   };
-  return { ...input, event: nextEvent(input.passes, input.now, { elementCount: 30, hasDarkness: true }) };
+  // `starsFrom` follows `dark` unless a test sets it: with a dark band, `tonightsStarsFrom` is that band (D-884).
+  const starsFrom = 'starsFrom' in over ? (over.starsFrom ?? null) : input.dark;
+  return { ...input, starsFrom, event: nextEvent(input.passes, input.now, { elementCount: 30, hasDarkness: true }) };
 }

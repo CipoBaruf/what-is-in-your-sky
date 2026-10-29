@@ -3,7 +3,7 @@ import { cloudVerdict } from '../../../lib/cloudVerdict';
 import { moonNote, moonSampleTimes, type MoonNote } from '../../../lib/moonNote';
 import type { SkyBodies } from '../../../lib/skyBodies';
 import type { SkyBand, Span } from '../../../lib/timeStripe';
-import { tonightsDark } from '../../../lib/tonightStripe';
+import { tonightsDark, tonightsStarsFrom } from '../../../lib/tonightStripe';
 import type { CloudVerdict, EpochMs, Observer, WeatherSnapshot } from '../../../model';
 import { useAppStore } from '../../../state';
 import { useTonight } from '../../components/now/useTonight';
@@ -23,6 +23,8 @@ export interface Night {
   now: EpochMs;
   /** Tonight's dark band; null with none, or before the bands are known (`bands` is empty then). */
   dark: SkyBand | null;
+  /** When tonight's stars come out (`tonightsStarsFrom`, D-884): the dark band, else tonight's bright twilight; null with neither or before the bands are known. */
+  starsFrom: SkyBand | null;
   /** The rest of the dark band, or the stripe's span with none; null before the bands are known. */
   window: Span | null;
   snapshot: WeatherSnapshot | null;
@@ -40,6 +42,7 @@ export function useNight(observer: Observer): Night {
     sampledFrom: tonight.sampledFrom,
     now: tonight.now,
     dark: known ? tonightsDark(tonight.bands, tonight.now) : null,
+    starsFrom: known ? tonightsStarsFrom(tonight.bands, tonight.now) : null,
     window,
     snapshot,
     clouds: cloudVerdict(snapshot, window ? (window.start + window.end) / 2 : tonight.now),

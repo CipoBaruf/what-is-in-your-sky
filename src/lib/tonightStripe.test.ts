@@ -9,7 +9,7 @@ import run from '../../tests/fixtures/stored-run-neuquen.json';
 import type { Observer, Pass } from '../model';
 import { skyStateAt } from './skyBodies';
 import { HOUR_MS, skyBands, type SkyBand } from './timeStripe';
-import { solarMidnight, tickLine, TONIGHT_STRIPE_CELLS, tonightSpan, tonightStripe, tonightsDark } from './tonightStripe';
+import { solarMidnight, tickLine, TONIGHT_STRIPE_CELLS, tonightSpan, tonightStripe, tonightsDark, tonightsStarsFrom } from './tonightStripe';
 
 const passes = run.passes as unknown as Pass[];
 const ZONE = 'America/Argentina/Salta'; // UTC−3 all year, Neuquén's clock
@@ -60,6 +60,49 @@ describe('tonightSpan (FR-FIRST-8)', () => {
     const now = Date.UTC(2026, 0, 1, 0, 0);
     expect(iso(tonightSpan(one, { lon: 0, timeZone: null }, now).start)).toBe('2026-01-01T04:00:00.000Z');
     expect(iso(tonightSpan(one, { lon: 0, timeZone: 'Asia/Kolkata' }, now).start)).toBe('2026-01-01T04:30:00.000Z');
+  });
+});
+
+describe('tonightsStarsFrom (FR-FLOW-1, D-884)', () => {
+  const now = Date.UTC(2026, 5, 21, 12, 0);
+  const twilight: SkyBand = { from: now + 10 * HOUR_MS, to: now + 14 * HOUR_MS, sky: 'bright-twilight' };
+
+  it('is the dark band when there is one', () => {
+    expect(tonightsStarsFrom(bands, NOW)).toBe(tonightsDark(bands, NOW));
+    expect(tonightsStarsFrom(bands, NOW)?.sky).toBe('dark');
+  });
+
+  it('with no dark band is the first bright-twilight band still open', () => {
+    const gone: SkyBand = { from: now - 14 * HOUR_MS, to: now - 10 * HOUR_MS, sky: 'bright-twilight' };
+    const summer: SkyBand[] = [
+      gone,
+      { from: now - 10 * HOUR_MS, to: now + 10 * HOUR_MS, sky: 'day' },
+      twilight,
+      { from: now + 14 * HOUR_MS, to: now + 34 * HOUR_MS, sky: 'day' },
+      { from: now + 34 * HOUR_MS, to: now + 38 * HOUR_MS, sky: 'bright-twilight' },
+    ];
+    expect(tonightsStarsFrom(summer, now)).toBe(twilight);
+    // Inside the band it is still that band.
+    expect(tonightsStarsFrom(summer, now + 12 * HOUR_MS)).toBe(twilight);
+  });
+
+  it("reads tonight's run only, not a later night's dark band (R138's review)", () => {
+    // Late July near 56° N: tonight still has no dark band, tomorrow night has one.
+    const later: SkyBand = { from: now + 35 * HOUR_MS, to: now + 37 * HOUR_MS, sky: 'dark' };
+    const bands: SkyBand[] = [
+      { from: now - 2 * HOUR_MS, to: twilight.from, sky: 'day' },
+      twilight,
+      { from: twilight.to, to: now + 34 * HOUR_MS, sky: 'day' },
+      { from: now + 34 * HOUR_MS, to: later.from, sky: 'bright-twilight' },
+      later,
+    ];
+    expect(tonightsStarsFrom(bands, now)).toBe(twilight);
+  });
+
+  it('with neither band is null', () => {
+    const midnightSun: SkyBand[] = [{ from: now - 24 * HOUR_MS, to: now + 24 * HOUR_MS, sky: 'day' }];
+    expect(tonightsStarsFrom(midnightSun, now)).toBeNull();
+    expect(tonightsStarsFrom([], now)).toBeNull();
   });
 });
 

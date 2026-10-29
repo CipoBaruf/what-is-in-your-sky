@@ -79,7 +79,7 @@ export function HomeDoors({ observer, selectedPassId, className }: HomeDoorsProp
   const event = nextEvent(passes, now, { elementCount, hasDarkness });
   const sky = useDoorSky(observer, now, isNoEvent(event) ? null : event.pass);
   const doors = doorLines(
-    { now, zone: observer.timeZone, locale, passes, event, pending, hours: SEARCH_WINDOW_HOURS, bandsKnown: night.bands.length > 0, dark: night.dark, cloud: night.clouds.state, sky },
+    { now, zone: observer.timeZone, locale, passes, event, pending, hours: SEARCH_WINDOW_HOURS, bandsKnown: night.bands.length > 0, dark: night.dark, starsFrom: night.starsFrom, cloud: night.clouds.state, sky },
     t,
   );
   const { passId } = doors.satellites;
