@@ -1,4 +1,6 @@
 import type { EpochMs, Pass } from '../model';
+// D-896 keeps FR-TONIGHT-5's thresholds in `physics/constants.ts` beside FR-TRAJ-2's, read here as `arcReveal.ts` reads those.
+// eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import { AUTO_NEAR_MIN, AUTO_SPEED_GAP, AUTO_SPEED_NEAR } from '../physics/constants';
 import type { SkyBand } from './timeStripe';
 

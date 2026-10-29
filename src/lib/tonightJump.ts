@@ -1,4 +1,6 @@
 import type { EpochMs, Pass } from '../model';
+// D-896 keeps the lead in `physics/constants.ts` beside FR-TRAJ-2's thresholds, read here as `arcReveal.ts` reads those.
+// eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import { TONIGHT_LEAD_MIN } from '../physics/constants';
 import { nightRuns } from './playback';
 import type { SkyBand, Span } from './timeStripe';

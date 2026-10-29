@@ -203,6 +203,113 @@ describe('usePlayback', () => {
     expect(result.current.realTime).toBe(false);
   });
 
+  // R141 (FR-TONIGHT-5, D-899): the automatic speed.
+  describe("speed 'auto'", () => {
+    const MIN = 60_000;
+    const rise = NOW + HOUR_MS;
+    const passes = [{ start: { t: rise }, end: { t: rise + 6 * MIN } }];
+
+    it('runs a gap at 600× and reports the rate it ran at', () => {
+      const { raf, tick } = scriptedRaf();
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null, speed: 'auto', passes, raf }));
+      expect(result.current.speed).toBe(600);
+      act(() => {
+        result.current.play();
+      });
+      tick(0);
+      tick(1000);
+      expect(result.current.t).toBe(NOW + 600_000);
+      expect(result.current.speed).toBe(600);
+    });
+
+    it('splits a frame that crosses the slow-down boundary, so the rise is not passed at 600× (the frame-split test)', () => {
+      const { raf, tick } = scriptedRaf();
+      const boundary = rise - 5 * MIN;
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: boundary - 300_000, speed: 'auto', passes, raf }));
+      act(() => {
+        result.current.play();
+      });
+      tick(0);
+      // One frame of a whole second: half of it reaches the boundary at 600×, the rest runs at 60×.
+      tick(1000);
+      expect(result.current.t).toBe(boundary + 500 * 60);
+      expect(result.current.speed).toBe(60);
+      // A long dropped frame still crosses the rise at 60×: five minutes before it is five seconds of wall.
+      tick(5500);
+      expect(result.current.t).toBe(boundary + 5000 * 60);
+      expect(result.current.t).toBe(rise);
+    });
+
+    it('stops, paused, at the `end` override before the span’s end (the night’s end)', () => {
+      const { raf, tick, pending } = scriptedRaf();
+      const nightEnd = NOW + 2 * HOUR_MS;
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null, speed: 'auto', passes: [], end: () => nightEnd, raf }));
+      act(() => {
+        result.current.play();
+      });
+      tick(0);
+      tick(60_000);
+      expect(result.current.t).toBe(nightEnd);
+      expect(result.current.playing).toBe(false);
+      expect(pending()).toBe(0);
+      // From the end there is nowhere to go.
+      act(() => {
+        result.current.play();
+      });
+      expect(result.current.playing).toBe(false);
+    });
+
+    it('asks the `end` rule for the instant playing starts from', () => {
+      const { raf, tick } = scriptedRaf();
+      const asked: number[] = [];
+      const end = (from: number): number => {
+        asked.push(from);
+        return from + HOUR_MS;
+      };
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: NOW + 3 * HOUR_MS, speed: 'auto', passes, end, raf }));
+      act(() => {
+        result.current.play();
+      });
+      expect(asked).toEqual([NOW + 3 * HOUR_MS]);
+      tick(0);
+      tick(60_000);
+      expect(result.current.t).toBe(NOW + 4 * HOUR_MS);
+      expect(result.current.playing).toBe(false);
+    });
+  });
+
+  // R141 (FR-TONIGHT-1, D-897): the reader's writes and the page's.
+  describe('readerWrote', () => {
+    it('starts false and stays false under the page’s writes and the frame loop', () => {
+      const { raf, tick } = scriptedRaf();
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null, speed: 'auto', raf }));
+      expect(result.current.readerWrote.current).toBe(false);
+      act(() => {
+        result.current.stepTo(NOW + HOUR_MS, 'page');
+        result.current.play('page');
+      });
+      tick(0);
+      tick(1000);
+      expect(result.current.playing).toBe(true);
+      expect(result.current.readerWrote.current).toBe(false);
+    });
+
+    it.each([
+      ['a scrub', (p: ReturnType<typeof usePlayback>) => p.scrub(NOW + HOUR_MS)],
+      ['a step (the keys)', (p: ReturnType<typeof usePlayback>) => p.stepTo(NOW + HOUR_MS)],
+      ['play', (p: ReturnType<typeof usePlayback>) => p.play()],
+      ['pause', (p: ReturnType<typeof usePlayback>) => p.pause()],
+      ['now', (p: ReturnType<typeof usePlayback>) => p.toNow()],
+      ['a speed', (p: ReturnType<typeof usePlayback>) => p.setSpeed(600)],
+    ])('is set by %s', (_name, write) => {
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null }));
+      act(() => {
+        write(result.current);
+      });
+      expect(result.current.readerWrote.current).toBe(true);
+    });
+  });
+
   it('releases a scrub into the coming hours when real time reaches it', () => {
     let realNow = NOW;
     const spanAt = (now: number): Span => ({ start: now, end: now + 24 * HOUR_MS });
