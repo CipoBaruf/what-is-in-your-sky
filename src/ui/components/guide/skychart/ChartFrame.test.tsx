@@ -50,7 +50,7 @@ function screenFrame(upright = false) {
       overlay={<button type="button">×</button>}
       aside={<p>rail</p>}
       stripe={<p>stripe</p>}
-      boxAspect={2.4 / 2}
+      measureBox
       stacked
     >
       <div data-drawing="window" />
@@ -293,7 +293,7 @@ describe('<ChartFrame> the compact dome’s box (FR-FLOW-9, D-850)', () => {
     boxWidth(390);
     try {
       render(
-        <ChartFrame fill bowl stacked boxAspect={2.4 / 2} status={<p>readout</p>}>
+        <ChartFrame fill bowl stacked measureBox status={<p>readout</p>}>
           <div data-drawing="dome" />
         </ChartFrame>,
       );
@@ -322,7 +322,7 @@ describe('<ChartFrame> the compact dome’s box (FR-FLOW-9, D-850)', () => {
       unmount();
       media.setWidth(WIDE_PX);
       render(
-        <ChartFrame fill bowl stacked boxAspect={2.4 / 2} status={<p>readout</p>}>
+        <ChartFrame fill bowl stacked measureBox status={<p>readout</p>}>
           <div data-drawing="dome" />
         </ChartFrame>,
       );

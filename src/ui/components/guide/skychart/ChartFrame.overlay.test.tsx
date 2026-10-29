@@ -98,7 +98,7 @@ describe('<ChartFrame> bottomOverlay and onBoxSpace (FR-WATCH-6, D-449)', () => 
     const spaces: number[] = [];
     try {
       render(
-        <ChartFrame fill legend={<p>legend</p>} aside={<p>rail</p>} stripe={<p>block</p>} boxAspect={2.4 / 2} onBoxSpace={(px) => spaces.push(px)}>
+        <ChartFrame fill legend={<p>legend</p>} aside={<p>rail</p>} stripe={<p>block</p>} measureBox onBoxSpace={(px) => spaces.push(px)}>
           <div />
         </ChartFrame>,
       );

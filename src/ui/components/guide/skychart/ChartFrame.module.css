@@ -174,7 +174,7 @@
   }
 
   /* R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315, F-59): the measured
-     box. With `boxAspect` the frame measures what it leaves the drawing —
+     box. With `measureBox` the frame measures what it leaves the drawing —
      `--chart-box-w` / `--chart-box-h`, written inline by `ChartFrame` from
      `lib/layout.ts`'s `fitBox`, since no px may be written here; R61 cut it to
      the dome's own shape, and since R133 (D-868) it is the whole room. The two columns the drawing spans are `auto`, so

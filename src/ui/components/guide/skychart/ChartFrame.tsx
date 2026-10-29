@@ -56,8 +56,8 @@ export interface ChartFrameProps {
    */
   stripe?: ReactNode;
   /**
-   * FR-LIVE-7 as amended (v1.2.1, D-314): the drawing box's aspect, width over
-   * height. Given, on a wide fill frame with an aside, the frame measures what
+   * FR-LIVE-7 as amended (v1.2.1, D-314): the drawing box is measured. Set,
+   * on a wide fill frame with an aside, the frame measures what
    * it leaves the drawing — its own box, its controls row, the stripe row and
    * the rail's minimum beside it — and writes the box as `--chart-box-w` /
    * `--chart-box-h` on the frame: px literals may not be written in a
@@ -66,13 +66,12 @@ export interface ChartFrameProps {
    *
    * R133 (FR-FLOW-9, D-850): the box written is the *room* — as tall as the
    * frame leaves it, down to the hint line, and as wide as the rail does — for
-   * every view (`fitBox`); the value given is ignored and does not cut the box
-   * to its shape, since the drawing's own fit (FR-DOME-1) keeps the bowl its
-   * shape inside whatever box it has and a band under the box was the finding
-   * (F4, D5). The prop is only the measurement's switch: the live page passes
-   * it on wide (`Live.tsx`, with `stacked`); a boolean is a follow-up (D-868).
+   * every view (`fitBox`), not cut to the dome's shape, since the drawing's
+   * own fit (FR-DOME-1) keeps the bowl its shape inside whatever box it has and a band under the box was the finding
+   * (F4, D5). The live page sets it on wide (`Live.tsx`, with `stacked`); R140
+   * (FR-FLOW-17) made it a boolean, the aspect number having become a switch.
    */
-  boxAspect?: number;
+  measureBox?: boolean;
   /**
    * R133 (FR-FLOW-9, D-850): the view is the dome. On a compact portrait `fill`
    * frame the box is cut from the bowl rather than being the square the slot
@@ -209,7 +208,7 @@ export interface ChartFrameSlotValues extends Pick<ChartFrameProps, 'bottomOverl
   viewAction?: ReactNode;
 }
 
-export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe, boxAspect, bowl = false, stacked = false, screen = false, overlay, gutter, upright = false, headline, bottomOverlay, onBoxSpace, handWindow = false, className, fill = false, children }: ChartFrameProps) {
+export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe, measureBox = false, bowl = false, stacked = false, screen = false, overlay, gutter, upright = false, headline, bottomOverlay, onBoxSpace, handWindow = false, className, fill = false, children }: ChartFrameProps) {
   const compact = useLayoutMode() === 'compact';
   // D-789: the window in the box on wide — the readout in its corner; the guide's square takes the browser window's shape.
   const windowShaped = handWindow && !screen && !compact;
@@ -247,7 +246,7 @@ export function ChartFrame({ controls, status, legend, legendOpen, aside, stripe
   // D-319: stacked only where there is no rail to stand beside; an aside wins, since the rail is what it is for.
   const isStacked = stacked && !hasAside;
   // D-322: a screen measures nothing. The box is the host's, so neither the aspect fit nor the compact floor runs.
-  const boxed = !screen && fill && !compact && boxAspect !== undefined && (hasAside || isStacked);
+  const boxed = !screen && fill && !compact && measureBox && (hasAside || isStacked);
 
   /*
    * R61 (FR-LIVE-7 as amended v1.2.1, D-314, F-59): the measured box. The frame is as tall as the page's

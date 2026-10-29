@@ -183,13 +183,13 @@ export interface SkyChartProps {
    */
   stripe?: ReactNode;
   /**
-   * FR-LIVE-7 as amended (v1.2.1) / D-314 (R61): given, the frame measures
+   * FR-LIVE-7 as amended (v1.2.1) / D-314 (R61): set, the frame measures
    * the room it leaves the drawing (`lib/layout.ts` `fitBox`) and writes the
-   * box from it; absent, the box is fluid. R133 (D-868): the number's value is
-   * ignored — the box is the whole room, not a rectangle of that shape — so
-   * the prop is a switch; a boolean is a follow-up.
+   * box from it; absent, the box is fluid. R133 (D-868) made the box the whole
+   * room rather than a rectangle of the dome's shape, and R140 (FR-FLOW-17)
+   * made the old aspect number the boolean it had become.
    */
-  boxAspect?: number;
+  measureBox?: boolean;
   /**
    * FR-LIVE-7 as amended (v1.2.1) / D-319 (R61): the one-column wide live page.
    * The frame stacks the drawing, the stripe and the legend, each centred at

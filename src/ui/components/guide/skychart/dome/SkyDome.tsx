@@ -247,7 +247,7 @@ function DomeLandmark({ anchor }: { anchor: DomeAnchor }) {
   );
 }
 
-export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, legendOpen, aside, stripe, boxAspect, stacked, controls, scene, hand, className }: SkyChartProps) {
+export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moon, hidden, initialFacingAzDeg, facingAzDeg, onDrag, colorBy, fill = false, legendKeys, legend, legendOpen, aside, stripe, measureBox, stacked, controls, scene, hand, className }: SkyChartProps) {
   const t = useT();
   // FR-SKY-1 (R119): what the table leaves the dome of the scene — the stars to `DOME_STAR_MAG`, the planets, no figures, no names.
   const stars = useMemo(() => sceneFor('dome', scene)?.stars ?? null, [scene]);
@@ -438,7 +438,7 @@ export function SkyDome({ passes, highlightedPassId, onSelectPass, now, sun, moo
         legend={legend}
         aside={aside}
         stripe={stripe}
-        {...(boxAspect === undefined ? {} : { boxAspect })}
+        {...(measureBox === undefined ? {} : { measureBox })}
         {...(stacked === undefined ? {} : { stacked })}
         {...(legendOpen === undefined ? {} : { legendOpen })}
         // R133 (FR-FLOW-9, D-850): this view is the bowl — on a compact portrait `fill` frame the box is cut from it.

@@ -463,8 +463,8 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
   });
 
   /**
-   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315): with `boxAspect` the frame cuts the drawing box to the
-   * largest rectangle of that shape it leaves, measured on a `ResizeObserver` and written as two custom
+   * R61 (FR-LIVE-7 as amended v1.2.1, D-314, D-315): with `measureBox` the frame writes the drawing box from
+   * the room it leaves (R61 cut it to a shape; R133, D-868, made it the whole room), measured on a `ResizeObserver` and written as two custom
    * properties — no px may be written in the wide block — and a `stripe` is a row of the frame's own under
    * the drawing. jsdom lays nothing out, so the measurement is stubbed — the rects, the gaps and the
    * observer — and the arithmetic is asserted both ways round, height-bound and width-bound.
@@ -501,7 +501,7 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
     window.getComputedStyle = ((el: Element) => ({ ...realGetComputedStyle(el), rowGap: '12px', columnGap: '29px' })) as typeof window.getComputedStyle;
     try {
       const { unmount } = render(
-        <ChartFrame fill legend={<p>legend</p>} aside={<p>rail</p>} stripe={<p>stripe</p>} boxAspect={2.4 / 1.7}>
+        <ChartFrame fill legend={<p>legend</p>} aside={<p>rail</p>} stripe={<p>stripe</p>} measureBox>
           <div />
         </ChartFrame>,
       );
@@ -562,7 +562,7 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
     const media = stubMatchMedia(1280);
     try {
       const { unmount } = render(
-        <ChartFrame fill legend={<p>legend</p>} stripe={<p>stripe</p>} boxAspect={1.2} stacked>
+        <ChartFrame fill legend={<p>legend</p>} stripe={<p>stripe</p>} measureBox stacked>
           <div />
         </ChartFrame>,
       );
@@ -574,7 +574,7 @@ describe('<ChartFrame> placement (FR-LEG-2, FR-COMP-5)', () => {
       expect([...frame.children].map((el) => el.getAttribute('data-testid'))).toEqual([null, 'chart-box', 'chart-stripe', 'chart-legend-slot']);
       unmount();
       render(
-        <ChartFrame fill legend={<p>legend</p>} aside={<p>rail</p>} stripe={<p>stripe</p>} boxAspect={1.2} stacked>
+        <ChartFrame fill legend={<p>legend</p>} aside={<p>rail</p>} stripe={<p>stripe</p>} measureBox stacked>
           <div />
         </ChartFrame>,
       );
