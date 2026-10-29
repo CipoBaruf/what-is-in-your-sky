@@ -3,6 +3,7 @@ import { failure } from './en/failure';
 import { home } from './en/home';
 import { live } from './en/live';
 import { stars } from './en/stars';
+import { track } from './en/track';
 import { ui } from './en/ui';
 import { windowMessages } from './en/window';
 
@@ -16,4 +17,4 @@ import { windowMessages } from './en/window';
  * function on a plain object, and both catalogs ship in the main chunk
  * (PLAN §11).
  */
-export const en = { ...ui, ...chart, ...live, ...windowMessages, ...stars, ...failure, ...home };
+export const en = { ...ui, ...chart, ...live, ...windowMessages, ...stars, ...failure, ...home, ...track };

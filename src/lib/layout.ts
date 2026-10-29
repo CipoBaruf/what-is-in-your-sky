@@ -300,6 +300,14 @@ export function compactDomeBoxHeightPx({ bowlHeightPx, floorPx }: { bowlHeightPx
   return Math.max(Math.round(floorPx), Math.round(bowlHeightPx + 2 * DOME_COMPACT_SLACK_PX));
 }
 
+/**
+ * R142 (FR-TONIGHT-3, D-896, D-900): the compact live page's time track is
+ * this tall — two `--row`s at the 16 px base, `--tap`, so the whole bar is a
+ * thumb's target top to bottom and a pass tick is easy to land on. The label
+ * row under it is extra, one `--small` line.
+ */
+export const TRACK_HEIGHT_PX = 48;
+
 /*
  * R71 (FR-LEG-6, D-386): `LIVE_TWO_COLUMN_MIN_PX` (1660) and its query stood
  * here. The wide live page is the rail at every wide width now — one wide
