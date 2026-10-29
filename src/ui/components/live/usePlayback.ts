@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { advance, advanceAuto, autoSpeed, DEFAULT_SPEED, type Speed } from '../../../lib/playback';
+import { advance, advanceAuto, autoSpeed, DEFAULT_SPEED, type PassTimes, type Speed } from '../../../lib/playback';
 import { clampToSpan, type Span } from '../../../lib/timeStripe';
-import type { EpochMs, Pass } from '../../../model';
+import type { EpochMs } from '../../../model';
 
 /**
  * R33 (FR-LIVE-4, FR-LIVE-5, D-81): the live page's instant. It is either
@@ -62,7 +62,7 @@ export interface PlaybackOptions {
   /** R141 (FR-TONIGHT-5): `'auto'` reads the rate from `passes` each frame; a speed (or nothing) is the chosen one, `DEFAULT_SPEED` first. */
   speed?: Speed | 'auto';
   /** The visible passes `'auto'` reads its rate from (D-897). */
-  passes?: readonly Pick<Pass, 'start' | 'end'>[];
+  passes?: readonly PassTimes[];
   /**
    * R141 (FR-TONIGHT-5, D-899): where playback started at `from` stops, before the span's end if earlier (the
    * night's end, `nightEnd`). Asked when playing starts and again whenever the instant is moved, so a move while
@@ -80,7 +80,7 @@ const windowRaf = {
   },
 };
 
-const NO_PASSES: readonly Pick<Pass, 'start' | 'end'>[] = [];
+const NO_PASSES: readonly PassTimes[] = [];
 
 export function usePlayback({ span, realNow, initial, speed: speedOption, passes = NO_PASSES, end, raf = windowRaf }: PlaybackOptions): Playback {
   const auto = speedOption === 'auto';
@@ -147,8 +147,9 @@ export function usePlayback({ span, realNow, initial, speed: speedOption, passes
       if (last !== null) {
         const from = heldRef.current ?? realNow;
         const stop = Math.min(spanEnd, stopRef.current);
-        const next = auto ? advanceAuto(from, wall - last, passesRef.current, stop) : advance(from, wall - last, chosen, stop);
-        if ('speed' in next) setRate(next.speed);
+        const moved = auto ? advanceAuto(from, wall - last, passesRef.current, stop) : null;
+        if (moved) setRate(moved.speed);
+        const next = moved ?? advance(from, wall - last, chosen, stop);
         setHeld(next.t);
         if (next.atEnd) {
           setPlaying(false);

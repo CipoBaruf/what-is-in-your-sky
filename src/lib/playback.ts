@@ -1,4 +1,4 @@
-import type { EpochMs, Pass } from '../model';
+import type { EpochMs } from '../model';
 // D-896 keeps FR-TONIGHT-5's thresholds in `physics/constants.ts` beside FR-TRAJ-2's, read here as `arcReveal.ts` reads those.
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import { AUTO_NEAR_MIN, AUTO_SPEED_GAP, AUTO_SPEED_NEAR } from '../physics/constants';
@@ -42,13 +42,19 @@ export type AutoSpeed = typeof AUTO_SPEED_NEAR | typeof AUTO_SPEED_GAP;
 
 const NEAR_MS = AUTO_NEAR_MIN * 60_000;
 
+/** A pass as the rate and the targets read it: its rise and its set (a `Pass` is one). */
+export interface PassTimes {
+  start: { t: EpochMs };
+  end: { t: EpochMs };
+}
+
 /**
  * R141 (FR-TONIGHT-5, D-899): the rate at `t`. `AUTO_SPEED_NEAR` while a
  * visible pass is up (`start ≤ t ≤ end`) or one rises within `AUTO_NEAR_MIN`
  * after `t` (inclusive: a rise exactly five minutes ahead is near), the gap
  * speed otherwise. `passes` are the visible ones (D-897): the caller's list.
  */
-export function autoSpeed(t: EpochMs, passes: readonly Pick<Pass, 'start' | 'end'>[]): AutoSpeed {
+export function autoSpeed(t: EpochMs, passes: readonly PassTimes[]): AutoSpeed {
   for (const pass of passes) {
     if (pass.start.t <= t && t <= pass.end.t) return AUTO_SPEED_NEAR;
     if (pass.start.t > t && pass.start.t - t <= NEAR_MS) return AUTO_SPEED_NEAR;
@@ -57,7 +63,7 @@ export function autoSpeed(t: EpochMs, passes: readonly Pick<Pass, 'start' | 'end
 }
 
 /** The first instant after `t` where the rate drops to `AUTO_SPEED_NEAR`: the earliest `rise − AUTO_NEAR_MIN` past `t`, or `null`. */
-export function slowDownAfter(t: EpochMs, passes: readonly Pick<Pass, 'start'>[]): EpochMs | null {
+export function slowDownAfter(t: EpochMs, passes: readonly Pick<PassTimes, 'start'>[]): EpochMs | null {
   let best: EpochMs | null = null;
   for (const pass of passes) {
     const boundary = pass.start.t - NEAR_MS;
@@ -78,7 +84,7 @@ export interface AutoAdvance extends Advance {
  * rest at 60× — so no rise is passed at 600× however long the frame. Each
  * piece is `advance`, whose contract is unchanged.
  */
-export function advanceAuto(t: EpochMs, wallDeltaMs: number, passes: readonly Pick<Pass, 'start' | 'end'>[], end: EpochMs): AutoAdvance {
+export function advanceAuto(t: EpochMs, wallDeltaMs: number, passes: readonly PassTimes[], end: EpochMs): AutoAdvance {
   let wall = Number.isFinite(wallDeltaMs) && wallDeltaMs > 0 ? wallDeltaMs : 0;
   let at = t;
   let speed = autoSpeed(at, passes);
