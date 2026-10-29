@@ -4014,7 +4014,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.49 who
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
   - **Done:** `autoSpeed` is 60× with a pass up (at its start, middle and end) and with a rise exactly 5 min ahead, 600× at 5 min + 1 s ahead, after the last pass and with none. The frame-split test is `usePlayback.test.tsx`'s "splits a frame that crosses the slow-down boundary, so the rise is not passed at 600× (the frame-split test)", with `advanceAuto`'s twin in `playback.test.ts`; the night-end stop is "stops, paused, at the `end` override". `usePlayback`'s `end` is a rule `(from) => EpochMs` and the page flags its writes with a last argument `'page'` (D-907, D-908).
 
-- [ ] **R142 — The time track: `TimeTrack`, `TRACK_HEIGHT_PX`, its strings, its tests**
+- [x] **R142 — The time track: `TimeTrack`, `TRACK_HEIGHT_PX`, its strings, its tests** — a tick tap lands on `clampToSpan(start − leadMs)` with `lead: true`, the page passing `TONIGHT_LEAD_MIN` as `leadMs` (D-909); the track does not import the constant.
   - **Lane:** chart
   - **Model:** opus
   - **Review:** opus

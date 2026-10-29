@@ -1,0 +1,98 @@
+/* R142 (FR-TONIGHT-3, D-900): the compact live page's time track — the bar
+   at the content width and `TRACK_HEIGHT_PX` tall (the SVG's own height
+   attribute), and one `--small` row of labels under it. The day is the raised
+   background, the bright twilight halfway from it to the page's background,
+   the dark the page's background itself, so tonight reads as one block; the
+   ticks take the six series tokens their arcs take, the thumb the accent.
+   The hairline frame is a rect inside the SVG, not a CSS border: a border
+   would shrink the drawing inside the box the pointer and the label row
+   measure (D-910). */
+.track {
+  display: block;
+  inline-size: 100%;
+}
+
+.bar {
+  display: block;
+  inline-size: 100%;
+  touch-action: none;
+  user-select: none;
+  cursor: col-resize;
+  border-radius: var(--radius-2);
+}
+
+/* The ring is global.css's; the track only tightens its offset to the sheet's hairline, as the two stripes do. */
+.bar:focus-visible {
+  outline-offset: var(--focus-offset-tight);
+}
+
+.bar[data-dragging='true'] {
+  cursor: grabbing;
+}
+
+.day {
+  fill: var(--bg-raised);
+}
+
+.band[data-sky='bright-twilight'] {
+  fill: color-mix(in srgb, var(--bg-raised), var(--bg));
+}
+
+.band[data-sky='dark'] {
+  fill: var(--bg);
+}
+
+.tick {
+  fill: var(--chart-pass-dim);
+}
+
+.tick[data-series='1'] {
+  fill: var(--chart-series-1);
+}
+
+.tick[data-series='2'] {
+  fill: var(--chart-series-2);
+}
+
+.tick[data-series='3'] {
+  fill: var(--chart-series-3);
+}
+
+.tick[data-series='4'] {
+  fill: var(--chart-series-4);
+}
+
+.tick[data-series='5'] {
+  fill: var(--chart-series-5);
+}
+
+.tick[data-series='6'] {
+  fill: var(--chart-series-6);
+}
+
+.thumb {
+  fill: var(--accent);
+}
+
+.frame {
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: var(--hairline);
+}
+
+/* One text row: the two ends in the flow, the hours placed over it by the share of the span they stand at. */
+.labels {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--small);
+  line-height: var(--small-row);
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+
+.hour {
+  position: absolute;
+  inset-block-start: 0;
+  transform: translateX(-50%);
+}

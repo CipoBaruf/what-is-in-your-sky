@@ -87,10 +87,15 @@ export function keyStep(t: EpochMs, key: string, shift: boolean, span: Span): Ep
 export const OVERVIEW_KEY_STEP_MS = 15 * MINUTE_MS;
 
 export function overviewKeyStep(t: EpochMs, key: string, span: Span): EpochMs | null {
-  if (key === 'PageUp' || key === 'PageDown') return clampToSpan(t + (key === 'PageUp' ? CHUNK_MS : -CHUNK_MS), span);
+  return spanKeyStep(t, key, span, OVERVIEW_KEY_STEP_MS, CHUNK_MS);
+}
+
+/** One slider's keys over the span: `stepMs` on the arrows, `pageMs` on Page Up and Page Down, clamped; `null` for a key that is not a step. The overview's and R142's time track's (D-909). */
+export function spanKeyStep(t: EpochMs, key: string, span: Span, stepMs: number, pageMs: number): EpochMs | null {
+  if (key === 'PageUp' || key === 'PageDown') return clampToSpan(t + (key === 'PageUp' ? pageMs : -pageMs), span);
   const direction = stepDirection(key);
   if (direction === 0) return null;
-  return clampToSpan(t + direction * OVERVIEW_KEY_STEP_MS, span);
+  return clampToSpan(t + direction * stepMs, span);
 }
 
 /** Days from 1970-01-01 to a proleptic Gregorian date (Howard Hinnant's `days_from_civil`); no `Date` in `src/lib` (D-15). */
