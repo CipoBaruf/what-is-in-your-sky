@@ -6,7 +6,8 @@
  */
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { HOUR_MS, type Span } from '../../../lib/timeStripe';
+import { nightEnd, type Speed } from '../../../lib/playback';
+import { HOUR_MS, type SkyBand, type Span } from '../../../lib/timeStripe';
 import { usePlayback } from './usePlayback';
 
 const NOW = Date.UTC(2026, 8, 11, 9, 30, 0);
@@ -276,6 +277,125 @@ describe('usePlayback', () => {
       expect(result.current.t).toBe(NOW + 4 * HOUR_MS);
       expect(result.current.playing).toBe(false);
     });
+    // R141's review: the findings on the end rule, the rate's readout and the speed option.
+    it('play from the stop at the night’s end does nothing, with the real `nightEnd` (D-908)', () => {
+      const { raf, tick, pending } = scriptedRaf();
+      const bands: SkyBand[] = [
+        { from: NOW, to: NOW + HOUR_MS, sky: 'dark' },
+        { from: NOW + HOUR_MS, to: NOW + 12 * HOUR_MS, sky: 'day' },
+        { from: NOW + 12 * HOUR_MS, to: NOW + 20 * HOUR_MS, sky: 'dark' },
+      ];
+      const end = (from: number): number => nightEnd(bands, from);
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null, speed: 'auto', passes: [], end, raf }));
+      act(() => {
+        result.current.play();
+      });
+      tick(0);
+      tick(60_000);
+      expect(result.current.t).toBe(NOW + HOUR_MS);
+      expect(result.current.playing).toBe(false);
+      act(() => {
+        result.current.play();
+      });
+      expect(result.current.playing).toBe(false);
+      expect(pending()).toBe(0);
+    });
+
+    it('asks a new end rule again for the instant playing started from (the bands arriving after the jump)', () => {
+      const { raf, tick } = scriptedRaf();
+      let end = (_from: number): number => Number.POSITIVE_INFINITY;
+      const { result, rerender } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null, speed: 'auto', passes: [], end, raf }));
+      act(() => {
+        result.current.play('page');
+      });
+      tick(0);
+      tick(1000);
+      expect(result.current.t).toBe(NOW + 600_000);
+      end = (from) => (from === NOW ? NOW + 2 * HOUR_MS : Number.NaN);
+      rerender();
+      tick(60_000);
+      expect(result.current.t).toBe(NOW + 2 * HOUR_MS);
+      expect(result.current.playing).toBe(false);
+    });
+
+    it('stops where it is when a new rule puts the stop behind the instant', () => {
+      const { raf, tick } = scriptedRaf();
+      let end = (_from: number): number => Number.POSITIVE_INFINITY;
+      const { result, rerender } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null, speed: 'auto', passes: [], end, raf }));
+      act(() => {
+        result.current.play();
+      });
+      tick(0);
+      tick(1000);
+      end = () => NOW + 60_000;
+      rerender();
+      tick(2000);
+      expect(result.current.t).toBe(NOW + 600_000);
+      expect(result.current.playing).toBe(false);
+    });
+
+    it('reads out the rate at t while paused: after a scrub, after `now`, after the stop', () => {
+      const { raf, tick } = scriptedRaf();
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null, speed: 'auto', passes, end: () => rise + MIN, raf }));
+      expect(result.current.speed).toBe(600);
+      act(() => {
+        result.current.scrub(rise - 4 * MIN);
+      });
+      expect(result.current.speed).toBe(60);
+      act(() => {
+        result.current.toNow();
+      });
+      expect(result.current.speed).toBe(600);
+      act(() => {
+        result.current.scrub(rise + 7 * MIN);
+      });
+      expect(result.current.speed).toBe(600);
+      act(() => {
+        result.current.scrub(NOW);
+        result.current.play();
+      });
+      tick(0);
+      tick(60_000);
+      expect(result.current.playing).toBe(false);
+      expect(result.current.t).toBe(rise + MIN);
+      expect(result.current.speed).toBe(60);
+    });
+
+    it('a setSpeed while playing does not restart the loop, so no frame’s wall time is dropped', () => {
+      const { raf, tick } = scriptedRaf();
+      const { result } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null, speed: 'auto', passes: [], raf }));
+      act(() => {
+        result.current.play();
+      });
+      tick(0);
+      tick(1000);
+      act(() => {
+        result.current.setSpeed(3600);
+      });
+      tick(2000);
+      expect(result.current.t).toBe(NOW + 1_200_000);
+    });
+  });
+
+  it('follows a new fixed speed option, and a switch from auto to one', () => {
+    let speed: Speed | 'auto' = 60;
+    const { result, rerender } = renderHook(() => usePlayback({ span, realNow: NOW, initial: null, speed }));
+    expect(result.current.speed).toBe(60);
+    speed = 600;
+    rerender();
+    expect(result.current.speed).toBe(600);
+    speed = 'auto';
+    rerender();
+    expect(result.current.speed).toBe(600);
+    speed = 3600;
+    rerender();
+    expect(result.current.speed).toBe(3600);
+    // Between option changes the reader's choice holds.
+    act(() => {
+      result.current.setSpeed(1);
+    });
+    rerender();
+    expect(result.current.speed).toBe(1);
   });
 
   // R141 (FR-TONIGHT-1, D-897): the reader's writes and the page's.

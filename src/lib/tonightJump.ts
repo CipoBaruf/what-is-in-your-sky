@@ -1,8 +1,7 @@
 import type { EpochMs } from '../model';
-// D-896 keeps the lead in `physics/constants.ts` beside FR-TRAJ-2's thresholds, read here as `arcReveal.ts` reads those.
-// eslint-disable-next-line @typescript-eslint/no-restricted-imports
+// D-896 keeps the lead in `physics/constants.ts` beside FR-TRAJ-2's thresholds (`eslint.config.js` allows this one import, D-907).
 import { TONIGHT_LEAD_MIN } from '../physics/constants';
-import { nightRuns, type PassTimes } from './playback';
+import { nightAt, passUp, type PassTimes } from './playback';
 import type { SkyBand, Span } from './timeStripe';
 
 /**
@@ -35,7 +34,7 @@ function firstStart(passes: readonly PassTimes[], keep: (start: EpochMs) => bool
  * rises inside the span.
  */
 export function openingJump(passes: readonly PassTimes[], now: EpochMs, span: Span): EpochMs | null {
-  if (passes.some((pass) => pass.start.t <= now && now <= pass.end.t)) return null;
+  if (passes.some((pass) => passUp(pass, now))) return null;
   const start = firstStart(passes, (s) => s > now && s <= span.end);
   return start === null ? null : lead(start, now);
 }
@@ -53,19 +52,21 @@ export interface TonightTarget {
  * pass rising in it; from inside, the first rising at or after `t`, and when
  * none is left after `t`, tonight's first, as from outside. With no visible
  * pass tonight it is the night's start (or `now`, when the night has begun),
- * paused. `null` while the bands hold no night (not loaded yet).
+ * paused. `null` while the bands hold no night (not loaded yet). The bands
+ * run an hour past the span (D-170), so a pass rising after the span's end
+ * is not tonight's and the night's start is held at the span's end at most.
  */
-export function tonightTarget(bands: readonly SkyBand[], passes: readonly PassTimes[], now: EpochMs, t: EpochMs): TonightTarget | null {
-  const night = nightRuns(bands).find((run) => run.to > now);
+export function tonightTarget(bands: readonly SkyBand[], passes: readonly PassTimes[], now: EpochMs, t: EpochMs, span: Span): TonightTarget | null {
+  const night = nightAt(bands, now);
   if (!night) return null;
-  const inNight = (s: EpochMs): boolean => s >= Math.max(night.from, now) && s < night.to;
+  const inNight = (s: EpochMs): boolean => s >= Math.max(night.from, now) && s < night.to && s <= span.end;
   if (t >= night.from && t < night.to) {
     const after = firstStart(passes, (s) => inNight(s) && s >= t);
     if (after !== null) return { t: lead(after, now), play: true };
   }
   const first = firstStart(passes, inNight);
   if (first !== null) return { t: lead(first, now), play: true };
-  return { t: Math.max(now, night.from), play: false };
+  return { t: Math.min(span.end, Math.max(now, night.from)), play: false };
 }
 
 /**

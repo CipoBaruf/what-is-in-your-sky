@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { advance, advanceAuto, autoSpeed, DEFAULT_SPEED, type PassTimes, type Speed } from '../../../lib/playback';
+import { advance, advanceAuto, autoRates, autoSpeed, DEFAULT_SPEED, type Advance, type PassTimes, type Speed } from '../../../lib/playback';
 import { clampToSpan, type Span } from '../../../lib/timeStripe';
 import type { EpochMs } from '../../../model';
 
@@ -34,7 +34,7 @@ export interface Playback {
   /** True while the shown instant is real time (no `t` in the link). */
   realTime: boolean;
   playing: boolean;
-  /** The chosen speed, or with `'auto'` the rate the last frame ran at. */
+  /** The chosen speed; with `'auto'`, the rate the last frame ran at while playing and the rate at `t` otherwise. */
   speed: Speed;
   /** FR-LIVE-4: sets the held instant (a scrub, a click, a key step); playback, if running, continues from it. */
   scrub: (t: EpochMs, origin?: WriteOrigin) => void;
@@ -59,14 +59,19 @@ export interface PlaybackOptions {
   realNow: EpochMs;
   /** A link's instant, held from the first render; `null` starts at real time (FR-LIVE-9). */
   initial: EpochMs | null;
-  /** R141 (FR-TONIGHT-5): `'auto'` reads the rate from `passes` each frame; a speed (or nothing) is the chosen one, `DEFAULT_SPEED` first. */
+  /**
+   * R141 (FR-TONIGHT-5): `'auto'` reads the rate from `passes` each frame; a speed (or nothing) is the chosen one,
+   * `DEFAULT_SPEED` first. A new speed here (or a switch from `'auto'` to one) becomes the chosen one; `setSpeed`
+   * changes it in between.
+   */
   speed?: Speed | 'auto';
   /** The visible passes `'auto'` reads its rate from (D-897). */
   passes?: readonly PassTimes[];
   /**
    * R141 (FR-TONIGHT-5, D-899): where playback started at `from` stops, before the span's end if earlier (the
    * night's end, `nightEnd`). Asked when playing starts and again whenever the instant is moved, so a move while
-   * playing runs on to its own night's end.
+   * playing runs on to its own night's end; a new rule (the bands arriving after `play`) is asked again for the same
+   * instant.
    */
   end?: (from: EpochMs) => EpochMs;
   /** Injected for tests; the window's by default. */
@@ -86,8 +91,22 @@ export function usePlayback({ span, realNow, initial, speed: speedOption, passes
   const auto = speedOption === 'auto';
   const [held, setHeldState] = useState<EpochMs | null>(initial);
   const [playing, setPlaying] = useState(false);
-  const [chosen, setChosen] = useState<Speed>(speedOption === undefined || auto ? DEFAULT_SPEED : speedOption);
+  const fixed = speedOption === undefined || auto ? null : speedOption;
+  const [chosen, setChosen] = useState<Speed>(fixed ?? DEFAULT_SPEED);
+  // A new fixed speed from the caller is adopted during render, as React's "a prop changed" pattern does.
+  const [lastFixed, setLastFixed] = useState(fixed);
+  if (fixed !== lastFixed) {
+    setLastFixed(fixed);
+    if (fixed !== null) setChosen(fixed);
+  }
+  // The rate the last frame ran at; the ref keeps the frame loop from publishing the same rate every frame.
   const [rate, setRate] = useState<Speed>(() => autoSpeed(initial ?? realNow, passes));
+  const rateRef = useRef<Speed>(rate);
+  const publishRate = useCallback((next: Speed) => {
+    if (next === rateRef.current) return;
+    rateRef.current = next;
+    setRate(next);
+  }, []);
   // The frame loop reads and writes the instant synchronously between frames, then publishes it;
   // every other writer goes through `setHeld` so the ref and the state never disagree.
   const heldRef = useRef<EpochMs | null>(initial);
@@ -101,18 +120,32 @@ export function usePlayback({ span, realNow, initial, speed: speedOption, passes
   }, []);
   const spanEnd = span.end;
 
-  // The frame loop reads these per frame, so new passes or a new end rule do not restart it.
+  // The frame loop reads these per frame, so new passes, a new end rule or a new speed do not restart it.
+  // `rates` keeps the last rate span (`autoRates`), so a frame scans the passes only when `t` crosses an edge.
   const passesRef = useRef(passes);
-  const endRuleRef = useRef(end);
+  const ratesRef = useRef(autoRates(passes));
   useEffect(() => {
     passesRef.current = passes;
-    endRuleRef.current = end;
-  }, [passes, end]);
+    ratesRef.current = autoRates(passes);
+  }, [passes]);
+  const chosenRef = useRef(chosen);
+  useEffect(() => {
+    chosenRef.current = chosen;
+  }, [chosen]);
   /** The override's answer for the instant playing started from (or was last moved to); the span's end bounds it. */
+  const endRuleRef = useRef(end);
+  const anchorRef = useRef<EpochMs | null>(null);
   const stopRef = useRef<EpochMs>(Number.POSITIVE_INFINITY);
   const anchorStop = useCallback((from: EpochMs) => {
+    anchorRef.current = from;
     stopRef.current = endRuleRef.current ? endRuleRef.current(from) : Number.POSITIVE_INFINITY;
   }, []);
+  // A new rule is asked again for the same instant: `play('page')` before the bands load anchors at `Infinity`,
+  // and the night's end has to reach that run once they arrive.
+  useEffect(() => {
+    endRuleRef.current = end;
+    if (anchorRef.current !== null) anchorStop(anchorRef.current);
+  }, [end, anchorStop]);
 
   /*
    * R89 (FR-VISIT-3): a held instant that real time overtakes releases to watching. "Overtakes" is read as
@@ -147,9 +180,14 @@ export function usePlayback({ span, realNow, initial, speed: speedOption, passes
       if (last !== null) {
         const from = heldRef.current ?? realNow;
         const stop = Math.min(spanEnd, stopRef.current);
-        const moved = auto ? advanceAuto(from, wall - last, passesRef.current, stop) : null;
-        if (moved) setRate(moved.speed);
-        const next = moved ?? advance(from, wall - last, chosen, stop);
+        let next: Advance;
+        // A stop that a new rule moved behind the instant (the bands late, the run already past the night) stops it where it is.
+        if (from >= stop) next = { t: from, atEnd: true };
+        else if (auto) {
+          const moved = advanceAuto(from, wall - last, ratesRef.current, stop);
+          publishRate(moved.speed);
+          next = moved;
+        } else next = advance(from, wall - last, chosenRef.current, stop);
         setHeld(next.t);
         if (next.atEnd) {
           setPlaying(false);
@@ -165,7 +203,7 @@ export function usePlayback({ span, realNow, initial, speed: speedOption, passes
     };
     // `realNow` is only the starting point when nothing is held; a tick must not restart the loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, auto, chosen, spanEnd, raf, setHeld]);
+  }, [playing, auto, spanEnd, raf, setHeld, publishRate]);
 
   const scrub = useCallback(
     (t: EpochMs, origin?: WriteOrigin) => {
@@ -188,11 +226,11 @@ export function usePlayback({ span, realNow, initial, speed: speedOption, passes
       const from = heldRef.current === null ? realNow : clampToSpan(heldRef.current, span);
       anchorStop(from);
       if (from >= Math.min(spanEnd, stopRef.current)) return;
-      if (auto) setRate(autoSpeed(from, passesRef.current));
+      if (auto) publishRate(autoSpeed(from, passesRef.current));
       setHeld(from);
       setPlaying(true);
     },
-    [realNow, span, spanEnd, auto, setHeld, mark, anchorStop],
+    [realNow, span, spanEnd, auto, setHeld, mark, anchorStop, publishRate],
   );
   const pause = useCallback(
     (origin?: WriteOrigin) => {
@@ -217,11 +255,13 @@ export function usePlayback({ span, realNow, initial, speed: speedOption, passes
     [setHeld, mark],
   );
 
+  const t = held === null ? realNow : clampToSpan(held, span);
   return {
-    t: held === null ? realNow : clampToSpan(held, span),
+    t,
     realTime: held === null,
     playing,
-    speed: auto ? rate : chosen,
+    // Paused (a scrub, `now`, the stop at the night's end) no frame runs, so the readout is the rate at `t` itself.
+    speed: auto ? (playing ? rate : autoSpeed(t, passes)) : chosen,
     scrub,
     stepTo: scrub,
     play,

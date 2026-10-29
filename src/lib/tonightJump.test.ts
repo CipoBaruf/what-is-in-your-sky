@@ -53,36 +53,43 @@ describe('openingJump (FR-TONIGHT-1)', () => {
 describe('tonightTarget (FR-TONIGHT-4)', () => {
   it('from the day, lands before the first visible pass tonight and plays', () => {
     const passes = [pass(9 * 60), pass(8 * 60), pass(3 * 60), pass(20 * 60)];
-    expect(tonightTarget(bands, passes, NOON, NOON)).toEqual({ t: NOON + 8 * HOUR - MIN, play: true });
+    expect(tonightTarget(bands, passes, NOON, NOON, span)).toEqual({ t: NOON + 8 * HOUR - MIN, play: true });
   });
 
   it('counts a pass in the twilight at either end as tonight’s', () => {
-    expect(tonightTarget(bands, [pass(7 * 60 + 10)], NOON, NOON)).toEqual({ t: NOON + 7 * HOUR + 9 * MIN, play: true });
+    expect(tonightTarget(bands, [pass(7 * 60 + 10)], NOON, NOON, span)).toEqual({ t: NOON + 7 * HOUR + 9 * MIN, play: true });
   });
 
   it('with no visible pass tonight, goes to the night’s start, paused', () => {
-    expect(tonightTarget(bands, [pass(3 * 60), pass(19 * 60)], NOON, NOON)).toEqual({ t: NIGHT_START, play: false });
-    expect(tonightTarget(bands, [], NOON, NOON + 2 * HOUR)).toEqual({ t: NIGHT_START, play: false });
+    expect(tonightTarget(bands, [pass(3 * 60), pass(19 * 60)], NOON, NOON, span)).toEqual({ t: NIGHT_START, play: false });
+    expect(tonightTarget(bands, [], NOON, NOON + 2 * HOUR, span)).toEqual({ t: NIGHT_START, play: false });
   });
 
   it('with t inside tonight, goes to the first visible pass at or after t', () => {
     const passes = [pass(8 * 60), pass(10 * 60), pass(12 * 60)];
-    expect(tonightTarget(bands, passes, NOON, NOON + 9 * HOUR)).toEqual({ t: NOON + 10 * HOUR - MIN, play: true });
+    expect(tonightTarget(bands, passes, NOON, NOON + 9 * HOUR, span)).toEqual({ t: NOON + 10 * HOUR - MIN, play: true });
     // From a landing, the same pass: the tap does not skip the one it landed before.
-    expect(tonightTarget(bands, passes, NOON, NOON + 10 * HOUR - MIN)).toEqual({ t: NOON + 10 * HOUR - MIN, play: true });
+    expect(tonightTarget(bands, passes, NOON, NOON + 10 * HOUR - MIN, span)).toEqual({ t: NOON + 10 * HOUR - MIN, play: true });
     // Past tonight's last, back to its first.
-    expect(tonightTarget(bands, passes, NOON, NOON + 13 * HOUR)).toEqual({ t: NOON + 8 * HOUR - MIN, play: true });
+    expect(tonightTarget(bands, passes, NOON, NOON + 13 * HOUR, span)).toEqual({ t: NOON + 8 * HOUR - MIN, play: true });
   });
 
   it('with now inside the night, tonight is this night and nothing before now', () => {
     const now = NOON + 9 * HOUR;
-    expect(tonightTarget(bands, [pass(8 * 60), pass(11 * 60)], now, now)).toEqual({ t: NOON + 11 * HOUR - MIN, play: true });
-    expect(tonightTarget(bands, [pass(8 * 60)], now, now)).toEqual({ t: now, play: false });
+    expect(tonightTarget(bands, [pass(8 * 60), pass(11 * 60)], now, now, span)).toEqual({ t: NOON + 11 * HOUR - MIN, play: true });
+    expect(tonightTarget(bands, [pass(8 * 60)], now, now, span)).toEqual({ t: now, play: false });
+  });
+
+  it('keeps to the span: a pass rising past its end is not tonight’s, and the night’s start is held at its end', () => {
+    const short: Span = { start: NOON, end: NOON + 6 * HOUR };
+    expect(tonightTarget(bands, [pass(8 * 60)], NOON, NOON, short)).toEqual({ t: NOON + 6 * HOUR, play: false });
+    const cut: Span = { start: NOON, end: NOON + 8 * HOUR };
+    expect(tonightTarget(bands, [pass(9 * 60), pass(7 * 60 + 30)], NOON, NOON, cut)).toEqual({ t: NOON + 7 * HOUR + 29 * MIN, play: true });
   });
 
   it('is null while the bands hold no night', () => {
-    expect(tonightTarget([], [pass(8 * 60)], NOON, NOON)).toBeNull();
-    expect(tonightTarget([{ from: NOON, to: NOON + 25 * HOUR, sky: 'day' }], [pass(8 * 60)], NOON, NOON)).toBeNull();
+    expect(tonightTarget([], [pass(8 * 60)], NOON, NOON, span)).toBeNull();
+    expect(tonightTarget([{ from: NOON, to: NOON + 25 * HOUR, sky: 'day' }], [pass(8 * 60)], NOON, NOON, span)).toBeNull();
   });
 });
 

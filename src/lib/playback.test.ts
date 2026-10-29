@@ -4,7 +4,7 @@
  * budgets are one rule.
  */
 import { describe, expect, it } from 'vitest';
-import { advance, advanceAuto, autoSpeed, BODIES_EVERY_MS, DEFAULT_SPEED, due, heldOffset, HIDDEN_EVERY_MS, isSpeed, linkInstant, nightEnd, SPEEDS } from './playback';
+import { advance, advanceAuto, autoRates, autoSpeed, BODIES_EVERY_MS, DEFAULT_SPEED, due, heldOffset, HIDDEN_EVERY_MS, isSpeed, linkInstant, nightEnd, passUp, rateSpan, SPEEDS } from './playback';
 import type { SkyBand } from './timeStripe';
 
 const HOUR_MS = 3_600_000;
@@ -97,21 +97,60 @@ describe('advanceAuto (R141, D-899)', () => {
   const passes = [{ start: { t: rise }, end: { t: rise + 6 * MIN } }];
 
   it('runs a gap frame at 600× and a near frame at 60×', () => {
-    expect(advanceAuto(T, 16, passes, END)).toEqual({ t: T + 16 * 600, atEnd: false, speed: 600 });
-    expect(advanceAuto(rise, 16, passes, END)).toEqual({ t: rise + 16 * 60, atEnd: false, speed: 60 });
+    expect(advanceAuto(T, 16, autoRates(passes), END)).toEqual({ t: T + 16 * 600, atEnd: false, speed: 600 });
+    expect(advanceAuto(rise, 16, autoRates(passes), END)).toEqual({ t: rise + 16 * 60, atEnd: false, speed: 60 });
   });
 
   it('splits a frame that crosses the slow-down boundary there, the rest at 60×', () => {
     const boundary = rise - 5 * MIN;
     // 1 s of wall: 0.5 s reaches the boundary at 600×, the other 0.5 s runs at 60×.
     const from = boundary - 300_000;
-    expect(advanceAuto(from, 1000, passes, END)).toEqual({ t: boundary + 500 * 60, atEnd: false, speed: 60 });
+    expect(advanceAuto(from, 1000, autoRates(passes), END)).toEqual({ t: boundary + 500 * 60, atEnd: false, speed: 60 });
     // However long the frame, the rise is not passed at 600×: ten seconds of wall land 9.5 min of 60× past the boundary.
-    expect(advanceAuto(from, 10_000, passes, END).t).toBe(boundary + 9500 * 60);
+    expect(advanceAuto(from, 10_000, autoRates(passes), END).t).toBe(boundary + 9500 * 60);
   });
 
   it('stops at the end, and a boundary past the end splits nothing', () => {
-    expect(advanceAuto(T, 10_000, passes, T + 1000)).toEqual({ t: T + 1000, atEnd: true, speed: 600 });
+    expect(advanceAuto(T, 10_000, autoRates(passes), T + 1000)).toEqual({ t: T + 1000, atEnd: true, speed: 600 });
+  });
+});
+
+describe('rateSpan and autoRates (R141’s review)', () => {
+  const MIN = 60_000;
+  const rise = T + HOUR_MS;
+  const pass = { start: { t: rise }, end: { t: rise + 6 * MIN } };
+  const passes = [pass];
+
+  it('a pass is up from its rise to its set, both included, for the jump and the rate alike', () => {
+    expect([rise - 1, rise, rise + 6 * MIN, rise + 6 * MIN + 1].map((t) => passUp(pass, t))).toEqual([false, true, true, false]);
+  });
+
+  it('holds the rate until the next edge: the slow-down boundary from a gap, the set from a pass', () => {
+    expect(rateSpan(T, passes)).toEqual({ speed: 600, from: T, until: rise - 5 * MIN });
+    expect(rateSpan(rise, passes)).toEqual({ speed: 60, from: rise, until: rise + 6 * MIN });
+    expect(rateSpan(rise + 7 * MIN, passes)).toEqual({ speed: 600, from: rise + 7 * MIN, until: Number.POSITIVE_INFINITY });
+  });
+
+  it('scans again only once t leaves the span, and agrees with autoSpeed on both sides of every edge', () => {
+    let scans = 0;
+    const counted = [
+      {
+        get start() {
+          scans += 1;
+          return pass.start;
+        },
+        end: pass.end,
+      },
+    ];
+    const rates = autoRates(counted);
+    rates(T);
+    const after = scans;
+    rates(T + MIN);
+    rates(T + 10 * MIN);
+    expect(scans).toBe(after);
+    for (const t of [rise - 5 * MIN - 1, rise - 5 * MIN, rise, rise + 6 * MIN, rise + 6 * MIN + 1, T]) {
+      expect(rates(t).speed).toBe(autoSpeed(t, passes));
+    }
   });
 });
 
@@ -133,6 +172,11 @@ describe('nightEnd (R141, FR-TONIGHT-5)', () => {
 
   it('from the day, is the end of the next night', () => {
     expect(nightEnd(bands, T)).toBe(T + 19 * H);
+  });
+
+  it('at the night’s own end is that end, so play from the stop goes nowhere (D-908)', () => {
+    expect(nightEnd(bands, T + 19 * H)).toBe(T + 19 * H);
+    expect(nightEnd(bands, T + 19 * H + 1)).toBe(Number.POSITIVE_INFINITY);
   });
 
   it('is unbounded with no night left in the bands, so the span’s end wins', () => {
