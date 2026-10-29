@@ -1,0 +1,45 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`FR-TONIGHT-4, FR-TONIGHT-7: the taps row, the chip and the context line in en > the strings, with their cells 1`] = `
+[
+  "taps, paused (▶) | ▶ [ tonight ] [ next ] [ now ] | 30 chars | 30 cells",
+  "taps, playing (‖) | ‖ [ tonight ] [ next ] [ now ] | 30 chars | 30 cells",
+  "chip: now | 21:14:32 now | 12 chars | 13.88 cells",
+  "chip: ahead | 21:14 in 23 h 59 min | 20 chars | 19.75 cells",
+  "chip: behind | 21:14 23 h 59 min ago | 21 chars | 20.63 cells",
+  "chip: ahead, tonight | 21:14 tonight · in 23 h 59 min | 30 chars | 28.5 cells",
+  "chip: behind, tonight | 21:14 tonight · 23 h 59 min ago | 31 chars | 29.38 cells",
+  "chip: ahead, weekday | 21:14 Fri · in 23 h 59 min | 26 chars | 25 cells",
+  "chip: behind, weekday | 21:14 Fri · 23 h 59 min ago | 27 chars | 25.88 cells",
+  "context: up, peak | Tiangong · peaks SSW 12:05 | 26 chars | 22.75 cells",
+  "context: up, horizon | Tiangong · sets SSW 12:05 | 25 chars | 21.88 cells",
+  "context: up, shadow | Tiangong · into shadow SSW 12:05 | 32 chars | 28 cells",
+  "context: up, twilight | Tiangong · fades SSW 12:05 | 26 chars | 22.75 cells",
+  "context: up, the fixed part (the name’s room is the rest) |  · into shadow SSW 12:05 | 24 chars | 21 cells",
+  "context: sky | Twilight · Unknown · next 21:47 | 31 chars | 27.13 cells",
+  "context: no pass in 24 h | No visible pass in 24 h | 23 chars | 20.13 cells",
+  "context: no pass tonight | No visible pass tonight | 23 chars | 20.13 cells",
+]
+`;
+
+exports[`FR-TONIGHT-4, FR-TONIGHT-7: the taps row, the chip and the context line in es > the strings, with their cells 1`] = `
+[
+  "taps, paused (▶) | ▶ [ noche ] [ próximo ] [ ahora ] | 33 chars | 33 cells",
+  "taps, playing (‖) | ‖ [ noche ] [ próximo ] [ ahora ] | 33 chars | 33 cells",
+  "chip: now | 21:14:32 ahora | 14 chars | 15.63 cells",
+  "chip: ahead | 21:14 en 23 h 59 min | 20 chars | 19.75 cells",
+  "chip: behind | 21:14 hace 23 h 59 min | 22 chars | 21.5 cells",
+  "chip: ahead, tonight | 21:14 esta noche · en 23 h 59 min | 33 chars | 31.13 cells",
+  "chip: behind, tonight | 21:14 esta noche · hace 23 h 59 min | 35 chars | 32.88 cells",
+  "chip: ahead, weekday | 21:14 vie · en 23 h 59 min | 26 chars | 25 cells",
+  "chip: behind, weekday | 21:14 vie · hace 23 h 59 min | 28 chars | 26.75 cells",
+  "context: up, peak | Tiangong · culmina SSW 12:05 | 28 chars | 24.5 cells",
+  "context: up, horizon | Tiangong · se pone SSW 12:05 | 28 chars | 24.5 cells",
+  "context: up, shadow | Tiangong · a la sombra SSW 12:05 | 32 chars | 28 cells",
+  "context: up, twilight | Tiangong · se apaga SSW 12:05 | 29 chars | 25.38 cells",
+  "context: up, the fixed part (the name’s room is the rest) |  · a la sombra SSW 12:05 | 24 chars | 21 cells",
+  "context: sky | Crepúsculo · Limpio · próximo 21:47 | 35 chars | 30.63 cells",
+  "context: no pass in 24 h | Ningún pase visible en 24 h | 27 chars | 23.63 cells",
+  "context: no pass tonight | Ningún pase visible esta noche | 30 chars | 26.25 cells",
+]
+`;
