@@ -2178,7 +2178,9 @@ and the two following screens; every touch capture installs `stubOrientation`, g
 reading nothing until a following capture sets its readings, which also keeps the desk browser's
 own all-`null` event off the page; the sheet's satellites are scrolled to rather than opened. The
 older gated specs that pressed `[ list (n) ]` (`r71`, `r144`, `r148`) open the sheet and scroll
-to its satellites instead; `r71`'s empty list is the day's (the card's `[ see now ]`).
+to its satellites instead; `r71`'s empty list is the day's (the card's `[ see now ]`), and `r144`'s
+jump is the card's `[ see next pass ]`, with its view and facing rows opened in the sheet. All 26
+of their cases pass.
 
 - [ ] Dispatch `captures.yml` on the release commit with `base` `c996ba3`, twice: run 1
       _(id)_, run 2 _(id)_.
