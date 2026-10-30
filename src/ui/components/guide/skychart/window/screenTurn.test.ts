@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { rotationMatrix, type Mat3 } from './projection';
-import { quarterTurnFor, SCREEN_TURN_FLAT_DEG, SCREEN_TURN_HYSTERESIS_DEG } from './screenTurn';
+import { quarterTurnFor, SCREEN_TURN_FLAT_DEG, SCREEN_TURN_HYSTERESIS_DEG, turnFor } from './screenTurn';
 
 /** Upright, top up, back to the north: the pose the browser calls angle 0. */
 const upright = rotationMatrix(0, 90, 0);
@@ -121,5 +121,15 @@ describe('quarterTurnFor: no reading', () => {
     expect(quarterTurnFor(null, 0)).toBe(0);
     expect(quarterTurnFor(null, 90)).toBe(0);
     expect(quarterTurnFor(null, 270)).toBe(0);
+  });
+});
+
+describe('turnFor: what the picture turns by (FR-FSC-10, D-426; R151, D-941)', () => {
+  it('is nothing where the browser already reflowed, and the shorter way round where it did not', () => {
+    for (const quarter of [0, 90, 180, 270] as const) expect(turnFor(quarter, quarter)).toBe(0);
+    expect(turnFor(90, 0)).toBe(90);
+    expect(turnFor(270, 0)).toBe(-90);
+    expect(turnFor(0, 270)).toBe(90);
+    expect(turnFor(180, 0)).toBe(180);
   });
 });

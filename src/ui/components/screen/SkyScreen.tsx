@@ -4,7 +4,7 @@ import { SCREEN_STATUS_ID } from '../guide/skychart/ChartFrame';
 import { SkyChart } from '../guide/skychart/SkyChart';
 import type { SkyChartProps } from '../guide/skychart/SkyChart.types';
 import type { SkyScene } from '../guide/skychart/window/scene';
-import { nearestQuarter, type Quarter } from '../guide/skychart/window/screenTurn';
+import { nearestQuarter, turnFor, type Quarter } from '../guide/skychart/window/screenTurn';
 import { screenAngle } from '../live/compassHeading';
 import styles from './SkyScreen.module.css';
 import { ScreenTurnProvider } from './screenTurn';
@@ -100,16 +100,6 @@ export type SkyScreenProps = SkyScreenCommon & (PassesInventory | StarsInventory
 
 /** FR-STAR-5: the stars inventory's window with `[ passes ]` off has no pass on it at all. */
 const NO_PASSES: SkyChartProps['passes'] = [];
-
-/**
- * FR-FSC-10 (D-426): what the layer turns by — the shorter way round from the
- * viewport's own rotation to the reader's, so the four answers are `0`, `±90`
- * and `180` and a phone that reflowed turns by nothing.
- */
-export function turnFor(quarter: number, screenAngleDeg: number): number {
-  const difference = (((quarter - screenAngleDeg) % 360) + 360) % 360;
-  return difference > 180 ? difference - 360 : difference;
-}
 
 /**
  * FR-FSC-10: where the quarter starts, before the window has read a pose.
