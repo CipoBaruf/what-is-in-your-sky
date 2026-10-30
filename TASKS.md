@@ -4284,7 +4284,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.51 who
 
 ### Wave 1
 
-- [ ] **R150 — The sheet: a bottom sheet both ways, the `×` and the swipe, the tap on the sky withdrawn, the satellites open at its end, the window first**
+- [x] **R150 — The sheet: a bottom sheet both ways, the `×` and the swipe, the tap on the sky withdrawn, the satellites open at its end, the window first**
   - **Lane:** live
   - **Model:** opus
   - **Review:** opus
@@ -4303,6 +4303,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.51 who
     - `live-full`, `live-states`, `targets`, `rhythm` and `shapes` green at the compact sizes in both languages.
     - The Done note gives the swipe's three cases, the sheet at 844 × 390, and the satellites' heading with its count.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and the named e2e specs green.
+  - *Done:* as written, plus D-953 and D-954. **The swipe** (`ControlsSheet.test.tsx`, and `live-full.spec.ts` by touch drags through the DevTools protocol at 390 × 844 in both languages): a slow 40 px drag snaps back (the sheet follows at `--sheet-drag: 40px` with no transition, then returns to its place), a slow 80 px drag closes and gives the focus to `[ controls ]`, a 30 px flick in one move closes; an upward drag never lifts the sheet, a cancel snaps back, a press on `[ settings ]` or the `×` is not a drag. **The sheet at 844 × 390**: 844 × 273 — the full width, 0.70 of the height (`SHEET_MAX_SHARE`), its bottom edge at 390, its body scrolling, the page not, in both languages; at 390 × 844 591 px (0.70) on the twenty-pass run. **The satellites' heading**: "Satellites (n)" / "Satélites (n)", `n` the drawn passes the open list holds — 1, 5 and 0 in `Live.test.tsx` (the empty sky keeps the list's line), 0 by day on `live-full`'s seed, 1 after `[ see next pass ]` in the captures — with `[ ] Hidden` / `[ ] Ocultos` at its end. The `×` is a 48 × 48 target named "Close controls" / "Cerrar controles". Every view row reads `[Window] Polar Dome` / `[Ventana] Polar Domo` (`controlRows.test.ts`, both languages). Tests: `npm test` 3081 passed, 7 skipped; `tests/docs` 216 passed; lint, typecheck, `check:dead` clean. e2e: `live-full` 22, `live-states` + `targets` 20 (the two sky-screen targets fail on the container's `requestPermission`, as R148 recorded), `rhythm` + `shapes` 22, `live-compact` + `live-landscape` + `sky-layout` 34, `r48-trajectories` + `live-playback` 27, `structure` + `live-tonight` + `live.spec` 26 (two sky-screen cases fail as above); `sky-window` fails only its sky-screen and refused-permission cases. Captures: `docs/screenshots/r150-live-{390,844-landscape}-{sheet,satellites}-dark-{en,es}.png` (`r150-captures.spec.ts`). The gated older capture specs that clicked `[ list (n) ]` (`r71`, `r144`, `r148`, `v1-captures`) are left to R153's capture set.
 
 - [ ] **R151 — The window follows on the page: `follow`, `onFollowEnd`, `poseAsHand`, `FollowToggle`, the specs' permission stub**
   - **Lane:** window
