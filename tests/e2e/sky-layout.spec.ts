@@ -453,11 +453,16 @@ for (const viewport of TURNED) {
         // second line here; nothing is lost: both stand inside the row, inside the sheet.
         const row = page.getByTestId('live-view-row');
         const rowBox = await box(row);
+        const sheetBody = await box(page.getByTestId('sheet-body'));
         for (const part of [row.getByRole('group', { name: WORDS[locale].viewGroup }), row.getByRole('button', { name: WORDS[locale].stars })]) {
           await expect(part).toBeVisible();
           const partBox = await box(part);
-          expect(inside(partBox, rowBox), 'inside the view row').toBe(true);
+          // Across, inside the row; down, inside the sheet's body — an inline control's 48 px hit box overhangs its
+          // text line by half a row on each side (D-246), which on a second line reaches past the row's box.
+          expect(partBox.x, 'inside the view row').toBeGreaterThanOrEqual(rowBox.x - 1);
+          expect(partBox.x + partBox.width, 'inside the view row').toBeLessThanOrEqual(rowBox.x + rowBox.width + 1);
           expect(partBox.x + partBox.width).toBeLessThanOrEqual(viewport.width);
+          expect(partBox.y + partBox.height).toBeLessThanOrEqual(sheetBody.y + sheetBody.height + 1);
         }
         expect(await pageScrolls(layout)).toEqual([]);
       });

@@ -24,9 +24,14 @@
   flex: none;
 }
 
-/* F-100 (D-642), as the header has it: the ring of a focused Back sits flush round its text. */
+/* F-100 (D-642), as the header has it: the ring of a focused Back sits flush round its text line, not its tap box
+   (R148: `Live.module.css`'s rule for the top row's Back, brought here with the control). */
 .back:focus-visible {
   --focus-offset: 0;
+  min-block-size: 0;
+  min-height: 0;
+  padding-block: 0;
+  margin-block: 0;
 }
 
 .time {
