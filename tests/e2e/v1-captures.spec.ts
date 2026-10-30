@@ -54,7 +54,7 @@ import { WINDOW_FOV_MIN_DEG } from '../../src/ui/components/guide/skychart/windo
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 // P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
 import { CLOCK, DAY_MS, SHOWN_PASS, SHOWN_PASS_START, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
-import { domeDrawn, enterScrubbing, heading, openLegend, openSettings, openSkyScreen, stripFilled, stubCompass, stubNetwork } from './liveHelpers';
+import { domeDrawn, enterScrubbing, heading, openLegend, openSettings, openSkyScreen, shownOnTrack, stripFilled, stubCompass, stubNetwork } from './liveHelpers';
 // Bariloche is the place picker's observer for the geocoder's first answer, at its 839 m (FR-SHOW-9), which is
 // what the stored Bariloche run and `SHOWN_PASS`'s id were computed at. Neuquén is only the second row of the
 // saved places.
@@ -346,6 +346,17 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
   // reveal is one of the timers the paused clock is holding until `liveDrawn` ticks it.
   const view = await liveDrawn(page);
   await expect(page.getByTestId('live-place')).toHaveText(BARILOCHE.label);
+  /*
+   * R145 (FR-TONIGHT-1, D-898): with nothing up at `shown` the compact page jumps to the next pass and plays
+   * (`CHIP_SHOWN`, six minutes before it). Every capture here is of its own instant, so the reader's `[ now ]`
+   * brings the page back and keeps it there for the visit — which is how the sky screen's chip is still the
+   * one 2.6.1 drew.
+   */
+  const chip = page.getByTestId('shown-chip');
+  if ((await chip.count()) > 0 && (await chip.getAttribute('data-kind')) !== 'now') {
+    await page.getByTestId('live-tap-now').click();
+    await expect(chip).toHaveAttribute('data-kind', 'now');
+  }
   // The strip settled: five fields, each visible and none still on its pending ellipsis (F-47:
   // `liveHelpers.ts` owns that check, and this file had been carrying a copy without the visibility half).
   await stripFilled(page);
@@ -357,7 +368,8 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
   // both of them print the local time of `SHOWN` in Bariloche's zone (P8; over Paris it was UTC).
   // R77 (FR-WATCH-3, FR-WATCH-5, D-474, D-476): the clock is a field of the conditions line on compact and
   // the rail's own `live-clock` on wide, where the line gave it up. Either way it is the page's shown instant.
-  const shownClock = (await page.getByTestId('live-time').count()) > 0 ? page.getByTestId('live-time') : page.getByTestId('live-clock');
+  // R145 (FR-TONIGHT-6, FR-TONIGHT-7): on compact it is the headline's shown time, with its seconds at real time.
+  const shownClock = (await page.getByTestId('shown-time').count()) > 0 ? page.getByTestId('shown-time') : page.getByTestId('live-clock');
   // F-99: to the second, so a clock left on its own interval's phase fails here rather than in a diff of two runs.
   await expect(shownClock).toContainText(localHhmmss(shown));
   await page.mouse.move(0, 0);
@@ -908,6 +920,20 @@ const REACH: Record<string, Reach> = {
     await enterScrubbing(page);
     // The stripe's chunk, its 24 h overview and the playback row all draw on timers the paused clock is holding.
     await page.clock.runFor(1000);
+    /*
+     * R145 (FR-TONIGHT-6): on compact the page has one inventory in both states, so the scrubbing picture is the
+     * watching one held — the mark says `held`, the chip the offset — at the track's start, which is real time.
+     */
+    if ((await page.getByTestId('live-track').count()) > 0) {
+      for (const row of ['live-headline', 'live-context', 'live-track', 'live-taps']) await expect(page.getByTestId(row)).toBeVisible();
+      expect(Math.abs((await shownOnTrack(page)) - SHOWN)).toBeLessThanOrEqual(TICK_MS);
+      // The key on the track scrolled the landscape rail down to it; the rail is read from the top, as D-864 reads wide's.
+      await page.evaluate(() => {
+        for (const el of document.querySelectorAll<HTMLElement>('[data-testid="live-page"], [data-testid="live-page"] *')) if (el.scrollTop > 0) el.scrollTop = 0;
+      });
+      await page.mouse.move(0, 0);
+      return;
+    }
     // FR-WATCH-4's scrubbing inventory, so a picture cannot be of a half-revealed block.
     for (const row of ['time-row', 'time-stripe', 'step-controls', 'playback-row']) await expect(page.getByTestId(row)).toBeVisible();
     // `[ scrub ]` holds the instant the page was showing, so the pair differs by the state and nothing else.
