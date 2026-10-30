@@ -7,6 +7,8 @@ export const windowMessages: typeof EnWindow = {
     denied: 'Se rechazó el acceso al movimiento. Para que te lo vuelva a preguntar, recargá la página: Safari pregunta una vez por carga.',
     relative: 'Este dispositivo no informa hacia dónde apunta.',
     hint: 'Levantá el teléfono: la ventana muestra el cielo al que apunta.',
+    followToggle: 'seguir el teléfono',
+    followRefused: 'El acceso al movimiento está desactivado. Permitilo en los ajustes del navegador y volvé a tocar.',
     peak: 'pico',
     skyHint: {
       drag: { coarse: 'Arrastrá para mirar', fine: 'Arrastrá o usá las flechas' },

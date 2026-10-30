@@ -1,0 +1,10 @@
+/* R151 (FR-GYRO-1, FR-GYRO-3; D-943): the toggle, and the refusal's line under it when there is one. The toggle is
+   an `OptionToggle` and draws itself; this file only stacks the two. */
+.follow {
+  display: grid;
+  justify-items: start;
+}
+
+.refused {
+  margin: 0;
+}

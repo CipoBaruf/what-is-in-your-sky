@@ -32,9 +32,9 @@ import { IDLE_PASSES } from '../../../state/slices/passes';
 import { SCREEN_STATUS_ID } from '../guide/skychart/ChartFrame';
 import type { SkyChartProps } from '../guide/skychart/SkyChart.types';
 import { LivePage } from '../../screens/Live';
-import { nearestQuarter } from '../guide/skychart/window/screenTurn';
+import { nearestQuarter, turnFor } from '../guide/skychart/window/screenTurn';
 import { screenAngle } from '../live/compassHeading';
-import { browserQuarter, turnFor } from './SkyScreen';
+import { browserQuarter } from './SkyScreen';
 
 /** The props every `SkyChart` on the page was rendered with, in order (D-326's FR-FSC-5 check). */
 const recorded = vi.hoisted(() => ({ props: [] as SkyChartProps[] }));
