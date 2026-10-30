@@ -189,25 +189,26 @@ test.describe('the live page on a portrait phone with a compass', () => {
     // R148 (FR-FULL-4): the view row, the actions and the taps are the sheet's.
     await openSheet(page);
     const toggle = page.getByRole('group', { name: 'Chart view' });
-    await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
+    await expect(toggle.getByRole('button')).toHaveText(['Window', 'Polar', 'Dome']);
     await page.screenshot({ path: 'docs/screenshots/r66-live-390-views-dark-en.png' });
     // R59 (D-300, F-55): the dome keeps no floor here — what is asserted is that the box stays inside its pane.
     // `live-full.spec.ts` is where the box is measured against the viewport.
     const dome = await page.getByTestId('live-dome').boundingBox();
     const drawing = await page.getByTestId('chart-box').boundingBox();
     expect((drawing?.y ?? 0) + (drawing?.height ?? 0)).toBeLessThanOrEqual((dome?.y ?? 0) + (dome?.height ?? 0) + 0.5);
-    // FR-COMP-4: the actions row stays one line in both states — R144 (FR-TONIGHT-6): `[ list (n) ] Share`, and the
-    // taps row `▶ [ tonight ] [ next ] [ now ]` one line too, held or not.
-    const list = await page.getByTestId('live-legend-toggle').boundingBox();
+    // FR-COMP-4: the actions row stays one line in both states — R150 (FR-GYRO-10): `Share` alone, the satellites
+    // after it — and the taps row `▶ [ tonight ] [ next ] [ now ]` one line too, held or not.
+    const actions = await page.getByTestId('live-actions').boundingBox();
     const shareWatching = await page.getByRole('button', { name: 'Share this sky' }).boundingBox();
-    expect(Math.abs((shareWatching?.y ?? 0) - (list?.y ?? 0))).toBeLessThanOrEqual(1);
+    expect(shareWatching?.height ?? 0, 'one line').toBeLessThanOrEqual((actions?.height ?? 0) + 1);
     const taps = await page.getByTestId('live-taps').getByRole('button').all();
     const tapTops = await Promise.all(taps.map(async (tap) => (await tap.boundingBox())?.y ?? 0));
     for (const top of tapTops) expect(Math.abs(top - (tapTops[0] ?? 0))).toBeLessThanOrEqual(1);
     await enterScrubbing(page);
     const share = await page.getByRole('button', { name: 'Share this moment' }).boundingBox();
-    const listHeld = await page.getByTestId('live-legend-toggle').boundingBox();
-    expect(Math.abs((share?.y ?? 0) - (listHeld?.y ?? 0))).toBeLessThanOrEqual(1);
+    const actionsHeld = await page.getByTestId('live-actions').boundingBox();
+    expect(share?.height ?? 0, 'one line').toBeLessThanOrEqual((actionsHeld?.height ?? 0) + 1);
+    expect(actionsHeld?.height).toBe(actions?.height);
     await page.getByTestId('live-tap-now').click();
     // The view control is one row too, with three options (V13-4's two-option row is withdrawn).
     const options = await toggle.getByRole('button').all();

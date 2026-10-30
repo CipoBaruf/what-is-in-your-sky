@@ -25,7 +25,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { createElement, createRef, type ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { COMPACT_PX, stubMatchMedia, type MatchMediaStub } from '../support/matchMedia';
@@ -298,19 +298,18 @@ const rows = (t: Messages): readonly Row[] => [
     budget: LIVE_ROW_BUDGET,
   },
   {
-    // R144 (FR-TONIGHT-6, D-905): the open list panel's head — the hidden-objects toggle alone, `[ ] Hidden` / `[ ] Ocultos`.
-    name: 'the live list panel head (FR-TONIGHT-6, FR-LIVE-6)',
+    // R144 (FR-TONIGHT-6, D-905) → R150 (FR-GYRO-10, D-949): the satellites' heading row — "Satellites (n)" with its
+    // rule, and the hidden-objects toggle at its end, `[ ] Hidden` / `[ ] Ocultos`.
+    name: 'the live satellites heading row (FR-GYRO-10, FR-LIVE-6)',
     element: createElement(LivePage, { link: null, onLeave: noop }),
-    find: () => screen.getByTestId('live-list-head'),
+    find: () => screen.getByTestId('live-satellites-head'),
     setUp: withLiveSky,
-    after: () => {
-      fireEvent.click(screen.getByTestId('live-legend-toggle'));
-    },
     budget: LIVE_ROW_BUDGET,
   },
   /*
    * R132 (FR-FLOW-4, D-846): the view row is one line — the view control in the facing picker's idiom, the chosen view
-   * bracketed and the others plain (`Polar Dome [Window]`, 19 cells; `Polar Domo [Ventana]`, 20), and `[x] stars` /
+   * bracketed and the others plain (`[Window] Polar Dome`, 19 cells; `[Ventana] Polar Domo`, 20 — R150, FR-GYRO-11: the
+   * window first), and `[x] stars` /
    * `[x] estrellas` at the row's end: 30 cells in English and 35 in Spanish, the spec's numbers, on the live page and
    * the pass detail. R123's `inline` second line is gone with the row.
    */
@@ -446,7 +445,8 @@ describe.each(LOCALES)('FR-FLOW-3: the four compact sub-page rows in %s', (local
 
 /**
  * R132 (FR-FLOW-4, D-846): the view row at 360 and 390 px in both languages, on the live page and the pass detail —
- * `Polar Dome [Window]  [x] stars` is 30 cells and `Polar Domo [Ventana]  [x] estrellas` 35, the spec's numbers; at
+ * `[Window] Polar Dome  [x] stars` is 30 cells and `[Ventana] Polar Domo  [x] estrellas` 35, the spec's numbers (R150,
+ * FR-GYRO-11: the window first, the counts unchanged); at
  * 390 px inside FR-COMP-4's 36, at 360 px inside what that width has on the widest font in the stack.
  */
 describe.each(LOCALES)('FR-FLOW-4: the view row at 360 and 390 px in %s', (locale: Locale) => {
@@ -463,6 +463,9 @@ describe.each(LOCALES)('FR-FLOW-4: the view row at 360 and 390 px in %s', (local
     const row = screen.getByTestId(layoutId).querySelector('[data-slot="viewRow"], [data-testid="live-view-row"]') as Element;
     const cells = rowCells(row, table);
     expect(cells, rowParts(row, table).join(' | ')).toBe(EXPECTED[locale]);
+    // R150 (FR-GYRO-11, D-950): `[Window] Polar Dome` / `[Ventana] Polar Domo` — the window first.
+    const view = CATALOGS[locale].chart.view;
+    expect(rowParts(row, table).slice(0, 3)).toEqual([`##${view.window}`, view.polar, view.dome]);
     expect(cells, 'at 390 px').toBeLessThanOrEqual(Math.min(BUDGET, rowCellsAt(390)));
     // At 360 px the widest font gives the row 33 cells: the English row is inside it; the Spanish row is the spec's
     // own 35 (FR-FLOW-4), two past it, so `[x] estrellas` wraps under the control there — a finding for the spec,

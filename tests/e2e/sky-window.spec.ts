@@ -151,7 +151,7 @@ test.describe('the sky window on a phone', () => {
     const figure = await openDetail(page, 'en');
     await expect(figure).toHaveAttribute('data-view', 'dome');
     const toggle = guide(page).getByRole('group', { name: VIEW_GROUP.en });
-    await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
+    await expect(toggle.getByRole('button')).toHaveText(['Window', 'Polar', 'Dome']);
 
     // US-21 AC1, AC14 (R136: FR-FLOW-15): the option chooses the window, and its `[ hold up to the sky ]` opens the
     // screen, over the sheet.
@@ -270,7 +270,7 @@ test.describe('the sky window on a phone', () => {
     await expect(figure).toHaveAttribute('data-view', 'window');
     await expect(figure.locator('[data-look-az]')).toHaveAttribute('data-state', 'hand');
     await expect(guide(page).getByTestId('chart-view-note')).toHaveText('This device is not reporting which way it faces.');
-    await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
+    await expect(toggle.getByRole('button')).toHaveText(['Window', 'Polar', 'Dome']);
     // The sensor is lost for the session, so the window no longer offers the screen's door; the box stays by hand.
     await expect(guide(page).getByTestId('window-hold-up')).toHaveCount(0);
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
@@ -308,7 +308,7 @@ test.describe('the sky window on a phone', () => {
     await expect(page.getByTestId('sky-screen')).toHaveCount(0);
     await expect(figure).toHaveAttribute('data-view', 'window');
     // R121 (FR-WIN-4 as amended v2.5): the option stays; it is the sensor that is lost for the session.
-    await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
+    await expect(toggle.getByRole('button')).toHaveText(['Window', 'Polar', 'Dome']);
   });
 
   for (const theme of THEMES) {
@@ -418,7 +418,7 @@ test.describe('the sky window on a desk (wide, no sensor)', () => {
     await open(page, { width: 1280, height: 800 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     const figure = await openDetail(page, 'en');
     const toggle = guide(page).getByRole('group', { name: VIEW_GROUP.en });
-    await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
+    await expect(toggle.getByRole('button')).toHaveText(['Window', 'Polar', 'Dome']);
     await toggle.getByRole('button', { name: 'Window' }).click();
     await page.clock.runFor(1000);
     // A view like the other two: drawn here, not on a screen, and saved (FR-WIN-5 as amended v2.5).
@@ -546,7 +546,7 @@ test.describe('the sky window on a compact page without a sensor', () => {
     await open(page, { width: 390, height: 844 }, { locale: 'en', theme: 'dark', observer: PARIS, chartView: 'dome' });
     const figure = await openDetail(page, 'en');
     const toggle = guide(page).getByRole('group', { name: VIEW_GROUP.en });
-    await expect(toggle.getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
+    await expect(toggle.getByRole('button')).toHaveText(['Window', 'Polar', 'Dome']);
     await toggle.getByRole('button', { name: 'Window' }).click();
     await page.clock.runFor(1000);
     await expect(figure).toHaveAttribute('data-view', 'window');

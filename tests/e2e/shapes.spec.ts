@@ -585,7 +585,7 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
 
   test('the boundaries: the mode at 963 and 964 px, the shape at 500 and 501 px (FR-SHP-1, D-173)', async ({ page }) => {
     await openLive(page);
-    for (const [size, compact, landscape] of [
+    for (const [size, compact, _landscape] of [
       [[963, 700], true, false],
       [[964, 700], false, false],
       [[844, 500], true, true],
@@ -599,11 +599,11 @@ test.describe('the shape matrix (FR-SHP-4)', () => {
       const dome = await page.getByTestId('live-dome').boundingBox();
       if (!dome) throw new Error(`${at}: the live page is not laid out`);
       if (compact) {
-        // R148 (FR-FULL-1, FR-FULL-4): the compact page is the full form in both shapes — the dome is the viewport,
-        // and the sheet is a bottom sheet on the portrait stack and a side panel on the landscape phone.
+        // R148 (FR-FULL-1, FR-FULL-4): the compact page is the full form in both shapes — the dome is the viewport;
+        // R150 (FR-GYRO-7): the sheet is the bottom sheet on the portrait stack and the landscape phone alike.
         expect(Math.round(dome.width), `${at}: the dome is the viewport`).toBe(width);
         expect(Math.round(dome.height), `${at}: the dome is the viewport`).toBe(height);
-        await expect(page.getByTestId('live-sheet'), at).toHaveAttribute('data-form', landscape ? 'side' : 'bottom');
+        await expect(page.getByTestId('live-sheet'), at).not.toHaveAttribute('data-form');
       } else {
         // Wide: the desktop layout, whatever the height — the box cut to the dome's shape, no landscape tracks (F-65).
         await expect(page.getByTestId('chart-frame'), at).toHaveAttribute('data-box', 'true');

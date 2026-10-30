@@ -23,7 +23,10 @@ describe('rowsFor (FR-WATCH-4)', () => {
    */
   it('compact: the box, the head, [ controls ], the hint and the card over the sky; the sheet’s rows in FR-FULL-4’s order with the sheet open — the same list watching and scrubbing, tall and short', () => {
     expect(COMPACT_OVERLAY).toEqual(['box', 'head', 'controls', 'hint', 'card']);
-    expect(COMPACT_SHEET).toEqual(['context', 'track', 'taps', 'view-row', 'facing', 'actions', 'list', 'share']);
+    // R150 (FR-GYRO-10, D-949): `list` (the button) is gone; the satellites, open, are the sheet's last row.
+    expect(COMPACT_SHEET).toEqual(['context', 'track', 'taps', 'view-row', 'facing', 'actions', 'share', 'satellites']);
+    expect(COMPACT_SHEET.at(-1)).toBe('satellites');
+    expect(LIVE_ROWS).not.toContain('list');
     expect(COMPACT_CONDITIONAL).toEqual(['hint', 'card']);
     for (const row of COMPACT_CONDITIONAL) expect(COMPACT_OVERLAY).toContain(row);
     for (const shape of ['tall', 'short'] as const) {
@@ -42,7 +45,7 @@ describe('rowsFor (FR-WATCH-4)', () => {
           const rows = rowsFor(state, 'compact', shape, sheet);
           for (const row of GONE_FROM_COMPACT) expect(rows, `${state} ${shape}: ${row}`).not.toContain(row);
           for (const row of ['box', 'head', 'controls'] as const) expect(rows, `${state} ${shape}: ${row}`).toContain(row);
-          for (const row of ['context', 'track', 'taps', 'view-row', 'facing', 'list', 'share'] as const) expect(rows.includes(row), `${state} ${shape} sheet ${String(sheet)}: ${row}`).toBe(sheet);
+          for (const row of ['context', 'track', 'taps', 'view-row', 'facing', 'share', 'satellites'] as const) expect(rows.includes(row), `${state} ${shape} sheet ${String(sheet)}: ${row}`).toBe(sheet);
         }
       }
     }
@@ -56,10 +59,11 @@ describe('rowsFor (FR-WATCH-4)', () => {
     expect(LIVE_ROW_TEST_ID.context).toBe('live-context');
     expect(LIVE_ROW_TEST_ID.track).toBe('live-track');
     expect(LIVE_ROW_TEST_ID.taps).toBe('live-taps');
+    expect(LIVE_ROW_TEST_ID.satellites).toBe('live-satellites');
     // …and none of them is a wide row: wide is R77's and R78's, unchanged, the sheet state ignored.
     for (const state of ['watching', 'scrubbing'] as const) {
       for (const shape of ['tall', 'short'] as const) {
-        for (const row of ['head', 'controls', 'hint', 'card', 'context', 'track', 'taps', 'view-row', 'facing'] as const) expect(rowsFor(state, 'wide', shape)).not.toContain(row);
+        for (const row of ['head', 'controls', 'hint', 'card', 'context', 'track', 'taps', 'view-row', 'facing', 'satellites'] as const) expect(rowsFor(state, 'wide', shape)).not.toContain(row);
         expect(rowsFor(state, 'wide', shape, false)).toEqual(rowsFor(state, 'wide', shape, true));
         expect(rowsFor(state, 'wide', shape)).toContain('top-row');
       }
@@ -95,9 +99,9 @@ describe('rowsFor (FR-WATCH-4)', () => {
   it('keeps every wide capability in one state or the other (US-27 AC6): hidden objects, share, playback, steps', () => {
     const either = new Set([...rowsFor('watching', 'wide', 'tall'), ...rowsFor('scrubbing', 'wide', 'tall')]);
     for (const row of ['hidden', 'share', 'playback', 'steps', 'stripe', 'overview', 'conditions', 'indicator'] as const) expect(either).toContain(row);
-    // The list control is compact's: on wide the legend is in the rail at every width (FR-LEG-6).
-    expect(rowsFor('watching', 'compact', 'tall')).toContain('list');
-    expect(rowsFor('watching', 'wide', 'tall')).not.toContain('list');
+    // The open satellites are compact's (R150, FR-GYRO-10): on wide the legend is in the rail at every width (FR-LEG-6).
+    expect(rowsFor('watching', 'compact', 'tall')).toContain('satellites');
+    expect(rowsFor('watching', 'wide', 'tall')).not.toContain('satellites');
     // R144 (FR-TONIGHT-4, FR-TONIGHT-6): compact keeps its capabilities as the track and the taps — playback is the taps' play glyph, the step is `next`.
     expect(rowsFor('watching', 'compact', 'tall')).toContain('track');
     expect(rowsFor('watching', 'compact', 'tall')).toContain('taps');

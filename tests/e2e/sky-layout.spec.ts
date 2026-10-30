@@ -22,7 +22,7 @@
  *   the shown instant, and opens no screen.
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { DETAIL_DRAWING_MIN_SHARE, DETAIL_DRAWING_TOP_PX, LANDSCAPE_DRAWING_MIN_SHARE, SHEET_SIDE_SHARE } from '../../src/lib/layout';
+import { DETAIL_DRAWING_MIN_SHARE, DETAIL_DRAWING_TOP_PX, LANDSCAPE_DRAWING_MIN_SHARE, SHEET_MAX_SHARE } from '../../src/lib/layout';
 import { closeSheet, openSheet, seedStoredRun } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 
@@ -433,8 +433,8 @@ for (const viewport of TURNED) {
     test.describe(`FR-FLOW-15 on the turned phone, ${String(viewport.width)} × ${String(viewport.height)}, ${locale}`, () => {
       test.use({ viewport, hasTouch: false });
 
-      test('the live page: the full form, the window the whole viewport, the side sheet at its share with the view row inside it, no page scroll', async ({ page }) => {
-        // R148 (FR-FULL-1, FR-FULL-4): the landscape phone's live page is the full form, the sheet a side panel.
+      test('the live page: the full form, the window the whole viewport, the bottom sheet at its share with the view row inside it, no page scroll', async ({ page }) => {
+        // R148 (FR-FULL-1, FR-FULL-4): the landscape phone's live page is the full form; R150 (FR-GYRO-7): the sheet the bottom sheet.
         const layout = await openLive(page, locale);
         await expect(page.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
         await expect(layout).toHaveAttribute('data-shape', 'full');
@@ -445,12 +445,12 @@ for (const viewport of TURNED) {
         const card = page.getByTestId('live-card');
         if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
         await openSheet(page);
-        await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-form', 'side');
+        await expect(page.getByTestId('live-sheet')).not.toHaveAttribute('data-form');
         const sheet = await box(page.getByTestId('live-sheet'));
-        expect(sheet.width).toBeGreaterThanOrEqual(SHEET_SIDE_SHARE * viewport.width - 1);
-        expect(Math.round(sheet.height)).toBe(viewport.height);
-        // The sheet is 25 to 33 cells wide, under the view row's 30 and 35 (FR-FLOW-4), so `[x] stars` may take a
-        // second line here; nothing is lost: both stand inside the row, inside the sheet.
+        expect(Math.abs(sheet.width - viewport.width)).toBeLessThanOrEqual(1);
+        expect(sheet.height).toBeLessThanOrEqual(SHEET_MAX_SHARE * viewport.height + 1);
+        expect(Math.abs(sheet.y + sheet.height - viewport.height)).toBeLessThanOrEqual(1);
+        // The sheet is the viewport's width, so the view row stands on one line; both parts inside the row, inside the sheet.
         const row = page.getByTestId('live-view-row');
         const rowBox = await box(row);
         const sheetBody = await box(page.getByTestId('sheet-body'));

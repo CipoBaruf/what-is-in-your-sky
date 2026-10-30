@@ -44,7 +44,7 @@ test.describe('the live page', () => {
     await openSheet(page);
     await expect(page.getByTestId('live-sheet').getByTestId('live-timeline')).toBeVisible();
     // R121 (FR-WIN-4 as amended v2.5): no touch screen in this profile, and the control offers all three views all the same.
-    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
+    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Window', 'Polar', 'Dome']);
 
     // FR-LIVE-3 → R144 (FR-TONIGHT-7): the headline is the shown time with its `now` chip, ticking with the clock, and the
     // context line names the pass up — the ISS, which the `Up now` row counts — and what it does next.
@@ -249,7 +249,7 @@ for (const width of [390, 1280] as const) {
       const side = await page.getByTestId('live-rail-head').boundingBox();
       expect(side?.x).toBeGreaterThanOrEqual((box?.x ?? 0) + (box?.width ?? 0) - 1);
     }
-    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Polar', 'Dome', 'Window']);
+    await expect(page.getByRole('group', { name: 'Chart view' }).getByRole('button')).toHaveText(['Window', 'Polar', 'Dome']);
     await page.screenshot({ path: `docs/screenshots/r32-live-${String(width)}-dark-en.png` });
     // R48 (D-244): the compact live page carries no theme switch, so the theme is set on the home page.
     await reenterLiveWithTheme(page, 'en', 'night');

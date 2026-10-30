@@ -309,7 +309,7 @@ export function SkyChart(props: SkyChartProps) {
   /*
    * R132 (FR-FLOW-4, D-842, D-846): inside a `SkyViewLayout` the chart draws none of its rows itself. The view
    * control goes to the page's `viewRow` slot in the facing picker's idiom — the chosen view bracketed, the others
-   * plain, `Polar Dome [Window]`, a cell between — and the legend to the `list` slot; the views send their readout
+   * plain, `[Window] Polar Dome` (R150, the window first), a cell between — and the legend to the `list` slot; the views send their readout
    * and their picker the same way (`useChartSlot`). The figure then has no caption and no controls row of its own:
    * the page's prose is its description (`describedBy`), and the frame is the box alone.
    */

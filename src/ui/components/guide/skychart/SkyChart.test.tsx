@@ -73,21 +73,21 @@ afterEach(() => {
 describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121: FR-WIN-4 and FR-SKY-2 as amended v2.5, D-789)', () => {
   it('keeps the registered order, on every device, with nothing lost for the session', () => {
     const { unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-    expect(options()).toEqual(['Polar', 'Dome', 'Window']);
+    expect(options()).toEqual(['Window', 'Polar', 'Dome']);
     unmount();
     withPhone();
     // FR-WIN-4 as amended v2.5: a relative-only phone loses the sensor, never the view.
     appStore.getState().dropWindowView('relative');
     render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-    expect(options()).toEqual(['Polar', 'Dome', 'Window']);
+    expect(options()).toEqual(['Window', 'Polar', 'Dome']);
   });
 
   /** V13-6: the live page's two-option control is gone — every page offers all three where the phone has them. */
   it('offers all three on a phone, on any page', () => {
     withPhone();
     render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-    expect(options()).toEqual(['Polar', 'Dome', 'Window']);
-    expect(SKY_CHART_VIEWS.map((view) => view.id)).toEqual(['polar', 'dome', 'window']);
+    expect(options()).toEqual(['Window', 'Polar', 'Dome']);
+    expect(SKY_CHART_VIEWS.map((view) => view.id)).toEqual(['window', 'polar', 'dome']);
   });
 
   /**
@@ -97,7 +97,7 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
   it('lays the window out in the box by hand on compact and saves it', async () => {
     appStore.getState().setChartView('dome');
     const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
-    expect(options()).toEqual(['Polar', 'Dome', 'Window']);
+    expect(options()).toEqual(['Window', 'Polar', 'Dome']);
     fireEvent.click(rtl.getByRole('button', { name: 'Window' }));
     expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
     await waitFor(() => {
@@ -326,7 +326,7 @@ describe('the views the control offers (FR-FSC-6 as amended v1.3.1, D-350; R121:
     reading({ alpha: 30, absolute: false });
     expect(appStore.getState().skyScreen).toBe(false);
     expect(rtl.getByTestId('chart-view-note')).toHaveTextContent('This device is not reporting which way it faces.');
-    expect(options()).toEqual(['Polar', 'Dome', 'Window']);
+    expect(options()).toEqual(['Window', 'Polar', 'Dome']);
     expect(rtl.getByRole('figure')).toHaveAttribute('data-view', 'window');
     expect(container.querySelector('[data-look-az]')).toHaveAttribute('data-state', 'hand');
 
