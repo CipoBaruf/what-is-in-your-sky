@@ -1,10 +1,11 @@
 /**
  * R141 (FR-TONIGHT-1, FR-TONIGHT-4, D-897): the jump's, `tonight`'s and
- * `next`'s targets over a stored run, per PLAN §9.9's first bullet.
+ * `next`'s targets over a stored run, per PLAN §9.9's first bullet. R146
+ * (FR-FULL-10, D-925): the opening card's choice, per PLAN §9.10's first.
  */
 import { describe, expect, it } from 'vitest';
 import type { SkyBand, Span } from './timeStripe';
-import { nextTarget, openingJump, tonightTarget } from './tonightJump';
+import { nextTarget, openingChoice, openingJump, tonightTarget } from './tonightJump';
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -47,6 +48,46 @@ describe('openingJump (FR-TONIGHT-1)', () => {
     const all = [pass(8 * 60), pass(10 * 60)];
     const visible = all.slice(1); // the caller's list, with the first hidden
     expect(openingJump(visible, NOON, span)).toBe(NOON + 10 * HOUR - MIN);
+  });
+});
+
+describe('openingChoice (FR-FULL-10, D-925)', () => {
+  it('is up while a visible pass is up at now, edges included: no card', () => {
+    expect(openingChoice([pass(-2), pass(8 * 60)], NOON, span)).toEqual({ kind: 'up' });
+    expect(openingChoice([pass(0)], NOON, span)).toEqual({ kind: 'up' });
+    expect(openingChoice([pass(-5)], NOON, span)).toEqual({ kind: 'up' });
+  });
+
+  it('asks about the first visible rise later in the span, with openingJump’s lead instant, whatever the list order', () => {
+    const passes = [pass(9 * 60), pass(8 * 60), pass(-30)];
+    expect(openingChoice(passes, NOON, span)).toEqual({ kind: 'ask', pass: passes[1], at: NOON + 8 * HOUR - MIN });
+    expect(openingChoice(passes, NOON, span)).toMatchObject({ at: openingJump(passes, NOON, span) });
+  });
+
+  it('gives the caller’s own pass back, its other fields with it', () => {
+    const named = [{ ...pass(8 * 60), name: 'Tiangong' }];
+    const choice = openingChoice(named, NOON, span);
+    expect(choice.kind === 'ask' && choice.pass.name).toBe('Tiangong');
+  });
+
+  it('never asks to land before now: a rise thirty seconds away is at now', () => {
+    const soon = { start: { t: NOON + 30_000 }, end: { t: NOON + 6 * MIN } };
+    expect(openingChoice([soon], NOON, span)).toEqual({ kind: 'ask', pass: soon, at: NOON });
+  });
+
+  it('advises with no visible pass in the span', () => {
+    expect(openingChoice([], NOON, span)).toEqual({ kind: 'advise' });
+    expect(openingChoice([pass(-30), pass(25 * 60)], NOON, span)).toEqual({ kind: 'advise' });
+  });
+
+  it('does not ask about a hidden pass: only the passes it is given count', () => {
+    const all = [pass(8 * 60), pass(10 * 60)];
+    const visible = all.slice(1); // the caller's list, with the first hidden
+    expect(openingChoice(visible, NOON, span)).toEqual({ kind: 'ask', pass: all[1], at: NOON + 10 * HOUR - MIN });
+    // A hidden pass up now is no reason to stay: with it filtered out the card asks about the next.
+    expect(openingChoice([pass(10 * 60)], NOON, span)).toMatchObject({ kind: 'ask' });
+    // And with only hidden passes in the span, the advice.
+    expect(openingChoice(all.slice(2), NOON, span)).toEqual({ kind: 'advise' });
   });
 });
 
