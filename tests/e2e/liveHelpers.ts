@@ -705,7 +705,7 @@ export async function enterScrubbing(page: Page): Promise<void> {
 }
 
 /** The landscape rail (`live-layout`, which scrolls inside the page on the phone turned, D-864) back at its top. */
-export async function railToTop(page: Page): Promise<void> {
+async function railToTop(page: Page): Promise<void> {
   await page.evaluate(() => {
     const layout = document.querySelector<HTMLElement>('[data-testid="live-layout"]');
     if (layout && layout.scrollTop > 0) layout.scrollTop = 0;

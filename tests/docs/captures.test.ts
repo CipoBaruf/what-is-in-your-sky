@@ -64,12 +64,25 @@ describe('the v1 capture set', () => {
     const DESK_WIDE = new Set(['live-window']);
     // R135 (FR-FLOW-2, FR-FLOW-12): the Where opened by its `[ details ]` is a phone's screen — on wide the Where is
     // never folded (D-844), so there is nothing to open and no 1280 px file to shoot.
-    // R145 (FR-TONIGHT-1): the jumped live page is a phone's screen too — wide never jumps, so a 1280 px file
-    // would be `live-watching`'s.
-    const PHONE_ONLY = new Set(['where-opened', 'live-tonight']);
+    // R145 (FR-TONIGHT-1): the jumped live page was a phone's screen too, at 360 and 390 — wide never jumps; R149
+    // turned it into the card and gave it the turned phone, below.
+    const PHONE_ONLY = new Set(['where-opened']);
+    // R149 (FR-FULL-9, FR-FULL-10, D-937): the sheet open and the sheet with the list are the phone's two sizes
+    // FR-FULL-9 names, upright and turned, and the card is the day's opening state upright (with the 360 beside the
+    // 390) and turned; wide has no sheet and never asks, so a 1280 px file would be `live-watching`'s.
+    const PHONE_TURNED: ReadonlyMap<string, readonly number[]> = new Map([
+      ['live-tonight', [360, 390, 844]],
+      ['live-sheet', [390, 844]],
+      ['live-sheet-list', [390, 844]],
+    ]);
     for (const screen of SCREENS) {
       if (PHONE_ONLY.has(screen.name)) {
         expect(screen.widths, screen.name).toEqual([360, 390]);
+        continue;
+      }
+      const turned = PHONE_TURNED.get(screen.name);
+      if (turned) {
+        expect(screen.widths, screen.name).toEqual(turned);
         continue;
       }
       if (screen.name.startsWith('sky-screen-') || screen.name === 'window' || screen.name === 'stars-screen' || screen.name === 'stars-passes-screen') {
@@ -116,7 +129,8 @@ describe('the v1 capture set', () => {
     // + 8 `where-opened` (360, 390), and + 4 each for `guide` and `stars` at 844 × 390, the phone turned; − 8 for
     // `live-window` at 360 and 390, which since FR-FLOW-14 is `live-watching`'s picture there.
     // R145 (FR-TONIGHT-1): + 8 `live-tonight` (360, 390).
-    expect(captureSet()).toHaveLength(394);
+    // R149 (FR-FULL-9, D-937): + 4 `live-tonight` at 844, + 8 each for `live-sheet` and `live-sheet-list` (390, 844).
+    expect(captureSet()).toHaveLength(414);
   });
 
   it('names every file by the one pattern, `-view` included (FR-CAP-1)', () => {

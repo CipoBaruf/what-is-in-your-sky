@@ -77,6 +77,7 @@ export const SOURCES = [
     // a phone opens on the window since v2.6, following the pass that is up, so the tile is the
     // pass among the stars and no longer the braille dome; the caption says what it shows. R145 (FR-TONIGHT-6):
     // since v2.7 the tile also carries the shown time, the context line, the time track and the three taps.
+    // R149 (FR-FULL-1, FR-FULL-2): since v2.8 the tile is all sky, `[ ← ]` and the shown time over it and `[ controls ]` at its foot.
     file: 'v1-live-watching-390-dark-en.png',
     caption: 'The sky over you, the pass among the stars',
     w: 390,

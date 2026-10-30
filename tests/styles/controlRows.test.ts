@@ -62,7 +62,6 @@ import { VisitNotice } from '../../src/ui/components/common/VisitNotice';
 import { FaintToggle } from '../../src/ui/components/passes/FaintToggle';
 import { STARS_PAGE_CATALOGS } from '../../src/i18n/starsPageT';
 import { StarsPage } from '../../src/ui/screens/Stars';
-import { StateIndicator } from '../../src/ui/components/live/StateIndicator';
 import { formatDate } from '../../src/lib/timeFormat';
 import type { HeaderPage } from '../../src/i18n/messages';
 import { decorations, rowCells, rowParts } from './cells';
@@ -420,11 +419,15 @@ describe.each(LOCALES)('FR-FLOW-3: the four compact sub-page rows in %s', (local
   const rowCellsAt = (px: number): number => Math.floor(px / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX)) - 2 * SHELL_PADDING_CELLS;
   const context = (page: HeaderPage): string => (page === 'pass' ? formatDate(pass.start.t, null, locale) : observer.label);
   const header = (page: HeaderPage, withContext: boolean): ReactElement =>
-    createElement(Header, { page, context: withContext ? context(page) : null, onBack: noop, ...(page === 'live' ? { status: createElement(StateIndicator, { held: false }) } : {}) });
-  /** The fixed part — `[ ← ]`, the name, the gaps — in cells, per page; the Done note's numbers. */
+    createElement(Header, { page, context: withContext ? context(page) : null, onBack: noop });
+  /**
+   * The fixed part — `[ ← ]`, the name, the gaps — in cells, per page; the Done note's numbers. R149 (FR-FULL-2,
+   * D-934): the live row is the inert page's alone since v2.8, `[ ← ] live` without the mark (R148 took the indicator
+   * off compact and R149 `Header`'s `status` with it), so 14 → 10 and 17 → 13.
+   */
   const FIXED: Record<Locale, Record<(typeof SUB_PAGES)[number], number>> = {
-    en: { live: 14, stars: 11, pass: 10, settings: 14 },
-    es: { live: 17, stars: 15, pass: 10, settings: 13 },
+    en: { live: 10, stars: 11, pass: 10, settings: 14 },
+    es: { live: 13, stars: 15, pass: 10, settings: 13 },
   };
 
   it.each(SUB_PAGES)('%s: the fixed part, and the context whole beside it at 390 and 360 px', (page) => {

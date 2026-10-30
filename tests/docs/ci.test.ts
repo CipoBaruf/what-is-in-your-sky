@@ -144,7 +144,8 @@ describe('the R36 capture findings (FR-FIX-2)', () => {
     // following the pass and the screen from the stars page each put the instant back on `SHOWN` after their waits.
     // R135 (R136's hold-up): the pass detail's sky screen is put back on `SHOWN` before `[ hold up to the sky ]`,
     // since the wait for the control ticked the clock 2.5.0's route did not.
-    expect([...captureSpec.matchAll(/await pinnedAt\(page, (SHOWN|shown)\)/g)]).toHaveLength(7);
+    // R149 (FR-FULL-9, D-937): the sheet's two screens put it back on `SHOWN` after opening the sheet and the list.
+    expect([...captureSpec.matchAll(/await pinnedAt\(page, (SHOWN|shown)\)/g)]).toHaveLength(8);
     expect(captureSpec).toContain('shown: number = SHOWN');
     expect(captureSpec).not.toContain('await page.clock.setSystemTime(SHOWN - TICK_MS)');
   });

@@ -167,6 +167,15 @@
  * a screen — and it makes `live-window` at 360 and 390 the same picture as
  * `live-watching` there, so those eight files are retired and `live-window` is
  * a desk's screen at 1280 and 1920. The set is 386 files.
+ *
+ * R145 (SPEC §9 Phase 2p, FR-TONIGHT-10; PLAN D-917): `live-tonight` at 360 and 390, the phone's opening state. 394.
+ *
+ * R149 (SPEC §9 Phase 2q, FR-FULL-9; PLAN D-937): v2.8 makes the phone's live page all sky with a sheet, and adds the
+ * files FR-FULL-9 names. `live-sheet` is the sheet open and `live-sheet-list` the sheet with the list open, each at the
+ * two sizes FR-FULL-9 names — 390 × 844 and 844 × 390, both themes and languages — and no 360 beside the 390, which
+ * `captures.test.ts` carries by name. `live-tonight` keeps its name and its route and is now the card (FR-FULL-10):
+ * the day's opening state asks rather than jumps, and the turned phone joins it at 844. Every other compact live file
+ * is the sky with the sheet closed. The set is 414 files.
  */
 
 export const THEMES = ['dark', 'night'] as const;
@@ -275,8 +284,18 @@ export const SCREENS: readonly CaptureScreen[] = [
   },
   {
     name: 'live-tonight',
-    widths: [360, 390],
-    what: "v2.7's opening state on the phone (FR-TONIGHT-1, FR-TONIGHT-2, US-42 AC1): `#live` opened at 13:00 local with nothing up, so the page has jumped to the evening's first visible pass, its rise less `TONIGHT_LEAD_MIN` — the shown time, the chip `tonight · in …`, the context line, the track's thumb on the pass's tick and the taps under it. Shot under `prefers-reduced-motion: reduce`, where the jump lands paused, so the picture is one instant and not a frame of the play. Compact only: wide never jumps.",
+    widths: [360, 390, 844],
+    what: "The phone's live page as it opens in the day (FR-FULL-10, US-43 AC5; v2.7's jumped state until R149): `#live` opened at 13:00 local with nothing up, so the page stays on real time, nothing playing, and asks with the card over the sky — \"Nothing visible up now.\", the evening's first visible pass with its rise and chip, `[ see next pass ]` (focused) and `[ see now ]` — above `[ controls ]`, the head's back control and time at the top. At 844 × 390 the same phone turned, the card centred across the box. Compact only: wide never asks.",
+  },
+  {
+    name: 'live-sheet',
+    widths: [390, 844],
+    what: "The compact live page at the set's instant with `[ controls ]` pressed (FR-FULL-4, FR-FULL-9): the sheet over the bottom of the sky with its head (the place, `[ settings ]`, `[ close ]`) and its body in D-923's order — the context line, the track and the taps, the view row, the facing row, `[ list (n) ]` and Share; at 844 × 390 the side sheet at the right, the full height. The sky behind it is `live-watching`'s box, unmoved (FR-FULL-1). The two sizes FR-FULL-9 names, not the 360 beside them.",
+  },
+  {
+    name: 'live-sheet-list',
+    widths: [390, 844],
+    what: "The same sheet with `[ list (n) ]` pressed too (FR-FULL-4, FR-FULL-9): the list open inside the sheet's body, the body scrolling and the page not, the sheet no taller than `SHEET_MAX_SHARE` of the height. The legend's own picture (`legend`, a row activated and the hidden rows on) is the same place in another state.",
   },
   {
     name: 'sky-screen-sky',
