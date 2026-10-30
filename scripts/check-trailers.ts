@@ -24,8 +24,14 @@ import { resolve } from 'node:path';
  * (SPEC v1.3.2), which is the first commit written after the audit that found
  * the trailers. Everything from here on is checked; everything before it is the
  * history FR-PUB-7 reports and does not touch.
+ *
+ * Moved on 2026-10-30, on the owner's answer, to the squash merge of PR #227 (`3492466`, SPEC
+ * v2.8), to which GitHub added `Co-authored-by: Claude` because the branch's
+ * commits were authored by that identity. The owner chose to move the line
+ * rather than rewrite `main` (D-372): that commit joins the history FR-PUB-7
+ * reports, and every commit after it is checked as before.
  */
-export const BASELINE = 'd7514ec';
+export const BASELINE = '3492466';
 
 /**
  * The trailers that may not appear. All three are the shapes an agent adds to
