@@ -13,7 +13,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { CAPTURE_DIR } from './captureSet';
-import { domeDrawn, NINE_DAYS_ON, openSheet, recomputeEnded, seedStoredRun, stripFilled } from './liveHelpers';
+import { closeSheet, domeDrawn, NINE_DAYS_ON, openSheet, recomputeEnded, seedStoredRun, stripFilled } from './liveHelpers';
 
 test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
 test.use({ serviceWorkers: 'block', hasTouch: true });
@@ -28,16 +28,30 @@ async function openAtMidday(page: Page, size: { width: number; height: number },
   await page.reload();
   await recomputeEnded(page);
   await page.clock.install({ time: MIDDAY });
-  await page.clock.pauseAt(MIDDAY);
+  await page.clock.pauseAt(MIDDAY + 1_000);
   await page.evaluate(() => {
     window.location.hash = '#live';
   });
   await domeDrawn(page);
-  if (size.width < 900) await stripFilled(page);
+  if (size.width < 900) {
+    await stripFilled(page);
+    // R153: since v2.8 the day's page asks with its card rather than jumping (FR-FULL-10); `landed` answers it.
+    await expect
+      .poll(async () => {
+        await page.clock.runFor(100);
+        return page.getByTestId('live-card').getAttribute('data-kind');
+      }, { timeout: 15_000 })
+      .toBe('ask');
+  }
 }
 
-/** After the jump: paused where it landed, so the capture is one instant. */
+/**
+ * After the jump: paused where it landed, so the capture is one instant. R153: the jump is the card's
+ * `[ see next pass ]` since v2.8 (FR-FULL-10), and the pause is in the sheet (FR-FULL-4), closed again for the shot
+ * (`r148-captures.spec.ts`'s route).
+ */
 async function landed(page: Page): Promise<void> {
+  await page.getByTestId('live-card-next').click();
   const play = page.getByTestId('live-play');
   await expect
     .poll(async () => {
@@ -45,10 +59,12 @@ async function landed(page: Page): Promise<void> {
       return play.getAttribute('data-playing');
     }, { timeout: 15_000 })
     .toBe('true');
+  await openSheet(page);
   await play.click();
   await expect(play).toHaveAttribute('data-playing', 'false');
   // The sky word follows `t` at most once a second of wall time (FR-LIVE-5): a second and a half for it to catch up.
   await page.clock.runFor(1500);
+  await closeSheet(page);
   await page.mouse.move(0, 0);
 }
 
@@ -76,6 +92,8 @@ test('390 × 844, en: the list open, the hidden toggle in its head', async ({ pa
 test('390 × 844, en: the window, the picker opened from the corner readout', async ({ page }) => {
   await openAtMidday(page, { width: 390, height: 844 }, 'en');
   await landed(page);
+  // R153: the view row and the facing row are the sheet's since v2.8 (FR-FULL-4).
+  await openSheet(page);
   await page.getByRole('group', { name: VIEW_GROUP.en }).getByRole('button', { name: 'Window' }).click();
   await expect
     .poll(async () => {
@@ -84,7 +102,9 @@ test('390 × 844, en: the window, the picker opened from the corner readout', as
     }, { timeout: 30_000 })
     .toBe(1);
   await page.getByTestId('sky-readout-toggle').click();
-  await expect(page.getByTestId('live-layout').locator('[data-slot="picker"]')).toBeVisible();
+  // R153: the facing row, its readout and the picker it opens are the sheet's `live-facing` since v2.8.
+  await expect(page.getByTestId('sky-readout-toggle')).toHaveAttribute('aria-expanded', 'true');
+  await page.getByTestId('live-facing').scrollIntoViewIfNeeded();
   await page.clock.runFor(300);
   await page.mouse.move(0, 0);
   await page.screenshot({ path: `${CAPTURE_DIR}/r144-live-390-picker-window-dark-en.png` });
@@ -93,8 +113,7 @@ test('390 × 844, en: the window, the picker opened from the corner readout', as
 test('844 × 390, en: the landscape phone', async ({ page }) => {
   await openAtMidday(page, { width: 844, height: 390 }, 'en');
   await landed(page);
-  // The pause scrolled the rail to the taps (it scrolls inside itself, FR-FLOW-15): its head again, for the capture.
-  await page.getByTestId('live-rail-head').scrollIntoViewIfNeeded();
+  // R153: no rail to scroll back since v2.8 — the turned phone is all sky with the sheet closed (FR-FULL-1, FR-GYRO-7).
   await page.screenshot({ path: `${CAPTURE_DIR}/r144-live-844-landscape-dark-en.png` });
 });
 

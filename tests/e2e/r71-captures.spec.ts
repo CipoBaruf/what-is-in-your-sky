@@ -25,7 +25,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { CAPTURE_DIR } from './captureSet';
-import { domeDrawn, homeAt, openSheet, setThemeOnHome, stripFilled, T } from './liveHelpers';
+import { domeDrawn, homeAt, NINE_DAYS_ON, openSheet, recomputeEnded, seedStoredRun, setThemeOnHome, stripFilled, T } from './liveHelpers';
 
 test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
 
@@ -74,14 +74,22 @@ for (const [width, height] of [
 }
 
 /**
- * The empty panel. R153: the instant is the day's — twelve hours on, nothing visible up, so the page asks with its
+ * The empty panel. R153: the instant is the day's — the stored run at midday, nothing visible up, so the page asks with its
  * card (FR-FULL-10) and `[ see now ]` keeps real time — where the satellites count none and the panel is still two
  * rows saying what it holds.
  */
 test('the compact live page at 390 × 844: the empty list', async ({ page }) => {
+  const midday = NINE_DAYS_ON + 12 * 3_600_000;
   await page.setViewportSize({ width: 390, height: 844 });
-  await homeAt(page, T + 12 * 3_600_000, 'en', true);
-  await page.getByTestId('live-link').click();
+  await seedStoredRun(page, { locale: 'en', settled: true });
+  await page.clock.setFixedTime(midday);
+  await page.reload();
+  await recomputeEnded(page);
+  await page.clock.install({ time: midday });
+  await page.clock.pauseAt(midday + 1_000);
+  await page.evaluate(() => {
+    window.location.hash = '#live';
+  });
   await domeDrawn(page);
   const card = page.getByTestId('live-card');
   await expect
