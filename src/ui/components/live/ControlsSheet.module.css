@@ -96,7 +96,6 @@
   border: 0;
   background: none;
   color: var(--fg);
-  font-family: inherit;
   font-size: var(--row);
   line-height: 1;
   cursor: pointer;
