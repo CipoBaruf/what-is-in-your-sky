@@ -81,3 +81,15 @@ export function quarterTurnFor(m: Mat3 | null, held: Quarter): Quarter {
   if (nearest === held) return held;
   return separation(upDeg, held) > 45 + SCREEN_TURN_HYSTERESIS_DEG ? nearest : held;
 }
+
+/**
+ * FR-FSC-10 (D-426): what the picture turns by — the shorter way round from the
+ * viewport's own rotation to the reader's, so the four answers are `0`, `±90`
+ * and `180` and a phone that reflowed turns by nothing. R151 (D-941): the sky
+ * screen's layer turned by it; the following window turns its own box's
+ * contents by it.
+ */
+export function turnFor(quarter: number, screenAngleDeg: number): number {
+  const difference = (((quarter - screenAngleDeg) % 360) + 360) % 360;
+  return difference > 180 ? difference - 360 : difference;
+}

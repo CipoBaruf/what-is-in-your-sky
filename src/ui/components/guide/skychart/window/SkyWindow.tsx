@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import { useStarsPageT } from '../../../../../i18n/starsPageT';
 import { useLocale, useT } from '../../../../../i18n/useT';
 import { cutTrack, type ArcState } from '../../../../../lib/arcReveal';
@@ -31,12 +31,12 @@ import { CompassGutter } from './CompassGutter';
 import { FacingPicker, type FacingPickerProps, type FollowTarget } from './FacingPicker';
 import { gutterMarks, passBearing, turnTo, type GutterMark, type GutterPass } from './gutter';
 import { clampWindowFov, COMPASS, drawableDeg, EDGE_MARGIN_PX, groundClipPath, groundState, HORIZON, lookDirection, NAME_ALT_DEG, project, ring, scaleFor, uprightRotation, verticalHalfFieldDeg, WINDOW_FOV, type Mat3, type Projected, type SkyPoint, type View } from './projection';
-import { nearestQuarter, type Quarter } from './screenTurn';
+import { nearestQuarter, turnFor, type Quarter } from './screenTurn';
 import styles from './SkyWindow.module.css';
 import { hitLine, hitTest, HIT_RADIUS_PX, type Point } from './starGlyphs';
 import { catalogNames, figureKey, namedReadout, StarField } from './StarField';
 import type { LabelSegment } from './starLabels';
-import { useViewRotation } from './useViewRotation';
+import { useViewRotation, type HandPose } from './useViewRotation';
 
 /**
  * R47 (FR-WIN-1, FR-WIN-2, FR-WIN-4, FR-WIN-5; US-21; PLAN D-188, §8.10): the
@@ -142,10 +142,39 @@ import { useViewRotation } from './useViewRotation';
  * `ZOOM_WHEEL_RATE` and lets a plain wheel scroll the page; `+`/`=`/`-` and
  * `0` are the box's keys beside the arrows. Glyphs, line weights and hit
  * distances are px and stay so: zooming in spreads the same marks apart.
+ *
+ * R151 (FR-GYRO-2..5; D-941, D-942, D-955): `follow` — the page's own window
+ * following the phone, which is the sky screen's sensor path run in the page's
+ * box. `useViewRotation` arms the sensor beside the hand camera and draws the
+ * phone's pose from its first reading; the field is the hand's `fovDeg`, which
+ * the pinch keeps writing. FR-FSC-10's quarter is read from the pose as on the
+ * screen, the projection is composed with it, and the box's contents — the
+ * drawing and the ground notes — are turned by the difference from the
+ * browser's angle inside the box, sides swapped, as the screen's layer was.
+ * Nothing is drawn over the drawing but the ground notes: no readout, no hint,
+ * no chip. The box keeps the hand's focus and pointer handlers, and the finger
+ * wins: a press that travels past the tap's slop, or one of FR-SKY-14's keys,
+ * seeds the hand camera with the last pose (`poseAsHand`), calls
+ * `onFollowEnd(pose)` and then moves the hand as it always did. Turning
+ * following off from the page seeds the hand the same way.
  */
 
 /** The window's props: `SkyChartProps`, which every view implements; `camera` is on it for the window alone. */
-export type SkyWindowProps = SkyChartProps;
+export type SkyWindowProps = SkyChartProps & {
+  /**
+   * R151 (FR-GYRO-2, FR-GYRO-5; D-941): the page's own window follows the phone. With a hand camera, the sensor
+   * drives the facing and the tilt from its next reading, the field stays the hand's (the pinch writes it), the
+   * picture is turned upright to the reader inside the window's own box (FR-FSC-10), and nothing is drawn over it
+   * but FR-FOL-5's ground notes. The page owns it (D-943); `false` by default.
+   */
+  follow?: boolean;
+  /**
+   * R151 (FR-GYRO-4; D-942): the finger wins — called once, before anything moves, when a drag starts or one of
+   * FR-SKY-14's keys is pressed while following, with the pose the hand camera has just been given (where the
+   * phone last pointed). The page turns its follow state off. A pinch does not call it.
+   */
+  onFollowEnd?: (pose: HandPose) => void;
+};
 
 /** The hand's stand-in for the placeholder: `useViewRotation` never reads its fallback under the hand. */
 const NO_PLACEHOLDER: Mat3 = [
@@ -402,7 +431,7 @@ function HiddenPoint({ marker, m, view, legendKey }: { marker: HiddenMarker; m: 
 }
 
 export function SkyWindow(props: SkyWindowProps) {
-  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, overlay, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, inventory = 'passes', namedStar: givenNamed = null, onNameStar, className } = props;
+  const { passes, observer, highlightedPassId, onSelectPass, now, sun, moon, hidden = [], initialFacingAzDeg, colorBy = 'highlight', fill = false, legendKeys = {}, legend, legendOpen, aside, stripe, measureBox, stacked, controls, overlay, onUnavailable, scene: given, camera: givenCamera, hand, facingOptions = FACING_OPTIONS, facingPassId = null, inventory = 'passes', namedStar: givenNamed = null, onNameStar, className, follow = false, onFollowEnd } = props;
   // FR-SKY-1 (R119): the scene through the layer table. The window's row has every layer and no cap, so today this is the page's scene object; the memo keeps it so if the row ever drops one.
   const scene = useMemo(() => sceneFor('window', given), [given]);
   // R127 (FR-SKY-11, D-796): the landmark star this window rings and names, from the page's scene through the table.
@@ -497,7 +526,9 @@ export function SkyWindow(props: SkyWindowProps) {
   }, []);
 
   const handCamera = camera.source === 'hand' ? camera : null;
-  const byHand = handCamera !== null;
+  // R151 (D-941): following the phone needs a hand to hand back to; the sensor draws while it lasts.
+  const followPhone = follow && handCamera !== null;
+  const byHand = handCamera !== null && !followPhone;
   /*
    * FR-SKY-14 (D-798, D-820): the field under the sensor — the screen's — is this window's own state, `WINDOW_FOV`
    * at every mount (every opening of the screen opens at the default) and written only by the pinch below; under
@@ -508,7 +539,7 @@ export function SkyWindow(props: SkyWindowProps) {
   // The placeholder's altitude reads the box's shape and not its angle (`verticalHalfFieldDeg`), so it is known before the hook that gives the angle.
   // Under the hand there is no first reading to wait for, so nothing is computed and the hook never reads it.
   const placeholder = useMemo(() => {
-    if (byHand) return NO_PLACEHOLDER;
+    if (handCamera !== null) return NO_PLACEHOLDER;
     // FR-SKY-7 (R121, D-790): opened from a pass detail — an explained pass and no facing of the caller's — the
     // screen looks at the peak as `facePeak` says until the sensor's first reading, at the field shown (R125). The
     // live page's screen, which names its facing, keeps D-241's placeholder.
@@ -519,15 +550,38 @@ export function SkyWindow(props: SkyWindowProps) {
     const highlighted = explained ?? passes[0];
     const placeholderAlt = placeholderAltDeg(highlighted?.peak.elDeg, { fovDeg: sensorFov, width: size.width, height: size.height, screenAngleDeg: 0 });
     return uprightRotation(initialFacingAzDeg ?? highlighted?.peak.azDeg ?? 0, placeholderAlt);
-  }, [byHand, passes, explained, initialFacingAzDeg, size.width, size.height, sensorFov]);
+  }, [handCamera, passes, explained, initialFacingAzDeg, size.width, size.height, sensorFov]);
 
   // R113 (D-750, D-751): the one rotation, from the sensor or the hand, and the channel the star field reads it by.
-  const { rotation: m, hand: handState, live, subscribe, orientation } = useViewRotation(camera, declinationDeg, placeholder);
+  const { rotation: m, hand: handState, live, subscribe, orientation, poseAsHand } = useViewRotation(camera, declinationDeg, placeholder, followPhone);
   // FR-SKY-14: the field this render draws — the camera's under the hand, the window's own under the sensor.
   const fovDeg = handState?.fovDeg ?? sensorFov;
   // The hand's view is laid out upright on whatever screen it is on: the sensor's screen angle (read at mount,
   // and not followed while the sensor is off) is no part of it.
   const screenAngleDeg = byHand ? 0 : orientation.screenAngleDeg;
+
+  /*
+   * FR-FSC-10 (D-424, D-425, D-429): which way is up to the reader. On a screen — and, R151 (D-941), in a window
+   * following the phone — the projection is composed with the quarter read from the pose: on an unlocked phone that
+   * *is* the browser's angle, and on a locked one it is what the browser's angle would have been. Before the first
+   * reading there is no pose to read, so the browser's own angle stands (FR-FSC-10, "it starts at none"). Elsewhere
+   * the value is the browser's angle and nothing moves (D-425). The screen's layer is turned by the difference
+   * (`SkyScreen`); the following window turns its own box's contents by it (`turnDeg`), sides swapped for a quarter.
+   *
+   * D-431: the fold itself is `useDeviceOrientation`'s, beside the rotation it folds — the hysteresis makes
+   * each quarter depend on the one before it, and the frame that already eases the rotation is the one place
+   * that can keep a previous value without a ref read in a render or a state set from an effect.
+   */
+  const turnsWithPose = onScreen || followPhone;
+  const quarter: Quarter = turnsWithPose && orientation.rotation !== null ? orientation.quarter : nearestQuarter(screenAngleDeg);
+  const turnDeg = followPhone ? turnFor(quarter, screenAngleDeg) : 0;
+  const sideways = Math.abs(turnDeg) === 90;
+  // The drawing's own box: the measured one, its sides swapped while it is turned a quarter.
+  const drawWidth = sideways ? size.height : size.width;
+  const drawHeight = sideways ? size.width : size.height;
+  const turned = turnDeg !== 0;
+  // R151 (D-956): the turned drawing and notes are the box's centre at the drawing's own size, rotated by the turn.
+  const turnStyle = { width: `${String(drawWidth)}px`, height: `${String(drawHeight)}px`, '--window-turn': `${String(turnDeg)}deg` } as CSSProperties;
 
   // FR-WIN-4: a refusal or a compass-less phone is the boundary's to handle — the note, and the dome as the view.
   const { state } = orientation;
@@ -543,6 +597,34 @@ export function SkyWindow(props: SkyWindowProps) {
    * unchanged). The camera is the page's store, so a move notifies `useViewRotation` and the page alike, and
    * neither React state nor a callback prop stands in the per-frame path.
    */
+  /*
+   * R151 (FR-GYRO-2, FR-GYRO-4; D-942): where following ends, the hand takes the sky from where the phone last
+   * pointed. The finger's way — a drag, a box key — seeds the hand camera and tells the page (`endFollow`), once a
+   * spell, before the drag or the key moves anything; the page's own way — the toggle turned off — is seen here as
+   * `follow` falling and seeds the hand the same way, in the layout effect of that commit, before it is painted.
+   * Before any reading there is no pose: the hand's own is what was drawn, and it stays.
+   */
+  const followEndedRef = useRef(false);
+  const wasFollowingRef = useRef(followPhone);
+  useLayoutEffect(() => {
+    const was = wasFollowingRef.current;
+    wasFollowingRef.current = followPhone;
+    if (followPhone) {
+      followEndedRef.current = false;
+      return;
+    }
+    if (!was || followEndedRef.current || handCamera === null) return;
+    const pose = poseAsHand();
+    if (pose !== null) handCamera.open(pose);
+  }, [followPhone, handCamera, poseAsHand]);
+  const endFollow = (): void => {
+    if (!followPhone || handCamera === null || followEndedRef.current) return;
+    followEndedRef.current = true;
+    const sensed = poseAsHand();
+    if (sensed !== null) handCamera.open(sensed);
+    const { azDeg, altDeg, fovDeg: field } = handCamera.get();
+    onFollowEnd?.(sensed ?? { azDeg, altDeg, fovDeg: field });
+  };
   const dragRef = useRef<{ pointerId: number; x: number; y: number; x0: number; y0: number; travel: number } | null>(null);
   const pendingRef = useRef<{ dx: number; dy: number } | null>(null);
   const frameRef = useRef(0);
@@ -632,7 +714,7 @@ export function SkyWindow(props: SkyWindowProps) {
     // that names (FR-STAR-7 on the screen); its moves turn nothing, since there is no hand camera to move.
     if (pointers.size !== 1 || pinchRef.current !== null || dragRef.current) return;
     dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, x0: event.clientX, y0: event.clientY, travel: 0 };
-    if (byHand) setDragging(true);
+    if (handCamera !== null) setDragging(true);
   };
   /*
    * R116 (FR-STAR-7): a tap or a click on the drawing names the glyph `hitTest` finds under it, from the marks the
@@ -648,9 +730,13 @@ export function SkyWindow(props: SkyWindowProps) {
     const rect = event.currentTarget.getBoundingClientRect();
     const sx = rect.width > 0 ? size.width / rect.width : 1;
     const sy = rect.height > 0 ? size.height / rect.height : 1;
-    // The drawing's viewBox is the measured box, the projection's `view`.
-    const x = (clientX - rect.left) * sx;
-    const y = (clientY - rect.top) * sy;
+    // The drawing's viewBox is the measured box, the projection's `view` — turned by `turnDeg` about the box's
+    // centre while following (R151), so the press is turned back by it into the drawing's own frame.
+    const cx = (clientX - rect.left) * sx - size.width / 2;
+    const cy = (clientY - rect.top) * sy - size.height / 2;
+    const turn = (turnDeg * Math.PI) / 180;
+    const x = Math.cos(turn) * cx + Math.sin(turn) * cy + drawWidth / 2;
+    const y = -Math.sin(turn) * cx + Math.cos(turn) * cy + drawHeight / 2;
     const mark = hitTest(hitsRef.current, x, y);
     if (mark !== null || !lines) return mark;
     // FR-STAR-14: a star or a planet within the distance wins; else the nearest drawn line within it names its figure.
@@ -698,6 +784,12 @@ export function SkyWindow(props: SkyWindowProps) {
     active.travel += Math.hypot(dx, dy);
     const pending = pendingRef.current ?? { dx: 0, dy: 0 };
     pendingRef.current = { dx: pending.dx + dx, dy: pending.dy + dy };
+    // R151 (D-955): following, a press is the finger's drag once it is past the tap's slop — short of it, it may
+    // still be a tap that names, or the first finger of a pinch, neither of which ends following.
+    if (followPhone && !followEndedRef.current) {
+      if (active.travel < HIT_RADIUS_PX) return;
+      endFollow();
+    }
     if (active.travel < tapSlop) return;
     if (!frameRef.current) frameRef.current = requestAnimationFrame(flush);
   };
@@ -711,6 +803,8 @@ export function SkyWindow(props: SkyWindowProps) {
     if (dragRef.current?.pointerId !== event.pointerId) return;
     dragRef.current = null;
     setDragging(false);
+    // R151: a press that ended short of the slop while following moved nothing, and leaves nothing for the next one.
+    if (followPhone && !followEndedRef.current) pendingRef.current = null;
   };
   const onPointerUp = (event: PointerEvent<HTMLDivElement>): void => {
     const active = dragRef.current;
@@ -790,6 +884,8 @@ export function SkyWindow(props: SkyWindowProps) {
     const move = moves[event.key];
     if (!move) return;
     event.preventDefault();
+    // R151 (FR-GYRO-4): the box's keys end following as a drag does, from the phone's last pose.
+    endFollow();
     move();
   };
 
@@ -814,19 +910,8 @@ export function SkyWindow(props: SkyWindowProps) {
     };
   }, [onScreen]);
 
-  /*
-   * FR-FSC-10 (D-424, D-425, D-429): which way is up to the reader. On a screen the projection is composed with
-   * the quarter read from the pose — on an unlocked phone that *is* the browser's angle, and on a locked one it
-   * is what the browser's angle would have been — and the layer is turned by the difference. Before the first
-   * reading there is no pose to read, so the browser's own angle stands and the layer turns by nothing
-   * (FR-FSC-10, "it starts at none"). Off a screen the value is the browser's angle and nothing moves (D-425).
-   *
-   * D-431: the fold itself is `useDeviceOrientation`'s, beside the rotation it folds — the hysteresis makes
-   * each quarter depend on the one before it, and the frame that already eases the rotation is the one place
-   * that can keep a previous value without a ref read in a render or a state set from an effect.
-   */
+  // FR-FSC-10 (D-429): the screen's layer learns the quarter through the context; nowhere else is it reported.
   const { report } = useScreenTurn();
-  const quarter: Quarter = onScreen && orientation.rotation !== null ? orientation.quarter : nearestQuarter(screenAngleDeg);
   useEffect(() => {
     // One report per turn of the hand, and none at all off a screen, where `report` is the context's no-op.
     if (onScreen) report(quarter);
@@ -835,8 +920,8 @@ export function SkyWindow(props: SkyWindowProps) {
   // FR-SKY-14: the field is the current one, so everything drawn from `view` — the scale, the drawable limit, the
   // ground thresholds, the bracket — follows the zoom.
   const view: View = useMemo(
-    () => ({ fovDeg, width: size.width, height: size.height, screenAngleDeg: onScreen ? quarter : screenAngleDeg }),
-    [fovDeg, size, onScreen, quarter, screenAngleDeg],
+    () => ({ fovDeg, width: drawWidth, height: drawHeight, screenAngleDeg: turnsWithPose ? quarter : screenAngleDeg }),
+    [fovDeg, drawWidth, drawHeight, turnsWithPose, quarter, screenAngleDeg],
   );
   const limitDeg = drawableDeg(view);
 
@@ -1032,6 +1117,9 @@ export function SkyWindow(props: SkyWindowProps) {
     </p>
   ) : null;
 
+  // R151 (FR-GYRO-5, D-941): following adds nothing over the drawing — no readout, no waiting note.
+  const shown = followPhone ? null : status;
+
   /*
    * FR-SKY-2 (D-789, D-790): the window in the page's box has the stars page's controls around it — the facing
    * picker from the page's list and, where the device has a sensor as well (a tablet), `[ hold up to the sky ]`,
@@ -1058,11 +1146,12 @@ export function SkyWindow(props: SkyWindowProps) {
       data-ground={ground}
       {...(onScreen ? { 'data-screen': 'true', 'data-orientation': upright ? 'portrait' : 'landscape' } : {})}
       {...(inBox ? { 'data-in-box': 'true' } : {})}
+      {...(followPhone ? { 'data-follow': 'true', 'data-turn': turnDeg } : {})}
       data-look-az={quantise(look.azDeg)}
       data-look-alt={Math.round(look.altDeg)}
       data-fov={Math.round(fovDeg)}
     >
-      {!onScreen && readoutSlot.place(status)}
+      {!onScreen && readoutSlot.place(shown)}
       {!onScreen && pickerSlot.place(facingRow)}
       <ChartFrame
         fill={fill}
@@ -1122,15 +1211,15 @@ export function SkyWindow(props: SkyWindowProps) {
             <>
               {controls}
               {/* The hint is the sensor's ("hold the phone up"); the hand's box has its own hint in the box (below). */}
-              {!byHand && <p className={styles.hint}>{t.window.hint}</p>}
+              {handCamera === null && <p className={styles.hint}>{t.window.hint}</p>}
               {!railed && !pickerSlot.inLayout && facingRow}
             </>
           )
         }
-        status={readoutSlot.inLayout && !onScreen ? null : status}
+        status={readoutSlot.inLayout && !onScreen ? null : shown}
       >
         <div
-          className={byHand ? [styles.box, styles.hand].join(' ') : styles.box}
+          className={handCamera !== null ? [styles.box, styles.hand].join(' ') : styles.box}
           ref={boxRef}
           // FR-SKY-14: the pointer handlers are on every box, since the pinch is the sensor's too; the drag inside them is the hand's.
           onPointerDown={onPointerDown}
@@ -1139,17 +1228,29 @@ export function SkyWindow(props: SkyWindowProps) {
           onPointerLeave={onPointerLeave}
           onPointerCancel={endDrag}
           onLostPointerCapture={onLostPointerCapture}
-          {...(byHand
+          {...(handCamera !== null
             ? {
                 // FR-STAR-4: focusable for the keys, described by its own readout; the page names the group (R115).
+                // R151: following too, since a key is one way the finger takes the sky back (D-942); the readout is
+                // not drawn then, so nothing describes the box.
                 tabIndex: 0,
-                'aria-describedby': readoutId,
+                ...(byHand ? { 'aria-describedby': readoutId } : {}),
                 'data-dragging': dragging,
                 onKeyDown,
               }
             : {})}
         >
-          <svg className={styles.svg} viewBox={`0 0 ${String(view.width)} ${String(view.height)}`} aria-hidden="true" data-drawing="window" focusable="false">
+          {/* R151 (FR-FSC-10, D-941): while following, the drawing — and the notes over it, below — turn upright to the
+              reader inside the box when the pose's quarter is not the browser's (`turned`). The SVG stays the box's
+              own child, which is how the stars page and the specs find the box. */}
+          <svg
+            className={turned ? [styles.svg, styles.turned].join(' ') : styles.svg}
+            {...(turned ? { style: turnStyle } : {})}
+            viewBox={`0 0 ${String(view.width)} ${String(view.height)}`}
+            aria-hidden="true"
+            data-drawing="window"
+            focusable="false"
+          >
             {/* FR-FOL-5: the ground's hatch — a pattern, not a colour, so it reads without one (FR-X-5). */}
             {ground !== 'sky' && (
               <defs>
@@ -1233,19 +1334,21 @@ export function SkyWindow(props: SkyWindowProps) {
               />
             )}
           </svg>
-          {/* FR-FOL-5: the note in the drawing, spoken (`role="status"`), never modal: raising the phone is what leaves it. */}
-          {ground !== 'sky' && (
-            <p className={ground === 'buried' ? styles.buriedNote : styles.groundNote} role="status" data-testid="window-ground-note" data-ground={ground}>
-              {ground === 'buried' ? t.window.buried : t.window.ground}
-            </p>
-          )}
-          {/* FR-GUT-6: over an empty field, one line naming the next pass and the turn to it. The ground notes
-              above outrank it, so at most one line ever stands over the drawing. */}
-          {chip !== null && (
-            <p className={styles.chip} role="status" data-testid="window-chip">
-              {chip}
-            </p>
-          )}
+          <div className={turned ? [styles.notes, styles.turned].join(' ') : styles.notes} {...(turned ? { style: turnStyle } : {})}>
+            {/* FR-FOL-5: the note in the drawing, spoken (`role="status"`), never modal: raising the phone is what leaves it. */}
+            {ground !== 'sky' && (
+              <p className={ground === 'buried' ? styles.buriedNote : styles.groundNote} role="status" data-testid="window-ground-note" data-ground={ground}>
+                {ground === 'buried' ? t.window.buried : t.window.ground}
+              </p>
+            )}
+            {/* FR-GUT-6: over an empty field, one line naming the next pass and the turn to it. The ground notes
+                above outrank it, so at most one line ever stands over the drawing. */}
+            {chip !== null && (
+              <p className={styles.chip} role="status" data-testid="window-chip">
+                {chip}
+              </p>
+            )}
+          </div>
           {/* R132 (FR-FLOW-6, D-848): R121's hand hint in the box's corner is the layout's `SkyHint` under the picker now. */}
           {/* R66 (FR-WIN-5 as amended v1.3.1, V13-8): no `[ point at the sky ]`. The window is only ever mounted
               on the sky screen, and the tap that opened the screen is the tap that asked (FR-WIN-4, D-350), so
