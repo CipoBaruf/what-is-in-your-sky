@@ -218,5 +218,21 @@ export const live = {
       noneSpan: 'No visible pass in 24 h',
       noneTonight: 'No visible pass tonight',
     },
+    /**
+     * R146 (FR-FULL-10, FR-FULL-8): the card over the sky when nothing visible is up as the compact live page opens.
+     * With a visible pass in the span: `nothingUp`, then at `--small` the pass line — the name (drawn apart, as the
+     * part that gives way), `separator` and `passWhen`, `Tiangong · 21:47 · in 4 h 12 min`: the rise time and the
+     * chip's offset to the rise — over `[ see next pass ] [ see now ]`. With none: `noPass`, at `--small` (D-930),
+     * over `[ see the sky now ]`. Every line and the button row within 36 cells (`controlRows.test.ts`).
+     */
+    opening: {
+      nothingUp: 'Nothing visible up now.',
+      noPass: 'No visible pass in the next 24 h.',
+      separator: ' · ',
+      passWhen: (p: { time: string; chip: string }) => `${p.time} · ${p.chip}`,
+      seeNext: 'see next pass',
+      seeNow: 'see now',
+      seeSkyNow: 'see the sky now',
+    },
   },
 };
