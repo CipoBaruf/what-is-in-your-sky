@@ -4149,7 +4149,8 @@ What every session reads, named in each task as "the phase set": SPEC §4.50 who
 
 ### Wave 1
 
-- [ ] **R146 — The card: `openingChoice`, `OpeningCard`, its strings, its tests**
+- [x] **R146 — The card: `openingChoice`, `OpeningCard`, its strings, its tests**
+  - *Done:* as written. `openingChoice` is `up` with a visible pass up at now (at its start, inside, at its end), `ask` with the first visible rise in the span and `openingJump`'s lead instant (at now for a rise under a minute away), `advise` with none in the span, and blind to a pass the caller hid. The card's lines, rendered, at a rise 23 h 59 min away (`controlRows.test.ts`): English "Nothing visible up now." 23, "Tiangong · 17:34 · in 23 h 59 min" 28.88 at `--small`, `[ see next pass ] [ see now ]` 29, "No visible pass in the next 24 h." 28.88 at `--small`, `[ see the sky now ]` 19; Spanish "Nada visible ahora." 19, "Tiangong · 17:34 · en 23 h 59 min" 28.88, `[ ver próximo pase ] [ ver ahora ]` 34, "Ningún pase visible en las próximas 24 h." 35.88 at `--small`, `[ ver el cielo ahora ]` 22. All within 36 and 390 px; the two Spanish rows at 34 and 35.88 are past 360 px's 33 and wrap there (D-930). The catalog key snapshot gains `live.opening.*`.
   - **Lane:** data
   - **Model:** opus
   - **Review:** opus
