@@ -4093,7 +4093,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.49 who
 
 ### Wave 3
 
-- [ ] **R145 — The capture set and 2.7.0: the compact live captures, the diff against 2.6.1, the strings no reader uses, the budget row, `package.json` 2.7.0, `docs/RELEASE.md` §20, no tag**
+- [x] **R145 — The capture set and 2.7.0: the compact live captures, the diff against 2.6.1, the strings no reader uses, the budget row, `package.json` 2.7.0, `docs/RELEASE.md` §20, no tag**
   - **Lane:** docs
   - **Model:** opus
   - **Review:** opus
@@ -4116,6 +4116,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.49 who
     - `npm run bundle:budget` green; `npm run check:dead` green.
     - The Done note lists the changed capture files, the `main` row against 2.6.1, every removed key by name, and the SHA to tag.
     - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` green.
+  - *Done:* 40 compact live files moved (`v1-live-watching` and `v1-live-scrubbing` at 360/390/768/844, `v1-legend` at 360/390), no wide file; `main` 179.4 KB, +1,859 bytes over `3363de2`; removed `live.timeLabel`, `countSpoken`, `skyShort`, `cloudWord`, `upCount`, `scrub`, `backToLiveShort`; tag the squash merge of this PR (RELEASE §20.5). Differs from the text: `live` grew 3.6 KB, since the tonight parts are its chunk's, not `main`'s (D-916, RELEASE §20.4); the capture spec was brought to the compact page (D-917).
 
 ### Requirement coverage (v2.7)
 
