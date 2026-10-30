@@ -489,6 +489,8 @@ export const VIEW_OPTION = { en: { dome: 'Dome', polar: 'Polar', window: 'Window
  */
 export async function openSkyScreen(page: Page, locale: 'en' | 'es' = 'en', within: Locator | null = null): Promise<Locator> {
   const scope = within ?? page;
+  // R148 (FR-FULL-4): on the compact live page the view control and the facing row are the sheet's.
+  await openSheet(page);
   // R136 (FR-FLOW-15, FR-STAR-5): the window is a view in the box, and the screen opens only from its
   // `[ hold up to the sky ]`, which the window offers where a compass can follow.
   await scope.getByRole('group', { name: VIEW_GROUP[locale] }).getByRole('button', { name: VIEW_OPTION[locale].window }).click();
@@ -565,9 +567,52 @@ export async function reenterLiveWithTheme(page: Page, locale: 'en' | 'es', them
 export async function openLegend(page: Page): Promise<void> {
   const control = page.getByTestId('live-legend-toggle');
   if ((await control.count()) === 0) return;
+  // R148 (FR-FULL-4): on the compact live page `[ list (n) ]` is the sheet's.
+  await openSheet(page);
   if ((await control.getAttribute('aria-expanded')) === 'true') return;
   await control.click();
   await expect(page.getByTestId('chart-legend-slot')).toHaveCount(1);
+}
+
+/**
+ * R148 (FR-FULL-3, FR-FULL-4, FR-FULL-5): the compact live page's sheet, opened from `[ controls ]` — where the
+ * context line, the track, the taps, the view row, the facing row, `[ list (n) ]` and Share stand. A no-op on a
+ * page with no `[ controls ]` (wide, the stars page, the pass detail) and on a sheet already open.
+ */
+export async function openSheet(page: Page): Promise<void> {
+  const control = page.getByTestId('live-controls');
+  if ((await control.count()) === 0) return;
+  if ((await control.getAttribute('aria-expanded')) === 'true') return;
+  await control.click();
+  const sheet = page.getByTestId('live-sheet');
+  await expect(sheet).toHaveAttribute('data-open', 'true');
+  // The slide is 200 ms of `transform` (D-932): the sheet is in place once it is wholly in the viewport and still.
+  await expect(sheet).toBeInViewport({ ratio: 1 });
+  await settledSheet(page);
+}
+
+/** The sheet's box once it has stopped moving: two identical reads a poll apart. */
+async function settledSheet(page: Page): Promise<void> {
+  let last = '';
+  await expect
+    .poll(async () => {
+      const now = JSON.stringify(await page.getByTestId('live-sheet').boundingBox());
+      const same = now === last;
+      last = now;
+      return same;
+    })
+    .toBe(true);
+}
+
+/** The sheet closed by its own `[ close ]`; a no-op where there is none or it is closed. */
+export async function closeSheet(page: Page): Promise<void> {
+  const control = page.getByTestId('live-controls');
+  if ((await control.count()) === 0) return;
+  if ((await control.getAttribute('aria-expanded')) !== 'true') return;
+  await page.getByTestId('sheet-close').click();
+  await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
+  // Slid out and `visibility: hidden` once the slide is over (D-932).
+  await expect(page.getByTestId('live-sheet')).toBeHidden();
 }
 
 /**
@@ -581,7 +626,8 @@ export async function stripFilled(page: Page): Promise<void> {
   // word has arrived with the astronomy chunk (the pending ellipsis gone).
   if ((await page.getByTestId('status-strip').count()) === 0) {
     await expect(page.getByTestId('shown-time')).toBeVisible();
-    await expect(page.getByTestId('context-line')).toBeVisible();
+    // R148 (FR-FULL-4): the context line is the sheet's, in the tree whether the sheet is open or not (D-932).
+    await expect(page.getByTestId('context-line')).toBeAttached();
     await expect(page.getByTestId('context-line')).not.toContainText('…', { timeout: 30_000 });
     return;
   }
@@ -608,6 +654,8 @@ export async function shownOnTrack(page: Page): Promise<number> {
  */
 export async function pressTrackAt(page: Page, t: number): Promise<void> {
   const bar = trackBar(page);
+  // R148 (FR-FULL-4): the track is the sheet's, whose body scrolls; a tap further down the sheet leaves it scrolled.
+  await bar.scrollIntoViewIfNeeded();
   const span = { start: Number(await bar.getAttribute('aria-valuemin')), end: Number(await bar.getAttribute('aria-valuemax')) };
   const box = await bar.boundingBox();
   if (!box) throw new Error('the time track has no box');
@@ -627,12 +675,11 @@ export async function enterScrubbing(page: Page): Promise<void> {
   // held by a key on the time track — `Home`, the span's start, which is real time — and the mark on the top row
   // says `held`. The rows are the same before and after (one inventory), so nothing else is waited for.
   if ((await page.getByTestId('live-scrub').count()) === 0) {
+    // R148 (FR-FULL-4, FR-FULL-7): the track is the sheet's, and the chip says `held` (the mark is gone, FR-FULL-2).
+    await openSheet(page);
     await trackBar(page).focus();
     await page.keyboard.press('Home');
-    await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'held');
-    // R145: on the landscape phone the focus scrolled the rail (the layout, D-864) down to the track; it is read
-    // from the top, as the wide branch below reads it.
-    await railToTop(page);
+    await expect(page.getByTestId('shown-chip')).not.toHaveAttribute('data-kind', 'now');
     return;
   }
   await page.getByTestId('live-scrub').click();
@@ -655,8 +702,9 @@ export async function railToTop(page: Page): Promise<void> {
 /** R77 (FR-WATCH-1): the way back — real time, and the scrub block gone with the state. R144: on compact, the taps row's `[ now ]`. */
 export async function backToLive(page: Page): Promise<void> {
   if ((await page.getByTestId('live-now').count()) === 0) {
+    // R148 (FR-FULL-4): `[ now ]` is the sheet's.
+    await openSheet(page);
     await page.getByTestId('live-tap-now').click();
-    await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'live');
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
     return;
   }

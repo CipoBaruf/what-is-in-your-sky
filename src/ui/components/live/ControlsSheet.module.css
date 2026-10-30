@@ -85,6 +85,11 @@
   color: var(--fg-dim);
 }
 
+/* R148: the place is what gives; `[ settings ]` and `[ close ]` keep their cells on a row too narrow for all three (360 px, Spanish). */
+.head > :not(.place) {
+  flex: none;
+}
+
 .body {
   display: flex;
   flex: 1 1 auto;

@@ -6,7 +6,8 @@
  *
  * One width since R144 (FR-TONIGHT-6): the 1920 px desktop, where the path fills the rail's line and the control
  * stands beside `[ scrub the night ]`. The compact page has no next-event block and no `[ see this pass ]` any more —
- * by day it jumps to tonight's first rise on its own (FR-TONIGHT-1), which `live-tonight.spec.ts` holds.
+ * by day it asks with a card over the sky (R148, FR-FULL-10), whose `[ see next pass ]` is this control's twin, which
+ * `live-tonight.spec.ts` holds.
  */
 import { expect, test, type Page } from '@playwright/test';
 import { domeDrawn, NINE_DAYS_ON, recomputeEnded, seedStoredRun, stripFilled } from './liveHelpers';

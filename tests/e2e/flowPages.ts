@@ -4,7 +4,7 @@
  * the way R132's `sky-layout.spec.ts` opens them and returned as the root to measure under.
  */
 import { expect, type Locator, type Page } from '@playwright/test';
-import { domeDrawn, homeAt, openSkyScreen, seedStoredRun, stubCompass, T } from './liveHelpers';
+import { domeDrawn, homeAt, openSheet, openSkyScreen, seedStoredRun, stubCompass, T } from './liveHelpers';
 import { NEUQUEN, NINE_DAYS_ON } from './observers';
 
 export const PHONE = { width: 390, height: 844 };
@@ -67,6 +67,11 @@ export async function openFlowPage(page: Page, which: FlowPage, locale: Locale, 
       const layout = page.getByTestId('live-layout');
       await expect(layout).toBeVisible({ timeout: 30_000 });
       await expect(layout.locator(`[data-drawing="${drawn}"]`)).toBeAttached({ timeout: 30_000 });
+      // R148 (FR-FULL-4): the compact live page is measured with the sheet open — its rows are the sheet's; the card
+      // over the sky is answered first, so the page is the reader's.
+      const card = page.getByTestId('live-card');
+      if ((await card.count()) > 0) await card.getByTestId('live-card-now').click();
+      await openSheet(page);
       return page.locator('body');
     }
     case 'stars': {

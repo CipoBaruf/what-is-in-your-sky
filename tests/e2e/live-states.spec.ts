@@ -12,7 +12,7 @@
  * phone it is the rail's and the dome's column is identical in both.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { backToLive, domeDrawn, enterScrubbing, homeAt, pressTrackAt, shownOnTrack, stripFilled, T } from './liveHelpers';
+import { backToLive, closeSheet, domeDrawn, enterScrubbing, homeAt, openSheet, pressTrackAt, shownOnTrack, stripFilled, T } from './liveHelpers';
 import { openParisLive } from './parisLive';
 
 /** A speed button named exactly — the name is a substring match otherwise, and `60×` would name three (F-37). */
@@ -33,10 +33,10 @@ const SHAPES = [
   [1280, 800, 'under'],
   [1200, 450, 'overlay'],
 ] as const;
-/** The compact shapes: the portrait phone and the landscape phone, with their layout form. */
+/** The compact shapes: the portrait phone and the landscape phone, with their sheet's form (R148, FR-FULL-4). */
 const COMPACT_SHAPES = [
-  [390, 844, 'column', 'under'],
-  [844, 390, 'rail', 'rail'],
+  [390, 844, 'bottom', 'under'],
+  [844, 390, 'side', 'rail'],
 ] as const;
 
 interface Box {
@@ -172,48 +172,69 @@ for (const [width, height, placement] of SHAPES) {
 }
 
 /**
- * R144 (FR-TONIGHT-6, FR-TONIGHT-9, FR-WATCH-4 and FR-WATCH-5 as amended v2.7; US-42 AC5): the compact page at both
- * its shapes — the portrait phone and the landscape phone — renders one inventory in both states. Nothing appears
- * or disappears when `t` leaves real time, and the box's height before and after a drag on the track is identical;
- * `[ next ]` lands a minute before the next rise and `[ now ]` returns to real time and the bare route.
+ * R144 (FR-TONIGHT-6, FR-TONIGHT-9, FR-WATCH-4 and FR-WATCH-5 as amended v2.7; US-42 AC5) → R148 (FR-FULL-1, FR-FULL-4,
+ * FR-FULL-6; US-43 AC4): the compact page at both its shapes — the portrait phone and the landscape phone — is the
+ * full form: the box is the viewport, and its size is identical with the sheet closed, open, open with the list, and
+ * after a drag on the track, `[ next ]` and `[ now ]`. The page renders one inventory in both states: the head and
+ * `[ controls ]` over the sky, the sheet's rows reachable while it is open; nothing appears or disappears when `t`
+ * leaves real time. `[ next ]` lands a minute before the next rise and `[ now ]` returns to real time and the bare route.
  */
-for (const [width, height, shape, placement] of COMPACT_SHAPES) {
-  test(`one inventory, the box unchanged across a drag on the track, next and now at ${String(width)} × ${String(height)} (FR-TONIGHT-6, FR-TONIGHT-9, FR-WATCH-5)`, async ({ page }) => {
+for (const [width, height, sheetForm, placement] of COMPACT_SHAPES) {
+  test(`the box unchanged across the sheet closed, open, open with the list, a drag on the track, next and now at ${String(width)} × ${String(height)} (FR-FULL-6, FR-TONIGHT-6, FR-WATCH-5)`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await homeAt(page, T);
     await page.getByTestId('live-link').click();
     await domeDrawn(page);
     await stripFilled(page);
-    await expect(page.getByTestId('live-layout')).toHaveAttribute('data-shape', shape);
+    await expect(page.getByTestId('live-layout')).toHaveAttribute('data-shape', 'full');
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', placement);
-    const ROWS = ['live-top-row', 'live-state-mark', 'live-headline', 'live-context', 'live-track', 'live-taps', 'live-actions', 'live-legend-toggle', 'live-share'] as const;
-    const GONE = ['live-indicator', 'live-state-word', 'next-event', 'status-strip', 'overview-row', 'time-stripe', 'step-controls', 'playback-row', 'time-row', 'live-scrub', 'live-now', 'live-hidden-toggle', 'stripe-block'] as const;
-    const inventory = async (state: string): Promise<void> => {
-      for (const id of ROWS) await expect(page.getByTestId(id), `${state}: ${id} is rendered`).toBeAttached();
+    await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-form', sheetForm);
+    const OVERLAY = ['live-head', 'live-back', 'live-controls'] as const;
+    const SHEET = ['live-context', 'live-track', 'live-taps', 'live-view-row', 'live-facing', 'live-actions', 'live-legend-toggle', 'live-share'] as const;
+    const GONE = ['live-top-row', 'live-state-mark', 'live-headline', 'live-indicator', 'live-state-word', 'next-event', 'status-strip', 'overview-row', 'time-stripe', 'step-controls', 'playback-row', 'time-row', 'live-scrub', 'live-now', 'live-hidden-toggle', 'stripe-block'] as const;
+    const inventory = async (state: string, sheetOpen: boolean): Promise<void> => {
+      for (const id of OVERLAY) await expect(page.getByTestId(id), `${state}: ${id} is visible`).toBeVisible();
+      // The sheet's rows stay in the tree while it is closed (D-932), inert and hidden; reachable only while it is open.
+      for (const id of SHEET) {
+        await expect(page.getByTestId(id), `${state}: ${id} is rendered`).toBeAttached();
+        if (sheetOpen) await expect(page.getByTestId(id), `${state}: ${id} is reachable`).toBeVisible();
+        else await expect(page.getByTestId(id), `${state}: ${id} is not reachable`).toBeHidden();
+      }
       for (const id of GONE) await expect(page.getByTestId(id), `${state}: ${id} is not in the DOM`).toHaveCount(0);
     };
-    // Watching: the ISS is up at T, so the page stays on real time (FR-TONIGHT-1), the mark runs and the chip says now.
-    await inventory('watching');
-    await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'live');
-    await expect(page.getByTestId('live-state-mark').getByTestId('mark')).toHaveAttribute('data-mark-running', 'true');
+    // Watching: the ISS is up at T, so the page stays on real time with no card (FR-FULL-10) and the chip says now.
+    await inventory('watching', false);
+    await expect(page.getByTestId('live-card')).toHaveCount(0);
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
-    await expect(page.getByTestId('live-tap-now')).toBeDisabled();
     await expect(page).toHaveURL(/#live$/);
-    const watching = { dome: await settledBox(page, 'live-dome'), box: await settledBox(page, 'chart-box') };
+    const closed = { dome: await settledBox(page, 'live-dome'), box: await settledBox(page, 'chart-box') };
+    // FR-FULL-1: the box is the viewport.
+    expect(rounded(closed.box)).toEqual({ x: 0, y: 0, width, height });
 
-    // A drag on the track: held, the same rows, the box the same height (FR-TONIGHT-9: identical before and after).
+    // The sheet open: the rows reachable, the box the same (FR-FULL-6).
+    await openSheet(page);
+    await inventory('watching, the sheet open', true);
+    await expect(page.getByTestId('live-tap-now')).toBeDisabled();
+    expect(await settledBox(page, 'chart-box'), 'the box with the sheet open').toEqual(closed.box);
+    expect(await settledBox(page, 'live-dome')).toEqual(closed.dome);
+    // The list open: the same box.
+    await page.getByTestId('live-legend-toggle').click();
+    await expect(page.getByTestId('chart-legend-slot')).toHaveCount(1);
+    expect(await settledBox(page, 'chart-box'), 'the box with the list open').toEqual(closed.box);
+    await page.getByTestId('live-legend-toggle').click();
+    await expect(page.getByTestId('chart-legend-slot')).toHaveCount(0);
+
+    // A drag on the track: held, the same rows, the box the same (FR-TONIGHT-9: identical before and after).
     await pressTrackAt(page, T + 6 * 3_600_000);
     await page.clock.runFor(600);
     const held = await shownOnTrack(page);
     expect(Math.abs(held - (T + 6 * 3_600_000))).toBeLessThan(15 * 60_000);
-    await inventory('held');
-    await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'held');
-    await expect(page.getByTestId('live-state-mark').getByTestId('mark')).toHaveAttribute('data-mark-running', 'false');
+    await inventory('held', true);
     await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'ahead');
     await expect(page).toHaveURL(/#live\?lat=-38\.93&lon=-67\.99&alt=0&t=/);
     const dragged = { dome: await settledBox(page, 'live-dome'), box: await settledBox(page, 'chart-box') };
-    expect(dragged.box, 'the box before and after the drag').toEqual(watching.box);
-    expect(dragged.dome).toEqual(watching.dome);
+    expect(dragged.box, 'the box before and after the drag').toEqual(closed.box);
+    expect(dragged.dome).toEqual(closed.dome);
     // Real time moves on under a held instant; the instant does not (FR-WATCH-1).
     await page.clock.runFor(3000);
     expect(await shownOnTrack(page)).toBe(held);
@@ -224,18 +245,21 @@ for (const [width, height, shape, placement] of COMPACT_SHAPES) {
     if (nextRise !== undefined) {
       await page.getByTestId('live-tap-next').click();
       expect(await shownOnTrack(page)).toBe(nextRise - 60_000);
-      expect(await settledBox(page, 'chart-box')).toEqual(watching.box);
+      expect(await settledBox(page, 'chart-box')).toEqual(closed.box);
     } else {
       await expect(page.getByTestId('live-tap-next')).toBeDisabled();
     }
 
-    // `[ now ]`: real time again, the bare route, the same rows and the same box.
+    // `[ now ]`: real time again, the bare route, the same rows and the same box; the sheet closed, the same box.
     await backToLive(page);
-    await inventory('watching again');
+    await inventory('watching again', true);
     await page.clock.runFor(600);
     await expect(page).toHaveURL(/#live$/);
-    expect(rounded(await settledBox(page, 'chart-box'))).toEqual(rounded(watching.box));
-    expect(rounded(await settledBox(page, 'live-dome'))).toEqual(rounded(watching.dome));
+    expect(rounded(await settledBox(page, 'chart-box'))).toEqual(rounded(closed.box));
+    expect(rounded(await settledBox(page, 'live-dome'))).toEqual(rounded(closed.dome));
+    await closeSheet(page);
+    await inventory('watching, the sheet closed again', false);
+    expect(rounded(await settledBox(page, 'chart-box'))).toEqual(rounded(closed.box));
   });
 }
 
@@ -287,24 +311,37 @@ test('the short wide inventory ends on a whole row with a +n line, and names its
 });
 
 /**
- * R85 (FR-COMP-7, F-82): at 360 × 640 in Spanish the top row is `[ ← ]`, the indicator and the place, and the
- * place — Neuquén's coordinates, the label the home page gives a typed pair — is drawn whole, not ellipsised.
+ * R85 (FR-COMP-7, F-82) → R148 (FR-FULL-2, FR-FULL-4): at 360 × 640 in Spanish `[ ← ]` heads the sky with the shown
+ * time, and the place — Neuquén's coordinates, the label the home page gives a typed pair — is the sheet's head's,
+ * drawn whole, not ellipsised.
  */
-test('at 360 px in Spanish the compact top row shows a whole coordinate pair (FR-COMP-7, F-82)', async ({ page }) => {
+test('at 360 px in Spanish the head is [ ← ] and the time, and the sheet’s head shows a whole coordinate pair (FR-COMP-7, FR-FULL-2, F-82)', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 640 });
   await homeAt(page, T, 'es');
   await page.getByTestId('live-link').click();
   await domeDrawn(page);
-  const back = page.getByTestId('live-top-row').getByRole('button', { name: 'Volver', exact: true });
+  const back = page.getByTestId('live-head').getByRole('button', { name: 'Volver', exact: true });
   await expect(back).toHaveText('←');
   const tap = await back.boundingBox();
-  expect(tap?.height, 'the 48 px hit box is unchanged').toBeGreaterThanOrEqual(48);
-  const place = page.getByTestId('live-place');
+  expect(tap?.height, 'the 44 px hit box is unchanged').toBeGreaterThanOrEqual(43.5);
+  const head = await page.getByTestId('live-head').boundingBox();
+  expect(head?.height, 'one row').toBeLessThanOrEqual(48.5);
+  await openSheet(page);
+  const place = page.getByTestId('sheet-place');
   await expect(place).toHaveText(/^−?\d+\.\d\d, −?\d+\.\d\d$/);
-  const fit = await place.evaluate((span) => ({ scroll: span.scrollWidth, client: span.clientWidth }));
-  expect(fit.scroll, `the place is drawn whole (${String(fit.scroll)} of ${String(fit.client)} px)`).toBeLessThanOrEqual(fit.client);
-  const row = await page.getByTestId('live-top-row').boundingBox();
-  expect(row?.height, 'one text row').toBeLessThanOrEqual(24.5);
+  // FR-FULL-4: the sheet's head is the place, `[ ajustes ]` and `[ cerrar ]` — 22 cells of controls, which at 360 px
+  // leave the place 11 of the 33 the row holds, so the pair is cut with the ellipsis the requirement allows (R147's
+  // 13 cells at 390 px); the two controls stand whole at the row's end, inside the sheet.
+  const fit = await place.evaluate((span) => ({ scroll: span.scrollWidth, client: span.clientWidth, overflow: getComputedStyle(span).textOverflow }));
+  if (fit.scroll > fit.client) expect(fit.overflow).toBe('ellipsis');
+  test.info().annotations.push({ type: 'place', description: `the place at 360 px: ${String(fit.scroll)} of ${String(fit.client)} px` });
+  const sheet = await page.getByTestId('live-sheet').boundingBox();
+  for (const id of ['sheet-settings', 'sheet-close']) {
+    const control = await page.getByTestId(id).boundingBox();
+    expect((control?.x ?? 0) + (control?.width ?? 0), `${id} inside the sheet`).toBeLessThanOrEqual((sheet?.x ?? 0) + (sheet?.width ?? 0) + 0.5);
+    const whole = await page.getByTestId(id).evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
+    expect(whole, `${id} drawn whole`).toBe(true);
+  }
 });
 
 // R78 (FR-WATCH-9 f): the captures of both states at the two short shapes are `r78-captures.spec.ts`, run with CAPTURES=1.
@@ -319,6 +356,7 @@ test('a #live link with an instant opens held, and a reload after now opens watc
   await homeAt(page, T);
   await page.getByTestId('live-link').click();
   await domeDrawn(page);
+  await openSheet(page);
   await page.getByTestId('live-tap-next').click();
   const landed = await shownOnTrack(page);
   await page.clock.runFor(600);
@@ -326,15 +364,15 @@ test('a #live link with an instant opens held, and a reload after now opens watc
   expect(url).toMatch(/#live\?lat=.*&t=/);
   await page.reload();
   await domeDrawn(page);
-  await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'held');
+  // R148 (FR-FULL-10): a link's `t` opens that instant with no card; the chip says it is held.
   await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'ahead');
+  await expect(page.getByTestId('live-card')).toHaveCount(0);
   expect(await shownOnTrack(page)).toBe(landed);
   await backToLive(page);
   await page.clock.runFor(600);
   await expect(page).toHaveURL(/#live$/);
   await page.reload();
   await domeDrawn(page);
-  await expect(page.getByTestId('live-state-mark')).toHaveAttribute('data-state', 'live');
   await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'now');
   await expect(page.getByTestId('time-stripe')).toHaveCount(0);
 });
