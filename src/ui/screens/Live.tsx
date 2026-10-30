@@ -220,7 +220,7 @@ export function LivePage({ link, onLeave }: LivePageProps) {
 
   if (state !== 'sky' || observer === null) {
     return (
-      <Page state="inert" wakeLock={wakeLock} fold={NO_FOLD} placement={null} top={<TopRow place={observer?.label ?? null} indicator={null} screenOpen={screenOpen} onLeave={onLeave} />}>
+      <Page state="inert" wakeLock={wakeLock} fold={NO_FOLD} placement={null} top={<TopRow place={observer?.label ?? null} screenOpen={screenOpen} onLeave={onLeave} />}>
         <div className={styles.inert} data-testid="live-inert" data-inert={state}>
           {state === 'no-place' && (
             <>
@@ -305,17 +305,15 @@ function Page({ state, wakeLock, fold, placement, shape = 'portrait', form = 'ro
 }
 
 /**
- * The page's top row. R77 (FR-WATCH-2, V20-8): on compact the state indicator stands on it, after `[ ← ]`, and the
- * place after the indicator. R129 (FR-FLOW-3, D-845): the row is the app's one `Header`, told it is the live page —
- * `[ ← ]`, the indicator in the page name's place (its word, watching, is the name) and the place on compact; on
- * wide the one header row every page has, with `live` marked in its links. The language and theme switches the
- * wide row used to carry here (D-244) are the settings page's (V26-10). The page renders it from `LiveSky`, which
- * owns the state; the inert page renders it without one. It is a `div`: the `banner` is the page's own, in its grid.
+ * The page's top row. R129 (FR-FLOW-3, D-845): the row is the app's one `Header`, told it is the live page — on wide
+ * the one header row every page has, with `live` marked in its links; on compact `[ ← ]`, the page's name and the
+ * place. The language and theme switches the wide row used to carry here (D-244) are the settings page's (V26-10).
+ * It is a `div`: the `banner` is the page's own, in its grid.
  *
- * R144 (FR-TONIGHT-6): the state word leaves the compact row — the chip beside the shown time says it — and the mark
- * stays, before the page's name: `[ ← ]`, the mark, `live`, the place. `status` is then the mark with the name.
+ * R148, R149 (FR-FULL-2, D-934): the compact page with a place has `SkyHead` over the sky in its stead, so on compact
+ * this row is the inert page's alone; the mark and the state indicator it carried on compact (R77, R144) left with it.
  */
-function TopRow({ place, indicator, screenOpen, onLeave }: { place: string | null; indicator: ReactNode; screenOpen: boolean; onLeave: () => void }) {
+function TopRow({ place, screenOpen, onLeave }: { place: string | null; screenOpen: boolean; onLeave: () => void }) {
   return (
     /* R89 (FR-VISIT-2, FR-VISIT-3): the visit notice and the link's moment note head the page under this row,
        R87's components as home mounts them; empty, the strip is not drawn and the area is the row alone. */
@@ -325,7 +323,7 @@ function TopRow({ place, indicator, screenOpen, onLeave }: { place: string | nul
           the accessible tree, since `inert` alone is a browser behaviour and not a name a test can read. */}
       <div className={styles.topRow} data-testid="live-top-row" {...(screenOpen ? { inert: true, 'aria-hidden': true } : {})}>
         {/* R85 (FR-COMP-7, D-549): `[ ← ]`, named by the word it no longer draws, is the header's on every sub-page now. */}
-        <Header page="live" landmark={false} context={place} onBack={onLeave} backClassName={styles.back} status={indicator ?? undefined} />
+        <Header page="live" landmark={false} context={place} onBack={onLeave} backClassName={styles.back} />
       </div>
       {!screenOpen && <PageNotices kinds={LIVE_NOTES} />}
     </div>
@@ -882,8 +880,8 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
   /*
    * R78 (FR-WATCH-5, FR-WATCH-6): on wide the rail's head is the indicator with the clock, or with
    * `[ back to live ]` while scrubbing, so the way out of the state stands in one place and never scrolls away with
-   * the rows under it. R144, R145: the compact rail (the landscape phone) holds the same slots as the column
-   * (FR-FLOW-15) and has no such head — its indicator is the top row's and its `now` is `TimeTaps`'s (FR-TONIGHT-6).
+   * the rows under it. The compact page has no such head: its time and chip are `SkyHead`'s and its `now` is
+   * `TimeTaps`'s, in the sheet (FR-FULL-2, FR-FULL-4).
    */
   const indicatorLine = (
     <div className={styles.indicatorLine}>
@@ -943,7 +941,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
       {!screenOpen && <PageNotices kinds={LIVE_NOTES} />}
     </div>
   ) : (
-    <TopRow place={observer.label} indicator={null} screenOpen={screenOpen} onLeave={onLeave} />
+    <TopRow place={observer.label} screenOpen={screenOpen} onLeave={onLeave} />
   );
   const page = (children: ReactNode): ReactNode => (
     <SecondClock clockRef={clockRef}>

@@ -30,11 +30,10 @@ import styles from './Header.module.css';
  * other page — live, stars, the pass detail, settings — has `[ ← ]`
  * (FR-COMP-7's control: the arrow drawn, "Back" / "Volver" its name), the
  * page's name in the accent, and the context in `--fg-dim`, cut with an
- * ellipsis where the row's cells run out. On the live page the state indicator
- * (FR-WATCH-2) stands in the name's place, `status`: watching, its word is the
- * page's name, and drawn beside it the name would take the cells FR-COMP-7
- * keeps for a whole coordinate pair at 360 px. On settings the name is the
- * page's `h1`, which has no other.
+ * ellipsis where the row's cells run out. On settings the name is the page's
+ * `h1`, which has no other. The compact live page has no header row since v2.8:
+ * its head is `SkyHead` over the sky (FR-FULL-2), and this row is drawn there
+ * only while no place is known (the inert page).
  *
  * **Wide.** One row on every page: `[ ← ]` on a sub-page, the mark and the
  * title, the page links `home`, `live`, `stars` — the current one drawn in
@@ -71,8 +70,6 @@ export interface HeaderProps {
   backRef?: Ref<HTMLButtonElement>;
   /** A class of the page's own on `[ ← ]`, for a rule only that page's layout needs (the live page's grid, F-100). */
   backClassName?: string | undefined;
-  /** The live page's state indicator, drawn in the compact name's place (FR-WATCH-2). */
-  status?: ReactNode;
   /** `false`: a `div`, inside a landmark or a dialog the page renders itself. */
   landmark?: boolean;
   /** R6/R35: made inert with the rest of the shell while the compact sheet or the shortcuts overlay is up. */
@@ -91,7 +88,7 @@ const contextTestId = (page: HeaderPage): string => (page === 'pass' ? 'pass-dat
 /** R134 (FR-FLOW-11, D-851): the header's links and Back are 44 px targets at least (`ui/styles/primitives.css`). */
 const TARGET = 'target';
 
-export function Header({ page = 'home', context = null, onBack, backRef, backClassName, status, landmark = true, inert = false, busy = false }: HeaderProps) {
+export function Header({ page = 'home', context = null, onBack, backRef, backClassName, landmark = true, inert = false, busy = false }: HeaderProps) {
   const t = useT();
   const mode = useLayoutMode();
   const loading = (useAppStore(isLoading) && page === 'home') || busy;
@@ -134,11 +131,9 @@ export function Header({ page = 'home', context = null, onBack, backRef, backCla
       return (
         <Root inert={inert} className={rootClass(`${styles.compact} ${styles.sub}`)} data-testid="header" data-page={page}>
           {back}
-          {status ?? (
-            <Name className={styles.pageName} data-testid="header-page">
-              {t.header.pages[page]}
-            </Name>
-          )}
+          <Name className={styles.pageName} data-testid="header-page">
+            {t.header.pages[page]}
+          </Name>
           {contextText}
         </Root>
       );

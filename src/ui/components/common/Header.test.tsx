@@ -84,11 +84,10 @@ describe.each(LOCALES)('<Header> compact in %s (FR-COMP-1, FR-FLOW-3)', (locale:
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it('draws the live page’s indicator in the name’s place, and no context when there is none', () => {
+  it('draws the live page’s name and no context when there is none (the inert page, R149)', () => {
     media = stubMatchMedia(COMPACT_PX);
-    renderIn(locale, { page: 'live', status: <span data-testid="indicator">{t.live.state.live}</span>, onBack: vi.fn() });
-    expect(screen.getByTestId('indicator')).toBeInTheDocument();
-    expect(screen.queryByTestId('header-page')).toBeNull();
+    renderIn(locale, { page: 'live', onBack: vi.fn() });
+    expect(screen.getByTestId('header-page')).toHaveTextContent(t.header.pages.live);
     expect(screen.queryByTestId('live-place')).toBeNull();
   });
 
