@@ -6,7 +6,7 @@
  *   below, never under FR-LIVE-7's compact floor, and the blank between the box's top edge and the bowl's highest
  *   drawn cell, and between its lowest drawn cell and the box's bottom edge, is each at most that slack. Read from
  *   the scene's measured box — the raster's drawn cells (`domeInk`), the labels aside — on the live page and on the
- *   pass detail. The rows around the box (the readout above, the hint below) stand a row gap from its edges, so
+ *   pass detail (the live page's box is the screen since v2.8, FR-FULL-1, and only the bowl inside it is checked). The rows around the box (the readout above, the hint below) stand a row gap from its edges, so
  *   the reader's blank is the slack and a `--space-1`. Where the platform's glyph advance rounds down (Linux
  *   Chromium, D-293) the raster paints the bowl short of the zoom the box asked for, and the blank that adds is the
  *   platform's, allowed for the way `fitFloor` allows for it.
@@ -116,10 +116,18 @@ async function expectBowlCut(layout: Locator, label: string): Promise<void> {
 test.describe('the compact dome’s box hugs the bowl (FR-FLOW-9)', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: false });
 
-  test('the live page at 390 × 844: the box is the bowl plus one slack above and below, and the page fits the screen', async ({ page }) => {
+  // v2.8 (FR-FULL-1, FR-FLOW-9 as amended): the live page's box is the screen, not the bowl's cut; the bowl is drawn inside it.
+  test('the live page at 390 × 844: the box is the screen, the bowl is inside it, and the page fits the screen', async ({ page }) => {
     const layout = await openLive(page);
-    await expectBowlCut(layout, 'live 390 × 844');
-    // What the cut buys: the watching page, hint and actions included, is one screen.
+    const chartBox = await settledBox(layout.getByTestId('chart-box'));
+    expect(chartBox.width, `live: ${fmt(chartBox)}`).toBeCloseTo(390, 0);
+    expect(chartBox.height, `live: ${fmt(chartBox)}`).toBeCloseTo(844, 0);
+    const ink = await painted(layout.locator('[data-drawing="dome"]'));
+    expect(ink.layers.length, 'live: no drawing').toBeGreaterThan(0);
+    const inkTop = Math.min(...ink.layers.map((layer) => layer.ink.y));
+    const inkBottom = Math.max(...ink.layers.map((layer) => layer.ink.y + layer.ink.height));
+    expect(inkTop - chartBox.y, 'live: the bowl\'s top is inside the box').toBeGreaterThanOrEqual(-1);
+    expect(chartBox.y + chartBox.height - inkBottom, 'live: the bowl\'s bottom is inside the box').toBeGreaterThanOrEqual(-1);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(844);
   });
 
