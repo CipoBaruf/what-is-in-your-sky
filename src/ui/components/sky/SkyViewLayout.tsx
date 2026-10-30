@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
-import { LANDSCAPE_DRAWING_MIN_SHARE } from '../../../lib/layout';
+import { LANDSCAPE_DRAWING_MIN_SHARE, SHEET_TAP_SLOP_PX } from '../../../lib/layout';
 import { useT } from '../../../i18n/useT';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { usePageShape } from '../live/usePageShape';
@@ -61,7 +61,7 @@ import styles from './SkyViewLayout.module.css';
  * scroll at any compact size (FR-TONIGHT-9, FR-COMP-5's "the gaps give, then
  * the box").
  */
-export type SkyViewSlotName = 'answer' | 'viewRow' | 'readout' | 'drawing' | 'picker' | 'hint' | 'timeline' | 'action' | 'layers' | 'list' | 'foot';
+export type SkyViewSlotName = 'answer' | 'viewRow' | 'readout' | 'drawing' | 'picker' | 'hint' | 'timeline' | 'action' | 'layers' | 'list' | 'foot' | 'overlay' | 'sheet';
 
 /** D-851: how far a slot stands from the one above it — a row (`--space-1`), a group (`--space-3`) or a section (`--space-5`). */
 export type SkyViewRhythm = 'row' | 'group' | 'section';
@@ -78,23 +78,49 @@ export const SLOT_RHYTHM: Readonly<Record<SkyViewSlotName, SkyViewRhythm>> = {
   layers: 'group',
   list: 'section',
   foot: 'section',
+  // R148 (D-919): the full form's two slots stand over the box and take no gap; they carry no rhythm mark.
+  overlay: 'row',
+  sheet: 'row',
 };
 
-/** FR-FLOW-4's order (FR-TONIGHT-6's for `timeline`), which is also the DOM order the slots are rendered in. */
+/**
+ * FR-FLOW-4's order (FR-TONIGHT-6's for `timeline`), which is also the DOM order the slots are rendered in. The full
+ * form's `overlay` and `sheet` (R148) are not rows of the column or the rail and are not in it.
+ */
 export const SLOT_ORDER: readonly SkyViewSlotName[] = ['answer', 'viewRow', 'readout', 'drawing', 'picker', 'hint', 'timeline', 'action', 'layers', 'list', 'foot'];
 
-/** R144 (D-904): where the readout stands — its own row above the drawing (the default), or the box's top-left corner as the picker's toggle. */
-type SkyViewReadoutPlace = 'row' | 'corner';
+/**
+ * R144 (D-904): where the readout stands — its own row above the drawing (the default), or the box's top-left
+ * corner as the picker's toggle. R148 (D-923): `sheet` — the page places the readout and the picker itself, in
+ * the sheet's facing row, and the frame draws neither.
+ */
+type SkyViewReadoutPlace = 'row' | 'corner' | 'sheet';
 
 /** The parts a chart hands the layout past the page (`SkyViewChartSlot`, `useChartSlot`). */
 export type ChartSlotName = 'control' | 'readout' | 'picker' | 'list';
 
-type SkyViewShape = 'column' | 'rail' | 'panel';
+type SkyViewShape = 'column' | 'rail' | 'panel' | 'full';
+
+/** R148 (D-904, D-923): what counts as a pick in an opened facing picker — one of its options, not a control beside them. */
+export const PICK_SELECTOR = '[role="group"] button, [role="radiogroup"] [role="radio"], [role="listbox"] [role="option"]';
 
 export interface SkyViewLayoutProps extends Partial<Record<SkyViewSlotName, ReactNode>> {
   drawing: ReactNode;
   /** The wide form: the box and the rail (the default), or the guide panel's one column (D-849). Compact is always the column. */
   wide?: 'rail' | 'panel';
+  /**
+   * R148 (FR-FULL-1, FR-FULL-6; D-919): the compact live page's `full` form, in both shapes — the drawing in a
+   * wrapper fixed to the viewport inside the safe area, the `overlay` and `sheet` slots over it, and no other slot
+   * rendered. Ignored on wide, where the page is the rail.
+   */
+  form?: 'full' | undefined;
+  /**
+   * R148 (FR-FULL-4, FR-FULL-5; D-922): whether the page's sheet is open. While it is, a tap on the sky — a press
+   * that travels under `SHEET_TAP_SLOP_PX` — calls `onSheetClose` and is spent on that (the click after it is
+   * swallowed); a longer press is a drag and reaches the view. Closed, the layout listens to nothing.
+   */
+  sheetOpen?: boolean | undefined;
+  onSheetClose?: (() => void) | undefined;
   /** The id of the drawing's text alternative on the page — the pass detail's prose — for the chart's figure (`aria-describedby`). */
   describedBy?: string | undefined;
   /** The id of the heading that names the drawing on the page — the pass's name — for the chart's figure (`aria-labelledby`). */
@@ -137,14 +163,15 @@ interface SkyViewContextValue {
 const SkyViewContext = createContext<SkyViewContextValue | null>(null);
 
 /** R144 (D-904): what counts as a pick in the opened picker — one of its options, not a control beside them. */
-const PICK = '[role="group"] button, [role="radiogroup"] [role="radio"], [role="listbox"] [role="option"]';
+const PICK = PICK_SELECTOR;
 
-export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = false, readoutIn = 'row', pickerOpen: heldOpen, onPickerOpen, roomKey, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
+export function SkyViewLayout({ wide = 'rail', form, sheetOpen = false, onSheetClose, describedBy, labelledBy, fill = false, readoutIn = 'row', pickerOpen: heldOpen, onPickerOpen, roomKey, className, ref, 'data-testid': testId, ...slots }: SkyViewLayoutProps) {
   const t = useT();
   const mode = useLayoutMode();
   const pageShape = usePageShape();
   // FR-FLOW-4: compact is the column, except the landscape phone, whose box stands beside its rail (FR-WATCH-5).
-  const shape: SkyViewShape = mode === 'wide' ? wide : pageShape === 'landscape-phone' ? 'rail' : 'column';
+  // R148 (D-919): …or the full form, in both shapes, where the page asks for it (the compact live page).
+  const shape: SkyViewShape = mode === 'wide' ? wide : form === 'full' ? 'full' : pageShape === 'landscape-phone' ? 'rail' : 'column';
   // R144 (D-904): the corner readout is the column's device; the rail form has its own corner and its picker row.
   const corner = readoutIn === 'corner' && shape === 'column';
   const [ownOpen, setOwnOpen] = useState(false);
@@ -312,6 +339,56 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
     };
   }, [roomMeasured, slotKey, pickerOpen, roomKey, targets]);
 
+  /*
+   * R148 (FR-FULL-4, FR-FULL-5; D-922): a tap on the sky closes the open sheet; a drag does not. The three views tell
+   * a tap from a drag each in their own way, so the sheet does not reach into them: while it is open the full
+   * wrapper listens in the capture phase — `pointerdown` on the drawing records the point, `pointerup` with a
+   * travel under `SHEET_TAP_SLOP_PX` closes the sheet, stops there (the window names a star on its own `pointerup`,
+   * and gives the drag up on the capture it then loses) and swallows the `click` that follows (one capture-phase
+   * listener, armed for that one event), so the first tap is spent on closing: no follow, no star pick. A longer
+   * travel passes through untouched and turns the camera with the sheet open. A press that lands on the overlay or
+   * in the sheet is not a press on the sky. With the sheet closed the wrapper listens to nothing.
+   */
+  const fullRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const wrap = fullRef.current;
+    if (!wrap || shape !== 'full' || !sheetOpen) return;
+    let press: { id: number; x: number; y: number } | null = null;
+    let swallow = false;
+    const onSky = (target: EventTarget | null): boolean => target instanceof Element && target.closest('[data-slot="drawing"]') !== null && target.closest('[data-slot="overlay"], [data-slot="sheet"]') === null;
+    const onDown = (event: PointerEvent): void => {
+      press = event.isPrimary && onSky(event.target) ? { id: event.pointerId, x: event.clientX, y: event.clientY } : null;
+    };
+    const onUp = (event: PointerEvent): void => {
+      if (press === null || press.id !== event.pointerId) return;
+      const travel = Math.hypot(event.clientX - press.x, event.clientY - press.y);
+      press = null;
+      if (travel >= SHEET_TAP_SLOP_PX) return;
+      swallow = true;
+      event.stopPropagation();
+      onSheetClose?.();
+    };
+    const onCancel = (): void => {
+      press = null;
+    };
+    const onClick = (event: Event): void => {
+      if (!swallow) return;
+      swallow = false;
+      event.stopPropagation();
+      event.preventDefault();
+    };
+    wrap.addEventListener('pointerdown', onDown, true);
+    wrap.addEventListener('pointerup', onUp, true);
+    wrap.addEventListener('pointercancel', onCancel, true);
+    wrap.addEventListener('click', onClick, true);
+    return () => {
+      wrap.removeEventListener('pointerdown', onDown, true);
+      wrap.removeEventListener('pointerup', onUp, true);
+      wrap.removeEventListener('pointercancel', onCancel, true);
+      wrap.removeEventListener('click', onClick, true);
+    };
+  }, [shape, sheetOpen, onSheetClose]);
+
   const labelled = shape === 'rail';
   const given = (name: SkyViewSlotName): boolean => {
     const node = slots[name];
@@ -390,6 +467,37 @@ export function SkyViewLayout({ wide = 'rail', describedBy, labelledBy, fill = f
       </div>
     );
   };
+
+  /*
+   * R148 (FR-FULL-1, FR-FULL-6; D-919): the full form. The drawing slot stands in a wrapper fixed to the viewport
+   * (`inset: 0`, `100dvh`, padded by the safe-area insets), and over it the `overlay` slot at `--z-raised` and the
+   * `sheet` slot at `--z-sheet`, both letting the pointer through to the sky where they hold nothing. No other slot
+   * is rendered: the page passes their contents to its sheet. The box's size depends on the wrapper alone, which
+   * depends on the viewport alone, so nothing on the page can resize the sky.
+   */
+  if (shape === 'full') {
+    return (
+      <SkyViewContext.Provider value={context}>
+        <div ref={setRoot} className={[styles.layout, className].filter(Boolean).join(' ')} data-shape="full" data-mode={mode} data-sky-layout="" {...(fill ? { 'data-fill': '' } : {})} {...(readoutIn === 'sheet' ? { 'data-readout': 'sheet' } : {})} {...(testId === undefined ? {} : { 'data-testid': testId })}>
+          <div ref={fullRef} className={styles.fullWrap} data-sky-full="">
+            <div className={[styles.slot, styles.drawing, styles.fullDrawing].join(' ')} data-slot="drawing">
+              {slots.drawing}
+            </div>
+            {given('overlay') && (
+              <div className={styles.overlay} data-slot="overlay">
+                {slots.overlay}
+              </div>
+            )}
+            {given('sheet') && (
+              <div className={styles.sheetSlot} data-slot="sheet">
+                {slots.sheet}
+              </div>
+            )}
+          </div>
+        </div>
+      </SkyViewContext.Provider>
+    );
+  }
 
   return (
     <SkyViewContext.Provider value={context}>

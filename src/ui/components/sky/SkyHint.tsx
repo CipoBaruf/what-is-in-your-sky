@@ -33,7 +33,12 @@ export function useSkyHintShown(view: ChartView): boolean {
   return !seen && view !== 'polar';
 }
 
-export function SkyHint({ view, followKey = null }: SkyHintProps) {
+/**
+ * R148 (FR-FULL-3, D-924): the hint's line and the pointer it is worded for, or `null` where there is none — the
+ * same words `SkyHint` draws, so the compact live page can ask `hintFitsBeside` whether the line shares
+ * `[ controls ]`'s row before it places the hint in its overlay.
+ */
+export function useSkyHintLine(view: ChartView, followKey: string | null = null): { text: string; pointer: 'coarse' | 'fine' } | null {
   const t = useT();
   const shown = useSkyHintShown(view);
   const [pointer] = useState<'coarse' | 'fine'>(() => (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches ? 'coarse' : 'fine'));
@@ -41,9 +46,15 @@ export function SkyHint({ view, followKey = null }: SkyHintProps) {
   const words = t.window.skyHint;
   const clauses = view === 'window' ? [words.drag[pointer], words.zoom[pointer], words.star[pointer]] : [words.drag[pointer]];
   if (pointer === 'coarse' && followKey !== null) clauses.push(words.follow({ key: followKey }));
+  return { text: clauses.join(SEPARATOR), pointer };
+}
+
+export function SkyHint({ view, followKey = null }: SkyHintProps) {
+  const line = useSkyHintLine(view, followKey);
+  if (line === null) return null;
   return (
-    <p className={styles.hint} data-testid="sky-hint" data-pointer={pointer}>
-      {clauses.join(SEPARATOR)}
+    <p className={styles.hint} data-testid="sky-hint" data-pointer={line.pointer}>
+      {line.text}
     </p>
   );
 }

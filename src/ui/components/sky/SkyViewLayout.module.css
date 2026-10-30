@@ -209,6 +209,59 @@
   align-content: start;
 }
 
+/* --- R148 (FR-FULL-1, FR-FULL-6; D-919): the full form, the compact live page's in both shapes. The layout is a
+   block with no height of its own; the drawing stands in a wrapper fixed to the viewport, `100dvh` tall so a phone
+   browser's bars resize the box and never scroll the page, padded by the safe-area insets so the box is the
+   screen inside them. The overlay and the sheet slots stand over the box inside the same insets, at `--z-raised`
+   and `--z-sheet`, and let the pointer through where they hold nothing: what stands in them takes it back
+   (`Live.module.css`, `ControlsSheet.module.css`). The box has no page padding to break out of (`--page-pad-x`),
+   is the wrapper's whole height — the bowl's cut, the square and every floor are the column's, not this
+   form's — and each view fills it by its own rule: the window across its width, the dome and the polar chart at
+   the largest size that fits, centred. --- */
+.layout[data-shape='full'] {
+  display: block;
+  /* A size container is a containing block for a fixed descendant; the wrapper's is the viewport. */
+  container-type: normal;
+}
+
+.fullWrap {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: var(--bg);
+}
+
+.fullDrawing {
+  --page-pad-x: 0px;
+  position: relative;
+  height: 100%;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.overlay,
+.sheetSlot {
+  position: absolute;
+  inset: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  pointer-events: none;
+}
+
+.overlay {
+  z-index: var(--z-raised);
+}
+
+.sheetSlot {
+  z-index: var(--z-sheet);
+}
+
+.layout[data-shape='full'] .fullDrawing :global([data-testid='chart-frame'] > [data-testid='chart-box']) {
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+}
+
 /* --- The rail: the box at the left, the rail at the right, the readout on the box's corner, the hint under the box
    at its width, `action` and `foot` at the rail's foot. The list is the row that gives, scrolling inside. --- */
 .layout[data-shape='rail'] {
