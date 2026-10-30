@@ -13,7 +13,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { CAPTURE_DIR } from './captureSet';
-import { domeDrawn, NINE_DAYS_ON, recomputeEnded, seedStoredRun, stripFilled } from './liveHelpers';
+import { domeDrawn, NINE_DAYS_ON, openSheet, recomputeEnded, seedStoredRun, stripFilled } from './liveHelpers';
 
 test.skip(process.env['CAPTURES'] !== '1', 'captures run with CAPTURES=1 (FR-CI-1, FR-CI-2)');
 test.use({ serviceWorkers: 'block', hasTouch: true });
@@ -65,8 +65,10 @@ for (const locale of ['en', 'es'] as const) {
 test('390 × 844, en: the list open, the hidden toggle in its head', async ({ page }) => {
   await openAtMidday(page, { width: 390, height: 844 }, 'en');
   await landed(page);
-  await page.getByTestId('live-legend-toggle').click();
-  await expect(page.getByTestId('live-list-head')).toBeVisible();
+  // R153 (FR-GYRO-10): the list is the sheet's open satellites now, with no `[ list (n) ]` to press (R150).
+  await openSheet(page);
+  await page.getByTestId('live-satellites').scrollIntoViewIfNeeded();
+  await expect(page.getByTestId('live-satellites-head')).toBeVisible();
   await page.clock.runFor(300);
   await page.screenshot({ path: `${CAPTURE_DIR}/r144-live-390-list-dark-en.png` });
 });

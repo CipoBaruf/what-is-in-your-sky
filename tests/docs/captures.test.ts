@@ -31,10 +31,11 @@ describe('the v1 capture set', () => {
     // themes times the two languages, so a third theme or a third language would have been a set
     // this test called complete while a quarter of it was missing.
     // R73 (FR-FSC-7 as amended): a screen may name fewer themes or languages than there are — `sky-screen-turned`
-    // is a geometry and the same picture in all four — so the count is per screen and the default is still all.
+    // was a geometry and the same picture in all four — so the count is per screen and the default is still all.
+    // R153 (FR-GYRO-9): that screen left the set with the sky screen, so today every screen has the whole matrix.
     // R94 (FR-CAP-1): a screen with `view` has every file twice, the second cropped to the viewport.
     expect(captureSet()).toHaveLength(SCREENS.reduce((total, screen) => total + screen.widths.length * (screen.themes ?? THEMES).length * (screen.locales ?? LOCALES).length * (screen.view ? 2 : 1), 0));
-    expect(SCREENS.filter((screen) => screen.themes ?? screen.locales).map((screen) => screen.name)).toEqual(['sky-screen-turned']);
+    expect(SCREENS.filter((screen) => screen.themes ?? screen.locales).map((screen) => screen.name)).toEqual([]);
     /*
      * Every screen is on the phone and on the wide layout; nothing is desktop-only or phone-only.
      *
@@ -56,8 +57,10 @@ describe('the v1 capture set', () => {
      * R128 (FR-SKY-9, D-829): `stars-passes-screen` is the same layer opened from the page with `[ passes ]` on,
      * so it joins the exception. And the other way round, two desk screens: `live-window-follow` (`f` is a key,
      * FR-SKY-13) and `stars-zoom` (the narrowest field), each at the one width FR-SKY-9 names for it, 1280.
+     *
+     * R153 (FR-GYRO-6, FR-GYRO-9): v2.9 retires the sky screen, and the paragraphs above about it are history; no
+     * screen of that name is left in the set.
      */
-    const UPRIGHT = new Set(['sky-screen-portrait', 'sky-screen-turned']);
     const DESK_ONLY = new Set(['live-window-follow', 'stars-zoom']);
     // R135 (FR-FLOW-14): `live-window` is a desk's screen too — on a phone `live-watching` opens on the window, and
     // a 360 or 390 px `live-window` file was the same picture under a second name. It keeps both desk widths.
@@ -75,6 +78,9 @@ describe('the v1 capture set', () => {
       ['live-sheet', [390, 844]],
       ['live-sheet-list', [390, 844]],
     ]);
+    // R153 (FR-GYRO-9, D-958): the sky screen's exception went with its nine screens; following is FR-GYRO-9's one
+    // size, the phone upright, on the live page and the stars page — a desk has no sensor to follow.
+    const FOLLOWING = new Set(['live-following', 'stars-following']);
     for (const screen of SCREENS) {
       if (PHONE_ONLY.has(screen.name)) {
         expect(screen.widths, screen.name).toEqual([360, 390]);
@@ -85,10 +91,11 @@ describe('the v1 capture set', () => {
         expect(screen.widths, screen.name).toEqual(turned);
         continue;
       }
-      if (screen.name.startsWith('sky-screen-') || screen.name === 'window' || screen.name === 'stars-screen' || screen.name === 'stars-passes-screen') {
-        expect(screen.widths, screen.name).toEqual(UPRIGHT.has(screen.name) ? [360, 390] : [844]);
+      if (FOLLOWING.has(screen.name)) {
+        expect(screen.widths, screen.name).toEqual([390]);
         continue;
       }
+      expect(screen.name, 'the sky screen left the set (FR-GYRO-9)').not.toMatch(/^(window|sky-screen-.*|stars-screen|stars-passes-screen)$/);
       if (DESK_WIDE.has(screen.name)) {
         expect(screen.widths, screen.name).toEqual([1280, 1920]);
         continue;
@@ -130,7 +137,9 @@ describe('the v1 capture set', () => {
     // `live-window` at 360 and 390, which since FR-FLOW-14 is `live-watching`'s picture there.
     // R145 (FR-TONIGHT-1): + 8 `live-tonight` (360, 390).
     // R149 (FR-FULL-9, D-937): + 4 `live-tonight` at 844, + 8 each for `live-sheet` and `live-sheet-list` (390, 844).
-    expect(captureSet()).toHaveLength(414);
+    // R153 (FR-GYRO-9, D-958): − 38 for the sky screen's nine screens (`window`, the six `sky-screen-*`, `stars-screen`,
+    // `stars-passes-screen`), + 4 each for `live-following` and `stars-following` (390).
+    expect(captureSet()).toHaveLength(384);
   });
 
   it('names every file by the one pattern, `-view` included (FR-CAP-1)', () => {
