@@ -455,8 +455,8 @@ As a phone reader on the live page, the stars page or a pass's page, I tap `[ fo
 - AC2: The first tap asks iOS for motion access inside the tap; granted, the view becomes the window and its facing and tilt follow the phone from the next reading; refused, the toggle stays off and one line says how to allow it (FR-GYRO-2, FR-GYRO-3).
 - AC3: While following, a drag hands the sky back to the finger and turns the toggle off; a pinch zooms and keeps following (FR-GYRO-4).
 - AC4: No page opens the sky screen any more: `[ hold up to the sky ]`, the screen and its compass gutter are gone (FR-GYRO-6).
-- AC6: The sheet ends with "Satellites (n)" and the list open under it, with no button to open it; the view row reads `[Window] Polar Dome` on every page (FR-GYRO-10, FR-GYRO-11).
 - AC5: The sheet rises from the bottom upright and sideways, and closes on its `×`, on a downward swipe past `SHEET_SWIPE_CLOSE_PX` or a flick, on `[ controls ]` and on `Esc`; a tap on the sky no longer closes it (FR-GYRO-7, FR-GYRO-8).
+- AC6: The sheet ends with "Satellites (n)" and the list open under it, with no button to open it; the view row reads `[Window] Polar Dome` on every page (FR-GYRO-10, FR-GYRO-11).
 
 **US-43 — The whole screen is sky** *(v2.8)*
 As a phone reader, I open the live sky and the screen is the sky; when I want to move the time, change the view or share, one button opens the controls over it and the same button closes them.
