@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { readFileSync } from 'node:fs';
@@ -11,6 +11,7 @@ import { stubMatchMedia } from '../../../tests/support/matchMedia';
 import type { Observer } from '../../model';
 import { en } from '../../i18n/en';
 import { appStore, type ElementsState } from '../../state';
+import { resetOrientationAccess } from '../components/guide/skychart/window/orientationAccess';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { App } from '../App';
 import { PassDetail, TICK_MS } from './PassDetail';
@@ -110,88 +111,88 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
   });
 
   /**
-   * R66 (FR-FSC-1, FR-FSC-6, FR-FSC-9; US-21 AC13, AC14; V13-9, D-351, D-354):
-   * the pass detail's window is the sky screen, the same layer the live page
-   * opens, over a sheet that is held still under it and gets its place back.
+   * R152 (FR-GYRO-1, FR-GYRO-2, FR-GYRO-6; US-44 AC1, AC2, AC4; D-943..D-945): `[ follow the phone ]` in the
+   * layout's action slot, where `[ hold up to the sky ]` stood (FR-FLOW-8's primary action), on a phone; nothing
+   * without the sensor. Its tap asks inside the gesture and, granted, the guide's chart shows the window following
+   * the phone with the saved view untouched; off, the window stays. R66's sky screen over the sheet is gone.
    */
-  describe('the sky screen (FR-FSC-1, FR-FSC-9, US-21 AC14)', () => {
+  describe('[ follow the phone ] (FR-GYRO-1, FR-GYRO-2, FR-GYRO-6; US-44 AC1, AC2, AC4)', () => {
     /** D-175's presence test: a phone to point. */
-    function withPhone(): void {
-      vi.stubGlobal('DeviceOrientationEvent', function DeviceOrientationEvent() {
-        return undefined;
-      });
+    const withPhone = (requestPermission?: () => Promise<'granted' | 'denied'>): void => {
+      vi.stubGlobal(
+        'DeviceOrientationEvent',
+        Object.assign(
+          function DeviceOrientationEvent() {
+            return undefined;
+          },
+          requestPermission ? { requestPermission } : {},
+        ),
+      );
       Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
-    }
-
-    /**
-     * R136 (FR-FLOW-15, V26-12): the screen opens from `[ hold up to the sky ]` alone, beside the in-box window's
-     * picker; the view option chooses the window (and saves it) and opens nothing. Real turns of the event loop
-     * for the window's chunk: `setTimeout` is not among the faked timers.
-     */
-    const openScreen = async (): Promise<void> => {
-      if (screen.queryByTestId('window-hold-up') === null) fireEvent.click(within(screen.getByRole('group', { name: en.chart.viewGroup })).getByRole('button', { name: en.chart.view.window }));
-      for (let i = 0; i < 500 && screen.queryByTestId('window-hold-up') === null; i += 1) {
-        await act(async () => {
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        });
-      }
-      fireEvent.click(screen.getByTestId('window-hold-up'));
-      act(() => {
-        window.dispatchEvent(Object.assign(new Event('deviceorientation'), { alpha: 270, absolute: true }));
+    };
+    const flush = async (): Promise<void> => {
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
       });
     };
 
+    beforeEach(() => {
+      resetOrientationAccess();
+    });
     afterEach(() => {
       vi.unstubAllGlobals();
       Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+      resetOrientationAccess();
     });
 
-    it('opens from [ hold up to the sky ] over the sheet, holds the sheet still, and the × gives it back', async () => {
+    it('stands in the action slot on a phone, after the hint and before the prose, and is absent without the sensor; no sky screen, no hold-up', () => {
+      appStore.getState().setChartView('dome');
+      const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+      expect(screen.getByTestId('pass-layout').querySelector('[data-slot="action"]')).toBeNull();
+      expect(screen.queryByTestId('follow-toggle')).toBeNull();
+      expect(screen.queryByTestId('window-hold-up')).toBeNull();
+      unmount();
+
       withPhone();
+      render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
+      const layout = screen.getByTestId('pass-layout');
+      const action = layout.querySelector('[data-slot="action"]') as HTMLElement;
+      expect(within(action).getByTestId('follow-toggle')).toHaveTextContent(en.window.followToggle);
+      expect(within(action).getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
+      const slots = [...layout.querySelectorAll('[data-slot]')].map((el) => el.getAttribute('data-slot'));
+      expect(slots.indexOf('action')).toBeGreaterThan(slots.indexOf('drawing'));
+      expect(slots.indexOf('action')).toBeLessThan(slots.indexOf('list'));
+      expect(screen.queryByTestId('window-hold-up')).toBeNull();
+      expect(screen.queryByTestId('sky-screen')).toBeNull();
+    });
+
+    it('asks inside the tap and shows the window following, the saved view untouched; off, the window stays (FR-GYRO-2)', async () => {
+      const requestPermission = vi.fn<() => Promise<'granted' | 'denied'>>().mockResolvedValue('granted');
+      withPhone(requestPermission);
       appStore.getState().setChartView('dome');
       render(<PassDetail pass={pass} observer={observer} onClose={() => undefined} onShowList={() => undefined} />);
-      const sheet = screen.getByRole('dialog', { name: 'ISS (Zarya)' });
-      sheet.scrollTop = 120;
-
-      await openScreen();
-      const layer = screen.getByTestId('sky-screen');
-      // FR-FSC-1: nothing of the sheet is on it, and the sheet under it is inert and held still (FR-FSC-9).
-      expect(within(layer).queryByTestId('guide-sentence')).toBeNull();
-      expect(within(layer).queryByTestId('pass-numbers')).toBeNull();
-      expect(within(layer).queryByRole('group', { name: en.chart.viewGroup })).toBeNull();
-      expect(sheet).toHaveAttribute('inert');
-      expect(sheet.style.overflow).toBe('hidden');
-      // FR-FSC-2: the `×` is the way out, and the sheet comes back where it was.
-      fireEvent.click(within(layer).getByRole('button', { name: en.chart.screenClose }));
-      expect(screen.queryByTestId('sky-screen')).toBeNull();
-      expect(sheet).not.toHaveAttribute('inert');
-      expect(sheet.style.overflow).toBe('');
-      expect(sheet.scrollTop).toBe(120);
-      expect(appStore.getState()).toMatchObject({ chartView: 'window', skyScreen: false });
-    });
-
-    it('closes on Esc without closing the guide, and on leaving the guide (FR-FSC-2)', async () => {
-      withPhone();
-      const onClose = vi.fn();
-      const { unmount } = render(<PassDetail pass={pass} observer={observer} onClose={onClose} onShowList={() => undefined} />);
-      // The app's own listener is a bubble listener on the document (`lib/shortcuts.ts`); this stands in for it.
-      const appListener = vi.fn();
-      document.addEventListener('keydown', appListener);
-      await openScreen();
-      expect(screen.getByTestId('sky-screen')).toBeInTheDocument();
-      fireEvent.keyDown(document, { key: 'Escape' });
-      expect(screen.queryByTestId('sky-screen')).toBeNull();
-      // FR-FSC-2: the press closed the screen and went no further, so nothing closed the guide with it.
-      expect(appListener).not.toHaveBeenCalled();
-      expect(onClose).not.toHaveBeenCalled();
-      // With the screen gone the next press is the app's again.
-      fireEvent.keyDown(document, { key: 'Escape' });
-      expect(appListener).toHaveBeenCalledTimes(1);
-      document.removeEventListener('keydown', appListener);
-
-      await openScreen();
-      unmount();
-      expect(appStore.getState().skyScreen).toBe(false);
+      const figure = screen.getByRole('figure', { name: 'ISS (Zarya)' });
+      expect(figure).toHaveAttribute('data-view', 'dome');
+      fireEvent.click(screen.getByTestId('follow-toggle'));
+      expect(requestPermission).toHaveBeenCalledTimes(1);
+      await flush();
+      expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'true');
+      expect(figure).toHaveAttribute('data-view', 'window');
+      expect(figure).toHaveAttribute('data-follow', 'true');
+      expect(appStore.getState().chartView).toBe('dome');
+      await waitFor(() => {
+        expect(figure.querySelector('[data-follow="true"] [data-drawing="window"]')).not.toBeNull();
+      });
+      // FR-GYRO-5: nothing over the drawing — no readout while following.
+      expect(screen.queryByTestId('window-readout')).toBeNull();
+      fireEvent.click(screen.getByTestId('follow-toggle'));
+      expect(screen.getByTestId('follow-toggle')).toHaveAttribute('aria-pressed', 'false');
+      expect(figure).toHaveAttribute('data-view', 'window');
+      expect(figure).not.toHaveAttribute('data-follow');
+      expect(appStore.getState().chartView).toBe('dome');
+      expect(JSON.parse(window.localStorage.getItem('wiys:prefs:v1') ?? '{}')).toMatchObject({ chartView: 'dome' });
     });
   });
 

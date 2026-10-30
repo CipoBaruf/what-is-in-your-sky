@@ -57,16 +57,6 @@ describe('<ChartFrame> bottomOverlay and onBoxSpace (FR-WATCH-6, D-449)', () => 
     expect(within(rtl.getByTestId('chart-box')).getByTestId('chart-bottom-overlay')).toHaveTextContent('from the page');
   });
 
-  it('does not place a bar on a screen, whose bottom edge is the gutter', () => {
-    render(
-      <ChartFrame screen fill bottomOverlay={<p>bar</p>} gutter={<p>gutter</p>}>
-        <div data-drawing="window" />
-      </ChartFrame>,
-    );
-    expect(rtl.queryByTestId('chart-bottom-overlay')).toBeNull();
-    expect(rtl.queryByText('bar')).toBeNull();
-  });
-
   it('reports the height the box has with nothing under it — the frame less its controls row and the gap — once per change', () => {
     const rects = new Map<string, DOMRect>();
     const media = stubMatchMedia(1200, 450);

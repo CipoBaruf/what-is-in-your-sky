@@ -65,16 +65,6 @@ describe('<Legend>: the named times (FR-FLOW-13, D-852)', () => {
     );
     expect(screen.getByRole('button', { name: /^B\s*SAT 1\s*soon\s*rise 09:58:24\s*·\s*end 09:59:02 UTC$/ })).toBeInTheDocument();
   });
-
-  it('leaves the sky screen’s one-line strip its bare figures, the words said to a screen reader alone', () => {
-    render(
-      <I18nProvider locale="es">
-        <Legend rows={[row(0)]} bodies={[]} timeZone={null} highlightedPassId={null} onActivate={noop} onFocusRow={noop} screen />
-      </I18nProvider>,
-    );
-    const button = screen.getByRole('button', { name: /^A\s*SAT 0\s*sale\s*09:48:24 UTC\s*termina\s*09:49:02 UTC\s*pronto$/ });
-    expect(button.querySelector('[class*="name"]')).toHaveTextContent(/^SAT 0$/);
-  });
 });
 
 describe('<Legend> as the short wide inventory (F-81)', () => {

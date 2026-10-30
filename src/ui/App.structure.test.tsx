@@ -318,17 +318,4 @@ describe('history (FR-ROUTE-1..3, F-91)', () => {
     render(<App />);
     expect(screen.getByTestId('share-fallback')).toHaveTextContent(/ISS \(Zarya\)/);
   });
-
-  it('closes the sky screen when the route changes under it (FR-ROUTE-2)', async () => {
-    withPasses();
-    render(<App />);
-    go('#live');
-    await screen.findByTestId('live-page');
-    act(() => {
-      appStore.getState().openSkyScreen();
-    });
-    expect(appStore.getState().skyScreen).toBe(true);
-    go('');
-    expect(appStore.getState().skyScreen).toBe(false);
-  });
 });

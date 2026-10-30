@@ -200,20 +200,25 @@ export function SkyChart(props: SkyChartProps) {
   const moonPhase = props.moonPhase ?? false;
   // D-876 (R136): the saved view, else the window on compact and the dome on wide (`defaultChartView`).
   const pageView: ChartView = defaultChartView(mode, chartView);
-  // FR-GYRO-2 (D-941): following, the view is the window and the preference is neither read for it nor written.
-  const view = follow ? WINDOW_VIEW : viewFor(pageView);
+  /*
+   * FR-GYRO-2 (D-941, D-957): following, the view is the window and the preference is neither read for it nor
+   * written. Once following has been on, the window stays the view after it ends — "the view becomes the window",
+   * and a drag that ends following hands the finger the window it is on, not the saved dome (FR-GYRO-4) — until
+   * the reader chooses a view; the choice is this chart's own state, so a reload opens on the saved view.
+   */
+  const [becameWindow, setBecameWindow] = useState(follow);
+  if (follow && !becameWindow) setBecameWindow(true);
+  const view = follow || becameWindow ? WINDOW_VIEW : viewFor(pageView);
   /*
    * FR-FLOW-14 (V26-11, D-876): every option is a view and is saved, the window too, on compact as on wide; the
    * window is laid out in the box under the hand. Choosing the window asks for no permission — the follow toggle
-   * does (FR-GYRO-2); choosing any view clears the note the last refusal left.
+   * does (FR-GYRO-2); choosing any view clears the note the last refusal left, and D-957's hold on the window.
    */
-  const choose = useCallback(
-    (id: ChartView) => {
-      viewFor(id).choose?.();
-      setChartView(id);
-    },
-    [setChartView],
-  );
+  const choose = (id: ChartView): void => {
+    viewFor(id).choose?.();
+    setBecameWindow(false);
+    setChartView(id);
+  };
   // R58 review (D-277) → R66 (D-352): a window that cannot run here leaves the note beside this control; nothing
   // is written, because the reader chose neither the failure nor a view to fall back to.
   const unavailable = useCallback(
