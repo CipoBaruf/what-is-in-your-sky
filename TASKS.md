@@ -4171,7 +4171,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.50 who
     - The Done note gives every card line in both languages with its cell count.
     - `npm test`, lint, typecheck and `npx vitest run tests/docs` green.
 
-- [ ] **R147 — The sheet and the head: the constants, `ControlsSheet`, `SkyHead`, `hintFitsBeside`, the sheet's strings, their tests**
+- [x] **R147 — The sheet and the head: the constants, `ControlsSheet`, `SkyHead`, `hintFitsBeside`, the sheet's strings, their tests**
   - **Lane:** ui
   - **Model:** opus
   - **Review:** opus
@@ -4193,6 +4193,7 @@ What every session reads, named in each task as "the phase set": SPEC §4.50 who
     - `ControlsSheet.test.tsx`, `SkyHead.test.tsx`, `layout.test.ts` and `sheetRows.test.ts` pass.
     - The Done note gives the sheet's two forms on the dev page or a test harness at 390 × 844 and 844 × 390, the focus moves, and the head's longest form in both languages.
     - `npm test`, lint, typecheck and `npx vitest run tests/docs` green.
+  - *Done:* as written, plus D-932 and D-933. **The sheet's two forms** (test harness, jsdom with `matchMedia` stubbed): at 390 × 844 `data-form="bottom"`, fixed at the bottom at `--z-sheet`, the full width with a hairline top edge, `max-block-size: calc(--sheet-max-share × 100dvh)` with `--sheet-max-share` 0.7 written by the component, the body scrolling under a fixed head. At 844 × 390 `data-form="side"`, fixed at the right, `inline-size: calc(--sheet-side-share × 100vw)` (0.45, `1 − LANDSCAPE_DRAWING_MIN_SHARE`) and `100dvh` tall, with a hairline left edge. A turn between the two keeps the sheet open. The slide is 200 ms of `transform`, none with `data-motion="reduce"`. **Focus:** opening moves it to the body's first control, or to `[ close ]` where the body has none. `[ close ]`, `[ controls ]` and the page's own close all give it back to `[ controls ]`, including when the click did not focus the button (Safari). There is no trap, no backdrop and no dialog, and nothing is written to the hash or the history. **The head's longest form:** `[ ← ] 21:47 tonight · in 13 h 55 min` is 34.5 cells. `[ ← ] 21:47 esta noche · en 13 h 55 min` is 37.13 cells, over 36, so its chip ends in the ellipsis (D-933, which proposes a spec change to the owner). `[ controls ]` is 12 cells and `[ controles ]` 13. The sheet's head row with a ten-letter place is 33 cells in both languages: the fixed part is 22, so a place has 13 cells at 390 px. `hintFitsBeside`: the dome's drag clause fits beside the button except the Spanish mouse line (36.75 cells); the window's three clauses never fit. The rows are in `tests/styles/sheetRows.test.ts`, not `controlRows.test.ts`. knip reports nothing: the new modules are reached from their tests, so they needed no ignore entry, as R142's `TimeTrack` did not before R144. Tests: the touched files are 15 files and 291 tests. `npm test` is 3024 passed, 7 skipped and 1 failed: `tests/docs/public.test.ts`'s `npm ls`, an environment failure because the worktree has no `node_modules` of its own. The browser project ran only with Playwright's browsers aliased (1234 → 1243). Lint, typecheck and knip pass, and `npx vitest run tests/docs` has 213 passing plus the same one failure.
 
 ### Wave 2
 
