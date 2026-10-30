@@ -44,6 +44,8 @@
 | Scope (v2.7) | Spec Phase 2p "tonight on the phone": **R141–R145** in the `## v2.7 tasks` block below, five tasks in three waves of three, one and one, lanes `data`, `chart`, `ui`, `live` and `docs`, `fable` on R144 and `opus` on the rest, every one reviewed on `opus` at 500 turns with no fallback and `Gate: auto`; no tag |
 | Inputs (v2.8) | `SPEC.md` v2.8, `PLAN.md` v0.16 (Decision Log V28-1..V28-8 and Decisions D-918..D-929, with §16.27 treated as fixed) |
 | Scope (v2.8) | Spec Phase 2q "the full sky": **R146–R149** in the `## v2.8 tasks` block below, four tasks in three waves of two, one and one, lanes `data`, `ui`, `live` and `docs`, `fable` on R148 and `opus` on the rest, every one reviewed on `opus` at 500 turns with no fallback and `Gate: auto`; no tag |
+| Inputs (v2.9) | `SPEC.md` v2.9, `PLAN.md` v0.17 (Decision Log V29-1..V29-9 and Decisions D-941..D-952, with §16.28 treated as fixed) |
+| Scope (v2.9) | Spec Phase 2r "follow the phone": **R150–R153** in the `## v2.9 tasks` block below, four tasks in three waves of two, one and one, lanes `live`, `window` and `docs`, `fable` on R152 and `opus` on the rest, every one reviewed on `opus` at 500 turns with no fallback and `Gate: auto`; no tag |
 | Supersedes | v0.1 (T1–T22). Mapping from old task IDs is given per task under **Built from**. |
 
 ## Conventions
@@ -4269,3 +4271,113 @@ What every session reads, named in each task as "the phase set": SPEC §4.50 who
 | FR-FULL-10 | R146 (the decision, the card), R148 (the effect, `Esc`) |
 
 Waves (for the sanity check): **wave 1** R146 (data) + R147 (ui) — **wave 2** R148 (live) — **wave 3** R149 (docs). No two tasks of a wave name the same file: R146 owns `live.ts`, `controlRows.test.ts` and `tonightJump.ts`; R147 owns `sheet.ts`, the two registration files, `lib/layout.ts` and `sheetRows.test.ts`.
+
+## v2.9 tasks
+
+Draft, cut 2026-10-30 from `SPEC.md` v2.9 and `PLAN.md` v0.17. Spec Phase 2r, "follow the phone": where the phone has a motion sensor, `[ follow the phone ]` turns the page's own sky with the phone on the live page, the stars page and the pass detail, and the sky screen it replaces is retired with its compass gutter; the controls sheet is a bottom sheet in both shapes, closes with a `×` or a swipe down, and ends with the satellites list open; the view row lists the window first (FR-GYRO-1..11, US-44, V29-1..V29-9). The phase ends with `2.9.0` on `main`; the tag and the deploy are the owner's.
+
+Delivery is PLAN §16 with §16.28: four tasks in three waves of two, one and one, `Model: fable` on R152 and `opus` on the rest, every task `Review: opus`, `Turns: 500`, `Fallback: off`, `Gate: auto`.
+
+Decision block (§16.2), reserved in PLAN §16.28: **R150 D-953..D-954, R151 D-955..D-956, R152 D-957..D-959, R153 D-960..D-961**. D-941..D-952 are the plan's.
+
+What every session reads, named in each task as "the phase set": SPEC §4.51 whole (FR-GYRO-1..11 and its constants table), US-44, §9 Phase 2r, §12 V29-1..V29-9; SPEC §4.50 (as amended) and §4.23 (withdrawn); PLAN §2.44, §2.45, §9.11 and §16.28.
+
+### Wave 1
+
+- [ ] **R150 — The sheet: a bottom sheet both ways, the `×` and the swipe, the tap on the sky withdrawn, the satellites open at its end, the window first**
+  - **Lane:** live
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** none
+  - **Reads:** the phase set (above); PLAN D-921..D-923, D-928, D-932, D-935, D-936, D-947..D-951; `components/live/ControlsSheet.{tsx,module.css,test.tsx}`; `components/sky/SkyViewLayout.{tsx,module.css,test.tsx}` (the capture-phase tap listener); `screens/{Live.tsx,Live.test.tsx,liveRows.ts,liveRows.test.ts}`; the legend panel and its hidden toggle in `Live.tsx`; `skychart/SkyChart.tsx` (`SKY_CHART_VIEWS`); `lib/layout.ts`; `src/i18n/{en,es}/{sheet,live}.ts`; `tests/styles/controlRows.test.ts`; `tests/e2e/{live-full,live-states,targets,rhythm,liveHelpers}.ts`.
+  - **Goal:** on a phone the controls rise from the bottom upright and sideways, close with a `×` or a swipe down, and end with "Satellites (n)" and the list open; a tap on the sky with the sheet open reaches the sky; every view row reads `[Window] Polar Dome`.
+  - **Satisfies:** FR-GYRO-7, FR-GYRO-8, FR-GYRO-10, FR-GYRO-11; FR-FULL-4, FR-FULL-5, FR-TONIGHT-6, FR-FLOW-4 as amended; US-44 AC5, AC6.
+  - **Scope (PLAN D-947..D-951):** the side form and `SHEET_SIDE_SHARE` removed; the `×` with its name; the swipe on the head row with `SHEET_SWIPE_CLOSE_PX` and `SHEET_FLICK_PX_PER_MS`; D-922's listener and `SHEET_TAP_SLOP_PX` removed; `[ list (n) ]` replaced by the open satellites at the sheet's end in FR-GYRO-10's order (`liveRows`' `satellites`); `SKY_CHART_VIEWS` reordered; tests per §9.11's third and fourth bullets; `live-full.spec.ts` at 844 × 390 as a bottom sheet, the swipe by touch drags.
+  - **Touches outside the lane:** `skychart/SkyChart.tsx` (the one constant), `lib/layout.ts`, `src/i18n/{en,es}/{sheet,live}.ts`, the e2e specs above.
+  - **Out of scope:** the follow toggle (R151, R152); the sky screen's removal (R152); the capture set (R153).
+  - **Done when:**
+    - `ControlsSheet.test.tsx`, `Live.test.tsx`, `liveRows.test.ts`, `SkyViewLayout.test.tsx`, `controlRows.test.ts` pass.
+    - `live-full`, `live-states`, `targets`, `rhythm` and `shapes` green at the compact sizes in both languages.
+    - The Done note gives the swipe's three cases, the sheet at 844 × 390, and the satellites' heading with its count.
+    - `npm test`, lint, typecheck, `npx vitest run tests/docs` and the named e2e specs green.
+
+- [ ] **R151 — The window follows on the page: `follow`, `onFollowEnd`, `poseAsHand`, `FollowToggle`, the specs' permission stub**
+  - **Lane:** window
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** none
+  - **Reads:** the phase set (above); SPEC FR-WIN-3, FR-WIN-4, FR-FOL-5, FR-FSC-10, FR-SKY-14; PLAN D-175, D-188, D-240, D-323, D-424..D-431, D-798, D-820, D-941..D-943, D-946; `skychart/window/{SkyWindow.tsx,useViewRotation.ts,useDeviceOrientation.ts,orientationAccess.ts,screenTurn.ts}` and their tests; `components/screen/screenTurn.tsx` (the context the window reads today); `components/live/compassHeading.ts`; `docs/DESIGN.md` (`OptionToggle`).
+  - **Goal:** the window can follow the phone on a page with nothing drawn over it, hands the camera back to the finger on a drag, and one toggle asks for the permission and says so when refused — each working on its own (R152 mounts them).
+  - **Satisfies:** FR-GYRO-2, FR-GYRO-3, FR-GYRO-4, FR-GYRO-5 (window level), FR-GYRO-1 (the component), FR-GYRO-9 (the stub and the toggle's strings).
+  - **Scope (PLAN D-941..D-943, D-946):** `follow` on `SkyWindow` with the sensor camera, the field from the hand's, FR-FSC-10's turn inside the window's own box and only the ground notes in the overlay; `onFollowEnd(pose)` on drag and key, not pinch; `poseAsHand()`; `components/sky/FollowToggle.{tsx,module.css,test.tsx}` with the refusal line; the strings in `window.ts`; `tests/e2e/orientation.ts`'s `stubOrientation`. The `screen` prop and the screen's code stay for R152 to remove.
+  - **Touches outside the lane:** `components/sky/FollowToggle.*`, `tests/e2e/orientation.ts`, `src/i18n/{en,es}/window.ts`.
+  - **Out of scope:** mounting on any page, removing the screen (R152); `lib/layout.ts` and the sheet (R150).
+  - **Done when:**
+    - `SkyWindow.follow.test.tsx`, `FollowToggle.test.tsx` and the window's existing tests pass.
+    - The Done note gives the follow states it tested and the toggle's two lines in both languages.
+    - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run check:dead` green.
+
+### Wave 2
+
+- [ ] **R152 — The pages follow and the screen goes: the toggle on the live page, the stars page and the pass detail; the sky screen, its hook, the gutter, `[ hold up to the sky ]` and their strings removed; `follow.spec.ts`**
+  - **Lane:** live
+  - **Model:** fable
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R150, R151
+  - **Reads:** the phase set (above); SPEC FR-FLOW-8, FR-STAR-5 (withdrawn), FR-GUT-* (withdrawn); PLAN D-321, D-350, D-351, D-877, D-927, D-944, D-945, D-946; `screens/{Live,Stars,PassDetail}.*`; `skychart/{SkyChart,ChartFrame}.tsx`; `components/screen/**`; `skychart/window/{CompassGutter.tsx,gutter.ts}`; `Shell.tsx`; `state/**` (`skyScreen`); `lib/layout.ts` (gutter constants); `src/ui/styles/tokens.css` (`--gutter`) and `tests/styles/gutter.test.ts`; `tests/e2e/{sky-screen,stars-screen,first-step-screen,targets,live}.spec.ts`; R150's and R151's changes.
+  - **Goal:** on a phone, `[ follow the phone ]` stands in the live page's sheet after the view row and on the stars page and the pass detail where `[ hold up to the sky ]` stood; following turns the page's own window with the phone; nothing opens the sky screen, which is gone with its gutter.
+  - **Satisfies:** FR-GYRO-1, FR-GYRO-5, FR-GYRO-6; US-44 AC1–AC4.
+  - **Scope (PLAN D-944, D-945):** the toggle mounted on the three pages (and wide's `View` group); each page's follow state; the screen and everything only it used removed, `Esc`'s steps three; `docs/DESIGN.md` regenerated; the screen's e2e specs rewritten as `tests/e2e/follow.spec.ts` with `stubOrientation` or removed; `targets.spec.ts` without the screen's case.
+  - **Touches outside the lane:** the stars page, the pass detail, `skychart/**`, `state/**`, `Shell.tsx`, `lib/layout.ts`, `tokens.css`, `docs/DESIGN.md`, `src/i18n/**`, the e2e specs above.
+  - **Out of scope:** the capture set (R153).
+  - **Done when:**
+    - `follow.spec.ts` green at 390 × 844 and 844 × 390 in both languages, on the live page, the stars page and the pass detail.
+    - No `sky-screen*`, `window-hold-up` or gutter test id rendered; `npm run check:dead` green.
+    - `npm test`, lint, typecheck, `npx vitest run tests/docs` and `npm run e2e` (in groups) green.
+
+### Wave 3
+
+- [ ] **R153 — The capture set and 2.9.0: the moved and removed captures, the following captures, the budget, `package.json` 2.9.0, `docs/RELEASE.md` §22, no tag**
+  - **Lane:** docs
+  - **Model:** opus
+  - **Review:** opus
+  - **Turns:** 500
+  - **Fallback:** off
+  - **Gate:** auto
+  - **Depends on:** R152
+  - **Reads:** the phase set (above); SPEC FR-CAP-5; PLAN D-178, D-937, D-938, D-940, D-946; `docs/RELEASE.md` §21; `tests/e2e/{captureSet.ts,v1-captures.spec.ts}`; `scripts/bundle-budget.ts`.
+  - **Goal:** the capture set shows the follow toggle, the bottom sheet with its `×` and open satellites and the window-first view row, has no sky screen, and `main` reads 2.9.0 ready for the owner's tag.
+  - **Satisfies:** FR-GYRO-9; §9 Phase 2r's release item.
+  - **Scope:** re-shoot with `stubOrientation` where a capture follows; remove the sky screen's files from the set; add the live page and the stars page following at 390 × 844; list the moves against FR-GYRO-9; the budget (no row larger than 2.8.0's); `package.json` 2.9.0; RELEASE §22 with the owner's phone check.
+  - **Out of scope:** any behaviour change; the tag and the deploy.
+  - **Done when:**
+    - FR-CAP-5's diff against 2.8.0 lists only FR-GYRO-9's named moves and removals.
+    - `npm run bundle:budget` and `npm run check:dead` green.
+    - The Done note lists the changed, added and removed files, the budget rows against 2.8.0, and "tag the squash merge of this PR".
+
+### Requirement coverage (v2.9)
+
+| Requirement | Task |
+|---|---|
+| FR-GYRO-1 | R151 (the component), R152 (mounted) |
+| FR-GYRO-2 | R151 |
+| FR-GYRO-3 | R151 |
+| FR-GYRO-4 | R151 |
+| FR-GYRO-5 | R151, R152 |
+| FR-GYRO-6 | R152 |
+| FR-GYRO-7 | R150 |
+| FR-GYRO-8 | R150 |
+| FR-GYRO-9 | R151 (stub, strings), R153 |
+| FR-GYRO-10 | R150 |
+| FR-GYRO-11 | R150 |
+
+Waves (for the sanity check): **wave 1** R150 (live) + R151 (window) — **wave 2** R152 (live) — **wave 3** R153 (docs). R150 and R151 share no file.
