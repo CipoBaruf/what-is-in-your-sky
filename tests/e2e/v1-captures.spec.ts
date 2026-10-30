@@ -54,7 +54,7 @@ import { WINDOW_FOV_MIN_DEG } from '../../src/ui/components/guide/skychart/windo
 import { CAPTURE_DIR, captureSet, SCREENS, VIEWPORTS, type CaptureLocale, type CaptureTheme, type CaptureWidth } from './captureSet';
 // P4 (D-653): the night, the seed and the two waits are `captureSeeds.ts`'s, shared with the recording run.
 import { CLOCK, DAY_MS, SHOWN_PASS, SHOWN_PASS_START, guide, listSettled as settledList, readinessShown, OPEN_GUIDE, pinnedAt, seedPage, SHOWN, TICK_MS, type SeedPrefs } from './captureSeeds';
-import { domeDrawn, enterScrubbing, heading, openLegend, openSettings, openSkyScreen, shownOnTrack, stripFilled, stubCompass, stubNetwork } from './liveHelpers';
+import { domeDrawn, enterScrubbing, heading, openLegend, openSettings, openSkyScreen, railToTop, shownOnTrack, stripFilled, stubCompass, stubNetwork } from './liveHelpers';
 // Bariloche is the place picker's observer for the geocoder's first answer, at its 839 m (FR-SHOW-9), which is
 // what the stored Bariloche run and `SHOWN_PASS`'s id were computed at. Neuquén is only the second row of the
 // saved places.
@@ -318,20 +318,13 @@ async function liveDrawn(page: Page): Promise<'dome' | 'window'> {
 }
 
 /**
- * The live page, settled, at `SHOWN` (R36; lifted out of the `live` route by
- * R53 so the `legend` screen photographs the same page rather than a second
- * route to it).
- *
- * The one screen reached through the home page rather than through a URL. A
- * `#live?…t=` link (FR-LIVE-9) opens the page in one step, but it opens it on a
- * search that has only just started, and the strip's "visible" count then keeps
- * climbing as the passes stream in — two runs of the same capture disagreed
- * about how many satellites were up. Going through the home page and waiting
- * for the list to settle first means the live page inherits a finished search,
- * and the count is the count. The clock is at the shown instant from the start,
- * so the page opens on real time and needs no scrubbing.
+ * R145 (FR-TONIGHT-1, D-898): the live page opened through the home on a finished search (`liveAt`'s note), drawn,
+ * and on compact past the opening jump's decision. The passes are in the store before the hash changes, so the
+ * page decides on its first render with them; the track's pass ticks are drawn from the same passes, so once they
+ * are attached and the clock has ticked, the decision has been taken — jumped or not — and nothing after this
+ * meets it half-way.
  */
-async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, shown: number = SHOWN, prefs: Partial<SeedPrefs> = {}): Promise<void> {
+async function liveOpened(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, shown: number, prefs: Partial<SeedPrefs> = {}): Promise<'dome' | 'window'> {
   await open(page, width, { locale, theme, observer: BARILOCHE, ...prefs }, shown);
   const starsFetched = starsChunkWatch(page);
   await page.goto('/');
@@ -346,11 +339,35 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
   // reveal is one of the timers the paused clock is holding until `liveDrawn` ticks it.
   const view = await liveDrawn(page);
   await expect(page.getByTestId('live-place')).toHaveText(BARILOCHE.label);
+  if ((await page.getByTestId('time-track').count()) > 0) {
+    await expect(page.getByTestId('time-track').locator('[data-pass-tick]').first()).toBeAttached({ timeout: 30_000 });
+    await page.clock.runFor(200);
+  }
+  return view;
+}
+
+/**
+ * The live page, settled, at `SHOWN` (R36; lifted out of the `live` route by
+ * R53 so the `legend` screen photographs the same page rather than a second
+ * route to it).
+ *
+ * The one screen reached through the home page rather than through a URL. A
+ * `#live?…t=` link (FR-LIVE-9) opens the page in one step, but it opens it on a
+ * search that has only just started, and the strip's "visible" count then keeps
+ * climbing as the passes stream in — two runs of the same capture disagreed
+ * about how many satellites were up. Going through the home page and waiting
+ * for the list to settle first means the live page inherits a finished search,
+ * and the count is the count. The clock is at the shown instant from the start,
+ * so the page opens on real time and needs no scrubbing.
+ */
+async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale, shown: number = SHOWN, prefs: Partial<SeedPrefs> = {}): Promise<void> {
+  const view = await liveOpened(page, width, theme, locale, shown, prefs);
   /*
    * R145 (FR-TONIGHT-1, D-898): with nothing up at `shown` the compact page jumps to the next pass and plays
    * (`CHIP_SHOWN`, six minutes before it). Every capture here is of its own instant, so the reader's `[ now ]`
    * brings the page back and keeps it there for the visit — which is how the sky screen's chip is still the
-   * one 2.6.1 drew.
+   * one 2.6.1 drew. `stayOnNow` is in memory only, so it cannot be seeded before the page opens: `liveOpened`
+   * waits for the jump's decision instead, and the tap comes after it, never in a race with it.
    */
   const chip = page.getByTestId('shown-chip');
   if ((await chip.count()) > 0 && (await chip.getAttribute('data-kind')) !== 'now') {
@@ -372,6 +389,35 @@ async function liveAt(page: Page, width: CaptureWidth, theme: CaptureTheme, loca
   const shownClock = (await page.getByTestId('shown-time').count()) > 0 ? page.getByTestId('shown-time') : page.getByTestId('live-clock');
   // F-99: to the second, so a clock left on its own interval's phase fails here rather than in a diff of two runs.
   await expect(shownClock).toContainText(localHhmmss(shown));
+  await page.mouse.move(0, 0);
+}
+
+/** R145 (FR-TONIGHT-1, FR-TONIGHT-7): the chip of the jumped page, in both languages (`i18n/{en,es}/live.ts`'s `chip`). */
+const TONIGHT_CHIP = { en: /^tonight · in \d+ h \d+ min$/, es: /^esta noche · en \d+ h \d+ min$/ } as const;
+
+/**
+ * R145 (FR-TONIGHT-1, FR-TONIGHT-2, US-42 AC1): v2.7's opening state — the phone opens `#live` at `DAYLIGHT`, with
+ * nothing up and the evening's first pass ahead, and the page has jumped to that pass's rise less the lead. The
+ * reader asked for less motion (`prefers-reduced-motion: reduce`), so it landed paused and the picture is one
+ * instant, not a frame of the play: the shown time, the chip `tonight · in …`, the track's thumb on the pass.
+ */
+async function liveJumped(page: Page, width: CaptureWidth, theme: CaptureTheme, locale: CaptureLocale): Promise<void> {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const view = await liveOpened(page, width, theme, locale, DAYLIGHT);
+  const chip = page.getByTestId('shown-chip');
+  await expect(chip).toHaveAttribute('data-kind', 'ahead');
+  await expect(chip).toHaveText(TONIGHT_CHIP[locale]);
+  // Paused: the play tap offers `▶`, not `❚❚`.
+  await expect(page.getByTestId('live-play')).toHaveAttribute('data-playing', 'false');
+  await stripFilled(page);
+  if (view === 'window') await expect(page.getByTestId('sky-chart').locator('[data-drawing="window"] [data-pass-id]').first()).toBeAttached({ timeout: 30_000 });
+  await page.clock.runFor(1000);
+  // F-48: the real clock back on `DAYLIGHT`, so the chip's offset is the same minute in every run; the held instant does not move.
+  const held = await shownOnTrack(page);
+  await pinnedAt(page, DAYLIGHT);
+  expect(await shownOnTrack(page)).toBe(held);
+  await expect(chip).toHaveText(TONIGHT_CHIP[locale]);
+  await blurFocus(page);
   await page.mouse.move(0, 0);
 }
 
@@ -909,6 +955,11 @@ const REACH: Record<string, Reach> = {
     await liveAt(page, width, theme, locale);
   },
 
+  /** R145 (FR-TONIGHT-1, FR-TONIGHT-2): the phone's live page as it opens in the day, jumped to tonight's first pass and paused. */
+  async 'live-tonight'(page, width, theme, locale) {
+    await liveJumped(page, width, theme, locale);
+  },
+
   /**
    * `live-scrubbing` is the same page one `[ scrub ]` on. The instant is held at
    * `SHOWN`, which is where the page already was, so the pair of pictures
@@ -921,16 +972,20 @@ const REACH: Record<string, Reach> = {
     // The stripe's chunk, its 24 h overview and the playback row all draw on timers the paused clock is holding.
     await page.clock.runFor(1000);
     /*
-     * R145 (FR-TONIGHT-6): on compact the page has one inventory in both states, so the scrubbing picture is the
-     * watching one held — the mark says `held`, the chip the offset — at the track's start, which is real time.
+     * R145 (FR-TONIGHT-4, FR-TONIGHT-6): on compact the page has one inventory in both states, so the scrubbing
+     * picture is the watching one held and moved off real time by the reader's `next` — the first visible pass
+     * rising after `SHOWN`, one minute before it, held: the mark says `held`, the chip the offset, the thumb on
+     * the pass's tick. The held instant is the pass's, not the clock's, so it is the same in every run.
      */
     if ((await page.getByTestId('live-track').count()) > 0) {
       for (const row of ['live-headline', 'live-context', 'live-track', 'live-taps']) await expect(page.getByTestId(row)).toBeVisible();
-      expect(Math.abs((await shownOnTrack(page)) - SHOWN)).toBeLessThanOrEqual(TICK_MS);
-      // The key on the track scrolled the landscape rail down to it; the rail is read from the top, as D-864 reads wide's.
-      await page.evaluate(() => {
-        for (const el of document.querySelectorAll<HTMLElement>('[data-testid="live-page"], [data-testid="live-page"] *')) if (el.scrollTop > 0) el.scrollTop = 0;
-      });
+      await page.getByTestId('live-tap-next').click();
+      await expect(page.getByTestId('shown-chip')).toHaveAttribute('data-kind', 'ahead');
+      expect(await shownOnTrack(page)).toBeGreaterThan(SHOWN + TICK_MS);
+      await page.clock.runFor(1000);
+      // The tap is below the landscape rail's fold, so the click scrolled it as `enterScrubbing`'s key did.
+      await railToTop(page);
+      await blurFocus(page);
       await page.mouse.move(0, 0);
       return;
     }

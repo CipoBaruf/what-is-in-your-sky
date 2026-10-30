@@ -45,8 +45,6 @@ export const live = {
     open: 'Live sky',
     /** FR-COMP-1 (R52): the same control on the compact header's 36-cell row, lower case beside `[ settings ]`. */
     openShort: 'live',
-    /** The Now panel's link to the same page. */
-    openFromNow: 'Watch the sky live',
     loading: 'Loading the live sky…',
     /**
      * R89 (FR-LIVE-1 as amended v2.1, FR-FIRST-1, F-75, F-92): the three states before the page can draw, told
@@ -183,7 +181,6 @@ export const live = {
      * Betelgeuse, in Orion"; with no landmark star "passes through Orion". The degrees come formatted, the star's
      * and the constellation's names in the active language (D-832).
      */
-    landmarkWord,
     landmarkLine: (p: { degrees: string; word: LandmarkWord; star: string; constellation: string }) => `passes ${p.degrees} ${landmarkWord[p.word]} ${p.star}, in ${p.constellation}`,
     landmarkThrough: (p: { constellation: string }) => `passes through ${p.constellation}`,
     /**

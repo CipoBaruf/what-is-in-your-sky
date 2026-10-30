@@ -449,14 +449,6 @@ export const ui = {
     /** FR-NIGHT-2: in place of the cloud word for the minute an ended pass stays a card. */
     ended: 'ended',
     openGuide: 'Open guide →',
-    fields: {
-      start: 'Start',
-      maxElevation: 'Max elevation',
-      peakDirection: 'Peak direction',
-      duration: 'Duration',
-      magnitude: 'Magnitude',
-      clouds: 'Clouds',
-    },
     /** "2026-09-11 21:14:32": a date and a clock, in that order in English. */
     stamp: (p: { date: string; time: string }) => `${p.date} ${p.time}`,
     /** "N (46°)" on the card; the abbreviation and the degrees are the same in both languages, their order is not. */

@@ -70,7 +70,7 @@ export function ShownTime(props: ShownTimeProps) {
 /**
  * R143 (FR-TONIGHT-7): the context line under the headline, one line at `--small`. The parts are `contextLine`'s;
  * a pass's name gives way first (it ellipsises) so what it does next always shows. An abbreviated cloud word
- * (`S/d`) is drawn and its whole form said, as the conditions line does (FR-COMP-7).
+ * (`S/d`) is drawn and its whole form said (FR-COMP-7).
  */
 export interface ContextLineProps {
   parts: ContextParts;

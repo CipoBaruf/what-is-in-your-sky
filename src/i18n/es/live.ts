@@ -1,10 +1,11 @@
 import type { UpEvent } from '../../lib/contextLine';
+import type { Landmark } from '../../lib/landmark';
 import { offsetSpan } from '../../lib/playback';
 import type { MoonPhaseName } from '../../model';
 import type { live as EnLive } from '../en/live';
 
 /** R123 para R127 (FR-SKY-11): la palabra de dirección de la línea del punto de referencia. */
-const landmarkWord: typeof EnLive.live.landmarkWord = { above: 'sobre', below: 'bajo', beside: 'junto a' };
+const landmarkWord: Record<Landmark['word'], string> = { above: 'sobre', below: 'bajo', beside: 'junto a' };
 
 /** Las ocho fases (D-103): la misma grafía que `es/ui.ts` usa para `moon.phase`, duplicada porque el lane `live` es dueño único de este archivo. */
 const moonPhase = {
@@ -26,7 +27,6 @@ export const live: typeof EnLive = {
   live: {
     open: 'Cielo en vivo',
     openShort: 'vivo',
-    openFromNow: 'Ver el cielo en vivo',
     loading: 'Cargando el cielo en vivo…',
     noPlace: 'El cielo en vivo necesita un lugar.',
     setPlace: 'elegir un lugar',
@@ -99,7 +99,6 @@ export const live: typeof EnLive = {
     shareShort: 'Compartir',
     starsToggle: 'estrellas',
     starsToggleName: 'Estrellas bajo los arcos',
-    landmarkWord,
     landmarkLine: (p) => `pasa ${p.degrees} ${landmarkWord[p.word]} ${p.star}, en ${p.constellation}`,
     landmarkThrough: (p) => `pasa por ${p.constellation}`,
     /**

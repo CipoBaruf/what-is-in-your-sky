@@ -788,11 +788,10 @@ function LiveSky({ observer, link, wakeLock, onLeave }: { observer: Observer; li
     </div>
   ) : null;
   /*
-   * R78 (FR-WATCH-5, FR-WATCH-6): wherever the page has a rail — wide, and the landscape phone — its head is the
-   * indicator with the clock, or with `[ back to live ]` while scrubbing, so the way out of the state stands in
-   * one place and never scrolls away with the rows under it. R144: the compact rail (the landscape phone) holds the
-   * same slots as the column (FR-FLOW-15), so the head is wide's; R145: `[ back to live ]` is wide's alone, the
-   * compact page's `now` being `TimeTaps`'s (FR-TONIGHT-6).
+   * R78 (FR-WATCH-5, FR-WATCH-6): on wide the rail's head is the indicator with the clock, or with
+   * `[ back to live ]` while scrubbing, so the way out of the state stands in one place and never scrolls away with
+   * the rows under it. R144, R145: the compact rail (the landscape phone) holds the same slots as the column
+   * (FR-FLOW-15) and has no such head — its indicator is the top row's and its `now` is `TimeTaps`'s (FR-TONIGHT-6).
    */
   const indicatorLine = (
     <div className={styles.indicatorLine}>
