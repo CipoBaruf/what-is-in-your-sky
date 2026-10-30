@@ -13,12 +13,12 @@
  * FR-FULL-6, FR-TONIGHT-9 as amended v2.8): the compact page renders one
  * inventory in both states — the head and `[ controls ]` over the sky, and in
  * the sheet the context line, the view row, the facing row with the readout,
- * the track, the taps and `[ list (n) ] Share` — so the rows measured are the
+ * the track, the taps, `Share` and (R150, FR-GYRO-10) the satellites — so the rows measured are the
  * same list before and after the instant leaves real time, none lies over
  * another inside the sheet, the box is the viewport in both (the floors of
  * v2.7 are `live-full.spec.ts`'s edges now), and the page never scrolls, in
- * both languages. The list panel is two tap rows inside the sheet, with the
- * hidden-objects toggle in its head; the readout's tap opens the facing picker
+ * both languages. The list panel is two tap rows inside the sheet, open, under
+ * "Satellites (n)" with the hidden-objects toggle at its end; the readout's tap opens the facing picker
  * under it in the sheet; none of it moves the box.
  *
  * `hasTouch`, because the rows were measured on a phone.
@@ -28,9 +28,9 @@ import { TAP_PX } from '../../src/lib/layout';
 import { closeSheet, domeDrawn, enterScrubbing, homeAt, openSheet, pressTrackAt, shownOnTrack, stripFilled, T, trackBar } from './liveHelpers';
 
 /** FR-FULL-4's rows in the sheet, and the head and the button over the sky: the same list in both states. */
-const ROWS = ['live-head', 'live-controls', 'live-context', 'live-view-row', 'live-facing', 'live-track', 'live-taps', 'live-actions'] as const;
+const ROWS = ['live-head', 'live-controls', 'live-context', 'live-view-row', 'live-facing', 'live-track', 'live-taps', 'live-actions', 'live-satellites'] as const;
 /** The sheet's own rows, which stand clear of one another inside it. */
-const SHEET_ROWS = ['live-context', 'live-view-row', 'live-facing', 'live-track', 'live-taps', 'live-actions'] as const;
+const SHEET_ROWS = ['live-context', 'live-view-row', 'live-facing', 'live-track', 'live-taps', 'live-actions', 'live-satellites'] as const;
 
 interface Box {
   x: number;
@@ -97,7 +97,7 @@ test.describe('the compact live page: one inventory, the box the viewport (FR-TO
         expect(Math.round(box.x)).toBe(0);
         expect(Math.round(box.y)).toBe(0);
         await openSheet(page);
-        await expect(page.getByTestId('live-legend-toggle')).toHaveAttribute('aria-expanded', 'false');
+        await expect(page.getByTestId('live-legend-toggle')).toHaveCount(0);
         const watching = await rows(page);
         expectNoOverlap(watching, SHEET_ROWS);
         // FR-TONIGHT-9, FR-LIVE-1: the page is the viewport and does not scroll; the sheet stands inside it.
@@ -139,12 +139,12 @@ test.describe('the compact live page: one inventory, the box the viewport (FR-TO
     }
 
     /**
-     * R71 (FR-LEG-7, FR-LEG-8, FR-COMP-5 as amended v1.4; V14-5): F-62, closed by measurement — and R148
-     * (FR-FULL-4, FR-FULL-6): the list panel opens under the actions inside the sheet, exactly two rows of `--tap`
-     * whatever it holds, with the hidden-objects toggle in its head (D-905); the sheet grows, the box does not, and
-     * the page does not scroll.
+     * R71 (FR-LEG-7, FR-LEG-8, FR-COMP-5 as amended v1.4; V14-5): F-62, closed by measurement — R148 (FR-FULL-4,
+     * FR-FULL-6) and R150 (FR-GYRO-10, D-949): the list panel stands open at the sheet's end, under the actions,
+     * exactly two rows of `--tap` whatever it holds, under "Satellites (n)" with the hidden-objects toggle at its end
+     * (D-905); the box does not move and the page does not scroll.
      */
-    test(`the list panel is two tap rows with the hidden toggle in its head, under the actions inside the sheet at 390 × ${String(height)}, and nothing resizes the box`, async ({ page }) => {
+    test(`the satellites are two tap rows under their heading with the hidden toggle at its end, last in the sheet at 390 × ${String(height)}, and nothing resizes the box`, async ({ page }) => {
       await page.setViewportSize({ width: 390, height });
       await homeAt(page, T);
       await page.getByTestId('live-link').click();
@@ -154,24 +154,21 @@ test.describe('the compact live page: one inventory, the box the viewport (FR-TO
       if (!closed) throw new Error('the box is not laid out');
       await openSheet(page);
 
-      const control = page.getByTestId('live-legend-toggle');
-      await expect(control).toHaveAttribute('aria-expanded', 'false');
-      await expect(page.getByTestId('chart-legend-slot')).toHaveCount(0);
-      await expect(page.getByTestId('live-list-head')).toHaveCount(0);
-      expect(await page.getByTestId('chart-box').boundingBox()).toEqual(closed);
-
-      await control.click();
-      await expect(control).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.getByTestId('live-legend-toggle')).toHaveCount(0);
+      await expect(page.getByTestId('live-satellites').getByRole('heading', { level: 2 })).toHaveText(/^Satellites \(\d+\)$/);
       // The sheet's body scrolls to the panel where the rows are taller than the sheet (the short phone).
       await page.getByTestId('chart-legend-slot').scrollIntoViewIfNeeded();
       const panel = await page.getByTestId('chart-legend-slot').boundingBox();
-      const head = await page.getByTestId('live-list-head').boundingBox();
+      const head = await page.getByTestId('live-satellites-head').boundingBox();
       if (!panel || !head) throw new Error('the panel is not laid out');
       // Two rows of `--tap` (48 px at the default cell): the panel's height, not its maximum.
       expect(panel.height, 'the open panel is two tap rows').toBeCloseTo(2 * TAP_PX, 0);
-      // The head over the panel, with the toggle, and the toggle still the saved pref (FR-LIVE-6).
+      // The heading's row over the panel, the toggle at its end, and the toggle still the saved pref (FR-LIVE-6).
       expect(head.y + head.height).toBeLessThanOrEqual(panel.y + 0.5);
-      await expect(page.getByTestId('live-list-head').getByRole('button', { name: 'Hidden objects' })).toHaveAttribute('aria-pressed', 'false');
+      const toggle = page.getByTestId('live-satellites-head').getByRole('button', { name: 'Hidden objects' });
+      await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      const toggleBox = await toggle.boundingBox();
+      expect((toggleBox?.x ?? 0) + (toggleBox?.width ?? 0)).toBeGreaterThan(head.x + head.width - 2 * TAP_PX);
       await expect(page.getByTestId('live-actions').getByRole('button', { name: 'Hidden objects' })).toHaveCount(0);
       // The panel and its head are inside the sheet, under the actions row; the page still does not scroll; the box is the same.
       const actions = await page.getByTestId('live-actions').boundingBox();
@@ -179,17 +176,11 @@ test.describe('the compact live page: one inventory, the box the viewport (FR-TO
       const sheet = await page.getByTestId('live-sheet').boundingBox();
       expect(panel.y + panel.height).toBeLessThanOrEqual((sheet?.y ?? 0) + (sheet?.height ?? 0) + 0.5);
       expect(panel.y + panel.height).toBeLessThanOrEqual(height + 0.5);
-      expect(await scrolls(page), 'the page scrolls with the list open').toBe(false);
+      expect(await scrolls(page), 'the page scrolls with the sheet open').toBe(false);
       expect(await page.getByTestId('chart-box').boundingBox(), 'the list does not resize the box (FR-FULL-6)').toEqual(closed);
       // …and nothing in the sheet has moved onto anything else.
       const boxes = await rows(page);
-      expectNoOverlap(boxes, SHEET_ROWS, [panel, head]);
-
-      // The second tap closes the panel: the box was never involved (V14-5, FR-FULL-6).
-      await control.click();
-      await expect(page.getByTestId('chart-legend-slot')).toHaveCount(0);
-      await expect(page.getByTestId('live-list-head')).toHaveCount(0);
-      expect(await page.getByTestId('chart-box').boundingBox()).toEqual(closed);
+      expectNoOverlap(boxes, SHEET_ROWS.filter((id) => id !== 'live-satellites'), [panel, head]);
     });
   }
 

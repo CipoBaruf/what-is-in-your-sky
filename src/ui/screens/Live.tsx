@@ -20,7 +20,7 @@ import { FailureLine } from '../components/common/FailureLine';
 import { Header } from '../components/common/Header';
 import { ShareButton } from '../components/common/ShareButton';
 import { PageNotices, type LinkNoteKind } from '../components/common/VisitNotice';
-import { ChartFrameSlots, LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
+import { ChartFrameSlots } from '../components/guide/skychart/ChartFrame';
 import { LegendInventoryContext, type LegendInventory } from '../components/guide/skychart/Legend';
 import { SkyChart } from '../components/guide/skychart/SkyChart';
 import { useChartHand } from '../components/guide/skychart/useChartHand';
@@ -31,7 +31,7 @@ import { ControlsSheet } from '../components/live/ControlsSheet';
 import { drawnAt, hiddenMarkers } from '../components/live/hiddenObjects';
 import { arcKey, withArcStates } from '../components/live/liveArcs';
 import { OpeningCard, type CardChoice } from '../components/live/OpeningCard';
-import { BackToLive, HiddenToggle, LegendToggle, PlaybackControls, ScrubButton } from '../components/live/PlaybackControls';
+import { BackToLive, HiddenToggle, PlaybackControls, ScrubButton } from '../components/live/PlaybackControls';
 import { ContextLine, shownTimeText, type ShownTimeProps } from '../components/live/ShownTime';
 import { SkyHead } from '../components/live/SkyHead';
 import { INDICATOR_MARK_PX, StateIndicator } from '../components/live/StateIndicator';
@@ -60,6 +60,7 @@ import { useLayoutMode } from '../hooks/useLayoutMode';
 import { REDUCED_MOTION, useMediaQuery } from '../hooks/useMediaQuery';
 import { useNow } from '../hooks/useNow';
 import { VisuallyHidden } from '../components/primitives/VisuallyHidden';
+import { SectionHeading } from '../components/primitives/SectionHeading';
 import { requestPlace } from './home/placeRequest';
 import styles from './Live.module.css';
 import { inventoryClip, jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type LiveRow } from './liveRows';
@@ -126,9 +127,14 @@ import { inventoryClip, jumpFitsOnPath, jumpPlacement, liveShape, rowsFor, type 
  * passes and decides once: a visible pass up now keeps real time; otherwise a
  * card over the sky asks — `[ see next pass ]` lands a minute before the first
  * visible rise and plays (paused under reduced motion), `[ see now ]` stays —
- * and never when the reader moved first. A tap on the sky closes the open
- * sheet, a drag turns the camera; `Esc` takes the screen, the card, the sheet
- * and then the page, in that order.
+ * and never when the reader moved first. `Esc` takes the screen, the card,
+ * the sheet and then the page, in that order.
+ *
+ * **The sheet (R150: FR-GYRO-7, FR-GYRO-8, FR-GYRO-10; D-947..D-951).** The
+ * sheet is a bottom sheet in both shapes and closes on its `×`, a swipe down,
+ * `[ controls ]` or `Esc`; a tap on the sky with it open is the sky's. It ends
+ * with the satellites: "Satellites (n)" with the hidden toggle at its end and
+ * the list open under it, in place of `[ list (n) ]`.
  */
 export interface LivePageProps {
   /** The `#live?…` link, or `null` for the bare route. */
@@ -492,7 +498,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
    * (D-877), keeps it. Nothing of it reaches the hash or the history.
    */
   const [sheetOpen, setSheetOpen] = useState(false);
-  // FR-FULL-5: closing by the page's own ways — the tap on the sky, `Esc` — returns the focus to `[ controls ]`.
+  // FR-FULL-5: closing by the page's own way — `Esc` (R150: the tap on the sky is withdrawn, D-948) — returns the focus to `[ controls ]`.
   const closeSheet = useCallback(() => {
     setSheetOpen(false);
     document.querySelector<HTMLElement>('[data-testid="live-controls"]')?.focus();
@@ -740,11 +746,8 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
   const legendCount = legendRowsNow.length;
   // R132 (FR-FLOW-6): the hint's view, as the chart narrows the saved one on compact (`SkyChart`'s rule).
   const chartView = useAppStore((s) => s.chartView);
-  const legendOpen = useAppStore((s) => s.liveLegendOpen);
-  const setLegendOpen = useAppStore((s) => s.setLiveLegendOpen);
-  const toggleLegend = useCallback(() => {
-    setLegendOpen(!legendOpen);
-  }, [legendOpen, setLegendOpen]);
+  // R150 (FR-GYRO-10, D-949): the satellites' heading, which names the list at the sheet's end.
+  const satellitesId = useId();
   // FR-SHARE-1's live form: the place, and the instant only when this page is showing one (real time is the recipient's own).
   const url = shareUrl(window.location.href, liveLinkHash({ observer: { lat: observer.lat, lon: observer.lon, altM: observer.altM }, t: playback.realTime ? null : shown }));
   // R77 (FR-WATCH-8): the same action and the same link; the name says what the link carries.
@@ -900,7 +903,6 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
       {has('next-event') && jumpAt === 'actions' && <JumpControl passes={passes} context={nextEventContext} hours={liveHours} onSee={seePass} />}
       {has('hidden') && <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />}
       {/* R132 (FR-FLOW-4, D-846): `[x] stars` is the view row's, at both widths; it was this row's on wide (R123). */}
-      {has('list') && <LegendToggle open={legendOpen} count={legendCount} controls={LEGEND_PANEL_ID} onToggle={toggleLegend} />}
       {/* R85 (FR-COMP-7, D-549): bracketed again on compact, as every other action; the Spanish labels beside it were shortened instead (D-411 withdrawn). */}
       <div className={styles.share} data-testid="live-share">
         <ShareButton url={url} title={t.live.shareTitle} text={t.live.shareText(observer.label)} label={compact ? t.live.shareShort : shareName} ariaLabel={shareName} />
@@ -1096,7 +1098,7 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
             colorBy="pass"
             fill
             initialFacingAzDeg={0}
-            {...(compact ? { legendOpen } : {})}
+            {...(compact ? { legendOpen: true } : {})}
             moonPhase={compact}
             chartHand={chartHand}
             scene={scene}
@@ -1111,8 +1113,9 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
    * R148 (FR-FULL-1..7, FR-FULL-10; D-919, D-922..D-925): the compact page is the layout's full form — the box is the
    * screen, and over it the overlay (the card while it asks, the hint until the first gesture) and the sheet slot
    * (`[ controls ]` at the bottom-right, and the sheet it opens). The sheet's rows are FR-FULL-4's, in order: the
-   * context line; the track and the taps; the view row; the facing row; `[ list (n) ] [ Share ]` with the list panel
-   * under it. They stay mounted while the sheet is closed, inert (D-932), so a turn of the phone keeps every state.
+   * context line; the track and the taps; the view row; the facing row; `[ Share ]`; and (R150, FR-GYRO-10, D-949)
+   * the satellites, open, under their heading with the hidden toggle at its end. R152's `[ follow the phone ]` row
+   * goes between the view row and the facing row (FR-GYRO-10). They stay mounted while the sheet is closed, inert (D-932), so a turn of the phone keeps every state.
    * The hint stands on the button's row where both fit in 36 cells and in the row above it otherwise (D-924).
    */
   if (compact) {
@@ -1139,17 +1142,16 @@ function LiveSky({ observer, link, wakeLock, onLeave, escRef }: { observer: Obse
         </div>
         {facing}
         {actions}
-        {legendOpen && (
-          <div className={styles.listPanel} data-testid="live-list" data-rhythm="group">
-            <div className={styles.listHead} data-testid="live-list-head">
-              <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />
-            </div>
-            <SkyViewChartSlot name="list" />
+        <section className={styles.satellites} aria-labelledby={satellitesId} data-testid="live-satellites" data-rhythm="group">
+          <div className={styles.satellitesHead} data-testid="live-satellites-head">
+            <SectionHeading id={satellitesId}>{t.live.satellites({ count: legendCount })}</SectionHeading>
+            <HiddenToggle hidden={liveHidden} onToggle={toggleHidden} />
           </div>
-        )}
+          <SkyViewChartSlot name="list" />
+        </section>
       </ControlsSheet>
     );
-    return page(<SkyViewLayout className={styles.layout} data-testid="live-layout" fill form="full" readoutIn="sheet" sheetOpen={sheetOpen} onSheetClose={closeSheet} drawing={drawing} overlay={overlay} sheet={sheet} />);
+    return page(<SkyViewLayout className={styles.layout} data-testid="live-layout" fill form="full" readoutIn="sheet" drawing={drawing} overlay={overlay} sheet={sheet} />);
   }
   return page(
     <SkyViewLayout

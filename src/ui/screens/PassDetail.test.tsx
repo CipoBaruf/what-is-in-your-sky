@@ -232,7 +232,7 @@ describe('<PassDetail> (US-6, FR-X-5)', () => {
     expect(row).not.toBeNull();
     expect(row.lastElementChild).toBe(toggle);
     const control = within(row).getByRole('group', { name: en.chart.viewGroup });
-    expect(within(control).getAllByRole('button').map((b) => b.textContent)).toEqual(['Polar', 'Dome', 'Window']);
+    expect(within(control).getAllByRole('button').map((b) => b.textContent)).toEqual(['Window', 'Polar', 'Dome']);
     // R136 (FR-FLOW-14, D-876): nothing saved, so the phone opens on the window.
     expect(within(control).getByRole('button', { name: 'Window' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(toggle);

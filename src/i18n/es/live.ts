@@ -68,13 +68,8 @@ export const live: typeof EnLive = {
     hiddenToggle: 'Objetos ocultos',
     hiddenReason: { low: 'muy bajo', shadow: 'en sombra', daylight: 'de día', faint: 'muy tenue' },
     hiddenLabel: (p) => `${p.name} · ${p.reason}`,
-    /**
-     * R71 (FR-LEG-7): el control de la leyenda en la fila de acciones; la cuenta son las pasadas dibujadas (D-388).
-     * R85 (FR-COMP-7, D-549): `[ ver 3 ]` y no `[ lista (3) ]` — con `[ Compartir ]` entre corchetes la fila en
-     * vivo es `[ fijar ] [ ver 3 ] [ Compartir ]`, 33 celdas (34 con una cuenta de dos cifras); con "lista (3)"
-     * eran 37, y "lista 3" todavía 35.
-     */
-    list: (p) => `ver ${String(p.count)}`,
+    /** R150 (FR-GYRO-10, D-949, D-951): el título sobre la lista de satélites al final de la hoja; la cuenta son las pasadas dibujadas. */
+    satellites: (p) => `Satélites (${String(p.count)})`,
     more: (n) => `+${String(n)} más`,
     /**
      * R48 (FR-TRAJ-5): "sale" (the pass rises) and not "salida" — the six

@@ -18,8 +18,9 @@ import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fixtureRecords, goldenPassFixture, goldenWindowStart } from '../../../tests/support/catalogFixtures';
 import { en } from '../../i18n/en';
+import { es } from '../../i18n/es';
 import { I18nProvider } from '../../i18n/useT';
-import { SHEET_TAP_SLOP_PX, WIDE_MIN_PX } from '../../lib/layout';
+import { WIDE_MIN_PX } from '../../lib/layout';
 import { isoInstant, type LiveLink } from '../../lib/shareLinks';
 import { formatClock } from '../../lib/timeFormat';
 import { skyBodiesAt } from '../../lib/skyBodies';
@@ -29,7 +30,7 @@ import { appStore, setLiveNowClient, type ElementsState } from '../../state';
 import { IDLE_PASSES } from '../../state/slices/passes';
 import { stubMatchMedia, type MatchMediaStub } from '../../../tests/support/matchMedia';
 import { MOON_FIXTURE } from '../../../tests/support/moonFixtures';
-import { LEGEND_OPEN_ROWS, LEGEND_PANEL_ID } from '../components/guide/skychart/ChartFrame';
+import { LEGEND_OPEN_ROWS } from '../components/guide/skychart/ChartFrame';
 import { LIVE_WINDOW_MS, livePasses } from '../../lib/livePasses';
 import { TONIGHT_LEAD_MS } from '../../lib/tonightJump';
 import { LivePage, TICK_MS, visibleCount } from './Live';
@@ -45,16 +46,6 @@ const initial = appStore.getInitialState();
 /** R66 (V13-6, D-350): the way into the sky screen — the view control's "window" option, on this page as on the pass detail. */
 const windowOption = (): HTMLElement => within(screen.getByRole('group', { name: en.chart.viewGroup })).getByRole('button', { name: en.chart.view.window });
 const HOUR = 3_600_000;
-
-/**
- * R71 (FR-LEG-7): jsdom is the compact shell, where the legend is behind
- * `[ list (n) ]` and is not in the tree until it is tapped. A test that reads a
- * legend row opens the panel first; what the control itself does is its own
- * test below.
- */
-const openList = (): void => {
-  fireEvent.click(screen.getByTestId('live-legend-toggle'));
-};
 
 /**
  * R77 (FR-WATCH-1, FR-WATCH-4): the stripe, the step row and the playback row are the scrubbing state's, and
@@ -320,7 +311,7 @@ describe('<LivePage>', () => {
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-state', 'live');
     const figure = screen.getByRole('figure', { name: en.chart.liveLabel });
     expect(figure.querySelector('figcaption')).toBeNull();
-    openList();
+    // R150 (FR-GYRO-10): jsdom is the compact shell, where the list stands open at the sheet's end.
     // R45: the legend's rows carry the pass id too, so the drawing's are read inside the drawing.
     // R48 (FR-TRAJ-1): at the shown instant only the pass under way is drawn — `later` (3 h on) and
     // `tomorrow` are hidden until their rise is within ARC_LOOKAHEAD — and it keeps its series colour.
@@ -491,7 +482,7 @@ describe('<LivePage>', () => {
         within(screen.getByRole('group', { name: 'Chart view' }))
           .getAllByRole('button')
           .map((button) => button.textContent),
-      ).toEqual(['Polar', 'Dome', 'Window']);
+      ).toEqual(['Window', 'Polar', 'Dome']);
       // The option is a mode: until it is tapped the page is the dome, with every row its state has.
       expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'dome');
       expect(screen.queryByTestId('sky-screen')).toBeNull();
@@ -594,57 +585,51 @@ describe('<LivePage>', () => {
   });
 
   /**
-   * R71 (FR-LEG-7, FR-LEG-8; V14-5; D-387, D-388): on compact the legend is behind `[ list (n) ]`.
-   *
-   * `n` is the rows `lib/legend.ts` derives — the drawn passes — and not the panel's lines: on an empty sky
-   * the control reads `list (0)` while the panel still carries a line, which is the number OQ-26 says it must
-   * not get wrong. Closed, no legend is in the tree at all, so the rows under the box are the box's
-   * (FR-COMP-5 as amended); open, the slot is the frame's panel.
+   * R71 (FR-LEG-7, FR-LEG-8; D-388) → R150 (FR-GYRO-10, D-949, D-951): on compact the list stands open at the sheet's
+   * end under "Satellites (n)", with no control to open it. `n` is the rows `lib/legend.ts` derives — the drawn
+   * passes — and not the panel's lines: on an empty sky the heading reads `Satellites (0)` while the list still
+   * carries a line, which is the number OQ-26 says it must not get wrong.
    */
-  it('counts the drawn passes, not the panel’s lines, and opens and closes the panel (FR-LEG-7, D-388)', () => {
+  it.each([
+    ['en', en],
+    ['es', es],
+  ] as const)('heads the open list “Satellites (n)” in %s, counting the drawn passes, not the panel’s lines (FR-GYRO-10, D-388)', (locale, m) => {
     withSky();
-    render(<LivePage link={null} onLeave={() => undefined} />);
-    const control = screen.getByTestId('live-legend-toggle');
-    // Closed on a first visit (`prefs.liveLegendOpen`), and the panel is not in the tree.
-    expect(control).toHaveTextContent('list (1)');
-    expect(control).toHaveAttribute('aria-expanded', 'false');
-    // R71 review: closed, the panel is not in the tree, so the control names nothing — an `aria-controls`
-    // pointing at an id no element carries is a dangling reference. `aria-expanded` alone says the state.
-    expect(control).not.toHaveAttribute('aria-controls');
-    expect(screen.queryByTestId('chart-legend')).toBeNull();
-    expect(screen.queryByTestId('chart-legend-slot')).toBeNull();
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-legend', 'false');
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-legend-open', 'false');
-    // Open: the slot is the panel the control names, and it lists exactly the passes the drawing draws.
-    fireEvent.click(control);
-    expect(control).toHaveAttribute('aria-expanded', 'true');
-    expect(control).toHaveAttribute('aria-controls', LEGEND_PANEL_ID);
+    render(
+      <I18nProvider locale={locale}>
+        <LivePage link={null} onLeave={() => undefined} />
+      </I18nProvider>,
+    );
+    const word = locale === 'en' ? 'Satellites' : 'Satélites';
+    expect(screen.queryByTestId('live-legend-toggle')).toBeNull();
+    const satellites = screen.getByTestId('live-satellites');
+    const heading = within(satellites).getByRole('heading', { level: 2 });
+    expect(heading).toHaveTextContent(`${word} (1)`);
+    expect(satellites).toHaveAccessibleName(`${word} (1)`);
+    // The heading's row: the heading, then the hidden toggle at its end (D-905's place), then the list.
+    const head = screen.getByTestId('live-satellites-head');
+    expect([...head.children].map((el) => el.getAttribute('data-testid') ?? el.tagName.toLowerCase())).toEqual(['h2', 'live-hidden-toggle']);
+    expect(within(head).getByTestId('live-hidden-toggle')).toHaveAccessibleName(m.live.hiddenToggle);
+    expect([...satellites.children].map((el) => el.getAttribute('data-testid') ?? el.getAttribute('data-chart-slot'))).toEqual(['live-satellites-head', 'list']);
+    // Open with no tap, and listing exactly the passes the drawing draws.
     const panel = screen.getByTestId('chart-legend-slot');
-    expect(panel).toHaveAttribute('id', LEGEND_PANEL_ID);
-    expect(screen.getByTestId('chart-frame')).toHaveAttribute('data-legend-open', 'true');
-    expect(within(panel).getAllByRole('button', { name: /ISS/ })).toHaveLength(1);
+    expect(satellites).toContainElement(panel);
     expect(panel.querySelectorAll('[data-pass-id]')).toHaveLength(1);
-    // Five passes up at once: the control counts them all.
+    // Five passes up at once: the heading counts them all.
     act(() => {
       appStore.setState({ passes: { ...IDLE_PASSES, jobId: 'job-2', status: 'done', observer, passes: [pass, ...[1, 2, 3, 4].map((n) => shifted(`twin-${String(n)}`, `Twin ${String(n)}`, n * 1000))], hasDarkness: true } });
     });
-    expect(screen.getByTestId('live-legend-toggle')).toHaveTextContent('list (5)');
+    expect(heading).toHaveTextContent(`${word} (5)`);
     expect(screen.getByTestId('chart-legend-slot').querySelectorAll('[data-pass-id]')).toHaveLength(5);
-    // An empty sky: `list (0)`, and the panel says so in a line of its own rather than standing blank.
+    // An empty sky: `(0)`, and the list says so in a line of its own rather than standing blank.
     act(() => {
       appStore.setState({ passes: { ...IDLE_PASSES, jobId: 'job-3', status: 'done', observer, passes: [], hasDarkness: true } });
     });
-    expect(screen.getByTestId('live-legend-toggle')).toHaveTextContent('list (0)');
+    expect(heading).toHaveTextContent(`${word} (0)`);
     const empty = screen.getByTestId('legend-empty');
-    expect(empty).toHaveTextContent(en.chart.legend.empty);
+    expect(empty).toHaveTextContent(m.chart.legend.empty);
     expect(within(empty).getByRole('status')).toBeInTheDocument();
     expect(screen.getByTestId('chart-legend-slot').querySelectorAll('[data-pass-id]')).toHaveLength(0);
-    // …and the panel is the same element with the same attributes in all three states — the height is the
-    // stylesheet's and does not follow the content (below).
-    expect(screen.getByTestId('chart-legend-slot').className).toBe(panel.className);
-    // Closing takes it out of the tree again.
-    fireEvent.click(screen.getByTestId('live-legend-toggle'));
-    expect(screen.queryByTestId('chart-legend-slot')).toBeNull();
   });
 
   /**
@@ -660,12 +645,9 @@ describe('<LivePage>', () => {
     expect(css).toMatch(/\.fill\[data-legend-open='true'\] \.legend \{[^}]*height: calc\(var\(--legend-open-rows, 2\) \* var\(--legend-row\)\);[^}]*max-height: none;[^}]*overflow-y: auto;/);
     expect(LEGEND_OPEN_ROWS).toBe(2);
     withSky();
-    act(() => {
-      appStore.getState().setLiveLegendOpen(true);
-    });
     render(<LivePage link={null} onLeave={() => undefined} />);
-    // The preference is what the page opens on: no tap, and the panel is there (`prefs.liveLegendOpen`).
-    expect(screen.getByTestId('live-legend-toggle')).toHaveAttribute('aria-expanded', 'true');
+    // R150 (FR-GYRO-10): the list is open with no tap.
+    expect(screen.getByTestId('chart-legend-slot')).toBeInTheDocument();
     // R71 review: the row count lives in `LEGEND_OPEN_ROWS` and reaches the stylesheet as `--legend-open-rows`,
     // so the constant and the declaration above cannot drift apart.
     expect(screen.getByTestId('chart-frame').style.getPropertyValue('--legend-open-rows')).toBe(String(LEGEND_OPEN_ROWS));
@@ -735,18 +717,15 @@ describe('<LivePage>', () => {
     const { unmount } = render(<LivePage link={null} onLeave={() => undefined} />);
     hold();
     // Compact (R144, FR-TONIGHT-6, D-905): no playback row, no stepping row and no toggle on the actions row, held or
-    // not; the list slot is the panel's place alone while it is closed, and the hidden-objects toggle is the panel's
-    // head once it is open — the same saved state (FR-LIVE-6).
+    // not; the hidden-objects toggle is the satellites' heading row's (R150, FR-GYRO-10) — the same saved state (FR-LIVE-6).
     expect(within(screen.getByTestId('live-actions')).queryByTestId('live-hidden-toggle')).toBeNull();
     expect(screen.queryByTestId('playback-row')).toBeNull();
     expect(screen.queryByTestId('step-controls')).toBeNull();
     expect(screen.queryByTestId('time-readout')).toBeNull();
-    // R148 (FR-FULL-4): the list panel is on the page only while `[ list (n) ]` holds it open, under the actions in the sheet.
-    expect(screen.queryByTestId('live-list')).toBeNull();
-    openList();
-    expect([...screen.getByTestId('live-list').children].map((el) => el.getAttribute('data-testid') ?? el.getAttribute('data-chart-slot'))).toEqual(['live-list-head', 'list']);
-    expect(screen.getByTestId('live-list').previousElementSibling).toBe(screen.getByTestId('live-actions'));
-    const toggle = within(screen.getByTestId('live-list-head')).getByTestId('live-hidden-toggle');
+    // R150 (FR-GYRO-10): the satellites are always on the page, the sheet's last group, after the actions.
+    expect([...screen.getByTestId('live-satellites').children].map((el) => el.getAttribute('data-testid') ?? el.getAttribute('data-chart-slot'))).toEqual(['live-satellites-head', 'list']);
+    expect(screen.getByTestId('live-satellites').previousElementSibling).toBe(screen.getByTestId('live-actions'));
+    const toggle = within(screen.getByTestId('live-satellites-head')).getByTestId('live-hidden-toggle');
     expect(toggle).toHaveAccessibleName('Hidden objects');
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(toggle);
@@ -785,7 +764,7 @@ describe('<LivePage>', () => {
     const viewRow = toggle.closest('[data-testid="live-view-row"]') as HTMLElement;
     expect(viewRow).not.toBeNull();
     const control = within(viewRow).getByRole('group', { name: en.chart.viewGroup });
-    expect(within(control).getAllByRole('button').map((b) => b.textContent)).toEqual(['Polar', 'Dome', 'Window']);
+    expect(within(control).getAllByRole('button').map((b) => b.textContent)).toEqual(['Window', 'Polar', 'Dome']);
     expect(viewRow.lastElementChild).toBe(toggle);
     expect(within(screen.getByTestId('live-actions')).queryByTestId('stars-toggle')).toBeNull();
     fireEvent.click(toggle);
@@ -978,12 +957,12 @@ describe('<LivePage>', () => {
       await windowDrawn();
       fireEvent.keyDown(handBox(), { key: 'ArrowRight' });
       const turned = lookAz();
-      // The landscape phone: the full form still (R148), the sheet a side panel, still the window and still facing where it was.
+      // The landscape phone: the full form still (R148), the sheet the bottom sheet (R150, FR-GYRO-7), still the window and still facing where it was.
       act(() => {
         media?.setSize(844, 390);
       });
       expect(screen.getByTestId('live-layout')).toHaveAttribute('data-shape', 'full');
-      expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-form', 'side');
+      expect(screen.getByTestId('live-sheet')).not.toHaveAttribute('data-form');
       await windowDrawn();
       expect(screen.getByTestId('sky-chart')).toHaveAttribute('data-view', 'window');
       expect(lookAz()).toBe(turned);
@@ -1198,9 +1177,9 @@ describe('<LivePage>', () => {
    * rows stay mounted while it is closed (D-932). The state is still a fact: the chip says `now` or the offset.
    */
   it.each([
-    ['portrait', [390, 844], 'bottom', 'under'],
-    ['landscape', [844, 390], 'side', 'rail'],
-  ] as const)('renders the compact %s page as one inventory in both states and both sheet states, the chip saying which (FR-TONIGHT-6, FR-FULL-3, FR-FULL-4, FR-WATCH-4)', (_shape, size, sheetForm, placement) => {
+    ['portrait', [390, 844], 'under'],
+    ['landscape', [844, 390], 'rail'],
+  ] as const)('renders the compact %s page as one inventory in both states and both sheet states, the chip saying which (FR-TONIGHT-6, FR-FULL-3, FR-FULL-4, FR-WATCH-4)', (_shape, size, placement) => {
     withSky();
     media = stubMatchMedia(size[0], size[1]);
     const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
@@ -1213,13 +1192,20 @@ describe('<LivePage>', () => {
       const listed = new Set(rowsFor('watching', 'compact', 'tall', sheetOpen));
       for (const row of LIVE_ROWS) {
         if (COMPACT_CONDITIONAL.includes(row)) continue;
+        // D-905 → R150 (FR-GYRO-10): the hidden toggle is not a row of compact; it is the satellites' heading row's, so
+        // it is reachable exactly when they are.
+        if (row === 'hidden') {
+          expect(reachable(row), `compact ${state}: the hidden toggle with the satellites`).toBe(reachable('satellites'));
+          continue;
+        }
         expect(reachable(row), `compact ${state}, sheet ${sheetOpen ? 'open' : 'closed'}: ${row} is ${listed.has(row) ? 'reachable' : 'not reachable'}`).toBe(listed.has(row));
       }
     };
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-compact', 'true');
     expect(screen.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', placement);
     expect(screen.getByTestId('live-layout')).toHaveAttribute('data-shape', 'full');
-    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-form', sheetForm);
+    // R150 (FR-GYRO-7): one form, the bottom sheet, in both shapes.
+    expect(screen.getByTestId('live-sheet')).not.toHaveAttribute('data-form');
     // Watching: the ISS is up, so the page stays on real time (FR-TONIGHT-1's first case) with no card, and says `now`.
     inventory('watching', false);
     expect(screen.queryByTestId('live-card')).toBeNull();
@@ -1229,12 +1215,12 @@ describe('<LivePage>', () => {
     expect(chip()).toHaveAttribute('data-kind', 'now');
     expect(screen.queryByTestId('live-state-mark')).toBeNull();
     expect(screen.queryByTestId('live-top-row')).toBeNull();
-    // The sheet open: its rows in FR-FULL-4's order under the head, and the actions `[ list (n) ] [ Share ]`.
+    // The sheet open: its rows in FR-GYRO-10's order under the head, the actions `[ Share ]` alone, the satellites last.
     fireEvent.click(screen.getByTestId('live-controls'));
     inventory('watching', true);
     const open = present();
-    expect([...screen.getByTestId('sheet-body').children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions']);
-    expect([...screen.getByTestId('live-actions').querySelectorAll('button')].map((b) => b.textContent)).toEqual(['list (1)', 'Share']);
+    expect([...screen.getByTestId('sheet-body').children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites']);
+    expect([...screen.getByTestId('live-actions').querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Share']);
     expect(screen.getByRole('button', { name: en.live.share })).toBeInTheDocument();
     // Held: a key on the track holds the instant; nothing appears, nothing disappears.
     act(() => {
@@ -1320,7 +1306,16 @@ describe('<LivePage>', () => {
     render(<LivePage link={null} onLeave={() => undefined} />);
     fireEvent.click(screen.getByTestId('live-controls'));
     const body = screen.getByTestId('sheet-body');
-    expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions']);
+    // R150 (FR-GYRO-10, D-949): the satellites last, open, under their heading.
+    expect([...body.children].map((el) => el.getAttribute('data-testid'))).toEqual(['live-context', 'live-timeline', 'live-view-row', 'live-facing', 'live-actions', 'live-satellites']);
+    expect(within(screen.getByTestId('live-satellites')).getByRole('heading', { name: 'Satellites (1)' })).toBeInTheDocument();
+    expect(within(screen.getByTestId('live-satellites')).getByTestId('chart-legend-slot')).toBeInTheDocument();
+    // R150 (FR-GYRO-11, D-950): the window first in the view row.
+    expect(
+      within(within(screen.getByTestId('live-view-row')).getByRole('group', { name: en.chart.viewGroup }))
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual([en.chart.view.window, en.chart.view.polar, en.chart.view.dome]);
     const timeline = screen.getByTestId('live-timeline');
     expect(timeline.children).toHaveLength(2);
     expect(timeline.children[0]).toBe(screen.getByTestId('live-track'));
@@ -1492,11 +1487,11 @@ describe('<LivePage>', () => {
   });
 
   /**
-   * R148 (FR-FULL-4, FR-FULL-5; D-922): a tap on the sky above the open sheet closes it and is spent on that — the
-   * click that follows never reaches the drawing — in each view; a press that travels past `SHEET_TAP_SLOP_PX` is a
-   * drag, which leaves the sheet open and reaches the view. With the sheet closed a tap on the sky closes nothing.
+   * R150 (FR-GYRO-8, D-948; D-922 withdrawn): with the sheet open a tap on the sky is the sky's — its `pointerup` and
+   * its `click` reach the drawing, in each view, and the sheet stays open; a drag does too. The ways to close are
+   * the `×`, the swipe, `[ controls ]` and `Esc`.
    */
-  it.each(['polar', 'dome', 'window'] as const)('on the %s a tap on the sky closes the open sheet and swallows its click, a drag past the slop passes through with the sheet open', (view) => {
+  it.each(['polar', 'dome', 'window'] as const)('on the %s a tap on the sky with the sheet open reaches the sky and leaves the sheet open', (view) => {
     withSky();
     act(() => {
       appStore.getState().setChartView(view);
@@ -1504,33 +1499,30 @@ describe('<LivePage>', () => {
     media = stubMatchMedia(390, 844);
     render(<LivePage link={null} onLeave={() => undefined} />);
     const dome = screen.getByTestId('live-dome');
+    const ups = vi.fn();
     const clicked = vi.fn();
+    dome.addEventListener('pointerup', ups);
     dome.addEventListener('click', clicked);
     const press = (id: number, from: [number, number], to: [number, number]): void => {
       fireEvent.pointerDown(dome, { pointerId: id, isPrimary: true, clientX: from[0], clientY: from[1] });
       fireEvent.pointerUp(dome, { pointerId: id, isPrimary: true, clientX: to[0], clientY: to[1] });
       fireEvent.click(dome, { clientX: to[0], clientY: to[1] });
     };
-    // Closed: the tap reaches the drawing.
-    press(1, [100, 300], [102, 301]);
+    fireEvent.click(screen.getByTestId('live-controls'));
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
+    // A tap: the sheet stays open and the drawing gets both events.
+    press(1, [100, 300], [101, 300]);
+    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
+    expect(ups).toHaveBeenCalledTimes(1);
     expect(clicked).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByTestId('live-controls'));
-    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
-    // A drag: the sheet stays open and the drawing gets its events.
-    press(2, [100, 300], [100 + SHEET_TAP_SLOP_PX, 300]);
+    // A drag: the same.
+    press(2, [100, 300], [160, 330]);
     expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
     expect(clicked).toHaveBeenCalledTimes(2);
-    // A tap: closed, the click swallowed, and focus back on `[ controls ]`.
-    press(3, [100, 300], [100 + SHEET_TAP_SLOP_PX - 1, 300]);
+    // The `×` closes it, and gives the focus back to `[ controls ]`.
+    fireEvent.click(screen.getByRole('button', { name: en.sheet.close }));
     expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'false');
-    expect(screen.getByTestId('live-controls')).toHaveAttribute('aria-expanded', 'false');
-    expect(clicked).toHaveBeenCalledTimes(2);
     expect(document.activeElement).toBe(screen.getByTestId('live-controls'));
-    // A press on the sheet itself, or on `[ controls ]`, is not a press on the sky.
-    fireEvent.click(screen.getByTestId('live-controls'));
-    fireEvent.pointerDown(screen.getByTestId('sheet-body'), { pointerId: 4, isPrimary: true, clientX: 100, clientY: 700 });
-    fireEvent.pointerUp(screen.getByTestId('sheet-body'), { pointerId: 4, isPrimary: true, clientX: 100, clientY: 700 });
-    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
   });
 
   /**
@@ -1555,15 +1547,14 @@ describe('<LivePage>', () => {
     expect(screen.queryByTestId('live-card')).toBeNull();
     expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
     expect(onLeave).not.toHaveBeenCalled();
-    // The list open, then the turn: the sheet and the list as they were, the side form.
-    openList();
-    expect(screen.getByTestId('live-list')).toBeInTheDocument();
+    // The turn: the sheet and the list as they were, the bottom sheet still (FR-GYRO-7).
+    expect(screen.getByTestId('live-satellites')).toBeInTheDocument();
     act(() => {
       media?.setSize(844, 390);
     });
     expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-open', 'true');
-    expect(screen.getByTestId('live-sheet')).toHaveAttribute('data-form', 'side');
-    expect(screen.getByTestId('live-list')).toBeInTheDocument();
+    expect(screen.getByTestId('live-sheet')).not.toHaveAttribute('data-form');
+    expect(screen.getByTestId('live-satellites')).toBeInTheDocument();
     act(() => {
       media?.setSize(390, 844);
     });
@@ -1963,8 +1954,7 @@ describe('<LivePage>', () => {
     const computeNow = vi.fn((_observer: unknown, t: number) => Promise.resolve<NowState>({ t, sunAltDeg: -30, sky: 'dark', items: [], hidden: [], moon: MOON_FIXTURE }));
     setLiveNowClient({ computeNow });
     render(<LivePage link={null} onLeave={() => undefined} />);
-    // R144 (D-905): on compact the toggle is the list panel's head.
-    openList();
+    // R144 (D-905) → R150 (FR-GYRO-10): on compact the toggle is the satellites' heading row's.
     fireEvent.click(screen.getByRole('button', { name: 'Hidden objects' }));
     expect(computeNow).toHaveBeenCalledTimes(1);
     await act(async () => {
@@ -2004,7 +1994,7 @@ describe('<LivePage>', () => {
       within(screen.getByRole('group', { name: en.chart.viewGroup }))
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['Polar', 'Dome', 'Window']);
+    ).toEqual(['Window', 'Polar', 'Dome']);
     Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
   });
 
@@ -2038,8 +2028,7 @@ describe('<LivePage>', () => {
     const computeNow = vi.fn((_observer: unknown, t: number) => Promise.resolve<NowState>({ t, sunAltDeg: -30, sky: 'dark', items: [], hidden, moon: MOON_FIXTURE }));
     setLiveNowClient({ computeNow });
     const { container } = render(<LivePage link={null} onLeave={() => undefined} />);
-    // R77 (FR-WATCH-4, V20-8) → R144 (D-905): on compact the toggle is the open list panel's head, in both states.
-    openList();
+    // R77 (FR-WATCH-4, V20-8) → R144 (D-905) → R150 (FR-GYRO-10): on compact the toggle is the satellites' heading row's.
     expect(container.querySelectorAll('[data-marker="hidden"]')).toHaveLength(0);
     expect(computeNow).not.toHaveBeenCalled();
     const toggle = screen.getByRole('button', { name: 'Hidden objects' });
@@ -2053,8 +2042,8 @@ describe('<LivePage>', () => {
     // R45 (FR-LEG-1): the reason is a legend row; the drawing carries the dimmed position and the row's key.
     // R132 (D-842): the legend is the layout's `list` slot's, not the dome row's.
     const legend = screen.getByTestId('chart-legend');
-    // R148 (FR-FULL-4): on compact the list panel is the sheet's, under the actions.
-    expect(legend.closest('[data-testid="live-list"]')).not.toBeNull();
+    // R150 (FR-GYRO-10): on compact the list is the sheet's satellites, under the actions.
+    expect(legend.closest('[data-testid="live-satellites"]')).not.toBeNull();
     expect(within(legend).getByText('Envisat · in shadow')).toBeInTheDocument();
     const tiangongKey = within(legend).getByText('Tiangong · too faint').closest('button')?.getAttribute('data-key');
     expect(tiangongKey).toMatch(/^[A-Z]$/);

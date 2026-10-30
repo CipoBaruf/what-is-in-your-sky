@@ -528,26 +528,24 @@ export const DETAIL_DRAWING_MIN_SHARE = 0.6;
 export const FULL_OVERLAY_MAX_SHARE = 0.12;
 
 /**
- * R147 (FR-FULL-4, D-918, D-921): the open sheet is never taller than this share of the viewport's height
+ * R147 (FR-FULL-4, D-918, D-921; FR-GYRO-7, D-947): the open sheet, a bottom sheet in both shapes, is never taller than this share of the viewport's height
  * (`100dvh`); past it its body scrolls and its head stays. At 390 × 844 at least 250 px of sky stays in sight above
  * it, so the reader sees the drawing follow the track. `ControlsSheet` writes it as `--sheet-max-share`.
  */
 export const SHEET_MAX_SHARE = 0.7;
 
 /**
- * R147 (FR-FULL-4, D-918, D-921): on the landscape phone the sheet is a panel at the right, this share of the
- * viewport's width and its full height: as wide as FR-FLOW-15's rail, so the open page looks like 2.6's landscape
- * page and the closed one is all sky. Written as the rail's own expression so the two cannot drift.
- * `ControlsSheet` writes it as `--sheet-side-share`.
+ * R150 (FR-GYRO-8, D-948): a downward drag of the sheet that starts on its head row and travels more than this, px,
+ * closes it on release: more than a thumb's wobble, well under the sheet's height at 390 × 667. A shorter release
+ * snaps the sheet back.
  */
-export const SHEET_SIDE_SHARE = 1 - LANDSCAPE_DRAWING_MIN_SHARE;
+export const SHEET_SWIPE_CLOSE_PX = 64;
 
 /**
- * R147 (FR-FULL-4, FR-FULL-5, D-918, D-922): a press on the sky above the open sheet that travels less than this,
- * px, is a tap and closes the sheet; one that travels further is a drag and turns the camera with the sheet open.
- * R148's `full` wrapper reads it.
+ * R150 (FR-GYRO-8, D-948): a downward flick faster than this, px per ms over the drag's last 100 ms, closes the sheet
+ * however short it was, as native sheets do.
  */
-export const SHEET_TAP_SLOP_PX = 8;
+export const SHEET_FLICK_PX_PER_MS = 0.5;
 
 /** FR-COMP-4: the compact control row's budget, cells of the body's 16 px advance (a 390 px viewport). */
 const ROW_BUDGET_CELLS = 36;

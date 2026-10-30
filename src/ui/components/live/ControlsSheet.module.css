@@ -1,10 +1,12 @@
 /* R147 (FR-FULL-4, FR-FULL-5; D-921): the controls sheet over the compact live page's sky.
 
    It stands on the page ground at `--z-sheet`, fixed to the viewport, which in the full form is the box (D-919).
-   Two forms, from `usePageShape` (`data-form`): in portrait a bottom sheet the full width, with a hairline top edge,
-   as tall as its content up to `--sheet-max-share` of `100dvh`; on the landscape phone a panel at the right,
-   `--sheet-side-share` of the viewport's width and its full height, with a hairline left edge. Both shares are
-   `lib/layout.ts`'s, written on the element by `ControlsSheet` (CSSOM, the CSP).
+   R150 (FR-GYRO-7, D-947): one form in both shapes, a bottom sheet the full width, with a hairline top edge, as tall
+   as its content up to `--sheet-max-share` of `100dvh` (`lib/layout.ts`'s, written on the element by `ControlsSheet`
+   through the CSSOM, the CSP). v2.8's side panel on the landscape phone is gone.
+
+   R150 (FR-GYRO-8, D-948): while the head row is dragged the sheet stands `--sheet-drag` under its place, with no
+   transition so it follows the finger; on release the drag is cleared and the sheet slides back, or out.
 
    Closed, the sheet stays in the tree, `inert`, slid off its edge, and is `visibility: hidden` once the slide is
    over (the `visibility` step waits the slide out), so nothing of it is drawn, hit or read. Open, it is visible at
@@ -22,44 +24,33 @@
   flex-direction: column;
   gap: var(--space-3);
   box-sizing: border-box;
-  padding: var(--space-2) calc(2 * var(--cell));
+  inset-inline: 0;
+  inset-block-end: 0;
+  max-block-size: calc(var(--sheet-max-share) * 100dvh);
+  padding: var(--space-2) calc(2 * var(--cell) + env(safe-area-inset-right)) calc(var(--space-2) + env(safe-area-inset-bottom)) calc(2 * var(--cell) + env(safe-area-inset-left));
+  border-block-start: var(--border);
   background: var(--bg);
   color: var(--fg);
   /* R148 (D-919): the layout's sheet slot lets the pointer through to the sky; the sheet itself takes it. */
   pointer-events: auto;
   overscroll-behavior: contain;
   visibility: hidden;
+  transform: translateY(100%);
   transition:
     transform var(--sheet-slide) ease-out,
     visibility 0s linear var(--sheet-slide);
 }
 
-.sheet[data-form='bottom'] {
-  inset-inline: 0;
-  inset-block-end: 0;
-  max-block-size: calc(var(--sheet-max-share) * 100dvh);
-  padding-block-end: calc(var(--space-2) + env(safe-area-inset-bottom));
-  padding-inline: calc(2 * var(--cell) + env(safe-area-inset-left)) calc(2 * var(--cell) + env(safe-area-inset-right));
-  border-block-start: var(--border);
-  transform: translateY(100%);
-}
-
-.sheet[data-form='side'] {
-  inset-block: 0;
-  inset-inline-end: 0;
-  inline-size: calc(var(--sheet-side-share) * 100vw);
-  block-size: 100dvh;
-  padding-block: calc(var(--space-2) + env(safe-area-inset-top)) calc(var(--space-2) + env(safe-area-inset-bottom));
-  padding-inline-end: calc(2 * var(--cell) + env(safe-area-inset-right));
-  border-inline-start: var(--border);
-  transform: translateX(100%);
-}
-
-/* After the two forms, so the open state's `transform` outranks each form's closed one at the same weight. */
+/* After the closed state, so the open state's `transform` outranks it; the drag is 0 but while the head row is dragged. */
 .sheet[data-open='true'] {
   visibility: visible;
-  transform: none;
+  transform: translateY(var(--sheet-drag, 0));
   transition: transform var(--sheet-slide) ease-out;
+}
+
+/* R150 (D-948): the sheet follows the finger, so nothing eases it while the head row is dragged. */
+.sheet[data-dragging='true'] {
+  transition: none;
 }
 
 /* `prefers-reduced-motion: reduce`, asked in script as the app asks it everywhere (`useMediaQuery(REDUCED_MOTION)`):
@@ -68,12 +59,14 @@
   transition: none;
 }
 
-/* The head: the place, dim and cut with an ellipsis, then `[ settings ]` and `[ close ]` at the row's right end. */
+/* The head: the place, dim and cut with an ellipsis, then `[ settings ]` and the `×` at the row's right end. R150
+   (D-948): the row is the swipe's handle, so it takes the touch's moves itself; the body keeps its native scroll. */
 .head {
   display: flex;
   flex: none;
   align-items: center;
   gap: 0 var(--cell);
+  touch-action: none;
 }
 
 .place {
@@ -85,9 +78,27 @@
   color: var(--fg-dim);
 }
 
-/* R148: the place is what gives; `[ settings ]` and `[ close ]` keep their cells on a row too narrow for all three (360 px, Spanish). */
+/* R148: the place is what gives; `[ settings ]` and the `×` keep their cells on a row too narrow for all three (360 px, Spanish). */
 .head > :not(.place) {
   flex: none;
+}
+
+/* R150 (FR-GYRO-8, D-948): the `×`, FR-FSC-2's form — the character alone, the app's one icon, in a box of at least
+   `--tap` each way (`.target` adds the hit area's floor). */
+.close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-inline-size: var(--tap);
+  min-block-size: var(--tap);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  font-size: var(--row);
+  line-height: 1;
+  cursor: pointer;
 }
 
 .body {

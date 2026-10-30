@@ -676,13 +676,13 @@ describe('<SkyChart> view choice (US-6 AC5, FR-WIN-4)', () => {
     const { unmount } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
     expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'dome');
     const toggle = screen.getByRole('group', { name: 'Chart view' });
-    expect(within(toggle).getAllByRole('button').map((button) => button.textContent)).toEqual(['Polar', 'Dome', 'Window']);
+    expect(within(toggle).getAllByRole('button').map((button) => button.textContent)).toEqual(['Window', 'Polar', 'Dome']);
     unmount();
 
     withPhone();
     const { unmount: unmountPage } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} />);
     expect(screen.getByRole('figure')).toHaveAttribute('data-view', 'dome');
-    expect(within(screen.getByRole('group', { name: 'Chart view' })).getAllByRole('button').map((button) => button.textContent)).toEqual(['Polar', 'Dome', 'Window']);
+    expect(within(screen.getByRole('group', { name: 'Chart view' })).getAllByRole('button').map((button) => button.textContent)).toEqual(['Window', 'Polar', 'Dome']);
     unmountPage();
 
     const { container } = render(<SkyChart passes={[pass]} observer={observer} highlightedPassId={pass.id} screen />);

@@ -33,10 +33,10 @@ const SHAPES = [
   [1280, 800, 'under'],
   [1200, 450, 'overlay'],
 ] as const;
-/** The compact shapes: the portrait phone and the landscape phone, with their sheet's form (R148, FR-FULL-4). */
+/** The compact shapes: the portrait phone and the landscape phone (R148, FR-FULL-4); the sheet is the bottom sheet in both (R150, FR-GYRO-7). */
 const COMPACT_SHAPES = [
-  [390, 844, 'bottom', 'under'],
-  [844, 390, 'side', 'rail'],
+  [390, 844, 'under'],
+  [844, 390, 'rail'],
 ] as const;
 
 interface Box {
@@ -179,8 +179,8 @@ for (const [width, height, placement] of SHAPES) {
  * `[ controls ]` over the sky, the sheet's rows reachable while it is open; nothing appears or disappears when `t`
  * leaves real time. `[ next ]` lands a minute before the next rise and `[ now ]` returns to real time and the bare route.
  */
-for (const [width, height, sheetForm, placement] of COMPACT_SHAPES) {
-  test(`the box unchanged across the sheet closed, open, open with the list, a drag on the track, next and now at ${String(width)} × ${String(height)} (FR-FULL-6, FR-TONIGHT-6, FR-WATCH-5)`, async ({ page }) => {
+for (const [width, height, placement] of COMPACT_SHAPES) {
+  test(`the box unchanged across the sheet closed, open with the satellites, a drag on the track, next and now at ${String(width)} × ${String(height)} (FR-FULL-6, FR-TONIGHT-6, FR-WATCH-5)`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await homeAt(page, T);
     await page.getByTestId('live-link').click();
@@ -188,10 +188,11 @@ for (const [width, height, sheetForm, placement] of COMPACT_SHAPES) {
     await stripFilled(page);
     await expect(page.getByTestId('live-layout')).toHaveAttribute('data-shape', 'full');
     await expect(page.getByTestId('live-page')).toHaveAttribute('data-scrub-placement', placement);
-    await expect(page.getByTestId('live-sheet')).toHaveAttribute('data-form', sheetForm);
+    await expect(page.getByTestId('live-sheet')).not.toHaveAttribute('data-form');
     const OVERLAY = ['live-head', 'live-back', 'live-controls'] as const;
-    const SHEET = ['live-context', 'live-track', 'live-taps', 'live-view-row', 'live-facing', 'live-actions', 'live-legend-toggle', 'live-share'] as const;
-    const GONE = ['live-top-row', 'live-state-mark', 'live-headline', 'live-indicator', 'live-state-word', 'next-event', 'status-strip', 'overview-row', 'time-stripe', 'step-controls', 'playback-row', 'time-row', 'live-scrub', 'live-now', 'live-hidden-toggle', 'stripe-block'] as const;
+    // R150 (FR-GYRO-10): `[ list (n) ]` is gone; the satellites, their heading and the hidden toggle at its end are the sheet's last group.
+    const SHEET = ['live-context', 'live-track', 'live-taps', 'live-view-row', 'live-facing', 'live-actions', 'live-share', 'live-satellites', 'live-satellites-head', 'live-hidden-toggle'] as const;
+    const GONE = ['live-top-row', 'live-state-mark', 'live-headline', 'live-indicator', 'live-state-word', 'next-event', 'status-strip', 'overview-row', 'time-stripe', 'step-controls', 'playback-row', 'time-row', 'live-scrub', 'live-now', 'live-legend-toggle', 'stripe-block'] as const;
     const inventory = async (state: string, sheetOpen: boolean): Promise<void> => {
       for (const id of OVERLAY) await expect(page.getByTestId(id), `${state}: ${id} is visible`).toBeVisible();
       // The sheet's rows stay in the tree while it is closed (D-932), inert and hidden; reachable only while it is open.
@@ -217,12 +218,8 @@ for (const [width, height, sheetForm, placement] of COMPACT_SHAPES) {
     await expect(page.getByTestId('live-tap-now')).toBeDisabled();
     expect(await settledBox(page, 'chart-box'), 'the box with the sheet open').toEqual(closed.box);
     expect(await settledBox(page, 'live-dome')).toEqual(closed.dome);
-    // The list open: the same box.
-    await page.getByTestId('live-legend-toggle').click();
-    await expect(page.getByTestId('chart-legend-slot')).toHaveCount(1);
-    expect(await settledBox(page, 'chart-box'), 'the box with the list open').toEqual(closed.box);
-    await page.getByTestId('live-legend-toggle').click();
-    await expect(page.getByTestId('chart-legend-slot')).toHaveCount(0);
+    // The list open with no tap, inside the sheet (R150, FR-GYRO-10).
+    await expect(page.getByTestId('live-satellites').getByTestId('chart-legend-slot')).toHaveCount(1);
 
     // A drag on the track: held, the same rows, the box the same (FR-TONIGHT-9: identical before and after).
     await pressTrackAt(page, T + 6 * 3_600_000);
@@ -329,9 +326,9 @@ test('at 360 px in Spanish the head is [ ← ] and the time, and the sheet’s h
   await openSheet(page);
   const place = page.getByTestId('sheet-place');
   await expect(place).toHaveText(/^−?\d+\.\d\d, −?\d+\.\d\d$/);
-  // FR-FULL-4: the sheet's head is the place, `[ ajustes ]` and `[ cerrar ]` — 22 cells of controls, which at 360 px
-  // leave the place 11 of the 33 the row holds, so the pair is cut with the ellipsis the requirement allows (R147's
-  // 13 cells at 390 px); the two controls stand whole at the row's end, inside the sheet.
+  // FR-FULL-4: the sheet's head is the place, `[ ajustes ]` and the `×` (R150, FR-GYRO-8) — 17 cells of controls with
+  // the `×`'s box, which at 360 px leave the place 15 of the 33 the row holds, so a long pair is cut with the
+  // ellipsis the requirement allows; the two controls stand whole at the row's end, inside the sheet.
   const fit = await place.evaluate((span) => ({ scroll: span.scrollWidth, client: span.clientWidth, overflow: getComputedStyle(span).textOverflow }));
   if (fit.scroll > fit.client) expect(fit.overflow).toBe('ellipsis');
   test.info().annotations.push({ type: 'place', description: `the place at 360 px: ${String(fit.scroll)} of ${String(fit.client)} px` });

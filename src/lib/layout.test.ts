@@ -1,23 +1,26 @@
 /**
- * R147 (FR-FULL-3, FR-FULL-4, D-918, D-924): the full sky's constants hold the spec's numbers, the side sheet is
- * the landscape rail's width by construction, and `hintFitsBeside` puts the hint on the button's row only when the
+ * R147 (FR-FULL-3, FR-FULL-4, D-918, D-924): the full sky's constants hold the spec's numbers, the swipe's two
+ * thresholds are SPEC §4.51's, and `hintFitsBeside` puts the hint on the button's row only when the
  * two fit FR-COMP-4's 36 cells, the hint counted at `--small` as `controlRows.test.ts` counts it.
  */
 import { describe, expect, it } from 'vitest';
 import { en } from '../i18n/en';
 import { es } from '../i18n/es';
-import { FULL_OVERLAY_MAX_SHARE, hintFitsBeside, LANDSCAPE_DRAWING_MIN_SHARE, SHEET_MAX_SHARE, SHEET_SIDE_SHARE, SHEET_TAP_SLOP_PX } from './layout';
+import { FULL_OVERLAY_MAX_SHARE, hintFitsBeside, SHEET_FLICK_PX_PER_MS, SHEET_MAX_SHARE, SHEET_SWIPE_CLOSE_PX } from './layout';
 
 describe('the full sky’s constants (FR-FULL, D-918)', () => {
   it('are SPEC §4.50’s defaults', () => {
     expect(FULL_OVERLAY_MAX_SHARE).toBe(0.12);
     expect(SHEET_MAX_SHARE).toBe(0.7);
-    expect(SHEET_TAP_SLOP_PX).toBe(8);
-    expect(SHEET_SIDE_SHARE).toBeCloseTo(0.45, 10);
   });
 
-  it('give the side sheet exactly the width the landscape drawing leaves', () => {
-    expect(SHEET_SIDE_SHARE + LANDSCAPE_DRAWING_MIN_SHARE).toBeCloseTo(1, 10);
+  it('hold SPEC §4.51’s swipe constants (FR-GYRO-8, D-948)', () => {
+    expect(SHEET_SWIPE_CLOSE_PX).toBe(64);
+    expect(SHEET_FLICK_PX_PER_MS).toBe(0.5);
+  });
+
+  it('close on a swipe well under the sheet’s height at 390 × 667', () => {
+    expect(SHEET_SWIPE_CLOSE_PX).toBeLessThan(667 * SHEET_MAX_SHARE * 0.25);
   });
 
   it('leave at least 250 px of sky above the open sheet at 390 × 844', () => {

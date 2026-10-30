@@ -150,8 +150,8 @@ test.describe('the live page on a portrait phone', () => {
   test('the portrait rows: the head over the box, which is the viewport, and in the sheet the context line, the track, the taps, the view row, the facing row, the actions and the list, nothing scrolls (FR-FULL-1, FR-FULL-4, FR-TONIGHT-6)', async ({ page }) => {
     await openLive(page);
     /*
-     * R71 (FR-LEG-7): the legend is a row of this page only while `[ list (n) ]` holds it open, so the rows
-     * below are measured with it open — the state that has one of everything.
+     * R71 (FR-LEG-7) → R150 (FR-GYRO-10): the legend stands open at the sheet's end, so the rows
+     * below are measured with the sheet open — the state that has one of everything.
      *
      * R144 (FR-TONIGHT-6): the rows are the same held or not; the instant is held on the track all the same.
      * R148 (FR-FULL-4): the rows are the sheet's, over the box, which is the viewport (FR-FULL-1).
@@ -168,7 +168,7 @@ test.describe('the live page on a portrait phone', () => {
     await page.getByTestId('chart-legend-slot').scrollIntoViewIfNeeded();
     // The list's panel, two tap rows that scroll inside themselves (`live-compact.spec.ts`), not the rows it holds.
     const legend = await box(page, 'chart-legend-slot');
-    const listHead = await box(page, 'live-list-head');
+    const listHead = await box(page, 'live-satellites-head');
     const track = await box(page, 'live-track');
     const taps = await box(page, 'live-taps');
     const actions = await box(page, 'live-actions');
@@ -179,7 +179,7 @@ test.describe('the live page on a portrait phone', () => {
     expect(head.y).toBeLessThan(PORTRAIT.height / 4);
     expect(head.x).toBeLessThan(PORTRAIT.width / 4);
     // FR-FULL-4: in the sheet, top to bottom — the context line, the track (two tap rows with its label row), the
-    // taps, the view row, the facing row, the actions, then the list's head and the list.
+    // taps, the view row, the facing row, the actions, then the satellites' heading row and the list (R150, FR-GYRO-10).
     expect(context.y).toBeGreaterThanOrEqual(sheet.y - 1);
     expect(track.y).toBeGreaterThanOrEqual(context.y + context.height - 1);
     expect(track.height).toBeGreaterThanOrEqual(2 * row - 1);

@@ -204,21 +204,30 @@
   min-width: 0;
 }
 
-/* The list panel (FR-FULL-4, D-905): under the actions, inside the sheet, with the hidden-objects toggle in its
-   head; on the page only while `[ list (n) ]` holds it open, so the closed list takes no gap. */
-.listPanel {
+/* R150 (FR-GYRO-10, D-949): the satellites at the sheet's end, always open — "Satellites (n)" with the
+   hidden-objects toggle at its right end (D-905's place), one tap row, over the list. */
+.satellites {
   display: grid;
   gap: var(--space-1);
   min-width: 0;
 }
 
-/* R144 (FR-TONIGHT-6, D-905): the list panel's head on compact — the hidden-objects toggle, one tap row, over the
-   panel's two rows. */
-.listHead {
+/* The heading takes the row and its rule gives; the toggle keeps its cells. */
+.satellitesHead {
   display: flex;
   align-items: center;
+  gap: var(--cell);
   min-height: var(--tap);
   min-width: 0;
+}
+
+.satellitesHead > h2 {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.satellitesHead > :not(h2) {
+  flex: none;
 }
 
 /* R144 (FR-TONIGHT-3, FR-TONIGHT-4): the timeline slot — the track with its label row, then the taps, a row apart

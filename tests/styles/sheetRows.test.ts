@@ -8,7 +8,8 @@
  * `--small` 14/16.
  *
  * The rows: the head over the sky at its longest (`[ ← ] 21:47 tonight · in 13 h 55 min`, FR-FULL-2), the
- * `[ controls ]` button (FR-FULL-3), and the sheet's head row — the place, `[ settings ]`, `[ close ]` (FR-FULL-4).
+ * `[ controls ]` button (FR-FULL-3), and the sheet's head row — the place, `[ settings ]`, the `×` (FR-FULL-4, R150's
+ * FR-GYRO-8).
  * The place and the chip are the parts that ellipsise, so each row also says how much of it the fixed part takes.
  * R146's card rows are `controlRows.test.ts`'s; this file is R147's own so the two tasks of wave 1 touch no file in
  * common (PLAN §16.27).
@@ -117,15 +118,19 @@ describe.each(LOCALES)('the full sky’s rows in %s (FR-FULL-2, FR-FULL-3, FR-FU
     expect(cells).toBeLessThanOrEqual(rowCellsAt(360));
   });
 
-  it('the sheet’s head row: a ten-letter place, [ settings ] and [ close ], inside 360 px', () => {
+  it('the sheet’s head row: a ten-letter place, [ settings ] and the ×, inside 360 px', () => {
     inLocale(locale, createElement(ControlsSheet, { open: true, onOpenChange: () => undefined, place: 'Cipolletti' }));
     const head = screen.getByTestId('sheet-head');
     const cells = rowCells(head, table);
-    expect(rowParts(head, table)).toEqual(['Cipolletti', `####${t.settings.open}`, `####${t.sheet.close}`]);
-    expect(cells).toBe(33);
-    expect(cells).toBeLessThanOrEqual(rowCellsAt(360));
-    // The fixed part is 22 cells in both languages (`[ settings ] [ close ]`, `[ ajustes ] [ cerrar ]`), so a place has
-    // 13 cells at 390 px and 10 at 360 before its ellipsis.
-    expect(cells - 'Cipolletti'.length - 1).toBe(22);
+    // R150 (FR-GYRO-8): the `×` is one character drawn in a `--tap` box (48 px), wider than its cell: count the box.
+    expect(rowParts(head, table)).toEqual(['Cipolletti', `####${t.settings.open}`, '×']);
+    const tapCells = Math.ceil(48 / (CELL_ADVANCE_EM_MAX * BASE_FONT_PX));
+    const fixed = `[ ${t.settings.open} ]`.length + 1 + tapCells;
+    expect(cells - 'Cipolletti'.length - 1 - 1).toBe(`[ ${t.settings.open} ]`.length + 1);
+    expect('Cipolletti'.length + 1 + fixed).toBeLessThanOrEqual(rowCellsAt(360));
+    // The fixed part is 18 cells in English and 17 in Spanish (`[ settings ] ×`, `[ ajustes ] ×`, the `×` as its five
+    // cells of box), so a place has 17 or 18 cells at 390 px before its ellipsis — more than `[ close ]` left it (13).
+    expect(tapCells).toBe(5);
+    expect(fixed).toBe(locale === 'en' ? 18 : 17);
   });
 });

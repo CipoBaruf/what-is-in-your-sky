@@ -17,7 +17,6 @@ import { es } from '../../../i18n/es';
 import { I18nProvider } from '../../../i18n/useT';
 import type { Locale } from '../../../model';
 import { fireEvent } from '@testing-library/react';
-import { SHEET_TAP_SLOP_PX } from '../../../lib/layout';
 import { SkyViewChartSlot, SkyViewLayout, SLOT_ORDER, SLOT_RHYTHM, useChartSlot, type ChartSlotName, type SkyViewLayoutProps } from './SkyViewLayout';
 
 let media: MatchMediaStub | null = null;
@@ -351,44 +350,25 @@ describe('<SkyViewLayout> (FR-FLOW-4, D-842)', () => {
     expect(screen.queryByText('over')).toBeNull();
   });
 
-  /** R148 (FR-FULL-4, FR-FULL-5; D-922): a tap on the sky closes the open sheet and swallows its click; a drag and a press elsewhere do not. */
-  it('with form full and the sheet open closes it on a tap on the drawing, swallowing the click, and not on a drag, a press in the sheet, or with the sheet closed', () => {
+  /**
+   * R150 (FR-GYRO-8, D-948): D-922's capture-phase listener is withdrawn. The full form listens to nothing: a tap on
+   * the drawing reaches it — its `pointerup` and its `click` both — whatever is in the sheet slot.
+   */
+  it('with form full lets a tap on the drawing through, its pointerup and its click, with the sheet slot filled', () => {
     media = stubMatchMedia(COMPACT_PX);
-    const onSheetClose = vi.fn();
-    const clicked = vi.fn();
-    const mount = (sheetOpen: boolean) =>
-      render(
-        <SkyViewLayout data-testid="layout" form="full" sheetOpen={sheetOpen} onSheetClose={onSheetClose} drawing={<div data-testid="box">box</div>} overlay={<button type="button" data-testid="over" />} sheet={<div data-testid="sheet">sheet</div>} />,
-      );
-    const press = (target: HTMLElement, id: number, from: [number, number], to: [number, number]): void => {
-      fireEvent.pointerDown(target, { pointerId: id, isPrimary: true, clientX: from[0], clientY: from[1] });
-      fireEvent.pointerUp(target, { pointerId: id, isPrimary: true, clientX: to[0], clientY: to[1] });
-      fireEvent.click(target);
-    };
-    const { unmount } = mount(false);
-    screen.getByTestId('box').addEventListener('click', clicked);
-    press(screen.getByTestId('box'), 1, [10, 10], [10, 10]);
-    expect(onSheetClose).not.toHaveBeenCalled();
-    expect(clicked).toHaveBeenCalledTimes(1);
-    unmount();
-    mount(true);
+    render(<SkyViewLayout data-testid="layout" form="full" drawing={<div data-testid="box">box</div>} overlay={<button type="button" data-testid="over" />} sheet={<div data-testid="sheet">sheet</div>} />);
     const box = screen.getByTestId('box');
-    box.addEventListener('click', clicked);
-    // A drag: past the slop, the sheet stays and the drawing gets the click.
-    press(box, 2, [10, 10], [10 + SHEET_TAP_SLOP_PX, 10]);
-    expect(onSheetClose).not.toHaveBeenCalled();
-    expect(clicked).toHaveBeenCalledTimes(2);
-    // A press in the sheet or on the overlay is not a press on the sky.
-    press(screen.getByTestId('sheet'), 3, [10, 10], [10, 10]);
-    press(screen.getByTestId('over'), 4, [10, 10], [10, 10]);
-    expect(onSheetClose).not.toHaveBeenCalled();
-    // A tap: closed, and the click never reaches the drawing.
-    press(box, 5, [10, 10], [10 + SHEET_TAP_SLOP_PX - 1, 10]);
-    expect(onSheetClose).toHaveBeenCalledTimes(1);
-    expect(clicked).toHaveBeenCalledTimes(2);
-    // The swallow was for that one click: the next reaches the drawing.
-    fireEvent.click(box);
-    expect(clicked).toHaveBeenCalledTimes(3);
+    const ups = vi.fn();
+    const clicks = vi.fn();
+    box.addEventListener('pointerup', ups);
+    box.addEventListener('click', clicks);
+    for (let id = 1; id <= 3; id += 1) {
+      fireEvent.pointerDown(box, { pointerId: id, isPrimary: true, clientX: 10, clientY: 10 });
+      fireEvent.pointerUp(box, { pointerId: id, isPrimary: true, clientX: 10, clientY: 10 });
+      fireEvent.click(box);
+    }
+    expect(ups).toHaveBeenCalledTimes(3);
+    expect(clicks).toHaveBeenCalledTimes(3);
   });
 
   /** R144 (FR-TONIGHT-9): a filling column writes the room its rows leave the drawing; a column that grows with its rows writes nothing. */

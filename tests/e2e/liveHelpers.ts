@@ -570,25 +570,18 @@ export async function reenterLiveWithTheme(page: Page, locale: 'en' | 'es', them
 }
 
 /**
- * R71 (FR-LEG-7, D-387): on the compact live page the legend is behind
- * `[ list (n) ]` and is not in the document until it is opened, so a test that
- * reads a legend row opens the panel first. A no-op on a wide page, where the
- * legend stands in the rail at every width (FR-LEG-6), and on one whose panel
- * is already open — the state is a preference and survives a reload.
+ * R71 (FR-LEG-7, D-387) → R150 (FR-GYRO-10, D-949): on the compact live page the legend is the satellites list,
+ * open at the controls sheet's end, so a test that reads a legend row opens the sheet first. A no-op on a wide page,
+ * where the legend stands in the rail at every width (FR-LEG-6).
  */
 export async function openLegend(page: Page): Promise<void> {
-  const control = page.getByTestId('live-legend-toggle');
-  if ((await control.count()) === 0) return;
-  // R148 (FR-FULL-4): on the compact live page `[ list (n) ]` is the sheet's.
   await openSheet(page);
-  if ((await control.getAttribute('aria-expanded')) === 'true') return;
-  await control.click();
   await expect(page.getByTestId('chart-legend-slot')).toHaveCount(1);
 }
 
 /**
  * R148 (FR-FULL-3, FR-FULL-4, FR-FULL-5): the compact live page's sheet, opened from `[ controls ]` — where the
- * context line, the track, the taps, the view row, the facing row, `[ list (n) ]` and Share stand. A no-op on a
+ * context line, the track, the taps, the view row, the facing row, Share and the satellites stand. A no-op on a
  * page with no `[ controls ]` (wide, the stars page, the pass detail) and on a sheet already open.
  */
 export async function openSheet(page: Page): Promise<void> {
